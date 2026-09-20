@@ -456,30 +456,45 @@ function readTextRun(bytes: Buffer, start: number): { text: string; end: number 
 }
 
 /**
- * A number literal that fits in one byte (0-255): opcode 0x50, two zero
- * bytes, the value, then 15 more zero bytes -- 19 bytes total. Confirmed
- * against four instances across two programs, at the same relative position
+ * A number literal: opcode 0x50, two zero bytes, then a 16-byte
+ * little-endian unsigned integer -- 19 bytes total. First confirmed against
+ * four small instances across two programs, at the same relative position
  * each time: 1, 2 (`If (1 = 2) Then`), then 12 (0x0c) and 34 (0x22)
  * (`If (12 = 34) Then`) -- the value byte is the number's raw binary value,
  * not a digit or ASCII, so this was never actually limited to single digits;
- * an earlier revision restricted it to 0-9 on too little evidence. Values
- * above 255, decimals and negative numbers presumably use more of what's
- * zero here and so correctly fail this exact-shape match rather than being
- * misread.
+ * an earlier revision restricted it to 0-9 on too little evidence. Decimals
+ * and negative numbers presumably use this same field differently and so
+ * correctly fail this unsigned-integer read rather than being misread.
  *
  * `operandLength` also accepts 0x11's shorter, 14-byte shape (adopted from
  * PeopleCodeParser.java; see file header) which this project has not yet
- * independently confirmed a sample of.
+ * independently confirmed a sample of -- `valueBytes` keeps that one
+ * restricted to exactly the single confirmed byte, unchanged.
+ *
+ * For 0x50, `valueBytes` is the full 16 remaining bytes: hand-walking four
+ * more real values past the single-byte range (`SetTracePC(3596)`,
+ * `Char(65533)`, `Rand() * 1000000000`, a `MsgGetText` message number 311)
+ * found each one is the same little-endian integer, just occupying more of
+ * the same field -- 3596 (0x0e0c) at bytes 2-3, 65533 (0xfffd) at bytes
+ * 2-3, 1000000000 (0x3b9aca00) at bytes 2-5, 311 (0x0137) at bytes 2-3 --
+ * confirming the single-byte shape was never a separate case, just this
+ * same field with its upper bytes at zero. Read with BigInt since nothing
+ * bounds how many of the 16 bytes a real literal might use. Decimals and
+ * negative numbers are still not confirmed and still correctly fail this
+ * unsigned-integer read rather than being misread. See docs/ROADMAP.md
+ * pass twenty-six.
  */
 function readByteIntegerLiteral(
   bytes: Buffer,
   start: number,
-  operandLength: number
-): { value: number; end: number } | undefined {
+  operandLength: number,
+  valueBytes: number
+): { value: bigint; end: number } | undefined {
   if (start + operandLength > bytes.length) return undefined;
   if (bytes[start] !== 0x00 || bytes[start + 1] !== 0x00) return undefined;
-  const value = bytes[start + 2];
-  for (let j = start + 3; j < start + operandLength; j++) {
+  let value = 0n;
+  for (let j = valueBytes - 1; j >= 0; j--) value = (value << 8n) | BigInt(bytes[start + 2 + j]);
+  for (let j = start + 2 + valueBytes; j < start + operandLength; j++) {
     if (bytes[j] !== 0x00) return undefined;
   }
   return { value, end: start + operandLength };
@@ -954,10 +969,11 @@ export function decodeProgram(
 
     if (opcode === 0x50 || opcode === 0x11) {
       const operandLength = opcode === 0x50 ? 18 : 14;
-      const literal = readByteIntegerLiteral(bytes, i, operandLength);
+      const valueBytes = opcode === 0x50 ? 16 : 1;
+      const literal = readByteIntegerLiteral(bytes, i, operandLength, valueBytes);
       if (literal !== undefined) {
         tokens.push({
-          kind: TokenKind.NumberLiteral, text: String(literal.value), offset, opcode,
+          kind: TokenKind.NumberLiteral, text: literal.value.toString(), offset, opcode,
           format: OPERAND_FORMAT.get(opcode) ?? 0
         });
         i = literal.end;

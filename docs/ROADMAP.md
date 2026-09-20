@@ -1239,6 +1239,45 @@ sources all session), which is the safe fallback, not a wrong render.
 **Coverage 97.71% → 97.77%, clean programs 89 → 108 (the largest single
 jump this session), line matching 90.14% → 91.85%.**
 
+## Pass twenty-six: the number literal was never a single-byte shape
+
+The user picked this over the Application Class trailer as the next dig.
+Pass four's `0x50` confirmation (`If (1 = 2) Then`, `If (12 = 34) Then`)
+established "two zero bytes, the value byte, then 15 more zero bytes,"
+and flagged the obvious open question: what about values above 255? Every
+`0x50` still unmapped in the corpus is exactly that question.
+
+Hand-walked four real values past the single-byte range, each the
+program's only unmapped opcode: `WEBLIB_G3TOOLS.ISCRIPT1`'s
+`SetTracePC(3596)`, `WEBLIB_GS_ERPFW.ISCRIPT1`'s `Char(65533)`,
+`WEBLIB_OU_LP.ISCRIPT2`'s `Rand() * 1000000000`, and
+`WEBLIB_PORTAL.PORTAL_PGLT_PREV`'s `MsgGetText(95, 311, "...")`. All four
+are the *same field*, not a new shape: 3596 (`0x0e0c`) sits at bytes 2-3
+of the 16-byte field past the two leading zero bytes; 65533 (`0xfffd`)
+the same; 1000000000 (`0x3b9aca00`) at bytes 2-5; 311 (`0x0137`) at bytes
+2-3. The single-byte cases pass four confirmed are the identical field
+with its upper 15 bytes at zero -- there was never a separate "fits in
+one byte" shape, just this one 16-byte little-endian unsigned integer,
+confirmed now from 1 up through 1000000000.
+
+**Shipped**: `readByteIntegerLiteral` now takes a `valueBytes` parameter.
+`0x50` reads all 16 remaining bytes as the value (nothing left over to
+require being zero); `0x11` (the still-unconfirmed 14-byte shape adopted
+from `PeopleCodeParser.java`) is untouched, still restricted to exactly
+one value byte, since this pass has no fresh evidence about it. Read with
+`BigInt` rather than a plain number, since nothing bounds how many of the
+16 bytes a real literal might use. Decimals and negative numbers are
+still not confirmed and still correctly fail this unsigned-integer read
+rather than being misread -- an all-zero field decodes to `0`, which is
+indistinguishable from "no value here" only in the sense that both cases
+are real integers this shape already covers; a decimal point or a sign
+would need a different field entirely, still unidentified.
+
+This was, by a wide margin, the highest-value single fix of the session:
+**coverage 97.77% → 98.72%, clean programs 108 → 156 (+48), line matching
+91.85% → 95.64%**. Text accuracy held (97.07% → 97.13%). Three of the four
+hand-walked samples now decode with zero unmapped opcodes.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in

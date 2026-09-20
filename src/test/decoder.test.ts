@@ -208,6 +208,25 @@ test('number literals decode to their value', () => {
   assert.ok(result.text.includes('(1 = 2)'));
 });
 
+test('a number literal above 255 uses more of the same 16-byte field, not a separate shape', () => {
+  // Confirmed by hand-walking four real values past the single-byte range:
+  // SetTracePC(3596), Char(65533), Rand() * 1000000000, and a MsgGetText
+  // message number 311 -- each is the identical little-endian field 0x50
+  // already used for 1/2/12/34, just with more of its 16 bytes non-zero.
+  // The single-byte shape was never a separate case.
+  const b = (n: bigint) => {
+    const bytes = [0x50, 0x00, 0x00];
+    for (let i = 0; i < 16; i++) { bytes.push(Number(n & 0xffn)); n >>= 8n; }
+    return bytes;
+  };
+  assert.equal(
+    decodeProgram(Buffer.from([...HEADER, ...b(3596n)]), new NameTable()).text, '3596');
+  assert.equal(
+    decodeProgram(Buffer.from([...HEADER, ...b(65533n)]), new NameTable()).text, '65533');
+  assert.equal(
+    decodeProgram(Buffer.from([...HEADER, ...b(1000000000n)]), new NameTable()).text, '1000000000');
+});
+
 test('a plain function-call identifier decodes the same way AddOnLoadScript did', () => {
   const result = decodeProgram(SAVE_PRE_CHANGE_BYTES, codeNames());
   assert.ok(result.text.includes('WinMessage("Test")'));
