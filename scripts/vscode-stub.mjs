@@ -8,6 +8,8 @@
  * real editor behaviour belongs in a manual test pass instead.
  */
 
+import { URI } from 'vscode-uri';
+
 export function createStub() {
   const registered = {
     commands: new Set(),
@@ -40,27 +42,11 @@ export function createStub() {
     dispose() { this._listeners.length = 0; }
   }
 
-  /** Minimal but faithful enough for the psft:// round-trip the extension does. */
-  class Uri {
-    constructor(scheme, authority, path, query = '', fragment = '') {
-      this.scheme = scheme;
-      this.authority = authority;
-      this.path = path;
-      this.query = query;
-      this.fragment = fragment;
-    }
-    static parse(value) {
-      const m = /^([a-zA-Z][\w+.-]*):\/\/([^/?#]*)([^?#]*)(?:\?([^#]*))?(?:#(.*))?$/.exec(value);
-      if (!m) throw new Error(`stub Uri.parse could not parse: ${value}`);
-      return new Uri(m[1], m[2], m[3] || '', m[4] ?? '', m[5] ?? '');
-    }
-    static file(p) { return new Uri('file', '', p); }
-    get fsPath() { return this.path; }
-    toString() {
-      return `${this.scheme}://${this.authority}${this.path}` +
-        (this.query ? `?${this.query}` : '') + (this.fragment ? `#${this.fragment}` : '');
-    }
-  }
+  // The real implementation VS Code's `vscode.Uri` is built on, not a stand-in.
+  // A hand-written parser round-trips URIs that this one mangles -- lowercasing
+  // the authority, not re-encoding its slashes -- which once let a broken URI
+  // encoding pass the smoke test and fail in the editor.
+  const Uri = URI;
 
   class TreeItem {
     constructor(label, collapsibleState) {

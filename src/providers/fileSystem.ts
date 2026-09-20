@@ -47,13 +47,13 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
   }
 
   private async isWritable(uri: vscode.Uri): Promise<boolean> {
-    const { connectionId, key } = parseUri(uri);
-    const provider = this.workspace.getProvider(connectionId);
+    const { handle, key } = parseUri(uri);
+    const provider = this.workspace.getProviderByHandle(handle);
     if (!provider?.capabilities.write) return false;
     // PeopleCode cannot be written back to the database yet; marking the
     // document read-only says so before the user types into it, rather than
     // failing at save time with unsaved work on screen.
-    if (isPeopleCode(key.type) && connectionId.startsWith('oracle:')) return false;
+    if (isPeopleCode(key.type) && provider.id.startsWith('oracle:')) return false;
     return true;
   }
 
@@ -64,8 +64,8 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
   }
 
   private async load(uri: vscode.Uri): Promise<Uint8Array> {
-    const { connectionId, key } = parseUri(uri);
-    const provider = await this.workspace.require(connectionId);
+    const { handle, key } = parseUri(uri);
+    const provider = await this.workspace.requireByHandle(handle);
     const text = await provider.readText(key);
     const content = Buffer.from(text, 'utf8');
     this.cache.set(uri.toString(), { content, mtime: Date.now() });
@@ -73,8 +73,8 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
   }
 
   async writeFile(uri: vscode.Uri, content: Uint8Array): Promise<void> {
-    const { connectionId, key } = parseUri(uri);
-    const provider = await this.workspace.require(connectionId);
+    const { handle, key } = parseUri(uri);
+    const provider = await this.workspace.requireByHandle(handle);
     await provider.writeText(key, Buffer.from(content).toString('utf8'));
     this.cache.set(uri.toString(), { content, mtime: Date.now() });
     this._onDidChangeFile.fire([{ type: vscode.FileChangeType.Changed, uri }]);
