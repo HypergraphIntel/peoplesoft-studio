@@ -6,7 +6,7 @@ import { BrowserView } from './views/browser.js';
 import { ProjectsView } from './views/projects.js';
 import { RecordEditorProvider } from './editors/recordEditor.js';
 import { OpenDefinitionPanel } from './editors/openDefinitionPanel.js';
-import { DefinitionKey, DefinitionType, displayName } from './model/definitions.js';
+import { DefinitionKey, DefinitionType, displayName, typeLabel } from './model/definitions.js';
 import { toUri } from './util/uri.js';
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -89,14 +89,28 @@ export function activate(context: vscode.ExtensionContext): void {
             return;
           }
 
-          const uri = toUri(connectionId, key);
           if (key.type === DefinitionType.Record) {
+            const uri = toUri(connectionId, key);
             await vscode.commands.executeCommand(
               'vscode.openWith', uri, RecordEditorProvider.viewType);
-          } else {
-            const doc = await vscode.workspace.openTextDocument(uri);
-            await vscode.window.showTextDocument(doc, { preview: true });
+            return;
           }
+
+          // Checked up front rather than left to openTextDocument's failure,
+          // which wraps whatever the provider throws in its own generic
+          // "cannot open <uri>" dialog -- accurate, but noisier than saying
+          // outright that this type has no reader here yet.
+          const provider = await workspace.require(connectionId);
+          if (!provider.canReadAsText(key.type)) {
+            vscode.window.showInformationMessage(
+              `${displayName(key)} (${typeLabel(key.type)}) can't be opened as text in ` +
+              `${provider.displayName} yet.`);
+            return;
+          }
+
+          const uri = toUri(connectionId, key);
+          const doc = await vscode.workspace.openTextDocument(uri);
+          await vscode.window.showTextDocument(doc, { preview: true });
         });
       }),
 

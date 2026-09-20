@@ -242,6 +242,13 @@ export class ProjectFileProvider implements DefinitionProvider {
       : `${key.parts.join('.')} is not an item of ${this.projectName}.`);
   }
 
+  canReadAsText(type: DefinitionType): boolean {
+    return isPeopleCode(type) || [
+      DefinitionType.Field, DefinitionType.HtmlDefinition, DefinitionType.Component,
+      DefinitionType.Menu, DefinitionType.Page, DefinitionType.ApplicationPackage
+    ].includes(type);
+  }
+
   /** Renders a definition that has no dedicated editor yet, as read-only text. */
   private render(key: DefinitionKey): string | undefined {
     const name = (key.parts[0] ?? '').toUpperCase();

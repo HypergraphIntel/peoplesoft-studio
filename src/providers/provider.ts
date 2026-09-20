@@ -61,6 +61,19 @@ export interface DefinitionProvider {
   readText(key: DefinitionKey): Promise<string>;
   writeText(key: DefinitionKey, text: string): Promise<void>;
 
+  /**
+   * Whether {@link readText} has any chance of succeeding for this type.
+   *
+   * Declared rather than discovered by calling readText and catching, so the
+   * "Open" command can decline up front with a plain message instead of
+   * routing an UnsupportedOperationError through VS Code's own document-open
+   * failure dialog, which wraps it in "cannot open <uri>" noise. The two
+   * providers support different sets -- a project export can render several
+   * types read-only that the database backend has no editor for yet -- so
+   * this is asked of the provider rather than assumed by the caller.
+   */
+  canReadAsText(type: DefinitionType): boolean;
+
   readRecord(key: DefinitionKey): Promise<RecordDefinition>;
   writeRecord(record: RecordDefinition): Promise<void>;
 
