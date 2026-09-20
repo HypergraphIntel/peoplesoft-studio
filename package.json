@@ -1,0 +1,274 @@
+{
+  "name": "peoplesoft-studio",
+  "displayName": "PeopleSoft Studio",
+  "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, App Engine, SQL) directly in VS Code.",
+  "version": "0.1.0",
+  "publisher": "peoplesoft-studio",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "activationEvents": [
+    "onFileSystem:psft"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "peoplecode",
+        "aliases": [
+          "PeopleCode",
+          "peoplecode"
+        ],
+        "extensions": [
+          ".pcode",
+          ".peoplecode"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "pssql",
+        "aliases": [
+          "PeopleSoft SQL"
+        ],
+        "extensions": [
+          ".pssql"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "peoplecode",
+        "scopeName": "source.peoplecode",
+        "path": "./syntaxes/peoplecode.tmLanguage.json"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "peoplesoft",
+          "title": "PeopleSoft",
+          "icon": "resources/peoplesoft.svg"
+        }
+      ]
+    },
+    "views": {
+      "peoplesoft": [
+        {
+          "id": "psft.projects",
+          "name": "Projects"
+        },
+        {
+          "id": "psft.browser",
+          "name": "Definition Browser"
+        },
+        {
+          "id": "psft.connections",
+          "name": "Connections"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "psft.connections",
+        "contents": "No PeopleSoft environment is connected.\n[Add Connection](command:psft.addConnection)\n[Open Project File](command:psft.openProjectFile)"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "psft.recordEditor",
+        "displayName": "PeopleSoft Record",
+        "selector": [
+          {
+            "filenamePattern": "*.psrecord"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "commands": [
+      {
+        "command": "psft.addConnection",
+        "title": "Add Connection",
+        "category": "PeopleSoft",
+        "icon": "$(add)"
+      },
+      {
+        "command": "psft.removeConnection",
+        "title": "Remove Connection",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.connect",
+        "title": "Connect",
+        "category": "PeopleSoft",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "psft.disconnect",
+        "title": "Disconnect",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.openProjectFile",
+        "title": "Open Project Export File",
+        "category": "PeopleSoft",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "psft.refresh",
+        "title": "Refresh",
+        "category": "PeopleSoft",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "psft.openDefinition",
+        "title": "Open Definition",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.findDefinition",
+        "title": "Find Definition...",
+        "category": "PeopleSoft",
+        "icon": "$(search)"
+      },
+      {
+        "command": "psft.insertIntoProject",
+        "title": "Insert Into Project",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.buildProject",
+        "title": "Build Project (DDL)",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.compareDefinition",
+        "title": "Compare With Environment...",
+        "category": "PeopleSoft"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "psft.addConnection",
+          "when": "view == psft.connections",
+          "group": "navigation"
+        },
+        {
+          "command": "psft.refresh",
+          "when": "view == psft.browser || view == psft.projects",
+          "group": "navigation"
+        },
+        {
+          "command": "psft.findDefinition",
+          "when": "view == psft.browser",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "psft.connect",
+          "when": "view == psft.connections && viewItem == connection.disconnected",
+          "group": "inline"
+        },
+        {
+          "command": "psft.disconnect",
+          "when": "view == psft.connections && viewItem == connection.connected"
+        },
+        {
+          "command": "psft.removeConnection",
+          "when": "view == psft.connections && viewItem =~ /^connection\\./"
+        },
+        {
+          "command": "psft.insertIntoProject",
+          "when": "view == psft.browser && viewItem == definition"
+        },
+        {
+          "command": "psft.compareDefinition",
+          "when": "viewItem == definition"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "PeopleSoft Studio",
+      "properties": {
+        "peoplesoft.connections": {
+          "type": "array",
+          "default": [],
+          "description": "Configured PeopleSoft environments. Passwords are stored in the OS secret store, never here.",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "kind"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "oracle",
+                  "projectFile"
+                ]
+              },
+              "connectString": {
+                "type": "string",
+                "description": "Oracle easy-connect string, e.g. host:1521/PSFTDB"
+              },
+              "user": {
+                "type": "string",
+                "description": "Database access id (e.g. SYSADM)"
+              },
+              "path": {
+                "type": "string",
+                "description": "For projectFile: folder containing the App Designer XML export"
+              }
+            }
+          }
+        },
+        "peoplesoft.oracle.thickModeLibDir": {
+          "type": "string",
+          "default": "",
+          "description": "Path to Oracle Instant Client. Leave empty to use node-oracledb Thin mode."
+        },
+        "peoplesoft.peoplecode.decoder": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "strict",
+            "raw"
+          ],
+          "default": "auto",
+          "description": "How to render PeopleCode read from PSPCMPROG. 'raw' dumps the token stream for decoder development."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p . --noEmit && node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc -p . --noEmit",
+    "test": "node --test dist-test/test/",
+    "package": "vsce package",
+    "pretest": "tsc -p ."
+  },
+  "dependencies": {
+    "fast-xml-parser": "^4.4.1",
+    "oracledb": "^6.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/oracledb": "^6.10.4",
+    "@types/vscode": "^1.90.0",
+    "esbuild": "^0.23.0",
+    "typescript": "^5.5.0"
+  }
+}

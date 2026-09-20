@@ -1,0 +1,107 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "PeopleCode",
+  "scopeName": "source.peoplecode",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#directives" },
+    { "include": "#declarations" },
+    { "include": "#keywords" },
+    { "include": "#metastrings" },
+    { "include": "#constants" },
+    { "include": "#types" },
+    { "include": "#numbers" },
+    { "include": "#functions" },
+    { "include": "#operators" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        { "name": "comment.line.double-slash.peoplecode", "match": "//.*$" },
+        { "name": "comment.line.rem.peoplecode", "match": "(?i)^\\s*REM\\b.*?;" },
+        { "name": "comment.block.peoplecode", "begin": "/\\*", "end": "\\*/" },
+        { "name": "comment.block.angle.peoplecode", "begin": "<\\*", "end": "\\*>" }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.peoplecode",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        { "name": "constant.character.escape.peoplecode", "match": "\"\"" }
+      ]
+    },
+    "directives": {
+      "name": "keyword.control.directive.peoplecode",
+      "match": "(?i)\\b(Declare\\s+Function|Declare)\\b"
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "match": "(?i)\\b(Local|Global|Component|Instance)\\s+([A-Za-z_][\\w:]*)\\s+(&\\w+)",
+          "captures": {
+            "1": { "name": "storage.modifier.peoplecode" },
+            "2": { "name": "entity.name.type.peoplecode" },
+            "3": { "name": "variable.other.peoplecode" }
+          }
+        },
+        { "name": "variable.other.peoplecode", "match": "&\\w+" }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.peoplecode",
+          "match": "(?i)\\b(If|Then|Else|End-If|For|To|Step|End-For|While|End-While|Repeat|Until|Evaluate|When|When-Other|End-Evaluate|Break|Continue|Exit|Return|try|catch|throw|end-try)\\b"
+        },
+        {
+          "name": "keyword.other.peoplecode",
+          "match": "(?i)\\b(Function|End-Function|method|end-method|get|set|end-get|end-set|class|end-class|interface|end-interface|extends|implements|import|peoplecode|library|Returns|Out|Ref|Value|private|protected|abstract|constructor|property|readonly|Doc)\\b"
+        },
+        {
+          "name": "storage.modifier.peoplecode",
+          "match": "(?i)\\b(Local|Global|Component|Instance|Constant)\\b"
+        }
+      ]
+    },
+    "metastrings": {
+      "name": "support.constant.metasql.peoplecode",
+      "match": "(?i)%(Bind|Select|SelectAll|Table|Join|InsertValues|UpdatePairs|KeyEqual|KeyEqualNoCurEffdt|Execute|Truncate|SQLRows|Datein|Dateout|TimeIn|TimeOut|DateTimeIn|DateTimeOut|CurrentDateIn|CurrentDateOut|CurrentDateTimeIn|CurrentDateTimeOut|EffdtCheck|DateAdd|DateDiff|Substring|Concat|TextIn|Upper|Lower|Mod|Round|Trim|Comma|Param|OperatorId|UserId|Language|LanguageUser|DbName|DbType|Platform)\\b"
+    },
+    "constants": {
+      "patterns": [
+        { "name": "constant.language.peoplecode", "match": "(?i)\\b(True|False|Null|None)\\b" },
+        {
+          "name": "support.constant.peoplecode",
+          "match": "(?i)\\b(%(Date|DateTime|Time|EmployeeId|Menu|Component|Page|Mode|OperatorId|UserId|Language|Session|This|Super|Request|Response|PerfTime|ContentType|ThisNode|Portal|AuthenticationToken|ClientDate|ClientTimeZone|ExecutingCompIntfc|Market|MaxMessageSize|Node|OperatorClass|OperatorRowLevelSecurityClass|PrimaryPermissionList|ProcessProfileClass|RowSecurityClass|Roles|ServerStatus|SQLRows|Transfer|UserDescription))\\b"
+        },
+        { "name": "variable.language.peoplecode", "match": "(?i)\\b(%This|%Super|Null)\\b" }
+      ]
+    },
+    "types": {
+      "name": "entity.name.type.peoplecode",
+      "match": "(?i)\\b(any|boolean|date|datetime|float|integer|number|string|time|object|Record|Rowset|Row|Field|SQL|File|Array|Message|XmlDoc|XmlNode|JavaObject|ApiObject|Chart|Grid|GridColumn|HTML|Interlink|Gantt|OrgChart|RatingBoxChart|Exception)\\b(?=\\s*(&|\\(|$|;))"
+    },
+    "numbers": {
+      "name": "constant.numeric.peoplecode",
+      "match": "\\b\\d+(\\.\\d+)?\\b"
+    },
+    "functions": {
+      "patterns": [
+        {
+          "name": "entity.name.function.peoplecode",
+          "match": "(?i)\\b(CreateRecord|CreateRowset|CreateSQL|CreateArray|CreateObject|CreateMessage|GetRecord|GetRowset|GetRow|GetField|GetLevel0|GetSession|GetFile|SQLExec|MessageBox|Error|Warning|WinMessage|CommitWork|TransferPage|Transfer|DoModal|DoSave|DoSaveNow|SetSearchDialogBehavior|RecordChanged|FieldChanged|All|None|IsUserInRole|CurrentRowNumber|ActiveRowCount|SortScroll|ScrollSelect|ScrollFlush|RowFlush|RowScrollSelect|Len|Substring|Find|Upper|Lower|LTrim|RTrim|Trim|String|Value|Int|Round|Truncate|Abs|Mod|NumberToString|DateTimeToLocalizedString|AddToDate|DateDiff|Split|Join|Exact|Char|Code|Rept|Quote|Unencode|EncodeURL)\\b(?=\\s*\\()"
+        },
+        {
+          "name": "entity.name.function.user.peoplecode",
+          "match": "\\b([A-Za-z_]\\w*)\\s*(?=\\()"
+        }
+      ]
+    },
+    "operators": {
+      "name": "keyword.operator.peoplecode",
+      "match": "(?i)(\\bAnd\\b|\\bOr\\b|\\bNot\\b|<>|<=|>=|=|<|>|\\+|-|\\*|/|\\||@)"
+    }
+  }
+}

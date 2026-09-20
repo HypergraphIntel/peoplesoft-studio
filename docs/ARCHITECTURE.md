@@ -1,0 +1,80 @@
+# Architecture
+
+## One interface, two backends
+
+Everything above the provider layer is written against `DefinitionProvider`
+(`src/providers/provider.ts`). A tree view or editor asks for a definition by
+key and gets it; it never knows whether it came from a database or an XML file.
+
+The two backends differ in what they *can* do, so rather than throwing on
+unsupported calls, each declares `ProviderCapabilities` — `write`,
+`globalSearch`, `build`. The UI reads those and hides affordances that would
+only fail. A project export cannot generate DDL, so no build command appears for
+it; that is a capability check, not an exception handler.
+
+## Definition identity
+
+PeopleTools keys every definition with up to seven positional parts
+(`OBJECTID1`/`OBJECTVALUE1` .. `OBJECTID7`/`OBJECTVALUE7`). A record uses one
+slot; a record-field PeopleCode program uses four; an application class uses as
+many as its package nesting needs.
+
+`DefinitionKey` carries those parts positionally rather than modelling each type
+with its own named fields. That mirrors `PSPROJECTITEM`, which is what both the
+database and project exports use, so nothing has to be translated at the
+boundary. Trailing blank slots are dropped at construction so equality is stable;
+interior blanks are kept, because for record PeopleCode the empty second slot is
+meaningful.
+
+`DefinitionType`'s numeric values are the real `OBJECTTYPE` codes for the same
+reason.
+
+## Definitions as virtual files
+
+Definitions are exposed as `psft://` URIs through a `FileSystemProvider`, not a
+text-document content provider. Content providers are read-only by
+construction, which would rule out editing. Going through the file system means
+every editor feature — diff, find in files, dirty-state tracking, source control
+decoration — works on definitions without special-casing.
+
+The URI carries the connection id in the authority and the definition key in the
+first path segment:
+
+```
+psft://oracle:DEV/8%3AJOB.GBL.EFFDT.FieldChange/JOB.EFFDT.FieldChange.pcode
+```
+
+The trailing segment exists only so the editor tab reads well and the language
+is detected from the extension. Identity is the segment before it.
+
+Read-only-ness is expressed as a `FilePermission.Readonly` stat rather than a
+save-time failure, so a document that cannot be written back says so before it
+is typed into.
+
+## Writes are narrow on purpose
+
+PeopleTools keeps derived state consistent through App Designer. A definition
+written without bumping the matching `PSVERSION` and `PSLOCK` counters stays
+invisible to running application servers, which keep serving a cached copy. Any
+write path here updates those counters in the same transaction as the definition
+(`bumpVersion` in `src/providers/oracle.ts`).
+
+Where that guarantee cannot yet be made, the operation is refused rather than
+approximated:
+
+- **PeopleCode to the database** — the stored format is not mapped well enough
+  to round-trip; see `encodeProgram` in `src/peoplecode/decoder.ts`.
+- **Record definitions** — a save must rewrite `PSRECDEFN` and `PSRECFIELD`,
+  bump counters and regenerate DDL together.
+- **Project export files** — a faithful writer must preserve element order,
+  `PSCAMA` audit blocks and App Designer's exact encoding, or the file imports
+  incorrectly.
+
+Each of these throws `UnsupportedOperationError` with the reason, and the
+corresponding UI is read-only.
+
+## Browsing is bounded
+
+A live environment holds tens of thousands of records and fields. The browser
+never issues an unbounded listing: every query carries a `FETCH FIRST` cap and a
+name filter, which is also how App Designer's Open dialog behaves.
