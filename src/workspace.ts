@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { DefinitionProvider } from './providers/provider.js';
 import { OracleProvider } from './providers/oracle.js';
 import { ProjectFileProvider } from './providers/projectFile.js';
+import { connectionHandle } from './util/handle.js';
 
 export interface ConnectionConfig {
   name: string;
@@ -31,6 +32,32 @@ export class Workspace implements vscode.Disposable {
 
   getProvider(id: string): DefinitionProvider | undefined {
     return this.providers.get(id);
+  }
+
+  /**
+   * The connected provider whose id hashes to `handle`, if any.
+   *
+   * URIs carry a hash rather than the id itself; see util/uri.ts.
+   */
+  getProviderByHandle(handle: string): DefinitionProvider | undefined {
+    for (const [id, provider] of this.providers) {
+      if (connectionHandle(id) === handle) return provider;
+    }
+    return undefined;
+  }
+
+  /** Resolves a provider for a URI handle, connecting on demand. */
+  async requireByHandle(handle: string): Promise<DefinitionProvider> {
+    const existing = this.getProviderByHandle(handle);
+    if (existing?.isConnected) return existing;
+
+    const config = this.connections.find((c) => connectionHandle(providerId(c)) === handle);
+    if (!config) {
+      throw new Error(
+        'This definition belongs to a PeopleSoft connection that is no longer ' +
+        'configured. Reconnect the environment, or close this editor.');
+    }
+    return this.connect(config);
   }
 
   get activeProviders(): DefinitionProvider[] {

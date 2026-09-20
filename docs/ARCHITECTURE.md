@@ -76,15 +76,31 @@ construction, which would rule out editing. Going through the file system means
 every editor feature — diff, find in files, dirty-state tracking, source control
 decoration — works on definitions without special-casing.
 
-The URI carries the connection id in the authority and the definition key in the
-first path segment:
+The URI carries a hash of the connection id in the authority and the definition
+key in the first path segment:
 
 ```
-psft://oracle:DEV/8%3AJOB.GBL.EFFDT.FieldChange/JOB.EFFDT.FieldChange.pcode
+psft://f2b0a70f1648f5cb/8%3AJOB.GBL.EFFDT.FieldChange/JOB.EFFDT.FieldChange.peoplecode
 ```
 
 The trailing segment exists only so the editor tab reads well and the language
 is detected from the extension. Identity is the segment before it.
+
+**The authority must be a hash, not the connection id.** A resource crosses the
+extension host boundary by being serialized with `toString()` and reparsed, and
+documents are compared by their string form. Two things happen to an authority
+on that trip: it is lowercased, because RFC 3986 defines it as
+case-insensitive, and its slashes are not re-encoded. An authority holding a
+file path therefore comes back with its casing destroyed and its path spilled
+into the path component, so the URI reparses as a different resource entirely.
+
+This shipped broken once. Records kept working because a custom editor receives
+the URI object directly, while everything else went through the file system
+provider and the round-trip — which is why the symptom was "only records open".
+`src/test/uri.test.ts` guards it using vscode-uri, the same implementation
+`vscode.Uri` is built on; the stub in `scripts/vscode-stub.mjs` uses it too,
+because a hand-written parser round-trips what the real one mangles and let the
+bug pass the smoke test.
 
 Read-only-ness is expressed as a `FilePermission.Readonly` stat rather than a
 save-time failure, so a document that cannot be written back says so before it

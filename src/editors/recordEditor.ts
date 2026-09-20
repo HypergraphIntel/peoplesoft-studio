@@ -36,8 +36,8 @@ export class RecordEditorProvider implements vscode.CustomReadonlyEditorProvider
     panel.webview.options = { enableScripts: false };
 
     try {
-      const { connectionId, key } = parseUri(document.uri);
-      const provider = await this.workspace.require(connectionId);
+      const { handle, key } = parseUri(document.uri);
+      const provider = await this.workspace.requireByHandle(handle);
       const record = await provider.readRecord(key);
       panel.webview.html = renderRecord(record, panel.webview);
     } catch (err) {
