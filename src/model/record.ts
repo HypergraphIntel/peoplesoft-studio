@@ -95,3 +95,18 @@ export const FIELD_TYPE_LABELS: Readonly<Record<FieldType, string>> = {
   [FieldType.Image]: 'Image',
   [FieldType.ImageReference]: 'Image Reference'
 };
+
+/**
+ * The attribute summary shown beside a field when a record is expanded.
+ *
+ * Mirrors the columns App Designer puts in its field grid: key membership
+ * first, because that is what distinguishes one field from the next at a
+ * glance, then type and length.
+ */
+export function describeField(f: RecordField): string {
+  const parts: string[] = [];
+  if (isKeyField(f)) parts.push('Key');
+  parts.push(FIELD_TYPE_LABELS[f.type] ?? `Type ${f.type}`);
+  parts.push(f.decimalPositions > 0 ? `${f.length}.${f.decimalPositions}` : String(f.length));
+  return parts.join(' \u00b7 ');
+}

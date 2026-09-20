@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as path from 'node:path';
 import { ProjectFileProvider } from '../providers/projectFile.js';
+import { canExpand } from '../providers/provider.js';
 import { parseExport } from '../providers/projectFileParser.js';
 import { DefinitionType, makeKey, typeLabel } from '../model/definitions.js';
 import { isKeyField } from '../model/record.js';
@@ -197,4 +198,54 @@ test('every project item either opens or explains why not', async () => {
         `opening ${item.key.parts.join('.')} failed with an unhelpful message: ${message}`);
     }
   }
+});
+
+test('a record expands to its fields, keyed so each field opens', async () => {
+  const p = await load();
+  const children = await p.listChildren(makeKey(DefinitionType.Record, 'WEBLIB_DEMO'));
+  assert.deepEqual(children.map((c) => c.key.parts[0]), ['DEMO_ID', 'SEQNBR', 'DESCR']);
+  // Each child is a field definition in its own right, not a decoration.
+  assert.ok(children.every((c) => c.key.type === DefinitionType.Field));
+});
+
+test('field descriptions show key membership, type and length', async () => {
+  const p = await load();
+  const children = await p.listChildren(makeKey(DefinitionType.Record, 'WEBLIB_DEMO'));
+  assert.match(children[0].description ?? '', /^Key .* Character .* 30$/);
+  // DESCR is keyed only by an alternate index, so it is not a key field.
+  assert.ok(!(children[2].description ?? '').startsWith('Key'));
+});
+
+test('fields keep record order rather than being sorted', async () => {
+  const p = await load();
+  const children = await p.listChildren(makeKey(DefinitionType.Record, 'WEBLIB_DEMO'));
+  assert.deepEqual(children.map((c) => c.key.parts[0]), ['DEMO_ID', 'SEQNBR', 'DESCR']);
+});
+
+test('a component expands to its pages, keyed so each page opens', async () => {
+  const p = await load();
+  const children = await p.listChildren(makeKey(DefinitionType.Component, 'DEMO_CMP', 'GBL'));
+  assert.equal(children.length, 1);
+  assert.equal(children[0].key.type, DefinitionType.Page);
+  assert.equal(children[0].key.parts[0], 'DEMO_PAGE');
+  assert.equal(children[0].description, 'Demo Page');
+});
+
+test('expanding a definition with no children yields an empty list, not an error', async () => {
+  const p = await load();
+  assert.deepEqual(
+    await p.listChildren(makeKey(DefinitionType.Field, 'DEMO_ID')), []);
+  // A component the export does not carry must not throw from the tree.
+  assert.deepEqual(
+    await p.listChildren(makeKey(DefinitionType.Component, 'NO_SUCH_CMP', 'GBL')), []);
+  assert.deepEqual(
+    await p.listChildren(makeKey(DefinitionType.Record, 'NO_SUCH_RECORD')), []);
+});
+
+test('only records and components offer an expander', () => {
+  assert.ok(canExpand(DefinitionType.Record));
+  assert.ok(canExpand(DefinitionType.Component));
+  assert.ok(!canExpand(DefinitionType.Field));
+  assert.ok(!canExpand(DefinitionType.Page));
+  assert.ok(!canExpand(DefinitionType.ApplicationClassPeopleCode));
 });

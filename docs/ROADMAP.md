@@ -15,6 +15,8 @@ Designer parity is the goal; this is the path to it.
   application packages
 - Application packages browse as a hierarchy in the project tree — root
   package, subpackages, classes as leaves — rather than two flat lists
+- Records expand to their fields and components to their pages, in both trees;
+  each child is a definition that opens on click
 - Definitions as editable virtual files over `psft://`
 - Connections, projects and definition browser trees
 - PeopleCode TextMate grammar and language configuration
