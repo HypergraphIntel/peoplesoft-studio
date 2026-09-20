@@ -1045,3 +1045,32 @@ test('0x4a falls through to unknown when the index does not resolve, like 0x21',
   const result = decodeProgram(Buffer.from([...HEADER, 0x4a, 0x00, 0x00]), new NameTable());
   assert.equal(result.unknownOpcodes.some((u) => u.opcode === 0x4a), true);
 });
+
+test('Constant, throw and ComponentLife decode, each confirmed byte-for-byte as the only unmapped opcode in a real program', () => {
+  // Constant: WEBLIB_PTTILE.ISCRIPT1's real
+  // `Constant &QUERYPARAMETER_ID = "ID";`. throw: WEBLIB_PTSF.ISCRIPT1's
+  // real `throw CreateException(262, 2018, "Search Exception: %1 ",
+  // &sError);`. ComponentLife: WEBLIB_PTPN.PTPN_ISCRIPT.SavePreChange's
+  // real `ComponentLife PTPN_PUBLISH:PublishToWindow &wlSrch;`.
+  const constant = decodeProgram(
+    Buffer.from([...HEADER, 0x56, 0x1, ...utf16('&x'), 0x00, 0x00, 0x6, 0x16, ...utf16('ID'), 0x00, 0x00, 0x15]),
+    new NameTable());
+  assert.equal(constant.unknownOpcodes.length, 0);
+  assert.equal(constant.text, 'Constant &x = "ID";\n');
+
+  const thrown = decodeProgram(
+    Buffer.from([...HEADER, 0x68, 0xa, ...utf16('CreateException'), 0x00, 0x00, 0xb, 0x14, 0x15]),
+    new NameTable());
+  assert.equal(thrown.unknownOpcodes.length, 0);
+  assert.equal(thrown.text, 'throw CreateException();\n');
+
+  const componentLife = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x79, 0xa, ...utf16('PTPN_PUBLISH'), 0x00, 0x00, 0x57, 0xa, ...utf16('PublishToWindow'), 0x00, 0x00,
+      0x1, ...utf16('&wlSrch'), 0x00, 0x00, 0x15
+    ]),
+    new NameTable());
+  assert.equal(componentLife.unknownOpcodes.length, 0);
+  assert.equal(componentLife.text, 'ComponentLife PTPN_PUBLISH:PublishToWindow &wlSrch;\n');
+});
