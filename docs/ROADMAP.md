@@ -8,7 +8,9 @@ Designer parity is the goal; this is the path to it.
 - Provider abstraction with declared capabilities
 - Oracle backend: projects, project items, search, record read, PeopleCode read,
   SQL definition read and write
-- Project export backend: parse, list, read PeopleCode/SQL/records
+- Project export backend: parses the real App Designer serialization
+  (instance/rowset/pointer format), verified against a production export —
+  project items, PeopleCode source, record fields and primary keys
 - Definitions as editable virtual files over `psft://`
 - Connections, projects and definition browser trees
 - PeopleCode TextMate grammar and language configuration
@@ -24,11 +26,12 @@ Designer parity is the goal; this is the path to it.
    programs, extend `OPCODES` one confirmed construct at a time, and verify each
    by round-tripping against App Designer. This is the single highest-value
    item: it turns the database backend into a real PeopleCode source.
-2. **Project export writer.** Preserve element order and `PSCAMA` blocks so
-   edited exports still import. Unblocks editing PeopleCode today, without the
-   decoder.
-3. **Golden-file tests** from a sanitised demo export, so parsing regressions
-   are caught without a database.
+2. **Project export writer.** Preserve element order, the `lp*`/`h*` marker
+   words and the numeric encoding so edited exports still import. Unblocks
+   editing PeopleCode today, without the decoder.
+3. **Confirm the remaining OBJECTTYPE codes**, including SQL definitions, whose
+   code is currently an explicit local sentinel. Parse the `PDM`, `CRM`, `MDM`,
+   `APM` and `FIELD` instances so those items open rather than only listing.
 
 ## Then: writes
 

@@ -32,8 +32,17 @@ test('key comparison distinguishes types with identical names', () => {
     makeKey(DefinitionType.Page, 'JOB')));
 });
 
-test('keyFromString rejects an unknown definition type rather than inventing one', () => {
-  assert.throws(() => keyFromString('9999:JOB'), /Unknown definition type/);
+test('keyFromString accepts an unmapped type code, so unknown items stay browsable', () => {
+  // A project export can legitimately carry type codes this extension has not
+  // mapped. Rejecting them would drop items and make a project look smaller
+  // than it is; they are surfaced as "Type N" instead.
+  const key = keyFromString('9999:JOB');
+  assert.equal(key.type as number, 9999);
+  assert.deepEqual(key.parts, ['JOB']);
+});
+
+test('keyFromString still rejects a key whose type is not a number', () => {
+  assert.throws(() => keyFromString('abc:JOB'), /Malformed definition type/);
 });
 
 test('record PeopleCode display name hides the GBL method slot', () => {

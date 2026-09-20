@@ -1,47 +1,84 @@
 /**
  * PeopleTools definition types.
  *
- * The numeric values are the OBJECTTYPE codes used by PSPROJECTITEM, which is
- * also how App Designer project exports identify their contents. Keeping the
- * enum aligned with those codes means project XML and the database agree
- * without a translation table.
+ * These are the OBJECTTYPE codes used by PSPROJECTITEM and by the eObjectType
+ * field of an App Designer project export.
+ *
+ * The values marked CONFIRMED were read off a real project export and
+ * cross-checked against the definitions it carries: the export's item list and
+ * its instance blocks agree on both the type code and the key layout. The
+ * values marked UNCONFIRMED have not been seen in real data yet. Treat them as
+ * provisional — an earlier revision of this file had several codes wrong
+ * because they were written from memory, which put Pages under Menus and
+ * Application Classes under File Layouts.
+ *
+ * Anything not listed here is handled as an unknown type rather than guessed
+ * at; see {@link typeLabel}.
  */
 export enum DefinitionType {
+  // CONFIRMED
   Record = 0,
-  Index = 1,
   Field = 2,
-  TranslateValue = 3,
-  Page = 4,
-  Menu = 5,
-  Component = 6,
+  Page = 5,
+  Menu = 6,
+  Component = 7,
   RecordPeopleCode = 8,
+  PagePeopleCode = 44,
+  HtmlDefinition = 51,
+  ApplicationPackage = 57,
+  ApplicationClassPeopleCode = 58,
+
+  // UNCONFIRMED — not yet observed in a real export.
+  Index = 1,
+  TranslateValue = 3,
   MenuPeopleCode = 9,
   ComponentPeopleCode = 10,
   ComponentRecordPeopleCode = 11,
-  PagePeopleCode = 12,
   ComponentInterface = 14,
   AppEngineProgram = 33,
   AppEnginePeopleCode = 40,
   ComponentInterfacePeopleCode = 42,
-  ApplicationPackage = 44,
-  ApplicationClassPeopleCode = 46,
-  PageFieldPeopleCode = 47,
-  SqlDefinition = 51,
   FileLayout = 53,
-  FileLayoutPeopleCode = 58
+  FileLayoutPeopleCode = 59,
+
+  /**
+   * SQL definitions have a real OBJECTTYPE code, but code 51 turned out to be
+   * HTML definitions, so the value this once used was wrong and the correct one
+   * is not yet known. A negative sentinel is used instead: it cannot collide
+   * with a real code, and it is obviously not one.
+   *
+   * The database provider still reads and writes SQL definitions, because it
+   * queries PSSQLDEFN by name rather than by OBJECTTYPE. Only SQL items inside
+   * a project export are affected — they surface as an unknown type until the
+   * real code is confirmed.
+   */
+  SqlDefinition = -1
 }
+
+/** Types whose key layout and code were verified against a real project export. */
+export const CONFIRMED_TYPES: ReadonlySet<DefinitionType> = new Set([
+  DefinitionType.Record,
+  DefinitionType.Field,
+  DefinitionType.Page,
+  DefinitionType.Menu,
+  DefinitionType.Component,
+  DefinitionType.RecordPeopleCode,
+  DefinitionType.PagePeopleCode,
+  DefinitionType.HtmlDefinition,
+  DefinitionType.ApplicationPackage,
+  DefinitionType.ApplicationClassPeopleCode
+]);
 
 /** Definition types whose payload is PeopleCode held in PSPCMPROG. */
 export const PEOPLECODE_TYPES: ReadonlySet<DefinitionType> = new Set([
   DefinitionType.RecordPeopleCode,
+  DefinitionType.PagePeopleCode,
+  DefinitionType.ApplicationClassPeopleCode,
   DefinitionType.MenuPeopleCode,
   DefinitionType.ComponentPeopleCode,
   DefinitionType.ComponentRecordPeopleCode,
-  DefinitionType.PagePeopleCode,
   DefinitionType.AppEnginePeopleCode,
   DefinitionType.ComponentInterfacePeopleCode,
-  DefinitionType.ApplicationClassPeopleCode,
-  DefinitionType.PageFieldPeopleCode,
   DefinitionType.FileLayoutPeopleCode
 ]);
 
@@ -87,7 +124,7 @@ export function keyFromString(s: string): DefinitionKey {
   const sep = s.indexOf(':');
   if (sep < 0) throw new Error(`Malformed definition key: ${s}`);
   const type = Number(s.slice(0, sep));
-  if (!(type in DefinitionType)) throw new Error(`Unknown definition type in key: ${s}`);
+  if (!Number.isInteger(type)) throw new Error(`Malformed definition type in key: ${s}`);
   const rest = s.slice(sep + 1);
   return { type, parts: rest === '' ? [] : rest.split('.') };
 }
@@ -105,30 +142,41 @@ export function displayName(key: DefinitionKey): string {
   }
 }
 
-export const TYPE_LABELS: Readonly<Record<DefinitionType, string>> = {
+export const TYPE_LABELS: Readonly<Partial<Record<DefinitionType, string>>> = {
   [DefinitionType.Record]: 'Records',
-  [DefinitionType.Index]: 'Indexes',
   [DefinitionType.Field]: 'Fields',
-  [DefinitionType.TranslateValue]: 'Translate Values',
   [DefinitionType.Page]: 'Pages',
   [DefinitionType.Menu]: 'Menus',
   [DefinitionType.Component]: 'Components',
   [DefinitionType.RecordPeopleCode]: 'Record PeopleCode',
+  [DefinitionType.PagePeopleCode]: 'Page PeopleCode',
+  [DefinitionType.HtmlDefinition]: 'HTML Definitions',
+  [DefinitionType.ApplicationPackage]: 'Application Packages',
+  [DefinitionType.ApplicationClassPeopleCode]: 'Application Classes',
+  [DefinitionType.Index]: 'Indexes',
+  [DefinitionType.TranslateValue]: 'Translate Values',
   [DefinitionType.MenuPeopleCode]: 'Menu PeopleCode',
   [DefinitionType.ComponentPeopleCode]: 'Component PeopleCode',
   [DefinitionType.ComponentRecordPeopleCode]: 'Component Record PeopleCode',
-  [DefinitionType.PagePeopleCode]: 'Page PeopleCode',
   [DefinitionType.ComponentInterface]: 'Component Interfaces',
   [DefinitionType.AppEngineProgram]: 'App Engine Programs',
   [DefinitionType.AppEnginePeopleCode]: 'App Engine PeopleCode',
   [DefinitionType.ComponentInterfacePeopleCode]: 'Component Interface PeopleCode',
-  [DefinitionType.ApplicationPackage]: 'Application Packages',
-  [DefinitionType.ApplicationClassPeopleCode]: 'Application Classes',
-  [DefinitionType.PageFieldPeopleCode]: 'Page Field PeopleCode',
-  [DefinitionType.SqlDefinition]: 'SQL Definitions',
   [DefinitionType.FileLayout]: 'File Layouts',
-  [DefinitionType.FileLayoutPeopleCode]: 'File Layout PeopleCode'
+  [DefinitionType.FileLayoutPeopleCode]: 'File Layout PeopleCode',
+  [DefinitionType.SqlDefinition]: 'SQL Definitions'
 };
+
+/**
+ * A label for any type code, including ones not in the enum.
+ *
+ * A project export may legitimately contain type codes this extension has not
+ * mapped. Showing "Type 63" is honest and still lets the items be browsed;
+ * silently dropping them would make a project look smaller than it is.
+ */
+export function typeLabel(type: DefinitionType | number): string {
+  return TYPE_LABELS[type as DefinitionType] ?? `Type ${type}`;
+}
 
 /** File extension used when a definition is surfaced through the virtual FS. */
 export function fileExtension(type: DefinitionType): string {

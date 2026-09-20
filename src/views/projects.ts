@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { Workspace } from '../workspace.js';
 import { DefinitionProvider, DefinitionSummary, ProjectSummary } from '../providers/provider.js';
-import { DefinitionType, displayName, TYPE_LABELS } from '../model/definitions.js';
+import { DefinitionType, displayName, typeLabel } from '../model/definitions.js';
 import { toUri } from '../util/uri.js';
 
 type Node =
@@ -36,7 +36,7 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
       }
       case 'group': {
         const item = new vscode.TreeItem(
-          TYPE_LABELS[node.type] ?? `Type ${node.type}`, vscode.TreeItemCollapsibleState.Collapsed);
+          typeLabel(node.type), vscode.TreeItemCollapsibleState.Collapsed);
         item.description = String(node.items.length);
         item.iconPath = new vscode.ThemeIcon('folder');
         return item;

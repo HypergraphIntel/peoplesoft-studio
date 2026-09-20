@@ -5,7 +5,7 @@ import { ConnectionsView } from './views/connections.js';
 import { BrowserView } from './views/browser.js';
 import { ProjectsView } from './views/projects.js';
 import { RecordEditorProvider } from './editors/recordEditor.js';
-import { DefinitionKey, DefinitionType, displayName, TYPE_LABELS } from './model/definitions.js';
+import { DefinitionKey, DefinitionType, displayName, typeLabel } from './model/definitions.js';
 import { toUri } from './util/uri.js';
 import { DefinitionProvider } from './providers/provider.js';
 
@@ -180,12 +180,12 @@ async function findDefinition(workspace: Workspace): Promise<void> {
       DefinitionType.Record, DefinitionType.Field, DefinitionType.Page,
       DefinitionType.Component, DefinitionType.Menu, DefinitionType.ApplicationPackage,
       DefinitionType.AppEngineProgram, DefinitionType.SqlDefinition
-    ].map((t) => ({ label: TYPE_LABELS[t], value: t })),
+    ].map((t) => ({ label: typeLabel(t), value: t })),
     { title: 'Definition type', ignoreFocusOut: true });
   if (!type) return;
 
   const pattern = await vscode.window.showInputBox({
-    title: `Find ${TYPE_LABELS[type.value]}`,
+    title: `Find ${typeLabel(type.value)}`,
     placeHolder: 'Name starts with... (use % as a wildcard)',
     ignoreFocusOut: true });
   if (pattern === undefined) return;
@@ -197,7 +197,7 @@ async function findDefinition(workspace: Workspace): Promise<void> {
       limit: 500
     });
     if (results.length === 0) {
-      vscode.window.showInformationMessage(`No ${TYPE_LABELS[type.value]} matched "${pattern}".`);
+      vscode.window.showInformationMessage(`No ${typeLabel(type.value)} matched "${pattern}".`);
       return;
     }
     const picked = await vscode.window.showQuickPick(
