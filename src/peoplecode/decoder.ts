@@ -128,6 +128,13 @@ const EVALUATE_STYLE = F.NEWLINE_BEFORE | F.SPACE_AFTER | F.INCREASE_INDENT;
 // body is one more indented -- decrease back to Evaluate's level before the
 // keyword, then increase again for what follows it.
 const WHEN_STYLE = F.DECREASE_INDENT | NEWLINE_BEFORE_SPACE_AFTER | F.INCREASE_INDENT;
+const TRY_STYLE = F.NEWLINE_BEFORE | F.NEWLINE_AFTER | F.INCREASE_INDENT;
+// `catch` is followed by `Exception &e` on the same line, unlike `try`/
+// `end-try` -- SPACE_AFTER, not NEWLINE_AFTER. DECREASE_INDENT is applied
+// before the newline/indent write (render() does DECREASE_INDENT first), so
+// `catch` itself lands back at `try`'s own level; INCREASE_INDENT is applied
+// after writing its text, so it only affects lines that follow.
+const CATCH_STYLE = F.NEWLINE_BEFORE | F.DECREASE_INDENT | F.SPACE_AFTER | F.INCREASE_INDENT;
 
 interface OpcodeSpec {
   kind: TokenKind;
@@ -185,6 +192,22 @@ export const OPCODES = new Map<number, OpcodeSpec>([
   // than needing a lookahead gate the way 0x41 below does. 491 occurrences
   // corpus-wide; see docs/ROADMAP.md pass twenty-one.
   [0x42, { kind: TokenKind.Punctuation, text: '', format: F.NONE }],
+
+  // try/catch/end-try (0x65/0x66/0x67): confirmed byte-for-byte against
+  // WEBLIB_MSGWSDL.WSDLSUMMARY.FieldFormula, a plain record-field Function
+  // program (not an Application Class -- no isApplicationClass gating
+  // needed, unlike class/method below), whose real source is a single
+  // try/catch/end-try wrapping the whole function body. These same three
+  // keywords were part of the large Application Class vocabulary rejected
+  // in pass sixteen when wholesale-adopting PeopleCodeParser.java's table --
+  // that rejection was of the reference project's own byte values for them,
+  // which are different from 0x65/0x66/0x67 and evidently wrong on this
+  // database; these were found independently by hand-walking, the same way
+  // as every entry above, not adopted from that source. See
+  // docs/ROADMAP.md pass twenty-two.
+  [0x65, { kind: TokenKind.Keyword, text: 'try', format: TRY_STYLE }],
+  [0x66, { kind: TokenKind.Keyword, text: 'catch', format: CATCH_STYLE }],
+  [0x67, { kind: TokenKind.Keyword, text: 'end-try', format: ENDBLOCK_STYLE }],
 
   // -- Adopted from PeopleCodeParser.java (see file header), then filtered
   //    against this database's own 204-program corpus via

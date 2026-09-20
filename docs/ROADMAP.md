@@ -1088,6 +1088,50 @@ jump of any opcode pair confirmed this pass), text accuracy held at 97.60%,
 line matching 88.26% → 89.02%. `WEBLIB_GS_CMD.ISCRIPT1` now decodes
 byte-for-byte identical to its real source.
 
+## Pass twenty-two: try/catch/end-try
+
+`corpus-analyze.mjs` ranked the remaining unmapped opcodes by how many
+programs each touches; `0x65`/`0x66`/`0x67` (43, 40 and 37 programs
+respectively) stood out with a distinctive shape on the corruption-filtered
+sample -- `0x66` immediately before a bare `Exception` every single time,
+`0x65` right after a newline or `Then`, `0x67` sandwiched between two `;`
+tokens. Hand-walked `WEBLIB_MSGWSDL.WSDLSUMMARY.FieldFormula` (3 unmapped
+opcodes, real source a single `try`/`catch Exception &e`/`end-try;` wrapping
+the whole function body) byte for byte and confirmed all three exactly:
+**`0x65` = `try`, `0x66` = `catch`, `0x67` = `end-try`**.
+
+This is a plain record-field `Function` program, not an Application Class
+-- unlike `class`/`method`/`end-class`/`end-method`, these three needed no
+`isApplicationClass` gating. That matters because `try`/`catch`/`end-try`
+were *already tried and rejected* once before, in pass sixteen's wholesale
+adoption of PeopleCodeParser.java's table, as part of the large
+Application-Class-shaped batch that collapsed at full corpus scale. That
+rejection was of the *reference project's own byte values* for these three
+keywords -- different from 0x65/0x66/0x67, and evidently wrong on this
+database. These were found independently by hand-walking, the same
+discipline as every entry in this project's table, not adopted from that
+source; the earlier rejection doesn't apply to them.
+
+Checked structurally (is the decoded keyword text really in the real
+source) at two scales, because the corpus-wide unfiltered rate looked
+alarming at first: **try 91.9% (1344/1463), catch 30.6% (72/235), end-try
+25.9% (66/255)**, all dragged down by a handful of already heavily-corrupted
+programs (`WEBLIB_EOAW.EOAW_MON_ADHOC_NUI` alone -- 10953 unmapped opcodes
+even before this pass -- accounts for most of the catch/end-try misses).
+Restricted to programs with a small unmapped-opcode count, the same filter
+pass twenty established: **88/88 (100%)** across all three keywords, on
+every one of 11 programs that have them, zero exceptions. This is the same
+false-alarm shape corpus-wide checks have produced before (0x20/"Function"
+in pass eight, the mislabeled candidates in pass nine) -- the filtered
+check, not the raw corpus-wide one, is what this project has always
+trusted, and this is a reminder of exactly why: a real, correctly-confirmed
+opcode can still look terrible in an unfiltered aggregate if the byte value
+coincidentally litters a few already-broken programs' garbage decode.
+
+Coverage 97.61% → 97.69%, clean programs 74 → 76, line matching 89.02% →
+89.43%. `WEBLIB_MSGWSDL.WSDLSUMMARY.FieldFormula` now decodes with zero
+unmapped opcodes.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in
