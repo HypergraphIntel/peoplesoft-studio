@@ -195,6 +195,20 @@ export const OPCODES = new Map<number, OpcodeSpec>([
   // expected, never a keyword position. See docs/ROADMAP.md pass
   // twenty-three.
   [0x4b, { kind: TokenKind.Keyword, text: 'Null', format: SPACE_BOTH }],
+  // The `Error`/`Warning`-style statement keyword: confirmed byte-for-byte
+  // against WEBLIB_GS_DUO.ISCRIPT1 (`Error ("No default DUO setup
+  // selected...");`) and WEBLIB_OU_TN.HTML_FUNCS (`Then\n Error
+  // MsgGet(30002, ...)` -- confirming it takes a following bare statement,
+  // not necessarily its own parenthesised call, and that the newline before
+  // it is real even directly after `Then`). Structurally confirmed 4/4 on
+  // the corpus (always right after a newline or `Then`, right before `(`
+  // or a bare name). See docs/ROADMAP.md pass twenty-four.
+  [0x1b, { kind: TokenKind.Keyword, text: 'Error', format: NEWLINE_BEFORE_SPACE_AFTER }],
+  // A `For`/`To` loop's optional step value (`For &i = &x.Len To 1 Step -
+  // 1`): confirmed byte-for-byte against WEBLIB_HRCD.ISCRIPT2, its only
+  // unmapped opcode. Structurally confirmed 3/3 on the corpus (always right
+  // after a number literal, right before `-`).
+  [0x2b, { kind: TokenKind.Keyword, text: 'Step', format: SPACE_BOTH }],
   [0x58, { kind: TokenKind.Keyword, text: 'import', format: SPACE_BOTH }],
   [0x57, { kind: TokenKind.Punctuation, text: ':', format: F.NO_SPACE_BEFORE | F.NO_SPACE_AFTER }],
   [0x38, { kind: TokenKind.Keyword, text: 'Return', format: SPACE_BOTH }],

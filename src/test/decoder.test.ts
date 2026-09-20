@@ -973,3 +973,27 @@ test('Null (0x4b) decodes as a literal, confirmed byte-for-byte in an If conditi
   assert.equal(result.unknownOpcodes.length, 0);
   assert.equal(result.text, 'If &x <> Null Then\n');
 });
+
+test('Error decodes as a statement keyword, confirmed byte-for-byte in two different shapes', () => {
+  // WEBLIB_GS_DUO.ISCRIPT1: 'Error ("No default DUO setup selected...");'.
+  // WEBLIB_OU_TN.HTML_FUNCS: 'Then\n Error MsgGet(30002, ...)' -- confirming
+  // it takes a following bare statement (not necessarily its own
+  // parenthesised call) and that the newline before it is real even
+  // directly after Then, not something render() needs to suppress.
+  // Structurally confirmed 4/4 on the corpus.
+  const result = decodeProgram(
+    Buffer.from([...HEADER, 0x1f, 0x1b, 0xb, 0x16, ...utf16('x'), 0x00, 0x00, 0x14, 0x15]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'Then\n  Error ("x");\n');
+});
+
+test('Step decodes in a For loop, confirmed byte-for-byte against WEBLIB_HRCD.ISCRIPT2', () => {
+  // Real source: "For &i = &arrProfileHierarchy.Len To 1 Step - 1", 0x2b
+  // its only unmapped opcode. Structurally confirmed 3/3 on the corpus
+  // (always right after a number literal, right before "-").
+  const result = decodeProgram(Buffer.from([...HEADER, 0x2a, 0x50, 0, 0, 1, ...Array(15).fill(0), 0x2b, 0xe]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'To 1 Step -');
+});

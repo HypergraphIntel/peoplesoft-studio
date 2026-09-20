@@ -1168,6 +1168,32 @@ the latter.
 Coverage 97.69% → 97.71%, **clean programs 76 → 87**, line matching
 89.43% → 90.07%.
 
+## Pass twenty-four: Error and Step
+
+Two more single-opcode gaps off the same "best next targets" ranking.
+**`0x1b` = `Error`**, confirmed against two different real shapes:
+`WEBLIB_GS_DUO.ISCRIPT1`'s `Error ("No default DUO setup selected...");`
+and `WEBLIB_OU_TN.HTML_FUNCS`'s `Then\n   Error MsgGet(30002, ...)` -- the
+second confirms it takes a following bare statement, not necessarily its
+own parenthesised call, and that the newline before it is real even
+directly after `Then` (not a case `render()` needs to suppress the way
+consecutive `NEWLINE_AFTER`/`NEWLINE_BEFORE` sometimes must). **`0x2b` =
+`Step`**, a `For` loop's optional descending-iteration clause, confirmed
+against `WEBLIB_HRCD.ISCRIPT2`'s `For &i = &arrProfileHierarchy.Len To 1
+Step - 1`, its only unmapped opcode.
+
+Both structurally confirmed 100% on the corruption-filtered corpus (`Error`
+4/4, `Step` 3/3) and, checked more strictly per-token against real source,
+100% there too (same counts). The raw unfiltered rate is weaker,
+especially for `Step` (7/16, 43.75%) given how few total occurrences exist
+to average over -- traced by hand rather than trusted on faith: every one
+of the 9 misses sits in a program with 126 to 12733 *total* unmapped
+opcodes, nowhere near clean, the same corruption-noise shape as every
+previous pass's false alarms.
+
+Coverage barely moved (97.71% → 97.71%, both are rare opcodes), clean
+programs 87 → 89, line matching 90.07% → 90.14%.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in
