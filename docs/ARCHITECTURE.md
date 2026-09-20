@@ -128,6 +128,19 @@ approximated:
 Each of these throws `UnsupportedOperationError` with the reason, and the
 corresponding UI is read-only.
 
+## Application packages are a hierarchy, not a list
+
+Packages and classes arrive as two flat item types with different key layouts,
+and are folded back into App Designer's tree by `src/model/appPackages.ts`.
+The awkward parts are in the keys: a package keyed `[Id, Root, QualifyPath]`
+uses `.` in the path slot to mean "this is the root", and a class keyed
+`[Root, QualifyPath, ClassId]` with a blank ClassId keeps its own name in the
+QualifyPath slot, meaning it sits directly in the root package.
+
+Interior nodes are created for any path segment a class references, even when
+that package is not itself an item. An export includes referenced definitions
+selectively, so requiring the package to be present would hide real classes.
+
 ## Browsing is bounded
 
 A live environment holds tens of thousands of records and fields. The browser

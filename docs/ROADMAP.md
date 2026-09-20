@@ -13,6 +13,8 @@ Designer parity is the goal; this is the path to it.
   project items, PeopleCode source, record fields and primary keys, plus
   read-only views of fields, HTML definitions, components, menus, pages and
   application packages
+- Application packages browse as a hierarchy in the project tree — root
+  package, subpackages, classes as leaves — rather than two flat lists
 - Definitions as editable virtual files over `psft://`
 - Connections, projects and definition browser trees
 - PeopleCode TextMate grammar and language configuration
@@ -33,7 +35,11 @@ Designer parity is the goal; this is the path to it.
    editing PeopleCode today, without the decoder.
 3. **Confirm the remaining OBJECTTYPE codes**, including SQL definitions, whose
    code is currently an explicit local sentinel.
-4. **Structured editors** to replace the read-only text summaries now used for
+4. **Package hierarchy in the Definition Browser too.** The project tree folds
+   packages and classes together; the browser still lists them flat, because
+   building the same tree from a live database needs PSPACKAGEDEFN and
+   PSAPPCLASSDEFN queries rather than a project's item list.
+5. **Structured editors** to replace the read-only text summaries now used for
    fields, pages, components, menus and application packages. The page
    summary in particular lists field identifiers only, because the layout
    rectangles and flag words in `PdmField` are not yet decoded.
