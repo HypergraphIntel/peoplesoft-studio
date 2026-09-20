@@ -1194,6 +1194,51 @@ previous pass's false alarms.
 Coverage barely moved (97.71% → 97.71%, both are rare opcodes), clean
 programs 87 → 89, line matching 90.07% → 90.14%.
 
+## Pass twenty-five: 0x4a, a second name-reference opcode
+
+The last easy single-byte gap was gone; `0x4a` (47 programs, 659
+occurrences) was the next most common, but every filtered-corpus sample had
+it sitting next to *other* unmapped bytes, never isolated -- a different
+kind of problem than the last several passes, closer to the original
+record.field reference dig than a quick keyword confirmation.
+
+Hand-walking four samples found the same shape every time: `<record var> .
+[0x4a][2 bytes, second always 0x00] . Value`, e.g. `&recELSTERfile.
+[0x4a 04 00] .Value` in `WEBLIB_GPDE.GPDE_AL_ISCRIPT`. That 2-byte, second-
+byte-zero shape is exactly `0x21`'s own record.field reference operand
+(`readRecordFieldReference`: little-endian index, `NAMENUM = index + 1`).
+Cross-checking real source directly against that program's own name table
+(not just "does this text appear somewhere") confirmed it exactly: all 6
+occurrences' computed NAMENUM landed on the real field being accessed, in
+order -- `FIELD.GPDE_ELSTER_TKT`, `FIELD.SEQ_NUM`, `FIELD.EMPLID`,
+`FIELD.EMPL_RCD`, `FIELD.EFFDT`, `FIELD.GPDE_XML_TAX_INFO`, matching
+`&recELSTERfile.GPDE_ELSTER_TKT.Value`, `&recELSTERfile.SEQ_NUM.Value`, etc.
+one for one.
+
+**`0x4a` is a sibling of `0x21`: the identical 2-byte index+1=NAMENUM
+resolution, through the identical PSPCMNAME-derived table -- but rendered
+bare, without the `FIELD.` (or whatever) qualifier prefix `0x21` keeps.**
+That's the whole difference, and it's exactly what the grammar needs:
+`RECORD.FIELD` (0x21) is a reference written from nothing, so it needs its
+qualifier to say what kind of thing it is; `&recVar.FIELDNAME.Value`
+(0x4a) already has that context from the record variable and dot before
+it, so FIELDNAME is written bare in real source and must be rendered bare
+here too. Implemented by reusing `readRecordFieldReference` and
+`tryResolveName` unchanged, stripping everything up to and including the
+first `.` from the resolved qualified name; a resolution failure falls
+through to unknown exactly the way `0x21`'s already does, no new failure
+mode introduced.
+
+Corpus-wide, checked directly (is the computed NAMENUM's resolved bare name
+correct, not a loose text-presence check): **633/659 (96.0%)**, every one
+of the 26 misses a `NameResolutionError` (index out of range) in an
+already heavily-corrupted program (`WEBLIB_CTI`, `WEBLIB_MCF`,
+`OU_JET_PACK.ROADMAP` -- the same names that have shown up as noise
+sources all session), which is the safe fallback, not a wrong render.
+
+**Coverage 97.71% → 97.77%, clean programs 89 → 108 (the largest single
+jump this session), line matching 90.14% → 91.85%.**
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in

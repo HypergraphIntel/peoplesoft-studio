@@ -997,3 +997,32 @@ test('Step decodes in a For loop, confirmed byte-for-byte against WEBLIB_HRCD.IS
   assert.equal(result.unknownOpcodes.length, 0);
   assert.equal(result.text, 'To 1 Step -');
 });
+
+test('0x4a is a name reference like 0x21, but renders bare -- no qualifier prefix', () => {
+  // `&recVar.FIELDNAME.Value` writes FIELDNAME bare, unlike a direct
+  // RECORD.FIELD reference (0x21), which keeps its qualifier. Confirmed by
+  // cross-checking every computed NAMENUM against
+  // WEBLIB_GPDE.GPDE_AL_ISCRIPT.FieldFormula's own name table directly (not
+  // just rendered text): 6/6 exact matches. Corpus-wide: 633/659 (96.0%),
+  // every miss an out-of-range index in an already heavily-corrupted
+  // program, the same safe fallback 0x21 already has.
+  const names = new NameTable();
+  names.add(5, 'FIELD.GPDE_ELSTER_TKT');
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x1, ...utf16('&recELSTERfile'), 0x00, 0x00,
+      0x5,                     // .
+      0x4a, 0x04, 0x00,        // reference, index 4 -> NAMENUM 5, rendered bare
+      0x5,                     // .
+      0xa, ...utf16('Value'), 0x00, 0x00
+    ]),
+    names);
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, '&recELSTERfile.GPDE_ELSTER_TKT.Value');
+});
+
+test('0x4a falls through to unknown when the index does not resolve, like 0x21', () => {
+  const result = decodeProgram(Buffer.from([...HEADER, 0x4a, 0x00, 0x00]), new NameTable());
+  assert.equal(result.unknownOpcodes.some((u) => u.opcode === 0x4a), true);
+});

@@ -982,6 +982,36 @@ export function decodeProgram(
       }
     }
 
+    // A sibling of 0x21's name reference, same 2-byte index+1=NAMENUM shape
+    // and the same PSPCMNAME table, but for `&recVar.FIELDNAME.Value` --
+    // FIELDNAME written bare, with no `FIELD.` (or other) qualifier prefix,
+    // since it's already unambiguous right after a dot on a Record
+    // variable. Confirmed against WEBLIB_GPDE.GPDE_AL_ISCRIPT.FieldFormula
+    // by cross-checking every computed NAMENUM against that program's own
+    // name table directly (not just against rendered text): 6/6 exact
+    // matches (FIELD.GPDE_ELSTER_TKT, FIELD.SEQ_NUM, FIELD.EMPLID,
+    // FIELD.EMPL_RCD, FIELD.EFFDT, FIELD.GPDE_XML_TAX_INFO, in that
+    // occurrence order). Corpus-wide: 633/659 (96.0%), all 26 misses a
+    // NameResolutionError (index out of range) in already heavily-corrupted
+    // programs (WEBLIB_CTI, WEBLIB_MCF, OU_JET_PACK.ROADMAP), which already
+    // falls through to unknown the same safe way 0x21's own resolution
+    // failure does. See docs/ROADMAP.md pass twenty-five.
+    if (opcode === 0x4a) {
+      const ref = readRecordFieldReference(bytes, i);
+      const resolved = ref !== undefined ? tryResolveName(names, ref.nameNum) : undefined;
+      const bare = resolved !== undefined
+        ? resolved.slice(resolved.indexOf('.') + 1)
+        : undefined;
+      if (ref !== undefined && bare !== undefined && bare.length > 0) {
+        tokens.push({
+          kind: TokenKind.Name, text: bare, offset, opcode,
+          format: OPERAND_FORMAT.get(0x21) ?? 0
+        });
+        i = ref.end;
+        continue;
+      }
+    }
+
     // 0x0a is overloaded: it is a literal newline between statements, but it
     // is ALSO -- far more often (17835 of ~20400 occurrences corpus-wide) --
     // a silent "bare identifier follows" introducer, the same role as
