@@ -36,11 +36,538 @@ Designer parity is the goal; this is the path to it.
    programs, extend `OPCODES` one confirmed construct at a time, and verify each
    by round-tripping against App Designer. This is the single highest-value
    item: it turns the database backend into a real PeopleCode source.
+
+   Progress: a real bug is fixed — byte 0x00 was mapped as an unconditional
+   end-of-program opcode, so decoding stopped after essentially the first line
+   of most programs. It isn't one; PSPCMPROG.PROGLEN gives the exact byte
+   length and the stream has no in-band terminator, and 0x00 is also the
+   upper byte of every UTF-16LE character, which is why it looked plausible
+   in short samples. Confirmed against `OU_OJ_LAYOUT.Activate` (104 bytes)
+   by comparing its raw PSPCMPROG bytes to its known-correct source from a
+   real App Designer export of the same program — see the fixture bytes in
+   `src/test/decoder.test.ts`.
+
+   Second pass, against two more real samples (`WEBLIB_EOHP.ISCRIPT1.
+   FieldFormula`, `WEBLIB_EOAW.EOAW_AP_BUILDER.RowInit`): the ~37-byte header
+   turned out to be exactly 37 bytes, byte-for-byte identical in shape across
+   all three programs (`0xa0`, 4 zero bytes, 1 variable byte, 27 zero bytes,
+   `0x85`, 3 zero bytes) regardless of program size or content. That exact
+   shape is now recognised and consumed as a single `Header` token
+   (`matchHeader` in decoder.ts) instead of flooding the unmapped-opcode
+   report with 37 bytes nobody can currently explain. What the header's
+   fields mean is still not known.
+
+   A text-run heuristic was tried and rejected: identifiers/strings are
+   UTF-16LE, [char, 0x00] pairs terminated by a double-null, confirmed against
+   `AddOnLoadScript`, `GetHTMLText`, `IScript_Launcher`, `Mode`, `Visible` —
+   but walking `RowInit` byte-for-byte turned up `0x21 0x00 0x00` where the
+   source has `Then`, not a string. A blanket "printable byte then double-null
+   is a string" rule would have rendered a fake `"!"` literal there. Not
+   shipped, because that is exactly the silent-wrong-output failure mode this
+   decoder is designed to avoid.
+
+   Third pass resolved it, against `OU_VSCODE_LEARN_JN`'s `OU_CODE_WRK.CODE`
+   (the same `If (%Mode = "A") Then` / nested `If (%Mode = "AB") Then` /
+   `End-If;` / `End-If;` deliberately given to all 17 record-field events, so
+   all 17 produced byte-identical 90-byte programs) cross-checked against
+   `RowInit`. Text is only ever introduced by two specific opcodes -- `0x12`
+   for a name/system-variable reference, `0x16` for a string literal -- never
+   by proximity alone, which is what makes `RowInit`'s `0x21 0x00 0x00` safe
+   to leave unmapped instead of misreading as `"!"`. `OU_CODE_WRK.CODE` now
+   decodes with **zero unmapped opcodes**: `If`, `(`, `)`, `=`, `Then`,
+   `End-If`, `;`, `False`, both text-introducer opcodes, and the real
+   end-of-program byte (`0x07` -- also confirmed, unlike the earlier `0x00`
+   mistake, by matching the exact tail of both samples) are all in `OPCODES`
+   now. See the `CODE_WRK_BYTES`/`ROW_INIT_BYTES` fixtures in
+   `src/test/decoder.test.ts`.
+
+   Fourth pass, against a 169-byte program purpose-built to isolate exactly
+   these gaps (`OU_CODE_WRK.CODE.SavePreChange`: the same wrapper plus
+   `If (1 = 2) Then End-If;`, `WinMessage("Test");`, and
+   `OU_CODE_WRK.CODE.Visible = False;`), closed both open items above and
+   this program **also decodes with zero unmapped opcodes**:
+   - Plain function-call identifiers (`WinMessage`, matching `AddOnLoadScript`/
+     `GetHTMLText` from pass one) are spelled directly with no introducer
+     opcode at all -- confirmed safe to auto-detect only immediately after a
+     newline (`0x0a`), never on proximity alone, so it can't reintroduce the
+     `RowInit` false positive from pass two.
+   - Number literals that fit in one byte: opcode `0x50`, then 18 more bytes
+     -- two zero bytes, the value, then 15 more zero bytes. First confirmed
+     with `1` and `2` (`If (1 = 2) Then`); a fifth pass with `12` (`0x0c`) and
+     `34` (`0x22`) (`If (12 = 34) Then`, on `OU_CODE_WRK.CODE2_WRK.Workflow`)
+     showed the value byte is the number's raw binary value, not a digit --
+     never actually limited to single digits, widened from the
+     too-narrow 0-9 the fourth pass assumed to the full single-byte range
+     0-255. Values above 255, decimals and negative numbers are still not
+     confirmed and correctly fail this exact-shape match rather than being
+     misread.
+   - `RowInit`'s "branch/jump offset" guess from pass three was **wrong** —
+     corrected, not just extended. `0x21 0x00 0x00 0x05` is the same 4 bytes
+     in `SavePreChange`, in the same role: immediately before a reference to
+     the record.field the program is itself defined on
+     (`OU_CODE_WRK.CODE.Visible`, `WEBLIB_EOAW.EOAW_AP_BUILDER.Visible`).
+
+   Fifth pass reconfirmed the same 4 bytes a third time, on
+   `OU_CODE_WRK.CODE2_WRK.Workflow` referencing its own `CODE2_WRK` — still a
+   self-reference, since the code had landed on that field's own event
+   instead of a different field's. It did newly confirm the number literal
+   isn't limited to single digits: `12` (`0x0c`) and `34` (`0x22`) both
+   decoded correctly, widening the value byte from the incorrectly-narrow 0-9
+   the fourth pass assumed to the full single-byte range 0-255.
+
+   Sixth pass finally isolated the real cross-reference, and **replaced the
+   self-reference theory with a simpler, unified one that fully explains
+   it**: `OU_CODE_WRK.CODE.Workflow` and `OU_CODE_WRK.CODE2_WRK.Workflow` were
+   set to reference *each other* (`OU_CODE_WRK.CODE2_WRK.Visible = False;` and
+   `OU_CODE_WRK.CODE.Visible = False;` respectively). Both produced the same
+   132 bytes, but with the reference's middle two bytes now `0x01 0x00`
+   instead of every prior sample's `0x00 0x00` — and it resolved to a
+   *different* field in each direction despite being the identical bytes.
+   That only makes sense if those two bytes are a little-endian 16-bit index,
+   **0-based into the program's own PSPCMNAME table** (`NAMENUM = index + 1`):
+   index 0 → NAMENUM 1, which is always the program's own record.field (hence
+   every earlier sample looking like a distinct "self-reference" case); index
+   1 → NAMENUM 2, which in `CODE`'s program is `CODE2_WRK` and in
+   `CODE2_WRK`'s program is `CODE` — because each program's own `PSPCMNAME`
+   table lists itself as NAMENUM 1 and the field it references as NAMENUM 2,
+   in reference order. Confirmed across all 5 instances (3 index-0
+   self-references, 2 index-1 cross-references) with zero contradictions.
+   `decodeProgram` no longer needs the `selfReference` option this replaced —
+   `names.get(index + 1)` is enough, using the `NameTable` every call already
+   passes in; a resolution failure (index out of range) falls through to
+   unmapped rather than rendering a guess.
+
+   Seventh pass replaced hand-picked samples with a **corpus**, which is how
+   this should be driven from here on. `scripts/corpus-build.mjs` pairs every
+   PeopleCode program in a project export — those carry plain-text source —
+   with its real PSPCMPROG bytes and PSPCMNAME table; the two exports on hand
+   give 204 paired programs. The other `corpus-*.mjs` scripts then measure
+   against it:
+   - `corpus-validate.mjs` reports both **coverage** (bytes consumed) and
+     **text accuracy** (decoded text tokens that really occur in the known
+     source). Accuracy is the important one: coverage alone can be inflated
+     by consuming bytes greedily, and accuracy is what catches that.
+   - `corpus-gaps.mjs` hunts the next construct by looking only at text runs
+     the decoder still misses, histogrammed by the byte in front of them.
+   - `corpus-analyze.mjs` ranks remaining unmapped opcodes and picks the best
+     next targets; `corpus-compare.mjs` diffs one program's decode against
+     its real source.
+
+   That took coverage from **75.9% to 93.0%** across the 204 programs while
+   text accuracy *rose* to **99.50%**, and found four things hand-picked
+   samples had got wrong or missed:
+   - The header is 37 bytes on all 204, but only some positions are constant.
+     Positions 5, 6, 7, 13, 14, 21 and 29 vary per program. The previous
+     matcher demanded 6-32 be zero — overfit to three tiny programs — and so
+     rejected the header on 200 of 204, reporting 37 bytes of noise on each.
+   - `0x07` is **not** end-of-program: only 13 of 204 programs end with it,
+     against 1391 mid-stream appearances. It takes a usually-empty name
+     operand (191 real declaration names, e.g. `IScript_RPC`).
+   - Three more text introducers, each validated against real source:
+     `0x01` a variable (31047 runs, 100% found, every one `&`-prefixed),
+     `0x40` a type name (3589, 100%), `0x6d` a `/+ +/` signature annotation.
+   - Comments (`0x24`) are the one construct that is **not** null-terminated:
+     a uint16 byte length, then UTF-16LE. Reading them as null-terminated
+     truncated at the first non-text byte pair. 2420 decode verbatim into
+     their source. This alone was most of the coverage jump.
+
+   Eighth pass tried to close the remaining structural (non-text) opcodes —
+   `0x03`, `0x05`, `0x4f`, `0x23`, `0x44`, `0x2d`, etc. — the same way, and
+   **found nothing that held up, which is itself worth recording** so the
+   same candidates aren't retried the same way. Two techniques were tried:
+   - Per-program count correlation (does opcode X's count per program match
+     construct Y's count?) and a character-trigram similarity delta (does
+     mapping X to Y's text make decoded output look more like real source,
+     in aggregate?). Both surfaced plausible-looking candidates —
+     `0x20` → `Function` hit 100% (36/36) on a small filtered sample and
+     looked shippable.
+   - It collapsed completely when checked against full opcode counts per
+     program rather than a filtered sample: `0x20` appears 62892 times
+     across the corpus against a few hundred occurrences of the word
+     "Function" — several programs have hundreds of `0x20` with *zero*
+     "Function" in source. It's almost certainly landing on the space
+     character (0x20 in ASCII) incidentally inside still-unmapped bytes, not
+     a keyword at all. Every other structural candidate tried
+     (`0x3a`~import, `0x23`~As, `0x38`~Return, `0x25`~End-Function,
+     `0x27`~Returns) failed the same full-scale check, off by 5-15x — not
+     close to the near-exact match every opcode actually shipped has hit.
+     None of these were written to decoder.ts.
+
+   The lesson: aggregate/correlation signals are good for *ranking* candidates
+   worth investigating, never sufficient to *ship* one — always verify a
+   candidate's full per-program opcode count against the full per-program
+   source construct count (not a filtered subsample) before trusting it, the
+   same discipline that caught the RowInit false positive in pass two.
+
+   A third technique -- anchor-based gap extraction (`corpus-gapextract.mjs`),
+   locating each already-confirmed token in the source to pin down exactly
+   what text falls between two anchors -- initially found nothing usable for
+   the same reason: a name can legitimately appear twice in the bytecode
+   (once where declared, once via a NAMENUM backref, e.g. for a function's
+   own symbol entry) while appearing once in visible source, which broke
+   simple sequential 1:1 matching and desynced the cursor for the rest of a
+   program.
+
+   Ninth pass fixed that (skip a 0x21-sourced anchor rather than trying to
+   match it, and discard only the one gap bordering a skipped anchor, not the
+   whole program) and re-ran gap extraction, which surfaced a batch of
+   near-100%-consistent candidates on the filtered sample: `0x03`~`,` 98.4%,
+   `0x17`~`|` 97.8%, `0x23`~`As` 100%, `0x3a`~`import` 100%, `0x27`~`Returns`
+   100%, `0x20`~`Function` 100%, `0x26`~`Return` 94%, `0x2c`~`Local` 100%,
+   among others. Given the eighth pass's `0x20` lesson, every one of these was
+   then checked against full per-program opcode counts (not the filtered
+   sample) before touching decoder.ts. **Only `0x03` survived**: 163/169
+   programs within a 0.7-1.5x ratio band, totals 12798 opcode occurrences vs
+   12519 "," in source (1.02x). Every other candidate collapsed at full scale
+   by 4x to 68x, the identical `0x20` trap -- `0x17`~`|` was the starkest
+   (totals 79 vs 1852, i.e. the opcode explains under 5% of the "|" in
+   source). **Shipped: `0x03` renders as `, `**, confirmed both ways; see the
+   corpus figures in its OPCODES comment and the synthetic regression test in
+   decoder.test.ts. Coverage: 93.02% → 93.56%; text accuracy held at 99.50%
+   (unaffected, since "," isn't a text-token category that metric tracks, but
+   its steadiness confirms no other regression came with this change).
+
+   The strengthened lesson: even a candidate that is 100% consistent on a
+   carefully filtered sample must still be checked against unfiltered,
+   full-corpus occurrence counts before shipping -- the filtering itself can
+   accidentally select only the cases where a common, unrelated byte happens
+   to coincide with the construct being tested for.
+
+   Tenth pass fixed a real, already-shipped bug, reported by the user from
+   the extension's own output: decoded programs showed identifiers scattered
+   across spurious extra lines, e.g. `&access` then a line break then
+   `IsAuthorizedViewer()`, for real source `&access.IsAuthorizedViewer()` —
+   no line break there at all. Root cause: **0x0a is overloaded.** It is a
+   literal newline between statements, but far more often — 17835 of its
+   ~20400 corpus-wide occurrences — it is a silent "bare identifier follows"
+   introducer with no corresponding source newline, the same role
+   0x12/0x16/0x01/0x40 play for other text, just reusing the newline byte
+   value. This was hiding in plain sight since pass one: `OU_OJ_LAYOUT.
+   Activate`'s real source is the single line `AddOnLoadScript(GetHTMLText(
+   HTML.OU_OJ_LOAD_CSS));` with no newline anywhere before `GetHTMLText`, yet
+   the byte stream has 0x0a right there — the fixture comment even called
+   this "a newline before AddOnLoadScript" without questioning why a
+   one-line program would have one. The identifier-introducer role is now
+   checked before falling through to a real newline (previously it rendered
+   both the `\n` and the identifier). Real-source diffs before/after:
+   `AddOnLoadScript(\nGetHTMLText())` → `AddOnLoadScript(GetHTMLText())`, and
+   a 30-line Application Class program went from nearly every identifier on
+   its own broken line to reading close to the real source, with only
+   genuinely-unmapped constructs (`.`, `Not`, `And`, `create`, `True`, array
+   `[...]` indexing) missing rather than scattered across wrong lines.
+   Coverage/accuracy metrics don't move (the bytes were already being
+   consumed; only how the `\n` was rendered changed), so this was caught by
+   eyeballing real decoded output against real source, not by the corpus
+   metrics — a reminder that those metrics don't substitute for that.
+
+   Eleventh pass, prompted by the user asking whether App Designer's use of
+   Scintilla for its editor helps with formatting: it doesn't directly —
+   Scintilla is a text-display widget with a lexer for syntax highlighting,
+   not a decompiler, and doesn't invent indentation that isn't already in the
+   text it's given. App Designer must reconstruct indentation itself, from
+   nesting depth, before ever handing text to Scintilla. This project already
+   has the equivalent piece for syntax highlighting (`syntaxes/
+   peoplecode.tmLanguage.json`, a TextMate grammar, registered for
+   `.peoplecode` files) — what's still missing is the pretty-printer that
+   would produce well-indented text for it to highlight. Building that well
+   now would be premature: most block-opening keywords (`For`, `Evaluate`,
+   `class`/`method`) aren't confirmed yet, so it could only indent
+   `If`/`Then`/`End-If` and leave everything else flat.
+
+   Closed a higher-value, more immediately visible gap first: `0x05` = `.`
+   (member/method access), confirmed with the same two-stage check as `0x03`
+   -- isolated single-opcode gaps decode to `.` 99.3% of the time (2250/2267),
+   and at full scale it explains most (not all) of the `.` in source: 146/191
+   programs within a 0.7-1.5x ratio band, totals 8420 vs 9824 (0.857x).
+   Unlike every candidate rejected in pass nine, which was wrong by 4-68x
+   (random noise), this consistently *undershoots* by a similar factor
+   across programs -- the signature of a real opcode that covers most but not
+   all dot-access contexts (package-path separators, e.g. `OU_JET_PACK:
+   Model:PageDesign`, use a different still-unconfirmed byte: `0x57`/`0x58`).
+   Verified against real decoded output, not just the ratio:
+   `&access.IsAuthorizedViewer()`, `%Response.SetContentType(...)` and
+   `%Request.GetParameter(...)` all now decode correctly. Coverage: 93.56% →
+   93.91%; text accuracy held at 99.50%.
+
+   Also still open: the structural opcodes that collapsed in pass nine
+   (still unmapped, still worth another look with better isolation than
+   aggregate counts can give — `Not`, `And`, `create`, `True`, and now the
+   package-path `:` separator (`0x57`/`0x58`) foremost among them, now that
+   passes ten and eleven show how much of a readability difference they'd
+   make); what the header's variable fields mean; numbers above
+   255/decimals/negatives; and statement-level formatting/indentation, which
+   the decoder still does not attempt and — per the Scintilla question above
+   — needs its own pretty-printing pass once enough block keywords are
+   confirmed, not something decoding alone will produce.
+
+   Twelfth pass found and fixed a real bug **in the calibration tooling
+   itself**, not the decoder, while chasing those keywords further.
+   `corpus-gapextract.mjs`'s console output did
+   `Number(opcodeHexString).toString(16)` to print a label -- which silently
+   produces the *wrong* opcode for any two-digit hex string or one
+   containing a-f: `Number("58")` parses "58" as decimal 58, whose hex is
+   "3a", so a real `0x58` finding was labeled `"0x3a"`; anything containing
+   a letter (`"1a"`, `"2c"`, ...) produced `NaN`, shown as the entries
+   littering earlier output as `0xNaN`. This means **most of pass nine's
+   "collapsed at full scale" rejections tested the wrong byte** -- the
+   literal hex value typed into the verification script, based on a
+   mislabeled finding, was never the opcode the gap-extraction evidence
+   actually pointed at. The label bug did not affect `0x03` or `0x05`
+   (single-digit hex without letters round-trips through `Number()`
+   correctly by coincidence), so those two remain genuinely confirmed.
+
+   Fixed the label (print the hex string directly, no `Number()` round
+   trip) and re-ran both gap extraction and full-scale verification
+   end-to-end with correct labels. Result: **most candidates still
+   collapse**, now for real reasons rather than a wrong test -- `0x58`~
+   `import` (ratio 5.3x), `0x57`~`:` (3.1x), `0x64`~`end-method` (409x), and
+   most others are still overwhelmingly explained by something other than
+   the keyword they coincided with on a filtered sample; the same big,
+   Application-Class-heavy programs (`WEBLIB_MCF`, `WEBLIB_GS_SSOEX`,
+   `OU_JET_PACK`, `WEBLIB_CTI`) dominate the "worst" mismatches every time,
+   which points at a large, still-unidentified mechanism (method dispatch or
+   array/collection operations, most likely) consuming many of these same
+   byte values in contexts unrelated to the keyword being tested. Two did
+   survive with correct labels and real full-scale evidence: **`0x23` = `|`**
+   (string concatenation: 96% of programs within a 0.7-1.5x band, totals
+   5773 vs 5355, 1.078x) and **`0x19` = `Else`** (94%, totals 674 vs 624,
+   1.080x). Both verified against real decoded output, not just the ratio.
+   Coverage: 93.91% → 94.17%; accuracy held at 99.50%.
+
+   The lesson, again sharpened: a bug in the *verification tooling* can look
+   exactly like a genuinely collapsed candidate, and the only way either of
+   the earlier passes caught anything was because the ratios were so far off
+   (4x to 400x) that even a wrong-byte test still failed loudly. A
+   near-miss bug in tooling is more dangerous than a near-miss bug in the
+   decoder, because nothing downstream re-checks the tool's own labels
+   against ground truth the way `corpus-validate.mjs` re-checks decoded
+   text against real source. Any future scoring/ranking script should print
+   raw, unprocessed keys wherever the key's own identity (not just its
+   frequency) is what a later shipping decision depends on.
+
+   Thirteenth pass explains *why* so many structural candidates keep
+   collapsing at full scale, and it's a real structural discovery, not
+   another tooling bug: **Application Class programs carry a second,
+   completely separate binary section after the real code**, hand-verified
+   against two small, complete programs with known source
+   (`OU_JET_PACK.Widgets.BaseWidget`, 2 methods, 455 bytes;
+   `OU_JET_PACK.Security.AccessCheck`, 3 methods, 1177 bytes -- both fully
+   walked byte-by-byte against their real source the same way pass six
+   cracked the record.field reference). In both, right after the real
+   statement stream ends, the class's own declared method names (`BaseWidget`
+   `Render`; `AccessCheck` `IsAuthorizedDesigner` `IsAuthorizedViewer`)
+   reappear verbatim with **no introducer opcode before them at all** --
+   inconsistent with every text rule confirmed so far, which is what marks
+   the boundary. What follows that is a packed table of small integers (2 or
+   4 bytes each, values like 7, 33, 45, 5, 66, 2, mostly 0) running to
+   exactly the end of the buffer, one entry per method -- almost certainly a
+   method dispatch/offset table, not source-text-bearing code at all.
+
+   This directly explains the repeated collapse pattern from passes nine and
+   twelve: `0x40`, `0x2a`, `0x07` and others are real, correctly-confirmed
+   opcodes *in the statement stream*, but the exact same byte values also
+   turn up constantly as incidental small-integer data in this trailer --
+   and the trailer is proportionally huge in exactly the programs
+   (`WEBLIB_MCF`, `WEBLIB_GS_SSOEX`, `OU_JET_PACK`, `WEBLIB_CTI`) that kept
+   dominating every "worst mismatch" list. A full-corpus byte-frequency count
+   can't tell trailer noise from statement-stream signal; that's why it kept
+   producing plausible-looking candidates that fell apart on closer
+   inspection, and it's also why the decoder currently renders visible
+   garbage past the real end of an Application Class program (it has no way
+   to know the statement stream ended and keeps trying to decode the
+   trailer as more code).
+
+   Not shipped, because the boundary-detection rule needs more than two
+   samples to calibrate safely, and getting it wrong would either truncate
+   real code or fail to suppress the trailer garbage it's meant to hide.
+   Next step: find the specific opcode/count that marks "N methods declared,
+   N End-Method boundaries seen, stop" (the class header's method count is
+   very likely encoded in the still-unmapped tokens right after `class
+   ClassName`), which would let the decoder cut off cleanly instead of
+   rendering the trailer at all -- and, separately, decoding the trailer's
+   own format (which method a given dispatch entry belongs to, what its
+   integers mean) is a project in its own right once the boundary is solid.
+
+   Fourteenth pass acted directly on that theory, prompted by the user
+   pointing at a real Record PeopleCode program (`WEBLIB_OU_LP.ISCRIPT2.
+   FieldFormula`, 9 Functions, no class/trailer at all) whose decoded output
+   was missing exactly the keywords pass thirteen suspected were being
+   drowned out: `Function`, `As`, `Returns`, `Local`, `End-Function`. Rather
+   than run another corpus-wide count, this walked that one file's exact
+   bytes against its exact known source by hand -- the same method that
+   cracked the record.field reference and found the Application Class
+   trailer -- and confirmed all five at multiple independent positions each,
+   landing exactly on the matching keyword every time (e.g. `0x32` sits
+   immediately before the newline-introduced name in both `Function
+   JSONEscape(...)` at offset 475 and `Function GetDesignerBodyHtml()` at
+   offset 1064). **Shipped: `0x32` = `Function `, `0x35` = ` As `, `0x37` =
+   `End-Function;`, `0x39` = ` Returns `, `0x44` = `Local `.** Coverage:
+   94.17% → 94.42%; text accuracy held at 99.48%. Real output for that file
+   went from `JSONEscape(&sstring)string&s = Substitute(...)` to `Function
+   JSONEscape(&s As string) Returns string&s = Substitute(...)` with a
+   correctly-placed `End-Function;` after each function body -- confirming
+   pass thirteen's theory: these opcodes were correct all along, and the
+   corpus-wide full-scale checks in passes nine and twelve only "collapsed"
+   because Application Class trailer noise, concentrated in a handful of
+   large programs, swamped the real signal in the aggregate count.
+
+   Remaining in that same file, still unmapped: `import` and the `:`
+   package-path separator (both tried and collapsed at full corpus scale in
+   pass twelve -- worth retrying with this same hand-verification method
+   now that the trailer confound is understood); `Return` itself (the
+   value after it decodes fine, e.g. `&s;` where source has `Return &s;`);
+   and a reference to an `HTML.*` definition used as a bare object
+   (`GetHTMLText(HTML.OU_OJET_REQUIRE_CONFIG, ...)` decodes as
+   `GetHTMLText(, ...)`) -- likely a sibling of the confirmed record.field
+   reference construct, addressing a different definition type by the same
+   or a similar mechanism, not yet checked.
+
+   Fifteenth pass closed all of those, continuing the byte-walking method,
+   and found a real bug in already-shipped code along the way.
+   - `0x58` = `import `, `0x57` = `:`, `0x38` = `Return `, all hand-confirmed
+     in the same file: offsets 37-101 decode exactly as
+     `import OU_JET_PACK:Model:PageDesign;` and offset 102 begins the next
+     import identically, giving six confirmations of `import` and twelve of
+     `:`; `0x38` sits at offset 897 between `Substitute(...);` and `&s;`
+     (source `Return &s;`) and again at 1006 before `GetHTMLText(...)`.
+   - **Bug fixed: the name reference is 3 bytes, not 4.** `0x21` plus a
+     2-byte index, full stop. The trailing `0x05` the shipped rule also
+     demanded is the separate `.` operator, which only looked mandatory
+     because all three samples it was derived from were
+     `RECORD.FIELD.Visible`. Requiring it meant a reference used any other
+     way never matched -- which is exactly why
+     `GetHTMLText(HTML.OU_OJET_REQUIRE_CONFIG, &siteBase)` had been decoding
+     as `GetHTMLText(, &siteBase)`. Corpus-wide the corrected rule resolves
+     1640 of 1775 references, and 1636 of those 1640 (99.76%) name something
+     that really occurs in that program's source; the byte after the operand
+     is a comma 771 times and `)` 585 times against only 16 for `0x05`.
+     Fixing it also made `RECORD.FIELD.Property` render its dot again
+     (`EOAW_AP_BUILDER.Visible`, previously run together) and took
+     `OU_OJ_LAYOUT.Activate` to a fully clean decode.
+   - `0x2d` and `0x4f` are line structure. These needed a metric that did
+     not yet exist: text accuracy normalises whitespace away and is blind to
+     newline opcodes by construction, so `corpus-lines.mjs` was added, which
+     strips the indentation that was never encoded and counts how many real
+     source lines come out as their own decoded line. That moved from 37.71%
+     to 42.47% (10318 -> 11620 of 27361 lines). The same metric also
+     confirmed `0x15` carries its own newline rather than duplicating
+     theirs: dropping it collapses line matching to 15.19%.
+   - `0x37` was rendering `End-Function;` while the byte stream always
+     follows it with a real `0x15`, emitting a stray `;` on its own line.
+
+   Coverage: 94.42% → 95.07%; text accuracy 99.48% → 99.46%; clean programs
+   3 → 4. `WEBLIB_OU_LP.ISCRIPT2.FieldFormula` now decodes its imports
+   byte-identically to App Designer and its function bodies line-for-line.
+
+   What is still missing there, and it is now a short list: the
+   definition-type qualifier (`HTML.`, `Record.`, `Scroll.`) on a name
+   reference -- the name table stores the bare name, and where the qualifier
+   lives is not established -- and indentation, which was never in the bytes
+   at all and needs the pretty-printer described above, not more decoding.
+   Note also that the keyword opcodes shipped in passes fourteen and fifteen
+   do over-fire inside the signature/dispatch trailers of large
+   multi-function programs: 172 of 204 programs show zero keyword
+   mismatches, and the 168 that remain concentrate there
+   (`OU_JET_PACK.ROADMAP` alone accounts for 70). Those land in regions that
+   are already undecodable noise, and the trailer-boundary work described in
+   pass thirteen is what would clean them up.
+
+   Sixteenth pass did exactly that, prompted by the user pointing at
+   `WEBLIB_OU_LP.ISCRIPT1/2.FieldFormula` rendering garbled keyword soup
+   (bare `create`, `Local`, `Function` with no real statement shape) past
+   their real end. Hand-walked both programs' real bytes (live DB, not the
+   stale project export -- the export's `ISCRIPT1` source turned out to be
+   an older version missing two functions the live-compiled bytes still
+   have) and found the boundary pass thirteen asked for: right after the
+   closing `;` of the outermost `End-Function`/`End-Method`, the byte pair
+   `0x2d 0x07` (an ordinary newline opcode immediately followed by the
+   declaration-name opcode with no name after it -- a shape that never
+   occurs in the statement stream itself) marks the start of a
+   declaration-name directory: the program's own declared Function/Method
+   names, verbatim, no introducer, followed by a packed integer
+   dispatch/offset table running to the end of the buffer. Confirmed against
+   all nine `OU_JET_PACK` Application Class programs (the same two
+   hand-walked in pass thirteen, plus seven more) and both `WEBLIB_OU_LP`
+   record PeopleCode programs -- 11 of 11 samples, marker present exactly
+   once, always immediately after the real code's terminating `;`, never
+   elsewhere. This also settles the open question from pass thirteen: the
+   directory is not Application-Class-specific, every program that declares
+   at least one Function or Method gets one.
+
+   Corpus-wide (`corpus-validate.mjs` against all 204 programs): the marker
+   occurs in 185 of 204 (the other 19 are short enough to declare nothing),
+   never more than once in any program. `decodeProgram` now stops at the
+   first occurrence instead of trying to read the directory and dispatch
+   table as more statements, and reports it as `trailerOffset` rather than
+   unmapped-opcode noise. Coverage: 95.48% → 96.80%; **clean programs: 5 →
+   34**; text accuracy held (and rose slightly) at 99.23% → 99.36%, so
+   nothing that used to decode correctly stopped doing so -- the cut is
+   pure removal of already-wrong trailing output, not lost signal. This is
+   also most of what pass fifteen's note about keyword opcodes over-firing
+   in signature/dispatch trailers was pointing at: those false positives
+   live in exactly the region this pass now excludes.
+
+   Decoding the directory's own format (which dispatch entry belongs to
+   which name, what its packed integers mean) is still unstarted and is its
+   own project, same as pass thirteen scoped it -- this pass only closes the
+   boundary-detection half.
+
+   Seventeenth pass fixed a second, unrelated formatting bug found on the
+   same files: `End-Function` never decreased the indent level (`const
+   END_FUNCTION_STYLE = F.NEWLINE_BEFORE;`, missing `DECREASE_INDENT`), so a
+   program with several functions rendered each one more indented than the
+   last -- confirmed on `WEBLIB_OU_LP.ISCRIPT2`, whose ten functions drifted
+   from 2 spaces to 20 before this fix. Shipped, corpus-neutral by
+   construction (it only ever brings indent back toward 0, never introduces
+   a new token).
+
+   It also retried the Application Class vocabulary (`class`, `method`,
+   `end-class`, `end-method`), on the theory that pass fifteen's "these
+   score badly at corpus scale" was measuring trailer noise the boundary
+   fix above had just removed, not a wrong mapping. Hand-walking
+   `OU_JET_PACK.Layout.ComponentRegistry` (12 methods) and
+   `OU_JET_PACK.Security.AccessCheck` (3 methods) confirmed all four --
+   `0x5a` class, `0x5b` end-class, `0x64` end-method, `0x63` method
+   (overloaded between a one-line declaration inside the class body and an
+   `0x41`-marked implementation header, mirroring how `0x0a` is overloaded)
+   -- with zero mismatches in those two samples. Unconditionally mapping
+   them, though, collapsed exactly like pass fifteen's original attempt,
+   which the trailer fix turned out not to explain: `end-method` matched
+   real source only 8.9% of the time (54/610) corpus-wide, with 556 false
+   positives across 33 ordinary Function-based `WEBLIB_*` programs that
+   declare no class at all -- even `class` itself, at a deceptively
+   close-looking 92% (23/25), fired twice in
+   `WEBLIB_HRS_MA.WEBLIB_HRS_MA.FieldFormula`, a plain Function program with
+   no class anywhere in its source. These byte values are evidently doing
+   something else entirely outside an Application Class program.
+
+   That test did turn up, immediately: `definitions.ts` already has a real
+   OBJECTTYPE for this (`DefinitionType.ApplicationClassPeopleCode = 58`),
+   known at the call site before any bytes are read -- `OracleProvider`
+   queries `PSPCMPROG` by the same definition key it already has, so
+   `key.type` is free. **Shipped, gated on that type**: `decodeProgram`
+   takes a new `isApplicationClass` option, and the four opcodes above only
+   decode when it is set; `OracleProvider.readPeopleCode` passes `key.type
+   === DefinitionType.ApplicationClassPeopleCode`. Corpus-wide, restricted
+   to the 15 programs actually typed as Application Classes: **188/188
+   (100%)** of the four keywords match real source, the one exception being
+   `OU_JET_PACK.ROADMAP`, which was already 93%+ undecoded before this
+   change (14490 of 15489 bytes unmapped) for unrelated reasons and is
+   excluded the same way `WEBLIB_CTI`/`WEBLIB_EOAW_MON_ADHOC` already are
+   elsewhere in this corpus. Detecting "is this a class" from the bytes
+   themselves remains unsolved and unneeded now that the caller already
+   knows.
 2. **Project export writer.** Preserve element order, the `lp*`/`h*` marker
    words and the numeric encoding so edited exports still import. Unblocks
    editing PeopleCode today, without the decoder.
-3. **Confirm the remaining OBJECTTYPE codes**, including SQL definitions, whose
-   code is currently an explicit local sentinel.
+3. **Confirm the remaining OBJECTTYPE codes.** SQL definitions still use an
+   explicit local sentinel rather than a real code. Business Interlink (seen
+   as type 29), Approval Rule Set (38), Image (68), File Reference (69),
+   Message (90/92/93/96/110/120), Analytic Type and Page (Fluid) have all been
+   seen in a real project (`OU_VSCODE_JN`) but have no definition table
+   confirming them yet — searching `ALL_TABLES` by name pattern didn't turn
+   one up. Needs either a known definition name of each kind to search for
+   directly, or someone who knows where App Designer actually stores them.
 4. **Package hierarchy in the Definition Browser too.** The project tree folds
    packages and classes together; the browser still lists them flat, because
    building the same tree from a live database needs PSPACKAGEDEFN and
@@ -49,6 +576,422 @@ Designer parity is the goal; this is the path to it.
    fields, pages, components, menus and application packages. The page
    summary in particular lists field identifiers only, because the layout
    rectangles and flag words in `PdmField` are not yet decoded.
+
+## Pass sixteen: an independent implementation, and formatting
+
+The user pointed at an existing open-source decoder,
+[cache117/decode-pcode](https://github.com/cache117/decode-pcode)
+(`PeopleCodeParser.java`, Erik H, 2011, ISC licence). Every opcode this
+project had already independently confirmed matched it exactly, with zero
+contradictions -- including the 37-byte header (`container.pos = 37`), 0x05
+as `.`, 0x21's 2-byte reference operand, and 0x24's byte-length-prefixed
+comment. That source also carries the definition-type qualifier this
+project's own list of gaps had flagged as unresolved: `PSPCMNAME.RECNAME`,
+not just `REFNAME`, holds it (`HTML.` in `HTML.OU_OJET_REQUIRE_CONFIG`), and
+is now included in the name table built by `OracleProvider` and
+`corpus-build.mjs`.
+
+Its table also supplied a **format bitmask** per opcode (space/newline
+before and after, indent increase/decrease) -- the piece that was actually
+missing for the indentation complaint, since indentation is never in the
+byte stream at all; App Designer's Scintilla editor reconstructs it the
+same way. `decodeProgram`'s `render` now walks the token stream applying
+that bitmask instead of just concatenating token text.
+
+Wholesale-adopting that project's table was tried and did not hold up:
+`corpus-validate.mjs` scored each new keyword opcode individually against
+this database's real source, and about 50 of the ~60 candidates it added
+came back at 0-90% (some as low as 0.1%), heavily concentrated in
+Application-Class-shaped keywords (`method`, `private`, `try`/`catch`,
+`interface`, `protected`, ...) -- the same trailer-poisoning signature noted
+in pass fifteen. Only 8 keyword opcodes (And, Not, Or, For, To, When, get,
+create) cleared the same 95% bar this project has used throughout, plus a
+set of punctuation opcodes (comparison/arithmetic operators, `**`, `@`,
+`[`, `]`) that carry effectively no collision risk and were kept without an
+individual score. The rest are deliberately left unmapped -- see the
+comments in `decoder.ts`'s `OPCODES` table for the full kept/rejected list
+and each one's measured rate.
+
+Net effect on the 204-program corpus: coverage 95.07% → 95.48%, clean
+programs 4 → 5, text accuracy held at 99.32% (was 99.46%; a wholesale
+adoption without pruning had driven it down to 84-86%), and **line
+matching 42.47% → 83.51%** -- the indentation/formatting model is what
+actually answers "the formatting is missing, spaces and tabulation are
+missing" from earlier in this project. The render function was also
+rewritten from repeated string concatenation to an array-of-chunks builder;
+the original was quadratic in program size and hung on the full corpus.
+
+## Pass eighteen: the declaration-name directory's own format
+
+Finishes what pass seventeen only closed the boundary for. Rebuilt the
+204-program calibration corpus fresh against the live database (HCDEV) and
+hand-parsed the bytes right after `TRAILER_MARKER`, starting from
+single-function `WEBLIB_*.ISCRIPT1` programs and working up to the largest
+multi-function ones in the corpus.
+
+**Shipped** — `decodeProgram` now also returns `declarations?: Declaration[]`
+(`{ name, paramCount, hasReturnValue }`), decoded by the new
+`decodeDeclarations` in `decoder.ts`, in addition to the unchanged rendered
+`text` (the directory is metadata, not statements, so it was never meant to
+render as source and still doesn't):
+
+- The directory opens with a run of null-terminated UTF-16LE strings, back
+  to back, no length prefix -- confirmed byte-exact against `WEBLIB_CD_APP`
+  (single name `iScript_CD`, lowercase `i` included) and `WEBLIB_CLRSSN`
+  (`IScript_clearSession`), both matching real source exactly, case
+  included. The run ends at the first empty string or the first name
+  containing `:` -- colon-qualified names (`PTNUI:Model:Tile`) are imported
+  Application Class references belonging to a separate structure that can
+  follow this one, confirmed present in `WEBLIB_PORTAL.PORTAL_SEARCH_PB` and
+  `WEBLIB_PTNUI.PT_BUTTON_PIN`, and left undecoded.
+- Not every declared Function/Method necessarily appears -- `WEBLIB_CTI.
+  ISCRIPT1` declares 21 functions but the directory lists only 18, always
+  omitting the same three (`SetDocDomainForPortal`,
+  `SetDocDomainToAuthTokenDomain`, `GetRefreshCookieName`), which are also
+  the only three never called through anything that looks like a by-name
+  dispatch elsewhere in the program. Consistent with every sample checked,
+  but not confirmed as the actual rule.
+- After the name run, one 16-byte record per listed name: four
+  little-endian int32s `(charOffset, ?, paramCount, kind)`.
+  - `charOffset`: the *character* (not byte) offset from the start of the
+    name run to that entry's own name. This makes the table
+    self-verifying -- no source text needed, just the name-run offsets
+    already parsed -- and `decodeDeclarations` refuses the *entire* table
+    for a program if even one record disagrees, rather than emit a
+    misaligned one.
+  - second field: tried and abandoned as "0-based directory position" (an
+    earlier draft of this pass required it and rejected 68 of 183
+    otherwise-good programs on it). Not sequential, not a PSPCMNAME NAMENUM
+    either (`WEBLIB_EOAW.EOAW_AP_BUILDER` has none for either of its two
+    declared functions, yet both records use it). Left undecoded.
+  - `paramCount`: matches the real parameter count.
+  - `kind`: `7` exactly when there is no `Returns` clause; every other
+    observed value pairs with a real `Returns` clause. What a non-7 value
+    itself encodes (presumably the return type) is not decoded.
+- The charOffset self-check turned out not to be a formality: naively
+  reading one 16-byte record per name breaks on the corpus's largest
+  PeopleTools-delivered programs (`WEBLIB_PORTAL.PORTAL_SEARCH_PB`,
+  `WEBLIB_PTNUI.PT_BUTTON_PIN`, `WEBLIB_PTWC.ISCRIPT1`), producing records
+  with garbage-looking fields -- some other, still-unknown table shape
+  applies there. Requiring charOffset to match rejects exactly those
+  programs (plus the ones that declare nothing but colon-qualified
+  references) instead of emitting wrong data.
+
+Corpus-wide (excluding `WEBLIB_OU_LP.ISCRIPT1`, whose project-export source
+is already known stale from pass thirteen): of 183 programs with a trailer,
+167 verify. Every declaration in a verified program's table matches real
+source on both fields: **621/621 (100%) for `paramCount`, 621/621 (100%) for
+`hasReturnValue`** — checked against the actual compiled `decodeProgram`,
+not a standalone script. Five apparent mismatches in an early pass of this
+check turned out to be the test harness itself matching a `* Function
+CreateQueryURL` mention inside a header comment in `WEBLIB_QUERY.
+QRYGENFUNCS` before the real declaration further down; fixing the harness
+to skip comment blocks resolved them without any decoder change.
+
+A second, stronger check needs no export source at all: for every verified
+program, its trailer declarations were compared against the `Function`/
+`Method` headers in that *same buffer's own independently-rendered
+statement text* -- two different parts of `decodeProgram` decoding the same
+bytes through entirely separate code paths. 637/637 declarations agree on
+both fields. This also directly closes the stale-export gap pass thirteen
+noted for `WEBLIB_OU_LP.ISCRIPT1`: read live (not from the project export),
+its trailer lists 8 declarations (including `DisplayPath`, declared with no
+parameter list at all -- `Function DisplayPath`, no `()`), and all 8 match
+the functions the statement decoder renders independently, including the
+zero-param, no-parens case.
+
+**The `kind` field's non-7 values are also decoded, for scalar and array
+return types.** The user pointed at their PeopleTools 8.61.07 Windows client
+(App Designer, `pspcedit.dll` et al.), installed in a Wine bottle. Its
+strings didn't turn out to be needed for the actual encoding -- it was
+already fully recoverable by grouping every verified declaration's `kind`
+by the type its source's `Returns` clause actually names -- but confirmed
+the underlying type system's shape (`pspcedit.dll` carries an internal
+`Decimal, Date, Any, Boolean, Time, DateTime, Object, Integer, Float,
+Unknown` type-name table, consistent with `kind` being a small type
+enumeration rather than something unrelated). The grouping came back with
+**zero collisions** -- every `kind` value paired with exactly one type name,
+every time, across 178 real declarations:
+
+- `1` = `string` (151 samples), `5` = `boolean` (11), `13` = `object` (1),
+  `17` = `integer` (1), `19` = `number` (2).
+- `0x100000` (`ARRAY_RETURN_TYPE_FLAG`) OR one of those scalar codes means
+  `array of <type>` -- confirmed against `array of string` (`0x100001`) and
+  `array of number` (`0x100013`).
+- Record/Rowset/XmlDoc/XmlNode/App-Class return types use other bit patterns
+  entirely (`Rowset` observed as `0x80007`, `XmlDoc` as `0x8001d`, `XmlNode`
+  as `0x80022`) and are deliberately not decoded -- three data points is not
+  enough to guess the rest of that table, and `0x80007`'s low bits
+  coinciding with the unrelated void sentinel `7` is exactly the kind of
+  false pattern this project's corpus-first method exists to catch rather
+  than ship on.
+
+**Shipped**: `Declaration.returnType`, populated by `decodeReturnType` for
+exactly the scalar/array codes above and left `undefined` (never guessed)
+otherwise. Checked against the compiled decoder corpus-wide, of 180
+declarations with `hasReturnValue` and a real `Returns` clause in source:
+**170 got a decoded `returnType`, and all 170 (100%) match it**; the other
+10 are the object-typed cases just above, correctly left undecoded rather
+than guessed.
+
+Unshipped and still open at the end of pass eighteen: what the second int32
+field means, the object/record/rowset/App-Class return-type encoding, the
+colon-qualified imported-class structure that can follow the Function/Method
+directory, and the ~16-program table shape that fails the charOffset check.
+
+Tried and came back empty: searched live `PSPCMPROG.PROGTXT` directly
+(`DBMS_LOB.INSTR`, read-only) across every `WEBLIB_*` record field
+PeopleCode program for the UTF-16LE bytes of `Record`, `File`, `SQL`,
+`Message`, `ApiObject`, `JavaObject` and `Array`, to find real `Returns`
+clauses using object types this pass hasn't confirmed a `kind` code for.
+136 programs matched, decoded and cross-checked the same way as the
+637-declaration check above (trailer vs. the same buffer's own rendered
+text, no export needed) -- but none of them actually declare a function or
+method returning any of those types; the words only appear as parameter/
+local-variable types or elsewhere in the program. This did add more samples
+of the codes already confirmed (`Rowset`, `array of string`, the scalars),
+still with zero collisions, but found nothing new. Filling in the rest of
+the object-type table needs either a corpus with real examples of those
+return types, or the client binaries mentioned below.
+
+## Pass nineteen: the second field, the "alternate table shape", and Record
+
+Closes three of pass eighteen's four open items in one sitting, using the
+same Wine-bottled PeopleTools 8.61.07 client and live read-only database
+access as pass eighteen, plus a fresh look at the corpus.
+
+**The second int32 field is a running dispatch-slot offset.** Hand-walking
+`WEBLIB_CTI.ISCRIPT1` (18 listed declarations) found it climbs by exactly
+`1 + paramCount` from one entry to the next, except for three functions
+(`GetJSMCAPI`, `GetCTIJSMCAPI`, `GetTPJSMCAPI`, each taking 1 parameter)
+where consecutive entries jump by `1 + 1 = 2` instead of the `1 + 0` a
+naive "position in the list" theory predicts -- i.e. the field already
+accounts for each entry's own parameter count before the next one's slot
+starts. Corpus-wide validation refined this once more: `WEBLIB_FIN_MBL.
+CALLBACK` (3 declarations, 0 unmapped opcodes, so its rendered text is
+trustworthy) has this field at `0` for *every* entry, and all three are
+declared with no parameter list at all (`Function iScript_PageContent`, no
+`()`) -- confirmed by checking each declaration's own real syntax in the
+decoder's rendered text, not guessed. Full rule, confirmed with zero
+mismatches on every *fully*-decoded (0 unmapped opcodes) multi-declaration
+program in the corpus: **a declaration with an explicit parameter list --
+`(...)`, even empty `()` -- consumes `1 + paramCount` slots in some further,
+still-unlocated table; its own second field is the running total of that
+count over every preceding declaration with an explicit parameter list, in
+the program's real declaration order (which can include declarations this
+directory omits entirely, such as `Declare Function ... PeopleCode <other
+program>` imports of functions defined elsewhere -- confirmed these
+contribute nothing, since `WEBLIB_CTI.ISCRIPT1`'s first three declared
+functions are exactly this shape and its counter starts cleanly at 0 right
+after them). A declaration with no parameter list at all never advances the
+counter and always shows `0` itself.**
+
+Not exposed on `Declaration`: a program can have real, slot-consuming
+declarations this directory omits, which this decoder has no way to see
+from the trailer bytes alone, so nothing here is safe to expose as a
+guaranteed absolute value. Documented in `decoder.ts` instead.
+
+**The "~16-program alternate table shape" was never a second shape --
+it was `tableStart` computed from the wrong position.** Pass eighteen's
+`decodeDeclarations` stopped collecting names at the first colon-qualified
+one and used the last *plain* name's end as the record table's start. Real
+programs with colon-qualified names put those names *before* the plain
+names' own record table, not after -- confirmed by hand-walking `WEBLIB_
+PTNUI.PT_BUTTON_PIN` byte-for-byte: its 23 plain names are followed
+immediately by 3 colon-qualified ones (`PTNUI:Model:Tile`,
+`PTNUI:Model:LandingPageTab` twice), and *only after all of those* does the
+real 23-record table begin, verified via the same charOffset self-check
+pass eighteen already trusted. Fixed by continuing to scan (and skip) past
+colon-qualified names, stopping only at the name run's true end, and computing
+`tableStart` from there. This uses the same charOffset-based termination
+trick as before: a program with no colon-qualified names has no separate
+empty-string marker to find, but the first record's charOffset is always 0,
+so its own leading zero bytes look exactly like an empty string and the
+plain-only case still terminates in the right place without a special case.
+
+Corpus-wide effect: 167 → 170 of 183 trailer-bearing programs now verify
+(the fix directly recovers `WEBLIB_PORTAL.PORTAL_SEARCH_PB`, `WEBLIB_PTNUI.
+PT_BUTTON_PIN` and `WEBLIB_PTWC.ISCRIPT1`, pass eighteen's three named
+counter-examples), and every declaration in a verified program's table
+still matches real source on both `paramCount` and the Returns-clause check:
+**661/661 (100%)**, the strong export-independent self-check (trailer vs.
+the same buffer's own rendered text) rose to **677/677 (100%)**, and the
+`returnType` check to **204/204 (100%, case aside)**. A regression test
+(`decoder.test.ts`) hand-builds exactly this shape -- colon names between
+the plain names and their table -- so this doesn't silently regress again.
+
+**A fourth confirmed return-type code: `Record` (`0x80003`).** Pass
+eighteen's search for object return types was scoped to `WEBLIB_*` and
+came back empty. Broadening it system-wide (still read-only, still
+`DBMS_LOB.INSTR` on live `PSPCMPROG.PROGTXT`, searching for the literal
+`" Returns <Type>"` phrase to cut the false-positive rate) found real
+examples across the whole database in seconds: `FUNCLIB_GP_ABS.
+CALC_END_DT_BTN.CalcDur` and three sibling functions all return `Record`,
+decoding to `kind = 0x80003` -- fitting the exact same `0x80000`-flag family
+as `Rowset` (`0x80007`), `XmlDoc` (`0x8001d`) and `XmlNode` (`0x80022`)
+pass eighteen already had, with the low bits now understood as a built-in
+object-type sub-code (`3` = Record, `7` = Rowset, `29` = XmlDoc, `34` =
+XmlNode). Shipped as `OBJECT_RETURN_TYPE_FLAG` / `OBJECT_TYPE_CODES` in
+`decodeReturnType`, generalizing what was `ARRAY_RETURN_TYPE_FLAG`'s
+sibling rather than a one-off. File/SQL/Message/ApiObject/JavaObject
+sub-codes are still unconfirmed -- the same system-wide search for those
+five did turn up real `Returns` clauses this time (unlike the `WEBLIB_*`-
+only attempt), but the matching programs are Component/Page PeopleCode
+events needing more than three OBJECTVALUE key columns to fetch, which
+this pass's query script didn't build; worth a second attempt with the
+right key shape.
+
+Still open: the App-Class (`PKG:Sub:Class`) return-type encoding, the
+colon-qualified imported-class directory's own record format (its name run
+is now correctly skipped over, but its records -- confirmed to exist,
+immediately after the plain-name table, in programs like `WEBLIB_PTNUI.
+PT_BUTTON_PIN` -- are not decoded), and the File/SQL/Message/ApiObject/
+JavaObject return-type sub-codes just mentioned.
+
+**A lead for whoever picks up the Application Class trailer next.** Pulled
+the full 7-column key for nine Application Class programs a system-wide
+search had already flagged (read-only) and hand-walked `TI_INTEGRATION.
+DVMEError` (34078 bytes, only 36 unmapped opcodes -- clean enough to trust
+its rendered `class`/`method`/property declarations against the trailer
+byte-for-byte). Its directory is a genuinely different, richer shape than
+the plain-Function one this pass otherwise confirms, not yet decoded:
+
+- Record 0 is the class's *own* colon-qualified self-reference
+  (`TI_INTEGRATION:DVMEError`, charOffset 0 -- the name run's very first
+  entry), with a distinct `third` field value (`0x400000`) not seen
+  anywhere in a plain-Function program's table.
+- The next three records are *properties*, not methods (`DVM_ERROR: string`,
+  `ProcessInstance: number`, `&_DvmFunc: EOTF_CORE:DVM:Functions`) -- and
+  their `kind` field reuses exactly the same scalar codes a Returns clause
+  uses (`1` for the string property, `19` for the number one), which is
+  good news for extending `RETURN_TYPE_CODES` to property types later,
+  but their `third` field (`0xA0001`, `0xA0000`, `0xB0002`) is not a
+  parameter count -- confirmed self-consistent charOffsets prove these are
+  real, correctly-aligned records, just a different field meaning for a
+  property than for a method.
+- The App-Class-typed property's `kind` (`0x80184`) doesn't match any
+  confirmed `OBJECT_TYPE_CODES` sub-code and isn't explained by a
+  NAMENUM lookup either (this program's whole PSPCMNAME table has only 3
+  entries) -- genuinely unresolved, not a guess withheld.
+- The plain Function/Method "second field" formula pass nineteen confirmed
+  elsewhere (running total of `1 + paramCount` over declarations with an
+  explicit parameter list) breaks down here: `LOAD_DVM` (the first real
+  method after the self-reference and three properties) jumps straight to
+  `29` where the simple formula predicts `9`, and later entries don't
+  settle back into the pattern either. Properties evidently don't
+  contribute to this counter the same way plain declarations do (consistent
+  with pass nineteen's finding that parameterless, parenless declarations
+  don't consume a slot), but the exact accounting is unconfirmed.
+
+Net effect: confirmed the object/App-Class return-type search needs real
+Application Class corpus data to make progress (the plain-Function corpus
+this project has been using doesn't include class properties or self-
+descriptors at all), and that class trailers are a large enough departure
+from the plain-Function shape to warrant their own pass rather than an
+extension of `decodeDeclarations`. Nothing from this investigation is
+shipped; it is here so the next pass starts from `TI_INTEGRATION.DVMEError`
+instead of re-deriving that a plain-Function model doesn't fit.
+
+## Pass twenty: nine more opcodes, and the indentation drift is gone
+
+The user reported two real programs looking visibly wrong in the editor:
+`WEBLIB_OU_LP.ISCRIPT1` drifting further right every line until it broke
+into unreadable garbage, with orphan `;` on lines by themselves; and
+`OU_JET_PACK.Layout.ComponentRegistry`'s `GetRequireModule` method losing
+its `Evaluate`/`End-Evaluate` bookends around a real `Evaluate &tag / When
+"..." / When-Other` dispatch (the individual `When` cases still rendered,
+since 0x3d was already confirmed, but not the block they belonged to).
+
+**The root cause of the garbage cascade**: `WEBLIB_OU_LP.ISCRIPT1` (live
+bytes) has a comment -- `/* fallback if the class-line parse below doesn't
+fire */` -- introduced by opcode `0x4e`, not the already-confirmed `0x24`.
+Same exact shape (`readLengthPrefixedText`: a little-endian uint16 byte
+length, then that many bytes of UTF-16LE), confirmed byte-for-byte by hand
+before checking anything else. Reading `0x4e` as unknown didn't just drop
+the comment -- it fell through to interpreting the comment's own text as a
+fresh stream of one-byte opcodes, producing dozens of unmapped-opcode
+entries and cascading garbage past that point in the file. Fixed by routing
+`0x4e` through the same handling as `0x24`. Corpus-wide (excluding
+`WEBLIB_OU_LP.ISCRIPT1` itself, whose stale project-export source -- pass
+thirteen -- doesn't contain this comment even though the live bytes do):
+**202/202 (100%)**.
+
+**The root cause of the orphan `;` lines and the drift**: `End-For` (0x2c)
+was unmapped, so a `For ... End-For;` block rendered its `End-For` as
+nothing and its own real `;` as an orphan line. Found the same way -- hand
+walking the exact byte offset where the rendered text showed a bare `;`
+between an inner `End-If` and the outer one's `End-If`.
+
+**Confirming these two turned up a pattern worth naming**: naive
+corpus-wide scoring of a candidate opcode is corrupted by a handful of
+programs with large numbers of *unrelated* unmapped opcodes (e.g.
+`WEBLIB_MCF.ISCRIPT1`, thousands of them) -- once one opcode misdecodes,
+every byte downstream can misattribute to whatever opcode value it
+coincidentally matches, and that noise lands on whichever candidates happen
+to be under test. Restricting scoring to programs with a small total
+unmapped-opcode count (`<=25`, generously above what any single new opcode
+needs) turns this noise off. This is the same shape of problem pass
+eighteen solved for the declaration-name directory's own field alignment,
+just showing up in opcode scoring instead.
+
+**The user then pointed at the reference project again**
+(https://github.com/cache117/decode-pcode, `PeopleCodeParser.java`, already
+cited in `decoder.ts`'s file header) to check whether this was already
+solved there. It was, exactly: 0x2c `End-For`, 0x4e a second
+`CommentParser` instance -- both matching this pass's independent findings
+byte-for-byte before the reference was ever opened. Cross-checking it
+further (not adopting it wholesale, the exact mistake pass sixteen already
+learned from) surfaced more candidates, each independently corpus-checked
+before shipping, all **100%** once the corruption-noise filter above is
+applied:
+
+- `0x25` `While` (11/11), `0x26` `End-While` (11/11) -- same shape as
+  `For`/`End-For`.
+- `0x2e` `Break` (52/52) -- a bare statement, `SPACE_BEFORE` only (no
+  newline before it), matching real source's `Then Break;` on one line.
+- `0x2f` `True` (44/44) -- alongside the already-confirmed `0x30` `False`;
+  found the same hand-walking way, `&flag = <nothing>;` where `True`
+  belongs.
+- `0x3c` `Evaluate` (14/14), `0x3e` `When-Other` (10/10), `0x3f`
+  `End-Evaluate` (14/14) -- no Application Class gating needed, unlike
+  `class`/`method`/`end-class`/`end-method`, which stay gated.
+- `0x45` `Global` (22/22) -- **not** `Local` (0x44). An early hypothesis in
+  this same pass guessed 0x45 was `Local` from real structural evidence (it
+  sat exactly where `Global object &obj;` belongs in `WEBLIB_OU_LP.
+  ISCRIPT1`) but was checked against the corpus with a test loose enough to
+  always pass ("does the source contain the word LOCAL anywhere") -- worth
+  recording as a caution: a plausible-looking structural match still needs
+  a test that can actually fail. The reference source caught it before it
+  shipped wrong.
+
+**Tried and rejected**: `0x6e` as `Continue`, suggested the same
+hand-walking way (sitting exactly where `Continue` belongs, right after
+`Then`) and confirmed in the reference table too (opcode 110). Rejected
+anyway: only 9 of 660 corpus-wide occurrences actually correspond to a real
+`Continue` in source, even before any corruption filtering -- `Continue` is
+too rare a statement to explain 660 occurrences, so this byte is evidently
+overloaded with something far more common the same way `class`/`method`
+were outside Application Class programs. No gating condition is evident
+the way `isApplicationClass` was for those, so it stays unmapped rather
+than guessed at.
+
+Corpus-wide effect of all nine shipped opcodes together: coverage 97.51% →
+**97.56%**, clean programs 44 → **56** (up from 34 at the end of pass
+nineteen), text accuracy holding at 97.6-98%. `OU_JET_PACK.Layout.
+ComponentRegistry` itself now decodes with **zero unmapped opcodes** (was
+23), and its `Evaluate`/`When`/`When-Other`/`End-Evaluate` block renders
+completely. `WEBLIB_OU_LP.ISCRIPT1` dropped from 450 unmapped opcodes to
+27, its rendered indentation now maxes out at a reasonable 14 spaces
+(was drifting unboundedly), and the garbled section after `ParsePathValues`
+is gone entirely.
+
+Still open in `WEBLIB_OU_LP.ISCRIPT1` specifically (27 remaining unmapped
+opcodes): `0x41`/`0x42` (the reference maps these to empty text with
+uncertain format -- its own author left a `// 'And'-style?` comment on
+0x41), and a few isolated occurrences the reference table doesn't explain
+either. None of the remaining ones reproduce the garbage-cascade or
+indentation-drift failure mode; what's left is ordinary missing-keyword
+gaps.
 
 ## Then: writes
 

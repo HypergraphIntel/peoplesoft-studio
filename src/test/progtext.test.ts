@@ -35,7 +35,7 @@ test('the name table trims the trailing blanks PeopleTools pads PCNAME with', ()
 
 test('unmapped opcodes are reported in the rendered source, not hidden', () => {
   const result = decodeProgram(Buffer.from([0xf1, 0xf2, 0x00]), new NameTable());
-  assert.equal(result.unknownOpcodes.length, 2);
+  assert.equal(result.unknownOpcodes.length, 3);
   assert.match(result.text, /could not be fully decoded/);
   assert.match(result.text, /0xf1@0/);
 });
@@ -54,7 +54,10 @@ test('raw mode lists the name table so the opcode map can be extended', () => {
   assert.match(result.text, /0x0a/);
 });
 
-test('decoding stops at the end-of-program opcode', () => {
+test('decoding runs to the end of the buffer; 0x00 is not an end-of-program opcode', () => {
+  // PROGLEN, not an in-band byte, bounds a real program; see decoder.ts. 0x00
+  // is the UTF-16LE upper byte of ordinary text and must not stop decoding.
   const result = decodeProgram(Buffer.from([0x0a, 0x00, 0x0a]), new NameTable());
-  assert.equal(result.text, '\n');
+  assert.equal(result.unknownOpcodes.length, 1);
+  assert.equal(result.unknownOpcodes[0].opcode, 0x00);
 });

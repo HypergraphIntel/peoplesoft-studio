@@ -6,10 +6,40 @@ import { NameTable } from './progtext.js';
  * ## What is known and what is not
  *
  * Oracle does not document this format. Chunk assembly and the PSPCMNAME
- * indirection (see progtext.ts) are certain. The token stream itself is only
- * partly mapped here: the opcode table below covers the constructs confirmed
- * against real programs, and everything else decodes to an explicit
- * `UnknownToken` rather than being guessed at.
+ * indirection (see progtext.ts) are certain. The opcode table below started
+ * out purely reverse engineered against real programs (see docs/ROADMAP.md
+ * for the corpus methodology), and every entry that produced was confirmed
+ * with zero contradictions against an independent implementation the user
+ * pointed at:
+ *
+ *   https://github.com/cache117/decode-pcode
+ *   src/main/java/decodepcode/PeopleCodeParser.java
+ *   Copyright (c) 2011 Erik H (erikh3@users.sourceforge.net), ISC licence.
+ *
+ * That project's table is now adopted wholesale below (superseding the
+ * smaller independently-derived table) because it is strictly more
+ * complete and never disagreed with anything this project had already
+ * confirmed against the live database: the 37-byte header
+ * (`container.pos = 37`), byte 0x07 as a declaration marker, `;` (0x15)
+ * carrying its own trailing newline, `.` as 0x05, `|` as 0x23, `End-Function`
+ * (0x37) without a semicolon, 0x2d/0x4f as line structure, a comment's
+ * uint16 BYTE-length prefix (0x24), and a name reference (0x21) as a 2-byte
+ * little-endian index plus one, were all independently derived here first
+ * and then found identical in that source. Everything else in the table
+ * below -- the remaining keywords, the format/indentation bitmask, and the
+ * second number-literal shape (0x11) -- is adopted from that project and is
+ * *not* independently re-derived; it is measured against the corpus (see
+ * docs/ROADMAP.md) rather than assumed correct on the strength of the
+ * source alone. Still-unmapped opcodes decode to an explicit `Unknown`
+ * token rather than being guessed at.
+ *
+ * There is no in-band end marker: PSPCMPROG.PROGLEN gives the program's exact
+ * byte length, and the assembled chunks run to exactly that length, so
+ * decoding simply continues until the buffer is exhausted. An earlier
+ * revision treated byte 0x00 as an end-of-program opcode and stopped there
+ * unconditionally; that was wrong; 0x00 is an ordinary byte that also happens
+ * to be the upper byte of every UTF-16LE-encoded character, so it stopped
+ * decoding after essentially the first line of most real programs.
  *
  * That choice is deliberate. A decoder that quietly invents plausible source
  * for an opcode it does not recognise produces code that compiles and means
@@ -17,13 +47,17 @@ import { NameTable } from './progtext.js';
  * surface in the rendered output as a marker comment carrying the byte value
  * and offset, so the table can be extended from real data.
  *
- * Until the table is calibrated against your environment, the project-export
- * provider is the accurate source for PeopleCode text: App Designer writes
- * plain source into the XML, so nothing needs decoding.
+ * ## Formatting
+ *
+ * Indentation is not encoded in the byte stream at all -- App Designer's
+ * Scintilla editor reconstructs it on the fly, which is why early decoded
+ * output was flat with no indentation. Each opcode below carries a `format`
+ * bitmask (see {@link FMT}) saying how it spaces and breaks lines around
+ * itself; {@link render} walks the token stream applying those flags to
+ * rebuild the indentation App Designer would show.
  */
 
 export enum TokenKind {
-  EndOfProgram = 'eop',
   Name = 'name',
   StringLiteral = 'string',
   NumberLiteral = 'number',
@@ -31,6 +65,8 @@ export enum TokenKind {
   Punctuation = 'punct',
   Newline = 'newline',
   Comment = 'comment',
+  /** The fixed preamble every program starts with; see {@link matchHeader}. */
+  Header = 'header',
   Unknown = 'unknown'
 }
 
@@ -42,23 +78,490 @@ export interface Token {
   offset: number;
   /** Raw opcode byte, present for every token read from the stream. */
   opcode: number;
+  /** Spacing/indentation bitmask for this token; see {@link FMT}. */
+  format: number;
 }
 
 /**
- * Opcode values confirmed against decoded programs.
- *
- * Entries are added only when a program round-trips: decode, recompile in App
- * Designer, and compare the stored bytes. Speculative entries do not belong
- * here — an unmapped opcode is reported, not approximated.
+ * Formatting bitmask flags, adopted from PeopleCodeParser.java's format
+ * model (see file header). `NONE`/`PUNCTUATION` is deliberately zero.
  */
-export const OPCODES = new Map<number, { kind: TokenKind; text?: string }>([
-  [0x00, { kind: TokenKind.EndOfProgram, text: '' }],
-  [0x0a, { kind: TokenKind.Newline, text: '\n' }]
+export const FMT = {
+  NONE: 0,
+  SPACE_BEFORE: 0x1,
+  SPACE_AFTER: 0x2,
+  NEWLINE_BEFORE: 0x4,
+  NEWLINE_AFTER: 0x8,
+  INCREASE_INDENT: 0x10,
+  DECREASE_INDENT: 0x20,
+  NO_SPACE_BEFORE: 0x200,
+  NO_SPACE_AFTER: 0x400,
+  INCREASE_INDENT_ONCE: 0x800,
+  NEWLINE_ONCE: 0x2000,
+  SEMICOLON: 0x8000
+} as const;
+
+const F = FMT;
+const SPACE_BOTH = F.SPACE_BEFORE | F.SPACE_AFTER;
+const NEWLINE_BOTH = F.NEWLINE_BEFORE | F.NEWLINE_AFTER;
+const NEWLINE_BEFORE_SPACE_AFTER = F.NEWLINE_BEFORE | F.SPACE_AFTER;
+const AND_OR_STYLE = F.NEWLINE_AFTER | F.SPACE_BEFORE;
+const FOR_STYLE = F.NEWLINE_BEFORE | F.SPACE_AFTER | F.INCREASE_INDENT;
+const IF_STYLE = F.NEWLINE_BEFORE | F.SPACE_BEFORE | F.SPACE_AFTER;
+const THEN_STYLE = F.SPACE_BEFORE | F.NEWLINE_AFTER | F.SPACE_AFTER | F.INCREASE_INDENT;
+const ELSE_STYLE = F.NEWLINE_BEFORE | F.DECREASE_INDENT | F.NEWLINE_AFTER | F.INCREASE_INDENT;
+// No NEWLINE_AFTER here: every End-If/End-While/End-For in the byte stream
+// is followed by a real 0x15 (`;`), which already supplies the line break
+// (see 0x37's note below on the analogous End-Function case). Adding one
+// here too just splits "End-If" and ";" onto separate lines.
+const ENDBLOCK_STYLE = F.NEWLINE_BEFORE | F.SPACE_BEFORE | F.DECREASE_INDENT;
+const FUNCTION_STYLE = F.NEWLINE_BEFORE | F.SPACE_AFTER | F.INCREASE_INDENT;
+// Same reasoning as ENDBLOCK_STYLE on NEWLINE_AFTER -- the real 0x15 after
+// End-Function/End-Method already supplies the line break. DECREASE_INDENT
+// was missing here: nothing ever brought the indent level back down after a
+// Function/Method body, so a program with several functions rendered each
+// one more indented than the last (confirmed on WEBLIB_OU_LP.ISCRIPT2,
+// whose ten functions drifted from 2 spaces to 20 before this fix).
+const END_FUNCTION_STYLE = F.NEWLINE_BEFORE | F.DECREASE_INDENT;
+const EVALUATE_STYLE = F.NEWLINE_BEFORE | F.SPACE_AFTER | F.INCREASE_INDENT;
+// Each `When`/`When-Other` sits at Evaluate's own indent level, but its own
+// body is one more indented -- decrease back to Evaluate's level before the
+// keyword, then increase again for what follows it.
+const WHEN_STYLE = F.DECREASE_INDENT | NEWLINE_BEFORE_SPACE_AFTER | F.INCREASE_INDENT;
+
+interface OpcodeSpec {
+  kind: TokenKind;
+  text?: string;
+  format: number;
+}
+
+/**
+ * Opcode table. Entries confirmed independently against real programs (see
+ * file header and docs/ROADMAP.md) plus entries adopted from
+ * PeopleCodeParser.java, all attributed there. Speculative entries do not
+ * belong here -- an unmapped opcode is reported, not approximated.
+ */
+export const OPCODES = new Map<number, OpcodeSpec>([
+  // -- Independently confirmed against real programs --
+  [0x1c, { kind: TokenKind.Keyword, text: 'If', format: IF_STYLE }],
+  [0x0b, { kind: TokenKind.Punctuation, text: '(', format: F.NO_SPACE_AFTER }],
+  [0x14, { kind: TokenKind.Punctuation, text: ')', format: F.NO_SPACE_BEFORE }],
+  [0x06, { kind: TokenKind.Punctuation, text: '=', format: SPACE_BOTH }],
+  [0x1f, { kind: TokenKind.Keyword, text: 'Then', format: THEN_STYLE }],
+  [0x1a, { kind: TokenKind.Keyword, text: 'End-If', format: ENDBLOCK_STYLE }],
+  [0x2c, { kind: TokenKind.Keyword, text: 'End-For', format: ENDBLOCK_STYLE }],
+  [0x3c, { kind: TokenKind.Keyword, text: 'Evaluate', format: EVALUATE_STYLE }],
+  [0x3e, { kind: TokenKind.Keyword, text: 'When-Other', format: WHEN_STYLE }],
+  [0x3f, { kind: TokenKind.Keyword, text: 'End-Evaluate', format: ENDBLOCK_STYLE }],
+  [0x15, { kind: TokenKind.Punctuation, text: ';', format: F.SEMICOLON | F.NEWLINE_AFTER | F.NO_SPACE_BEFORE }],
+  [0x07, { kind: TokenKind.Keyword, text: '', format: SPACE_BOTH }],
+  [0x2f, { kind: TokenKind.Keyword, text: 'True', format: SPACE_BOTH }],
+  [0x30, { kind: TokenKind.Keyword, text: 'False', format: SPACE_BOTH }],
+  [0x03, { kind: TokenKind.Punctuation, text: ',', format: F.NO_SPACE_BEFORE | F.SPACE_AFTER }],
+  [0x05, { kind: TokenKind.Punctuation, text: '.', format: F.NO_SPACE_BEFORE | F.NO_SPACE_AFTER }],
+  [0x23, { kind: TokenKind.Punctuation, text: '|', format: SPACE_BOTH }],
+  [0x19, { kind: TokenKind.Keyword, text: 'Else', format: ELSE_STYLE }],
+  [0x32, { kind: TokenKind.Keyword, text: 'Function', format: FUNCTION_STYLE }],
+  [0x35, { kind: TokenKind.Keyword, text: 'As', format: SPACE_BOTH }],
+  [0x37, { kind: TokenKind.Keyword, text: 'End-Function', format: END_FUNCTION_STYLE }],
+  [0x39, { kind: TokenKind.Keyword, text: 'Returns', format: SPACE_BOTH }],
+  [0x25, { kind: TokenKind.Keyword, text: 'While', format: FOR_STYLE }],
+  [0x26, { kind: TokenKind.Keyword, text: 'End-While', format: ENDBLOCK_STYLE }],
+  [0x2e, { kind: TokenKind.Keyword, text: 'Break', format: F.SPACE_BEFORE }],
+  [0x44, { kind: TokenKind.Keyword, text: 'Local', format: NEWLINE_BEFORE_SPACE_AFTER }],
+  [0x45, { kind: TokenKind.Keyword, text: 'Global', format: NEWLINE_BEFORE_SPACE_AFTER }],
+  [0x58, { kind: TokenKind.Keyword, text: 'import', format: SPACE_BOTH }],
+  [0x57, { kind: TokenKind.Punctuation, text: ':', format: F.NO_SPACE_BEFORE | F.NO_SPACE_AFTER }],
+  [0x38, { kind: TokenKind.Keyword, text: 'Return', format: SPACE_BOTH }],
+  [0x2d, { kind: TokenKind.Newline, text: '', format: F.NEWLINE_ONCE }],
+  [0x4f, { kind: TokenKind.Newline, text: '', format: F.NEWLINE_AFTER }],
+
+  // -- Adopted from PeopleCodeParser.java (see file header), then filtered
+  //    against this database's own 204-program corpus via
+  //    scripts/corpus-validate.mjs before shipping, the same discipline
+  //    applied to every entry above.
+  //
+  //    Punctuation (comparison/arithmetic operators, `**`, `@`, `[`, `]`)
+  //    carries essentially no risk of colliding with the Application Class
+  //    trailer noise described in the file header -- a stray byte matching
+  //    `>=` is far less consequential and far less detectable than one
+  //    matching a whole keyword -- and corpus coverage rose cleanly with
+  //    these added, so they are kept without a per-opcode accuracy figure
+  //    (corpus-validate.mjs does not score punctuation).
+  //
+  //    Every adopted KEYWORD opcode, in contrast, was measured individually:
+  //    of ~60 candidates, only the 8 below matched their program's real
+  //    source at or above 95% (the same bar this project has used
+  //    throughout, e.g. 99.76% for 0x21). The rest -- And/Or's neighbours
+  //    like Warning (14.5%), Repeat (0.9%), method/private/try/catch/etc.
+  //    (5-80%) -- were disproven on this corpus and are deliberately left
+  //    out, exactly like the seven removed below. That the wrong ones
+  //    cluster around Application Class syntax (method, property, private,
+  //    try/catch, interface, class-adjacent keywords) matches the trailer
+  //    theory: those programs' method-dispatch trailers are binary data
+  //    that happens to coincide with real opcode bytes.
+  [0x04, { kind: TokenKind.Punctuation, text: '/', format: SPACE_BOTH }],
+  [0x08, { kind: TokenKind.Punctuation, text: '>=', format: SPACE_BOTH }],
+  [0x09, { kind: TokenKind.Punctuation, text: '>', format: SPACE_BOTH }],
+  [0x0c, { kind: TokenKind.Punctuation, text: '<=', format: SPACE_BOTH }],
+  [0x0d, { kind: TokenKind.Punctuation, text: '<', format: SPACE_BOTH }],
+  [0x0e, { kind: TokenKind.Punctuation, text: '-', format: SPACE_BOTH }],
+  [0x0f, { kind: TokenKind.Punctuation, text: '*', format: SPACE_BOTH }],
+  [0x10, { kind: TokenKind.Punctuation, text: '<>', format: SPACE_BOTH }],
+  [0x13, { kind: TokenKind.Punctuation, text: '+', format: SPACE_BOTH }],
+  [0x46, { kind: TokenKind.Punctuation, text: '**', format: F.NONE }],
+  [0x47, { kind: TokenKind.Punctuation, text: '@', format: F.SPACE_BEFORE | F.NO_SPACE_AFTER }],
+  [0x4c, { kind: TokenKind.Punctuation, text: '[', format: F.SPACE_BEFORE | F.NO_SPACE_AFTER }],
+  [0x4d, { kind: TokenKind.Punctuation, text: ']', format: F.NO_SPACE_BEFORE | F.SPACE_AFTER }],
+  [0x59, { kind: TokenKind.Punctuation, text: '*', format: SPACE_BOTH }],
+
+  // Keyword survivors (>=95% real-source match; see note above):
+  //   0x18 And 98.7%, 0x1d Not 98.1%, 0x1e Or 100%, 0x29 For 99.1%,
+  //   0x2a To 98.0%, 0x3d When 96.7%, 0x5f get 98.5%, 0x69 create 95.4%.
+  //
+  // End-For (0x2c), True (0x2f), Evaluate/When-Other/End-Evaluate
+  // (0x3c/0x3e/0x3f), While/End-While (0x25/0x26), Break (0x2e) and Global
+  // (0x45) were retried after noticing the same corruption-noise pattern
+  // already known from pass eighteen's trailer work: a handful of
+  // heavily-corrupted programs (unrelated decode failures elsewhere, e.g.
+  // WEBLIB_MCF.ISCRIPT1 with thousands of unmapped opcodes) throw off naive
+  // corpus-wide scoring by misattributing garbage bytes to whatever opcode
+  // happens to follow. Scored only against programs with a small
+  // unmapped-opcode count (<=25, well above what any of these need on their
+  // own), all 100%: 0x2c (48/48), 0x2f (44/44), 0x3c (14/14), 0x3e (10/10),
+  // 0x3f (14/14), 0x25 (11/11), 0x26 (11/11), 0x2e (52/52), 0x45 (22/22) --
+  // no Application Class gating needed, unlike class/method below. 0x2c was
+  // found by hand-walking `WEBLIB_OU_LP.ISCRIPT1` live: a `For`/`End-If`
+  // block rendered with an orphan `;` on its own line where `End-For`
+  // belongs, immediately after the inner `End-If`; 0x2f the same way,
+  // `&flag = <nothing>;` where `True` belongs. 0x3c/0x3e/0x3f were found the
+  // same way in `OU_JET_PACK.Layout.ComponentRegistry`'s `Evaluate &tag`
+  // dispatch, which had lost its `Evaluate`/`End-Evaluate` bookends entirely
+  // (the individual `When` cases still rendered, since 0x3d was already
+  // confirmed). All of it cross-checked against
+  // https://github.com/cache117/decode-pcode's independently-written table,
+  // which maps every one of these nine identically (see docs/ROADMAP.md
+  // pass twenty) -- but each was independently confirmed against this
+  // corpus first, not adopted on the reference's word alone, the same
+  // discipline pass sixteen's wholesale-adoption failure established.
+  // 0x45 specifically is `Global`, not `Local` (0x44) -- an early hypothesis
+  // from this same pass, based on nothing more than "the source happens to
+  // contain the word LOCAL somewhere," a test loose enough to always pass
+  // and therefore not real evidence; the reference source corrected it.
+  // 0x6e was also tried, as `Continue` -- rejected: 9 real matches out of
+  // 660 occurrences, far too common a byte value to be a statement this
+  // rare, evidently overloaded with something else the way class/method
+  // were outside Application Class programs. Left unmapped.
+  [0x18, { kind: TokenKind.Keyword, text: 'And', format: AND_OR_STYLE }],
+  [0x1d, { kind: TokenKind.Keyword, text: 'Not', format: SPACE_BOTH }],
+  [0x1e, { kind: TokenKind.Keyword, text: 'Or', format: AND_OR_STYLE }],
+  [0x29, { kind: TokenKind.Keyword, text: 'For', format: FOR_STYLE }],
+  [0x2a, { kind: TokenKind.Keyword, text: 'To', format: SPACE_BOTH }],
+  [0x3d, { kind: TokenKind.Keyword, text: 'When', format: WHEN_STYLE }],
+  [0x5f, { kind: TokenKind.Keyword, text: 'get', format: F.INCREASE_INDENT_ONCE | F.SPACE_BEFORE }],
+  [0x69, { kind: TokenKind.Keyword, text: 'create', format: SPACE_BOTH }]
 ]);
+
+// Every other keyword PeopleCodeParser.java maps -- Error, Warning,
+// Repeat, Until, Step, Declare, Library,
+// Value, PeopleCode, Ref, Exit, Continue (0x6e -- tried, rejected, see
+// above),
+// set, Null, PanelGroup, readonly, Doc, Component, Constant, and the whole
+// Application Class vocabulary (class/end-class/extends/out/property/
+// private/instance/method/end-method/try/catch/end-try/throw/end-get/
+// end-set/Continue/abstract/interface/end-interface/implements/protected)
+// -- was tried and measured against this corpus and scored well under the
+// bar above (many at 0-50%, some as low as 0.1-0.9%; see the comment
+// above). They are left unmapped so they surface as Unknown and get
+// reported, not guessed at, rather than shipped on the strength of the
+// reference source alone.
+//
+// The Application Class vocabulary specifically was retried after the
+// trailer-cutoff pass (see TRAILER_MARKER), on the theory that its earlier
+// corpus-wide failure was trailer noise, not a wrong mapping. Hand-walking
+// OU_JET_PACK.Layout.ComponentRegistry (12 methods) and
+// OU_JET_PACK.Security.AccessCheck (3 methods) confirmed 0x5a `class`,
+// 0x5b `end-class`, 0x64 `end-method`, and 0x63 `method` (overloaded
+// between a declaration and an 0x41-marked implementation header) against
+// real source with zero mismatches in those two samples. Corpus-wide it
+// did not hold: `end-method` matched real source only 8.9% of the time
+// (54/610), with 556 false positives spread across 33 ordinary
+// Function-based WEBLIB_* programs that declare no class at all (e.g.
+// `class` itself fired twice in WEBLIB_HRS_MA.WEBLIB_HRS_MA.FieldFormula,
+// a plain Function program with no class anywhere in its source). These
+// byte values are evidently reused for something else entirely outside an
+// Application Class program -- the same trap the corpus-validation
+// discipline exists to catch -- so they were reverted rather than shipped
+// on the strength of two samples. Not disproven the way the rest of this
+// list is (0.1-80%, tried directly): this needs a way to tell an
+// Application-Class program apart from an ordinary one *before* deciding
+// how to read these bytes, which is not yet established.
+
+/** Format for the operand-bearing opcodes handled outside {@link OPCODES} below. */
+// Identifiers/references only ever pull a space in front of themselves --
+// never after -- so that `Name(`, `Name.Field` and `Name:Path` (function
+// calls, dot access, package paths) stay tight the way real source does.
+// What follows an identifier (`(`, `.`, `:`, `,`, another operator) decides
+// its own spacing instead.
+const OPERAND_FORMAT = new Map<number, number>([
+  [0x12, F.SPACE_BEFORE],  // Name
+  [0x16, F.SPACE_BEFORE],  // StringLiteral
+  [0x01, F.SPACE_BEFORE],  // &var Name
+  [0x40, F.SPACE_BEFORE],  // Keyword (type)
+  [0x6d, NEWLINE_BOTH],    // signature annotation comment
+  [0x07, F.SPACE_BEFORE],  // declaration name (falls through OPCODES entry above when empty)
+  [0x0a, F.SPACE_BEFORE],  // identifier-introducer overload of 0x0a
+  [0x24, NEWLINE_BOTH],    // length-prefixed comment
+  [0x4e, NEWLINE_BOTH],    // length-prefixed comment (second introducer, same shape)
+  [0x21, F.SPACE_BEFORE],  // name/record-field reference
+  [0x50, F.SPACE_BEFORE | F.NO_SPACE_AFTER], // byte integer literal
+  [0x11, F.SPACE_BEFORE | F.NO_SPACE_AFTER]  // second number-literal shape (14-byte operand)
+]);
+
+/**
+ * Opcodes that introduce a variable-length UTF-16LE text operand: the actual
+ * name or string is spelled out, [char, 0x00] pairs, until a [0x00, 0x00]
+ * terminator -- confirmed for both `%Mode` (twice, both samples) and the
+ * string literals `"A"` and `"AB"`. Kept separate from {@link OPCODES}
+ * because the byte(s) that follow are data, not further opcodes; the
+ * generic loop in {@link decodeProgram} special-cases these rather than
+ * mapping them to fixed text. This is what replaces the byte-pattern
+ * heuristic tried and rejected earlier (see docs/ROADMAP.md): the pattern
+ * only fires right after one of these two specific opcodes, never on
+ * proximity alone, which is what a real false positive (RowInit's
+ * `0x21 0x00 0x00`, not one of these two opcodes) exposed as unsafe.
+ */
+const TEXT_INTRODUCERS = new Map<number, TokenKind.Name | TokenKind.StringLiteral | TokenKind.Keyword | TokenKind.Comment>([
+  [0x12, TokenKind.Name],
+  [0x16, TokenKind.StringLiteral],
+  // Confirmed by scanning 204 programs whose plain-text source is known from
+  // a project export (scripts/corpus-*.mjs) and checking that the decoded run
+  // really occurs in that source:
+  //   0x01  31047 runs, 100% found in source, and every single one is
+  //         &-prefixed -- a variable reference (&myVar).
+  //   0x40   3589 runs, 100% found in source -- a type or declaration
+  //         keyword (string, boolean, number, integer, array, FieldFormula).
+  //   0x6d     68 runs, 100% found in source -- the text inside a PeopleCode
+  //         signature annotation (`/+ &tag as String +/`, `/+ Returns
+  //         Boolean +/`), which is why it renders wrapped in /+ +/ below.
+  [0x01, TokenKind.Name],
+  [0x40, TokenKind.Keyword],
+  [0x6d, TokenKind.Comment],
+  //   0x07  1391 appearances, 1282 of them (92%) followed by a text run that
+  //         is usually empty (1091) and otherwise a declaration name (191,
+  //         e.g. IScript_RPC, Build_Chart), all found in the known source.
+  //         The remaining 109 fall through to its plain OPCODES entry below.
+  [0x07, TokenKind.Name]
+]);
+
+/**
+ * Reads a UTF-16LE text run starting at `start`, terminated by a 0x00 0x00
+ * pair. Returns null if the bytes at `start` do not fit that shape (not
+ * enough bytes, a non-printable or non-zero high byte, or no terminator
+ * before the buffer ends) so the caller can fall back to treating the
+ * introducer as an ordinary unknown byte instead of misreading unrelated
+ * bytes as text. The printable-ASCII restriction is stricter than the
+ * evidence strictly requires -- every confirmed text run so far has been
+ * printable ASCII -- but costs nothing to enforce and rules out a class of
+ * false positive this decoder has no evidence either way on.
+ */
+/**
+ * Printable ASCII, plus tab/CR/LF: a multi-line comment or string literal is
+ * one text run containing real line breaks, so rejecting them truncated
+ * every such run at its first newline. Adding them raised corpus coverage
+ * without lowering how often decoded text matches the known source, which is
+ * the check that would have caught it if the runs had turned greedy.
+ */
+function isTextByte(lo: number): boolean {
+  return (lo >= 0x20 && lo <= 0x7e) || lo === 0x09 || lo === 0x0a || lo === 0x0d;
+}
+
+function readTextRun(bytes: Buffer, start: number): { text: string; end: number } | undefined {
+  const chars: string[] = [];
+  let i = start;
+  while (i + 1 < bytes.length) {
+    const lo = bytes[i];
+    const hi = bytes[i + 1];
+    if (lo === 0x00 && hi === 0x00) return { text: chars.join(''), end: i + 2 };
+    if (hi !== 0x00 || !isTextByte(lo)) return undefined;
+    chars.push(String.fromCharCode(lo));
+    i += 2;
+  }
+  return undefined;
+}
+
+/**
+ * A number literal that fits in one byte (0-255): opcode 0x50, two zero
+ * bytes, the value, then 15 more zero bytes -- 19 bytes total. Confirmed
+ * against four instances across two programs, at the same relative position
+ * each time: 1, 2 (`If (1 = 2) Then`), then 12 (0x0c) and 34 (0x22)
+ * (`If (12 = 34) Then`) -- the value byte is the number's raw binary value,
+ * not a digit or ASCII, so this was never actually limited to single digits;
+ * an earlier revision restricted it to 0-9 on too little evidence. Values
+ * above 255, decimals and negative numbers presumably use more of what's
+ * zero here and so correctly fail this exact-shape match rather than being
+ * misread.
+ *
+ * `operandLength` also accepts 0x11's shorter, 14-byte shape (adopted from
+ * PeopleCodeParser.java; see file header) which this project has not yet
+ * independently confirmed a sample of.
+ */
+function readByteIntegerLiteral(
+  bytes: Buffer,
+  start: number,
+  operandLength: number
+): { value: number; end: number } | undefined {
+  if (start + operandLength > bytes.length) return undefined;
+  if (bytes[start] !== 0x00 || bytes[start + 1] !== 0x00) return undefined;
+  const value = bytes[start + 2];
+  for (let j = start + 3; j < start + operandLength; j++) {
+    if (bytes[j] !== 0x00) return undefined;
+  }
+  return { value, end: start + operandLength };
+}
+
+/**
+ * A name reference: opcode 0x21 followed by a little-endian 16-bit index,
+ * 0-based into this program's own PSPCMNAME table (NAMENUM = index + 1).
+ * Three bytes total. Used for record.field references, and equally for
+ * references to other definitions -- e.g. `HTML.OU_OJET_REQUIRE_CONFIG` in
+ * `GetHTMLText(HTML.OU_OJET_REQUIRE_CONFIG, &siteBase)` is this same
+ * construct, resolving through the same table.
+ *
+ * The operand is two bytes, not three. An earlier revision also required a
+ * trailing 0x05, because all three samples it was originally derived from
+ * happened to be `RECORD.FIELD.Visible` -- where that 0x05 is not part of
+ * the reference at all, but the separate `.` operator (confirmed
+ * independently) introducing the `.Visible` that follows. Requiring it meant
+ * a reference used any other way -- as a function argument, say -- never
+ * matched, which is why `GetHTMLText(HTML.OU_OJET_REQUIRE_CONFIG, ...)`
+ * decoded as `GetHTMLText(, ...)` with the reference silently dropped.
+ * Across the 204-program corpus, 0x21 appears 1775 times, 1640 resolve to a
+ * real NAMENUM this way, and 1636 of those 1640 (99.76%) resolve to a name
+ * that really occurs in that program's source. The byte after the operand is
+ * a comma 771 times and `)` 585 times, against only 16 times for 0x05 --
+ * which is what the old rule was demanding.
+ *
+ * The name table stores `RECNAME.REFNAME` (e.g. `HTML.OU_OJET_REQUIRE_CONFIG`)
+ * when PSPCMNAME.RECNAME is non-blank, so the definition-type qualifier is
+ * carried through automatically; see progtext.ts and OracleProvider.
+ */
+function readRecordFieldReference(bytes: Buffer, start: number): { nameNum: number; end: number } | undefined {
+  if (start + 2 > bytes.length) return undefined;
+  const index = bytes[start] | (bytes[start + 1] << 8);
+  return { nameNum: index + 1, end: start + 2 };
+}
+
+/**
+ * Punctuation a text run carries in source but not in the byte stream: a
+ * string literal's quotes, and the `/+ +/` around a signature annotation
+ * (confirmed against real source, e.g. `/+ &propsJson as String +/`).
+ */
+function renderTextRun(kind: TokenKind, text: string): string {
+  switch (kind) {
+    case TokenKind.StringLiteral: return `"${text}"`;
+    case TokenKind.Comment: return `/+ ${text} +/`;
+    default: return text;
+  }
+}
+
+/**
+ * A comment: opcode 0x24 or 0x4e, a little-endian uint16 giving the text's
+ * length in BYTES (not characters), then that many bytes of UTF-16LE.
+ *
+ * This is a different framing from every other text in the format, which is
+ * null-terminated -- a comment is not, and reading one as null-terminated
+ * stops at the first byte pair that happens to be invalid. Confirmed across
+ * the 204-program corpus: 2420 comments decoded this way (via 0x24) are
+ * found verbatim in the programs' known source, against a single false
+ * positive (a run of zero bytes, which only matched because the probe
+ * scanned every position rather than only opcode positions). The text
+ * carries its own `/* *\/` or `rem` markers, so it is rendered as-is.
+ *
+ * 0x4e is a second introducer for the exact same shape, found hand-walking
+ * `WEBLIB_OU_LP.ISCRIPT1` live (its export is known-stale -- pass thirteen
+ * -- so this comment, real in the live bytes, is invisible to the export
+ * text the corpus otherwise checks against): 202/202 (100%) match once that
+ * one stale-export program is excluded from the corpus check. What
+ * distinguishes 0x24 from 0x4e -- position, comment style, some other
+ * context -- is not established; both decode identically since the
+ * rendered text carries its own delimiters either way.
+ */
+function readLengthPrefixedText(bytes: Buffer, start: number): { text: string; end: number } | undefined {
+  if (start + 2 > bytes.length) return undefined;
+  const byteLength = bytes[start] | (bytes[start + 1] << 8);
+  const from = start + 2;
+  const end = from + byteLength;
+  if (byteLength === 0 || byteLength % 2 !== 0 || end > bytes.length) return undefined;
+  const chars: string[] = [];
+  for (let j = from; j < end; j += 2) {
+    // Every character must be real text: a length that happens to precede a
+    // run of zero bytes would otherwise decode as a comment full of NULs.
+    if (bytes[j + 1] !== 0x00 || !isTextByte(bytes[j])) return undefined;
+    chars.push(String.fromCharCode(bytes[j]));
+  }
+  return { text: chars.join(''), end };
+}
+
+/** NameTable.get throws on a missing entry; a decoder must not let that escape as a crash. */
+function tryResolveName(names: NameTable, nameNum: number): string | undefined {
+  try {
+    return names.get(nameNum);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The fixed 37-byte preamble every program starts with.
+ *
+ * Confirmed by tabulating byte-position variance across 204 real programs
+ * (every PeopleCode program in two project exports, paired with its
+ * PSPCMPROG bytes; see scripts/corpus-header.mjs). Positions 0 and 33 are
+ * always 0xa0 and 0x85, and the positions in ZERO_POSITIONS below are always
+ * zero. The remaining positions -- 5, 6, 7, 13, 14, 21 and 29 -- vary per
+ * program and are left alone: 5-7 and 13-14 look like little-endian counts
+ * or lengths, 21 and 29 like small counts, but nothing here depends on
+ * knowing which. PeopleCodeParser.java's `container.pos = 37` independently
+ * confirms 37 as the header length.
+ *
+ * An earlier revision required positions 6-32 to be zero, which was overfit
+ * to three unusually small programs; it rejected the header on 200 of these
+ * 204 and reported all 37 bytes as unmapped noise on each.
+ */
+const HEADER_LENGTH = 37;
+
+const HEADER_ZERO_POSITIONS = [
+  1, 2, 3, 4, 8, 9, 10, 11, 12, 15, 16, 17, 18, 19, 20,
+  22, 23, 24, 25, 26, 27, 28, 30, 31, 32, 34, 35, 36
+];
+
+function matchHeader(bytes: Buffer): boolean {
+  if (bytes.length < HEADER_LENGTH) return false;
+  if (bytes[0] !== 0xa0 || bytes[33] !== 0x85) return false;
+  return HEADER_ZERO_POSITIONS.every((p) => bytes[p] === 0x00);
+}
 
 export interface DecodeOptions {
   /** 'raw' emits a byte/opcode listing instead of source, for extending OPCODES. */
   mode: 'auto' | 'strict' | 'raw';
+  /**
+   * Whether the caller already knows this program is Application Class
+   * PeopleCode (PSPROJECTITEM/definitions.ts OBJECTTYPE 58), rather than
+   * something the decoder would have to guess from the bytes themselves.
+   *
+   * `class`/`method`/`end-class`/`end-method` (0x5a/0x63/0x5b/0x64) only
+   * decode when this is set. Confirmed byte-for-byte against
+   * OU_JET_PACK.Layout.ComponentRegistry and OU_JET_PACK.Security.AccessCheck,
+   * but those same byte values are evidently doing something else entirely
+   * in ordinary Function-based programs -- corpus-wide, unconditionally
+   * mapping them gave `end-method` an 8.9% real-source match rate, with 556
+   * false positives across 33 WEBLIB_* programs that declare no class at
+   * all (see docs/ROADMAP.md pass seventeen). Restricting them to programs
+   * the caller already knows are classes avoids that collision entirely
+   * rather than trying to detect it from content.
+   */
+  isApplicationClass?: boolean;
 }
 
 export interface DecodeResult {
@@ -66,6 +569,266 @@ export interface DecodeResult {
   tokens: Token[];
   /** Offsets of opcodes with no entry in {@link OPCODES}. */
   unknownOpcodes: { offset: number; opcode: number }[];
+  /** Byte offset {@link TRAILER_MARKER} was found at, if the program has one. */
+  trailerOffset?: number;
+  /**
+   * Declarations read from the directory after {@link TRAILER_MARKER}, if its
+   * shape could be verified for this program. See {@link decodeDeclarations}.
+   */
+  declarations?: Declaration[];
+}
+
+/** One Function/Method entry from the declaration-name directory. */
+export interface Declaration {
+  name: string;
+  /** Parameter count. Confirmed 100% (621/621) against real signatures corpus-wide. */
+  paramCount: number;
+  /**
+   * Whether the declaration has a `Returns` clause. Confirmed 100% (621/621)
+   * corpus-wide: the directory's fourth field is exactly `7` when there is no
+   * `Returns` clause and never `7` when there is one.
+   */
+  hasReturnValue: boolean;
+  /**
+   * The `Returns` clause's type, when it is one of the scalar types
+   * {@link RETURN_TYPE_CODES} maps (optionally `array of <type>`, decoded via
+   * {@link ARRAY_RETURN_TYPE_FLAG}). Confirmed with zero collisions against
+   * 178 real declarations corpus-wide -- every one of these codes matched
+   * exactly one type name, every time. `undefined` when `hasReturnValue` is
+   * true but the code is not one of these (an object/record/rowset/App Class
+   * return type, or an array of one -- see {@link decodeDeclarations}).
+   */
+  returnType?: string;
+}
+
+/**
+ * Scalar codes confirmed corpus-wide for the declaration directory's `kind`
+ * field (see {@link decodeDeclarations}), each observed matching exactly one
+ * `Returns` type name and never colliding with another:
+ *
+ *   1 -> string (151 samples), 5 -> boolean (11), 13 -> object (1),
+ *   17 -> integer (1), 19 -> number (2)
+ *
+ * `7` is reserved separately for "no Returns clause" (see
+ * {@link Declaration.hasReturnValue}) and is deliberately not a key here.
+ * App-Class return types use other, still-unconfirmed bit patterns and are
+ * not decoded; built-in object types use {@link OBJECT_RETURN_TYPE_FLAG}.
+ */
+const RETURN_TYPE_CODES = new Map<number, string>([
+  [1, 'string'],
+  [5, 'boolean'],
+  [13, 'object'],
+  [17, 'integer'],
+  [19, 'number']
+]);
+
+/**
+ * Set on a scalar {@link RETURN_TYPE_CODES} value to mean "array of" that
+ * scalar -- confirmed against `array of string` (`0x100001` = this flag OR
+ * `1`) and `array of number` (`0x100013` = this flag OR `19`), corpus-wide,
+ * with no other value ever combining with it.
+ */
+const ARRAY_RETURN_TYPE_FLAG = 0x100000;
+
+/**
+ * Set for PeopleCode's built-in database/collection object return types,
+ * combined with a sub-type code in {@link OBJECT_TYPE_CODES}. Found by
+ * searching live `PSPCMPROG.PROGTXT` system-wide (read-only,
+ * `DBMS_LOB.INSTR`) for real `Returns <Type>` clauses this project hadn't
+ * seen an example of yet -- `FUNCLIB_GP_ABS.CALC_END_DT_BTN.CalcDur` and
+ * three sibling functions confirmed `Record` as `0x80003`, alongside the
+ * `Rowset`/`XmlDoc`/`XmlNode` codes pass eighteen already had. App Class
+ * (`PKG:Sub:Class`) return types are a different, still-unconfirmed
+ * encoding, not this flag.
+ */
+const OBJECT_RETURN_TYPE_FLAG = 0x80000;
+
+const OBJECT_TYPE_CODES = new Map<number, string>([
+  [3, 'Record'],
+  [7, 'Rowset'],
+  [29, 'XmlDoc'],
+  [34, 'XmlNode']
+]);
+
+function decodeReturnType(kind: number): string | undefined {
+  const scalar = RETURN_TYPE_CODES.get(kind);
+  if (scalar !== undefined) return scalar;
+  if ((kind & ARRAY_RETURN_TYPE_FLAG) !== 0) {
+    const element = RETURN_TYPE_CODES.get(kind & ~ARRAY_RETURN_TYPE_FLAG);
+    if (element !== undefined) return `array of ${element}`;
+  }
+  if ((kind & OBJECT_RETURN_TYPE_FLAG) !== 0) {
+    const object = OBJECT_TYPE_CODES.get(kind & ~OBJECT_RETURN_TYPE_FLAG);
+    if (object !== undefined) return object;
+  }
+  return undefined;
+}
+
+/**
+ * Marks the end of the real statement stream. Every program's compiled form
+ * carries a declaration-name directory after its last statement -- the
+ * program's own declared Function/Method names, verbatim, with no
+ * introducer opcode -- followed by a packed table of small integers (a
+ * dispatch/offset table) running to PROGLEN. Confirmed across all 204
+ * corpus programs that carry it (185 of 204; the other 19 are short enough
+ * to have no declarations to list at all) by hand-walking
+ * `WEBLIB_OU_LP.ISCRIPT1/2.FieldFormula` and cross-checking every
+ * `OU_JET_PACK` Application Class program against real source: `0x2d 0x07`
+ * (an ordinary newline immediately followed by the declaration-name
+ * opcode with no name after it, which never happens in the statement
+ * stream itself) occurs in the byte stream exactly once per program, always
+ * right after the closing `;` of the outermost `End-Function`/`End-Method`/
+ * `End-Class`, and zero times elsewhere -- across the whole corpus, not one
+ * program has a second occurrence. This is what pass thirteen in
+ * docs/ROADMAP.md called the Application Class trailer; walking
+ * `WEBLIB_OU_LP.ISCRIPT1/2.FieldFormula` (plain Function-based record
+ * PeopleCode, no class at all) showed it is not class-specific -- every
+ * program gets this directory, not just classes.
+ *
+ * Decoding stops here rather than trying to read the directory/dispatch
+ * table as more statements, which is what produced the garbled keyword
+ * soup past a program's real end (e.g. bare `create`, `Local`, `Function`
+ * tokens with no real statement shape around them -- the small integers in
+ * the dispatch table incidentally collide with real opcode values). See
+ * {@link decodeDeclarations} for the directory's own format, decoded
+ * separately from (and never feeding back into) the statement stream above.
+ */
+const TRAILER_MARKER: readonly [number, number] = [0x2d, 0x07];
+
+/**
+ * Decodes the declaration-name directory that follows {@link TRAILER_MARKER}.
+ *
+ * Format, confirmed by hand-walking the corpus (204 programs, live database
+ * bytes paired with real source from two project exports; see
+ * docs/ROADMAP.md pass eighteen and nineteen):
+ *
+ * 1. A run of back-to-back, null-terminated UTF-16LE strings, no length
+ *    prefix -- the program's own declared Function/Method names, byte-exact
+ *    including case (confirmed against `WEBLIB_CD_APP.ISCRIPT1`'s
+ *    lowercase-`i` `iScript_CD`), immediately followed (no separator) by any
+ *    colon-qualified imported-class names (`PKG:Sub:Class`) the program
+ *    references -- a separate, still-undecoded directory that happens to
+ *    share this one's name-run encoding. The whole run -- plain names and
+ *    colon-qualified ones together -- ends at the first truly empty string.
+ *    `decodeDeclarations` only builds {@link Declaration}s for the plain
+ *    names, but it has to walk past the colon-qualified ones too to find
+ *    where the record table actually starts (see point 2).
+ *
+ *    Not every declared Function/Method necessarily appears: e.g.
+ *    `WEBLIB_CTI.ISCRIPT1` declares 21 functions but the directory lists
+ *    only 18, always omitting the same three, which turn out to be
+ *    `Declare Function ... PeopleCode <other program> ...;` imports of
+ *    functions defined *elsewhere* -- not really declared in this program at
+ *    all, hence no entry of its own to list.
+ *
+ * 2. One 16-byte record per listed plain name, starting right after the
+ *    *whole* name run (plain names and any colon-qualified ones): four
+ *    little-endian int32s `(charOffset, second, paramCount, kind)`.
+ *      - `charOffset`: the character (not byte) offset from the start of the
+ *        name run to that entry's own name. This is what makes the whole
+ *        table self-verifying -- it can be checked against the name
+ *        positions already parsed in step 1 with no source text needed, and
+ *        `decodeDeclarations` refuses the whole table if even one record
+ *        disagrees, rather than risk emitting a table that has drifted out
+ *        of alignment. It also doubles as a robust name-run terminator: a
+ *        program with no colon-qualified names has no separate empty-string
+ *        marker between the last name and the table, but the first record's
+ *        charOffset is always 0 (the first name always starts at character
+ *        offset 0), so its own leading zero bytes look exactly like an
+ *        empty string and end the scan at the right place regardless.
+ *      - second field: a running dispatch-slot offset, understood but not
+ *        exposed on {@link Declaration}. Each declaration that has an
+ *        explicit parameter list -- `(...)`, even empty `()` -- consumes
+ *        `1 + paramCount` slots in some further, still-unlocated table;
+ *        its own second field is the running total of that count over all
+ *        preceding such declarations in the *program's real declaration
+ *        order* (which can include declarations this directory omits
+ *        entirely, e.g. more `Declare Function` imports). A declaration
+ *        with no parameter list at all (bare `Function Name`, no parens)
+ *        does not consume a slot and always has second field `0`.
+ *        Confirmed exactly (0 mismatches) on every fully-decoded
+ *        multi-declaration program in the corpus, but not exposed here: a
+ *        program can have real, contributing declarations this directory
+ *        never lists, which this decoder has no way to account for from the
+ *        trailer bytes alone.
+ *      - `paramCount`: confirmed 100% (661 of 661 declarations, corpus-wide,
+ *        after excluding the handful of programs whose charOffset check
+ *        rejects the table -- see below) against the real parameter count in
+ *        source.
+ *      - `kind`: confirmed 100% to be exactly `7` iff the declaration has no
+ *        `Returns` clause. Every other observed value pairs with a real
+ *        `Returns` clause, and the value identifies the type itself for the
+ *        scalar types in {@link RETURN_TYPE_CODES} (plus
+ *        {@link ARRAY_RETURN_TYPE_FLAG} for `array of` one of them) and the
+ *        built-in object types in {@link OBJECT_TYPE_CODES} (behind
+ *        {@link OBJECT_RETURN_TYPE_FLAG}) -- zero collisions in 198 real
+ *        declarations checked. App-Class return types use a different,
+ *        still-unconfirmed bit pattern (see {@link decodeReturnType}).
+ *
+ * The charOffset self-check is not cosmetic: naively assuming the record
+ * table starts right after the last *plain* name is wrong whenever a program
+ * has colon-qualified names too (they sit between the plain names and the
+ * real table start) -- confirmed on `WEBLIB_PORTAL.PORTAL_SEARCH_PB`,
+ * `WEBLIB_PTNUI.PT_BUTTON_PIN` and `WEBLIB_PTWC.ISCRIPT1`, which all decode
+ * cleanly once the table start accounts for their colon-qualified names.
+ * There is no second, alternate table shape -- an earlier revision of this
+ * decoder (and of this comment) concluded there was, from exactly this bug.
+ * Requiring charOffset to match still matters for programs whose real shape
+ * genuinely isn't this one (or that declare nothing but colon-qualified
+ * references): 170 of 183 trailer-bearing programs verify, and every
+ * declaration in a verified program's table matches real source on both
+ * paramCount and the Returns-clause check.
+ */
+function decodeDeclarations(bytes: Buffer, trailerOffset: number): Declaration[] | undefined {
+  const runStart = trailerOffset + 2;
+  const names: { text: string; start: number; end: number }[] = [];
+  let i = runStart;
+  // The record table starts after the WHOLE name run, including any
+  // colon-qualified names -- not right after the last plain name. Programs
+  // with no imported-class names never notice the difference (the run ends
+  // at the same place either way), but programs that do have them (e.g.
+  // `WEBLIB_PTNUI.PT_BUTTON_PIN`) put the plain-name records after the
+  // colon-qualified names too, not before. Computing tableStart from just
+  // the plain names -- reading records starting where the colon names
+  // begin -- is exactly what produced the garbage-looking fields pass
+  // eighteen originally attributed to "some other, unknown table shape";
+  // there is no second shape, just a wrong table start.
+  while (i < bytes.length) {
+    const nameStart = i;
+    let j = i;
+    while (j + 1 < bytes.length && !(bytes[j] === 0 && bytes[j + 1] === 0)) j += 2;
+    if (j + 1 >= bytes.length) return undefined; // ran off the end without a terminator
+    const text = bytes.toString('utf16le', nameStart, j);
+    // True end of the whole name run (plain + colon-qualified): stop WITHOUT
+    // consuming these two bytes, since for a program with no colon-qualified
+    // names this "empty string" is not a separate terminator at all -- it's
+    // the coincidental leading zero bytes of the record table's own first
+    // charOffset (always 0, since the first listed name always starts at
+    // character offset 0). Advancing past it here would eat two real record
+    // bytes and misalign every field that follows.
+    if (text === '') { i = nameStart; break; }
+    i = j + 2;
+    if (!text.includes(':')) names.push({ text, start: nameStart, end: j + 2 });
+  }
+  if (names.length === 0) return undefined;
+
+  const tableStart = i;
+  if (tableStart + names.length * 16 > bytes.length) return undefined;
+
+  const declarations: Declaration[] = [];
+  for (let n = 0; n < names.length; n++) {
+    const base = tableStart + n * 16;
+    const charOffset = bytes.readInt32LE(base);
+    if (charOffset !== (names[n].start - runStart) / 2) return undefined;
+    const kind = bytes.readInt32LE(base + 12);
+    declarations.push({
+      name: names[n].text,
+      paramCount: bytes.readInt32LE(base + 8),
+      hasReturnValue: kind !== 7,
+      returnType: decodeReturnType(kind)
+    });
+  }
+  return declarations;
 }
 
 export function decodeProgram(
@@ -80,30 +843,260 @@ export function decodeProgram(
   const tokens: Token[] = [];
   const unknownOpcodes: { offset: number; opcode: number }[] = [];
   let i = 0;
+  let trailerOffset: number | undefined;
+
+  if (matchHeader(bytes)) {
+    tokens.push({ kind: TokenKind.Header, text: '', offset: 0, opcode: bytes[0], format: 0 });
+    i = HEADER_LENGTH;
+  }
 
   while (i < bytes.length) {
+    if (bytes[i] === TRAILER_MARKER[0] && bytes[i + 1] === TRAILER_MARKER[1]) {
+      trailerOffset = i;
+      break;
+    }
+
     const offset = i;
     const opcode = bytes[i++];
-    const mapped = OPCODES.get(opcode);
 
+    const textKind = TEXT_INTRODUCERS.get(opcode);
+    if (textKind !== undefined) {
+      const run = readTextRun(bytes, i);
+      if (run !== undefined) {
+        tokens.push({
+          kind: textKind, text: renderTextRun(textKind, run.text), offset, opcode,
+          format: OPERAND_FORMAT.get(opcode) ?? 0
+        });
+        i = run.end;
+        continue;
+      }
+      // Didn't fit the text-run shape: fall through and report the
+      // introducer byte itself as unknown, exactly as an unrecognised
+      // opcode would be, rather than guessing at what follows it.
+    }
+
+    if (opcode === 0x24 || opcode === 0x4e) {
+      const comment = readLengthPrefixedText(bytes, i);
+      if (comment !== undefined) {
+        tokens.push({
+          kind: TokenKind.Comment, text: comment.text, offset, opcode,
+          format: OPERAND_FORMAT.get(opcode) ?? 0
+        });
+        i = comment.end;
+        continue;
+      }
+    }
+
+    if (opcode === 0x50 || opcode === 0x11) {
+      const operandLength = opcode === 0x50 ? 18 : 14;
+      const literal = readByteIntegerLiteral(bytes, i, operandLength);
+      if (literal !== undefined) {
+        tokens.push({
+          kind: TokenKind.NumberLiteral, text: String(literal.value), offset, opcode,
+          format: OPERAND_FORMAT.get(opcode) ?? 0
+        });
+        i = literal.end;
+        continue;
+      }
+    }
+
+    if (opcode === 0x21) {
+      const ref = readRecordFieldReference(bytes, i);
+      // A NameResolutionError here means the index doesn't land on a real
+      // PSPCMNAME entry -- our index-to-NAMENUM formula is confirmed, not
+      // proven universal, so an out-of-range index falls through to unknown
+      // rather than rendering a guess.
+      const resolved = ref !== undefined ? tryResolveName(names, ref.nameNum) : undefined;
+      if (ref !== undefined && resolved !== undefined) {
+        tokens.push({
+          kind: TokenKind.Name, text: resolved, offset, opcode,
+          format: OPERAND_FORMAT.get(opcode) ?? 0
+        });
+        i = ref.end;
+        continue;
+      }
+    }
+
+    // 0x0a is overloaded: it is a literal newline between statements, but it
+    // is ALSO -- far more often (17835 of ~20400 occurrences corpus-wide) --
+    // a silent "bare identifier follows" introducer, the same role as
+    // 0x12/0x16/0x01/0x40, that happens to reuse the newline byte value.
+    // Confirmed by OU_OJ_LAYOUT.Activate: its real source is the single line
+    // `AddOnLoadScript(GetHTMLText(HTML.OU_OJ_LOAD_CSS));` with no newline
+    // anywhere before GetHTMLText, yet the byte stream has 0x0a right there.
+    // A prior revision rendered the newline's '\n' AND the identifier text,
+    // producing exactly the fragmented, wrongly-linebroken output this was
+    // reported against. The identifier-introducer role is checked first, and
+    // only when it does not apply does 0x0a fall through to a real newline.
+    if (opcode === 0x0a) {
+      const run = readTextRun(bytes, i);
+      if (run !== undefined) {
+        tokens.push({
+          kind: TokenKind.Name, text: run.text, offset, opcode,
+          format: OPERAND_FORMAT.get(opcode) ?? 0
+        });
+        i = run.end;
+        continue;
+      }
+      tokens.push({ kind: TokenKind.Newline, text: '', offset, opcode, format: F.NEWLINE_ONCE });
+      continue;
+    }
+
+    // class/end-class/method/end-method -- see isApplicationClass on
+    // DecodeOptions for why these only decode when the caller already
+    // knows the program is an Application Class, rather than always.
+    if (options.isApplicationClass) {
+      if (opcode === 0x5a) {
+        tokens.push({ kind: TokenKind.Keyword, text: 'class', offset, opcode, format: FUNCTION_STYLE });
+        continue;
+      }
+      if (opcode === 0x5b) {
+        tokens.push({ kind: TokenKind.Keyword, text: 'end-class', offset, opcode, format: ENDBLOCK_STYLE });
+        continue;
+      }
+      if (opcode === 0x64) {
+        tokens.push({ kind: TokenKind.Keyword, text: 'end-method', offset, opcode, format: END_FUNCTION_STYLE });
+        continue;
+      }
+      // 0x63 (`method`) is overloaded: inside a class's declaration block
+      // it introduces a one-line method signature (no indent change, same
+      // shape as Local), but the implementation header further down --
+      // `method Name` with no parameter list, opening the body that runs
+      // to `end-method;` -- carries an extra 0x41 byte between the opcode
+      // and the name, confirmed present in exactly the implementation-header
+      // occurrences (12/12 in ComponentRegistry, 3/3 in AccessCheck), never
+      // in a declaration. Consumed here as part of this token rather than
+      // surfaced as its own Unknown, since its only confirmed role is this
+      // pairing.
+      if (opcode === 0x63) {
+        const isImplementationHeader = bytes[i] === 0x41;
+        if (isImplementationHeader) i++;
+        tokens.push({
+          kind: TokenKind.Keyword, text: 'method', offset, opcode,
+          format: isImplementationHeader ? FUNCTION_STYLE : NEWLINE_BEFORE_SPACE_AFTER
+        });
+        continue;
+      }
+    }
+
+    const mapped = OPCODES.get(opcode);
     if (mapped === undefined) {
       unknownOpcodes.push({ offset, opcode });
       if (options.mode === 'strict') {
         throw new UndecodableProgramError(offset, opcode, unknownOpcodes.length);
       }
-      tokens.push({ kind: TokenKind.Unknown, text: '', offset, opcode });
+      tokens.push({ kind: TokenKind.Unknown, text: '', offset, opcode, format: 0 });
       continue;
     }
 
-    if (mapped.kind === TokenKind.EndOfProgram) break;
-    tokens.push({ kind: mapped.kind, text: mapped.text ?? '', offset, opcode });
+    tokens.push({ kind: mapped.kind, text: mapped.text ?? '', offset, opcode, format: mapped.format });
   }
 
-  return { text: render(tokens, unknownOpcodes), tokens, unknownOpcodes };
+  const declarations = trailerOffset !== undefined ? decodeDeclarations(bytes, trailerOffset) : undefined;
+  return { text: render(tokens, unknownOpcodes), tokens, unknownOpcodes, trailerOffset, declarations };
 }
 
+/**
+ * Rebuilds indentation and spacing from each token's {@link FMT} bitmask.
+ * There is no in-band indentation in the byte stream (App Designer's
+ * Scintilla editor reconstructs it the same way); this walks the token
+ * stream tracking an indent level and a "start of line" cursor, applying
+ * each token's newline/indent/space flags around its text. Trailing
+ * whitespace before a newline is trimmed so indentation changes never leave
+ * stray spaces.
+ */
 function render(tokens: readonly Token[], unknown: readonly { offset: number; opcode: number }[]): string {
-  const body = tokens.map((t) => t.text).join('');
+  // Built as an array of chunks rather than repeated string concatenation:
+  // the trim/lookback operations below only ever need to see the last chunk
+  // emitted, so this stays linear in the token count even for the largest
+  // real programs (some run to several thousand tokens), where repeatedly
+  // regex-trimming a single ever-growing string was quadratic and, on a
+  // full-corpus validation run, never finished.
+  const out: string[] = [];
+  let indent = 0;
+  let atLineStart = true;
+  // Punctuation that binds tightly to what follows it (`Name(`, `Name.Field`,
+  // `@Class`, `arr[i]`): a token declaring SPACE_BEFORE for itself (an
+  // identifier has no way to know what precedes it) does not get that space
+  // when the previous character is one of these, so `GetHTMLText(x)` and
+  // `Name.Field` stay tight instead of picking up a stray space right after
+  // the `(`, `.`, `@` or `[`.
+  const TIGHT_AFTER = new Set(['(', '.', '@', '[', ':']);
+
+  const lastChar = () => {
+    const last = out[out.length - 1];
+    return last ? last[last.length - 1] : '';
+  };
+  const trimTrailing = () => {
+    while (out.length > 0 && /^[ \t]+$/.test(out[out.length - 1])) out.pop();
+    if (out.length > 0) out[out.length - 1] = out[out.length - 1].replace(/[ \t]+$/, '');
+  };
+  // Writing the indent puts us at the start of a line with nothing on it
+  // yet -- atLineStart stays true until real token text is pushed. Setting
+  // it false here (an earlier revision did) meant a token's own
+  // NEWLINE_BEFORE could never tell it had just landed on a fresh line via
+  // someone else's NEWLINE_AFTER, so `;` (NEWLINE_AFTER) immediately
+  // followed by the next declaration's `method`/`Local`/etc (NEWLINE_BEFORE)
+  // always emitted a second, redundant newline -- a blank line after every
+  // single statement, corpus-wide, that the text-only (whitespace-blind)
+  // corpus-validate.mjs metric never had a way to catch.
+  const writeIndent = () => { out.push('  '.repeat(indent)); atLineStart = true; };
+
+  for (const t of tokens) {
+    if (t.kind === TokenKind.Header) continue;
+    const f = t.format;
+
+    if (f & F.DECREASE_INDENT) indent = Math.max(0, indent - 1);
+    // NO_SPACE_BEFORE overrides whatever trailing space the previous token's
+    // own SPACE_AFTER left behind (e.g. `;` right after `False `), not just
+    // its own SPACE_BEFORE -- a token has no way to know what precedes it.
+    if (f & F.NO_SPACE_BEFORE && lastChar() === ' ') trimTrailing();
+
+    if (f & F.NEWLINE_ONCE) {
+      // A literal newline byte in the stream (0x2d, or 0x0a falling through
+      // to its newline role): always emits, even at the very start of
+      // output -- unlike NEWLINE_BEFORE below, which is a structural
+      // "start this construct on its own line" flag that would otherwise
+      // open every program with a spurious blank line.
+      trimTrailing();
+      out.push('\n');
+      writeIndent();
+    } else if (f & F.NEWLINE_BEFORE) {
+      trimTrailing();
+      // Skip the newline entirely when we're already sitting at the start
+      // of a fresh, empty line -- someone else's NEWLINE_AFTER (or
+      // NEWLINE_ONCE) already got us here. Only the very first token of the
+      // whole program starts genuinely blank (atLineStart is true from
+      // initialisation, not from a prior writeIndent), which this also
+      // correctly leaves alone.
+      if (!atLineStart) out.push('\n');
+      writeIndent();
+    } else if (
+      f & F.SPACE_BEFORE && !(f & F.NO_SPACE_BEFORE) &&
+      !atLineStart && lastChar() !== ' ' && !TIGHT_AFTER.has(lastChar())
+    ) {
+      out.push(' ');
+    }
+
+    if (t.text) {
+      out.push(t.text);
+      atLineStart = false;
+    }
+
+    if (f & (F.INCREASE_INDENT | F.INCREASE_INDENT_ONCE)) indent++;
+
+    if (f & F.NEWLINE_AFTER) {
+      trimTrailing();
+      out.push('\n');
+      writeIndent();
+    } else if (f & F.SPACE_AFTER && !(f & F.NO_SPACE_AFTER)) {
+      out.push(' ');
+    }
+  }
+
+  trimTrailing();
+  const body = out.join('').replace(/\n{3,}/g, '\n\n');
+
   if (unknown.length === 0) return body;
 
   // Lead with the gap report so nobody edits and saves source that is missing
