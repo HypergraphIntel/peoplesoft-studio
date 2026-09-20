@@ -38,6 +38,9 @@ export class ProjectFileProvider implements DefinitionProvider {
     build: false
   };
 
+  /** Populated after parsing: a project can only offer the types it contains. */
+  private searchable: DefinitionType[] = [];
+
   private loaded = false;
   private projectName = '';
   private projectDescr = '';
@@ -53,6 +56,8 @@ export class ProjectFileProvider implements DefinitionProvider {
   }
 
   get isConnected(): boolean { return this.loaded; }
+
+  get searchableTypes(): readonly DefinitionType[] { return this.searchable; }
 
   async connect(): Promise<void> {
     if (this.loaded) return;
@@ -94,6 +99,9 @@ export class ProjectFileProvider implements DefinitionProvider {
         default: break;
       }
     }
+
+    this.searchable = [...new Set(this.items.map((i) => i.key.type))]
+      .sort((a, b) => a - b);
 
     if (!this.projectName) {
       // Fall back to the file name, extension-insensitively: exports are

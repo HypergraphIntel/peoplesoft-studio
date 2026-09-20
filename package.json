@@ -75,6 +75,10 @@
       {
         "view": "psft.connections",
         "contents": "No PeopleSoft environment is connected.\n[Add Connection](command:psft.addConnection)\n[Open Project File](command:psft.openProjectFile)"
+      },
+      {
+        "view": "psft.projects",
+        "contents": "Connect to an environment, then open a project by name.\n[Open Definition...](command:psft.openDefinitionDialog)"
       }
     ],
     "customEditors": [
@@ -90,6 +94,12 @@
       }
     ],
     "commands": [
+      {
+        "command": "psft.openDefinitionDialog",
+        "title": "Open Definition...",
+        "category": "PeopleSoft",
+        "icon": "$(search)"
+      },
       {
         "command": "psft.addConnection",
         "title": "Add Connection",
@@ -130,12 +140,6 @@
         "category": "PeopleSoft"
       },
       {
-        "command": "psft.findDefinition",
-        "title": "Find Definition...",
-        "category": "PeopleSoft",
-        "icon": "$(search)"
-      },
-      {
         "command": "psft.insertIntoProject",
         "title": "Insert Into Project",
         "category": "PeopleSoft"
@@ -149,10 +153,20 @@
         "command": "psft.compareDefinition",
         "title": "Compare With Environment...",
         "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.closeProject",
+        "title": "Close Project",
+        "category": "PeopleSoft"
       }
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "psft.openDefinitionDialog",
+          "when": "view == psft.projects || view == psft.browser",
+          "group": "navigation@1"
+        },
         {
           "command": "psft.addConnection",
           "when": "view == psft.connections",
@@ -161,12 +175,7 @@
         {
           "command": "psft.refresh",
           "when": "view == psft.browser || view == psft.projects",
-          "group": "navigation"
-        },
-        {
-          "command": "psft.findDefinition",
-          "when": "view == psft.browser",
-          "group": "navigation"
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [
@@ -182,6 +191,11 @@
         {
           "command": "psft.removeConnection",
           "when": "view == psft.connections && viewItem =~ /^connection\\./"
+        },
+        {
+          "command": "psft.closeProject",
+          "when": "view == psft.projects && viewItem == project.opened",
+          "group": "inline"
         },
         {
           "command": "psft.insertIntoProject",

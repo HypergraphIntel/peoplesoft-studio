@@ -61,6 +61,11 @@ npm run watch       # rebuild on change, then F5 in VS Code
 Then **PeopleSoft: Add Connection** from the command palette, or
 **Open Project Export File** to start without a database.
 
+Connecting to a database fetches nothing. Use **Open Definition...** — the
+magnifier in the Projects title bar — to pick a type, search by name, and open
+a result. Opening a project that way shows its contents in the project tree,
+the same view an opened export gives.
+
 For a database connection, the password is requested on first connect and kept
 in the OS secret store. It is never written to `settings.json`.
 

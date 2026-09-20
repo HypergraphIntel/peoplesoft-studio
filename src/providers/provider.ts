@@ -41,6 +41,17 @@ export interface DefinitionProvider {
   dispose(): Promise<void>;
   readonly isConnected: boolean;
 
+  /**
+   * The types this provider can search, in the order the Open Definition
+   * dialog should offer them.
+   *
+   * Declared rather than assumed: the database can search any type it has a
+   * query for, while a project export can only offer the types its own items
+   * use. Offering a type that cannot be searched produces a dialog that fails
+   * on submit.
+   */
+  readonly searchableTypes: readonly DefinitionType[];
+
   listProjects(): Promise<ProjectSummary[]>;
   listProjectItems(project: string): Promise<DefinitionSummary[]>;
 
