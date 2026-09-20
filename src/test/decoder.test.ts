@@ -919,3 +919,32 @@ test('Declare Function is not inserted before an ordinary Function definition', 
   assert.equal(result.text.startsWith('Function F'), true);
   assert.equal(result.text.includes('Declare'), false);
 });
+
+test('try/catch/end-try decode, confirmed byte-for-byte against WEBLIB_MSGWSDL.WSDLSUMMARY', () => {
+  // Real source: a whole function body wrapped in
+  // "try\n ...\ncatch Exception &e\n ...\nend-try;", with no class or method
+  // anywhere -- unlike class/method below, this needs no isApplicationClass
+  // gating. Confirmed 100% (88/88) on every program with a small
+  // unmapped-opcode count; the raw corpus-wide rate looks much worse (91.9%
+  // for try, ~30% for catch/end-try) purely from a handful of
+  // already-heavily-corrupted programs (the same false signal every
+  // unfiltered check in this file's history has produced), not from any
+  // real counter-example. These are also part of the Application Class
+  // vocabulary pass sixteen rejected when wholesale-adopting
+  // PeopleCodeParser.java's table -- that was the reference project's own,
+  // different byte values for try/catch/end-try, evidently wrong on this
+  // database; 0x65/0x66/0x67 were found independently by hand-walking.
+  const bytes = Buffer.from([
+    ...HEADER,
+    0x65,                                                     // try
+    0x1, ...utf16('&x'), 0x00, 0x00, 0x15,                    // &x;
+    0x66, 0xa, ...utf16('Exception'), 0x00, 0x00,              // catch Exception
+    0x1, ...utf16('&e'), 0x00, 0x00, 0x4f,                     // &e
+    0x1, ...utf16('&y'), 0x00, 0x00, 0x15,                     // &y;
+    0x67, 0x15                                                 // end-try;
+  ]);
+  const result = decodeProgram(bytes, new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text,
+    'try\n  &x;\ncatch Exception &e\n  &y;\nend-try;\n');
+});
