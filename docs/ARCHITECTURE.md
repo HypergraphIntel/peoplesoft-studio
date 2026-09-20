@@ -155,8 +155,29 @@ project unusable. The cost is that a definition the provider cannot supply
 children for shows an expander that opens onto nothing; providers return an
 empty array rather than throwing so that stays harmless.
 
-## Browsing is bounded
+## Connecting costs nothing
 
-A live environment holds tens of thousands of records and fields. The browser
-never issues an unbounded listing: every query carries a `FETCH FIRST` cap and a
-name filter, which is also how App Designer's Open dialog behaves.
+A live environment holds tens of thousands of definitions, so connecting to one
+does not list anything — not its projects, not its records. The trees show a
+database connection and stop there. Definitions are reached by name through the
+Open Definition dialog, which is how App Designer works too.
+
+The distinction is drawn by the `globalSearch` capability rather than by asking
+which provider is in hand. A project export is local and finite, so the browser
+lists its contents for free and its single project appears without being asked
+for. A database is neither, so nothing is fetched until a search is submitted,
+and a project appears in the tree only once it has been opened by name.
+
+`OpenDefinitionPanel` is a webview rather than a chain of quick picks because
+searching is a loop, not a wizard: pick a type, search, look, adjust the
+pattern, search again. Quick picks force that into a one-way sequence where
+refining means starting over.
+
+Projects are searchable and openable through the same path as everything else.
+They are not definitions — a project contains items rather than being one, and
+has no OBJECTTYPE — so `DefinitionType.Project` is a local sentinel, like
+`SqlDefinition`. Opening one adds it to the project tree instead of opening a
+document, which gives the same contents view an opened export does.
+
+Searches remain bounded regardless: every query carries a `FETCH FIRST` cap and
+a name pattern.

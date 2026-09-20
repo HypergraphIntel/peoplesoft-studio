@@ -17,6 +17,10 @@ Designer parity is the goal; this is the path to it.
   package, subpackages, classes as leaves — rather than two flat lists
 - Records expand to their fields and components to their pages, in both trees;
   each child is a definition that opens on click
+- Open Definition dialog: pick an environment and type, search by name, choose
+  a result, open it. Connecting to a database lists nothing until asked
+- Projects open from the dialog by name and show the same contents tree an
+  opened project export does
 - Definitions as editable virtual files over `psft://`
 - Connections, projects and definition browser trees
 - PeopleCode TextMate grammar and language configuration

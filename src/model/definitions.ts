@@ -52,7 +52,17 @@ export enum DefinitionType {
    * a project export are affected — they surface as an unknown type until the
    * real code is confirmed.
    */
-  SqlDefinition = -1
+  SqlDefinition = -1,
+
+  /**
+   * A project.
+   *
+   * Projects are not definitions in PSPROJECTITEM -- a project contains items,
+   * it is not one -- so there is no OBJECTTYPE for them. A local sentinel lets
+   * a project be searched and opened through the same path as everything else,
+   * which is what makes "open a project" work from the Open Definition dialog.
+   */
+  Project = -2
 }
 
 /** Types whose key layout and code were verified against a real project export. */
@@ -164,7 +174,8 @@ export const TYPE_LABELS: Readonly<Partial<Record<DefinitionType, string>>> = {
   [DefinitionType.ComponentInterfacePeopleCode]: 'Component Interface PeopleCode',
   [DefinitionType.FileLayout]: 'File Layouts',
   [DefinitionType.FileLayoutPeopleCode]: 'File Layout PeopleCode',
-  [DefinitionType.SqlDefinition]: 'SQL Definitions'
+  [DefinitionType.SqlDefinition]: 'SQL Definitions',
+  [DefinitionType.Project]: 'Projects'
 };
 
 /**

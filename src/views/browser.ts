@@ -8,6 +8,7 @@ import { toUri } from '../util/uri.js';
 
 type Node =
   | { kind: 'connection'; provider: DefinitionProvider }
+  | { kind: 'hint'; provider: DefinitionProvider }
   | { kind: 'type'; provider: DefinitionProvider; type: DefinitionType }
   | { kind: 'definition'; provider: DefinitionProvider; summary: DefinitionSummary };
 
@@ -48,6 +49,15 @@ export class BrowserView implements vscode.TreeDataProvider<Node> {
           node.provider.displayName, vscode.TreeItemCollapsibleState.Expanded);
         item.iconPath = new vscode.ThemeIcon('server-environment');
         item.contextValue = 'browserConnection';
+        return item;
+      }
+      case 'hint': {
+        const item = new vscode.TreeItem(
+          'Open Definition...', vscode.TreeItemCollapsibleState.None);
+        item.iconPath = new vscode.ThemeIcon('search');
+        item.tooltip = new vscode.MarkdownString(
+          'An environment is not browsed by listing it. Search for a definition by name instead.');
+        item.command = { command: 'psft.openDefinitionDialog', title: 'Open Definition' };
         return item;
       }
       case 'type': {
@@ -91,7 +101,17 @@ export class BrowserView implements vscode.TreeDataProvider<Node> {
     }
 
     if (node.kind === 'connection') {
-      return BROWSABLE.map((type) => ({ kind: 'type', provider: node.provider, type }));
+      // A database is never listed by type: even one folder of records is
+      // thousands of rows, and the point of connecting is to wait until asked.
+      // Definitions are found through the Open Definition dialog instead.
+      if (node.provider.capabilities.globalSearch) {
+        return [{ kind: 'hint', provider: node.provider }];
+      }
+      // A project export is local and finite, so listing what it holds costs
+      // nothing and is the fastest way to see its contents.
+      return node.provider.searchableTypes
+        .filter((type) => BROWSABLE.includes(type))
+        .map((type) => ({ kind: 'type', provider: node.provider, type }));
     }
 
     if (node.kind === 'type') {

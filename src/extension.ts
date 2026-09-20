@@ -5,9 +5,9 @@ import { ConnectionsView } from './views/connections.js';
 import { BrowserView } from './views/browser.js';
 import { ProjectsView } from './views/projects.js';
 import { RecordEditorProvider } from './editors/recordEditor.js';
-import { DefinitionKey, DefinitionType, displayName, typeLabel } from './model/definitions.js';
+import { OpenDefinitionPanel } from './editors/openDefinitionPanel.js';
+import { DefinitionKey, DefinitionType, displayName } from './model/definitions.js';
 import { toUri } from './util/uri.js';
-import { DefinitionProvider } from './providers/provider.js';
 
 export function activate(context: vscode.ExtensionContext): void {
   const workspace = new Workspace(context.secrets);
@@ -81,6 +81,14 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('psft.openDefinition',
       async (connectionId: string, key: DefinitionKey) => {
         await withError(`Opening ${displayName(key)}`, async () => {
+          // A project is not a document: opening it means showing its contents
+          // in the project tree, which is the same view an opened export gives.
+          if (key.type === DefinitionType.Project) {
+            projects.openProject(connectionId, key.parts[0]);
+            await vscode.commands.executeCommand('psft.projects.focus');
+            return;
+          }
+
           const uri = toUri(connectionId, key);
           if (key.type === DefinitionType.Record) {
             await vscode.commands.executeCommand(
@@ -92,7 +100,21 @@ export function activate(context: vscode.ExtensionContext): void {
         });
       }),
 
-    vscode.commands.registerCommand('psft.findDefinition', () => findDefinition(workspace)),
+    vscode.commands.registerCommand('psft.openDefinitionDialog', () => {
+      if (workspace.activeProviders.every((p) => !p.isConnected)) {
+        vscode.window.showWarningMessage(
+          'Connect to a PeopleSoft environment, or open a project export, first.');
+        return;
+      }
+      OpenDefinitionPanel.show(workspace, context.extensionUri);
+    }),
+
+    vscode.commands.registerCommand('psft.closeProject', (node: unknown) => {
+      const target = node as { provider?: { id: string }; project?: { name: string } };
+      if (target?.provider?.id && target.project?.name) {
+        projects.closeProject(target.provider.id, target.project.name);
+      }
+    }),
 
     vscode.commands.registerCommand('psft.insertIntoProject', () => {
       vscode.window.showInformationMessage(
@@ -162,64 +184,6 @@ async function saveConnection(config: ConnectionConfig): Promise<void> {
     return;
   }
   await settings.update('connections', [...all, config], vscode.ConfigurationTarget.Global);
-}
-
-/** App Designer's Open dialog: pick a type, type a prefix, pick a definition. */
-async function findDefinition(workspace: Workspace): Promise<void> {
-  const providers = workspace.activeProviders.filter((p) => p.isConnected);
-  if (providers.length === 0) {
-    vscode.window.showWarningMessage('Connect to a PeopleSoft environment first.');
-    return;
-  }
-
-  const provider = providers.length === 1 ? providers[0] : await pickProvider(providers);
-  if (!provider) return;
-
-  const type = await vscode.window.showQuickPick(
-    [
-      DefinitionType.Record, DefinitionType.Field, DefinitionType.Page,
-      DefinitionType.Component, DefinitionType.Menu, DefinitionType.ApplicationPackage,
-      DefinitionType.AppEngineProgram, DefinitionType.SqlDefinition
-    ].map((t) => ({ label: typeLabel(t), value: t })),
-    { title: 'Definition type', ignoreFocusOut: true });
-  if (!type) return;
-
-  const pattern = await vscode.window.showInputBox({
-    title: `Find ${typeLabel(type.value)}`,
-    placeHolder: 'Name starts with... (use % as a wildcard)',
-    ignoreFocusOut: true });
-  if (pattern === undefined) return;
-
-  await withError('Searching', async () => {
-    const results = await provider.search({
-      type: type.value,
-      namePattern: pattern.includes('%') ? pattern : `${pattern}%`,
-      limit: 500
-    });
-    if (results.length === 0) {
-      vscode.window.showInformationMessage(`No ${typeLabel(type.value)} matched "${pattern}".`);
-      return;
-    }
-    const picked = await vscode.window.showQuickPick(
-      results.map((r) => ({
-        label: displayName(r.key),
-        description: r.description,
-        detail: r.lastUpdatedBy ? `Last updated by ${r.lastUpdatedBy}` : undefined,
-        key: r.key
-      })),
-      { title: `${results.length} result(s)`, matchOnDescription: true });
-    if (!picked) return;
-    await vscode.commands.executeCommand('psft.openDefinition', provider.id, picked.key);
-  });
-}
-
-async function pickProvider(
-  providers: DefinitionProvider[]
-): Promise<DefinitionProvider | undefined> {
-  const picked = await vscode.window.showQuickPick(
-    providers.map((p) => ({ label: p.displayName, provider: p })),
-    { title: 'Environment' });
-  return picked?.provider;
 }
 
 /** Surfaces provider failures as messages instead of unhandled rejections. */

@@ -23,11 +23,44 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
   private readonly _onDidChangeTreeData = new vscode.EventEmitter<void>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
+  /**
+   * Projects the user has explicitly opened, as `${providerId}\u0000${project}`.
+   *
+   * Only consulted for providers that can search globally -- a database, where
+   * listing every project on connect would be exactly the eager load this view
+   * avoids. A project export contains one project and listing it is free, so
+   * it appears without being asked for.
+   */
+  private readonly opened = new Set<string>();
+
   constructor(private readonly workspace: Workspace) {
     workspace.onDidChange(() => this._onDidChangeTreeData.fire());
   }
 
   refresh(): void { this._onDidChangeTreeData.fire(); }
+
+  /** Adds a project to the tree, as opening one from the dialog does. */
+  openProject(providerId: string, project: string): void {
+    this.opened.add(`${providerId}\u0000${project}`);
+    this._onDidChangeTreeData.fire();
+  }
+
+  closeProject(providerId: string, project: string): void {
+    this.opened.delete(`${providerId}\u0000${project}`);
+    this._onDidChangeTreeData.fire();
+  }
+
+  isOpen(providerId: string, project: string): boolean {
+    return this.opened.has(`${providerId}\u0000${project}`);
+  }
+
+  private openedIn(providerId: string): string[] {
+    const prefix = `${providerId}\u0000`;
+    return [...this.opened]
+      .filter((k) => k.startsWith(prefix))
+      .map((k) => k.slice(prefix.length))
+      .sort();
+  }
 
   getTreeItem(node: Node): vscode.TreeItem {
     switch (node.kind) {
@@ -36,7 +69,11 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
           node.project.name, vscode.TreeItemCollapsibleState.Collapsed);
         item.description = node.project.description;
         item.iconPath = new vscode.ThemeIcon('project');
-        item.contextValue = 'project';
+        // Only a project opened on demand can be closed again; the one a
+        // project export carries is the connection itself.
+        item.contextValue = node.provider.capabilities.globalSearch
+          ? 'project.opened' : 'project';
+        item.id = `${node.provider.id}\u0000${node.project.name}`;
         return item;
       }
       case 'group': {
@@ -107,6 +144,16 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
       const out: Node[] = [];
       for (const provider of this.workspace.activeProviders) {
         if (!provider.isConnected) continue;
+
+        // A database is not listed on connect: it waits to be asked. Only the
+        // projects opened through the Open Definition dialog appear.
+        if (provider.capabilities.globalSearch) {
+          for (const project of this.openedIn(provider.id)) {
+            out.push({ kind: 'project', provider, project: { name: project } });
+          }
+          continue;
+        }
+
         try {
           for (const project of await provider.listProjects()) {
             out.push({ kind: 'project', provider, project });

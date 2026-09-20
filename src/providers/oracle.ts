@@ -39,6 +39,19 @@ export class OracleProvider implements DefinitionProvider {
     build: true
   };
 
+  /** The types {@link search} has a query for. */
+  readonly searchableTypes: readonly DefinitionType[] = [
+    DefinitionType.Project,
+    DefinitionType.Record,
+    DefinitionType.Field,
+    DefinitionType.Page,
+    DefinitionType.Component,
+    DefinitionType.Menu,
+    DefinitionType.ApplicationPackage,
+    DefinitionType.AppEngineProgram,
+    DefinitionType.SqlDefinition
+  ];
+
   private pool?: Pool;
 
   constructor(private readonly config: OracleConnectionConfig) {
@@ -128,6 +141,11 @@ export class OracleProvider implements DefinitionProvider {
     const pattern = (query.namePattern ?? '%').toUpperCase();
 
     switch (query.type) {
+      case DefinitionType.Project:
+        return this.searchSimple(
+          `SELECT PROJECTNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID
+             FROM PSPROJECTDEFN WHERE PROJECTNAME LIKE :n`,
+          DefinitionType.Project, pattern, limit);
       case DefinitionType.Record:
         return this.searchSimple(
           `SELECT RECNAME AS NAME, RECDESCR AS DESCR, LASTUPDDTTM, LASTUPDOPRID
