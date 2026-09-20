@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DefinitionType, displayName, keyEquals, keyFromString, keyToString, makeKey
+  DefinitionType, displayName, fileExtension, keyEquals, keyFromString, keyToString, makeKey
 } from '../model/definitions.js';
 
 test('makeKey drops the blank key slots PeopleTools pads with', () => {
@@ -45,4 +45,17 @@ test('application class display name is package-qualified with colons', () => {
   const key = makeKey(DefinitionType.ApplicationClassPeopleCode,
     'PT_UTIL', 'Logger', 'OnExecute');
   assert.equal(displayName(key), 'PT_UTIL:Logger');
+});
+
+test('file extensions stay namespaced so other PeopleSoft extensions can coexist', () => {
+  // jatz.peoplesoft-tools claims `.pcode` and `.ppl` for its own `peoplecode`
+  // language. Colliding on those would make grammar selection depend on load
+  // order, so this extension uses `.peoplecode` and `.pssql` instead.
+  const collisions = ['.pcode', '.ppl'];
+  for (const type of [DefinitionType.RecordPeopleCode, DefinitionType.ApplicationClassPeopleCode]) {
+    assert.equal(fileExtension(type), '.peoplecode');
+    assert.ok(!collisions.includes(fileExtension(type)));
+  }
+  assert.equal(fileExtension(DefinitionType.SqlDefinition), '.pssql');
+  assert.equal(fileExtension(DefinitionType.Record), '.psrecord');
 });

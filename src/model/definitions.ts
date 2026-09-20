@@ -132,7 +132,7 @@ export const TYPE_LABELS: Readonly<Record<DefinitionType, string>> = {
 
 /** File extension used when a definition is surfaced through the virtual FS. */
 export function fileExtension(type: DefinitionType): string {
-  if (isPeopleCode(type)) return '.pcode';
+  if (isPeopleCode(type)) return '.peoplecode';
   switch (type) {
     case DefinitionType.SqlDefinition: return '.pssql';
     case DefinitionType.Record: return '.psrecord';

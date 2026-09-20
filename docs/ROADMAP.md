@@ -14,6 +14,9 @@ Designer parity is the goal; this is the path to it.
 - PeopleCode TextMate grammar and language configuration
 - Read-only record editor (field grid, attributes, view SQL)
 - Secrets in OS secret store, never in settings
+- Installable VSIX with a one-command update loop (`npm run dev`), gated on
+  typecheck, unit tests and an activation smoke test
+- Language ids namespaced so `jatz.peoplesoft-tools` can stay installed
 
 ## Next: make reads trustworthy
 

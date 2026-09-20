@@ -76,3 +76,47 @@ in the OS secret store. It is never written to `settings.json`.
 | `syntaxes/` | PeopleCode TextMate grammar |
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for why it is shaped this way.
+
+## The update loop
+
+```bash
+npm run dev
+```
+
+That is the whole cycle: typecheck, bundle, unit tests, activation smoke test,
+package to `peoplesoft-studio.vsix`, and install it over the previous build.
+Then **Developer: Reload Window** in VS Code to pick it up.
+
+Packaging is gated on `npm run verify`, so a build that fails typecheck, tests
+or activation never reaches a VSIX.
+
+For tighter iteration, skip packaging entirely: `npm run watch` and then F5,
+which opens an Extension Development Host running straight from `dist/`.
+
+### What `npm run smoke` covers
+
+It loads the bundled extension against a stub `vscode` module
+(`scripts/vscode-stub.mjs`) and activates it, which catches the failures that
+otherwise cost a full package-install-reload cycle:
+
+- the bundle fails to load, or `activate()` throws
+- a command in `package.json` with no matching registration — the palette entry
+  would fail with "command not found"
+- a command registered but not declared, so it never appears in the palette
+- a contributed view with no data provider, which renders permanently empty
+- a tree that throws when no connection is configured, which is the state on a
+  fresh install
+
+It is not a simulation of VS Code. Anything that needs real editor behaviour —
+opening a definition, editing, saving — is a manual pass.
+
+## Coexisting with other PeopleSoft extensions
+
+`jatz.peoplesoft-tools` contributes a language also called `peoplecode`, on
+scope `source.peoplecode`, claiming `.pcode` and `.ppl`. Two grammars on one
+scope means load order decides which wins.
+
+So this extension uses `psft-peoplecode` on `source.psft.peoplecode`, and its
+virtual documents end in `.peoplecode` rather than `.pcode`. Both extensions can
+be installed together. `richardwood.peoplesoft-datamover` only claims `.dms` and
+`.dmt`, so it does not overlap at all.

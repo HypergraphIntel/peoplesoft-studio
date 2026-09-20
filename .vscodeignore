@@ -1,0 +1,19 @@
+# Source and build inputs — the extension ships the bundle in dist/ only.
+src/**
+dist-test/**
+esbuild.mjs
+tsconfig.json
+.vscode/**
+.gitignore
+scripts/**
+docs/**
+**/*.map
+
+# node_modules is excluded wholesale, then oracledb is added back: it is marked
+# external in the bundle because it loads its driver at runtime, so it has to
+# ship as real files. It has no dependencies of its own, so nothing else is
+# needed. Every other runtime dependency is bundled into dist/extension.js.
+node_modules/**
+!node_modules/oracledb/**
+node_modules/oracledb/test/**
+node_modules/oracledb/examples/**

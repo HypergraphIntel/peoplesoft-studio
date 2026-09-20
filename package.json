@@ -19,21 +19,19 @@
   "contributes": {
     "languages": [
       {
-        "id": "peoplecode",
+        "id": "psft-peoplecode",
         "aliases": [
-          "PeopleCode",
-          "peoplecode"
+          "PeopleCode (PeopleSoft Studio)"
         ],
         "extensions": [
-          ".pcode",
           ".peoplecode"
         ],
         "configuration": "./language-configuration.json"
       },
       {
-        "id": "pssql",
+        "id": "psft-sql",
         "aliases": [
-          "PeopleSoft SQL"
+          "PeopleSoft SQL (PeopleSoft Studio)"
         ],
         "extensions": [
           ".pssql"
@@ -43,8 +41,8 @@
     ],
     "grammars": [
       {
-        "language": "peoplecode",
-        "scopeName": "source.peoplecode",
+        "language": "psft-peoplecode",
+        "scopeName": "source.psft.peoplecode",
         "path": "./syntaxes/peoplecode.tmLanguage.json"
       }
     ],
@@ -253,15 +251,19 @@
     }
   },
   "scripts": {
-    "compile": "tsc -p . --noEmit && node esbuild.mjs",
-    "watch": "node esbuild.mjs --watch",
     "typecheck": "tsc -p . --noEmit",
+    "bundle": "node esbuild.mjs",
+    "compile": "npm run typecheck && npm run bundle",
+    "watch": "node esbuild.mjs --watch",
+    "pretest": "tsc -p .",
     "test": "node --test dist-test/test/",
-    "package": "vsce package",
-    "pretest": "tsc -p ."
+    "smoke": "node scripts/smoke.mjs",
+    "vscode:prepublish": "npm run compile",
+    "package": "npm run verify && vsce package --out peoplesoft-studio.vsix",
+    "verify": "npm run compile && npm test && npm run smoke",
+    "dev": "npm run package && code --install-extension peoplesoft-studio.vsix --force"
   },
   "dependencies": {
-    "fast-xml-parser": "^4.4.1",
     "oracledb": "^6.6.0"
   },
   "devDependencies": {
@@ -269,6 +271,23 @@
     "@types/oracledb": "^6.10.4",
     "@types/vscode": "^1.90.0",
     "esbuild": "^0.23.0",
-    "typescript": "^5.5.0"
-  }
+    "typescript": "^5.5.0",
+    "fast-xml-parser": "^4.4.1",
+    "@vscode/vsce": "^3.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/noodlesploder/peoplesoft-studio.git"
+  },
+  "bugs": {
+    "url": "https://github.com/noodlesploder/peoplesoft-studio/issues"
+  },
+  "keywords": [
+    "peoplesoft",
+    "peoplecode",
+    "application designer",
+    "peopletools",
+    "oracle"
+  ],
+  "qna": false
 }
