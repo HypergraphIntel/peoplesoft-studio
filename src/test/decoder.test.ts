@@ -846,3 +846,45 @@ test('consecutive NEWLINE_AFTER then NEWLINE_BEFORE tokens produce one newline, 
   assert.equal(result.unknownOpcodes.length, 0);
   assert.equal(result.text, 'method Widget();\nmethod Other();\n');
 });
+
+test('0x42 is a zero-width clause-end marker, confirmed in three different grammatical positions', () => {
+  // Hand-walked corpus-wide (491 occurrences): always a single byte with no
+  // operand, and always sits where the source has no character at all --
+  // before `;` ending a Declare Function ... PeopleCode statement, before `)`
+  // closing a parenthesised boolean sub-expression, and before `Then` ending
+  // an If condition. Unlike 0x41 below, this needs no lookahead gate: every
+  // context checked agreed, so it is mapped unconditionally in OPCODES.
+  const declareFunction = decodeProgram(
+    Buffer.from([...HEADER, 0x32, 0x0a, ...utf16('F'), 0x00, 0x00, 0x42, 0x15]), new NameTable());
+  assert.equal(declareFunction.unknownOpcodes.length, 0);
+  assert.equal(declareFunction.text, 'Function F;\n');
+
+  const beforeThen = decodeProgram(Buffer.from([...HEADER, 0x2f, 0x42, 0x1f]), new NameTable());
+  assert.equal(beforeThen.unknownOpcodes.length, 0);
+  assert.equal(beforeThen.text, 'True Then\n');
+});
+
+test('0x41 is a zero-width marker only immediately before And/Or, not elsewhere', () => {
+  // Hand-walked WEBLIB_GS_SSO.ISCRIPT1 and four other programs byte for byte:
+  // a compound boolean condition wrapped across a line
+  // (`If %DbType = "SYBASE" Or\n %DbType = "INFORMIX" Then`) has this byte
+  // right before both "Or" and, in other samples, "And" -- confirmed 22/22
+  // (100%) on every program with a small unmapped-opcode count. This same
+  // byte value is ALSO used for an unrelated Application Class
+  // method-header marker (see the 0x63 handling above), so it is gated on
+  // the very next byte being And (0x18) or Or (0x1e) rather than mapped
+  // unconditionally -- anywhere else, it must still surface as unknown.
+  // Or (0x1e) itself carries a trailing newline (AND_OR_STYLE), the same as
+  // in the real wrapped-condition source this was confirmed against.
+  const beforeOr = decodeProgram(Buffer.from([...HEADER, 0x2f, 0x41, 0x1e, 0x30]), new NameTable());
+  assert.equal(beforeOr.unknownOpcodes.length, 0);
+  assert.equal(beforeOr.text, 'True Or\nFalse');
+
+  const beforeAnd = decodeProgram(Buffer.from([...HEADER, 0x2f, 0x41, 0x18, 0x30]), new NameTable());
+  assert.equal(beforeAnd.unknownOpcodes.length, 0);
+  assert.equal(beforeAnd.text, 'True And\nFalse');
+
+  const elsewhere = decodeProgram(Buffer.from([...HEADER, 0x2f, 0x41, 0x30]), new NameTable());
+  assert.equal(elsewhere.unknownOpcodes.length, 1);
+  assert.equal(elsewhere.unknownOpcodes[0].opcode, 0x41);
+});

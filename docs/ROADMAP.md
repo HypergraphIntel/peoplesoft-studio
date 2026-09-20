@@ -993,6 +993,60 @@ either. None of the remaining ones reproduce the garbage-cascade or
 indentation-drift failure mode; what's left is ordinary missing-keyword
 gaps.
 
+## Pass twenty-one: 0x41 and 0x42, and why the reference table hedged
+
+Picked up the one item pass twenty left open. Rebuilt the 204-program corpus
+fresh against the live database and hand-walked every `0x41`/`0x42`
+occurrence in `WEBLIB_GS_SSO.ISCRIPT1` (the cleanest sample -- only these two
+opcodes unmapped in the whole 8743-byte program) and four more programs
+across the corpus, byte for byte the same way pass fifteen cracked the
+name-reference bug.
+
+**`0x42` is a context-independent, zero-width "clause just ended" marker.**
+Every occurrence -- single byte, no operand -- sits at a point where the real
+source has no character at all between the token before it and the token
+after, regardless of what grammatical construct it's in: before `;` closing a
+`Declare Function ... PeopleCode Rec.Field FieldFormula;` statement (the most
+common shape, 26 of the corpus's clean-sample occurrences), before `)`
+closing a parenthesised boolean sub-expression, and before `Then` ending an
+If condition. Confirmed 491 occurrences corpus-wide, checked case by case
+rather than scored as a percentage, because there was no case where treating
+it as anything other than empty text was consistent with the real source.
+Shipped unconditionally in `OPCODES`, no gating needed.
+
+**`0x41` is genuinely overloaded, which is exactly what the reference
+project's `// 'And'-style?` hedge was circling.** One role is the one this
+project needed: immediately before `And` (0x18) or `Or` (0x1e), it is the
+same kind of zero-width marker as `0x42` above, confirmed on
+`WEBLIB_GS_SSO.ISCRIPT1` (`If %DbType = "SYBASE" Or\n %DbType = "INFORMIX"
+Then`, wrapped across a line the same way the SYBASE/INFORMIX case is written
+in real source) and four more programs, all compound boolean conditions.
+Checked structurally rather than by text match (is the very next opcode
+0x18/0x1e, not does the rendered text happen to contain "And"/"Or"
+somewhere) against every program with a small unmapped-opcode count (pass
+twenty's corruption-noise filter): **22/22 (100%)**. Unfiltered corpus-wide
+it's only 256/402, because this byte value has a second, unrelated role:
+pass seventeen had already found it marking an Application Class method's
+*implementation* header (`0x63` `method`, immediately followed by `0x41`
+then the bare method name with no introducer, as opposed to a one-line
+declaration inside the class body) -- and that pairing already consumes its
+own `0x41` as part of the `method` token, so it was never the source of
+these 402. The remainder are inside already-corrupted programs or a still
+different, unidentified role near Application Class self-references and
+properties (pass nineteen's open item on `TI_INTEGRATION.DVMEError`'s richer
+trailer shape) -- not re-investigated here, since the And/Or role fully
+explains every occurrence this pass's samples needed. Shipped gated on the
+next raw byte being 0x18 or 0x1e; everywhere else, 0x41 still surfaces as
+unknown rather than guessed at.
+
+Corpus-wide: coverage 97.56% → 97.60%, clean programs 56 → 60, text accuracy
+held at 97.60%. `WEBLIB_GS_SSO.ISCRIPT1` itself now decodes with zero
+unmapped opcodes; `WEBLIB_OU_LP.ISCRIPT1` dropped from 8 remaining unmapped
+opcodes to 4, all of them `0x6e` -- the `Continue` candidate pass twenty
+already tried and rejected (9 real matches out of 660 corpus-wide
+occurrences, evidently overloaded with something far more common) --
+correctly left unmapped rather than guessed at a second time.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in

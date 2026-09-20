@@ -175,6 +175,16 @@ export const OPCODES = new Map<number, OpcodeSpec>([
   [0x38, { kind: TokenKind.Keyword, text: 'Return', format: SPACE_BOTH }],
   [0x2d, { kind: TokenKind.Newline, text: '', format: F.NEWLINE_ONCE }],
   [0x4f, { kind: TokenKind.Newline, text: '', format: F.NEWLINE_AFTER }],
+  // A zero-width "clause just ended" marker: confirmed by hand-walking every
+  // context it appears in across the corpus -- immediately before `;` in a
+  // `Declare Function ... PeopleCode Rec.Field Event;` statement, before `)`
+  // closing a parenthesised boolean sub-expression, and before `Then` ending
+  // an If condition -- and in every one of those, the source has no
+  // character at all between the token before it and the token after, so
+  // rendering nothing is correct regardless of grammatical context rather
+  // than needing a lookahead gate the way 0x41 below does. 491 occurrences
+  // corpus-wide; see docs/ROADMAP.md pass twenty-one.
+  [0x42, { kind: TokenKind.Punctuation, text: '', format: F.NONE }],
 
   // -- Adopted from PeopleCodeParser.java (see file header), then filtered
   //    against this database's own 204-program corpus via
@@ -939,6 +949,26 @@ export function decodeProgram(
         continue;
       }
       tokens.push({ kind: TokenKind.Newline, text: '', offset, opcode, format: F.NEWLINE_ONCE });
+      continue;
+    }
+
+    // 0x41 is also overloaded -- see the 0x63 (`method`) handling below,
+    // where a *different* occurrence of this same byte value is consumed as
+    // part of an Application Class method's implementation header. This is
+    // the other role: immediately before And (0x18) or Or (0x1e), a
+    // zero-width marker the same way 0x42 above always is, confirmed by
+    // hand-walking `WEBLIB_GS_SSO.ISCRIPT1` and four other programs byte for
+    // byte (every one of them a compound boolean condition wrapped across a
+    // line, e.g. `If %DbType = "SYBASE" Or\n %DbType = "INFORMIX" Then`) and
+    // checked structurally (next token is exactly And/Or, not a text match)
+    // against every program with a small unmapped-opcode count: 22/22
+    // (100%). Unfiltered corpus-wide it's only 256/402, because most of the
+    // rest are the unrelated method-header role above or fall inside
+    // already-corrupted programs -- gated on the next byte rather than
+    // mapped in OPCODES so it never fires outside this one confirmed shape.
+    // See docs/ROADMAP.md pass twenty-one.
+    if (opcode === 0x41 && (bytes[i] === 0x18 || bytes[i] === 0x1e)) {
+      tokens.push({ kind: TokenKind.Punctuation, text: '', offset, opcode, format: F.NONE });
       continue;
     }
 
