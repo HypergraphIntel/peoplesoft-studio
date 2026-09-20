@@ -1278,6 +1278,34 @@ This was, by a wide margin, the highest-value single fix of the session:
 91.85% → 95.64%**. Text accuracy held (97.07% → 97.13%). Three of the four
 hand-walked samples now decode with zero unmapped opcodes.
 
+## Pass twenty-seven: Constant, throw, ComponentLife
+
+Re-ran `corpus-analyze.mjs`'s "best next targets" ranking after the number
+literal fix reshuffled it. Three more single-opcode gaps, each confirmed
+byte-for-byte as the *only* unmapped opcode in a real program:
+
+- **`0x56` = `Constant`**, a fourth declarator alongside `Local`/`Global`/
+  `Component`, confirmed against `WEBLIB_PTTILE.ISCRIPT1`'s real
+  `Constant &QUERYPARAMETER_ID = "ID";`, twice in the same program.
+  Structurally confirmed 20/20 on the corpus.
+- **`0x68` = `throw`**, confirmed against `WEBLIB_PTSF.ISCRIPT1`'s real
+  `throw CreateException(262, 2018, "Search Exception: %1 ", &sError);`.
+- **`0x79` = `ComponentLife`**, a fifth declarator (PeopleCode's
+  component-interface object lifetime scope), confirmed against
+  `WEBLIB_PTPN.PTPN_ISCRIPT.SavePreChange`'s real `ComponentLife
+  PTPN_PUBLISH:PublishToWindow &wlSrch;`.
+
+`0x68` and `0x79` each have only one corruption-filtered sample, unlike
+most opcodes shipped this session -- not because the evidence is weaker,
+but because they're genuinely rare constructs (`throw` and
+`ComponentLife` each occur in only a handful of the 204 programs at all).
+Both are hand-confirmed byte-for-byte, the same standard as every other
+entry in this table, and neither shows any counter-evidence at any
+scale checked.
+
+Coverage 98.72% → 98.74%, clean programs 156 → 162, line matching
+95.64% → 95.76%.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in

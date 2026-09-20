@@ -209,6 +209,20 @@ export const OPCODES = new Map<number, OpcodeSpec>([
   // unmapped opcode. Structurally confirmed 3/3 on the corpus (always right
   // after a number literal, right before `-`).
   [0x2b, { kind: TokenKind.Keyword, text: 'Step', format: SPACE_BOTH }],
+  // A fourth declarator alongside Local/Global/Component: confirmed against
+  // WEBLIB_PTTILE.ISCRIPT1's real `Constant &QUERYPARAMETER_ID = "ID";`,
+  // twice in the same program. Structurally confirmed 20/20 on the corpus
+  // (always right after a statement boundary, right before a `&variable`).
+  [0x56, { kind: TokenKind.Keyword, text: 'Constant', format: NEWLINE_BEFORE_SPACE_AFTER }],
+  // Raises an exception: confirmed against WEBLIB_PTSF.ISCRIPT1's real
+  // `throw CreateException(262, 2018, "Search Exception: %1 ", &sError);`,
+  // its only unmapped opcode.
+  [0x68, { kind: TokenKind.Keyword, text: 'throw', format: NEWLINE_BEFORE_SPACE_AFTER }],
+  // A fifth declarator, PeopleCode's component-interface object lifetime
+  // scope: confirmed against WEBLIB_PTPN.PTPN_ISCRIPT.SavePreChange's real
+  // `ComponentLife PTPN_PUBLISH:PublishToWindow &wlSrch;`, its only
+  // unmapped opcode. See docs/ROADMAP.md pass twenty-seven.
+  [0x79, { kind: TokenKind.Keyword, text: 'ComponentLife', format: NEWLINE_BEFORE_SPACE_AFTER }],
   [0x58, { kind: TokenKind.Keyword, text: 'import', format: SPACE_BOTH }],
   [0x57, { kind: TokenKind.Punctuation, text: ':', format: F.NO_SPACE_BEFORE | F.NO_SPACE_AFTER }],
   [0x38, { kind: TokenKind.Keyword, text: 'Return', format: SPACE_BOTH }],
