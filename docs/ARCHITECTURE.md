@@ -43,6 +43,15 @@ Designer's own C++ object model: `<instance class="PJM">` blocks containing
 (`POINTER`, `HANDLE`, `custom field`) followed by the rowset they reference, so
 the parser descends into every child object rather than matching prefixes.
 
+A file holds one `PJM` instance carrying the project manifest, then one
+instance per definition. The class codes are not self-evident: `PGM` is a
+Component (panel group), `CRM` is an HTML/content definition, `PDM` a page,
+`MDM` a menu, `APM` an application package, `RDM` a record, `PCM` a PeopleCode
+program. An export also includes definitions the project merely *references*,
+so instance counts do not match item counts in either direction — and a project
+item can have no instance behind it at all, which is why an item that will not
+open says the export omitted it rather than reporting a failure.
+
 `src/providers/projectFileFormat.ts` documents the shape;
 `projectFileParser.ts` reads it. Two things worth knowing:
 

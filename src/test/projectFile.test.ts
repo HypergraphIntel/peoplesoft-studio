@@ -22,12 +22,12 @@ test('the project name and item list come from the PJM instance', async () => {
   const projects = await p.listProjects();
   assert.equal(projects[0].name, 'DEMO_PROJECT');
   assert.equal(projects[0].description, 'Fixture project');
-  assert.equal((await p.listProjectItems('DEMO_PROJECT')).length, 4);
+  assert.equal((await p.listProjectItems('DEMO_PROJECT')).length, 10);
 });
 
 test('the project name is matched case-insensitively, since exports are often .XML', async () => {
   const p = await load();
-  assert.equal((await p.listProjectItems('demo_project')).length, 4);
+  assert.equal((await p.listProjectItems('demo_project')).length, 10);
 });
 
 test('item types are read from eObjectType', async () => {
@@ -59,9 +59,11 @@ test('a record-field program is not filed under its parent record', async () => 
   // Both WEBLIB_DEMO and WEBLIB_DEMO.ISCRIPT1.FieldFormula are prefixes of the
   // program key; the PeopleCode item has to win.
   const p = await load();
+  // A record opens in the record editor, not as text, so reading it as text
+  // must not hand back the program that merely shares its name prefix.
   await assert.rejects(
     () => p.readText(makeKey(DefinitionType.Record, 'WEBLIB_DEMO')),
-    /carries no text/);
+    /does not carry its definition/);
 });
 
 test('an application class program is matched despite the appended OnExecute', async () => {
@@ -130,4 +132,69 @@ test('saving is refused with a reason rather than silently dropping edits', asyn
   const p = await load();
   assert.equal(p.capabilities.write, false);
   await assert.rejects(() => p.writeText(), /does not support/);
+});
+
+test('a field definition renders its type, length and labels', async () => {
+  const p = await load();
+  const text = await p.readText(makeKey(DefinitionType.Field, 'DEMO_ID'));
+  assert.match(text, /Field\s+DEMO_ID/);
+  assert.match(text, /Type\s+Character/);
+  assert.match(text, /Length\s+30/);
+  assert.match(text, /Demo Identifier/);
+  assert.match(text, /short: Demo ID/);
+});
+
+test('an HTML definition returns its content with whitespace preserved', async () => {
+  const p = await load();
+  const text = await p.readText(makeKey(DefinitionType.HtmlDefinition, 'DEMO_HTML', '4'));
+  // Leading indentation is part of the content and must survive.
+  assert.equal(text, "  <div class='x'>a & b</div>");
+});
+
+test('a component lists its pages and search record', async () => {
+  const p = await load();
+  const text = await p.readText(makeKey(DefinitionType.Component, 'DEMO_CMP', 'GBL'));
+  assert.match(text, /Component\s+DEMO_CMP/);
+  assert.match(text, /Search record\s+INSTALLATION/);
+  assert.match(text, /DEMO_PAGE\s+Demo Page/);
+});
+
+test('a menu lists its bars and the components they open', async () => {
+  const p = await load();
+  const text = await p.readText(makeKey(DefinitionType.Menu, 'DEMO_MENU'));
+  assert.match(text, /Menu\s+DEMO_MENU/);
+  assert.match(text, /USE\s+Demo Component\s+-> DEMO_CMP/);
+});
+
+test('an application package lists its classes, keyed by id or by root', async () => {
+  const p = await load();
+  // The item is keyed PACKAGEID.PACKAGEROOT; the instance is indexed by root.
+  const text = await p.readText(
+    makeKey(DefinitionType.ApplicationPackage, 'DemoPkg', 'DEMO_PACK', ':'));
+  assert.match(text, /Package\s+DEMO_PACK/);
+  assert.match(text, /Engine/);
+  assert.match(text, /Helper/);
+});
+
+test('an item whose definition the export omitted says so, without blaming the user', async () => {
+  // App Designer includes referenced definitions selectively; a project item
+  // can legitimately have no instance block behind it.
+  const p = await load();
+  await assert.rejects(
+    () => p.readText(makeKey(DefinitionType.HtmlDefinition, 'NOT_EXPORTED', '4')),
+    /does not carry its definition/);
+});
+
+test('every project item either opens or explains why not', async () => {
+  const p = await load();
+  const items = await p.listProjectItems('DEMO_PROJECT');
+  for (const item of items) {
+    try {
+      await p.readText(item.key);
+    } catch (err) {
+      const message = (err as Error).message;
+      assert.match(message, /does not carry its definition|is not an item/,
+        `opening ${item.key.parts.join('.')} failed with an unhelpful message: ${message}`);
+    }
+  }
 });

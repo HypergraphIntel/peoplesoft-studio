@@ -37,6 +37,36 @@
               <eObjectID_2>107</eObjectID_2>
             </row>
             <row>
+              <eObjectType>2</eObjectType>
+              <szObjectValue_0>DEMO_ID</szObjectValue_0>
+              <szObjectValue_1></szObjectValue_1>
+            </row>
+            <row>
+              <eObjectType>51</eObjectType>
+              <szObjectValue_0>DEMO_HTML</szObjectValue_0>
+              <szObjectValue_1>4</szObjectValue_1>
+            </row>
+            <row>
+              <eObjectType>51</eObjectType>
+              <szObjectValue_0>NOT_EXPORTED</szObjectValue_0>
+              <szObjectValue_1>4</szObjectValue_1>
+            </row>
+            <row>
+              <eObjectType>7</eObjectType>
+              <szObjectValue_0>DEMO_CMP</szObjectValue_0>
+              <szObjectValue_1>GBL</szObjectValue_1>
+            </row>
+            <row>
+              <eObjectType>6</eObjectType>
+              <szObjectValue_0>DEMO_MENU</szObjectValue_0>
+            </row>
+            <row>
+              <eObjectType>57</eObjectType>
+              <szObjectValue_0>DemoPkg</szObjectValue_0>
+              <szObjectValue_1>DEMO_PACK</szObjectValue_1>
+              <szObjectValue_2>:</szObjectValue_2>
+            </row>
+            <row>
               <eObjectType>63</eObjectType>
               <szObjectValue_0>SOMETHING_NEW</szObjectValue_0>
               <szObjectValue_1></szObjectValue_1>
@@ -110,6 +140,107 @@
             </row>
           </rowset>
         </lpIdx>
+      </row>
+    </rowset>
+  </instance>
+  <instance class="FIELD">
+    <rowset name="Field" size="936" count="1">
+      <row>
+        <szFieldName>DEMO_ID</szFieldName>
+        <eFieldType>0</eFieldType>
+        <nLength>30</nLength>
+        <nDecimalPos>0</nDecimalPos>
+        <lVersion>2699</lVersion>
+        <szLastUpdDttm>2026-09-18</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <hDBFldLabel> HANDLE
+          <rowset name="DBFldLabel" size="32" count="1">
+            <row>
+              <atmLabelID>DEMO_ID</atmLabelID>
+              <atmLongName>Demo Identifier</atmLongName>
+              <atmShortName>Demo ID</atmShortName>
+            </row>
+          </rowset>
+        </hDBFldLabel>
+      </row>
+    </rowset>
+  </instance>
+  <instance class="CRM">
+    <rowset name="CrmDefn" size="1208" count="1">
+      <row>
+        <szContName>DEMO_HTML</szContName>
+        <eContType>4</eContType>
+        <lContStrLen>44</lContStrLen>
+        <hContStrData> HANDLE
+          <rowset name="char" size="44" count="1">
+            <row>
+              <hContStrData>  &lt;div class='x'&gt;a &amp; b&lt;/div&gt;</hContStrData>
+            </row>
+          </rowset>
+        </hContStrData>
+      </row>
+    </rowset>
+  </instance>
+  <instance class="PGM">
+    <rowset name="PgmDefn" size="500" count="1">
+      <row>
+        <lVersion>49</lVersion>
+        <nPnlCount>1</nPnlCount>
+        <bDeferProcMode>1</bDeferProcMode>
+        <bInclNavigation>1</bInclNavigation>
+        <lpPnl> POINTER
+          <rowset name="PnlMenuItem" size="100" count="1">
+            <row>
+              <szItemName>DEMO_PAGE</szItemName>
+              <szItemLabel>Demo Page</szItemLabel>
+              <szPnlName>DEMO_PAGE</szPnlName>
+              <bHidden>0</bHidden>
+            </row>
+          </rowset>
+        </lpPnl>
+        <lpExt> POINTER
+          <rowset name="PgmDefnExt" size="80" count="1">
+            <row>
+              <szPnlGrpName>DEMO_CMP</szPnlGrpName>
+              <szSearchRecName>INSTALLATION</szSearchRecName>
+            </row>
+          </rowset>
+        </lpExt>
+      </row>
+    </rowset>
+  </instance>
+  <instance class="MDM">
+    <rowset name="MdmDefn" size="300" count="1">
+      <row>
+        <lVersion>75</lVersion>
+        <lpItem> POINTER
+          <rowset name="MdmItem" size="120" count="1">
+            <row>
+              <szBarName>USE</szBarName>
+              <szItemName>DEMO_CMP</szItemName>
+              <szItemLabel>Demo Component</szItemLabel>
+              <szPnlGrpName>DEMO_CMP</szPnlGrpName>
+              <szMarket>GBL</szMarket>
+            </row>
+          </rowset>
+        </lpItem>
+        <szMenuName>DEMO_MENU</szMenuName>
+      </row>
+    </rowset>
+  </instance>
+  <instance class="APM">
+    <rowset name="ApmDefn" size="400" count="1">
+      <row>
+        <szPackageId>DemoPkg</szPackageId>
+        <szPackageRoot>DEMO_PACK</szPackageRoot>
+        <szQualifyPath>:</szQualifyPath>
+        <lPackageLevel>1</lPackageLevel>
+        <lpCls> POINTER
+          <rowset name="ApmClassDefn" size="90" count="2">
+            <row><szClassId>Engine</szClassId></row>
+            <row><szClassId>Helper</szClassId></row>
+          </rowset>
+        </lpCls>
       </row>
     </rowset>
   </instance>

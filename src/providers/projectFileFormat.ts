@@ -70,6 +70,34 @@ export function strField(row: ExportRow, name: string): string {
   return (row.fields.get(name) ?? '').trim();
 }
 
+/** Like {@link strField} but preserves whitespace, for content and source text. */
+export function rawField(row: ExportRow, name: string): string {
+  return row.fields.get(name) ?? '';
+}
+
+/**
+ * The first non-empty value of `name` anywhere in an instance.
+ *
+ * Some definitions do not carry their own name on their primary row: a
+ * component's PnlGrpName sits in its PgmDefnExt rowset, and a menu's MenuName
+ * appears only after its item rows. Searching the whole instance avoids
+ * hard-coding which rowset each name happens to live in.
+ */
+export function findScalar(instance: ExportInstance, name: string): string {
+  const walk = (sets: ReadonlyMap<string, ExportRow[]>): string => {
+    for (const rows of sets.values()) {
+      for (const row of rows) {
+        const own = (row.fields.get(name) ?? '').trim();
+        if (own) return own;
+        const nested = walk(row.rowsets);
+        if (nested) return nested;
+      }
+    }
+    return '';
+  };
+  return walk(instance.rowsets);
+}
+
 export function firstRow(
   rowsets: ReadonlyMap<string, ExportRow[]>, name: string
 ): ExportRow | undefined {
