@@ -27,7 +27,37 @@ interior blanks are kept, because for record PeopleCode the empty second slot is
 meaningful.
 
 `DefinitionType`'s numeric values are the real `OBJECTTYPE` codes for the same
-reason.
+reason. The codes confirmed against a real export are marked CONFIRMED in the
+enum; the rest are marked UNCONFIRMED and are provisional. An earlier revision
+had several written from memory and wrong — Pages filed under Menus,
+Application Classes under File Layouts — so unmapped codes are now surfaced as
+`Type N` and still browsable rather than dropped or guessed at.
+
+## The project export format
+
+An export is not a PeopleTools table dump. It is a serialization of App
+Designer's own C++ object model: `<instance class="PJM">` blocks containing
+`<rowset name="...">` / `<row>` trees, with Hungarian-prefixed field names
+(`sz` string, `n`/`l` integer, `e` enum, `b` boolean, `f` flags, `atm` atom,
+`lp` pointer, `h` handle). Pointer and handle elements carry a marker word
+(`POINTER`, `HANDLE`, `custom field`) followed by the rowset they reference, so
+the parser descends into every child object rather than matching prefixes.
+
+`src/providers/projectFileFormat.ts` documents the shape;
+`projectFileParser.ts` reads it. Two things worth knowing:
+
+- **PeopleCode arrives as plain source** in a `peoplecode_text` element beside
+  each `PCM` instance's rowset, which is why an export is the accurate source
+  for PeopleCode while the database decoder is uncalibrated.
+- **A program's key is longer than its project item's key.** Items carry four
+  key slots, programs seven, and an application class item
+  `PACKAGE.PATH.CLASS` corresponds to a program key with `OnExecute` appended.
+  Matching is therefore longest-prefix, preferring PeopleCode-typed items — a
+  record-field program is prefixed by its own record, and must not be filed
+  under it.
+
+Record keys are not in the field rows either: an export carries no USEEDIT
+column, so key membership is derived from the index whose id is `_`.
 
 ## Definitions as virtual files
 

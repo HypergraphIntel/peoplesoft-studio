@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { Workspace } from '../workspace.js';
 import { DefinitionProvider, DefinitionSummary } from '../providers/provider.js';
 import {
-  DefinitionType, displayName, isPeopleCode, TYPE_LABELS
+  DefinitionType, displayName, isPeopleCode, typeLabel
 } from '../model/definitions.js';
 import { toUri } from '../util/uri.js';
 
@@ -52,7 +52,7 @@ export class BrowserView implements vscode.TreeDataProvider<Node> {
       }
       case 'type': {
         const item = new vscode.TreeItem(
-          TYPE_LABELS[node.type], vscode.TreeItemCollapsibleState.Collapsed);
+          typeLabel(node.type), vscode.TreeItemCollapsibleState.Collapsed);
         item.iconPath = new vscode.ThemeIcon('folder');
         item.description = this.filters.get(`${node.provider.id}/${node.type}`);
         item.contextValue = 'definitionType';
@@ -103,7 +103,7 @@ export class BrowserView implements vscode.TreeDataProvider<Node> {
         return results.map((summary) => ({ kind: 'definition', provider: node.provider, summary }));
       } catch (err) {
         vscode.window.showErrorMessage(
-          `Could not list ${TYPE_LABELS[node.type]}: ${(err as Error).message}`);
+          `Could not list ${typeLabel(node.type)}: ${(err as Error).message}`);
         return [];
       }
     }

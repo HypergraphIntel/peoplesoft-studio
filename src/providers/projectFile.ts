@@ -1,33 +1,33 @@
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
-import { XMLParser } from 'fast-xml-parser';
 import {
   DefinitionProvider, DefinitionSummary, ProjectSummary, ProviderCapabilities,
   ProviderError, SearchQuery, UnsupportedOperationError
 } from './provider.js';
 import {
-  DefinitionKey, DefinitionType, keyEquals, keyToString, makeKey
+  DefinitionKey, DefinitionType, isPeopleCode, keyToString, makeKey
 } from '../model/definitions.js';
-import { FieldType, RecordDefinition, RecordField, RecordType } from '../model/record.js';
+import { FieldType, RecordDefinition, RecordField, RecordType, UseEdit } from '../model/record.js';
+import { parseExport } from './projectFileParser.js';
+import {
+  ExportInstance, ExportRow, allRows, firstRow, intField, objectValues, strField
+} from './projectFileFormat.js';
 
 /**
  * Reads an App Designer project export.
  *
- * App Designer writes a project to XML with one <PSPROJECTITEM> per definition
- * and the definition's own tables inlined as element trees. PeopleCode appears
- * as plain source text rather than the tokenized database form, which makes
- * this provider the accurate way to read PeopleCode until the decoder is
- * calibrated.
- *
- * Edits are held in memory and flushed back to the XML on save, so the export
- * stays a valid App Designer import file.
+ * PeopleCode arrives as plain source here rather than the tokenized form the
+ * database stores, which makes this the accurate way to read PeopleCode while
+ * the decoder is still being calibrated.
  */
 export class ProjectFileProvider implements DefinitionProvider {
   readonly id: string;
   readonly displayName: string;
   readonly capabilities: ProviderCapabilities = {
-    write: true,
-    // Only the project's own contents exist here; there is no environment to search.
+    // Writing back has to preserve App Designer's exact serialization or the
+    // file will not re-import; see flush().
+    write: false,
+    // Only this project's contents exist here; there is no environment to search.
     globalSearch: false,
     build: false
   };
@@ -35,10 +35,9 @@ export class ProjectFileProvider implements DefinitionProvider {
   private loaded = false;
   private projectName = '';
   private projectDescr = '';
+  private readonly items: DefinitionSummary[] = [];
   private readonly texts = new Map<string, string>();
   private readonly records = new Map<string, RecordDefinition>();
-  private readonly items: DefinitionSummary[] = [];
-  private dirty = new Set<string>();
 
   constructor(private readonly filePath: string, name?: string) {
     this.id = `project:${filePath}`;
@@ -49,194 +48,224 @@ export class ProjectFileProvider implements DefinitionProvider {
 
   async connect(): Promise<void> {
     if (this.loaded) return;
+
     let xml: string;
     try {
       xml = await fs.readFile(this.filePath, 'utf8');
     } catch (err) {
-      throw new ProviderError(`Could not read project export ${this.filePath}.`, err);
+      throw new ProviderError(`Could not read ${this.filePath}.`, err);
     }
 
-    const parser = new XMLParser({
-      ignoreAttributes: false,
-      attributeNamePrefix: '@',
-      // Definition text carries meaningful leading whitespace; never trim it.
-      trimValues: false,
-      parseTagValue: false,
-      isArray: (name) => ARRAY_ELEMENTS.has(name)
-    });
-
-    let doc: any;
+    let instances: ExportInstance[];
     try {
-      doc = parser.parse(xml);
+      instances = parseExport(xml);
     } catch (err) {
-      throw new ProviderError(`${this.filePath} is not well-formed XML.`, err);
+      throw new ProviderError(
+        `Could not read ${path.basename(this.filePath)}: ${(err as Error).message}`, err);
     }
 
-    this.ingest(doc);
+    this.ingest(instances);
     this.loaded = true;
   }
 
-  private ingest(doc: any): void {
-    const root = doc?.PSCAMA ?? doc?.['?xml'] ? doc : doc;
-    const defn = findFirst(root, 'PSPROJECTDEFN');
-    this.projectName = str(defn?.PROJECTNAME) || path.basename(this.filePath, '.xml');
-    this.projectDescr = str(defn?.DESCR);
-
-    for (const item of findAll(root, 'PSPROJECTITEM')) {
-      const type = Number(str(item.OBJECTTYPE));
-      if (!Number.isFinite(type)) continue;
-      const key = makeKey(type as DefinitionType,
-        ...[1, 2, 3, 4, 5, 6, 7].map((n) => str(item[`OBJECTVALUE${n}`])));
-      this.items.push({ key });
+  private ingest(instances: readonly ExportInstance[]): void {
+    for (const instance of instances) {
+      switch (instance.cls) {
+        case 'PJM': this.ingestProject(instance); break;
+        case 'PCM': this.ingestPeopleCode(instance); break;
+        case 'RDM': this.ingestRecord(instance); break;
+        default: break; // Other definition types are browsable but not yet parsed.
+      }
     }
 
-    // PeopleCode bodies travel in PSPCMPROG elements, but as source text rather
-    // than the database's tokenized form.
-    for (const prog of findAll(root, 'PSPCMPROG')) {
-      const key = makeKey(Number(str(prog.OBJECTTYPE)) as DefinitionType,
-        ...[1, 2, 3, 4, 5, 6, 7].map((n) => str(prog[`OBJECTVALUE${n}`])));
-      const text = str(prog.PCTEXT ?? prog.PROGTXT);
-      if (text) this.texts.set(keyToString(key), text);
+    if (!this.projectName) {
+      // Fall back to the file name, extension-insensitively: exports are
+      // commonly named .XML in upper case.
+      this.projectName = path.basename(this.filePath).replace(/\.xml$/i, '');
+    }
+  }
+
+  /** The PJM instance holds the project name and its item list. */
+  private ingestProject(instance: ExportInstance): void {
+    const defn = firstRow(instance.rowsets, 'PjmDefn');
+    if (defn) {
+      this.projectName = strField(defn, 'szProjectName');
+      this.projectDescr = strField(defn, 'szProjectDescr');
     }
 
-    for (const sql of findAll(root, 'PSSQLTEXTDEFN')) {
-      const id = str(sql.SQLID);
-      if (!id) continue;
-      const key = makeKey(DefinitionType.SqlDefinition, id);
-      const prev = this.texts.get(keyToString(key)) ?? '';
-      this.texts.set(keyToString(key), prev + str(sql.SQLTEXT));
-    }
-
-    for (const rec of findAll(root, 'PSRECDEFN')) {
-      const name = str(rec.RECNAME);
-      if (!name) continue;
-      const key = makeKey(DefinitionType.Record, name);
-      this.records.set(keyToString(key), {
-        key,
-        name,
-        description: str(rec.RECDESCR),
-        recordType: Number(str(rec.RECTYPE) || '0') as RecordType,
-        version: Number(str(rec.VERSION) || '0'),
-        fields: this.fieldsFor(root, name)
+    for (const row of allRows(instance.rowsets, 'PjmPit')) {
+      // Project items carry four key slots, not the seven a definition uses.
+      const parts = objectValues(row, 4);
+      this.items.push({
+        key: makeKey(intField(row, 'eObjectType') as DefinitionType, ...parts)
       });
     }
   }
 
-  private fieldsFor(root: any, recname: string): RecordField[] {
-    const out: RecordField[] = [];
-    for (const rf of findAll(root, 'PSRECFIELD')) {
-      if (str(rf.RECNAME) !== recname) continue;
-      out.push({
-        name: str(rf.FIELDNAME),
-        fieldNum: Number(str(rf.FIELDNUM) || '0'),
-        type: Number(str(rf.FIELDTYPE) || '0') as FieldType,
-        length: Number(str(rf.LENGTH) || '0'),
-        decimalPositions: Number(str(rf.DECIMALPOS) || '0'),
-        useEdit: Number(str(rf.USEEDIT) || '0'),
-        editTable: str(rf.EDITTABLE) || undefined
-      });
-    }
-    return out.sort((a, b) => a.fieldNum - b.fieldNum);
+  /** A PCM instance pairs a program key with its plain source text. */
+  private ingestPeopleCode(instance: ExportInstance): void {
+    const prog = firstRow(instance.rowsets, 'PcmProg');
+    if (!prog || instance.peopleCodeText === undefined) return;
+
+    // The program's own key uses seven slots; its type is not stored on the
+    // instance, so it is recovered from the project item list.
+    //
+    // The item's key is a prefix of the program's, not an exact match: an
+    // application class appears in the item list as PACKAGE.PATH.CLASS but the
+    // program key appends the OnExecute event, and the item list only carries
+    // four key slots against the program's seven.
+    const parts = objectValues(prog, 7);
+
+    // Several items can be a prefix of the same program key: a record-field
+    // program WEBLIB_OU_LP.ISCRIPT1.FieldFormula is also prefixed by the record
+    // WEBLIB_OU_LP itself. Prefer a PeopleCode-typed item, then the longest
+    // prefix, so the program is not filed under its parent record.
+    const item = this.items
+      .filter((i) => isKeyPrefix(i.key.parts, parts))
+      .sort((a, b) => {
+        const byType = Number(isPeopleCode(b.key.type)) - Number(isPeopleCode(a.key.type));
+        return byType !== 0 ? byType : b.key.parts.length - a.key.parts.length;
+      })[0];
+    if (!item) return;
+
+    // Store the text under the item's own key so a click in the tree finds it.
+    this.texts.set(keyToString(item.key), instance.peopleCodeText);
   }
 
-  async dispose(): Promise<void> {
-    if (this.dirty.size > 0) {
-      throw new ProviderError(
-        `${this.displayName} has ${this.dirty.size} unsaved change(s). Save or discard them first.`);
-    }
-    this.loaded = false;
+  private ingestRecord(instance: ExportInstance): void {
+    const defn = firstRow(instance.rowsets, 'RecDefn');
+    if (!defn) return;
+
+    const name = strField(defn, 'szRecName');
+    if (!name) return;
+    const key = makeKey(DefinitionType.Record, name);
+
+    // An export names record fields with the `atm` (atom) prefix and carries
+    // only their physical attributes -- there is no USEEDIT column here. Key
+    // membership lives in the record's primary index instead.
+    const keyFields = primaryKeyFields(instance);
+
+    const fields: RecordField[] = allRows(instance.rowsets, 'RecField').map((f, i) => {
+      const fieldName = strField(f, 'atmFieldName');
+      return {
+        name: fieldName,
+        // Field order is positional in an export; there is no field number.
+        fieldNum: i + 1,
+        type: intField(f, 'eFieldType') as FieldType,
+        length: intField(f, 'nLength'),
+        decimalPositions: intField(f, 'nDecimalPos'),
+        useEdit: keyFields.has(fieldName.toUpperCase()) ? UseEdit.Key : 0,
+        label: fieldLabel(f, fieldName)
+      };
+    });
+
+    this.records.set(keyToString(key), {
+      key,
+      name,
+      // An export holds the description in a long-text handle rather than a
+      // scalar, so it is left blank rather than guessed at.
+      description: '',
+      recordType: intField(defn, 'eRecType') as RecordType,
+      version: intField(defn, 'lVersion'),
+      fields
+    });
   }
+
+  async dispose(): Promise<void> { this.loaded = false; }
 
   async listProjects(): Promise<ProjectSummary[]> {
-    return [{ name: this.projectName, description: this.projectDescr }];
+    return [{ name: this.projectName, description: this.projectDescr || undefined }];
   }
 
   async listProjectItems(project: string): Promise<DefinitionSummary[]> {
-    if (project !== this.projectName) return [];
+    if (project.toUpperCase() !== this.projectName.toUpperCase()) return [];
     return [...this.items];
   }
 
   async search(query: SearchQuery): Promise<DefinitionSummary[]> {
     const rx = patternToRegExp(query.namePattern ?? '%');
-    return this.items.filter((i) =>
-      (query.type === undefined || i.key.type === query.type) &&
-      rx.test(i.key.parts[0] ?? '')
-    ).slice(0, query.limit ?? 500);
+    return this.items
+      .filter((i) => (query.type === undefined || i.key.type === query.type)
+        && rx.test(i.key.parts[0] ?? ''))
+      .slice(0, query.limit ?? 500);
   }
 
   async readText(key: DefinitionKey): Promise<string> {
     const text = this.texts.get(keyToString(key));
-    if (text === undefined) {
-      throw new ProviderError(
-        `${key.parts.join('.')} is not present in ${this.displayName}. ` +
-        `A project export only contains the definitions it was built with.`);
-    }
-    return text;
+    if (text !== undefined) return text;
+
+    const known = this.items.some((i) => keyToString(i.key) === keyToString(key));
+    throw new ProviderError(known
+      ? `${key.parts.join('.')} is in this project, but the export carries no text ` +
+        `for it. Only PeopleCode programs have source text in an export.`
+      : `${key.parts.join('.')} is not an item of ${this.projectName}.`);
   }
 
-  async writeText(key: DefinitionKey, text: string): Promise<void> {
-    if (!this.items.some((i) => keyEquals(i.key, key))) {
-      throw new ProviderError(`${key.parts.join('.')} is not an item of this project.`);
-    }
-    this.texts.set(keyToString(key), text);
-    this.dirty.add(keyToString(key));
-    await this.flush();
-  }
+  async writeText(): Promise<void> { return this.flush(); }
+  async writeRecord(): Promise<void> { return this.flush(); }
 
   async readRecord(key: DefinitionKey): Promise<RecordDefinition> {
     const rec = this.records.get(keyToString(key));
-    if (!rec) throw new ProviderError(`Record ${key.parts[0]} is not present in ${this.displayName}.`);
+    if (!rec) {
+      throw new ProviderError(
+        `Record ${key.parts[0]} is not carried by ${this.projectName}.`);
+    }
     return rec;
   }
 
-  async writeRecord(_record: RecordDefinition): Promise<void> {
-    throw new UnsupportedOperationError('saving record definitions', this.displayName);
-  }
-
   /**
-   * Rewrites the export file.
+   * Writing back is not implemented.
    *
-   * Not yet implemented: a faithful writer has to preserve element order,
-   * PSCAMA audit blocks and the exact encoding App Designer expects on import,
-   * and a lossy rewrite would produce a file that imports incorrectly. Until
-   * then, edits stay in memory for the session and the file is left untouched.
+   * App Designer re-imports its own serialization, so a writer has to preserve
+   * element order, the `lp*` pointer markers and the exact numeric encoding.
+   * A lossy rewrite produces a file that imports incorrectly, which is worse
+   * than not writing at all.
    */
-  private async flush(): Promise<void> {
+  private async flush(): Promise<never> {
     throw new UnsupportedOperationError(
-      'writing changes back to the project export file', this.displayName);
+      'saving changes back to a project export file', this.displayName);
   }
 }
 
-/** Elements that may legitimately repeat, so the parser must always give arrays. */
-const ARRAY_ELEMENTS = new Set([
-  'PSPROJECTITEM', 'PSPCMPROG', 'PSPCMNAME', 'PSRECDEFN', 'PSRECFIELD',
-  'PSDBFIELD', 'PSDBFLDLABL', 'PSSQLTEXTDEFN', 'PSPNLDEFN', 'PSPNLFIELD',
-  'PSPNLGRPDEFN', 'PSPNLGROUP', 'PSMENUDEFN', 'PSMENUITEM', 'PSAEAPPLDEFN',
-  'PSAESECTDEFN', 'PSAESTEPDEFN', 'PSAESTEPMSGDEFN'
-]);
-
-function str(v: unknown): string {
-  if (v === undefined || v === null) return '';
-  return String(v).trim();
+/**
+ * The display label for a field.
+ *
+ * Labels hang off the field row in a nested DBFldLabel rowset, one row per
+ * label id. A field can carry several; the one whose id matches the field name
+ * is the default that App Designer shows, so prefer it and fall back to the
+ * first.
+ */
+function fieldLabel(field: ExportRow, fieldName: string): string | undefined {
+  const labels = allRows(field.rowsets, 'DBFldLabel');
+  if (labels.length === 0) return undefined;
+  const match = labels.find(
+    (l) => strField(l, 'atmLabelID').toUpperCase() === fieldName.toUpperCase());
+  return strField(match ?? labels[0], 'atmLongName') || undefined;
 }
 
-/** App Designer nests definitions a few levels deep; find them wherever they sit. */
-function findAll(node: any, tag: string, out: any[] = []): any[] {
-  if (node === null || typeof node !== 'object') return out;
-  for (const [k, v] of Object.entries(node)) {
-    if (k === tag) {
-      if (Array.isArray(v)) out.push(...v);
-      else out.push(v);
-    } else if (typeof v === 'object' && v !== null) {
-      if (Array.isArray(v)) for (const item of v) findAll(item, tag, out);
-      else findAll(v, tag, out);
+/** True when `prefix` matches the leading key parts of `full`, ignoring case. */
+function isKeyPrefix(prefix: readonly string[], full: readonly string[]): boolean {
+  if (prefix.length === 0 || prefix.length > full.length) return false;
+  return prefix.every((p, i) => p.toUpperCase() === full[i].toUpperCase());
+}
+
+/**
+ * Field names of the record's primary key.
+ *
+ * App Designer writes key membership as an index whose id is `_`, with one
+ * KeyDefn row per key field. Other IndexDefn rows are alternate and user
+ * indexes, which are not key fields.
+ */
+function primaryKeyFields(instance: ExportInstance): Set<string> {
+  const out = new Set<string>();
+  for (const index of allRows(instance.rowsets, 'IndexDefn')) {
+    if (strField(index, 'cIndexId') !== '_') continue;
+    for (const k of allRows(index.rowsets, 'KeyDefn')) {
+      const name = strField(k, 'szFieldName');
+      if (name) out.add(name.toUpperCase());
     }
   }
   return out;
-}
-
-function findFirst(node: any, tag: string): any {
-  return findAll(node, tag)[0];
 }
 
 /** SQL LIKE semantics, since callers write patterns for the database provider. */
