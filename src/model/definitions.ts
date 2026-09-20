@@ -183,6 +183,7 @@ export function fileExtension(type: DefinitionType): string {
   if (isPeopleCode(type)) return '.peoplecode';
   switch (type) {
     case DefinitionType.SqlDefinition: return '.pssql';
+    case DefinitionType.HtmlDefinition: return '.html';
     case DefinitionType.Record: return '.psrecord';
     case DefinitionType.Field: return '.psfield';
     case DefinitionType.Page: return '.pspage';

@@ -10,8 +10,12 @@ import {
 import { FieldType, RecordDefinition, RecordField, RecordType, UseEdit } from '../model/record.js';
 import { parseExport } from './projectFileParser.js';
 import {
-  ExportInstance, ExportRow, allRows, firstRow, intField, objectValues, strField
+  ExportInstance, ExportRow, allRows, findScalar, firstRow, intField, objectValues,
+  rawField, strField
 } from './projectFileFormat.js';
+import {
+  renderApplicationPackage, renderComponent, renderField, renderMenu, renderPage
+} from './projectFileRender.js';
 
 /**
  * Reads an App Designer project export.
@@ -38,6 +42,8 @@ export class ProjectFileProvider implements DefinitionProvider {
   private readonly items: DefinitionSummary[] = [];
   private readonly texts = new Map<string, string>();
   private readonly records = new Map<string, RecordDefinition>();
+  /** Definition instances indexed by the name they are keyed on in the item list. */
+  private readonly byName = new Map<string, ExportInstance>();
 
   constructor(private readonly filePath: string, name?: string) {
     this.id = `project:${filePath}`;
@@ -74,7 +80,16 @@ export class ProjectFileProvider implements DefinitionProvider {
         case 'PJM': this.ingestProject(instance); break;
         case 'PCM': this.ingestPeopleCode(instance); break;
         case 'RDM': this.ingestRecord(instance); break;
-        default: break; // Other definition types are browsable but not yet parsed.
+        // The remaining classes are indexed by name and rendered on demand.
+        // An export carries definitions the project merely references as well
+        // as its own items, so more instances than items is normal.
+        case 'FIELD': this.index(instance, 'szFieldName'); break;
+        case 'CRM': this.index(instance, 'szContName'); break;
+        case 'PGM': this.index(instance, 'szPnlGrpName'); break;
+        case 'MDM': this.index(instance, 'szMenuName'); break;
+        case 'PDM': this.index(instance, 'szPnlName'); break;
+        case 'APM': this.index(instance, 'szPackageRoot'); break;
+        default: break;
       }
     }
 
@@ -83,6 +98,19 @@ export class ProjectFileProvider implements DefinitionProvider {
       // commonly named .XML in upper case.
       this.projectName = path.basename(this.filePath).replace(/\.xml$/i, '');
     }
+  }
+
+  /**
+   * Indexes an instance under its class and name.
+   *
+   * Only the first instance of a given name is kept. An export can repeat a
+   * definition in more than one language, and the base row comes first.
+   */
+  private index(instance: ExportInstance, nameField: string): void {
+    const name = findScalar(instance, nameField);
+    if (!name) return;
+    const id = `${instance.cls}:${name.toUpperCase()}`;
+    if (!this.byName.has(id)) this.byName.set(id, instance);
   }
 
   /** The PJM instance holds the project name and its item list. */
@@ -194,11 +222,52 @@ export class ProjectFileProvider implements DefinitionProvider {
     const text = this.texts.get(keyToString(key));
     if (text !== undefined) return text;
 
+    const rendered = this.render(key);
+    if (rendered !== undefined) return rendered;
+
     const known = this.items.some((i) => keyToString(i.key) === keyToString(key));
     throw new ProviderError(known
-      ? `${key.parts.join('.')} is in this project, but the export carries no text ` +
-        `for it. Only PeopleCode programs have source text in an export.`
+      ? `${key.parts.join('.')} is in this project, but the export does not carry ` +
+        `its definition. An export includes referenced definitions selectively.`
       : `${key.parts.join('.')} is not an item of ${this.projectName}.`);
+  }
+
+  /** Renders a definition that has no dedicated editor yet, as read-only text. */
+  private render(key: DefinitionKey): string | undefined {
+    const name = (key.parts[0] ?? '').toUpperCase();
+    const find = (cls: string) => this.byName.get(`${cls}:${name}`);
+
+    switch (key.type) {
+      case DefinitionType.Field: {
+        const i = find('FIELD');
+        return i && renderField(i);
+      }
+      case DefinitionType.HtmlDefinition: {
+        const i = find('CRM');
+        return i && htmlContent(i);
+      }
+      case DefinitionType.Component: {
+        const i = find('PGM');
+        return i && renderComponent(i);
+      }
+      case DefinitionType.Menu: {
+        const i = find('MDM');
+        return i && renderMenu(i);
+      }
+      case DefinitionType.Page: {
+        const i = find('PDM');
+        return i && renderPage(i);
+      }
+      case DefinitionType.ApplicationPackage: {
+        // A package item is keyed PACKAGEID.PACKAGEROOT, and the instance is
+        // indexed by root, so try both slots.
+        const i = this.byName.get(`APM:${name}`)
+          ?? this.byName.get(`APM:${(key.parts[1] ?? '').toUpperCase()}`);
+        return i && renderApplicationPackage(i);
+      }
+      default:
+        return undefined;
+    }
   }
 
   async writeText(): Promise<void> { return this.flush(); }
@@ -225,6 +294,21 @@ export class ProjectFileProvider implements DefinitionProvider {
     throw new UnsupportedOperationError(
       'saving changes back to a project export file', this.displayName);
   }
+}
+
+/**
+ * The text of an HTML or content definition.
+ *
+ * Content hangs off the definition row in a `char` rowset, inside an element
+ * that repeats the name of its own handle. Whitespace is significant here, so
+ * the value is read untrimmed.
+ */
+function htmlContent(instance: ExportInstance): string | undefined {
+  for (const row of allRows(instance.rowsets, 'char')) {
+    const text = rawField(row, 'hContStrData');
+    if (text) return text;
+  }
+  return undefined;
 }
 
 /**
