@@ -80,7 +80,16 @@ export class Workspace implements vscode.Disposable {
     if (existing?.isConnected) return existing;
 
     const provider = await this.create(config);
-    await provider.connect();
+    try {
+      await provider.connect();
+    } catch (err) {
+      // A password rejected by the database must not stay in the secret store,
+      // or every later attempt reuses it and the user is never asked again.
+      if (config.kind === 'oracle' && isCredentialFailure(err)) {
+        await this.forgetPassword(config.name);
+      }
+      throw err;
+    }
     this.providers.set(id, provider);
     this._onDidChange.fire();
     return provider;
@@ -137,6 +146,14 @@ export class Workspace implements vscode.Disposable {
     this.providers.clear();
     this._onDidChange.dispose();
   }
+}
+
+/** ORA-01017 is Oracle's "invalid username/password"; NJS-506 wraps it in Thin mode. */
+function isCredentialFailure(err: unknown): boolean {
+  const message = (err as { message?: string })?.message ?? '';
+  const cause = ((err as { cause?: { message?: string } })?.cause?.message) ?? '';
+  return /ORA-01017|invalid username\/password|ORA-28000|account is locked/i
+    .test(`${message} ${cause}`);
 }
 
 export function providerId(config: ConnectionConfig): string {
