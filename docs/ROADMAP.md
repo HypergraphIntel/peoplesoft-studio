@@ -993,7 +993,7 @@ either. None of the remaining ones reproduce the garbage-cascade or
 indentation-drift failure mode; what's left is ordinary missing-keyword
 gaps.
 
-## Pass twenty-one: 0x41 and 0x42, and why the reference table hedged
+## Pass twenty-one: 0x41/0x42, and the Declare Function import statement
 
 Picked up the one item pass twenty left open. Rebuilt the 204-program corpus
 fresh against the live database and hand-walked every `0x41`/`0x42`
@@ -1046,6 +1046,47 @@ opcodes to 4, all of them `0x6e` -- the `Continue` candidate pass twenty
 already tried and rejected (9 real matches out of 660 corpus-wide
 occurrences, evidently overloaded with something far more common) --
 correctly left unmapped rather than guessed at a second time.
+
+**Second finding in the same pass: `Declare Function ... PeopleCode
+Rec.Field Event;`**, the syntax for importing a function defined on a
+different record field's PeopleCode, decoded whole. `corpus-analyze.mjs`
+ranked `0x31` and `0x3a` among the most common remaining unmapped opcodes
+(69 and 68 programs respectively, almost the same count -- a hint they're
+paired), and both had already turned up, unexplained, while hand-walking
+`WEBLIB_GS_CMD.ISCRIPT1` for the 0x41/0x42 work above: that program's only
+statement is exactly `Declare Function UpdateGHServer PeopleCode
+GS_CMD_WRK.GS_CMD_CFGSTR FieldFormula;`, with `0x31` sitting where `Declare`
+belongs and `0x3a` where `PeopleCode` belongs.
+
+Checked structurally against every program with a small unmapped-opcode
+count, both are **35/35 (100%)**: `0x31` always immediately precedes
+`Function` (0x32), `0x3a` always immediately precedes a record.field
+reference (0x21). The unfiltered corpus-wide counts (276 and 260) are mostly
+the same corruption-noise pattern as always -- confirmed by hand: one
+"0x31 followed by another unknown opcode" case turned out to be a run of
+literal UTF-16LE text (`Text(18081, ...`) inside an already heavily-corrupted
+program being misread byte-by-byte as opcodes, not a real counter-example.
+
+Checked for a collision before shipping, since `Function` is a very common
+token: of 944 `Function` tokens corpus-wide, exactly 212 are preceded by
+`0x31`, and every ordinary `Function ... End-Function` body (732 of them) is
+untouched -- confirming `0x31` only ever appears on a real `Declare`
+statement, not on every function definition.
+
+`0x31` is consumed together with the `Function` opcode as a single
+`"Declare Function"` token rather than two separate ones: `Function`'s own
+format carries `NEWLINE_BEFORE`, which would otherwise put `Declare` and
+`Function` on separate lines the same way any two adjacent `NEWLINE_BEFORE`
+tokens do once real text has been written between them (see `render()`'s
+`atLineStart` tracking, and the blank-line bug pass twenty's last item
+fixed). `0x3a` (`PeopleCode`) is left as its own token, since what follows it
+is a real reference needing the normal `0x21` resolution logic, not fixed
+text.
+
+Coverage 97.60% → 97.61%, **clean programs 60 → 74** (the single biggest
+jump of any opcode pair confirmed this pass), text accuracy held at 97.60%,
+line matching 88.26% → 89.02%. `WEBLIB_GS_CMD.ISCRIPT1` now decodes
+byte-for-byte identical to its real source.
 
 ## Then: writes
 

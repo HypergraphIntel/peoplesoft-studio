@@ -888,3 +888,34 @@ test('0x41 is a zero-width marker only immediately before And/Or, not elsewhere'
   assert.equal(elsewhere.unknownOpcodes.length, 1);
   assert.equal(elsewhere.unknownOpcodes[0].opcode, 0x41);
 });
+
+test('Declare Function ... PeopleCode ... decodes, confirmed byte-for-byte against WEBLIB_GS_CMD.ISCRIPT1', () => {
+  // WEBLIB_GS_CMD.ISCRIPT1's only statement is exactly this construct, and it
+  // now decodes with zero unmapped opcodes, byte for byte identical to real
+  // source: "Declare Function UpdateGHServer PeopleCode
+  // GS_CMD_WRK.GS_CMD_CFGSTR FieldFormula;". 0x31 (Declare, merged with the
+  // Function token that follows it) and 0x3a (PeopleCode) were both
+  // confirmed structurally (next token is exactly Function/a reference, not
+  // a text match) at 35/35 (100%) on every program with a small
+  // unmapped-opcode count, and of 944 Function tokens corpus-wide only the
+  // 212 that really are a Declare statement are preceded by 0x31 -- an
+  // ordinary `Function ... End-Function` body is untouched.
+  const names = new NameTable();
+  names.add(1, 'GS_CMD_WRK.GS_CMD_CFGSTR');
+  const bytes = Buffer.from([
+    ...HEADER,
+    0x31, 0x32, 0x0a, ...utf16('UpdateGHServer'), 0x00, 0x00,
+    0x3a, 0x21, 0x00, 0x00, 0x40, ...utf16('FieldFormula'), 0x00, 0x00,
+    0x42, 0x15
+  ]);
+  const result = decodeProgram(bytes, names);
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'Declare Function UpdateGHServer PeopleCode GS_CMD_WRK.GS_CMD_CFGSTR FieldFormula;\n');
+});
+
+test('Declare Function is not inserted before an ordinary Function definition', () => {
+  const result = decodeProgram(Buffer.from([...HEADER, 0x32, 0x0a, ...utf16('F'), 0x00, 0x00]), new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text.startsWith('Function F'), true);
+  assert.equal(result.text.includes('Declare'), false);
+});

@@ -972,6 +972,37 @@ export function decodeProgram(
       continue;
     }
 
+    // `Declare Function Name PeopleCode Rec.Field Event;` (an external
+    // function import): confirmed by hand-walking WEBLIB_GS_CMD.ISCRIPT1,
+    // whose only statement is exactly this construct, then checked
+    // structurally against every program with a small unmapped-opcode
+    // count -- 0x31 sits immediately before Function (0x32) 35/35 (100%),
+    // and of the 944 Function tokens corpus-wide, exactly the 212 that are a
+    // real Declare statement (not an ordinary `Function ... End-Function`
+    // body) are preceded by it. Consumed together with the Function opcode
+    // as one token, not two -- Function's own FUNCTION_STYLE carries
+    // NEWLINE_BEFORE, which would otherwise split "Declare" onto its own
+    // line the same way ordinary NEWLINE_BEFORE tokens do when text has
+    // already been written before them (see render()'s atLineStart).
+    // See docs/ROADMAP.md pass twenty-one.
+    if (opcode === 0x31 && bytes[i] === 0x32) {
+      tokens.push({ kind: TokenKind.Keyword, text: 'Declare Function', offset, opcode, format: FUNCTION_STYLE });
+      i++;
+      continue;
+    }
+
+    // The same Declare statement's `PeopleCode` keyword, between the
+    // declared function's own name and the record.field it lives on.
+    // Confirmed the same way as 0x31 just above, in the same sample:
+    // immediately before a record.field reference (0x21) 35/35 (100%) on
+    // programs with a small unmapped-opcode count. Left as its own token
+    // (unlike 0x31/Function) since what follows it -- the reference itself
+    // -- still needs the normal 0x21 resolution logic, not fixed text.
+    if (opcode === 0x3a && bytes[i] === 0x21) {
+      tokens.push({ kind: TokenKind.Keyword, text: 'PeopleCode', offset, opcode, format: SPACE_BOTH });
+      continue;
+    }
+
     // class/end-class/method/end-method -- see isApplicationClass on
     // DecodeOptions for why these only decode when the caller already
     // knows the program is an Application Class, rather than always.
