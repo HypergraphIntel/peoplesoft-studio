@@ -4,7 +4,9 @@ import {
   ProviderError, SearchQuery, UnsupportedOperationError
 } from './provider.js';
 import { DefinitionKey, DefinitionType, isPeopleCode, makeKey } from '../model/definitions.js';
-import { FieldType, RecordDefinition, RecordField, RecordType } from '../model/record.js';
+import {
+  FieldType, RecordDefinition, RecordField, RecordType, describeField
+} from '../model/record.js';
 import { assembleProgram, NameTable } from '../peoplecode/progtext.js';
 import { decodeProgram, DecodeOptions } from '../peoplecode/decoder.js';
 
@@ -331,6 +333,37 @@ export class OracleProvider implements DefinitionProvider {
       }
 
       return record;
+    });
+  }
+
+  async listChildren(key: DefinitionKey): Promise<DefinitionSummary[]> {
+    switch (key.type) {
+      case DefinitionType.Record: {
+        const record = await this.readRecord(key);
+        return record.fields.map((f) => ({
+          key: makeKey(DefinitionType.Field, f.name),
+          description: describeField(f)
+        }));
+      }
+      case DefinitionType.Component: return this.componentPageChildren(key);
+      default: return [];
+    }
+  }
+
+  /** A component's pages, from PSPNLGROUP, in the component's own page order. */
+  private async componentPageChildren(key: DefinitionKey): Promise<DefinitionSummary[]> {
+    const [name, market] = [key.parts[0], key.parts[1] || 'GBL'];
+    return this.withConnection(async (c) => {
+      const r = await c.execute<{ ITEMNAME: string; PNLNAME: string; LABEL: string; HIDDEN: number }>(
+        `SELECT g.ITEMNAME, g.ITEMNAME AS PNLNAME, g.LABEL, g.HIDDEN
+           FROM PSPNLGROUP g
+          WHERE g.PNLGRPNAME = :n AND g.MARKET = :m
+          ORDER BY g.PNLORDER`,
+        { n: name, m: market });
+      return (r.rows ?? []).map((row) => ({
+        key: makeKey(DefinitionType.Page, row.ITEMNAME.trim()),
+        description: row.HIDDEN ? `${row.LABEL?.trim() ?? ''} (hidden)` : row.LABEL?.trim() || undefined
+      }));
     });
   }
 

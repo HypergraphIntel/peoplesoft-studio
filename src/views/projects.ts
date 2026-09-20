@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { Workspace } from '../workspace.js';
-import { DefinitionProvider, DefinitionSummary, ProjectSummary } from '../providers/provider.js';
+import {
+  DefinitionProvider, DefinitionSummary, ProjectSummary, canExpand
+} from '../providers/provider.js';
 import { DefinitionType, displayName, typeLabel } from '../model/definitions.js';
 import { PackageNode, buildPackageTree, isPackageItem } from '../model/appPackages.js';
 import { toUri } from '../util/uri.js';
@@ -79,8 +81,15 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
       }
       case 'item': {
         const key = node.summary.key;
-        const item = new vscode.TreeItem(displayName(key), vscode.TreeItemCollapsibleState.None);
-        item.iconPath = new vscode.ThemeIcon('symbol-file');
+        const item = new vscode.TreeItem(
+          displayName(key),
+          // A record expands to its fields and a component to its pages, the
+          // way App Designer nests them.
+          canExpand(key.type)
+            ? vscode.TreeItemCollapsibleState.Collapsed
+            : vscode.TreeItemCollapsibleState.None);
+        item.description = node.summary.description;
+        item.iconPath = new vscode.ThemeIcon(iconFor(key.type));
         item.contextValue = 'definition';
         item.resourceUri = toUri(node.provider.id, key);
         item.command = {
@@ -164,7 +173,34 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
       return node.items.map((summary) => ({ kind: 'item', provider: node.provider, summary }));
     }
 
+    if (node.kind === 'item') {
+      if (!canExpand(node.summary.key.type)) return [];
+      try {
+        const children = await node.provider.listChildren(node.summary.key);
+        return children.map((summary) => ({
+          kind: 'item' as const, provider: node.provider, summary
+        }));
+      } catch (err) {
+        vscode.window.showErrorMessage(
+          `Could not expand ${displayName(node.summary.key)}: ${(err as Error).message}`);
+        return [];
+      }
+    }
+
     return [];
+  }
+}
+
+/** Matches the definition browser's icons, so the same thing looks the same in both trees. */
+function iconFor(type: DefinitionType): string {
+  switch (type) {
+    case DefinitionType.Record: return 'table';
+    case DefinitionType.Field: return 'symbol-field';
+    case DefinitionType.Page: return 'browser';
+    case DefinitionType.Component: return 'window';
+    case DefinitionType.Menu: return 'list-tree';
+    case DefinitionType.HtmlDefinition: return 'code';
+    default: return 'symbol-file';
   }
 }
 

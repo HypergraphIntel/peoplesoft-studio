@@ -52,6 +52,32 @@ export interface DefinitionProvider {
 
   readRecord(key: DefinitionKey): Promise<RecordDefinition>;
   writeRecord(record: RecordDefinition): Promise<void>;
+
+  /**
+   * The definitions nested under `key`, as App Designer shows them when a node
+   * is expanded: a record's fields, a component's pages.
+   *
+   * Children are returned as definitions in their own right, keyed so that
+   * opening one opens that definition — expanding a record and clicking a field
+   * opens the field, exactly as it would from the field list.
+   *
+   * Returns an empty array for a definition with no children, or one whose
+   * children this provider cannot supply. Callers must tolerate an empty result
+   * for a type {@link canExpand} accepts.
+   */
+  listChildren(key: DefinitionKey): Promise<DefinitionSummary[]>;
+}
+
+/**
+ * Whether a type is worth offering an expander for.
+ *
+ * This is a UI affordance decided without a round trip, so it is deliberately
+ * a property of the type rather than of the definition: fetching every record's
+ * field list just to decide whether to draw a twisty would make expanding a
+ * project unusable.
+ */
+export function canExpand(type: DefinitionType): boolean {
+  return type === DefinitionType.Record || type === DefinitionType.Component;
 }
 
 export interface ProviderCapabilities {

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { Workspace } from '../workspace.js';
-import { DefinitionProvider, DefinitionSummary } from '../providers/provider.js';
+import { DefinitionProvider, DefinitionSummary, canExpand } from '../providers/provider.js';
 import {
   DefinitionType, displayName, isPeopleCode, typeLabel
 } from '../model/definitions.js';
@@ -60,7 +60,11 @@ export class BrowserView implements vscode.TreeDataProvider<Node> {
       }
       case 'definition': {
         const key = node.summary.key;
-        const item = new vscode.TreeItem(displayName(key), vscode.TreeItemCollapsibleState.None);
+        const item = new vscode.TreeItem(
+          displayName(key),
+          canExpand(key.type)
+            ? vscode.TreeItemCollapsibleState.Collapsed
+            : vscode.TreeItemCollapsibleState.None);
         item.description = node.summary.description;
         item.iconPath = new vscode.ThemeIcon(iconFor(key.type));
         item.contextValue = 'definition';
@@ -104,6 +108,20 @@ export class BrowserView implements vscode.TreeDataProvider<Node> {
       } catch (err) {
         vscode.window.showErrorMessage(
           `Could not list ${typeLabel(node.type)}: ${(err as Error).message}`);
+        return [];
+      }
+    }
+
+    if (node.kind === 'definition') {
+      if (!canExpand(node.summary.key.type)) return [];
+      try {
+        const children = await node.provider.listChildren(node.summary.key);
+        return children.map((summary) => ({
+          kind: 'definition' as const, provider: node.provider, summary
+        }));
+      } catch (err) {
+        vscode.window.showErrorMessage(
+          `Could not expand ${displayName(node.summary.key)}: ${(err as Error).message}`);
         return [];
       }
     }

@@ -7,7 +7,9 @@ import {
 import {
   DefinitionKey, DefinitionType, isPeopleCode, keyToString, makeKey
 } from '../model/definitions.js';
-import { FieldType, RecordDefinition, RecordField, RecordType, UseEdit } from '../model/record.js';
+import {
+  FieldType, RecordDefinition, RecordField, RecordType, UseEdit, describeField
+} from '../model/record.js';
 import { parseExport } from './projectFileParser.js';
 import {
   ExportInstance, ExportRow, allRows, findScalar, firstRow, intField, objectValues,
@@ -280,6 +282,42 @@ export class ProjectFileProvider implements DefinitionProvider {
         `Record ${key.parts[0]} is not carried by ${this.projectName}.`);
     }
     return rec;
+  }
+
+  async listChildren(key: DefinitionKey): Promise<DefinitionSummary[]> {
+    switch (key.type) {
+      case DefinitionType.Record: return this.recordFieldChildren(key);
+      case DefinitionType.Component: return this.componentPageChildren(key);
+      default: return [];
+    }
+  }
+
+  /** A record's fields, keyed as field definitions so they open on click. */
+  private async recordFieldChildren(key: DefinitionKey): Promise<DefinitionSummary[]> {
+    const record = this.records.get(keyToString(key));
+    if (!record) return [];
+    return record.fields.map((f) => ({
+      key: makeKey(DefinitionType.Field, f.name),
+      description: describeField(f)
+    }));
+  }
+
+  /** A component's pages, in the order the component lists them. */
+  private async componentPageChildren(key: DefinitionKey): Promise<DefinitionSummary[]> {
+    const instance = this.byName.get(`PGM:${(key.parts[0] ?? '').toUpperCase()}`);
+    if (!instance) return [];
+
+    const out: DefinitionSummary[] = [];
+    for (const page of allRows(instance.rowsets, 'PnlMenuItem')) {
+      const name = strField(page, 'szPnlName');
+      if (!name) continue;
+      const label = strField(page, 'szItemLabel');
+      out.push({
+        key: makeKey(DefinitionType.Page, name),
+        description: intField(page, 'bHidden') ? `${label} (hidden)` : label || undefined
+      });
+    }
+    return out;
   }
 
   /**

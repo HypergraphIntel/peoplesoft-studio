@@ -141,6 +141,20 @@ Interior nodes are created for any path segment a class references, even when
 that package is not itself an item. An export includes referenced definitions
 selectively, so requiring the package to be present would hide real classes.
 
+## Expanding a definition
+
+`DefinitionProvider.listChildren` returns a definition's nested definitions —
+a record's fields, a component's pages. Children are keyed as definitions in
+their own right rather than as display rows, so clicking a field under a record
+opens that field, which is what App Designer does.
+
+Whether to draw an expander is decided by type alone (`canExpand`), without a
+round trip. Deciding per definition would mean fetching every record's field
+list just to know whether to draw a twisty, which would make expanding a
+project unusable. The cost is that a definition the provider cannot supply
+children for shows an expander that opens onto nothing; providers return an
+empty array rather than throwing so that stays harmless.
+
 ## Browsing is bounded
 
 A live environment holds tens of thousands of records and fields. The browser
