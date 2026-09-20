@@ -4,9 +4,10 @@
  * These are the OBJECTTYPE codes used by PSPROJECTITEM and by the eObjectType
  * field of an App Designer project export.
  *
- * The values marked CONFIRMED were read off a real project export and
- * cross-checked against the definitions it carries: the export's item list and
- * its instance blocks agree on both the type code and the key layout. The
+ * The values marked CONFIRMED were read off a real project export, or off
+ * PSPROJECTITEM rows cross-checked one by one against the definition table
+ * each type's name should exist in (e.g. an OBJECTTYPE 32 item's OBJECTVALUE1
+ * was confirmed to name a row in PSBCDEFN, so 32 is Component Interface). The
  * values marked UNCONFIRMED have not been seen in real data yet. Treat them as
  * provisional — an earlier revision of this file had several codes wrong
  * because they were written from memory, which put Pages under Menus and
@@ -19,26 +20,30 @@ export enum DefinitionType {
   // CONFIRMED
   Record = 0,
   Field = 2,
+  TranslateValue = 4,
   Page = 5,
   Menu = 6,
   Component = 7,
   RecordPeopleCode = 8,
+  BusinessProcess = 17,
+  Activity = 18,
+  ComponentInterface = 32,
+  AppEngineProgram = 33,
+  AppEnginePeopleCode = 43,
+  ComponentPeopleCode = 46,
+  ComponentRecordPeopleCode = 48,
   PagePeopleCode = 44,
   HtmlDefinition = 51,
   ApplicationPackage = 57,
   ApplicationClassPeopleCode = 58,
+  OptimizationModel = 60,
+  AnalyticModel = 73,
+  FileLayout = 31,
 
   // UNCONFIRMED — not yet observed in a real export.
   Index = 1,
-  TranslateValue = 3,
   MenuPeopleCode = 9,
-  ComponentPeopleCode = 10,
-  ComponentRecordPeopleCode = 11,
-  ComponentInterface = 14,
-  AppEngineProgram = 33,
-  AppEnginePeopleCode = 40,
   ComponentInterfacePeopleCode = 42,
-  FileLayout = 53,
   FileLayoutPeopleCode = 59,
 
   /**
@@ -69,14 +74,25 @@ export enum DefinitionType {
 export const CONFIRMED_TYPES: ReadonlySet<DefinitionType> = new Set([
   DefinitionType.Record,
   DefinitionType.Field,
+  DefinitionType.TranslateValue,
   DefinitionType.Page,
   DefinitionType.Menu,
   DefinitionType.Component,
   DefinitionType.RecordPeopleCode,
+  DefinitionType.BusinessProcess,
+  DefinitionType.Activity,
+  DefinitionType.ComponentInterface,
+  DefinitionType.AppEngineProgram,
+  DefinitionType.AppEnginePeopleCode,
+  DefinitionType.ComponentPeopleCode,
+  DefinitionType.ComponentRecordPeopleCode,
   DefinitionType.PagePeopleCode,
   DefinitionType.HtmlDefinition,
   DefinitionType.ApplicationPackage,
-  DefinitionType.ApplicationClassPeopleCode
+  DefinitionType.ApplicationClassPeopleCode,
+  DefinitionType.OptimizationModel,
+  DefinitionType.AnalyticModel,
+  DefinitionType.FileLayout
 ]);
 
 /** Definition types whose payload is PeopleCode held in PSPCMPROG. */
@@ -175,7 +191,11 @@ export const TYPE_LABELS: Readonly<Partial<Record<DefinitionType, string>>> = {
   [DefinitionType.FileLayout]: 'File Layouts',
   [DefinitionType.FileLayoutPeopleCode]: 'File Layout PeopleCode',
   [DefinitionType.SqlDefinition]: 'SQL Definitions',
-  [DefinitionType.Project]: 'Projects'
+  [DefinitionType.Project]: 'Projects',
+  [DefinitionType.BusinessProcess]: 'Business Processes',
+  [DefinitionType.Activity]: 'Activities',
+  [DefinitionType.OptimizationModel]: 'Optimization Models',
+  [DefinitionType.AnalyticModel]: 'Analytic Models'
 };
 
 /**
