@@ -948,3 +948,28 @@ test('try/catch/end-try decode, confirmed byte-for-byte against WEBLIB_MSGWSDL.W
   assert.equal(result.text,
     'try\n  &x;\ncatch Exception &e\n  &y;\nend-try;\n');
 });
+
+test('Component is the third scope declarator, alongside Local/Global', () => {
+  // Confirmed against four programs whose real source is a single top-level
+  // `Component <type> &var;` declaration (e.g. WEBLIB_EOPP_LN.ISCRIPT1:
+  // "Component string &CurrentTP_CREFName;"), each the program's only
+  // unmapped opcode. Structurally confirmed on the corpus (10/10 programs
+  // with a small unmapped-opcode count).
+  const result = decodeProgram(
+    Buffer.from([...HEADER, 0x54, 0x40, ...utf16('string'), 0x00, 0x00, 0x1, ...utf16('&x'), 0x00, 0x00, 0x15]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'Component string &x;\n');
+});
+
+test('Null (0x4b) decodes as a literal, confirmed byte-for-byte in an If condition', () => {
+  // WEBLIB_HMCRWSDL.HMCR_WSDL_DISCOVER.FieldFormula's real source has
+  // "If &PortalFolder <> Null Then" -- 0x4b sits exactly between "<>" and
+  // "Then", its only unmapped opcode. Structurally confirmed on the corpus
+  // (23/23): always right after a comparison operator, "=", "(" or ",",
+  // the same shape as any other literal value.
+  const result = decodeProgram(
+    Buffer.from([...HEADER, 0x1c, 0x1, ...utf16('&x'), 0x00, 0x00, 0x10, 0x4b, 0x1f]), new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'If &x <> Null Then\n');
+});
