@@ -1132,6 +1132,42 @@ Coverage 97.61% → 97.69%, clean programs 74 → 76, line matching 89.02% →
 89.43%. `WEBLIB_MSGWSDL.WSDLSUMMARY.FieldFormula` now decodes with zero
 unmapped opcodes.
 
+## Pass twenty-three: Component (the third scope) and Null
+
+`corpus-analyze.mjs`'s "best next targets" ranking (fewest distinct
+unmapped opcodes, shortest source) surfaced several tiny programs whose
+*only* unmapped opcode was `0x54`, real source a single top-level
+`Component <type> &var;` declaration -- confirmed against four of them,
+e.g. `WEBLIB_EOPP_LN.ISCRIPT1`: `Component string &CurrentTP_CREFName;`.
+**`0x54` = `Component`, the third variable-scope declarator** alongside
+`Local` (0x44) and `Global` (0x45) -- PeopleCode's Component-level scope,
+distinct from the unrelated built-in `Component` type/metadata reference
+(`Component.AMM_DETAILS`), which never showed up encoded this way in any
+checked sample. Same ranking surfaced `0x4b`, confirmed against
+`WEBLIB_HMCRWSDL.HMCR_WSDL_DISCOVER.FieldFormula`'s real
+`If &PortalFolder <> Null Then`, its only unmapped opcode: **`0x4b` =
+`Null`**, a literal the same shape as `True`/`False`.
+
+Structurally confirmed on the corruption-filtered corpus: `Component`
+10/10 programs (right after a statement boundary, right before a type
+keyword or bare name, every time); `Null` 23/23 (right after a comparison
+operator, `=`, `(` or `,` -- everywhere a value is expected). Checked more
+strictly too, the same per-token-against-real-source method used for
+try/catch/end-try: `Null` 100% (23/23) even on that stricter check, and
+`Component` had one apparent miss (`WEBLIB_GS_MASK.ISCRIPT1`, 17 total
+unmapped) -- traced by hand rather than waved off, and it isn't a real
+counter-example: those 17 aren't 17 independent gaps, they're one
+contiguous corruption run (a `0x50` number-literal shape failing to match,
+desyncing everything after it into being walked byte-by-byte), and this
+`Component` just happens to land inside that noise. A useful sharpening of
+the corruption filter for next time: total-unmapped-count alone doesn't
+distinguish "many independent small gaps" from "one desync producing many
+coincidental unmapped reports" -- this pass's filtered set admitted one of
+the latter.
+
+Coverage 97.69% → 97.71%, **clean programs 76 → 87**, line matching
+89.43% → 90.07%.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in

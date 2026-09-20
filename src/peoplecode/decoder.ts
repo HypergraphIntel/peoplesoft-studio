@@ -177,6 +177,24 @@ export const OPCODES = new Map<number, OpcodeSpec>([
   [0x2e, { kind: TokenKind.Keyword, text: 'Break', format: F.SPACE_BEFORE }],
   [0x44, { kind: TokenKind.Keyword, text: 'Local', format: NEWLINE_BEFORE_SPACE_AFTER }],
   [0x45, { kind: TokenKind.Keyword, text: 'Global', format: NEWLINE_BEFORE_SPACE_AFTER }],
+  // The third scope declarator alongside Local/Global: confirmed against
+  // four programs whose real source is a single top-level
+  // `Component <type> &var;` declaration (e.g. `Component string
+  // &CurrentTP_CREFName;`), each the program's only unmapped opcode.
+  // Structurally confirmed on the corpus (10/10 programs with a small
+  // unmapped-opcode count): always right after a statement boundary
+  // (program start, `;`, or a newline) and right before either a type
+  // keyword (0x40) or a bare declared name. See docs/ROADMAP.md pass
+  // twenty-three.
+  [0x54, { kind: TokenKind.Keyword, text: 'Component', format: NEWLINE_BEFORE_SPACE_AFTER }],
+  // A literal, the same shape as True/False: confirmed against
+  // WEBLIB_HMCRWSDL.HMCR_WSDL_DISCOVER.FieldFormula's real
+  // `If &PortalFolder <> Null Then`, its only unmapped opcode.
+  // Structurally confirmed on the corpus (23/23): always right after a
+  // comparison operator, `=`, `(` or `,` -- everywhere a value is
+  // expected, never a keyword position. See docs/ROADMAP.md pass
+  // twenty-three.
+  [0x4b, { kind: TokenKind.Keyword, text: 'Null', format: SPACE_BOTH }],
   [0x58, { kind: TokenKind.Keyword, text: 'import', format: SPACE_BOTH }],
   [0x57, { kind: TokenKind.Punctuation, text: ':', format: F.NO_SPACE_BEFORE | F.NO_SPACE_AFTER }],
   [0x38, { kind: TokenKind.Keyword, text: 'Return', format: SPACE_BOTH }],
