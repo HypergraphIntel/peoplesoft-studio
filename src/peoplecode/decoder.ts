@@ -936,7 +936,11 @@ const QUOTED_REFERENCE_QUALIFIERS = new Map<string, string>([
   // BarName."MDX", ItemName."CALINKS", Panel."FP_AVLBL_CA", ...)`. See
   // docs/ROADMAP.md pass forty.
   ['PANEL', 'Panel'],
-  ['PANELGROUP', 'PanelGroup']
+  ['PANELGROUP', 'PanelGroup'],
+  // Confirmed against FED_TAX_DATA.EFFDT.FieldChange's real `If
+  // %Component = Component."TAX_DATA" And &IsRecordNew(RECORD.
+  // FED_TAX_DATA) Then` -- this program's only unmapped opcode.
+  ['COMPONENT', 'Component']
 ]);
 
 /**
@@ -1616,6 +1620,19 @@ export function decodeProgram(
       tokens.push({ kind: TokenKind.Punctuation, text: '', offset, opcode, format: F.NONE });
       continue;
     }
+    // The same And/Or role, but with a comment sitting between this
+    // marker and the And/Or it precedes -- the same "a trailing comment
+    // carries its own newline, so it can stand in for what usually comes
+    // right after a zero-width marker" reasoning 0x42's own trailing-
+    // comment case and the trailer-marker's comment case both use.
+    // Confirmed against DERIVED_HS.EMPLID_LABEL.RowInit's real `If
+    // %PanelGroup = PANELGROUP.HS_INJ_ILL_REHAB\n/****Start of
+    // Resolution Id: 305302****/\nOr %Component = COMPONENT.
+    // HS_NE_INJILL_REHAB` -- this program's only unmapped opcode.
+    if (opcode === 0x41 && (bytes[i] === 0x24 || bytes[i] === 0x4e || bytes[i] === 0x55)) {
+      tokens.push({ kind: TokenKind.Punctuation, text: '', offset, opcode, format: F.NONE });
+      continue;
+    }
 
     // A third role for the same overloaded byte: zero-width right after
     // a DLL declaration's `Library "dllname"` string and right before
@@ -1883,6 +1900,17 @@ export function decodeProgram(
       // all).
       if (opcode === 0x61) {
         tokens.push({ kind: TokenKind.Keyword, text: 'private', offset, opcode, format: F.NEWLINE_BEFORE });
+        continue;
+      }
+      // private's own sibling section header. Confirmed against ADSM.
+      // CompareDataManager.OnExecute's real trailer: right after
+      // `property integer AdsContentID_;` sits 0x73, then a doc comment
+      // whose own real text says so directly (`/* This is not public as
+      // the GetNextDiff() method will load the data as required...
+      // */`), then `method LoadBackingData() Returns ...`. This
+      // program's only unmapped opcode.
+      if (opcode === 0x73) {
+        tokens.push({ kind: TokenKind.Keyword, text: 'protected', offset, opcode, format: F.NEWLINE_BEFORE });
         continue;
       }
       if (opcode === 0x62) {
