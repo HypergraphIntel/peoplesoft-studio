@@ -9,7 +9,7 @@ investigation pass has real byte-for-byte samples to start from.
 Regenerate after any decoder change or database rescan:
 `node scripts/scan-db-opcodes.mjs <out.json> && node scripts/track-db-opcodes.mjs <out.json> docs/unmapped-opcodes.md`.
 
-Scanned 121028 programs (117899 clean, 0 broken/incomplete), 173130 unmapped opcode occurrences total across 178 distinct opcodes.
+Scanned 121028 programs (117912 clean, 0 broken/incomplete), 172525 unmapped opcode occurrences total across 178 distinct opcodes.
 
 Sorted by each opcode's own single cleanest sample (lowest total-unmapped-
 count program it occurs in, ascending) -- the opcodes at the top are the
@@ -24,18 +24,12 @@ pass thirty-nine did for 0x20/0x51/0x60.
 |---|---|---|---|---|
 | 0x50 | 8 | PSXP_ENGINE.Watermark.OnExecute | 1001 | 12 |
 | 0x2 | 1643 | ACCOMPLISHMENTS.MAJOR_CODE.SaveEdit | 1414 | 20 |
-| 0x0 | 132728 | ACA1095CB.3PUBBULK.GBL.default.1900-01-01.Step01.OnExecute | 2961 | 27 |
+| 0xd0 | 15 | OU_RC_PAYINIT.CHKADV_NO_THRU.SaveEdit | 90 | 24 |
+| 0x0 | 132167 | ACA1095CB.3PUBBULK.GBL.default.1900-01-01.Step01.OnExecute | 2961 | 27 |
 | 0xc0 | 6667 | ACA1095CB.3PUBBULK.GBL.default.1900-01-01.Step01.OnExecute | 2980 | 27 |
 | 0x4e | 783 | AE_WRK.AE_REFRESH.FieldChange | 1731 | 28 |
 | 0x49 | 419 | AE_WRK.AE_REFRESH.FieldChange | 1727 | 28 |
 | 0x17 | 65 | EODP_COMPREF.SUBSEC.GBL.default.1900-01-01.Step01.OnExecute | 19783 | 31 |
-| 0xad | 12 | OU_RC_PAYINIT.RUN_ID.RowInit | 5 | 34 |
-| 0xa0 | 30 | OU_DERIVED_HR.OK_TO_PAY.RowInit | 0 | 36 |
-| 0x84 | 30 | OU_DERIVED_HR.OK_TO_PAY.RowInit | 33 | 36 |
-| 0x8b | 14 | OU_RC_PAYINIT.REG_HRS.SaveEdit | 5 | 37 |
-| 0x5e | 11 | OU_RUNCTL_BUD.SETID.SearchInit | 5 | 37 |
-| 0xeb | 10 | OU_RUNCTL_BUD.SELECT6.FieldChange | 5 | 37 |
-| 0xb0 | 8 | OU_RUNCTL_BUD.DEPTID.FieldChange | 5 | 37 |
 | 0x74 | 4242 | ACCDNT_INS_TABLE.DEU.HRDE_AI_DERIVED.HRDE_AI_UPLOAD_BTN.FieldChange | 10490 | 40 |
 | 0x6e | 2287 | ACCDNT_INS_TABLE.DEU.HRDE_AI_DERIVED.HRDE_AI_UPLOAD_BTN.FieldChange | 10504 | 40 |
 | 0x6c | 2236 | ACCDNT_INS_TABLE.DEU.HRDE_AI_DERIVED.HRDE_AI_UPLOAD_BTN.FieldChange | 10496 | 40 |
@@ -52,22 +46,19 @@ pass thirty-nine did for 0x20/0x51/0x60.
 | 0x6b | 198 | AE_WRK.MESSAGE_NBR.FieldChange | 4116 | 46 |
 | 0x55 | 325 | AMM_DERIVED.UPDATE_DOMAIN_PB.FieldChange | 5892 | 47 |
 | 0x71 | 69 | AN_OA_T3_RQ.Section1.GBL.default.1900-01-01.Step01.OnExecute | 7460 | 48 |
-| 0x24 | 45 | DERIVED_GVT.GVT_ECS_SEL_BOX.FieldChange | 2386 | 52 |
+| 0x24 | 44 | DERIVED_GVT.GVT_ECS_SEL_BOX.FieldChange | 2386 | 52 |
 | 0x21 | 5 | CNT_TEMPLATE_ESP.GBL.FM_DERIVED_ESP.VIEW_PB.FieldChange | 5091 | 53 |
-| 0x7a | 47 | DERIVED_BEN.ADDL_CHKDATA_PB.FieldEdit | 6562 | 54 |
-| 0xd0 | 15 | OU_RC_PAYINIT.CHKADV_NO_THRU.SaveEdit | 90 | 57 |
+| 0x7a | 46 | DERIVED_BEN.ADDL_CHKDATA_PB.FieldEdit | 6562 | 54 |
+| 0x5a | 16 | OU_RC_PAYINIT.RENEWAL_DAYS_OUT.FieldEdit | 157 | 59 |
+| 0xdc | 9 | OU_RC_PAYINIT.RENEWAL_DAYS_OUT.FieldEdit | 190 | 59 |
+| 0x5b | 9 | OU_RC_PAYINIT.RENEWAL_DAYS_OUT.FieldEdit | 206 | 59 |
 | 0x72 | 1882 | AE_STEP_TBL.AE_STEP_TYPE.RowInit | 1234 | 81 |
 | 0x75 | 1235 | AE_STEP_TBL.AE_STEP_TYPE.RowInit | 1228 | 81 |
-| 0x5a | 16 | OU_RC_PAYINIT.RENEWAL_DAYS_OUT.FieldEdit | 157 | 93 |
-| 0xdc | 9 | OU_RC_PAYINIT.RENEWAL_DAYS_OUT.FieldEdit | 190 | 93 |
-| 0x5b | 9 | OU_RC_PAYINIT.RENEWAL_DAYS_OUT.FieldEdit | 206 | 93 |
-| 0x93 | 6 | OU_RC_PAYINIT.RENEWAL_DAYS_OUT.FieldEdit | 5 | 93 |
+| 0x5c | 12 | OU_RC_PAYINIT.COMPANY.SaveEdit | 206 | 81 |
 | 0x11 | 254 | BN_FORM_DEF.BN_SEQ_NUM.RowInsert | 3409 | 95 |
 | 0x62 | 306 | AMM_STATISTICS.REFRESH_BTN.FieldChange | 4206 | 106 |
 | 0x73 | 3440 | ACCESS_CNTRL_LISTX.GBL.SavePostChange | 10568 | 113 |
 | 0x76 | 448 | ACCESS_CNTRL_LISTX.GBL.SavePostChange | 10538 | 113 |
-| 0xa7 | 12 | OU_RC_PAYINIT.COMPANY.SaveEdit | 5 | 117 |
-| 0x5c | 12 | OU_RC_PAYINIT.COMPANY.SaveEdit | 206 | 117 |
 | 0x9b | 18 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 28346 | 118 |
 | 0xa1 | 12 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 29016 | 118 |
 | 0xd6 | 12 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 35739 | 118 |
@@ -81,6 +72,7 @@ pass thirty-nine did for 0x20/0x51/0x60.
 | 0xf4 | 9 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 38931 | 118 |
 | 0xf1 | 9 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 38600 | 118 |
 | 0x5d | 9 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 50317 | 118 |
+| 0xeb | 8 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 37952 | 118 |
 | 0xdf | 8 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 36694 | 118 |
 | 0xf7 | 8 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 39260 | 118 |
 | 0x98 | 7 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 28011 | 118 |
@@ -98,9 +90,11 @@ pass thirty-nine did for 0x20/0x51/0x60.
 | 0xa3 | 4 | PT_FEEDMGR.DatatypeServiceOperation.OnExecute | 1774 | 206 |
 | 0x88 | 13 | DERIVED_HR_CHWP.FIRST_ITM_BUTTON.FieldChange | 7465 | 212 |
 | 0x9a | 13 | DERIVED_HR_CHWP.FIRST_ITM_BUTTON.FieldChange | 7481 | 212 |
+| 0x5e | 10 | DERIVED_HR_CHWP.FIRST_ITM_BUTTON.FieldChange | 7433 | 212 |
 | 0x8d | 12 | HRS_INDEX_CONTROL.JobOpeningRTI.OnExecute | 9099 | 233 |
 | 0x7e | 14 | GP_PKGSCRIPT.CR_SCRPT.GBL.default.1900-01-01.Step01.OnExecute | 28068 | 237 |
 | 0x87 | 17 | EP_NOTES_FUNCTIONS.ESS.OnExecute | 19046 | 238 |
+| 0xa0 | 13 | EP_NOTES_FUNCTIONS.ESS.OnExecute | 19062 | 238 |
 | 0x7f | 9 | GPDE_EGOV_XML.RunControl.OnExecute | 4599 | 241 |
 | 0x89 | 12 | HRS_JOB_OPENING_MANAGER.CMP_HRS_JO_360.UTIL.Utility.OnExecute | 3642 | 243 |
 | 0x9f | 4 | HRS_JOB_OPENING_MANAGER.CMP_HRS_JO_360.UTIL.Utility.OnExecute | 3666 | 243 |
@@ -121,8 +115,10 @@ pass thirty-nine did for 0x20/0x51/0x60.
 | 0x86 | 21 | DERIVED_PTIASP.PTIASP_SEARCH_PB.FieldChange | 32997 | 321 |
 | 0xb4 | 8 | PY_LOCKOUT.TransactionSession.OnExecute | 24915 | 321 |
 | 0xcb | 7 | PY_LOCKOUT.TransactionSession.OnExecute | 24947 | 321 |
+| 0x8b | 13 | GPCH_OVR_TX_STMT.GBL.GPCH_FM_DERIVED.SAVE_PB.FieldChange | 29555 | 322 |
 | 0x81 | 8 | PT_ACE_CONVERSION.Organizers.OnExecute | 9937 | 324 |
 | 0x77 | 450 | BEN_SUMMARY_FL.Object.Resource.OnExecute | 19047 | 328 |
+| 0x84 | 13 | BEN_SUMMARY_FL.Object.Resource.OnExecute | 19243 | 328 |
 | 0xa2 | 12 | BEN_SUMMARY_FL.Object.Resource.OnExecute | 19275 | 328 |
 | 0xab | 9 | BEN_SUMMARY_FL.Object.Resource.OnExecute | 19291 | 328 |
 | 0xa9 | 8 | GP_WORKCENTER.GPHeader.MyWorkLinks.MyWorkLink.OnExecute | 10310 | 328 |
@@ -168,14 +164,17 @@ pass thirty-nine did for 0x20/0x51/0x60.
 | 0xf9 | 4 | HRS_COMMON.CMP_HRS_APP_SCHJOB.UI.UIUtils.OnExecute | 100122 | 405 |
 | 0xc2 | 12 | GPTH_EFT_AE.GEN_FILE.GBL.default.1900-01-01.Step01.OnExecute | 35658 | 406 |
 | 0xcd | 8 | GPTH_EFT_AE.GEN_FILE.GBL.default.1900-01-01.Step01.OnExecute | 35674 | 406 |
+| 0xad | 11 | PSIBLOGICL2_WRK.IB_PCODE_GENERATE.FieldChange | 18201 | 411 |
 | 0xc9 | 9 | PSIBLOGICL2_WRK.IB_PCODE_GENERATE.FieldChange | 18233 | 411 |
 | 0xcc | 10 | GS_FW_LOAD.MAIN.GBL.default.1900-01-01.Step01.OnExecute | 70911 | 429 |
 | 0x8c | 8 | EOIU.Utilities.Rules.PublishRule.OnExecute | 2789 | 429 |
 | 0x91 | 5 | GS_FW_LOAD.MAIN.GBL.default.1900-01-01.Step01.OnExecute | 70863 | 429 |
 | 0x9c | 11 | PSIBLOGICAL_WRK.TREECTLEVENT.FieldChange | 41728 | 436 |
 | 0x95 | 8 | GPES_SS_CRA.MAIN.GBL.default.1900-01-01.Step02.OnExecute | 151197 | 436 |
+| 0xb0 | 7 | GPES_SS_CRA.MAIN.GBL.default.1900-01-01.Step02.OnExecute | 151213 | 436 |
 | 0xc8 | 6 | TREEMAINT00.INITIAL.GBL.default.1900-01-01.Step01.OnExecute | 11525 | 444 |
 | 0xe1 | 7 | EQRY_CLASSES.eQueryOutputBuilder.OnExecute | 13953 | 457 |
+| 0xa7 | 11 | EONC_AWE_CON.EOAWEPEX.GBL.default.1900-01-01.Step01.OnExecute | 54306 | 463 |
 | 0xdd | 6 | EOEN_MVC.EOEN_CONTROLLER.EOEN_REG_BU.OnExecute | 9621 | 479 |
 | 0xc5 | 11 | GS_CFG_MGMT_WRK.GS_CFG_MGMT_PB.FieldChange | 11567 | 501 |
 | 0xe9 | 9 | GS_CFG_MGMT_WRK.GS_CFG_MGMT_PB.FieldChange | 11599 | 501 |
@@ -198,5 +197,6 @@ pass thirty-nine did for 0x20/0x51/0x60.
 | 0xfe | 8 | PORTAL_CREF_ADM.PORTAL_OBJNAME.SavePreChange | 100103 | 565 |
 | 0xb6 | 5 | PSSERVICESWRK3.IB_CIPERFORMACT.FieldChange | 40362 | 579 |
 | 0xef | 8 | HCR_JOB_AWE.CreateJobAction.apprEventHandler.OnExecute | 11932 | 610 |
+| 0x93 | 5 | IBTREE_WRK.IB_SEND.FieldChange | 51102 | 668 |
 | 0xdb | 5 | PTIAMDJOB.MAIN.GBL.default.1900-01-01.Step02.OnExecute | 135638 | 816 |
 | 0xe6 | 3 | PT_ACE_CONVERSION.PT_ACE_CONVERTER.OnExecute | 24944 | 1576 |
