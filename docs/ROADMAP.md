@@ -1713,6 +1713,43 @@ All three programs that anchored this confirmation now decode with
 **zero unmapped opcodes**. Coverage **99.74% → 99.77%**, clean programs
 187 → 190.
 
+## Pass thirty-five: Operation."Name" references, a third sibling of 0x21
+
+The opcode tracker's next-cleanest `0x00` candidate, `WEBLIB_GS_JU_IB.
+ISCRIPT1` (2 total unmapped), hand-walked to a construct this project
+hadn't seen before: real source `CreateMessage(Operation."GL_JRNL_IMP",
+%IntBroker_Request);` -- an Integration Broker Operation reference. The
+bytes right after `CreateMessage(` were 3 total, nowhere near enough to
+spell `GL_JRNL_IMP` as inline text, which is what pointed at a
+reference-style construct rather than a string literal: `0x48`, then a
+2-byte index in the exact shape `0x21`'s own record.field reference
+already uses. Resolving it the same way (`index + 1 = NAMENUM`) against
+this program's own PSPCMNAME table landed exactly on `OPERATION.
+GL_JRNL_IMP`.
+
+**`0x48` is a third sibling of `0x21`** (after `0x4a`, pass twenty-five):
+same 2-byte index+1=NAMENUM shape, same table, `tryResolveName`'s
+resolution-failure fallback reused unchanged. What's different from both
+0x21 and 0x4a is the rendering -- `Operation."GL_JRNL_IMP"`, the
+qualifier as a fixed keyword and the reference name in double quotes,
+not dot-joined the way `RECORD.FIELD` or a bare `FIELDNAME` are -- an
+Operation name can contain characters (spaces, punctuation) a bare
+identifier can't carry, so PeopleCode's own grammar quotes it. Gated on
+the resolved qualifier actually being `OPERATION`, case-insensitively,
+not just on the index resolving at all: every other corpus-wide
+occurrence of this opcode sits in an already heavily-corrupted program
+with a garbage-large index (17409 and up, far past any real NAMENUM),
+which the existing resolution-failure check already refuses safely --
+but the qualifier check additionally means a real reference to some
+other, unconfirmed qualifier under this same opcode would still fall
+through to unknown rather than being rendered with a guessed keyword,
+since this pass has exactly one real sample and no evidence either way
+for any qualifier but `OPERATION`.
+
+`WEBLIB_GS_JU_IB.ISCRIPT1` now decodes with zero unmapped opcodes.
+Coverage held at 99.77% (a single-program opcode), clean programs
+190 → 191.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in

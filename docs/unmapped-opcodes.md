@@ -13,11 +13,10 @@ since fewer *other* unmapped bytes obscure the real source around this one.
 
 ## 0x00
 
-12 programs, 3387 occurrences total.
+11 programs, 3386 occurrences total.
 
 | program | type | bytes | this opcode | total unmapped |
 |---|---|---|---|---|
-| WEBLIB_GS_JU_IB.ISCRIPT1.FieldFormula | Function | 12470 | 1 | 2 |
 | WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 53 | 88 |
 | WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 72 | 126 |
 | WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 120 | 183 |
