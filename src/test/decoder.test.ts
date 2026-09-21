@@ -1578,6 +1578,52 @@ test('0x48 also covers Panel/PanelGroup, PeopleTools\' pre-8.4x names for Page/C
   assert.equal(result.text, 'Panel."FP_AVLBL_CA"');
 });
 
+test('0x72 is implements, extends\' sibling for an interface', () => {
+  // Confirmed against ACCOM_TYPE_FULLSYNC.AccomTypeFullsync.OnExecute's
+  // real `class AccomTypeFullsync implements PS_PT:Integration:
+  // INotificationHandler` -- this program's only unmapped opcode,
+  // sitting in exactly the position 0x5c (`extends`) occupies for a real
+  // base class.
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x5a, 0x0a, ...utf16('AccomTypeFullsync'), 0x00, 0x00,
+      0x72, 0x0a, ...utf16('PS_PT'), 0x00, 0x00,
+      0x57, 0x0a, ...utf16('Integration'), 0x00, 0x00,
+      0x57, 0x0a, ...utf16('INotificationHandler'), 0x00, 0x00,
+      0x5b, 0x15
+    ]),
+    new NameTable(), { mode: 'auto', isApplicationClass: true });
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'class AccomTypeFullsync implements PS_PT:Integration:INotificationHandler\nend-class;\n');
+});
+
+test('a standalone 0x61 (not paired with 0x62) is a class\'s private section header', () => {
+  // Confirmed against ADS.Relation.SqlGenerator.OnExecute's real class
+  // block: `method GenerateSql() Returns string;\n\nprivate\n   method
+  // GenerateSqlPerMapping() Returns string;\n   method
+  // GenerateSqlPerCriteria() Returns string;\nend-class;` -- this
+  // program's only unmapped opcode. 0x61/0x62 immediately together stay
+  // `instance` (pass twenty-eight); this is the other, standalone shape.
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x5a, 0x0a, ...utf16('SqlGenerator'), 0x00, 0x00,
+      0x63, 0xa, ...utf16('GenerateSql'), 0x00, 0x00, 0xb, 0x14, 0x39, 0x40, ...utf16('string'), 0x00, 0x00, 0x15,
+      0x61,
+      0x63, 0xa, ...utf16('GenerateSqlPerMapping'), 0x00, 0x00, 0xb, 0x14, 0x39, 0x40, ...utf16('string'), 0x00, 0x00, 0x15,
+      0x5b, 0x15
+    ]),
+    new NameTable(), { mode: 'auto', isApplicationClass: true });
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text,
+    'class SqlGenerator\n' +
+    '  method GenerateSql() Returns string;\n' +
+    '  private\n' +
+    '  method GenerateSqlPerMapping() Returns string;\n' +
+    'end-class;\n');
+});
+
 test('0x48 still falls through to unknown for a qualifier outside the confirmed set', () => {
   const names = new NameTable();
   names.add(1, 'SOMEUNKNOWNTYPE.Foo');
