@@ -1361,3 +1361,37 @@ test('the relaxed trailer check never fires when the strict marker exists anywhe
   const result = decodeProgram(bytes, new NameTable());
   assert.equal(result.declarations?.[0]?.name, 'Real');
 });
+
+test('0x48 is a third name-reference sibling, for Operation."Name" references', () => {
+  // Confirmed against WEBLIB_GS_JU_IB.ISCRIPT1's real
+  // `CreateMessage(Operation."GL_JRNL_IMP", %IntBroker_Request);`, its only
+  // unmapped opcode -- resolving via the same PSPCMNAME table 0x21/0x4a
+  // use, to `OPERATION.GL_JRNL_IMP`. Rendered with the qualifier as a fixed
+  // keyword and the name in quotes, not dot-joined like 0x21, since an
+  // Operation name can contain characters a bare identifier can't. Every
+  // other corpus-wide occurrence is in an already heavily-corrupted
+  // program with a garbage-large index, safely refused by the same
+  // resolution-failure fallback 0x21/0x4a already have.
+  const names = new NameTable();
+  names.add(5, 'OPERATION.GL_JRNL_IMP');
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x0a, ...utf16('CreateMessage'), 0x00, 0x00,
+      0xb,                     // (
+      0x48, 0x04, 0x00,        // reference, index 4 -> NAMENUM 5
+      0x3,                     // ,
+      0x12, ...utf16('%IntBroker_Request'), 0x00, 0x00,
+      0x14                     // )
+    ]),
+    names);
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'CreateMessage(Operation."GL_JRNL_IMP", %IntBroker_Request)');
+});
+
+test('0x48 falls through to unknown for an unconfirmed qualifier, not just a bad index', () => {
+  const names = new NameTable();
+  names.add(5, 'QUEUE.SOME_QUEUE');
+  const result = decodeProgram(Buffer.from([...HEADER, 0x48, 0x04, 0x00]), names);
+  assert.equal(result.unknownOpcodes.some((u) => u.opcode === 0x48), true);
+});

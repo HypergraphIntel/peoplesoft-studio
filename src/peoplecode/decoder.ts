@@ -1310,6 +1310,36 @@ export function decodeProgram(
       }
     }
 
+    // A third sibling of 0x21's name reference: same 2-byte index+1=NAMENUM
+    // shape and the same PSPCMNAME table, for an Integration Broker
+    // `Operation."Name"` reference -- unlike 0x21 and 0x4a, rendered with
+    // the qualifier as a fixed keyword and the reference name in quotes,
+    // not dot-joined, since an Operation name can contain characters a bare
+    // identifier can't. Confirmed against WEBLIB_GS_JU_IB.ISCRIPT1's real
+    // `CreateMessage(Operation."GL_JRNL_IMP", %IntBroker_Request);`, its
+    // only unmapped opcode: resolves to PSPCMNAME's `OPERATION.
+    // GL_JRNL_IMP`. Every other corpus-wide occurrence is in an already
+    // heavily-corrupted program with a garbage-large index (17409+, far
+    // past any real NAMENUM), so `tryResolveName` already refuses them the
+    // same safe way 0x21/0x4a's own resolution failures do; gated on the
+    // qualifier actually being `OPERATION` so a real reference to some
+    // other, unconfirmed qualifier under this same opcode still falls
+    // through to unknown rather than being rendered with a guessed
+    // keyword. See docs/ROADMAP.md pass thirty-five.
+    if (opcode === 0x48) {
+      const ref = readRecordFieldReference(bytes, i);
+      const resolved = ref !== undefined ? tryResolveName(names, ref.nameNum) : undefined;
+      const dot = resolved?.indexOf('.') ?? -1;
+      if (ref !== undefined && resolved !== undefined && dot > 0 && resolved.slice(0, dot).toUpperCase() === 'OPERATION') {
+        tokens.push({
+          kind: TokenKind.Name, text: `Operation."${resolved.slice(dot + 1)}"`, offset, opcode,
+          format: OPERAND_FORMAT.get(0x21) ?? 0
+        });
+        i = ref.end;
+        continue;
+      }
+    }
+
     // 0x0a is overloaded: it is a literal newline between statements, but it
     // is ALSO -- far more often (17835 of ~20400 occurrences corpus-wide) --
     // a silent "bare identifier follows" introducer, the same role as
