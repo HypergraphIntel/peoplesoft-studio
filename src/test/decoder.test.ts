@@ -227,6 +227,33 @@ test('a number literal above 255 uses more of the same 16-byte field, not a sepa
     decodeProgram(Buffer.from([...HEADER, ...b(1000000000n)]), new NameTable()).text, '1000000000');
 });
 
+test('a decimal number literal is the same field with a scale byte, not a separate shape', () => {
+  // Confirmed by hand-walking three real decimal values this shape had
+  // been silently refusing: WEBLIB_OU_LP_BK.ISCRIPT1's real
+  // "&pcts.Push(33.34); &pcts.Push(33.33); &pcts.Push(33.33);" (scale 2,
+  // magnitudes 3334/3333/3333) and, in a completely unrelated program,
+  // "If &ptVersionNum < 8.52 Then" (scale 2, magnitude 852). The second
+  // operand byte -- required to be zero in every previously-confirmed
+  // integer sample -- is a decimal scale: value / 10^scale. Every
+  // already-confirmed plain integer is scale 0, unchanged by this.
+  const scaled = (scale: number, n: bigint) => {
+    const bytes = [0x50, 0x00, scale];
+    for (let i = 0; i < 16; i++) { bytes.push(Number(n & 0xffn)); n >>= 8n; }
+    return bytes;
+  };
+  assert.equal(
+    decodeProgram(Buffer.from([...HEADER, ...scaled(2, 3334n)]), new NameTable()).text, '33.34');
+  assert.equal(
+    decodeProgram(Buffer.from([...HEADER, ...scaled(2, 3333n)]), new NameTable()).text, '33.33');
+  assert.equal(
+    decodeProgram(Buffer.from([...HEADER, ...scaled(2, 852n)]), new NameTable()).text, '8.52');
+  // A scale wide enough that the magnitude has fewer digits than the scale
+  // itself needs a leading "0." -- confirmed by the general formula, not a
+  // real sample yet.
+  assert.equal(
+    decodeProgram(Buffer.from([...HEADER, ...scaled(2, 5n)]), new NameTable()).text, '0.05');
+});
+
 test('a plain function-call identifier decodes the same way AddOnLoadScript did', () => {
   const result = decodeProgram(SAVE_PRE_CHANGE_BYTES, codeNames());
   assert.ok(result.text.includes('WinMessage("Test")'));

@@ -1673,6 +1673,46 @@ the metric that shows the real size of this one. The opcode-tracker
 cluster shrank further (13/13/12/12/12/11 → 11/11/11/10/10/10), meaning a
 third cause likely remains behind whatever's left, still unidentified.
 
+## Pass thirty-four: decimal number literals
+
+The user's own next suggestion (the tracker's `WEBLIB_OU_LP_BK.ISCRIPT1`
+`0x50` anomaly flagged at the end of the last session) turned out to be
+a real, clean, third thing entirely -- not a misread-text artifact like
+the last two passes' fixes, but the number-literal shape itself, still
+narrower than reality. Real source: `&pcts.Push(33.34);
+&pcts.Push(33.33); &pcts.Push(33.33);` inside a three-column layout
+percentage split. The raw bytes (`00 02 06 0d 00...`, `00 02 05 0d
+00...` twice) didn't fit pass twenty-six's confirmed shape, which
+requires the second operand byte to be zero.
+
+**It doesn't need to be zero -- it's a decimal scale.** `0x0d06` (little-
+endian at bytes 2-3) is 3334; divided by `10^2` (the second byte, `2`)
+that's exactly `33.34`. `0x0d05` is 3333, `/100` = `33.33`, confirmed
+twice, byte-for-byte identical both times the same literal is pushed.
+A third, independent sample in a completely unrelated program nailed it
+down further: `OU_JET_PACK.Layout.LayoutEngine`'s own `3COL_333333`
+branch has the *identical* two byte patterns for its own `Push(33.34)`/
+`Push(33.33)` pair, and `WEBLIB_GS_MASK.ISCRIPT1`'s real `If
+&ptVersionNum < 8.52 Then` gave a fourth, differently-scaled data point
+(`0x0354` = 852, `/100` = `8.52`) confirming the scale byte generalizes
+rather than being a fixed "this is a decimal" flag.
+
+Every already-confirmed plain integer is scale `0`, which the new
+formula (`value / 10^scale`) reduces to unchanged -- this is a strict
+generalisation of pass twenty-six's shape, not a competing one, and
+required no change to any previously-passing case. Negative numbers are
+still unconfirmed and still correctly refused rather than guessed.
+
+**Shipped**: `readByteIntegerLiteral` reads the second operand byte as a
+scale (still requiring the first to be exactly zero) and renders
+`value / 10^scale` as a decimal string; 0x11's still-unconfirmed 14-byte
+shape is deliberately left restricted to scale `0` only, since this pass
+found no evidence either way for it.
+
+All three programs that anchored this confirmation now decode with
+**zero unmapped opcodes**. Coverage **99.74% → 99.77%**, clean programs
+187 → 190.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in
