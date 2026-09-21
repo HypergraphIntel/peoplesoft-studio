@@ -1377,6 +1377,69 @@ program's own trailer directory has (still returns `undefined` for
 `TI_INTEGRATION.DVMEError` -- these are separate from the
 now-fully-decoded statement-stream keywords this pass shipped).
 
+## Pass twenty-nine: the trailer directory's own richer record shape
+
+The last item pass twenty-eight left open, closed in the same sitting:
+`decodeDeclarations` extended to read the Application Class directory
+records themselves, not just the statement-stream keywords that
+describe them.
+
+With `TI_INTEGRATION.DVMEError`'s statement stream now fully clean (pass
+twenty-eight took it to zero unmapped opcodes), its trailer table became
+readable by eye for the first time: 15 sixteen-byte records, self-
+verifying via the existing charOffset check exactly like the
+plain-Function case, in precisely the class's own real declaration
+order (self-reference, then 3 properties, then 11 methods, matching the
+rendered `class DVMEError ... end-class;` header one for one). Two
+things needed handling that the plain-Function shape never has:
+
+- **Record 0 is the class's own self-reference** (`TI_INTEGRATION:
+  DVMEError`, the name run's first entry, charOffset 0) -- not a
+  declaration, distinguished by a constant third field, `0x400000`.
+- **Property records reuse the third field for something that isn't a
+  parameter count** -- `0xa0001` (the `string DVM_ERROR` property),
+  `0xa0000` (`number ProcessInstance`), `0xb0002` (the App-Class-typed
+  `EOTF_CORE:DVM:Functions &_DvmFunc`) -- while the *method* records'
+  third field is exactly `paramCount`, confirmed 11/11 against
+  DVMEError's own real signatures, and its fourth field (`kind`) the
+  exact same `7`-means-no-return / scalar-code scheme already confirmed
+  for plain Function programs -- `1` (string) seven times, `19` (number)
+  is absent here but matches ProcessInstance's own property kind too.
+
+Both detected structurally, not guessed: a property's third field always
+sets bits above `0xffff`, which no real parameter count ever does; the
+self-reference's is checked against the exact constant and the whole
+table is refused if it doesn't hold. Both are skipped from the returned
+`Declaration[]` rather than exposed as nonsense -- a many-thousand-
+parameter "method" for a property, or a zero-param one for the class
+itself.
+
+One more wrinkle in the name run: the self-reference is colon-qualified
+(`PKG:Class`) exactly like the still-undecoded imported-class references
+pass nineteen already knew to skip -- but unlike them, it *does* get a
+record. Handled by keeping only the very first colon-qualified name in
+Application Class mode; every colon-qualified name after it (here,
+`EOTF_CORE:DVM:Functions`, the `&_DvmFunc` property's own type,
+appearing last in the run) is still skipped exactly as before.
+
+Checked against every Application Class program in the corpus, not just
+DVMEError: of 15, 13 now decode a `declarations` array at all (up from
+0 -- this shape was previously unreached entirely), and **every single
+declaration in every one of them matches real source exactly on both
+`paramCount` and `hasReturnValue`: 54/54 (100%)**. `TI_INTEGRATION.
+DVMEError` itself goes from `declarations: undefined` to all 11 of its
+real methods, correct in full, none of its 3 properties or its own
+self-reference mistaken for one.
+
+Still open: the App-Class-typed return/property value encoding itself
+(what `0x801c4` means for the `&_DvmFunc` property, or what a method
+returning an App Class type would encode as its own `kind`), and the
+colon-qualified imported-class reference's own record format, if it has
+one at all -- unlike the plain-Function case, this pass found no evidence
+`EOTF_CORE:DVM:Functions` gets a record of its own anywhere, only a
+name-run entry other records' `kind` fields presumably point back into
+somehow, not yet worked out.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in
