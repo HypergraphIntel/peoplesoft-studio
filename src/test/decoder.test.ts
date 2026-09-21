@@ -1428,6 +1428,28 @@ test('the trailer is still found when a trailing comment separates the last newl
   assert.equal(result.text, 'Return "";\n/* a comment */\n');
 });
 
+test('the trailer is still found when a bare ; sits directly before it, no 0x2d between them', () => {
+  // Confirmed against AE_WRK.AE_ADD_SECTION.FieldChange's real trailer,
+  // directly after `End-If;` with no comment and no 0x2d newline byte in
+  // between: the `;` itself (already NEWLINE_AFTER) is what the
+  // compiler emitted right before the trailer's 0x07, the same way a
+  // trailing comment is in the test above. Took this real program from
+  // 43 unmapped opcodes to 0.
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x38, 0x16, 0x00, 0x00,             // Return ""
+      0x15,                                 // ; -- directly before the trailer, no 0x2d
+      0x07,                                 // trailer marker's second byte, bare
+      ...utf16('DoThing'), 0x00, 0x00,     // dispatch-table name, no introducer
+      ...declarationRecord(0, 0, 7)
+    ]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.declarations?.[0]?.name, 'DoThing');
+  assert.equal(result.text, 'Return "";\n');
+});
+
 test('the relaxed trailer check never fires when the strict marker exists anywhere in the buffer', () => {
   // Safety gate: a comment immediately before a bare 0x07 must not preempt
   // a real strict [0x2d, 0x07] match that exists later in the same
