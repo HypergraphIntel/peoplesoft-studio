@@ -1601,3 +1601,39 @@ test('0x27/0x28 are Repeat/Until, PeopleCode\'s third loop shape', () => {
   assert.equal(result.unknownOpcodes.length, 0);
   assert.equal(result.text, '&x = 0;\nRepeat\n  &x = 1;\nUntil &x <= 0;\n');
 });
+
+test('0x77 is #Else, completing the #If/#Then/#Else/#End-If directive family', () => {
+  // Confirmed against AGC_PROCESS_AG.ActivityGuideCreation.OnExecute's
+  // real `#If #ToolsRel < "8.58" #Then\n   %This.SetLanguages(&list);
+  // \n#Else\n   /* 8.58 and greater... */\n   If Not
+  // &list.bCreateMLInstances Then\n      %This.SetLanguages(&list);\n
+  // End-If;\n#End-If`: the `< "8.58"` branch lost (compiled under a
+  // newer tools release), so `#Then` carries its dead body verbatim
+  // (pass thirty-seven's shape), while `#Else`'s own text is bare (10
+  // bytes, exactly `#Else`) since ITS branch compiled normally -- a real
+  // comment and `If` follow as ordinary tokens. 11 -> 2 unmapped opcodes
+  // in the real program (the 2 left are unrelated). See
+  // docs/ROADMAP.md pass forty.
+  const cond = utf16('#If #ToolsRel < "8.58"');
+  const thenAndDeadBody = utf16('#Then\n   %This.SetLanguages(&list);');
+  const elseKeyword = utf16('#Else');
+  const endIf = utf16('#End-If');
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x75, cond.length & 0xff, cond.length >> 8, ...cond,
+      0x76, thenAndDeadBody.length & 0xff, thenAndDeadBody.length >> 8, ...thenAndDeadBody,
+      0x77, elseKeyword.length & 0xff, elseKeyword.length >> 8, ...elseKeyword,
+      0x1c, 0x2f, 0x1f, 0x1a, 0x15,
+      0x78, endIf.length & 0xff, endIf.length >> 8, ...endIf
+    ]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text,
+    '#If #ToolsRel < "8.58" #Then\n' +
+    '   %This.SetLanguages(&list);\n' +
+    '#Else\n' +
+    '  If True Then\n' +
+    '  End-If;\n' +
+    '#End-If');
+});
