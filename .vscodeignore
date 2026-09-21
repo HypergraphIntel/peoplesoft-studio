@@ -17,3 +17,12 @@ node_modules/**
 !node_modules/oracledb/**
 node_modules/oracledb/test/**
 node_modules/oracledb/examples/**
+#resources/ad-slash.svg
+resources/audio-description-slash.svg
+resources/chalkboard-user.svg
+resources/db.svg
+resources/digging.svg
+resources/gun-squirt.svg
+resources/hammer-brush.svg
+resources/swing.svg
+resources/tools.svg
