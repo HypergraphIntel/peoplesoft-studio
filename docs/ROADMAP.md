@@ -1632,6 +1632,47 @@ purely from co-occurrence data before touching any bytes, was worth
 exactly one hand-walk to falsify -- the six opcodes were never related to
 each other at all, only to the same single boundary-detection gap.
 
+## Pass thirty-three: the second cause behind the same cluster -- by far this project's biggest single fix
+
+Pass thirty-two explicitly left the residual cluster open ("a second,
+still-unidentified cause behind the same symptom"). Picked the lowest-
+total-unmapped residual candidate, `WEBLIB_OU_LP_BK.ISCRIPT2` (88
+unmapped), and hand-walked one `0x70` occurrence: right after a
+correctly-decoded `try` keyword, a run of ASCII letters colliding with
+real opcodes again -- `0x6d`/`0x70`/`0x6c`/`0x61` spelling fragments of
+"template". Searching real source for "template" found the actual
+culprit a few dozen bytes earlier, inside a comment: `/* the Knockout
+viewModel + templates` **—** `see below */` -- an em dash.
+
+**`readLengthPrefixedText` (the comment reader for `0x24`/`0x4e`) rejected
+the entire comment if even one UTF-16 code unit fell outside printable
+ASCII**, even though the byte length prefix already says exactly where
+the comment ends -- unlike the null-terminated readers elsewhere in this
+format, there is no terminator-scanning ambiguity here that a
+per-character validity check is needed to resolve. Real comments
+legitimately contain an em dash, a curly quote, or whatever else a human
+actually typed; rejecting the whole comment for that fell through to
+walking its own bytes as opcodes, producing exactly the
+ASCII-letter-collides-with-a-real-opcode garbage cluster pass thirty-two
+had only half-explained.
+
+**Shipped**: read every UTF-16 code unit in the byte range the length
+prefix already bounds, with no per-character rejection at all. Kept the
+one guard the check was originally added for -- a length prefix that
+happens to land on a run of zero bytes, which would otherwise silently
+decode as a comment made entirely of NULs -- since that one is a real
+structural concern the length prefix alone doesn't rule out.
+
+By a wide margin the single largest fix this project has shipped:
+**coverage 98.79% → 99.74%**, closing most of the remaining gap to 100%
+in one change. `WEBLIB_OU_LP_BK.ISCRIPT2` itself went from 88 unmapped
+opcodes to 0. Clean programs 185 → 187 (a small net number, because most
+of the gain landed in programs that still have a handful of other,
+unrelated gaps rather than crossing all the way to zero) -- coverage is
+the metric that shows the real size of this one. The opcode-tracker
+cluster shrank further (13/13/12/12/12/11 → 11/11/11/10/10/10), meaning a
+third cause likely remains behind whatever's left, still unidentified.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in

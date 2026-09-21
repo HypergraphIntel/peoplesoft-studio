@@ -580,6 +580,24 @@ function renderTextRun(kind: TokenKind, text: string): string {
  * distinguishes 0x24 from 0x4e -- position, comment style, some other
  * context -- is not established; both decode identically since the
  * rendered text carries its own delimiters either way.
+ *
+ * Unlike the null-terminated readers, every character here does NOT need
+ * its own validity check: the byte length prefix already bounds the read
+ * exactly, with no scanning-for-a-terminator ambiguity to resolve. An
+ * earlier revision rejected the whole comment if even one UTF-16 code unit
+ * fell outside printable ASCII -- real comments legitimately contain an
+ * em-dash, a curly quote, or other non-ASCII punctuation a user actually
+ * typed, and rejecting the comment for that fell through to walking its own
+ * bytes as if they were opcodes, cascading into the exact kind of
+ * ASCII-letter-collides-with-a-real-opcode garbage this project has hit
+ * more than once (see docs/ROADMAP.md pass thirty-two's `0x70`/`0x6f`/
+ * `0x73`/`0x74`/`0x72`/`0x6c` cluster, and pass thirty-three's own
+ * `WEBLIB_OU_LP_BK.ISCRIPT2` sample, a "templates -- see below" comment
+ * whose only non-ASCII character was an em-dash). The one thing still
+ * worth guarding against is the original concern this check was
+ * added for: a length prefix that happens to land on a run of zero bytes,
+ * which would otherwise silently decode as a comment consisting entirely
+ * of NULs -- kept as the one remaining rejection.
  */
 function readLengthPrefixedText(bytes: Buffer, start: number): { text: string; end: number } | undefined {
   if (start + 2 > bytes.length) return undefined;
@@ -588,12 +606,13 @@ function readLengthPrefixedText(bytes: Buffer, start: number): { text: string; e
   const end = from + byteLength;
   if (byteLength === 0 || byteLength % 2 !== 0 || end > bytes.length) return undefined;
   const chars: string[] = [];
+  let allNul = true;
   for (let j = from; j < end; j += 2) {
-    // Every character must be real text: a length that happens to precede a
-    // run of zero bytes would otherwise decode as a comment full of NULs.
-    if (bytes[j + 1] !== 0x00 || !isTextByte(bytes[j])) return undefined;
-    chars.push(String.fromCharCode(bytes[j]));
+    const code = bytes[j] | (bytes[j + 1] << 8);
+    if (code !== 0) allNul = false;
+    chars.push(String.fromCharCode(code));
   }
+  if (allNul) return undefined;
   return { text: chars.join(''), end };
 }
 

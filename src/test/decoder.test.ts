@@ -347,6 +347,38 @@ test('a comment containing newlines survives, rather than stopping at the first 
   assert.equal(result.text, '/* line one\nline two */\n');
 });
 
+test('a comment with a real non-ASCII character survives whole, not truncated to unmapped', () => {
+  // Confirmed against WEBLIB_OU_LP_BK.ISCRIPT2's real "/* the Knockout
+  // viewModel + templates -- see below */" (an em-dash before "see"), and
+  // WEBLIB_QUERY.ISCRIPT1/WEBLIB_CTI.ISCRIPT2/WEBLIB_GS_UTIL.ISCRIPT1's own
+  // comments. An earlier revision rejected the WHOLE comment if even one
+  // UTF-16 code unit fell outside printable ASCII, even though the byte
+  // length prefix already bounds exactly where the comment ends -- no
+  // per-character validity check is needed the way the null-terminated
+  // readers need one to find their own terminator safely. Rejecting it
+  // fell through to walking the comment's own bytes as if they were
+  // opcodes, the root cause of a whole cluster of unrelated-looking
+  // unmapped opcodes (0x70/0x6f/0x73/0x74/0x72/0x6c, pass thirty-two) that
+  // were really just ASCII letters colliding with real single-byte ones.
+  // Corpus-wide this one fix moved coverage 98.79% -> 99.74%, by far the
+  // largest single jump this project has shipped.
+  const full = (text: string) => [...text].flatMap((c) => {
+    const code = c.charCodeAt(0);
+    return [code & 0xff, code >> 8];
+  });
+  const body = full('/* templates — see below */'); // — = em dash
+  const result = decodeProgram(
+    Buffer.from([...HEADER, 0x24, body.length & 0xff, body.length >> 8, ...body]), new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, '/* templates — see below */\n');
+});
+
+test('a comment of nothing but zero bytes is still refused -- the one real rejection left', () => {
+  const result = decodeProgram(
+    Buffer.from([...HEADER, 0x24, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00]), new NameTable());
+  assert.equal(result.unknownOpcodes.some((u) => u.opcode === 0x24), true);
+});
+
 test('a length that runs past the buffer is refused rather than over-read', () => {
   const result = decodeProgram(
     Buffer.from([...HEADER, 0x24, 0xff, 0xff, 0x41, 0x00]), new NameTable());
