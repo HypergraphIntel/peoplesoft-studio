@@ -13,23 +13,18 @@ since fewer *other* unmapped bytes obscure the real source around this one.
 
 ## 0x00
 
-22 programs, 17808 occurrences total.
+17 programs, 17561 occurrences total.
 
 | program | type | bytes | this opcode | total unmapped |
 |---|---|---|---|---|
 | WEBLIB_GS_JU_IB.ISCRIPT1.FieldFormula | Function | 12470 | 1 | 2 |
-| OU_JET_PACK.Widgets.WidgetDispatcher | App Class | 1651 | 12 | 13 |
-| WEBLIB_FM_ESP.ISCRIPT1.FieldFormula | Function | 11623 | 14 | 14 |
 | WEBLIB_GS_MASK.ISCRIPT1.FieldFormula | Function | 11292 | 15 | 17 |
-| WEBLIB_QUERY.ISCRIPT1.FieldFormula | Function | 10914 | 39 | 46 |
 | WEBLIB_OU_LP_BK.ISCRIPT1.FieldFormula | Function | 8173 | 45 | 51 |
 | OU_JET_PACK.Layout.LayoutEngine | App Class | 5033 | 45 | 51 |
-| WEBLIB_CTI.ISCRIPT2.FieldFormula | Function | 38100 | 45 | 56 |
 | WEBLIB_OU_LP_BK.ISCRIPT2.FieldFormula | Function | 60630 | 52 | 88 |
 | WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 62 | 106 |
 | WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 72 | 126 |
 | WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 120 | 183 |
-| WEBLIB_GS_UTIL.ISCRIPT1.FieldFormula | Function | 4508 | 137 | 188 |
 | WEBLIB_OU_MAP.ISCRIPT1.FieldFormula | Function | 3960 | 169 | 294 |
 | WEBLIB_PTNUI.PT_BUTTON_PIN.FieldFormula | Function | 49599 | 204 | 353 |
 | WEBLIB_EP_FL.ISCRIPT2.FieldFormula | Function | 1620 | 255 | 419 |
@@ -62,16 +57,14 @@ since fewer *other* unmapped bytes obscure the real source around this one.
 
 ## 0x6e
 
-15 programs, 649 occurrences total.
+13 programs, 645 occurrences total.
 
 | program | type | bytes | this opcode | total unmapped |
 |---|---|---|---|---|
-| WEBLIB_CTI.ISCRIPT2.FieldFormula | Function | 38100 | 1 | 56 |
 | WEBLIB_OU_LP_BK.ISCRIPT2.FieldFormula | Function | 60630 | 1 | 88 |
 | WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 4 | 106 |
 | WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 3 | 126 |
 | WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 4 | 183 |
-| WEBLIB_GS_UTIL.ISCRIPT1.FieldFormula | Function | 4508 | 3 | 188 |
 | WEBLIB_OU_MAP.ISCRIPT1.FieldFormula | Function | 3960 | 6 | 294 |
 | WEBLIB_PTNUI.PT_BUTTON_PIN.FieldFormula | Function | 49599 | 11 | 353 |
 | WEBLIB_EP_FL.ISCRIPT2.FieldFormula | Function | 1620 | 5 | 419 |
@@ -84,17 +77,14 @@ since fewer *other* unmapped bytes obscure the real source around this one.
 
 ## 0x70
 
-16 programs, 299 occurrences total.
+13 programs, 295 occurrences total.
 
 | program | type | bytes | this opcode | total unmapped |
 |---|---|---|---|---|
-| WEBLIB_QUERY.ISCRIPT1.FieldFormula | Function | 10914 | 1 | 46 |
-| WEBLIB_CTI.ISCRIPT2.FieldFormula | Function | 38100 | 1 | 56 |
 | WEBLIB_OU_LP_BK.ISCRIPT2.FieldFormula | Function | 60630 | 1 | 88 |
 | WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 3 | 106 |
 | WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 2 | 126 |
 | WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 1 | 183 |
-| WEBLIB_GS_UTIL.ISCRIPT1.FieldFormula | Function | 4508 | 2 | 188 |
 | WEBLIB_OU_MAP.ISCRIPT1.FieldFormula | Function | 3960 | 3 | 294 |
 | WEBLIB_PTNUI.PT_BUTTON_PIN.FieldFormula | Function | 49599 | 3 | 353 |
 | WEBLIB_EP_FL.ISCRIPT2.FieldFormula | Function | 1620 | 2 | 419 |
@@ -107,17 +97,14 @@ since fewer *other* unmapped bytes obscure the real source around this one.
 
 ## 0x6f
 
-16 programs, 658 occurrences total.
+13 programs, 646 occurrences total.
 
 | program | type | bytes | this opcode | total unmapped |
 |---|---|---|---|---|
-| WEBLIB_QUERY.ISCRIPT1.FieldFormula | Function | 10914 | 1 | 46 |
-| WEBLIB_CTI.ISCRIPT2.FieldFormula | Function | 38100 | 2 | 56 |
 | WEBLIB_OU_LP_BK.ISCRIPT2.FieldFormula | Function | 60630 | 4 | 88 |
 | WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 2 | 106 |
 | WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 1 | 126 |
 | WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 4 | 183 |
-| WEBLIB_GS_UTIL.ISCRIPT1.FieldFormula | Function | 4508 | 9 | 188 |
 | WEBLIB_OU_MAP.ISCRIPT1.FieldFormula | Function | 3960 | 11 | 294 |
 | WEBLIB_PTNUI.PT_BUTTON_PIN.FieldFormula | Function | 49599 | 13 | 353 |
 | WEBLIB_EP_FL.ISCRIPT2.FieldFormula | Function | 1620 | 4 | 419 |
@@ -130,15 +117,13 @@ since fewer *other* unmapped bytes obscure the real source around this one.
 
 ## 0x73
 
-14 programs, 643 occurrences total.
+12 programs, 637 occurrences total.
 
 | program | type | bytes | this opcode | total unmapped |
 |---|---|---|---|---|
-| WEBLIB_CTI.ISCRIPT2.FieldFormula | Function | 38100 | 2 | 56 |
 | WEBLIB_OU_LP_BK.ISCRIPT2.FieldFormula | Function | 60630 | 2 | 88 |
 | WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 2 | 106 |
 | WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 6 | 126 |
-| WEBLIB_GS_UTIL.ISCRIPT1.FieldFormula | Function | 4508 | 4 | 188 |
 | WEBLIB_OU_MAP.ISCRIPT1.FieldFormula | Function | 3960 | 10 | 294 |
 | WEBLIB_PTNUI.PT_BUTTON_PIN.FieldFormula | Function | 49599 | 13 | 353 |
 | WEBLIB_EP_FL.ISCRIPT2.FieldFormula | Function | 1620 | 10 | 419 |
@@ -151,16 +136,14 @@ since fewer *other* unmapped bytes obscure the real source around this one.
 
 ## 0x74
 
-14 programs, 907 occurrences total.
+12 programs, 900 occurrences total.
 
 | program | type | bytes | this opcode | total unmapped |
 |---|---|---|---|---|
-| WEBLIB_QUERY.ISCRIPT1.FieldFormula | Function | 10914 | 1 | 46 |
 | WEBLIB_OU_LP_BK.ISCRIPT2.FieldFormula | Function | 60630 | 4 | 88 |
 | WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 4 | 106 |
 | WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 3 | 126 |
 | WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 3 | 183 |
-| WEBLIB_GS_UTIL.ISCRIPT1.FieldFormula | Function | 4508 | 6 | 188 |
 | WEBLIB_OU_MAP.ISCRIPT1.FieldFormula | Function | 3960 | 18 | 294 |
 | WEBLIB_PTNUI.PT_BUTTON_PIN.FieldFormula | Function | 49599 | 13 | 353 |
 | WEBLIB_PTBR.ISCRIPT1.FieldFormula | Function | 15683 | 39 | 843 |
@@ -172,15 +155,13 @@ since fewer *other* unmapped bytes obscure the real source around this one.
 
 ## 0x72
 
-14 programs, 725 occurrences total.
+12 programs, 719 occurrences total.
 
 | program | type | bytes | this opcode | total unmapped |
 |---|---|---|---|---|
-| WEBLIB_QUERY.ISCRIPT1.FieldFormula | Function | 10914 | 1 | 46 |
 | WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 1 | 106 |
 | WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 2 | 126 |
 | WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 1 | 183 |
-| WEBLIB_GS_UTIL.ISCRIPT1.FieldFormula | Function | 4508 | 5 | 188 |
 | WEBLIB_OU_MAP.ISCRIPT1.FieldFormula | Function | 3960 | 13 | 294 |
 | WEBLIB_PTNUI.PT_BUTTON_PIN.FieldFormula | Function | 49599 | 10 | 353 |
 | WEBLIB_EP_FL.ISCRIPT2.FieldFormula | Function | 1620 | 2 | 419 |
@@ -193,15 +174,13 @@ since fewer *other* unmapped bytes obscure the real source around this one.
 
 ## 0x6c
 
-13 programs, 516 occurrences total.
+11 programs, 510 occurrences total.
 
 | program | type | bytes | this opcode | total unmapped |
 |---|---|---|---|---|
-| WEBLIB_CTI.ISCRIPT2.FieldFormula | Function | 38100 | 2 | 56 |
 | WEBLIB_OU_LP_BK.ISCRIPT2.FieldFormula | Function | 60630 | 3 | 88 |
 | WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 2 | 106 |
 | WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 2 | 126 |
-| WEBLIB_GS_UTIL.ISCRIPT1.FieldFormula | Function | 4508 | 4 | 188 |
 | WEBLIB_PTNUI.PT_BUTTON_PIN.FieldFormula | Function | 49599 | 10 | 353 |
 | WEBLIB_EP_FL.ISCRIPT2.FieldFormula | Function | 1620 | 3 | 419 |
 | WEBLIB_PTBR.ISCRIPT1.FieldFormula | Function | 15683 | 7 | 843 |

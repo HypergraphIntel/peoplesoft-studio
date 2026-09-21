@@ -1255,3 +1255,50 @@ test('0x6e stays unmapped when not immediately followed by ;, unlike the real Co
   const result = decodeProgram(Buffer.from([...HEADER, 0x1f, 0x6e, 0x1a]), new NameTable());
   assert.equal(result.unknownOpcodes.some((u) => u.opcode === 0x6e), true);
 });
+
+test('the trailer is still found when a trailing comment separates the last newline from it', () => {
+  // Confirmed against WEBLIB_QUERY.ISCRIPT1's real
+  // `End-Function;\n\n/* 1746200000 */\nFunction IScript_ToXML();`: the
+  // comment's own bytes sit between the last real newline and the
+  // trailer's 0x07, so the literal [0x2d, 0x07] marker never occurs
+  // adjacently anywhere in the buffer and the strict check alone leaves
+  // the whole declaration-name trailer to be misread as more statement
+  // code. Took this real program from 46 unmapped opcodes to 0.
+  const body = utf16('/* a comment */');
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x38, 0x16, 0x00, 0x00,             // Return ""
+      0x15,                                 // ;
+      0x24, body.length & 0xff, body.length >> 8, ...body, // trailing comment, no 0x2d before the 0x07
+      0x07,                                 // trailer marker's second byte, bare
+      ...utf16('DoThing'), 0x00, 0x00,     // dispatch-table name, no introducer
+      ...declarationRecord(0, 0, 7)
+    ]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.declarations?.[0]?.name, 'DoThing');
+  assert.equal(result.text, 'Return "";\n/* a comment */\n');
+});
+
+test('the relaxed trailer check never fires when the strict marker exists anywhere in the buffer', () => {
+  // Safety gate: a comment immediately before a bare 0x07 must not preempt
+  // a real strict [0x2d, 0x07] match that exists later in the same
+  // program -- confirmed by construction here, since this program's real
+  // trailer (after "Real;") is the strict shape, and the comment-adjacent
+  // bare 0x07 earlier is deliberately something else (an ordinary
+  // mid-stream declaration-name reference, the ~900-corpus-wide role this
+  // must not be confused with).
+  const body = utf16('/* not the trailer */');
+  const bytes = Buffer.from([
+    ...HEADER,
+    0x24, body.length & 0xff, body.length >> 8, ...body,
+    0x07, ...utf16('SomeName'), 0x00, 0x00, // an ordinary mid-stream 0x07 declaration-name reference
+    0x15,                                     // ;
+    0x2d, 0x07,                               // the real, strict trailer marker
+    ...utf16('Real'), 0x00, 0x00,
+    ...declarationRecord(0, 0, 7)
+  ]);
+  const result = decodeProgram(bytes, new NameTable());
+  assert.equal(result.declarations?.[0]?.name, 'Real');
+});
