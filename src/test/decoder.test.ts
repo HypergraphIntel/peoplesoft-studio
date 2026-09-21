@@ -1636,26 +1636,36 @@ test('0x43 is Exit, the same bare-keyword shape as Break', () => {
   assert.equal(result.text, 'End-If Exit;\n');
 });
 
-test('0x20 is a zero-width marker before a bare, unassigned expression statement', () => {
+test('0x20 is Warning, the statement-level sibling of Error', () => {
   // Found by decoding every program in the live database (~121k), not
   // just the 204-program corpus -- see docs/ROADMAP.md pass thirty-nine.
-  // Confirmed structurally (no project-export source for these delivered
-  // base objects): 5 independent occurrences across 3 real programs, all
-  // sitting directly after a statement boundary (`;` or `Then`) and
-  // directly before a real `(` opening a bare function-call statement
-  // whose result is discarded -- `(MsgGet(6540, 127, "..."));`. Confirmed
-  // against ABSENCE_HIST.ABS_RECURRENCE.SaveEdit and
+  // Its shape was confirmed structurally there (no project-export source
+  // for these delivered base objects): 5 independent occurrences across 3
+  // real programs, all sitting directly after a statement boundary (`;`
+  // or `Then`) and directly before a real `(` opening a bare
+  // function-call statement whose result is discarded --
+  // `(MsgGet(6540, 127, "..."));` -- confirmed against
+  // ABSENCE_HIST.ABS_RECURRENCE.SaveEdit and
   // AA_ONE_JPN_VW.ACTION_REASON_JPN.SaveEdit, each program's only
   // unmapped opcode.
+  //
+  // That shape was read as a zero-width "bare expression statement"
+  // marker and this test asserted it rendered as nothing. It is
+  // `Warning`: the shape is precisely `Warning (MsgGet(...));`, the
+  // commonest form of the keyword, and it is `Error` (0x1b, already
+  // confirmed, identical shape) with a different word. Byte 32 is
+  // `Warning` in PeopleCodeParser.java too. Rendering it as nothing
+  // silently turned a warning into an unconditional bare call, which is
+  // the one failure mode this decoder refuses everywhere else.
   const result = decodeProgram(
     Buffer.from([
       ...HEADER, 0x1c, 0x2f, 0x1f,             // If True Then
-      0x20, 0xb, 0x0a, ...utf16('MsgGet'), 0x00, 0x00, 0xb, 0x14, 0x14, 0x15, // (MsgGet());
+      0x20, 0xb, 0x0a, ...utf16('MsgGet'), 0x00, 0x00, 0xb, 0x14, 0x14, 0x15, // Warning (MsgGet());
       0x1a, 0x15                                // End-If;
     ]),
     new NameTable());
   assert.equal(result.unknownOpcodes.length, 0);
-  assert.equal(result.text, 'If True Then\n  (MsgGet());\nEnd-If;\n');
+  assert.equal(result.text, 'If True Then\n  Warning (MsgGet());\nEnd-If;\n');
 });
 
 test('0x51 is Local\'s own zero-width sibling, for a declaration with no scope keyword at all', () => {
@@ -2109,4 +2119,41 @@ test('0x48\'s RECORD qualifier renders unquoted, unlike every other qualifier he
   const result = decodeProgram(Buffer.from([...HEADER, 0x48, 0x00, 0x00]), names);
   assert.equal(result.unknownOpcodes.length, 0);
   assert.equal(result.text, 'RECORD.EO_EFFDELAY');
+});
+
+test('a bare identifier with no introducer opcode is recovered, not reported as a gap', () => {
+  // PeopleCodeParser.java maps byte 0x00 to an identifier parser that
+  // backs up two bytes and reads the null-terminated run it has just
+  // walked into -- i.e. an identifier can appear in the stream with no
+  // introducer at all, not even the 0x0a one AddOnLoadScript has above.
+  // 0x00 is the largest single bucket in docs/unmapped-opcodes.md (8968
+  // occurrences). Recovered here one byte earlier than the reference
+  // does, so the run's own first character never becomes a token of its
+  // own: `SQLExec` starts with 'S' (0x53), which has no mapping, and the
+  // byte after it is the 0x00 upper half of that same character.
+  const result = decodeProgram(
+    Buffer.from([...HEADER, ...utf16('SQLExec'), 0x00, 0x00, 0xb, 0x14, 0x15]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'SQLExec();\n');
+});
+
+test('the same recovery is refused when the run is not shaped like an identifier', () => {
+  // The only thing separating a real bare identifier from a run of
+  // unrelated bytes that happens to be null-terminated is its own shape,
+  // so anything outside the identifier alphabet is left to report itself
+  // as a gap rather than rendering invented text.
+  const result = decodeProgram(
+    Buffer.from([...HEADER, ...utf16('S!'), 0x00, 0x00]),
+    new NameTable());
+  assert.ok(result.unknownOpcodes.some((u) => u.opcode === 0x53));
+});
+
+test('a single character is not recovered as a bare identifier either', () => {
+  // A lone letter followed by a terminator is far likelier to be two
+  // unrelated bytes than a name.
+  const result = decodeProgram(
+    Buffer.from([...HEADER, 0x53, 0x00, 0x00, 0x00]),
+    new NameTable());
+  assert.ok(result.unknownOpcodes.some((u) => u.opcode === 0x53));
 });
