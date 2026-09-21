@@ -1468,3 +1468,16 @@ test('#Then carries the whole dead branch verbatim, embedded newlines and all, w
   assert.equal(result.unknownOpcodes.length, 0);
   assert.equal(result.text, ';\n#If #TOOLSREL < "8.60" #Then\n      &ShowNotif = Decrypt("", &ShowNotif1);\n#End-If;\n');
 });
+
+test('0x43 is Exit, the same bare-keyword shape as Break', () => {
+  // Confirmed identically 3/3 across the whole corpus -- each program's
+  // only unmapped opcode, always the same real source:
+  // `%Response.RedirectURL(&URL);\n      Exit;\n   End-If;` (WEBLIB_EOAW.
+  // EOAW_MON_ADHOC, WEBLIB_EOAW.EOAW_MON_ADHOC_NUI, WEBLIB_PTAF.
+  // PTAFAW_MON_ADHOC). This was the last unmapped opcode anywhere in the
+  // corpus: fixing it brings clean programs to 204/204. See
+  // docs/ROADMAP.md pass thirty-eight.
+  const result = decodeProgram(Buffer.from([...HEADER, 0x1a, 0x43, 0x15]), new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'End-If Exit;\n');
+});

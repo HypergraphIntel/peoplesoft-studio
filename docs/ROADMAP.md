@@ -1879,6 +1879,51 @@ nine originally-tracked opcodes (`0x00`, `0x20`, `0x6e`, `0x70`, `0x6f`,
 `0x73`, `0x74`, `0x72`, `0x6c`) at zero remaining programs, corpus-wide --
 the tracker this pass thirty-one built is now empty by its own measure.
 
+## Pass thirty-eight: a validator fix, and the corpus's last unmapped opcode
+
+With the tracker empty, `corpus-validate.mjs`'s text-accuracy check was
+worth trusting again -- and it flagged two programs (`WEBLIB_CTI.ISCRIPT1`,
+`WEBLIB_EOAW.EOAW_MON_ADHOC(_NUI)`) whose decoded string literals
+"weren't found" in real source. Both turned out to be the validator, not
+the decoder: PeopleCode escapes a literal `"` inside a string by doubling
+it (`""`), same as SQL. The decoder already renders that correctly as one
+real `"` (`"<applet MAYSCRIPT name="pCti" ...`), but the checker's
+substring search compared against the still-escaped source text
+verbatim, so it could never match. Fixed by un-escaping source the same
+way before the fallback check, string literals only. Text accuracy
+**98.30% → 98.60%**.
+
+That fix also unmasked a previously-hidden entry behind the sample cap:
+`WEBLIB_OU_LP.ISCRIPT1.FieldFormula`, decoding real function names
+(`ParsePathValues`, `ClassSkeleton`) that don't appear anywhere in its
+corpus source at all. Not a decoder bug -- that corpus entry's
+ground-truth source is 6,270 characters against an 18,669-character
+decoded program; several earlier passes already note this exact file's
+bytes are "live, not the stale export." A known, pre-existing
+ground-truth limitation, left as-is.
+
+With the validator trustworthy again, the corpus's remaining 3 non-clean
+programs turned out to share one opcode, `0x43`, one occurrence each:
+
+```
+%Response.RedirectURL(&URL);
+Exit;
+End-If;
+End-Function;
+```
+
+Identical byte-for-byte across `WEBLIB_EOAW.EOAW_MON_ADHOC`, `WEBLIB_EOAW.
+EOAW_MON_ADHOC_NUI` and `WEBLIB_PTAF.PTAFAW_MON_ADHOC` -- `0x43` is
+`Exit`, a bare statement keyword with no operand, the same shape as
+`Break` (`0x2e`). Confirmed 3/3, each program's *only* unmapped opcode,
+with zero conflicting occurrences anywhere else in the corpus.
+
+**Shipped**: `0x43` added to `OPCODES` alongside `Break`. This was the
+last unmapped opcode anywhere in the 204-program corpus: coverage
+**100.00%** (unchanged -- already there), clean programs **201 → 204 of
+204**. Every program in the corpus now decodes with zero unmapped
+opcodes.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in

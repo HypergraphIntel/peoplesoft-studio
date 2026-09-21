@@ -175,6 +175,12 @@ export const OPCODES = new Map<number, OpcodeSpec>([
   [0x25, { kind: TokenKind.Keyword, text: 'While', format: FOR_STYLE }],
   [0x26, { kind: TokenKind.Keyword, text: 'End-While', format: ENDBLOCK_STYLE }],
   [0x2e, { kind: TokenKind.Keyword, text: 'Break', format: F.SPACE_BEFORE }],
+  // A bare statement keyword, same shape as Break: confirmed identically
+  // 3/3 across the whole corpus (WEBLIB_EOAW.EOAW_MON_ADHOC(_NUI) and
+  // WEBLIB_PTAF.PTAFAW_MON_ADHOC), each program's only unmapped opcode,
+  // always `%Response.RedirectURL(&URL);\n Exit;\n End-If;`. See
+  // docs/ROADMAP.md pass thirty-eight.
+  [0x43, { kind: TokenKind.Keyword, text: 'Exit', format: F.SPACE_BEFORE }],
   [0x44, { kind: TokenKind.Keyword, text: 'Local', format: NEWLINE_BEFORE_SPACE_AFTER }],
   [0x45, { kind: TokenKind.Keyword, text: 'Global', format: NEWLINE_BEFORE_SPACE_AFTER }],
   // The third scope declarator alongside Local/Global: confirmed against
