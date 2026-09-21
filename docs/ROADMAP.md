@@ -1792,6 +1792,93 @@ afterward shows the entire original nine-opcode list (`0x00`, `0x20`,
 remaining program, `WEBLIB_HRS_CB.HRS_ISCRIPT` (183 unmapped opcodes) --
 everything else the tracker was built to watch is closed.
 
+## Pass thirty-seven: `#If`/`#Then`/`#End-If`, the tracker's last program
+
+`WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula` was the sole survivor across the
+entire original nine-opcode tracker, at 183 unmapped opcodes -- by far
+the largest remaining count of any corpus program. Hand-walking its
+lowest offset landed on real source that had nothing to do with the
+opcodes being tracked:
+
+```
+&ShowNotif1 = %Request.GetParameter("ShowNotif");
+
+/*AES128 Encryption uptake*/
+#If #TOOLSREL >= "8.60" #Then
+   If Left(&ShowNotif1, 4) = "{V2}" Then
+      &ShowNotif = DecryptStr(&ShowNotif1);
+   Else
+      &ShowNotif = Decrypt("", &ShowNotif1);
+   End-If;
+#End-If;
+#If #TOOLSREL < "8.60" #Then
+   &ShowNotif = Decrypt("", &ShowNotif1);
+#End-If;
+```
+
+`#If`/`#Then`/`#Else`/`#End-If` are PeopleTools preprocessor directives,
+evaluated once at **compile time** against the compiling environment
+(here, `#TOOLSREL`, the PeopleTools release). Only the taken branch is
+ever compiled into real opcodes -- the untaken branch isn't tokenized at
+all. That's what turned one directive pair into 183 unmapped opcodes:
+every one of the second `#If` block's real statement opcodes was replaced
+by a single opaque byte run the decoder had no entry for, and everything
+downstream cascaded into garbage.
+
+Byte-for-byte, three new opcodes, all length-prefixed text runs in
+exactly the shape `0x24`/`0x4e`/`0x55`'s comments already use (2-byte LE
+byte length + that many bytes of UTF-16LE, reusing `readLengthPrefixedText`
+unchanged):
+
+- **`0x75`** is `#If`: its text is always just the condition
+  (`#If #TOOLSREL >= "8.60"`, `#If #TOOLSREL < "8.60"` -- 46 and 44 bytes,
+  confirmed exact both times), regardless of which way it evaluates.
+- **`0x78`** is `#End-If`: its text is always the fixed 14 bytes
+  (`#End-If`, 7 characters), confirmed exact both times -- it has no body
+  of its own to carry.
+- **`0x76`** is `#Then`, and it's the interesting one. When its branch
+  *was* compiled (the first block, `>= "8.60"`, true under whatever tools
+  release this program was compiled with), its text is just `#Then` (10
+  bytes) and real opcodes follow normally -- `If`/`Then`/`Else`/`End-If`
+  decode exactly as they do anywhere else. When its branch *was not*
+  compiled (the second block, `< "8.60"`, false), its length-prefixed text
+  is `#Then` plus the **entire untouched source of the dead branch**,
+  verbatim down to the byte -- one single 100-byte run reading
+  `#Then\n      &ShowNotif = Decrypt("", &ShowNotif1);`, embedded
+  newlines and original indentation and all, immediately followed by
+  `0x78`'s `#End-If` with no real opcodes in between. The compiler simply
+  never tokenized what it didn't need, and kept the raw text instead
+  (presumably for round-tripping through App Designer's own editor).
+
+Formatting-wise, `#Then` and `#End-If` behave exactly like a real
+`Then`/`End-If` pair: `0x76` carries `SPACE_BEFORE | INCREASE_INDENT`
+(applied after its own text, so only what follows is indented one level
+deeper) and `0x78` carries `NEWLINE_BEFORE | SPACE_BEFORE |
+DECREASE_INDENT` (same as `ENDBLOCK_STYLE`, no `NEWLINE_AFTER` since a
+real `;` always follows and supplies the line break itself). `0x75`
+carries only `NEWLINE_BEFORE`. This is enough for both cases: when the
+branch was compiled, the following real tokens supply their own
+newlines/indents same as anywhere else in the format; when it wasn't,
+the dead branch's own embedded `\n` characters do the job directly, since
+they're literal characters inside the token's rendered text, not
+format-flag-driven breaks.
+
+Only one corpus program carries these opcodes, so there's no
+corpus-scale confirmation beyond this single sample -- but the render
+output matches the real source byte-for-byte across both directive
+blocks, including the verbatim dead-branch text, which is about as
+strong a single-sample confirmation as this format offers.
+
+**Shipped**: `0x75`/`0x76`/`0x78` added to `OPERAND_FORMAT` and a new
+dispatch block reusing `readLengthPrefixedText`, rendered as
+`TokenKind.Keyword` (plain text, no wrapping, unlike `Comment`'s `/+ +/`).
+`WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula` goes from 183 unmapped opcodes to
+**0**. Corpus-wide: coverage **99.99% → 100.00%**, clean programs
+**200 → 201 of 204**. Regenerating the tracker shows every one of the
+nine originally-tracked opcodes (`0x00`, `0x20`, `0x6e`, `0x70`, `0x6f`,
+`0x73`, `0x74`, `0x72`, `0x6c`) at zero remaining programs, corpus-wide --
+the tracker this pass thirty-one built is now empty by its own measure.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in

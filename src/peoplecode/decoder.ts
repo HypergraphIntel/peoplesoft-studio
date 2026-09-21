@@ -393,6 +393,13 @@ const OPERAND_FORMAT = new Map<number, number>([
   [0x24, NEWLINE_BOTH],    // length-prefixed comment
   [0x4e, NEWLINE_BOTH],    // length-prefixed comment (second introducer, same shape)
   [0x55, NEWLINE_BOTH],    // length-prefixed comment (third introducer, same shape -- <* *> style)
+  // #If/#Then/#End-If preprocessor directives -- see the 0x75/0x76/0x78
+  // dispatch block below for why these carry indent flags a comment never
+  // would: #Then's body is a real indented block, whether or not it was
+  // actually compiled.
+  [0x75, F.NEWLINE_BEFORE],
+  [0x76, F.SPACE_BEFORE | F.INCREASE_INDENT],
+  [0x78, F.NEWLINE_BEFORE | F.SPACE_BEFORE | F.DECREASE_INDENT],
   [0x21, F.SPACE_BEFORE],  // name/record-field reference
   [0x50, F.SPACE_BEFORE | F.NO_SPACE_AFTER], // byte integer literal
   [0x11, F.SPACE_BEFORE | F.NO_SPACE_AFTER]  // second number-literal shape (14-byte operand)
@@ -1258,6 +1265,32 @@ export function decodeProgram(
           format: OPERAND_FORMAT.get(opcode) ?? 0
         });
         i = comment.end;
+        continue;
+      }
+    }
+
+    // #If/#Then/#End-If: PeopleTools evaluates these at compile time, so
+    // only the taken branch is ever compiled into real tokens. 0x75 always
+    // carries just the condition text (`#If #TOOLSREL >= "8.60"`); 0x78
+    // always carries just `#End-If`. 0x76 carries `#Then` alone when its
+    // branch WAS compiled (real tokens follow normally), but when the
+    // branch was NOT taken, its length-prefixed text is `#Then` plus the
+    // entire untouched source of the dead branch, verbatim down to the
+    // byte -- including its own embedded newlines and indentation -- since
+    // nothing in it was ever tokenized. Confirmed byte-for-byte against
+    // WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula: `#If #TOOLSREL < "8.60" #Then`
+    // (compiled under a >= 8.60 tools release, so this branch lost) carries
+    // `#Then\n      &ShowNotif = Decrypt("", &ShowNotif1);` as one 100-byte
+    // run, verbatim against real source, immediately followed by 0x78's
+    // `#End-If`. See docs/ROADMAP.md pass thirty-seven.
+    if (opcode === 0x75 || opcode === 0x76 || opcode === 0x78) {
+      const directive = readLengthPrefixedText(bytes, i);
+      if (directive !== undefined) {
+        tokens.push({
+          kind: TokenKind.Keyword, text: directive.text, offset, opcode,
+          format: OPERAND_FORMAT.get(opcode) ?? 0
+        });
+        i = directive.end;
         continue;
       }
     }
