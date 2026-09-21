@@ -1471,6 +1471,31 @@ test('the trailer is still found when 0xc0 sits directly before it, the same rol
   assert.equal(result.text, 'Return "";\n');
 });
 
+test('the trailer is still found directly after end-method, with no separator at all', () => {
+  // A fifth trailer-marker shape: when a class's only method ends the
+  // whole program, the trailer's self-reference name sits directly
+  // after `end-method` (0x64) with no `;` in between -- every other
+  // `end-method` in the corpus has one. Confirmed against
+  // GPDE_CT_MODULE.CT_MsgGetExplainText.OnExecute's real trailer, whose
+  // self-reference name (`GPDE_CT_MODULE:CT_MsgGetExplainText`) sits
+  // directly after the constructor's own `end-method`.
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x63, 0x41, 0xa, ...utf16('M'), 0x00, 0x00,  // method M (implementation header)
+      0x64,                                          // end-method -- no ; before the trailer
+      0x07,                                           // trailer marker's second byte, bare
+      ...utf16('PKG:MyClass'), 0x00, 0x00,           // self-reference name (required first, isApplicationClass)
+      ...utf16('DoThing'), 0x00, 0x00,               // real declaration's name
+      ...declarationRecord(0, 0x400000, 0),          // self-reference record (third field, not kind)
+      ...declarationRecord(12, 0, 7)                  // DoThing's own record
+    ]),
+    new NameTable(), { mode: 'auto', isApplicationClass: true });
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.declarations?.[0]?.name, 'DoThing');
+  assert.equal(result.text, 'method M\nend-method');
+});
+
 test('the relaxed trailer check never fires when the strict marker exists anywhere in the buffer', () => {
   // Safety gate: a comment immediately before a bare 0x07 must not preempt
   // a real strict [0x2d, 0x07] match that exists later in the same
