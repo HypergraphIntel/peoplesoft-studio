@@ -2008,10 +2008,36 @@ opcode occurs in the corpus itself -- this is precisely why the full-database
 scan was necessary). Both re-verified directly against all 12 real DB
 programs they were hand-walked against: 0 unmapped opcodes in every one.
 
+Rerunning the scan with the `isApplicationClass` fix in place (still
+before it had ever seen `0x20`/`0x51`) dropped total unmapped occurrences
+from 762,744 to 343,542 and raised clean programs from 101,324 to 109,346
+of 121,028 -- most of the difference was exactly the false class/method
+hits the fix targeted. It also surfaced a new cleanest candidate: `0x60`,
+7,041 occurrences, one single-unmapped-opcode sample
+(`ADS.Relation.CriteriaUI.OnExecute`). Hand-walked, it sits right before
+the terminating `;` of a `property` declaration inside an Application
+Class -- and `ADSM.ADSCompareDiffObject.OnExecute` (21 unmapped opcodes,
+19 of them this one) handed over a literal confirmation for free: one of
+its properties is commented out with `rem`, and the comment's own real
+text reads `rem property array of array of string RecKeyValueList
+readonly;`. `0x60` is that property's optional `readonly` modifier --
+present on all 19 properties of a class whose whole purpose is exposing
+read-only diff data, absent on `OU_JET_PACK.Model.PageCol`'s plain,
+mutable `property number ColSeq;` back in pass twenty-eight.
+
+**Shipped**: `0x60` added to the `isApplicationClass`-gated dispatch
+block alongside `property`/`instance`/`extends`, rendered as the keyword
+`readonly`. `ADS.Relation.CriteriaUI.OnExecute` goes from 1 unmapped
+opcode to 0; `ADSM.ADSCompareDiffObject.OnExecute` goes from 21 to 1 (the
+one left, a lone `0x61` not immediately followed by `0x62`, is the
+already-documented standalone-occurrence gap from pass twenty-eight,
+unrelated to this fix). Corpus-wide: unaffected (100.00%/204 clean,
+`0x60` doesn't occur in the corpus either).
+
 The corrected scan (`db-scan.json`, not checked in -- reproducible via
 `scripts/scan-db-opcodes.mjs`) is the natural next investigation queue:
 its cleanest remaining samples are the next candidates once corroborated
-the same way these two were.
+the same way these three were.
 
 ## Then: writes
 

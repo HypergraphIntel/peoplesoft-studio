@@ -1584,6 +1584,22 @@ export function decodeProgram(
         i++;
         continue;
       }
+      // A property's own accessor modifier -- optional, sitting between
+      // the property's declared name and its terminating `;`. Found
+      // scanning the live database (pass thirty-nine): every property in
+      // ADSM.ADSCompareDiffObject.OnExecute carries it (19/19), and that
+      // same program hands over the literal text directly -- one property
+      // is commented out with `rem`, and the comment's own real text
+      // reads `rem property array of array of string RecKeyValueList
+      // readonly;`. Absent on OU_JET_PACK.Model.PageCol's plain, mutable
+      // `property number ColSeq;` (pass twenty-eight), present on every
+      // property of a class whose whole purpose is exposing read-only
+      // diff data -- consistent with an optional modifier, not a
+      // mandatory part of the grammar.
+      if (opcode === 0x60) {
+        tokens.push({ kind: TokenKind.Keyword, text: 'readonly', offset, opcode, format: F.SPACE_BEFORE });
+        continue;
+      }
     }
 
     const mapped = OPCODES.get(opcode);

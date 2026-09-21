@@ -1523,3 +1523,22 @@ test('0x51 is Local\'s own zero-width sibling, for a declaration with no scope k
   assert.equal(result.unknownOpcodes.length, 0);
   assert.equal(result.text, 'Local Record &MYREC;\nField &MYFLD;\n');
 });
+
+test('0x60 is a property\'s optional readonly modifier', () => {
+  // Found scanning the live database (pass thirty-nine): every property in
+  // ADSM.ADSCompareDiffObject.OnExecute carries this opcode right before
+  // its terminating `;` (19/19) -- and that same program hands over the
+  // literal text directly, since one property is commented out with `rem`
+  // and the comment's own real text reads `rem property array of array
+  // of string RecKeyValueList readonly;`. Absent on OU_JET_PACK.Model.
+  // PageCol's plain, mutable `property number ColSeq;` (pass
+  // twenty-eight) -- optional, not mandatory grammar.
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x5e, 0x40, ...utf16('string'), 0x00, 0x00, 0xa, ...utf16('SessionID'), 0x00, 0x00, 0x60, 0x15
+    ]),
+    new NameTable(), { mode: 'auto', isApplicationClass: true });
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'property string SessionID readonly;\n');
+});
