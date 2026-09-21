@@ -1750,6 +1750,48 @@ for any qualifier but `OPERATION`.
 Coverage held at 99.77% (a single-program opcode), clean programs
 190 → 191.
 
+## Pass thirty-six: a third comment style closes out the whole tracker
+
+Moved to the tracker's next-cleanest `0x00` candidate, `WEBLIB_IB.
+ISCRIPT1` (88 total unmapped). The unmapped run sat right after a real
+`End-Function;`, two newlines, then two unmapped bytes followed by what
+looked like the now-familiar ASCII-letters-collide-with-real-opcodes
+garbage (`Evaluate`, `To`, `Component` firing on coincidence). But the
+"misread text," read straight, spelled real, readable English: "This
+laucnhes the Integration HUB MAP Rapid Application" -- and real source
+confirmed it, wrapped in a delimiter style this project hadn't seen
+before: `<* ... *>` rather than `/* ... */`.
+
+**`0x55` is a third length-prefixed comment introducer -- the identical
+shape `0x24`/`0x4e` already have.** The two bytes immediately before the
+"misread" text were the giveaway once labelled correctly: `0x55` (the
+opcode) then a two-byte length prefix of exactly `122` -- and the real
+comment text is 61 characters, `122` bytes of UTF-16LE, delimiters and
+all. Exact match, not a coincidence: `<*`/`*>` is stored as literal text
+content the same way `0x24`'s own comments carry their own `/* */`.
+
+Checking where else this delimiter style shows up explains *why* it
+exists at all: `WEBLIB_EP_FL.ISCRIPT2`'s real source has `<*&EndPos =
+Find("?", &sURL, 0); If &EndPos = 0 Then ... End-If;*>` -- several whole
+statements, commented out as a block, and that disabled block sits right
+next to other, ordinary `/* */` comments earlier in the same function.
+`<* *>` is PeopleCode's way to comment out code that itself contains
+`/* */` comments.
+
+**Shipped**: `0x55` added alongside `0x24`/`0x4e` everywhere they're
+already handled (the main dispatch check, `OPERAND_FORMAT`), reusing
+`readLengthPrefixedText` unchanged -- no new function needed, since the
+shape genuinely is identical.
+
+This is the same second cause pass thirty-two's own trailer-marker fix
+left an "opcode tracker cluster shrank but didn't disappear" note about
+-- and it explains nearly all of what was left. Coverage **99.77% →
+99.99%**, clean programs **191 → 200 of 204**. Regenerating the tracker
+afterward shows the entire original nine-opcode list (`0x00`, `0x20`,
+`0x6e`, `0x70`/`0x6f`/`0x73`/`0x74`/`0x72`/`0x6c`) down to a single
+remaining program, `WEBLIB_HRS_CB.HRS_ISCRIPT` (183 unmapped opcodes) --
+everything else the tracker was built to watch is closed.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in
