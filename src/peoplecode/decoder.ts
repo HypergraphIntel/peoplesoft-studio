@@ -173,6 +173,20 @@ export const OPCODES = new Map<number, OpcodeSpec>([
   [0x37, { kind: TokenKind.Keyword, text: 'End-Function', format: END_FUNCTION_STYLE }],
   [0x39, { kind: TokenKind.Keyword, text: 'Returns', format: SPACE_BOTH }],
   [0x25, { kind: TokenKind.Keyword, text: 'While', format: FOR_STYLE }],
+  // PeopleCode's Repeat/Until loop -- found scanning the live database
+  // (pass forty). 0x27 always sits right after a statement boundary and
+  // right before the loop body's first real statement, no condition on
+  // its own line (same shape as Try, hence TRY_STYLE); 0x28 always sits
+  // right after the body's last `;` and right before the exit condition
+  // (a bare comparison or a parenthesised expression), which the real
+  // `;` immediately after already terminates. Confirmed across three
+  // independent programs (ADS_DMW.SelectBuilder.OnExecute twice,
+  // ADSM.CompareDataManager.OnExecute): a real `Find`/`Substring`-parsing
+  // loop reads `&start = 1;\n[0x27]&found = Find(...);\n...\n&start =
+  // &found + 1;\n[0x28]&found <= 0;`, which is exactly `Repeat ... Until
+  // &found <= 0;`. See docs/ROADMAP.md pass forty.
+  [0x27, { kind: TokenKind.Keyword, text: 'Repeat', format: TRY_STYLE }],
+  [0x28, { kind: TokenKind.Keyword, text: 'Until', format: F.NEWLINE_BEFORE | F.DECREASE_INDENT | F.SPACE_AFTER }],
   [0x26, { kind: TokenKind.Keyword, text: 'End-While', format: ENDBLOCK_STYLE }],
   [0x2e, { kind: TokenKind.Keyword, text: 'Break', format: F.SPACE_BEFORE }],
   // A bare statement keyword, same shape as Break: confirmed identically
@@ -863,6 +877,22 @@ const OBJECT_TYPE_CODES = new Map<number, string>([
 ]);
 
 /**
+ * The keyword display casing for a `0x48`-referenced qualifier, keyed by
+ * PSPCMNAME's stored (uppercase) RECNAME. See the `0x48` dispatch below
+ * for how this is used and confirmed.
+ */
+const QUOTED_REFERENCE_QUALIFIERS = new Map<string, string>([
+  ['OPERATION', 'Operation'],
+  ['MENUNAME', 'MenuName'],
+  ['BARNAME', 'BarName'],
+  ['ITEMNAME', 'ItemName'],
+  ['PAGE', 'Page'],
+  ['BUSPROCESS', 'BusProcess'],
+  ['BUSACTIVITY', 'BusActivity'],
+  ['BUSEVENT', 'BusEvent']
+]);
+
+/**
  * An Application-Class return/property type (`PKG:Sub:Class`) is not a fixed
  * code at all -- {@link OBJECT_RETURN_TYPE_FLAG}'s sub-type code is instead
  * `APP_CLASS_TYPE_OFFSET` plus a *charOffset* back into this same trailer's
@@ -1395,28 +1425,39 @@ export function decodeProgram(
     }
 
     // A third sibling of 0x21's name reference: same 2-byte index+1=NAMENUM
-    // shape and the same PSPCMNAME table, for an Integration Broker
-    // `Operation."Name"` reference -- unlike 0x21 and 0x4a, rendered with
-    // the qualifier as a fixed keyword and the reference name in quotes,
-    // not dot-joined, since an Operation name can contain characters a bare
-    // identifier can't. Confirmed against WEBLIB_GS_JU_IB.ISCRIPT1's real
+    // shape and the same PSPCMNAME table, for one of PeopleCode's several
+    // built-in "quoted qualified reference" types -- unlike 0x21 and 0x4a,
+    // rendered with the qualifier as a fixed keyword and the reference name
+    // in quotes, not dot-joined. Originally confirmed only for Integration
+    // Broker Operations (WEBLIB_GS_JU_IB.ISCRIPT1's real
     // `CreateMessage(Operation."GL_JRNL_IMP", %IntBroker_Request);`, its
-    // only unmapped opcode: resolves to PSPCMNAME's `OPERATION.
-    // GL_JRNL_IMP`. Every other corpus-wide occurrence is in an already
-    // heavily-corrupted program with a garbage-large index (17409+, far
-    // past any real NAMENUM), so `tryResolveName` already refuses them the
-    // same safe way 0x21/0x4a's own resolution failures do; gated on the
-    // qualifier actually being `OPERATION` so a real reference to some
-    // other, unconfirmed qualifier under this same opcode still falls
-    // through to unknown rather than being rendered with a guessed
-    // keyword. See docs/ROADMAP.md pass thirty-five.
+    // only unmapped opcode), on the reasoning that an Operation name can
+    // contain characters a bare identifier can't.
+    //
+    // Scanning the live database (pass forty) found the same opcode
+    // resolving to `BUSEVENT.Notify Employee` in ACA_NOTE_WRK.EMPLID.
+    // Workflow's real `TriggerBusinessEvent(BusProcess.
+    // SEND_ACA_NOTIFICATION, BusActivity.SEND_ACA_NOTIFICATION,
+    // BusEvent."Notify Employee")` -- a Business Event name containing a
+    // literal space, so the quoted form isn't optional there either. Since
+    // both confirmed qualifiers needed quoting for the exact same
+    // structural reason (a name that can't be a bare identifier), and nothing
+    // in the format suggests 0x48 changes shape per qualifier, the other
+    // qualifiers seen alongside these two in the same database sweep
+    // (MenuName/BarName/ItemName/Page in ACA_XML_WRK.ACA_UPDATE_PB.
+    // FieldChange's real navigation-function arguments, BusProcess/
+    // BusActivity above) are included on the same basis, all quoted
+    // uniformly. Any qualifier outside this confirmed set still falls
+    // through to unknown rather than guessing. See docs/ROADMAP.md pass
+    // forty.
     if (opcode === 0x48) {
       const ref = readRecordFieldReference(bytes, i);
       const resolved = ref !== undefined ? tryResolveName(names, ref.nameNum) : undefined;
       const dot = resolved?.indexOf('.') ?? -1;
-      if (ref !== undefined && resolved !== undefined && dot > 0 && resolved.slice(0, dot).toUpperCase() === 'OPERATION') {
+      const display = dot > 0 ? QUOTED_REFERENCE_QUALIFIERS.get(resolved!.slice(0, dot).toUpperCase()) : undefined;
+      if (ref !== undefined && resolved !== undefined && dot > 0 && display !== undefined) {
         tokens.push({
-          kind: TokenKind.Name, text: `Operation."${resolved.slice(dot + 1)}"`, offset, opcode,
+          kind: TokenKind.Name, text: `${display}."${resolved.slice(dot + 1)}"`, offset, opcode,
           format: OPERAND_FORMAT.get(0x21) ?? 0
         });
         i = ref.end;

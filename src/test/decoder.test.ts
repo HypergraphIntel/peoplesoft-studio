@@ -1542,3 +1542,62 @@ test('0x60 is a property\'s optional readonly modifier', () => {
   assert.equal(result.unknownOpcodes.length, 0);
   assert.equal(result.text, 'property string SessionID readonly;\n');
 });
+
+test('0x48 generalizes past Operation to every confirmed quoted-reference qualifier', () => {
+  // Found scanning the live database (pass forty): 0x48 is not
+  // Operation-specific after all. ACA_NOTE_WRK.EMPLID.Workflow's real
+  // `TriggerBusinessEvent(BusProcess."SEND_ACA_NOTIFICATION",
+  // BusActivity."SEND_ACA_NOTIFICATION", BusEvent."Notify Employee")`
+  // proves it structurally -- "Notify Employee" has a literal space, so
+  // the quoted form isn't optional there either, the same reason Operation
+  // needed it. MenuName/BarName/ItemName/Page (ACA_XML_WRK.ACA_UPDATE_PB.
+  // FieldChange's real `Transfer(True, MenuName."ACA_SETUP_RPT",
+  // BarName."USE", ItemName."ACA_EMP_XMIT", Page."ACA_EMP_XMIT_PART1", ...)`)
+  // and MenuName alone (ADDL_PAY_DATA.EMPLID.RowInit's real `If %Menu <>
+  // MenuName."MAINTAIN_PAYROLL_DATA_CANADA" Then`) round out the set --
+  // all three programs go from real unmapped opcodes to zero.
+  const names = new NameTable();
+  names.add(1, 'BUSEVENT.Notify Employee');
+  const result = decodeProgram(
+    Buffer.from([...HEADER, 0x48, 0x00, 0x00]),
+    names);
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'BusEvent."Notify Employee"');
+});
+
+test('0x48 still falls through to unknown for a qualifier outside the confirmed set', () => {
+  const names = new NameTable();
+  names.add(1, 'SOMEUNKNOWNTYPE.Foo');
+  const result = decodeProgram(Buffer.from([...HEADER, 0x48, 0x00, 0x00]), names);
+  assert.equal(result.unknownOpcodes.some((u) => u.opcode === 0x48), true);
+});
+
+test('0x27/0x28 are Repeat/Until, PeopleCode\'s third loop shape', () => {
+  // Found scanning the live database (pass forty). ADS_DMW.SelectBuilder.
+  // OnExecute's real `&start = 1;\nRepeat\n  &found = Find(",",
+  // &expression, &start);\n  ...\n  &start = &found + 1;\nUntil &found <=
+  // 0;` matches exactly: 0x27 sits right after the statement before the
+  // loop and right before its first body statement (same shape as Try,
+  // hence TRY_STYLE); 0x28 sits right after the body's last `;` and right
+  // before the exit condition, which the real trailing `;` already
+  // terminates. Confirmed on 2 independent occurrences in this program
+  // alone (10 -> 6 unmapped opcodes) plus a third in
+  // ADSM.CompareDataManager.OnExecute (a parenthesised condition,
+  // `Until (...)`, 14 -> 12 unmapped).
+  const num = (n: number) => {
+    const bytes = [0x50, 0x00, 0x00];
+    for (let i = 0; i < 16; i++) { bytes.push(n & 0xff); n = n >> 8; }
+    return bytes;
+  };
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x1, ...utf16('&x'), 0x00, 0x00, 0x6, ...num(0), 0x15,
+      0x27,
+      0x1, ...utf16('&x'), 0x00, 0x00, 0x6, ...num(1), 0x15,
+      0x28, 0x1, ...utf16('&x'), 0x00, 0x00, 0xc, ...num(0), 0x15
+    ]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, '&x = 0;\nRepeat\n  &x = 1;\nUntil &x <= 0;\n');
+});

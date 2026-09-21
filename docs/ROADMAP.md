@@ -2039,6 +2039,68 @@ The corrected scan (`db-scan.json`, not checked in -- reproducible via
 its cleanest remaining samples are the next candidates once corroborated
 the same way these three were.
 
+## Pass forty: working the database tracker, top to bottom
+
+`docs/unmapped-opcodes.md` was regenerated from a full rescan (0x60 now
+shipped) and turned into a proper queue: every opcode still unmapped
+anywhere in the database, sorted by each one's cleanest single sample --
+`scripts/track-db-opcodes.mjs`, replacing the old corpus-only tracker
+that had nothing left to track. Working it from the top:
+
+**`0x48` generalizes past Operation.** Its cleanest sample, `ADDL_PAY_DATA.
+EMPLID.RowInit` (3 unmapped), resolved to `MENUNAME.
+MAINTAIN_PAYROLL_DATA_CANADA` -- a qualifier pass thirty-five's opcode
+never handles, since it was gated specifically on `OPERATION`. The real
+clincher was `ACA_NOTE_WRK.EMPLID.Workflow` (8 unmapped, tiny at 109
+bytes): its real `TriggerBusinessEvent(BusProcess.
+SEND_ACA_NOTIFICATION, BusActivity.SEND_ACA_NOTIFICATION,
+BusEvent."Notify Employee")` resolves to `BUSEVENT.Notify Employee` -- a
+name containing a literal space, so the quoted form isn't optional there
+either, for the exact same structural reason Operation needed it.
+`ACA_XML_WRK.ACA_UPDATE_PB.FieldChange`'s real `Transfer(True,
+MenuName."ACA_SETUP_RPT", BarName."USE", ItemName."ACA_EMP_XMIT",
+Page."ACA_EMP_XMIT_PART1", ...)` -- PeopleCode's well-known navigation
+function -- rounds out MenuName/BarName/ItemName/Page, all quoted
+uniformly. Shipped as a small qualifier-to-display-keyword table
+(`QUOTED_REFERENCE_QUALIFIERS`) covering the 8 qualifiers now confirmed
+(Operation, MenuName, BarName, ItemName, Page, BusProcess, BusActivity,
+BusEvent); any other qualifier still falls through to unknown. All three
+programs go from real unmapped opcodes to zero; a fourth,
+`DERIVED_ABS_EA.SUBMIT_BTN.FieldChange` (tracker's `0x17` entry), turned
+out to be a cascade off this same bug and resolved for free.
+
+**`0x27`/`0x28` are `Repeat`/`Until`**, PeopleCode's third loop shape
+(alongside `While` and `For`), found from the tracker's `0x28` entry
+(`ADS_DMW.SelectBuilder.OnExecute`, 10 unmapped). Real source:
+
+```
+&start = 1;
+Repeat
+  &found = Find(",", &expression, &start);
+  ...
+  &start = &found + 1;
+Until &found <= 0;
+```
+
+`0x27` always sits right after the statement before the loop and right
+before its first body statement -- no condition of its own, so it's
+formatted like `Try` (`TRY_STYLE`: newline before and after, increase
+indent). `0x28` always sits right after the body's last `;` and right
+before the exit condition (a bare comparison here; a parenthesised
+expression, `Until (...)`, in a second confirmed case), which the real
+trailing `;` already terminates, so it only needs `NEWLINE_BEFORE |
+DECREASE_INDENT | SPACE_AFTER`. Confirmed on 2 independent occurrences in
+`ADS_DMW.SelectBuilder.OnExecute` (10 → 6 unmapped -- the remaining 6 are
+an unrelated, already-documented standalone-`0x61` gap) and a third in
+`ADSM.CompareDataManager.OnExecute` (14 → 12, same unrelated gap).
+
+**Shipped**: `QUOTED_REFERENCE_QUALIFIERS` and the rewritten `0x48`
+dispatch; `0x27`/`0x28` added to `OPCODES`. Corpus-wide unaffected
+(100.00%/204 clean -- none of these opcodes occur in the corpus, which is
+why the database scan keeps finding what the corpus can't). Regenerating
+the database scan and tracker afterward is the natural way to keep
+working down the list.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in
