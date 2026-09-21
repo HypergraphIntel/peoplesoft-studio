@@ -1074,3 +1074,44 @@ test('Constant, throw and ComponentLife decode, each confirmed byte-for-byte as 
   assert.equal(componentLife.unknownOpcodes.length, 0);
   assert.equal(componentLife.text, 'ComponentLife PTPN_PUBLISH:PublishToWindow &wlSrch;\n');
 });
+
+test('property/instance/extends decode, picking pass thirteen back up: the Application Class trailer', () => {
+  // Confirmed byte-for-byte against real known source in three OU_JET_PACK
+  // corpus programs: OU_JET_PACK.Model.PageCol ("property number ColSeq;",
+  // 5 properties all the same opcode), OU_JET_PACK.Storage.
+  // DesignRepository and OU_LANDINGPAGE.LandingPage.OUBanner ("instance
+  // OU_JET_PACK:Widgets:BaseWidget &objBase;"), and OUBanner's own "class
+  // OUBanner extends OU_JET_PACK:Widgets:BaseWidget". Checked corpus-wide
+  // across all 15 Application Class programs: 31/31 (100%), and it took
+  // TI_INTEGRATION.DVMEError -- the very sample pass nineteen left this
+  // pass to pick up from -- from 4 unmapped opcodes to 0.
+  //
+  // Gated the same way as class/method: 0x5e and 0x5c never occur outside
+  // an Application Class program, but 0x61 and 0x62 individually do (353
+  // and 53 corpus-wide occurrences in plain Function programs) -- only the
+  // pair, 0x61 immediately followed by 0x62, is `instance`.
+  const bytes = Buffer.from([
+    ...HEADER,
+    0x5a, 0x0a, ...utf16('OUBanner'), 0x00, 0x00,                         // class OUBanner
+    0x5c, 0x0a, ...utf16('OU_JET_PACK'), 0x00, 0x00,                      // extends OU_JET_PACK
+    0x57, 0x0a, ...utf16('Widgets'), 0x00, 0x00,                          // :Widgets
+    0x57, 0x0a, ...utf16('BaseWidget'), 0x00, 0x00,                       // :BaseWidget
+    0x5e, 0x40, ...utf16('number'), 0x00, 0x00, 0x0a, ...utf16('ColSeq'), 0x00, 0x00, 0x15, // property number ColSeq;
+    0x61, 0x62, 0x0a, ...utf16('OU_JET_PACK'), 0x00, 0x00,                // instance OU_JET_PACK
+    0x57, 0x0a, ...utf16('Widgets'), 0x00, 0x00,                          // :Widgets
+    0x57, 0x0a, ...utf16('BaseWidget'), 0x00, 0x00,                       // :BaseWidget
+    0x1, ...utf16('&objBase'), 0x00, 0x00, 0x15,                          // &objBase;
+    0x5b, 0x15                                                             // end-class;
+  ]);
+
+  const withoutFlag = decodeProgram(bytes, new NameTable());
+  assert.ok(withoutFlag.unknownOpcodes.length > 0);
+
+  const result = decodeProgram(bytes, new NameTable(), { mode: 'auto', isApplicationClass: true });
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text,
+    'class OUBanner extends OU_JET_PACK:Widgets:BaseWidget\n' +
+    '  property number ColSeq;\n' +
+    '  instance OU_JET_PACK:Widgets:BaseWidget &objBase;\n' +
+    'end-class;\n');
+});

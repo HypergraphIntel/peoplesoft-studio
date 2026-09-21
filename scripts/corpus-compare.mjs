@@ -8,7 +8,7 @@ const e = corpus.find((x) => x.key.parts.join('.').includes(process.argv[3]));
 if (!e) { console.log('not found'); process.exit(1); }
 const names = new NameTable();
 for (const [n, v] of e.names) names.add(n, v);
-const r = decodeProgram(e.buf, names);
+const r = decodeProgram(e.buf, names, { mode: 'auto', isApplicationClass: e.key.type === 58 });
 console.log('######## REAL SOURCE ########');
 console.log(e.source);
 console.log('######## DECODED ########');

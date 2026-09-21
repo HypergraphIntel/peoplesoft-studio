@@ -35,7 +35,7 @@ let totalBytes = 0, totalUnmapped = 0, clean = 0;
 const byPrev = new Map();
 
 for (const e of corpus) {
-  const result = decodeProgram(e.buf, namesOf(e));
+  const result = decodeProgram(e.buf, namesOf(e), { mode: 'auto', isApplicationClass: e.key.type === 58 });
   totalBytes += e.buf.length;
   totalUnmapped += result.unknownOpcodes.length;
   if (result.unknownOpcodes.length === 0) clean++;

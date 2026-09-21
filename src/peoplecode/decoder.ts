@@ -1153,6 +1153,33 @@ export function decodeProgram(
         });
         continue;
       }
+      // Application Class trailer work (pass thirteen's open item), picked
+      // back up in pass twenty-eight: property/instance/extends. Confirmed
+      // byte-for-byte against real known source (not just this decoder's
+      // own rendering) in OU_JET_PACK.Model.PageCol (`property number
+      // ColSeq;`, 5 properties, all this same opcode), OU_JET_PACK.Storage.
+      // DesignRepository and OU_LANDINGPAGE.LandingPage.OUBanner
+      // (`instance OU_JET_PACK:Widgets:BaseWidget &objBase;`), and
+      // OUBanner's own `class OUBanner extends OU_JET_PACK:Widgets:
+      // BaseWidget`. Gated the same way as class/method above: 0x5e and
+      // 0x5c never occur outside an Application Class program, but 0x61
+      // and 0x62 individually do (353 and 53 corpus-wide occurrences in
+      // plain Function programs) -- only the *pair*, 0x61 immediately
+      // followed by 0x62, is `instance`, and only inside a class. See
+      // docs/ROADMAP.md pass twenty-eight.
+      if (opcode === 0x5e) {
+        tokens.push({ kind: TokenKind.Keyword, text: 'property', offset, opcode, format: NEWLINE_BEFORE_SPACE_AFTER });
+        continue;
+      }
+      if (opcode === 0x5c) {
+        tokens.push({ kind: TokenKind.Keyword, text: 'extends', offset, opcode, format: SPACE_BOTH });
+        continue;
+      }
+      if (opcode === 0x61 && bytes[i] === 0x62) {
+        tokens.push({ kind: TokenKind.Keyword, text: 'instance', offset, opcode, format: NEWLINE_BEFORE_SPACE_AFTER });
+        i++;
+        continue;
+      }
     }
 
     const mapped = OPCODES.get(opcode);

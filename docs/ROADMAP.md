@@ -1306,6 +1306,77 @@ scale checked.
 Coverage 98.72% → 98.74%, clean programs 156 → 162, line matching
 95.64% → 95.76%.
 
+## Pass twenty-eight: pass thirteen's Application Class trailer, picked back up
+
+The user asked for this by name. Fetched `TI_INTEGRATION.DVMEError` fresh
+from the live database -- the exact sample pass nineteen left this open
+for -- and decoded it with everything this session had already shipped:
+**36 unmapped opcodes down to 4**, and every declared method and property
+now renders cleanly (`class DVMEError`, ten methods with real parameter
+lists and return types, then `number ProcessInstance;`, `string
+DVM_ERROR;`, `EOTF_CORE:DVM:Functions &_DvmFunc;`, `end-class;`). Pass
+nineteen only had scraps of this program to work from; this pass had
+nearly the whole thing.
+
+Hand-walked the 4 remaining opcodes directly in the (now mostly clean)
+class header and found two new declaration keywords and confirmed a
+third: `0x5e` sits before `number ProcessInstance;` and `string
+DVM_ERROR;` -- **`property`**, PeopleCode's public-member declaration,
+whose name is written bare (no `&`), unlike every other declarator this
+project has confirmed. `0x61` immediately followed by `0x62` sits before
+`EOTF_CORE:DVM:Functions &_DvmFunc;` -- **`instance`**, for an
+Application-Class-typed private member, whose name *does* keep its `&`.
+
+Corroborated immediately against real known source, not just this
+decoder's own rendering: the corpus's `OU_JET_PACK.Model.PageCol` has
+real source `property number ColSeq;` (and four more properties, all the
+same opcode); `OU_JET_PACK.Storage.DesignRepository` and
+`OU_LANDINGPAGE.LandingPage.OUBanner` both have real `instance
+OU_JET_PACK:Widgets:BaseWidget &objBase;` (or `&REF_PageDesign;`).
+OUBanner's own header also turned up a fourth, previously-unexplained
+opcode sitting between `class OUBanner` and the same colon path:
+**`0x5c` = `extends`** (`class OUBanner extends
+OU_JET_PACK:Widgets:BaseWidget`).
+
+Checked against every Application Class program in the corpus (not just
+the samples that found them): **31/31 (100%)**, zero exceptions, and 12
+of the corpus's 15 Application Class programs now decode with zero
+unmapped opcodes (up from 6). `TI_INTEGRATION.DVMEError` itself is now
+fully clean: **4 unmapped → 0**. Gated on `isApplicationClass`, the same
+as `class`/`method`: `0x5e` and `0x5c` never occur outside an
+Application Class program, but `0x61` and `0x62` individually do (353
+and 53 corpus-wide occurrences in plain `Function` programs) -- only the
+adjacent pair, inside a class, is `instance`.
+
+**A real bug found in the calibration tooling itself, not the decoder,
+while re-checking these numbers.** `corpus-validate.mjs`,
+`corpus-lines.mjs`, `corpus-analyze.mjs`, `corpus-gaps.mjs`,
+`corpus-gapextract.mjs` and `corpus-compare.mjs` have never once passed
+`isApplicationClass` to `decodeProgram` -- meaning every Application
+Class confirmation shipped since pass seventeen (`class`/`method`/
+`end-class`/`end-method`, and now `property`/`instance`/`extends`) has
+been invisible to every corpus-wide metric this project has quoted the
+whole time, silently understating coverage and clean-program counts by
+however many Application Class programs those opcodes actually touch.
+Fixed by passing `{ mode: 'auto', isApplicationClass: e.key.type === 58 }`
+uniformly across all six scripts. Corpus-wide, this alone (with no other
+change) moved the *already-shipped* class/method/end-class/end-method
+and this pass's property/instance/extends from invisible to counted:
+coverage 98.74% → 98.77%, **clean programs 162 → 174**, line matching
+95.76% → 96.56%. The lesson is the same shape as pass twelve's
+`corpus-gapextract.mjs` label bug: a tool that measures correctness can
+itself be wrong in a way nothing downstream re-checks, and the fix can
+move the numbers as much as a real decoder fix does.
+
+Still open, unchanged from pass nineteen: the App-Class-typed return
+value encoding (`kind` on a method returning an App Class), the
+colon-qualified imported-class directory's own record format, and
+whether `decodeDeclarations`' plain-Function record shape can be
+extended to cover the richer property/self-reference records this
+program's own trailer directory has (still returns `undefined` for
+`TI_INTEGRATION.DVMEError` -- these are separate from the
+now-fully-decoded statement-stream keywords this pass shipped).
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in

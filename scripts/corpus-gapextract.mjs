@@ -70,7 +70,7 @@ const gapEvidence = new Map();
 let programsUsed = 0;
 
 for (const e of corpus) {
-  const result = decodeProgram(e.buf, namesOf(e));
+  const result = decodeProgram(e.buf, namesOf(e), { mode: 'auto', isApplicationClass: e.key.type === 58 });
   const unknownOffsets = new Set(result.unknownOpcodes.map((u) => u.offset));
   const segs = segment(result.tokens, unknownOffsets);
 
