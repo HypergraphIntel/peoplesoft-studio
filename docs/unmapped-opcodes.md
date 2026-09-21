@@ -62,16 +62,10 @@ since fewer *other* unmapped bytes obscure the real source around this one.
 
 ## 0x6e
 
-21 programs, 666 occurrences total.
+15 programs, 649 occurrences total.
 
 | program | type | bytes | this opcode | total unmapped |
 |---|---|---|---|---|
-| WEBLIB_PTIFRAME.ISCRIPT1.FieldFormula | Function | 12907 | 1 | 1 |
-| WEBLIB_UNREMREG.ISCRIPT1.FieldFormula | Function | 18079 | 1 | 1 |
-| WEBLIB_PTDIAG.ISCRIPT1.FieldFormula | Function | 31680 | 2 | 2 |
-| WEBLIB_OU_LP.ISCRIPT1.FieldFormula | Function | 30119 | 4 | 4 |
-| WEBLIB_OU_LP.ISCRIPT1.FieldFormula | Function | 30119 | 4 | 4 |
-| WEBLIB_GS_ERPFW.ISCRIPT1.FieldFormula | Function | 107065 | 5 | 5 |
 | WEBLIB_CTI.ISCRIPT2.FieldFormula | Function | 38100 | 1 | 56 |
 | WEBLIB_OU_LP_BK.ISCRIPT2.FieldFormula | Function | 60630 | 1 | 88 |
 | WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 4 | 106 |

@@ -1535,6 +1535,47 @@ means (harmless to mask off, but not understood), and whether a
 App-Class vocabulary, per pass twenty-nine) is worth exposing on some
 future property-facing API now that `Declaration` covers methods.
 
+## Pass thirty-one: a tracker for what's left, and Continue reopened
+
+The user asked for a standing list of which real programs still carry
+each of the session's remaining candidate opcodes (`0x00`, `0x20`,
+`0x6e`, `0x70`/`0x6f`/`0x73`/`0x74`/`0x72`/`0x6c`) unmapped, to work from
+across sessions instead of re-running `corpus-analyze.mjs` cold each
+time. `scripts/track-opcodes.mjs` generates `docs/unmapped-opcodes.md`:
+every corpus program with each opcode, sorted by that program's own
+total unmapped count (ascending), so the best hand-walking candidates
+sort to the top automatically. Regenerate after any decoder change.
+
+Already visible from the generated list before touching any code: the
+`0x70`/`0x6f`/`0x73`/`0x74`/`0x72`/`0x6c` cluster shares almost the exact
+same program list across all six opcodes, and none of them ever appears
+in a program with a low total-unmapped count -- a real signal that these
+are bound together in some shared construct particular to a handful of
+harder programs, not six independent single-byte gaps the way most of
+this session's finds have been.
+
+The tracker also surfaced three fresh, clean `0x6e` samples this
+session's corpus rebuild hadn't had before (`WEBLIB_PTIFRAME.ISCRIPT1`,
+`WEBLIB_UNREMREG.ISCRIPT1`, `WEBLIB_PTDIAG.ISCRIPT1` twice) -- worth
+rechecking `Continue`, which pass twenty tried and rejected on a raw,
+unfiltered corpus-wide count of 9/660. All four hand-walked instantly:
+every one is `Continue;` inside an `If ... Then` block, one with a
+comment that says so outright (`/* ... do not output anything, continue
+to next app package */`). **The rejection was the measurement, not the
+mapping**: pass twenty's count included every corruption-noise
+occurrence of this byte value corpus-wide, with no structural filter at
+all. Gating on the very next byte being `0x15` (`;`, an already-decoded
+real token) turns out to filter almost all of that out by construction --
+checked this way at *full* corpus scale, not just the usual small-
+unmapped-count filter: **9/17**, and all 8 non-matches are the same
+single program, `WEBLIB_OU_LP.ISCRIPT1`, already known stale (pass
+thirteen: its project-export source is an older version than the live
+bytes actually decoded). Excluding that one known-bad ground truth, this
+is **9/9 (100%)**.
+
+**Shipped: `0x6e` = `Continue`, gated on the next byte being `0x15`.**
+Coverage barely moved (a rare opcode) but **clean programs 174 → 180**.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in

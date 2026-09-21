@@ -1234,3 +1234,24 @@ test('parameterTypes is undefined when the slot table is missing or malformed, n
   assert.deepEqual(result.declarations,
     [{ name: 'Foo', paramCount: 1, hasReturnValue: false, returnType: undefined, parameterTypes: undefined }]);
 });
+
+test('0x6e is Continue, gated on the next byte being a real ; -- reopened after pass twenty rejected it', () => {
+  // Pass twenty's rejection (9/660) was a raw, unfiltered count that
+  // included every corruption-noise occurrence of this byte value. Gating
+  // on the next byte being 0x15 (an already-recognised ";" token) filters
+  // that out by construction: checked this way at full corpus scale
+  // (not just the usual small-unmapped-count filter), 9/17, and all 8
+  // non-matches are the same single already-known-stale program
+  // (WEBLIB_OU_LP.ISCRIPT1). Confirmed against four real, independent
+  // samples, one with a comment that names the construct in English:
+  // WEBLIB_PTDIAG.ISCRIPT1's "/* invalid package name, do not output
+  // anything, continue to next app package */\nContinue;".
+  const result = decodeProgram(Buffer.from([...HEADER, 0x1f, 0x6e, 0x15, 0x1a]), new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'Then\n  Continue;\nEnd-If');
+});
+
+test('0x6e stays unmapped when not immediately followed by ;, unlike the real Continue shape', () => {
+  const result = decodeProgram(Buffer.from([...HEADER, 0x1f, 0x6e, 0x1a]), new NameTable());
+  assert.equal(result.unknownOpcodes.some((u) => u.opcode === 0x6e), true);
+});

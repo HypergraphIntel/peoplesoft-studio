@@ -1278,6 +1278,28 @@ export function decodeProgram(
       continue;
     }
 
+    // `Continue` -- reopened after pass twenty rejected it on a raw,
+    // unfiltered corpus-wide count (9/660): that count included every
+    // corruption-noise occurrence of this byte value, structurally
+    // unrelated to the real statement. Gating on the very next byte being
+    // 0x15 (`;`, i.e. a real, already-recognised token immediately
+    // follows) filters almost all of that out by construction, the same
+    // way 0x41's gate does above: checked this way at *full* corpus
+    // scale (not just the usual <=25-unmapped filter), 9/17 -- and all 8
+    // non-matches are the same single program, `WEBLIB_OU_LP.ISCRIPT1`,
+    // already known stale (pass thirteen): its project-export source is
+    // an older version than the live bytes actually decoded. Every other
+    // real sample matches, including three newly found this pass
+    // (`WEBLIB_PTIFRAME.ISCRIPT1`, `WEBLIB_UNREMREG.ISCRIPT1`,
+    // `WEBLIB_PTDIAG.ISCRIPT1` twice) -- one with a comment right above
+    // it that says so in English: `/* ... do not output anything,
+    // continue to next app package */`. See docs/ROADMAP.md pass
+    // thirty-one.
+    if (opcode === 0x6e && bytes[i] === 0x15) {
+      tokens.push({ kind: TokenKind.Keyword, text: 'Continue', offset, opcode, format: F.SPACE_BEFORE });
+      continue;
+    }
+
     // `Declare Function Name PeopleCode Rec.Field Event;` (an external
     // function import): confirmed by hand-walking WEBLIB_GS_CMD.ISCRIPT1,
     // whose only statement is exactly this construct, then checked
