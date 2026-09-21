@@ -60,6 +60,20 @@ test('the header still matches when bytes 7/22/30 are non-zero, not always 0', (
   assert.equal(result.unknownOpcodes.length, 0);
 });
 
+test('the header also matches with 0x84 at byte 33, not only the usual 0x85', () => {
+  // Position 33 was thought to be a fixed 0x85 marker; six unrelated
+  // real Record Field programs (OU_RC_PAYINIT.RUN_ID.RowInit and five
+  // others), all rejected outright and falling into unrelated-looking
+  // garbage from offset ~30 on, turned out to carry 0x84 there instead.
+  // Fixing this took all six from real unmapped opcodes to 0 at once.
+  // See docs/ROADMAP.md pass forty-three.
+  const withByte33 = [...HEADER];
+  withByte33[33] = 0x84;
+  const result = decodeProgram(Buffer.from([...withByte33, 0x15]), new NameTable());
+  assert.equal(result.tokens[0].kind, TokenKind.Header);
+  assert.equal(result.unknownOpcodes.length, 0);
+});
+
 test('AddOnLoadScript and GetHTMLText decode as bare identifiers after a newline', () => {
   // Confirmed against WinMessage in SAVE_PRE_CHANGE_BYTES below: a spelled
   // identifier with no introducer opcode, immediately after 0x0a, is a

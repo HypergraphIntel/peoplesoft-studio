@@ -771,9 +771,16 @@ const HEADER_ZERO_POSITIONS = [
   23, 24, 25, 26, 27, 28, 31, 32, 34, 35, 36
 ];
 
+// Position 33 was thought to be a fixed 0x85 marker; six unrelated real
+// Record Field programs (pass forty-three), all rejected outright and
+// falling into unrelated-looking garbage from offset ~30 on, turned out
+// to carry 0x84 there instead. Accepting both until real evidence turns
+// up a byte this position genuinely can't be.
+const HEADER_BYTE_33_VALUES = new Set([0x85, 0x84]);
+
 function matchHeader(bytes: Buffer): boolean {
   if (bytes.length < HEADER_LENGTH) return false;
-  if (bytes[0] !== 0xa0 || bytes[33] !== 0x85) return false;
+  if (bytes[0] !== 0xa0 || !HEADER_BYTE_33_VALUES.has(bytes[33])) return false;
   return HEADER_ZERO_POSITIONS.every((p) => bytes[p] === 0x00);
 }
 
