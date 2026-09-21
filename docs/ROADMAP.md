@@ -2101,6 +2101,56 @@ why the database scan keeps finding what the corpus can't). Regenerating
 the database scan and tracker afterward is the natural way to keep
 working down the list.
 
+Continuing down the same tracker:
+
+**`0x77` is `#Else`**, the missing fourth member of the `#If`/`#Then`/
+`#End-If` family (pass thirty-seven). Same length-prefixed-text shape,
+same `readLengthPrefixedText` reuse, confirmed against
+`AGC_PROCESS_AG.ActivityGuideCreation.OnExecute`'s real `#If #ToolsRel <
+"8.58" #Then\n   %This.SetLanguages(&list);\n#Else\n   /* 8.58 and
+greater... */\n   If Not &list.bCreateMLInstances Then\n
+%This.SetLanguages(&list);\n   End-If;\n#End-If` -- the `< "8.58"`
+branch lost, so `#Then` carries its dead body verbatim exactly like
+before, while `#Else`'s own text is bare (its branch compiled normally,
+real tokens follow). Formatted like `Else` (`NEWLINE_BEFORE |
+DECREASE_INDENT | INCREASE_INDENT`), minus the real `Else`'s
+`NEWLINE_AFTER` since real content (or an embedded dead-branch newline)
+already supplies its own leading break, the same reasoning `0x76` used.
+11 → 2 unmapped opcodes in the real program.
+
+**`readTextRun` had the same non-ASCII bug `readLengthPrefixedText` was
+fixed for in pass thirty-two, just never carried over.** This reader
+backs string literals and bare identifiers (not comments), and its
+byte-pair check required the high byte to be exactly `0x00` *and* the low
+byte to fall in printable ASCII -- so any real character outside that
+range failed the whole run, falling through to walking the character's
+own bytes as a fresh opcode. Found from the tracker's `0xa3` entry
+(`HCB_CORE_LIBRARIES.HCB_JsonBuilder.OnExecute`, a 162KB Application
+Class): its real `&Emplid_CurrSymbol = "£"` is a one-character string
+literal whose only character is U+00A3 -- the pound sign. `0xa3` was
+never a real opcode at all, just that character's own low byte read as
+one. Fixed the same way as the comment reader: accept any non-zero
+UTF-16 code unit, terminate only on a real `0x0000` pair. 11 → 1 unmapped
+opcodes in the real program.
+
+**`0x48` also covers `Panel`/`PanelGroup`**, PeopleTools' pre-8.4x names
+for `Page`/`Component` -- PSPCMNAME still stores programs compiled that
+far back under the old names. Confirmed against `DERIVED_FP_CA.
+FP_CA_BTTN2.FieldChange`'s real `DoModalPanelGroup(MenuName.
+"HEADCOUNT_(FP)", BarName."MDX", ItemName."CALINKS", Panel.
+"FP_AVLBL_CA", ...)`. The other three qualifiers in that same call had
+already resolved via pass forty's earlier `0x48` generalization --
+`Panel` was the program's only remaining unmapped opcode. 0 unmapped
+opcodes in the real program.
+
+**Shipped**: `0x77` added to the `#If`/`#Then`/`#End-If` dispatch and
+`OPERAND_FORMAT`; `readTextRun` rewritten to drop the printable-ASCII
+restriction; `Panel`/`PanelGroup` added to `QUOTED_REFERENCE_QUALIFIERS`.
+Corpus-wide unaffected (100.00%/204 clean throughout). Four fixes, one
+pass, all from working the same tracker top to bottom -- a reminder that
+the database scan surfaces both new opcodes and old bugs in already-
+shipped ones, not just the former.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in
