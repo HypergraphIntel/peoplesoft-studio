@@ -451,6 +451,13 @@ const OPERAND_FORMAT = new Map<number, number>([
   // actually compiled.
   [0x75, F.NEWLINE_BEFORE],
   [0x76, F.SPACE_BEFORE | F.INCREASE_INDENT],
+  // #Else: unlike #Then, it starts its own fresh line (after the #Then
+  // branch's body, not glued to #If's own line), so it needs its own
+  // NEWLINE_BEFORE; DECREASE_INDENT undoes #Then's indent before writing,
+  // INCREASE_INDENT re-establishes it after for #Else's own body. No
+  // NEWLINE_AFTER, same reasoning as #Then: real content (or an embedded
+  // dead-branch newline) supplies its own leading break.
+  [0x77, F.NEWLINE_BEFORE | F.DECREASE_INDENT | F.INCREASE_INDENT],
   [0x78, F.NEWLINE_BEFORE | F.SPACE_BEFORE | F.DECREASE_INDENT],
   [0x21, F.SPACE_BEFORE],  // name/record-field reference
   [0x50, F.SPACE_BEFORE | F.NO_SPACE_AFTER], // byte integer literal
@@ -1337,21 +1344,30 @@ export function decodeProgram(
       }
     }
 
-    // #If/#Then/#End-If: PeopleTools evaluates these at compile time, so
-    // only the taken branch is ever compiled into real tokens. 0x75 always
-    // carries just the condition text (`#If #TOOLSREL >= "8.60"`); 0x78
-    // always carries just `#End-If`. 0x76 carries `#Then` alone when its
-    // branch WAS compiled (real tokens follow normally), but when the
-    // branch was NOT taken, its length-prefixed text is `#Then` plus the
-    // entire untouched source of the dead branch, verbatim down to the
-    // byte -- including its own embedded newlines and indentation -- since
-    // nothing in it was ever tokenized. Confirmed byte-for-byte against
-    // WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula: `#If #TOOLSREL < "8.60" #Then`
-    // (compiled under a >= 8.60 tools release, so this branch lost) carries
-    // `#Then\n      &ShowNotif = Decrypt("", &ShowNotif1);` as one 100-byte
-    // run, verbatim against real source, immediately followed by 0x78's
-    // `#End-If`. See docs/ROADMAP.md pass thirty-seven.
-    if (opcode === 0x75 || opcode === 0x76 || opcode === 0x78) {
+    // #If/#Then/#Else/#End-If: PeopleTools evaluates these at compile
+    // time, so only the taken branch is ever compiled into real tokens.
+    // 0x75 always carries just the condition text (`#If #TOOLSREL >=
+    // "8.60"`); 0x78 always carries just `#End-If`. 0x76 (`#Then`) and
+    // 0x77 (`#Else`, pass forty) carry their own bare keyword text alone
+    // when their branch WAS compiled (real tokens follow normally), but
+    // when a branch was NOT taken, its length-prefixed text is that
+    // keyword plus the entire untouched source of the dead branch,
+    // verbatim down to the byte -- including its own embedded newlines
+    // and indentation -- since nothing in it was ever tokenized.
+    // Confirmed byte-for-byte against WEBLIB_HRS_CB.HRS_ISCRIPT.
+    // FieldFormula: `#If #TOOLSREL < "8.60" #Then` (compiled under a >=
+    // 8.60 tools release, so this branch lost) carries `#Then\n
+    // &ShowNotif = Decrypt("", &ShowNotif1);` as one 100-byte run,
+    // verbatim against real source, immediately followed by 0x78's
+    // `#End-If`. `#Else` confirmed the same way against
+    // AGC_PROCESS_AG.ActivityGuideCreation.OnExecute's real `#If
+    // #ToolsRel < "8.58" #Then\n   %This.SetLanguages(&list);\n#Else\n
+    // /* 8.58 and greater ... */` -- here the `< "8.58"` branch lost, so
+    // `#Then` carries the dead body and `#Else`'s own text is bare
+    // (10 bytes, exactly `#Else`), with real compiled tokens (a comment,
+    // then `If`) following normally. See docs/ROADMAP.md passes
+    // thirty-seven and forty.
+    if (opcode === 0x75 || opcode === 0x76 || opcode === 0x77 || opcode === 0x78) {
       const directive = readLengthPrefixedText(bytes, i);
       if (directive !== undefined) {
         tokens.push({
