@@ -1617,6 +1617,36 @@ test('a property getter\'s implementation header consumes the same 0x41 method\'
   assert.equal(result.text, 'get useFlowControl\n  /+ Returns Boolean +/\n  Return True;\n');
 });
 
+test('0x70 is interface, class\'s sibling for an interface declaration', () => {
+  // Confirmed against BN_CERTIFICATE.WeightCalculator.OnExecute, whose
+  // own doc comment says so directly ("This interface is a
+  // implementation of the Strategy pattern..."); 0x70 sits right before
+  // the bare name with no 0x5a/0x5c (class/extends) anywhere in the
+  // program.
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x70, 0x0a, ...utf16('WeightCalculator'), 0x00, 0x00
+    ]),
+    new NameTable(), { mode: 'auto', isApplicationClass: true });
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'interface WeightCalculator');
+});
+
+test('0x33 is Library, for an external DLL function declaration', () => {
+  // Confirmed against APPS_RLR.Utilities.OnExecute's real
+  // `Declare Function RegCloseKey Library "advapi32" (...)`.
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x31, 0x32, 0x0a, ...utf16('RegCloseKey'), 0x00, 0x00,
+      0x33, 0x16, ...utf16('advapi32'), 0x00, 0x00
+    ]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'Declare Function RegCloseKey Library "advapi32"');
+});
+
 test('a standalone 0x61 (not paired with 0x62) is a class\'s private section header', () => {
   // Confirmed against ADS.Relation.SqlGenerator.OnExecute's real class
   // block: `method GenerateSql() Returns string;\n\nprivate\n   method
