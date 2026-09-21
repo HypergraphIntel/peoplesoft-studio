@@ -470,20 +470,20 @@ function readTextRun(bytes: Buffer, start: number): { text: string; end: number 
 }
 
 /**
- * A number literal: opcode 0x50, two zero bytes, then a 16-byte
- * little-endian unsigned integer -- 19 bytes total. First confirmed against
- * four small instances across two programs, at the same relative position
- * each time: 1, 2 (`If (1 = 2) Then`), then 12 (0x0c) and 34 (0x22)
- * (`If (12 = 34) Then`) -- the value byte is the number's raw binary value,
- * not a digit or ASCII, so this was never actually limited to single digits;
- * an earlier revision restricted it to 0-9 on too little evidence. Decimals
- * and negative numbers presumably use this same field differently and so
- * correctly fail this unsigned-integer read rather than being misread.
+ * A number literal: opcode 0x50, a zero byte, a *scale* byte, then a
+ * 16-byte little-endian unsigned integer -- 19 bytes total. First
+ * confirmed against four small instances across two programs, at the same
+ * relative position each time: 1, 2 (`If (1 = 2) Then`), then 12 (0x0c) and
+ * 34 (0x22) (`If (12 = 34) Then`) -- the value byte is the number's raw
+ * binary value, not a digit or ASCII, so this was never actually limited to
+ * single digits; an earlier revision restricted it to 0-9 on too little
+ * evidence.
  *
  * `operandLength` also accepts 0x11's shorter, 14-byte shape (adopted from
  * PeopleCodeParser.java; see file header) which this project has not yet
- * independently confirmed a sample of -- `valueBytes` keeps that one
- * restricted to exactly the single confirmed byte, unchanged.
+ * independently confirmed a sample of -- `allowScale` keeps that one
+ * restricted to exactly the original zero-scale (plain integer) shape,
+ * unchanged, since there is no evidence yet either way for it.
  *
  * For 0x50, `valueBytes` is the full 16 remaining bytes: hand-walking four
  * more real values past the single-byte range (`SetTracePC(3596)`,
@@ -492,26 +492,48 @@ function readTextRun(bytes: Buffer, start: number): { text: string; end: number 
  * the same field -- 3596 (0x0e0c) at bytes 2-3, 65533 (0xfffd) at bytes
  * 2-3, 1000000000 (0x3b9aca00) at bytes 2-5, 311 (0x0137) at bytes 2-3 --
  * confirming the single-byte shape was never a separate case, just this
- * same field with its upper bytes at zero. Read with BigInt since nothing
- * bounds how many of the 16 bytes a real literal might use. Decimals and
- * negative numbers are still not confirmed and still correctly fail this
- * unsigned-integer read rather than being misread. See docs/ROADMAP.md
- * pass twenty-six.
+ * same field with its upper bytes at zero.
+ *
+ * **The second byte -- required to be zero in every sample above -- is a
+ * decimal scale, not a fixed sentinel: `value / 10^scale`.** Found by
+ * hand-walking three real decimal literals this shape had been silently
+ * refusing (pass thirty-four): `&pcts.Push(33.34)` (scale `2`, magnitude
+ * `3334` = `0x0d06`), the adjacent `&pcts.Push(33.33)` (scale `2`,
+ * magnitude `3333` = `0x0d05`, confirmed twice, byte for byte identical
+ * both times it's pushed), and `If &ptVersionNum < 8.52 Then` in a
+ * completely unrelated program (scale `2`, magnitude `852` = `0x0354`).
+ * Every plain-integer sample ever confirmed is scale `0`, which this
+ * generalises without changing: `value / 10^0` is `value` unchanged. Read
+ * with BigInt since nothing bounds how many of the 16 bytes a real literal
+ * might use. Negative numbers are still not confirmed and still correctly
+ * fail this unsigned-integer read rather than being misread. See
+ * docs/ROADMAP.md passes twenty-six and thirty-four.
  */
 function readByteIntegerLiteral(
   bytes: Buffer,
   start: number,
   operandLength: number,
-  valueBytes: number
-): { value: bigint; end: number } | undefined {
+  valueBytes: number,
+  allowScale: boolean
+): { text: string; end: number } | undefined {
   if (start + operandLength > bytes.length) return undefined;
-  if (bytes[start] !== 0x00 || bytes[start + 1] !== 0x00) return undefined;
+  if (bytes[start] !== 0x00) return undefined;
+  const scale = bytes[start + 1];
+  if (scale !== 0x00 && !allowScale) return undefined;
   let value = 0n;
   for (let j = valueBytes - 1; j >= 0; j--) value = (value << 8n) | BigInt(bytes[start + 2 + j]);
   for (let j = start + 2 + valueBytes; j < start + operandLength; j++) {
     if (bytes[j] !== 0x00) return undefined;
   }
-  return { value, end: start + operandLength };
+  return { text: formatScaled(value, scale), end: start + operandLength };
+}
+
+/** `value / 10^scale` as a decimal string; `scale` 0 is the plain integer, unchanged. */
+function formatScaled(value: bigint, scale: number): string {
+  if (scale === 0) return value.toString();
+  const digits = value.toString().padStart(scale + 1, '0');
+  const point = digits.length - scale;
+  return `${digits.slice(0, point)}.${digits.slice(point)}`;
 }
 
 /**
@@ -1230,10 +1252,10 @@ export function decodeProgram(
     if (opcode === 0x50 || opcode === 0x11) {
       const operandLength = opcode === 0x50 ? 18 : 14;
       const valueBytes = opcode === 0x50 ? 16 : 1;
-      const literal = readByteIntegerLiteral(bytes, i, operandLength, valueBytes);
+      const literal = readByteIntegerLiteral(bytes, i, operandLength, valueBytes, opcode === 0x50);
       if (literal !== undefined) {
         tokens.push({
-          kind: TokenKind.NumberLiteral, text: literal.value.toString(), offset, opcode,
+          kind: TokenKind.NumberLiteral, text: literal.text, offset, opcode,
           format: OPERAND_FORMAT.get(opcode) ?? 0
         });
         i = literal.end;
