@@ -281,8 +281,8 @@ export const OPCODES = new Map<number, OpcodeSpec>([
   // than needing a lookahead gate the way 0x41 below does. 491 occurrences
   // corpus-wide; see docs/ROADMAP.md pass twenty-one.
   [0x42, { kind: TokenKind.Punctuation, text: '', format: F.NONE }],
-  // Two more zero-width markers, found by decoding every program in the
-  // live database rather than just the 204-program calibration corpus (see
+  // Two more opcodes found by decoding every program in the live database
+  // rather than just the 204-program calibration corpus (see
   // docs/ROADMAP.md pass thirty-nine) -- neither appeared with a small
   // enough unmapped-count anywhere in the corpus itself to stand out, but
   // the full database turned up dozens of programs where it was the
@@ -292,15 +292,23 @@ export const OPCODES = new Map<number, OpcodeSpec>([
   // combined independent occurrences, zero counter-examples, with one
   // smoking-gun case for 0x51 (below).
   //
-  // 0x20: always sits directly after a statement boundary (`;` or `Then`)
+  // 0x20 is `Warning`, the statement-level sibling of `Error` (0x1b), and
+  // shares its format. PeopleCodeParser.java names this byte value
+  // outright; the structural evidence gathered here before consulting it
+  // says the same thing and had simply stopped one step short. Every
+  // occurrence sits directly after a statement boundary (`;` or `Then`)
   // and directly before a real `(` that opens a bare, unassigned function
-  // call used as a whole statement -- `(MsgGet(6540, 127, "..."));` --
-  // never before a call whose result is used. Reads as a "this statement
-  // is just an expression" marker: PeopleCode statements are normally
-  // assignments or keyword-led, so a bare parenthesised expression
-  // apparently needs its own introducer the way `Error (...)` doesn't
-  // (`Error` itself already marks the statement).
-  [0x20, { kind: TokenKind.Punctuation, text: '', format: F.NONE }],
+  // call used as a whole statement -- `(MsgGet(6540, 127, "..."));`,
+  // PeopleCode's single most common `Warning`/`Error` idiom -- and never
+  // before a call whose result is used. That was read here as a "this
+  // statement is just an expression" marker and rendered zero-width,
+  // which silently dropped the keyword: the decoded text then reads as an
+  // unconditional bare call rather than a warning, which is exactly the
+  // "compiles and means something different" failure this decoder exists
+  // to avoid. The samples it was derived from are delivered PeopleSoft
+  // base objects with no project-export source to diff against, which is
+  // why the missing word could not be seen from the bytes alone.
+  [0x20, { kind: TokenKind.Keyword, text: 'Warning', format: NEWLINE_BEFORE_SPACE_AFTER }],
   // 0x51: sits wherever 0x44 (`Local`) does -- directly before a type (a
   // real type keyword or a bare object-type identifier like `Record`/
   // `Field`) and a `&var;` -- but specifically where the source declares
@@ -521,6 +529,18 @@ const TEXT_INTRODUCERS = new Map<number, TokenKind.Name | TokenKind.StringLitera
   //         The remaining 109 fall through to its plain OPCODES entry below.
   [0x07, TokenKind.Name]
 ]);
+
+/**
+ * What a bare, introducer-less identifier is allowed to look like before
+ * the recovery in {@link decodeProgram} will read one out of a byte that
+ * has no opcode mapping. Stricter than a PeopleCode identifier needs to be
+ * -- `&` and `%` lead a variable or a system variable, the rest is the
+ * plain identifier alphabet -- because the only thing separating a real
+ * identifier from a run of unrelated bytes here is its own shape. Two
+ * characters minimum: a single letter followed by a terminator is far more
+ * likely to be a coincidence than a name.
+ */
+const BARE_IDENTIFIER = /^[A-Za-z_&%][A-Za-z0-9_$#]+$/;
 
 /**
  * Reads a UTF-16LE text run starting at `start`, terminated by a 0x00 0x00
@@ -1955,6 +1975,38 @@ export function decodeProgram(
 
     const mapped = OPCODES.get(opcode);
     if (mapped === undefined) {
+      // Last resort before reporting a gap: the byte may not be an opcode
+      // at all, but the first character of a bare identifier written
+      // straight into the stream with no introducer -- the role 0x0a
+      // plays above, minus the 0x0a. PeopleCodeParser.java handles this
+      // by mapping byte 0x00 to an identifier parser that backs up two
+      // bytes and reads a null-terminated string, i.e. it recovers once
+      // it has already walked into the UTF-16LE high byte of the run's
+      // first character. Done here one byte earlier instead, looking
+      // forward rather than back, so the run's own first character is
+      // never emitted as a bogus token of its own first and so strict
+      // mode sees the same stream auto mode does.
+      //
+      // Deliberately narrower than the reference: it only runs where the
+      // decoder was going to report a gap anyway, so it cannot change any
+      // program that decodes cleanly today, and the run has to look like
+      // a PeopleCode identifier rather than merely being null-terminated
+      // -- arbitrary binary is null-terminated too. An identifier whose
+      // first character collides with a mapped opcode (`e` is 0x65,
+      // `try`) is still missed; recovering those needs real grammar, not
+      // a lookahead. 0x00 is the single largest unmapped bucket in
+      // docs/unmapped-opcodes.md (8968 occurrences).
+      if (bytes[i] === 0x00) {
+        const run = readTextRun(bytes, offset);
+        if (run !== undefined && BARE_IDENTIFIER.test(run.text)) {
+          tokens.push({
+            kind: TokenKind.Name, text: run.text, offset, opcode,
+            format: OPERAND_FORMAT.get(0x0a) ?? 0
+          });
+          i = run.end;
+          continue;
+        }
+      }
       unknownOpcodes.push({ offset, opcode });
       if (options.mode === 'strict') {
         throw new UndecodableProgramError(offset, opcode, unknownOpcodes.length);

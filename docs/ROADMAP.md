@@ -2370,6 +2370,64 @@ rather than trusting an unmapped-count number, from one independently
 written reference file cross-checked against real bytes rather than
 copied blind.
 
+## Pass forty-four: re-reading the reference for what it says and this decoder doesn't
+
+A mechanical diff of every byte value in the reference
+`PeopleCodeParser.java` against everything `decoder.ts` handles today
+(fixed `OPCODES` entries, gated dispatch, text introducers) rather than
+another pass down the database tracker. Most of the table now agrees
+either way. Four rows disagreed or were missing, and only two of them
+survived checking.
+
+**`0x20` is `Warning`, not a zero-width marker.** Pass thirty-nine
+derived its shape correctly -- always directly after a statement
+boundary (`;` or `Then`), always directly before a real `(` opening a
+bare function call whose result is discarded, `(MsgGet(6540, 127,
+"..."));` -- and then read that as a "this statement is just an
+expression" marker, since the samples are delivered base objects with no
+project-export source to diff the missing word against. The reference
+names byte 32 outright, and once named the shape is unmistakable: that
+is `Warning (MsgGet(...));`, the commonest form the keyword takes, and
+`Error` (0x1b, already confirmed, identical shape, identical format)
+with a different word. Rendering it as nothing silently dropped the
+keyword, turning a warning into an unconditional bare call -- the exact
+"decodes to something that compiles and means something else" failure
+this decoder exists to refuse, and the same blind spot pass forty-two's
+`private` fusion fell into: the corpus checker verifies decoded text
+appears in the source, so it cannot see a real word that never got
+decoded at all.
+
+**`0x00` is a bare identifier with no introducer.** The reference maps
+byte 0 to an identifier parser that backs up two bytes and reads the
+null-terminated run it has just walked into -- i.e. an identifier can
+sit in the stream with no introducer byte at all, not even the `0x0a`
+one pass thirty-one confirmed. `0x00` is the single largest bucket in
+`docs/unmapped-opcodes.md` (8968 occurrences). Implemented one byte
+earlier than the reference does, looking forward instead of back (the
+run's own first character never becomes a bogus token of its own, and
+strict mode sees the same stream auto mode does), and deliberately
+narrower: it only runs where a gap was about to be reported anyway, so
+no program that decodes cleanly today can change, and the run has to
+match the identifier alphabet rather than merely being null-terminated,
+since arbitrary binary is null-terminated too. An identifier whose first
+character collides with a mapped opcode (`e` is `0x65`, `try`) is still
+missed; recovering those needs real grammar, not a lookahead.
+
+**Rejected: `0x52`/`0x53`/`0x6c`.** The reference has `Doc` for `0x53`
+and zero-width for the other two, and this decoder maps none of them.
+Every occurrence in the database tracker sits in programs with ~2400
+unmapped opcodes -- cascade noise downstream of some earlier missed
+boundary, not evidence of the byte's own meaning. Left unmapped.
+
+**Rejected: `0x51` = `PanelGroup`.** Already noted in pass forty-two as
+a numbering disagreement; pass thirty-nine's `0x51` is text-diffed
+against `AE_WRK.AE_BIND_VALUE.FieldEdit`'s real source, so it stands.
+
+**Shipped**: `0x20` remapped to `Warning`; the `0x00` bare-identifier
+recovery. No corpus rerun was possible here (no database access in this
+environment); the unit suite covers both, including the two shapes the
+recovery must keep refusing.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in
