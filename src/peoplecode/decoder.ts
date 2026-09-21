@@ -389,7 +389,6 @@ export const OPCODES = new Map<number, OpcodeSpec>([
   [0x29, { kind: TokenKind.Keyword, text: 'For', format: FOR_STYLE }],
   [0x2a, { kind: TokenKind.Keyword, text: 'To', format: SPACE_BOTH }],
   [0x3d, { kind: TokenKind.Keyword, text: 'When', format: WHEN_STYLE }],
-  [0x5f, { kind: TokenKind.Keyword, text: 'get', format: F.INCREASE_INDENT_ONCE | F.SPACE_BEFORE }],
   [0x69, { kind: TokenKind.Keyword, text: 'create', format: SPACE_BOTH }]
 ]);
 
@@ -1614,6 +1613,17 @@ export function decodeProgram(
           kind: TokenKind.Keyword, text: 'method', offset, opcode,
           format: isImplementationHeader ? FUNCTION_STYLE : NEWLINE_BEFORE_SPACE_AFTER
         });
+        continue;
+      }
+      // A property getter's implementation header carries the same extra
+      // 0x41 byte `method`'s does, between the opcode and the accessor's
+      // name -- confirmed against ADS.Common.OnExecute's real `get
+      // useFlowControl\n   /+ Returns Boolean +/\n\n   Return
+      // (GetUserOption(...) <> "Y");` (2/2 occurrences in that program).
+      // See docs/ROADMAP.md pass forty.
+      if (opcode === 0x5f) {
+        if (bytes[i] === 0x41) i++;
+        tokens.push({ kind: TokenKind.Keyword, text: 'get', offset, opcode, format: F.INCREASE_INDENT_ONCE | F.SPACE_BEFORE });
         continue;
       }
       // Application Class trailer work (pass thirteen's open item), picked
