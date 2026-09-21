@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2
+
+Marketplace fixes
+
+- GitHub URLs
+
+
 ## 0.1.0
 
 First installable build.
