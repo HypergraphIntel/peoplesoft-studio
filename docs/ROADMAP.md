@@ -1924,6 +1924,95 @@ last unmapped opcode anywhere in the 204-program corpus: coverage
 204**. Every program in the corpus now decodes with zero unmapped
 opcodes.
 
+## Pass thirty-nine: past the corpus -- decoding the whole live database
+
+204 programs is a sample, not the format. With the corpus itself fully
+clean, the only way to find what it doesn't cover is to decode everything
+else: every PeopleCode program in `SYSADM.PSPCMPROG`, not just the ones
+paired with known-correct source. That's ~121,000 programs and 390MB
+against 204 -- roughly 590x more.
+
+Two tools-only mistakes had to be found and fixed before the scan's
+output meant anything, both instructive on their own:
+
+1. **An empty `NameTable` cascades.** The first attempt skipped joining
+   `PSPCMNAME` to avoid 121k round trips, reasoning that only `0x21`/
+   `0x4a`/`0x48` need it. True, but incomplete: a *failed* reference
+   resolution doesn't consume its 2-byte operand -- it falls through to
+   the generic unknown-opcode handler, which advances past only the
+   opcode byte, leaving the 2 index bytes to be reread as fresh opcodes
+   next iteration. Every unresolved reference in a program with no names
+   at all desyncs everything downstream of it. First pass reported
+   ~200 opcodes "wrong," nearly the entire table, almost all of it this.
+   Fixed by streaming `PSPCMPROG` and `PSPCMNAME` as two cursors ordered
+   identically by the same 7-part key and merge-joining them client-side
+   -- one pass each, no per-program round trips, real names throughout.
+
+2. **`isApplicationClass` needs the last *non-blank* key part, not
+   `OBJECTVALUE7` literally.** Application Class keys are often only 3
+   parts long (`Package.Class.OnExecute`); the unused OBJECTVALUE slots
+   stay blank rather than shifting `OnExecute` down into slot 7. Checking
+   slot 7 outright silently treated most real Application Class programs
+   as plain Function programs, flooding the report with false "unmapped"
+   hits across the entire class/method family (`0x5a`-`0x64`). Fixed by
+   finding the last non-blank part -- but that alone is ambiguous, since
+   App Engine step/action PeopleCode keys *also* end in a literal
+   `OnExecute` (`Program.Section.Market.EffDate.Step.OnExecute`). Those
+   always carry a `YYYY-MM-DD` effective-date part that no Application
+   Class package/class name ever does, so excluding any key with a
+   date-shaped part tells them apart. Misclassifying a Function program
+   as a class would silently misrender real bytecode rather than just
+   flag it -- worse than the bug it replaces, so worth the extra check.
+
+With both fixed, the scan (`scripts/scan-db-opcodes.mjs`, kept as a
+reusable tool) reported real, structurally-consistent gaps -- filtering
+by each opcode's *cleanest* sample (lowest total-unmapped-count program
+it appears in, same corruption-noise discipline as every corpus pass)
+separated two genuine finds from the rest, which were either noise
+cascading off those two or too entangled with other gaps to hand-walk
+confidently yet:
+
+- **`0x20`**: a zero-width marker, always directly after a statement
+  boundary (`;` or `Then`) and directly before a real `(` opening a bare,
+  unassigned function-call statement (`(MsgGet(6540, 127, "..."));`),
+  never before a call whose result is used. 5 independent occurrences
+  across 3 programs, each the program's *only* unmapped opcode
+  (`AA_ONE_JPN_VW.ACTION_REASON_JPN.SaveEdit`, `ABSENCE_HIST.
+  ABS_RECURRENCE.SaveEdit` twice, `ABSENCE_HIST.EMPLID.RowDelete`,
+  `ABSENCE_HIST.EMPLID.SaveEdit`), zero counter-examples.
+- **`0x51`**: `Local`'s own zero-width sibling, sitting wherever `0x44`
+  does -- directly before a type and a `&var;` -- but specifically where
+  the source declares the variable with *no* scope keyword at all.
+  PeopleCode allows a bare `<type> &var;` at a program's top level
+  (implicitly `Local` scope). 8 independent single-occurrence samples,
+  and one clincher: `AE_WRK.AE_BIND_VALUE.FieldEdit` declares `Local
+  Record &MYREC;`, `Field &MYFLD;`, `Local Field &FLD;` and `Local Record
+  &REC;` back to back -- the three with an explicit `Local` decode via
+  the already-confirmed `0x44` exactly as everywhere else, and only the
+  one genuinely missing it (`Field &MYFLD;`, PeopleCode's well-known
+  implicit-current-field idiom) carries `0x51` instead.
+
+Neither opcode has a project-export source to check literally against --
+both are delivered PeopleSoft base objects, not custom OU_ code -- so
+confirmation here is structural rather than text-diffed. That's a
+different (and slightly weaker) standard than every other opcode in this
+document, worth naming plainly rather than quietly reusing the same
+"confirmed" language: it rests on volume (13 combined independent
+occurrences, zero counter-examples) and, for `0x51`, a same-program
+contrast that leaves little room for coincidence.
+
+**Shipped**: `0x20` and `0x51` added to `OPCODES`, both zero-width
+(`TokenKind.Punctuation`, empty text, `F.NONE`) exactly like `0x42`'s
+established shape. Corpus-wide: unaffected (100.00%/204 clean, neither
+opcode occurs in the corpus itself -- this is precisely why the full-database
+scan was necessary). Both re-verified directly against all 12 real DB
+programs they were hand-walked against: 0 unmapped opcodes in every one.
+
+The corrected scan (`db-scan.json`, not checked in -- reproducible via
+`scripts/scan-db-opcodes.mjs`) is the natural next investigation queue:
+its cleanest remaining samples are the next candidates once corroborated
+the same way these two were.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in

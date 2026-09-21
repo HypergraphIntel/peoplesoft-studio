@@ -244,6 +244,38 @@ export const OPCODES = new Map<number, OpcodeSpec>([
   // than needing a lookahead gate the way 0x41 below does. 491 occurrences
   // corpus-wide; see docs/ROADMAP.md pass twenty-one.
   [0x42, { kind: TokenKind.Punctuation, text: '', format: F.NONE }],
+  // Two more zero-width markers, found by decoding every program in the
+  // live database rather than just the 204-program calibration corpus (see
+  // docs/ROADMAP.md pass thirty-nine) -- neither appeared with a small
+  // enough unmapped-count anywhere in the corpus itself to stand out, but
+  // the full database turned up dozens of programs where it was the
+  // *only* unmapped opcode. Both are delivered PeopleSoft base objects
+  // with no project-export source to check literally against, so
+  // confirmation here is structural rather than text-diffed -- but on 13
+  // combined independent occurrences, zero counter-examples, with one
+  // smoking-gun case for 0x51 (below).
+  //
+  // 0x20: always sits directly after a statement boundary (`;` or `Then`)
+  // and directly before a real `(` that opens a bare, unassigned function
+  // call used as a whole statement -- `(MsgGet(6540, 127, "..."));` --
+  // never before a call whose result is used. Reads as a "this statement
+  // is just an expression" marker: PeopleCode statements are normally
+  // assignments or keyword-led, so a bare parenthesised expression
+  // apparently needs its own introducer the way `Error (...)` doesn't
+  // (`Error` itself already marks the statement).
+  [0x20, { kind: TokenKind.Punctuation, text: '', format: F.NONE }],
+  // 0x51: sits wherever 0x44 (`Local`) does -- directly before a type (a
+  // real type keyword or a bare object-type identifier like `Record`/
+  // `Field`) and a `&var;` -- but specifically where the source declares
+  // the variable with no scope keyword at all. PeopleCode allows a bare
+  // `<type> &var;` at a program's top level (implicitly Local scope); the
+  // clincher is AE_WRK.AE_BIND_VALUE.FieldEdit, which declares all four of
+  // `Local Record &MYREC;`, `Field &MYFLD;`, `Local Field &FLD;` and
+  // `Local Record &REC;` back to back -- the three with an explicit
+  // `Local` decode via 0x44 exactly as already confirmed, and only the
+  // one genuinely missing it (`Field &MYFLD;`, PeopleCode's well-known
+  // implicit-current-field idiom) carries 0x51 instead.
+  [0x51, { kind: TokenKind.Punctuation, text: '', format: F.NONE }],
 
   // try/catch/end-try (0x65/0x66/0x67): confirmed byte-for-byte against
   // WEBLIB_MSGWSDL.WSDLSUMMARY.FieldFormula, a plain record-field Function
