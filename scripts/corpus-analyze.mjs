@@ -19,7 +19,7 @@ const results = [];
 
 for (const entry of corpus) {
   const bytes = Buffer.from(entry.bytes, 'base64');
-  const result = decodeProgram(bytes, namesOf(entry));
+  const result = decodeProgram(bytes, namesOf(entry), { mode: 'auto', isApplicationClass: entry.key.type === 58 });
   const distinct = new Set(result.unknownOpcodes.map((u) => u.opcode));
   for (const op of distinct) histogram.set(op, (histogram.get(op) ?? 0) + 1);
   for (const u of result.unknownOpcodes) {

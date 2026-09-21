@@ -22,7 +22,7 @@ let textTokens = 0, textFound = 0;
 const badSamples = new Map();
 
 for (const e of corpus) {
-  const result = decodeProgram(e.buf, namesOf(e));
+  const result = decodeProgram(e.buf, namesOf(e), { mode: 'auto', isApplicationClass: e.key.type === 58 });
   totalBytes += e.buf.length;
   totalUnmapped += result.unknownOpcodes.length;
   if (result.unknownOpcodes.length === 0) clean++;

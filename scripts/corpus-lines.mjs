@@ -26,7 +26,7 @@ const clean = (s) => s.replace(/\s+/g, ' ').trim().toUpperCase();
 function measure(label) {
   let srcLines = 0, matched = 0;
   for (const e of corpus) {
-    const r = decodeProgram(e.buf, namesOf(e));
+    const r = decodeProgram(e.buf, namesOf(e), { mode: 'auto', isApplicationClass: e.key.type === 58 });
     const dec = new Set(
       r.text.split('\n').map(clean).filter((l) => l.length >= 4));
     const lines = e.source.split('\n').map(clean).filter((l) => l.length >= 4);
