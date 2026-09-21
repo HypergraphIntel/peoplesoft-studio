@@ -890,7 +890,15 @@ const QUOTED_REFERENCE_QUALIFIERS = new Map<string, string>([
   ['PAGE', 'Page'],
   ['BUSPROCESS', 'BusProcess'],
   ['BUSACTIVITY', 'BusActivity'],
-  ['BUSEVENT', 'BusEvent']
+  ['BUSEVENT', 'BusEvent'],
+  // PANEL/PANELGROUP are PeopleTools' pre-8.4x names for Page/Component,
+  // still stored under their old names in PSPCMNAME for programs compiled
+  // that far back. Confirmed against DERIVED_FP_CA.FP_CA_BTTN2.
+  // FieldChange's real `DoModalPanelGroup(MenuName."HEADCOUNT_(FP)",
+  // BarName."MDX", ItemName."CALINKS", Panel."FP_AVLBL_CA", ...)`. See
+  // docs/ROADMAP.md pass forty.
+  ['PANEL', 'Panel'],
+  ['PANELGROUP', 'PanelGroup']
 ]);
 
 /**
