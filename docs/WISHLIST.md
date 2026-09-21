@@ -2,9 +2,15 @@
 
 - When opening an object from a project and the object no longer exists render a better display than the error message its currently issuing, ask to remove from project (Yes / No).
 
-- Stub in support for Miscrosoft SQL connection
-- Stub in support for DB2
-- Stub in 3 Tier support (Application Server connection rather than database, unlocks Debug Tools)
+
+- DB Connection Types 
+    - Reference RichardWood.peoplesoft-datamover
+    - Microsoft SQL connection
+    - DB2 Unix
+    - DB2 ODBC
+
+- Application Server Connection Type
+    - 3 Tier support (Application Server connection rather than database, unlocks Debug Tools)
 
 - SQL Definition Types
 
@@ -83,7 +89,7 @@
         - Delete
             - Field
 
-- Data Mover Script
+- Data Mover Script  (link to RichardWood.peoplesoft-datamover if possible)
 - PS Query
 
 - Help
