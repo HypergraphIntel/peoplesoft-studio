@@ -1450,6 +1450,27 @@ test('the trailer is still found when a bare ; sits directly before it, no 0x2d 
   assert.equal(result.text, 'Return "";\n');
 });
 
+test('the trailer is still found when 0xc0 sits directly before it, the same role 0x2d plays elsewhere', () => {
+  // A fourth trailer-marker shape, confirmed against
+  // EOAWCOMMENT2.MAIN.GBL.default.1900-01-01.Step02.OnExecute's real
+  // trailer -- 0xc0 immediately before the 0x07, not yet understood what
+  // distinguishes it from the ordinary case.
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x38, 0x16, 0x00, 0x00,             // Return ""
+      0x15,                                 // ;
+      0xc0,                                 // stands in for 0x2d here
+      0x07,                                 // trailer marker's second byte, bare
+      ...utf16('DoThing'), 0x00, 0x00,     // dispatch-table name, no introducer
+      ...declarationRecord(0, 0, 7)
+    ]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.declarations?.[0]?.name, 'DoThing');
+  assert.equal(result.text, 'Return "";\n');
+});
+
 test('the relaxed trailer check never fires when the strict marker exists anywhere in the buffer', () => {
   // Safety gate: a comment immediately before a bare 0x07 must not preempt
   // a real strict [0x2d, 0x07] match that exists later in the same

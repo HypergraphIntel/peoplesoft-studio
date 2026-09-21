@@ -1367,6 +1367,21 @@ export function decodeProgram(
       trailerOffset = i - 1;
       break;
     }
+    // A fourth shape: 0xc0 immediately before the trailer's 0x07, the
+    // same structural role 0x2d plays elsewhere -- not yet understood
+    // what distinguishes it from the ordinary [0x2d, 0x07] case, but
+    // confirmed against EOAWCOMMENT2.MAIN.GBL.default.1900-01-01.
+    // Step02.OnExecute's real trailer (12 unmapped opcodes downstream of
+    // this one missed boundary, all cleared once found). Checked with a
+    // lookahead here, not a lookback like the `;` case above, since 0xc0
+    // is not a real opcode with a meaning of its own -- checking after
+    // the fact would already have recorded it as unmapped on its own
+    // turn through the loop. Gated the same way as the other relaxed
+    // shapes.
+    if (!hasStrictTrailerMarker && bytes[i] === 0xc0 && bytes[i + 1] === 0x07) {
+      trailerOffset = i;
+      break;
+    }
 
     const offset = i;
     const opcode = bytes[i++];
