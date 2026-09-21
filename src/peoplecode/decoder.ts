@@ -1382,6 +1382,18 @@ export function decodeProgram(
       trailerOffset = i;
       break;
     }
+    // A fifth shape: the trailer starts directly after `end-method`
+    // (0x64) with no separator at all, when a class's only method ends
+    // the whole program -- confirmed against GPDE_CT_MODULE.
+    // CT_MsgGetExplainText.OnExecute's real trailer, whose self-
+    // reference name (`GPDE_CT_MODULE:CT_MsgGetExplainText`) sits
+    // directly after the constructor's own `end-method`, no `;` in
+    // between (every other `end-method` in the corpus has one). Gated
+    // the same way as the other relaxed shapes.
+    if (!hasStrictTrailerMarker && bytes[i] === 0x07 && bytes[i - 1] === 0x64) {
+      trailerOffset = i - 1;
+      break;
+    }
 
     const offset = i;
     const opcode = bytes[i++];
