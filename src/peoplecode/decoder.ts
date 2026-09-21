@@ -251,6 +251,12 @@ export const OPCODES = new Map<number, OpcodeSpec>([
   // name -- the well-known, unambiguous PeopleCode external-library
   // syntax. See docs/ROADMAP.md pass forty-one.
   [0x33, { kind: TokenKind.Keyword, text: 'Library', format: SPACE_BOTH }],
+  // `Declare Function X Library "dllname" Alias "RealDllExportName"
+  // (...)`: when the PeopleCode-visible function name differs from the
+  // DLL's own exported symbol. Confirmed against GS_UTILS_WRK.
+  // GS_OS_FUNCS.FieldFormula's real `Declare Function CopyStringToPtr
+  // Library "kernel32" Alias "RtlMoveMemory" (...)`.
+  [0x34, { kind: TokenKind.Keyword, text: 'Alias', format: SPACE_BOTH }],
   // A DLL-declared parameter's passing mode: `(long Value As number)`
   // sits between the C-side type and the PeopleCode-side `As <type>`.
   // Confirmed against the same APPS_RLR.Utilities.OnExecute DLL
@@ -1565,7 +1571,19 @@ export function decodeProgram(
       const ref = readRecordFieldReference(bytes, i);
       const resolved = ref !== undefined ? tryResolveName(names, ref.nameNum) : undefined;
       const dot = resolved?.indexOf('.') ?? -1;
-      const display = dot > 0 ? QUOTED_REFERENCE_QUALIFIERS.get(resolved!.slice(0, dot).toUpperCase()) : undefined;
+      const qualifier = dot > 0 ? resolved!.slice(0, dot).toUpperCase() : undefined;
+      // RECORD is the one exception to the quoted-reference shape every
+      // other confirmed qualifier here uses: CreateRecord(Record.X) is
+      // conventionally unquoted, dot-joined, the exact same rendering
+      // 0x21 already gives a plain RECORD.FIELD reference -- confirmed
+      // against EOL_PUBLISH.PUBLISH2.GBL.default.1900-01-01.Step30.
+      // OnExecute's real `&DELAYREC = CreateRecord(Record.EO_EFFDELAY)`.
+      if (ref !== undefined && resolved !== undefined && qualifier === 'RECORD') {
+        tokens.push({ kind: TokenKind.Name, text: resolved, offset, opcode, format: OPERAND_FORMAT.get(0x21) ?? 0 });
+        i = ref.end;
+        continue;
+      }
+      const display = qualifier !== undefined ? QUOTED_REFERENCE_QUALIFIERS.get(qualifier) : undefined;
       if (ref !== undefined && resolved !== undefined && dot > 0 && display !== undefined) {
         tokens.push({
           kind: TokenKind.Name, text: `${display}."${resolved.slice(dot + 1)}"`, offset, opcode,

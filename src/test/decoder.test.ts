@@ -1915,6 +1915,22 @@ test('0x3b is Ref, Value\'s pass-by-reference sibling', () => {
   assert.equal(result.text, 'Ref');
 });
 
+test('0x34 is Alias, for a DLL export name that differs from the PeopleCode name', () => {
+  // Confirmed against GS_UTILS_WRK.GS_OS_FUNCS.FieldFormula's real
+  // `Declare Function CopyStringToPtr Library "kernel32" Alias
+  // "RtlMoveMemory" (...)`.
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x31, 0x32, 0x0a, ...utf16('CopyStringToPtr'), 0x00, 0x00,
+      0x33, 0x16, ...utf16('kernel32'), 0x00, 0x00,
+      0x34, 0x16, ...utf16('RtlMoveMemory'), 0x00, 0x00
+    ]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'Declare Function CopyStringToPtr Library "kernel32" Alias "RtlMoveMemory"');
+});
+
 test('0x61 is a class\'s private section header', () => {
   // Confirmed against ADS.Relation.SqlGenerator.OnExecute's real class
   // block: `method GenerateSql() Returns string;\n\nprivate\n   method
@@ -2079,4 +2095,18 @@ test('0x48 also covers Component', () => {
   const result = decodeProgram(Buffer.from([...HEADER, 0x48, 0x00, 0x00]), names);
   assert.equal(result.unknownOpcodes.length, 0);
   assert.equal(result.text, 'Component."TAX_DATA"');
+});
+
+test('0x48\'s RECORD qualifier renders unquoted, unlike every other qualifier here', () => {
+  // CreateRecord(Record.X) is conventionally unquoted, dot-joined -- the
+  // exact same rendering 0x21 already gives a plain RECORD.FIELD
+  // reference. Confirmed against EOL_PUBLISH.PUBLISH2.GBL.default.
+  // 1900-01-01.Step30.OnExecute's real `&DELAYREC =
+  // CreateRecord(Record.EO_EFFDELAY);` -- this program's only unmapped
+  // opcode.
+  const names = new NameTable();
+  names.add(1, 'RECORD.EO_EFFDELAY');
+  const result = decodeProgram(Buffer.from([...HEADER, 0x48, 0x00, 0x00]), names);
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'RECORD.EO_EFFDELAY');
 });
