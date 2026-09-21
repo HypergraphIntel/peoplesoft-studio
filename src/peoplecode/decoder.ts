@@ -1352,6 +1352,21 @@ export function decodeProgram(
       trailerOffset = i - 1;
       break;
     }
+    // A second relaxed shape, same reasoning: when the program's last
+    // real statement ends in a bare `;` with no trailing comment, the
+    // `;` itself (already `NEWLINE_AFTER`) sits directly before the
+    // trailer's 0x07 -- no separate 0x2d newline byte gets emitted
+    // between them, so the literal [0x2d, 0x07] pair never occurs.
+    // Confirmed against AE_WRK.AE_ADD_SECTION.FieldChange's real
+    // trailer (`Dup_SECTION`/`FOnBase...`, declared function names)
+    // directly after `End-If;`, with no `0x2d` in between -- previously
+    // undecodable past this point (43 unmapped opcodes downstream of
+    // this one missed boundary). Gated the same way: only when the
+    // strict marker is absent everywhere in the buffer.
+    if (!hasStrictTrailerMarker && bytes[i] === 0x07 && bytes[i - 1] === 0x15) {
+      trailerOffset = i - 1;
+      break;
+    }
 
     const offset = i;
     const opcode = bytes[i++];
