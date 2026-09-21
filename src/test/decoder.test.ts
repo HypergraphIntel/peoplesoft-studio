@@ -1043,6 +1043,25 @@ test('0x41 is a zero-width marker only immediately before And/Or, not elsewhere'
   assert.equal(elsewhere.unknownOpcodes[0].opcode, 0x41);
 });
 
+test('0x41\'s And/Or role also fires when a comment sits between it and the And/Or', () => {
+  // Confirmed against DERIVED_HS.EMPLID_LABEL.RowInit's real `If
+  // %PanelGroup = PANELGROUP.HS_INJ_ILL_REHAB\n/****Start of Resolution
+  // Id: 305302****/\nOr %Component = COMPONENT.HS_NE_INJILL_REHAB` --
+  // this program's only unmapped opcode. Same reasoning as 0x42's own
+  // trailing-comment case and the trailer-marker's: a comment already
+  // carries its own newline, so it can stand in for what usually comes
+  // right after this marker.
+  const body = utf16('/* comment */');
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x2f, 0x41, 0x24, body.length & 0xff, body.length >> 8, ...body, 0x1e, 0x30
+    ]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'True\n/* comment */\nOr\nFalse');
+});
+
 test('Declare Function ... PeopleCode ... decodes, confirmed byte-for-byte against WEBLIB_GS_CMD.ISCRIPT1', () => {
   // WEBLIB_GS_CMD.ISCRIPT1's only statement is exactly this construct, and it
   // now decodes with zero unmapped opcodes, byte for byte identical to real
@@ -2027,4 +2046,37 @@ test('a string literal with a real non-ASCII character survives whole, the same 
     new NameTable());
   assert.equal(result.unknownOpcodes.length, 0);
   assert.equal(result.text, '"£"');
+});
+
+test('0x73 is protected, private\'s own sibling section header', () => {
+  // Confirmed against ADSM.CompareDataManager.OnExecute's real trailer:
+  // right after `property integer AdsContentID_;` sits 0x73, then a doc
+  // comment whose own real text says so directly (`/* This is not
+  // public as the GetNextDiff() method will load the data as required
+  // ... */`), then `method LoadBackingData() Returns ...`. This
+  // program's only unmapped opcode.
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x5e, 0x40, ...utf16('integer'), 0x00, 0x00, 0xa, ...utf16('AdsContentID_'), 0x00, 0x00, 0x15,
+      0x73,
+      0x63, 0xa, ...utf16('LoadBackingData'), 0x00, 0x00, 0xb, 0x14, 0x15
+    ]),
+    new NameTable(), { mode: 'auto', isApplicationClass: true });
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text,
+    'property integer AdsContentID_;\n' +
+    'protected\n' +
+    'method LoadBackingData();\n');
+});
+
+test('0x48 also covers Component', () => {
+  // Confirmed against FED_TAX_DATA.EFFDT.FieldChange's real `If
+  // %Component = Component."TAX_DATA" And &IsRecordNew(RECORD.
+  // FED_TAX_DATA) Then` -- this program's only unmapped opcode.
+  const names = new NameTable();
+  names.add(1, 'COMPONENT.TAX_DATA');
+  const result = decodeProgram(Buffer.from([...HEADER, 0x48, 0x00, 0x00]), names);
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'Component."TAX_DATA"');
 });
