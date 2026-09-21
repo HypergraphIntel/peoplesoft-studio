@@ -392,6 +392,7 @@ const OPERAND_FORMAT = new Map<number, number>([
   [0x0a, F.SPACE_BEFORE],  // identifier-introducer overload of 0x0a
   [0x24, NEWLINE_BOTH],    // length-prefixed comment
   [0x4e, NEWLINE_BOTH],    // length-prefixed comment (second introducer, same shape)
+  [0x55, NEWLINE_BOTH],    // length-prefixed comment (third introducer, same shape -- <* *> style)
   [0x21, F.SPACE_BEFORE],  // name/record-field reference
   [0x50, F.SPACE_BEFORE | F.NO_SPACE_AFTER], // byte integer literal
   [0x11, F.SPACE_BEFORE | F.NO_SPACE_AFTER]  // second number-literal shape (14-byte operand)
@@ -602,6 +603,18 @@ function renderTextRun(kind: TokenKind, text: string): string {
  * distinguishes 0x24 from 0x4e -- position, comment style, some other
  * context -- is not established; both decode identically since the
  * rendered text carries its own delimiters either way.
+ *
+ * 0x55 is a third introducer, same shape again, confirmed against
+ * `WEBLIB_IB.ISCRIPT1`'s real `<* This laucnhes the Integration HUB MAP
+ * Rapid Application *>` -- a whole *different* comment delimiter style
+ * (angle-bracket-star pairs rather than slash-star), used elsewhere in the
+ * corpus to wrap blocks of disabled code that themselves already contain
+ * ordinary slash-star comments (`WEBLIB_EP_FL.ISCRIPT2`'s real source: an
+ * angle-bracket-star-wrapped `&EndPos = Find(...); If &EndPos = 0 Then ...
+ * End-If;`, several statements deep). Exact byte match: declared length
+ * 122, real text 61 characters, delimiters and all -- the stored text
+ * carries its own delimiters the same way 0x24/0x4e's own comments do.
+ * See docs/ROADMAP.md pass thirty-six.
  *
  * Unlike the null-terminated readers, every character here does NOT need
  * its own validity check: the byte length prefix already bounds the read
@@ -1237,7 +1250,7 @@ export function decodeProgram(
       // opcode would be, rather than guessing at what follows it.
     }
 
-    if (opcode === 0x24 || opcode === 0x4e) {
+    if (opcode === 0x24 || opcode === 0x4e || opcode === 0x55) {
       const comment = readLengthPrefixedText(bytes, i);
       if (comment !== undefined) {
         tokens.push({

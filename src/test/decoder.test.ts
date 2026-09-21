@@ -859,6 +859,27 @@ test('0x4e is a second length-prefixed comment introducer, same shape as 0x24', 
   assert.equal(result.text, ';\n/* fallback if the class-line parse below doesn\'t fire */\n');
 });
 
+test('0x55 is a third length-prefixed comment introducer, for <* *> style comments', () => {
+  // Confirmed against WEBLIB_IB.ISCRIPT1's real "<* This laucnhes the
+  // Integration HUB MAP Rapid Application *>": exact byte match, declared
+  // length 122, real text 61 characters, delimiters and all -- the stored
+  // text carries its own "<*"/"*>" the same way 0x24/0x4e's own comments
+  // carry their own real delimiters. This is a genuinely different comment
+  // style (angle-bracket-star, not slash-star), used elsewhere in the
+  // corpus specifically to wrap blocks of disabled code that already
+  // contain ordinary slash-star comments of their own. Reading 0x55 as
+  // unknown fell through to walking the comment's own text as opcodes,
+  // one of two causes (alongside pass thirty-two's trailer-marker fix)
+  // behind a whole cluster of unrelated-looking unmapped opcodes across
+  // nearly a dozen corpus programs -- fixing this one took coverage
+  // 99.77% -> 99.99% and clean programs 191 -> 200 of 204.
+  const body = utf16('<* disabled block *>');
+  const result = decodeProgram(
+    Buffer.from([...HEADER, 0x15, 0x55, body.length & 0xff, body.length >> 8, ...body]), new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, ';\n<* disabled block *>\n');
+});
+
 test('0x2c is End-For, decreasing indent the way End-If does', () => {
   // Confirmed by hand-walking WEBLIB_OU_LP.ISCRIPT1: an inner End-If was
   // followed by an orphan `;` on its own line -- 0x2c reported as unknown

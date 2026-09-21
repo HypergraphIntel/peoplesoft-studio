@@ -13,159 +13,68 @@ since fewer *other* unmapped bytes obscure the real source around this one.
 
 ## 0x00
 
-11 programs, 3386 occurrences total.
+1 programs, 120 occurrences total.
 
 | program | type | bytes | this opcode | total unmapped |
 |---|---|---|---|---|
-| WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 53 | 88 |
-| WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 72 | 126 |
 | WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 120 | 183 |
-| WEBLIB_EP_FL.ISCRIPT2.FieldFormula | Function | 1620 | 183 | 296 |
-| WEBLIB_PTNUI.PT_BUTTON_PIN.FieldFormula | Function | 49599 | 204 | 353 |
-| WEBLIB_EOAW.EOAW_MON_ADHOC_NUI.FieldFormula | Function | 50566 | 359 | 604 |
-| OU_JET_PACK.ROADMAP | App Class | 15489 | 424 | 668 |
-| WEBLIB_PT_NAV.ISCRIPT1.FieldFormula | Function | 53391 | 431 | 682 |
-| WEBLIB_PTBR.ISCRIPT1.FieldFormula | Function | 15683 | 490 | 831 |
-| WEBLIB_GS_QRY.ISCRIPT1.FieldFormula | Function | 27593 | 544 | 880 |
-| WEBLIB_PTAI.ISCRIPT1.FieldFormula | Function | 36701 | 506 | 880 |
 
 ## 0x20
 
-11 programs, 681 occurrences total.
+1 programs, 15 occurrences total.
 
 | program | type | bytes | this opcode | total unmapped |
 |---|---|---|---|---|
-| WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 7 | 88 |
-| WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 16 | 126 |
 | WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 15 | 183 |
-| WEBLIB_EP_FL.ISCRIPT2.FieldFormula | Function | 1620 | 42 | 296 |
-| WEBLIB_PTNUI.PT_BUTTON_PIN.FieldFormula | Function | 49599 | 39 | 353 |
-| WEBLIB_EOAW.EOAW_MON_ADHOC_NUI.FieldFormula | Function | 50566 | 46 | 604 |
-| OU_JET_PACK.ROADMAP | App Class | 15489 | 38 | 668 |
-| WEBLIB_PT_NAV.ISCRIPT1.FieldFormula | Function | 53391 | 92 | 682 |
-| WEBLIB_PTBR.ISCRIPT1.FieldFormula | Function | 15683 | 135 | 831 |
-| WEBLIB_GS_QRY.ISCRIPT1.FieldFormula | Function | 27593 | 73 | 880 |
-| WEBLIB_PTAI.ISCRIPT1.FieldFormula | Function | 36701 | 178 | 880 |
 
 ## 0x6e
 
-11 programs, 108 occurrences total.
+1 programs, 4 occurrences total.
 
 | program | type | bytes | this opcode | total unmapped |
 |---|---|---|---|---|
-| WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 4 | 88 |
-| WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 3 | 126 |
 | WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 4 | 183 |
-| WEBLIB_EP_FL.ISCRIPT2.FieldFormula | Function | 1620 | 4 | 296 |
-| WEBLIB_PTNUI.PT_BUTTON_PIN.FieldFormula | Function | 49599 | 11 | 353 |
-| WEBLIB_EOAW.EOAW_MON_ADHOC_NUI.FieldFormula | Function | 50566 | 6 | 604 |
-| OU_JET_PACK.ROADMAP | App Class | 15489 | 13 | 668 |
-| WEBLIB_PT_NAV.ISCRIPT1.FieldFormula | Function | 53391 | 15 | 682 |
-| WEBLIB_PTBR.ISCRIPT1.FieldFormula | Function | 15683 | 25 | 831 |
-| WEBLIB_GS_QRY.ISCRIPT1.FieldFormula | Function | 27593 | 15 | 880 |
-| WEBLIB_PTAI.ISCRIPT1.FieldFormula | Function | 36701 | 8 | 880 |
 
 ## 0x70
 
-11 programs, 37 occurrences total.
+1 programs, 1 occurrences total.
 
 | program | type | bytes | this opcode | total unmapped |
 |---|---|---|---|---|
-| WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 1 | 88 |
-| WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 2 | 126 |
 | WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 1 | 183 |
-| WEBLIB_EP_FL.ISCRIPT2.FieldFormula | Function | 1620 | 2 | 296 |
-| WEBLIB_PTNUI.PT_BUTTON_PIN.FieldFormula | Function | 49599 | 3 | 353 |
-| WEBLIB_EOAW.EOAW_MON_ADHOC_NUI.FieldFormula | Function | 50566 | 2 | 604 |
-| OU_JET_PACK.ROADMAP | App Class | 15489 | 5 | 668 |
-| WEBLIB_PT_NAV.ISCRIPT1.FieldFormula | Function | 53391 | 2 | 682 |
-| WEBLIB_PTBR.ISCRIPT1.FieldFormula | Function | 15683 | 9 | 831 |
-| WEBLIB_GS_QRY.ISCRIPT1.FieldFormula | Function | 27593 | 9 | 880 |
-| WEBLIB_PTAI.ISCRIPT1.FieldFormula | Function | 36701 | 1 | 880 |
 
 ## 0x6f
 
-11 programs, 84 occurrences total.
+1 programs, 4 occurrences total.
 
 | program | type | bytes | this opcode | total unmapped |
 |---|---|---|---|---|
-| WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 2 | 88 |
-| WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 1 | 126 |
 | WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 4 | 183 |
-| WEBLIB_EP_FL.ISCRIPT2.FieldFormula | Function | 1620 | 2 | 296 |
-| WEBLIB_PTNUI.PT_BUTTON_PIN.FieldFormula | Function | 49599 | 13 | 353 |
-| WEBLIB_EOAW.EOAW_MON_ADHOC_NUI.FieldFormula | Function | 50566 | 12 | 604 |
-| OU_JET_PACK.ROADMAP | App Class | 15489 | 15 | 668 |
-| WEBLIB_PT_NAV.ISCRIPT1.FieldFormula | Function | 53391 | 7 | 682 |
-| WEBLIB_PTBR.ISCRIPT1.FieldFormula | Function | 15683 | 14 | 831 |
-| WEBLIB_GS_QRY.ISCRIPT1.FieldFormula | Function | 27593 | 6 | 880 |
-| WEBLIB_PTAI.ISCRIPT1.FieldFormula | Function | 36701 | 8 | 880 |
 
 ## 0x73
 
-10 programs, 117 occurrences total.
+0 programs, 0 occurrences total.
 
-| program | type | bytes | this opcode | total unmapped |
-|---|---|---|---|---|
-| WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 2 | 88 |
-| WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 6 | 126 |
-| WEBLIB_EP_FL.ISCRIPT2.FieldFormula | Function | 1620 | 8 | 296 |
-| WEBLIB_PTNUI.PT_BUTTON_PIN.FieldFormula | Function | 49599 | 13 | 353 |
-| WEBLIB_EOAW.EOAW_MON_ADHOC_NUI.FieldFormula | Function | 50566 | 17 | 604 |
-| OU_JET_PACK.ROADMAP | App Class | 15489 | 13 | 668 |
-| WEBLIB_PT_NAV.ISCRIPT1.FieldFormula | Function | 53391 | 3 | 682 |
-| WEBLIB_PTBR.ISCRIPT1.FieldFormula | Function | 15683 | 14 | 831 |
-| WEBLIB_GS_QRY.ISCRIPT1.FieldFormula | Function | 27593 | 19 | 880 |
-| WEBLIB_PTAI.ISCRIPT1.FieldFormula | Function | 36701 | 22 | 880 |
+(none)
 
 ## 0x74
 
-10 programs, 168 occurrences total.
+1 programs, 3 occurrences total.
 
 | program | type | bytes | this opcode | total unmapped |
 |---|---|---|---|---|
-| WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 4 | 88 |
-| WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 3 | 126 |
 | WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 3 | 183 |
-| WEBLIB_PTNUI.PT_BUTTON_PIN.FieldFormula | Function | 49599 | 13 | 353 |
-| WEBLIB_EOAW.EOAW_MON_ADHOC_NUI.FieldFormula | Function | 50566 | 21 | 604 |
-| OU_JET_PACK.ROADMAP | App Class | 15489 | 21 | 668 |
-| WEBLIB_PT_NAV.ISCRIPT1.FieldFormula | Function | 53391 | 11 | 682 |
-| WEBLIB_PTBR.ISCRIPT1.FieldFormula | Function | 15683 | 39 | 831 |
-| WEBLIB_GS_QRY.ISCRIPT1.FieldFormula | Function | 27593 | 25 | 880 |
-| WEBLIB_PTAI.ISCRIPT1.FieldFormula | Function | 36701 | 28 | 880 |
 
 ## 0x72
 
-11 programs, 103 occurrences total.
+1 programs, 1 occurrences total.
 
 | program | type | bytes | this opcode | total unmapped |
 |---|---|---|---|---|
-| WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 1 | 88 |
-| WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 2 | 126 |
 | WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 1 | 183 |
-| WEBLIB_EP_FL.ISCRIPT2.FieldFormula | Function | 1620 | 2 | 296 |
-| WEBLIB_PTNUI.PT_BUTTON_PIN.FieldFormula | Function | 49599 | 10 | 353 |
-| WEBLIB_EOAW.EOAW_MON_ADHOC_NUI.FieldFormula | Function | 50566 | 10 | 604 |
-| OU_JET_PACK.ROADMAP | App Class | 15489 | 9 | 668 |
-| WEBLIB_PT_NAV.ISCRIPT1.FieldFormula | Function | 53391 | 16 | 682 |
-| WEBLIB_PTBR.ISCRIPT1.FieldFormula | Function | 15683 | 9 | 831 |
-| WEBLIB_GS_QRY.ISCRIPT1.FieldFormula | Function | 27593 | 30 | 880 |
-| WEBLIB_PTAI.ISCRIPT1.FieldFormula | Function | 36701 | 13 | 880 |
 
 ## 0x6c
 
-10 programs, 73 occurrences total.
+0 programs, 0 occurrences total.
 
-| program | type | bytes | this opcode | total unmapped |
-|---|---|---|---|---|
-| WEBLIB_IB.ISCRIPT1.FieldFormula | Function | 2519 | 2 | 88 |
-| WEBLIB_GS_2FA.ISCRIPT1.FieldFormula | Function | 4194 | 2 | 126 |
-| WEBLIB_EP_FL.ISCRIPT2.FieldFormula | Function | 1620 | 3 | 296 |
-| WEBLIB_PTNUI.PT_BUTTON_PIN.FieldFormula | Function | 49599 | 10 | 353 |
-| WEBLIB_EOAW.EOAW_MON_ADHOC_NUI.FieldFormula | Function | 50566 | 11 | 604 |
-| OU_JET_PACK.ROADMAP | App Class | 15489 | 11 | 668 |
-| WEBLIB_PT_NAV.ISCRIPT1.FieldFormula | Function | 53391 | 5 | 682 |
-| WEBLIB_PTBR.ISCRIPT1.FieldFormula | Function | 15683 | 7 | 831 |
-| WEBLIB_GS_QRY.ISCRIPT1.FieldFormula | Function | 27593 | 11 | 880 |
-| WEBLIB_PTAI.ISCRIPT1.FieldFormula | Function | 36701 | 11 | 880 |
+(none)
