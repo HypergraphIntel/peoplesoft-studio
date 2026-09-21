@@ -3,7 +3,7 @@
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, App Engine, SQL) directly in VS Code.",
   "version": "0.1.0",
-  "publisher": "peoplesoft-studio",
+  "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
     "vscode": "^1.90.0"
@@ -12,6 +12,7 @@
     "Programming Languages",
     "Other"
   ],
+  "icon": "./resources/ad-slash.png",
   "activationEvents": [
     "onFileSystem:psft"
   ],
@@ -292,10 +293,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/noodlesploder/peoplesoft-studio.git"
+    "url": "https://github.com/HypergraphIntel/peoplesoft-studio.git"
   },
   "bugs": {
-    "url": "https://github.com/noodlesploder/peoplesoft-studio/issues"
+    "url": "https://github.com/HypergraphIntel/peoplesoft-studio/issues"
   },
   "keywords": [
     "peoplesoft",
