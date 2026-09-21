@@ -285,6 +285,30 @@ test('a decimal number literal is the same field with a scale byte, not a separa
     decodeProgram(Buffer.from([...HEADER, ...scaled(2, 5n)]), new NameTable()).text, '0.05');
 });
 
+test('0x11\'s own number-literal shape reads its value from offset+4, not +2', () => {
+  // Confirmed against OU_RC_PAYINIT.CHKADV_NO_THRU.SaveEdit's real
+  // `MsgGet(2000, 420, "...")`: two consecutive 0x11 literals, real
+  // PSMSGCATDEFN values (MESSAGE_SET_NBR 2000, MESSAGE_NBR 420),
+  // confirmed byte-for-byte only by reading from offset+4 -- two extra
+  // always-zero bytes this shape carries that 0x50's own layout doesn't.
+  // Previously an open question (adopted from PeopleCodeParser.java,
+  // "not yet independently confirmed a sample of").
+  const num14 = (n: number) => {
+    const bytes = [0x11, 0x00, 0x00, 0x00, 0x00];
+    for (let i = 0; i < 10; i++) { bytes.push(n & 0xff); n = n >> 8; }
+    return bytes;
+  };
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0xa, ...utf16('MsgGet'), 0x00, 0x00, 0xb,
+      ...num14(2000), 0x3, ...num14(420), 0x14
+    ]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'MsgGet(2000, 420)');
+});
+
 test('a plain function-call identifier decodes the same way AddOnLoadScript did', () => {
   const result = decodeProgram(SAVE_PRE_CHANGE_BYTES, codeNames());
   assert.ok(result.text.includes('WinMessage("Test")'));

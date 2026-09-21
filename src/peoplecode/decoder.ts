@@ -591,15 +591,19 @@ function readByteIntegerLiteral(
   start: number,
   operandLength: number,
   valueBytes: number,
-  allowScale: boolean
+  allowScale: boolean,
+  valueOffset: number = 2
 ): { text: string; end: number } | undefined {
   if (start + operandLength > bytes.length) return undefined;
   if (bytes[start] !== 0x00) return undefined;
   const scale = bytes[start + 1];
   if (scale !== 0x00 && !allowScale) return undefined;
+  for (let j = start + 2; j < start + valueOffset; j++) {
+    if (bytes[j] !== 0x00) return undefined;
+  }
   let value = 0n;
-  for (let j = valueBytes - 1; j >= 0; j--) value = (value << 8n) | BigInt(bytes[start + 2 + j]);
-  for (let j = start + 2 + valueBytes; j < start + operandLength; j++) {
+  for (let j = valueBytes - 1; j >= 0; j--) value = (value << 8n) | BigInt(bytes[start + valueOffset + j]);
+  for (let j = start + valueOffset + valueBytes; j < start + operandLength; j++) {
     if (bytes[j] !== 0x00) return undefined;
   }
   return { text: formatScaled(value, scale), end: start + operandLength };
@@ -1417,8 +1421,17 @@ export function decodeProgram(
 
     if (opcode === 0x50 || opcode === 0x11) {
       const operandLength = opcode === 0x50 ? 18 : 14;
-      const valueBytes = opcode === 0x50 ? 16 : 1;
-      const literal = readByteIntegerLiteral(bytes, i, operandLength, valueBytes, opcode === 0x50);
+      // 0x11's own value doesn't start at the usual offset+2 -- confirmed
+      // against OU_RC_PAYINIT.CHKADV_NO_THRU.SaveEdit's real
+      // `MsgGet(2000, 420, ...)`: two consecutive 0x11 literals, real
+      // PSMSGCATDEFN values (MESSAGE_SET_NBR 2000, MESSAGE_NBR 420) found
+      // only by reading from offset+4, not +2 -- two extra always-zero
+      // bytes this shape carries that 0x50's doesn't. This project's own
+      // prior note called 0x11 "not yet independently confirmed"; this is
+      // that confirmation. See docs/ROADMAP.md pass forty-three.
+      const valueOffset = opcode === 0x50 ? 2 : 4;
+      const valueBytes = opcode === 0x50 ? 16 : (14 - valueOffset);
+      const literal = readByteIntegerLiteral(bytes, i, operandLength, valueBytes, opcode === 0x50, valueOffset);
       if (literal !== undefined) {
         tokens.push({
           kind: TokenKind.NumberLiteral, text: literal.text, offset, opcode,
