@@ -1135,9 +1135,45 @@ export function decodeProgram(
     i = HEADER_LENGTH;
   }
 
+  // Whether the literal, strict marker exists anywhere in this buffer at
+  // all -- computed once, up front, purely so the relaxed check just below
+  // can never fire on a program the strict check already handles
+  // correctly. 185 of 204 corpus programs have it; the relaxed check
+  // below is scoped to (a small few of) the other 19.
+  const hasStrictTrailerMarker = bytes.indexOf(Buffer.from(TRAILER_MARKER), i) !== -1;
+
   while (i < bytes.length) {
     if (bytes[i] === TRAILER_MARKER[0] && bytes[i + 1] === TRAILER_MARKER[1]) {
       trailerOffset = i;
+      break;
+    }
+    // The trailer's marker is normally 0x2d immediately followed by 0x07,
+    // with the name run starting fresh right after both bytes -- but when
+    // the program's last real statement is followed by a trailing comment
+    // before the trailer begins, the comment's own bytes sit between the
+    // last real newline and the trailer's 0x07, so the literal
+    // [0x2d, 0x07] pair never occurs adjacently anywhere in the buffer.
+    // Confirmed against `WEBLIB_QUERY.ISCRIPT1` (real source:
+    // `End-Function;\n\n/* 1746200000 */\nFunction IScript_ToXML();`) --
+    // comments already carry their own newline (`NEWLINE_BOTH` in
+    // `OPERAND_FORMAT`), so one immediately preceding an otherwise-bare
+    // 0x07 plays the same role a literal 0x2d does elsewhere; the name
+    // run afterwards (here, `IScript_ToExcel` then `IScript_ToXML`, both
+    // declared functions) needs no separate empty-name marker of its own
+    // to start, exactly like the ordinary case. `trailerOffset` is set to
+    // `i - 1`, one byte *before* this 0x07, purely so
+    // {@link decodeDeclarations}'s `runStart = trailerOffset + 2` still
+    // lands right after it -- there is no real byte at `i - 1` to read.
+    // Gated on the strict marker being entirely absent from the buffer,
+    // so this can never preempt a real strict match earlier in a program
+    // that also happens to contain this exact byte shape somewhere later
+    // (an ordinary mid-stream bare 0x07, confirmed to occur ~900 times
+    // corpus-wide for reasons unrelated to the trailer). Recovers the
+    // declaration-name trailer -- both declared functions, each
+    // byte-for-byte correct -- for `WEBLIB_QUERY.ISCRIPT1`, previously
+    // undecodable past this point. See docs/ROADMAP.md pass thirty-two.
+    if (!hasStrictTrailerMarker && bytes[i] === 0x07 && tokens[tokens.length - 1]?.kind === TokenKind.Comment) {
+      trailerOffset = i - 1;
       break;
     }
 

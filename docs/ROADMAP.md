@@ -1576,6 +1576,62 @@ is **9/9 (100%)**.
 **Shipped: `0x6e` = `Continue`, gated on the next byte being `0x15`.**
 Coverage barely moved (a rare opcode) but **clean programs 174 → 180**.
 
+## Pass thirty-two: the 0x70/0x6f/0x73/0x74/0x72/0x6c cluster was one bug
+
+The tracker's own observation -- that this cluster of six opcodes shares
+almost the exact same program list and never appears in a cleanly-
+decoding program -- turned out to be exactly right, but not because
+they're a real shared construct. They're the same kind of misread-text
+garbage pass twenty's `0x4e` fix and this session's `WEBLIB_EOAW.
+EOAW_MON_ADHOC_NUI` desync both already hit: real UTF-16LE text (in this
+case, the trailer's own declared-name run) being walked byte by byte as
+if each character pair were an opcode. `0x70`/`0x6f`/`0x73`/`0x74`/
+`0x72`/`0x6c` are ASCII `p`/`o`/`s`/`t`/`r`/`l` -- letters that happen to
+also collide with real single-byte opcodes, which is why the cluster
+looked coherent: it's six different letters of the same handful of
+real words (`Script`, `Component`, `import`, ...) each misfiring against
+whatever opcode its own ASCII value happens to equal.
+
+**Root cause: `TRAILER_MARKER` detection requires the literal two-byte
+sequence `[0x2d, 0x07]` adjacently in the byte stream, but when the
+program's last real statement is followed by a trailing comment before
+the trailer begins, the comment's own bytes sit between the last real
+newline and the trailer's `0x07` -- so that literal pair never occurs.**
+Confirmed against `WEBLIB_QUERY.ISCRIPT1` (46 unmapped opcodes, real
+source `End-Function;\n\n/* 1746200000 */\nFunction IScript_ToXML();`):
+hand-walked the exact bytes and found the trailer's own name run
+(`IScript_ToExcel`, `IScript_ToXML` -- both real declared functions)
+sitting right where the "unmapped cluster" was, immediately after the
+comment, with no `0x2d` anywhere nearby -- the comment already carries
+its own newline formatting, so the compiler evidently doesn't need a
+separate one before the trailer in this case.
+
+**Shipped**: a second, relaxed trailer check -- `0x07` immediately
+preceded by an already-decoded Comment token counts as the trailer too.
+Gated on the literal strict marker being entirely absent from the whole
+buffer (checked once, up front), so it can never preempt a real strict
+match that exists later in a program which also happens to contain this
+exact byte shape somewhere earlier for an unrelated reason (an ordinary
+mid-stream bare `0x07`, ~900 occurrences corpus-wide, already established
+as a real but different construct).
+
+Found and fixed all five corpus programs this affected (of the 19 total
+lacking the strict marker; the other 14 are simply too short to declare
+anything, the already-established baseline): **all five now decode with
+zero unmapped opcodes**, including two that were nowhere near "clean" by
+any other measure -- `WEBLIB_CTI.ISCRIPT2` (56 → 0) and `WEBLIB_GS_UTIL.
+ISCRIPT1` (188 → 0). Coverage 98.79% → 98.79% (rounds the same at two
+decimal places on this small a byte count), **clean programs 180 → 185**.
+Regenerating `docs/unmapped-opcodes.md` after this fix shows the cluster
+shrink from 16/16/14/14/14/13 programs to 13/13/12/12/12/11 -- the
+residual is a second, still-unidentified cause behind the same symptom,
+not fully explained by this one bug.
+
+The lesson: a coherent-looking "shared construct" hypothesis, formed
+purely from co-occurrence data before touching any bytes, was worth
+exactly one hand-walk to falsify -- the six opcodes were never related to
+each other at all, only to the same single boundary-detection gap.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in
