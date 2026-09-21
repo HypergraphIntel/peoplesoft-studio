@@ -9,7 +9,7 @@ investigation pass has real byte-for-byte samples to start from.
 Regenerate after any decoder change or database rescan:
 `node scripts/scan-db-opcodes.mjs <out.json> && node scripts/track-db-opcodes.mjs <out.json> docs/unmapped-opcodes.md`.
 
-Scanned 121028 programs (119786 clean, 0 broken/incomplete), 44551 unmapped opcode occurrences total across 166 distinct opcodes.
+Scanned 121028 programs (119786 clean, 0 broken/incomplete), 44484 unmapped opcode occurrences total across 166 distinct opcodes.
 
 Sorted by each opcode's own single cleanest sample (lowest total-unmapped-
 count program it occurs in, ascending) -- the opcodes at the top are the
@@ -22,18 +22,18 @@ pass thirty-nine did for 0x20/0x51/0x60.
 
 | opcode | occurrences | cleanest sample | offset | that program's total unmapped |
 |---|---|---|---|---|
-| 0xc0 | 32 | EOAWCOMMENT2.MAIN.GBL.default.1900-01-01.Step02.OnExecute | 2641 | 12 |
 | 0x50 | 8 | PSXP_ENGINE.Watermark.OnExecute | 1001 | 12 |
-| 0x5f | 10 | VC_AWARD.VC_MODIFIER.FieldEdit | 3982 | 85 |
-| 0x63 | 7 | VC_AWARD.VC_MODIFIER.FieldEdit | 3988 | 85 |
-| 0x64 | 7 | VC_AWARD.VC_MODIFIER.FieldEdit | 3984 | 85 |
-| 0x72 | 6 | VC_AWARD.VC_MODIFIER.FieldEdit | 4014 | 85 |
-| 0x61 | 5 | VC_AWARD.VC_MODIFIER.FieldEdit | 4026 | 85 |
+| 0xc0 | 13 | DCAW25134309.MAIN.GBL.default.1900-01-01.Step01.OnExecute | 6444 | 15 |
+| 0x5f | 10 | FUNCLIB_ADJ.EMPLID.FieldFormula | 1415 | 67 |
+| 0x63 | 7 | FUNCLIB_ADJ.EMPLID.FieldFormula | 1423 | 67 |
+| 0x64 | 7 | FUNCLIB_ADJ.EMPLID.FieldFormula | 1425 | 67 |
+| 0x72 | 6 | FUNCLIB_ADJ.EMPLID.FieldFormula | 1421 | 67 |
+| 0x49 | 2 | FUNCLIB_ADJ.EMPLID.FieldFormula | 1443 | 67 |
+| 0x71 | 1 | FUNCLIB_ADJ.EMPLID.FieldFormula | 1417 | 67 |
+| 0x61 | 5 | VC_AWARD.VC_MODIFIER.FieldEdit | 4026 | 75 |
 | 0x6f | 9 | GPBR_EH_1070.MAIN.GBL.default.1900-01-01.Step05.OnExecute | 26203 | 90 |
 | 0x70 | 4 | GPBR_EH_1070.MAIN.GBL.default.1900-01-01.Step05.OnExecute | 26169 | 90 |
-| 0x49 | 2 | GPBR_EH_1070.MAIN.GBL.default.1900-01-01.Step05.OnExecute | 26181 | 90 |
 | 0x22 | 28 | GP_MPSLP.UTILITIES.FormatCurrency.OnExecute | 1773 | 91 |
-| 0x71 | 1 | FUNCLIB_ADJ.EMPLID.FieldFormula | 1417 | 92 |
 | 0x21 | 3 | HRS_COMMON.COMMON.UTIL.EmailAddress.OnExecute | 3793 | 101 |
 | 0x24 | 13 | GPDE_CT_MODULE.CT_MsgGetExplainText.OnExecute | 966 | 106 |
 | 0x4a | 47 | GPIN_SS_F16_RPT.AdditionalFunctions.OnExecute | 5396 | 109 |
@@ -62,14 +62,14 @@ pass thirty-nine did for 0x20/0x51/0x60.
 | 0x5d | 1 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 50317 | 118 |
 | 0x60 | 1 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 50628 | 118 |
 | 0x55 | 84 | EOCC_MASK_CONFIG.EOCC_MASK_PROFILE.OnExecute | 8113 | 120 |
-| 0x62 | 3 | FO_TL_PREPOP.OPRID.SavePreChange | 19201 | 132 |
+| 0x62 | 3 | FO_TL_PREPOP.OPRID.SavePreChange | 19201 | 126 |
 | 0x8f | 7 | PTCS_DROPZONE.DZPage.OnExecute | 7676 | 138 |
 | 0x31 | 23 | GP_ABS_CS_TMPL.TMPL.absTmplRecordNotFoundEx.OnExecute | 1971 | 140 |
 | 0x7a | 30 | HCR_PERSON_SERVICES.IdentificationData.DeleteCitizenship_v1_0.DeleteCitizenship.OnExecute | 997 | 153 |
 | 0x17 | 13 | G3DATA_POOL.PoolRowset.OnExecute | 2276 | 158 |
 | 0xa3 | 2 | PT_FEEDMGR.DatatypeServiceOperation.OnExecute | 1774 | 206 |
+| 0x34 | 24 | EOL_PUBLISH.PUBLANG2.GBL.default.1900-01-01.Step10.OnExecute | 27633 | 219 |
 | 0x8d | 5 | HRS_INDEX_CONTROL.JobOpeningRTI.OnExecute | 9099 | 233 |
-| 0x34 | 24 | EOL_PUBLISH.PUBLANG2.GBL.default.1900-01-01.Step10.OnExecute | 27633 | 235 |
 | 0x87 | 9 | EP_NOTES_FUNCTIONS.ESS.OnExecute | 19046 | 238 |
 | 0xa0 | 5 | EP_NOTES_FUNCTIONS.ESS.OnExecute | 19062 | 238 |
 | 0x7f | 4 | GPDE_EGOV_XML.RunControl.OnExecute | 4599 | 241 |
@@ -130,7 +130,7 @@ pass thirty-nine did for 0x20/0x51/0x60.
 | 0xc7 | 3 | BNE_OPEN_ENROLL_FL.Object.Resource.OnExecute | 17681 | 364 |
 | 0xbe | 2 | BNE_OPEN_ENROLL_FL.Object.Resource.OnExecute | 17665 | 364 |
 | 0xf5 | 1 | BNE_OPEN_ENROLL_FL.Object.Resource.OnExecute | 17713 | 364 |
-| 0x0 | 35281 | ADSM.ADSMSecurity.OnExecute | 3659 | 378 |
+| 0x0 | 35233 | ADSM.ADSMSecurity.OnExecute | 3659 | 378 |
 | 0x73 | 2030 | ADSM.ADSMSecurity.OnExecute | 3746 | 378 |
 | 0x74 | 1259 | ADSM.ADSMSecurity.OnExecute | 3680 | 378 |
 | 0x53 | 465 | ADSM.ADSMSecurity.OnExecute | 3664 | 378 |
