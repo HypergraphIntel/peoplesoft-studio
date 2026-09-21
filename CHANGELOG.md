@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3
+
+- README.md modified for VS Marketplace
+- Added DEVELOPER.md
+
 ## 0.1.2
 
 Marketplace fixes
