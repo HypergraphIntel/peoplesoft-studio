@@ -1431,14 +1431,109 @@ DVMEError` itself goes from `declarations: undefined` to all 11 of its
 real methods, correct in full, none of its 3 properties or its own
 self-reference mistaken for one.
 
-Still open: the App-Class-typed return/property value encoding itself
-(what `0x801c4` means for the `&_DvmFunc` property, or what a method
-returning an App Class type would encode as its own `kind`), and the
-colon-qualified imported-class reference's own record format, if it has
-one at all -- unlike the plain-Function case, this pass found no evidence
-`EOTF_CORE:DVM:Functions` gets a record of its own anywhere, only a
-name-run entry other records' `kind` fields presumably point back into
-somehow, not yet worked out.
+Still open at the end of pass twenty-nine: the App-Class-typed return/
+property value encoding itself (what `0x801c4` means for the
+`&_DvmFunc` property, or what a method returning an App Class type would
+encode as its own `kind`), and the colon-qualified imported-class
+reference's own record format, if it has one at all -- unlike the
+plain-Function case, this pass found no evidence `EOTF_CORE:DVM:
+Functions` gets a record of its own anywhere, only a name-run entry
+other records' `kind` fields presumably point back into somehow, not yet
+worked out.
+
+## Pass thirty: both of pass twenty-nine's open items, plus the "still-unlocated table"
+
+The user asked to keep going. Gathering one more real sample to answer
+"does a colon-qualified type reference get its own record" -- pulling
+`OU_JET_PACK.Storage.DesignRepository`'s trailer, which has one
+(`OU_JET_PACK:Model:PageDesign`, referenced four separate times: a
+property's type, a method parameter's type, and two method return
+types) -- answered both of pass twenty-nine's open items in one motion
+and, chasing the pattern further, cracked pass nineteen's own
+"still-unlocated" second table too.
+
+**An Application-Class return/property type is not a fixed code at all
+-- it's a back-reference to a specific occurrence of the type's own name
+in this same trailer's name run.** `REF_PageDesign`'s property kind
+(`0x80162`), `Load`'s return kind (`0x8017f`), and `ListHeaders`'s
+`array of` return kind (`0x18019c`) all point at *different* occurrences
+of the identical text `OU_JET_PACK:Model:PageDesign` -- stripping
+`OBJECT_RETURN_TYPE_FLAG` leaves `0x162`/`0x17f`/`0x19c` (354/383/412),
+and subtracting a constant `256` from each lands exactly on that name's
+1st/2nd/3rd charOffset in the run (98/127/156) -- confirmed a fourth time
+against `OUBanner`'s own self-reference record, whose `kind` (when the
+class `extends` something) points at the base class's own name the same
+way (`0x8013c` → charOffset 60, `OU_JET_PACK:Widgets:BaseWidget`'s first
+occurrence), and a `no base class` program's self-reference (`DVMEError`,
+`DesignRepository`) shows the ordinary `7` sentinel there instead. This
+also directly answers "does the colon name get its own record": **no** --
+it's referenced positionally, by charOffset, not through any record of
+its own; there was nothing to decode there because there was nothing
+there to decode.
+
+Why a back-reference and not a direct code: the same type name can
+legitimately appear more than once in one program (once per place it's
+referenced), and different occurrences are NOT interchangeable -- this is
+what a fixed enum could never express, but a name-run charOffset always
+disambiguates for free, since the run already exists for the plain-name
+case. **Shipped**: `decodeReturnType` takes an optional `classNames`
+list; when `OBJECT_RETURN_TYPE_FLAG`'s sub-code is `0x100` or higher, it's
+read as `0x100 + charOffset` and resolved against the trailer's own name
+run (not just the filtered, colon-stripped one `decodeDeclarations`
+builds its record table from -- a new `allNames` list keeping every
+entry). Checked corpus-wide against real `Returns` clause text, not a
+loose presence check: **38/38 (100%)**.
+
+**The dispatch-slot table pass nineteen called "further, still-unlocated"
+is a flat run of one 4-byte slot per parameter, immediately after the
+declaration-name record table, plus one terminator slot per declaration
+that's always exactly `7`.** This is exactly what the already-confirmed
+"second field" (a running total of `1 + paramCount` per declaration with
+an explicit parameter list) was always a slot *offset* into -- pass
+nineteen named its existence and offset formula but never located the
+table itself. Verified two ways:
+
+- **Size**: for every multi-declaration program in the corpus, computing
+  the total slot count implied by its declarations' own real parameter
+  lists (ground truth from source, not the trailer) and multiplying by 4
+  matched the trailer's real remaining byte count after the record table
+  exactly for **106 of 106 valid samples** (2 apparent exceptions are
+  both the same already-known-stale `WEBLIB_OU_LP.ISCRIPT1` duplicate
+  export). Every single trailer's remaining byte count divides evenly by
+  4 -- zero exceptions -- which alone was already suspicious in exactly
+  the right way.
+- **Content**: each parameter's own slot decodes through the *identical*
+  type-code vocabulary `decodeReturnType` already has -- confirmed against
+  a real mixed four-type signature, `addNonNPSAction(&rsActions As
+  Rowset, &ruleNode As XmlNode, &ruleId As string, &nCurrent As integer)`,
+  whose four slots decoded to `Rowset`, `XmlNode`, `string`, `integer` in
+  order, exactly. A `Function` declaration's own parameter slots carry two
+  extra set bits (`0xc0000000`) a `method` declaration's slots never do --
+  some flag not otherwise understood, masked off before decoding since it
+  never collides with a real type code either way.
+
+**Shipped**: `Declaration.parameterTypes?: (string | undefined)[]`,
+decoded by the new `decodeParameterTypes`, refusing the whole array
+(not a partial guess) when the slots don't fit the buffer or the
+terminator isn't exactly `7`. Checked corpus-wide against every
+parameter's real declared type: **401/402 (99.75%)**, the one exception
+traced by hand to the validation script's own ground-truth lookup
+matching the wrong one of two same-named `Function` overloads in a
+single program's source, not a decoder error. This pass's own
+mixed-type sample turned up three real type codes this project hadn't
+seen before, confirmed the same way as every other entry in this table
+rather than assumed: `datetime` (`11`, a scalar, alongside `string`/
+`boolean`/`object`/`integer`/`number`), `ApiObject` (`0x8000f`) and
+`JsonObject` (`0x80063`), both alongside the existing `Record`/`Rowset`/
+`XmlDoc`/`XmlNode` object codes.
+
+This closes every item pass twenty-nine's own open list named. What
+remains of the Application Class trailer project pass thirteen started:
+whatever the `Function`-only `0xc0000000` parameter-slot flag itself
+means (harmless to mask off, but not understood), and whether a
+`property`'s own `kind` field (confirmed to reuse the same scalar/object/
+App-Class vocabulary, per pass twenty-nine) is worth exposing on some
+future property-facing API now that `Declaration` covers methods.
 
 ## Then: writes
 

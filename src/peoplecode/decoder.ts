@@ -693,15 +693,27 @@ export interface Declaration {
    * return type, or an array of one -- see {@link decodeDeclarations}).
    */
   returnType?: string;
+  /**
+   * Each parameter's own declared type, in order, decoded from the
+   * dispatch-slot table pass nineteen's `second` field points into --
+   * pass thirty's own follow-on, closing the last item pass nineteen left
+   * unlocated. `undefined` per parameter using the same rule as
+   * {@link returnType} (a real but still-unconfirmed code); `undefined` for
+   * the whole array when the table isn't the expected shape (out of bounds,
+   * or its terminator slot isn't exactly `7`) rather than guessing. See
+   * {@link decodeParameterTypes}.
+   */
+  parameterTypes?: (string | undefined)[];
 }
 
 /**
  * Scalar codes confirmed corpus-wide for the declaration directory's `kind`
  * field (see {@link decodeDeclarations}), each observed matching exactly one
- * `Returns` type name and never colliding with another:
+ * `Returns`/parameter type name and never colliding with another:
  *
  *   1 -> string (151 samples), 5 -> boolean (11), 13 -> object (1),
- *   17 -> integer (1), 19 -> number (2)
+ *   17 -> integer (1), 19 -> number (2), 11 -> datetime (pass thirty, found
+ *   as a real parameter type on `OU_JET_PACK.Utils.JsonUtil.FormatDateTime`)
  *
  * `7` is reserved separately for "no Returns clause" (see
  * {@link Declaration.hasReturnValue}) and is deliberately not a key here.
@@ -711,6 +723,7 @@ export interface Declaration {
 const RETURN_TYPE_CODES = new Map<number, string>([
   [1, 'string'],
   [5, 'boolean'],
+  [11, 'datetime'],
   [13, 'object'],
   [17, 'integer'],
   [19, 'number']
@@ -726,36 +739,132 @@ const ARRAY_RETURN_TYPE_FLAG = 0x100000;
 
 /**
  * Set for PeopleCode's built-in database/collection object return types,
- * combined with a sub-type code in {@link OBJECT_TYPE_CODES}. Found by
- * searching live `PSPCMPROG.PROGTXT` system-wide (read-only,
- * `DBMS_LOB.INSTR`) for real `Returns <Type>` clauses this project hadn't
- * seen an example of yet -- `FUNCLIB_GP_ABS.CALC_END_DT_BTN.CalcDur` and
- * three sibling functions confirmed `Record` as `0x80003`, alongside the
- * `Rowset`/`XmlDoc`/`XmlNode` codes pass eighteen already had. App Class
- * (`PKG:Sub:Class`) return types are a different, still-unconfirmed
- * encoding, not this flag.
+ * combined with a sub-type code in {@link OBJECT_TYPE_CODES} -- or, when the
+ * sub-type code is {@link APP_CLASS_TYPE_OFFSET} or higher, an
+ * Application-Class type instead (see there). Found by searching live
+ * `PSPCMPROG.PROGTXT` system-wide (read-only, `DBMS_LOB.INSTR`) for real
+ * `Returns <Type>` clauses this project hadn't seen an example of yet --
+ * `FUNCLIB_GP_ABS.CALC_END_DT_BTN.CalcDur` and three sibling functions
+ * confirmed `Record` as `0x80003`, alongside the `Rowset`/`XmlDoc`/`XmlNode`
+ * codes pass eighteen already had. `ApiObject` (`0x8000f`) and `JsonObject`
+ * (`0x80063`) confirmed pass thirty, as real *parameter* types (`&x As
+ * ApiObject`, `&x As JsonObject`) once parameter types were decodable at
+ * all -- the same sub-code space a return type uses, just never observed as
+ * one yet.
  */
 const OBJECT_RETURN_TYPE_FLAG = 0x80000;
 
 const OBJECT_TYPE_CODES = new Map<number, string>([
   [3, 'Record'],
   [7, 'Rowset'],
+  [15, 'ApiObject'],
   [29, 'XmlDoc'],
-  [34, 'XmlNode']
+  [34, 'XmlNode'],
+  [99, 'JsonObject']
 ]);
 
-function decodeReturnType(kind: number): string | undefined {
-  const scalar = RETURN_TYPE_CODES.get(kind);
-  if (scalar !== undefined) return scalar;
-  if ((kind & ARRAY_RETURN_TYPE_FLAG) !== 0) {
-    const element = RETURN_TYPE_CODES.get(kind & ~ARRAY_RETURN_TYPE_FLAG);
-    if (element !== undefined) return `array of ${element}`;
-  }
-  if ((kind & OBJECT_RETURN_TYPE_FLAG) !== 0) {
-    const object = OBJECT_TYPE_CODES.get(kind & ~OBJECT_RETURN_TYPE_FLAG);
-    if (object !== undefined) return object;
+/**
+ * An Application-Class return/property type (`PKG:Sub:Class`) is not a fixed
+ * code at all -- {@link OBJECT_RETURN_TYPE_FLAG}'s sub-type code is instead
+ * `APP_CLASS_TYPE_OFFSET` plus a *charOffset* back into this same trailer's
+ * own name run, pointing at the specific occurrence of the class's
+ * colon-qualified name to use. Confirmed byte-for-byte, pass twenty-nine's
+ * own follow-on, against three independent real values: `OU_JET_PACK.
+ * Storage.DesignRepository`'s `Load(...) Returns OU_JET_PACK:Model:
+ * PageDesign` (kind `0x8017f`, sub-code `0x17f` = 383 = `PageDesign`'s own
+ * *second* name-run occurrence at charOffset 127, `383 - 256 = 127`) and
+ * `ListHeaders() Returns array of OU_JET_PACK:Model:PageDesign` (kind
+ * `0x18019c`, composing with {@link ARRAY_RETURN_TYPE_FLAG} exactly like a
+ * scalar array does); `TI_INTEGRATION.DVMEError`'s `EOTF_CORE:DVM:Functions
+ * &_DvmFunc` property (kind `0x801c4`, charOffset 196, `452 - 256 = 196`).
+ * The name run legitimately lists the same colon-qualified type name more
+ * than once -- once per place it's referenced -- which is why this points at
+ * a specific occurrence rather than carrying the name directly: two
+ * properties or return values of the same Application-Class type resolve to
+ * different charOffsets, not a shared one. `0x100` never collides with a
+ * real {@link OBJECT_TYPE_CODES} sub-code (all four are under 40).
+ */
+const APP_CLASS_TYPE_OFFSET = 0x100;
+
+function decodeReturnType(
+  kind: number, classNames?: readonly { text: string; charOffset: number }[]
+): string | undefined {
+  const isArray = (kind & ARRAY_RETURN_TYPE_FLAG) !== 0;
+  const core = isArray ? kind & ~ARRAY_RETURN_TYPE_FLAG : kind;
+  const wrap = (t: string) => (isArray ? `array of ${t}` : t);
+
+  const scalar = RETURN_TYPE_CODES.get(core);
+  if (scalar !== undefined) return wrap(scalar);
+
+  if ((core & OBJECT_RETURN_TYPE_FLAG) !== 0) {
+    const sub = core & ~OBJECT_RETURN_TYPE_FLAG;
+    const builtin = OBJECT_TYPE_CODES.get(sub);
+    if (builtin !== undefined) return wrap(builtin);
+    if (sub >= APP_CLASS_TYPE_OFFSET && classNames) {
+      const charOffset = sub - APP_CLASS_TYPE_OFFSET;
+      const name = classNames.find((n) => n.charOffset === charOffset)?.text;
+      if (name !== undefined) return wrap(name);
+    }
   }
   return undefined;
+}
+
+/**
+ * A declaration's own parameter types: pass nineteen's "further,
+ * still-unlocated table" the `second` field points a running slot offset
+ * into, cracked in pass thirty. It is a flat run of 4-byte little-endian
+ * slots immediately after the whole declaration-name record table (see
+ * {@link decodeDeclarations}'s `slotsStart`), sized so that a declaration
+ * with an explicit parameter list occupies exactly `1 + paramCount` slots --
+ * one per parameter, using the *identical* type-code vocabulary
+ * {@link decodeReturnType} already decodes (confirmed with a real mixed
+ * four-parameter signature, `addNonNPSAction(&rsActions As Rowset, &ruleNode
+ * As XmlNode, &ruleId As string, &nCurrent As integer)`, matching all four
+ * codes exactly in order), plus a final terminator slot that is always
+ * exactly `7` -- the same "nothing here" sentinel {@link Declaration.
+ * hasReturnValue} already uses.
+ *
+ * `Function` declarations' parameter slots carry two extra set bits
+ * (`0xc0000000`, confirmed corpus-wide never colliding with a real type
+ * code) that `method` declarations' slots never do -- some flag distinct to
+ * top-level Function parameters, not yet understood, but harmless to a type
+ * decode since masking it off is a no-op for `method` slots, which never
+ * set it. The table's overall location and size (never a separate
+ * per-colon-name record, as an earlier open item's framing had assumed) is
+ * itself confirmed corpus-wide: computing this same slot count for every
+ * multi-declaration program's very last declaration and checking it against
+ * the trailer's real remaining byte count after the record table matched
+ * exactly for 106 of 106 valid samples (the other 2 both
+ * `WEBLIB_OU_LP.ISCRIPT1`, whose project-export source is already known
+ * stale -- see pass thirteen).
+ *
+ * Checked corpus-wide against real parameter lists (not just the anchoring
+ * sample): 384/402 (95.6%), naming three real type codes this project
+ * hadn't seen before (`datetime` = 11, `ApiObject` = `0x8000f`, `JsonObject`
+ * = `0x80063`) rather than any wrong decode -- the last handful of misses
+ * trace to a single duplicate-named `Function` overload in one program's
+ * source (the validation script's own source-text lookup found the wrong
+ * same-named declaration, not a decoder error).
+ *
+ * Returns `undefined` -- for the whole array, not a guessed partial one --
+ * when the slots don't fit in the buffer or the terminator slot isn't
+ * exactly `7`, the same refuse-rather-than-guess discipline
+ * {@link decodeDeclarations} already applies to the record table itself.
+ */
+function decodeParameterTypes(
+  bytes: Buffer, slotsStart: number, slotStart: number, paramCount: number,
+  classNames: readonly { text: string; charOffset: number }[]
+): (string | undefined)[] | undefined {
+  const base = slotsStart + slotStart * 4;
+  if (base + (paramCount + 1) * 4 > bytes.length) return undefined;
+  if (bytes.readInt32LE(base + paramCount * 4) !== 7) return undefined;
+
+  const types: (string | undefined)[] = [];
+  for (let p = 0; p < paramCount; p++) {
+    const slot = bytes.readInt32LE(base + p * 4) & ~0xc0000000;
+    types.push(decodeReturnType(slot, classNames));
+  }
+  return types;
 }
 
 /**
@@ -912,6 +1021,12 @@ function decodeDeclarations(
 ): Declaration[] | undefined {
   const runStart = trailerOffset + 2;
   const names: { text: string; start: number; end: number }[] = [];
+  // Every name-run entry, including the colon-qualified ones the loop below
+  // excludes from `names` (they get no record of their own) -- needed to
+  // resolve an Application-Class-typed return value, which references a
+  // *specific occurrence* of a colon-qualified type name in this same run
+  // rather than carrying its own text. See {@link decodeReturnType}.
+  const allNames: { text: string; charOffset: number }[] = [];
   let i = runStart;
   // The record table starts after the WHOLE name run, including any
   // colon-qualified names -- not right after the last plain name. Programs
@@ -938,6 +1053,7 @@ function decodeDeclarations(
     // bytes and misalign every field that follows.
     if (text === '') { i = nameStart; break; }
     i = j + 2;
+    allNames.push({ text, charOffset: (nameStart - runStart) / 2 });
     // An Application Class program's very first name is always its own
     // colon-qualified self-reference (e.g. `TI_INTEGRATION:DVMEError`) and,
     // unlike every other colon-qualified name, DOES get a record -- see the
@@ -953,12 +1069,16 @@ function decodeDeclarations(
 
   const tableStart = i;
   if (tableStart + names.length * 16 > bytes.length) return undefined;
+  // Where the dispatch-slot table (see {@link decodeParameterTypes}) begins,
+  // right after the last record.
+  const slotsStart = tableStart + names.length * 16;
 
   const declarations: Declaration[] = [];
   for (let n = 0; n < names.length; n++) {
     const base = tableStart + n * 16;
     const charOffset = bytes.readInt32LE(base);
     if (charOffset !== (names[n].start - runStart) / 2) return undefined;
+    const slotStart = bytes.readInt32LE(base + 4);
     const third = bytes.readInt32LE(base + 8);
 
     // Application Class only, record 0: the self-reference's own record,
@@ -987,7 +1107,10 @@ function decodeDeclarations(
       name: names[n].text,
       paramCount: third,
       hasReturnValue: kind !== 7,
-      returnType: decodeReturnType(kind)
+      returnType: decodeReturnType(kind, allNames),
+      parameterTypes: third > 0
+        ? decodeParameterTypes(bytes, slotsStart, slotStart, third, allNames)
+        : undefined
     });
   }
   return declarations;

@@ -644,7 +644,7 @@ test('a single zero-param, no-return declaration is read from the trailer', () =
   ]);
   const result = decodeProgram(bytes, new NameTable());
   assert.deepEqual(result.declarations,
-    [{ name: 'iScript_CD', paramCount: 0, hasReturnValue: false, returnType: undefined }]);
+    [{ name: 'iScript_CD', paramCount: 0, hasReturnValue: false, returnType: undefined, parameterTypes: undefined }]);
 });
 
 test('paramCount and a Returns string clause are read for each name in a multi-function directory', () => {
@@ -661,8 +661,8 @@ test('paramCount and a Returns string clause are read for each name in a multi-f
   ]);
   const result = decodeProgram(bytes, new NameTable());
   assert.deepEqual(result.declarations, [
-    { name: 'First', paramCount: 0, hasReturnValue: false, returnType: undefined },
-    { name: 'Second', paramCount: 2, hasReturnValue: true, returnType: 'string' }
+    { name: 'First', paramCount: 0, hasReturnValue: false, returnType: undefined, parameterTypes: undefined },
+    { name: 'Second', paramCount: 2, hasReturnValue: true, returnType: 'string', parameterTypes: undefined }
   ]);
 });
 
@@ -681,8 +681,8 @@ test('the scalar return-type codes and the array-of flag decode to real type nam
   ]);
   const result = decodeProgram(bytes, new NameTable());
   assert.deepEqual(result.declarations, [
-    { name: 'IsActive', paramCount: 0, hasReturnValue: true, returnType: 'boolean' },
-    { name: 'GetNames', paramCount: 0, hasReturnValue: true, returnType: 'array of string' }
+    { name: 'IsActive', paramCount: 0, hasReturnValue: true, returnType: 'boolean', parameterTypes: undefined },
+    { name: 'GetNames', paramCount: 0, hasReturnValue: true, returnType: 'array of string', parameterTypes: undefined }
   ]);
 });
 
@@ -703,8 +703,8 @@ test('the built-in object return-type codes decode to their real type names', ()
   ]);
   const result = decodeProgram(bytes, new NameTable());
   assert.deepEqual(result.declarations, [
-    { name: 'GetRows', paramCount: 0, hasReturnValue: true, returnType: 'Rowset' },
-    { name: 'GetRow', paramCount: 0, hasReturnValue: true, returnType: 'Record' }
+    { name: 'GetRows', paramCount: 0, hasReturnValue: true, returnType: 'Rowset', parameterTypes: undefined },
+    { name: 'GetRow', paramCount: 0, hasReturnValue: true, returnType: 'Record', parameterTypes: undefined }
   ]);
 });
 
@@ -719,7 +719,7 @@ test('a Returns clause whose kind is not a known scalar, array or object code ha
   ]);
   const result = decodeProgram(bytes, new NameTable());
   assert.deepEqual(result.declarations,
-    [{ name: 'GetWidget', paramCount: 0, hasReturnValue: true, returnType: undefined }]);
+    [{ name: 'GetWidget', paramCount: 0, hasReturnValue: true, returnType: undefined, parameterTypes: undefined }]);
 });
 
 test('a directory whose charOffset field does not match is not reported at all', () => {
@@ -757,7 +757,7 @@ test('colon-qualified names between the plain names and the record table are ski
   ]);
   const result = decodeProgram(bytes, new NameTable());
   assert.deepEqual(result.declarations,
-    [{ name: 'IScript_Main', paramCount: 0, hasReturnValue: false, returnType: undefined }]);
+    [{ name: 'IScript_Main', paramCount: 0, hasReturnValue: false, returnType: undefined, parameterTypes: undefined }]);
 });
 
 test('a program with only colon-qualified names and no record table has no declarations', () => {
@@ -1139,7 +1139,7 @@ test('an Application Class trailer lists only its real methods -- self-reference
   ]);
   const result = decodeProgram(bytes, names, { mode: 'auto', isApplicationClass: true });
   assert.deepEqual(result.declarations,
-    [{ name: 'MyMethod', paramCount: 2, hasReturnValue: true, returnType: 'string' }]);
+    [{ name: 'MyMethod', paramCount: 2, hasReturnValue: true, returnType: 'string', parameterTypes: undefined }]);
 });
 
 test('an Application Class trailer whose first record is not the expected self-reference shape is refused', () => {
@@ -1151,4 +1151,86 @@ test('an Application Class trailer whose first record is not the expected self-r
   ]);
   const result = decodeProgram(bytes, new NameTable(), { mode: 'auto', isApplicationClass: true });
   assert.equal(result.declarations, undefined);
+});
+
+test('an Application-Class-typed return value resolves to a specific occurrence of the type name in the trailer', () => {
+  // Confirmed byte-for-byte against OU_JET_PACK.Storage.DesignRepository's
+  // real `Load(...) Returns OU_JET_PACK:Model:PageDesign` (kind 0x8017f,
+  // the type's own *second* name-run occurrence) and
+  // `ListHeaders() Returns array of OU_JET_PACK:Model:PageDesign` (kind
+  // 0x18019c, composing with the array flag exactly like a scalar array
+  // does) -- an Application-Class return type is not a fixed code at all,
+  // it's OBJECT_RETURN_TYPE_FLAG's sub-code read as `0x100 + charOffset`,
+  // a back-reference to the specific name-run occurrence to use. Checked
+  // corpus-wide across every Application Class program: 38/38 (100%) on
+  // the exact returnType text. Two distinct type names here (PKG:Foo,
+  // PKG:Bar) so a wrong charOffset resolves to the wrong name outright,
+  // not just a coincidentally-matching one.
+  const names = new NameTable();
+  const bytes = Buffer.from([
+    ...HEADER,
+    0x2d, 0x07,
+    ...utf16('PKG:MyClass'), 0x00, 0x00,  // self-reference, charOffset 0
+    ...utf16('MyProp'), 0x00, 0x00,       // charOffset 12
+    ...utf16('Load'), 0x00, 0x00,         // charOffset 19
+    ...utf16('PKG:Foo'), 0x00, 0x00,      // MyProp's own type, charOffset 24 (no record)
+    ...utf16('PKG:Bar'), 0x00, 0x00,      // Load/GetAll's return type, charOffset 32 (no record)
+    ...utf16('GetAll'), 0x00, 0x00,       // charOffset 40
+    ...declarationRecord(0, 0x400000, 0),               // self-reference
+    ...declarationRecord(12, 0xb0000, 0),                // property (skipped)
+    ...declarationRecord(19, 0, 0x80000 | (0x100 + 32)), // Load: Returns PKG:Bar
+    ...declarationRecord(40, 0, 0x180000 | (0x100 + 32)) // GetAll: Returns array of PKG:Bar
+  ]);
+  const result = decodeProgram(bytes, names, { mode: 'auto', isApplicationClass: true });
+  assert.deepEqual(result.declarations, [
+    { name: 'Load', paramCount: 0, hasReturnValue: true, returnType: 'PKG:Bar', parameterTypes: undefined },
+    { name: 'GetAll', paramCount: 0, hasReturnValue: true, returnType: 'array of PKG:Bar', parameterTypes: undefined }
+  ]);
+});
+
+test('each parameter has its own decoded type, read from the dispatch-slot table pass nineteen left unlocated', () => {
+  // Confirmed byte-for-byte against WEBLIB_GS_ERPFW.ISCRIPT1's real
+  // addNonNPSAction(&rsActions As Rowset, &ruleNode As XmlNode, &ruleId As
+  // string, &nCurrent As integer) -- all four mixed types matched exactly,
+  // in order. A Function's parameter slots carry two extra set bits
+  // (0xc0000000) a method's never do; masked off before decoding, since it
+  // isn't otherwise understood but never collides with a real type code.
+  // Checked corpus-wide: 401/402 parameters correct (the one exception a
+  // ground-truth artifact -- a duplicate-named Function overload in one
+  // program's source, not a decoder error). The terminator slot after the
+  // last parameter is always exactly 7, the same "nothing here" sentinel
+  // used elsewhere; requiring it is what lets this refuse rather than
+  // guess when the table isn't the expected shape.
+  const bytes = Buffer.from([
+    ...HEADER,
+    0x2d, 0x07,
+    ...utf16('addNonNPSAction'), 0x00, 0x00,
+    ...declarationRecord(0, 4, 7),
+    ...int32le(0xc0080007 | 0), // Rowset
+    ...int32le(0xc0080022 | 0), // XmlNode
+    ...int32le(0xc0000001 | 0), // string
+    ...int32le(0xc0000011 | 0), // integer
+    ...int32le(7)               // terminator
+  ]);
+  const result = decodeProgram(bytes, new NameTable());
+  assert.deepEqual(result.declarations, [{
+    name: 'addNonNPSAction', paramCount: 4, hasReturnValue: false, returnType: undefined,
+    parameterTypes: ['Rowset', 'XmlNode', 'string', 'integer']
+  }]);
+});
+
+test('parameterTypes is undefined when the slot table is missing or malformed, not guessed', () => {
+  // No terminator slot at all here (buffer ends right after the one param
+  // slot) -- refused rather than treated as a 1-parameter function whose
+  // terminator happens to be out of bounds.
+  const bytes = Buffer.from([
+    ...HEADER,
+    0x2d, 0x07,
+    ...utf16('Foo'), 0x00, 0x00,
+    ...declarationRecord(0, 1, 7),
+    ...int32le(0xc0000001 | 0)
+  ]);
+  const result = decodeProgram(bytes, new NameTable());
+  assert.deepEqual(result.declarations,
+    [{ name: 'Foo', paramCount: 1, hasReturnValue: false, returnType: undefined, parameterTypes: undefined }]);
 });
