@@ -244,6 +244,13 @@ export const OPCODES = new Map<number, OpcodeSpec>([
   // unmapped opcode. See docs/ROADMAP.md pass twenty-seven.
   [0x79, { kind: TokenKind.Keyword, text: 'ComponentLife', format: NEWLINE_BEFORE_SPACE_AFTER }],
   [0x58, { kind: TokenKind.Keyword, text: 'import', format: SPACE_BOTH }],
+  // `Declare Function X Library "dllname" (...)`: an external DLL
+  // function declaration. Confirmed against APPS_RLR.Utilities.
+  // OnExecute's real `Declare Function RegCloseKey Library "advapi32"
+  // (...)`, sitting right between the function name and the quoted DLL
+  // name -- the well-known, unambiguous PeopleCode external-library
+  // syntax. See docs/ROADMAP.md pass forty-one.
+  [0x33, { kind: TokenKind.Keyword, text: 'Library', format: SPACE_BOTH }],
   [0x57, { kind: TokenKind.Punctuation, text: ':', format: F.NO_SPACE_BEFORE | F.NO_SPACE_AFTER }],
   [0x38, { kind: TokenKind.Keyword, text: 'Return', format: SPACE_BOTH }],
   [0x2d, { kind: TokenKind.Newline, text: '', format: F.NEWLINE_ONCE }],
@@ -1586,6 +1593,18 @@ export function decodeProgram(
     if (options.isApplicationClass) {
       if (opcode === 0x5a) {
         tokens.push({ kind: TokenKind.Keyword, text: 'class', offset, opcode, format: FUNCTION_STYLE });
+        continue;
+      }
+      // A class declaration's sibling for an interface (`interface X ...
+      // end-interface;` rather than `class X ... end-class;`). Confirmed
+      // against BN_CERTIFICATE.WeightCalculator.OnExecute, whose own doc
+      // comment says so directly (`* WEIGHTCALCULATOR - This interface is
+      // a implementation of the Strategy pattern...`); 0x70 sits right
+      // before the bare name with no other class-declaration opcode
+      // (0x5a/0x5c) anywhere in the program. See docs/ROADMAP.md pass
+      // forty-one.
+      if (opcode === 0x70) {
+        tokens.push({ kind: TokenKind.Keyword, text: 'interface', offset, opcode, format: FUNCTION_STYLE });
         continue;
       }
       if (opcode === 0x5b) {

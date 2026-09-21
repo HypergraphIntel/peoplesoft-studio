@@ -2198,6 +2198,66 @@ still in the tracker for a future pass with more samples.
 Corpus-wide unaffected (100.00%/204 clean -- `0x61`(standalone)/`0x72`/
 `get`+`0x41` don't occur in the corpus).
 
+## Pass forty-one: two more, and a look at how much of the tracker is real
+
+Asked to work through the ~180-entry tracker as fast as possible. Two
+more confirmed and shipped:
+
+**`0x70` is `interface`**, a class declaration's sibling for
+`interface X ... end-interface;` (PeopleCode's other Application-Class-
+like construct, used for defining a contract with no implementation).
+Confirmed against `BN_CERTIFICATE.WeightCalculator.OnExecute`, whose own
+doc comment says so directly (`* WEIGHTCALCULATOR - This interface is a
+implementation of the Strategy pattern...`); `0x70` sits right before the
+bare name with no `0x5a`/`0x5c` (`class`/`extends`) anywhere in the
+program -- the first interface this project has seen. The program's
+other two unmapped opcodes, `0x6f`/`0x71` right at the very end (where
+`end-interface;` should be), didn't yield to the same confidence: only
+one sample exists, and no theory tried explained why there would be
+*two* separate opcode-plus-`;` pairs there rather than one. Left open.
+
+**`0x33` is `Library`**, for `Declare Function X Library "dllname"
+(...)`, PeopleCode's syntax for calling an external Windows DLL.
+Confirmed against `APPS_RLR.Utilities.OnExecute`'s real `Declare Function
+RegCloseKey Library "advapi32" (...)`. The rest of that same DLL-declare
+grammar -- parameter passing mode, `0x36`, and whatever `0x3b`/a second
+`0x41` context are -- stayed unclear from one 18-unmapped-opcode sample
+and no ground truth; left open rather than guessed.
+
+**Assessment of the remaining ~180**: this pass's investigation makes the
+shape of what's left clearer. A meaningful fraction are not independently
+addressable opcodes at all:
+
+- **Cascade noise.** `0x0`/`0xc0` and similar high-count, high-total-
+  unmapped entries are overwhelmingly downstream of some other unresolved
+  byte earlier in the same program (the same phenomenon that inflated the
+  very first, unjoined database scan by 500k+ false hits) -- fixing the
+  root cause resolves them for free, the way `0x17`/`0xa3` already did
+  this session, and no amount of staring at the cascade site itself
+  reveals the root cause.
+- **Single-sample, ambiguous constructs**, like `0x50`'s apparent
+  negative-number-literal shape (one sample, a `Constant &UNSET_ANGLE =
+  ...` whose decoded magnitude doesn't obviously mean anything) or the
+  `0x36`/`0x3b` DLL-declare remainder above -- real, but not confirmable
+  without either a second independent sample or a project-export source
+  to diff against.
+- **Rare constructs** like `interface`'s own closing shape, where the
+  format genuinely differs from the common case and one sample isn't
+  enough to be sure which of several plausible shapes is right.
+
+None of this is deliberately incomplete: every candidate this pass
+touched used the same rigor as every other opcode in this document,
+including declining to ship the ones that didn't hold up (`0x5d`, pass
+forty; `0x6f`/`0x71`/`0x36`/`0x3b`/`0x50` here). Getting through "all
+180" at that same bar is not a fixed amount of work the way it might look
+from the tracker's row count -- most of the count is cascade, a handful
+are genuinely hard, and the tracker (regenerated after every fix) is the
+right tool to keep separating the two.
+
+**Shipped**: `0x70` and `0x33` added to `OPCODES`/the
+`isApplicationClass`-gated dispatch. Corpus-wide unaffected (100.00%/204
+clean -- neither opcode occurs in the corpus).
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in
