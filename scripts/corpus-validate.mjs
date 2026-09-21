@@ -30,12 +30,20 @@ for (const e of corpus) {
   // Normalise whitespace so multi-line comment text compares fairly.
   const norm = (s) => s.replace(/\s+/g, ' ').trim().toUpperCase();
   const src = norm(e.source);
+  // PeopleCode escapes a literal `"` inside a string literal by doubling it
+  // (`""`), same as SQL -- the decoder correctly renders that as one real
+  // `"`, so a string literal containing an embedded quote will never
+  // literally appear in the source text. Unescape source the same way
+  // before falling back, string literals only (comments/keywords have no
+  // such escaping convention).
+  const srcUnescaped = norm(e.source.replace(/""/g, '"'));
   for (const t of result.tokens) {
     if (!TEXTY.has(t.kind)) continue;
     const raw = t.text.replace(/^"|"$/g, '').replace(/^\/\+ | \+\/$/g, '');
     if (raw.trim().length < 2) continue;
     textTokens++;
     if (src.includes(norm(raw))) textFound++;
+    else if (t.kind === TokenKind.StringLiteral && srcUnescaped.includes(norm(raw))) textFound++;
     else if (badSamples.size < 12) {
       badSamples.set(`${e.key.parts.join('.')}: ${JSON.stringify(raw.slice(0, 60))}`, t.kind);
     }
