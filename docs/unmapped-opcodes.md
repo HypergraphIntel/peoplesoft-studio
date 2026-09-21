@@ -9,7 +9,7 @@ investigation pass has real byte-for-byte samples to start from.
 Regenerate after any decoder change or database rescan:
 `node scripts/scan-db-opcodes.mjs <out.json> && node scripts/track-db-opcodes.mjs <out.json> docs/unmapped-opcodes.md`.
 
-Scanned 121028 programs (117912 clean, 0 broken/incomplete), 172525 unmapped opcode occurrences total across 178 distinct opcodes.
+Scanned 121028 programs (117916 clean, 0 broken/incomplete), 172015 unmapped opcode occurrences total across 178 distinct opcodes.
 
 Sorted by each opcode's own single cleanest sample (lowest total-unmapped-
 count program it occurs in, ascending) -- the opcodes at the top are the
@@ -23,9 +23,8 @@ pass thirty-nine did for 0x20/0x51/0x60.
 | opcode | occurrences | cleanest sample | offset | that program's total unmapped |
 |---|---|---|---|---|
 | 0x50 | 8 | PSXP_ENGINE.Watermark.OnExecute | 1001 | 12 |
-| 0x2 | 1643 | ACCOMPLISHMENTS.MAJOR_CODE.SaveEdit | 1414 | 20 |
-| 0xd0 | 15 | OU_RC_PAYINIT.CHKADV_NO_THRU.SaveEdit | 90 | 24 |
-| 0x0 | 132167 | ACA1095CB.3PUBBULK.GBL.default.1900-01-01.Step01.OnExecute | 2961 | 27 |
+| 0x2 | 1641 | ACCOMPLISHMENTS.MAJOR_CODE.SaveEdit | 1414 | 20 |
+| 0x0 | 131722 | ACA1095CB.3PUBBULK.GBL.default.1900-01-01.Step01.OnExecute | 2961 | 27 |
 | 0xc0 | 6667 | ACA1095CB.3PUBBULK.GBL.default.1900-01-01.Step01.OnExecute | 2980 | 27 |
 | 0x4e | 783 | AE_WRK.AE_REFRESH.FieldChange | 1731 | 28 |
 | 0x49 | 419 | AE_WRK.AE_REFRESH.FieldChange | 1727 | 28 |
@@ -46,25 +45,23 @@ pass thirty-nine did for 0x20/0x51/0x60.
 | 0x6b | 198 | AE_WRK.MESSAGE_NBR.FieldChange | 4116 | 46 |
 | 0x55 | 325 | AMM_DERIVED.UPDATE_DOMAIN_PB.FieldChange | 5892 | 47 |
 | 0x71 | 69 | AN_OA_T3_RQ.Section1.GBL.default.1900-01-01.Step01.OnExecute | 7460 | 48 |
+| 0x21 | 5 | XML_LOAD2PDF.GEN_DATA.GBL.default.1900-01-01.Step01.OnExecute | 16305 | 50 |
 | 0x24 | 44 | DERIVED_GVT.GVT_ECS_SEL_BOX.FieldChange | 2386 | 52 |
-| 0x21 | 5 | CNT_TEMPLATE_ESP.GBL.FM_DERIVED_ESP.VIEW_PB.FieldChange | 5091 | 53 |
 | 0x7a | 46 | DERIVED_BEN.ADDL_CHKDATA_PB.FieldEdit | 6562 | 54 |
-| 0x5a | 16 | OU_RC_PAYINIT.RENEWAL_DAYS_OUT.FieldEdit | 157 | 59 |
-| 0xdc | 9 | OU_RC_PAYINIT.RENEWAL_DAYS_OUT.FieldEdit | 190 | 59 |
-| 0x5b | 9 | OU_RC_PAYINIT.RENEWAL_DAYS_OUT.FieldEdit | 206 | 59 |
 | 0x72 | 1882 | AE_STEP_TBL.AE_STEP_TYPE.RowInit | 1234 | 81 |
 | 0x75 | 1235 | AE_STEP_TBL.AE_STEP_TYPE.RowInit | 1228 | 81 |
-| 0x5c | 12 | OU_RC_PAYINIT.COMPANY.SaveEdit | 206 | 81 |
-| 0x11 | 254 | BN_FORM_DEF.BN_SEQ_NUM.RowInsert | 3409 | 95 |
-| 0x62 | 306 | AMM_STATISTICS.REFRESH_BTN.FieldChange | 4206 | 106 |
+| 0x11 | 211 | BN_FORM_DEF.BN_SEQ_NUM.RowInsert | 3409 | 95 |
+| 0x62 | 305 | AMM_STATISTICS.REFRESH_BTN.FieldChange | 4206 | 106 |
 | 0x73 | 3440 | ACCESS_CNTRL_LISTX.GBL.SavePostChange | 10568 | 113 |
 | 0x76 | 448 | ACCESS_CNTRL_LISTX.GBL.SavePostChange | 10538 | 113 |
 | 0x9b | 18 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 28346 | 118 |
+| 0x5a | 14 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 50008 | 118 |
 | 0xa1 | 12 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 29016 | 118 |
-| 0xd6 | 12 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 35739 | 118 |
 | 0x7b | 12 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 53561 | 118 |
 | 0x9e | 11 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 28683 | 118 |
 | 0x60 | 11 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 50628 | 118 |
+| 0xd0 | 11 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 35123 | 118 |
+| 0xd6 | 11 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 35739 | 118 |
 | 0xd9 | 9 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 36058 | 118 |
 | 0xfa | 9 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 39591 | 118 |
 | 0xd3 | 9 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 35430 | 118 |
@@ -75,6 +72,7 @@ pass thirty-nine did for 0x20/0x51/0x60.
 | 0xeb | 8 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 37952 | 118 |
 | 0xdf | 8 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 36694 | 118 |
 | 0xf7 | 8 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 39260 | 118 |
+| 0xdc | 7 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 36379 | 118 |
 | 0x98 | 7 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 28011 | 118 |
 | 0xe5 | 6 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 37322 | 118 |
 | 0xe8 | 6 | FUNCLIB_FO_RAPD.RAPID_GRID_FUNC.FieldFormula | 37635 | 118 |
@@ -84,13 +82,15 @@ pass thirty-nine did for 0x20/0x51/0x60.
 | 0x34 | 50 | DERIVED_PA.PB_SCHED_ROLLOVER.FieldChange | 3202 | 130 |
 | 0x63 | 972 | ACCOUNT_CHARTFIELD_SYNC.HPYPSAPAccountChartFieldSync.Subscription | 6520 | 136 |
 | 0x41 | 849 | ACCOUNT_CHARTFIELD_SYNC.HPYPSAPAccountChartFieldSync.Subscription | 6548 | 136 |
+| 0x5c | 11 | IB_RESTMSG_WRK.IB_REQMSGVER.FieldChange | 12797 | 151 |
 | 0x4a | 76 | ERE_UDTA_ESP.MAIN.GBL.default.1900-01-01.Step02.OnExecute | 40930 | 160 |
 | 0x3a | 540 | DERIVED_PSPM2.PM_DESCENDANTS.FieldChange | 4545 | 172 |
 | 0x31 | 80 | EONC_AWE_CON.EOAWEVNL.GBL.default.1900-01-01.Step02.OnExecute | 14250 | 178 |
+| 0x5b | 8 | BN_HIPAA5010.MAIN.GBL.default.1900-01-01.Step06.OnExecute | 47873 | 183 |
+| 0x88 | 13 | DERIVED_HR_CHWP.FIRST_ITM_BUTTON.FieldChange | 7465 | 203 |
+| 0x9a | 13 | DERIVED_HR_CHWP.FIRST_ITM_BUTTON.FieldChange | 7481 | 203 |
+| 0x5e | 10 | DERIVED_HR_CHWP.FIRST_ITM_BUTTON.FieldChange | 7433 | 203 |
 | 0xa3 | 4 | PT_FEEDMGR.DatatypeServiceOperation.OnExecute | 1774 | 206 |
-| 0x88 | 13 | DERIVED_HR_CHWP.FIRST_ITM_BUTTON.FieldChange | 7465 | 212 |
-| 0x9a | 13 | DERIVED_HR_CHWP.FIRST_ITM_BUTTON.FieldChange | 7481 | 212 |
-| 0x5e | 10 | DERIVED_HR_CHWP.FIRST_ITM_BUTTON.FieldChange | 7433 | 212 |
 | 0x8d | 12 | HRS_INDEX_CONTROL.JobOpeningRTI.OnExecute | 9099 | 233 |
 | 0x7e | 14 | GP_PKGSCRIPT.CR_SCRPT.GBL.default.1900-01-01.Step01.OnExecute | 28068 | 237 |
 | 0x87 | 17 | EP_NOTES_FUNCTIONS.ESS.OnExecute | 19046 | 238 |
@@ -100,14 +100,14 @@ pass thirty-nine did for 0x20/0x51/0x60.
 | 0x9f | 4 | HRS_JOB_OPENING_MANAGER.CMP_HRS_JO_360.UTIL.Utility.OnExecute | 3666 | 243 |
 | 0xb8 | 10 | PTAF_MONITOR.ADHOC_OBJECTS.adhocAccessLogicBase.OnExecute | 2227 | 253 |
 | 0x90 | 13 | GPES_TRGCLNU.MAIN.GBL.default.1900-01-01.Step02.OnExecute | 139699 | 255 |
+| 0x82 | 15 | GPCH_EG_PRO_DW.PRINT_BTN.FieldChange | 70187 | 269 |
 | 0x8e | 10 | PTGP_APPCLASS_TILE.API.FreeTextTile.OnExecute | 6476 | 276 |
-| 0x82 | 15 | GPCH_EG_PRO_DW.PRINT_BTN.FieldChange | 70187 | 278 |
 | 0x6a | 56 | BEN110.MAIN.GBL.default.1900-01-01.Process.OnExecute | 15187 | 294 |
 | 0x85 | 15 | BEN110.MAIN.GBL.default.1900-01-01.Process.OnExecute | 15203 | 294 |
 | 0xa6 | 14 | BEN110.MAIN.GBL.default.1900-01-01.Process.OnExecute | 15235 | 294 |
 | 0x97 | 12 | BEN110.MAIN.GBL.default.1900-01-01.Process.OnExecute | 15219 | 294 |
 | 0x7d | 15 | OU_PU_EMPACC.EE.GBL.default.1900-01-01.UPDATE.OnExecute | 23933 | 306 |
-| 0xa8 | 3 | OU_PU_EMPACC.EE.GBL.default.1900-01-01.UPDATE.OnExecute | 23941 | 306 |
+| 0xa8 | 2 | OU_PU_EMPACC.EE.GBL.default.1900-01-01.UPDATE.OnExecute | 23941 | 306 |
 | 0xca | 9 | PTAF_PREVIEW_MON.previewAdhocAccessLogic.OnExecute | 2987 | 307 |
 | 0x80 | 27 | AN_GL_REV_RS.MAIN.GBL.default.1900-01-01.Step01.OnExecute | 13846 | 312 |
 | 0x94 | 9 | AN_GL_REV_RS.MAIN.GBL.default.1900-01-01.Step01.OnExecute | 13862 | 312 |
@@ -115,7 +115,7 @@ pass thirty-nine did for 0x20/0x51/0x60.
 | 0x86 | 21 | DERIVED_PTIASP.PTIASP_SEARCH_PB.FieldChange | 32997 | 321 |
 | 0xb4 | 8 | PY_LOCKOUT.TransactionSession.OnExecute | 24915 | 321 |
 | 0xcb | 7 | PY_LOCKOUT.TransactionSession.OnExecute | 24947 | 321 |
-| 0x8b | 13 | GPCH_OVR_TX_STMT.GBL.GPCH_FM_DERIVED.SAVE_PB.FieldChange | 29555 | 322 |
+| 0x8b | 12 | GPCH_OVR_TX_STMT.GBL.GPCH_FM_DERIVED.SAVE_PB.FieldChange | 29555 | 322 |
 | 0x81 | 8 | PT_ACE_CONVERSION.Organizers.OnExecute | 9937 | 324 |
 | 0x77 | 450 | BEN_SUMMARY_FL.Object.Resource.OnExecute | 19047 | 328 |
 | 0x84 | 13 | BEN_SUMMARY_FL.Object.Resource.OnExecute | 19243 | 328 |
@@ -131,7 +131,7 @@ pass thirty-nine did for 0x20/0x51/0x60.
 | 0xaf | 8 | PSDOCLOMULT_VW.IB_DOCLVTYPE.FieldChange | 11601 | 344 |
 | 0xcf | 5 | HR_RETIRE.adhocAccessLogic.OnExecute | 2795 | 344 |
 | 0xd2 | 4 | EP_APPRAISAL.adhocAccessLogic.OnExecute | 2801 | 344 |
-| 0x83 | 17 | HR_FULLPART.adhocAccessLogic.OnExecute | 2771 | 345 |
+| 0x83 | 16 | HR_FULLPART.adhocAccessLogic.OnExecute | 2771 | 345 |
 | 0xb7 | 16 | HR_FULLPART.adhocAccessLogic.OnExecute | 2787 | 345 |
 | 0xd5 | 16 | HR_MARITAL_CHNG.adhocAccessLogic.OnExecute | 2807 | 345 |
 | 0xbf | 15 | GP_ABS_LVDN_HANDLER.adhocAccessLogic.OnExecute | 2803 | 345 |
@@ -142,7 +142,7 @@ pass thirty-nine did for 0x20/0x51/0x60.
 | 0xbb | 6 | HR_MARITAL_CHNG.adhocAccessLogic.OnExecute | 2795 | 345 |
 | 0xac | 5 | SCC_SERVICE.UTIL.EFFDTFilter.OnExecute | 28984 | 351 |
 | 0xe0 | 3 | TL_WORKFORCE_SYNC_EVTHNDLR.TLJobSubscriptionsEventHandler.OnExecute | 14060 | 351 |
-| 0xa4 | 15 | GPCH_EG_ELOG_DW.GPCH_EG_SAL_VIEW.FieldChange | 76930 | 352 |
+| 0xa4 | 14 | GPCH_EG_ELOG_DW.GPCH_EG_SAL_VIEW.FieldChange | 76930 | 352 |
 | 0xaa | 9 | GPCH_EG_ELOG_DW.GPCH_EG_SAL_VIEW.FieldChange | 76946 | 352 |
 | 0x96 | 12 | EOAW_PREVIEW_MON.previewAdhocAccessLogic.OnExecute | 2971 | 355 |
 | 0xe4 | 11 | EOAW_PREVIEW_MON.previewAdhocAccessLogic.OnExecute | 2999 | 355 |
@@ -159,36 +159,36 @@ pass thirty-nine did for 0x20/0x51/0x60.
 | 0xa5 | 8 | HMAP_CEOUPD.MAIN.GBL.default.1900-01-01.Step01.OnExecute | 31280 | 387 |
 | 0xb2 | 5 | HMAP_CEOUPD.MAIN.GBL.default.1900-01-01.Step01.OnExecute | 31296 | 387 |
 | 0x9d | 11 | IBMSGTREE_WRK.OK_PB.FieldChange | 29539 | 391 |
-| 0xc6 | 8 | PSPTTSTMAINTWRK.PTTST_GENRELRPT.FieldChange | 31760 | 399 |
+| 0xc6 | 7 | PSPTTSTMAINTWRK.PTTST_GENRELRPT.FieldChange | 31760 | 399 |
 | 0xb3 | 8 | HRS_COMMON.CMP_HRS_APP_SCHJOB.UI.UIUtils.OnExecute | 100026 | 405 |
 | 0xf9 | 4 | HRS_COMMON.CMP_HRS_APP_SCHJOB.UI.UIUtils.OnExecute | 100122 | 405 |
 | 0xc2 | 12 | GPTH_EFT_AE.GEN_FILE.GBL.default.1900-01-01.Step01.OnExecute | 35658 | 406 |
 | 0xcd | 8 | GPTH_EFT_AE.GEN_FILE.GBL.default.1900-01-01.Step01.OnExecute | 35674 | 406 |
 | 0xad | 11 | PSIBLOGICL2_WRK.IB_PCODE_GENERATE.FieldChange | 18201 | 411 |
 | 0xc9 | 9 | PSIBLOGICL2_WRK.IB_PCODE_GENERATE.FieldChange | 18233 | 411 |
+| 0x95 | 8 | GPES_SS_CRA.MAIN.GBL.default.1900-01-01.Step02.OnExecute | 151197 | 424 |
+| 0xb0 | 7 | GPES_SS_CRA.MAIN.GBL.default.1900-01-01.Step02.OnExecute | 151213 | 424 |
 | 0xcc | 10 | GS_FW_LOAD.MAIN.GBL.default.1900-01-01.Step01.OnExecute | 70911 | 429 |
 | 0x8c | 8 | EOIU.Utilities.Rules.PublishRule.OnExecute | 2789 | 429 |
 | 0x91 | 5 | GS_FW_LOAD.MAIN.GBL.default.1900-01-01.Step01.OnExecute | 70863 | 429 |
 | 0x9c | 11 | PSIBLOGICAL_WRK.TREECTLEVENT.FieldChange | 41728 | 436 |
-| 0x95 | 8 | GPES_SS_CRA.MAIN.GBL.default.1900-01-01.Step02.OnExecute | 151197 | 436 |
-| 0xb0 | 7 | GPES_SS_CRA.MAIN.GBL.default.1900-01-01.Step02.OnExecute | 151213 | 436 |
 | 0xc8 | 6 | TREEMAINT00.INITIAL.GBL.default.1900-01-01.Step01.OnExecute | 11525 | 444 |
 | 0xe1 | 7 | EQRY_CLASSES.eQueryOutputBuilder.OnExecute | 13953 | 457 |
 | 0xa7 | 11 | EONC_AWE_CON.EOAWEPEX.GBL.default.1900-01-01.Step01.OnExecute | 54306 | 463 |
-| 0xdd | 6 | EOEN_MVC.EOEN_CONTROLLER.EOEN_REG_BU.OnExecute | 9621 | 479 |
-| 0xc5 | 11 | GS_CFG_MGMT_WRK.GS_CFG_MGMT_PB.FieldChange | 11567 | 501 |
+| 0xdd | 6 | EOEN_MVC.EOEN_CONTROLLER.EOEN_REG_BU.OnExecute | 9621 | 470 |
+| 0xc5 | 10 | GS_CFG_MGMT_WRK.GS_CFG_MGMT_PB.FieldChange | 11567 | 501 |
 | 0xe9 | 9 | GS_CFG_MGMT_WRK.GS_CFG_MGMT_PB.FieldChange | 11599 | 501 |
 | 0xfb | 8 | GS_CFG_MGMT_WRK.GS_CFG_MGMT_PB.FieldChange | 11615 | 501 |
 | 0x8f | 12 | HR_FLUID_JOB.PushSTGData.OnExecute | 29983 | 505 |
-| 0xda | 6 | PTUNIRVW.GBL.PSADSDMW_WRK.PTADSUPDMERGEACT.FieldChange | 45859 | 505 |
+| 0xda | 5 | PTUNIRVW.GBL.PSADSDMW_WRK.PTADSUPDMERGEACT.FieldChange | 45859 | 505 |
 | 0xe3 | 5 | PSIBLOGICAL_WRK.IB_TREECTLEVENT3.FieldChange | 19197 | 510 |
 | 0xf2 | 3 | SOAPTOCI.WSDLSummary.OnExecute | 37937 | 522 |
 | 0xb1 | 8 | TL_MGR_APPV.ReportedTimes.DisplayControls.FieldControl.OnExecute | 28202 | 525 |
-| 0xe7 | 7 | TL_MGR_APPV.ReportedTimes.DisplayControls.FieldControl.OnExecute | 28266 | 525 |
+| 0xe7 | 6 | TL_MGR_APPV.ReportedTimes.DisplayControls.FieldControl.OnExecute | 28266 | 525 |
+| 0xed | 4 | PSACTIVITYGUIDE.ACTIVITYNAME.RowInit | 30069 | 527 |
+| 0xd8 | 8 | GPES_CRT_03.MAIN.GBL.default.1900-01-01.Step03.OnExecute | 40113 | 532 |
 | 0xec | 10 | AN_IA_T2_RQ.MAIN.GBL.default.1900-01-01.Step01.OnExecute | 23742 | 535 |
 | 0xf6 | 5 | AN_IA_T2_RQ.MAIN.GBL.default.1900-01-01.Step01.OnExecute | 23758 | 535 |
-| 0xed | 4 | PSACTIVITYGUIDE.ACTIVITYNAME.RowInit | 30069 | 536 |
-| 0xd8 | 8 | GPES_CRT_03.MAIN.GBL.default.1900-01-01.Step03.OnExecute | 40113 | 544 |
 | 0xce | 3 | AE_WRK.AE_GO.FieldChange | 36149 | 548 |
 | 0xae | 6 | PT_TS_SEARCH.RecProc.GBL.default.1900-01-01.Select.OnExecute | 14084 | 555 |
 | 0xff | 7 | HMCR_FRAMEWORK.ServiceFramework.baseClasses.baseTypeHelper.OnExecute | 41553 | 557 |
