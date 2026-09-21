@@ -251,6 +251,16 @@ export const OPCODES = new Map<number, OpcodeSpec>([
   // name -- the well-known, unambiguous PeopleCode external-library
   // syntax. See docs/ROADMAP.md pass forty-one.
   [0x33, { kind: TokenKind.Keyword, text: 'Library', format: SPACE_BOTH }],
+  // A DLL-declared parameter's passing mode: `(long Value As number)`
+  // sits between the C-side type and the PeopleCode-side `As <type>`.
+  // Confirmed against the same APPS_RLR.Utilities.OnExecute DLL
+  // declaration as 0x33 (`Library`) above. Corroborated independently by
+  // a reference PeopleCodeParser.java (a separate, older decompiler
+  // project) which lists this exact byte value for this exact keyword.
+  // `Ref` (0x3b), its pass-by-reference sibling, is the same shape.
+  // See docs/ROADMAP.md pass forty-two.
+  [0x36, { kind: TokenKind.Keyword, text: 'Value', format: SPACE_BOTH }],
+  [0x3b, { kind: TokenKind.Keyword, text: 'Ref', format: SPACE_BOTH }],
   [0x57, { kind: TokenKind.Punctuation, text: ':', format: F.NO_SPACE_BEFORE | F.NO_SPACE_AFTER }],
   [0x38, { kind: TokenKind.Keyword, text: 'Return', format: SPACE_BOTH }],
   [0x2d, { kind: TokenKind.Newline, text: '', format: F.NEWLINE_ONCE }],
@@ -745,9 +755,20 @@ function tryResolveName(names: NameTable, nameNum: number): string | undefined {
  */
 const HEADER_LENGTH = 37;
 
+// Positions 7, 22 and 30 were dropped from this list (pass forty-two): a
+// database-wide sample (60k programs) found each one zero in the
+// overwhelming majority (99.4%/99.995%/99.995%), which is how they ended
+// up here, but not always -- 358, 3 and 3 real programs respectively have
+// something else there. Requiring any of them be zero rejected the
+// header outright for that program, which cascades the *entire* program
+// (not just one construct) into unrelated-looking unmapped noise --
+// confirmed on G3UTILITIES.UtilityMethods.OnExecute (position 22): fixing
+// this alone took it from 28+ unmapped opcodes to 0 across all 128KB.
+// Whatever these bytes actually encode is still unknown; the fix is
+// simply to stop assuming they are always zero.
 const HEADER_ZERO_POSITIONS = [
   1, 2, 3, 4, 8, 9, 10, 11, 12, 15, 16, 17, 18, 19, 20,
-  22, 23, 24, 25, 26, 27, 28, 30, 31, 32, 34, 35, 36
+  23, 24, 25, 26, 27, 28, 31, 32, 34, 35, 36
 ];
 
 function matchHeader(bytes: Buffer): boolean {
@@ -1534,6 +1555,20 @@ export function decodeProgram(
       continue;
     }
 
+    // A third role for the same overloaded byte: zero-width right after
+    // a DLL declaration's `Library "dllname"` string and right before
+    // the parameter list's own newline. Confirmed against APPS_RLR.
+    // Utilities.OnExecute's real `Declare Function RegCloseKey Library
+    // "advapi32"\n      (long Value As number) Returns long;` -- 3/3
+    // occurrences in that program, all in exactly this position (next
+    // token always the newline opcode, 0x2d), the program's only
+    // remaining unmapped opcode once Library/Value/Ref were added. See
+    // docs/ROADMAP.md pass forty-two.
+    if (opcode === 0x41 && bytes[i] === 0x2d) {
+      tokens.push({ kind: TokenKind.Punctuation, text: '', offset, opcode, format: F.NONE });
+      continue;
+    }
+
     // `Continue` -- reopened after pass twenty rejected it on a raw,
     // unfiltered corpus-wide count (9/660): that count included every
     // corruption-noise occurrence of this byte value, structurally
@@ -1607,6 +1642,23 @@ export function decodeProgram(
         tokens.push({ kind: TokenKind.Keyword, text: 'interface', offset, opcode, format: FUNCTION_STYLE });
         continue;
       }
+      // interface's own closer and its method modifier. Confirmed
+      // against the same BN_CERTIFICATE.WeightCalculator.OnExecute:
+      // `method calculate(...) Returns number` is followed by `0x6f;`
+      // then `0x71;` -- `abstract` modifying the (bodyless) interface
+      // method declaration, then `end-interface` closing the block.
+      // Corroborated independently by a reference PeopleCodeParser.java
+      // (a separate, older decompiler project) which lists the same two
+      // byte values for the same two keywords. See docs/ROADMAP.md pass
+      // forty-two.
+      if (opcode === 0x6f) {
+        tokens.push({ kind: TokenKind.Keyword, text: 'abstract', offset, opcode, format: F.SPACE_BEFORE });
+        continue;
+      }
+      if (opcode === 0x71) {
+        tokens.push({ kind: TokenKind.Keyword, text: 'end-interface', offset, opcode, format: ENDBLOCK_STYLE });
+        continue;
+      }
       if (opcode === 0x5b) {
         tokens.push({ kind: TokenKind.Keyword, text: 'end-class', offset, opcode, format: ENDBLOCK_STYLE });
         continue;
@@ -1641,8 +1693,55 @@ export function decodeProgram(
       // (GetUserOption(...) <> "Y");` (2/2 occurrences in that program).
       // See docs/ROADMAP.md pass forty.
       if (opcode === 0x5f) {
-        if (bytes[i] === 0x41) i++;
-        tokens.push({ kind: TokenKind.Keyword, text: 'get', offset, opcode, format: F.INCREASE_INDENT_ONCE | F.SPACE_BEFORE });
+        const isImplementationHeader = bytes[i] === 0x41;
+        if (isImplementationHeader) i++;
+        tokens.push({
+          kind: TokenKind.Keyword, text: 'get', offset, opcode,
+          format: isImplementationHeader ? (F.INCREASE_INDENT_ONCE | F.SPACE_BEFORE) : F.SPACE_BEFORE
+        });
+        continue;
+      }
+      // get's setter sibling. Confirmed against ADS.GVar4AdsDefnRet.
+      // OnExecute's real `property string PTADSADVSRCHIN get set;` --
+      // an auto-implemented property (both accessors, no custom body):
+      // `property`/type/name run directly into `get` then `set` with no
+      // `;` between them, the whole thing one statement. Gated the same
+      // lookahead `get` has in case a `set` implementation header turns
+      // out to carry the same extra 0x41 byte `method`'s and `get`'s do.
+      // Neither carries INCREASE_INDENT_ONCE unless it really is an
+      // implementation header -- the bare shorthand form has no body of
+      // its own to indent, confirmed the hard way: applying it
+      // unconditionally left every subsequent `property ... get set;`
+      // line in that same real program one level deeper than the last,
+      // all the way down the class (16 properties, 16 levels of drift).
+      if (opcode === 0x49) {
+        const isImplementationHeader = bytes[i] === 0x41;
+        if (isImplementationHeader) i++;
+        tokens.push({
+          kind: TokenKind.Keyword, text: 'set', offset, opcode,
+          format: isImplementationHeader ? (F.INCREASE_INDENT_ONCE | F.SPACE_BEFORE) : F.SPACE_BEFORE
+        });
+        continue;
+      }
+      // get's own closing keyword. Confirmed against ADS.Common.
+      // OnExecute's real getter bodies: each one's real `Return (...);`
+      // is immediately followed by a bare `end-get;` and then the next
+      // getter's own doc comment (`/* useApprovals */`, `/* useFlowControl
+      // */`, ...) -- 3/3 occurrences in that program. See
+      // docs/ROADMAP.md pass forty-two.
+      if (opcode === 0x6a) {
+        tokens.push({ kind: TokenKind.Keyword, text: 'end-get', offset, opcode, format: END_FUNCTION_STYLE });
+        continue;
+      }
+      // end-get's setter sibling, closing a set implementation body the
+      // same way. Not yet seen in a real program with a small enough
+      // unmapped count to hand-walk directly; added on the strength of
+      // its structural symmetry with end-get (0x6a) and set (0x49), and
+      // corroborated by a reference PeopleCodeParser.java (a separate,
+      // older decompiler project) which lists this exact byte value for
+      // this exact keyword.
+      if (opcode === 0x6b) {
+        tokens.push({ kind: TokenKind.Keyword, text: 'end-set', offset, opcode, format: END_FUNCTION_STYLE });
         continue;
       }
       // Application Class trailer work (pass thirteen's open item), picked
@@ -1679,24 +1778,53 @@ export function decodeProgram(
         tokens.push({ kind: TokenKind.Keyword, text: 'implements', offset, opcode, format: SPACE_BOTH });
         continue;
       }
-      if (opcode === 0x61 && bytes[i] === 0x62) {
-        tokens.push({ kind: TokenKind.Keyword, text: 'instance', offset, opcode, format: NEWLINE_BEFORE_SPACE_AFTER });
-        i++;
+      // A method parameter's `out` modifier -- sits right after the
+      // parameter's `As <type>` and right before the `,` or `)` that
+      // ends it. Explains a pattern that looked inconsistent when first
+      // investigated (pass forty, tried and rejected "every non-first
+      // string parameter" and "same type as the previous parameter" --
+      // both falsified by real counter-examples): the real distinguisher
+      // was never the type, it was whether that specific parameter is
+      // declared `out`. Confirmed against ADS.Common.OnExecute's real
+      // `method ADSHasAbsentRecords(&adsName As string,
+      // &missingRecordsInProj As string out) Returns boolean;` -- a
+      // parameter named for carrying output, out is exactly what it
+      // should be. Corroborated independently by a reference
+      // PeopleCodeParser.java (a separate, older decompiler project)
+      // which lists this exact byte value for this exact keyword. See
+      // docs/ROADMAP.md pass forty-two.
+      if (opcode === 0x5d) {
+        tokens.push({ kind: TokenKind.Keyword, text: 'out', offset, opcode, format: F.SPACE_BEFORE });
         continue;
       }
-      // A standalone 0x61 (not immediately followed by 0x62) is a class
-      // declaration's `private` section header -- a bare keyword on its
-      // own line marking every method/property declaration after it as
-      // private, until `end-class;`. Found scanning the live database
-      // (pass forty): ADS.Relation.SqlGenerator.OnExecute's real class
-      // block reads `method GenerateSql() Returns string;\n\nprivate\n
-      // method GenerateSqlPerMapping() Returns string;\n   method
-      // GenerateSqlPerCriteria() Returns string;\nend-class;` -- this
-      // program's only unmapped opcode. Gated the same way 0x61/0x62's
-      // pair already is: only inside an Application Class, and only when
-      // not immediately followed by 0x62 (which stays `instance`).
+      // 0x61 (`private`) and 0x62 (`instance`) are two independent
+      // keywords, not a fused pair -- corrected in pass forty-two from
+      // pass twenty-eight's original attribution. The corpus's own
+      // OU_LANDINGPAGE.LandingPage.OUBanner (the pass-twenty-eight
+      // confirmation sample) makes the bug visible once checked against
+      // its literal real source rather than just a substring match: the
+      // real text is `private\n   instance OU_JET_PACK:Widgets:
+      // BaseWidget &objBase;` -- two separate lines, two separate
+      // keywords -- but treating "0x61 immediately followed by 0x62" as
+      // one `instance` token silently dropped the `private` that should
+      // have rendered right before it, and the corpus checker never
+      // caught it because it only verifies decoded text appears in
+      // source, never the reverse. `0x61`'s own standalone confirmation
+      // (pass forty, ADS.Relation.SqlGenerator.OnExecute) still holds --
+      // it just was never a special case to begin with. `0x62` alone is
+      // `instance`, confirmed the same way against EOAW_CORE.Utils.
+      // OnExecute's real `Local string &errorSetting;\ninstance array of
+      // string &delegationProcesses;` -- gated on isApplicationClass
+      // like every other keyword byte 0x62 collides with outside a class
+      // (353/53 occurrences corpus-wide in plain Function programs,
+      // pass twenty-eight's own count, are why this needs the gate at
+      // all).
       if (opcode === 0x61) {
         tokens.push({ kind: TokenKind.Keyword, text: 'private', offset, opcode, format: F.NEWLINE_BEFORE });
+        continue;
+      }
+      if (opcode === 0x62) {
+        tokens.push({ kind: TokenKind.Keyword, text: 'instance', offset, opcode, format: NEWLINE_BEFORE_SPACE_AFTER });
         continue;
       }
       // A property's own accessor modifier -- optional, sitting between

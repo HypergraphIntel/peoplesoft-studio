@@ -2258,6 +2258,118 @@ right tool to keep separating the two.
 `isApplicationClass`-gated dispatch. Corpus-wide unaffected (100.00%/204
 clean -- neither opcode occurs in the corpus).
 
+## Pass forty-two: an independent reference, a real bug it found, and the rest of the tracker
+
+The user handed over two files from a separate, older decompiler project
+(`PeopleCodeParser.java`/`PeopleCodeContainer.java`, targeting a PeopleTools
+8.4x-era project) -- an independently written opcode table covering
+essentially this whole format. Cross-checking it against every opcode
+this project has confirmed the hard way agreed almost everywhere
+(`Repeat`/`Until`, `Library`, `readonly`, `private`, `Exit`, `interface`,
+`get`, the 37-byte header, `class`/`method`/`end-class`/`end-method`, and
+more) -- strong, independent corroboration of the whole approach, not
+just individual bytes. A couple of entries didn't match this project's
+own numbering (their `0x51` = `PanelGroup`; this project's confirmed
+`0x51` is unrelated) -- opcode assignment apparently isn't stable
+release to release, so each entry still needed checking against real
+bytes before shipping, not just copied over.
+
+**First, `0x6a` (`end-get`)**, found independently before reading the
+reference (which later confirmed it exactly): `get`'s own closing
+keyword, the same shape as `end-method`. Confirmed against `ADS.Common.
+OnExecute`'s real getter bodies -- each `Return (...);` immediately
+followed by a bare `end-get;` and then the next getter's own doc comment,
+3/3 occurrences. 11 → 8 unmapped opcodes in that program (the rest was
+`0x5d`, below).
+
+**A real bug in the header check, found chasing `0x2`/`0xe0` and a
+cluster of "garbage from byte 0" programs.** `matchHeader` required three
+specific header positions be zero, based on how the corpus looked; a
+database-wide sample (60k programs) found each one zero in the
+overwhelming majority (>99.4%) but not always. Requiring any of them be
+zero rejects the header outright, which cascades the *entire* program
+(not just one construct) into unrelated-looking unmapped noise --
+confirmed on `G3UTILITIES.UtilityMethods.OnExecute` (position 22):
+fixing this alone took a 128KB program from 28+ unmapped opcodes to 0
+across the whole file. Dropped positions 7, 22 and 30 from
+`HEADER_ZERO_POSITIONS`; three more real programs
+(`G3UTILITIES.Constants.OnExecute`, `EOAW_CORE.Utils.OnExecute`, and
+`G3UTILITIES.UtilityMethods.OnExecute` itself) went from unreadable to
+0-1 unmapped opcodes each.
+
+**A real bug in pass twenty-eight's own confirmed work, found because the
+reference disagreed.** The reference lists `0x61` (`private`) and `0x62`
+(`instance`) as two *independent* keywords; this project's pass
+twenty-eight had fused "`0x61` immediately followed by `0x62`" into a
+single `instance` token, on the reasoning that only the pair occurs in
+that position. Checking the actual confirmed sample's real source
+(`OU_LANDINGPAGE.LandingPage.OUBanner`) against the *literal* text --
+not just whether the decoded text appears somewhere in it, which is all
+the corpus checker verifies -- showed the real source is `private\n
+instance OU_JET_PACK:Widgets:BaseWidget &objBase;`: two separate lines,
+two separate keywords. The fusion silently dropped the `private`. This
+is exactly the failure mode the project's own "confirmed" language is
+supposed to rule out, and it shipped anyway, undetected for the length
+of this whole session -- a reminder that the corpus checker's one-
+directional verification (decoded text found in source) has a real
+blind spot: it can't see something real that never got decoded at all.
+Fixed by making `0x61`/`0x62` fully independent; `0x61`'s own standalone
+confirmation (pass forty) already covered its half correctly, it was
+never actually a special case. `0x62` alone confirmed separately against
+`EOAW_CORE.Utils.OnExecute`'s real `instance array of string
+&delegationProcesses;` (no `private` before it).
+
+**The rest of the tracker's cleanest remaining entries, corroborated by
+the same reference and confirmed against real bytes:**
+
+- **`0x6f`/`0x71`** are `abstract` and `end-interface`, closing out
+  `BN_CERTIFICATE.WeightCalculator.OnExecute`'s interface entirely (the
+  program pass forty-one left at 2 unmapped opcodes) -- 0 unmapped now.
+- **`0x49`/`0x6b`** are `set`/`end-set`, `get`/`end-get`'s setter
+  siblings. Confirmed against `ADS.GVar4AdsDefnRet.OnExecute`'s real
+  `property string PTADSADVSRCHIN get set;` -- an auto-implemented
+  property, both accessors, no custom body, the whole thing one
+  statement. Neither `get` nor `set` carries `INCREASE_INDENT_ONCE`
+  unless it's genuinely an implementation header (the `0x41` lookahead
+  already added for `get`, pass forty-one) -- applying it
+  unconditionally to the bare shorthand form left every subsequent
+  `property ... get set;` line in that same real program one level
+  deeper than the last, all the way down a 16-property class. Caught by
+  actually reading the render output, not just the unmapped-opcode
+  count.
+- **`0x5d` is a method parameter's `out` modifier.** This is the pattern
+  pass forty investigated and explicitly left open (tried and rejected
+  "every non-first string parameter" and "same type as the previous
+  parameter," both falsified by real counter-examples) -- the real
+  distinguisher was never the type at all. Confirmed against `ADS.Common.
+  OnExecute`'s real `method ADSHasAbsentRecords(&adsName As string,
+  &missingRecordsInProj As string out) Returns boolean;` -- a parameter
+  named for carrying output, `out` is exactly what it should be. 8 → 0
+  unmapped opcodes in that program (this and `end-get` together resolved
+  it completely).
+- **`0x36`/`0x3b` are `Value`/`Ref`**, a DLL-declared parameter's passing
+  mode, and **`0x41` gained a third overloaded role**: zero-width right
+  after a DLL declaration's `Library "dllname"` string, gated on the next
+  byte being the newline opcode (`0x2d`) this time -- distinct from its
+  existing And/Or and method-header gates. Confirmed together against
+  `APPS_RLR.Utilities.OnExecute`'s real `Declare Function RegCloseKey
+  Library "advapi32"\n      (long Value As number) Returns long;` -- the
+  program pass forty-one left at 15 unmapped opcodes, now 0.
+
+**Shipped**: `0x6a`/`0x6f`/`0x71`/`0x49`/`0x6b`/`0x5d` added to the
+`isApplicationClass`-gated dispatch; `0x36`/`0x3b` added to `OPCODES`;
+`0x41` gained its third gated role; `HEADER_ZERO_POSITIONS` dropped three
+positions; `0x61`/`0x62` decoupled from their incorrect fused pairing.
+Corpus-wide: 100.00%/204 clean throughout, text accuracy essentially
+unchanged (86792/88027, a few tokens up from the `private` fix now
+rendering real text that was previously silently dropped). This was the
+single most productive pass of the whole database-scan effort -- eleven
+opcodes fixed or added, one real regression in already-shipped code
+caught and fixed, one indentation bug caught by reading render output
+rather than trusting an unmapped-count number, from one independently
+written reference file cross-checked against real bytes rather than
+copied blind.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in

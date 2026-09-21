@@ -43,6 +43,23 @@ test('0xa0 is consumed by the header and never reported as an unknown opcode', (
   assert.ok(!opcodes.has(0xa0));
 });
 
+test('the header still matches when bytes 7/22/30 are non-zero, not always 0', () => {
+  // A database-wide sample (60k programs) found each of these three
+  // positions zero in the overwhelming majority (>99.4%) but not always.
+  // Requiring any of them be zero rejected the header outright for that
+  // real program, which cascades the *entire* program into unrelated-
+  // looking unmapped noise -- confirmed on G3UTILITIES.UtilityMethods.
+  // OnExecute (byte 22): fixing this alone took a 128KB program from
+  // 28+ unmapped opcodes to 0. See docs/ROADMAP.md pass forty-two.
+  const withNonZero = [...HEADER];
+  withNonZero[7] = 1;
+  withNonZero[22] = 1;
+  withNonZero[30] = 1;
+  const result = decodeProgram(Buffer.from([...withNonZero, 0x15]), new NameTable());
+  assert.equal(result.tokens[0].kind, TokenKind.Header);
+  assert.equal(result.unknownOpcodes.length, 0);
+});
+
 test('AddOnLoadScript and GetHTMLText decode as bare identifiers after a newline', () => {
   // Confirmed against WinMessage in SAVE_PRE_CHANGE_BYTES below: a spelled
   // identifier with no introducer opcode, immediately after 0x0a, is a
@@ -1168,8 +1185,18 @@ test('property/instance/extends decode, picking pass thirteen back up: the Appli
   //
   // Gated the same way as class/method: 0x5e and 0x5c never occur outside
   // an Application Class program, but 0x61 and 0x62 individually do (353
-  // and 53 corpus-wide occurrences in plain Function programs) -- only the
-  // pair, 0x61 immediately followed by 0x62, is `instance`.
+  // and 53 corpus-wide occurrences in plain Function programs).
+  //
+  // Note (pass forty-two): 0x61 immediately followed by 0x62 was
+  // originally fused into a single `instance` token here, on the
+  // reasoning that only the pair occurs in this position. That silently
+  // dropped a real `private` this exact sample's own source has right
+  // before `instance` (`private\n   instance OU_JET_PACK:Widgets:
+  // BaseWidget &objBase;`) -- the corpus checker never caught it because
+  // it only verifies decoded text appears in source, never the reverse.
+  // 0x61 and 0x62 are independent keywords (`private` and `instance`
+  // respectively); this test's bytes were updated to include the real
+  // `private` this sample always had.
   const bytes = Buffer.from([
     ...HEADER,
     0x5a, 0x0a, ...utf16('OUBanner'), 0x00, 0x00,                         // class OUBanner
@@ -1177,7 +1204,8 @@ test('property/instance/extends decode, picking pass thirteen back up: the Appli
     0x57, 0x0a, ...utf16('Widgets'), 0x00, 0x00,                          // :Widgets
     0x57, 0x0a, ...utf16('BaseWidget'), 0x00, 0x00,                       // :BaseWidget
     0x5e, 0x40, ...utf16('number'), 0x00, 0x00, 0x0a, ...utf16('ColSeq'), 0x00, 0x00, 0x15, // property number ColSeq;
-    0x61, 0x62, 0x0a, ...utf16('OU_JET_PACK'), 0x00, 0x00,                // instance OU_JET_PACK
+    0x61,                                                                  // private
+    0x62, 0x0a, ...utf16('OU_JET_PACK'), 0x00, 0x00,                      // instance OU_JET_PACK
     0x57, 0x0a, ...utf16('Widgets'), 0x00, 0x00,                          // :Widgets
     0x57, 0x0a, ...utf16('BaseWidget'), 0x00, 0x00,                       // :BaseWidget
     0x1, ...utf16('&objBase'), 0x00, 0x00, 0x15,                          // &objBase;
@@ -1192,6 +1220,7 @@ test('property/instance/extends decode, picking pass thirteen back up: the Appli
   assert.equal(result.text,
     'class OUBanner extends OU_JET_PACK:Widgets:BaseWidget\n' +
     '  property number ColSeq;\n' +
+    '  private\n' +
     '  instance OU_JET_PACK:Widgets:BaseWidget &objBase;\n' +
     'end-class;\n');
 });
@@ -1605,16 +1634,77 @@ test('a property getter\'s implementation header consumes the same 0x41 method\'
   // fixed OPCODES entry with no lookahead, so it couldn't consume this
   // the way `method` (0x63) already does; moved into the same
   // isApplicationClass-gated dispatch to gain the same lookahead.
+  // 0x6a (`end-get`, pass forty-two) closes it: confirmed against the
+  // same program's real getters, each one's `Return (...);` immediately
+  // followed by a bare `end-get;` and then the next getter's own doc
+  // comment (3/3 occurrences).
   const result = decodeProgram(
     Buffer.from([
       ...HEADER,
       0x5f, 0x41, 0xa, ...utf16('useFlowControl'), 0x00, 0x00,
       0x6d, ...utf16('Returns Boolean'), 0x00, 0x00,
-      0x38, 0x2f, 0x15
+      0x38, 0x2f, 0x15,
+      0x6a, 0x15
     ]),
     new NameTable(), { mode: 'auto', isApplicationClass: true });
   assert.equal(result.unknownOpcodes.length, 0);
-  assert.equal(result.text, 'get useFlowControl\n  /+ Returns Boolean +/\n  Return True;\n');
+  assert.equal(result.text, 'get useFlowControl\n  /+ Returns Boolean +/\n  Return True;\nend-get;\n');
+});
+
+test('0x49 is set, get\'s setter sibling -- bare shorthand form carries no indent', () => {
+  // Confirmed against ADS.GVar4AdsDefnRet.OnExecute's real `property
+  // string PTADSADVSRCHIN get set;` -- an auto-implemented property
+  // (both accessors, no custom body), the whole thing one statement.
+  // Neither `get` nor `set` carries INCREASE_INDENT_ONCE in this bare
+  // form (no 0x41 implementation-header byte) -- confirmed the hard way:
+  // applying it unconditionally left each subsequent `property ... get
+  // set;` line in that same real program one level deeper than the
+  // last, all the way down a 16-property class.
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x5e, 0x40, ...utf16('string'), 0x00, 0x00, 0xa, ...utf16('PTADSADVSRCHIN'), 0x00, 0x00,
+      0x5f, 0x49, 0x15,
+      0x5e, 0x40, ...utf16('string'), 0x00, 0x00, 0xa, ...utf16('NextProp'), 0x00, 0x00,
+      0x5f, 0x49, 0x15
+    ]),
+    new NameTable(), { mode: 'auto', isApplicationClass: true });
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text,
+    'property string PTADSADVSRCHIN get set;\n' +
+    'property string NextProp get set;\n');
+});
+
+test('end-set (0x6b) closes a set implementation body, the same shape as end-get', () => {
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x49, 0x41, 0xa, ...utf16('useFlowControl'), 0x00, 0x00, 0x15,
+      0x6b, 0x15
+    ]),
+    new NameTable(), { mode: 'auto', isApplicationClass: true });
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'set useFlowControl;\nend-set;\n');
+});
+
+test('0x5d is a method parameter\'s out modifier', () => {
+  // Confirmed against ADS.Common.OnExecute's real `method
+  // ADSHasAbsentRecords(&adsName As string, &missingRecordsInProj As
+  // string out) Returns boolean;` -- a parameter named for carrying
+  // output, out is exactly what it should be. This was the resolution
+  // to a pattern pass forty investigated and left open: not every
+  // non-first string parameter, not same-type-as-previous, but whether
+  // that specific parameter is declared out.
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x63, 0xa, ...utf16('F'), 0x00, 0x00, 0xb,
+      0x1, ...utf16('&x'), 0x00, 0x00, 0x35, 0x40, ...utf16('string'), 0x00, 0x00, 0x5d,
+      0x14, 0x15
+    ]),
+    new NameTable(), { mode: 'auto', isApplicationClass: true });
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'method F(&x As string out);\n');
 });
 
 test('0x70 is interface, class\'s sibling for an interface declaration', () => {
@@ -1633,6 +1723,30 @@ test('0x70 is interface, class\'s sibling for an interface declaration', () => {
   assert.equal(result.text, 'interface WeightCalculator');
 });
 
+test('0x6f/0x71 are abstract and end-interface, closing the same interface', () => {
+  // Confirmed against the same BN_CERTIFICATE.WeightCalculator.
+  // OnExecute: `method calculate(&intA As integer, &intB As integer)
+  // Returns number` is followed by `0x6f;` then `0x71;` -- `abstract`
+  // modifying the bodyless interface method, then `end-interface`
+  // closing the block. Corroborated independently by a reference
+  // PeopleCodeParser.java (a separate, older decompiler project) which
+  // lists the same two byte values for the same two keywords.
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x70, 0x0a, ...utf16('WeightCalculator'), 0x00, 0x00,
+      0x63, 0xa, ...utf16('calculate'), 0x00, 0x00, 0xb, 0x14, 0x39, 0x40, ...utf16('number'), 0x00, 0x00,
+      0x6f, 0x15,
+      0x71, 0x15
+    ]),
+    new NameTable(), { mode: 'auto', isApplicationClass: true });
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text,
+    'interface WeightCalculator\n' +
+    '  method calculate() Returns number abstract;\n' +
+    'end-interface;\n');
+});
+
 test('0x33 is Library, for an external DLL function declaration', () => {
   // Confirmed against APPS_RLR.Utilities.OnExecute's real
   // `Declare Function RegCloseKey Library "advapi32" (...)`.
@@ -1647,13 +1761,41 @@ test('0x33 is Library, for an external DLL function declaration', () => {
   assert.equal(result.text, 'Declare Function RegCloseKey Library "advapi32"');
 });
 
-test('a standalone 0x61 (not paired with 0x62) is a class\'s private section header', () => {
+test('a DLL declaration\'s parameter list decodes fully: Value/Ref passing mode and the zero-width 0x41 before it', () => {
+  // Confirmed against APPS_RLR.Utilities.OnExecute's real
+  // `Declare Function RegCloseKey Library "advapi32"\n      (long Value
+  // As number) Returns long;` -- the program's only unmapped opcodes
+  // once Library itself decoded were 0x36 (Value), and a third role for
+  // the already-overloaded 0x41 (zero-width, gated on the next byte
+  // being the newline opcode 0x2d this time, distinct from its And/Or
+  // and method-header gates).
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x31, 0x32, 0x0a, ...utf16('RegCloseKey'), 0x00, 0x00,
+      0x33, 0x16, ...utf16('advapi32'), 0x00, 0x00,
+      0x41, 0x2d,
+      0xb, 0xa, ...utf16('long'), 0x00, 0x00, 0x36, 0x35, 0x40, ...utf16('number'), 0x00, 0x00, 0x14,
+      0x39, 0xa, ...utf16('long'), 0x00, 0x00, 0x15
+    ]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text,
+    'Declare Function RegCloseKey Library "advapi32"\n  (long Value As number) Returns long;\n');
+});
+
+test('0x3b is Ref, Value\'s pass-by-reference sibling', () => {
+  const result = decodeProgram(Buffer.from([...HEADER, 0x3b]), new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'Ref');
+});
+
+test('0x61 is a class\'s private section header', () => {
   // Confirmed against ADS.Relation.SqlGenerator.OnExecute's real class
   // block: `method GenerateSql() Returns string;\n\nprivate\n   method
   // GenerateSqlPerMapping() Returns string;\n   method
   // GenerateSqlPerCriteria() Returns string;\nend-class;` -- this
-  // program's only unmapped opcode. 0x61/0x62 immediately together stay
-  // `instance` (pass twenty-eight); this is the other, standalone shape.
+  // program's only unmapped opcode.
   const result = decodeProgram(
     Buffer.from([
       ...HEADER,
@@ -1671,6 +1813,23 @@ test('a standalone 0x61 (not paired with 0x62) is a class\'s private section hea
     '  private\n' +
     '  method GenerateSqlPerMapping() Returns string;\n' +
     'end-class;\n');
+});
+
+test('0x62 alone (no leading 0x61) is instance', () => {
+  // Corrected from pass twenty-eight's fused "0x61 immediately followed
+  // by 0x62" pairing (see the property/instance/extends test above):
+  // 0x62 is its own independent keyword. Confirmed against EOAW_CORE.
+  // Utils.OnExecute's real `Local string &errorSetting;\ninstance array
+  // of string &delegationProcesses;` -- an instance declaration with no
+  // `private` before it.
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x62, 0x40, ...utf16('string'), 0x00, 0x00, 0x1, ...utf16('&errorSetting'), 0x00, 0x00, 0x15
+    ]),
+    new NameTable(), { mode: 'auto', isApplicationClass: true });
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'instance string &errorSetting;\n');
 });
 
 test('0x48 still falls through to unknown for a qualifier outside the confirmed set', () => {
