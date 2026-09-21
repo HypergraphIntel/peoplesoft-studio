@@ -1637,3 +1637,21 @@ test('0x77 is #Else, completing the #If/#Then/#Else/#End-If directive family', (
     '  End-If;\n' +
     '#End-If');
 });
+
+test('a string literal with a real non-ASCII character survives whole, the same bug as comments once had', () => {
+  // readTextRun (used for string literals and bare identifiers, unlike
+  // comments' own length-prefixed readLengthPrefixedText) had the same
+  // printable-ASCII-only restriction pass thirty-two's comment fix
+  // removed, just never carried over to this reader. Confirmed against
+  // HCB_CORE_LIBRARIES.HCB_JsonBuilder.OnExecute's real
+  // `&Emplid_CurrSymbol = "£"` (its string literal's only character is
+  // U+00A3) -- rejecting it fell through to walking the character's own
+  // bytes as a fresh opcode, cascading the rest of the statement into
+  // unmapped noise. 11 -> 1 unmapped opcodes in the real program (the one
+  // left is unrelated). See docs/ROADMAP.md pass forty.
+  const result = decodeProgram(
+    Buffer.from([...HEADER, 0x16, 0xa3, 0x00, 0x00, 0x00]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, '"£"');
+});

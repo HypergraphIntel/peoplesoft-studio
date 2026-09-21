@@ -503,34 +503,28 @@ const TEXT_INTRODUCERS = new Map<number, TokenKind.Name | TokenKind.StringLitera
 /**
  * Reads a UTF-16LE text run starting at `start`, terminated by a 0x00 0x00
  * pair. Returns null if the bytes at `start` do not fit that shape (not
- * enough bytes, a non-printable or non-zero high byte, or no terminator
- * before the buffer ends) so the caller can fall back to treating the
- * introducer as an ordinary unknown byte instead of misreading unrelated
- * bytes as text. The printable-ASCII restriction is stricter than the
- * evidence strictly requires -- every confirmed text run so far has been
- * printable ASCII -- but costs nothing to enforce and rules out a class of
- * false positive this decoder has no evidence either way on.
+ * enough bytes, or no terminator before the buffer ends) so the caller can
+ * fall back to treating the introducer as an ordinary unknown byte instead
+ * of misreading unrelated bytes as text.
+ *
+ * Any non-zero UTF-16 code unit is accepted, not just printable ASCII: a
+ * string literal or bare identifier can carry a real non-ASCII character
+ * (confirmed against HCB_CORE_LIBRARIES.HCB_JsonBuilder.OnExecute's real
+ * `&Emplid_CurrSymbol = "£"`, a single-character string whose only
+ * character is U+00A3) the exact same way `readLengthPrefixedText`'s own
+ * comments could (see that function's own history) -- rejecting it just
+ * misread the character's own bytes as a fresh opcode and cascaded
+ * everything downstream. See docs/ROADMAP.md pass forty.
  */
-/**
- * Printable ASCII, plus tab/CR/LF: a multi-line comment or string literal is
- * one text run containing real line breaks, so rejecting them truncated
- * every such run at its first newline. Adding them raised corpus coverage
- * without lowering how often decoded text matches the known source, which is
- * the check that would have caught it if the runs had turned greedy.
- */
-function isTextByte(lo: number): boolean {
-  return (lo >= 0x20 && lo <= 0x7e) || lo === 0x09 || lo === 0x0a || lo === 0x0d;
-}
-
 function readTextRun(bytes: Buffer, start: number): { text: string; end: number } | undefined {
   const chars: string[] = [];
   let i = start;
   while (i + 1 < bytes.length) {
     const lo = bytes[i];
     const hi = bytes[i + 1];
-    if (lo === 0x00 && hi === 0x00) return { text: chars.join(''), end: i + 2 };
-    if (hi !== 0x00 || !isTextByte(lo)) return undefined;
-    chars.push(String.fromCharCode(lo));
+    const code = lo | (hi << 8);
+    if (code === 0x0000) return { text: chars.join(''), end: i + 2 };
+    chars.push(String.fromCharCode(code));
     i += 2;
   }
   return undefined;
