@@ -1565,6 +1565,19 @@ test('0x48 generalizes past Operation to every confirmed quoted-reference qualif
   assert.equal(result.text, 'BusEvent."Notify Employee"');
 });
 
+test('0x48 also covers Panel/PanelGroup, PeopleTools\' pre-8.4x names for Page/Component', () => {
+  // Confirmed against DERIVED_FP_CA.FP_CA_BTTN2.FieldChange's real
+  // `DoModalPanelGroup(MenuName."HEADCOUNT_(FP)", BarName."MDX",
+  // ItemName."CALINKS", Panel."FP_AVLBL_CA", ...)` -- PSPCMNAME still
+  // stores these under their old names for programs compiled that far
+  // back. 0 unmapped opcodes in the real program.
+  const names = new NameTable();
+  names.add(1, 'PANEL.FP_AVLBL_CA');
+  const result = decodeProgram(Buffer.from([...HEADER, 0x48, 0x00, 0x00]), names);
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'Panel."FP_AVLBL_CA"');
+});
+
 test('0x48 still falls through to unknown for a qualifier outside the confirmed set', () => {
   const names = new NameTable();
   names.add(1, 'SOMEUNKNOWNTYPE.Foo');
