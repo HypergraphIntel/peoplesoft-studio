@@ -1481,3 +1481,45 @@ test('0x43 is Exit, the same bare-keyword shape as Break', () => {
   assert.equal(result.unknownOpcodes.length, 0);
   assert.equal(result.text, 'End-If Exit;\n');
 });
+
+test('0x20 is a zero-width marker before a bare, unassigned expression statement', () => {
+  // Found by decoding every program in the live database (~121k), not
+  // just the 204-program corpus -- see docs/ROADMAP.md pass thirty-nine.
+  // Confirmed structurally (no project-export source for these delivered
+  // base objects): 5 independent occurrences across 3 real programs, all
+  // sitting directly after a statement boundary (`;` or `Then`) and
+  // directly before a real `(` opening a bare function-call statement
+  // whose result is discarded -- `(MsgGet(6540, 127, "..."));`. Confirmed
+  // against ABSENCE_HIST.ABS_RECURRENCE.SaveEdit and
+  // AA_ONE_JPN_VW.ACTION_REASON_JPN.SaveEdit, each program's only
+  // unmapped opcode.
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER, 0x1c, 0x2f, 0x1f,             // If True Then
+      0x20, 0xb, 0x0a, ...utf16('MsgGet'), 0x00, 0x00, 0xb, 0x14, 0x14, 0x15, // (MsgGet());
+      0x1a, 0x15                                // End-If;
+    ]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'If True Then\n  (MsgGet());\nEnd-If;\n');
+});
+
+test('0x51 is Local\'s own zero-width sibling, for a declaration with no scope keyword at all', () => {
+  // The clincher: AE_WRK.AE_BIND_VALUE.FieldEdit declares
+  // `Local Record &MYREC;`, `Field &MYFLD;`, `Local Field &FLD;` and
+  // `Local Record &REC;` back to back -- the three with an explicit
+  // `Local` decode via the already-confirmed 0x44 exactly as everywhere
+  // else, and only the one genuinely missing it (`Field &MYFLD;`,
+  // PeopleCode's implicit-current-field idiom, valid with no scope
+  // keyword at a program's top level) carries 0x51 instead. Reproduced
+  // here as the same two declarations back to back.
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x44, 0xa, ...utf16('Record'), 0x00, 0x00, 0x1, ...utf16('&MYREC'), 0x00, 0x00, 0x15,
+      0x51, 0xa, ...utf16('Field'), 0x00, 0x00, 0x1, ...utf16('&MYFLD'), 0x00, 0x00, 0x15
+    ]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'Local Record &MYREC;\nField &MYFLD;\n');
+});
