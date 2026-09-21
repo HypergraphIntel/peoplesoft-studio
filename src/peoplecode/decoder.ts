@@ -872,8 +872,44 @@ const TRAILER_MARKER: readonly [number, number] = [0x2d, 0x07];
  * references): 170 of 183 trailer-bearing programs verify, and every
  * declaration in a verified program's table matches real source on both
  * paramCount and the Returns-clause check.
+ *
+ * ## Application Class extension (pass thirteen's own directory, picked up
+ * in pass twenty-eight)
+ *
+ * A class's directory carries two record kinds this format didn't have to
+ * account for before, both confirmed byte-for-byte against
+ * `TI_INTEGRATION.DVMEError`'s real, fully-decoded methods and properties,
+ * then checked against every Application Class program in the corpus
+ * (54/54 declarations correct on both `paramCount` and `hasReturnValue`):
+ *
+ * - **Record 0 is always the class's own colon-qualified self-reference**
+ *   (`PKG:ClassName`, the name run's own first entry, charOffset 0), not a
+ *   declaration -- its third field is a constant `0x400000`, checked and
+ *   required before anything else in this mode; the whole table is refused
+ *   if it doesn't hold, rather than treating a self-reference as a
+ *   zero-param method.
+ * - **A `property`/`instance` member gets a record too, but its third field
+ *   is not a parameter count** -- confirmed non-`paramCount` values
+ *   `0xa0000`, `0xa0001`, `0xb0002` against three real properties. Detected
+ *   because no real parameter count ever sets bits above `0xffff`, and
+ *   skipped rather than exposed as a many-thousand-parameter method. Its
+ *   kind field does hold a real type code (reusing the same scalar/object
+ *   codes a `Returns` clause uses), but not yet confirmed enough to expose
+ *   as more than "this wasn't a method".
+ * - The self-reference name is colon-qualified like an imported-class
+ *   reference, but unlike one, it needs a record -- so in this mode the
+ *   name-run scan keeps it (only it; every colon-qualified name after the
+ *   first is still a mere type reference, e.g. an Application-Class-typed
+ *   property's own type, and still gets no record of its own).
+ *
+ * Net effect on `TI_INTEGRATION.DVMEError`: `declarations` went from
+ * `undefined` to all 11 of its real methods, each with the exact real
+ * `paramCount` and return type, none of its 3 properties or its own
+ * self-reference mistaken for one.
  */
-function decodeDeclarations(bytes: Buffer, trailerOffset: number): Declaration[] | undefined {
+function decodeDeclarations(
+  bytes: Buffer, trailerOffset: number, isApplicationClass: boolean
+): Declaration[] | undefined {
   const runStart = trailerOffset + 2;
   const names: { text: string; start: number; end: number }[] = [];
   let i = runStart;
@@ -902,7 +938,16 @@ function decodeDeclarations(bytes: Buffer, trailerOffset: number): Declaration[]
     // bytes and misalign every field that follows.
     if (text === '') { i = nameStart; break; }
     i = j + 2;
-    if (!text.includes(':')) names.push({ text, start: nameStart, end: j + 2 });
+    // An Application Class program's very first name is always its own
+    // colon-qualified self-reference (e.g. `TI_INTEGRATION:DVMEError`) and,
+    // unlike every other colon-qualified name, DOES get a record -- see the
+    // n===0 handling below. Every other colon-qualified name is a
+    // referenced type (an Application-Class-typed property's own type,
+    // confirmed against `EOTF_CORE:DVM:Functions` in the same program) and
+    // never gets one, same as the plain-Function case.
+    if (!text.includes(':') || (isApplicationClass && names.length === 0)) {
+      names.push({ text, start: nameStart, end: j + 2 });
+    }
   }
   if (names.length === 0) return undefined;
 
@@ -914,10 +959,33 @@ function decodeDeclarations(bytes: Buffer, trailerOffset: number): Declaration[]
     const base = tableStart + n * 16;
     const charOffset = bytes.readInt32LE(base);
     if (charOffset !== (names[n].start - runStart) / 2) return undefined;
+    const third = bytes.readInt32LE(base + 8);
+
+    // Application Class only, record 0: the self-reference's own record,
+    // not a callable declaration -- distinguished by a third field of
+    // exactly 0x400000, confirmed against TI_INTEGRATION.DVMEError. A
+    // program whose first record doesn't match this isn't the shape this
+    // function understands, so it refuses the whole table rather than
+    // treating a self-reference as a zero-param method.
+    if (isApplicationClass && n === 0) {
+      if (third !== 0x400000) return undefined;
+      continue;
+    }
+    // Application Class only: a `property`/`instance` record reuses this
+    // same third field for something else entirely -- confirmed
+    // non-parameter-count values (0xa0000, 0xa0001, 0xb0002) against
+    // DVMEError's three real properties. Recognised because no real
+    // parameter count ever sets these bits: skipped here rather than
+    // exposed as a nonsensical multi-thousand-parameter method. (Its own
+    // kind field does hold a real type code, matching a Returns clause's
+    // own scalar/object codes, but not yet confirmed enough to expose as
+    // anything more specific than "this wasn't a method.")
+    if (isApplicationClass && (third & 0xffff0000) !== 0) continue;
+
     const kind = bytes.readInt32LE(base + 12);
     declarations.push({
       name: names[n].text,
-      paramCount: bytes.readInt32LE(base + 8),
+      paramCount: third,
       hasReturnValue: kind !== 7,
       returnType: decodeReturnType(kind)
     });
@@ -1195,7 +1263,9 @@ export function decodeProgram(
     tokens.push({ kind: mapped.kind, text: mapped.text ?? '', offset, opcode, format: mapped.format });
   }
 
-  const declarations = trailerOffset !== undefined ? decodeDeclarations(bytes, trailerOffset) : undefined;
+  const declarations = trailerOffset !== undefined
+    ? decodeDeclarations(bytes, trailerOffset, options.isApplicationClass ?? false)
+    : undefined;
   return { text: render(tokens, unknownOpcodes), tokens, unknownOpcodes, trailerOffset, declarations };
 }
 

@@ -1115,3 +1115,40 @@ test('property/instance/extends decode, picking pass thirteen back up: the Appli
     '  instance OU_JET_PACK:Widgets:BaseWidget &objBase;\n' +
     'end-class;\n');
 });
+
+test('an Application Class trailer lists only its real methods -- self-reference and properties excluded', () => {
+  // Confirmed against TI_INTEGRATION.DVMEError's real trailer, fetched live
+  // and hand-walked: record 0 is always the class's own self-reference
+  // (third field 0x400000, not a declaration at all), and any property
+  // record's third field is likewise not a parameter count -- both would
+  // otherwise surface as nonsensical multi-thousand-parameter "methods".
+  // Cross-checked corpus-wide against every Application Class program's own
+  // real source: 54/54 (100%) on both paramCount and hasReturnValue, and it
+  // took DVMEError itself from `declarations: undefined` to all 11 of its
+  // real methods, exactly.
+  const names = new NameTable();
+  const bytes = Buffer.from([
+    ...HEADER,
+    0x2d, 0x07,
+    ...utf16('PKG:MyClass'), 0x00, 0x00,
+    ...utf16('MyProp'), 0x00, 0x00,
+    ...utf16('MyMethod'), 0x00, 0x00,
+    ...declarationRecord(0, 0x400000, 0),   // self-reference (third field, not kind)
+    ...declarationRecord(12, 0xa0001, 0),   // property (third field is not a paramCount)
+    ...declarationRecord(19, 2, 1)          // a real method: 2 params, Returns string
+  ]);
+  const result = decodeProgram(bytes, names, { mode: 'auto', isApplicationClass: true });
+  assert.deepEqual(result.declarations,
+    [{ name: 'MyMethod', paramCount: 2, hasReturnValue: true, returnType: 'string' }]);
+});
+
+test('an Application Class trailer whose first record is not the expected self-reference shape is refused', () => {
+  const bytes = Buffer.from([
+    ...HEADER,
+    0x2d, 0x07,
+    ...utf16('PKG:MyClass'), 0x00, 0x00,
+    ...declarationRecord(0, 0, 7) // not 0x400000 -- not the shape this function understands
+  ]);
+  const result = decodeProgram(bytes, new NameTable(), { mode: 'auto', isApplicationClass: true });
+  assert.equal(result.declarations, undefined);
+});
