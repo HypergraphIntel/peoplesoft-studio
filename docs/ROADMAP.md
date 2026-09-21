@@ -2151,6 +2151,53 @@ pass, all from working the same tracker top to bottom -- a reminder that
 the database scan surfaces both new opcodes and old bugs in already-
 shipped ones, not just the former.
 
+Regenerating the scan afterward: clean programs 101,324 → 111,122 of
+121,028, unmapped occurrences 762,744 → 238,452, since this pass started.
+Still working the tracker top to bottom:
+
+**A standalone `0x61`** (not immediately followed by `0x62`, which stays
+`instance`) **is a class's `private` section header** -- a bare keyword
+on its own line marking every method/property declaration after it as
+private, until `end-class;`. Confirmed against `ADS.Relation.
+SqlGenerator.OnExecute`'s real class block (`method GenerateSql()
+Returns string;\n\nprivate\n   method GenerateSqlPerMapping() Returns
+string;\n   method GenerateSqlPerCriteria() Returns string;\n
+end-class;`), this program's only unmapped opcode.
+
+**`0x72` is `implements`**, `extends`' sibling for interface
+implementation (`class X implements Y` rather than `class X extends
+Y`). Confirmed against `ACCOM_TYPE_FULLSYNC.AccomTypeFullsync.
+OnExecute`'s real `class AccomTypeFullsync implements PS_PT:
+Integration:INotificationHandler`, this program's only unmapped opcode,
+sitting in exactly the position `0x5c` occupies for a real base class.
+
+**A property getter's implementation header carries the same extra
+`0x41` byte `method`'s does**, between the opcode and the accessor's
+name -- `get` (`0x5f`) was a fixed `OPCODES` entry with no lookahead, so
+it couldn't consume this the way `method` (`0x63`) already does. Found
+from the `0x41`/`0x6a`/`0x5d` cluster all pointing at `ADS.Common.
+OnExecute`: its real `get useFlowControl\n   /+ Returns Boolean +/\n\n
+Return (GetUserOption(...) <> "Y");` (2/2 occurrences in that program)
+needed the same lookahead-and-consume `method` already has. Moved `get`
+into the same `isApplicationClass`-gated dispatch to gain it. 14 → 11
+unmapped opcodes in the real program (the remaining `0x5d` cluster's
+pattern didn't hold up under closer study -- see below).
+
+**`0x5d` stays open.** It sits after some, not all, `string`-typed
+parameters in a method's declaration, and the first pattern tried
+("every non-first parameter typed `string`") was falsified by
+`ValidateParentChild(&parentRecord As string, &childRecord As string,
+&isChildRoot As boolean, ...)`, where the second parameter is a non-first
+`string` with no marker. A same-type-as-immediately-preceding-parameter
+theory fails the same way. Left unmapped rather than shipping a guess;
+still in the tracker for a future pass with more samples.
+
+**Shipped**: `0x61` (standalone) and `0x72` added to the
+`isApplicationClass`-gated dispatch; `get` (`0x5f`) moved from a fixed
+`OPCODES` entry into the same dispatch to gain the `0x41` lookahead.
+Corpus-wide unaffected (100.00%/204 clean -- `0x61`(standalone)/`0x72`/
+`get`+`0x41` don't occur in the corpus).
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in

@@ -1598,6 +1598,25 @@ test('0x72 is implements, extends\' sibling for an interface', () => {
   assert.equal(result.text, 'class AccomTypeFullsync implements PS_PT:Integration:INotificationHandler\nend-class;\n');
 });
 
+test('a property getter\'s implementation header consumes the same 0x41 method\'s does', () => {
+  // Confirmed against ADS.Common.OnExecute's real `get useFlowControl\n
+  // /+ Returns Boolean +/\n\n   Return (GetUserOption(...) <> "Y");`
+  // (2/2 occurrences in that program). `get` (0x5f) was previously a
+  // fixed OPCODES entry with no lookahead, so it couldn't consume this
+  // the way `method` (0x63) already does; moved into the same
+  // isApplicationClass-gated dispatch to gain the same lookahead.
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x5f, 0x41, 0xa, ...utf16('useFlowControl'), 0x00, 0x00,
+      0x6d, ...utf16('Returns Boolean'), 0x00, 0x00,
+      0x38, 0x2f, 0x15
+    ]),
+    new NameTable(), { mode: 'auto', isApplicationClass: true });
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'get useFlowControl\n  /+ Returns Boolean +/\n  Return True;\n');
+});
+
 test('a standalone 0x61 (not paired with 0x62) is a class\'s private section header', () => {
   // Confirmed against ADS.Relation.SqlGenerator.OnExecute's real class
   // block: `method GenerateSql() Returns string;\n\nprivate\n   method
