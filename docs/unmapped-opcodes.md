@@ -13,43 +13,33 @@ since fewer *other* unmapped bytes obscure the real source around this one.
 
 ## 0x00
 
-1 programs, 120 occurrences total.
+0 programs, 0 occurrences total.
 
-| program | type | bytes | this opcode | total unmapped |
-|---|---|---|---|---|
-| WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 120 | 183 |
+(none)
 
 ## 0x20
 
-1 programs, 15 occurrences total.
+0 programs, 0 occurrences total.
 
-| program | type | bytes | this opcode | total unmapped |
-|---|---|---|---|---|
-| WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 15 | 183 |
+(none)
 
 ## 0x6e
 
-1 programs, 4 occurrences total.
+0 programs, 0 occurrences total.
 
-| program | type | bytes | this opcode | total unmapped |
-|---|---|---|---|---|
-| WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 4 | 183 |
+(none)
 
 ## 0x70
 
-1 programs, 1 occurrences total.
+0 programs, 0 occurrences total.
 
-| program | type | bytes | this opcode | total unmapped |
-|---|---|---|---|---|
-| WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 1 | 183 |
+(none)
 
 ## 0x6f
 
-1 programs, 4 occurrences total.
+0 programs, 0 occurrences total.
 
-| program | type | bytes | this opcode | total unmapped |
-|---|---|---|---|---|
-| WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 4 | 183 |
+(none)
 
 ## 0x73
 
@@ -59,19 +49,15 @@ since fewer *other* unmapped bytes obscure the real source around this one.
 
 ## 0x74
 
-1 programs, 3 occurrences total.
+0 programs, 0 occurrences total.
 
-| program | type | bytes | this opcode | total unmapped |
-|---|---|---|---|---|
-| WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 3 | 183 |
+(none)
 
 ## 0x72
 
-1 programs, 1 occurrences total.
+0 programs, 0 occurrences total.
 
-| program | type | bytes | this opcode | total unmapped |
-|---|---|---|---|---|
-| WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula | Function | 5643 | 1 | 183 |
+(none)
 
 ## 0x6c
 

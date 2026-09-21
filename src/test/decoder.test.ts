@@ -1416,3 +1416,55 @@ test('0x48 falls through to unknown for an unconfirmed qualifier, not just a bad
   const result = decodeProgram(Buffer.from([...HEADER, 0x48, 0x04, 0x00]), names);
   assert.equal(result.unknownOpcodes.some((u) => u.opcode === 0x48), true);
 });
+
+test('#If/#Then/#End-If decode as a real indented block when the branch was compiled', () => {
+  // PeopleTools evaluates #If at compile time, so only the taken branch
+  // ever becomes real tokens -- 0x76 (#Then) here carries just its own
+  // fixed text, and the body that follows (a real `Error "oops";`) is
+  // ordinary compiled opcodes that pick up their own indent from 0x76's
+  // INCREASE_INDENT, exactly like a real `Then` would. Confirmed against
+  // WEBLIB_HRS_CB.HRS_ISCRIPT.FieldFormula's `#If #TOOLSREL >= "8.60"
+  // #Then` (an `If`/`Else`/`End-If` block, simplified here to a single
+  // `Error` statement). See docs/ROADMAP.md pass thirty-seven.
+  const cond = utf16('#If #TOOLSREL >= "8.60"');
+  const then = utf16('#Then');
+  const endIf = utf16('#End-If');
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER, 0x15,
+      0x75, cond.length & 0xff, cond.length >> 8, ...cond,
+      0x76, then.length & 0xff, then.length >> 8, ...then,
+      0x1b, 0x16, ...utf16('oops'), 0x00, 0x00, 0x15,
+      0x78, endIf.length & 0xff, endIf.length >> 8, ...endIf,
+      0x15
+    ]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, ';\n#If #TOOLSREL >= "8.60" #Then\n  Error "oops";\n#End-If;\n');
+});
+
+test('#Then carries the whole dead branch verbatim, embedded newlines and all, when the branch was not compiled', () => {
+  // The other half of the same directive: when #If's condition is false at
+  // compile time, the branch is never tokenized at all -- 0x76's own
+  // length-prefixed text is `#Then` plus the untouched source of the dead
+  // branch, byte-for-byte, down to its own indentation and line breaks.
+  // Confirmed against the same real program's `#If #TOOLSREL < "8.60"
+  // #Then` (compiled under a >= 8.60 tools release, so this branch lost):
+  // a single 100-byte run reading `#Then\n      &ShowNotif = Decrypt("",
+  // &ShowNotif1);`, immediately followed by 0x78's `#End-If` -- no real
+  // opcodes in between at all.
+  const cond = utf16('#If #TOOLSREL < "8.60"');
+  const thenAndDeadBody = utf16('#Then\n      &ShowNotif = Decrypt("", &ShowNotif1);');
+  const endIf = utf16('#End-If');
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER, 0x15,
+      0x75, cond.length & 0xff, cond.length >> 8, ...cond,
+      0x76, thenAndDeadBody.length & 0xff, thenAndDeadBody.length >> 8, ...thenAndDeadBody,
+      0x78, endIf.length & 0xff, endIf.length >> 8, ...endIf,
+      0x15
+    ]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, ';\n#If #TOOLSREL < "8.60" #Then\n      &ShowNotif = Decrypt("", &ShowNotif1);\n#End-If;\n');
+});
