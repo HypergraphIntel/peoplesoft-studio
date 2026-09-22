@@ -110,8 +110,6 @@
         "category": "PeopleSoft",
         "icon": "$(refresh)"
       },
-
-
       {
         "command": "psft.addConnection",
         "title": "Add Connection",
@@ -208,6 +206,12 @@
         "category": "PeopleSoft"
       }
     ],
+    "snippets": [
+      {
+        "language": "psft-peoplecode",
+        "path": "./snippets/peoplecode.json"
+      }  
+    ],
     "menus": {
       "view/title": [
         {
@@ -266,7 +270,8 @@
         },
         {
           "command": "psft.compareDefinition",
-          "when": "viewItem == definition"
+          "when": "resourceScheme == psft && resourceLangId == psft-peoplecode",
+          "group": "navigation@3"
         }
       ],
       "editor/title": [
