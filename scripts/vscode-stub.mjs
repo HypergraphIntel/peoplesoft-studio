@@ -57,7 +57,7 @@ export function createStub() {
 
   class ThemeIcon { constructor(id, color) { this.id = id; this.color = color; } }
   class ThemeColor { constructor(id) { this.id = id; } }
-  class MarkdownString { constructor(value) { this.value = value; } }
+//  class MarkdownString { constructor(value) { this.value = value; } }
 
   class CompletionItem {
     constructor(label, kind) {
@@ -65,10 +65,16 @@ export function createStub() {
       this.kind = kind;
     }
   }
-
   class SnippetString {
     constructor(value) {
       this.value = value;
+    }
+  }
+
+  class Hover {
+    constructor(contents, range) {
+      this.contents = contents;
+      this.range = range;
     }
   }
 
@@ -82,7 +88,7 @@ export function createStub() {
 
   const vscode = {
     Disposable, EventEmitter, Uri, TreeItem, ThemeIcon, ThemeColor,
-    MarkdownString, FileSystemError, CompletionItem, SnippetString,
+    MarkdownString, FileSystemError, CompletionItem, SnippetString, Hover,
 
     FileType: { Unknown: 0, File: 1, Directory: 2, SymbolicLink: 64 },
     FilePermission: { Readonly: 1 },
@@ -175,6 +181,9 @@ export function createStub() {
     },
     languages: {
       registerCompletionItemProvider(_selector, _provider, ..._triggerCharacters) {
+        return new Disposable(() => {});
+      },
+      registerHoverProvider(_selector, _provider) {
         return new Disposable(() => {});
       }
     },
