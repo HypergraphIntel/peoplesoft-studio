@@ -260,6 +260,8 @@ export function encodeFragment(source: string): Buffer {
       if (source[pos] !== ';') expression();
     } else if (word('If')) {
       ifStatement();
+    } else if (word('While')) {
+      whileStatement();
     } else if (word('Break')) {
       chunks.push(fixed('Break'));
 
@@ -280,6 +282,39 @@ export function encodeFragment(source: string): Buffer {
         'only empty statements, Local declarations, Return, If, ' +
         'variable assignments, and simple calls are supported'
       );
+    }
+  }
+
+  function whileStatement(): void {
+    chunks.push(fixed('While'));
+
+    space();
+    booleanExpression();
+
+    // Confirmed structural boundary between condition and body.
+    chunks.push(Buffer.from([0x2d]));
+
+    while (true) {
+      space();
+
+      if (word('End-While')) {
+        chunks.push(fixed('End-While'));
+        return;
+      }
+
+      if (pos === source.length) {
+        fail('expected End-While');
+      }
+
+      statement();
+
+      space();
+      if (source[pos] !== ';') {
+        fail('expected ; in While body');
+      }
+
+      pos++;
+      chunks.push(fixed(';'));
     }
   }
 
