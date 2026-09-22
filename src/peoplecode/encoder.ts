@@ -262,6 +262,15 @@ export function encodeFragment(source: string): Buffer {
       ifStatement();
     } else if (word('While')) {
       whileStatement();
+    } else if (word('For')) {
+      forStatement();
+    } else if (word('Repeat')) {
+      repeatStatement();
+    } else if (word('try')) {
+      tryStatement();
+    } else if (word('throw')) {
+      throwStatement();
+
     } else if (word('Break')) {
       chunks.push(fixed('Break'));
 
@@ -284,7 +293,176 @@ export function encodeFragment(source: string): Buffer {
       );
     }
   }
+  function tryStatement(): void {
+    chunks.push(fixed('try'));
 
+    while (true) {
+      space();
+
+      if (word('catch')) {
+        chunks.push(fixed('catch'));
+
+        space();
+
+        const typeMatch =
+          /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
+
+        if (!typeMatch) {
+          return fail('expected exception type after catch');
+        }
+
+        const typeName = typeMatch[0];
+        pos += typeName.length;
+
+        chunks.push(
+          textOperand(
+            INLINE_IDENTIFIER_OPCODE,
+            TokenKind.Name,
+            typeName
+          )
+        );
+
+        space();
+
+        chunks.push(variable());
+
+        // Confirmed catch-header -> body boundary.
+        chunks.push(Buffer.from([0x2d]));
+
+        while (true) {
+          space();
+
+          if (word('end-try')) {
+            chunks.push(fixed('end-try'));
+            return;
+          }
+
+          if (pos === source.length) {
+            fail('expected end-try');
+          }
+
+          statement();
+
+          space();
+
+          if (source[pos] !== ';') {
+            fail('expected ; in catch body');
+          }
+
+          pos++;
+          chunks.push(fixed(';'));
+        }
+      }
+
+      if (pos === source.length) {
+        fail('expected catch');
+      }
+
+      statement();
+
+      space();
+
+      if (source[pos] !== ';') {
+        fail('expected ; in try body');
+      }
+
+      pos++;
+      chunks.push(fixed(';'));
+    }
+  }
+  
+
+  function throwStatement(): void {
+    chunks.push(fixed('throw'));
+    expression();
+  }
+  function repeatStatement(): void {
+    chunks.push(fixed('Repeat'));
+
+    while (true) {
+      space();
+
+      if (word('Until')) {
+        chunks.push(fixed('Until'));
+
+        space();
+        booleanExpression();
+        return;
+      }
+
+      if (pos === source.length) {
+        fail('expected Until');
+      }
+
+      statement();
+
+      space();
+      if (source[pos] !== ';') {
+        fail('expected ; in Repeat body');
+      }
+
+      pos++;
+      chunks.push(fixed(';'));
+    }
+  }
+  function forStatement(): void {
+    chunks.push(fixed('For'));
+
+    space();
+    chunks.push(variable());
+
+    space();
+    if (source[pos] !== '=') {
+      fail('expected = in For');
+    }
+
+    pos++;
+    chunks.push(fixed('='));
+
+    expression();
+
+    space();
+    if (!word('To')) {
+      fail('expected To');
+    }
+
+    chunks.push(fixed('To'));
+
+    expression();
+
+    space();
+
+    if (word('Step')) {
+      chunks.push(fixed('Step'));
+      expression();
+    }
+
+    // Confirmed PeopleTools boundary between loop header and body.
+    chunks.push(Buffer.from([0x2d]));
+
+    while (true) {
+      space();
+
+      if (word('End-For')) {
+        chunks.push(fixed('End-For'));
+        return;
+      }
+
+      if (pos === source.length) {
+        fail('expected End-For');
+      }
+
+      statement();
+
+      space();
+      if (source[pos] !== ';') {
+        fail('expected ; in For body');
+      }
+
+      pos++;
+      chunks.push(fixed(';'));
+    }
+  }
   function whileStatement(): void {
     chunks.push(fixed('While'));
 
@@ -519,14 +697,72 @@ export function encodeFragment(source: string): Buffer {
     }
 
     if (source[pos] === '(') {
-      return parenthesized(expression, false);
+      parenthesized(expression, false);
+      return;
     }
 
-    const identifier = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+    const identifier =
+      /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
 
-    if (identifier && !/^(true|false)$/i.test(identifier)) return call();
+    if (identifier && !/^(true|false)$/i.test(identifier)) {
+      call();
+    } else {
+      chunks.push(value());
+    }
 
-    chunks.push(value());
+    // Postfix member access / method calls.
+    while (true) {
+      space();
+
+      if (source[pos] !== '.') {
+        break;
+      }
+
+      pos++;
+      chunks.push(fixed('.'));
+
+      space();
+
+      const memberMatch =
+        /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
+
+      if (!memberMatch) {
+        return fail('expected member name after .');
+      }
+
+      const member = memberMatch[0];
+      pos += member.length;
+
+      chunks.push(
+        textOperand(
+          INLINE_IDENTIFIER_OPCODE,
+          TokenKind.Name,
+          member
+        )
+      );
+
+      space();
+
+      if (source[pos] === '(') {
+        parenthesized(() => {
+          space();
+
+          if (source[pos] === ')') {
+            return;
+          }
+
+          expression();
+          space();
+
+          while (source[pos] === ',') {
+            pos++;
+            chunks.push(fixed(','));
+            expression();
+            space();
+          }
+        }, true);
+      }
+    }
   };
   while (true) {
     space();
