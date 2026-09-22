@@ -59,6 +59,19 @@ export function createStub() {
   class ThemeColor { constructor(id) { this.id = id; } }
   class MarkdownString { constructor(value) { this.value = value; } }
 
+  class CompletionItem {
+    constructor(label, kind) {
+      this.label = label;
+      this.kind = kind;
+    }
+  }
+
+  class SnippetString {
+    constructor(value) {
+      this.value = value;
+    }
+  }
+
   class FileSystemError extends Error {
     static NoPermissions(m) { return new FileSystemError(m); }
     static FileNotFound(m) { return new FileSystemError(m); }
@@ -69,7 +82,7 @@ export function createStub() {
 
   const vscode = {
     Disposable, EventEmitter, Uri, TreeItem, ThemeIcon, ThemeColor,
-    MarkdownString, FileSystemError,
+    MarkdownString, FileSystemError, CompletionItem, SnippetString,
 
     FileType: { Unknown: 0, File: 1, Directory: 2, SymbolicLink: 64 },
     FilePermission: { Readonly: 1 },
@@ -77,6 +90,34 @@ export function createStub() {
     TreeItemCollapsibleState: { None: 0, Collapsed: 1, Expanded: 2 },
     ConfigurationTarget: { Global: 1, Workspace: 2, WorkspaceFolder: 3 },
     ProgressLocation: { SourceControl: 1, Window: 10, Notification: 15 },
+
+    CompletionItemKind: {
+      Text: 0,
+      Method: 1,
+      Function: 2,
+      Constructor: 3,
+      Field: 4,
+      Variable: 5,
+      Class: 6,
+      Interface: 7,
+      Module: 8,
+      Property: 9,
+      Unit: 10,
+      Value: 11,
+      Enum: 12,
+      Keyword: 13,
+      Snippet: 14,
+      Color: 15,
+      File: 16,
+      Reference: 17,
+      Folder: 18,
+      EnumMember: 19,
+      Constant: 20,
+      Struct: 21,
+      Event: 22,
+      Operator: 23,
+      TypeParameter: 24
+    },
 
     commands: {
       registerCommand(id, handler) {
@@ -131,6 +172,11 @@ export function createStub() {
       },
       onDidChangeConfiguration: () => new Disposable(() => {}),
       openTextDocument: async (uri) => ({ uri })
+    },
+    languages: {
+      registerCompletionItemProvider(_selector, _provider, ..._triggerCharacters) {
+        return new Disposable(() => {});
+      }
     },
     _fs: new Map()
   };
