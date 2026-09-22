@@ -5,4 +5,4 @@ dist-test/
 
 # Real project exports dropped in scripts/ for decoder calibration carry
 # actual customer PeopleCode source and must never be committed.
-/scripts/*/
+# /scripts/*/
