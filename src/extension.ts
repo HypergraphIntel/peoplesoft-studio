@@ -11,6 +11,71 @@ import { toUri } from './util/uri.js';
 import { registerPeopleCodeCompletion } from './peoplecode/completion.js';
 import { registerPeopleCodeHover } from './peoplecode/hover.js';
 import { registerPeopleCodeSymbols } from './peoplecode/symbols.js';
+import { parseUri } from './util/uri.js';
+
+/** Left side of a compare: which connection + which definition key. */
+interface CompareTarget {
+  connectionId: string;
+  key: DefinitionKey;
+}
+
+/**
+ * Resolve the definition to compare from a tree node, or from the active editor.
+ *
+ * Tree nodes from Projects / Browser look like:
+ *   { kind: 'definition' | 'item' | 'packageNode', provider, summary? | node? }
+ */
+async function resolveDefinitionForCompare(
+  workspace: Workspace,
+  node: unknown
+): Promise<CompareTarget | undefined> {
+  const fromTree = targetFromTreeNode(node);
+  if (fromTree) return fromTree;
+
+  const editor = vscode.window.activeTextEditor;
+  if (editor?.document.uri.scheme === 'psft') {
+    try {
+      const parsed = parseUri(editor.document.uri);
+      const provider = workspace.getProviderByHandle(parsed.handle);
+      if (!provider) {
+        vscode.window.showWarningMessage(
+          'This editor belongs to a connection that is not connected.');
+        return undefined;
+      }
+      return { connectionId: provider.id, key: parsed.key };
+    } catch {
+      // fall through
+    }
+  }
+
+  vscode.window.showWarningMessage(
+    'Select a definition in the Projects or Definition Browser tree, ' +
+    'or focus a PeopleSoft text editor, then run Compare.');
+  return undefined;
+}
+
+function targetFromTreeNode(node: unknown): CompareTarget | undefined {
+  if (!node || typeof node !== 'object') return undefined;
+  const n = node as {
+    kind?: string;
+    provider?: { id: string };
+    summary?: { key: DefinitionKey };
+    node?: { key?: DefinitionKey };
+  };
+
+  if (!n.provider?.id) return undefined;
+
+  if ((n.kind === 'definition' || n.kind === 'item') && n.summary?.key) {
+    return { connectionId: n.provider.id, key: n.summary.key };
+  }
+
+  // Application class leaf in the package tree
+  if (n.kind === 'packageNode' && n.node?.key) {
+    return { connectionId: n.provider.id, key: n.node.key };
+  }
+
+  return undefined;
+}
 
 export function activate(context: vscode.ExtensionContext): void {
   const workspace = new Workspace(context.secrets);
@@ -184,10 +249,68 @@ export function activate(context: vscode.ExtensionContext): void {
         'Project build (DDL generation) is not implemented yet. See docs/ROADMAP.md.');
     }),
 
-    vscode.commands.registerCommand('psft.compareDefinition', () => {
-      vscode.window.showInformationMessage(
-        'Definition compare is not implemented yet. See docs/ROADMAP.md.');
-    })
+    vscode.commands.registerCommand('psft.compareDefinition', async (node?: unknown) => {
+      await withError('Compare definition', async () => {
+        const left = await resolveDefinitionForCompare(workspace, node);
+        if (!left) return;
+
+        const leftProvider = await workspace.require(left.connectionId);
+        if (!leftProvider.canReadAsText(left.key.type)) {
+          vscode.window.showInformationMessage(
+            `${displayName(left.key)} (${typeLabel(left.key.type)}) can't be compared as text yet. ` +
+            'Compare works for PeopleCode, SQL, and other text-backed definitions.');
+          return;
+        }
+
+        const candidates = workspace.activeProviders.filter(
+          (p) => p.isConnected && p.id !== left.connectionId);
+        if (candidates.length === 0) {
+          vscode.window.showWarningMessage(
+            'Connect a second environment (or open another project export) to compare against.');
+          return;
+        }
+
+        let rightProvider = candidates[0];
+        if (candidates.length > 1) {
+          const picked = await vscode.window.showQuickPick(
+            candidates.map((p) => ({
+              label: p.displayName,
+              description: p.id,
+              provider: p
+            })),
+            {
+              title: `Compare ${displayName(left.key)} with…`,
+              placeHolder: 'Other environment',
+              ignoreFocusOut: true
+            });
+          if (!picked) return;
+          rightProvider = picked.provider;
+        }
+
+        if (!rightProvider.canReadAsText(left.key.type)) {
+          vscode.window.showInformationMessage(
+            `${rightProvider.displayName} can't open ${typeLabel(left.key.type)} as text.`);
+          return;
+        }
+
+        // Touch both documents so the file-system provider loads content before diff.
+        const leftUri = toUri(left.connectionId, left.key);
+        const rightUri = toUri(rightProvider.id, left.key);
+        await vscode.workspace.openTextDocument(leftUri);
+        try {
+          await vscode.workspace.openTextDocument(rightUri);
+        } catch (err) {
+          vscode.window.showErrorMessage(
+            `Could not read ${displayName(left.key)} from ${rightProvider.displayName}: ` +
+            `${(err as Error).message}`);
+          return;
+        }
+
+        const title =
+          `${displayName(left.key)} (${leftProvider.displayName} ↔ ${rightProvider.displayName})`;
+        await vscode.commands.executeCommand('vscode.diff', leftUri, rightUri, title);
+      });
+    }),
   );
 
   vscode.workspace.onDidChangeConfiguration((e) => {
