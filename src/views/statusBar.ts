@@ -20,8 +20,6 @@ export class StatusBar implements vscode.Disposable {
       100
     );
 
-    this.connection.command = 'psft.status.selectConnection';
-
     this.activeEditorListener =
       vscode.window.onDidChangeActiveTextEditor(
         () => this.update(),
@@ -35,6 +33,8 @@ export class StatusBar implements vscode.Disposable {
     );
 
     this.update();
+
+    this.connection.command = 'psft.status.selectConnection';
 
     workspace.onDidChange(
       () => this.update(),
