@@ -1679,6 +1679,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   // PSPCMNAME references until parsing has progressed, so remember the chunk
   // insertion point and decide after the full fragment has been parsed.
   let leadingLocalRun = true;
+  let sawLeadingLocalDeclaration = false;
   let pendingReferenceLocalBoundary: number | undefined;
   const pendingReferenceGroupBoundaries: number[] = [];
   let haveCompletedTopLevelStatement = false;
@@ -1723,12 +1724,12 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     if (leadingLocalRun) {
       if (isLocalDeclaration) {
-        // Keep consuming the initial Local declaration run.
+        sawLeadingLocalDeclaration = true;
       } else {
         // This is the first non-Local statement. If the completed program
         // turns out to contain real compiled references, PeopleTools inserts
         // 0x2D 0x4F at this exact boundary.
-        if (!isTopLevelDeclaration && pendingReferenceLocalBoundary === undefined) {
+        if (sawLeadingLocalDeclaration && !isTopLevelDeclaration && pendingReferenceLocalBoundary === undefined) {
           pendingReferenceLocalBoundary = chunks.length;
         }
         leadingLocalRun = false;
