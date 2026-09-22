@@ -12,6 +12,7 @@ import { registerPeopleCodeCompletion } from './peoplecode/completion.js';
 import { registerPeopleCodeHover } from './peoplecode/hover.js';
 import { registerPeopleCodeSymbols } from './peoplecode/symbols.js';
 import { parseUri } from './util/uri.js';
+import { StatusBar } from './views/statusBar.js';
 
 /** Left side of a compare: which connection + which definition key. */
 interface CompareTarget {
@@ -80,6 +81,9 @@ function targetFromTreeNode(node: unknown): CompareTarget | undefined {
 export function activate(context: vscode.ExtensionContext): void {
   const workspace = new Workspace(context.secrets);
   context.subscriptions.push(workspace);
+
+  const statusBar = new StatusBar(workspace);
+  context.subscriptions.push(statusBar);
 
   const fileSystem = PeopleSoftFileSystem.register(workspace);
   context.subscriptions.push(fileSystem);
