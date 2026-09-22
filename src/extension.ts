@@ -83,7 +83,10 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(workspace);
 
   const statusBar = new StatusBar(workspace);
-  context.subscriptions.push(statusBar);
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(() => statusBar.update()),
+    workspace.onDidChange(() => statusBar.update())
+  );
 
   const fileSystem = PeopleSoftFileSystem.register(workspace);
   context.subscriptions.push(fileSystem);
