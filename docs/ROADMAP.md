@@ -2428,6 +2428,20 @@ recovery. No corpus rerun was possible here (no database access in this
 environment); the unit suite covers both, including the two shapes the
 recovery must keep refusing.
 
+What we have now is enough that I would stop spending time on more arithmetic/Boolean variations. Those layers are well calibrated. The next value is breadth across the actual PeopleCode grammar.
+
+The major missing families are roughly:
+
+Loops: While / End-While, For / To / Step / End-For, Repeat / Until, Continue
+Exceptions: try / catch / end-try, throw
+Definitions: Function / End-Function, parameters, Returns
+Object/member expressions: &obj.Method(), properties, %This, arrays/indexing
+PeopleSoft references: Record.FIELD, Component.RECORD.FIELD, Page.X, etc. This is particularly important because it will eventually force us into the PSPCMNAME/name-reference side of the binary format.
+Declarations: Global, Component, Constant, arrays, object/application-class types
+Other statements: Error, Warning, Exit, Continue
+Comments and eventually the 0x2D/0x4F source-layout problem
+Application Classes: class, method, property, visibility, extends, implements, getters/setters, etc. That's a substantial stage of its own.
+
 ## Then: writes
 
 4. **Record save** — `PSRECDEFN`/`PSRECFIELD` rewrite with version counters, in
