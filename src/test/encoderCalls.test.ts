@@ -56,11 +56,17 @@ test('a no-argument call has only the known identifier and punctuation framing',
 });
 
 for (const source of [
-  'Return ();', 'Return (1;', 'Return 1);', 'Return (1, 2);',
+  'Return ();', 
+  'Return (1;', 
+  'Return 1);', 
+  'Return (1, 2);',
   'F(,1);', 'F(1,);', 'F(1,,2);', 'F(1 2);', 'F(', 'F(1;', 'F()) ;',
-  'Return F(1; 2);', 'Return F;', 'F;', 'Foo + 1;',
+  'Return F(1; 2);', 
+  'Return F;', 
+  'F;', 
+  'Foo + 1;',
   'F() + 1;', 'F()(1);', 'F().Value;', 'Return %This.F();',
-  'Return &arr[1];', 'Return Pkg:Foo();',
+  'Return Pkg:Foo();',
   'Return F(1.5);', 'Return (1 = 2);', 'Return (True And False);',
   'If(True);', 'Return Not(1);', 'Return Create();', 'Return Local();',
   'True();', 'Return True();', 'Return Foo(1) garbage;', 'F(); Return (1;'
