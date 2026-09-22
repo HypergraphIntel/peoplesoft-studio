@@ -771,7 +771,7 @@ test('encodeProgramArtifacts allocates record/field references in calibrated PSP
     {
       index: 0,
       sequence: 1,
-      kind: 'record-field',
+      kind: 'owner',
       recordName: 'OU_CORPUS',
       fieldName: 'CODE'
     },
@@ -794,6 +794,62 @@ test('encodeProgramArtifacts allocates record/field references in calibrated PSP
       kind: 'package',
       packageName: 'FIELD',
       objectName: 'Field'
+    }
+  ]);
+});
+
+test('encodeProgram allocates a distinct RECORD reference for each CreateRecord occurrence', () => {
+  const source = `Local Record &rec1;
+Local Record &rec2;
+
+&rec1 = CreateRecord(Record.OU_CORPUS);
+&rec2 = CreateRecord(Record.OU_CORPUS);`;
+
+  const expected = Buffer.from(
+    'A0000000009B00000000000000000000000000000000000000000000000000000085000000' +
+    '440A5200650063006F007200640000000126007200650063003100000015' +
+    '440A5200650063006F007200640000000126007200650063003200000015' +
+    '2D4F' +
+    '01260072006500630031000000060A4300720065006100740065005200650063006F007200640000000B2102001415' +
+    '01260072006500630032000000060A4300720065006100740065005200650063006F007200640000000B210300141507',
+    'hex'
+  );
+
+  const result = encodeProgramArtifacts(source, {
+    owner: {
+      recordName: 'OU_CORPUS',
+      fieldName: 'CODE'
+    }
+  });
+
+  assert.deepStrictEqual(result.program, expected);
+
+  assert.deepStrictEqual(result.references, [
+    {
+      index: 0,
+      sequence: 1,
+      kind: 'owner',
+      recordName: 'OU_CORPUS',
+      fieldName: 'CODE'
+    },
+    {
+      index: 1,
+      sequence: 2,
+      kind: 'package',
+      packageName: 'RECORD',
+      objectName: 'Record'
+    },
+    {
+      index: 2,
+      sequence: 3,
+      kind: 'record',
+      recordName: 'OU_CORPUS'
+    },
+    {
+      index: 3,
+      sequence: 4,
+      kind: 'record',
+      recordName: 'OU_CORPUS'
     }
   ]);
 });
