@@ -157,13 +157,6 @@ export function activate(context: vscode.ExtensionContext): void {
         'Project compare is not implemented yet. See docs/ROADMAP.md.');
     }),
 
-    vscode.commands.registerCommand(
-      'psft.status.selectConnection',
-      async () => {
-          await selectStatusConnection(workspace);
-      }
-    ),
-
     vscode.commands.registerCommand('psft.addConnection', () => addConnection()),
 
     vscode.commands.registerCommand('psft.openProjectFile', async () => {
@@ -342,6 +335,24 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 export function deactivate(): void { /* Workspace disposes through subscriptions. */ }
+
+async function saveConnection(config: ConnectionConfig): Promise<void> {
+  const settings = vscode.workspace.getConfiguration('peoplesoft');
+  const all = settings.get<ConnectionConfig[]>('connections', []);
+
+  if (all.some((c) => c.name === config.name)) {
+    vscode.window.showErrorMessage(
+      `A connection named "${config.name}" already exists.`
+    );
+    return;
+  }
+
+  await settings.update(
+    'connections',
+    [...all, config],
+    vscode.ConfigurationTarget.Global
+  );
+}
 
 /** Collects a connection interactively rather than making the user hand-edit settings.json. */
 async function addConnection(): Promise<void> {
