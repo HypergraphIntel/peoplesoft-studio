@@ -1,11 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { encodeFragment, UnsupportedPeopleCodeError } from '../peoplecode/encoder.js';
-import { encodeProgram } from '../peoplecode/encoder.js';
 import { decodeProgram } from '../peoplecode/decoder.js';
 import { NameTable } from '../peoplecode/progtext.js';
 import { ProgramImage, compareBytes } from '../peoplecode/programImage.js';
 import { ACTIVATE_BYTES } from './fixtures/compiledPeopleCode.js';
+import {
+  encodeFragment,
+  UnsupportedPeopleCodeError,
+  encodeProgram,
+  encodeProgramArtifacts
+} from '../peoplecode/encoder.js';
 
 // Explicit expected source avoids a whitespace normalizer that corrupts strings
 // or merely compares the decoder against itself.
@@ -514,6 +518,231 @@ End-Function;`;
     encodeFragment(source),
     expected
   );
+});
+
+test('encodeProgram exactly reproduces complete Function Test PSPCMPROG', () => {
+  const source = `Function Test()
+End-Function;`;
+
+  const expected = Buffer.from(
+    'A00000000013000000000000000A0000000000000001000000000000000100000085000000' +
+    '320A540065007300740000000B142D37152D07' +
+    '54006500730074000000' +
+    '00000000' +
+    '00000000' +
+    '00000000' +
+    '07000000' +
+    '07000000',
+    'hex'
+  );
+
+  assert.deepStrictEqual(
+    encodeProgram(source),
+    expected
+  );
+});
+
+test('encodeProgram exactly reproduces complete AddNumbers PSPCMPROG', () => {
+  const source = `Function AddNumbers(&a As integer, &b As integer) Returns integer
+   Local integer &result;
+   
+   &result = &a + &b;
+   Return &result;
+End-Function;`;
+
+  const expected = Buffer.from(
+    'A000000000BE00000000000000160000000000000003000000000000000100000085000000' +
+    '320A4100640064004E0075006D0062006500720073000000' +
+    '0B' +
+    '01260061000000' +
+    '35' +
+    '4069006E00740065006700650072000000' +
+    '03' +
+    '01260062000000' +
+    '35' +
+    '4069006E00740065006700650072000000' +
+    '14' +
+    '39' +
+    '4069006E00740065006700650072000000' +
+    '2D' +
+    '44' +
+    '4069006E00740065006700650072000000' +
+    '01260072006500730075006C0074000000' +
+    '15' +
+    '4F' +
+    '01260072006500730075006C0074000000' +
+    '06' +
+    '01260061000000' +
+    '13' +
+    '01260062000000' +
+    '15' +
+    '38' +
+    '01260072006500730075006C0074000000' +
+    '15' +
+    '37' +
+    '15' +
+    '2D' +
+    '07' +
+    '4100640064004E0075006D0062006500720073000000' +
+    '00000000' +
+    '00000000' +
+    '02000000' +
+    '11000000' +
+    '110000C0' +
+    '110000C0' +
+    '07000000',
+    'hex'
+  );
+
+  assert.deepStrictEqual(
+    encodeProgram(source),
+    expected
+  );
+});
+
+test('encodeProgram exactly reproduces a Global declaration', () => {
+  const source = `Global integer &g;`;
+
+  const expected = Buffer.from(
+    'A0000000001C00000000000000000000000000000000000000000000000000000085000000' +
+    '454069006E0074006500670065007200000001260067000000152D07',
+    'hex'
+  );
+
+  assert.deepStrictEqual(
+    encodeProgram(source),
+    expected
+  );
+});
+
+test('encodeProgram exactly reproduces Globals followed by executable code', () => {
+  const source = `Global integer &a;
+Global integer &b;
+
+&a = 1;`;
+
+  const expected = Buffer.from(
+    'A0000000005300000000000000000000000000000000000000000000000000000085000000' +
+    '454069006E007400650067006500720000000126006100000015' +
+    '454069006E007400650067006500720000000126006200000015' +
+    '2D4F' +
+    '01260061000000065000000100000000000000000000000000000015' +
+    '07',
+    'hex'
+  );
+
+  assert.deepStrictEqual(
+    encodeProgram(source),
+    expected
+  );
+});
+
+test('encodeProgram exactly reproduces a Component declaration', () => {
+  const source = `Component integer &c;`;
+
+  const expected = Buffer.from(
+    'A0000000001C00000000000000000000000000000000000000000000000000000085000000' +
+    '544069006E0074006500670065007200000001260063000000152D07',
+    'hex'
+  );
+
+  assert.deepStrictEqual(
+    encodeProgram(source),
+    expected
+  );
+});
+
+test('encodeProgram exactly reproduces mixed Global and Component declarations', () => {
+  const source = `Global integer &g;
+Component integer &c;
+
+&g = 1;`;
+
+  const expected = Buffer.from(
+    'A0000000005300000000000000000000000000000000000000000000000000000085000000' +
+    '454069006E007400650067006500720000000126006700000015' +
+    '544069006E007400650067006500720000000126006300000015' +
+    '2D4F' +
+    '01260067000000065000000100000000000000000000000000000015' +
+    '07',
+    'hex'
+  );
+
+  assert.deepStrictEqual(
+    encodeProgram(source),
+    expected
+  );
+});
+
+test('encodeProgram exactly reproduces a Constant declaration', () => {
+  const source = `Constant &ANSWER = 42;`;
+
+  const expected = Buffer.from(
+    'A0000000002900000000000000000000000000000000000000000000000000000085000000' +
+    '5601260041004E005300570045005200000006' +
+    '5000002A000000000000000000000000000000' +
+    '152D07',
+    'hex'
+  );
+
+  assert.deepStrictEqual(encodeProgram(source), expected);
+});
+
+test('encodeProgram exactly reproduces a mixed Global, Constant, Component declaration section', () => {
+  const source = `Global integer &g;
+Constant &ANSWER = 42;
+Component integer &c;
+
+&g = &ANSWER;`;
+
+  const expected = Buffer.from(
+    'A0000000007800000000000000000000000000000000000000000000000000000085000000' +
+    '454069006E007400650067006500720000000126006700000015' +
+    '5601260041004E0053005700450052000000065000002A00000000000000000000000000000015' +
+    '544069006E007400650067006500720000000126006300000015' +
+    '2D4F' +
+    '012600670000000601260041004E005300570045005200000015' +
+    '07',
+    'hex'
+  );
+
+  assert.deepStrictEqual(encodeProgram(source), expected);
+});
+
+test('encodeProgramArtifacts exactly reproduces and deduplicates Declare Function PeopleCode references', () => {
+  const source = `Declare Function Test1 PeopleCode WEBLIB_OU_LP.ISCRIPT1 FieldChange;
+Declare Function Test2 PeopleCode WEBLIB_OU_LP.ISCRIPT1 FieldChange;
+Declare Function Test3 PeopleCode WEBLIB_OU_LP.ISCRIPT2 FieldChange;
+Declare Function Test4 PeopleCode WEBLIB_OU_LP.ISCRIPT1 FieldChange;`;
+
+  const expected = Buffer.from(
+    'A000000000BA00000000000000000000000000000000000000000000000000000085000000' +
+    '31320A5400650073007400310000003A210100404600690065006C0064004300680061006E006700650000004215' +
+    '31320A5400650073007400320000003A210100404600690065006C0064004300680061006E006700650000004215' +
+    '31320A5400650073007400330000003A210200404600690065006C0064004300680061006E006700650000004215' +
+    '31320A5400650073007400340000003A210100404600690065006C0064004300680061006E006700650000004215' +
+    '2D07',
+    'hex'
+  );
+
+  const result = encodeProgramArtifacts(source);
+
+  assert.deepStrictEqual(result.program, expected);
+
+  assert.deepStrictEqual(result.references, [
+    {
+      index: 1,
+      recordName: 'WEBLIB_OU_LP',
+      fieldName: 'ISCRIPT1',
+      eventName: 'FieldChange'
+    },
+    {
+      index: 2,
+      recordName: 'WEBLIB_OU_LP',
+      fieldName: 'ISCRIPT2',
+      eventName: 'FieldChange'
+    }
+  ]);
 });
 
 test.skip('TODO: 0x4F marker : encodeProgram exactly reproduces PeopleTools variable assignment fixture', () => {
