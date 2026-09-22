@@ -8,8 +8,6 @@ export class StatusBar implements vscode.Disposable {
   private readonly readOnly: vscode.StatusBarItem;
   private readonly activeEditorListener: vscode.Disposable;
   private readonly workspaceListener: vscode.Disposable;
-  private _selectedConnectionId?: string;
-
   
   constructor(
     private readonly workspace: Workspace,
@@ -25,7 +23,7 @@ export class StatusBar implements vscode.Disposable {
     this.connection.command = 'psft.status.selectConnection';
 
     this.readOnly = vscode.window.createStatusBarItem(
-      vscode.StatusBarAlignment.Left,
+      vscode.StatusBarAlignment.Right,
       100
     );
 
@@ -42,8 +40,6 @@ export class StatusBar implements vscode.Disposable {
     );
 
     this.update();
-
-    this.connection.command = 'psft.status.selectConnection';
 
   }
 
@@ -76,24 +72,33 @@ export class StatusBar implements vscode.Disposable {
       const selectedId = this.workspace.selectedConnectionId;
 
       if (selectedId) {
+
+        const selectedId = this.workspace.selectedConnectionId;
+
+        if (selectedId) {
           const selectedProvider = this.workspace.getProvider(selectedId);
 
           if (selectedProvider) {
-              this.connection.text =
-                  `$(database) ${selectedProvider.displayName}`;
+            this.connection.text =
+              `$(database) ${selectedProvider.displayName}`;
 
-              this.connection.tooltip =
-                  `PeopleSoft connection: ${selectedProvider.displayName}`;
+            this.connection.tooltip =
+              `PeopleSoft connection: ${selectedProvider.displayName}`;
 
-              this.connection.show();
+            this.connection.show();
           }
-      }
+        }
 
+      }
 
       if (!provider) {
         this.connection.hide();
         this.readOnly.hide();
         return;
+      }
+
+      if (!this.workspace.selectedConnectionId) {
+        this.workspace.setSelectedConnection(provider.id);
       }
 
       this.connection.text = `$(database) ${provider.displayName}`;
@@ -113,16 +118,6 @@ export class StatusBar implements vscode.Disposable {
       this.readOnly.hide();
     }
   }
-
-  get selectedConnectionId(): string | undefined {
-    return this._selectedConnectionId;
-  }
-
-  setSelectedConnection(id: string): void {
-      this._selectedConnectionId = id;
-     // this._onDidChange.fire();
-  }
-  
   
   dispose(): void {
     this.activeEditorListener.dispose();
