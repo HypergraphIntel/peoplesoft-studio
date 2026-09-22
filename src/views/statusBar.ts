@@ -6,6 +6,8 @@ import { parseUri } from '../util/uri.js';
 export class StatusBar implements vscode.Disposable {
   private readonly connection: vscode.StatusBarItem;
   private readonly readOnly: vscode.StatusBarItem;
+  private readonly activeEditorListener: vscode.Disposable;
+  private readonly workspaceListener: vscode.Disposable;
 
   constructor(private readonly workspace: Workspace) {
     this.connection = vscode.window.createStatusBarItem(
@@ -20,13 +22,19 @@ export class StatusBar implements vscode.Disposable {
 
     this.connection.command = 'psft.status.selectConnection';
 
-    this.update();
+    this.activeEditorListener =
+      vscode.window.onDidChangeActiveTextEditor(
+        () => this.update(),
+        this
+      );
 
-    //vscode.window.onDidChangeActiveTextEditor(
-    //  () => this.update(),
-    //  this,
-    //  []
-    //);
+    this.workspaceListener =
+      workspace.onDidChange(
+        () => this.update(),
+        this
+    );
+
+    this.update();
 
     workspace.onDidChange(
       () => this.update(),
@@ -35,7 +43,7 @@ export class StatusBar implements vscode.Disposable {
     );
   }
 
-  private update(): void {
+  public update(): void {
     const editor = vscode.window.activeTextEditor;
 
     if (!editor || editor.document.uri.scheme !== 'psft') {
@@ -71,8 +79,10 @@ export class StatusBar implements vscode.Disposable {
       this.readOnly.hide();
     }
   }
-
+  
   dispose(): void {
+    this.activeEditorListener.dispose();
+    this.workspaceListener.dispose();
     this.connection.dispose();
     this.readOnly.dispose();
   }
