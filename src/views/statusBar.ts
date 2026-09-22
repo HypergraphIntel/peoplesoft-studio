@@ -50,45 +50,45 @@ export class StatusBar implements vscode.Disposable {
 
     try {
       const { handle, key } = parseUri(editor.document.uri);
-      const provider = this.workspace.getProviderByHandle(handle);
+      const editorProvider = this.workspace.getProviderByHandle(handle);
 
-      if (!provider) {
+      if (!editorProvider) {
         this.connection.hide();
         this.readOnly.hide();
         return;
       }
 
-      // Default the selected connection to the provider that owns the
-      // active editor. Once explicitly selected, it remains independent
-      // of the active editor.
+      // If no target has been explicitly selected yet, default to the
+      // connection that owns the active PeopleSoft editor.
       if (!this.workspace.selectedConnectionId) {
-        this.workspace.setSelectedConnection(provider.id);
+        this.workspace.setSelectedConnection(editorProvider.id);
       }
 
-      // The connection status item represents the selected/target
-      // connection, not necessarily the provider that owns this editor.
-      const selectedId = this.workspace.selectedConnectionId;
-      const selectedProvider = selectedId
-        ? this.workspace.getProvider(selectedId)
+      // TARGET CONNECTION
+      // This is independent of the connection that owns the active editor.
+      const targetId = this.workspace.selectedConnectionId;
+      const targetProvider = targetId
+        ? this.workspace.getProvider(targetId)
         : undefined;
 
-      if (selectedProvider) {
-        this.connection.text =
-          `$(database) ${selectedProvider.displayName}`;
-
+      if (targetProvider) {
+        this.connection.text = `$(database) ${targetProvider.displayName}`;
         this.connection.tooltip =
-          `PeopleSoft connection: ${selectedProvider.displayName}`;
-
+          `Target PeopleSoft connection: ${targetProvider.displayName}`;
         this.connection.show();
       } else {
         this.connection.hide();
       }
 
-      // Read-only state is based on the active editor's provider,
-      // independently of the selected/target connection.
-      if (isPeopleCode(key.type) && provider.id.startsWith('oracle:')) {
+      // ACTIVE EDITOR STATE
+      // Read-only describes the document being edited, not the target.
+      if (
+        isPeopleCode(key.type) &&
+        editorProvider.id.startsWith('oracle:')
+      ) {
         this.readOnly.text = '$(lock-small) Read-Only';
         this.readOnly.tooltip =
+          `PeopleCode from ${editorProvider.displayName} is read-only. ` +
           'PeopleCode write-back is not currently supported.';
         this.readOnly.show();
       } else {
