@@ -1,0 +1,2301 @@
+<?xml version='1.0'?>
+  <!--Warning : Don't edit this file -->
+  <instance class="PJM">
+    <rowset name="PjmDefn" size="2872" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.42.14.336703</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <szObjectOwnerID></szObjectOwnerID>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>3493</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <szProjectName>OU_VSCODE_LEARN_JN</szProjectName>
+        <szLanguageCd>ENG</szLanguageCd>
+        <szProjectDescr></szProjectDescr>
+        <szSrcDBName>HCDEV</szSrcDBName>
+        <szSrcOprId>625538</szSrcOprId>
+        <szSessionId>10276dd0-b4b6-11f1-aa12-cbdb7a47a9da</szSessionId>
+        <szRunDtTm>2026-09-20-00.42.26.337070</szRunDtTm>
+        <szTgtServerName></szTgtServerName>
+        <szTgtDBName></szTgtDBName>
+        <szTgtOprId></szTgtOprId>
+        <fReportFilter>16232832</fReportFilter>
+        <eTargetOrientation>0</eTargetOrientation>
+        <eCompareType>1</eCompareType>
+        <fKeepTgt>31</fKeepTgt>
+        <nCommitLimit>50</nCommitLimit>
+        <szCompRelease></szCompRelease>
+        <szCompRelDttm></szCompRelDttm>
+        <bMaintenanceProject>0</bMaintenanceProject>
+        <bUseDbFieldNameAttrib>0</bUseDbFieldNameAttrib>
+        <szReleaseLabel></szReleaseLabel>
+        <szReleaseDttm></szReleaseDttm>
+        <nDescrLongLen>0</nDescrLongLen>
+        <hDescrLong>HANDLE</hDescrLong>
+        <nProjectCount>21</nProjectCount>
+        <lpPit> POINTER
+          <rowset name="PjmPit" size="17976" count="21">
+            <row>
+              <eObjectType>0</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1></szObjectValue_1>
+              <szObjectValue_2></szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>0</eObjectID_1>
+              <eObjectID_2>0</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>3</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>0</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2></szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>0</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>0</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE2_WRK</szObjectValue_1>
+              <szObjectValue_2></szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>0</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2>FieldChange</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2>FieldDefault</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2>FieldEdit</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2>FieldFormula</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2>PrePopup</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2>PreScrollRowSelect</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2>RowDelete</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2>RowInit</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2>RowInsert</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2>RowSelect</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2>SaveEdit</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2>SavePostChange</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2>SavePreChange</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2>ScrollRowSelect</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2>SearchInit</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2>SearchSave</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE</szObjectValue_1>
+              <szObjectValue_2>Workflow</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+            <row>
+              <eObjectType>8</eObjectType>
+              <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+              <szObjectValue_1>CODE2_WRK</szObjectValue_1>
+              <szObjectValue_2>Workflow</szObjectValue_2>
+              <szObjectValue_3></szObjectValue_3>
+              <eObjectID_0>1</eObjectID_0>
+              <eObjectID_1>2</eObjectID_1>
+              <eObjectID_2>12</eObjectID_2>
+              <eObjectID_3>0</eObjectID_3>
+              <bExecute>0</bExecute>
+              <eSourceStatus>0</eSourceStatus>
+              <eTargetStatus>0</eTargetStatus>
+              <eUpgradeAction>0</eUpgradeAction>
+              <bTakeAction>1</bTakeAction>
+              <bCopyDone>0</bCopyDone>
+              <eRowStatus>3</eRowStatus>
+            </row>
+          </rowset>
+        </lpPit>
+        <nAdsBindingCount>0</nAdsBindingCount>
+        <pPrjAdsBinding>POINTER</pPrjAdsBinding>
+        <bCopyAllSec>1</bCopyAllSec>
+        <bCompAllSec>1</bCompAllSec>
+        <nSecCount>70</nSecCount>
+        <lpSec> POINTER
+          <rowset name="PjmSec" size="1400" count="70">
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>COMMON</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>ARA</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>BUL</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>CFR</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>CRO</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>CZE</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>DAN</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>DUT</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>ENG</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>ESP</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>FIN</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>FRA</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>GER</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>GRK</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>HEB</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>HUN</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>ITA</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>JPN</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>KOR</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>MAY</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>NOR</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>POL</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>POR</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>ROM</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>RUS</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>SER</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>SLK</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>SLV</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>SVE</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>THA</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>TUR</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>UKE</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>VIE</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>ZHS</szSectionName>
+            </row>
+            <row>
+              <eProcessType>0</eProcessType>
+              <szSectionName>ZHT</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>COMMON</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>ARA</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>BUL</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>CFR</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>CRO</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>CZE</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>DAN</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>DUT</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>ENG</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>ESP</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>FIN</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>FRA</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>GER</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>GRK</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>HEB</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>HUN</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>ITA</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>JPN</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>KOR</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>MAY</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>NOR</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>POL</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>POR</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>ROM</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>RUS</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>SER</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>SLK</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>SLV</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>SVE</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>THA</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>TUR</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>UKE</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>VIE</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>ZHS</szSectionName>
+            </row>
+            <row>
+              <eProcessType>2</eProcessType>
+              <szSectionName>ZHT</szSectionName>
+            </row>
+          </rowset>
+        </lpSec>
+        <nIncCount>0</nIncCount>
+        <lpInc>POINTER</lpInc>
+        <nDepCount>0</nDepCount>
+        <lpDep>POINTER</lpDep>
+        <nLangCount>0</nLangCount>
+        <hLang>HANDLE</hLang>
+      </row>
+    </rowset>
+  </instance>
+  <instance class="RDM">
+    <rowset name="RecDefn" size="920" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.35.01.336980</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <szObjectOwnerID></szObjectOwnerID>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>2740</lVersion>
+        <lSwapVersion>2740</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <szRecName>OU_CODE_WRK</szRecName>
+        <szLanguageCd>ENG</szLanguageCd>
+        <fFlags>0</fFlags>
+        <fAuxFlagMask>0</fAuxFlagMask>
+        <nFieldCount>2</nFieldCount>
+        <eRecType>2</eRecType>
+        <fRecUse>0</fRecUse>
+        <cOptTrigFlag>N</cOptTrigFlag>
+        <szAuditRecName></szAuditRecName>
+        <szSetCntrlFld></szSetCntrlFld>
+        <szRelLangRecName></szRelLangRecName>
+        <szOptDelRecName></szOptDelRecName>
+        <szParentRecName></szParentRecName>
+        <szQrySecRecName></szQrySecRecName>
+        <szSqlTableName></szSqlTableName>
+        <nBuildSeqNo>1</nBuildSeqNo>
+        <szRecDescr></szRecDescr>
+        <hAltDefn>HANDLE</hAltDefn>
+        <nDescrLongLen>0</nDescrLongLen>
+        <hDescrLong>HANDLE</hDescrLong>
+        <hRft> HANDLE
+          <rowset name="RecField" size="880" count="2">
+            <row>
+              <fStatus>0</fStatus>
+              <atmFieldName>CODE</atmFieldName>
+              <eFieldType>0</eFieldType>
+              <nLength>3</nLength>
+              <nDecimalPos>0</nDecimalPos>
+              <eFormat>0</eFormat>
+              <nFormatLength>0</nFormatLength>
+              <eImgFmt>0</eImgFmt>
+              <atmFormatFamily></atmFormatFamily>
+              <atmDispFmtName></atmDispFmtName>
+              <nDefCntryYr>50</nDefCntryYr>
+              <nIMEMode>0</nIMEMode>
+              <nKeyboardLayout>0</nKeyboardLayout>
+              <szObjectOwnerID></szObjectOwnerID>
+              <szLastUpdDttm>2026-09-20-00.09.16.054070</szLastUpdDttm>
+              <szLastUpdOprId>625538</szLastUpdOprId>
+              <nDescrLongLen>0</nDescrLongLen>
+              <hDescrLong>HANDLE</hDescrLong>
+              <nLabelCount>1</nLabelCount>
+              <hDBFldLabel> HANDLE
+                <rowset name="DBFldLabel" size="32" count="1">
+                  <row>
+                    <atmLabelID>CODE</atmLabelID>
+                    <atmLongName>Code</atmLongName>
+                    <atmShortName>Code</atmShortName>
+                    <bIsDefault>1</bIsDefault>
+                  </row>
+                </rowset>
+              </hDBFldLabel>
+              <nOrgLabelCount>0</nOrgLabelCount>
+              <hOrgDBFldLabel>HANDLE</hOrgDBFldLabel>
+              <nNotUsed>0</nNotUsed>
+              <fAuxFlagMask>0</fAuxFlagMask>
+              <atmDefRecName></atmDefRecName>
+              <atmDefFieldName></atmDefFieldName>
+              <atmCurCtlFieldName></atmCurCtlFieldName>
+              <fUseEdit>8388608</fUseEdit>
+              <fUseEdit2>0</fUseEdit2>
+              <atmEditTable></atmEditTable>
+              <nDefGUICtl>99</nDefGUICtl>
+              <atmSetCntrlFld></atmSetCntrlFld>
+              <atmLabelID></atmLabelID>
+              <nTimeZoneUse>0</nTimeZoneUse>
+              <atmTimeZoneFieldName></atmTimeZoneFieldName>
+              <nCurrencyCtlUse>0</nCurrencyCtlUse>
+              <atmRelTmDtFieldName></atmRelTmDtFieldName>
+              <atmLongName>Code</atmLongName>
+              <atmShortName>Code</atmShortName>
+              <atmPhysicalRecNameList>OU_CODE_WRK     </atmPhysicalRecNameList>
+              <hDBFldContextLabel>HANDLE</hDBFldContextLabel>
+              <nContextLabelCount>0</nContextLabelCount>
+              <atmEditTableOverride></atmEditTableOverride>
+              <hRecFldFrmt>HANDLE</hRecFldFrmt>
+              <nRecFieldFrmtCount>0</nRecFieldFrmtCount>
+            </row>
+            <row>
+              <fStatus>0</fStatus>
+              <atmFieldName>CODE2_WRK</atmFieldName>
+              <eFieldType>0</eFieldType>
+              <nLength>3</nLength>
+              <nDecimalPos>0</nDecimalPos>
+              <eFormat>0</eFormat>
+              <nFormatLength>0</nFormatLength>
+              <eImgFmt>0</eImgFmt>
+              <atmFormatFamily></atmFormatFamily>
+              <atmDispFmtName></atmDispFmtName>
+              <nDefCntryYr>50</nDefCntryYr>
+              <nIMEMode>0</nIMEMode>
+              <nKeyboardLayout>0</nKeyboardLayout>
+              <szObjectOwnerID></szObjectOwnerID>
+              <szLastUpdDttm>2026-09-20-00.35.01.337016</szLastUpdDttm>
+              <szLastUpdOprId>625538</szLastUpdOprId>
+              <nDescrLongLen>0</nDescrLongLen>
+              <hDescrLong>HANDLE</hDescrLong>
+              <nLabelCount>3</nLabelCount>
+              <hDBFldLabel> HANDLE
+                <rowset name="DBFldLabel" size="96" count="3">
+                  <row>
+                    <atmLabelID>JOB_FAMILY</atmLabelID>
+                    <atmLongName>Job Family</atmLongName>
+                    <atmShortName>Job Family</atmShortName>
+                    <bIsDefault>1</bIsDefault>
+                  </row>
+                  <row>
+                    <atmLabelID>STATUS</atmLabelID>
+                    <atmLongName>Requisition Status</atmLongName>
+                    <atmShortName>Status</atmShortName>
+                    <bIsDefault>0</bIsDefault>
+                  </row>
+                  <row>
+                    <atmLabelID>SUBMITTED</atmLabelID>
+                    <atmLongName>Submitted</atmLongName>
+                    <atmShortName>Submitted</atmShortName>
+                    <bIsDefault>0</bIsDefault>
+                  </row>
+                </rowset>
+              </hDBFldLabel>
+              <nOrgLabelCount>0</nOrgLabelCount>
+              <hOrgDBFldLabel>HANDLE</hOrgDBFldLabel>
+              <nNotUsed>0</nNotUsed>
+              <fAuxFlagMask>0</fAuxFlagMask>
+              <atmDefRecName></atmDefRecName>
+              <atmDefFieldName></atmDefFieldName>
+              <atmCurCtlFieldName></atmCurCtlFieldName>
+              <fUseEdit>8388608</fUseEdit>
+              <fUseEdit2>0</fUseEdit2>
+              <atmEditTable></atmEditTable>
+              <nDefGUICtl>99</nDefGUICtl>
+              <atmSetCntrlFld></atmSetCntrlFld>
+              <atmLabelID></atmLabelID>
+              <nTimeZoneUse>0</nTimeZoneUse>
+              <atmTimeZoneFieldName></atmTimeZoneFieldName>
+              <nCurrencyCtlUse>0</nCurrencyCtlUse>
+              <atmRelTmDtFieldName></atmRelTmDtFieldName>
+              <atmLongName>Job Family</atmLongName>
+              <atmShortName>Job Family</atmShortName>
+              <atmPhysicalRecNameList>OU_CODE_WRK     </atmPhysicalRecNameList>
+              <hDBFldContextLabel>HANDLE</hDBFldContextLabel>
+              <nContextLabelCount>0</nContextLabelCount>
+              <atmEditTableOverride></atmEditTableOverride>
+              <hRecFldFrmt>HANDLE</hRecFldFrmt>
+              <nRecFieldFrmtCount>0</nRecFieldFrmtCount>
+            </row>
+          </rowset>
+        </hRft>
+        <nIndexCount>0</nIndexCount>
+        <lpIdt>POINTER</lpIdt>
+        <nDDLCount>0</nDDLCount>
+        <lpRpt>POINTER</lpRpt>
+        <nDelFieldCount>0</nDelFieldCount>
+        <hDelRft>HANDLE</hDelRft>
+        <hOrgDefn>HANDLE</hOrgDefn>
+        <hExpDefn>HANDLE</hExpDefn>
+        <nLangCount>0</nLangCount>
+        <hLang>HANDLE</hLang>
+        <szSystemIDFieldName></szSystemIDFieldName>
+        <szRowLevelTimeStampFieldName></szRowLevelTimeStampFieldName>
+        <nTblSpcCount>0</nTblSpcCount>
+        <lpSpct>POINTER</lpSpct>
+        <nSecRecCount>0</nSecRecCount>
+        <hSecRec>HANDLE</hSecRec>
+        <nMatVwDefnCount>0</nMatVwDefnCount>
+        <hMatVwDefn>HANDLE</hMatVwDefn>
+      </row>
+    </rowset>
+  </instance>
+  <instance class="FIELD">
+    <rowset name="Field" size="936" count="1">
+      <row>
+        <szLastUpdDttm>2004-09-08-08.08.39.000000</szLastUpdDttm>
+        <szLastUpdOprId>PPLSOFT</szLastUpdOprId>
+        <szObjectOwnerID>HCO</szObjectOwnerID>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <szFieldName>CODE</szFieldName>
+        <szLanguageCd>ENG</szLanguageCd>
+        <eFieldType>0</eFieldType>
+        <nLength>3</nLength>
+        <nDecimalPos>0</nDecimalPos>
+        <eFormat>0</eFormat>
+        <nFormatLength>0</nFormatLength>
+        <eImgFmt>0</eImgFmt>
+        <szFormatFamily></szFormatFamily>
+        <szDispFmtName></szDispFmtName>
+        <nDefCntryYr>50</nDefCntryYr>
+        <nIMEMode>0</nIMEMode>
+        <nKeyboardLayout>0</nKeyboardLayout>
+        <nNotUsed>0</nNotUsed>
+        <fAuxFlagMask>0</fAuxFlagMask>
+        <nDescrLongLen>110</nDescrLongLen>
+        <hDescrLong> HANDLE
+          <rowset name="char" size="110" count="1">
+            <row>
+              <hDescrLong>Generic field to represent a code (I bet you knew that)</hDescrLong>
+            </row>
+          </rowset>
+        </hDescrLong>
+        <nLabelCount>1</nLabelCount>
+        <hDBFldLabel> HANDLE
+          <rowset name="DBFldLabel" size="264" count="1">
+            <row>
+              <szLabelID>CODE</szLabelID>
+              <szLongName>Code</szLongName>
+              <szShortName>Code</szShortName>
+              <bIsDefault>1</bIsDefault>
+              <szLastUpdDttm>2004-09-08-08.08.39.000000</szLastUpdDttm>
+              <szLastUpdOprId>PPLSOFT</szLastUpdOprId>
+              <nLangCount>0</nLangCount>
+              <hLang>HANDLE</hLang>
+            </row>
+          </rowset>
+        </hDBFldLabel>
+        <szDefRecName></szDefRecName>
+        <szDefFieldName></szDefFieldName>
+        <szCurCtlFieldName></szCurCtlFieldName>
+        <fUseEdit>0</fUseEdit>
+        <fUseEdit2>0</fUseEdit2>
+        <szEditTable></szEditTable>
+        <nDefGUICtl>0</nDefGUICtl>
+        <szSetCntrlFld></szSetCntrlFld>
+        <szLabelID>CODE</szLabelID>
+        <nTimeZoneUse>0</nTimeZoneUse>
+        <szTimeZoneFieldName></szTimeZoneFieldName>
+        <nCurrencyCtlUse>0</nCurrencyCtlUse>
+        <szLongName>Code</szLongName>
+        <szShortName>Code</szShortName>
+        <fStatus>0</fStatus>
+        <nLangCount>0</nLangCount>
+        <hLang>HANDLE</hLang>
+        <nContextLabelCount>0</nContextLabelCount>
+        <hDBFldContextLabel>HANDLE</hDBFldContextLabel>
+      </row>
+    </rowset>
+  </instance>
+  <instance class="FIELD">
+    <rowset name="Field" size="936" count="1">
+      <row>
+        <szLastUpdDttm>2001-07-18-08.38.47.000000</szLastUpdDttm>
+        <szLastUpdOprId>PPLSOFT</szLastUpdOprId>
+        <szObjectOwnerID>HER</szObjectOwnerID>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <szFieldName>CODE2_WRK</szFieldName>
+        <szLanguageCd>ENG</szLanguageCd>
+        <eFieldType>0</eFieldType>
+        <nLength>3</nLength>
+        <nDecimalPos>0</nDecimalPos>
+        <eFormat>0</eFormat>
+        <nFormatLength>0</nFormatLength>
+        <eImgFmt>0</eImgFmt>
+        <szFormatFamily></szFormatFamily>
+        <szDispFmtName></szDispFmtName>
+        <nDefCntryYr>50</nDefCntryYr>
+        <nIMEMode>0</nIMEMode>
+        <nKeyboardLayout>0</nKeyboardLayout>
+        <nNotUsed>0</nNotUsed>
+        <fAuxFlagMask>0</fAuxFlagMask>
+        <nDescrLongLen>462</nDescrLongLen>
+        <hDescrLong> HANDLE
+          <rowset name="char" size="462" count="1">
+            <row>
+              <hDescrLong>Used in a temporary table to identify which search criteria has been selected when viewing job postings. Valid search criteria is built up at run time based on Job function/category and  in the case of managers, requisition status.</hDescrLong>
+            </row>
+          </rowset>
+        </hDescrLong>
+        <nLabelCount>3</nLabelCount>
+        <hDBFldLabel> HANDLE
+          <rowset name="DBFldLabel" size="792" count="3">
+            <row>
+              <szLabelID>JOB_FAMILY</szLabelID>
+              <szLongName>Job Family</szLongName>
+              <szShortName>Job Family</szShortName>
+              <bIsDefault>1</bIsDefault>
+              <szLastUpdDttm>2001-07-18-08.38.47.000000</szLastUpdDttm>
+              <szLastUpdOprId>PPLSOFT</szLastUpdOprId>
+              <nLangCount>0</nLangCount>
+              <hLang>HANDLE</hLang>
+            </row>
+            <row>
+              <szLabelID>STATUS</szLabelID>
+              <szLongName>Requisition Status</szLongName>
+              <szShortName>Status</szShortName>
+              <bIsDefault>0</bIsDefault>
+              <szLastUpdDttm>2001-07-18-08.38.47.000000</szLastUpdDttm>
+              <szLastUpdOprId>PPLSOFT</szLastUpdOprId>
+              <nLangCount>0</nLangCount>
+              <hLang>HANDLE</hLang>
+            </row>
+            <row>
+              <szLabelID>SUBMITTED</szLabelID>
+              <szLongName>Submitted</szLongName>
+              <szShortName>Submitted</szShortName>
+              <bIsDefault>0</bIsDefault>
+              <szLastUpdDttm>2001-07-18-08.38.47.000000</szLastUpdDttm>
+              <szLastUpdOprId>PPLSOFT</szLastUpdOprId>
+              <nLangCount>0</nLangCount>
+              <hLang>HANDLE</hLang>
+            </row>
+          </rowset>
+        </hDBFldLabel>
+        <szDefRecName></szDefRecName>
+        <szDefFieldName></szDefFieldName>
+        <szCurCtlFieldName></szCurCtlFieldName>
+        <fUseEdit>0</fUseEdit>
+        <fUseEdit2>0</fUseEdit2>
+        <szEditTable></szEditTable>
+        <nDefGUICtl>0</nDefGUICtl>
+        <szSetCntrlFld></szSetCntrlFld>
+        <szLabelID>JOB_FAMILY</szLabelID>
+        <nTimeZoneUse>0</nTimeZoneUse>
+        <szTimeZoneFieldName></szTimeZoneFieldName>
+        <nCurrencyCtlUse>0</nCurrencyCtlUse>
+        <szLongName>Job Family</szLongName>
+        <szShortName>Job Family</szShortName>
+        <fStatus>0</fStatus>
+        <nLangCount>0</nLangCount>
+        <hLang>HANDLE</hLang>
+        <nContextLabelCount>0</nContextLabelCount>
+        <hDBFldContextLabel>HANDLE</hDBFldContextLabel>
+      </row>
+    </rowset>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.10.48.054331</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1758</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>FieldChange</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>1</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>53</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="534" count="1">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (%Mode = &quot;AB&quot;) Then
+   End-If;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>RgEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACCEMATwBEAEUADBZGAGkAZQBsAGQAQwBoAGEAbgBnAGUAAAAAAAAAAAD/3gYAAAEAAQD/AAAAAAAAAAA0MgAwADIANgAtADAAOQAtADIAMAAtADAAMAAuADEAMAAuADQAOAAuADAANQA0ADMAMwAxADQyADAAMgA2AC0AMAA5AC0AMgAwAC0AMAAwAC4AMQAwAC4ANAA4AC4AMAA1ADQAMwAzADEADDYAMgA1ADUAMwA4AAAANf8BAAAAHAsSCiUATQBvAGQAZQAGFgJBABQfHAsSCiUATQBvAGQAZQAGFgRBAEIAFB8aFRoVBwAA/wEAAAAA/wEAAACFFk8AVQBfAEMATwBEAEUAXwBXAFIASwAIQwBPAEQARQA=</peoplecode_blob>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.10.48.054298</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1758</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>FieldDefault</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>1</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>53</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="534" count="1">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (%Mode = &quot;AB&quot;) Then
+   End-If;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>SAEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACCEMATwBEAEUADBhGAGkAZQBsAGQARABlAGYAYQB1AGwAdAAAAAAAAAAAAP/eBgAAAQABAP8AAAAAAAAAADQyADAAMgA2AC0AMAA5AC0AMgAwAC0AMAAwAC4AMQAwAC4ANAA4AC4AMAA1ADQAMgA5ADgANDIAMAAyADYALQAwADkALQAyADAALQAwADAALgAxADAALgA0ADgALgAwADUANAAyADkAOAAMNgAyADUANQAzADgAAAA1/wEAAAAcCxIKJQBNAG8AZABlAAYWAkEAFB8cCxIKJQBNAG8AZABlAAYWBEEAQgAUHxoVGhUHAAD/AQAAAAD/AQAAAIUWTwBVAF8AQwBPAEQARQBfAFcAUgBLAAhDAE8ARABFAA==</peoplecode_blob>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.10.48.054368</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1758</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>FieldEdit</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>1</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>53</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="534" count="1">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (%Mode = &quot;AB&quot;) Then
+   End-If;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>QgEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACCEMATwBEAEUADBJGAGkAZQBsAGQARQBkAGkAdAAAAAAAAAAAAP/eBgAAAQABAP8AAAAAAAAAADQyADAAMgA2AC0AMAA5AC0AMgAwAC0AMAAwAC4AMQAwAC4ANAA4AC4AMAA1ADQAMwA2ADgANDIAMAAyADYALQAwADkALQAyADAALQAwADAALgAxADAALgA0ADgALgAwADUANAAzADYAOAAMNgAyADUANQAzADgAAAA1/wEAAAAcCxIKJQBNAG8AZABlAAYWAkEAFB8cCxIKJQBNAG8AZABlAAYWBEEAQgAUHxoVGhUHAAD/AQAAAAD/AQAAAIUWTwBVAF8AQwBPAEQARQBfAFcAUgBLAAhDAE8ARABFAA==</peoplecode_blob>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.10.08.054170</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1757</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>FieldFormula</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>1</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>53</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="534" count="1">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (%Mode = &quot;AB&quot;) Then
+   End-If;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>SAEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACCEMATwBEAEUADBhGAGkAZQBsAGQARgBvAHIAbQB1AGwAYQAAAAAAAAAAAP/dBgAAAQABAP8AAAAAAAAAADQyADAAMgA2AC0AMAA5AC0AMgAwAC0AMAAwAC4AMQAwAC4AMAA4AC4AMAA1ADQAMQA3ADAANDIAMAAyADYALQAwADkALQAyADAALQAwADAALgAxADAALgAwADgALgAwADUANAAxADcAMAAMNgAyADUANQAzADgAAAA1/wEAAAAcCxIKJQBNAG8AZABlAAYWAkEAFB8cCxIKJQBNAG8AZABlAAYWBEEAQgAUHxoVGhUHAAD/AQAAAAD/AQAAAIUWTwBVAF8AQwBPAEQARQBfAFcAUgBLAAhDAE8ARABFAA==</peoplecode_blob>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.10.49.053822</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1758</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>PrePopup</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>1</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>53</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="534" count="1">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (%Mode = &quot;AB&quot;) Then
+   End-If;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>QAEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACCEMATwBEAEUADBBQAHIAZQBQAG8AcAB1AHAAAAAAAAAAAAD/3gYAAAEAAQD/AAAAAAAAAAA0MgAwADIANgAtADAAOQAtADIAMAAtADAAMAAuADEAMAAuADQAOQAuADAANQAzADgAMgAyADQyADAAMgA2AC0AMAA5AC0AMgAwAC0AMAAwAC4AMQAwAC4ANAA5AC4AMAA1ADMAOAAyADIADDYAMgA1ADUAMwA4AAAANf8BAAAAHAsSCiUATQBvAGQAZQAGFgJBABQfHAsSCiUATQBvAGQAZQAGFgRBAEIAFB8aFRoVBwAA/wEAAAAA/wEAAACFFk8AVQBfAEMATwBEAEUAXwBXAFIASwAIQwBPAEQARQA=</peoplecode_blob>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.10.49.053855</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1758</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>PreScrollRowSelect</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>1</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>53</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="534" count="1">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (%Mode = &quot;AB&quot;) Then
+   End-If;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>VAEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACCEMATwBEAEUADCRQAHIAZQBTAGMAcgBvAGwAbABSAG8AdwBTAGUAbABlAGMAdAAAAAAAAAAAAP/eBgAAAQABAP8AAAAAAAAAADQyADAAMgA2AC0AMAA5AC0AMgAwAC0AMAAwAC4AMQAwAC4ANAA5AC4AMAA1ADMAOAA1ADUANDIAMAAyADYALQAwADkALQAyADAALQAwADAALgAxADAALgA0ADkALgAwADUAMwA4ADUANQAMNgAyADUANQAzADgAAAA1/wEAAAAcCxIKJQBNAG8AZABlAAYWAkEAFB8cCxIKJQBNAG8AZABlAAYWBEEAQgAUHxoVGhUHAAD/AQAAAAD/AQAAAIUWTwBVAF8AQwBPAEQARQBfAFcAUgBLAAhDAE8ARABFAA==</peoplecode_blob>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.10.49.053602</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1758</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>RowDelete</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>1</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>53</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="534" count="1">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (%Mode = &quot;AB&quot;) Then
+   End-If;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>QgEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACCEMATwBEAEUADBJSAG8AdwBEAGUAbABlAHQAZQAAAAAAAAAAAP/eBgAAAQABAP8AAAAAAAAAADQyADAAMgA2AC0AMAA5AC0AMgAwAC0AMAAwAC4AMQAwAC4ANAA5AC4AMAA1ADMANgAwADIANDIAMAAyADYALQAwADkALQAyADAALQAwADAALgAxADAALgA0ADkALgAwADUAMwA2ADAAMgAMNgAyADUANQAzADgAAAA1/wEAAAAcCxIKJQBNAG8AZABlAAYWAkEAFB8cCxIKJQBNAG8AZABlAAYWBEEAQgAUHxoVGhUHAAD/AQAAAAD/AQAAAIUWTwBVAF8AQwBPAEQARQBfAFcAUgBLAAhDAE8ARABFAA==</peoplecode_blob>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.10.48.054431</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1758</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>RowInit</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>1</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>53</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="534" count="1">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (%Mode = &quot;AB&quot;) Then
+   End-If;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>PgEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACCEMATwBEAEUADA5SAG8AdwBJAG4AaQB0AAAAAAAAAAAA/94GAAABAAEA/wAAAAAAAAAANDIAMAAyADYALQAwADkALQAyADAALQAwADAALgAxADAALgA0ADgALgAwADUANAA0ADMAMQA0MgAwADIANgAtADAAOQAtADIAMAAtADAAMAAuADEAMAAuADQAOAAuADAANQA0ADQAMwAxAAw2ADIANQA1ADMAOAAAADX/AQAAABwLEgolAE0AbwBkAGUABhYCQQAUHxwLEgolAE0AbwBkAGUABhYEQQBCABQfGhUaFQcAAP8BAAAAAP8BAAAAhRZPAFUAXwBDAE8ARABFAF8AVwBSAEsACEMATwBEAEUA</peoplecode_blob>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.10.49.053572</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1758</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>RowInsert</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>1</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>53</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="534" count="1">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (%Mode = &quot;AB&quot;) Then
+   End-If;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>QgEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACCEMATwBEAEUADBJSAG8AdwBJAG4AcwBlAHIAdAAAAAAAAAAAAP/eBgAAAQABAP8AAAAAAAAAADQyADAAMgA2AC0AMAA5AC0AMgAwAC0AMAAwAC4AMQAwAC4ANAA5AC4AMAA1ADMANQA3ADIANDIAMAAyADYALQAwADkALQAyADAALQAwADAALgAxADAALgA0ADkALgAwADUAMwA1ADcAMgAMNgAyADUANQAzADgAAAA1/wEAAAAcCxIKJQBNAG8AZABlAAYWAkEAFB8cCxIKJQBNAG8AZABlAAYWBEEAQgAUHxoVGhUHAAD/AQAAAAD/AQAAAIUWTwBVAF8AQwBPAEQARQBfAFcAUgBLAAhDAE8ARABFAA==</peoplecode_blob>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.10.48.054539</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1758</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>RowSelect</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>1</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>53</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="534" count="1">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (%Mode = &quot;AB&quot;) Then
+   End-If;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>QgEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACCEMATwBEAEUADBJSAG8AdwBTAGUAbABlAGMAdAAAAAAAAAAAAP/eBgAAAQABAP8AAAAAAAAAADQyADAAMgA2AC0AMAA5AC0AMgAwAC0AMAAwAC4AMQAwAC4ANAA4AC4AMAA1ADQANQAzADkANDIAMAAyADYALQAwADkALQAyADAALQAwADAALgAxADAALgA0ADgALgAwADUANAA1ADMAOQAMNgAyADUANQAzADgAAAA1/wEAAAAcCxIKJQBNAG8AZABlAAYWAkEAFB8cCxIKJQBNAG8AZABlAAYWBEEAQgAUHxoVGhUHAAD/AQAAAAD/AQAAAIUWTwBVAF8AQwBPAEQARQBfAFcAUgBLAAhDAE8ARABFAA==</peoplecode_blob>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.10.48.054401</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1758</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>SaveEdit</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>1</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>53</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="534" count="1">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (%Mode = &quot;AB&quot;) Then
+   End-If;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>QAEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACCEMATwBEAEUADBBTAGEAdgBlAEUAZABpAHQAAAAAAAAAAAD/3gYAAAEAAQD/AAAAAAAAAAA0MgAwADIANgAtADAAOQAtADIAMAAtADAAMAAuADEAMAAuADQAOAAuADAANQA0ADQAMAAxADQyADAAMgA2AC0AMAA5AC0AMgAwAC0AMAAwAC4AMQAwAC4ANAA4AC4AMAA1ADQANAAwADEADDYAMgA1ADUAMwA4AAAANf8BAAAAHAsSCiUATQBvAGQAZQAGFgJBABQfHAsSCiUATQBvAGQAZQAGFgRBAEIAFB8aFRoVBwAA/wEAAAAA/wEAAACFFk8AVQBfAEMATwBEAEUAXwBXAFIASwAIQwBPAEQARQA=</peoplecode_blob>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.10.48.054513</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1758</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>SavePostChange</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>1</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>53</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="534" count="1">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (%Mode = &quot;AB&quot;) Then
+   End-If;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>TAEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACCEMATwBEAEUADBxTAGEAdgBlAFAAbwBzAHQAQwBoAGEAbgBnAGUAAAAAAAAAAAD/3gYAAAEAAQD/AAAAAAAAAAA0MgAwADIANgAtADAAOQAtADIAMAAtADAAMAAuADEAMAAuADQAOAAuADAANQA0ADUAMQAzADQyADAAMgA2AC0AMAA5AC0AMgAwAC0AMAAwAC4AMQAwAC4ANAA4AC4AMAA1ADQANQAxADMADDYAMgA1ADUAMwA4AAAANf8BAAAAHAsSCiUATQBvAGQAZQAGFgJBABQfHAsSCiUATQBvAGQAZQAGFgRBAEIAFB8aFRoVBwAA/wEAAAAA/wEAAACFFk8AVQBfAEMATwBEAEUAXwBXAFIASwAIQwBPAEQARQA=</peoplecode_blob>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.22.51.336082</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1759</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>SavePreChange</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>1</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>132</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="534" count="1">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (1 = 2) Then
+   End-If;
+   WinMessage(&quot;Test&quot;);
+   OU_CODE_WRK.CODE.Visible = False;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>mgEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACCEMATwBEAEUADBpTAGEAdgBlAFAAcgBlAEMAaABhAG4AZwBlAAAAAAAAAAAA/98GAAABAAEA/wAAAAAAAAAANDIAMAAyADYALQAwADkALQAyADAALQAwADAALgAyADIALgA1ADEALgAzADMANgAwADgAMgA0MgAwADIANgAtADAAOQAtADIAMAAtADAAMAAuADIAMgAuADUAMQAuADMAMwA2ADAAOAAyAAw2ADIANQA1ADMAOAAAAIT/AQAAABwLEgolAE0AbwBkAGUABhYCQQAUHxwLUBIAAAABAAAAAAAAAAAAAAAAAAAGUBIAAAACAAAAAAAAAAAAAAAAAAAUHxoVChRXAGkAbgBNAGUAcwBzAGEAZwBlAAsWCFQAZQBzAHQAFBUhAAAFCg5WAGkAcwBpAGIAbABlAAYwFRoVBwAA/wEAAAAA/wEAAACFFk8AVQBfAEMATwBEAEUAXwBXAFIASwAIQwBPAEQARQA=</peoplecode_blob>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.10.49.053888</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1758</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>ScrollRowSelect</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>1</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>53</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="534" count="1">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (%Mode = &quot;AB&quot;) Then
+   End-If;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>TgEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACCEMATwBEAEUADB5TAGMAcgBvAGwAbABSAG8AdwBTAGUAbABlAGMAdAAAAAAAAAAAAP/eBgAAAQABAP8AAAAAAAAAADQyADAAMgA2AC0AMAA5AC0AMgAwAC0AMAAwAC4AMQAwAC4ANAA5AC4AMAA1ADMAOAA4ADgANDIAMAAyADYALQAwADkALQAyADAALQAwADAALgAxADAALgA0ADkALgAwADUAMwA4ADgAOAAMNgAyADUANQAzADgAAAA1/wEAAAAcCxIKJQBNAG8AZABlAAYWAkEAFB8cCxIKJQBNAG8AZABlAAYWBEEAQgAUHxoVGhUHAAD/AQAAAAD/AQAAAIUWTwBVAF8AQwBPAEQARQBfAFcAUgBLAAhDAE8ARABFAA==</peoplecode_blob>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.10.49.053687</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1758</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>SearchInit</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>1</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>53</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="534" count="1">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (%Mode = &quot;AB&quot;) Then
+   End-If;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>RAEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACCEMATwBEAEUADBRTAGUAYQByAGMAaABJAG4AaQB0AAAAAAAAAAAA/94GAAABAAEA/wAAAAAAAAAANDIAMAAyADYALQAwADkALQAyADAALQAwADAALgAxADAALgA0ADkALgAwADUAMwA2ADgANwA0MgAwADIANgAtADAAOQAtADIAMAAtADAAMAAuADEAMAAuADQAOQAuADAANQAzADYAOAA3AAw2ADIANQA1ADMAOAAAADX/AQAAABwLEgolAE0AbwBkAGUABhYCQQAUHxwLEgolAE0AbwBkAGUABhYEQQBCABQfGhUaFQcAAP8BAAAAAP8BAAAAhRZPAFUAXwBDAE8ARABFAF8AVwBSAEsACEMATwBEAEUA</peoplecode_blob>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.10.49.053712</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1758</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>SearchSave</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>1</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>53</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="534" count="1">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (%Mode = &quot;AB&quot;) Then
+   End-If;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>RAEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACCEMATwBEAEUADBRTAGUAYQByAGMAaABTAGEAdgBlAAAAAAAAAAAA/94GAAABAAEA/wAAAAAAAAAANDIAMAAyADYALQAwADkALQAyADAALQAwADAALgAxADAALgA0ADkALgAwADUAMwA3ADEAMgA0MgAwADIANgAtADAAOQAtADIAMAAtADAAMAAuADEAMAAuADQAOQAuADAANQAzADcAMQAyAAw2ADIANQA1ADMAOAAAADX/AQAAABwLEgolAE0AbwBkAGUABhYCQQAUHxwLEgolAE0AbwBkAGUABhYEQQBCABQfGhUaFQcAAP8BAAAAAP8BAAAAhRZPAFUAXwBDAE8ARABFAF8AVwBSAEsACEMATwBEAEUA</peoplecode_blob>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.42.04.336116</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1762</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>Workflow</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>2</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>95</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="1068" count="2">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE2_WRK</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (12 = 34) Then
+   End-If;
+   OU_CODE_WRK.CODE2_WRK.Visible = False;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>lwEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACCEMATwBEAEUADBBXAG8AcgBrAGYAbABvAHcAAAAAAAAAAAD/4gYAAAIAAQD/AAAAAAAAAAA0MgAwADIANgAtADAAOQAtADIAMAAtADAAMAAuADQAMgAuADAANAAuADMAMwA2ADEAMQA2ADQyADAAMgA2AC0AMAA5AC0AMgAwAC0AMAAwAC4ANAAyAC4AMAA0AC4AMwAzADYAMQAxADYADDYAMgA1ADUAMwA4AAAAX/8BAAAAHAsSCiUATQBvAGQAZQAGFgJBABQfHAtQEgAAAAwAAAAAAAAAAAAAAAAAAAZQEgAAACIAAAAAAAAAAAAAAAAAABQfGhUhAQAFCg5WAGkAcwBpAGIAbABlAAYwFRoVBwAA/wEAAAAA/wEAAACFFk8AVQBfAEMATwBEAEUAXwBXAFIASwAIQwBPAEQARQAWTwBVAF8AQwBPAEQARQBfAFcAUgBLABJDAE8ARABFADIAXwBXAFIASwA=</peoplecode_blob>
+  </instance>
+  <instance class="PCM">
+    <rowset name="PcmProg" size="2240" count="1">
+      <row>
+        <szLastUpdDttm>2026-09-20-00.41.40.336778</szLastUpdDttm>
+        <szLastUpdOprId>625538</szLastUpdOprId>
+        <nUseCount>1</nUseCount>
+        <bUseUpdate>1</bUseUpdate>
+        <lVersion>1761</lVersion>
+        <lSwapVersion>0</lSwapVersion>
+        <nSwapNum>0</nSwapNum>
+        <eObjectID_0>1</eObjectID_0>
+        <szObjectValue_0>OU_CODE_WRK</szObjectValue_0>
+        <eObjectID_1>2</eObjectID_1>
+        <szObjectValue_1>CODE2_WRK</szObjectValue_1>
+        <eObjectID_2>12</eObjectID_2>
+        <szObjectValue_2>Workflow</szObjectValue_2>
+        <eObjectID_3>0</eObjectID_3>
+        <szObjectValue_3></szObjectValue_3>
+        <eObjectID_4>0</eObjectID_4>
+        <szObjectValue_4></szObjectValue_4>
+        <eObjectID_5>0</eObjectID_5>
+        <szObjectValue_5></szObjectValue_5>
+        <eObjectID_6>0</eObjectID_6>
+        <szObjectValue_6></szObjectValue_6>
+        <nNameCount>2</nNameCount>
+        <lpProgSource> POINTER
+          <rowset name="PcmProgSource" size="64" count="1">
+            <row>
+              <lSourceLen>95</lSourceLen>
+              <lpSource>custom field</lpSource>
+              <lEntryNamesLen>0</lEntryNamesLen>
+              <nEntry>0</nEntry>
+              <lpEntryTab>custom field</lpEntryTab>
+              <nParams>0</nParams>
+              <lpParams>custom field</lpParams>
+              <nPCVersion>133</nPCVersion>
+            </row>
+          </rowset>
+        </lpProgSource>
+        <nProgSource>1</nProgSource>
+        <lpPnt> POINTER
+          <rowset name="PcmPnt" size="1068" count="2">
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE2_WRK</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+            <row>
+              <szRecName>OU_CODE_WRK</szRecName>
+              <szFieldName>CODE</szFieldName>
+              <szPackageRoot></szPackageRoot>
+              <szQualifyPath></szQualifyPath>
+              <szAppClassMethod></szAppClassMethod>
+            </row>
+          </rowset>
+        </lpPnt>
+        <lpProgCode>custom field</lpProgCode>
+        <nProgCode>0</nProgCode>
+        <eRunLocation>0</eRunLocation>
+        <szLicenseCode></szLicenseCode>
+        <lpHashTable>POINTER</lpHashTable>
+        <eProgFlag>0</eProgFlag>
+        <szExtendsClass></szExtendsClass>
+        <szCompiledRelease></szCompiledRelease>
+      </row>
+    </rowset>
+    <peoplecode_text>If (%Mode = &quot;A&quot;) Then
+   If (12 = 34) Then
+   End-If;
+   OU_CODE_WRK.CODE.Visible = False;
+End-If;
+</peoplecode_text>
+    <peoplecode_blob>oQEAAAQDAgEBAAAAvAIAAAAAAAABFk8AVQBfAEMATwBEAEUAXwBXAFIASwACEkMATwBEAEUAMgBfAFcAUgBLAAwQVwBvAHIAawBmAGwAbwB3AAAAAAAAAAAA/+EGAAACAAEA/wAAAAAAAAAANDIAMAAyADYALQAwADkALQAyADAALQAwADAALgA0ADEALgA0ADAALgAzADMANgA3ADcAOAA0MgAwADIANgAtADAAOQAtADIAMAAtADAAMAAuADQAMQAuADQAMAAuADMAMwA2ADcANwA4AAw2ADIANQA1ADMAOAAAAF//AQAAABwLEgolAE0AbwBkAGUABhYCQQAUHxwLUBIAAAAMAAAAAAAAAAAAAAAAAAAGUBIAAAAiAAAAAAAAAAAAAAAAAAAUHxoVIQEABQoOVgBpAHMAaQBiAGwAZQAGMBUaFQcAAP8BAAAAAP8BAAAAhRZPAFUAXwBDAE8ARABFAF8AVwBSAEsAEkMATwBEAEUAMgBfAFcAUgBLABZPAFUAXwBDAE8ARABFAF8AVwBSAEsACEMATwBEAEUA</peoplecode_blob>
+  </instance>
