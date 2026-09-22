@@ -58,10 +58,6 @@ Settings:
 
 SQL documents use language id `psft-sql` (basic highlighting).
 
-## Coexistence with other extensions
-
-`jatz.peoplesoft-tools` also registers a `peoplecode` language. This extension uses **`psft-peoplecode`** / `source.psft.peoplecode` and `.peoplecode` virtual documents so both can be installed.
-
 ## Setup
 
 1. Install the VSIX (`npm run dev` from a clone, or install a release build).

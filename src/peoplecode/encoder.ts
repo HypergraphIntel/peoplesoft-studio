@@ -1,5 +1,10 @@
 import { encodeSimpleProgramHeader, PROGRAM_DIRECTORY_SEPARATOR } from './programLayout.js';
-import { INLINE_IDENTIFIER_OPCODE, OPCODES, TEXT_INTRODUCERS, TokenKind } from './decoder.js';
+import {
+  INLINE_IDENTIFIER_OPCODE,
+  OPCODES,
+  TEXT_INTRODUCERS,
+  TokenKind
+} from './format.js';
 import { UNSIGNED_NUMBER_FORMAT } from './numberFormats.js';
 
 const MAX_UNSIGNED_INTEGER = (1n << BigInt(UNSIGNED_NUMBER_FORMAT.valueBytes * 8)) - 1n;
