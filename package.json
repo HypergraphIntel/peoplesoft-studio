@@ -59,14 +59,17 @@
     "views": {
       "peoplesoft": [
         {
+          "icon":"./resources/file-backup.svg",
           "id": "psft.projects",
           "name": "Projects"
         },
         {
+          "icon":"./resources/document.svg",
           "id": "psft.browser",
           "name": "Definition Browser"
         },
         {
+          "icon":"./resources/link.svg",
           "id": "psft.connections",
           "name": "Connections"
         }
