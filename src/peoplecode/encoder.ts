@@ -17,6 +17,18 @@ interface FunctionMetadata {
   returnType?: string;
 }
 
+export interface PeopleCodeReference {
+  index: number;
+  recordName: string;
+  fieldName: string;
+  eventName: string;
+}
+
+export interface EncodedPeopleCode {
+  program: Buffer;
+  references: PeopleCodeReference[];
+}
+
 function functionTypeId(typeName: string): number {
   switch (typeName.toLowerCase()) {
     case 'string':
@@ -43,6 +55,30 @@ function returnTypeDescriptor(typeName?: string): number {
 
 function parameterTypeDescriptor(typeName: string): number {
   return (0xc0000000 | functionTypeId(typeName)) >>> 0;
+}
+
+function encodeFunctionProgramHeader(
+  executableLength: number,
+  metadata: FunctionMetadata
+): Buffer {
+  // Calibrated 37-byte Function PSPCMPROG header.
+  const header = Buffer.alloc(37);
+
+  header[0] = 0xa0;
+  header.writeUInt32LE(0, 1);
+  header.writeUInt32LE(executableLength, 5);
+  header.writeUInt32LE(0, 9);
+  header.writeUInt32LE(
+    Buffer.byteLength(metadata.name + '\0', 'utf16le'),
+    13
+  );
+  header.writeUInt32LE(0, 17);
+  header.writeUInt32LE(metadata.parameterTypes.length + 1, 21);
+  header.writeUInt32LE(0, 25);
+  header.writeUInt32LE(1, 29);
+  header.writeUInt32LE(0x85, 33);
+
+  return header;
 }
 
 function encodeFunctionMetadata(metadata: FunctionMetadata): Buffer {
@@ -127,7 +163,7 @@ function textOperand(opcode: number, kind: TokenKind, value: string): Buffer {
  * for this token format. Unary minus is supported; unary plus and member/index
  * access are unsupported.  
  */
-export function encodeFragment(source: string): Buffer {
+function encodeFragmentInternal(source: string): { bytes: Buffer; references: PeopleCodeReference[] } {
   const typeName = (): Buffer => {
     const match = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
     if (!match) return fail('expected a PeopleCode type name');
@@ -163,9 +199,49 @@ export function encodeFragment(source: string): Buffer {
     }
   };
 
+  const globalDeclaration = () => {
+    chunks.push(fixed('Global'));
+
+    space();
+    chunks.push(typeName());
+
+    space();
+    chunks.push(variable());
+  };
+
+  const componentDeclaration = () => {
+    chunks.push(fixed('Component'));
+
+    space();
+    chunks.push(typeName());
+
+    space();
+    chunks.push(variable());
+  };
+
+  const constantDeclaration = () => {
+    chunks.push(fixed('Constant'));
+
+    space();
+    chunks.push(variable());
+
+    space();
+
+    if (source[pos] !== '=') {
+      fail('expected = in Constant declaration');
+    }
+
+    pos++;
+    chunks.push(fixed('='));
+
+    expression();
+  };
+
+
   let pos = 0;
   let depth = 0;
   const chunks: Buffer[] = [];
+  const references: PeopleCodeReference[] = [];
   
   const reservedCallNames = new Set([...OPCODES.values()]
     .filter(spec => spec.kind === TokenKind.Keyword && spec.text)
@@ -326,11 +402,98 @@ export function encodeFragment(source: string): Buffer {
     depth--;
   };
   
+  const declareFunction = () => {
+    chunks.push(Buffer.from([0x31]));
+
+    space();
+    if (!word('Function')) {
+      throw new UnsupportedPeopleCodeError(pos, 'expected Function after Declare');
+    }
+    chunks.push(fixed('Function'));
+
+    space();
+    const name = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+    if (name === undefined) {
+      throw new UnsupportedPeopleCodeError(pos, 'expected declared Function name');
+    }
+    pos += name.length;
+    chunks.push(textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, name));
+
+    space();
+    if (!word('PeopleCode')) {
+      throw new UnsupportedPeopleCodeError(pos, 'expected PeopleCode in Declare Function');
+    }
+    chunks.push(Buffer.from([0x3a]));
+
+    space();
+    const recordName = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+    if (recordName === undefined) {
+      throw new UnsupportedPeopleCodeError(pos, 'expected record name in Declare Function PeopleCode target');
+    }
+    pos += recordName.length;
+
+    if (source[pos] !== '.') {
+      throw new UnsupportedPeopleCodeError(pos, 'expected . in Declare Function PeopleCode target');
+    }
+    pos++;
+
+    const fieldName = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+    if (fieldName === undefined) {
+      throw new UnsupportedPeopleCodeError(pos, 'expected field name in Declare Function PeopleCode target');
+    }
+    pos += fieldName.length;
+
+    space();
+    const eventName = /^[A-Za-z_][A-Za-z0-9_-]*/.exec(source.slice(pos))?.[0];
+    if (eventName === undefined) {
+      throw new UnsupportedPeopleCodeError(pos, 'expected event name in Declare Function');
+    }
+    pos += eventName.length;
+
+    const existingReference = references.find(
+      item =>
+        item.recordName.toLowerCase() === recordName.toLowerCase() &&
+        item.fieldName.toLowerCase() === fieldName.toLowerCase() &&
+        item.eventName.toLowerCase() === eventName.toLowerCase()
+    );
+
+    const reference: PeopleCodeReference =
+      existingReference ?? {
+        index: references.length + 1,
+        recordName,
+        fieldName,
+        eventName
+      };
+
+    if (existingReference === undefined) {
+      references.push(reference);
+    }
+
+    if (reference.index > 0xffff) {
+      throw new UnsupportedPeopleCodeError(pos, 'Declare Function reference index exceeds uint16 range');
+    }
+
+    const referenceBytes = Buffer.alloc(3);
+    referenceBytes[0] = 0x21;
+    referenceBytes.writeUInt16LE(reference.index, 1);
+    chunks.push(referenceBytes);
+    chunks.push(textOperand(0x40, TokenKind.Keyword, eventName));
+    chunks.push(Buffer.from([0x42]));
+  };
+
   function statement(): void {
-    if (word('Function')) {
+    if (word('Declare')) {
+      declareFunction();
+    } else if (word('Function')) {
       functionStatement();
     } else if (word('Local')) {
       localDeclaration();
+    } else if (word('Global')) {
+      globalDeclaration();
+    } else if (word('Component')) {
+      componentDeclaration();
+    } else if (word('Constant')) {
+      constantDeclaration();
     } else if (word('Return')) {
       chunks.push(fixed('Return'));
       space();
@@ -470,29 +633,12 @@ export function encodeFragment(source: string): Buffer {
         fail('expected End-Function');
       }
 
-      /*
-      * Calibrated Function layout:
-      *
-      * Leading Local declarations are emitted consecutively. If executable
-      * statements follow them, PeopleTools emits a single 0x4f between the
-      * declaration section and the first executable statement.
-      *
-      *   Local ... ;
-      *   Local ... ;
-      *   4F
-      *   <first executable statement>
-      *
-      * No 0x4f is emitted when End-Function immediately follows the Local
-      * declarations.
-      */
-      const isLocal =
-        /^Local\b/i.test(source.slice(pos));
+      // PeopleTools emits one 0x4f when a Function transitions from one or
+      // more leading Local declarations to its first executable statement.
+      // It is not emitted when End-Function immediately follows the Locals.
+      const isLocal = /^Local\b/i.test(source.slice(pos));
 
-      if (
-        !isLocal &&
-        sawLocalDeclaration &&
-        !enteredExecutableSection
-      ) {
+      if (!isLocal && sawLocalDeclaration && !enteredExecutableSection) {
         chunks.push(Buffer.from([0x4f]));
         enteredExecutableSection = true;
       }
@@ -987,6 +1133,9 @@ export function encodeFragment(source: string): Buffer {
       }
     }
   };
+  let sawTopLevelDeclaration = false;
+  let closedTopLevelDeclarationSection = false;
+
   while (true) {
     space();
 
@@ -994,16 +1143,33 @@ export function encodeFragment(source: string): Buffer {
       break;
     }
 
-    // Preserve standalone empty statements.
     if (source[pos] === ';') {
       pos++;
       chunks.push(fixed(';'));
       continue;
     }
 
-    // Function definitions consume their own final End-Function; because the
-    // observed representation ends with End-Function ; 0x2d.
     const isFunction = /^Function\b/i.test(source.slice(pos));
+    const isTopLevelDeclaration = /^(?:Global|Component|Constant|Declare\s+Function)\b/i.test(source.slice(pos));
+
+    // Calibrated top-level declaration transition:
+    //
+    //   Global ... ;
+    //   Component ... ;
+    //   2D
+    //   [4F if executable code follows]
+    //
+    // A declaration-only program gets only the 2D here; encodeProgram()
+    // supplies the final program-directory 07.
+    if (
+      !isTopLevelDeclaration &&
+      sawTopLevelDeclaration &&
+      !closedTopLevelDeclarationSection
+    ) {
+      chunks.push(Buffer.from([0x2d]));
+      chunks.push(Buffer.from([0x4f]));
+      closedTopLevelDeclarationSection = true;
+    }
 
     statement();
 
@@ -1019,9 +1185,24 @@ export function encodeFragment(source: string): Buffer {
 
     pos++;
     chunks.push(fixed(';'));
+
+    if (isTopLevelDeclaration) {
+      sawTopLevelDeclaration = true;
+    }
   }
 
-  return Buffer.concat(chunks);
+  if (sawTopLevelDeclaration && !closedTopLevelDeclarationSection) {
+    chunks.push(Buffer.from([0x2d]));
+  }
+
+  return {
+    bytes: Buffer.concat(chunks),
+    references
+  };
+}
+
+export function encodeFragment(source: string): Buffer {
+  return encodeFragmentInternal(source).bytes;
 }
 
 
@@ -1079,27 +1260,40 @@ function parseFunctionMetadata(source: string): FunctionMetadata | undefined {
  * generated. Producing bytes is not a database write or a PeopleTools runtime
  * validation; provider saves remain disabled.
  */
-export function encodeProgram(source: string): Buffer {
+export function encodeProgramArtifacts(source: string): EncodedPeopleCode {
   const functionMetadata = parseFunctionMetadata(source);
-  const statements = encodeFragment(source);
+  const encoded = encodeFragmentInternal(source);
+  const statements = encoded.bytes;
+
+  let program: Buffer;
 
   if (!functionMetadata) {
-    return Buffer.concat([
+    program = Buffer.concat([
       encodeSimpleProgramHeader(statements.length + 1),
       statements,
       Buffer.from([PROGRAM_DIRECTORY_SEPARATOR])
     ]);
+  } else {
+    const metadata = encodeFunctionMetadata(functionMetadata);
+    const executableLength = statements.length + 1;
+
+    program = Buffer.concat([
+      encodeFunctionProgramHeader(
+        executableLength,
+        functionMetadata
+      ),
+      statements,
+      Buffer.from([PROGRAM_DIRECTORY_SEPARATOR]),
+      metadata
+    ]);
   }
 
-  const metadata = encodeFunctionMetadata(functionMetadata);
+  return {
+    program,
+    references: encoded.references
+  };
+}
 
-  return Buffer.concat([
-    // encodeFunctionProgramHeader(
-    //  statements.length + 1,
-    //  functionMetadata
-    //),
-    statements,
-    Buffer.from([PROGRAM_DIRECTORY_SEPARATOR]),
-    metadata
-  ]);
+export function encodeProgram(source: string): Buffer {
+  return encodeProgramArtifacts(source).program;
 }
