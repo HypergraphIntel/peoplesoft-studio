@@ -36,17 +36,44 @@ function textOperand(opcode: number, kind: TokenKind, value: string): Buffer {
 
 /**
  * Experimental statement bytes ONLY: no PSPCMPROG header, trailer or name table.
- * Grammar: ( ';' | 'Return' expression? ';' | variable '=' expression ';' | call ';' )*
+ * Grammar:
+ *   statement:
+ *     ';'
+ *     | 'Local' type variable ('=' expression)? ';'
+ *     | 'Return' expression? ';'
+ *     | variable '=' expression ';'
+ *     | call ';'
+ *
  * expression: primary (('+' | '-' | '*' | '/') primary)*
  * primary: value | '(' expression ')' | call
  * call: identifier '(' (expression (',' expression)*)? ')'
  * value: &variable | quoted string (doubled delimiters) | True | False | uint128.
- * Operators retain source order; no folding, type checking or AST is needed
- * for this infix token format. Unary signs and member/index access are unsupported.
- * Call names are encoded lexically; function existence, arity, scope and types
- * are not validated. This does not produce a database-writable program.
  */
 export function encodeFragment(source: string): Buffer {
+  const typeName = (): Buffer => {
+    const match = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
+    if (!match) return fail('expected a PeopleCode type name');
+    pos += match[0].length;
+    return textOperand(0x40, TokenKind.Keyword, match[0]);
+  };
+
+  const localDeclaration = () => {
+    chunks.push(fixed('Local'));
+
+    space();
+    chunks.push(typeName());
+
+    space();
+    chunks.push(variable());
+
+    space();
+    if (source[pos] === '=') {
+      pos++;
+      chunks.push(fixed('='));
+      expression();
+    }
+  };
+
   let pos = 0;
   let depth = 0;
   const chunks: Buffer[] = [];
@@ -166,7 +193,9 @@ export function encodeFragment(source: string): Buffer {
     space();
     if (pos === source.length) break;
     if (source[pos] !== ';') {
-      if (word('Return')) {
+      if (word('Local')) {
+        localDeclaration();
+      } else if (word('Return')) {
         chunks.push(fixed('Return'));
         space();
         if (source[pos] !== ';') expression();
