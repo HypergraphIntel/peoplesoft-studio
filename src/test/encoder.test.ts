@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { encodeFragment, UnsupportedPeopleCodeError } from '../peoplecode/encoder.js';
+import { encodeProgram } from '../peoplecode/encoder.js';
 import { decodeProgram } from '../peoplecode/decoder.js';
 import { NameTable } from '../peoplecode/progtext.js';
 import { ProgramImage, compareBytes } from '../peoplecode/programImage.js';
@@ -84,3 +85,17 @@ test('binary diagnostics report changed bytes and length differences', () => {
     equal: false, originalLength: 3, regeneratedLength: 2, differenceCount: 2, firstDifference: 1
   });
 });
+
+test('encodes Local boolean declaration with initializer', () => {
+  const actual = encodeFragment('Local boolean &b = True;');
+
+  const expected = Buffer.from(
+    '444062006F006F006C00650061006E000000' +
+    '01260062000000' +
+    '062F15',
+    'hex'
+  );
+
+  assert.deepEqual(actual, expected);
+});
+
