@@ -65,6 +65,27 @@ export class StatusBar implements vscode.Disposable {
       const { handle, key } = parseUri(editor.document.uri);
       const provider = this.workspace.getProviderByHandle(handle);
 
+      if (!this.workspace.selectedConnectionId) {
+        this.workspace.setSelectedConnection(provider.id);
+      }
+
+      const selectedId = this.workspace.selectedConnectionId;
+
+      if (selectedId) {
+          const selectedProvider = this.workspace.getProvider(selectedId);
+
+          if (selectedProvider) {
+              this.connection.text =
+                  `$(database) ${selectedProvider.displayName}`;
+
+              this.connection.tooltip =
+                  `PeopleSoft connection: ${selectedProvider.displayName}`;
+
+              this.connection.show();
+          }
+      }
+
+
       if (!provider) {
         this.connection.hide();
         this.readOnly.hide();
@@ -97,6 +118,7 @@ export class StatusBar implements vscode.Disposable {
       this._selectedConnectionId = id;
      // this._onDidChange.fire();
   }
+  
   
   dispose(): void {
     this.activeEditorListener.dispose();

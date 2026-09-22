@@ -23,6 +23,7 @@ export class Workspace implements vscode.Disposable {
   private readonly providers = new Map<string, DefinitionProvider>();
   private readonly _onDidChange = new vscode.EventEmitter<void>();
   readonly onDidChange = this._onDidChange.event;
+  private _selectedConnectionId: string | undefined;
 
   constructor(private readonly secrets: vscode.SecretStorage) {}
 
@@ -145,6 +146,15 @@ export class Workspace implements vscode.Disposable {
     for (const p of this.providers.values()) void p.dispose();
     this.providers.clear();
     this._onDidChange.dispose();
+  }
+
+  get selectedConnectionId(): string | undefined {
+    return this._selectedConnectionId;
+  }
+
+  setSelectedConnection(id: string): void {
+    this._selectedConnectionId = id;
+    this._onDidChange.fire();
   }
 }
 
