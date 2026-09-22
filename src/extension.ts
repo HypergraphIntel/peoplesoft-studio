@@ -88,6 +88,15 @@ export function activate(context: vscode.ExtensionContext): void {
     workspace.onDidChange(() => statusBar.update())
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+        'psft.status.selectConnection',
+        async () => {
+            await selectStatusConnection(workspace);
+        }
+    )
+  );
+
   const fileSystem = PeopleSoftFileSystem.register(workspace);
   context.subscriptions.push(fileSystem);
   context.subscriptions.push(RecordEditorProvider.register(workspace));
@@ -420,6 +429,52 @@ async function selectStatusConnection(workspace: Workspace): Promise<void> {
 
   // Connection selection happens here.
 }
+
+async function selectStatusConnection(workspace: Workspace): Promise<void> {
+    const connections = workspace.connections;
+
+    if (connections.length === 0) {
+        vscode.window.showInformationMessage(
+            'No PeopleSoft connections are configured.'
+        );
+        return;
+    }
+
+    const activeProviderIds = new Set(
+        workspace.activeProviders
+            .filter(provider => provider.isConnected)
+            .map(provider => provider.id)
+    );
+
+    const items = connections.map(connection => {
+        const providerId = connection.id;
+        const isConnected = activeProviderIds.has(providerId);
+
+        return {
+            label: connection.name,
+            description: isConnected
+                ? 'Connected'
+                : 'Not connected',
+            connection,
+        };
+    });
+
+    const selected = await vscode.window.showQuickPick(items, {
+        title: 'Select PeopleSoft Connection',
+        placeHolder: 'Choose the connection to use',
+    });
+
+    if (!selected) {
+        return;
+    }
+
+    if (!activeProviderIds.has(selected.connection.id)) {
+        await workspace.connect(selected.connection);
+    }
+
+    workspace.setSelectedConnection(selected.connection.id);
+}
+
 /** Surfaces provider failures as messages instead of unhandled rejections. */
 async function withError(action: string, fn: () => Promise<void>): Promise<void> {
   try {
