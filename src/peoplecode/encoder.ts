@@ -11,6 +11,81 @@ const MAX_UNSIGNED_INTEGER = (1n << BigInt(UNSIGNED_NUMBER_FORMAT.valueBytes * 8
 const MAX_INTEGER_DIGITS = MAX_UNSIGNED_INTEGER.toString().length;
 const MAX_EXPRESSION_DEPTH = 128;
 
+interface FunctionMetadata {
+  name: string;
+  parameterTypes: string[];
+  returnType?: string;
+}
+
+function functionTypeId(typeName: string): number {
+  switch (typeName.toLowerCase()) {
+    case 'string':
+      return 0x01;
+
+    case 'boolean':
+      return 0x05;
+
+    case 'integer':
+      return 0x11;
+
+    default:
+      throw new Error(
+        `Unsupported function metadata type: ${typeName}`
+      );
+  }
+}
+
+function returnTypeDescriptor(typeName?: string): number {
+  return typeName === undefined
+    ? 0x07
+    : functionTypeId(typeName);
+}
+
+function parameterTypeDescriptor(typeName: string): number {
+  return (0xc0000000 | functionTypeId(typeName)) >>> 0;
+}
+
+function encodeFunctionMetadata(metadata: FunctionMetadata): Buffer {
+  const name = Buffer.from(metadata.name + '\0', 'utf16le');
+
+  const data = Buffer.alloc(
+    4 + // reserved 1
+    4 + // reserved 2
+    4 + // parameter count
+    4 + // return descriptor
+    metadata.parameterTypes.length * 4 +
+    4   // terminator
+  );
+
+  let offset = 0;
+
+  data.writeUInt32LE(0, offset);
+  offset += 4;
+
+  data.writeUInt32LE(0, offset);
+  offset += 4;
+
+  data.writeUInt32LE(metadata.parameterTypes.length, offset);
+  offset += 4;
+
+  data.writeUInt32LE(
+    returnTypeDescriptor(metadata.returnType),
+    offset
+  );
+  offset += 4;
+
+  for (const typeName of metadata.parameterTypes) {
+    data.writeUInt32LE(
+      parameterTypeDescriptor(typeName),
+      offset
+    );
+    offset += 4;
+  }
+
+  data.writeUInt32LE(0x07, offset);
+
+  return Buffer.concat([name, data]);
+}
 export class UnsupportedPeopleCodeError extends Error {
   constructor(readonly offset: number, detail: string) {
     super(`Cannot encode PeopleCode at source offset ${offset}: ${detail}`);
@@ -91,6 +166,7 @@ export function encodeFragment(source: string): Buffer {
   let pos = 0;
   let depth = 0;
   const chunks: Buffer[] = [];
+  
   const reservedCallNames = new Set([...OPCODES.values()]
     .filter(spec => spec.kind === TokenKind.Keyword && spec.text)
     .map(spec => spec.text!.toLowerCase()));
@@ -251,8 +327,9 @@ export function encodeFragment(source: string): Buffer {
   };
   
   function statement(): void {
-
-    if (word('Local')) {
+    if (word('Function')) {
+      functionStatement();
+    } else if (word('Local')) {
       localDeclaration();
     } else if (word('Return')) {
       chunks.push(fixed('Return'));
@@ -287,12 +364,158 @@ export function encodeFragment(source: string): Buffer {
     } else if (/[A-Za-z_]/.test(source[pos] ?? '')) {
       call();
     } else {
-      fail(
-        'only empty statements, Local declarations, Return, If, ' +
-        'variable assignments, and simple calls are supported'
-      );
+      fail('unsupported PeopleCode statement');
+    }
+  };
+
+  function functionStatement(): void {
+    chunks.push(fixed('Function'));
+
+    space();
+
+    const nameMatch =
+      /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
+
+    if (!nameMatch) {
+      return fail('expected Function name');
+    }
+
+    const name = nameMatch[0];
+    pos += name.length;
+
+    chunks.push(
+      textOperand(
+        INLINE_IDENTIFIER_OPCODE,
+        TokenKind.Name,
+        name
+      )
+    );
+
+    space();
+
+    // Parameters
+    parenthesized(() => {
+      space();
+
+      if (source[pos] === ')') {
+        return;
+      }
+
+      while (true) {
+        chunks.push(variable());
+
+        space();
+
+        if (!word('As')) {
+          fail('expected As in Function parameter');
+        }
+
+        chunks.push(fixed('As'));
+
+        space();
+        chunks.push(typeName());
+
+        space();
+
+        if (source[pos] !== ',') {
+          break;
+        }
+
+        pos++;
+        chunks.push(fixed(','));
+        space();
+      }
+    }, true);
+
+    space();
+
+    // Optional return type.
+    if (word('Returns')) {
+      chunks.push(fixed('Returns'));
+
+      space();
+      chunks.push(typeName());
+
+      space();
+    }
+
+    // Confirmed Function header -> body boundary.
+    chunks.push(Buffer.from([0x2d]));
+
+    let sawLocalDeclaration = false;
+    let enteredExecutableSection = false;
+
+    while (true) {
+      space();
+
+      if (word('End-Function')) {
+        chunks.push(fixed('End-Function'));
+
+        space();
+
+        if (source[pos] !== ';') {
+          fail('expected ; after End-Function');
+        }
+
+        pos++;
+        chunks.push(fixed(';'));
+
+        // Confirmed Function-definition boundary.
+        chunks.push(Buffer.from([0x2d]));
+
+        return;
+      }
+
+      if (pos === source.length) {
+        fail('expected End-Function');
+      }
+
+      /*
+      * Calibrated Function layout:
+      *
+      * Leading Local declarations are emitted consecutively. If executable
+      * statements follow them, PeopleTools emits a single 0x4f between the
+      * declaration section and the first executable statement.
+      *
+      *   Local ... ;
+      *   Local ... ;
+      *   4F
+      *   <first executable statement>
+      *
+      * No 0x4f is emitted when End-Function immediately follows the Local
+      * declarations.
+      */
+      const isLocal =
+        /^Local\b/i.test(source.slice(pos));
+
+      if (
+        !isLocal &&
+        sawLocalDeclaration &&
+        !enteredExecutableSection
+      ) {
+        chunks.push(Buffer.from([0x4f]));
+        enteredExecutableSection = true;
+      }
+
+      statement();
+
+      if (isLocal) {
+        sawLocalDeclaration = true;
+      } else {
+        enteredExecutableSection = true;
+      }
+
+      space();
+
+      if (source[pos] !== ';') {
+        fail('expected ; in Function body');
+      }
+
+      pos++;
+      chunks.push(fixed(';'));
     }
   }
+
   function tryStatement(): void {
     chunks.push(fixed('try'));
 
@@ -767,10 +990,25 @@ export function encodeFragment(source: string): Buffer {
   while (true) {
     space();
 
-    if (pos === source.length) break;
+    if (pos === source.length) {
+      break;
+    }
 
-    if (source[pos] !== ';') {
-      statement();
+    // Preserve standalone empty statements.
+    if (source[pos] === ';') {
+      pos++;
+      chunks.push(fixed(';'));
+      continue;
+    }
+
+    // Function definitions consume their own final End-Function; because the
+    // observed representation ends with End-Function ; 0x2d.
+    const isFunction = /^Function\b/i.test(source.slice(pos));
+
+    statement();
+
+    if (isFunction) {
+      continue;
     }
 
     space();
@@ -786,6 +1024,55 @@ export function encodeFragment(source: string): Buffer {
   return Buffer.concat(chunks);
 }
 
+
+function parseFunctionMetadata(source: string): FunctionMetadata | undefined {
+  const functionMatch =
+    /^\s*Function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/i.exec(source);
+
+  if (!functionMatch) {
+    return undefined;
+  }
+
+  const name = functionMatch[1];
+  let pos = functionMatch[0].length;
+
+  const closeParen = source.indexOf(')', pos);
+  if (closeParen < 0) {
+    throw new Error('Unterminated Function parameter list');
+  }
+
+  const parameterSource = source.slice(pos, closeParen).trim();
+  const parameterTypes: string[] = [];
+
+  if (parameterSource.length > 0) {
+    for (const parameter of parameterSource.split(',')) {
+      const match =
+        /^\s*&[A-Za-z_][A-Za-z0-9_]*\s+As\s+([A-Za-z_][A-Za-z0-9_]*)\s*$/i.exec(
+          parameter
+        );
+
+      if (!match) {
+        throw new Error(`Unsupported Function parameter: ${parameter.trim()}`);
+      }
+
+      parameterTypes.push(match[1]);
+    }
+  }
+
+  pos = closeParen + 1;
+
+  const afterParameters = source.slice(pos);
+
+  const returnMatch =
+    /^\s*Returns\s+([A-Za-z_][A-Za-z0-9_]*)/i.exec(afterParameters);
+
+  return {
+    name,
+    parameterTypes,
+    returnType: returnMatch?.[1]
+  };
+}
+
 /**
  * Complete PSPCMPROG bytes for the encodeFragment subset, using the observed
  * 0xa0/0x85 format and empty metadata sections. No PSPCMNAME references are
@@ -793,10 +1080,26 @@ export function encodeFragment(source: string): Buffer {
  * validation; provider saves remain disabled.
  */
 export function encodeProgram(source: string): Buffer {
+  const functionMetadata = parseFunctionMetadata(source);
   const statements = encodeFragment(source);
+
+  if (!functionMetadata) {
+    return Buffer.concat([
+      encodeSimpleProgramHeader(statements.length + 1),
+      statements,
+      Buffer.from([PROGRAM_DIRECTORY_SEPARATOR])
+    ]);
+  }
+
+  const metadata = encodeFunctionMetadata(functionMetadata);
+
   return Buffer.concat([
-    encodeSimpleProgramHeader(statements.length + 1),
+    // encodeFunctionProgramHeader(
+    //  statements.length + 1,
+    //  functionMetadata
+    //),
     statements,
-    Buffer.from([PROGRAM_DIRECTORY_SEPARATOR])
+    Buffer.from([PROGRAM_DIRECTORY_SEPARATOR]),
+    metadata
   ]);
 }
