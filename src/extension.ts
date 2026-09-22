@@ -9,6 +9,7 @@ import { OpenDefinitionPanel } from './editors/openDefinitionPanel.js';
 import { DefinitionKey, DefinitionType, displayName, typeLabel } from './model/definitions.js';
 import { toUri } from './util/uri.js';
 import { registerPeopleCodeCompletion } from './peoplecode/completion.js';
+import { registerPeopleCodeHover } from './peoplecode/hover.js';
 
 export function activate(context: vscode.ExtensionContext): void {
   const workspace = new Workspace(context.secrets);
@@ -19,6 +20,7 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(RecordEditorProvider.register(workspace));
 
   registerPeopleCodeCompletion(context);
+  registerPeopleCodeHover(context);
 
   const connections = new ConnectionsView(workspace);
   const browser = new BrowserView(workspace);
