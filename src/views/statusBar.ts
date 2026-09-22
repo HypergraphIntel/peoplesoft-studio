@@ -8,11 +8,12 @@ export class StatusBar implements vscode.Disposable {
   private readonly readOnly: vscode.StatusBarItem;
   private readonly activeEditorListener: vscode.Disposable;
   private readonly workspaceListener: vscode.Disposable;
+  private _selectedConnectionId?: string;
 
   
   constructor(
     private readonly workspace: Workspace,
-    private readonly selectConnection: () => Promise<void>,
+    // private readonly selectConnection: () => Promise<void>,
   ) {
     
 
@@ -88,7 +89,14 @@ export class StatusBar implements vscode.Disposable {
     }
   }
 
-  
+  get selectedConnectionId(): string | undefined {
+    return this._selectedConnectionId;
+  }
+
+  setSelectedConnection(id: string): void {
+      this._selectedConnectionId = id;
+     // this._onDidChange.fire();
+  }
   
   dispose(): void {
     this.activeEditorListener.dispose();
