@@ -2,6 +2,7 @@
 
 - When opening an object from a project and the object no longer exists render a better display than the error message its currently issuing, ask to remove from project (Yes / No).
 
+- Recent Projects (remember between reboots)
 
 - DB Connection Types 
     - Reference RichardWood.peoplesoft-datamover
