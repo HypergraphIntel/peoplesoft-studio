@@ -436,6 +436,86 @@ test('encodeProgram exactly reproduces PeopleTools nested If/Else fixture', () =
   assert.deepEqual(actual, expected);
 });
 
+test('encodeProgram exactly reproduces PeopleTools try catch throw fixture', () => {
+  const expected = Buffer.from(
+    'A00000000007010000000000000000000000000000000000000000000000000000850000006501260069000000065000000100000000000000000000000000000015680A43007200650061007400650045007800630065007000740069006F006E0000000B5000000000000000000000000000000000000003500000000000000000000000000000000000000316540065007300740020003A00310000000316540065007300740000001415660A45007800630065007000740069006F006E000000012600650000002D0A570069006E004D0065007300730061006700650000000B5000000000000000000000000000000000000003500000000000000000000000000000000000000301260065000000050A54006F0053007400720069006E00670000000B141415671507',
+    'hex'
+  );
+
+  const actual = encodeProgram(
+    'try\n' +
+    '   &i = 1;\n' +
+    '   throw CreateException(0, 0, "Test :1", "Test");\n' +
+    'catch Exception &e\n' +
+    '   WinMessage(0, 0, &e.ToString());\n' +
+    'end-try;'
+  );
+
+  assert.deepEqual(actual, expected);
+});
+
+test('encodeFragment exactly reproduces Function Test executable bytes', () => {
+  const expected = Buffer.from(
+    '320A540065007300740000000B142D37152D',
+    'hex'
+  );
+
+  const actual = encodeFragment(
+    'Function Test()\n' +
+    'End-Function;'
+  );
+
+  assert.deepEqual(actual, expected);
+});
+
+test('encodeFragment exactly reproduces AddNumbers Function executable bytes', () => {
+  const source = `Function AddNumbers(&a As integer, &b As integer) Returns integer
+   Local integer &result;
+   
+   &result = &a + &b;
+   Return &result;
+End-Function;`;
+
+  const expected = Buffer.from(
+    '320A4100640064004E0075006D0062006500720073000000' +
+    '0B' +
+    '01260061000000' +
+    '35' +
+    '4069006E00740065006700650072000000' +
+    '03' +
+    '01260062000000' +
+    '35' +
+    '4069006E00740065006700650072000000' +
+    '14' +
+    '39' +
+    '4069006E00740065006700650072000000' +
+    '2D' +
+    '44' +
+    '4069006E00740065006700650072000000' +
+    '01260072006500730075006C0074000000' +
+    '15' +
+    '4F' +
+    '01260072006500730075006C0074000000' +
+    '06' +
+    '01260061000000' +
+    '13' +
+    '01260062000000' +
+    '15' +
+    '38' +
+    '01260072006500730075006C0074000000' +
+    '15' +
+    '37' +
+    '15' +
+    '2D',
+    'hex'
+  );
+
+  assert.deepStrictEqual(
+    encodeFragment(source),
+    expected
+  );
+});
+
 test.skip('TODO: 0x4F marker : encodeProgram exactly reproduces PeopleTools variable assignment fixture', () => {
   const expected = Buffer.from(
     'A000000000B400000000000000000000000000000000000000000000000000000085000000444069006E0074006500670065007200000001260061000000065000000A00000000000000000000000000000015444069006E0074006500670065007200000001260062000000065000001400000000000000000000000000000015444069006E0074006500670065007200000001260063000000154F0126006300000006012600610000001301260062000000150126006100000006012600630000000F500000020000000000000000000000000000001507',

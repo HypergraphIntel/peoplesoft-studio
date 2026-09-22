@@ -94,7 +94,3 @@ test('header writer checks numeric limits before writing', () => {
     assert.equal(encodeSimpleProgramHeader(size).readUInt32LE(5), size);
   }
 });
-
-test('complete generation retains the strict source subset', () => {
-  assert.throws(() => encodeProgram('Function F(); End-Function;'), /keyword Function/);
-});
