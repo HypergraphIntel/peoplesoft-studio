@@ -45,9 +45,12 @@ function textOperand(opcode: number, kind: TokenKind, value: string): Buffer {
  *     | call ';'
  *
  * expression: primary (('+' | '-' | '*' | '/') primary)*
- * primary: value | '(' expression ')' | call
+ * primary: '-' primary | value | '(' expression ')' | call
  * call: identifier '(' (expression (',' expression)*)? ')'
  * value: &variable | quoted string (doubled delimiters) | True | False | uint128.
+ * Operators retain source order; no folding, type checking or AST is needed
+ * for this token format. Unary minus is supported; unary plus and member/index
+ * access are unsupported.  
  */
 export function encodeFragment(source: string): Buffer {
   const typeName = (): Buffer => {
@@ -61,6 +64,10 @@ export function encodeFragment(source: string): Buffer {
     chunks.push(fixed('Local'));
 
     space();
+
+    const type =
+      /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+
     chunks.push(typeName());
 
     space();
@@ -70,7 +77,14 @@ export function encodeFragment(source: string): Buffer {
     if (source[pos] === '=') {
       pos++;
       chunks.push(fixed('='));
-      expression();
+
+      space();
+
+      if (/^boolean$/i.test(type ?? '') && source[pos] === '(') {
+        parenthesized(booleanExpression, false);
+      } else {
+        expression();
+      }
     }
   };
 
@@ -138,16 +152,88 @@ export function encodeFragment(source: string): Buffer {
   };
   const expression = () => {
     primary();
+
     while (true) {
       space();
-      const operator = source[pos];
-      if (operator !== '+' && operator !== '-' && operator !== '*' && operator !== '/') return;
-      pos++;
-      // Both 0x0f and 0x59 render '*'. The corpus arithmetic fixture
-      // (&lifetime = 43200 * 360) confirms 0x0f in this context.
+
+      const operator = /^[+\-*/]/.exec(source.slice(pos))?.[0];
+      if (!operator) break;
+
+      pos += operator.length;
       chunks.push(fixed(operator, operator === '*' ? 0x0f : undefined));
       primary();
     }
+  };
+  const booleanUnary = () => {
+    space();
+
+    if (/^Not\b/i.test(source.slice(pos))) {
+      pos += 3;
+      chunks.push(fixed('Not'));
+      booleanUnary();
+      return;
+    }
+
+    comparisonExpression();
+  };
+
+  const andExpression = () => {
+    booleanUnary();
+    space();
+
+    if (!/^And\b/i.test(source.slice(pos))) {
+      return;
+    }
+
+    chunks.push(Buffer.from([0x41]));
+
+    while (/^And\b/i.test(source.slice(pos))) {
+      pos += 3;
+      chunks.push(fixed('And'));
+
+      booleanUnary();
+      space();
+    }
+
+    chunks.push(Buffer.from([0x42]));
+  };
+
+  const booleanExpression = () => {
+    andExpression();
+    space();
+
+    if (!/^Or\b/i.test(source.slice(pos))) {
+      return;
+    }
+
+    chunks.push(Buffer.from([0x41]));
+
+    while (/^Or\b/i.test(source.slice(pos))) {
+      pos += 2;
+      chunks.push(fixed('Or'));
+
+      andExpression();
+      space();
+    }
+
+    chunks.push(Buffer.from([0x42]));
+  };
+
+  const comparisonExpression = () => {
+    expression();
+    space();
+
+    const operator =
+      /^(<>|<=|>=|=|<|>)/.exec(source.slice(pos))?.[0];
+
+    if (!operator) {
+      return;
+    }
+
+    pos += operator.length;
+    chunks.push(fixed(operator));
+
+    expression();
   };
   const parenthesized = (body: () => void, allowEmpty: boolean) => {
     if (source[pos] !== '(') fail('expected (');
@@ -163,6 +249,211 @@ export function encodeFragment(source: string): Buffer {
     chunks.push(fixed(')'));
     depth--;
   };
+  
+  function statement(): void {
+
+    if (word('Local')) {
+      localDeclaration();
+    } else if (word('Return')) {
+      chunks.push(fixed('Return'));
+      space();
+      if (source[pos] !== ';') expression();
+    } else if (word('If')) {
+      ifStatement();
+    } else if (word('Break')) {
+      chunks.push(fixed('Break'));
+
+    } else if (word('Evaluate')) {
+      evaluateStatement();
+
+    } else if (source[pos] === '&') {
+      chunks.push(variable());
+      space();
+      if (source[pos] !== '=') fail('expected assignment =');
+      pos++;
+      chunks.push(fixed('='));
+      expression();
+    } else if (/[A-Za-z_]/.test(source[pos] ?? '')) {
+      call();
+    } else {
+      fail(
+        'only empty statements, Local declarations, Return, If, ' +
+        'variable assignments, and simple calls are supported'
+      );
+    }
+  }
+
+  function ifStatement(): void {
+    chunks.push(fixed('If'));
+
+    space();
+    booleanExpression();
+
+    space();
+    if (!word('Then')) {
+      fail('expected Then');
+    }
+    chunks.push(fixed('Then'));
+
+    // Then body
+    while (true) {
+      space();
+
+      if (word('Else')) {
+        chunks.push(fixed('Else'));
+        break;
+      }
+
+      if (word('End-If')) {
+        chunks.push(fixed('End-If'));
+        return;
+      }
+
+      if (pos === source.length) {
+        fail('expected Else or End-If');
+      }
+
+      statement();
+
+      space();
+      if (source[pos] !== ';') {
+        fail('expected ; in If body');
+      }
+
+      pos++;
+      chunks.push(fixed(';'));
+    }
+
+    // Else body
+    while (true) {
+      space();
+
+      if (word('End-If')) {
+        chunks.push(fixed('End-If'));
+        return;
+      }
+
+      if (pos === source.length) {
+        fail('expected End-If');
+      }
+
+      statement();
+
+      space();
+      if (source[pos] !== ';') {
+        fail('expected ; in Else body');
+      }
+
+      pos++;
+      chunks.push(fixed(';'));
+    }
+  }
+  function evaluateStatement(): void {
+    chunks.push(fixed('Evaluate'));
+
+    space();
+    expression();
+
+    let sawWhen = false;
+    let sawWhenOther = false;
+
+    while (true) {
+      space();
+
+      if (word('When-Other')) {
+        if (sawWhenOther) {
+          fail('duplicate When-Other');
+        }
+
+        sawWhenOther = true;
+        chunks.push(fixed('When-Other'));
+
+        // Parse When-Other body until End-Evaluate.
+        while (true) {
+          space();
+
+          if (word('End-Evaluate')) {
+            chunks.push(fixed('End-Evaluate'));
+            return;
+          }
+
+          if (pos === source.length) {
+            fail('expected End-Evaluate');
+          }
+
+          statement();
+
+          space();
+          if (source[pos] !== ';') {
+            fail('expected ; in When-Other body');
+          }
+
+          pos++;
+          chunks.push(fixed(';'));
+        }
+      }
+
+      if (word('When')) {
+        sawWhen = true;
+        chunks.push(fixed('When'));
+
+        space();
+
+        // Our calibrated fixture permits a parenthesized comparison here.
+        if (source[pos] === '(') {
+          parenthesized(booleanExpression, false);
+        } else {
+          expression();
+        }
+
+        // Confirmed by every When in the fixture.
+        chunks.push(Buffer.from([0x2d]));
+
+        // Parse this When body until the next clause/end.
+        while (true) {
+          space();
+
+          if (
+            /^When(?:-Other)?\b/i.test(source.slice(pos)) ||
+            /^End-Evaluate\b/i.test(source.slice(pos))
+          ) {
+            break;
+          }
+
+          if (pos === source.length) {
+            fail('expected End-Evaluate');
+          }
+
+          statement();
+
+          space();
+          if (source[pos] !== ';') {
+            fail('expected ; in When body');
+          }
+
+          pos++;
+          chunks.push(fixed(';'));
+        }
+
+        continue;
+      }
+
+      if (word('End-Evaluate')) {
+        if (!sawWhen) {
+          fail('Evaluate requires at least one When');
+        }
+
+        chunks.push(fixed('End-Evaluate'));
+        return;
+      }
+
+      if (pos === source.length) {
+        fail('expected End-Evaluate');
+      }
+
+      fail('expected When, When-Other, or End-Evaluate');
+    }
+  }
   const call = () => {
     const name = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
     if (!name) return fail('expected a simple call name');
@@ -184,37 +475,43 @@ export function encodeFragment(source: string): Buffer {
   };
   const primary = () => {
     space();
-    if (source[pos] === '(') return parenthesized(expression, false);
+
+    if (source[pos] === '-') {
+      pos++;
+      chunks.push(fixed('-'));
+      primary();
+      return;
+    }
+
+    if (source[pos] === '(') {
+      return parenthesized(expression, false);
+    }
+
     const identifier = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+
     if (identifier && !/^(true|false)$/i.test(identifier)) return call();
+
     chunks.push(value());
   };
   while (true) {
     space();
+
     if (pos === source.length) break;
+
     if (source[pos] !== ';') {
-      if (word('Local')) {
-        localDeclaration();
-      } else if (word('Return')) {
-        chunks.push(fixed('Return'));
-        space();
-        if (source[pos] !== ';') expression();
-      } else if (source[pos] === '&') {
-        chunks.push(variable());
-        space();
-        if (source[pos] !== '=') fail('expected assignment =');
-        pos++;
-        chunks.push(fixed('='));
-        expression();
-      } else if (/[A-Za-z_]/.test(source[pos] ?? '')) {
-        call();
-      } else fail('only empty statements, Return, variable assignments, and simple calls are supported');
+      statement();
     }
+
     space();
-    if (source[pos] !== ';') fail('expected ; or a supported arithmetic operator');
+
+    if (source[pos] !== ';') {
+      fail('expected ;');
+    }
+
     pos++;
     chunks.push(fixed(';'));
   }
+
   return Buffer.concat(chunks);
 }
 

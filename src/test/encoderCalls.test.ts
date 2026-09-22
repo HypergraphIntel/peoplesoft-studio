@@ -61,7 +61,7 @@ for (const source of [
   'Return F(1; 2);', 'Return F;', 'F;', 'Foo + 1;',
   'F() + 1;', 'F()(1);', 'F().Value;', 'Return &obj.F();', 'Return %This.F();',
   'Return &arr[1];', 'Return Foo(Record.FIELD);', 'Return Pkg:Foo();',
-  'Return F(-1);', 'Return F(1.5);', 'Return (1 = 2);', 'Return (True And False);',
+  'Return F(1.5);', 'Return (1 = 2);', 'Return (True And False);',
   'If(True);', 'Return Not(1);', 'Return Create();', 'Return Local();',
   'True();', 'Return True();', 'Return Foo(1) garbage;', 'F(); Return (1;'
 ]) {
