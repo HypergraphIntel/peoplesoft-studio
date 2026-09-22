@@ -8,13 +8,10 @@ export class StatusBar implements vscode.Disposable {
   private readonly readOnly: vscode.StatusBarItem;
   private readonly activeEditorListener: vscode.Disposable;
   private readonly workspaceListener: vscode.Disposable;
-  
+
   constructor(
     private readonly workspace: Workspace,
-    // private readonly selectConnection: () => Promise<void>,
   ) {
-    
-
     this.connection = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Left,
       100
@@ -37,10 +34,9 @@ export class StatusBar implements vscode.Disposable {
       workspace.onDidChange(
         () => this.update(),
         this
-    );
+      );
 
     this.update();
-
   }
 
   public update(): void {
@@ -61,50 +57,35 @@ export class StatusBar implements vscode.Disposable {
         this.readOnly.hide();
         return;
       }
-      if (!this.workspace.selectedConnectionId) {
-        this.workspace.setSelectedConnection(provider.id);
-      }
-      
+
+      // Default the selected connection to the provider that owns the
+      // active editor. Once explicitly selected, it remains independent
+      // of the active editor.
       if (!this.workspace.selectedConnectionId) {
         this.workspace.setSelectedConnection(provider.id);
       }
 
+      // The connection status item represents the selected/target
+      // connection, not necessarily the provider that owns this editor.
       const selectedId = this.workspace.selectedConnectionId;
+      const selectedProvider = selectedId
+        ? this.workspace.getProvider(selectedId)
+        : undefined;
 
-      if (selectedId) {
+      if (selectedProvider) {
+        this.connection.text =
+          `$(database) ${selectedProvider.displayName}`;
 
-        const selectedId = this.workspace.selectedConnectionId;
+        this.connection.tooltip =
+          `PeopleSoft connection: ${selectedProvider.displayName}`;
 
-        if (selectedId) {
-          const selectedProvider = this.workspace.getProvider(selectedId);
-
-          if (selectedProvider) {
-            this.connection.text =
-              `$(database) ${selectedProvider.displayName}`;
-
-            this.connection.tooltip =
-              `PeopleSoft connection: ${selectedProvider.displayName}`;
-
-            this.connection.show();
-          }
-        }
-
-      }
-
-      if (!provider) {
+        this.connection.show();
+      } else {
         this.connection.hide();
-        this.readOnly.hide();
-        return;
       }
 
-      if (!this.workspace.selectedConnectionId) {
-        this.workspace.setSelectedConnection(provider.id);
-      }
-
-      this.connection.text = `$(database) ${provider.displayName}`;
-      this.connection.tooltip = `PeopleSoft connection: ${provider.displayName}`;
-      this.connection.show();
-
+      // Read-only state is based on the active editor's provider,
+      // independently of the selected/target connection.
       if (isPeopleCode(key.type) && provider.id.startsWith('oracle:')) {
         this.readOnly.text = '$(lock-small) Read-Only';
         this.readOnly.tooltip =
@@ -118,7 +99,7 @@ export class StatusBar implements vscode.Disposable {
       this.readOnly.hide();
     }
   }
-  
+
   dispose(): void {
     this.activeEditorListener.dispose();
     this.workspaceListener.dispose();

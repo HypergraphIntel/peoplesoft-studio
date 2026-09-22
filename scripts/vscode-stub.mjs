@@ -199,14 +199,27 @@ export function createStub() {
       showWarningMessage: async (m) => { vscode._messages.push(['warn', m]); },
       showInformationMessage: async (m) => { vscode._messages.push(['info', m]); },
       showInputBox: async () => undefined,
-      showQuickPick: async () => undefined,
+      showQuickPick: async (items, options) => {
+        vscode._quickPicks.push({ items, options });
+
+        if (vscode._quickPickResult !== undefined) {
+          if (typeof vscode._quickPickResult === 'number') {
+            return items[vscode._quickPickResult];
+          }
+
+          return vscode._quickPickResult;
+        }
+
+        return undefined;
+      },
       showOpenDialog: async () => undefined,
       withProgress: async (_opts, task) => task({ report() {} }, { isCancellationRequested: false }),
       showTextDocument: async (doc) => ({ document: doc })
     },
     _trees: new Map(),
     _messages: [],
-
+    _quickPicks: [],
+    _quickPickResult: undefined,
     workspace: {
       getConfiguration(section) {
         return {
