@@ -133,6 +133,11 @@
         "category": "PeopleSoft"
       },
       {
+        "command": "psft.status.selectConnection",
+        "title": "Select Connection",
+        "category": "PeopleSoft"
+      },
+      {
         "command": "psft.openProjectFile",
         "title": "Open Project Export File",
         "category": "PeopleSoft",

@@ -149,7 +149,9 @@ export function activate(context: vscode.ExtensionContext): void {
 
     vscode.commands.registerCommand(
       'psft.status.selectConnection',
-      () => selectStatusConnection(workspace, statusBar)
+      async () => {
+          await selectStatusConnection(workspace);
+      }
     ),
 
     vscode.commands.registerCommand('psft.addConnection', () => addConnection()),
