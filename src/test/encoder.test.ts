@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { encodeFragment, UnsupportedPeopleCodeError } from '../peoplecode/encoder.js';
-import { encodeProgram } from '../peoplecode/encoder.js';
+//import { encodeProgram } from '../peoplecode/encoder.js';
 import { decodeProgram } from '../peoplecode/decoder.js';
 import { NameTable } from '../peoplecode/progtext.js';
 import { ProgramImage, compareBytes } from '../peoplecode/programImage.js';
