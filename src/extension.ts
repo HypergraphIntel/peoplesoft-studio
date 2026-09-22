@@ -147,6 +147,10 @@ export function activate(context: vscode.ExtensionContext): void {
         'Project compare is not implemented yet. See docs/ROADMAP.md.');
     }),
 
+    vscode.commands.registerCommand(
+      'psft.status.selectConnection',
+      () => selectStatusConnection(workspace, statusBar)
+    ),
 
     vscode.commands.registerCommand('psft.addConnection', () => addConnection()),
 
@@ -374,6 +378,46 @@ async function saveConnection(config: ConnectionConfig): Promise<void> {
   await settings.update('connections', [...all, config], vscode.ConfigurationTarget.Global);
 }
 
+async function selectStatusConnection(workspace: Workspace): Promise<void> {
+  const connections = workspace.connections;
+
+  if (connections.length === 0) {
+    vscode.window.showInformationMessage(
+      'No PeopleSoft connections are configured.'
+    );
+    return;
+  }
+
+  const connected = new Set(
+    workspace.activeProviders
+      .filter((p) => p.isConnected)
+      .map((p) => p.id)
+  );
+
+  const picked = await vscode.window.showQuickPick(
+    connections.map((config) => {
+      const id = providerId(config);
+
+      return {
+        label: config.name,
+        description: connected.has(id) ? 'Connected' : 'Not connected',
+        detail: config.kind === 'oracle'
+          ? config.connectString
+          : config.path,
+        config,
+      };
+    }),
+    {
+      title: 'Select PeopleSoft Connection',
+      placeHolder: 'Choose a connection',
+      ignoreFocusOut: true,
+    }
+  );
+
+  if (!picked) return;
+
+  // Connection selection happens here.
+}
 /** Surfaces provider failures as messages instead of unhandled rejections. */
 async function withError(action: string, fn: () => Promise<void>): Promise<void> {
   try {
