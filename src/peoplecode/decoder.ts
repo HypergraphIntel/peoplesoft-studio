@@ -1,4 +1,6 @@
 import { NameTable } from './progtext.js';
+import { PROGRAM_HEADER_LENGTH } from './programLayout.js';
+import { NUMBER_LITERAL_FORMATS } from './numberFormats.js';
 
 /**
  * Decoder for the tokenized form PeopleCode is stored in.
@@ -458,6 +460,9 @@ export const OPCODES = new Map<number, OpcodeSpec>([
 // Application-Class program apart from an ordinary one *before* deciding
 // how to read these bytes, which is not yet established.
 
+/** Inline call/member identifier introducer; also overloaded as a newline. */
+export const INLINE_IDENTIFIER_OPCODE = 0x0a;
+
 /** Format for the operand-bearing opcodes handled outside {@link OPCODES} below. */
 // Identifiers/references only ever pull a space in front of themselves --
 // never after -- so that `Name(`, `Name.Field` and `Name:Path` (function
@@ -471,7 +476,7 @@ const OPERAND_FORMAT = new Map<number, number>([
   [0x40, F.SPACE_BEFORE],  // Keyword (type)
   [0x6d, NEWLINE_BOTH],    // signature annotation comment
   [0x07, F.SPACE_BEFORE],  // declaration name (falls through OPCODES entry above when empty)
-  [0x0a, F.SPACE_BEFORE],  // identifier-introducer overload of 0x0a
+  [INLINE_IDENTIFIER_OPCODE, F.SPACE_BEFORE],  // identifier-introducer overload of 0x0a
   [0x24, NEWLINE_BOTH],    // length-prefixed comment
   [0x4e, NEWLINE_BOTH],    // length-prefixed comment (second introducer, same shape)
   [0x55, NEWLINE_BOTH],    // length-prefixed comment (third introducer, same shape -- <* *> style)
@@ -507,7 +512,7 @@ const OPERAND_FORMAT = new Map<number, number>([
  * proximity alone, which is what a real false positive (RowInit's
  * `0x21 0x00 0x00`, not one of these two opcodes) exposed as unsafe.
  */
-const TEXT_INTRODUCERS = new Map<number, TokenKind.Name | TokenKind.StringLiteral | TokenKind.Keyword | TokenKind.Comment>([
+export const TEXT_INTRODUCERS = new Map<number, TokenKind.Name | TokenKind.StringLiteral | TokenKind.Keyword | TokenKind.Comment>([
   [0x12, TokenKind.Name],
   [0x16, TokenKind.StringLiteral],
   // Confirmed by scanning 204 programs whose plain-text source is known from
@@ -787,17 +792,19 @@ function tryResolveName(names: NameTable, nameNum: number): string | undefined {
  * (every PeopleCode program in two project exports, paired with its
  * PSPCMPROG bytes; see scripts/corpus-header.mjs). Positions 0 and 33 are
  * always 0xa0 and 0x85, and the positions in ZERO_POSITIONS below are always
- * zero. The remaining positions -- 5, 6, 7, 13, 14, 21 and 29 -- vary per
- * program and are left alone: 5-7 and 13-14 look like little-endian counts
- * or lengths, 21 and 29 like small counts, but nothing here depends on
- * knowing which. PeopleCodeParser.java's `container.pos = 37` independently
+ * zero. Variable words at 5, 13, 21 and 29 are now understood as statement
+ * bytes, name-directory bytes, dispatch-slot count and directory-record
+ * count; see programLayout.ts and docs/PEOPLECODE_HEADER.md. This legacy
+ * recognizer still accepts incomplete synthetic decoder fixtures; the new
+ * layout reader validates actual section bounds separately.
+ * PeopleCodeParser.java's `container.pos = 37` independently
  * confirms 37 as the header length.
  *
  * An earlier revision required positions 6-32 to be zero, which was overfit
  * to three unusually small programs; it rejected the header on 200 of these
  * 204 and reported all 37 bytes as unmapped noise on each.
  */
-const HEADER_LENGTH = 37;
+const HEADER_LENGTH = PROGRAM_HEADER_LENGTH;
 
 // Positions 7, 22 and 30 were dropped from this list (pass forty-two): a
 // database-wide sample (60k programs) found each one zero in the
@@ -808,8 +815,8 @@ const HEADER_LENGTH = 37;
 // (not just one construct) into unrelated-looking unmapped noise --
 // confirmed on G3UTILITIES.UtilityMethods.OnExecute (position 22): fixing
 // this alone took it from 28+ unmapped opcodes to 0 across all 128KB.
-// Whatever these bytes actually encode is still unknown; the fix is
-// simply to stop assuming they are always zero.
+// These are upper bytes of section lengths/counts; see programLayout.ts.
+// The original fix simply stopped assuming they were always zero.
 const HEADER_ZERO_POSITIONS = [
   1, 2, 3, 4, 8, 9, 10, 11, 12, 15, 16, 17, 18, 19, 20,
   23, 24, 25, 26, 27, 28, 31, 32, 34, 35, 36
@@ -1505,8 +1512,8 @@ export function decodeProgram(
       }
     }
 
-    if (opcode === 0x50 || opcode === 0x11) {
-      const operandLength = opcode === 0x50 ? 18 : 14;
+    const numberFormat = NUMBER_LITERAL_FORMATS.get(opcode);
+    if (numberFormat !== undefined) {
       // 0x11's own value doesn't start at the usual offset+2 -- confirmed
       // against OU_RC_PAYINIT.CHKADV_NO_THRU.SaveEdit's real
       // `MsgGet(2000, 420, ...)`: two consecutive 0x11 literals, real
@@ -1515,9 +1522,8 @@ export function decodeProgram(
       // bytes this shape carries that 0x50's doesn't. This project's own
       // prior note called 0x11 "not yet independently confirmed"; this is
       // that confirmation. See docs/ROADMAP.md pass forty-three.
-      const valueOffset = opcode === 0x50 ? 2 : 4;
-      const valueBytes = opcode === 0x50 ? 16 : (14 - valueOffset);
-      const literal = readByteIntegerLiteral(bytes, i, operandLength, valueBytes, opcode === 0x50, valueOffset);
+      const { operandLength, valueOffset, valueBytes, allowScale } = numberFormat;
+      const literal = readByteIntegerLiteral(bytes, i, operandLength, valueBytes, allowScale, valueOffset);
       if (literal !== undefined) {
         tokens.push({
           kind: TokenKind.NumberLiteral, text: literal.text, offset, opcode,
@@ -1639,7 +1645,7 @@ export function decodeProgram(
     // producing exactly the fragmented, wrongly-linebroken output this was
     // reported against. The identifier-introducer role is checked first, and
     // only when it does not apply does 0x0a fall through to a real newline.
-    if (opcode === 0x0a) {
+    if (opcode === INLINE_IDENTIFIER_OPCODE) {
       const run = readTextRun(bytes, i);
       if (run !== undefined) {
         tokens.push({
@@ -2187,18 +2193,5 @@ export class UndecodableProgramError extends Error {
   }
 }
 
-/**
- * Encoding is intentionally absent.
- *
- * Writing PeopleCode back into PSPCMPROG means producing bytes PeopleTools will
- * execute. Until the decoder round-trips every construct in a program, encoding
- * risks writing a program that differs from what was on screen. Saves through
- * the database provider are therefore refused for PeopleCode; see
- * OracleProvider.writeText.
- */
-export function encodeProgram(): never {
-  throw new Error(
-    'Writing PeopleCode to the database is not implemented. ' +
-    'The stored format is not yet mapped well enough to guarantee a faithful round-trip.'
-  );
-}
+/** Complete generation is limited to encoder.ts's explicitly supported subset. */
+export { encodeProgram } from './encoder.js';
