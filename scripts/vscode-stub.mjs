@@ -78,6 +78,24 @@ export function createStub() {
     }
   }
 
+  class DocumentSymbol {
+    constructor(name, detail, kind, range, selectionRange) {
+      this.name = name;
+      this.detail = detail;
+      this.kind = kind;
+      this.range = range;
+      this.selectionRange = selectionRange;
+      this.children = [];
+    }
+  }
+
+  class Range {
+    constructor(startLine, startChar, endLine, endChar) {
+      this.start = { line: startLine, character: startChar };
+      this.end = { line: endLine, character: endChar };
+    }
+  }
+
   class FileSystemError extends Error {
     static NoPermissions(m) { return new FileSystemError(m); }
     static FileNotFound(m) { return new FileSystemError(m); }
@@ -89,6 +107,7 @@ export function createStub() {
   const vscode = {
     Disposable, EventEmitter, Uri, TreeItem, ThemeIcon, ThemeColor,
     MarkdownString, FileSystemError, CompletionItem, SnippetString, Hover,
+    DocumentSymbol, Range,
 
     FileType: { Unknown: 0, File: 1, Directory: 2, SymbolicLink: 64 },
     FilePermission: { Readonly: 1 },
@@ -124,7 +143,13 @@ export function createStub() {
       Operator: 23,
       TypeParameter: 24
     },
-
+    SymbolKind: {
+      File: 0, Module: 1, Namespace: 2, Package: 3, Class: 4, Method: 5,
+      Property: 6, Field: 7, Constructor: 8, Enum: 9, Interface: 10,
+      Function: 11, Variable: 12, Constant: 13, String: 14, Number: 15,
+      Boolean: 16, Array: 17, Object: 18, Key: 19, Null: 20,
+      EnumMember: 21, Struct: 22, Event: 23, Operator: 24, TypeParameter: 25
+    },
     commands: {
       registerCommand(id, handler) {
         if (registered.commands.has(id)) {
@@ -184,6 +209,9 @@ export function createStub() {
         return new Disposable(() => {});
       },
       registerHoverProvider(_selector, _provider) {
+        return new Disposable(() => {});
+      },
+      registerDocumentSymbolProvider(_selector, _provider) {
         return new Disposable(() => {});
       }
     },
