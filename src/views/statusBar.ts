@@ -45,11 +45,6 @@ export class StatusBar implements vscode.Disposable {
 
     this.connection.command = 'psft.status.selectConnection';
 
-    workspace.onDidChange(
-      () => this.update(),
-      this,
-      []
-    );
   }
 
   public update(): void {
@@ -65,6 +60,15 @@ export class StatusBar implements vscode.Disposable {
       const { handle, key } = parseUri(editor.document.uri);
       const provider = this.workspace.getProviderByHandle(handle);
 
+      if (!provider) {
+        this.connection.hide();
+        this.readOnly.hide();
+        return;
+      }
+      if (!this.workspace.selectedConnectionId) {
+        this.workspace.setSelectedConnection(provider.id);
+      }
+      
       if (!this.workspace.selectedConnectionId) {
         this.workspace.setSelectedConnection(provider.id);
       }

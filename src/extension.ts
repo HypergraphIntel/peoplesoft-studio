@@ -38,6 +38,7 @@ async function resolveDefinitionForCompare(
     try {
       const parsed = parseUri(editor.document.uri);
       const provider = workspace.getProviderByHandle(parsed.handle);
+      
       if (!provider) {
         vscode.window.showWarningMessage(
           'This editor belongs to a connection that is not connected.');
@@ -379,16 +380,6 @@ async function addConnection(): Promise<void> {
   await saveConnection({ name, kind: 'oracle', connectString, user });
 }
 
-async function saveConnection(config: ConnectionConfig): Promise<void> {
-  const settings = vscode.workspace.getConfiguration('peoplesoft');
-  const all = settings.get<ConnectionConfig[]>('connections', []);
-  if (all.some((c) => c.name === config.name)) {
-    vscode.window.showErrorMessage(`A connection named "${config.name}" already exists.`);
-    return;
-  }
-  await settings.update('connections', [...all, config], vscode.ConfigurationTarget.Global);
-}
-
 async function selectStatusConnection(workspace: Workspace): Promise<void> {
   const connections = workspace.connections;
 
@@ -427,53 +418,15 @@ async function selectStatusConnection(workspace: Workspace): Promise<void> {
 
   if (!picked) return;
 
-  // Connection selection happens here.
+  const id = providerId(picked.config);
+
+  if (!connected.has(id)) {
+    await workspace.connect(picked.config);
+  }
+
+  workspace.setSelectedConnection(id);
 }
 
-async function selectStatusConnection(workspace: Workspace): Promise<void> {
-    const connections = workspace.connections;
-
-    if (connections.length === 0) {
-        vscode.window.showInformationMessage(
-            'No PeopleSoft connections are configured.'
-        );
-        return;
-    }
-
-    const activeProviderIds = new Set(
-        workspace.activeProviders
-            .filter(provider => provider.isConnected)
-            .map(provider => provider.id)
-    );
-
-    const items = connections.map(connection => {
-        const providerId = connection.id;
-        const isConnected = activeProviderIds.has(providerId);
-
-        return {
-            label: connection.name,
-            description: isConnected
-                ? 'Connected'
-                : 'Not connected',
-            connection,
-        };
-    });
-
-    const selected = await vscode.window.showQuickPick(items, {
-        title: 'Select PeopleSoft Connection',
-        placeHolder: 'Choose the connection to use',
-    });
-
-    if (!selected) {
-        return;
-    }
-
-    if (!activeProviderIds.has(selected.connection.id)) {
-        await workspace.connect(selected.connection);
-    }
-
-    workspace.setSelectedConnection(selected.connection.id);
-}
 
 /** Surfaces provider failures as messages instead of unhandled rejections. */
 async function withError(action: string, fn: () => Promise<void>): Promise<void> {
