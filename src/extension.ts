@@ -39,6 +39,43 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('psft.refresh', refreshAll),
 
+    vscode.commands.registerCommand('psft.peoplecode.validate', () => {
+      vscode.window.showInformationMessage(
+        'PeopleCode validate is not implemented yet.');
+    }),
+
+    vscode.commands.registerCommand('psft.peoplecode.findReferences', () => {
+      vscode.window.showInformationMessage(
+        'Find References is not implemented yet.');
+    }),
+
+    vscode.commands.registerCommand('psft.sql.run', () => {
+      vscode.window.showInformationMessage(
+        'Run SQL is not implemented yet.');
+    }),
+
+    vscode.commands.registerCommand('psft.html.preview', () => {
+      vscode.window.showInformationMessage(
+        'HTML preview is not implemented yet.');
+    }),
+
+    vscode.commands.registerCommand('psft.record.refresh', async () => {
+      await withError('Refreshing record', () =>
+        RecordEditorProvider.refreshActive(workspace));
+    }),
+
+    vscode.commands.registerCommand('psft.project.build', () => {
+      // Reuse existing stub behavior if you still have psft.buildProject
+      vscode.window.showInformationMessage(
+        'Project build (DDL) is not implemented yet. See docs/ROADMAP.md.');
+    }),
+
+    vscode.commands.registerCommand('psft.project.compare', () => {
+      vscode.window.showInformationMessage(
+        'Project compare is not implemented yet. See docs/ROADMAP.md.');
+    }),
+
+
     vscode.commands.registerCommand('psft.addConnection', () => addConnection()),
 
     vscode.commands.registerCommand('psft.openProjectFile', async () => {

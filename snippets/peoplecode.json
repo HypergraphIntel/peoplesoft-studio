@@ -1,0 +1,203 @@
+{
+  "If Then End-If": {
+    "prefix": "if",
+    "body": [
+      "If ${1:condition} Then",
+      "\t$0",
+      "End-If;"
+    ],
+    "description": "If / Then / End-If"
+  },
+  "If Else End-If": {
+    "prefix": "ifelse",
+    "body": [
+      "If ${1:condition} Then",
+      "\t$2",
+      "Else",
+      "\t$0",
+      "End-If;"
+    ],
+    "description": "If / Else / End-If"
+  },
+  "For loop": {
+    "prefix": "for",
+    "body": [
+      "For &${1:i} = ${2:1} To ${3:n}",
+      "\t$0",
+      "End-For;"
+    ],
+    "description": "For / To / End-For"
+  },
+  "For Step loop": {
+    "prefix": "forstep",
+    "body": [
+      "For &${1:i} = ${2:1} To ${3:n} Step ${4:-1}",
+      "\t$0",
+      "End-For;"
+    ],
+    "description": "For / To / Step / End-For"
+  },
+  "While loop": {
+    "prefix": "while",
+    "body": [
+      "While ${1:condition}",
+      "\t$0",
+      "End-While;"
+    ],
+    "description": "While / End-While"
+  },
+  "Repeat Until": {
+    "prefix": "repeat",
+    "body": [
+      "Repeat",
+      "\t$0",
+      "Until ${1:condition};"
+    ],
+    "description": "Repeat / Until"
+  },
+  "Evaluate": {
+    "prefix": "evaluate",
+    "body": [
+      "Evaluate ${1:&expr}",
+      "When ${2:value}",
+      "\t$3",
+      "When-Other",
+      "\t$0",
+      "End-Evaluate;"
+    ],
+    "description": "Evaluate / When / When-Other / End-Evaluate"
+  },
+  "Try Catch": {
+    "prefix": "try",
+    "body": [
+      "try",
+      "\t$0",
+      "catch Exception &${1:e}",
+      "\tError &${1:e}.ToString();",
+      "end-try;"
+    ],
+    "description": "try / catch Exception / end-try"
+  },
+  "Local string": {
+    "prefix": "locs",
+    "body": "Local string &${1:name};",
+    "description": "Local string &var;"
+  },
+  "Local number": {
+    "prefix": "locn",
+    "body": "Local number &${1:name};",
+    "description": "Local number &var;"
+  },
+  "Local integer": {
+    "prefix": "loci",
+    "body": "Local integer &${1:name};",
+    "description": "Local integer &var;"
+  },
+  "Local boolean": {
+    "prefix": "locb",
+    "body": "Local boolean &${1:name};",
+    "description": "Local boolean &var;"
+  },
+  "Local date": {
+    "prefix": "locd",
+    "body": "Local date &${1:name};",
+    "description": "Local date &var;"
+  },
+  "Local Rowset": {
+    "prefix": "locrs",
+    "body": "Local Rowset &${1:rs};",
+    "description": "Local Rowset &var;"
+  },
+  "Local Record": {
+    "prefix": "locrec",
+    "body": "Local Record &${1:rec};",
+    "description": "Local Record &var;"
+  },
+  "Local SQL": {
+    "prefix": "locsql",
+    "body": "Local SQL &${1:sql};",
+    "description": "Local SQL &var;"
+  },
+  "Local array of string": {
+    "prefix": "locas",
+    "body": "Local array of string &${1:arr};",
+    "description": "Local array of string &var;"
+  },
+  "Component string": {
+    "prefix": "comps",
+    "body": "Component string &${1:name};",
+    "description": "Component string &var;"
+  },
+  "MessageBox": {
+    "prefix": "msgbox",
+    "body": "MessageBox(${1:0}, \"\", ${2:0}, ${3:0}, \"${4:message}\");",
+    "description": "MessageBox dialog"
+  },
+  "WinMessage": {
+    "prefix": "winmsg",
+    "body": "WinMessage(\"${1:message}\");",
+    "description": "WinMessage dialog"
+  },
+  "Error MsgGet": {
+    "prefix": "err",
+    "body": "Error MsgGet(${1:msgset}, ${2:msgnum}, \"${3:default}\");",
+    "description": "Error with message catalog"
+  },
+  "Warning MsgGet": {
+    "prefix": "warn",
+    "body": "Warning MsgGet(${1:msgset}, ${2:msgnum}, \"${3:default}\");",
+    "description": "Warning with message catalog"
+  },
+  "SQLExec": {
+    "prefix": "sqlexec",
+    "body": [
+      "SQLExec(\"SELECT ${1:FIELD} FROM PS_${2:TABLE} WHERE ${3:KEY} = :1\",",
+      "\t&${4:key}, &${5:out});"
+    ],
+    "description": "SQLExec with bind and out"
+  },
+  "SQLExec insert": {
+    "prefix": "sqlins",
+    "body": [
+      "SQLExec(\"INSERT INTO PS_${1:TABLE} (${2:COLS}) VALUES (${3::1, :2})\",",
+      "\t&${4:a}, &${5:b});"
+    ],
+    "description": "SQLExec INSERT"
+  },
+  "GetLevel0": {
+    "prefix": "gl0",
+    "body": [
+      "Local Rowset &${1:rs} = GetLevel0();",
+      "$0"
+    ],
+    "description": "Local Rowset = GetLevel0()"
+  },
+  "CreateRecord": {
+    "prefix": "crerec",
+    "body": "Local Record &${1:rec} = CreateRecord(Record.${2:RECNAME});",
+    "description": "CreateRecord"
+  },
+  "CreateRowset": {
+    "prefix": "crers",
+    "body": "Local Rowset &${1:rs} = CreateRowset(Record.${2:RECNAME});",
+    "description": "CreateRowset"
+  },
+  "Function": {
+    "prefix": "func",
+    "body": [
+      "Function ${1:Name}(${2:&p As string}) Returns ${3:string};",
+      "\t$0",
+      "End-Function;"
+    ],
+    "description": "Function / End-Function"
+  },
+  "Method": {
+    "prefix": "method",
+    "body": [
+      "method ${1:Name}(${2:&p As string}) Returns ${3:string};",
+      "\t$0",
+      "end-method;"
+    ],
+    "description": "method / end-method"
+  }
+}

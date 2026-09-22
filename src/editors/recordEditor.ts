@@ -16,6 +16,9 @@ import {
 export class RecordEditorProvider implements vscode.CustomReadonlyEditorProvider {
   static readonly viewType = 'psft.recordEditor';
 
+  /** Open record webviews, keyed by URI string, so Refresh can repaint. */
+  private static readonly panels = new Map<string, vscode.WebviewPanel>();
+
   constructor(private readonly workspace: Workspace) {}
 
   static register(workspace: Workspace): vscode.Disposable {
@@ -23,6 +26,40 @@ export class RecordEditorProvider implements vscode.CustomReadonlyEditorProvider
       RecordEditorProvider.viewType,
       new RecordEditorProvider(workspace),
       { webviewOptions: { retainContextWhenHidden: true }, supportsMultipleEditorsPerDocument: false });
+  }
+
+  /** Re-read the active record custom editor from the provider and repaint. */
+  static async refreshActive(workspace: Workspace): Promise<void> {
+    // const uri = vscode.window.activeTextEditor?.document.uri
+    //  ?? [...RecordEditorProvider.panels.keys()].map((k) => vscode.Uri.parse(k)).find(() => false);
+
+    // Prefer the panel map: custom editors are not always TextEditors.
+    let target: { key: string; panel: vscode.WebviewPanel } | undefined;
+    for (const [key, panel] of RecordEditorProvider.panels) {
+      if (panel.active) {
+        target = { key, panel };
+        break;
+      }
+    }
+    if (!target && RecordEditorProvider.panels.size === 1) {
+      const [key, panel] = [...RecordEditorProvider.panels.entries()][0];
+      target = { key, panel };
+    }
+    if (!target) {
+      vscode.window.showWarningMessage('No record editor is active to refresh.');
+      return;
+    }
+
+    const docUri = vscode.Uri.parse(target.key);
+    try {
+      const { handle, key } = parseUri(docUri);
+      const provider = await workspace.requireByHandle(handle);
+      const record = await provider.readRecord(key);
+      target.panel.webview.html = renderRecord(record, target.panel.webview);
+    } catch (err) {
+      target.panel.webview.html = renderError((err as Error).message);
+      vscode.window.showErrorMessage(`Refresh failed: ${(err as Error).message}`);
+    }
   }
 
   openCustomDocument(uri: vscode.Uri): vscode.CustomDocument {
@@ -35,10 +72,18 @@ export class RecordEditorProvider implements vscode.CustomReadonlyEditorProvider
   ): Promise<void> {
     panel.webview.options = { enableScripts: false };
 
+    const key = document.uri.toString();
+    RecordEditorProvider.panels.set(key, panel);
+    panel.onDidDispose(() => {
+      if (RecordEditorProvider.panels.get(key) === panel) {
+        RecordEditorProvider.panels.delete(key);
+      }
+    });
+
     try {
-      const { handle, key } = parseUri(document.uri);
+      const { handle, key: defKey } = parseUri(document.uri);
       const provider = await this.workspace.requireByHandle(handle);
-      const record = await provider.readRecord(key);
+      const record = await provider.readRecord(defKey);
       panel.webview.html = renderRecord(record, panel.webview);
     } catch (err) {
       panel.webview.html = renderError((err as Error).message);

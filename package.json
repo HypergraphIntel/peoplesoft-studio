@@ -105,6 +105,14 @@
         "icon": "$(search)"
       },
       {
+        "command": "psft.refresh",
+        "title": "Refresh",
+        "category": "PeopleSoft",
+        "icon": "$(refresh)"
+      },
+
+
+      {
         "command": "psft.addConnection",
         "title": "Add Connection",
         "category": "PeopleSoft",
@@ -133,12 +141,6 @@
         "icon": "$(folder-opened)"
       },
       {
-        "command": "psft.refresh",
-        "title": "Refresh",
-        "category": "PeopleSoft",
-        "icon": "$(refresh)"
-      },
-      {
         "command": "psft.openDefinition",
         "title": "Open Definition",
         "category": "PeopleSoft"
@@ -162,6 +164,48 @@
         "command": "psft.closeProject",
         "title": "Close Project",
         "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.peoplecode.validate",
+        "title": "Validate PeopleCode",
+        "icon": "$(check)",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.peoplecode.findReferences",
+        "title": "Find References",
+        "icon": "$(references)",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.sql.run",
+        "title": "Run SQL",
+        "icon": "$(play)",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.html.preview",
+        "title": "Preview HTML",
+        "icon": "$(open-preview)",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.record.refresh",
+        "title": "Refresh Record",
+        "icon": "$(refresh)",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.project.build",
+        "title": "Build Project",
+        "icon": "$(tools)",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.project.compare",
+        "title": "Compare Project",
+        "icon": "$(diff)",
+        "category": "PeopleSoft"
       }
     ],
     "menus": {
@@ -180,6 +224,16 @@
           "command": "psft.refresh",
           "when": "view == psft.browser || view == psft.projects",
           "group": "navigation@2"
+        },
+        {
+          "command": "psft.project.build",
+          "when": "view == psft.projects",
+          "group": "navigation@3"
+        },
+        {
+          "command": "psft.project.compare",
+          "when": "view == psft.projects",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [
@@ -202,6 +256,11 @@
           "group": "inline"
         },
         {
+          "command": "psft.project.compare",
+          "when": "view == psft.projects && viewItem == project.opened",
+          "group": "inline@2"
+        },
+        {
           "command": "psft.insertIntoProject",
           "when": "view == psft.browser && viewItem == definition"
         },
@@ -209,7 +268,34 @@
           "command": "psft.compareDefinition",
           "when": "viewItem == definition"
         }
-      ]
+      ],
+      "editor/title": [
+        {
+          "command": "psft.peoplecode.validate",
+          "when": "resourceScheme == psft && resourceLangId == psft-peoplecode",
+          "group": "navigation@1"
+        },
+        {
+          "command": "psft.peoplecode.findReferences",
+          "when": "resourceScheme == psft && resourceLangId == psft-peoplecode",
+          "group": "navigation@2"
+        },
+        {
+          "command": "psft.sql.run",
+          "when": "resourceScheme == psft && resourceLangId == psft-sql",
+          "group": "navigation@1"
+        },
+        {
+          "command": "psft.html.preview",
+          "when": "resourceScheme == psft && resourceLangId == psft-html",
+          "group": "navigation@1"
+        },
+        {
+          "command": "psft.record.refresh",
+          "when": "activeCustomEditorId == psft.recordEditor",
+          "group": "navigation@1"
+        }
+      ]      
     },
     "configuration": {
       "title": "PeopleSoft Studio",
