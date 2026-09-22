@@ -2157,3 +2157,37 @@ test('a single character is not recovered as a bare identifier either', () => {
     new NameTable());
   assert.ok(result.unknownOpcodes.some((u) => u.opcode === 0x53));
 });
+
+test('a string literal with embedded double-quotes is re-escaped for PeopleCode source', () => {
+  // Bytecode stores the raw string value. PeopleCode source must double
+  // every embedded " inside a "..." literal. Confirmed against real
+  // App Designer source of the form:
+  //   &fullJson = "{""class"":""" | JsonEscape(&className) | ...
+  // where the first fragment's value is {"class":"
+  // Without escaping, decode emitted "{"class":"" which is not valid
+  // PeopleCode and does not round-trip to App Designer.
+  const value = '{"class":"';
+  const result = decodeProgram(
+    Buffer.from([...HEADER, 0x16, ...utf16(value), 0x00, 0x00]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, '"{""class"":"""');
+});
+
+test('a string with only quotes still doubles every one', () => {
+  // App Designer: """"  → value is one double-quote character
+  const result = decodeProgram(
+    Buffer.from([...HEADER, 0x16, ...utf16('"'), 0x00, 0x00]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, '""""');
+});
+
+test('a string with no quotes is unchanged', () => {
+  const result = decodeProgram(
+    Buffer.from([...HEADER, 0x16, ...utf16('hello'), 0x00, 0x00]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, '"hello"');
+});
+
