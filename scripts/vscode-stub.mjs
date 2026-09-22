@@ -171,6 +171,11 @@ export function createStub() {
       Right: 2,
     },
     window: {
+      onDidChangeActiveTextEditor() {
+        return {
+          dispose() {},
+        };
+      },
       createStatusBarItem() {
         return {
           text: '',
