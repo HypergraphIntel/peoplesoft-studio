@@ -391,3 +391,10 @@ export const TEXT_INTRODUCERS = new Map<number, TokenKind.Name | TokenKind.Strin
   //         The remaining 109 fall through to its plain OPCODES entry below.
   [0x07, TokenKind.Name]
 ]);
+/** Primitive IDs shared by calibrated Function and Application Class signatures.
+ * Parameter flag bits are compilation-unit-specific and are not included. */
+export const PRIMITIVE_SIGNATURE_TYPE_IDS: ReadonlyMap<string, number> = new Map([
+  ['string', 0x01],
+  ['boolean', 0x05],
+  ['integer', 0x11]
+]);

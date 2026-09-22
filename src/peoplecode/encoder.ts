@@ -1,7 +1,9 @@
+import { encodePrimitiveMethodSignature } from './applicationClassMetadata.js';
 import { encodeSimpleProgramHeader, PROGRAM_DIRECTORY_SEPARATOR } from './programLayout.js';
 import {
   INLINE_IDENTIFIER_OPCODE,
   OPCODES,
+  PRIMITIVE_SIGNATURE_TYPE_IDS,
   TEXT_INTRODUCERS,
   TokenKind
 } from './format.js';
@@ -50,21 +52,9 @@ export interface EncodedPeopleCode {
 }
 
 function functionTypeId(typeName: string): number {
-  switch (typeName.toLowerCase()) {
-    case 'string':
-      return 0x01;
-
-    case 'boolean':
-      return 0x05;
-
-    case 'integer':
-      return 0x11;
-
-    default:
-      throw new Error(
-        `Unsupported function metadata type: ${typeName}`
-      );
-  }
+  const id = PRIMITIVE_SIGNATURE_TYPE_IDS.get(typeName.toLowerCase());
+  if (id === undefined) throw new Error(`Unsupported function metadata type: ${typeName}`);
+  return id;
 }
 
 function returnTypeDescriptor(typeName?: string): number {
@@ -1870,9 +1860,8 @@ interface ApplicationClassProgramMetadata {
   importedPath: string[];
   className: string;
   methodName: string;
-  parameterName: string;
-  parameterType: string;
-  returnType: string;
+  parameters: { name: string; type: string }[];
+  returnType?: string;
   signatureComments: string[];
   localVariableName: string;
   localClassPath: string[];
@@ -1916,8 +1905,9 @@ function encodeApplicationClassPathBytes(path: string[]): Buffer {
  *
  * This deliberately recognizes only the source shape captured from
  * PeopleTools.  It is separate from ordinary Record/Field event PeopleCode:
- * the captured Application Class program produced only its owner PSPCMNAME
- * row and did not produce PACKAGE rows for import/create/method invocation.
+ * reference allocation is not yet generalized. A current read-only capture
+ * contains a PACKAGE row absent from the earlier owner-only assumption;
+ * see docs/APPLICATION_CLASS_SIGNATURES.md before changing allocation rules.
  */
 function parseApplicationClassProgram(
   source: string
@@ -1938,7 +1928,7 @@ function parseApplicationClassProgram(
   }
 
   const classMatch =
-    /\bclass\s+([A-Za-z_][A-Za-z0-9_]*)\s+method\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*(&[A-Za-z_][A-Za-z0-9_]*)\s+As\s+([A-Za-z_][A-Za-z0-9_]*)\s*\)\s+Returns\s+([A-Za-z_][A-Za-z0-9_]*)\s*;\s*end-class\s*;/i.exec(
+    /\bclass\s+([A-Za-z_][A-Za-z0-9_]*)\s+method\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*(?:Returns\s+([A-Za-z_][A-Za-z0-9_]*))?\s*;\s*end-class\s*;/i.exec(
       source
     );
   if (!classMatch) {
@@ -1947,6 +1937,12 @@ function parseApplicationClassProgram(
       'unsupported Application Class declaration'
     );
   }
+
+  const parameters = classMatch[3].trim() === '' ? [] : classMatch[3].split(',').map(parameter => {
+    const match = /^\s*(&[A-Za-z_][A-Za-z0-9_]*)\s+As\s+(string|integer|boolean)\s*$/i.exec(parameter);
+    if (!match) throw new UnsupportedPeopleCodeError(0, 'unsupported Application Class parameter');
+    return { name: match[1], type: match[2] };
+  });
 
   const implementationMatch =
     /\bmethod\s+([A-Za-z_][A-Za-z0-9_]*)\s*((?:\/\+[\s\S]*?\+\/\s*)+)([\s\S]*?)\bend-method\s*;/i.exec(
@@ -2008,9 +2004,8 @@ function parseApplicationClassProgram(
     importedPath: importMatch[1].split(':'),
     className: classMatch[1],
     methodName: classMatch[2],
-    parameterName: classMatch[3],
-    parameterType: classMatch[4],
-    returnType: classMatch[5],
+    parameters,
+    returnType: classMatch[4],
     signatureComments,
     localVariableName: localMatch[2],
     localClassPath: localMatch[1].split(':'),
@@ -2035,15 +2030,21 @@ function encodeApplicationClassExecutable(
   c.push(Buffer.from([0x5a]));
   c.push(encodeInlineName(metadata.className));
 
-  // method TestMethod(&input As string) Returns string;
+  // Method declaration; parameter commas retain source order.
   c.push(Buffer.from([0x63]));
   c.push(encodeInlineName(metadata.methodName));
   c.push(Buffer.from([0x0b]));
-  c.push(encodeVariableName(metadata.parameterName));
-  c.push(Buffer.from([0x35]));
-  c.push(encodeKeywordText(metadata.parameterType));
-  c.push(Buffer.from([0x14, 0x39]));
-  c.push(encodeKeywordText(metadata.returnType));
+  metadata.parameters.forEach((parameter, index) => {
+    if (index > 0) c.push(fixed(','));
+    c.push(encodeVariableName(parameter.name));
+    c.push(Buffer.from([0x35]));
+    c.push(encodeKeywordText(parameter.type));
+  });
+  c.push(Buffer.from([0x14]));
+  if (metadata.returnType !== undefined) {
+    c.push(Buffer.from([0x39]));
+    c.push(encodeKeywordText(metadata.returnType));
+  }
   c.push(Buffer.from([0x15]));
 
   // end-class;
@@ -2103,24 +2104,16 @@ function encodeApplicationClassMetadata(
     Buffer.from(metadata.methodName + '\0', 'utf16le')
   ]);
 
-  // Calibrated trailer for one String parameter / String return Application
-  // Class method. Keep this narrow until additional signatures are captured.
-  if (
-    metadata.parameterType.toLowerCase() !== 'string' ||
-    metadata.returnType.toLowerCase() !== 'string'
-  ) {
-    throw new UnsupportedPeopleCodeError(
-      0,
-      'Application Class metadata currently calibrated only for String -> String methods'
-    );
-  }
-
-  const tail = Buffer.from(
-    '00000000000000000000400007000000140000000000000001000000010000000100000007000000',
-    'hex'
-  );
-
-  return Buffer.concat([strings, tail]);
+  const self = Buffer.alloc(16);
+  self.writeUInt32LE(0x400000, 8);
+  self.writeUInt32LE(0x07, 12);
+  const signature = encodePrimitiveMethodSignature({
+    nameOffset: ownerName.length + 1,
+    slotOffset: 0,
+    parameterTypes: metadata.parameters.map(parameter => parameter.type),
+    returnType: metadata.returnType
+  });
+  return Buffer.concat([strings, self, signature.record, signature.slots]);
 }
 
 function encodeApplicationClassProgram(
@@ -2136,7 +2129,7 @@ function encodeApplicationClassProgram(
   // Captured Application Class header:
   //   @5  executable length including final 0x07
   //   @13 combined UTF-16LE owner-name + method-name byte length
-  //   @21 2
+  //   @21 parameter count + 1 dispatch slots
   //   @29 2
   //   @33 0x85
   const header = Buffer.alloc(37);
@@ -2149,7 +2142,7 @@ function encodeApplicationClassProgram(
     13
   );
   header.writeUInt32LE(0, 17);
-  header.writeUInt32LE(2, 21);
+  header.writeUInt32LE(metadata.parameters.length + 1, 21);
   header.writeUInt32LE(0, 25);
   header.writeUInt32LE(2, 29);
   header.writeUInt32LE(0x85, 33);

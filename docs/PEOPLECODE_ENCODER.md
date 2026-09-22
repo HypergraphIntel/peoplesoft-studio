@@ -210,3 +210,8 @@ baseline decoder were identical for all 204 corpus programs. The 204-program
 audit validates operands only at this stage: every whole program in that
 corpus still contains unsupported source constructs. The separate short-program
 sample supplies the 11 actual complete-program regeneration checks.
+
+Application Class primitive-signature checkpoint: see
+[APPLICATION_CLASS_SIGNATURES.md](APPLICATION_CLASS_SIGNATURES.md) for the
+measured method record/slot layout, complete source/binary/name captures,
+regression coverage and remaining full-program/dependency boundaries.
