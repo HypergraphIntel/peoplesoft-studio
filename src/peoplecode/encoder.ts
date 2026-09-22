@@ -18,10 +18,16 @@ interface FunctionMetadata {
 }
 
 export interface PeopleCodeReference {
+  /** Zero-based PSPCMPROG 0x21 operand; PSPCMNAME sequence is index + 1. */
   index: number;
-  recordName: string;
-  fieldName: string;
-  eventName: string;
+  /** One-based PSPCMNAME sequence. */
+  sequence: number;
+  kind: 'record-field' | 'package' | 'record' | 'declare-function';
+  recordName?: string;
+  fieldName?: string;
+  eventName?: string;
+  packageName?: string;
+  objectName?: string;
 }
 
 export interface EncodedPeopleCode {
@@ -167,8 +173,17 @@ function encodeFragmentInternal(source: string): { bytes: Buffer; references: Pe
   const typeName = (): Buffer => {
     const match = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
     if (!match) return fail('expected a PeopleCode type name');
-    pos += match[0].length;
-    return textOperand(0x40, TokenKind.Keyword, match[0]);
+
+    const name = match[0];
+    pos += name.length;
+
+    // Calibrated object declaration types use the ordinary inline-name
+    // introducer rather than the primitive-type 0x40 introducer.
+    if (/^(Record|Field)$/i.test(name)) {
+      return textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, name);
+    }
+
+    return textOperand(0x40, TokenKind.Keyword, name);
   };
 
   const localDeclaration = () => {
@@ -242,6 +257,97 @@ function encodeFragmentInternal(source: string): { bytes: Buffer; references: Pe
   let depth = 0;
   const chunks: Buffer[] = [];
   const references: PeopleCodeReference[] = [];
+
+  const same = (a: string | undefined, b: string | undefined): boolean =>
+    (a ?? '').toLowerCase() === (b ?? '').toLowerCase();
+
+  const addReference = (
+    reference: Omit<PeopleCodeReference, 'index' | 'sequence'>
+  ): PeopleCodeReference => {
+    const existing = references.find(item =>
+      item.kind === reference.kind &&
+      same(item.recordName, reference.recordName) &&
+      same(item.fieldName, reference.fieldName) &&
+      same(item.eventName, reference.eventName) &&
+      same(item.packageName, reference.packageName) &&
+      same(item.objectName, reference.objectName)
+    );
+
+    if (existing) return existing;
+
+    const sequence = references.length + 1;
+    const created: PeopleCodeReference = {
+      ...reference,
+      sequence,
+      index: sequence - 1
+    };
+    references.push(created);
+    return created;
+  };
+
+  const referenceOperand = (reference: PeopleCodeReference): Buffer => {
+    if (reference.index > 0xffff) {
+      throw new UnsupportedPeopleCodeError(
+        pos,
+        'PeopleCode reference index exceeds uint16 range'
+      );
+    }
+    const bytes = Buffer.alloc(3);
+    bytes[0] = 0x21;
+    bytes.writeUInt16LE(reference.index, 1);
+    return bytes;
+  };
+
+  const ensurePackageReference = (
+    packageName: string,
+    objectName: string
+  ): PeopleCodeReference =>
+    addReference({
+      kind: 'package',
+      packageName,
+      objectName
+    });
+
+  const recordFieldReference = (): Buffer => {
+    const recordName = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+    if (!recordName) return fail('expected record name');
+    pos += recordName.length;
+
+    if (source[pos] !== '.') return fail('expected . in record/field reference');
+    pos++;
+
+    const fieldName = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+    if (!fieldName) return fail('expected field name');
+    pos += fieldName.length;
+
+    const reference = addReference({
+      kind: 'record-field',
+      recordName,
+      fieldName
+    });
+    return referenceOperand(reference);
+  };
+
+  const recordReference = (): Buffer => {
+    if (!word('Record')) return fail('expected Record');
+    if (source[pos] !== '.') return fail('expected . after Record');
+    pos++;
+
+    const recordName = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+    if (!recordName) return fail('expected record name after Record.');
+    pos += recordName.length;
+
+    // PeopleTools allocates the PACKAGE.RECORD PSPCMNAME entry before the
+    // concrete RECORD.<name> entry. This consumes an index even though the
+    // package entry is not emitted as a 0x21 operand in this expression.
+    ensurePackageReference('RECORD', 'Record');
+
+    const reference = addReference({
+      kind: 'record',
+      recordName
+    });
+    return referenceOperand(reference);
+  };
   
   const reservedCallNames = new Set([...OPCODES.values()]
     .filter(spec => spec.kind === TokenKind.Keyword && spec.text)
@@ -450,33 +556,36 @@ function encodeFragmentInternal(source: string): { bytes: Buffer; references: Pe
     }
     pos += eventName.length;
 
-    const existingReference = references.find(
+    // Declare Function references are calibrated separately from ordinary
+    // record/field operands. In the observed PSPCMNAME layout their first
+    // external target is sequence 2, so PSPCMPROG starts at index 1.
+    // Repeated targets reuse that index.
+    let reference = references.find(
       item =>
-        item.recordName.toLowerCase() === recordName.toLowerCase() &&
-        item.fieldName.toLowerCase() === fieldName.toLowerCase() &&
-        item.eventName.toLowerCase() === eventName.toLowerCase()
+        item.kind === 'declare-function' &&
+        same(item.recordName, recordName) &&
+        same(item.fieldName, fieldName) &&
+        same(item.eventName, eventName)
     );
 
-    const reference: PeopleCodeReference =
-      existingReference ?? {
-        index: references.length + 1,
+    if (reference === undefined) {
+      const declareReferenceCount = references.filter(
+        item => item.kind === 'declare-function'
+      ).length;
+
+      const index = declareReferenceCount + 1;
+      reference = {
+        index,
+        sequence: index + 1,
+        kind: 'declare-function',
         recordName,
         fieldName,
         eventName
       };
-
-    if (existingReference === undefined) {
       references.push(reference);
     }
 
-    if (reference.index > 0xffff) {
-      throw new UnsupportedPeopleCodeError(pos, 'Declare Function reference index exceeds uint16 range');
-    }
-
-    const referenceBytes = Buffer.alloc(3);
-    referenceBytes[0] = 0x21;
-    referenceBytes.writeUInt16LE(reference.index, 1);
-    chunks.push(referenceBytes);
+    chunks.push(referenceOperand(reference));
     chunks.push(textOperand(0x40, TokenKind.Keyword, eventName));
     chunks.push(Buffer.from([0x42]));
   };
@@ -525,7 +634,33 @@ function encodeFragmentInternal(source: string): { bytes: Buffer; references: Pe
       chunks.push(fixed('='));
       expression();
     } else if (/[A-Za-z_]/.test(source[pos] ?? '')) {
-      call();
+      const tail = source.slice(pos);
+      if (/^[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/.test(tail)) {
+        chunks.push(recordFieldReference());
+
+        // Calibrated postfix member chain, e.g. OU_CORPUS.CODE.Value.
+        while (true) {
+          space();
+          if (source[pos] !== '.') break;
+          pos++;
+          chunks.push(fixed('.'));
+          space();
+          const member = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+          if (member === undefined) {
+            throw new UnsupportedPeopleCodeError(pos, 'expected member name after .');
+          }
+          pos += member.length;
+          chunks.push(textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, member));
+        }
+
+        space();
+        if (source[pos] !== '=') fail('expected assignment =');
+        pos++;
+        chunks.push(fixed('='));
+        expression();
+      } else {
+        call();
+      }
     } else {
       fail('unsupported PeopleCode statement');
     }
@@ -1041,6 +1176,13 @@ function encodeFragmentInternal(source: string): { bytes: Buffer; references: Pe
     if (!name) return fail('expected a simple call name');
     if (reservedCallNames.has(name.toLowerCase())) fail(`keyword ${name} is not a supported call name`);
     pos += name.length;
+
+    // Calibrated PSPCMNAME artifact for the Field object type. It is allocated
+    // when GetField is encountered, after any references already emitted.
+    if (/^GetField$/i.test(name)) {
+      ensurePackageReference('FIELD', 'Field');
+    }
+
     space();
     if (source[pos] !== '(') fail('bare identifiers are only supported as calls');
     chunks.push(textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, name));
@@ -1074,7 +1216,15 @@ function encodeFragmentInternal(source: string): { bytes: Buffer; references: Pe
       /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
 
     if (identifier && !/^(true|false)$/i.test(identifier)) {
-      call();
+      const tail = source.slice(pos);
+
+      if (/^Record\s*\./i.test(tail)) {
+        chunks.push(recordReference());
+      } else if (/^[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/.test(tail)) {
+        chunks.push(recordFieldReference());
+      } else {
+        call();
+      }
     } else {
       chunks.push(value());
     }

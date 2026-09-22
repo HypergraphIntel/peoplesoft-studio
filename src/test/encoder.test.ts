@@ -732,15 +732,68 @@ Declare Function Test4 PeopleCode WEBLIB_OU_LP.ISCRIPT1 FieldChange;`;
   assert.deepStrictEqual(result.references, [
     {
       index: 1,
+      sequence: 2,
+      kind: 'declare-function',
       recordName: 'WEBLIB_OU_LP',
       fieldName: 'ISCRIPT1',
       eventName: 'FieldChange'
     },
     {
       index: 2,
+      sequence: 3,
+      kind: 'declare-function',
       recordName: 'WEBLIB_OU_LP',
       fieldName: 'ISCRIPT2',
       eventName: 'FieldChange'
+    }
+  ]);
+
+});
+
+test('encodeProgramArtifacts allocates record/field references in calibrated PSPCMNAME order', () => {
+  const source = `Local string &x;
+
+  &x = OU_CORPUS.CODE.Value;
+
+  OU_CORPUS.CODE.Value = "TEST";
+
+  Local Record &rec;
+
+  &rec = GetRecord(Record.OU_CORPUS);
+
+  Local Field &fld;
+
+  &fld = GetField(OU_CORPUS.CODE);`;
+
+  const result = encodeProgramArtifacts(source);
+
+  assert.deepStrictEqual(result.references, [
+    {
+      index: 0,
+      sequence: 1,
+      kind: 'record-field',
+      recordName: 'OU_CORPUS',
+      fieldName: 'CODE'
+    },
+    {
+      index: 1,
+      sequence: 2,
+      kind: 'package',
+      packageName: 'RECORD',
+      objectName: 'Record'
+    },
+    {
+      index: 2,
+      sequence: 3,
+      kind: 'record',
+      recordName: 'OU_CORPUS'
+    },
+    {
+      index: 3,
+      sequence: 4,
+      kind: 'package',
+      packageName: 'FIELD',
+      objectName: 'Field'
     }
   ]);
 });
