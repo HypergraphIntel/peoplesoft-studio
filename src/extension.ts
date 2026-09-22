@@ -10,6 +10,7 @@ import { DefinitionKey, DefinitionType, displayName, typeLabel } from './model/d
 import { toUri } from './util/uri.js';
 import { registerPeopleCodeCompletion } from './peoplecode/completion.js';
 import { registerPeopleCodeHover } from './peoplecode/hover.js';
+import { registerPeopleCodeSymbols } from './peoplecode/symbols.js';
 
 export function activate(context: vscode.ExtensionContext): void {
   const workspace = new Workspace(context.secrets);
@@ -21,7 +22,8 @@ export function activate(context: vscode.ExtensionContext): void {
 
   registerPeopleCodeCompletion(context);
   registerPeopleCodeHover(context);
-
+  registerPeopleCodeSymbols(context);
+  
   const connections = new ConnectionsView(workspace);
   const browser = new BrowserView(workspace);
   const projects = new ProjectsView(workspace);
