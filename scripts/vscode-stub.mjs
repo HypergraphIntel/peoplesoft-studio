@@ -166,8 +166,21 @@ export function createStub() {
       }
     },
     _handlers: new Map(),
-
+    StatusBarAlignment: {
+      Left: 1,
+      Right: 2,
+    },
     window: {
+      createStatusBarItem() {
+        return {
+          text: '',
+          tooltip: '',
+          command: undefined,
+          show() {},
+          hide() {},
+          dispose() {},
+        };
+      },
       registerTreeDataProvider(id, provider) {
         registered.treeViews.add(id);
         vscode._trees.set(id, provider);
