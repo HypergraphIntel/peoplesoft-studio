@@ -57,7 +57,7 @@ export function createStub() {
 
   class ThemeIcon { constructor(id, color) { this.id = id; this.color = color; } }
   class ThemeColor { constructor(id) { this.id = id; } }
-//  class MarkdownString { constructor(value) { this.value = value; } }
+  class MarkdownString { constructor(value) { this.value = value; } }
 
   class CompletionItem {
     constructor(label, kind) {
