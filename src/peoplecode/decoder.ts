@@ -679,12 +679,26 @@ function readRecordFieldReference(bytes: Buffer, start: number): { nameNum: numb
  * Punctuation a text run carries in source but not in the byte stream: a
  * string literal's quotes, and the `/+ +/` around a signature annotation
  * (confirmed against real source, e.g. `/+ &propsJson as String +/`).
+ *
+ * PeopleCode escapes an embedded delimiter by doubling it. The bytecode
+ * stores the raw string value, so any `"` (or `'`) inside must be re-escaped
+ * when we rebuild source. See Oracle's string-constant rules and the
+ * JsonEscape / fullJson sample that exposed the missing escape.
  */
 function renderTextRun(kind: TokenKind, text: string): string {
   switch (kind) {
-    case TokenKind.StringLiteral: return `"${text}"`;
-    case TokenKind.Comment: return `/+ ${text} +/`;
-    default: return text;
+    case TokenKind.StringLiteral: {
+      // Prefer "..." and double any embedded ". If the string itself is
+      // full of quotes and contains no single quotes, '...' is also legal
+      // in PeopleCode, but App Designer consistently uses "..." + doubling
+      // for this pattern, so match that.
+      const escaped = text.replaceAll('"', '""');
+      return `"${escaped}"`;
+    }
+    case TokenKind.Comment:
+      return `/+ ${text} +/`;
+    default:
+      return text;
   }
 }
 
