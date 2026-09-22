@@ -421,7 +421,21 @@ async function selectStatusConnection(workspace: Workspace): Promise<void> {
   const id = providerId(picked.config);
 
   if (!connected.has(id)) {
-    await workspace.connect(picked.config);
+    await withError(`Connecting to ${picked.config.name}`, async () => {
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Connecting to ${picked.config.name}...`
+        },
+        () => workspace.connect(picked.config)
+      );
+    });
+
+    const provider = workspace.getProvider(id);
+
+    if (!provider?.isConnected) {
+      return;
+    }
   }
 
   workspace.setSelectedConnection(id);

@@ -31,6 +31,15 @@ export class Workspace implements vscode.Disposable {
     return vscode.workspace.getConfiguration('peoplesoft').get<ConnectionConfig[]>('connections', []);
   }
 
+  get selectedConnectionId(): string | undefined {
+    return this._selectedConnectionId;
+  }
+
+  setSelectedConnection(id: string): void {
+    this._selectedConnectionId = id;
+    this._onDidChange.fire();
+  }
+
   getProvider(id: string): DefinitionProvider | undefined {
     return this.providers.get(id);
   }
@@ -148,14 +157,6 @@ export class Workspace implements vscode.Disposable {
     this._onDidChange.dispose();
   }
 
-  get selectedConnectionId(): string | undefined {
-    return this._selectedConnectionId;
-  }
-
-  setSelectedConnection(id: string): void {
-    this._selectedConnectionId = id;
-    this._onDidChange.fire();
-  }
 }
 
 /** ORA-01017 is Oracle's "invalid username/password"; NJS-506 wraps it in Thin mode. */
