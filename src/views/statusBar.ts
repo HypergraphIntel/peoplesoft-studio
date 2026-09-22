@@ -9,14 +9,22 @@ export class StatusBar implements vscode.Disposable {
   private readonly activeEditorListener: vscode.Disposable;
   private readonly workspaceListener: vscode.Disposable;
 
-  constructor(private readonly workspace: Workspace) {
+  
+  constructor(
+    private readonly workspace: Workspace,
+    private readonly selectConnection: () => Promise<void>,
+  ) {
+    
+
     this.connection = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Left,
       100
     );
 
+    this.connection.command = 'psft.status.selectConnection';
+
     this.readOnly = vscode.window.createStatusBarItem(
-      vscode.StatusBarAlignment.Right,
+      vscode.StatusBarAlignment.Left,
       100
     );
 
@@ -79,6 +87,8 @@ export class StatusBar implements vscode.Disposable {
       this.readOnly.hide();
     }
   }
+
+  
   
   dispose(): void {
     this.activeEditorListener.dispose();

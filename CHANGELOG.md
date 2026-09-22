@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.5
+
+Status Bar ( Database & Read-Only indicator )
+
+- Database is a command, but its not wired to anything yet.
+
+
 ## 0.1.4
 
 PeopleCode completion, hover, outline, and snippets
