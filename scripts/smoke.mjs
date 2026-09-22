@@ -14,7 +14,7 @@ import { createStub } from './vscode-stub.mjs';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const manifest = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
-const { vscode, registered } = createStub();
+const { vscode, registered, settings } = createStub();
 
 // The bundle does `require('vscode')`, which only the extension host provides.
 // Intercept that one specifier and let everything else resolve normally.
@@ -70,6 +70,86 @@ for (const id of declared) {
 for (const id of registered.commands) {
   check(declared.includes(id), `command registered but missing from package.json: ${id}`);
 }
+
+// Status-bar connection picker must open a Quick Pick containing every
+// configured PeopleSoft connection.
+settings.set('peoplesoft.connections', [
+  {
+    name: 'HCDEV',
+    kind: 'oracle',
+    connectString: 'hcdev.example:1521/HCDEV',
+    user: 'SYSADM'
+  },
+  {
+    name: 'HCTST',
+    kind: 'oracle',
+    connectString: 'hctst.example:1521/HCTST',
+    user: 'SYSADM'
+  }
+]);
+
+vscode._quickPicks.length = 0;
+
+// Cancel the picker so the smoke test does not attempt a real connection.
+vscode._quickPickResult = undefined;
+
+await vscode.commands.executeCommand('psft.status.selectConnection');
+
+const statusPicker = vscode._quickPicks.at(-1);
+
+check(
+  statusPicker !== undefined,
+  'psft.status.selectConnection did not open a Quick Pick'
+);
+
+check(
+  statusPicker?.options?.title === 'Select PeopleSoft Connection',
+  'status connection picker has the wrong title'
+);
+
+check(
+  statusPicker?.items?.length === 2,
+  'status connection picker did not include all configured connections'
+);
+
+check(
+  statusPicker?.items?.[0]?.label === 'HCDEV',
+  'status connection picker did not include HCDEV'
+);
+
+check(
+  statusPicker?.items?.[1]?.label === 'HCTST',
+  'status connection picker did not include HCTST'
+);
+
+check(
+  statusPicker?.items?.every(
+    (item) => item.description === 'Not connected'
+  ),
+  'disconnected connections were not identified as Not connected'
+);
+
+// With no configured connections, the command should report that state
+// instead of opening an empty picker.
+settings.set('peoplesoft.connections', []);
+vscode._messages.length = 0;
+vscode._quickPicks.length = 0;
+
+await vscode.commands.executeCommand('psft.status.selectConnection');
+
+check(
+  vscode._quickPicks.length === 0,
+  'status connection picker opened with no configured connections'
+);
+
+check(
+  vscode._messages.some(
+    ([type, message]) =>
+      type === 'info' &&
+      message === 'No PeopleSoft connections are configured.'
+  ),
+  'status connection picker did not report that no connections are configured'
+);
 
 // Same for views: a contributed view with no provider renders permanently empty.
 const declaredViews = Object.values(manifest.contributes.views ?? {})
