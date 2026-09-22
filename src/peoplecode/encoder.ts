@@ -22,12 +22,17 @@ export interface PeopleCodeReference {
   index: number;
   /** One-based PSPCMNAME sequence. */
   sequence: number;
-  kind: 'owner' | 'record-field' | 'package' | 'record' | 'scroll' | 'declare-function';
+  kind: 'owner' | 'record-field' | 'package' | 'record' | 'field' | 'scroll' | 'declare-function';
   recordName?: string;
   fieldName?: string;
   eventName?: string;
   packageName?: string;
   objectName?: string;
+  /** Application Package path components, excluding the class name. */
+  packagePath?: string[];
+  /** Application Class name for PACKAGE dependency rows. */
+  className?: string;
+  methodName?: string;
 }
 
 export interface PeopleCodeOwner {
@@ -188,7 +193,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     // Calibrated object declaration types use the ordinary inline-name
     // introducer rather than the primitive-type 0x40 introducer.
-    if (/^(Record|Field|Rowset|SQL)$/i.test(name)) {
+    if (/^(Record|Field|Rowset|Row|SQL)$/i.test(name)) {
       return textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, name);
     }
 
@@ -200,10 +205,67 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     space();
 
+    // Application-class declaration:
+    //   Local OU_CORPUS:Utilities:TestClass &obj;
+    // => 44 0A "OU_CORPUS" 57 0A "Utilities" 57 0A "TestClass" 01 "&obj"
+    //
+    // The declaration itself does NOT allocate a PSPCMNAME dependency row.
+    const appClassLookahead =
+      /^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_]*)/.exec(
+        source.slice(pos)
+      );
+
+    if (appClassLookahead) {
+      const appClass = applicationClassPath();
+      chunks.push(appClass.bytes);
+
+      space();
+
+      const variableMatch =
+        /^&[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
+      if (!variableMatch) {
+        return fail('expected an ASCII &variable');
+      }
+
+      const variableName = variableMatch[0];
+      chunks.push(variable());
+
+      applicationClassVariables.set(variableName.toLowerCase(), {
+        packagePath: appClass.packagePath,
+        className: appClass.className
+      });
+
+      space();
+      if (source[pos] === '=') {
+        pos++;
+        chunks.push(fixed('='));
+        expression();
+      }
+
+      return;
+    }
+
     const type =
       /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
 
     chunks.push(typeName());
+
+    // Calibrated compound declaration:
+    //   Local array of string &values;
+    // => 44 40 "array" 40 "of" 40 "string" 01 "&values"
+    if (/^array$/i.test(type ?? '')) {
+      space();
+
+      const ofMatch = /^of\b/i.exec(source.slice(pos));
+      if (!ofMatch) {
+        return fail('expected "of" after array in Local declaration');
+      }
+      pos += ofMatch[0].length;
+      chunks.push(textOperand(0x40, TokenKind.Keyword, 'of'));
+
+      space();
+      chunks.push(typeName());
+    }
 
     if (/^Record$/i.test(type ?? '')) {
       ensurePackageReference('RECORD', 'Record');
@@ -211,6 +273,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       ensurePackageReference('FIELD', 'Field');
     } else if (/^Rowset$/i.test(type ?? '')) {
       ensurePackageReference('ROWSET', 'Rowset');
+    } else if (/^Row$/i.test(type ?? '')) {
+      ensurePackageReference('ROW', 'Row');
     } else if (/^SQL$/i.test(type ?? '')) {
       ensurePackageReference('SQL', 'SQL');
     }
@@ -277,6 +341,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   const chunks: Buffer[] = [];
   const references: PeopleCodeReference[] = [];
 
+  // Application-class declarations establish receiver type information used
+  // to emit PSPCMNAME dependency metadata for method calls.
+  const applicationClassVariables = new Map<
+    string,
+    { packagePath: string[]; className: string }
+  >();
+
   const same = (a: string | undefined, b: string | undefined): boolean =>
     (a ?? '').toLowerCase() === (b ?? '').toLowerCase();
 
@@ -329,6 +400,104 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       packageName,
       objectName
     });
+
+  const addApplicationClassReference = (
+    packagePath: string[],
+    className: string,
+    methodName?: string
+  ): PeopleCodeReference => {
+    if (packagePath.length === 0) {
+      return fail('application class requires at least one package component');
+    }
+
+    return nextReference({
+      kind: 'package',
+
+      // Preserve the original two-component artifact mapping for existing
+      // consumers while also exposing the complete calibrated hierarchy.
+      //
+      //   OU_CORPUS:TestClass
+      //     PSPCMNAME: PACKAGE | TESTCLASS | OU_CORPUS
+      //
+      //   OU_CORPUS:Utilities:TestClass
+      //     PSPCMNAME: PACKAGE | TESTCLASS | OU_CORPUS | Utilities
+      //
+      // A method dependency appends the method name after the package path.
+      packageName: className.toUpperCase(),
+      objectName: packagePath[0].toUpperCase(),
+      packagePath: packagePath.map(
+        (component, index) =>
+          index === 0 ? component.toUpperCase() : component
+      ),
+      className: className.toUpperCase(),
+      methodName: methodName?.toUpperCase()
+    });
+  };
+
+  const applicationClassPath = (): {
+    packagePath: string[];
+    className: string;
+    bytes: Buffer;
+  } => {
+    const components: string[] = [];
+
+    const firstMatch =
+      /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
+    if (!firstMatch) {
+      return fail('expected application package name');
+    }
+
+    components.push(firstMatch[0]);
+    pos += firstMatch[0].length;
+
+    while (true) {
+      space();
+
+      if (source[pos] !== ':') {
+        break;
+      }
+
+      pos++;
+      space();
+
+      const componentMatch =
+        /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
+      if (!componentMatch) {
+        return fail('expected application package/class name after :');
+      }
+
+      components.push(componentMatch[0]);
+      pos += componentMatch[0].length;
+    }
+
+    if (components.length < 2) {
+      return fail('application class path requires package and class names');
+    }
+
+    const className = components[components.length - 1];
+    const packagePath = components.slice(0, -1);
+
+    const encoded: Buffer[] = [];
+    components.forEach((component, index) => {
+      if (index > 0) {
+        encoded.push(Buffer.from([0x57]));
+      }
+
+      encoded.push(
+        textOperand(
+          INLINE_IDENTIFIER_OPCODE,
+          TokenKind.Name,
+          component
+        )
+      );
+    });
+
+    return {
+      packagePath,
+      className,
+      bytes: Buffer.concat(encoded)
+    };
+  };
 
   const referenceOperand = (reference: PeopleCodeReference): Buffer => {
     if (reference.index > 0xffff) {
@@ -395,13 +564,36 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     if (!recordName) return fail('expected record name after Record.');
     pos += recordName.length;
 
-    ensurePackageReference('RECORD', 'Record');
-
+    // Record.X allocates only the occurrence-based RECORD row.
+    // PACKAGE RECORD is created by a Record object declaration, not by
+    // encountering Record.X in an expression.
+    // Calibrated by the deep chained-navigation PeopleTools fixture.
     // Calibrated: RECORD rows are occurrence-based, not name-deduplicated.
     return referenceOperand(
       nextReference({
         kind: 'record',
         recordName
+      })
+    );
+  };
+
+  const fieldReference = (): Buffer => {
+    if (!word('Field')) return fail('expected Field');
+    if (source[pos] !== '.') return fail('expected . after Field');
+    pos++;
+
+    const fieldName = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+    if (!fieldName) return fail('expected field name after Field.');
+    pos += fieldName.length;
+
+    // Field.X allocates only the occurrence-based FIELD row.
+    // PACKAGE FIELD is created by a Field object declaration, not by
+    // encountering Field.X in an expression.
+    // Repeated-Field calibration proves FIELD rows are occurrence-based.
+    return referenceOperand(
+      nextReference({
+        kind: 'field',
+        fieldName
       })
     );
   };
@@ -653,8 +845,25 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     chunks.push(Buffer.from([0x42]));
   };
 
+  const importStatement = () => {
+    // `import` is 0x58 in the calibrated Application Class fixture.
+    chunks.push(Buffer.from([0x58]));
+
+    space();
+    const appClass = applicationClassPath();
+    chunks.push(appClass.bytes);
+
+    // Import itself establishes one PSPCMNAME PACKAGE dependency row.
+    addApplicationClassReference(
+      appClass.packagePath,
+      appClass.className
+    );
+  };
+
   function statement(): void {
-    if (word('Declare')) {
+    if (word('import')) {
+      importStatement();
+    } else if (word('Declare')) {
       declareFunction();
     } else if (word('Function')) {
       functionStatement();
@@ -690,7 +899,11 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       evaluateStatement();
 
     } else if (source[pos] === '&') {
-      chunks.push(variable());
+      // Parse the assignment target through primary() rather than consuming
+      // only the bare variable. This preserves ordinary `&x = ...` byte-for-
+      // byte while allowing calibrated member l-values such as
+      // `&fld.Value = "TEST";`.
+      primary();
       space();
       if (source[pos] !== '=') fail('expected assignment =');
       pos++;
@@ -1077,7 +1290,11 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     // Then body
     while (true) {
+      const whitespaceStart = pos;
       space();
+      const bodyWhitespace = source.slice(whitespaceStart, pos);
+      const hasBlankLine =
+        /(?:\r?\n)[ \t]*(?:\r?\n)/.test(bodyWhitespace);
 
       if (word('Else')) {
         chunks.push(fixed('Else'));
@@ -1093,6 +1310,14 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         fail('expected Else or End-If');
       }
 
+      // Calibrated reference-bearing nested If fixture: a blank line between
+      // statements inside an If body emits the same 0x4F source-group
+      // boundary observed at top level. Defer insertion until the full
+      // program proves it has compiled PSPCMNAME references.
+      if (hasBlankLine) {
+        pendingReferenceGroupBoundaries.push(chunks.length);
+      }
+
       statement();
 
       space();
@@ -1106,7 +1331,11 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     // Else body
     while (true) {
+      const whitespaceStart = pos;
       space();
+      const bodyWhitespace = source.slice(whitespaceStart, pos);
+      const hasBlankLine =
+        /(?:\r?\n)[ \t]*(?:\r?\n)/.test(bodyWhitespace);
 
       if (word('End-If')) {
         chunks.push(fixed('End-If'));
@@ -1115,6 +1344,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       if (pos === source.length) {
         fail('expected End-If');
+      }
+
+      if (hasBlankLine) {
+        pendingReferenceGroupBoundaries.push(chunks.length);
       }
 
       statement();
@@ -1257,6 +1490,16 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   const primary = () => {
     space();
 
+    // Bare postfix (...) is calibrated for variable/object indexing such as
+    // &rs(1). Do not make every literal/value callable (e.g. True()).
+    const allowDirectPostfixCall = source[pos] === '&';
+    const baseVariableName =
+      /^&[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+    const baseApplicationClass =
+      baseVariableName === undefined
+        ? undefined
+        : applicationClassVariables.get(baseVariableName.toLowerCase());
+
     if (source[pos] === '-') {
       pos++;
       chunks.push(fixed('-'));
@@ -1269,14 +1512,53 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       return;
     }
 
-    const identifier =
-      /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+    if (/^create\b/i.test(source.slice(pos))) {
+      word('create');
+      chunks.push(Buffer.from([0x69]));
 
-    if (identifier && !/^(true|false)$/i.test(identifier)) {
+      space();
+      const appClass = applicationClassPath();
+      chunks.push(appClass.bytes);
+
+      // Each calibrated create occurrence gets its own PSPCMNAME PACKAGE row.
+      addApplicationClassReference(
+        appClass.packagePath,
+        appClass.className
+      );
+
+      space();
+      if (source[pos] !== '(') {
+        return fail('expected ( after application class name in create');
+      }
+
+      parenthesized(() => {
+        space();
+
+        if (source[pos] === ')') {
+          return;
+        }
+
+        expression();
+        space();
+
+        while (source[pos] === ',') {
+          pos++;
+          chunks.push(fixed(','));
+          expression();
+          space();
+        }
+      }, true);
+    } else {
+      const identifier =
+        /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+
+      if (identifier && !/^(true|false)$/i.test(identifier)) {
       const tail = source.slice(pos);
 
       if (/^Record\s*\./i.test(tail)) {
         chunks.push(recordReference());
+      } else if (/^Field\s*\./i.test(tail)) {
+        chunks.push(fieldReference());
       } else if (/^Scroll\s*\./i.test(tail)) {
         chunks.push(scrollReference());
       } else if (/^[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/.test(tail)) {
@@ -1284,44 +1566,92 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       } else {
         call();
       }
-    } else {
-      chunks.push(value());
+      } else {
+        chunks.push(value());
+      }
     }
 
-    // Postfix member access / method calls.
+    // Calibrated postfix forms may be chained arbitrarily:
+    //   expr.Member / expr.Method(...)
+    //   expr[index]       => 0x4C ... 0x4D
+    //   expr(args)        => 0x0B ... 0x14 (e.g. Rowset shorthand &rs(1))
     while (true) {
       space();
 
-      if (source[pos] !== '.') {
-        break;
+      if (source[pos] === '.') {
+        pos++;
+        chunks.push(fixed('.'));
+
+        space();
+
+        const memberMatch =
+          /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
+
+        if (!memberMatch) {
+          return fail('expected member name after .');
+        }
+
+        const member = memberMatch[0];
+        pos += member.length;
+
+        chunks.push(
+          textOperand(
+            INLINE_IDENTIFIER_OPCODE,
+            TokenKind.Name,
+            member
+          )
+        );
+
+        space();
+
+        if (source[pos] === '(') {
+          if (baseApplicationClass !== undefined) {
+            addApplicationClassReference(
+              baseApplicationClass.packagePath,
+              baseApplicationClass.className,
+              member
+            );
+          }
+
+          parenthesized(() => {
+            space();
+
+            if (source[pos] === ')') {
+              return;
+            }
+
+            expression();
+            space();
+
+            while (source[pos] === ',') {
+              pos++;
+              chunks.push(fixed(','));
+              expression();
+              space();
+            }
+          }, true);
+        }
+
+        continue;
       }
 
-      pos++;
-      chunks.push(fixed('.'));
+      if (source[pos] === '[') {
+        pos++;
+        chunks.push(Buffer.from([0x4c]));
 
-      space();
+        expression();
+        space();
 
-      const memberMatch =
-        /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
+        if (source[pos] !== ']') {
+          return fail('expected ] after array subscript');
+        }
 
-      if (!memberMatch) {
-        return fail('expected member name after .');
+        pos++;
+        chunks.push(Buffer.from([0x4d]));
+        continue;
       }
 
-      const member = memberMatch[0];
-      pos += member.length;
-
-      chunks.push(
-        textOperand(
-          INLINE_IDENTIFIER_OPCODE,
-          TokenKind.Name,
-          member
-        )
-      );
-
-      space();
-
-      if (source[pos] === '(') {
+      if (source[pos] === '(' && allowDirectPostfixCall) {
         parenthesized(() => {
           space();
 
@@ -1339,14 +1669,37 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             space();
           }
         }, true);
+
+        continue;
       }
+
+      break;
     }
   };
   let sawTopLevelDeclaration = false;
   let closedTopLevelDeclarationSection = false;
 
+  // A leading run of Local declarations is not, by itself, a 0x2D declaration
+  // section. Primitive-only fixtures prove that PeopleTools emits no trailing
+  // 0x2D and no 0x2D/0x4F transition for ordinary Local declarations.
+  //
+  // Reference-bearing programs are different: calibrated Record/Field/Rowset/
+  // SQL fixtures place 0x2D 0x4F between the leading Local run and the first
+  // executable statement. We cannot know whether the program has compiled
+  // PSPCMNAME references until parsing has progressed, so remember the chunk
+  // insertion point and decide after the full fragment has been parsed.
+  let leadingLocalRun = true;
+  let pendingReferenceLocalBoundary: number | undefined;
+  const pendingReferenceGroupBoundaries: number[] = [];
+  let haveCompletedTopLevelStatement = false;
+  let sawApplicationClassLocalSection = false;
+  let closedApplicationClassLocalSection = false;
+
   while (true) {
+    const whitespaceStart = pos;
     space();
+    const topLevelWhitespace = source.slice(whitespaceStart, pos);
+    const hasBlankLine = /(?:\r?\n)[ \t]*(?:\r?\n)/.test(topLevelWhitespace);
 
     if (pos === source.length) {
       break;
@@ -1359,7 +1712,50 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
 
     const isFunction = /^Function\b/i.test(source.slice(pos));
-    const isTopLevelDeclaration = /^(?:Global|Component|Constant|Declare\s+Function)\b/i.test(source.slice(pos));
+    const isImport = /^import\b/i.test(source.slice(pos));
+    const isLocalDeclaration = /^Local\b/i.test(source.slice(pos));
+    const isApplicationClassLocal =
+      /^Local\s+[A-Za-z_][A-Za-z0-9_]*\s*:\s*[A-Za-z_][A-Za-z0-9_]*\b/i.test(
+        source.slice(pos)
+      );
+    const isTopLevelDeclaration =
+      isImport ||
+      /^(?:Global|Component|Constant|Declare\s+Function)\b/i.test(source.slice(pos));
+
+    if (
+      haveCompletedTopLevelStatement &&
+      hasBlankLine &&
+      !leadingLocalRun &&
+      !isTopLevelDeclaration
+    ) {
+      pendingReferenceGroupBoundaries.push(chunks.length);
+    }
+
+    if (leadingLocalRun) {
+      if (isLocalDeclaration) {
+        // Keep consuming the initial Local declaration run.
+      } else {
+        // This is the first non-Local statement. If the completed program
+        // turns out to contain real compiled references, PeopleTools inserts
+        // 0x2D 0x4F at this exact boundary.
+        if (!isTopLevelDeclaration && pendingReferenceLocalBoundary === undefined) {
+          pendingReferenceLocalBoundary = chunks.length;
+        }
+        leadingLocalRun = false;
+      }
+    }
+
+    // An application-class Local starts a Local declaration section. The
+    // section may contain following ordinary Local declarations and closes
+    // only when the run ends (or at EOF), matching the full fixture.
+    if (
+      !isLocalDeclaration &&
+      sawApplicationClassLocalSection &&
+      !closedApplicationClassLocalSection
+    ) {
+      chunks.push(Buffer.from([0x2d]));
+      closedApplicationClassLocalSection = true;
+    }
 
     // Calibrated top-level declaration transition:
     //
@@ -1395,9 +1791,63 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     pos++;
     chunks.push(fixed(';'));
 
-    if (isTopLevelDeclaration) {
+    if (isImport) {
+      // Import is its own declaration section.
+      chunks.push(Buffer.from([0x2d]));
+
+      // Import is classified as a top-level declaration only to prevent the
+      // generic leading-Local transition logic from firing before it.
+      // Its section has already been closed explicitly.
+      closedTopLevelDeclarationSection = true;
+    } else if (isApplicationClassLocal) {
+      sawApplicationClassLocalSection = true;
+    } else if (isTopLevelDeclaration) {
       sawTopLevelDeclaration = true;
     }
+
+    haveCompletedTopLevelStatement = true;
+  }
+
+  // The implicit owner placeholder alone does not count as a compiled
+  // reference. A bound/inferred owner or any additional PSPCMNAME row does.
+  const hasCompiledReferences =
+    references.length > 1 ||
+    references[0]?.recordName !== undefined ||
+    references[0]?.fieldName !== undefined;
+
+  if (hasCompiledReferences) {
+    const insertions: Array<{ index: number; bytes: Buffer[] }> = [];
+
+    if (pendingReferenceLocalBoundary !== undefined) {
+      insertions.push({
+        index: pendingReferenceLocalBoundary,
+        bytes: [Buffer.from([0x2d]), Buffer.from([0x4f])]
+      });
+    }
+
+    for (const index of pendingReferenceGroupBoundaries) {
+      // Do not duplicate the 0x4F already supplied by the leading-Local
+      // reference boundary at the same source boundary.
+      if (index !== pendingReferenceLocalBoundary) {
+        insertions.push({
+          index,
+          bytes: [Buffer.from([0x4f])]
+        });
+      }
+    }
+
+    // Insert from the end so earlier chunk indexes remain stable.
+    insertions.sort((a, b) => b.index - a.index);
+    for (const insertion of insertions) {
+      chunks.splice(insertion.index, 0, ...insertion.bytes);
+    }
+  }
+
+  if (
+    sawApplicationClassLocalSection &&
+    !closedApplicationClassLocalSection
+  ) {
+    chunks.push(Buffer.from([0x2d]));
   }
 
   if (sawTopLevelDeclaration && !closedTopLevelDeclarationSection) {
@@ -1414,6 +1864,303 @@ export function encodeFragment(source: string): Buffer {
   return encodeFragmentInternal(source).bytes;
 }
 
+
+
+interface ApplicationClassProgramMetadata {
+  importedPath: string[];
+  className: string;
+  methodName: string;
+  parameterName: string;
+  parameterType: string;
+  returnType: string;
+  signatureComments: string[];
+  localVariableName: string;
+  localClassPath: string[];
+  createClassPath: string[];
+  callMethodName: string;
+  callArgument: string;
+  returnValue: string;
+}
+
+function encodeInlineName(value: string): Buffer {
+  return textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, value);
+}
+
+function encodeKeywordText(value: string): Buffer {
+  return textOperand(0x40, TokenKind.Keyword, value);
+}
+
+function encodeStringLiteral(value: string): Buffer {
+  return textOperand(0x16, TokenKind.StringLiteral, value);
+}
+
+function encodeVariableName(value: string): Buffer {
+  return textOperand(0x01, TokenKind.Name, value);
+}
+
+function encodeApplicationClassPathBytes(path: string[]): Buffer {
+  const chunks: Buffer[] = [];
+
+  path.forEach((component, index) => {
+    if (index > 0) {
+      chunks.push(Buffer.from([0x57]));
+    }
+    chunks.push(encodeInlineName(component));
+  });
+
+  return Buffer.concat(chunks);
+}
+
+/**
+ * Calibrated Application Package / Application Class subset.
+ *
+ * This deliberately recognizes only the source shape captured from
+ * PeopleTools.  It is separate from ordinary Record/Field event PeopleCode:
+ * the captured Application Class program produced only its owner PSPCMNAME
+ * row and did not produce PACKAGE rows for import/create/method invocation.
+ */
+function parseApplicationClassProgram(
+  source: string
+): ApplicationClassProgramMetadata | undefined {
+  if (!/^\s*import\b/i.test(source) || !/\bclass\b/i.test(source)) {
+    return undefined;
+  }
+
+  const importMatch =
+    /^\s*import\s+([A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)+)\s*;/i.exec(
+      source
+    );
+  if (!importMatch) {
+    throw new UnsupportedPeopleCodeError(
+      0,
+      'unsupported Application Class import'
+    );
+  }
+
+  const classMatch =
+    /\bclass\s+([A-Za-z_][A-Za-z0-9_]*)\s+method\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*(&[A-Za-z_][A-Za-z0-9_]*)\s+As\s+([A-Za-z_][A-Za-z0-9_]*)\s*\)\s+Returns\s+([A-Za-z_][A-Za-z0-9_]*)\s*;\s*end-class\s*;/i.exec(
+      source
+    );
+  if (!classMatch) {
+    throw new UnsupportedPeopleCodeError(
+      0,
+      'unsupported Application Class declaration'
+    );
+  }
+
+  const implementationMatch =
+    /\bmethod\s+([A-Za-z_][A-Za-z0-9_]*)\s*((?:\/\+[\s\S]*?\+\/\s*)+)([\s\S]*?)\bend-method\s*;/i.exec(
+      source.slice((classMatch.index ?? 0) + classMatch[0].length)
+    );
+  if (!implementationMatch) {
+    throw new UnsupportedPeopleCodeError(
+      0,
+      'unsupported Application Class method implementation'
+    );
+  }
+
+  if (implementationMatch[1].toLowerCase() !== classMatch[2].toLowerCase()) {
+    throw new UnsupportedPeopleCodeError(
+      0,
+      'Application Class method declaration/implementation name mismatch'
+    );
+  }
+
+  const signatureComments = [
+    ...implementationMatch[2].matchAll(/\/\+\s*([\s\S]*?)\s*\+\//g)
+  ].map(match => match[1].trim());
+
+  const body = implementationMatch[3];
+
+  const localMatch =
+    /\bLocal\s+([A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)+)\s+(&[A-Za-z_][A-Za-z0-9_]*)\s*;/i.exec(
+      body
+    );
+  const createMatch =
+    /(&[A-Za-z_][A-Za-z0-9_]*)\s*=\s*create\s+([A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)+)\s*\(\s*\)\s*;/i.exec(
+      body
+    );
+  const callMatch =
+    /(&[A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*"([^"]*)"\s*\)\s*;/i.exec(
+      body
+    );
+  const returnMatch =
+    /\bReturn\s+"([^"]*)"\s*(?:;)?/i.exec(body);
+
+  if (!localMatch || !createMatch || !callMatch || !returnMatch) {
+    throw new UnsupportedPeopleCodeError(
+      0,
+      'unsupported Application Class method body'
+    );
+  }
+
+  if (
+    localMatch[2].toLowerCase() !== createMatch[1].toLowerCase() ||
+    localMatch[2].toLowerCase() !== callMatch[1].toLowerCase()
+  ) {
+    throw new UnsupportedPeopleCodeError(
+      0,
+      'Application Class receiver variable mismatch'
+    );
+  }
+
+  return {
+    importedPath: importMatch[1].split(':'),
+    className: classMatch[1],
+    methodName: classMatch[2],
+    parameterName: classMatch[3],
+    parameterType: classMatch[4],
+    returnType: classMatch[5],
+    signatureComments,
+    localVariableName: localMatch[2],
+    localClassPath: localMatch[1].split(':'),
+    createClassPath: createMatch[2].split(':'),
+    callMethodName: callMatch[2],
+    callArgument: callMatch[3],
+    returnValue: returnMatch[1]
+  };
+}
+
+function encodeApplicationClassExecutable(
+  metadata: ApplicationClassProgramMetadata
+): Buffer {
+  const c: Buffer[] = [];
+
+  // import A:B:C;  => 58 path 15 2D 4F
+  c.push(Buffer.from([0x58]));
+  c.push(encodeApplicationClassPathBytes(metadata.importedPath));
+  c.push(Buffer.from([0x15, 0x2d, 0x4f]));
+
+  // class TestClass
+  c.push(Buffer.from([0x5a]));
+  c.push(encodeInlineName(metadata.className));
+
+  // method TestMethod(&input As string) Returns string;
+  c.push(Buffer.from([0x63]));
+  c.push(encodeInlineName(metadata.methodName));
+  c.push(Buffer.from([0x0b]));
+  c.push(encodeVariableName(metadata.parameterName));
+  c.push(Buffer.from([0x35]));
+  c.push(encodeKeywordText(metadata.parameterType));
+  c.push(Buffer.from([0x14, 0x39]));
+  c.push(encodeKeywordText(metadata.returnType));
+  c.push(Buffer.from([0x15]));
+
+  // end-class;
+  c.push(Buffer.from([0x5b, 0x15, 0x2d, 0x4f]));
+
+  // method implementation header
+  c.push(Buffer.from([0x63, 0x41]));
+  c.push(encodeInlineName(metadata.methodName));
+  c.push(Buffer.from([0x2d]));
+
+  // /+ ... +/ compiler signature records
+  for (const comment of metadata.signatureComments) {
+    c.push(textOperand(0x6d, TokenKind.Comment, comment));
+  }
+  c.push(Buffer.from([0x4f]));
+
+  // Local A:B:C &obj;
+  c.push(Buffer.from([0x44]));
+  c.push(encodeApplicationClassPathBytes(metadata.localClassPath));
+  c.push(encodeVariableName(metadata.localVariableName));
+  c.push(Buffer.from([0x15, 0x4f]));
+
+  // &obj = create A:B:C();
+  c.push(encodeVariableName(metadata.localVariableName));
+  c.push(Buffer.from([0x06, 0x69]));
+  c.push(encodeApplicationClassPathBytes(metadata.createClassPath));
+  c.push(Buffer.from([0x0b, 0x14, 0x15, 0x4f]));
+
+  // &obj.TestMethod("Input");
+  c.push(encodeVariableName(metadata.localVariableName));
+  c.push(Buffer.from([0x05]));
+  c.push(encodeInlineName(metadata.callMethodName));
+  c.push(Buffer.from([0x0b]));
+  c.push(encodeStringLiteral(metadata.callArgument));
+  c.push(Buffer.from([0x14, 0x15, 0x4f]));
+
+  // Return "Hi" + calibrated Application Class method terminator structure.
+  c.push(Buffer.from([0x38]));
+  c.push(encodeStringLiteral(metadata.returnValue));
+  c.push(Buffer.from([0x64, 0x15, 0x2d]));
+
+  return Buffer.concat(c);
+}
+
+function encodeApplicationClassMetadata(
+  metadata: ApplicationClassProgramMetadata
+): Buffer {
+  // Captured trailer begins with owning class path WITHOUT intermediate
+  // subpackages from the imported/created dependency:
+  //   OU_CORPUS:TestClass\0
+  // followed by TestMethod\0.
+  const ownerPackage = metadata.importedPath[0];
+  const ownerName = `${ownerPackage}:${metadata.className}`;
+
+  const strings = Buffer.concat([
+    Buffer.from(ownerName + '\0', 'utf16le'),
+    Buffer.from(metadata.methodName + '\0', 'utf16le')
+  ]);
+
+  // Calibrated trailer for one String parameter / String return Application
+  // Class method. Keep this narrow until additional signatures are captured.
+  if (
+    metadata.parameterType.toLowerCase() !== 'string' ||
+    metadata.returnType.toLowerCase() !== 'string'
+  ) {
+    throw new UnsupportedPeopleCodeError(
+      0,
+      'Application Class metadata currently calibrated only for String -> String methods'
+    );
+  }
+
+  const tail = Buffer.from(
+    '00000000000000000000400007000000140000000000000001000000010000000100000007000000',
+    'hex'
+  );
+
+  return Buffer.concat([strings, tail]);
+}
+
+function encodeApplicationClassProgram(
+  metadata: ApplicationClassProgramMetadata
+): Buffer {
+  const statements = encodeApplicationClassExecutable(metadata);
+  const trailer = encodeApplicationClassMetadata(metadata);
+
+  const ownerName =
+    `${metadata.importedPath[0]}:${metadata.className}\0`;
+  const methodName = `${metadata.methodName}\0`;
+
+  // Captured Application Class header:
+  //   @5  executable length including final 0x07
+  //   @13 combined UTF-16LE owner-name + method-name byte length
+  //   @21 2
+  //   @29 2
+  //   @33 0x85
+  const header = Buffer.alloc(37);
+  header[0] = 0xa0;
+  header.writeUInt32LE(0, 1);
+  header.writeUInt32LE(statements.length + 1, 5);
+  header.writeUInt32LE(0, 9);
+  header.writeUInt32LE(
+    Buffer.byteLength(ownerName + methodName, 'utf16le'),
+    13
+  );
+  header.writeUInt32LE(0, 17);
+  header.writeUInt32LE(2, 21);
+  header.writeUInt32LE(0, 25);
+  header.writeUInt32LE(2, 29);
+  header.writeUInt32LE(0x85, 33);
+
+  return Buffer.concat([
+    header,
+    statements,
+    Buffer.from([PROGRAM_DIRECTORY_SEPARATOR]),
+    trailer
+  ]);
+}
 
 function parseFunctionMetadata(source: string): FunctionMetadata | undefined {
   const functionMatch =
@@ -1470,6 +2217,15 @@ function parseFunctionMetadata(source: string): FunctionMetadata | undefined {
  * validation; provider saves remain disabled.
  */
 export function encodeProgramArtifacts(source: string, context?: EncodeProgramContext): EncodedPeopleCode {
+  const applicationClassMetadata = parseApplicationClassProgram(source);
+
+  if (applicationClassMetadata !== undefined) {
+    return {
+      program: encodeApplicationClassProgram(applicationClassMetadata),
+      references: []
+    };
+  }
+
   const functionMetadata = parseFunctionMetadata(source);
   const encoded = encodeFragmentInternal(source, context);
   const statements = encoded.bytes;

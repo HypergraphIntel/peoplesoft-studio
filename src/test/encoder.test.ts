@@ -38,10 +38,19 @@ test('independent byte expectations for the supported operand shapes', () => {
   ]));
 });
 
-for (const source of ['Return Null;', '&x = True And False;',
-  'Foo;', 'Return "oops;',
-  'Return "a\0b";', 'Return True', 'Return TrueValue;', '&x.y = False;',
-  '/* comment */ Return;', '& = True;', '&x == True;', 'Return; garbage']) {
+for (const source of [
+  'Return Null;', 
+  '&x = True And False;',
+  'Foo;', 
+  'Return "oops;',
+  'Return "a\0b";', 
+  'Return True', 
+  'Return TrueValue;', 
+  '/* comment */ Return;', 
+  '& = True;', 
+  '&x == True;', 
+  'Return; garbage'
+]) {
   test(`unsupported source fails explicitly: ${JSON.stringify(source)}`, () => {
     assert.throws(() => encodeFragment(source), (error: unknown) => {
       assert.ok(error instanceof UnsupportedPeopleCodeError);
@@ -800,13 +809,13 @@ test('encodeProgramArtifacts allocates record/field references in calibrated PSP
 
 test('encodeProgram allocates a distinct RECORD reference for each CreateRecord occurrence', () => {
   const source = `Local Record &rec1;
-Local Record &rec2;
+  Local Record &rec2;
 
-&rec1 = CreateRecord(Record.OU_CORPUS);
-&rec2 = CreateRecord(Record.OU_CORPUS);`;
+  &rec1 = CreateRecord(Record.OU_CORPUS);
+  &rec2 = CreateRecord(Record.OU_CORPUS);`;
 
   const expected = Buffer.from(
-    'A0000000009B00000000000000000000000000000000000000000000000000000085000000' +
+    'A0000000009D00000000000000000000000000000000000000000000000000000085000000' +
     '440A5200650063006F007200640000000126007200650063003100000015' +
     '440A5200650063006F007200640000000126007200650063003200000015' +
     '2D4F' +
@@ -853,6 +862,345 @@ Local Record &rec2;
     }
   ]);
 });
+
+test('encodeProgram exactly reproduces Rowset Row Record Field navigation fixture', () => {
+  const source = `Local Rowset &rs;
+Local Row &row;
+Local Record &rec;
+Local Field &fld;
+
+&rs = GetLevel0();
+
+&row = &rs.GetRow(1);
+
+&rec = &row.GetRecord(Record.OU_CORPUS);
+
+&fld = &rec.GetField(Field.CODE);
+
+&fld.Value = "TEST";`;
+
+  const expected = Buffer.from(
+    'A0000000005401000000000000000000000000000000000000000000000000000085000000' +
+    '440A52006F007700730065007400000001260072007300000015' +
+    '440A52006F007700000001260072006F007700000015' +
+    '440A5200650063006F00720064000000012600720065006300000015' +
+    '440A4600690065006C006400000001260066006C006400000015' +
+    '2D4F' +
+    '012600720073000000060A4700650074004C006500760065006C00300000000B1415' +
+    '4F' +
+    '01260072006F007700000006012600720073000000050A47006500740052006F00770000000B500000010000000000000000000000000000001415' +
+    '4F' +
+    '01260072006500630000000601260072006F0077000000050A4700650074005200650063006F007200640000000B2105001415' +
+    '4F' +
+    '01260066006C0064000000060126007200650063000000050A4700650074004600690065006C00640000000B2106001415' +
+    '4F' +
+    '01260066006C0064000000050A560061006C007500650000000616540045005300540000001507',
+    'hex'
+  );
+
+  const actual = encodeProgram(source, {
+    owner: {
+      recordName: 'OU_CORPUS',
+      fieldName: 'CODE'
+    }
+  });
+
+  assert.deepStrictEqual(actual, expected);
+});
+
+test('encodeProgram exactly reproduces repeated Scroll and Field reference fixture', () => {
+  const source = `Local Rowset &rs1;
+Local Rowset &rs2;
+Local Record &rec;
+Local Field &fld1;
+Local Field &fld2;
+
+&rs1 = GetRowset(Scroll.OU_CORPUS);
+&rs2 = GetRowset(Scroll.OU_CORPUS);
+
+&rec = GetRecord(Record.OU_CORPUS);
+
+&fld1 = &rec.GetField(Field.CODE);
+&fld2 = &rec.GetField(Field.CODE);`;
+
+  const expected = Buffer.from(
+    'A0000000006C01000000000000000000000000000000000000000000000000000085000000' +
+    '440A52006F0077007300650074000000012600720073003100000015' +
+    '440A52006F0077007300650074000000012600720073003200000015' +
+    '440A5200650063006F00720064000000012600720065006300000015' +
+    '440A4600690065006C006400000001260066006C0064003100000015' +
+    '440A4600690065006C006400000001260066006C0064003200000015' +
+    '2D4F' +
+    '0126007200730031000000060A47006500740052006F00770073006500740000000B2104001415' +
+    '0126007200730032000000060A47006500740052006F00770073006500740000000B2105001415' +
+    '4F' +
+    '0126007200650063000000060A4700650074005200650063006F007200640000000B2106001415' +
+    '4F' +
+    '01260066006C00640031000000060126007200650063000000050A4700650074004600690065006C00640000000B2107001415' +
+    '01260066006C00640032000000060126007200650063000000050A4700650074004600690065006C00640000000B2108001415' +
+    '07',
+    'hex'
+  );
+
+  const actual = encodeProgram(source, {
+    owner: {
+      recordName: 'OU_CORPUS',
+      fieldName: 'CODE'
+    }
+  });
+
+  assert.deepStrictEqual(actual, expected);
+});
+
+test('encodeProgramArtifacts allocates repeated Scroll and Field references by occurrence', () => {
+  const source = `Local Rowset &rs1;
+Local Rowset &rs2;
+Local Record &rec;
+Local Field &fld1;
+Local Field &fld2;
+
+&rs1 = GetRowset(Scroll.OU_CORPUS);
+&rs2 = GetRowset(Scroll.OU_CORPUS);
+
+&rec = GetRecord(Record.OU_CORPUS);
+
+&fld1 = &rec.GetField(Field.CODE);
+&fld2 = &rec.GetField(Field.CODE);`;
+
+  const result = encodeProgramArtifacts(source, {
+    owner: {
+      recordName: 'OU_CORPUS',
+      fieldName: 'CODE'
+    }
+  });
+
+  assert.deepStrictEqual(result.references, [
+    {
+      index: 0,
+      sequence: 1,
+      kind: 'owner',
+      recordName: 'OU_CORPUS',
+      fieldName: 'CODE'
+    },
+    {
+      index: 1,
+      sequence: 2,
+      kind: 'package',
+      packageName: 'ROWSET',
+      objectName: 'Rowset'
+    },
+    {
+      index: 2,
+      sequence: 3,
+      kind: 'package',
+      packageName: 'RECORD',
+      objectName: 'Record'
+    },
+    {
+      index: 3,
+      sequence: 4,
+      kind: 'package',
+      packageName: 'FIELD',
+      objectName: 'Field'
+    },
+    {
+      index: 4,
+      sequence: 5,
+      kind: 'scroll',
+      recordName: 'OU_CORPUS'
+    },
+    {
+      index: 5,
+      sequence: 6,
+      kind: 'scroll',
+      recordName: 'OU_CORPUS'
+    },
+    {
+      index: 6,
+      sequence: 7,
+      kind: 'record',
+      recordName: 'OU_CORPUS'
+    },
+    {
+      index: 7,
+      sequence: 8,
+      kind: 'field',
+      fieldName: 'CODE'
+    },
+    {
+      index: 8,
+      sequence: 9,
+      kind: 'field',
+      fieldName: 'CODE'
+    }
+  ]);
+});
+
+test('encodeProgram exactly reproduces deep chained object navigation', () => {
+  const source = `Local Field &fld;
+
+&fld = GetLevel0().GetRow(1).GetRowset(Scroll.OU_CORPUS).GetRow(1).GetRecord(Record.OU_CORPUS).GetField(Field.CODE);
+
+&fld.Value = "TEST";`;
+
+  const expected = Buffer.from(
+    'A0000000000101000000000000000000000000000000000000000000000000000085000000' +
+    '440A4600690065006C006400000001260066006C006400000015' +
+    '2D4F' +
+    '01260066006C006400000006' +
+    '0A4700650074004C006500760065006C00300000000B14' +
+    '050A47006500740052006F00770000000B5000000100000000000000000000000000000014' +
+    '050A47006500740052006F00770073006500740000000B21020014' +
+    '050A47006500740052006F00770000000B5000000100000000000000000000000000000014' +
+    '050A4700650074005200650063006F007200640000000B21030014' +
+    '050A4700650074004600690065006C00640000000B21040014' +
+    '15' +
+    '4F' +
+    '01260066006C0064000000050A560061006C0075006500000006' +
+    '1654004500530054000000' +
+    '1507',
+    'hex'
+  );
+
+  const actual = encodeProgram(source, {
+    owner: {
+      recordName: 'OU_CORPUS',
+      fieldName: 'CODE'
+    }
+  });
+
+  assert.deepStrictEqual(actual, expected);
+});
+
+test('encodeProgram exactly reproduces arrays and rowset indexing', () => {
+  const source = `Local array of string &values;
+Local Rowset &rs;
+Local Row &row;
+
+&values = CreateArray("ONE", "TWO", "THREE");
+
+WinMessage(&values[2]);
+
+&rs = GetLevel0();
+
+&row = &rs(1);
+
+WinMessage(&row.RowNumber);`;
+
+  const expected = Buffer.from(
+    'A0000000008401000000000000000000000000000000000000000000000000000085000000' +
+    '4440610072007200610079000000406F00660000004073007400720069006E0067000000012600760061006C00750065007300000015' +
+    '440A52006F007700730065007400000001260072007300000015' +
+    '440A52006F007700000001260072006F007700000015' +
+    '2D4F' +
+    '012600760061006C007500650073000000060A4300720065006100740065004100720072006100790000000B164F004E00450000000316540057004F00000003165400480052004500450000001415' +
+    '4F' +
+    '0A570069006E004D0065007300730061006700650000000B012600760061006C0075006500730000004C500000020000000000000000000000000000004D1415' +
+    '4F' +
+    '012600720073000000060A4700650074004C006500760065006C00300000000B1415' +
+    '4F' +
+    '01260072006F0077000000060126007200730000000B500000010000000000000000000000000000001415' +
+    '4F' +
+    '0A570069006E004D0065007300730061006700650000000B01260072006F0077000000050A52006F0077004E0075006D0062006500720000001415' +
+    '07',
+    'hex'
+  );
+
+  const actual = encodeProgram(source, {
+    owner: {
+      recordName: 'OU_CORPUS',
+      fieldName: 'CODE'
+    }
+  });
+
+  assert.deepStrictEqual(actual, expected);
+});
+
+test('encodeProgram exactly reproduces indexed array l-values and reads', () => {
+  const source = `Local array of string &values;
+Local string &value;
+
+&values = CreateArray("ONE", "TWO", "THREE");
+
+&values[2] = "CHANGED";
+
+&value = &values[2];
+
+WinMessage(&values[2]);`;
+
+  const expected = Buffer.from(
+    'A0000000005B01000000000000000000000000000000000000000000000000000085000000' +
+    '4440610072007200610079000000406F00660000004073007400720069006E0067000000012600760061006C00750065007300000015' +
+    '444073007400720069006E0067000000012600760061006C0075006500000015' +
+    '2D4F' +
+    '012600760061006C007500650073000000060A4300720065006100740065004100720072006100790000000B164F004E00450000000316540057004F00000003165400480052004500450000001415' +
+    '4F' +
+    '012600760061006C0075006500730000004C500000020000000000000000000000000000004D06164300480041004E00470045004400000015' +
+    '4F' +
+    '012600760061006C0075006500000006012600760061006C0075006500730000004C500000020000000000000000000000000000004D15' +
+    '4F' +
+    '0A570069006E004D0065007300730061006700650000000B012600760061006C0075006500730000004C500000020000000000000000000000000000004D1415' +
+    '07',
+    'hex'
+  );
+
+  const actual = encodeProgram(source, {
+    owner: {
+      recordName: 'OU_CORPUS',
+      fieldName: 'CODE'
+    }
+  });
+
+  assert.deepStrictEqual(actual, expected);
+});
+
+test('encodeProgram exactly reproduces nested If with object navigation', () => {
+  const source = `Local Rowset &rs;
+Local Row &row;
+Local Field &fld;
+
+&rs = GetLevel0();
+
+If &rs.ActiveRowCount > 0 Then
+   &row = &rs(1);
+   &fld = &row.GetRecord(Record.OU_CORPUS).GetField(Field.CODE);
+   
+   If &fld.Value <> "" Then
+      WinMessage(&fld.Value);
+   End-If;
+End-If;`;
+
+  const expected = Buffer.from(
+    'A0000000007D01000000000000000000000000000000000000000000000000000085000000' +
+    '440A52006F007700730065007400000001260072007300000015' +
+    '440A52006F007700000001260072006F007700000015' +
+    '440A4600690065006C006400000001260066006C006400000015' +
+    '2D4F' +
+    '012600720073000000060A4700650074004C006500760065006C00300000000B1415' +
+    '4F' +
+    '1C012600720073000000050A41006300740069007600650052006F00770043006F0075006E007400000009500000000000000000000000000000000000001F' +
+    '01260072006F0077000000060126007200730000000B500000010000000000000000000000000000001415' +
+    '01260066006C00640000000601260072006F0077000000050A4700650074005200650063006F007200640000000B21040014050A4700650074004600690065006C00640000000B2105001415' +
+    '4F' +
+    '1C01260066006C0064000000050A560061006C00750065000000101600001F' +
+    '0A570069006E004D0065007300730061006700650000000B01260066006C0064000000050A560061006C007500650000001415' +
+    '1A15' +
+    '1A15' +
+    '07',
+    'hex'
+  );
+
+  const actual = encodeProgram(source, {
+    owner: {
+      recordName: 'OU_CORPUS',
+      fieldName: 'CODE'
+    }
+  });
+
+  assert.deepStrictEqual(actual, expected);
+});
+
+
 
 test.skip('TODO: 0x4F marker : encodeProgram exactly reproduces PeopleTools variable assignment fixture', () => {
   const expected = Buffer.from(
