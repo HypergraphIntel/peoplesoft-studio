@@ -14,29 +14,24 @@
   ],
   "icon": "./resources/ad-slash.png",
   "activationEvents": [
-    "onFileSystem:psft"
+    "onFileSystem:psft",
+    "onView:psft.connections",
+    "onView:psft.projects",
+    "onView:psft.browser"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "languages": [
       {
         "id": "psft-peoplecode",
-        "aliases": [
-          "PeopleCode (PeopleSoft Studio)"
-        ],
-        "extensions": [
-          ".peoplecode"
-        ],
+        "aliases": ["PeopleCode (PeopleSoft Studio)"],
+        "extensions": [".peoplecode"],
         "configuration": "./language-configuration.json"
       },
       {
         "id": "psft-sql",
-        "aliases": [
-          "PeopleSoft SQL (PeopleSoft Studio)"
-        ],
-        "extensions": [
-          ".pssql"
-        ],
+        "aliases": ["PeopleSoft SQL (PeopleSoft Studio)"],
+        "extensions": [".pssql"],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -45,6 +40,11 @@
         "language": "psft-peoplecode",
         "scopeName": "source.psft.peoplecode",
         "path": "./syntaxes/peoplecode.tmLanguage.json"
+      },
+      {
+        "language": "psft-sql",
+        "scopeName": "source.psft.sql",
+        "path": "./syntaxes/sql.tmLanguage.json"
       }
     ],
     "viewsContainers": {
@@ -210,7 +210,7 @@
       {
         "language": "psft-peoplecode",
         "path": "./snippets/peoplecode.json"
-      }  
+      }
     ],
     "menus": {
       "view/title": [
@@ -270,14 +270,13 @@
         },
         {
           "command": "psft.compareDefinition",
-          "when": "resourceScheme == psft && resourceLangId == psft-peoplecode",
-          "group": "navigation@3"
+          "when": "viewItem == definition"
         }
       ],
       "editor/title": [
         {
           "command": "psft.peoplecode.validate",
-          "when": "resourceScheme == psft && resourceLangId == psft-peoplecode",
+          "when": "resourceScheme == psft && (resourceLangId == psft-peoplecode || resourceLangId == psft-sql)",
           "group": "navigation@1"
         },
         {
