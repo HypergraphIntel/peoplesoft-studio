@@ -63,6 +63,11 @@ const EVALUATE_STYLE = F.NEWLINE_BEFORE | F.SPACE_AFTER | F.INCREASE_INDENT;
 // body is one more indented -- decrease back to Evaluate's level before the
 // keyword, then increase again for what follows it.
 const WHEN_STYLE = F.DECREASE_INDENT | NEWLINE_BEFORE_SPACE_AFTER | F.INCREASE_INDENT;
+const WHEN_OTHER_STYLE =
+  F.DECREASE_INDENT |
+  F.NEWLINE_BEFORE |
+  F.NEWLINE_AFTER |
+  F.INCREASE_INDENT;
 const TRY_STYLE = F.NEWLINE_BEFORE | F.NEWLINE_AFTER | F.INCREASE_INDENT;
 // `catch` is followed by `Exception &e` on the same line, unlike `try`/
 // `end-try` -- SPACE_AFTER, not NEWLINE_AFTER. DECREASE_INDENT is applied
@@ -88,7 +93,7 @@ export const OPCODES = new Map<number, OpcodeSpec>([
   [0x1a, { kind: TokenKind.Keyword, text: 'End-If', format: ENDBLOCK_STYLE }],
   [0x2c, { kind: TokenKind.Keyword, text: 'End-For', format: ENDBLOCK_STYLE }],
   [0x3c, { kind: TokenKind.Keyword, text: 'Evaluate', format: EVALUATE_STYLE }],
-  [0x3e, { kind: TokenKind.Keyword, text: 'When-Other', format: WHEN_STYLE }],
+  [0x3e, { kind: TokenKind.Keyword, text: 'When-Other', format: WHEN_OTHER_STYLE }],
   [0x3f, { kind: TokenKind.Keyword, text: 'End-Evaluate', format: ENDBLOCK_STYLE }],
   [0x15, { kind: TokenKind.Punctuation, text: ';', format: F.SEMICOLON | F.NEWLINE_AFTER | F.NO_SPACE_BEFORE }],
   [0x07, { kind: TokenKind.Keyword, text: '', format: SPACE_BOTH }],
