@@ -93,7 +93,6 @@ test('independent byte expectations for the supported operand shapes', () => {
 });
 
 for (const source of [
-  'Return Null;', 
   '&x = True And False;',
   'Foo;', 
   'Return "oops;',

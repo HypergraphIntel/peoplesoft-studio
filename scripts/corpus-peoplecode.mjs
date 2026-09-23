@@ -34,7 +34,7 @@ const KEY_COUNT = 7;
 
 function parseArgs(argv) {
   const args = {
-    limit: 10,
+    limit: undefined,
     offset: 0,
     verbose: false
   };
@@ -70,7 +70,10 @@ Options:
     }
   }
 
-  if (!Number.isInteger(args.limit) || args.limit < 1) {
+  if (
+    args.limit !== undefined &&
+    (!Number.isInteger(args.limit) || args.limit < 1)
+  ) {
     throw new Error('--limit must be a positive integer');
   }
 
@@ -242,6 +245,19 @@ async function lobToString(value) {
 async function discoverDefinitions(connection, args) {
   const columns = keyColumnNames().join(',\n          ');
 
+  const binds = {
+    offset: args.offset
+  };
+
+  if (args.limit !== undefined) {
+    binds.endRow = args.offset + args.limit;
+  }
+
+  const rowLimitClause =
+    args.limit !== undefined
+      ? 'AND rn <= :endRow'
+      : '';
+
   const sql = `
     SELECT *
     FROM (
@@ -257,16 +273,13 @@ async function discoverDefinitions(connection, args) {
       )
     )
     WHERE RN > :offset
-      AND RN <= :endRow
+      ${rowLimitClause}
     ORDER BY RN
   `;
 
   const result = await connection.execute(
     sql,
-    {
-      offset: args.offset,
-      endRow: args.offset + args.limit
-    },
+    binds,
     {
       outFormat: oracledb.OUT_FORMAT_OBJECT
     }
