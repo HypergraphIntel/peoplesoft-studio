@@ -613,6 +613,7 @@ const QUOTED_REFERENCE_QUALIFIERS = new Map<string, string>([
   ['MENUNAME', 'MenuName'],
   ['BARNAME', 'BarName'],
   ['ITEMNAME', 'ItemName'],
+  ['MESSAGE', 'Message'],
   ['PAGE', 'Page'],
   ['BUSPROCESS', 'BusProcess'],
   ['BUSACTIVITY', 'BusActivity'],
@@ -630,6 +631,36 @@ const QUOTED_REFERENCE_QUALIFIERS = new Map<string, string>([
   // FED_TAX_DATA) Then` -- this program's only unmapped opcode.
   ['COMPONENT', 'Component']
 ]);
+
+/*
+ * Some PSPCMNAME qualifier categories are also emitted through ordinary
+ * 0x21 references when the source uses the unquoted form:
+ *
+ *   BarName.ABS_CAL_POPUP
+ *   ItemName.ABSENCE_DATA
+ *
+ * PSPCMNAME stores RECNAME uppercase, so normalize only the confirmed
+ * metadata-keyword qualifiers below. RECORD and COMPONENT are intentionally
+ * excluded here because existing decoder fixtures preserve their established
+ * 0x21 spelling and a previous global normalization regressed those tests.
+ */
+function renderBareMetadataReference(resolved: string): string {
+  const dot = resolved.indexOf('.');
+  if (dot <= 0) return resolved;
+
+  const qualifier = resolved.slice(0, dot).toUpperCase();
+
+  if (qualifier === 'RECORD' || qualifier === 'COMPONENT') {
+    return resolved;
+  }
+
+  const display = QUOTED_REFERENCE_QUALIFIERS.get(qualifier);
+  if (display === undefined) {
+    return resolved;
+  }
+
+  return `${display}.${resolved.slice(dot + 1)}`;
+}
 
 /**
  * An Application-Class return/property type (`PKG:Sub:Class`) is not a fixed
@@ -1184,7 +1215,10 @@ export function decodeProgram(
       const resolved = ref !== undefined ? tryResolveName(names, ref.nameNum) : undefined;
       if (ref !== undefined && resolved !== undefined) {
         tokens.push({
-          kind: TokenKind.Name, text: resolved, offset, opcode,
+          kind: TokenKind.Name,
+          text: renderBareMetadataReference(resolved),
+          offset,
+          opcode,
           format: OPERAND_FORMAT.get(opcode) ?? 0
         });
         i = ref.end;
@@ -1260,7 +1294,13 @@ export function decodeProgram(
       // against EOL_PUBLISH.PUBLISH2.GBL.default.1900-01-01.Step30.
       // OnExecute's real `&DELAYREC = CreateRecord(Record.EO_EFFDELAY)`.
       if (ref !== undefined && resolved !== undefined && qualifier === 'RECORD') {
-        tokens.push({ kind: TokenKind.Name, text: resolved, offset, opcode, format: OPERAND_FORMAT.get(0x21) ?? 0 });
+        tokens.push({
+          kind: TokenKind.Name,
+          text: resolved,
+          offset,
+          opcode,
+          format: OPERAND_FORMAT.get(0x21) ?? 0
+        });
         i = ref.end;
         continue;
       }
@@ -1748,16 +1788,77 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
     const t = tokens[tokenIndex];
     const nextToken = tokens[tokenIndex + 1];
     let followsDeclaration = false;
+    let followsCatchHeader = false;
+    let followsWhileHeader = false;
+    let followsForHeader = false;
+    let followsFunctionHeader = false;
+
     if (t.opcode === 0x2d) {
       for (let lookbehind = tokenIndex - 2; lookbehind >= 0; lookbehind--) {
         const previous = tokens[lookbehind];
-        if (previous.opcode === 0x15 || previous.kind === TokenKind.Comment) break;
+
+        if (previous.opcode === 0x15 || previous.kind === TokenKind.Comment) {
+          break;
+        }
+
+        if (previous.opcode === 0x66) {
+          /*
+           * Typed catch headers compile as:
+           *
+           *   66 <type> <variable> 2D 15 <body...>
+           *
+           * The source semicolon belongs to the catch header, so the 0x2D
+           * immediately before 0x15 is a structural boundary rather than a
+           * rendered newline.
+           */
+          followsCatchHeader = true;
+          break;
+        }
+
+        if (previous.opcode === 0x25) {
+          /*
+           * While headers compile as:
+           *
+           *   25 <condition> 2D 15 <body...>
+           *
+           * Keep the explicit semicolon on the While line. The semicolon's
+           * NEWLINE_AFTER then starts the loop body.
+           */
+          followsWhileHeader = true;
+          break;
+        }
+
+        if (previous.opcode === 0x29) {
+          /*
+           * For headers may compile as:
+           *
+           *   29 <init> 2A <limit> 2D 15 <body...>
+           *
+           * Keep the explicit semicolon on the For header line.
+           */
+          followsForHeader = true;
+          break;
+        }
+
+        if (previous.opcode === 0x32) {
+          /*
+           * Function headers may compile as:
+           *
+           *   32 <name> 0B <params> 14 2D 15 <body...>
+           *
+           * Keep the explicit semicolon on the Function header line.
+           */
+          followsFunctionHeader = true;
+          break;
+        }
+
         if (
           previous.opcode === 0x44 ||
           previous.opcode === 0x45 ||
           previous.opcode === 0x54 ||
           previous.opcode === 0x56 ||
-          previous.opcode === 0x31
+          previous.opcode === 0x31 ||
+          previous.opcode === 0x58
         ) {
           followsDeclaration = true;
           break;
@@ -1799,24 +1900,69 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         previousToken?.opcode === 0x15 &&
         tokenBeforePrevious?.opcode === 0x37;
 
-      if (!(
+      const catchHeaderBoundary =
+        t.opcode === 0x2d &&
+        followsCatchHeader &&
+        nextToken?.opcode === 0x15;
+
+      const whileHeaderBoundary =
+        t.opcode === 0x2d &&
+        followsWhileHeader &&
+        nextToken?.opcode === 0x15;
+
+      const forHeaderBoundary =
+        t.opcode === 0x2d &&
+        followsForHeader &&
+        nextToken?.opcode === 0x15;
+
+      const functionHeaderBoundary =
+        t.opcode === 0x2d &&
+        followsFunctionHeader &&
+        nextToken?.opcode === 0x15;
+
+      const redundantStructuralBoundary =
         t.opcode === 0x2d &&
         nextToken?.opcode === 0x4f &&
-        (followsDeclaration || followsEndFunctionTerminator)
+        (followsDeclaration || followsEndFunctionTerminator);
+
+      if (!(
+        catchHeaderBoundary ||
+        whileHeaderBoundary ||
+        forHeaderBoundary ||
+        functionHeaderBoundary ||
+        redundantStructuralBoundary
       )) {
         out.push('\n');
         writeIndent();
       }
     } else if (f & F.NEWLINE_BEFORE) {
-      trimTrailing();
-      // Skip the newline entirely when we're already sitting at the start
-      // of a fresh, empty line -- someone else's NEWLINE_AFTER (or
-      // NEWLINE_ONCE) already got us here. Only the very first token of the
-      // whole program starts genuinely blank (atLineStart is true from
-      // initialisation, not from a prior writeIndent), which this also
-      // correctly leaves alone.
-      if (!atLineStart) out.push('\n');
-      writeIndent();
+      /*
+       * 0x4E is overloaded between standalone and trailing comments.
+       * A bare `; 0x4E` is not enough to call it inline: existing fixtures
+       * require that shape to render on the next line.
+       *
+       * The calibrated inline case in ACCOMPLISHMENTS.EMPLID.SavePostChange
+       * is specifically an End-If statement followed by a trailing block
+       * comment ("record added or updated").
+       *
+       * Suppress NEWLINE_BEFORE only when the token immediately before the
+       * semicolon is End-If.
+       */
+      const inlineCommentAfterEndIf =
+        t.kind === TokenKind.Comment &&
+        t.opcode === 0x4e &&
+        tokens[tokenIndex - 1]?.opcode === 0x15 &&
+        tokens[tokenIndex - 2]?.text === 'End-If';
+
+      if (!inlineCommentAfterEndIf) {
+        trimTrailing();
+
+        // Skip the newline entirely when we're already sitting at the start
+        // of a fresh, empty line -- someone else's NEWLINE_AFTER (or
+        // NEWLINE_ONCE) already got us here.
+        if (!atLineStart) out.push('\n');
+        writeIndent();
+      }
     } else if (
       f & F.SPACE_BEFORE && !(f & F.NO_SPACE_BEFORE) &&
       !atLineStart && lastChar() !== ' ' && !TIGHT_AFTER.has(lastChar())

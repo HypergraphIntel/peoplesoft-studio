@@ -1,8 +1,9 @@
-# PeopleSoft Studio
+# DEVELOPER.md
 
-A VS Code extension for developing PeopleSoft definitions — PeopleCode, records,
-pages, components, App Engine programs and SQL — with the aim of replacing
-Application Designer.
+## Project Overview
+
+`peoplesoft-studio` is a VS Code extension and supporting reverse-engineering toolkit for PeopleSoft PeopleCode.
+
 
 ## Status
 
@@ -100,6 +101,950 @@ otherwise cost a full package-install-reload cycle:
 
 It is not a simulation of VS Code. Anything that needs real editor behaviour —
 opening a definition, editing, saving — is a manual pass.
+
+# DEVELOPING THE ENCODER / DECODER 
+
+A major development area is the PeopleCode binary encoder/decoder:
+
+- `src/peoplecode/encoder.ts`
+- `src/peoplecode/decoder.ts`
+- supporting corpus utilities under `src/peoplecode/corpus/`
+
+The encoder is being calibrated empirically against PeopleTools-compiled PeopleCode stored in:
+
+- `PSPCMTXT`
+- `PSPCMPROG`
+- `PSPCMNAME`
+
+The database corpus is the authority for binary behavior.
+
+The primary goal is not merely syntactically valid PeopleCode. The goal is:
+
+> Given original `PSPCMTXT`, produce `PSPCMPROG` that is byte-for-byte identical to PeopleTools output whenever enough information is recoverable.
+
+---
+
+# Core Development Principle
+
+Every encoder change must preserve all previously proven corpus behavior.
+
+Do not solve one corpus object by introducing a broader rule unless the broader behavior is supported by evidence.
+
+Prefer:
+
+```text
+specific proven rule
+```
+
+over:
+
+```text
+generalized assumption
+```
+
+A fix is not accepted because the target object passes.
+
+A fix is accepted only when:
+
+```text
+target improves
+AND
+no previously EXACT object regresses
+```
+
+---
+
+# Validation Hierarchy
+
+The corpus harness uses several levels of correctness.
+
+## 1. Source -> Binary Exact
+
+```text
+PSPCMTXT
+   ↓
+encoder
+   ↓
+generated PSPCMPROG
+   ↓
+compare with stored PSPCMPROG
+```
+
+This is the strongest encoder validation.
+
+Expected result:
+
+```text
+source→bin EXACT
+```
+
+---
+
+## 2. Semantic Round Trip Exact
+
+```text
+stored PSPCMPROG
+   ↓
+decoder
+   ↓
+PeopleCode
+   ↓
+encoder
+   ↓
+generated PSPCMPROG
+```
+
+Expected result:
+
+```text
+roundtrip EXACT
+```
+
+This proves that the decoder produced source that preserves compiled semantics.
+
+---
+
+## 3. Source Match
+
+```text
+stored PSPCMPROG
+   ↓
+decoder
+   ↓
+decoded PeopleCode
+   ↓
+normalized comparison against PSPCMTXT
+```
+
+Expected result:
+
+```text
+decode SOURCE MATCH
+```
+
+Literal formatting differences may still exist because PSPCMPROG does not preserve every source formatting decision.
+
+Examples of potentially unrecoverable formatting include:
+
+- indentation width
+- some capitalization choices
+- editor formatting
+- continuation alignment
+
+Therefore:
+
+```text
+binary exactness > literal source formatting
+```
+
+for encoder calibration.
+
+---
+
+# Corpus Harness
+
+Regression infrastructure is located under:
+
+```text
+tools/corpus/
+```
+
+Current structure:
+
+```text
+tools/corpus/
+├── baseline.ts
+├── classifications.ts
+├── cli.ts
+├── corpus-runner.ts
+├── discovery.ts
+├── failures.ts
+├── inventory.ts
+├── reporter.ts
+├── schema.sql
+├── validator.ts
+├── baselines/
+└── reports/
+```
+
+The SQLite inventory database is:
+
+```text
+tools/corpus/corpus-results.sqlite
+```
+
+It should not be committed.
+
+The accepted regression baseline is:
+
+```text
+tools/corpus/baselines/hcdev.json
+```
+
+That file should be committed.
+
+---
+
+# Current Protected Baseline
+
+The initial protected regression corpus contains:
+
+```text
+430 definitions
+430 EXACT
+0 failures
+```
+
+This baseline must never regress.
+
+Any change that causes:
+
+```text
+EXACT -> anything else
+```
+
+is a regression and must be treated as a failed change.
+
+---
+
+# Package Commands
+
+The legacy corpus scanner remains available:
+
+```bash
+npm run corpus
+```
+
+Do not assume this is limited. Without explicit arguments it may scan the full available corpus.
+
+The new regression harness is:
+
+```bash
+npm run corpus:harness
+```
+
+Targeted example:
+
+```bash
+npm run corpus:harness -- --offset 23 --limit 1 --verbose
+```
+
+Protected 430-object regression run:
+
+```bash
+npm run corpus:harness -- --limit 430
+```
+
+Create/update the accepted baseline:
+
+```bash
+npm run corpus:baseline -- --limit 430
+```
+
+Verify against the accepted baseline:
+
+```bash
+npm run corpus:verify -- --limit 430
+```
+
+Show current non-EXACT inventory:
+
+```bash
+npm run corpus:failures
+```
+
+Summary only:
+
+```bash
+npm run corpus:failures -- --summary
+```
+
+Filter by classification:
+
+```bash
+npm run corpus:failures -- --classification ENCODE_ERROR
+```
+
+Filter by construct:
+
+```bash
+npm run corpus:failures -- --construct EOF
+```
+
+Verbose failure detail:
+
+```bash
+npm run corpus:failures -- --verbose
+```
+
+---
+
+# Required Workflow for Encoder Changes
+
+Use this sequence for every corpus-driven fix.
+
+## Step 1: Reproduce One Object
+
+Run the smallest possible target:
+
+```bash
+npm run corpus:harness -- --offset <N> --limit 1 --verbose
+```
+
+Do not begin with the full corpus unless necessary.
+
+---
+
+## Step 2: Identify the Failure Class
+
+Typical classes include:
+
+```text
+ENCODE_ERROR
+DECODE_ERROR
+DECODE_SOURCE_MISMATCH
+SOURCE_BODY_MISMATCH
+SOURCE_REFERENCE_MISMATCH
+ROUNDTRIP_ERROR
+ROUNDTRIP_BODY_MISMATCH
+ROUNDTRIP_REFERENCE_MISMATCH
+UNKNOWN_MISMATCH
+EXACT
+```
+
+Determine whether the problem is:
+
+- grammar
+- opcode structure
+- terminator handling
+- whitespace/blank-line tokenization
+- comment tokenization
+- reference allocation
+- PSPCMNAME reuse/provenance
+- decoder rendering
+
+Do not patch the decoder to compensate for an encoder bug.
+
+Do not patch the encoder to compensate for a decoder-only formatting issue.
+
+---
+
+## Step 3: Make the Narrowest Possible Change
+
+Prefer context-sensitive rules.
+
+Examples:
+
+```text
+top-level assignment at EOF
+```
+
+instead of:
+
+```text
+all statements at EOF
+```
+
+Prefer:
+
+```text
+Record.REC.FIELD explicit chain reuse
+```
+
+instead of:
+
+```text
+all Record.REC references reuse
+```
+
+Prefer:
+
+```text
+Function-local Application Class receiver rule
+```
+
+instead of changing all Application Class method allocation.
+
+---
+
+## Step 4: Re-run Only the Target
+
+```bash
+npm run corpus:harness -- --offset <N> --limit 1
+```
+
+The target should become:
+
+```text
+EXACT
+```
+
+---
+
+## Step 5: Run the Regression Gate
+
+```bash
+npm run corpus:verify -- --limit 430
+```
+
+The change is acceptable only if:
+
+```text
+REGRESSION GATE: PASS
+```
+
+and no protected object moves away from `EXACT`.
+
+---
+
+## Step 6: Update Baseline Only After Intentional Improvement
+
+If the protected set is intentionally expanded or a previously non-EXACT object becomes exact with no regressions:
+
+```bash
+npm run corpus:baseline -- --limit <protected-count>
+```
+
+Do not update the baseline merely to hide a regression.
+
+---
+
+# Full Corpus Strategy
+
+The PeopleSoft environment contains more than 30,000 PeopleCode definitions.
+
+The full-corpus process is:
+
+```text
+discover all definitions
+        ↓
+validate each definition
+        ↓
+persist result in SQLite
+        ↓
+inventory non-EXACT definitions
+        ↓
+group failures by classification / construct
+        ↓
+fix one failure family
+        ↓
+retest affected objects
+        ↓
+run protected regression baseline
+        ↓
+promote proven improvements
+```
+
+Do not work the full corpus strictly by sequential offset.
+
+Prefer grouping by failure family.
+
+Example:
+
+```text
+ENCODE_ERROR / unsupported <*      137
+ENCODE_ERROR / expected ;           82
+REFERENCE_MISMATCH / GetRecord      61
+REFERENCE_MISMATCH / AppClass       43
+```
+
+A single grammar/provenance fix may resolve many objects.
+
+---
+
+# Failure Inventory
+
+The failure inventory is stored in SQLite for every completed run.
+
+Use:
+
+```bash
+npm run corpus:failures -- --summary
+```
+
+to see grouped failure families.
+
+Use:
+
+```bash
+npm run corpus:failures
+```
+
+to see individual non-EXACT definitions.
+
+Use:
+
+```bash
+npm run corpus:failures -- --classification ENCODE_ERROR
+```
+
+to work a specific class.
+
+This inventory is the development backlog for compiler calibration.
+
+---
+
+# SQLite Rules
+
+The SQLite file is local state:
+
+```text
+tools/corpus/corpus-results.sqlite
+```
+
+It stores:
+
+- corpus runs
+- definition identity
+- per-run validation result
+- classification
+- first binary mismatch
+- failure construct
+- error message
+- source/program sizes
+- hashes
+- stored/generated diff windows
+
+Do not commit the SQLite database.
+
+The committed baseline JSON is the portable regression contract.
+
+---
+
+# Definition Identity
+
+Do not identify PeopleCode objects only by a simplified display name.
+
+PeopleSoft definitions may use up to seven object key pairs:
+
+```text
+OBJECTID1 / OBJECTVALUE1
+...
+OBJECTID7 / OBJECTVALUE7
+```
+
+These full keys must be preserved.
+
+Human-readable display names such as:
+
+```text
+1=AA_SUMM_JPN_VW, 2=EMPLID, 12=SavePostChange
+```
+
+are for diagnostics only.
+
+The full seven-part identity is the durable key.
+
+---
+
+# PSPCMNAME Is Part of the Compiler Contract
+
+Many apparent binary failures are actually reference-allocation failures.
+
+Examples:
+
+```text
+stored:    21 11 00
+generated: 21 07 00
+```
+
+This usually means the generated program selected the wrong PSPCMNAME entry.
+
+When debugging, distinguish:
+
+```text
+opcode/body mismatch
+```
+
+from:
+
+```text
+reference/provenance mismatch
+```
+
+Important concepts include:
+
+- RECORD reference occurrence
+- FIELD reference reuse
+- control group
+- Local Record provenance
+- Row shorthand provenance
+- CreateRecord target-variable provenance
+- GetRecord reuse
+- Application Class runtime dependency
+- Application Class method dependency
+- declaration phase vs executable phase
+- Function-local receiver provenance
+
+Do not collapse these into a global same-name cache.
+
+---
+
+# Proven Engineering Rule: Never Delete Calibrated Logic Casually
+
+Compiler reverse-engineering accumulates behavior in helpers that may appear redundant.
+
+A TypeScript warning such as:
+
+```text
+TS6133: function is declared but never read
+```
+
+does not automatically mean the implementation is safe to delete.
+
+Before removing code:
+
+1. determine why it became unused;
+2. determine whether a newer path bypassed previously calibrated behavior;
+3. route the new behavior through the established helper when possible;
+4. run the regression gate.
+
+A recent example was `recordReference()`.
+
+Removing it eliminated roughly 100 lines of calibrated Record provenance logic.
+
+The correct fix was to preserve the helper and layer the new explicit-chain behavior on top.
+
+---
+
+# Important Encoder Design Pattern
+
+When introducing a new behavior, prefer an explicit option or mode on an established helper.
+
+Example pattern:
+
+```ts
+recordReference({
+  explicitChainReuse: true
+});
+```
+
+rather than replacing all record-reference behavior globally.
+
+This keeps old proven contexts intact while enabling the new calibrated context.
+
+---
+
+# Control-Group Sensitivity
+
+Many PeopleTools dependency/reuse behaviors are control-group-sensitive.
+
+Do not assume a dependency can be reused globally because its name matches.
+
+Several reference caches use keys conceptually shaped like:
+
+```text
+controlGroup:recordName
+```
+
+or:
+
+```text
+controlGroup:variableName:fieldName
+```
+
+or:
+
+```text
+controlGroup:targetVariable:recordName
+```
+
+Only broaden reuse when the corpus proves it.
+
+---
+
+# EOF Semicolon Handling
+
+PeopleCode has context-sensitive cases where final statements may omit a source semicolon.
+
+Known proven cases include:
+
+```text
+top-level If at EOF
+top-level Evaluate at EOF
+top-level assignment at EOF
+```
+
+Do not generalize this to all statements.
+
+For example:
+
+```peoplecode
+Return True
+```
+
+without a semicolon must still be rejected unless corpus evidence proves otherwise.
+
+---
+
+# Comment Handling
+
+Comment forms are not interchangeable.
+
+Known comment encodings include:
+
+```text
+/* ... */
+```
+
+and opaque disabled PeopleCode blocks:
+
+```peoplecode
+<*
+   disabled PeopleCode
+*>
+```
+
+Disabled code blocks compile as one opaque token and must not be parsed internally as active PeopleCode.
+
+Preserve comment opcode distinctions when round-tripping.
+
+---
+
+# Blank-Line Preservation
+
+PeopleTools stores some blank-line structure as explicit opcodes.
+
+Do not collapse all whitespace blindly.
+
+Examples include:
+
+```text
+0x4F
+```
+
+markers in specific declaration/control-body contexts.
+
+Multiple blank lines may require multiple markers.
+
+Always calibrate whitespace behavior from stored PSPCMPROG.
+
+---
+
+# Application Class Provenance
+
+Application Class references require special treatment.
+
+Different dependency rows may exist for:
+
+- import
+- runtime `create`
+- method invocation
+
+These are not always interchangeable.
+
+Behavior may differ depending on whether the instance is:
+
+- declaration phase
+- late top-level executable phase
+- Function-local
+
+Do not globally reuse a runtime-create dependency for every method call.
+
+---
+
+# Source Formatting vs Binary Semantics
+
+The decoder cannot always recover exact original formatting.
+
+Do not introduce broad decoder changes merely to make rendered text look more like one PSPCMTXT sample.
+
+Examples of formatting that may not be reconstructable:
+
+- three-space vs two-space indentation
+- some qualifier capitalization
+- line wrapping
+- continuation alignment
+
+Prefer narrow casing/rendering fixes only when strongly supported.
+
+---
+
+# Do Not Globally Normalize Qualifier Casing
+
+Broad normalization has already caused regressions.
+
+For example, do not blindly convert all:
+
+```text
+RECORD
+FIELD
+SCROLL
+COMPONENT
+```
+
+references to a preferred display case.
+
+Use narrow mappings only when evidence supports them.
+
+Binary round-trip correctness has priority.
+
+---
+
+# Database Access
+
+Corpus scanning is read-only.
+
+Connection settings are supplied through:
+
+```text
+PS_CONNECT_STRING
+PS_USER
+PS_PASSWORD
+```
+
+The harness should not modify PeopleSoft tables.
+
+Relevant tables:
+
+```text
+SYSADM.PSPCMTXT
+SYSADM.PSPCMPROG
+SYSADM.PSPCMNAME
+```
+
+---
+
+# Performance
+
+The current capture path performs separate Oracle queries for:
+
+- PSPCMTXT
+- PSPCMPROG
+- PSPCMNAME
+
+per definition.
+
+This is acceptable for calibration runs and small regression sets.
+
+Before large repeated 30,000+ definition scans, consider batching/fetch optimization.
+
+Do not optimize the query path at the expense of result correctness.
+
+Establish result parity first.
+
+---
+
+# Progress Reporting
+
+For small corpus runs, progress should be visible frequently.
+
+For large corpus runs, reporting should eventually include:
+
+```text
+processed / total
+percentage
+EXACT count
+failure count
+definitions per second
+ETA
+```
+
+Do not interpret a silent console as proof the harness is hung if processing is still active.
+
+---
+
+# Regression Baseline Policy
+
+The baseline is a one-way quality ratchet.
+
+If the accepted baseline contains:
+
+```text
+430 EXACT
+```
+
+then future accepted states must contain those same 430 definitions as `EXACT`.
+
+New objects may initially fail.
+
+Existing protected objects may not regress.
+
+A net increase in total `EXACT` does not excuse a regression.
+
+Example:
+
+```text
++4 newly EXACT
+-1 previously EXACT
+```
+
+must still fail the regression gate.
+
+---
+
+# Before Committing Encoder Changes
+
+Run:
+
+```bash
+npm run corpus:verify -- --limit 430
+```
+
+and the normal project test/build commands.
+
+At minimum:
+
+```bash
+tsc -p .
+```
+
+must succeed.
+
+Do not accept compiler changes with TypeScript errors or corpus regressions.
+
+---
+
+# Development Priorities
+
+When working through the full inventory, prioritize roughly in this order:
+
+1. `ENCODE_ERROR`
+2. repeatable grammar families
+3. reference/provenance mismatches
+4. body/opcode mismatches
+5. decoder semantic mismatches
+6. literal source rendering differences
+
+The objective is maximum compiler coverage with minimum regression risk.
+
+---
+
+# Debugging Checklist
+
+When a new corpus case fails:
+
+```text
+1. Is decode SOURCE MATCH?
+2. Is source→bin an ERROR or MISMATCH?
+3. Is roundtrip exact?
+4. What is the first differing byte?
+5. Is the mismatch before or after the 37-byte header?
+6. Does the mismatch contain a 0x21 reference operand?
+7. Which PSPCMNAME row does stored use?
+8. Which PSPCMNAME row does generated use?
+9. Is the problem allocation, reuse, or grammar?
+10. What earlier calibrated rule could this change affect?
+```
+
+Do not patch until the failure mode is understood.
+
+---
+
+# Philosophy
+
+This project is effectively building a behavioral specification of PeopleTools' PeopleCode compiler from observed artifacts.
+
+Treat every successful corpus object as a test vector.
+
+Treat every newly proven rule as part of the compiler specification.
+
+Treat every `EXACT` result as protected behavior.
+
+The corpus is not just test data.
+
+It is the executable specification.
+
 
 ## Coexisting with other PeopleSoft extensions
 
