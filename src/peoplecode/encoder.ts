@@ -614,6 +614,33 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   reservedCallNames.delete('value');
   const fail = (detail: string): never => { throw new UnsupportedPeopleCodeError(pos, detail); };
   const space = () => { while (pos < source.length && /\s/.test(source[pos])) pos++; };
+  const blockComment = (): Buffer => {
+    if (!source.startsWith('/*', pos)) {
+      return fail('expected block comment');
+    }
+
+    const end = source.indexOf('*/', pos + 2);
+
+    if (end < 0) {
+      return fail('unterminated block comment');
+    }
+
+    const text = source.slice(pos, end + 2);
+    const payload = Buffer.from(text, 'utf16le');
+
+    if (payload.length > 0xffff) {
+      return fail('block comment exceeds uint16 byte-length field');
+    }
+
+    const header = Buffer.alloc(3);
+    header[0] = 0x24;
+    header.writeUInt16LE(payload.length, 1);
+
+    pos = end + 2;
+
+    return Buffer.concat([header, payload]);
+  };
+  
   const word = (value: string): boolean => {
     const tail = source.slice(pos);
     if (!tail.toLowerCase().startsWith(value.toLowerCase()) || /[A-Za-z0-9_$#]/.test(tail[value.length] ?? '')) return false;
@@ -1300,10 +1327,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         fail('expected Else or End-If');
       }
 
-      // Calibrated reference-bearing nested If fixture: a blank line between
-      // statements inside an If body emits the same 0x4F source-group
-      // boundary observed at top level. Defer insertion until the full
-      // program proves it has compiled PSPCMNAME references.
       if (hasBlankLine) {
         pendingReferenceGroupBoundaries.push(chunks.length);
       }
@@ -1694,6 +1717,19 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     if (pos === source.length) {
       break;
+    }
+
+    if (source.startsWith('/*', pos)) {
+      if (haveCompletedTopLevelStatement && hasBlankLine) {
+        chunks.push(Buffer.from([0x4f]));
+      }
+
+      do {
+        chunks.push(blockComment());
+        space();
+      } while (source.startsWith('/*', pos));
+
+      continue;
     }
 
     if (source[pos] === ';') {

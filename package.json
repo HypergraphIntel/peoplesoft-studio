@@ -374,7 +374,8 @@
     "vscode:prepublish": "npm run compile",
     "package": "npm run verify && vsce package --out peoplesoft-studio.vsix",
     "verify": "npm run compile && npm test && npm run smoke",
-    "dev": "npm run package && code --install-extension peoplesoft-studio.vsix --force"
+    "dev": "npm run package && code --install-extension peoplesoft-studio.vsix --force",
+    "corpus": "tsc -p . && node scripts/corpus-peoplecode.mjs"
   },
   "dependencies": {
     "oracledb": "^6.6.0"
