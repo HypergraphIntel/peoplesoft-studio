@@ -35,7 +35,8 @@ const KEY_COUNT = 7;
 function parseArgs(argv) {
   const args = {
     limit: 10,
-    offset: 0
+    offset: 0,
+    verbose: false
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -46,6 +47,10 @@ function parseArgs(argv) {
 
       case '--offset':
         args.offset = Number.parseInt(argv[++i], 10);
+        break;
+
+      case '--verbose':
+        args.verbose = true;
         break;
 
       case '--help':
@@ -446,6 +451,18 @@ function errorSourceOffset(error) {
 }
 
 function validateDefinition(capture) {
+
+  const encodeContext = {
+    owner: {
+      recordName: String(
+        capture.key.OBJECTVALUE1 ?? ''
+      ).trim(),
+      fieldName: String(
+        capture.key.OBJECTVALUE2 ?? ''
+      ).trim()
+    }
+  };
+
   const decode = {
     success: false
   };
@@ -464,12 +481,32 @@ function validateDefinition(capture) {
    * PSPCMTXT -> encoder -> PSPCMPROG
    */
   try {
-    const encoded = encodeProgram(capture.source);
+    const encoded = encodeProgram(
+      capture.source,
+      encodeContext
+    );
 
     const diff = compareBuffers(
       capture.program,
       encoded
     );
+
+    // Diagnostic only: compare the statement streams after
+    // the 37-byte PSPCMPROG header.
+    const bodyDiff = compareBuffers(
+      capture.program.subarray(37),
+      encoded.subarray(37)
+    );
+
+    if (!bodyDiff.exact) {
+      diff.bodyFirstDifference =
+        bodyDiff.firstDifference === undefined
+          ? undefined
+          : bodyDiff.firstDifference + 37;
+
+      diff.bodyExpectedWindow = bodyDiff.expectedWindow;
+      diff.bodyActualWindow = bodyDiff.actualWindow;
+    }
 
     sourceEncode.success = true;
     sourceEncode.exactProgramMatch = diff.exact;
@@ -503,17 +540,40 @@ function validateDefinition(capture) {
    * Application Class owner detection comes later.
    */
   let decodedSource;
+  let decodedCommentOpcodes;
 
   try {
+    const names = new NameTable();
+
+    for (const row of capture.names) {
+      const recname = String(row.RECNAME ?? '').trim();
+      const refname = String(row.REFNAME ?? '').trim();
+
+      let name;
+
+      if (recname && refname) {
+        name = `${recname}.${refname}`;
+      } else if (refname) {
+        name = refname;
+      } else {
+        name = recname;
+      }
+
+      names.add(row.NAMENUM, name);
+    }
+
     const decoded = decodeProgram(
       capture.program,
-      new NameTable(),
+      names,
       {
         mode: 'auto'
       }
     );
 
     decodedSource = decoded.text;
+    decodedCommentOpcodes = decoded.tokens
+      .map(token => token.opcode)
+      .filter(opcode => opcode === 0x24 || opcode === 0x4e);
 
     decode.success = true;
     decode.decodedSource = decodedSource;
@@ -536,12 +596,63 @@ function validateDefinition(capture) {
    */
   if (decodedSource !== undefined) {
     try {
-      const encoded = encodeProgram(decodedSource);
+      const encoded = encodeProgram(
+        decodedSource,
+        {
+          ...encodeContext,
+          commentOpcodes: decodedCommentOpcodes
+        }
+      );
 
       const diff = compareBuffers(
         capture.program,
         encoded
       );
+
+      // Diagnostic comparison excluding the 36-byte PSPCMPROG header.
+      // The normal full-buffer comparison above remains authoritative.
+      const bodyDiff = compareBuffers(
+        capture.program.subarray(37),
+        encoded.subarray(37)
+      );
+
+      if (!bodyDiff.exact) {
+        console.log(
+          `  RT BODY DIFF @ ${bodyDiff.firstDifference}`
+        );
+
+        if (bodyDiff.expectedWindow) {
+          console.log(
+            `  stored body ${bodyDiff.expectedWindow}`
+          );
+        }
+
+        if (bodyDiff.actualWindow) {
+          console.log(
+            `  gen body    ${bodyDiff.actualWindow}`
+          );
+        }
+      }
+
+      if (!bodyDiff.exact) {
+        diff.bodyFirstDifference =
+          bodyDiff.firstDifference === undefined
+            ? undefined
+            : bodyDiff.firstDifference + 37;
+
+        diff.bodyExpectedWindow = bodyDiff.expectedWindow;
+        diff.bodyActualWindow = bodyDiff.actualWindow;
+      }
+
+      if (!bodyDiff.exact) {
+        diff.bodyFirstDifference =
+          bodyDiff.firstDifference === undefined
+            ? undefined
+            : bodyDiff.firstDifference + 36;
+
+        diff.bodyExpectedWindow = bodyDiff.expectedWindow;
+        diff.bodyActualWindow = bodyDiff.actualWindow;
+      }
 
       semanticRoundTrip.success = true;
       semanticRoundTrip.exactProgramMatch = diff.exact;
@@ -661,6 +772,24 @@ function printDefinition(index, total, capture, validation) {
           `  gen bin    ${diff.actualWindow}`
         );
       }
+
+      if (diff.bodyFirstDifference !== undefined) {
+        console.log(
+          `  body diff  @ ${diff.bodyFirstDifference}`
+        );
+
+        if (diff.bodyExpectedWindow) {
+          console.log(
+            `  stored body ${diff.bodyExpectedWindow}`
+          );
+        }
+
+        if (diff.bodyActualWindow) {
+          console.log(
+            `  gen body    ${diff.bodyActualWindow}`
+          );
+        }
+      }
     }
     if (validation.sourceEncode.errorContext) {
       console.log(
@@ -719,12 +848,41 @@ function printDefinition(index, total, capture, validation) {
     console.log(
       `  result     ${validation.classification}`
     );
+ 
+    if (globalThis.__corpusVerbose) {
+      console.log('');
+      console.log('  ----- VERBOSE SOURCE -----');
+      console.log(capture.source);
+
+      console.log('  ----- VERBOSE PSPCMPROG HEX -----');
+      console.log(
+        capture.program
+          .toString('hex')
+          .match(/.{1,2}/g)
+          ?.join(' ') ?? ''
+      );
+
+      console.log('  ----- VERBOSE DECODED SOURCE -----');
+      console.log(
+        validation.decode.decodedSource ??
+        `decode unavailable: ${validation.decode.error ?? 'unknown error'}`
+      );
+
+      console.log('  ----- PSPCMNAME -----');
+      console.dir(capture.names, {
+        depth: null,
+        colors: false,
+        maxArrayLength: null
+      });
+    }
   }
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const config = getConnectionConfig();
+
+  globalThis.__corpusVerbose = args.verbose;
 
   console.log('PeopleCode Corpus Inventory');
   console.log('---------------------------');
