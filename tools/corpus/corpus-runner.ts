@@ -39,6 +39,12 @@ export interface CorpusRunOptions
   compareBaseline?: boolean;
   failed?: boolean;
   traceRefs?: boolean;
+
+  /**
+   * Stable local SQLite definition identity. Resolved to the stored
+   * seven-part PeopleSoft key before Oracle access.
+   */
+  definitionId?: number;
 }
 
 function currentGitCommit():
@@ -102,9 +108,11 @@ export async function runCorpus(
     );
     console.log(
       `Mode:     ${
-        options.failed
-          ? 'FAILED WORK QUEUE'
-          : 'DISCOVERY'
+        options.definitionId !== undefined
+          ? 'DEFINITION ID'
+          : options.failed
+            ? 'FAILED WORK QUEUE'
+            : 'DISCOVERY'
       }`
     );
     console.log(
@@ -125,7 +133,36 @@ export async function runCorpus(
     let definitions:
       CorpusDefinition[];
 
-    if (options.failed) {
+    if (
+      options.definitionId !== undefined
+    ) {
+      const definition =
+        inventory.definitionById(
+          options.definitionId
+        );
+
+      if (!definition) {
+        throw new Error(
+          `Definition ID ${options.definitionId} was not found in the corpus inventory.`
+        );
+      }
+
+      definitions = [
+        definition
+      ];
+
+      console.log(
+        `Definition ID: ${options.definitionId}`
+      );
+
+      console.log(
+        `Current offset: ${definition.offset}`
+      );
+
+      console.log(
+        definition.displayName
+      );
+    } else if (options.failed) {
       definitions =
         inventory
           .currentNonExactDefinitions({
@@ -174,7 +211,10 @@ export async function runCorpus(
       );
 
     if (
-      options.failed &&
+      (
+        options.failed ||
+        options.definitionId !== undefined
+      ) &&
       definitions.length > 0
     ) {
       connection =

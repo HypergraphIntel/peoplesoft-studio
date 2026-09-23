@@ -10,6 +10,7 @@ dist-test/
 /scripts/OU_WEBLIBS_JN
 
 
+/tools/corpus/baselines/*
 /tools/corpus/corpus-results.sqlite
 /tools/corpus/corpus-results.sqlite-shm
 /tools/corpus/corpus-results.sqlite-wal

@@ -400,6 +400,121 @@ export class CorpusInventory {
   }
 
   /**
+   * Resolve a stable local definition_id to the authoritative seven-part
+   * PeopleSoft key stored in the inventory.
+   */
+  public definitionById(
+    definitionId: number
+  ): CorpusDefinition | undefined {
+    const row =
+      this.db.prepare(`
+        SELECT
+          d.definition_id AS definition_id,
+          d.display_name AS display_name,
+
+          d.objectid1 AS objectid1,
+          d.objectvalue1 AS objectvalue1,
+          d.objectid2 AS objectid2,
+          d.objectvalue2 AS objectvalue2,
+          d.objectid3 AS objectid3,
+          d.objectvalue3 AS objectvalue3,
+          d.objectid4 AS objectid4,
+          d.objectvalue4 AS objectvalue4,
+          d.objectid5 AS objectid5,
+          d.objectvalue5 AS objectvalue5,
+          d.objectid6 AS objectid6,
+          d.objectvalue6 AS objectvalue6,
+          d.objectid7 AS objectid7,
+          d.objectvalue7 AS objectvalue7,
+
+          (
+            SELECT r.offset
+              FROM result r
+              JOIN corpus_run cr
+                ON cr.run_id = r.run_id
+               AND cr.completed_at IS NOT NULL
+             WHERE r.definition_id = d.definition_id
+             ORDER BY r.run_id DESC
+             LIMIT 1
+          ) AS offset
+
+        FROM definition d
+        WHERE d.definition_id = ?
+      `).get(
+        definitionId
+      ) as
+        | {
+            definition_id: number;
+            display_name: string;
+            objectid1: number;
+            objectvalue1: string;
+            objectid2: number;
+            objectvalue2: string;
+            objectid3: number;
+            objectvalue3: string;
+            objectid4: number;
+            objectvalue4: string;
+            objectid5: number;
+            objectvalue5: string;
+            objectid6: number;
+            objectvalue6: string;
+            objectid7: number;
+            objectvalue7: string;
+            offset: number | null;
+          }
+        | undefined;
+
+    if (!row) {
+      return undefined;
+    }
+
+    return {
+      offset:
+        row.offset ?? 0,
+
+      displayName:
+        row.display_name,
+
+      key: {
+        objectId1:
+          row.objectid1,
+        objectValue1:
+          row.objectvalue1,
+
+        objectId2:
+          row.objectid2,
+        objectValue2:
+          row.objectvalue2,
+
+        objectId3:
+          row.objectid3,
+        objectValue3:
+          row.objectvalue3,
+
+        objectId4:
+          row.objectid4,
+        objectValue4:
+          row.objectvalue4,
+
+        objectId5:
+          row.objectid5,
+        objectValue5:
+          row.objectvalue5,
+
+        objectId6:
+          row.objectid6,
+        objectValue6:
+          row.objectvalue6,
+
+        objectId7:
+          row.objectid7,
+        objectValue7:
+          row.objectvalue7
+      }
+    };
+  }
+
+  /**
    * Return the global current non-EXACT work queue.
    *
    * limit/offset apply to the work queue, not Oracle discovery.
@@ -602,6 +717,7 @@ export class CorpusInventory {
    */
   public nextFailureDefinition():
     {
+      definitionId: number;
       definition: CorpusDefinition;
       classification: string;
       construct: string | null;
@@ -638,6 +754,7 @@ export class CorpusInventory {
         )
 
         SELECT
+          d.definition_id AS definition_id,
           r.offset AS offset,
           d.display_name AS display_name,
 
@@ -690,6 +807,7 @@ export class CorpusInventory {
         LIMIT 1
       `).get() as
         | {
+            definition_id: number;
             offset: number;
             display_name: string;
             classification: string;
@@ -717,6 +835,9 @@ export class CorpusInventory {
     }
 
     return {
+      definitionId:
+        row.definition_id,
+
       classification:
         row.classification,
       construct:
