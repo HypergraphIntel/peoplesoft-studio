@@ -1747,7 +1747,6 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
   for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
     const t = tokens[tokenIndex];
     const nextToken = tokens[tokenIndex + 1];
-    const tokenAfterNext = tokens[tokenIndex + 2];
     let followsDeclaration = false;
     if (t.opcode === 0x2d) {
       for (let lookbehind = tokenIndex - 2; lookbehind >= 0; lookbehind--) {
@@ -1781,13 +1780,29 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
       // "start this construct on its own line" flag that would otherwise
       // open every program with a spurious blank line.
       trimTrailing();
+      const previousToken = tokens[tokenIndex - 1];
+      const tokenBeforePrevious = tokens[tokenIndex - 2];
+
+      /*
+       * Suppress 0x2D only where another already-rendered structural newline
+       * makes it redundant:
+       *
+       * 1. declaration -> body transitions already covered by
+       *    followsDeclaration; and
+       * 2. End-Function; -> blank line -> Function, whose preceding 0x15
+       *    has already emitted the ordinary line ending.
+       *
+       * Do not suppress the 0x2D in a Function header's 2D 4F 4F sequence;
+       * all three stored line-structure bytes are needed there.
+       */
+      const followsEndFunctionTerminator =
+        previousToken?.opcode === 0x15 &&
+        tokenBeforePrevious?.opcode === 0x37;
+
       if (!(
         t.opcode === 0x2d &&
         nextToken?.opcode === 0x4f &&
-        (
-          tokenAfterNext?.opcode === 0x4f ||
-          followsDeclaration
-        )
+        (followsDeclaration || followsEndFunctionTerminator)
       )) {
         out.push('\n');
         writeIndent();

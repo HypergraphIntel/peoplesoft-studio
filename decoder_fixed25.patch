@@ -1,0 +1,30 @@
+*** Begin Patch
+*** Update File: src/peoplecode/decoder.ts
+@@
+-  const body = out.join('').replace(/\n{3,}/g, '\n\n');
++  /*
++   * Do not collapse repeated newlines here.
++   *
++   * 0x2D and 0x4F are explicit PeopleTools line-structure bytes, and their
++   * multiplicity is semantically relevant to a byte-exact round trip.  In
++   * particular, ABS_HIST_UK_SBR.SMP_MA_ELIG.FieldFormula begins:
++   *
++   *   ... Returns boolean
++   *
++   *
++   *      ABSENCE_HIST.DT_BOOKING_NOTICE...
++   *
++   * with byte structure:
++   *
++   *   2D 4F 4F 21 ...
++   *
++   * The old /\n{3,}/ -> \n\n cleanup collapsed the three rendered newline
++   * characters produced by 2D + 4F + 4F down to two, so re-encoding the
++   * decoded source could only reproduce 2D + 4F.
++   *
++   * The renderer already suppresses redundant structural NEWLINE_BEFORE
++   * emissions when it is at the start of a line.  Explicit newline tokens
++   * therefore need to survive unchanged.
++   */
++  const body = out.join('');
+*** End Patch

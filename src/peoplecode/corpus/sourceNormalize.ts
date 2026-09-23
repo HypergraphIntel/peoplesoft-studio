@@ -88,6 +88,7 @@ export function normalizePeopleCodeSource(source: string): string {
        */
       if (line[i] === ' ' || line[i] === '\t') {
         let whitespaceEnd = i;
+
         while (
           whitespaceEnd < line.length &&
           (line[whitespaceEnd] === ' ' || line[whitespaceEnd] === '\t')
@@ -95,9 +96,22 @@ export function normalizePeopleCodeSource(source: string): string {
           whitespaceEnd++;
         }
 
+        /*
+        * PSPCMPROG does not retain display whitespace immediately before
+        * or after an opening parenthesis.
+        *
+        *   SetReEdit (True)
+        *   SetReEdit( True)
+        *   SetReEdit(True)
+        *
+        * therefore normalize identically.
+        */
         if (
-          line[whitespaceEnd] === '(' &&
-          /[A-Za-z0-9_]/.test(result[result.length - 1] ?? '')
+          (
+            line[whitespaceEnd] === '(' &&
+            /[A-Za-z0-9_]/.test(result[result.length - 1] ?? '')
+          ) ||
+          result.endsWith('(')
         ) {
           i = whitespaceEnd;
           continue;
@@ -111,7 +125,7 @@ export function normalizePeopleCodeSource(source: string): string {
        * comments and string literals.
        */
       const namespaceMatch =
-        /^(Record|Field|Scroll|Component|Page|PanelGroup)\b/i.exec(
+        /^(Record|Field|Scroll|Component|Page|PanelGroup|Panel)\b/i.exec(
           line.slice(i)
         );
 
@@ -148,17 +162,21 @@ export function normalizePeopleCodeSource(source: string): string {
    * statement. Comments in expressions, declarations, or other positions
    * remain untouched.
    */
-  const canonicalLines: string[] = [];
+    const canonicalLines: string[] = [];
 
-  for (const line of compactLines) {
+  for (let lineIndex = 0; lineIndex < compactLines.length; lineIndex++) {
+    const line = compactLines[lineIndex];
+
     let inString = false;
     let inComment = false;
     let commentStart = -1;
+    let commentEnd = -1;
 
     for (let i = 0; i < line.length - 1; i++) {
       if (inComment) {
         if (line[i] === '*' && line[i + 1] === '/') {
           inComment = false;
+          commentEnd = i + 2;
           i++;
         }
         continue;
@@ -183,20 +201,90 @@ export function normalizePeopleCodeSource(source: string): string {
 
       if (line[i] === '/' && line[i + 1] === '*') {
         commentStart = i;
-        break;
+        inComment = true;
+        i++;
       }
     }
 
+    /*
+     * Existing calibrated trailing-comment shape:
+     *
+     *   statement; [block comment]
+     *
+     * canonicalizes to two lines:
+     *
+     *   statement;
+     *   [block comment]
+     */
     if (commentStart >= 0) {
       const beforeComment = line
         .slice(0, commentStart)
         .replace(/[ \t]+$/g, '');
 
-      const comment = line.slice(commentStart);
+      const comment =
+        commentEnd >= 0
+          ? line.slice(commentStart, commentEnd)
+          : line.slice(commentStart);
+
+      const afterComment =
+        commentEnd >= 0
+          ? line.slice(commentEnd).trim()
+          : '';
 
       if (beforeComment.endsWith(';')) {
         canonicalLines.push(beforeComment);
         canonicalLines.push(comment);
+
+        if (afterComment.length !== 0) {
+          canonicalLines.push(afterComment);
+        }
+
+        continue;
+      }
+
+      /*
+       * A 0x4E comment can occur before the statement terminator:
+       *
+       *   statement [block comment];
+       *
+       * Canonicalize it to the same logical representation as the
+       * decoder-rendered form.
+       */
+      if (
+        beforeComment.length !== 0 &&
+        commentEnd >= 0 &&
+        afterComment === ';'
+      ) {
+        canonicalLines.push(`${beforeComment};`);
+        canonicalLines.push(comment);
+        continue;
+      }
+    }
+
+    /*
+     * decodeProgram() may render that same 0x4E construct as:
+     *
+     *   statement
+     *   [block comment]
+     *   ;
+     *
+     * Require exactly a standalone block-comment line followed by a
+     * standalone semicolon so unrelated comments are not moved.
+     */
+    if (
+      lineIndex + 2 < compactLines.length &&
+      !line.trim().endsWith(';')
+    ) {
+      const commentLine = compactLines[lineIndex + 1].trim();
+      const semicolonLine = compactLines[lineIndex + 2].trim();
+
+      if (
+        /^\/\*[\s\S]*\*\/$/.test(commentLine) &&
+        semicolonLine === ';'
+      ) {
+        canonicalLines.push(`${line};`);
+        canonicalLines.push(commentLine);
+        lineIndex += 2;
         continue;
       }
     }
