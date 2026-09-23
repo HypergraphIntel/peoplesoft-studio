@@ -153,6 +153,7 @@ export function sha256(
 
 export interface ValidationOptions {
   traceRefs?: boolean;
+  verbose?: boolean;
 }
 
 function referenceDescription(
@@ -235,6 +236,213 @@ interface InternalValidation {
   };
 
   classification: string;
+}
+
+
+function printVerboseDiagnostics(
+  capture: CapturedDefinition,
+  validation: InternalValidation
+): void {
+  console.log('');
+  console.log('  ----- VERBOSE SOURCE -----');
+  console.log(capture.source);
+
+  console.log('  ----- VERBOSE PSPCMPROG HEX -----');
+  console.log(
+    capture.program
+      .toString('hex')
+      .match(/.{1,2}/g)
+      ?.join(' ') ?? ''
+  );
+
+  console.log('  ----- VERBOSE DECODED SOURCE -----');
+  console.log(
+    validation.decode.decodedSource ??
+    `decode unavailable: ${validation.decode.error ?? 'unknown error'}`
+  );
+
+  console.log('  ----- PSPCMNAME -----');
+  console.dir(capture.names, {
+    depth: null,
+    colors: false,
+    maxArrayLength: null
+  });
+
+  console.log('  ----- VALIDATION DETAIL -----');
+
+  console.log(
+    `  decode    ${
+      validation.decode.success
+        ? validation.decode.normalizedSourceMatch
+          ? 'SOURCE MATCH'
+          : 'SOURCE MISMATCH'
+        : `ERROR: ${validation.decode.error ?? 'unknown error'}`
+    }`
+  );
+
+  console.log(
+    `  source→bin ${
+      validation.sourceEncode.success
+        ? validation.sourceEncode.exactProgramMatch
+          ? 'EXACT'
+          : `MISMATCH @ ${validation.sourceEncode.diff?.firstDifference}`
+        : `ERROR: ${validation.sourceEncode.error ?? 'unknown error'}`
+    }`
+  );
+
+  if (
+    validation.sourceEncode.success &&
+    !validation.sourceEncode.exactProgramMatch &&
+    validation.sourceEncode.diff
+  ) {
+    const diff =
+      validation.sourceEncode.diff;
+
+    console.log(
+      `  bin sizes  stored=${diff.expectedLength} generated=${diff.actualLength}`
+    );
+
+    if (diff.expectedWindow) {
+      console.log(
+        `  stored bin ${diff.expectedWindow}`
+      );
+    }
+
+    if (diff.actualWindow) {
+      console.log(
+        `  gen bin    ${diff.actualWindow}`
+      );
+    }
+
+    if (
+      diff.bodyFirstDifference !== undefined
+    ) {
+      console.log(
+        `  body diff  @ ${diff.bodyFirstDifference}`
+      );
+
+      if (diff.bodyExpectedWindow) {
+        console.log(
+          `  stored body ${diff.bodyExpectedWindow}`
+        );
+      }
+
+      if (diff.bodyActualWindow) {
+        console.log(
+          `  gen body    ${diff.bodyActualWindow}`
+        );
+      }
+    }
+  }
+
+  if (
+    validation.sourceEncode.errorOffset !== undefined
+  ) {
+    console.log(
+      `  source off ${validation.sourceEncode.errorOffset}`
+    );
+  }
+
+  if (
+    validation.sourceEncode.errorContext
+  ) {
+    console.log(
+      `  source ctx ${validation.sourceEncode.errorContext}`
+    );
+  }
+
+  if (
+    validation.sourceEncode.failureConstruct
+  ) {
+    console.log(
+      `  construct  ${validation.sourceEncode.failureConstruct}`
+    );
+  }
+
+  console.log(
+    `  roundtrip ${
+      validation.semanticRoundTrip.success
+        ? validation.semanticRoundTrip.exactProgramMatch
+          ? 'EXACT'
+          : `MISMATCH @ ${validation.semanticRoundTrip.diff?.firstDifference}`
+        : validation.semanticRoundTrip.error
+          ? `ERROR: ${validation.semanticRoundTrip.error}`
+          : 'NOT ATTEMPTED'
+    }`
+  );
+
+  if (
+    validation.semanticRoundTrip.success &&
+    !validation.semanticRoundTrip.exactProgramMatch &&
+    validation.semanticRoundTrip.diff
+  ) {
+    const diff =
+      validation.semanticRoundTrip.diff;
+
+    console.log(
+      `  rt sizes   stored=${diff.expectedLength} generated=${diff.actualLength}`
+    );
+
+    if (diff.expectedWindow) {
+      console.log(
+        `  stored rt  ${diff.expectedWindow}`
+      );
+    }
+
+    if (diff.actualWindow) {
+      console.log(
+        `  gen rt     ${diff.actualWindow}`
+      );
+    }
+
+    if (
+      diff.bodyFirstDifference !== undefined
+    ) {
+      console.log(
+        `  rt body diff @ ${diff.bodyFirstDifference}`
+      );
+
+      if (diff.bodyExpectedWindow) {
+        console.log(
+          `  stored body ${diff.bodyExpectedWindow}`
+        );
+      }
+
+      if (diff.bodyActualWindow) {
+        console.log(
+          `  gen body    ${diff.bodyActualWindow}`
+        );
+      }
+    }
+  }
+
+  if (
+    validation.semanticRoundTrip.errorOffset !== undefined
+  ) {
+    console.log(
+      `  decode off ${validation.semanticRoundTrip.errorOffset}`
+    );
+  }
+
+  if (
+    validation.semanticRoundTrip.errorContext
+  ) {
+    console.log(
+      `  decode ctx ${validation.semanticRoundTrip.errorContext}`
+    );
+  }
+
+  if (
+    validation.semanticRoundTrip.failureConstruct
+  ) {
+    console.log(
+      `  rt construct ${validation.semanticRoundTrip.failureConstruct}`
+    );
+  }
+
+  console.log(
+    `  result     ${validation.classification}`
+  );
 }
 
 function runValidation(
@@ -537,6 +745,13 @@ export async function validateDefinition(
       capture,
       options
     );
+
+  if (options.verbose) {
+    printVerboseDiagnostics(
+      capture,
+      validation
+    );
+  }
 
   const sourceDiff =
     validation.sourceEncode.diff;

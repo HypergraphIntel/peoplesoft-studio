@@ -154,7 +154,7 @@ function encodeFunctionMetadata(
    * Each 16-byte record is:
    *
    *   uint32 nameOffsetUtf16
-   *   uint32 functionOrdinal
+   *   uint32 signatureSlotOffset
    *   uint32 parameterCount
    *   uint32 returnDescriptor
    *
@@ -170,8 +170,18 @@ function encodeFunctionMetadata(
    * nameOffsetUtf16 is measured in UTF-16 code units, including each prior
    * name's NUL terminator.
    *
-   * For a single Function this remains byte-compatible with the previous
-   * calibration because nameOffset=0 and functionOrdinal=0.
+   * signatureSlotOffset is the cumulative number of signature-tail slots
+   * occupied by prior Functions. Each Function contributes one slot per
+   * parameter plus one 0x00000007 terminator slot.
+   *
+   * This was previously mistaken for a zero-based function ordinal because
+   * zero-parameter Function fixtures produce 0, 1, 2, ... in both cases.
+   * DERIVED_CO.FUNCLIB.FieldFormula disambiguates the field: its first
+   * Function has one parameter, so the second directory record stores 2,
+   * not 1.
+   *
+   * For a single Function this remains byte-compatible because the first
+   * signatureSlotOffset is always 0.
    */
   const names = metadata.map(
     item => Buffer.from(item.name + '\0', 'utf16le')
@@ -180,13 +190,14 @@ function encodeFunctionMetadata(
   const directory = Buffer.alloc(metadata.length * 16);
 
   let nameOffsetUtf16 = 0;
+  let signatureSlotOffset = 0;
 
   for (let i = 0; i < metadata.length; i++) {
     const item = metadata[i];
     const offset = i * 16;
 
     directory.writeUInt32LE(nameOffsetUtf16, offset);
-    directory.writeUInt32LE(i, offset + 4);
+    directory.writeUInt32LE(signatureSlotOffset, offset + 4);
     directory.writeUInt32LE(item.parameterTypes.length, offset + 8);
     directory.writeUInt32LE(
       returnTypeDescriptor(item.returnType),
@@ -194,6 +205,7 @@ function encodeFunctionMetadata(
     );
 
     nameOffsetUtf16 += item.name.length + 1;
+    signatureSlotOffset += item.parameterTypes.length + 1;
   }
 
   /*
@@ -344,6 +356,30 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         appClassVariable
       );
 
+      /*
+       * A late top-level Application Class Local, after executable code has
+       * already begun, allocates its own PACKAGE dependency at declaration
+       * time. Declaration-phase App Class Locals retain the existing behavior
+       * and do not allocate here.
+       *
+       * COMPANY_TBL.LOCATION.FieldChange calibrates:
+       *
+       *   Local EO:CA:Address &LocAddress;
+       *
+       * after executable statements as PSPCMNAME PACKAGE sequence 28, before
+       * the following Record.DERIVED_ADDRESS dependency.
+       */
+      if (
+        functionDepth === 0 &&
+        controlDepth === 0 &&
+        sawTopLevelExecutableStatement
+      ) {
+        addApplicationClassReference(
+          appClass.packagePath,
+          appClass.className
+        );
+      }
+
       if (functionDepth > 0) {
         functionApplicationClassVariables.set(
           variableName.toLowerCase(),
@@ -490,10 +526,86 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     chunks.push(fixed('Global'));
 
     space();
+
+    /*
+     * Global declarations may use a fully-qualified Application Class type:
+     *
+     *   Global CO_NAVIGATN:Stack &MyNavStack;
+     *
+     * DERIVED_CO.FUNCLIB.FieldFormula stores the type inline as:
+     *
+     *   45 0A "CO_NAVIGATN" 57 0A "Stack" 01 "&MyNavStack" 15
+     *
+     * The declaration itself does not allocate a PSPCMNAME dependency row.
+     * The runtime create later in the program owns that dependency.
+     */
+    const appClassLookahead =
+      /^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_]*)/.exec(
+        source.slice(pos)
+      );
+
+    if (appClassLookahead) {
+      const appClass = applicationClassPath();
+      chunks.push(appClass.bytes);
+
+      space();
+      chunks.push(variable());
+      return;
+    }
+
     chunks.push(typeName());
 
     space();
     chunks.push(variable());
+
+    while (true) {
+      space();
+
+      if (source[pos] !== ',') {
+        break;
+      }
+
+      pos++;
+      chunks.push(fixed(','));
+
+      space();
+      chunks.push(variable());
+    }
+  };
+
+  const panelGroupDeclaration = () => {
+    /*
+     * PanelGroup declarations use opcode 0x51.
+     *
+     * DERIVED_CO.FUNCLIB.FieldFormula:
+     *   PanelGroup number &NbrHeaders, &NbrGrids;
+     *   PanelGroup string &SortBy;
+     *   PanelGroup boolean &Transfer;
+     *
+     * Stored shape:
+     *   51 40 <type> 01 <var> ...
+     */
+    chunks.push(Buffer.from([0x51]));
+
+    space();
+    chunks.push(typeName());
+
+    space();
+    chunks.push(variable());
+
+    while (true) {
+      space();
+
+      if (source[pos] !== ',') {
+        break;
+      }
+
+      pos++;
+      chunks.push(fixed(','));
+
+      space();
+      chunks.push(variable());
+    }
   };
 
   const componentDeclaration = () => {
@@ -979,6 +1091,19 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   let reuseRecordReferenceWithinControlGroup = false;
   const recordReferencesByControlGroup =
     new Map<string, PeopleCodeReference>();
+
+  /*
+   * Scroll.X is generally occurrence-based, but GetRowset(Scroll.X) has a
+   * narrower reuse rule within a control group.
+   *
+   * DERIVED_CO.FUNCLIB.FieldFormula proves two separate
+   * GetRowset(Scroll.CRSE_SESSN_VW) calls in the same function/control group
+   * both point to the original SCROLL dependency rather than allocating a
+   * second PSPCMNAME row.
+   */
+  let reuseScrollReferenceWithinControlGroup = false;
+  const scrollReferencesByControlGroup =
+    new Map<string, PeopleCodeReference>();
   const ordinaryRecordFieldsByControlGroup = new Map<string, PeopleCodeReference>();
   const currentStatementRecordFields = new Map<string, PeopleCodeReference>();
   const componentReferencesByControlGroup = new Map<string, PeopleCodeReference>();
@@ -1048,6 +1173,23 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   let createRecordAssignmentTarget: string | undefined;
 
   const rowShorthandRecordsByBase = new Map<string, PeopleCodeReference>();
+
+  /*
+   * Row-shorthand RECORD dependencies can also be reused across different
+   * Rowset/Row bases inside the same control group.
+   *
+   * DERIVED_CO.FUNCLIB.FieldFormula proves:
+   *
+   *   &SessionRowset(&j).DERIVED_HR.OPEN_SEATS.Value
+   *   ...
+   *   &CourseRowset(CurrentRowNumber()).DERIVED_HR.SORTBY_COURSE_SESS.Visible
+   *
+   * Both use the same PSPCMNAME RECORD.DERIVED_HR dependency. Keep this pool
+   * separate from explicit Record.X reuse so we do not broaden that behavior
+   * beyond the evidence.
+   */
+  const rowShorthandRecordsByControlGroup =
+    new Map<string, PeopleCodeReference>();
   const recordVariableFields = new Map<string, PeopleCodeReference>();
 
   /*
@@ -1267,7 +1409,31 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     if (!recordName) return fail('expected scroll name after Scroll.');
     pos += recordName.length;
 
-    // Calibrated: SCROLL rows occupy occurrence-specific PSPCMNAME entries.
+    if (reuseScrollReferenceWithinControlGroup) {
+      const key =
+        `${controlGroup}:${recordName.toLowerCase()}`;
+      const existing =
+        scrollReferencesByControlGroup.get(key);
+
+      if (existing !== undefined) {
+        return referenceOperand(existing);
+      }
+
+      const reference = nextReference({
+        kind: 'scroll',
+        recordName
+      });
+
+      scrollReferencesByControlGroup.set(
+        key,
+        reference
+      );
+
+      return referenceOperand(reference);
+    }
+
+    // Outside the calibrated GetRowset() context, preserve the long-standing
+    // occurrence-based SCROLL allocation behavior.
     return referenceOperand(
       nextReference({
         kind: 'scroll',
@@ -2053,6 +2219,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       localDeclaration();
     } else if (word('Global')) {
       globalDeclaration();
+    } else if (word('PanelGroup')) {
+      panelGroupDeclaration();
     } else if (word('Component')) {
       componentDeclaration();
     } else if (word('Constant')) {
@@ -2514,6 +2682,39 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       if (pos === source.length) {
         fail('expected End-Function');
+      }
+
+      /*
+       * A standalone block comment inside an already-entered Function
+       * executable section is a complete body item and does not require a
+       * following 0x15 statement terminator.
+       *
+       * DERIVED_CO.FUNCLIB.FieldFormula calibrates:
+       *
+       *   &HeaderRowset = ...;
+       *
+       *   [standalone block comment: set wording of 'no rows found' message]
+       *   &Rowset(1).DERIVED_HR.NO_RESULTS.Value = ...;
+       *
+       * Stored shape:
+       *
+       *   ... 15 4F 24 <comment> 01 ...
+       *
+       * The generic Function-body path previously sent the comment through
+       * statement() and then incorrectly required ';', producing
+       * "expected ; in Function body".
+       *
+       * This also covers comments that appear immediately after a Function
+       * header when there were no leading Local declarations. Comments after
+       * a leading-Local declaration section remain on the existing path until
+       * separately calibrated.
+       */
+      if (
+        source.startsWith('/*', pos) &&
+        (enteredExecutableSection || !sawLocalDeclaration)
+      ) {
+        chunks.push(blockComment());
+        continue;
       }
 
       // PeopleTools emits one 0x4f when a Function transitions from one or
@@ -3019,18 +3220,70 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     booleanExpression();
 
     space();
+
+    /*
+     * A block comment may appear between an If condition and Then:
+     *
+     *   If &HeaderRowset(&i).Visible = True [inline block comment] Then
+     *
+     * DERIVED_CO.FUNCLIB.FieldFormula stores that comment as 0x4E directly
+     * between the completed condition and the 0x1F Then opcode:
+     *
+     *   ... 06 2F 4E <comment> 1F ...
+     *
+     * decodeProgram() may render the same 0x4E comment on its own line before
+     * Then, so accept either source layout and preserve the inline-comment
+     * representation.
+     */
+    while (source.startsWith('/*', pos)) {
+      chunks.push(inlineBlockComment());
+      space();
+    }
+
     if (!word('Then')) {
       fail('expected Then');
     }
     chunks.push(fixed('Then'));
 
+    /*
+     * A block comment attached directly to Then is encoded as 0x4E, not as
+     * a standalone 0x24 body comment.
+     *
+     * DERIVED_CO.FUNCLIB.FieldFormula:
+     *
+     *   If &NbrSessions = 0 Then [inline block comment]
+     *
+     * Stored shape:
+     *
+     *   ... 1F 4E <comment> ...
+     *
+     * Keep this source-side rule narrow: only horizontal whitespace may occur
+     * between Then and the comment. A comment beginning on a later source line
+     * remains subject to the ordinary If-body comment rules.
+     */
     const afterThen = pos;
+    let afterThenScan = pos;
+    while (
+      afterThenScan < source.length &&
+      (source[afterThenScan] === ' ' || source[afterThenScan] === '\t')
+    ) {
+      afterThenScan++;
+    }
+
+    if (source.startsWith('/*', afterThenScan)) {
+      pos = afterThenScan;
+      chunks.push(inlineBlockComment());
+    } else {
+      pos = afterThen;
+    }
+
+    const afterInlineThenComment = pos;
     space();
     if (source[pos] === ';') {
       pos++;
       chunks.push(fixed(';'));
     } else {
-      pos = afterThen;
+      pos = afterInlineThenComment;
     }
 
     // Then body
@@ -3051,12 +3304,60 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         }
 
         chunks.push(fixed('Else'));
+
+        /*
+         * A block comment attached directly to Else is encoded as 0x4E.
+         *
+         * DERIVED_CO.FUNCLIB.FieldFormula:
+         *
+         *   Else [inline block comment]
+         *
+         * Stored shape:
+         *
+         *   ... 19 4E <comment> ...
+         *
+         * Restrict this to horizontal whitespace so a comment beginning on a
+         * later line remains an ordinary Else-body comment.
+         */
+        const afterElse = pos;
+        let afterElseScan = pos;
+        while (
+          afterElseScan < source.length &&
+          (source[afterElseScan] === ' ' || source[afterElseScan] === '\t')
+        ) {
+          afterElseScan++;
+        }
+
+        if (source.startsWith('/*', afterElseScan)) {
+          pos = afterElseScan;
+          chunks.push(inlineBlockComment());
+        } else {
+          pos = afterElse;
+        }
+
         break;
       }
 
       if (word('End-If')) {
         if (hasBlankLine) {
-          pendingReferenceGroupBoundaries.push(chunks.length);
+          /*
+           * Preserve blank-line multiplicity immediately before End-If.
+           * One ordinary newline is line separation; each additional newline
+           * contributes one 0x4F boundary.
+           *
+           * DERIVED_CO.FUNCLIB.FieldFormula proves a case with two blank
+           * formatting lines before End-If, stored as:
+           *
+           *   ... 15 4F 4F 1A ...
+           */
+          const markerCount = Math.max(
+            1,
+            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+          );
+
+          for (let marker = 0; marker < markerCount; marker++) {
+            pendingReferenceGroupBoundaries.push(chunks.length);
+          }
         }
         chunks.push(fixed('End-If'));
         return;
@@ -3172,7 +3473,24 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       if (word('End-If')) {
         if (hasBlankLine) {
-          pendingReferenceGroupBoundaries.push(chunks.length);
+          /*
+           * Preserve blank-line multiplicity immediately before End-If.
+           * One ordinary newline is line separation; each additional newline
+           * contributes one 0x4F boundary.
+           *
+           * DERIVED_CO.FUNCLIB.FieldFormula proves a case with two blank
+           * formatting lines before End-If, stored as:
+           *
+           *   ... 15 4F 4F 1A ...
+           */
+          const markerCount = Math.max(
+            1,
+            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+          );
+
+          for (let marker = 0; marker < markerCount; marker++) {
+            pendingReferenceGroupBoundaries.push(chunks.length);
+          }
         }
         chunks.push(fixed('End-If'));
         return;
@@ -3940,7 +4258,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         const isMethodCall = source[pos] === '(';
         const isInlineRowStateMember =
           expectedReferenceMember === 'record' &&
-          /^(?:IsNew|IsDeleted|IsChanged)$/i.test(member);
+          /^(?:IsNew|IsDeleted|IsChanged|Visible)$/i.test(member);
         const hasExistingExpectedReference = references.some(item =>
           expectedReferenceMember === 'record'
             ? (item.kind === 'record' || (isMethodCall && item.kind === 'scroll')) &&
@@ -3969,8 +4287,28 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
                 )
               : expectedReferenceMember === 'record'
               ? rowShorthandRecordsByBase.get(
-                  `${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`
-                ) ?? rowsetElementRecords.get(member.toLowerCase())
+                  `${controlGroup}:${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`
+                ) ??
+                rowsetElementRecords.get(member.toLowerCase()) ??
+                rowShorthandRecordsByControlGroup.get(
+                  `${controlGroup}:${member.toLowerCase()}`
+                ) ??
+                /*
+                 * A row-shorthand RECORD member may reuse a RECORD dependency
+                 * first established explicitly earlier in the same control
+                 * group.
+                 *
+                 * DERIVED_CO.FUNCLIB.FieldFormula:
+                 *
+                 *   &HeaderRowset.Select(Record.CRSE_ALL_SSN_VW, ...);
+                 *   ...
+                 *   &HeaderRowset(&i).CRSE_ALL_SSN_VW.COURSE_START_DT.Value;
+                 *
+                 * Both compile through the same PSPCMNAME RECORD row.
+                 */
+                recordReferencesByControlGroup.get(
+                  `${controlGroup}:${member.toLowerCase()}`
+                )
               : recordVariableFields.get(
                   `${controlGroup}:${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`
                 ) ?? (
@@ -4026,7 +4364,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
                     : baseVariableName !== undefined &&
                       rowVariables.has(baseVariableName.toLowerCase())
                       ? typedRowFields.get(member.toLowerCase())
-                      : latestFields.get(member.toLowerCase())
+                      : (
+                          /*
+                           * Ordinary Rowset/row-shorthand FIELD reuse is
+                           * control-group scoped. If the field has not already
+                           * been established in this group, allocate it.
+                           *
+                           * DERIVED_CO.FUNCLIB.FieldFormula proves that
+                           * NO_RESULTS is FIELD #8 in group 0 but a fresh
+                           * FIELD #26 in group 1. Falling back to latestFields
+                           * incorrectly reuses the group-0 dependency.
+                           */
+                          rowShorthandFields.get(
+                            `${controlGroup}:${member.toLowerCase()}`
+                          )
+                        )
                 );
 
           if (reference === undefined) {
@@ -4059,7 +4411,11 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           ) {
             rowShorthandRecords.set(member.toLowerCase(), reference);
             rowShorthandRecordsByBase.set(
-              `${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`,
+              `${controlGroup}:${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`,
+              reference
+            );
+            rowShorthandRecordsByControlGroup.set(
+              `${controlGroup}:${member.toLowerCase()}`,
               reference
             );
           } else if (
@@ -4160,9 +4516,23 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             reuseRecordReferenceByName;
           const previousReuseRecordReferenceWithinControlGroup =
             reuseRecordReferenceWithinControlGroup;
+          const previousReuseScrollReferenceWithinControlGroup =
+            reuseScrollReferenceWithinControlGroup;
 
-          if (/^GetRecord$/i.test(member)) {
+          /*
+           * Record.X arguments to Select() reuse the same RECORD dependency
+           * within the current control group.
+           *
+           * DERIVED_CO.FUNCLIB.FieldFormula proves two consecutive
+           * &HeaderRowset.Select(Record.CRSE_ALL_SSN_VW, ...) calls both use
+           * PSPCMNAME NAMENUM 9 rather than allocating a second RECORD row.
+           */
+          if (/^(?:GetRecord|Select)$/i.test(member)) {
             reuseRecordReferenceWithinControlGroup = true;
+          }
+
+          if (/^GetRowset$/i.test(member)) {
+            reuseScrollReferenceWithinControlGroup = true;
           }
           try {
             parenthesized(() => {
@@ -4187,6 +4557,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
               previousReuseRecordReferenceByName;
             reuseRecordReferenceWithinControlGroup =
               previousReuseRecordReferenceWithinControlGroup;
+            reuseScrollReferenceWithinControlGroup =
+              previousReuseScrollReferenceWithinControlGroup;
           }
 
           expectedReferenceMember =
@@ -4246,13 +4618,19 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         }, true);
 
           /*
-          * Calibrated Rowset shorthand:
-          *
-          *   &rs(CurrentRowNumber(1)).RECORD.FIELD
-          *
-          * The first member after the row selector is a compiled RECORD
-          * reference.
-          */
+           * Rowset selector result is a Row. Its first dotted member is
+           * normally a RECORD dependency even when the RECORD object itself
+           * is the complete expression:
+           *
+           *   &rs(CurrentRowNumber()).AA_HIST_JPN_VW
+           *
+           * AA_COST_RT_JPN.EMPLID.RowInit proves that single-member form must
+           * compile through PSPCMNAME as RECORD.
+           *
+           * Genuine Row state/properties such as .Visible, .IsNew,
+           * .IsDeleted and .IsChanged are filtered by
+           * isInlineRowStateMember above and remain inline names.
+           */
           expectedReferenceMember = 'record';
 
           continue;
@@ -4335,6 +4713,40 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       const nextIsLocal =
         /^Local\b/i.test(source.slice(afterComments));
+
+      const nextIsImport =
+        /^import\b/i.test(source.slice(afterComments));
+
+      /*
+       * A standalone block comment following an import belongs to the open
+       * import declaration section only when another import follows the
+       * comment sequence.
+       *
+       * This preserves the previously calibrated multi-import case:
+       *
+       *   import A:B:C;
+       *   [group label comment]
+       *   import D:E:F;
+       *
+       * where PeopleTools keeps one import section, while also handling:
+       *
+       *   import EO:CA:Address;
+       *
+       *   [block comment]
+       *   executable...
+       *
+       * which stores:
+       *
+       *   <import> 15 2D 4F 24 ...
+       *
+       * The comment loop runs before the ordinary non-import transition below,
+       * so close the import section here when the comment sequence is followed
+       * by anything other than another import.
+       */
+      if (importSectionOpen && !nextIsImport) {
+        chunks.push(Buffer.from([0x2d]));
+        importSectionOpen = false;
+      }
 
       /*
        * A standalone block comment does not, by itself, terminate the
@@ -4518,7 +4930,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     const isTopLevelDeclaration =
       isImport ||
-      /^(?:Global|Component|Constant|Declare\s+Function)\b/i.test(source.slice(pos));
+      /^(?:Global|PanelGroup|Component|Constant|Declare\s+Function)\b/i.test(source.slice(pos));
 
 
     const closesTopLevelDeclarationSection =
@@ -4873,6 +5285,39 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       sawApplicationClassLocalSection = true;
     } else if (isTopLevelDeclaration) {
       sawTopLevelDeclaration = true;
+
+      /*
+       * A completed import section is distinct from a following ordinary
+       * top-level declaration section.
+       *
+       * DERIVED_CO.FUNCLIB.FieldFormula calibrates:
+       *
+       *   import CO_NAVIGATN:Stack;
+       *
+       *   Global CO_NAVIGATN:Stack &MyNavStack;
+       *   ...
+       *   PanelGroup ...;
+       *   Global string &SearchBy, &TrnReqFrom, &TrnReqThru;
+       *
+       *   [standalone comment block]
+       *   Function FillSessionGrids(...)
+       *
+       * The import section has already closed earlier with its own 0x2D.
+       * The later Global/PanelGroup declaration section must therefore reopen
+       * the generic declaration-section tracker so the comment boundary emits
+       * the second required 0x2D:
+       *
+       *   ... <last Global> 15 2D 4F 24 ...
+       *
+       * Without reopening here, closedTopLevelDeclarationSection remains true
+       * from the import close and the second 0x2D is incorrectly suppressed.
+       *
+       * Keep this limited to the declaration phase; a declaration encountered
+       * after executable top-level code has begun must not reopen the section.
+       */
+      if (!sawTopLevelExecutableStatement) {
+        closedTopLevelDeclarationSection = false;
+      }
     }
 
     /*
@@ -5022,7 +5467,19 @@ function encodeApplicationClassPathBytes(path: string[]): Buffer {
 function parseApplicationClassProgram(
   source: string
 ): ApplicationClassProgramMetadata | undefined {
-  if (!/^\s*import\b/i.test(source) || !/\bclass\b/i.test(source)) {
+  /*
+   * Only route a source unit through the dedicated Application Class program
+   * encoder when it contains an actual top-level class declaration. Ordinary
+   * event PeopleCode can begin with an import and later contain the word
+   * "class" inside a comment; that must remain on the normal fragment path.
+   */
+  const applicationClassDeclaration =
+    /^\s*class\s+[A-Za-z_][A-Za-z0-9_]*\s+method\s+[A-Za-z_][A-Za-z0-9_]*\s*\(/im;
+
+  if (
+    !/^\s*import\b/i.test(source) ||
+    !applicationClassDeclaration.test(source)
+  ) {
     return undefined;
   }
 
@@ -5038,7 +5495,7 @@ function parseApplicationClassProgram(
   }
 
   const classMatch =
-    /\bclass\s+([A-Za-z_][A-Za-z0-9_]*)\s+method\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*(?:Returns\s+([A-Za-z_][A-Za-z0-9_]*))?\s*;\s*end-class\s*;/i.exec(
+    /^\s*class\s+([A-Za-z_][A-Za-z0-9_]*)\s+method\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*(?:Returns\s+([A-Za-z_][A-Za-z0-9_]*))?\s*;\s*end-class\s*;/im.exec(
       source
     );
   if (!classMatch) {
