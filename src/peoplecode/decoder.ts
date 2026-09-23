@@ -1757,7 +1757,8 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
           previous.opcode === 0x44 ||
           previous.opcode === 0x45 ||
           previous.opcode === 0x54 ||
-          previous.opcode === 0x56
+          previous.opcode === 0x56 ||
+          previous.opcode === 0x31
         ) {
           followsDeclaration = true;
           break;

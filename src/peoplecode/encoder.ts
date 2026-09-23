@@ -660,7 +660,9 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
   };
   let reuseRowShorthandRecord = false;
+  let captureRowsetElementRecord = false;
   const rowShorthandRecords = new Map<string, PeopleCodeReference>();
+  const rowsetElementRecords = new Map<string, PeopleCodeReference>();
   const createRecordReferences = new Map<string, PeopleCodeReference>();
   const createRecordReferenceCounts = new Map<string, number>();
   const rowShorthandRecordsByBase = new Map<string, PeopleCodeReference>();
@@ -726,6 +728,9 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         key,
         (createRecordReferenceCounts.get(key) ?? 0) + 1
       );
+    }
+    if (captureRowsetElementRecord) {
+      rowsetElementRecords.set(recordName.toLowerCase(), reference);
     }
     return referenceOperand(reference);
   };
@@ -965,6 +970,14 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     if (source[pos] === '(') {
       parenthesized(booleanExpression, false);
+      space();
+      const operator =
+        /^(<>|<=|>=|=|<|>)/.exec(source.slice(pos))?.[0];
+      if (operator !== undefined) {
+        pos += operator.length;
+        chunks.push(fixed(operator));
+        expression();
+      }
       return;
     }
 
@@ -1173,6 +1186,19 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     } else if (word('Break')) {
       chunks.push(fixed('Break'));
 
+    } else if (word('Exit')) {
+      chunks.push(fixed('Exit'));
+      const afterExit = pos;
+      space();
+      if (source[pos] === '(') {
+        parenthesized(expression, false);
+      } else {
+        pos = afterExit;
+      }
+
+    } else if (word('Continue')) {
+      chunks.push(fixed('Continue'));
+
     } else if (word('Error')) {
       chunks.push(fixed('Error'));
       space();
@@ -1231,6 +1257,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       const tail = source.slice(pos);
       if (/^[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/.test(tail)) {
         chunks.push(ordinaryRecordFieldReference());
+        let sawMethodCall = false;
 
         // Calibrated postfix member chain, e.g. OU_CORPUS.CODE.Value.
         while (true) {
@@ -1245,9 +1272,28 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           }
           pos += member.length;
           chunks.push(textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, member));
+          space();
+          if (source[pos] === '(') {
+            sawMethodCall = true;
+            parenthesized(() => {
+              space();
+              if (source[pos] === ')') return;
+              expression();
+              space();
+              while (source[pos] === ',') {
+                pos++;
+                chunks.push(fixed(','));
+                expression();
+                space();
+              }
+            }, true);
+          }
         }
 
         space();
+        if (sawMethodCall && source[pos] === ';') {
+          return;
+        }
         //if (source[pos] !== '=') fail('expected assignment =');
         if (source[pos] !== '=') {
           fail(
@@ -1395,6 +1441,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       pos++;
       chunks.push(fixed(';'));
+      trailingBlockComments();
     }
   }
 
@@ -1473,6 +1520,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       pos++;
       chunks.push(fixed(';'));
+      trailingBlockComments();
     }
   }
   
@@ -1508,6 +1556,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       pos++;
       chunks.push(fixed(';'));
+      trailingBlockComments();
     }
   }
   function forStatement(): void {
@@ -1587,6 +1636,9 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         );
 
       if (word('End-For')) {
+        if (hasBlankLine) {
+          pendingReferenceGroupBoundaries.push(chunks.length);
+        }
         chunks.push(fixed('End-For'));
         return;
       }
@@ -1622,6 +1674,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       pos++;
       chunks.push(fixed(';'));
+      trailingBlockComments();
     }
   }
   function whileStatement(): void {
@@ -1645,6 +1698,11 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         fail('expected End-While');
       }
 
+      if (source.startsWith('/*', pos)) {
+        chunks.push(blockComment());
+        continue;
+      }
+
       statement();
 
       space();
@@ -1654,6 +1712,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       pos++;
       chunks.push(fixed(';'));
+      trailingBlockComments();
     }
   }
 
@@ -1668,6 +1727,15 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       fail('expected Then');
     }
     chunks.push(fixed('Then'));
+
+    const afterThen = pos;
+    space();
+    if (source[pos] === ';') {
+      pos++;
+      chunks.push(fixed(';'));
+    } else {
+      pos = afterThen;
+    }
 
     // Then body
     while (true) {
@@ -1806,15 +1874,27 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
         // Parse When-Other body until End-Evaluate.
         while (true) {
+          const whitespaceStart = pos;
           space();
+          const bodyWhitespace = source.slice(whitespaceStart, pos);
+          const hasBlankLine =
+            /(?:\r?\n)[ \t]*(?:\r?\n)/.test(bodyWhitespace);
 
           if (word('End-Evaluate')) {
+            if (hasBlankLine) {
+              chunks.push(Buffer.from([0x4f]));
+            }
             chunks.push(fixed('End-Evaluate'));
             return;
           }
 
           if (pos === source.length) {
             fail('expected End-Evaluate');
+          }
+
+          if (source.startsWith('/*', pos)) {
+            chunks.push(blockComment());
+            continue;
           }
 
           statement();
@@ -1826,6 +1906,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
           pos++;
           chunks.push(fixed(';'));
+          trailingBlockComments();
         }
       }
 
@@ -1838,9 +1919,12 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         // Evaluate clauses commonly spell the selector as `When = value`.
         // The equals sign is part of the clause grammar, not an expression
         // operator, so preserve it before parsing the selector value.
-        if (source[pos] === '=') {
-          pos++;
-          chunks.push(fixed('='));
+        const selectorOperator = /^(?:<>|<=|>=|=|<|>)/.exec(
+          source.slice(pos)
+        )?.[0];
+        if (selectorOperator !== undefined) {
+          pos += selectorOperator.length;
+          chunks.push(fixed(selectorOperator));
           space();
         }
 
@@ -1853,6 +1937,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
         // Confirmed by every When in the fixture.
         chunks.push(Buffer.from([0x2d]));
+
+        let selectorWhitespaceStart = pos;
+        while (
+          selectorWhitespaceStart > 0 &&
+          /\s/.test(source[selectorWhitespaceStart - 1])
+        ) {
+          selectorWhitespaceStart--;
+        }
+        if (
+          /(?:\r?\n)[ \t]*(?:\r?\n)/.test(
+            source.slice(selectorWhitespaceStart, pos)
+          )
+        ) {
+          chunks.push(Buffer.from([0x4f]));
+        }
 
         // Parse this When body until the next clause/end.
         while (true) {
@@ -1871,11 +1970,25 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             /^When(?:-Other)?\b/i.test(source.slice(pos)) ||
             /^End-Evaluate\b/i.test(source.slice(pos))
           ) {
+            if (
+              hasBlankLine &&
+              /^End-Evaluate\b/i.test(source.slice(pos))
+            ) {
+              chunks.push(Buffer.from([0x4f]));
+            }
             break;
           }
 
           if (pos === source.length) {
             fail('expected End-Evaluate');
+          }
+
+          if (source.startsWith('/*', pos)) {
+            if (hasBlankLine) {
+              chunks.push(Buffer.from([0x4f]));
+            }
+            chunks.push(blockComment());
+            continue;
           }
 
           if (hasBlankLine) {
@@ -1886,12 +1999,19 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
           space();
 
-          if (source[pos] !== ';') {
+          if (
+            source[pos] !== ';' &&
+            !/^When(?:-Other)?\b/i.test(source.slice(pos)) &&
+            !/^End-Evaluate\b/i.test(source.slice(pos))
+          ) {
             fail('expected ; in When body');
           }
 
-          pos++;
-          chunks.push(fixed(';'));
+          if (source[pos] === ';') {
+            pos++;
+            chunks.push(fixed(';'));
+            trailingBlockComments();
+          }
         }
 
         continue;
@@ -1953,12 +2073,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     reuseRecordReferenceByName;
   const previousReuseRowShorthandRecord =
     reuseRowShorthandRecord;
+  const previousCaptureRowsetElementRecord =
+    captureRowsetElementRecord;
 
-  if (/^GetSetId$/i.test(name)) {
+  if (/^(?:GetSetId|GetRecord|ActiveRowCount|ScrollSelect|RowScrollSelect|Gray|UnGray)$/i.test(name)) {
     reuseRecordReferenceByName = true;
   }
   if (/^CreateRecord$/i.test(name)) {
     reuseRowShorthandRecord = true;
+  }
+  if (/^CreateRowset$/i.test(name)) {
+    captureRowsetElementRecord = true;
   }
 
   try {
@@ -1978,6 +2103,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       previousReuseRecordReferenceByName;
     reuseRowShorthandRecord =
       previousReuseRowShorthandRecord;
+    captureRowsetElementRecord =
+      previousCaptureRowsetElementRecord;
   }
 };
   const primary = () => {
@@ -2144,7 +2271,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
               : expectedReferenceMember === 'record'
               ? rowShorthandRecordsByBase.get(
                   `${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`
-                )
+                ) ?? rowsetElementRecords.get(member.toLowerCase())
               : recordVariableFields.get(
                   `${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`
                 ) ?? (
@@ -2233,28 +2360,40 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             );
           }
 
-          parenthesized(() => {
-            space();
+          const previousReuseRecordReferenceByName =
+            reuseRecordReferenceByName;
+          if (/^GetRecord$/i.test(member)) {
+            reuseRecordReferenceByName = true;
+          }
+          try {
+            parenthesized(() => {
+              space();
 
-            if (source[pos] === ')') {
-              return;
-            }
+              if (source[pos] === ')') {
+                return;
+              }
 
-            expression();
-            space();
-
-            while (source[pos] === ',') {
-              pos++;
-              chunks.push(fixed(','));
               expression();
               space();
-            }
-          }, true);
+
+              while (source[pos] === ',') {
+                pos++;
+                chunks.push(fixed(','));
+                expression();
+                space();
+              }
+            }, true);
+          } finally {
+            reuseRecordReferenceByName =
+              previousReuseRecordReferenceByName;
+          }
 
           expectedReferenceMember =
             member.toLowerCase() === 'getrecord'
               ? 'field'
-              : undefined;
+              : member.toLowerCase() === 'getrow'
+                ? 'record'
+                : undefined;
         } else {
           expectedReferenceMember = undefined;
         }
@@ -2344,6 +2483,15 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
 
     if (source.startsWith('/*', pos)) {
+      if (
+        leadingLocalRun &&
+        sawLeadingLocalDeclaration &&
+        pendingReferenceLocalBoundary === undefined
+      ) {
+        pendingReferenceLocalBoundary = chunks.length;
+        pendingReferenceLocalMarkers = 0;
+        leadingLocalRun = false;
+      }
       if (haveCompletedTopLevelStatement && hasBlankLine) {
         /*
         * A comment can occur immediately after a top-level declaration

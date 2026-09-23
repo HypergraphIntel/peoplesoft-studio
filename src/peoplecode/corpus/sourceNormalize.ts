@@ -111,7 +111,7 @@ export function normalizePeopleCodeSource(source: string): string {
        * comments and string literals.
        */
       const namespaceMatch =
-        /^(Record|Field|Scroll|Component|Page)\b/i.exec(
+        /^(Record|Field|Scroll|Component|Page|PanelGroup)\b/i.exec(
           line.slice(i)
         );
 
@@ -204,7 +204,19 @@ export function normalizePeopleCodeSource(source: string): string {
     canonicalLines.push(line);
   }
 
-  return canonicalLines
+  const joinedStructuralSemicolons: string[] = [];
+  for (const line of canonicalLines) {
+    if (
+      line.trim() === ';' &&
+      /\bThen$/i.test(joinedStructuralSemicolons.at(-1) ?? '')
+    ) {
+      joinedStructuralSemicolons[joinedStructuralSemicolons.length - 1] += ';';
+      continue;
+    }
+    joinedStructuralSemicolons.push(line);
+  }
+
+  return joinedStructuralSemicolons
     .join('\n')
     .trim();
 }
