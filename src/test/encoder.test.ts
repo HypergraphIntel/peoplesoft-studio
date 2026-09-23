@@ -4,6 +4,47 @@ import { decodeProgram } from '../peoplecode/decoder.js';
 import { NameTable } from '../peoplecode/progtext.js';
 import { ProgramImage, compareBytes } from '../peoplecode/programImage.js';
 import { ACTIVATE_BYTES } from './fixtures/compiledPeopleCode.js';
+import { protectedCorpusRegressions } from './fixtures/protectedCorpusRegressions.js';
+import {
+  source as corpus5529Source,
+  program as corpus5529Program
+} from './fixtures/corpus5529.js';
+import {
+  source as corpus6032Source,
+  program as corpus6032Program
+} from './fixtures/corpus6032.js';
+import {
+  source as corpus6455Source,
+  program as corpus6455Program
+} from './fixtures/corpus6455.js';
+import {
+  source as corpus3606Source,
+  program as corpus3606Program
+} from './fixtures/corpus3606.js';
+import {
+  source as corpus530Source,
+  program as corpus530Program
+} from './fixtures/corpus530.js';
+import {
+  source as corpus3157Source,
+  program as corpus3157Program
+} from './fixtures/corpus3157.js';
+import {
+  source as corpus14308Source,
+  program as corpus14308Program
+} from './fixtures/corpus14308.js';
+import {
+  source as corpus15002Source,
+  program as corpus15002Program
+} from './fixtures/corpus15002.js';
+import {
+  source as corpus17450Source,
+  program as corpus17450Program
+} from './fixtures/corpus17450.js';
+import {
+  source as corpus23987Source,
+  program as corpus23987Program
+} from './fixtures/corpus23987.js';
 import {
   source as offset179Source,
   program as offset179Program
@@ -14,6 +55,117 @@ import {
   encodeProgram,
   encodeProgramArtifacts
 } from '../peoplecode/encoder.js';
+
+for (const capture of protectedCorpusRegressions) {
+  test(`HCDEV protected PSPCMPROG golden ${capture.id}`, () => {
+    const actual = encodeProgramArtifacts(capture.source, {
+      owner: capture.owner
+    });
+    assert.deepStrictEqual(actual.program, capture.program);
+  });
+}
+
+test('Function metadata encodes calibrated built-in object descriptors', () => {
+  const program = encodeProgram(`
+Function Builtins(&record As Record, &rows As Rowset, &api As ApiObject, &doc As XmlDoc, &node As XmlNode) Returns Record;
+   Return &record;
+End-Function;
+`);
+
+  const signatureTail = program.subarray(program.length - 24);
+  assert.deepStrictEqual(signatureTail, Buffer.from([
+    0x03, 0x00, 0x08, 0xc0,
+    0x07, 0x00, 0x08, 0xc0,
+    0x0f, 0x00, 0x08, 0xc0,
+    0x1d, 0x00, 0x08, 0xc0,
+    0x22, 0x00, 0x08, 0xc0,
+    0x07, 0x00, 0x00, 0x00
+  ]));
+});
+
+test('HCDEV definition 5529 compiles byte exactly', () => {
+  const actual = encodeProgramArtifacts(corpus5529Source, {
+    owner: {
+      recordName: 'DERIVED_HINT',
+      fieldName: 'EMAILPSWD'
+    }
+  });
+  assert.deepStrictEqual(actual.program, corpus5529Program);
+  assert.equal(actual.references.length, 25);
+});
+
+test('HCDEV definition 6032 preserves parenthesized and bare Function signature slots', () => {
+  const actual = encodeProgramArtifacts(corpus6032Source, {
+    owner: { recordName: 'DERIVED_HR_DR', fieldName: 'HR_DR_CONTINUE1_PB' }
+  });
+  assert.deepStrictEqual(actual.program, corpus6032Program);
+  assert.equal(actual.references.length, 22);
+});
+
+test('HCDEV definition 6455 preserves Function-local class dependencies and import comment boundaries', () => {
+  const owner = { recordName: 'DERIVED_HR_WGP', fieldName: 'DETAILS_PB' };
+  const actual = encodeProgramArtifacts(corpus6455Source, { owner });
+  assert.deepStrictEqual(actual.program, corpus6455Program);
+  assert.equal(actual.references.length, 20);
+});
+
+test('HCDEV definition 3606 preserves Global array type and declaration boundary', () => {
+  const actual = encodeProgramArtifacts(corpus3606Source, {
+    owner: { recordName: 'DEPENDENT_BENEF', fieldName: 'CSB_ELIG' }
+  });
+  assert.deepStrictEqual(actual.program, corpus3606Program);
+  assert.equal(actual.references.length, 2);
+});
+
+test('HCDEV definition 530 preserves nested Component array type', () => {
+  const actual = encodeProgramArtifacts(corpus530Source, {
+    owner: { recordName: 'ADDRESS_TYPE_FL', fieldName: 'EFFDT' }
+  });
+  assert.deepStrictEqual(actual.program, corpus530Program);
+});
+
+test('HCDEV definition 3157 preserves nested Global Record array dependency', () => {
+  const actual = encodeProgramArtifacts(corpus3157Source, {
+    owner: { recordName: 'CONTROL_TL_TA', fieldName: 'TL_SQL_TEXT1_BTN' }
+  });
+  assert.deepStrictEqual(actual.program, corpus3157Program);
+  assert.equal(actual.references[2]?.kind, 'package');
+  assert.equal(actual.references[2]?.packageName, 'RECORD');
+});
+
+test('HCDEV definition 14308 closes Component declaration before REM', () => {
+  const actual = encodeProgramArtifacts(corpus14308Source, {
+    owner: { recordName: 'PSACLMENU_VW2', fieldName: 'MENUNAME' }
+  });
+  assert.deepStrictEqual(actual.program, corpus14308Program);
+});
+
+test('HCDEV definition 15002 reuses owner reference for declared Function target', () => {
+  const actual = encodeProgramArtifacts(corpus15002Source, {
+    owner: { recordName: 'PSDOCLOJSFLD_VW', fieldName: 'IB_JSEVENT_GUI' }
+  });
+  assert.deepStrictEqual(actual.program, corpus15002Program);
+  assert.equal(actual.references.length, 1);
+});
+
+test('HCDEV definition 17450 renders an inline Then comment before its semicolon', () => {
+  const names = new NameTable();
+  names.add(1, 'PSWEBLIB_WRK.CLASSID');
+  names.add(2, 'PSCLASSDEFN.CLASSID');
+  const decoded = decodeProgram(corpus17450Program, names);
+  assert.ok(decoded.text.includes('Then /* ICE 67971300 */;'));
+  const actual = encodeProgramArtifacts(corpus17450Source, {
+    owner: { recordName: 'PSWEBLIB_WRK', fieldName: 'CLASSID' }
+  });
+  assert.deepStrictEqual(actual.program, corpus17450Program);
+});
+
+test('HCDEV definition 23987 renders the StyleSheet qualifier', () => {
+  const names = new NameTable();
+  names.add(1, 'PERSON_SUB_CNF_FL.GBL');
+  names.add(2, 'STYLESHEET.HR_PD_SS_FL');
+  assert.equal(decodeProgram(corpus23987Program, names).text.trim(), corpus23987Source.trim());
+});
 
 test('runtime-created Application Class methods preserve offset 179 metadata', () => {
   const encoded = encodeProgramArtifacts(offset179Source, {
@@ -1290,4 +1442,3 @@ test.skip('TODO: 0x4F marker : encodeProgram exactly reproduces PeopleTools vari
 
   assert.deepEqual(actual, expected);
 });
-

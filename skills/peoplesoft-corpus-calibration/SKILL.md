@@ -146,6 +146,19 @@ Do not generalize from one failing object without evidence.
 
 Prefer context-specific rules and preserve calibrated helper logic.
 
+## Unsupported constructs
+
+Encountering unsupported PeopleCode syntax is not a completion condition.
+
+When an unsupported construct is reached:
+- search the corpus for additional examples of the same construct,
+- compare stored byte patterns,
+- derive the narrowest consistent encoding rule,
+- implement and validate it,
+- continue working.
+
+Stop only when the available corpus evidence is insufficient to distinguish competing interpretations and additional evidence cannot be obtained from the current repository/database.
+
 ## Encoder vs decoder
 
 Do not patch the decoder to make an encoder failure disappear.
@@ -210,3 +223,4 @@ corpus-classifications.md
 corpus-encoder-rules.md
 debugging-checklist.md
 ```
+
