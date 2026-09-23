@@ -31,6 +31,60 @@ for (const [source, expected] of [
   });
 }
 
+test('encodeProgram preserves a leading block comment', () => {
+  const source =
+    '/*COMMENT123*/\n' +
+    'Local string &TEST;\n\n' +
+    '&TEST = "ABC";';
+
+  const program = encodeProgram(source);
+
+  const comment = Buffer.concat([
+    Buffer.from([0x24, 0x1c, 0x00]),
+    Buffer.from('/*COMMENT123*/', 'utf16le')
+  ]);
+
+  assert.notEqual(program.indexOf(comment), -1);
+});
+
+test('encodeProgram preserves a block comment between top-level statements', () => {
+  const source =
+    'Local string &TEST;\n\n' +
+    '/*X*/\n\n' +
+    '&TEST = "ABC";';
+
+  const program = encodeProgram(source);
+
+  const comment = Buffer.concat([
+    Buffer.from([0x4f, 0x24, 0x0a, 0x00]),
+    Buffer.from('/*X*/', 'utf16le')
+  ]);
+
+  assert.notEqual(program.indexOf(comment), -1);
+});
+
+test('adjacent block comments share the calibrated top-level boundary', () => {
+  const source =
+    'Local string &TEST;\n\n' +
+    '/*A*/\n' +
+    '/*B*/\n\n' +
+    '&TEST = "ABC";';
+
+  const expected = Buffer.concat([
+    Buffer.from([0x4f]),
+
+    Buffer.from([0x24, 0x0a, 0x00]),
+    Buffer.from('/*A*/', 'utf16le'),
+
+    Buffer.from([0x24, 0x0a, 0x00]),
+    Buffer.from('/*B*/', 'utf16le')
+  ]);
+
+  const program = encodeProgram(source);
+
+  assert.notEqual(program.indexOf(expected), -1);
+});
+
 test('independent byte expectations for the supported operand shapes', () => {
   assert.deepEqual(encodeFragment('Return;'), Buffer.from([0x38, 0x15]));
   assert.deepEqual(encodeFragment('&x = "A"; Return False;'), Buffer.from([
@@ -46,7 +100,6 @@ for (const source of [
   'Return "a\0b";', 
   'Return True', 
   'Return TrueValue;', 
-  '/* comment */ Return;', 
   '& = True;', 
   '&x == True;', 
   'Return; garbage'
