@@ -42,8 +42,26 @@ export interface PeopleCodeOwner {
   fieldName: string;
 }
 
+export interface ReferenceTraceEvent {
+  action: 'ALLOC' | 'USE';
+
+  sourceOffset: number;
+  controlGroup: number;
+
+  reference: PeopleCodeReference;
+}
+
 export interface EncodeProgramContext {
   owner?: PeopleCodeOwner;
+
+  /**
+   * Optional diagnostic hook for PSPCMNAME/reference provenance tracing.
+   *
+   * This callback is observational only. It must never influence encoding.
+   */
+  referenceTrace?: (
+    event: ReferenceTraceEvent
+  ) => void;
 
   /**
    * Original block-comment opcodes, in source order, when re-encoding
@@ -646,6 +664,14 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       index: sequence - 1
     };
     references.push(created);
+
+    context?.referenceTrace?.({
+      action: 'ALLOC',
+      sourceOffset: pos,
+      controlGroup,
+      reference: created
+    });
+
     return created;
   };
 
@@ -837,6 +863,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         'PeopleCode reference index exceeds uint16 range'
       );
     }
+
+    context?.referenceTrace?.({
+      action: 'USE',
+      sourceOffset: pos,
+      controlGroup,
+      reference
+    });
 
     const bytes = Buffer.alloc(3);
     bytes[0] = 0x21;

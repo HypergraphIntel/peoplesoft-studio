@@ -1,7 +1,8 @@
 import crypto from 'node:crypto';
 
 import {
-  encodeProgram
+  encodeProgram,
+  ReferenceTraceEvent
 } from '../../src/peoplecode/encoder';
 
 import {
@@ -150,6 +151,57 @@ export function sha256(
     .digest('hex');
 }
 
+export interface ValidationOptions {
+  traceRefs?: boolean;
+}
+
+function referenceDescription(
+  event: ReferenceTraceEvent
+): string {
+  const reference =
+    event.reference;
+
+  const details = [
+    reference.recordName,
+    reference.fieldName,
+    reference.packageName,
+    reference.objectName,
+    reference.packagePath?.join(':'),
+    reference.className,
+    reference.methodName
+  ].filter(
+    (value): value is string =>
+      value !== undefined &&
+      value.length > 0
+  );
+
+  return (
+    `${event.action.padEnd(5)} ` +
+    `#${String(reference.sequence).padStart(3)} ` +
+    `idx=${String(reference.index).padStart(3)} ` +
+    `group=${String(event.controlGroup).padStart(3)} ` +
+    `src=${String(event.sourceOffset).padStart(5)} ` +
+    `${reference.kind.padEnd(18)} ` +
+    `${details.join(' | ')}`
+  );
+}
+
+function makeReferenceTrace(
+  phase: string,
+  enabled: boolean
+): ((event: ReferenceTraceEvent) => void) | undefined {
+  if (!enabled) {
+    return undefined;
+  }
+
+  return event => {
+    console.log(
+      `  REF ${phase.padEnd(9)} ` +
+      referenceDescription(event)
+    );
+  };
+}
+
 interface InternalValidation {
   decode: {
     success: boolean;
@@ -186,7 +238,8 @@ interface InternalValidation {
 }
 
 function runValidation(
-  capture: CapturedDefinition
+  capture: CapturedDefinition,
+  options: ValidationOptions = {}
 ): InternalValidation {
   const encodeContext = {
     owner: {
@@ -197,6 +250,18 @@ function runValidation(
         capture.definition.key.objectValue2.trim()
     }
   };
+
+  const sourceTrace =
+    makeReferenceTrace(
+      'SOURCE',
+      options.traceRefs === true
+    );
+
+  const roundTripTrace =
+    makeReferenceTrace(
+      'ROUNDTRIP',
+      options.traceRefs === true
+    );
 
   const decode: InternalValidation['decode'] = {
     success: false
@@ -221,7 +286,11 @@ function runValidation(
     const encoded =
       encodeProgram(
         capture.source,
-        encodeContext
+        {
+          ...encodeContext,
+          referenceTrace:
+            sourceTrace
+        }
       );
 
     const diff =
@@ -373,7 +442,9 @@ function runValidation(
           {
             ...encodeContext,
             commentOpcodes:
-              decodedCommentOpcodes
+              decodedCommentOpcodes,
+            referenceTrace:
+              roundTripTrace
           }
         );
 
@@ -458,10 +529,14 @@ function runValidation(
 }
 
 export async function validateDefinition(
-  capture: CapturedDefinition
+  capture: CapturedDefinition,
+  options: ValidationOptions = {}
 ): Promise<CorpusResult> {
   const validation =
-    runValidation(capture);
+    runValidation(
+      capture,
+      options
+    );
 
   const sourceDiff =
     validation.sourceEncode.diff;

@@ -389,7 +389,10 @@
     "corpus:baseline": "tsx tools/corpus/cli.ts --baseline",
     "corpus:verify": "tsx tools/corpus/cli.ts --compare-baseline",
     "corpus:full": "tsx tools/corpus/cli.ts",
-    "corpus:failures": "tsx tools/corpus/failures.ts"
+    "corpus:failures": "tsx tools/corpus/failures.ts",
+    "corpus:next": "tsx tools/corpus/next.ts",
+    "corpus:work": "tsx tools/corpus/cli.ts --failed",
+    "corpus:inventory": "tsx tools/corpus/cli.ts"
   },
   "dependencies": {
     "oracledb": "^6.6.0"

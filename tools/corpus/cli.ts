@@ -12,9 +12,10 @@ interface CliOptions {
   offset?: number;
 
   verbose: boolean;
-
   baseline: boolean;
   compareBaseline: boolean;
+  failed: boolean;
+  traceRefs: boolean;
 }
 
 function parseNumber(
@@ -27,7 +28,8 @@ function parseNumber(
     );
   }
 
-  const parsed = Number(value);
+  const parsed =
+    Number(value);
 
   if (
     !Number.isInteger(parsed) ||
@@ -41,13 +43,40 @@ function parseNumber(
   return parsed;
 }
 
+function printHelp(): void {
+  console.log(`
+PeopleCode corpus harness
+
+Usage:
+  tsx tools/corpus/cli.ts [options]
+
+Options:
+  --limit <n>          Maximum number of definitions to inspect.
+  --offset <n>         Definition offset, or failure-queue offset with --failed.
+  --failed             Re-run the current global non-EXACT work queue.
+  --trace-refs         Print encoder PSPCMNAME/reference provenance diagnostics.
+  --verbose            Print each definition and diagnostics.
+  --baseline           Write this run to the accepted baseline.
+  --compare-baseline   Compare this run against the accepted baseline.
+  --help, -h           Show this help.
+
+Examples:
+  npm run corpus:harness -- --limit 430
+  npm run corpus:harness -- --failed
+  npm run corpus:harness -- --failed --limit 25
+  npm run corpus:harness -- --offset 23 --limit 1 --verbose --trace-refs
+`);
+}
+
 function parseArgs(
   argv: string[]
 ): CliOptions {
   const options: CliOptions = {
     verbose: false,
     baseline: false,
-    compareBaseline: false
+    compareBaseline: false,
+    failed: false,
+    traceRefs: false
   };
 
   for (
@@ -55,15 +84,21 @@ function parseArgs(
     index < argv.length;
     index++
   ) {
-    const arg = argv[index];
-
-    switch (arg) {
+    switch (argv[index]) {
       case '--limit':
         options.limit =
           parseNumber(
             argv[++index],
             '--limit'
           );
+
+        if (
+          options.limit < 1
+        ) {
+          throw new Error(
+            '--limit must be a positive integer'
+          );
+        }
         break;
 
       case '--offset':
@@ -72,6 +107,14 @@ function parseArgs(
             argv[++index],
             '--offset'
           );
+        break;
+
+      case '--failed':
+        options.failed = true;
+        break;
+
+      case '--trace-refs':
+        options.traceRefs = true;
         break;
 
       case '--verbose':
@@ -86,9 +129,15 @@ function parseArgs(
         options.compareBaseline = true;
         break;
 
+      case '--help':
+      case '-h':
+        printHelp();
+        process.exit(0);
+        break;
+
       default:
         throw new Error(
-          `Unknown option: ${arg}`
+          `Unknown option: ${argv[index]}`
         );
     }
   }
@@ -96,7 +145,8 @@ function parseArgs(
   return options;
 }
 
-async function main(): Promise<void> {
+async function main():
+  Promise<void> {
   const options =
     parseArgs(
       process.argv.slice(2)
@@ -105,12 +155,16 @@ async function main(): Promise<void> {
   const run =
     await runCorpus({
       databaseName: 'HCDEV',
-
-      limit: options.limit,
-      offset: options.offset,
-
-      verbose: options.verbose,
-
+      limit:
+        options.limit,
+      offset:
+        options.offset,
+      failed:
+        options.failed,
+      verbose:
+        options.verbose,
+      traceRefs:
+        options.traceRefs,
       compareBaseline:
         options.compareBaseline
     });
@@ -122,7 +176,9 @@ async function main(): Promise<void> {
         run.results
       );
 
-    saveBaseline(baseline);
+    saveBaseline(
+      baseline
+    );
 
     console.log('');
     console.log(
@@ -137,6 +193,5 @@ async function main(): Promise<void> {
 
 main().catch(error => {
   console.error(error);
-
   process.exitCode = 1;
 });

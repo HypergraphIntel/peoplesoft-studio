@@ -1,6 +1,7 @@
 import childProcess from 'node:child_process';
 
 import {
+  CorpusDefinition,
   CorpusResult
 } from './classifications';
 
@@ -36,6 +37,8 @@ export interface CorpusRunOptions
 
   verbose?: boolean;
   compareBaseline?: boolean;
+  failed?: boolean;
+  traceRefs?: boolean;
 }
 
 function currentGitCommit():
@@ -74,20 +77,17 @@ export async function runCorpus(
   const reporter =
     new CorpusReporter();
 
-  const run =
-    inventory.beginRun(
-      databaseName,
-      currentGitCommit()
-    );
-
-  const results: CorpusResult[] = [];
+  const results:
+    CorpusResult[] = [];
 
   let exactCount = 0;
   let failureCount = 0;
 
   let connection:
     Awaited<
-      ReturnType<typeof openCorpusConnection>
+      ReturnType<
+        typeof openCorpusConnection
+      >
     > | undefined;
 
   try {
@@ -101,37 +101,102 @@ export async function runCorpus(
       `Database: ${databaseName}`
     );
     console.log(
+      `Mode:     ${
+        options.failed
+          ? 'FAILED WORK QUEUE'
+          : 'DISCOVERY'
+      }`
+    );
+    console.log(
       `Limit:    ${options.limit}`
     );
     console.log(
       `Offset:   ${options.offset ?? 0}`
     );
+    console.log(
+      `Trace:    ${
+        options.traceRefs
+          ? 'REFERENCES'
+          : 'off'
+      }`
+    );
     console.log('');
 
-    connection =
-      await openCorpusConnection(
-        config
+    let definitions:
+      CorpusDefinition[];
+
+    if (options.failed) {
+      definitions =
+        inventory
+          .currentNonExactDefinitions({
+            limit:
+              options.limit,
+            offset:
+              options.offset
+          });
+
+      console.log(
+        `Global inventory: ` +
+        `${inventory.inventoryDefinitionCount()} known, ` +
+        `${inventory.inventoryFailureCount()} non-EXACT`
       );
 
-    console.log(
-      'Connected read-only workflow.'
-    );
+      console.log(
+        `Selected ${definitions.length} non-EXACT definition(s).`
+      );
+    } else {
+      connection =
+        await openCorpusConnection(
+          config
+        );
 
-    const definitions =
-      await discoverDefinitions(
-        connection,
-        options
+      console.log(
+        'Connected read-only workflow.'
       );
 
-    console.log(
-      `Discovered ` +
-      `${definitions.length} ` +
-      `definition(s).`
-    );
+      definitions =
+        await discoverDefinitions(
+          connection,
+          options
+        );
+
+      console.log(
+        `Discovered ` +
+        `${definitions.length} ` +
+        `definition(s).`
+      );
+    }
+
+    const run =
+      inventory.beginRun(
+        databaseName,
+        currentGitCommit()
+      );
+
+    if (
+      options.failed &&
+      definitions.length > 0
+    ) {
+      connection =
+        await openCorpusConnection(
+          config
+        );
+
+      console.log(
+        'Connected read-only workflow.'
+      );
+    }
 
     for (
-      const definition of definitions
+      const definition
+      of definitions
     ) {
+      if (!connection) {
+        throw new Error(
+          'Oracle connection is unavailable.'
+        );
+      }
+
       const capture =
         await captureDefinition(
           connection,
@@ -140,10 +205,16 @@ export async function runCorpus(
 
       const result =
         await validateDefinition(
-          capture
+          capture,
+          {
+            traceRefs:
+              options.traceRefs ?? false
+          }
         );
 
-      results.push(result);
+      results.push(
+        result
+      );
 
       inventory.saveResult(
         run.runId,
@@ -152,7 +223,8 @@ export async function runCorpus(
 
       reporter.result(
         result,
-        options.verbose ?? false
+        options.verbose ??
+        false
       );
 
       if (
@@ -180,7 +252,9 @@ export async function runCorpus(
       const baseline =
         loadBaseline();
 
-      if (baseline === undefined) {
+      if (
+        baseline === undefined
+      ) {
         console.log('');
         console.log(
           'No baseline exists yet.'
@@ -198,12 +272,16 @@ export async function runCorpus(
           results
         );
 
-      reporter.regression(delta);
+      reporter.regression(
+        delta
+      );
 
       return {
         results,
         exitCode:
-          regressionGatePassed(delta)
+          regressionGatePassed(
+            delta
+          )
             ? 0
             : 1
       };
