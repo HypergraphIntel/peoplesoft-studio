@@ -5,11 +5,30 @@ import { NameTable } from '../peoplecode/progtext.js';
 import { ProgramImage, compareBytes } from '../peoplecode/programImage.js';
 import { ACTIVATE_BYTES } from './fixtures/compiledPeopleCode.js';
 import {
+  source as offset179Source,
+  program as offset179Program
+} from './fixtures/corpusOffset179.js';
+import {
   encodeFragment,
   UnsupportedPeopleCodeError,
   encodeProgram,
   encodeProgramArtifacts
 } from '../peoplecode/encoder.js';
+
+test('runtime-created Application Class methods preserve offset 179 metadata', () => {
+  const encoded = encodeProgramArtifacts(offset179Source, {
+    owner: {
+      recordName: 'ABS_H_D_NLDSBR',
+      fieldName: 'SAME_ADDRESS_EMPL'
+    }
+  });
+
+  assert.deepStrictEqual(encoded.program, offset179Program);
+  assert.equal(encoded.references.length, 13);
+  assert.equal(encoded.references[12].kind, 'record');
+  assert.equal(encoded.references[12].recordName, 'ABS_HIST_DET');
+  assert.equal(encoded.references.some(ref => ref.methodName !== undefined), false);
+});
 
 // Explicit expected source avoids a whitespace normalizer that corrupts strings
 // or merely compares the decoder against itself.
@@ -1271,5 +1290,4 @@ test.skip('TODO: 0x4F marker : encodeProgram exactly reproduces PeopleTools vari
 
   assert.deepEqual(actual, expected);
 });
-
 

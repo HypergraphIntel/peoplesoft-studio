@@ -5,4 +5,14 @@ dist-test/
 
 # Real project exports dropped in scripts/ for decoder calibration carry
 # actual customer PeopleCode source and must never be committed.
-# /scripts/*/
+/scripts/ZZ_CUSTOM_LANDINGPAGE_JN
+/scripts/ZZ_VSCODE_LEARN_JN
+/scripts/ZZ_WEBLIBS_JN
+
+
+/tools/corpus/corpus-results.sqlite
+/tools/corpus/corpus-results.sqlite-shm
+/tools/corpus/corpus-results.sqlite-wal
+/tools/corpus/reports/*
+!/tools/corpus/reports/.gitkeep
+

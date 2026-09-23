@@ -24,14 +24,22 @@
     "languages": [
       {
         "id": "psft-peoplecode",
-        "aliases": ["PeopleCode (PeopleSoft Studio)"],
-        "extensions": [".peoplecode"],
+        "aliases": [
+          "PeopleCode (PeopleSoft Studio)"
+        ],
+        "extensions": [
+          ".peoplecode"
+        ],
         "configuration": "./language-configuration.json"
       },
       {
         "id": "psft-sql",
-        "aliases": ["PeopleSoft SQL (PeopleSoft Studio)"],
-        "extensions": [".pssql"],
+        "aliases": [
+          "PeopleSoft SQL (PeopleSoft Studio)"
+        ],
+        "extensions": [
+          ".pssql"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -59,17 +67,17 @@
     "views": {
       "peoplesoft": [
         {
-          "icon":"./resources/file-backup.svg",
+          "icon": "./resources/file-backup.svg",
           "id": "psft.projects",
           "name": "Projects"
         },
         {
-          "icon":"./resources/document.svg",
+          "icon": "./resources/document.svg",
           "id": "psft.browser",
           "name": "Definition Browser"
         },
         {
-          "icon":"./resources/link.svg",
+          "icon": "./resources/link.svg",
           "id": "psft.connections",
           "name": "Connections"
         }
@@ -304,7 +312,7 @@
           "when": "activeCustomEditorId == psft.recordEditor",
           "group": "navigation@1"
         }
-      ]      
+      ]
     },
     "configuration": {
       "title": "PeopleSoft Studio",
@@ -375,18 +383,27 @@
     "package": "npm run verify && vsce package --out peoplesoft-studio.vsix",
     "verify": "npm run compile && npm test && npm run smoke",
     "dev": "npm run package && code --install-extension peoplesoft-studio.vsix --force",
-    "corpus": "tsc -p . && node scripts/corpus-peoplecode.mjs"
+    "corpus": "tsc -p . && node scripts/corpus-peoplecode.mjs",
+    "corpus:harness": "tsx tools/corpus/cli.ts",
+    "corpus:verbose": "tsx tools/corpus/cli.ts --verbose",
+    "corpus:baseline": "tsx tools/corpus/cli.ts --baseline",
+    "corpus:verify": "tsx tools/corpus/cli.ts --compare-baseline",
+    "corpus:full": "tsx tools/corpus/cli.ts",
+    "corpus:failures": "tsx tools/corpus/failures.ts"
   },
   "dependencies": {
     "oracledb": "^6.6.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.14.0",
     "@types/oracledb": "^6.10.4",
     "@types/vscode": "^1.90.0",
     "@vscode/vsce": "^3.2.0",
+    "better-sqlite3": "^12.11.1",
     "esbuild": "^0.23.0",
     "fast-xml-parser": "^4.4.1",
+    "tsx": "^4.23.15",
     "typescript": "^5.5.0",
     "vscode-uri": "^3.2.0"
   },
@@ -404,5 +421,12 @@
     "peopletools",
     "oracle"
   ],
-  "qna": false
+  "qna": false,
+  "allowScripts": {
+    "better-sqlite3@12.11.1": true,
+    "oracledb@6.10.0": true,
+    "keytar@7.9.0": true,
+    "esbuild@0.23.1": true,
+    "esbuild@0.28.2": true
+  }
 }
