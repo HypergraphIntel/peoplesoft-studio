@@ -76,7 +76,11 @@ function main(): void {
     );
 
     console.log(
-      `Offset: ${next.definition.offset}`
+      `Definition ID: ${next.definitionId}`
+    );
+
+    console.log(
+      `Current Offset: ${next.definition.offset}`
     );
 
     console.log(
@@ -89,8 +93,18 @@ function main(): void {
     );
 
     console.log(
-      `npm run corpus:harness -- --offset ` +
-      `${next.definition.offset} --limit 1 --verbose`
+      `npm run corpus:harness -- --definition-id ` +
+      `${next.definitionId} --verbose`
+    );
+
+    console.log('');
+    console.log(
+      'Reference trace:'
+    );
+
+    console.log(
+      `npm run corpus:harness -- --definition-id ` +
+      `${next.definitionId} --verbose --trace-refs`
     );
   } finally {
     inventory.close();

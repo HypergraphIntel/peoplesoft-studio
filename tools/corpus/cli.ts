@@ -10,6 +10,7 @@ import {
 interface CliOptions {
   limit?: number;
   offset?: number;
+  definitionId?: number;
 
   verbose: boolean;
   baseline: boolean;
@@ -52,7 +53,8 @@ Usage:
 
 Options:
   --limit <n>          Maximum number of definitions to inspect.
-  --offset <n>         Definition offset, or failure-queue offset with --failed.
+  --offset <n>         Discovery offset, or failure-queue offset with --failed.
+  --definition-id <n>  Target one stable SQLite definition by its seven-part key.
   --failed             Re-run the current global non-EXACT work queue.
   --trace-refs         Print encoder PSPCMNAME/reference provenance diagnostics.
   --verbose            Print each definition and diagnostics.
@@ -64,7 +66,8 @@ Examples:
   npm run corpus:harness -- --limit 430
   npm run corpus:harness -- --failed
   npm run corpus:harness -- --failed --limit 25
-  npm run corpus:harness -- --offset 23 --limit 1 --verbose --trace-refs
+  npm run corpus:harness -- --definition-id 1843 --verbose
+  npm run corpus:harness -- --definition-id 1843 --verbose --trace-refs
 `);
 }
 
@@ -109,6 +112,22 @@ function parseArgs(
           );
         break;
 
+      case '--definition-id':
+        options.definitionId =
+          parseNumber(
+            argv[++index],
+            '--definition-id'
+          );
+
+        if (
+          options.definitionId < 1
+        ) {
+          throw new Error(
+            '--definition-id must be a positive integer'
+          );
+        }
+        break;
+
       case '--failed':
         options.failed = true;
         break;
@@ -142,6 +161,33 @@ function parseArgs(
     }
   }
 
+  if (
+    options.definitionId !== undefined &&
+    options.failed
+  ) {
+    throw new Error(
+      '--definition-id cannot be combined with --failed'
+    );
+  }
+
+  if (
+    options.definitionId !== undefined &&
+    options.offset !== undefined
+  ) {
+    throw new Error(
+      '--definition-id cannot be combined with --offset'
+    );
+  }
+
+  if (
+    options.definitionId !== undefined &&
+    options.limit !== undefined
+  ) {
+    throw new Error(
+      '--definition-id cannot be combined with --limit'
+    );
+  }
+
   return options;
 }
 
@@ -159,6 +205,8 @@ async function main():
         options.limit,
       offset:
         options.offset,
+      definitionId:
+        options.definitionId,
       failed:
         options.failed,
       verbose:
