@@ -248,7 +248,9 @@ export async function runCorpus(
           capture,
           {
             traceRefs:
-              options.traceRefs ?? false
+              options.traceRefs ?? false,
+            verbose:
+              options.verbose ?? false
           }
         );
 

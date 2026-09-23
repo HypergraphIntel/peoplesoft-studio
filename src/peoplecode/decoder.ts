@@ -1687,6 +1687,48 @@ export function decodeProgram(
       }
     }
 
+    /*
+     * Opcode 0x51 is context-sensitive.
+     *
+     * Existing calibration proved 0x51 can be a zero-width declaration
+     * marker before an introducer-less object type such as:
+     *
+     *   Field &MYFLD;
+     *
+     * DERIVED_CO.FUNCLIB.FieldFormula proves the complementary primitive-type
+     * form is an explicit PanelGroup declaration:
+     *
+     *   51 40 "number"  ...
+     *   51 40 "string"  ...
+     *   51 40 "boolean" ...
+     *
+     * Keep the established zero-width mapping for every other 0x51 shape.
+     * Only promote it to PanelGroup when the next token is a 0x40 primitive
+     * declaration type that is directly evidenced by this capture.
+     */
+    if (opcode === 0x51 && bytes[i] === 0x40) {
+      const typeRun = readTextRun(bytes, i + 1);
+      const primitivePanelGroupTypes = new Set([
+        'number',
+        'string',
+        'boolean'
+      ]);
+
+      if (
+        typeRun !== undefined &&
+        primitivePanelGroupTypes.has(typeRun.text.toLowerCase())
+      ) {
+        tokens.push({
+          kind: TokenKind.Keyword,
+          text: 'PanelGroup',
+          offset,
+          opcode,
+          format: F.SPACE_AFTER
+        });
+        continue;
+      }
+    }
+
     const mapped = OPCODES.get(opcode);
     if (mapped === undefined) {
       // Last resort before reporting a gap: the byte may not be an opcode
@@ -1954,7 +1996,30 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         tokens[tokenIndex - 1]?.opcode === 0x15 &&
         tokens[tokenIndex - 2]?.text === 'End-If';
 
-      if (!inlineCommentAfterEndIf) {
+      /*
+       * DERIVED_CO.FUNCLIB.FieldFormula also proves 0x4E immediately after
+       * Then is an inline comment:
+       *
+       *   ... Then [inline block comment]
+       *
+       * Preserve that attachment in decoded source so roundtrip encoding does
+       * not reinterpret it as a standalone 0x24 body comment.
+       */
+      const inlineCommentAfterThen =
+        t.kind === TokenKind.Comment &&
+        t.opcode === 0x4e &&
+        tokens[tokenIndex - 1]?.text === 'Then';
+
+      const inlineCommentAfterElse =
+        t.kind === TokenKind.Comment &&
+        t.opcode === 0x4e &&
+        tokens[tokenIndex - 1]?.text === 'Else';
+
+      if (!(
+        inlineCommentAfterEndIf ||
+        inlineCommentAfterThen ||
+        inlineCommentAfterElse
+      )) {
         trimTrailing();
 
         // Skip the newline entirely when we're already sitting at the start
@@ -1978,7 +2043,11 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
     if (f & (F.INCREASE_INDENT | F.INCREASE_INDENT_ONCE)) indent++;
 
     const suppressNewlineForInlineComment =
-      t.opcode === 0x15 &&
+      (
+        t.opcode === 0x15 ||
+        t.text === 'Then' ||
+        t.text === 'Else'
+      ) &&
       nextToken?.kind === TokenKind.Comment &&
       nextToken.opcode === 0x4e;
 
