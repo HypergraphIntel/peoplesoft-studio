@@ -401,5 +401,8 @@ export const TEXT_INTRODUCERS = new Map<number, TokenKind.Name | TokenKind.Strin
 export const PRIMITIVE_SIGNATURE_TYPE_IDS: ReadonlyMap<string, number> = new Map([
   ['string', 0x01],
   ['boolean', 0x05],
-  ['integer', 0x11]
+  ['integer', 0x11],
+  ['number', 0x13],
+  ['any', 0x04],
+  ['datetime', 0x0b]
 ]);

@@ -58,3 +58,37 @@ When a definition fails:
 - same-line comments after Then/Else use inline comment opcode 0x4E
 - Function metadata second directory field is signature-slot offset, not function ordinal
 - blank-line multiplicity before End-If is significant
+
+## Progress is not completion
+
+The following are never, by themselves, reasons to stop:
+- a target advanced past its previous first diff,
+- a new unsupported construct was discovered,
+- unit tests passed,
+- a local calibration succeeded,
+- a representative definition partially improved.
+
+Continue until the active target is fully calibrated or genuinely blocked, then run the protected regression gate and proceed to the next failure family.
+
+## Local blocker handling
+
+A blocker affecting one corpus definition is not a project-level stop condition.
+
+If the active definition cannot be advanced after exhausting available evidence:
+
+1. Record:
+   - definition_id
+   - construct
+   - first diff
+   - evidence searched
+   - exact missing evidence needed
+
+2. Mark it as locally blocked.
+
+3. Immediately select the next actionable failure family.
+
+4. Continue autonomously.
+
+Return to locally blocked definitions later if subsequent calibration reveals relevant evidence.
+
+Only report a global blocker if all remaining actionable work is exhausted.

@@ -78,12 +78,4 @@ virtual documents end in `.peoplecode` rather than `.pcode`. Both extensions can
 be installed together. `richardwood.peoplesoft-datamover` only claims `.dms` and
 `.dmt`, so it does not overlap at all.
 
-## Development
-
-```bash
-npm run compile   # typecheck + bundle
-npm test          # unit tests (decoder, etc.)
-npm run smoke     # activate bundle against a vscode stub
-npm run dev       # package + install VSIX into Code
-
 

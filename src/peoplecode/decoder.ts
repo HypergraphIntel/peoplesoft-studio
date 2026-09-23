@@ -615,6 +615,7 @@ const QUOTED_REFERENCE_QUALIFIERS = new Map<string, string>([
   ['ITEMNAME', 'ItemName'],
   ['MESSAGE', 'Message'],
   ['PAGE', 'Page'],
+  ['STYLESHEET', 'StyleSheet'],
   ['BUSPROCESS', 'BusProcess'],
   ['BUSACTIVITY', 'BusActivity'],
   ['BUSEVENT', 'BusEvent'],
@@ -2050,9 +2051,15 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
       ) &&
       nextToken?.kind === TokenKind.Comment &&
       nextToken.opcode === 0x4e;
+    const inlineHeaderCommentBeforeSemicolon =
+      t.opcode === 0x4e &&
+      nextToken?.opcode === 0x15 &&
+      /^(?:Then|Else)$/.test(tokens[tokenIndex - 1]?.text ?? '');
 
     if (f & F.NEWLINE_AFTER) {
-      if (suppressNewlineForInlineComment) {
+      if (inlineHeaderCommentBeforeSemicolon) {
+        // The semicolon terminates the header on the same source line.
+      } else if (suppressNewlineForInlineComment) {
         trimTrailing();
         out.push(' ');
       } else {

@@ -17,6 +17,7 @@ interface FunctionMetadata {
   name: string;
   parameterTypes: string[];
   returnType?: string;
+  hasParameterList: boolean;
 }
 
 export interface PeopleCodeReference {
@@ -81,16 +82,27 @@ export interface EncodedPeopleCode {
   references: PeopleCodeReference[];
 }
 
+const BUILTIN_FUNCTION_TYPE_IDS: ReadonlyMap<string, number> = new Map([
+  ['record', 0x80003],
+  ['rowset', 0x80007],
+  ['apiobject', 0x8000f],
+  ['xmldoc', 0x8001d],
+  ['xmlnode', 0x80022]
+]);
+
 function functionTypeId(typeName: string): number {
+  // Built-in object descriptors use 0x80000 plus their calibrated subtype.
+  // Function parameter slots add 0xc0000000 in parameterTypeDescriptor().
+  const builtinObjectType = BUILTIN_FUNCTION_TYPE_IDS.get(typeName.toLowerCase());
+  if (builtinObjectType !== undefined) return builtinObjectType;
+
   const id = PRIMITIVE_SIGNATURE_TYPE_IDS.get(typeName.toLowerCase());
   if (id === undefined) throw new Error(`Unsupported function metadata type: ${typeName}`);
   return id;
 }
 
 function returnTypeDescriptor(typeName?: string): number {
-  return typeName === undefined
-    ? 0x07
-    : functionTypeId(typeName);
+  return typeName === undefined ? 0x07 : functionTypeId(typeName);
 }
 
 function parameterTypeDescriptor(typeName: string): number {
@@ -123,7 +135,7 @@ function encodeFunctionProgramHeader(
    * with no parameters, the stored value is 9.
    */
   const signatureSlots = metadata.reduce(
-    (total, item) => total + item.parameterTypes.length + 1,
+    (total, item) => total + (item.hasParameterList ? item.parameterTypes.length + 1 : 0),
     0
   );
 
@@ -197,7 +209,7 @@ function encodeFunctionMetadata(
     const offset = i * 16;
 
     directory.writeUInt32LE(nameOffsetUtf16, offset);
-    directory.writeUInt32LE(signatureSlotOffset, offset + 4);
+    directory.writeUInt32LE(item.hasParameterList ? signatureSlotOffset : 0, offset + 4);
     directory.writeUInt32LE(item.parameterTypes.length, offset + 8);
     directory.writeUInt32LE(
       returnTypeDescriptor(item.returnType),
@@ -205,7 +217,7 @@ function encodeFunctionMetadata(
     );
 
     nameOffsetUtf16 += item.name.length + 1;
-    signatureSlotOffset += item.parameterTypes.length + 1;
+    if (item.hasParameterList) signatureSlotOffset += item.parameterTypes.length + 1;
   }
 
   /*
@@ -216,6 +228,7 @@ function encodeFunctionMetadata(
   const signatureTails: Buffer[] = [];
 
   for (const item of metadata) {
+    if (!item.hasParameterList) continue;
     for (const typeName of item.parameterTypes) {
       const parameter = Buffer.alloc(4);
       parameter.writeUInt32LE(
@@ -311,6 +324,24 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     return textOperand(0x40, TokenKind.Keyword, name);
   };
 
+  const arrayElementTypes = (): string | undefined => {
+    let elementType: string | undefined;
+    do {
+      space();
+      if (!word('of')) fail('expected "of" after array type');
+      chunks.push(textOperand(0x40, TokenKind.Keyword, 'of'));
+      space();
+      if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
+        const appClass = applicationClassPath();
+        elementType = appClass.className;
+        continue;
+      }
+      elementType = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+      chunks.push(typeName());
+    } while (/^array$/i.test(elementType ?? ''));
+    return elementType;
+  };
+
   const localDeclaration = () => {
     lastLocalHadInitializer = false;
 
@@ -335,7 +366,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       space();
 
       const variableMatch =
-        /^&[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
+        /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos));
       if (!variableMatch) {
         return fail('expected an ASCII &variable');
       }
@@ -370,9 +401,11 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * the following Record.DERIVED_ADDRESS dependency.
        */
       if (
-        functionDepth === 0 &&
-        controlDepth === 0 &&
-        sawTopLevelExecutableStatement
+        ((functionDepth === 0 &&
+          controlDepth === 0 &&
+          sawTopLevelExecutableStatement) ||
+          (functionDepth > 0 && !/^\s*=/.test(source.slice(pos)))) &&
+        !/^\s*=\s*create\b/i.test(source.slice(pos))
       ) {
         addApplicationClassReference(
           appClass.packagePath,
@@ -425,7 +458,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       const elementType =
         /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
 
-      chunks.push(typeName());
+      if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
+        const appClass = applicationClassPath();
+        chunks.push(appClass.bytes);
+        addApplicationClassReference(appClass.packagePath, appClass.className);
+      } else {
+        chunks.push(typeName());
+      }
 
       if (/^File$/i.test(elementType ?? '')) {
         ensureLocalObjectPackageReference('FILE', 'File');
@@ -475,7 +514,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     */
     space();
     const firstDeclaredVariable =
-      /^&[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+      /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
     if (/^Record$/i.test(type ?? '') && firstDeclaredVariable) {
       recordVariables.add(firstDeclaredVariable.toLowerCase());
     } else if (/^Row$/i.test(type ?? '') && firstDeclaredVariable) {
@@ -495,7 +534,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       space();
       const declaredVariable =
-        /^&[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+        /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
       if (/^Record$/i.test(type ?? '') && declaredVariable) {
         recordVariables.add(declaredVariable.toLowerCase());
       } else if (/^Row$/i.test(type ?? '') && declaredVariable) {
@@ -553,7 +592,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       return;
     }
 
+    const declaredType = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
     chunks.push(typeName());
+    if (/^array$/i.test(declaredType ?? '')) {
+      if (/^Record$/i.test(arrayElementTypes() ?? '')) {
+        ensureLocalObjectPackageReference('RECORD', 'Record');
+      }
+    }
 
     space();
     chunks.push(variable());
@@ -612,7 +657,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     chunks.push(fixed('Component'));
 
     space();
-    chunks.push(typeName());
+    const appClassType =
+      /^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))
+        ? applicationClassPath()
+        : undefined;
+    const declaredType =
+      appClassType === undefined
+        ? /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0]
+        : undefined;
+    chunks.push(appClassType?.bytes ?? typeName());
+    if (/^array$/i.test(declaredType ?? '')) {
+      arrayElementTypes();
+    }
+    if (/^Record$/i.test(declaredType ?? '')) {
+      ensureLocalObjectPackageReference('RECORD', 'Record');
+    }
 
     /*
      * Component declarations may declare multiple variables of the same
@@ -624,8 +683,26 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      *    01 "&A"
      *    03 01 "&B"
      *    03 01 "&C"
-     */
+    */
     space();
+    const firstVariable =
+      /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+    if (/^Record$/i.test(declaredType ?? '') && firstVariable) {
+      recordVariables.add(firstVariable.toLowerCase());
+    }
+    if (appClassType !== undefined && firstVariable) {
+      applicationClassVariables.set(firstVariable.toLowerCase(), {
+        packagePath: appClassType.packagePath,
+        className: appClassType.className,
+        reuseRuntimeCreateForMethods: false
+      });
+      if (sawWildcardImport) {
+        addApplicationClassReference(
+          appClassType.packagePath,
+          appClassType.className
+        );
+      }
+    }
     chunks.push(variable());
 
     while (true) {
@@ -639,6 +716,18 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       chunks.push(fixed(','));
 
       space();
+      const nextVariable =
+        /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+      if (/^Record$/i.test(declaredType ?? '') && nextVariable) {
+        recordVariables.add(nextVariable.toLowerCase());
+      }
+      if (appClassType !== undefined && nextVariable) {
+        applicationClassVariables.set(nextVariable.toLowerCase(), {
+          packagePath: appClassType.packagePath,
+          className: appClassType.className,
+          reuseRuntimeCreateForMethods: false
+        });
+      }
       chunks.push(variable());
     }
   };
@@ -1729,7 +1818,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     return Buffer.concat([bytes, payload]);
   };
 
-  const remComment = (): Buffer => {
+  const remComment = (allowMissingSemicolon = false): Buffer => {
     const match = /^REM\b[^\r\n]*/i.exec(source.slice(pos));
 
     if (!match) {
@@ -1738,7 +1827,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     const remText = match[0].replace(/[ \t]+$/g, '');
 
-    if (!remText.endsWith(';')) {
+    if (!allowMissingSemicolon && !remText.endsWith(';')) {
       return fail('expected ; at end of REM comment');
     }
 
@@ -1814,7 +1903,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     return true;
   };
   const variable = (): Buffer => {
-    const match = /^&[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
+    const match = /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos));
     if (!match) return fail('expected an ASCII &variable');
     pos += match[0].length;
     return textOperand(0x01, TokenKind.Name, match[0]);
@@ -1955,7 +2044,22 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   const booleanUnary = () => {
     space();
 
-    if (source[pos] === '(') {
+    if (source[pos] === '@') {
+      pos++;
+      chunks.push(fixed('@'));
+      space();
+      if (source[pos] !== '(') return fail('expected ( after @');
+      parenthesized(expression, false);
+      space();
+      const operator =
+        /^(<>|<=|>=|=|<|>)/.exec(source.slice(pos))?.[0];
+      if (operator !== undefined) {
+        pos += operator.length;
+        chunks.push(fixed(operator));
+        expression();
+      }
+      return;
+    } else if (source[pos] === '(') {
       parenthesized(booleanExpression, false);
       space();
       const operator =
@@ -2099,7 +2203,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
     pos += eventName.length;
 
-    let reference = references.find(
+    let reference: PeopleCodeReference | undefined =
+      same(ownerReference.recordName, recordName) &&
+      same(ownerReference.fieldName, fieldName)
+        ? ownerReference
+        : undefined;
+
+    reference ??= references.find(
       item =>
         item.kind === 'declare-function' &&
         same(item.recordName, recordName) &&
@@ -2127,6 +2237,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     space();
     const appClass = applicationClassPath({ allowWildcard: true });
+    if (appClass.wildcard) sawWildcardImport = true;
     chunks.push(appClass.bytes);
 
     /*
@@ -2283,7 +2394,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       //
       // primary() consumes the complete variable/member/call chain.
       const statementVariable =
-        /^&[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+        /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
       primary();
       space();
 
@@ -2440,10 +2551,12 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       )
     );
 
+    const afterNameWhitespaceStart = pos;
     space();
+    const afterNameWhitespace = source.slice(afterNameWhitespaceStart, pos);
 
     // Parameters
-    parenthesized(() => {
+    if (source[pos] === '(') parenthesized(() => {
       space();
 
       if (source[pos] === ')') {
@@ -2501,7 +2614,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     const afterParamsWhitespaceStart = pos;
     space();
     let functionBodyWhitespace =
-      source.slice(afterParamsWhitespaceStart, pos);
+      source.slice(afterParamsWhitespaceStart, pos) || afterNameWhitespace;
 
     // Optional return type.
     if (word('Returns')) {
@@ -2704,30 +2817,36 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * statement() and then incorrectly required ';', producing
        * "expected ; in Function body".
        *
-       * This also covers comments that appear immediately after a Function
-       * header when there were no leading Local declarations. Comments after
-       * a leading-Local declaration section remain on the existing path until
-       * separately calibrated.
+       * A comment immediately after leading Locals is likewise a complete
+       * body item. The decoded source can render an original same-line 0x4E
+       * comment on a separate line; comment opcode provenance preserves it.
        */
-      if (
-        source.startsWith('/*', pos) &&
-        (enteredExecutableSection || !sawLocalDeclaration)
-      ) {
+      if (source.startsWith('/*', pos)) {
         chunks.push(blockComment());
         continue;
       }
 
-      // PeopleTools emits one 0x4f when a Function transitions from one or
-      // more leading Local declarations to its first executable statement.
-      // It is not emitted when End-Function immediately follows the Locals.
+      // A blank line between leading Local declarations and executable
+      // statements contributes a 0x4f boundary. An ordinary newline does not
+      // (DERIVED_HR_DR.HR_DR_CONTINUE1_PB.FieldChange, ValidateData).
       const isLocal = /^Local\b/i.test(source.slice(pos));
 
       if (!isLocal && sawLocalDeclaration && !enteredExecutableSection) {
-        chunks.push(Buffer.from([0x4f]));
+        if (/(?:\r?\n)[ \t]*(?:\r?\n)/.test(bodyWhitespace)) {
+          const markerCount = Math.max(1, (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1);
+          for (let marker = 0; marker < markerCount; marker++) {
+            chunks.push(Buffer.from([0x4f]));
+          }
+        }
         enteredExecutableSection = true;
       }
 
-      statement();
+      const isRemStatement = /^REM\b/i.test(source.slice(pos));
+      if (isRemStatement) {
+        chunks.push(remComment(true));
+      } else {
+        statement();
+      }
 
       if (isLocal) {
         sawLocalDeclaration = true;
@@ -2737,12 +2856,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       space();
 
-      if (source[pos] !== ';') {
+      if (isRemStatement) {
+        // remComment consumed its own semicolon as part of the payload.
+      } else if (source[pos] === ';') {
+        pos++;
+        chunks.push(fixed(';'));
+      } else if (/^End-Function\b/i.test(source.slice(pos))) {
+        // PeopleTools accepts a Return immediately before End-Function
+        // without a semicolon (common in exported corpus source).
+      } else {
         fail('expected ; in Function body');
       }
-
-      pos++;
-      chunks.push(fixed(';'));
       trailingBlockComments();
     }
   }
@@ -2867,6 +2991,11 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         while (true) {
           space();
 
+          if (source.startsWith('/*', pos)) {
+            chunks.push(blockComment());
+            continue;
+          }
+
           if (word('end-try')) {
             chunks.push(fixed('end-try'));
             return;
@@ -2891,6 +3020,11 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       if (pos === source.length) {
         fail('expected catch');
+      }
+
+      if (source.startsWith('/*', pos)) {
+        chunks.push(blockComment());
+        continue;
       }
 
       statement();
@@ -3109,6 +3243,11 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           }
         }
         chunks.push(blockComment());
+        continue;
+      }
+
+      if (/^REM\b/i.test(source.slice(pos))) {
+        chunks.push(remComment(true));
         continue;
       }
 
@@ -3392,7 +3531,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       if (source.startsWith('/*', pos)) {
         if (hasBlankLine) {
-          chunks.push(Buffer.from([0x4f]));
+          const markerCount = Math.max(
+            1,
+            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+          );
+          for (let marker = 0; marker < markerCount; marker++) {
+            chunks.push(Buffer.from([0x4f]));
+          }
         }
 
         chunks.push(blockComment());
@@ -3409,7 +3554,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           pendingReferenceGroupBoundaries.push(chunks.length);
         }
 
-        chunks.push(remComment());
+        chunks.push(remComment(true));
         continue;
       }
 
@@ -3457,7 +3602,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       if (source[pos] === ';') {
         pos++;
         chunks.push(fixed(';'));
-      } else if (!/^End-If\b/i.test(source.slice(pos))) {
+      } else if (!/^(?:Else|End-If)\b/i.test(source.slice(pos))) {
         fail('expected ; in If body');
       }
       trailingBlockComments();
@@ -3523,7 +3668,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       if (source.startsWith('/*', pos)) {
         if (hasBlankLine) {
-          chunks.push(Buffer.from([0x4f]));
+          const markerCount = Math.max(
+            1,
+            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+          );
+          for (let marker = 0; marker < markerCount; marker++) {
+            chunks.push(Buffer.from([0x4f]));
+          }
         }
 
         chunks.push(blockComment());
@@ -3540,7 +3691,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           pendingReferenceGroupBoundaries.push(chunks.length);
         }
 
-        chunks.push(remComment());
+        chunks.push(remComment(true));
         continue;
       }
 
@@ -3601,6 +3752,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
         sawWhenOther = true;
         chunks.push(fixed('When-Other'));
+        if (source[pos] === ';') {
+          pos++;
+          chunks.push(fixed(';'));
+        }
 
         // Parse When-Other body until End-Evaluate.
         while (true) {
@@ -3717,6 +3872,11 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           parenthesized(booleanExpression, false);
         } else {
           expression();
+        }
+
+        if (source[pos] === ';') {
+          pos++;
+          chunks.push(fixed(';'));
         }
 
         // Confirmed by every When in the fixture.
@@ -3866,7 +4026,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
               }
             }
 
-            chunks.push(remComment());
+            chunks.push(remComment(true));
             continue;
           }
 
@@ -4022,7 +4182,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     // &rs(1). Do not make every literal/value callable (e.g. True()).
     let allowDirectPostfixCall = source[pos] === '&';
     const baseVariableName =
-      /^&[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+      /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
     const baseApplicationClass =
       baseVariableName === undefined
         ? undefined
@@ -4258,7 +4418,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         const isMethodCall = source[pos] === '(';
         const isInlineRowStateMember =
           expectedReferenceMember === 'record' &&
-          /^(?:IsNew|IsDeleted|IsChanged|Visible)$/i.test(member);
+          /^(?:IsNew|IsDeleted|IsChanged|Visible|Selected)$/i.test(member);
         const hasExistingExpectedReference = references.some(item =>
           expectedReferenceMember === 'record'
             ? (item.kind === 'record' || (isMethodCall && item.kind === 'scroll')) &&
@@ -4376,6 +4536,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
                            * incorrectly reuses the group-0 dependency.
                            */
                           rowShorthandFields.get(
+                            `${controlGroup}:${member.toLowerCase()}`
+                          ) ?? declaredRecordFields.get(
                             `${controlGroup}:${member.toLowerCase()}`
                           )
                         )
@@ -4675,6 +4837,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
    * import.
    */
   let importSectionOpen = false;
+  let sawWildcardImport = false;
 
   let sawApplicationClassLocalSection = false;
   let closedApplicationClassLocalSection = false;
@@ -4716,6 +4879,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       const nextIsImport =
         /^import\b/i.test(source.slice(afterComments));
+      const nextIsTopLevelDeclaration =
+        /^(?:Global|PanelGroup|Component|Constant|Declare\s+Function)\b/i.test(
+          source.slice(afterComments)
+        );
 
       /*
        * A standalone block comment following an import belongs to the open
@@ -4743,7 +4910,14 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * so close the import section here when the comment sequence is followed
        * by anything other than another import.
        */
-      if (importSectionOpen && !nextIsImport) {
+      // A decoded same-line import comment may be rendered on its own line.
+      // Its preserved 0x4E provenance keeps it attached to the import; the
+      // import section closes at the following non-import source item.
+      if (
+        importSectionOpen &&
+        !nextIsImport &&
+        context?.commentOpcodes?.[commentOpcodeIndex] !== 0x4e
+      ) {
         chunks.push(Buffer.from([0x2d]));
         importSectionOpen = false;
       }
@@ -4809,7 +4983,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
          */
         if (
           sawTopLevelDeclaration &&
-          !closedTopLevelDeclarationSection
+          !closedTopLevelDeclarationSection &&
+          !nextIsTopLevelDeclaration
         ) {
           chunks.push(Buffer.from([0x2d]));
           closedTopLevelDeclarationSection = true;
@@ -4826,6 +5001,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }
 
       do {
+        const decodedTrailingImportComment =
+          importSectionOpen &&
+          !nextIsImport &&
+          context?.commentOpcodes?.[commentOpcodeIndex] === 0x4e;
         chunks.push(blockComment());
 
         const commentWhitespaceStart = pos;
@@ -4839,7 +5018,16 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             commentWhitespace
           );
 
-        if (hasBlankLineAfterComment) {
+        if (decodedTrailingImportComment && hasBlankLineAfterComment) {
+          chunks.push(Buffer.from([0x2d, 0x4f]));
+          importSectionOpen = false;
+          if (nextIsLocal) {
+            leadingLocalRun = true;
+            sawLeadingLocalDeclaration = false;
+            pendingReferenceLocalBoundary = undefined;
+            pendingReferenceLocalMarkers = 1;
+          }
+        } else if (hasBlankLineAfterComment) {
           /*
            * PeopleTools preserves each blank formatting line after a
            * standalone top-level block comment as a 0x4F boundary.
@@ -4877,6 +5065,19 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      * Consume it here, before the ordinary statement/terminator path.
      */
     if (/^REM\b/i.test(source.slice(pos))) {
+      if (haveCompletedTopLevelStatement && hasBlankLine) {
+        if (sawTopLevelDeclaration && !closedTopLevelDeclarationSection) {
+          chunks.push(Buffer.from([0x2d]));
+          closedTopLevelDeclarationSection = true;
+        }
+        const markerCount = Math.max(
+          1,
+          (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
+        );
+        for (let marker = 0; marker < markerCount; marker++) {
+          chunks.push(Buffer.from([0x4f]));
+        }
+      }
       chunks.push(remComment());
       haveCompletedTopLevelStatement = true;
       leadingLocalRun = false;
@@ -4937,7 +5138,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       !isTopLevelDeclaration &&
       !isLocalDeclaration &&
       sawTopLevelDeclaration &&
-      !closedTopLevelDeclarationSection;
+      !closedTopLevelDeclarationSection &&
+      !(sawApplicationClassLocalSection && !closedApplicationClassLocalSection);
 
     /*
      * Imports are a single declaration section. Close that section only when
@@ -5017,6 +5219,16 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }
     }
 
+    if (
+      sawTopLevelDeclaration &&
+      isTopLevelDeclaration &&
+      /^(?:Component|Global|Declare\s+Function)\b/i.test(source.slice(pos)) &&
+      hasBlankLine &&
+      !justClosedImportSection
+    ) {
+      chunks.push(Buffer.from([0x4f]));
+    }
+
     const closesApplicationClassLocalSection =
       !isLocalDeclaration &&
       sawApplicationClassLocalSection &&
@@ -5081,6 +5293,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       if (
         sawLeadingLocalDeclaration &&
         !isTopLevelDeclaration &&
+        !closesApplicationClassLocalSection &&
         pendingReferenceLocalBoundary === undefined
       ) {
         pendingReferenceLocalBoundary = chunks.length;
@@ -5123,6 +5336,9 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }
 
       closedApplicationClassLocalSection = true;
+      // This one section boundary also closes preceding Declare/Component
+      // declarations; emitting their boundary again duplicates 0x2D 0x4F.
+      closedTopLevelDeclarationSection = true;
     }
 
     // Calibrated top-level declaration transition:
@@ -5733,16 +5949,19 @@ function parseFunctionMetadata(
    * Declare Function statements are not included.
    */
   const functionPattern =
-    /(?:^|\r?\n)[ \t]*Function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/gi;
+    /(?:^|\r?\n)[ \t]*Function\s+([A-Za-z_][A-Za-z0-9_]*)([ \t]*\()?/gi;
 
   let functionMatch: RegExpExecArray | null;
 
   while ((functionMatch = functionPattern.exec(source)) !== null) {
     const name = functionMatch[1];
     const parameterStart = functionPattern.lastIndex;
+    const hasParameterList = functionMatch[2] !== undefined;
 
-    const closeParen = source.indexOf(')', parameterStart);
-    if (closeParen < 0) {
+    const closeParen = hasParameterList
+      ? source.indexOf(')', parameterStart)
+      : parameterStart;
+    if (hasParameterList && closeParen < 0) {
       throw new Error(
         `Unterminated Function parameter list for ${name}`
       );
@@ -5793,7 +6012,7 @@ function parseFunctionMetadata(
       }
     }
 
-    const afterParameters = source.slice(closeParen + 1);
+    const afterParameters = source.slice(closeParen + (hasParameterList ? 1 : 0));
     const returnMatch =
       /^[ \t]*Returns\s+([A-Za-z_][A-Za-z0-9_]*)/i.exec(
         afterParameters
@@ -5802,7 +6021,8 @@ function parseFunctionMetadata(
     metadata.push({
       name,
       parameterTypes,
-      returnType: returnMatch?.[1]
+      returnType: returnMatch?.[1],
+      hasParameterList
     });
 
     /*
