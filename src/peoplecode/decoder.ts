@@ -1383,7 +1383,20 @@ export function decodeProgram(
     // already been written before them (see render()'s atLineStart).
     // See docs/ROADMAP.md pass twenty-one.
     if (opcode === 0x31 && bytes[i] === 0x32) {
-      tokens.push({ kind: TokenKind.Keyword, text: 'Declare Function', offset, opcode, format: FUNCTION_STYLE });
+      const declarationEnd = bytes.indexOf(0x15, i + 1);
+      const peopleCodeKeyword = bytes.indexOf(0x3a, i + 1);
+      const isPeopleCodeDeclaration =
+        peopleCodeKeyword >= 0 &&
+        (declarationEnd < 0 || peopleCodeKeyword < declarationEnd);
+      tokens.push({
+        kind: TokenKind.Keyword,
+        text: 'Declare Function',
+        offset,
+        opcode,
+        format: isPeopleCodeDeclaration
+          ? F.NEWLINE_BEFORE | F.SPACE_AFTER
+          : FUNCTION_STYLE
+      });
       i++;
       continue;
     }
@@ -1731,7 +1744,26 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
   // corpus-validate.mjs metric never had a way to catch.
   const writeIndent = () => { out.push('  '.repeat(indent)); atLineStart = true; };
 
-  for (const t of tokens) {
+  for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
+    const t = tokens[tokenIndex];
+    const nextToken = tokens[tokenIndex + 1];
+    const tokenAfterNext = tokens[tokenIndex + 2];
+    let followsDeclaration = false;
+    if (t.opcode === 0x2d) {
+      for (let lookbehind = tokenIndex - 2; lookbehind >= 0; lookbehind--) {
+        const previous = tokens[lookbehind];
+        if (previous.opcode === 0x15 || previous.kind === TokenKind.Comment) break;
+        if (
+          previous.opcode === 0x44 ||
+          previous.opcode === 0x45 ||
+          previous.opcode === 0x54 ||
+          previous.opcode === 0x56
+        ) {
+          followsDeclaration = true;
+          break;
+        }
+      }
+    }
     if (t.kind === TokenKind.Header) continue;
     const f = t.format;
 
@@ -1748,8 +1780,17 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
       // "start this construct on its own line" flag that would otherwise
       // open every program with a spurious blank line.
       trimTrailing();
-      out.push('\n');
-      writeIndent();
+      if (!(
+        t.opcode === 0x2d &&
+        nextToken?.opcode === 0x4f &&
+        (
+          tokenAfterNext?.opcode === 0x4f ||
+          followsDeclaration
+        )
+      )) {
+        out.push('\n');
+        writeIndent();
+      }
     } else if (f & F.NEWLINE_BEFORE) {
       trimTrailing();
       // Skip the newline entirely when we're already sitting at the start
@@ -1774,17 +1815,27 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
 
     if (f & (F.INCREASE_INDENT | F.INCREASE_INDENT_ONCE)) indent++;
 
+    const suppressNewlineForInlineComment =
+      t.opcode === 0x15 &&
+      nextToken?.kind === TokenKind.Comment &&
+      nextToken.opcode === 0x4e;
+
     if (f & F.NEWLINE_AFTER) {
-      trimTrailing();
-      out.push('\n');
-      writeIndent();
+      if (suppressNewlineForInlineComment) {
+        trimTrailing();
+        out.push(' ');
+      } else {
+        trimTrailing();
+        out.push('\n');
+        writeIndent();
+      }
     } else if (f & F.SPACE_AFTER && !(f & F.NO_SPACE_AFTER)) {
       out.push(' ');
     }
   }
 
   trimTrailing();
-  const body = out.join('').replace(/\n{3,}/g, '\n\n');
+  const body = out.join('');
 
   if (unknown.length === 0) return body;
 

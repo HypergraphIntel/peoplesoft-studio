@@ -24,7 +24,7 @@ export interface PeopleCodeReference {
   index: number;
   /** One-based PSPCMNAME sequence. */
   sequence: number;
-  kind: 'owner' | 'record-field' | 'package' | 'record' | 'field' | 'scroll' | 'declare-function';
+  kind: 'owner' | 'record-field' | 'package' | 'record' | 'field' | 'scroll' | 'component' | 'declare-function';
   recordName?: string;
   fieldName?: string;
   eventName?: string;
@@ -44,6 +44,18 @@ export interface PeopleCodeOwner {
 
 export interface EncodeProgramContext {
   owner?: PeopleCodeOwner;
+
+  /**
+   * Original block-comment opcodes, in source order, when re-encoding
+   * text produced by decodeProgram().
+   *
+   * 0x24 = standalone block comment
+   * 0x4E = alternate/trailing block-comment representation
+   *
+   * Ordinary source encoding leaves this undefined and derives the
+   * representation from source placement.
+   */
+  commentOpcodes?: readonly (0x24 | 0x4e)[];
 }
 
 export interface EncodedPeopleCode {
@@ -174,6 +186,23 @@ function textOperand(opcode: number, kind: TokenKind, value: string): Buffer {
  * access are unsupported.  
  */
 function encodeFragmentInternal(source: string, context?: EncodeProgramContext): { bytes: Buffer; references: PeopleCodeReference[] } {
+
+  let commentOpcodeIndex = 0;
+
+  const consumeCommentOpcode = (
+    fallback: 0x24 | 0x4e
+  ): 0x24 | 0x4e => {
+    const opcode =
+      context?.commentOpcodes?.[commentOpcodeIndex];
+
+    if (opcode === 0x24 || opcode === 0x4e) {
+      commentOpcodeIndex++;
+      return opcode;
+    }
+
+    return fallback;
+  };
+
   const typeName = (): Buffer => {
     const match = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
     if (!match) return fail('expected a PeopleCode type name');
@@ -269,10 +298,44 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       ensurePackageReference('SQL', 'SQL');
     }
 
+    /*
+    * A Local declaration may declare multiple variables of the same type:
+    *
+    *   Local Rowset &RS1, &RS2;
+    *   Local number &I, &FirstRow, &HireRow;
+    *
+    * The comma is the ordinary 0x03 punctuation opcode and each variable
+    * remains an ordinary 0x01 text operand.
+    */
     space();
+    const firstDeclaredVariable =
+      /^&[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+    if (/^Record$/i.test(type ?? '') && firstDeclaredVariable) {
+      recordVariables.add(firstDeclaredVariable.toLowerCase());
+    }
     chunks.push(variable());
 
+    while (true) {
+      space();
+
+      if (source[pos] !== ',') {
+        break;
+      }
+
+      pos++;
+      chunks.push(fixed(','));
+
+      space();
+      const declaredVariable =
+        /^&[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+      if (/^Record$/i.test(type ?? '') && declaredVariable) {
+        recordVariables.add(declaredVariable.toLowerCase());
+      }
+      chunks.push(variable());
+    }
+
     space();
+
     if (source[pos] === '=') {
       pos++;
       chunks.push(fixed('='));
@@ -325,7 +388,23 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     expression();
   };
 
+  const systemVariable = (): Buffer => {
+    const match = /^%[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
 
+    if (!match) {
+      return fail('expected a PeopleCode system variable');
+    }
+
+    const name = match[0];
+    pos += name.length;
+
+    return textOperand(
+      0x12,
+      TokenKind.Name,
+      name
+    );
+  };
+  
   let pos = 0;
   let depth = 0;
   const chunks: Buffer[] = [];
@@ -337,6 +416,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     string,
     { packagePath: string[]; className: string }
   >();
+  const recordVariables = new Set<string>();
 
   const same = (a: string | undefined, b: string | undefined): boolean =>
     (a ?? '').toLowerCase() === (b ?? '').toLowerCase();
@@ -536,14 +616,58 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       return referenceOperand(ownerReference);
     }
 
-    return referenceOperand(
-      nextReference({
-        kind: 'record-field',
-        recordName,
-        fieldName
-      })
-    );
+    /*
+    * Ordinary RECORD.FIELD references are name-deduplicated.
+    *
+    * Calibrated by AA_COST_RT_JPN.EMPL_RCD_JPN.FieldChange:
+    * BUS_UNIT_TBL_HR.DESCRSHORT appears repeatedly in source but occupies
+    * one PSPCMNAME row, and every compiled 0x21 operand reuses that same
+    * zero-based reference index.
+    *
+    * This is distinct from explicit Record.X / Field.X / Scroll.X
+    * references, which have separate occurrence-based calibration.
+    */
+    const key = `${controlGroup}:${recordName.toLowerCase()}:${fieldName.toLowerCase()}`;
+    const existing = ordinaryRecordFieldsByControlGroup.get(key);
+
+    if (existing !== undefined) {
+      return referenceOperand(existing);
+    }
+
+    const reference = nextReference({
+      kind: 'record-field',
+      recordName,
+      fieldName
+    });
+    ordinaryRecordFieldsByControlGroup.set(key, reference);
+    return referenceOperand(reference);
   };
+
+  let reuseRecordReferenceByName = false;
+  const ordinaryRecordFieldsByControlGroup = new Map<string, PeopleCodeReference>();
+  let controlDepth = 0;
+  let controlGroup = 0;
+  let nextControlGroup = 1;
+  const inControlGroup = (parse: () => void): void => {
+    const previousGroup = controlGroup;
+    if (controlDepth === 0) controlGroup = nextControlGroup++;
+    controlDepth++;
+    try {
+      parse();
+    } finally {
+      controlDepth--;
+      controlGroup = previousGroup;
+    }
+  };
+  let reuseRowShorthandRecord = false;
+  const rowShorthandRecords = new Map<string, PeopleCodeReference>();
+  const createRecordReferences = new Map<string, PeopleCodeReference>();
+  const createRecordReferenceCounts = new Map<string, number>();
+  const rowShorthandRecordsByBase = new Map<string, PeopleCodeReference>();
+  const recordVariableFields = new Map<string, PeopleCodeReference>();
+  const rowShorthandFields = new Map<string, PeopleCodeReference>();
+  const latestFields = new Map<string, PeopleCodeReference>();
+  const resetRecordVariableFields = new Set<string>();
 
   const recordReference = (): Buffer => {
     if (!word('Record')) return fail('expected Record');
@@ -554,17 +678,56 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     if (!recordName) return fail('expected record name after Record.');
     pos += recordName.length;
 
-    // Record.X allocates only the occurrence-based RECORD row.
-    // PACKAGE RECORD is created by a Record object declaration, not by
-    // encountering Record.X in an expression.
-    // Calibrated by the deep chained-navigation PeopleTools fixture.
-    // Calibrated: RECORD rows are occurrence-based, not name-deduplicated.
-    return referenceOperand(
-      nextReference({
-        kind: 'record',
-        recordName
-      })
-    );
+    /*
+    * Record.X is normally occurrence-based.
+    *
+    * However, calibrated GetSetId(...) calls reuse an existing RECORD
+    * PSPCMNAME row when the same Record.X is supplied repeatedly:
+    *
+    *   GetSetId(..., Record.DEPT_TBL, ...)
+    *   GetSetId(..., Record.DEPT_TBL, ...)
+    *
+    * Other calibrated contexts such as CreateRecord(Record.X) remain
+    * occurrence-based.
+    */
+    if (reuseRowShorthandRecord) {
+      const existing = rowShorthandRecords.get(recordName.toLowerCase());
+      if (existing !== undefined) {
+        return referenceOperand(existing);
+      }
+      const createCount = createRecordReferenceCounts.get(recordName.toLowerCase()) ?? 0;
+      const previousCreate = createRecordReferences.get(recordName.toLowerCase());
+      if (createCount >= 2 && previousCreate !== undefined) {
+        return referenceOperand(previousCreate);
+      }
+    }
+
+    if (reuseRecordReferenceByName) {
+      const existing = references.find(
+        reference =>
+          reference.kind === 'record' &&
+          reference.recordName !== undefined &&
+          reference.recordName.toLowerCase() === recordName.toLowerCase()
+      );
+
+      if (existing !== undefined) {
+        return referenceOperand(existing);
+      }
+    }
+
+    const reference = nextReference({
+      kind: 'record',
+      recordName
+    });
+    if (reuseRowShorthandRecord) {
+      const key = recordName.toLowerCase();
+      createRecordReferences.set(key, reference);
+      createRecordReferenceCounts.set(
+        key,
+        (createRecordReferenceCounts.get(key) ?? 0) + 1
+      );
+    }
+    return referenceOperand(reference);
   };
 
   const fieldReference = (): Buffer => {
@@ -606,13 +769,49 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     );
   };
 
+
+  const componentReference = (): Buffer => {
+    if (!word('Component')) return fail('expected Component');
+    if (source[pos] !== '.') return fail('expected . after Component');
+    pos++;
+
+    const componentName =
+      /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+
+    if (!componentName) {
+      return fail('expected component name after Component.');
+    }
+
+    pos += componentName.length;
+
+    return referenceOperand(
+      nextReference({
+        kind: 'component',
+        objectName: componentName
+      })
+    );
+  };
+
   const reservedCallNames = new Set([...OPCODES.values()]
     .filter(spec => spec.kind === TokenKind.Keyword && spec.text)
     .map(spec => spec.text!.toLowerCase()));
   // Value is also a real bare 0x0a-introduced conversion call in the
   // corpus; its keyword meaning applies in DLL parameter declarations.
   reservedCallNames.delete('value');
-  const fail = (detail: string): never => { throw new UnsupportedPeopleCodeError(pos, detail); };
+  // const fail = (detail: string): never => { throw new UnsupportedPeopleCodeError(pos, detail); };
+  const fail = (message: string): never => {
+    if (message.includes('expected assignment')) {
+      console.error(
+        '\nENCODER ASSIGNMENT FAILURE',
+        '\npos:', pos,
+        '\nnext:', JSON.stringify(source.slice(pos, pos + 100)),
+        '\nprevious:', JSON.stringify(source.slice(Math.max(0, pos - 100), pos)),
+        '\nstack:', new Error().stack
+      );
+    }
+
+    throw new UnsupportedPeopleCodeError(pos, message);
+  };
   const space = () => { while (pos < source.length && /\s/.test(source[pos])) pos++; };
   const blockComment = (): Buffer => {
     if (!source.startsWith('/*', pos)) {
@@ -633,14 +832,64 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
 
     const header = Buffer.alloc(3);
-    header[0] = 0x24;
+    header[0] = consumeCommentOpcode(0x24);
     header.writeUInt16LE(payload.length, 1);
 
     pos = end + 2;
 
     return Buffer.concat([header, payload]);
   };
-  
+  const inlineBlockComment = (): Buffer => {
+    if (!source.startsWith('/*', pos)) {
+      return fail('expected inline block comment');
+    }
+
+    const end = source.indexOf('*/', pos + 2);
+
+    if (end < 0) {
+      return fail('unterminated inline block comment');
+    }
+
+    const text = source.slice(pos, end + 2);
+    const payload = Buffer.from(text, 'utf16le');
+
+    if (payload.length > 0xffff) {
+      return fail(
+        'inline block comment exceeds uint16 byte-length field'
+      );
+    }
+
+    const header = Buffer.alloc(3);
+    header[0] = consumeCommentOpcode(0x4e);
+    header.writeUInt16LE(payload.length, 1);
+
+    pos = end + 2;
+
+    return Buffer.concat([
+      header,
+      payload
+    ]);
+  };
+  const trailingBlockComments = (): void => {
+    while (true) {
+      /*
+      * Only consume horizontal whitespace here.
+      * A newline means the comment is no longer trailing the statement.
+      */
+      while (
+        pos < source.length &&
+        (source[pos] === ' ' || source[pos] === '\t')
+      ) {
+        pos++;
+      }
+
+      if (!source.startsWith('/*', pos)) {
+        return;
+      }
+
+      chunks.push(inlineBlockComment());
+    }
+  };
   const word = (value: string): boolean => {
     const tail = source.slice(pos);
     if (!tail.toLowerCase().startsWith(value.toLowerCase()) || /[A-Za-z0-9_$#]/.test(tail[value.length] ?? '')) return false;
@@ -698,7 +947,12 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     while (true) {
       space();
 
-      const operator = /^[+\-*/]/.exec(source.slice(pos))?.[0];
+      // A block comment starts with the same slash used by division, but it
+      // is a statement boundary and must remain available to the statement
+      // parser.
+      if (source.startsWith('/*', pos)) break;
+
+      const operator = /^[+\-*/|]/.exec(source.slice(pos))?.[0];
       if (!operator) break;
 
       pos += operator.length;
@@ -708,6 +962,11 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   };
   const booleanUnary = () => {
     space();
+
+    if (source[pos] === '(') {
+      parenthesized(booleanExpression, false);
+      return;
+    }
 
     if (/^Not\b/i.test(source.slice(pos))) {
       pos += 3;
@@ -878,7 +1137,9 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   };
 
   function statement(): void {
-    if (word('import')) {
+    if (source.startsWith('/*', pos)) {
+      chunks.push(blockComment());
+    } else if (word('import')) {
       importStatement();
     } else if (word('Declare')) {
       declareFunction();
@@ -897,13 +1158,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       space();
       if (source[pos] !== ';') expression();
     } else if (word('If')) {
-      ifStatement();
+      inControlGroup(ifStatement);
     } else if (word('While')) {
-      whileStatement();
+      inControlGroup(whileStatement);
     } else if (word('For')) {
-      forStatement();
+      inControlGroup(forStatement);
     } else if (word('Repeat')) {
-      repeatStatement();
+      inControlGroup(repeatStatement);
     } else if (word('try')) {
       tryStatement();
     } else if (word('throw')) {
@@ -912,20 +1173,60 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     } else if (word('Break')) {
       chunks.push(fixed('Break'));
 
-    } else if (word('Evaluate')) {
-      evaluateStatement();
+    } else if (word('Error')) {
+      chunks.push(fixed('Error'));
+      space();
+      expression();
 
-    } else if (source[pos] === '&') {
-      // Parse the assignment target through primary() rather than consuming
-      // only the bare variable. This preserves ordinary `&x = ...` byte-for-
-      // byte while allowing calibrated member l-values such as
-      // `&fld.Value = "TEST";`.
+    } else if (word('Warning')) {
+      chunks.push(fixed('Warning'));
+      space();
+      expression();
+
+    } else if (word('Evaluate')) {
+      inControlGroup(evaluateStatement);
+
+    } else if (source[pos] === '&' || source[pos] === '@') {
+      // A variable-led statement may be either an assignment:
+      //
+      //   &x = value;
+      //   &fld.Value = value;
+      //
+      // or a method-call statement:
+      //
+      //   &fld.ClearDropDownList();
+      //
+      // primary() consumes the complete variable/member/call chain.
+      const statementVariable =
+        /^&[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
       primary();
       space();
-      if (source[pos] !== '=') fail('expected assignment =');
-      pos++;
-      chunks.push(fixed('='));
-      expression();
+
+      if (source[pos] === '=') {
+        pos++;
+        if (
+          statementVariable !== undefined &&
+          recordVariables.has(statementVariable.toLowerCase()) &&
+          /^\s*CreateRecord\b/i.test(source.slice(pos)) &&
+          !resetRecordVariableFields.has(statementVariable.toLowerCase())
+        ) {
+          const prefix = `${statementVariable.toLowerCase()}:`;
+          let clearedField = false;
+          for (const key of recordVariableFields.keys()) {
+            if (key.startsWith(prefix)) {
+              recordVariableFields.delete(key);
+              clearedField = true;
+            }
+          }
+          if (clearedField) {
+            resetRecordVariableFields.add(statementVariable.toLowerCase());
+          }
+        }
+        chunks.push(fixed('='));
+        expression();
+      } else if (source[pos] !== ';') {
+        fail('expected assignment = or end of method-call statement');
+      }
     } else if (/[A-Za-z_]/.test(source[pos] ?? '')) {
       const tail = source.slice(pos);
       if (/^[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/.test(tail)) {
@@ -947,7 +1248,14 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         }
 
         space();
-        if (source[pos] !== '=') fail('expected assignment =');
+        //if (source[pos] !== '=') fail('expected assignment =');
+        if (source[pos] !== '=') {
+          fail(
+            `expected assignment = [DOTTED-STMT] ` +
+            `next=${JSON.stringify(source.slice(pos, pos + 80))} ` +
+            `previous=${JSON.stringify(source.slice(Math.max(0, pos - 80), pos))}`
+          );
+        }
         pos++;
         chunks.push(fixed('='));
         expression();
@@ -1237,8 +1545,46 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     // Confirmed PeopleTools boundary between loop header and body.
     chunks.push(Buffer.from([0x2d]));
 
+    /*
+    * expression() may consume the whitespace following the To/Step
+    * expression. Recover that trailing whitespace from immediately before
+    * the current source position so a blank line between the For header and
+    * its first body statement still emits PeopleTools' 0x4F marker.
+    */
+    let trailingWhitespaceStart = pos;
+
+    while (
+      trailingWhitespaceStart > 0 &&
+      /\s/.test(source[trailingWhitespaceStart - 1])
+    ) {
+      trailingWhitespaceStart--;
+    }
+
+    const headerTrailingWhitespace =
+      source.slice(trailingWhitespaceStart, pos);
+
+    const hadBlankLineAfterForHeader =
+      /(?:\r?\n)[ \t]*(?:\r?\n)/.test(
+        headerTrailingWhitespace
+      );
+
+    if (hadBlankLineAfterForHeader) {
+      chunks.push(Buffer.from([0x4f]));
+    }
+
+    let firstForBodyItem = true;
+
     while (true) {
+      const whitespaceStart = pos;
       space();
+
+      const bodyWhitespace =
+        source.slice(whitespaceStart, pos);
+
+      const hasBlankLine =
+        /(?:\r?\n)[ \t]*(?:\r?\n)/.test(
+          bodyWhitespace
+        );
 
       if (word('End-For')) {
         chunks.push(fixed('End-For'));
@@ -1249,9 +1595,27 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         fail('expected End-For');
       }
 
+      // Standalone block comments are executable-stream records in their
+      // own right. They can appear between For-body statements just as they
+      // can inside If bodies; preserve their calibrated 0x24 provenance.
+      if (source.startsWith('/*', pos)) {
+        if (hasBlankLine && !firstForBodyItem) {
+          chunks.push(Buffer.from([0x4f]));
+        }
+        chunks.push(blockComment());
+        continue;
+      }
+
+      if (hasBlankLine && !firstForBodyItem) {
+        chunks.push(Buffer.from([0x4f]));
+      }
+
+      firstForBodyItem = false;
+
       statement();
 
       space();
+
       if (source[pos] !== ';') {
         fail('expected ; in For body');
       }
@@ -1314,17 +1678,44 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         /(?:\r?\n)[ \t]*(?:\r?\n)/.test(bodyWhitespace);
 
       if (word('Else')) {
+        /*
+        * A blank line immediately before Else is represented by 0x4F before
+        * the 0x19 Else opcode.
+        */
+        if (hasBlankLine) {
+          pendingReferenceGroupBoundaries.push(chunks.length);
+        }
+
         chunks.push(fixed('Else'));
         break;
       }
 
       if (word('End-If')) {
+        if (hasBlankLine) {
+          pendingReferenceGroupBoundaries.push(chunks.length);
+        }
         chunks.push(fixed('End-If'));
         return;
       }
 
       if (pos === source.length) {
         fail('expected Else or End-If');
+      }
+
+      /*
+       * decodeProgram renders 0x4E comments on their own line. Inside an
+       * If body, accept that canonical decoded form and re-emit the same
+       * 0x4E length-prefixed comment rather than treating it as a statement.
+       * The original inline form is still handled by trailingBlockComments()
+       * immediately after the preceding semicolon.
+       */
+      if (source.startsWith('/*', pos)) {
+        if (hasBlankLine) {
+          chunks.push(Buffer.from([0x4f]));
+        }
+
+        chunks.push(blockComment());
+        continue;
       }
 
       if (hasBlankLine) {
@@ -1334,12 +1725,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       statement();
 
       space();
-      if (source[pos] !== ';') {
+      if (source[pos] === ';') {
+        pos++;
+        chunks.push(fixed(';'));
+      } else if (!/^End-If\b/i.test(source.slice(pos))) {
         fail('expected ; in If body');
       }
-
-      pos++;
-      chunks.push(fixed(';'));
+      trailingBlockComments();
     }
 
     // Else body
@@ -1351,12 +1743,29 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         /(?:\r?\n)[ \t]*(?:\r?\n)/.test(bodyWhitespace);
 
       if (word('End-If')) {
+        if (hasBlankLine) {
+          pendingReferenceGroupBoundaries.push(chunks.length);
+        }
         chunks.push(fixed('End-If'));
         return;
       }
 
       if (pos === source.length) {
         fail('expected End-If');
+      }
+
+      /*
+       * Same canonical round-trip case as the Then body: a decoded 0x4E
+       * comment may appear on its own source line even though the stored
+       * token immediately follows the previous semicolon.
+       */
+      if (source.startsWith('/*', pos)) {
+        if (hasBlankLine) {
+          chunks.push(Buffer.from([0x4f]));
+        }
+
+        chunks.push(blockComment());
+        continue;
       }
 
       if (hasBlankLine) {
@@ -1366,12 +1775,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       statement();
 
       space();
-      if (source[pos] !== ';') {
+      if (source[pos] === ';') {
+        pos++;
+        chunks.push(fixed(';'));
+      } else if (!/^End-If\b/i.test(source.slice(pos))) {
         fail('expected ; in Else body');
       }
-
-      pos++;
-      chunks.push(fixed(';'));
+      trailingBlockComments();
     }
   }
   function evaluateStatement(): void {
@@ -1425,6 +1835,15 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
         space();
 
+        // Evaluate clauses commonly spell the selector as `When = value`.
+        // The equals sign is part of the clause grammar, not an expression
+        // operator, so preserve it before parsing the selector value.
+        if (source[pos] === '=') {
+          pos++;
+          chunks.push(fixed('='));
+          space();
+        }
+
         // Our calibrated fixture permits a parenthesized comparison here.
         if (source[pos] === '(') {
           parenthesized(booleanExpression, false);
@@ -1437,7 +1856,16 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
         // Parse this When body until the next clause/end.
         while (true) {
+          const whitespaceStart = pos;
           space();
+
+          const bodyWhitespace =
+            source.slice(whitespaceStart, pos);
+
+          const hasBlankLine =
+            /(?:\r?\n)[ \t]*(?:\r?\n)/.test(
+              bodyWhitespace
+            );
 
           if (
             /^When(?:-Other)?\b/i.test(source.slice(pos)) ||
@@ -1450,9 +1878,14 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             fail('expected End-Evaluate');
           }
 
+          if (hasBlankLine) {
+            chunks.push(Buffer.from([0x4f]));
+          }
+
           statement();
 
           space();
+
           if (source[pos] !== ';') {
             fail('expected ; in When body');
           }
@@ -1481,17 +1914,58 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
   }
   const call = () => {
-    const name = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
-    if (!name) return fail('expected a simple call name');
-    if (reservedCallNames.has(name.toLowerCase())) fail(`keyword ${name} is not a supported call name`);
-    pos += name.length;
+  const name =
+    /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
 
-    space();
-    if (source[pos] !== '(') fail('bare identifiers are only supported as calls');
-    chunks.push(textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, name));
+  if (!name) {
+    return fail('expected a simple call name');
+  }
+
+  if (reservedCallNames.has(name.toLowerCase())) {
+    fail(`keyword ${name} is not a supported call name`);
+  }
+
+  pos += name.length;
+
+  space();
+
+  if (source[pos] !== '(') {
+    fail('bare identifiers are only supported as calls');
+  }
+
+  chunks.push(
+    textOperand(
+      INLINE_IDENTIFIER_OPCODE,
+      TokenKind.Name,
+      name
+    )
+  );
+
+  /*
+   * Calibrated GetSetId behavior:
+   *
+   * repeated Record.X arguments reuse the existing RECORD PSPCMNAME
+   * entry instead of allocating another occurrence.
+   *
+   * Preserve the previous value because calls may nest.
+   */
+  const previousReuseRecordReferenceByName =
+    reuseRecordReferenceByName;
+  const previousReuseRowShorthandRecord =
+    reuseRowShorthandRecord;
+
+  if (/^GetSetId$/i.test(name)) {
+    reuseRecordReferenceByName = true;
+  }
+  if (/^CreateRecord$/i.test(name)) {
+    reuseRowShorthandRecord = true;
+  }
+
+  try {
     parenthesized(() => {
       expression();
       space();
+
       while (source[pos] === ',') {
         pos++;
         chunks.push(fixed(','));
@@ -1499,13 +1973,19 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         space();
       }
     }, true);
-  };
+  } finally {
+    reuseRecordReferenceByName =
+      previousReuseRecordReferenceByName;
+    reuseRowShorthandRecord =
+      previousReuseRowShorthandRecord;
+  }
+};
   const primary = () => {
     space();
 
     // Bare postfix (...) is calibrated for variable/object indexing such as
     // &rs(1). Do not make every literal/value callable (e.g. True()).
-    const allowDirectPostfixCall = source[pos] === '&';
+    let allowDirectPostfixCall = source[pos] === '&';
     const baseVariableName =
       /^&[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
     const baseApplicationClass =
@@ -1520,12 +2000,26 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       return;
     }
 
-    if (source[pos] === '(') {
-      parenthesized(expression, false);
+    if (source[pos] === '@') {
+      pos++;
+      chunks.push(fixed('@'));
+      space();
+      if (source[pos] === '(') {
+        parenthesized(expression, false);
+      } else {
+        primary();
+      }
       return;
     }
 
-    if (/^create\b/i.test(source.slice(pos))) {
+    if (source[pos] === '%') {
+      chunks.push(systemVariable());
+      return;
+    }
+
+    if (source[pos] === '(') {
+      parenthesized(expression, false);
+    } else if (/^create\b/i.test(source.slice(pos))) {
       word('create');
       chunks.push(Buffer.from([0x69]));
 
@@ -1574,15 +2068,28 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         chunks.push(fieldReference());
       } else if (/^Scroll\s*\./i.test(tail)) {
         chunks.push(scrollReference());
+      } else if (/^Component\s*\./i.test(tail)) {
+        chunks.push(componentReference());
       } else if (/^[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/.test(tail)) {
         chunks.push(ordinaryRecordFieldReference());
       } else {
         call();
+
+        // A function-call result may itself be invoked/indexed using (...)
+        // e.g. GetLevel0()(1).
+        allowDirectPostfixCall = true;
       }
       } else {
         chunks.push(value());
       }
     }
+
+    let expectedReferenceMember:
+      'record' | 'field' | undefined =
+        baseVariableName !== undefined &&
+        recordVariables.has(baseVariableName.toLowerCase())
+          ? 'field'
+          : undefined;
 
     // Calibrated postfix forms may be chained arbitrarily:
     //   expr.Member / expr.Method(...)
@@ -1607,6 +2114,108 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         const member = memberMatch[0];
         pos += member.length;
 
+        space();
+
+        const isMethodCall = source[pos] === '(';
+        const isInlineRowStateMember =
+          expectedReferenceMember === 'record' &&
+          /^(?:IsNew|IsDeleted|IsChanged)$/i.test(member);
+        const hasExistingExpectedReference = references.some(item =>
+          expectedReferenceMember === 'record'
+            ? (item.kind === 'record' || (isMethodCall && item.kind === 'scroll')) &&
+              same(item.recordName, member)
+            : expectedReferenceMember === 'field'
+              ? item.kind === 'field' && same(item.fieldName, member)
+              : false
+        );
+
+        if (
+          expectedReferenceMember !== undefined &&
+          (!isMethodCall || hasExistingExpectedReference) &&
+          !isInlineRowStateMember
+        ) {
+          let reference =
+            expectedReferenceMember === 'record' && isMethodCall
+              ? references.find(
+                  item =>
+                    item.kind === 'scroll' &&
+                    same(item.recordName, member)
+                )
+              : expectedReferenceMember === 'record'
+              ? rowShorthandRecordsByBase.get(
+                  `${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`
+                )
+              : recordVariableFields.get(
+                  `${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`
+                ) ?? (
+                  baseVariableName !== undefined &&
+                  recordVariables.has(baseVariableName.toLowerCase())
+                    ? rowShorthandFields.get(member.toLowerCase())
+                    : latestFields.get(member.toLowerCase())
+                );
+
+          if (reference === undefined) {
+            reference =
+              expectedReferenceMember === 'record'
+                ? nextReference({
+                    kind: 'record',
+                    recordName: member
+                  })
+                : nextReference({
+                    kind: 'field',
+                    fieldName: member
+                  });
+          }
+
+          if (
+            expectedReferenceMember === 'record' &&
+            reference.kind === 'record'
+          ) {
+            rowShorthandRecords.set(member.toLowerCase(), reference);
+            rowShorthandRecordsByBase.set(
+              `${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`,
+              reference
+            );
+          } else if (
+            expectedReferenceMember === 'field' &&
+            baseVariableName !== undefined
+          ) {
+            recordVariableFields.set(
+              `${baseVariableName.toLowerCase()}:${member.toLowerCase()}`,
+              reference
+            );
+            latestFields.set(member.toLowerCase(), reference);
+            if (!recordVariables.has(baseVariableName.toLowerCase())) {
+              rowShorthandFields.set(member.toLowerCase(), reference);
+            }
+          }
+
+          chunks.push(Buffer.from([
+            0x4a,
+            reference.index & 0xff,
+            (reference.index >>> 8) & 0xff
+          ]));
+
+          /*
+          * Row shorthand:
+          *
+          *   &rs(1).RECORD.FIELD.Value
+          *
+          * RECORD is followed by FIELD. FIELD then returns us to normal
+          * member/property encoding.
+          */
+          expectedReferenceMember =
+            expectedReferenceMember === 'record'
+              ? 'field'
+              : undefined;
+
+          continue;
+        }
+
+        if (isInlineRowStateMember) {
+          expectedReferenceMember = undefined;
+        }
+
         chunks.push(
           textOperand(
             INLINE_IDENTIFIER_OPCODE,
@@ -1615,9 +2224,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           )
         );
 
-        space();
-
-        if (source[pos] === '(') {
+        if (isMethodCall) {
           if (baseApplicationClass !== undefined) {
             addApplicationClassReference(
               baseApplicationClass.packagePath,
@@ -1643,6 +2250,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
               space();
             }
           }, true);
+
+          expectedReferenceMember =
+            member.toLowerCase() === 'getrecord'
+              ? 'field'
+              : undefined;
+        } else {
+          expectedReferenceMember = undefined;
         }
 
         continue;
@@ -1683,9 +2297,18 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           }
         }, true);
 
-        continue;
-      }
+          /*
+          * Calibrated Rowset shorthand:
+          *
+          *   &rs(CurrentRowNumber(1)).RECORD.FIELD
+          *
+          * The first member after the row selector is a compiled RECORD
+          * reference.
+          */
+          expectedReferenceMember = 'record';
 
+          continue;
+        }
       break;
     }
   };
@@ -1704,6 +2327,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   let leadingLocalRun = true;
   let sawLeadingLocalDeclaration = false;
   let pendingReferenceLocalBoundary: number | undefined;
+  let pendingReferenceLocalMarkers = 1;
   const pendingReferenceGroupBoundaries: number[] = [];
   let haveCompletedTopLevelStatement = false;
   let sawApplicationClassLocalSection = false;
@@ -1721,12 +2345,47 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     if (source.startsWith('/*', pos)) {
       if (haveCompletedTopLevelStatement && hasBlankLine) {
+        /*
+        * A comment can occur immediately after a top-level declaration
+        * section. Because comments are handled before the normal statement
+        * transition logic below, close the declaration section here first.
+        *
+        * Calibrated:
+        *
+        *   Declare Function ...;
+        *
+        *   /* comment *\/
+        *
+        * => ... 15 2D 4F 24 ...
+        */
+        if (
+          sawTopLevelDeclaration &&
+          !closedTopLevelDeclarationSection
+        ) {
+          chunks.push(Buffer.from([0x2d]));
+          closedTopLevelDeclarationSection = true;
+        }
+
         chunks.push(Buffer.from([0x4f]));
       }
 
       do {
         chunks.push(blockComment());
+
+        const commentWhitespaceStart = pos;
         space();
+
+        const commentWhitespace =
+          source.slice(commentWhitespaceStart, pos);
+
+        const hasBlankLineAfterComment =
+          /(?:\r?\n)[ \t]*(?:\r?\n)/.test(
+            commentWhitespace
+          );
+
+        if (hasBlankLineAfterComment) {
+          chunks.push(Buffer.from([0x4f]));
+        }
       } while (source.startsWith('/*', pos));
 
       continue;
@@ -1749,13 +2408,24 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       isImport ||
       /^(?:Global|Component|Constant|Declare\s+Function)\b/i.test(source.slice(pos));
 
+
+    const closesTopLevelDeclarationSection =
+      !isTopLevelDeclaration &&
+      !isLocalDeclaration &&
+      sawTopLevelDeclaration &&
+      !closedTopLevelDeclarationSection;
+
     if (
       haveCompletedTopLevelStatement &&
       hasBlankLine &&
       !leadingLocalRun &&
-      !isTopLevelDeclaration
+      !isTopLevelDeclaration &&
+      !closesTopLevelDeclarationSection
     ) {
-      pendingReferenceGroupBoundaries.push(chunks.length);
+      const markerCount = Math.max(1, (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1);
+      for (let marker = 0; marker < markerCount; marker++) {
+        pendingReferenceGroupBoundaries.push(chunks.length);
+      }
     }
 
     if (leadingLocalRun) {
@@ -1767,10 +2437,12 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         // 0x2D 0x4F at this exact boundary.
         if (sawLeadingLocalDeclaration && !isTopLevelDeclaration && pendingReferenceLocalBoundary === undefined) {
           pendingReferenceLocalBoundary = chunks.length;
+          pendingReferenceLocalMarkers = Math.max(1, (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1);
         }
         leadingLocalRun = false;
       }
     }
+
 
     // An application-class Local starts a Local declaration section. The
     // section may contain following ordinary Local declarations and closes
@@ -1793,13 +2465,12 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     //
     // A declaration-only program gets only the 2D here; encodeProgram()
     // supplies the final program-directory 07.
-    if (
-      !isTopLevelDeclaration &&
-      sawTopLevelDeclaration &&
-      !closedTopLevelDeclarationSection
-    ) {
+    if (closesTopLevelDeclarationSection) {
       chunks.push(Buffer.from([0x2d]));
-      chunks.push(Buffer.from([0x4f]));
+      const markerCount = Math.max(1, (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1);
+      for (let marker = 0; marker < markerCount; marker++) {
+        chunks.push(Buffer.from([0x4f]));
+      }
       closedTopLevelDeclarationSection = true;
     }
 
@@ -1842,13 +2513,31 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     references[0]?.recordName !== undefined ||
     references[0]?.fieldName !== undefined;
 
+  console.error({
+    hasCompiledReferences,
+    references: references.map((r, i) => ({
+      i,
+      kind: r.kind,
+      recordName: r.recordName,
+      fieldName: r.fieldName
+    })),
+    sawLeadingLocalDeclaration,
+    leadingLocalRun,
+    pendingReferenceLocalBoundary,
+    pendingReferenceGroupBoundaries,
+    chunkCount: chunks.length
+  });
+
   if (hasCompiledReferences) {
     const insertions: Array<{ index: number; bytes: Buffer[] }> = [];
 
     if (pendingReferenceLocalBoundary !== undefined) {
       insertions.push({
         index: pendingReferenceLocalBoundary,
-        bytes: [Buffer.from([0x2d]), Buffer.from([0x4f])]
+        bytes: [
+          Buffer.from([0x2d]),
+          ...Array.from({ length: pendingReferenceLocalMarkers }, () => Buffer.from([0x4f]))
+        ]
       });
     }
 
@@ -1868,6 +2557,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     for (const insertion of insertions) {
       chunks.splice(insertion.index, 0, ...insertion.bytes);
     }
+
   }
 
   if (
@@ -1881,8 +2571,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     chunks.push(Buffer.from([0x2d]));
   }
 
+  const finalBytes = Buffer.concat(chunks);
+
   return {
-    bytes: Buffer.concat(chunks),
+    bytes: finalBytes,
     references
   };
 }
