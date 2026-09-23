@@ -11,6 +11,7 @@ dist-test/
 
 
 /tools/corpus/baselines/*
+!/tools/corpus/baselines/.gitkeep
 /tools/corpus/corpus-results.sqlite
 /tools/corpus/corpus-results.sqlite-shm
 /tools/corpus/corpus-results.sqlite-wal
