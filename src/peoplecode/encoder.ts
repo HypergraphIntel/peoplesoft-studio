@@ -5712,6 +5712,56 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }
     }, true);
   } finally {
+    /*
+     * A RowScrollSelect/RowScrollSelectNew call's LAST Record.X argument
+     * (its ultimate "to" table, immediately preceding the SQL where-clause
+     * string) becomes visible to a LATER statement's own control-group-
+     * scoped reuse check (the same `recordReferencesByControlGroup` pool
+     * GetRecord/DeleteRow/ActiveRowCount/UpdateValue/etc already read from
+     * via `reuseRecordReferenceWithinControlGroup`) -- unlike every other
+     * Record.X argument earlier in the same call, which stays call-private
+     * (see `reuseRecordReferenceWithinCallArguments`'s own comment for why).
+     *
+     * ANALYSIS_DB_WRK.BASE_CUBE_INST_ID.FieldChange (definition 1145):
+     *
+     *   RowScrollSelectNew(1, Record.ANALYSIS_DB_DIM, Record.ANL_MOD_DIM, "where ANALYSIS_MODEL_ID=:1 ORDER BY MEASURES_DIM_FLG DESC", ANALYSIS_DB.ANALYSIS_MODEL_ID);
+     *   ...
+     *   UpdateValue(DERIVED.EDITTABLE15, &N_DIM_NUM, Record.ANL_MOD_DIM);
+     *
+     * RowScrollSelectNew's own fresh Record.ANL_MOD_DIM argument (its last
+     * record-typed argument) is reused by the later UpdateValue call's own
+     * Record.ANL_MOD_DIM argument, several statements later in the same
+     * control group -- not a fresh allocation. UpdateValue reads via
+     * `reuseRecordReferenceWithinControlGroup`, which only ever consults
+     * `recordReferencesByControlGroup` (never the separate
+     * `participatingRecordReferencesByControlGroup` map RowScrollSelect's
+     * OWN argument lookup uses), so this registers there directly rather
+     * than through that other map. Scoped narrowly to the LAST entry in
+     * this call's own `recordReferencesWithinCallArguments` map
+     * (insertion-ordered, so the last entry is the last distinct record
+     * name this call's own argument list introduced) so earlier, non-final
+     * Record.X arguments in the same call keep their proven call-private
+     * behavior (ARCH_WRK... definition 1172: neither ActiveRowCount's
+     * Record.ANL_MOD_DAT_SRC "from" argument nor its Record.ANL_MOD_DIM_FLD
+     * argument -- both NOT the last record argument in that RowScrollSelectNew
+     * call -- reuse RowScrollSelectNew's own rows).
+     */
+    if (
+      /^RowScrollSelect(?:New)?$/i.test(name) &&
+      recordReferencesWithinCallArguments.size > 0
+    ) {
+      const lastCallArgumentReference = Array.from(
+        recordReferencesWithinCallArguments.values()
+      ).pop()!;
+
+      if (lastCallArgumentReference.recordName !== undefined) {
+        recordReferencesByControlGroup.set(
+          `${controlGroup}:${lastCallArgumentReference.recordName.toLowerCase()}`,
+          lastCallArgumentReference
+        );
+      }
+    }
+
     reuseRecordReferenceByName =
       previousReuseRecordReferenceByName;
     reuseFetchValueRecord =

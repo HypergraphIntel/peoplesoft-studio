@@ -1,6 +1,94 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Snapshot received and installed.** The user provided the real 192MB
+  `tools/corpus/hcdev-snapshot.sqlite` via chat upload, split into 8 parts
+  (`split -b 25m`) since it exceeded the 30MB per-message limit (a direct
+  Google Drive link was tried first but the environment's network policy
+  blocks `drive.google.com` outright). All 8 parts reassembled via `cat`,
+  verified as a valid SQLite database (`PRAGMA integrity_check` -> ok,
+  30,209 definitions in the one completed snapshot among 4 snapshot_meta
+  rows -- the other 3 were incomplete/aborted capture attempts from
+  whatever session originally built this file, definition_count=0 each,
+  correctly ignored by `getLatestCompletedSnapshot()`). Placed at
+  `tools/corpus/hcdev-snapshot.sqlite` (confirmed still gitignored, never
+  committed). Also regenerated `tools/corpus/baselines/hcdev.json` (also
+  gitignored, also absent in this fresh container) by running the first
+  430 definitions and confirming 430/430 EXACT against the REAL snapshot
+  before persisting it as the accepted baseline (`npm run corpus:baseline
+  -- --limit 430`) -- this is the first time in this container's life the
+  430/430 protected baseline has been verified against genuine HCDEV
+  evidence rather than asserted from a prior session's notes.
+- **Important reconciliation note**: the very first fresh-candidate pick
+  past the 430 window (`corpus:next` -> definition 536, deferred; used the
+  documented SQL workaround -> definition 1145, ANALYSIS_DB_WRK.
+  BASE_CUBE_INST_ID.FieldChange) turned out to be **genuinely
+  UNKNOWN_MISMATCH**, contradicting this file's own fix #37 writeup, which
+  claimed 1145 reached EXACT. Investigated with real evidence (this
+  session's own `--trace-refs` output plus two leftover, git-tracked
+  scratch scripts from a prior session, `tmp-dump1145.ts`/`tmp-dump1145b.ts`,
+  found still sitting at the repo root -- also fixed this session). The
+  fix #37 comment's own cited source line for 1145
+  (`RowScrollSelectNew(1, Record.ANALYSIS_DB_DIM, Record.ANALYSIS_DB_DIM, "...", ...)`,
+  claiming both arguments share one name) is NOT fabricated -- it
+  accurately describes 1145's *second* `RowScrollSelectNew` call (the
+  Else/"I"-branch one) -- but it is *incomplete*: it never covered the
+  *first* call's genuinely different shape (`Record.ANALYSIS_DB_DIM,
+  Record.ANL_MOD_DIM` -- two DIFFERENT names), whose fresh `Record.
+  ANL_MOD_DIM` allocation a much-later `UpdateValue(...,
+  Record.ANL_MOD_DIM)` call in the same control group needs to reuse and
+  previously could not. Likely explanation: a prior session validated the
+  same-name (second-call) fix, saw 1145 move off ENCODE_ERROR/closer to
+  matching, and recorded it as fully EXACT without re-confirming against
+  this file's specific real bytes -- exactly the kind of claim this
+  session's `/goal` continuation could not simply trust once real
+  evidence was back in hand. Treat every "previously EXACT" claim in this
+  file's older sections as a strong hint, not proof, until re-confirmed
+  against this real snapshot; do not block on re-verifying all of them
+  proactively, but don't be surprised if others also need a second look.
+- **Fix #48** landed (src/peoplecode/encoder.ts, `call()`'s argument-list
+  `finally` block, ~line 5715): a `RowScrollSelect`/`RowScrollSelectNew`
+  call's LAST Record.X argument (its ultimate "to" table, immediately
+  before the SQL where-clause string) now also registers into
+  `recordReferencesByControlGroup` -- the pool
+  GetRecord/DeleteRow/ActiveRowCount/UpdateValue/etc already read via
+  `reuseRecordReferenceWithinControlGroup` -- so a LATER statement in the
+  same control group can reuse it, exactly like definition 1145 requires.
+  Earlier/non-final Record.X arguments in the same call are untouched
+  (stay call-private, preserving definition 1172's proven counter-
+  example: ActiveRowCount right after a RowScrollSelectNew call does NOT
+  reuse that call's non-last Record.X arguments). Definition 1145 moved
+  UNKNOWN_MISMATCH -> EXACT. Verified: `npx tsc -p .` clean; `npm test`
+  456/457 (1 pre-existing skip); `corpus:verify --limit 430` 430/430, 0
+  regressions; spot-checked every definition cited in the surrounding
+  comments (27, 840, 1172, 1236, 1283) individually -- all still EXACT;
+  full local corpus re-run (30,209 definitions, ~5 min) went 21734 ->
+  21737 EXACT (+3, net positive, zero regressions in any other
+  classification bucket: ENCODE_ERROR/DECODE_SOURCE_MISMATCH/
+  UNSUPPORTED_SYNTAX counts all unchanged).
+- Also removed the two leftover git-tracked scratch files at the repo
+  root (`tmp-dump1145.ts`, `tmp-dump1145b.ts`) after using them as a
+  starting point -- the first version of `tmp-dump1145b.ts` I ran gave a
+  MISLEADING result (looked like a difference existed as early as byte
+  offset 1851) because it called `encodeProgram(source)` with no `owner`
+  context, unlike the real validator which always passes `{owner:
+  {recordName, fieldName}}`. Worth remembering for any future scratch
+  debugging: always pass the same owner context the harness does, or the
+  reference-index numbering will be silently offset by one and every
+  manual byte comparison past that point will be wrong.
+- Full local corpus inventory now populated from scratch in this fresh
+  container (was completely empty -- `corpus-results.sqlite` is
+  gitignored same as the snapshot): `npm run corpus:harness` (no filters)
+  took ~5 minutes for all 30,209 definitions. Current full-corpus state:
+  EXACT 21737, UNKNOWN_MISMATCH 4840, ENCODE_ERROR 2276,
+  DECODE_SOURCE_MISMATCH 698, UNSUPPORTED_SYNTAX 658.
+- Next: continue past definition 1145 using the same SQL-query-for-fresh-
+  candidates workaround (`corpus:next` will keep re-suggesting 536 until
+  it gains deferred-definition awareness) -- query results DB for the
+  next UNKNOWN_MISMATCH definition past offset 1144 not already in the
+  deferred list (536, 871, 1406, 3235, 1285, 1360, 1422).
+
+## Current target (previous entry, preserved for history)
 - Session resumed 2026-09-24 via `/goal` in a FRESH cloud container (new
   ephemeral checkout, no state carried over from any prior session's
   container). Ran `npm install` (node_modules was entirely absent), then
