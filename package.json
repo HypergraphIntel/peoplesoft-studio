@@ -377,7 +377,7 @@
     "compile": "npm run typecheck && npm run bundle",
     "watch": "node esbuild.mjs --watch",
     "pretest": "tsc -p .",
-    "test": "node --test dist-test/test/",
+    "test": "node --test dist-test/test/*.test.js",
     "smoke": "node scripts/smoke.mjs",
     "vscode:prepublish": "npm run compile",
     "package": "npm run verify && vsce package --out peoplesoft-studio.vsix",

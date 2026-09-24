@@ -92,12 +92,11 @@ export async function runCorpus(
   results: CorpusResult[];
   exitCode: number;
 }> {
-  const config =
-    getConnectionConfig();
-
   const databaseName =
     options.databaseName ??
-    config.connectString;
+    (options.live
+      ? getConnectionConfig().connectString
+      : 'LOCAL SNAPSHOT');
 
   const inventory =
     new CorpusInventory();
@@ -231,7 +230,7 @@ export async function runCorpus(
     } else if (options.live) {
       connection =
         await openCorpusConnection(
-          config
+          getConnectionConfig()
         );
 
       console.log(
@@ -317,7 +316,7 @@ export async function runCorpus(
       if (!connection) {
         connection =
           await openCorpusConnection(
-            config
+            getConnectionConfig()
           );
 
         console.log(
