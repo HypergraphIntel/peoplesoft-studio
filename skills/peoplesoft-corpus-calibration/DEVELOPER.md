@@ -1,14 +1,42 @@
 # DEVELOPER.md
 
 ## STATS
+New at the top / old at the bottom
+
+09-23-2026  - Run: npm run corpus:harness
+                Summary
+                -------
+                Definitions: 30209
+                Exact:       20635
+                Failed:      9574
+
+                Classifications
+                ---------------
+                EXACT                             20635
+                UNKNOWN_MISMATCH                  5612
+                ENCODE_ERROR                      2655
+                DECODE_SOURCE_MISMATCH            654
+                UNSUPPORTED_SYNTAX                653
+                
+09-23-2026  - Run: npm run corpus:harness
+                Summary
+                -------
+                Definitions: 30209
+                Exact:       20299
+                Failed:      9910
+
+                Classifications
+                ---------------
+                EXACT                             20299
+                UNKNOWN_MISMATCH                  5485
+                ENCODE_ERROR                      3168
+                UNSUPPORTED_SYNTAX                659
+                DECODE_SOURCE_MISMATCH            598
 09-23-2026 - 12,714 NON-EXACT results 
 
 ## Project Overview
 
 `peoplesoft-studio` is a VS Code extension and supporting reverse-engineering toolkit for PeopleSoft PeopleCode.
-
-
-
 
 
 ## Status

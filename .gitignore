@@ -18,3 +18,6 @@ dist-test/
 /tools/corpus/reports/*
 !/tools/corpus/reports/.gitkeep
 
+tools/corpus/hcdev-snapshot.sqlite
+tools/corpus/hcdev-snapshot.sqlite-shm
+tools/corpus/hcdev-snapshot.sqlite-wal

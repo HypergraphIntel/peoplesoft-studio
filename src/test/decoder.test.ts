@@ -1036,6 +1036,21 @@ test('0x41\'s And/Or role also fires when a comment sits between it and the And/
   assert.equal(result.text, 'True\n/* comment */\nOr\nFalse');
 });
 
+test('0x4E after a boolean operator stays attached to that operator', () => {
+  const body = utf16('/* Save or Reset */');
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x2f, 0x41, 0x1e,
+      0x4e, body.length & 0xff, body.length >> 8, ...body,
+      0x30, 0x42
+    ]),
+    new NameTable()
+  );
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'True Or /* Save or Reset */\nFalse');
+});
+
 test('Declare Function ... PeopleCode ... decodes, confirmed byte-for-byte against WEBLIB_GS_CMD.ISCRIPT1', () => {
   // WEBLIB_GS_CMD.ISCRIPT1's only statement is exactly this construct, and it
   // now decodes with zero unmapped opcodes, byte for byte identical to real
@@ -2164,4 +2179,3 @@ test('a string with no quotes is unchanged', () => {
   assert.equal(result.unknownOpcodes.length, 0);
   assert.equal(result.text, '"hello"');
 });
-

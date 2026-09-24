@@ -83,34 +83,95 @@ export interface EncodedPeopleCode {
 }
 
 const BUILTIN_FUNCTION_TYPE_IDS: ReadonlyMap<string, number> = new Map([
+  ['file', 0x80001],
   ['record', 0x80003],
   ['rowset', 0x80007],
+  ['row', 0x80008],
+  ['field', 0x80009],
   ['apiobject', 0x8000f],
   ['xmldoc', 0x8001d],
+  ['exception', 0x80021],
   ['xmlnode', 0x80022]
 ]);
 
-function functionTypeId(typeName: string): number {
+function functionTypeId(
+  typeName: string,
+  applicationClassOffsets?: ReadonlyMap<string, number>
+): number {
+  const arrayType = /^array\s+of\s+(.+)$/i.exec(
+    typeName.trim()
+  );
+  if (arrayType) {
+    return (
+      0x100000 |
+      functionTypeId(arrayType[1], applicationClassOffsets)
+    ) >>> 0;
+  }
+
+  const applicationClassOffset = applicationClassOffsets?.get(
+    typeName.trim().toLowerCase()
+  );
+  if (applicationClassOffset !== undefined) {
+    return (0x80000 | 0x100 | applicationClassOffset) >>> 0;
+  }
+
   // Built-in object descriptors use 0x80000 plus their calibrated subtype.
   // Function parameter slots add 0xc0000000 in parameterTypeDescriptor().
   const builtinObjectType = BUILTIN_FUNCTION_TYPE_IDS.get(typeName.toLowerCase());
   if (builtinObjectType !== undefined) return builtinObjectType;
+
+  // Function directories encode Date as scalar descriptor 0x02. This has not
+  // yet been established for Application Class method signature records, so
+  // keep it local to Function metadata rather than the shared primitive map.
+  if (typeName.toLowerCase() === 'date') return 0x02;
 
   const id = PRIMITIVE_SIGNATURE_TYPE_IDS.get(typeName.toLowerCase());
   if (id === undefined) throw new Error(`Unsupported function metadata type: ${typeName}`);
   return id;
 }
 
-function returnTypeDescriptor(typeName?: string): number {
-  return typeName === undefined ? 0x07 : functionTypeId(typeName);
+function returnTypeDescriptor(
+  typeName?: string,
+  applicationClassOffsets?: ReadonlyMap<string, number>
+): number {
+  return typeName === undefined
+    ? 0x07
+    : functionTypeId(typeName, applicationClassOffsets);
 }
 
-function parameterTypeDescriptor(typeName: string): number {
+function parameterTypeDescriptor(
+  typeName: string,
+  applicationClassOffsets?: ReadonlyMap<string, number>
+): number {
   if (typeName === '__untyped_parameter__') {
     return 0xc0000004;
   }
 
-  return (0xc0000000 | functionTypeId(typeName)) >>> 0;
+  return (
+    0xc0000000 |
+    functionTypeId(typeName, applicationClassOffsets)
+  ) >>> 0;
+}
+
+function functionApplicationClassTypes(
+  metadata: readonly FunctionMetadata[]
+): string[] {
+  const types: string[] = [];
+  const seen = new Set<string>();
+
+  for (const item of metadata) {
+    for (const rawType of [...item.parameterTypes, item.returnType]) {
+      if (rawType === undefined) continue;
+      const typeName = rawType.replace(/^array\s+of\s+/i, '').trim();
+      if (!typeName.includes(':')) continue;
+      const key = typeName.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      types.push(typeName);
+    }
+  }
+
+  return types;
 }
 
 function encodeFunctionProgramHeader(
@@ -123,6 +184,10 @@ function encodeFunctionProgramHeader(
   const nameBytes = metadata.reduce(
     (total, item) =>
       total + Buffer.byteLength(item.name + '\0', 'utf16le'),
+    0
+  ) + functionApplicationClassTypes(metadata).reduce(
+    (total, typeName) =>
+      total + Buffer.byteLength(typeName + '\0', 'utf16le'),
     0
   );
 
@@ -198,6 +263,22 @@ function encodeFunctionMetadata(
   const names = metadata.map(
     item => Buffer.from(item.name + '\0', 'utf16le')
   );
+  const applicationClassTypes = functionApplicationClassTypes(metadata);
+  const applicationClassNames = applicationClassTypes.map(
+    typeName => Buffer.from(typeName + '\0', 'utf16le')
+  );
+  const applicationClassOffsets = new Map<string, number>();
+  let applicationClassCharOffset = metadata.reduce(
+    (total, item) => total + item.name.length + 1,
+    0
+  );
+  for (const typeName of applicationClassTypes) {
+    applicationClassOffsets.set(
+      typeName.toLowerCase(),
+      applicationClassCharOffset
+    );
+    applicationClassCharOffset += typeName.length + 1;
+  }
 
   const directory = Buffer.alloc(metadata.length * 16);
 
@@ -212,7 +293,7 @@ function encodeFunctionMetadata(
     directory.writeUInt32LE(item.hasParameterList ? signatureSlotOffset : 0, offset + 4);
     directory.writeUInt32LE(item.parameterTypes.length, offset + 8);
     directory.writeUInt32LE(
-      returnTypeDescriptor(item.returnType),
+      returnTypeDescriptor(item.returnType, applicationClassOffsets),
       offset + 12
     );
 
@@ -232,7 +313,7 @@ function encodeFunctionMetadata(
     for (const typeName of item.parameterTypes) {
       const parameter = Buffer.alloc(4);
       parameter.writeUInt32LE(
-        parameterTypeDescriptor(typeName),
+        parameterTypeDescriptor(typeName, applicationClassOffsets),
         0
       );
       signatureTails.push(parameter);
@@ -245,6 +326,7 @@ function encodeFunctionMetadata(
 
   return Buffer.concat([
     ...names,
+    ...applicationClassNames,
     directory,
     ...signatureTails
   ]);
@@ -382,10 +464,24 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           !(controlDepth === 0 && sawTopLevelExecutableStatement)
       };
 
-      applicationClassVariables.set(
-        variableName.toLowerCase(),
-        appClassVariable
-      );
+      const registerApplicationClassVariable = (name: string) => {
+        applicationClassVariables.set(
+          name.toLowerCase(),
+          appClassVariable
+        );
+
+        if (functionDepth > 0) {
+          functionApplicationClassVariables.set(
+            name.toLowerCase(),
+            {
+              ...appClassVariable,
+              reuseRuntimeCreateForMethods: false
+            }
+          );
+        }
+      };
+
+      registerApplicationClassVariable(variableName);
 
       /*
        * A late top-level Application Class Local, after executable code has
@@ -413,14 +509,22 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         );
       }
 
-      if (functionDepth > 0) {
-        functionApplicationClassVariables.set(
-          variableName.toLowerCase(),
-          {
-            ...appClassVariable,
-            reuseRuntimeCreateForMethods: false
-          }
-        );
+      while (true) {
+        space();
+        if (source[pos] !== ',') break;
+
+        pos++;
+        chunks.push(fixed(','));
+        space();
+
+        const additionalVariable =
+          /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+        if (additionalVariable === undefined) {
+          return fail('expected an ASCII &variable after ,');
+        }
+
+        chunks.push(variable());
+        registerApplicationClassVariable(additionalVariable);
       }
 
       space();
@@ -455,7 +559,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       space();
 
-      const elementType =
+      let elementType =
         /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
 
       if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
@@ -464,6 +568,9 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         addApplicationClassReference(appClass.packagePath, appClass.className);
       } else {
         chunks.push(typeName());
+        if (/^array$/i.test(elementType ?? '')) {
+          elementType = arrayElementTypes();
+        }
       }
 
       if (/^File$/i.test(elementType ?? '')) {
@@ -519,6 +626,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       recordVariables.add(firstDeclaredVariable.toLowerCase());
     } else if (/^Row$/i.test(type ?? '') && firstDeclaredVariable) {
       rowVariables.add(firstDeclaredVariable.toLowerCase());
+    } else if (/^Rowset$/i.test(type ?? '') && firstDeclaredVariable) {
+      rowsetVariables.add(firstDeclaredVariable.toLowerCase());
     }
     chunks.push(variable());
 
@@ -539,6 +648,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         recordVariables.add(declaredVariable.toLowerCase());
       } else if (/^Row$/i.test(type ?? '') && declaredVariable) {
         rowVariables.add(declaredVariable.toLowerCase());
+      } else if (/^Rowset$/i.test(type ?? '') && declaredVariable) {
+        rowsetVariables.add(declaredVariable.toLowerCase());
       }
       chunks.push(variable());
     }
@@ -671,6 +782,23 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
     if (/^Record$/i.test(declaredType ?? '')) {
       ensureLocalObjectPackageReference('RECORD', 'Record');
+    } else if (/^Rowset$/i.test(declaredType ?? '')) {
+      /*
+       * DERIVED_ABS_EA.CLEAR_ALL.FieldChange (definition 4067):
+       *
+       *   Component Rowset &RsEA_Abs;
+       *   For &i = &RsEA_Abs.ActiveRowCount To 1 Step - 1
+       *      &RsEA_Abs.GetRow(&i).DERIVED_ABS_EA.SELECT_REC.Value = "N";
+       *   End-For;
+       *
+       * `Component Rowset &var;` allocates the same PACKAGE/ROWSET local
+       * object dependency row a `Local Rowset &var;` declaration already
+       * does (see the Local-declaration handling above) -- this branch was
+       * missing entirely for Component declarations, so the RECORD/FIELD
+       * references allocated later for DERIVED_ABS_EA.SELECT_REC were both
+       * off by one PSPCMNAME index.
+       */
+      ensureLocalObjectPackageReference('ROWSET', 'Rowset');
     }
 
     /*
@@ -690,11 +818,43 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     if (/^Record$/i.test(declaredType ?? '') && firstVariable) {
       recordVariables.add(firstVariable.toLowerCase());
     }
+    /*
+     * A Component-declared Application Class instance reuses its
+     * runtime-create PSPCMNAME dependency for later method calls, exactly
+     * like a declaration-phase Local Application Class variable does (see
+     * the matching Local-declaration logic above, "offset 179"/"offset
+     * 411"). A Component declaration is itself always declaration-phase
+     * (it appears before any executable code), so this is unconditional
+     * here.
+     *
+     * ADDRESS_SBR.COUNTRY.RowInit (definition 525):
+     *
+     *   Component EO:CA:Address &cobj_EO_CA_Address;
+     *   ...
+     *   If &cobj_EO_CA_Address = Null Then
+     *      &cobj_EO_CA_Address = create EO:CA:Address(&Addr_Rec, &Der_Address, &Der_addr);
+     *   Else
+     *      &cobj_EO_CA_Address.ResetAddressRecord(&Addr_Rec);
+     *      &cobj_EO_CA_Address.ResetDerivedAddressRecord(&Der_Address);
+     *      &cobj_EO_CA_Address.ResetDerivedAddrRecord(&Der_addr);
+     *   End-If;
+     *
+     * Direct stored-PSPCMNAME enumeration proves there is NO separate
+     * method-dependency PSPCMNAME row at all for any of the three Reset*
+     * calls -- only the single runtime-create PACKAGE|ADDRESS row exists.
+     * The prior hardcoded `reuseRuntimeCreateForMethods: false` for every
+     * Component Application Class declaration was backwards for this case.
+     */
+    const componentAppClassReuseRuntimeCreateForMethods =
+      functionDepth === 0 &&
+      !(controlDepth === 0 && sawTopLevelExecutableStatement);
+
     if (appClassType !== undefined && firstVariable) {
       applicationClassVariables.set(firstVariable.toLowerCase(), {
         packagePath: appClassType.packagePath,
         className: appClassType.className,
-        reuseRuntimeCreateForMethods: false
+        reuseRuntimeCreateForMethods:
+          componentAppClassReuseRuntimeCreateForMethods
       });
       if (sawWildcardImport) {
         addApplicationClassReference(
@@ -725,7 +885,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         applicationClassVariables.set(nextVariable.toLowerCase(), {
           packagePath: appClassType.packagePath,
           className: appClassType.className,
-          reuseRuntimeCreateForMethods: false
+          reuseRuntimeCreateForMethods:
+            componentAppClassReuseRuntimeCreateForMethods
         });
       }
       chunks.push(variable());
@@ -804,6 +965,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
   const recordVariables = new Set<string>();
   const rowVariables = new Set<string>();
+  const rowsetVariables = new Set<string>();
 
   /*
    * Runtime `create` dependencies are distinct from import dependencies, but
@@ -1172,6 +1334,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   };
 
   let reuseRecordReferenceByName = false;
+  let reuseFetchValueRecord = false;
+  const fetchValueRecordReferences = new Map<string, PeopleCodeReference>();
 
   /*
    * Bare GetRecord(Record.X) has a narrower reuse scope than GetSetId.
@@ -1192,6 +1356,24 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
    */
   let reuseScrollReferenceWithinControlGroup = false;
   const scrollReferencesByControlGroup =
+    new Map<string, PeopleCodeReference>();
+
+  /*
+   * Field.X is generally occurrence-based ("Repeated-Field calibration
+   * proves FIELD rows are occurrence-based" -- see fieldReference()), but
+   * GetField(Field.X) on a .GetRecord(...) chain result has a narrower
+   * reuse rule within a control group, mirroring GetRecord's own Record.X
+   * reuse rule exactly.
+   *
+   * ADDRESS_SBR.COUNTRY.FieldChange (definition 524) proves two identical
+   * &RS_Country.GetRow(1).GetRecord(Record.COUNTRY_TBL).GetField(Field.DESCR).Value
+   * chains (one on the LHS-adjacent statement, one on the RHS a statement
+   * later, same control group) both reuse the same PSPCMNAME FIELD row for
+   * `Field.DESCR` -- not just the already-calibrated RECORD reuse for
+   * `Record.COUNTRY_TBL`.
+   */
+  let reuseFieldReferenceWithinControlGroup = false;
+  const fieldReferencesByControlGroup =
     new Map<string, PeopleCodeReference>();
   const ordinaryRecordFieldsByControlGroup = new Map<string, PeopleCodeReference>();
   const currentStatementRecordFields = new Map<string, PeopleCodeReference>();
@@ -1223,19 +1405,42 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   let inTopLevelRecordFieldSetDefaultRun = false;
   const inControlGroup = (parse: () => void): void => {
     const previousGroup = controlGroup;
-    if (controlDepth === 0) controlGroup = nextControlGroup++;
+    const enteringTopLevel = controlDepth === 0;
+    if (enteringTopLevel) controlGroup = nextControlGroup++;
     controlDepth++;
     try {
       parse();
     } finally {
       controlDepth--;
-      controlGroup = previousGroup;
+      /*
+       * A top-level control-structure block (For/If/Evaluate) is bounded
+       * on both sides: whatever follows it at top level starts a fresh
+       * allocation group too, not a reuse-resumption of whatever group was
+       * active before the block began.
+       *
+       * ARCH_TBL.RECNAME.SavePreChange (definition 1269) proves this:
+       *
+       *   &ALL_ROWS = ActiveRowCount(Record.ARCH_TBL, &I, Record.ARCH_CTRL);
+       *   For &K = 1 To &ALL_ROWS
+       *      ...
+       *   End-For;
+       *   &ALL_ROWS = ActiveRowCount(Record.ARCH_TBL, &I, Record.ARCH_OTH_CTRL);
+       *
+       * The second top-level ActiveRowCount's Record.ARCH_TBL argument
+       * allocates a fresh PSPCMNAME row rather than reusing the row the
+       * first (pre-loop) ActiveRowCount call allocated, even though both
+       * calls are plain top-level statements with no control structure of
+       * their own and would previously have shared controlGroup 0.
+       */
+      controlGroup = enteringTopLevel ? nextControlGroup++ : previousGroup;
     }
   };
   let reuseRowShorthandRecord = false;
   let captureRowsetElementRecord = false;
   const rowShorthandRecords = new Map<string, PeopleCodeReference>();
   const rowsetElementRecords = new Map<string, PeopleCodeReference>();
+  const rowsetRecordNamesByVariable = new Map<string, string>();
+  const level0RowsetRecordsByField = new Map<string, PeopleCodeReference>();
   const createRecordReferences = new Map<string, PeopleCodeReference>();
   const createRecordReferenceCounts = new Map<string, number>();
 
@@ -1430,10 +1635,26 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }
     }
 
+    if (reuseFetchValueRecord) {
+      const existing = fetchValueRecordReferences.get(
+        `${controlGroup}:${recordName.toLowerCase()}`
+      );
+      if (existing !== undefined) {
+        return referenceOperand(existing);
+      }
+    }
+
     const reference = nextReference({
       kind: 'record',
       recordName
     });
+
+    if (reuseFetchValueRecord) {
+      fetchValueRecordReferences.set(
+        `${controlGroup}:${recordName.toLowerCase()}`,
+        reference
+      );
+    }
 
     if (options.explicitChainReuse) {
       explicitRecordReferences.set(
@@ -1481,12 +1702,32 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     // PACKAGE FIELD is created by a Field object declaration, not by
     // encountering Field.X in an expression.
     // Repeated-Field calibration proves FIELD rows are occurrence-based.
-    return referenceOperand(
-      nextReference({
-        kind: 'field',
-        fieldName
-      })
-    );
+    //
+    // GetField(Field.X) on a .GetRecord(...) chain result is the one
+    // evidenced exception: it reuses within the current control group
+    // (see reuseFieldReferenceWithinControlGroup's declaration comment).
+    if (reuseFieldReferenceWithinControlGroup) {
+      const key = `${controlGroup}:${fieldName.toLowerCase()}`;
+      const existing = fieldReferencesByControlGroup.get(key);
+
+      if (existing !== undefined) {
+        return referenceOperand(existing);
+      }
+    }
+
+    const reference = nextReference({
+      kind: 'field',
+      fieldName
+    });
+
+    if (reuseFieldReferenceWithinControlGroup) {
+      fieldReferencesByControlGroup.set(
+        `${controlGroup}:${fieldName.toLowerCase()}`,
+        reference
+      );
+    }
+
+    return referenceOperand(reference);
   };
 
   const scrollReference = (): Buffer => {
@@ -1825,7 +2066,33 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       return fail('expected REM comment');
     }
 
-    const remText = match[0].replace(/[ \t]+$/g, '');
+    let remText = match[0].replace(/[ \t]+$/g, '');
+    let consumedLength = match[0].length;
+
+    /*
+     * Immediately consecutive REM lines (no blank line between them) merge
+     * into a single comment token, embedded line break included, rather
+     * than compiling as separate 0x24 records.
+     *
+     * AMM_DERIVED.DELETE_BTN.RowInit (definition 964):
+     *
+     *   rem PSCHNLDEFN is a deprecated table in PT 8.48 and above.
+     *   rem SQLExec("select ...", AMM_SYNCLIST.MSGNAME, &archive);
+     *
+     * stores one 0x24 record of length 416 -- the exact UTF-16LE byte
+     * length of both lines concatenated with their "\n" -- not two
+     * separate 116-byte and (416-116)-byte records.
+     */
+    while (true) {
+      const nextLineMatch =
+        /^(\r?\n)(REM\b[^\r\n]*)/i.exec(source.slice(pos + consumedLength));
+
+      if (!nextLineMatch) break;
+
+      remText +=
+        nextLineMatch[1] + nextLineMatch[2].replace(/[ \t]+$/g, '');
+      consumedLength += nextLineMatch[0].length;
+    }
 
     if (!allowMissingSemicolon && !remText.endsWith(';')) {
       return fail('expected ; at end of REM comment');
@@ -1841,7 +2108,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     header[0] = 0x24;
     header.writeUInt16LE(payload.length, 1);
 
-    pos += match[0].length;
+    pos += consumedLength;
 
     return Buffer.concat([header, payload]);
   };
@@ -1994,6 +2261,11 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       space();
 
+      if (!/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
+        chunks.push(typeName());
+        continue;
+      }
+
       const appClass = applicationClassPath();
       chunks.push(appClass.bytes);
 
@@ -2043,6 +2315,14 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   };
   const booleanUnary = () => {
     space();
+
+    // A comment between a boolean operator and its right operand is retained
+    // inline as 0x4E. PSIBLOGICL2_WRK.IB_FIELDTYPE_GUI calibrates
+    // `... = "0" Or /* Save or Reset */ ... = "1"`.
+    while (source.startsWith('/*', pos)) {
+      chunks.push(inlineBlockComment());
+      space();
+    }
 
     if (source[pos] === '@') {
       pos++;
@@ -2100,6 +2380,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       space();
     }
 
+    /*
+     * An inline block comment may follow the last And-group operand,
+     * before the group's closing 0x42. Encoded the same same-line 0x4E
+     * way as any other inline trailing comment; see booleanExpression's
+     * Or-group below for the calibrating fixture.
+     */
+    if (source.startsWith('/*', pos)) {
+      chunks.push(inlineBlockComment());
+      space();
+    }
+
     chunks.push(Buffer.from([0x42]));
   };
 
@@ -2118,6 +2409,23 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       chunks.push(fixed('Or'));
 
       andExpression();
+      space();
+    }
+
+    /*
+     * An inline block comment may follow the last Or-group operand,
+     * before the group's closing 0x42.
+     *
+     * BANKACCT_SBR.ACCOUNT_EC_ID.FieldFormula (definition 1406):
+     *
+     *   If (%Component = Component.PYE_BANKACCT Or
+     *         %Component = "GPSC_BANK_ACC_FL" /*FLUID*\/) And
+     *
+     * stores the inline 0x4E comment immediately before the Or-group's
+     * closing 0x42, not after it.
+     */
+    if (source.startsWith('/*', pos)) {
+      chunks.push(inlineBlockComment());
       space();
     }
 
@@ -2149,6 +2457,24 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     space();
     if (!allowEmpty || source[pos] !== ')') body();
     space();
+
+    /*
+     * An inline block comment may sit between the last parenthesized
+     * token and the closing ")", encoded the same same-line 0x4E way as
+     * any other inline trailing comment.
+     *
+     * BANKACCT_SBR.ACCOUNT_EC_ID.FieldFormula (definition 1406):
+     *
+     *   If (%Component = Component.PYE_BANKACCT Or
+     *         %Component = "GPSC_BANK_ACC_FL" /*FLUID*\/) And
+     *
+     * stores ... 4E 12 00 "/*FLUID*\/" 42 ... immediately before the ")".
+     */
+    if (source.startsWith('/*', pos)) {
+      chunks.push(inlineBlockComment());
+      space();
+    }
+
     if (source[pos] !== ')') fail('expected )');
     pos++;
     chunks.push(fixed(')'));
@@ -2382,7 +2708,11 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     } else if (word('Evaluate')) {
       inControlGroup(evaluateStatement);
 
-    } else if (source[pos] === '&' || source[pos] === '@') {
+    } else if (
+      source[pos] === '&' ||
+      source[pos] === '@' ||
+      source[pos] === '%'
+    ) {
       // A variable-led statement may be either an assignment:
       //
       //   &x = value;
@@ -2400,6 +2730,23 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       if (source[pos] === '=') {
         pos++;
+
+        const assignedLevel0Rowset =
+          /^\s*GetLevel0\s*\(\s*\)\s*\(\s*[^)]*\)\s*\.\s*GetRowset\s*\(\s*Scroll\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)/i
+            .exec(source.slice(pos));
+        if (
+          statementVariable !== undefined &&
+          rowsetVariables.has(statementVariable.toLowerCase())
+        ) {
+          if (assignedLevel0Rowset !== null) {
+            rowsetRecordNamesByVariable.set(
+              statementVariable.toLowerCase(),
+              assignedLevel0Rowset[1]
+            );
+          } else {
+            rowsetRecordNamesByVariable.delete(statementVariable.toLowerCase());
+          }
+        }
 
         /*
          * A top-level CreateRecord assignment starts a new ordinary
@@ -2470,7 +2817,16 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }
     } else if (/[A-Za-z_]/.test(source[pos] ?? '')) {
       const tail = source.slice(pos);
-      if (/^[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/.test(tail)) {
+      if (/^Record\s*\./i.test(tail)) {
+        primary();
+        space();
+        if (source[pos] !== '=') {
+          fail('expected = after explicit Record field chain');
+        }
+        pos++;
+        chunks.push(fixed('='));
+        expression();
+      } else if (/^[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/.test(tail)) {
         chunks.push(ordinaryRecordFieldReference());
         let sawMethodCall = false;
 
@@ -2520,8 +2876,35 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         pos++;
         chunks.push(fixed('='));
         expression();
+      } else if (
+        /^[A-Za-z_][A-Za-z0-9_]*\s*\([^;]*\)\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*=/.test(tail)
+      ) {
+        primary();
+        space();
+        if (source[pos] !== '=') {
+          fail('expected assignment = after call-result property');
+        }
+        pos++;
+        chunks.push(fixed('='));
+        expression();
       } else {
-        call();
+        /*
+         * A bare call statement may itself be the head of a postfix
+         * chain rather than a standalone call, e.g. a call-result
+         * indexed and then invoked further:
+         *
+         *   GetLevel0()(1).GetRowset(Scroll.PSIBDOMSTATUSVW).Flush();
+         *
+         * Plain call() only consumes "Name(args)" and returns, leaving
+         * the rest of the chain unconsumed and the statement failing its
+         * trailing ";" check. primary() consumes the complete call/
+         * member/index chain (it already handles the plain "Name(args);"
+         * case identically, via the same call() internally), matching
+         * the call-result-property-assignment branch just above.
+         *
+         * AMM_DERIVED.IB_SAVE_PB.FieldChange (definition 984).
+         */
+        primary();
       }
     } else {
       fail('unsupported PeopleCode statement');
@@ -2585,7 +2968,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           chunks.push(fixed('As'));
 
           space();
-          chunks.push(typeName());
+          if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
+            chunks.push(applicationClassPath().bytes);
+          } else {
+            const isArrayType = /^array\b/i.test(source.slice(pos));
+            chunks.push(typeName());
+            if (isArrayType) arrayElementTypes();
+          }
           space();
         } else {
           /*
@@ -2621,7 +3010,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       chunks.push(fixed('Returns'));
 
       space();
-      chunks.push(typeName());
+      if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
+        chunks.push(applicationClassPath().bytes);
+      } else {
+        const isArrayType = /^array\b/i.test(source.slice(pos));
+        chunks.push(typeName());
+        if (isArrayType) arrayElementTypes();
+      }
 
       const afterReturnWhitespaceStart = pos;
       space();
@@ -2821,6 +3216,11 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * body item. The decoded source can render an original same-line 0x4E
        * comment on a separate line; comment opcode provenance preserves it.
        */
+      if (source.startsWith('<*', pos)) {
+        chunks.push(disabledCodeComment());
+        continue;
+      }
+
       if (source.startsWith('/*', pos)) {
         chunks.push(blockComment());
         continue;
@@ -2839,6 +3239,37 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           }
         }
         enteredExecutableSection = true;
+      }
+
+      /*
+       * Unlike the main program's top level (where flat sequential
+       * statements share one control group by default, only bumping on
+       * specific triggers like SetDefault or a top-level CreateRecord
+       * assignment), each top-level-of-a-Function-body statement gets its
+       * OWN fresh control group -- including plain assignments, not just
+       * bare calls. Nested control structures within the function (If/
+       * For/etc, once entered via inControlGroup()) are unaffected: they
+       * keep the ordinary shared-group reuse behavior for their own body,
+       * exactly like top-level program code does.
+       *
+       * AE_WRK.AE_GO.FieldChange (definition 871), `Function man_stmt`:
+       *
+       *   InsertRow(Record.AE_STMT_TBL, ActiveRowCount(Record.AE_STMT_TBL));
+       *   &TO_ROW = ActiveRowCount(Record.AE_STMT_TBL);
+       *   CopyFields(1, Record.AE_TOOLS_CHK_VW, &ROW, 1, Record.AE_STMT_TBL, &TO_ROW);
+       *
+       * proves InsertRow's own Record.AE_STMT_TBL argument is reused ONLY
+       * by its own nested ActiveRowCount(...) argument (same statement,
+       * same group) -- the very next statement's OWN
+       * `ActiveRowCount(Record.AE_STMT_TBL)` does NOT reuse it (fresh
+       * row), and CopyFields' Record.AE_STMT_TBL argument two statements
+       * later is ALSO fresh, not reusing either prior one. Direct
+       * stored-PSPCMNAME enumeration confirms this pattern (each of the
+       * three flat statements gets its own row for AE_STMT_TBL, some used
+       * more than once only via nesting within their own statement).
+       */
+      if (controlDepth === 0 && !isLocal) {
+        controlGroup = nextControlGroup++;
       }
 
       const isRemStatement = /^REM\b/i.test(source.slice(pos));
@@ -2981,6 +3412,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
          * likewise have no 0x15 at this position. Therefore the semicolon is
          * optional here and must be emitted only when it is present in source.
          */
+        const catchHeaderTrailingWhitespaceStart = pos;
         space();
 
         if (source[pos] === ';') {
@@ -2988,11 +3420,55 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           chunks.push(fixed(';'));
         }
 
+        let firstCatchBodyItem = true;
+
         while (true) {
+          const catchBodyWhitespaceStart = pos;
           space();
+
+          /*
+           * Blank formatting lines inside a catch body are preserved as
+           * 0x4F source-group boundaries, including right after the catch
+           * header (before the first body item) and before end-try.
+           *
+           * ADDRESSES.EMPLID.SavePostChange (definition 521):
+           *
+           *   catch Exception &ex
+           *
+           *   end-try;
+           *
+           * stores the blank line between the catch header and end-try as
+           * a single 0x4F. The catch-header trailing whitespace is
+           * consumed by the semicolon check above, before this loop's own
+           * whitespace tracking starts, so the first iteration must look
+           * back across that earlier span instead of its own (empty) one.
+           */
+          const catchBodyWhitespace = source.slice(
+            firstCatchBodyItem
+              ? catchHeaderTrailingWhitespaceStart
+              : catchBodyWhitespaceStart,
+            pos
+          );
+          firstCatchBodyItem = false;
+
+          if (/(?:\r?\n)[ \t]*(?:\r?\n)/.test(catchBodyWhitespace)) {
+            const markerCount = Math.max(
+              1,
+              (catchBodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+            );
+
+            for (let marker = 0; marker < markerCount; marker++) {
+              chunks.push(Buffer.from([0x4f]));
+            }
+          }
 
           if (source.startsWith('/*', pos)) {
             chunks.push(blockComment());
+            continue;
+          }
+
+          if (/^REM\b/i.test(source.slice(pos))) {
+            chunks.push(remComment(true));
             continue;
           }
 
@@ -3022,8 +3498,39 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         fail('expected catch');
       }
 
+      /*
+       * Blank formatting lines inside a try body are preserved as 0x4F
+       * source-group boundaries, the same way they are immediately before
+       * catch above. This includes the boundary right after the `try`
+       * header, before its first body item.
+       *
+       * ADDRESSES.EMPLID.SavePostChange (definition 521):
+       *
+       *   try
+       *
+       *      If CheckFieldExists(...) Then
+       *
+       * stores the blank line between `try` and the first body statement
+       * as a single 0x4F.
+       */
+      if (hasBlankLine) {
+        const markerCount = Math.max(
+          1,
+          (tryWhitespace.match(/\r?\n/g) ?? []).length - 1
+        );
+
+        for (let marker = 0; marker < markerCount; marker++) {
+          chunks.push(Buffer.from([0x4f]));
+        }
+      }
+
       if (source.startsWith('/*', pos)) {
         chunks.push(blockComment());
+        continue;
+      }
+
+      if (/^REM\b/i.test(source.slice(pos))) {
+        chunks.push(remComment(true));
         continue;
       }
 
@@ -3251,6 +3758,16 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         continue;
       }
 
+      // An extra semicolon is an empty statement and is retained as its own
+      // 0x15 token. PSIBLOGICL2_WRK.IB_LINKDOC has this inside a For body:
+      // `&recPage = &row.GetRecord(Record.PSDOCLOPAGE);;`.
+      if (source[pos] === ';') {
+        pos++;
+        chunks.push(fixed(';'));
+        firstForBodyItem = false;
+        continue;
+      }
+
       if (hasBlankLine && !firstForBodyItem) {
         /*
          * Preserve every blank formatting line between For-body constructs.
@@ -3285,7 +3802,35 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       space();
 
       if (source[pos] !== ';') {
-        fail('expected ; in For body');
+        /*
+         * The final statement in a For body may omit its source semicolon
+         * when it is immediately followed by End-For, the same way a
+         * top-level If/Evaluate/assignment may omit its semicolon at EOF.
+         *
+         * CAN_TAX_TYPE.SOURCE_TAX.RowInit (definition 2406):
+         *
+         *   For &i = ActiveRowCount(...) To 1 Step - 1
+         *      DeleteRow(Record.CAN_TAX_TYPE, &Current_Row_1, ...)
+         *   End-For;
+         *
+         * and ARCH_TBL.RECNAME.SavePreChange (definition 1269), where the
+         * omitted statement is itself a compound If block:
+         *
+         *   For &K = 1 To &ALL_ROWS
+         *      UpdateValue(...);
+         *      If &K = 1 Then
+         *         UpdateValue(...);
+         *      End-If
+         *   End-For;
+         *
+         * Both decode back to this exact source (SOURCE MATCH), so no 0x15
+         * token is stored for the omitted semicolon; only fail when the
+         * statement is not immediately followed by End-For.
+         */
+        if (!/^End-For\b/i.test(source.slice(pos))) {
+          fail('expected ; in For body');
+        }
+        continue;
       }
 
       pos++;
@@ -3323,9 +3868,40 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
 
     while (true) {
+      const whitespaceStart = pos;
       space();
+      const bodyWhitespace = source.slice(whitespaceStart, pos);
+      const hasBlankLine =
+        /(?:\r?\n)[ \t]*(?:\r?\n)/.test(bodyWhitespace);
 
       if (word('End-While')) {
+        /*
+         * Preserve blank-line multiplicity immediately before End-While,
+         * mirroring ifStatement()'s identical End-If handling above --
+         * this branch was previously missing entirely.
+         *
+         * CO_STATETAX_TBL.EFFDT.FieldChange (definition 3235):
+         *
+         *   &AccountsModified = True;
+         *
+         *   End-If;
+         *
+         *   End-While;
+         *
+         * stores a 0x4F boundary before End-While just as it does before
+         * the enclosing End-If.
+         */
+        if (hasBlankLine) {
+          const markerCount = Math.max(
+            1,
+            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+          );
+
+          for (let marker = 0; marker < markerCount; marker++) {
+            pendingReferenceGroupBoundaries.push(chunks.length);
+          }
+        }
+
         chunks.push(fixed('End-While'));
         return;
       }
@@ -3439,7 +4015,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         * the 0x19 Else opcode.
         */
         if (hasBlankLine) {
-          pendingReferenceGroupBoundaries.push(chunks.length);
+          const markerCount = Math.max(
+            1,
+            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+          );
+          for (let marker = 0; marker < markerCount; marker++) {
+            pendingReferenceGroupBoundaries.push(chunks.length);
+          }
         }
 
         chunks.push(fixed('Else'));
@@ -3548,10 +4130,27 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * REM is compiled as a 0x24 comment payload containing its own
        * semicolon, so consume it here rather than sending it through the
        * ordinary statement + 0x15 terminator path.
+       *
+       * Blank-line marker multiplicity before REM follows the same rule
+       * as every other body-item boundary in this same loop (the
+       * sibling `<*`/`/*` branches just above, and End-If below) -- this
+       * branch was pushing exactly one marker regardless of actual
+       * blank-line count.
+       *
+       * ADDRESS_TYPE_FL.EMPLID.SavePreChange (definition 534): TWO blank
+       * lines before `REM TriggerPDHEvent_Fluid(GetRow());` inside a
+       * nested If body store TWO 0x4F markers, not one.
        */
       if (/^REM\b/i.test(source.slice(pos))) {
         if (hasBlankLine) {
-          pendingReferenceGroupBoundaries.push(chunks.length);
+          const markerCount = Math.max(
+            1,
+            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+          );
+
+          for (let marker = 0; marker < markerCount; marker++) {
+            pendingReferenceGroupBoundaries.push(chunks.length);
+          }
         }
 
         chunks.push(remComment(true));
@@ -3685,10 +4284,27 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * REM is compiled as a 0x24 comment payload containing its own
        * semicolon, so consume it here rather than sending it through the
        * ordinary statement + 0x15 terminator path.
+       *
+       * Blank-line marker multiplicity before REM follows the same rule
+       * as every other body-item boundary in this same loop (the
+       * sibling `<*`/`/*` branches just above, and End-If below) -- this
+       * branch was pushing exactly one marker regardless of actual
+       * blank-line count.
+       *
+       * ADDRESS_TYPE_FL.EMPLID.SavePreChange (definition 534): TWO blank
+       * lines before `REM TriggerPDHEvent_Fluid(GetRow());` inside a
+       * nested If body store TWO 0x4F markers, not one.
        */
       if (/^REM\b/i.test(source.slice(pos))) {
         if (hasBlankLine) {
-          pendingReferenceGroupBoundaries.push(chunks.length);
+          const markerCount = Math.max(
+            1,
+            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+          );
+
+          for (let marker = 0; marker < markerCount; marker++) {
+            pendingReferenceGroupBoundaries.push(chunks.length);
+          }
         }
 
         chunks.push(remComment(true));
@@ -3744,6 +4360,31 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     while (true) {
       space();
+
+      // Evaluate may carry a REM comment between its selector and first When.
+      // PSXPRPTDEFN_WRK.PROPTYPE stores it directly as a 0x24 comment record.
+      if (!sawWhen && /^REM\b/i.test(source.slice(pos))) {
+        chunks.push(remComment(true));
+        continue;
+      }
+
+      /*
+       * A standalone block comment may likewise appear between the
+       * selector and the first When, stored the same direct 0x24 way as
+       * the REM case above.
+       *
+       * AE_WRK.AE_DECIDE.FieldChange (definition 858):
+       *
+       *   Evaluate AE_WRK.AE_DECIDE
+       *      /*
+       *       Keep track of how many pending updates there are
+       *      *\/
+       *   When "T"
+       */
+      if (!sawWhen && source.startsWith('/*', pos)) {
+        chunks.push(blockComment());
+        continue;
+      }
 
       if (word('When-Other')) {
         if (sawWhenOther) {
@@ -3807,6 +4448,22 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             }
 
             chunks.push(blockComment());
+            continue;
+          }
+
+          if (/^REM\b/i.test(source.slice(pos))) {
+            if (hasBlankLine) {
+              const markerCount = Math.max(
+                1,
+                (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+              );
+
+              for (let marker = 0; marker < markerCount; marker++) {
+                chunks.push(Buffer.from([0x4f]));
+              }
+            }
+
+            chunks.push(remComment(true));
             continue;
           }
 
@@ -3889,12 +4546,34 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         ) {
           selectorWhitespaceStart--;
         }
+        const selectorTrailingWhitespace =
+          source.slice(selectorWhitespaceStart, pos);
         if (
-          /(?:\r?\n)[ \t]*(?:\r?\n)/.test(
-            source.slice(selectorWhitespaceStart, pos)
-          )
+          /(?:\r?\n)[ \t]*(?:\r?\n)/.test(selectorTrailingWhitespace)
         ) {
-          chunks.push(Buffer.from([0x4f]));
+          /*
+           * Preserve every blank formatting line between a When header and
+           * its first body statement, the same way other calibrated
+           * blank-line boundaries do: one ordinary newline is line
+           * separation, each additional newline contributes one 0x4F.
+           *
+           * ADDRESSES.EMPLID.RowInit (definition 518):
+           *
+           *   When Component.RA_PERS_DATA
+           *
+           *
+           *      DERIVED_ADDR.SELF_SERVE.Enabled = False;
+           *
+           * has two blank lines after the When header and stores 4F 4F, not
+           * a single 4F.
+           */
+          const markerCount = Math.max(
+            1,
+            (selectorTrailingWhitespace.match(/\r?\n/g) ?? []).length - 1
+          );
+          for (let marker = 0; marker < markerCount; marker++) {
+            chunks.push(Buffer.from([0x4f]));
+          }
         }
 
         // Parse this When body until the next clause/end.
@@ -4131,18 +4810,157 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
    */
   const previousReuseRecordReferenceByName =
     reuseRecordReferenceByName;
+  const previousReuseFetchValueRecord =
+    reuseFetchValueRecord;
   const previousReuseRecordReferenceWithinControlGroup =
     reuseRecordReferenceWithinControlGroup;
   const previousReuseRowShorthandRecord =
     reuseRowShorthandRecord;
   const previousCaptureRowsetElementRecord =
     captureRowsetElementRecord;
+  const previousReuseScrollReferenceWithinControlGroup =
+    reuseScrollReferenceWithinControlGroup;
 
-  if (/^(?:GetSetId|ActiveRowCount|ScrollSelect|RowScrollSelect|Gray|UnGray)$/i.test(name)) {
+  if (/^(?:GetSetId|ScrollSelect|RowScrollSelect|Gray|UnGray)$/i.test(name)) {
     reuseRecordReferenceByName = true;
   }
+  if (/^FetchValue$/i.test(name)) {
+    reuseFetchValueRecord = true;
+  }
 
-  if (/^GetRecord$/i.test(name)) {
+  /*
+   * GetRecord, DeleteRow and ActiveRowCount's Record.X argument reuse an
+   * existing same-control-group RECORD PSPCMNAME row rather than
+   * allocating a fresh one.
+   *
+   * CAN_TAX_TYPE.SOURCE_TAX.FieldChange (definition 2406):
+   *
+   *   For &i = ActiveRowCount(Record.CAN_TAX_TYPE, ..., Record.CAN_TAX_STCLASS) To 1 Step - 1
+   *      DeleteRow(Record.CAN_TAX_TYPE, ..., Record.CAN_TAX_STCLASS, &i)
+   *   End-For;
+   *   If ... Then
+   *      For &i = ActiveRowCount(Record.CAN_TAX_TYPE, ..., Record.CAN_TAX_CLASS) To 1 Step - 1
+   *   ...
+   *
+   * stores DeleteRow's Record.CAN_TAX_TYPE and Record.CAN_TAX_STCLASS
+   * reusing the exact same PSPCMNAME rows ActiveRowCount's own arguments
+   * allocated two statements earlier, in the same For loop's control
+   * group -- but the *second* If/For's ActiveRowCount call, in a
+   * different top-level control group, allocates a *fresh* Record.
+   * CAN_TAX_TYPE row rather than reusing the first loop's. ActiveRowCount
+   * was previously in the reuseRecordReferenceByName set below, which
+   * searches `references` globally with no control-group scoping --
+   * correct only by coincidence for single-control-group fixtures, and
+   * wrong here. Moving it to this control-group-scoped mechanism instead
+   * (checked first in recordReference()'s lookup chain) preserves
+   * identical behavior for every fixture where all ActiveRowCount calls
+   * either share one control group or live at plain top level (which all
+   * share controlGroup 0 unless a top-level SetDefault call bumps it),
+   * and only changes output for multiple ActiveRowCount calls to the same
+   * record name across genuinely different top-level control groups --
+   * exactly the previously-wrong case.
+   *
+   * This is purely additive for GetRecord/DeleteRow:
+   * recordReferencesByControlGroup is only ever populated by a reference
+   * that has already occurred, so it cannot change output for a call
+   * whose record name has not appeared earlier in the same control group
+   * (the common case today).
+   *
+   * UpdateValue's own Record.X argument shares this same control-group
+   * reuse rule. ARCH_TBL.RECNAME.SavePreChange (definition 1269) proves it:
+   *
+   *   For &K = 1 To &ALL_ROWS
+   *      UpdateValue(Record.ARCH_TBL, &I, ARCH_CTRL.PSARCH_MATCH_KEY, &K, &K);
+   *      If &K = 1 Then
+   *         UpdateValue(Record.ARCH_TBL, &I, ARCH_CTRL.PSARCH_AND_OR, &K, " ");
+   *      End-If;
+   *   End-For;
+   *
+   * The second UpdateValue's Record.ARCH_TBL (nested one control-depth
+   * deeper, but still control group 1 -- only top-level entry bumps the
+   * group) reuses the exact same PSPCMNAME row the first UpdateValue's
+   * Record.ARCH_TBL allocated moments earlier in the same For-loop body,
+   * rather than allocating a fresh one.
+   *
+   * InsertRow's own Record.X argument shares the same rule. The same
+   * definition 1269, deep inside a nested For/If chain within that same
+   * top-level For &L loop's control group:
+   *
+   *   ScrollFlush(Record.ARCH_TMP_RECUNQ);
+   *   ...
+   *   InsertRow(Record.ARCH_TMP_RECUNQ, &RT - 1);
+   *
+   * reuses the ARCH_TMP_RECUNQ row already allocated earlier in that same
+   * control group rather than allocating a fresh one.
+   *
+   * SetCursorPos's own Record.X argument shares the same rule.
+   * BENEF_PB_WRK.BEN_CLEAR_PB.FieldChange (definition 1738):
+   *
+   *   &ActRowCnt = ActiveRowCount(Record.BEN_BI_CHARGE);
+   *   SetCursorPos(%Panel, Record.BEN_BI_CHARGE, &ActRowCnt, BEN_BI_CHARGE.EMPLID);
+   *
+   * SetCursorPos's Record.BEN_BI_CHARGE reuses the RECORD row
+   * ActiveRowCount's own argument allocated one statement earlier, in the
+   * same top-level If's control group.
+   *
+   * This mechanism is control-group-scoped, not function-scoped -- see the
+   * "top-level-of-a-Function-body statement gets its own fresh control
+   * group" fix in functionStatement()'s body loop (cites definition 871)
+   * for why a flat run of top-level-of-function statements does not
+   * spuriously reuse each other's rows even though this reuse rule applies
+   * unconditionally here.
+   *
+   * HideScroll/UnhideScroll/UnhideRow's own Record.X argument share the
+   * same rule -- also cited by definition 871, inside
+   * `Function adjust_row_num`'s nested If/Else:
+   *
+   *   If ActiveRowCount(Record.AE_STMT_TBL) = 1 And None(&SECTION, &STEP) Then
+   *      AE_WRK.AE_ROW_COUNT = 0;
+   *      HideScroll(Record.AE_STMT_TBL);
+   *   Else
+   *      UnhideScroll(Record.AE_STMT_TBL);
+   *      AE_WRK.AE_ROW_COUNT = ActiveRowCount(Record.AE_STMT_TBL);
+   *      For &ROW = ActiveRowCount(Record.AE_STMT_TBL) To 1 Step - 1
+   *         UnhideRow(Record.AE_STMT_TBL, &ROW);
+   *      ...
+   *
+   * Every one of these Record.AE_STMT_TBL mentions reuses the exact same
+   * PSPCMNAME row the If's own condition allocated -- not just the ones
+   * already covered by ActiveRowCount above. Before this addition,
+   * HideScroll/UnhideScroll/UnhideRow's own fresh allocations (bypassing
+   * the reuse check because they were not yet in this list) would
+   * overwrite the shared control-group cache entry, breaking reuse for
+   * every reference after them too.
+   *
+   * CopyFields' own Record.X arguments share the same rule. The same
+   * definition 871, inside `Function man_stmt` (a flat, untriggered
+   * top-level-of-function run following one InsertRow trigger statement):
+   *
+   *   InsertRow(Record.AE_STMT_TBL, ActiveRowCount(Record.AE_STMT_TBL));
+   *   &TO_ROW = ActiveRowCount(Record.AE_STMT_TBL);
+   *   CopyFields(1, Record.AE_TOOLS_CHK_VW, &ROW, 1, Record.AE_STMT_TBL, &TO_ROW);
+   *
+   * CopyFields' second Record.X argument (Record.AE_STMT_TBL) reuses the
+   * same row InsertRow's own trigger-statement group established, exactly
+   * like the plain assignment `&TO_ROW = ActiveRowCount(...)` between them
+   * already does via ActiveRowCount's own reuse rule -- CopyFields itself
+   * is not a trigger statement (see the ScrollFlush/HideScroll/InsertRow
+   * trigger in the bare-call name dispatcher above), it simply continues
+   * in whichever group is currently active and reuses within it like any
+   * other reuse-enabled name.
+   *
+   * RecordDeleted's and RecordChanged's own Record.X arguments share the
+   * same rule. ADDRESS_TYPE_FL.EMPLID.SavePreChange (definition 534):
+   *
+   *   (&new_row = True Or
+   *      RecordDeleted(Record.ADDRESS_TYPE_FL) Or
+   *      RecordChanged(Record.ADDRESS_TYPE_FL)) Then
+   *
+   * RecordChanged's Record.ADDRESS_TYPE_FL reuses the exact same
+   * PSPCMNAME row RecordDeleted's own argument allocated moments earlier,
+   * in the same If condition's control group.
+   */
+  if (/^(?:GetRecord|DeleteRow|ActiveRowCount|UpdateValue|InsertRow|SetCursorPos|HideScroll|UnhideScroll|UnhideRow|CopyFields|RecordDeleted|RecordChanged)$/i.test(name)) {
     reuseRecordReferenceWithinControlGroup = true;
   }
   if (/^CreateRecord$/i.test(name)) {
@@ -4150,6 +4968,44 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   }
   if (/^CreateRowset$/i.test(name)) {
     captureRowsetElementRecord = true;
+  }
+
+  /*
+   * Scroll.X arguments to ActiveRowCount/UpdateValue/Gray/UnGray share the
+   * same control-group-scoped reuse rule as Record.X arguments above.
+   *
+   * DEDUCTION_TBL.SPCL_PROCESS.FieldChange (definition 3586):
+   *
+   *   For &I = 1 To ActiveRowCount(Scroll.DEDUCTION_TBL, CurrentRowNumber(1), Scroll.DEDUCTION_CLASS);
+   *      UpdateValue(Scroll.DEDUCTION_TBL, CurrentRowNumber(1), Scroll.DEDUCTION_CLASS, &I, DEDUCTION_CLASS.DED_CLASS, "A");
+   *      ...
+   *      Gray(Scroll.DEDUCTION_TBL, CurrentRowNumber(1), Scroll.DEDUCTION_CLASS, &I, DEDUCTION_CLASS.DED_CLASS);
+   *      ...
+   *   End-For;
+   *
+   * Every UpdateValue/Gray call's Scroll.DEDUCTION_TBL and
+   * Scroll.DEDUCTION_CLASS arguments reuse the exact same PSPCMNAME SCROLL
+   * rows the loop header's ActiveRowCount call allocated, rather than each
+   * one allocating a fresh row.
+   *
+   * DeleteRow's own Scroll.X argument shares the same rule.
+   * BENEF_PB_WRK.BEN_CLEAR_PB.FieldChange (definition 1738):
+   *
+   *   &I = ActiveRowCount(Scroll.BEN_PRIJOB_LIST);
+   *   While &I > 0
+   *      DeleteRow(Scroll.BEN_PRIJOB_LIST, &I);
+   *      &I = &I - 1;
+   *   End-While;
+   *
+   * DeleteRow's Scroll.BEN_PRIJOB_LIST reuses the SCROLL row
+   * ActiveRowCount's own argument allocated one statement earlier, in the
+   * same top-level If's control group.
+   *
+   * Control-group-scoped, not function-scoped -- see the note on the
+   * Record.X reuse rule above.
+   */
+  if (/^(?:ActiveRowCount|UpdateValue|Gray|UnGray|DeleteRow)$/i.test(name)) {
+    reuseScrollReferenceWithinControlGroup = true;
   }
 
   try {
@@ -4167,12 +5023,16 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   } finally {
     reuseRecordReferenceByName =
       previousReuseRecordReferenceByName;
+    reuseFetchValueRecord =
+      previousReuseFetchValueRecord;
     reuseRecordReferenceWithinControlGroup =
       previousReuseRecordReferenceWithinControlGroup;
     reuseRowShorthandRecord =
       previousReuseRowShorthandRecord;
     captureRowsetElementRecord =
       previousCaptureRowsetElementRecord;
+    reuseScrollReferenceWithinControlGroup =
+      previousReuseScrollReferenceWithinControlGroup;
   }
 };
   const primary = () => {
@@ -4239,11 +5099,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     if (source[pos] === '%') {
       chunks.push(systemVariable());
-      return;
-    }
-
-    if (source[pos] === '(') {
-      parenthesized(expression, false);
+    } else if (source[pos] === '(') {
+      const startsBooleanUnary = /^\(\s*Not\b/i.test(source.slice(pos));
+      const startsVariableComparison =
+        /^\(\s*&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:<>|<=|>=|=|<|>)/
+          .test(source.slice(pos));
+      parenthesized(
+        startsBooleanUnary || startsVariableComparison
+          ? booleanExpression
+          : expression,
+        false
+      );
     } else if (/^create\b/i.test(source.slice(pos))) {
       word('create');
       chunks.push(Buffer.from([0x69]));
@@ -4390,6 +5256,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
               ? 'field'
               : undefined;
 
+    /*
+     * Distinguishes "expectedReferenceMember === 'field' because this is
+     * the first postfix step off a declared Record variable" from
+     * "...because the immediately preceding postfix step in this same
+     * chain was .GetRecord(...)". Only the latter enables Field.X
+     * control-group reuse for a following .GetField(...) call -- see its
+     * own comment where it's checked below.
+     */
+    let isFirstPostfixStep = true;
+    let selectedByDirectRowsetPostfix = false;
+
     // Calibrated postfix forms may be chained arbitrarily:
     //   expr.Member / expr.Method(...)
     //   expr[index]       => 0x4C ... 0x4D
@@ -4413,12 +5290,16 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         const member = memberMatch[0];
         pos += member.length;
 
+        const wasFirstPostfixStep = isFirstPostfixStep;
+        isFirstPostfixStep = false;
+
         space();
 
         const isMethodCall = source[pos] === '(';
         const isInlineRowStateMember =
           expectedReferenceMember === 'record' &&
-          /^(?:IsNew|IsDeleted|IsChanged|Visible|Selected)$/i.test(member);
+          /^(?:RowNumber|IsNew|IsDeleted|IsChanged|Visible|Selected)$/i.test(member);
+
         const hasExistingExpectedReference = references.some(item =>
           expectedReferenceMember === 'record'
             ? (item.kind === 'record' || (isMethodCall && item.kind === 'scroll')) &&
@@ -4427,6 +5308,22 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
               ? item.kind === 'field' && same(item.fieldName, member)
               : false
         );
+        const directLevel0RecordField =
+          expectedReferenceMember === 'record' &&
+          selectedByDirectRowsetPostfix &&
+          controlDepth === 0 &&
+          functionDepth === 0 &&
+          baseVariableName !== undefined &&
+          same(
+            rowsetRecordNamesByVariable.get(baseVariableName.toLowerCase()),
+            member
+          )
+            ? /^\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)/.exec(source.slice(pos))?.[1]
+            : undefined;
+        const directLevel0RecordFieldKey =
+          directLevel0RecordField === undefined
+            ? undefined
+            : `${controlGroup}:${baseVariableName!.toLowerCase()}:${member.toLowerCase()}:${directLevel0RecordField.toLowerCase()}`;
 
         if (
           expectedReferenceMember !== undefined &&
@@ -4446,28 +5343,24 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
                     same(item.recordName, member)
                 )
               : expectedReferenceMember === 'record'
-              ? rowShorthandRecordsByBase.get(
-                  `${controlGroup}:${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`
-                ) ??
-                rowsetElementRecords.get(member.toLowerCase()) ??
-                rowShorthandRecordsByControlGroup.get(
-                  `${controlGroup}:${member.toLowerCase()}`
-                ) ??
-                /*
-                 * A row-shorthand RECORD member may reuse a RECORD dependency
-                 * first established explicitly earlier in the same control
-                 * group.
-                 *
-                 * DERIVED_CO.FUNCLIB.FieldFormula:
-                 *
-                 *   &HeaderRowset.Select(Record.CRSE_ALL_SSN_VW, ...);
-                 *   ...
-                 *   &HeaderRowset(&i).CRSE_ALL_SSN_VW.COURSE_START_DT.Value;
-                 *
-                 * Both compile through the same PSPCMNAME RECORD row.
-                 */
-                recordReferencesByControlGroup.get(
-                  `${controlGroup}:${member.toLowerCase()}`
+              ? (
+                  directLevel0RecordFieldKey !== undefined
+                    ? level0RowsetRecordsByField.get(directLevel0RecordFieldKey)
+                    : rowShorthandRecordsByBase.get(
+                        `${controlGroup}:${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`
+                      ) ??
+                      rowsetElementRecords.get(member.toLowerCase()) ??
+                      rowShorthandRecordsByControlGroup.get(
+                        `${controlGroup}:${member.toLowerCase()}`
+                      ) ??
+                      /*
+                       * A row-shorthand RECORD member may reuse a RECORD
+                       * dependency first established explicitly earlier in
+                       * the same control group.
+                       */
+                      recordReferencesByControlGroup.get(
+                        `${controlGroup}:${member.toLowerCase()}`
+                      )
                 )
               : recordVariableFields.get(
                   `${controlGroup}:${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`
@@ -4571,6 +5464,12 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             expectedReferenceMember === 'record' &&
             reference.kind === 'record'
           ) {
+            if (directLevel0RecordFieldKey !== undefined) {
+              level0RowsetRecordsByField.set(
+                directLevel0RecordFieldKey,
+                reference
+              );
+            }
             rowShorthandRecords.set(member.toLowerCase(), reference);
             rowShorthandRecordsByBase.set(
               `${controlGroup}:${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`,
@@ -4680,6 +5579,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             reuseRecordReferenceWithinControlGroup;
           const previousReuseScrollReferenceWithinControlGroup =
             reuseScrollReferenceWithinControlGroup;
+          const previousReuseFieldReferenceWithinControlGroup =
+            reuseFieldReferenceWithinControlGroup;
 
           /*
            * Record.X arguments to Select() reuse the same RECORD dependency
@@ -4695,6 +5596,36 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
           if (/^GetRowset$/i.test(member)) {
             reuseScrollReferenceWithinControlGroup = true;
+          }
+
+          /*
+           * Field.X reuse is scoped to a GetField(...) call immediately
+           * chained onto this same expression's own PRECEDING
+           * .GetRecord(...) postfix step -- not merely
+           * expectedReferenceMember === 'field' by itself, since that is
+           * ALSO true on the very first postfix step off a declared
+           * Record variable (`&rec.GetField(...)` where `&rec` is
+           * `Local Record &rec;`), a structurally different, unrelated
+           * case. `!wasFirstPostfixStep` rules that out: GetRecord can
+           * only ever be a preceding chain step, never the chain's own
+           * first postfix access.
+           *
+           * Deliberately narrow: 'encodeProgramArtifacts allocates
+           * repeated Scroll and Field references by occurrence' (existing
+           * calibrated test) proves GetField(Field.CODE) called on a
+           * STORED Record variable (`&rec = GetRecord(...); &rec.GetField
+           * (Field.CODE); &rec.GetField(Field.CODE);`, two separate
+           * statements, GetField as the first postfix step both times)
+           * remains occurrence-based -- each call gets its own fresh
+           * FIELD row. Only a GetField(...) directly continuing the same
+           * .GetRecord(...) chain (definition 524) reuses.
+           */
+          if (
+            /^GetField$/i.test(member) &&
+            !wasFirstPostfixStep &&
+            expectedReferenceMember === 'field'
+          ) {
+            reuseFieldReferenceWithinControlGroup = true;
           }
           try {
             parenthesized(() => {
@@ -4721,6 +5652,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
               previousReuseRecordReferenceWithinControlGroup;
             reuseScrollReferenceWithinControlGroup =
               previousReuseScrollReferenceWithinControlGroup;
+            reuseFieldReferenceWithinControlGroup =
+              previousReuseFieldReferenceWithinControlGroup;
           }
 
           expectedReferenceMember =
@@ -4729,6 +5662,9 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
               : member.toLowerCase() === 'getrow'
                 ? 'record'
                 : undefined;
+          if (/^GetRow$/i.test(member)) {
+            selectedByDirectRowsetPostfix = false;
+          }
         } else {
           /*
            * A property/member traversal changes the receiver. Without
@@ -4794,6 +5730,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
            * isInlineRowStateMember above and remain inline names.
            */
           expectedReferenceMember = 'record';
+          selectedByDirectRowsetPostfix = true;
 
           continue;
         }
@@ -4819,6 +5756,32 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   let pendingReferenceLocalMarkers = 1;
   const pendingReferenceGroupBoundaries: number[] = [];
   let haveCompletedTopLevelStatement = false;
+
+  /*
+   * An initialized Local anywhere in the leading declaration run means the
+   * run's eventual close (whenever it happens -- at that initializer itself
+   * if no further Local follows, or later once the true first non-Local
+   * statement is reached) gets no 0x2D declaration-section marker, only the
+   * ordinary blank-line 0x4F marker(s) -- the initializer's own execution
+   * already ended the "pure declaration" phase without a formal boundary.
+   *
+   * DAEMONGROUP.DAEMONGROUP.SaveEdit (definition 3539):
+   *
+   *   Local number &i;
+   *   Local number &cnt = 0;
+   *
+   *   Local number &duprow;
+   *
+   *   Local Rowset &this;
+   *
+   *   &this = GetLevel0()(1).GetRowset(Scroll.DAEMONGROUP);
+   *
+   * stores `... &this; 15 4F 01 "&this" ...` before the assignment -- a
+   * lone 0x4F for the blank line, no 0x2D -- even though the program has
+   * compiled PSPCMNAME references and would otherwise get a 0x2D/0x4F
+   * declaration-section close.
+   */
+  let leadingRunHasInitializedLocal = false;
 
   /*
    * Tracks whether ordinary executable top-level code has begun.
@@ -4866,7 +5829,49 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       chunks.push(disabledCodeComment());
       haveCompletedTopLevelStatement = true;
-      leadingLocalRun = false;
+
+      /*
+       * A standalone disabled-code marker (<* ... *>) does not, by
+       * itself, terminate the leading Local declaration run any more than
+       * an ordinary block comment does (see the matching block-comment
+       * branch's "nextIsLocal" guard just below) -- only close the run
+       * early when one had actually started (sawLeadingLocalDeclaration)
+       * and no Local declaration immediately follows this marker. If no
+       * Local run has started yet, leave leadingLocalRun untouched so a
+       * Local declaration reached later can still be tracked.
+       *
+       * ADDRESS_TYPE_FL.ADDRESS_TYPE.RowDelete (definition 528):
+       *
+       *   [block comment: move gbl.addresses.address_type.row delete]
+       *   <*Bug 25690137*>
+       *   Local SQL &SQL1;
+       *
+       *   SQLExec(...);
+       *
+       * Previously this branch unconditionally set leadingLocalRun =
+       * false, which fired here BEFORE `Local SQL &SQL1;` was even
+       * reached (sawLeadingLocalDeclaration is still false at this
+       * point) -- permanently preventing the subsequent Local from ever
+       * being tracked by the leading-run mechanism at all, so the
+       * section's eventual 0x2D/0x4F close before `SQLExec(...)` was
+       * never emitted.
+       */
+      if (sawLeadingLocalDeclaration) {
+        const afterDisabledComment =
+          nextSignificantAfterBlockComments(pos);
+        const nextIsLocalAfterDisabledComment =
+          /^Local\b/i.test(source.slice(afterDisabledComment));
+
+        if (
+          leadingLocalRun &&
+          !nextIsLocalAfterDisabledComment &&
+          pendingReferenceLocalBoundary === undefined
+        ) {
+          pendingReferenceLocalBoundary = chunks.length;
+          pendingReferenceLocalMarkers = 0;
+          leadingLocalRun = false;
+        }
+      }
       continue;
     }
 
@@ -4990,6 +5995,42 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           closedTopLevelDeclarationSection = true;
         }
 
+        /*
+         * An open Application Class Local declaration section closes the
+         * same way: a standalone block comment following the section's
+         * final Local (application-class or ordinary) is not itself part
+         * of the section, so the section's 0x2D boundary belongs before
+         * the comment rather than deferred to the next executable
+         * statement.
+         *
+         * ADDRESSES.ADDRESS_TYPE.RowInit (definition 513):
+         *
+         *   Local EO:CA:Address &LocAddress;
+         *   Local string &ciName;
+         *
+         *   /*trying to bring...*\/
+         *   If ...
+         *
+         * stores the section boundary immediately before the comment:
+         *
+         *   ... <ciName> 15 2D 4F 24 <comment> ...
+         *
+         * Without this, the section only closes via the ordinary
+         * closesApplicationClassLocalSection path in the ordinary
+         * statement branch, which a leading comment bypasses via this
+         * loop's early `continue`, so the 0x2D is wrongly deferred past
+         * the comment to the next executable statement.
+         */
+        if (
+          sawApplicationClassLocalSection &&
+          !closedApplicationClassLocalSection &&
+          !nextIsLocal
+        ) {
+          chunks.push(Buffer.from([0x2d]));
+          closedApplicationClassLocalSection = true;
+          closedTopLevelDeclarationSection = true;
+        }
+
         const markerCount = Math.max(
           1,
           (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
@@ -5065,6 +6106,26 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      * Consume it here, before the ordinary statement/terminator path.
      */
     if (/^REM\b/i.test(source.slice(pos))) {
+      /*
+       * A REM comment after the final leading Local closes a reference-bearing
+       * Local section just like a standalone block comment does. The ordinary
+       * blank-line path below supplies the 0x4F; defer only the 0x2D until we
+       * know the program has compiled references.
+       *
+       * ACL_WS_WRK.WSOPRACCESS.FieldFormula stores:
+       *   Local number &I; 2D 4F REM ...
+       */
+      if (
+        leadingLocalRun &&
+        sawLeadingLocalDeclaration &&
+        hasBlankLine &&
+        pendingReferenceLocalBoundary === undefined
+      ) {
+        pendingReferenceLocalBoundary = chunks.length;
+        pendingReferenceLocalMarkers = 0;
+        leadingLocalRun = false;
+      }
+
       if (haveCompletedTopLevelStatement && hasBlankLine) {
         if (sawTopLevelDeclaration && !closedTopLevelDeclarationSection) {
           chunks.push(Buffer.from([0x2d]));
@@ -5078,7 +6139,19 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           chunks.push(Buffer.from([0x4f]));
         }
       }
-      chunks.push(remComment());
+      /*
+       * A top-level REM comment may omit its trailing semicolon, the same
+       * way every other REM call site in this file already allows
+       * (`remComment(true)`) -- this was the one remaining call site still
+       * requiring it.
+       *
+       * AMM_DERIVED.DELETE_BTN.RowInit (definition 964):
+       *
+       *   rem PSCHNLDEFN is a deprecated table in PT 8.48 and above.
+       *
+       * has no trailing ";" and decodes back to this exact source.
+       */
+      chunks.push(remComment(true));
       haveCompletedTopLevelStatement = true;
       leadingLocalRun = false;
       continue;
@@ -5101,6 +6174,18 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       /^Evaluate\b/i.test(source.slice(pos));
 
     /*
+     * ADDRESS_SBR.COUNTRY.FieldChange (definition 524) proves a top-level
+     * try/catch/end-try block may likewise terminate directly at EOF
+     * without a source semicolon after end-try:
+     *
+     *   catch Exception &id
+     *      /* Exception Caught. *\/
+     *   end-try
+     */
+    const isTryStatement =
+      /^try\b/i.test(source.slice(pos));
+
+    /*
      * Offset 425 proves that a plain top-level assignment may omit its
      * semicolon at EOF:
      *
@@ -5120,6 +6205,30 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         /^[A-Za-z_][A-Za-z0-9_]*\s*\./.test(source.slice(pos))
       ) &&
       /=/.test(source.slice(pos));
+
+    /*
+     * A bare declared-function call statement may also omit its semicolon
+     * at EOF, distinct from startsTopLevelAssignment above.
+     *
+     * FUNCLIB_ABS_EA.CANCEL_BTN.FieldFormula (definition 4066) and 58 other
+     * corpus objects end with a plain call to a Declare Function-declared
+     * routine and no trailing semicolon:
+     *
+     *   Declare Function EA_Cancel_Process PeopleCode ...;
+     *
+     *   EA_Cancel_Process()
+     *
+     * Keep this scoped to a bare leading identifier immediately followed by
+     * "(", excluding every reserved top-level statement keyword, so forms
+     * like "Return True" (no parens, and Return is reserved) still fail
+     * without an explicit semicolon.
+     */
+    const isTopLevelCallStatement =
+      !/^(?:import|Declare|Function|Local|Global|PanelGroup|Component|Constant|Return|If|While|For|Repeat|try|throw|Break|Exit|Continue|Error|Warning|Evaluate|REM)\b/i.test(
+        source.slice(pos)
+      ) &&
+      /^[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(source.slice(pos));
+
     const isApplicationClassLocal =
       /^Local\s+[A-Za-z_][A-Za-z0-9_]*\s*:\s*[A-Za-z_][A-Za-z0-9_]*\b/i.test(
         source.slice(pos)
@@ -5167,7 +6276,15 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * bytes.
        */
       if (hasBlankLine) {
-        chunks.push(Buffer.from([0x4f]));
+        const markerCount = isApplicationClassLocal
+          ? Math.max(
+              1,
+              (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
+            )
+          : 1;
+        for (let marker = 0; marker < markerCount; marker++) {
+          chunks.push(Buffer.from([0x4f]));
+        }
       }
 
       importSectionOpen = false;
@@ -5370,28 +6487,85 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       if (lastLocalHadInitializer) {
         /*
          * An initialized Local is executable at declaration time. It does
-         * not extend the declaration-only Local section.
+         * not extend the declaration-only Local section -- but only when
+         * the immediately following Local declaration (if any) is itself
+         * uninitialized. If an UNINITIALIZED Local declaration follows
+         * (before the first truly non-Local statement), the whole run
+         * stays one section and the general
+         * leadingLocalRun/!isLocalDeclaration closer below (which fires
+         * once, at the actual end of the run) supplies the boundary
+         * instead.
          *
-         * If declaration-only Locals preceded it, close that section
+         * DAEMONGROUP.DAEMONGROUP.SaveEdit (definition 3539):
+         *
+         *   Local number &i;
+         *   Local number &cnt = 0;
+         *
+         *   Local number &duprow;
+         *
+         *   Local Rowset &this;
+         *
+         *   &this = GetLevel0()(1).GetRowset(Scroll.DAEMONGROUP);
+         *
+         * stores no 0x2D/0x4F boundary between `&i;` and the initialized
+         * `&cnt = 0;` -- the section only closes once, right before
+         * `&this = GetLevel0()...`, after &duprow and &this (both
+         * uninitialized) have also been declared.
+         *
+         * Deliberately narrow to "next Local is uninitialized": ACA_BGN_MTH_TBL.
+         * BEGIN_DT.SaveEdit (definition 256, protected baseline) proves TWO
+         * directly-adjacent INITIALIZED Locals --
+         *
+         *   Local integer &year = Year(ACA_BGN_MTH_TBL.BEGIN_DT);
+         *   Local integer &month = Month(ACA_BGN_MTH_TBL.BEGIN_DT);
+         *
+         * -- must NOT defer to the general closer this way; deferring here
+         * caused the general closer to later fire using the wrong anchor
+         * position (statementChunkStart of the SECOND initializer, wrongly
+         * placing a boundary between the two initializers). When the next
+         * Local is itself initialized, fall through to the original
+         * behavior below (no boundary set here; leadingLocalRun stays
+         * false for the rest of the run, matching pre-existing calibrated
+         * behavior for consecutive initialized Locals).
+         *
+         * If declaration-only Locals preceded this initialized Local AND no
+         * uninitialized Local declaration follows it, close the section
          * immediately before this initialized Local. If it is the first
          * Local, there is no declaration-only section and therefore no
          * deferred 0x2D boundary.
          */
-        if (
-          sawLeadingLocalDeclaration &&
-          pendingReferenceLocalBoundary === undefined
-        ) {
-          pendingReferenceLocalBoundary = statementChunkStart;
-          pendingReferenceLocalMarkers = Math.max(
-            1,
-            (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
+        const afterStatementSemicolon =
+          source[pos] === ';' ? pos + 1 : pos;
+        const afterStatementLookaheadStart =
+          nextSignificantAfterBlockComments(afterStatementSemicolon);
+        const nextLocalMatch =
+          /^Local\s+[A-Za-z_][A-Za-z0-9_]*\s+&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)\s*(=)?/i.exec(
+            source.slice(afterStatementLookaheadStart)
           );
-        }
+        const nextIsAnotherUninitializedLocal =
+          nextLocalMatch !== undefined && nextLocalMatch !== null && nextLocalMatch[1] === undefined;
 
-        leadingLocalRun = false;
+        if (nextIsAnotherUninitializedLocal) {
+          leadingRunHasInitializedLocal = true;
+          sawLeadingLocalDeclaration = true;
+        } else {
+          if (
+            sawLeadingLocalDeclaration &&
+            pendingReferenceLocalBoundary === undefined
+          ) {
+            pendingReferenceLocalBoundary = statementChunkStart;
+            pendingReferenceLocalMarkers = Math.max(
+              1,
+              (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
+            );
+          }
+
+          leadingLocalRun = false;
+        }
       } else {
         sawLeadingLocalDeclaration = true;
       }
+      if (process.env.DEBUG_513) console.error('AFTER-LOCAL-STMT', { leadingLocalRun, sawLeadingLocalDeclaration, lastLocalHadInitializer, isApplicationClassLocal });
     }
 
     if (isFunction) {
@@ -5453,13 +6627,25 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * Restrict this relaxation to EOF. Any non-EOF ordinary statement
        * still requires its explicit semicolon.
        */
+      const trailingStandaloneCommentEnd = source.startsWith('/*', pos)
+        ? source.indexOf('*/', pos + 2)
+        : -1;
+      const assignmentBeforeFinalStandaloneComment =
+        startsTopLevelAssignment &&
+        trailingStandaloneCommentEnd >= 0 &&
+        /^\s*$/.test(source.slice(trailingStandaloneCommentEnd + 2));
+
       const selfTerminatingAtEof =
-        pos === source.length &&
         (
-          startsTopLevelAssignment ||
-          isIfStatement ||
-          isEvaluateStatement
-        );
+          pos === source.length &&
+          (
+            startsTopLevelAssignment ||
+            isIfStatement ||
+            isEvaluateStatement ||
+            isTopLevelCallStatement ||
+            isTryStatement
+          )
+        ) || assignmentBeforeFinalStandaloneComment;
 
       if (!selfTerminatingAtEof) {
         fail('expected ;');
@@ -5572,7 +6758,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       insertions.push({
         index: pendingReferenceLocalBoundary,
         bytes: [
-          Buffer.from([0x2d]),
+          /*
+           * An initialized Local anywhere in the leading run means this
+           * close is an ordinary blank-line gap, not a formal declaration-
+           * section boundary -- omit the 0x2D. See
+           * leadingRunHasInitializedLocal's declaration comment above.
+           */
+          ...(leadingRunHasInitializedLocal ? [] : [Buffer.from([0x2d])]),
           ...Array.from({ length: pendingReferenceLocalMarkers }, () => Buffer.from([0x4f]))
         ]
       });
@@ -5975,7 +7167,7 @@ function parseFunctionMetadata(
     if (parameterSource.length > 0) {
       for (const parameter of parameterSource.split(',')) {
         const typedMatch =
-          /^\s*&[A-Za-z_][A-Za-z0-9_]*\s+As\s+([A-Za-z_][A-Za-z0-9_]*)\s*$/i.exec(
+          /^\s*&[A-Za-z_][A-Za-z0-9_]*\s+As\s+((?:array\s+of\s+)?[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)\s*$/i.exec(
             parameter
           );
 
@@ -6014,7 +7206,7 @@ function parseFunctionMetadata(
 
     const afterParameters = source.slice(closeParen + (hasParameterList ? 1 : 0));
     const returnMatch =
-      /^[ \t]*Returns\s+([A-Za-z_][A-Za-z0-9_]*)/i.exec(
+      /^[ \t]*Returns\s+((?:array\s+of\s+)?[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)/i.exec(
         afterParameters
       );
 
