@@ -1,6 +1,61 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **definition_id 1428** (BANKING_DW.PRENOTE_BTN.FieldChange), attempted
+  and REVERTED after real evidence of conflict, no code changed in the
+  end. Original target: byte diff @1295, `DoModalComponent`'s own
+  `Record.X` argument needs to reuse an earlier `CreateRecord(Record.X)`
+  call's row in the same control group (same construct family as the
+  already-landed `DoModalPanelGroup` fix, definition 1152). Two attempts:
+  1. First tried adding `DoModalComponent` to the BROAD
+     `reuseRecordReferenceWithinControlGroup` trigger list (the same one
+     `DoModalPanelGroup` is on). Fixed 1428, passed `--limit 430`, but a
+     full-corpus diff (definition-by-definition against the last
+     known-good run, per the fix-#50-era lesson -- checked BEFORE
+     committing, not after) found 4 regressions: 22502, 22625, 22664,
+     23281 -- all previously EXACT. Root-caused 22502/22625/22664: their
+     earlier same-name precedent was established via a `.GetRecord(Record.X)`
+     POSTFIX-CHAIN call (`GetLevel0()(1).GetRecord(Record.GPS_DATA_WRK)`),
+     not `CreateRecord`, and stored does NOT want DoModalComponent to
+     reuse THAT kind of precedent -- only a `CreateRecord`-established one.
+  2. Narrowed the fix to a DEDICATED check against the existing
+     `createRecordReferences` map (the same one `CreateRecord`'s own
+     repeat-call dedup already populates), completely bypassing the
+     general trigger list so GetRecord-postfix-chain precedents can never
+     match. This correctly fixed 1428, 22502, 22625, 22664 (4/4) -- but
+     definition 23281 (GP_ABS_LVDN_TRANS.DESCR.FieldChange) STILL
+     regressed (was EXACT, became UNKNOWN_MISMATCH) despite having the
+     IDENTICAL construct shape as 1428:
+     ```
+     &srchrec = CreateRecord(Record.GP_PI_MNL_D);
+     &srchrec.EMPLID.Value = ...;              (three more &srchrec.X.Value = ... lines)
+     DoModalComponent(MenuName."...", BarName.USE, ItemName.GP_PI_MNL_AE, Page.GP_PI_MNL_AE, %Action_UpdateDisplay, Record.GP_PI_MNL_D, &srchrec);
+     ```
+     Verified via `--trace-refs` that stored's index (0x0f/15) corresponds
+     to a FRESH allocation at that exact point (sequence 16, matching the
+     count of prior ALLOCs), not a reuse of CreateRecord's own row (idx=2)
+     -- i.e. stored explicitly wants NO reuse here, contradicting 1428's
+     evidence for the textually identical shape. One structural difference
+     noticed but NOT confirmed as the true distinguishing factor: 1428 has
+     a top-level `If None(&nTest) Then ... Else ... End-If;` BETWEEN the
+     `CreateRecord` and `DoModalComponent` calls (which would bump the
+     control group per the established fix-#11 boundary rule), while
+     23281 has no intervening control structure at all (flat sequential
+     assignments, same control group throughout) -- this is the OPPOSITE
+     of the usual pattern (reuse normally needs the SAME scope, not a
+     boundary crossing) and was not chased further given the effort
+     already spent; flagging as a real lead, not a confirmed answer.
+  - Reverted BOTH attempts cleanly (`git checkout -- src/peoplecode/encoder.ts`,
+    confirmed it was the only uncommitted change first). 430/430
+    protected baseline and clean typecheck reconfirmed after the revert.
+    No net changes landed for DoModalComponent this session. Locally
+    blocked pending a third corroborating example or a better hypothesis
+    for the CreateRecord-vs-DoModalComponent control-group-crossing
+    distinction; next session picking this up should start from the
+    `%Action_UpdateDisplay` vs `&mode`/plain-string action-argument
+    difference and the intervening-If/Else difference as the two
+    concrete, not-yet-tested leads, rather than re-deriving the whole
+    investigation from scratch.
 - **definition_id 1285** (ARCH_WRK.PSARCH_COPY_TABLE.FieldChange),
   UNKNOWN_MISMATCH, byte diff @721 (verified with proper owner context)
   -- **DEFERRED, connects directly to the fix-#50-era reverted broad
