@@ -1,6 +1,57 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **definition_id 5015** (DERIVED_GPFR_AF.GPFR_ADD_CHILD.FieldChange),
+  UNKNOWN_MISMATCH, byte diff @510 -- investigated at length, NOT
+  resolved, no code changed. Construct:
+  ```
+  Component Record &recParent;
+  ...
+  &recParent = GetRecord(Record.GPFR_DSN_ND_VW);
+  ...
+  &OrigLvlVal = &recParent.GetField(@("FIELD.GPFR_AF_LVL_" | String(&recParent.GPFR_AF_LEVEL.Value) | "_VAL")).Value;
+  ```
+  Stored allocates a fresh FIELD reference (idx=4) for the
+  `&recParent.GPFR_AF_LEVEL` access inside the `String(...)` argument of
+  an `@(...)` dynamic-member-name expression; generated instead emits
+  idx=3 (the RECORD reference for GPFR_DSN_ND_VW, from `&recParent`'s own
+  `GetRecord(...)` assignment) at that position. Confusingly, `--trace-refs`
+  shows the encoder's OWN trace DOES record a fresh ALLOC #5/idx=4 "field
+  GPFR_AF_LEVEL" event -- meaning a field reference genuinely gets
+  allocated somewhere -- yet the byte actually emitted at the diff offset
+  is idx=3, not idx=4. This mismatch between "what the trace says was
+  allocated" and "what byte was actually emitted at this exact position"
+  was not resolved; two live hypotheses, neither confirmed:
+  1. The `.GPFR_AF_LEVEL` access, nested inside `String(...)` inside an
+     `@("..." | ... | "...")` dynamic-reference expression, may be
+     parsed through a DIFFERENT code path than the general
+     `expectedReferenceMember`-driven postfix-chain handler (~line 6171
+     onward in encoder.ts) this investigation traced through -- i.e. the
+     trace's ALLOC #5 event may correspond to a DIFFERENT occurrence than
+     the one actually emitted at offset 510, or the emitted idx=3 comes
+     from an entirely separate, not-yet-found code path for this nested
+     context.
+  2. `declaredRecordFields` (the pool `&recParent.GPFR_AF_LEVEL` would
+     consult, since `Component Record &recParent;` puts `recparent` in
+     `recordVariables`) is keyed by `${controlGroup}:${member}` only --
+     NOT by base variable name -- so if some OTHER construct earlier in
+     the same control group happened to establish a `declaredRecordFields`
+     entry keyed just "gpfr_af_level" (unlikely given this looks like the
+     only occurrence of that name in the source, but not exhaustively
+     checked against the full ~600-line source), it could theoretically
+     explain a wrong reuse -- though this doesn't explain why the reused
+     index (3) matches the RECORD reference specifically rather than some
+     other FIELD reference.
+  No encoder.ts changes made -- reading through the ~200-line postfix-
+  chain handler without a byte-offset-to-source-construct instrumentation
+  tool (the kind added and removed for fixes #48-52) was not enough to
+  pin down the actual code path. Next session picking this up should
+  instrument `fieldReference`/the postfix-chain handler's actual
+  allocation call sites with a temporary `DEBUG_5015`-style console.error
+  (byte length AT the point of each `referenceOperand()` call, not just
+  the trace's ALLOC/USE events) to find exactly which call site emits the
+  wrong index at binary offset 510, rather than re-reading the surrounding
+  code statically.
 - **Fix #52** landed (src/peoplecode/encoder.ts): a top-level Local
   declaration's own initializer now correctly informs
   `closesTopLevelDeclarationSection`'s 0x2D-boundary decision even when a
