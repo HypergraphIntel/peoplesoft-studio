@@ -1451,6 +1451,31 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     new Map<string, PeopleCodeReference>();
 
   /*
+   * `PriorValue(Record.X, ...)`'s own Record.X argument must not become
+   * visible to a LATER reuse-participating call's control-group-scoped
+   * lookup, unlike every other Record.X allocation (the unconditional
+   * write it would otherwise join).
+   *
+   * ARCH_SQL_LNG.ARCH_SQL.FieldChange (definition 1254):
+   *
+   *   &PRIOR_ARCH_SQL = PriorValue(Record.ARCH_TBL, &ZI, ARCH_SQL_LNG.ARCH_SQL, &ZJ);
+   *   &CURRENT_ARCH_SQL = FetchValue(Record.ARCH_TBL, &ZI, ARCH_SQL_LNG.ARCH_SQL, &ZJ);
+   *
+   * `PriorValue` is not itself a reuse-participating call (it never reads
+   * this map for its own argument), but its allocation would otherwise
+   * still unconditionally write into `recordReferencesByControlGroup`
+   * the same way any other allocation does -- and `FetchValue` IS
+   * reuse-participating, so it would wrongly find and reuse that row
+   * instead of allocating its own fresh one, which is what stored does.
+   * Scoped narrowly to `PriorValue`'s own call (mirroring the identical,
+   * already-proven RowScrollSelect-own-arguments exclusion just below)
+   * so every other Record.X allocation keeps writing here exactly as
+   * before -- this is NOT a claim that every non-participating call
+   * behaves this way, only that `PriorValue` specifically does.
+   */
+  let suppressRecordReferenceControlGroupWrite = false;
+
+  /*
    * ScrollFlush(Record.X); ScrollSelect(1, Record.X, Record.Y, ...) --
    * a RowScrollSelect/RowScrollSelectNew/ScrollSelect call's Record.X
    * argument whose name appears only ONCE across this call's own entire
@@ -1927,7 +1952,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      * that flag's own declaration) so every other Record.X allocation
      * keeps writing here exactly as before.
      */
-    if (!reuseRecordReferenceWithinCallArguments) {
+    if (
+      !reuseRecordReferenceWithinCallArguments &&
+      !suppressRecordReferenceControlGroupWrite
+    ) {
       recordReferencesByControlGroup.set(
         `${controlGroup}:${recordName.toLowerCase()}`,
         reference
@@ -5308,12 +5336,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     recordReferencesWithinCallArguments;
   const previousSingleOccurrenceCallArgumentRecordNames =
     singleOccurrenceCallArgumentRecordNames;
+  const previousSuppressRecordReferenceControlGroupWrite =
+    suppressRecordReferenceControlGroupWrite;
 
   if (/^(?:GetSetId|Gray|UnGray)$/i.test(name)) {
     reuseRecordReferenceByName = true;
   }
   if (/^FetchValue$/i.test(name)) {
     reuseFetchValueRecord = true;
+  }
+  if (/^PriorValue$/i.test(name)) {
+    suppressRecordReferenceControlGroupWrite = true;
   }
   if (/^(?:RowScrollSelect(?:New)?|ScrollSelect)$/i.test(name)) {
     /*
@@ -5885,6 +5918,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       previousRecordReferencesWithinCallArguments;
     singleOccurrenceCallArgumentRecordNames =
       previousSingleOccurrenceCallArgumentRecordNames;
+    suppressRecordReferenceControlGroupWrite =
+      previousSuppressRecordReferenceControlGroupWrite;
   }
 };
   const primary = () => {

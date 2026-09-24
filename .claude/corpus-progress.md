@@ -1,6 +1,84 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #50 landed, but only after a caught-and-reverted broad regression
+  -- worth reading in full before touching `reuseRecordReferenceWithinControlGroup`
+  again.** Target: definition 1254 (ARCH_SQL_LNG.ARCH_SQL.FieldChange),
+  UNKNOWN_MISMATCH, byte diff @942 (verified with proper owner context).
+  `&PRIOR_ARCH_SQL = PriorValue(Record.ARCH_TBL, &ZI, ARCH_SQL_LNG.ARCH_SQL, &ZJ);`
+  followed by `&CURRENT_ARCH_SQL = FetchValue(Record.ARCH_TBL, &ZI,
+  ARCH_SQL_LNG.ARCH_SQL, &ZJ);` -- stored allocates FetchValue's own
+  Record.ARCH_TBL argument a FRESH row, but the encoder reused
+  PriorValue's earlier one.
+  - **First attempt (REVERTED, do not repeat)**: swapped the general
+    `reuseRecordReferenceWithinControlGroup` priority-1 lookup (used by
+    GetRecord/DeleteRow/ActiveRowCount/UpdateValue/FetchValue/etc -- the
+    MOST-shared reuse mechanism in the whole file) from reading
+    `recordReferencesByControlGroup` (written unconditionally by every
+    allocation) to reading `participatingRecordReferencesByControlGroup`
+    (written only by already-recognized reuse-participating calls) --
+    the same distinction already used for RowScrollSelect's own lookup.
+    Fixed 1254 AND passed the 430-definition protected-baseline gate on
+    the FIRST attempt (a false all-clear). A full 30,209-definition
+    corpus re-run caught what `--limit 430` could not: 22 regressions
+    (EXACT -> UNKNOWN_MISMATCH) against only 11 newly-fixed definitions,
+    net -11. Diffed run_id 52 (pre-fix full run, 21740 EXACT) against the
+    post-fix full run definition-by-definition to get the exact regressed
+    ID list (`SELECT definition_id, classification FROM result WHERE
+    run_id = ?` for both runs, compare per ID) -- do NOT trust
+    `corpus:failures --summary`'s aggregate counts alone to find
+    regressions; always diff two specific run_ids by definition_id.
+    Investigated the regressed list before reverting (root-cause, not
+    guesswork): 21 of 22 had NO `PriorValue` in their source at all --
+    they regressed because fix #48's and fix #49's OWN registrations
+    (RowScrollSelectNew's last-arg, ScrollFlush's single-occurrence-name
+    fallback) write into `recordReferencesByControlGroup` directly,
+    bypassing the normal `marksControlGroupParticipant` path entirely, so
+    narrowing the READ side to the "participating" map broke visibility
+    of my own two prior fixes for every later GetRecord/ActiveRowCount/
+    UpdateValue/etc reader. The 22nd (definition 3061) has a DIFFERENT,
+    unrelated `PriorValue(CONTRACT.PAYMENT_TERM)` field-style call (no
+    `Record.X` argument at all), so it regressed for some other reason
+    entirely, never root-caused since the whole approach was abandoned.
+    Reverted cleanly with `git checkout -- src/peoplecode/encoder.ts`
+    (the broad swap was this session's ONLY uncommitted change at the
+    time, confirmed via `git diff` before reverting -- always check that
+    before a blanket revert). Lesson reinforced for future sessions:
+    `--limit 430` is necessary but NOT sufficient for ANY change touching
+    a mechanism this broadly shared; a full corpus re-run diffed against
+    the specific prior run_id by definition_id is the only way to catch
+    this class of regression, and aggregate EXACT counts alone can hide a
+    net-negative change if newly-fixed and newly-regressed counts happen
+    to be close (they were NOT close here, -11 net, but a closer case
+    could slip through if only the aggregate delta were checked).
+  - **Second attempt (landed as fix #50)**: a much narrower, evidence-
+    scoped carve-out modeled directly on the ALREADY-proven
+    RowScrollSelect-own-arguments exclusion just below it in the same
+    file (same shape, opposite direction): a new
+    `suppressRecordReferenceControlGroupWrite` flag, set true only while
+    parsing `PriorValue`'s own call arguments, checked alongside the
+    existing `!reuseRecordReferenceWithinCallArguments` guard on the
+    UNCONDITIONAL `recordReferencesByControlGroup.set(...)` write (not
+    touching the READ side at all, unlike the reverted attempt). This
+    means `PriorValue`'s own Record.X argument still allocates normally
+    but simply doesn't become visible to a LATER reuse-participating
+    call's control-group lookup -- every other allocation (including
+    RowScrollSelectNew's/ScrollFlush's own registrations from fixes
+    #48/#49) is completely unaffected, since the write-suppression is
+    scoped to the `PriorValue` call name specifically. Confirmed
+    `PriorValue` appears in 185 corpus definitions total; checked that
+    definition 3061 (the one regression-list member that DID mention
+    `PriorValue`, from the reverted attempt) uses the unrelated
+    field-style `PriorValue(RECORD.FIELD)` form with no `Record.X`
+    argument, so this narrow fix cannot touch it either way. Verified:
+    `npx tsc -p .` clean; `npm test` 456/457 (1 pre-existing skip);
+    `corpus:verify --limit 430` 430/430, 0 regressions; every previously
+    landed/related definition re-spot-checked EXACT (1254, 1145, 1220,
+    3061, 1283, 27, 840, 1172, 1236); full 30,209-definition corpus run
+    diffed AGAIN against run_id 52 by definition_id (not just aggregate
+    counts, learning directly applied from the reverted attempt): exactly
+    0 regressed, exactly 1 improved (1254) -- clean, minimal, confirmed
+    net-positive fix.
 - **Fix #49** landed (src/peoplecode/encoder.ts): a `RowScrollSelect`/
   `RowScrollSelectNew`/`ScrollSelect` call's Record.X argument whose name
   appears only ONCE across that call's own entire argument list may reuse
