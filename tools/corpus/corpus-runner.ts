@@ -1,7 +1,6 @@
 import childProcess from 'node:child_process';
 
 import {
-  CorpusDefinition,
   CorpusResult
 } from './classifications';
 
@@ -12,7 +11,6 @@ import {
 } from './baseline';
 
 import {
-  captureDefinition,
   discoverDefinitions,
   getConnectionConfig,
   openCorpusConnection,
@@ -31,6 +29,29 @@ import {
   validateDefinition
 } from './validator';
 
+import type {
+  CorpusDataSource,
+  CorpusWorkItem
+} from './datasource';
+
+import {
+  LocalCorpusDataSource
+} from './local-datasource';
+
+import {
+  LiveCorpusDataSource
+} from './live-datasource';
+
+import {
+  listSnapshotDefinitionIds,
+  getSnapshotDefinition,
+  snapshotToCorpusDefinition
+} from './snapshot/reader';
+
+import {
+  openSnapshotDatabase
+} from './snapshot/store';
+
 export interface CorpusRunOptions
   extends DiscoveryOptions {
   databaseName?: string;
@@ -39,6 +60,7 @@ export interface CorpusRunOptions
   compareBaseline?: boolean;
   failed?: boolean;
   traceRefs?: boolean;
+  live?: boolean;
 
   /**
    * Stable local SQLite definition identity. Resolved to the stored
@@ -96,6 +118,9 @@ export async function runCorpus(
       >
     > | undefined;
 
+  let dataSource:
+    CorpusDataSource | undefined;
+
   try {
     console.log(
       'PeopleCode Corpus Harness'
@@ -116,6 +141,13 @@ export async function runCorpus(
       }`
     );
     console.log(
+      `Source:   ${
+        options.live
+          ? 'HCDEV LIVE'
+          : 'LOCAL SNAPSHOT'
+      }`
+    );
+    console.log(
       `Limit:    ${options.limit}`
     );
     console.log(
@@ -130,8 +162,8 @@ export async function runCorpus(
     );
     console.log('');
 
-    let definitions:
-      CorpusDefinition[];
+    let workItems:
+      CorpusWorkItem[];
 
     if (
       options.definitionId !== undefined
@@ -147,8 +179,12 @@ export async function runCorpus(
         );
       }
 
-      definitions = [
-        definition
+      workItems = [
+        {
+          definitionId:
+            options.definitionId,
+          definition
+        }
       ];
 
       console.log(
@@ -163,7 +199,7 @@ export async function runCorpus(
         definition.displayName
       );
     } else if (options.failed) {
-      definitions =
+      const definitions =
         inventory
           .currentNonExactDefinitions({
             limit:
@@ -172,6 +208,17 @@ export async function runCorpus(
               options.offset
           });
 
+      workItems =
+        definitions.map(
+          definition => ({
+            definitionId:
+              inventory.upsertDefinition(
+                definition
+              ),
+            definition
+          })
+        );
+
       console.log(
         `Global inventory: ` +
         `${inventory.inventoryDefinitionCount()} known, ` +
@@ -179,9 +226,9 @@ export async function runCorpus(
       );
 
       console.log(
-        `Selected ${definitions.length} non-EXACT definition(s).`
+        `Selected ${workItems.length} non-EXACT definition(s).`
       );
-    } else {
+    } else if (options.live) {
       connection =
         await openCorpusConnection(
           config
@@ -191,17 +238,100 @@ export async function runCorpus(
         'Connected read-only workflow.'
       );
 
-      definitions =
+      const definitions =
         await discoverDefinitions(
           connection,
           options
         );
 
+      workItems =
+        definitions.map(
+          definition => ({
+            definitionId:
+              inventory.upsertDefinition(
+                definition
+              ),
+            definition
+          })
+        );
+
       console.log(
         `Discovered ` +
-        `${definitions.length} ` +
+        `${workItems.length} ` +
         `definition(s).`
       );
+    } else {
+      const snapshotDb =
+        openSnapshotDatabase();
+
+      try {
+        const ids =
+          listSnapshotDefinitionIds(
+            snapshotDb
+          );
+
+        const start =
+          options.offset ?? 0;
+
+        const selectedIds =
+          options.limit !== undefined
+            ? ids.slice(
+                start,
+                start + options.limit
+              )
+            : ids.slice(start);
+
+        workItems =
+          selectedIds.map(
+            (
+              definitionId,
+              index
+            ) => {
+              const snapshot =
+                getSnapshotDefinition(
+                  snapshotDb,
+                  definitionId
+                );
+
+              return {
+                definitionId,
+
+                definition:
+                  snapshotToCorpusDefinition(
+                    snapshot,
+                    start + index
+                  )
+              };
+            }
+          );
+      } finally {
+        snapshotDb.close();
+      }
+
+      console.log(
+        `Loaded ${workItems.length} definition(s) from local snapshot.`
+      );
+    }
+
+    if (options.live) {
+      if (!connection) {
+        connection =
+          await openCorpusConnection(
+            config
+          );
+
+        console.log(
+          'Connected read-only workflow.'
+        );
+      }
+
+      dataSource =
+        new LiveCorpusDataSource(
+          connection
+        );
+    } else {
+      dataSource =
+        new LocalCorpusDataSource();
     }
 
     const run =
@@ -210,37 +340,19 @@ export async function runCorpus(
         currentGitCommit()
       );
 
-    if (
-      (
-        options.failed ||
-        options.definitionId !== undefined
-      ) &&
-      definitions.length > 0
-    ) {
-      connection =
-        await openCorpusConnection(
-          config
-        );
-
-      console.log(
-        'Connected read-only workflow.'
-      );
-    }
-
     for (
-      const definition
-      of definitions
+      const item
+      of workItems
     ) {
-      if (!connection) {
+      if (!dataSource) {
         throw new Error(
-          'Oracle connection is unavailable.'
+          'Corpus data source is unavailable.'
         );
       }
 
       const capture =
-        await captureDefinition(
-          connection,
-          definition
+        await dataSource.capture(
+          item
         );
 
       const result =
@@ -320,12 +432,11 @@ export async function runCorpus(
 
       return {
         results,
-        exitCode:
-          regressionGatePassed(
-            delta
-          )
-            ? 0
-            : 1
+        exitCode: regressionGatePassed(
+          delta
+        )
+          ? 0
+          : 1
       };
     }
 
@@ -334,7 +445,9 @@ export async function runCorpus(
       exitCode: 0
     };
   } finally {
-    if (connection) {
+    if (dataSource) {
+      await dataSource.close();
+    } else if (connection) {
       await connection.close();
     }
 
