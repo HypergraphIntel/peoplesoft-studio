@@ -1,6 +1,25 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #58** landed (src/peoplecode/encoder.ts): `applicationClassPath()`'s
+  FIRST path-component regex required an ordinary identifier start
+  (`[A-Za-z_]`), rejecting `%metadata` -- a reserved package root for
+  metadata-driven Application Classes (e.g. `import %metadata:
+  AnalyticModelDefn:Aceorganizer;`, `import %metadata:*;`). Loosened
+  just the first-component match to `/^%?[A-Za-z_][A-Za-z0-9_]*/`; every
+  later `:`-separated component keeps the ordinary-identifier-only rule
+  (67 corpus definitions checked, 23 distinct `import %metadata:...`
+  shapes, `%metadata` always the sole root, never a later component).
+  Verified via direct `encodeProgram()` calls (not the harness, to keep
+  working while the full-corpus background scan noted below was still
+  running) against 20 of the 67 corpus definitions using this import:
+  one (15104) confirmed fully byte-exact; the rest advanced PAST the
+  `%metadata` parse error into other, unrelated, pre-existing issues in
+  large/complex programs (several 15-160KB in size) -- real progress,
+  not full EXACT for most, but the specific bug targeted is confirmed
+  fixed and does not regress anything. Verified: `npx tsc -p .` clean;
+  `npm test` 456/457 (1 pre-existing skip); `corpus:verify --limit 430`
+  430/430, 0 regressions.
 - **Full corpus refresh**: ran `npm run corpus:harness` (no filters, all
   30,209 definitions, ~5 min) in the background while continuing other
   work, reflecting fixes #48-55. Result: EXACT 21875, UNKNOWN_MISMATCH

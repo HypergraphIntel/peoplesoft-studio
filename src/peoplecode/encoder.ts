@@ -1197,8 +1197,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     const components: string[] = [];
     let wildcard = false;
 
+    /*
+     * `%metadata` is a reserved package root for metadata-driven
+     * Application Classes -- always the FIRST path component, never
+     * later ones (67 corpus occurrences checked, 23 distinct shapes, all
+     * `%metadata` as the sole root).
+     *
+     *   import %metadata:AnalyticModelDefn:Aceorganizer;
+     *   import %metadata:*;
+     */
     const firstMatch =
-      /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
+      /^%?[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
     if (!firstMatch) {
       return fail('expected application package name');
     }
