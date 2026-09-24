@@ -5703,8 +5703,27 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
    * earlier control-group row; without `HideRow` on this list it always
    * allocated fresh, poisoning the later `UnhideRow` reuse too (same
    * failure shape as fix #18).
+   *
+   * Bare `GetRowset(Record.X)` (assigned to a variable, distinct from
+   * `.GetRowset(Scroll.X)` as a postfix method call, and from
+   * `CreateRowset`, already on this list) shares the same rule.
+   * GPHK_PSLP.GPHK_EXCL_PRNT.FieldChange (definition 8093):
+   *
+   *   Evaluate GPHK_PSLP.GPHK_EXCL_PRNT
+   *   When = "20"
+   *      &RS = GetRowset(Record.GPHK_PSLP_LOCTN);
+   *      ...
+   *   When-Other
+   *      &RS = GetRowset(Record.GPHK_PSLP_LOCTN);
+   *      ...
+   *   End-Evaluate
+   *
+   * the `When-Other` clause's own `GetRowset(Record.GPHK_PSLP_LOCTN)`
+   * reuses the `When = "20"` clause's own row -- both `When` clause
+   * bodies share one control group (only the `Evaluate` statement's own
+   * entry bumps it, not each individual `When`).
    */
-  if (/^(?:GetRecord|DeleteRow|ActiveRowCount|UpdateValue|InsertRow|SetCursorPos|HideScroll|UnhideScroll|UnhideRow|HideRow|CopyFields|RecordDeleted|RecordChanged|CreateRowset|FetchValue|DoModalPanelGroup|SortScroll|ScrollFlush|Hide|UnHide|Gray|UnGray)$/i.test(name)) {
+  if (/^(?:GetRecord|DeleteRow|ActiveRowCount|UpdateValue|InsertRow|SetCursorPos|HideScroll|UnhideScroll|UnhideRow|HideRow|CopyFields|RecordDeleted|RecordChanged|CreateRowset|GetRowset|FetchValue|DoModalPanelGroup|SortScroll|ScrollFlush|Hide|UnHide|Gray|UnGray)$/i.test(name)) {
     reuseRecordReferenceWithinControlGroup = true;
   }
   /*
@@ -5712,7 +5731,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
    * EXCEPT ScrollFlush marks its own fresh allocation as a visible
    * "participating" source for a later RowScrollSelect/ScrollSelect call.
    */
-  if (/^(?:GetRecord|DeleteRow|ActiveRowCount|UpdateValue|InsertRow|SetCursorPos|HideScroll|UnhideScroll|UnhideRow|HideRow|CopyFields|RecordDeleted|RecordChanged|CreateRowset|FetchValue|DoModalPanelGroup|SortScroll|Hide|UnHide|Gray|UnGray)$/i.test(name)) {
+  if (/^(?:GetRecord|DeleteRow|ActiveRowCount|UpdateValue|InsertRow|SetCursorPos|HideScroll|UnhideScroll|UnhideRow|HideRow|CopyFields|RecordDeleted|RecordChanged|CreateRowset|GetRowset|FetchValue|DoModalPanelGroup|SortScroll|Hide|UnHide|Gray|UnGray)$/i.test(name)) {
     marksControlGroupParticipant = true;
   }
   if (/^CreateRecord$/i.test(name)) {
