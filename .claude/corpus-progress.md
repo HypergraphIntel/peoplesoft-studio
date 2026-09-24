@@ -1,6 +1,58 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **definition_id 1277** (ARCH_UTILS.PSARCH_UTIL_EVENT.SavePreChange),
+  UNKNOWN_MISMATCH, byte diff @2439 (verified with proper owner context,
+  same technique as fixes #48-50) -- **DEFERRED, genuine unresolved
+  conflict, no code changed.** Source:
+  ```
+  &OLD_ID = ARCH_UTILS.PSARCH_ID;
+  ScrollFlush(Record.ARCH_SQL_LNG_VW);
+  ScrollSelect(1, Record.ARCH_SQL_LNG_VW, Record.ARCH_SQL_LNG_VW, &SQL_SUFFIX);
+  ```
+  Stored reuses ScrollFlush's own row for BOTH of ScrollSelect's own
+  (same-name-repeated) Record.X arguments -- but this is the EXACT SAME
+  syntactic shape (`ScrollFlush(Record.X); ScrollSelect(1, Record.X,
+  Record.X, ...)`, name repeated within the call) that definition 1283
+  already proved does NOT reuse ScrollFlush's row (fresh, call-shared
+  instead) -- the established rule fixes #27/#49 are built on. Two
+  corpus definitions, identical construct shape, opposite required
+  behavior; no distinguishing signal found despite real effort:
+  - Hypothesized "trailing SQL/bind-argument count differs" (1277 has 1
+    trailing arg, `&SQL_SUFFIX`; 1283 has 3, `&WHERE, &ARCHIVE_ID,
+    &PARENT_TBL`) and searched the whole corpus for every
+    `ScrollFlush(Record.X); ScrollSelect(1, Record.X, Record.X, ...)`
+    occurrence (149 matches) to test it -- DISPROVEN: both trailing-arg
+    counts appear on BOTH sides of the EXACT/non-EXACT split in a spot
+    sample (e.g. definition 840, trailingArgCount=2, EXACT under the
+    CURRENT no-reuse code; definition 1751, trailingArgCount=3, also
+    EXACT) with no clean correlation.
+  - Spot-checked several of the 149 candidates' CURRENT classification
+    directly: most (840, 1751, 4225, 5231, 9768, 10429, 12584, 13230) are
+    ALREADY EXACT under the existing no-reuse rule (consistent with
+    1283), a handful are UNKNOWN_MISMATCH (889, 1007, 1807, 2459, 2464,
+    3191, 4335, 4864, 6210, 11303) -- but checked several of THOSE
+    directly (1007 diff@343, 4864 diff@5, 2459 diff@1284, 3191 diff@365)
+    and their first byte differences are all far EARLIER than where this
+    construct even appears in their own source, meaning their failures
+    are unrelated bugs entirely, NOT evidence for or against this
+    specific reuse question. Only 1277 itself is confirmed to actually
+    fail AT this exact construct.
+  - Deliberately did NOT implement a fix scoped to just this one
+    definition_id (would not be a real generalizable rule, just an
+    overfit hack) and did NOT retry a broader "same name repeated ->
+    sometimes reuse" rule without a real distinguishing signal, per
+    CLAUDE.md's evidence policy ("do not introduce global same-name reuse
+    without corpus evidence... distinguish competing interpretations from
+    corpus evidence"). This is a genuinely unresolved case needing either
+    a THIRD corroborating example (to reveal the real distinguishing
+    factor) or human/HCDEV-side clarification -- worth revisiting if a
+    future session's `--trace-refs` investigation of a similar construct
+    surfaces the missing signal.
+  - No encoder.ts changes made for this investigation. Moved on to the
+    next actionable failure per CLAUDE.md's completion-behavior rule
+    ("unsupported syntax is a research task, not a stopping condition" --
+    same principle applied here to an under-evidenced conflict).
 - **Fix #50 landed, but only after a caught-and-reverted broad regression
   -- worth reading in full before touching `reuseRecordReferenceWithinControlGroup`
   again.** Target: definition 1254 (ARCH_SQL_LNG.ARCH_SQL.FieldChange),
