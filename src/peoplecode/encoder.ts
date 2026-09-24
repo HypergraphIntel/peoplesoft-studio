@@ -3049,6 +3049,19 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       space();
       if (source[pos] === '(') {
         parenthesized(expression, false);
+      } else if (/^-?\d/.test(source.slice(pos))) {
+        /*
+         * `Exit N;` (a bare numeric literal, no parentheses) is a
+         * distinct, unparenthesized alternative to `Exit(N);`.
+         *
+         * ACA_EXTRACT_AET.<various>.FieldFormula (definition 25166, one
+         * of 197 corpus occurrences of this exact shape):
+         *
+         *   If ... Then
+         *      Exit 1;
+         *   End-If;
+         */
+        expression();
       } else {
         pos = afterExit;
       }
@@ -4966,10 +4979,37 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             }
           }
 
+          /*
+           * `Break` (and, by the same reasoning, `Continue`) is a fixed,
+           * argument-free keyword with no ambiguity about where it ends,
+           * so it may omit its trailing `;` when it is the LAST statement
+           * in a `When-Other` body, immediately followed by
+           * `End-Evaluate` -- mirroring the already-proven EOF-omission
+           * allowance for other self-terminating top-level statement
+           * shapes (assignments/If/Evaluate/bare calls/try), just at
+           * this body-closing boundary instead of true source EOF.
+           *
+           * PTAFAW_NOTIFY.PTAFEVENT.<event> (definition 18001, one of
+           * several corpus occurrences of this exact shape):
+           *
+           *   When-Other
+           *      Break
+           *   End-Evaluate;
+           */
+          const isBreakOrContinueStatement =
+            /^(?:Break|Continue)\b/i.test(source.slice(pos));
+
           statement();
 
           space();
           if (source[pos] !== ';') {
+            if (
+              isBreakOrContinueStatement &&
+              /^End-Evaluate\b/i.test(source.slice(pos))
+            ) {
+              continue;
+            }
+
             fail('expected ; in When-Other body');
           }
 
