@@ -1,6 +1,27 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #62** landed (src/peoplecode/encoder.ts, `comparisonExpression()`):
+  generalized Fix #59's `Not =` handling to also cover `Not >` (still
+  two literal tokens: `Not` 0x1d directly followed by `>` 0x09, never a
+  combined opcode). Searched the corpus for every `Not` immediately
+  followed by a comparison operator before implementing: only `=` (50
+  occurrences) and `>` (11 occurrences) are attested; `<`, `<=`, `>=`,
+  `<>` never appear after `Not` anywhere in the corpus, so the fix stays
+  scoped to exactly the two attested operators via a single capture-group
+  regex (`/^Not\s*([=>])/i`) rather than guessing at the other four.
+  Target: definition 11267 (PI_DEFN_RECORD.EFFDT.SavePreChange, one of 11
+  corpus occurrences of `Not >`):
+  ```
+  If &recCount Not > 1 Then
+  ```
+  confirmed byte-for-byte EXACT (was ENCODE_ERROR before). All 5 `Not >`
+  occurrences found (727, 11267, 11669, 13134, 13152) confirmed EXACT.
+  Re-verified all 20 `Not =` candidates from Fix #59 unaffected (same
+  results as before: 9 EXACT, 7 advanced-with-unrelated-issues, 2
+  pre-existing unrelated errors, none regressed). Verified: `npx tsc -p .`
+  clean; `npm test` 456/457 (1 pre-existing skip); `corpus:verify --limit
+  430` 430/430, 0 regressions.
 - **Fix #61** landed (src/peoplecode/encoder.ts, `primary()`'s postfix `.`
   loop and its `GetRecord()` bare-call detection): a bare, EMPTY-PARENS
   `GetRecord()` call (no arguments, no `&variable.` receiver) followed by

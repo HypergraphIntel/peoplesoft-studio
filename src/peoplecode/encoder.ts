@@ -2807,23 +2807,35 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     space();
 
     /*
-     * `Not =` (a space-separated alternate spelling of not-equal,
-     * distinct from `<>`) compiles as two literal, separate tokens --
-     * `Not` (0x1d) directly followed by `=` (0x06) -- not translated
-     * into the single `<>` (0x10) opcode.
+     * `Not =` / `Not >` (a space-separated `Not` immediately before an
+     * ordinary comparison operator) compile as two literal, separate
+     * tokens -- `Not` (0x1d) directly followed by the operator's own
+     * punctuation opcode (`=` is 0x06, `>` is 0x09) -- never translated
+     * into a single combined opcode (e.g. `<>` is a genuinely distinct
+     * single opcode, 0x10, not just an alternate rendering of `Not =`).
+     * Only `=` and `>` are attested in the corpus after `Not`; `<`,
+     * `<=`, `>=`, `<>` never appear there.
      *
      * PAY_LINE.BENEFIT_PROGRAM.FieldEdit (definition 23620):
      *
      *   If &BEN_SYSTEM Not = "BA" And
      *         &BEN_SYSTEM Not = "BN" And
      *         None(PAY_LINE.BENEFIT_PROGRAM) Then
+     *
+     * PI_DEFN_RECORD.EFFDT.SavePreChange (definition 11267, one of 11
+     * corpus occurrences of `Not >`):
+     *
+     *   If &recCount Not > 1 Then
      */
-    if (/^Not\s*=/i.test(source.slice(pos))) {
+    const notOperator =
+      /^Not\s*([=>])/i.exec(source.slice(pos));
+
+    if (notOperator) {
       pos += 3;
       chunks.push(fixed('Not'));
       space();
       pos += 1;
-      chunks.push(fixed('='));
+      chunks.push(fixed(notOperator[1]));
       expression();
       return;
     }
