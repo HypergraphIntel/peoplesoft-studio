@@ -1,6 +1,54 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Full corpus refresh**: ran `npm run corpus:harness` (no filters, all
+  30,209 definitions, ~5 min) in the background while continuing other
+  work, reflecting fixes #48-55. Result: EXACT 21875, UNKNOWN_MISMATCH
+  4702, ENCODE_ERROR 2276, DECODE_SOURCE_MISMATCH 698, UNSUPPORTED_SYNTAX
+  658. (Note: this snapshot predates fixes #56-57 below, landed
+  immediately after using pure `encodeProgram()` calls against the
+  snapshot directly -- read-only, no corpus-results.sqlite writes -- to
+  avoid a write conflict with the still-running background scan; a
+  future full refresh will pick up their effect too.)
+- **Fixes #56 and #57** landed together (src/peoplecode/encoder.ts),
+  both in the `ENCODE_ERROR` family, found by grouping the current
+  failure inventory by `construct` (the stored first-error snippet) and
+  reading the top groups' actual source:
+  - **Fix #56**: `Exit N;` (a bare numeric literal, e.g. `Exit 1;`, with
+    NO parentheses) was unsupported -- only `Exit(N);` (parenthesized)
+    and bare `Exit;` (no argument) were. Added a lookahead
+    (`/^-?\d/.test(...)`) that parses the bare numeric expression
+    directly when no `(` follows `Exit`. 197 corpus occurrences of this
+    shape found via search before implementing. Target: definition 25166
+    (a tiny 94-byte program, `If ... Then Exit 1; End-If;` at top level)
+    -- confirmed byte-for-byte EXACT via direct `encodeProgram()` call
+    against the snapshot (not yet re-run through the full harness/
+    corpus-results.sqlite at commit time, to avoid the write conflict
+    noted above). A 6-definition spot sample found one more exact match
+    (25183, `Exit 0; Else Exit 1;`) and two pre-existing, unrelated
+    ENCODE_ERRORs (15115: unsupported `array of array of array`
+    parameter type; 17893: unrelated "bare identifiers" issue) --
+    neither regressed, both were already broken for different reasons.
+  - **Fix #57**: a `When-Other` clause's LAST body statement could not
+    omit its trailing `;` when immediately followed by `End-Evaluate`,
+    even for the two simplest, argument-free, unambiguous statement
+    keywords (`Break`, `Continue`) -- unlike the already-proven
+    EOF-omission allowance for other self-terminating statement shapes.
+    Added a narrow check (only for `Break`/`Continue` specifically, not
+    generalized to every statement type without further evidence) that
+    permits the omission right before `End-Evaluate`. Searched the
+    corpus for this exact shape before implementing (14 matches);
+    13 of 14 confirmed byte-for-byte EXACT via direct `encodeProgram()`
+    calls (8107, 8108, 8302, 8303, 9228, 9229, 9577, 9578, 9922, 9923,
+    10128, 10129, 18001 -- the target); the 14th (8928) has an unrelated
+    1-byte-length mismatch elsewhere in a larger program, not regressed
+    (was already non-EXACT).
+  - Both fixes verified together: `npx tsc -p .` clean; `npm test`
+    456/457 (1 pre-existing skip); `corpus:verify --limit 430` 430/430,
+    0 regressions. A full-corpus re-run (through the normal harness, now
+    that the background scan above has finished) is the next step to
+    get final confirmed counts for both and refresh the inventory for
+    continued candidate selection.
 - **Fix #55** landed (src/peoplecode/encoder.ts): bare `GetRowset(Record.X)`
   (assigned to a variable, e.g. `&RS = GetRowset(Record.X);` -- distinct
   from `.GetRowset(Scroll.X)` as a postfix method call, and from
