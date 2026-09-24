@@ -1,6 +1,70 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #64** landed (src/peoplecode/encoder.ts), two parts:
+  1. **New `ComponentLife` declarator support**: `ComponentLife` (opcode
+     `0x79`) is a fifth declarator alongside Local/Global/Component/
+     Constant -- a component-interface object lifetime scope, e.g.
+     `ComponentLife string &p_compkey, &p_entityname;` or
+     `ComponentLife CAF_SEARCH_NUI:Search &cafsrch;`. Was entirely
+     unhandled by `statement()` (fell through to the "bare identifier
+     followed by another identifier" error, since `call()` rejects it as
+     a reserved keyword name -- `reservedCallNames` is built from every
+     `OPCODES` keyword text, `ComponentLife` included). Added a new
+     `componentLifeDeclaration()` (deliberately narrower than the
+     structurally similar `componentDeclaration()`: parses type +
+     comma-separated `&variable` list, matching the corpus's attested
+     shapes -- `string`, `boolean`, `array of string`, and several
+     Application Class paths -- but does NOT track declared Application
+     Class variables into `applicationClassVariables`/the runtime-create
+     PSPCMNAME reuse rules `componentDeclaration()` carefully calibrates
+     for `Component`, since no corpus evidence yet confirms
+     `ComponentLife` shares those exact reuse semantics). Also added
+     `ComponentLife` to `isTopLevelDeclaration` (so it participates in
+     top-level declaration-section-boundary tracking) and to the
+     declaration-to-declaration blank-line-marker trigger list beside
+     `Component`/`Global`/`PanelGroup`/`Declare Function` (so a blank
+     line between two `ComponentLife` declarations, or between a
+     `ComponentLife` and a later `Component`/`Global`/etc., gets its own
+     0x4F marker the same way every other declaration-to-declaration
+     transition already does).
+  2. **Import-section-close marker multiplicity generalized**: the
+     import-section boundary's 0x4F marker count was hardcoded to
+     "at most one" for every case except when the FOLLOWING declaration
+     was specifically an Application-Class-typed `Local` (the only case
+     with a formula scaling to blank-line count) -- CAF_SRCH.
+     CAF_SRCH_BTN.SavePostChange (definition 2200) disproves the "at most
+     one" half: three imports, then TWO blank lines, then `Declare
+     Function GetSearchKey ...;` (not a Local at all) stores TWO 0x4F
+     markers. The original calibrating example
+     (ACCOMPLISHMENTS.EMPLID.SavePostChange, definition 381) only ever
+     had ONE blank line before an Application-Class Local, so it never
+     actually distinguished "hardcoded 1" from "scales with blank-line
+     count" -- both formulas agree at count 1. Generalized to the same
+     `Math.max(1, newlineCount - 1)` formula unconditionally, matching
+     every other marker site in this file. Re-verified definition 381
+     stays byte-exact.
+  Target: definition 2092 (CAFNUI_CTRL_WRK.FUNCLIB.FieldFormula,
+  `ComponentLife string &p_compkey, &p_entityname;`) -- advanced from
+  ENCODE_ERROR to a small (1-byte) MISMATCH; a separate, not-yet-isolated
+  PSPCMNAME reference-count issue remains in several candidates using
+  Application-Class-typed `ComponentLife` variables with multiple later
+  method calls (2200, 2202, 3945, likely the missing runtime-create reuse
+  tracking noted as out of scope above). Searched the corpus for every
+  `ComponentLife` declaration shape before implementing (7 distinct type
+  shapes across 10 definitions: 2092, 2093, 2128, 2130, 2200, 2201, 2202,
+  3945, 3948, 16496, 17314, 18362). Of these: 3 confirmed fully EXACT
+  (2130, 3948, plus 381 as the import-marker fix's own regression guard),
+  8 advanced from ENCODE_ERROR to small near-miss MISMATCHes (real
+  progress, separate PSPCMNAME reuse issue remains, not yet isolated with
+  enough evidence to fix narrowly), 2 hit unrelated pre-existing errors
+  (2201: unrelated unsupported statement; 17314: unrelated `array of
+  array of string` parameter type) -- zero regressions. Verified: `npx
+  tsc -p .` clean; `npm test` 456/457 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430, 0 regressions. Full-corpus
+  background diff (run_id 230 -> 242, all 30,209 definitions) confirmed:
+  50 improved, 0 regressed, 30159 unchanged. New corpus total:
+  22298/30209 exact (73.8%).
 - **DEFERRED / locally blocked, evidence exhausted**: the `#If #ToolsRel
   <op> "<version>" #Then ... [#Else ...] #End-If` preprocessor-directive
   family (73 combined UNSUPPORTED_SYNTAX occurrences across the `#If

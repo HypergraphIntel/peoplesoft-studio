@@ -950,6 +950,58 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
   };
 
+  const componentLifeDeclaration = () => {
+    /*
+     * ComponentLife is a fifth declarator alongside Local/Global/
+     * Component/Constant (0x79, "a fourth declarator" per Component's own
+     * 0x56 comment) -- a component-interface object lifetime scope, e.g.
+     * `ComponentLife PTPN_PUBLISH:PublishToWindow &wlSrch;`. Structurally
+     * identical declaration grammar to Component (type, then one or more
+     * comma-separated &variables), confirmed by CAFNUI_CTRL_WRK.FUNCLIB.
+     * FieldFormula (definition 2092): `ComponentLife string &p_compkey,
+     * &p_entityname;`.
+     *
+     * Deliberately narrower than componentDeclaration(): no evidence yet
+     * that a ComponentLife-declared Application Class variable
+     * (`ComponentLife CAF_SEARCH_NUI:Search &var;`, also attested in the
+     * corpus) participates in the same runtime-create PSPCMNAME reuse
+     * rules Component's own declaration carefully calibrates -- so this
+     * does not track it into `applicationClassVariables` at all yet.
+     */
+    chunks.push(fixed('ComponentLife'));
+
+    space();
+    const appClassType =
+      /^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))
+        ? applicationClassPath()
+        : undefined;
+    const declaredType =
+      appClassType === undefined
+        ? /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0]
+        : undefined;
+    chunks.push(appClassType?.bytes ?? typeName());
+    if (/^array$/i.test(declaredType ?? '')) {
+      arrayElementTypes();
+    }
+
+    space();
+    chunks.push(variable());
+
+    while (true) {
+      space();
+
+      if (source[pos] !== ',') {
+        break;
+      }
+
+      pos++;
+      chunks.push(fixed(','));
+
+      space();
+      chunks.push(variable());
+    }
+  };
+
   const constantDeclaration = () => {
     chunks.push(fixed('Constant'));
 
@@ -3062,6 +3114,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       globalDeclaration();
     } else if (word('PanelGroup')) {
       panelGroupDeclaration();
+    } else if (word('ComponentLife')) {
+      componentLifeDeclaration();
     } else if (word('Component')) {
       componentDeclaration();
     } else if (word('Constant')) {
@@ -7502,7 +7556,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     const isTopLevelDeclaration =
       isImport ||
-      /^(?:Global|PanelGroup|Component|Constant|Declare\s+Function)\b/i.test(source.slice(pos));
+      /^(?:Global|PanelGroup|ComponentLife|Component|Constant|Declare\s+Function)\b/i.test(source.slice(pos));
 
 
     const closesTopLevelDeclarationSection =
@@ -7527,23 +7581,29 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       chunks.push(Buffer.from([0x2d]));
 
       /*
-       * The import-section boundary carries at most one 0x4F formatting
-       * marker. Do not derive multiplicity from decoded/source newline count:
-       * ACCOMPLISHMENTS.EMPLID.SavePostChange stores exactly:
+       * The import-section boundary's 0x4F marker count scales with
+       * blank-line count, like every other marker site in this file.
+       * ACCOMPLISHMENTS.EMPLID.SavePostChange (a single blank line before
+       * an Application Class Local) only ever exercised the single-marker
+       * case, so an earlier pass hardcoded "at most one" for every OTHER
+       * (non-Application-Class-Local) following declaration -- CAF_SRCH.
+       * CAF_SRCH_BTN.SavePostChange (definition 2200) disproves that:
        *
-       *   ... <last import> 15 2D 4F 44 <first Local> ...
+       *   import CAF_SEARCH_NUI:Search;
+       *   import CAFNUI_CORE:OBJECT:CompareSession;
+       *   import CAFNUI_API:EntityHandler;
        *
-       * and decode formatting may expand that source boundary to several
-       * newline characters without representing additional compiled 0x4F
-       * bytes.
+       *
+       *   Declare Function GetSearchKey PeopleCode CAF_SRCH.CAF_SRCH_BTN FieldFormula;
+       *
+       * (two blank lines, next declaration a Declare Function, not a
+       * Local) stores TWO 0x4F markers, not one.
        */
       if (hasBlankLine) {
-        const markerCount = isApplicationClassLocal
-          ? Math.max(
-              1,
-              (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
-            )
-          : 1;
+        const markerCount = Math.max(
+          1,
+          (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
+        );
         for (let marker = 0; marker < markerCount; marker++) {
           chunks.push(Buffer.from([0x4f]));
         }
@@ -7601,7 +7661,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     if (
       (sawTopLevelDeclaration || sawLeadingLocalDeclaration) &&
       isTopLevelDeclaration &&
-      /^(?:Component|Global|PanelGroup|Declare\s+Function)\b/i.test(source.slice(pos)) &&
+      /^(?:ComponentLife|Component|Global|PanelGroup|Declare\s+Function)\b/i.test(source.slice(pos)) &&
       hasBlankLine &&
       !justClosedImportSection
     ) {
