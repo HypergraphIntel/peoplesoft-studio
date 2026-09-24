@@ -18,19 +18,145 @@ If the protected baseline falls below 430/430:
 
 A protected-baseline regression is an actionable debugging task, not a terminal blocker.
 
+## Corpus Data Source Policy
+
+The PeopleCode corpus harness is **local-first**.
+
+The completed HCDEV snapshot is the authoritative default corpus source for this
+development cycle:
+
+```text
+tools/corpus/hcdev-snapshot.sqlite
+```
+
+The snapshot contains the captured HCDEV artifacts required for compiler
+calibration:
+
+- PeopleCode source
+- PSPCMPROG
+- PSPCMNAME
+- stable definition identity
+
+### Default rule
+
+For normal calibration work, use:
+
+```bash
+npm run corpus:harness
+```
+
+Do **not** connect to HCDEV Oracle for ordinary corpus calibration.
+
+Do **not** add `--live` unless live verification is specifically required.
+
+If a command can be run successfully against the local snapshot, prefer it over
+any workflow that opens an Oracle connection.
+
+The purpose of the snapshot is to make the captured HCDEV compiler evidence
+effectively immutable, deterministic, repeatable, and fast for the current
+development cycle.
+
+### Preferred local commands
+
+Target one stable definition:
+
+```bash
+npm run corpus:harness -- --definition-id <ID>
+```
+
+Target one definition with verbose diagnostics:
+
+```bash
+npm run corpus:harness -- --definition-id <ID> --verbose
+```
+
+Trace PSPCMNAME/reference behavior:
+
+```bash
+npm run corpus:harness -- --definition-id <ID> --verbose --trace-refs
+```
+
+Run the current non-EXACT queue:
+
+```bash
+npm run corpus:harness -- --failed
+```
+
+Run a bounded failure batch:
+
+```bash
+npm run corpus:harness -- --failed --limit <N>
+```
+
+Run the full local corpus:
+
+```bash
+npm run corpus:harness
+```
+
+### Live HCDEV is verification-only
+
+Live access is explicit:
+
+```bash
+npm run corpus:harness -- --definition-id <ID> --live
+```
+
+Use `--live` only when one of the following is true:
+
+1. validating that the completed snapshot and live HCDEV still agree;
+2. investigating suspected snapshot corruption or staleness;
+3. verifying a newly discovered behavior that genuinely requires current Oracle
+   evidence;
+4. refreshing/rebuilding the snapshot as an explicit maintenance task;
+5. the user explicitly requests live HCDEV validation.
+
+A local blocker is **not** a reason to switch to live Oracle automatically.
+
+A local mismatch is normally an encoder, decoder, PSPCMPROG, PSPCMNAME,
+classification, or unsupported-syntax problem. It is not evidence that the
+datasource is wrong.
+
+Do not query Oracle merely to re-fetch source, PSPCMPROG, or PSPCMNAME that is
+already present in the completed local snapshot.
+
+## Local-failure investigation policy
+
+When a definition is non-EXACT locally:
+
+1. inspect the local PeopleCode source;
+2. inspect stored PSPCMPROG;
+3. inspect generated PSPCMPROG;
+4. inspect stored PSPCMNAME;
+5. inspect generated reference/provenance behavior when relevant;
+6. identify the first meaningful difference;
+7. classify the failure family;
+8. make the narrowest evidence-backed change;
+9. rerun the target locally;
+10. run the appropriate regression checks;
+11. continue to the next actionable failure.
+
+Do not use `--live` simply because the mismatch is difficult.
+
 ## Progress file maintenance
 
 `.claude/corpus-progress.md` must be kept current during active work.
 
 After every meaningful calibration step, update:
+
 - Current target
 - Last successful calibration
 - Protected baseline
 - Locally blocked definitions
 - Next action
 - Newly established rules
+- Datasource mode if it differs from the local snapshot default
 
-Do not leave `Next action` or `Newly established rules` as placeholders once work has begun.
+Do not leave `Next action` or `Newly established rules` as placeholders once work
+has begun.
+
+When recording commands or findings, assume `LOCAL SNAPSHOT` unless the progress
+file explicitly says that `--live` was used.
 
 ## Completion behavior
 
@@ -40,41 +166,51 @@ A blocker affecting one definition is not a project-level blocker.
 
 If the current definition cannot be advanced after exhausting available evidence:
 
-1. Record the definition_id, construct, first diff, evidence searched, and missing evidence.
+1. Record the definition_id, construct, first diff, evidence searched, and
+   missing evidence.
 2. Mark that definition locally blocked.
 3. Immediately select the next actionable failure family.
 4. Continue autonomously.
-5. Revisit locally blocked definitions when later calibration supplies new evidence.
+5. Revisit locally blocked definitions when later calibration supplies new
+   evidence.
 
 Unsupported syntax is a research task, not a stopping condition.
 
 Before declaring a definition blocked:
-- search the HCDEV corpus for additional examples,
-- search related syntax variants,
-- inspect stored PSPCMPROG,
-- inspect PSPCMNAME/reference traces when relevant,
-- inspect existing encoder/decoder rules and tests,
+
+- search the local HCDEV snapshot for additional examples;
+- search related syntax variants in the local corpus;
+- inspect stored PSPCMPROG;
+- inspect PSPCMNAME/reference traces when relevant;
+- inspect existing encoder/decoder rules and tests;
 - attempt to distinguish competing interpretations from corpus evidence.
 
+Do not escalate to live HCDEV merely because local evidence is difficult to
+interpret.
+
 Progress is not completion. Do not stop merely because:
-- a first diff moved,
-- a local target became exact,
-- tests passed,
-- a new unsupported construct appeared,
+
+- a first diff moved;
+- a local target became exact;
+- tests passed;
+- a new unsupported construct appeared;
 - or one failure family was completed.
 
 After a successful fix:
-1. rerun the target,
-2. run relevant regression targets,
-3. run the protected 430-definition gate,
-4. repair any EXACT -> non-EXACT regression,
-5. select the next actionable corpus failure,
+
+1. rerun the target locally;
+2. run relevant local regression targets;
+3. run the protected regression gate;
+4. repair any EXACT -> non-EXACT regression;
+5. select the next actionable corpus failure;
 6. continue.
 
-Only stop the overall task when all actionable work is exhausted and one of the following is true:
-- the requested completion condition is satisfied,
-- all remaining failures are independently blocked after evidence exhaustion,
-- the user explicitly interrupts,
+Only stop the overall task when all actionable work is exhausted and one of the
+following is true:
+
+- the requested completion condition is satisfied;
+- all remaining failures are independently blocked after evidence exhaustion;
+- the user explicitly interrupts;
 - or a system/resource limit prevents further work.
 
 ## Long-running execution
@@ -84,13 +220,16 @@ This task is expected to span many targets and possibly multiple context windows
 Do not return control to the user after ordinary progress updates.
 
 Before context compaction or loss of working context:
+
 1. Update `.claude/corpus-progress.md`.
 2. Record the current definition_id and failure family.
 3. Record the current first diff.
 4. Record locally blocked definitions and why they are blocked.
 5. Record the protected-baseline status.
 6. Record the exact next action.
+7. Record any deliberate use of `--live` and why it was necessary.
 
-After context recovery, read `.claude/corpus-progress.md` and resume automatically.
+After context recovery, read `.claude/corpus-progress.md` and resume
+automatically.
 
 A local blocker is not a global blocker.

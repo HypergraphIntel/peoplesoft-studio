@@ -1,111 +1,346 @@
 ---
-name: peoplesoft-corpus-calibration
-description: Calibrate the PeopleCode encoder/decoder against HCDEV corpus evidence while preserving exact protected-baseline definitions.
+name: peoplesoft-compiler-calibration
+description: Diagnose, calibrate, and fix PeopleCode encoder/decoder corpus failures in peoplesoft-studio while preserving every previously proven byte-exact result.
 ---
 
-For each actionable failure:
+# PeopleSoft Compiler Calibration
 
-1. Target by stable definition_id.
-2. Inspect source→bin before decoder text.
-3. Locate the first binary difference.
-4. Map it back to the PeopleCode construct.
-5. Search the corpus for corroborating examples.
-6. Inspect PSPCMNAME/reference trace only when relevant.
-7. Derive the narrowest evidence-backed rule.
-8. Implement it.
-9. Re-run the target.
-10. Run related calibration examples.
-11. Run the protected 430-definition gate.
-12. Repair regressions before continuing.
-13. Select the next actionable failure automatically.
+Use this skill when working on the PeopleCode encoder, decoder, PSPCMNAME
+reference allocation, corpus harness, or compiler-conformance failures in the
+`peoplesoft-studio` repository.
 
-Never guess byte semantics merely to advance a target.
-Never treat one blocked definition as a global blocker.
+The captured HCDEV corpus is the empirical specification of PeopleTools compiler
+behavior.
 
-## Failure queue refresh policy
+## Authoritative project documentation
 
-Do not run the entire current failure backlog after every successful calibration.
+Before making compiler or corpus changes, read the repository root:
 
-After restoring the protected 430/430 baseline:
+```text
+DEVELOPER.md
+```
 
-1. Use the merged current inventory.
-2. Run `corpus:next` to select the next actionable family.
-3. Use targeted definition runs for calibration.
-4. Run the protected 430 gate after each retained change.
-5. Run a broad `corpus:work` refresh only:
-   - after a meaningful batch of compiler improvements,
-   - when the merged inventory is clearly stale,
-   - or when explicitly requested.
+Treat it as the current project contract.
 
-If a broad refresh is started and is discovered to cover thousands of definitions at a rate that would materially delay calibration work, stop it cleanly and continue from the merged inventory. Do not treat an incomplete refresh as authoritative.
+If this skill conflicts with `DEVELOPER.md`, use `DEVELOPER.md` unless the user
+explicitly asks to change that contract.
 
-## Newly established rule
+Supporting material is under:
 
-For rowset variables derived from `GetLevel0()(…).GetRowset(Scroll.X)`:
+```text
+skills/peoplesoft-compiler-calibration/references/
+```
 
-- `.RowNumber` remains inline.
-- Explicit row-shorthand record members may allocate per occurrence.
-- Top-level direct selection of the rowset's own record can track record dependency by field.
-- Nested control-flow and `.GetRow(...)` paths retain previously calibrated reuse behavior.
+Read the relevant reference file before changing compiler behavior.
 
-Do not generalize this to all level-0 rowsets; provenance alone is insufficient.
+## Local snapshot is the primary oracle
 
-## Independent stored-byte verification
+The completed local HCDEV snapshot is the default source of compiler evidence:
 
-Do not rely exclusively on the encoder's own reference trace when investigating
-reference allocation, reuse, or ordering.
+```text
+tools/corpus/hcdev-snapshot.sqlite
+```
 
-When reference behavior is ambiguous:
+It contains the captured artifacts needed for calibration:
 
-1. Query the authoritative stored `PSPCMNAME` rows directly.
-2. Inspect the corresponding stored `PSPCMPROG` bytes.
-3. Enumerate reference operands from the stored program independently of the
-   encoder implementation.
-4. Compare stored reference indices and ordering against generated output.
-5. Use encoder trace output only as a diagnostic aid, not as the authoritative
-   source of truth.
+- PeopleCode source;
+- PSPCMPROG;
+- PSPCMNAME;
+- stable definition identity.
 
-The stored PeopleSoft artifacts are the oracle.
+All normal investigation, calibration, failure-queue processing, regression
+testing, and full-corpus validation must use the local snapshot.
 
-## Long-running work
+If a command can run successfully against the local snapshot, prefer it over any
+workflow that opens an Oracle connection.
 
-This task may span multiple context windows.
+Treat the latest completed snapshot as authoritative for the current development
+cycle unless there is concrete evidence that the snapshot itself is stale or
+corrupt.
 
-Do not stop because the current context window is becoming full.
-Before compaction/context refresh:
-- save current calibration state,
-- save locally blocked definitions,
-- save the current target and first diff,
-- save regression status,
-- save the next planned action.
+Do not:
 
-Resume from that persisted state after compaction and continue autonomously.
+- query Oracle merely to re-fetch PeopleCode source;
+- query Oracle merely to re-fetch PSPCMPROG;
+- query Oracle merely to re-fetch PSPCMNAME;
+- rebuild the snapshot during normal calibration;
+- bypass the snapshot because live Oracle feels more authoritative;
+- add `--live` just because a local mismatch is difficult.
 
-## Proven reference-provenance rules
+The snapshot exists specifically to remove Oracle latency and make corpus work
+deterministic and repeatable.
 
-### Control-group-scoped Record/Scroll reuse
+## Live HCDEV policy
 
-For constructs such as `ActiveRowCount`, `DeleteRow`, `InsertRow`, and related
-row/scroll operations, reference reuse may be control-group scoped.
+Live HCDEV is opt-in verification, not the normal calibration path.
 
-Top-level control-block boundaries participate in determining those control
-groups and must be modeled structurally.
+Use live mode explicitly:
 
-### Component Application Class instances
+```bash
+npm run corpus:harness -- --definition-id <ID> --live
+```
 
-For Component-declared Application Class instances:
+Use `--live` only when:
 
-- runtime creation establishes the dependency,
-- subsequent method calls reuse that existing dependency,
-- do not allocate a separate per-method dependency row.
+1. comparing the local snapshot with current HCDEV;
+2. investigating suspected snapshot corruption or staleness;
+3. proving a behavior that genuinely requires fresh Oracle evidence;
+4. refreshing/rebuilding the snapshot as an explicit maintenance operation;
+5. the user explicitly asks for live HCDEV verification.
 
-### Chained GetRecord().GetField()
+A local blocker is not a datasource blocker.
 
-For:
+Before switching to live HCDEV, first determine whether the problem is:
 
-    GetRecord(...).GetField(...)
+- encoder grammar;
+- opcode emission;
+- section or statement boundaries;
+- whitespace/comment tokenization;
+- PSPCMNAME allocation/reuse/provenance;
+- decoder semantics;
+- decoder-only source rendering;
+- unsupported syntax;
+- regression;
+- or snapshot integrity.
 
-a Field reference may reuse the immediately preceding Record context when the
-`GetField` call is directly chained from that `GetRecord`.
+Only the last category normally justifies investigating the datasource itself.
 
-Do not generalize this behavior to unrelated declared Record-variable cases.
+## Mandatory workflow
+
+1. Inspect the current failure backlog:
+
+   ```bash
+   npm run corpus:failures -- --summary
+   ```
+
+2. Select a representative from the largest unresolved family:
+
+   ```bash
+   npm run corpus:next
+   ```
+
+3. Use the emitted `--definition-id`.
+
+   Never use corpus offset as the durable development identity.
+
+4. Reproduce only the selected definition against the local snapshot:
+
+   ```bash
+   npm run corpus:harness -- --definition-id <ID> --verbose
+   ```
+
+5. For PSPCMNAME/reference mismatches, add:
+
+   ```bash
+   --trace-refs
+   ```
+
+6. Determine whether the failure is primarily:
+
+   - encoder grammar;
+   - opcode emission;
+   - statement/section boundary handling;
+   - whitespace/comment tokenization;
+   - PSPCMNAME allocation/reuse/provenance;
+   - decoder semantics;
+   - decoder-only source rendering.
+
+7. Make the narrowest evidence-backed change possible.
+
+8. Re-run the target locally until it is:
+
+   ```text
+   EXACT
+   ```
+
+9. Run targeted local checks for definitions affected by the same rule.
+
+10. Run the protected regression gate:
+
+    ```bash
+    npm run corpus:verify -- --limit 430
+    ```
+
+11. Run TypeScript/tests:
+
+    ```bash
+    tsc -p .
+    npm test
+    ```
+
+12. Continue to the next actionable failure rather than stopping after one
+    successful fix.
+
+13. Never update the baseline to conceal a regression.
+
+## Failure-queue refresh policy
+
+Do not run every current failure after every individual fix.
+
+Use:
+
+```bash
+npm run corpus:harness -- --failed --limit <N>
+```
+
+for bounded local batches when useful.
+
+Use a broad failure-queue refresh when:
+
+- a meaningful batch of fixes has accumulated;
+- the current merged inventory is becoming stale;
+- a rule has broad expected impact;
+- or the user explicitly asks for one.
+
+Use the full local corpus periodically, not after every edit:
+
+```bash
+npm run corpus:harness
+```
+
+A partial or interrupted broad refresh is not an authoritative replacement for
+the newest completed result already held for each definition.
+
+## Local mismatch investigation
+
+When a definition is non-EXACT:
+
+1. inspect local source;
+2. inspect stored PSPCMPROG;
+3. inspect generated PSPCMPROG;
+4. locate the first meaningful binary difference;
+5. inspect stored PSPCMNAME;
+6. inspect generated reference/provenance traces when relevant;
+7. classify the construct/failure family;
+8. search the local snapshot for related examples;
+9. distinguish competing hypotheses using corpus evidence;
+10. make the narrowest retained rule;
+11. rerun the target and affected regression targets.
+
+Do not use `--live` merely because the failure is difficult.
+
+## Development identity
+
+Use these concepts distinctly:
+
+```text
+--offset
+    discovery/inventory traversal only
+
+definition_id
+    stable local SQLite development handle
+
+OBJECTID1 / OBJECTVALUE1
+...
+OBJECTID7 / OBJECTVALUE7
+    authoritative PeopleSoft object identity
+```
+
+Target compiler work with:
+
+```bash
+npm run corpus:harness -- --definition-id <ID> --verbose
+```
+
+Do not target compiler work with `--offset` unless the task is explicitly corpus
+discovery/inventory.
+
+## Regression rule
+
+A compiler change is accepted only when:
+
+```text
+target improves
+AND
+no previously EXACT protected definition regresses
+```
+
+A net increase in exact definitions does not excuse a protected regression.
+
+If the protected baseline falls below 430/430, stop new corpus work and enter
+regression-isolation mode until 430/430 is restored.
+
+A regression is an actionable task, not a reason to abandon the overall
+calibration run.
+
+## Evidence rule
+
+Do not generalize from one failing object without evidence.
+
+Prefer context-specific rules and preserve calibrated helper logic.
+
+The stored PeopleSoft representation is the external oracle. Do not make the
+encoder and decoder compensate for each other merely to improve roundtrip
+metrics.
+
+## Encoder vs decoder
+
+Do not patch the decoder to make an encoder failure disappear.
+
+Do not patch the encoder to compensate for a decoder-only formatting difference.
+
+Validation priority:
+
+```text
+source -> binary EXACT
+roundtrip EXACT
+source rendering match
+```
+
+Binary exactness has priority over cosmetic source rendering.
+
+## Reference provenance
+
+When the first binary difference is a `0x21` reference operand, investigate
+PSPCMNAME allocation/reuse before changing opcode grammar.
+
+Use:
+
+```bash
+npm run corpus:harness -- --definition-id <ID> --verbose --trace-refs
+```
+
+`ALLOC` means a new reference/dependency row was created.
+
+`USE` means that reference was emitted into PSPCMPROG.
+
+Do not introduce global same-name reuse without corpus evidence.
+
+## Full inventory
+
+The local snapshot contains the full captured HCDEV corpus and is the preferred
+source for broad validation.
+
+Run the full local corpus with:
+
+```bash
+npm run corpus:harness
+```
+
+Do not run all 30,000+ definitions after every compiler edit.
+
+Use targeted definitions, bounded failure batches, and the protected regression
+gate during active development. Run the full local corpus periodically to
+refresh authoritative classifications.
+
+Use live discovery/inventory only for explicit snapshot maintenance or current
+HCDEV verification.
+
+## Running inventory safety
+
+Do not replace corpus execution-path files while a multi-chunk inventory or
+full-corpus shell script is still running.
+
+A later process may load changed code and mix harness versions within one
+campaign.
+
+## Read before changing behavior
+
+Before implementing a fix, consult:
+
+```text
+references/workflow.md
+references/corpus-classifications.md
+references/proven-encoder-rules.md
+references/debugging-checklist.md
+```
