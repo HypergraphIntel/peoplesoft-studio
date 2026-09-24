@@ -2806,6 +2806,28 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     expression();
     space();
 
+    /*
+     * `Not =` (a space-separated alternate spelling of not-equal,
+     * distinct from `<>`) compiles as two literal, separate tokens --
+     * `Not` (0x1d) directly followed by `=` (0x06) -- not translated
+     * into the single `<>` (0x10) opcode.
+     *
+     * PAY_LINE.BENEFIT_PROGRAM.FieldEdit (definition 23620):
+     *
+     *   If &BEN_SYSTEM Not = "BA" And
+     *         &BEN_SYSTEM Not = "BN" And
+     *         None(PAY_LINE.BENEFIT_PROGRAM) Then
+     */
+    if (/^Not\s*=/i.test(source.slice(pos))) {
+      pos += 3;
+      chunks.push(fixed('Not'));
+      space();
+      pos += 1;
+      chunks.push(fixed('='));
+      expression();
+      return;
+    }
+
     const operator =
       /^(<>|<=|>=|=|<|>)/.exec(source.slice(pos))?.[0];
 

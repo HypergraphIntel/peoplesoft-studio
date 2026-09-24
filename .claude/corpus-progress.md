@@ -1,6 +1,32 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #59** landed (src/peoplecode/encoder.ts, `comparisonExpression()`):
+  the alternate space-separated not-equal spelling `Not =` (e.g. `If
+  &BEN_SYSTEM Not = "BA" Then`) was not recognized -- only the single-token
+  `<>` spelling was handled by the existing operator regex. Byte evidence
+  (definition 23620) confirmed `Not =` compiles as TWO literal tokens, not
+  the `<>` opcode: `0x1d` ("Not" keyword) + `0x06` ("=" punctuation),
+  cross-checked against `src/peoplecode/format.ts` (`0x1d`="Not" line 353,
+  `0x06`="=" line 91, `0x10`="<>" line 307 -- confirming `<>` is a genuinely
+  distinct single opcode, not just a different rendering of the same
+  bytes). Added a dedicated `/^Not\s*=/i` special case ahead of the normal
+  operator match that emits `Not`, a space, then `=` as two separate
+  chunks, then continues into the right-hand `expression()` as usual.
+  Searched the corpus for this construct before implementing and checked
+  19 candidates: 9 fully byte-exact (679, 2042, 4615, 4617, 11974, 12117,
+  16415, 25151, 25158, plus target 23620 = 10 total EXACT), 7 advanced past
+  the `Not =` parse point into separate, unrelated, pre-existing issues
+  (2306, 3690, 4838, 10578, 17573, 23626, 24216), 2 had unrelated
+  pre-existing errors untouched by this change (2676, 13179/13260) -- zero
+  counter-examples where `Not =` needed different handling. Verified:
+  `npx tsc -p .` clean; `npm test` 456/457 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430, 0 regressions.
+- **Full corpus refresh** (post fixes #48-58, background run while
+  continuing other work): 30,209 definitions, EXACT 21875, UNKNOWN_MISMATCH
+  4702, ENCODE_ERROR 2276, DECODE_SOURCE_MISMATCH 698, UNSUPPORTED_SYNTAX
+  658. Fix #59 above (`Not =`) lands after this snapshot was taken; its
+  effect will show in the next full refresh.
 - **Fix #58** landed (src/peoplecode/encoder.ts): `applicationClassPath()`'s
   FIRST path-component regex required an ordinary identifier start
   (`[A-Za-z_]`), rejecting `%metadata` -- a reserved package root for
