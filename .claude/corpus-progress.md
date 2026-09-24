@@ -1,6 +1,292 @@
 # Corpus Calibration Progress
 
 ## Current target
+- Session continued 2026-09-24 via `/goal` resume, picking up exactly where
+  the prior checkpoint left off (past fix #38, definition 1152). Re-verified
+  clean state first (`tsc`, `npm test` 456/1, `corpus:verify --limit 430`
+  430/430) before any new edits. `corpus:next` kept re-recommending the
+  already-deferred definition 536, so used the documented SQL workaround
+  (query `corpus-results.sqlite` directly for the latest UNKNOWN_MISMATCH
+  classifications past offset 1152) to get fresh candidates, exactly as the
+  prior session's "Next action" notes instructed.
+- Nine definitions moved UNKNOWN_MISMATCH -> EXACT this continued session:
+  1187, 1236, 1257, 1265, 1283, plus four resolved purely as side effects of
+  those fixes (1178, 1179, 1180, 1181, 1182, 1188, 1266 -- seven side-effect
+  resolutions, all confirmed via direct harness re-run, not assumed). Also
+  reconfirmed 840 (a previously-EXACT, non-protected-window definition from
+  an earlier session) after catching and repairing an in-session regression
+  against it (see fix #43 below).
+- Landed fixes #39-47 (see "Session fixes" section below for full detail).
+  Two of these (#43, #47) were themselves regression-isolation repairs for
+  regressions this same session's own earlier fixes introduced -- both
+  caught before being left in place: #43 caught by directly testing
+  definition 840 (not in the --limit 430 protected window, so the gate
+  alone would have missed it -- caught by habit of re-testing every
+  definition touched by a shared-helper change, not just the new target);
+  #47 caught by the routine post-fix `corpus:verify --limit 430` gate
+  itself (FAIL, definitions 30 and 95 regressed EXACT -> UNKNOWN_MISMATCH).
+  Both were root-caused via the regressed definitions' own diff/trace
+  output (per CLAUDE.md's regression-isolation protocol: identify the
+  regressed definition_ids, find their first diff, narrow the offending
+  rule) and repaired with a MORE PRECISE rule, not a revert -- no calibrated
+  behavior was given up to fix either regression. 430/430 reconfirmed after
+  each repair; final state after fix #47 is 430/430 with all seven
+  definitions touched this session (30, 95, 840, 1187, 1236, 1257, 1265,
+  1283 -- eight, plus the seven pure side-effects above) independently
+  re-verified EXACT.
+- `npm run corpus:failures -- --summary` after fix #47: EXACT 21244 (was
+  21194 as of the fix #28 mid-session snapshot recorded in the prior
+  checkpoint; not an exact apples-to-apples delta since several full/manual
+  re-scans happened between the two snapshots, but confirms continued
+  forward progress with no unexpected regressions in the broader corpus).
+- Next: continue past offset 1283 using the same SQL-query-for-fresh-
+  candidates workaround (`corpus:next` will keep re-suggesting 536 until it
+  gains deferred-definition awareness). See "Next action" for the exact
+  query and the current known-deferred/locally-blocked list (536, 871,
+  1406, 3235 -- all unchanged this session).
+
+## Current target (previous session's own note, preserved for history)
+- New session resumed 2026-09-24 via `/goal` (autonomous corpus calibration,
+  local-snapshot-only). Ran the mandatory workflow from scratch: confirmed
+  typecheck clean, confirmed protected baseline 430/430, then
+  `corpus:failures --summary` + `corpus:next` selected definition_id 535
+  (ADDRESS_TYPE_VW.ADDRESS_TYPE.RowInit, UNKNOWN_MISMATCH, the largest raw
+  failure family). Landed fix #23 (see "Session fixes" below): a bare
+  `GetRecord(...)` call's `GetField(Field.X)` result was never registering
+  into the control-group FIELD-reuse pool (only `&var.GetRecord(...)
+  .GetField(...)` postfix-chain form did), so a LATER bare `.FIELDNAME`
+  property access on that same field elsewhere in the control group
+  incorrectly allocated a fresh PSPCMNAME row instead of reusing the
+  existing one. Definition 535 moved UNKNOWN_MISMATCH -> EXACT.
+- **Regression caught and repaired in-session** (see fix #23's own notes):
+  the first version of this fix set field-reference mode for ANY bare
+  `GetRecord(...)` call, which broke protected-baseline definition_id 180
+  (ABS_H_D_NLDSBR.SAME_ADDRESS_EMPL.FieldChange, EXACT -> UNKNOWN_MISMATCH)
+  because `GetRecord()` with NO arguments (`GetRecord().ParentRow...`) is a
+  structurally different, Row-navigation construct, not a field access.
+  Caught immediately by the routine post-fix `corpus:verify --limit 430`
+  gate, root-caused via the regressed definition's own first-diff trace,
+  and narrowed the rule to require a non-empty `GetRecord(...)` argument
+  list. 430/430 restored and reconfirmed; `npm test` also clean (456
+  pass / 1 pre-existing skip). Spot-checked definitions 524 (still EXACT,
+  unaffected) and 871 (still its pre-existing UNKNOWN_MISMATCH, unaffected
+  — see "Locally blocked").
+- Next `corpus:next` pick was definition_id 536 (ADDRESS_TYPE_VW.
+  ADDRESS_TYPE.SaveEdit, same UNKNOWN_MISMATCH family). Investigated and
+  DEFERRED (not locally blocked — see "Identified, not yet fixed" for the
+  full writeup): the construct (`&RecordVar = &RowVar.SINGLEMEMBER;`, a
+  single-dot Row-shorthand RECORD access) needs a target-variable-type
+  provenance signal that isn't currently threaded into the postfix parser.
+  A tempting broad fix (relax the existing two-dot Row-reference-mode
+  requirement to one dot, minus a short exclusion list of known Row state
+  members) was corpus-checked BEFORE implementation and disproven: 164 real
+  single-dot Row-property accesses across 30+ definitions use bare
+  properties well outside that exclusion list (`ChildCount`, `RecordCount`,
+  `DeleteEnabled`, `Style`, and more), so that approach would have caused
+  widespread new regressions. No encoder.ts changes were made or reverted
+  for this definition — moved on to the next actionable failure per
+  CLAUDE.md's completion-behavior rule.
+- Manually selected definition_id 634 (ADJ_CN_TAX_BAL.BALANCE_YEAR.
+  FieldFormula, same UNKNOWN_MISMATCH family, different offset) since
+  `corpus:next` keeps re-recommending 536 regardless of the deferral above.
+  Landed fix #24: a Function body's leading standalone comment (before any
+  Local declaration) followed by a blank line before the first `Local`
+  declaration was missing its 0x4F blank-line marker entirely — no
+  existing mechanism covered that specific transition. Definition 634
+  moved UNKNOWN_MISMATCH -> EXACT. 430/430 gate passed on the first
+  attempt (no regression this time); `npm test` clean. Two fixes landed
+  this session so far (535 and 634), one regression caught and repaired
+  in-session (180, during fix #23), one definition investigated and
+  deliberately deferred with evidence recorded (536).
+- Manually selected definition_id 772 (ADSRECORDS1_WRK.QRYSEARCHBTN.
+  FieldChange, same technique — query the results DB directly for a fresh
+  offset). Landed fix #25: FOUR distinct, small bugs found in sequence on
+  the SAME definition, each one's fix moving the first diff further until
+  it finally went EXACT (progress-not-completion applied repeatedly, not
+  stopped at the first improvement) — (a) `ApiObject` missing from the
+  object-declaration-type opcode list, (b) `ApiObject` missing its
+  implicit PACKAGE dependency-row allocation, (c) that dependency-row
+  reuse pool needed `functionDepth` added to its cache key (Component-level
+  vs Function-local Rowset declarations were colliding), (d)
+  HideScroll/UnhideScroll needed the SCROLL.X control-group reuse rule
+  (they already had the analogous RECORD.X one from an earlier session's
+  fix #18, but never got the SCROLL.X one). Definition 772 moved
+  UNKNOWN_MISMATCH -> EXACT. 430/430 gate passed on the first attempt (no
+  regression); `npm test` clean. Three fixes landed this session so far
+  (535, 634, 772 — the last one via 4 sub-fixes).
+- Manually selected definition_id 808 (AE_DERIVED.REFRESH_BTN.
+  SavePreChange, same technique). Landed fix #26: `CreateRowset(Record.X)`
+  was missing from the Record.X control-group-scoped reuse-checking
+  function list (the same list GetRecord/DeleteRow/ActiveRowCount/
+  UpdateValue/InsertRow/SetCursorPos/HideScroll/UnhideScroll/UnhideRow/
+  CopyFields/RecordDeleted/RecordChanged already belong to) — same failure
+  shape as fix #18: a reuse-unchecked allocation silently overwrote the
+  shared control-group cache entry, poisoning every later `GetRecord`
+  call. Definition 808 moved UNKNOWN_MISMATCH -> EXACT on the first
+  sub-fix, no further diffs. 430/430 gate passed on the first attempt (no
+  regression); `npm test` clean. Four fixes landed this session so far
+  (535, 634, 772, 808).
+- Manually selected definition_id 840 (AE_UPGCONV_WRK.AE_REFRESH.
+  FieldChange, same technique). Landed fix #27, with an in-session
+  regression caught and repaired via a MORE PRECISE rule (not a revert):
+  `RowScrollSelect` was on the GLOBAL by-name Record.X reuse list with no
+  citation of its own; removing it and giving it a same-call-only reuse
+  mechanism fixed 840 but broke protected definition_id 27 (which needs
+  RowScrollSelect to reuse an EARLIER statement's `ActiveRowCount`-
+  established reference, not just within its own call). Root cause turned
+  out to be a genuine THIRD distinction the encoder had never tracked:
+  "was the earlier same-name reference established by an already-
+  recognized reuse-participating call, or by an unrelated one" — solved
+  with a new `participatingRecordReferencesByControlGroup` map, written
+  only when `reuseRecordReferenceWithinControlGroup` was already true at
+  allocation time. Both 840 and 27 EXACT simultaneously after the second
+  attempt. 430/430 gate restored; `npm test` clean. Five fixes landed this
+  session (535, 634, 772, 808, 840), one deferred with evidence (536), one
+  regression caught and repaired during fix #23, one regression caught and
+  repaired (via a better rule, not a revert) during fix #27. Definitions
+  842 and 923 also found already-EXACT as side effects while sampling
+  fresh `corpus:next` candidates (no separate fix needed).
+- Manually selected definition_id 921 (AGC_CAT_ASGNEE.AGC_CATEGORY_ID.
+  FieldFormula, same technique). Landed fix #28: an object-typed Function
+  PARAMETER (`&rowCategory As Row`) never allocated its implicit
+  PACKAGE/ROW dependency row the way a `Local Row &var;` DECLARATION
+  already does (the same class of bug as fix #25's ApiObject fix, but for
+  parameters — a separate code path in `functionStatement()`'s parameter
+  list, not `localDeclaration()`). Definition 921 moved UNKNOWN_MISMATCH
+  -> EXACT. 430/430 gate passed on the first attempt (no regression);
+  `npm test` clean. Six fixes landed this session (535, 634, 772, 808,
+  840, 921). Bounded `corpus:failures --summary` check confirmed +8 EXACT
+  (21186 -> 21194) with no unexpected ripple.
+- Manually selected definition_id 924 (AGC_CAT_STEP.AGC_CATEGORY_ID.
+  FieldFormula, same technique — directly adjacent to 921/923, same
+  underlying source file family). Landed fix #29, two more gaps in the
+  same `Row`-typed-parameter support fix #28 started: (a) parameters
+  never joined the `rowVariables` Set, so their own `.RECORD.FIELD`
+  postfix chains fell through to plain inline text instead of PSPCMNAME
+  references; (b) the FIELD binding a Row-typed variable establishes
+  needed to bridge into the control-group-scoped `declaredRecordFields`
+  pool so a later, differently-shaped row-shorthand access could find it.
+  Definition 924 moved UNKNOWN_MISMATCH -> EXACT. 430/430 gate passed on
+  the first attempt (no regression); `npm test` clean. Seven fixes landed
+  this session (535, 634, 772, 808, 840, 921, 924).
+- Manually selected definition_id 935 (AMM_ARCHIVE_WK.FUNCLIB.
+  FieldFormula, same technique). Landed fix #30, three unrelated small
+  bugs found in sequence on the same definition: (a) the leading-Local-run
+  blank-line transition check ran after the comment-consuming branches
+  instead of before, so it never fired when a comment (not a real
+  statement) followed the last Local — the mirror case of fix #24; (b)
+  `Component XmlDoc &var;` never got its implicit PACKAGE/XMLDOC
+  dependency row, same class of gap as fix #14 (Component Rowset) and fix
+  #25 (Local ApiObject); (c) a `rem` statement's generic trailing
+  `space()` call ate a following blank line, because `remComment()`
+  already consumes its own `;` (unlike ordinary statements, where that
+  `space()` call exists to skip whitespace BEFORE their still-unconsumed
+  `;`). Definition 935 moved UNKNOWN_MISMATCH -> EXACT. 430/430 gate
+  passed on the first attempt (no regression); `npm test` clean. Eight
+  fixes landed this session (535, 634, 772, 808, 840, 921, 924, 935).
+- Manually selected definition_id 937 (AMM_ARCHIVE_WK.XML3_PB.FieldChange,
+  same technique — same source file family as 935/936). Landed fix #31:
+  `remComment()`'s "consecutive REM lines merge into one comment token"
+  rule (calibrated in an earlier session against definition 964) was
+  merging unconditionally; definition 937 proved the merge must stop once
+  a REM line already closes with its own `;`, reconciled with 964's
+  original evidence (whose first line has no `;`, a genuine continuation)
+  by keying the merge condition on "the accumulated text doesn't yet end
+  in `;`" rather than "the next line also starts with REM." Definition
+  937 moved UNKNOWN_MISMATCH -> EXACT. 430/430 gate passed on the first
+  attempt (no regression — re-verified definition 964's `source→bin`
+  stays EXACT; its `roundtrip` mismatch is the already-documented,
+  unrelated decoder-only bug noted earlier in this file, not a new
+  regression). `npm test` clean. Nine fixes landed this session (535,
+  634, 772, 808, 840, 921, 924, 935, 937). Definition 936 also found
+  already-EXACT as a side effect while sampling.
+- Checked definition_id 940 (AMM_DERIVED.AE_DELETE_SECTION.FieldChange,
+  next in the family): a THIRD corroborating instance of the
+  already-documented decoder-only "extra blank line" bug (definitions
+  964, 1406) — `source→bin` EXACT, `roundtrip` MISMATCH only.
+  Deliberately deferred (decoder work, out of scope for this session's
+  encoder focus, per DEVELOPER.md priority ordering); recorded in
+  "Identified, not yet fixed" and moved on to definition 942 instead.
+- Manually selected definition_id 942 (AMM_DERIVED.AMM_CANCEL_M.
+  FieldChange, same technique). Landed fix #32: the blank-line-marker
+  handling for a transition between two top-level declaration statements
+  that both stay inside the same open declaration section (e.g.
+  `Declare Function ...;` followed by `Component ...;`) was hardcoded to
+  emit exactly one 0x4F regardless of blank-line count, unlike every
+  other marker site in this file. Definition 942 moved UNKNOWN_MISMATCH
+  -> EXACT. 430/430 gate passed on the first attempt (no regression);
+  `npm test` clean. Ten fixes landed this session (535, 634, 772, 808,
+  840, 921, 924, 935, 937, 942).
+- Manually selected definition_id 945 (AMM_DERIVED.AMM_COLLAPSE_ALL.
+  FieldChange, same technique). Landed fix #33: fix #32's own trigger
+  regex for the declaration-to-declaration blank-line marker was itself
+  incomplete — `PanelGroup` was missing from it entirely (not just a
+  multiplicity shortfall; no marker fired at all). Definition 945 moved
+  UNKNOWN_MISMATCH -> EXACT. 430/430 gate passed on the first attempt (no
+  regression); `npm test` clean. Eleven fixes landed this session (535,
+  634, 772, 808, 840, 921, 924, 935, 937, 942, 945). Definitions 949 and
+  946 also found already-EXACT as side effects while sampling.
+- Landed fix #34, this session's ONLY decoder.ts fix (all prior fixes
+  were encoder.ts): the recurring "extra blank line" decoder bug noted
+  earlier (964, 1406) plus two more corroborating instances found while
+  sampling (940, 953/954) all traced to one root cause — `PanelGroup`'s
+  declaration opcode (0x51) missing from decoder.ts's `followsDeclaration`
+  detection list, meaning a blank line after the last `PanelGroup ...;`
+  declaration decoded as TWO blank lines instead of one. Fixed; 940, 953,
+  954, and 964 all moved to EXACT simultaneously from one fix. Definition
+  1406 re-checked and confirmed to have a genuinely separate, still-open
+  decoder gap (unaffected by this fix). 430/430 gate passed on the first
+  attempt (no regression); `npm test` clean. A random 40-definition
+  sample of the broader UNKNOWN_MISMATCH family found no further
+  definitions resolved (confirms the fix is narrowly scoped, not a hidden
+  larger win) — `corpus:failures --summary` confirmed exactly +4 EXACT.
+  Twelve fixes landed this session (535, 634, 772, 808, 840, 921, 924,
+  935, 937, 942, 945, plus decoder fix #34).
+- Continuing past the fix #34 cluster, definitions 958, 963, and 966
+  (all AMM_DERIVED, same file as 940/953/954/964) were each found
+  already-EXACT as further side effects of fix #34 — folded into that
+  fix's own notes above (total now 7 definitions resolved by one decoder
+  fix). Manually selected definition_id 1046 (AMM_FILTER.IB_DIRECTION.
+  FieldFormula, a different file, to get past the resolved cluster).
+  Landed fix #35: `Grid` was missing from BOTH places fix #25 already
+  fixed for `ApiObject` — the `typeName()` object-declaration-type opcode
+  list, and `localDeclaration()`'s implicit-PACKAGE-dependency dispatch.
+  Definition 1046 moved UNKNOWN_MISMATCH -> EXACT. 430/430 gate passed on
+  the first attempt (no regression); `npm test` clean. Thirteen fixes
+  landed this session (535, 634, 772, 808, 840, 921, 924, 935, 937, 942,
+  945, 1046, plus decoder fix #34).
+- Continuing past 1046, found the ENTIRE AMM_TREE_WS FieldChange cluster
+  (1061, 1062, 1081, 1083-1097 — 17 definitions) already EXACT from fix
+  #34's broader reach (`corpus:failures --summary`: 21209 -> 21228, +19).
+  Skipped definition 1066 (a large, complex 66KB+ definition, 417+
+  PSPCMNAME entries) in favor of smaller targets. Manually selected
+  definition_id 1128 (ANALYSIS_DB_DIM.DIMENSION_ID.FieldEdit, a different
+  file). Landed fix #36: `FetchValue` had only its own narrower Record.X
+  reuse mechanism, never added to the shared control-group reuse trigger
+  list GetRecord/ActiveRowCount/DeleteRow/CreateRowset/etc already belong
+  to. Definition 1128 moved UNKNOWN_MISMATCH -> EXACT. 430/430 gate
+  passed on the first attempt (no regression); `npm test` clean.
+  Fourteen fixes landed this session (535, 634, 772, 808, 840, 921, 924,
+  935, 937, 942, 945, 1046, 1128, plus decoder fix #34).
+- Manually selected definition_id 1145 (ANALYSIS_DB_WRK.BASE_CUBE_INST_ID.
+  FieldChange, next in offset order). Landed fix #37: `RowScrollSelectNew`
+  needed the exact same same-call Record.X reuse rule fix #27 built for
+  `RowScrollSelect`, just a name the exact-match trigger regex didn't
+  recognize — widened to `/^RowScrollSelect(?:New)?$/i`, no new mechanism
+  needed. Definition 1145 moved UNKNOWN_MISMATCH -> EXACT on the FIRST
+  attempt (no isolation needed this time). 430/430 gate passed; `npm
+  test` clean. Fifteen fixes landed this session (535, 634, 772, 808,
+  840, 921, 924, 935, 937, 942, 945, 1046, 1128, 1145, plus decoder fix
+  #34).
+- Manually selected definition_id 1152 (ANALYSIS_DB_WRK.PB_OPEN_ANL_MODEL.
+  FieldChange, next in offset order). Landed fix #38: `DoModalPanelGroup`
+  was missing from the shared control-group Record.X reuse trigger list
+  (the same list fixes #18/#26/#36 already extended) — two calls in an
+  If/Else-If, same top-level control group, should reuse one Record.X
+  row. Definition 1152 moved UNKNOWN_MISMATCH -> EXACT on the FIRST
+  attempt. 430/430 gate passed; `npm test` clean. Sixteen fixes landed
+  this session (535, 634, 772, 808, 840, 921, 924, 935, 937, 942, 945,
+  1046, 1128, 1145, 1152, plus decoder fix #34).
 - Session resumed 2026-09-24 after a PC crash interrupted the prior session
   mid-work (VPN dropped, user reconnected it at resume time). All prior
   uncommitted work was intact on disk; typecheck/tests/430-gate re-verified
@@ -742,6 +1028,1090 @@ All twelve new fixes (#11-22) verified with:
   has its own distinct, not-yet-understood remaining puzzle. See "Locally
   blocked" below for both.
 
+## Session fixes (2026-09-24, /goal resume), all in src/peoplecode/encoder.ts
+
+23. **definition_id 535** (ADDRESS_TYPE_VW.ADDRESS_TYPE.RowInit),
+    UNKNOWN_MISMATCH, body diff @1212 (a single 0x4A reference-index byte:
+    stored used the FIELD/ADDRESS_TYPE row already established earlier in
+    the same control group, generated allocated a fresh one) -> now EXACT.
+
+    Root cause: `GetRecord(Record.X)` / `GetRecord(N)` used as a **bare
+    primary call** (no leading `&variable.` receiver, e.g.
+    `GetRecord(Record.ADDRESS_TYPE_VW).GetField(Field.ADDRESS_TYPE)`) never
+    put the expression into field-reference mode for the postfix chain. The
+    existing control-group FIELD-reuse mechanism (`fieldReferencesByControlGroup`,
+    gated by `reuseFieldReferenceWithinControlGroup`) only ever fired when
+    `.GetRecord(...)` appeared as a POSTFIX STEP on a variable
+    (`&row.GetRecord(...).GetField(...)`, definition 524's proven case) —
+    the bare-call form's own `.GetField(Field.X)` therefore allocated an
+    occurrence-based row that never got registered into the reuse pool, so
+    a later independent `.ADDRESS_TYPE` property access elsewhere in the
+    same control group (`&Types.GetRow(&I).GetRecord(1).ADDRESS_TYPE.Value`)
+    couldn't find it and allocated a second, wrong-index row instead.
+
+    Fix, in three parts:
+    (a) `primary()` now recognizes a bare `GetRecord(...)` call (tracked via
+    a new `bareGetRecordCallResult` flag, set at the `call()` dispatch site
+    using the already-available `identifier`/`tail` text) and seeds
+    `expectedReferenceMember = 'field'` for it, exactly like a postfix
+    `.GetRecord(...)` step already does.
+    (b) Replaced the old `wasFirstPostfixStep`-based gate (which could not
+    distinguish "field mode because of a declared Record variable's first
+    postfix step" from "field mode because of a bare GetRecord() primary
+    call" — both look like "first postfix step") with a new explicit
+    `fieldMemberFromGetRecord` boolean that is only ever true when the
+    current field context came from an actual `.GetRecord(...)` result
+    (postfix-chain or bare-primary form alike), and false when it came from
+    a declared `Local Record &var;` variable. This let `wasFirstPostfixStep`
+    itself become fully dead code (no remaining reads) and it was removed
+    along with `isFirstPostfixStep`, consistent with DEVELOPER.md's "verify
+    before deleting" rule — confirmed via `tsc`'s TS6133 unused-variable
+    error, not assumed.
+    (c) Added `fieldReferencesByControlGroup` as a further fallback (after
+    `rowShorthandFields`/`declaredRecordFields`) in the ordinary
+    Rowset/row-shorthand FIELD-lookup branch of the postfix `.MEMBER`
+    handler, so a bare `.FIELDNAME` property access (not just an explicit
+    `.GetField(Field.X)` call) can find a FIELD row already established by
+    an earlier `.GetRecord(...).GetField(Field.X)` in the same control
+    group — this is the actual lookup definition 535's `.ADDRESS_TYPE.Value`
+    needed; (a)/(b) alone populate the pool, (c) is what reads from it here.
+
+    **Regression caught and repaired in the same step**: the first version
+    of part (a) set `bareGetRecordCallResult = true` for ANY bare
+    `GetRecord(...)` call regardless of arguments. This broke protected
+    baseline definition_id 180 (ABS_H_D_NLDSBR.SAME_ADDRESS_EMPL.
+    FieldChange, EXACT -> UNKNOWN_MISMATCH, `body diff @269`, size delta
+    -18 bytes): `GetRecord()` with **no arguments** starts a Row-navigation
+    chain (`GetRecord().ParentRow.ParentRowset.ParentRowset.ParentRowset.
+    GetRow(1)...`), where `.ParentRow` is stored as a plain inline
+    identifier (0x05 0x0A opcode), never a PSPCMNAME field reference —
+    structurally unlike the argumented form. Caught immediately by the
+    routine post-fix `corpus:verify --limit 430` gate; root-caused via
+    definition 180's own first-diff trace (per CLAUDE.md's
+    regression-isolation protocol: same construct family, `GetRecord`, but
+    the zero-arg case). Narrowed part (a)'s condition to
+    `/^GetRecord$/i.test(identifier) && !/^GetRecord\s*\(\s*\)/i.test(tail)`
+    — i.e. only an ARGUMENTED bare `GetRecord(...)` call enables
+    field-reference mode. 430/430 restored and reconfirmed; `npm test`
+    clean (456 pass / 1 pre-existing skip). Definitions 524 and 871
+    (both touching related GetRecord/GetField machinery) re-checked and
+    unaffected — 524 still EXACT, 871 still its pre-existing UNKNOWN_MISMATCH
+    (see "Locally blocked").
+
+24. **definition_id 634** (ADJ_CN_TAX_BAL.BALANCE_YEAR.FieldFormula),
+    UNKNOWN_MISMATCH, body diff @208 (one missing 0x4F, generated 1 byte
+    shorter: 2642 vs stored 2643) -> now EXACT. Definition 536 was
+    skipped/deferred first (see "Identified, not yet fixed" below); this
+    was the next `UNKNOWN_MISMATCH`-family definition manually selected
+    (via a direct inventory query for a different offset) once 536 was
+    parked, since `corpus:next` keeps re-recommending the same lowest-offset
+    representative in a family regardless of a prior session's decision to
+    defer it.
+
+    Root cause: inside a `Function ... End-Function;` body,
+    `functionStatement()`'s body loop already emits a 0x4F blank-line
+    marker for a blank line between two ordinary body items (gated on
+    `enteredExecutableSection`) and for a blank line between the leading
+    Local-declaration run and the first executable statement (gated on
+    `sawLocalDeclaration && !enteredExecutableSection`) — but had NO
+    handling at all for a blank line between a **leading standalone
+    comment** (before any Local declaration) and the Local declaration
+    that follows it:
+
+    ```
+    Function TAX_CLASS_CAN_List();
+       /* Set up dropdown list of Tax Class for balance adjustment */
+
+       Local Rowset &Xlat;
+    ```
+
+    The comment branches (`<*...*>` and `/*...*/`) `continue` the loop
+    immediately after pushing the comment, with no flag recording that a
+    leading comment was just seen, so the blank line before `Local Rowset`
+    fell through unmarked. Fixed by adding a new `sawLeadingComment` flag
+    (set when a comment is processed before any Local/executable item is
+    seen) and widening the top-of-loop marker condition from
+    `enteredExecutableSection` alone to
+    `enteredExecutableSection || (sawLeadingComment && !sawLocalDeclaration)`.
+    Scoped narrowly to the "before the first Local" phase only — blank
+    lines between two Locals, or between two leading comments, are a
+    separate, not-yet-evidenced question and were deliberately left alone.
+    (encoder.ts `functionStatement()`'s body loop.)
+
+    Verified: `tsc`/`npm test` clean, `corpus:verify --limit 430` PASS
+    (430/430, no regression — first attempt, no isolation needed this
+    time). Spot-checked 871 and 180 (both touch related Function-body /
+    GetRecord machinery) — unaffected (871 still its pre-existing
+    UNKNOWN_MISMATCH, 180 still EXACT).
+
+25. **definition_id 772** (ADSRECORDS1_WRK.QRYSEARCHBTN.FieldChange),
+    UNKNOWN_MISMATCH, body diff @528 -> now EXACT via three combined
+    fixes, each moving the first diff further before the next one was
+    found (progress-not-completion applied three times over on the same
+    definition before it finally went EXACT):
+
+    (a) **`ApiObject` type-name opcode** (first diff @528, a single byte:
+    stored `0x0A` vs generated `0x40` right before the literal type-name
+    text `ApiObject`). `typeName()`'s calibrated "object declaration types
+    use the inline-name introducer, not the primitive-type 0x40
+    introducer" list (`Record|Field|Rowset|Row|SQL|File|XmlDoc|XmlNode`)
+    was simply missing `ApiObject`, a real PeopleCode built-in object type
+    used exactly like the others (`Local ApiObject &aRecordsList;`).
+    Fixed by adding it to that regex.
+
+    (b) **`ApiObject`'s implicit PACKAGE dependency row** (next diff
+    @1199, a reference-index shift: every PSPCMNAME index after the first
+    Local declaration was off by one). Every other object-declaration type
+    (Rowset/Record/Row/SQL/File/XmlDoc/XmlNode) allocates an implicit
+    `PACKAGE/<TYPENAME>` dependency row the first time a `Local <Type>
+    &var;` of that type is declared, via `ensureLocalObjectPackageReference`
+    -- `ApiObject` was entirely missing from that dispatch, so
+    `Local ApiObject &aRecordsList;` (this definition's very first Local
+    declaration) allocated no such row at all, shifting every reference
+    index after it by one relative to stored. Fixed by adding an
+    `ApiObject` branch calling `ensureLocalObjectPackageReference
+    ('APIOBJECT', 'ApiObject')`, mirroring the existing seven branches
+    exactly.
+
+    (c) **`ensureLocalObjectPackageReference`'s reuse pool needed
+    function-body sensitivity, not just control-group sensitivity** (next
+    diff @1199 again, one further reference-index-off-by-one after (a)/(b)
+    landed). `Component Rowset &grsLevelList;` (top-level, functionDepth 0)
+    and a later `Local Rowset &rsRecordsList, &rsFieldsList;` inside
+    `Function DoRecordsSearch()` (functionDepth 1) both landed in
+    control-group 0 -- leading Local declarations inside a Function body
+    do not bump `controlGroup` (only executable statements do, per the
+    fix #19 Function-body control-group rule) -- so the existing
+    `${controlGroup}:${packageName}:${objectName}` cache key incorrectly
+    reused the Component-level PACKAGE/ROWSET row for the Function-local
+    Rowset declaration too, when stored allocates two distinct rows. Fixed
+    by adding `functionDepth` to the cache key.
+
+    (d) **`HideScroll`/`UnhideScroll` needed the SCROLL.X control-group
+    reuse rule, not just the RECORD.X one** (final diff @3810). Fix #18
+    (an earlier session) already added HideScroll/UnhideScroll/UnhideRow/
+    CopyFields to the Record.X control-group-scoped reuse-checking
+    function list, but never to the analogous, separately-tracked SCROLL.X
+    list (`reuseScrollReferenceWithinControlGroup`, gated on
+    ActiveRowCount/UpdateValue/Gray/UnGray/DeleteRow only). This
+    definition's `If &nCount = 0 Then HideScroll(Scroll.ADSRECORDS1_DVW);
+    ... Else UnhideScroll(Scroll.ADSRECORDS1_DVW); ... End-If;` proves
+    UnhideScroll's own Scroll.X argument reuses the exact SCROLL row
+    HideScroll's argument allocated in the other branch of the same
+    top-level If's control group. Fixed by adding both names to that
+    trigger list too (both directions needed: HideScroll must WRITE into
+    the reuse pool, UnhideScroll must READ from it).
+
+    Verified: `tsc`/`npm test` clean, `corpus:verify --limit 430` PASS
+    (430/430, no regression, first attempt). Spot-checked 871 (still its
+    pre-existing UNKNOWN_MISMATCH, unaffected), 534 and 180 (both still
+    EXACT, unaffected — 534 touches the Record.X HideScroll/UnhideScroll
+    list fix #18 added, 180 touches related GetRecord/Function-body
+    machinery from fix #23).
+
+26. **definition_id 808** (AE_DERIVED.REFRESH_BTN.SavePreChange),
+    UNKNOWN_MISMATCH, body diff @524 (single reference-index byte,
+    stored=3 vs generated=5) -> now EXACT on the first sub-fix (no further
+    diffs after this one).
+
+    Root cause: `CreateRowset(Record.X)` was missing from the Record.X
+    control-group-scoped reuse-checking function list (the same list fixes
+    from earlier sessions already added GetRecord/DeleteRow/
+    ActiveRowCount/UpdateValue/InsertRow/SetCursorPos/HideScroll/
+    UnhideScroll/UnhideRow/CopyFields/RecordDeleted/RecordChanged to).
+    Source:
+
+    ```
+    &group = &RSComponent.GetRow(1).GetRecord(Record.DAEMONGROUP)
+               .GetField(Field.DAEMONGROUP).Value;
+    &RSDaemon = CreateRowset(Record.DAEMONGROUP);
+    ...
+    &RSDaemon.GetRow(...).GetRecord(Record.DAEMONGROUP).Delete();
+    ...
+    &RSComponent.GetRow(&i).GetRecord(Record.DAEMONGROUP).Insert();
+    ```
+
+    All four `Record.DAEMONGROUP` occurrences (spanning the initial
+    `GetRecord` call, `CreateRowset`'s own argument, and two later
+    `GetRecord` calls inside separate `For` loops, all in the same
+    top-level `If` block's control group) reuse ONE single PSPCMNAME
+    RECORD row in stored -- confirmed directly: stored's PSPCMNAME table
+    has exactly one RECORD/DAEMONGROUP entry, not two. Without
+    `CreateRowset` in the reuse-checking list, its own `Record.X` argument
+    bypassed the reuse check and allocated a fresh row, which then
+    poisoned every LATER `GetRecord(Record.DAEMONGROUP)` call into reusing
+    that wrong row instead of the original one the first `GetRecord` call
+    had established (same failure shape fix #18 already fixed for
+    HideScroll/UnhideScroll/UnhideRow/CopyFields: a reuse-unchecked
+    allocation silently overwrites the shared control-group cache entry).
+    Fixed by adding `CreateRowset` to the same trigger-name regex.
+    (encoder.ts, the `call()` function's Record.X reuse-flag block.)
+
+    Verified: `tsc`/`npm test` clean, `corpus:verify --limit 430` PASS
+    (430/430, no regression, first attempt). Spot-checked 871 (still its
+    pre-existing UNKNOWN_MISMATCH, unaffected) and 535 (still EXACT,
+    unaffected — also touches `GetRecord`/control-group reference
+    provenance).
+
+27. **definition_id 840** (AE_UPGCONV_WRK.AE_REFRESH.FieldChange),
+    UNKNOWN_MISMATCH, body diff @137 (a repeated-argument reference-index
+    pair) -> now EXACT via a two-step investigation that included an
+    in-session regression, isolated and repaired via a MORE PRECISE rule
+    rather than a broad revert (CLAUDE.md's regression-isolation protocol,
+    "narrow the offending rule rather than broadly reverting valid
+    calibration").
+
+    **Attempt 1** (root cause, correct for 840 in isolation): `RowScrollSelect`
+    was on the GLOBAL by-name Record.X reuse list
+    (`reuseRecordReferenceByName`, shared with GetSetId/ScrollSelect/Gray/
+    UnGray) with no citation of its own (added in an old bulk commit).
+    Source:
+
+    ```
+    ScrollFlush(Record.MESSAGE_LOG);
+    RowScrollSelect(1, Record.MESSAGE_LOG, Record.MESSAGE_LOG, "...", &PI);
+    ```
+
+    Stored allocates a FRESH RECORD row for RowScrollSelect's first
+    Record.MESSAGE_LOG argument (NOT reusing ScrollFlush's earlier one),
+    but REUSES that fresh row for its own second, adjacent
+    Record.MESSAGE_LOG argument in the same call — global by-name reuse
+    wrongly matched ScrollFlush's earlier occurrence for BOTH. First fix
+    attempt: removed RowScrollSelect from the global by-name list and gave
+    it its own new, narrower mechanism —
+    `reuseRecordReferenceWithinCallArguments` /
+    `recordReferencesWithinCallArguments`, a fresh `Map` allocated per
+    RowScrollSelect call (saved/restored around the call for nesting,
+    exactly like the other reuse flags) that only reuses within that
+    SAME call's own argument list. This made 840 EXACT.
+
+    **Regression caught**: `corpus:verify --limit 430` immediately failed
+    (429/430) — protected baseline definition_id 27
+    (ABSENCE_CAL_VW.ABSENCE_TYPE.RowInit) regressed EXACT ->
+    UNKNOWN_MISMATCH. Root-caused via definition 27's own diff trace: its
+    source has
+
+    ```
+    &LEVEL1_ROWS = ActiveRowCount(Record.ABS_TYPE_TBL);
+    ...
+    RowScrollSelect(1, Record.ABS_TYPE_TBL, Record.ABS_TYPE_TBL, "...", ...);
+    ```
+
+    all inside the same nested-If control group. Here stored DOES reuse
+    ActiveRowCount's earlier Record.ABS_TYPE_TBL row for BOTH of
+    RowScrollSelect's own arguments, across statements — the exact cross-
+    statement reuse the same-call-only mechanism from attempt 1 no longer
+    permitted, since ActiveRowCount and RowScrollSelect are different
+    statements/calls.
+
+    **Attempt 2** (the actual fix, reconciling both): the real
+    distinguishing signal is not "same call vs different call" but
+    "was the earlier occurrence established by an already-recognized
+    reuse-PARTICIPATING call (ActiveRowCount/GetRecord/etc, i.e. one
+    already on the `reuseRecordReferenceWithinControlGroup` trigger list)
+    or by an unrelated non-participating call (ScrollFlush, which isn't on
+    any reuse list)." The existing `recordReferencesByControlGroup` map
+    can't answer this -- it's written unconditionally by EVERY Record.X
+    allocation regardless of context, so it already contains ScrollFlush's
+    entry too. Added a NEW parallel map,
+    `participatingRecordReferencesByControlGroup`, written ONLY when
+    `reuseRecordReferenceWithinControlGroup` was already true at the
+    moment of allocation (i.e. only by genuinely participating calls).
+    RowScrollSelect's own lookup now checks this participating-only map
+    FIRST (finds ActiveRowCount's row in definition 27, correctly reusing
+    it across statements) and falls back to the same-call-only mechanism
+    from attempt 1 only when nothing participating exists yet (definition
+    840's case, where ScrollFlush's non-participating entry is correctly
+    invisible to this check). Both definitions now EXACT simultaneously.
+    (encoder.ts: `recordReferencesByControlGroup`'s declaration site for
+    the new parallel map, `recordReference()`'s read/write chain, and the
+    `call()` function's RowScrollSelect dispatch.)
+
+    Verified: `tsc`/`npm test` clean, `corpus:verify --limit 430` PASS
+    (430/430, restored — no further regressions). Spot-checked 808, 772,
+    634, 535 (all still EXACT) and 871 (still its pre-existing
+    UNKNOWN_MISMATCH) — all unaffected by the final version of this fix.
+
+    In passing: definition 842 (AE_UPGCONV_WRK.PROCESS_INSTANCE.RowInit,
+    a `ScrollFlush(Record.MESSAGE_LOG); RowScrollSelect(1,
+    Record.MESSAGE_LOG, Record.MESSAGE_LOG, ...);` script, a sibling of
+    840) and definition 923 (AGC_CAT_IMG.AGC_CATEGORY_ID.FieldFormula)
+    were found already EXACT when checked as fresh `corpus:next`
+    candidates after this fix — resolved as a side effect, no separate
+    work needed.
+
+28. **definition_id 921** (AGC_CAT_ASGNEE.AGC_CATEGORY_ID.FieldFormula),
+    UNKNOWN_MISMATCH, body diff @5036 (a single reference-index byte,
+    off by exactly one) -> now EXACT.
+
+    Root cause: an object-typed Function PARAMETER (`&rowCategory As
+    Row`) never allocated the implicit PACKAGE dependency row a `Local
+    Row &var;` DECLARATION already gets via `ensureLocalObjectPackageReference`
+    (the same class of bug fix #25 already found and fixed for `Local
+    ApiObject &var;`, but for parameters instead of declarations this
+    time — a distinct code path). Source:
+
+    ```
+    Function DeleteCatAssignee(&rowCategory As Row, &sAssineeId As string)
+       Local Rowset &rsCategorySteps, &rsCatStepAssengees;
+       ...
+       &rsCategorySteps = &rowCategory.GetRowset(Scroll.AGC_CAT_STEP);
+    ```
+
+    Stored allocates PACKAGE/ROW (for the `&rowCategory As Row` parameter)
+    BEFORE PACKAGE/ROWSET (for the body's own `Local Rowset ...;`
+    declaration), so `Scroll.AGC_CAT_STEP` lands at NAMENUM 19. The
+    function-parameter parsing loop (inside `functionStatement()`'s
+    parameter list, distinct from `localDeclaration()`) called `typeName()`
+    for the `As Row` type text but never called
+    `ensureLocalObjectPackageReference`, so PACKAGE/ROW was never
+    allocated at all — shifting every reference after it by one. Fixed by
+    capturing the parameter's raw type name before consuming it via
+    `typeName()`, and calling `ensureLocalObjectPackageReference('ROW',
+    'Row')` for a non-array `Row`-typed parameter, mirroring the
+    already-established declaration-side handling. Scoped narrowly to
+    `Row` only -- Record/Field/Rowset/SQL/File/XmlDoc/XmlNode/ApiObject
+    parameters may need the same treatment but are unconfirmed by any
+    corpus evidence yet; noted in the fix's own comment rather than
+    guessed at. (encoder.ts, `functionStatement()`'s parameter-parsing
+    loop.)
+
+    Verified: `tsc`/`npm test` clean, `corpus:verify --limit 430` PASS
+    (430/430, no regression, first attempt). Spot-checked 772 (still
+    EXACT — also touches the `ensureLocalObjectPackageReference`
+    mechanism) and 871 (still its pre-existing UNKNOWN_MISMATCH) —
+    unaffected.
+
+    After landing fix #28, ran a bounded `corpus:failures --summary`
+    check (no full/broad scan): EXACT count moved 21186 -> 21194 (+8,
+    matching the 6 direct fixes #23/#24/#25/#26/#27/#28 plus the 2
+    side-effect resolutions 842/923 noted above) and the raw
+    UNKNOWN_MISMATCH family count moved 5391 -> 5383 (-8, consistent) —
+    confirms today's fixes are precisely targeted with no unexpected
+    ripple beyond the intended family.
+
+29. **definition_id 924** (AGC_CAT_STEP.AGC_CATEGORY_ID.FieldFormula),
+    UNKNOWN_MISMATCH, body diff @5258, size delta +48 bytes (generated
+    longer) -> now EXACT via two combined fixes, both continuing directly
+    from fix #28's discovery that `Row`-typed Function PARAMETERS were
+    under-supported relative to `Local Row &var;` declarations:
+
+    (a) **`rowVariables` never included Row-typed parameters.** Source:
+
+    ```
+    Function InitStepDefautAssigneeSection(&rCurrCatTbl As Row, &rCurrentStep As Row)
+       ...
+       &rCurrentStep.AGC_DERIVED_ASG.GROUPBOX4.Visible = &nShow;
+    ```
+
+    `rowStartsRecordFieldChain` (the mechanism that puts a Row variable's
+    `.RECORD.FIELD` chain into PSPCMNAME reference mode instead of plain
+    inline text) only ever checks the `rowVariables` Set, which
+    `localDeclaration()` populates for `Local Row &var;` but the
+    parameter-parsing loop never populated for `As Row` parameters at
+    all. Fixed by capturing the parameter's variable name (a new
+    `paramName` capture, mirroring `localDeclaration()`'s own pattern) and
+    calling `rowVariables.add(paramName.toLowerCase())` alongside fix
+    #28's `ensureLocalObjectPackageReference` call, scoped the same way
+    (only confirmed for `Row`; Record is unconfirmed and left alone).
+
+    (b) **The FIELD binding a Row-typed variable establishes needs to
+    bridge into the control-group-scoped `declaredRecordFields` pool**,
+    the same way a declared Record variable's own FIELD binding already
+    does (see fix #20's ACCOMPLISHMENTS.EMPLID.SavePostChange /
+    AA_SUMM_JPN_VW.EMPLID.SavePostChange provenance-bridge, cited in the
+    existing code comment). Without this, a LATER row-shorthand access
+    reached through a *different* access style couldn't find it:
+
+    ```
+    &rsCategorySteps = &rCurrCatTbl.GetRowset(Scroll.AGC_CAT_STEP);
+    For &i = 1 To &rsCategorySteps.ActiveRowCount
+       &rsCategorySteps(&i).AGC_DERIVED_ASG.GROUPBOX4.Visible = &nShow;
+    ```
+
+    `&rsCategorySteps(&i).AGC_DERIVED_ASG.GROUPBOX4` is a row-shorthand
+    chain (base variable `&rsCategorySteps` is a Rowset, not a
+    `rowVariable`), so its FIELD lookup goes through the FINAL "ordinary
+    Rowset/row-shorthand FIELD reuse" branch, which checks
+    `declaredRecordFields`/`rowShorthandFields`/`fieldReferencesByControlGroup`
+    -- NONE of which the `rowVariables` branch's FIELD write populated
+    (it only wrote to the global, unscoped `typedRowFields` map). Fixed
+    by also writing into `declaredRecordFields` (keyed by
+    `${controlGroup}:${fieldName}`, exactly like the analogous
+    `recordVariables` branch already does) whenever a FIELD is allocated
+    through a Row-typed variable's chain. (encoder.ts:
+    `functionStatement()`'s parameter-parsing loop for (a); the postfix
+    `.MEMBER` handler's FIELD-write block for (b).)
+
+    Verified: `tsc`/`npm test` clean, `corpus:verify --limit 430` PASS
+    (430/430, no regression, first attempt). Spot-checked 921 (still
+    EXACT — directly related, same parameter-parsing code path) and 871
+    (still its pre-existing UNKNOWN_MISMATCH) — unaffected.
+
+30. **definition_id 935** (AMM_ARCHIVE_WK.FUNCLIB.FieldFormula),
+    UNKNOWN_MISMATCH, body diff @355 -> now EXACT via three independent
+    fixes, each on a different construct, found in sequence on the same
+    definition (progress-not-completion applied three times over):
+
+    (a) **Blank line between the end of a leading Local-declaration run
+    and a FOLLOWING standalone comment.** Source:
+
+    ```
+    Local string &segmentsunordered;
+
+    /* Archived Details Component */
+    ```
+
+    This is the mirror case of fix #24 (blank line between a LEADING
+    comment and the FIRST following Local): the existing "leading Local
+    run -> executable section" transition check (which emits the 0x4F
+    marker and sets `enteredExecutableSection = true`) ran AFTER the `<*`/
+    `/*` comment-consuming branches in `functionStatement()`'s body loop,
+    but those branches `continue` immediately after consuming a comment --
+    so when the item FOLLOWING the last Local was itself a comment, the
+    transition check was never reached at all. Fixed by moving the
+    transition check to run BEFORE the comment branches instead of after.
+
+    (b) **`Component XmlDoc &var;` never allocated its implicit
+    PACKAGE/XMLDOC dependency row**, the same class of gap fix #14 (an
+    earlier session) already found and fixed for `Component Rowset
+    &var;`, and fix #25 found for `Local ApiObject &var;` -- `XmlDoc` was
+    simply never added to `componentDeclaration()`'s dispatch (which only
+    handled `Record` and `Rowset`). Fixed by adding an `XmlDoc` branch
+    calling `ensureLocalObjectPackageReference('XMLDOC', 'XmlDoc')`, only
+    for `XmlDoc` (the evidenced type) -- Row/SQL/File/ApiObject/XmlNode
+    Component declarations are unconfirmed and left alone.
+
+    (c) **A `rem` statement's trailing `space()` call ate the blank line
+    before the NEXT item (a `End-Function;` in this case).** Root cause:
+    `remComment()` consumes its own trailing `;` as part of matching the
+    rest of its source line (unlike an ordinary statement, whose `;` is
+    still ahead of `pos` when the generic post-statement `space()` call
+    runs -- that call exists specifically to skip whitespace BEFORE an
+    ordinary statement's still-unconsumed semicolon). Calling the SAME
+    `space()` unconditionally after a rem statement therefore skipped
+    past a genuine blank line the next loop iteration (or the dedicated
+    blank-line-before-End-Function check) needed intact:
+
+    ```
+    rem &xmldoc = GetArchPubHeaderXmlDoc(..., &xmlsegmentindex);
+
+    End-Function;
+    ```
+
+    Fixed by only calling that `space()` (and the semicolon/End-Function
+    check it guards) for non-rem statements, since a rem statement never
+    needs either. (encoder.ts: `functionStatement()`'s body loop for (a)
+    and (c); `componentDeclaration()` for (b).)
+
+    Verified: `tsc`/`npm test` clean, `corpus:verify --limit 430` PASS
+    (430/430, no regression, first attempt). Spot-checked 634 (also
+    touches Function-body blank-line machinery), 924 and 921 (both touch
+    the parameter/declaration PACKAGE-dependency machinery), and 871
+    (pre-existing UNKNOWN_MISMATCH) — all unaffected.
+
+    In passing: definition 936 (AMM_ARCHIVE_WK.XML2_PB.FieldChange, same
+    `Component XmlDoc &xmldoc;` file) was found already EXACT when checked
+    as a fresh candidate right after this fix — resolved as a side effect.
+
+31. **definition_id 937** (AMM_ARCHIVE_WK.XML3_PB.FieldChange),
+    UNKNOWN_MISMATCH, body diff @275, size delta +2 bytes -> now EXACT.
+
+    Root cause: `remComment()`'s "immediately-consecutive REM lines
+    merge into one comment token" rule (calibrated in an earlier session
+    against definition 964, see fix history above) merged UNCONDITIONALLY
+    -- any run of consecutive `REM`-led lines with no blank line between
+    them, regardless of whether each one already had its own terminating
+    `;`. Definition 937 disproves the unconditional version directly:
+
+    ```
+    rem AMM_DERIVED.MSGNAME = PSAPMSGARCHSC.MSGNAME;
+    rem AMM_DERIVED.SUBNAME = PSAPMSGARCHSC.SUBNAME;
+    rem AMM_DERIVED.APMSGVER = PSAPMSGARCHSC.APMSGVER;
+    ```
+
+    Each of these three lines closes with its own `;`, so each is already
+    a syntactically complete rem statement -- stored has THREE separate
+    0x24 records (96, 96, and 100 bytes: exact UTF-16LE lengths of each
+    line alone), not one 296-byte merged record. Reconciled with
+    definition 964's original evidence (`rem PSCHNLDEFN is a deprecated
+    table in PT 8.48 and above.` / `rem SQLExec(...);` -- the FIRST line
+    has no `;` of its own, a genuine multi-line continuation, so it DOES
+    need to merge with the second) by changing the merge-loop's condition
+    from "always keep merging while the next line starts with REM" to
+    "keep merging only while the accumulated text does NOT yet end in
+    `;`" -- i.e. merge is for completing an unterminated continuation, not
+    for combining separately-complete rem statements. Both definitions'
+    evidence now hold simultaneously under the single narrower rule.
+    (encoder.ts, `remComment()`'s merge-loop condition.)
+
+    Verified: `tsc`/`npm test` clean, `corpus:verify --limit 430` PASS
+    (430/430, no regression, first attempt -- definition 964 itself is
+    NOT in the protected set). Re-checked definition 964 directly: its
+    `source→bin` stays EXACT (confirming the merge itself is still
+    correct there); its `roundtrip` MISMATCH is the ALREADY-DOCUMENTED,
+    pre-existing decoder-only bug noted earlier in this file ("definition
+    964's decoded source has an *extra* blank line... out of scope for an
+    encoder change") — unrelated to and unaffected by this fix, not a new
+    regression.
+
+32. **definition_id 942** (AMM_DERIVED.AMM_CANCEL_M.FieldChange),
+    UNKNOWN_MISMATCH, body diff @248 (one missing 0x4F, size delta 2
+    bytes) -> now EXACT.
+
+    Root cause: the blank-line-marker handling for a transition BETWEEN
+    two top-level declaration statements that both stay inside the same
+    open declaration section (`Component`/`Global`/`Declare Function`
+    followed by another one of the same three, per the trigger regex) was
+    hardcoded to push exactly one `0x4F` (`chunks.push(Buffer.from([0x4f]))`)
+    whenever any blank line was present, unlike every other blank-line
+    marker site in this file, which scales via `Math.max(1, newlineCount -
+    1)`. Source:
+
+    ```
+    Declare Function LoadSubChannelPubHdr PeopleCode AMM_WORK.FUNCLIB FieldFormula;
+
+
+    Component boolean &msg_refreshed;
+    ```
+
+    Two blank lines here correctly need two 0x4F markers, not one. Fixed
+    by applying the same multiplicity formula already used everywhere
+    else. (encoder.ts, the top-level declaration-to-declaration blank-line
+    marker block.)
+
+    Verified: `tsc`/`npm test` clean, `corpus:verify --limit 430` PASS
+    (430/430, no regression, first attempt).
+
+33. **definition_id 945** (AMM_DERIVED.AMM_COLLAPSE_ALL.FieldChange),
+    UNKNOWN_MISMATCH, body diff @107 (one missing 0x4F entirely, not just
+    a multiplicity shortfall) -> now EXACT.
+
+    Root cause: fix #32's declaration-to-declaration blank-line trigger
+    regex (`Component|Global|Declare Function`) was itself incomplete --
+    `isTopLevelDeclaration`'s own full set is `Global|PanelGroup|
+    Component|Constant|Declare Function`, and `PanelGroup` was simply
+    missing from the marker-block's trigger. Source:
+
+    ```
+    Declare Function CollapseTreeRows PeopleCode AMM_TREE_WS.TREE_LEVEL_NUM FieldFormula;
+
+    PanelGroup number &CurrentTreeRow;
+    ```
+
+    One blank line here got NO marker at all (not a multiplicity bug like
+    fix #32 -- the block never triggered for `PanelGroup` in the first
+    place). Fixed by adding `PanelGroup` to the trigger regex. `Constant`
+    remains unconfirmed by any corpus evidence and was deliberately left
+    off. (encoder.ts, the same block fix #32 touched.)
+
+    Verified: `tsc`/`npm test` clean, `corpus:verify --limit 430` PASS
+    (430/430, no regression, first attempt). Definition 946 (same file,
+    same pattern) also found already-EXACT as a side effect.
+
+34. **DECODER fix** (`src/peoplecode/decoder.ts`, not encoder.ts) --
+    **definition_id 954** (AMM_DERIVED.AMM_VIEW_P.FieldChange),
+    UNKNOWN_MISMATCH via `roundtrip MISMATCH` only (`source→bin` was
+    already EXACT) -> now EXACT. This is the dedicated decoder
+    investigation flagged earlier in this file's "Identified, not yet
+    fixed" notes for definitions 964/1406/940, finally undertaken because
+    the SAME pattern kept recurring (three corroborating instances before
+    this fix: 940, 964, and a near-identical 953) -- high enough leverage
+    to justify stepping outside this session's otherwise encoder-only
+    focus.
+
+    Root cause: `PanelGroup` declarations compile with opcode `0x51` (see
+    encoder.ts's own "PanelGroup declarations use opcode 0x51" comment),
+    but decoder.ts's `followsDeclaration` detection (the flag that
+    suppresses a REDUNDANT extra blank line when a 0x2D declaration-
+    section-close boundary is immediately followed by a 0x4F blank-line
+    marker) only checked opcodes `0x44, 0x45, 0x54, 0x56, 0x31, 0x58` --
+    `0x51` was missing entirely. Source:
+
+    ```
+    PanelGroup boolean &ErrorClicked;
+    PanelGroup string &strErrorLoc;
+
+    &ErrorClicked = True;
+    ```
+
+    decoded to TWO blank lines before `&ErrorClicked = True;` instead of
+    one: the 0x2D boundary's own newline rendered unsuppressed (since
+    `redundantStructuralBoundary` requires `followsDeclaration`), stacking
+    on top of the 0x4F marker's own blank line. Fixed by adding `0x51` to
+    the opcode list. (decoder.ts, the `followsDeclaration` detection
+    block, ~line 1904.)
+
+    Verified: `tsc`/`npm test` clean, `corpus:verify --limit 430` PASS
+    (430/430, no regression, first attempt). Directly re-checked all
+    three corroborating instances: 940, 953, and 964 are now ALL EXACT
+    too (four definitions resolved by one decoder fix). Definition 1406
+    (the fourth previously-noted decoder-bug citation) re-checked and
+    confirmed UNAFFECTED and NOT fixed by this change — its own
+    `source→bin`/`roundtrip` were already EXACT before and after; its
+    remaining `DECODE_SOURCE_MISMATCH` is a genuinely separate,
+    still-open decoder rendering gap (unrelated to the PanelGroup opcode
+    issue). A random 40-definition sample of the broader UNKNOWN_MISMATCH
+    family found 0 additional definitions resolved by this fix,
+    confirming it is narrowly scoped to the PanelGroup-specific pattern,
+    not some larger hidden multiplier — consistent with the
+    `corpus:failures --summary` re-scan showing EXACT moving by exactly
+    +4 (940, 953, 954, 964), matching the four directly-verified
+    definitions precisely. Note: a FOLLOW-UP re-scan a short while later
+    (after continuing to the next `UNKNOWN_MISMATCH` targets, all in the
+    same AMM_DERIVED source-file cluster as 940/953/954/964) found THREE
+    MORE definitions from this same file resolved as side effects (958,
+    963, 966) that the random sample happened to miss — PanelGroup usage
+    clusters heavily within specific source files, so sampling by
+    sequential offset within an affected file's neighborhood found more
+    wins than the random sample suggested. Total confirmed resolved by
+    fix #34: at least 7 definitions (940, 953, 954, 958, 963, 964, 966).
+
+35. **definition_id 1046** (AMM_FILTER.IB_DIRECTION.FieldFormula),
+    UNKNOWN_MISMATCH, body diff @610 -> now EXACT via two combined fixes,
+    the SAME two-part pattern fix #25 already established for ApiObject,
+    this time for a different object-declaration type, `Grid`:
+
+    (a) **`Grid` missing from `typeName()`'s object-declaration-type
+    list** (first diff @610, a single opcode byte: stored `0x0A` vs
+    generated `0x40` right before the literal type-name text `Grid`).
+    Source: `Local Grid &GRID, &GRID2;`. Fixed by adding `Grid` to the
+    same regex fix #25 added `ApiObject` to.
+
+    (b) **`Grid`'s implicit PACKAGE dependency row was never allocated**
+    (next diff @738, a reference-index off-by-one, identical shape to
+    fix #25's second sub-fix). Fixed by adding a `Grid` branch to
+    `localDeclaration()`'s dispatch, calling
+    `ensureLocalObjectPackageReference('GRID', 'Grid')`, mirroring the
+    `ApiObject` branch exactly. (encoder.ts: `typeName()` for (a);
+    `localDeclaration()`'s type dispatch for (b).)
+
+    Verified: `tsc`/`npm test` clean, `corpus:verify --limit 430` PASS
+    (430/430, no regression, first attempt). Spot-checked 772, 921, 924
+    (all still EXACT — same `ensureLocalObjectPackageReference` mechanism).
+
+    In passing: the huge decoder-fix #34 impact continued to surface —
+    checking a batch of fresh `UNKNOWN_MISMATCH` candidates in the same
+    corpus neighborhood found definitions 1061, 1062, 1081, and ALL
+    FOURTEEN of 1083-1097 (the entire AMM_TREE_WS FieldChange cluster)
+    already EXACT, none requiring further work. A `corpus:failures
+    --summary` re-scan confirmed EXACT moved from 21209 to 21228 (+19)
+    purely from this neighborhood — PanelGroup-declaration usage clusters
+    heavily by source file, so a random sample undercounts fix #34's true
+    reach; sequential-offset sampling within an affected file's
+    neighborhood is a better way to gauge a systemic decoder fix's
+    impact. Definition 1066 (AMM_STATISTICS.AMM_CHART_BTN.FieldFormula)
+    was checked and skipped: a genuinely large, complex definition
+    (66767 stored bytes, 417+ PSPCMNAME entries, 7606-byte size
+    mismatch) unlikely to be a quick single-rule fix — not investigated
+    further, not marked locally blocked, just deprioritized in favor of
+    smaller targets.
+
+36. **definition_id 1128** (ANALYSIS_DB_DIM.DIMENSION_ID.FieldEdit),
+    UNKNOWN_MISMATCH, body diff @841 (single reference-index byte) -> now
+    EXACT.
+
+    Root cause: `FetchValue` had its OWN separate, narrower Record.X
+    reuse mechanism (`reuseFetchValueRecord`, a distinct cache from the
+    main control-group reuse pool) but was never added to the PRIMARY
+    `reuseRecordReferenceWithinControlGroup` trigger list that GetRecord/
+    ActiveRowCount/DeleteRow/etc already share. Source:
+
+    ```
+    &N_AGG_COUNT = ActiveRowCount(ANALYSIS_DB.ANALYSIS_DB_ID, &N_INST_ID, Record.CUBE_AGG_DEF);
+    For &N_AGG_NUM = 1 To &N_AGG_COUNT
+       ... Record.CUBE_AGG_DEF, &N_AGG_NUM, Record.CUBE_AGG_DIM);
+       For &N_AGG_DIM_NUM = 1 To &N_AGG_DIM_COUNT
+          &S_AGG_DIM_ID = FetchValue(ANALYSIS_DB.ANALYSIS_DB_ID, &N_INST_ID, Record.CUBE_AGG_DEF, &N_AGG_NUM, CUBE_AGG_DIM.DIMENSION_ID, &N_AGG_DIM_NUM);
+    ```
+
+    FetchValue's own `Record.CUBE_AGG_DEF` argument (its third,
+    reference-traced occurrence in this control group) should reuse the
+    exact PSPCMNAME row the earlier `ActiveRowCount` calls already
+    established, but `reuseFetchValueRecord`'s own separate cache never
+    saw that row (it isn't shared with the general control-group pool),
+    so it allocated a fresh, wrong one. Fixed by adding `FetchValue` to
+    the primary trigger list too, alongside its existing narrower
+    mechanism (left untouched, still available as a fallback via the
+    priority chain for whatever case originally motivated it). (encoder.ts,
+    the `call()` function's Record.X reuse-flag block, same one fix #26
+    and fix #27 touched.)
+
+    Verified: `tsc`/`npm test` clean, `corpus:verify --limit 430` PASS
+    (430/430, no regression, first attempt). Spot-checked 808 and 840
+    (both still EXACT — same control-group reuse-flag block).
+
+37. **definition_id 1145** (ANALYSIS_DB_WRK.BASE_CUBE_INST_ID.FieldChange),
+    UNKNOWN_MISMATCH, body diff @1428 (two adjacent reference-index bytes,
+    same-call-repeated-argument shape) -> now EXACT on the first attempt
+    (no isolation needed this time, unlike fix #27's own two-step
+    discovery of the underlying mechanism).
+
+    Root cause: `RowScrollSelectNew` -- a distinct but closely related
+    function name from `RowScrollSelect` (fix #27) -- needed the exact
+    same same-call-only Record.X reuse rule, and the trigger check was an
+    exact-match regex (`/^RowScrollSelect$/i`) that didn't recognize it.
+    Source:
+
+    ```
+    RowScrollSelectNew(1, Record.ANALYSIS_DB_DIM, Record.ANALYSIS_DB_DIM, "...", ANALYSIS_DB.BASE_CUBE_INST_ID);
+    ```
+
+    Both `Record.ANALYSIS_DB_DIM` arguments, in the same call, reuse one
+    PSPCMNAME row in stored; generated allocated two fresh ones. Fixed by
+    widening the regex to `/^RowScrollSelect(?:New)?$/i`, reusing fix
+    #27's entire `reuseRecordReferenceWithinCallArguments` /
+    `participatingRecordReferencesByControlGroup` machinery unchanged --
+    no new mechanism needed, just recognizing the second name. (encoder.ts,
+    the `call()` function's `RowScrollSelect` dispatch.)
+
+    Verified: `tsc`/`npm test` clean, `corpus:verify --limit 430` PASS
+    (430/430, no regression, first attempt). Spot-checked 840 and 27
+    (both still EXACT — the exact two definitions fix #27's own
+    regression-isolation trace was built around).
+
+38. **definition_id 1152** (ANALYSIS_DB_WRK.PB_OPEN_ANL_MODEL.FieldChange),
+    UNKNOWN_MISMATCH, body diff @612 (single reference-index byte) -> now
+    EXACT on the first attempt.
+
+    Root cause: `DoModalPanelGroup` was missing from the shared
+    control-group Record.X reuse trigger list (the same list fixes #18,
+    #26, #36 already extended). Source:
+
+    ```
+    If ANALYSIS_DB_WRK.BASE_CUBE_TYPE = "D" Then
+       ...
+       DoModalPanelGroup(..., Panel.CUBE_DEF, &S_MODE, Record.ANALYSIS_DB_WRK);
+    Else
+       If ANALYSIS_DB_WRK.BASE_CUBE_TYPE = "I" Then
+          ...
+          DoModalPanelGroup(..., Panel.ANALYSIS_DB, "U", Record.ANALYSIS_DB_WRK);
+       End-If;
+    End-If;
+    ```
+
+    Both `DoModalPanelGroup` calls' own `Record.ANALYSIS_DB_WRK` argument
+    (one in the outer If's body, one in a nested If inside its Else body
+    -- still the same top-level control group, since the nested If is
+    not itself a fresh top-level control structure) reuse ONE PSPCMNAME
+    RECORD row in stored; generated allocated a second, fresh one for the
+    nested call. Fixed by adding `DoModalPanelGroup` to the trigger list.
+    (encoder.ts, the same `call()` Record.X reuse-flag block fixes #18,
+    #26, #36 already extended.)
+
+    Verified: `tsc`/`npm test` clean, `corpus:verify --limit 430` PASS
+    (430/430, no regression, first attempt). Spot-checked 1128 and 1145
+    (both still EXACT — same reuse-flag block).
+
+## Session fixes (2026-09-24, /goal resume continued), all in
+## src/peoplecode/encoder.ts unless noted
+
+39. **definition_id 1187** (ANL_MOD_DIM_FLD.COMPONENT_NBR.RowDelete), was
+    UNKNOWN_MISMATCH -> now EXACT. Same failure shape as fixes #18/#26/#36:
+    `SortScroll`'s own Record.X argument was missing from the shared
+    control-group Record.X reuse-checking function list:
+
+    ```
+    If %Panel = Panel.CUBE_INPUT_FLD Then
+       &I_COMP_COUNT = ActiveRowCount(Record.ANL_MOD_DIM_FLD);
+       ...
+       For &I_COMP_NUM = ... To &I_COMP_COUNT
+          UpdateValue(ANL_MOD_DIM_FLD.COMPONENT_NBR, &I_COMP_NUM, &I_COMP_NUM - 1);
+       End-For;
+       SortScroll(1, Record.ANL_MOD_DIM_FLD, ANL_MOD_DIM_FLD.COMPONENT_NBR, "A");
+    End-If;
+    ```
+
+    `SortScroll`'s own Record.ANL_MOD_DIM_FLD argument (after the nested
+    For loop closes, control returns to the enclosing If-body group) reuses
+    the ActiveRowCount call's earlier row. Added `SortScroll` to the
+    trigger regex. Six definitions resolved as pure side effects while
+    batch-checking nearby offsets in the same family: 1178, 1179, 1180,
+    1181, 1182, 1266 (all AN_MOD_DIM*, already EXACT from earlier fixes'
+    broader reach before this fix specifically, confirmed by direct
+    re-run, not assumed).
+
+40. **definition_id 1236** (ARCH_OTH_CTRL.RECNAME1.FieldChange), was
+    UNKNOWN_MISMATCH -> now EXACT (after fixes #40/#43/#44/#45/#46 below,
+    landed together as one investigation thread on this single definition
+    and its siblings 1283/840/30/95 -- listed as separate numbered fixes
+    because each is a distinct, separately evidenced rule, not because
+    they were separately gated). First sub-fix: `ScrollFlush`'s own
+    Record.X argument was ALSO missing from the same reuse-checking list
+    (same shape as fix #39):
+
+    ```
+    &L = ActiveRowCount(Record.ARCH_TBL, &I, Record.ARCH_OTH_CTRL);
+    ...
+    If &EXIST <> "X" Then
+       ScrollFlush(Record.ARCH_TBL, &I, Record.ARCH_KEYFLD_VW2);
+       ...
+       RowScrollSelect(2, Record.ARCH_TBL, ...);
+       &P = ActiveRowCount(Record.ARCH_TBL, &I, Record.ARCH_COMMON_KEY);
+       ...
+       ScrollFlush(Record.ARCH_TBL, &I, Record.ARCH_KEYFLD_VW2);
+    End-If;
+    ```
+
+    Added `ScrollFlush` to the trigger regex. This alone made 1236 EXACT
+    and passed `corpus:verify --limit 430` (430/430) on its FIRST attempt
+    -- but a targeted follow-up check of definition 840 (AE_UPGCONV_WRK.
+    AE_REFRESH.FieldChange, a previously-EXACT definition from an earlier
+    session, NOT in the --limit 430 protected window) found it freshly
+    broken (EXACT -> UNKNOWN_MISMATCH). See fix #43 for the root cause and
+    repair. Definition_id 1265 (ARCH_TBL.RECNAME.FieldChange) resolved as
+    a pure side effect of this same fix.
+
+41. **definition_id 1257** (ARCH_SQL_LNG.ARCH_SQL.SavePostChange), was
+    UNKNOWN_MISMATCH -> now EXACT. Declaration-section closing logic gap:
+    a standalone block comment following a Local declaration, itself
+    followed by ANOTHER top-level declaration (Global/PanelGroup/
+    Component/Constant/Declare Function/import) rather than by executable
+    code or another Local, was wrongly closing the leading-Local-run
+    boundary (emitting a spurious 0x2D) right before the comment:
+
+    ```
+    Local Record &REC;
+    /* global strings defined in ARCH_SQL_LNG.ARCH_SQL.FieldChange */
+    Global string &AUDIT_ID, &AUDIT_RECNAME, &AUDIT_PROCESS, &AUDIT_STRING;
+    Global boolean &AUDIT_THIS;
+
+    If (...) Then
+    ```
+
+    stores NO 0x2D before the comment -- the whole declaration section
+    (Local + both Globals) closes as ONE unit right before `If`, via the
+    separate `sawTopLevelDeclaration`/`closedTopLevelDeclarationSection`
+    mechanism. The comment-branch closing check (encoder.ts, inside the
+    `source.startsWith('/*', pos)` top-level-loop branch) was missing the
+    equivalent `!nextIsTopLevelDeclaration && !nextIsImport` exclusion
+    that the analogous NON-comment transition check (a few hundred lines
+    later, `leadingLocalRun && !isLocalDeclaration`) already had. Added
+    the same exclusion; `leadingLocalRun` still ends either way, matching
+    the non-comment path's behavior exactly.
+
+42. **definition_id 1283** (ARCH_WRK.PSARCH_COPY_ROWS.FieldChange), was
+    UNKNOWN_MISMATCH -> now EXACT after FOUR further sub-fixes on top of
+    #40 (fixes #43-46), each moving the first diff further before it
+    finally went EXACT -- progress-not-completion applied repeatedly on
+    one definition, not stopped at the first improvement. First sub-fix:
+    plain `ScrollSelect` (no leading "Row") was bulk-added to the SAME
+    "GetSetId/Gray/UnGray" GLOBAL by-name reuse list years ago with no
+    citation of its own -- the exact same mis-citation pattern the
+    RowScrollSelect-vs-definition-840 comment already documents for
+    RowScrollSelect. Disproven directly:
+
+    ```
+    ScrollFlush(Record.ARCH_CTRL_VW2);
+    ...
+    ScrollSelect(1, Record.ARCH_CTRL_VW2, Record.ARCH_CTRL_VW2, &WHERE, &ARCHIVE_ID, &PARENT_TBL);
+    ```
+
+    ScrollFlush's own Record.ARCH_CTRL_VW2 allocates its own row.
+    ScrollSelect's own two Record.ARCH_CTRL_VW2 arguments do NOT reuse it
+    (stored allocates a fresh row) but DO reuse each other within the same
+    call. Moved `ScrollSelect` from `reuseRecordReferenceByName` to
+    `reuseRecordReferenceWithinCallArguments`, mirroring RowScrollSelect
+    (same trigger regex, widened to `(?:RowScrollSelect(?:New)?|ScrollSelect)`).
+
+43. **Regression caught and repaired** (definition_id 840, AE_UPGCONV_WRK.
+    AE_REFRESH.FieldChange, a previously-EXACT definition from an earlier
+    session, outside the --limit 430 protected window -- caught by
+    deliberately re-testing every definition a shared-helper change could
+    plausibly touch, not by the --limit 430 gate itself, which would have
+    missed it). Root cause: fix #40 made `ScrollFlush` reuse-participating
+    for its OWN Record.X argument, but `reuseRecordReferenceWithinControlGroup`
+    (governing whether a call CHECKS the reuse cache before allocating)
+    and marking a fresh allocation as "participating" (visible to a LATER
+    RowScrollSelect/ScrollSelect call, via `participatingRecordReferencesByControlGroup`)
+    had always been the SAME boolean. Definition 840 disproves that they
+    must be the same:
+
+    ```
+    ScrollFlush(Record.MESSAGE_LOG);
+    RowScrollSelect(1, Record.MESSAGE_LOG, Record.MESSAGE_LOG, "...", &PI);
+    ```
+
+    ScrollFlush's OWN fresh Record.MESSAGE_LOG allocation must NOT become
+    visible to the following RowScrollSelect call (which must allocate its
+    OWN fresh row, reusing only its own two arguments with each other) --
+    contradicting definition 1236's evidence (fix #40) that ScrollFlush's
+    OWN fresh allocation SHOULD be visible to a later RowScrollSelect in
+    that construct. Split the single boolean into two: kept
+    `reuseRecordReferenceWithinControlGroup` governing the READ (unchanged
+    trigger list, still includes ScrollFlush), and introduced a new
+    `marksControlGroupParticipant` governing the WRITE into
+    `participatingRecordReferencesByControlGroup`, with its own,
+    independently evidenced trigger list. Wired identically at both call
+    sites that set the original flag (the general bare-call argument
+    parser and the postfix `.GetRecord(...)/.Select(...)` method-call
+    handler), including save/restore in each site's own `finally` block.
+
+44. Landed alongside #43: the READ/WRITE split alone was not enough --
+    ScrollFlush's participating status ITSELF turned out to depend on
+    argument COUNT, not just the call name. Definition 840's ScrollFlush
+    has ONE argument; definition 1236/1283's ScrollFlush has THREE
+    (`Record.Parent, &row, Record.Child`). Re-testing 1236/1283 after the
+    #43 split (with ScrollFlush's trigger simply removed from
+    `marksControlGroupParticipant`) reintroduced the ORIGINAL bug they
+    were fixed for. Added a small in-`call()` lookahead
+    (`isMultiArgScrollFlushCall`, a balanced-paren/quote-aware top-level
+    comma scan from the call's own `(`) that sets
+    `marksControlGroupParticipant = true` for the WHOLE call only when
+    ScrollFlush has 2+ arguments -- both definition 1236/1283's parent
+    AND child Record.X arguments end up marked participating in that
+    case (not just the child/last one -- an earlier, narrower "only the
+    3rd argument onward" hypothesis was tried and DISPROVEN by 1283's own
+    later diff, where RowScrollSelect's FIRST/parent-position argument
+    also needed to reuse ScrollFlush's row), while the single-argument
+    form (840) stays excluded entirely.
+
+45. `Hide`/`UnHide` (distinct functions from `HideScroll`/`UnhideScroll` --
+    field-level, not scroll-level) were entirely missing from BOTH the
+    `reuseRecordReferenceWithinControlGroup` and `marksControlGroupParticipant`
+    trigger lists. Definition 1283:
+
+    ```
+    Hide(Record.ARCH_TBL, &I, ARCH_OTH_CTRL.PSARCH_MATCHVAL1, &SEQ);
+    UnHide(Record.ARCH_TBL, &I, ARCH_OTH_CTRL.PSARCH_MATCHDT1, &SEQ);
+    ```
+
+    repeated several times reuse one control-group Record.ARCH_TBL row
+    rather than each allocating fresh. Added both names to both trigger
+    lists (no ScrollFlush-style argument-count exception evidenced or
+    needed for these two).
+
+46. `Gray`/`UnGray` were ALREADY on the GLOBAL `reuseRecordReferenceByName`
+    list (bulk-added alongside GetSetId, no citation of their own -- same
+    pattern as fix #42's ScrollSelect finding) but needed the NARROWER
+    control-group-scoped check to run FIRST for their own explicit
+    `Record.X` argument form. Definition 1283:
+
+    ```
+    ScrollFlush(Record.ARCH_TBL, &I, Record.ARCH_KEYFLD_VW2);
+    ...
+    Gray(Record.ARCH_TBL, &I, ARCH_OTH_CTRL.PSARCH_MATCHVAL1, &SEQ);
+    ```
+
+    Gray's own Record.ARCH_TBL argument needed to reuse ScrollFlush's
+    control-group row, not the very first ARCH_TBL reference anywhere in
+    the program (which is all the global by-name rule alone could find).
+    Added `Gray`/`UnGray` to BOTH the `reuseRecordReferenceWithinControlGroup`
+    and `marksControlGroupParticipant` lists -- since the control-group
+    check runs strictly before the by-name check in `recordReference()`'s
+    priority order, this only takes priority when a control-group
+    establishment actually exists, and does not remove or override
+    whatever the global by-name behavior was originally validated for.
+    Definition 1283 went EXACT after this (fixes #42/#44/#45/#46 combined).
+
+47. **Regression caught and repaired** (definition_ids 30 and 95, both
+    protected-baseline, caught by the routine post-fix
+    `corpus:verify --limit 430` gate itself: FAIL, both EXACT ->
+    UNKNOWN_MISMATCH). Root cause: fix #42 moved `ScrollSelect` to
+    same-call-only reuse (`reuseRecordReferenceWithinCallArguments`,
+    reset fresh per call), but definition 30 (ABSENCE_HIST.ABSENCE_TYPE.
+    RowInit) has TWO TEXTUALLY IDENTICAL `ScrollSelect` calls in the SAME
+    control group, each in its own `If Not RecordNew(...) Then ...
+    End-If;`:
+
+    ```
+    ScrollSelect(2, Record.ABSENCE_HIST, Record.ABS_HIST_DET, Record.ABS_HIST_DET, "...", ...);
+    ...
+    ScrollSelect(2, Record.ABSENCE_HIST, Record.ABS_HIST_DET, Record.ABS_HIST_DET, "...", ...);
+    ```
+
+    The SECOND call's Record.ABSENCE_HIST/Record.ABS_HIST_DET arguments
+    reuse the FIRST call's own rows entirely (cross-call, not merely
+    within-call) -- unlike RowScrollSelect (no such cross-call evidence
+    either way for it). Added `ScrollSelect` (only -- not RowScrollSelect,
+    unevidenced) to `marksControlGroupParticipant`, so its own fresh
+    allocations become visible to a LATER ScrollSelect call via
+    `participatingRecordReferencesByControlGroup`. Verified this does not
+    reopen fix #42's own 1283 case: a single-argument ScrollFlush call
+    still does not mark participating (fix #44's argument-count guard),
+    so a ScrollSelect immediately following it still finds nothing and
+    allocates fresh, exactly as 1283 requires. All of 30, 95, 840, 1187,
+    1236, 1257, 1265, 1283 re-verified EXACT together after this fix;
+    `corpus:verify --limit 430` 430/430; `tsc`/`npm test` (456/1) clean.
+
+48. **definition_id 1549** (BAS_ENR_RUNCTL.PASSIVE_EVENT_IND.FieldChange),
+    was UNKNOWN_MISMATCH -> now EXACT. `HideRow` (distinct from
+    `HideScroll`/`UnhideRow`, both already on the list, but the plain
+    `HideRow` counterpart was missing entirely) was added to the Record.X
+    control-group reuse-checking function list (same failure shape as fix
+    #18 -- its own unconditional fresh allocation was silently overwriting
+    the shared control-group cache entry):
+
+    ```
+    DeleteRow(Record.BAS_ENR_PASSIVE, &I);
+    ...
+    HideRow(Record.BAS_ENR_PASSIVE, 1);
+    ...
+    UnhideRow(Record.BAS_ENR_PASSIVE, 1);
+    ```
+
+    `corpus:verify --limit 430` PASS (430/430, first attempt); `npm test`
+    clean.
+
+49. **definition_id 1627** (a Function-body construct in the
+    FUNCLIB_BAS_PAR/BAS_PAR_VW family), was UNKNOWN_MISMATCH -> now EXACT.
+    `FetchValue` was missing from the Scroll.X control-group reuse list
+    (it already had the analogous Record.X list membership from an
+    earlier session):
+
+    ```
+    &BENRCD = FetchValue(Scroll.BAS_PAR_VW, &I, BAS_PAR_VW.BENEFIT_RCD_NBR);
+    &EVENT_ID = FetchValue(Scroll.BAS_PAR_VW, &I, BAS_PAR_VW.EVENT_ID);
+    ```
+
+    The second call's own Scroll.BAS_PAR_VW argument reuses the first's.
+    `corpus:verify --limit 430` PASS (430/430, first attempt); `npm test`
+    clean.
+
+50. **definition_id 1643** (BAS_PARTIC_PLAN.ANNUAL_PLEDGE.SaveEdit), was
+    UNKNOWN_MISMATCH -> now source→bin EXACT (overall classification still
+    non-EXACT; remaining gap is a separate, pre-existing DECODER-side
+    comment-classification issue, out of scope for an encoder fix -- see
+    below). A blank line separating `And`/`Or` from its next operand,
+    inside a multi-line boolean condition, had NO blank-line-marker (0x4F)
+    handling at all -- unlike every other calibrated boundary in this
+    file:
+
+    ```
+    If None(&RSLT) And
+
+          All(&PLEDGE) Then
+    ```
+
+    stores one 0x4F between the `And` keyword and `All(&PLEDGE)`. Fixed
+    in `andExpression()`'s while loop (the directly-evidenced case) and
+    mirrored symmetrically in `booleanExpression()`'s Or-loop (same code
+    shape, not separately evidenced, following the same-pattern precedent
+    fix #7 already used for this file's inline-comment case). Verified
+    `source→bin EXACT` (the strongest tier) for definition 1643 after this
+    fix -- the remaining `roundtrip MISMATCH` is a decoder inline-vs-
+    standalone comment rendering gap (0x4E vs 0x24) unrelated to this fix,
+    matching the already-documented decoder gaps for definitions 964/1406;
+    not investigated further here per the encoder/decoder separation rule.
+    `corpus:verify --limit 430` PASS (430/430, first attempt); `npm test`
+    clean.
+
+51. **definition_id 1749** (BENEF_PB_WRK.ODEM_SCHED_ACTY_PB.FieldDefault),
+    was UNKNOWN_MISMATCH, first diff @153 -> advanced substantially (now
+    @717, past two distinct real bugs) but NOT fully EXACT -- a further,
+    distinct issue remains (see "Identified, not yet fixed" below).
+    `ProcessRequest` was an entirely missing object-declaration type, the
+    same class of gap as ApiObject (fix #25)/Grid (fix #35): (a) missing
+    from `typeName()`'s inline-name-opcode list (`Local ProcessRequest
+    &RQST;` was encoding its type as the generic `0x40` keyword introducer
+    instead of the calibrated `0x0A` inline-name one), and (b) missing its
+    own implicit PACKAGE/PROCESSREQUEST dependency-row allocation. Both
+    confirmed correct by direct comparison against definition 1749's own
+    stored PSPCMNAME dump (NAMENUM 3 = PACKAGE/PROCESSREQUEST, NAMENUM 4 =
+    PACKAGE/RECORD, both exactly matching after the fix). `corpus:verify
+    --limit 430` PASS (430/430); `npm test` clean; spot-checked 840, 1283,
+    30, 95 (all still EXACT, unaffected by this declaration-only change).
+
 ## Identified, not yet fixed (deferred, NOT locally blocked — evidence
 ## gathering is incomplete, not exhausted)
 
@@ -750,6 +2120,109 @@ surfacing this session, all with the same *symptom* (byte-identical
 program size, single reference-index operand differs) but apparently
 different *root causes*. Do not assume a fix for one covers the others —
 treat each as its own narrow investigation, per the evidence rule.
+
+### definition_id 1749 remaining issue: a THIRD, contradictory
+### ScrollFlush-then-ScrollSelect/RowScrollSelect data point
+
+After fix #51's two real bug fixes, definition 1749's first diff moved to
+byte 717: `ScrollFlush(Record.BAS_MESSAGE); ScrollFlush(Record.
+BAS_PAR_ONDM_VW); ScrollSelect(1, Record.BAS_PAR_ONDM_VW, Record.
+BAS_PAR_ONDM_VW);` (all in the same control group, confirmed via
+`--trace-refs`). Stored's `ScrollSelect` call reuses the immediately
+preceding `ScrollFlush(Record.BAS_PAR_ONDM_VW)` call's own row (NAMENUM
+11) for BOTH its own arguments. This DIRECTLY CONTRADICTS fix #44's
+established rule (`marksControlGroupParticipant` deliberately false for
+single-argument ScrollFlush), which was itself evidenced by TWO separate
+definitions:
+
+- definition_id 840 (AE_UPGCONV_WRK.AE_REFRESH.FieldChange, protected):
+  `ScrollFlush(Record.MESSAGE_LOG); RowScrollSelect(1, Record.MESSAGE_LOG,
+  Record.MESSAGE_LOG, ...);` — RowScrollSelect does NOT reuse ScrollFlush's
+  row (allocates fresh, reusing only its own two arguments with each
+  other).
+- definition_id 1283 (ARCH_WRK.PSARCH_COPY_ROWS.FieldChange): `ScrollFlush
+  (Record.ARCH_CTRL_VW2); ... ScrollSelect(1, Record.ARCH_CTRL_VW2, Record.
+  ARCH_CTRL_VW2, ...);` — same non-reuse pattern, with unrelated code
+  (a comment block, an assignment) between the two calls.
+
+The only structural difference spotted so far between 1749 (reuses) and
+1283 (does not reuse): in 1749, ScrollSelect follows its ScrollFlush
+IMMEDIATELY (no intervening statement at all), and there are TWO
+consecutive ScrollFlush calls (for BAS_MESSAGE, then BAS_PAR_ONDM_VW)
+right before it, vs. 1283/840's single ScrollFlush call with other code
+in between. Do NOT guess a "statement adjacency" or "consecutive
+ScrollFlush count" rule from this alone — that would not be a
+syntactically principled distinction PeopleTools' compiler is likely to
+make, and no other corpus example has been checked yet. This needed a
+dedicated stored-PSPCMNAME/`--trace-refs` cross-reference investigation
+(the same technique that resolved sub-puzzle A) before implementing
+anything; deliberately NOT attempted this session to avoid risking a
+regression to 840 or 1283 on a guess. Next step when resumed: search the
+local snapshot for OTHER `ScrollFlush(...); ScrollSelect(...)` /
+`ScrollFlush(...); RowScrollSelect(...)` pairs (with and without
+intervening statements, with one vs. multiple preceding ScrollFlush
+calls) to triangulate the actual distinguishing rule before writing any
+code.
+
+### definition_id 1285 (ARCH_WRK.PSARCH_COPY_TABLE.FieldChange) — CopyFields
+### general-cache visibility, deferred pending more corpus evidence
+
+Surfaced this continued session while investigating the same ARCH_WRK
+family as fixes #40/#42/#44-47. UNKNOWN_MISMATCH. First diff (before any
+work) was at byte 721: `ScrollFlush(Record.ARCH_TBL_VW); ... CopyFields(1,
+Record.ARCH_TBL, &I, 1, Record.ARCH_TBL_VW, 1);` — CopyFields' own second
+Record.ARCH_TBL_VW argument was wrongly reusing ScrollFlush's own
+single-argument establishment via the GENERAL `recordReferencesByControlGroup`
+cache (a DIFFERENT map from the `participatingRecordReferencesByControlGroup`
+one fix #43/#44 already fixed this exact asymmetry for). Confirmed via
+`git stash` that this specific failure PRE-DATES this session entirely
+(not a regression from today's fixes).
+
+Tried and DISPROVEN: a `suppressGeneralControlGroupWrite` flag, mirroring
+`marksControlGroupParticipant`'s exact single-vs-multi-argument ScrollFlush
+split, gating the GENERAL cache write the same way the participating-map
+write was gated. This moved 1285's first diff further (byte 721 -> 1175,
+past the CopyFields bug) but broke a DIFFERENT, already-EXACT sibling
+definition (1265, ARCH_TBL.RECNAME.FieldChange) in the exact same source
+file family:
+
+```
+ScrollFlush(Record.ARCH_TMP_RECNAM);
+&RT = 1;
+For &L = 1 To &ROWS
+   ...
+   &A = ActiveRowCount(Record.ARCH_TMP_RECNAM);
+```
+
+Here `ActiveRowCount`'s own Record.ARCH_TMP_RECNAM argument DOES need to
+reuse the single-argument ScrollFlush's own establishment via the GENERAL
+cache — the exact opposite of what 1285 needs from `CopyFields`. So the
+true distinguishing factor is NOT "single-arg vs multi-arg ScrollFlush"
+(that was already fully resolved by fix #44 for the PARTICIPATING map);
+it must be something about `CopyFields` specifically, or about its
+particular invocation shape here (`CopyFields(1, Record.ARCH_TBL, &I, 1,
+Record.ARCH_TBL_VW, 1)`, the single-level/6-argument form, versus the
+double-level/10-argument form used elsewhere in the SAME definition
+--`CopyFields(2, Record.ARCH_TBL, &I, Record.ARCH_CTRL, &J, 2,
+Record.ARCH_TBL_VW, 1, Record.ARCH_CTRL_VW, &J)` -- not yet distinguished
+by any test). Reverted the `suppressGeneralControlGroupWrite` mechanism
+entirely (fully removed, not left as dead code) rather than risk a
+narrower guess without more evidence. 1265, 30, 95, 840, 1236, 1283, 1187
+all reconfirmed EXACT after the revert; `corpus:verify --limit 430`
+430/430.
+
+Missing evidence: whether CopyFields' single-level form specifically (as
+opposed to CopyFields in general, or ScrollFlush in general) is the
+correct scope for a future fix; whether other single-level CopyFields
+calls elsewhere in the corpus corroborate; a stored-PSPCMNAME enumeration
+of 1285 specifically (the scratch-script technique from earlier sessions)
+to confirm the exact intended index for this ActiveRowCount rather than
+inferring from encoder trace output alone. Next step when resumed: enumerate
+stored PSPCMNAME/PSPCMPROG bytes directly for 1285, and search the corpus
+for other single-level `CopyFields(1, Record.X, ..., 1, Record.Y, ...)`
+calls immediately followed by another reuse-participating call, to
+determine whether the CopyFields-specific-suppression hypothesis holds
+before implementing it.
 
 ### Sub-puzzle A: ActiveRowCount / DeleteRow record arguments — RESOLVED
 ### this session, see fixes #11-13 above
@@ -932,21 +2405,127 @@ distinct evidence for each, per the project's explicit warning against
 collapsing distinct provenance kinds into a global cache. Fix them one at
 a time, each validated independently against the 430-gate.
 
+### definition_id 536 (ADDRESS_TYPE_VW.ADDRESS_TYPE.SaveEdit) — single-dot
+### Row-variable shorthand into a Record-typed target, deferred pending a
+### provenance-threading investigation
+
+UNKNOWN_MISMATCH, `body diff @1105`, size delta +18 bytes (generated
+longer than stored). Construct:
+
+```
+Local Row &Row_Addresses;
+Local Record &Rec_Addresses;
+...
+&Rec_Addresses = &Row_Addresses.ADDRESSES;
+```
+
+Stored encodes `.ADDRESSES` as a RECORD PSPCMNAME reference (0x4A,
+NAMENUM 9 = RECORD/ADDRESSES). The current encoder emits it as plain
+inline text instead, because `rowStartsRecordFieldChain` (the mechanism
+that puts a `Local Row &var;` variable's postfix chain into
+`expectedReferenceMember = 'record'` mode) requires **two** dotted
+identifiers to follow the Row variable (`&row.RECORD.FIELD`) — see its own
+comment: "a Row variable enters reference-member mode only when the
+source structurally has at least two dotted identifiers... This preserves
+ordinary single-member Row properties." Definition 536's case has only
+**one** dotted identifier (`.ADDRESSES`, chain ends at the `;`), so it
+never enters record mode at all and falls through to the generic
+inline-identifier fallback.
+
+**Do NOT naively relax this to "any single dot, except a short exclusion
+list of known Row state members (RowNumber/IsNew/IsDeleted/IsChanged/
+Visible/Selected), is a RECORD reference."** This was the first fix
+attempted and DISPROVEN by direct corpus evidence before it was ever
+applied to the encoder (caught in evidence-gathering, not via a
+regression-gate failure): a corpus-wide scan of every `Local Row`/
+`Component Row` declared variable's single-dot terminal (non-chained,
+non-method-call) member accesses across the full local snapshot turned up
+164 real occurrences spanning 30+ definitions, the large majority of
+which are genuine bare built-in Row/Rowset properties that must stay
+plain inline text, not references — confirmed examples found directly in
+corpus source: `ChildCount`, `RecordCount` (definition 1106,
+`&msgrow.ChildCount` / `&msgrow.RecordCount`), `DeleteEnabled`
+(definition 3691, `&susprow.DeleteEnabled`), `Style` (definition 2087).
+None of these were previously in the encoder's short exclusion list, and
+there is no reason to believe that list (or any list assembled by
+guessing from memory) is complete — the real Row/Rowset built-in property
+surface is larger than the six names the original two-dot heuristic was
+calibrated to protect against.
+
+**Missing evidence / the actual next step**: the real distinguishing
+signal in definition 536's case is almost certainly *not* about the
+member name at all, but about the enclosing statement's shape: `&Rec_
+Addresses = &Row_Addresses.ADDRESSES;` assigns the single-dot result into
+a variable already declared `Local Record &Rec_Addresses;`. A real
+built-in Row property like `ChildCount` (Number) or `Style` (String)
+could never be assigned into a Record-typed variable in valid PeopleCode,
+so "RHS is `<RowVar>.<member>` (single dot, chain-terminal, not a method
+call) AND the assignment's LHS target is a declared Record-typed
+variable" is a plausible, narrow, safely-scoped signal — but implementing
+it requires threading a hint from the assignment-statement parser (which
+already knows its own LHS target and its declared type, per DEVELOPER.md's
+documented "CreateRecord target-variable provenance" concept — find and
+reuse that existing target-variable-tracking machinery rather than
+inventing a parallel one) down into `primary()`'s postfix-chain parsing
+for the RHS, which does not currently receive any such context. This is a
+bigger, more invasive plumbing change than a single-definition fix
+warrants without first confirming (a) how the existing CreateRecord
+target-variable provenance mechanism threads its own context, to see if
+it can be reused/extended rather than duplicated, and (b) whether there
+are OTHER corpus examples of this same `<RecordVar> = <RowVar>.<single
+member>;` shape to confirm the LHS-target-type signal generalizes (only
+one example, definition 536, has been examined so far — do not implement
+against a single data point without at least attempting to find a second
+confirming or disconfirming example first, per the evidence rule).
+
+Not marked locally blocked (evidence-gathering is incomplete, not
+exhausted) — parked for a dedicated investigation session. Skipped in
+favor of continuing to the next actionable failure, per CLAUDE.md's
+completion-behavior rule ("a blocker affecting one definition is not a
+project-level blocker").
+
 ## Protected baseline
 - definitions: 430
 - exact: 430
 - regressions: 0
-- last verified: 2026-09-24 (resumed session), after fix #22 (definition
-  534, RecordDeleted/RecordChanged reuse + REM blank-line multiplicity),
-  REGRESSION GATE: PASS. Verified after every one of the 22 fixes across
-  both sessions today, 430/430 in every case except one transient FAIL
-  (429/430) during fix #16's first attempt, which was root-caused and
-  repaired within the same step before moving on — see fix #16's own
-  notes for the full isolation trace. Fix #20 also caused one transient
-  unit-test regression (caught by `npm test`, not the 430-gate, before
-  ever being considered final — see fix #20's own notes). Also
-  re-verified once immediately at session resume (before any new edits)
-  to confirm the crash left no corruption — clean.
+- last verified: 2026-09-24 (/goal resume session, continued), after fix
+  #47 (definition_ids 30/95, ScrollSelect cross-call participating fix),
+  REGRESSION GATE: PASS (430/430, no regression). Fix #47 itself was a
+  repair of a regression fix #42 introduced (caught by this same gate on
+  its own prior run: FAIL, 30/95 EXACT -> UNKNOWN_MISMATCH) — see fix #47's
+  own notes for the full isolation trace. Fix #43 similarly repaired a
+  regression (definition_id 840) that fix #40 introduced, but 840 is
+  OUTSIDE this --limit 430 window, so the gate itself never caught it —
+  caught instead by deliberately re-testing every definition a
+  shared-helper change could plausibly touch, not just the new target;
+  worth remembering that --limit 430 is a necessary but not sufficient
+  check for shared-helper changes with broad blast radius. Fixes #39, #41,
+  and the fully-repaired #40/#42/#44/#45/#46/#47 combination all
+  independently confirmed 430/430 after landing. `npx tsc -p .` and
+  `npm test` (456 pass / 1 pre-existing skip) both clean after fixes
+  #39-47.
+- prior verification: 2026-09-24 (/goal resume session), after fix #38
+  (definition 1152, DoModalPanelGroup added to the shared control-group
+  Record.X reuse trigger list), REGRESSION GATE: PASS (430/430, no
+  regression, first attempt). Fix #27 (definition 840) caused a transient
+  FAIL (429/430, definition_id 27) on its FIRST attempt, root-caused and
+  repaired via a more precise rule (not a revert) within the same step —
+  see fix #27's own notes for the full isolation trace. Fix #23
+  (definition 535) similarly caused one transient FAIL (429/430,
+  definition_id 180) on its own first attempt, also repaired within the
+  same step. Fixes #24, #25, #26, #28, #29, #30, #31, #32, #33, #34, #35,
+  #36, #37, #38 all passed 430/430 on their first attempt. Also
+  re-verified once at session start (before any new edits) to confirm
+  baseline health — clean (430/430). `npx tsc -p .` and `npm test` (456
+  pass / 1 pre-existing skip) both clean after fixes #23-#38.
+- prior verification: 2026-09-24 (crash-resumed session), after fix #22
+  (definition 534, RecordDeleted/RecordChanged reuse + REM blank-line
+  multiplicity), REGRESSION GATE: PASS. Verified after every one of the
+  22 fixes across both earlier sessions that day, 430/430 in every case
+  except one transient FAIL (429/430) during fix #16's first attempt,
+  root-caused and repaired within the same step — see fix #16's own
+  notes. Fix #20 also caused one transient unit-test regression (caught
+  by `npm test`, not the 430-gate) — see fix #20's own notes.
 
 ## Locally blocked
 - **definition_id 871** (AE_WRK.AE_GO.FieldChange, 36181 bytes / 84 names,
@@ -1006,8 +2585,137 @@ a time, each validated independently against the 430-gate.
   whether this exact RECORD.FIELD pair was already referenced earlier via a
   DIFFERENT receiver variable in the same control group; or something else
   entirely — do not guess, enumerate first).
+- **New corroborating evidence found this continued session** (definitions
+  1360 and 1422, both deferred, NOT fixed): the SAME "sometimes a
+  `.RECORD.FIELD`-shaped postfix access is inline text, sometimes it's a
+  real PSPCMNAME reference" symptom as 3235 above, in a much smaller/more
+  tractable shape -- worth trying FIRST when this puzzle family is picked
+  back up, before returning to 3235's 18.5KB file.
+  - **definition_id 1360** (AUDIT_TLRPTTIME.AUDIT_ACTN.RowInit, tiny --
+    506-byte stored program): `&_crsXST2(&i).PSXLATITEM.FIELDVALUE.Value`
+    (a Rowset variable, index-called to get a Row, then `.RECORD.FIELD`).
+    Stored allocates a FRESH, SEPARATE RECORD.PSXLATITEM reference for this
+    `.PSXLATITEM` access (PSPCMNAME row 4) distinct from the one
+    `CreateRowset(Record.PSXLATITEM)` itself established (row 3) two
+    statements earlier; the encoder currently reuses row 3 instead
+    (wrong). Likely the SAME underlying gap as the already-deferred
+    definition 536 puzzle ("single-dot Row-shorthand RECORD access needs
+    target-variable-type provenance not currently threaded into the
+    postfix parser") -- 536's own broad-fix attempt was already
+    corpus-disproven (164 counter-examples), so do not retry that same fix
+    shape here without fresh enumeration.
+  - **definition_id 1422** (BANKACCT_SBR.INTL_BANK_ACCT_NBR.FieldChange,
+    tiny -- 266-byte stored program): `&Der_Parent.GetRecord(Record.
+    DERIVED_IBAN).GP_IBAN_VALIDATED.Value = "N";` -- stored encodes
+    `GP_IBAN_VALIDATED` as bare INLINE TEXT (0x0A), NOT a PSPCMNAME FIELD
+    reference; the encoder currently allocates a FIELD reference for it
+    (wrong.) This is the EXACT same symptom 3235's own writeup describes
+    for `.getrow(...).RECORD.FIELD` chains, just via `.GetRecord(...)`
+    instead of `.getrow(...)`. Plausible (unconfirmed) explanation worth
+    checking first: PeopleTools may render a `.FIELD` access as inline
+    text specifically when that field name does NOT actually validate
+    against the named record's real schema (i.e. a compile-time field
+    lookup failure falls back to literal text) -- this would explain the
+    "sometimes text, sometimes reference" pattern without any new
+    syntactic rule, but would require checking the real DERIVED_IBAN/
+    PY_PFF_OTTX_DTL record definitions' actual field lists, which may or
+    may not be available in the local snapshot. Do not implement a
+    positional/heuristic rule without checking this first.
 
 ## Next action
+- **Continued session, immediate next step**: use the SQL workaround below
+  with `r.offset > 1643` (the last definition_id touched this continued
+  session) to get the next batch of fresh UNKNOWN_MISMATCH candidates.
+  `corpus:next` itself will keep re-suggesting definition 536 (still
+  deferred, see "Identified, not yet fixed") until it gains
+  deferred-definition awareness. No definition is currently
+  mid-investigation. Locally-blocked/deferred list, updated this session:
+  871, 3235 (locally blocked, deep individual puzzles), 536, 1406, 1285,
+  1360, 1422 (deferred, need dedicated investigation sessions -- 1285's
+  own writeup is under "Identified, not yet fixed" above the sub-puzzle
+  list; 1360/1422 are filed as corroborating evidence for 3235's own
+  puzzle, directly above this note).
+- **`npm run corpus:next` caveat discovered this session**: it always
+  selects the LOWEST-OFFSET representative of the highest-priority family
+  (an `ORDER BY offset ASC LIMIT 1` query in `tools/corpus/inventory.ts`),
+  with no memory of a prior session's decision to defer/park a specific
+  definition. Once definition 536 was deferred, `corpus:next` kept
+  re-recommending it every time. Workaround used this session: query
+  `tools/corpus/corpus-results.sqlite` directly for the latest
+  classification per definition_id at a higher offset in the same family,
+  e.g.:
+  ```sql
+  SELECT r.definition_id, r.offset, d.display_name
+  FROM result r JOIN definition d ON d.definition_id = r.definition_id
+  WHERE r.run_id = (SELECT MAX(run_id) FROM result r2 WHERE r2.definition_id = r.definition_id)
+    AND r.classification = 'UNKNOWN_MISMATCH' AND r.offset > <last-tried-offset>
+  ORDER BY r.offset ASC LIMIT 15;
+  ```
+  then target one of the returned `definition_id`s directly with
+  `--definition-id`. Keep using this pattern until/unless `corpus:next`
+  gains a way to skip a deferred definition.
+- Immediate next step: continue past definitions 634, 772, 808, 840, 921,
+  924, 935, 937, 942, 945, 1046, 1128, 1145, and 1152 (all fixed
+  encoder-side), plus fix #34's decoder-side resolution of 17+
+  definitions (940, 953, 954, 958, 963, 964, 966, 1061, 1062, 1081,
+  1083-1097), and side-effect resolutions 842/923/936/949/946. 536
+  remains deferred (encoder, needs a target-variable-type-provenance
+  investigation); 1406 remains deferred (decoder, a genuinely separate
+  rendering gap from what fix #34 fixed); 1066 deprioritized
+  (large/complex, 66KB+, not locally blocked, just lower priority than
+  smaller targets). Pick the next `UNKNOWN_MISMATCH`-family definition
+  past offset ~1152 via the query above (or a fresh `corpus:next` call if
+  536 happens to no longer be the lowest-offset one left in the family —
+  worth a quick check first) and continue the
+  mandatory workflow — `--verbose --trace-refs`, classify, narrow fix
+  (encoder.ts for provenance/opcode issues, decoder.ts if
+  `source→bin`/`roundtrip` are already EXACT and only `decode` or a
+  decoder-driven roundtrip mismatch remains), target EXACT, `--limit 430`
+  gate, `tsc`/`npm test`, repeat. When a definition turns out to share a
+  source file with several already-resolved neighbors (a common pattern
+  this session — AMM_* files especially, thanks to fix #34's reach),
+  batch-check a run of nearby offsets quickly (a short shell loop over
+  `corpus:harness --definition-id`) rather than investigating each one
+  individually, and jump to a different source file once a cluster is
+  confirmed resolved. Also worth watching for: sibling/renamed function
+  names sharing an already-fixed reuse rule (RowScrollSelect ->
+  RowScrollSelectNew this session) — check for `...New`, `...2`, or
+  similarly-named variants of any already-fixed bare-call trigger name
+  when a fresh failure's symptom shape matches a prior fix exactly. No
+  definition is currently mid-investigation. Definitions 3235 and 871
+  (see "Locally blocked") remain available to revisit if a session
+  specifically wants to continue their existing investigation threads
+  instead of taking a fresh pick.
+- Fixes #23-38 are all generic (not single-definition-scoped, fix #38
+  simply added DoModalPanelGroup to the same list fix #36 touched): fix
+  #23's
+  `fieldReferencesByControlGroup` fallback and
+  `bareGetRecordCallResult`/`fieldMemberFromGetRecord` mechanism, fix
+  #24's `sawLeadingComment` Function-body marker fix, fix #25's ApiObject
+  opcode/dependency-row support and HideScroll/UnhideScroll SCROLL.X
+  reuse rule, fix #26's CreateRowset addition to the Record.X reuse list,
+  fix #27's `participatingRecordReferencesByControlGroup` mechanism for
+  RowScrollSelect, fix #28's PACKAGE/ROW allocation for object-typed
+  Function parameters, fix #29's `rowVariables`/`declaredRecordFields`
+  bridge for the same parameters' own field chains, fix #30's
+  leading-Local-run/comment transition reorder, Component XmlDoc PACKAGE
+  dependency, and rem-statement `space()` fix, fix #31's `remComment()`
+  merge-condition narrowing, fix #32's declaration-to-declaration
+  blank-line multiplicity, fix #33's PanelGroup addition to that same
+  trigger, fix #34's decoder-side `followsDeclaration` PanelGroup opcode
+  fix, fix #35's Grid addition to fix #25's ApiObject-style
+  opcode/dependency-row mechanism, fix #36's FetchValue addition to
+  the Record.X control-group reuse trigger list, and fix #37's
+  RowScrollSelectNew addition to fix #27's same-call reuse trigger.
+  Three `corpus:failures --summary`
+  re-scans this session (after fix #28, after fix #31, after fix #34)
+  each showed EXACT count moving by exactly the number of definitions
+  fixed/resolved since the prior scan, with no unexpected ripple any time
+  (see fix #28's and fix #34's own notes). A random 40-definition sample
+  after fix #34 also
+  found zero unexpected additional resolutions, further confirming
+  containment. Not yet re-measured after fixes #32/#33 specifically
+  (folded into the #34 re-scan's cumulative count).
 - The one backgrounded `npm run corpus:work` run from the first session was
   killed by its own 1800s timeout (exit 143) partway through — expected, it
   was stale (reflecting only fix #1) and a full 9574-item Oracle
@@ -1074,9 +2782,19 @@ a time, each validated independently against the 430-gate.
     (multi-method classes, extends, properties, private/public sections)
     that would need its own multi-session investigation, not a narrow
     fix. Flagging for awareness, not started.
-  - Decoder-side formatting bugs (definitions 1406 and 964, both noted
-    above under fixes #7 and #10) — worth a dedicated decoder-focused
-    session; out of scope for encoder work.
+  - **RESOLVED this session, see fix #34**: the "extra blank line"
+    decoder bug originally noted for definitions 964 and 1406 (under
+    fixes #7 and #10), and independently re-confirmed for 940 and 953
+    while sampling this session, turned out to be a single narrow root
+    cause -- `PanelGroup`'s declaration opcode (0x51) was missing from
+    decoder.ts's `followsDeclaration` detection list. Fixed; 940, 953,
+    954, and 964 are all now EXACT. Definition 1406 was RE-CHECKED and
+    confirmed to have a SEPARATE, still-open decoder issue (its own
+    `source→bin`/`roundtrip` were already EXACT before and after this
+    fix; its remaining classification is `DECODE_SOURCE_MISMATCH`, a
+    cosmetic source-rendering gap per DEVELOPER.md tier 3, not the same
+    extra-blank-line bug) -- worth its own future investigation, but
+    distinct from what fix #34 addressed.
   - Remaining un-investigated failure families as of this session's last
     `corpus:failures --summary` snapshot (counts will have shifted from
     this session's fixes, re-run to get current numbers):

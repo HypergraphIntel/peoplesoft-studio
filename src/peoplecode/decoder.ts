@@ -1907,8 +1907,32 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
           previous.opcode === 0x54 ||
           previous.opcode === 0x56 ||
           previous.opcode === 0x31 ||
-          previous.opcode === 0x58
+          previous.opcode === 0x58 ||
+          previous.opcode === 0x51
         ) {
+          /*
+           * 0x51 is PanelGroup's own declaration opcode (see encoder.ts's
+           * `PanelGroup declarations use opcode 0x51` comment), missing
+           * from this list entirely. Without it, a PanelGroup declaration
+           * followed by a blank line before the first executable statement
+           * rendered TWO blank lines instead of one: the 0x2D boundary's
+           * own NEWLINE_ONCE emitted its line ending unsuppressed (since
+           * `redundantStructuralBoundary` requires `followsDeclaration`),
+           * on top of the 0x4F marker's own blank line.
+           *
+           * AMM_DERIVED.AMM_VIEW_P.FieldChange (definition 954):
+           *
+           *   PanelGroup boolean &ErrorClicked;
+           *   PanelGroup string &strErrorLoc;
+           *
+           *   &ErrorClicked = True;
+           *
+           * decoded to two blank lines before `&ErrorClicked = True;`
+           * instead of one -- source→bin was already EXACT (the encoder
+           * correctly re-encodes whatever the decoder hands it), so this
+           * was purely a decoder rendering bug, breaking only the
+           * roundtrip (decode -> re-encode) check.
+           */
           followsDeclaration = true;
           break;
         }

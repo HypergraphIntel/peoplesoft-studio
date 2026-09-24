@@ -1,6 +1,10 @@
 # PeopleSoft Studio
 
 VS Code extension for **reading and navigating** PeopleSoft definitions — PeopleCode, SQL, records, and related objects — from an Oracle environment or an Application Designer project export.
+## Getting started
+Create a database connection
+
+
 
 Goal long-term: replace Application Designer. **Today this is a trusted reader and navigator**, not a full designer.
 

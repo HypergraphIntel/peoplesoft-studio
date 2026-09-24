@@ -399,7 +399,20 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     // Calibrated object declaration types use the ordinary inline-name
     // introducer rather than the primitive-type 0x40 introducer.
-    if (/^(Record|Field|Rowset|Row|SQL|File|XmlDoc|XmlNode)$/i.test(name)) {
+    //
+    // ADSRECORDS1_WRK.QRYSEARCHBTN.FieldChange (definition 772) proves
+    // ApiObject belongs on this list too: `Local ApiObject &aRecordsList;`
+    // stores its type as `44 0A "ApiObject"`, not `44 40 "ApiObject"`.
+    //
+    // AMM_FILTER.IB_DIRECTION.FieldFormula (definition 1046) proves Grid
+    // belongs on it too: `Local Grid &GRID, &GRID2;` stores its type as
+    // `44 0A "Grid"`, not `44 40 "Grid"`.
+    //
+    // BENEF_PB_WRK.ODEM_SCHED_ACTY_PB.FieldDefault (definition 1749) proves
+    // ProcessRequest belongs on it too: `Local ProcessRequest &RQST;`
+    // stores its type as `44 0A "ProcessRequest"`, not `44 40
+    // "ProcessRequest"`.
+    if (/^(Record|Field|Rowset|Row|SQL|File|XmlDoc|XmlNode|ApiObject|Grid|ProcessRequest)$/i.test(name)) {
       return textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, name);
     }
 
@@ -608,6 +621,33 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       ensureLocalObjectPackageReference('XMLDOC', 'XmlDoc');
     } else if (/^XmlNode$/i.test(type ?? '')) {
       ensureLocalObjectPackageReference('XMLNODE', 'XmlNode');
+    } else if (/^ApiObject$/i.test(type ?? '')) {
+      /*
+       * ADSRECORDS1_WRK.QRYSEARCHBTN.FieldChange (definition 772):
+       * `Local ApiObject &aRecordsList;` allocates an implicit
+       * PACKAGE/APIOBJECT dependency row the same way Rowset/Record/SQL/
+       * File/XmlDoc/XmlNode already do -- this case was missing entirely,
+       * so every PSPCMNAME index after the first ApiObject declaration
+       * was shifted by one relative to stored.
+       */
+      ensureLocalObjectPackageReference('APIOBJECT', 'ApiObject');
+    } else if (/^Grid$/i.test(type ?? '')) {
+      /*
+       * AMM_FILTER.IB_DIRECTION.FieldFormula (definition 1046):
+       * `Local Grid &GRID, &GRID2;` allocates an implicit PACKAGE/GRID
+       * dependency row the same way ApiObject above does -- the same
+       * class of gap, a separate object-declaration type missing from
+       * this dispatch entirely.
+       */
+      ensureLocalObjectPackageReference('GRID', 'Grid');
+    } else if (/^ProcessRequest$/i.test(type ?? '')) {
+      /*
+       * BENEF_PB_WRK.ODEM_SCHED_ACTY_PB.FieldDefault (definition 1749):
+       * `Local ProcessRequest &RQST;` allocates an implicit
+       * PACKAGE/PROCESSREQUEST dependency row the same class of gap as
+       * ApiObject/Grid above.
+       */
+      ensureLocalObjectPackageReference('PROCESSREQUEST', 'ProcessRequest');
     }
 
     /*
@@ -799,6 +839,23 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * off by one PSPCMNAME index.
        */
       ensureLocalObjectPackageReference('ROWSET', 'Rowset');
+    } else if (/^XmlDoc$/i.test(declaredType ?? '')) {
+      /*
+       * AMM_ARCHIVE_WK.FUNCLIB.FieldFormula (definition 935):
+       *
+       *   Component XmlDoc &xmldoc;
+       *   ...
+       *   &UncompressedSize = &MsgSizeRootNode.FindNode(...).NodeValue;
+       *
+       * `Component XmlDoc &var;` allocates the same PACKAGE/XMLDOC local
+       * object dependency row a `Local XmlDoc &var;` declaration already
+       * does, exactly like the Rowset case above -- this branch was also
+       * missing entirely for Component declarations, shifting every
+       * reference index after it by one. Only XmlDoc is evidenced so far;
+       * XmlNode/SQL/File/Row/ApiObject Component declarations may need
+       * the same treatment but are unconfirmed.
+       */
+      ensureLocalObjectPackageReference('XMLDOC', 'XmlDoc');
     }
 
     /*
@@ -1042,8 +1099,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     packageName: string,
     objectName: string
   ): PeopleCodeReference => {
+    /*
+     * ADSRECORDS1_WRK.QRYSEARCHBTN.FieldChange (definition 772) proves this
+     * reuse pool is also FUNCTION-BODY sensitive, not just control-group
+     * sensitive: leading Local declarations inside a `Function ...
+     * End-Function;` body do not bump `controlGroup` (only executable
+     * statements do, per the Function-body control-group rule), so a
+     * top-level `Component Rowset &grsLevelList;` (functionDepth 0) and a
+     * later `Local Rowset &rsRecordsList;` inside `Function
+     * DoRecordsSearch()` (functionDepth 1) land in the SAME numeric
+     * control group despite being in clearly different declaration scopes
+     * -- stored allocates a distinct PACKAGE/ROWSET row for each, not one
+     * shared row.
+     */
     const key =
-      `${controlGroup}:${packageName.toLowerCase()}:${objectName.toLowerCase()}`;
+      `${controlGroup}:${functionDepth}:${packageName.toLowerCase()}:${objectName.toLowerCase()}`;
 
     const existing = localObjectPackageReferences.get(key);
     if (existing !== undefined) {
@@ -1338,11 +1408,98 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   const fetchValueRecordReferences = new Map<string, PeopleCodeReference>();
 
   /*
+   * RowScrollSelect's own repeated Record.X arguments reuse a same-name
+   * RECORD row ONLY within that same call's own argument list, as a last
+   * resort when no earlier reuse-participating reference already exists
+   * for that name in the current control group -- neither the broader
+   * by-name reuse (any earlier occurrence anywhere, including from
+   * non-participating calls) nor plain occurrence-based allocation (never
+   * reuse) match stored behavior on their own.
+   *
+   * AE_UPGCONV_WRK.AE_REFRESH.FieldChange (definition 840):
+   *
+   *   ScrollFlush(Record.MESSAGE_LOG);
+   *   RowScrollSelect(1, Record.MESSAGE_LOG, Record.MESSAGE_LOG, "...", &PI);
+   *
+   * ScrollFlush is NOT a reuse-participating call (it never sets
+   * `reuseRecordReferenceWithinControlGroup`), so its own Record.MESSAGE_LOG
+   * allocates its own row (NAMENUM 3) without registering as reusable.
+   * RowScrollSelect's FIRST Record.MESSAGE_LOG argument therefore finds no
+   * participating entry and allocates fresh (NAMENUM 4); its SECOND
+   * argument, in the SAME call, reuses that fresh one. A fresh Map per
+   * RowScrollSelect call (saved/restored around the call like the other
+   * reuse flags, to handle nesting) gives exactly this same-call scope.
+   *
+   * ABSENCE_CAL_VW.ABSENCE_TYPE.RowInit (definition 27, protected
+   * baseline) proves the OTHER half: when a reuse-participating call HAS
+   * already established a same-name RECORD row in the current control
+   * group, RowScrollSelect DOES reuse it, even across statements:
+   *
+   *   &LEVEL1_ROWS = ActiveRowCount(Record.ABS_TYPE_TBL);
+   *   ...
+   *   RowScrollSelect(1, Record.ABS_TYPE_TBL, Record.ABS_TYPE_TBL, "...", ...);
+   *
+   * ActiveRowCount IS reuse-participating, so its Record.ABS_TYPE_TBL
+   * registers in `participatingRecordReferencesByControlGroup` (see that
+   * map's own declaration) -- both of RowScrollSelect's own arguments
+   * reuse THAT row, not a fresh same-call one. See the priority order in
+   * `recordReference()`: the participating-call check runs before the
+   * same-call fallback below.
+   */
+  let reuseRecordReferenceWithinCallArguments = false;
+  let recordReferencesWithinCallArguments =
+    new Map<string, PeopleCodeReference>();
+
+  /*
    * Bare GetRecord(Record.X) has a narrower reuse scope than GetSetId.
    * It may reuse a same-name RECORD only inside the current control group.
    */
   let reuseRecordReferenceWithinControlGroup = false;
   const recordReferencesByControlGroup =
+    new Map<string, PeopleCodeReference>();
+
+  /*
+   * A call that is reuse-participating for its OWN Record.X argument (i.e.
+   * checks `recordReferencesByControlGroup` before allocating) is not
+   * necessarily a call whose resulting reference should become visible to a
+   * LATER RowScrollSelect/ScrollSelect call's "participating" lookup (see
+   * `participatingRecordReferencesByControlGroup`'s own comment).
+   *
+   * ScrollFlush is the proven counter-example. AE_UPGCONV_WRK.AE_REFRESH.
+   * FieldChange (definition 840, established before ScrollFlush was ever
+   * added to the reuse-participating list) and ARCH_WRK.PSARCH_COPY_ROWS.
+   * FieldChange (definition 1283) both show:
+   *
+   *   ScrollFlush(Record.X);
+   *   RowScrollSelect(1, Record.X, Record.X, ...);   // or ScrollSelect
+   *
+   * ScrollFlush's own Record.X argument correctly reuses an EARLIER
+   * participating call's row when one exists in the control group
+   * (definition 1236's fix), but when ScrollFlush itself is the FIRST
+   * reference and must allocate fresh, that fresh allocation must NOT be
+   * treated as a "participating" source for a later RowScrollSelect/
+   * ScrollSelect call to find -- those calls must still allocate their own
+   * fresh row (reusing only each other, within their own call). Scoped to
+   * this one proven exception rather than re-deriving participation from
+   * scratch for every entry already on the broader reuse list.
+   */
+  let marksControlGroupParticipant = false;
+
+  /*
+   * Unlike `recordReferencesByControlGroup` (populated by EVERY Record.X
+   * allocation regardless of context), this parallel map is populated
+   * only when the allocation itself happened while
+   * `reuseRecordReferenceWithinControlGroup` was already true -- i.e.
+   * only by an already-recognized reuse-participating call (ActiveRowCount,
+   * GetRecord, DeleteRow, etc, see that flag's own trigger list). It lets
+   * RowScrollSelect distinguish "an earlier PARTICIPATING call already
+   * established this RECORD row in the current control group, reuse it"
+   * from "some unrelated non-participating call (e.g. ScrollFlush) merely
+   * happened to reference the same record name" -- see
+   * `reuseRecordReferenceWithinCallArguments`'s own comment for the full
+   * definition-27-vs-definition-840 evidence this distinction is based on.
+   */
+  const participatingRecordReferencesByControlGroup =
     new Map<string, PeopleCodeReference>();
 
   /*
@@ -1635,6 +1792,24 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }
     }
 
+    if (reuseRecordReferenceWithinCallArguments) {
+      const participating = participatingRecordReferencesByControlGroup.get(
+        `${controlGroup}:${recordName.toLowerCase()}`
+      );
+
+      if (participating !== undefined) {
+        return referenceOperand(participating);
+      }
+
+      const existing = recordReferencesWithinCallArguments.get(
+        recordName.toLowerCase()
+      );
+
+      if (existing !== undefined) {
+        return referenceOperand(existing);
+      }
+    }
+
     if (reuseFetchValueRecord) {
       const existing = fetchValueRecordReferences.get(
         `${controlGroup}:${recordName.toLowerCase()}`
@@ -1656,6 +1831,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       );
     }
 
+    if (reuseRecordReferenceWithinCallArguments) {
+      recordReferencesWithinCallArguments.set(
+        recordName.toLowerCase(),
+        reference
+      );
+    }
+
     if (options.explicitChainReuse) {
       explicitRecordReferences.set(
         `${controlGroup}:${recordName.toLowerCase()}`,
@@ -1663,10 +1845,40 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       );
     }
 
-    recordReferencesByControlGroup.set(
-      `${controlGroup}:${recordName.toLowerCase()}`,
-      reference
-    );
+    /*
+     * A RowScrollSelect/RowScrollSelectNew call's OWN Record.X arguments
+     * are private to that call: they must not become visible to a LATER
+     * statement's own control-group-scoped reuse check (the unconditional
+     * write below, otherwise shared by every other Record.X allocation).
+     *
+     * ANL_MOD_DAT_SRC.QRYNAME.FieldChange (definition 1172):
+     *
+     *   RowScrollSelectNew(2, Record.ANL_MOD_DAT_SRC, &N_DATA_SRC_NUM, Record.ANL_MOD_DIM_FLD, Record.QRY_FLD_VW, "...", ANL_MOD_DAT_SRC.QRYNAME);
+     *   &N_FLD_COUNT = ActiveRowCount(Record.ANL_MOD_DAT_SRC, &N_DATA_SRC_NUM, Record.ANL_MOD_DIM_FLD);
+     *
+     * both in the same control group. The immediately-following
+     * ActiveRowCount call's own Record.ANL_MOD_DAT_SRC/Record.
+     * ANL_MOD_DIM_FLD arguments do NOT reuse RowScrollSelectNew's rows --
+     * stored allocates two fresh ones -- even though ActiveRowCount is
+     * itself a normal reuse-participating call that WOULD otherwise find
+     * them via this map. Scoped narrowly to
+     * `reuseRecordReferenceWithinCallArguments` (true only while parsing
+     * a RowScrollSelect/RowScrollSelectNew call's own argument list, see
+     * that flag's own declaration) so every other Record.X allocation
+     * keeps writing here exactly as before.
+     */
+    if (!reuseRecordReferenceWithinCallArguments) {
+      recordReferencesByControlGroup.set(
+        `${controlGroup}:${recordName.toLowerCase()}`,
+        reference
+      );
+    }
+    if (marksControlGroupParticipant) {
+      participatingRecordReferencesByControlGroup.set(
+        `${controlGroup}:${recordName.toLowerCase()}`,
+        reference
+      );
+    }
     if (reuseRowShorthandRecord) {
       const key = recordName.toLowerCase();
 
@@ -2070,20 +2282,34 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     let consumedLength = match[0].length;
 
     /*
-     * Immediately consecutive REM lines (no blank line between them) merge
-     * into a single comment token, embedded line break included, rather
-     * than compiling as separate 0x24 records.
+     * A REM line with no terminating ';' of its own is not yet a complete
+     * comment token -- PeopleTools continues merging immediately
+     * consecutive REM lines (no blank line between them), embedded line
+     * break included, until one of them actually closes with ';'.
      *
      * AMM_DERIVED.DELETE_BTN.RowInit (definition 964):
      *
      *   rem PSCHNLDEFN is a deprecated table in PT 8.48 and above.
      *   rem SQLExec("select ...", AMM_SYNCLIST.MSGNAME, &archive);
      *
-     * stores one 0x24 record of length 416 -- the exact UTF-16LE byte
-     * length of both lines concatenated with their "\n" -- not two
-     * separate 116-byte and (416-116)-byte records.
+     * Line 1 has no ';' of its own (a continued comment, not a complete
+     * statement), so it merges with line 2 (which does close with ';')
+     * into one 0x24 record covering both lines.
+     *
+     * AMM_ARCHIVE_WK.XML3_PB.FieldChange (definition 937) proves the
+     * merge must STOP once a line already closes with ';' of its own,
+     * rather than blindly merging every immediately-consecutive REM line
+     * regardless:
+     *
+     *   rem AMM_DERIVED.MSGNAME = PSAPMSGARCHSC.MSGNAME;
+     *   rem AMM_DERIVED.SUBNAME = PSAPMSGARCHSC.SUBNAME;
+     *   rem AMM_DERIVED.APMSGVER = PSAPMSGARCHSC.APMSGVER;
+     *
+     * Each of these three lines closes with its own ';', so each is
+     * already a complete rem statement -- stored has three SEPARATE 0x24
+     * records (96, 96, and 100 bytes), not one 296-byte merged record.
      */
-    while (true) {
+    while (!remText.endsWith(';')) {
       const nextLineMatch =
         /^(\r?\n)(REM\b[^\r\n]*)/i.exec(source.slice(pos + consumedLength));
 
@@ -2376,6 +2602,33 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       pos += 3;
       chunks.push(fixed('And'));
 
+      /*
+       * A blank line may separate `And` from its next operand, inside a
+       * multi-line boolean condition -- encoded the same blank-line 0x4F
+       * marker way as every other calibrated boundary in this file, not
+       * previously handled at all inside an And-group.
+       *
+       * BAS_PARTIC_PLAN.ANNUAL_PLEDGE.SaveEdit (definition 1643):
+       *
+       *   If None(&RSLT) And
+       *
+       *         All(&PLEDGE) Then
+       *
+       * stores one 0x4F between the `And` keyword and `All(&PLEDGE)`.
+       */
+      const operandWhitespaceStart = pos;
+      space();
+      const operandWhitespace = source.slice(operandWhitespaceStart, pos);
+      if (/(?:\r?\n)[ \t]*(?:\r?\n)/.test(operandWhitespace)) {
+        const markerCount = Math.max(
+          1,
+          (operandWhitespace.match(/\r?\n/g) ?? []).length - 1
+        );
+        for (let marker = 0; marker < markerCount; marker++) {
+          chunks.push(Buffer.from([0x4f]));
+        }
+      }
+
       booleanUnary();
       space();
     }
@@ -2407,6 +2660,26 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     while (/^Or\b/i.test(source.slice(pos))) {
       pos += 2;
       chunks.push(fixed('Or'));
+
+      /*
+       * Mirrors andExpression()'s own blank-line-before-next-operand fix
+       * (definition 1643) -- only the And-group shape was directly
+       * evidenced, but the Or-group has the identical code shape and is
+       * presumably subject to the same rule (same pattern fix #7 already
+       * used for the inline-comment case just below).
+       */
+      const operandWhitespaceStart = pos;
+      space();
+      const operandWhitespace = source.slice(operandWhitespaceStart, pos);
+      if (/(?:\r?\n)[ \t]*(?:\r?\n)/.test(operandWhitespace)) {
+        const markerCount = Math.max(
+          1,
+          (operandWhitespace.match(/\r?\n/g) ?? []).length - 1
+        );
+        for (let marker = 0; marker < markerCount; marker++) {
+          chunks.push(Buffer.from([0x4f]));
+        }
+      }
 
       andExpression();
       space();
@@ -2947,6 +3220,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }
 
       while (true) {
+        const paramName =
+          /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
         chunks.push(variable());
 
         const afterVariable = pos;
@@ -2972,8 +3247,55 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             chunks.push(applicationClassPath().bytes);
           } else {
             const isArrayType = /^array\b/i.test(source.slice(pos));
+            const paramType =
+              /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
             chunks.push(typeName());
-            if (isArrayType) arrayElementTypes();
+            if (isArrayType) {
+              arrayElementTypes();
+            } else if (/^Row$/i.test(paramType ?? '')) {
+              /*
+               * AGC_CAT_ASGNEE.AGC_CATEGORY_ID.FieldFormula (definition
+               * 921) proves an object-typed Function PARAMETER allocates
+               * the same implicit PACKAGE dependency row a `Local Row
+               * &var;` declaration already does -- this was entirely
+               * missing for parameters:
+               *
+               *   Function DeleteCatAssignee(&rowCategory As Row, ...)
+               *
+               * allocates PACKAGE/ROW before the function body's own
+               * `Local Rowset ...;` allocates its PACKAGE/ROWSET, shifting
+               * every reference index after it by one relative to a
+               * parameter-parsing path that skips this allocation
+               * entirely. Only `Row` is evidenced so far -- Record/Field/
+               * Rowset/SQL/File/XmlDoc/XmlNode/ApiObject parameters may
+               * need the same treatment but are unconfirmed; do not
+               * generalize without evidence.
+               */
+              ensureLocalObjectPackageReference('ROW', 'Row');
+
+              /*
+               * AGC_CAT_STEP.AGC_CATEGORY_ID.FieldFormula (definition 924)
+               * proves a second, related gap: a `Row`-typed PARAMETER also
+               * needs to join the `rowVariables` set, exactly like a
+               * `Local Row &var;` declaration already does --
+               * `rowStartsRecordFieldChain`'s two-dot lookahead (the
+               * mechanism that puts a Row variable's `.RECORD.FIELD` chain
+               * into PSPCMNAME reference mode) only checks that set, and
+               * the parameter-parsing loop never populated it:
+               *
+               *   Function InitStepDefautAssigneeSection(&rCurrCatTbl As
+               *       Row, &rCurrentStep As Row)
+               *      ...
+               *      &rCurrentStep.AGC_DERIVED_ASG.GROUPBOX4.Visible = &nShow;
+               *
+               * Without this, `.AGC_DERIVED_ASG.GROUPBOX4` fell through to
+               * plain inline text instead of two chained 0x4A RECORD/FIELD
+               * references.
+               */
+              if (paramName !== undefined) {
+                rowVariables.add(paramName.toLowerCase());
+              }
+            }
           }
           space();
         } else {
@@ -3095,6 +3417,27 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     let sawLocalDeclaration = false;
     let enteredExecutableSection = false;
+    /*
+     * A standalone block/disabled-code comment appearing before ANY Local
+     * declaration is a complete leading body item of its own. A blank line
+     * between it and the first Local declaration still gets a 0x4F marker,
+     * exactly like blank lines elsewhere in the body do -- but the ordinary
+     * top-of-loop marker check below is gated on `enteredExecutableSection`,
+     * which is not yet true this early (no Local seen yet, no executable
+     * statement reached yet), so that gap went unmarked entirely.
+     *
+     * ADJ_CN_TAX_BAL.BALANCE_YEAR.FieldFormula (definition 634):
+     *
+     *   Function TAX_CLASS_CAN_List();
+     *      /* Set up dropdown list of Tax Class for balance adjustment *\/
+     *
+     *      Local Rowset &Xlat;
+     *
+     * stores the blank line between the comment and `Local Rowset` as one
+     * 0x4F marker (`... 4F 44 0A "Rowset" ...`), which the encoder was
+     * dropping entirely.
+     */
+    let sawLeadingComment = false;
 
     functionDepth++;
 
@@ -3125,7 +3468,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        *   ... 06 30 15 4F 1C ...
        */
       if (
-        enteredExecutableSection &&
+        (enteredExecutableSection ||
+          (sawLeadingComment && !sawLocalDeclaration)) &&
         !/^End-Function\b/i.test(source.slice(pos)) &&
         /(?:\r?\n)[ \t]*(?:\r?\n)/.test(bodyWhitespace)
       ) {
@@ -3193,6 +3537,37 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }
 
       /*
+       * A blank line between leading Local declarations and whatever
+       * follows them (an executable statement OR a standalone comment)
+       * contributes a 0x4f boundary. An ordinary newline does not
+       * (DERIVED_HR_DR.HR_DR_CONTINUE1_PB.FieldChange, ValidateData).
+       *
+       * This transition check must run BEFORE the comment branches below,
+       * not just before ordinary statement parsing: AMM_ARCHIVE_WK.
+       * FUNCLIB.FieldFormula (definition 935) proves a standalone comment
+       * immediately after the leading Local run needs this same marker --
+       *
+       *   Local string &segmentsunordered;
+       *
+       *   /* Archived Details Component *\/
+       *
+       * -- and the comment branches `continue` immediately after
+       * consuming the comment, so if this check ran after them (as it
+       * used to) it would never fire for a comment at all.
+       */
+      const isLocal = /^Local\b/i.test(source.slice(pos));
+
+      if (!isLocal && sawLocalDeclaration && !enteredExecutableSection) {
+        if (/(?:\r?\n)[ \t]*(?:\r?\n)/.test(bodyWhitespace)) {
+          const markerCount = Math.max(1, (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1);
+          for (let marker = 0; marker < markerCount; marker++) {
+            chunks.push(Buffer.from([0x4f]));
+          }
+        }
+        enteredExecutableSection = true;
+      }
+
+      /*
        * A standalone block comment inside an already-entered Function
        * executable section is a complete body item and does not require a
        * following 0x15 statement terminator.
@@ -3218,27 +3593,18 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        */
       if (source.startsWith('<*', pos)) {
         chunks.push(disabledCodeComment());
+        if (!sawLocalDeclaration && !enteredExecutableSection) {
+          sawLeadingComment = true;
+        }
         continue;
       }
 
       if (source.startsWith('/*', pos)) {
         chunks.push(blockComment());
-        continue;
-      }
-
-      // A blank line between leading Local declarations and executable
-      // statements contributes a 0x4f boundary. An ordinary newline does not
-      // (DERIVED_HR_DR.HR_DR_CONTINUE1_PB.FieldChange, ValidateData).
-      const isLocal = /^Local\b/i.test(source.slice(pos));
-
-      if (!isLocal && sawLocalDeclaration && !enteredExecutableSection) {
-        if (/(?:\r?\n)[ \t]*(?:\r?\n)/.test(bodyWhitespace)) {
-          const markerCount = Math.max(1, (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1);
-          for (let marker = 0; marker < markerCount; marker++) {
-            chunks.push(Buffer.from([0x4f]));
-          }
+        if (!sawLocalDeclaration && !enteredExecutableSection) {
+          sawLeadingComment = true;
         }
-        enteredExecutableSection = true;
+        continue;
       }
 
       /*
@@ -3285,18 +3651,37 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         enteredExecutableSection = true;
       }
 
-      space();
-
       if (isRemStatement) {
-        // remComment consumed its own semicolon as part of the payload.
-      } else if (source[pos] === ';') {
-        pos++;
-        chunks.push(fixed(';'));
-      } else if (/^End-Function\b/i.test(source.slice(pos))) {
-        // PeopleTools accepts a Return immediately before End-Function
-        // without a semicolon (common in exported corpus source).
+        /*
+         * remComment() already consumed its own trailing ';' as part of
+         * matching the rest of its source line, unlike an ordinary
+         * statement whose semicolon is still ahead of `pos` at this point
+         * (the `space()` call below exists to skip whitespace BEFORE that
+         * still-unconsumed semicolon, not to skip whitespace after it).
+         * Calling `space()` here for a REM statement would therefore eat
+         * a following blank line that the NEXT loop iteration (or the
+         * dedicated blank-line-before-End-Function check) needs intact.
+         *
+         * AMM_ARCHIVE_WK.FUNCLIB.FieldFormula (definition 935):
+         *
+         *   rem &xmldoc = GetArchPubHeaderXmlDoc(..., &xmlsegmentindex);
+         *
+         *   End-Function;
+         *
+         * was losing this blank line's 0x4F marker entirely.
+         */
       } else {
-        fail('expected ; in Function body');
+        space();
+
+        if (source[pos] === ';') {
+          pos++;
+          chunks.push(fixed(';'));
+        } else if (/^End-Function\b/i.test(source.slice(pos))) {
+          // PeopleTools accepts a Return immediately before End-Function
+          // without a semicolon (common in exported corpus source).
+        } else {
+          fail('expected ; in Function body');
+        }
       }
       trailingBlockComments();
     }
@@ -4807,6 +5192,41 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
    * entry instead of allocating another occurrence.
    *
    * Preserve the previous value because calls may nest.
+   *
+   * RowScrollSelect does NOT share this GLOBAL by-name rule, despite
+   * being added to this same trigger list in an earlier bulk pass with no
+   * citation of its own. AE_UPGCONV_WRK.AE_REFRESH.FieldChange (definition
+   * 840) disproves it directly:
+   *
+   *   ScrollFlush(Record.MESSAGE_LOG);
+   *   RowScrollSelect(1, Record.MESSAGE_LOG, Record.MESSAGE_LOG, "...", &PI);
+   *
+   * ScrollFlush's own Record.MESSAGE_LOG allocates its own row (NAMENUM
+   * 3). RowScrollSelect's FIRST Record.MESSAGE_LOG argument does NOT
+   * reuse it (fresh NAMENUM 4) -- so RowScrollSelect isn't on the global
+   * by-name list -- but its SECOND Record.MESSAGE_LOG argument, in the
+   * SAME call, DOES reuse the first (also NAMENUM 4) -- so it isn't
+   * plain occurrence-based either. See
+   * `reuseRecordReferenceWithinCallArguments`/
+   * `recordReferencesWithinCallArguments` (declared near
+   * `reuseRecordReferenceByName`) for the narrower "reuse only within
+   * this call's own argument list" scope this actually needs.
+   *
+   * `ScrollSelect` (no leading "Row") shares RowScrollSelect's exact same
+   * call-arguments-only rule, NOT the GLOBAL by-name rule it was bulk-added
+   * to alongside GetSetId/Gray/UnGray -- same mis-citation pattern.
+   * ARCH_WRK.PSARCH_COPY_ROWS.FieldChange (definition 1283) disproves the
+   * global rule directly:
+   *
+   *   ScrollFlush(Record.ARCH_CTRL_VW2);
+   *   ...
+   *   ScrollSelect(1, Record.ARCH_CTRL_VW2, Record.ARCH_CTRL_VW2, &WHERE, &ARCHIVE_ID, &PARENT_TBL);
+   *
+   * ScrollFlush's own Record.ARCH_CTRL_VW2 allocates its own row.
+   * ScrollSelect's own two Record.ARCH_CTRL_VW2 arguments do NOT reuse
+   * it -- stored allocates a fresh row for them -- but the two arguments
+   * DO reuse each other within that same call. Moved to
+   * `reuseRecordReferenceWithinCallArguments`, mirroring RowScrollSelect.
    */
   const previousReuseRecordReferenceByName =
     reuseRecordReferenceByName;
@@ -4814,18 +5234,65 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     reuseFetchValueRecord;
   const previousReuseRecordReferenceWithinControlGroup =
     reuseRecordReferenceWithinControlGroup;
+  const previousMarksControlGroupParticipant =
+    marksControlGroupParticipant;
   const previousReuseRowShorthandRecord =
     reuseRowShorthandRecord;
   const previousCaptureRowsetElementRecord =
     captureRowsetElementRecord;
   const previousReuseScrollReferenceWithinControlGroup =
     reuseScrollReferenceWithinControlGroup;
+  const previousReuseRecordReferenceWithinCallArguments =
+    reuseRecordReferenceWithinCallArguments;
+  const previousRecordReferencesWithinCallArguments =
+    recordReferencesWithinCallArguments;
 
-  if (/^(?:GetSetId|ScrollSelect|RowScrollSelect|Gray|UnGray)$/i.test(name)) {
+  if (/^(?:GetSetId|Gray|UnGray)$/i.test(name)) {
     reuseRecordReferenceByName = true;
   }
   if (/^FetchValue$/i.test(name)) {
     reuseFetchValueRecord = true;
+  }
+  if (/^(?:RowScrollSelect(?:New)?|ScrollSelect)$/i.test(name)) {
+    /*
+     * ANALYSIS_DB_WRK.BASE_CUBE_INST_ID.FieldChange (definition 1145)
+     * proves `RowScrollSelectNew` shares RowScrollSelect's exact rule:
+     *
+     *   RowScrollSelectNew(1, Record.ANALYSIS_DB_DIM, Record.ANALYSIS_DB_DIM, "...", ANALYSIS_DB.BASE_CUBE_INST_ID);
+     *
+     * Both Record.ANALYSIS_DB_DIM arguments, in the same call, reuse one
+     * PSPCMNAME row. ARCH_WRK.PSARCH_COPY_ROWS.FieldChange (definition
+     * 1283) proves plain `ScrollSelect` (no leading "Row") shares it too.
+     */
+    reuseRecordReferenceWithinCallArguments = true;
+    recordReferencesWithinCallArguments = new Map();
+  }
+
+  /*
+   * Unlike RowScrollSelect (no cross-call evidence either way yet), a
+   * plain `ScrollSelect` call's OWN fresh allocations must also become
+   * visible to a LATER ScrollSelect call in the same control group --
+   * not merely reused within its own argument list.
+   *
+   * ABSENCE_HIST.ABSENCE_TYPE.RowInit (definition 30, protected baseline)
+   * has two TEXTUALLY IDENTICAL calls in the same control group, each
+   * inside its own `If Not RecordNew(...) Then ... End-If;`:
+   *
+   *   ScrollSelect(2, Record.ABSENCE_HIST, Record.ABS_HIST_DET, Record.ABS_HIST_DET, "...", ...);
+   *   ...
+   *   ScrollSelect(2, Record.ABSENCE_HIST, Record.ABS_HIST_DET, Record.ABS_HIST_DET, "...", ...);
+   *
+   * The second call's Record.ABSENCE_HIST/Record.ABS_HIST_DET arguments
+   * reuse the FIRST call's own rows entirely, not fresh ones -- disproven
+   * for RowScrollSelect specifically (definition 840) but proven true for
+   * ScrollSelect here. Marking participating does not reopen the 1283
+   * ScrollFlush-then-ScrollSelect case: a single-argument ScrollFlush call
+   * still does not mark participating (see `isMultiArgScrollFlushCall`),
+   * so ScrollSelect's read still finds nothing there and allocates fresh,
+   * exactly as 1283 requires.
+   */
+  if (/^ScrollSelect$/i.test(name)) {
+    marksControlGroupParticipant = true;
   }
 
   /*
@@ -4959,9 +5426,158 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
    * RecordChanged's Record.ADDRESS_TYPE_FL reuses the exact same
    * PSPCMNAME row RecordDeleted's own argument allocated moments earlier,
    * in the same If condition's control group.
+   *
+   * CreateRowset's own Record.X argument shares the same rule.
+   * AE_DERIVED.REFRESH_BTN.SavePreChange (definition 808):
+   *
+   *   &group = &RSComponent.GetRow(1).GetRecord(Record.DAEMONGROUP)
+   *              .GetField(Field.DAEMONGROUP).Value;
+   *   &RSDaemon = CreateRowset(Record.DAEMONGROUP);
+   *   ...
+   *   &RSDaemon.GetRow(...).GetRecord(Record.DAEMONGROUP).Delete();
+   *   ...
+   *   &RSComponent.GetRow(&i).GetRecord(Record.DAEMONGROUP).Insert();
+   *
+   * All four Record.DAEMONGROUP occurrences, spanning the GetRecord call,
+   * CreateRowset's own argument, and two later GetRecord calls inside
+   * separate For loops, reuse the SAME single PSPCMNAME RECORD row --
+   * stored's PSPCMNAME table has only one RECORD/DAEMONGROUP entry, not
+   * two. Without CreateRowset in this list, its own Record.X argument
+   * allocated a fresh row (bypassing the reuse check) and then every
+   * later GetRecord call reused THAT wrong row instead of the original.
+   *
+   * FetchValue's own Record.X argument shares the same rule.
+   * ANALYSIS_DB_DIM.DIMENSION_ID.FieldEdit (definition 1128):
+   *
+   *   &N_AGG_COUNT = ActiveRowCount(ANALYSIS_DB.ANALYSIS_DB_ID, &N_INST_ID, Record.CUBE_AGG_DEF);
+   *   For &N_AGG_NUM = 1 To &N_AGG_COUNT
+   *      ... Record.CUBE_AGG_DEF, &N_AGG_NUM, Record.CUBE_AGG_DIM);
+   *      For &N_AGG_DIM_NUM = 1 To &N_AGG_DIM_COUNT
+   *         &S_AGG_DIM_ID = FetchValue(ANALYSIS_DB.ANALYSIS_DB_ID, &N_INST_ID, Record.CUBE_AGG_DEF, &N_AGG_NUM, CUBE_AGG_DIM.DIMENSION_ID, &N_AGG_DIM_NUM);
+   *
+   * FetchValue's Record.CUBE_AGG_DEF argument reuses the exact same
+   * PSPCMNAME RECORD row the earlier ActiveRowCount calls already
+   * established in the same control group. FetchValue already had its
+   * OWN separate, narrower `reuseFetchValueRecord` mechanism (a distinct
+   * cache keyed only by FetchValue-established rows), which never found
+   * this ActiveRowCount-established row because it doesn't share a cache
+   * with the general control-group reuse pool -- adding FetchValue here
+   * too lets it also find rows established by GetRecord/ActiveRowCount/
+   * etc, while leaving its own narrower mechanism as-is for whatever case
+   * originally motivated it.
+   *
+   * DoModalPanelGroup's own Record.X argument shares the same rule.
+   * ANALYSIS_DB_WRK.PB_OPEN_ANL_MODEL.FieldChange (definition 1152):
+   *
+   *   If ANALYSIS_DB_WRK.BASE_CUBE_TYPE = "D" Then
+   *      ...
+   *      DoModalPanelGroup(..., Panel.CUBE_DEF, &S_MODE, Record.ANALYSIS_DB_WRK);
+   *   Else
+   *      If ANALYSIS_DB_WRK.BASE_CUBE_TYPE = "I" Then
+   *         ...
+   *         DoModalPanelGroup(..., Panel.ANALYSIS_DB, "U", Record.ANALYSIS_DB_WRK);
+   *      End-If;
+   *   End-If;
+   *
+   * Both DoModalPanelGroup calls' own Record.ANALYSIS_DB_WRK argument
+   * (one in the If body, one in a nested If inside the Else body -- still
+   * the same top-level control group, since the nested If is not itself
+   * a fresh top-level control structure) reuse the SAME PSPCMNAME RECORD
+   * row.
+   *
+   * SortScroll's own Record.X argument shares the same rule.
+   * ANL_MOD_DIM_FLD.COMPONENT_NBR.RowDelete (definition 1187):
+   *
+   *   If %Panel = Panel.CUBE_INPUT_FLD Then
+   *      &I_COMP_COUNT = ActiveRowCount(Record.ANL_MOD_DIM_FLD);
+   *      ...
+   *      For &I_COMP_NUM = &I_STARTING_COMP To &I_COMP_COUNT
+   *         UpdateValue(ANL_MOD_DIM_FLD.COMPONENT_NBR, &I_COMP_NUM, &I_COMP_NUM - 1);
+   *      End-For;
+   *      SortScroll(1, Record.ANL_MOD_DIM_FLD, ANL_MOD_DIM_FLD.COMPONENT_NBR, "A");
+   *   End-If;
+   *
+   * SortScroll's own Record.ANL_MOD_DIM_FLD argument (after the nested
+   * For loop closes and control returns to the enclosing If-body group)
+   * reuses the ActiveRowCount call's earlier row -- SortScroll was
+   * missing from this list, so it always allocated fresh.
+   *
+   * ScrollFlush's own Record.X argument shares the same rule.
+   * ARCH_OTH_CTRL.RECNAME1.FieldChange (definition 1236):
+   *
+   *   &L = ActiveRowCount(Record.ARCH_TBL, &I, Record.ARCH_OTH_CTRL);
+   *   ...
+   *   If &EXIST <> "X" Then
+   *      ScrollFlush(Record.ARCH_TBL, &I, Record.ARCH_KEYFLD_VW2);
+   *      ...
+   *      RowScrollSelect(2, Record.ARCH_TBL, ...);
+   *      &P = ActiveRowCount(Record.ARCH_TBL, &I, Record.ARCH_COMMON_KEY);
+   *      ...
+   *      ScrollFlush(Record.ARCH_TBL, &I, Record.ARCH_KEYFLD_VW2);
+   *   End-If;
+   *
+   * Without ScrollFlush in this list, its own Record.ARCH_TBL argument
+   * always allocated a fresh row (unconditionally overwriting the
+   * control-group cache, same failure shape as fix #18), poisoning every
+   * later same-name reference in the group -- both ScrollFlush calls and
+   * everything between them should reuse the ActiveRowCount call's
+   * original row.
+   *
+   * `Hide`/`UnHide` (not `HideScroll`/`UnhideScroll` -- distinct functions,
+   * field-level rather than scroll-level) share the same rule.
+   * ARCH_WRK.PSARCH_COPY_ROWS.FieldChange (definition 1283):
+   *
+   *   Hide(Record.ARCH_TBL, &I, ARCH_OTH_CTRL.PSARCH_MATCHVAL1, &SEQ);
+   *   UnHide(Record.ARCH_TBL, &I, ARCH_OTH_CTRL.PSARCH_MATCHDT1, &SEQ);
+   *
+   * repeated several times reuse the same control-group Record.ARCH_TBL
+   * row rather than each allocating a fresh one.
+   *
+   * `Gray`/`UnGray`'s own Record.X argument needs this SAME control-group
+   * check too, even though they are ALSO on the global by-name list
+   * (`reuseRecordReferenceByName` a few lines below) -- that global list
+   * is checked strictly AFTER this control-group check in
+   * `recordReference()`'s priority order, so adding them here only takes
+   * priority when a control-group establishment actually exists; it does
+   * not remove or override whatever the by-name behavior was originally
+   * validated for.
+   *
+   * ARCH_WRK.PSARCH_COPY_ROWS.FieldChange (definition 1283), continuing
+   * the same construct as the Hide/UnHide evidence above:
+   *
+   *   ScrollFlush(Record.ARCH_TBL, &I, Record.ARCH_KEYFLD_VW2);
+   *   ...
+   *   Gray(Record.ARCH_TBL, &I, ARCH_OTH_CTRL.PSARCH_MATCHVAL1, &SEQ);
+   *
+   * Gray's own Record.ARCH_TBL argument reuses ScrollFlush's
+   * control-group row, NOT the very first ARCH_TBL reference anywhere in
+   * the program (which is what the global by-name rule alone found).
+   *
+   * `HideRow` (distinct from `HideScroll`/`UnhideRow` -- both already on
+   * this list, but the plain `HideRow` counterpart was missing entirely).
+   * BAS_ENR_RUNCTL.PASSIVE_EVENT_IND.FieldChange (definition 1549):
+   *
+   *   DeleteRow(Record.BAS_ENR_PASSIVE, &I);
+   *   ...
+   *   HideRow(Record.BAS_ENR_PASSIVE, 1);
+   *   ...
+   *   UnhideRow(Record.BAS_ENR_PASSIVE, 1);
+   *
+   * `HideRow`'s own Record.BAS_ENR_PASSIVE argument reuses DeleteRow's
+   * earlier control-group row; without `HideRow` on this list it always
+   * allocated fresh, poisoning the later `UnhideRow` reuse too (same
+   * failure shape as fix #18).
    */
-  if (/^(?:GetRecord|DeleteRow|ActiveRowCount|UpdateValue|InsertRow|SetCursorPos|HideScroll|UnhideScroll|UnhideRow|CopyFields|RecordDeleted|RecordChanged)$/i.test(name)) {
+  if (/^(?:GetRecord|DeleteRow|ActiveRowCount|UpdateValue|InsertRow|SetCursorPos|HideScroll|UnhideScroll|UnhideRow|HideRow|CopyFields|RecordDeleted|RecordChanged|CreateRowset|FetchValue|DoModalPanelGroup|SortScroll|ScrollFlush|Hide|UnHide|Gray|UnGray)$/i.test(name)) {
     reuseRecordReferenceWithinControlGroup = true;
+  }
+  /*
+   * See `marksControlGroupParticipant`'s own declaration: every name above
+   * EXCEPT ScrollFlush marks its own fresh allocation as a visible
+   * "participating" source for a later RowScrollSelect/ScrollSelect call.
+   */
+  if (/^(?:GetRecord|DeleteRow|ActiveRowCount|UpdateValue|InsertRow|SetCursorPos|HideScroll|UnhideScroll|UnhideRow|HideRow|CopyFields|RecordDeleted|RecordChanged|CreateRowset|FetchValue|DoModalPanelGroup|SortScroll|Hide|UnHide|Gray|UnGray)$/i.test(name)) {
+    marksControlGroupParticipant = true;
   }
   if (/^CreateRecord$/i.test(name)) {
     reuseRowShorthandRecord = true;
@@ -5003,9 +5619,84 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
    *
    * Control-group-scoped, not function-scoped -- see the note on the
    * Record.X reuse rule above.
+   *
+   * HideScroll/UnhideScroll share the same rule (their own Scroll.X
+   * argument both contributes to and reads from the same control-group
+   * pool, mirroring how they already joined the analogous Record.X
+   * reuse-checking list -- see that note above).
+   * ADSRECORDS1_WRK.QRYSEARCHBTN.FieldChange (definition 772):
+   *
+   *   If &nCount = 0 Then
+   *      HideScroll(Scroll.ADSRECORDS1_DVW);
+   *      ...
+   *   Else
+   *      UnhideScroll(Scroll.ADSRECORDS1_DVW);
+   *      ...
+   *   End-If;
+   *
+   * UnhideScroll's Scroll.ADSRECORDS1_DVW reuses the exact same PSPCMNAME
+   * SCROLL row HideScroll's own argument allocated in the other branch of
+   * the same top-level If's control group.
+   *
+   * `FetchValue`'s own Scroll.X argument shares the same rule.
+   * BAS_PAR_VW-based Function Update_Event_Display (definition 1627):
+   *
+   *   &BENRCD = FetchValue(Scroll.BAS_PAR_VW, &I, BAS_PAR_VW.BENEFIT_RCD_NBR);
+   *   &EVENT_ID = FetchValue(Scroll.BAS_PAR_VW, &I, BAS_PAR_VW.EVENT_ID);
+   *
+   * The second FetchValue's own Scroll.BAS_PAR_VW argument reuses the
+   * first's, rather than allocating fresh.
    */
-  if (/^(?:ActiveRowCount|UpdateValue|Gray|UnGray|DeleteRow)$/i.test(name)) {
+  if (/^(?:ActiveRowCount|UpdateValue|Gray|UnGray|DeleteRow|HideScroll|UnhideScroll|FetchValue)$/i.test(name)) {
     reuseScrollReferenceWithinControlGroup = true;
+  }
+
+  /*
+   * ScrollFlush's OWN participating-map visibility (see
+   * `marksControlGroupParticipant`) depends on how many arguments THIS
+   * call has, not just the call name.
+   *
+   * AE_UPGCONV_WRK.AE_REFRESH.FieldChange (definition 840):
+   *   ScrollFlush(Record.MESSAGE_LOG);  -- single argument
+   * does not mark participating (a later RowScrollSelect allocates fresh,
+   * does not find it).
+   *
+   * ARCH_OTH_CTRL.RECNAME1.FieldChange (definition 1236) and
+   * ARCH_WRK.PSARCH_COPY_ROWS.FieldChange (definition 1283):
+   *   ScrollFlush(Record.ARCH_TBL, &I, Record.ARCH_KEYFLD_VW2);  -- 3 args
+   * DOES mark participating -- and not merely for the third (child)
+   * argument: a later RowScrollSelect's own FIRST Record.ARCH_TBL argument
+   * (the parent, same position as the single-argument form) reuses it too
+   * (definition 1283's own diff, once the third-argument-only version of
+   * this rule was disproven). So the distinguishing factor is argument
+   * COUNT for the whole call, not argument position within it.
+   */
+  const isMultiArgScrollFlushCall =
+    /^ScrollFlush$/i.test(name) && (() => {
+      let i = pos;
+      if (source[i] !== '(') return false;
+      i++;
+      let localDepth = 1;
+      while (i < source.length && localDepth > 0) {
+        const ch = source[i];
+        if (ch === '(') {
+          localDepth++;
+        } else if (ch === ')') {
+          localDepth--;
+          if (localDepth === 0) break;
+        } else if (ch === ',' && localDepth === 1) {
+          return true;
+        } else if (ch === '"') {
+          i++;
+          while (i < source.length && source[i] !== '"') i++;
+        }
+        i++;
+      }
+      return false;
+    })();
+
+  if (isMultiArgScrollFlushCall) {
+    marksControlGroupParticipant = true;
   }
 
   try {
@@ -5027,12 +5718,18 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       previousReuseFetchValueRecord;
     reuseRecordReferenceWithinControlGroup =
       previousReuseRecordReferenceWithinControlGroup;
+    marksControlGroupParticipant =
+      previousMarksControlGroupParticipant;
     reuseRowShorthandRecord =
       previousReuseRowShorthandRecord;
     captureRowsetElementRecord =
       previousCaptureRowsetElementRecord;
     reuseScrollReferenceWithinControlGroup =
       previousReuseScrollReferenceWithinControlGroup;
+    reuseRecordReferenceWithinCallArguments =
+      previousReuseRecordReferenceWithinCallArguments;
+    recordReferencesWithinCallArguments =
+      previousRecordReferencesWithinCallArguments;
   }
 };
   const primary = () => {
@@ -5041,6 +5738,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     // Bare postfix (...) is calibrated for variable/object indexing such as
     // &rs(1). Do not make every literal/value callable (e.g. True()).
     let allowDirectPostfixCall = source[pos] === '&';
+    /*
+     * A bare `GetRecord(...)` call (no leading `&variable.` receiver) puts
+     * the expression straight into field-reference mode for whatever
+     * `.MEMBER` follows, exactly like a `.GetRecord(...)` postfix step
+     * later in a chain already does.
+     *
+     * ADDRESS_TYPE_VW.ADDRESS_TYPE.RowInit (definition 535) proves this
+     * matters beyond just the initial field access: a `GetField(Field.X)`
+     * called directly on a bare `GetRecord(...)` result must also register
+     * into the control-group FIELD reuse pool the same way
+     * `&row.GetRecord(...).GetField(Field.X)` already does, so a later
+     * bare `.FIELDNAME` property access elsewhere in the same control
+     * group can find it.
+     */
+    let bareGetRecordCallResult = false;
     const baseVariableName =
       /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
     const baseApplicationClass =
@@ -5210,11 +5922,32 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       } else if (/^[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/.test(tail)) {
         chunks.push(ordinaryRecordFieldReference());
       } else {
+        /*
+         * `GetRecord()` with NO arguments is a structurally different
+         * construct from `GetRecord(Record.X)` / `GetRecord(N)`: it starts
+         * a Row-navigation chain (`.ParentRow.ParentRowset...`), not a
+         * field access, and its postfix members must stay plain inline
+         * identifiers.
+         *
+         * ABS_H_D_NLDSBR.SAME_ADDRESS_EMPL.FieldChange (definition 180)
+         * proves this: `GetRecord().ParentRow...` must NOT treat
+         * `.ParentRow` as a field reference. Only the argumented form
+         * (definition 535's `GetRecord(1)` / `GetRecord(Record.X)`) puts a
+         * following bare `.MEMBER` into field-reference mode.
+         */
+        const wasBareGetRecordCall =
+          /^GetRecord$/i.test(identifier) &&
+          !/^GetRecord\s*\(\s*\)/i.test(tail);
+
         call();
 
         // A function-call result may itself be invoked/indexed using (...)
         // e.g. GetLevel0()(1).
         allowDirectPostfixCall = true;
+
+        if (wasBareGetRecordCall) {
+          bareGetRecordCallResult = true;
+        }
       }
       } else {
         chunks.push(value());
@@ -5249,22 +5982,25 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       'record' | 'field' | undefined =
         explicitRecordRootName !== undefined
           ? 'field'
-          : rowStartsRecordFieldChain
-            ? 'record'
-            : baseVariableName !== undefined &&
-              recordVariables.has(baseVariableName.toLowerCase())
-              ? 'field'
-              : undefined;
+          : bareGetRecordCallResult
+            ? 'field'
+            : rowStartsRecordFieldChain
+              ? 'record'
+              : baseVariableName !== undefined &&
+                recordVariables.has(baseVariableName.toLowerCase())
+                ? 'field'
+                : undefined;
 
     /*
      * Distinguishes "expectedReferenceMember === 'field' because this is
      * the first postfix step off a declared Record variable" from
-     * "...because the immediately preceding postfix step in this same
-     * chain was .GetRecord(...)". Only the latter enables Field.X
-     * control-group reuse for a following .GetField(...) call -- see its
-     * own comment where it's checked below.
+     * "...because this expression's field context came from a
+     * .GetRecord(...) result" (either a bare `GetRecord(...)` primary call,
+     * or `.GetRecord(...)` as a postfix step later in the chain). Only the
+     * latter enables Field.X control-group reuse for a following
+     * .GetField(...) call -- see its own comment where it's checked below.
      */
-    let isFirstPostfixStep = true;
+    let fieldMemberFromGetRecord = bareGetRecordCallResult;
     let selectedByDirectRowsetPostfix = false;
 
     // Calibrated postfix forms may be chained arbitrarily:
@@ -5289,9 +6025,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
         const member = memberMatch[0];
         pos += member.length;
-
-        const wasFirstPostfixStep = isFirstPostfixStep;
-        isFirstPostfixStep = false;
 
         space();
 
@@ -5427,10 +6160,28 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
                            * NO_RESULTS is FIELD #8 in group 0 but a fresh
                            * FIELD #26 in group 1. Falling back to latestFields
                            * incorrectly reuses the group-0 dependency.
+                           *
+                           * ADDRESS_TYPE_VW.ADDRESS_TYPE.RowInit (definition
+                           * 535) proves a further bridge: a bare `.FIELDNAME`
+                           * property access immediately after `.GetRecord(...)`
+                           * reuses a FIELD row already established in the same
+                           * control group by an explicit
+                           * `.GetRecord(...).GetField(Field.X)` chain earlier
+                           * in that group --
+                           *
+                           *   &FLD = GetRecord(Record.ADDRESS_TYPE_VW)
+                           *            .GetField(Field.ADDRESS_TYPE);
+                           *   ...
+                           *   &Types.GetRow(&I).GetRecord(1).ADDRESS_TYPE.Value
+                           *
+                           * Both resolve to the same PSPCMNAME FIELD row for
+                           * ADDRESS_TYPE, not a fresh allocation.
                            */
                           rowShorthandFields.get(
                             `${controlGroup}:${member.toLowerCase()}`
                           ) ?? declaredRecordFields.get(
+                            `${controlGroup}:${member.toLowerCase()}`
+                          ) ?? fieldReferencesByControlGroup.get(
                             `${controlGroup}:${member.toLowerCase()}`
                           )
                         )
@@ -5491,6 +6242,35 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
             if (rowVariables.has(baseVariableName.toLowerCase())) {
               typedRowFields.set(member.toLowerCase(), reference);
+
+              /*
+               * AGC_CAT_STEP.AGC_CATEGORY_ID.FieldFormula (definition 924)
+               * proves a Row-typed variable's FIELD binding bridges to the
+               * control-group-scoped `declaredRecordFields` pool too, the
+               * same way a declared Record variable's own FIELD binding
+               * already does (see the ACCOMPLISHMENTS.EMPLID.SavePostChange
+               * / AA_SUMM_JPN_VW.EMPLID.SavePostChange provenance-bridge
+               * comment above): a LATER row-shorthand access
+               * (`&rowsetVar(&i).RECORD.FIELD`, a structurally different
+               * access style reached through the final "ordinary
+               * Rowset/row-shorthand FIELD reuse" branch below, which
+               * checks `declaredRecordFields` but never `typedRowFields`)
+               * reuses the SAME PSPCMNAME FIELD row a `Row`-typed
+               * parameter's own `.RECORD.FIELD` chain established earlier
+               * in the same control group:
+               *
+               *   Function InitStepDefautAssigneeSection(&rCurrCatTbl As
+               *       Row, &rCurrentStep As Row)
+               *      ...
+               *      &rCurrentStep.AGC_DERIVED_ASG.GROUPBOX4.Visible = &nShow;
+               *      &rsCategorySteps = &rCurrCatTbl.GetRowset(Scroll.AGC_CAT_STEP);
+               *      For &i = 1 To &rsCategorySteps.ActiveRowCount
+               *         &rsCategorySteps(&i).AGC_DERIVED_ASG.GROUPBOX4.Visible = &nShow;
+               */
+              declaredRecordFields.set(
+                `${controlGroup}:${member.toLowerCase()}`,
+                reference
+              );
             } else if (recordVariables.has(baseVariableName.toLowerCase())) {
               declaredRecordFields.set(
                 `${controlGroup}:${member.toLowerCase()}`,
@@ -5522,6 +6302,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             expectedReferenceMember === 'record'
               ? 'field'
               : undefined;
+          fieldMemberFromGetRecord = false;
           continue;
         }
 
@@ -5577,6 +6358,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             reuseRecordReferenceByName;
           const previousReuseRecordReferenceWithinControlGroup =
             reuseRecordReferenceWithinControlGroup;
+          const previousMarksControlGroupParticipant =
+            marksControlGroupParticipant;
           const previousReuseScrollReferenceWithinControlGroup =
             reuseScrollReferenceWithinControlGroup;
           const previousReuseFieldReferenceWithinControlGroup =
@@ -5589,9 +6372,15 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
            * DERIVED_CO.FUNCLIB.FieldFormula proves two consecutive
            * &HeaderRowset.Select(Record.CRSE_ALL_SSN_VW, ...) calls both use
            * PSPCMNAME NAMENUM 9 rather than allocating a second RECORD row.
+           *
+           * Neither GetRecord nor Select has ScrollFlush's proven
+           * participating-map exception (see `marksControlGroupParticipant`),
+           * so both also mark their own fresh allocation as a participating
+           * source, matching this flag's previous combined behavior.
            */
           if (/^(?:GetRecord|Select)$/i.test(member)) {
             reuseRecordReferenceWithinControlGroup = true;
+            marksControlGroupParticipant = true;
           }
 
           if (/^GetRowset$/i.test(member)) {
@@ -5600,15 +6389,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
           /*
            * Field.X reuse is scoped to a GetField(...) call immediately
-           * chained onto this same expression's own PRECEDING
-           * .GetRecord(...) postfix step -- not merely
+           * chained onto this same expression's own field context coming
+           * from a .GetRecord(...) result -- not merely
            * expectedReferenceMember === 'field' by itself, since that is
            * ALSO true on the very first postfix step off a declared
            * Record variable (`&rec.GetField(...)` where `&rec` is
            * `Local Record &rec;`), a structurally different, unrelated
-           * case. `!wasFirstPostfixStep` rules that out: GetRecord can
-           * only ever be a preceding chain step, never the chain's own
-           * first postfix access.
+           * case. `fieldMemberFromGetRecord` rules that out: it is only
+           * ever true when the current field context was established by a
+           * `.GetRecord(...)` result, whether that was a postfix chain
+           * step (`&row.GetRecord(...)`) or the bare primary call itself
+           * (`GetRecord(Record.X)` with no leading `&variable.` receiver).
            *
            * Deliberately narrow: 'encodeProgramArtifacts allocates
            * repeated Scroll and Field references by occurrence' (existing
@@ -5618,11 +6409,12 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
            * statements, GetField as the first postfix step both times)
            * remains occurrence-based -- each call gets its own fresh
            * FIELD row. Only a GetField(...) directly continuing the same
-           * .GetRecord(...) chain (definition 524) reuses.
+           * .GetRecord(...) result (definition 524, and definition 535's
+           * bare-call form) reuses.
            */
           if (
             /^GetField$/i.test(member) &&
-            !wasFirstPostfixStep &&
+            fieldMemberFromGetRecord &&
             expectedReferenceMember === 'field'
           ) {
             reuseFieldReferenceWithinControlGroup = true;
@@ -5650,6 +6442,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
               previousReuseRecordReferenceByName;
             reuseRecordReferenceWithinControlGroup =
               previousReuseRecordReferenceWithinControlGroup;
+            marksControlGroupParticipant =
+              previousMarksControlGroupParticipant;
             reuseScrollReferenceWithinControlGroup =
               previousReuseScrollReferenceWithinControlGroup;
             reuseFieldReferenceWithinControlGroup =
@@ -5662,6 +6456,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
               : member.toLowerCase() === 'getrow'
                 ? 'record'
                 : undefined;
+          fieldMemberFromGetRecord =
+            member.toLowerCase() === 'getrecord';
           if (/^GetRow$/i.test(member)) {
             selectedByDirectRowsetPostfix = false;
           }
@@ -5946,6 +6742,30 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        *   executable...
        *
        * Stored shape: ... 15 2D 4F 24 ...
+       *
+       * When the comment sequence is instead followed by ANOTHER top-level
+       * declaration (Global/PanelGroup/Component/Constant/Declare Function)
+       * or an import, the Local run has ended but the declaration SECTION
+       * has not -- it continues into that following declaration and closes
+       * later, at the true first executable statement, via the separate
+       * sawTopLevelDeclaration/closedTopLevelDeclarationSection mechanism
+       * (mirrors the equivalent non-comment exclusion a few lines below,
+       * `leadingLocalRun && !isLocalDeclaration` guarding on
+       * `!isTopLevelDeclaration`). Do not record a boundary here in that
+       * case, or an extra spurious 0x2D gets inserted right before the
+       * comment.
+       *
+       * ARCH_SQL_LNG.ARCH_SQL.SavePostChange (definition 1257):
+       *
+       *   Local Record &REC;
+       *   /* global strings defined in ARCH_SQL_LNG.ARCH_SQL.FieldChange *\/
+       *   Global string &AUDIT_ID, &AUDIT_RECNAME, &AUDIT_PROCESS, &AUDIT_STRING;
+       *   Global boolean &AUDIT_THIS;
+       *
+       *   If (...) Then
+       *
+       * stores no 0x2D at all before the comment -- the declaration section
+       * (Local + both Globals) closes as one unit right before `If`.
        */
       if (
         leadingLocalRun &&
@@ -5953,14 +6773,16 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         !nextIsLocal &&
         pendingReferenceLocalBoundary === undefined
       ) {
-        pendingReferenceLocalBoundary = chunks.length;
+        if (!nextIsTopLevelDeclaration && !nextIsImport) {
+          pendingReferenceLocalBoundary = chunks.length;
 
-        /*
-         * The ordinary top-level blank-line/comment handling below emits
-         * the 0x4F. If this program ultimately has compiled references, the
-         * deferred Local-section insertion therefore contributes only 0x2D.
-         */
-        pendingReferenceLocalMarkers = 0;
+          /*
+           * The ordinary top-level blank-line/comment handling below emits
+           * the 0x4F. If this program ultimately has compiled references, the
+           * deferred Local-section insertion therefore contributes only 0x2D.
+           */
+          pendingReferenceLocalMarkers = 0;
+        }
         leadingLocalRun = false;
       }
 
@@ -6339,11 +7161,42 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     if (
       sawTopLevelDeclaration &&
       isTopLevelDeclaration &&
-      /^(?:Component|Global|Declare\s+Function)\b/i.test(source.slice(pos)) &&
+      /^(?:Component|Global|PanelGroup|Declare\s+Function)\b/i.test(source.slice(pos)) &&
       hasBlankLine &&
       !justClosedImportSection
     ) {
-      chunks.push(Buffer.from([0x4f]));
+      /*
+       * AMM_DERIVED.AMM_CANCEL_M.FieldChange (definition 942) proves this
+       * boundary scales with blank-line count like every other marker
+       * site in this file, rather than always emitting exactly one:
+       *
+       *   Declare Function LoadSubChannelPubHdr PeopleCode AMM_WORK.FUNCLIB FieldFormula;
+       *
+       *
+       *   Component boolean &msg_refreshed;
+       *
+       * (two blank lines) stores two 0x4F markers, not one.
+       *
+       * AMM_DERIVED.AMM_COLLAPSE_ALL.FieldChange (definition 945) proves
+       * this trigger list itself was incomplete -- `PanelGroup` belongs
+       * on it too, alongside `isTopLevelDeclaration`'s own full set
+       * (`Global|PanelGroup|Component|Constant|Declare Function`):
+       *
+       *   Declare Function CollapseTreeRows PeopleCode AMM_TREE_WS.TREE_LEVEL_NUM FieldFormula;
+       *
+       *   PanelGroup number &CurrentTreeRow;
+       *
+       * had NO marker emitted at all (not even a multiplicity bug --
+       * PanelGroup simply never triggered this block). `Constant` remains
+       * unconfirmed by any corpus evidence and is deliberately left off.
+       */
+      const markerCount = Math.max(
+        1,
+        (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
+      );
+      for (let marker = 0; marker < markerCount; marker++) {
+        chunks.push(Buffer.from([0x4f]));
+      }
     }
 
     const closesApplicationClassLocalSection =
