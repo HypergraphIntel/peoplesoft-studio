@@ -1,6 +1,29 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #55** landed (src/peoplecode/encoder.ts): bare `GetRowset(Record.X)`
+  (assigned to a variable, e.g. `&RS = GetRowset(Record.X);` -- distinct
+  from `.GetRowset(Scroll.X)` as a postfix method call, and from
+  `CreateRowset`, already on this list) added to the shared
+  control-group Record.X reuse trigger list (both
+  `reuseRecordReferenceWithinControlGroup` and
+  `marksControlGroupParticipant`). Target: definition 8093
+  (GPHK_PSLP.GPHK_EXCL_PRNT.FieldChange) -- an `Evaluate` with two
+  `When` clauses, each independently calling `GetRowset(Record.
+  GPHK_PSLP_LOCTN)`; the second clause's call needs to reuse the first's
+  PSPCMNAME row (both `When` bodies share one control group, only the
+  `Evaluate` statement's own entry bumps it). Definition 8093 moved
+  UNKNOWN_MISMATCH -> EXACT on the first attempt. Verified: `npx tsc -p .`
+  clean; `npm test` 456/457 (1 pre-existing skip); `corpus:verify --limit
+  430` 430/430, 0 regressions. Learning applied from the earlier
+  ScrollFlush/DoModalComponent regressions this session: before
+  committing, searched the corpus for the bare-assigned-GetRowset(Record.X)
+  shape (86 matches) and spot-checked 15, comparing EACH ONE's
+  classification against its OWN pre-fix historical run record (not just
+  the current run) -- all 15 matched exactly (6 EXACT before and after, 6
+  UNKNOWN_MISMATCH before and after presumably for unrelated reasons, 2
+  UNSUPPORTED_SYNTAX, 1 ENCODE_ERROR unchanged) -- zero regressions found
+  in the sample.
 - **Fix #54** landed (src/peoplecode/encoder.ts), high-impact: a bare
   `GetRow()` call (no receiver, no arguments) starting a two-dot
   `.RECORD.FIELD.Value` postfix chain now compiles RECORD and FIELD
