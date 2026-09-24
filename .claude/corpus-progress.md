@@ -1,6 +1,51 @@
 # Corpus Calibration Progress
 
 ## Current target
+- Session resumed 2026-09-24 via `/goal` in a FRESH cloud container (new
+  ephemeral checkout, no state carried over from any prior session's
+  container). Ran `npm install` (node_modules was entirely absent), then
+  `npx tsc -p .` (clean). Attempted the mandatory pre-work verification
+  (`npm run corpus:failures -- --summary`, `npm run corpus:verify --
+  --limit 430`) and hit a **hard environment blocker**, not a calibration
+  difficulty:
+  - `tools/corpus/hcdev-snapshot.sqlite` does not exist in this container.
+    It is gitignored (correctly — it holds captured real HCDEV compiler
+    evidence) and, since this container is a fresh clone, nothing from any
+    earlier session's snapshot survived. `corpus:failures --summary`
+    confirms: "Definitions known: 0".
+  - `tools/corpus/corpus-results.sqlite` (the run-history DB) and every
+    file under `tools/corpus/baselines/` are likewise absent (gitignored,
+    not regenerated).
+  - No Oracle credentials (`PS_CONNECT_STRING`, `PS_USER`, `PS_PASSWORD`)
+    are set anywhere in this environment (checked `env`, and confirmed via
+    the environment-secrets documentation that no such secret is
+    configured) — so `--live` cannot be used to rebuild the snapshot
+    either, even as an explicit maintenance action.
+  - Separately (a real code bug, not investigated further this session):
+    `tools/corpus/corpus-runner.ts` `runCorpus()` calls
+    `getConnectionConfig()` unconditionally at the top (line ~95), purely
+    to populate a `Database:` log label, even when running in
+    local-snapshot mode. This means even a present, populated snapshot
+    file would still hit "Missing required environment variable(s):
+    PS_CONNECT_STRING, PS_USER, PS_PASSWORD" today — local-snapshot mode
+    is not actually decoupled from Oracle config the way CLAUDE.md's
+    local-first policy describes. Worth fixing (make the `Database:` label
+    conditional / lazy) once the snapshot itself is available to verify
+    against, but not done yet since there is no data to validate the fix
+    with.
+  - No workaround was applied that fabricates or guesses corpus data.
+    Nothing in `src/peoplecode/encoder.ts` or `decoder.ts` was touched this
+    session. All prior sessions' encoder/decoder rules (fixes #1-47 and
+    the "Newly established rules" sections below) remain intact in git
+    history — this is an environment/data-availability gap, not a
+    regression.
+  - Asked the user how to proceed (add Oracle credentials as an
+    environment secret so the snapshot can be rebuilt via an explicit
+    `--live` maintenance capture, or supply the existing snapshot file
+    another way). See chat for the live decision; update this section
+    once resolved.
+
+## Current target (previous entry, preserved for history)
 - Session continued 2026-09-24 via `/goal` resume, picking up exactly where
   the prior checkpoint left off (past fix #38, definition 1152). Re-verified
   clean state first (`tsc`, `npm test` 456/1, `corpus:verify --limit 430`
