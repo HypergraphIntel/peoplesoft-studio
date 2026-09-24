@@ -1,6 +1,77 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #61** landed (src/peoplecode/encoder.ts, `primary()`'s postfix `.`
+  loop and its `GetRecord()` bare-call detection): a bare, EMPTY-PARENS
+  `GetRecord()` call (no arguments, no `&variable.` receiver) followed by
+  exactly two dotted members -- `GetRecord().FIELDNAME.PROPERTY` -- must
+  compile FIELDNAME as a real PSPCMNAME FIELD reference (0x4A) while
+  PROPERTY (e.g. `SqlText`, `Value`, `Enabled`, `DisplayOnly`, ...) stays
+  inline text, the same one-level field-reference mode the ARGUMENTED form
+  (`GetRecord(Record.X).FIELDNAME`) already gets -- the previous rule
+  (definition 180's calibrated "`GetRecord()` with no arguments starts a
+  Row-navigation chain, postfix members stay inline") turned out to be
+  incomplete: it is only true when the first member is the single reserved
+  Row-navigation property `ParentRow`, not universally true for every
+  no-args `GetRecord()` chain. Root cause and fix, in two parts:
+  1. Added `wasBareGetRecordCallNoArgsFieldChain`: a lookahead requiring
+     TWO dotted members after `GetRecord()` AND excluding `ParentRow` as
+     the first member by name (`(?!ParentRow\b)`), OR'd into the same
+     `bareGetRecordCallResult` flag the argumented form already sets (so
+     it gets identical 'field'-mode treatment, including the existing
+     auto-revert of `expectedReferenceMember` to `undefined` after one
+     reference is consumed -- no new state machine needed).
+  2. Found a SEPARATE latent bug while verifying multi-branch corpus
+     candidates: the FIELD reference this new path allocates was never
+     written into any control-group reuse pool (every existing write site
+     in the postfix loop's reference-consumption block is gated on
+     `baseVariableName !== undefined`, i.e. a `&variable.` receiver, which
+     bare `GetRecord()` never has), so a second `GetRecord().SAMEFIELD...`
+     in the same control group (e.g. the Else-branch of the If/Else the
+     first one appeared in) always allocated a fresh PSPCMNAME row instead
+     of reusing the first. Added a new write branch keyed on
+     `fieldMemberFromGetRecord` (already the correct "this field context
+     came from a GetRecord() result" flag, pre-existing for an unrelated
+     GetField() reuse rule) that writes into `fieldReferencesByControlGroup`
+     -- the exact pool the read-side lookup already falls back to for this
+     no-receiver case, so no read-side change was needed, only the missing
+     write.
+  Target: definition 10023 (GPS_POSTADD_WRK.<various>.FieldFormula, one
+  of 26 corpus occurrences of the `GetRecord().FIELD.SqlText` shape):
+  ```
+  GetRecord().GPS_BDG_ORG2.SqlText = ExpandSqlBinds(FetchSQL(SQL.GPS_GET_ORG_LVL), 2, GPS_POSTADD_WRK.GPS_BDG_ORG1.Value);
+  ```
+  confirmed byte-for-byte EXACT (was ENCODE_ERROR before). Searched the
+  corpus exhaustively for every `GetRecord().MEMBER1.MEMBER2` occurrence
+  before implementing: 365 total occurrences across 113 distinct MEMBER1
+  identifiers; 112 of 113 are ALL_CAPS_WITH_UNDERSCORES field-name shapes,
+  the sole exception being `ParentRow` (definitions 180, 9359, 22705,
+  PascalCase, a reserved Row property) -- strong, corpus-validated grounds
+  for the exact exclusion used. First implementation attempt (part 1 only,
+  without part 2's control-group-reuse fix) caused two regressions on
+  definitions with the field-name repeated across an If/Else (9989-9992,
+  wrong FIELD index reused) that a --limit 430 gate alone would NOT have
+  caught (neither definition is in the protected window) -- caught instead
+  by testing every corroborating candidate found in the exhaustive search,
+  including definitions 180 and 9359 which were previously EXACT and
+  briefly regressed by part 1 alone (`ParentRow` exclusion missing) before
+  part 2 was even relevant; both are restored EXACT with the complete fix.
+  Verified all 43 corroborating/regression-guard candidates found by the
+  search (180, 1420, 3830, 4141, 4781, 4798, 6597, 6802-6950 GPFR_AF/DA
+  family x14, 7004-7186 x7, 9359, 9989-9998 x10, 10023-10032 x6, 22705):
+  30 fully byte-exact (including the previously-EXACT 180 and 9359,
+  confirmed not regressed via direct pre-fix/post-fix comparison), 8
+  advanced past this construct into separate unrelated pre-existing
+  issues (1420, 4141: unsupported syntax elsewhere; 3830, 6597, 22705:
+  pre-existing MISMATCH at unrelated offsets, confirmed identical or
+  improved, never regressed, via git-stash pre-fix comparison) -- zero
+  regressions. Verified: `npx tsc -p .` clean; `npm test` 456/457 (1
+  pre-existing skip); `corpus:verify --limit 430` 430/430, 0 regressions.
+  A full-corpus background diff against the pre-fix run (run_id 224,
+  22018/30209 exact) was started to additionally confirm no regressions
+  outside the protected window and outside the 43 manually-checked
+  candidates, given this change touches the shared `primary()` postfix
+  reference machinery; see next entry for its result once complete.
 - **Fix #60** landed (src/peoplecode/encoder.ts, `statement()`'s `&`/`@`/`%`
   variable-led branch): a variable-led method-call statement (e.g.
   `&RS.DeleteRow(&i)`) could not omit its trailing source semicolon
