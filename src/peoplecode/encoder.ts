@@ -1451,6 +1451,44 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     new Map<string, PeopleCodeReference>();
 
   /*
+   * ScrollFlush(Record.X); ScrollSelect(1, Record.X, Record.Y, ...) --
+   * a RowScrollSelect/RowScrollSelectNew/ScrollSelect call's Record.X
+   * argument whose name appears only ONCE across this call's own entire
+   * argument list (i.e. does NOT also recur as a later argument of this
+   * SAME call) reuses a same-control-group row an immediately preceding
+   * ScrollFlush already allocated, unlike a repeated-within-the-call name
+   * (see `reuseRecordReferenceWithinCallArguments`'s own comment: a
+   * repeated name reuses ONLY within the call, never an outside row).
+   *
+   * ARCH_FLT_RQST.PSARCH_ID.SavePostChange (definition 1220):
+   *
+   *   ScrollFlush(Record.ARCH_OTH_CTL_VW);
+   *   ScrollSelect(1, Record.ARCH_OTH_CTL_VW, Record.ARCH_OTH_CTRL, &WHERE | &ORDER_BY, ARCH_FLT_RQST.PSARCH_ID);
+   *
+   * ScrollSelect's own Record.ARCH_OTH_CTL_VW argument (name appears once
+   * in this call -- ARCH_OTH_CTRL is a different name) reuses ScrollFlush's
+   * row. This does NOT reopen ARCH_WRK.PSARCH_COPY_ROWS.FieldChange
+   * (definition 1283, the ORIGINAL evidence for `reuseRecordReferenceWithinCallArguments`):
+   *
+   *   ScrollFlush(Record.ARCH_CTRL_VW2);
+   *   ScrollSelect(1, Record.ARCH_CTRL_VW2, Record.ARCH_CTRL_VW2, &WHERE, ...);
+   *
+   * ARCH_CTRL_VW2 appears TWICE in that ScrollSelect's own argument list,
+   * so it is excluded from this single-occurrence set entirely -- both of
+   * its own arguments keep allocating a fresh, call-shared row exactly as
+   * 1283 already proved. DERIVED_BEN.BUTTON_FUNC.FieldFormula (definition
+   * 4282) looks superficially identical to 1220 (ScrollFlush immediately
+   * followed by a different-name ScrollSelect) but is unaffected by this
+   * rule for an unrelated reason: that pair sits inside a
+   * `Function ... End-Function;` body, where each top-level statement gets
+   * its own fresh control group (see the Function-body control-group
+   * rule), so ScrollFlush and ScrollSelect there are never in the same
+   * control group regardless of this set's contents.
+   */
+  let singleOccurrenceCallArgumentRecordNames:
+    Set<string> | undefined;
+
+  /*
    * Bare GetRecord(Record.X) has a narrower reuse scope than GetSetId.
    * It may reuse a same-name RECORD only inside the current control group.
    */
@@ -1807,6 +1845,28 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       if (existing !== undefined) {
         return referenceOperand(existing);
+      }
+
+      /*
+       * See `singleOccurrenceCallArgumentRecordNames`'s own declaration
+       * (definition 1220 vs definition 1283): a name that appears only
+       * once across this whole call's own argument list may still reuse
+       * an EARLIER, same-control-group row (e.g. an immediately preceding
+       * ScrollFlush's own allocation) -- unlike a name repeated within
+       * this call, which stays call-private per the two checks above.
+       */
+      if (
+        singleOccurrenceCallArgumentRecordNames?.has(
+          recordName.toLowerCase()
+        )
+      ) {
+        const controlGroupExisting = recordReferencesByControlGroup.get(
+          `${controlGroup}:${recordName.toLowerCase()}`
+        );
+
+        if (controlGroupExisting !== undefined) {
+          return referenceOperand(controlGroupExisting);
+        }
       }
     }
 
@@ -5246,6 +5306,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     reuseRecordReferenceWithinCallArguments;
   const previousRecordReferencesWithinCallArguments =
     recordReferencesWithinCallArguments;
+  const previousSingleOccurrenceCallArgumentRecordNames =
+    singleOccurrenceCallArgumentRecordNames;
 
   if (/^(?:GetSetId|Gray|UnGray)$/i.test(name)) {
     reuseRecordReferenceByName = true;
@@ -5266,6 +5328,47 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      */
     reuseRecordReferenceWithinCallArguments = true;
     recordReferencesWithinCallArguments = new Map();
+
+    singleOccurrenceCallArgumentRecordNames = (() => {
+      if (source[pos] !== '(') return undefined;
+
+      const counts = new Map<string, number>();
+      let i = pos + 1;
+      let depth = 1;
+
+      while (i < source.length && depth > 0) {
+        const ch = source[i];
+
+        if (ch === '(') {
+          depth++;
+          i++;
+        } else if (ch === ')') {
+          depth--;
+          i++;
+        } else if (ch === '"') {
+          i++;
+          while (i < source.length && source[i] !== '"') i++;
+          i++;
+        } else {
+          const recordMatch =
+            /^Record\.([A-Za-z_][A-Za-z0-9_]*)/i.exec(source.slice(i));
+
+          if (recordMatch) {
+            const key = recordMatch[1].toLowerCase();
+            counts.set(key, (counts.get(key) ?? 0) + 1);
+            i += recordMatch[0].length;
+          } else {
+            i++;
+          }
+        }
+      }
+
+      const singles = new Set<string>();
+      for (const [recordName, count] of counts) {
+        if (count === 1) singles.add(recordName);
+      }
+      return singles;
+    })();
   }
 
   /*
@@ -5780,6 +5883,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       previousReuseRecordReferenceWithinCallArguments;
     recordReferencesWithinCallArguments =
       previousRecordReferencesWithinCallArguments;
+    singleOccurrenceCallArgumentRecordNames =
+      previousSingleOccurrenceCallArgumentRecordNames;
   }
 };
   const primary = () => {
