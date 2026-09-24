@@ -1365,5 +1365,5 @@ So this extension uses `psft-peoplecode` on `source.psft.peoplecode`, and its vi
 ## AI Agent for Corpus
 
 ```text
-/goal Continue autonomous PeopleCode corpus calibration using the completed local HCDEV snapshot as the authoritative default corpus source. Preserve the protected 430-definition zero-regression baseline. Do not use --live or query HCDEV Oracle unless live verification is specifically required by the datasource investigation or explicitly requested. A locally blocked definition is not a reason to stop; record it in .claude/corpus-progress.md and continue to the next actionable failure family. Treat local mismatches as calibration work, not datasource failures. Keep working until all remaining failures are independently blocked after evidence exhaustion or the corpus objective is complete.
+/goal Continue autonomous PeopleCode corpus calibration while preserving the protected 430-definition zero-regression baseline. A locally blocked definition is not a reason to stop; record it in .claude/corpus-progress.md and continue to the next actionable failure family. Keep working until all remaining failures are independently blocked after evidence exhaustion or the corpus objective is complete.
 ```
