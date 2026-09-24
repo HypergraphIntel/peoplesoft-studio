@@ -39,11 +39,53 @@
     the "Newly established rules" sections below) remain intact in git
     history — this is an environment/data-availability gap, not a
     regression.
-  - Asked the user how to proceed (add Oracle credentials as an
-    environment secret so the snapshot can be rebuilt via an explicit
-    `--live` maintenance capture, or supply the existing snapshot file
-    another way). See chat for the live decision; update this section
-    once resolved.
+  - Asked the user how to proceed. Resolution: env-var Oracle credentials
+    are not usable (HCDEV requires a VPN this environment cannot reach).
+    User will upload the existing snapshot file directly (192MB, over the
+    30MB per-message limit — splitting into parts via `split -b 25m` or a
+    direct-download link was proposed; upload not yet complete as of this
+    checkpoint).
+  - **Two infrastructure fixes landed while waiting on the upload** (both
+    validated WITHOUT real corpus data — no fabricated results, no
+    encoder/decoder changes):
+    1. `tools/corpus/corpus-runner.ts`: the eager unconditional
+       `getConnectionConfig()` call at the top of `runCorpus()` (previously
+       flagged above) is now lazy — only called when `options.live` is
+       true. `databaseName` falls back to the literal string
+       `'LOCAL SNAPSHOT'` instead of `config.connectString` for non-live
+       runs (though in practice `cli.ts` always passes an explicit
+       `databaseName: 'HCDEV'` today, so this fallback is currently
+       cosmetic dead code for the CLI path — still correct and needed for
+       any other caller). The two `openCorpusConnection(config)` call
+       sites (both already inside `if (options.live)` branches) now call
+       `getConnectionConfig()` directly inline instead of closing over the
+       removed top-level `config` variable. Smoke-tested by creating a
+       throwaway EMPTY snapshot db (schema only, zero definitions, via
+       `tools/corpus/snapshot/schema.sql`) at the real snapshot path with
+       `PS_CONNECT_STRING`/`PS_USER`/`PS_PASSWORD` explicitly unset —
+       confirmed `npm run corpus:verify -- --limit 5` no longer throws
+       "Missing required environment variable(s)" and instead correctly
+       reports `Source: LOCAL SNAPSHOT` / `Loaded 0 definition(s)`. The
+       throwaway db was deleted immediately after (never left in place,
+       never used to fabricate a result).
+    2. `package.json`'s `test` script (`node --test dist-test/test/`,
+       directory form) does not recurse in this container's Node v22.22.2
+       — it throws `MODULE_NOT_FOUND` instead of discovering the 35
+       compiled `*.test.js` files inside `dist-test/test/`, which broke
+       `npm test` (and therefore the mandatory post-fix verification
+       workflow) before any corpus work could even begin. Root-caused by
+       comparing directory-form vs. an explicit glob
+       (`dist-test/test/*.test.js`), which finds and runs all tests
+       correctly (457 tests, 456 pass, 1 pre-existing skip — exactly
+       matching every prior session's documented baseline count). Changed
+       the script to the explicit glob form. `dist-test/test/` has only
+       one subdirectory (`fixtures/`, not test files), so the flat glob is
+       complete — confirmed via `find`. This is an environment/Node-version
+       quirk fix, not a corpus-calibration change.
+    - Both fixes verified together: `npx tsc -p .` clean, `npm test` ->
+      456/457 pass (1 skip), matching baseline exactly. No corpus data
+      involved in validating either fix. Not yet committed as of this
+      checkpoint note — see git log for actual commit state.
 
 ## Current target (previous entry, preserved for history)
 - Session continued 2026-09-24 via `/goal` resume, picking up exactly where
