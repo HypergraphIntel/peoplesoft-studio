@@ -1,6 +1,73 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **definition_id 1285** (ARCH_WRK.PSARCH_COPY_TABLE.FieldChange),
+  UNKNOWN_MISMATCH, byte diff @721 (verified with proper owner context)
+  -- **DEFERRED, connects directly to the fix-#50-era reverted broad
+  attempt, needs a dedicated coordinated-fix session, no code changed.**
+  Source:
+  ```
+  ScrollFlush(Record.ARCH_TBL_VW);
+  &I = CurrentRowNumber(1);
+  CopyFields(1, Record.ARCH_TBL, &I, 1, Record.ARCH_TBL_VW, 1);
+  ```
+  Stored allocates CopyFields' own `Record.ARCH_TBL_VW` "to" argument a
+  FRESH row -- it does NOT reuse ScrollFlush's immediately preceding
+  allocation of the same name -- but the CURRENT encoder reuses it (via
+  the standard `reuseRecordReferenceWithinControlGroup` priority-1 check,
+  which finds ScrollFlush's allocation in `recordReferencesByControlGroup`
+  since every allocation writes there unconditionally). This is THIRD
+  independent evidence (after definition 1254's `PriorValue`->`FetchValue`
+  case, fix #50, and the already-established `marksControlGroupParticipant`
+  exclusion that keeps ScrollFlush out of RowScrollSelect's OWN
+  "participating" lookup) that **ScrollFlush's own fresh allocation
+  specifically should not count as a valid reuse precedent for ANY
+  later reuse-participating call's priority-1 lookup, not just RowScrollSelect's
+  and not just PriorValue's downstream reader (FetchValue)** -- this
+  looks like a real, broader pattern now, not a one-off.
+  - Why NOT fixed narrowly like fix #50 (a `suppressRecordReferenceControlGroupWrite`-style
+    flag for ScrollFlush specifically, gating the WRITE side): fix #49
+    (already landed, committed, validated) depends on ScrollFlush's
+    allocation being VISIBLE in `recordReferencesByControlGroup` --
+    its `singleOccurrenceCallArgumentRecordNames` fallback explicitly
+    reads that exact map to let a later RowScrollSelect/ScrollSelect
+    call reuse ScrollFlush's row. Suppressing ScrollFlush's write
+    entirely would silently regress fix #49's own target (definition
+    1220) and everything it corroborated (4756, 5661, 5687). Confirmed
+    by re-reading fix #49's own code before ruling this approach out --
+    did not attempt and then discover this the hard way a second time.
+  - The READ-side fix (swap `reuseRecordReferenceWithinControlGroup`'s
+    priority-1 check from `recordReferencesByControlGroup` to
+    `participatingRecordReferencesByControlGroup`, keeping ScrollFlush's
+    write to the FIRST map intact for fix #49's sake) is very likely the
+    right general shape now that THREE independent pieces of evidence
+    point the same direction -- but this is EXACTLY the change that was
+    reverted earlier this session after a full-corpus diff found 22
+    regressions (see the fix-#50-era note above for the full trace). 21
+    of those 22 were self-inflicted by fix #48's and fix #49's own direct
+    `.set()` calls into `recordReferencesByControlGroup` never ALSO
+    registering into `participatingRecordReferencesByControlGroup` -- a
+    real, fixable gap, not evidence against the general approach. A
+    proper re-attempt needs, in one coordinated change: (1) the priority-1
+    read-side swap, (2) updating fix #48's RowScrollSelectNew-last-argument
+    registration to ALSO write `participatingRecordReferencesByControlGroup`,
+    (3) updating fix #49's single-occurrence-name fallback registration
+    the same way, (4) re-diagnosing the OTHER ~20 regressed definition_ids
+    from that earlier attempt one at a time (only 1145 and 1220 were
+    confirmed root-caused as fix #48/#49 side effects; the rest were
+    assumed similar but never individually re-verified) to confirm they
+    too are fixable the same way and not a FOURTH distinct cause, (5) a
+    full corpus re-run diffed definition-by-definition against the last
+    known-good run (NOT just aggregate `corpus:failures --summary`
+    counts) before ever committing. This is real, valuable, well-evidenced
+    work -- just too large and too easy to get subtly wrong to rush
+    inside this same session on top of an already-large context budget.
+    Next session picking this up should start by re-reading this note in
+    full, then the fix-#50-era "First attempt (REVERTED...)" note above
+    it for the exact regressed-ID list and root-cause detail already
+    gathered, rather than re-deriving either from scratch.
+  - No encoder.ts changes made. Moved to a different, more isolated
+    actionable failure per CLAUDE.md's completion-behavior rule.
 - **definition_id 1277** (ARCH_UTILS.PSARCH_UTIL_EVENT.SavePreChange),
   UNKNOWN_MISMATCH, byte diff @2439 (verified with proper owner context,
   same technique as fixes #48-50) -- **DEFERRED, genuine unresolved
