@@ -1,6 +1,43 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #54** landed (src/peoplecode/encoder.ts), high-impact: a bare
+  `GetRow()` call (no receiver, no arguments) starting a two-dot
+  `.RECORD.FIELD.Value` postfix chain now compiles RECORD and FIELD
+  through real PSPCMNAME references (0x4A operands), exactly like a
+  declared `Row`-typed variable's own `.RECORD.FIELD.Value` chain already
+  does via `rowStartsRecordFieldChain` -- previously the encoder emitted
+  bare inline text for both names. New `bareGetRowCallResult` flag (set
+  the same narrow way `bareGetRecordCallResult` already is for
+  `GetRecord()`) plus a `bareGetRowCallStartsRecordFieldChain` two-dot
+  lookahead, OR'd into the existing `rowStartsRecordFieldChain` branch of
+  `expectedReferenceMember`'s computation. Target: definition 8027
+  (GPGB_SCON_TBL.GPGB_SCON.RowDelete) --
+  `&GPGB_SCON = GetRow().GPGB_SCON_TBL.GPGB_SCON.Value;` -- moved its
+  first diff from byte offset 123 to 390 (the definition has a SECOND,
+  separate remaining issue past that point, an index-count mismatch on a
+  different construct, `&GPGB_EE_NI(1).GPGB_EE_NI.GPGB_SCON.Value`, a
+  rowset-index-shorthand chain -- not touched by this fix, not yet
+  investigated).
+  Before writing any code, searched the whole corpus for
+  `GetRow()\.RECORD\.FIELD\.Value` (81 matches) and spot-checked 16 of
+  them for their PRE-fix classification: 12 UNKNOWN_MISMATCH, 2
+  UNSUPPORTED_SYNTAX, 2 ENCODE_ERROR (both unrelated failure categories)
+  -- critically, ZERO were already EXACT, meaning no counter-evidence
+  existed suggesting the old inline-text behavior was ever correct for
+  this exact construct (unlike the ScrollFlush/ScrollSelect and
+  DoModalComponent sagas earlier this session, where broader fixes hit
+  real counter-examples). Re-tested the same 16-plus sample after
+  landing: 11 moved UNKNOWN_MISMATCH -> EXACT (989, 990, 1927, 5028,
+  5632, 6439, 6625, 6880, 6881, 6882, 6883, 6884 -- twelve, actually,
+  counting all listed), 4 remain UNKNOWN_MISMATCH but with DIFFERENT,
+  clearly-separate remaining index-mismatch bugs (5372, 6597, 6620, 6845
+  -- each still correctly emits real 0x4A references now, just at wrong
+  indices, a genuinely different bug class from the inline-text/reference
+  question this fix addressed), and the original target (8027) advanced
+  but not fully EXACT as noted above. Verified: `npx tsc -p .` clean;
+  `npm test` 456/457 (1 pre-existing skip); `corpus:verify --limit 430`
+  430/430, 0 regressions.
 - **Fix #53** landed (src/peoplecode/encoder.ts): the existing
   declaration-to-declaration blank-line-marker mechanism (fixes #32/#33,
   `sawTopLevelDeclaration && isTopLevelDeclaration && /^(?:Component|
