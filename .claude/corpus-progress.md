@@ -1,6 +1,41 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #53** landed (src/peoplecode/encoder.ts): the existing
+  declaration-to-declaration blank-line-marker mechanism (fixes #32/#33,
+  `sawTopLevelDeclaration && isTopLevelDeclaration && /^(?:Component|
+  Global|PanelGroup|Declare\s+Function)\b/...`) only fired when an
+  EARLIER Global/PanelGroup/Component/Declare-Function declaration had
+  already set `sawTopLevelDeclaration` -- plain `Local` declarations
+  never set that flag, so a leading run of `Local` declarations followed
+  directly by a `Declare Function`/`Component`/`Global`/`PanelGroup`
+  statement got NO blank-line marker at all (not a multiplicity bug, a
+  total miss, same failure shape as fix #33's own PanelGroup gap).
+  Broadened the guard to `(sawTopLevelDeclaration ||
+  sawLeadingLocalDeclaration)`. Target: definition 5026
+  (DERIVED_GPFR_AF.GPFR_AF_DUPLICATE.FieldChange) --
+  ```
+  Local array of string &ValueArray;
+  Local array of Record &ExceptionArray;
+  Local Record &REC;
+  Local SQL &Sql1;
+
+  Declare Function ciCreateArray PeopleCode FUNCLIB_CI.CI_ARRAY FieldFormula;
+  ```
+  stores one 0x4F marker (no 0x2D) between `&Sql1;` and `Declare
+  Function`. Moved 5026's first diff from byte offset 736 to 11299 (real
+  progress, not full EXACT -- the definition is a large ~11.7KB program
+  and its remaining diff at 11299 is the already-documented, unrelated
+  "inline text vs PSPCMNAME field reference" puzzle shared with
+  definitions 1360/1422/3235/5002, not touched by this fix). Verified:
+  `npx tsc -p .` clean; `npm test` 456/457 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430, 0 regressions; re-confirmed both
+  definitions originally citing this mechanism (942, 945) still EXACT;
+  spot-checked ten nearby DERIVED_GPFR_AF-family candidates (5015, 5025,
+  5028, 5029, 5031, 5040, 5042, 5055, 5081, 5087) -- none resolved as a
+  side effect (each likely has its own instance of the same separate
+  inline-text-vs-field-reference puzzle, or an unrelated issue; not
+  individually root-caused).
 - **definition_id 5015** (DERIVED_GPFR_AF.GPFR_ADD_CHILD.FieldChange),
   UNKNOWN_MISMATCH, byte diff @510 -- investigated at length, NOT
   resolved, no code changed. Construct:

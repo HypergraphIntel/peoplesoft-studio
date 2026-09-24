@@ -7349,13 +7349,34 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
 
     if (
-      sawTopLevelDeclaration &&
+      (sawTopLevelDeclaration || sawLeadingLocalDeclaration) &&
       isTopLevelDeclaration &&
       /^(?:Component|Global|PanelGroup|Declare\s+Function)\b/i.test(source.slice(pos)) &&
       hasBlankLine &&
       !justClosedImportSection
     ) {
       /*
+       * DERIVED_GPFR_AF.GPFR_AF_DUPLICATE.FieldChange (definition 5026)
+       * proves this same declaration-to-declaration boundary also applies
+       * when the PRECEDING declaration is a leading Local-declaration run
+       * rather than an earlier Global/PanelGroup/Component/Declare
+       * Function -- `sawTopLevelDeclaration` alone is too narrow, since
+       * plain `Local` declarations never set it:
+       *
+       *   Local array of string &ValueArray;
+       *   Local array of Record &ExceptionArray;
+       *   Local Record &REC;
+       *   Local SQL &Sql1;
+       *
+       *   Declare Function ciCreateArray PeopleCode FUNCLIB_CI.CI_ARRAY FieldFormula;
+       *
+       * stores one 0x4F marker (no 0x2D at all) between `&Sql1;` and
+       * `Declare Function` -- previously no marker was emitted here at
+       * all, since neither this block (guarded on `sawTopLevelDeclaration`,
+       * false here) nor the plain `leadingLocalRun && !isLocalDeclaration`
+       * closer (which explicitly excludes `isTopLevelDeclaration` targets,
+       * deferring to this block instead) covered this specific transition.
+       *
        * AMM_DERIVED.AMM_CANCEL_M.FieldChange (definition 942) proves this
        * boundary scales with blank-line count like every other marker
        * site in this file, rather than always emitting exactly one:
