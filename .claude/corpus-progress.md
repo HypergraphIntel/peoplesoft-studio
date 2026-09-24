@@ -1,6 +1,52 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **DEFERRED / locally blocked, evidence exhausted**: the `#If #ToolsRel
+  <op> "<version>" #Then ... [#Else ...] #End-If` preprocessor-directive
+  family (73 combined UNSUPPORTED_SYNTAX occurrences across the `#If
+  #ToolsRel >=`, `#If #ToolsRel <`, `#If #ToolsRel =` construct groups).
+  The DECODER already fully supports this (opcodes `0x75`/`0x76`/`0x77`/
+  `0x78`, all length-prefixed text runs, documented in
+  `docs/ROADMAP.md` pass thirty-seven and confirmed again here): only the
+  branch PeopleTools took at COMPILE TIME is ever tokenized into real
+  opcodes; the untaken branch's entire source (including the directive
+  keyword itself, e.g. `#Then` or `#Else`) is stored as inert verbatim
+  text inside that keyword's own operand, never re-parsed.
+  The blocker: which branch was taken is NOT a fixed, corpus-wide
+  constant. Wrote a byte-level scanner (not the full decoder, to avoid
+  needing a NameTable) reading each `0x75`/`0x76`/`0x77`/`0x78` operand's
+  raw length-prefixed text directly from `stored_program`, and checked
+  it against every distinct `#ToolsRel <op> "<version>"` comparison found
+  in the corpus (27 distinct version/operator combinations, e.g. `>=
+  "8.58"`, `>= "8.62"`, `< "8.55"`, `#If #ToolsRel >= "8.59.16" &&
+  #ToolsRel < "8.60"`). Individually, every comparison resolves
+  consistently with a single environment whose release is somewhere at
+  or above 8.62 (`>= "8.61"`, `>= "8.62"`, `>= "8.58"` all TRUE; every
+  `< "8.5x"` FALSE) -- UNTIL definition 18228's compound condition `>=
+  "8.59.16" && < "8.60"` resolves TRUE, which is only possible if THAT
+  definition's own effective release was below 8.60 -- directly
+  contradicting the >= 8.60/8.61/8.62 evidence from every other
+  definition. This is not a corpus-evidence conflict resolvable by a
+  distinguishing rule (the CLAUDE.md "two identical constructs needing
+  opposite behavior" deferred case): different DEFINITIONS in the same
+  snapshot were last saved/compiled under DIFFERENT PeopleTools patch
+  levels (unsurprising -- PSPCMPROG is static bytecode baked in at save
+  time, not re-evaluated on every read, and different definitions in a
+  real PeopleSoft system get last-saved at different points across
+  years of patching). The snapshot's `snapshot_definition` table (see its
+  full `CREATE TABLE` -- object keys, source, stored program and their
+  hashes only) carries no per-definition capture timestamp or effective
+  ToolsRel value, so there is no local signal to pick the correct branch
+  per definition from source text alone. This is a genuine per-definition
+  environmental fact the encoder cannot derive from PeopleCode source,
+  analogous to needing HCDEV record-schema metadata the snapshot doesn't
+  carry -- locally blocked, not a narrow parser bug. One clean corpus
+  example (definition 22367) hit while searching for an unrelated
+  `repeatStatement()` REM candidate confirms this is a real, previously
+  unencountered environmental-dependency class, not solvable by better
+  source-side grammar. Revisit only if the snapshot is ever rebuilt with
+  per-definition capture-time metadata, or if `--live` HCDEV verification
+  is explicitly requested to establish a per-definition ground truth.
 - **Full-corpus regression diff confirmed** for Fixes #61-#62 (and
   transitively #59-#60, not yet captured in a prior full run): background
   full corpus scan (run_id 230, all 30,209 definitions) diffed
