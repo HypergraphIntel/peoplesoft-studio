@@ -7510,8 +7510,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     //
     // A declaration-only program gets only the 2D here; encodeProgram()
     // supplies the final program-directory 07.
+    //
+    // An intervening Local declaration with an initializer (e.g. `Local
+    // Row &Row = GetRow();` between a `Declare Function` and the first
+    // executable statement) makes this an ordinary blank-line gap, not a
+    // formal declaration-section boundary -- omit the 0x2D, mirroring the
+    // `pendingReferenceLocalBoundary` insertion site's identical check.
+    // See `leadingRunHasInitializedLocal`'s own declaration comment.
     if (closesTopLevelDeclarationSection) {
-      chunks.push(Buffer.from([0x2d]));
+      if (!leadingRunHasInitializedLocal) {
+        chunks.push(Buffer.from([0x2d]));
+      }
       const markerCount = Math.max(1, (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1);
       for (let marker = 0; marker < markerCount; marker++) {
         chunks.push(Buffer.from([0x4f]));
@@ -7522,6 +7531,40 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     const statementChunkStart = chunks.length;
 
     statement();
+
+    /*
+     * A top-level Local declaration's own initializer makes the
+     * currently-open declaration section (tracked by
+     * `sawTopLevelDeclaration`/`closedTopLevelDeclarationSection`, NOT
+     * the narrower `leadingLocalRun` "run of consecutive Locals" tracker)
+     * an ordinary blank-line gap rather than a formal 0x2D boundary when
+     * it closes -- independent of whether `leadingLocalRun` itself is
+     * still true. A preceding NON-Local top-level declaration (e.g.
+     * `Declare Function ...;`) already set `leadingLocalRun = false`
+     * before this Local was ever reached (see the
+     * `leadingLocalRun && !isLocalDeclaration` closer above), so the
+     * `leadingLocalRun`-gated block just below never runs for a Local in
+     * that position and never gets a chance to set this flag on its own.
+     *
+     * DERIVED_GPFRDSN.GPFR_DSN_EXT_STAT.FieldDefault (definition 5002):
+     *
+     *   Declare Function ComputeEventEeStatus PeopleCode DERIVED_GPFRDSN.GPFR_DSN_EXT_STAT FieldFormula;
+     *
+     *   Local Row &Row = GetRow();
+     *
+     *   If %Component = Component.GPFR_DSN_EVT_EE Then
+     *
+     * stores no 0x2D at all before `If` -- only the three 0x4F blank-line
+     * markers. `closesTopLevelDeclarationSection`'s own unconditional
+     * 0x2D push (a few lines below) needs this flag true to omit it.
+     */
+    if (
+      isLocalDeclaration &&
+      lastLocalHadInitializer &&
+      !closedTopLevelDeclarationSection
+    ) {
+      leadingRunHasInitializedLocal = true;
+    }
 
     if (
       leadingLocalRun &&
@@ -7592,6 +7635,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           leadingRunHasInitializedLocal = true;
           sawLeadingLocalDeclaration = true;
         } else {
+          // `leadingRunHasInitializedLocal` is already set unconditionally
+          // for any initialized top-level Local right after `statement()`
+          // above, regardless of `leadingLocalRun` -- see that check's own
+          // comment.
           if (
             sawLeadingLocalDeclaration &&
             pendingReferenceLocalBoundary === undefined

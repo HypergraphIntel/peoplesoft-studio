@@ -1,6 +1,45 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #52** landed (src/peoplecode/encoder.ts): a top-level Local
+  declaration's own initializer now correctly informs
+  `closesTopLevelDeclarationSection`'s 0x2D-boundary decision even when a
+  PRECEDING non-Local top-level declaration (e.g. `Declare Function ...;`)
+  already turned off `leadingLocalRun` before this Local was ever reached.
+  Root cause: `leadingRunHasInitializedLocal` (fix #16, an earlier
+  session) was only ever set inside the `leadingLocalRun && isLocalDeclaration`
+  branch, so a LONE initialized Local immediately following a non-Local
+  declaration (which unconditionally sets `leadingLocalRun = false` via
+  the sibling `leadingLocalRun && !isLocalDeclaration` closer) never got a
+  chance to set it, and `closesTopLevelDeclarationSection`'s own
+  unconditional 0x2D push (a separate mechanism from the
+  `pendingReferenceLocalBoundary` one fix #16 already covered) had no way
+  to know the section closed on an initializer. Added an unconditional
+  check right after `statement()` (independent of `leadingLocalRun`) that
+  sets the flag whenever a top-level Local with an initializer completes
+  before the declaration section has closed, and gated the
+  `closesTopLevelDeclarationSection` 0x2D push on it (mirroring the
+  existing `pendingReferenceLocalBoundary` insertion site). Target:
+  definition 5002 (DERIVED_GPFRDSN.GPFR_DSN_EXT_STAT.FieldDefault) --
+  `Declare Function ...; / (blank blank) / Local Row &Row = GetRow(); /
+  (blank blank blank) / If ...` stores three 0x4F markers and NO 0x2D
+  before `If`; the encoder previously emitted a spurious 0x2D. Moved
+  5002's first diff from byte offset 157 to 246 (real progress, not full
+  EXACT -- the definition's REMAINING diff at 246 is the already-
+  documented, unrelated "inline text vs PSPCMNAME field reference"
+  puzzle shared with definitions 1360/1422/3235, a `.Name` property
+  access on a `&Row.GetRecord(1)` result that stored renders as inline
+  text but the encoder currently treats as a real FIELD reference --
+  not touched by this fix, left as previously deferred). Verified: `npx
+  tsc -p .` clean; `npm test` 456/457 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430, 0 regressions. (Full-corpus
+  diff-based validation, as used for fixes #48-51, was in progress when
+  interrupted for a workflow-instruction update; the change is landed on
+  the strength of the protected-baseline gate plus the isolated,
+  narrowly-scoped nature of the fix -- worth a full corpus pass at the
+  next natural checkpoint to confirm no wider impact, expected none given
+  the change only affects the specific `Declare-Function-then-lone-
+  initialized-Local` transition.)
 - **definition_id 1428** (BANKING_DW.PRENOTE_BTN.FieldChange), attempted
   and REVERTED after real evidence of conflict, no code changed in the
   end. Original target: byte diff @1295, `DoModalComponent`'s own
