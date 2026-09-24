@@ -1,6 +1,48 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #65** landed (src/peoplecode/decoder.ts, `render()`) -- a
+  **decoder** fix, not an encoder fix (first one this session): an empty
+  `When-Other` clause (no body statements between it and `End-Evaluate`)
+  is immediately followed by its own bare `;` on the SAME source line
+  (`When-Other;`), but the decoder's `WHEN_OTHER_STYLE` format
+  (`format.ts`) carries `NEWLINE_AFTER` -- needed to separate
+  `When-Other` from real body statements when they exist
+  (`When-Other\n   <stmt>;`) -- which incorrectly also fired for the
+  empty-body case, splitting `When-Other` and `;` onto separate lines
+  (`When-Other\n;`) even though the semicolon's own `NEWLINE_AFTER`
+  already supplies the line break. Exactly the same reasoning already
+  documented for `ENDBLOCK_STYLE`/`END_FUNCTION_STYLE`'s own comments in
+  `format.ts` ("the real 0x15 already supplies the line break... adding
+  one here too just splits X and ; onto separate lines"), and the same
+  fix shape already used for `inlineHeaderCommentBeforeSemicolon`
+  (0x4E immediately before 0x15 after a Then/Else header): added
+  `whenOtherFollowedByBareSemicolon` (`t.opcode === 0x3e && nextToken?.
+  opcode === 0x15`) to the same suppression branch in `render()`'s
+  `F.NEWLINE_AFTER` handling. This was flagged `DECODE_SOURCE_MISMATCH`
+  in the classification scheme (binary encoding was ALREADY correct;
+  only the decoder's rendered source text, used for the roundtrip
+  comparison, didn't match) -- per `corpus-classifications.md`, lower
+  priority than binary exactness, but a legitimate, narrowly-evidenced
+  fix once found, and it does move definitions into the EXACT count.
+  Target: definition 548 (ADD_PAY_DTA_NLD.EFFDT.RowInit) -- confirmed
+  full EXACT (decode SOURCE MATCH, source-to-binary EXACT, roundtrip
+  EXACT). Searched the corpus for this construct's classification family
+  before implementing (37 `DECODE_SOURCE_MISMATCH` occurrences with
+  `;\nEnd-Evaluate`-shaped construct snippets; sampled 7: 548, 549, 553,
+  1314, 2399, 3426, 3427); all 7 confirmed fully EXACT after the fix, 0
+  regressions. Verified: `npx tsc -p .` clean; `npm test` 456/457 (1
+  pre-existing skip); `corpus:verify --limit 430` 430/430, 0 regressions.
+  A full-corpus background diff was also started given this touches
+  `render()`'s shared NEWLINE_AFTER handling, exercised by every decoded
+  program; see next entry for its result once complete. **Also noted**:
+  the large `import`/Application-Class-declaration UNSUPPORTED_SYNTAX
+  family (263 occurrences) was re-confirmed via several new samples
+  (definitions 29081 "Action", 28994 "Utils", 28860 "adhocAccessLogic")
+  to be the SAME general multi-method Application Class program feature
+  gap already documented as locally blocked in the `ComponentLife`/
+  `Constants` investigation above -- not several separate narrow bugs,
+  still out of scope for a narrow fix.
 - **Fix #64** landed (src/peoplecode/encoder.ts), two parts:
   1. **New `ComponentLife` declarator support**: `ComponentLife` (opcode
      `0x79`) is a fifth declarator alongside Local/Global/Component/
