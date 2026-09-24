@@ -5194,13 +5194,25 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           expression();
         }
 
+        /*
+         * The structural 0x2D boundary comes BEFORE a When header's own
+         * optional trailing source semicolon, not after it -- the reverse
+         * of the order this previously emitted.
+         *
+         * CONTRACT.PAYMENT_TERM.FieldChange (definition 3062):
+         *
+         *   When = "X";
+         *      UnGray(CONTRACT.PAYMENT_END_DT);
+         *
+         * stores `... "X" 2D 15 0A "UnGray" ...` (0x2D then 0x15), not
+         * `... "X" 15 2D ...`.
+         */
+        chunks.push(Buffer.from([0x2d]));
+
         if (source[pos] === ';') {
           pos++;
           chunks.push(fixed(';'));
         }
-
-        // Confirmed by every When in the fixture.
-        chunks.push(Buffer.from([0x2d]));
 
         let selectorWhitespaceStart = pos;
         while (

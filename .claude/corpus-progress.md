@@ -1,6 +1,50 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #66** landed (src/peoplecode/encoder.ts + src/peoplecode/
+  decoder.ts), a combined encoder+decoder fix for the same construct: a
+  `When <condition>;` header (a trailing source semicolon immediately
+  after the selector expression, no body-statement newline in between,
+  e.g. `When = "X";` followed by real body statements on later lines --
+  distinct from an empty `When-Other;` clause, Fix #65's construct).
+  1. **Encoder** (`evaluateStatement()`'s `When` branch): the structural
+     0x2D boundary (unconditionally emitted after every When header,
+     "confirmed by every When in the fixture") was pushed AFTER the
+     header's own optional semicolon instead of before it. Real stored
+     order is `<condition> 2D 15 <body>`, not `<condition> 15 2D <body>`.
+     Swapped the two pushes; `pos` advancement is unaffected since only
+     chunk-push order changed, not consumption order.
+  2. **Decoder** (`render()`): mirrors Fix #65's exact pattern, one level
+     up the same construct family -- the 0x2D boundary's own
+     `NEWLINE_ONCE` format fired even when immediately followed by 0x15,
+     splitting `When = "X"` and `;` onto separate lines
+     (`When = "X"\n;` instead of `When = "X";\n`). `render()` already
+     special-cases this exact shape for `try`/`catch`/`While`/`For`/
+     `Function` headers (`followsCatchHeader`/`followsWhileHeader`/
+     `followsForHeader`/`followsFunctionHeader`, each gating a
+     `t.opcode === 0x2d && followsXHeader && nextToken?.opcode ===
+     0x15` suppression) -- `When` headers (opcode `0x3d`) were simply
+     missing from that established list. Added `followsWhenHeader`
+     (lookback for `0x3d`) and `whenHeaderBoundary` alongside the other
+     four.
+  Target: definition 3062 (CONTRACT.PAYMENT_TERM.FieldChange) --
+  confirmed full EXACT (both fixes were needed together: the encoder fix
+  alone got source-to-binary EXACT but left a `DECODE_SOURCE_MISMATCH`
+  identical in shape to Fix #65, since the decoder had never been
+  exercised against a real `When <condition>;` header before). Searched
+  the corpus for this same classification family (the `;\n  Break;\nEnd-
+  E`-shaped `DECODE_SOURCE_MISMATCH` group, 22 occurrences, overlapping
+  with but not identical to Fix #65's `When-Other` group) and sampled 9:
+  8 confirmed fully EXACT (3062, 4026, 4027, 4028, 4377, 4379, 5253,
+  5379, 5381), 1 (4391) hit a separate, unrelated, pre-existing
+  reference-index MISMATCH deeper in a larger program, confirmed
+  byte-identical before and after this fix via git-stash comparison --
+  zero regressions. Verified: `npx tsc -p .` clean; `npm test` 456/457
+  (1 pre-existing skip); `corpus:verify --limit 430` 430/430, 0
+  regressions. A full-corpus background diff was also started given both
+  halves touch shared, broadly-exercised mechanisms (every Evaluate/When
+  statement in the corpus); see next entries for both this run's and
+  Fix #65's results once complete.
 - **Fix #65** landed (src/peoplecode/decoder.ts, `render()`) -- a
   **decoder** fix, not an encoder fix (first one this session): an empty
   `When-Other` clause (no body statements between it and `End-Evaluate`)
@@ -33,9 +77,9 @@
   1314, 2399, 3426, 3427); all 7 confirmed fully EXACT after the fix, 0
   regressions. Verified: `npx tsc -p .` clean; `npm test` 456/457 (1
   pre-existing skip); `corpus:verify --limit 430` 430/430, 0 regressions.
-  A full-corpus background diff was also started given this touches
-  `render()`'s shared NEWLINE_AFTER handling, exercised by every decoded
-  program; see next entry for its result once complete. **Also noted**:
+  Full-corpus background diff (run_id 242 -> 253, all 30,209
+  definitions) confirmed: 85 improved, 0 regressed, 30124 unchanged.
+  **Also noted**:
   the large `import`/Application-Class-declaration UNSUPPORTED_SYNTAX
   family (263 occurrences) was re-confirmed via several new samples
   (definitions 29081 "Action", 28994 "Utils", 28860 "adhocAccessLogic")
