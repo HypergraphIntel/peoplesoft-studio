@@ -3217,9 +3217,23 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           createRecordAssignmentTarget =
             previousCreateRecordAssignmentTarget;
         }
-      } else if (source[pos] !== ';') {
-        fail('expected assignment = or end of method-call statement');
       }
+      /*
+       * A variable-led method-call statement (e.g. `&RS.DeleteRow(&i)`)
+       * may itself omit its trailing source semicolon under the same
+       * conditions a bare (non-variable-led) call statement already can
+       * -- primary() has already consumed the complete chain above; the
+       * caller's own body-terminator check (e.g. `expected ; in For
+       * body`, which already allows omission immediately before
+       * `End-For`) decides whether the omission is legal here, exactly
+       * as it does for the bare-call statement branch below.
+       *
+       * GPMY_RC_RCPT_FL.GPMY_RCPNT_OPTN.FieldFormula (definition 9256):
+       *
+       *   For &i = &RS.ActiveRowCount To 1 Step - 1
+       *      &RS.DeleteRow(&i)
+       *   End-For
+       */
     } else if (/[A-Za-z_]/.test(source[pos] ?? '')) {
       const tail = source.slice(pos);
       if (/^Record\s*\./i.test(tail)) {
