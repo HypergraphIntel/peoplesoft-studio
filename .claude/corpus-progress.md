@@ -1,6 +1,42 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #60** landed (src/peoplecode/encoder.ts, `statement()`'s `&`/`@`/`%`
+  variable-led branch): a variable-led method-call statement (e.g.
+  `&RS.DeleteRow(&i)`) could not omit its trailing source semicolon
+  immediately before a body-closing keyword (`End-For`, `End-While`,
+  `End-If`, `End-Evaluate`), even though a bare (non-variable-led) call
+  statement in the exact same position already could -- the bare-call
+  branch just calls `primary()` and returns, deferring the semicolon
+  decision entirely to the caller's own body-terminator check (e.g. the
+  For-body loop's existing `expected ; in For body` guard, which already
+  special-cases `End-For`); the variable-led branch instead unconditionally
+  failed with `expected assignment = or end of method-call statement`
+  before ever reaching that caller check. Removed the unconditional fail,
+  letting the same caller-level check decide, exactly matching the
+  bare-call branch's existing behavior. Target: definition 9256
+  (GPMY_RC_RCPT_FL.GPMY_RCPNT_OPTN.FieldFormula):
+  ```
+  For &i = &RS.ActiveRowCount To 1 Step - 1
+     &RS.DeleteRow(&i)
+  End-For
+  ```
+  confirmed byte-for-byte EXACT. Searched the corpus for this shape
+  (variable-led method call, no semicolon, immediately followed by
+  End-For/End-While/End-If/End-Evaluate on the next line) before
+  implementing: 40 candidates found and checked. 23 fully byte-exact
+  (1004, 2806, 9256, 9258, 9301, 9303, 9608, 9610, 9624, 9626, 9954, 9956,
+  9972, 9974, 14416, 14437, 14443, 14444, 14445, 16900, 18952, 19475,
+  22854); the remaining 17 advanced past this construct into separate,
+  unrelated, pre-existing issues in larger/complex programs (confirmed by
+  re-running each against the pre-fix code: all 16 that were previously
+  `ENCODE_ERROR` failed at exactly this construct pre-fix and now fail --
+  or, in 9 cases, mismatch -- somewhere else entirely; the 17th, 25959,
+  was already a byte-identical MISMATCH at the same unrelated offset both
+  before and after this change, proving it untouched by this fix) -- zero
+  regressions, zero counter-examples where the omission needed to be
+  rejected. Verified: `npx tsc -p .` clean; `npm test` 456/457 (1
+  pre-existing skip); `corpus:verify --limit 430` 430/430, 0 regressions.
 - **Fix #59** landed (src/peoplecode/encoder.ts, `comparisonExpression()`):
   the alternate space-separated not-equal spelling `Not =` (e.g. `If
   &BEN_SYSTEM Not = "BA" Then`) was not recognized -- only the single-token
