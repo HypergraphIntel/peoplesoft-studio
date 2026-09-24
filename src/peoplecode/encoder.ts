@@ -5943,6 +5943,25 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      * group can find it.
      */
     let bareGetRecordCallResult = false;
+
+    /*
+     * A bare `GetRow()` call (no receiver, no arguments) returns the
+     * current Row, exactly like a `rowVariables`-tracked Row variable
+     * does -- so its own `.RECORD.FIELD.Value` two-dot postfix chain
+     * compiles RECORD and FIELD through PSPCMNAME (0x4A operands), the
+     * same as `&row.RECORD.FIELD.Value` already does for a declared Row
+     * variable (see `rowStartsRecordFieldChain`'s own comment, a few
+     * lines below). Scoped narrowly to the exact empty-parens call, like
+     * `bareGetRecordCallResult` already scopes `GetRecord()` similarly.
+     *
+     * GPGB_SCON_TBL.GPGB_SCON.RowDelete (definition 8027):
+     *
+     *   &GPGB_SCON = GetRow().GPGB_SCON_TBL.GPGB_SCON.Value;
+     *
+     * stores two PSPCMNAME references (RECORD GPGB_SCON_TBL, FIELD
+     * GPGB_SCON), not inline text.
+     */
+    let bareGetRowCallResult = false;
     const baseVariableName =
       /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
     const baseApplicationClass =
@@ -6129,6 +6148,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           /^GetRecord$/i.test(identifier) &&
           !/^GetRecord\s*\(\s*\)/i.test(tail);
 
+        const wasBareGetRowCall =
+          /^GetRow$/i.test(identifier) &&
+          /^GetRow\s*\(\s*\)/i.test(tail);
+
         call();
 
         // A function-call result may itself be invoked/indexed using (...)
@@ -6137,6 +6160,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
         if (wasBareGetRecordCall) {
           bareGetRecordCallResult = true;
+        }
+
+        if (wasBareGetRowCall) {
+          bareGetRowCallResult = true;
         }
       }
       } else {
@@ -6168,13 +6195,18 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       /^\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/
         .test(source.slice(pos));
 
+    const bareGetRowCallStartsRecordFieldChain =
+      bareGetRowCallResult &&
+      /^\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/
+        .test(source.slice(pos));
+
     let expectedReferenceMember:
       'record' | 'field' | undefined =
         explicitRecordRootName !== undefined
           ? 'field'
           : bareGetRecordCallResult
             ? 'field'
-            : rowStartsRecordFieldChain
+            : rowStartsRecordFieldChain || bareGetRowCallStartsRecordFieldChain
               ? 'record'
               : baseVariableName !== undefined &&
                 recordVariables.has(baseVariableName.toLowerCase())
