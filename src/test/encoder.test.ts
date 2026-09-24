@@ -67,20 +67,78 @@ for (const capture of protectedCorpusRegressions) {
 
 test('Function metadata encodes calibrated built-in object descriptors', () => {
   const program = encodeProgram(`
-Function Builtins(&record As Record, &rows As Rowset, &api As ApiObject, &doc As XmlDoc, &node As XmlNode) Returns Record;
+Function Builtins(&file As File, &record As Record, &rows As Rowset, &row As Row, &field As Field, &api As ApiObject, &doc As XmlDoc, &exception As Exception, &node As XmlNode) Returns Record;
    Return &record;
 End-Function;
 `);
 
-  const signatureTail = program.subarray(program.length - 24);
+  const signatureTail = program.subarray(program.length - 40);
   assert.deepStrictEqual(signatureTail, Buffer.from([
+    0x01, 0x00, 0x08, 0xc0,
     0x03, 0x00, 0x08, 0xc0,
     0x07, 0x00, 0x08, 0xc0,
+    0x08, 0x00, 0x08, 0xc0,
+    0x09, 0x00, 0x08, 0xc0,
     0x0f, 0x00, 0x08, 0xc0,
     0x1d, 0x00, 0x08, 0xc0,
+    0x21, 0x00, 0x08, 0xc0,
     0x22, 0x00, 0x08, 0xc0,
     0x07, 0x00, 0x00, 0x00
   ]));
+});
+
+test('Function metadata encodes one-level array descriptors', () => {
+  const program = encodeProgram(`
+Function Arrays(&values As array of any) Returns array of string;
+   Return &values;
+End-Function;
+`);
+
+  assert.deepStrictEqual(
+    program.subarray(program.length - 8),
+    Buffer.from([
+      0x04, 0x00, 0x10, 0xc0,
+      0x07, 0x00, 0x00, 0x00
+    ])
+  );
+
+  assert.deepStrictEqual(
+    decodeProgram(program, new NameTable()).declarations,
+    [{
+      name: 'Arrays',
+      paramCount: 1,
+      hasReturnValue: true,
+      returnType: 'array of string',
+      parameterTypes: ['array of any']
+    }]
+  );
+});
+
+test('Function metadata points Application Class descriptors into its name trailer', () => {
+  const program = encodeProgram(`
+Function AppTypes(&value As PKG:Type) Returns PKG:Type;
+   Return &value;
+End-Function;
+`);
+
+  assert.deepStrictEqual(
+    program.subarray(program.length - 8),
+    Buffer.from([
+      0x09, 0x01, 0x08, 0xc0,
+      0x07, 0x00, 0x00, 0x00
+    ])
+  );
+
+  assert.deepStrictEqual(
+    decodeProgram(program, new NameTable()).declarations,
+    [{
+      name: 'AppTypes',
+      paramCount: 1,
+      hasReturnValue: true,
+      returnType: 'PKG:Type',
+      parameterTypes: ['PKG:Type']
+    }]
+  );
 });
 
 test('HCDEV definition 5529 compiles byte exactly', () => {
@@ -261,6 +319,71 @@ test('independent byte expectations for the supported operand shapes', () => {
   assert.deepEqual(encodeFragment('&x = "A"; Return False;'), Buffer.from([
     0x01, 0x26, 0, 0x78, 0, 0, 0, 0x06, 0x16, 0x41, 0, 0, 0, 0x15, 0x38, 0x30, 0x15
   ]));
+});
+
+test('a system-variable receiver supports a method-call statement', () => {
+  assert.deepStrictEqual(
+    encodeFragment('%IntBroker.Publish(&Msg);'),
+    Buffer.concat([
+      Buffer.from([0x12]),
+      Buffer.from('%IntBroker\0', 'utf16le'),
+      Buffer.from([0x05, 0x0a]),
+      Buffer.from('Publish\0', 'utf16le'),
+      Buffer.from([0x0b, 0x01]),
+      Buffer.from('&Msg\0', 'utf16le'),
+      Buffer.from([0x14, 0x15])
+    ])
+  );
+});
+
+test('an As cast accepts a built-in object type', () => {
+  assert.deepStrictEqual(
+    encodeFragment('UseRow(&row As Row);'),
+    Buffer.concat([
+      Buffer.from([0x0a]),
+      Buffer.from('UseRow\0', 'utf16le'),
+      Buffer.from([0x0b, 0x01]),
+      Buffer.from('&row\0', 'utf16le'),
+      Buffer.from([0x35, 0x0a]),
+      Buffer.from('Row\0', 'utf16le'),
+      Buffer.from([0x14, 0x15])
+    ])
+  );
+});
+
+for (const source of [
+  '&editable = (Not &node.IsLocal);',
+  '&public = (&securityType = &publicType);'
+]) {
+  test(`an assignment accepts a grouped boolean expression: ${source}`, () => {
+    const program = encodeProgram(source);
+    const decoded = decodeProgram(program, new NameTable(), { mode: 'strict' });
+    assert.deepStrictEqual(encodeProgram(decoded.text), program);
+  });
+}
+
+test('a function-call result supports a property assignment statement', () => {
+  const source = 'GetLevel0().SetComponentChanged = False;';
+  const program = encodeProgram(source);
+  const decoded = decodeProgram(program, new NameTable(), { mode: 'strict' });
+  assert.deepStrictEqual(encodeProgram(decoded.text), program);
+});
+
+test('a Local Application Class declaration supports multiple variables', () => {
+  assert.deepStrictEqual(
+    encodeFragment('Local PKG:Type &first, &second;'),
+    Buffer.concat([
+      Buffer.from([0x44, 0x0a]),
+      Buffer.from('PKG\0', 'utf16le'),
+      Buffer.from([0x57, 0x0a]),
+      Buffer.from('Type\0', 'utf16le'),
+      Buffer.from([0x01]),
+      Buffer.from('&first\0', 'utf16le'),
+      Buffer.from([0x03, 0x01]),
+      Buffer.from('&second\0', 'utf16le'),
+      Buffer.from([0x15, 0x2d])
+    ])
+  );
 });
 
 for (const source of [
@@ -601,6 +724,54 @@ test('encodeProgram exactly reproduces PeopleTools Evaluate fixture', () => {
   assert.deepEqual(actual, expected);
 });
 
+test('Evaluate preserves a REM comment before its first When', () => {
+  const source = 'Evaluate &value\n   rem text;\nWhen "0"\n   Break;\nEnd-Evaluate;';
+  const program = encodeProgram(source);
+  const comment = Buffer.concat([
+    Buffer.from([0x24, 0x12, 0x00]),
+    Buffer.from('rem text;', 'utf16le')
+  ]);
+  assert.notEqual(program.indexOf(comment), -1);
+  const decoded = decodeProgram(program, new NameTable(), { mode: 'strict' });
+  assert.deepStrictEqual(encodeProgram(decoded.text), program);
+});
+
+test('try and catch bodies preserve REM comments', () => {
+  const source = `try
+   rem before catch;
+catch Exception &error
+   rem after catch;
+end-try;`;
+  const program = encodeProgram(source);
+  assert.notEqual(
+    program.indexOf(Buffer.concat([
+      Buffer.from([0x24, 0x22, 0x00]),
+      Buffer.from('rem before catch;', 'utf16le')
+    ])),
+    -1
+  );
+  assert.notEqual(
+    program.indexOf(Buffer.concat([
+      Buffer.from([0x24, 0x20, 0x00]),
+      Buffer.from('rem after catch;', 'utf16le')
+    ])),
+    -1
+  );
+  const decoded = decodeProgram(program, new NameTable(), { mode: 'strict' });
+  assert.deepStrictEqual(encodeProgram(decoded.text), program);
+});
+
+test('REM after leading reference-bearing Locals closes the Local section', () => {
+  assert.deepStrictEqual(
+    encodeFragment('Local Rowset &rs;\n\nrem x;'),
+    Buffer.from(
+      '440A52006F0077007300650074000000012600720073000000152D4F' +
+      '240C00720065006D00200078003B00',
+      'hex'
+    )
+  );
+});
+
 test('encodeProgram exactly reproduces PeopleTools While fixture', () => {
   const expected = Buffer.from(
     'A0000000007200000000000000000000000000000000000000000000000000000085000000444069006E007400650067006500720000000126006100000006500000010000000000000000000000000000001525012600610000000D5000000A0000000000000000000000000000002D012600610000000601260061000000135000000100000000000000000000000000000015261507',
@@ -633,6 +804,14 @@ test('encodeProgram exactly reproduces PeopleTools For and Step fixture', () => 
   );
 
   assert.deepEqual(actual, expected);
+});
+
+test('a For body preserves an explicit empty statement', () => {
+  const source = 'For &i = 1 To 2\n   &x = &i;;\nEnd-For;';
+  const program = encodeProgram(source);
+  assert.notEqual(program.indexOf(Buffer.from([0x15, 0x15])), -1);
+  const decoded = decodeProgram(program, new NameTable(), { mode: 'strict' });
+  assert.deepStrictEqual(encodeProgram(decoded.text), program);
 });
 
 test('encodeProgram exactly reproduces PeopleTools Repeat Until fixture', () => {
@@ -1421,6 +1600,88 @@ End-If;`;
   });
 
   assert.deepStrictEqual(actual, expected);
+});
+
+test('top-level assignment may omit its semicolon before a final standalone comment', () => {
+  const encoded = encodeFragment('&FinishedEditApproval = "N"\n/* End-If;  */');
+
+  assert.deepStrictEqual(
+    encoded,
+    Buffer.from(
+      '012600460069006E0069007300680065006400450064006900740041007000700072006F00760061006C000000' +
+      '06164E000000' +
+      '241C002F002A00200045006E0064002D00490066003B00200020002A002F00',
+      'hex'
+    )
+  );
+});
+
+test('RowNumber on a rowset element remains an inline Row property', () => {
+  assert.deepStrictEqual(
+    encodeFragment('&n = &rs(CurrentRowNumber()).RowNumber;'),
+    Buffer.from(
+      '0126006E00000006' +
+      '0126007200730000000B' +
+      '0A430075007200720065006E00740052006F0077004E0075006D0062006500720000000B1414' +
+      '050A52006F0077004E0075006D00620065007200000015',
+      'hex'
+    )
+  );
+});
+
+test('explicit Record.RECORD.FIELD assignment compiles the field dependency', () => {
+  const actual = encodeProgram(
+    'Record.PSAUTHWS_VW2.AUTHORIZEDACTIONS.Value = 4;',
+    {
+      owner: {
+        recordName: 'ACL_WS_WRK',
+        fieldName: 'WSOPRACCESS'
+      }
+    }
+  );
+
+  assert.deepStrictEqual(
+    actual,
+    Buffer.from(
+      'A0000000002B00000000000000000000000000000000000000000000000000000085000000' +
+      '210100054A0200050A560061006C0075006500000006500000040000000000000000000000000000001507',
+      'hex'
+    )
+  );
+});
+
+test('FetchValue reuses Record arguments by name across calls', () => {
+  const actual = encodeProgramArtifacts(
+    '&a = FetchValue(Record.PARENT, 1, Record.CHILD, 1);\n' +
+    '&b = FetchValue(Record.PARENT, 2, Record.CHILD, 2);'
+  );
+
+  assert.deepStrictEqual(
+    actual.references.map(reference => [reference.kind, reference.recordName]),
+    [
+      ['record', 'PARENT'],
+      ['record', 'CHILD']
+    ]
+  );
+});
+
+test('blank-line multiplicity before Else emits one marker per blank line', () => {
+  const source = `If Record.REC.FLAG.Value Then
+   &x = 1;
+   
+   
+Else
+End-If;`;
+
+  assert.deepStrictEqual(
+    encodeFragment(source),
+    Buffer.from(
+      '1C210100054A0200050A560061006C007500650000001F' +
+      '01260078000000065000000100000000000000000000000000000015' +
+      '4F4F191A15',
+      'hex'
+    )
+  );
 });
 
 

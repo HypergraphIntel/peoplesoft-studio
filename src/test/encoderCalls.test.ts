@@ -55,6 +55,16 @@ test('a no-argument call has only the known identifier and punctuation framing',
   assert.deepEqual(encodeFragment('F();'), Buffer.from([0x0a, 0x46, 0, 0, 0, 0x0b, 0x14, 0x15]));
 });
 
+for (const source of ['F()(1);', 'F().Value;', 'F()(1).Value;']) {
+  test(`a call result may be indexed/accessed as a bare statement: ${source}`, () => {
+    // Real corpus shape (AMM_DERIVED.IB_SAVE_PB.FieldChange and 69 other
+    // definitions): GetLevel0()(1).GetRowset(Scroll.X).Flush();
+    // Only checks this no longer throws; exact bytes for this synthetic
+    // name are covered by the corpus harness against real programs.
+    assert.doesNotThrow(() => encodeFragment(source));
+  });
+}
+
 for (const source of [
   'Return ();', 
   'Return (1;', 
@@ -65,7 +75,7 @@ for (const source of [
   'Return F;', 
   'F;', 
   'Foo + 1;',
-  'F() + 1;', 'F()(1);', 'F().Value;', 'Return %This.F();',
+  'F() + 1;',
   'Return Pkg:Foo();',
   'Return F(1.5);', 'Return (1 = 2);', 'Return (True And False);',
   'If(True);', 'Return Not(1);', 'Return Create();', 'Return Local();',

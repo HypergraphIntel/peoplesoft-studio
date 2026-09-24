@@ -562,6 +562,8 @@ export interface Declaration {
  */
 const RETURN_TYPE_CODES = new Map<number, string>([
   [1, 'string'],
+  [2, 'date'],
+  [4, 'any'],
   [5, 'boolean'],
   [11, 'datetime'],
   [13, 'object'],
@@ -595,10 +597,14 @@ const ARRAY_RETURN_TYPE_FLAG = 0x100000;
 const OBJECT_RETURN_TYPE_FLAG = 0x80000;
 
 const OBJECT_TYPE_CODES = new Map<number, string>([
+  [1, 'File'],
   [3, 'Record'],
   [7, 'Rowset'],
+  [8, 'Row'],
+  [9, 'Field'],
   [15, 'ApiObject'],
   [29, 'XmlDoc'],
+  [33, 'Exception'],
   [34, 'XmlNode'],
   [99, 'JsonObject']
 ]);
@@ -2016,10 +2022,16 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         t.opcode === 0x4e &&
         tokens[tokenIndex - 1]?.text === 'Else';
 
+      const inlineCommentAfterBooleanOperator =
+        t.kind === TokenKind.Comment &&
+        t.opcode === 0x4e &&
+        /^(?:And|Or)$/.test(tokens[tokenIndex - 1]?.text ?? '');
+
       if (!(
         inlineCommentAfterEndIf ||
         inlineCommentAfterThen ||
-        inlineCommentAfterElse
+        inlineCommentAfterElse ||
+        inlineCommentAfterBooleanOperator
       )) {
         trimTrailing();
 
@@ -2047,7 +2059,9 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
       (
         t.opcode === 0x15 ||
         t.text === 'Then' ||
-        t.text === 'Else'
+        t.text === 'Else' ||
+        t.text === 'And' ||
+        t.text === 'Or'
       ) &&
       nextToken?.kind === TokenKind.Comment &&
       nextToken.opcode === 0x4e;
