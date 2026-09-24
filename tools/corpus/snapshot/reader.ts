@@ -9,6 +9,10 @@ import type {
   SnapshotNameRow,
 } from './types';
 
+import type {
+  CorpusDefinition
+} from '../classifications';
+
 export function getSnapshotDefinition(
   db: Database.Database,
   definitionId: number,
@@ -119,4 +123,86 @@ export function listSnapshotDefinitionIds(
   return rows.map(
     row => row.definition_id,
   );
+}
+
+export function listSnapshotDefinitions(
+  db: Database.Database,
+): SnapshotDefinition[] {
+  const snapshot =
+    getLatestCompletedSnapshot(db);
+
+  if (!snapshot) {
+    throw new Error(
+      'No completed HCDEV corpus snapshot exists.',
+    );
+  }
+
+  const rows = db.prepare(`
+    SELECT definition_id
+    FROM snapshot_definition
+    WHERE snapshot_id = ?
+    ORDER BY definition_id
+  `).all(
+    snapshot.snapshotId,
+  ) as Array<{
+    definition_id: number;
+  }>;
+
+  return rows.map(
+    row =>
+      getSnapshotDefinition(
+        db,
+        row.definition_id,
+      )
+  );
+}
+
+
+export function snapshotToCorpusDefinition(
+  snapshot: SnapshotDefinition,
+  offset: number,
+): CorpusDefinition {
+  return {
+    offset,
+
+    key: {
+      objectId1:
+        snapshot.objectid1,
+      objectValue1:
+        snapshot.objectvalue1,
+
+      objectId2:
+        snapshot.objectid2,
+      objectValue2:
+        snapshot.objectvalue2,
+
+      objectId3:
+        snapshot.objectid3,
+      objectValue3:
+        snapshot.objectvalue3,
+
+      objectId4:
+        snapshot.objectid4,
+      objectValue4:
+        snapshot.objectvalue4,
+
+      objectId5:
+        snapshot.objectid5,
+      objectValue5:
+        snapshot.objectvalue5,
+
+      objectId6:
+        snapshot.objectid6,
+      objectValue6:
+        snapshot.objectvalue6,
+
+      objectId7:
+        snapshot.objectid7,
+      objectValue7:
+        snapshot.objectvalue7
+    },
+
+    displayName:
+      snapshot.displayName
+  };
 }

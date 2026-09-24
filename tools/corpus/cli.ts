@@ -17,6 +17,7 @@ interface CliOptions {
   compareBaseline: boolean;
   failed: boolean;
   traceRefs: boolean;
+  live: boolean;
 }
 
 function parseNumber(
@@ -56,11 +57,15 @@ Options:
   --offset <n>         Discovery offset, or failure-queue offset with --failed.
   --definition-id <n>  Target one stable SQLite definition by its seven-part key.
   --failed             Re-run the current global non-EXACT work queue.
+  --live               Read source/PSPCMPROG/PSPCMNAME from live HCDEV instead of the local snapshot.
   --trace-refs         Print encoder PSPCMNAME/reference provenance diagnostics.
   --verbose            Print each definition and diagnostics.
   --baseline           Write this run to the accepted baseline.
   --compare-baseline   Compare this run against the accepted baseline.
   --help, -h           Show this help.
+
+Default datasource:
+  LOCAL SNAPSHOT
 
 Examples:
   npm run corpus:harness -- --limit 430
@@ -68,6 +73,8 @@ Examples:
   npm run corpus:harness -- --failed --limit 25
   npm run corpus:harness -- --definition-id 1843 --verbose
   npm run corpus:harness -- --definition-id 1843 --verbose --trace-refs
+  npm run corpus:harness -- --definition-id 1843 --live --verbose
+  npm run corpus:harness -- --live --limit 25
 `);
 }
 
@@ -79,7 +86,8 @@ function parseArgs(
     baseline: false,
     compareBaseline: false,
     failed: false,
-    traceRefs: false
+    traceRefs: false,
+    live: false
   };
 
   for (
@@ -130,6 +138,10 @@ function parseArgs(
 
       case '--failed':
         options.failed = true;
+        break;
+
+      case '--live':
+        options.live = true;
         break;
 
       case '--trace-refs':
@@ -214,7 +226,9 @@ async function main():
       traceRefs:
         options.traceRefs,
       compareBaseline:
-        options.compareBaseline
+        options.compareBaseline,
+      live:
+        options.live
     });
 
   if (options.baseline) {
