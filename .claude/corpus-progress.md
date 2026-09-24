@@ -1,6 +1,655 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #55** landed (src/peoplecode/encoder.ts): bare `GetRowset(Record.X)`
+  (assigned to a variable, e.g. `&RS = GetRowset(Record.X);` -- distinct
+  from `.GetRowset(Scroll.X)` as a postfix method call, and from
+  `CreateRowset`, already on this list) added to the shared
+  control-group Record.X reuse trigger list (both
+  `reuseRecordReferenceWithinControlGroup` and
+  `marksControlGroupParticipant`). Target: definition 8093
+  (GPHK_PSLP.GPHK_EXCL_PRNT.FieldChange) -- an `Evaluate` with two
+  `When` clauses, each independently calling `GetRowset(Record.
+  GPHK_PSLP_LOCTN)`; the second clause's call needs to reuse the first's
+  PSPCMNAME row (both `When` bodies share one control group, only the
+  `Evaluate` statement's own entry bumps it). Definition 8093 moved
+  UNKNOWN_MISMATCH -> EXACT on the first attempt. Verified: `npx tsc -p .`
+  clean; `npm test` 456/457 (1 pre-existing skip); `corpus:verify --limit
+  430` 430/430, 0 regressions. Learning applied from the earlier
+  ScrollFlush/DoModalComponent regressions this session: before
+  committing, searched the corpus for the bare-assigned-GetRowset(Record.X)
+  shape (86 matches) and spot-checked 15, comparing EACH ONE's
+  classification against its OWN pre-fix historical run record (not just
+  the current run) -- all 15 matched exactly (6 EXACT before and after, 6
+  UNKNOWN_MISMATCH before and after presumably for unrelated reasons, 2
+  UNSUPPORTED_SYNTAX, 1 ENCODE_ERROR unchanged) -- zero regressions found
+  in the sample.
+- **Fix #54** landed (src/peoplecode/encoder.ts), high-impact: a bare
+  `GetRow()` call (no receiver, no arguments) starting a two-dot
+  `.RECORD.FIELD.Value` postfix chain now compiles RECORD and FIELD
+  through real PSPCMNAME references (0x4A operands), exactly like a
+  declared `Row`-typed variable's own `.RECORD.FIELD.Value` chain already
+  does via `rowStartsRecordFieldChain` -- previously the encoder emitted
+  bare inline text for both names. New `bareGetRowCallResult` flag (set
+  the same narrow way `bareGetRecordCallResult` already is for
+  `GetRecord()`) plus a `bareGetRowCallStartsRecordFieldChain` two-dot
+  lookahead, OR'd into the existing `rowStartsRecordFieldChain` branch of
+  `expectedReferenceMember`'s computation. Target: definition 8027
+  (GPGB_SCON_TBL.GPGB_SCON.RowDelete) --
+  `&GPGB_SCON = GetRow().GPGB_SCON_TBL.GPGB_SCON.Value;` -- moved its
+  first diff from byte offset 123 to 390 (the definition has a SECOND,
+  separate remaining issue past that point, an index-count mismatch on a
+  different construct, `&GPGB_EE_NI(1).GPGB_EE_NI.GPGB_SCON.Value`, a
+  rowset-index-shorthand chain -- not touched by this fix, not yet
+  investigated).
+  Before writing any code, searched the whole corpus for
+  `GetRow()\.RECORD\.FIELD\.Value` (81 matches) and spot-checked 16 of
+  them for their PRE-fix classification: 12 UNKNOWN_MISMATCH, 2
+  UNSUPPORTED_SYNTAX, 2 ENCODE_ERROR (both unrelated failure categories)
+  -- critically, ZERO were already EXACT, meaning no counter-evidence
+  existed suggesting the old inline-text behavior was ever correct for
+  this exact construct (unlike the ScrollFlush/ScrollSelect and
+  DoModalComponent sagas earlier this session, where broader fixes hit
+  real counter-examples). Re-tested the same 16-plus sample after
+  landing: 11 moved UNKNOWN_MISMATCH -> EXACT (989, 990, 1927, 5028,
+  5632, 6439, 6625, 6880, 6881, 6882, 6883, 6884 -- twelve, actually,
+  counting all listed), 4 remain UNKNOWN_MISMATCH but with DIFFERENT,
+  clearly-separate remaining index-mismatch bugs (5372, 6597, 6620, 6845
+  -- each still correctly emits real 0x4A references now, just at wrong
+  indices, a genuinely different bug class from the inline-text/reference
+  question this fix addressed), and the original target (8027) advanced
+  but not fully EXACT as noted above. Verified: `npx tsc -p .` clean;
+  `npm test` 456/457 (1 pre-existing skip); `corpus:verify --limit 430`
+  430/430, 0 regressions.
+- **Fix #53** landed (src/peoplecode/encoder.ts): the existing
+  declaration-to-declaration blank-line-marker mechanism (fixes #32/#33,
+  `sawTopLevelDeclaration && isTopLevelDeclaration && /^(?:Component|
+  Global|PanelGroup|Declare\s+Function)\b/...`) only fired when an
+  EARLIER Global/PanelGroup/Component/Declare-Function declaration had
+  already set `sawTopLevelDeclaration` -- plain `Local` declarations
+  never set that flag, so a leading run of `Local` declarations followed
+  directly by a `Declare Function`/`Component`/`Global`/`PanelGroup`
+  statement got NO blank-line marker at all (not a multiplicity bug, a
+  total miss, same failure shape as fix #33's own PanelGroup gap).
+  Broadened the guard to `(sawTopLevelDeclaration ||
+  sawLeadingLocalDeclaration)`. Target: definition 5026
+  (DERIVED_GPFR_AF.GPFR_AF_DUPLICATE.FieldChange) --
+  ```
+  Local array of string &ValueArray;
+  Local array of Record &ExceptionArray;
+  Local Record &REC;
+  Local SQL &Sql1;
+
+  Declare Function ciCreateArray PeopleCode FUNCLIB_CI.CI_ARRAY FieldFormula;
+  ```
+  stores one 0x4F marker (no 0x2D) between `&Sql1;` and `Declare
+  Function`. Moved 5026's first diff from byte offset 736 to 11299 (real
+  progress, not full EXACT -- the definition is a large ~11.7KB program
+  and its remaining diff at 11299 is the already-documented, unrelated
+  "inline text vs PSPCMNAME field reference" puzzle shared with
+  definitions 1360/1422/3235/5002, not touched by this fix). Verified:
+  `npx tsc -p .` clean; `npm test` 456/457 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430, 0 regressions; re-confirmed both
+  definitions originally citing this mechanism (942, 945) still EXACT;
+  spot-checked ten nearby DERIVED_GPFR_AF-family candidates (5015, 5025,
+  5028, 5029, 5031, 5040, 5042, 5055, 5081, 5087) -- none resolved as a
+  side effect (each likely has its own instance of the same separate
+  inline-text-vs-field-reference puzzle, or an unrelated issue; not
+  individually root-caused).
+- **definition_id 5015** (DERIVED_GPFR_AF.GPFR_ADD_CHILD.FieldChange),
+  UNKNOWN_MISMATCH, byte diff @510 -- investigated at length, NOT
+  resolved, no code changed. Construct:
+  ```
+  Component Record &recParent;
+  ...
+  &recParent = GetRecord(Record.GPFR_DSN_ND_VW);
+  ...
+  &OrigLvlVal = &recParent.GetField(@("FIELD.GPFR_AF_LVL_" | String(&recParent.GPFR_AF_LEVEL.Value) | "_VAL")).Value;
+  ```
+  Stored allocates a fresh FIELD reference (idx=4) for the
+  `&recParent.GPFR_AF_LEVEL` access inside the `String(...)` argument of
+  an `@(...)` dynamic-member-name expression; generated instead emits
+  idx=3 (the RECORD reference for GPFR_DSN_ND_VW, from `&recParent`'s own
+  `GetRecord(...)` assignment) at that position. Confusingly, `--trace-refs`
+  shows the encoder's OWN trace DOES record a fresh ALLOC #5/idx=4 "field
+  GPFR_AF_LEVEL" event -- meaning a field reference genuinely gets
+  allocated somewhere -- yet the byte actually emitted at the diff offset
+  is idx=3, not idx=4. This mismatch between "what the trace says was
+  allocated" and "what byte was actually emitted at this exact position"
+  was not resolved; two live hypotheses, neither confirmed:
+  1. The `.GPFR_AF_LEVEL` access, nested inside `String(...)` inside an
+     `@("..." | ... | "...")` dynamic-reference expression, may be
+     parsed through a DIFFERENT code path than the general
+     `expectedReferenceMember`-driven postfix-chain handler (~line 6171
+     onward in encoder.ts) this investigation traced through -- i.e. the
+     trace's ALLOC #5 event may correspond to a DIFFERENT occurrence than
+     the one actually emitted at offset 510, or the emitted idx=3 comes
+     from an entirely separate, not-yet-found code path for this nested
+     context.
+  2. `declaredRecordFields` (the pool `&recParent.GPFR_AF_LEVEL` would
+     consult, since `Component Record &recParent;` puts `recparent` in
+     `recordVariables`) is keyed by `${controlGroup}:${member}` only --
+     NOT by base variable name -- so if some OTHER construct earlier in
+     the same control group happened to establish a `declaredRecordFields`
+     entry keyed just "gpfr_af_level" (unlikely given this looks like the
+     only occurrence of that name in the source, but not exhaustively
+     checked against the full ~600-line source), it could theoretically
+     explain a wrong reuse -- though this doesn't explain why the reused
+     index (3) matches the RECORD reference specifically rather than some
+     other FIELD reference.
+  No encoder.ts changes made -- reading through the ~200-line postfix-
+  chain handler without a byte-offset-to-source-construct instrumentation
+  tool (the kind added and removed for fixes #48-52) was not enough to
+  pin down the actual code path. Next session picking this up should
+  instrument `fieldReference`/the postfix-chain handler's actual
+  allocation call sites with a temporary `DEBUG_5015`-style console.error
+  (byte length AT the point of each `referenceOperand()` call, not just
+  the trace's ALLOC/USE events) to find exactly which call site emits the
+  wrong index at binary offset 510, rather than re-reading the surrounding
+  code statically.
+- **Fix #52** landed (src/peoplecode/encoder.ts): a top-level Local
+  declaration's own initializer now correctly informs
+  `closesTopLevelDeclarationSection`'s 0x2D-boundary decision even when a
+  PRECEDING non-Local top-level declaration (e.g. `Declare Function ...;`)
+  already turned off `leadingLocalRun` before this Local was ever reached.
+  Root cause: `leadingRunHasInitializedLocal` (fix #16, an earlier
+  session) was only ever set inside the `leadingLocalRun && isLocalDeclaration`
+  branch, so a LONE initialized Local immediately following a non-Local
+  declaration (which unconditionally sets `leadingLocalRun = false` via
+  the sibling `leadingLocalRun && !isLocalDeclaration` closer) never got a
+  chance to set it, and `closesTopLevelDeclarationSection`'s own
+  unconditional 0x2D push (a separate mechanism from the
+  `pendingReferenceLocalBoundary` one fix #16 already covered) had no way
+  to know the section closed on an initializer. Added an unconditional
+  check right after `statement()` (independent of `leadingLocalRun`) that
+  sets the flag whenever a top-level Local with an initializer completes
+  before the declaration section has closed, and gated the
+  `closesTopLevelDeclarationSection` 0x2D push on it (mirroring the
+  existing `pendingReferenceLocalBoundary` insertion site). Target:
+  definition 5002 (DERIVED_GPFRDSN.GPFR_DSN_EXT_STAT.FieldDefault) --
+  `Declare Function ...; / (blank blank) / Local Row &Row = GetRow(); /
+  (blank blank blank) / If ...` stores three 0x4F markers and NO 0x2D
+  before `If`; the encoder previously emitted a spurious 0x2D. Moved
+  5002's first diff from byte offset 157 to 246 (real progress, not full
+  EXACT -- the definition's REMAINING diff at 246 is the already-
+  documented, unrelated "inline text vs PSPCMNAME field reference"
+  puzzle shared with definitions 1360/1422/3235, a `.Name` property
+  access on a `&Row.GetRecord(1)` result that stored renders as inline
+  text but the encoder currently treats as a real FIELD reference --
+  not touched by this fix, left as previously deferred). Verified: `npx
+  tsc -p .` clean; `npm test` 456/457 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430, 0 regressions. (Full-corpus
+  diff-based validation, as used for fixes #48-51, was in progress when
+  interrupted for a workflow-instruction update; the change is landed on
+  the strength of the protected-baseline gate plus the isolated,
+  narrowly-scoped nature of the fix -- worth a full corpus pass at the
+  next natural checkpoint to confirm no wider impact, expected none given
+  the change only affects the specific `Declare-Function-then-lone-
+  initialized-Local` transition.)
+- **definition_id 1428** (BANKING_DW.PRENOTE_BTN.FieldChange), attempted
+  and REVERTED after real evidence of conflict, no code changed in the
+  end. Original target: byte diff @1295, `DoModalComponent`'s own
+  `Record.X` argument needs to reuse an earlier `CreateRecord(Record.X)`
+  call's row in the same control group (same construct family as the
+  already-landed `DoModalPanelGroup` fix, definition 1152). Two attempts:
+  1. First tried adding `DoModalComponent` to the BROAD
+     `reuseRecordReferenceWithinControlGroup` trigger list (the same one
+     `DoModalPanelGroup` is on). Fixed 1428, passed `--limit 430`, but a
+     full-corpus diff (definition-by-definition against the last
+     known-good run, per the fix-#50-era lesson -- checked BEFORE
+     committing, not after) found 4 regressions: 22502, 22625, 22664,
+     23281 -- all previously EXACT. Root-caused 22502/22625/22664: their
+     earlier same-name precedent was established via a `.GetRecord(Record.X)`
+     POSTFIX-CHAIN call (`GetLevel0()(1).GetRecord(Record.GPS_DATA_WRK)`),
+     not `CreateRecord`, and stored does NOT want DoModalComponent to
+     reuse THAT kind of precedent -- only a `CreateRecord`-established one.
+  2. Narrowed the fix to a DEDICATED check against the existing
+     `createRecordReferences` map (the same one `CreateRecord`'s own
+     repeat-call dedup already populates), completely bypassing the
+     general trigger list so GetRecord-postfix-chain precedents can never
+     match. This correctly fixed 1428, 22502, 22625, 22664 (4/4) -- but
+     definition 23281 (GP_ABS_LVDN_TRANS.DESCR.FieldChange) STILL
+     regressed (was EXACT, became UNKNOWN_MISMATCH) despite having the
+     IDENTICAL construct shape as 1428:
+     ```
+     &srchrec = CreateRecord(Record.GP_PI_MNL_D);
+     &srchrec.EMPLID.Value = ...;              (three more &srchrec.X.Value = ... lines)
+     DoModalComponent(MenuName."...", BarName.USE, ItemName.GP_PI_MNL_AE, Page.GP_PI_MNL_AE, %Action_UpdateDisplay, Record.GP_PI_MNL_D, &srchrec);
+     ```
+     Verified via `--trace-refs` that stored's index (0x0f/15) corresponds
+     to a FRESH allocation at that exact point (sequence 16, matching the
+     count of prior ALLOCs), not a reuse of CreateRecord's own row (idx=2)
+     -- i.e. stored explicitly wants NO reuse here, contradicting 1428's
+     evidence for the textually identical shape. One structural difference
+     noticed but NOT confirmed as the true distinguishing factor: 1428 has
+     a top-level `If None(&nTest) Then ... Else ... End-If;` BETWEEN the
+     `CreateRecord` and `DoModalComponent` calls (which would bump the
+     control group per the established fix-#11 boundary rule), while
+     23281 has no intervening control structure at all (flat sequential
+     assignments, same control group throughout) -- this is the OPPOSITE
+     of the usual pattern (reuse normally needs the SAME scope, not a
+     boundary crossing) and was not chased further given the effort
+     already spent; flagging as a real lead, not a confirmed answer.
+  - Reverted BOTH attempts cleanly (`git checkout -- src/peoplecode/encoder.ts`,
+    confirmed it was the only uncommitted change first). 430/430
+    protected baseline and clean typecheck reconfirmed after the revert.
+    No net changes landed for DoModalComponent this session. Locally
+    blocked pending a third corroborating example or a better hypothesis
+    for the CreateRecord-vs-DoModalComponent control-group-crossing
+    distinction; next session picking this up should start from the
+    `%Action_UpdateDisplay` vs `&mode`/plain-string action-argument
+    difference and the intervening-If/Else difference as the two
+    concrete, not-yet-tested leads, rather than re-deriving the whole
+    investigation from scratch.
+- **definition_id 1285** (ARCH_WRK.PSARCH_COPY_TABLE.FieldChange),
+  UNKNOWN_MISMATCH, byte diff @721 (verified with proper owner context)
+  -- **DEFERRED, connects directly to the fix-#50-era reverted broad
+  attempt, needs a dedicated coordinated-fix session, no code changed.**
+  Source:
+  ```
+  ScrollFlush(Record.ARCH_TBL_VW);
+  &I = CurrentRowNumber(1);
+  CopyFields(1, Record.ARCH_TBL, &I, 1, Record.ARCH_TBL_VW, 1);
+  ```
+  Stored allocates CopyFields' own `Record.ARCH_TBL_VW` "to" argument a
+  FRESH row -- it does NOT reuse ScrollFlush's immediately preceding
+  allocation of the same name -- but the CURRENT encoder reuses it (via
+  the standard `reuseRecordReferenceWithinControlGroup` priority-1 check,
+  which finds ScrollFlush's allocation in `recordReferencesByControlGroup`
+  since every allocation writes there unconditionally). This is THIRD
+  independent evidence (after definition 1254's `PriorValue`->`FetchValue`
+  case, fix #50, and the already-established `marksControlGroupParticipant`
+  exclusion that keeps ScrollFlush out of RowScrollSelect's OWN
+  "participating" lookup) that **ScrollFlush's own fresh allocation
+  specifically should not count as a valid reuse precedent for ANY
+  later reuse-participating call's priority-1 lookup, not just RowScrollSelect's
+  and not just PriorValue's downstream reader (FetchValue)** -- this
+  looks like a real, broader pattern now, not a one-off.
+  - Why NOT fixed narrowly like fix #50 (a `suppressRecordReferenceControlGroupWrite`-style
+    flag for ScrollFlush specifically, gating the WRITE side): fix #49
+    (already landed, committed, validated) depends on ScrollFlush's
+    allocation being VISIBLE in `recordReferencesByControlGroup` --
+    its `singleOccurrenceCallArgumentRecordNames` fallback explicitly
+    reads that exact map to let a later RowScrollSelect/ScrollSelect
+    call reuse ScrollFlush's row. Suppressing ScrollFlush's write
+    entirely would silently regress fix #49's own target (definition
+    1220) and everything it corroborated (4756, 5661, 5687). Confirmed
+    by re-reading fix #49's own code before ruling this approach out --
+    did not attempt and then discover this the hard way a second time.
+  - The READ-side fix (swap `reuseRecordReferenceWithinControlGroup`'s
+    priority-1 check from `recordReferencesByControlGroup` to
+    `participatingRecordReferencesByControlGroup`, keeping ScrollFlush's
+    write to the FIRST map intact for fix #49's sake) is very likely the
+    right general shape now that THREE independent pieces of evidence
+    point the same direction -- but this is EXACTLY the change that was
+    reverted earlier this session after a full-corpus diff found 22
+    regressions (see the fix-#50-era note above for the full trace). 21
+    of those 22 were self-inflicted by fix #48's and fix #49's own direct
+    `.set()` calls into `recordReferencesByControlGroup` never ALSO
+    registering into `participatingRecordReferencesByControlGroup` -- a
+    real, fixable gap, not evidence against the general approach. A
+    proper re-attempt needs, in one coordinated change: (1) the priority-1
+    read-side swap, (2) updating fix #48's RowScrollSelectNew-last-argument
+    registration to ALSO write `participatingRecordReferencesByControlGroup`,
+    (3) updating fix #49's single-occurrence-name fallback registration
+    the same way, (4) re-diagnosing the OTHER ~20 regressed definition_ids
+    from that earlier attempt one at a time (only 1145 and 1220 were
+    confirmed root-caused as fix #48/#49 side effects; the rest were
+    assumed similar but never individually re-verified) to confirm they
+    too are fixable the same way and not a FOURTH distinct cause, (5) a
+    full corpus re-run diffed definition-by-definition against the last
+    known-good run (NOT just aggregate `corpus:failures --summary`
+    counts) before ever committing. This is real, valuable, well-evidenced
+    work -- just too large and too easy to get subtly wrong to rush
+    inside this same session on top of an already-large context budget.
+    Next session picking this up should start by re-reading this note in
+    full, then the fix-#50-era "First attempt (REVERTED...)" note above
+    it for the exact regressed-ID list and root-cause detail already
+    gathered, rather than re-deriving either from scratch.
+  - No encoder.ts changes made. Moved to a different, more isolated
+    actionable failure per CLAUDE.md's completion-behavior rule.
+- **definition_id 1277** (ARCH_UTILS.PSARCH_UTIL_EVENT.SavePreChange),
+  UNKNOWN_MISMATCH, byte diff @2439 (verified with proper owner context,
+  same technique as fixes #48-50) -- **DEFERRED, genuine unresolved
+  conflict, no code changed.** Source:
+  ```
+  &OLD_ID = ARCH_UTILS.PSARCH_ID;
+  ScrollFlush(Record.ARCH_SQL_LNG_VW);
+  ScrollSelect(1, Record.ARCH_SQL_LNG_VW, Record.ARCH_SQL_LNG_VW, &SQL_SUFFIX);
+  ```
+  Stored reuses ScrollFlush's own row for BOTH of ScrollSelect's own
+  (same-name-repeated) Record.X arguments -- but this is the EXACT SAME
+  syntactic shape (`ScrollFlush(Record.X); ScrollSelect(1, Record.X,
+  Record.X, ...)`, name repeated within the call) that definition 1283
+  already proved does NOT reuse ScrollFlush's row (fresh, call-shared
+  instead) -- the established rule fixes #27/#49 are built on. Two
+  corpus definitions, identical construct shape, opposite required
+  behavior; no distinguishing signal found despite real effort:
+  - Hypothesized "trailing SQL/bind-argument count differs" (1277 has 1
+    trailing arg, `&SQL_SUFFIX`; 1283 has 3, `&WHERE, &ARCHIVE_ID,
+    &PARENT_TBL`) and searched the whole corpus for every
+    `ScrollFlush(Record.X); ScrollSelect(1, Record.X, Record.X, ...)`
+    occurrence (149 matches) to test it -- DISPROVEN: both trailing-arg
+    counts appear on BOTH sides of the EXACT/non-EXACT split in a spot
+    sample (e.g. definition 840, trailingArgCount=2, EXACT under the
+    CURRENT no-reuse code; definition 1751, trailingArgCount=3, also
+    EXACT) with no clean correlation.
+  - Spot-checked several of the 149 candidates' CURRENT classification
+    directly: most (840, 1751, 4225, 5231, 9768, 10429, 12584, 13230) are
+    ALREADY EXACT under the existing no-reuse rule (consistent with
+    1283), a handful are UNKNOWN_MISMATCH (889, 1007, 1807, 2459, 2464,
+    3191, 4335, 4864, 6210, 11303) -- but checked several of THOSE
+    directly (1007 diff@343, 4864 diff@5, 2459 diff@1284, 3191 diff@365)
+    and their first byte differences are all far EARLIER than where this
+    construct even appears in their own source, meaning their failures
+    are unrelated bugs entirely, NOT evidence for or against this
+    specific reuse question. Only 1277 itself is confirmed to actually
+    fail AT this exact construct.
+  - Deliberately did NOT implement a fix scoped to just this one
+    definition_id (would not be a real generalizable rule, just an
+    overfit hack) and did NOT retry a broader "same name repeated ->
+    sometimes reuse" rule without a real distinguishing signal, per
+    CLAUDE.md's evidence policy ("do not introduce global same-name reuse
+    without corpus evidence... distinguish competing interpretations from
+    corpus evidence"). This is a genuinely unresolved case needing either
+    a THIRD corroborating example (to reveal the real distinguishing
+    factor) or human/HCDEV-side clarification -- worth revisiting if a
+    future session's `--trace-refs` investigation of a similar construct
+    surfaces the missing signal.
+  - No encoder.ts changes made for this investigation. Moved on to the
+    next actionable failure per CLAUDE.md's completion-behavior rule
+    ("unsupported syntax is a research task, not a stopping condition" --
+    same principle applied here to an under-evidenced conflict).
+- **Fix #50 landed, but only after a caught-and-reverted broad regression
+  -- worth reading in full before touching `reuseRecordReferenceWithinControlGroup`
+  again.** Target: definition 1254 (ARCH_SQL_LNG.ARCH_SQL.FieldChange),
+  UNKNOWN_MISMATCH, byte diff @942 (verified with proper owner context).
+  `&PRIOR_ARCH_SQL = PriorValue(Record.ARCH_TBL, &ZI, ARCH_SQL_LNG.ARCH_SQL, &ZJ);`
+  followed by `&CURRENT_ARCH_SQL = FetchValue(Record.ARCH_TBL, &ZI,
+  ARCH_SQL_LNG.ARCH_SQL, &ZJ);` -- stored allocates FetchValue's own
+  Record.ARCH_TBL argument a FRESH row, but the encoder reused
+  PriorValue's earlier one.
+  - **First attempt (REVERTED, do not repeat)**: swapped the general
+    `reuseRecordReferenceWithinControlGroup` priority-1 lookup (used by
+    GetRecord/DeleteRow/ActiveRowCount/UpdateValue/FetchValue/etc -- the
+    MOST-shared reuse mechanism in the whole file) from reading
+    `recordReferencesByControlGroup` (written unconditionally by every
+    allocation) to reading `participatingRecordReferencesByControlGroup`
+    (written only by already-recognized reuse-participating calls) --
+    the same distinction already used for RowScrollSelect's own lookup.
+    Fixed 1254 AND passed the 430-definition protected-baseline gate on
+    the FIRST attempt (a false all-clear). A full 30,209-definition
+    corpus re-run caught what `--limit 430` could not: 22 regressions
+    (EXACT -> UNKNOWN_MISMATCH) against only 11 newly-fixed definitions,
+    net -11. Diffed run_id 52 (pre-fix full run, 21740 EXACT) against the
+    post-fix full run definition-by-definition to get the exact regressed
+    ID list (`SELECT definition_id, classification FROM result WHERE
+    run_id = ?` for both runs, compare per ID) -- do NOT trust
+    `corpus:failures --summary`'s aggregate counts alone to find
+    regressions; always diff two specific run_ids by definition_id.
+    Investigated the regressed list before reverting (root-cause, not
+    guesswork): 21 of 22 had NO `PriorValue` in their source at all --
+    they regressed because fix #48's and fix #49's OWN registrations
+    (RowScrollSelectNew's last-arg, ScrollFlush's single-occurrence-name
+    fallback) write into `recordReferencesByControlGroup` directly,
+    bypassing the normal `marksControlGroupParticipant` path entirely, so
+    narrowing the READ side to the "participating" map broke visibility
+    of my own two prior fixes for every later GetRecord/ActiveRowCount/
+    UpdateValue/etc reader. The 22nd (definition 3061) has a DIFFERENT,
+    unrelated `PriorValue(CONTRACT.PAYMENT_TERM)` field-style call (no
+    `Record.X` argument at all), so it regressed for some other reason
+    entirely, never root-caused since the whole approach was abandoned.
+    Reverted cleanly with `git checkout -- src/peoplecode/encoder.ts`
+    (the broad swap was this session's ONLY uncommitted change at the
+    time, confirmed via `git diff` before reverting -- always check that
+    before a blanket revert). Lesson reinforced for future sessions:
+    `--limit 430` is necessary but NOT sufficient for ANY change touching
+    a mechanism this broadly shared; a full corpus re-run diffed against
+    the specific prior run_id by definition_id is the only way to catch
+    this class of regression, and aggregate EXACT counts alone can hide a
+    net-negative change if newly-fixed and newly-regressed counts happen
+    to be close (they were NOT close here, -11 net, but a closer case
+    could slip through if only the aggregate delta were checked).
+  - **Second attempt (landed as fix #50)**: a much narrower, evidence-
+    scoped carve-out modeled directly on the ALREADY-proven
+    RowScrollSelect-own-arguments exclusion just below it in the same
+    file (same shape, opposite direction): a new
+    `suppressRecordReferenceControlGroupWrite` flag, set true only while
+    parsing `PriorValue`'s own call arguments, checked alongside the
+    existing `!reuseRecordReferenceWithinCallArguments` guard on the
+    UNCONDITIONAL `recordReferencesByControlGroup.set(...)` write (not
+    touching the READ side at all, unlike the reverted attempt). This
+    means `PriorValue`'s own Record.X argument still allocates normally
+    but simply doesn't become visible to a LATER reuse-participating
+    call's control-group lookup -- every other allocation (including
+    RowScrollSelectNew's/ScrollFlush's own registrations from fixes
+    #48/#49) is completely unaffected, since the write-suppression is
+    scoped to the `PriorValue` call name specifically. Confirmed
+    `PriorValue` appears in 185 corpus definitions total; checked that
+    definition 3061 (the one regression-list member that DID mention
+    `PriorValue`, from the reverted attempt) uses the unrelated
+    field-style `PriorValue(RECORD.FIELD)` form with no `Record.X`
+    argument, so this narrow fix cannot touch it either way. Verified:
+    `npx tsc -p .` clean; `npm test` 456/457 (1 pre-existing skip);
+    `corpus:verify --limit 430` 430/430, 0 regressions; every previously
+    landed/related definition re-spot-checked EXACT (1254, 1145, 1220,
+    3061, 1283, 27, 840, 1172, 1236); full 30,209-definition corpus run
+    diffed AGAIN against run_id 52 by definition_id (not just aggregate
+    counts, learning directly applied from the reverted attempt): exactly
+    0 regressed, exactly 1 improved (1254) -- clean, minimal, confirmed
+    net-positive fix.
+- **Fix #49** landed (src/peoplecode/encoder.ts): a `RowScrollSelect`/
+  `RowScrollSelectNew`/`ScrollSelect` call's Record.X argument whose name
+  appears only ONCE across that call's own entire argument list may reuse
+  a same-control-group row an immediately preceding `ScrollFlush` already
+  allocated -- unlike a name repeated WITHIN the same call (which stays
+  call-private, per definition 1283's already-proven rule, untouched by
+  this fix). New closure variable `singleOccurrenceCallArgumentRecordNames`
+  (a one-time lookahead scan of the call's own raw argument text, done
+  once when entering the call) plus a third fallback check in
+  `recordReference()`'s `reuseRecordReferenceWithinCallArguments` branch,
+  consulting the ordinary `recordReferencesByControlGroup` pool (not the
+  separate `participatingRecordReferencesByControlGroup` map). Investigated
+  via definition 1220 (ARCH_FLT_RQST.PSARCH_ID.SavePostChange), byte-diff
+  offset 1059 (verified with proper owner context, not a rough trace
+  guess -- see the fix-#48-era note in this file about that pitfall).
+  Cross-checked against 10 corroborating same-shape candidates found via a
+  direct corpus text search (`ScrollFlush(Record.X); ScrollSelect(...,
+  Record.X, Record.Y, ...)` with X != Y) BEFORE writing any code, per
+  CLAUDE.md's evidence rule: two (4282, 7046) were ALREADY EXACT with the
+  OLD code, which first looked like direct counter-evidence against a
+  naive "always reuse" rule -- investigated and resolved: both sit inside
+  a `Function ... End-Function;` body, where each top-level statement gets
+  its own fresh control group (the established fix-#19-era rule), so
+  ScrollFlush and ScrollSelect there are never in the same control group
+  regardless, explaining why they were already correct without needing
+  this rule at all. The other 8 (including 1220) were all UNKNOWN_MISMATCH
+  before the fix; after it, 6 moved to EXACT (1220, 4756, 5661, 5687, plus
+  two side-effects) and 2 (3547, 3556) remain UNKNOWN_MISMATCH -- still
+  progress, not blocked by THIS bug anymore (not yet investigated further,
+  a distinct remaining issue). Definition 1283 (the ORIGINAL
+  same-name-repeats-within-call evidence) re-confirmed EXACT, along with
+  every other definition already cited in the surrounding comments (27,
+  840, 1172, 1236). Verified: `npx tsc -p .` clean; `npm test` 456/457 (1
+  pre-existing skip); `corpus:verify --limit 430` 430/430, 0 regressions;
+  full local corpus re-run (30,209 definitions) went 21737 -> 21740 EXACT
+  (+3, net positive, zero regressions in any other classification
+  bucket).
+- **Snapshot received and installed.** The user provided the real 192MB
+  `tools/corpus/hcdev-snapshot.sqlite` via chat upload, split into 8 parts
+  (`split -b 25m`) since it exceeded the 30MB per-message limit (a direct
+  Google Drive link was tried first but the environment's network policy
+  blocks `drive.google.com` outright). All 8 parts reassembled via `cat`,
+  verified as a valid SQLite database (`PRAGMA integrity_check` -> ok,
+  30,209 definitions in the one completed snapshot among 4 snapshot_meta
+  rows -- the other 3 were incomplete/aborted capture attempts from
+  whatever session originally built this file, definition_count=0 each,
+  correctly ignored by `getLatestCompletedSnapshot()`). Placed at
+  `tools/corpus/hcdev-snapshot.sqlite` (confirmed still gitignored, never
+  committed). Also regenerated `tools/corpus/baselines/hcdev.json` (also
+  gitignored, also absent in this fresh container) by running the first
+  430 definitions and confirming 430/430 EXACT against the REAL snapshot
+  before persisting it as the accepted baseline (`npm run corpus:baseline
+  -- --limit 430`) -- this is the first time in this container's life the
+  430/430 protected baseline has been verified against genuine HCDEV
+  evidence rather than asserted from a prior session's notes.
+- **Important reconciliation note**: the very first fresh-candidate pick
+  past the 430 window (`corpus:next` -> definition 536, deferred; used the
+  documented SQL workaround -> definition 1145, ANALYSIS_DB_WRK.
+  BASE_CUBE_INST_ID.FieldChange) turned out to be **genuinely
+  UNKNOWN_MISMATCH**, contradicting this file's own fix #37 writeup, which
+  claimed 1145 reached EXACT. Investigated with real evidence (this
+  session's own `--trace-refs` output plus two leftover, git-tracked
+  scratch scripts from a prior session, `tmp-dump1145.ts`/`tmp-dump1145b.ts`,
+  found still sitting at the repo root -- also fixed this session). The
+  fix #37 comment's own cited source line for 1145
+  (`RowScrollSelectNew(1, Record.ANALYSIS_DB_DIM, Record.ANALYSIS_DB_DIM, "...", ...)`,
+  claiming both arguments share one name) is NOT fabricated -- it
+  accurately describes 1145's *second* `RowScrollSelectNew` call (the
+  Else/"I"-branch one) -- but it is *incomplete*: it never covered the
+  *first* call's genuinely different shape (`Record.ANALYSIS_DB_DIM,
+  Record.ANL_MOD_DIM` -- two DIFFERENT names), whose fresh `Record.
+  ANL_MOD_DIM` allocation a much-later `UpdateValue(...,
+  Record.ANL_MOD_DIM)` call in the same control group needs to reuse and
+  previously could not. Likely explanation: a prior session validated the
+  same-name (second-call) fix, saw 1145 move off ENCODE_ERROR/closer to
+  matching, and recorded it as fully EXACT without re-confirming against
+  this file's specific real bytes -- exactly the kind of claim this
+  session's `/goal` continuation could not simply trust once real
+  evidence was back in hand. Treat every "previously EXACT" claim in this
+  file's older sections as a strong hint, not proof, until re-confirmed
+  against this real snapshot; do not block on re-verifying all of them
+  proactively, but don't be surprised if others also need a second look.
+- **Fix #48** landed (src/peoplecode/encoder.ts, `call()`'s argument-list
+  `finally` block, ~line 5715): a `RowScrollSelect`/`RowScrollSelectNew`
+  call's LAST Record.X argument (its ultimate "to" table, immediately
+  before the SQL where-clause string) now also registers into
+  `recordReferencesByControlGroup` -- the pool
+  GetRecord/DeleteRow/ActiveRowCount/UpdateValue/etc already read via
+  `reuseRecordReferenceWithinControlGroup` -- so a LATER statement in the
+  same control group can reuse it, exactly like definition 1145 requires.
+  Earlier/non-final Record.X arguments in the same call are untouched
+  (stay call-private, preserving definition 1172's proven counter-
+  example: ActiveRowCount right after a RowScrollSelectNew call does NOT
+  reuse that call's non-last Record.X arguments). Definition 1145 moved
+  UNKNOWN_MISMATCH -> EXACT. Verified: `npx tsc -p .` clean; `npm test`
+  456/457 (1 pre-existing skip); `corpus:verify --limit 430` 430/430, 0
+  regressions; spot-checked every definition cited in the surrounding
+  comments (27, 840, 1172, 1236, 1283) individually -- all still EXACT;
+  full local corpus re-run (30,209 definitions, ~5 min) went 21734 ->
+  21737 EXACT (+3, net positive, zero regressions in any other
+  classification bucket: ENCODE_ERROR/DECODE_SOURCE_MISMATCH/
+  UNSUPPORTED_SYNTAX counts all unchanged).
+- Also removed the two leftover git-tracked scratch files at the repo
+  root (`tmp-dump1145.ts`, `tmp-dump1145b.ts`) after using them as a
+  starting point -- the first version of `tmp-dump1145b.ts` I ran gave a
+  MISLEADING result (looked like a difference existed as early as byte
+  offset 1851) because it called `encodeProgram(source)` with no `owner`
+  context, unlike the real validator which always passes `{owner:
+  {recordName, fieldName}}`. Worth remembering for any future scratch
+  debugging: always pass the same owner context the harness does, or the
+  reference-index numbering will be silently offset by one and every
+  manual byte comparison past that point will be wrong.
+- Full local corpus inventory now populated from scratch in this fresh
+  container (was completely empty -- `corpus-results.sqlite` is
+  gitignored same as the snapshot): `npm run corpus:harness` (no filters)
+  took ~5 minutes for all 30,209 definitions. Current full-corpus state:
+  EXACT 21737, UNKNOWN_MISMATCH 4840, ENCODE_ERROR 2276,
+  DECODE_SOURCE_MISMATCH 698, UNSUPPORTED_SYNTAX 658.
+- Next: continue past definition 1145 using the same SQL-query-for-fresh-
+  candidates workaround (`corpus:next` will keep re-suggesting 536 until
+  it gains deferred-definition awareness) -- query results DB for the
+  next UNKNOWN_MISMATCH definition past offset 1144 not already in the
+  deferred list (536, 871, 1406, 3235, 1285, 1360, 1422).
+
+## Current target (previous entry, preserved for history)
+- Session resumed 2026-09-24 via `/goal` in a FRESH cloud container (new
+  ephemeral checkout, no state carried over from any prior session's
+  container). Ran `npm install` (node_modules was entirely absent), then
+  `npx tsc -p .` (clean). Attempted the mandatory pre-work verification
+  (`npm run corpus:failures -- --summary`, `npm run corpus:verify --
+  --limit 430`) and hit a **hard environment blocker**, not a calibration
+  difficulty:
+  - `tools/corpus/hcdev-snapshot.sqlite` does not exist in this container.
+    It is gitignored (correctly — it holds captured real HCDEV compiler
+    evidence) and, since this container is a fresh clone, nothing from any
+    earlier session's snapshot survived. `corpus:failures --summary`
+    confirms: "Definitions known: 0".
+  - `tools/corpus/corpus-results.sqlite` (the run-history DB) and every
+    file under `tools/corpus/baselines/` are likewise absent (gitignored,
+    not regenerated).
+  - No Oracle credentials (`PS_CONNECT_STRING`, `PS_USER`, `PS_PASSWORD`)
+    are set anywhere in this environment (checked `env`, and confirmed via
+    the environment-secrets documentation that no such secret is
+    configured) — so `--live` cannot be used to rebuild the snapshot
+    either, even as an explicit maintenance action.
+  - Separately (a real code bug, not investigated further this session):
+    `tools/corpus/corpus-runner.ts` `runCorpus()` calls
+    `getConnectionConfig()` unconditionally at the top (line ~95), purely
+    to populate a `Database:` log label, even when running in
+    local-snapshot mode. This means even a present, populated snapshot
+    file would still hit "Missing required environment variable(s):
+    PS_CONNECT_STRING, PS_USER, PS_PASSWORD" today — local-snapshot mode
+    is not actually decoupled from Oracle config the way CLAUDE.md's
+    local-first policy describes. Worth fixing (make the `Database:` label
+    conditional / lazy) once the snapshot itself is available to verify
+    against, but not done yet since there is no data to validate the fix
+    with.
+  - No workaround was applied that fabricates or guesses corpus data.
+    Nothing in `src/peoplecode/encoder.ts` or `decoder.ts` was touched this
+    session. All prior sessions' encoder/decoder rules (fixes #1-47 and
+    the "Newly established rules" sections below) remain intact in git
+    history — this is an environment/data-availability gap, not a
+    regression.
+  - Asked the user how to proceed. Resolution: env-var Oracle credentials
+    are not usable (HCDEV requires a VPN this environment cannot reach).
+    User will upload the existing snapshot file directly (192MB, over the
+    30MB per-message limit — splitting into parts via `split -b 25m` or a
+    direct-download link was proposed; upload not yet complete as of this
+    checkpoint).
+  - **Two infrastructure fixes landed while waiting on the upload** (both
+    validated WITHOUT real corpus data — no fabricated results, no
+    encoder/decoder changes):
+    1. `tools/corpus/corpus-runner.ts`: the eager unconditional
+       `getConnectionConfig()` call at the top of `runCorpus()` (previously
+       flagged above) is now lazy — only called when `options.live` is
+       true. `databaseName` falls back to the literal string
+       `'LOCAL SNAPSHOT'` instead of `config.connectString` for non-live
+       runs (though in practice `cli.ts` always passes an explicit
+       `databaseName: 'HCDEV'` today, so this fallback is currently
+       cosmetic dead code for the CLI path — still correct and needed for
+       any other caller). The two `openCorpusConnection(config)` call
+       sites (both already inside `if (options.live)` branches) now call
+       `getConnectionConfig()` directly inline instead of closing over the
+       removed top-level `config` variable. Smoke-tested by creating a
+       throwaway EMPTY snapshot db (schema only, zero definitions, via
+       `tools/corpus/snapshot/schema.sql`) at the real snapshot path with
+       `PS_CONNECT_STRING`/`PS_USER`/`PS_PASSWORD` explicitly unset —
+       confirmed `npm run corpus:verify -- --limit 5` no longer throws
+       "Missing required environment variable(s)" and instead correctly
+       reports `Source: LOCAL SNAPSHOT` / `Loaded 0 definition(s)`. The
+       throwaway db was deleted immediately after (never left in place,
+       never used to fabricate a result).
+    2. `package.json`'s `test` script (`node --test dist-test/test/`,
+       directory form) does not recurse in this container's Node v22.22.2
+       — it throws `MODULE_NOT_FOUND` instead of discovering the 35
+       compiled `*.test.js` files inside `dist-test/test/`, which broke
+       `npm test` (and therefore the mandatory post-fix verification
+       workflow) before any corpus work could even begin. Root-caused by
+       comparing directory-form vs. an explicit glob
+       (`dist-test/test/*.test.js`), which finds and runs all tests
+       correctly (457 tests, 456 pass, 1 pre-existing skip — exactly
+       matching every prior session's documented baseline count). Changed
+       the script to the explicit glob form. `dist-test/test/` has only
+       one subdirectory (`fixtures/`, not test files), so the flat glob is
+       complete — confirmed via `find`. This is an environment/Node-version
+       quirk fix, not a corpus-calibration change.
+    - Both fixes verified together: `npx tsc -p .` clean, `npm test` ->
+      456/457 pass (1 skip), matching baseline exactly. No corpus data
+      involved in validating either fix. Not yet committed as of this
+      checkpoint note — see git log for actual commit state.
+
+## Current target (previous entry, preserved for history)
 - Session continued 2026-09-24 via `/goal` resume, picking up exactly where
   the prior checkpoint left off (past fix #38, definition 1152). Re-verified
   clean state first (`tsc`, `npm test` 456/1, `corpus:verify --limit 430`
