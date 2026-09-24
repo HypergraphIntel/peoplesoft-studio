@@ -4468,6 +4468,35 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         continue;
       }
 
+      /*
+       * REM is compiled as a 0x24 comment payload containing its own
+       * semicolon, so consume it here rather than sending it through the
+       * ordinary statement + 0x15 terminator path -- mirroring
+       * ifStatement()'s identical REM handling above, which a While body
+       * was entirely missing (only If/For/Evaluate/try bodies had it).
+       *
+       * PSXP_PRCSDEFN.CI_PROPERTY.FieldFormula (definition 9661):
+       *
+       *   While &CIProperties.Fetch(&PropertyName, &RecName, &Fieldname)
+       *
+       *      REM MessageBox(0, "", 0, 0, "&RecName = " | &RecName | ...);
+       */
+      if (/^REM\b/i.test(source.slice(pos))) {
+        if (hasBlankLine) {
+          const markerCount = Math.max(
+            1,
+            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+          );
+
+          for (let marker = 0; marker < markerCount; marker++) {
+            pendingReferenceGroupBoundaries.push(chunks.length);
+          }
+        }
+
+        chunks.push(remComment(true));
+        continue;
+      }
+
       statement();
 
       space();

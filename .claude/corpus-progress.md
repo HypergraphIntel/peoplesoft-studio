@@ -1,6 +1,70 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Full-corpus regression diff confirmed** for Fixes #61-#62 (and
+  transitively #59-#60, not yet captured in a prior full run): background
+  full corpus scan (run_id 230, all 30,209 definitions) diffed
+  definition-by-definition against the last full run before this
+  session's newest fixes (run_id 224, 22018/30209 exact). Result: 230
+  improved, 0 regressed, 29979 unchanged -- confirms no regression outside
+  the protected 430-definition window or outside the manually-checked
+  candidate set, per the documented lesson that `--limit 430` alone is
+  necessary but not sufficient for changes touching shared mechanisms
+  (this run covered the `GetRecord()` field-chain fix, which touches the
+  shared `primary()` postfix reference machinery). New corpus total:
+  22248/30209 exact (73.6%).
+- **Fix #63** landed (src/peoplecode/encoder.ts, `whileStatement()`'s body
+  loop): a `REM ...;` comment used as an ordinary statement inside a
+  `While` loop body was completely unsupported -- `whileStatement()`'s
+  body loop was missing the early REM-detection branch that
+  `ifStatement()`/`forStatement()`/`evaluateStatement()`/`tryStatement()`
+  already have (checked before falling through to the ordinary
+  `statement()` + `;`-terminator path), so a bare `REM` line inside a
+  `While` body was parsed as an ordinary bare-identifier statement and
+  failed with "bare identifiers are only supported as calls" at the next
+  token. Added the same REM-detection branch (blank-line marker handling
+  via `pendingReferenceGroupBoundaries`, then `remComment(true)`) that
+  `ifStatement()` already uses, in the same position `whileStatement()`
+  already checks for a leading `/*` block comment. `repeatStatement()`
+  has the same gap (confirmed by inspection, no REM branch and no `/*`
+  branch either) but no corpus evidence was searched for it yet in this
+  session -- left as a separate follow-up, not bundled into this fix.
+  Target: definition 9661 (PSXP_PRCSDEFN.CI_PROPERTY.FieldFormula):
+  ```
+  While &CIProperties.Fetch(&PropertyName, &RecName, &Fieldname)
+     REM MessageBox(0, "", 0, 0, "&RecName = " | &RecName | ...);
+  ```
+  advanced from ENCODE_ERROR to a small unrelated MISMATCH elsewhere in
+  this large (44KB) program -- not itself EXACT, but confirms the
+  construct now parses. Searched the corpus for `While ... REM` shapes
+  before implementing (224 broad regex matches, most too large/complex to
+  give a clean EXACT signal on their own); checked the 10 smallest: 3
+  fully byte-exact (28693, 13545, 16285), 2 unaffected pre-existing
+  MISMATCHes confirmed byte-identical before/after via git-stash
+  comparison (14668, 10265 -- their REM instance turned out to be inside a
+  nested If, already covered by ifStatement()'s own handling, unrelated to
+  this fix), 2 ENCODE_ERROR -> near-exact-MISMATCH improvements confirmed
+  via the same before/after comparison (19206, 28450), 2 pre-existing
+  unrelated ENCODE_ERRORs untouched (13621, 28541). Also re-checked the
+  full original "MessageBox"/"Constants" ENCODE_ERROR family sample
+  (19143, 27390, 28293, 28298, 7542, 15046, 9661): all 7 progressed from
+  ENCODE_ERROR to small (3-33 byte) MISMATCHes in large programs -- real
+  progress, separate pre-existing issues remain in each, none regressed.
+  Zero regressions found. Verified: `npx tsc -p .` clean; `npm test`
+  456/457 (1 pre-existing skip); `corpus:verify --limit 430` 430/430, 0
+  regressions.
+  **Separately investigated, NOT a Fix #63 bug**: definitions with
+  `class Constants; ... property ...; end-class; method Constants; ...
+  end-method;` (definition 29094 and similar, e.g. 28763) are full
+  multi-method Application Class programs with properties -- structurally
+  much larger than the single-method inline shape
+  `parseApplicationClassProgram()` currently recognizes (which requires
+  `class X method Y(...) ... ; end-class;` all as one declaration line
+  plus a single inline method). These fall through to the ordinary
+  fragment encoder entirely unrouted and fail immediately at the class
+  name. This is a distinct, much larger feature gap (general multi-method
+  Application Class program support), not a narrow parser bug -- left as
+  a locally-blocked research item, not attempted in this session.
 - **Fix #62** landed (src/peoplecode/encoder.ts, `comparisonExpression()`):
   generalized Fix #59's `Not =` handling to also cover `Not >` (still
   two literal tokens: `Not` 0x1d directly followed by `>` 0x09, never a
