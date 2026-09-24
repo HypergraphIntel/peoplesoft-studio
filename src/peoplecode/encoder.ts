@@ -3296,8 +3296,18 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         chunks.push(fixed('='));
         expression();
       } else if (
-        /^[A-Za-z_][A-Za-z0-9_]*\s*\([^;]*\)\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*=/.test(tail)
+        /^[A-Za-z_][A-Za-z0-9_]*\s*\([^;]*\)(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)+\s*=/.test(tail)
       ) {
+        /*
+         * A call-result property chain may traverse more than one dotted
+         * member before the assigned property, e.g.
+         * `GetRecord().GPS_BDG_ORG2.SqlText = ExpandSqlBinds(...);`
+         * (definition 9989 and 25 other corpus occurrences) --
+         * `GetRecord()` then RECORD member `GPS_BDG_ORG2` then FIELD
+         * member `SqlText`, not just the single-member
+         * `Name(args).Property =` shape this branch originally matched.
+         * primary() already walks an arbitrarily long postfix chain.
+         */
         primary();
         space();
         if (source[pos] !== '=') {
@@ -6252,6 +6262,41 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           /^GetRecord$/i.test(identifier) &&
           !/^GetRecord\s*\(\s*\)/i.test(tail);
 
+        /*
+         * A bare, EMPTY-PARENS `GetRecord()` call is normally a
+         * Row-navigation chain root (definition 180's `.ParentRow...`,
+         * kept inline -- see the comment above). But when the member that
+         * follows is itself followed by a SECOND dotted member (rather
+         * than being the whole chain), the first member is a FIELD access
+         * on the row's default record, exactly like the argumented form
+         * already puts its following bare `.MEMBER` into field-reference
+         * mode -- the difference is structural (one member vs. two), not
+         * the presence of call arguments.
+         *
+         * GPS_POSTADD_WRK.<various>.FieldFormula (definition 10023, one of
+         * 26 corpus occurrences of this exact shape):
+         *
+         *   GetRecord().GPS_BDG_ORG2.SqlText = ExpandSqlBinds(...);
+         *
+         * stores a real PSPCMNAME FIELD reference (0x4A) for GPS_BDG_ORG2,
+         * while SqlText -- a record property, not a field -- stays inline
+         * text, matching how `expectedReferenceMember` already reverts to
+         * `undefined` (not a second reference level) once a 'field'-mode
+         * reference has been consumed.
+         *
+         * `ParentRow` is the sole exception in the corpus (definitions 180,
+         * 9359, 22705, all still a `.ParentRow.ParentRowset...` navigation
+         * chain, never a field): of 113 distinct first-member identifiers
+         * found across every `GetRecord().MEMBER.MEMBER2` corpus occurrence,
+         * `ParentRow` is the only one that is not an
+         * ALL_CAPS_WITH_UNDERSCORES field-name shape, so it is excluded by
+         * name, matching definition 180's own calibrated comment above.
+         */
+        const wasBareGetRecordCallNoArgsFieldChain =
+          /^GetRecord$/i.test(identifier) &&
+          /^GetRecord\s*\(\s*\)\s*\.\s*(?!ParentRow\b)[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/i
+            .test(tail);
+
         const wasBareGetRowCall =
           /^GetRow$/i.test(identifier) &&
           /^GetRow\s*\(\s*\)/i.test(tail);
@@ -6262,7 +6307,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         // e.g. GetLevel0()(1).
         allowDirectPostfixCall = true;
 
-        if (wasBareGetRecordCall) {
+        if (wasBareGetRecordCall || wasBareGetRecordCallNoArgsFieldChain) {
           bareGetRecordCallResult = true;
         }
 
@@ -6608,6 +6653,34 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
                 reference
               );
             }
+          } else if (
+            expectedReferenceMember === 'field' &&
+            baseVariableName === undefined &&
+            fieldMemberFromGetRecord
+          ) {
+            /*
+             * A bare `GetRecord().FIELDNAME` field reference (no
+             * `&variable.` receiver) reuses within the current control
+             * group the same way every other FIELD-reuse pool above does
+             * -- a second `GetRecord().FIELDNAME` for the same field name
+             * in the same control group (e.g. the If- and Else-branches
+             * of one `If ... Then ... Else ... End-If;`) points to the
+             * SAME PSPCMNAME FIELD row, not a fresh allocation.
+             *
+             * GPS_EDIT_WRK.GPS_BDG_ORG1.FieldChange (definition 9989):
+             *
+             *   If GetRecord().GPS_LEVELS.Value = 2 Then
+             *      GetRecord().GPS_BDG_ORG2.SqlText = ExpandSqlBinds(...);
+             *   Else
+             *      GetRecord().GPS_BDG_ORG2.SqlText = ExpandSqlBinds(...);
+             *   End-If;
+             *
+             * both `GPS_BDG_ORG2` occurrences store the same FIELD index.
+             */
+            fieldReferencesByControlGroup.set(
+              `${controlGroup}:${member.toLowerCase()}`,
+              reference
+            );
           }
 
           chunks.push(Buffer.from([
