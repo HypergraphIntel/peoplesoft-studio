@@ -1,6 +1,43 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #49** landed (src/peoplecode/encoder.ts): a `RowScrollSelect`/
+  `RowScrollSelectNew`/`ScrollSelect` call's Record.X argument whose name
+  appears only ONCE across that call's own entire argument list may reuse
+  a same-control-group row an immediately preceding `ScrollFlush` already
+  allocated -- unlike a name repeated WITHIN the same call (which stays
+  call-private, per definition 1283's already-proven rule, untouched by
+  this fix). New closure variable `singleOccurrenceCallArgumentRecordNames`
+  (a one-time lookahead scan of the call's own raw argument text, done
+  once when entering the call) plus a third fallback check in
+  `recordReference()`'s `reuseRecordReferenceWithinCallArguments` branch,
+  consulting the ordinary `recordReferencesByControlGroup` pool (not the
+  separate `participatingRecordReferencesByControlGroup` map). Investigated
+  via definition 1220 (ARCH_FLT_RQST.PSARCH_ID.SavePostChange), byte-diff
+  offset 1059 (verified with proper owner context, not a rough trace
+  guess -- see the fix-#48-era note in this file about that pitfall).
+  Cross-checked against 10 corroborating same-shape candidates found via a
+  direct corpus text search (`ScrollFlush(Record.X); ScrollSelect(...,
+  Record.X, Record.Y, ...)` with X != Y) BEFORE writing any code, per
+  CLAUDE.md's evidence rule: two (4282, 7046) were ALREADY EXACT with the
+  OLD code, which first looked like direct counter-evidence against a
+  naive "always reuse" rule -- investigated and resolved: both sit inside
+  a `Function ... End-Function;` body, where each top-level statement gets
+  its own fresh control group (the established fix-#19-era rule), so
+  ScrollFlush and ScrollSelect there are never in the same control group
+  regardless, explaining why they were already correct without needing
+  this rule at all. The other 8 (including 1220) were all UNKNOWN_MISMATCH
+  before the fix; after it, 6 moved to EXACT (1220, 4756, 5661, 5687, plus
+  two side-effects) and 2 (3547, 3556) remain UNKNOWN_MISMATCH -- still
+  progress, not blocked by THIS bug anymore (not yet investigated further,
+  a distinct remaining issue). Definition 1283 (the ORIGINAL
+  same-name-repeats-within-call evidence) re-confirmed EXACT, along with
+  every other definition already cited in the surrounding comments (27,
+  840, 1172, 1236). Verified: `npx tsc -p .` clean; `npm test` 456/457 (1
+  pre-existing skip); `corpus:verify --limit 430` 430/430, 0 regressions;
+  full local corpus re-run (30,209 definitions) went 21737 -> 21740 EXACT
+  (+3, net positive, zero regressions in any other classification
+  bucket).
 - **Snapshot received and installed.** The user provided the real 192MB
   `tools/corpus/hcdev-snapshot.sqlite` via chat upload, split into 8 parts
   (`split -b 25m`) since it exceeded the 30MB per-message limit (a direct
