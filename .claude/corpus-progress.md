@@ -4240,6 +4240,56 @@ postfix-call shapes (declared-type receiver vs untyped, immediately
 followed by another method call vs a bare member) before acting, not a
 single-pair guess.
 
+### definition_id 1740 (BENEF_PB_WRK.FSA_CLEAR_PB.FieldChange) — a FOURTH
+### own-argument reuse contradiction, this time `SetCursorPos`, in the
+### SAME broad `reuseRecordReferenceWithinControlGroup` trigger list as
+### `GetRecord`/`ActiveRowCount`/`FetchValue`/~20 other names
+
+Source: `&CurRow = ActiveRowCount(Record.FSA_CLAIM); SetCursorPos(%Panel,
+Record.FSA_CLAIM, &CurRow, FSA_CLAIM.EMPLID);`, flat top level, no
+control blocks. Stored allocates a FRESH `RECORD/FSA_CLAIM` row for
+`SetCursorPos`'s own argument (NAMENUM 5, separate from ActiveRowCount's
+own NAMENUM 4) -- does NOT reuse, contradicting `SetCursorPos`'s
+inclusion in the same broad reuse-participating trigger list `GetRecord`/
+`ActiveRowCount`/`FetchValue`/`UpdateValue`/`InsertRow`/`HideScroll`/
+`UnhideScroll`/`UnhideRow`/`HideRow`/`CopyFields`/`RecordDeleted`/
+`RecordChanged`/`CreateRowset`/`GetRowset`/`DoModalPanelGroup`/
+`SortScroll`/`ScrollFlush`/`Hide`/`UnHide`/`Gray`/`UnGray` all share.
+Given the day's already-established `controlDepth` pattern for the
+ScrollFlush family (Fix #89) and THREE separate FetchValue-own-argument
+contradictions found in this same session (1305, 1454, 1521, all above),
+this looks like it could be the SAME broader phenomenon extending to
+EVERY name in this ~20-name shared list, not just FetchValue/ScrollFlush
+-- but that is a much bigger, much higher-blast-radius claim (this list
+is used by thousands of already-EXACT corpus definitions) that absolutely
+needs a dedicated, systematic investigation (tabulate every call name x
+controlDepth x reuse-vs-fresh across many examples) before any code
+change is even attempted. NOT investigated further or fixed this session
+-- deliberately stopping the reuse-mechanism rabbit hole here rather than
+guessing again.
+
+### definition_id 523 (ADDRESSES.EMPLID.Workflow) — a block-comment
+### placement (0x24 standalone vs 0x4E inline) misclassification for one
+### of several textually-identical adjacent-comment-pair occurrences
+
+`blockCommentByPlacement()` (via `blockCommentStartsOwnLine()`) selects
+0x4E (inline) vs 0x24 (standalone) by looking backward from the comment's
+own `/*` past only spaces/tabs to see if a newline or other content
+precedes it. Source has the SAME two-comment pair `/* 811477 end */ /*
+Begin Bug 19722155 */` at (at least) 5 separate places in this one
+definition (per the decoded source); stored bytes show only ONE of them
+(body offset 2909) uses the "wrong" opcode compared to what generated
+produces (stored 0x4E, generated 0x24), while the other 4 apparently
+already encode correctly (no earlier byte mismatch). NOT investigated
+further this session (found very late, after extensive prior work) --
+the raw SOURCE-level differences between the 5 textually-identical-
+looking occurrences (indentation, surrounding statement type, which of
+several call sites reaches `blockCommentByPlacement()` for each) were not
+examined. Next step when resumed: diff the raw (non-decoded, non-
+pretty-printed) source text immediately around each of the 5 occurrences
+byte-for-byte, since the decoded/rendered view normalizes whitespace and
+may be hiding the actual distinguishing factor.
+
 ### definition_id 1749 remaining issue: a THIRD, contradictory
 ### ScrollFlush-then-ScrollSelect/RowScrollSelect data point
 
