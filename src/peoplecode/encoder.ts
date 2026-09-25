@@ -7411,6 +7411,30 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             explicitRecordRootName !== undefined
               ? explicitRecordFields.get(
                   `${controlGroup}:${explicitRecordRootName.toLowerCase()}:${member.toLowerCase()}`
+                ) ??
+                /*
+                 * The FIELD half of an explicit `Record.REC.FIELD.Value`
+                 * chain is reusable by NAME ALONE across a DIFFERENT root
+                 * record within the same control group -- the stored
+                 * PSPCMNAME row itself has no owning-record link at all
+                 * (`RECNAME` is the literal placeholder `'FIELD'`).
+                 *
+                 * ACL_WS_WRK.WSOPRACCESS.SaveEdit (definition 437):
+                 *
+                 *   &classid = Record.PTIBMAPAUTH_VW.CLASSID.Value;
+                 *   ...
+                 *   &classid = Record.PSAUTHWS_VW1.CLASSID.Value;
+                 *
+                 * both inside the same control group (an If/Else inside one
+                 * Function body) -- stored has exactly one FIELD/CLASSID
+                 * row, reused for both, despite the two different root
+                 * records. Mirrors the already-proven cross-Record-variable
+                 * FIELD reuse a few dozen lines below (ACCOMPLISHMENTS.
+                 * EMPLID.SavePostChange) via the same shared
+                 * `declaredRecordFields` pool.
+                 */
+                declaredRecordFields.get(
+                  `${controlGroup}:${member.toLowerCase()}`
                 )
               : expectedReferenceMember === 'record' && isMethodCall
               ? references.find(
@@ -7550,6 +7574,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           ) {
             explicitRecordFields.set(
               `${controlGroup}:${explicitRecordRootName.toLowerCase()}:${member.toLowerCase()}`,
+              reference
+            );
+            declaredRecordFields.set(
+              `${controlGroup}:${member.toLowerCase()}`,
               reference
             );
           }
