@@ -2569,6 +2569,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
 
     const header = Buffer.alloc(3);
+    /*
+     * REM participates in decoded comment-opcode provenance just like block
+     * comments do. PSREN.SSL_FLAG.SaveEdit (definition 16858) stores a 0x24
+     * REM immediately followed by a trailing 0x4E block comment; failing to
+     * consume the REM's entry shifts the trailing comment back to 0x24 on
+     * roundtrip.
+     */
     header[0] = consumeCommentOpcode(0x24);
     header.writeUInt16LE(payload.length, 1);
 
@@ -2634,7 +2641,9 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     /^(?:REM|remark)\b/i.test(source.slice(start));
 
   const remComment = (allowMissingSemicolon = false): Buffer => {
-    const match = /^(?:REM|remark)\b[^\r\n]*/i.exec(source.slice(pos));
+    const match = /^(?:REM|remark)\b(?:[^;\r\n]*;|[^\r\n]*)/i.exec(
+      source.slice(pos)
+    );
 
     if (!match) {
       return fail('expected REM comment');
@@ -2646,8 +2655,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     /*
      * A REM line with no terminating ';' of its own is not yet a complete
      * comment token -- PeopleTools continues the same 0x24 payload across
-     * physical lines, embedded line breaks included, until a line actually
-     * closes with ';'.
+     * physical lines, embedded line breaks included, until the first `;`.
      *
      * AMM_DERIVED.DELETE_BTN.RowInit (definition 964):
      *
@@ -2676,8 +2684,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      * has the same indentation as REM, and the first line's trailing space
      * is preserved immediately before the embedded newline in the payload.
      */
-    while (!/;[ \t]*$/.test(remText)) {
-      const continuation = /^(\r?\n)([^\r\n]*)/.exec(
+    while (!remText.endsWith(';')) {
+      const continuation = /^(\r?\n)(?:[^;\r\n]*;|[^\r\n]*)/.exec(
         source.slice(pos + consumedLength)
       );
 
@@ -2685,11 +2693,11 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         break;
       }
 
-      remText += continuation[1] + continuation[2];
+      remText += continuation[0];
       consumedLength += continuation[0].length;
     }
 
-    if (!allowMissingSemicolon && !/;[ \t]*$/.test(remText)) {
+    if (!allowMissingSemicolon && !remText.endsWith(';')) {
       return fail('expected ; at end of REM comment');
     }
 
@@ -2704,7 +2712,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
 
     const header = Buffer.alloc(3);
-    header[0] = 0x24;
+    header[0] = consumeCommentOpcode(0x24);
     header.writeUInt16LE(payload.length, 1);
 
     pos += consumedLength;
@@ -5490,6 +5498,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         }
 
         chunks.push(remComment(true));
+        trailingBlockComments();
         continue;
       }
 
@@ -5657,6 +5666,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         }
 
         chunks.push(remComment(true));
+        trailingBlockComments();
         continue;
       }
 

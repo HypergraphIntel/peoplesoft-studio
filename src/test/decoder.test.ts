@@ -1051,6 +1051,23 @@ test('0x4E after a boolean operator stays attached to that operator', () => {
   assert.equal(result.text, 'True Or /* Save or Reset */\nFalse');
 });
 
+test('0x4E after a REM payload stays attached to that REM statement', () => {
+  const rem = utf16('REM &value = 0;');
+  const comment = utf16('/* disabled */');
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x24, rem.length & 0xff, rem.length >> 8, ...rem,
+      0x4e, comment.length & 0xff, comment.length >> 8, ...comment,
+      0x1a, 0x15
+    ]),
+    new NameTable()
+  );
+
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'REM &value = 0; /* disabled */\nEnd-If;\n');
+});
+
 test('Declare Function ... PeopleCode ... decodes, confirmed byte-for-byte against WEBLIB_GS_CMD.ISCRIPT1', () => {
   // WEBLIB_GS_CMD.ISCRIPT1's only statement is exactly this construct, and it
   // now decodes with zero unmapped opcodes, byte for byte identical to real
