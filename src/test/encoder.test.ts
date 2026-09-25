@@ -114,6 +114,40 @@ End-Function;
   );
 });
 
+test('legacy untyped arrays preserve their short source form and any descriptor', () => {
+  const program = encodeProgram(`
+Function UntypedArrays(&values As array) Returns array;
+   Local array &copy;
+   &copy = &values;
+   Return &copy;
+End-Function;
+`);
+
+  assert.deepStrictEqual(
+    program.subarray(program.length - 8),
+    Buffer.from([
+      0x04, 0x00, 0x10, 0xc0,
+      0x07, 0x00, 0x00, 0x00
+    ])
+  );
+
+  assert.deepStrictEqual(
+    decodeProgram(program, new NameTable()).declarations,
+    [{
+      name: 'UntypedArrays',
+      paramCount: 1,
+      hasReturnValue: true,
+      returnType: 'array of any',
+      parameterTypes: ['array of any']
+    }]
+  );
+
+  assert.equal(
+    program.includes(Buffer.from('444061007200720061007900000001260063006f0070007900000015', 'hex')),
+    true
+  );
+});
+
 test('Function metadata points Application Class descriptors into its name trailer', () => {
   const program = encodeProgram(`
 Function AppTypes(&value As PKG:Type) Returns PKG:Type;
@@ -1147,6 +1181,19 @@ test('encodeProgram exactly reproduces PeopleTools While fixture', () => {
   );
 
   assert.deepEqual(actual, expected);
+});
+
+test('a top-level While block may omit its final semicolon at EOF', () => {
+  assert.deepStrictEqual(
+    encodeFragment(`While &sql.Fetch(&x)
+   Foo();
+End-While`),
+    Buffer.from(
+      '25012600730071006C000000050A4600650074006300680000000B01260078000000142D' +
+      '0A46006F006F0000000B141526',
+      'hex'
+    )
+  );
 });
 
 test('encodeProgram exactly reproduces PeopleTools For and Step fixture', () => {

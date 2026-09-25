@@ -2,8 +2,9 @@
 
 VS Code extension for **reading and navigating** PeopleSoft definitions — PeopleCode, SQL, records, and related objects — from an Oracle environment or an Application Designer project export.
 
-## Configure the PeopleSoft Studio MCP Server
+Compatible with PeopleTools 8.63 MCP, but not required.
 
+## Configure the PeopleSoft Studio MCP Server
 
 1. Install **PeopleSoft Studio**.
 2. Reload VS Code. Open the VS Code Command Palette ( CTRL + SHIFT + P ):
