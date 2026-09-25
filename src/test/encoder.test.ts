@@ -997,6 +997,38 @@ test('Record.X.IsChanged is an inline Row-state property, not an explicit Record
   );
 });
 
+test('a Function header inside a block comment is not counted as a real function', () => {
+  /*
+   * AE_WRK.MESSAGE_NBR.FieldChange (definition_id 908): a whole
+   * `Function Check_Integrity ... End-Function;` definition sits inside a
+   * `/* ... *\/` block comment, ahead of two real Functions (`load_stmt`,
+   * `Check_Syntax`). `parseFunctionMetadata`'s scan for top-level
+   * `Function NAME` headers ran against the raw source text, with no
+   * awareness of comments, so it picked up the commented-out function as
+   * a genuine third one -- inflating the stored function-directory count
+   * from 2 to 3 and adding a spurious metadata/trailer entry. The program
+   * header's function count must reflect only the two real Functions.
+   */
+  const source =
+    '/*\n' +
+    'Function Commented\n' +
+    '   &X = 1;\n' +
+    'End-Function;\n' +
+    '*/\n' +
+    '\n' +
+    'Function real_one\n' +
+    '   &Y = 1;\n' +
+    'End-Function;\n';
+
+  assert.deepStrictEqual(
+    encodeProgram(source),
+    Buffer.from(
+      'A0000000009B000000000000001200000000000000000000000000000001000000850000002462002F002A000A00460075006E006300740069006F006E00200043006F006D006D0065006E007400650064000A002000200020002600580020003D00200031003B000A0045006E0064002D00460075006E006300740069006F006E003B000A002A002F004F320A7200650061006C005F006F006E00650000002D0126005900000006500000010000000000000000000000000000001537152D077200650061006C005F006F006E006500000000000000000000000000000007000000',
+      'hex'
+    )
+  );
+});
+
 test('REM may continue onto an observed single-space prose line', () => {
   const source =
     'REM KJB Removed code for Import Long Term Goals as it is\n' +
