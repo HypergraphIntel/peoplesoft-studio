@@ -688,15 +688,24 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   occurrences, `parseApplicationClassProgram()` only handles the narrow
   single-method inline shape); a decoder-only rendering gap for `Return
   <number> /* comment */;` noted under Fix #72 (narrow, not corpus-
-  evidenced, deliberately left unfixed). (Definition 889, deferred earlier
-  this session, is RESOLVED by Fix #89 below -- no longer deferred.
-  Definition 1749 progressed under Fix #89 but has a SECOND, deeper issue
-  of its own -- still deferred, see its own updated note under "Identified,
-  not yet fixed".)
-- **Validation caveat**: after Fix #87, on HEAD `79765aa`, both `npx tsc -p .
-  --noEmit` (whole project) and `npm test` (whole project: 475 tests, 474
-  pass, 1 pre-existing skip) are clean. Every post-fix protected gate is
-  430/430.
+  evidenced, deliberately left unfixed); definition 1305 (ARCH_WRK.
+  PSARCH_RUN_SQL.FieldChange, newly deferred this session -- a bare
+  RECORD.FIELD reference wrongly resolving to the implicit owner
+  reference; a separate FetchValue-suppression hypothesis was tried,
+  caused 19 regressions on the full corpus diff, and was reverted --
+  see "Identified, not yet fixed" for the full trail). (Definition 889,
+  deferred earlier this session, is RESOLVED by Fix #89 below -- no
+  longer deferred. Definition 1749 progressed under Fix #89 but has a
+  SECOND, deeper issue of its own -- still deferred, see its own updated
+  note under "Identified, not yet fixed".)
+- **Validation caveat**: after Fix #89, on top of Fix #88's commit
+  `81afbce`, both `npx tsc -p . --noEmit` (whole project) and `npm test`
+  (whole project: 477 tests, 476 pass, 1 pre-existing skip) are clean.
+  Every post-fix protected gate is 430/430. A separate, unevidenced
+  FetchValue change was tried and reverted after Fix #89 landed (see
+  definition 1305's note); the working tree is clean of that attempt
+  (`git checkout -- src/peoplecode/encoder.ts` after the revert,
+  confirmed via `corpus:verify --limit 430`).
 - **Next action**: resume failure-family triage from full run_id 1457 (group
   `corpus-results.sqlite`'s latest run by `classification`/`construct`,
   the same query used to find every target this session, or use `npm run
@@ -4604,6 +4613,56 @@ program size, single reference-index operand differs) but apparently
 different *root causes*. Do not assume a fix for one covers the others —
 treat each as its own narrow investigation, per the evidence rule.
 
+### definition_id 1305 (ARCH_WRK.PSARCH_RUN_SQL.FieldChange) — a bare
+### RECORD.FIELD reference wrongly resolves to the implicit OWNER
+### reference (index 0); a REVERTED FetchValue hypothesis along the way
+
+First diff at body offset 1734, in `&ARCH_SQL = FetchValue(Record.ARCH_TBL,
+CurrentRowNumber(1), ARCH_SQL_LNG.ARCH_SQL, CurrentRowNumber(2));` (the
+THIRD of three consecutive FetchValue calls, each `FetchValue(Record.
+ARCH_TBL, CurrentRowNumber(1), ARCH_SQL_LNG.<field>, CurrentRowNumber(2))`).
+Stored allocates a FRESH `RECORD/ARCH_TBL` row for EACH of the three calls
+(NAMENUM 6, 8, 10 -- confirmed via the full `PSPCMNAME` dump, not just the
+trace tool's own `--trace-refs` numbering, which this session's earlier
+work found unreliable for exact index correspondence) -- generated shares
+just ONE row (idx 4) across all three.
+
+Investigated (and REVERTED, do not repeat): hypothesized `FetchValue`
+needed the same `suppressRecordReferenceControlGroupWrite` treatment
+already proven for `PriorValue` (ARCH_SQL_LNG.ARCH_SQL.FieldChange,
+definition 1254) -- i.e. FetchValue's own fresh Record.X allocation
+should not become a participating source for a LATER FetchValue call to
+find. This looked well-evidenced from definition 1305 alone, and did not
+break 1128/1254/1220/1172/1236 or the protected 430-window on a spot
+check -- but the full corpus diff (the only reliable check, per this
+session's own repeated experience in this exact reference-reuse area)
+showed 19 regressions and 0 improvements. Reverted immediately
+(`git checkout -- src/peoplecode/encoder.ts`, confirmed clean via
+`corpus:verify --limit 430` afterward). FetchValue's existing write
+behavior is evidently load-bearing for far more definitions than 1305
+alone; do not retry this specific change without first finding what those
+19 regressed definitions actually needed.
+
+Separately, and likely the ACTUAL first-order bug: tracing every
+reference ALLOC/USE event during encoding (not just `--trace-refs`, which
+only reports the STORED/decode side) shows the very first executable
+statement's own `&SQL = ARCH_SQL_LNG.ARCH_SQL;` (a bare `RECORD.FIELD`
+reference with no `Record.`/`Field.` prefix, appearing immediately after
+the Local declarations, before any other reference) resolves as a `USE`
+of reference index 0 -- the implicit OWNER placeholder (`ARCH_WRK.
+PSARCH_RUN_SQL` per NAMENUM1) -- instead of allocating its own fresh
+RECORD-FIELD row (which stored's PSPCMNAME shows as NAMENUM3, a genuinely
+separate `ARCH_SQL_LNG`/`ARCH_SQL` entry, nothing to do with the owner).
+`ARCH_SQL_LNG` and `ARCH_WRK` are unrelated records; this looks like a
+distinct `ordinaryRecordFieldReference()` bug where the FIRST bare
+`RECORD.FIELD` reference in the executable body, specifically, gets
+conflated with the owner context. NOT investigated further this session
+(discovered late, after the FetchValue revert); worth a dedicated
+`ordinaryRecordFieldReference()` / owner-reference session, starting from
+a byte-level ALLOC/USE trace of `encodeProgram` itself (via
+`context.referenceTrace`), not `--trace-refs`, since that only reports
+the stored/decode side and hid this entirely.
+
 ### definition_id 1749 remaining issue: a THIRD, contradictory
 ### ScrollFlush-then-ScrollSelect/RowScrollSelect data point
 
@@ -5278,11 +5337,13 @@ project-level blocker").
   diagnosed individually, e.g. definitions 528, 843, 982, 908, and 889's
   families just fixed). No definition is currently mid-investigation. Skip
   definition_id 536 (still recommended by `corpus:next` due to its own
-  documented offset-ordering caveat below) and definition_id 1749 (STILL
+  documented offset-ordering caveat below), definition_id 1749 (STILL
   deferred -- Fix #89 resolved its first issue but a second, deeper one
-  remains; see "Identified, not yet fixed" for the full trail and the
-  specific next-evidence-needed before touching this area again) when
-  triaging. All other locally-blocked/deferred entries listed below
+  remains), and definition_id 1305 (newly deferred this session -- a bare
+  RECORD.FIELD-resolves-to-owner bug, unrelated to the FetchValue
+  hypothesis that was tried and reverted for it) when triaging; see
+  "Identified, not yet fixed" for the full trail on each. All other
+  locally-blocked/deferred entries listed below
   (older sessions) remain unchanged; none were revisited this session.
   Process note worth repeating for future RowScrollSelect/ScrollSelect/
   ScrollFlush-adjacent changes specifically: this whole area has a history
