@@ -6246,8 +6246,28 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       const startsVariableComparison =
         /^\(\s*&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:<>|<=|>=|=|<|>)/
           .test(source.slice(pos));
+      /*
+       * A parenthesized comparison whose LEFT side is a function call
+       * (optionally with one level of call arguments) or a bare
+       * Record.Field chain, rather than a `&variable`, e.g.:
+       *
+       *   &bWild = (Find("*", &sFile) > 0);
+       *   &bIsSRM = (GetUserOption("PPTL", "ACCESS") = "A");
+       *   Visible = (GPGB_EDI_TRANS.GPGB_EDI_AUDIT = "Y");
+       *
+       * PORTAL_UTILS.FUNCLIB.FieldFormula (one of 41 corpus occurrences
+       * of this shape, across Find/GetUserOption/MessageBox/RTrim/Upper
+       * calls and bare Record.Field comparisons) proves these also need
+       * `booleanExpression()`, not just the already-covered `&variable`
+       * case.
+       */
+      const startsCallOrFieldComparison =
+        /^\(\s*[A-Za-z_][A-Za-z0-9_]*(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:\([^()]*\))?\s*(?:<>|<=|>=|=|<|>)/
+          .test(source.slice(pos));
       parenthesized(
-        startsBooleanUnary || startsVariableComparison
+        startsBooleanUnary ||
+        startsVariableComparison ||
+        startsCallOrFieldComparison
           ? booleanExpression
           : expression,
         false
