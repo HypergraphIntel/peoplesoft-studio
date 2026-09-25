@@ -1818,6 +1818,28 @@ test('FetchValue reuses Record arguments by name across calls', () => {
   );
 });
 
+test('quoted Component references use the calibrated 0x48 form', () => {
+  const source = `If %Component = Component."HRS_PKG_MDL_APP" Then
+   &bare = Component.HRS_PKG_MDL_APP;
+End-If;`;
+
+  const artifacts = encodeProgramArtifacts(source);
+
+  assert.deepStrictEqual(
+    artifacts.references.map(reference => [
+      reference.kind,
+      reference.recordName,
+      reference.objectName
+    ]),
+    [
+      ['quoted-reference', 'COMPONENT', undefined],
+      ['component', undefined, 'HRS_PKG_MDL_APP']
+    ]
+  );
+  assert.equal(artifacts.program.includes(Buffer.from([0x48, 0x01, 0x00])), true);
+  assert.equal(artifacts.program.includes(Buffer.from([0x21, 0x02, 0x00])), true);
+});
+
 test('blank-line multiplicity before Else emits one marker per blank line', () => {
   const source = `If Record.REC.FLAG.Value Then
    &x = 1;
