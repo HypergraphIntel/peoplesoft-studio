@@ -82,21 +82,6 @@ export interface ReferenceTraceEvent {
   reference: PeopleCodeReference;
 }
 
-/** Diagnostic-only trace for dependency-cache lookups and writes. */
-export interface DependencyLookupTraceEvent {
-  action: 'LOOKUP' | 'STORE';
-  mechanism: 'dependency-scope-record' | 'fetchvalue-shadow-record';
-
-  sourceOffset: number;
-  controlGroup: number;
-  controlDepth: number;
-  functionDepth: number;
-  recordName: string;
-
-  /** Present for a lookup hit and for every store. */
-  reference?: PeopleCodeReference;
-}
-
 export interface EncodeProgramContext {
   owner?: PeopleCodeOwner;
 
@@ -107,14 +92,6 @@ export interface EncodeProgramContext {
    */
   referenceTrace?: (
     event: ReferenceTraceEvent
-  ) => void;
-
-  /**
-   * Optional diagnostic hook for dependency-cache provenance research.
-   * Observational only; it must never influence encoding.
-   */
-  dependencyLookupTrace?: (
-    event: DependencyLookupTraceEvent
   ) => void;
 
   /**
@@ -1623,8 +1600,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   };
 
   let reuseRecordReferenceByName = false;
-  let reuseFetchValueRecord = false;
-  const fetchValueRecordReferences = new Map<string, PeopleCodeReference>();
 
   /*
    * RowScrollSelect's own repeated Record.X arguments reuse a same-name
@@ -1924,8 +1899,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
    *     participation/epoch rules. They are not DependencyScope stores.
    *
    * Unresolved legacy approximation:
-   *   - `reuseFetchValueRecord` and `fetchValueRecordReferences` remain a
-   *     separate shadow cache pending their own evidence audit.
    *   - the row-shorthand postfix bridge has one documented raw read from
    *     `recordReferencesByControlGroup`; its visibility rule has not been
    *     proven identical to DependencyScope and is therefore not forced
@@ -2255,19 +2228,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     if (reuseRecordReferenceWithinControlGroup) {
       const existing = dependencyScope.lookupRecord(recordName);
 
-      if (reuseFetchValueRecord) {
-        context?.dependencyLookupTrace?.({
-          action: 'LOOKUP',
-          mechanism: 'dependency-scope-record',
-          sourceOffset: pos,
-          controlGroup,
-          controlDepth,
-          functionDepth,
-          recordName,
-          reference: existing
-        });
-      }
-
       if (existing !== undefined) {
         /*
          * DERIVED_HR.LOOKUP_NID_BTN.FieldChange (definition 5687):
@@ -2376,55 +2336,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }
     }
 
-    // Same controlDepth > 0 guard as the primary
-    // reuseRecordReferenceWithinControlGroup check above, for the same
-    // reason: this is FetchValue's own separate, narrower shadow of the
-    // identical control-group-keyed pool (see its own declaration
-    // comment), populated and keyed the same way, so it is reachable as
-    // a fallback at the flat top level whenever the primary check is
-    // correctly skipped there -- without this guard too, the primary
-    // fix's own target construct (definition 6352) would still wrongly
-    // reuse through this second path.
-    if (reuseFetchValueRecord && dependencyScope.isOpen) {
-      const existing = fetchValueRecordReferences.get(
-        `${dependencyScope.id}:${recordName.toLowerCase()}`
-      );
-      context?.dependencyLookupTrace?.({
-        action: 'LOOKUP',
-        mechanism: 'fetchvalue-shadow-record',
-        sourceOffset: pos,
-        controlGroup,
-        controlDepth,
-        functionDepth,
-        recordName,
-        reference: existing
-      });
-      if (existing !== undefined) {
-        return referenceOperand(existing);
-      }
-    }
-
     const reference = nextReference({
       kind: 'record',
       recordName
     });
-
-    if (reuseFetchValueRecord) {
-      fetchValueRecordReferences.set(
-        `${controlGroup}:${recordName.toLowerCase()}`,
-        reference
-      );
-      context?.dependencyLookupTrace?.({
-        action: 'STORE',
-        mechanism: 'fetchvalue-shadow-record',
-        sourceOffset: pos,
-        controlGroup,
-        controlDepth,
-        functionDepth,
-        recordName,
-        reference
-      });
-    }
 
     if (reuseRecordReferenceWithinCallArguments) {
       recordReferencesWithinCallArguments.set(
@@ -2467,18 +2382,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       !suppressRecordReferenceControlGroupWrite
     ) {
       dependencyScope.recordRecord(recordName, reference);
-      if (reuseFetchValueRecord) {
-        context?.dependencyLookupTrace?.({
-          action: 'STORE',
-          mechanism: 'dependency-scope-record',
-          sourceOffset: pos,
-          controlGroup,
-          controlDepth,
-          functionDepth,
-          recordName,
-          reference
-        });
-      }
       genericRecordReferencesSinceLastFamilyCall.set(
         `${controlGroup}:${recordName.toLowerCase()}`,
         reference
@@ -6602,8 +6505,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
    */
   const previousReuseRecordReferenceByName =
     reuseRecordReferenceByName;
-  const previousReuseFetchValueRecord =
-    reuseFetchValueRecord;
   const previousReuseRecordReferenceWithinControlGroup =
     reuseRecordReferenceWithinControlGroup;
   const previousMarksControlGroupParticipant =
@@ -6625,9 +6526,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
   if (/^(?:GetSetId|Gray|UnGray)$/i.test(name)) {
     reuseRecordReferenceByName = true;
-  }
-  if (/^FetchValue$/i.test(name)) {
-    reuseFetchValueRecord = true;
   }
   if (/^PriorValue$/i.test(name)) {
     suppressRecordReferenceControlGroupWrite = true;
@@ -6877,14 +6775,9 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
    *
    * FetchValue's Record.CUBE_AGG_DEF argument reuses the exact same
    * PSPCMNAME RECORD row the earlier ActiveRowCount calls already
-   * established in the same control group. FetchValue already had its
-   * OWN separate, narrower `reuseFetchValueRecord` mechanism (a distinct
-   * cache keyed only by FetchValue-established rows), which never found
-   * this ActiveRowCount-established row because it doesn't share a cache
-   * with the general control-group reuse pool -- adding FetchValue here
-   * too lets it also find rows established by GetRecord/ActiveRowCount/
-   * etc, while leaving its own narrower mechanism as-is for whatever case
-   * originally motivated it.
+   * established in the same control group. FetchValue therefore belongs in
+   * the ordinary control-group reuse policy alongside GetRecord,
+   * ActiveRowCount, and the other participating calls.
    *
    * DoModalPanelGroup's own Record.X argument shares the same rule.
    * ANALYSIS_DB_WRK.PB_OPEN_ANL_MODEL.FieldChange (definition 1152):
@@ -7215,8 +7108,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     reuseRecordReferenceByName =
       previousReuseRecordReferenceByName;
-    reuseFetchValueRecord =
-      previousReuseFetchValueRecord;
     reuseRecordReferenceWithinControlGroup =
       previousReuseRecordReferenceWithinControlGroup;
     marksControlGroupParticipant =

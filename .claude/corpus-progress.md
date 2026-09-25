@@ -1761,6 +1761,50 @@ Zero-behavior-change validation:
   error-message changes across all 30,209 definitions.
 - no live HCDEV access was used.
 
+### Compiler Semantics Cycle 3: remove FetchValue shadow cache (2026-09-25)
+
+Removed the mechanism that Research Cycle 2 proved observationally
+redundant:
+
+- deleted `reuseFetchValueRecord` and its nested-call save/restore state;
+- deleted `fetchValueRecordReferences`;
+- deleted the shadow-cache lookup and write branches from
+  `recordReference()`;
+- removed the Cycle 2-only `DependencyLookupTraceEvent` /
+  `dependencyLookupTrace` instrumentation;
+- removed the completed one-purpose
+  `tools/corpus/research/fetchvalue-shadow-analysis.ts` audit tool;
+- updated the encoder's compiler-state documentation and FetchValue comment
+  to describe only the surviving ordinary DependencyScope policy.
+
+No other cache or reuse policy changed. FetchValue remains on the existing
+`reuseRecordReferenceWithinControlGroup` and
+`marksControlGroupParticipant` lists. DependencyScope, control-group
+allocation, `controlDepth`, same-statement reuse, call-local state,
+RowScrollSelect/ScrollSelect state, and reference ordering are unchanged.
+
+Validation, using the completed local HCDEV snapshot only:
+
+- `npm run typecheck`: pass.
+- `npm test`: 490 tests, 489 pass, one intentional skip.
+- targeted FetchValue population: all 749 definitions checked against Cycle
+  2 full run 1788; 742 successful encodes and the same 7 encode failures;
+  zero generated-SHA, encode-status, or error-message changes. The population
+  retains its 632 EXACT definitions.
+- protected gate run 1789: 430/430, zero improvements, zero regressions.
+- full run 1790: 30,209 definitions, 23,069 EXACT and 7,140 failed; newly
+  exact 0, regressions 0.
+- row-by-row run 1788 -> 1790 comparison: zero classification changes, zero
+  generated-binary SHA changes, zero first-diff changes, zero encode-success
+  changes, zero source-exact changes, zero roundtrip-exact changes, and zero
+  error-message changes across all 30,209 definitions.
+- `--live` was never used.
+
+Result: the FetchValue shadow cache is removed. FetchValue Record dependency
+reuse now has one implementation path: the ordinary evidence-backed
+DependencyScope mechanism, with same-statement reuse remaining independently
+layered ahead of it. No new semantic family was started.
+
 ## Checkpoint
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
