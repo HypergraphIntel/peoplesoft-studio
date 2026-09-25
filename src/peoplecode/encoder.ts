@@ -2838,6 +2838,35 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     } else if (source[pos] === '(') {
       parenthesized(booleanExpression, false);
       space();
+
+      /*
+       * A parenthesized group here may turn out to have held PURE
+       * arithmetic (no top-level And/Or/comparison of its own) that is
+       * itself only part of a larger arithmetic expression, not the
+       * complete boolean operand -- the parenthesized group is just its
+       * first primary. Continue the same flat left-to-right arithmetic
+       * loop `expression()` itself uses before re-checking for a
+       * trailing comparison operator.
+       *
+       * BAS_PARTIC_PLAN.FLAT_DED_AMT.SavePreChange (one of 5 corpus
+       * occurrences of this shape):
+       *
+       *   If ((BAS_PARTIC_PLAN.FLAT_DED_AMT / &MAX_AMT) * 100) > DERIVED_BAS.EMPL_PCT_BTAX Then
+       *
+       * Without this, closing the outer paren fails outright: the inner
+       * `(... / &MAX_AMT)` group is parsed and closed correctly, but the
+       * trailing `* 100` is left unconsumed, so the outer paren's own
+       * close is never reached.
+       */
+      while (true) {
+        const arithmeticOperator = /^[+\-*/|]/.exec(source.slice(pos))?.[0];
+        if (!arithmeticOperator) break;
+        pos += arithmeticOperator.length;
+        chunks.push(fixed(arithmeticOperator, arithmeticOperator === '*' ? 0x0f : undefined));
+        castPrimary();
+        space();
+      }
+
       const operator =
         /^(<>|<=|>=|=|<|>)/.exec(source.slice(pos))?.[0];
       if (operator !== undefined) {

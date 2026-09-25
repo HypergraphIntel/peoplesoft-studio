@@ -1,5 +1,50 @@
 # Corpus Calibration Progress
 
+## Fix #82: parenthesized arithmetic continuation inside `booleanUnary()`
+
+`src/peoplecode/encoder.ts`, `booleanUnary()`'s own leading-`(` special
+case: when `booleanUnary()` sees a `(`, it unconditionally parses the
+content as a `booleanExpression()` (correctly handling nested boolean
+groups without relying on fragile shape-matching heuristics) and, after
+closing the paren, previously ONLY checked for a trailing COMPARISON
+operator. It never considered that the parenthesized group might have
+held PURE ARITHMETIC that is itself just the first primary of a LARGER
+arithmetic expression, not the complete boolean operand.
+
+Root cause traced precisely for `If ((BAS_PARTIC_PLAN.FLAT_DED_AMT /
+&MAX_AMT) * 100) > DERIVED_BAS.EMPL_PCT_BTAX Then` (definition 1656): the
+INNER paren `(BAS_PARTIC_PLAN.FLAT_DED_AMT / &MAX_AMT)` is parsed and
+closed correctly by a nested `booleanUnary()` call, but the trailing `*
+100` right after it was never consumed (not a comparison operator, so the
+old code's post-paren check found nothing and returned early) -- which
+left the OUTER paren's own closing `)` unreachable, since `* 100)` was
+still sitting there unconsumed. This is a `fail('expected )')` at the `*`
+itself, not at the true outer boundary.
+
+Fixed by inserting the SAME flat left-to-right arithmetic continuation
+loop `expression()` itself uses (`/^[+\-*/|]/`, consuming an operator then
+`castPrimary()`, repeating) between the paren close and the existing
+comparison-operator check. This lets a nested `booleanUnary()` call fully
+absorb `(A / B) * 100` as one arithmetic unit before returning control to
+its own caller, so the true outer paren closes where expected, and the
+subsequent `> C` comparison is then found and parsed normally by the
+existing (unchanged) logic right after.
+
+Searched the corpus for this same shape (5 occurrences: 1656, 1658, 4532,
+5216, 17437 -- carried over from Fix #81's explicit deferral). Sampled
+all 5: 4 reach full `EXACT`, 1 (5216) advances past this construct into a
+separate, later, unrelated `unsupported PeopleCode statement` gap in the
+same file. None regressed (confirmed: none of the 5 were EXACT before).
+
+Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
+`corpus:verify --limit 430` 430/430, 0 regressed. `booleanUnary()` is one
+of the most broadly-used shared parsing primitives in the encoder
+(reached from every `If`/`While`/`Evaluate` condition and boolean
+sub-expression), so a full-corpus diff was essential: background run
+(run_id 307, 30209/30209, exact=22546) diffed against the immediately
+preceding full run (run_id 305, exact=22539): 7 improved, 0 regressed,
+30202 same.
+
 ## Fix #81: three more parenthesized-RHS boolean-dispatch heuristics
 
 `src/peoplecode/encoder.ts`, the shared `(` dispatch heuristic (used
@@ -299,30 +344,27 @@ run (run_id 295, 30209/30209, exact=22516) diffed against the immediately
 preceding full run (run_id 292, exact=22511): 5 improved, 0 regressed,
 30204 same.
 
-## Status as of Fix #81 (current)
+## Status as of Fix #82 (current)
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
   throughout. `--live` has never been used this session.
 - **Protected baseline**: 430/430, clean.
-- **Last successful calibration**: Fix #81 (above).
-- **Corpus total**: full-corpus run_id 305 = 22539/30209 exact (74.6%),
-  confirmed zero-regression against run_id 303 (Fix #80's baseline,
-  itself confirmed zero-regression against run_id 301/299/297/295/292/290/288).
+- **Last successful calibration**: Fix #82 (above).
+- **Corpus total**: full-corpus run_id 307 = 22546/30209 exact (74.6%),
+  confirmed zero-regression against run_id 305 (Fix #81's baseline,
+  itself confirmed zero-regression against run_id 303/301/299/297/295/292/290/288).
 - **Next action**: resume failure-family triage from the current failure
-  inventory (`GROUP BY classification, error_message` on run_id 305 in
+  inventory (`GROUP BY classification, error_message` on run_id 307 in
   `tools/corpus/corpus-results.sqlite`, excluding `%bare identifiers%` and
-  `%Application Class%` which are the known-deferred gap). A concrete,
-  scoped-but-unsolved candidate from Fix #81 is ready to pick up next: the
-  "parenthesized pure arithmetic followed by a comparison operator AFTER
-  its own closing paren" pattern (`If ((A / B) * 100) > C Then`, 5
-  occurrences: 1656, 1658, 4532, 5216, 17437) -- this needs investigating
-  how the `If`/comparison condition parser handles a trailing comparison
-  operator after a fully-parsed parenthesized arithmetic primary, not
-  another `(` dispatch-heuristic tweak (see Fix #81's entry for the full
-  reasoning). Also still open, smaller/lower-priority (1-3 occurrences
-  each): comments inside a call's own argument list (5004, 25124, 27517);
-  `Not ((Record.Field chain)).Property`-style parenthesized-then-postfix
-  field access (21960); the `time` Function parameter/return type id
+  `%Application Class%` which are the known-deferred gap). Nothing large
+  is pre-scoped as of this update -- re-run the failure-family query fresh
+  first. Small, still-open leftovers from earlier fixes (low priority,
+  1-3 occurrences each): comments inside a call's own argument list
+  (5004, 25124, 27517); `Not ((Record.Field chain)).Property`-style
+  parenthesized-then-postfix field access (21960); definition 5216's own
+  separate `unsupported PeopleCode statement` gap found further into the
+  file after Fix #82 got it past the arithmetic-continuation construct
+  (not yet inspected); the `time` Function parameter/return type id
   (Fix #77's entry, definition 1016); definition 14727/14854's remaining
   `Unsupported Function parameter` sub-cases (Fix #79's entry); definition
   13562's `Unsupported function metadata type: Message` (Fix #80's
