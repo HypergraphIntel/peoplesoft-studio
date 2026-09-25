@@ -496,50 +496,157 @@ record/field schema properties not present in the PeopleCode source at
 all. Both require the stored-byte NAMENUM-enumeration technique on
 individual tractable examples, not further corpus-wide structural sweeps.
 
+### Phase 1C -- RowScrollSelect/RowScrollSelectNew/ScrollSelect/ScrollFlush full-population sweep
+
+Ran the same `getrecord-branch-analysis.ts` methodology against all four
+remaining named intrinsics, gathering the FULL population from the local
+snapshot for each (not a sample): RowScrollSelectNew (8 defs, 4 pairs),
+RowScrollSelect (32 defs, 108 pairs), ScrollSelect (307 defs, 908 pairs),
+ScrollFlush (322 defs, 153 pairs). No `--arg-position` restriction this
+time (unlike FetchValue's arg-position-0 isolation) since these calls'
+whole point, per Fixes #86-89, is that Record.X arguments at DIFFERENT
+positions within and across calls participate in the same reuse pool.
+
+**Six-family comparison** (pairs analyzed / disagreement count / rate):
+
+| family | pairs | disagree | rate | sibling-branch disagreements | sequential disagreements |
+|---|---|---|---|---|---|
+| FetchValue | 1393 | 66 | 4.7% | 0 | 58 |
+| ActiveRowCount | 477 | 15 | 3.1% | 0 | 11 |
+| RowScrollSelectNew | 4 | 0 | 0.0% | 0 (n/a, too small) | 0 |
+| RowScrollSelect | 108 | 15 | 13.9% | 6 | 2 |
+| ScrollSelect | 908 | 34 | 3.7% | 12 | 3 |
+| ScrollFlush | 153 | 12 | 7.8% | 7 | 3 |
+
+RowScrollSelect's 13.9% disagreement rate is the highest of the six --
+consistent with this being the construct with the most complicated
+already-calibrated history in this file (Fixes #86-89, two
+caught-and-reverted regressions during their own development). 9 of its
+15 disagreements concentrate in ONE definition (6389,
+DERIVED_HR_TRN.TRN_INSTR_SEL_BTN.FieldChange), all the same direction
+(stored=REUSE, generated wrongly ALLOCs) -- a real, tight cluster worth
+its own close reading, separate from the FetchValue/ActiveRowCount cluster
+already identified.
+
+**Testing whether the three previously-observed facts generalize --
+they do NOT, and the actual cross-family picture is messier and more
+interesting:**
+
+1. **"sibling-branch reuse is consistently reliable" -- FALSIFIED for the
+   RowScrollSelect/ScrollSelect/ScrollFlush family.** It held perfectly
+   for FetchValue (0/36 sibling-branch pairs disagree) and ActiveRowCount
+   (0/32), but:
+   - RowScrollSelect: ALL 6 of its sibling-branch pairs disagree (6/6 =
+     100% disagreement rate within sibling-branch -- the OPPOSITE of
+     "reliable").
+   - ScrollSelect: sibling-branch pairs disagree at 12/143 = 8.4%, HIGHER
+     than the construct's own overall 3.7% rate -- sibling-branch is
+     ENRICHED for failure here, not protective.
+   - ScrollFlush: sibling-branch pairs disagree at 7/37 = 18.9%, also
+     HIGHER than the construct's own overall 7.8% rate -- same enrichment
+     pattern as ScrollSelect.
+   This is a genuine, corpus-scale-confirmed split: {FetchValue,
+   ActiveRowCount} and {RowScrollSelect, ScrollSelect, ScrollFlush} behave
+   OPPOSITELY on this dimension. Plausible explanation: the latter family
+   already has real, evidence-backed, non-trivial branch-sensitive
+   calibration (the `genericRecordReferencesSinceLastFamilyCall`
+   family-call-boundary-clearing mechanism, `controlDepth`-gated fallback,
+   etc. from Fixes #86-89) that the simpler FetchValue/ActiveRowCount pool
+   never needed -- so when THIS family's branch handling is wrong, it is
+   specifically the branch-sensitive machinery that is wrong, concentrated
+   exactly where that machinery is exercised.
+2. **"sequential repetition is enriched among disagreements but not
+   sufficient" -- FALSIFIED as a general rule; only holds for
+   FetchValue/ActiveRowCount.** RowScrollSelect (13.3% of disagreements
+   vs. 2.2% baseline -- still enriched, but low absolute share),
+   ScrollSelect (8.8% vs. 17.5% baseline -- actually DEPLETED, the
+   opposite direction), ScrollFlush (25.0% vs. 17.7% -- roughly neutral).
+   Sequential is not a general disagreement signal; it was specific to how
+   FetchValue/ActiveRowCount's simpler, non-branch-sensitive pool fails.
+3. **"source-visible control boundaries do not predict the residual
+   failures" -- HOLDS for `phaseChanged` across ALL SIX families (never
+   above ~9% explanatory power, usually far lower), but `loopEpochChanged`
+   shows a real, construct-specific exception**: for ScrollSelect
+   specifically, `loopEpochChanged` explains 29.4% of disagreements while
+   only touching 4.1% of currently-correct pairs -- a genuine enrichment,
+   unlike every other family where it was neutral-to-anti-correlated
+   (FetchValue 4.5% vs 26.8%; ActiveRowCount 26.7% vs 78.8%; RowScrollSelect
+   20.0% vs 38.7%; ScrollFlush 41.7% vs 36.2%, roughly neutral). This is a
+   narrow, ScrollSelect-specific lead (not a general loop-epoch rule,
+   which remains falsified overall) worth a future dedicated look, but
+   still only explains a minority (10/34) of ScrollSelect's own
+   disagreements.
+
+**A sixth hypothesis, tested and also falsified**: whether the FetchValue
+"row context" argument (2nd argument, e.g. `CurrentRowNumber()` vs a
+plain `&variable`) being a live function call rather than a stable
+variable reference predicts non-reuse. Motivated by definitions 802
+(control, EXACT, reuses `Record.AETEMPTBLMGR` across 6 occurrences with
+`&x` as the row argument) vs. 6352 (disagreement, uses `CurrentRowNumber()`
+as the row argument, never reuses). Checked source text for the row-number
+argument shape across 15 of the 30 FetchValue disagreement definitions:
+7 of them (1324, 6275, 6389, 6403, 7285, 12056, 12544) already use a plain
+variable (`&CURRENT_L1`, `&ROW_L1`, `&L1_ROW`, `&CUR_ROW`, `&K`,
+`&ROWLEVELM`, `&LVL1ROW`) as the row-number argument, not a function call
+-- directly falsifying this as a general rule. 802 vs 6352's difference on
+this dimension is real but not the general explanation.
+
 ### Next action (research cycle)
 
-1. Do the stored-byte NAMENUM-enumeration deep dive (the technique from
-   earlier sessions) on ONE small, tractable disagreement example --
-   definition 6352 (DERIVED_HR_TRN.ATTENDANCE.FieldChange, 4 sequential
-   FetchValue(Record.DERIVED_HR_TRN, CurrentRowNumber(), DERIVED_HR_TRN.X)
-   calls, only the trailing field X differs each time) is a clean
-   candidate: determine the EXACT rule, not just ruling out structural
-   correlates.
-2. Specifically test the "differing trailing field/argument" hypothesis
-   (candidate (a) above) against 6352 and a confirmed REUSE counterpart
-   with the SAME shape, the way the GetRecord bare-vs-postfix hypothesis
-   was tested and refined earlier this cycle -- this tool does not yet
-   capture "what argument/member follows the shared leading reference," so
-   it would need a further, targeted extension (not a blind broad-corpus
-   sweep this time -- the full-population method has now been applied
-   three times and each time the tested structural hypothesis was
-   rejected; a few close single-example reads are the right next tool for
-   this specific sub-question, per the directive's own "hand-picked
-   examples only when the full population is too small to sweep" allowance
-   -- 30 and 11 definitions respectively ARE small enough for close
-   reading once a structural sweep has exhausted the cheap hypotheses).
-3. RowScrollSelect/RowScrollSelectNew/ScrollSelect/ScrollFlush's OWN
-   leading-argument semantics (Phase 1C) have not yet been run through
-   this full-population methodology -- still outstanding, and now
-   explicitly ordered AFTER step 1/2 per the user's own Phase 1C
-   instruction ("after the loop-boundary analysis so its disagreement
-   cases can be classified using the same scope/epoch model" -- the model
-   built here, even though it came back mostly negative, is exactly what
-   Phase 1C should reuse to classify ScrollFlush/RowScrollSelect's own
-   residual disagreements, which have not yet been isolated from their
-   much larger already-calibrated-correct population the way FetchValue's
-   and ActiveRowCount's were this cycle).
-4. Do NOT implement any encoder fix yet. Four surface-syntax/structural
+1. **Cluster selection for close reading, per the user's own criteria**:
+   - Largest disagreement cluster overall: the "sequential, same simple
+     bare FetchValue/ActiveRowCount call, only the trailing
+     field/argument differs" shape (FetchValue's 58 + ActiveRowCount's 11
+     sequential disagreements = 69 of 142 total disagreements across all
+     six families, by far the largest single shape). Representative:
+     definition 6352.
+   - Structurally similar agreeing control for that shape: definition 802
+     (EXACT, same `FetchValue(Record.X, <row-arg>, RECORD.FIELD)` shape,
+     6 repeated occurrences across two near-duplicate code blocks, all
+     correctly reuse one shared PSPCMNAME row) -- already identified and
+     spot-verified this session (both definitions' full stored/generated
+     NAMENUM sequences pulled and compared at a first pass: 802 allocates
+     ONE row for `Record.AETEMPTBLMGR` and reuses it for all 6 occurrences
+     regardless of trailing field; 6352 allocates a FRESH row for every
+     one of its `Record.DERIVED_HR_TRN` occurrences despite identical
+     leading-argument text -- the raw fact the whole investigation is
+     chasing, now isolated to its cleanest possible pair of examples).
+   - Second, distinct cluster: definition 6389's concentrated 9-disagreement
+     RowScrollSelect cluster (all same direction, all in one definition) --
+     a good candidate for "one example from another intrinsic family with
+     the same apparent shape," though its actual shape (sibling-branch,
+     not sequential) differs from the FetchValue/ActiveRowCount cluster,
+     which is itself useful signal (see finding 1 above).
+2. Do the full stored-byte PSPCMNAME/NAMENUM close reading on 802 vs 6352
+   next: not just the leading Record.X argument's own allocation pattern
+   (already pulled above) but the COMPLETE row metadata (RECNAME, REFNAME,
+   PACKAGEROOT, QUALIFYPATH columns from `snapshot_name`) for every
+   PSPCMNAME row either definition allocates, looking for any column that
+   differs systematically between the two that source-text analysis
+   alone cannot see.
+3. Then bring in 6389 (RowScrollSelect) as the cross-family comparison
+   example once 802/6352 yield a concrete hypothesis, to test whether it
+   generalizes or is FetchValue-specific -- per this cycle's own repeated
+   lesson, do not trust a rule until it survives a second, structurally
+   different construct.
+4. Do NOT implement any encoder fix yet. Five surface-syntax/structural
    hypotheses (FetchValue always-fresh, GetRecord branch-vs-sequential,
-   GetRecord bare-vs-postfix, loop-header/reference-epoch boundary) have
-   now been tested and falsified at full corpus scale this cycle. The
+   GetRecord bare-vs-postfix, loop-header/reference-epoch boundary,
+   row-argument variable-vs-call) have now been tested and falsified at
+   full corpus scale this cycle, across six intrinsic families. The
    discipline is working exactly as intended -- each rejection narrows the
-   search space instead of accumulating a wrong special case. The next
-   step is example-level, not corpus-sweep-level.
-5. Old Phase 2 "binding vs. value-fetch" two-class write-up above remains
-   superseded; this section supersedes the "loop-header/reference-epoch"
-   lead from the previous checkpoint the same way. Both retractions stay
-   in place as the evidence record.
+   search space instead of accumulating a wrong special case, and two
+   families-worth of "which observed facts generalize" comparison
+   (sibling-branch reliability, sequential enrichment) turned out to
+   SPLIT the six families into two groups with opposite behavior, which
+   is itself a real, corpus-confirmed structural finding even though it
+   is not yet a fix.
+5. Old Phase 2 "binding vs. value-fetch" two-class write-up, and the
+   "loop-header/reference-epoch" lead from the checkpoint before that,
+   both remain superseded; this section adds a third: "sibling-branch is
+   universally reliable" and "sequential is universally enriched" are
+   superseded too, now correctly scoped to {FetchValue, ActiveRowCount}
+   only. All four retractions stay in place as the evidence record.
 
 ## Checkpoint
 
