@@ -2386,6 +2386,29 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     ['component', 'COMPONENT']
   ]);
 
+  /*
+   * Quoted 0x48 references are deduplicated by qualifier + quoted value
+   * WITHIN THE SAME CONTROL GROUP, not globally across the whole program.
+   *
+   * ACA_XML_WRK.ACA_UPDATE_PB.FieldChange (definition 369) proves the
+   * reuse case: two `Transfer(...)` calls, `MenuName."ACA_SETUP_RPT"` and
+   * `BarName."USE"` identical in both, sit inside the SAME top-level `If
+   * %Page = "ACA_XMIT_ACK" Then ... Else If All(...) Then ... End-If;
+   * End-If;` -- one Then-branch's nested call and the Else's nested call,
+   * sharing one control group (only the outermost `If` bumps it) -- both
+   * compiled uses point back to the same PSPCMNAME rows.
+   *
+   * AE_DERIVED.AE_TEMPTBL_BTN.FieldChange (definition 805) disproves
+   * reusing that GLOBALLY: its own two `Transfer(...)` calls, with an
+   * IDENTICAL `BarName."USE"`, sit in two SEPARATE top-level `If
+   * %PanelGroup <> ... Then ... End-If;` / `If %PanelGroup = ... Then
+   * ... End-If;` statements -- different control groups -- and stored
+   * allocates a completely fresh row for the second call's `BarName.
+   * "USE"` (NAMENUM 15, not reusing NAMENUM 7's row from the first call).
+   */
+  const quotedReferencesByControlGroup =
+    new Map<string, PeopleCodeReference>();
+
   const quotedReference = (): Buffer => {
     const qualifierMatch =
       /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
@@ -2431,24 +2454,12 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           continue;
         }
 
-        /*
-         * Quoted 0x48 references are deduplicated by qualifier + quoted value.
-         *
-         * Calibrated by ACA_XML_WRK.ACA_UPDATE_PB.FieldChange:
-         *
-         *   MenuName."ACA_SETUP_RPT"
-         *   BarName."USE"
-         *
-         * appear in two separate Transfer() calls but both compiled uses point
-         * back to the same PSPCMNAME rows. Different ItemName/Page values in
-         * the second call allocate new rows.
-         */
-        let reference = references.find(
-          item =>
-            item.kind === 'quoted-reference' &&
-            same(item.recordName, storedQualifier) &&
-            same(item.fieldName, refName)
-        );
+        // See `quotedReferencesByControlGroup`'s own declaration
+        // (definition 369 vs definition 805) for why this must be scoped
+        // by control group, not deduplicated globally.
+        const quotedKey =
+          `${controlGroup}:${storedQualifier.toLowerCase()}:${refName.toLowerCase()}`;
+        let reference = quotedReferencesByControlGroup.get(quotedKey);
 
         if (reference === undefined) {
           reference = nextReference({
@@ -2456,6 +2467,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             recordName: storedQualifier,
             fieldName: refName
           });
+          quotedReferencesByControlGroup.set(quotedKey, reference);
         }
 
         if (reference.index > 0xffff) {
