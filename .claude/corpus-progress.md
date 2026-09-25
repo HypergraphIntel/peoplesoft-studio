@@ -711,36 +711,219 @@ different, more complex, already-partially-calibrated machinery. This is
 the strongest, most broadly-corroborated finding of the entire research
 cycle.
 
+### Phase 2A -- clustering the residual (non-flat-top-level) disagreement population
+
+Built `tools/corpus/research/residual-cluster-analysis.ts`: reuses
+`generateEvidence` across all four signal-bearing families in one pass,
+classifying every pair (agree AND disagree, not just disagreements, so
+contamination can be computed fairly) by:
+
+- **quadrant**: `1-func-only` (functionDepth>0, controlDepth==0),
+  `2-depth-only` (functionDepth==0, controlDepth>0), `3-both`, `4-flat`
+  (both zero) -- from the encoder's own raw counters.
+- **constructSubtype**: the innermost control construct when
+  controlDepth>0 (If/For/While/Evaluate/Repeat/Try -- added Try/Catch
+  tracking to the branch timeline this session, previously untracked).
+- **establishmentRelation**: where the PREVIOUS matching reference sits
+  relative to the CURRENT occurrence's own scope chain, computed via a
+  new `scopeChain: ScopeChainFrame[]` snapshot (full frame stack,
+  outermost-first, added to `GeneratedOccurrence`) and ancestor-prefix
+  comparison: `same-statement`, `earlier-statement-same-scope`,
+  `sibling-branch`, `enclosing-header-or-condition`, `enclosing-body`,
+  `enclosing-function-or-method`, `exited-to-parent-scope`,
+  `other-cross-frame`.
+
+**Combined population**: 101 disagreements / 2197 pairs across FetchValue,
+ActiveRowCount, ScrollFlush, GetRecord (4 families; RowScrollSelect/
+ScrollSelect excluded, already known to run on different machinery).
+
+**Quadrant breakdown**: 4-flat 66 (65.3%), 2-depth-only 30 (29.7%), 3-both
+5 (5.0%), 1-func-only 0 (0.0%) -- confirms `functionDepth>0` alone
+(without also being inside a control-flow construct) essentially never
+produces a disagreement; it is specifically `controlDepth` that matters
+for the nested minority, not `functionDepth`.
+
+**constructSubtype (2-depth-only + 3-both only, 35 total)**: If 16
+(45.7%), For 11 (31.4%), Evaluate 8 (22.9%). No While/Repeat/Try
+disagreements found in this sample (their populations may simply be too
+small among these four families to have produced one).
+
+**establishmentRelation, tested as a candidate rule against the full
+population** (quantified with the same explained/contaminated format):
+
+| rule | disagreements explained | correct pairs touched |
+|---|---|---|
+| `quadrant=4-flat` (prior checkpoint's rule) | 66/101 (65.3%) | 47/2096 (2.2%) |
+| `establishmentRelation='earlier-statement-same-scope'` | 78/101 (77.2%) | 851/2096 (40.6%) |
+| union of the two | 79/101 (78.2%) | 858/2096 (40.9%) |
+| `earlier-statement-same-scope` AND nested only | 13/101 (12.9%) | 811/2096 (38.7%) |
+| `establishmentRelation='sibling-branch'` | 7/101 (6.9%) | 151/2096 (7.2%) |
+| `hadRowScrollFamilyIntervening` | 12/101 (11.9%) | 216/2096 (10.3%) |
+
+**Conclusion: `quadrant=4-flat` (flatTopLevel) remains the single
+cleanest rule.** `earlier-statement-same-scope` explains more disagreements
+in raw count, but at 18x the contamination (40.6% vs 2.2%) -- most
+same-scope sequential repeats, whether flat or nested, actually agree
+fine, so this broader dimension is not actually a better rule, just a
+looser superset. The union barely improves recall (78.2% vs 65.3%) while
+contamination nearly doubles. No tested establishment-relation dimension
+cleanly explains the 35-case nested residual; it remains genuinely
+heterogeneous (sibling-branch 7, other-cross-frame 6, enclosing-body 3,
+enclosing-header-or-condition 2, enclosing-function-or-method 1,
+exited-to-parent-scope 2, same-statement 1, nested-earlier-statement 13 --
+no single sub-bucket dominates).
+
+**stored/generated direction across the whole 101**: `stored=ALLOC,
+generated=REUSE` (encoder over-reuses) 87 (86.1%); `stored=REUSE,
+generated=ALLOC` (encoder under-reuses) 14 (13.9%). The bug is
+overwhelmingly one-directional -- the encoder is too eager to reuse, not
+too eager to allocate fresh -- consistent with every disagreement example
+read closely this whole cycle.
+
+### Phase 2B -- matched-pair close reading of the largest residual cluster
+
+The largest nested-residual sub-cluster (13 disagreements,
+`earlier-statement-same-scope` within a nested scope) is concentrated in
+definition 2958 (COMPENSATION.COMP_RATECD.FieldChange) -- already flagged
+in the prior checkpoint's cluster-selection step. Pulled its full
+occurrence sequence for the `For#18` loop body specifically (source:
+`ActiveRowCount(Record.JOB, &ROW1, Record.COMPENSATION, &ROW2,
+Record.SEN_PAY_COMPRT)` as the loop bound, with 8+ `FetchValue(Record.JOB,
+&ROW1, Record.COMPENSATION, &ROW2, SEN_PAY_COMPRT.<field>, &I)` calls in
+the body) and found something the quadrant/establishment classification
+alone could not see: **the THREE Record.X arguments within this one
+repeated multi-argument call behave completely differently from each
+other, in the SAME repeated statements**:
+
+- `JOB` (1st Record.X argument): repeatedly shows `stored=ALLOC,
+  generated=REUSE` (over-reuse) at the START of each new occurrence group.
+- `SEN_PAY_COMPRT` (3rd Record.X argument): repeatedly shows
+  `stored=REUSE, generated=ALLOC` (under-reuse) -- the OPPOSITE direction,
+  later in the same group.
+- `COMPENSATION` (2nd Record.X argument, paired with `&ROW2`): agrees
+  correctly essentially every time, sitting BETWEEN the two broken
+  arguments.
+
+This directly disqualifies 2958 as a clean Phase 2B "isolate one variable"
+example -- it is not evidence for the SAME mechanism as the flat-top-level
+cluster (802 vs 6352) at all. It is evidence for a THIRD, distinct
+mechanism: **multi-Record.X-argument interaction within one repeated
+call**, where reuse-pool bookkeeping for one argument POSITION apparently
+corrupts or is corrupted by another position's bookkeeping across
+repeated calls. This echoes the very first disagreement ever found this
+session (definition 1454: `ActiveRowCount(Record.BAS_ELIG_RULES,
+&CURRENT_L1, Record.BAS_ELIG_UNION)`, where the 2nd Record.X argument
+wrongly reused the 1st's row) -- both cases involve 2+ Record.X arguments
+in one call, and both show cross-argument interference, though the exact
+shape (which argument steals from which) differs. **Not resolved this
+session; flagged as a fourth, structurally distinct research thread**
+(multi-argument interaction) alongside flat-top-level (mostly resolved)
+and the still-heterogeneous nested residual.
+
+A genuinely clean Phase 2B pair (single Record.X argument, isolates
+exactly the nesting-vs-flat variable) remains 802 (agrees, nested) vs
+6352 (disagrees, flat) from the prior checkpoint -- already compared in
+full there. No cleaner nested-vs-nested matched pair was found this
+session for the 13-case earlier-statement-same-scope-but-nested bucket
+specifically; each example checked so far (2958) turned out to be
+confounded by the separate multi-argument issue.
+
+### Phase 2C -- inferred compiler concept (provisional)
+
+Per the directive's own caution against overclaiming
+`controlDepth > 0`(the naive rule) as the semantic explanation: the
+evidence supports something closer to **a "reference dependency scope"
+that is established once per lexical block instance and is NOT implicitly
+opened at the program's bare top level**, i.e.:
+
+- Ordinary bare `RECORD.FIELD` text references (already correctly
+  calibrated) get an IMPLICIT top-level dependency scope that spans
+  consecutive top-level statements by default (the existing, correct
+  "top-level statements share a controlGroup" rule).
+- A value-fetch/binding CALL's (FetchValue/ActiveRowCount/ScrollFlush/
+  GetRecord) own leading Record.X/Scroll.X argument does NOT participate
+  in that implicit top-level scope at all -- it only reuses when a REAL
+  lexical block (Function, If, For, While, Evaluate/When, Try) has been
+  entered, which appears to supply a genuine, explicit dependency scope
+  these calls' arguments DO participate in.
+
+This is closer to "statement-local dependency scope" (candidate concept
+from the directive's own list) for these specific calls at the program's
+bare top level than to a generic `controlDepth > 0` numeric threshold --
+the quadrant data's own shape (0% for `1-func-only`, meaning
+`functionDepth` alone without `controlDepth` does NOT help) also argues
+against "Function bodies establish a new reference environment" (Model B)
+as the operative mechanism; it specifically requires a CONTROL-FLOW block,
+not just a Function wrapper. Still provisional: the 35-case nested
+residual and the multi-argument-interaction cases (Phase 2B) show this
+single concept does not explain the WHOLE disagreement population, only
+the majority (65-87% depending on family) flat-top-level slice.
+
+### Phase 3 (preliminary) -- mapping onto existing encoder mechanisms
+
+Not yet a full pass (would require reading each mechanism's current call
+sites in detail, deferred to a dedicated session), but a first-pass
+classification based on this cycle's evidence:
+
+- **`controlGroup`**: a GENUINE compiler concept for ordinary bare
+  RECORD.FIELD references and the already-calibrated RowScrollSelect
+  family, but this cycle's evidence suggests it is currently
+  OVER-APPLIED to FetchValue/ActiveRowCount/ScrollFlush/GetRecord's own
+  leading-argument reuse check -- those specific call sites' reuse
+  lookup likely needs an additional `controlDepth > 0` guard rather than
+  reading `controlGroup` unconditionally like the ordinary bare-reference
+  path does.
+- **`recordReferencesByControlGroup`**: likely the SAME underlying pool
+  the flat-top-level finding is about -- probably not a separate
+  mechanism to replace, but the read-side call sites for
+  FetchValue/ActiveRowCount/ScrollFlush/GetRecord's leading argument need
+  the new guard described above.
+- **`genericRecordReferencesSinceLastFamilyCall`,
+  `participatingRecordReferencesByControlGroup`**: RowScrollSelect's own
+  mechanisms, CONFIRMED this cycle to be answering a genuinely different
+  question (this cycle's `flatTopLevel`/`sibling-branch` signals do not
+  apply to RowScrollSelect/ScrollSelect at all) -- likely genuine,
+  separate compiler concepts, not redundant with the flat-top-level
+  finding.
+- **`reuseRecordReferenceWithinCallArguments`**: the closest EXISTING
+  mechanism name to Phase 2B's newly-found "multi-argument interaction"
+  problem (2958, and the very first disagreement found this session,
+  1454) -- worth checking directly against this specific evidence in a
+  future session; not yet cross-referenced against its actual
+  implementation.
+- **`suppressRecordReferenceControlGroupWrite`**: not yet evaluated
+  against any of this cycle's evidence.
+
 ### Next action (research cycle)
 
-1. This is now a strong enough, well-quantified candidate to write up as
-   the Phase 4 "smallest abstraction" proposal for the FetchValue/
-   ActiveRowCount/ScrollFlush sub-family specifically: their leading
-   Record.X/Scroll.X argument's reuse-pool lookup should be gated by
-   `controlDepth > 0 || functionDepth > 0`, on top of (not replacing) the
-   existing controlGroup-scoped pool -- i.e. these three constructs need
-   an ADDITIONAL guard the ordinary bare-RECORD.FIELD reuse path does not.
-   Do NOT implement yet -- the remaining ~30% of FetchValue's disagreements
-   and ~27% of ActiveRowCount's are NOT explained by this rule and need
-   their own accounting before a real fix is written (a guard that only
-   explains 68% and silently mishandles the other 32% would be exactly
-   the kind of half-evidenced special case this cycle exists to avoid).
-3. Look at the 21 FetchValue and 4 ActiveRowCount disagreements the
-   `flatTopLevel` rule does NOT explain (i.e. these disagreements occur
-   even when nested) -- cluster those separately; they are evidence for a
-   SECOND, still-unidentified mechanism, not noise to ignore.
+1. Cross-reference the ACTUAL current implementations of
+   `reuseRecordReferenceWithinCallArguments` and
+   `recordReferencesByControlGroup`'s FetchValue/ActiveRowCount/
+   ScrollFlush/GetRecord call sites (read the real encoder.ts code, not
+   just infer from corpus behavior) against this cycle's two live
+   hypotheses (flat-top-level guard; multi-argument interaction) before
+   writing any Phase 4 proposal in more concrete terms than "add a guard."
+2. The multi-argument-interaction thread (Phase 2B) needs its own
+   dedicated full-population sweep the way flat-top-level got: find ALL
+   disagreement definitions whose relevant call has 2+ Record.X/Scroll.X
+   arguments (1454, 2958, and likely others not yet identified) and test
+   whether an "argument position" dimension (already captured as
+   `argumentPosition` in this tooling) explains them better than anything
+   tried so far.
+3. Try/While/Repeat subtypes have zero disagreements in this sample --
+   worth a note for a future session, not an action now (their
+   populations among these four specific families may just be too small
+   to have produced a disagreement, not evidence they are exempt).
 4. Cross-family control: definition 6389 (RowScrollSelect's own
-   9-disagreement cluster, sibling-branch shaped) remains queued as the
-   "different apparent shape, different family" comparison point, now
-   knowing RowScrollSelect does NOT share the flat-top-level signal --
-   useful confirmation that its bug is genuinely a different mechanism,
-   not yet investigated in its own right.
-5. Do NOT implement any encoder fix yet. This is the strongest candidate
-   rule found so far, but per the directive's own bar it must still (a)
-   be checked against GetRecord, (b) have its own ~30% exception clustered
-   and understood, and (c) be mapped onto the existing encoder mechanisms
-   (Phase 3) before any Phase 5 implementation -- none of which is done
-   yet.
+   9-disagreement cluster, sibling-branch shaped) remains queued and
+   still not investigated in its own right.
+5. Do NOT implement any encoder fix yet. The flat-top-level rule is
+   well-quantified and the strongest found, but this session's own Phase
+   2B work found a genuinely separate, unexplained multi-argument
+   mechanism responsible for a meaningful share of the remainder --
+   implementing only the flat-top-level guard now would leave that second
+   mechanism as an unaddressed, undocumented special case, which is
+   exactly what this whole cycle exists to avoid accumulating.
 
 ## Checkpoint
 

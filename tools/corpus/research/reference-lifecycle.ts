@@ -132,14 +132,15 @@ function maskForBranchScan(source: string): string {
   return masked;
 }
 
-type BranchFrameType =
+export type BranchFrameType =
   | 'If'
   | 'For'
   | 'While'
   | 'Repeat'
   | 'Evaluate'
   | 'Function'
-  | 'Method';
+  | 'Method'
+  | 'Try';
 
 /**
  * Which part of the construct an offset falls in, for the Phase 1A
@@ -152,7 +153,7 @@ type BranchFrameType =
  * - 'body': everything else inside the frame (loop body, Then/Else body,
  *   When body, Repeat's own body before Until).
  */
-type BranchPhase = 'header' | 'condition' | 'body';
+export type BranchPhase = 'header' | 'condition' | 'body';
 
 interface BranchFrame {
   type: BranchFrameType;
@@ -161,6 +162,14 @@ interface BranchFrame {
   statementCount: number;
   phase: BranchPhase;
   entryOffset: number;
+}
+
+/** One frame in a scope chain snapshot, outermost first. */
+export interface ScopeChainFrame {
+  id: number;
+  type: BranchFrameType;
+  phase: BranchPhase;
+  branch?: string;
 }
 
 interface BranchCheckpoint {
@@ -174,6 +183,13 @@ interface BranchCheckpoint {
   parentScopeId: number | undefined;
   scopeEntryOffset: number | undefined;
   loopEpochId: number;
+  /**
+   * The full frame stack, outermost first, as of this checkpoint --
+   * enables Phase 2A's "where was the previous matching reference
+   * established relative to the current scope" classification (ancestor
+   * lookup) without re-parsing the branchPath string.
+   */
+  scopeChain: ScopeChainFrame[];
 }
 
 const BRANCH_KEYWORD_PATTERN = new RegExp(
@@ -196,7 +212,10 @@ const BRANCH_KEYWORD_PATTERN = new RegExp(
       'End-Function',
       'Function',
       'End-Method',
-      'Method'
+      'Method',
+      'End-Try',
+      'Try',
+      'Catch'
     ].join('|') +
     ')\\b',
   'gi'
@@ -262,7 +281,13 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
       scopeId: top?.id,
       parentScopeId: parent?.id,
       scopeEntryOffset: top?.entryOffset,
-      loopEpochId
+      loopEpochId,
+      scopeChain: frames.map(f => ({
+        id: f.id,
+        type: f.type,
+        phase: f.phase,
+        branch: f.branch
+      }))
     });
   };
 
@@ -486,6 +511,25 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
         pushCheckpoint(event.end);
         break;
       }
+      case 'Try': {
+        pushFrame('Try', event.offset, 'body');
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'Catch': {
+        const top = frames[frames.length - 1];
+        if (top?.type === 'Try') {
+          top.branch = 'Catch';
+          top.statementCount = 0;
+        }
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'End-Try': {
+        if (frames[frames.length - 1]?.type === 'Try') frames.pop();
+        pushCheckpoint(event.end);
+        break;
+      }
     }
 
     // Repeat has no End-Repeat: the statement immediately following its
@@ -516,6 +560,7 @@ function lookupBranchState(
   parentScopeId: number | undefined;
   scopeEntryOffset: number | undefined;
   loopEpochId: number;
+  scopeChain: ScopeChainFrame[];
 } {
   // Checkpoints are sorted by offset (built in source order); find the
   // last one at or before `offset` via binary search.
@@ -543,7 +588,8 @@ function lookupBranchState(
         scopeId: undefined,
         parentScopeId: undefined,
         scopeEntryOffset: undefined,
-        loopEpochId: 0
+        loopEpochId: 0,
+        scopeChain: []
       }
     : {
         branchPath: result.branchPath,
@@ -554,7 +600,8 @@ function lookupBranchState(
         scopeId: result.scopeId,
         parentScopeId: result.parentScopeId,
         scopeEntryOffset: result.scopeEntryOffset,
-        loopEpochId: result.loopEpochId
+        loopEpochId: result.loopEpochId,
+        scopeChain: result.scopeChain
       };
 }
 
@@ -635,6 +682,8 @@ export interface GeneratedOccurrence {
   scopeEntryOffset?: number;
   /** Count of For/While/Repeat frames entered so far -- a candidate "loop epoch" counter, distinct from epochCandidate (which counts WATCHED_INTRINSICS calls). Phase 1A field, for testing hypothesis B (loop body entry opens a new reference epoch). */
   loopEpochId: number;
+  /** Full frame stack, outermost first, as of this occurrence. Phase 2A field: enables ancestor-relationship classification (was the previous matching reference established in an enclosing header/condition/body vs a sibling branch vs a different function) without re-parsing branchPath. */
+  scopeChain: ScopeChainFrame[];
 }
 
 export interface PairedRow {
@@ -885,7 +934,8 @@ function decodeGeneratedOccurrences(
       scopeId: branchState.scopeId,
       parentScopeId: branchState.parentScopeId,
       scopeEntryOffset: branchState.scopeEntryOffset,
-      loopEpochId: branchState.loopEpochId
+      loopEpochId: branchState.loopEpochId,
+      scopeChain: branchState.scopeChain
     };
 
     occurrences.push(row);
