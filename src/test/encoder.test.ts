@@ -1206,6 +1206,25 @@ test('REM may continue onto an observed single-space prose line', () => {
   );
 });
 
+test('REM may continue through deeper-indented disabled code until semicolon', () => {
+  const payload = Buffer.from(
+    'REM If True Then\n   Evaluate &x\n      &x = 1;',
+    'utf16le'
+  );
+
+  assert.deepStrictEqual(
+    encodeFragment(
+      'REM If True Then\n' +
+      '   Evaluate &x\n' +
+      '      &x = 1;'
+    ),
+    Buffer.concat([
+      Buffer.from([0x24, payload.length, 0x00]),
+      payload
+    ])
+  );
+});
+
 test('legacy remark spelling uses the calibrated REM comment payload', () => {
   const source =
     'remark Prevent deletion of an entire project;';
