@@ -412,7 +412,7 @@ function lookupBranchState(
       };
 }
 
-interface StoredOccurrence {
+export interface StoredOccurrence {
   occurrenceIndex: number;
   opcode: number;
   nameNum: number;
@@ -422,7 +422,7 @@ interface StoredOccurrence {
   firstOccurrenceOfThisNameNum: number;
 }
 
-interface GeneratedOccurrence {
+export interface GeneratedOccurrence {
   occurrenceIndex: number;
   /**
    * ALLOC the first time this reference's sequence is emitted as an
@@ -473,7 +473,7 @@ interface GeneratedOccurrence {
   epochCandidate: number;
 }
 
-interface PairedRow {
+export interface PairedRow {
   occurrenceIndex: number;
   stored?: StoredOccurrence;
   generated?: GeneratedOccurrence;
@@ -482,7 +482,7 @@ interface PairedRow {
   alignmentTrust: 'aligned' | 'lost';
 }
 
-interface DefinitionEvidence {
+export interface DefinitionEvidence {
   definitionId: number;
   displayName: string;
   sourceEncodeError?: {
@@ -809,7 +809,7 @@ function buildNameTable(definition: SnapshotDefinition): NameTable {
   return names;
 }
 
-function generateEvidence(
+export function generateEvidence(
   definitionId: number,
   definition: SnapshotDefinition
 ): DefinitionEvidence {
@@ -987,4 +987,10 @@ function main(): void {
   db.close();
 }
 
-main();
+// Only run the CLI when this file is the entry point, not when another
+// script (e.g. getrecord-branch-analysis.ts) imports generateEvidence from
+// it -- otherwise the import alone would re-parse process.argv and run a
+// second, redundant CLI pass as a side effect.
+if (require.main === module) {
+  main();
+}

@@ -125,10 +125,15 @@ session already calibrated (843, 860, 5687, 1220, 1283, 1236, 30, 95, 1172,
 useful as a sanity check that the corrected tool reproduces known-good
 behavior, not just noise.
 
-**Finding A -- initial hypothesis, PARTIALLY RETRACTED below (see the
-"Correction" paragraph after the PriorValue section: the FetchValue half
-held up, the postfix-GetRecord half did not and is replaced by a sharper,
-still-unconfirmed branch-vs-sequential hypothesis)**: a
+**Finding A -- initial hypothesis, FULLY RETRACTED (both halves). See the
+"MAJOR CORRECTION" section near the end of this research-cycle block: a
+full-population run over all 749 FetchValue definitions and all 1028
+ActiveRowCount definitions falsified BOTH the FetchValue-always-fresh half
+AND the GetRecord branch-vs-sequential replacement hypothesis below. This
+paragraph and the next several are kept as the historical record of how
+the (wrong) hypothesis was formed from a small biased sample -- read the
+"MAJOR CORRECTION" section for the current, corpus-scale-verified
+picture.** a
 value-fetching accessor's own leading Record.X/Scroll.X argument -- the
 thing being read FROM, not written to -- appears to be EXEMPT from all
 control-group-scoped reuse. It always ALLOCates a fresh PSPCMNAME row in
@@ -309,34 +314,138 @@ SAME branch-vs-sequential rule or is unconditionally always-fresh
 regardless of branch structure (no FetchValue sibling-branch repetition
 example has been checked yet).
 
+### MAJOR CORRECTION -- Finding A is FALSIFIED at scale; new tooling and lead
+
+Following the user's own explicit direction ("prioritize establishing the
+general reference-lifetime model before changing encoder semantics" and
+"verify FetchValue... against ALL exact/failing FetchValue definitions...
+determine whether 'always fresh' is truly invariant"), built
+`tools/corpus/research/getrecord-branch-analysis.ts`: an in-process batch
+tool that runs `generateEvidence` (from `reference-lifecycle.ts`, now
+partly `export`ed for reuse) over many definitions at once, groups every
+generated occurrence whose enclosing call matches a `--call-filter` regex
+(optionally restricted to one `--arg-position`) by reference identity, and
+classifies every CONSECUTIVE pair's relationship via a new heuristic
+`branchPath`/`blockStatementIndex`/`epochCandidate` tracker added to
+`reference-lifecycle.ts` itself (source-text If/Then/Else/For/While/
+Evaluate/When/Function/Method nesting, comment/string-masked, with a fix
+for `Declare Function` headers wrongly opening phantom blocks -- see the
+"Tooling built this cycle" section above for the full mechanism). Also
+fixed a real bug this surfaced: `reference-lifecycle.ts`'s own top-level
+`main()` call was unconditional, so importing `generateEvidence` from it
+silently re-ran the whole CLI a second time; guarded with `if
+(require.main === module)`.
+
+**Ran the FULL, unbiased population, not a curated sample**: all 749
+FetchValue-using definitions (`--call-filter fetchvalue --arg-position 0`,
+isolating FetchValue's own leading Record.X/Scroll.X argument specifically)
+and all 1028 ActiveRowCount-using definitions, in ~4s and ~22s
+respectively.
+
+**Result: Finding A ("FetchValue's leading argument always allocates
+fresh") is FALSE.** Across 1393 consecutive same-identity occurrence pairs:
+1047 correctly REUSE (75%), 279 correctly ALLOC (20%), and only 66 (4.7%,
+spanning 30 distinct definitions out of 749) disagree -- and the
+overwhelming majority of THOSE disagreements are the same direction as the
+original 6 examples (stored=ALLOC, generated wrongly REUSEs), meaning the
+original 6 examples were not wrong about the bug's existence or direction,
+only about its SCOPE: they were a biased sample (all pulled from earlier
+sessions' own "known troublesome" notes), not representative of FetchValue
+as a whole. **FetchValue's leading argument behaves statistically like an
+ordinary control-group-scoped reuse participant** (the same "binding
+operation" behavior already calibrated for ActiveRowCount/RowScrollSelect),
+not like a categorically different "value-fetch, never reuses" class. The
+whole "binding vs. value-fetch" two-class model from the Phase 2 write-up
+above is retracted for FetchValue specifically (it may still hold for some
+OTHER construct; not corroborated for any construct at this point).
+
+**Corroborating check, also full-population**: ran the identical analysis
+against ActiveRowCount's own leading argument across all 1028 candidate
+definitions -- 462/477 pairs agree (96.9%), 15 disagree (3.1%, spanning 11
+distinct definitions). **Same order of magnitude as FetchValue's 4.7%.**
+This is strong evidence the residual disagreement is a general, low-rate
+background gap in the ALREADY-EXISTING control-group reuse mechanism
+shared by both constructs, not a FetchValue-specific or
+ActiveRowCount-specific defect.
+
+**Strongest lead found**: definitions 2958 and 7285 appear in BOTH
+disagreement lists (FetchValue's and ActiveRowCount's), and both share the
+exact same shape -- a Record.X/Scroll.X reference used as a `For` loop's
+own bound expression, with the same record/scroll name repeated via
+FetchValue calls inside that loop's body (def 7285: `For &J = 1 To
+ActiveRowCount(Scroll.GPFR_GAR_DAT) ... For &K = 1 To
+ActiveRowCount(Scroll.GPFR_GAR_DAT) ... FetchValue(Record.GPFR_GAR_DAT, &K,
+...)` repeated 5x in the inner loop body; def 2958 similarly nests
+`ActiveRowCount(Record.JOB, &ROW1, Record.COMPENSATION, &ROW2,
+Record.SEN_PAY_COMPRT)` as a `For` bound with 8+ FetchValue calls in the
+body). This is a genuine candidate for the directive's own "reference
+epoch" hypothesis: a loop HEADER's own reference allocation may open or
+close an epoch boundary that the loop BODY's repeated references interact
+with incorrectly, regardless of which specific intrinsic (FetchValue vs.
+ActiveRowCount) is involved -- exactly the kind of "compiler state
+transition, not function-name correlation" the directive asks to look for.
+NOT yet corroborated beyond these 2 definitions; the other 28+13 = 41
+non-overlapping disagreement definitions have not been individually
+checked for the same loop-header shape yet.
+
+**GetRecord's own branch-vs-sequential hypothesis is ALSO falsified at
+scale** (this was checked first and is what motivated building the batch
+tool): a 100-definition balanced sample (EXACT + UNKNOWN_MISMATCH,
+definition_id % 7 == 0) found 169 consecutive same-identity GetRecord
+occurrence pairs, agreeing 161/169 (95.3%). Both "sequential never
+reuses" and "bare-vs-postfix" were tested as candidate discriminators and
+both falsified by direct counterexample within the same sample (e.g.
+def 10661's 5 sequential POSTFIX GetRecord occurrences, with a complex
+multi-call receiver chain and DIFFERING trailing fields, all correctly
+REUSE; while defs 14623/14770/1420's SAME-shaped sequential postfix
+GetRecord occurrences do not). No working discriminator found for
+GetRecord's own residual 8/169 disagreements at pattern-matching
+granularity; same "background rate, needs the deeper stored-byte
+enumeration technique, not more surface-syntax guessing" conclusion as
+FetchValue/ActiveRowCount above.
+
 ### Next action (research cycle)
 
-1. Find a postfix-`.GetRecord`/bare-`GetRecord()` counterexample (or
-   confirming example) to settle the open question above before treating
-   the "value-fetch" class as anything broader than "FetchValue plus this
-   one exact `.GETRECORD(...).FIELD.Value` shape."
-2. Investigate the remaining named Phase 1 areas not yet touched:
-   RowScrollSelect/RowScrollSelectNew's OWN semantics beyond what's already
-   calibrated (the directive names it explicitly; this session's sample
-   only hit already-EXACT representatives, so no fresh evidence there yet
-   -- may need to pull FRESH non-EXACT RowScrollSelect-family definitions
-   from `corpus-results.sqlite`, not the historically-cited ones, which
-   are now all fixed).
-3. Once the value-fetch/binding distinction is corroborated (or narrowed)
-   further, write Phase 3 (map every existing flag/map --
-   `recordReferencesByControlGroup`, `genericRecordReferencesSinceLastFamilyCall`,
-   `participatingRecordReferencesByControlGroup`, `singleOccurrenceCallArgumentRecordNames`,
-   `reuseRecordReferenceWithinCallArguments`, etc. -- onto this model: which
-   are the SAME underlying binding-pool concept under different names,
-   and which are genuinely separate mechanisms) and Phase 4 (the smallest
-   ReferenceBinder/DependencyPlanner abstraction that would let "does this
-   call bind or fetch" be asked once instead of encoded into N separate
-   maps).
-4. Do NOT implement a fix for Finding A yet, even though it looks clean --
-   the directive is explicit that Phase 1/2 (dataset + model) come before
-   Phase 5 (implementation), and a premature fix here would be exactly the
-   kind of "special case that happens to fix one example" the whole cycle
-   exists to avoid accumulating.
+1. Chase the loop-header/epoch lead: check whether ALL (or most) of the
+   remaining 28 FetchValue-only and 9 ActiveRowCount-only disagreement
+   definitions (definition_id lists are in this session's tool output; not
+   yet re-extracted into this file individually) ALSO have their
+   disagreeing reference used as, or nested inside, a `For`/`While`
+   loop-bound expression -- if so, that promotes this from "an interesting
+   lead in 2 definitions" to a real, broad, corroborated hypothesis. The
+   `branchPath` tracker already distinguishes `For#N` frames, so this is
+   answerable by extending `getrecord-branch-analysis.ts`'s tabulation to
+   bucket by "is either occurrence's branchPath's innermost frame (or an
+   ancestor) a `For`/`While` whose OWN bound expression contains the same
+   reference identity" -- not yet implemented.
+2. If the loop-header hypothesis holds broadly, do the stored-byte
+   NAMENUM-enumeration deep dive (the technique from earlier sessions,
+   cited multiple times in this file's older Fix write-ups) on ONE clean
+   small example (7285 is only 5 sequential FetchValue calls, tractable)
+   to determine the EXACT rule, not just the correlation.
+3. If the loop-header hypothesis does NOT hold broadly (most of the 41
+   other disagreement definitions have no loop involvement), the residual
+   ~3-5% disagreement rate across FetchValue/ActiveRowCount/GetRecord may
+   simply be several small, unrelated bugs needing individual
+   investigation -- in that case, stop looking for one unifying rule for
+   ALL of them and instead pick the single most common remaining shape
+   across the 30+11+distinct-GetRecord definition lists.
+4. RowScrollSelect/RowScrollSelectNew's OWN semantics (the directive names
+   them explicitly) have not yet been run through this same full-population
+   methodology -- still outstanding.
+5. Do NOT implement any encoder fix yet. Three surface-syntax hypotheses
+   (FetchValue always-fresh, GetRecord branch-vs-sequential, GetRecord
+   bare-vs-postfix) were each falsified this session by testing at full
+   corpus scale instead of trusting a handful of examples -- exactly the
+   discipline the directive asks for. The next real lead (loop-header
+   epoch boundary) is corroborated in only 2 definitions so far and needs
+   the step-1 broadening check before it is trustworthy enough to model,
+   let alone implement.
+6. Old Phase 2 "binding vs. value-fetch" two-class write-up above is
+   SUPERSEDED for FetchValue by this section; leave it in place as a
+   record of a falsified hypothesis (per the directive's own "reject
+   hypotheses that only explain one example" discipline -- the retraction
+   trail is itself part of the evidence record, not noise to delete).
 
 ## Checkpoint
 
