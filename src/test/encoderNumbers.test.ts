@@ -43,7 +43,11 @@ for (const [source, expected] of [
   ['Return 1-2;', 'Return 1 - 2;\n'],
   ['Return 9007199254740993;', 'Return 9007199254740993;\n'],
   ['Return 340282366920938463463374607431768211455;', 'Return 340282366920938463463374607431768211455;\n'],
-  ['&s = "1+2 / *"; Return &s;', '&s = "1+2 / *";\nReturn &s;\n']
+  ['&s = "1+2 / *"; Return &s;', '&s = "1+2 / *";\nReturn &s;\n'],
+  ['Return 1.0;', 'Return 1.0;\n'],
+  ['Return 0.0;', 'Return 0.0;\n'],
+  ['Return 9999999.99;', 'Return 9999999.99;\n'],
+  ['Return 0000.50;', 'Return 0.50;\n']
 ]) {
   test(`complete numeric semantic round trip: ${source}`, () => {
     const bytes = encodeProgram(source);
@@ -52,6 +56,13 @@ for (const [source, expected] of [
     assert.deepEqual(encodeProgram(decoded.text), bytes);
   });
 }
+
+test('decimal literal scale byte matches the fractional digit count', () => {
+  const fragment = encodeFragment('Return 33.34;');
+  // 50 <zero-prefix> <scale> <16-byte little-endian magnitude>
+  assert.equal(fragment.subarray(1, 4).toString('hex'), '500002');
+  assert.equal(fragment.subarray(4, 20).toString('hex'), '060d' + '00'.repeat(14));
+});
 
 test('uint128 boundaries and precision use exact bytes rather than Number rounding', () => {
   const max = encodeFragment('Return 340282366920938463463374607431768211455;');
@@ -65,7 +76,7 @@ test('uint128 boundaries and precision use exact bytes rather than Number roundi
 for (const source of [
   'Return 340282366920938463463374607431768211456;', // 2^128, no truncation/wrap
   `Return ${'9'.repeat(1000)};`,
-  'Return 1.0;', 'Return .5;', 'Return 1e3;', 'Return 0x10;',
+  'Return .5;', 'Return 1e3;', 'Return 0x10;',
   'Return +1;', 'Return 1 ** 2;',
   'Return (1 + 2;', 'Return 1 +;', 'Return 1 /;', 'Return 1 2;',
   'Return 1abc;', 'Return 1_000;', 'Return 1 = 2;', 'Return 1 /* comment */;'
