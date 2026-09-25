@@ -2075,11 +2075,19 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         t.opcode === 0x4e &&
         /^(?:And|Or)$/.test(tokens[tokenIndex - 1]?.text ?? '');
 
+      const inlineCommentAfterRem =
+        t.kind === TokenKind.Comment &&
+        t.opcode === 0x4e &&
+        tokens[tokenIndex - 1]?.kind === TokenKind.Comment &&
+        tokens[tokenIndex - 1]?.opcode === 0x24 &&
+        /^(?:REM|remark)\b/i.test(tokens[tokenIndex - 1]?.text ?? '');
+
       if (!(
         inlineCommentAfterEndIf ||
         inlineCommentAfterThen ||
         inlineCommentAfterElse ||
-        inlineCommentAfterBooleanOperator
+        inlineCommentAfterBooleanOperator ||
+        inlineCommentAfterRem
       )) {
         trimTrailing();
 
@@ -2109,7 +2117,12 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         t.text === 'Then' ||
         t.text === 'Else' ||
         t.text === 'And' ||
-        t.text === 'Or'
+        t.text === 'Or' ||
+        (
+          t.kind === TokenKind.Comment &&
+          t.opcode === 0x24 &&
+          /^(?:REM|remark)\b/i.test(t.text)
+        )
       ) &&
       nextToken?.kind === TokenKind.Comment &&
       nextToken.opcode === 0x4e;

@@ -1237,6 +1237,30 @@ test('REM preserves a same-indent continuation and nonterminal trailing space', 
   );
 });
 
+test('an If-body REM may carry a trailing inline block comment', () => {
+  const rem = 'REM &value = 0;';
+  const comment = '/* disabled */';
+  const program = encodeProgram(
+    'If True Then\n' +
+    `   ${rem} ${comment}\n` +
+    'End-If;',
+    { commentOpcodes: [0x24, 0x4e] }
+  );
+  const remPayload = Buffer.from(rem, 'utf16le');
+  const commentPayload = Buffer.from(comment, 'utf16le');
+
+  assert.notEqual(
+    program.indexOf(Buffer.concat([
+      Buffer.from([0x24, remPayload.length, 0x00]),
+      remPayload,
+      Buffer.from([0x4e, commentPayload.length, 0x00]),
+      commentPayload,
+      Buffer.from([0x1a])
+    ])),
+    -1
+  );
+});
+
 test('legacy remark spelling uses the calibrated REM comment payload', () => {
   const source =
     'remark Prevent deletion of an entire project;';
