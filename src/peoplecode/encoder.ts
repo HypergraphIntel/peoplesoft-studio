@@ -7362,6 +7362,50 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
 
     if (source.startsWith('<*', pos)) {
+      /*
+       * A standalone disabled-code marker (<* ... *>) can also follow an
+       * open top-level declaration section, exactly like the standalone
+       * block-comment branch below already handles (see that branch's
+       * own `sawTopLevelDeclaration && !closedTopLevelDeclarationSection`
+       * check) -- this branch was missing the equivalent close entirely.
+       *
+       * BN_LIMITTYP_RUN.LIMIT_TYPE.SaveEdit (definition 1929):
+       *
+       *   Global boolean &RunLimits_Age;
+       *
+       *   <*
+       *   If All(BN_LIMITTYP_RUN.LIMIT_TYPE) Then
+       *      ...
+       *   End-If;
+       *   *>
+       *
+       *   If None(BN_LIMITTYP_RUN.LIMIT_TYPE) Then
+       *
+       * stores `... 15 2D 4F 55 ...` -- the 0x2D declaration-section close
+       * belongs before the blank-line marker and the disabled-comment's
+       * own 0x55 opcode, not omitted entirely.
+       */
+      if (
+        haveCompletedTopLevelStatement &&
+        hasBlankLine &&
+        sawTopLevelDeclaration &&
+        !closedTopLevelDeclarationSection
+      ) {
+        const disabledCommentEnd = source.indexOf('*>', pos + 2);
+        const afterDisabledComment = nextSignificantAfterBlockComments(
+          disabledCommentEnd >= 0 ? disabledCommentEnd + 2 : pos
+        );
+        const nextIsTopLevelDeclarationAfterDisabledComment =
+          /^(?:Global|PanelGroup|Component|Constant|Declare\s+Function)\b/i.test(
+            source.slice(afterDisabledComment)
+          );
+
+        if (!nextIsTopLevelDeclarationAfterDisabledComment) {
+          chunks.push(Buffer.from([0x2d]));
+          closedTopLevelDeclarationSection = true;
+        }
+      }
+
       if (haveCompletedTopLevelStatement && hasBlankLine) {
         const markerCount = Math.max(
           1,
@@ -8103,8 +8147,25 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        *
        * Keep both bytes together here so the generic deferred blank-line
        * mechanism cannot reorder them as 4F 2D.
+       *
+       * An initialized Local anywhere in the section omits this 0x2D
+       * entirely, mirroring `closesTopLevelDeclarationSection`'s own
+       * identical `leadingRunHasInitializedLocal` check a few lines below
+       * -- this path was missing it.
+       *
+       * CAFNUI_CTRL_WRK.CAF_DELETE_FLG.FieldChange (definition 2102):
+       *
+       *   import PT_PAGE_UTILS:Utils;
+       *
+       *   Local PT_PAGE_UTILS:Utils &PTUtils = create PT_PAGE_UTILS:Utils();
+       *
+       *   If %Page = Page.CAFNUI_ED_FLST_SCF Then
+       *
+       * stores only the 0x4F blank-line marker before `If`, no 0x2D.
        */
-      chunks.push(Buffer.from([0x2d]));
+      if (!leadingRunHasInitializedLocal) {
+        chunks.push(Buffer.from([0x2d]));
+      }
 
       if (hasBlankLine) {
         const markerCount = Math.max(
@@ -8179,11 +8240,33 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      * stores no 0x2D at all before `If` -- only the three 0x4F blank-line
      * markers. `closesTopLevelDeclarationSection`'s own unconditional
      * 0x2D push (a few lines below) needs this flag true to omit it.
+     *
+     * An import statement closes `closedTopLevelDeclarationSection`
+     * immediately (the `isImport` branch above), independent of whether a
+     * following Application Class Local declaration section is still
+     * open -- `closesApplicationClassLocalSection`'s own 0x2D push uses
+     * this SAME flag (a few dozen lines below) and needs it set even
+     * when the generic top-level section already closed.
+     *
+     * CAFNUI_CTRL_WRK.CAF_DELETE_FLG.FieldChange (definition 2102):
+     *
+     *   import PT_PAGE_UTILS:Utils;
+     *
+     *   Local PT_PAGE_UTILS:Utils &PTUtils = create PT_PAGE_UTILS:Utils();
+     *
+     *   If %Page = Page.CAFNUI_ED_FLST_SCF Then
+     *
+     * `closedTopLevelDeclarationSection` is already true here (set by the
+     * import), so the original `!closedTopLevelDeclarationSection` guard
+     * alone never let this flag get set for this Local at all.
      */
     if (
       isLocalDeclaration &&
       lastLocalHadInitializer &&
-      !closedTopLevelDeclarationSection
+      (!closedTopLevelDeclarationSection ||
+        ((sawApplicationClassLocalSection ||
+          (isApplicationClassLocal && applicationClassLocalIsDeclarationPhase)) &&
+          !closedApplicationClassLocalSection))
     ) {
       leadingRunHasInitializedLocal = true;
     }

@@ -3599,6 +3599,37 @@ All twelve new fixes (#11-22) verified with:
     --limit 430` PASS (430/430); `npm test` clean; spot-checked 840, 1283,
     30, 95 (all still EXACT, unaffected by this declaration-only change).
 
+52. **definition_id 1929** (BN_LIMITTYP_RUN.LIMIT_TYPE.SaveEdit), was
+    UNKNOWN_MISMATCH -> now EXACT. A standalone disabled-code marker
+    (`<* ... *>`) following an OPEN top-level declaration section had NO
+    closing-boundary handling at all -- the sibling standalone
+    block-comment branch (`/* */`) already had this exact check
+    (`sawTopLevelDeclaration && !closedTopLevelDeclarationSection &&
+    !nextIsTopLevelDeclaration`, fix #32's own mechanism), but the `<*`
+    branch was missing it entirely:
+
+    ```
+    Global boolean &RunLimits_Age;
+
+    <*
+    If All(BN_LIMITTYP_RUN.LIMIT_TYPE) Then
+       ...
+    End-If;
+    *>
+
+    If None(BN_LIMITTYP_RUN.LIMIT_TYPE) Then
+    ```
+
+    stores `... 15 2D 4F 55 ...` -- the 0x2D declaration-section close
+    belongs before both the blank-line 0x4F marker and the disabled-
+    comment's own 0x55 opcode. Fixed by adding the same check (computing
+    "what follows the disabled-code block" via `source.indexOf('*>', ...)`
+    plus the existing `nextSignificantAfterBlockComments` helper, since
+    unlike the comment branch this one needed to skip PAST its own
+    disabled-code span first) before emitting the disabled-comment bytes.
+    `corpus:verify --limit 430` PASS (430/430, first attempt); `npm test`
+    clean.
+
 ## Identified, not yet fixed (deferred, NOT locally blocked — evidence
 ## gathering is incomplete, not exhausted)
 

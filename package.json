@@ -383,9 +383,7 @@
     "package": "npm run verify && vsce package --out peoplesoft-studio.vsix",
     "verify": "npm run compile && npm test && npm run smoke",
     "dev": "npm run package && code --install-extension peoplesoft-studio.vsix --force",
-    
     "corpus": "tsc -p . && node scripts/corpus-peoplecode.mjs",
-    
     "corpus:harness": "tsx tools/corpus/cli.ts",
     "corpus:verbose": "tsx tools/corpus/cli.ts --verbose",
     "corpus:baseline": "tsx tools/corpus/cli.ts --baseline",
@@ -395,12 +393,14 @@
     "corpus:next": "tsx tools/corpus/next.ts",
     "corpus:work": "tsx tools/corpus/cli.ts --failed",
     "corpus:inventory": "tsx tools/corpus/cli.ts",
-
     "corpus:snapshot": "tsx tools/corpus/snapshot/capture.ts",
     "corpus:snapshot:verify": "tsx tools/corpus/snapshot/verify.ts"
   },
   "dependencies": {
-    "oracledb": "^6.6.0"
+    "@modelcontextprotocol/node": "^2.1.0",
+    "@modelcontextprotocol/server": "^2.1.0",
+    "oracledb": "^6.6.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
