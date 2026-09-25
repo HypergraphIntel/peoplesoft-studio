@@ -84,9 +84,10 @@
   -- all 7 confirmed via git-stash comparison to have been ENCODE_ERROR
   at the EOF-omission point before this fix, zero regressions. Verified:
   `npx tsc -p .` clean; `npm test` 456/457 (1 pre-existing skip);
-  `corpus:verify --limit 430` 430/430, 0 regressions. A full-corpus
-  background diff was also started; see next entry for its result once
-  complete.
+  `corpus:verify --limit 430` 430/430, 0 regressions. Full-corpus
+  background diff (run_id 276 -> 278, all 30,209 definitions) confirmed:
+  4 improved, 0 regressed, 30205 unchanged. New corpus total:
+  22421/30209 exact (74.2%).
 - **Fix #67** landed (src/peoplecode/encoder.ts, `primary()`'s `(`
   branch): a parenthesized comparison used as a plain expression value
   (not an If/While condition), e.g.:
