@@ -1,5 +1,282 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 7 — provenance-gated postfix call binding (first semantic change)
+
+**Status: semantic change implemented and validated.** Baseline was the
+Cycle 6 commit `bc55307`, 23,069/30,209 EXACT, protected 430/430, 489
+tests passing plus one intentional skip, zero encoder output change from
+Cycle 6 itself. All work used the completed local HCDEV snapshot; no
+`--live` access was used. Final result: **23,182/30,209 EXACT (+113),
+protected 430/430 intact, zero EXACT regressions across the full
+30,209-definition corpus** (verified by a row-by-row `classification` and
+`generated_program_bytes` diff against the Cycle 6 baseline run).
+
+### Phase 7A — Target population, reconfirmed precisely
+
+Cycle 6's own "bare-intrinsic-derived receiver" discrepancy category
+(6,482 chains / 742 definitions: `chainSemantics` predicts `dynamic` but
+the legacy `expectedReferenceMember` flag treats the member as
+reference-eligible) was NOT a clean target population -- cross-referencing
+against current classification found **251 of the 742 definitions were
+already EXACT**, meaning the legacy "bug" was, for those, actually
+correct behavior that a naive rule would have broken.
+
+A new tool, `tools/corpus/research/postfix-call-provenance-analysis.ts`
+(read-only, additive), re-derives each discrepancy's ACTUAL receiver
+identifier from source (independent of what `chainSemantics` currently
+tracks) and classifies it by declaration evidence: Local/Component/Global
+Row/Record/Rowset, typed function parameter, schema-bound
+(`CreateRowset(Record.X)`), `GetLevel0()`-rooted, rowset-selector-derived,
+or no evidence at all. Family membership (postfix `.Get(...)` call vs.
+the separate rowset-selector `&rs(N)`/`.PROP(N)` mechanism) is decided
+ONLY by what call is IMMEDIATELY before the flagged member, never by
+anything further back in the chain -- this matters because a
+`&declaredRowset(N).GetRecord(...)` receiver is selector-derived (out of
+scope) even though the base variable is declared.
+
+Cross-referencing the resulting populations against current
+classification:
+
+| receiver provenance (declaration evidence) | chains | defs | EXACT | non-EXACT |
+|---|---:|---:|---:|---:|
+| no declaration/schema evidence found | 2,028 | 172 | **0** | 172 |
+| rowset-selector-derived (out of scope) | 798 | 162 | 64 | 98 |
+| Component Rowset declaration | 2,091 | 139 | 70 | 69 |
+| Local Row declaration | 502 | 81 | 18 | 63 |
+| unresolved (not a plain variable) | 152 | 67 | 32 | 35 |
+| GetLevel0()-rooted | 195 | 53 | 33 | 20 |
+| typed parameter (As Rowset) | 157 | 48 | 4 | 44 |
+| Global Rowset declaration | 98 | 5 | 0 | 5 |
+| typed parameter (As Row) | 4 | 4 | 0 | 4 |
+| Local Rowset declaration (scope-shadowing artifact) | 77 | 3 | 3 | 0 |
+| schema-bound (CreateRowset(Record.X)) | 64 | 2 | 0 | 2 |
+| Component Row declaration | 8 | 1 | 0 | 1 |
+
+The **"no declaration/schema evidence found" population is 0/172
+currently EXACT** -- a clean, unambiguous target: every OTHER
+receiver-provenance shape has a nonzero EXACT population, meaning
+`chainSemantics` itself (not the legacy encoder) was the thing missing
+evidence for them. Named controls: 1423/1424/1721/1722 (`&Der_Parent`,
+`&RSF`, both undeclared, no schema) are in this exact population; 432
+(rowset-intrinsic-property, a separate category) and 524
+(schema-bound, chainSemantics already predicts correctly, no discrepancy
+raised) remain outside it, confirming both original negative controls.
+
+### Phase 7B — The rule
+
+> A postfix `.GetRecord(...)`/`.GetRow(...)`/`.GetRowset(...)` call's
+> return value may make a following BARE `.MEMBER` name dependency-eligible
+> only when the call's own receiver -- the chain state immediately before
+> the dot -- carries binding provenance, i.e.
+> `chainSemantics.binding === 'dependency-bound'` for that pre-call
+> receiver. Provenance may come from: an explicit `Record.X` root, a bare
+> intrinsic call (`GetRecord()`, `GetRow()`, `GetRowset(...)`,
+> `GetLevel0()`), a declared Record/Row/Rowset variable (any scope, or a
+> typed function parameter), a schema-bound variable, `.ParentRow`/
+> `.ParentRowset` navigation off a receiver that already has one of the
+> above, or (recursively) another postfix `.Get(...)` call whose own
+> receiver satisfies this same condition. A receiver with NONE of the
+> above does NOT confer eligibility, regardless of the method name alone.
+
+This is deliberately NOT "if variable is undeclared" -- Cycle 4 already
+disproved declaration status as the real dimension (524's undeclared-but-
+schema-bound receiver binds correctly; 435's declared-but-only-via-typed-
+parameter receiver also binds correctly and was initially
+misclassified as "no evidence" purely because `chainSemantics` didn't
+yet recognize that declaration form). The rule is about EVIDENCED
+PROVENANCE, and Phase 7C's implementation work was overwhelmingly about
+making `chainSemantics` itself correctly recognize every evidenced
+provenance source, not about writing the gate itself (which is two lines).
+
+### Phase 7C — Implementation
+
+**ChainSemantics provenance-recognition additions** (all purely
+extending what `chainSemantics` can correctly classify; several read
+already-existing declaration-tracking sets, never writing to them, to
+avoid changing any OTHER existing decision; a few populate NEW, isolated
+sets read only by `chainSemantics`, for provenance shapes -- Component/
+Global Rowset/Row declarations, a Rowset-typed parameter -- that no
+existing set tracked at all):
+
+- Declared Row variable read directly (`rowVariables.has(...)`), not only
+  through the narrow `rowStartsRecordFieldChain` two-dot lookahead (definition 435).
+- Bare `GetLevel0()` recognized as an intrinsic, always dependency-bound
+  root (definition 2876 and its family, chained through multiple
+  `.GetRow(...)`/`.GetRowset(...)` calls via the pre-existing inheritance
+  mechanism).
+- Bare `GetRowset()`/`GetRowset(Scroll.X)` recognized as an intrinsic root
+  (Cycle 4's own evidence table already named this transition; it just
+  had no `initialChainSemantics` arm) -- definitions 926, 18564.
+- Bare `GetRow()` broadened from the narrow
+  `bareGetRowCallStartsRecordFieldChain` (two-dot bare-shorthand lookahead
+  only) to the unnarrowed `bareGetRowCallResult`, matching how
+  `bareGetRecordCallResult` was never narrowed this way -- definitions
+  10002, 14612, 15947, 17115, 22372, 24012 (`GetRow().GetRecord(...)`
+  chains).
+- `.ParentRow`/`.ParentRowset` navigation now PRESERVES the receiver's
+  binding/provenance (`ChainSemantics.provenance`'s `'navigation'` value,
+  reserved since Cycle 5 but never wired up) instead of resetting to
+  `unknown`/`dynamic` like an ordinary unrecognized property -- definition
+  3868 (`GetRowset().ParentRow.GetRecord(...)`).
+- Two new isolated sets, `chainSemanticsDeclaredRowVariables`/
+  `chainSemanticsDeclaredRowsetVariables`, populated at `Component
+  Row/Rowset`, `Global Rowset`, and `Rowset`-typed-parameter declaration
+  sites -- read ONLY by `chainSemantics`, never by any other decision, so
+  populating them cannot change legacy output anywhere else. Deliberately
+  does NOT add a `Rowset`-typed parameter to the shared `rowVariables`
+  precedent's `ensureLocalObjectPackageReference` call (that PACKAGE
+  allocation was evidenced specifically for `Row` parameters; several of
+  the 48 `Rowset`-parameter definitions are already EXACT without it).
+- A new `chainSemanticsBindingUnmodeled` flag distinguishes "receiver is
+  dynamic because it genuinely has no provenance" from "receiver is
+  dynamic only because it passed through the Rowset-selector `(...)`
+  transition, which Cycle 6 deliberately left unmodeled rather than
+  guessed at." Without this distinction the new gate could not tell the
+  two apart (both read as `{dynamic, unknown}`), and regressed
+  definitions 939/1078 (`GetLevel0()(N).GetRowset(...)(N).RECORD.FIELD`)
+  during this cycle's own validation before the flag was added.
+
+**The gate itself.** The first implementation attempt gated the
+`expectedReferenceMember` ASSIGNMENT directly (right where it is set from
+the method name). This caused 114 real EXACT regressions (definition
+1661 and 113 others) because `expectedReferenceMember` is NOT a pure
+eligibility flag: `reuseFieldReferenceWithinControlGroup` reads it
+directly (`fieldMemberFromGetRecord && expectedReferenceMember ===
+'field'`) to decide whether a FOLLOWING `.GetField(...)` call reuses an
+existing FIELD reference -- a genuine REUSE decision Phase 7C's own
+instructions say not to touch. The assignment was reverted to fully
+unconditional (exactly as Cycle 6 left it), and the gate was instead
+placed at the actual bare-member new-reference-eligibility site (the
+`if (expectedReferenceMember !== undefined && (!isMethodCall ||
+hasExistingExpectedReference) && ...)` block), narrowed to
+`!isMethodCall` only -- the exact site the diagnostic's own
+`actualEligible` comparison already used, and the one Phase 7A's census
+actually validated:
+
+```typescript
+const bareMemberBindingEligible =
+  isMethodCall ||
+  chainSemantics.binding === 'dependency-bound' ||
+  chainSemanticsBindingUnmodeled;
+
+if (
+  expectedReferenceMember !== undefined &&
+  ((!isMethodCall && bareMemberBindingEligible) || hasExistingExpectedReference) &&
+  !isInlineRowStateMember
+) { ... }
+```
+
+Untouched, per instruction: `DependencyScope`, all same-statement/
+call-local reuse pools, `RowScrollSelect`/`ScrollSelect` state, the
+rowset-selector-shorthand transition itself, the rowset-intrinsic-property
+question, explicit `Record.X`/`Scroll.X` handling, and
+`expectedReferenceMember`'s own assignment (still fully unconditional).
+
+### Phase 7D — Prediction validated before full corpus (with two real course-corrections)
+
+Named/discovered controls, re-verified individually after EACH fix:
+432, 524 (unchanged, EXACT); 1423, 1424, 1721, 1722 (newly EXACT --
+the confirmed fix); 435, 926, 939, 1078, 1661, 2876, 3868, 10002, 10009,
+10011, 14612, 14613, 14620, 14622, 14625, 14770, 15947, 15953, 17115,
+18564, 22372, 22453, 24012, 24015, 24016, 24061, 24430 (all EXACT,
+several newly so).
+
+Two regressions surfaced during this phase and were root-caused and
+fixed before proceeding, exactly as Phase 7D's protocol intends:
+
+1. Gating `expectedReferenceMember` directly (114 regressions) -- fixed
+   by relocating the gate to the bare-member-only eligibility site, per
+   above.
+2. Even after relocating, 939/1078 regressed because the Rowset-selector
+   `(...)` mechanism's own deliberate "not modeled, reset to dynamic"
+   choice was indistinguishable from genuine absence of provenance --
+   fixed by `chainSemanticsBindingUnmodeled`, per above.
+
+### Phase 7E — Full validation
+
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 490 tests, 489 pass, 1 intentional skip (unchanged).
+- Protected baseline (`corpus:harness --compare-baseline`): 430/430,
+  `Improved: 0, Regressed: 0`, `REGRESSION GATE: PASS`.
+- Full local-snapshot run (30,209 definitions): **23,182 EXACT** (up from
+  23,069).
+- Row-by-row diff against the Cycle 6 baseline run (`classification` AND
+  `generated_program_bytes` for all 30,209 definitions): **113
+  UNKNOWN_MISMATCH -> EXACT, 0 EXACT regressions**, 47
+  UNKNOWN_MISMATCH -> UNKNOWN_MISMATCH (generated bytes changed, still
+  failing for an unrelated reason -- not evidence of harm, not evaluated
+  further this cycle), 13 DECODE_SOURCE_MISMATCH -> DECODE_SOURCE_MISMATCH
+  (same). All other 30,036 definitions byte-identical.
+- Re-ran the Cycle 6 `chain-semantics-diagnostics.ts` categorization at
+  full scale: `rowset-selector-shorthand` count is **exactly unchanged**
+  (37,858, matching Cycle 6 precisely) -- direct confirmation the
+  selector mechanism was never touched. `bare-intrinsic-derived-receiver`
+  dropped from 6,482 to 2,469 (chainSemantics' own improved recognition
+  closing discrepancies, not the gate). `rowset-intrinsic-property` and
+  `other/unclassified` counts shifted as a side effect of chainSemantics
+  recognizing more receivers as bound rowsets elsewhere in the chain
+  (expected, not itself validated further this cycle).
+
+All acceptance criteria met: 430/430 protected; zero EXACT regressions;
+changes concentrated in the predicted provenance-bug population (the
+113 newly-EXACT definitions are drawn from exactly the receiver-provenance
+shapes this cycle's `chainSemantics` extensions target); negative
+controls 432 and 524 remain correct; rowset-selector-shorthand population
+unchanged.
+
+### Phase 7F — Architectural result
+
+The evidence now supports the proposed pipeline for this ONE call
+family (postfix `.GetRecord(...)`/`.GetRow(...)`/`.GetRowset(...)`
+bare-member eligibility):
+
+```
+postfix syntax
+    -> ChainSemantics (valueType, binding, provenance)
+    -> dependency eligibility (bare-member-only gate, this cycle)
+    -> DependencyScope (reuse/lifetime, untouched)
+    -> PSPCMNAME emission
+```
+
+**What is now redundant, but not removed this cycle:** the ELIGIBILITY
+question specifically -- "is a bare `.MEMBER` following this receiver
+allowed to become a NEW dependency at all" -- for the postfix-call-derived
+population, since `chainSemantics.binding === 'dependency-bound' ||
+chainSemanticsBindingUnmodeled` is now a strictly more accurate answer
+than `expectedReferenceMember !== undefined` was on its own (that is
+precisely what fixed 1423/1424/1721/1722 without touching the flag
+itself). **What is NOT redundant:** `expectedReferenceMember`'s VALUE
+selection (choosing `'record'` vs `'field'` from the method name) --
+`chainSemantics.valueType` tracks the same information but the two are
+not yet proven interchangeable at every call site; and
+`expectedReferenceMember`'s reuse role
+(`reuseFieldReferenceWithinControlGroup`, `fieldMemberFromGetRecord`),
+which this cycle's own regression (114 defs) proves is a genuinely
+separate concern current `chainSemantics` says nothing about and must
+not be asked to arbitrate.
+
+### Next action (research cycle)
+
+1. Trace the `rowset-selector-shorthand` mechanism in receiver-provenance
+   terms (73% of Cycle 6's own discrepancy population, `chainSemantics`'
+   single largest remaining gap) -- this is what `chainSemanticsBindingUnmodeled`
+   is a placeholder for; modeling it properly would let this cycle's own
+   gate stop needing that escape hatch.
+2. Trace `rowsetElementRecords`/`rowsetRecordNamesByVariable`/
+   `captureRowsetElementRecord` (Cycle 5's still-open schema-provenance
+   gap) so definition 524's own shape becomes visible to the diagnostic
+   comparison instead of silently agreeing with the legacy flag by
+   coincidence.
+3. Investigate the 47 UNKNOWN_MISMATCH -> UNKNOWN_MISMATCH and 13
+   DECODE_SOURCE_MISMATCH -> DECODE_SOURCE_MISMATCH generated-byte changes
+   from this cycle to confirm they are neutral/improving (first-diff
+   offset moved later) rather than a different kind of regression this
+   cycle's classification-level diff would not surface.
+4. Only after 1-2: consider whether `chainSemantics.binding` can safely
+   replace `expectedReferenceMember`'s VALUE selection too, not just its
+   eligibility gate, in a separately gated phase with the same rigor.
+5. Commit this semantic change separately, per instruction.
+
 ## Compiler Semantics Research Cycle 6 — propagate ChainSemantics through the postfix chain (structural, zero behavior change)
 
 **Status: structural propagation complete; no encoder semantic changes.**
