@@ -125,7 +125,10 @@ session already calibrated (843, 860, 5687, 1220, 1283, 1236, 30, 95, 1172,
 useful as a sanity check that the corrected tool reproduces known-good
 behavior, not just noise.
 
-**Finding A -- strong, five-definition-confirmed hypothesis**: a
+**Finding A -- initial hypothesis, PARTIALLY RETRACTED below (see the
+"Correction" paragraph after the PriorValue section: the FetchValue half
+held up, the postfix-GetRecord half did not and is replaced by a sharper,
+still-unconfirmed branch-vs-sequential hypothesis)**: a
 value-fetching accessor's own leading Record.X/Scroll.X argument -- the
 thing being read FROM, not written to -- appears to be EXEMPT from all
 control-group-scoped reuse. It always ALLOCates a fresh PSPCMNAME row in
@@ -208,10 +211,13 @@ need investigation right now; the PriorValue Phase 1 area was really
 surfacing Finding A by proximity, not a PriorValue-specific issue. Revisit
 only if a future PriorValue-only counterexample turns up.
 
-Finding A is now confirmed across **9 independent definitions** across two
-syntactic shapes: bare `FetchValue(Record.X/Scroll.X, ...)` (1521, 1454,
-1305, 2950, 2957, 2970) and postfix `.GetRecord(Record.X)`/`.GETRECORD(...)`
-(1420, 1423, 1424). Strong enough sample to move to Phase 2.
+At this point Finding A looked confirmed across 9 independent definitions
+across two syntactic shapes -- bare `FetchValue(Record.X/Scroll.X, ...)`
+(1521, 1454, 1305, 2950, 2957, 2970) and postfix
+`.GetRecord(Record.X)`/`.GETRECORD(...)` (1420, 1423, 1424). **The
+postfix-GetRecord half turned out to be wrong; see the "Correction"
+paragraph directly below the Phase 2 write-up.** The FetchValue half (6
+definitions, no counterexample found) still stands.
 
 ### Phase 2 -- inferred semantic model (Finding A only; other areas not yet modeled)
 
@@ -252,16 +258,56 @@ the "does not bind" side. This is the "smallest semantic model" the
 research directive asks for: one classification replacing what would
 otherwise become two more entries bolted onto an already-long allowlist.
 
-**Open question before Phase 3/4**: is "postfix .GetRecord(...) used to
-immediately chain into `.FIELD.Value`" the right generalization, or is the
-real distinguishing factor narrower (e.g. specifically "GetRecord called on
-an already-typed Row variable, immediately followed by a field-chain
-postfix, with no assignment of the GetRecord result itself")? 1420/1423/
-1424 all share the exact same `&Der_Parent.GETRECORD(Record.DERIVED_IBAN).
-FIELD.Value` shape -- need a definition where a bare GetRecord() call
-(no receiver variable, no immediate field chain) is ALSO shown to not
-reuse, or one where a postfix .GetRecord IS reused, before this
-generalization is trusted past the FetchValue half.
+**Correction (found while chasing the open question below): the postfix-
+GetRecord half of Finding A was over-generalized and is retracted as
+stated.** Definition 26 (ABSENCE_CAL.MONTHCD.RowInit, already EXACT)
+directly falsifies "postfix `.GetRecord(Record.X)` never reuses":
+`&LEVEL1(CurrentRowNumber(1)).GetRecord(Record.DERIVED_ABSENCE).GetField(@
+&POS_FIELD).Style` appears identically four times, in TWO separate If/Else
+pairs at TWO different control depths (4 and 7) -- stored ALLOCs once
+(first occurrence) and REUSEs the SAME row for all three remaining
+occurrences, and the current encoder already gets this right (zero
+disagreement). So postfix GetRecord DOES participate in reuse, at least
+across mutually-exclusive If/Else sibling branches.
+
+Re-examining 1420 (BANKACCT_SBR.COUNTRY_CD.SaveEdit) with this in mind
+found the actual distinguishing shape, and it is much narrower and
+stranger than "GetRecord never reuses": lines 30-31 are TWO SEQUENTIAL
+straight-line statements (both unconditionally execute, one right after
+the other, same control group, same depth 0 -- not sibling branches at
+all):
+
+```
+&IBANValidated = &Der_Parent.GETRECORD(Record.DERIVED_IBAN).GP_IBAN_VALIDATED.VALUE;
+&IBANCheck     = &Der_Parent.GETRECORD(Record.DERIVED_IBAN).GP_IBAN_CHECK.VALUE;
+```
+
+Stored ALLOCs a fresh row for EACH line (nameNum 5, then 6) despite
+identical receiver (`&Der_Parent`) and identical argument
+(`Record.DERIVED_IBAN`) -- the only textual difference is the field
+accessed AFTER GetRecord (`GP_IBAN_VALIDATED` vs `GP_IBAN_CHECK`). Combined
+with definition 26's sibling-branch reuse, the sharper (still
+single-example-per-side, NOT yet corroborated) hypothesis is: **a repeated
+postfix `.GetRecord(Record.X)` reuses its argument's PSPCMNAME row when
+the repetition is across MUTUALLY EXCLUSIVE control-flow branches (only
+one of which executes), but allocates a fresh row when the repetition is
+in the SAME straight-line sequential flow (both statements execute)** --
+which would be a genuinely different, sharper compiler-state distinction
+than a simple control-group/depth model captures, since 26's own two
+depths (4 and 7) are clearly NOT "the same control group" under the
+existing depth-based model, yet still reuse. FetchValue's own argument
+(the original, still-solid half of Finding A -- 1521, 1454, 1305, 2950,
+2957, 2970, all independent, no counterexample found yet) may or may not
+share this same branch-vs-sequential rule; not yet tested directly against
+a FetchValue sibling-branch repetition.
+
+**Open question before Phase 3/4**: corroborate the branch-vs-sequential
+GetRecord hypothesis with more examples (both a sibling-branch REUSE case
+beyond 26, and a sequential-statement ALLOC case beyond 1420/1423/1424)
+before trusting it, and test whether FetchValue's own argument follows the
+SAME branch-vs-sequential rule or is unconditionally always-fresh
+regardless of branch structure (no FetchValue sibling-branch repetition
+example has been checked yet).
 
 ### Next action (research cycle)
 
