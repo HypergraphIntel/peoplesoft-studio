@@ -855,6 +855,32 @@ test('REM after leading reference-bearing Locals closes the Local section', () =
   );
 });
 
+test('a later, unrelated initialized top-level Local does not suppress an earlier leading-Local declaration-section boundary', () => {
+  /*
+   * ADDRESS_TYPE_FL.ADDRESS_TYPE.RowDelete (definition_id 528): `Local SQL
+   * &SQL1;` is a leading, uninitialized, reference-bearing Local followed by
+   * executable statements, then later (after execution has already begun,
+   * with no `Declare Function` ever opening a top-level declaration
+   * section) an unrelated initialized `Local Record &recContact =
+   * CreateRecord(Record.EMERGENCY_CNTCT);`. The stored program still closes
+   * the FIRST Local's declaration section with `15 2D 4F`; the later
+   * initializer must not retroactively suppress that `0x2D`, since
+   * `sawTopLevelDeclaration` is false throughout -- there is no open
+   * `Declare Function` section for it to be closing.
+   */
+  assert.deepStrictEqual(
+    encodeFragment(
+      'Local Rowset &rs;\n\n' +
+      '&x = 1;\n' +
+      'Local Record &rec = CreateRecord(Record.PS_TEST);\n'
+    ),
+    Buffer.from(
+      '440A52006F0077007300650074000000012600720073000000152D4F01260078000000065000000100000000000000000000000000000015440A5200650063006F007200640000000126007200650063000000060A4300720065006100740065005200650063006F007200640000000B2103001415',
+      'hex'
+    )
+  );
+});
+
 test('REM may continue onto an observed single-space prose line', () => {
   const source =
     'REM KJB Removed code for Import Long Term Goals as it is\n' +
