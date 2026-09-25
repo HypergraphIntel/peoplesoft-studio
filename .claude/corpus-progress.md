@@ -1,5 +1,60 @@
 # Corpus Calibration Progress
 
+## Fix #77: SQL and Grid Function parameter/return type ids
+
+`src/peoplecode/encoder.ts`, `BUILTIN_FUNCTION_TYPE_IDS`: added `sql` ->
+`0x80002` and `grid` -> `0x80014`. Both were previously entirely missing
+from this table, so any `Function` declaration using `SQL` or `Grid` as a
+parameter or return type threw `Unsupported function metadata type: SQL`/
+`Grid` unconditionally.
+
+Found by binary evidence, not guessing: for definition 4861's `Function
+PopulateAcmArray(&PRD_END_DT As date, &RUN_TYPE As string, &AcmMbrSQL As
+SQL, &AcmMbrArray As array of Record);`, the parameter signature tail in
+the stored PSPCMPROG reads `c0000002 c0000001 c0080002 c0180003 00000007`
+-- date (`0x02`), string (`0x01`), SQL, `array of Record` (`0x100000 |
+0x80003`), terminator. SQL's descriptor is therefore `0xc0080002`, i.e.
+type id `0x80002` -- exactly the gap between the already-calibrated `file`
+(`0x80001`) and `record` (`0x80003`) in the same enumeration. Similarly,
+for definition 14962's `Function SetCompoundColumnVisibility(&rs As
+Rowset, &GRID As Grid)`, the tail reads `c0080007 c0080014 00000007` --
+Rowset (`0x80007`), Grid, terminator -- so Grid's type id is `0x80014`.
+
+Searched the corpus for each exact error (`SQL`: 7 occurrences, `Grid`: 5
+occurrences). Sampled all 12: all advance from an unconditional crash to a
+full, non-throwing encode (no longer `ENCODE_ERROR`/`UNSUPPORTED_SYNTAX`
+on this construct); none reach full `EXACT` corpus-wide since these are
+large real-world definitions with other separate, pre-existing issues
+elsewhere in the same files, but none regressed since none were EXACT
+before (confirmed: 0 improved, 0 regressed corpus-wide, matching the
+"encode no longer crashes but the file has other unrelated problems"
+pattern seen repeatedly this session, e.g. Fix #75's definition 5000).
+
+Deferred, NOT fixed this pass (evidence-gathering was more involved and
+inconclusive so far): `time` (3 occurrences) and bare `array` with no
+element type, i.e. `Returns array of array of string`-style nesting or a
+truly bare `array` (5 occurrences). Attempted the same binary-evidence
+method on definition 1016's `Function SetTime(&seconds) Returns time;`,
+but that file interleaves multiple `Function ... End-Function;` blocks
+with ordinary executable code rather than being a dedicated all-Function
+metadata file like the calibrated 9-function ABS_HIST_UK_SBR fixture --
+each Function's name text is scattered at large, non-contiguous file
+offsets (579, 3580, 9599, ..., 17070), meaning `encodeFunctionMetadata`'s
+single-shared-directory-at-file-start layout does NOT apply here, or
+applies differently, and the header/directory offsets read as garbage
+when parsed with that layout's assumptions. This needs proper
+understanding of how Function metadata is laid out when Functions are
+interleaved with executable code (vs. the dedicated-file case already
+calibrated) before further guessing -- left as a locally blocked/deferred
+item, not guessed at.
+
+Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
+`corpus:verify --limit 430` 430/430, 0 regressed. Full-corpus background
+run (run_id 297, 30209/30209, exact=22516) diffed against the immediately
+preceding full run (run_id 295, exact=22516): 0 improved, 0 regressed,
+30209 same (expected -- see above, this fix moves crashes to
+non-crashing mismatches, not to EXACT).
+
 ## Fix #76: `Continue` opcode -- emit 0x6E directly instead of `fixed('Continue')`
 
 `src/peoplecode/encoder.ts`, the top-level statement dispatcher's
@@ -36,35 +91,42 @@ run (run_id 295, 30209/30209, exact=22516) diffed against the immediately
 preceding full run (run_id 292, exact=22511): 5 improved, 0 regressed,
 30204 same.
 
-## Status as of Fix #76 (current)
+## Status as of Fix #77 (current)
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
   throughout. `--live` has never been used this session.
 - **Protected baseline**: 430/430, clean.
-- **Last successful calibration**: Fix #76 (above).
-- **Corpus total**: full-corpus run_id 295 = 22516/30209 exact (74.5%),
-  confirmed zero-regression against run_id 292 (Fix #74+#75's baseline,
-  itself confirmed zero-regression against run_id 290/288).
+- **Last successful calibration**: Fix #77 (above).
+- **Corpus total**: full-corpus run_id 297 = 22516/30209 exact (74.5%),
+  confirmed zero-regression against run_id 295 (Fix #76's baseline,
+  itself confirmed zero-regression against run_id 292/290/288).
 - **Next action**: resume failure-family triage from the current failure
-  inventory (`GROUP BY classification, error_message` on run_id 295 in
-  `tools/corpus/corpus-results.sqlite`). The two largest remaining
-  families (`bare identifiers are only supported as calls` at very low
-  source offsets, and `unsupported Application Class import/declaration`
-  at offset 0) are BOTH the already-documented, deliberately-deferred
-  multi-method Application Class program gap -- confirmed again this
-  session by inspecting definition 28716 (`class GVar4AdsDefnRet ... method
-  ... property ... get set;`), not a new narrow fix. Look past those two
-  families for the next genuinely narrow, evidence-backed construct
-  (query with `error_message NOT LIKE '%bare identifiers%' AND
-  error_message NOT LIKE '%Application Class%'` to skip the known-deferred
-  noise).
-- **Locally blocked / deferred, evidence exhausted** (unchanged): the `#If
-  #ToolsRel` preprocessor-directive family (73 occurrences, environmental
-  per-definition dependency); the general multi-method Application Class
-  program feature gap (confirmed still the largest failure family this
-  session, hundreds of occurrences, `parseApplicationClassProgram()` only
-  handles the narrow single-method inline shape); the decoder-only
-  rendering gap for `Return <number> /* comment */;` noted under Fix #72.
+  inventory (`GROUP BY classification, error_message` on run_id 297 in
+  `tools/corpus/corpus-results.sqlite`, excluding `%bare identifiers%` and
+  `%Application Class%` which are the known-deferred gap). A concrete,
+  scoped-but-unsolved candidate is ready to pick back up: the `time` and
+  bare-`array` Function parameter/return type ids (Fix #77's deferred
+  half, 3 + 5 occurrences) -- needs figuring out how Function metadata is
+  laid out for a file that interleaves `Function ... End-Function;` blocks
+  with ordinary executable code (definition 1016 is the concrete example),
+  since that's structurally different from the dedicated-all-Function-file
+  layout `encodeFunctionMetadata`/`encodeFunctionProgramHeader` currently
+  assume (names were found scattered at large, non-contiguous offsets:
+  579, 3580, 9599, 10517, 16294, 16544, 17070 -- one per Function, each
+  presumably local to its own block rather than batched in one directory
+  at file start). Do not guess at this layout without more binary
+  evidence; if it proves substantial, document it as its own deferred
+  feature gap rather than forcing a narrow fix.
+- **Locally blocked / deferred, evidence exhausted** (unchanged unless
+  noted): the `#If #ToolsRel` preprocessor-directive family (73
+  occurrences, environmental per-definition dependency); the general
+  multi-method Application Class program feature gap (confirmed still the
+  largest failure family this session, hundreds of occurrences,
+  `parseApplicationClassProgram()` only handles the narrow single-method
+  inline shape); the decoder-only rendering gap for `Return <number> /*
+  comment */;` noted under Fix #72; the Function-metadata-layout-for-
+  interleaved-Functions question noted above under Fix #77 (`time`/bare
+  `array` type ids).
 
 ## Status as of Fix #75 (superseded by Fix #76 above, kept for history)
 

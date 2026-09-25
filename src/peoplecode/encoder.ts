@@ -84,11 +84,23 @@ export interface EncodedPeopleCode {
 
 const BUILTIN_FUNCTION_TYPE_IDS: ReadonlyMap<string, number> = new Map([
   ['file', 0x80001],
+  // `Function PopulateAcmArray(..., &AcmMbrSQL As SQL, &AcmMbrArray As
+  // array of Record);` (definition 4861): the parameter signature tail
+  // stores SQL's descriptor as `c0080002` immediately between the `date`
+  // (`c0000002`) and `array of Record` (`c0180003`) parameters, i.e.
+  // SQL's own type id is 0x80002 -- the gap between `file` (0x80001) and
+  // `record` (0x80003) in this same enumeration.
+  ['sql', 0x80002],
   ['record', 0x80003],
   ['rowset', 0x80007],
   ['row', 0x80008],
   ['field', 0x80009],
   ['apiobject', 0x8000f],
+  // `Function SetCompoundColumnVisibility(&rs As Rowset, &GRID As Grid)`
+  // (definition 14962): the parameter signature tail stores Grid's
+  // descriptor as `c0080014` immediately after Rowset's (`c0080007`),
+  // i.e. Grid's own type id is 0x80014.
+  ['grid', 0x80014],
   ['xmldoc', 0x8001d],
   ['exception', 0x80021],
   ['xmlnode', 0x80022]
