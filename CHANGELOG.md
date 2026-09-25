@@ -1,5 +1,56 @@
 # Changelog
 
+## 0.2.3
+
+Version **0.2.3** improves PeopleCode dependency lifetime modeling and
+adds corpus-scale evidence for how PeopleTools allocates and reuses
+`PSPCMNAME` references.
+
+### PeopleCode Compiler Semantics
+
+- Corrected Record and Scroll dependency reuse across flat top-level
+  statements. Reuse-participating calls now allocate fresh leading
+  dependencies at the flat top level while preserving established reuse
+  inside control-flow bodies and Function or Method bodies.
+- Added a narrower same-statement reuse rule for repeated `Record.X`
+  arguments. This covers nested calls such as `DeleteRow(...,
+  ActiveRowCount(...))` and repeated `.GetRecord(Record.X)` chains within
+  one expression without leaking dependencies into later statements.
+- Preserved the existing FetchValue-specific fallback and the separate
+  `RowScrollSelect`, `RowScrollSelectNew`, and `ScrollSelect` reference
+  machinery.
+- Updated encoder tests that previously expected the disproven behavior
+  of sharing Record dependencies between independent flat top-level
+  FetchValue statements.
+
+### Compiler Research and Diagnostics
+
+- Added machine-readable reference-lifecycle evidence that compares stored
+  `PSPCMPROG` reference operands with generated `ALLOC` and `USE` events.
+- Expanded reference tracing to cover direct `0x48` and `0x4A` reference
+  emission paths.
+- Added branch, control-depth, function-depth, statement, and epoch
+  analysis for corpus-scale dependency-lifetime research.
+- Ran full-population studies across FetchValue, ActiveRowCount,
+  ScrollFlush, GetRecord, RowScrollSelect, and ScrollSelect. These studies
+  rejected several broader syntax-based hypotheses and isolated the
+  flat-top-level lifetime boundary implemented in this release.
+
+### Corpus Validation
+
+- Corpus size: **30,209 PeopleCode definitions**.
+- Full-corpus exact result: **23,069 / 30,209 (76.4%)**.
+- Five definitions became newly exact: **7365, 14699, 14717, 17132, and
+  22618**.
+- The protected regression baseline remains **430 / 430**.
+- Full-corpus comparison found **zero previously-exact regressions**.
+
+### Extension Activation
+
+- Simplified explicit activation events by removing redundant per-view
+  activation entries. The extension continues to activate for the `psft`
+  filesystem and after VS Code startup.
+
 ## 0.2.2
 
 Version **0.2.2** expands PeopleSoft Studio's local MCP integration and continues the reverse engineering of the PeopleCode compiler.
