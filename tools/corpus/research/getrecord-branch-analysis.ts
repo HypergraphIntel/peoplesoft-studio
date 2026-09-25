@@ -98,6 +98,19 @@ interface AnalysisRow {
   loopEpochChanged: boolean;
   /** True when both occurrences share the exact same innermost scopeId (same block). */
   sameScope: boolean;
+  /**
+   * True when the CURRENT occurrence sits at the encoder's own flat
+   * program top level (controlDepth === 0 AND functionDepth === 0 --
+   * genuinely no enclosing If/For/While/Evaluate AND no enclosing
+   * Function/Method). Distinct from controlPhase/controlConstruct, which
+   * come from this tool's OWN heuristic source scan; this field reads the
+   * encoder's actual controlDepth/functionDepth counters directly.
+   * Motivated by definitions 802 (agrees; FetchValue calls nested inside
+   * a Function+For+If) vs 6352/1305/6403/12544 (disagree; FetchValue
+   * calls at flat top level) -- see .claude/corpus-progress.md.
+   */
+  toIsFlatTopLevel: boolean;
+  fromIsFlatTopLevel: boolean;
 }
 
 /**
@@ -190,7 +203,9 @@ function analyzeDefinition(
         toPhase: curr.controlPhase,
         phaseChanged: prev.controlPhase !== curr.controlPhase,
         loopEpochChanged: prev.loopEpochId !== curr.loopEpochId,
-        sameScope: prev.scopeId === curr.scopeId
+        sameScope: prev.scopeId === curr.scopeId,
+        toIsFlatTopLevel: curr.controlDepth === 0 && curr.functionDepth === 0,
+        fromIsFlatTopLevel: prev.controlDepth === 0 && prev.functionDepth === 0
       });
     }
   }
@@ -331,7 +346,8 @@ function main(): void {
     { name: 'loopEpochChanged (a For/While/Repeat was entered in between)', predicate: r => r.loopEpochChanged },
     { name: 'sameScope=false (different innermost block)', predicate: r => !r.sameScope },
     { name: 'relationship=sequential', predicate: r => r.relationship === 'sequential' },
-    { name: 'relationship=sibling-branch', predicate: r => r.relationship === 'sibling-branch' }
+    { name: 'relationship=sibling-branch', predicate: r => r.relationship === 'sibling-branch' },
+    { name: 'flatTopLevel (both occurrences at controlDepth=0 AND functionDepth=0)', predicate: r => r.toIsFlatTopLevel && r.fromIsFlatTopLevel }
   ];
 
   console.log('\n--- Phase 1A candidate-rule quantification ---');
