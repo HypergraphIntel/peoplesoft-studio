@@ -4462,9 +4462,24 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     chunks.push(fixed('Repeat'));
 
     while (true) {
+      const whitespaceStart = pos;
       space();
+      const bodyWhitespace = source.slice(whitespaceStart, pos);
+      const hasBlankLine =
+        /(?:\r?\n)[ \t]*(?:\r?\n)/.test(bodyWhitespace);
 
       if (word('Until')) {
+        if (hasBlankLine) {
+          const markerCount = Math.max(
+            1,
+            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+          );
+
+          for (let marker = 0; marker < markerCount; marker++) {
+            pendingReferenceGroupBoundaries.push(chunks.length);
+          }
+        }
+
         chunks.push(fixed('Until'));
 
         space();
@@ -4476,11 +4491,72 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         fail('expected Until');
       }
 
+      /*
+       * A Repeat body may contain a standalone `/* ... *\/` comment or a
+       * REM comment, the same way every other body loop (If/While/For/
+       * Evaluate) already does -- this body loop had neither at all.
+       *
+       * PA_PYE_DATA.PYE_ARCHIVE.FieldFormula (one of several corpus
+       * occurrences of a standalone comment inside a Repeat body):
+       *
+       *   Repeat
+       *      /*** ... valid ***\/
+       *      &THIS_REPEAT_ROWS = &rs1.ActiveRowCount;
+       *   Until ...
+       */
+      if (source.startsWith('/*', pos)) {
+        if (hasBlankLine) {
+          const markerCount = Math.max(
+            1,
+            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+          );
+
+          for (let marker = 0; marker < markerCount; marker++) {
+            pendingReferenceGroupBoundaries.push(chunks.length);
+          }
+        }
+
+        chunks.push(blockComment());
+        continue;
+      }
+
+      if (/^REM\b/i.test(source.slice(pos))) {
+        if (hasBlankLine) {
+          const markerCount = Math.max(
+            1,
+            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+          );
+
+          for (let marker = 0; marker < markerCount; marker++) {
+            pendingReferenceGroupBoundaries.push(chunks.length);
+          }
+        }
+
+        chunks.push(remComment(true));
+        continue;
+      }
+
       statement();
 
       space();
       if (source[pos] !== ';') {
-        fail('expected ; in Repeat body');
+        /*
+         * The final statement in a Repeat body may omit its source
+         * semicolon when it is immediately followed by Until, the same
+         * way a While body already can before End-While.
+         *
+         * TRN_SML_SUM.FUNCLIB.FieldFormula (one of several corpus
+         * occurrences):
+         *
+         *   Repeat
+         *      ...
+         *      &ROW3_DEMAND_ID = FetchValue(TRN_SML_SUM_VW.DEMAND_ID, &ROW3)
+         *   Until &ROW3_DEMAND_ID = &ROW2_DEMAND_ID;
+         */
+        if (!/^Until\b/i.test(source.slice(pos))) {
+          fail('expected ; in Repeat body');
+        }
+        continue;
       }
 
       pos++;
