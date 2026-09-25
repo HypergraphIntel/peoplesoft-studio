@@ -1579,6 +1579,63 @@ Validation: `npm run typecheck` passed; `npm test` passed (490 tests,
 with zero regressions; full run 1753 used the completed local HCDEV
 snapshot only. `--live` was never used.
 
+### Phase 6 structural extraction (2026-09-25)
+
+Introduced an internal `DependencyScope` facade in the current encoder with
+no compiler-semantic change. The facade owns no storage and does not allocate
+or mutate control groups. Its dynamic `id` and `isOpen` properties project the
+existing `controlGroup` and `controlDepth > 0` parser state; its Record/Scroll
+lookup methods enforce the evidence-backed rule that block-scoped pools are
+not readable unless a real lexical/control block is open. Record methods
+continue writing to the existing maps exactly where the legacy implementation
+wrote them, preserving reference order and all later policy interactions.
+
+Compiler state is now documented in source by role:
+
+- DependencyScope backing state: `recordReferencesByControlGroup`,
+  `scrollReferencesByControlGroup`, `controlGroup`, and `controlDepth`.
+  `reuseRecordReferenceWithinControlGroup` and
+  `reuseScrollReferenceWithinControlGroup` remain parser-selected policy
+  flags that opt a call into those lookups.
+- Same-statement state: `recordReferencesWithinCurrentStatement`, still
+  orthogonal and readable when DependencyScope is closed.
+- Call-local state: `reuseRecordReferenceWithinCallArguments`,
+  `recordReferencesWithinCallArguments`, and
+  `singleOccurrenceCallArgumentRecordNames`; PriorValue's
+  `suppressRecordReferenceControlGroupWrite` remains a narrow call-local
+  write exception.
+- RowScrollSelect-family policy: `participatingRecordReferencesByControlGroup`
+  and `genericRecordReferencesSinceLastFamilyCall` retain their independent
+  participation and epoch behavior.
+- Unresolved legacy approximation: `reuseFetchValueRecord` and
+  `fetchValueRecordReferences` remain untouched as a separate shadow cache.
+- Parser state: `functionDepth` remains orthogonal and does not determine
+  whether DependencyScope is open.
+- Ordinary RECORD.FIELD interning, owner resolution, FIELD interning, and all
+  other reference pools remain outside the facade.
+
+One row-shorthand postfix bridge still reads
+`recordReferencesByControlGroup` directly. Its visibility semantics have not
+been proven identical to DependencyScope, so Phase 6 explicitly documents it
+as an unresolved legacy bridge instead of changing or forcing it through the
+facade.
+
+Zero-behavior-change validation:
+
+- `npm run typecheck`: pass.
+- `npm test`: 490 tests, 489 pass, one intentional skip.
+- Thirty Phase 5 evidence and mechanism-control definitions were compared
+  directly with run 1753 by classification, first diff, stored hash, and
+  generated hash: all unchanged.
+- Protected baseline: 430/430, zero regressions.
+- Full local-snapshot run 1786: 30,209 definitions, 23,069 EXACT and 7,140
+  failed -- exactly equal to Phase 5 run 1753.
+- Row-by-row run 1753 -> 1786 comparison: zero classification changes, zero
+  generated-binary SHA changes, zero first-diff changes, zero encode-success
+  changes, zero source-exact changes, zero roundtrip-exact changes, and zero
+  error-message changes across all 30,209 definitions.
+- No live HCDEV access was used.
+
 ## Checkpoint
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)

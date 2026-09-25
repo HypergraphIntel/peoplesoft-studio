@@ -38,6 +38,32 @@ export interface PeopleCodeReference {
   methodName?: string;
 }
 
+/**
+ * Evidence-backed visibility facade for block-scoped RECORD/SCROLL
+ * dependencies.
+ *
+ * This deliberately owns no storage and does not allocate scope ids. It
+ * projects the parser's existing controlGroup/controlDepth state over the
+ * existing maps so callers cannot accidentally read a block-scoped pool
+ * while no real lexical/control block is open.
+ */
+interface DependencyScope {
+  readonly id: number;
+  readonly isOpen: boolean;
+
+  lookupRecord(recordName: string): PeopleCodeReference | undefined;
+  recordRecord(
+    recordName: string,
+    reference: PeopleCodeReference
+  ): void;
+
+  lookupScroll(recordName: string): PeopleCodeReference | undefined;
+  recordScroll(
+    recordName: string,
+    reference: PeopleCodeReference
+  ): void;
+}
+
 export interface PeopleCodeOwner {
   recordName: string;
   fieldName: string;
@@ -1846,6 +1872,96 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   let nextControlGroup = 1;
 
   /*
+   * Phase 6 compiler-state map
+   * --------------------------
+   *
+   * DependencyScope state:
+   *   - `recordReferencesByControlGroup` and
+   *     `scrollReferencesByControlGroup` are the backing stores.
+   *   - `controlGroup` supplies the current scope id.
+   *   - `controlDepth` determines whether that scope is open/readable.
+   *   - `reuseRecordReferenceWithinControlGroup` and
+   *     `reuseScrollReferenceWithinControlGroup` are parser-selected policy
+   *     flags deciding whether the current call participates in this scope.
+   *
+   * Same-statement state:
+   *   - `recordReferencesWithinCurrentStatement` is intentionally outside
+   *     DependencyScope and remains readable even when this facade is closed.
+   *
+   * Call-local state:
+   *   - `reuseRecordReferenceWithinCallArguments`,
+   *     `recordReferencesWithinCallArguments`, and
+   *     `singleOccurrenceCallArgumentRecordNames` describe one call's own
+   *     argument list. `suppressRecordReferenceControlGroupWrite` is the
+   *     PriorValue call's narrow write-suppression flag.
+   *
+   * RowScrollSelect-family policy:
+   *   - `participatingRecordReferencesByControlGroup` and
+   *     `genericRecordReferencesSinceLastFamilyCall` retain their distinct
+   *     participation/epoch rules. They are not DependencyScope stores.
+   *
+   * Unresolved legacy approximation:
+   *   - `reuseFetchValueRecord` and `fetchValueRecordReferences` remain a
+   *     separate shadow cache pending their own evidence audit.
+   *   - the row-shorthand postfix bridge has one documented raw read from
+   *     `recordReferencesByControlGroup`; its visibility rule has not been
+   *     proven identical to DependencyScope and is therefore not forced
+   *     through this facade.
+   *
+   * Parser state only:
+   *   - `functionDepth` remains orthogonal parser/declaration state. It does
+   *     not decide whether DependencyScope is open.
+   *
+   * Ordinary RECORD.FIELD interning, owner resolution, FIELD interning, and
+   * every other reference pool remain outside this facade.
+   */
+  const dependencyScope: DependencyScope = {
+    get id(): number {
+      return controlGroup;
+    },
+
+    get isOpen(): boolean {
+      return controlDepth > 0;
+    },
+
+    lookupRecord(recordName: string): PeopleCodeReference | undefined {
+      if (!this.isOpen) return undefined;
+
+      return recordReferencesByControlGroup.get(
+        `${this.id}:${recordName.toLowerCase()}`
+      );
+    },
+
+    recordRecord(
+      recordName: string,
+      reference: PeopleCodeReference
+    ): void {
+      recordReferencesByControlGroup.set(
+        `${this.id}:${recordName.toLowerCase()}`,
+        reference
+      );
+    },
+
+    lookupScroll(recordName: string): PeopleCodeReference | undefined {
+      if (!this.isOpen) return undefined;
+
+      return scrollReferencesByControlGroup.get(
+        `${this.id}:${recordName.toLowerCase()}`
+      );
+    },
+
+    recordScroll(
+      recordName: string,
+      reference: PeopleCodeReference
+    ): void {
+      scrollReferencesByControlGroup.set(
+        `${this.id}:${recordName.toLowerCase()}`,
+        reference
+      );
+    }
+  };
+
+  /*
    * Function-local Application Class instances have distinct PSPCMNAME
    * method dependencies even when the same class already has a runtime-create
    * dependency in the function body.
@@ -2113,10 +2229,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }
     }
 
-    if (reuseRecordReferenceWithinControlGroup && controlDepth > 0) {
-      const existing = recordReferencesByControlGroup.get(
-        `${controlGroup}:${recordName.toLowerCase()}`
-      );
+    if (reuseRecordReferenceWithinControlGroup) {
+      const existing = dependencyScope.lookupRecord(recordName);
 
       if (existing !== undefined) {
         /*
@@ -2213,7 +2327,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         singleOccurrenceCallArgumentRecordNames?.has(
           recordName.toLowerCase()
         ) ||
-        controlDepth > 0
+        dependencyScope.isOpen
       ) {
         const controlGroupExisting =
           genericRecordReferencesSinceLastFamilyCall.get(
@@ -2235,9 +2349,9 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     // correctly skipped there -- without this guard too, the primary
     // fix's own target construct (definition 6352) would still wrongly
     // reuse through this second path.
-    if (reuseFetchValueRecord && controlDepth > 0) {
+    if (reuseFetchValueRecord && dependencyScope.isOpen) {
       const existing = fetchValueRecordReferences.get(
-        `${controlGroup}:${recordName.toLowerCase()}`
+        `${dependencyScope.id}:${recordName.toLowerCase()}`
       );
       if (existing !== undefined) {
         return referenceOperand(existing);
@@ -2296,10 +2410,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       !reuseRecordReferenceWithinCallArguments &&
       !suppressRecordReferenceControlGroupWrite
     ) {
-      recordReferencesByControlGroup.set(
-        `${controlGroup}:${recordName.toLowerCase()}`,
-        reference
-      );
+      dependencyScope.recordRecord(recordName, reference);
       genericRecordReferencesSinceLastFamilyCall.set(
         `${controlGroup}:${recordName.toLowerCase()}`,
         reference
@@ -2392,11 +2503,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     // Same controlDepth > 0 guard as recordReference()'s identical
     // Record.X check a few lines above -- see that check's own comment
     // for the full evidence trail (definitions 6352 vs 802).
-    if (reuseScrollReferenceWithinControlGroup && controlDepth > 0) {
-      const key =
-        `${controlGroup}:${recordName.toLowerCase()}`;
-      const existing =
-        scrollReferencesByControlGroup.get(key);
+    if (reuseScrollReferenceWithinControlGroup && dependencyScope.isOpen) {
+      const existing = dependencyScope.lookupScroll(recordName);
 
       if (existing !== undefined) {
         return referenceOperand(existing);
@@ -2407,10 +2515,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         recordName
       });
 
-      scrollReferencesByControlGroup.set(
-        key,
-        reference
-      );
+      dependencyScope.recordScroll(recordName, reference);
 
       return referenceOperand(reference);
     }
@@ -7021,8 +7126,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       ).pop()!;
 
       if (lastCallArgumentReference.recordName !== undefined) {
-        recordReferencesByControlGroup.set(
-          `${controlGroup}:${lastCallArgumentReference.recordName.toLowerCase()}`,
+        dependencyScope.recordRecord(
+          lastCallArgumentReference.recordName,
           lastCallArgumentReference
         );
       }
