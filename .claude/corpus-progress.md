@@ -648,10 +648,14 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #84 (below), validated locally on top
-  of current HEAD `45fccb5`. Fix #84 and this progress ledger are currently
-  uncommitted.
-- **Corpus total** (full-corpus run_id 1446): 22656/30209 exact (75.0%).
+- **Last successful calibration**: Fix #85 (below), validated locally on top
+  of current HEAD `e9ccca2`. Fix #85 and this progress ledger are currently
+  uncommitted. (Prior checkpoint's HEAD `45fccb5` is now behind: unrelated
+  MCP-client work landed several commits, through `e9ccca2`, between
+  sessions; full typecheck and `npm test` are clean at `e9ccca2`, so the
+  previously-recorded typecheck blocker no longer applies -- see updated
+  validation note below.)
+- **Corpus total** (full-corpus run_id 1457): 22671/30209 exact (75.0%).
   Fix #73 was first rechecked against the already-equivalent full run 1326
   (run 1327: all 30209 materially unchanged). Subsequent full diffs were:
   Fix #74 run 1327 -> 1338 (2 exact, 4 advanced, 0 regressed); Fix #75 run
@@ -662,7 +666,10 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   Fix #81 run 1371 -> 1375 (1 exact, 0 regressed); Fix #82 run 1375 -> 1399
   (8 exact, 7 advanced, 0 regressed); Fix #83 run 1399 -> 1442 (15 exact,
   11 advanced, 0 regressed); Fix #84 run 1442 -> 1446 (1 exact, 0
-  regressed). The protected gate remains 430/430.
+  regressed); Fix #85 run 1446 -> 1457 (15 exact, 0 regressed, diffed
+  directly against `corpus_run`/`result` rows in `corpus-results.sqlite`
+  since both runs were full 30209-definition runs). The protected gate
+  remains 430/430.
 - **Locally blocked / deferred, evidence exhausted this session** (see
   their own entries further down for full evidence trails): the `#If
   #ToolsRel` preprocessor-directive family (73 combined occurrences,
@@ -673,27 +680,55 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   single-method inline shape); a decoder-only rendering gap for `Return
   <number> /* comment */;` noted under Fix #72 (narrow, not corpus-
   evidenced, deliberately left unfixed).
-- **Validation caveat**: after Fix #79, `npm run typecheck` and the complete
-  `npm test` suite passed (465 tests: 464 pass, 1 pre-existing skip). During
-  Fixes #80-#81, unrelated concurrent MCP integration work landed in commits
-  `b55424a`/`e3bd1d4`; current full-project typecheck/pretest fail in that
-  integration (`src/extension.ts`, `src/mcp/clients/common.ts`,
-  `src/mcp/configure.ts`, `src/mcp/controller.ts`, and `src/mcp/status.ts`:
-  unused imports/properties and missing server/status exports). Do not modify
-  or revert that work as part of corpus calibration. The directly relevant
-  encoder suite passes after Fix #84 (`npx tsx --test
-  src/test/encoder.test.ts`: 116 tests, 115 pass, 1 pre-existing skip), and
-  every post-fix protected gate is 430/430.
-- **Next action**: resume failure-family triage from full run_id 1446 (group
+- **Validation caveat**: after Fix #85, on HEAD `e9ccca2`, both `npx tsc -p .
+  --noEmit` (whole project) and `npm test` (whole project: 471 tests, 470
+  pass, 1 pre-existing skip) are clean -- the previously-recorded MCP-related
+  typecheck blocker from the `45fccb5`-era checkpoint is gone; that unrelated
+  work has since been completed/fixed upstream of this session and was not
+  touched here. Every post-fix protected gate is 430/430.
+- **Next action**: resume failure-family triage from full run_id 1457 (group
   `corpus-results.sqlite`'s latest run by `classification`/`construct`,
-  the same query used to find every target this session). The call-string,
-  multiline-REM, and terminal-`#` families are calibrated below. Empty/simple
-  Application Class definitions such as 28770 remain actionable but require
-  adding explicit application-package ownership to encoder context; do not
-  infer that owner from source text. The legacy `remark` family is calibrated
-  below; choose the next compact family from run 1446.
+  the same query used to find every target this session, or use `npm run
+  corpus:next`). `npm run corpus:next` currently surfaces the `UNKNOWN_MISMATCH`
+  / `(none)` catch-all bucket (4852 remaining) as highest raw priority;
+  representatives from it must be triaged individually since the bucket
+  itself has no single construct signature. The call-string, multiline-REM,
+  and terminal-`#` families are calibrated below. Empty/simple Application
+  Class definitions such as 28770 remain actionable but require adding
+  explicit application-package ownership to encoder context; do not infer
+  that owner from source text. The legacy `remark` family is calibrated
+  below.
 
 ## Current target
+- **Fix #85** landed locally (src/peoplecode/encoder.ts): a later, unrelated
+  initialized top-level `Local` no longer retroactively suppresses an
+  earlier leading-Local declaration-section `0x2D` boundary. The
+  `leadingRunHasInitializedLocal` setter's first branch condition was
+  `!closedTopLevelDeclarationSection` alone, which is vacuously true in any
+  program with no `Declare Function`/top-level declaration section at all
+  (`sawTopLevelDeclaration` stays false, so `closedTopLevelDeclarationSection`
+  never becomes true either) -- so ANY initialized top-level Local anywhere
+  later in the source, even one with no relationship to the earlier leading
+  Local run, wrongly set the flag and suppressed that earlier run's `0x2D`.
+  Definition 528 (ADDRESS_TYPE_FL.ADDRESS_TYPE.RowDelete) proves this:
+  `Local SQL &SQL1;` (uninitialized, reference-bearing) is followed by
+  `SQLExec(...)` and an assignment, THEN `Local Record &recContact =
+  CreateRecord(Record.EMERGENCY_CNTCT);` (initialized) -- the stored program
+  closes the FIRST Local's section with `15 2D 4F` before `SQLExec`, but the
+  generated program dropped the `2D`, landing one byte short (1569 vs stored
+  1570) starting at body offset 191. Fixed by requiring
+  `sawTopLevelDeclaration &&` before `!closedTopLevelDeclarationSection` in
+  that branch, matching the sibling `closesTopLevelDeclarationSection` check
+  a few dozen lines away which already has this guard. The DERIVED_GPFRDSN
+  (`Declare Function` still open) and CAFNUI_CTRL_WRK (Application Class
+  Local) calibrated cases that originally motivated this flag both still
+  pass, since both have `sawTopLevelDeclaration` true or hit the untouched
+  Application Class branch. Definition 528 is now source->bin EXACT,
+  roundtrip EXACT, source MATCH. Full run 1446 -> 1457: 15 exact, 30194
+  unchanged, 0 regressed. Added a minimal-fragment byte-level regression
+  test reproducing the same shape. Full project `tsc -p . --noEmit` clean;
+  full `npm test` 471 tests, 470 pass, 1 pre-existing skip; protected gate:
+  430/430.
 - **Fix #84** landed locally (src/peoplecode/encoder.ts): quoted Component
   metadata references now dispatch through the already-calibrated quoted-name
   `0x48` encoder before the bare `Component.NAME` reference parser. Definition
@@ -4773,7 +4808,16 @@ project-level blocker").
 - definitions: 430
 - exact: 430
 - regressions: 0
-- last verified: 2026-09-24 (/goal resume session, continued), after fix
+- last verified: 2026-09-25 (/goal resume session), after Fix #85
+  (definition 528, leading-Local declaration-section `0x2D` boundary no
+  longer suppressed by an unrelated later initialized top-level Local),
+  REGRESSION GATE: PASS (430/430, no regression, first attempt). Full
+  corpus run_id 1457 also directly diffed against run_id 1446 at the
+  per-definition `classification` level (not just the 430-window): 15
+  newly exact, 0 regressed, 30194 unchanged (`corpus-results.sqlite`
+  `result` table). Full-project `npx tsc -p . --noEmit` and `npm test`
+  (471 tests, 470 pass, 1 pre-existing skip) both clean on HEAD `e9ccca2`.
+- prior verification: 2026-09-24 (/goal resume session, continued), after fix
   #47 (definition_ids 30/95, ScrollSelect cross-call participating fix),
   REGRESSION GATE: PASS (430/430, no regression). Fix #47 itself was a
   repair of a regression fix #42 introduced (caught by this same gate on
@@ -4908,6 +4952,15 @@ project-level blocker").
     positional/heuristic rule without checking this first.
 
 ## Next action
+- **Current session (2026-09-25, /goal resume), immediate next step**: Fix
+  #85 landed and verified (430/430, full run 1457, 0 regressed). Resume
+  triage from `npm run corpus:next`, which currently surfaces the
+  `UNKNOWN_MISMATCH`/`(none)` catch-all (4852 remaining, no single
+  construct signature -- representatives must be pulled and diagnosed
+  individually, e.g. definition 528's family just fixed). No definition is
+  currently mid-investigation. All locally-blocked/deferred entries listed
+  below (older sessions) remain unchanged and still deferred; none were
+  revisited this session.
 - **Continued session, immediate next step**: use the SQL workaround below
   with `r.offset > 1643` (the last definition_id touched this continued
   session) to get the next batch of fresh UNKNOWN_MISMATCH candidates.

@@ -8780,7 +8780,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     if (
       isLocalDeclaration &&
       lastLocalHadInitializer &&
-      (!closedTopLevelDeclarationSection ||
+      ((sawTopLevelDeclaration && !closedTopLevelDeclarationSection) ||
         ((sawApplicationClassLocalSection ||
           (isApplicationClassLocal && applicationClassLocalIsDeclarationPhase)) &&
           !closedApplicationClassLocalSection))
