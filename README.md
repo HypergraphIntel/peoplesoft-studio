@@ -6,7 +6,10 @@ VS Code extension for **reading and navigating** PeopleSoft definitions — Peop
 
 
 1. Install **PeopleSoft Studio**.
-2. Reload VS Code.
+2. Reload VS Code. Open the VS Code Command Palette ( CTRL + SHIFT + P ):
+   ```text
+   Developer: Reload Window
+   ```
 3. Add and connect to a PeopleSoft environment from the **PeopleSoft Studio** sidebar.
 4. Verify that the MCP server is running:
    ```bash
@@ -21,7 +24,7 @@ VS Code extension for **reading and navigating** PeopleSoft definitions — Peop
    ```
 5. Register PeopleSoft Studio with Codex.
 
-   Open the VS Code Command Palette and run:
+   Open the VS Code Command Palette ( CTRL + SHIFT + P ) and run:
 
    ```text
    PeopleSoft: Configure Codex MCP
