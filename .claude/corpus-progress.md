@@ -404,48 +404,142 @@ granularity; same "background rate, needs the deeper stored-byte
 enumeration technique, not more surface-syntax guessing" conclusion as
 FetchValue/ActiveRowCount above.
 
+### Phase 1A/1B -- loop-header/epoch hypothesis quantified and FALSIFIED
+
+Per the user's own explicit direction ("Do not derive compiler rules from
+hand-picked definitions... sweep the whole population, establish the base
+agreement rate, isolate the disagreement minority, cluster by structural
+context... quantify how much of the disagreement population [each
+candidate rule] explains"), extended `reference-lifecycle.ts`'s branch
+timeline with real header/condition/body phase tracking (not just nesting
+depth): `BranchFrame` now carries `phase: 'header'|'condition'|'body'`
+and `entryOffset`; `GeneratedOccurrence` gained `controlConstruct`,
+`controlPhase`, `scopeId`, `parentScopeId`, `scopeEntryOffset`, and
+`loopEpochId` (a counter incremented every time a For/While/Repeat frame
+is entered, independent of `epochCandidate`'s intrinsic-call counting).
+For/While header detection uses a paren-depth-aware first-newline
+heuristic (corpus convention keeps these single-line); If/Evaluate/Repeat
+phase transitions are keyword-driven (Then/Else, When/When-Other,
+Until). Added `Repeat`/`Until` support (previously untracked).
+`getrecord-branch-analysis.ts` gained a quantification report: for each
+candidate rule, disagreements explained / not explained / currently-correct
+pairs also touched, exactly the reporting format requested.
+
+**Ran the full FetchValue (749 defs, 1393 pairs) and ActiveRowCount (1028
+defs, 477 pairs) populations again with this instrumentation. Every
+control-boundary-crossing hypothesis is decisively falsified, corroborated
+identically across BOTH constructs:**
+
+| candidate rule | FetchValue: disagreements explained | FetchValue: also touches correct pairs | ActiveRowCount: disagreements explained | ActiveRowCount: also touches correct pairs |
+|---|---|---|---|---|
+| `phaseChanged` (header/condition/body crossed -- covers For/While header-to-body, If condition-to-Then/Else, Evaluate selector-to-When, Repeat body-to-Until, ALL at once) | 1/66 (1.5%) | 57/1326 (4.3%) | 0/15 (0.0%) | 89/462 (19.3%) |
+| `loopEpochChanged` (a For/While/Repeat was entered in between -- Model B) | 3/66 (4.5%) | 356/1326 (26.8%) | 4/15 (26.7%) | 364/462 (78.8%) |
+| `sameScope=false` | 7/66 (10.6%) | 571/1326 (43.1%) | 4/15 (26.7%) | 347/462 (75.1%) |
+
+**This directly falsifies the loop-header/reference-epoch lead from the
+last checkpoint.** Definitions 2958 and 7285 (the original 2-definition
+overlap that motivated this whole investigation) turn out to be
+coincidental: their disagreements happen to sit in a loop, but the other
+64+13 = 77 disagreements overwhelmingly do NOT involve any phase or loop
+boundary at all. Models A/B/C/D (header/body separate environments, loop
+entry opens a new epoch, header-visible-outward-not-inward, body inherits
+parent-not-header) are all rejected by this data across two independent
+constructs -- none of them explains more than 27% of either construct's
+disagreements, and the ones with nonzero explanatory power (`loopEpochChanged`,
+`sameScope`) touch an EVEN LARGER share of the currently-correct
+population, meaning they are anti-correlated with the bug if anything, not
+predictive of it.
+
+**One genuinely robust, cross-construct-confirmed positive finding did
+come out of this**: `relationship=sibling-branch` (mutually exclusive
+If/Else or Evaluate/When alternatives) explains **0/66 FetchValue
+disagreements and 0/15 ActiveRowCount disagreements** -- and, checked the
+other direction, **zero of the 36+32=68 total sibling-branch pairs in
+either population ever disagree**. Sibling-branch reuse is reliably,
+100%-correctly handled by the current encoder for both constructs. This is
+a real, corpus-scale-confirmed rule, just not a novel one -- it matches
+the existing calibrated control-group-spans-both-branches behavior.
+
+**`relationship=sequential` is a strong enrichment factor but not
+sufficient by itself**: 58/66 (87.9%) of FetchValue's disagreements and
+11/15 (73.3%) of ActiveRowCount's are sequential (same straight-line
+block, no branch), well above each construct's own sequential-pair base
+rate (53.3% and 16.9% respectively) -- so a disagreement is meaningfully
+MORE likely to be sequential than not, but most sequential pairs (707/765
+for FetchValue, 78/89 for ActiveRowCount) still correctly reuse, so
+"sequential" alone is necessary-leaning but nowhere near sufficient.
+
+**Went one level deeper, inside the sequential subset only, looking for
+what separates its disagreeing minority**: neither statement-distance
+(`toStmt - fromStmt`: FetchValue disagree mean 1.05 vs agree mean 1.17,
+essentially identical; ActiveRowCount disagree mean 1.09 vs agree mean
+2.65, a real but modest gap) nor which watched intrinsic intervened (for
+both constructs, ~100% of both disagreeing AND agreeing sequential pairs
+have the SAME repeated call in between, by construction) provides a clean
+split. No further structural/positional signal was found with this
+tool's current instrumentation.
+
+**Conclusion**: the residual ~3-5% disagreement rate in FetchValue's and
+ActiveRowCount's leading-argument reuse is NOT explained by any
+source-text-visible control-flow structure (branch type, loop-header vs
+loop-body, statement distance, or which intrinsic intervenes). Per
+CLAUDE.md's own "compile-time environmental behavior... information not
+derivable from source text alone" category, the real discriminator likely
+depends on something this tool cannot see from source text: candidate
+next things to check are (a) whether the SPECIFIC ARGUMENT VALUES differ
+between the two calls (e.g. a different loop-variable/row-number argument,
+or a different trailing field/property accessed after the shared leading
+argument -- this was the actual explanation found earlier for GetRecord's
+14623/14770/1420 cases, though it did NOT hold for def 10661's REUSE
+counterexample, so it is not yet a settled rule even there), or (b) real
+record/field schema properties not present in the PeopleCode source at
+all. Both require the stored-byte NAMENUM-enumeration technique on
+individual tractable examples, not further corpus-wide structural sweeps.
+
 ### Next action (research cycle)
 
-1. Chase the loop-header/epoch lead: check whether ALL (or most) of the
-   remaining 28 FetchValue-only and 9 ActiveRowCount-only disagreement
-   definitions (definition_id lists are in this session's tool output; not
-   yet re-extracted into this file individually) ALSO have their
-   disagreeing reference used as, or nested inside, a `For`/`While`
-   loop-bound expression -- if so, that promotes this from "an interesting
-   lead in 2 definitions" to a real, broad, corroborated hypothesis. The
-   `branchPath` tracker already distinguishes `For#N` frames, so this is
-   answerable by extending `getrecord-branch-analysis.ts`'s tabulation to
-   bucket by "is either occurrence's branchPath's innermost frame (or an
-   ancestor) a `For`/`While` whose OWN bound expression contains the same
-   reference identity" -- not yet implemented.
-2. If the loop-header hypothesis holds broadly, do the stored-byte
-   NAMENUM-enumeration deep dive (the technique from earlier sessions,
-   cited multiple times in this file's older Fix write-ups) on ONE clean
-   small example (7285 is only 5 sequential FetchValue calls, tractable)
-   to determine the EXACT rule, not just the correlation.
-3. If the loop-header hypothesis does NOT hold broadly (most of the 41
-   other disagreement definitions have no loop involvement), the residual
-   ~3-5% disagreement rate across FetchValue/ActiveRowCount/GetRecord may
-   simply be several small, unrelated bugs needing individual
-   investigation -- in that case, stop looking for one unifying rule for
-   ALL of them and instead pick the single most common remaining shape
-   across the 30+11+distinct-GetRecord definition lists.
-4. RowScrollSelect/RowScrollSelectNew's OWN semantics (the directive names
-   them explicitly) have not yet been run through this same full-population
-   methodology -- still outstanding.
-5. Do NOT implement any encoder fix yet. Three surface-syntax hypotheses
-   (FetchValue always-fresh, GetRecord branch-vs-sequential, GetRecord
-   bare-vs-postfix) were each falsified this session by testing at full
-   corpus scale instead of trusting a handful of examples -- exactly the
-   discipline the directive asks for. The next real lead (loop-header
-   epoch boundary) is corroborated in only 2 definitions so far and needs
-   the step-1 broadening check before it is trustworthy enough to model,
-   let alone implement.
-6. Old Phase 2 "binding vs. value-fetch" two-class write-up above is
-   SUPERSEDED for FetchValue by this section; leave it in place as a
-   record of a falsified hypothesis (per the directive's own "reject
-   hypotheses that only explain one example" discipline -- the retraction
-   trail is itself part of the evidence record, not noise to delete).
+1. Do the stored-byte NAMENUM-enumeration deep dive (the technique from
+   earlier sessions) on ONE small, tractable disagreement example --
+   definition 6352 (DERIVED_HR_TRN.ATTENDANCE.FieldChange, 4 sequential
+   FetchValue(Record.DERIVED_HR_TRN, CurrentRowNumber(), DERIVED_HR_TRN.X)
+   calls, only the trailing field X differs each time) is a clean
+   candidate: determine the EXACT rule, not just ruling out structural
+   correlates.
+2. Specifically test the "differing trailing field/argument" hypothesis
+   (candidate (a) above) against 6352 and a confirmed REUSE counterpart
+   with the SAME shape, the way the GetRecord bare-vs-postfix hypothesis
+   was tested and refined earlier this cycle -- this tool does not yet
+   capture "what argument/member follows the shared leading reference," so
+   it would need a further, targeted extension (not a blind broad-corpus
+   sweep this time -- the full-population method has now been applied
+   three times and each time the tested structural hypothesis was
+   rejected; a few close single-example reads are the right next tool for
+   this specific sub-question, per the directive's own "hand-picked
+   examples only when the full population is too small to sweep" allowance
+   -- 30 and 11 definitions respectively ARE small enough for close
+   reading once a structural sweep has exhausted the cheap hypotheses).
+3. RowScrollSelect/RowScrollSelectNew/ScrollSelect/ScrollFlush's OWN
+   leading-argument semantics (Phase 1C) have not yet been run through
+   this full-population methodology -- still outstanding, and now
+   explicitly ordered AFTER step 1/2 per the user's own Phase 1C
+   instruction ("after the loop-boundary analysis so its disagreement
+   cases can be classified using the same scope/epoch model" -- the model
+   built here, even though it came back mostly negative, is exactly what
+   Phase 1C should reuse to classify ScrollFlush/RowScrollSelect's own
+   residual disagreements, which have not yet been isolated from their
+   much larger already-calibrated-correct population the way FetchValue's
+   and ActiveRowCount's were this cycle).
+4. Do NOT implement any encoder fix yet. Four surface-syntax/structural
+   hypotheses (FetchValue always-fresh, GetRecord branch-vs-sequential,
+   GetRecord bare-vs-postfix, loop-header/reference-epoch boundary) have
+   now been tested and falsified at full corpus scale this cycle. The
+   discipline is working exactly as intended -- each rejection narrows the
+   search space instead of accumulating a wrong special case. The next
+   step is example-level, not corpus-sweep-level.
+5. Old Phase 2 "binding vs. value-fetch" two-class write-up above remains
+   superseded; this section supersedes the "loop-header/reference-epoch"
+   lead from the previous checkpoint the same way. Both retractions stay
+   in place as the evidence record.
 
 ## Checkpoint
 
