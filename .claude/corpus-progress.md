@@ -1,6 +1,72 @@
 # Corpus Calibration Progress
 
-## Status as of Fix #75 (current)
+## Fix #76: `Continue` opcode -- emit 0x6E directly instead of `fixed('Continue')`
+
+`src/peoplecode/encoder.ts`, the top-level statement dispatcher's
+`Continue` branch: `fixed('Continue')` always threw `No unambiguous opcode
+for Continue` because `'Continue'` has ZERO entries in the general
+`OPCODES` table in `format.ts` -- not two competing entries (the literal
+error text), but none at all. `format.ts`'s own comments explain why:
+`0x6E` was deliberately left OUT of the general table during decoder
+calibration, because on a corpus-wide unfiltered scan it collides with
+660 unrelated byte occurrences (only 9 real `Continue` statements). The
+decoder instead recognizes it only when contextually gated (`opcode ===
+0x6e && bytes[i] === 0x15`, i.e. immediately followed by `;`). The
+encoder has no such table entry to fall back on at all, so every
+`Continue;` statement in the corpus failed to encode, unconditionally.
+
+The encoder doesn't have the decoder's ambiguity problem: it already knows
+from parsing the source text that the keyword is literally `Continue`
+here, so there is nothing to disambiguate. Fixed by emitting `0x6E`
+directly (`chunks.push(Buffer.from([0x6e]))`) instead of going through
+`fixed()`/`OPCODES` at all, mirroring the decoder's own contextual
+confidence (Continue is a bare, argument-free keyword statement, always
+immediately followed by `;` by grammar, exactly like `Break`).
+
+Searched the corpus for the exact `No unambiguous opcode for Continue`
+`ENCODE_ERROR` (42 occurrences). Sampled 20: 1 confirmed full EXACT
+(17859), the rest all advance past the Continue-opcode crash into other,
+separate, pre-existing issues elsewhere in the same (often large) files --
+none regressed, since by definition none were EXACT before (all 42 were
+failing on this exact error).
+
+Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
+`corpus:verify --limit 430` 430/430, 0 regressed. Full-corpus background
+run (run_id 295, 30209/30209, exact=22516) diffed against the immediately
+preceding full run (run_id 292, exact=22511): 5 improved, 0 regressed,
+30204 same.
+
+## Status as of Fix #76 (current)
+
+- **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout. `--live` has never been used this session.
+- **Protected baseline**: 430/430, clean.
+- **Last successful calibration**: Fix #76 (above).
+- **Corpus total**: full-corpus run_id 295 = 22516/30209 exact (74.5%),
+  confirmed zero-regression against run_id 292 (Fix #74+#75's baseline,
+  itself confirmed zero-regression against run_id 290/288).
+- **Next action**: resume failure-family triage from the current failure
+  inventory (`GROUP BY classification, error_message` on run_id 295 in
+  `tools/corpus/corpus-results.sqlite`). The two largest remaining
+  families (`bare identifiers are only supported as calls` at very low
+  source offsets, and `unsupported Application Class import/declaration`
+  at offset 0) are BOTH the already-documented, deliberately-deferred
+  multi-method Application Class program gap -- confirmed again this
+  session by inspecting definition 28716 (`class GVar4AdsDefnRet ... method
+  ... property ... get set;`), not a new narrow fix. Look past those two
+  families for the next genuinely narrow, evidence-backed construct
+  (query with `error_message NOT LIKE '%bare identifiers%' AND
+  error_message NOT LIKE '%Application Class%'` to skip the known-deferred
+  noise).
+- **Locally blocked / deferred, evidence exhausted** (unchanged): the `#If
+  #ToolsRel` preprocessor-directive family (73 occurrences, environmental
+  per-definition dependency); the general multi-method Application Class
+  program feature gap (confirmed still the largest failure family this
+  session, hundreds of occurrences, `parseApplicationClassProgram()` only
+  handles the narrow single-method inline shape); the decoder-only
+  rendering gap for `Return <number> /* comment */;` noted under Fix #72.
+
+## Status as of Fix #75 (superseded by Fix #76 above, kept for history)
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
   throughout. `--live` has never been used this session.
