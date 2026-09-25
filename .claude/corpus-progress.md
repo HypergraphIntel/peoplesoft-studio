@@ -1,24 +1,21 @@
 # Corpus Calibration Progress
 
-## Checkpoint (session pause requested by user)
+## Checkpoint
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #73 (below), just landed and
-  committed.
-- **Corpus total** (full-corpus run_id 286, before Fix #73): 22506/30209
-  exact (74.5%). Fix #73 has NOT yet had its own full-corpus background
-  diff run -- only `--limit 430` was checked before this pause, per the
-  user's explicit "finish current iteration, do not start another"
-  instruction taking priority over the full-corpus-diff-for-shared-
-  mechanisms habit this session otherwise followed. The `whileStatement()`
-  body-loop change is narrowly scoped (mirrors the already-proven
-  `forStatement()` pattern exactly) and low-risk, but a full-corpus diff
-  against run_id 286 is still recommended as the FIRST thing the next
-  session does, before selecting a new target, to confirm zero
-  regressions the same way every other fix this session was confirmed.
+- **Last successful calibration**: Fix #78 (below), validated and present in
+  current HEAD `0f4a9a2` (the concurrent 0.2.0 release commit included the
+  encoder and test changes while this calibration session was running).
+- **Corpus total** (full-corpus run_id 1357): 22628/30209 exact (74.9%).
+  Fix #73 was first rechecked against the already-equivalent full run 1326
+  (run 1327: all 30209 materially unchanged). Subsequent full diffs were:
+  Fix #74 run 1327 -> 1338 (2 exact, 4 advanced, 0 regressed); Fix #75 run
+  1338 -> 1341 (1 advanced, 0 regressed); Fix #76 run 1341 -> 1348 (3
+  exact, 2 advanced, 0 regressed); Fixes #77-#78 run 1348 -> 1357 (7 exact,
+  38 advanced, 0 regressed). The protected gate remains 430/430.
 - **Locally blocked / deferred, evidence exhausted this session** (see
   their own entries further down for full evidence trails): the `#If
   #ToolsRel` preprocessor-directive family (73 combined occurrences,
@@ -29,28 +26,64 @@
   single-method inline shape); a decoder-only rendering gap for `Return
   <number> /* comment */;` noted under Fix #72 (narrow, not corpus-
   evidenced, deliberately left unfixed).
-- **Next action**: run a full-corpus background harness pass
-  (`nohup npm run corpus:harness > /tmp/full_corpus_runN.log 2>&1 &`),
-  diff its result against run_id 286 (definition-by-definition, matching
-  every prior fix's validation method in this file) to confirm Fix #73
-  caused zero regressions, record that diff result in this file, then
-  resume failure-family triage from the current failure inventory (group
+- **Next action**: resume failure-family triage from full run_id 1357 (group
   `corpus-results.sqlite`'s latest run by `classification`/`construct`,
-  the same query used to find every target this session). Promising
-  next candidates already partially scoped but NOT yet fixed: the
-  remaining "expected ; in While body"/"expected ; in When-Other body"
-  `ENCODE_ERROR` occurrences beyond Fix #73's own While/End-While
-  target (5000, 10488, 12623, 12626 and others share the "When-Other
-  body statement omitting `;` before the next When/End-Evaluate"
-  shape, structurally identical to the While-body fix just landed --
-  check whether `evaluateStatement()`'s When-Other body loop already has
-  an `End-Evaluate`/next-`When` omission allowance the way While/For
-  now both do); the `<> %Action_Add);` (4), `.IsInBuf Then` (3), and
-  `;\nElse\n   AddOnL` (3) `ENCODE_ERROR` construct groups were seen in
-  this session's failure-family listing but not yet individually
-  inspected.
+  the same query used to find every target this session). The earlier
+  `When-Other`, `<> %Action_Add`, and `.IsInBuf Then` candidates are now
+  calibrated below. A promising remaining compact family is the three
+  `expected assignment = after call-result property` failures whose
+  construct begins `;\nElse\n   AddOnL` (definitions 11121, 11126, 11128);
+  inspect their shared call-result statement shape next. Definition 18960
+  has a superficially related diagnostic but a block comment follows and
+  should be treated separately unless bytes prove the same rule.
 
 ## Current target
+- **Fix #78** landed locally (src/peoplecode/encoder.ts): encode parsed
+  `Continue;` statements directly as context-gated opcode `0x6E`. The
+  general fixed-token table deliberately still leaves 0x6E unmapped because
+  it is overloaded outside the statement shape; inside `statement()` the
+  source keyword makes the selection unambiguous. Seed definitions 14194,
+  14195, and 14196 all store `Else Continue;` as `19 6E 15`. Combined with
+  Fix #77, those three advanced from `ENCODE_ERROR` to deeper
+  `UNKNOWN_MISMATCH`. Full run 1348 -> 1357 found 7 definitions newly exact,
+  38 advanced, 30164 unchanged, 0 regressed. New total: 22628/30209 exact.
+  Verified: `npm run typecheck`; `npm test` 463/464 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430.
+- **Fix #77** landed locally (src/peoplecode/encoder.ts): a parenthesized
+  variable/field expression followed by a postfix member in an If condition
+  (for example `(&recRunCtlLang.LANGUAGE_CD).IsInBuf`) is an object/value
+  primary with a postfix chain, not necessarily a parenthesized boolean
+  subexpression. Route that narrow shape through `comparisonExpression()` so
+  `primary()` consumes both the group and `.IsInBuf`. Definitions 14194-14196
+  all advanced past their shared `expected Then` failure to the separately
+  calibrated Continue opcode gap. Added a focused regression test.
+- **Fix #76** landed locally (src/peoplecode/encoder.ts): parenthesized
+  comparisons whose left operand is a system variable now select
+  `booleanExpression()`, covering `(%Mode <> %Action_Add)`. Four independent
+  definitions proved the same `0B 12 ... 10 12 ... 14` shape: 11810, 11892,
+  and 19201 became fully EXACT; 12250 advanced to an unrelated unsupported
+  statement at source offset 621. Full run 1341 -> 1348: 3 exact, 2 advanced,
+  30204 unchanged, 0 regressed. Added a focused byte-shape regression test.
+  Verified: `npm run typecheck`; `npm test` 461/462 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430.
+- **Fix #75** landed locally (src/peoplecode/encoder.ts): When-Other body
+  statements now preserve block comments between the expression and its
+  explicit semicolon using the existing placement-dependent 0x4E/0x24
+  machinery. Definition 5000's inline `True /*False*/;` advanced from its
+  later `ENCODE_ERROR` to the pre-existing reference-index mismatch at body
+  offset 3204. Full run 1338 -> 1341: only definition 5000 changed, 30208
+  unchanged, 0 regressed. Added a focused regression test. Verified:
+  `npm run typecheck`; `npm test` 460/461 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430.
+- **Fix #74** landed locally (src/peoplecode/encoder.ts): the final statement
+  in a When-Other body may omit its source semicolon immediately before
+  `End-Evaluate`, matching the already-calibrated ordinary When-body rule.
+  Definitions 12623 and 12626 became fully EXACT; 10488 and 15626 advanced
+  to deeper `UNKNOWN_MISMATCH`; 27819 advanced to its decoder-only source
+  mismatch; 5000 advanced to Fix #75's later comment-placement gap. Full run
+  1327 -> 1338: 2 exact, 4 advanced, 30203 unchanged, 0 regressed. Added a
+  focused regression test. Verified: `npm run typecheck`; `npm test` 459/460
+  (1 pre-existing skip); `corpus:verify --limit 430` 430/430.
 - **Fix #73** landed (src/peoplecode/encoder.ts, `whileStatement()`'s
   body loop): the final statement in a `While` body may omit its source
   semicolon when immediately followed by `End-While`, exactly the same
@@ -78,8 +111,8 @@
   have failed at the targeted construct before this fix, zero
   regressions. Verified: `npx tsc -p .` clean; `npm test` 458/459 (1
   pre-existing skip); `corpus:verify --limit 430` 430/430, 0
-  regressions. Full-corpus background diff NOT yet run for this fix --
-  see Checkpoint section above; this is the next session's first task.
+  regressions. Full-corpus run 1327 also matched the prior full run 1326 on
+  all 30209 definitions (0 regressions).
 - **Fix #72** landed (src/peoplecode/encoder.ts), four related comment-
   placement gaps found together via the `BLOCK_COMMENT` `ENCODE_ERROR`
   family, all fixed with the same `restStartsWithKeywordPastComments()`/

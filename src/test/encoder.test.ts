@@ -804,6 +804,21 @@ test('Continue encodes with its context-gated statement opcode', () => {
   assert.notEqual(program.indexOf(Buffer.from([0x6e, 0x15])), -1);
 });
 
+test('dotted assignment text inside a call string stays a bare call', () => {
+  const program = encodeProgram(
+    'If True Then\n' +
+    '   AddOnLoadScript("document.getElementById(\'x\').style.visibility = \'visible\';");\n' +
+    'Else\n' +
+    '   AddOnLoadScript("document.getElementById(\'x\').style.visibility = \'hidden\';");\n' +
+    'End-If;'
+  );
+
+  assert.notEqual(
+    program.indexOf(Buffer.from('AddOnLoadScript', 'utf16le')),
+    -1
+  );
+});
+
 test('try and catch bodies preserve REM comments', () => {
   const source = `try
    rem before catch;
@@ -837,6 +852,20 @@ test('REM after leading reference-bearing Locals closes the Local section', () =
       '240C00720065006D00200078003B00',
       'hex'
     )
+  );
+});
+
+test('REM may continue onto an observed single-space prose line', () => {
+  const source =
+    'REM KJB Removed code for Import Long Term Goals as it is\n' +
+    ' no longer valid, as Record.REVIEW_GOALS is obsolete;';
+
+  assert.deepStrictEqual(
+    encodeFragment(source),
+    Buffer.concat([
+      Buffer.from([0x24, 0xdc, 0x00]),
+      Buffer.from(source, 'utf16le')
+    ])
   );
 });
 
