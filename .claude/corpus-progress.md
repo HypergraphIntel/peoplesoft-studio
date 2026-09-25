@@ -1,5 +1,164 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Research Cycle 6 — propagate ChainSemantics through the postfix chain (structural, zero behavior change)
+
+**Status: structural propagation complete; no encoder semantic changes.**
+Baseline was the Cycle 5 commit `d0a19fd`, 23,069/30,209 EXACT, protected
+430/430, 489 tests passing plus one intentional skip. All work used the
+completed local HCDEV snapshot; no `--live` access was used.
+
+### What was introduced
+
+Cycle 5 computed `ChainSemantics` only once, at the primary-expression
+entry point, then immediately discarded it (`void initialChainSemantics;`).
+Cycle 6 threads it through the rest of the postfix loop as a `let
+chainSemantics` that evolves at every transition site the loop already
+has, mirroring the existing legacy-flag transition exactly at each site
+so the two stay in lockstep by construction:
+
+| site (`src/peoplecode/encoder.ts`) | legacy transition mirrored | `chainSemantics` transition |
+|---|---|---|
+| ~8148 (RECORD-then-FIELD shorthand pair) | `expectedReferenceMember = 'field'` or `undefined` | `{field, inherited binding/provenance}` or `{scalar, dynamic, unknown}` |
+| ~8161 (inline Row state member, `.RowNumber`/`.IsChanged`/etc.) | `expectedReferenceMember = undefined` | `{scalar, dynamic, unknown}` |
+| ~8328 (method-call branch: `.GetRecord`/`.GetRow`/`.GetRowset`) | sets `bareGetRecordCallResult`/etc. from the method name alone | `{record/row/rowset, INHERITED binding/provenance from the pre-call receiver}` -- see below |
+| ~8349 (non-method-call plain property, else branch) | resets reuse eligibility | `{unknown, dynamic, unknown}` |
+| ~8423 (Rowset-selector `(...)` call, e.g. `&rs(N)`) | not one of Cycle 4's named evidenced transitions | `{row, dynamic, unknown}` -- deliberately NOT inherited |
+
+The method-call branch (~8328) is the one semantically load-bearing
+transition: it inherits `binding`/`provenance` from the **pre-call
+receiver's** `chainSemantics`, not from the method name in isolation. This
+is the exact distinction Cycle 4 found and Cycle 5 mapped: `.GetRecord(...)`
+called on a receiver that is itself already `dependency-bound` (e.g. a
+declared Row variable) should stay `dependency-bound`, while the SAME
+`.GetRecord(...)` called on an undeclared/dynamic receiver should stay
+`dynamic` -- today's legacy `expectedReferenceMember` flag has no such
+receiver check (it sets `'field'` from the method name unconditionally),
+which is precisely the 1423/1424/1721/1722 bug shape. `chainSemantics`
+now predicts this correctly at every one of these sites; **the legacy
+flag's own decision is untouched**, so the prediction is observational
+only, exactly as Cycle 5 and this cycle's own instructions require.
+
+### Diagnostic hook and categorization tool
+
+A new observational-only hook was added to `EncodeProgramContext`:
+
+```typescript
+export interface ChainSemanticsDiagnostic {
+  sourceOffset: number;
+  member: string;
+  predicted: ChainSemantics;
+  actualBindingEligible: boolean;
+}
+chainSemanticsTrace?: (event: ChainSemanticsDiagnostic) => void;
+```
+
+Immediately before the existing eligibility `if`, for every bare postfix
+member (excluding method calls and inline Row-state members) the encoder
+now compares `chainSemantics.binding === 'dependency-bound'` against the
+legacy flag's own `expectedReferenceMember !== undefined` decision, and
+fires the hook only on disagreement. Nothing about the comparison can
+alter `generated` output -- it is a read of two already-computed values,
+written to an optional callback.
+
+`tools/corpus/research/chain-semantics-diagnostics.ts` (new, read-only)
+drives `encodeProgram` over a definition set with this hook wired up and
+classifies every discrepancy by BOTH its predicted/actual tuple AND a
+best-effort source-pattern classifier, `classifyDiscrepancy()`, that
+distinguishes three populations discovered while examining the raw output
+(see below). It supports `--definition-ids`, `--ids-file`, and `--all`
+(every snapshot definition), with `--rows` to print the full per-row
+listing (omitted by default at `--all` scale since it is tens of
+thousands of lines).
+
+### Full-corpus discrepancy census (30,209 definitions, `--all`)
+
+28,432/30,209 definitions encoded far enough to be inspected (1,777 hit a
+pre-existing, unrelated `ENCODE_ERROR` before reaching a comparison
+point; discrepancies found before that point are still counted). Across
+those, **51,584 discrepancies** were found in **3,663 distinct
+definitions**, classified as:
+
+| category | count | share | interpretation |
+|---|---:|---:|---|
+| rowset-selector-shorthand (not modeled, separate mechanism) | 37,858 | 73.4% | `&rs(N).RECORD.FIELD`, `.PROPNAME(N).RECORD.FIELD`, and `GetLevel0()(N)...` row-selector chains. A separate, ALREADY-CORRECT encoder mechanism (see the encoder's own `selectedByDirectRowsetPostfix`/`GetLevel0()(N)` handling) that `chainSemantics` does not model; it predicts `dynamic` for these receivers today because it has no notion of "selected via a row-index call," not because the legacy flag is wrong. |
+| bare-intrinsic-derived receiver (1423/1424/1721/1722 shape) | 6,842 | 13.3% | The confirmed genuine bug class: a chain rooted at an undeclared `.GetRecord(...)`/`.GetRow(...)`/`.GetRowset(...)` result (optionally with one already-consumed `.MEMBER` hop for the RECORD-then-FIELD pair), where `expectedReferenceMember` is set from the method name alone with no receiver-provenance check. |
+| rowset-intrinsic-property (ChainSemantics incompleteness) | 6,792 | 13.2% | `chainSemantics` predicts `{rowset, dependency-bound, ...}` (correctly, per Cycle 4/5) but the legacy flag says NOT eligible -- because Rowset intrinsic properties (`.ActiveRowCount`, `.RowCount`, etc., definition 432's own shape) never expose bare-member reference shorthand regardless of receiver binding. This is `chainSemantics`' own incompleteness (it has no "this member is a Rowset intrinsic property, not a chain continuation" notion), not a legacy-flag bug. Detected directly from the diagnostic tuple (`predicted.valueType === 'rowset' && predicted.binding === 'dependency-bound' && !actualEligible`), not source pattern. |
+| other/unclassified | 92 | 0.18% | Residual the source-pattern classifier could not place; not further categorized this cycle. |
+
+The six named controls individually reproduce exactly what Cycle 4/5
+already established: definition 432 contributes 4 `rowset-intrinsic-property`
+discrepancies (`.ActiveRowCount` off a declared/`GetRowset`-derived
+Rowset); definitions 1423, 1424, 1721, 1722 contribute 8
+`bare-intrinsic-derived receiver` discrepancies total (the confirmed bug
+shape); definition 524 contributes none observed in this pass (its own
+`schema` provenance gap, documented in Cycle 5, means `chainSemantics`
+still predicts `unknown`/`dynamic` for it today -- the SAME prediction the
+legacy flag reaches, so no diagnostic-comparison disagreement is raised
+for that specific gap; it remains a known, separately-tracked incompleteness,
+not something this table's population count can surface).
+
+### Zero-behavior-change validation (Phase 6E)
+
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 490 tests, 489 pass, 1 intentional skip (unchanged from
+  Cycle 5).
+- Targeted controls individually re-verified via `corpus:harness
+  --definition-id`: 432 and 524 remain EXACT; 1423, 1424, 1721, 1722
+  remain UNKNOWN_MISMATCH -- byte-for-byte unchanged classifications from
+  Cycle 4/5, confirming the new mid-chain transitions did not alter any
+  actual encoding decision for the controls the bug/incompleteness
+  categories above are built from.
+- Full local-snapshot run (`corpus:harness --compare-baseline`, 30,209
+  definitions): 23,069 EXACT (unchanged), classification breakdown
+  identical to the Cycle 5 baseline (`UNKNOWN_MISMATCH` 4,689,
+  `ENCODE_ERROR` 1,274, `DECODE_SOURCE_MISMATCH` 674, `UNSUPPORTED_SYNTAX`
+  503). The harness's own built-in regression comparison against the
+  stored baseline reports **Improved: 0, Regressed: 0, Source changed: 0**
+  and `REGRESSION GATE: PASS`.
+
+### What this enables (not implemented)
+
+With `chainSemantics` now evolving through the full postfix chain rather
+than only the entry point, the diagnostic comparison above is now a
+trustworthy, corpus-scale-evidenced count of exactly which legacy
+decisions a future `chainSemantics.binding`-based replacement would
+change, and how many of those changes would be correct (the 13.3%
+genuine-bug population) versus premature (the 73.4% unmodeled
+rowset-selector-shorthand population and the 13.2% rowset-intrinsic-property
+population, both of which `chainSemantics` would need further extension
+to handle correctly before any semantic replacement could safely consult
+it for those shapes). **This is a description of future, separately
+gated work, not something done in this cycle.**
+
+### Next action (research cycle)
+
+1. Extend `chainSemantics`' derivation (or the diagnostic's own
+   comparison) to recognize Rowset intrinsic properties (`.ActiveRowCount`,
+   `.RowCount`, etc.) so the 6,792 `rowset-intrinsic-property` discrepancies
+   stop being noise in any future semantic-change impact estimate.
+2. Model the rowset-selector-shorthand family (`&rs(N)`, `.PROPNAME(N)`,
+   `GetLevel0()(N)`) in `chainSemantics` itself, since it is 73.4% of the
+   current discrepancy population and currently indistinguishable from
+   the genuine-bug population by the diagnostic tuple alone (both predict
+   `{row/field, dynamic, unknown}`) -- only source-pattern classification
+   (this cycle's `classifyDiscrepancy()`) currently tells them apart, and
+   that classifier is best-effort, not encoder-evidence-verified.
+3. Trace the residual 92 `other/unclassified` discrepancies individually
+   to confirm they resolve into one of the three known categories or
+   reveal a fourth.
+4. Fold in Cycle 5's still-open schema-provenance gap
+   (`rowsetElementRecords`/`rowsetRecordNamesByVariable`/
+   `captureRowsetElementRecord` -> `provenance: 'schema'`) so definition
+   524's own shape is visible to the diagnostic comparison rather than
+   silently agreeing with the legacy flag by coincidence.
+5. Only after 1-4: propose (in a separately gated phase) replacing
+   `expectedReferenceMember`'s ternary with a `chainSemantics.binding`
+   check for the specific, now-isolated bare-intrinsic-derived-receiver
+   shape, and validate the SEMANTIC change against the full corpus with
+   the same rigor this cycle used for the structural one.
+6. Commit this structural propagation separately from any future semantic
+   change, per instruction.
+
 ## Compiler Semantics Research Cycle 5 — introduce ChainSemantics (structural, zero behavior change)
 
 **Status: structural extraction complete; no encoder semantic changes.**
