@@ -84,11 +84,23 @@ export interface EncodedPeopleCode {
 
 const BUILTIN_FUNCTION_TYPE_IDS: ReadonlyMap<string, number> = new Map([
   ['file', 0x80001],
+  // `Function PopulateAcmArray(..., &AcmMbrSQL As SQL, &AcmMbrArray As
+  // array of Record);` (definition 4861): the parameter signature tail
+  // stores SQL's descriptor as `c0080002` immediately between the `date`
+  // (`c0000002`) and `array of Record` (`c0180003`) parameters, i.e.
+  // SQL's own type id is 0x80002 -- the gap between `file` (0x80001) and
+  // `record` (0x80003) in this same enumeration.
+  ['sql', 0x80002],
   ['record', 0x80003],
   ['rowset', 0x80007],
   ['row', 0x80008],
   ['field', 0x80009],
   ['apiobject', 0x8000f],
+  // `Function SetCompoundColumnVisibility(&rs As Rowset, &GRID As Grid)`
+  // (definition 14962): the parameter signature tail stores Grid's
+  // descriptor as `c0080014` immediately after Rowset's (`c0080007`),
+  // i.e. Grid's own type id is 0x80014.
+  ['grid', 0x80014],
   ['xmldoc', 0x8001d],
   ['exception', 0x80021],
   ['xmlnode', 0x80022]
@@ -98,13 +110,47 @@ function functionTypeId(
   typeName: string,
   applicationClassOffsets?: ReadonlyMap<string, number>
 ): number {
-  const arrayType = /^array\s+of\s+(.+)$/i.exec(
-    typeName.trim()
-  );
-  if (arrayType) {
+  /*
+   * Each nesting level of `array of` contributes its OWN multiple of
+   * 0x100000 -- NOT a single OR'd flag bit reused at every level. A bare
+   * trailing `array` (no final `of ElementType`) counts as one more
+   * nesting level over an implicit `any` element type.
+   *
+   * `Function savewideqryvalues(..., &arr As array of array of string) ...`
+   * (definition 14899): the parameter signature tail stores this
+   * 2-level-nested parameter as `c0200001` -- `0x200000` (TWO multiples
+   * of `0x100000`, not one) OR'd with `0x000001` (`string`'s own id).
+   *
+   * `Function parse_objclass(..., &array_structobj As array of array of
+   * array of string, ...)` (definition 15115): the 3-level-nested
+   * parameter stores `c0300001` -- `0x300000` (three multiples),
+   * confirming the pattern is `depth * 0x100000`, not a saturating OR.
+   *
+   * `Function Get_ACM_Ern(&Acm_Pin As number, &Ern_array As array)`
+   * (definition 8229): the bare (untyped) `array` parameter stores
+   * `c0100004` -- one level (`0x100000`) OR'd with `0x000004`, `any`'s
+   * own primitive id.
+   */
+  let rest = typeName.trim();
+  let depth = 0;
+  while (true) {
+    const arrayOfMatch = /^array\s+of\s+/i.exec(rest);
+    if (arrayOfMatch) {
+      depth++;
+      rest = rest.slice(arrayOfMatch[0].length);
+      continue;
+    }
+    if (/^array$/i.test(rest)) {
+      depth++;
+      rest = 'any';
+    }
+    break;
+  }
+
+  if (depth > 0) {
     return (
-      0x100000 |
-      functionTypeId(arrayType[1], applicationClassOffsets)
+      (depth * 0x100000) |
+      functionTypeId(rest, applicationClassOffsets)
     ) >>> 0;
   }
 
@@ -423,7 +469,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     let elementType: string | undefined;
     do {
       space();
-      if (!word('of')) fail('expected "of" after array type');
+      /*
+       * `array` (bare, with no `of ElementType` clause at all) is itself a
+       * valid, untyped array declaration -- at any nesting level, not just
+       * the outermost one.
+       *
+       * PSMCF_UQSVC_MSGS.MCFUQPUBLISH.RowInit (definition 16150):
+       *
+       *   Component array &QueueIDArrayAdd;
+       *
+       * stores only `54 40 "array" 01 "&QueueIDArrayAdd" 15` -- no `of`
+       * keyword byte, nothing after the type name at all. Confirmed for
+       * nested bare arrays too, e.g. `Component array of array &Var;`
+       * (definition 19016): the second `array` also has no trailing `of`.
+       */
+      if (!word('of')) return elementType;
       chunks.push(textOperand(0x40, TokenKind.Keyword, 'of'));
       space();
       if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
@@ -449,8 +509,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     // => 44 0A "OU_CORPUS" 57 0A "Utilities" 57 0A "TestClass" 01 "&obj"
     //
     // The declaration itself does NOT allocate a PSPCMNAME dependency row.
+    //
+    // The package root may also be the reserved `%metadata` package
+    // (metadata-driven Application Classes), the same leading `%?` this
+    // lookahead's own `applicationClassPath()` call already accepts:
+    //
+    //   Local %metadata:AppDataSet &recName;
+    //
+    // PSPPMSSRVC_PLAT.QUERY_PLATFORM_XX.FieldFormula (one of several
+    // corpus occurrences of this exact shape).
     const appClassLookahead =
-      /^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_]*)/.exec(
+      /^(%?[A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_]*)/.exec(
         source.slice(pos)
       );
 
@@ -564,44 +633,57 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       space();
 
       const ofMatch = /^of\b/i.exec(source.slice(pos));
-      if (!ofMatch) {
-        return fail('expected "of" after array in Local declaration');
-      }
-      pos += ofMatch[0].length;
-      chunks.push(textOperand(0x40, TokenKind.Keyword, 'of'));
 
-      space();
+      /*
+       * `Local array &values;` (bare, no `of ElementType` clause) is
+       * itself a valid, untyped array declaration -- the same allowance
+       * `arrayElementTypes()` grants Component/Global/nested array
+       * declarations.
+       *
+       * WEBLIB_MCF_QU.MCF_UQ_TASK_UT.FieldFormula (definition 6350):
+       *
+       *   Local array &NODE_ARRAY, &PARENT_ARRAY, &BRANCH_ARRAY;
+       *
+       * stores only `44 40 "array" 01 "&NODE_ARRAY" ...` -- no `of`
+       * keyword byte at all.
+       */
+      if (ofMatch) {
+        pos += ofMatch[0].length;
+        chunks.push(textOperand(0x40, TokenKind.Keyword, 'of'));
 
-      let elementType =
-        /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+        space();
 
-      if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
-        const appClass = applicationClassPath();
-        chunks.push(appClass.bytes);
-        addApplicationClassReference(appClass.packagePath, appClass.className);
-      } else {
-        chunks.push(typeName());
-        if (/^array$/i.test(elementType ?? '')) {
-          elementType = arrayElementTypes();
+        let elementType =
+          /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+
+        if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
+          const appClass = applicationClassPath();
+          chunks.push(appClass.bytes);
+          addApplicationClassReference(appClass.packagePath, appClass.className);
+        } else {
+          chunks.push(typeName());
+          if (/^array$/i.test(elementType ?? '')) {
+            elementType = arrayElementTypes();
+          }
         }
-      }
 
-      if (/^File$/i.test(elementType ?? '')) {
-        ensureLocalObjectPackageReference('FILE', 'File');
-      } else if (/^XmlDoc$/i.test(elementType ?? '')) {
-        ensureLocalObjectPackageReference('XMLDOC', 'XmlDoc');
-      } else if (/^XmlNode$/i.test(elementType ?? '')) {
-        ensureLocalObjectPackageReference('XMLNODE', 'XmlNode');
-      } else if (/^Record$/i.test(elementType ?? '')) {
-        ensureLocalObjectPackageReference('RECORD', 'Record');
-      } else if (/^Field$/i.test(elementType ?? '')) {
-        ensureLocalObjectPackageReference('FIELD', 'Field');
-      } else if (/^Rowset$/i.test(elementType ?? '')) {
-        ensureLocalObjectPackageReference('ROWSET', 'Rowset');
-      } else if (/^Row$/i.test(elementType ?? '')) {
-        ensureLocalObjectPackageReference('ROW', 'Row');
-      } else if (/^SQL$/i.test(elementType ?? '')) {
-        ensureLocalObjectPackageReference('SQL', 'SQL');
+        if (/^File$/i.test(elementType ?? '')) {
+          ensureLocalObjectPackageReference('FILE', 'File');
+        } else if (/^XmlDoc$/i.test(elementType ?? '')) {
+          ensureLocalObjectPackageReference('XMLDOC', 'XmlDoc');
+        } else if (/^XmlNode$/i.test(elementType ?? '')) {
+          ensureLocalObjectPackageReference('XMLNODE', 'XmlNode');
+        } else if (/^Record$/i.test(elementType ?? '')) {
+          ensureLocalObjectPackageReference('RECORD', 'Record');
+        } else if (/^Field$/i.test(elementType ?? '')) {
+          ensureLocalObjectPackageReference('FIELD', 'Field');
+        } else if (/^Rowset$/i.test(elementType ?? '')) {
+          ensureLocalObjectPackageReference('ROWSET', 'Rowset');
+        } else if (/^Row$/i.test(elementType ?? '')) {
+          ensureLocalObjectPackageReference('ROW', 'Row');
+        } else if (/^SQL$/i.test(elementType ?? '')) {
+          ensureLocalObjectPackageReference('SQL', 'SQL');
+        }
       }
     }
 
@@ -2577,6 +2659,23 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     return true;
   };
   const variable = (): Buffer => {
+    /*
+     * A `&variable` name may start with a digit and continue with letters
+     * -- not just be either letter-led or purely numeric. `[A-Za-z0-9_]+`
+     * is a strict superset of the previous two-branch alternation
+     * (letter-led identifiers and pure-digit names both still match
+     * identically), additively covering the mixed digit-prefix case.
+     *
+     * WEBLIB_HSE.ISCRIPT1.FieldFormula (definition 21765, one of 27
+     * corpus occurrences of this exact shape):
+     *
+     *   Local number &80EE_pin_num, &HSEPRP_pin_num, ...;
+     *
+     * `&80EE_pin_num` is a single variable name; the previous regex could
+     * only match its `&80` prefix (via the `\d+` branch), leaving
+     * `EE_pin_num` to break the declaration's own comma/semicolon check.
+     */
+    const match = /^&[A-Za-z0-9_]+/.exec(source.slice(pos));
     const match = /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos));
     if (!match) return fail('expected an ASCII &variable');
     pos += match[0].length;
@@ -2799,6 +2898,35 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     } else if (source[pos] === '(') {
       parenthesized(booleanExpression, false);
       space();
+
+      /*
+       * A parenthesized group here may turn out to have held PURE
+       * arithmetic (no top-level And/Or/comparison of its own) that is
+       * itself only part of a larger arithmetic expression, not the
+       * complete boolean operand -- the parenthesized group is just its
+       * first primary. Continue the same flat left-to-right arithmetic
+       * loop `expression()` itself uses before re-checking for a
+       * trailing comparison operator.
+       *
+       * BAS_PARTIC_PLAN.FLAT_DED_AMT.SavePreChange (one of 5 corpus
+       * occurrences of this shape):
+       *
+       *   If ((BAS_PARTIC_PLAN.FLAT_DED_AMT / &MAX_AMT) * 100) > DERIVED_BAS.EMPL_PCT_BTAX Then
+       *
+       * Without this, closing the outer paren fails outright: the inner
+       * `(... / &MAX_AMT)` group is parsed and closed correctly, but the
+       * trailing `* 100` is left unconsumed, so the outer paren's own
+       * close is never reached.
+       */
+      while (true) {
+        const arithmeticOperator = /^[+\-*/|]/.exec(source.slice(pos))?.[0];
+        if (!arithmeticOperator) break;
+        pos += arithmeticOperator.length;
+        chunks.push(fixed(arithmeticOperator, arithmeticOperator === '*' ? 0x0f : undefined));
+        castPrimary();
+        space();
+      }
+
       const operator =
         /^(<>|<=|>=|=|<|>)/.exec(source.slice(pos))?.[0];
       if (operator !== undefined) {
@@ -3485,6 +3613,14 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     } else if (word('Continue')) {
       /*
+       * `Continue` is not in the general OPCODES table: 0x6E is heavily
+       * overloaded corpus-wide with unrelated byte values outside this
+       * exact grammatical position (see decoder.ts's gated `opcode ===
+       * 0x6e && bytes[i] === 0x15` handling), so `fixed('Continue')` has
+       * no unambiguous entry to find. The encoder already knows the
+       * source keyword is literally `Continue` here -- unlike the
+       * decoder, which has to infer intent from a raw byte -- so 0x6E can
+       * be emitted directly with no ambiguity.
        * Continue is the context-gated 0x6E statement opcode. It stays out
        * of the general fixed-token table because 0x6E is overloaded outside
        * the `Continue;` shape, but the encoder is already inside a parsed
@@ -4491,9 +4627,24 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     chunks.push(fixed('Repeat'));
 
     while (true) {
+      const whitespaceStart = pos;
       space();
+      const bodyWhitespace = source.slice(whitespaceStart, pos);
+      const hasBlankLine =
+        /(?:\r?\n)[ \t]*(?:\r?\n)/.test(bodyWhitespace);
 
       if (word('Until')) {
+        if (hasBlankLine) {
+          const markerCount = Math.max(
+            1,
+            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+          );
+
+          for (let marker = 0; marker < markerCount; marker++) {
+            pendingReferenceGroupBoundaries.push(chunks.length);
+          }
+        }
+
         chunks.push(fixed('Until'));
 
         space();
@@ -4505,11 +4656,72 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         fail('expected Until');
       }
 
+      /*
+       * A Repeat body may contain a standalone `/* ... *\/` comment or a
+       * REM comment, the same way every other body loop (If/While/For/
+       * Evaluate) already does -- this body loop had neither at all.
+       *
+       * PA_PYE_DATA.PYE_ARCHIVE.FieldFormula (one of several corpus
+       * occurrences of a standalone comment inside a Repeat body):
+       *
+       *   Repeat
+       *      /*** ... valid ***\/
+       *      &THIS_REPEAT_ROWS = &rs1.ActiveRowCount;
+       *   Until ...
+       */
+      if (source.startsWith('/*', pos)) {
+        if (hasBlankLine) {
+          const markerCount = Math.max(
+            1,
+            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+          );
+
+          for (let marker = 0; marker < markerCount; marker++) {
+            pendingReferenceGroupBoundaries.push(chunks.length);
+          }
+        }
+
+        chunks.push(blockComment());
+        continue;
+      }
+
+      if (/^REM\b/i.test(source.slice(pos))) {
+        if (hasBlankLine) {
+          const markerCount = Math.max(
+            1,
+            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+          );
+
+          for (let marker = 0; marker < markerCount; marker++) {
+            pendingReferenceGroupBoundaries.push(chunks.length);
+          }
+        }
+
+        chunks.push(remComment(true));
+        continue;
+      }
+
       statement();
 
       space();
       if (source[pos] !== ';') {
-        fail('expected ; in Repeat body');
+        /*
+         * The final statement in a Repeat body may omit its source
+         * semicolon when it is immediately followed by Until, the same
+         * way a While body already can before End-While.
+         *
+         * TRN_SML_SUM.FUNCLIB.FieldFormula (one of several corpus
+         * occurrences):
+         *
+         *   Repeat
+         *      ...
+         *      &ROW3_DEMAND_ID = FetchValue(TRN_SML_SUM_VW.DEMAND_ID, &ROW3)
+         *   Until &ROW3_DEMAND_ID = &ROW2_DEMAND_ID;
+         */
+        if (!/^Until\b/i.test(source.slice(pos))) {
+          fail('expected ; in Repeat body');
+        }
+        continue;
       }
 
       pos++;
@@ -5007,6 +5219,25 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         chunks.push(fixed('Else'));
 
         /*
+         * `Else` may carry its own optional, immediately-following `;`
+         * before its body starts on the next line -- stored as a bare
+         * `19 15` (Else then `;`), with nothing else in between (no
+         * separate newline/boundary marker the way a `When` clause
+         * header's own trailing `;` needs).
+         *
+         * PA_DFN_OPT_SET.FORM_CD_PROMPT.RowInit (definition 12251, one of
+         * several corpus occurrences of this exact shape):
+         *
+         *   Else;
+         *      DERIVED.FORM_CD_PROMPT = "PA_DFN_FORM_VW";
+         *   End-If;
+         */
+        if (source[pos] === ';') {
+          pos++;
+          chunks.push(fixed(';'));
+        }
+
+        /*
          * A block comment attached directly to Else is encoded as 0x4E.
          *
          * DERIVED_CO.FUNCLIB.FieldFormula:
@@ -5491,6 +5722,45 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           space();
 
           /*
+           * The LAST statement in a `When-Other` body may omit its
+           * trailing `;` when immediately followed by `End-Evaluate` --
+           * the same allowance the ordinary `When` body loop already
+           * grants any statement type before `When`/`When-Other`/
+           * `End-Evaluate`, and mirrors the proven EOF-omission
+           * allowance for other self-terminating top-level statement
+           * shapes (assignments/If/Evaluate/bare calls/try), just at
+           * this body-closing boundary instead of true source EOF.
+           *
+           * PTAFAW_NOTIFY.PTAFEVENT.<event> (definition 18001) is the
+           * `Break`-only case this allowance originally covered; the
+           * corpus also has plain assignments in the same position, e.g.
+           * PA_RT_TBL.DERIVED.BEN_PLAN_EDIT (definitions 12623/12626):
+           *
+           *   When-Other
+           *      DERIVED.BEN_PLAN_EDIT = "PA_RT_FORM_VW"
+           *   End-Evaluate
+           */
+          statement();
+
+          space();
+
+          /*
+           * A block comment may appear between a When-Other body
+           * statement's expression and its own terminating semicolon, the
+           * same way top-level statements and If/For/While bodies already
+           * allow -- inline (0x4E) or standalone (0x24) by placement.
+           *
+           * GPFR_AF_RUNCTL.DERIVED_GPFR_AF.FieldChange (definition 5000):
+           *
+           *   When-Other
+           *      &Evtsel(&i).DERIVED_GPFR_AF.GPFR_AF_EXTRACT_ID.Enabled = True /*False*\/;
+           */
+          while (source.startsWith('/*', pos)) {
+            chunks.push(blockCommentByPlacement());
+            space();
+          }
+
+          if (source[pos] !== ';') {
            * A block comment may sit between a When-Other body statement's
            * expression and its explicit semicolon, just as it can at the
            * top level and in the other calibrated control bodies.
@@ -5560,6 +5830,27 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           parenthesized(booleanExpression, false);
         } else {
           expression();
+        }
+
+        /*
+         * An inline trailing comment on the When header line (same line as
+         * the selector value) is emitted BEFORE the structural 0x2D
+         * boundary, not after it -- the same inline-vs-standalone ordering
+         * already proven for And/Or-group leading comments.
+         *
+         * HR_ILL_NLD_AET.ABSENCE_TYPE.RowInit (definition 27819):
+         *
+         *   When "SKN" /*Sickness - SKN *\/
+         *      &reason_sick = "1";
+         *
+         * stores `... "SKN" 00 4E ... 2D ...` (comment then 0x2D), not
+         * `... "SKN" 00 2D 24 ...` (0x2D then a standalone-style comment).
+         */
+        if (/^[ \t]*\/\*/.test(source.slice(pos))) {
+          space();
+          if (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
+            chunks.push(inlineBlockComment());
+          }
         }
 
         /*
@@ -6635,7 +6926,20 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       chunks.push(systemVariable());
     } else if (source[pos] === '(') {
       const startsBooleanUnary = /^\(\s*Not\b/i.test(source.slice(pos));
+      /*
+       * The `&variable` on the left side of a parenthesized comparison
+       * may itself be indexed/called (e.g. a Rowset access) before its
+       * `.field.field` chain, not just a bare `&variable`:
+       *
+       *   DERIVED.Enabled = (&rs2(&j).PA_CLC_PLN_INPT.USE_PROCESS_SECT.Value = "Y");
+       *   &EmptyRow = (&ShareScheme(&EmplRow).IsNew And ...);
+       *
+       * PA_CLC_PLN_INPT.EXEC_ONLY_CD.RowInit (definition 19037) and
+       * GPGB_SS_EE_DATA.GPGB_SS_DEFN_VW.SavePreChange (definition 21575),
+       * among others.
+       */
       const startsVariableComparison =
+        /^\(\s*&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)(?:\s*\([^()]*\))?(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:<>|<=|>=|=|<|>)/
         /^\(\s*&[A-Za-z0-9_]+#?(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:<>|<=|>=|=|<|>)/
           .test(source.slice(pos));
       /*
@@ -6667,9 +6971,42 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       const startsCallOrFieldComparison =
         /^\(\s*[A-Za-z_][A-Za-z0-9_]*(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:\([^()]*\))?\s*(?:<>|<=|>=|=|<|>)/
           .test(source.slice(pos));
+      /*
+       * A parenthesized comparison whose LEFT side is a `%SystemVariable`
+       * rather than a `&variable`/bare identifier:
+       *
+       *   DERIVED_PA.COPY_ROW_BUTTON.Enabled = (%Mode <> %Action_Add);
+       *   Return (%Language_User <> %Language_Base);
+       *
+       * PA_CONS_HRS.SAVE_ROW.RowInit (one of several corpus occurrences).
+       */
+      const startsSystemVariableComparison =
+        /^\(\s*%[A-Za-z_][A-Za-z0-9_]*\s*(?:<>|<=|>=|=|<|>)/
+          .test(source.slice(pos));
+      /*
+       * A parenthesized boolean And/Or chain whose FIRST operand is a
+       * bare `&variable`/field-chain truthy reference with no comparison
+       * operator at all (not `&var = X`, just `&var` itself, exactly the
+       * same shape `booleanUnary`/plain `If &var And ...` already
+       * accepts at statement level):
+       *
+       *   &HALF1 = (&A And &B And &C And ...);
+       *   &AddCRef = (&IncludeHiddenCrefs Or &CRef.IsVisible);
+       *   PTLAYOUT.PT_QAB_TOOLBAR.Visible = (&fldMRU.Visible Or &fldFAV.Visible);
+       *
+       * SCC_PYE_WRK.SCC_PYE_ARCHIVE.FieldFormula (definition 1275) and
+       * WEBLIB_PORTAL.ISCRIPT1.FieldFormula (definitions 19495/25089/
+       * 25090), among others.
+       */
+      const startsVariableBooleanChain =
+        /^\(\s*&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)(?:\s*\([^()]*\))?(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:And|Or)\b/i
+          .test(source.slice(pos));
       parenthesized(
         startsBooleanUnary ||
         startsVariableComparison ||
+        startsCallOrFieldComparison ||
+        startsSystemVariableComparison ||
+        startsVariableBooleanChain
         startsSystemVariableComparison ||
         startsCallOrFieldComparison
           ? booleanExpression
@@ -9198,6 +9535,7 @@ function parseFunctionMetadata(
     if (parameterSource.length > 0) {
       for (const parameter of parameterSource.split(',')) {
         const typedMatch =
+          /^\s*&[A-Za-z_][A-Za-z0-9_]*\s+As\s+((?:array\s+of\s+)*[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)\s*$/i.exec(
           /^\s*&[A-Za-z0-9_]+#?\s+As\s+((?:array\s+of\s+)?[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)\s*$/i.exec(
             parameter
           );
@@ -9237,7 +9575,7 @@ function parseFunctionMetadata(
 
     const afterParameters = source.slice(closeParen + (hasParameterList ? 1 : 0));
     const returnMatch =
-      /^[ \t]*Returns\s+((?:array\s+of\s+)?[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)/i.exec(
+      /^[ \t]*Returns\s+((?:array\s+of\s+)*[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)/i.exec(
         afterParameters
       );
 

@@ -2131,13 +2131,28 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
      */
     const whenOtherFollowedByBareSemicolon =
       t.opcode === 0x3e && nextToken?.opcode === 0x15;
+    /*
+     * `Else` may carry its own optional, immediately-following `;` before
+     * its body starts (see encoder.ts's matching fix) -- `Else;`, not
+     * `Else\n;`. Else's own NEWLINE_AFTER exists to separate it from its
+     * body's first statement; the semicolon's own NEWLINE_AFTER already
+     * supplies that line break, the same reasoning as the When-Other
+     * case just above.
+     *
+     * PA_DFN_OPT_SET.FORM_CD_PROMPT.RowInit (definition 12251):
+     *
+     *   Else;
+     *      DERIVED.FORM_CD_PROMPT = "PA_DFN_FORM_VW";
+     */
+    const elseFollowedByBareSemicolon =
+      t.opcode === 0x19 && nextToken?.opcode === 0x15;
     const inlineHeaderCommentBeforeSemicolon =
       t.opcode === 0x4e &&
       nextToken?.opcode === 0x15 &&
       /^(?:Then|Else)$/.test(tokens[tokenIndex - 1]?.text ?? '');
 
     if (f & F.NEWLINE_AFTER) {
-      if (inlineHeaderCommentBeforeSemicolon || whenOtherFollowedByBareSemicolon) {
+      if (inlineHeaderCommentBeforeSemicolon || whenOtherFollowedByBareSemicolon || elseFollowedByBareSemicolon) {
         // The semicolon terminates the clause on the same source line.
       } else if (suppressNewlineForInlineComment) {
         trimTrailing();
