@@ -1841,6 +1841,7 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
     let followsWhileHeader = false;
     let followsForHeader = false;
     let followsFunctionHeader = false;
+    let followsWhenHeader = false;
 
     if (t.opcode === 0x2d) {
       for (let lookbehind = tokenIndex - 2; lookbehind >= 0; lookbehind--) {
@@ -1898,6 +1899,23 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
            * Keep the explicit semicolon on the Function header line.
            */
           followsFunctionHeader = true;
+          break;
+        }
+
+        if (previous.opcode === 0x3d) {
+          /*
+           * When headers may compile as:
+           *
+           *   3D <condition> 2D 15 <body...>
+           *
+           * Keep the explicit semicolon on the When header line.
+           *
+           * CONTRACT.PAYMENT_TERM.FieldChange (definition 3062):
+           *
+           *   When = "X";
+           *      UnGray(CONTRACT.PAYMENT_END_DT);
+           */
+          followsWhenHeader = true;
           break;
         }
 
@@ -1993,6 +2011,11 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         followsFunctionHeader &&
         nextToken?.opcode === 0x15;
 
+      const whenHeaderBoundary =
+        t.opcode === 0x2d &&
+        followsWhenHeader &&
+        nextToken?.opcode === 0x15;
+
       const redundantStructuralBoundary =
         t.opcode === 0x2d &&
         nextToken?.opcode === 0x4f &&
@@ -2003,6 +2026,7 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         whileHeaderBoundary ||
         forHeaderBoundary ||
         functionHeaderBoundary ||
+        whenHeaderBoundary ||
         redundantStructuralBoundary
       )) {
         out.push('\n');
@@ -2089,14 +2113,32 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
       ) &&
       nextToken?.kind === TokenKind.Comment &&
       nextToken.opcode === 0x4e;
+    /*
+     * An empty When-Other clause (no body statements) is immediately
+     * followed by its own bare `;`, on the SAME source line --
+     * `When-Other;`, not `When-Other\n;`. When-Other's own NEWLINE_AFTER
+     * exists to separate it from real body statements
+     * (`When-Other\n   <stmt>;`); the semicolon's own NEWLINE_AFTER
+     * already supplies the line break in the empty-body case, so adding
+     * one here too just splits "When-Other" and ";" onto separate lines
+     * -- the exact same reasoning as ENDBLOCK_STYLE/END_FUNCTION_STYLE's
+     * own comments.
+     *
+     * ADD_PAY_DTA_NLD.EFFDT.FieldChange (definition 548):
+     *
+     *   When-Other;
+     *   End-Evaluate;
+     */
+    const whenOtherFollowedByBareSemicolon =
+      t.opcode === 0x3e && nextToken?.opcode === 0x15;
     const inlineHeaderCommentBeforeSemicolon =
       t.opcode === 0x4e &&
       nextToken?.opcode === 0x15 &&
       /^(?:Then|Else)$/.test(tokens[tokenIndex - 1]?.text ?? '');
 
     if (f & F.NEWLINE_AFTER) {
-      if (inlineHeaderCommentBeforeSemicolon) {
-        // The semicolon terminates the header on the same source line.
+      if (inlineHeaderCommentBeforeSemicolon || whenOtherFollowedByBareSemicolon) {
+        // The semicolon terminates the clause on the same source line.
       } else if (suppressNewlineForInlineComment) {
         trimTrailing();
         out.push(' ');

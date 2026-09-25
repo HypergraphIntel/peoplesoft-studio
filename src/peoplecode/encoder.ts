@@ -950,6 +950,58 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
   };
 
+  const componentLifeDeclaration = () => {
+    /*
+     * ComponentLife is a fifth declarator alongside Local/Global/
+     * Component/Constant (0x79, "a fourth declarator" per Component's own
+     * 0x56 comment) -- a component-interface object lifetime scope, e.g.
+     * `ComponentLife PTPN_PUBLISH:PublishToWindow &wlSrch;`. Structurally
+     * identical declaration grammar to Component (type, then one or more
+     * comma-separated &variables), confirmed by CAFNUI_CTRL_WRK.FUNCLIB.
+     * FieldFormula (definition 2092): `ComponentLife string &p_compkey,
+     * &p_entityname;`.
+     *
+     * Deliberately narrower than componentDeclaration(): no evidence yet
+     * that a ComponentLife-declared Application Class variable
+     * (`ComponentLife CAF_SEARCH_NUI:Search &var;`, also attested in the
+     * corpus) participates in the same runtime-create PSPCMNAME reuse
+     * rules Component's own declaration carefully calibrates -- so this
+     * does not track it into `applicationClassVariables` at all yet.
+     */
+    chunks.push(fixed('ComponentLife'));
+
+    space();
+    const appClassType =
+      /^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))
+        ? applicationClassPath()
+        : undefined;
+    const declaredType =
+      appClassType === undefined
+        ? /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0]
+        : undefined;
+    chunks.push(appClassType?.bytes ?? typeName());
+    if (/^array$/i.test(declaredType ?? '')) {
+      arrayElementTypes();
+    }
+
+    space();
+    chunks.push(variable());
+
+    while (true) {
+      space();
+
+      if (source[pos] !== ',') {
+        break;
+      }
+
+      pos++;
+      chunks.push(fixed(','));
+
+      space();
+      chunks.push(variable());
+    }
+  };
+
   const constantDeclaration = () => {
     chunks.push(fixed('Constant'));
 
@@ -1197,8 +1249,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     const components: string[] = [];
     let wildcard = false;
 
+    /*
+     * `%metadata` is a reserved package root for metadata-driven
+     * Application Classes -- always the FIRST path component, never
+     * later ones (67 corpus occurrences checked, 23 distinct shapes, all
+     * `%metadata` as the sole root).
+     *
+     *   import %metadata:AnalyticModelDefn:Aceorganizer;
+     *   import %metadata:*;
+     */
     const firstMatch =
-      /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
+      /^%?[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
     if (!firstMatch) {
       return fail('expected application package name');
     }
@@ -2506,24 +2567,45 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      */
     if (word('Null')) return Buffer.from([0x4b]);
 
-    const digits = /^[0-9]+/.exec(source.slice(pos))?.[0];
-    if (digits !== undefined) {
+    const numberMatch = /^([0-9]+)(?:\.([0-9]+))?/.exec(source.slice(pos));
+    if (numberMatch) {
+      const [wholeMatch, integerPart, fractionPart] = numberMatch;
+      /*
+       * A decimal literal (e.g. `33.34`, `9999999.99`) stores its
+       * fractional digit count as a *scale* byte alongside the same
+       * 0x50 magnitude field an integer literal uses -- the decoder
+       * already reconstructs `value / 10^scale` (see `formatScaled()`
+       * in decoder.ts, "found by refusing" pass thirty-four), but the
+       * encoder previously only ever parsed bare integer digits, always
+       * writing a zero scale. Without this, a decimal literal's `.`
+       * was left for the general postfix-chain parser to choke on,
+       * expecting a member name after what it saw as a `.` operator.
+       *
+       * CAN_AMEND_RL1_D.CORRECTED_AMOUNT.FieldFormula (definition 2291,
+       * one of many corpus occurrences of this shape):
+       *
+       *   If CAN_AMEND_RL1_D.CORRECTED_AMOUNT > 9999999.99 Then
+       */
+      const scale = fractionPart?.length ?? 0;
       // Bound conversion before BigInt, including arbitrarily many leading
       // zeros. Never route the magnitude through a lossy JS Number.
-      const canonical = digits.replace(/^0+/, '') || '0';
+      const canonical = (integerPart + (fractionPart ?? '')).replace(/^0+/, '') || '0';
       if (canonical.length > MAX_INTEGER_DIGITS) fail('unsigned integer exceeds the 128-bit magnitude field');
       let magnitude = BigInt(canonical);
       if (magnitude > MAX_UNSIGNED_INTEGER) fail('unsigned integer exceeds the 128-bit magnitude field');
+      if (scale > 0xff) fail('decimal literal scale exceeds the 1-byte scale field');
       const { opcode, operandLength, valueOffset, valueBytes } = UNSIGNED_NUMBER_FORMAT;
       const bytes = Buffer.alloc(1 + operandLength);
       bytes[0] = opcode;
-      // The zero prefix and scale stay zero. Write the entire little-endian
-      // magnitude field; integer division never rounds through floating point.
+      // The zero prefix stays zero. Write the scale, then the entire
+      // little-endian magnitude field; integer division never rounds
+      // through floating point.
+      bytes[2] = scale;
       for (let i = 0; i < valueBytes; i++) {
         bytes[1 + valueOffset + i] = Number(magnitude & 0xffn);
         magnitude >>= 8n;
       }
-      pos += digits.length;
+      pos += wholeMatch.length;
       return bytes;
     }
     const quote = source[pos];
@@ -2630,11 +2712,22 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   const booleanUnary = () => {
     space();
 
-    // A comment between a boolean operator and its right operand is retained
-    // inline as 0x4E. PSIBLOGICL2_WRK.IB_FIELDTYPE_GUI calibrates
-    // `... = "0" Or /* Save or Reset */ ... = "1"`.
+    /*
+     * A comment between a boolean operator and its right operand is
+     * inline (0x4E) if it continues the operator's own line, or
+     * standalone (0x24) if it starts a new line -- see
+     * `blockCommentByPlacement()`. PSIBLOGICL2_WRK.IB_FIELDTYPE_GUI
+     * calibrates the inline case: `... = "0" Or /* Save or Reset *\/ ...
+     * = "1"`. HS_EXAM_AUDIO2.<various>.FieldChange proves the standalone
+     * case, with two own-line comments in a row after `And`:
+     *
+     *   If None(AUDIOMETRIC_TST.EXAM_TYPE_CD) And
+     *         /***** Start of Resolution 597700 ******\/
+     *         /*The below error message will be thrown ... *\/
+     *         &DEL = "FALSE"
+     */
     while (source.startsWith('/*', pos)) {
-      chunks.push(inlineBlockComment());
+      chunks.push(blockCommentByPlacement());
       space();
     }
 
@@ -2676,17 +2769,119 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     comparisonExpression();
   };
 
+  /*
+   * Look past any leading `/* ... *\/` block comments (each followed by
+   * ordinary whitespace) to determine whether `keyword` follows, without
+   * consuming any source. Used to decide whether an And/Or-group
+   * continues when a standalone comment sits between the last operand
+   * and the next `And`/`Or`, e.g.:
+   *
+   *   PanelGroup.HS_INJ_ILL_REHAB
+   *      /* Start of Resolution Id: 305302 *\/
+   *      Or
+   *      %Component = ...
+   *
+   * HS_INJ_ILL_REHAB.HS_PNLGRP_ROUTE.Value stores this comment as an
+   * ordinary standalone 0x24 record positioned right after the 0x41
+   * And/Or-group-open marker, before the `Or` keyword itself.
+   */
+  const restStartsWithKeywordPastComments = (keyword: RegExp): boolean => {
+    let peek = pos;
+    while (true) {
+      while (peek < source.length && /\s/.test(source[peek])) peek++;
+      if (source.startsWith('/*', peek)) {
+        const end = source.indexOf('*/', peek + 2);
+        if (end < 0) return false;
+        peek = end + 2;
+        continue;
+      }
+      break;
+    }
+    return keyword.test(source.slice(peek));
+  };
+
+  /*
+   * A block comment renders as a standalone 0x24 record when it starts
+   * on its own source line, or an inline 0x4E record when it continues
+   * the same line as whatever precedes it -- the same distinction
+   * `blockComment()`/`inlineBlockComment()` already draw elsewhere, just
+   * decided here from the comment's own position rather than a fixed
+   * per-call-site choice. Looks backward from `pos` (already positioned
+   * at the comment's own `/*`) past only spaces/tabs, not newlines.
+   *
+   * HS_INJ_ILL_REHAB.HS_PNLGRP_ROUTE.Value proves both shapes can appear
+   * around the SAME And/Or-group and If/Then boundary depending purely
+   * on line placement:
+   *
+   *   If %PanelGroup = PanelGroup.HS_INJ_ILL_REHAB
+   *         /* Start of Resolution Id: 305302 *\/    -- own line -> 0x24
+   *         Or
+   *         %Component = Component.HS_NE_INJILL_REHAB
+   *      /* End of Resolution Id: 305302 *\/          -- own line -> 0x24
+   *      Then
+   */
+  const blockCommentStartsOwnLine = (): boolean => {
+    let i = pos - 1;
+    while (i >= 0 && (source[i] === ' ' || source[i] === '\t')) i--;
+    return i < 0 || source[i] === '\n' || source[i] === '\r';
+  };
+
+  const blockCommentByPlacement = (): Buffer =>
+    blockCommentStartsOwnLine() ? blockComment() : inlineBlockComment();
+
   const andExpression = () => {
     booleanUnary();
     space();
 
-    if (!/^And\b/i.test(source.slice(pos))) {
+    if (!restStartsWithKeywordPastComments(/^And\b/i)) {
       return;
+    }
+
+    /*
+     * An INLINE (same-line) comment between the first operand and the
+     * group's first `And` still belongs to that operand's own token
+     * stream, emitted BEFORE the group-open 0x41 -- the opposite order
+     * from a STANDALONE (own-line) comment, which belongs to the group
+     * itself and is emitted AFTER 0x41.
+     *
+     * BANKACCT_SBR.ACCOUNT_EC_ID.FieldFormula (definition 1411):
+     *
+     *   If %Component = "GPSC_BANK_ACC_FL" /*FLUID*\/ And
+     *
+     * stores `... "GPSC_BANK_ACC_FL" 4E<comment> 41 18(And) ...` -- the
+     * inline comment directly after the string literal, THEN 0x41, THEN
+     * `And`. Contrast HS_INJ_ILL_REHAB.HS_PNLGRP_ROUTE.Value's own-line
+     * comment before `Or` (definition 6509), which stores
+     * `... 41 24<comment> 1E(Or) ...` -- 0x41 first.
+     */
+    while (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
+      chunks.push(inlineBlockComment());
+      space();
     }
 
     chunks.push(Buffer.from([0x41]));
 
-    while (/^And\b/i.test(source.slice(pos))) {
+    while (source.startsWith('/*', pos)) {
+      chunks.push(blockCommentByPlacement());
+      space();
+    }
+
+    while (restStartsWithKeywordPastComments(/^And\b/i)) {
+      /*
+       * A standalone/inline comment may likewise sit between a PRIOR
+       * operand and a SUBSEQUENT `And` in the same multi-operand group
+       * (not just before the group's first `And`, handled above) --
+       * mirrored from that same check for this loop's own re-entry
+       * condition. HS_INJ_WORK.CHECK_BOX.FieldChange (definition 6507)
+       * proves this with a THREE-operand Or-chain where the comment sits
+       * between the second and third operands, not the first and
+       * second.
+       */
+      while (source.startsWith('/*', pos)) {
+        chunks.push(blockCommentByPlacement());
+        space();
+      }
+
       pos += 3;
       chunks.push(fixed('And'));
 
@@ -2722,12 +2917,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
 
     /*
-     * An inline block comment may follow the last And-group operand,
-     * before the group's closing 0x42. Encoded the same same-line 0x4E
-     * way as any other inline trailing comment; see booleanExpression's
-     * Or-group below for the calibrating fixture.
+     * An INLINE (same-line) block comment may follow the last And-group
+     * operand, before the group's closing 0x42 -- it still logically
+     * hugs that operand. A comment starting its OWN line instead belongs
+     * to whatever follows the closing 0x42 (e.g. ifStatement()'s own
+     * comment-before-Then handling), not inside this group -- proven by
+     * HS_INJ_ILL_REHAB.HS_PNLGRP_ROUTE.Value, whose own-line comment
+     * before `Then` stores AFTER the Or-group's 0x42, not before it (see
+     * booleanExpression's Or-group below for the original inline-only
+     * calibrating fixture this narrows).
      */
-    if (source.startsWith('/*', pos)) {
+    if (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
       chunks.push(inlineBlockComment());
       space();
     }
@@ -2739,13 +2939,38 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     andExpression();
     space();
 
-    if (!/^Or\b/i.test(source.slice(pos))) {
+    if (!restStartsWithKeywordPastComments(/^Or\b/i)) {
       return;
+    }
+
+    /*
+     * See andExpression()'s identical check: an INLINE comment before
+     * the group's first `Or` is emitted before the group-open 0x41; a
+     * STANDALONE one is emitted after it.
+     */
+    while (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
+      chunks.push(inlineBlockComment());
+      space();
     }
 
     chunks.push(Buffer.from([0x41]));
 
-    while (/^Or\b/i.test(source.slice(pos))) {
+    while (source.startsWith('/*', pos)) {
+      chunks.push(blockCommentByPlacement());
+      space();
+    }
+
+    while (restStartsWithKeywordPastComments(/^Or\b/i)) {
+      /*
+       * See andExpression()'s identical re-entry check for a comment
+       * between a prior operand and a SUBSEQUENT `Or` (definition 6507's
+       * three-operand chain).
+       */
+      while (source.startsWith('/*', pos)) {
+        chunks.push(blockCommentByPlacement());
+        space();
+      }
+
       pos += 2;
       chunks.push(fixed('Or'));
 
@@ -2774,8 +2999,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
 
     /*
-     * An inline block comment may follow the last Or-group operand,
-     * before the group's closing 0x42.
+     * An INLINE (same-line) block comment may follow the last Or-group
+     * operand, before the group's closing 0x42 -- it still logically
+     * hugs that operand. A comment starting its OWN line instead belongs
+     * to whatever follows the closing 0x42, not inside this group.
      *
      * BANKACCT_SBR.ACCOUNT_EC_ID.FieldFormula (definition 1406):
      *
@@ -2783,9 +3010,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      *         %Component = "GPSC_BANK_ACC_FL" /*FLUID*\/) And
      *
      * stores the inline 0x4E comment immediately before the Or-group's
-     * closing 0x42, not after it.
+     * closing 0x42, not after it (same line as the last operand).
+     * HS_INJ_ILL_REHAB.HS_PNLGRP_ROUTE.Value's own-line comment before
+     * `Then` instead stores AFTER the Or-group's 0x42 (picked up by
+     * ifStatement()'s own comment-before-Then handling), proving the
+     * own-line case must NOT be consumed here.
      */
-    if (source.startsWith('/*', pos)) {
+    if (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
       chunks.push(inlineBlockComment());
       space();
     }
@@ -2796,6 +3027,40 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   const comparisonExpression = () => {
     expression();
     space();
+
+    /*
+     * `Not =` / `Not >` (a space-separated `Not` immediately before an
+     * ordinary comparison operator) compile as two literal, separate
+     * tokens -- `Not` (0x1d) directly followed by the operator's own
+     * punctuation opcode (`=` is 0x06, `>` is 0x09) -- never translated
+     * into a single combined opcode (e.g. `<>` is a genuinely distinct
+     * single opcode, 0x10, not just an alternate rendering of `Not =`).
+     * Only `=` and `>` are attested in the corpus after `Not`; `<`,
+     * `<=`, `>=`, `<>` never appear there.
+     *
+     * PAY_LINE.BENEFIT_PROGRAM.FieldEdit (definition 23620):
+     *
+     *   If &BEN_SYSTEM Not = "BA" And
+     *         &BEN_SYSTEM Not = "BN" And
+     *         None(PAY_LINE.BENEFIT_PROGRAM) Then
+     *
+     * PI_DEFN_RECORD.EFFDT.SavePreChange (definition 11267, one of 11
+     * corpus occurrences of `Not >`):
+     *
+     *   If &recCount Not > 1 Then
+     */
+    const notOperator =
+      /^Not\s*([=>])/i.exec(source.slice(pos));
+
+    if (notOperator) {
+      pos += 3;
+      chunks.push(fixed('Not'));
+      space();
+      pos += 1;
+      chunks.push(fixed(notOperator[1]));
+      expression();
+      return;
+    }
 
     const operator =
       /^(<>|<=|>=|=|<|>)/.exec(source.slice(pos))?.[0];
@@ -3019,6 +3284,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       globalDeclaration();
     } else if (word('PanelGroup')) {
       panelGroupDeclaration();
+    } else if (word('ComponentLife')) {
+      componentLifeDeclaration();
     } else if (word('Component')) {
       componentDeclaration();
     } else if (word('Constant')) {
@@ -3049,6 +3316,19 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       space();
       if (source[pos] === '(') {
         parenthesized(expression, false);
+      } else if (/^-?\d/.test(source.slice(pos))) {
+        /*
+         * `Exit N;` (a bare numeric literal, no parentheses) is a
+         * distinct, unparenthesized alternative to `Exit(N);`.
+         *
+         * ACA_EXTRACT_AET.<various>.FieldFormula (definition 25166, one
+         * of 197 corpus occurrences of this exact shape):
+         *
+         *   If ... Then
+         *      Exit 1;
+         *   End-If;
+         */
+        expression();
       } else {
         pos = afterExit;
       }
@@ -3173,9 +3453,23 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           createRecordAssignmentTarget =
             previousCreateRecordAssignmentTarget;
         }
-      } else if (source[pos] !== ';') {
-        fail('expected assignment = or end of method-call statement');
       }
+      /*
+       * A variable-led method-call statement (e.g. `&RS.DeleteRow(&i)`)
+       * may itself omit its trailing source semicolon under the same
+       * conditions a bare (non-variable-led) call statement already can
+       * -- primary() has already consumed the complete chain above; the
+       * caller's own body-terminator check (e.g. `expected ; in For
+       * body`, which already allows omission immediately before
+       * `End-For`) decides whether the omission is legal here, exactly
+       * as it does for the bare-call statement branch below.
+       *
+       * GPMY_RC_RCPT_FL.GPMY_RCPNT_OPTN.FieldFormula (definition 9256):
+       *
+       *   For &i = &RS.ActiveRowCount To 1 Step - 1
+       *      &RS.DeleteRow(&i)
+       *   End-For
+       */
     } else if (/[A-Za-z_]/.test(source[pos] ?? '')) {
       const tail = source.slice(pos);
       if (/^Record\s*\./i.test(tail)) {
@@ -3238,8 +3532,18 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         chunks.push(fixed('='));
         expression();
       } else if (
-        /^[A-Za-z_][A-Za-z0-9_]*\s*\([^;]*\)\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*=/.test(tail)
+        /^[A-Za-z_][A-Za-z0-9_]*\s*\([^;]*\)(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)+\s*=/.test(tail)
       ) {
+        /*
+         * A call-result property chain may traverse more than one dotted
+         * member before the assigned property, e.g.
+         * `GetRecord().GPS_BDG_ORG2.SqlText = ExpandSqlBinds(...);`
+         * (definition 9989 and 25 other corpus occurrences) --
+         * `GetRecord()` then RECORD member `GPS_BDG_ORG2` then FIELD
+         * member `SqlText`, not just the single-member
+         * `Name(args).Property =` shape this branch originally matched.
+         * primary() already walks an arbitrarily long postfix chain.
+         */
         primary();
         space();
         if (source[pos] !== '=') {
@@ -4388,6 +4692,35 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         continue;
       }
 
+      /*
+       * REM is compiled as a 0x24 comment payload containing its own
+       * semicolon, so consume it here rather than sending it through the
+       * ordinary statement + 0x15 terminator path -- mirroring
+       * ifStatement()'s identical REM handling above, which a While body
+       * was entirely missing (only If/For/Evaluate/try bodies had it).
+       *
+       * PSXP_PRCSDEFN.CI_PROPERTY.FieldFormula (definition 9661):
+       *
+       *   While &CIProperties.Fetch(&PropertyName, &RecName, &Fieldname)
+       *
+       *      REM MessageBox(0, "", 0, 0, "&RecName = " | &RecName | ...);
+       */
+      if (/^REM\b/i.test(source.slice(pos))) {
+        if (hasBlankLine) {
+          const markerCount = Math.max(
+            1,
+            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
+          );
+
+          for (let marker = 0; marker < markerCount; marker++) {
+            pendingReferenceGroupBoundaries.push(chunks.length);
+          }
+        }
+
+        chunks.push(remComment(true));
+        continue;
+      }
+
       statement();
 
       space();
@@ -4410,7 +4743,9 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     space();
 
     /*
-     * A block comment may appear between an If condition and Then:
+     * A block comment may appear between an If condition and Then, either
+     * inline (0x4E, continuing the condition's own line) or standalone
+     * (0x24, starting a new line) -- see `blockCommentByPlacement()`.
      *
      *   If &HeaderRowset(&i).Visible = True [inline block comment] Then
      *
@@ -4419,12 +4754,12 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      *
      *   ... 06 2F 4E <comment> 1F ...
      *
-     * decodeProgram() may render the same 0x4E comment on its own line before
-     * Then, so accept either source layout and preserve the inline-comment
-     * representation.
+     * HS_INJ_ILL_REHAB.HS_PNLGRP_ROUTE.Value proves the standalone case:
+     * its own comment sits on its own line right before `Then` and
+     * stores as 0x24, not 0x4E.
      */
     while (source.startsWith('/*', pos)) {
-      chunks.push(inlineBlockComment());
+      chunks.push(blockCommentByPlacement());
       space();
     }
 
@@ -4674,7 +5009,20 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       if (source[pos] === ';') {
         pos++;
         chunks.push(fixed(';'));
-      } else if (!/^(?:Else|End-If)\b/i.test(source.slice(pos))) {
+      } else if (!/^(?:Else|End-If|REM)\b/i.test(source.slice(pos))) {
+        /*
+         * A statement immediately followed by a REM comment (no
+         * intervening statement of its own) may likewise omit its
+         * trailing source semicolon, the same way one immediately
+         * before Else/End-If already can.
+         *
+         * FUNCLIB_HR.FIELDVALUE_ERROR.FieldEdit (definition 13181):
+         *
+         *   Error MsgGet(2050, 10, "Field Text Type required for
+         *      Field Type of VALUE")
+         *   rem error "Text cannot be blank for VALUE field type ";
+         *   End-If;
+         */
         fail('expected ; in If body');
       }
       trailingBlockComments();
@@ -4966,10 +5314,37 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             }
           }
 
+          /*
+           * `Break` (and, by the same reasoning, `Continue`) is a fixed,
+           * argument-free keyword with no ambiguity about where it ends,
+           * so it may omit its trailing `;` when it is the LAST statement
+           * in a `When-Other` body, immediately followed by
+           * `End-Evaluate` -- mirroring the already-proven EOF-omission
+           * allowance for other self-terminating top-level statement
+           * shapes (assignments/If/Evaluate/bare calls/try), just at
+           * this body-closing boundary instead of true source EOF.
+           *
+           * PTAFAW_NOTIFY.PTAFEVENT.<event> (definition 18001, one of
+           * several corpus occurrences of this exact shape):
+           *
+           *   When-Other
+           *      Break
+           *   End-Evaluate;
+           */
+          const isBreakOrContinueStatement =
+            /^(?:Break|Continue)\b/i.test(source.slice(pos));
+
           statement();
 
           space();
           if (source[pos] !== ';') {
+            if (
+              isBreakOrContinueStatement &&
+              /^End-Evaluate\b/i.test(source.slice(pos))
+            ) {
+              continue;
+            }
+
             fail('expected ; in When-Other body');
           }
 
@@ -5004,13 +5379,25 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           expression();
         }
 
+        /*
+         * The structural 0x2D boundary comes BEFORE a When header's own
+         * optional trailing source semicolon, not after it -- the reverse
+         * of the order this previously emitted.
+         *
+         * CONTRACT.PAYMENT_TERM.FieldChange (definition 3062):
+         *
+         *   When = "X";
+         *      UnGray(CONTRACT.PAYMENT_END_DT);
+         *
+         * stores `... "X" 2D 15 0A "UnGray" ...` (0x2D then 0x15), not
+         * `... "X" 15 2D ...`.
+         */
+        chunks.push(Buffer.from([0x2d]));
+
         if (source[pos] === ';') {
           pos++;
           chunks.push(fixed(';'));
         }
-
-        // Confirmed by every When in the fixture.
-        chunks.push(Buffer.from([0x2d]));
 
         let selectorWhitespaceStart = pos;
         while (
@@ -5189,6 +5576,30 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           statement();
 
           space();
+
+          /*
+           * A standalone comment may sit between a completed When-body
+           * statement (itself omitting its own semicolon, e.g. a nested
+           * `If ... End-If` with no trailing `;`) and the next `When`/
+           * `End-Evaluate`, the same way one already can before those
+           * keywords with no comment in between.
+           *
+           * CAR_PLAN_TBL.MAX_LIST_AMT.FieldFormula (definition 2484):
+           *
+           *   End-If
+           *   /* Lease *\/
+           *   When = "L"
+           */
+          if (
+            source[pos] !== ';' &&
+            source.startsWith('/*', pos) &&
+            restStartsWithKeywordPastComments(/^(?:When(?:-Other)?|End-Evaluate)\b/i)
+          ) {
+            while (source.startsWith('/*', pos)) {
+              chunks.push(blockCommentByPlacement());
+              space();
+            }
+          }
 
           if (
             source[pos] !== ';' &&
@@ -6044,8 +6455,28 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       const startsVariableComparison =
         /^\(\s*&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:<>|<=|>=|=|<|>)/
           .test(source.slice(pos));
+      /*
+       * A parenthesized comparison whose LEFT side is a function call
+       * (optionally with one level of call arguments) or a bare
+       * Record.Field chain, rather than a `&variable`, e.g.:
+       *
+       *   &bWild = (Find("*", &sFile) > 0);
+       *   &bIsSRM = (GetUserOption("PPTL", "ACCESS") = "A");
+       *   Visible = (GPGB_EDI_TRANS.GPGB_EDI_AUDIT = "Y");
+       *
+       * PORTAL_UTILS.FUNCLIB.FieldFormula (one of 41 corpus occurrences
+       * of this shape, across Find/GetUserOption/MessageBox/RTrim/Upper
+       * calls and bare Record.Field comparisons) proves these also need
+       * `booleanExpression()`, not just the already-covered `&variable`
+       * case.
+       */
+      const startsCallOrFieldComparison =
+        /^\(\s*[A-Za-z_][A-Za-z0-9_]*(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:\([^()]*\))?\s*(?:<>|<=|>=|=|<|>)/
+          .test(source.slice(pos));
       parenthesized(
-        startsBooleanUnary || startsVariableComparison
+        startsBooleanUnary ||
+        startsVariableComparison ||
+        startsCallOrFieldComparison
           ? booleanExpression
           : expression,
         false
@@ -6167,6 +6598,41 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           /^GetRecord$/i.test(identifier) &&
           !/^GetRecord\s*\(\s*\)/i.test(tail);
 
+        /*
+         * A bare, EMPTY-PARENS `GetRecord()` call is normally a
+         * Row-navigation chain root (definition 180's `.ParentRow...`,
+         * kept inline -- see the comment above). But when the member that
+         * follows is itself followed by a SECOND dotted member (rather
+         * than being the whole chain), the first member is a FIELD access
+         * on the row's default record, exactly like the argumented form
+         * already puts its following bare `.MEMBER` into field-reference
+         * mode -- the difference is structural (one member vs. two), not
+         * the presence of call arguments.
+         *
+         * GPS_POSTADD_WRK.<various>.FieldFormula (definition 10023, one of
+         * 26 corpus occurrences of this exact shape):
+         *
+         *   GetRecord().GPS_BDG_ORG2.SqlText = ExpandSqlBinds(...);
+         *
+         * stores a real PSPCMNAME FIELD reference (0x4A) for GPS_BDG_ORG2,
+         * while SqlText -- a record property, not a field -- stays inline
+         * text, matching how `expectedReferenceMember` already reverts to
+         * `undefined` (not a second reference level) once a 'field'-mode
+         * reference has been consumed.
+         *
+         * `ParentRow` is the sole exception in the corpus (definitions 180,
+         * 9359, 22705, all still a `.ParentRow.ParentRowset...` navigation
+         * chain, never a field): of 113 distinct first-member identifiers
+         * found across every `GetRecord().MEMBER.MEMBER2` corpus occurrence,
+         * `ParentRow` is the only one that is not an
+         * ALL_CAPS_WITH_UNDERSCORES field-name shape, so it is excluded by
+         * name, matching definition 180's own calibrated comment above.
+         */
+        const wasBareGetRecordCallNoArgsFieldChain =
+          /^GetRecord$/i.test(identifier) &&
+          /^GetRecord\s*\(\s*\)\s*\.\s*(?!ParentRow\b)[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/i
+            .test(tail);
+
         const wasBareGetRowCall =
           /^GetRow$/i.test(identifier) &&
           /^GetRow\s*\(\s*\)/i.test(tail);
@@ -6177,7 +6643,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         // e.g. GetLevel0()(1).
         allowDirectPostfixCall = true;
 
-        if (wasBareGetRecordCall) {
+        if (wasBareGetRecordCall || wasBareGetRecordCallNoArgsFieldChain) {
           bareGetRecordCallResult = true;
         }
 
@@ -6523,6 +6989,34 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
                 reference
               );
             }
+          } else if (
+            expectedReferenceMember === 'field' &&
+            baseVariableName === undefined &&
+            fieldMemberFromGetRecord
+          ) {
+            /*
+             * A bare `GetRecord().FIELDNAME` field reference (no
+             * `&variable.` receiver) reuses within the current control
+             * group the same way every other FIELD-reuse pool above does
+             * -- a second `GetRecord().FIELDNAME` for the same field name
+             * in the same control group (e.g. the If- and Else-branches
+             * of one `If ... Then ... Else ... End-If;`) points to the
+             * SAME PSPCMNAME FIELD row, not a fresh allocation.
+             *
+             * GPS_EDIT_WRK.GPS_BDG_ORG1.FieldChange (definition 9989):
+             *
+             *   If GetRecord().GPS_LEVELS.Value = 2 Then
+             *      GetRecord().GPS_BDG_ORG2.SqlText = ExpandSqlBinds(...);
+             *   Else
+             *      GetRecord().GPS_BDG_ORG2.SqlText = ExpandSqlBinds(...);
+             *   End-If;
+             *
+             * both `GPS_BDG_ORG2` occurrences store the same FIELD index.
+             */
+            fieldReferencesByControlGroup.set(
+              `${controlGroup}:${member.toLowerCase()}`,
+              reference
+            );
           }
 
           chunks.push(Buffer.from([
@@ -7237,6 +7731,26 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       /^Evaluate\b/i.test(source.slice(pos));
 
     /*
+     * GPFR_AF_DON_SQL.GPFR_AF_APPL.FieldFormula (definition 6844) proves a
+     * top-level For/End-For block also self-terminates at EOF without a
+     * source semicolon, the same way If/End-If and Evaluate/End-Evaluate
+     * already do.
+     */
+    const isForStatement =
+      /^For\b/i.test(source.slice(pos));
+
+    /*
+     * A bare `Warning <expr>` (or `Error <expr>`) top-level statement may
+     * also omit its semicolon at EOF.
+     *
+     * GPGB_SCON_TBL.GPGB_SCON.FieldFormula (definition 21801):
+     *
+     *   Warning MsgGetText(17410, 51, "Message not found")
+     */
+    const isWarningOrErrorStatement =
+      /^(?:Warning|Error)\b/i.test(source.slice(pos));
+
+    /*
      * ADDRESS_SBR.COUNTRY.FieldChange (definition 524) proves a top-level
      * try/catch/end-try block may likewise terminate directly at EOF
      * without a source semicolon after end-try:
@@ -7292,6 +7806,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       ) &&
       /^[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(source.slice(pos));
 
+    /*
+     * A `&variable.Method(...)` (or `@(...)`-led) method-call statement,
+     * with no assignment `=`, may likewise omit its semicolon at EOF --
+     * the same relaxation `isTopLevelCallStatement` already gives a bare
+     * declared-function call, just for a variable-led receiver instead
+     * of a bare identifier.
+     *
+     * GPFR_AF_ESC.GPFR_AF_ESC_NAME.SavePreChange (definition 18046):
+     *
+     *   &esc.OnSavePreChange()
+     */
+    const isTopLevelVariableLedCallStatement =
+      (source[pos] === '&' || source[pos] === '@') &&
+      !/=/.test(source.slice(pos));
+
     const isApplicationClassLocal =
       /^Local\s+[A-Za-z_][A-Za-z0-9_]*\s*:\s*[A-Za-z_][A-Za-z0-9_]*\b/i.test(
         source.slice(pos)
@@ -7303,7 +7832,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     const isTopLevelDeclaration =
       isImport ||
-      /^(?:Global|PanelGroup|Component|Constant|Declare\s+Function)\b/i.test(source.slice(pos));
+      /^(?:Global|PanelGroup|ComponentLife|Component|Constant|Declare\s+Function)\b/i.test(source.slice(pos));
 
 
     const closesTopLevelDeclarationSection =
@@ -7328,23 +7857,29 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       chunks.push(Buffer.from([0x2d]));
 
       /*
-       * The import-section boundary carries at most one 0x4F formatting
-       * marker. Do not derive multiplicity from decoded/source newline count:
-       * ACCOMPLISHMENTS.EMPLID.SavePostChange stores exactly:
+       * The import-section boundary's 0x4F marker count scales with
+       * blank-line count, like every other marker site in this file.
+       * ACCOMPLISHMENTS.EMPLID.SavePostChange (a single blank line before
+       * an Application Class Local) only ever exercised the single-marker
+       * case, so an earlier pass hardcoded "at most one" for every OTHER
+       * (non-Application-Class-Local) following declaration -- CAF_SRCH.
+       * CAF_SRCH_BTN.SavePostChange (definition 2200) disproves that:
        *
-       *   ... <last import> 15 2D 4F 44 <first Local> ...
+       *   import CAF_SEARCH_NUI:Search;
+       *   import CAFNUI_CORE:OBJECT:CompareSession;
+       *   import CAFNUI_API:EntityHandler;
        *
-       * and decode formatting may expand that source boundary to several
-       * newline characters without representing additional compiled 0x4F
-       * bytes.
+       *
+       *   Declare Function GetSearchKey PeopleCode CAF_SRCH.CAF_SRCH_BTN FieldFormula;
+       *
+       * (two blank lines, next declaration a Declare Function, not a
+       * Local) stores TWO 0x4F markers, not one.
        */
       if (hasBlankLine) {
-        const markerCount = isApplicationClassLocal
-          ? Math.max(
-              1,
-              (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
-            )
-          : 1;
+        const markerCount = Math.max(
+          1,
+          (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
+        );
         for (let marker = 0; marker < markerCount; marker++) {
           chunks.push(Buffer.from([0x4f]));
         }
@@ -7402,7 +7937,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     if (
       (sawTopLevelDeclaration || sawLeadingLocalDeclaration) &&
       isTopLevelDeclaration &&
-      /^(?:Component|Global|PanelGroup|Declare\s+Function)\b/i.test(source.slice(pos)) &&
+      /^(?:ComponentLife|Component|Global|PanelGroup|Declare\s+Function)\b/i.test(source.slice(pos)) &&
       hasBlankLine &&
       !justClosedImportSection
     ) {
@@ -7754,6 +8289,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     space();
 
     /*
+     * A block comment may appear between a top-level statement's
+     * expression and its own terminating semicolon, the same way
+     * If/For/While bodies already allow -- inline (0x4E) or standalone
+     * (0x24) by placement (see `blockCommentByPlacement()`).
+     *
+     * HR_LINK_WRK.DESCR.FieldFormula (definition 18680):
+     *
+     *   HR_LINK_WRK.DESCR = MsgGetText(18032, 485, "Message Not Found, 18032, 485") /* Go to *\/;
+     */
+    while (source.startsWith('/*', pos)) {
+      chunks.push(blockCommentByPlacement());
+      space();
+    }
+
+    /*
      * Some complete block statements are self-terminating at top level.
      *
      * Calibrated cases:
@@ -7792,10 +8342,48 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       const trailingStandaloneCommentEnd = source.startsWith('/*', pos)
         ? source.indexOf('*/', pos + 2)
         : -1;
-      const assignmentBeforeFinalStandaloneComment =
-        startsTopLevelAssignment &&
+      /*
+       * Any self-terminating-at-EOF statement type may have a trailing
+       * standalone comment between its own end and true EOF, not just a
+       * plain assignment -- HS_EXAM_AUDIO2.<various>.FieldChange
+       * (definition 1353) proves this for a top-level `If ... End-If`
+       * (no trailing `;`) immediately followed by
+       * `/*End Resolution 301452 *\/` and nothing else:
+       *
+       *   If %Page = ... Then
+       *      ...
+       *   End-If
+       *   /*End Resolution 301452 *\/
+       */
+      const selfTerminatingBeforeFinalStandaloneComment =
+        (
+          startsTopLevelAssignment ||
+          isIfStatement ||
+          isEvaluateStatement ||
+          isForStatement ||
+          isTopLevelCallStatement ||
+          isTopLevelVariableLedCallStatement ||
+          isWarningOrErrorStatement ||
+          isTryStatement
+        ) &&
         trailingStandaloneCommentEnd >= 0 &&
         /^\s*$/.test(source.slice(trailingStandaloneCommentEnd + 2));
+
+      /*
+       * A top-level statement immediately followed by a REM comment (no
+       * semicolon of its own) may likewise omit it -- the REM statement
+       * itself is handled by this same loop's own dedicated REM branch
+       * on its next iteration, exactly like the ordinary
+       * `;`-then-continue path. Not restricted to EOF: the REM statement
+       * may not be the last thing in the file.
+       *
+       * CAF_FACTOR_360.CAF_CLOSE_BTN.FieldChange (definition 2175):
+       *
+       *   &cmpSession.Configuration.ComparisonHandler.
+       *       DeleteFactorfromAnalysisGrouplets(&RS_Flt_Factor360(&save_i_flt_fac))
+       *   rem &cmpSession.ProcessNUIAction("updfactor");
+       */
+      const precedesRemStatement = /^REM\b/i.test(source.slice(pos));
 
       const selfTerminatingAtEof =
         (
@@ -7804,10 +8392,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             startsTopLevelAssignment ||
             isIfStatement ||
             isEvaluateStatement ||
+            isForStatement ||
             isTopLevelCallStatement ||
+            isTopLevelVariableLedCallStatement ||
+            isWarningOrErrorStatement ||
             isTryStatement
           )
-        ) || assignmentBeforeFinalStandaloneComment;
+        ) || selfTerminatingBeforeFinalStandaloneComment || precedesRemStatement;
 
       if (!selfTerminatingAtEof) {
         fail('expected ;');

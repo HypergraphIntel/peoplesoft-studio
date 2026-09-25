@@ -1,6 +1,765 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #72** landed (src/peoplecode/encoder.ts), four related comment-
+  placement gaps found together via the `BLOCK_COMMENT` `ENCODE_ERROR`
+  family, all fixed with the same `restStartsWithKeywordPastComments()`/
+  `blockCommentByPlacement()` machinery Fix #70 introduced:
+  1. **`booleanUnary()`'s comment-after-operator handling was hardcoded
+     inline-only**: a comment right after `And`/`Or` (before its right
+     operand) always used `inlineBlockComment()` (0x4E), but a
+     STANDALONE (own-line) comment there needs `blockComment()` (0x24).
+     HS_EXAM_AUDIO2.<various>.FieldChange (definition 1353) proves it
+     with TWO own-line comments in a row after `And`.
+  2. **Top-level statements had no comment-before-`;` handling at all**
+     (If/For/While bodies already did): added the same placement-aware
+     comment loop right before the top-level `;` check.
+     HR_LINK_WRK.DESCR.FieldFormula (definition 18680):
+     `X = MsgGetText(...) /* Go to */;`.
+  3. **The EOF-omission "trailing standalone comment" allowance
+     (`assignmentBeforeFinalStandaloneComment`) was scoped only to plain
+     assignments**, not the other self-terminating-at-EOF statement
+     types (If/Evaluate/For/bare-call/etc.) added across Fixes #60/#68.
+     Generalized to `selfTerminatingBeforeFinalStandaloneComment`,
+     covering all of them. HS_EXAM_AUDIO2.<various>.FieldChange
+     (definition 1353, same target as #1) also needed this half: a
+     top-level `If ... End-If` (no `;`) followed by one standalone
+     comment then true EOF.
+  4. **A When-body statement omitting its own `;` before the next
+     `When`/`End-Evaluate` had no allowance for a standalone comment in
+     between** (unlike If/For bodies, which already tolerate one).
+     CAR_PLAN_TBL.MAX_LIST_AMT.FieldFormula (definition 2484): a nested
+     `If ... End-If` (no `;`) followed by `/* Lease */` then `When =
+     "L"`.
+  Searched the corpus for the `BLOCK_COMMENT`-construct `ENCODE_ERROR`
+  family (11 occurrences, all sampled): 8 confirmed fully EXACT (1353,
+  2484, 3684, 4393, 6508, 11192, 16873, 18680), 2 advanced past their
+  respective comment-placement construct into separate, unrelated,
+  deeper reference-index/structural issues (18580, 23802), confirmed via
+  git-stash comparison to have failed at the targeted construct before
+  this fix -- zero regressions. **One pre-existing test needed
+  updating**: `encoderNumbers.test.ts`'s `Return 1 /* comment */;` was
+  in the "unsupported" list (predating any comment-before-top-level-`;`
+  support) -- removed without adding a replacement assertion, since a
+  synthetic round-trip check for that exact input surfaced a separate,
+  narrower, decoder-only rendering gap (a same-line `Return <number>
+  /* comment */;` renders across three lines instead of one) that is
+  outside this fix's corpus-evidenced scope; noted here rather than
+  silently patched over, for a future session searching the corpus for
+  that specific decoder shape. Verified: `npx tsc -p .` clean; `npm
+  test` 458/459 (1 pre-existing skip); `corpus:verify --limit 430`
+  430/430, 0 regressions. Given this touches several shared comment-
+  handling call sites, a full-corpus background diff was also started;
+  see next entry for its result once complete.
+- **Fix #71** landed (src/peoplecode/encoder.ts): a statement immediately
+  followed by a `REM ...;` comment (no semicolon of its own) may omit
+  its trailing source semicolon, in two contexts:
+  1. **Inside an If body**: added `REM` to the existing `Else`/`End-If`
+     omission-allowance list at the If-body statement-terminator check.
+     Target: definition 13181 (FUNCLIB_HR.FIELDVALUE_ERROR.FieldEdit):
+     ```
+     Error MsgGet(2050, 10, "Field Text Type required for Field Type of VALUE")
+     rem error "Text cannot be blank for VALUE field type ";
+     End-If;
+     ```
+  2. **At the top level**: added a `precedesRemStatement` check
+     (unrestricted by EOF, since the REM statement need not be the last
+     thing in the file -- the top-level loop's own dedicated REM branch
+     picks it up cleanly on its next iteration). Target: definition 2175
+     (CAF_FACTOR_360.CAF_CLOSE_BTN.FieldChange):
+     ```
+     &cmpSession.Configuration.ComparisonHandler.
+         DeleteFactorfromAnalysisGrouplets(&RS_Flt_Factor360(&save_i_flt_fac))
+     rem &cmpSession.ProcessNUIAction("updfactor");
+     ```
+  Searched the corpus for the "expected ;"/"expected ; in If body"
+  `ENCODE_ERROR` family sharing this `rem`-adjacent shape (9 sampled):
+  7 confirmed fully EXACT (13155, 13174, 13181, 13182, 13192, 13208,
+  5462), 2 advanced past the statement-before-REM construct into
+  separate, unrelated, small reference-index mismatches (2175, 13179),
+  confirmed via git-stash comparison to have failed at this exact
+  construct before the fix -- zero regressions. Verified: `npx tsc -p .`
+  clean; `npm test` 459/460 (1 pre-existing skip); `corpus:verify
+  --limit 430` 430/430, 0 regressions. Full-corpus background diff
+  (run_id 282 -> 284, all 30,209 definitions) confirmed: 9 improved, 0
+  regressed, 30200 unchanged. New corpus total: 22482/30209 exact
+  (74.4%).
+- **Fix #70** landed (src/peoplecode/encoder.ts, `andExpression()` /
+  `booleanExpression()`): a block comment sitting between a boolean
+  operand and the `And`/`Or` keyword that continues the expression
+  (rather than after it, the only position already handled) made the
+  encoder treat the expression as complete, causing the caller (e.g.
+  `ifStatement()`) to fail "expected Then" when it found a comment where
+  it expected the keyword. Three distinct, evidence-backed sub-rules,
+  all found from the same construct family:
+  1. **Detecting the keyword past comments**: added
+     `restStartsWithKeywordPastComments()`, a non-consuming lookahead
+     that skips whitespace and any number of block comments before
+     checking for `And`/`Or`, replacing the previous immediate
+     `/^And\b/`/`/^Or\b/` checks (both the initial entry check and each
+     while-loop's own re-entry condition -- a comment between a LATER
+     pair of operands in a 3+-operand chain needed the identical
+     treatment, proven separately below).
+  2. **Comment opcode by placement, not by call site**: added
+     `blockCommentByPlacement()`/`blockCommentStartsOwnLine()` -- a
+     comment starting its own source line encodes as standalone (0x24,
+     `blockComment()`); one continuing the previous line's tokens
+     encodes as inline (0x4E, `inlineBlockComment()`). Several call
+     sites in this area (the And/Or-group's own trailing-comment-
+     before-close, and `ifStatement()`'s comment-before-Then) previously
+     hardcoded one or the other based on a single calibrating example
+     that never actually distinguished the two cases (both prior
+     examples happened to need the same opcode their hardcoded choice
+     produced).
+  3. **Group-open (0x41) ordering relative to a LEADING comment**: an
+     INLINE comment before the group's very first `And`/`Or` is emitted
+     BEFORE 0x41 (it still belongs to the first operand's own token
+     stream); a STANDALONE (own-line) one is emitted AFTER 0x41 (it
+     belongs to the group itself). Comments AFTER the group has already
+     opened (between later operands, or trailing before the close) don't
+     need this distinction -- only the very first one does.
+  Target: definition 6509 (HS_INJ_ILL_REHAB.HS_PNLGRP_ROUTE.Value) --
+  ```
+  If %PanelGroup = PanelGroup.HS_INJ_ILL_REHAB
+        /* Start of Resolution Id: 305302 */
+        Or
+        %Component = Component.HS_NE_INJILL_REHAB
+     /* End of Resolution Id: 305302 */
+     Then
+  ```
+  confirmed full EXACT (both the standalone comment before `Or`, opening
+  the group with 0x41 first, AND the standalone comment before `Then`,
+  now correctly emitted AFTER the Or-group's 0x42 close rather than
+  swallowed into the group). Searched the corpus for the "expected Then"
+  `ENCODE_ERROR` family across both the `And` and `Or` construct-snippet
+  groups (11 combined occurrences sampled): 6 confirmed fully EXACT
+  (6509, 3348, 6507 -- a genuine 3-operand Or-chain with the comment
+  between the 2nd and 3rd operand, proving sub-rule 1's while-loop fix
+  independently of the entry-check fix, 13757, 13847, 1411 -- proving
+  sub-rule 3's inline-before-0x41 ordering independently of the
+  standalone case), 5 advanced past the And/Or-comment construct into
+  separate, unrelated, deeper issues (14020: a `When = False` clause's
+  own trailing-comment handling, not this construct at all; 1016:
+  unrelated `time` function-metadata gap; 1420: unrelated `else` used as
+  a call name; 1747, 20933: unrelated reference-index mismatches) -- all
+  5 confirmed via git-stash comparison to have failed at the And/Or-
+  comment construct before this fix, zero regressions. Verified: `npx
+  tsc -p .` clean; `npm test` 459/460 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430, 0 regressions. Full-corpus
+  background diff (run_id 280 -> 282, all 30,209 definitions) confirmed:
+  4 improved, 0 regressed, 30205 unchanged. New corpus total:
+  22473/30209 exact (74.4%).
+- **Fix #69** landed (src/peoplecode/encoder.ts, `value()`) -- a
+  significant gap: **decimal number literals were entirely unsupported**.
+  `value()`'s number-literal branch only ever matched bare integer digits
+  (`/^[0-9]+/`); a literal like `9999999.99` or `0.0` parsed just the
+  integer part ("9999999"/"0"), left the `.` for the general postfix-
+  chain parser to interpret as member access, and failed "expected
+  member name after ." when a digit (not an identifier) followed. The
+  decoder has supported this all along -- opcode 0x50's operand already
+  carries a *scale* byte alongside its 16-byte magnitude
+  (`value / 10^scale`; see `numberFormats.ts`'s own comment, "the
+  encoder currently writes zero-scale 0x50 integers" -- now no longer
+  true), confirmed independently by `docs/ROADMAP.md` pass thirty-four
+  (`&pcts.Push(33.34)`, scale 2, magnitude 3334). Changed the digit regex
+  to `/^([0-9]+)(?:\.([0-9]+))?/`, computed `scale` from the fractional
+  digit count, built the magnitude from the CONCATENATED integer+
+  fractional digit string (leading zeros stripped the same way the
+  existing integer path already does), and wrote the scale into the
+  previously-always-zero byte. Target: definition 2291
+  (CAN_AMEND_RL1_D.CORRECTED_AMOUNT.FieldFormula, `If CAN_AMEND_RL1_D.
+  CORRECTED_AMOUNT > 9999999.99 Then`) -- confirmed full EXACT. Searched
+  the corpus for the "expected member name after ." `ENCODE_ERROR`
+  family before implementing (spanning two separate construct-snippet
+  groups, both actually the same root cause: `0;\n &TOT_EE...` and
+  `99 Then\n ...`, 15 combined sample checked): 5 confirmed fully EXACT
+  (2291, 2309, 3072, 3074, 26959), 9 advanced past the decimal-literal
+  parse point into a separate, unresolved PSPCMNAME reference-index
+  issue in the same programs (not caused by this fix -- confirmed
+  identical error family to prior sessions' similar deferred cases), 1
+  hit an entirely unrelated pre-existing "unsupported PeopleCode
+  statement" error further into the file -- all 10 non-exact candidates
+  confirmed via git-stash comparison to have failed at the decimal-
+  literal construct itself before this fix, zero regressions. **Two
+  pre-existing tests had to be updated**: `encoderCalls.test.ts`'s
+  `Return F(1.5);` and `encoderNumbers.test.ts`'s `Return 1.0;` were both
+  in "should fail as unsupported" lists that predated any corpus
+  evidence for decimals -- removed both (the `.5`/`1e3`/`0x10`/etc.
+  neighbors in the same lists remain correctly unsupported, no corpus
+  evidence for those shapes) and added positive round-trip tests
+  (`1.0`, `0.0`, `9999999.99`, `0000.50` decode/re-encode identically)
+  plus a byte-level test confirming the scale byte and magnitude for
+  `33.34` match the ROADMAP-documented calibration exactly. Verified:
+  `npx tsc -p .` clean; `npm test` 459/460 (1 pre-existing skip, up from
+  457/458 with the 2 new positive-test additions); `corpus:verify
+  --limit 430` 430/430, 0 regressions. Full-corpus background diff
+  (run_id 278 -> 280, all 30,209 definitions) confirmed: 48 improved, 0
+  regressed, 30161 unchanged. New corpus total: 22469/30209 exact
+  (74.4%).
+- **Fix #68** landed (src/peoplecode/encoder.ts, top-level statement
+  loop's `selfTerminatingAtEof` check), three new self-terminating-at-EOF
+  shapes added alongside the existing If/Evaluate/assignment/bare-call/
+  try ones, each with its own narrow classification flag:
+  1. **`isForStatement`**: a top-level `For ... End-For` block (no
+     trailing `;`) may end a program at EOF, the same way `If ... End-If`
+     and `Evaluate ... End-Evaluate` already can. Target: definition 6844
+     (GPFR_AF_DON_SQL.GPFR_AF_APPL.FieldFormula) -- confirmed full EXACT.
+  2. **`isTopLevelVariableLedCallStatement`**: a `&variable.Method(...)`
+     (or `@(...)`-led) method-call statement with no assignment `=` may
+     omit its semicolon at EOF, mirroring the existing bare
+     declared-function-call relaxation (`isTopLevelCallStatement`) but
+     for a variable-led receiver. Target: definition 18046
+     (GPFR_AF_ESC.GPFR_AF_ESC_NAME.SavePreChange, `&esc.
+     OnSavePreChange()`) -- confirmed full EXACT.
+  3. **`isWarningOrErrorStatement`**: a bare `Warning <expr>` (or
+     `Error <expr>`) top-level statement may also omit its semicolon at
+     EOF. Target: definition 21801 (GPGB_SCON_TBL.GPGB_SCON.FieldFormula,
+     `Warning MsgGetText(17410, 51, "Message not found")`) -- confirmed
+     full EXACT. Only 1 corpus occurrence found for `Warning`, 0 for
+     `Error` -- `Error` included by direct grammar symmetry with
+     `Warning` (identical statement shape, same reasoning), not separate
+     corpus evidence of its own.
+  Searched the corpus for the general "EOF" `ENCODE_ERROR` construct
+  family (16 occurrences) before implementing; sampled 10: 3 fully EXACT
+  (6844, 18046, 21801 above), 7 advanced past their EOF-omission error
+  into separate, unrelated, deeper issues in the same programs (7118,
+  7126, 23122, 23403, 23419, 23427: small reference-index mismatches
+  elsewhere; 7902: a large, genuinely separate inline-text-vs-PSPCMNAME-
+  reference classification gap for a `&rowset.getrow(&i).RECORD.FIELD`
+  chain, confirmed by its stored bytes using verbose inline text where
+  the current encoder emits compact reference operands -- a real,
+  substantial, distinct bug, not caused by or related to this EOF fix)
+  -- all 7 confirmed via git-stash comparison to have been ENCODE_ERROR
+  at the EOF-omission point before this fix, zero regressions. Verified:
+  `npx tsc -p .` clean; `npm test` 456/457 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430, 0 regressions. Full-corpus
+  background diff (run_id 276 -> 278, all 30,209 definitions) confirmed:
+  4 improved, 0 regressed, 30205 unchanged. New corpus total:
+  22421/30209 exact (74.2%).
+- **Fix #67** landed (src/peoplecode/encoder.ts, `primary()`'s `(`
+  branch): a parenthesized comparison used as a plain expression value
+  (not an If/While condition), e.g.:
+  ```
+  &bWild = (Find("*", &sFile) > 0);
+  &bIsSRM = (GetUserOption("PPTL", "ACCESS") = "A");
+  Visible = (GPGB_EDI_TRANS.GPGB_EDI_AUDIT = "Y");
+  ```
+  was only recognized as needing `booleanExpression()` (rather than
+  plain `expression()`, which cannot parse a trailing comparison
+  operator) when the left side was a bare `&variable`
+  (`startsVariableComparison`'s existing regex). A function-call result
+  (`Find(...)`, `GetUserOption(...)`, `MessageBox(...)`, `RTrim(...)`,
+  `Upper(...)`) or a bare `Record.Field` chain on the left side fell
+  through to plain `expression()`, which parsed the call/chain
+  correctly but then failed expecting `)` right where the comparison
+  operator actually was. Added `startsCallOrFieldComparison`: an
+  identifier, optional `.field` chain, optional single-level `(...)`
+  call arguments, then a comparison operator -- broad enough to cover
+  every shape found without needing balanced-paren lookahead (call
+  arguments in the corpus occurrences are always literals/simple
+  expressions with no further nested parens of their own). Target:
+  definition 26023 (GPGB_EDIFUNCLIB.GPGB_EDI_WORKS_ID.FieldFormula, one
+  of 41 corpus occurrences of this general shape) -- advanced from
+  ENCODE_ERROR to a MISMATCH; the specific parenthesized-comparison
+  construct itself now encodes correctly (confirmed via `--trace-refs`:
+  the comparison's own reference is right), but a SEPARATE, not yet
+  isolated PSPCMNAME reference-reuse divergence remains later in the
+  same (large, complex) program -- not a counter-example against this
+  fix, but not fully EXACT either. Searched the corpus for this general
+  shape before implementing (41 occurrences across Find/GetUserOption/
+  MessageBox/RTrim/Upper calls and bare Record.Field comparisons, 29
+  sampled): all 29 confirmed to no longer fail at the target construct
+  (moved past the fixed offset); of those, several hit the same
+  separate reference-reuse issue noted above (unresolved, deferred), a
+  few hit entirely unrelated pre-existing errors (Application Class
+  declarations, `catch` as a call name, `Continue` ambiguity), and all
+  were confirmed via git-stash comparison to have been ENCODE_ERROR at
+  this exact construct before the fix -- zero regressions. Verified:
+  `npx tsc -p .` clean; `npm test` 456/457 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430, 0 regressions. Full-corpus
+  background diff (run_id 272 -> 276, all 30,209 definitions) confirmed:
+  13 improved, 0 regressed, 30196 unchanged. New corpus total:
+  22417/30209 exact (74.2%).
+- **Fix #66** landed (src/peoplecode/encoder.ts + src/peoplecode/
+  decoder.ts), a combined encoder+decoder fix for the same construct: a
+  `When <condition>;` header (a trailing source semicolon immediately
+  after the selector expression, no body-statement newline in between,
+  e.g. `When = "X";` followed by real body statements on later lines --
+  distinct from an empty `When-Other;` clause, Fix #65's construct).
+  1. **Encoder** (`evaluateStatement()`'s `When` branch): the structural
+     0x2D boundary (unconditionally emitted after every When header,
+     "confirmed by every When in the fixture") was pushed AFTER the
+     header's own optional semicolon instead of before it. Real stored
+     order is `<condition> 2D 15 <body>`, not `<condition> 15 2D <body>`.
+     Swapped the two pushes; `pos` advancement is unaffected since only
+     chunk-push order changed, not consumption order.
+  2. **Decoder** (`render()`): mirrors Fix #65's exact pattern, one level
+     up the same construct family -- the 0x2D boundary's own
+     `NEWLINE_ONCE` format fired even when immediately followed by 0x15,
+     splitting `When = "X"` and `;` onto separate lines
+     (`When = "X"\n;` instead of `When = "X";\n`). `render()` already
+     special-cases this exact shape for `try`/`catch`/`While`/`For`/
+     `Function` headers (`followsCatchHeader`/`followsWhileHeader`/
+     `followsForHeader`/`followsFunctionHeader`, each gating a
+     `t.opcode === 0x2d && followsXHeader && nextToken?.opcode ===
+     0x15` suppression) -- `When` headers (opcode `0x3d`) were simply
+     missing from that established list. Added `followsWhenHeader`
+     (lookback for `0x3d`) and `whenHeaderBoundary` alongside the other
+     four.
+  Target: definition 3062 (CONTRACT.PAYMENT_TERM.FieldChange) --
+  confirmed full EXACT (both fixes were needed together: the encoder fix
+  alone got source-to-binary EXACT but left a `DECODE_SOURCE_MISMATCH`
+  identical in shape to Fix #65, since the decoder had never been
+  exercised against a real `When <condition>;` header before). Searched
+  the corpus for this same classification family (the `;\n  Break;\nEnd-
+  E`-shaped `DECODE_SOURCE_MISMATCH` group, 22 occurrences, overlapping
+  with but not identical to Fix #65's `When-Other` group) and sampled 9:
+  8 confirmed fully EXACT (3062, 4026, 4027, 4028, 4377, 4379, 5253,
+  5379, 5381), 1 (4391) hit a separate, unrelated, pre-existing
+  reference-index MISMATCH deeper in a larger program, confirmed
+  byte-identical before and after this fix via git-stash comparison --
+  zero regressions. Verified: `npx tsc -p .` clean; `npm test` 456/457
+  (1 pre-existing skip); `corpus:verify --limit 430` 430/430, 0
+  regressions. Full-corpus background diff (run_id 253 -> 272, all
+  30,209 definitions) confirmed: 21 improved, 0 regressed, 30188
+  unchanged. New corpus total: 22404/30209 exact (74.2%).
+- **Fix #65** landed (src/peoplecode/decoder.ts, `render()`) -- a
+  **decoder** fix, not an encoder fix (first one this session): an empty
+  `When-Other` clause (no body statements between it and `End-Evaluate`)
+  is immediately followed by its own bare `;` on the SAME source line
+  (`When-Other;`), but the decoder's `WHEN_OTHER_STYLE` format
+  (`format.ts`) carries `NEWLINE_AFTER` -- needed to separate
+  `When-Other` from real body statements when they exist
+  (`When-Other\n   <stmt>;`) -- which incorrectly also fired for the
+  empty-body case, splitting `When-Other` and `;` onto separate lines
+  (`When-Other\n;`) even though the semicolon's own `NEWLINE_AFTER`
+  already supplies the line break. Exactly the same reasoning already
+  documented for `ENDBLOCK_STYLE`/`END_FUNCTION_STYLE`'s own comments in
+  `format.ts` ("the real 0x15 already supplies the line break... adding
+  one here too just splits X and ; onto separate lines"), and the same
+  fix shape already used for `inlineHeaderCommentBeforeSemicolon`
+  (0x4E immediately before 0x15 after a Then/Else header): added
+  `whenOtherFollowedByBareSemicolon` (`t.opcode === 0x3e && nextToken?.
+  opcode === 0x15`) to the same suppression branch in `render()`'s
+  `F.NEWLINE_AFTER` handling. This was flagged `DECODE_SOURCE_MISMATCH`
+  in the classification scheme (binary encoding was ALREADY correct;
+  only the decoder's rendered source text, used for the roundtrip
+  comparison, didn't match) -- per `corpus-classifications.md`, lower
+  priority than binary exactness, but a legitimate, narrowly-evidenced
+  fix once found, and it does move definitions into the EXACT count.
+  Target: definition 548 (ADD_PAY_DTA_NLD.EFFDT.RowInit) -- confirmed
+  full EXACT (decode SOURCE MATCH, source-to-binary EXACT, roundtrip
+  EXACT). Searched the corpus for this construct's classification family
+  before implementing (37 `DECODE_SOURCE_MISMATCH` occurrences with
+  `;\nEnd-Evaluate`-shaped construct snippets; sampled 7: 548, 549, 553,
+  1314, 2399, 3426, 3427); all 7 confirmed fully EXACT after the fix, 0
+  regressions. Verified: `npx tsc -p .` clean; `npm test` 456/457 (1
+  pre-existing skip); `corpus:verify --limit 430` 430/430, 0 regressions.
+  Full-corpus background diff (run_id 242 -> 253, all 30,209
+  definitions) confirmed: 85 improved, 0 regressed, 30124 unchanged.
+  **Also noted**:
+  the large `import`/Application-Class-declaration UNSUPPORTED_SYNTAX
+  family (263 occurrences) was re-confirmed via several new samples
+  (definitions 29081 "Action", 28994 "Utils", 28860 "adhocAccessLogic")
+  to be the SAME general multi-method Application Class program feature
+  gap already documented as locally blocked in the `ComponentLife`/
+  `Constants` investigation above -- not several separate narrow bugs,
+  still out of scope for a narrow fix.
+- **Fix #64** landed (src/peoplecode/encoder.ts), two parts:
+  1. **New `ComponentLife` declarator support**: `ComponentLife` (opcode
+     `0x79`) is a fifth declarator alongside Local/Global/Component/
+     Constant -- a component-interface object lifetime scope, e.g.
+     `ComponentLife string &p_compkey, &p_entityname;` or
+     `ComponentLife CAF_SEARCH_NUI:Search &cafsrch;`. Was entirely
+     unhandled by `statement()` (fell through to the "bare identifier
+     followed by another identifier" error, since `call()` rejects it as
+     a reserved keyword name -- `reservedCallNames` is built from every
+     `OPCODES` keyword text, `ComponentLife` included). Added a new
+     `componentLifeDeclaration()` (deliberately narrower than the
+     structurally similar `componentDeclaration()`: parses type +
+     comma-separated `&variable` list, matching the corpus's attested
+     shapes -- `string`, `boolean`, `array of string`, and several
+     Application Class paths -- but does NOT track declared Application
+     Class variables into `applicationClassVariables`/the runtime-create
+     PSPCMNAME reuse rules `componentDeclaration()` carefully calibrates
+     for `Component`, since no corpus evidence yet confirms
+     `ComponentLife` shares those exact reuse semantics). Also added
+     `ComponentLife` to `isTopLevelDeclaration` (so it participates in
+     top-level declaration-section-boundary tracking) and to the
+     declaration-to-declaration blank-line-marker trigger list beside
+     `Component`/`Global`/`PanelGroup`/`Declare Function` (so a blank
+     line between two `ComponentLife` declarations, or between a
+     `ComponentLife` and a later `Component`/`Global`/etc., gets its own
+     0x4F marker the same way every other declaration-to-declaration
+     transition already does).
+  2. **Import-section-close marker multiplicity generalized**: the
+     import-section boundary's 0x4F marker count was hardcoded to
+     "at most one" for every case except when the FOLLOWING declaration
+     was specifically an Application-Class-typed `Local` (the only case
+     with a formula scaling to blank-line count) -- CAF_SRCH.
+     CAF_SRCH_BTN.SavePostChange (definition 2200) disproves the "at most
+     one" half: three imports, then TWO blank lines, then `Declare
+     Function GetSearchKey ...;` (not a Local at all) stores TWO 0x4F
+     markers. The original calibrating example
+     (ACCOMPLISHMENTS.EMPLID.SavePostChange, definition 381) only ever
+     had ONE blank line before an Application-Class Local, so it never
+     actually distinguished "hardcoded 1" from "scales with blank-line
+     count" -- both formulas agree at count 1. Generalized to the same
+     `Math.max(1, newlineCount - 1)` formula unconditionally, matching
+     every other marker site in this file. Re-verified definition 381
+     stays byte-exact.
+  Target: definition 2092 (CAFNUI_CTRL_WRK.FUNCLIB.FieldFormula,
+  `ComponentLife string &p_compkey, &p_entityname;`) -- advanced from
+  ENCODE_ERROR to a small (1-byte) MISMATCH; a separate, not-yet-isolated
+  PSPCMNAME reference-count issue remains in several candidates using
+  Application-Class-typed `ComponentLife` variables with multiple later
+  method calls (2200, 2202, 3945, likely the missing runtime-create reuse
+  tracking noted as out of scope above). Searched the corpus for every
+  `ComponentLife` declaration shape before implementing (7 distinct type
+  shapes across 10 definitions: 2092, 2093, 2128, 2130, 2200, 2201, 2202,
+  3945, 3948, 16496, 17314, 18362). Of these: 3 confirmed fully EXACT
+  (2130, 3948, plus 381 as the import-marker fix's own regression guard),
+  8 advanced from ENCODE_ERROR to small near-miss MISMATCHes (real
+  progress, separate PSPCMNAME reuse issue remains, not yet isolated with
+  enough evidence to fix narrowly), 2 hit unrelated pre-existing errors
+  (2201: unrelated unsupported statement; 17314: unrelated `array of
+  array of string` parameter type) -- zero regressions. Verified: `npx
+  tsc -p .` clean; `npm test` 456/457 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430, 0 regressions. Full-corpus
+  background diff (run_id 230 -> 242, all 30,209 definitions) confirmed:
+  50 improved, 0 regressed, 30159 unchanged. New corpus total:
+  22298/30209 exact (73.8%).
+- **DEFERRED / locally blocked, evidence exhausted**: the `#If #ToolsRel
+  <op> "<version>" #Then ... [#Else ...] #End-If` preprocessor-directive
+  family (73 combined UNSUPPORTED_SYNTAX occurrences across the `#If
+  #ToolsRel >=`, `#If #ToolsRel <`, `#If #ToolsRel =` construct groups).
+  The DECODER already fully supports this (opcodes `0x75`/`0x76`/`0x77`/
+  `0x78`, all length-prefixed text runs, documented in
+  `docs/ROADMAP.md` pass thirty-seven and confirmed again here): only the
+  branch PeopleTools took at COMPILE TIME is ever tokenized into real
+  opcodes; the untaken branch's entire source (including the directive
+  keyword itself, e.g. `#Then` or `#Else`) is stored as inert verbatim
+  text inside that keyword's own operand, never re-parsed.
+  The blocker: which branch was taken is NOT a fixed, corpus-wide
+  constant. Wrote a byte-level scanner (not the full decoder, to avoid
+  needing a NameTable) reading each `0x75`/`0x76`/`0x77`/`0x78` operand's
+  raw length-prefixed text directly from `stored_program`, and checked
+  it against every distinct `#ToolsRel <op> "<version>"` comparison found
+  in the corpus (27 distinct version/operator combinations, e.g. `>=
+  "8.58"`, `>= "8.62"`, `< "8.55"`, `#If #ToolsRel >= "8.59.16" &&
+  #ToolsRel < "8.60"`). Individually, every comparison resolves
+  consistently with a single environment whose release is somewhere at
+  or above 8.62 (`>= "8.61"`, `>= "8.62"`, `>= "8.58"` all TRUE; every
+  `< "8.5x"` FALSE) -- UNTIL definition 18228's compound condition `>=
+  "8.59.16" && < "8.60"` resolves TRUE, which is only possible if THAT
+  definition's own effective release was below 8.60 -- directly
+  contradicting the >= 8.60/8.61/8.62 evidence from every other
+  definition. This is not a corpus-evidence conflict resolvable by a
+  distinguishing rule (the CLAUDE.md "two identical constructs needing
+  opposite behavior" deferred case): different DEFINITIONS in the same
+  snapshot were last saved/compiled under DIFFERENT PeopleTools patch
+  levels (unsurprising -- PSPCMPROG is static bytecode baked in at save
+  time, not re-evaluated on every read, and different definitions in a
+  real PeopleSoft system get last-saved at different points across
+  years of patching). The snapshot's `snapshot_definition` table (see its
+  full `CREATE TABLE` -- object keys, source, stored program and their
+  hashes only) carries no per-definition capture timestamp or effective
+  ToolsRel value, so there is no local signal to pick the correct branch
+  per definition from source text alone. This is a genuine per-definition
+  environmental fact the encoder cannot derive from PeopleCode source,
+  analogous to needing HCDEV record-schema metadata the snapshot doesn't
+  carry -- locally blocked, not a narrow parser bug. One clean corpus
+  example (definition 22367) hit while searching for an unrelated
+  `repeatStatement()` REM candidate confirms this is a real, previously
+  unencountered environmental-dependency class, not solvable by better
+  source-side grammar. Revisit only if the snapshot is ever rebuilt with
+  per-definition capture-time metadata, or if `--live` HCDEV verification
+  is explicitly requested to establish a per-definition ground truth.
+- **Full-corpus regression diff confirmed** for Fixes #61-#62 (and
+  transitively #59-#60, not yet captured in a prior full run): background
+  full corpus scan (run_id 230, all 30,209 definitions) diffed
+  definition-by-definition against the last full run before this
+  session's newest fixes (run_id 224, 22018/30209 exact). Result: 230
+  improved, 0 regressed, 29979 unchanged -- confirms no regression outside
+  the protected 430-definition window or outside the manually-checked
+  candidate set, per the documented lesson that `--limit 430` alone is
+  necessary but not sufficient for changes touching shared mechanisms
+  (this run covered the `GetRecord()` field-chain fix, which touches the
+  shared `primary()` postfix reference machinery). New corpus total:
+  22248/30209 exact (73.6%).
+- **Fix #63** landed (src/peoplecode/encoder.ts, `whileStatement()`'s body
+  loop): a `REM ...;` comment used as an ordinary statement inside a
+  `While` loop body was completely unsupported -- `whileStatement()`'s
+  body loop was missing the early REM-detection branch that
+  `ifStatement()`/`forStatement()`/`evaluateStatement()`/`tryStatement()`
+  already have (checked before falling through to the ordinary
+  `statement()` + `;`-terminator path), so a bare `REM` line inside a
+  `While` body was parsed as an ordinary bare-identifier statement and
+  failed with "bare identifiers are only supported as calls" at the next
+  token. Added the same REM-detection branch (blank-line marker handling
+  via `pendingReferenceGroupBoundaries`, then `remComment(true)`) that
+  `ifStatement()` already uses, in the same position `whileStatement()`
+  already checks for a leading `/*` block comment. `repeatStatement()`
+  has the same gap (confirmed by inspection, no REM branch and no `/*`
+  branch either) but no corpus evidence was searched for it yet in this
+  session -- left as a separate follow-up, not bundled into this fix.
+  Target: definition 9661 (PSXP_PRCSDEFN.CI_PROPERTY.FieldFormula):
+  ```
+  While &CIProperties.Fetch(&PropertyName, &RecName, &Fieldname)
+     REM MessageBox(0, "", 0, 0, "&RecName = " | &RecName | ...);
+  ```
+  advanced from ENCODE_ERROR to a small unrelated MISMATCH elsewhere in
+  this large (44KB) program -- not itself EXACT, but confirms the
+  construct now parses. Searched the corpus for `While ... REM` shapes
+  before implementing (224 broad regex matches, most too large/complex to
+  give a clean EXACT signal on their own); checked the 10 smallest: 3
+  fully byte-exact (28693, 13545, 16285), 2 unaffected pre-existing
+  MISMATCHes confirmed byte-identical before/after via git-stash
+  comparison (14668, 10265 -- their REM instance turned out to be inside a
+  nested If, already covered by ifStatement()'s own handling, unrelated to
+  this fix), 2 ENCODE_ERROR -> near-exact-MISMATCH improvements confirmed
+  via the same before/after comparison (19206, 28450), 2 pre-existing
+  unrelated ENCODE_ERRORs untouched (13621, 28541). Also re-checked the
+  full original "MessageBox"/"Constants" ENCODE_ERROR family sample
+  (19143, 27390, 28293, 28298, 7542, 15046, 9661): all 7 progressed from
+  ENCODE_ERROR to small (3-33 byte) MISMATCHes in large programs -- real
+  progress, separate pre-existing issues remain in each, none regressed.
+  Zero regressions found. Verified: `npx tsc -p .` clean; `npm test`
+  456/457 (1 pre-existing skip); `corpus:verify --limit 430` 430/430, 0
+  regressions.
+  **Separately investigated, NOT a Fix #63 bug**: definitions with
+  `class Constants; ... property ...; end-class; method Constants; ...
+  end-method;` (definition 29094 and similar, e.g. 28763) are full
+  multi-method Application Class programs with properties -- structurally
+  much larger than the single-method inline shape
+  `parseApplicationClassProgram()` currently recognizes (which requires
+  `class X method Y(...) ... ; end-class;` all as one declaration line
+  plus a single inline method). These fall through to the ordinary
+  fragment encoder entirely unrouted and fail immediately at the class
+  name. This is a distinct, much larger feature gap (general multi-method
+  Application Class program support), not a narrow parser bug -- left as
+  a locally-blocked research item, not attempted in this session.
+- **Fix #62** landed (src/peoplecode/encoder.ts, `comparisonExpression()`):
+  generalized Fix #59's `Not =` handling to also cover `Not >` (still
+  two literal tokens: `Not` 0x1d directly followed by `>` 0x09, never a
+  combined opcode). Searched the corpus for every `Not` immediately
+  followed by a comparison operator before implementing: only `=` (50
+  occurrences) and `>` (11 occurrences) are attested; `<`, `<=`, `>=`,
+  `<>` never appear after `Not` anywhere in the corpus, so the fix stays
+  scoped to exactly the two attested operators via a single capture-group
+  regex (`/^Not\s*([=>])/i`) rather than guessing at the other four.
+  Target: definition 11267 (PI_DEFN_RECORD.EFFDT.SavePreChange, one of 11
+  corpus occurrences of `Not >`):
+  ```
+  If &recCount Not > 1 Then
+  ```
+  confirmed byte-for-byte EXACT (was ENCODE_ERROR before). All 5 `Not >`
+  occurrences found (727, 11267, 11669, 13134, 13152) confirmed EXACT.
+  Re-verified all 20 `Not =` candidates from Fix #59 unaffected (same
+  results as before: 9 EXACT, 7 advanced-with-unrelated-issues, 2
+  pre-existing unrelated errors, none regressed). Verified: `npx tsc -p .`
+  clean; `npm test` 456/457 (1 pre-existing skip); `corpus:verify --limit
+  430` 430/430, 0 regressions.
+- **Fix #61** landed (src/peoplecode/encoder.ts, `primary()`'s postfix `.`
+  loop and its `GetRecord()` bare-call detection): a bare, EMPTY-PARENS
+  `GetRecord()` call (no arguments, no `&variable.` receiver) followed by
+  exactly two dotted members -- `GetRecord().FIELDNAME.PROPERTY` -- must
+  compile FIELDNAME as a real PSPCMNAME FIELD reference (0x4A) while
+  PROPERTY (e.g. `SqlText`, `Value`, `Enabled`, `DisplayOnly`, ...) stays
+  inline text, the same one-level field-reference mode the ARGUMENTED form
+  (`GetRecord(Record.X).FIELDNAME`) already gets -- the previous rule
+  (definition 180's calibrated "`GetRecord()` with no arguments starts a
+  Row-navigation chain, postfix members stay inline") turned out to be
+  incomplete: it is only true when the first member is the single reserved
+  Row-navigation property `ParentRow`, not universally true for every
+  no-args `GetRecord()` chain. Root cause and fix, in two parts:
+  1. Added `wasBareGetRecordCallNoArgsFieldChain`: a lookahead requiring
+     TWO dotted members after `GetRecord()` AND excluding `ParentRow` as
+     the first member by name (`(?!ParentRow\b)`), OR'd into the same
+     `bareGetRecordCallResult` flag the argumented form already sets (so
+     it gets identical 'field'-mode treatment, including the existing
+     auto-revert of `expectedReferenceMember` to `undefined` after one
+     reference is consumed -- no new state machine needed).
+  2. Found a SEPARATE latent bug while verifying multi-branch corpus
+     candidates: the FIELD reference this new path allocates was never
+     written into any control-group reuse pool (every existing write site
+     in the postfix loop's reference-consumption block is gated on
+     `baseVariableName !== undefined`, i.e. a `&variable.` receiver, which
+     bare `GetRecord()` never has), so a second `GetRecord().SAMEFIELD...`
+     in the same control group (e.g. the Else-branch of the If/Else the
+     first one appeared in) always allocated a fresh PSPCMNAME row instead
+     of reusing the first. Added a new write branch keyed on
+     `fieldMemberFromGetRecord` (already the correct "this field context
+     came from a GetRecord() result" flag, pre-existing for an unrelated
+     GetField() reuse rule) that writes into `fieldReferencesByControlGroup`
+     -- the exact pool the read-side lookup already falls back to for this
+     no-receiver case, so no read-side change was needed, only the missing
+     write.
+  Target: definition 10023 (GPS_POSTADD_WRK.<various>.FieldFormula, one
+  of 26 corpus occurrences of the `GetRecord().FIELD.SqlText` shape):
+  ```
+  GetRecord().GPS_BDG_ORG2.SqlText = ExpandSqlBinds(FetchSQL(SQL.GPS_GET_ORG_LVL), 2, GPS_POSTADD_WRK.GPS_BDG_ORG1.Value);
+  ```
+  confirmed byte-for-byte EXACT (was ENCODE_ERROR before). Searched the
+  corpus exhaustively for every `GetRecord().MEMBER1.MEMBER2` occurrence
+  before implementing: 365 total occurrences across 113 distinct MEMBER1
+  identifiers; 112 of 113 are ALL_CAPS_WITH_UNDERSCORES field-name shapes,
+  the sole exception being `ParentRow` (definitions 180, 9359, 22705,
+  PascalCase, a reserved Row property) -- strong, corpus-validated grounds
+  for the exact exclusion used. First implementation attempt (part 1 only,
+  without part 2's control-group-reuse fix) caused two regressions on
+  definitions with the field-name repeated across an If/Else (9989-9992,
+  wrong FIELD index reused) that a --limit 430 gate alone would NOT have
+  caught (neither definition is in the protected window) -- caught instead
+  by testing every corroborating candidate found in the exhaustive search,
+  including definitions 180 and 9359 which were previously EXACT and
+  briefly regressed by part 1 alone (`ParentRow` exclusion missing) before
+  part 2 was even relevant; both are restored EXACT with the complete fix.
+  Verified all 43 corroborating/regression-guard candidates found by the
+  search (180, 1420, 3830, 4141, 4781, 4798, 6597, 6802-6950 GPFR_AF/DA
+  family x14, 7004-7186 x7, 9359, 9989-9998 x10, 10023-10032 x6, 22705):
+  30 fully byte-exact (including the previously-EXACT 180 and 9359,
+  confirmed not regressed via direct pre-fix/post-fix comparison), 8
+  advanced past this construct into separate unrelated pre-existing
+  issues (1420, 4141: unsupported syntax elsewhere; 3830, 6597, 22705:
+  pre-existing MISMATCH at unrelated offsets, confirmed identical or
+  improved, never regressed, via git-stash pre-fix comparison) -- zero
+  regressions. Verified: `npx tsc -p .` clean; `npm test` 456/457 (1
+  pre-existing skip); `corpus:verify --limit 430` 430/430, 0 regressions.
+  A full-corpus background diff against the pre-fix run (run_id 224,
+  22018/30209 exact) was started to additionally confirm no regressions
+  outside the protected window and outside the 43 manually-checked
+  candidates, given this change touches the shared `primary()` postfix
+  reference machinery; see next entry for its result once complete.
+- **Fix #60** landed (src/peoplecode/encoder.ts, `statement()`'s `&`/`@`/`%`
+  variable-led branch): a variable-led method-call statement (e.g.
+  `&RS.DeleteRow(&i)`) could not omit its trailing source semicolon
+  immediately before a body-closing keyword (`End-For`, `End-While`,
+  `End-If`, `End-Evaluate`), even though a bare (non-variable-led) call
+  statement in the exact same position already could -- the bare-call
+  branch just calls `primary()` and returns, deferring the semicolon
+  decision entirely to the caller's own body-terminator check (e.g. the
+  For-body loop's existing `expected ; in For body` guard, which already
+  special-cases `End-For`); the variable-led branch instead unconditionally
+  failed with `expected assignment = or end of method-call statement`
+  before ever reaching that caller check. Removed the unconditional fail,
+  letting the same caller-level check decide, exactly matching the
+  bare-call branch's existing behavior. Target: definition 9256
+  (GPMY_RC_RCPT_FL.GPMY_RCPNT_OPTN.FieldFormula):
+  ```
+  For &i = &RS.ActiveRowCount To 1 Step - 1
+     &RS.DeleteRow(&i)
+  End-For
+  ```
+  confirmed byte-for-byte EXACT. Searched the corpus for this shape
+  (variable-led method call, no semicolon, immediately followed by
+  End-For/End-While/End-If/End-Evaluate on the next line) before
+  implementing: 40 candidates found and checked. 23 fully byte-exact
+  (1004, 2806, 9256, 9258, 9301, 9303, 9608, 9610, 9624, 9626, 9954, 9956,
+  9972, 9974, 14416, 14437, 14443, 14444, 14445, 16900, 18952, 19475,
+  22854); the remaining 17 advanced past this construct into separate,
+  unrelated, pre-existing issues in larger/complex programs (confirmed by
+  re-running each against the pre-fix code: all 16 that were previously
+  `ENCODE_ERROR` failed at exactly this construct pre-fix and now fail --
+  or, in 9 cases, mismatch -- somewhere else entirely; the 17th, 25959,
+  was already a byte-identical MISMATCH at the same unrelated offset both
+  before and after this change, proving it untouched by this fix) -- zero
+  regressions, zero counter-examples where the omission needed to be
+  rejected. Verified: `npx tsc -p .` clean; `npm test` 456/457 (1
+  pre-existing skip); `corpus:verify --limit 430` 430/430, 0 regressions.
+- **Fix #59** landed (src/peoplecode/encoder.ts, `comparisonExpression()`):
+  the alternate space-separated not-equal spelling `Not =` (e.g. `If
+  &BEN_SYSTEM Not = "BA" Then`) was not recognized -- only the single-token
+  `<>` spelling was handled by the existing operator regex. Byte evidence
+  (definition 23620) confirmed `Not =` compiles as TWO literal tokens, not
+  the `<>` opcode: `0x1d` ("Not" keyword) + `0x06` ("=" punctuation),
+  cross-checked against `src/peoplecode/format.ts` (`0x1d`="Not" line 353,
+  `0x06`="=" line 91, `0x10`="<>" line 307 -- confirming `<>` is a genuinely
+  distinct single opcode, not just a different rendering of the same
+  bytes). Added a dedicated `/^Not\s*=/i` special case ahead of the normal
+  operator match that emits `Not`, a space, then `=` as two separate
+  chunks, then continues into the right-hand `expression()` as usual.
+  Searched the corpus for this construct before implementing and checked
+  19 candidates: 9 fully byte-exact (679, 2042, 4615, 4617, 11974, 12117,
+  16415, 25151, 25158, plus target 23620 = 10 total EXACT), 7 advanced past
+  the `Not =` parse point into separate, unrelated, pre-existing issues
+  (2306, 3690, 4838, 10578, 17573, 23626, 24216), 2 had unrelated
+  pre-existing errors untouched by this change (2676, 13179/13260) -- zero
+  counter-examples where `Not =` needed different handling. Verified:
+  `npx tsc -p .` clean; `npm test` 456/457 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430, 0 regressions.
+- **Full corpus refresh** (post fixes #48-58, background run while
+  continuing other work): 30,209 definitions, EXACT 21875, UNKNOWN_MISMATCH
+  4702, ENCODE_ERROR 2276, DECODE_SOURCE_MISMATCH 698, UNSUPPORTED_SYNTAX
+  658. Fix #59 above (`Not =`) lands after this snapshot was taken; its
+  effect will show in the next full refresh.
+- **Fix #58** landed (src/peoplecode/encoder.ts): `applicationClassPath()`'s
+  FIRST path-component regex required an ordinary identifier start
+  (`[A-Za-z_]`), rejecting `%metadata` -- a reserved package root for
+  metadata-driven Application Classes (e.g. `import %metadata:
+  AnalyticModelDefn:Aceorganizer;`, `import %metadata:*;`). Loosened
+  just the first-component match to `/^%?[A-Za-z_][A-Za-z0-9_]*/`; every
+  later `:`-separated component keeps the ordinary-identifier-only rule
+  (67 corpus definitions checked, 23 distinct `import %metadata:...`
+  shapes, `%metadata` always the sole root, never a later component).
+  Verified via direct `encodeProgram()` calls (not the harness, to keep
+  working while the full-corpus background scan noted below was still
+  running) against 20 of the 67 corpus definitions using this import:
+  one (15104) confirmed fully byte-exact; the rest advanced PAST the
+  `%metadata` parse error into other, unrelated, pre-existing issues in
+  large/complex programs (several 15-160KB in size) -- real progress,
+  not full EXACT for most, but the specific bug targeted is confirmed
+  fixed and does not regress anything. Verified: `npx tsc -p .` clean;
+  `npm test` 456/457 (1 pre-existing skip); `corpus:verify --limit 430`
+  430/430, 0 regressions.
+- **Full corpus refresh**: ran `npm run corpus:harness` (no filters, all
+  30,209 definitions, ~5 min) in the background while continuing other
+  work, reflecting fixes #48-55. Result: EXACT 21875, UNKNOWN_MISMATCH
+  4702, ENCODE_ERROR 2276, DECODE_SOURCE_MISMATCH 698, UNSUPPORTED_SYNTAX
+  658. (Note: this snapshot predates fixes #56-57 below, landed
+  immediately after using pure `encodeProgram()` calls against the
+  snapshot directly -- read-only, no corpus-results.sqlite writes -- to
+  avoid a write conflict with the still-running background scan; a
+  future full refresh will pick up their effect too.)
+- **Fixes #56 and #57** landed together (src/peoplecode/encoder.ts),
+  both in the `ENCODE_ERROR` family, found by grouping the current
+  failure inventory by `construct` (the stored first-error snippet) and
+  reading the top groups' actual source:
+  - **Fix #56**: `Exit N;` (a bare numeric literal, e.g. `Exit 1;`, with
+    NO parentheses) was unsupported -- only `Exit(N);` (parenthesized)
+    and bare `Exit;` (no argument) were. Added a lookahead
+    (`/^-?\d/.test(...)`) that parses the bare numeric expression
+    directly when no `(` follows `Exit`. 197 corpus occurrences of this
+    shape found via search before implementing. Target: definition 25166
+    (a tiny 94-byte program, `If ... Then Exit 1; End-If;` at top level)
+    -- confirmed byte-for-byte EXACT via direct `encodeProgram()` call
+    against the snapshot (not yet re-run through the full harness/
+    corpus-results.sqlite at commit time, to avoid the write conflict
+    noted above). A 6-definition spot sample found one more exact match
+    (25183, `Exit 0; Else Exit 1;`) and two pre-existing, unrelated
+    ENCODE_ERRORs (15115: unsupported `array of array of array`
+    parameter type; 17893: unrelated "bare identifiers" issue) --
+    neither regressed, both were already broken for different reasons.
+  - **Fix #57**: a `When-Other` clause's LAST body statement could not
+    omit its trailing `;` when immediately followed by `End-Evaluate`,
+    even for the two simplest, argument-free, unambiguous statement
+    keywords (`Break`, `Continue`) -- unlike the already-proven
+    EOF-omission allowance for other self-terminating statement shapes.
+    Added a narrow check (only for `Break`/`Continue` specifically, not
+    generalized to every statement type without further evidence) that
+    permits the omission right before `End-Evaluate`. Searched the
+    corpus for this exact shape before implementing (14 matches);
+    13 of 14 confirmed byte-for-byte EXACT via direct `encodeProgram()`
+    calls (8107, 8108, 8302, 8303, 9228, 9229, 9577, 9578, 9922, 9923,
+    10128, 10129, 18001 -- the target); the 14th (8928) has an unrelated
+    1-byte-length mismatch elsewhere in a larger program, not regressed
+    (was already non-EXACT).
+  - Both fixes verified together: `npx tsc -p .` clean; `npm test`
+    456/457 (1 pre-existing skip); `corpus:verify --limit 430` 430/430,
+    0 regressions. A full-corpus re-run (through the normal harness, now
+    that the background scan above has finished) is the next step to
+    get final confirmed counts for both and refresh the inventory for
+    continued candidate selection.
 - **Fix #55** landed (src/peoplecode/encoder.ts): bare `GetRowset(Record.X)`
   (assigned to a variable, e.g. `&RS = GetRowset(Record.X);` -- distinct
   from `.GetRowset(Scroll.X)` as a postfix method call, and from

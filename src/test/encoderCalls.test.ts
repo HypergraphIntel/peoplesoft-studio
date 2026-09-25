@@ -77,7 +77,7 @@ for (const source of [
   'Foo + 1;',
   'F() + 1;',
   'Return Pkg:Foo();',
-  'Return F(1.5);', 'Return (1 = 2);', 'Return (True And False);',
+  'Return (1 = 2);', 'Return (True And False);',
   'If(True);', 'Return Not(1);', 'Return Create();', 'Return Local();',
   'True();', 'Return True();', 'Return Foo(1) garbage;', 'F(); Return (1;'
 ]) {
