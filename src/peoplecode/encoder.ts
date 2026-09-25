@@ -7522,6 +7522,26 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       /^Evaluate\b/i.test(source.slice(pos));
 
     /*
+     * GPFR_AF_DON_SQL.GPFR_AF_APPL.FieldFormula (definition 6844) proves a
+     * top-level For/End-For block also self-terminates at EOF without a
+     * source semicolon, the same way If/End-If and Evaluate/End-Evaluate
+     * already do.
+     */
+    const isForStatement =
+      /^For\b/i.test(source.slice(pos));
+
+    /*
+     * A bare `Warning <expr>` (or `Error <expr>`) top-level statement may
+     * also omit its semicolon at EOF.
+     *
+     * GPGB_SCON_TBL.GPGB_SCON.FieldFormula (definition 21801):
+     *
+     *   Warning MsgGetText(17410, 51, "Message not found")
+     */
+    const isWarningOrErrorStatement =
+      /^(?:Warning|Error)\b/i.test(source.slice(pos));
+
+    /*
      * ADDRESS_SBR.COUNTRY.FieldChange (definition 524) proves a top-level
      * try/catch/end-try block may likewise terminate directly at EOF
      * without a source semicolon after end-try:
@@ -7576,6 +7596,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         source.slice(pos)
       ) &&
       /^[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(source.slice(pos));
+
+    /*
+     * A `&variable.Method(...)` (or `@(...)`-led) method-call statement,
+     * with no assignment `=`, may likewise omit its semicolon at EOF --
+     * the same relaxation `isTopLevelCallStatement` already gives a bare
+     * declared-function call, just for a variable-led receiver instead
+     * of a bare identifier.
+     *
+     * GPFR_AF_ESC.GPFR_AF_ESC_NAME.SavePreChange (definition 18046):
+     *
+     *   &esc.OnSavePreChange()
+     */
+    const isTopLevelVariableLedCallStatement =
+      (source[pos] === '&' || source[pos] === '@') &&
+      !/=/.test(source.slice(pos));
 
     const isApplicationClassLocal =
       /^Local\s+[A-Za-z_][A-Za-z0-9_]*\s*:\s*[A-Za-z_][A-Za-z0-9_]*\b/i.test(
@@ -8095,7 +8130,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             startsTopLevelAssignment ||
             isIfStatement ||
             isEvaluateStatement ||
+            isForStatement ||
             isTopLevelCallStatement ||
+            isTopLevelVariableLedCallStatement ||
+            isWarningOrErrorStatement ||
             isTryStatement
           )
         ) || assignmentBeforeFinalStandaloneComment;
