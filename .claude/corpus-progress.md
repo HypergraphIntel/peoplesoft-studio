@@ -1636,6 +1636,131 @@ Zero-behavior-change validation:
   error-message changes across all 30,209 definitions.
 - No live HCDEV access was used.
 
+### Compiler Semantics Research Cycle 2: FetchValue shadow-cache audit (2026-09-25)
+
+This cycle made no encoder-semantic change. The local completed HCDEV
+snapshot remained the only corpus source; `--live` was never used.
+
+#### Ranked shortlist
+
+The ranking deliberately weights architectural payoff and positive/negative
+controls ahead of raw EXACT-count opportunity:
+
+| rank | candidate | population / comparable lifecycle pairs | residual disagreement | special state involved | research assessment |
+|---:|---|---:|---:|---|---|
+| 1 | FetchValue shadow cache | 749 definitions / 1,393 pairs | 21 (1.5%) in 6 definitions | `reuseFetchValueRecord`, `fetchValueRecordReferences`, plus the ordinary DependencyScope path | Best direct chance to eliminate an entire special-case flag/map. Both the higher-priority ordinary path and the fallback can be observed independently. |
+| 2 | GetRow / GetRowset | 4,153 / 4,413 definitions; 10,180 / 2,104 pairs | 1,094 (10.7%) / 196 (9.3%) | block scope, same-statement, call-local, postfix-chain state | Largest repeated population, but crosses too many mechanisms for a first isolation target. Strong follow-up once one layer is removed. |
+| 3 | FIELD / GetField | 2,328 GetField definitions / 3,653 pairs | 1,597 (43.7%) | FIELD interning, chain state, owner/shorthand binding | High disagreement but heterogeneous and vulnerable to alignment noise; weaker controls than FetchValue. |
+| 4 | RowScrollSelect / ScrollSelect family | 32 / 307 definitions; 114 / 908 pairs | 15 (13.2%) / 34 (3.7%) | call-local reuse, participation map, family epoch, DependencyScope | High special-state density and payoff, but RowScrollSelect itself has only 32 definitions. |
+| 5 | remaining multi-argument interactions | broad 28,402-pair sweep | 1,425 (5.0%) | several orthogonal mechanisms | The prior full-population sweep found no unifying positional pattern; not sufficiently isolated. |
+| 6 | owner handling / Application Class metadata | no clean comparable reference-lifecycle population | not yet measurable as one family | owner resolution and Application Class dependency metadata | Potentially important, but lacks the positive/negative control structure required for this cycle. |
+
+FetchValue was selected because the question is narrower than its residual
+EXACT disagreement rate: does the dedicated shadow cache ever affect an
+encoder decision after the ordinary DependencyScope path has had priority?
+That can be answered over the complete population without inventing a new
+semantic rule.
+
+#### Population baseline and residual clustering
+
+The corrected FetchValue leading-argument lifecycle sweep covers all 749
+definitions and 1,393 consecutive same-identity pairs. Twenty-one pairs
+(1.5%) disagree across definitions 1635, 2958, 6275, 6353, 7285, and 11451:
+
+- stored ALLOC / generated REUSE: 13 sequential, 4 cross-frame, and 1
+  same-statement pair;
+- stored REUSE / generated ALLOC: 3 cross-frame pairs;
+- sibling-branch disagreements: 0.
+
+The already-available generic predicates do not isolate those 21 pairs:
+
+| predicate | disagreeing pairs selected | agreeing pairs also selected |
+|---|---:|---:|
+| phase changed | 1 / 21 | 57 / 1,371 |
+| loop epoch changed | 3 / 21 | 356 / 1,371 |
+| different innermost scope | 7 / 21 | 571 / 1,371 |
+| sequential relationship | 13 / 21 | 752 / 1,371 |
+| sibling branch | 0 / 21 | 36 / 1,371 |
+| both at flat top level | 0 / 21 | 74 / 1,371 |
+
+This falsifies phase, loop-entry, scope-change, sequential-distance,
+sibling-branch, and flat-top-level status as standalone explanations of the
+remaining FetchValue disagreements. Those disagreements remain useful
+future calibration evidence, but they do not justify assigning behavior to
+the shadow cache.
+
+#### Direct lookup-provenance audit
+
+Added an observational-only `dependencyLookupTrace` encoder callback and
+`tools/corpus/research/fetchvalue-shadow-analysis.ts`. The callback reports
+DependencyScope and FetchValue-shadow Record lookups/stores without changing
+any lookup, allocation, ordering, or emitted byte. The analysis runs only
+against the completed local snapshot.
+
+Across the 749 FetchValue definitions:
+
+- ordinary DependencyScope lookups while parsing FetchValue: 1,301 total,
+  817 hits and 484 misses/closed-scope results;
+- shadow lookups reached after every higher-priority mechanism missed: 166;
+- shadow lookup hits: **0**;
+- shadow stores: 484;
+- matching ordinary DependencyScope stores: 484;
+- shadow-only stores: **0**;
+- definitions whose generated decision depends on a shadow hit: **0**.
+
+The 21 lifecycle residual disagreements therefore cannot be attributed to
+this cache: the fallback never supplies a reference on any successfully
+traversed FetchValue path.
+
+#### Aggressive falsification and evidence boundary
+
+A separate length-preserving source scan found 3,223 FetchValue calls in the
+749-definition population, including 1,046 calls containing explicit
+`Record.X`. It conservatively checked the contexts in which the ordinary
+DependencyScope write can be suppressed:
+
+- explicit-Record FetchValue calls nested under `PriorValue`: 0;
+- explicit-Record FetchValue calls nested under
+  `RowScrollSelect`, `RowScrollSelectNew`, or `ScrollSelect`: 0.
+
+Seven FetchValue definitions stop encoding before end-of-source (826, 2612,
+3430, 7285, 9670, 24069, and 29391), so dynamic evidence after those offsets
+is unavailable. Static inspection of every untraversed suffix found only one
+explicit-Record FetchValue call: definition 3430 has one
+`FetchValue(Record.CSB_EMPL_SERIES, ...)` after its early unsupported
+statement. It is that definition's sole FetchValue/explicit-Record call and
+has neither a suppressing call ancestor nor any later FetchValue call that
+could read its store. It therefore cannot expose a shadow-only lookup or an
+output-affecting shadow store. The other six suffixes contain no unobserved
+explicit-Record FetchValue call.
+
+#### Surviving result
+
+For the complete available HCDEV population, `reuseFetchValueRecord` and
+`fetchValueRecordReferences` are observationally redundant with the ordinary
+DependencyScope Record path. Every shadow write duplicates an ordinary
+write, and the shadow read has no hit. This is sufficient evidence for a
+future narrow implementation pass to remove the flag/map and their lookup/
+write branches, guarded by zero-byte-change validation. It is **not**
+evidence for changing FetchValue's ordinary DependencyScope policy or for
+generalizing any RowScrollSelect-family rule.
+
+The mechanism remains in place in this research commit. No encoder semantic
+change was made, and no next calibration family was started.
+
+Zero-behavior-change validation:
+
+- `npm run typecheck`: pass.
+- `npm test`: 490 tests, 489 pass, one intentional skip.
+- protected baseline: 430/430, zero regressions (run 1787).
+- full local-snapshot run 1788: 30,209 definitions, 23,069 EXACT and 7,140
+  failed, exactly equal to Phase 6 run 1786.
+- row-by-row run 1786 -> 1788 comparison: zero classification changes, zero
+  generated-binary SHA changes, zero first-diff changes, zero encode-success
+  changes, zero source-exact changes, zero roundtrip-exact changes, and zero
+  error-message changes across all 30,209 definitions.
+- no live HCDEV access was used.
+
 ## Checkpoint
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
