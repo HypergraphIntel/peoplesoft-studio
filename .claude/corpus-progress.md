@@ -970,37 +970,252 @@ that call name's own argument semantics specifically) rather than
 continuing to treat "any call with 2+ reference-bearing arguments" as one
 population.
 
+### Phase 3 -- flatTopLevel mapped onto the actual encoder code
+
+Read the real `src/peoplecode/encoder.ts` implementation (not inferred
+from corpus behavior) for every mechanism the directive named. **Found
+the exact code path and root cause.**
+
+#### 3A. Exact execution path
+
+`recordReference()` (the function parsing a bare `Record.X` operand,
+~encoder.ts:1980-2230) checks several reuse pools in priority order. The
+FIRST, highest-priority check (lines 2046-2077):
+
+```ts
+if (reuseRecordReferenceWithinControlGroup) {
+  const existing = recordReferencesByControlGroup.get(
+    `${controlGroup}:${recordName.toLowerCase()}`
+  );
+  if (existing !== undefined) {
+    // ... reuse it, no controlDepth check anywhere in this branch
+    return referenceOperand(existing);
+  }
+}
+```
+
+`reuseRecordReferenceWithinControlGroup` is set `true` unconditionally
+(encoder.ts:6748) whenever the enclosing call name matches:
+
+```
+/^(?:GetRecord|DeleteRow|ActiveRowCount|UpdateValue|InsertRow|SetCursorPos|
+   HideScroll|UnhideScroll|UnhideRow|HideRow|CopyFields|RecordDeleted|
+   RecordChanged|CreateRowset|GetRowset|FetchValue|DoModalPanelGroup|
+   SortScroll|ScrollFlush|Hide|UnHide|Gray|UnGray)$/i
+```
+
+-- this is exactly the FetchValue/ActiveRowCount/ScrollFlush/GetRecord
+family this cycle's evidence points at. `scrollReference()`
+(encoder.ts:2298-2315) has the byte-for-byte identical shape for
+`Scroll.X`, gated by the sibling `reuseScrollReferenceWithinControlGroup`
+flag (set at encoder.ts:6828, same trigger list).
+
+**`controlGroup` itself is correct and NOT the bug.** `inControlGroup()`
+(encoder.ts:1837-1868) only reassigns `controlGroup` when a REAL
+control-flow construct (If/For/Evaluate/etc.) is entered or exited; plain
+sequential top-level statements never call it, so `controlGroup` simply
+stays at whatever value it last held (0, for a definition with no leading
+control structure) across consecutive flat top-level statements -- this
+IS the already-correct, already-evidenced "ordinary top-level statements
+share one group by default" rule. The bug is entirely in the READ side:
+`reuseRecordReferenceWithinControlGroup`'s check trusts that shared group
+unconditionally for THESE SPECIFIC calls' own leading argument, with no
+guard at all.
+
+**The fix's exact precedent already exists in the same file, for a
+sibling mechanism.** `reuseRecordReferenceWithinCallArguments`'s own
+fallback path (encoder.ts:2142-2156, serving RowScrollSelect/
+RowScrollSelectNew/ScrollSelect via `genericRecordReferencesSinceLastFamilyCall`)
+is explicitly gated:
+
+```ts
+if (
+  singleOccurrenceCallArgumentRecordNames?.has(recordName.toLowerCase()) ||
+  controlDepth > 0
+) {
+  const controlGroupExisting = genericRecordReferencesSinceLastFamilyCall.get(...);
+  if (controlGroupExisting !== undefined) return referenceOperand(controlGroupExisting);
+}
+```
+
+Its own comment (encoder.ts:2123-2140) already states the discriminator
+in almost exactly this cycle's own words: *"A name REPEATED within this
+call may ALSO reuse that earlier row, but only when nested inside a
+control-flow block (`controlDepth > 0`)... not at the flat top level"* --
+citing definitions 1220 (nested, reuses) vs. 840/1283 (flat top level,
+does not reuse). **This is the identical distinction the corpus
+rediscovered independently this cycle for a DIFFERENT reuse pool** --
+strong convergent confirmation from two directions (corpus statistics and
+existing hand-calibrated code) on the same underlying rule.
+
+**Why RowScrollSelect/RowScrollSelectNew/ScrollSelect show no
+flatTopLevel signal (Phase 1C/2A)**: they are NOT in the
+`reuseRecordReferenceWithinControlGroup`-triggering regex at all (see
+encoder.ts:6373, a SEPARATE `if` block that sets
+`reuseRecordReferenceWithinCallArguments = true` instead). They never go
+through the buggy unconditional path -- they go straight to the
+mechanism that ALREADY has the correct guard. This is a complete,
+coherent explanation, not a coincidence.
+
+**Concrete trace, 802 (agrees) vs. 6352 (disagrees)**, both through the
+IDENTICAL code path:
+
+- 802: FetchValue calls sit inside `Function LoadAeTempTbls` -> `For &x =
+  1 To ActiveRowCount(...)` -> nested `If`. `controlGroup` is pinned at a
+  single nonzero value (20) for the whole loop body (nested blocks
+  inherit, don't rebump). The SAME unconditional check fires, finds the
+  first FetchValue's row, returns REUSE -- and this happens to be
+  CORRECT, because stored genuinely reuses here (nested case).
+- 6352: FetchValue calls are flat top-level statements, `controlGroup`
+  stays at 0 the whole time (nothing ever calls `inControlGroup()`). The
+  SAME unconditional check fires, finds the first FetchValue's row,
+  returns REUSE -- and this is WRONG, because stored allocates fresh
+  (flat-top-level case).
+
+The code does not distinguish these two cases at all today; it applies
+one rule uniformly and is right only when the surrounding context happens
+to be nested.
+
+**Quadrant-1 cross-check (functionDepth>0, controlDepth==0) explains
+itself independently**: Phase 2A found ZERO disagreements in this
+quadrant. This is because Function-body top-level statements ALREADY get
+a fresh `controlGroup` per statement via a separate, already-correct
+mechanism (the "Newly established rule" from an earlier session: each
+top-level statement inside a `Function...End-Function` body gets its own
+fresh group, unlike the main program's top level). So quadrant 1 never
+exercises the bug at all -- not because the reuse check is guarded there,
+but because `controlGroup` itself is already fresh by the time the
+(still-unconditional) check runs. This CONFIRMS the fix belongs on the
+READ side (`controlDepth > 0` guard on the check, matching the sibling
+mechanism), not on the `controlGroup`-assignment policy -- extending
+fresh-per-statement grouping to ALL flat top-level statements (not just
+Function bodies) would break the separately-and-correctly-calibrated
+"ordinary bare RECORD.FIELD text shares a group across top-level
+statements" rule that has been validated many times over in this file's
+own history.
+
+#### 3B. Smallest compiler concept, and whether `controlGroup` is overloaded
+
+`controlGroup` IS being used for (at least) two different semantic
+purposes that happen to look identical for ordinary bare `RECORD.FIELD`
+references but diverge for these specific calls' own arguments:
+
+1. **Lexical block identity** -- which If/For/Evaluate/Function-statement
+   instance a piece of source sits in. This is what `controlGroup`
+   actually, faithfully tracks, and it is correct.
+2. **An implicit assumption that "lexical block identity" IS "the
+   dependency-scope boundary" for every kind of reference** -- true for
+   ordinary bare `RECORD.FIELD` text (calibrated, evidenced many times),
+   apparently NOT true for FetchValue/ActiveRowCount/ScrollFlush/
+   GetRecord's own leading Record.X/Scroll.X argument, whose real
+   dependency-scope boundary additionally requires `controlDepth > 0` --
+   i.e. a REAL enclosing block, not just "whatever group number is
+   currently active," which can stay constant across many unrelated flat
+   top-level statements with no lexical block at all.
+
+So the leading hypothesis is confirmed as stated, with one refinement
+found this pass: **the correct guard is `controlDepth > 0` alone, not
+`controlDepth > 0 || functionDepth > 0`** as an earlier checkpoint
+speculated -- the quadrant-1 zero-disagreement result plus the exact
+match to the already-existing sibling guard's own condition (which uses
+only `controlDepth`) both confirm this. `functionDepth` does not need to
+enter the new guard at all; it already does its own, separate, correct
+job elsewhere.
+
+#### 3C. Conceptual state model
+
+```
+ProgramBindingState
+  -> ordinary bare RECORD.FIELD text: shares one dependency scope per
+     lexical block occurrence (controlGroup), INCLUDING the implicit
+     top-level "block" spanning consecutive flat top-level statements.
+     (Already correct, extensively calibrated, unaffected by this
+     finding.)
+  -> a value-fetch/binding CALL's (FetchValue, ActiveRowCount,
+     ScrollFlush, GetRecord, and the rest of the encoder.ts:6748 list)
+     own leading Record.X/Scroll.X argument: participates in the SAME
+     controlGroup-keyed pool, but ONLY when a real lexical block
+     (controlDepth > 0) is currently open. At the bare top level
+     (controlDepth === 0), each occurrence is call-local / statement-local
+     -- it does not look backward into the shared pool at all, even
+     though `controlGroup` numerically has not changed.
+```
+
+This is closer to "statement-local dependency scope, for certain
+reference-bearing call arguments, not implicitly opened at bare
+program-top-level" (the directive's own leading hypothesis, now
+code-confirmed) than to a bare numeric `controlDepth > 0` rule stated
+without justification -- the numeric condition happens to be the correct
+IMPLEMENTATION of that concept, mirroring the identical implementation
+already used one mechanism over.
+
+#### 3D. Mechanism classification
+
+| mechanism | classification |
+|---|---|
+| `controlGroup` / `inControlGroup()` | Genuine compiler concept (lexical block identity). Correct, not implicated. |
+| `controlDepth` | Genuine compiler concept (block nesting depth). Correct; is the missing guard's own condition. |
+| `functionDepth` | Genuine, SEPARATE compiler concept (own fresh-group-per-Function-top-level-statement rule). Correct; not part of the needed fix. |
+| `recordReferencesByControlGroup` / `reuseRecordReferenceWithinControlGroup` (Record.X) | Approximation of the broader concept -- correct pool, but its READ check for the FetchValue/ActiveRowCount/ScrollFlush/GetRecord family is MISSING the `controlDepth > 0` guard its own sibling mechanism already has. This is the actionable gap. |
+| `scrollReferencesByControlGroup` / `reuseScrollReferenceWithinControlGroup` (Scroll.X) | Same classification, same missing guard, byte-identical code shape. |
+| `reuseRecordReferenceWithinCallArguments` / `genericRecordReferencesSinceLastFamilyCall` / `singleOccurrenceCallArgumentRecordNames` | Genuine, ALREADY-CORRECT compiler concept for the RowScrollSelect/RowScrollSelectNew/ScrollSelect family specifically -- already has the `controlDepth > 0` guard. Not broken; the template the fix should copy. |
+| `participatingRecordReferencesByControlGroup` | Genuine, separate concept (RowScrollSelect-family cross-call participation marking, e.g. ScrollSelect's own fresh allocations visible to a LATER ScrollSelect call). Not implicated in this finding. |
+| `suppressRecordReferenceControlGroupWrite` | Genuine, narrow, already-correct mechanism (PriorValue specifically never WRITES to the shared pool at all -- a different, complementary correctness property from the READ-side guard this finding is about). Not implicated. |
+| `expectedReferenceMember` / `fieldMemberFromGetRecord` | Orthogonal. Part of the POSTFIX CHAIN parser (`.GetRecord(...).FIELD.Value`-style access), governing what happens AFTER a chain establishes record/field context -- a structurally different construct from a bare call's OWN leading argument. Not implicated in this finding; not evaluated against the multi-argument thread either. |
+| `reuseFetchValueRecord` / `fetchValueRecordReferences` | Likely REDUNDANT/vestigial for FetchValue specifically: FetchValue triggers BOTH this dedicated pool AND `reuseRecordReferenceWithinControlGroup` (checked first, same key shape, populated at the same points), so this dedicated pool is dead code whenever the first check would have found something -- worth removing or auditing in a future implementation pass, not urgent now. |
+
+#### Phase 3 deliverable (per the directive's own numbered list)
+
+1. **Exact encoder path**: `recordReference()`/`scrollReference()`'s
+   `reuseRecordReferenceWithinControlGroup`/
+   `reuseScrollReferenceWithinControlGroup` check (encoder.ts:2046-2077,
+   2307-2315), fed by the unconditional trigger at encoder.ts:6748/6828.
+2. **Semantic explanation**: `controlGroup` correctly tracks lexical
+   block identity; this specific check incorrectly treats "same
+   controlGroup value" as sufficient for reuse, when the real rule (per
+   the sibling, already-correct `reuseRecordReferenceWithinCallArguments`
+   mechanism, and now corpus-confirmed independently) additionally
+   requires `controlDepth > 0` -- a genuine enclosing block, not just an
+   unchanged group number across unrelated flat top-level statements.
+3. **Proposed minimal abstraction**: no new data structure needed. Add
+   the exact same `controlDepth > 0` condition the sibling mechanism
+   already uses, to both `recordReference()`'s and `scrollReference()`'s
+   `reuseRecordReferenceWithinControlGroup`/
+   `reuseScrollReferenceWithinControlGroup` branches.
+4. **Mapping**: see the 3D table above.
+5. **Migration plan preserving current exact behavior**: this is
+   additive-restrictive only (narrows an over-broad reuse check; cannot
+   cause a previously-correct REUSE decision to become wrong, since the
+   flat-top-level cases this touches are the ones currently DISAGREEING,
+   not the ones currently EXACT) -- still requires the full protocol
+   before landing: targeted definitions first (6352, 802 must stay EXACT
+   and gain EXACT respectively), then `--limit 430` protected gate, then a
+   FULL corpus diff (not just the four families) since `Hide`/`UnHide`/
+   `CopyFields`/etc. are also in the trigger regex and were not
+   individually re-verified this cycle.
+6. **No encoder semantic changes made this session**, per instruction.
+
 ### Next action (research cycle)
 
-1. Cross-reference the ACTUAL current implementations of
-   `reuseRecordReferenceWithinCallArguments`,
-   `singleOccurrenceCallArgumentRecordNames`, and
-   `recordReferencesByControlGroup`'s FetchValue/ActiveRowCount/
-   ScrollFlush/GetRecord call sites (read the real encoder.ts code, not
-   just infer from corpus behavior) against the flat-top-level hypothesis
-   specifically -- this remains the one well-quantified, strong,
-   cross-family-corroborated finding from this whole cycle, and is ready
-   for a real Phase 3/4 pass. The multi-argument thread is NOT ready for
-   this yet (no unifying model was found).
-2. If the multi-argument thread is revisited, start from GetRow (the
-   single largest call-name contributor, 188 disagreements) as its own
-   dedicated investigation, not as part of a merged cross-intrinsic sweep.
-3. Try/While/Repeat subtypes still show zero disagreements in the
-   four-family sample from Phase 2A; the six-family Phase 2D population
-   didn't specifically re-check this either -- still just a note for a
-   future session.
-4. Cross-family control: definition 6389 (RowScrollSelect's own
-   9-disagreement cluster, sibling-branch shaped) remains queued and
-   still not investigated in its own right.
-5. Do NOT implement any encoder fix yet. The flat-top-level rule is the
-   one candidate ready for Phase 3 (real code cross-reference); the
-   multi-argument thread needs a narrower, single-call-name investigation
-   before it produces anything actionable, and implementing a
-   flat-top-level guard now would still leave 2958/1454's own confirmed,
-   real bugs unaddressed and undocumented as anything more than isolated
-   examples -- acceptable for now precisely BECAUSE this session
-   determined they are not part of a larger pattern requiring a unified
-   fix.
+1. This is now ready for actual implementation consideration in a FUTURE
+   session -- Phase 4/5 per the original `/goal` framing -- but that
+   decision belongs to the user, not automatically taken here.
+2. Before implementing: re-verify this hypothesis explains 6352's
+   specific case exactly (already done, see 3A) AND spot-check 2-3 more
+   of the 66 FetchValue disagreements this cycle already has full
+   evidence files for for the SAME `controlDepth === 0` shape, to make
+   sure the guard's own remaining ~32% unexplained share (from the
+   original flatTopLevel quantification) isn't hiding a second bug in
+   the SAME code path that a naive `controlDepth > 0` guard would still
+   get wrong.
+3. The multi-argument thread (2958/1454) and GetRow-specific
+   investigation remain separate, un-mapped-to-code threads -- Phase 3
+   was scoped to flatTopLevel only, per this checkpoint's own directive.
+4. Cross-family control definition 6389 (RowScrollSelect's own
+   9-disagreement cluster) remains queued and unexplored.
+5. Do NOT implement any encoder fix without explicit user direction to
+   proceed to Phase 5 -- Phase 3's own deliverable is an architectural
+   proposal, not permission to implement.
 
 ## Checkpoint
 
