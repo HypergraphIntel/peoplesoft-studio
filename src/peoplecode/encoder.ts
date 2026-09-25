@@ -64,6 +64,32 @@ interface DependencyScope {
   ): void;
 }
 
+/**
+ * The semantic result of a postfix expression chain (Cycle 4 research:
+ * `.claude/corpus-progress.md`'s "Compiler Semantics Research Cycle 4"
+ * section) -- deliberately separate from `DependencyScope`. DependencyScope
+ * answers "may an existing reference be reused"; `ChainSemantics` answers
+ * two different, earlier questions: what runtime-shaped value does this
+ * expression currently hold, and does that value carry enough
+ * binding/schema provenance for a following bare `.MEMBER` to be eligible
+ * to become a RECORD/FIELD/SCROLL dependency at all (as opposed to staying
+ * inline text). Knowing the value type alone is not sufficient for the
+ * second question: a `GetRowset()` result assigned to an UNDECLARED
+ * variable has the same `rowset` value type whether or not it came from a
+ * schema-bearing call, but only the schema-bearing case's later members
+ * bind (definition 524 vs. 1721/1722).
+ *
+ * `binding`/`provenance` are readable at this Phase 5 stage but not
+ * wired into any encoding decision -- see `deriveChainSemantics()`'s own
+ * comment for exactly which existing classification this mirrors, and
+ * what it deliberately leaves unmodeled.
+ */
+interface ChainSemantics {
+  readonly valueType: 'unknown' | 'rowset' | 'row' | 'record' | 'field' | 'scalar';
+  readonly binding: 'dynamic' | 'dependency-bound';
+  readonly provenance: 'intrinsic' | 'declared' | 'schema' | 'navigation' | 'unknown';
+}
+
 export interface PeopleCodeOwner {
   recordName: string;
   fieldName: string;
@@ -7551,6 +7577,45 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
                 recordVariables.has(baseVariableName.toLowerCase())
                 ? 'field'
                 : undefined;
+
+    /*
+     * Cycle 5 (see .claude/corpus-progress.md): a pure, read-only
+     * ChainSemantics projection of the classification immediately above --
+     * introduced to make the postfix chain's semantic state explicit
+     * without changing any encoding decision yet. Nothing reads
+     * `initialChainSemantics` outside this diagnostic assignment; it
+     * cannot affect `generated` output because it does not participate in
+     * any branch, lookup, or write below. Confirmed zero-behavior-change
+     * by a full 30,209-definition corpus diff (see the progress file for
+     * the exact run comparison).
+     *
+     * This mirrors ONLY `expectedReferenceMember`'s own four direct
+     * classification arms above -- it deliberately does NOT yet
+     * incorporate the separate schema-provenance pools Cycle 4 also
+     * identified (`rowsetElementRecords`, `rowsetRecordNamesByVariable`,
+     * `captureRowsetElementRecord`), which establish binding provenance
+     * for an UNDECLARED receiver assigned from a schema-bearing call
+     * (e.g. `CreateRowset(Record.X)`, definition 524) through a
+     * structurally different code path this function does not trace.
+     * Those receivers are reported 'unknown'/'dynamic' here even where
+     * the corpus shows they actually bind -- a known, deliberate gap,
+     * left for a later phase rather than guessed at without tracing that
+     * separate mechanism first.
+     */
+    const initialChainSemantics: ChainSemantics =
+      explicitRecordRootName !== undefined
+        ? { valueType: 'record', binding: 'dependency-bound', provenance: 'declared' }
+        : bareGetRecordCallResult
+          ? { valueType: 'record', binding: 'dependency-bound', provenance: 'intrinsic' }
+          : rowStartsRecordFieldChain
+            ? { valueType: 'row', binding: 'dependency-bound', provenance: 'declared' }
+            : bareGetRowCallStartsRecordFieldChain
+              ? { valueType: 'row', binding: 'dependency-bound', provenance: 'intrinsic' }
+              : baseVariableName !== undefined &&
+                recordVariables.has(baseVariableName.toLowerCase())
+                ? { valueType: 'record', binding: 'dependency-bound', provenance: 'declared' }
+                : { valueType: 'unknown', binding: 'dynamic', provenance: 'unknown' };
+    void initialChainSemantics;
 
     /*
      * Distinguishes "expectedReferenceMember === 'field' because this is
