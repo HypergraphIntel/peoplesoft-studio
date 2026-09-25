@@ -193,29 +193,100 @@ needs its own investigation, not part of Finding A). Definition 826 hits
 an unrelated `ENCODE_ERROR` (bare identifier unsupported) before any
 reference evidence accumulates.
 
+### PriorValue (Phase 1 area, completed)
+
+Ran 2809, 2950, 2957, 2959, 2970. **PriorValue itself shows no disagreement
+in any of the five** -- 2809 and 2959 (105 and 56 paired occurrences) agree
+completely; 2950, 2957, and 2970 each show exactly one disagreement, and in
+all three cases it is the SAME nearby `FetchValue(Record.JOB, &Level1_Row,
+Record.COMPENSATION, CurrentRowNumber(2), ...)` call, not PriorValue --
+three MORE independent confirmations of Finding A below (`intervening=
+[FetchValue,PriorValue]` in the trace: PriorValue textually intervenes
+between the two occurrences but does not itself break or need the reuse
+rule). Tentative conclusion: PriorValue's own argument handling does not
+need investigation right now; the PriorValue Phase 1 area was really
+surfacing Finding A by proximity, not a PriorValue-specific issue. Revisit
+only if a future PriorValue-only counterexample turns up.
+
+Finding A is now confirmed across **9 independent definitions** across two
+syntactic shapes: bare `FetchValue(Record.X/Scroll.X, ...)` (1521, 1454,
+1305, 2950, 2957, 2970) and postfix `.GetRecord(Record.X)`/`.GETRECORD(...)`
+(1420, 1423, 1424). Strong enough sample to move to Phase 2.
+
+### Phase 2 -- inferred semantic model (Finding A only; other areas not yet modeled)
+
+**Hypothesis**: the compiler's Record.X/Scroll.X reference-reuse pool is
+scoped not by a per-function-name allowlist (the current implementation's
+shape: `SetCursorPos`, `HideScroll`, `GetRecord`, `ActiveRowCount`,
+`UpdateValue`, `InsertRow`, `DeleteRow`, `RecordDeleted`, `RecordChanged`,
+etc. were each added to `recordReferencesByControlGroup`'s trigger list
+one at a time across many separate fixes -- #23-38, #86-89) but by a
+**binding-vs-fetch distinction** on the call itself:
+
+- **Binding operations** establish or navigate a durable Row/Rowset/Record
+  context that the current control-flow scope can refer back to:
+  RowScrollSelect(New), ScrollSelect, ScrollFlush, ActiveRowCount,
+  UpdateValue, InsertRow, DeleteRow, HideScroll, UnhideScroll, UnhideRow,
+  CopyFields, RecordDeleted, RecordChanged, and (per the existing,
+  already-calibrated evidence) most GetRecord/GetRow/GetRowset uses. Their
+  Record.X/Scroll.X argument participates in the shared control-group
+  reuse pool, with the already-evidenced depth/epoch refinements (Fixes
+  #85-#99: `controlDepth`, `functionDepth`, family-call-boundary clearing
+  via `genericRecordReferencesSinceLastFamilyCall`, etc.).
+- **Value-fetch operations** resolve one specific value at one specific
+  call site and do not persist a binding: `FetchValue`, and a POSTFIX
+  `.GetRecord(...)`/`.GetRow(...)`/`.GetRowset(...)` used to immediately
+  extract a value rather than assign the result to a Row/Rowset variable
+  for later reuse. Their Record.X/Scroll.X "what to fetch from" argument
+  is call-site-local: it never enters the reuse pool and never reads from
+  it, regardless of how recently the identical name was referenced
+  elsewhere (even by an earlier call to the SAME value-fetch function).
+
+If this holds, the right compiler-level model is not "grow the
+per-function trigger list every time a new function shows the symptom"
+(the pattern every one of Fixes #23-38/#86-89 followed) but a single
+classification step -- "does resolving this call's Record.X/Scroll.X
+argument bind a name the surrounding scope can see again, or not" -- with
+FetchValue and postfix-GetRecord as the first (and maybe only) members of
+the "does not bind" side. This is the "smallest semantic model" the
+research directive asks for: one classification replacing what would
+otherwise become two more entries bolted onto an already-long allowlist.
+
+**Open question before Phase 3/4**: is "postfix .GetRecord(...) used to
+immediately chain into `.FIELD.Value`" the right generalization, or is the
+real distinguishing factor narrower (e.g. specifically "GetRecord called on
+an already-typed Row variable, immediately followed by a field-chain
+postfix, with no assignment of the GetRecord result itself")? 1420/1423/
+1424 all share the exact same `&Der_Parent.GETRECORD(Record.DERIVED_IBAN).
+FIELD.Value` shape -- need a definition where a bare GetRecord() call
+(no receiver variable, no immediate field chain) is ALSO shown to not
+reuse, or one where a postfix .GetRecord IS reused, before this
+generalization is trusted past the FetchValue half.
+
 ### Next action (research cycle)
 
-1. ~~Confirm the protected 430/430 gate after the 0x48/0x4A trace-instrumentation
-   commit.~~ DONE: full-corpus `--compare-baseline` run confirms 22984/30209
-   exact (bit-for-bit identical to the Fix #99 total), Improved 0, Regressed
-   0, REGRESSION GATE: PASS. Zero classification impact anywhere in the
-   corpus, as expected for a diagnostic-only change.
-2. Generate the still-missing Phase 1 area: PriorValue (candidates queried
-   from the local snapshot but not yet run through the tool: 2809, 2950,
-   2957, 2959, 2970 -- all currently non-EXACT `PriorValue`-referencing
-   definitions).
-3. Widen the FetchValue/postfix-GetRecord sample (Finding A) past 5
-   definitions before treating it as settled -- pull a broader batch via
-   the existing `corpus-results.sqlite` cross-reference-with-snapshot SQL
-   pattern documented under "Next action" below, filtered to
-   `FetchValue\s*\(` and `\.GetRecord\s*\(`/`\.GETRECORD\s*\(` (case-
-   insensitive; both spellings appear in the corpus) source matches.
-4. Once Finding A is corroborated on a wider sample, write up Phase
-   2/3 (the smallest semantic model, and which existing
-   maps/flags are genuine-concept vs. redundant-patch for this specific
-   family) -- still no encoder semantic changes until that model is
-   written down and evidence-backed per the directive.
-5. Do NOT implement a fix for Finding A yet, even though it looks clean --
+1. Find a postfix-`.GetRecord`/bare-`GetRecord()` counterexample (or
+   confirming example) to settle the open question above before treating
+   the "value-fetch" class as anything broader than "FetchValue plus this
+   one exact `.GETRECORD(...).FIELD.Value` shape."
+2. Investigate the remaining named Phase 1 areas not yet touched:
+   RowScrollSelect/RowScrollSelectNew's OWN semantics beyond what's already
+   calibrated (the directive names it explicitly; this session's sample
+   only hit already-EXACT representatives, so no fresh evidence there yet
+   -- may need to pull FRESH non-EXACT RowScrollSelect-family definitions
+   from `corpus-results.sqlite`, not the historically-cited ones, which
+   are now all fixed).
+3. Once the value-fetch/binding distinction is corroborated (or narrowed)
+   further, write Phase 3 (map every existing flag/map --
+   `recordReferencesByControlGroup`, `genericRecordReferencesSinceLastFamilyCall`,
+   `participatingRecordReferencesByControlGroup`, `singleOccurrenceCallArgumentRecordNames`,
+   `reuseRecordReferenceWithinCallArguments`, etc. -- onto this model: which
+   are the SAME underlying binding-pool concept under different names,
+   and which are genuinely separate mechanisms) and Phase 4 (the smallest
+   ReferenceBinder/DependencyPlanner abstraction that would let "does this
+   call bind or fetch" be asked once instead of encoded into N separate
+   maps).
+4. Do NOT implement a fix for Finding A yet, even though it looks clean --
    the directive is explicit that Phase 1/2 (dataset + model) come before
    Phase 5 (implementation), and a premature fix here would be exactly the
    kind of "special case that happens to fix one example" the whole cycle
