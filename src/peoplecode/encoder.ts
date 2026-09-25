@@ -2634,22 +2634,20 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     /^(?:REM|remark)\b/i.test(source.slice(start));
 
   const remComment = (allowMissingSemicolon = false): Buffer => {
-    const lineStart = source.lastIndexOf('\n', pos - 1) + 1;
-    const remIndent = source.slice(lineStart, pos).length;
     const match = /^(?:REM|remark)\b[^\r\n]*/i.exec(source.slice(pos));
 
     if (!match) {
       return fail('expected REM comment');
     }
 
-    let remText = match[0].replace(/[ \t]+$/g, '');
+    let remText = match[0];
     let consumedLength = match[0].length;
 
     /*
      * A REM line with no terminating ';' of its own is not yet a complete
-     * comment token -- PeopleTools continues merging immediately
-     * consecutive REM lines (no blank line between them), embedded line
-     * break included, until one of them actually closes with ';'.
+     * comment token -- PeopleTools continues the same 0x24 payload across
+     * physical lines, embedded line breaks included, until a line actually
+     * closes with ';'.
      *
      * AMM_DERIVED.DELETE_BTN.RowInit (definition 964):
      *
@@ -2672,63 +2670,32 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      * Each of these three lines closes with its own ';', so each is
      * already a complete rem statement -- stored has three SEPARATE 0x24
      * records (96, 96, and 100 bytes), not one 296-byte merged record.
+     *
+     * PSOPRDEFN.PTACCTNEVERLOCK.FieldChange (definition 16413) proves
+     * indentation is not a continuation boundary: its second prose line
+     * has the same indentation as REM, and the first line's trailing space
+     * is preserved immediately before the embedded newline in the payload.
      */
-    while (!remText.endsWith(';')) {
-      const nextLineMatch =
-        /^(\r?\n)((?:REM|remark)\b[^\r\n]*)/i.exec(
-          source.slice(pos + consumedLength)
-        );
+    while (!/;[ \t]*$/.test(remText)) {
+      const continuation = /^(\r?\n)([^\r\n]*)/.exec(
+        source.slice(pos + consumedLength)
+      );
 
-      if (nextLineMatch) {
-        remText +=
-          nextLineMatch[1] + nextLineMatch[2].replace(/[ \t]+$/g, '');
-        consumedLength += nextLineMatch[0].length;
-        continue;
-      }
-
-      /*
-       * A semicolon-less REM payload continues through subsequent lines that
-       * are indented more deeply than the REM itself, until a continuation
-       * supplies the terminating semicolon. This generalizes the earlier
-       * single-space prose evidence without allowing the comment to absorb a
-       * same-indent executable statement.
-       *
-       * GP_ABS_EVENT.EMPL_RCD.SavePreChange (definition 10607):
-       *
-       *   REM If ... Then
-       *      Evaluate %Menu
-       *      When ...
-       *         FIELD.Value = "4";
-       *
-       * stores all four physical lines in one 0x24 payload. Definition 22751
-       * independently proves the same rule in an If header, while the three
-       * DERIVED_GVT captures (5424-5426) use a one-space prose continuation:
-       *
-       *   REM KJB Removed code ... as it is
-       *    no longer valid, as Record.REVIEW_GOALS is obsolete;
-       */
-      const indentedContinuation =
-        /^(\r?\n)([ \t]+)([^\r\n]*)/.exec(
-          source.slice(pos + consumedLength)
-        );
-
-      if (
-        !indentedContinuation ||
-        indentedContinuation[2].length <= remIndent
-      ) {
+      if (!continuation) {
         break;
       }
 
-      remText +=
-        indentedContinuation[1] +
-        (indentedContinuation[2] + indentedContinuation[3])
-          .replace(/[ \t]+$/g, '');
-      consumedLength += indentedContinuation[0].length;
+      remText += continuation[1] + continuation[2];
+      consumedLength += continuation[0].length;
     }
 
-    if (!allowMissingSemicolon && !remText.endsWith(';')) {
+    if (!allowMissingSemicolon && !/;[ \t]*$/.test(remText)) {
       return fail('expected ; at end of REM comment');
     }
+
+    // Preserve whitespace before embedded newlines, but retain the existing
+    // normalization of horizontal whitespace after the final physical line.
+    remText = remText.replace(/[ \t]+$/g, '');
 
     const payload = Buffer.from(remText, 'utf16le');
 

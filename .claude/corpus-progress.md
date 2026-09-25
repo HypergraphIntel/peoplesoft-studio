@@ -6,8 +6,9 @@
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #97 (see below for its full
-  description). Fixes #95-#96 were committed together at `b4ab29f`; Fix #94 was
+- **Last successful calibration**: Fix #98 (see below for its full
+  description). Fix #97 was committed at `5b9286c`; Fixes #95-#96 were
+  committed together at `b4ab29f`; Fix #94 was
   committed at `8a55c61`; Fix #93 at `aef89e5`; Fix #92 at `c8a167e`;
   and Fix #91 at `16233cd`.
   (Fix #90's own code
@@ -43,8 +44,8 @@
   --rebase` mid-session to avoid a repeat -- if a pull is genuinely
   needed, checkpoint `.claude/corpus-progress.md` to a scratch copy
   first.
-- **Corpus total** (full-corpus run_id 1667, after Fix #97):
-  22925/30209 exact (75.9%).
+- **Corpus total** (full-corpus run_id 1679, after Fix #98):
+  22937/30209 exact (75.9%).
   Fix #73 was first rechecked against the already-equivalent full run 1326
   (run 1327: all 30209 materially unchanged). Subsequent full diffs were:
   Fix #74 run 1327 -> 1338 (2 exact, 4 advanced, 0 regressed); Fix #75 run
@@ -79,7 +80,9 @@
   1628 (2 exact, 0 regressed); Fix #94 run 1628 -> 1638 (1 exact, 3
   advanced, 0 regressed); Fixes #95-#96 run 1638 -> 1657 (1 exact, 6
   advanced, 0 regressed); Fix #97 run 1657 -> 1667 (5 exact, 9 advanced,
-  0 regressed). The
+  0 regressed); Fix #98 run 1667 -> 1679 (12 exact, 0 EXACT regressions;
+  32 remaining-failure reclassifications after their REM payloads expanded
+  to the evidenced terminating semicolon). The
   protected gate remains 430/430.
 - **Locally blocked / deferred, evidence exhausted this session** (see
   their own entries further down for full evidence trails): the `#If
@@ -108,7 +111,7 @@
   definition 1305's note); the working tree is clean of that attempt
   (`git checkout -- src/peoplecode/encoder.ts` after the revert,
   confirmed via `corpus:verify --limit 430`).
-- **Next action**: resume failure-family triage from full run_id 1457 (group
+- **Next action**: resume failure-family triage from full run_id 1679 (group
   `corpus-results.sqlite`'s latest run by `classification`/`construct`,
   the same query used to find every target this session, or use `npm run
   corpus:next`). `npm run corpus:next` currently surfaces the `UNKNOWN_MISMATCH`
@@ -122,6 +125,25 @@
   below.
 
 ## Current target
+- **Fix #98** landed locally (src/peoplecode/encoder.ts): indentation is
+  not a boundary for a semicolon-less `REM` payload. It continues across
+  physical lines until the first line ending in a semicolon; horizontal
+  whitespace immediately before an embedded newline is part of the raw
+  UTF-16LE payload and must be preserved. Definition 16413 proves both
+  points directly: its continuation prose is at the same indentation as
+  `REM`, and its first physical line's trailing space accounts for the
+  final two-byte stored/generated length difference (stored payload length
+  `0x016a`, formerly generated as `0x0168`). The previous final-line
+  trailing-whitespace normalization is retained, keeping the change no
+  broader than the captured evidence. Definition 16413 is now fully EXACT;
+  prior REM evidence definitions 10607, 22751, 5424-5426, 964, and 937 all
+  remain exact. Full run 1667 -> 1679: 12 definitions became exact (2510,
+  5243, 6284, 6287, 6290, 16186, 16413, 16669, 17020, 18911, 18917,
+  18944), 0 EXACT regressions; 32 remaining failures were reclassified as
+  their longer REM payloads exposed later constructs. Added a focused
+  same-indent/trailing-space byte regression. Full project `npm run
+  typecheck` and `npm test` are clean (488 tests, 487 pass, 1 intentional
+  skip); protected gate: 430/430.
 - **Fix #97** landed locally (src/peoplecode/encoder.ts): a semicolon-less
   `REM` payload continues through subsequent physical lines that are more
   deeply indented than the originating REM, stopping when a continuation
@@ -132,8 +154,8 @@
   field assignment through that assignment's semicolon into one 0x24
   payload; a later `rem When ...` does the same. Definition 22751's
   disabled condition tail and definitions 5424-5426's prose continuation
-  independently confirm the same deeper-indent boundary. Same-indent
-  executable statements are deliberately not absorbed. Definition 10607
+  independently confirmed that earlier narrowing. Fix #98 supersedes the
+  indentation boundary with direct same-indent evidence. Definition 10607
   is now fully EXACT; all prior REM regressions remain exact. Full run
   1657 -> 1667: 5 exact and 9 advanced across 14 definitions, 0
   regressed. Added a focused multiline disabled-code regression. Full
@@ -4861,11 +4883,13 @@ project-level blocker").
 - definitions: 430
 - exact: 430
 - regressions: 0
-- last verified: 2026-09-25 (/goal resume session), after Fix #97
-  (deeper-indented multiline REM continuation), REGRESSION GATE: PASS
-  (430/430, no regression). Full corpus run_id 1667 directly diffed
-  against run_id 1657: 5 newly exact, 9 advanced, 0 regressed.
-  Full-project `npm run typecheck` and `npm test` (487 tests, 486 pass,
+- last verified: 2026-09-25 (/goal resume session), after Fix #98
+  (same-indent semicolon-delimited REM continuation plus preservation of
+  embedded-line trailing whitespace), REGRESSION GATE: PASS (430/430,
+  no regression). Full corpus run_id 1679 directly diffed against run_id
+  1667: 12 newly exact, 0 EXACT regressions, and 32 remaining-failure
+  reclassifications after longer REM payloads exposed later constructs.
+  Full-project `npm run typecheck` and `npm test` (488 tests, 487 pass,
   1 intentional skip) both clean.
 - prior verification: 2026-09-25 (/goal resume session), after Fixes #95-#96
   (colon-qualified package constants and `%metadata` root opcode),
