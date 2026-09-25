@@ -1,5 +1,125 @@
 # Changelog
 
+## 0.2.2
+
+Version **0.2.2** expands PeopleSoft Studio's local MCP integration and continues the reverse engineering of the PeopleCode compiler.
+
+- Next Cycle is real work on the compiler, expect significant updates.
+
+### MCP Server and AI Integration
+
+PeopleSoft Studio now provides a more complete local MCP experience for AI clients.
+
+- Added MCP server status to the VS Code status bar.
+- Added a centralized MCP control menu for:
+  - viewing server status
+  - starting the MCP server
+  - stopping the MCP server
+  - restarting the MCP server
+  - copying the MCP endpoint URL
+  - configuring supported AI clients
+- Added direct configuration support for:
+  - OpenAI Codex
+  - Claude Code
+  - manual MCP client setup
+- MCP startup is managed through a dedicated controller rather than directly from extension activation.
+- MCP startup failures no longer prevent PeopleSoft Studio from activating.
+- MCP can be disabled during smoke tests with `PSFT_DISABLE_MCP=1`.
+- PeopleSoft Studio exposes its own stable MCP interface and does not require PeopleTools 8.63 MCP.
+- When the delivered PeopleTools 8.63 MCP is available, PeopleSoft Studio is designed to delegate or proxy supported operations while preserving the same client-facing PeopleSoft Studio MCP interface.
+- Older PeopleTools environments continue to use PeopleSoft Studio's native providers and reverse-engineered PeopleCode capabilities.
+
+### PeopleCode MCP Tools
+
+Expanded read-only PeopleCode tooling exposed through MCP.
+
+Current tools support:
+
+- listing configured PeopleSoft connections
+- searching PeopleSoft definitions
+- retrieving definitions
+- listing definition children
+- listing project items
+- retrieving PeopleCode by definition key
+- retrieving Record PeopleCode
+- retrieving Component and Component Record PeopleCode
+- retrieving Application Class PeopleCode
+- searching PeopleCode source references
+
+The MCP layer uses the same PeopleSoft Studio `Workspace` and `DefinitionProvider` infrastructure as the VS Code UI rather than scraping `psft://` documents.
+
+### PeopleCode Compiler Reverse Engineering
+
+Continued byte-for-byte reconstruction of the PeopleTools PeopleCode compiler.
+
+Recent compiler work includes:
+
+- improved PSPCMNAME reference allocation and reuse
+- improved control-group-aware reference lifetime handling
+- improved Record, Field, Scroll, Row, and Rowset reference semantics
+- improved cross-record FIELD reuse behavior
+- improved explicit `Record.RECORD.FIELD.Value` handling
+- improved `GetRecord()`, `GetRow()`, and related postfix reference behavior
+- improved `RowScrollSelect`, `RowScrollSelectNew`, `ScrollSelect`, and `ScrollFlush` reference behavior
+- improved quoted metadata reference scoping
+- improved Application Class and package path handling
+- added `%metadata` package-root encoding
+- added package-qualified constant encoding
+- improved Function metadata and nested `array of array of ...` type handling
+- added additional declaration syntax support including `ComponentLife`
+- improved explicit Record method-call statements
+- improved alternate comparison syntax such as `Not =` and `Not >`
+- expanded variable-name handling for legacy PeopleCode identifier forms
+
+### Comments and Legacy Source Preservation
+
+Improved reproduction of PeopleTools comment and legacy source encoding.
+
+- Added additional `REM` and `remark` handling.
+- Improved multiline `REM` payload preservation.
+- Preserved semicolon-delimited REM continuations.
+- Preserved inline comments following REM statements.
+- Added support for REM comments inside additional control-flow bodies.
+- Improved comment placement around `Then`, `Else`, declarations, Functions, and control-flow boundaries.
+- Improved preservation of whitespace and blank-line structural markers where those affect compiled output.
+
+### Corpus and Compiler Validation
+
+PeopleSoft Studio's local HCDEV compiler corpus remains the primary conformance suite for reverse-engineering work.
+
+- Corpus size: **30,209 PeopleCode definitions**
+- Latest full-corpus exact result: **22,984 / 30,209 (76.1%)**
+- Protected regression baseline remains **430 / 430**
+- Broad compiler changes continue to require full-corpus validation with zero previously-exact regressions.
+- Reference tracing continues to track generated `ALLOC` and `USE` behavior against stored `PSPCMNAME` data.
+- Failure analysis is increasingly focused on reconstructing underlying compiler semantics rather than accumulating isolated byte-pattern fixes.
+
+### Compiler Architecture Direction
+
+The compiler research effort is transitioning from direct byte-pattern calibration toward reconstruction of the PeopleTools compiler model itself.
+
+Current areas of investigation include:
+
+- semantic binding
+- lexical and control-flow scope
+- implicit owner resolution
+- dependency interning
+- PSPCMNAME reference lifetime
+- reference reuse epochs
+- intrinsic-function argument semantics
+- separation of parsing, binding, dependency planning, and bytecode emission
+
+The long-term objective remains an independent PeopleCode compiler capable of reproducing PeopleTools-generated `PSPCMPROG` and `PSPCMNAME` output.
+
+### Notes
+
+- PeopleCode database saves remain disabled while compiler and dependency semantics continue to be validated.
+- SQL definitions remain writable where supported by the Oracle provider.
+- PeopleSoft Studio's MCP server remains usable independently of PeopleTools 8.63 MCP.
+- Delivered PeopleTools 8.63 MCP support is additive rather than a requirement for PeopleSoft Studio AI integration.
+
+
+
 ## 0.2.1
 
 Version **0.2.1** brings editional encoding / decoding maps and even more AI tooling, refactored
