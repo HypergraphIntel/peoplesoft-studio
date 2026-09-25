@@ -1225,6 +1225,18 @@ test('REM may continue through deeper-indented disabled code until semicolon', (
   );
 });
 
+test('REM preserves a same-indent continuation and nonterminal trailing space', () => {
+  const source = 'REM first line \nsecond line;';
+
+  assert.deepStrictEqual(
+    encodeFragment(source),
+    Buffer.concat([
+      Buffer.from([0x24, source.length * 2, 0x00]),
+      Buffer.from(source, 'utf16le')
+    ])
+  );
+});
+
 test('legacy remark spelling uses the calibrated REM comment payload', () => {
   const source =
     'remark Prevent deletion of an entire project;';
