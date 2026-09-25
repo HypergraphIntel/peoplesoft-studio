@@ -82,6 +82,21 @@ export interface ReferenceTraceEvent {
   reference: PeopleCodeReference;
 }
 
+/** Diagnostic-only trace for dependency-cache lookups and writes. */
+export interface DependencyLookupTraceEvent {
+  action: 'LOOKUP' | 'STORE';
+  mechanism: 'dependency-scope-record' | 'fetchvalue-shadow-record';
+
+  sourceOffset: number;
+  controlGroup: number;
+  controlDepth: number;
+  functionDepth: number;
+  recordName: string;
+
+  /** Present for a lookup hit and for every store. */
+  reference?: PeopleCodeReference;
+}
+
 export interface EncodeProgramContext {
   owner?: PeopleCodeOwner;
 
@@ -92,6 +107,14 @@ export interface EncodeProgramContext {
    */
   referenceTrace?: (
     event: ReferenceTraceEvent
+  ) => void;
+
+  /**
+   * Optional diagnostic hook for dependency-cache provenance research.
+   * Observational only; it must never influence encoding.
+   */
+  dependencyLookupTrace?: (
+    event: DependencyLookupTraceEvent
   ) => void;
 
   /**
@@ -2232,6 +2255,19 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     if (reuseRecordReferenceWithinControlGroup) {
       const existing = dependencyScope.lookupRecord(recordName);
 
+      if (reuseFetchValueRecord) {
+        context?.dependencyLookupTrace?.({
+          action: 'LOOKUP',
+          mechanism: 'dependency-scope-record',
+          sourceOffset: pos,
+          controlGroup,
+          controlDepth,
+          functionDepth,
+          recordName,
+          reference: existing
+        });
+      }
+
       if (existing !== undefined) {
         /*
          * DERIVED_HR.LOOKUP_NID_BTN.FieldChange (definition 5687):
@@ -2353,6 +2389,16 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       const existing = fetchValueRecordReferences.get(
         `${dependencyScope.id}:${recordName.toLowerCase()}`
       );
+      context?.dependencyLookupTrace?.({
+        action: 'LOOKUP',
+        mechanism: 'fetchvalue-shadow-record',
+        sourceOffset: pos,
+        controlGroup,
+        controlDepth,
+        functionDepth,
+        recordName,
+        reference: existing
+      });
       if (existing !== undefined) {
         return referenceOperand(existing);
       }
@@ -2368,6 +2414,16 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         `${controlGroup}:${recordName.toLowerCase()}`,
         reference
       );
+      context?.dependencyLookupTrace?.({
+        action: 'STORE',
+        mechanism: 'fetchvalue-shadow-record',
+        sourceOffset: pos,
+        controlGroup,
+        controlDepth,
+        functionDepth,
+        recordName,
+        reference
+      });
     }
 
     if (reuseRecordReferenceWithinCallArguments) {
@@ -2411,6 +2467,18 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       !suppressRecordReferenceControlGroupWrite
     ) {
       dependencyScope.recordRecord(recordName, reference);
+      if (reuseFetchValueRecord) {
+        context?.dependencyLookupTrace?.({
+          action: 'STORE',
+          mechanism: 'dependency-scope-record',
+          sourceOffset: pos,
+          controlGroup,
+          controlDepth,
+          functionDepth,
+          recordName,
+          reference
+        });
+      }
       genericRecordReferencesSinceLastFamilyCall.set(
         `${controlGroup}:${recordName.toLowerCase()}`,
         reference
