@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -17,7 +17,8 @@
     "onFileSystem:psft",
     "onView:psft.connections",
     "onView:psft.projects",
-    "onView:psft.browser"
+    "onView:psft.browser",
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -217,6 +218,11 @@
         "title": "Compare Project",
         "icon": "$(diff)",
         "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.mcp.configureCodex",
+        "title": "Configure Codex MCP",
+        "category": "PeopleSoft"
       }
     ],
     "snippets": [
@@ -378,7 +384,7 @@
     "watch": "node esbuild.mjs --watch",
     "pretest": "tsc -p .",
     "test": "node --test dist-test/test/*.test.js",
-    "smoke": "node scripts/smoke.mjs",
+    "smoke": "cross-env PSFT_DISABLE_MCP=1 node scripts/smoke.mjs",
     "vscode:prepublish": "npm run compile",
     "package": "npm run verify && vsce package --out peoplesoft-studio.vsix",
     "verify": "npm run compile && npm test && npm run smoke",
@@ -409,6 +415,7 @@
     "@types/vscode": "^1.90.0",
     "@vscode/vsce": "^3.2.0",
     "better-sqlite3": "^12.11.1",
+    "cross-env": "^10.1.0",
     "esbuild": "^0.23.0",
     "fast-xml-parser": "^4.4.1",
     "tsx": "^4.23.15",

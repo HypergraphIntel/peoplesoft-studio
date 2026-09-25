@@ -14,6 +14,9 @@ import { registerPeopleCodeSymbols } from './peoplecode/symbols.js';
 import { parseUri } from './util/uri.js';
 import { StatusBar } from './views/statusBar.js';
 import { startPeopleSoftMcpServer } from './mcp/server.js';
+import {
+  configureCodexMcp
+} from './mcp/codex.js';
 
 /** Left side of a compare: which connection + which definition key. */
 interface CompareTarget {
@@ -84,21 +87,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const workspace = new Workspace(context.secrets);
   context.subscriptions.push(workspace);
 
-  try {
-    const mcpServer = await startPeopleSoftMcpServer(workspace);
-    context.subscriptions.push(mcpServer);
-
-    console.log(
-      `PeopleSoft Studio MCP server listening at ${mcpServer.url}`
-    );
-  } catch (err) {
-    const message = (err as Error).message;
-    console.warn(`PeopleSoft Studio MCP server failed to start: ${message}`);
-    void vscode.window.showWarningMessage(
-      `PeopleSoft Studio MCP server failed to start: ${message}`
-    );
-  }
-
   const statusBar = new StatusBar(workspace);
   context.subscriptions.push(statusBar);
 
@@ -132,6 +120,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const refreshAll = () => { connections.refresh(); browser.refresh(); projects.refresh(); };
 
   context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'psft.mcp.configureCodex',
+      async () => {
+        await configureCodexMcp();
+      }
+    ),
+
     vscode.commands.registerCommand('psft.refresh', refreshAll),
 
     vscode.commands.registerCommand('psft.peoplecode.validate', () => {
@@ -345,6 +340,39 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   vscode.workspace.onDidChangeConfiguration((e) => {
     if (e.affectsConfiguration('peoplesoft.connections')) refreshAll();
   }, null, context.subscriptions);
+
+
+  const disableMcp =
+  process.env.PSFT_DISABLE_MCP === '1';
+
+  if (!disableMcp) {
+    try {
+      const mcpServer =
+        await startPeopleSoftMcpServer(
+          workspace
+        );
+
+      context.subscriptions.push(
+        mcpServer
+      );
+
+      console.log(
+        `PeopleSoft Studio MCP server listening at ${mcpServer.url}`
+      );
+    } catch (err) {
+      const message =
+        (err as Error).message;
+
+      console.warn(
+        `PeopleSoft Studio MCP server failed to start: ${message}`
+      );
+
+      void vscode.window.showWarningMessage(
+        `PeopleSoft Studio MCP server failed to start: ${message}`
+      );
+    }
+  }
+
 }
 
 export function deactivate(): void { /* Workspace disposes through subscriptions. */ }

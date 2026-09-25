@@ -1,14 +1,46 @@
 # PeopleSoft Studio
 
 VS Code extension for **reading and navigating** PeopleSoft definitions — PeopleCode, SQL, records, and related objects — from an Oracle environment or an Application Designer project export.
-## Getting started
-Create a database connection
+
+## Configure the PeopleSoft Studio MCP Server
 
 
+1. Install **PeopleSoft Studio**.
+2. Reload VS Code.
+3. Add and connect to a PeopleSoft environment from the **PeopleSoft Studio** sidebar.
+4. Verify that the MCP server is running:
+   ```bash
+   curl http://127.0.0.1:7337/health
+   ```
 
-Goal long-term: replace Application Designer. **Today this is a trusted reader and navigator**, not a full designer.
+   A healthy server should return a response containing:
+   ```json
+   {
+     "status": "ok"
+   }
+   ```
+5. Register PeopleSoft Studio with Codex.
+
+   Open the VS Code Command Palette and run:
+
+   ```text
+   PeopleSoft: Configure Codex MCP
+   ```
+6. Verify the Codex MCP configuration from a command line:
+   ```bash
+   codex mcp list
+   ```
+   You should see:
+   ```text
+   peoplesoftStudio
+   ```
+7. Restart or reload Codex if it was already running.
+
+
 
 ## What works now
+
+Goal long-term: replace Application Designer. **Today this is a trusted reader and navigator**, not a full designer.
 
 | Capability | Status |
 |------------|--------|
