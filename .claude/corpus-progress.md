@@ -1,5 +1,61 @@
 # Corpus Calibration Progress
 
+## Fix #83: `Else;` -- Else's own optional immediately-following semicolon (encoder + decoder)
+
+Two matching fixes, one on each side, for the same construct: `Else` may
+be immediately followed by its own bare `;` before its body starts on
+the next line (`Else;\n   Body`), not just `Else\n   Body`.
+
+**Encoder** (`src/peoplecode/encoder.ts`, `ifStatement()`'s Else
+handling): added `if (source[pos] === ';') { pos++; chunks.push(fixed(';'));
+}` right after pushing the `Else` opcode, mirroring the same
+optional-trailing-`;` pattern already proven for When-Other/top-level
+statements earlier this session. Binary evidence confirms the stored
+shape is a bare `19 15` (Else then `;`, opcode 0x19 then 0x15) with no
+other marker in between -- simpler than the `2D 15` pattern several
+other header constructs use.
+
+**Decoder** (`src/peoplecode/decoder.ts`, `render()`'s `F.NEWLINE_AFTER`
+handling): Else's format spec (`ELSE_STYLE`) always emits a newline
+after Else, which is correct when a body statement follows directly but
+wrong when Else's own `;` comes first -- without a fix, `Else;` decoded
+back to `Else\n;\n   Body` (three lines) instead of `Else;\n   Body` (two
+lines), a roundtrip mismatch that silently capped classification at
+`DECODE_SOURCE_MISMATCH` even for definitions whose ENCODE direction was
+already byte-exact. Added `elseFollowedByBareSemicolon = t.opcode ===
+0x19 && nextToken?.opcode === 0x15`, OR'd into the same suppression
+branch as the existing `whenOtherFollowedByBareSemicolon` (Fix #65) --
+identical reasoning, different opcode.
+
+This decoder gap explains why an initial spot-check using a scratch
+`encodeProgram()`-only comparison script showed ~24/40 candidates as
+"EXACT" while the REAL harness (which validates the full roundtrip, not
+just the encode direction) reported 0 improved after the encoder-only
+fix landed -- a direct repeat of the session's own documented "encoder
+vs decoder" validation lesson: binary exactness alone is not full EXACT
+without a matching decode-rendering fix. Caught by running the real
+`corpus:harness -- --definition-id` command against a handful of
+candidates individually before trusting the encoder-only full-corpus
+diff's "0 improved, 0 regressed" result, which prompted tracing the
+decoder gap and fixing it in the same pass rather than committing a
+half-finished construct.
+
+Searched the corpus for failing definitions containing `Else;` (246
+occurrences after excluding the many where it's just incidentally present
+in an otherwise-unrelated-failure file). Sampled 40: with BOTH fixes
+applied, spot-checking via the real harness on 9 of them showed 6 reach
+full `EXACT`; the full-corpus run confirms the true scale.
+
+Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
+`corpus:verify --limit 430` 430/430, 0 regressed. Both changes touch
+broadly-shared code (`ifStatement()`'s Else handling in the encoder;
+`render()`'s NEWLINE_AFTER logic, used by every keyword with that format
+flag, in the decoder), so a full-corpus diff was essential: background
+run (run_id 320, 30209/30209, exact=22654) diffed against the immediately
+preceding full run (run_id 309, exact=22546): **108 improved**, 0
+regressed, 30101 same -- the largest single-fix gain this session,
+larger than Fix #80's 8.
+
 ## Fix #82: parenthesized arithmetic continuation inside `booleanUnary()`
 
 `src/peoplecode/encoder.ts`, `booleanUnary()`'s own leading-`(` special
@@ -344,17 +400,26 @@ run (run_id 295, 30209/30209, exact=22516) diffed against the immediately
 preceding full run (run_id 292, exact=22511): 5 improved, 0 regressed,
 30204 same.
 
-## Status as of Fix #82 (current)
+## Status as of Fix #83 (current)
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
   throughout. `--live` has never been used this session.
 - **Protected baseline**: 430/430, clean.
-- **Last successful calibration**: Fix #82 (above).
-- **Corpus total**: full-corpus run_id 307 = 22546/30209 exact (74.6%),
-  confirmed zero-regression against run_id 305 (Fix #81's baseline,
-  itself confirmed zero-regression against run_id 303/301/299/297/295/292/290/288).
+- **Last successful calibration**: Fix #83 (above).
+- **Corpus total**: full-corpus run_id 320 = 22654/30209 exact (75.0%),
+  confirmed zero-regression against run_id 309 (Fix #82's baseline,
+  itself confirmed zero-regression against run_id 307/305/303/301/299/297/295/292/290/288).
+- **CRITICAL VALIDATION REMINDER (reconfirmed this fix)**: a scratch
+  script that only calls `encodeProgram()` and compares to stored bytes
+  is NOT sufficient to judge whether a fix achieved full `EXACT` --
+  always cross-check a handful of candidates against the REAL
+  `npm run corpus:harness -- --definition-id <ID>` command (or a full
+  corpus run) before concluding a fix "didn't help" or celebrating a
+  sample's encode-only match rate. Fix #83 was almost committed as a
+  "0 improved" encoder-only change before this check caught the missing
+  decoder half.
 - **Next action**: resume failure-family triage from the current failure
-  inventory (`GROUP BY classification, error_message` on run_id 307 in
+  inventory (`GROUP BY classification, error_message` on run_id 320 in
   `tools/corpus/corpus-results.sqlite`, excluding `%bare identifiers%` and
   `%Application Class%` which are the known-deferred gap). Nothing large
   is pre-scoped as of this update -- re-run the failure-family query fresh
@@ -368,7 +433,11 @@ preceding full run (run_id 292, exact=22511): 5 improved, 0 regressed,
   (Fix #77's entry, definition 1016); definition 14727/14854's remaining
   `Unsupported Function parameter` sub-cases (Fix #79's entry); definition
   13562's `Unsupported function metadata type: Message` (Fix #80's
-  entry, not yet investigated for corroborating occurrences).
+  entry, not yet investigated for corroborating occurrences); the 3
+  definitions from Fix #83's own sample (437, 805, 850) that still didn't
+  reach EXACT even with both the encoder and decoder fixes (UNKNOWN_MISMATCH,
+  UNKNOWN_MISMATCH, DECODE_SOURCE_MISMATCH respectively) -- separate,
+  unrelated issues in those files, not yet inspected.
 - **Locally blocked / deferred, evidence exhausted** (unchanged unless
   noted): the `#If #ToolsRel` preprocessor-directive family (73
   occurrences, environmental per-definition dependency); the general

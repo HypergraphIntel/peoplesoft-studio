@@ -4978,6 +4978,25 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         chunks.push(fixed('Else'));
 
         /*
+         * `Else` may carry its own optional, immediately-following `;`
+         * before its body starts on the next line -- stored as a bare
+         * `19 15` (Else then `;`), with nothing else in between (no
+         * separate newline/boundary marker the way a `When` clause
+         * header's own trailing `;` needs).
+         *
+         * PA_DFN_OPT_SET.FORM_CD_PROMPT.RowInit (definition 12251, one of
+         * several corpus occurrences of this exact shape):
+         *
+         *   Else;
+         *      DERIVED.FORM_CD_PROMPT = "PA_DFN_FORM_VW";
+         *   End-If;
+         */
+        if (source[pos] === ';') {
+          pos++;
+          chunks.push(fixed(';'));
+        }
+
+        /*
          * A block comment attached directly to Else is encoded as 0x4E.
          *
          * DERIVED_CO.FUNCLIB.FieldFormula:
