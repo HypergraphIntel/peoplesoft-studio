@@ -2499,6 +2499,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           return fail('quoted-reference index exceeds uint16 range');
         }
 
+        // This 0x48 path writes its own operand bytes directly instead of
+        // going through referenceOperand() (0x21's shared helper), so it
+        // must fire its own diagnostic USE trace the same way -- otherwise
+        // a reference-lifecycle research consumer silently sees zero
+        // occurrences for every quoted reference after its first ALLOC.
+        // Purely observational: does not affect encoding.
+        context?.referenceTrace?.({
+          action: 'USE',
+          sourceOffset: pos,
+          controlGroup,
+          controlDepth,
+          functionDepth,
+          reference
+        });
+
         const bytes = Buffer.alloc(3);
         bytes[0] = 0x48;
         bytes.writeUInt16LE(reference.index, 1);
@@ -7732,6 +7747,20 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
               reference
             );
           }
+
+          // This 0x4A path writes its own operand bytes directly instead of
+          // going through referenceOperand() (0x21's shared helper), so it
+          // must fire its own diagnostic USE trace the same way -- see the
+          // matching note on the 0x48 quoted-reference site. Purely
+          // observational: does not affect encoding.
+          context?.referenceTrace?.({
+            action: 'USE',
+            sourceOffset: pos,
+            controlGroup,
+            controlDepth,
+            functionDepth,
+            reference
+          });
 
           chunks.push(Buffer.from([
             0x4a,
