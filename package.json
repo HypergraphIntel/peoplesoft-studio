@@ -220,8 +220,38 @@
         "category": "PeopleSoft"
       },
       {
+        "command": "psft.mcp.menu",
+        "title": "MCP",
+        "category": "PeopleSoft"
+      },
+      {
         "command": "psft.mcp.configureClient",
         "title": "Configure AI Client",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.mcp.status",
+        "title": "MCP Status",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.mcp.copyUrl",
+        "title": "Copy MCP URL",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.mcp.start",
+        "title": "Start MCP Server",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.mcp.stop",
+        "title": "Stop MCP Server",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.mcp.restart",
+        "title": "Restart MCP Server",
         "category": "PeopleSoft"
       }
     ],
@@ -317,6 +347,28 @@
           "command": "psft.record.refresh",
           "when": "activeCustomEditorId == psft.recordEditor",
           "group": "navigation@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "psft.mcp.status",
+          "when": "false"
+        },
+        {
+          "command": "psft.mcp.copyUrl",
+          "when": "false"
+        },
+        {
+          "command": "psft.mcp.start",
+          "when": "false"
+        },
+        {
+          "command": "psft.mcp.stop",
+          "when": "false"
+        },
+        {
+          "command": "psft.mcp.restart",
+          "when": "false"
         }
       ]
     },

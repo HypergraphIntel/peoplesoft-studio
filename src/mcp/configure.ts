@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
 
 import {
-  MCP_URL,
-  verifyMcpServer
+  MCP_URL
 } from './clients/common.js';
 
 import {
@@ -80,17 +79,37 @@ async function configureWithFallback(
   }
 }
 
-export async function configureAiClient():
-  Promise<void> {
-  try {
-    await verifyMcpServer();
-  } catch (error) {
-    void vscode.window.showErrorMessage(
-      'PeopleSoft Studio MCP is not running. ' +
-      `${(error as Error).message}`
-    );
+export async function configureAiClient(
+  controller: McpServerController
+): Promise<void> {
+  if (
+    controller.state.status !==
+    'running'
+  ) {
+    const selected =
+      await vscode.window.showWarningMessage(
+        'The PeopleSoft Studio MCP server is not running.',
+        'Start MCP Server',
+        'Cancel'
+      );
 
-    return;
+    if (
+      selected !==
+      'Start MCP Server'
+    ) {
+      return;
+    }
+
+    try {
+      await controller.start();
+    } catch (error) {
+      void vscode.window.showErrorMessage(
+        'Unable to start the PeopleSoft Studio MCP server: ' +
+        `${error instanceof Error ? error.message : String(error)}`
+      );
+
+      return;
+    }
   }
 
   const choices:

@@ -9,6 +9,19 @@ import {
   configureAiClient
 } from './configure.js';
 
+type McpMenuAction =
+  | 'status'
+  | 'configure'
+  | 'copy'
+  | 'start'
+  | 'stop'
+  | 'restart';
+
+interface McpMenuItem
+  extends vscode.QuickPickItem {
+  action: McpMenuAction;
+}
+
 export class McpStatus
   implements vscode.Disposable {
   private readonly item:
@@ -17,8 +30,8 @@ export class McpStatus
   private readonly subscriptions:
     vscode.Disposable[] = [];
 
-  constructor(
-    private readonly controller:
+constructor(
+    controller:
       McpServerController
   ) {
     this.item =
@@ -100,5 +113,187 @@ export class McpStatus
 
         break;
     }
+  }
+}
+
+export async function showMcpStatus(
+  controller: McpServerController
+): Promise<void> {
+  const state =
+    controller.state;
+
+  const lines = [
+    `Status: ${state.status}`,
+    `URL: ${state.url}`
+  ];
+
+  if (state.error) {
+    lines.push(
+      `Error: ${state.error}`
+    );
+  }
+
+  await vscode.window.showInformationMessage(
+    `PeopleSoft Studio MCP\n\n${lines.join('\n')}`,
+    {
+      modal:
+        true
+    }
+  );
+}
+
+async function runAction(
+  label: string,
+  action:
+    () => Promise<void>
+): Promise<void> {
+  try {
+    await action();
+
+    void vscode.window.showInformationMessage(
+      `PeopleSoft Studio MCP ${label}.`
+    );
+  } catch (error) {
+    void vscode.window.showErrorMessage(
+      `PeopleSoft Studio MCP ${label} failed: ` +
+      `${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+export async function showMcpMenu(
+  controller: McpServerController
+): Promise<void> {
+  const state =
+    controller.state;
+
+  const items:
+    McpMenuItem[] = [
+      {
+        label:
+          state.status === 'running'
+            ? '$(check) MCP Server Running'
+            : state.status === 'error'
+              ? '$(error) MCP Server Error'
+              : state.status === 'starting'
+                ? '$(sync~spin) MCP Server Starting'
+                : '$(circle-slash) MCP Server Stopped',
+        description:
+          state.status === 'error'
+            ? state.error
+            : state.url,
+        action:
+          'status'
+      },
+      {
+        label:
+          '$(sparkle) Configure AI Client',
+        description:
+          'Codex, Claude Code, or manual MCP configuration',
+        action:
+          'configure'
+      },
+      {
+        label:
+          '$(copy) Copy MCP URL',
+        description:
+          state.url,
+        action:
+          'copy'
+      }
+    ];
+
+  if (
+    state.status ===
+    'running'
+  ) {
+    items.push(
+      {
+        label:
+          '$(refresh) Restart MCP Server',
+        action:
+          'restart'
+      },
+      {
+        label:
+          '$(debug-stop) Stop MCP Server',
+        action:
+          'stop'
+      }
+    );
+  } else if (
+    state.status !==
+    'starting'
+  ) {
+    items.push({
+      label:
+        '$(play) Start MCP Server',
+      action:
+        'start'
+    });
+  }
+
+  const selected =
+    await vscode.window.showQuickPick(
+      items,
+      {
+        title:
+          'PeopleSoft Studio MCP',
+        placeHolder:
+          state.status === 'running'
+            ? `Running — ${state.url}`
+            : 'MCP server controls',
+        ignoreFocusOut:
+          true
+      }
+    );
+
+  if (!selected) {
+    return;
+  }
+
+  switch (selected.action) {
+    case 'status':
+      await showMcpStatus(
+        controller
+      );
+      return;
+
+    case 'configure':
+      await configureAiClient(
+        controller
+      );
+      return;
+
+    case 'copy':
+      await vscode.env.clipboard.writeText(
+        controller.state.url
+      );
+
+      void vscode.window.showInformationMessage(
+        'PeopleSoft Studio MCP URL copied.'
+      );
+      return;
+
+    case 'start':
+      await runAction(
+        'started',
+        () => controller.start()
+      );
+      return;
+
+    case 'stop':
+      await runAction(
+        'stopped',
+        () => controller.stop()
+      );
+      return;
+
+    case 'restart':
+      await runAction(
+        'restarted',
+        () => controller.restart()
+      );
+      return;
   }
 }

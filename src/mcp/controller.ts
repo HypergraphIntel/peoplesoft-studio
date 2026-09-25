@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 
 import {
   MCP_URL,
-  type RunningMcpServer,
+  type RunningPeopleSoftMcpServer,
   startPeopleSoftMcpServer
 } from './server.js';
 
@@ -25,7 +25,7 @@ export interface McpServerState {
 export class McpServerController
   implements vscode.Disposable {
   private server:
-    RunningMcpServer | undefined;
+    RunningPeopleSoftMcpServer | undefined;
 
   private currentState:
     McpServerState = {
