@@ -1,661 +1,51 @@
 # Corpus Calibration Progress
 
-## Fix #85: `Local %metadata:ClassName &var;` declaration type lookahead
-
-`src/peoplecode/encoder.ts`, `localDeclaration()`'s Application-Class-type
-detection: the lookahead regex that decides whether a `Local` declaration's
-type is a qualified Application Class path required the FIRST path
-segment to start with a letter/underscore
-(`/^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*.../`), so `Local %metadata:AppDataSet
-&recName;` -- using the reserved `%metadata` package root -- never
-matched and fell through to the plain `typeName()` path, which also
-can't start with `%`, throwing `expected a PeopleCode type name`.
-`applicationClassPath()` itself (the function this lookahead's `if`
-branch calls into) already accepts an optional leading `%` for exactly
-this reserved package (see its own comment, "`%metadata` is a reserved
-package root... always the FIRST path component"); only THIS entry-point
-lookahead was missing the same `%?` allowance. Widened the regex to
-`/^(%?[A-Za-z_][A-Za-z0-9_]*)\s*:\s*.../`.
-
-Searched the corpus for `expected a PeopleCode type name` (10
-occurrences, all `Local %metadata:...`). Sampled all 10 via the real
-harness: none reach `EXACT` -- every one of these files is a genuine
-Application-Class-style program (`import %metadata:*; ... class
-SomeClass method ...`) that, once past this specific crash, immediately
-hits the ALREADY-documented, deliberately-deferred "bare identifiers are
-only supported as calls" / multi-method Application Class program gap
-(confirmed via `--verbose` on 6 of the 10). This fix is still valid,
-narrow, evidence-backed progress on its own construct -- it just doesn't
-fully resolve these particular files because of a separate, already-known
-limitation. None regressed (confirmed: none of the 10 were EXACT before).
-
-Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
-`corpus:verify --limit 430` 430/430, 0 regressed. Full-corpus background
-run (run_id 347, 30209/30209, exact=22655) diffed against the immediately
-preceding full run (run_id 329, exact=22655): 0 improved, 0 regressed,
-30209 same (expected, per the deferred-gap reasoning above).
-
-## Fix #84: `Repeat` body comment handling and Until-trailing-semicolon omission
-
-`src/peoplecode/encoder.ts`, `repeatStatement()`'s body loop: this was by
-far the least-developed body loop in the file -- unlike If/While/For/
-Evaluate, it had NO standalone `/* */` comment handling, no REM handling,
-no blank-line-marker preservation, and no trailing-semicolon-omission
-allowance for the last statement before its own terminator (`Until`).
-Brought it up to parity with `whileStatement()`'s already-proven body
-loop shape (the closest structural analog: `Repeat ... Until <condition>;`
-mirrors `While <condition>; ... End-While;`), adding all four pieces in
-one pass since they're all instances of the exact same established
-per-body-loop pattern from earlier fixes this session (#63, #73, and the
-Evaluate/When-Other REM/comment work):
-
-- standalone `/*...*/` comment handling (`blockComment()` + blank-line
-  marker preservation)
-- REM handling (`remComment(true)`)
-- the final body statement may omit its own `;` when immediately
-  followed by `Until`, mirroring the already-proven While-body-before-
-  End-While allowance (Fix #73)
-
-Searched the corpus for `expected ; in Repeat body` (7 occurrences).
-Sampled all 7 via the REAL `corpus:harness --definition-id` command (not
-a scratch encode-only script, per Fix #83's reconfirmed lesson): 1
-reaches full `EXACT` (17199), the rest advance from `ENCODE_ERROR` to
-`UNKNOWN_MISMATCH`/`DECODE_SOURCE_MISMATCH` (fully encoding/decoding now,
-just not byte/text-identical due to other, separate, pre-existing issues
-elsewhere in those files). None regressed (confirmed: all 7 were
-`ENCODE_ERROR`, not `EXACT`, before this fix).
-
-Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
-`corpus:verify --limit 430` 430/430, 0 regressed. Full-corpus background
-run (run_id 329, 30209/30209, exact=22655) diffed against the immediately
-preceding full run (run_id 320, exact=22654): 1 improved, 0 regressed,
-30208 same.
-
-## Fix #83: `Else;` -- Else's own optional immediately-following semicolon (encoder + decoder)
-
-Two matching fixes, one on each side, for the same construct: `Else` may
-be immediately followed by its own bare `;` before its body starts on
-the next line (`Else;\n   Body`), not just `Else\n   Body`.
-
-**Encoder** (`src/peoplecode/encoder.ts`, `ifStatement()`'s Else
-handling): added `if (source[pos] === ';') { pos++; chunks.push(fixed(';'));
-}` right after pushing the `Else` opcode, mirroring the same
-optional-trailing-`;` pattern already proven for When-Other/top-level
-statements earlier this session. Binary evidence confirms the stored
-shape is a bare `19 15` (Else then `;`, opcode 0x19 then 0x15) with no
-other marker in between -- simpler than the `2D 15` pattern several
-other header constructs use.
-
-**Decoder** (`src/peoplecode/decoder.ts`, `render()`'s `F.NEWLINE_AFTER`
-handling): Else's format spec (`ELSE_STYLE`) always emits a newline
-after Else, which is correct when a body statement follows directly but
-wrong when Else's own `;` comes first -- without a fix, `Else;` decoded
-back to `Else\n;\n   Body` (three lines) instead of `Else;\n   Body` (two
-lines), a roundtrip mismatch that silently capped classification at
-`DECODE_SOURCE_MISMATCH` even for definitions whose ENCODE direction was
-already byte-exact. Added `elseFollowedByBareSemicolon = t.opcode ===
-0x19 && nextToken?.opcode === 0x15`, OR'd into the same suppression
-branch as the existing `whenOtherFollowedByBareSemicolon` (Fix #65) --
-identical reasoning, different opcode.
-
-This decoder gap explains why an initial spot-check using a scratch
-`encodeProgram()`-only comparison script showed ~24/40 candidates as
-"EXACT" while the REAL harness (which validates the full roundtrip, not
-just the encode direction) reported 0 improved after the encoder-only
-fix landed -- a direct repeat of the session's own documented "encoder
-vs decoder" validation lesson: binary exactness alone is not full EXACT
-without a matching decode-rendering fix. Caught by running the real
-`corpus:harness -- --definition-id` command against a handful of
-candidates individually before trusting the encoder-only full-corpus
-diff's "0 improved, 0 regressed" result, which prompted tracing the
-decoder gap and fixing it in the same pass rather than committing a
-half-finished construct.
-
-Searched the corpus for failing definitions containing `Else;` (246
-occurrences after excluding the many where it's just incidentally present
-in an otherwise-unrelated-failure file). Sampled 40: with BOTH fixes
-applied, spot-checking via the real harness on 9 of them showed 6 reach
-full `EXACT`; the full-corpus run confirms the true scale.
-
-Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
-`corpus:verify --limit 430` 430/430, 0 regressed. Both changes touch
-broadly-shared code (`ifStatement()`'s Else handling in the encoder;
-`render()`'s NEWLINE_AFTER logic, used by every keyword with that format
-flag, in the decoder), so a full-corpus diff was essential: background
-run (run_id 320, 30209/30209, exact=22654) diffed against the immediately
-preceding full run (run_id 309, exact=22546): **108 improved**, 0
-regressed, 30101 same -- the largest single-fix gain this session,
-larger than Fix #80's 8.
-
-## Fix #82: parenthesized arithmetic continuation inside `booleanUnary()`
-
-`src/peoplecode/encoder.ts`, `booleanUnary()`'s own leading-`(` special
-case: when `booleanUnary()` sees a `(`, it unconditionally parses the
-content as a `booleanExpression()` (correctly handling nested boolean
-groups without relying on fragile shape-matching heuristics) and, after
-closing the paren, previously ONLY checked for a trailing COMPARISON
-operator. It never considered that the parenthesized group might have
-held PURE ARITHMETIC that is itself just the first primary of a LARGER
-arithmetic expression, not the complete boolean operand.
-
-Root cause traced precisely for `If ((BAS_PARTIC_PLAN.FLAT_DED_AMT /
-&MAX_AMT) * 100) > DERIVED_BAS.EMPL_PCT_BTAX Then` (definition 1656): the
-INNER paren `(BAS_PARTIC_PLAN.FLAT_DED_AMT / &MAX_AMT)` is parsed and
-closed correctly by a nested `booleanUnary()` call, but the trailing `*
-100` right after it was never consumed (not a comparison operator, so the
-old code's post-paren check found nothing and returned early) -- which
-left the OUTER paren's own closing `)` unreachable, since `* 100)` was
-still sitting there unconsumed. This is a `fail('expected )')` at the `*`
-itself, not at the true outer boundary.
-
-Fixed by inserting the SAME flat left-to-right arithmetic continuation
-loop `expression()` itself uses (`/^[+\-*/|]/`, consuming an operator then
-`castPrimary()`, repeating) between the paren close and the existing
-comparison-operator check. This lets a nested `booleanUnary()` call fully
-absorb `(A / B) * 100` as one arithmetic unit before returning control to
-its own caller, so the true outer paren closes where expected, and the
-subsequent `> C` comparison is then found and parsed normally by the
-existing (unchanged) logic right after.
-
-Searched the corpus for this same shape (5 occurrences: 1656, 1658, 4532,
-5216, 17437 -- carried over from Fix #81's explicit deferral). Sampled
-all 5: 4 reach full `EXACT`, 1 (5216) advances past this construct into a
-separate, later, unrelated `unsupported PeopleCode statement` gap in the
-same file. None regressed (confirmed: none of the 5 were EXACT before).
-
-Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
-`corpus:verify --limit 430` 430/430, 0 regressed. `booleanUnary()` is one
-of the most broadly-used shared parsing primitives in the encoder
-(reached from every `If`/`While`/`Evaluate` condition and boolean
-sub-expression), so a full-corpus diff was essential: background run
-(run_id 307, 30209/30209, exact=22546) diffed against the immediately
-preceding full run (run_id 305, exact=22539): 7 improved, 0 regressed,
-30202 same.
-
-## Fix #81: three more parenthesized-RHS boolean-dispatch heuristics
-
-`src/peoplecode/encoder.ts`, the shared `(` dispatch heuristic (used
-wherever a parenthesized value could be either an arithmetic
-`expression()` or a `booleanExpression()`, e.g. `&var = (...)` or `FIELD
-= (...)`): extended the existing `startsBooleanUnary`/
-`startsVariableComparison`/`startsCallOrFieldComparison` checks with
-three more evidenced patterns, all previously falling through to
-`expression()` and failing with `expected )` once the parser hit a
-comparison/boolean-keyword token it didn't expect inside plain
-arithmetic:
-
-1. `startsVariableComparison` widened to allow an optional call/index
-   `(...)` between the leading `&variable` and its `.field.field` chain
-   (a Rowset-style access), not just a bare `&variable`:
-   `(&rs2(&j).PA_CLC_PLN_INPT.USE_PROCESS_SECT.Value = "Y")`.
-2. New `startsSystemVariableComparison`: a parenthesized comparison whose
-   left side is a `%SystemVariable` rather than `&variable`/bare
-   identifier: `(%Mode <> %Action_Add)`.
-3. New `startsVariableBooleanChain`: a parenthesized And/Or chain whose
-   FIRST operand is a bare truthy `&variable`/field-chain reference with
-   NO comparison operator at all (the same shape a plain `If &var And
-   ...` statement condition already accepts, just now also recognized
-   inside an assignment's parenthesized RHS): `(&A And &B And ...)`,
-   `(&IncludeHiddenCrefs Or &CRef.IsVisible)`.
-
-Searched the corpus for the exact `expected )` `ENCODE_ERROR` (26
-occurrences) and manually classified each by its actual construct.
-Sampled all 26: 9 reach full `EXACT` (1275, 11810, 11892, 19037, 19038,
-19039, 19201, 21576, 21579), several more advance into a different,
-separate, later construct in the same file (confirmed non-regressed:
-none of the 26 sampled were EXACT before this fix). Explicitly did NOT
-attempt two other sub-patterns found in the same `expected )` error
-during this investigation, left deferred/undocumented-as-fixed:
-- A structurally different, deeper issue where a parenthesized PURE
-  ARITHMETIC sub-expression is followed by a comparison operator AFTER
-  its own closing paren, e.g. `If ((A / B) * 100) > C Then` (5
-  occurrences: 1656, 1658, 4532, 5216, 17437) -- this isn't a `(`
-  dispatch-heuristic gap (arithmetic-only content correctly routes to
-  `expression()`), it's about whatever calls `primary()`/`expression()`
-  for the outer paren not then trying a trailing comparison operator
-  afterward. Needs its own investigation into the `If`/comparison
-  condition parser, not a heuristic tweak.
-- Comments inside a call's own argument list breaking argument parsing
-  (3 occurrences: 5004, 25124, 27517) and `Not ((Record.Field
-  chain)).Property`-style parenthesized-then-postfix-accessed field
-  references (21960) -- both unrelated to the boolean-vs-arithmetic
-  dispatch this fix targeted.
-
-Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
-`corpus:verify --limit 430` 430/430, 0 regressed. This touches one of the
-most broadly-shared dispatch points in the encoder, so a full-corpus diff
-was essential: background run (run_id 305, 30209/30209, exact=22539)
-diffed against the immediately preceding full run (run_id 303,
-exact=22531): 8 improved, 0 regressed, 30201 same.
-
-## Fix #80: `&variable` names may start with digits and continue with letters
-
-`src/peoplecode/encoder.ts`, the shared `variable()` primitive (used
-throughout the encoder for every `&name` occurrence): the name-matching
-regex was a two-branch alternation, `[A-Za-z_][A-Za-z0-9_]*` (letter/
-underscore-led) OR `\d+` (purely numeric) -- neither branch matches a
-name that starts with digits and then continues with letters, e.g.
-`&80EE_pin_num`. Against that source, the old regex's `\d+` branch could
-only consume the leading `&80`, leaving `EE_pin_num` to break whatever
-construct came next (usually the enclosing declaration's own comma/`;`
-check a few bytes later).
-
-Fixed by replacing the whole alternation with `[A-Za-z0-9_]+`, which is a
-strict superset of both previous branches (every previously-matched name
-still matches identically) and additively covers the mixed digit-prefix
-case. This is one shared function, not per-call-site duplicated regexes
-(unlike some earlier fixes this session), so the change was a single,
-minimal, evidence-backed generalization -- no other call site needed
-touching.
-
-Target: WEBLIB_HSE.ISCRIPT1.FieldFormula (definition 21765): `Local
-number &80EE_pin_num, &HSEPRP_pin_num, ...;` -- confirmed full EXACT.
-
-Searched the corpus for `&[0-9]+[A-Za-z_][A-Za-z0-9_]*` (a `&`-led name
-starting with digits, continuing with a letter): 27 occurrences. Sampled
-all 27: 9 reach full `EXACT` (4243, 7545, 9090, 20483, 20495, 21765,
-21790, 27531, 28061), the rest advance past this construct into other,
-separate, pre-existing issues elsewhere in the same files (confirmed:
-none of the 27 sampled were EXACT before this fix, so none could have
-regressed).
-
-Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
-`corpus:verify --limit 430` 430/430, 0 regressed. This touches one of the
-most broadly-shared primitives in the encoder (every `&variable`
-reference goes through it), so a full-corpus diff was essential, not
-optional: background run (run_id 303, 30209/30209, exact=22531) diffed
-against the immediately preceding full run (run_id 301, exact=22523): 8
-improved, 0 regressed, 30201 same -- the largest single-fix gain since
-Fix #69 (the decimal-literal scale byte fix).
-
-## Fix #79: nested `array of array of ... of X` Function parameter/return types
-
-`src/peoplecode/encoder.ts`, two fixes to the same underlying gap:
-
-1. `parseFunctionMetadata()`'s parameter and return-type extraction
-   regexes only allowed ONE optional `array of ` prefix
-   (`(?:array\s+of\s+)?`), so any 2+-level nested array type (`array of
-   array of string`, etc.) failed the regex match entirely and fell
-   through to `throw new Error('Unsupported Function parameter: ...')`.
-   Changed both `(?:array\s+of\s+)?` to `(?:array\s+of\s+)*` (repeatable,
-   not just optional).
-2. `functionTypeId()` itself had a deeper bug once parsing succeeded: its
-   `array of X` handling recursively OR'd the SAME `0x100000` flag bit at
-   every nesting level, which saturates instead of accumulating (`0x100000
-   | 0x100000 == 0x100000`, silently losing all information about depth
-   beyond 1). Rewrote it to count total nesting depth first (including a
-   bare trailing `array` as one more level over an implicit `any` element
-   type, matching Fix #78), then compute `(depth * 0x100000) |
-   functionTypeId(baseType)` -- confirmed by binary evidence this is
-   genuinely multiplicative, not a saturating flag.
-
-Binary evidence for the multiplicative encoding: `Function
-savewideqryvalues(..., &arr As array of array of string) ...` (definition
-14899) stores its 2-level-nested parameter as `c0200001` -- `0x200000`
-(TWO multiples of `0x100000`) OR'd with `0x000001` (`string`). `Function
-parse_objclass(..., &array_structobj As array of array of array of
-string, ...)` (definition 15115) stores its 3-level-nested parameter as
-`c0300001` -- `0x300000` (three multiples), conclusively ruling out a
-saturating-OR interpretation in favor of `depth * 0x100000`.
-
-Searched the corpus for `Unsupported Function parameter` (17 occurrences).
-Sampled all 17: 15 advance past the crash into full encoding (or a
-different, separate, later construct in the same file); 2 remain blocked
-on genuinely DIFFERENT, unrelated sub-issues within the same broad error
-message, left unfixed and NOT investigated further this pass (documented
-below, not guessed at): definition 14727 hits `Unsupported Function
-parameter: ` (empty -- likely a malformed/trailing-comma parameter
-elsewhere in the same multi-Function file, not yet located); definition
-14854 hits a parameter with a trailing block comment inside the parameter
-list itself (`&operation As boolean /*True is for addition...*/)`) which
-the parameter-splitting regex doesn't account for. Neither regressed
-(confirmed: none of the 17 sampled were EXACT before this fix).
-
-Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
-`corpus:verify --limit 430` 430/430, 0 regressed. Full-corpus background
-run (run_id 301, 30209/30209, exact=22523) diffed against the immediately
-preceding full run (run_id 299, exact=22522): 1 improved, 0 regressed,
-30208 same.
-
-## Fix #78: bare `array` (no `of ElementType`) is a valid, untyped array declaration
-
-`src/peoplecode/encoder.ts`: a bare `array` type -- with NO trailing `of
-ElementType` clause at all -- is itself a valid, complete PeopleCode
-declaration (an untyped array), at any nesting level (`array`, `array of
-array`, etc.), in every context a type name can appear: `Local`,
-`Component`, `Global`, and `Function` parameter/return metadata. Several
-independent call sites previously required `of` unconditionally and threw
-otherwise:
-
-- `arrayElementTypes()` (the shared helper used by Component/Global/
-  nested-array declarations): changed `if (!word('of')) fail(...)` to
-  `if (!word('of')) return elementType;`, returning `undefined` (no
-  element type) instead of throwing. This single change covers every
-  nesting level uniformly, since the check is inside the function's own
-  loop.
-- `localDeclaration()`'s own separate, duplicated `of`-enforcement for the
-  OUTERMOST array level (`Local array ...`) had its own `fail('expected
-  "of" after array in Local declaration')` call; wrapped the existing
-  `of`-handling body in `if (ofMatch) { ... }` instead, skipping it
-  entirely (no element-type-specific `ensureLocalObjectPackageReference`
-  calls needed) when `of` is absent.
-- `functionTypeId()` (Function parameter/return type metadata, a totally
-  separate compact-numeric-id encoding from the executable body's token
-  stream): bare `array` previously fell through to the primitive-type
-  lookup and threw `Unsupported function metadata type: array`. Added a
-  check for bare `array` that encodes it identically to `array of any`
-  (`0x100000 | functionTypeId('any')`), confirmed by binary evidence (see
-  below).
-
-Binary evidence:
-- PSMCF_UQSVC_MSGS.MCFUQPUBLISH.RowInit (definition 16150):
-  `Component array &QueueIDArrayAdd;` stores only `54 40 "array" 01
-  "&QueueIDArrayAdd" ... 15` -- no `of` keyword byte, nothing after the
-  type name at all.
-- A `Component array of array &Var;` nested-bare-array case (definition
-  19016 and siblings) confirms the SAME allowance applies at the inner
-  nesting level too (the second `array` also has no trailing `of`).
-- WEBLIB_MCF_QU.MCF_UQ_TASK_UT.FieldFormula (definition 6350): `Local
-  array &NODE_ARRAY, ...;` stores only `44 40 "array" 01 "&NODE_ARRAY"
-  ...` -- confirms the same for `Local`.
-- `Function Get_ACM_Ern(&Acm_Pin As number, &Ern_array As array)`
-  (definition 8229): the parameter signature tail stores `number` as
-  `c0000013`, then bare `array` as `c0100004` -- `0x100000` (the "array
-  of" flag) OR'd with `0x000004` (`any`'s own primitive id), confirming
-  bare `array` in Function metadata specifically means "array of any".
-
-Searched the corpus for every related error message this touches:
-"expected \"of\" after array type" (`arrayElementTypes()`, 10
-occurrences), "expected \"of\" after array in Local declaration" (11
-occurrences), "Unsupported function metadata type: array" (5
-occurrences) -- 26 total. Sampled 20 broadly: 6 reach full `EXACT`
-(8229, 16150, 16151, 10536, 20173, 27398), the rest advance past this
-construct into other, separate, pre-existing issues elsewhere in the
-same files (confirmed via `corpus-results.sqlite` run_id 297: none of
-the 20 sampled were EXACT before, so none could have regressed).
-
-Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
-`corpus:verify --limit 430` 430/430, 0 regressed. Full-corpus background
-run (run_id 299, 30209/30209, exact=22522) diffed against the immediately
-preceding full run (run_id 297, exact=22516): 6 improved, 0 regressed,
-30203 same.
-
-## Fix #77: SQL and Grid Function parameter/return type ids
-
-`src/peoplecode/encoder.ts`, `BUILTIN_FUNCTION_TYPE_IDS`: added `sql` ->
-`0x80002` and `grid` -> `0x80014`. Both were previously entirely missing
-from this table, so any `Function` declaration using `SQL` or `Grid` as a
-parameter or return type threw `Unsupported function metadata type: SQL`/
-`Grid` unconditionally.
-
-Found by binary evidence, not guessing: for definition 4861's `Function
-PopulateAcmArray(&PRD_END_DT As date, &RUN_TYPE As string, &AcmMbrSQL As
-SQL, &AcmMbrArray As array of Record);`, the parameter signature tail in
-the stored PSPCMPROG reads `c0000002 c0000001 c0080002 c0180003 00000007`
--- date (`0x02`), string (`0x01`), SQL, `array of Record` (`0x100000 |
-0x80003`), terminator. SQL's descriptor is therefore `0xc0080002`, i.e.
-type id `0x80002` -- exactly the gap between the already-calibrated `file`
-(`0x80001`) and `record` (`0x80003`) in the same enumeration. Similarly,
-for definition 14962's `Function SetCompoundColumnVisibility(&rs As
-Rowset, &GRID As Grid)`, the tail reads `c0080007 c0080014 00000007` --
-Rowset (`0x80007`), Grid, terminator -- so Grid's type id is `0x80014`.
-
-Searched the corpus for each exact error (`SQL`: 7 occurrences, `Grid`: 5
-occurrences). Sampled all 12: all advance from an unconditional crash to a
-full, non-throwing encode (no longer `ENCODE_ERROR`/`UNSUPPORTED_SYNTAX`
-on this construct); none reach full `EXACT` corpus-wide since these are
-large real-world definitions with other separate, pre-existing issues
-elsewhere in the same files, but none regressed since none were EXACT
-before (confirmed: 0 improved, 0 regressed corpus-wide, matching the
-"encode no longer crashes but the file has other unrelated problems"
-pattern seen repeatedly this session, e.g. Fix #75's definition 5000).
-
-Deferred, NOT fixed this pass (evidence-gathering was more involved and
-inconclusive so far): `time` (3 occurrences) and bare `array` with no
-element type, i.e. `Returns array of array of string`-style nesting or a
-truly bare `array` (5 occurrences). Attempted the same binary-evidence
-method on definition 1016's `Function SetTime(&seconds) Returns time;`,
-but that file interleaves multiple `Function ... End-Function;` blocks
-with ordinary executable code rather than being a dedicated all-Function
-metadata file like the calibrated 9-function ABS_HIST_UK_SBR fixture --
-each Function's name text is scattered at large, non-contiguous file
-offsets (579, 3580, 9599, ..., 17070), meaning `encodeFunctionMetadata`'s
-single-shared-directory-at-file-start layout does NOT apply here, or
-applies differently, and the header/directory offsets read as garbage
-when parsed with that layout's assumptions. This needs proper
-understanding of how Function metadata is laid out when Functions are
-interleaved with executable code (vs. the dedicated-file case already
-calibrated) before further guessing -- left as a locally blocked/deferred
-item, not guessed at.
-
-Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
-`corpus:verify --limit 430` 430/430, 0 regressed. Full-corpus background
-run (run_id 297, 30209/30209, exact=22516) diffed against the immediately
-preceding full run (run_id 295, exact=22516): 0 improved, 0 regressed,
-30209 same (expected -- see above, this fix moves crashes to
-non-crashing mismatches, not to EXACT).
-
-## Fix #76: `Continue` opcode -- emit 0x6E directly instead of `fixed('Continue')`
-
-`src/peoplecode/encoder.ts`, the top-level statement dispatcher's
-`Continue` branch: `fixed('Continue')` always threw `No unambiguous opcode
-for Continue` because `'Continue'` has ZERO entries in the general
-`OPCODES` table in `format.ts` -- not two competing entries (the literal
-error text), but none at all. `format.ts`'s own comments explain why:
-`0x6E` was deliberately left OUT of the general table during decoder
-calibration, because on a corpus-wide unfiltered scan it collides with
-660 unrelated byte occurrences (only 9 real `Continue` statements). The
-decoder instead recognizes it only when contextually gated (`opcode ===
-0x6e && bytes[i] === 0x15`, i.e. immediately followed by `;`). The
-encoder has no such table entry to fall back on at all, so every
-`Continue;` statement in the corpus failed to encode, unconditionally.
-
-The encoder doesn't have the decoder's ambiguity problem: it already knows
-from parsing the source text that the keyword is literally `Continue`
-here, so there is nothing to disambiguate. Fixed by emitting `0x6E`
-directly (`chunks.push(Buffer.from([0x6e]))`) instead of going through
-`fixed()`/`OPCODES` at all, mirroring the decoder's own contextual
-confidence (Continue is a bare, argument-free keyword statement, always
-immediately followed by `;` by grammar, exactly like `Break`).
-
-Searched the corpus for the exact `No unambiguous opcode for Continue`
-`ENCODE_ERROR` (42 occurrences). Sampled 20: 1 confirmed full EXACT
-(17859), the rest all advance past the Continue-opcode crash into other,
-separate, pre-existing issues elsewhere in the same (often large) files --
-none regressed, since by definition none were EXACT before (all 42 were
-failing on this exact error).
-
-Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
-`corpus:verify --limit 430` 430/430, 0 regressed. Full-corpus background
-run (run_id 295, 30209/30209, exact=22516) diffed against the immediately
-preceding full run (run_id 292, exact=22511): 5 improved, 0 regressed,
-30204 same.
-
-## Status as of Fix #85 (current)
-
-- **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
-  throughout. `--live` has never been used this session.
-- **Protected baseline**: 430/430, clean.
-- **Last successful calibration**: Fix #85 (above).
-- **Corpus total**: full-corpus run_id 347 = 22655/30209 exact (75.0%),
-  confirmed zero-regression against run_id 329 (Fix #84's baseline,
-  itself confirmed zero-regression against run_id 320/309/307/305/303/301/299/297/295/292/290/288).
-- **CRITICAL VALIDATION REMINDER** (from Fix #83, still in force): a
-  scratch script that only calls `encodeProgram()` and compares to stored
-  bytes is NOT sufficient to judge whether a fix achieved full `EXACT` --
-  always cross-check a handful of candidates against the REAL `npm run
-  corpus:harness -- --definition-id <ID>` command (or a full corpus run)
-  before concluding a fix "didn't help" or celebrating a sample's
-  encode-only match rate.
-- **Next action**: resume failure-family triage from the current failure
-  inventory (`GROUP BY classification, error_message` on run_id 347 in
-  `tools/corpus/corpus-results.sqlite`, excluding `%bare identifiers%` and
-  `%Application Class%` which are the known-deferred gap). Nothing large
-  is pre-scoped as of this update -- re-run the failure-family query fresh
-  first. Small, still-open leftovers from earlier fixes (low priority,
-  1-3 occurrences each): comments inside a call's own argument list
-  (5004, 25124, 27517); `Not ((Record.Field chain)).Property`-style
-  parenthesized-then-postfix field access (21960); definition 5216's own
-  separate `unsupported PeopleCode statement` gap found further into the
-  file after Fix #82 got it past the arithmetic-continuation construct
-  (not yet inspected); the `time` Function parameter/return type id
-  (Fix #77's entry, definition 1016); definition 14727/14854's remaining
-  `Unsupported Function parameter` sub-cases (Fix #79's entry); definition
-  13562's `Unsupported function metadata type: Message` (Fix #80's
-  entry, not yet investigated for corroborating occurrences); the
-  definitions from Fix #83's and Fix #84's own samples that reached
-  `UNKNOWN_MISMATCH`/`DECODE_SOURCE_MISMATCH` instead of `EXACT` (437,
-  805, 850, 4827, 5624, 5626, 14357, 22087, 22107) -- separate, unrelated
-  issues in those files, not yet inspected.
-- **Locally blocked / deferred, evidence exhausted** (unchanged unless
-  noted): the `#If #ToolsRel` preprocessor-directive family (73
-  occurrences, environmental per-definition dependency); the general
-  multi-method Application Class program feature gap (confirmed still the
-  largest failure family this session, hundreds of occurrences,
-  `parseApplicationClassProgram()` only handles the narrow single-method
-  inline shape); the decoder-only rendering gap for `Return <number> /*
-  comment */;` noted under Fix #72; the Function-metadata-layout-for-
-  interleaved-Functions question noted above under Fix #77 (`time`/bare
-  `array` type ids).
-
-## Status as of Fix #75 (superseded by Fix #76 above, kept for history)
-
-- **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
-  throughout. `--live` has never been used this session.
-- **Protected baseline**: 430/430, clean.
-- **Last successful calibration**: Fix #75 (below).
-- **Corpus total**: full-corpus run_id 292 = 22511/30209 exact (74.5%),
-  confirmed zero-regression against run_id 290 (which was itself confirmed
-  zero-regression against run_id 288/Fix #73's baseline). Every full-corpus
-  run this session has been diffed against its immediate predecessor before
-  being trusted; none have shown a regression.
-- **Next action**: resume failure-family triage from the current failure
-  inventory (`GROUP BY classification, construct` on run_id 292 in
-  `tools/corpus/corpus-results.sqlite`). Concrete next candidate already
-  scoped but not yet fixed: an inline block comment between an ordinary
-  (non-When-Other) assignment/expression statement's value and its own
-  terminating `;` INSIDE nested body constructs (If/For/While/Evaluate
-  bodies), e.g. `&x.Field = True /*comment*/;` -- confirmed present via
-  definition 5000 (GPFR_AF_RUNCTL.DERIVED_GPFR_AF.FieldChange) at the NEXT
-  diff point after Fix #75's target in the same file (source offset ~8731,
-  further into a nested If-body inside the same When-Other clause). Check
-  whether If/For/While/ordinary-When bodies' own comment-before-`;` handling
-  already covers this (If body currently uses unconditional
-  `inlineBlockComment()`, not placement-aware `blockCommentByPlacement()` --
-  may itself need auditing) before assuming it's already covered. Also still
-  on the "seen but not individually inspected" list from earlier in the
-  session: the `<> %Action_Add);` (4), `.IsInBuf Then` (3), and `;\nElse\n
-  AddOnL` (3) `ENCODE_ERROR` construct groups.
-- **Locally blocked / deferred, evidence exhausted** (unchanged from
-  earlier checkpoint, see the superseded checkpoint section below for full
-  evidence trails): the `#If #ToolsRel` preprocessor-directive family (73
-  occurrences, environmental per-definition dependency); the general
-  multi-method Application Class program feature gap (263+ occurrences);
-  the decoder-only rendering gap for `Return <number> /* comment */;` noted
-  under Fix #72.
-
-## Fix #75: When-Other body block comment before its own terminating `;`
-
-`src/peoplecode/encoder.ts`, `evaluateStatement()`'s `When-Other` body loop:
-a block comment may appear between a When-Other body statement's own
-expression and its own terminating `;` (`value /* comment */;`), the same
-way top-level statements and If/For/While bodies already allow. The
-When-Other body loop had no such handling at all, so it would fall through
-to Fix #74's now-generalized "last statement may omit `;`" check, see
-`/* comment */` there instead of `End-Evaluate`, and fail outright.
-
-Fixed by inserting a `while (source.startsWith('/*', pos)) { chunks.push
-(blockCommentByPlacement()); space(); }` loop right after `statement();
-space();` and before the `;`/`End-Evaluate` check, mirroring the identical
-loop already added to the top-level statement loop.
-
-Target: definition 5000 (GPFR_AF_RUNCTL.DERIVED_GPFR_AF.FieldChange):
-```
-When-Other
-   &Evtsel(&i).DERIVED_GPFR_AF.GPFR_AF_EXTRACT_ID.Enabled = True /*False*/;
-```
-Advanced from `ENCODE_ERROR` ("expected ; in When-Other body") all the way
-through to a full encode (no crash) -- still `UNKNOWN_MISMATCH`/not EXACT
-overall because this is a large, deeply-nested definition with other,
-unrelated pre-existing issues elsewhere in the same file, but this
-specific construct is now handled correctly and no longer blocks encoding
-past it. Corpus search for this exact "value /* comment */;" shape inside
-a When-Other body found no other combined-benefit candidates beyond 5000
-itself in the affected file scope; the other three When-Other candidates
-from Fix #74's set (10488, 12623, 12626) don't contain this shape.
-
-Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
-`corpus:verify --limit 430` 430/430, 0 regressed. Full-corpus background
-run (run_id 292, 30209/30209) diffed against the immediately preceding
-full run (run_id 290, which already included Fix #74): 0 improved, 0
-regressed, 30209 same -- confirms zero regressions from this fix
-corpus-wide (the "improved: 0" is expected/correct: this fix moves 5000
-from crash to a non-crashing mismatch, not to EXACT, since the file has
-other unrelated issues past this point).
-
-## Fix #74: When-header inline trailing comment ordering before the 0x2D boundary
-
-`src/peoplecode/encoder.ts`, `evaluateStatement()`'s `When` clause header
-parsing (right after the selector `expression()`/`parenthesized()` call,
-before the existing `chunks.push(Buffer.from([0x2d]))`): an inline trailing
-comment on the SAME source line as the When header's selector value must be
-emitted BEFORE the structural `0x2D` boundary byte, not after it -- the
-same inline-vs-standalone ordering already proven for And/Or-group leading
-comments (Fix #70). The header parsing previously ignored any such comment
-entirely, leaving `pos` pointing at it; the comment would then get picked
-up later by the When-body loop's own (correct, placement-aware) comment
-handling, but emitted as a STANDALONE comment (`0x2D` then `0x24`) instead
-of the real stored INLINE shape (`0x4E` before the `0x2D`).
-
-Fixed by adding a narrow peek (`/^[ \t]*\/\*/.test(source.slice(pos))`,
-same-line whitespace only, no newlines) right after the selector
-expression: only when a `/*` genuinely follows on the same line does this
-call `space()` (to skip up to it) and, if it's confirmed inline
-(`!blockCommentStartsOwnLine()`), consume it via `inlineBlockComment()`
-and push it before the `0x2D` byte. This is deliberately gated so it never
-touches `pos` when no comment is present, avoiding any change to the
-existing `source[pos] === ';'` header-semicolon check for the ordinary
-no-comment case.
-
-Target: definition 27819 (HR_ILL_NLD_AET.ABSENCE_TYPE.RowInit):
-```
-When "SKN" /*Sickness - SKN */
-   &reason_sick = "1";
-```
-confirmed full EXACT (was `ENCODE_ERROR` before -- actually this specific
-definition's failure was further down in a different When-Other body,
-fixed incidentally by encoding the comment correctly here first). Searched
-the corpus for `When(-Other)? ... /* ... */\n` (inline comment on a
-When/When-Other header line): 289 matches. Sampled 30 broadly: several
-newly reach full `source-encode-exact` (their overall classification stays
-non-EXACT because they have separate, pre-existing decoder-only rendering
-issues unrelated to this fix -- confirmed via `run_id 288` classifications,
-all were `DECODE_SOURCE_MISMATCH`/`UNSUPPORTED_SYNTAX` before, none were
-EXACT, so nothing regressed), the rest still fail at unrelated
-later constructs in the same files (also all pre-existing, confirmed
-non-EXACT before this fix).
-
-Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
-`corpus:verify --limit 430` 430/430, 0 regressed. Full-corpus background
-run (run_id 290, 30209/30209, exact=22511) diffed against the immediately
-preceding full run (run_id 288, exact=22509, itself already confirmed
-zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
-
-## Checkpoint (session pause requested by user) [SUPERSEDED -- resumed and continued past this point; kept for history]
 ## Checkpoint
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #91 (below), validated locally on top
-  of current HEAD `be8a8e4`. Fixes #90-#91 and this progress ledger are currently
-  uncommitted. (Prior checkpoint's HEAD `45fccb5` is now behind:
-  unrelated MCP-client work landed several commits, through `e9ccca2`,
-  between sessions; full typecheck and `npm test` are clean at `e9ccca2`,
-  so the previously-recorded typecheck blocker no longer applies -- see
-  updated validation note below.)
-- **Corpus total** (full-corpus run_id 1576): 22777/30209 exact (75.4%).
+- **Last successful calibration**: Fix #90 (below), validated locally.
+  Fix #90's own code landed in commit `b17f9c7` ("More encoder / decoder
+  fixes" -- committed directly by the user's own editor tooling mid-
+  session, capturing this fix's already-verified working-tree diff
+  verbatim; content confirmed identical via `git show`). This progress
+  ledger update is a separate, currently-uncommitted commit on top.
+  **Mid-session git incident (2026-09-25, /goal resume session)**: a
+  `git pull --rebase` replayed Fix #85-#89 onto an updated `origin/main`
+  that has its OWN separate, parallel corpus-calibration work -- a
+  DIFFERENT session/agent using the SAME "Fix #N" numbering scheme,
+  currently at least through their own Fix #91 (multi-level `array of
+  array` support, bare/untyped `array` parameters, a `While`-EOF-omission
+  fix, and others -- unrelated to anything in this ledger's own Fix #85
+  onward). The rebase itself completed cleanly, but a subsequent stash pop
+  left `src/peoplecode/encoder.ts` with unresolved conflict markers AND
+  silent duplicate-declaration corruption, committed as-is (`c73cc3e`).
+  Fixed in commit `3b2597c` (see its own commit message for the full
+  three-marker-conflict-plus-four-silent-duplication trail; verified via
+  `tsc`, `npm test`, `corpus:verify --limit 430`, and a full corpus diff
+  against this session's own last-known-good run 1545: 129 newly exact, 0
+  regressed, confirming both bodies of work combined correctly). THIS
+  PROGRESS FILE was ALSO clobbered by the same incident -- overwritten
+  with an interleaved merge of this ledger's own content and origin's
+  separate, same-numbered "Fix #85" through "Fix #91" write-ups -- and has
+  been restored from this session's own last true pre-incident commit
+  (`be8a8e4`, the parent of the `pull --rebase (start)` reflog entry) via
+  `git checkout be8a8e4 -- .claude/corpus-progress.md`. Origin's own
+  separate progress notes are NOT reproduced here (their code is already
+  safely merged into `encoder.ts` and corpus-verified); if ever needed,
+  they remain recoverable from git history at commit `c73cc3e` or later.
+  Going forward this session, prefer `git commit` without `git pull
+  --rebase` mid-session to avoid a repeat -- if a pull is genuinely
+  needed, checkpoint `.claude/corpus-progress.md` to a scratch copy
+  first.
+- **Corpus total** (full-corpus run_id 1587, this session's own diff
+  against 1578; a fresh full run has not been retaken since Fix #90
+  landed): 22913/30209 exact (75.8%), PLUS Fix #90's own +14 (verified
+  before this incident, not yet re-confirmed with a fresh full run after
+  the restore -- do that before trusting this number for the NEXT fix's
+  own before/after diff).
   Fix #73 was first rechecked against the already-equivalent full run 1326
   (run 1327: all 30209 materially unchanged). Subsequent full diffs were:
   Fix #74 run 1327 -> 1338 (2 exact, 4 advanced, 0 regressed); Fix #75 run
@@ -678,9 +68,7 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   regressed -- resolves the `controlDepth` discriminator behind
   definitions 889/1749's own contradictions, documented in "Identified,
   not yet fixed" below; 1749 itself progressed but is not yet fully EXACT,
-  see its own updated note); Fix #90 run 1545 -> 1573 (6 exact, 21 advanced,
-  0 regressed); Fix #91 run 1573 -> 1576 (1 exact, 0 regressed). The
-  protected gate remains 430/430.
+  see its own updated note). The protected gate remains 430/430.
 - **Locally blocked / deferred, evidence exhausted this session** (see
   their own entries further down for full evidence trails): the `#If
   #ToolsRel` preprocessor-directive family (73 combined occurrences,
@@ -700,15 +88,15 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   longer deferred. Definition 1749 progressed under Fix #89 but has a
   SECOND, deeper issue of its own -- still deferred, see its own updated
   note under "Identified, not yet fixed".)
-- **Validation caveat**: after Fix #90, on top of current HEAD `be8a8e4`,
-  both `npx tsc -p . --noEmit` (whole project) and `npm test` (whole
-  project: 478 tests, 477 pass, 1 pre-existing skip) are clean.
+- **Validation caveat**: after Fix #89, on top of Fix #88's commit
+  `81afbce`, both `npx tsc -p . --noEmit` (whole project) and `npm test`
+  (whole project: 477 tests, 476 pass, 1 pre-existing skip) are clean.
   Every post-fix protected gate is 430/430. A separate, unevidenced
   FetchValue change was tried and reverted after Fix #89 landed (see
   definition 1305's note); the working tree is clean of that attempt
   (`git checkout -- src/peoplecode/encoder.ts` after the revert,
   confirmed via `corpus:verify --limit 430`).
-- **Next action**: resume failure-family triage from full run_id 1576 (group
+- **Next action**: resume failure-family triage from full run_id 1457 (group
   `corpus-results.sqlite`'s latest run by `classification`/`construct`,
   the same query used to find every target this session, or use `npm run
   corpus:next`). `npm run corpus:next` currently surfaces the `UNKNOWN_MISMATCH`
@@ -722,30 +110,38 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   below.
 
 ## Current target
-- **Fix #91** landed locally (src/peoplecode/encoder.ts): a top-level
-  While/End-While block may terminate at EOF without a source semicolon.
-  Definition 26707 is the sole such completed-snapshot source and proves the
-  stored executable ends `... 26 07`, with no semicolon opcode `0x15` between
-  End-While and the program terminator. It is now source->bin EXACT,
-  roundtrip EXACT, and source MATCH. Full run 1573 -> 1576: 1 exact, 30208
-  unchanged, 0 regressed. Added a byte-level EOF regression test. Relevant
-  encoder suite: 124/125 pass (1 pre-existing skip); protected gate: 430/430.
-- **Fix #90** landed locally (src/peoplecode/encoder.ts): legacy untyped
-  `array` is now accepted without an `of <element-type>` clause in ordinary
-  Function parameters/returns and Local/Global/Component declaration paths.
-  The change preserves the short executable form -- only the existing `0x40
-  "array"` token is emitted before the variable or closing delimiter. Function
-  metadata maps the untyped form to `0x100004` (array flag plus calibrated
-  `any` id 4), producing parameter descriptor `0xC0100004`. Definition 8229
-  proves `&Ern_array As array` and that exact descriptor; definition 16893
-  independently proves `Returns array` uses return descriptor `0x00100004`;
-  definitions 16150/16151 prove `Component array`; definition 27398 proves an
-  initialized `Local array`. Full run 1545 -> 1573: definitions 8229, 10536,
-  16150, 16151, 20173, and 27398 became fully EXACT; 21 definitions advanced
-  to independent later states; 30182 unchanged; 0 regressed. Added a test
-  covering the short executable spelling and both Function descriptors.
-  Full project typecheck passes; full `npm test`: 477/478 pass (1 pre-existing
-  skip); protected gate: 430/430.
+- **Fix #90** landed locally (src/peoplecode/encoder.ts): `quotedReference()`'s
+  0x48 quoted-reference dedup (`MenuName."X"`, `BarName."USE"`, etc.) is now
+  scoped by `controlGroup`, not global across the whole program. The
+  original mechanism (`references.find(item => item.kind ===
+  'quoted-reference' && ...)`, unconditional, no scoping at all) was
+  evidenced by ACA_XML_WRK.ACA_UPDATE_PB.FieldChange (definition 369):
+  two `Transfer(...)` calls with an identical `MenuName."ACA_SETUP_RPT"`/
+  `BarName."USE"` pair, both nested inside ONE top-level `If %Page =
+  "ACA_XMIT_ACK" Then ... Else If All(...) Then ... End-If; End-If;` (one
+  control group), both reuse the same PSPCMNAME rows. AE_DERIVED.
+  AE_TEMPTBL_BTN.FieldChange (definition 805) disproves the GLOBAL
+  reading directly: its own two `Transfer(...)` calls, with an identical
+  `BarName."USE"`, sit in two SEPARATE top-level `If` statements --
+  different control groups -- and stored allocates a completely fresh row
+  for the second call's `BarName."USE"` (NAMENUM 15, not reusing NAMENUM
+  7's row from the first call); generated wrongly reused it (and, worse,
+  reused the WRONG earlier row -- `ItemName`'s, not even `BarName`'s own
+  -- since the global `.find()` matches whichever same-qualifier-and-value
+  entry happens to exist anywhere in `references`, with no adjacency or
+  scoping signal at all). Fixed with a dedicated
+  `quotedReferencesByControlGroup` map keyed by
+  `${controlGroup}:${qualifier}:${value}`, mirroring every other
+  control-group-scoped reuse mechanism already in this file. Definitions
+  369 and 805 are both now source->bin EXACT, roundtrip EXACT, source
+  MATCH (369 was already EXACT before this fix; confirmed still EXACT
+  after). Full run 1578 -> 1587: 14 exact, 0 regressed. Added two
+  minimal-fragment byte-level regression tests, one per evidence shape.
+  Full project `tsc -p . --noEmit` and `npm test` (480 tests, 479 pass, 1
+  pre-existing skip) both clean; protected gate: 430/430. (Code landed in
+  commit `b17f9c7`, committed by the user's own editor tooling mid-
+  session under a generic message -- see this file's Checkpoint section
+  for the full mid-session git-incident trail.)
 - **Fix #89** landed locally (src/peoplecode/encoder.ts): a RECORD name
   REPEATED within a RowScrollSelect-family call's own argument list (e.g.
   `RowScrollSelect(1, Record.X, Record.X, ...)`) may now ALSO reuse an
@@ -4689,6 +4085,32 @@ a byte-level ALLOC/USE trace of `encodeProgram` itself (via
 `context.referenceTrace`), not `--trace-refs`, since that only reports
 the stored/decode side and hid this entirely.
 
+### definition_id 1454 (BAS_ELIG_RULES.ELIG_FLG_UNION.SavePreChange) — a
+### SECOND FetchValue-own-Record.X-argument example, contradicting BOTH
+### the reverted 1305 hypothesis AND definition 1128's own reuse evidence
+
+Found while triaging fresh candidates right after 1305's investigation;
+deliberately NOT investigated further given the reverted-hypothesis risk
+already spent in this exact area this session. First diff: `&NUM_OF_ROWS
+= ActiveRowCount(Record.BAS_ELIG_RULES, &CURRENT_L1, Record.
+BAS_ELIG_UNION); ... &FIRST_VALUE = FetchValue(Record.BAS_ELIG_RULES,
+&CURRENT_L1, BAS_ELIG_UNION.UNION_CD, 1);` -- stored allocates a FRESH
+`RECORD/BAS_ELIG_RULES` row for FetchValue's own first argument (does NOT
+reuse ActiveRowCount's earlier establishment of the SAME record in the
+SAME position). This is a DIFFERENT shape from definition 1128's own
+calibrated positive evidence for FetchValue reuse (`ActiveRowCount(...,
+Record.CUBE_AGG_DEF); ... FetchValue(..., Record.CUBE_AGG_DEF, ...,
+CUBE_AGG_DIM.DIMENSION_ID, ...)`, a multi-level scroll navigation where
+FetchValue's own Record.X argument is a THIRD positional arg reused as
+part of navigating one level deeper, not a first-argument reestablishment
+like 1454's). Possibly the real rule is positional/depth-sensitive
+(FetchValue reuses when its own Record.X argument is navigating FURTHER
+into an already-established scroll chain, but not when it is merely
+re-stating the SAME top-level record ActiveRowCount already established).
+Needs a dedicated, careful multi-example investigation -- likely the same
+general family as 1305, and should probably be tackled together with it
+in one focused session rather than guessed at again.
+
 ### definition_id 1749 remaining issue: a THIRD, contradictory
 ### ScrollFlush-then-ScrollSelect/RowScrollSelect data point
 
@@ -5166,7 +4588,17 @@ project-level blocker").
 - definitions: 430
 - exact: 430
 - regressions: 0
-- last verified: 2026-09-25 (/goal resume session), after Fix #89
+- last verified: 2026-09-25 (/goal resume session), after Fix #90
+  (quoted 0x48 reference dedup scoped by control group, not global),
+  REGRESSION GATE: PASS (430/430, no regression) -- re-verified again
+  after the mid-session git-incident recovery (rebase/stash-pop conflict
+  resolution, commit `3b2597c`) and again after restoring this progress
+  file itself, both times clean. Full corpus run_id 1587 also directly
+  diffed against run_id 1578 (the merge-conflict-resolution commit's own
+  full run) at the per-definition `classification` level: 14 newly exact,
+  0 regressed. Full-project `npx tsc -p . --noEmit` and `npm test` (480
+  tests, 479 pass, 1 pre-existing skip) both clean.
+- prior verification: 2026-09-25 (/goal resume session), after Fix #89
   (RowScrollSelect-family single-occurrence fallback extended to also
   cover a REPEATED name when `controlDepth > 0`, resolving the definition
   889/1007/1749 `controlDepth` discriminator), REGRESSION GATE: PASS
@@ -5356,20 +4788,24 @@ project-level blocker").
 
 ## Next action
 - **Current session (2026-09-25, /goal resume), immediate next step**: Fix
-  #89 landed and verified (430/430, full run 1545, 0 regressed against
-  1526). Resume triage from `npm run corpus:next`, which currently
-  surfaces the `UNKNOWN_MISMATCH`/`(none)` catch-all (~4700 remaining, no
-  single construct signature -- representatives must be pulled and
-  diagnosed individually, e.g. definitions 528, 843, 982, 908, and 889's
+  #90 landed and verified (430/430, full run 1587, 0 regressed against
+  1578). A mid-session git incident (rebase/stash-pop left encoder.ts and
+  this progress file both corrupted; see Checkpoint) was found and fully
+  recovered -- code fixed in commit `3b2597c`, this file restored from
+  commit `be8a8e4`. Resume triage from `npm run corpus:next`, which
+  currently surfaces the `UNKNOWN_MISMATCH`/`(none)` catch-all (no single
+  construct signature -- representatives must be pulled and diagnosed
+  individually, e.g. definitions 528, 843, 982, 908, 889, and 805's
   families just fixed). No definition is currently mid-investigation. Skip
   definition_id 536 (still recommended by `corpus:next` due to its own
   documented offset-ordering caveat below), definition_id 1749 (STILL
   deferred -- Fix #89 resolved its first issue but a second, deeper one
-  remains), and definition_id 1305 (newly deferred this session -- a bare
-  RECORD.FIELD-resolves-to-owner bug, unrelated to the FetchValue
-  hypothesis that was tried and reverted for it) when triaging; see
-  "Identified, not yet fixed" for the full trail on each. All other
-  locally-blocked/deferred entries listed below
+  remains), definition_id 1305 (a bare RECORD.FIELD-resolves-to-owner bug,
+  unrelated to the FetchValue hypothesis that was tried and reverted for
+  it), and definition_id 1454 (same FetchValue-reuse family as 1305, not
+  investigated further after the revert) when triaging; see "Identified,
+  not yet fixed" for the full trail on each. All other locally-blocked/
+  deferred entries listed below
   (older sessions) remain unchanged; none were revisited this session.
   Process note worth repeating for future RowScrollSelect/ScrollSelect/
   ScrollFlush-adjacent changes specifically: this whole area has a history
