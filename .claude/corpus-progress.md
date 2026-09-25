@@ -6,8 +6,9 @@
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #92 (see below for its full
-  description). The preceding Fix #91 was committed at `16233cd`.
+- **Last successful calibration**: Fix #93 (see below for its full
+  description). Fix #92 was committed at `c8a167e`; the preceding Fix #91
+  was committed at `16233cd`.
   (Fix #90's own code
   landed in commit `b17f9c7` "More encoder / decoder fixes" -- committed
   directly by the user's own editor tooling mid-session, capturing this
@@ -41,8 +42,8 @@
   --rebase` mid-session to avoid a repeat -- if a pull is genuinely
   needed, checkpoint `.claude/corpus-progress.md` to a scratch copy
   first.
-- **Corpus total** (full-corpus run_id 1622, after Fix #92):
-  22916/30209 exact (75.9%).
+- **Corpus total** (full-corpus run_id 1628, after Fix #93):
+  22918/30209 exact (75.9%).
   Fix #73 was first rechecked against the already-equivalent full run 1326
   (run 1327: all 30209 materially unchanged). Subsequent full diffs were:
   Fix #74 run 1327 -> 1338 (2 exact, 4 advanced, 0 regressed); Fix #75 run
@@ -73,7 +74,8 @@
   1545 directly, since that run already included both this session's
   work and `origin/main`'s separately-landed array-of-array/bare-array
   feature); Fix #91 run 1587 -> 1597 (1 exact, 0 regressed); Fix #92 run
-  1597 -> 1622 (2 exact, 2 advanced, 0 regressed). The
+  1597 -> 1622 (2 exact, 2 advanced, 0 regressed); Fix #93 run 1622 ->
+  1628 (2 exact, 0 regressed). The
   protected gate remains 430/430.
 - **Locally blocked / deferred, evidence exhausted this session** (see
   their own entries further down for full evidence trails): the `#If
@@ -116,6 +118,22 @@
   below.
 
 ## Current target
+- **Fix #93** landed locally (src/peoplecode/encoder.ts): a `REM` between
+  a completed `If` condition and `Then` is an opaque disabled-condition
+  tail, encoded as the ordinary standalone-comment opcode `0x24`
+  immediately before `Then`'s `0x1F`. Two independent HCDEV definitions
+  prove the rule: 8781 has a single-line `REM ...;`, while 22751 has
+  `REM And` followed by an indented `&tmp = 1;` continuation; stored
+  places both physical lines of the latter in one 0x24 payload. The
+  general REM continuation grammar remains deliberately narrow: the new
+  indented continuation is enabled only by `ifStatement()` in its
+  before-Then position, and only when that line closes with a semicolon,
+  so ordinary REM comments cannot speculatively absorb executable code.
+  Definitions 8781 and 22751 are both now source-to-binary EXACT,
+  roundtrip EXACT, and source MATCH. Added a focused multiline regression
+  test. Full run 1622 -> 1628: 2 exact, 0 regressed. Full project
+  `npm run typecheck` and `npm test` are clean (483 tests, 482 pass, 1
+  intentional skip); protected gate: 430/430.
 - **Fix #92** landed locally (src/peoplecode/encoder.ts): ordinary
   `Component` declarations may preserve a trailing comma immediately
   before their semicolon. Four independent HCDEV definitions prove the
@@ -4785,7 +4803,13 @@ project-level blocker").
 - definitions: 430
 - exact: 430
 - regressions: 0
-- last verified: 2026-09-25 (/goal resume session), after Fix #92
+- last verified: 2026-09-25 (/goal resume session), after Fix #93
+  (`REM` disabled-condition tails between an If condition and Then),
+  REGRESSION GATE: PASS (430/430, no regression). Full corpus run_id 1628
+  directly diffed against run_id 1622: 2 newly exact, 0 regressed.
+  Full-project `npm run typecheck` and `npm test` (483 tests, 482 pass,
+  1 intentional skip) both clean.
+- prior verification: 2026-09-25 (/goal resume session), after Fix #92
   (ordinary Component declarations preserve an evidenced trailing comma),
   REGRESSION GATE: PASS (430/430, no regression). Full corpus run_id 1622
   directly diffed against run_id 1597: 2 newly exact, 2 advanced, 0
