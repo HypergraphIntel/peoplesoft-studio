@@ -3925,14 +3925,19 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     } else if (/[A-Za-z_]/.test(source[pos] ?? '')) {
       const tail = source.slice(pos);
       if (/^Record\s*\./i.test(tail)) {
+        const statementStart = pos;
         primary();
+        const endsWithMethodCall = /\)\s*$/.test(
+          source.slice(statementStart, pos)
+        );
         space();
-        if (source[pos] !== '=') {
+        if (source[pos] === '=') {
+          pos++;
+          chunks.push(fixed('='));
+          expression();
+        } else if (!endsWithMethodCall) {
           fail('expected = after explicit Record field chain');
         }
-        pos++;
-        chunks.push(fixed('='));
-        expression();
       } else if (/^[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/.test(tail)) {
         chunks.push(ordinaryRecordFieldReference());
         let sawMethodCall = false;

@@ -6,9 +6,9 @@
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #93 (see below for its full
-  description). Fix #92 was committed at `c8a167e`; the preceding Fix #91
-  was committed at `16233cd`.
+- **Last successful calibration**: Fix #94 (see below for its full
+  description). Fix #93 was committed at `aef89e5`; Fix #92 at `c8a167e`;
+  and Fix #91 at `16233cd`.
   (Fix #90's own code
   landed in commit `b17f9c7` "More encoder / decoder fixes" -- committed
   directly by the user's own editor tooling mid-session, capturing this
@@ -42,8 +42,8 @@
   --rebase` mid-session to avoid a repeat -- if a pull is genuinely
   needed, checkpoint `.claude/corpus-progress.md` to a scratch copy
   first.
-- **Corpus total** (full-corpus run_id 1628, after Fix #93):
-  22918/30209 exact (75.9%).
+- **Corpus total** (full-corpus run_id 1638, after Fix #94):
+  22919/30209 exact (75.9%).
   Fix #73 was first rechecked against the already-equivalent full run 1326
   (run 1327: all 30209 materially unchanged). Subsequent full diffs were:
   Fix #74 run 1327 -> 1338 (2 exact, 4 advanced, 0 regressed); Fix #75 run
@@ -75,7 +75,8 @@
   work and `origin/main`'s separately-landed array-of-array/bare-array
   feature); Fix #91 run 1587 -> 1597 (1 exact, 0 regressed); Fix #92 run
   1597 -> 1622 (2 exact, 2 advanced, 0 regressed); Fix #93 run 1622 ->
-  1628 (2 exact, 0 regressed). The
+  1628 (2 exact, 0 regressed); Fix #94 run 1628 -> 1638 (1 exact, 3
+  advanced, 0 regressed). The
   protected gate remains 430/430.
 - **Locally blocked / deferred, evidence exhausted this session** (see
   their own entries further down for full evidence trails): the `#If
@@ -118,6 +119,21 @@
   below.
 
 ## Current target
+- **Fix #94** landed locally (src/peoplecode/encoder.ts): an explicit
+  `Record.REC` root may lead a method-call statement, not only an
+  assignment. Four independent failures shared this parser rejection:
+  `Record.CPQPROMPT1_WRK.CopyFieldsTo(&grPromptEdit);` (definition 3288),
+  two sibling `CopyFieldsTo(...)` calls (3285 and 14778), and
+  `Record.WKF_CNT_INC_ESP.GetField(&i).SetDefault();` (20920). The
+  statement branch now accepts the already-fully-parsed primary when its
+  consumed source ends in a method call; a non-call `Record.*` expression
+  still fails unless followed by `=`, preserving the existing strict
+  assignment validation. Definition 3288 is now fully EXACT; 3285,
+  14778, and 20920 compile past this construct and expose later unrelated
+  byte mismatches. Added a byte-exact fragment regression. Full run 1628
+  -> 1638: 1 exact, 3 advanced, 0 regressed. Full project `npm run
+  typecheck` and `npm test` are clean (484 tests, 483 pass, 1 intentional
+  skip); protected gate: 430/430.
 - **Fix #93** landed locally (src/peoplecode/encoder.ts): a `REM` between
   a completed `If` condition and `Then` is an opaque disabled-condition
   tail, encoded as the ordinary standalone-comment opcode `0x24`
@@ -4803,7 +4819,13 @@ project-level blocker").
 - definitions: 430
 - exact: 430
 - regressions: 0
-- last verified: 2026-09-25 (/goal resume session), after Fix #93
+- last verified: 2026-09-25 (/goal resume session), after Fix #94
+  (explicit `Record.REC`-rooted method-call statements), REGRESSION GATE:
+  PASS (430/430, no regression). Full corpus run_id 1638 directly diffed
+  against run_id 1628: 1 newly exact, 3 advanced, 0 regressed.
+  Full-project `npm run typecheck` and `npm test` (484 tests, 483 pass,
+  1 intentional skip) both clean.
+- prior verification: 2026-09-25 (/goal resume session), after Fix #93
   (`REM` disabled-condition tails between an If condition and Then),
   REGRESSION GATE: PASS (430/430, no regression). Full corpus run_id 1628
   directly diffed against run_id 1622: 2 newly exact, 0 regressed.
