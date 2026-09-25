@@ -646,6 +646,8 @@ export interface GeneratedOccurrence {
   sourceOffset: number;
   sourceContext: string;
   enclosingCall?: string;
+  /** The enclosing call's own opening "(" source offset -- a stable identifier for grouping multiple arguments back to the SAME call instance (not just the same call name). Phase 2D field. */
+  enclosingCallOpenParenIndex?: number;
   argumentPosition?: number;
   previousMatchingOccurrence?: number;
   previousMatchingDecision?: 'ALLOC' | 'REUSE';
@@ -912,6 +914,7 @@ function decodeGeneratedOccurrences(
       sourceOffset: event.sourceOffset,
       sourceContext: sourceWindow(source, event.sourceOffset),
       enclosingCall: call?.name,
+      enclosingCallOpenParenIndex: call?.openParenIndex,
       argumentPosition:
         call === undefined
           ? undefined

@@ -894,36 +894,113 @@ classification based on this cycle's evidence:
 - **`suppressRecordReferenceControlGroupWrite`**: not yet evaluated
   against any of this cycle's evidence.
 
+### Phase 2D -- multi-argument interaction sweep, full corpus scale
+
+Built `tools/corpus/research/multiarg-interaction-analysis.ts`: groups
+every reference-bearing occurrence (kind record/scroll/field/record-field)
+by its own call instance (`enclosingCall` name + a new
+`enclosingCallOpenParenIndex` field added to `GeneratedOccurrence`, a
+stable per-invocation identifier distinct from just the call NAME), keeps
+only calls with 2+ reference-bearing arguments, and -- in a single
+SOURCE-ORDERED pass (a real ordering bug was caught and fixed here: the
+first version populated the same-statement/same-scope "seen" sets in a
+separate pass AFTER the pass that read them, so those two checks were
+always vacuously empty) -- classifies each argument by whether its
+identity repeated an EARLIER occurrence within the same call, the same
+statement, or the same surrounding scope.
+
+**Population**: the union of every definition list gathered this cycle
+(FetchValue, ActiveRowCount, ScrollFlush, GetRecord, RowScrollSelect,
+ScrollSelect -- 1415 distinct definitions), yielding 28402
+argument-position records from multi-argument calls, 1425 disagreeing
+(5.0% baseline).
+
+**None of the six sub-hypotheses (A-F) show a strong, clean signal at
+this scale:**
+
+- **A. argument-position**: pos0 (5.5%) and pos1 (4.6%) disagree modestly
+  more than pos4/pos5 (3.7%/2.5%), but the spread is narrow and pos6
+  spikes to 12.3% on a small sample (308) -- no clean monotonic or
+  categorical position effect.
+- **C. same-call interning**: `repeatedInSameCall=true` disagrees at
+  5.6% vs. `false` at 5.0% -- essentially no effect.
+- **repeatedInStatement** (excluding same-call repeats): `true` actually
+  disagrees LESS (2.9% vs. 5.0% baseline) -- same-statement repetition is
+  mildly protective, consistent with Phase 2A's own `same-statement`
+  bucket finding.
+- **repeatedInScope** (excluding same-call/statement repeats): `true`
+  5.9% vs. `false` 4.8% -- a small, real but weak enrichment.
+- **F. repeated-name vs. distinct-name calls**: calls containing a
+  repeated identity disagree at 5.2% vs. 5.0% for all-distinct-name calls
+  -- no meaningful difference.
+- **kind mixture**: record 37.3%, record-field 32.6%, field 25.7%,
+  scroll 4.4% of disagreements -- spread across kinds, not concentrated.
+
+**Cross-check against the flat-top-level rule**: only explains 6.8% of
+this broader dataset (vs. 65-87% for the four families in isolation),
+confirming this IS a genuinely separate phenomenon from the flat-top-level
+finding, not a restatement of it.
+
+**Call-name breadth**: disagreements appear across dozens of DIFFERENT
+intrinsics -- GetRow (188), ScrollSelect (109), Hide (83), FetchValue
+(77), GetPinNM (62), UnHide (54), GetField (47), and many more, most of
+which were never part of this cycle's WATCHED_INTRINSICS list at all.
+Combined with ~150 distinct definitions showing a multi-argument
+disagreement and no dominant sub-cluster, **the honest conclusion is that
+"multi-argument interaction" does not appear to be one unified compiler
+phenomenon at this level of analysis** -- it looks more like the same
+low, roughly-constant ~3-8% background disagreement rate this whole
+research cycle has repeatedly found across nearly every construct tested,
+spread across many unrelated call sites, rather than a single distinguishable
+mechanism the way flat-top-level was. Definitions 2958 and 1454 remain
+real, individually-confirmed examples of cross-argument interference (see
+Phase 2B's close reading), but they do not appear to be representative of
+a broad, corpus-wide pattern -- they may be two independent, narrower bugs
+that happen to share a superficial "multiple Record.X arguments" shape.
+
+**Phase 2E skipped as originally scoped**: per the directive's own "do
+not select examples merely because they are small; select them because
+they isolate one variable" standard, no dominant multi-argument pattern
+was found to select a representative FROM -- forcing 2958/1454 into that
+role would misrepresent them as typical when this sweep shows they are
+not. If a future session wants to pursue this thread, it should start
+from a DIFFERENT entry point (e.g., picking the single most common call
+name among the disagreements, such as GetRow's 188, and characterizing
+that call name's own argument semantics specifically) rather than
+continuing to treat "any call with 2+ reference-bearing arguments" as one
+population.
+
 ### Next action (research cycle)
 
 1. Cross-reference the ACTUAL current implementations of
-   `reuseRecordReferenceWithinCallArguments` and
+   `reuseRecordReferenceWithinCallArguments`,
+   `singleOccurrenceCallArgumentRecordNames`, and
    `recordReferencesByControlGroup`'s FetchValue/ActiveRowCount/
    ScrollFlush/GetRecord call sites (read the real encoder.ts code, not
-   just infer from corpus behavior) against this cycle's two live
-   hypotheses (flat-top-level guard; multi-argument interaction) before
-   writing any Phase 4 proposal in more concrete terms than "add a guard."
-2. The multi-argument-interaction thread (Phase 2B) needs its own
-   dedicated full-population sweep the way flat-top-level got: find ALL
-   disagreement definitions whose relevant call has 2+ Record.X/Scroll.X
-   arguments (1454, 2958, and likely others not yet identified) and test
-   whether an "argument position" dimension (already captured as
-   `argumentPosition` in this tooling) explains them better than anything
-   tried so far.
-3. Try/While/Repeat subtypes have zero disagreements in this sample --
-   worth a note for a future session, not an action now (their
-   populations among these four specific families may just be too small
-   to have produced a disagreement, not evidence they are exempt).
+   just infer from corpus behavior) against the flat-top-level hypothesis
+   specifically -- this remains the one well-quantified, strong,
+   cross-family-corroborated finding from this whole cycle, and is ready
+   for a real Phase 3/4 pass. The multi-argument thread is NOT ready for
+   this yet (no unifying model was found).
+2. If the multi-argument thread is revisited, start from GetRow (the
+   single largest call-name contributor, 188 disagreements) as its own
+   dedicated investigation, not as part of a merged cross-intrinsic sweep.
+3. Try/While/Repeat subtypes still show zero disagreements in the
+   four-family sample from Phase 2A; the six-family Phase 2D population
+   didn't specifically re-check this either -- still just a note for a
+   future session.
 4. Cross-family control: definition 6389 (RowScrollSelect's own
    9-disagreement cluster, sibling-branch shaped) remains queued and
    still not investigated in its own right.
-5. Do NOT implement any encoder fix yet. The flat-top-level rule is
-   well-quantified and the strongest found, but this session's own Phase
-   2B work found a genuinely separate, unexplained multi-argument
-   mechanism responsible for a meaningful share of the remainder --
-   implementing only the flat-top-level guard now would leave that second
-   mechanism as an unaddressed, undocumented special case, which is
-   exactly what this whole cycle exists to avoid accumulating.
+5. Do NOT implement any encoder fix yet. The flat-top-level rule is the
+   one candidate ready for Phase 3 (real code cross-reference); the
+   multi-argument thread needs a narrower, single-call-name investigation
+   before it produces anything actionable, and implementing a
+   flat-top-level guard now would still leave 2958/1454's own confirmed,
+   real bugs unaddressed and undocumented as anything more than isolated
+   examples -- acceptable for now precisely BECAUSE this session
+   determined they are not part of a larger pattern requiring a unified
+   fix.
 
 ## Checkpoint
 
