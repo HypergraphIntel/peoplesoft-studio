@@ -44,10 +44,10 @@
   `33.34` match the ROADMAP-documented calibration exactly. Verified:
   `npx tsc -p .` clean; `npm test` 459/460 (1 pre-existing skip, up from
   457/458 with the 2 new positive-test additions); `corpus:verify
-  --limit 430` 430/430, 0 regressions. Given `value()` is used
-  everywhere a number can appear, a full-corpus background diff was
-  also started; see next entries for both this run's and Fix #68's
-  results once complete.
+  --limit 430` 430/430, 0 regressions. Full-corpus background diff
+  (run_id 278 -> 280, all 30,209 definitions) confirmed: 48 improved, 0
+  regressed, 30161 unchanged. New corpus total: 22469/30209 exact
+  (74.4%).
 - **Fix #68** landed (src/peoplecode/encoder.ts, top-level statement
   loop's `selfTerminatingAtEof` check), three new self-terminating-at-EOF
   shapes added alongside the existing If/Evaluate/assignment/bare-call/
