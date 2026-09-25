@@ -6,12 +6,12 @@
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #90 (below), validated locally.
-  Fix #90's own code landed in commit `b17f9c7` ("More encoder / decoder
-  fixes" -- committed directly by the user's own editor tooling mid-
-  session, capturing this fix's already-verified working-tree diff
-  verbatim; content confirmed identical via `git show`). This progress
-  ledger update is a separate, currently-uncommitted commit on top.
+- **Last successful calibration**: Fix #91 (below), validated locally on
+  top of commit `3d515a7`. Fix #91 and this progress ledger update are
+  currently uncommitted. (Fix #90's own code landed in commit `b17f9c7`
+  "More encoder / decoder fixes" -- committed directly by the user's own
+  editor tooling mid-session, capturing this fix's already-verified
+  working-tree diff verbatim; content confirmed identical via `git show`.)
   **Mid-session git incident (2026-09-25, /goal resume session)**: a
   `git pull --rebase` replayed Fix #85-#89 onto an updated `origin/main`
   that has its OWN separate, parallel corpus-calibration work -- a
@@ -40,12 +40,9 @@
   --rebase` mid-session to avoid a repeat -- if a pull is genuinely
   needed, checkpoint `.claude/corpus-progress.md` to a scratch copy
   first.
-- **Corpus total** (full-corpus run_id 1587, this session's own diff
-  against 1578; a fresh full run has not been retaken since Fix #90
-  landed): 22913/30209 exact (75.8%), PLUS Fix #90's own +14 (verified
-  before this incident, not yet re-confirmed with a fresh full run after
-  the restore -- do that before trusting this number for the NEXT fix's
-  own before/after diff).
+- **Corpus total** (full-corpus run_id 1597, re-confirmed with a fresh full
+  run after Fix #91 and the git-incident recovery both landed):
+  22914/30209 exact (75.8%).
   Fix #73 was first rechecked against the already-equivalent full run 1326
   (run 1327: all 30209 materially unchanged). Subsequent full diffs were:
   Fix #74 run 1327 -> 1338 (2 exact, 4 advanced, 0 regressed); Fix #75 run
@@ -68,7 +65,15 @@
   regressed -- resolves the `controlDepth` discriminator behind
   definitions 889/1749's own contradictions, documented in "Identified,
   not yet fixed" below; 1749 itself progressed but is not yet fully EXACT,
-  see its own updated note). The protected gate remains 430/430.
+  see its own updated note). A mid-session git incident (rebase/stash-pop
+  left `encoder.ts` and this progress file both corrupted; fully
+  recovered, see below) interrupted the run-diff sequence between Fix #89
+  and Fix #90 -- Fix #90 run 1578 -> 1587 (14 exact, 0 regressed, diffed
+  against the merge-conflict-resolution commit's own full run rather than
+  1545 directly, since that run already included both this session's
+  work and `origin/main`'s separately-landed array-of-array/bare-array
+  feature); Fix #91 run 1587 -> 1597 (1 exact, 0 regressed). The
+  protected gate remains 430/430.
 - **Locally blocked / deferred, evidence exhausted this session** (see
   their own entries further down for full evidence trails): the `#If
   #ToolsRel` preprocessor-directive family (73 combined occurrences,
@@ -110,6 +115,33 @@
   below.
 
 ## Current target
+- **Fix #91** landed locally (src/peoplecode/encoder.ts): the FIELD half of
+  an explicit `Record.REC.FIELD.Value` chain (the calibrated
+  `explicitRecordRootName`/`explicitRecordFields` mechanism, keyed by
+  `controlGroup:rootRecordName:fieldName`) now ALSO falls back to the
+  shared, name-only `declaredRecordFields` pool
+  (`controlGroup:fieldName`) already used by the Record-variable and
+  row-shorthand FIELD-reuse mechanisms, and writes into that same shared
+  pool. ACL_WS_WRK.WSOPRACCESS.SaveEdit (definition 437) proves the FIELD
+  half is reusable by NAME ALONE across a DIFFERENT root record within
+  the same control group: `&classid = Record.PTIBMAPAUTH_VW.CLASSID.
+  Value;` (an If-branch) and `&classid = Record.PSAUTHWS_VW1.CLASSID.
+  Value;` (its Else) -- stored has exactly ONE `FIELD`/`CLASSID`
+  PSPCMNAME row (RECNAME is the literal placeholder `'FIELD'`, with no
+  link to either owning record at all), reused for both, even though the
+  RECORD half of each chain still allocates its own fresh row (different
+  literal record names). The pre-existing `explicitRecordFields` map,
+  scoped by root-record-name, could never find this cross-record reuse.
+  Mirrors the ALREADY-proven cross-Record-variable case one mechanism
+  over (ACCOMPLISHMENTS.EMPLID.SavePostChange, cited in that map's own
+  comment) -- this is the missing THIRD leg of a pool the code already
+  treats as shared across every other FIELD-reaching syntax. Definition
+  437 is now source->bin EXACT, roundtrip EXACT, source MATCH; every
+  other definition this pool touches (381, 24, 535, 772) re-verified
+  individually EXACT. Full run 1587 -> 1597: 1 exact, 0 regressed (a
+  narrow, rare shape). Added a minimal-fragment byte-level regression
+  test. Full project `tsc -p . --noEmit` and `npm test` (481 tests, 480
+  pass, 1 pre-existing skip) both clean; protected gate: 430/430.
 - **Fix #90** landed locally (src/peoplecode/encoder.ts): `quotedReference()`'s
   0x48 quoted-reference dedup (`MenuName."X"`, `BarName."USE"`, etc.) is now
   scoped by `controlGroup`, not global across the whole program. The
@@ -4588,7 +4620,15 @@ project-level blocker").
 - definitions: 430
 - exact: 430
 - regressions: 0
-- last verified: 2026-09-25 (/goal resume session), after Fix #90
+- last verified: 2026-09-25 (/goal resume session), after Fix #91
+  (explicit Record.REC.FIELD.Value chain's FIELD half now reusable by
+  name across a different root record via the shared `declaredRecordFields`
+  pool), REGRESSION GATE: PASS (430/430, no regression). Full corpus
+  run_id 1597 also directly diffed against run_id 1587 at the
+  per-definition `classification` level: 1 newly exact, 0 regressed,
+  30208 unchanged. Full-project `npx tsc -p . --noEmit` and `npm test`
+  (481 tests, 480 pass, 1 pre-existing skip) both clean.
+- prior verification: 2026-09-25 (/goal resume session), after Fix #90
   (quoted 0x48 reference dedup scoped by control group, not global),
   REGRESSION GATE: PASS (430/430, no regression) -- re-verified again
   after the mid-session git-incident recovery (rebase/stash-pop conflict
@@ -4788,14 +4828,14 @@ project-level blocker").
 
 ## Next action
 - **Current session (2026-09-25, /goal resume), immediate next step**: Fix
-  #90 landed and verified (430/430, full run 1587, 0 regressed against
-  1578). A mid-session git incident (rebase/stash-pop left encoder.ts and
+  #91 landed and verified (430/430, full run 1597, 0 regressed against
+  1587). A mid-session git incident (rebase/stash-pop left encoder.ts and
   this progress file both corrupted; see Checkpoint) was found and fully
   recovered -- code fixed in commit `3b2597c`, this file restored from
   commit `be8a8e4`. Resume triage from `npm run corpus:next`, which
   currently surfaces the `UNKNOWN_MISMATCH`/`(none)` catch-all (no single
   construct signature -- representatives must be pulled and diagnosed
-  individually, e.g. definitions 528, 843, 982, 908, 889, and 805's
+  individually, e.g. definitions 528, 843, 982, 908, 889, 805, and 437's
   families just fixed). No definition is currently mid-investigation. Skip
   definition_id 536 (still recommended by `corpus:next` due to its own
   documented offset-ordering caveat below), definition_id 1749 (STILL

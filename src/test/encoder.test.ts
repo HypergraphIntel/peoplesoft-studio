@@ -1111,6 +1111,37 @@ test('a quoted 0x48 reference is deduplicated within a control group, not global
   );
 });
 
+test('the FIELD half of an explicit Record.REC.FIELD.Value chain is reusable by name across a different root record', () => {
+  /*
+   * ACL_WS_WRK.WSOPRACCESS.SaveEdit (definition_id 437):
+   *
+   *   &classid = Record.PTIBMAPAUTH_VW.CLASSID.Value;
+   *   ...
+   *   &classid = Record.PSAUTHWS_VW1.CLASSID.Value;
+   *
+   * both inside the same control group (an If/Else). Stored has exactly
+   * one FIELD/CLASSID PSPCMNAME row, reused for both, despite the two
+   * different root records -- the RECORD half of each chain still
+   * allocates its own fresh row (different literal record names), but
+   * the FIELD half is reusable by name alone within the control group,
+   * mirroring the already-proven cross-Record-variable FIELD reuse
+   * (ACCOMPLISHMENTS.EMPLID.SavePostChange).
+   */
+  assert.deepStrictEqual(
+    encodeFragment(
+      'If &A = "X" Then\n' +
+      '   &classid = Record.PTIBMAPAUTH_VW.CLASSID.Value;\n' +
+      'Else\n' +
+      '   &classid = Record.PSAUTHWS_VW1.CLASSID.Value;\n' +
+      'End-If;\n'
+    ),
+    Buffer.from(
+      '1C012600410000000616580000001F01260063006C0061007300730069006400000006210100054A0200050A560061006C00750065000000151901260063006C0061007300730069006400000006210300054A0200050A560061006C00750065000000151A15',
+      'hex'
+    )
+  );
+});
+
 test('a Function header inside a block comment is not counted as a real function', () => {
   /*
    * AE_WRK.MESSAGE_NBR.FieldChange (definition_id 908): a whole
