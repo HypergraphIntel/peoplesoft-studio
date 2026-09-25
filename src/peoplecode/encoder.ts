@@ -9604,6 +9604,56 @@ function encodeApplicationClassProgram(
   ]);
 }
 
+/*
+ * Replaces block comments and double-quoted string literals with spaces,
+ * preserving every other character's exact position, so a regex scan for
+ * top-level `Function NAME` headers never matches text that only looks
+ * like one inside a comment or a SQL string.
+ *
+ * AE_WRK.MESSAGE_NBR.FieldChange (definition 908) proves this is a real
+ * gap, not a hypothetical one: an entire `Function Check_Integrity ...
+ * End-Function;` definition sits inside a `/* ... *\/` block comment,
+ * ahead of the two real Functions (`load_stmt`, `Check_Syntax`). The
+ * unmasked scan picked up "Check_Integrity" as a genuine third function,
+ * inflating the stored function-directory count from 2 to 3 and adding a
+ * spurious metadata/trailer entry.
+ */
+function maskCommentsAndStringLiteralsForFunctionScan(
+  source: string
+): string {
+  let masked = '';
+  let i = 0;
+
+  while (i < source.length) {
+    if (source.startsWith('/*', i)) {
+      const end = source.indexOf('*/', i + 2);
+      const stop = end === -1 ? source.length : end + 2;
+      masked += ' '.repeat(stop - i);
+      i = stop;
+    } else if (source[i] === '"') {
+      let j = i + 1;
+      while (j < source.length) {
+        if (source[j] === '"') {
+          if (source[j + 1] === '"') {
+            j += 2;
+            continue;
+          }
+          j++;
+          break;
+        }
+        j++;
+      }
+      masked += ' '.repeat(j - i);
+      i = j;
+    } else {
+      masked += source[i];
+      i++;
+    }
+  }
+
+  return masked;
+}
+
 function parseFunctionMetadata(
   source: string
 ): FunctionMetadata[] {
@@ -9613,13 +9663,19 @@ function parseFunctionMetadata(
    * Function definitions are top-level source items in the calibrated
    * ordinary PeopleCode fixtures. Match only line-start Function headers so
    * Declare Function statements are not included.
+   *
+   * Matched against the comment/string-masked source (same length, so
+   * every offset below still indexes correctly into the real `source`)
+   * -- see `maskCommentsAndStringLiteralsForFunctionScan`'s own comment.
    */
+  const maskedSource =
+    maskCommentsAndStringLiteralsForFunctionScan(source);
   const functionPattern =
     /(?:^|\r?\n)[ \t]*Function\s+([A-Za-z_][A-Za-z0-9_]*)([ \t]*\()?/gi;
 
   let functionMatch: RegExpExecArray | null;
 
-  while ((functionMatch = functionPattern.exec(source)) !== null) {
+  while ((functionMatch = functionPattern.exec(maskedSource)) !== null) {
     const name = functionMatch[1];
     const parameterStart = functionPattern.lastIndex;
     const hasParameterList = functionMatch[2] !== undefined;

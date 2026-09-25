@@ -648,14 +648,14 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #87 (below), validated locally on top
-  of Fix #86's commit `79765aa`. Fix #87 and this progress ledger are
+- **Last successful calibration**: Fix #88 (below), validated locally on top
+  of Fix #87's commit `4fecf7b`. Fix #88 and this progress ledger are
   currently uncommitted. (Prior checkpoint's HEAD `45fccb5` is now behind:
   unrelated MCP-client work landed several commits, through `e9ccca2`,
   between sessions; full typecheck and `npm test` are clean at `e9ccca2`,
   so the previously-recorded typecheck blocker no longer applies -- see
   updated validation note below.)
-- **Corpus total** (full-corpus run_id 1521): 22693/30209 exact (75.1%).
+- **Corpus total** (full-corpus run_id 1526): 22704/30209 exact (75.1%).
   Fix #73 was first rechecked against the already-equivalent full run 1326
   (run 1327: all 30209 materially unchanged). Subsequent full diffs were:
   Fix #74 run 1327 -> 1338 (2 exact, 4 advanced, 0 regressed); Fix #75 run
@@ -673,8 +673,8 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   same way; two intermediate full runs during Fix #86's OWN development,
   1470 and 1494, each had a real, caught, and then repaired regression --
   see Fix #86's own notes below for the full two-round isolation trail);
-  Fix #87 run 1509 -> 1521 (21 exact, 0 regressed). The protected gate
-  remains 430/430.
+  Fix #87 run 1509 -> 1521 (21 exact, 0 regressed); Fix #88 run 1521 ->
+  1526 (11 exact, 0 regressed). The protected gate remains 430/430.
 - **Locally blocked / deferred, evidence exhausted this session** (see
   their own entries further down for full evidence trails): the `#If
   #ToolsRel` preprocessor-directive family (73 combined occurrences,
@@ -707,6 +707,32 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   below.
 
 ## Current target
+- **Fix #88** landed locally (src/peoplecode/encoder.ts): `parseFunctionMetadata`
+  (which scans raw source text for top-level `Function NAME` headers to
+  build the program's function directory/trailer) now scans a
+  comment-and-string-masked copy of the source instead of the raw text.
+  AE_WRK.MESSAGE_NBR.FieldChange (definition 908) proves the gap: a whole
+  `Function Check_Integrity ... End-Function;` definition sits inside a
+  leading `/* ... */` block comment, ahead of two real Functions
+  (`load_stmt`, `Check_Syntax`). The unmasked regex scan matched
+  "Check_Integrity" as a genuine third function purely because the text
+  "Function Check_Integrity" appears at a line start -- it has no
+  awareness of comments at all -- inflating the stored function-directory
+  count from 2 to 3 and adding a spurious metadata/trailer entry (stored
+  4174 bytes vs generated 4222). AE_WRK.FUNCLIB.FieldChange (definition
+  907, a larger program with the exact same shape) is fixed by the same
+  change. New helper `maskCommentsAndStringLiteralsForFunctionScan`
+  replaces block comments and double-quoted string literals with
+  same-length runs of spaces (preserving every other character's
+  position, so all the existing offset arithmetic in
+  `parseFunctionMetadata` -- `source.indexOf(')', parameterStart)`,
+  `source.slice(...)` -- still reads the correct, unmasked text); only the
+  regex matching itself runs against the masked copy. Definitions 907 and
+  908 are now source->bin EXACT, roundtrip EXACT, source MATCH. Full run
+  1521 -> 1526: 11 exact, 0 regressed. Added a minimal-fragment,
+  full-program byte-level regression test. Full project `tsc -p .
+  --noEmit` and `npm test` (476 tests, 475 pass, 1 pre-existing skip) both
+  clean; protected gate: 430/430.
 - **Fix #87** landed locally (src/peoplecode/encoder.ts): `Record.X.MEMBER`
   now excludes the six inline Row state/property members (`RowNumber`,
   `IsNew`, `IsDeleted`, `IsChanged`, `Visible`, `Selected`) from the
@@ -4950,7 +4976,17 @@ project-level blocker").
 - definitions: 430
 - exact: 430
 - regressions: 0
-- last verified: 2026-09-25 (/goal resume session), after Fix #87
+- last verified: 2026-09-25 (/goal resume session), after Fix #88
+  (definitions 907/908, `parseFunctionMetadata` now masks block comments
+  and string literals before scanning for `Function NAME` headers, so a
+  commented-out Function no longer inflates the program's function-
+  directory count), REGRESSION GATE: PASS (430/430, no regression). Full
+  corpus run_id 1526 also directly diffed against run_id 1521 (the last
+  known-clean full run before Fix #88) at the per-definition
+  `classification` level: 11 newly exact, 0 regressed, 30198 unchanged.
+  Full-project `npx tsc -p . --noEmit` and `npm test` (476 tests, 475
+  pass, 1 pre-existing skip) both clean.
+- prior verification: 2026-09-25 (/goal resume session), after Fix #87
   (definition 982, `Record.X.IsChanged`-style inline Row state/property
   members no longer misrouted through the explicit `Record.REC.FIELD`
   chain detector), REGRESSION GATE: PASS (430/430, no regression). Full
@@ -5120,12 +5156,12 @@ project-level blocker").
 
 ## Next action
 - **Current session (2026-09-25, /goal resume), immediate next step**: Fix
-  #87 landed and verified (430/430, full run 1521, 0 regressed against
-  1509). Resume triage from `npm run corpus:next`, which currently
-  surfaces the `UNKNOWN_MISMATCH`/`(none)` catch-all (4830 remaining, no
+  #88 landed and verified (430/430, full run 1526, 0 regressed against
+  1521). Resume triage from `npm run corpus:next`, which currently
+  surfaces the `UNKNOWN_MISMATCH`/`(none)` catch-all (4819 remaining, no
   single construct signature -- representatives must be pulled and
-  diagnosed individually, e.g. definitions 528, 843, and 982's families
-  just fixed). No definition is currently mid-investigation. Skip
+  diagnosed individually, e.g. definitions 528, 843, 982, and 908's
+  families just fixed). No definition is currently mid-investigation. Skip
   definition_id 536 (still recommended by `corpus:next` due to its own
   documented offset-ordering caveat below) and definition_id 889 (newly
   deferred this session, see "Identified, not yet fixed" for the full
