@@ -81,6 +81,16 @@ export interface Token {
   opcode: number;
   /** Spacing/indentation bitmask for this token; see {@link FMT}. */
   format: number;
+  /**
+   * The raw, 1-based PSPCMNAME NAMENUM this token resolved through, for the
+   * three reference-operand opcodes (0x21, 0x4A, 0x48) only. Present
+   * specifically so a diagnostic/research consumer can recover the exact
+   * stored reference-allocation sequence unambiguously -- `text` alone
+   * cannot distinguish two PSPCMNAME rows that render identically (e.g. two
+   * separate RECORD/MESSAGE_LOG entries), but this can. Purely diagnostic:
+   * decoding behavior is unchanged whether or not a caller reads it.
+   */
+  nameNum?: number;
 }
 
 
@@ -1226,7 +1236,8 @@ export function decodeProgram(
           text: renderBareMetadataReference(resolved),
           offset,
           opcode,
-          format: OPERAND_FORMAT.get(opcode) ?? 0
+          format: OPERAND_FORMAT.get(opcode) ?? 0,
+          nameNum: ref.nameNum
         });
         i = ref.end;
         continue;
@@ -1256,7 +1267,8 @@ export function decodeProgram(
       if (ref !== undefined && bare !== undefined && bare.length > 0) {
         tokens.push({
           kind: TokenKind.Name, text: bare, offset, opcode,
-          format: OPERAND_FORMAT.get(0x21) ?? 0
+          format: OPERAND_FORMAT.get(0x21) ?? 0,
+          nameNum: ref.nameNum
         });
         i = ref.end;
         continue;
@@ -1306,7 +1318,8 @@ export function decodeProgram(
           text: resolved,
           offset,
           opcode,
-          format: OPERAND_FORMAT.get(0x21) ?? 0
+          format: OPERAND_FORMAT.get(0x21) ?? 0,
+          nameNum: ref.nameNum
         });
         i = ref.end;
         continue;
@@ -1315,7 +1328,8 @@ export function decodeProgram(
       if (ref !== undefined && resolved !== undefined && dot > 0 && display !== undefined) {
         tokens.push({
           kind: TokenKind.Name, text: `${display}."${resolved.slice(dot + 1)}"`, offset, opcode,
-          format: OPERAND_FORMAT.get(0x21) ?? 0
+          format: OPERAND_FORMAT.get(0x21) ?? 0,
+          nameNum: ref.nameNum
         });
         i = ref.end;
         continue;

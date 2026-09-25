@@ -48,6 +48,10 @@ export interface ReferenceTraceEvent {
 
   sourceOffset: number;
   controlGroup: number;
+  /** Control-flow nesting depth (If/For/While/Evaluate/etc) at this point. */
+  controlDepth: number;
+  /** Function/Method body nesting depth at this point. */
+  functionDepth: number;
 
   reference: PeopleCodeReference;
 }
@@ -1240,6 +1244,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       action: 'ALLOC',
       sourceOffset: pos,
       controlGroup,
+      controlDepth,
+      functionDepth,
       reference: created
     });
 
@@ -1463,6 +1469,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       action: 'USE',
       sourceOffset: pos,
       controlGroup,
+      controlDepth,
+      functionDepth,
       reference
     });
 
