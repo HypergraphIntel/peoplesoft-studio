@@ -828,6 +828,24 @@ test('If condition accepts a postfix property after a parenthesized field', () =
   assert.notEqual(program.indexOf(memberThen), -1);
 });
 
+test('If condition preserves a multiline REM tail before Then', () => {
+  const program = encodeProgram(
+    'If &enabled\n' +
+    '   REM And\n' +
+    '      &disabled = 1;\n' +
+    'Then\n' +
+    'End-If;'
+  );
+  const payload = Buffer.from('REM And\n      &disabled = 1;', 'utf16le');
+  const expected = Buffer.concat([
+    Buffer.from([0x24, payload.length, 0x00]),
+    payload,
+    Buffer.from([0x1f])
+  ]);
+
+  assert.notEqual(program.indexOf(expected), -1);
+});
+
 test('Continue encodes with its context-gated statement opcode', () => {
   const program = encodeProgram(
     'While True\n' +

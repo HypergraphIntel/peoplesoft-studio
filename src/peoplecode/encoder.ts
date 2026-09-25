@@ -2631,7 +2631,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   ): boolean =>
     /^(?:REM|remark)\b/i.test(source.slice(start));
 
-  const remComment = (allowMissingSemicolon = false): Buffer => {
+  const remComment = (
+    allowMissingSemicolon = false,
+    allowIndentedSemicolonContinuation = false
+  ): Buffer => {
     const match = /^(?:REM|remark)\b[^\r\n]*/i.exec(source.slice(pos));
 
     if (!match) {
@@ -2680,6 +2683,37 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           nextLineMatch[1] + nextLineMatch[2].replace(/[ \t]+$/g, '');
         consumedLength += nextLineMatch[0].length;
         continue;
+      }
+
+      /*
+       * An If-header REM can comment out the rest of a condition across an
+       * indented continuation line. This is safe to recognize only in that
+       * caller's before-Then position, and only when the continuation closes
+       * with its own semicolon:
+       *
+       *   If None(...)
+       *      REM And
+       *         &disabled = 1;
+       *      Then
+       *
+       * GPTH_RC_PIT90.SaveEdit (definition 22751) stores both REM lines in
+       * one 0x24 payload immediately before the 0x1F Then opcode. Keep the
+       * ordinary REM parser narrow everywhere else so it cannot absorb an
+       * indented executable statement speculatively.
+       */
+      if (allowIndentedSemicolonContinuation) {
+        const indentedContinuation =
+          /^(\r?\n)([ \t]+[^\r\n]*;[ \t]*)/.exec(
+            source.slice(pos + consumedLength)
+          );
+
+        if (indentedContinuation) {
+          remText +=
+            indentedContinuation[1] +
+            indentedContinuation[2].replace(/[ \t]+$/g, '');
+          consumedLength += indentedContinuation[0].length;
+          continue;
+        }
       }
 
       /*
@@ -5267,6 +5301,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      */
     while (source.startsWith('/*', pos)) {
       chunks.push(blockCommentByPlacement());
+      space();
+    }
+
+    /*
+     * A REM between the completed condition and Then is an opaque disabled
+     * condition tail, not an executable If-body statement. Definitions
+     * 22751 and 8781 independently store it as 0x24 directly before 0x1F;
+     * 22751 also proves the payload may continue onto one indented line.
+     */
+    while (startsRemComment()) {
+      chunks.push(remComment(true, true));
       space();
     }
 
