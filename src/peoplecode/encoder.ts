@@ -2618,7 +2618,23 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     return true;
   };
   const variable = (): Buffer => {
-    const match = /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos));
+    /*
+     * A `&variable` name may start with a digit and continue with letters
+     * -- not just be either letter-led or purely numeric. `[A-Za-z0-9_]+`
+     * is a strict superset of the previous two-branch alternation
+     * (letter-led identifiers and pure-digit names both still match
+     * identically), additively covering the mixed digit-prefix case.
+     *
+     * WEBLIB_HSE.ISCRIPT1.FieldFormula (definition 21765, one of 27
+     * corpus occurrences of this exact shape):
+     *
+     *   Local number &80EE_pin_num, &HSEPRP_pin_num, ...;
+     *
+     * `&80EE_pin_num` is a single variable name; the previous regex could
+     * only match its `&80` prefix (via the `\d+` branch), leaving
+     * `EE_pin_num` to break the declaration's own comma/semicolon check.
+     */
+    const match = /^&[A-Za-z0-9_]+/.exec(source.slice(pos));
     if (!match) return fail('expected an ASCII &variable');
     pos += match[0].length;
     return textOperand(0x01, TokenKind.Name, match[0]);
