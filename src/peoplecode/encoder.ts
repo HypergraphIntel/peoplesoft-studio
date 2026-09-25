@@ -530,7 +530,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       space();
 
       const variableMatch =
-        /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos));
+        /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos));
       if (!variableMatch) {
         return fail('expected an ASCII &variable');
       }
@@ -600,7 +600,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         space();
 
         const additionalVariable =
-          /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+          /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
         if (additionalVariable === undefined) {
           return fail('expected an ASCII &variable after ,');
         }
@@ -743,7 +743,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     */
     space();
     const firstDeclaredVariable =
-      /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+      /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
     if (/^Record$/i.test(type ?? '') && firstDeclaredVariable) {
       recordVariables.add(firstDeclaredVariable.toLowerCase());
     } else if (/^Row$/i.test(type ?? '') && firstDeclaredVariable) {
@@ -765,7 +765,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       space();
       const declaredVariable =
-        /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+        /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
       if (/^Record$/i.test(type ?? '') && declaredVariable) {
         recordVariables.add(declaredVariable.toLowerCase());
       } else if (/^Row$/i.test(type ?? '') && declaredVariable) {
@@ -953,7 +953,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     */
     space();
     const firstVariable =
-      /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+      /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
     if (/^Record$/i.test(declaredType ?? '') && firstVariable) {
       recordVariables.add(firstVariable.toLowerCase());
     }
@@ -1016,7 +1016,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       space();
       const nextVariable =
-        /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+        /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
       if (/^Record$/i.test(declaredType ?? '') && nextVariable) {
         recordVariables.add(nextVariable.toLowerCase());
       }
@@ -2502,8 +2502,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     return Buffer.concat([bytes, payload]);
   };
 
+  const startsRemComment = (
+    start = pos
+  ): boolean =>
+    /^(?:REM|remark)\b/i.test(source.slice(start));
+
   const remComment = (allowMissingSemicolon = false): Buffer => {
-    const match = /^REM\b[^\r\n]*/i.exec(source.slice(pos));
+    const match = /^(?:REM|remark)\b[^\r\n]*/i.exec(source.slice(pos));
 
     if (!match) {
       return fail('expected REM comment');
@@ -2542,13 +2547,40 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      */
     while (!remText.endsWith(';')) {
       const nextLineMatch =
-        /^(\r?\n)(REM\b[^\r\n]*)/i.exec(source.slice(pos + consumedLength));
+        /^(\r?\n)((?:REM|remark)\b[^\r\n]*)/i.exec(
+          source.slice(pos + consumedLength)
+        );
 
-      if (!nextLineMatch) break;
+      if (nextLineMatch) {
+        remText +=
+          nextLineMatch[1] + nextLineMatch[2].replace(/[ \t]+$/g, '');
+        consumedLength += nextLineMatch[0].length;
+        continue;
+      }
+
+      /*
+       * Three DERIVED_GVT captures (definitions 5424-5426) continue a REM
+       * payload onto one single-space prose line without repeating REM:
+       *
+       *   REM KJB Removed code ... as it is
+       *    no longer valid, as Record.REVIEW_GOALS is obsolete;
+       *
+       * PeopleTools stores both physical lines, including the newline and
+       * final semicolon, in one 0x24 payload. Keep this deliberately narrower
+       * than ordinary indented source so a semicolon-less REM does not absorb
+       * the next PeopleCode statement.
+       */
+      const proseContinuation =
+        /^(\r?\n)( [^ \t\r\n][^\r\n]*)/.exec(
+          source.slice(pos + consumedLength)
+        );
+
+      if (!proseContinuation) break;
 
       remText +=
-        nextLineMatch[1] + nextLineMatch[2].replace(/[ \t]+$/g, '');
-      consumedLength += nextLineMatch[0].length;
+        proseContinuation[1] +
+        proseContinuation[2].replace(/[ \t]+$/g, '');
+      consumedLength += proseContinuation[0].length;
     }
 
     if (!allowMissingSemicolon && !remText.endsWith(';')) {
@@ -2644,6 +2676,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      * `EE_pin_num` to break the declaration's own comma/semicolon check.
      */
     const match = /^&[A-Za-z0-9_]+/.exec(source.slice(pos));
+    const match = /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos));
     if (!match) return fail('expected an ASCII &variable');
     pos += match[0].length;
     return textOperand(0x01, TokenKind.Name, match[0]);
@@ -2843,6 +2876,24 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         chunks.push(fixed(operator));
         expression();
       }
+      return;
+    } else if (
+      /^\(\s*&[A-Za-z0-9_]+#?(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*\)\s*\./
+        .test(source.slice(pos))
+    ) {
+      /*
+       * Parentheses may group an object/field expression before a postfix
+       * property access; they are not necessarily a parenthesized boolean
+       * subexpression. Let primary() consume the group and its postfix chain.
+       *
+       * PRCSRUNCNTL_WRK.<fields> (definitions 14194-14196):
+       *
+       *   If (&recRunCtlLang.LANGUAGE_CD).IsInBuf Then
+       *
+       * stores 0x0B...0x14 for the grouped field, followed by ordinary
+       * member access and Then.
+       */
+      comparisonExpression();
       return;
     } else if (source[pos] === '(') {
       parenthesized(booleanExpression, false);
@@ -3244,7 +3295,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     chunks.push(fixed('Function'));
 
     space();
-    const name = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+    const name = /^[A-Za-z_][A-Za-z0-9_]*#?/.exec(source.slice(pos))?.[0];
     if (name === undefined) {
       throw new UnsupportedPeopleCodeError(pos, 'expected declared Function name');
     }
@@ -3362,6 +3413,106 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
   };
 
+  /*
+   * Non-consuming structural lookahead for the statement dispatcher.
+   * It distinguishes a real call-result property assignment such as
+   * `GetPageField(..., "EDIT").Label = value` from a plain call whose
+   * string argument contains JavaScript like
+   * `getElementById(...).style.visibility = ...`. A regex cannot tell the
+   * source-level postfix chain from the lookalike text inside the string.
+   */
+  const balancedLookaheadEnd = (
+    start: number,
+    open: '(' | '[',
+    close: ')' | ']'
+  ): number => {
+    if (source[start] !== open) return -1;
+
+    let depth = 0;
+    let peek = start;
+    while (peek < source.length) {
+      if (source[peek] === '"') {
+        peek++;
+        while (peek < source.length) {
+          if (source[peek] !== '"') {
+            peek++;
+            continue;
+          }
+          if (source[peek + 1] === '"') {
+            peek += 2;
+            continue;
+          }
+          peek++;
+          break;
+        }
+        continue;
+      }
+
+      if (source.startsWith('/*', peek)) {
+        const commentEnd = source.indexOf('*/', peek + 2);
+        if (commentEnd < 0) return -1;
+        peek = commentEnd + 2;
+        continue;
+      }
+
+      if (source[peek] === open) depth++;
+      if (source[peek] === close) {
+        depth--;
+        if (depth === 0) return peek + 1;
+      }
+      peek++;
+    }
+
+    return -1;
+  };
+
+  const startsCallResultPropertyAssignment = (start: number): boolean => {
+    const callName = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(start))?.[0];
+    if (callName === undefined) return false;
+
+    let peek = start + callName.length;
+    while (/\s/.test(source[peek] ?? '')) peek++;
+    peek = balancedLookaheadEnd(peek, '(', ')');
+    if (peek < 0) return false;
+
+    let sawMember = false;
+    while (true) {
+      while (/\s/.test(source[peek] ?? '')) peek++;
+
+      if (source[peek] === '.') {
+        peek++;
+        while (/\s/.test(source[peek] ?? '')) peek++;
+        const member = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(peek))?.[0];
+        if (member === undefined) return false;
+        sawMember = true;
+        peek += member.length;
+        while (/\s/.test(source[peek] ?? '')) peek++;
+        if (source[peek] === '(') {
+          peek = balancedLookaheadEnd(peek, '(', ')');
+          if (peek < 0) return false;
+        }
+        continue;
+      }
+
+      if (source[peek] === '(') {
+        peek = balancedLookaheadEnd(peek, '(', ')');
+        if (peek < 0) return false;
+        continue;
+      }
+
+      if (source[peek] === '[') {
+        peek = balancedLookaheadEnd(peek, '[', ']');
+        if (peek < 0) return false;
+        continue;
+      }
+
+      break;
+    }
+
+    while (/\s/.test(source[peek] ?? '')) peek++;
+    return sawMember && source[peek] === '=';
+  };
+
   function statement(): void {
     currentStatementRecordFields.clear();
     /*
@@ -3470,6 +3621,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * source keyword is literally `Continue` here -- unlike the
        * decoder, which has to infer intent from a raw byte -- so 0x6E can
        * be emitted directly with no ambiguity.
+       * Continue is the context-gated 0x6E statement opcode. It stays out
+       * of the general fixed-token table because 0x6E is overloaded outside
+       * the `Continue;` shape, but the encoder is already inside a parsed
+       * Continue statement here and can select it unambiguously.
+       *
+       * PRCSRUNCNTL_WRK.<fields> (definitions 14194-14196) independently
+       * store `Else Continue;` as 0x19 0x6E 0x15.
        */
       chunks.push(Buffer.from([0x6e]));
 
@@ -3502,7 +3660,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       //
       // primary() consumes the complete variable/member/call chain.
       const statementVariable =
-        /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+        /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
       primary();
       space();
 
@@ -3668,9 +3826,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         pos++;
         chunks.push(fixed('='));
         expression();
-      } else if (
-        /^[A-Za-z_][A-Za-z0-9_]*\s*\([^;]*\)(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)+\s*=/.test(tail)
-      ) {
+      } else if (startsCallResultPropertyAssignment(pos)) {
         /*
          * A call-result property chain may traverse more than one dotted
          * member before the assigned property, e.g.
@@ -3750,7 +3906,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       while (true) {
         const paramName =
-          /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+          /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
         chunks.push(variable());
 
         const afterVariable = pos;
@@ -4167,7 +4323,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         controlGroup = nextControlGroup++;
       }
 
-      const isRemStatement = /^REM\b/i.test(source.slice(pos));
+      const isRemStatement = startsRemComment();
       if (isRemStatement) {
         chunks.push(remComment(true));
       } else {
@@ -4381,7 +4537,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             continue;
           }
 
-          if (/^REM\b/i.test(source.slice(pos))) {
+          if (startsRemComment()) {
             chunks.push(remComment(true));
             continue;
           }
@@ -4443,7 +4599,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         continue;
       }
 
-      if (/^REM\b/i.test(source.slice(pos))) {
+      if (startsRemComment()) {
         chunks.push(remComment(true));
         continue;
       }
@@ -4743,7 +4899,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         continue;
       }
 
-      if (/^REM\b/i.test(source.slice(pos))) {
+      if (startsRemComment()) {
         chunks.push(remComment(true));
         continue;
       }
@@ -4918,7 +5074,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        *
        *      REM MessageBox(0, "", 0, 0, "&RecName = " | &RecName | ...);
        */
-      if (/^REM\b/i.test(source.slice(pos))) {
+      if (startsRemComment()) {
         if (hasBlankLine) {
           const markerCount = Math.max(
             1,
@@ -5196,7 +5352,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * lines before `REM TriggerPDHEvent_Fluid(GetRow());` inside a
        * nested If body store TWO 0x4F markers, not one.
        */
-      if (/^REM\b/i.test(source.slice(pos))) {
+      if (startsRemComment()) {
         if (hasBlankLine) {
           const markerCount = Math.max(
             1,
@@ -5363,7 +5519,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * lines before `REM TriggerPDHEvent_Fluid(GetRow());` inside a
        * nested If body store TWO 0x4F markers, not one.
        */
-      if (/^REM\b/i.test(source.slice(pos))) {
+      if (startsRemComment()) {
         if (hasBlankLine) {
           const markerCount = Math.max(
             1,
@@ -5431,7 +5587,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       // Evaluate may carry a REM comment between its selector and first When.
       // PSXPRPTDEFN_WRK.PROPTYPE stores it directly as a 0x24 comment record.
-      if (!sawWhen && /^REM\b/i.test(source.slice(pos))) {
+      if (!sawWhen && startsRemComment()) {
         chunks.push(remComment(true));
         continue;
       }
@@ -5519,7 +5675,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             continue;
           }
 
-          if (/^REM\b/i.test(source.slice(pos))) {
+          if (startsRemComment()) {
             if (hasBlankLine) {
               const markerCount = Math.max(
                 1,
@@ -5561,6 +5717,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             }
           }
 
+          statement();
+
+          space();
+
           /*
            * The LAST statement in a `When-Other` body may omit its
            * trailing `;` when immediately followed by `End-Evaluate` --
@@ -5601,6 +5761,39 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           }
 
           if (source[pos] !== ';') {
+           * A block comment may sit between a When-Other body statement's
+           * expression and its explicit semicolon, just as it can at the
+           * top level and in the other calibrated control bodies.
+           *
+           * DERIVED_GPFRDSN.FUNCLIB.FieldFormula (definition 5000):
+           *
+           *   &Evtsel(...).Enabled = True /*False*\/;
+           *
+           * stores the same placement-dependent 0x4E/0x24 comment form as
+           * those existing call sites.
+           */
+          while (source.startsWith('/*', pos)) {
+            chunks.push(blockCommentByPlacement());
+            space();
+          }
+
+          if (source[pos] !== ';') {
+            /*
+             * The last statement in a When-Other body may omit its source
+             * semicolon immediately before End-Evaluate. This is the same
+             * boundary rule already used by ordinary When bodies below; it
+             * is not limited to Break/Continue.
+             *
+             * PA_RT_SCHED_VW.BENEFIT_PLAN.RowInit (definition 12623)
+             * proves the assignment form, while definitions 5000 and 15626
+             * independently prove concatenation and Return expressions:
+             *
+             *   When-Other
+             *      DERIVED.BEN_PLAN_EDIT = "PA_RT_FORM_VW"
+             *   End-Evaluate
+             *
+             * None stores a 0x15 statement terminator before 0x3F.
+             */
             if (/^End-Evaluate\b/i.test(source.slice(pos))) {
               continue;
             }
@@ -5834,7 +6027,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
            *
            * There is no separate 0x15 for the REM statement.
            */
-          if (/^REM\b/i.test(source.slice(pos))) {
+          if (startsRemComment()) {
             if (hasBlankLine) {
               const markerCount = Math.max(
                 1,
@@ -5918,7 +6111,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   }
   const call = () => {
   const name =
-    /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+    /^[A-Za-z_][A-Za-z0-9_]*#?/.exec(source.slice(pos))?.[0];
 
   if (!name) {
     return fail('expected a simple call name');
@@ -6674,7 +6867,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      */
     let bareGetRowCallResult = false;
     const baseVariableName =
-      /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+      /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
     const baseApplicationClass =
       baseVariableName === undefined
         ? undefined
@@ -6747,6 +6940,18 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        */
       const startsVariableComparison =
         /^\(\s*&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)(?:\s*\([^()]*\))?(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:<>|<=|>=|=|<|>)/
+        /^\(\s*&[A-Za-z0-9_]+#?(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:<>|<=|>=|=|<|>)/
+          .test(source.slice(pos));
+      /*
+       * System variables can be the left operand of the same parenthesized
+       * comparison shape. Four independent HCDEV definitions use exactly:
+       *
+       *   (%Mode <> %Action_Add)
+       *
+       * and store the ordinary 0x0B / 0x10 / 0x14 grouped-comparison bytes.
+       */
+      const startsSystemVariableComparison =
+        /^\(\s*%[A-Za-z_][A-Za-z0-9_]*\s*(?:<>|<=|>=|=|<|>)/
           .test(source.slice(pos));
       /*
        * A parenthesized comparison whose LEFT side is a function call
@@ -6802,6 +7007,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         startsCallOrFieldComparison ||
         startsSystemVariableComparison ||
         startsVariableBooleanChain
+        startsSystemVariableComparison ||
+        startsCallOrFieldComparison
           ? booleanExpression
           : expression,
         false
@@ -6848,7 +7055,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }, true);
     } else {
       const identifier =
-        /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+        /^[A-Za-z_][A-Za-z0-9_]*#?/.exec(source.slice(pos))?.[0];
 
       if (identifier && !/^(true|false|null)$/i.test(identifier)) {
       const tail = source.slice(pos);
@@ -6896,13 +7103,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         chunks.push(fieldReference());
       } else if (/^Scroll\s*\./i.test(tail)) {
         chunks.push(scrollReference());
-      } else if (/^Component\s*\./i.test(tail)) {
-        chunks.push(componentReference());
       } else if (
         /^[A-Za-z_][A-Za-z0-9_]*\s*\.\s*["']/.test(tail) &&
         quotedReferenceQualifiers.has(identifier.toLowerCase())
       ) {
         chunks.push(quotedReference());
+      } else if (/^Component\s*\./i.test(tail)) {
+        chunks.push(componentReference());
       } else if (/^[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/.test(tail)) {
         chunks.push(ordinaryRecordFieldReference());
       } else {
@@ -7672,6 +7879,50 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
 
     if (source.startsWith('<*', pos)) {
+      /*
+       * A standalone disabled-code marker (<* ... *>) can also follow an
+       * open top-level declaration section, exactly like the standalone
+       * block-comment branch below already handles (see that branch's
+       * own `sawTopLevelDeclaration && !closedTopLevelDeclarationSection`
+       * check) -- this branch was missing the equivalent close entirely.
+       *
+       * BN_LIMITTYP_RUN.LIMIT_TYPE.SaveEdit (definition 1929):
+       *
+       *   Global boolean &RunLimits_Age;
+       *
+       *   <*
+       *   If All(BN_LIMITTYP_RUN.LIMIT_TYPE) Then
+       *      ...
+       *   End-If;
+       *   *>
+       *
+       *   If None(BN_LIMITTYP_RUN.LIMIT_TYPE) Then
+       *
+       * stores `... 15 2D 4F 55 ...` -- the 0x2D declaration-section close
+       * belongs before the blank-line marker and the disabled-comment's
+       * own 0x55 opcode, not omitted entirely.
+       */
+      if (
+        haveCompletedTopLevelStatement &&
+        hasBlankLine &&
+        sawTopLevelDeclaration &&
+        !closedTopLevelDeclarationSection
+      ) {
+        const disabledCommentEnd = source.indexOf('*>', pos + 2);
+        const afterDisabledComment = nextSignificantAfterBlockComments(
+          disabledCommentEnd >= 0 ? disabledCommentEnd + 2 : pos
+        );
+        const nextIsTopLevelDeclarationAfterDisabledComment =
+          /^(?:Global|PanelGroup|Component|Constant|Declare\s+Function)\b/i.test(
+            source.slice(afterDisabledComment)
+          );
+
+        if (!nextIsTopLevelDeclarationAfterDisabledComment) {
+          chunks.push(Buffer.from([0x2d]));
+          closedTopLevelDeclarationSection = true;
+        }
+      }
+
       if (haveCompletedTopLevelStatement && hasBlankLine) {
         const markerCount = Math.max(
           1,
@@ -7987,7 +8238,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      * The semicolon is part of the payload, so there is no trailing 0x15.
      * Consume it here, before the ordinary statement/terminator path.
      */
-    if (/^REM\b/i.test(source.slice(pos))) {
+    if (startsRemComment()) {
       /*
        * A REM comment after the final leading Local closes a reference-bearing
        * Local section just like a standalone block comment does. The ordinary
@@ -8129,7 +8380,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       !/^(?:import|Declare|Function|Local|Global|PanelGroup|Component|Constant|Return|If|While|For|Repeat|try|throw|Break|Exit|Continue|Error|Warning|Evaluate|REM)\b/i.test(
         source.slice(pos)
       ) &&
-      /^[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(source.slice(pos));
+      /^[A-Za-z_][A-Za-z0-9_]*#?\s*\(/.test(source.slice(pos));
 
     /*
      * A `&variable.Method(...)` (or `@(...)`-led) method-call statement,
@@ -8413,8 +8664,25 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        *
        * Keep both bytes together here so the generic deferred blank-line
        * mechanism cannot reorder them as 4F 2D.
+       *
+       * An initialized Local anywhere in the section omits this 0x2D
+       * entirely, mirroring `closesTopLevelDeclarationSection`'s own
+       * identical `leadingRunHasInitializedLocal` check a few lines below
+       * -- this path was missing it.
+       *
+       * CAFNUI_CTRL_WRK.CAF_DELETE_FLG.FieldChange (definition 2102):
+       *
+       *   import PT_PAGE_UTILS:Utils;
+       *
+       *   Local PT_PAGE_UTILS:Utils &PTUtils = create PT_PAGE_UTILS:Utils();
+       *
+       *   If %Page = Page.CAFNUI_ED_FLST_SCF Then
+       *
+       * stores only the 0x4F blank-line marker before `If`, no 0x2D.
        */
-      chunks.push(Buffer.from([0x2d]));
+      if (!leadingRunHasInitializedLocal) {
+        chunks.push(Buffer.from([0x2d]));
+      }
 
       if (hasBlankLine) {
         const markerCount = Math.max(
@@ -8489,11 +8757,33 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      * stores no 0x2D at all before `If` -- only the three 0x4F blank-line
      * markers. `closesTopLevelDeclarationSection`'s own unconditional
      * 0x2D push (a few lines below) needs this flag true to omit it.
+     *
+     * An import statement closes `closedTopLevelDeclarationSection`
+     * immediately (the `isImport` branch above), independent of whether a
+     * following Application Class Local declaration section is still
+     * open -- `closesApplicationClassLocalSection`'s own 0x2D push uses
+     * this SAME flag (a few dozen lines below) and needs it set even
+     * when the generic top-level section already closed.
+     *
+     * CAFNUI_CTRL_WRK.CAF_DELETE_FLG.FieldChange (definition 2102):
+     *
+     *   import PT_PAGE_UTILS:Utils;
+     *
+     *   Local PT_PAGE_UTILS:Utils &PTUtils = create PT_PAGE_UTILS:Utils();
+     *
+     *   If %Page = Page.CAFNUI_ED_FLST_SCF Then
+     *
+     * `closedTopLevelDeclarationSection` is already true here (set by the
+     * import), so the original `!closedTopLevelDeclarationSection` guard
+     * alone never let this flag get set for this Local at all.
      */
     if (
       isLocalDeclaration &&
       lastLocalHadInitializer &&
-      !closedTopLevelDeclarationSection
+      (!closedTopLevelDeclarationSection ||
+        ((sawApplicationClassLocalSection ||
+          (isApplicationClassLocal && applicationClassLocalIsDeclarationPhase)) &&
+          !closedApplicationClassLocalSection))
     ) {
       leadingRunHasInitializedLocal = true;
     }
@@ -8557,7 +8847,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         const afterStatementLookaheadStart =
           nextSignificantAfterBlockComments(afterStatementSemicolon);
         const nextLocalMatch =
-          /^Local\s+[A-Za-z_][A-Za-z0-9_]*\s+&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)\s*(=)?/i.exec(
+          /^Local\s+[A-Za-z_][A-Za-z0-9_]*\s+&[A-Za-z0-9_]+#?\s*(=)?/i.exec(
             source.slice(afterStatementLookaheadStart)
           );
         const nextIsAnotherUninitializedLocal =
@@ -8708,7 +8998,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        *       DeleteFactorfromAnalysisGrouplets(&RS_Flt_Factor360(&save_i_flt_fac))
        *   rem &cmpSession.ProcessNUIAction("updfactor");
        */
-      const precedesRemStatement = /^REM\b/i.test(source.slice(pos));
+      const precedesRemStatement = startsRemComment();
 
       const selfTerminatingAtEof =
         (
@@ -8992,7 +9282,7 @@ function parseApplicationClassProgram(
   }
 
   const parameters = classMatch[3].trim() === '' ? [] : classMatch[3].split(',').map(parameter => {
-    const match = /^\s*(&[A-Za-z_][A-Za-z0-9_]*)\s+As\s+(string|integer|boolean)\s*$/i.exec(parameter);
+    const match = /^\s*(&[A-Za-z0-9_]+#?)\s+As\s+(string|integer|boolean)\s*$/i.exec(parameter);
     if (!match) throw new UnsupportedPeopleCodeError(0, 'unsupported Application Class parameter');
     return { name: match[1], type: match[2] };
   });
@@ -9022,15 +9312,15 @@ function parseApplicationClassProgram(
   const body = implementationMatch[3];
 
   const localMatch =
-    /\bLocal\s+([A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)+)\s+(&[A-Za-z_][A-Za-z0-9_]*)\s*;/i.exec(
+    /\bLocal\s+([A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)+)\s+(&[A-Za-z0-9_]+#?)\s*;/i.exec(
       body
     );
   const createMatch =
-    /(&[A-Za-z_][A-Za-z0-9_]*)\s*=\s*create\s+([A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)+)\s*\(\s*\)\s*;/i.exec(
+    /(&[A-Za-z0-9_]+#?)\s*=\s*create\s+([A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)+)\s*\(\s*\)\s*;/i.exec(
       body
     );
   const callMatch =
-    /(&[A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*"([^"]*)"\s*\)\s*;/i.exec(
+    /(&[A-Za-z0-9_]+#?)\.([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*"([^"]*)"\s*\)\s*;/i.exec(
       body
     );
   const returnMatch =
@@ -9246,6 +9536,7 @@ function parseFunctionMetadata(
       for (const parameter of parameterSource.split(',')) {
         const typedMatch =
           /^\s*&[A-Za-z_][A-Za-z0-9_]*\s+As\s+((?:array\s+of\s+)*[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)\s*$/i.exec(
+          /^\s*&[A-Za-z0-9_]+#?\s+As\s+((?:array\s+of\s+)?[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)\s*$/i.exec(
             parameter
           );
 
@@ -9255,7 +9546,7 @@ function parseFunctionMetadata(
         }
 
         const untypedMatch =
-          /^\s*&[A-Za-z_][A-Za-z0-9_]*\s*$/.exec(parameter);
+          /^\s*&[A-Za-z0-9_]+#?\s*$/.exec(parameter);
 
         if (untypedMatch) {
           /*
