@@ -28,7 +28,8 @@ import {
 } from '../snapshot/store';
 
 import {
-  getSnapshotDefinition
+  getSnapshotDefinition,
+  listSnapshotDefinitionIds
 } from '../snapshot/reader';
 
 type Relationship =
@@ -85,6 +86,8 @@ interface AnalysisRow {
   enclosingCall?: string;
   /** Is the GetRecord call a postfix method call (<receiver>.GetRecord(...)) rather than a bare call (GetRecord(...))? */
   isPostfix?: boolean;
+  fromSite: 'argument' | 'result-chain' | 'unknown';
+  toSite: 'argument' | 'result-chain' | 'unknown';
   // Phase 1A fields (see .claude/corpus-progress.md's research-cycle
   // section): testing whether a header/body or loop-epoch boundary
   // between the two occurrences predicts the ALLOC/REUSE disagreement.
@@ -138,13 +141,35 @@ function findCallOpenParen(source: string, callName: string, beforeOffset: numbe
   return lastEnd;
 }
 
+function callSite(
+  source: string,
+  occurrence: GeneratedOccurrence
+): AnalysisRow['toSite'] {
+  const open = occurrence.enclosingCallOpenParenIndex;
+  if (open === undefined) return 'unknown';
+
+  let depth = 0;
+  for (let i = open; i < source.length; i++) {
+    if (source[i] === '(') depth++;
+    if (source[i] === ')') {
+      depth--;
+      if (depth === 0) {
+        return occurrence.sourceOffset < i ? 'argument' : 'result-chain';
+      }
+    }
+  }
+
+  return 'unknown';
+}
+
 function analyzeDefinition(
   definitionId: number,
   displayName: string,
   source: string,
   rows: ReturnType<typeof generateEvidence>['rows'],
   callFilter: RegExp,
-  argPositionFilter?: number
+  argPositionFilter?: number,
+  alignedOnly = false
 ): AnalysisRow[] {
   const out: AnalysisRow[] = [];
 
@@ -157,6 +182,7 @@ function analyzeDefinition(
   for (const row of rows) {
     const g = row.generated;
     if (g === undefined) continue;
+    if (alignedOnly && row.alignmentTrust !== 'aligned') continue;
     if (!callFilter.test(g.enclosingCall ?? '')) continue;
     if (argPositionFilter !== undefined && g.argumentPosition !== argPositionFilter) continue;
 
@@ -197,6 +223,8 @@ function analyzeDefinition(
           openParen === undefined || curr.enclosingCall === undefined
             ? undefined
             : isPostfixCall(source, curr.enclosingCall, openParen),
+        fromSite: callSite(source, prev),
+        toSite: callSite(source, curr),
         fromConstruct: prev.controlConstruct,
         toConstruct: curr.controlConstruct,
         fromPhase: prev.controlPhase,
@@ -217,12 +245,18 @@ interface CliOptions {
   ids: number[];
   callFilter: RegExp;
   argPositionFilter?: number;
+  allContaining?: RegExp;
+  alignedOnly: boolean;
+  summaryOnly: boolean;
 }
 
 function parseArgs(argv: string[]): CliOptions {
   const ids: number[] = [];
   let callFilter = /getrecord/i;
   let argPositionFilter: number | undefined;
+  let allContaining: RegExp | undefined;
+  let alignedOnly = false;
+  let summaryOnly = false;
 
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--definition-ids') {
@@ -239,23 +273,45 @@ function parseArgs(argv: string[]): CliOptions {
       callFilter = new RegExp(argv[++i], 'i');
     } else if (argv[i] === '--arg-position') {
       argPositionFilter = Number(argv[++i]);
+    } else if (argv[i] === '--all-containing') {
+      allContaining = new RegExp(argv[++i], 'i');
+    } else if (argv[i] === '--aligned-only') {
+      alignedOnly = true;
+    } else if (argv[i] === '--summary-only') {
+      summaryOnly = true;
     }
   }
 
-  return { ids: [...new Set(ids)], callFilter, argPositionFilter };
+  return {
+    ids: [...new Set(ids)],
+    callFilter,
+    argPositionFilter,
+    allContaining,
+    alignedOnly,
+    summaryOnly
+  };
 }
 
 function main(): void {
   const options = parseArgs(process.argv.slice(2));
-  const { ids, callFilter, argPositionFilter } = options;
-
-  if (ids.length === 0) {
-    throw new Error(
-      'Usage: getrecord-branch-analysis.ts --definition-ids <id,id,...> | --from-file <path> [--call-filter <regex>] [--arg-position <n>]'
-    );
-  }
+  const { callFilter, argPositionFilter } = options;
 
   const db = openSnapshotDatabase();
+
+  const ids = options.allContaining === undefined
+    ? options.ids
+    : listSnapshotDefinitionIds(db).filter(id =>
+        options.allContaining!.test(
+          getSnapshotDefinition(db, id).sourceText
+        )
+      );
+
+  if (ids.length === 0) {
+    db.close();
+    throw new Error(
+      'Usage: getrecord-branch-analysis.ts --definition-ids <id,id,...> | --from-file <path> | --all-containing <regex> [--call-filter <regex>] [--arg-position <n>]'
+    );
+  }
 
   const allRows: AnalysisRow[] = [];
   let processed = 0;
@@ -272,7 +328,8 @@ function main(): void {
           definition.sourceText,
           evidence.rows,
           callFilter,
-          argPositionFilter
+          argPositionFilter,
+          options.alignedOnly
         )
       );
       processed++;
@@ -285,7 +342,7 @@ function main(): void {
 
   console.log(
     `Processed ${processed}/${ids.length} definitions (${errors} errors), ` +
-      `${allRows.length} consecutive-same-identity GetRecord occurrence pairs found.\n`
+      `${allRows.length} consecutive-same-identity target-call occurrence pairs found.\n`
   );
 
   // Tabulate: relationship x (stored decision, generated decision, agree)
@@ -294,7 +351,7 @@ function main(): void {
   for (const row of allRows) {
     const postfixLabel =
       row.isPostfix === undefined ? 'postfix=?' : row.isPostfix ? 'postfix=YES' : 'postfix=NO(bare)';
-    const key = `${row.relationship} | ${postfixLabel} | stored=${row.storedDecision ?? '?'} generated=${row.generatedDecision} agree=${row.agree ?? '?'}`;
+    const key = `${row.relationship} | ${postfixLabel} | site=${row.fromSite}->${row.toSite} | stored=${row.storedDecision ?? '?'} generated=${row.generatedDecision} agree=${row.agree ?? '?'}`;
     const entry = table.get(key) ?? { count: 0, examples: [] };
     entry.count++;
     if (entry.examples.length < 3) entry.examples.push(row);
@@ -308,15 +365,17 @@ function main(): void {
     console.log(`${key} : ${entry.count}`);
   }
 
-  console.log('\n--- Examples per bucket (up to 3 each) ---');
-  for (const [key, entry] of sorted) {
-    console.log(`\n${key}:`);
-    for (const ex of entry.examples) {
-      console.log(
-        `  def ${ex.definitionId} (${ex.displayName}) occ ${ex.fromOccurrence}->${ex.toOccurrence} ` +
-          `[${ex.fromBranch}#${ex.fromStmt}] -> [${ex.toBranch}#${ex.toStmt}] ` +
-          `intervening=[${ex.intervening.join(',')}]`
-      );
+  if (!options.summaryOnly) {
+    console.log('\n--- Examples per bucket (up to 3 each) ---');
+    for (const [key, entry] of sorted) {
+      console.log(`\n${key}:`);
+      for (const ex of entry.examples) {
+        console.log(
+          `  def ${ex.definitionId} (${ex.displayName}) occ ${ex.fromOccurrence}->${ex.toOccurrence} ` +
+            `[${ex.fromBranch}#${ex.fromStmt}] -> [${ex.toBranch}#${ex.toStmt}] ` +
+            `intervening=[${ex.intervening.join(',')}]`
+        );
+      }
     }
   }
 
@@ -325,14 +384,18 @@ function main(): void {
     `\n--- Total disagreements: ${disagreements.length} / ${allRows.length} pairs ---`
   );
 
-  console.log('\n--- All disagreements (definition_id, relationship, postfix, occ range) ---');
   const seenDefs = new Set<number>();
-  for (const d of disagreements) {
-    console.log(
-      `  def ${d.definitionId} (${d.displayName}) ${d.relationship} postfix=${d.isPostfix} ` +
-        `occ ${d.fromOccurrence}->${d.toOccurrence} stored=${d.storedDecision} generated=${d.generatedDecision}`
-    );
-    seenDefs.add(d.definitionId);
+  if (!options.summaryOnly) {
+    console.log('\n--- All disagreements (definition_id, relationship, postfix, occ range) ---');
+    for (const d of disagreements) {
+      console.log(
+        `  def ${d.definitionId} (${d.displayName}) ${d.relationship} postfix=${d.isPostfix} ` +
+          `occ ${d.fromOccurrence}->${d.toOccurrence} stored=${d.storedDecision} generated=${d.generatedDecision}`
+      );
+      seenDefs.add(d.definitionId);
+    }
+  } else {
+    for (const d of disagreements) seenDefs.add(d.definitionId);
   }
   console.log(`\n--- Distinct definitions with a disagreement: ${seenDefs.size} ---`);
   console.log([...seenDefs].sort((a, b) => a - b).join(','));
