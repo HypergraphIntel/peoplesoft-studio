@@ -2758,17 +2758,119 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     comparisonExpression();
   };
 
+  /*
+   * Look past any leading `/* ... *\/` block comments (each followed by
+   * ordinary whitespace) to determine whether `keyword` follows, without
+   * consuming any source. Used to decide whether an And/Or-group
+   * continues when a standalone comment sits between the last operand
+   * and the next `And`/`Or`, e.g.:
+   *
+   *   PanelGroup.HS_INJ_ILL_REHAB
+   *      /* Start of Resolution Id: 305302 *\/
+   *      Or
+   *      %Component = ...
+   *
+   * HS_INJ_ILL_REHAB.HS_PNLGRP_ROUTE.Value stores this comment as an
+   * ordinary standalone 0x24 record positioned right after the 0x41
+   * And/Or-group-open marker, before the `Or` keyword itself.
+   */
+  const restStartsWithKeywordPastComments = (keyword: RegExp): boolean => {
+    let peek = pos;
+    while (true) {
+      while (peek < source.length && /\s/.test(source[peek])) peek++;
+      if (source.startsWith('/*', peek)) {
+        const end = source.indexOf('*/', peek + 2);
+        if (end < 0) return false;
+        peek = end + 2;
+        continue;
+      }
+      break;
+    }
+    return keyword.test(source.slice(peek));
+  };
+
+  /*
+   * A block comment renders as a standalone 0x24 record when it starts
+   * on its own source line, or an inline 0x4E record when it continues
+   * the same line as whatever precedes it -- the same distinction
+   * `blockComment()`/`inlineBlockComment()` already draw elsewhere, just
+   * decided here from the comment's own position rather than a fixed
+   * per-call-site choice. Looks backward from `pos` (already positioned
+   * at the comment's own `/*`) past only spaces/tabs, not newlines.
+   *
+   * HS_INJ_ILL_REHAB.HS_PNLGRP_ROUTE.Value proves both shapes can appear
+   * around the SAME And/Or-group and If/Then boundary depending purely
+   * on line placement:
+   *
+   *   If %PanelGroup = PanelGroup.HS_INJ_ILL_REHAB
+   *         /* Start of Resolution Id: 305302 *\/    -- own line -> 0x24
+   *         Or
+   *         %Component = Component.HS_NE_INJILL_REHAB
+   *      /* End of Resolution Id: 305302 *\/          -- own line -> 0x24
+   *      Then
+   */
+  const blockCommentStartsOwnLine = (): boolean => {
+    let i = pos - 1;
+    while (i >= 0 && (source[i] === ' ' || source[i] === '\t')) i--;
+    return i < 0 || source[i] === '\n' || source[i] === '\r';
+  };
+
+  const blockCommentByPlacement = (): Buffer =>
+    blockCommentStartsOwnLine() ? blockComment() : inlineBlockComment();
+
   const andExpression = () => {
     booleanUnary();
     space();
 
-    if (!/^And\b/i.test(source.slice(pos))) {
+    if (!restStartsWithKeywordPastComments(/^And\b/i)) {
       return;
+    }
+
+    /*
+     * An INLINE (same-line) comment between the first operand and the
+     * group's first `And` still belongs to that operand's own token
+     * stream, emitted BEFORE the group-open 0x41 -- the opposite order
+     * from a STANDALONE (own-line) comment, which belongs to the group
+     * itself and is emitted AFTER 0x41.
+     *
+     * BANKACCT_SBR.ACCOUNT_EC_ID.FieldFormula (definition 1411):
+     *
+     *   If %Component = "GPSC_BANK_ACC_FL" /*FLUID*\/ And
+     *
+     * stores `... "GPSC_BANK_ACC_FL" 4E<comment> 41 18(And) ...` -- the
+     * inline comment directly after the string literal, THEN 0x41, THEN
+     * `And`. Contrast HS_INJ_ILL_REHAB.HS_PNLGRP_ROUTE.Value's own-line
+     * comment before `Or` (definition 6509), which stores
+     * `... 41 24<comment> 1E(Or) ...` -- 0x41 first.
+     */
+    while (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
+      chunks.push(inlineBlockComment());
+      space();
     }
 
     chunks.push(Buffer.from([0x41]));
 
-    while (/^And\b/i.test(source.slice(pos))) {
+    while (source.startsWith('/*', pos)) {
+      chunks.push(blockCommentByPlacement());
+      space();
+    }
+
+    while (restStartsWithKeywordPastComments(/^And\b/i)) {
+      /*
+       * A standalone/inline comment may likewise sit between a PRIOR
+       * operand and a SUBSEQUENT `And` in the same multi-operand group
+       * (not just before the group's first `And`, handled above) --
+       * mirrored from that same check for this loop's own re-entry
+       * condition. HS_INJ_WORK.CHECK_BOX.FieldChange (definition 6507)
+       * proves this with a THREE-operand Or-chain where the comment sits
+       * between the second and third operands, not the first and
+       * second.
+       */
+      while (source.startsWith('/*', pos)) {
+        chunks.push(blockCommentByPlacement());
+        space();
+      }
+
       pos += 3;
       chunks.push(fixed('And'));
 
@@ -2804,12 +2906,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
 
     /*
-     * An inline block comment may follow the last And-group operand,
-     * before the group's closing 0x42. Encoded the same same-line 0x4E
-     * way as any other inline trailing comment; see booleanExpression's
-     * Or-group below for the calibrating fixture.
+     * An INLINE (same-line) block comment may follow the last And-group
+     * operand, before the group's closing 0x42 -- it still logically
+     * hugs that operand. A comment starting its OWN line instead belongs
+     * to whatever follows the closing 0x42 (e.g. ifStatement()'s own
+     * comment-before-Then handling), not inside this group -- proven by
+     * HS_INJ_ILL_REHAB.HS_PNLGRP_ROUTE.Value, whose own-line comment
+     * before `Then` stores AFTER the Or-group's 0x42, not before it (see
+     * booleanExpression's Or-group below for the original inline-only
+     * calibrating fixture this narrows).
      */
-    if (source.startsWith('/*', pos)) {
+    if (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
       chunks.push(inlineBlockComment());
       space();
     }
@@ -2821,13 +2928,38 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     andExpression();
     space();
 
-    if (!/^Or\b/i.test(source.slice(pos))) {
+    if (!restStartsWithKeywordPastComments(/^Or\b/i)) {
       return;
+    }
+
+    /*
+     * See andExpression()'s identical check: an INLINE comment before
+     * the group's first `Or` is emitted before the group-open 0x41; a
+     * STANDALONE one is emitted after it.
+     */
+    while (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
+      chunks.push(inlineBlockComment());
+      space();
     }
 
     chunks.push(Buffer.from([0x41]));
 
-    while (/^Or\b/i.test(source.slice(pos))) {
+    while (source.startsWith('/*', pos)) {
+      chunks.push(blockCommentByPlacement());
+      space();
+    }
+
+    while (restStartsWithKeywordPastComments(/^Or\b/i)) {
+      /*
+       * See andExpression()'s identical re-entry check for a comment
+       * between a prior operand and a SUBSEQUENT `Or` (definition 6507's
+       * three-operand chain).
+       */
+      while (source.startsWith('/*', pos)) {
+        chunks.push(blockCommentByPlacement());
+        space();
+      }
+
       pos += 2;
       chunks.push(fixed('Or'));
 
@@ -2856,8 +2988,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
 
     /*
-     * An inline block comment may follow the last Or-group operand,
-     * before the group's closing 0x42.
+     * An INLINE (same-line) block comment may follow the last Or-group
+     * operand, before the group's closing 0x42 -- it still logically
+     * hugs that operand. A comment starting its OWN line instead belongs
+     * to whatever follows the closing 0x42, not inside this group.
      *
      * BANKACCT_SBR.ACCOUNT_EC_ID.FieldFormula (definition 1406):
      *
@@ -2865,9 +2999,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      *         %Component = "GPSC_BANK_ACC_FL" /*FLUID*\/) And
      *
      * stores the inline 0x4E comment immediately before the Or-group's
-     * closing 0x42, not after it.
+     * closing 0x42, not after it (same line as the last operand).
+     * HS_INJ_ILL_REHAB.HS_PNLGRP_ROUTE.Value's own-line comment before
+     * `Then` instead stores AFTER the Or-group's 0x42 (picked up by
+     * ifStatement()'s own comment-before-Then handling), proving the
+     * own-line case must NOT be consumed here.
      */
-    if (source.startsWith('/*', pos)) {
+    if (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
       chunks.push(inlineBlockComment());
       space();
     }
@@ -4594,7 +4732,9 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     space();
 
     /*
-     * A block comment may appear between an If condition and Then:
+     * A block comment may appear between an If condition and Then, either
+     * inline (0x4E, continuing the condition's own line) or standalone
+     * (0x24, starting a new line) -- see `blockCommentByPlacement()`.
      *
      *   If &HeaderRowset(&i).Visible = True [inline block comment] Then
      *
@@ -4603,12 +4743,12 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      *
      *   ... 06 2F 4E <comment> 1F ...
      *
-     * decodeProgram() may render the same 0x4E comment on its own line before
-     * Then, so accept either source layout and preserve the inline-comment
-     * representation.
+     * HS_INJ_ILL_REHAB.HS_PNLGRP_ROUTE.Value proves the standalone case:
+     * its own comment sits on its own line right before `Then` and
+     * stores as 0x24, not 0x4E.
      */
     while (source.startsWith('/*', pos)) {
-      chunks.push(inlineBlockComment());
+      chunks.push(blockCommentByPlacement());
       space();
     }
 
