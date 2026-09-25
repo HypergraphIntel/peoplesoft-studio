@@ -6,12 +6,15 @@
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #91 (below), validated locally on
-  top of commit `3d515a7`. Fix #91 and this progress ledger update are
-  currently uncommitted. (Fix #90's own code landed in commit `b17f9c7`
-  "More encoder / decoder fixes" -- committed directly by the user's own
-  editor tooling mid-session, capturing this fix's already-verified
-  working-tree diff verbatim; content confirmed identical via `git show`.)
+- **Last successful calibration**: Fix #91, committed at `16233cd` (see
+  below for its full description). This progress-ledger update (recording
+  a subsequent triage round that found four deferred items and landed no
+  new fix -- see "Identified, not yet fixed" for definitions 1521,
+  1423/1424, and 1721/1722) is currently uncommitted. (Fix #90's own code
+  landed in commit `b17f9c7` "More encoder / decoder fixes" -- committed
+  directly by the user's own editor tooling mid-session, capturing this
+  fix's already-verified working-tree diff verbatim; content confirmed
+  identical via `git show`.)
   **Mid-session git incident (2026-09-25, /goal resume session)**: a
   `git pull --rebase` replayed Fix #85-#89 onto an updated `origin/main`
   that has its OWN separate, parallel corpus-calibration work -- a
@@ -4143,6 +4146,100 @@ Needs a dedicated, careful multi-example investigation -- likely the same
 general family as 1305, and should probably be tackled together with it
 in one focused session rather than guessed at again.
 
+### definition_id 1521 (BAS_ELT_SELECT.PB_SELECT_EVENT.FieldChange) — a
+### THIRD FetchValue-own-argument contradiction, this time Scroll.X, and
+### directly disproving the ALREADY-CALIBRATED "FetchValue Scroll.X
+### reuse" rule's own comment
+
+Found in the same triage batch as 1454, immediately after it. Source is
+five consecutive flat top-level statements, each `FetchValue(Scroll.
+BAS_PAR_VW, &EVENT_ROW, BAS_PAR_VW.<field>)` with an IDENTICAL `Scroll.
+BAS_PAR_VW` first argument. The existing code has an explicit, cited
+rule for exactly this shape (`reuseScrollReferenceWithinControlGroup`
+trigger for `FetchValue`, comment citing `&BENRCD = FetchValue(Scroll.
+BAS_PAR_VW, &I, BAS_PAR_VW.BENEFIT_RCD_NBR); &EVENT_ID = FetchValue
+(Scroll.BAS_PAR_VW, &I, BAS_PAR_VW.EVENT_ID); -- the second FetchValue's
+own Scroll.BAS_PAR_VW argument reuses the first's"). Definition 1521's
+own full `PSPCMNAME` dump DIRECTLY CONTRADICTS that: all FIVE
+`Scroll.BAS_PAR_VW` occurrences get their OWN fresh row (NAMENUM 4, 7,
+10, 13, 15 -- five separate entries for identical text), not one shared
+row. NOT investigated further or fixed -- this is now the THIRD
+independent FetchValue-own-argument reuse contradiction found this
+session alone (1305's Record.X, 1454's Record.X, this one's Scroll.X),
+strongly suggesting the entire family of "FetchValue's own first
+argument reuses an earlier establishment" rules (both the
+`reuseRecordReferenceWithinControlGroup` and
+`reuseScrollReferenceWithinControlGroup` trigger-list inclusions for
+`FetchValue`) may be systemically over-broad, evidenced only by
+definitions with a DIFFERENT, more specific shape (definition 1128 for
+Record.X: a multi-level scroll-navigation chain where FetchValue's own
+argument is reused as an intermediate step, not a first-argument
+re-statement; the Scroll.X positive evidence's own definitions were not
+re-checked this session for a similar shape mismatch). This needs a
+dedicated session gathering EVERY FetchValue occurrence in the local
+snapshot (both currently-EXACT and currently-failing) and tabulating
+argument position, call depth, and whether an identical-text earlier
+establishment exists, before touching this mechanism again -- not
+another single-definition guess. Tackle together with 1305/1454.
+
+### definition_id 1423 (BANKACCT_SBR.INTL_BANK_ACCT_NBR.SaveEdit) and
+### definition_id 1424 (its SavePreChange sibling, same construct) — a
+### POSTFIX `.GetRecord(...)` method call (on a Row/Rowset variable, not
+### the bare top-level function) may NOT put its following bare
+### `.MEMBER` into field-reference mode the same way the bare primary
+### call does
+
+First diff (1423) at body offset 788: `&IBANValidated = &Der_Parent.
+GETRECORD(Record.DERIVED_IBAN).GP_IBAN_VALIDATED.VALUE;` -- stored keeps
+`GP_IBAN_VALIDATED` as plain INLINE text (`0x0A`), generated wrongly
+compiles it as a FIELD PSPCMNAME reference (`0x4A`). The existing
+`expectedReferenceMember = member.toLowerCase() === 'getrecord' ? 'field'
+: ...` transition (fired whenever ANY postfix step is a method call named
+`GetRecord`, regardless of receiver) unconditionally applies the
+bare-primary-call's "argumented GetRecord puts the next bare .MEMBER into
+field mode" rule (definition 535's own calibrated evidence) to this
+POSTFIX-call-on-a-variable shape too -- but 1423 disproves that
+generalization directly. NOT investigated further or fixed: only one
+corroborating pair (1423/1424, identical construct, not independent
+evidence) found this session; needs the ACTUAL positive/negative boundary
+established with genuinely different examples (does ANY corpus
+`&var.GetRecord(Record.X).FIELD.Value` shape correctly compile FIELD as a
+reference, or is the bare-primary-call rule ENTIRELY inapplicable to the
+postfix-on-a-variable form?) before changing the shared transition code,
+since `GetRecord`/`Select`/`GetRowset` postfix calls are used pervasively
+throughout this file's already-calibrated logic.
+
+### definition_id 1721/1722 (BC_WRK.FULLACCESS/NOACCESS.FieldChange,
+### identical construct, only the assigned literal differs) — a POSTFIX
+### `.GetRow(...)` method call (on an UNDECLARED/untyped variable
+### assigned from a bare `GetRowset()`) may NOT trigger the "row starts a
+### RECORD.FIELD.Value chain" 0x4A-reference treatment
+
+Source: `&RSF = GetRowset(); For &F = 1 To &RSF.activerowcount; &RSF.
+getrow(&F).BC_WRK.BCMETHODACCESS.value = "FULL";`. Stored keeps `BC_WRK`
+(the record-identifying first member after `.getrow(&F)`) as plain
+INLINE text; generated wrongly compiles it as a 0x4A reference (of
+`'record'`-mode kind -- confirmed via a temporary debug trace of
+`expectedReferenceMember`, which IS correctly `'record'` at this point,
+REVERTED after use, not committed). This means the BUG is not in which
+mode gets selected, but in whether row-shorthand RECORD.FIELD.Value
+compilation should apply AT ALL when the row comes from a POSTFIX
+`.GetRow(...)` call on an untyped variable (`&RSF`, never declared
+`Local Row`/`Local Rowset`, just assigned from bare `GetRowset()`) rather
+than: (a) a `Local Row &row;`-declared variable (`rowStartsRecordFieldChain`,
+already correctly scoped to `rowVariables`), or (b) a BARE PRIMARY
+`GetRow()` call used directly, not as a postfix step
+(`bareGetRowCallStartsRecordFieldChain`). NOT investigated further or
+fixed: only one corroborating pair found (1721/1722, identical
+construct), and the shared `expectedReferenceMember = ... 'getrow' ?
+'record' : ...` transition this would need to narrow is used by
+`.GetRow(...)` postfix calls throughout many already-calibrated corpus
+definitions (e.g. `&Types.GetRow(&I).GetRecord(1).ADDRESS_TYPE.Value` in
+definition 535) -- changing it needs a broader survey of `.GetRow(...)`
+postfix-call shapes (declared-type receiver vs untyped, immediately
+followed by another method call vs a bare member) before acting, not a
+single-pair guess.
+
 ### definition_id 1749 remaining issue: a THIRD, contradictory
 ### ScrollFlush-then-ScrollSelect/RowScrollSelect data point
 
@@ -4829,23 +4926,37 @@ project-level blocker").
 ## Next action
 - **Current session (2026-09-25, /goal resume), immediate next step**: Fix
   #91 landed and verified (430/430, full run 1597, 0 regressed against
-  1587). A mid-session git incident (rebase/stash-pop left encoder.ts and
-  this progress file both corrupted; see Checkpoint) was found and fully
-  recovered -- code fixed in commit `3b2597c`, this file restored from
-  commit `be8a8e4`. Resume triage from `npm run corpus:next`, which
-  currently surfaces the `UNKNOWN_MISMATCH`/`(none)` catch-all (no single
-  construct signature -- representatives must be pulled and diagnosed
-  individually, e.g. definitions 528, 843, 982, 908, 889, 805, and 437's
-  families just fixed). No definition is currently mid-investigation. Skip
-  definition_id 536 (still recommended by `corpus:next` due to its own
-  documented offset-ordering caveat below), definition_id 1749 (STILL
-  deferred -- Fix #89 resolved its first issue but a second, deeper one
-  remains), definition_id 1305 (a bare RECORD.FIELD-resolves-to-owner bug,
+  1587) -- see "Locally blocked / deferred" and Checkpoint above for the
+  mid-session git-incident recovery (fully resolved; code fixed in commit
+  `3b2597c`, this file restored from commit `be8a8e4`). A SUBSEQUENT
+  triage round (still this session) checked six more candidates (1423,
+  1424, 1454 -- already deferred --, 1521, 1721, 1722) and found FOUR
+  more genuinely deferred items, landing no new fix this round: 1521 (a
+  THIRD FetchValue-own-argument contradiction, this time disproving the
+  ALREADY-CALIBRATED "FetchValue Scroll.X reuse" comment directly --
+  strongly suggests the WHOLE FetchValue-own-argument-reuse mechanism,
+  both Record.X and Scroll.X sides, may be systemically over-broad and
+  needs a dedicated multi-example session, not another guess), 1423/1424
+  (a postfix `.GetRecord(...)` method call on a Row/Rowset VARIABLE may
+  not get the bare-primary-call's field-mode treatment), and 1721/1722 (a
+  postfix `.GetRow(...)` on an UNDECLARED/untyped variable may not get
+  the row-shorthand RECORD.FIELD.Value treatment). Full trails for all
+  four are under "Identified, not yet fixed" below. Resume triage from
+  `npm run corpus:next`, which currently surfaces the `UNKNOWN_MISMATCH`/
+  `(none)` catch-all (no single construct signature -- representatives
+  must be pulled and diagnosed individually, e.g. definitions 528, 843,
+  982, 908, 889, 805, and 437's families fixed this session). No
+  definition is currently mid-investigation. Skip definition_id 536
+  (still recommended by `corpus:next` due to its own documented
+  offset-ordering caveat below), definition_id 1749 (STILL deferred --
+  Fix #89 resolved its first issue but a second, deeper one remains),
+  definition_id 1305 (a bare RECORD.FIELD-resolves-to-owner bug,
   unrelated to the FetchValue hypothesis that was tried and reverted for
-  it), and definition_id 1454 (same FetchValue-reuse family as 1305, not
-  investigated further after the revert) when triaging; see "Identified,
-  not yet fixed" for the full trail on each. All other locally-blocked/
-  deferred entries listed below
+  it), definition_id 1454, definition_id 1521 (both FetchValue-reuse
+  family, see above), definition_id 1423/1424 (postfix GetRecord
+  field-mode), and definition_id 1721/1722 (postfix GetRow row-shorthand)
+  when triaging; see "Identified, not yet fixed" for the full trail on
+  each. All other locally-blocked/deferred entries listed below
   (older sessions) remain unchanged; none were revisited this session.
   Process note worth repeating for future RowScrollSelect/ScrollSelect/
   ScrollFlush-adjacent changes specifically: this whole area has a history
