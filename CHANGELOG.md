@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.8
+
+### Local MCP Server wrapper for AI Agents
+
+Version **0.1.8** represents a major step forward for PeopleSoft Studio's native PeopleCode tooling.
+
+
 ## 0.1.7
 
 ### Major PeopleCode Compiler and Decoder Expansion
