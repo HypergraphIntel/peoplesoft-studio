@@ -1,5 +1,45 @@
 # Corpus Calibration Progress
 
+## Fix #80: `&variable` names may start with digits and continue with letters
+
+`src/peoplecode/encoder.ts`, the shared `variable()` primitive (used
+throughout the encoder for every `&name` occurrence): the name-matching
+regex was a two-branch alternation, `[A-Za-z_][A-Za-z0-9_]*` (letter/
+underscore-led) OR `\d+` (purely numeric) -- neither branch matches a
+name that starts with digits and then continues with letters, e.g.
+`&80EE_pin_num`. Against that source, the old regex's `\d+` branch could
+only consume the leading `&80`, leaving `EE_pin_num` to break whatever
+construct came next (usually the enclosing declaration's own comma/`;`
+check a few bytes later).
+
+Fixed by replacing the whole alternation with `[A-Za-z0-9_]+`, which is a
+strict superset of both previous branches (every previously-matched name
+still matches identically) and additively covers the mixed digit-prefix
+case. This is one shared function, not per-call-site duplicated regexes
+(unlike some earlier fixes this session), so the change was a single,
+minimal, evidence-backed generalization -- no other call site needed
+touching.
+
+Target: WEBLIB_HSE.ISCRIPT1.FieldFormula (definition 21765): `Local
+number &80EE_pin_num, &HSEPRP_pin_num, ...;` -- confirmed full EXACT.
+
+Searched the corpus for `&[0-9]+[A-Za-z_][A-Za-z0-9_]*` (a `&`-led name
+starting with digits, continuing with a letter): 27 occurrences. Sampled
+all 27: 9 reach full `EXACT` (4243, 7545, 9090, 20483, 20495, 21765,
+21790, 27531, 28061), the rest advance past this construct into other,
+separate, pre-existing issues elsewhere in the same files (confirmed:
+none of the 27 sampled were EXACT before this fix, so none could have
+regressed).
+
+Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
+`corpus:verify --limit 430` 430/430, 0 regressed. This touches one of the
+most broadly-shared primitives in the encoder (every `&variable`
+reference goes through it), so a full-corpus diff was essential, not
+optional: background run (run_id 303, 30209/30209, exact=22531) diffed
+against the immediately preceding full run (run_id 301, exact=22523): 8
+improved, 0 regressed, 30201 same -- the largest single-fix gain since
+Fix #69 (the decimal-literal scale byte fix).
+
 ## Fix #79: nested `array of array of ... of X` Function parameter/return types
 
 `src/peoplecode/encoder.ts`, two fixes to the same underlying gap:
@@ -203,30 +243,33 @@ run (run_id 295, 30209/30209, exact=22516) diffed against the immediately
 preceding full run (run_id 292, exact=22511): 5 improved, 0 regressed,
 30204 same.
 
-## Status as of Fix #79 (current)
+## Status as of Fix #80 (current)
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
   throughout. `--live` has never been used this session.
 - **Protected baseline**: 430/430, clean.
-- **Last successful calibration**: Fix #79 (above).
-- **Corpus total**: full-corpus run_id 301 = 22523/30209 exact (74.5%),
-  confirmed zero-regression against run_id 299 (Fix #78's baseline,
-  itself confirmed zero-regression against run_id 297/295/292/290/288).
+- **Last successful calibration**: Fix #80 (above).
+- **Corpus total**: full-corpus run_id 303 = 22531/30209 exact (74.6%),
+  confirmed zero-regression against run_id 301 (Fix #79's baseline,
+  itself confirmed zero-regression against run_id 299/297/295/292/290/288).
 - **Next action**: resume failure-family triage from the current failure
-  inventory (`GROUP BY classification, error_message` on run_id 301 in
+  inventory (`GROUP BY classification, error_message` on run_id 303 in
   `tools/corpus/corpus-results.sqlite`, excluding `%bare identifiers%` and
-  `%Application Class%` which are the known-deferred gap). Two small,
-  scoped-but-unsolved leftovers from Fix #77/#79 (low priority, 1
-  occurrence each, not corpus-significant families on their own, revisit
-  only if nothing bigger is actionable): the `time` Function
-  parameter/return type id (needs figuring out Function metadata layout
-  for files that interleave `Function ... End-Function;` blocks with
-  executable code -- see Fix #77's entry for the concrete blocker,
-  definition 1016); definition 14727's empty-parameter and definition
-  14854's comment-inside-parameter-list `Unsupported Function parameter`
-  cases (see Fix #79's entry). Otherwise, re-run the failure-family query
-  fresh against run_id 301 to find the next actionable, non-deferred
-  construct -- nothing further was pre-scoped as of this update.
+  `%Application Class%` which are the known-deferred gap). Small,
+  scoped-but-unsolved leftovers from earlier fixes (low priority, 1
+  occurrence each, revisit only if nothing bigger is actionable): the
+  `time` Function parameter/return type id (needs figuring out Function
+  metadata layout for files that interleave `Function ... End-Function;`
+  blocks with executable code -- see Fix #77's entry for the concrete
+  blocker, definition 1016); definition 14727's empty-parameter and
+  definition 14854's comment-inside-parameter-list `Unsupported Function
+  parameter` cases (see Fix #79's entry); definition 13562's newly-exposed
+  `Unsupported function metadata type: Message` (seen during Fix #80's
+  candidate sampling, not yet investigated -- may be a new, real type-id
+  gap similar to Fix #77's SQL/Grid work, worth checking for corroborating
+  occurrences before diving in). Otherwise, re-run the failure-family
+  query fresh against run_id 303 to find the next actionable, non-deferred
+  construct.
 - **Locally blocked / deferred, evidence exhausted** (unchanged unless
   noted): the `#If #ToolsRel` preprocessor-directive family (73
   occurrences, environmental per-definition dependency); the general
