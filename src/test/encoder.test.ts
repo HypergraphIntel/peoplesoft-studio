@@ -869,6 +869,28 @@ test('REM may continue onto an observed single-space prose line', () => {
   );
 });
 
+test('HCDEV definition 3428 preserves a declared function terminal #', () => {
+  const source =
+    'Declare Function assign_seq# PeopleCode CSB_REGISTRANT.SEQNUM FieldFormula;\n\n' +
+    'If %Panel = Panel.CSB_REG_DATA Then\n' +
+    '   assign_seq#();\n' +
+    'End-If;\n';
+  const expected = Buffer.from(
+    'a000000000720000000000000000000000000000000000000000000000000000008500000031320a610073007300690067006e005f00730065007100230000003a210100404600690065006c00640046006f0072006d0075006c006100000042152d4f1c122500500061006e0065006c000000062102001f0a610073007300690067006e005f00730065007100230000000b14151a1507',
+    'hex'
+  );
+
+  assert.deepStrictEqual(
+    encodeProgram(source, {
+      owner: {
+        recordName: 'CSB_REGISTRANT',
+        fieldName: 'EMPLID'
+      }
+    }),
+    expected
+  );
+});
+
 test('encodeProgram exactly reproduces PeopleTools While fixture', () => {
   const expected = Buffer.from(
     'A0000000007200000000000000000000000000000000000000000000000000000085000000444069006E007400650067006500720000000126006100000006500000010000000000000000000000000000001525012600610000000D5000000A0000000000000000000000000000002D012600610000000601260061000000135000000100000000000000000000000000000015261507',

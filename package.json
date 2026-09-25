@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
