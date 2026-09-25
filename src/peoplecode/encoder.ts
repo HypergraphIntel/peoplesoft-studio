@@ -4725,7 +4725,22 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       space();
       if (source[pos] !== ';') {
-        fail('expected ; in While body');
+        /*
+         * The final statement in a While body may omit its source
+         * semicolon when it is immediately followed by End-While, the
+         * same way a For body already can before End-For.
+         *
+         * GPGB_RC_CTL.GPGB_RC_APPLD.FieldFormula (definition 7041):
+         *
+         *   While ...
+         *      ...
+         *      &i = &i + 1
+         *   End-While;
+         */
+        if (!/^End-While\b/i.test(source.slice(pos))) {
+          fail('expected ; in While body');
+        }
+        continue;
       }
 
       pos++;
