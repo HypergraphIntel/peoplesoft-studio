@@ -1017,6 +1017,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       chunks.push(fixed(','));
 
       space();
+      /*
+       * PeopleTools preserves a trailing comma in ordinary Component
+       * declarations as the normal comma opcode immediately before the
+       * declaration semicolon. HCDEV definitions 14721, 17309, 21463, and
+       * 21578 independently contain this form (including scalar, Rowset,
+       * and array types):
+       *
+       *   Component string &A,;
+       *
+       * => 54 40 "string" 01 "&A" 03 15
+       */
+      if (source[pos] === ';') {
+        break;
+      }
+
       const nextVariable =
         /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
       if (/^Record$/i.test(declaredType ?? '') && nextVariable) {
