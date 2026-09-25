@@ -2163,6 +2163,17 @@ test('explicit Record.RECORD.FIELD assignment compiles the field dependency', ()
   );
 });
 
+test('an explicit Record root may lead a method-call statement', () => {
+  assert.deepStrictEqual(
+    encodeFragment('Record.PS_TEST.CopyFieldsTo(&target);'),
+    Buffer.from(
+      '210100050a43006f00700079004600690065006c006400730054006f000000' +
+      '0b01260074006100720067006500740000001415',
+      'hex'
+    )
+  );
+});
+
 test('FetchValue reuses Record arguments by name across calls', () => {
   const actual = encodeProgramArtifacts(
     '&a = FetchValue(Record.PARENT, 1, Record.CHILD, 1);\n' +
