@@ -509,8 +509,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     // => 44 0A "OU_CORPUS" 57 0A "Utilities" 57 0A "TestClass" 01 "&obj"
     //
     // The declaration itself does NOT allocate a PSPCMNAME dependency row.
+    //
+    // The package root may also be the reserved `%metadata` package
+    // (metadata-driven Application Classes), the same leading `%?` this
+    // lookahead's own `applicationClassPath()` call already accepts:
+    //
+    //   Local %metadata:AppDataSet &recName;
+    //
+    // PSPPMSSRVC_PLAT.QUERY_PLATFORM_XX.FieldFormula (one of several
+    // corpus occurrences of this exact shape).
     const appClassLookahead =
-      /^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_]*)/.exec(
+      /^(%?[A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_]*)/.exec(
         source.slice(pos)
       );
 
