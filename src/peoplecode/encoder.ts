@@ -2633,10 +2633,9 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   ): boolean =>
     /^(?:REM|remark)\b/i.test(source.slice(start));
 
-  const remComment = (
-    allowMissingSemicolon = false,
-    allowIndentedSemicolonContinuation = false
-  ): Buffer => {
+  const remComment = (allowMissingSemicolon = false): Buffer => {
+    const lineStart = source.lastIndexOf('\n', pos - 1) + 1;
+    const remIndent = source.slice(lineStart, pos).length;
     const match = /^(?:REM|remark)\b[^\r\n]*/i.exec(source.slice(pos));
 
     if (!match) {
@@ -2688,59 +2687,43 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }
 
       /*
-       * An If-header REM can comment out the rest of a condition across an
-       * indented continuation line. This is safe to recognize only in that
-       * caller's before-Then position, and only when the continuation closes
-       * with its own semicolon:
+       * A semicolon-less REM payload continues through subsequent lines that
+       * are indented more deeply than the REM itself, until a continuation
+       * supplies the terminating semicolon. This generalizes the earlier
+       * single-space prose evidence without allowing the comment to absorb a
+       * same-indent executable statement.
        *
-       *   If None(...)
-       *      REM And
-       *         &disabled = 1;
-       *      Then
+       * GP_ABS_EVENT.EMPL_RCD.SavePreChange (definition 10607):
        *
-       * GPTH_RC_PIT90.SaveEdit (definition 22751) stores both REM lines in
-       * one 0x24 payload immediately before the 0x1F Then opcode. Keep the
-       * ordinary REM parser narrow everywhere else so it cannot absorb an
-       * indented executable statement speculatively.
-       */
-      if (allowIndentedSemicolonContinuation) {
-        const indentedContinuation =
-          /^(\r?\n)([ \t]+[^\r\n]*;[ \t]*)/.exec(
-            source.slice(pos + consumedLength)
-          );
-
-        if (indentedContinuation) {
-          remText +=
-            indentedContinuation[1] +
-            indentedContinuation[2].replace(/[ \t]+$/g, '');
-          consumedLength += indentedContinuation[0].length;
-          continue;
-        }
-      }
-
-      /*
-       * Three DERIVED_GVT captures (definitions 5424-5426) continue a REM
-       * payload onto one single-space prose line without repeating REM:
+       *   REM If ... Then
+       *      Evaluate %Menu
+       *      When ...
+       *         FIELD.Value = "4";
+       *
+       * stores all four physical lines in one 0x24 payload. Definition 22751
+       * independently proves the same rule in an If header, while the three
+       * DERIVED_GVT captures (5424-5426) use a one-space prose continuation:
        *
        *   REM KJB Removed code ... as it is
        *    no longer valid, as Record.REVIEW_GOALS is obsolete;
-       *
-       * PeopleTools stores both physical lines, including the newline and
-       * final semicolon, in one 0x24 payload. Keep this deliberately narrower
-       * than ordinary indented source so a semicolon-less REM does not absorb
-       * the next PeopleCode statement.
        */
-      const proseContinuation =
-        /^(\r?\n)( [^ \t\r\n][^\r\n]*)/.exec(
+      const indentedContinuation =
+        /^(\r?\n)([ \t]+)([^\r\n]*)/.exec(
           source.slice(pos + consumedLength)
         );
 
-      if (!proseContinuation) break;
+      if (
+        !indentedContinuation ||
+        indentedContinuation[2].length <= remIndent
+      ) {
+        break;
+      }
 
       remText +=
-        proseContinuation[1] +
-        proseContinuation[2].replace(/[ \t]+$/g, '');
-      consumedLength += proseContinuation[0].length;
+        indentedContinuation[1] +
+        (indentedContinuation[2] + indentedContinuation[3])
+          .replace(/[ \t]+$/g, '');
+      consumedLength += indentedContinuation[0].length;
     }
 
     if (!allowMissingSemicolon && !remText.endsWith(';')) {
@@ -5318,7 +5301,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      * 22751 also proves the payload may continue onto one indented line.
      */
     while (startsRemComment()) {
-      chunks.push(remComment(true, true));
+      chunks.push(remComment(true));
       space();
     }
 
