@@ -1,5 +1,68 @@
 # Corpus Calibration Progress
 
+## Fix #78: bare `array` (no `of ElementType`) is a valid, untyped array declaration
+
+`src/peoplecode/encoder.ts`: a bare `array` type -- with NO trailing `of
+ElementType` clause at all -- is itself a valid, complete PeopleCode
+declaration (an untyped array), at any nesting level (`array`, `array of
+array`, etc.), in every context a type name can appear: `Local`,
+`Component`, `Global`, and `Function` parameter/return metadata. Several
+independent call sites previously required `of` unconditionally and threw
+otherwise:
+
+- `arrayElementTypes()` (the shared helper used by Component/Global/
+  nested-array declarations): changed `if (!word('of')) fail(...)` to
+  `if (!word('of')) return elementType;`, returning `undefined` (no
+  element type) instead of throwing. This single change covers every
+  nesting level uniformly, since the check is inside the function's own
+  loop.
+- `localDeclaration()`'s own separate, duplicated `of`-enforcement for the
+  OUTERMOST array level (`Local array ...`) had its own `fail('expected
+  "of" after array in Local declaration')` call; wrapped the existing
+  `of`-handling body in `if (ofMatch) { ... }` instead, skipping it
+  entirely (no element-type-specific `ensureLocalObjectPackageReference`
+  calls needed) when `of` is absent.
+- `functionTypeId()` (Function parameter/return type metadata, a totally
+  separate compact-numeric-id encoding from the executable body's token
+  stream): bare `array` previously fell through to the primitive-type
+  lookup and threw `Unsupported function metadata type: array`. Added a
+  check for bare `array` that encodes it identically to `array of any`
+  (`0x100000 | functionTypeId('any')`), confirmed by binary evidence (see
+  below).
+
+Binary evidence:
+- PSMCF_UQSVC_MSGS.MCFUQPUBLISH.RowInit (definition 16150):
+  `Component array &QueueIDArrayAdd;` stores only `54 40 "array" 01
+  "&QueueIDArrayAdd" ... 15` -- no `of` keyword byte, nothing after the
+  type name at all.
+- A `Component array of array &Var;` nested-bare-array case (definition
+  19016 and siblings) confirms the SAME allowance applies at the inner
+  nesting level too (the second `array` also has no trailing `of`).
+- WEBLIB_MCF_QU.MCF_UQ_TASK_UT.FieldFormula (definition 6350): `Local
+  array &NODE_ARRAY, ...;` stores only `44 40 "array" 01 "&NODE_ARRAY"
+  ...` -- confirms the same for `Local`.
+- `Function Get_ACM_Ern(&Acm_Pin As number, &Ern_array As array)`
+  (definition 8229): the parameter signature tail stores `number` as
+  `c0000013`, then bare `array` as `c0100004` -- `0x100000` (the "array
+  of" flag) OR'd with `0x000004` (`any`'s own primitive id), confirming
+  bare `array` in Function metadata specifically means "array of any".
+
+Searched the corpus for every related error message this touches:
+"expected \"of\" after array type" (`arrayElementTypes()`, 10
+occurrences), "expected \"of\" after array in Local declaration" (11
+occurrences), "Unsupported function metadata type: array" (5
+occurrences) -- 26 total. Sampled 20 broadly: 6 reach full `EXACT`
+(8229, 16150, 16151, 10536, 20173, 27398), the rest advance past this
+construct into other, separate, pre-existing issues elsewhere in the
+same files (confirmed via `corpus-results.sqlite` run_id 297: none of
+the 20 sampled were EXACT before, so none could have regressed).
+
+Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
+`corpus:verify --limit 430` 430/430, 0 regressed. Full-corpus background
+run (run_id 299, 30209/30209, exact=22522) diffed against the immediately
+preceding full run (run_id 297, exact=22516): 6 improved, 0 regressed,
+30203 same.
+
 ## Fix #77: SQL and Grid Function parameter/return type ids
 
 `src/peoplecode/encoder.ts`, `BUILTIN_FUNCTION_TYPE_IDS`: added `sql` ->
@@ -91,32 +154,39 @@ run (run_id 295, 30209/30209, exact=22516) diffed against the immediately
 preceding full run (run_id 292, exact=22511): 5 improved, 0 regressed,
 30204 same.
 
-## Status as of Fix #77 (current)
+## Status as of Fix #78 (current)
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
   throughout. `--live` has never been used this session.
 - **Protected baseline**: 430/430, clean.
-- **Last successful calibration**: Fix #77 (above).
-- **Corpus total**: full-corpus run_id 297 = 22516/30209 exact (74.5%),
-  confirmed zero-regression against run_id 295 (Fix #76's baseline,
-  itself confirmed zero-regression against run_id 292/290/288).
+- **Last successful calibration**: Fix #78 (above).
+- **Corpus total**: full-corpus run_id 299 = 22522/30209 exact (74.5%),
+  confirmed zero-regression against run_id 297 (Fix #77's baseline,
+  itself confirmed zero-regression against run_id 295/292/290/288).
 - **Next action**: resume failure-family triage from the current failure
-  inventory (`GROUP BY classification, error_message` on run_id 297 in
+  inventory (`GROUP BY classification, error_message` on run_id 299 in
   `tools/corpus/corpus-results.sqlite`, excluding `%bare identifiers%` and
-  `%Application Class%` which are the known-deferred gap). A concrete,
-  scoped-but-unsolved candidate is ready to pick back up: the `time` and
-  bare-`array` Function parameter/return type ids (Fix #77's deferred
-  half, 3 + 5 occurrences) -- needs figuring out how Function metadata is
-  laid out for a file that interleaves `Function ... End-Function;` blocks
-  with ordinary executable code (definition 1016 is the concrete example),
-  since that's structurally different from the dedicated-all-Function-file
-  layout `encodeFunctionMetadata`/`encodeFunctionProgramHeader` currently
-  assume (names were found scattered at large, non-contiguous offsets:
-  579, 3580, 9599, 10517, 16294, 16544, 17070 -- one per Function, each
+  `%Application Class%` which are the known-deferred gap). One concrete,
+  scoped-but-unsolved candidate remains from Fix #77: the `time` Function
+  parameter/return type id (3 occurrences; bare-`array` was solved by Fix
+  #78) -- needs figuring out how Function metadata is laid out for a file
+  that interleaves `Function ... End-Function;` blocks with ordinary
+  executable code (definition 1016 is the concrete example), since that's
+  structurally different from the dedicated-all-Function-file layout
+  `encodeFunctionMetadata`/`encodeFunctionProgramHeader` currently assume
+  (names were found scattered at large, non-contiguous offsets: 579,
+  3580, 9599, 10517, 16294, 16544, 17070 -- one per Function, each
   presumably local to its own block rather than batched in one directory
   at file start). Do not guess at this layout without more binary
   evidence; if it proves substantial, document it as its own deferred
-  feature gap rather than forcing a narrow fix.
+  feature gap rather than forcing a narrow fix. Also worth checking: the
+  `Unsupported Function parameter: &ResponseTypeDetails As array of array
+  of string` error (3 occurrences) is a DIFFERENT, earlier-stage parameter
+  parsing issue (not yet investigated) -- confirm whether it's related to
+  nested array-of-array-of-X specifically or something else before
+  assuming it's covered by Fix #78's functionTypeId() change (Fix #78
+  only touched the type-id lookup, not whatever throws this earlier
+  "Unsupported Function parameter" error).
 - **Locally blocked / deferred, evidence exhausted** (unchanged unless
   noted): the `#If #ToolsRel` preprocessor-directive family (73
   occurrences, environmental per-definition dependency); the general
