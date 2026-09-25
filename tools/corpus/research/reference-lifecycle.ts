@@ -92,6 +92,326 @@ const WATCHED_INTRINSICS = [
   'CreateRow'
 ];
 
+// Same length-preserving masking approach as encoder.ts's own
+// maskCommentsAndStringLiteralsForFunctionScan (not exported, so
+// reimplemented narrowly here): block comments, double-quoted strings, and
+// REM/remark-to-semicolon runs replaced with spaces so a keyword regex scan
+// doesn't fire on "If"/"Then"/etc. appearing inside comments or string
+// literals. Every offset below still indexes correctly into the real
+// source. Not a full PeopleCode lexer -- good enough for keyword-boundary
+// branch tracking, not for anything byte-exact.
+function maskForBranchScan(source: string): string {
+  let masked = '';
+  let i = 0;
+
+  while (i < source.length) {
+    if (source.startsWith('/*', i)) {
+      const end = source.indexOf('*/', i + 2);
+      const stop = end === -1 ? source.length : end + 2;
+      masked += ' '.repeat(stop - i);
+      i = stop;
+    } else if (source[i] === '"') {
+      let j = i + 1;
+      while (j < source.length && source[j] !== '"') {
+        j++;
+      }
+      j = Math.min(j + 1, source.length);
+      masked += ' '.repeat(j - i);
+      i = j;
+    } else if (/^(rem|remark)\b/i.test(source.slice(i))) {
+      const semi = source.indexOf(';', i);
+      const stop = semi === -1 ? source.length : semi + 1;
+      masked += ' '.repeat(stop - i);
+      i = stop;
+    } else {
+      masked += source[i];
+      i++;
+    }
+  }
+
+  return masked;
+}
+
+type BranchFrameType =
+  | 'If'
+  | 'For'
+  | 'While'
+  | 'Evaluate'
+  | 'Function'
+  | 'Method';
+
+interface BranchFrame {
+  type: BranchFrameType;
+  id: number;
+  branch?: string;
+  statementCount: number;
+}
+
+interface BranchCheckpoint {
+  offset: number;
+  branchPath: string;
+  blockStatementIndex: number;
+  epoch: number;
+}
+
+const BRANCH_KEYWORD_PATTERN = new RegExp(
+  '\\b(' +
+    [
+      'End-If',
+      'If',
+      'Then',
+      'Else',
+      'End-For',
+      'For',
+      'End-While',
+      'While',
+      'End-Evaluate',
+      'Evaluate',
+      'When-Other',
+      'When',
+      'End-Function',
+      'Function',
+      'End-Method',
+      'Method'
+    ].join('|') +
+    ')\\b',
+  'gi'
+);
+
+const EPOCH_TRIGGER_PATTERN = new RegExp(
+  '\\b(' + WATCHED_INTRINSICS.join('|') + ')\\s*\\(',
+  'gi'
+);
+
+/**
+ * A source-order timeline of {offset, branchPath, blockStatementIndex,
+ * epoch} checkpoints, one per keyword/statement/epoch-trigger boundary.
+ * `lookupBranchState` finds the checkpoint in effect at any given offset.
+ * This is heuristic source-text tracking (If/Then/Else/For/While/Evaluate/
+ * When/Function/Method nesting plus a semicolon-based statement count and
+ * an epoch counter over WATCHED_INTRINSICS calls), not a real parse -- it
+ * exists to let sequential-vs-sibling-branch repetition be told apart
+ * mechanically when reviewing evidence, not to drive any encoder decision.
+ */
+function buildBranchTimeline(source: string): BranchCheckpoint[] {
+  const masked = maskForBranchScan(source);
+  const checkpoints: BranchCheckpoint[] = [];
+
+  const frames: BranchFrame[] = [];
+  let nextId = 1;
+  let epoch = 0;
+  let topLevelStatementCount = 0;
+
+  const renderBranchPath = (): string =>
+    frames.length === 0
+      ? 'top'
+      : frames
+          .map(f => `${f.type}#${f.id}${f.branch ? `:${f.branch}` : ''}`)
+          .join('>');
+
+  const pushCheckpoint = (offset: number): void => {
+    checkpoints.push({
+      offset,
+      branchPath: renderBranchPath(),
+      blockStatementIndex:
+        frames.length === 0
+          ? topLevelStatementCount
+          : frames[frames.length - 1].statementCount,
+      epoch
+    });
+  };
+
+  // Merge keyword and epoch-trigger matches into one source-order pass.
+  type Event = { offset: number; end: number; text: string; isEpoch: boolean };
+  const events: Event[] = [];
+
+  for (const m of masked.matchAll(BRANCH_KEYWORD_PATTERN)) {
+    events.push({
+      offset: m.index ?? 0,
+      end: (m.index ?? 0) + m[0].length,
+      text: m[1],
+      isEpoch: false
+    });
+  }
+
+  for (const m of masked.matchAll(EPOCH_TRIGGER_PATTERN)) {
+    events.push({
+      offset: m.index ?? 0,
+      end: (m.index ?? 0) + m[0].length,
+      text: m[1],
+      isEpoch: true
+    });
+  }
+
+  // Semicolons (outside comments/strings, already masked) advance the
+  // current frame's statement counter.
+  for (let i = 0; i < masked.length; i++) {
+    if (masked[i] === ';') {
+      events.push({ offset: i, end: i + 1, text: ';', isEpoch: false });
+    }
+  }
+
+  events.sort((a, b) => a.offset - b.offset);
+
+  for (const event of events) {
+    if (event.isEpoch) {
+      epoch++;
+      pushCheckpoint(event.end);
+      continue;
+    }
+
+    switch (event.text) {
+      case ';': {
+        if (frames.length > 0) {
+          frames[frames.length - 1].statementCount++;
+        } else {
+          topLevelStatementCount++;
+        }
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'If': {
+        frames.push({ type: 'If', id: nextId++, statementCount: 0 });
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'Then': {
+        const top = frames[frames.length - 1];
+        if (top?.type === 'If' && top.branch === undefined) {
+          top.branch = 'Then';
+        }
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'Else': {
+        const top = frames[frames.length - 1];
+        if (top?.type === 'If') {
+          top.branch = 'Else';
+          top.statementCount = 0;
+        }
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'End-If': {
+        if (frames[frames.length - 1]?.type === 'If') frames.pop();
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'For': {
+        frames.push({ type: 'For', id: nextId++, statementCount: 0 });
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'End-For': {
+        if (frames[frames.length - 1]?.type === 'For') frames.pop();
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'While': {
+        frames.push({ type: 'While', id: nextId++, statementCount: 0 });
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'End-While': {
+        if (frames[frames.length - 1]?.type === 'While') frames.pop();
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'Evaluate': {
+        frames.push({ type: 'Evaluate', id: nextId++, statementCount: 0 });
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'When':
+      case 'When-Other': {
+        const top = frames[frames.length - 1];
+        if (top?.type === 'Evaluate') {
+          const whenIndex =
+            (Number(top.branch?.replace(/^When/, '')) || 0) + 1;
+          top.branch =
+            event.text === 'When-Other'
+              ? 'WhenOther'
+              : `When${whenIndex}`;
+          top.statementCount = 0;
+        }
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'End-Evaluate': {
+        if (frames[frames.length - 1]?.type === 'Evaluate') frames.pop();
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'Function': {
+        // "Declare Function NAME PeopleCode RECORD.FIELD EVENT;" is a
+        // single-statement declaration, not a block -- it has no matching
+        // End-Function. Pushing a frame for it would never get popped,
+        // corrupting every branchPath after it for the rest of the
+        // definition (confirmed against definition 1420, which opens with
+        // four Declare Function headers and produced a phantom
+        // Function#1>Function#2>Function#3>Function#4 nesting before this
+        // fix). Only a real `Function NAME(...) ... End-Function;` block
+        // header opens a frame.
+        const precedingText = masked
+          .slice(Math.max(0, event.offset - 20), event.offset);
+        const isDeclareFunction = /\bDeclare\s+$/i.test(precedingText);
+
+        if (!isDeclareFunction) {
+          frames.push({ type: 'Function', id: nextId++, statementCount: 0 });
+        }
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'End-Function': {
+        if (frames[frames.length - 1]?.type === 'Function') frames.pop();
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'Method': {
+        frames.push({ type: 'Method', id: nextId++, statementCount: 0 });
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'End-Method': {
+        if (frames[frames.length - 1]?.type === 'Method') frames.pop();
+        pushCheckpoint(event.end);
+        break;
+      }
+    }
+  }
+
+  return checkpoints;
+}
+
+function lookupBranchState(
+  timeline: BranchCheckpoint[],
+  offset: number
+): { branchPath: string; blockStatementIndex: number; epoch: number } {
+  // Checkpoints are sorted by offset (built in source order); find the
+  // last one at or before `offset` via binary search.
+  let lo = 0;
+  let hi = timeline.length - 1;
+  let result: BranchCheckpoint | undefined;
+
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (timeline[mid].offset <= offset) {
+      result = timeline[mid];
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+
+  return result === undefined
+    ? { branchPath: 'top', blockStatementIndex: -1, epoch: 0 }
+    : {
+        branchPath: result.branchPath,
+        blockStatementIndex: result.blockStatementIndex,
+        epoch: result.epoch
+      };
+}
+
 interface StoredOccurrence {
   occurrenceIndex: number;
   opcode: number;
@@ -138,6 +458,19 @@ interface GeneratedOccurrence {
   previousMatchingDecision?: 'ALLOC' | 'REUSE';
   sourceOffsetSinceLastMatch?: string;
   interveningIntrinsics: string[];
+  /**
+   * Heuristic source-text branch path (e.g. "If#3:Then", "Evaluate#1:When2",
+   * "Function#2>If#5:Else") from buildBranchTimeline/lookupBranchState --
+   * NOT derived from the encoder's own controlGroup/controlDepth, so it can
+   * distinguish two occurrences the encoder currently treats identically
+   * (e.g. same controlGroup, same controlDepth) but which sit in mutually
+   * exclusive branches vs. the same straight-line flow.
+   */
+  branchPath: string;
+  /** Statement position within the innermost branchPath frame (heuristic, semicolon-counted), or at top level when branchPath is "top". */
+  blockStatementIndex: number;
+  /** Count of WATCHED_INTRINSICS calls textually before this occurrence -- a candidate "reference epoch" counter, independent of branchPath/controlGroup. */
+  epochCandidate: number;
 }
 
 interface PairedRow {
@@ -326,6 +659,8 @@ function decodeGeneratedOccurrences(
     { occurrenceIndex: number; decision: 'ALLOC' | 'REUSE'; sourceOffset: number }
   >();
 
+  const branchTimeline = buildBranchTimeline(source);
+
   const occurrences: GeneratedOccurrence[] = [];
 
   useEvents.forEach((event, occurrenceIndex) => {
@@ -340,6 +675,8 @@ function decodeGeneratedOccurrences(
     const call = enclosingCall(source, event.sourceOffset);
 
     const previous = lastByIdentity.get(identityKey);
+
+    const branchState = lookupBranchState(branchTimeline, event.sourceOffset);
 
     const row: GeneratedOccurrence = {
       occurrenceIndex,
@@ -375,7 +712,10 @@ function decodeGeneratedOccurrences(
               source,
               previous.sourceOffset,
               event.sourceOffset
-            )
+            ),
+      branchPath: branchState.branchPath,
+      blockStatementIndex: branchState.blockStatementIndex,
+      epochCandidate: branchState.epoch
     };
 
     occurrences.push(row);
@@ -579,7 +919,7 @@ function summarizeConsole(evidence: DefinitionEvidence): void {
     console.log(
       `  first disagreement @ occurrence ${row.occurrenceIndex}: ` +
         `stored=${row.stored ? `${row.stored.decision} nameNum=${row.stored.nameNum} "${row.stored.resolvedName}"` : '(none)'} ` +
-        `generated=${row.generated ? `${row.generated.decision} seq=${row.generated.sequence} kind=${row.generated.kind} call=${row.generated.enclosingCall ?? '?'} arg#${row.generated.argumentPosition ?? '?'} prevMatch@${row.generated.previousMatchingOccurrence ?? 'none'}(${row.generated.previousMatchingDecision ?? '-'}) intervening=[${row.generated.interveningIntrinsics.join(',')}]` : '(none)'}`
+        `generated=${row.generated ? `${row.generated.decision} seq=${row.generated.sequence} kind=${row.generated.kind} call=${row.generated.enclosingCall ?? '?'} arg#${row.generated.argumentPosition ?? '?'} branch=${row.generated.branchPath} stmt#${row.generated.blockStatementIndex} epoch=${row.generated.epochCandidate} prevMatch@${row.generated.previousMatchingOccurrence ?? 'none'}(${row.generated.previousMatchingDecision ?? '-'}) intervening=[${row.generated.interveningIntrinsics.join(',')}]` : '(none)'}`
     );
 
     if (row.generated) {
