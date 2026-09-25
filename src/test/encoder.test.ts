@@ -2174,6 +2174,29 @@ test('an explicit Record root may lead a method-call statement', () => {
   );
 });
 
+test('a colon-qualified package constant is an inline expression operand', () => {
+  assert.deepStrictEqual(
+    encodeFragment('&key = Key:Class_Test;'),
+    Buffer.from(
+      '0126006b0065007900000006' +
+      '0a4b0065007900000057' +
+      '0a43006c006100730073005f005400650073007400000015',
+      'hex'
+    )
+  );
+});
+
+test('%metadata is a system-variable package root', () => {
+  assert.deepStrictEqual(
+    encodeFragment('import %metadata:Key;'),
+    Buffer.from(
+      '581225006d006500740061006400610074006100000057' +
+      '0a4b00650079000000152d',
+      'hex'
+    )
+  );
+});
+
 test('FetchValue reuses Record arguments by name across calls', () => {
   const actual = encodeProgramArtifacts(
     '&a = FetchValue(Record.PARENT, 1, Record.CHILD, 1);\n' +

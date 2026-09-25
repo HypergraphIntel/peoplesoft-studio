@@ -1422,7 +1422,9 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       encoded.push(
         textOperand(
-          INLINE_IDENTIFIER_OPCODE,
+          index === 0 && /^%metadata$/i.test(component)
+            ? 0x12
+            : INLINE_IDENTIFIER_OPCODE,
           TokenKind.Name,
           component
         )
@@ -7281,6 +7283,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         chunks.push(componentReference());
       } else if (/^[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/.test(tail)) {
         chunks.push(ordinaryRecordFieldReference());
+      } else if (
+        /^[A-Za-z_][A-Za-z0-9_]*\s*:\s*[A-Za-z_][A-Za-z0-9_]*/.test(tail)
+      ) {
+        /*
+         * Application-package enum/key constants use the same inline-name
+         * and 0x57 colon bytes as a class path, but are expression operands
+         * and do not allocate a new PACKAGE dependency themselves:
+         *
+         *   create %metadata:Key(Key:Class_MacroSetId, &src)
+         *
+         * PSMACROSETACT.PTMACRODEL.FieldFormula (definition 16084) stores
+         * `Key:Class_MacroSetId` as 0x0A "Key", 0x57, 0x0A
+         * "Class_MacroSetId" inside the call arguments.
+         */
+        chunks.push(applicationClassPath().bytes);
       } else {
         /*
          * `GetRecord()` with NO arguments is a structurally different

@@ -6,8 +6,9 @@
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #94 (see below for its full
-  description). Fix #93 was committed at `aef89e5`; Fix #92 at `c8a167e`;
+- **Last successful calibration**: Fix #96 (see below for its full
+  description; Fixes #95-#96 are one validated commit). Fix #94 was
+  committed at `8a55c61`; Fix #93 at `aef89e5`; Fix #92 at `c8a167e`;
   and Fix #91 at `16233cd`.
   (Fix #90's own code
   landed in commit `b17f9c7` "More encoder / decoder fixes" -- committed
@@ -42,8 +43,8 @@
   --rebase` mid-session to avoid a repeat -- if a pull is genuinely
   needed, checkpoint `.claude/corpus-progress.md` to a scratch copy
   first.
-- **Corpus total** (full-corpus run_id 1638, after Fix #94):
-  22919/30209 exact (75.9%).
+- **Corpus total** (full-corpus run_id 1657, after Fixes #95-#96):
+  22920/30209 exact (75.9%).
   Fix #73 was first rechecked against the already-equivalent full run 1326
   (run 1327: all 30209 materially unchanged). Subsequent full diffs were:
   Fix #74 run 1327 -> 1338 (2 exact, 4 advanced, 0 regressed); Fix #75 run
@@ -76,6 +77,7 @@
   feature); Fix #91 run 1587 -> 1597 (1 exact, 0 regressed); Fix #92 run
   1597 -> 1622 (2 exact, 2 advanced, 0 regressed); Fix #93 run 1622 ->
   1628 (2 exact, 0 regressed); Fix #94 run 1628 -> 1638 (1 exact, 3
+  advanced, 0 regressed); Fixes #95-#96 run 1638 -> 1657 (1 exact, 6
   advanced, 0 regressed). The
   protected gate remains 430/430.
 - **Locally blocked / deferred, evidence exhausted this session** (see
@@ -119,6 +121,28 @@
   below.
 
 ## Current target
+- **Fix #96** landed locally (src/peoplecode/encoder.ts): `%metadata`,
+  when it is the root component of an Application Class/package path,
+  uses the system-variable opcode `0x12`, not the ordinary inline-name
+  opcode `0x0A`; later colon-separated path components remain inline
+  names. Definition 16084 provides complete stored-byte evidence in all
+  three contexts present in the program (imports, Local class types, and
+  runtime `create` paths) and is now fully EXACT after Fix #95 let it
+  reach this first byte mismatch. Added a byte-exact `%metadata:Key`
+  import regression.
+- **Fix #95** landed locally (src/peoplecode/encoder.ts): a colon-qualified
+  package constant such as `Key:Class_MacroSetId` is a valid expression
+  operand. Stored bytes encode its components as ordinary inline names
+  separated by the existing colon opcode `0x57`, without allocating a
+  new PACKAGE dependency for the constant itself. Targeted ordinary event
+  programs 16082, 16084, 16085, 17911, and 24645 all compile past this
+  syntax; definition 16084 becomes exact once Fix #96 also corrects its
+  `%metadata` path roots. The full run additionally identified 16498 and
+  17821 as affected representatives. Added a
+  byte-exact fragment regression. Combined full run 1638 -> 1657: 1
+  exact, 6 advanced, 0 regressed. Full project `npm run typecheck` and
+  `npm test` are clean (486 tests, 485 pass, 1 intentional skip);
+  protected gate: 430/430.
 - **Fix #94** landed locally (src/peoplecode/encoder.ts): an explicit
   `Record.REC` root may lead a method-call statement, not only an
   assignment. Four independent failures shared this parser rejection:
@@ -4819,7 +4843,13 @@ project-level blocker").
 - definitions: 430
 - exact: 430
 - regressions: 0
-- last verified: 2026-09-25 (/goal resume session), after Fix #94
+- last verified: 2026-09-25 (/goal resume session), after Fixes #95-#96
+  (colon-qualified package constants and `%metadata` root opcode),
+  REGRESSION GATE: PASS (430/430, no regression). Full corpus run_id 1657
+  directly diffed against run_id 1638: 1 newly exact, 6 advanced, 0
+  regressed. Full-project `npm run typecheck` and `npm test` (486 tests,
+  485 pass, 1 intentional skip) both clean.
+- prior verification: 2026-09-25 (/goal resume session), after Fix #94
   (explicit `Record.REC`-rooted method-call statements), REGRESSION GATE:
   PASS (430/430, no regression). Full corpus run_id 1638 directly diffed
   against run_id 1628: 1 newly exact, 3 advanced, 0 regressed.
