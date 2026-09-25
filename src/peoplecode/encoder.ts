@@ -3160,7 +3160,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     chunks.push(fixed('Function'));
 
     space();
-    const name = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+    const name = /^[A-Za-z_][A-Za-z0-9_]*#?/.exec(source.slice(pos))?.[0];
     if (name === undefined) {
       throw new UnsupportedPeopleCodeError(pos, 'expected declared Function name');
     }
@@ -5813,7 +5813,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   }
   const call = () => {
   const name =
-    /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+    /^[A-Za-z_][A-Za-z0-9_]*#?/.exec(source.slice(pos))?.[0];
 
   if (!name) {
     return fail('expected a simple call name');
@@ -6711,7 +6711,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }, true);
     } else {
       const identifier =
-        /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+        /^[A-Za-z_][A-Za-z0-9_]*#?/.exec(source.slice(pos))?.[0];
 
       if (identifier && !/^(true|false|null)$/i.test(identifier)) {
       const tail = source.slice(pos);
@@ -8036,7 +8036,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       !/^(?:import|Declare|Function|Local|Global|PanelGroup|Component|Constant|Return|If|While|For|Repeat|try|throw|Break|Exit|Continue|Error|Warning|Evaluate|REM)\b/i.test(
         source.slice(pos)
       ) &&
-      /^[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(source.slice(pos));
+      /^[A-Za-z_][A-Za-z0-9_]*#?\s*\(/.test(source.slice(pos));
 
     /*
      * A `&variable.Method(...)` (or `@(...)`-led) method-call statement,
