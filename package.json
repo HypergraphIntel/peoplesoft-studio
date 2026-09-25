@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -220,8 +220,8 @@
         "category": "PeopleSoft"
       },
       {
-        "command": "psft.mcp.configureCodex",
-        "title": "Configure Codex MCP",
+        "command": "psft.mcp.configureClient",
+        "title": "Configure AI Client",
         "category": "PeopleSoft"
       }
     ],

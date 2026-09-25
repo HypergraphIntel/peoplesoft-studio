@@ -27,7 +27,7 @@ VS Code extension for **reading and navigating** PeopleSoft definitions — Peop
    Open the VS Code Command Palette ( CTRL + SHIFT + P ) and run:
 
    ```text
-   PeopleSoft: Configure Codex MCP
+   PeopleSoft: Configure AI Client
    ```
 6. Verify the Codex MCP configuration from a command line:
    ```bash
