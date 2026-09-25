@@ -15,8 +15,8 @@ import { parseUri } from './util/uri.js';
 import { StatusBar } from './views/statusBar.js';
 import { startPeopleSoftMcpServer } from './mcp/server.js';
 import {
-  configureCodexMcp
-} from './mcp/codex.js';
+  configureAiClient
+} from './mcp/configure.js';
 
 /** Left side of a compare: which connection + which definition key. */
 interface CompareTarget {
@@ -120,10 +120,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const refreshAll = () => { connections.refresh(); browser.refresh(); projects.refresh(); };
 
   context.subscriptions.push(
+//      vscode.commands.registerCommand(
+//      'psft.mcp.configureCodex',
+//      async () => {
+//        await configureAiClient();
+//      }
+//    ),
     vscode.commands.registerCommand(
-      'psft.mcp.configureCodex',
+      'psft.mcp.configureClient',
       async () => {
-        await configureCodexMcp();
+        await configureAiClient();
       }
     ),
 

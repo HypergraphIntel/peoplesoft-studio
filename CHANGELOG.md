@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.9
+
+Version **0.1.9** AI clients added:
+- Codex
+- Claude
+- Manual Config
+
 ## 0.1.8
 
 ### Local MCP Server wrapper for AI Agents
