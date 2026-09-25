@@ -111,6 +111,7 @@ function functionTypeId(
   applicationClassOffsets?: ReadonlyMap<string, number>
 ): number {
   /*
+<<<<<<< Updated upstream
    * Each nesting level of `array of` contributes its OWN multiple of
    * 0x100000 -- NOT a single OR'd flag bit reused at every level. A bare
    * trailing `array` (no final `of ElementType`) counts as one more
@@ -148,6 +149,23 @@ function functionTypeId(
   }
 
   if (depth > 0) {
+=======
+   * Legacy untyped `array` is the source-level shorthand for an array whose
+   * element descriptor is `any` (type id 4). GPIN_NPRJ_TMP.PIN_NUM.
+   * FieldFormula (definition 8229) proves `&Ern_array As array` stores
+   * parameter descriptor 0xC0100004, while PSSRCHTEST.RUN_QUERY.FieldChange
+   * (definition 16893) proves `Returns array` stores return descriptor
+   * 0x00100004.
+   */
+  if (/^array$/i.test(typeName.trim())) {
+    return 0x100000 | 0x04;
+  }
+
+  const arrayType = /^array\s+of\s+(.+)$/i.exec(
+    typeName.trim()
+  );
+  if (arrayType) {
+>>>>>>> Stashed changes
     return (
       (depth * 0x100000) |
       functionTypeId(rest, applicationClassOffsets)
@@ -470,6 +488,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     do {
       space();
       /*
+<<<<<<< Updated upstream
        * `array` (bare, with no `of ElementType` clause at all) is itself a
        * valid, untyped array declaration -- at any nesting level, not just
        * the outermost one.
@@ -482,6 +501,12 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * keyword byte, nothing after the type name at all. Confirmed for
        * nested bare arrays too, e.g. `Component array of array &Var;`
        * (definition 19016): the second `array` also has no trailing `of`.
+=======
+       * PeopleCode also has a captured untyped `array` form with no `of`
+       * clause. Component declarations 16150/16151 and Function parameter
+       * 8229 store only the existing 0x40 `array` token before the variable
+       * or closing parenthesis. Leave the cursor there when `of` is absent.
+>>>>>>> Stashed changes
        */
       if (!word('of')) return elementType;
       chunks.push(textOperand(0x40, TokenKind.Keyword, 'of'));
@@ -626,13 +651,16 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     chunks.push(typeName());
 
-    // Calibrated compound declaration:
+    // Calibrated compound declarations:
     //   Local array of string &values;
     // => 44 40 "array" 40 "of" 40 "string" 01 "&values"
+    //   Local array &values;
+    // => 44 40 "array" 01 "&values"
     if (/^array$/i.test(type ?? '')) {
       space();
 
       const ofMatch = /^of\b/i.exec(source.slice(pos));
+<<<<<<< Updated upstream
 
       /*
        * `Local array &values;` (bare, no `of ElementType` clause) is
@@ -656,6 +684,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         let elementType =
           /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
 
+=======
+      if (ofMatch) {
+        pos += ofMatch[0].length;
+        chunks.push(textOperand(0x40, TokenKind.Keyword, 'of'));
+
+        space();
+
+        let elementType =
+          /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+
+>>>>>>> Stashed changes
         if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
           const appClass = applicationClassPath();
           chunks.push(appClass.bytes);
@@ -8443,6 +8482,15 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       /^For\b/i.test(source.slice(pos));
 
     /*
+     * GPGB_PFH.MAIN.Step10.OnExecute (definition 26707) proves a top-level
+     * While/End-While block may also end at EOF without a source semicolon.
+     * Its stored executable ends `... 26 07`, with no `15` between the
+     * End-While opcode and the program terminator.
+     */
+    const isWhileStatement =
+      /^While\b/i.test(source.slice(pos));
+
+    /*
      * A bare `Warning <expr>` (or `Error <expr>`) top-level statement may
      * also omit its semicolon at EOF.
      *
@@ -9135,6 +9183,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             isIfStatement ||
             isEvaluateStatement ||
             isForStatement ||
+            isWhileStatement ||
             isTopLevelCallStatement ||
             isTopLevelVariableLedCallStatement ||
             isWarningOrErrorStatement ||

@@ -648,14 +648,14 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #89 (below), validated locally on top
-  of Fix #88's commit `81afbce`. Fix #89 and this progress ledger are
-  currently uncommitted. (Prior checkpoint's HEAD `45fccb5` is now behind:
+- **Last successful calibration**: Fix #91 (below), validated locally on top
+  of current HEAD `be8a8e4`. Fixes #90-#91 and this progress ledger are currently
+  uncommitted. (Prior checkpoint's HEAD `45fccb5` is now behind:
   unrelated MCP-client work landed several commits, through `e9ccca2`,
   between sessions; full typecheck and `npm test` are clean at `e9ccca2`,
   so the previously-recorded typecheck blocker no longer applies -- see
   updated validation note below.)
-- **Corpus total** (full-corpus run_id 1545): 22770/30209 exact (75.4%).
+- **Corpus total** (full-corpus run_id 1576): 22777/30209 exact (75.4%).
   Fix #73 was first rechecked against the already-equivalent full run 1326
   (run 1327: all 30209 materially unchanged). Subsequent full diffs were:
   Fix #74 run 1327 -> 1338 (2 exact, 4 advanced, 0 regressed); Fix #75 run
@@ -678,7 +678,9 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   regressed -- resolves the `controlDepth` discriminator behind
   definitions 889/1749's own contradictions, documented in "Identified,
   not yet fixed" below; 1749 itself progressed but is not yet fully EXACT,
-  see its own updated note). The protected gate remains 430/430.
+  see its own updated note); Fix #90 run 1545 -> 1573 (6 exact, 21 advanced,
+  0 regressed); Fix #91 run 1573 -> 1576 (1 exact, 0 regressed). The
+  protected gate remains 430/430.
 - **Locally blocked / deferred, evidence exhausted this session** (see
   their own entries further down for full evidence trails): the `#If
   #ToolsRel` preprocessor-directive family (73 combined occurrences,
@@ -698,15 +700,15 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   longer deferred. Definition 1749 progressed under Fix #89 but has a
   SECOND, deeper issue of its own -- still deferred, see its own updated
   note under "Identified, not yet fixed".)
-- **Validation caveat**: after Fix #89, on top of Fix #88's commit
-  `81afbce`, both `npx tsc -p . --noEmit` (whole project) and `npm test`
-  (whole project: 477 tests, 476 pass, 1 pre-existing skip) are clean.
+- **Validation caveat**: after Fix #90, on top of current HEAD `be8a8e4`,
+  both `npx tsc -p . --noEmit` (whole project) and `npm test` (whole
+  project: 478 tests, 477 pass, 1 pre-existing skip) are clean.
   Every post-fix protected gate is 430/430. A separate, unevidenced
   FetchValue change was tried and reverted after Fix #89 landed (see
   definition 1305's note); the working tree is clean of that attempt
   (`git checkout -- src/peoplecode/encoder.ts` after the revert,
   confirmed via `corpus:verify --limit 430`).
-- **Next action**: resume failure-family triage from full run_id 1457 (group
+- **Next action**: resume failure-family triage from full run_id 1576 (group
   `corpus-results.sqlite`'s latest run by `classification`/`construct`,
   the same query used to find every target this session, or use `npm run
   corpus:next`). `npm run corpus:next` currently surfaces the `UNKNOWN_MISMATCH`
@@ -720,6 +722,30 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   below.
 
 ## Current target
+- **Fix #91** landed locally (src/peoplecode/encoder.ts): a top-level
+  While/End-While block may terminate at EOF without a source semicolon.
+  Definition 26707 is the sole such completed-snapshot source and proves the
+  stored executable ends `... 26 07`, with no semicolon opcode `0x15` between
+  End-While and the program terminator. It is now source->bin EXACT,
+  roundtrip EXACT, and source MATCH. Full run 1573 -> 1576: 1 exact, 30208
+  unchanged, 0 regressed. Added a byte-level EOF regression test. Relevant
+  encoder suite: 124/125 pass (1 pre-existing skip); protected gate: 430/430.
+- **Fix #90** landed locally (src/peoplecode/encoder.ts): legacy untyped
+  `array` is now accepted without an `of <element-type>` clause in ordinary
+  Function parameters/returns and Local/Global/Component declaration paths.
+  The change preserves the short executable form -- only the existing `0x40
+  "array"` token is emitted before the variable or closing delimiter. Function
+  metadata maps the untyped form to `0x100004` (array flag plus calibrated
+  `any` id 4), producing parameter descriptor `0xC0100004`. Definition 8229
+  proves `&Ern_array As array` and that exact descriptor; definition 16893
+  independently proves `Returns array` uses return descriptor `0x00100004`;
+  definitions 16150/16151 prove `Component array`; definition 27398 proves an
+  initialized `Local array`. Full run 1545 -> 1573: definitions 8229, 10536,
+  16150, 16151, 20173, and 27398 became fully EXACT; 21 definitions advanced
+  to independent later states; 30182 unchanged; 0 regressed. Added a test
+  covering the short executable spelling and both Function descriptors.
+  Full project typecheck passes; full `npm test`: 477/478 pass (1 pre-existing
+  skip); protected gate: 430/430.
 - **Fix #89** landed locally (src/peoplecode/encoder.ts): a RECORD name
   REPEATED within a RowScrollSelect-family call's own argument list (e.g.
   `RowScrollSelect(1, Record.X, Record.X, ...)`) may now ALSO reuse an
