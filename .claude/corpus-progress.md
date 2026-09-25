@@ -1,5 +1,41 @@
 # Corpus Calibration Progress
 
+## Fix #84: `Repeat` body comment handling and Until-trailing-semicolon omission
+
+`src/peoplecode/encoder.ts`, `repeatStatement()`'s body loop: this was by
+far the least-developed body loop in the file -- unlike If/While/For/
+Evaluate, it had NO standalone `/* */` comment handling, no REM handling,
+no blank-line-marker preservation, and no trailing-semicolon-omission
+allowance for the last statement before its own terminator (`Until`).
+Brought it up to parity with `whileStatement()`'s already-proven body
+loop shape (the closest structural analog: `Repeat ... Until <condition>;`
+mirrors `While <condition>; ... End-While;`), adding all four pieces in
+one pass since they're all instances of the exact same established
+per-body-loop pattern from earlier fixes this session (#63, #73, and the
+Evaluate/When-Other REM/comment work):
+
+- standalone `/*...*/` comment handling (`blockComment()` + blank-line
+  marker preservation)
+- REM handling (`remComment(true)`)
+- the final body statement may omit its own `;` when immediately
+  followed by `Until`, mirroring the already-proven While-body-before-
+  End-While allowance (Fix #73)
+
+Searched the corpus for `expected ; in Repeat body` (7 occurrences).
+Sampled all 7 via the REAL `corpus:harness --definition-id` command (not
+a scratch encode-only script, per Fix #83's reconfirmed lesson): 1
+reaches full `EXACT` (17199), the rest advance from `ENCODE_ERROR` to
+`UNKNOWN_MISMATCH`/`DECODE_SOURCE_MISMATCH` (fully encoding/decoding now,
+just not byte/text-identical due to other, separate, pre-existing issues
+elsewhere in those files). None regressed (confirmed: all 7 were
+`ENCODE_ERROR`, not `EXACT`, before this fix).
+
+Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
+`corpus:verify --limit 430` 430/430, 0 regressed. Full-corpus background
+run (run_id 329, 30209/30209, exact=22655) diffed against the immediately
+preceding full run (run_id 320, exact=22654): 1 improved, 0 regressed,
+30208 same.
+
 ## Fix #83: `Else;` -- Else's own optional immediately-following semicolon (encoder + decoder)
 
 Two matching fixes, one on each side, for the same construct: `Else` may
@@ -400,26 +436,25 @@ run (run_id 295, 30209/30209, exact=22516) diffed against the immediately
 preceding full run (run_id 292, exact=22511): 5 improved, 0 regressed,
 30204 same.
 
-## Status as of Fix #83 (current)
+## Status as of Fix #84 (current)
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
   throughout. `--live` has never been used this session.
 - **Protected baseline**: 430/430, clean.
-- **Last successful calibration**: Fix #83 (above).
-- **Corpus total**: full-corpus run_id 320 = 22654/30209 exact (75.0%),
-  confirmed zero-regression against run_id 309 (Fix #82's baseline,
-  itself confirmed zero-regression against run_id 307/305/303/301/299/297/295/292/290/288).
-- **CRITICAL VALIDATION REMINDER (reconfirmed this fix)**: a scratch
-  script that only calls `encodeProgram()` and compares to stored bytes
-  is NOT sufficient to judge whether a fix achieved full `EXACT` --
-  always cross-check a handful of candidates against the REAL
-  `npm run corpus:harness -- --definition-id <ID>` command (or a full
-  corpus run) before concluding a fix "didn't help" or celebrating a
-  sample's encode-only match rate. Fix #83 was almost committed as a
-  "0 improved" encoder-only change before this check caught the missing
-  decoder half.
+- **Last successful calibration**: Fix #84 (above).
+- **Corpus total**: full-corpus run_id 329 = 22655/30209 exact (75.0%),
+  confirmed zero-regression against run_id 320 (Fix #83's baseline,
+  itself confirmed zero-regression against run_id 309/307/305/303/301/299/297/295/292/290/288).
+- **CRITICAL VALIDATION REMINDER** (from Fix #83, still in force): a
+  scratch script that only calls `encodeProgram()` and compares to stored
+  bytes is NOT sufficient to judge whether a fix achieved full `EXACT` --
+  always cross-check a handful of candidates against the REAL `npm run
+  corpus:harness -- --definition-id <ID>` command (or a full corpus run)
+  before concluding a fix "didn't help" or celebrating a sample's
+  encode-only match rate. Fix #84 already applied this lesson (sampled
+  via the real harness, not a scratch script).
 - **Next action**: resume failure-family triage from the current failure
-  inventory (`GROUP BY classification, error_message` on run_id 320 in
+  inventory (`GROUP BY classification, error_message` on run_id 329 in
   `tools/corpus/corpus-results.sqlite`, excluding `%bare identifiers%` and
   `%Application Class%` which are the known-deferred gap). Nothing large
   is pre-scoped as of this update -- re-run the failure-family query fresh
@@ -433,11 +468,11 @@ preceding full run (run_id 292, exact=22511): 5 improved, 0 regressed,
   (Fix #77's entry, definition 1016); definition 14727/14854's remaining
   `Unsupported Function parameter` sub-cases (Fix #79's entry); definition
   13562's `Unsupported function metadata type: Message` (Fix #80's
-  entry, not yet investigated for corroborating occurrences); the 3
-  definitions from Fix #83's own sample (437, 805, 850) that still didn't
-  reach EXACT even with both the encoder and decoder fixes (UNKNOWN_MISMATCH,
-  UNKNOWN_MISMATCH, DECODE_SOURCE_MISMATCH respectively) -- separate,
-  unrelated issues in those files, not yet inspected.
+  entry, not yet investigated for corroborating occurrences); the
+  definitions from Fix #83's and Fix #84's own samples that reached
+  `UNKNOWN_MISMATCH`/`DECODE_SOURCE_MISMATCH` instead of `EXACT` (437,
+  805, 850, 4827, 5624, 5626, 14357, 22087, 22107) -- separate, unrelated
+  issues in those files, not yet inspected.
 - **Locally blocked / deferred, evidence exhausted** (unchanged unless
   noted): the `#If #ToolsRel` preprocessor-directive family (73
   occurrences, environmental per-definition dependency); the general
