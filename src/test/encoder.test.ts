@@ -736,6 +736,74 @@ test('Evaluate preserves a REM comment before its first When', () => {
   assert.deepStrictEqual(encodeProgram(decoded.text), program);
 });
 
+test('When-Other final statement may omit its semicolon before End-Evaluate', () => {
+  const program = encodeProgram(
+    'Evaluate &kind\n' +
+    'When-Other\n' +
+    '   &result = "x"\n' +
+    'End-Evaluate;'
+  );
+
+  assert.deepStrictEqual(
+    program.subarray(-9),
+    Buffer.from([0x06, 0x16, 0x78, 0x00, 0x00, 0x00, 0x3f, 0x15, 0x07])
+  );
+});
+
+test('When-Other body preserves a comment before the statement semicolon', () => {
+  const program = encodeProgram(
+    'Evaluate &kind\n' +
+    'When-Other\n' +
+    '   &result = True /* prior value */;\n' +
+    'End-Evaluate;'
+  );
+  const comment = Buffer.concat([
+    Buffer.from([0x4e, 0x22, 0x00]),
+    Buffer.from('/* prior value */', 'utf16le')
+  ]);
+
+  assert.notEqual(program.indexOf(comment), -1);
+});
+
+test('assignment accepts a parenthesized system-variable comparison', () => {
+  const program = encodeProgram('&enabled = (%Mode <> %Action_Add);');
+  const comparison = Buffer.concat([
+    Buffer.from([0x0b, 0x12]),
+    Buffer.from('%Mode', 'utf16le'),
+    Buffer.from([0x00, 0x00, 0x10, 0x12]),
+    Buffer.from('%Action_Add', 'utf16le'),
+    Buffer.from([0x00, 0x00, 0x14])
+  ]);
+
+  assert.notEqual(program.indexOf(comparison), -1);
+});
+
+test('If condition accepts a postfix property after a parenthesized field', () => {
+  const program = encodeProgram(
+    'Local Record &rec;\n' +
+    'If (&rec.LANGUAGE_CD).IsInBuf Then\n' +
+    '   &found = True;\n' +
+    'End-If;'
+  );
+  const memberThen = Buffer.concat([
+    Buffer.from([0x05, 0x0a]),
+    Buffer.from('IsInBuf', 'utf16le'),
+    Buffer.from([0x00, 0x00, 0x1f])
+  ]);
+
+  assert.notEqual(program.indexOf(memberThen), -1);
+});
+
+test('Continue encodes with its context-gated statement opcode', () => {
+  const program = encodeProgram(
+    'While True\n' +
+    '   Continue;\n' +
+    'End-While;'
+  );
+
+  assert.notEqual(program.indexOf(Buffer.from([0x6e, 0x15])), -1);
+});
+
 test('try and catch bodies preserve REM comments', () => {
   const source = `try
    rem before catch;

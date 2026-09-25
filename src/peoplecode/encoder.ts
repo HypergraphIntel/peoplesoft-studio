@@ -2746,6 +2746,24 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         expression();
       }
       return;
+    } else if (
+      /^\(\s*&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*\)\s*\./
+        .test(source.slice(pos))
+    ) {
+      /*
+       * Parentheses may group an object/field expression before a postfix
+       * property access; they are not necessarily a parenthesized boolean
+       * subexpression. Let primary() consume the group and its postfix chain.
+       *
+       * PRCSRUNCNTL_WRK.<fields> (definitions 14194-14196):
+       *
+       *   If (&recRunCtlLang.LANGUAGE_CD).IsInBuf Then
+       *
+       * stores 0x0B...0x14 for the grouped field, followed by ordinary
+       * member access and Then.
+       */
+      comparisonExpression();
+      return;
     } else if (source[pos] === '(') {
       parenthesized(booleanExpression, false);
       space();
@@ -3334,7 +3352,16 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }
 
     } else if (word('Continue')) {
-      chunks.push(fixed('Continue'));
+      /*
+       * Continue is the context-gated 0x6E statement opcode. It stays out
+       * of the general fixed-token table because 0x6E is overloaded outside
+       * the `Continue;` shape, but the encoder is already inside a parsed
+       * Continue statement here and can select it unambiguously.
+       *
+       * PRCSRUNCNTL_WRK.<fields> (definitions 14194-14196) independently
+       * store `Else Continue;` as 0x19 0x6E 0x15.
+       */
+      chunks.push(Buffer.from([0x6e]));
 
     } else if (word('Error')) {
       chunks.push(fixed('Error'));
@@ -5329,34 +5356,45 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             }
           }
 
-          /*
-           * `Break` (and, by the same reasoning, `Continue`) is a fixed,
-           * argument-free keyword with no ambiguity about where it ends,
-           * so it may omit its trailing `;` when it is the LAST statement
-           * in a `When-Other` body, immediately followed by
-           * `End-Evaluate` -- mirroring the already-proven EOF-omission
-           * allowance for other self-terminating top-level statement
-           * shapes (assignments/If/Evaluate/bare calls/try), just at
-           * this body-closing boundary instead of true source EOF.
-           *
-           * PTAFAW_NOTIFY.PTAFEVENT.<event> (definition 18001, one of
-           * several corpus occurrences of this exact shape):
-           *
-           *   When-Other
-           *      Break
-           *   End-Evaluate;
-           */
-          const isBreakOrContinueStatement =
-            /^(?:Break|Continue)\b/i.test(source.slice(pos));
-
           statement();
 
           space();
+
+          /*
+           * A block comment may sit between a When-Other body statement's
+           * expression and its explicit semicolon, just as it can at the
+           * top level and in the other calibrated control bodies.
+           *
+           * DERIVED_GPFRDSN.FUNCLIB.FieldFormula (definition 5000):
+           *
+           *   &Evtsel(...).Enabled = True /*False*\/;
+           *
+           * stores the same placement-dependent 0x4E/0x24 comment form as
+           * those existing call sites.
+           */
+          while (source.startsWith('/*', pos)) {
+            chunks.push(blockCommentByPlacement());
+            space();
+          }
+
           if (source[pos] !== ';') {
-            if (
-              isBreakOrContinueStatement &&
-              /^End-Evaluate\b/i.test(source.slice(pos))
-            ) {
+            /*
+             * The last statement in a When-Other body may omit its source
+             * semicolon immediately before End-Evaluate. This is the same
+             * boundary rule already used by ordinary When bodies below; it
+             * is not limited to Break/Continue.
+             *
+             * PA_RT_SCHED_VW.BENEFIT_PLAN.RowInit (definition 12623)
+             * proves the assignment form, while definitions 5000 and 15626
+             * independently prove concatenation and Return expressions:
+             *
+             *   When-Other
+             *      DERIVED.BEN_PLAN_EDIT = "PA_RT_FORM_VW"
+             *   End-Evaluate
+             *
+             * None stores a 0x15 statement terminator before 0x3F.
+             */
+            if (/^End-Evaluate\b/i.test(source.slice(pos))) {
               continue;
             }
 
@@ -6471,6 +6509,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         /^\(\s*&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:<>|<=|>=|=|<|>)/
           .test(source.slice(pos));
       /*
+       * System variables can be the left operand of the same parenthesized
+       * comparison shape. Four independent HCDEV definitions use exactly:
+       *
+       *   (%Mode <> %Action_Add)
+       *
+       * and store the ordinary 0x0B / 0x10 / 0x14 grouped-comparison bytes.
+       */
+      const startsSystemVariableComparison =
+        /^\(\s*%[A-Za-z_][A-Za-z0-9_]*\s*(?:<>|<=|>=|=|<|>)/
+          .test(source.slice(pos));
+      /*
        * A parenthesized comparison whose LEFT side is a function call
        * (optionally with one level of call arguments) or a bare
        * Record.Field chain, rather than a `&variable`, e.g.:
@@ -6491,6 +6540,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       parenthesized(
         startsBooleanUnary ||
         startsVariableComparison ||
+        startsSystemVariableComparison ||
         startsCallOrFieldComparison
           ? booleanExpression
           : expression,
