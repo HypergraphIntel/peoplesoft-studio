@@ -2462,11 +2462,36 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       const nextLineMatch =
         /^(\r?\n)(REM\b[^\r\n]*)/i.exec(source.slice(pos + consumedLength));
 
-      if (!nextLineMatch) break;
+      if (nextLineMatch) {
+        remText +=
+          nextLineMatch[1] + nextLineMatch[2].replace(/[ \t]+$/g, '');
+        consumedLength += nextLineMatch[0].length;
+        continue;
+      }
+
+      /*
+       * Three DERIVED_GVT captures (definitions 5424-5426) continue a REM
+       * payload onto one single-space prose line without repeating REM:
+       *
+       *   REM KJB Removed code ... as it is
+       *    no longer valid, as Record.REVIEW_GOALS is obsolete;
+       *
+       * PeopleTools stores both physical lines, including the newline and
+       * final semicolon, in one 0x24 payload. Keep this deliberately narrower
+       * than ordinary indented source so a semicolon-less REM does not absorb
+       * the next PeopleCode statement.
+       */
+      const proseContinuation =
+        /^(\r?\n)( [^ \t\r\n][^\r\n]*)/.exec(
+          source.slice(pos + consumedLength)
+        );
+
+      if (!proseContinuation) break;
 
       remText +=
-        nextLineMatch[1] + nextLineMatch[2].replace(/[ \t]+$/g, '');
-      consumedLength += nextLineMatch[0].length;
+        proseContinuation[1] +
+        proseContinuation[2].replace(/[ \t]+$/g, '');
+      consumedLength += proseContinuation[0].length;
     }
 
     if (!allowMissingSemicolon && !remText.endsWith(';')) {
@@ -3253,6 +3278,106 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
   };
 
+  /*
+   * Non-consuming structural lookahead for the statement dispatcher.
+   * It distinguishes a real call-result property assignment such as
+   * `GetPageField(..., "EDIT").Label = value` from a plain call whose
+   * string argument contains JavaScript like
+   * `getElementById(...).style.visibility = ...`. A regex cannot tell the
+   * source-level postfix chain from the lookalike text inside the string.
+   */
+  const balancedLookaheadEnd = (
+    start: number,
+    open: '(' | '[',
+    close: ')' | ']'
+  ): number => {
+    if (source[start] !== open) return -1;
+
+    let depth = 0;
+    let peek = start;
+    while (peek < source.length) {
+      if (source[peek] === '"') {
+        peek++;
+        while (peek < source.length) {
+          if (source[peek] !== '"') {
+            peek++;
+            continue;
+          }
+          if (source[peek + 1] === '"') {
+            peek += 2;
+            continue;
+          }
+          peek++;
+          break;
+        }
+        continue;
+      }
+
+      if (source.startsWith('/*', peek)) {
+        const commentEnd = source.indexOf('*/', peek + 2);
+        if (commentEnd < 0) return -1;
+        peek = commentEnd + 2;
+        continue;
+      }
+
+      if (source[peek] === open) depth++;
+      if (source[peek] === close) {
+        depth--;
+        if (depth === 0) return peek + 1;
+      }
+      peek++;
+    }
+
+    return -1;
+  };
+
+  const startsCallResultPropertyAssignment = (start: number): boolean => {
+    const callName = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(start))?.[0];
+    if (callName === undefined) return false;
+
+    let peek = start + callName.length;
+    while (/\s/.test(source[peek] ?? '')) peek++;
+    peek = balancedLookaheadEnd(peek, '(', ')');
+    if (peek < 0) return false;
+
+    let sawMember = false;
+    while (true) {
+      while (/\s/.test(source[peek] ?? '')) peek++;
+
+      if (source[peek] === '.') {
+        peek++;
+        while (/\s/.test(source[peek] ?? '')) peek++;
+        const member = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(peek))?.[0];
+        if (member === undefined) return false;
+        sawMember = true;
+        peek += member.length;
+        while (/\s/.test(source[peek] ?? '')) peek++;
+        if (source[peek] === '(') {
+          peek = balancedLookaheadEnd(peek, '(', ')');
+          if (peek < 0) return false;
+        }
+        continue;
+      }
+
+      if (source[peek] === '(') {
+        peek = balancedLookaheadEnd(peek, '(', ')');
+        if (peek < 0) return false;
+        continue;
+      }
+
+      if (source[peek] === '[') {
+        peek = balancedLookaheadEnd(peek, '[', ']');
+        if (peek < 0) return false;
+        continue;
+      }
+
+      break;
+    }
+
+    while (/\s/.test(source[peek] ?? '')) peek++;
+    return sawMember && source[peek] === '=';
+  };
+
   function statement(): void {
     currentStatementRecordFields.clear();
     /*
@@ -3558,9 +3683,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         pos++;
         chunks.push(fixed('='));
         expression();
-      } else if (
-        /^[A-Za-z_][A-Za-z0-9_]*\s*\([^;]*\)(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)+\s*=/.test(tail)
-      ) {
+      } else if (startsCallResultPropertyAssignment(pos)) {
         /*
          * A call-result property chain may traverse more than one dotted
          * member before the assigned property, e.g.

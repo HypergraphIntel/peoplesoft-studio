@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+Version **0.2.1** brings editional encoding / decoding maps and even more AI tooling, refactored
+
 ## 0.2.0
 
 Version **0.2.0** brings editional encoding / decoding maps and AI tooling

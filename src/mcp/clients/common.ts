@@ -1,13 +1,23 @@
 import childProcess from 'node:child_process';
 
+import {
+  MCP_HEALTH_URL,
+  MCP_URL
+} from '../server.js';
+
 export const MCP_NAME =
   'peoplesoftStudio';
 
-export const MCP_URL =
-  'http://127.0.0.1:7337/mcp';
+// export const MCP_URL =
+//  'http://127.0.0.1:7337/mcp';
 
-export const MCP_HEALTH_URL =
-  'http://127.0.0.1:7337/health';
+// export const MCP_HEALTH_URL =
+//  'http://127.0.0.1:7337/health';
+
+export {
+  MCP_URL,
+  MCP_HEALTH_URL
+};
 
 export interface ExecResult {
   stdout: string;

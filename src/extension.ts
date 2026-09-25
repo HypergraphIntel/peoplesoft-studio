@@ -18,6 +18,16 @@ import {
   configureAiClient
 } from './mcp/configure.js';
 
+import {
+  McpServerController
+} from './mcp/controller.js';
+
+import {
+  McpStatus,
+  showMcpMenu,
+  showMcpStatus
+} from './mcp/status.js';
+
 /** Left side of a compare: which connection + which definition key. */
 interface CompareTarget {
   connectionId: string;

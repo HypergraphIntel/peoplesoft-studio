@@ -15,6 +15,10 @@ import {
   configureClaude
 } from './clients/claude.js';
 
+import {
+  McpServerController
+} from './controller.js';
+
 type ClientChoice =
   | 'codex'
   | 'claude'
