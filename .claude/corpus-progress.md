@@ -617,36 +617,130 @@ this dimension is real but not the general explanation.
      the same apparent shape," though its actual shape (sibling-branch,
      not sequential) differs from the FetchValue/ActiveRowCount cluster,
      which is itself useful signal (see finding 1 above).
-2. Do the full stored-byte PSPCMNAME/NAMENUM close reading on 802 vs 6352
-   next: not just the leading Record.X argument's own allocation pattern
-   (already pulled above) but the COMPLETE row metadata (RECNAME, REFNAME,
-   PACKAGEROOT, QUALIFYPATH columns from `snapshot_name`) for every
-   PSPCMNAME row either definition allocates, looking for any column that
-   differs systematically between the two that source-text analysis
-   alone cannot see.
-3. Then bring in 6389 (RowScrollSelect) as the cross-family comparison
-   example once 802/6352 yield a concrete hypothesis, to test whether it
-   generalizes or is FetchValue-specific -- per this cycle's own repeated
-   lesson, do not trust a rule until it survives a second, structurally
-   different construct.
-4. Do NOT implement any encoder fix yet. Five surface-syntax/structural
-   hypotheses (FetchValue always-fresh, GetRecord branch-vs-sequential,
-   GetRecord bare-vs-postfix, loop-header/reference-epoch boundary,
-   row-argument variable-vs-call) have now been tested and falsified at
-   full corpus scale this cycle, across six intrinsic families. The
-   discipline is working exactly as intended -- each rejection narrows the
-   search space instead of accumulating a wrong special case, and two
-   families-worth of "which observed facts generalize" comparison
-   (sibling-branch reliability, sequential enrichment) turned out to
-   SPLIT the six families into two groups with opposite behavior, which
-   is itself a real, corpus-confirmed structural finding even though it
-   is not yet a fix.
-5. Old Phase 2 "binding vs. value-fetch" two-class write-up, and the
-   "loop-header/reference-epoch" lead from the checkpoint before that,
-   both remain superseded; this section adds a third: "sibling-branch is
-   universally reliable" and "sequential is universally enriched" are
-   superseded too, now correctly scoped to {FetchValue, ActiveRowCount}
-   only. All four retractions stay in place as the evidence record.
+### BREAKTHROUGH -- flat-top-level hypothesis, quantified and strongly corroborated
+
+Close-reading 802 (agrees) vs 6352 (disagrees) side by side pulled full
+`snapshot_name` metadata and the encoder's own raw `controlGroup`/
+`controlDepth`/`functionDepth` per occurrence (not just this tool's own
+heuristic `branchPath`), and found the actual mechanical difference:
+
+- **802**: `&RSAeTempTbls.GetRowset(...)`/`.Select(Record.AETEMPTBLMGR,
+  ...)` (postfix, at the Function's flat top level) each allocate their
+  own fresh row (nameNum 8, 9) -- unsurprising, matches Finding-A-style
+  behavior for a first establishing reference. The FIRST bare
+  `ActiveRowCount(Scroll.AETEMPTBLMGR)` (the enclosing `For` loop's own
+  bound expression) and FIRST bare `FetchValue(Record.AETEMPTBLMGR, ...)`
+  EACH ALSO allocate fresh (nameNum 10, 11) rather than reusing 8/9 --
+  consistent with the whole cycle's repeated finding that a value-fetch
+  call's leading argument doesn't look backward at a different
+  construct's earlier binding. But critically, EVERY SUBSEQUENT bare
+  FetchValue call (3 more) AND every subsequent bare `UpdateValue` call
+  (3 of them, a DIFFERENT function entirely) all correctly REUSE nameNum
+  11 -- all of this happens with `controlGroup` pinned at one value (20)
+  because all of it sits INSIDE the `For` loop body, nested inside the
+  loop's own `If`/`Else` (controlDepth 1-3), inside a Function
+  (functionDepth 1).
+- **6352**: the four repeated `FetchValue(Record.DERIVED_HR_TRN, ...)`
+  calls are flat top-level PROGRAM statements -- `controlDepth=0`,
+  `functionDepth=0`, no enclosing Function/For/If/Evaluate at all. Stored
+  allocates a FRESH row for every single one; the encoder computes
+  `controlGroup=0` for all four (matching the ALREADY-CALIBRATED "ordinary
+  top-level program statements share one group by default" rule -- see
+  Fix batch #23-38's own rule 12) and therefore wrongly REUSEs.
+
+**Hypothesis**: a value-fetch call's (FetchValue/ActiveRowCount/
+ScrollFlush) leading Record.X/Scroll.X argument only participates in
+reuse when NESTED inside some control-flow or Function/Method context
+(`controlDepth > 0` OR `functionDepth > 0`); at the program's genuinely
+flat top level (`controlDepth === 0 AND functionDepth === 0`), every
+occurrence allocates fresh, regardless of the existing "top-level
+statements share a controlGroup by default" rule that correctly governs
+ORDINARY bare RECORD.FIELD references.
+
+**Quantified against the full population of all four candidate families
+(new `flatTopLevel` predicate added to `getrecord-branch-analysis.ts`,
+true when BOTH occurrences in a pair have `controlDepth===0 &&
+functionDepth===0`) -- by far the strongest signal found this entire
+cycle:**
+
+| family | disagreements explained | currently-correct pairs also touched |
+|---|---|---|
+| FetchValue | 45/66 (68.2%) | 29/1326 (2.2%) |
+| ActiveRowCount | 11/15 (73.3%) | 9/462 (1.9%) |
+| ScrollFlush | 3/12 (25.0%) | 2/141 (1.4%) |
+| RowScrollSelect | 2/15 (13.3%) | 10/93 (10.8%) -- no real signal |
+| ScrollSelect | 0/34 (0.0%) | 62/873 (7.1%) -- anti-correlated |
+
+FetchValue and ActiveRowCount show near-identical, very strong enrichment
+(68-73% of disagreements vs. ~2% contamination of correct pairs -- roughly
+30-35x). ScrollFlush shows the same DIRECTION at a smaller magnitude.
+RowScrollSelect/ScrollSelect show no signal or the opposite, consistent
+with this cycle's earlier finding that they run on different,
+already-partially-calibrated machinery (the `controlDepth`-gated
+`genericRecordReferencesSinceLastFamilyCall` mechanism from Fixes
+#86-89) where a different, already-partly-correct notion of scope
+already applies.
+
+**This is the first hypothesis this entire research cycle that both (a)
+explains a large majority of its target families' disagreements and (b)
+touches almost none of the currently-correct population.** Per the
+directive's own bar ("preferred only if it explains multiple independent
+construct families, predicts both REUSE and NEW cases, survives
+full-population checks, reduces the number of special-case mechanisms
+needed"): it explains 2 families strongly and a 3rd moderately: FetchValue
+predicts both directions correctly already in the ~32% not currently
+flagged (a pair can be flat-top-level and still correctly agree, e.g. the
+FIRST occurrence in any sequence is always ALLOC on both sides); it has
+not yet been checked against RowScrollSelectNew (population too small,
+4 pairs, to be conclusive either way) or GetRecord (not yet re-tested
+with this specific predicate).
+
+**GetRecord confirmation (the construct that started this whole
+branch/sequential detour, definitions 26/1420/1423/1424 from the earlier
+checkpoints)**: re-ran `flatTopLevel` against its own 100-definition
+balanced sample -- **7/8 disagreements explained (87.5%), 0/154
+currently-correct pairs touched (0.0% contamination).** This is the
+cleanest result of any family tested: GetRecord's residual disagreements
+are ALMOST ENTIRELY flat-top-level cases, and the rule never misfires on
+a correct pair. Combined with FetchValue/ActiveRowCount/ScrollFlush, the
+`flatTopLevel` hypothesis now explains a strong majority of disagreements
+across FOUR independent construct families (GetRecord, FetchValue,
+ActiveRowCount, ScrollFlush), while correctly showing no signal for the
+two families (RowScrollSelect, ScrollSelect) already known to run on
+different, more complex, already-partially-calibrated machinery. This is
+the strongest, most broadly-corroborated finding of the entire research
+cycle.
+
+### Next action (research cycle)
+
+1. This is now a strong enough, well-quantified candidate to write up as
+   the Phase 4 "smallest abstraction" proposal for the FetchValue/
+   ActiveRowCount/ScrollFlush sub-family specifically: their leading
+   Record.X/Scroll.X argument's reuse-pool lookup should be gated by
+   `controlDepth > 0 || functionDepth > 0`, on top of (not replacing) the
+   existing controlGroup-scoped pool -- i.e. these three constructs need
+   an ADDITIONAL guard the ordinary bare-RECORD.FIELD reuse path does not.
+   Do NOT implement yet -- the remaining ~30% of FetchValue's disagreements
+   and ~27% of ActiveRowCount's are NOT explained by this rule and need
+   their own accounting before a real fix is written (a guard that only
+   explains 68% and silently mishandles the other 32% would be exactly
+   the kind of half-evidenced special case this cycle exists to avoid).
+3. Look at the 21 FetchValue and 4 ActiveRowCount disagreements the
+   `flatTopLevel` rule does NOT explain (i.e. these disagreements occur
+   even when nested) -- cluster those separately; they are evidence for a
+   SECOND, still-unidentified mechanism, not noise to ignore.
+4. Cross-family control: definition 6389 (RowScrollSelect's own
+   9-disagreement cluster, sibling-branch shaped) remains queued as the
+   "different apparent shape, different family" comparison point, now
+   knowing RowScrollSelect does NOT share the flat-top-level signal --
+   useful confirmation that its bug is genuinely a different mechanism,
+   not yet investigated in its own right.
+5. Do NOT implement any encoder fix yet. This is the strongest candidate
+   rule found so far, but per the directive's own bar it must still (a)
+   be checked against GetRecord, (b) have its own ~30% exception clustered
+   and understood, and (c) be mapped onto the existing encoder mechanisms
+   (Phase 3) before any Phase 5 implementation -- none of which is done
+   yet.
 
 ## Checkpoint
 
