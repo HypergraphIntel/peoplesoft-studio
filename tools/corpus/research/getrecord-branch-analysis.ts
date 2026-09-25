@@ -85,6 +85,19 @@ interface AnalysisRow {
   enclosingCall?: string;
   /** Is the GetRecord call a postfix method call (<receiver>.GetRecord(...)) rather than a bare call (GetRecord(...))? */
   isPostfix?: boolean;
+  // Phase 1A fields (see .claude/corpus-progress.md's research-cycle
+  // section): testing whether a header/body or loop-epoch boundary
+  // between the two occurrences predicts the ALLOC/REUSE disagreement.
+  fromConstruct: string;
+  toConstruct: string;
+  fromPhase: string;
+  toPhase: string;
+  /** True when the two occurrences sit in different phases (header/condition/body/top) of their respective innermost constructs -- generalizes "loop header vs body" to If-condition-vs-body, Evaluate-selector-vs-When, etc. */
+  phaseChanged: boolean;
+  /** True when at least one For/While/Repeat frame was entered between the two occurrences (loopEpochId differs) -- operationalizes "entering a loop creates a new reference epoch." */
+  loopEpochChanged: boolean;
+  /** True when both occurrences share the exact same innermost scopeId (same block). */
+  sameScope: boolean;
 }
 
 /**
@@ -170,7 +183,14 @@ function analyzeDefinition(
         isPostfix:
           openParen === undefined || curr.enclosingCall === undefined
             ? undefined
-            : isPostfixCall(source, curr.enclosingCall, openParen)
+            : isPostfixCall(source, curr.enclosingCall, openParen),
+        fromConstruct: prev.controlConstruct,
+        toConstruct: curr.controlConstruct,
+        fromPhase: prev.controlPhase,
+        toPhase: curr.controlPhase,
+        phaseChanged: prev.controlPhase !== curr.controlPhase,
+        loopEpochChanged: prev.loopEpochId !== curr.loopEpochId,
+        sameScope: prev.scopeId === curr.scopeId
       });
     }
   }
@@ -301,6 +321,97 @@ function main(): void {
   }
   console.log(`\n--- Distinct definitions with a disagreement: ${seenDefs.size} ---`);
   console.log([...seenDefs].sort((a, b) => a - b).join(','));
+
+  // Phase 1A quantification, per the research directive's own reporting
+  // format: for each candidate rule, how many disagreements does a
+  // "boundary crossed" predicate actually cover, how many does it miss,
+  // and does it wrongly flag any currently-correct (agree=true) pair too?
+  const rules: { name: string; predicate: (r: AnalysisRow) => boolean }[] = [
+    { name: 'phaseChanged (header/condition/body boundary crossed)', predicate: r => r.phaseChanged },
+    { name: 'loopEpochChanged (a For/While/Repeat was entered in between)', predicate: r => r.loopEpochChanged },
+    { name: 'sameScope=false (different innermost block)', predicate: r => !r.sameScope },
+    { name: 'relationship=sequential', predicate: r => r.relationship === 'sequential' },
+    { name: 'relationship=sibling-branch', predicate: r => r.relationship === 'sibling-branch' }
+  ];
+
+  console.log('\n--- Phase 1A candidate-rule quantification ---');
+  console.log(
+    'A rule "explains" a disagreement when the predicate is TRUE there, and\n' +
+      '"contradicts" when it is ALSO true on a currently-correct (agree=true) pair\n' +
+      '(i.e. the predicate does not cleanly separate agree from disagree).'
+  );
+
+  for (const rule of rules) {
+    const explained = disagreements.filter(rule.predicate).length;
+    const notExplained = disagreements.length - explained;
+    const agreeing = allRows.filter(r => r.agree === true);
+    const touchedAmongAgreeing = agreeing.filter(rule.predicate).length;
+
+    console.log(
+      `\n${rule.name}:\n` +
+        `  disagreements explained (predicate true):     ${explained} / ${disagreements.length}\n` +
+        `  disagreements NOT explained (predicate false): ${notExplained} / ${disagreements.length}\n` +
+        `  currently-correct pairs the rule also touches: ${touchedAmongAgreeing} / ${agreeing.length}\n` +
+        `  => predicate-true rate: disagreements ${disagreements.length > 0 ? (100 * explained / disagreements.length).toFixed(1) : '0.0'}% vs agreeing ${agreeing.length > 0 ? (100 * touchedAmongAgreeing / agreeing.length).toFixed(1) : '0.0'}%` +
+        (touchedAmongAgreeing > 0 && explained === disagreements.length
+          ? '\n  NOTE: predicate true on ALL disagreements but ALSO true on some correct pairs -- necessary but not sufficient.'
+          : '')
+    );
+  }
+
+  // Sequential pairs carry nearly all disagreements but are themselves a
+  // near-majority of the whole population -- look INSIDE that subset for
+  // what actually separates its disagreeing minority (statement distance,
+  // whether any watched intrinsic intervened).
+  const sequentialRows = allRows.filter(r => r.relationship === 'sequential');
+  const seqDisagree = sequentialRows.filter(r => r.agree === false);
+  const seqAgree = sequentialRows.filter(r => r.agree === true);
+
+  const stmtGap = (r: AnalysisRow): number => r.toStmt - r.fromStmt;
+  const mean = (xs: number[]): number =>
+    xs.length === 0 ? NaN : xs.reduce((a, b) => a + b, 0) / xs.length;
+  const median = (xs: number[]): number => {
+    if (xs.length === 0) return NaN;
+    const sorted = [...xs].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+  };
+
+  console.log('\n--- Within sequential pairs only: what separates the disagreeing minority? ---');
+  console.log(
+    `sequential pairs: ${sequentialRows.length} total, ${seqDisagree.length} disagree, ${seqAgree.length} agree`
+  );
+  console.log(
+    `statement gap (toStmt - fromStmt): disagree mean=${mean(seqDisagree.map(stmtGap)).toFixed(2)} median=${median(seqDisagree.map(stmtGap))} | ` +
+      `agree mean=${mean(seqAgree.map(stmtGap)).toFixed(2)} median=${median(seqAgree.map(stmtGap))}`
+  );
+  const hadIntervening = (r: AnalysisRow): boolean => r.intervening.length > 0;
+  console.log(
+    `had ANY watched-intrinsic intervening: disagree ${seqDisagree.filter(hadIntervening).length}/${seqDisagree.length} ` +
+      `(${seqDisagree.length > 0 ? (100 * seqDisagree.filter(hadIntervening).length / seqDisagree.length).toFixed(1) : '0.0'}%) | ` +
+      `agree ${seqAgree.filter(hadIntervening).length}/${seqAgree.length} ` +
+      `(${seqAgree.length > 0 ? (100 * seqAgree.filter(hadIntervening).length / seqAgree.length).toFixed(1) : '0.0'}%)`
+  );
+
+  const interveningNameCounts = new Map<string, { disagree: number; agree: number }>();
+  for (const r of seqDisagree) {
+    for (const name of r.intervening) {
+      const entry = interveningNameCounts.get(name) ?? { disagree: 0, agree: 0 };
+      entry.disagree++;
+      interveningNameCounts.set(name, entry);
+    }
+  }
+  for (const r of seqAgree) {
+    for (const name of r.intervening) {
+      const entry = interveningNameCounts.get(name) ?? { disagree: 0, agree: 0 };
+      entry.agree++;
+      interveningNameCounts.set(name, entry);
+    }
+  }
+  console.log('intervening-call breakdown (name: disagree-count / agree-count):');
+  for (const [name, counts] of [...interveningNameCounts.entries()].sort((a, b) => b[1].disagree - a[1].disagree)) {
+    console.log(`  ${name}: ${counts.disagree} / ${counts.agree}`);
+  }
 }
 
 main();

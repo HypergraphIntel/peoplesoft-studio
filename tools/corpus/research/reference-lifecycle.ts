@@ -136,15 +136,31 @@ type BranchFrameType =
   | 'If'
   | 'For'
   | 'While'
+  | 'Repeat'
   | 'Evaluate'
   | 'Function'
   | 'Method';
+
+/**
+ * Which part of the construct an offset falls in, for the Phase 1A
+ * header/body reference-visibility investigation:
+ * - 'header': a For/While loop's own `For &i = 1 To N Step S` /
+ *   `While <cond>` clause, before the first body statement.
+ * - 'condition': an If's condition (before Then), an Evaluate's own
+ *   selector expression (before the first When), or a Repeat's trailing
+ *   `Until <cond>`.
+ * - 'body': everything else inside the frame (loop body, Then/Else body,
+ *   When body, Repeat's own body before Until).
+ */
+type BranchPhase = 'header' | 'condition' | 'body';
 
 interface BranchFrame {
   type: BranchFrameType;
   id: number;
   branch?: string;
   statementCount: number;
+  phase: BranchPhase;
+  entryOffset: number;
 }
 
 interface BranchCheckpoint {
@@ -152,6 +168,12 @@ interface BranchCheckpoint {
   branchPath: string;
   blockStatementIndex: number;
   epoch: number;
+  controlConstruct: BranchFrameType | 'top';
+  controlPhase: BranchPhase | 'top';
+  scopeId: number | undefined;
+  parentScopeId: number | undefined;
+  scopeEntryOffset: number | undefined;
+  loopEpochId: number;
 }
 
 const BRANCH_KEYWORD_PATTERN = new RegExp(
@@ -165,6 +187,8 @@ const BRANCH_KEYWORD_PATTERN = new RegExp(
       'For',
       'End-While',
       'While',
+      'Repeat',
+      'Until',
       'End-Evaluate',
       'Evaluate',
       'When-Other',
@@ -197,9 +221,23 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
   const masked = maskForBranchScan(source);
   const checkpoints: BranchCheckpoint[] = [];
 
+  // Paren depth at every offset, so a newline inside a wrapped argument
+  // list (rare, but present in the corpus) doesn't falsely end a For/While
+  // header -- the header ends at the first newline at paren depth 0.
+  const parenDepthAt: number[] = new Array(masked.length);
+  {
+    let depth = 0;
+    for (let i = 0; i < masked.length; i++) {
+      if (masked[i] === '(') depth++;
+      else if (masked[i] === ')') depth--;
+      parenDepthAt[i] = depth;
+    }
+  }
+
   const frames: BranchFrame[] = [];
   let nextId = 1;
   let epoch = 0;
+  let loopEpochId = 0;
   let topLevelStatementCount = 0;
 
   const renderBranchPath = (): string =>
@@ -210,19 +248,53 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
           .join('>');
 
   const pushCheckpoint = (offset: number): void => {
+    const top = frames[frames.length - 1];
+    const parent = frames[frames.length - 2];
+
     checkpoints.push({
       offset,
       branchPath: renderBranchPath(),
       blockStatementIndex:
-        frames.length === 0
-          ? topLevelStatementCount
-          : frames[frames.length - 1].statementCount,
-      epoch
+        frames.length === 0 ? topLevelStatementCount : top.statementCount,
+      epoch,
+      controlConstruct: top === undefined ? 'top' : top.type,
+      controlPhase: top === undefined ? 'top' : top.phase,
+      scopeId: top?.id,
+      parentScopeId: parent?.id,
+      scopeEntryOffset: top?.entryOffset,
+      loopEpochId
     });
   };
 
-  // Merge keyword and epoch-trigger matches into one source-order pass.
-  type Event = { offset: number; end: number; text: string; isEpoch: boolean };
+  const pushFrame = (
+    type: BranchFrameType,
+    entryOffset: number,
+    phase: BranchPhase
+  ): void => {
+    frames.push({
+      type,
+      id: nextId++,
+      statementCount: 0,
+      phase,
+      entryOffset
+    });
+
+    if (type === 'For' || type === 'While' || type === 'Repeat') {
+      loopEpochId++;
+    }
+  };
+
+  // Merge keyword, epoch-trigger, and newline events into one source-order
+  // pass. Newlines only matter for closing a For/While header (see
+  // 'newline' handling below); every other position relies solely on
+  // keywords/semicolons.
+  type Event = {
+    offset: number;
+    end: number;
+    text: string;
+    isEpoch: boolean;
+    isNewline: boolean;
+  };
   const events: Event[] = [];
 
   for (const m of masked.matchAll(BRANCH_KEYWORD_PATTERN)) {
@@ -230,7 +302,8 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
       offset: m.index ?? 0,
       end: (m.index ?? 0) + m[0].length,
       text: m[1],
-      isEpoch: false
+      isEpoch: false,
+      isNewline: false
     });
   }
 
@@ -239,7 +312,8 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
       offset: m.index ?? 0,
       end: (m.index ?? 0) + m[0].length,
       text: m[1],
-      isEpoch: true
+      isEpoch: true,
+      isNewline: false
     });
   }
 
@@ -247,7 +321,9 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
   // current frame's statement counter.
   for (let i = 0; i < masked.length; i++) {
     if (masked[i] === ';') {
-      events.push({ offset: i, end: i + 1, text: ';', isEpoch: false });
+      events.push({ offset: i, end: i + 1, text: ';', isEpoch: false, isNewline: false });
+    } else if (masked[i] === '\n' && parenDepthAt[i] === 0) {
+      events.push({ offset: i, end: i + 1, text: '\n', isEpoch: false, isNewline: true });
     }
   }
 
@@ -257,6 +333,18 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
     if (event.isEpoch) {
       epoch++;
       pushCheckpoint(event.end);
+      continue;
+    }
+
+    if (event.isNewline) {
+      // A For/While header ends at the first paren-depth-0 newline after
+      // it opens -- corpus convention keeps these single-line. Once the
+      // frame is in 'body' phase this is a no-op (idempotent).
+      const top = frames[frames.length - 1];
+      if (top !== undefined && (top.type === 'For' || top.type === 'While') && top.phase === 'header') {
+        top.phase = 'body';
+        pushCheckpoint(event.end);
+      }
       continue;
     }
 
@@ -271,7 +359,7 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
         break;
       }
       case 'If': {
-        frames.push({ type: 'If', id: nextId++, statementCount: 0 });
+        pushFrame('If', event.offset, 'condition');
         pushCheckpoint(event.end);
         break;
       }
@@ -279,6 +367,7 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
         const top = frames[frames.length - 1];
         if (top?.type === 'If' && top.branch === undefined) {
           top.branch = 'Then';
+          top.phase = 'body';
         }
         pushCheckpoint(event.end);
         break;
@@ -288,6 +377,7 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
         if (top?.type === 'If') {
           top.branch = 'Else';
           top.statementCount = 0;
+          top.phase = 'body';
         }
         pushCheckpoint(event.end);
         break;
@@ -298,7 +388,7 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
         break;
       }
       case 'For': {
-        frames.push({ type: 'For', id: nextId++, statementCount: 0 });
+        pushFrame('For', event.offset, 'header');
         pushCheckpoint(event.end);
         break;
       }
@@ -308,7 +398,7 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
         break;
       }
       case 'While': {
-        frames.push({ type: 'While', id: nextId++, statementCount: 0 });
+        pushFrame('While', event.offset, 'header');
         pushCheckpoint(event.end);
         break;
       }
@@ -317,8 +407,26 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
         pushCheckpoint(event.end);
         break;
       }
+      case 'Repeat': {
+        // Repeat's body comes FIRST, its own condition (Until <cond>) comes
+        // last with no separate End-Repeat -- the statement after Until's
+        // condition closes the frame (handled in the ';' case below via
+        // pendingRepeatClose, since Until doesn't have a distinct closing
+        // keyword of its own).
+        pushFrame('Repeat', event.offset, 'body');
+        pushCheckpoint(event.end);
+        break;
+      }
+      case 'Until': {
+        const top = frames[frames.length - 1];
+        if (top?.type === 'Repeat') {
+          top.phase = 'condition';
+        }
+        pushCheckpoint(event.end);
+        break;
+      }
       case 'Evaluate': {
-        frames.push({ type: 'Evaluate', id: nextId++, statementCount: 0 });
+        pushFrame('Evaluate', event.offset, 'condition');
         pushCheckpoint(event.end);
         break;
       }
@@ -333,6 +441,7 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
               ? 'WhenOther'
               : `When${whenIndex}`;
           top.statementCount = 0;
+          top.phase = 'body';
         }
         pushCheckpoint(event.end);
         break;
@@ -357,7 +466,7 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
         const isDeclareFunction = /\bDeclare\s+$/i.test(precedingText);
 
         if (!isDeclareFunction) {
-          frames.push({ type: 'Function', id: nextId++, statementCount: 0 });
+          pushFrame('Function', event.offset, 'body');
         }
         pushCheckpoint(event.end);
         break;
@@ -368,7 +477,7 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
         break;
       }
       case 'Method': {
-        frames.push({ type: 'Method', id: nextId++, statementCount: 0 });
+        pushFrame('Method', event.offset, 'body');
         pushCheckpoint(event.end);
         break;
       }
@@ -376,6 +485,17 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
         if (frames[frames.length - 1]?.type === 'Method') frames.pop();
         pushCheckpoint(event.end);
         break;
+      }
+    }
+
+    // Repeat has no End-Repeat: the statement immediately following its
+    // own Until <condition> closes the frame. Handle it after the ';'
+    // case's own statementCount bump above so the closing ';' itself still
+    // counts as part of the Repeat frame's last statement.
+    if (event.text === ';') {
+      const top = frames[frames.length - 1];
+      if (top?.type === 'Repeat' && top.phase === 'condition') {
+        frames.pop();
       }
     }
   }
@@ -386,7 +506,17 @@ function buildBranchTimeline(source: string): BranchCheckpoint[] {
 function lookupBranchState(
   timeline: BranchCheckpoint[],
   offset: number
-): { branchPath: string; blockStatementIndex: number; epoch: number } {
+): {
+  branchPath: string;
+  blockStatementIndex: number;
+  epoch: number;
+  controlConstruct: BranchFrameType | 'top';
+  controlPhase: BranchPhase | 'top';
+  scopeId: number | undefined;
+  parentScopeId: number | undefined;
+  scopeEntryOffset: number | undefined;
+  loopEpochId: number;
+} {
   // Checkpoints are sorted by offset (built in source order); find the
   // last one at or before `offset` via binary search.
   let lo = 0;
@@ -404,11 +534,27 @@ function lookupBranchState(
   }
 
   return result === undefined
-    ? { branchPath: 'top', blockStatementIndex: -1, epoch: 0 }
+    ? {
+        branchPath: 'top',
+        blockStatementIndex: -1,
+        epoch: 0,
+        controlConstruct: 'top',
+        controlPhase: 'top',
+        scopeId: undefined,
+        parentScopeId: undefined,
+        scopeEntryOffset: undefined,
+        loopEpochId: 0
+      }
     : {
         branchPath: result.branchPath,
         blockStatementIndex: result.blockStatementIndex,
-        epoch: result.epoch
+        epoch: result.epoch,
+        controlConstruct: result.controlConstruct,
+        controlPhase: result.controlPhase,
+        scopeId: result.scopeId,
+        parentScopeId: result.parentScopeId,
+        scopeEntryOffset: result.scopeEntryOffset,
+        loopEpochId: result.loopEpochId
       };
 }
 
@@ -471,6 +617,24 @@ export interface GeneratedOccurrence {
   blockStatementIndex: number;
   /** Count of WATCHED_INTRINSICS calls textually before this occurrence -- a candidate "reference epoch" counter, independent of branchPath/controlGroup. */
   epochCandidate: number;
+  /** Innermost enclosing construct type, or 'top'. Phase 1A field. */
+  controlConstruct: BranchFrameType | 'top';
+  /**
+   * Which part of the innermost construct this occurrence sits in --
+   * 'header' (For/While's own bound clause), 'condition' (If's condition,
+   * Evaluate's selector, Repeat's trailing Until), 'body', or 'top'. Phase
+   * 1A field: lets a header-vs-body reference-visibility hypothesis be
+   * tested mechanically instead of by re-reading source for every case.
+   */
+  controlPhase: BranchPhase | 'top';
+  /** Innermost frame's own id (undefined at top level). Phase 1A field. */
+  scopeId?: number;
+  /** The innermost frame's PARENT frame id (undefined if innermost is top-level, or if at top level). Phase 1A field. */
+  parentScopeId?: number;
+  /** Source offset where the innermost frame was entered (the construct's own opening keyword). Phase 1A field. */
+  scopeEntryOffset?: number;
+  /** Count of For/While/Repeat frames entered so far -- a candidate "loop epoch" counter, distinct from epochCandidate (which counts WATCHED_INTRINSICS calls). Phase 1A field, for testing hypothesis B (loop body entry opens a new reference epoch). */
+  loopEpochId: number;
 }
 
 export interface PairedRow {
@@ -715,7 +879,13 @@ function decodeGeneratedOccurrences(
             ),
       branchPath: branchState.branchPath,
       blockStatementIndex: branchState.blockStatementIndex,
-      epochCandidate: branchState.epoch
+      epochCandidate: branchState.epoch,
+      controlConstruct: branchState.controlConstruct,
+      controlPhase: branchState.controlPhase,
+      scopeId: branchState.scopeId,
+      parentScopeId: branchState.parentScopeId,
+      scopeEntryOffset: branchState.scopeEntryOffset,
+      loopEpochId: branchState.loopEpochId
     };
 
     occurrences.push(row);
