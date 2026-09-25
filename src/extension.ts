@@ -14,6 +14,20 @@ import { registerPeopleCodeSymbols } from './peoplecode/symbols.js';
 import { parseUri } from './util/uri.js';
 import { StatusBar } from './views/statusBar.js';
 
+import {
+  configureAiClient
+} from './mcp/configure.js';
+
+import {
+  McpServerController
+} from './mcp/controller.js';
+
+import {
+  McpStatus,
+  showMcpMenu,
+  showMcpStatus
+} from './mcp/status.js';
+
 /** Left side of a compare: which connection + which definition key. */
 interface CompareTarget {
   connectionId: string;
@@ -38,7 +52,7 @@ async function resolveDefinitionForCompare(
     try {
       const parsed = parseUri(editor.document.uri);
       const provider = workspace.getProviderByHandle(parsed.handle);
-      
+
       if (!provider) {
         vscode.window.showWarningMessage(
           'This editor belongs to a connection that is not connected.');
@@ -79,19 +93,34 @@ function targetFromTreeNode(node: unknown): CompareTarget | undefined {
   return undefined;
 }
 
-export function activate(context: vscode.ExtensionContext): void {
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const workspace = new Workspace(context.secrets);
   context.subscriptions.push(workspace);
 
   const statusBar = new StatusBar(workspace);
   context.subscriptions.push(statusBar);
 
+  const mcpController =
+    new McpServerController(
+      workspace
+    );
+
+  const mcpStatus =
+    new McpStatus(
+      mcpController
+    );
+
+  context.subscriptions.push(
+    mcpController,
+    mcpStatus
+  );
+
   context.subscriptions.push(
     vscode.commands.registerCommand(
-        'psft.status.selectConnection',
-        async () => {
-            await selectStatusConnection(workspace);
-        }
+      'psft.status.selectConnection',
+      async () => {
+        await selectStatusConnection(workspace);
+      }
     )
   );
 
@@ -102,7 +131,7 @@ export function activate(context: vscode.ExtensionContext): void {
   registerPeopleCodeCompletion(context);
   registerPeopleCodeHover(context);
   registerPeopleCodeSymbols(context);
-  
+
   const connections = new ConnectionsView(workspace);
   const browser = new BrowserView(workspace);
   const projects = new ProjectsView(workspace);
@@ -116,6 +145,67 @@ export function activate(context: vscode.ExtensionContext): void {
   const refreshAll = () => { connections.refresh(); browser.refresh(); projects.refresh(); };
 
   context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'psft.mcp.menu',
+      async () => {
+        await showMcpMenu(
+          mcpController
+        );
+      }
+    ),
+
+    vscode.commands.registerCommand(
+      'psft.mcp.status',
+      async () => {
+        await showMcpStatus(
+          mcpController
+        );
+      }
+    ),
+
+    vscode.commands.registerCommand(
+      'psft.mcp.configureClient',
+      async () => {
+        await configureAiClient(
+          mcpController
+        );
+      }
+    ),
+
+    vscode.commands.registerCommand(
+      'psft.mcp.copyUrl',
+      async () => {
+        await vscode.env.clipboard.writeText(
+          mcpController.state.url
+        );
+
+        void vscode.window.showInformationMessage(
+          'PeopleSoft Studio MCP URL copied.'
+        );
+      }
+    ),
+
+    vscode.commands.registerCommand(
+      'psft.mcp.start',
+      async () => {
+        await mcpController.start();
+      }
+    ),
+
+    vscode.commands.registerCommand(
+      'psft.mcp.stop',
+      async () => {
+        await mcpController.stop();
+      }
+    ),
+
+    vscode.commands.registerCommand(
+      'psft.mcp.restart',
+      async () => {
+        await mcpController.restart();
+      }
+    ),
+
     vscode.commands.registerCommand('psft.refresh', refreshAll),
 
     vscode.commands.registerCommand('psft.peoplecode.validate', () => {
@@ -144,7 +234,6 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
 
     vscode.commands.registerCommand('psft.project.build', () => {
-      // Reuse existing stub behavior if you still have psft.buildProject
       vscode.window.showInformationMessage(
         'Project build (DDL) is not implemented yet. See docs/ROADMAP.md.');
     }),
@@ -203,8 +292,6 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('psft.openDefinition',
       async (connectionId: string, key: DefinitionKey) => {
         await withError(`Opening ${displayName(key)}`, async () => {
-          // A project is not a document: opening it means showing its contents
-          // in the project tree, which is the same view an opened export gives.
           if (key.type === DefinitionType.Project) {
             projects.openProject(connectionId, key.parts[0]);
             await vscode.commands.executeCommand('psft.projects.focus');
@@ -218,10 +305,6 @@ export function activate(context: vscode.ExtensionContext): void {
             return;
           }
 
-          // Checked up front rather than left to openTextDocument's failure,
-          // which wraps whatever the provider throws in its own generic
-          // "cannot open <uri>" dialog -- accurate, but noisier than saying
-          // outright that this type has no reader here yet.
           const provider = await workspace.require(connectionId);
           if (!provider.canReadAsText(key.type)) {
             vscode.window.showInformationMessage(
@@ -306,7 +389,6 @@ export function activate(context: vscode.ExtensionContext): void {
           return;
         }
 
-        // Touch both documents so the file-system provider loads content before diff.
         const leftUri = toUri(left.connectionId, left.key);
         const rightUri = toUri(rightProvider.id, left.key);
         await vscode.workspace.openTextDocument(leftUri);
@@ -329,6 +411,26 @@ export function activate(context: vscode.ExtensionContext): void {
   vscode.workspace.onDidChangeConfiguration((e) => {
     if (e.affectsConfiguration('peoplesoft.connections')) refreshAll();
   }, null, context.subscriptions);
+
+  const disableMcp =
+    process.env.PSFT_DISABLE_MCP === '1';
+
+  if (!disableMcp) {
+    try {
+      await mcpController.start();
+
+      console.log(
+        `PeopleSoft Studio MCP server listening at ${mcpController.state.url}`
+      );
+    } catch (err) {
+      const message =
+        (err as Error).message;
+
+      console.warn(
+        `PeopleSoft Studio MCP server failed to start: ${message}`
+      );
+    }
+  }
 }
 
 export function deactivate(): void { /* Workspace disposes through subscriptions. */ }
@@ -383,8 +485,6 @@ async function addConnection(): Promise<void> {
     title: 'Database access id', value: 'SYSADM', ignoreFocusOut: true });
   if (!user) return;
 
-  // The password is requested on first connect and kept in SecretStorage, so it
-  // never reaches settings.json.
   await saveConnection({ name, kind: 'oracle', connectString, user });
 }
 
@@ -448,7 +548,6 @@ async function selectStatusConnection(workspace: Workspace): Promise<void> {
 
   workspace.setSelectedConnection(id);
 }
-
 
 /** Surfaces provider failures as messages instead of unhandled rejections. */
 async function withError(action: string, fn: () => Promise<void>): Promise<void> {

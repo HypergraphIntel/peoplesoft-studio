@@ -642,24 +642,27 @@ preceding full run (run_id 288, exact=22509, itself already confirmed
 zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
 
 ## Checkpoint (session pause requested by user) [SUPERSEDED -- resumed and continued past this point; kept for history]
+## Checkpoint
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #73 (below), just landed and
-  committed.
-- **Corpus total** (full-corpus run_id 286, before Fix #73): 22506/30209
-  exact (74.5%). Fix #73 has NOT yet had its own full-corpus background
-  diff run -- only `--limit 430` was checked before this pause, per the
-  user's explicit "finish current iteration, do not start another"
-  instruction taking priority over the full-corpus-diff-for-shared-
-  mechanisms habit this session otherwise followed. The `whileStatement()`
-  body-loop change is narrowly scoped (mirrors the already-proven
-  `forStatement()` pattern exactly) and low-risk, but a full-corpus diff
-  against run_id 286 is still recommended as the FIRST thing the next
-  session does, before selecting a new target, to confirm zero
-  regressions the same way every other fix this session was confirmed.
+- **Last successful calibration**: Fix #84 (below), validated locally on top
+  of current HEAD `45fccb5`. Fix #84 and this progress ledger are currently
+  uncommitted.
+- **Corpus total** (full-corpus run_id 1446): 22656/30209 exact (75.0%).
+  Fix #73 was first rechecked against the already-equivalent full run 1326
+  (run 1327: all 30209 materially unchanged). Subsequent full diffs were:
+  Fix #74 run 1327 -> 1338 (2 exact, 4 advanced, 0 regressed); Fix #75 run
+  1338 -> 1341 (1 advanced, 0 regressed); Fix #76 run 1341 -> 1348 (3
+  exact, 2 advanced, 0 regressed); Fixes #77-#78 run 1348 -> 1357 (7 exact,
+  38 advanced, 0 regressed); Fix #79 run 1357 -> 1364 (6 advanced, 0
+  regressed); Fix #80 run 1364 -> 1371 (3 exact, 1 advanced, 0 regressed);
+  Fix #81 run 1371 -> 1375 (1 exact, 0 regressed); Fix #82 run 1375 -> 1399
+  (8 exact, 7 advanced, 0 regressed); Fix #83 run 1399 -> 1442 (15 exact,
+  11 advanced, 0 regressed); Fix #84 run 1442 -> 1446 (1 exact, 0
+  regressed). The protected gate remains 430/430.
 - **Locally blocked / deferred, evidence exhausted this session** (see
   their own entries further down for full evidence trails): the `#If
   #ToolsRel` preprocessor-directive family (73 combined occurrences,
@@ -670,28 +673,151 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   single-method inline shape); a decoder-only rendering gap for `Return
   <number> /* comment */;` noted under Fix #72 (narrow, not corpus-
   evidenced, deliberately left unfixed).
-- **Next action**: run a full-corpus background harness pass
-  (`nohup npm run corpus:harness > /tmp/full_corpus_runN.log 2>&1 &`),
-  diff its result against run_id 286 (definition-by-definition, matching
-  every prior fix's validation method in this file) to confirm Fix #73
-  caused zero regressions, record that diff result in this file, then
-  resume failure-family triage from the current failure inventory (group
+- **Validation caveat**: after Fix #79, `npm run typecheck` and the complete
+  `npm test` suite passed (465 tests: 464 pass, 1 pre-existing skip). During
+  Fixes #80-#81, unrelated concurrent MCP integration work landed in commits
+  `b55424a`/`e3bd1d4`; current full-project typecheck/pretest fail in that
+  integration (`src/extension.ts`, `src/mcp/clients/common.ts`,
+  `src/mcp/configure.ts`, `src/mcp/controller.ts`, and `src/mcp/status.ts`:
+  unused imports/properties and missing server/status exports). Do not modify
+  or revert that work as part of corpus calibration. The directly relevant
+  encoder suite passes after Fix #84 (`npx tsx --test
+  src/test/encoder.test.ts`: 116 tests, 115 pass, 1 pre-existing skip), and
+  every post-fix protected gate is 430/430.
+- **Next action**: resume failure-family triage from full run_id 1446 (group
   `corpus-results.sqlite`'s latest run by `classification`/`construct`,
-  the same query used to find every target this session). Promising
-  next candidates already partially scoped but NOT yet fixed: the
-  remaining "expected ; in While body"/"expected ; in When-Other body"
-  `ENCODE_ERROR` occurrences beyond Fix #73's own While/End-While
-  target (5000, 10488, 12623, 12626 and others share the "When-Other
-  body statement omitting `;` before the next When/End-Evaluate"
-  shape, structurally identical to the While-body fix just landed --
-  check whether `evaluateStatement()`'s When-Other body loop already has
-  an `End-Evaluate`/next-`When` omission allowance the way While/For
-  now both do); the `<> %Action_Add);` (4), `.IsInBuf Then` (3), and
-  `;\nElse\n   AddOnL` (3) `ENCODE_ERROR` construct groups were seen in
-  this session's failure-family listing but not yet individually
-  inspected.
+  the same query used to find every target this session). The call-string,
+  multiline-REM, and terminal-`#` families are calibrated below. Empty/simple
+  Application Class definitions such as 28770 remain actionable but require
+  adding explicit application-package ownership to encoder context; do not
+  infer that owner from source text. The legacy `remark` family is calibrated
+  below; choose the next compact family from run 1446.
 
 ## Current target
+- **Fix #84** landed locally (src/peoplecode/encoder.ts): quoted Component
+  metadata references now dispatch through the already-calibrated quoted-name
+  `0x48` encoder before the bare `Component.NAME` reference parser. Definition
+  13326 proves `%Component = Component."HRS_PKG_MDL_APP"` is PSPCMNAME
+  `COMPONENT/HRS_PKG_MDL_APP` and executable bytes `48 <uint16 reference
+  index>`; both encoder and decoder qualifier maps already contained
+  `COMPONENT`, so no new binary semantics were introduced. Definition 13326
+  is now source->bin EXACT, roundtrip EXACT, and source MATCH. Full run 1442
+  -> 1446: 1 exact, 30208 unchanged, 0 regressed. Added a test proving quoted
+  Component uses `0x48` while bare Component still uses `0x21`. Relevant
+  encoder suite: 115/116 pass (1 pre-existing skip); protected gate: 430/430.
+- **Fix #83** landed locally (src/peoplecode/encoder.ts): captured PeopleCode
+  variable names may begin with a digit and may end with `#`. The lexer had
+  historically allowed either an ordinary letter/underscore-led identifier
+  OR digits-only (`&123`) but rejected the evidenced mixed digit-led forms
+  (`&6x_plan_changed`, `&2ndParm`, `&80EE_pin_num`) and stopped before `#`
+  in names such as `&TotalRow#`. All variable parsers and structural
+  lookaheads now use the same `&[A-Za-z0-9_]+#?` grammar, including Local /
+  Component declarations, expressions, comparison/group lookaheads, Function
+  metadata, and the narrow Application Class parser. Captures 20483/20495
+  prove digit-led declaration/assignment use; 15118 proves terminal-`#`
+  declarations, assignments, comparisons, and loop bounds. A snapshot scan
+  found 27 digit-led-variable definitions and 11 terminal-`#` definitions.
+  Full run 1399 -> 1442: 15 became fully EXACT; 11 advanced to independent
+  later states; 30183 unchanged; 0 regressed. Added a semantic binary
+  roundtrip test covering both forms. Relevant encoder suite: 114/115 pass
+  (1 pre-existing skip); protected gate: 430/430.
+- **Fix #82** landed locally (src/peoplecode/encoder.ts): legacy `remark`
+  statements use the exact same calibrated comment parser as `REM` at every
+  existing top-level/control-flow/Function-body placement. Captured definition
+  14278 proves the original `remark` spelling and semicolon are stored intact
+  as one `0x24 <uint16 byte length> <UTF-16LE payload>` record, not normalized
+  to `REM`; definitions 11198, 20696, and 2708 independently prove If-body and
+  Function-body placements. A complete snapshot scan found 17 definitions / 83
+  physical `remark` lines, including immediately-consecutive and
+  semicolon-less forms handled by the already-calibrated continuation logic.
+  Full run 1375 -> 1399: definitions 2708, 4305, 5749, 6291, 6293, 11198,
+  14278, and 20696 became fully EXACT; 6274, 6276, 6284, 6285, 6287, 6288,
+  and 6290 advanced to independent later failures; 25951 and 25960 remain
+  unchanged because earlier untyped-array syntax blocks them before their
+  remark lines. Totals: 8 exact, 7 advanced, 30194 unchanged, 0 regressed.
+  Added a byte-level `remark` payload test. Relevant encoder suite: 113/114
+  pass (1 pre-existing skip); protected gate: 430/430.
+- **Fix #81** landed locally (src/peoplecode/encoder.ts): declared Function
+  and bare call identifiers may have the corpus-observed optional terminal
+  `#` (`assign_seq#`), while `#` remains unsupported anywhere else in an
+  identifier. Definition 3428 stores the name identically in the declaration
+  and call (`0A` inline-name payload), and is now source->bin EXACT,
+  roundtrip EXACT, and source MATCH. Full run 1371 -> 1375: 1 exact, 30208
+  unchanged, 0 regressed. Added a complete captured-program golden.
+  Relevant encoder suite: 112/113 pass (1 pre-existing skip); protected gate:
+  430/430. Full-project typecheck is currently blocked by the unrelated MCP
+  edits recorded in the checkpoint above.
+- **Fix #80** landed locally (src/peoplecode/encoder.ts): a REM statement
+  lacking a semicolon on its first physical line may continue onto the
+  captured single-space prose form without repeating `REM`. PeopleTools
+  stores the newline, leading space, continuation text, and final semicolon
+  together in one `0x24` UTF-16 payload. The rule is deliberately limited to
+  exactly one leading space followed by a non-whitespace character so an
+  ordinary indented PeopleCode statement is not swallowed. Snapshot search
+  found exactly definitions 5424-5426 in this source shape; all three became
+  fully EXACT. Definition 27369 also advanced from body offset 5 to 1088: its
+  common-indent-relative continuation is the same captured shape. Full run
+  1364 -> 1371: 3 exact, 1 advanced, 30205 unchanged, 0 regressed. Added a
+  byte-level payload test; protected gate: 430/430.
+- **Fix #79** landed locally (src/peoplecode/encoder.ts): the dispatcher no
+  longer uses a regex that can mistake dotted JavaScript text inside a quoted
+  bare-call argument for a PeopleCode call-result property assignment. A
+  balanced lexical lookahead now skips doubled-quote PeopleCode strings and
+  block comments while walking call/member/index postfixes, and selects the
+  property-assignment branch only when a real source-level `=` follows the
+  chain. Definitions 11121, 11126, 11128, 18960, 23465, and 23466 all
+  advanced past `expected assignment = after call-result property` to their
+  independent later mismatches; none became exact. Full run 1357 -> 1364: 6
+  advanced, 30203 unchanged, 0 regressed. Added a focused
+  `AddOnLoadScript("document.getElementById(...).style.visibility = ...")`
+  regression test. At this point full typecheck and complete tests passed
+  (465 total, 464 pass, 1 pre-existing skip); protected gate: 430/430.
+- **Fix #78** landed locally (src/peoplecode/encoder.ts): encode parsed
+  `Continue;` statements directly as context-gated opcode `0x6E`. The
+  general fixed-token table deliberately still leaves 0x6E unmapped because
+  it is overloaded outside the statement shape; inside `statement()` the
+  source keyword makes the selection unambiguous. Seed definitions 14194,
+  14195, and 14196 all store `Else Continue;` as `19 6E 15`. Combined with
+  Fix #77, those three advanced from `ENCODE_ERROR` to deeper
+  `UNKNOWN_MISMATCH`. Full run 1348 -> 1357 found 7 definitions newly exact,
+  38 advanced, 30164 unchanged, 0 regressed. New total: 22628/30209 exact.
+  Verified: `npm run typecheck`; `npm test` 463/464 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430.
+- **Fix #77** landed locally (src/peoplecode/encoder.ts): a parenthesized
+  variable/field expression followed by a postfix member in an If condition
+  (for example `(&recRunCtlLang.LANGUAGE_CD).IsInBuf`) is an object/value
+  primary with a postfix chain, not necessarily a parenthesized boolean
+  subexpression. Route that narrow shape through `comparisonExpression()` so
+  `primary()` consumes both the group and `.IsInBuf`. Definitions 14194-14196
+  all advanced past their shared `expected Then` failure to the separately
+  calibrated Continue opcode gap. Added a focused regression test.
+- **Fix #76** landed locally (src/peoplecode/encoder.ts): parenthesized
+  comparisons whose left operand is a system variable now select
+  `booleanExpression()`, covering `(%Mode <> %Action_Add)`. Four independent
+  definitions proved the same `0B 12 ... 10 12 ... 14` shape: 11810, 11892,
+  and 19201 became fully EXACT; 12250 advanced to an unrelated unsupported
+  statement at source offset 621. Full run 1341 -> 1348: 3 exact, 2 advanced,
+  30204 unchanged, 0 regressed. Added a focused byte-shape regression test.
+  Verified: `npm run typecheck`; `npm test` 461/462 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430.
+- **Fix #75** landed locally (src/peoplecode/encoder.ts): When-Other body
+  statements now preserve block comments between the expression and its
+  explicit semicolon using the existing placement-dependent 0x4E/0x24
+  machinery. Definition 5000's inline `True /*False*/;` advanced from its
+  later `ENCODE_ERROR` to the pre-existing reference-index mismatch at body
+  offset 3204. Full run 1338 -> 1341: only definition 5000 changed, 30208
+  unchanged, 0 regressed. Added a focused regression test. Verified:
+  `npm run typecheck`; `npm test` 460/461 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430.
+- **Fix #74** landed locally (src/peoplecode/encoder.ts): the final statement
+  in a When-Other body may omit its source semicolon immediately before
+  `End-Evaluate`, matching the already-calibrated ordinary When-body rule.
+  Definitions 12623 and 12626 became fully EXACT; 10488 and 15626 advanced
+  to deeper `UNKNOWN_MISMATCH`; 27819 advanced to its decoder-only source
+  mismatch; 5000 advanced to Fix #75's later comment-placement gap. Full run
+  1327 -> 1338: 2 exact, 4 advanced, 30203 unchanged, 0 regressed. Added a
+  focused regression test. Verified: `npm run typecheck`; `npm test` 459/460
+  (1 pre-existing skip); `corpus:verify --limit 430` 430/430.
 - **Fix #73** landed (src/peoplecode/encoder.ts, `whileStatement()`'s
   body loop): the final statement in a `While` body may omit its source
   semicolon when immediately followed by `End-While`, exactly the same
@@ -719,8 +845,8 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   have failed at the targeted construct before this fix, zero
   regressions. Verified: `npx tsc -p .` clean; `npm test` 458/459 (1
   pre-existing skip); `corpus:verify --limit 430` 430/430, 0
-  regressions. Full-corpus background diff NOT yet run for this fix --
-  see Checkpoint section above; this is the next session's first task.
+  regressions. Full-corpus run 1327 also matched the prior full run 1326 on
+  all 30209 definitions (0 regressions).
 - **Fix #72** landed (src/peoplecode/encoder.ts), four related comment-
   placement gaps found together via the `BLOCK_COMMENT` `ENCODE_ERROR`
   family, all fixed with the same `restStartsWithKeywordPastComments()`/
@@ -4239,6 +4365,37 @@ All twelve new fixes (#11-22) verified with:
     PACKAGE/RECORD, both exactly matching after the fix). `corpus:verify
     --limit 430` PASS (430/430); `npm test` clean; spot-checked 840, 1283,
     30, 95 (all still EXACT, unaffected by this declaration-only change).
+
+52. **definition_id 1929** (BN_LIMITTYP_RUN.LIMIT_TYPE.SaveEdit), was
+    UNKNOWN_MISMATCH -> now EXACT. A standalone disabled-code marker
+    (`<* ... *>`) following an OPEN top-level declaration section had NO
+    closing-boundary handling at all -- the sibling standalone
+    block-comment branch (`/* */`) already had this exact check
+    (`sawTopLevelDeclaration && !closedTopLevelDeclarationSection &&
+    !nextIsTopLevelDeclaration`, fix #32's own mechanism), but the `<*`
+    branch was missing it entirely:
+
+    ```
+    Global boolean &RunLimits_Age;
+
+    <*
+    If All(BN_LIMITTYP_RUN.LIMIT_TYPE) Then
+       ...
+    End-If;
+    *>
+
+    If None(BN_LIMITTYP_RUN.LIMIT_TYPE) Then
+    ```
+
+    stores `... 15 2D 4F 55 ...` -- the 0x2D declaration-section close
+    belongs before both the blank-line 0x4F marker and the disabled-
+    comment's own 0x55 opcode. Fixed by adding the same check (computing
+    "what follows the disabled-code block" via `source.indexOf('*>', ...)`
+    plus the existing `nextSignificantAfterBlockComments` helper, since
+    unlike the comment branch this one needed to skip PAST its own
+    disabled-code span first) before emitting the disabled-comment bytes.
+    `corpus:verify --limit 430` PASS (430/430, first attempt); `npm test`
+    clean.
 
 ## Identified, not yet fixed (deferred, NOT locally blocked — evidence
 ## gathering is incomplete, not exhausted)

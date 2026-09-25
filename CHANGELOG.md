@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.2.1
+
+Version **0.2.1** brings editional encoding / decoding maps and even more AI tooling, refactored
+
+## 0.2.0
+
+Version **0.2.0** brings editional encoding / decoding maps and AI tooling
+
+- Add tools for the following provider methods:
+  psft_get_peoplecode
+  psft_find_peoplecode_references
+  psft_get_application_class
+  psft_get_record_peoplecode
+  psft_get_component_peoplecode
+
+## 0.1.9
+
+Version **0.1.9** AI clients added:
+- Codex
+- Claude
+- Manual Config
+
+## 0.1.8
+
+### Local MCP Server wrapper for AI Agents
+
+Version **0.1.8** represents a major step forward for PeopleSoft Studio's native PeopleCode tooling.
+
+
 ## 0.1.7
 
 ### Major PeopleCode Compiler and Decoder Expansion

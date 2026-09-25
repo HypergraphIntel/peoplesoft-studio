@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.1.7",
+  "version": "0.2.1",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -17,7 +17,8 @@
     "onFileSystem:psft",
     "onView:psft.connections",
     "onView:psft.projects",
-    "onView:psft.browser"
+    "onView:psft.browser",
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -217,6 +218,41 @@
         "title": "Compare Project",
         "icon": "$(diff)",
         "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.mcp.menu",
+        "title": "MCP",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.mcp.configureClient",
+        "title": "Configure AI Client",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.mcp.status",
+        "title": "MCP Status",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.mcp.copyUrl",
+        "title": "Copy MCP URL",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.mcp.start",
+        "title": "Start MCP Server",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.mcp.stop",
+        "title": "Stop MCP Server",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.mcp.restart",
+        "title": "Restart MCP Server",
+        "category": "PeopleSoft"
       }
     ],
     "snippets": [
@@ -312,6 +348,28 @@
           "when": "activeCustomEditorId == psft.recordEditor",
           "group": "navigation@1"
         }
+      ],
+      "commandPalette": [
+        {
+          "command": "psft.mcp.status",
+          "when": "false"
+        },
+        {
+          "command": "psft.mcp.copyUrl",
+          "when": "false"
+        },
+        {
+          "command": "psft.mcp.start",
+          "when": "false"
+        },
+        {
+          "command": "psft.mcp.stop",
+          "when": "false"
+        },
+        {
+          "command": "psft.mcp.restart",
+          "when": "false"
+        }
       ]
     },
     "configuration": {
@@ -378,14 +436,12 @@
     "watch": "node esbuild.mjs --watch",
     "pretest": "tsc -p .",
     "test": "node --test dist-test/test/*.test.js",
-    "smoke": "node scripts/smoke.mjs",
+    "smoke": "cross-env PSFT_DISABLE_MCP=1 node scripts/smoke.mjs",
     "vscode:prepublish": "npm run compile",
     "package": "npm run verify && vsce package --out peoplesoft-studio.vsix",
     "verify": "npm run compile && npm test && npm run smoke",
     "dev": "npm run package && code --install-extension peoplesoft-studio.vsix --force",
-    
     "corpus": "tsc -p . && node scripts/corpus-peoplecode.mjs",
-    
     "corpus:harness": "tsx tools/corpus/cli.ts",
     "corpus:verbose": "tsx tools/corpus/cli.ts --verbose",
     "corpus:baseline": "tsx tools/corpus/cli.ts --baseline",
@@ -395,12 +451,14 @@
     "corpus:next": "tsx tools/corpus/next.ts",
     "corpus:work": "tsx tools/corpus/cli.ts --failed",
     "corpus:inventory": "tsx tools/corpus/cli.ts",
-
     "corpus:snapshot": "tsx tools/corpus/snapshot/capture.ts",
     "corpus:snapshot:verify": "tsx tools/corpus/snapshot/verify.ts"
   },
   "dependencies": {
-    "oracledb": "^6.6.0"
+    "@modelcontextprotocol/node": "^2.1.0",
+    "@modelcontextprotocol/server": "^2.1.0",
+    "oracledb": "^6.6.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
@@ -409,6 +467,7 @@
     "@types/vscode": "^1.90.0",
     "@vscode/vsce": "^3.2.0",
     "better-sqlite3": "^12.11.1",
+    "cross-env": "^10.1.0",
     "esbuild": "^0.23.0",
     "fast-xml-parser": "^4.4.1",
     "tsx": "^4.23.15",

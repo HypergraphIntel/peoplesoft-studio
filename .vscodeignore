@@ -1,28 +1,47 @@
-# Source and build inputs — the extension ships the bundle in dist/ only.
-src/**
-dist-test/**
-esbuild.mjs
-tsconfig.json
-.vscode/**
-.gitignore
-scripts/**
-docs/**
-**/*.map
+# Development / agent files
+.claude/**
+.github/**
+skills/**
+CLAUDE.md
+AGENTS.md
 
-# node_modules is excluded wholesale, then oracledb is added back: it is marked
-# external in the bundle because it loads its driver at runtime, so it has to
-# ship as real files. It has no dependencies of its own, so nothing else is
-# needed. Every other runtime dependency is bundled into dist/extension.js.
-node_modules/**
-!node_modules/oracledb/**
-node_modules/oracledb/test/**
+# Corpus and tooling
+tools/**
+scripts/**
+run_full.sh
+run_full_inventory.sh
+
+# Scratch / research artifacts
+*.patch
+one
+two
+44
+54
+body
+PACKAGE
+
+# Source/build artifacts not needed at runtime
+src/**
+test/**
+tests/**
+coverage/**
+*.map
+tsconfig.json
+
+# Git / editor metadata
+.git/**
+.gitignore
+.vscode/**
+
+# Documentation not needed in VSIX
+docs/**
+
+# OracleDB non-runtime material
 node_modules/oracledb/examples/**
-#resources/ad-slash.svg
-resources/audio-description-slash.svg
-resources/chalkboard-user.svg
-resources/db.svg
-resources/digging.svg
-resources/gun-squirt.svg
-resources/hammer-brush.svg
-resources/swing.svg
-resources/tools.svg
+node_modules/oracledb/package/**
+node_modules/oracledb/plugins/**
+node_modules/oracledb/README.md
+node_modules/oracledb/SECURITY.md
+node_modules/oracledb/CHANGELOG.md
+node_modules/oracledb/NOTICE.txt
+node_modules/oracledb/THIRD_PARTY_LICENSES.txt

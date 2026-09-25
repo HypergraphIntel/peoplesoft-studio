@@ -736,6 +736,89 @@ test('Evaluate preserves a REM comment before its first When', () => {
   assert.deepStrictEqual(encodeProgram(decoded.text), program);
 });
 
+test('When-Other final statement may omit its semicolon before End-Evaluate', () => {
+  const program = encodeProgram(
+    'Evaluate &kind\n' +
+    'When-Other\n' +
+    '   &result = "x"\n' +
+    'End-Evaluate;'
+  );
+
+  assert.deepStrictEqual(
+    program.subarray(-9),
+    Buffer.from([0x06, 0x16, 0x78, 0x00, 0x00, 0x00, 0x3f, 0x15, 0x07])
+  );
+});
+
+test('When-Other body preserves a comment before the statement semicolon', () => {
+  const program = encodeProgram(
+    'Evaluate &kind\n' +
+    'When-Other\n' +
+    '   &result = True /* prior value */;\n' +
+    'End-Evaluate;'
+  );
+  const comment = Buffer.concat([
+    Buffer.from([0x4e, 0x22, 0x00]),
+    Buffer.from('/* prior value */', 'utf16le')
+  ]);
+
+  assert.notEqual(program.indexOf(comment), -1);
+});
+
+test('assignment accepts a parenthesized system-variable comparison', () => {
+  const program = encodeProgram('&enabled = (%Mode <> %Action_Add);');
+  const comparison = Buffer.concat([
+    Buffer.from([0x0b, 0x12]),
+    Buffer.from('%Mode', 'utf16le'),
+    Buffer.from([0x00, 0x00, 0x10, 0x12]),
+    Buffer.from('%Action_Add', 'utf16le'),
+    Buffer.from([0x00, 0x00, 0x14])
+  ]);
+
+  assert.notEqual(program.indexOf(comparison), -1);
+});
+
+test('If condition accepts a postfix property after a parenthesized field', () => {
+  const program = encodeProgram(
+    'Local Record &rec;\n' +
+    'If (&rec.LANGUAGE_CD).IsInBuf Then\n' +
+    '   &found = True;\n' +
+    'End-If;'
+  );
+  const memberThen = Buffer.concat([
+    Buffer.from([0x05, 0x0a]),
+    Buffer.from('IsInBuf', 'utf16le'),
+    Buffer.from([0x00, 0x00, 0x1f])
+  ]);
+
+  assert.notEqual(program.indexOf(memberThen), -1);
+});
+
+test('Continue encodes with its context-gated statement opcode', () => {
+  const program = encodeProgram(
+    'While True\n' +
+    '   Continue;\n' +
+    'End-While;'
+  );
+
+  assert.notEqual(program.indexOf(Buffer.from([0x6e, 0x15])), -1);
+});
+
+test('dotted assignment text inside a call string stays a bare call', () => {
+  const program = encodeProgram(
+    'If True Then\n' +
+    '   AddOnLoadScript("document.getElementById(\'x\').style.visibility = \'visible\';");\n' +
+    'Else\n' +
+    '   AddOnLoadScript("document.getElementById(\'x\').style.visibility = \'hidden\';");\n' +
+    'End-If;'
+  );
+
+  assert.notEqual(
+    program.indexOf(Buffer.from('AddOnLoadScript', 'utf16le')),
+    -1
+  );
+});
+
 test('try and catch bodies preserve REM comments', () => {
   const source = `try
    rem before catch;
@@ -769,6 +852,76 @@ test('REM after leading reference-bearing Locals closes the Local section', () =
       '240C00720065006D00200078003B00',
       'hex'
     )
+  );
+});
+
+test('REM may continue onto an observed single-space prose line', () => {
+  const source =
+    'REM KJB Removed code for Import Long Term Goals as it is\n' +
+    ' no longer valid, as Record.REVIEW_GOALS is obsolete;';
+
+  assert.deepStrictEqual(
+    encodeFragment(source),
+    Buffer.concat([
+      Buffer.from([0x24, 0xdc, 0x00]),
+      Buffer.from(source, 'utf16le')
+    ])
+  );
+});
+
+test('legacy remark spelling uses the calibrated REM comment payload', () => {
+  const source =
+    'remark Prevent deletion of an entire project;';
+
+  assert.deepStrictEqual(
+    encodeFragment(source),
+    Buffer.concat([
+      Buffer.from([0x24, source.length * 2, 0x00]),
+      Buffer.from(source, 'utf16le')
+    ])
+  );
+});
+
+test('captured variable names may start with a digit or end in #', () => {
+  const source =
+    'Local string &6x_plan_changed;\n' +
+    'Local number &TotalRow#;\n' +
+    '&6x_plan_changed = "Y";\n' +
+    '&TotalRow# = 1;';
+  const program = encodeProgram(source);
+  const decoded = decodeProgram(
+    program,
+    new NameTable(),
+    { mode: 'strict' }
+  );
+
+  assert.deepStrictEqual(
+    encodeProgram(decoded.text),
+    program
+  );
+  assert.ok(decoded.text.includes('&6x_plan_changed'));
+  assert.ok(decoded.text.includes('&TotalRow#'));
+});
+
+test('HCDEV definition 3428 preserves a declared function terminal #', () => {
+  const source =
+    'Declare Function assign_seq# PeopleCode CSB_REGISTRANT.SEQNUM FieldFormula;\n\n' +
+    'If %Panel = Panel.CSB_REG_DATA Then\n' +
+    '   assign_seq#();\n' +
+    'End-If;\n';
+  const expected = Buffer.from(
+    'a000000000720000000000000000000000000000000000000000000000000000008500000031320a610073007300690067006e005f00730065007100230000003a210100404600690065006c00640046006f0072006d0075006c006100000042152d4f1c122500500061006e0065006c000000062102001f0a610073007300690067006e005f00730065007100230000000b14151a1507',
+    'hex'
+  );
+
+  assert.deepStrictEqual(
+    encodeProgram(source, {
+      owner: {
+        recordName: 'CSB_REGISTRANT',
+        fieldName: 'EMPLID'
+      }
+    }),
+    expected
   );
 });
 
@@ -1663,6 +1816,28 @@ test('FetchValue reuses Record arguments by name across calls', () => {
       ['record', 'CHILD']
     ]
   );
+});
+
+test('quoted Component references use the calibrated 0x48 form', () => {
+  const source = `If %Component = Component."HRS_PKG_MDL_APP" Then
+   &bare = Component.HRS_PKG_MDL_APP;
+End-If;`;
+
+  const artifacts = encodeProgramArtifacts(source);
+
+  assert.deepStrictEqual(
+    artifacts.references.map(reference => [
+      reference.kind,
+      reference.recordName,
+      reference.objectName
+    ]),
+    [
+      ['quoted-reference', 'COMPONENT', undefined],
+      ['component', undefined, 'HRS_PKG_MDL_APP']
+    ]
+  );
+  assert.equal(artifacts.program.includes(Buffer.from([0x48, 0x01, 0x00])), true);
+  assert.equal(artifacts.program.includes(Buffer.from([0x21, 0x02, 0x00])), true);
 });
 
 test('blank-line multiplicity before Else emits one marker per blank line', () => {
