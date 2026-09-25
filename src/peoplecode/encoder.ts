@@ -461,7 +461,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       space();
 
       const variableMatch =
-        /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos));
+        /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos));
       if (!variableMatch) {
         return fail('expected an ASCII &variable');
       }
@@ -531,7 +531,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         space();
 
         const additionalVariable =
-          /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+          /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
         if (additionalVariable === undefined) {
           return fail('expected an ASCII &variable after ,');
         }
@@ -661,7 +661,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     */
     space();
     const firstDeclaredVariable =
-      /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+      /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
     if (/^Record$/i.test(type ?? '') && firstDeclaredVariable) {
       recordVariables.add(firstDeclaredVariable.toLowerCase());
     } else if (/^Row$/i.test(type ?? '') && firstDeclaredVariable) {
@@ -683,7 +683,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       space();
       const declaredVariable =
-        /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+        /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
       if (/^Record$/i.test(type ?? '') && declaredVariable) {
         recordVariables.add(declaredVariable.toLowerCase());
       } else if (/^Row$/i.test(type ?? '') && declaredVariable) {
@@ -871,7 +871,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     */
     space();
     const firstVariable =
-      /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+      /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
     if (/^Record$/i.test(declaredType ?? '') && firstVariable) {
       recordVariables.add(firstVariable.toLowerCase());
     }
@@ -934,7 +934,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       space();
       const nextVariable =
-        /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+        /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
       if (/^Record$/i.test(declaredType ?? '') && nextVariable) {
         recordVariables.add(nextVariable.toLowerCase());
       }
@@ -2420,8 +2420,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     return Buffer.concat([bytes, payload]);
   };
 
+  const startsRemComment = (
+    start = pos
+  ): boolean =>
+    /^(?:REM|remark)\b/i.test(source.slice(start));
+
   const remComment = (allowMissingSemicolon = false): Buffer => {
-    const match = /^REM\b[^\r\n]*/i.exec(source.slice(pos));
+    const match = /^(?:REM|remark)\b[^\r\n]*/i.exec(source.slice(pos));
 
     if (!match) {
       return fail('expected REM comment');
@@ -2460,7 +2465,9 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      */
     while (!remText.endsWith(';')) {
       const nextLineMatch =
-        /^(\r?\n)(REM\b[^\r\n]*)/i.exec(source.slice(pos + consumedLength));
+        /^(\r?\n)((?:REM|remark)\b[^\r\n]*)/i.exec(
+          source.slice(pos + consumedLength)
+        );
 
       if (nextLineMatch) {
         remText +=
@@ -2570,7 +2577,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     return true;
   };
   const variable = (): Buffer => {
-    const match = /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos));
+    const match = /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos));
     if (!match) return fail('expected an ASCII &variable');
     pos += match[0].length;
     return textOperand(0x01, TokenKind.Name, match[0]);
@@ -2772,7 +2779,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }
       return;
     } else if (
-      /^\(\s*&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*\)\s*\./
+      /^\(\s*&[A-Za-z0-9_]+#?(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*\)\s*\./
         .test(source.slice(pos))
     ) {
       /*
@@ -3517,7 +3524,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       //
       // primary() consumes the complete variable/member/call chain.
       const statementVariable =
-        /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+        /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
       primary();
       space();
 
@@ -3763,7 +3770,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       while (true) {
         const paramName =
-          /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+          /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
         chunks.push(variable());
 
         const afterVariable = pos;
@@ -4180,7 +4187,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         controlGroup = nextControlGroup++;
       }
 
-      const isRemStatement = /^REM\b/i.test(source.slice(pos));
+      const isRemStatement = startsRemComment();
       if (isRemStatement) {
         chunks.push(remComment(true));
       } else {
@@ -4394,7 +4401,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             continue;
           }
 
-          if (/^REM\b/i.test(source.slice(pos))) {
+          if (startsRemComment()) {
             chunks.push(remComment(true));
             continue;
           }
@@ -4456,7 +4463,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         continue;
       }
 
-      if (/^REM\b/i.test(source.slice(pos))) {
+      if (startsRemComment()) {
         chunks.push(remComment(true));
         continue;
       }
@@ -4680,7 +4687,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         continue;
       }
 
-      if (/^REM\b/i.test(source.slice(pos))) {
+      if (startsRemComment()) {
         chunks.push(remComment(true));
         continue;
       }
@@ -4855,7 +4862,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        *
        *      REM MessageBox(0, "", 0, 0, "&RecName = " | &RecName | ...);
        */
-      if (/^REM\b/i.test(source.slice(pos))) {
+      if (startsRemComment()) {
         if (hasBlankLine) {
           const markerCount = Math.max(
             1,
@@ -5114,7 +5121,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * lines before `REM TriggerPDHEvent_Fluid(GetRow());` inside a
        * nested If body store TWO 0x4F markers, not one.
        */
-      if (/^REM\b/i.test(source.slice(pos))) {
+      if (startsRemComment()) {
         if (hasBlankLine) {
           const markerCount = Math.max(
             1,
@@ -5281,7 +5288,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * lines before `REM TriggerPDHEvent_Fluid(GetRow());` inside a
        * nested If body store TWO 0x4F markers, not one.
        */
-      if (/^REM\b/i.test(source.slice(pos))) {
+      if (startsRemComment()) {
         if (hasBlankLine) {
           const markerCount = Math.max(
             1,
@@ -5349,7 +5356,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
       // Evaluate may carry a REM comment between its selector and first When.
       // PSXPRPTDEFN_WRK.PROPTYPE stores it directly as a 0x24 comment record.
-      if (!sawWhen && /^REM\b/i.test(source.slice(pos))) {
+      if (!sawWhen && startsRemComment()) {
         chunks.push(remComment(true));
         continue;
       }
@@ -5437,7 +5444,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             continue;
           }
 
-          if (/^REM\b/i.test(source.slice(pos))) {
+          if (startsRemComment()) {
             if (hasBlankLine) {
               const markerCount = Math.max(
                 1,
@@ -5729,7 +5736,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
            *
            * There is no separate 0x15 for the REM statement.
            */
-          if (/^REM\b/i.test(source.slice(pos))) {
+          if (startsRemComment()) {
             if (hasBlankLine) {
               const markerCount = Math.max(
                 1,
@@ -6569,7 +6576,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      */
     let bareGetRowCallResult = false;
     const baseVariableName =
-      /^&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)/.exec(source.slice(pos))?.[0];
+      /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
     const baseApplicationClass =
       baseVariableName === undefined
         ? undefined
@@ -6629,7 +6636,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     } else if (source[pos] === '(') {
       const startsBooleanUnary = /^\(\s*Not\b/i.test(source.slice(pos));
       const startsVariableComparison =
-        /^\(\s*&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:<>|<=|>=|=|<|>)/
+        /^\(\s*&[A-Za-z0-9_]+#?(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:<>|<=|>=|=|<|>)/
           .test(source.slice(pos));
       /*
        * System variables can be the left operand of the same parenthesized
@@ -7894,7 +7901,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      * The semicolon is part of the payload, so there is no trailing 0x15.
      * Consume it here, before the ordinary statement/terminator path.
      */
-    if (/^REM\b/i.test(source.slice(pos))) {
+    if (startsRemComment()) {
       /*
        * A REM comment after the final leading Local closes a reference-bearing
        * Local section just like a standalone block comment does. The ordinary
@@ -8503,7 +8510,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         const afterStatementLookaheadStart =
           nextSignificantAfterBlockComments(afterStatementSemicolon);
         const nextLocalMatch =
-          /^Local\s+[A-Za-z_][A-Za-z0-9_]*\s+&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)\s*(=)?/i.exec(
+          /^Local\s+[A-Za-z_][A-Za-z0-9_]*\s+&[A-Za-z0-9_]+#?\s*(=)?/i.exec(
             source.slice(afterStatementLookaheadStart)
           );
         const nextIsAnotherUninitializedLocal =
@@ -8654,7 +8661,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        *       DeleteFactorfromAnalysisGrouplets(&RS_Flt_Factor360(&save_i_flt_fac))
        *   rem &cmpSession.ProcessNUIAction("updfactor");
        */
-      const precedesRemStatement = /^REM\b/i.test(source.slice(pos));
+      const precedesRemStatement = startsRemComment();
 
       const selfTerminatingAtEof =
         (
@@ -8938,7 +8945,7 @@ function parseApplicationClassProgram(
   }
 
   const parameters = classMatch[3].trim() === '' ? [] : classMatch[3].split(',').map(parameter => {
-    const match = /^\s*(&[A-Za-z_][A-Za-z0-9_]*)\s+As\s+(string|integer|boolean)\s*$/i.exec(parameter);
+    const match = /^\s*(&[A-Za-z0-9_]+#?)\s+As\s+(string|integer|boolean)\s*$/i.exec(parameter);
     if (!match) throw new UnsupportedPeopleCodeError(0, 'unsupported Application Class parameter');
     return { name: match[1], type: match[2] };
   });
@@ -8968,15 +8975,15 @@ function parseApplicationClassProgram(
   const body = implementationMatch[3];
 
   const localMatch =
-    /\bLocal\s+([A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)+)\s+(&[A-Za-z_][A-Za-z0-9_]*)\s*;/i.exec(
+    /\bLocal\s+([A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)+)\s+(&[A-Za-z0-9_]+#?)\s*;/i.exec(
       body
     );
   const createMatch =
-    /(&[A-Za-z_][A-Za-z0-9_]*)\s*=\s*create\s+([A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)+)\s*\(\s*\)\s*;/i.exec(
+    /(&[A-Za-z0-9_]+#?)\s*=\s*create\s+([A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)+)\s*\(\s*\)\s*;/i.exec(
       body
     );
   const callMatch =
-    /(&[A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*"([^"]*)"\s*\)\s*;/i.exec(
+    /(&[A-Za-z0-9_]+#?)\.([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*"([^"]*)"\s*\)\s*;/i.exec(
       body
     );
   const returnMatch =
@@ -9191,7 +9198,7 @@ function parseFunctionMetadata(
     if (parameterSource.length > 0) {
       for (const parameter of parameterSource.split(',')) {
         const typedMatch =
-          /^\s*&[A-Za-z_][A-Za-z0-9_]*\s+As\s+((?:array\s+of\s+)?[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)\s*$/i.exec(
+          /^\s*&[A-Za-z0-9_]+#?\s+As\s+((?:array\s+of\s+)?[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)\s*$/i.exec(
             parameter
           );
 
@@ -9201,7 +9208,7 @@ function parseFunctionMetadata(
         }
 
         const untypedMatch =
-          /^\s*&[A-Za-z_][A-Za-z0-9_]*\s*$/.exec(parameter);
+          /^\s*&[A-Za-z0-9_]+#?\s*$/.exec(parameter);
 
         if (untypedMatch) {
           /*

@@ -869,6 +869,40 @@ test('REM may continue onto an observed single-space prose line', () => {
   );
 });
 
+test('legacy remark spelling uses the calibrated REM comment payload', () => {
+  const source =
+    'remark Prevent deletion of an entire project;';
+
+  assert.deepStrictEqual(
+    encodeFragment(source),
+    Buffer.concat([
+      Buffer.from([0x24, source.length * 2, 0x00]),
+      Buffer.from(source, 'utf16le')
+    ])
+  );
+});
+
+test('captured variable names may start with a digit or end in #', () => {
+  const source =
+    'Local string &6x_plan_changed;\n' +
+    'Local number &TotalRow#;\n' +
+    '&6x_plan_changed = "Y";\n' +
+    '&TotalRow# = 1;';
+  const program = encodeProgram(source);
+  const decoded = decodeProgram(
+    program,
+    new NameTable(),
+    { mode: 'strict' }
+  );
+
+  assert.deepStrictEqual(
+    encodeProgram(decoded.text),
+    program
+  );
+  assert.ok(decoded.text.includes('&6x_plan_changed'));
+  assert.ok(decoded.text.includes('&TotalRow#'));
+});
+
 test('HCDEV definition 3428 preserves a declared function terminal #', () => {
   const source =
     'Declare Function assign_seq# PeopleCode CSB_REGISTRANT.SEQNUM FieldFormula;\n\n' +

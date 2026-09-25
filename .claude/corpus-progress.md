@@ -6,16 +6,20 @@
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #78 (below), validated and present in
-  current HEAD `0f4a9a2` (the concurrent 0.2.0 release commit included the
-  encoder and test changes while this calibration session was running).
-- **Corpus total** (full-corpus run_id 1357): 22628/30209 exact (74.9%).
+- **Last successful calibration**: Fix #83 (below), validated locally on top
+  of current HEAD `e3bd1d4`. Fixes #82-#83 and this progress ledger are
+  currently uncommitted.
+- **Corpus total** (full-corpus run_id 1442): 22655/30209 exact (75.0%).
   Fix #73 was first rechecked against the already-equivalent full run 1326
   (run 1327: all 30209 materially unchanged). Subsequent full diffs were:
   Fix #74 run 1327 -> 1338 (2 exact, 4 advanced, 0 regressed); Fix #75 run
   1338 -> 1341 (1 advanced, 0 regressed); Fix #76 run 1341 -> 1348 (3
   exact, 2 advanced, 0 regressed); Fixes #77-#78 run 1348 -> 1357 (7 exact,
-  38 advanced, 0 regressed). The protected gate remains 430/430.
+  38 advanced, 0 regressed); Fix #79 run 1357 -> 1364 (6 advanced, 0
+  regressed); Fix #80 run 1364 -> 1371 (3 exact, 1 advanced, 0 regressed);
+  Fix #81 run 1371 -> 1375 (1 exact, 0 regressed); Fix #82 run 1375 -> 1399
+  (8 exact, 7 advanced, 0 regressed); Fix #83 run 1399 -> 1442 (15 exact,
+  11 advanced, 0 regressed). The protected gate remains 430/430.
 - **Locally blocked / deferred, evidence exhausted this session** (see
   their own entries further down for full evidence trails): the `#If
   #ToolsRel` preprocessor-directive family (73 combined occurrences,
@@ -26,18 +30,94 @@
   single-method inline shape); a decoder-only rendering gap for `Return
   <number> /* comment */;` noted under Fix #72 (narrow, not corpus-
   evidenced, deliberately left unfixed).
-- **Next action**: resume failure-family triage from full run_id 1357 (group
+- **Validation caveat**: after Fix #79, `npm run typecheck` and the complete
+  `npm test` suite passed (465 tests: 464 pass, 1 pre-existing skip). During
+  Fixes #80-#81, unrelated concurrent MCP integration work landed in commits
+  `b55424a`/`e3bd1d4`; current full-project typecheck/pretest fail in that
+  integration (`src/extension.ts`, `src/mcp/clients/common.ts`,
+  `src/mcp/configure.ts`, `src/mcp/controller.ts`, and `src/mcp/status.ts`:
+  unused imports/properties and missing server/status exports). Do not modify
+  or revert that work as part of corpus calibration. The directly relevant
+  encoder suite passes after Fix #81 (`npx tsx --test
+  src/test/encoder.test.ts`: 113 tests, 112 pass, 1 pre-existing skip), and
+  every post-fix protected gate is 430/430.
+- **Next action**: resume failure-family triage from full run_id 1442 (group
   `corpus-results.sqlite`'s latest run by `classification`/`construct`,
-  the same query used to find every target this session). The earlier
-  `When-Other`, `<> %Action_Add`, and `.IsInBuf Then` candidates are now
-  calibrated below. A promising remaining compact family is the three
-  `expected assignment = after call-result property` failures whose
-  construct begins `;\nElse\n   AddOnL` (definitions 11121, 11126, 11128);
-  inspect their shared call-result statement shape next. Definition 18960
-  has a superficially related diagnostic but a block comment follows and
-  should be treated separately unless bytes prove the same rule.
+  the same query used to find every target this session). The call-string,
+  multiline-REM, and terminal-`#` families are calibrated below. Empty/simple
+  Application Class definitions such as 28770 remain actionable but require
+  adding explicit application-package ownership to encoder context; do not
+  infer that owner from source text. The legacy `remark` family is calibrated
+  below; choose the next compact family from run 1399.
 
 ## Current target
+- **Fix #83** landed locally (src/peoplecode/encoder.ts): captured PeopleCode
+  variable names may begin with a digit and may end with `#`. The lexer had
+  historically allowed either an ordinary letter/underscore-led identifier
+  OR digits-only (`&123`) but rejected the evidenced mixed digit-led forms
+  (`&6x_plan_changed`, `&2ndParm`, `&80EE_pin_num`) and stopped before `#`
+  in names such as `&TotalRow#`. All variable parsers and structural
+  lookaheads now use the same `&[A-Za-z0-9_]+#?` grammar, including Local /
+  Component declarations, expressions, comparison/group lookaheads, Function
+  metadata, and the narrow Application Class parser. Captures 20483/20495
+  prove digit-led declaration/assignment use; 15118 proves terminal-`#`
+  declarations, assignments, comparisons, and loop bounds. A snapshot scan
+  found 27 digit-led-variable definitions and 11 terminal-`#` definitions.
+  Full run 1399 -> 1442: 15 became fully EXACT; 11 advanced to independent
+  later states; 30183 unchanged; 0 regressed. Added a semantic binary
+  roundtrip test covering both forms. Relevant encoder suite: 114/115 pass
+  (1 pre-existing skip); protected gate: 430/430.
+- **Fix #82** landed locally (src/peoplecode/encoder.ts): legacy `remark`
+  statements use the exact same calibrated comment parser as `REM` at every
+  existing top-level/control-flow/Function-body placement. Captured definition
+  14278 proves the original `remark` spelling and semicolon are stored intact
+  as one `0x24 <uint16 byte length> <UTF-16LE payload>` record, not normalized
+  to `REM`; definitions 11198, 20696, and 2708 independently prove If-body and
+  Function-body placements. A complete snapshot scan found 17 definitions / 83
+  physical `remark` lines, including immediately-consecutive and
+  semicolon-less forms handled by the already-calibrated continuation logic.
+  Full run 1375 -> 1399: definitions 2708, 4305, 5749, 6291, 6293, 11198,
+  14278, and 20696 became fully EXACT; 6274, 6276, 6284, 6285, 6287, 6288,
+  and 6290 advanced to independent later failures; 25951 and 25960 remain
+  unchanged because earlier untyped-array syntax blocks them before their
+  remark lines. Totals: 8 exact, 7 advanced, 30194 unchanged, 0 regressed.
+  Added a byte-level `remark` payload test. Relevant encoder suite: 113/114
+  pass (1 pre-existing skip); protected gate: 430/430.
+- **Fix #81** landed locally (src/peoplecode/encoder.ts): declared Function
+  and bare call identifiers may have the corpus-observed optional terminal
+  `#` (`assign_seq#`), while `#` remains unsupported anywhere else in an
+  identifier. Definition 3428 stores the name identically in the declaration
+  and call (`0A` inline-name payload), and is now source->bin EXACT,
+  roundtrip EXACT, and source MATCH. Full run 1371 -> 1375: 1 exact, 30208
+  unchanged, 0 regressed. Added a complete captured-program golden.
+  Relevant encoder suite: 112/113 pass (1 pre-existing skip); protected gate:
+  430/430. Full-project typecheck is currently blocked by the unrelated MCP
+  edits recorded in the checkpoint above.
+- **Fix #80** landed locally (src/peoplecode/encoder.ts): a REM statement
+  lacking a semicolon on its first physical line may continue onto the
+  captured single-space prose form without repeating `REM`. PeopleTools
+  stores the newline, leading space, continuation text, and final semicolon
+  together in one `0x24` UTF-16 payload. The rule is deliberately limited to
+  exactly one leading space followed by a non-whitespace character so an
+  ordinary indented PeopleCode statement is not swallowed. Snapshot search
+  found exactly definitions 5424-5426 in this source shape; all three became
+  fully EXACT. Definition 27369 also advanced from body offset 5 to 1088: its
+  common-indent-relative continuation is the same captured shape. Full run
+  1364 -> 1371: 3 exact, 1 advanced, 30205 unchanged, 0 regressed. Added a
+  byte-level payload test; protected gate: 430/430.
+- **Fix #79** landed locally (src/peoplecode/encoder.ts): the dispatcher no
+  longer uses a regex that can mistake dotted JavaScript text inside a quoted
+  bare-call argument for a PeopleCode call-result property assignment. A
+  balanced lexical lookahead now skips doubled-quote PeopleCode strings and
+  block comments while walking call/member/index postfixes, and selects the
+  property-assignment branch only when a real source-level `=` follows the
+  chain. Definitions 11121, 11126, 11128, 18960, 23465, and 23466 all
+  advanced past `expected assignment = after call-result property` to their
+  independent later mismatches; none became exact. Full run 1357 -> 1364: 6
+  advanced, 30203 unchanged, 0 regressed. Added a focused
+  `AddOnLoadScript("document.getElementById(...).style.visibility = ...")`
+  regression test. At this point full typecheck and complete tests passed
+  (465 total, 464 pass, 1 pre-existing skip); protected gate: 430/430.
 - **Fix #78** landed locally (src/peoplecode/encoder.ts): encode parsed
   `Continue;` statements directly as context-gated opcode `0x6E`. The
   general fixed-token table deliberately still leaves 0x6E unmapped because
