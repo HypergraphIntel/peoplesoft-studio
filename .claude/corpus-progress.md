@@ -1,5 +1,226 @@
 # Corpus Calibration Progress
 
+## Research cycle (2026-09-25, compiler-semantics reverse-engineering)
+
+**Scope change, active now.** The user's own `/goal` directive reframes the
+work: the corpus is evidence for reverse-engineering the real PeopleTools
+compiler's semantic model (lexing/grammar, semantic binding, scope,
+dependency/reference generation, bytecode generation, compile-time
+environmental behavior), not a checklist of byte-exact special cases to
+accumulate. Success is explanatory compression -- fewer special cases because
+more behavior is explained by fewer correct rules -- not raw exact-count
+movement. **Do not modify encoder semantics during this phase** except
+purely-additive, read-only diagnostic instrumentation (verified
+behavior-neutral via `tsc`, `npm test`, and the protected 430/430 gate every
+time). The corpus-calibration workflow and datasource rules elsewhere in this
+file (local-snapshot-first, `--live` verification-only, etc.) are unchanged
+and still govern normal fix work; this section is additive.
+
+Execution order per the directive: **Phase 1** build a machine-readable
+reference-lifecycle evidence dataset (PSPCMNAME/reference identity, reuse,
+scope, lifetime) for FetchValue, SetCursorPos, ScrollFlush/ScrollSelect/
+RowScrollSelect(New), PriorValue, GetRecord/GetRow/GetRowset, definition
+1305's owner-collision hypothesis, and FIELD reuse across root records.
+**Phase 2** infer the smallest semantic model from that dataset. **Phase 3**
+map current flags/maps (`recordReferencesByControlGroup`,
+`genericRecordReferencesSinceLastFamilyCall`, `declaredRecordFields`,
+`expectedReferenceMember`, etc.) to genuine-concept vs. redundant-patch.
+**Phase 4** propose the smallest intermediate abstraction (a
+ReferenceBinder/DependencyPlanner). **Phase 5** controlled implementation
+only after the model is evidence-backed, still gated on 430/430 + zero
+regressions on a full corpus diff.
+
+### Tooling built this cycle
+
+`tools/corpus/research/reference-lifecycle.ts` (new, committed, read-only
+research infrastructure -- does not touch encoder/decoder decision logic):
+for one or more `--definition-id`/`--definition-ids`, pairs
+
+- the **stored** side: every real PSPCMPROG reference-operand token
+  (opcodes 0x21/0x4A/0x48), in byte-stream order, with its raw 1-based
+  PSPCMNAME NAMENUM (via `decoder.ts`'s now-diagnostic `Token.nameNum`,
+  landed last cycle in commit `8454a2c`) and a derived ALLOC/REUSE decision
+  (ALLOC the first time a NAMENUM appears in that decode pass, REUSE every
+  later occurrence);
+- the **generated** side: every real operand emission the encoder performs
+  while encoding the definition's actual source text (with the SAME real
+  `owner: {recordName, fieldName}` context `validator.ts` always supplies
+  from the definition's own key -- omitting it manufactures spurious
+  "owner" mismatches, see pitfall below), each carrying its own derived
+  ALLOC/REUSE decision, `controlGroup`/`controlDepth`/`functionDepth`
+  (landed last cycle in commit `8454a2c`), best-effort enclosing-call name
+  and argument position, the previous occurrence of the same reference
+  identity (kind+recordName+fieldName+...), and which watched intrinsics
+  (FetchValue/SetCursorPos/ScrollFlush/.../GetRecord/etc.) textually
+  intervened since that previous occurrence.
+
+Output: one JSON file per definition plus a `_summary*.json`, under
+`tools/corpus/reports/reference-lifecycle/` (gitignored, like the rest of
+`tools/corpus/reports/`). Usage:
+
+```bash
+npx tsx tools/corpus/research/reference-lifecycle.ts --definition-ids 1521,1454 --construct FetchValue
+```
+
+**Two real bugs were found and fixed while building/validating this tool
+against known-EXACT definitions (437, 843, 860, etc. -- essential sanity
+check: a correctly-calibrated definition must show zero disagreements):**
+
+1. **Tool bug (in the new script only, not the encoder)**: omitting
+   `context.owner` made every bare owner-record.field reference look like a
+   spurious ALLOC-vs-USE contradiction, because `encodeProgram` without
+   owner context falls back to binding PSPCMNAME sequence 1 to whichever
+   bare RECORD.FIELD reference appears FIRST in source text (see
+   `ordinaryRecordFieldReference()`'s `ownerUnbound` branch,
+   encoder.ts:~1495) -- which is only a correct inference when that really
+   is the definition's own owning record/field. Fixed by always passing
+   `owner: {recordName: objectvalue1, fieldName: objectvalue2}`, exactly
+   matching `validator.ts`'s real harness behavior.
+2. **Tool bug (in the new script only)**: `ReferenceTraceEvent` fires an
+   `ALLOC` bookkeeping event when a `PeopleCodeReference` object is first
+   created (`nextReference()`) AND a separate `USE` event on every actual
+   operand-byte emission, including that same first one
+   (`referenceOperand()`). The tool was treating every raw event as one
+   stored-token-equivalent occurrence, double-counting every first
+   occurrence. Fixed: only `USE` events correspond 1:1 with a real emitted
+   operand (one per stored token, whether ALLOC or REUSE); ALLOC/REUSE
+   decision is now derived from first-occurrence-of-`reference.sequence`
+   among `USE` events only, mirroring exactly how the stored-side decision
+   is derived from first-occurrence-of-NAMENUM.
+3. **Real encoder gap found and fixed (diagnostic-only, verified
+   behavior-neutral)**: two operand-emission sites write their 0x48/0x4A
+   bytes directly instead of going through the shared `referenceOperand()`
+   helper that 0x21 uses, so neither ever fired a `referenceTrace` USE
+   event at all -- silently invisible to any research consumer, not just
+   this new tool:
+   - the quoted-reference `0x48` path (`quotedReference()`,
+     encoder.ts:~2489-2505, e.g. `MenuName."X"`, `BarName."USE"`);
+   - the record-field-shorthand `0x4A` path (the postfix chain handler,
+     encoder.ts:~7736, e.g. `.RECORD.FIELD.Value`,
+     `.getrow(...).RECORD.FIELD`, `GetRecord().FIELDNAME` -- exactly the
+     "FIELD reuse across root records" investigation area).
+   Added a matching `context?.referenceTrace?.({action: 'USE', ...})` call
+   at each site, byte-for-byte identical trigger condition to the existing
+   write, so it fires on every occurrence (fresh or reused) the same way
+   `referenceOperand()` already does for 0x21. Confirmed additive-only:
+   `tsc` clean, `npm test` 490/490 (1 intentional skip), definition 437's
+   generated buffer still byte-identical to stored before and after
+   (`buffers equal: true`), and its own traced USE-event count moved from
+   13 (undercounted, missing every 0x4A occurrence) to 21 (matching its
+   real stored token count exactly). Protected 430/430 gate re-verification
+   in progress as of this checkpoint -- confirm before relying on this
+   section elsewhere.
+
+### Phase 1 evidence gathered so far (real encoder findings, not tool bugs)
+
+Ran the corrected tool across FetchValue (1521, 1454), SetCursorPos (826,
+850, 1106, 1416, 1420), the ScrollFlush/ScrollSelect/RowScrollSelect(New)
+family (843, 860, 5687, 1220, 1283, 1236, 30, 95, 1172, 1145, 889, 1007,
+1749), GetRecord/GetRow (1423, 1424, 1721, 1722), FIELD-reuse-across-roots
+(437, 1360, 1422), and the definition-1305 owner-collision hypothesis.
+
+Every ScrollFamily/GetRecordGetRow/FieldReuse definition that a PRIOR
+session already calibrated (843, 860, 5687, 1220, 1283, 1236, 30, 95, 1172,
+1145, 889, 1007, 1721, 1722, 1360, 1422) now shows **zero** disagreements --
+useful as a sanity check that the corrected tool reproduces known-good
+behavior, not just noise.
+
+**Finding A -- strong, five-definition-confirmed hypothesis**: a
+value-fetching accessor's own leading Record.X/Scroll.X argument -- the
+thing being read FROM, not written to -- appears to be EXEMPT from all
+control-group-scoped reuse. It always ALLOCates a fresh PSPCMNAME row in
+stored bytes, even when the identical record/scroll name was already
+referenced earlier in the very same control group (even by an earlier call
+to the SAME accessor). The current encoder wrongly reuses it in every one
+of these cases:
+
+- **1521**: `FetchValue(Scroll.BAS_PAR_VW, &EVENT_ROW, BAS_PAR_VW.EMPLID)` --
+  stored ALLOCs a fresh SCROLL.BAS_PAR_VW row even though an earlier
+  FetchValue call (2 statements back, same control group) already
+  referenced the identical scroll name; generated wrongly reuses it. This
+  is the corpus-evidence disproof of the progress file's own OLD "FetchValue
+  Scroll.X reuse" calibration comment flagged in earlier sessions
+  (`fieldReferencesByControlGroup`/FetchValue-argument-reuse area) --
+  turns out the comment's premise was backwards for this shape.
+- **1454**: `FetchValue(Record.BAS_ELIG_RULES, &CURRENT_L1,
+  BAS_ELIG_UNION.UNION_CD, 1)` -- same shape, Record.X instead of Scroll.X,
+  independent definition.
+- **1305** (the directive's own named "owner collision" hypothesis target):
+  `FetchValue(Record.ARCH_TBL, CurrentRowNumber(1), ARCH_SQL_LNG.PSARCH_FLAG,
+  CurrentRowNumber(2))` -- same FetchValue-argument-always-allocates shape.
+  **This falsifies the owner-collision hypothesis for 1305**: the real
+  cause is the same FetchValue-argument rule as 1521/1454, not an owner
+  symbol binding defect. Do not chase an owner-binding fix for 1305;
+  redirect that investigation into Finding A instead.
+- **1420, 1423, 1424**: `&Der_Parent.GETRECORD(Record.DERIVED_IBAN)` --
+  SAME always-allocate shape, but for `.GetRecord(...)` called as a
+  POSTFIX METHOD on a variable (not FetchValue at all) -- suggests Finding
+  A may generalize beyond FetchValue specifically to "any value-fetching
+  accessor's own target-record argument," not a FetchValue-specific rule.
+  1423 and 1424 are two independent definitions sharing this exact
+  construct (`&Der_Parent.GETRECORD(Record.DERIVED_IBAN).GP_IBAN_CHECK.VALUE`
+  / `.GP_IBAN_VALIDATED.Value`), both currently non-EXACT for this reason.
+
+Contrast with the ALREADY-CALIBRATED RowScrollSelect/ScrollFlush/
+ActiveRowCount family (843, 860, 1220, 1283, 1236, 30, 95, 1172, 1145, 889,
+1007, all zero-disagreement in this dataset): those DO participate in
+control-group-scoped reuse, with the existing (correct, evidence-backed)
+depth/epoch nuances from Fixes #85-#99. Finding A suggests these may be
+TWO semantically distinct compiler concepts wearing similar syntax:
+"binding/navigation" calls (RowScrollSelect family: establish a
+Row/Rowset binding, participate in reuse) vs. "value-fetching" calls
+(FetchValue, postfix `.GetRecord(...)`: resolve a value NOW, always
+allocate a fresh dependency for the argument that names what to fetch).
+This is exactly the kind of two-class distinction the directive asks for
+instead of a per-function boolean.
+
+**Definition 1749 (already-documented remaining puzzle from Fix #89's own
+session, see "Locally blocked" below) reproduced exactly, now with precise
+occurrence-level evidence**: `ScrollSelect(1, Record.BAS_MESSAGE,
+Record.BAS_MESSAGE, "WHERE PRCSINSTANCE =:1", DERIVED_BAS...)` at
+occurrence 13 -- stored REUSEs an earlier RECORD.BAS_MESSAGE allocation
+from occurrence 6, with an intervening `ScrollFlush` AND `ScrollSelect`
+call in between; generated wrongly ALLOCs fresh instead, confirming Fix
+#89's own note that "an intervening RowScrollSelect-family call appears to
+invalidate the WHOLE fallback pool even at controlDepth > 0, when stored
+evidence suggests it should not for an unrelated key."
+
+**Not yet conclusive**: definition 1106 (AMM_TREE_WS.TREE_LEVEL_NUM,
+111 stored reference tokens, only 17 generated -- encoder diverges from
+source structurally well before the interesting `&TreeRecObject.
+GetField(@("Field..."))` dynamic-indirection construct at occurrence 4;
+needs its own investigation, not part of Finding A). Definition 826 hits
+an unrelated `ENCODE_ERROR` (bare identifier unsupported) before any
+reference evidence accumulates.
+
+### Next action (research cycle)
+
+1. ~~Confirm the protected 430/430 gate after the 0x48/0x4A trace-instrumentation
+   commit.~~ DONE: full-corpus `--compare-baseline` run confirms 22984/30209
+   exact (bit-for-bit identical to the Fix #99 total), Improved 0, Regressed
+   0, REGRESSION GATE: PASS. Zero classification impact anywhere in the
+   corpus, as expected for a diagnostic-only change.
+2. Generate the still-missing Phase 1 area: PriorValue (candidates queried
+   from the local snapshot but not yet run through the tool: 2809, 2950,
+   2957, 2959, 2970 -- all currently non-EXACT `PriorValue`-referencing
+   definitions).
+3. Widen the FetchValue/postfix-GetRecord sample (Finding A) past 5
+   definitions before treating it as settled -- pull a broader batch via
+   the existing `corpus-results.sqlite` cross-reference-with-snapshot SQL
+   pattern documented under "Next action" below, filtered to
+   `FetchValue\s*\(` and `\.GetRecord\s*\(`/`\.GETRECORD\s*\(` (case-
+   insensitive; both spellings appear in the corpus) source matches.
+4. Once Finding A is corroborated on a wider sample, write up Phase
+   2/3 (the smallest semantic model, and which existing
+   maps/flags are genuine-concept vs. redundant-patch for this specific
+   family) -- still no encoder semantic changes until that model is
+   written down and evidence-backed per the directive.
+5. Do NOT implement a fix for Finding A yet, even though it looks clean --
+   the directive is explicit that Phase 1/2 (dataset + model) come before
+   Phase 5 (implementation), and a premature fix here would be exactly the
+   kind of "special case that happens to fix one example" the whole cycle
+   exists to avoid accumulating.
+
 ## Checkpoint
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
