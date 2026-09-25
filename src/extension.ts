@@ -13,6 +13,7 @@ import { registerPeopleCodeHover } from './peoplecode/hover.js';
 import { registerPeopleCodeSymbols } from './peoplecode/symbols.js';
 import { parseUri } from './util/uri.js';
 import { StatusBar } from './views/statusBar.js';
+import { startPeopleSoftMcpServer } from './mcp/server.js';
 
 /** Left side of a compare: which connection + which definition key. */
 interface CompareTarget {
@@ -79,9 +80,24 @@ function targetFromTreeNode(node: unknown): CompareTarget | undefined {
   return undefined;
 }
 
-export function activate(context: vscode.ExtensionContext): void {
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const workspace = new Workspace(context.secrets);
   context.subscriptions.push(workspace);
+
+  try {
+    const mcpServer = await startPeopleSoftMcpServer(workspace);
+    context.subscriptions.push(mcpServer);
+
+    console.log(
+      `PeopleSoft Studio MCP server listening at ${mcpServer.url}`
+    );
+  } catch (err) {
+    const message = (err as Error).message;
+    console.warn(`PeopleSoft Studio MCP server failed to start: ${message}`);
+    void vscode.window.showWarningMessage(
+      `PeopleSoft Studio MCP server failed to start: ${message}`
+    );
+  }
 
   const statusBar = new StatusBar(workspace);
   context.subscriptions.push(statusBar);
