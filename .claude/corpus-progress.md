@@ -648,14 +648,14 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #85 (below), validated locally on top
-  of current HEAD `e9ccca2`. Fix #85 and this progress ledger are currently
-  uncommitted. (Prior checkpoint's HEAD `45fccb5` is now behind: unrelated
-  MCP-client work landed several commits, through `e9ccca2`, between
-  sessions; full typecheck and `npm test` are clean at `e9ccca2`, so the
-  previously-recorded typecheck blocker no longer applies -- see updated
-  validation note below.)
-- **Corpus total** (full-corpus run_id 1457): 22671/30209 exact (75.0%).
+- **Last successful calibration**: Fix #86 (below), validated locally on top
+  of Fix #85's commit `22006ac`. Fix #86 and this progress ledger are
+  currently uncommitted. (Prior checkpoint's HEAD `45fccb5` is now behind:
+  unrelated MCP-client work landed several commits, through `e9ccca2`,
+  between sessions; full typecheck and `npm test` are clean at `e9ccca2`,
+  so the previously-recorded typecheck blocker no longer applies -- see
+  updated validation note below.)
+- **Corpus total** (full-corpus run_id 1509): 22672/30209 exact (75.0%).
   Fix #73 was first rechecked against the already-equivalent full run 1326
   (run 1327: all 30209 materially unchanged). Subsequent full diffs were:
   Fix #74 run 1327 -> 1338 (2 exact, 4 advanced, 0 regressed); Fix #75 run
@@ -668,8 +668,12 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   11 advanced, 0 regressed); Fix #84 run 1442 -> 1446 (1 exact, 0
   regressed); Fix #85 run 1446 -> 1457 (15 exact, 0 regressed, diffed
   directly against `corpus_run`/`result` rows in `corpus-results.sqlite`
-  since both runs were full 30209-definition runs). The protected gate
-  remains 430/430.
+  since both runs were full 30209-definition runs); Fix #86 run 1457 ->
+  1509 (1 exact -- definition 843 -- 0 regressed against 1457, diffed the
+  same way; two intermediate full runs during Fix #86's OWN development,
+  1470 and 1494, each had a real, caught, and then repaired regression --
+  see Fix #86's own notes below for the full two-round isolation trail).
+  The protected gate remains 430/430.
 - **Locally blocked / deferred, evidence exhausted this session** (see
   their own entries further down for full evidence trails): the `#If
   #ToolsRel` preprocessor-directive family (73 combined occurrences,
@@ -700,6 +704,62 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   below.
 
 ## Current target
+- **Fix #86** landed locally (src/peoplecode/encoder.ts): the
+  `singleOccurrenceCallArgumentRecordNames` fallback (a RowScrollSelect/
+  RowScrollSelectNew/ScrollSelect call's own Record.X argument, appearing
+  once in that call, may reuse an earlier same-control-group row) read
+  straight from `recordReferencesByControlGroup` -- the shared pool EVERY
+  Record.X allocation writes to, including a RowScrollSelect-family call's
+  OWN "last call argument becomes visible" write (evidenced separately for
+  a LATER UpdateValue-style reader, definition 1145). AE_UPGCONV_WRK.
+  UPGPATH.FieldChange (definition 843) disproves reading that shared pool
+  here: `ScrollFlush(Record.PSAEAPPLDEFN); RowScrollSelect(1, Record.
+  UPGCONV_DEFN, Record.UPGCONV_DEFN); RowScrollSelectNew(1, Record.
+  UPGCONV_DEFN, Record.PSAEAPPLDEFN, "...", &UPGPATH);` -- RowScrollSelectNew's
+  own UPGCONV_DEFN and PSAEAPPLDEFN arguments both allocate fresh rows
+  (NAMENUM 4/5) in the stored program, reusing neither the intervening
+  RowScrollSelect's own row nor ScrollFlush's earlier row two statements
+  back.
+  First attempt (reverted mid-session, see below) tried a narrower
+  "immediately preceding call was specifically ScrollFlush" rule, which
+  caused a REAL, CAUGHT regression on full run 1470 (definition 860,
+  AE_WRK.AE_DECIDE.SavePreChange: a bare `ScrollSelectNew(...)`, not
+  itself a RowScrollSelect-family name, immediately followed in the
+  sibling Else branch by `ScrollSelect(...)` reusing ScrollSelectNew's
+  rows -- proving the fallback is still real for a NON-ScrollFlush earlier
+  call). Root cause, once isolated: the true distinguishing factor is not
+  "was the earlier call specifically ScrollFlush" but whether a
+  RowScrollSelect-family call (RowScrollSelect, RowScrollSelectNew, or
+  bare ScrollSelect) has intervened since the earlier allocation. Fixed
+  properly with `genericRecordReferencesSinceLastFamilyCall`, a map that
+  mirrors `recordReferencesByControlGroup`'s own ordinary (non-call-private)
+  writes but is entirely cleared in the `finally` block of every
+  RowScrollSelect-family call (after that call's own resolution has
+  already read it) -- so it carries a row forward across an ordinary call
+  or an If/Else sibling-branch boundary, but not across a RowScrollSelect-
+  family call.
+  Second attempt (also reverted mid-session) applied that rule but caused
+  a SECOND real, caught regression on full run 1494 (definition 5687,
+  DERIVED_HR.LOOKUP_NID_BTN.FieldChange: `ScrollFlush(Record.NID_SRCH_VW)`
+  inside an If's Else branch REUSES NID_SRCH_VW via the separate
+  `reuseRecordReferenceWithinControlGroup` check -- a short-circuit return
+  that never reached the generic-write code path my new map's population
+  was scoped to, so the map stayed empty and the Else branch's own
+  ScrollSelect wrongly allocated a fresh row instead of reusing the SAME
+  NID_SRCH_VW row all four calls, across both branches, share in the
+  stored program). Fixed by also re-populating
+  `genericRecordReferencesSinceLastFamilyCall` at that specific reuse
+  check, not just at fresh generic allocations.
+  All three shapes (843 deny, 860 allow, 5687 allow-via-repopulation) now
+  verified individually EXACT, plus every previously-calibrated definition
+  this whole mechanism touches (1220, 1283, 840, 1145, 1236, 30, 95, 1172).
+  Full run 1457 -> 1509: 1 exact (843; 860 and 5687 were already EXACT at
+  1457, so they show as "unchanged", not "improved", despite being the
+  regressions caught and repaired mid-session against the broken
+  intermediate attempts), 0 regressed. Added three minimal-fragment
+  byte-level regression tests, one per evidence shape. Full project
+  `tsc -p . --noEmit` and `npm test` (474 tests, 473 pass, 1 pre-existing
+  skip) both clean; protected gate: 430/430.
 - **Fix #85** landed locally (src/peoplecode/encoder.ts): a later, unrelated
   initialized top-level `Local` no longer retroactively suppresses an
   earlier leading-Local declaration-section `0x2D` boundary. The
@@ -4808,7 +4868,23 @@ project-level blocker").
 - definitions: 430
 - exact: 430
 - regressions: 0
-- last verified: 2026-09-25 (/goal resume session), after Fix #85
+- last verified: 2026-09-25 (/goal resume session), after Fix #86
+  (definition 843, RowScrollSelect-family single-occurrence reuse fallback
+  now correctly scoped by `genericRecordReferencesSinceLastFamilyCall`
+  instead of the shared `recordReferencesByControlGroup` pool -- see Fix
+  #86's own notes for its two-round, twice-caught-and-repaired isolation
+  trail), REGRESSION GATE: PASS (430/430, no regression). Full corpus
+  run_id 1509 also directly diffed against run_id 1457 (the last
+  known-clean full run before Fix #86 began) at the per-definition
+  `classification` level: 1 newly exact (843), 0 regressed, 30208
+  unchanged. NOTE: two INTERMEDIATE full runs during Fix #86's own
+  development (1470, 1494) each showed a real regression outside the
+  430-window (definitions 860 and 5687 respectively) -- both caught by
+  this same full-corpus-diff discipline, root-caused, and repaired before
+  landing; neither regression ever reached a committed state. Full-project
+  `npx tsc -p . --noEmit` and `npm test` (474 tests, 473 pass, 1
+  pre-existing skip) both clean.
+- prior verification: 2026-09-25 (/goal resume session), after Fix #85
   (definition 528, leading-Local declaration-section `0x2D` boundary no
   longer suppressed by an unrelated later initialized top-level Local),
   REGRESSION GATE: PASS (430/430, no regression, first attempt). Full
@@ -4953,14 +5029,21 @@ project-level blocker").
 
 ## Next action
 - **Current session (2026-09-25, /goal resume), immediate next step**: Fix
-  #85 landed and verified (430/430, full run 1457, 0 regressed). Resume
-  triage from `npm run corpus:next`, which currently surfaces the
-  `UNKNOWN_MISMATCH`/`(none)` catch-all (4852 remaining, no single
-  construct signature -- representatives must be pulled and diagnosed
-  individually, e.g. definition 528's family just fixed). No definition is
-  currently mid-investigation. All locally-blocked/deferred entries listed
-  below (older sessions) remain unchanged and still deferred; none were
-  revisited this session.
+  #86 landed and verified (430/430, full run 1509, 0 regressed against
+  1457). Resume triage from `npm run corpus:next`, which currently
+  surfaces the `UNKNOWN_MISMATCH`/`(none)` catch-all (4851 remaining, no
+  single construct signature -- representatives must be pulled and
+  diagnosed individually, e.g. definitions 528 and 843's families just
+  fixed). No definition is currently mid-investigation. All
+  locally-blocked/deferred entries listed below (older sessions) remain
+  unchanged and still deferred; none were revisited this session.
+  Process note worth repeating for future RowScrollSelect/ScrollSelect/
+  ScrollFlush-adjacent changes specifically: this whole area has a history
+  (fixes #38-#47 in an earlier session, now Fix #86 in this one) of
+  narrow-looking rules that a full-corpus diff catches breaking a sibling
+  definition outside the 430-window. Always run the FULL local corpus
+  (`npm run corpus:harness`, no `--limit`) after any change here, not just
+  `corpus:verify --limit 430`, before considering the fix landed.
 - **Continued session, immediate next step**: use the SQL workaround below
   with `r.offset > 1643` (the last definition_id touched this continued
   session) to get the next batch of fresh UNKNOWN_MISMATCH candidates.
