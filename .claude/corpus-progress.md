@@ -1195,27 +1195,277 @@ already used one mechanism over.
    individually re-verified this cycle.
 6. **No encoder semantic changes made this session**, per instruction.
 
+### Phase 4 -- architectural proposal (design only, no code changed)
+
+#### 1. What compiler concept does this behavior represent?
+
+Two DIFFERENT default-visibility rules for a PSPCMNAME dependency,
+selected by SYNTACTIC POSITION, not by which intrinsic is involved:
+
+- A reference used as an ordinary bare-text value (`RECNAME.FIELDNAME`,
+  no `Record.` keyword) defaults to the WIDE scope: the implicit
+  top-level program run, already correctly modeled by today's
+  `controlGroup`. Unaffected by this finding; not discussed further here.
+- A reference used as the argument to a call that BINDS or FETCHES
+  through a record/scroll (`Record.X`/`Scroll.X` passed to FetchValue,
+  ActiveRowCount, ScrollFlush, GetRecord, and the rest of the
+  encoder.ts:6748 list, or to RowScrollSelect/RowScrollSelectNew/
+  ScrollSelect) defaults to the NARROW scope: it is only reusable when a
+  real lexical block is currently open (`controlDepth > 0`). At the bare
+  top level, each such argument is evaluated as if no prior dependency
+  exists, regardless of what `controlGroup`'s numeric value happens to
+  be.
+
+This is confirmed by the RowScrollSelect-family's own precedent already
+in the file (`controlDepth > 0` gate, with a comment independently
+stating the same rule this cycle's corpus sweep found) and by the
+quadrant-1 (Function-body-only) cross-check, which shows the narrow
+scope's absence at flat top level is not an accident of `controlGroup`
+numbering but a real, separate default.
+
+#### 2. Best-fit abstraction name
+
+**`DependencyScope`** (not `StatementDependencyFrame`, `BindingFrame`, or
+plain `ReferenceReuseContext`):
+
+- `StatementDependencyFrame` is the wrong grain -- the scope this finding
+  is about spans a whole BLOCK (many statements, e.g. 802's whole `For`
+  loop body), not one statement. A statement-grained frame already exists
+  separately (`currentStatementRecordFields`, used only by the ordinary
+  bare-reference path) and should keep its own, narrower name/identity --
+  do not conflate the two.
+- `BindingFrame` evokes `&variable` binding, which is not what this is
+  about (no PeopleCode variable is involved; this is purely PSPCMNAME
+  dependency-row reuse bookkeeping).
+- `ReferenceReuseContext` is plausible but vaguer than necessary; it does
+  not suggest the STACK/nesting structure that `controlDepth` already
+  gives us for free.
+- `DependencyScope` names the concept precisely (the scope within which a
+  dependency reference may be reused) and naturally supports a stack
+  (nested scopes), matching `controlDepth`'s own existing shape.
+
+#### 3/4. What DependencyScope should and should NOT own
+
+**Owns:**
+- Its own identity -- today, literally `controlGroup`'s numeric value
+  (no new identity scheme needed).
+- Whether it is *open* -- today, literally `controlDepth > 0`.
+- The pool of Record.X/Scroll.X dependencies established as call
+  arguments to the specific intrinsics named above, keyed by (scope
+  identity, kind, name) -- today, exactly
+  `recordReferencesByControlGroup`/`scrollReferencesByControlGroup`
+  (already correctly scoped to the right REFERENCE KIND; they are not
+  conflated with ordinary bare-text references at all -- ordinary
+  bare-text reuse goes through a completely separate function,
+  `ordinaryRecordFieldReference()`, with its own separate pools). The gap
+  is entirely that the READ side does not check "is this scope open"
+  before consulting the pool.
+
+**Must stay OUTSIDE DependencyScope, as separate, orthogonal
+mechanisms:**
+- **Ordinary dependency interning** (`ordinaryRecordFieldsByControlGroup`,
+  `declaredRecordFields`, `currentStatementRecordFields`, and the whole
+  `ordinaryRecordFieldReference()` code path) -- a genuinely different
+  reference kind (bare RECNAME.FIELDNAME text) with its own,
+  already-correct, wide-by-default scope rule. Not implicated in this
+  finding; must not be touched.
+- **Statement-local reuse** (`currentStatementRecordFields`) -- narrower
+  than DependencyScope, orthogonal axis (statement-grained, not
+  block-grained), serves the ordinary-reference path only.
+- **Call-local reuse** (`recordReferencesWithinCallArguments`, freshly
+  reset -- literally `= new Map()` -- at the start of parsing each
+  RowScrollSelect/RowScrollSelectNew/ScrollSelect call's own argument
+  list) -- reuse WITHIN one call's own text, independent of `controlDepth`
+  entirely (two arguments to the SAME call may reuse each other even at
+  the flat top level; this is a different rule from cross-statement
+  reuse and must not be gated by `DependencyScope.isOpen`).
+- **The RowScrollSelect-family's own "family epoch" layer**
+  (`genericRecordReferencesSinceLastFamilyCall`'s clearing-on-family-call
+  behavior, `participatingRecordReferencesByControlGroup`,
+  `singleOccurrenceCallArgumentRecordNames`) -- a real, ADDITIONAL,
+  already-evidenced policy LAYERED ON TOP of a DependencyScope-shaped
+  gate, not a duplicate of it. Whether ActiveRowCount/FetchValue/
+  ScrollFlush/GetRecord also need this same family-epoch layer is
+  UNKNOWN -- no evidence either way this cycle -- so do not fold these
+  two client mechanisms into one.
+
+#### 5. Which mechanisms should eventually move behind DependencyScope
+
+Only the two READ sites that are actually wrong:
+`recordReference()`'s `reuseRecordReferenceWithinControlGroup` branch and
+`scrollReference()`'s `reuseScrollReferenceWithinControlGroup` branch.
+Nothing else needs to move; everything else already either implements
+this concept correctly (RowScrollSelect-family) or is a different concept
+entirely (ordinary references, call-local reuse, statement-local reuse).
+
+#### Mechanism classification (full list, per the directive's five categories)
+
+| mechanism | classification |
+|---|---|
+| `controlGroup` | Compiler concept. Correct, unmodified by this proposal. |
+| `controlDepth` | Compiler concept. Correct; IS `DependencyScope.isOpen`'s condition. |
+| `functionDepth` | Compiler concept, but a SEPARATE one (Function-body fresh-grouping policy). Correct, unmodified, not part of DependencyScope. |
+| `recordReferencesByControlGroup` | Implementation approximation of `DependencyScope`'s own pool -- correctly scoped by reference kind already; just needs its READ gated by `isOpen`. |
+| `scrollReferencesByControlGroup` | Same as above, for Scroll.X. |
+| `reuseRecordReferenceWithinControlGroup` / `reuseScrollReferenceWithinControlGroup` | Specialized policy flags (per-call-name trigger) -- correct trigger list, MISSING the `isOpen` check at their read site. This is the actionable gap. |
+| `reuseRecordReferenceWithinCallArguments` | Specialized policy (RowScrollSelect-family). Already correctly implements a DependencyScope-shaped gate (`controlDepth > 0`) as ONE of several conditions; do not touch. |
+| `genericRecordReferencesSinceLastFamilyCall` | Specialized policy, one layer above DependencyScope (family-epoch clearing). Genuine, separate, already evidenced. Do not touch or merge. |
+| `participatingRecordReferencesByControlGroup` | Specialized policy (RowScrollSelect-family cross-call participation marking). Genuine, separate. Do not touch. |
+| `singleOccurrenceCallArgumentRecordNames` | Specialized policy (RowScrollSelect-family, one of the two conditions in the correct gate -- the template this proposal generalizes FROM). Do not touch. |
+| `suppressRecordReferenceControlGroupWrite` | Specialized policy (PriorValue: suppress the WRITE side entirely). Genuine, narrow, orthogonal to the READ-side gap this proposal addresses. Do not touch. |
+| `reuseFetchValueRecord` / `fetchValueRecordReferences` | Likely redundant/dead for FetchValue (checked AFTER the higher-priority `reuseRecordReferenceWithinControlGroup` path, same key shape, so rarely if ever reached) -- but "likely" only; insufficient evidence to remove without a dedicated audit (see Phase 4 deliverable 6 below). |
+| `currentStatementRecordFields` / `ordinaryRecordFieldsByControlGroup` / `declaredRecordFields` | Unknown/insufficient evidence AS FAR AS THIS FINDING GOES -- confirmed orthogonal (different function, different reference kind), not evaluated for their OWN correctness this cycle. Out of scope. |
+
+#### TypeScript interface sketch (design only -- not applied to encoder.ts)
+
+```ts
+/**
+ * The scope within which a Record.X/Scroll.X reference used as a call
+ * argument to a binding/value-fetch intrinsic (FetchValue, ActiveRowCount,
+ * ScrollFlush, GetRecord, and siblings) may be reused rather than
+ * allocated fresh. Does NOT govern ordinary bare RECORD.FIELD reuse,
+ * call-local same-call-text reuse, or the RowScrollSelect-family's own
+ * additional family-epoch layer -- all three are separate, orthogonal
+ * mechanisms that may consult a DependencyScope's `isOpen`/`id` but do
+ * not live inside it.
+ */
+interface DependencyScope {
+  /** Stable identity for this scope. Today: controlGroup's numeric value. */
+  readonly id: number;
+
+  /** Whether this scope is open for call-argument dependency reuse right now. Today: controlDepth > 0. */
+  readonly isOpen: boolean;
+
+  /** Existing dependency for (kind, name) established within this OPEN scope, or undefined. Always undefined when !isOpen; callers must go through this method rather than reading a pool map directly, so the guard cannot be silently bypassed the way it is today. */
+  lookup(kind: 'record' | 'scroll', name: string): PeopleCodeReference | undefined;
+
+  /** Record a fresh dependency as belonging to this scope. */
+  record(kind: 'record' | 'scroll', name: string, reference: PeopleCodeReference): void;
+}
+
+/**
+ * Thin facade over the EXISTING controlGroup/controlDepth state --
+ * Phase 5 should NOT replace that state or its update logic
+ * (inControlGroup(), nextControlGroup, etc.), only give the two
+ * affected call sites a typed access surface that enforces the isOpen
+ * guard in one place instead of leaving it to be remembered at each
+ * call site (today's actual bug: the guard exists at one call site --
+ * reuseRecordReferenceWithinCallArguments's fallback -- and was simply
+ * never added at the other).
+ */
+class DependencyScopeTracker {
+  private readonly pool = new Map<string, PeopleCodeReference>();
+  // constructed with references to the encoder's existing controlGroup/
+  // controlDepth closures (or passed them per call); exact wiring is an
+  // implementation detail for Phase 5, not fixed here.
+  current(): DependencyScope { /* ... */ }
+}
+```
+
+#### Migration path (no wholesale rewrite)
+
+1. Introduce `DependencyScope`/`DependencyScopeTracker` (or, for the
+   minimal Phase 5 cut, skip the class entirely -- see boundary below)
+   alongside the existing `controlGroup`/`controlDepth` state, reading
+   from it, not replacing it.
+2. Change exactly two call sites --
+   `recordReference()`'s `reuseRecordReferenceWithinControlGroup` branch
+   and `scrollReference()`'s `reuseScrollReferenceWithinControlGroup`
+   branch -- to consult `.lookup()`/`.record()` (or, minimally, add
+   `controlDepth > 0 &&` inline) instead of reading
+   `recordReferencesByControlGroup`/`scrollReferencesByControlGroup`
+   directly.
+3. Leave every other mechanism (RowScrollSelect-family's three-layer
+   policy, ordinary-reference pools, call-local/statement-local pools)
+   completely untouched. They do not need to know `DependencyScope`
+   exists yet.
+4. A LATER, separate cleanup pass (not scoped here, not urgent) could
+   migrate `reuseRecordReferenceWithinCallArguments`'s own base gate onto
+   the same `DependencyScope.isOpen` check too, since it is conceptually
+   the identical condition -- but its OWN additional layers
+   (`genericRecordReferencesSinceLastFamilyCall`,
+   `participatingRecordReferencesByControlGroup`,
+   `singleOccurrenceCallArgumentRecordNames`) would remain as
+   RowScrollSelect-family-specific client code on top, unchanged.
+
+#### 5. Exact Phase 5 implementation boundary (smallest change now)
+
+The smallest change consistent with this architecture is a TWO-LINE
+guard addition, not the class extraction: add `controlDepth > 0 &&` to
+the condition at encoder.ts:2046 (`recordReference()`) and the
+equivalent condition at encoder.ts:2307 (`scrollReference()`). This IS a
+correct, if inline, implementation of `DependencyScope.isOpen` using the
+state that already exists -- the class sketch above is the recommended
+TARGET shape for when more call sites need the same access pattern, not
+a prerequisite for landing this specific, narrow fix. Introducing the
+class now would be scope creep beyond what this cycle's evidence
+requires (CLAUDE.md's own "narrowest evidence-backed change" discipline).
+
+#### 6. Mechanisms that must NOT be touched yet (insufficient evidence)
+
+- `reuseFetchValueRecord` / `fetchValueRecordReferences`: flagged likely
+  dead, but removing it requires its own dedicated audit (trace every
+  code path where `reuseRecordReferenceWithinControlGroup` might be
+  FALSE while `reuseFetchValueRecord` is TRUE, e.g. nested/recursive call
+  parsing states not examined this cycle) plus a full corpus diff BEFORE
+  removal, done separately from the flatTopLevel guard fix.
+- `genericRecordReferencesSinceLastFamilyCall`'s family-epoch clearing:
+  do not extend it to ActiveRowCount/FetchValue/ScrollFlush/GetRecord --
+  no evidence they need it, and doing so unevidenced would be exactly
+  the kind of speculative special case this whole cycle exists to avoid.
+- Any of the 12 other names in the encoder.ts:6748 trigger regex not
+  individually studied this cycle (`DeleteRow`, `UpdateValue`,
+  `InsertRow`, `SetCursorPos`, `HideScroll`, `UnhideScroll`, `UnhideRow`,
+  `HideRow`, `CopyFields`, `RecordDeleted`, `RecordChanged`,
+  `CreateRowset`, `GetRowset`, `DoModalPanelGroup`, `SortScroll`, `Hide`,
+  `UnHide`, `Gray`, `UnGray`) -- the guard will apply to them too since
+  they share the same flag and code path, but their OWN disagreement
+  populations were never swept this cycle. Phase 5's validation plan
+  (below) must include a full corpus diff specifically to catch any
+  regression among these, not just the four families this cycle
+  characterized in depth.
+
+#### 7. Regression/validation plan for Phase 5
+
+1. Apply the two-line guard (encoder.ts:2046, 2307).
+2. Target-verify individually: 6352 (should newly reach EXACT for this
+   construct, or at least advance past this specific mismatch), 802
+   (must remain EXACT -- the canonical nested-case regression check).
+3. Target-verify every definition this cycle already has full evidence
+   for: FetchValue's 30 disagreement definitions, ActiveRowCount's 11,
+   ScrollFlush's 6, GetRecord's relevant subset from its own 8 -- confirm
+   each either reaches EXACT or advances with a clean, understood reason
+   if not (per CLAUDE.md's own local-failure-investigation policy).
+4. Protected baseline: `npm run corpus:verify -- --limit 430` must stay
+   430/430.
+5. Full corpus run (`npm run corpus:harness`, no `--limit`), diffed
+   against the last known-good `run_id` at the per-definition
+   `classification` level -- not just the four studied families. Zero
+   EXACT regressions required anywhere in the full ~30209-definition
+   corpus, including the 12 untouched trigger-regex names.
+6. `npx tsc -p . --noEmit` and `npm test` both clean.
+7. If ANY regression appears among the 12 untouched names, that name
+   needs its OWN dedicated evidence-gathering (the same close-reading
+   this cycle did for the four studied families) before the guard can be
+   considered safe for it -- do not broaden or narrow the regex to work
+   around a regression without evidence.
+8. Update `.claude/corpus-progress.md` with the Fix number, citing this
+   whole research cycle's evidence trail (Phase 1 through 4) as the
+   fix's provenance, matching this file's own established fix-writeup
+   convention.
+
 ### Next action (research cycle)
 
-1. This is now ready for actual implementation consideration in a FUTURE
-   session -- Phase 4/5 per the original `/goal` framing -- but that
-   decision belongs to the user, not automatically taken here.
-2. Before implementing: re-verify this hypothesis explains 6352's
-   specific case exactly (already done, see 3A) AND spot-check 2-3 more
-   of the 66 FetchValue disagreements this cycle already has full
-   evidence files for for the SAME `controlDepth === 0` shape, to make
-   sure the guard's own remaining ~32% unexplained share (from the
-   original flatTopLevel quantification) isn't hiding a second bug in
-   the SAME code path that a naive `controlDepth > 0` guard would still
-   get wrong.
-3. The multi-argument thread (2958/1454) and GetRow-specific
-   investigation remain separate, un-mapped-to-code threads -- Phase 3
-   was scoped to flatTopLevel only, per this checkpoint's own directive.
-4. Cross-family control definition 6389 (RowScrollSelect's own
-   9-disagreement cluster) remains queued and unexplored.
-5. Do NOT implement any encoder fix without explicit user direction to
-   proceed to Phase 5 -- Phase 3's own deliverable is an architectural
-   proposal, not permission to implement.
+1. Phase 4 is complete and internally consistent. Implementation
+   (Phase 5) requires explicit user direction to proceed -- this
+   checkpoint does not take that step automatically.
+2. If/when Phase 5 is authorized: apply the two-line guard exactly as
+   scoped above (deliverable 5), then run the full validation plan
+   (deliverable 7) before considering the fix landed.
+3. The multi-argument thread (2958/1454), GetRow-specific investigation,
+   and RowScrollSelect's own 6389 cluster remain separate, unstarted
+   threads -- Phase 3/4 were scoped to flatTopLevel only, per the user's
+   own directive.
 
 ## Checkpoint
 
