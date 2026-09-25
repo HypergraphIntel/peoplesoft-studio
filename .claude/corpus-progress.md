@@ -1,5 +1,208 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Research Cycle 4 — GetRow/GetRowset/GetRecord binding
+
+**Status: research complete; no encoder semantic changes.** Baseline is
+commit `07acb36` with 23,069/30,209 EXACT, protected 430/430, and 489 tests
+passing plus one intentional skip. All evidence in this cycle came from the
+completed local HCDEV snapshot; no `--live` access was used.
+
+### Population and method
+
+Two read-only research tools were added:
+
+- `getrow-type-analysis.ts` masks comments/strings and classifies every
+  `GetRow`, `GetRowset`, and `GetRecord` call by bare/postfix form, argument
+  shape, receiver provenance, and the next four postfix steps.
+- `getrow-reference-analysis.ts` runs the existing lifecycle generator over
+  the complete tractable population, keeps only positionally aligned rows
+  (including the first disagreement), and separates explicit call arguments
+  from dependencies inferred after the returned object.
+
+The static sweep found **44,636 calls**. Definition populations were:
+
+| form | GetRow | GetRowset | GetRecord |
+|---|---:|---:|---:|
+| bare | 868 | 1,064 | 785 |
+| postfix | 3,362 | 3,469 | 2,649 |
+
+The aligned lifecycle sweep covered **7,004 definitions**, produced 16,932
+aligned associated reference events, and excluded 19,543 generated events
+after positional alignment had already been lost. There were 637 partial
+source encodes; their rows remain usable only through the first aligned
+disagreement. Comparable allocation/reuse decisions were:
+
+| call | agree | disagree | unknown | disagreement rate |
+|---|---:|---:|---:|---:|
+| GetRow | 5,926 | 142 | 540 | 2.34% |
+| GetRowset | 5,554 | 46 | 12 | 0.82% |
+| GetRecord | 4,565 | 75 | 72 | 1.62% |
+
+The earlier consecutive-identity pair sweep was rerun in aligned-only mode:
+GetRecord had 21 disagreements in 1,490 pairs, GetRowset 36/735, and GetRow
+83/3,469. Branch relationship, phase change, loop entry, and generic watched-
+call epochs all touched large agreeing populations and failed as standalone
+explanations. Flat top level was enriched for GetRow/GetRecord disagreements
+but still did not explain the majority, so it is a reuse-layer signal rather
+than the type model.
+
+### Semantic type model
+
+The surviving model is a typed postfix chain plus a separate binding-
+provenance bit:
+
+| expression | semantic result | next dependency-bearing shorthand |
+|---|---|---|
+| `GetRow(...)` or `rowset.GetRow(...)` | Row | `.REC.FIELD` may bind RECORD then FIELD |
+| `GetRowset(...)` or `row.GetRowset(...)` | Rowset | selector `(...)` or `.GetRow(...)` produces Row |
+| `row.GetRecord(...)` or bare `GetRecord(...)` | Record | `.FIELD` may bind FIELD; `.GetField(Field.X)` produces Field |
+| `record.GetField(...)` | Field | scalar/property members stay inline |
+| Rowset selector `rowset(...)` | Row | same Row shorthand rules as `GetRow(...)` |
+| `.ParentRow` | Row | navigation stays inline, then Row rules apply when provenance remains bound |
+| `.ParentRowset` | Rowset | navigation stays inline, then Rowset rules apply when provenance remains bound |
+
+Row properties such as `RowNumber`, `IsNew`, `IsDeleted`, `IsChanged`,
+`Visible`, and `Selected`, Rowset properties such as `ActiveRowCount`, and
+Field properties such as `Value` are inline scalar/property names. They do
+not allocate a dependency and terminate or transform the current member-
+binding mode rather than adding another reference level.
+
+Population positive controls include 827 postfix-GetRow
+`.REC.FIELD.Value` occurrences in 201 currently-EXACT definitions, 368
+postfix-GetRecord `.GetField(...).Value` occurrences in 156 EXACT
+definitions, 164 postfix-GetRecord `.FIELD.Value` occurrences in 80 EXACT
+definitions, and 457 postfix-GetRow `.GetRowset(...)` occurrences in 346
+EXACT definitions. These independently establish the Row, Record, Field,
+and Rowset transitions; they are not inferred from the current code.
+
+### Binding provenance is distinct from runtime type
+
+Knowing that a method returns Row/Rowset/Record is not sufficient to decide
+that following bare members are PSPCMNAME dependencies. The compiler also
+distinguishes a statically/schema-bound chain from a dynamic chain:
+
+- Definition 432 is an EXACT positive control. `&RSF` is declared `Rowset`,
+  and `&RSF.GetRow(&F).GetRecord(Record.DERIVED_WSS).WSOPRACCESS.Value`
+  binds the explicit RECORD argument and subsequent FIELD.
+- Definitions 1721/1722 are matched negative controls. `&RSF` is undeclared
+  and assigned bare `GetRowset()`; stored output keeps
+  `&RSF.GetRow(&F).BC_WRK.BCMETHODACCESS.Value` inline, while the current
+  name-driven transition wrongly emits RECORD/FIELD references.
+- Definitions 1423/1424 are the Record analogue. `&Der_Parent` is an
+  undeclared value reached through `GetRecord().ParentRow`; stored output
+  keeps the member after `&Der_Parent.GetRecord(Record.DERIVED_IBAN)` inline,
+  while the current encoder enters FIELD mode solely from the method name.
+- Definition 524 prevents overgeneralizing “undeclared means dynamic.” An
+  undeclared receiver originating in `CreateRowset(Record.COUNTRY_TBL)` has
+  explicit schema provenance; its `GetRow(...).GetRecord(...).GetField(...)`
+  chain binds dependencies and reuses them exactly.
+
+The receiver-provenance sweep supports this boundary at scale. For the most
+common postfix-GetRow `.REC.FIELD.Value` shape, declared Rowset receivers
+assigned from `GetRowset(Scroll.X)` contributed 500 occurrences in 122 EXACT
+definitions. The same shape on undeclared receivers assigned from
+`GetRowset(Scroll.X)` had 421 occurrences across 91 definitions and zero in
+an EXACT definition; undeclared receivers assigned bare `GetRowset()` added
+61 occurrences across 25 definitions and also zero in an EXACT definition.
+Definition-level exactness can be lost elsewhere, so this is corroborating
+population evidence rather than a per-site disagreement rate; the direct
+byte controls above establish the actual inline/reference distinction.
+
+Therefore bare and postfix forms share the same semantic return-type table,
+but they do **not** share an unconditional name-based binder. Bare intrinsics
+carry known provenance themselves. Postfix calls inherit whether the
+receiver chain is statically/schema bound; a method name on a dynamic value
+does not by itself authorize dependency shorthand.
+
+### Dependency allocation and reuse model
+
+There are two separate decisions:
+
+1. **Binding:** whether a source member is inline text or a RECORD/FIELD/
+   SCROLL dependency at all. This is controlled by chain value type plus
+   binding provenance.
+2. **Reuse:** once a dependency exists, whether it allocates or points to an
+   existing PSPCMNAME row. This remains governed by the already-separated
+   mechanisms.
+
+Explicit call arguments and returned-value shorthand are observably separate:
+
+- Postfix `GetRowset(Scroll.X)` arguments: 4,146/4,164 comparable events
+  agree (0.43% disagreement). The SCROLL argument uses the call's explicit
+  DependencyScope participation policy.
+- Postfix `GetRecord(Record.X)` arguments: 1,776/1,798 comparable events
+  agree (1.22% disagreement). The RECORD argument uses DependencyScope and
+  same-statement behavior already selected by the call parser.
+- Result-chain RECORD/FIELD events instead use row/record binder pools. The
+  composite ordinary `record-field` path is especially clean: postfix
+  GetRow had 254/254 comparable events agreeing; postfix GetRowset had
+  280/280; postfix GetRecord with Record.X had 99/99.
+
+No evidence supports adding a GetRow/GetRowset/GetRecord-specific call-local
+cache. Call-local state remains the orthogonal RowScrollSelect-family and
+multi-argument mechanism. Likewise, DependencyScope must not absorb the
+result-chain binder maps: they decide different things and some are keyed by
+base variable, schema origin, or FIELD name rather than lexical block scope.
+
+### Mapping to current implementation
+
+| state | Cycle 4 interpretation |
+|---|---|
+| `expectedReferenceMember` | Parser approximation that combines semantic value type with “next member may bind a dependency.” Its `record`/`field` states encode real transitions, but setting them from a method name alone is too broad. |
+| `fieldMemberFromGetRecord` | Real provenance distinction in intent (field context came from a GetRecord result), but still an incomplete boolean approximation because it omits receiver binding provenance. |
+| `bareGetRowCallResult` / `bareGetRecordCallResult` | Narrow primary-expression provenance patches for known intrinsic results. They are evidence-backed but duplicate the same transition logic handled again in the postfix loop. |
+| `rowVariables` / `rowsetVariables` / `recordVariables` | Static type evidence used by the binder. This is genuine semantic input, not DependencyScope state. |
+| `rowShorthandRecords`, `rowShorthandRecordsByBase`, `rowShorthandRecordsByControlGroup`, `rowShorthandFields`, `typedRowFields`, `recordVariableFields`, `declaredRecordFields` | Result-chain binding/reuse layer. The maps preserve several independently calibrated provenance bridges; this cycle does not establish that any one is redundant. |
+| `rowsetElementRecords`, `captureRowsetElementRecord`, `rowsetRecordNamesByVariable`, `level0RowsetRecordsByField` | Schema/selector provenance approximations. They explain why some undeclared but schema-bearing chains differ from fully dynamic ones. Do not move them into DependencyScope. |
+| `reuseRecordReferenceWithinControlGroup`, `reuseScrollReferenceWithinControlGroup` | Explicit argument participation policy over DependencyScope; genuine and separate from return-type binding. |
+| `reuseFieldReferenceWithinControlGroup` / `fieldReferencesByControlGroup` | Narrow explicit `.GetRecord(...).GetField(Field.X)` reuse policy. FIELD scope is not currently represented by the DependencyScope facade. |
+| `recordReferencesWithinCurrentStatement` | Same-statement state, orthogonal to chain type/provenance. |
+| `reuseRecordReferenceWithinCallArguments` and family maps | Call-local/family-specific state; not implicated by this study. |
+
+### Falsified hypotheses and next abstraction
+
+- “Every GetRow result enables RECORD/FIELD shorthand” is falsified by
+  1721/1722 and the undeclared-receiver population.
+- “Every GetRecord result makes the next bare member a FIELD dependency” is
+  falsified by 1423/1424.
+- “Bare and postfix calls use different return types” is falsified by the
+  large exact populations exercising the same transitions in both forms.
+- “Branch/loop/call epochs explain the residuals” is falsified by their high
+  contamination of agreeing pairs.
+- “DependencyScope should own all of this” is falsified by the explicit-
+  argument/result-chain split and the base/schema-sensitive binder pools.
+
+The next justified abstraction is a thin **postfix chain semantic state**,
+not a new cache and not an AST. A future structural phase could replace the
+two loose flags with a value such as:
+
+```typescript
+interface ChainSemantics {
+  valueType: 'unknown' | 'rowset' | 'row' | 'record' | 'field' | 'scalar';
+  binding: 'dynamic' | 'dependency-bound';
+  provenance: 'intrinsic' | 'declared' | 'schema' | 'navigation' | 'unknown';
+}
+```
+
+It would only govern member interpretation and type transitions. Existing
+DependencyScope, same-statement, call-local, family-specific, owner, FIELD,
+and row-shorthand reuse stores would remain untouched. No such refactor or
+semantic correction was made in Cycle 4; the model should be implemented in
+a separately gated phase.
+
+Zero-behavior-change validation:
+
+- `npm run typecheck`: pass.
+- `npm test`: 490 tests, 489 pass, one intentional skip.
+- protected gate run 1796: 430/430, zero improvements and zero regressions.
+- full local-snapshot run 1797: 30,209 definitions, 23,069 EXACT and 7,140
+  failed, exactly equal to Cycle 3 run 1790.
+- row-by-row run 1790 -> 1797 comparison: zero classification changes, zero
+  generated-binary SHA changes, zero first-diff changes, zero encode-success
+  changes, zero source-exact changes, zero roundtrip-exact changes, and zero
+  error-message changes across all 30,209 definitions.
+- no live HCDEV access was used.
+
 ## Research cycle (2026-09-25, compiler-semantics reverse-engineering)
 
 **Scope change, active now.** The user's own `/goal` directive reframes the
