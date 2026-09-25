@@ -62,10 +62,10 @@
   5 confirmed via git-stash comparison to have failed at the And/Or-
   comment construct before this fix, zero regressions. Verified: `npx
   tsc -p .` clean; `npm test` 459/460 (1 pre-existing skip);
-  `corpus:verify --limit 430` 430/430, 0 regressions. Given this touches
-  the widely-used And/Or boolean-expression machinery, a full-corpus
-  background diff was also started; see next entry for its result once
-  complete.
+  `corpus:verify --limit 430` 430/430, 0 regressions. Full-corpus
+  background diff (run_id 280 -> 282, all 30,209 definitions) confirmed:
+  4 improved, 0 regressed, 30205 unchanged. New corpus total:
+  22473/30209 exact (74.4%).
 - **Fix #69** landed (src/peoplecode/encoder.ts, `value()`) -- a
   significant gap: **decimal number literals were entirely unsupported**.
   `value()`'s number-literal branch only ever matched bare integer digits
