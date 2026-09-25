@@ -1,6 +1,129 @@
 # Corpus Calibration Progress
 
-## Checkpoint (session pause requested by user)
+## Status as of Fix #75 (current)
+
+- **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout. `--live` has never been used this session.
+- **Protected baseline**: 430/430, clean.
+- **Last successful calibration**: Fix #75 (below).
+- **Corpus total**: full-corpus run_id 292 = 22511/30209 exact (74.5%),
+  confirmed zero-regression against run_id 290 (which was itself confirmed
+  zero-regression against run_id 288/Fix #73's baseline). Every full-corpus
+  run this session has been diffed against its immediate predecessor before
+  being trusted; none have shown a regression.
+- **Next action**: resume failure-family triage from the current failure
+  inventory (`GROUP BY classification, construct` on run_id 292 in
+  `tools/corpus/corpus-results.sqlite`). Concrete next candidate already
+  scoped but not yet fixed: an inline block comment between an ordinary
+  (non-When-Other) assignment/expression statement's value and its own
+  terminating `;` INSIDE nested body constructs (If/For/While/Evaluate
+  bodies), e.g. `&x.Field = True /*comment*/;` -- confirmed present via
+  definition 5000 (GPFR_AF_RUNCTL.DERIVED_GPFR_AF.FieldChange) at the NEXT
+  diff point after Fix #75's target in the same file (source offset ~8731,
+  further into a nested If-body inside the same When-Other clause). Check
+  whether If/For/While/ordinary-When bodies' own comment-before-`;` handling
+  already covers this (If body currently uses unconditional
+  `inlineBlockComment()`, not placement-aware `blockCommentByPlacement()` --
+  may itself need auditing) before assuming it's already covered. Also still
+  on the "seen but not individually inspected" list from earlier in the
+  session: the `<> %Action_Add);` (4), `.IsInBuf Then` (3), and `;\nElse\n
+  AddOnL` (3) `ENCODE_ERROR` construct groups.
+- **Locally blocked / deferred, evidence exhausted** (unchanged from
+  earlier checkpoint, see the superseded checkpoint section below for full
+  evidence trails): the `#If #ToolsRel` preprocessor-directive family (73
+  occurrences, environmental per-definition dependency); the general
+  multi-method Application Class program feature gap (263+ occurrences);
+  the decoder-only rendering gap for `Return <number> /* comment */;` noted
+  under Fix #72.
+
+## Fix #75: When-Other body block comment before its own terminating `;`
+
+`src/peoplecode/encoder.ts`, `evaluateStatement()`'s `When-Other` body loop:
+a block comment may appear between a When-Other body statement's own
+expression and its own terminating `;` (`value /* comment */;`), the same
+way top-level statements and If/For/While bodies already allow. The
+When-Other body loop had no such handling at all, so it would fall through
+to Fix #74's now-generalized "last statement may omit `;`" check, see
+`/* comment */` there instead of `End-Evaluate`, and fail outright.
+
+Fixed by inserting a `while (source.startsWith('/*', pos)) { chunks.push
+(blockCommentByPlacement()); space(); }` loop right after `statement();
+space();` and before the `;`/`End-Evaluate` check, mirroring the identical
+loop already added to the top-level statement loop.
+
+Target: definition 5000 (GPFR_AF_RUNCTL.DERIVED_GPFR_AF.FieldChange):
+```
+When-Other
+   &Evtsel(&i).DERIVED_GPFR_AF.GPFR_AF_EXTRACT_ID.Enabled = True /*False*/;
+```
+Advanced from `ENCODE_ERROR` ("expected ; in When-Other body") all the way
+through to a full encode (no crash) -- still `UNKNOWN_MISMATCH`/not EXACT
+overall because this is a large, deeply-nested definition with other,
+unrelated pre-existing issues elsewhere in the same file, but this
+specific construct is now handled correctly and no longer blocks encoding
+past it. Corpus search for this exact "value /* comment */;" shape inside
+a When-Other body found no other combined-benefit candidates beyond 5000
+itself in the affected file scope; the other three When-Other candidates
+from Fix #74's set (10488, 12623, 12626) don't contain this shape.
+
+Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
+`corpus:verify --limit 430` 430/430, 0 regressed. Full-corpus background
+run (run_id 292, 30209/30209) diffed against the immediately preceding
+full run (run_id 290, which already included Fix #74): 0 improved, 0
+regressed, 30209 same -- confirms zero regressions from this fix
+corpus-wide (the "improved: 0" is expected/correct: this fix moves 5000
+from crash to a non-crashing mismatch, not to EXACT, since the file has
+other unrelated issues past this point).
+
+## Fix #74: When-header inline trailing comment ordering before the 0x2D boundary
+
+`src/peoplecode/encoder.ts`, `evaluateStatement()`'s `When` clause header
+parsing (right after the selector `expression()`/`parenthesized()` call,
+before the existing `chunks.push(Buffer.from([0x2d]))`): an inline trailing
+comment on the SAME source line as the When header's selector value must be
+emitted BEFORE the structural `0x2D` boundary byte, not after it -- the
+same inline-vs-standalone ordering already proven for And/Or-group leading
+comments (Fix #70). The header parsing previously ignored any such comment
+entirely, leaving `pos` pointing at it; the comment would then get picked
+up later by the When-body loop's own (correct, placement-aware) comment
+handling, but emitted as a STANDALONE comment (`0x2D` then `0x24`) instead
+of the real stored INLINE shape (`0x4E` before the `0x2D`).
+
+Fixed by adding a narrow peek (`/^[ \t]*\/\*/.test(source.slice(pos))`,
+same-line whitespace only, no newlines) right after the selector
+expression: only when a `/*` genuinely follows on the same line does this
+call `space()` (to skip up to it) and, if it's confirmed inline
+(`!blockCommentStartsOwnLine()`), consume it via `inlineBlockComment()`
+and push it before the `0x2D` byte. This is deliberately gated so it never
+touches `pos` when no comment is present, avoiding any change to the
+existing `source[pos] === ';'` header-semicolon check for the ordinary
+no-comment case.
+
+Target: definition 27819 (HR_ILL_NLD_AET.ABSENCE_TYPE.RowInit):
+```
+When "SKN" /*Sickness - SKN */
+   &reason_sick = "1";
+```
+confirmed full EXACT (was `ENCODE_ERROR` before -- actually this specific
+definition's failure was further down in a different When-Other body,
+fixed incidentally by encoding the comment correctly here first). Searched
+the corpus for `When(-Other)? ... /* ... */\n` (inline comment on a
+When/When-Other header line): 289 matches. Sampled 30 broadly: several
+newly reach full `source-encode-exact` (their overall classification stays
+non-EXACT because they have separate, pre-existing decoder-only rendering
+issues unrelated to this fix -- confirmed via `run_id 288` classifications,
+all were `DECODE_SOURCE_MISMATCH`/`UNSUPPORTED_SYNTAX` before, none were
+EXACT, so nothing regressed), the rest still fail at unrelated
+later constructs in the same files (also all pre-existing, confirmed
+non-EXACT before this fix).
+
+Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
+`corpus:verify --limit 430` 430/430, 0 regressed. Full-corpus background
+run (run_id 290, 30209/30209, exact=22511) diffed against the immediately
+preceding full run (run_id 288, exact=22509, itself already confirmed
+zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
+
+## Checkpoint (session pause requested by user) [SUPERSEDED -- resumed and continued past this point; kept for history]
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
   throughout this entire session. `--live` was never used.

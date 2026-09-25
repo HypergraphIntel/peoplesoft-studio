@@ -5330,33 +5330,46 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           }
 
           /*
-           * `Break` (and, by the same reasoning, `Continue`) is a fixed,
-           * argument-free keyword with no ambiguity about where it ends,
-           * so it may omit its trailing `;` when it is the LAST statement
-           * in a `When-Other` body, immediately followed by
-           * `End-Evaluate` -- mirroring the already-proven EOF-omission
+           * The LAST statement in a `When-Other` body may omit its
+           * trailing `;` when immediately followed by `End-Evaluate` --
+           * the same allowance the ordinary `When` body loop already
+           * grants any statement type before `When`/`When-Other`/
+           * `End-Evaluate`, and mirrors the proven EOF-omission
            * allowance for other self-terminating top-level statement
            * shapes (assignments/If/Evaluate/bare calls/try), just at
            * this body-closing boundary instead of true source EOF.
            *
-           * PTAFAW_NOTIFY.PTAFEVENT.<event> (definition 18001, one of
-           * several corpus occurrences of this exact shape):
+           * PTAFAW_NOTIFY.PTAFEVENT.<event> (definition 18001) is the
+           * `Break`-only case this allowance originally covered; the
+           * corpus also has plain assignments in the same position, e.g.
+           * PA_RT_TBL.DERIVED.BEN_PLAN_EDIT (definitions 12623/12626):
            *
            *   When-Other
-           *      Break
-           *   End-Evaluate;
+           *      DERIVED.BEN_PLAN_EDIT = "PA_RT_FORM_VW"
+           *   End-Evaluate
            */
-          const isBreakOrContinueStatement =
-            /^(?:Break|Continue)\b/i.test(source.slice(pos));
-
           statement();
 
           space();
+
+          /*
+           * A block comment may appear between a When-Other body
+           * statement's expression and its own terminating semicolon, the
+           * same way top-level statements and If/For/While bodies already
+           * allow -- inline (0x4E) or standalone (0x24) by placement.
+           *
+           * GPFR_AF_RUNCTL.DERIVED_GPFR_AF.FieldChange (definition 5000):
+           *
+           *   When-Other
+           *      &Evtsel(&i).DERIVED_GPFR_AF.GPFR_AF_EXTRACT_ID.Enabled = True /*False*\/;
+           */
+          while (source.startsWith('/*', pos)) {
+            chunks.push(blockCommentByPlacement());
+            space();
+          }
+
           if (source[pos] !== ';') {
-            if (
-              isBreakOrContinueStatement &&
-              /^End-Evaluate\b/i.test(source.slice(pos))
-            ) {
+            if (/^End-Evaluate\b/i.test(source.slice(pos))) {
               continue;
             }
 
@@ -5392,6 +5405,27 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           parenthesized(booleanExpression, false);
         } else {
           expression();
+        }
+
+        /*
+         * An inline trailing comment on the When header line (same line as
+         * the selector value) is emitted BEFORE the structural 0x2D
+         * boundary, not after it -- the same inline-vs-standalone ordering
+         * already proven for And/Or-group leading comments.
+         *
+         * HR_ILL_NLD_AET.ABSENCE_TYPE.RowInit (definition 27819):
+         *
+         *   When "SKN" /*Sickness - SKN *\/
+         *      &reason_sick = "1";
+         *
+         * stores `... "SKN" 00 4E ... 2D ...` (comment then 0x2D), not
+         * `... "SKN" 00 2D 24 ...` (0x2D then a standalone-style comment).
+         */
+        if (/^[ \t]*\/\*/.test(source.slice(pos))) {
+          space();
+          if (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
+            chunks.push(inlineBlockComment());
+          }
         }
 
         /*
