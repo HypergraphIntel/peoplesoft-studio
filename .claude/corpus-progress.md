@@ -1,6 +1,85 @@
 # Corpus Calibration Progress
 
+## Checkpoint (session pause requested by user)
+
+- **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout this entire session. `--live` was never used.
+- **Protected baseline**: 430/430, confirmed clean as of this checkpoint
+  (`npm run corpus:verify -- --limit 430`).
+- **Last successful calibration**: Fix #73 (below), just landed and
+  committed.
+- **Corpus total** (full-corpus run_id 286, before Fix #73): 22506/30209
+  exact (74.5%). Fix #73 has NOT yet had its own full-corpus background
+  diff run -- only `--limit 430` was checked before this pause, per the
+  user's explicit "finish current iteration, do not start another"
+  instruction taking priority over the full-corpus-diff-for-shared-
+  mechanisms habit this session otherwise followed. The `whileStatement()`
+  body-loop change is narrowly scoped (mirrors the already-proven
+  `forStatement()` pattern exactly) and low-risk, but a full-corpus diff
+  against run_id 286 is still recommended as the FIRST thing the next
+  session does, before selecting a new target, to confirm zero
+  regressions the same way every other fix this session was confirmed.
+- **Locally blocked / deferred, evidence exhausted this session** (see
+  their own entries further down for full evidence trails): the `#If
+  #ToolsRel` preprocessor-directive family (73 combined occurrences,
+  environmental per-definition dependency, no local signal available);
+  the general multi-method Application Class program feature gap (263+
+  combined `import`/`Constants`/`Action`/`Utils`/`adhocAccessLogic`/etc.
+  occurrences, `parseApplicationClassProgram()` only handles the narrow
+  single-method inline shape); a decoder-only rendering gap for `Return
+  <number> /* comment */;` noted under Fix #72 (narrow, not corpus-
+  evidenced, deliberately left unfixed).
+- **Next action**: run a full-corpus background harness pass
+  (`nohup npm run corpus:harness > /tmp/full_corpus_runN.log 2>&1 &`),
+  diff its result against run_id 286 (definition-by-definition, matching
+  every prior fix's validation method in this file) to confirm Fix #73
+  caused zero regressions, record that diff result in this file, then
+  resume failure-family triage from the current failure inventory (group
+  `corpus-results.sqlite`'s latest run by `classification`/`construct`,
+  the same query used to find every target this session). Promising
+  next candidates already partially scoped but NOT yet fixed: the
+  remaining "expected ; in While body"/"expected ; in When-Other body"
+  `ENCODE_ERROR` occurrences beyond Fix #73's own While/End-While
+  target (5000, 10488, 12623, 12626 and others share the "When-Other
+  body statement omitting `;` before the next When/End-Evaluate"
+  shape, structurally identical to the While-body fix just landed --
+  check whether `evaluateStatement()`'s When-Other body loop already has
+  an `End-Evaluate`/next-`When` omission allowance the way While/For
+  now both do); the `<> %Action_Add);` (4), `.IsInBuf Then` (3), and
+  `;\nElse\n   AddOnL` (3) `ENCODE_ERROR` construct groups were seen in
+  this session's failure-family listing but not yet individually
+  inspected.
+
 ## Current target
+- **Fix #73** landed (src/peoplecode/encoder.ts, `whileStatement()`'s
+  body loop): the final statement in a `While` body may omit its source
+  semicolon when immediately followed by `End-While`, exactly the same
+  relaxation `forStatement()`'s body loop already has for `End-For` --
+  `whileStatement()`'s own body loop had no such allowance at all,
+  failing unconditionally whenever the last statement lacked its own
+  `;`. Mirrored the existing For-body code shape precisely (check
+  `/^End-While\b/i` before failing, `continue` back to the loop's own
+  `word('End-While')` handling on the next iteration instead of
+  consuming a `;`).
+  Target: definition 7041 (GPGB_RC_CTL.GPGB_RC_APPLD.FieldFormula):
+  ```
+  While ...
+     ...
+     &i = &i + 1
+  End-While;
+  ```
+  confirmed full EXACT. Searched the corpus for the "expected ; in While
+  body" `ENCODE_ERROR` construct family (6 sampled): 1 confirmed fully
+  EXACT (7041 above), 4 advanced past the While-body-omission construct
+  into separate, unrelated, deeper reference-index/structural issues in
+  larger programs (5014, 7541, 9686, 10284), 1 hit a different, unrelated
+  "unsupported PeopleCode statement" error further into the file (9670)
+  -- all 5 non-exact candidates confirmed via git-stash comparison to
+  have failed at the targeted construct before this fix, zero
+  regressions. Verified: `npx tsc -p .` clean; `npm test` 458/459 (1
+  pre-existing skip); `corpus:verify --limit 430` 430/430, 0
+  regressions. Full-corpus background diff NOT yet run for this fix --
+  see Checkpoint section above; this is the next session's first task.
 - **Fix #72** landed (src/peoplecode/encoder.ts), four related comment-
   placement gaps found together via the `BLOCK_COMMENT` `ENCODE_ERROR`
   family, all fixed with the same `restStartsWithKeywordPastComments()`/
@@ -48,9 +127,9 @@
   silently patched over, for a future session searching the corpus for
   that specific decoder shape. Verified: `npx tsc -p .` clean; `npm
   test` 458/459 (1 pre-existing skip); `corpus:verify --limit 430`
-  430/430, 0 regressions. Given this touches several shared comment-
-  handling call sites, a full-corpus background diff was also started;
-  see next entry for its result once complete.
+  430/430, 0 regressions. Full-corpus background diff (run_id 284 ->
+  286, all 30,209 definitions) confirmed: 24 improved, 0 regressed,
+  30185 unchanged. New corpus total: 22506/30209 exact (74.5%).
 - **Fix #71** landed (src/peoplecode/encoder.ts): a statement immediately
   followed by a `REM ...;` comment (no semicolon of its own) may omit
   its trailing source semicolon, in two contexts:
