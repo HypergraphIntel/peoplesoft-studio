@@ -2,9 +2,22 @@
 
 VS Code extension for **reading and navigating** PeopleSoft definitions — PeopleCode, SQL, records, and related objects — from an Oracle environment or an Application Designer project export.
 
-Compatible with PeopleTools 8.63 MCP, but not required.
+PeopleSoft Studio includes its own MCP server and does not require PeopleTools 8.63 MCP. When the delivered PeopleTools 8.63 MCP is available, PeopleSoft Studio can use it as a backend for supported operations.
 
-## Configure the PeopleSoft Studio MCP Server
+AI compatibility in both directions:
+
+```text
+Older PeopleTools
+    -> PeopleSoft Studio implements the functionality itself
+
+PeopleTools 8.63+
+    -> PeopleSoft Studio can delegate to delivered MCP
+
+AI Agent
+    -> sees the same PeopleSoft Studio tools either way
+```
+
+## Get Started
 
 1. Install **PeopleSoft Studio**.
 2. Reload VS Code. Open the VS Code Command Palette ( CTRL + SHIFT + P ):
