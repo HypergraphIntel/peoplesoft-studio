@@ -7166,12 +7166,32 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
          * target / control-group rules in recordReference().
          *
          * Offset 23 is the regression guard for this distinction.
+         *
+         * AMM_DERIVED.IB_FO_BACK_PB.FieldChange (definition 982) proves the
+         * chain must NOT match when the second dotted segment is one of the
+         * inline Row state/property members (RowNumber/IsNew/IsDeleted/
+         * IsChanged/Visible/Selected -- the same set `isInlineRowStateMember`
+         * below already recognizes for a Row-variable base):
+         *
+         *   If Record.AMM_DERIVED.IsChanged = True Or ...
+         *
+         * `IsChanged` here is a boolean Row-state property of the RECORD's
+         * underlying Row, not a field name -- there is no third `.Value`
+         * continuation. Taking the explicit-chain branch put
+         * `expectedReferenceMember` into `'field'` mode, so the postfix
+         * loop's own `isInlineRowStateMember` check (which requires
+         * `'record'` mode) never got a chance to keep `IsChanged` inline.
          */
         const explicitRecordFieldChain =
-          /^Record\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/i
+          /^Record\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)/i
             .exec(tail);
+        const explicitRecordFieldChainIsRowStateMember =
+          explicitRecordFieldChain !== null &&
+          /^(?:RowNumber|IsNew|IsDeleted|IsChanged|Visible|Selected)$/i.test(
+            explicitRecordFieldChain[2]
+          );
 
-        if (explicitRecordFieldChain) {
+        if (explicitRecordFieldChain && !explicitRecordFieldChainIsRowStateMember) {
           explicitRecordRootName =
             explicitRecordFieldChain[1];
 

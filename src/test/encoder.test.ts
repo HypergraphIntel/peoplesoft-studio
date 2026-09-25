@@ -968,6 +968,35 @@ test('a RowScrollSelect-family call\'s own control-group reuse re-populates the 
   );
 });
 
+test('Record.X.IsChanged is an inline Row-state property, not an explicit Record->FIELD chain', () => {
+  /*
+   * AMM_DERIVED.IB_FO_BACK_PB.FieldChange (definition_id 982):
+   *
+   *   If Record.AMM_DERIVED.IsChanged = True Or ...
+   *
+   * The explicit `Record.REC.FIELD` chain regex (calibrated for offset 433's
+   * `Record.REC.FIELD.Value`) matched this too, since it only checks for two
+   * dotted identifiers, not a genuine third `.Value`-style continuation.
+   * That put `expectedReferenceMember` into `'field'` mode, so `IsChanged`
+   * -- one of the same inline Row state/property members a Row variable's
+   * `.IsChanged` already stays inline for -- got compiled as an attempted
+   * FIELD reference instead of staying an ordinary inline name. Stored
+   * emits `21 <ref> 05 0A "IsChanged"`: the RECORD reference followed
+   * directly by inline text, no FIELD-mode PSPCMNAME row at all.
+   */
+  assert.deepStrictEqual(
+    encodeFragment(
+      'If Record.AMM_DERIVED.IsChanged = True Then\n' +
+      '   &x = 1;\n' +
+      'End-If;\n'
+    ),
+    Buffer.from(
+      '1C210100050A490073004300680061006E006700650064000000062F1F012600780000000650000001000000000000000000000000000000151A15',
+      'hex'
+    )
+  );
+});
+
 test('REM may continue onto an observed single-space prose line', () => {
   const source =
     'REM KJB Removed code for Import Long Term Goals as it is\n' +
