@@ -2252,7 +2252,7 @@ test('%metadata is a system-variable package root', () => {
   );
 });
 
-test('FetchValue reuses Record arguments by name across calls', () => {
+test('flat top-level FetchValue calls allocate Record arguments per statement', () => {
   const actual = encodeProgramArtifacts(
     '&a = FetchValue(Record.PARENT, 1, Record.CHILD, 1);\n' +
     '&b = FetchValue(Record.PARENT, 2, Record.CHILD, 2);'
@@ -2261,6 +2261,8 @@ test('FetchValue reuses Record arguments by name across calls', () => {
   assert.deepStrictEqual(
     actual.references.map(reference => [reference.kind, reference.recordName]),
     [
+      ['record', 'PARENT'],
+      ['record', 'CHILD'],
       ['record', 'PARENT'],
       ['record', 'CHILD']
     ]
