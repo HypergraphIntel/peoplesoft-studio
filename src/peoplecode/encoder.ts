@@ -1733,6 +1733,38 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     new Map<string, PeopleCodeReference>();
 
   /*
+   * Same-statement companion to the controlDepth > 0 guard on
+   * `recordReferencesByControlGroup` above (see that check's own
+   * comment). Two occurrences of the same Record.X reference WITHIN ONE
+   * STATEMENT reuse each other regardless of controlDepth -- this is
+   * narrower than "same control group" and does not depend on any block
+   * being open.
+   *
+   * GPFR_LOANS_WRK.GPFR_SCHEDULE_PB.FieldChange (definition 7365) proves
+   * it for a nested-call argument, at flat top level:
+   *
+   *   DeleteRow(Record.GPFR_LOAN, &L1, Record.GPFR_LOAN_SCHED,
+   *     ActiveRowCount(Record.GPFR_LOAN, &L1, GPFR_LOAN_SCHED.GPFR_ROW_NUM));
+   *
+   * The inner `ActiveRowCount`'s own `Record.GPFR_LOAN` argument reuses
+   * the outer `DeleteRow`'s `Record.GPFR_LOAN` argument's row, even
+   * though both sit at controlDepth === 0 (this statement immediately
+   * follows an `End-If;`, so no block is open).
+   *
+   * PSSERVICESWRK4.IB_TREENEXT.FieldChange (definition 17132) proves the
+   * same rule for two sibling postfix chains in one expression, inside a
+   * Function body's own top-level statement (also controlDepth === 0):
+   *
+   *   Return (&prow.GetRecord(Record.PSMSGPARTS).IB_MSGNAME.Value | "." |
+   *     &prow.GetRecord(Record.PSMSGPARTS).IB_MSGVERSION.Value);
+   *
+   * Cleared at the same per-statement boundary as the ordinary-reference
+   * `currentStatementRecordFields` pool (see `statement()`).
+   */
+  const recordReferencesWithinCurrentStatement =
+    new Map<string, PeopleCodeReference>();
+
+  /*
    * A call that is reuse-participating for its OWN Record.X argument (i.e.
    * checks `recordReferencesByControlGroup` before allocating) is not
    * necessarily a call whose resulting reference should become visible to a
@@ -2043,7 +2075,45 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }
     }
 
+    /*
+     * This control-group-scoped pool only holds a genuine reusable
+     * dependency when a real lexical block (If/For/While/Evaluate/Try, or
+     * a Function/Method body's own statement) is actually open --
+     * `controlDepth > 0`. At the bare top level, `controlGroup` can stay
+     * numerically unchanged across many unrelated flat top-level
+     * statements (nothing bumps it there), so reading this pool
+     * unconditionally wrongly reuses one flat statement's Record.X
+     * argument for a later, unrelated flat statement's own argument.
+     *
+     * DERIVED_HR_TRN.ATTENDANCE.FieldChange (definition 6352) proves the
+     * flat-top-level case: four consecutive top-level
+     * `FetchValue(Record.DERIVED_HR_TRN, CurrentRowNumber(), ...)`
+     * statements each allocate a FRESH RECORD.DERIVED_HR_TRN row in
+     * stored bytes, not one shared row. AE_DERIVED.AE_RELEASE_BTN.
+     * FieldFormula (definition 802) proves the nested case still reuses
+     * correctly once this guard is added: six `FetchValue`/`UpdateValue`
+     * calls to `Record.AETEMPTBLMGR`, all inside a `Function`'s own
+     * `For`/`If` body (so `controlDepth > 0` throughout), share one
+     * PSPCMNAME row exactly as before.
+     *
+     * This mirrors the identical `controlDepth > 0` guard
+     * `reuseRecordReferenceWithinCallArguments`'s own fallback already
+     * uses a few lines below (see its own comment, citing definitions
+     * 1220 vs 840/1283) -- the same rule, independently confirmed for
+     * this sibling mechanism by a full-corpus research pass across
+     * GetRecord/ActiveRowCount/FetchValue/ScrollFlush.
+     */
     if (reuseRecordReferenceWithinControlGroup) {
+      const withinStatement = recordReferencesWithinCurrentStatement.get(
+        recordName.toLowerCase()
+      );
+
+      if (withinStatement !== undefined) {
+        return referenceOperand(withinStatement);
+      }
+    }
+
+    if (reuseRecordReferenceWithinControlGroup && controlDepth > 0) {
       const existing = recordReferencesByControlGroup.get(
         `${controlGroup}:${recordName.toLowerCase()}`
       );
@@ -2156,7 +2226,16 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }
     }
 
-    if (reuseFetchValueRecord) {
+    // Same controlDepth > 0 guard as the primary
+    // reuseRecordReferenceWithinControlGroup check above, for the same
+    // reason: this is FetchValue's own separate, narrower shadow of the
+    // identical control-group-keyed pool (see its own declaration
+    // comment), populated and keyed the same way, so it is reachable as
+    // a fallback at the flat top level whenever the primary check is
+    // correctly skipped there -- without this guard too, the primary
+    // fix's own target construct (definition 6352) would still wrongly
+    // reuse through this second path.
+    if (reuseFetchValueRecord && controlDepth > 0) {
       const existing = fetchValueRecordReferences.get(
         `${controlGroup}:${recordName.toLowerCase()}`
       );
@@ -2223,6 +2302,12 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       );
       genericRecordReferencesSinceLastFamilyCall.set(
         `${controlGroup}:${recordName.toLowerCase()}`,
+        reference
+      );
+    }
+    if (reuseRecordReferenceWithinControlGroup) {
+      recordReferencesWithinCurrentStatement.set(
+        recordName.toLowerCase(),
         reference
       );
     }
@@ -2304,7 +2389,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     if (!recordName) return fail('expected scroll name after Scroll.');
     pos += recordName.length;
 
-    if (reuseScrollReferenceWithinControlGroup) {
+    // Same controlDepth > 0 guard as recordReference()'s identical
+    // Record.X check a few lines above -- see that check's own comment
+    // for the full evidence trail (definitions 6352 vs 802).
+    if (reuseScrollReferenceWithinControlGroup && controlDepth > 0) {
       const key =
         `${controlGroup}:${recordName.toLowerCase()}`;
       const existing =
@@ -3655,6 +3743,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
   function statement(): void {
     currentStatementRecordFields.clear();
+    recordReferencesWithinCurrentStatement.clear();
     /*
      * Field-method SetDefault is a reference-allocation boundary.
      *

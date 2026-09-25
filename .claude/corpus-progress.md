@@ -1467,6 +1467,118 @@ requires (CLAUDE.md's own "narrowest evidence-backed change" discipline).
    threads -- Phase 3/4 were scoped to flatTopLevel only, per the user's
    own directive.
 
+### Phase 5 implementation and validation (2026-09-25)
+
+Implemented the Phase 4 proposal in the current encoder, without changing
+the decoder or introducing a new scope abstraction:
+
+- Reads from the Record.X control-group pool, the FetchValue shadow pool,
+  and the Scroll.X control-group pool are now gated by `controlDepth > 0`.
+  Flat top-level statements therefore allocate their own leading
+  Record.X/Scroll.X dependency instead of reusing another flat statement's
+  row merely because both statements retained the same numeric
+  `controlGroup`.
+- `reuseFetchValueRecord` and `fetchValueRecordReferences` remain in place;
+  only the read is depth-gated. No `DependencyScope` refactor was made.
+- A distinct per-statement Record.X pool preserves the narrower rule the
+  first guard-only attempt exposed: repeated participating Record.X
+  references inside ONE statement reuse even at depth zero. Definition
+  7365 proves the nested `ActiveRowCount(Record.GPFR_LOAN, ...)` argument
+  reuses the enclosing `DeleteRow` statement's identical argument;
+  definition 17132 proves two sibling
+  `.GetRecord(Record.PSMSGPARTS)` chains in one `Return` expression reuse.
+  The pool is cleared at `statement()` and is only consulted/populated when
+  the existing `reuseRecordReferenceWithinControlGroup` trigger is active.
+- Updated the one synthetic unit test that encoded the disproven behavior:
+  two separate flat top-level FetchValue statements now expect fresh
+  PARENT/CHILD Record.X rows in each statement.
+
+#### Target and mechanism checks
+
+- EXACT after the change: 802, 1305, 1324, 6403, 12544, 10227, 10661,
+  7365, and 17132. Definitions 7365 and 17132 are newly exact.
+- Definition 6352 is still `UNKNOWN_MISMATCH` at program byte 1010, but
+  the reference-lifecycle report confirms the four original flat
+  FetchValue allocations now agree. Its first reference-lifecycle
+  disagreement moved to occurrence 14: nested
+  `UnGray(Record.DERIVED_HR_TRN, ...)` stores a fresh row (NAMENUM 13)
+  while the encoder reuses the earlier flat FetchValue row (sequence 4).
+  This is a separate nested UnGray establishment/lifetime question, not a
+  failure of the Phase 5 flat-top rule. It is locally deferred pending an
+  UnGray-specific stored-lifecycle population study; the missing evidence
+  is whether and when an UnGray call inside a new If group may inherit a
+  same-name Record.X established by a preceding flat statement.
+- Additional Phase 5 controls: 1454 and 1521 remain EXACT; 1423, 1424,
+  1721, and 1722 remain `UNKNOWN_MISMATCH` at their prior byte-5 layout
+  mismatch. No control regressed.
+- Separate RowScrollSelect/ScrollSelect machinery controls 843, 860, 5687,
+  1220, 1283, 1236, 30, 95, 1172, 1145, 889, 1007, and 840 remain EXACT;
+  1749 remains `UNKNOWN_MISMATCH` at its prior byte 1089. The mechanism
+  was not changed.
+
+The rerun of the full research populations confirms the original
+flat-top-level disagreement class shrank in the predicted direction:
+
+| family | before disagreements | after disagreements | flat-top disagreements after |
+|---|---:|---:|---:|
+| FetchValue leading arg | 66 / 1393 | 21 / 1393 | 0 |
+| ActiveRowCount leading arg | 15 / 477 | 4 / 477 | 0 |
+| ScrollFlush leading arg | 12 / 153 | 8 / 142 current pairs | 0 |
+
+The denominator change for ScrollFlush reflects the current generated
+pairing after the allocation correction; no flat-top disagreement remains.
+The direct machine-readable lifecycle rerun for definitions 6352, 802,
+1305, 1324, 6403, 12544, 10227, 10661, 7365, and 17132 is in the ignored
+`tools/corpus/reports/reference-lifecycle/` report directory.
+
+#### Full-corpus comparison and trigger audit
+
+- PRE-PHASE-5 baseline: run 1712, 30,209 definitions, 23,064 EXACT and
+  7,145 failed.
+- Phase 5: run 1753, 30,209 definitions, 23,069 EXACT and 7,140 failed.
+- Newly exact (all `UNKNOWN_MISMATCH -> EXACT`): 7365, 14699, 14717,
+  17132, 22618.
+- Exact regressions: **zero**. No other classification transitions.
+- Still-failing advancement: definition 871 remains `UNKNOWN_MISMATCH`,
+  but its first byte diff moved from 7194 to 28001. Its already-recorded
+  local blocker remains separate from Phase 5.
+
+Every name in the shared trigger regex was audited independently against
+run 1712. Counts below are source-presence populations; one improved
+definition can appear in several rows because its source uses several
+families. `advanced` means still non-EXACT with a later first byte diff.
+
+| trigger | population | exact 1712 -> 1753 | newly exact | advanced | exact regressions |
+|---|---:|---:|---:|---:|---:|
+| GetRecord | 3292 | 1054 -> 1058 | 4 | 0 | 0 |
+| DeleteRow | 671 | 281 -> 282 | 1 | 1 | 0 |
+| ActiveRowCount | 817 | 691 -> 692 | 1 | 1 | 0 |
+| UpdateValue | 376 | 296 -> 297 | 1 | 1 | 0 |
+| InsertRow | 832 | 192 -> 193 | 1 | 1 | 0 |
+| SetCursorPos | 1198 | 893 -> 894 | 1 | 0 | 0 |
+| HideScroll | 127 | 83 -> 83 | 0 | 1 | 0 |
+| UnhideScroll | 86 | 56 -> 56 | 0 | 1 | 0 |
+| UnhideRow | 5 | 4 -> 4 | 0 | 1 | 0 |
+| HideRow | 17 | 11 -> 11 | 0 | 1 | 0 |
+| CopyFields | 28 | 22 -> 22 | 0 | 1 | 0 |
+| RecordDeleted | 135 | 118 -> 118 | 0 | 0 | 0 |
+| RecordChanged | 216 | 195 -> 195 | 0 | 0 | 0 |
+| CreateRowset | 1174 | 199 -> 199 | 0 | 0 | 0 |
+| GetRowset | 4413 | 2185 -> 2186 | 1 | 0 | 0 |
+| FetchValue | 749 | 632 -> 632 | 0 | 1 | 0 |
+| DoModalPanelGroup | 13 | 12 -> 12 | 0 | 0 | 0 |
+| SortScroll | 98 | 66 -> 66 | 0 | 0 | 0 |
+| ScrollFlush | 322 | 218 -> 218 | 0 | 1 | 0 |
+| Hide | 1040 | 873 -> 873 | 0 | 1 | 0 |
+| UnHide | 749 | 629 -> 629 | 0 | 1 | 0 |
+| Gray | 1351 | 1208 -> 1208 | 0 | 1 | 0 |
+| UnGray | 1029 | 909 -> 909 | 0 | 1 | 0 |
+
+Validation: `npm run typecheck` passed; `npm test` passed (490 tests,
+489 pass and one intentional skip); the protected gate passed 430/430
+with zero regressions; full run 1753 used the completed local HCDEV
+snapshot only. `--live` was never used.
+
 ## Checkpoint
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
