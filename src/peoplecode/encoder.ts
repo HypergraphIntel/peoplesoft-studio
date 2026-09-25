@@ -87,8 +87,37 @@ interface DependencyScope {
 interface ChainSemantics {
   readonly valueType: 'unknown' | 'rowset' | 'row' | 'record' | 'field' | 'scalar';
   readonly binding: 'dynamic' | 'dependency-bound';
-  readonly provenance: 'intrinsic' | 'declared' | 'schema' | 'navigation' | 'unknown';
+  /**
+   * Cycle 9 (Phase 9B) adds `'selector'`: the Rowset-selector `(...)`
+   * transition's own provenance -- previously represented only as
+   * `provenance: 'unknown'` plus a SEPARATE `chainSemanticsBindingUnmodeled`
+   * boolean the bare-member eligibility gate consulted alongside
+   * `binding`. `'selector'` makes that state explicit and inspectable
+   * inside `ChainSemantics` itself, matching this cycle's own directive
+   * ("must become representable inside ChainSemantics instead of being
+   * marked unmodeled"). See the Rowset-selector transition's own comment
+   * for why `binding` still reads `'dynamic'` here (the construct's
+   * receiver-provenance rule itself remains unmodeled -- only the LABEL
+   * moved, not the underlying uncertainty).
+   */
+  readonly provenance: 'intrinsic' | 'declared' | 'schema' | 'navigation' | 'selector' | 'unknown';
 }
+
+/**
+ * Cycle 9 (Phase 9A): the dependency-kind responsibility factored out of
+ * `expectedReferenceMember` (see that variable's own comment at its
+ * declaration, and Cycle 8's role map in .claude/corpus-progress.md).
+ * Answers exactly one question -- "if a postfix member here becomes a
+ * new PSPCMNAME dependency, is it a RECORD or a FIELD row" -- and
+ * nothing else. Only the two kinds `expectedReferenceMember` ever
+ * actually produces are represented; `'none'` stands in for its
+ * `undefined`. A `'scroll'` kind is NOT included here: the one site that
+ * allocates a SCROLL reference (`scrollReference()`) does not go through
+ * `expectedReferenceMember`/`dependencyKind` at all, so inventing a
+ * `'scroll'` arm would not be evidenced by any existing code path this
+ * cycle touches.
+ */
+type DependencyKind = 'none' | 'record' | 'field';
 
 export interface PeopleCodeOwner {
   recordName: string;
@@ -7315,6 +7344,316 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       previousSuppressRecordReferenceControlGroupWrite;
   }
 };
+
+  /*
+   * Cycle 9 (Phase 9C): extracted, unchanged, from the postfix loop's own
+   * inline `reference ??= ...` ternary (Cycle 8's own role map,
+   * .claude/corpus-progress.md, named this the ten-pool "reuse policy"
+   * family and flagged the 146-line inline dispatch as its own,
+   * un-named "pool selection" responsibility). This function answers
+   * exactly one question -- "which reuse pool/policy applies to this
+   * ALREADY-DETERMINED-to-be-a-dependency postfix member, and does an
+   * existing PSPCMNAME reference already cover it" -- given the member
+   * name and the small set of context values the SAME pools were already
+   * keyed by. It does NOT decide whether `member` is a dependency at all
+   * (that remains the caller's `bareMemberBindingEligible`/
+   * `hasExistingExpectedReference` gate), does not touch `ChainSemantics`,
+   * does not open/close `DependencyScope`, and does not change any pool's
+   * key shape -- every `.get(...)` call below is byte-for-byte the same
+   * lookup the inline ternary already performed, in the same order, with
+   * the same `??` fallback chain. See each pool's own declaration comment
+   * (near their `Map` construction, earlier in this function) for the
+   * calibrated evidence behind each specific reuse rule; this function
+   * does not re-derive or alter any of it.
+   */
+  const resolvePostfixMemberReuse = (
+    member: string,
+    dependencyKind: DependencyKind,
+    isMethodCall: boolean,
+    explicitRecordRootName: string | undefined,
+    baseVariableName: string | undefined,
+    directLevel0RecordFieldKey: string | undefined
+  ): PeopleCodeReference | undefined =>
+    dependencyKind === 'field' && explicitRecordRootName !== undefined
+      ? explicitRecordFields.get(
+          `${controlGroup}:${explicitRecordRootName.toLowerCase()}:${member.toLowerCase()}`
+        ) ??
+        /*
+         * The FIELD half of an explicit `Record.REC.FIELD.Value` chain is
+         * reusable by NAME ALONE across a DIFFERENT root record within
+         * the same control group -- the stored PSPCMNAME row itself has
+         * no owning-record link at all (`RECNAME` is the literal
+         * placeholder `'FIELD'`).
+         *
+         * ACL_WS_WRK.WSOPRACCESS.SaveEdit (definition 437):
+         *
+         *   &classid = Record.PTIBMAPAUTH_VW.CLASSID.Value;
+         *   ...
+         *   &classid = Record.PSAUTHWS_VW1.CLASSID.Value;
+         *
+         * both inside the same control group (an If/Else inside one
+         * Function body) -- stored has exactly one FIELD/CLASSID row,
+         * reused for both, despite the two different root records.
+         * Mirrors the already-proven cross-Record-variable FIELD reuse
+         * below (ACCOMPLISHMENTS.EMPLID.SavePostChange) via the same
+         * shared `declaredRecordFields` pool.
+         */
+        declaredRecordFields.get(
+          `${controlGroup}:${member.toLowerCase()}`
+        )
+      : dependencyKind === 'record' && isMethodCall
+      ? references.find(
+          item =>
+            item.kind === 'scroll' &&
+            same(item.recordName, member)
+        )
+      : dependencyKind === 'record'
+      ? (
+          directLevel0RecordFieldKey !== undefined
+            ? level0RowsetRecordsByField.get(directLevel0RecordFieldKey)
+            : rowShorthandRecordsByBase.get(
+                `${controlGroup}:${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`
+              ) ??
+              rowsetElementRecords.get(member.toLowerCase()) ??
+              rowShorthandRecordsByControlGroup.get(
+                `${controlGroup}:${member.toLowerCase()}`
+              ) ??
+              /*
+               * A row-shorthand RECORD member may reuse a RECORD
+               * dependency first established explicitly earlier in the
+               * same control group.
+               */
+              recordReferencesByControlGroup.get(
+                `${controlGroup}:${member.toLowerCase()}`
+              )
+        )
+      : recordVariableFields.get(
+          `${controlGroup}:${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`
+        ) ?? (
+          baseVariableName !== undefined &&
+          recordVariables.has(baseVariableName.toLowerCase())
+            ? (
+                /*
+                 * FIELD references reached through declared Record
+                 * variables are name-reusable across Record variables
+                 * within the current control group.
+                 *
+                 * ACCOMPLISHMENTS.EMPLID.SavePostChange:
+                 *
+                 *   &recAccomp.ACCOMPLISHMENT.Value
+                 *   ...
+                 *   &recAccTbl = CreateRecord(Record.ACCOMP_TBL);
+                 *   &recAccTbl.ACCOMPLISHMENT.Value = ...
+                 *
+                 * Both uses point to the same PSPCMNAME FIELD
+                 * ACCOMPLISHMENT row.
+                 *
+                 * AA_SUMM_JPN_VW.EMPLID.SavePostChange adds a second
+                 * proven provenance bridge:
+                 *
+                 *   &RS(...).AA_ONE_JPN_VW.ACTION_REASON_JPN.Value
+                 *   ...
+                 *   &Kenmu_Dtl_Rec.ACTION_REASON_JPN.Value
+                 *
+                 * The later declared Record variable reuses the FIELD
+                 * first established through row shorthand. Therefore:
+                 *
+                 *   1. prefer the per-variable binding;
+                 *   2. then the declared-Record field pool;
+                 *   3. then the row-shorthand field pool;
+                 *   4. otherwise allocate.
+                 *
+                 * Do NOT fall back to latestFields here: offset 380
+                 * proved that an unrelated older same-name FIELD must not
+                 * be reused merely because it is the latest one.
+                 *
+                 * AA_SUMM_JPN_VW.EMPLID.SavePostChange further proves
+                 * these FIELD bindings are control-group scoped: ACTION
+                 * is FIELD sequence 11 in the first block and FIELD
+                 * sequence 23 in the later insert-row block.
+                 */
+                declaredRecordFields.get(
+                  `${controlGroup}:${member.toLowerCase()}`
+                ) ??
+                rowShorthandFields.get(
+                  `${controlGroup}:${member.toLowerCase()}`
+                )
+              )
+            : baseVariableName !== undefined &&
+              rowVariables.has(baseVariableName.toLowerCase())
+              ? typedRowFields.get(member.toLowerCase())
+              : (
+                  /*
+                   * Ordinary Rowset/row-shorthand FIELD reuse is
+                   * control-group scoped. If the field has not already
+                   * been established in this group, allocate it.
+                   *
+                   * DERIVED_CO.FUNCLIB.FieldFormula proves that
+                   * NO_RESULTS is FIELD #8 in group 0 but a fresh FIELD
+                   * #26 in group 1. Falling back to latestFields
+                   * incorrectly reuses the group-0 dependency.
+                   *
+                   * ADDRESS_TYPE_VW.ADDRESS_TYPE.RowInit (definition 535)
+                   * proves a further bridge: a bare `.FIELDNAME` property
+                   * access immediately after `.GetRecord(...)` reuses a
+                   * FIELD row already established in the same control
+                   * group by an explicit `.GetRecord(...).GetField(Field.X)`
+                   * chain earlier in that group --
+                   *
+                   *   &FLD = GetRecord(Record.ADDRESS_TYPE_VW)
+                   *            .GetField(Field.ADDRESS_TYPE);
+                   *   ...
+                   *   &Types.GetRow(&I).GetRecord(1).ADDRESS_TYPE.Value
+                   *
+                   * Both resolve to the same PSPCMNAME FIELD row for
+                   * ADDRESS_TYPE, not a fresh allocation.
+                   */
+                  rowShorthandFields.get(
+                    `${controlGroup}:${member.toLowerCase()}`
+                  ) ?? declaredRecordFields.get(
+                    `${controlGroup}:${member.toLowerCase()}`
+                  ) ?? fieldReferencesByControlGroup.get(
+                    `${controlGroup}:${member.toLowerCase()}`
+                  )
+                )
+        );
+
+  /*
+   * Cycle 9 (Phase 9C): the write-back companion to
+   * `resolvePostfixMemberReuse` above -- extracted, unchanged, from the
+   * same postfix-loop block's own write-back `if`/`else if` chain. Given
+   * a `reference` the caller has ALREADY resolved (via
+   * `resolvePostfixMemberReuse` or fresh allocation), records it into
+   * whichever of the ten pools this exact member shape populates, so a
+   * LATER occurrence can find it. Same pools, same keys, same conditions,
+   * same order as before -- purely a name for what was previously
+   * anonymous control flow.
+   */
+  const recordPostfixMemberReuse = (
+    member: string,
+    dependencyKind: DependencyKind,
+    explicitRecordRootName: string | undefined,
+    baseVariableName: string | undefined,
+    directLevel0RecordFieldKey: string | undefined,
+    fieldMemberFromGetRecord: boolean,
+    reference: PeopleCodeReference
+  ): void => {
+    if (
+      dependencyKind === 'field' &&
+      explicitRecordRootName !== undefined &&
+      reference.kind === 'field'
+    ) {
+      explicitRecordFields.set(
+        `${controlGroup}:${explicitRecordRootName.toLowerCase()}:${member.toLowerCase()}`,
+        reference
+      );
+      declaredRecordFields.set(
+        `${controlGroup}:${member.toLowerCase()}`,
+        reference
+      );
+    }
+
+    if (
+      dependencyKind === 'record' &&
+      reference.kind === 'record'
+    ) {
+      if (directLevel0RecordFieldKey !== undefined) {
+        level0RowsetRecordsByField.set(
+          directLevel0RecordFieldKey,
+          reference
+        );
+      }
+      rowShorthandRecords.set(member.toLowerCase(), reference);
+      rowShorthandRecordsByBase.set(
+        `${controlGroup}:${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`,
+        reference
+      );
+      rowShorthandRecordsByControlGroup.set(
+        `${controlGroup}:${member.toLowerCase()}`,
+        reference
+      );
+    } else if (
+      dependencyKind === 'field' &&
+      baseVariableName !== undefined
+    ) {
+      recordVariableFields.set(
+        `${controlGroup}:${baseVariableName.toLowerCase()}:${member.toLowerCase()}`,
+        reference
+      );
+      latestFields.set(member.toLowerCase(), reference);
+
+      if (rowVariables.has(baseVariableName.toLowerCase())) {
+        typedRowFields.set(member.toLowerCase(), reference);
+
+        /*
+         * AGC_CAT_STEP.AGC_CATEGORY_ID.FieldFormula (definition 924)
+         * proves a Row-typed variable's FIELD binding bridges to the
+         * control-group-scoped `declaredRecordFields` pool too, the same
+         * way a declared Record variable's own FIELD binding already
+         * does (see the ACCOMPLISHMENTS.EMPLID.SavePostChange /
+         * AA_SUMM_JPN_VW.EMPLID.SavePostChange provenance-bridge comment
+         * above): a LATER row-shorthand access
+         * (`&rowsetVar(&i).RECORD.FIELD`, a structurally different access
+         * style reached through the final "ordinary Rowset/row-shorthand
+         * FIELD reuse" branch, which checks `declaredRecordFields` but
+         * never `typedRowFields`) reuses the SAME PSPCMNAME FIELD row a
+         * `Row`-typed parameter's own `.RECORD.FIELD` chain established
+         * earlier in the same control group:
+         *
+         *   Function InitStepDefautAssigneeSection(&rCurrCatTbl As Row,
+         *       &rCurrentStep As Row)
+         *      ...
+         *      &rCurrentStep.AGC_DERIVED_ASG.GROUPBOX4.Visible = &nShow;
+         *      &rsCategorySteps = &rCurrCatTbl.GetRowset(Scroll.AGC_CAT_STEP);
+         *      For &i = 1 To &rsCategorySteps.ActiveRowCount
+         *         &rsCategorySteps(&i).AGC_DERIVED_ASG.GROUPBOX4.Visible = &nShow;
+         */
+        declaredRecordFields.set(
+          `${controlGroup}:${member.toLowerCase()}`,
+          reference
+        );
+      } else if (recordVariables.has(baseVariableName.toLowerCase())) {
+        declaredRecordFields.set(
+          `${controlGroup}:${member.toLowerCase()}`,
+          reference
+        );
+      } else {
+        rowShorthandFields.set(
+          `${controlGroup}:${member.toLowerCase()}`,
+          reference
+        );
+      }
+    } else if (
+      dependencyKind === 'field' &&
+      baseVariableName === undefined &&
+      fieldMemberFromGetRecord
+    ) {
+      /*
+       * A bare `GetRecord().FIELDNAME` field reference (no `&variable.`
+       * receiver) reuses within the current control group the same way
+       * every other FIELD-reuse pool above does -- a second
+       * `GetRecord().FIELDNAME` for the same field name in the same
+       * control group (e.g. the If- and Else-branches of one
+       * `If ... Then ... Else ... End-If;`) points to the SAME PSPCMNAME
+       * FIELD row, not a fresh allocation.
+       *
+       * GPS_EDIT_WRK.GPS_BDG_ORG1.FieldChange (definition 9989):
+       *
+       *   If GetRecord().GPS_LEVELS.Value = 2 Then
+       *      GetRecord().GPS_BDG_ORG2.SqlText = ExpandSqlBinds(...);
+       *   Else
+       *      GetRecord().GPS_BDG_ORG2.SqlText = ExpandSqlBinds(...);
+       *   End-If;
+       *
+       * both `GPS_BDG_ORG2` occurrences store the same FIELD index.
+       */
+      fieldReferencesByControlGroup.set(
+        `${controlGroup}:${member.toLowerCase()}`,
+        reference
+      );
+    }
+  };
+
   const primary = () => {
     space();
 
@@ -7943,26 +8282,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     let chainSemantics: ChainSemantics = initialChainSemantics;
 
     /*
-     * Cycle 7: tracks whether the CURRENT `chainSemantics.binding ===
-     * 'dynamic'` reflects a genuine absence of provenance, or merely
-     * reflects the Rowset-selector `(...)` transition's own deliberate
-     * "not modeled, reset to dynamic" choice (see that transition's own
-     * comment, a few hundred lines below) -- a SEPARATE, already-correct,
-     * already-evidenced mechanism (`expectedReferenceMember = 'record'`
-     * unconditionally after a selector call) that Phase 7C's own
-     * instructions explicitly say not to touch. Without this flag, the
-     * new eligibility gate could not tell "receiver has no provenance"
-     * (in scope, should suppress) apart from "receiver's provenance
-     * question was never modeled because of the selector mechanism" (out
-     * of scope, must not suppress) -- both look identical as
-     * `{dynamic, unknown}` otherwise. Set `true` only at the selector
-     * transition; set `false` at every OTHER `chainSemantics` update
-     * (including the initial one), so it always reflects only the MOST
-     * RECENT transition.
-     */
-    let chainSemanticsBindingUnmodeled = false;
-
-    /*
      * Distinguishes "expectedReferenceMember === 'field' because this is
      * the first postfix step off a declared Record variable" from
      * "...because this expression's field context came from a
@@ -8000,8 +8319,29 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         space();
 
         const isMethodCall = source[pos] === '(';
+        /*
+         * Cycle 9 (Phase 9A): `expectedReferenceMember` mixes four roles
+         * (see Cycle 8's own role map in .claude/corpus-progress.md) --
+         * `dependencyKind` factors out exactly one of them: "if a member
+         * here becomes a NEW dependency, is it a RECORD or a FIELD row."
+         * This is a pure, same-value derivation (never independently
+         * assigned), so it cannot desync from `expectedReferenceMember`;
+         * it exists to give the KIND-SPECIFIC consumers below (pool
+         * dispatch, allocation, pool population) an explicit, typed name
+         * instead of re-deriving 'record'/'field'/'none' from the
+         * four-role flag at each site. `expectedReferenceMember` itself
+         * is UNCHANGED and still carries provenance, reuse-policy input,
+         * and (via `!== undefined`) the diagnostic eligibility reading --
+         * none of those roles are touched this cycle.
+         */
+        const dependencyKind: DependencyKind =
+          expectedReferenceMember === 'record'
+            ? 'record'
+            : expectedReferenceMember === 'field'
+              ? 'field'
+              : 'none';
         const isInlineRowStateMember =
-          expectedReferenceMember === 'record' &&
+          dependencyKind === 'record' &&
           /^(?:RowNumber|IsNew|IsDeleted|IsChanged|Visible|Selected)$/i.test(member);
 
         const hasExistingExpectedReference = references.some(item =>
@@ -8069,178 +8409,46 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
          * assignment's own comment above for why gating THAT value
          * directly caused real regressions by also disturbing
          * `reuseFieldReferenceWithinControlGroup`). Also treats
-         * `chainSemanticsBindingUnmodeled` as eligible -- a dynamic
-         * reading caused by the separate, deliberately-unmodeled
-         * Rowset-selector mechanism (see its own declaration comment)
+         * `chainSemantics.provenance === 'selector'` as eligible -- a
+         * dynamic reading caused by the separate, deliberately-unmodeled
+         * Rowset-selector mechanism (see that transition's own comment)
          * must not be suppressed by this gate; doing so regressed
          * definitions 939/1078 (GetLevel0()(N)-then-selector chains)
-         * during this cycle's own validation, which is exactly the
-         * signal Phase 7D/7E's protocol is designed to catch. Phase 7A's
+         * during Cycle 7's own validation, which is exactly the signal
+         * Phase 7D/7E's protocol is designed to catch. Phase 7A's
          * full-corpus census: 0/172 currently EXACT in the population
          * this excludes (the genuinely-no-evidence population, which
-         * never passes through the selector mechanism).
+         * never passes through the selector mechanism). Cycle 9 (Phase
+         * 9B) replaced the former separate `chainSemanticsBindingUnmodeled`
+         * boolean with this direct `provenance` check -- see
+         * `ChainSemantics.provenance`'s own comment for why `'selector'`
+         * is representable there now instead.
          */
         const bareMemberBindingEligible =
           isMethodCall ||
           chainSemantics.binding === 'dependency-bound' ||
-          chainSemanticsBindingUnmodeled;
+          chainSemantics.provenance === 'selector';
 
         if (
           expectedReferenceMember !== undefined &&
           ((!isMethodCall && bareMemberBindingEligible) || hasExistingExpectedReference) &&
           !isInlineRowStateMember
         ) {
-          let reference =
-            expectedReferenceMember === 'field' &&
-            explicitRecordRootName !== undefined
-              ? explicitRecordFields.get(
-                  `${controlGroup}:${explicitRecordRootName.toLowerCase()}:${member.toLowerCase()}`
-                ) ??
-                /*
-                 * The FIELD half of an explicit `Record.REC.FIELD.Value`
-                 * chain is reusable by NAME ALONE across a DIFFERENT root
-                 * record within the same control group -- the stored
-                 * PSPCMNAME row itself has no owning-record link at all
-                 * (`RECNAME` is the literal placeholder `'FIELD'`).
-                 *
-                 * ACL_WS_WRK.WSOPRACCESS.SaveEdit (definition 437):
-                 *
-                 *   &classid = Record.PTIBMAPAUTH_VW.CLASSID.Value;
-                 *   ...
-                 *   &classid = Record.PSAUTHWS_VW1.CLASSID.Value;
-                 *
-                 * both inside the same control group (an If/Else inside one
-                 * Function body) -- stored has exactly one FIELD/CLASSID
-                 * row, reused for both, despite the two different root
-                 * records. Mirrors the already-proven cross-Record-variable
-                 * FIELD reuse a few dozen lines below (ACCOMPLISHMENTS.
-                 * EMPLID.SavePostChange) via the same shared
-                 * `declaredRecordFields` pool.
-                 */
-                declaredRecordFields.get(
-                  `${controlGroup}:${member.toLowerCase()}`
-                )
-              : expectedReferenceMember === 'record' && isMethodCall
-              ? references.find(
-                  item =>
-                    item.kind === 'scroll' &&
-                    same(item.recordName, member)
-                )
-              : expectedReferenceMember === 'record'
-              ? (
-                  directLevel0RecordFieldKey !== undefined
-                    ? level0RowsetRecordsByField.get(directLevel0RecordFieldKey)
-                    : rowShorthandRecordsByBase.get(
-                        `${controlGroup}:${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`
-                      ) ??
-                      rowsetElementRecords.get(member.toLowerCase()) ??
-                      rowShorthandRecordsByControlGroup.get(
-                        `${controlGroup}:${member.toLowerCase()}`
-                      ) ??
-                      /*
-                       * A row-shorthand RECORD member may reuse a RECORD
-                       * dependency first established explicitly earlier in
-                       * the same control group.
-                       */
-                      recordReferencesByControlGroup.get(
-                        `${controlGroup}:${member.toLowerCase()}`
-                      )
-                )
-              : recordVariableFields.get(
-                  `${controlGroup}:${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`
-                ) ?? (
-                  baseVariableName !== undefined &&
-                  recordVariables.has(baseVariableName.toLowerCase())
-                    ? (
-                        /*
-                         * FIELD references reached through declared Record
-                         * variables are name-reusable across Record variables
-                         * within the current control group.
-                         *
-                         * ACCOMPLISHMENTS.EMPLID.SavePostChange:
-                         *
-                         *   &recAccomp.ACCOMPLISHMENT.Value
-                         *   ...
-                         *   &recAccTbl = CreateRecord(Record.ACCOMP_TBL);
-                         *   &recAccTbl.ACCOMPLISHMENT.Value = ...
-                         *
-                         * Both uses point to the same PSPCMNAME FIELD
-                         * ACCOMPLISHMENT row.
-                         *
-                         * AA_SUMM_JPN_VW.EMPLID.SavePostChange adds a second
-                         * proven provenance bridge:
-                         *
-                         *   &RS(...).AA_ONE_JPN_VW.ACTION_REASON_JPN.Value
-                         *   ...
-                         *   &Kenmu_Dtl_Rec.ACTION_REASON_JPN.Value
-                         *
-                         * The later declared Record variable reuses the FIELD
-                         * first established through row shorthand. Therefore:
-                         *
-                         *   1. prefer the per-variable binding;
-                         *   2. then the declared-Record field pool;
-                         *   3. then the row-shorthand field pool;
-                         *   4. otherwise allocate.
-                         *
-                         * Do NOT fall back to latestFields here: offset 380
-                         * proved that an unrelated older same-name FIELD must
-                         * not be reused merely because it is the latest one.
-                         *
-                         * AA_SUMM_JPN_VW.EMPLID.SavePostChange further proves
-                         * these FIELD bindings are control-group scoped:
-                         * ACTION is FIELD sequence 11 in the first block and
-                         * FIELD sequence 23 in the later insert-row block.
-                         */
-                        declaredRecordFields.get(
-                          `${controlGroup}:${member.toLowerCase()}`
-                        ) ??
-                        rowShorthandFields.get(
-                          `${controlGroup}:${member.toLowerCase()}`
-                        )
-                      )
-                    : baseVariableName !== undefined &&
-                      rowVariables.has(baseVariableName.toLowerCase())
-                      ? typedRowFields.get(member.toLowerCase())
-                      : (
-                          /*
-                           * Ordinary Rowset/row-shorthand FIELD reuse is
-                           * control-group scoped. If the field has not already
-                           * been established in this group, allocate it.
-                           *
-                           * DERIVED_CO.FUNCLIB.FieldFormula proves that
-                           * NO_RESULTS is FIELD #8 in group 0 but a fresh
-                           * FIELD #26 in group 1. Falling back to latestFields
-                           * incorrectly reuses the group-0 dependency.
-                           *
-                           * ADDRESS_TYPE_VW.ADDRESS_TYPE.RowInit (definition
-                           * 535) proves a further bridge: a bare `.FIELDNAME`
-                           * property access immediately after `.GetRecord(...)`
-                           * reuses a FIELD row already established in the same
-                           * control group by an explicit
-                           * `.GetRecord(...).GetField(Field.X)` chain earlier
-                           * in that group --
-                           *
-                           *   &FLD = GetRecord(Record.ADDRESS_TYPE_VW)
-                           *            .GetField(Field.ADDRESS_TYPE);
-                           *   ...
-                           *   &Types.GetRow(&I).GetRecord(1).ADDRESS_TYPE.Value
-                           *
-                           * Both resolve to the same PSPCMNAME FIELD row for
-                           * ADDRESS_TYPE, not a fresh allocation.
-                           */
-                          rowShorthandFields.get(
-                            `${controlGroup}:${member.toLowerCase()}`
-                          ) ?? declaredRecordFields.get(
-                            `${controlGroup}:${member.toLowerCase()}`
-                          ) ?? fieldReferencesByControlGroup.get(
-                            `${controlGroup}:${member.toLowerCase()}`
-                          )
-                        )
-                );
+          // Cycle 9 (Phase 9C): see `resolvePostfixMemberReuse`'s own
+          // declaration comment -- this call is byte-for-byte the same
+          // lookup that used to be inlined here.
+          let reference = resolvePostfixMemberReuse(
+            member,
+            dependencyKind,
+            isMethodCall,
+            explicitRecordRootName,
+            baseVariableName,
+            directLevel0RecordFieldKey
+          );
 
           if (reference === undefined) {
             reference =
-              expectedReferenceMember === 'record'
+              dependencyKind === 'record'
                 ? nextReference({
                     kind: 'record',
                     recordName: member
@@ -8251,121 +8459,18 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
                   });
           }
 
-          if (
-            expectedReferenceMember === 'field' &&
-            explicitRecordRootName !== undefined &&
-            reference.kind === 'field'
-          ) {
-            explicitRecordFields.set(
-              `${controlGroup}:${explicitRecordRootName.toLowerCase()}:${member.toLowerCase()}`,
-              reference
-            );
-            declaredRecordFields.set(
-              `${controlGroup}:${member.toLowerCase()}`,
-              reference
-            );
-          }
-
-          if (
-            expectedReferenceMember === 'record' &&
-            reference.kind === 'record'
-          ) {
-            if (directLevel0RecordFieldKey !== undefined) {
-              level0RowsetRecordsByField.set(
-                directLevel0RecordFieldKey,
-                reference
-              );
-            }
-            rowShorthandRecords.set(member.toLowerCase(), reference);
-            rowShorthandRecordsByBase.set(
-              `${controlGroup}:${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`,
-              reference
-            );
-            rowShorthandRecordsByControlGroup.set(
-              `${controlGroup}:${member.toLowerCase()}`,
-              reference
-            );
-          } else if (
-            expectedReferenceMember === 'field' &&
-            baseVariableName !== undefined
-          ) {
-            recordVariableFields.set(
-              `${controlGroup}:${baseVariableName.toLowerCase()}:${member.toLowerCase()}`,
-              reference
-            );
-            latestFields.set(member.toLowerCase(), reference);
-
-            if (rowVariables.has(baseVariableName.toLowerCase())) {
-              typedRowFields.set(member.toLowerCase(), reference);
-
-              /*
-               * AGC_CAT_STEP.AGC_CATEGORY_ID.FieldFormula (definition 924)
-               * proves a Row-typed variable's FIELD binding bridges to the
-               * control-group-scoped `declaredRecordFields` pool too, the
-               * same way a declared Record variable's own FIELD binding
-               * already does (see the ACCOMPLISHMENTS.EMPLID.SavePostChange
-               * / AA_SUMM_JPN_VW.EMPLID.SavePostChange provenance-bridge
-               * comment above): a LATER row-shorthand access
-               * (`&rowsetVar(&i).RECORD.FIELD`, a structurally different
-               * access style reached through the final "ordinary
-               * Rowset/row-shorthand FIELD reuse" branch below, which
-               * checks `declaredRecordFields` but never `typedRowFields`)
-               * reuses the SAME PSPCMNAME FIELD row a `Row`-typed
-               * parameter's own `.RECORD.FIELD` chain established earlier
-               * in the same control group:
-               *
-               *   Function InitStepDefautAssigneeSection(&rCurrCatTbl As
-               *       Row, &rCurrentStep As Row)
-               *      ...
-               *      &rCurrentStep.AGC_DERIVED_ASG.GROUPBOX4.Visible = &nShow;
-               *      &rsCategorySteps = &rCurrCatTbl.GetRowset(Scroll.AGC_CAT_STEP);
-               *      For &i = 1 To &rsCategorySteps.ActiveRowCount
-               *         &rsCategorySteps(&i).AGC_DERIVED_ASG.GROUPBOX4.Visible = &nShow;
-               */
-              declaredRecordFields.set(
-                `${controlGroup}:${member.toLowerCase()}`,
-                reference
-              );
-            } else if (recordVariables.has(baseVariableName.toLowerCase())) {
-              declaredRecordFields.set(
-                `${controlGroup}:${member.toLowerCase()}`,
-                reference
-              );
-            } else {
-              rowShorthandFields.set(
-                `${controlGroup}:${member.toLowerCase()}`,
-                reference
-              );
-            }
-          } else if (
-            expectedReferenceMember === 'field' &&
-            baseVariableName === undefined &&
-            fieldMemberFromGetRecord
-          ) {
-            /*
-             * A bare `GetRecord().FIELDNAME` field reference (no
-             * `&variable.` receiver) reuses within the current control
-             * group the same way every other FIELD-reuse pool above does
-             * -- a second `GetRecord().FIELDNAME` for the same field name
-             * in the same control group (e.g. the If- and Else-branches
-             * of one `If ... Then ... Else ... End-If;`) points to the
-             * SAME PSPCMNAME FIELD row, not a fresh allocation.
-             *
-             * GPS_EDIT_WRK.GPS_BDG_ORG1.FieldChange (definition 9989):
-             *
-             *   If GetRecord().GPS_LEVELS.Value = 2 Then
-             *      GetRecord().GPS_BDG_ORG2.SqlText = ExpandSqlBinds(...);
-             *   Else
-             *      GetRecord().GPS_BDG_ORG2.SqlText = ExpandSqlBinds(...);
-             *   End-If;
-             *
-             * both `GPS_BDG_ORG2` occurrences store the same FIELD index.
-             */
-            fieldReferencesByControlGroup.set(
-              `${controlGroup}:${member.toLowerCase()}`,
-              reference
-            );
-          }
+          // Cycle 9 (Phase 9C): see `recordPostfixMemberReuse`'s own
+          // declaration comment -- byte-for-byte the same write-back that
+          // used to be inlined here.
+          recordPostfixMemberReuse(
+            member,
+            dependencyKind,
+            explicitRecordRootName,
+            baseVariableName,
+            directLevel0RecordFieldKey,
+            fieldMemberFromGetRecord,
+            reference
+          );
 
           // This 0x4A path writes its own operand bytes directly instead of
           // going through referenceOperand() (0x21's shared helper), so it
@@ -8406,23 +8511,22 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           // bound FIELD; consuming a further member past an already-FIELD
           // chain yields a scalar (FIELD's own further members, e.g.
           // .Value, are inline properties per Cycle 4's table).
+          /*
+           * Cycle 7: the 'field' arm INHERITS binding/provenance from the
+           * receiver (same pattern as the method-call branch) -- this
+           * matters for definition 939's second member
+           * (`.PSSPTIMES.MSGSPTNAME`, a RECORD-then-FIELD pair where BOTH
+           * members follow a selector-derived receiver): inheriting
+           * `chainSemantics.provenance` here naturally carries `'selector'`
+           * through to the FIELD step too (see `ChainSemantics.provenance`'s
+           * own comment). Only the 'scalar' arm (FIELD's own further
+           * member, e.g. `.Value`) is a genuine fresh reset to `'unknown'`,
+           * which by construction is never `'selector'`.
+           */
           chainSemantics =
             expectedReferenceMember === 'field'
               ? { valueType: 'field', binding: chainSemantics.binding, provenance: chainSemantics.provenance }
               : { valueType: 'scalar', binding: 'dynamic', provenance: 'unknown' };
-          /*
-           * Cycle 7: the 'field' arm INHERITS binding/provenance from the
-           * receiver (same pattern as the method-call branch), so it must
-           * also inherit `chainSemanticsBindingUnmodeled` rather than
-           * clear it -- clearing it here broke definition 939's second
-           * member (`.PSSPTIMES.MSGSPTNAME`, a RECORD-then-FIELD pair
-           * where BOTH members follow a selector-derived receiver) during
-           * this cycle's own validation. Only the 'scalar' arm (FIELD's
-           * own further member, e.g. `.Value`) is a genuine fresh reset.
-           */
-          if (expectedReferenceMember !== 'field') {
-            chainSemanticsBindingUnmodeled = false;
-          }
           continue;
         }
 
@@ -8433,7 +8537,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           // forward as a bound value -- mirrors expectedReferenceMember's
           // own reset immediately above.
           chainSemantics = { valueType: 'scalar', binding: 'dynamic', provenance: 'unknown' };
-          chainSemanticsBindingUnmodeled = false;
         }
 
         chunks.push(
@@ -8618,15 +8721,14 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
            * `.GetRow(...)`/`.GetRowset(...)` changes valueType but does
            * NOT itself upgrade an unbound receiver to bound.
            *
-           * Cycle 7: the three Get(Record|Row|Rowset) arms deliberately
-           * do NOT touch `chainSemanticsBindingUnmodeled` -- they inherit
-           * `chainSemantics.binding` from the receiver, so they inherit
-           * its "was this dynamic-ness ever actually modeled" status too
-           * (see that flag's own declaration comment). Only the final,
-           * unrecognized-method-name arm is a genuine fresh reset.
+           * Cycle 7: the three Get(Record|Row|Rowset) arms inherit
+           * `chainSemantics.binding` AND `chainSemantics.provenance` from
+           * the receiver, so a `'selector'` provenance (Cycle 9, Phase 9B
+           * -- see `ChainSemantics.provenance`'s own comment) passes
+           * through unchanged here too. Only the final,
+           * unrecognized-method-name arm is a genuine fresh reset (to
+           * `provenance: 'unknown'`, never `'selector'`).
            */
-          const isRecognizedGetCall =
-            /^Get(?:Record|Row|Rowset)$/i.test(member);
           chainSemantics =
             /^GetRecord$/i.test(member)
               ? { valueType: 'record', binding: chainSemantics.binding, provenance: chainSemantics.provenance }
@@ -8635,9 +8737,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
                 : /^GetRowset$/i.test(member)
                   ? { valueType: 'rowset', binding: chainSemantics.binding, provenance: chainSemantics.provenance }
                   : { valueType: 'unknown', binding: 'dynamic', provenance: 'unknown' };
-          if (!isRecognizedGetCall) {
-            chainSemanticsBindingUnmodeled = false;
-          }
         } else {
           /*
            * A property/member traversal changes the receiver. Without
@@ -8665,18 +8764,37 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
            * cycle's own `bareGetRowsetCallResult` arm established one step
            * earlier, wrongly suppressing the `.GetRecord(...)` call after
            * it.
+           *
+           * Cycle 9 (Phase 9B) refinement: if the receiver's OWN
+           * provenance is `'selector'`, PRESERVE `'selector'` here rather
+           * than overwriting it with `'navigation'`. This is not a
+           * behavior change -- it exists to reproduce, via `provenance`
+           * alone, exactly what the former separate
+           * `chainSemanticsBindingUnmodeled` boolean already did: that
+           * flag was left untouched (not reset) by this exact arm, so a
+           * selector-derived receiver's "unmodeled" status survived
+           * `.ParentRow`/`.ParentRowset` navigation unchanged. Every
+           * OTHER receiver shape (declared, intrinsic, schema, or no
+           * evidence) still becomes `'navigation'` here exactly as
+           * before, matching Cycle 4's own evidenced examples (none of
+           * which are selector-derived) and matching the OLD flag's own
+           * behavior for those shapes too (it was already `false` and
+           * stayed `false`, an unobservable no-op either way since
+           * `binding` -- not `provenance` -- decided eligibility for
+           * them). `binding` itself is unconditionally inherited exactly
+           * as before in both arms.
            */
           const isParentNavigation = /^Parent(?:Row|Rowset)$/i.test(member);
           chainSemantics = isParentNavigation
             ? {
                 valueType: /^ParentRow$/i.test(member) ? 'row' : 'rowset',
                 binding: chainSemantics.binding,
-                provenance: 'navigation'
+                provenance:
+                  chainSemantics.provenance === 'selector'
+                    ? 'selector'
+                    : 'navigation'
               }
             : { valueType: 'unknown', binding: 'dynamic', provenance: 'unknown' };
-          if (!isParentNavigation) {
-            chainSemanticsBindingUnmodeled = false;
-          }
         }
 
         continue;
@@ -8750,16 +8868,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
            * `expectedReferenceMember = 'record'` behavior is wrong (it
            * is independently evidence-backed, see the comment above).
            *
-           * Cycle 7: this is the ONE site that sets
-           * `chainSemanticsBindingUnmodeled = true` -- see that flag's
-           * own declaration comment. The `expectedReferenceMember = 'record'`
-           * assignment two lines above is intentionally UNGATED by
-           * Cycle 7's own eligibility check for exactly this reason: it
-           * is a separate, already-correct mechanism, not the
-           * receiver-provenance question this cycle targets.
+           * Cycle 7: the `expectedReferenceMember = 'record'` assignment
+           * two lines above is intentionally UNGATED by Cycle 7's own
+           * eligibility check for exactly this reason: it is a separate,
+           * already-correct mechanism, not the receiver-provenance
+           * question that gate targets.
+           *
+           * Cycle 9 (Phase 9B): this is the ONE site that produces
+           * `provenance: 'selector'` -- see `ChainSemantics.provenance`'s
+           * own comment. `binding` still reads `'dynamic'` (unchanged from
+           * Cycle 6/7): only the LABEL for "this construct's own
+           * receiver-provenance rule is unmodeled" moved from a separate
+           * boolean into `provenance` itself; the underlying uncertainty
+           * this comment describes is unchanged.
            */
-          chainSemantics = { valueType: 'row', binding: 'dynamic', provenance: 'unknown' };
-          chainSemanticsBindingUnmodeled = true;
+          chainSemantics = { valueType: 'row', binding: 'dynamic', provenance: 'selector' };
 
           continue;
         }

@@ -1,5 +1,233 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 9 — decompose postfix member state (structural, zero behavior change)
+
+**Status: structural decomposition complete; no semantic calibration.**
+Baseline is commit `78090a5` (Cycle 8), 23,182/30,209 EXACT, protected
+430/430, 489 tests passing plus one intentional skip, `encoder.ts`
+byte-identical to Cycle 7. Result: **EXACT unchanged at 23,182/30,209,
+zero classification changes, zero `generated_program_bytes` changes,
+across all 30,209 definitions**, verified against the pre-Cycle-9
+baseline run after every one of the three phases below, individually and
+combined.
+
+### Phase 9A — `dependencyKind` split
+
+Introduced `type DependencyKind = 'none' | 'record' | 'field'` (only the
+two kinds `expectedReferenceMember` ever actually produces; a `'scroll'`
+kind was NOT added since no existing `expectedReferenceMember`-consuming
+code path produces or needs one — `scrollReference()`'s own SCROLL
+allocation never goes through this flag at all). Inside the postfix
+loop, `const dependencyKind: DependencyKind = ...` is now computed ONCE
+per member, immediately after `isMethodCall`, as a pure derivation from
+`expectedReferenceMember` (`'record'`/`'field'`/`undefined` ->
+`'record'`/`'field'`/`'none'`). It is never independently assigned, so it
+cannot desync from `expectedReferenceMember` -- this is what makes the
+split provably zero-behavior-change rather than merely "should be safe."
+
+Converted to read `dependencyKind` instead of `expectedReferenceMember`
+directly, per Cycle 8's own role map, ONLY the sites classified there as
+**dependency kind**: `isInlineRowStateMember`'s own `=== 'record'` check,
+the three-way pool-lookup ternary's kind branches (now delegated into
+`resolvePostfixMemberReuse`, see Phase 9C), the allocation kind selector
+(`nextReference({kind: ...})`), and all four pool-population kind
+conditions (now delegated into `recordPostfixMemberReuse`).
+Left reading `expectedReferenceMember` directly, unchanged, per
+instruction: `hasExistingExpectedReference` and `directLevel0RecordField`
+(Cycle 8's own **reuse policy** classification), the `GetField` reuse
+condition at the `reuseFieldReferenceWithinControlGroup` site (also
+**reuse policy**), and every `expectedReferenceMember = ...` TRANSITION
+site (RECORD-then-FIELD, `isInlineRowStateMember` reset, the method-call
+branch, the property-traversal else-branch, the rowset-selector branch --
+all **type/provenance**, computing the flag's OWN next value, not
+consuming it for kind-dispatch).
+
+### Phase 9B — `ChainSemantics.provenance: 'selector'`
+
+Added `'selector'` to `ChainSemantics.provenance`'s union. The
+Rowset-selector `(...)` transition now sets
+`{ valueType: 'row', binding: 'dynamic', provenance: 'selector' }`
+(previously `provenance: 'unknown'` plus a separate
+`chainSemanticsBindingUnmodeled` boolean the bare-member eligibility gate
+consulted alongside `binding`). The former boolean, and every one of its
+five write sites, was deleted; `bareMemberBindingEligible` now reads
+`chainSemantics.provenance === 'selector'` directly.
+
+**The one non-trivial correctness point** (found and fixed during this
+phase's own validation, before any corpus run): `.ParentRow`/
+`.ParentRowset` navigation used to leave `chainSemanticsBindingUnmodeled`
+UNTOUCHED (a selector-derived receiver's "unmodeled" status survived
+navigation), while its OWN `chainSemantics` transition UNCONDITIONALLY
+overwrote `provenance` to `'navigation'`. Naively deriving eligibility
+from `provenance === 'selector'` alone would have LOST that survival for
+a hypothetical `&rs(N).ParentRow.GetRecord(...)` chain (no confirmed
+corpus example, but the design must not depend on that absence). Fixed by
+making the ParentRow/ParentRowset transition provenance-conditional:
+`provenance: chainSemantics.provenance === 'selector' ? 'selector' :
+'navigation'` -- every other receiver shape still becomes `'navigation'`
+exactly as before (matching Cycle 4's own evidenced examples, none of
+which are selector-derived, and matching the old boolean's own no-op
+behavior for them, since their eligibility was already decided by
+`binding`, not the escape hatch). This was verified, not assumed: the
+full corpus diff after this phase showed 0/30,209 changes.
+
+### Phase 9C — reuse-pool dispatch extraction
+
+Extracted the postfix loop's own two largest inline blocks -- the
+146-line `reference ??= ...` lookup ternary and its ~115-line write-back
+`if`/`else if` chain (Cycle 8's own "Finding 3" and split point #2) --
+into two named functions, `resolvePostfixMemberReuse` and
+`recordPostfixMemberReuse`, declared once (alongside the postfix loop's
+other helper closures) and called from the one site that used to inline
+them. Every `.get`/`.set` call, key string, and `??` fallback order is
+unchanged -- this is a pure extraction, not a rewrite. Per instruction,
+the helpers do NOT decide whether a member is a dependency (that
+remains the caller's `bareMemberBindingEligible`/
+`hasExistingExpectedReference` gate, evaluated before either helper is
+called), do not touch `ChainSemantics`, do not open/close
+`DependencyScope`, and do not change any pool's key shape.
+
+### Phase 9E — Validation
+
+- `npx tsc -p . --noEmit`: clean, after each phase individually and combined.
+- `npm test`: 490 tests, 489 pass, 1 intentional skip -- unchanged after
+  each phase.
+- Targeted controls (all six Cycle 7 named controls plus all 27
+  definitions discovered as regressions-then-fixes during Cycle 7's own
+  validation -- 33 definitions total): EXACT after each phase, unchanged.
+- Protected baseline (`corpus:harness --compare-baseline`): 430/430,
+  `Improved: 0, Regressed: 0` after each phase.
+- Full local-snapshot run (30,209 definitions) after each phase
+  individually: 23,182 EXACT, matching the Cycle 8 baseline exactly.
+- Row-by-row `classification` AND `generated_program_bytes` diff, run
+  after EACH phase against the immediately preceding phase's own run, AND
+  as one combined diff of the final Cycle 9 state against the original
+  pre-Cycle-9 baseline run (1909, commit `6018f7d`): **0/30,209 changed**
+  in every one of these four diffs (9A alone, 9B alone, 9C alone, and
+  9A+9B+9C combined against the original baseline).
+
+All acceptance criteria met exactly: EXACT remains 23,182; generated-byte
+changes = 0/30,209; classification changes = 0; regressions = 0.
+
+### Phase 9F — Report
+
+**1. Final `dependencyKind` representation:**
+`type DependencyKind = 'none' | 'record' | 'field'` (declared next to
+`ChainSemantics`, near the top of the file). Computed once per postfix
+member as a pure, same-value derivation from `expectedReferenceMember`;
+never independently assigned. Consumed by `resolvePostfixMemberReuse`,
+`recordPostfixMemberReuse`, the allocation-kind selector, and
+`isInlineRowStateMember`.
+
+**2. Final `ChainSemantics` selector-provenance representation:**
+`ChainSemantics.provenance` gains `'selector'`, set at exactly one site
+(the Rowset-selector `(...)` transition) and propagated by the SAME
+inheritance rules every other provenance value already used (the
+method-call branch's three recognized arms, and the RECORD-then-FIELD
+'field' arm, both already copy `chainSemantics.provenance` verbatim), plus
+one new conditional carve-out in the `.ParentRow`/`.ParentRowset`
+transition to preserve it through navigation. `binding` is unchanged
+(`'dynamic'`) -- only the LABEL for "this construct's receiver-provenance
+rule is unmodeled" moved from a separate boolean into `provenance` itself.
+
+**3. Reuse-pool dispatch interface:**
+```typescript
+resolvePostfixMemberReuse(
+  member: string,
+  dependencyKind: DependencyKind,
+  isMethodCall: boolean,
+  explicitRecordRootName: string | undefined,
+  baseVariableName: string | undefined,
+  directLevel0RecordFieldKey: string | undefined
+): PeopleCodeReference | undefined
+
+recordPostfixMemberReuse(
+  member: string,
+  dependencyKind: DependencyKind,
+  explicitRecordRootName: string | undefined,
+  baseVariableName: string | undefined,
+  directLevel0RecordFieldKey: string | undefined,
+  fieldMemberFromGetRecord: boolean,
+  reference: PeopleCodeReference
+): void
+```
+Both close over the same ten pools (`explicitRecordFields`,
+`declaredRecordFields`, `rowShorthandFields`, `rowShorthandRecords`,
+`rowShorthandRecordsByBase`, `rowShorthandRecordsByControlGroup`,
+`recordVariableFields`, `typedRowFields`, `fieldReferencesByControlGroup`,
+`level0RowsetRecordsByField`) and `controlGroup`/`recordVariables`/
+`rowVariables`/`rowsetElementRecords`/`recordReferencesByControlGroup`/
+`references`/`same` exactly as the inline code did; nothing about their
+storage changed.
+
+**4. Responsibilities remaining inside `expectedReferenceMember`:**
+type/provenance classification (its own four-arm initial ternary,
+duplicating a narrower slice of what `ChainSemantics` now also computes);
+the ONE reuse-policy input it still feeds directly
+(`reuseFieldReferenceWithinControlGroup`'s gating condition, via
+`fieldMemberFromGetRecord && expectedReferenceMember === 'field'`); the
+diagnostic eligibility reading (`!== undefined`, read-only, in the
+`ChainSemanticsDiagnostic` comparison); and its role in the big gate's
+OWN `!== undefined` condition (still the FIRST clause of the
+`bareMemberBindingEligible` gate — `dependencyKind` did not replace this,
+since `!== undefined` is an "is this ANY kind at all" question, not a
+"which kind" question).
+
+**5. Responsibilities removed from `expectedReferenceMember`:**
+every "which kind, for pool-dispatch/allocation/pool-population purposes"
+reading -- eight call sites across `isInlineRowStateMember` and the two
+new extracted functions no longer read `expectedReferenceMember` at all;
+they read `dependencyKind`, passed as an explicit parameter.
+
+**6. State that can now be deleted or simplified in a future cycle:**
+- `chainSemanticsBindingUnmodeled` is GONE (Phase 9B) -- already deleted,
+  not merely a candidate.
+- `expectedReferenceMember`'s own initial four-arm ternary (its
+  type/provenance role) is now a strict subset of what
+  `initialChainSemantics` already computes independently, two dozen lines
+  below it -- a future cycle could investigate whether
+  `dependencyKind`'s OWN initial value can be derived from
+  `chainSemantics.valueType` instead of duplicating the ternary, though
+  this was explicitly NOT attempted this cycle (Cycle 7's own Phase 7F
+  note: `chainSemantics.valueType` is not yet a proven substitute for the
+  RECORD/FIELD kind decision at every call site).
+- `fieldMemberFromGetRecord` remains untouched and is still the cleanest
+  single-role flag in the file (Cycle 8's own finding) -- no change
+  candidate identified this cycle.
+
+**7. Unresolved pool-keying questions (explicitly NOT touched, per Phase
+9D):** `rowShorthandRecords` and `typedRowFields` remain the only two
+pools with no control-group scoping in their key; `fieldReferencesByControlGroup`
+remains written from both `recordPostfixMemberReuse` (the bare
+`GetRecord().FIELDNAME` shorthand path) and `fieldReference()`'s own
+`reuseFieldReferenceWithinControlGroup`-gated path (the explicit
+`.GetRecord(...).GetField(Field.X)` argument path) -- now visibly two
+call sites into the SAME extracted function's sibling `.set()` versus a
+wholly separate function, rather than two anonymous inline blocks, but
+the underlying dual-writer question Cycle 8 raised is still open. Both
+require their own dedicated corpus population studies before any keying
+change, per Cycle 8's own finding and this cycle's explicit instruction
+not to touch them yet.
+
+### Next action (research cycle)
+
+1. Research the Rowset-selector `(...)` mechanism's own receiver-provenance
+   rule (Cycle 7/8's still-open item) -- now directly actionable, since
+   `provenance: 'selector'` is the exact place a real rule would be wired
+   in, replacing the `'unknown'`-equivalent placeholder this cycle
+   preserved rather than resolved.
+2. Investigate the `rowShorthandRecords`/`typedRowFields` un-scoped-key
+   anomaly and the `fieldReferencesByControlGroup` dual-writer question
+   (Cycle 8's Findings 1-2) with dedicated, narrow corpus sweeps.
+3. Only after 1-2: consider whether `dependencyKind`'s initial value can
+   be derived from `chainSemantics.valueType`, closing the remaining
+   duplication between `expectedReferenceMember`'s own four-arm ternary
+   and `initialChainSemantics`.
+4. This cycle intentionally made no exact-count-affecting change; the
+   next corpus run should still show 23,182/30,209 EXACT, 430/430
+   protected, 0 regressions.
+5. Do not begin semantic calibration automatically, per instruction.
+
 ## Compiler Semantics Cycle 8 — role map of the remaining postfix binding/reuse coupling (research only, zero behavior change)
 
 **Status: mapping complete; no encoder changes.** Baseline is commit
