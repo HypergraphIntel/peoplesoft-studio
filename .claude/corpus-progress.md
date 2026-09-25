@@ -1,5 +1,40 @@
 # Corpus Calibration Progress
 
+## Fix #85: `Local %metadata:ClassName &var;` declaration type lookahead
+
+`src/peoplecode/encoder.ts`, `localDeclaration()`'s Application-Class-type
+detection: the lookahead regex that decides whether a `Local` declaration's
+type is a qualified Application Class path required the FIRST path
+segment to start with a letter/underscore
+(`/^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*.../`), so `Local %metadata:AppDataSet
+&recName;` -- using the reserved `%metadata` package root -- never
+matched and fell through to the plain `typeName()` path, which also
+can't start with `%`, throwing `expected a PeopleCode type name`.
+`applicationClassPath()` itself (the function this lookahead's `if`
+branch calls into) already accepts an optional leading `%` for exactly
+this reserved package (see its own comment, "`%metadata` is a reserved
+package root... always the FIRST path component"); only THIS entry-point
+lookahead was missing the same `%?` allowance. Widened the regex to
+`/^(%?[A-Za-z_][A-Za-z0-9_]*)\s*:\s*.../`.
+
+Searched the corpus for `expected a PeopleCode type name` (10
+occurrences, all `Local %metadata:...`). Sampled all 10 via the real
+harness: none reach `EXACT` -- every one of these files is a genuine
+Application-Class-style program (`import %metadata:*; ... class
+SomeClass method ...`) that, once past this specific crash, immediately
+hits the ALREADY-documented, deliberately-deferred "bare identifiers are
+only supported as calls" / multi-method Application Class program gap
+(confirmed via `--verbose` on 6 of the 10). This fix is still valid,
+narrow, evidence-backed progress on its own construct -- it just doesn't
+fully resolve these particular files because of a separate, already-known
+limitation. None regressed (confirmed: none of the 10 were EXACT before).
+
+Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
+`corpus:verify --limit 430` 430/430, 0 regressed. Full-corpus background
+run (run_id 347, 30209/30209, exact=22655) diffed against the immediately
+preceding full run (run_id 329, exact=22655): 0 improved, 0 regressed,
+30209 same (expected, per the deferred-gap reasoning above).
+
 ## Fix #84: `Repeat` body comment handling and Until-trailing-semicolon omission
 
 `src/peoplecode/encoder.ts`, `repeatStatement()`'s body loop: this was by
@@ -436,25 +471,24 @@ run (run_id 295, 30209/30209, exact=22516) diffed against the immediately
 preceding full run (run_id 292, exact=22511): 5 improved, 0 regressed,
 30204 same.
 
-## Status as of Fix #84 (current)
+## Status as of Fix #85 (current)
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
   throughout. `--live` has never been used this session.
 - **Protected baseline**: 430/430, clean.
-- **Last successful calibration**: Fix #84 (above).
-- **Corpus total**: full-corpus run_id 329 = 22655/30209 exact (75.0%),
-  confirmed zero-regression against run_id 320 (Fix #83's baseline,
-  itself confirmed zero-regression against run_id 309/307/305/303/301/299/297/295/292/290/288).
+- **Last successful calibration**: Fix #85 (above).
+- **Corpus total**: full-corpus run_id 347 = 22655/30209 exact (75.0%),
+  confirmed zero-regression against run_id 329 (Fix #84's baseline,
+  itself confirmed zero-regression against run_id 320/309/307/305/303/301/299/297/295/292/290/288).
 - **CRITICAL VALIDATION REMINDER** (from Fix #83, still in force): a
   scratch script that only calls `encodeProgram()` and compares to stored
   bytes is NOT sufficient to judge whether a fix achieved full `EXACT` --
   always cross-check a handful of candidates against the REAL `npm run
   corpus:harness -- --definition-id <ID>` command (or a full corpus run)
   before concluding a fix "didn't help" or celebrating a sample's
-  encode-only match rate. Fix #84 already applied this lesson (sampled
-  via the real harness, not a scratch script).
+  encode-only match rate.
 - **Next action**: resume failure-family triage from the current failure
-  inventory (`GROUP BY classification, error_message` on run_id 329 in
+  inventory (`GROUP BY classification, error_message` on run_id 347 in
   `tools/corpus/corpus-results.sqlite`, excluding `%bare identifiers%` and
   `%Application Class%` which are the known-deferred gap). Nothing large
   is pre-scoped as of this update -- re-run the failure-family query fresh
