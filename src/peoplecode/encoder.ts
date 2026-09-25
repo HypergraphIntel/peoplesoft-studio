@@ -4998,7 +4998,20 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       if (source[pos] === ';') {
         pos++;
         chunks.push(fixed(';'));
-      } else if (!/^(?:Else|End-If)\b/i.test(source.slice(pos))) {
+      } else if (!/^(?:Else|End-If|REM)\b/i.test(source.slice(pos))) {
+        /*
+         * A statement immediately followed by a REM comment (no
+         * intervening statement of its own) may likewise omit its
+         * trailing source semicolon, the same way one immediately
+         * before Else/End-If already can.
+         *
+         * FUNCLIB_HR.FIELDVALUE_ERROR.FieldEdit (definition 13181):
+         *
+         *   Error MsgGet(2050, 10, "Field Text Type required for
+         *      Field Type of VALUE")
+         *   rem error "Text cannot be blank for VALUE field type ";
+         *   End-If;
+         */
         fail('expected ; in If body');
       }
       trailingBlockComments();
@@ -8284,6 +8297,22 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         trailingStandaloneCommentEnd >= 0 &&
         /^\s*$/.test(source.slice(trailingStandaloneCommentEnd + 2));
 
+      /*
+       * A top-level statement immediately followed by a REM comment (no
+       * semicolon of its own) may likewise omit it -- the REM statement
+       * itself is handled by this same loop's own dedicated REM branch
+       * on its next iteration, exactly like the ordinary
+       * `;`-then-continue path. Not restricted to EOF: the REM statement
+       * may not be the last thing in the file.
+       *
+       * CAF_FACTOR_360.CAF_CLOSE_BTN.FieldChange (definition 2175):
+       *
+       *   &cmpSession.Configuration.ComparisonHandler.
+       *       DeleteFactorfromAnalysisGrouplets(&RS_Flt_Factor360(&save_i_flt_fac))
+       *   rem &cmpSession.ProcessNUIAction("updfactor");
+       */
+      const precedesRemStatement = /^REM\b/i.test(source.slice(pos));
+
       const selfTerminatingAtEof =
         (
           pos === source.length &&
@@ -8297,7 +8326,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             isWarningOrErrorStatement ||
             isTryStatement
           )
-        ) || assignmentBeforeFinalStandaloneComment;
+        ) || assignmentBeforeFinalStandaloneComment || precedesRemStatement;
 
       if (!selfTerminatingAtEof) {
         fail('expected ;');

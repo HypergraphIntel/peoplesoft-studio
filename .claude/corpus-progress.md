@@ -1,6 +1,36 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #71** landed (src/peoplecode/encoder.ts): a statement immediately
+  followed by a `REM ...;` comment (no semicolon of its own) may omit
+  its trailing source semicolon, in two contexts:
+  1. **Inside an If body**: added `REM` to the existing `Else`/`End-If`
+     omission-allowance list at the If-body statement-terminator check.
+     Target: definition 13181 (FUNCLIB_HR.FIELDVALUE_ERROR.FieldEdit):
+     ```
+     Error MsgGet(2050, 10, "Field Text Type required for Field Type of VALUE")
+     rem error "Text cannot be blank for VALUE field type ";
+     End-If;
+     ```
+  2. **At the top level**: added a `precedesRemStatement` check
+     (unrestricted by EOF, since the REM statement need not be the last
+     thing in the file -- the top-level loop's own dedicated REM branch
+     picks it up cleanly on its next iteration). Target: definition 2175
+     (CAF_FACTOR_360.CAF_CLOSE_BTN.FieldChange):
+     ```
+     &cmpSession.Configuration.ComparisonHandler.
+         DeleteFactorfromAnalysisGrouplets(&RS_Flt_Factor360(&save_i_flt_fac))
+     rem &cmpSession.ProcessNUIAction("updfactor");
+     ```
+  Searched the corpus for the "expected ;"/"expected ; in If body"
+  `ENCODE_ERROR` family sharing this `rem`-adjacent shape (9 sampled):
+  7 confirmed fully EXACT (13155, 13174, 13181, 13182, 13192, 13208,
+  5462), 2 advanced past the statement-before-REM construct into
+  separate, unrelated, small reference-index mismatches (2175, 13179),
+  confirmed via git-stash comparison to have failed at this exact
+  construct before the fix -- zero regressions. Verified: `npx tsc -p .`
+  clean; `npm test` 459/460 (1 pre-existing skip); `corpus:verify
+  --limit 430` 430/430, 0 regressions.
 - **Fix #70** landed (src/peoplecode/encoder.ts, `andExpression()` /
   `booleanExpression()`): a block comment sitting between a boolean
   operand and the `And`/`Or` keyword that continues the expression
