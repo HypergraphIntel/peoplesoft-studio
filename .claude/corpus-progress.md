@@ -1,6 +1,53 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #69** landed (src/peoplecode/encoder.ts, `value()`) -- a
+  significant gap: **decimal number literals were entirely unsupported**.
+  `value()`'s number-literal branch only ever matched bare integer digits
+  (`/^[0-9]+/`); a literal like `9999999.99` or `0.0` parsed just the
+  integer part ("9999999"/"0"), left the `.` for the general postfix-
+  chain parser to interpret as member access, and failed "expected
+  member name after ." when a digit (not an identifier) followed. The
+  decoder has supported this all along -- opcode 0x50's operand already
+  carries a *scale* byte alongside its 16-byte magnitude
+  (`value / 10^scale`; see `numberFormats.ts`'s own comment, "the
+  encoder currently writes zero-scale 0x50 integers" -- now no longer
+  true), confirmed independently by `docs/ROADMAP.md` pass thirty-four
+  (`&pcts.Push(33.34)`, scale 2, magnitude 3334). Changed the digit regex
+  to `/^([0-9]+)(?:\.([0-9]+))?/`, computed `scale` from the fractional
+  digit count, built the magnitude from the CONCATENATED integer+
+  fractional digit string (leading zeros stripped the same way the
+  existing integer path already does), and wrote the scale into the
+  previously-always-zero byte. Target: definition 2291
+  (CAN_AMEND_RL1_D.CORRECTED_AMOUNT.FieldFormula, `If CAN_AMEND_RL1_D.
+  CORRECTED_AMOUNT > 9999999.99 Then`) -- confirmed full EXACT. Searched
+  the corpus for the "expected member name after ." `ENCODE_ERROR`
+  family before implementing (spanning two separate construct-snippet
+  groups, both actually the same root cause: `0;\n &TOT_EE...` and
+  `99 Then\n ...`, 15 combined sample checked): 5 confirmed fully EXACT
+  (2291, 2309, 3072, 3074, 26959), 9 advanced past the decimal-literal
+  parse point into a separate, unresolved PSPCMNAME reference-index
+  issue in the same programs (not caused by this fix -- confirmed
+  identical error family to prior sessions' similar deferred cases), 1
+  hit an entirely unrelated pre-existing "unsupported PeopleCode
+  statement" error further into the file -- all 10 non-exact candidates
+  confirmed via git-stash comparison to have failed at the decimal-
+  literal construct itself before this fix, zero regressions. **Two
+  pre-existing tests had to be updated**: `encoderCalls.test.ts`'s
+  `Return F(1.5);` and `encoderNumbers.test.ts`'s `Return 1.0;` were both
+  in "should fail as unsupported" lists that predated any corpus
+  evidence for decimals -- removed both (the `.5`/`1e3`/`0x10`/etc.
+  neighbors in the same lists remain correctly unsupported, no corpus
+  evidence for those shapes) and added positive round-trip tests
+  (`1.0`, `0.0`, `9999999.99`, `0000.50` decode/re-encode identically)
+  plus a byte-level test confirming the scale byte and magnitude for
+  `33.34` match the ROADMAP-documented calibration exactly. Verified:
+  `npx tsc -p .` clean; `npm test` 459/460 (1 pre-existing skip, up from
+  457/458 with the 2 new positive-test additions); `corpus:verify
+  --limit 430` 430/430, 0 regressions. Given `value()` is used
+  everywhere a number can appear, a full-corpus background diff was
+  also started; see next entries for both this run's and Fix #68's
+  results once complete.
 - **Fix #68** landed (src/peoplecode/encoder.ts, top-level statement
   loop's `selfTerminatingAtEof` check), three new self-terminating-at-EOF
   shapes added alongside the existing If/Evaluate/assignment/bare-call/

@@ -2567,24 +2567,45 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      */
     if (word('Null')) return Buffer.from([0x4b]);
 
-    const digits = /^[0-9]+/.exec(source.slice(pos))?.[0];
-    if (digits !== undefined) {
+    const numberMatch = /^([0-9]+)(?:\.([0-9]+))?/.exec(source.slice(pos));
+    if (numberMatch) {
+      const [wholeMatch, integerPart, fractionPart] = numberMatch;
+      /*
+       * A decimal literal (e.g. `33.34`, `9999999.99`) stores its
+       * fractional digit count as a *scale* byte alongside the same
+       * 0x50 magnitude field an integer literal uses -- the decoder
+       * already reconstructs `value / 10^scale` (see `formatScaled()`
+       * in decoder.ts, "found by refusing" pass thirty-four), but the
+       * encoder previously only ever parsed bare integer digits, always
+       * writing a zero scale. Without this, a decimal literal's `.`
+       * was left for the general postfix-chain parser to choke on,
+       * expecting a member name after what it saw as a `.` operator.
+       *
+       * CAN_AMEND_RL1_D.CORRECTED_AMOUNT.FieldFormula (definition 2291,
+       * one of many corpus occurrences of this shape):
+       *
+       *   If CAN_AMEND_RL1_D.CORRECTED_AMOUNT > 9999999.99 Then
+       */
+      const scale = fractionPart?.length ?? 0;
       // Bound conversion before BigInt, including arbitrarily many leading
       // zeros. Never route the magnitude through a lossy JS Number.
-      const canonical = digits.replace(/^0+/, '') || '0';
+      const canonical = (integerPart + (fractionPart ?? '')).replace(/^0+/, '') || '0';
       if (canonical.length > MAX_INTEGER_DIGITS) fail('unsigned integer exceeds the 128-bit magnitude field');
       let magnitude = BigInt(canonical);
       if (magnitude > MAX_UNSIGNED_INTEGER) fail('unsigned integer exceeds the 128-bit magnitude field');
+      if (scale > 0xff) fail('decimal literal scale exceeds the 1-byte scale field');
       const { opcode, operandLength, valueOffset, valueBytes } = UNSIGNED_NUMBER_FORMAT;
       const bytes = Buffer.alloc(1 + operandLength);
       bytes[0] = opcode;
-      // The zero prefix and scale stay zero. Write the entire little-endian
-      // magnitude field; integer division never rounds through floating point.
+      // The zero prefix stays zero. Write the scale, then the entire
+      // little-endian magnitude field; integer division never rounds
+      // through floating point.
+      bytes[2] = scale;
       for (let i = 0; i < valueBytes; i++) {
         bytes[1 + valueOffset + i] = Number(magnitude & 0xffn);
         magnitude >>= 8n;
       }
-      pos += digits.length;
+      pos += wholeMatch.length;
       return bytes;
     }
     const quote = source[pos];
