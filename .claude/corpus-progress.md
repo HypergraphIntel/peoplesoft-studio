@@ -30,7 +30,10 @@
   confirmed via git-stash comparison to have failed at this exact
   construct before the fix -- zero regressions. Verified: `npx tsc -p .`
   clean; `npm test` 459/460 (1 pre-existing skip); `corpus:verify
-  --limit 430` 430/430, 0 regressions.
+  --limit 430` 430/430, 0 regressions. Full-corpus background diff
+  (run_id 282 -> 284, all 30,209 definitions) confirmed: 9 improved, 0
+  regressed, 30200 unchanged. New corpus total: 22482/30209 exact
+  (74.4%).
 - **Fix #70** landed (src/peoplecode/encoder.ts, `andExpression()` /
   `booleanExpression()`): a block comment sitting between a boolean
   operand and the `And`/`Or` keyword that continues the expression
