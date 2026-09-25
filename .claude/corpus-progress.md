@@ -6,11 +6,9 @@
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #91, committed at `16233cd` (see
-  below for its full description). This progress-ledger update (recording
-  a subsequent triage round that found four deferred items and landed no
-  new fix -- see "Identified, not yet fixed" for definitions 1521,
-  1423/1424, and 1721/1722) is currently uncommitted. (Fix #90's own code
+- **Last successful calibration**: Fix #92 (see below for its full
+  description). The preceding Fix #91 was committed at `16233cd`.
+  (Fix #90's own code
   landed in commit `b17f9c7` "More encoder / decoder fixes" -- committed
   directly by the user's own editor tooling mid-session, capturing this
   fix's already-verified working-tree diff verbatim; content confirmed
@@ -43,9 +41,8 @@
   --rebase` mid-session to avoid a repeat -- if a pull is genuinely
   needed, checkpoint `.claude/corpus-progress.md` to a scratch copy
   first.
-- **Corpus total** (full-corpus run_id 1597, re-confirmed with a fresh full
-  run after Fix #91 and the git-incident recovery both landed):
-  22914/30209 exact (75.8%).
+- **Corpus total** (full-corpus run_id 1622, after Fix #92):
+  22916/30209 exact (75.9%).
   Fix #73 was first rechecked against the already-equivalent full run 1326
   (run 1327: all 30209 materially unchanged). Subsequent full diffs were:
   Fix #74 run 1327 -> 1338 (2 exact, 4 advanced, 0 regressed); Fix #75 run
@@ -75,7 +72,8 @@
   against the merge-conflict-resolution commit's own full run rather than
   1545 directly, since that run already included both this session's
   work and `origin/main`'s separately-landed array-of-array/bare-array
-  feature); Fix #91 run 1587 -> 1597 (1 exact, 0 regressed). The
+  feature); Fix #91 run 1587 -> 1597 (1 exact, 0 regressed); Fix #92 run
+  1597 -> 1622 (2 exact, 2 advanced, 0 regressed). The
   protected gate remains 430/430.
 - **Locally blocked / deferred, evidence exhausted this session** (see
   their own entries further down for full evidence trails): the `#If
@@ -118,6 +116,26 @@
   below.
 
 ## Current target
+- **Fix #92** landed locally (src/peoplecode/encoder.ts): ordinary
+  `Component` declarations may preserve a trailing comma immediately
+  before their semicolon. Four independent HCDEV definitions prove the
+  same byte shape across scalar, Rowset, and array types: the comma is
+  the normal `0x03` punctuation opcode followed directly by the ordinary
+  declaration semicolon `0x15`, with no missing variable invented. For
+  example, definition 21463's `Component string &NodeAttrSelected,;`
+  stores `54 40 "string" 01 "&NodeAttrSelected" 03 15`, while definition
+  14721 independently stores the same terminal `03 15` after four Rowset
+  variables. The component-variable loop now stops after emitting a
+  comma when the next token is `;`. Definitions 14721 and 21463 are now
+  fully EXACT. Definitions 17309 and 21578 both compile past the formerly
+  unsupported declaration and expose later, unrelated mismatches (17309:
+  body offset 10833, comment-boundary shape; 21578: body offset 2361,
+  reference indices), so they advanced from ENCODE_ERROR without being
+  claimed exact. Added a byte-level regression covering both an ordinary
+  separator and a trailing comma. Full run 1597 -> 1622: 2 exact, 2
+  advanced, 0 regressed. Full project `npm run typecheck` and `npm test`
+  are clean (482 tests, 481 pass, 1 intentional skip); protected gate:
+  430/430.
 - **Fix #91** landed locally (src/peoplecode/encoder.ts): the FIELD half of
   an explicit `Record.REC.FIELD.Value` chain (the calibrated
   `explicitRecordRootName`/`explicitRecordFields` mechanism, keyed by
@@ -4767,7 +4785,13 @@ project-level blocker").
 - definitions: 430
 - exact: 430
 - regressions: 0
-- last verified: 2026-09-25 (/goal resume session), after Fix #91
+- last verified: 2026-09-25 (/goal resume session), after Fix #92
+  (ordinary Component declarations preserve an evidenced trailing comma),
+  REGRESSION GATE: PASS (430/430, no regression). Full corpus run_id 1622
+  directly diffed against run_id 1597: 2 newly exact, 2 advanced, 0
+  regressed. Full-project `npm run typecheck` and `npm test` (482 tests,
+  481 pass, 1 intentional skip) both clean.
+- prior verification: 2026-09-25 (/goal resume session), after Fix #91
   (explicit Record.REC.FIELD.Value chain's FIELD half now reusable by
   name across a different root record via the shared `declaredRecordFields`
   pool), REGRESSION GATE: PASS (430/430, no regression). Full corpus

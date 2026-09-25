@@ -1548,6 +1548,16 @@ test('encodeProgram exactly reproduces a Component declaration', () => {
   );
 });
 
+test('Component declarations preserve a trailing comma before the semicolon', () => {
+  assert.deepStrictEqual(
+    encodeFragment('Component string &A, &B,;'),
+    Buffer.from(
+      '544073007400720069006e006700000001260041000000030126004200000003152d',
+      'hex'
+    )
+  );
+});
+
 test('encodeProgram exactly reproduces mixed Global and Component declarations', () => {
   const source = `Global integer &g;
 Component integer &c;
