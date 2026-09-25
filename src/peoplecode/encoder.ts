@@ -108,6 +108,36 @@ export interface ReferenceTraceEvent {
   reference: PeopleCodeReference;
 }
 
+/**
+ * Cycle 6 (see .claude/corpus-progress.md): a research-only report that
+ * `ChainSemantics`'s own binding prediction (derived purely from receiver
+ * provenance, per Cycle 4's evidence -- see `deriveChainSemantics`'s own
+ * comment) disagreed with what the encoder's EXISTING, unconditional
+ * name-based logic actually decided for a bare `.MEMBER` postfix step.
+ *
+ * Confirmed corpus shape (definitions 1423/1424/1721/1722): a bare,
+ * argument-less intrinsic call (`GetRecord()`, `GetRowset()`) with no
+ * schema information, or `.ParentRow`/`.ParentRowset` navigation off such
+ * a value, has `binding: 'dynamic'` -- calling `.GetRecord(Record.X)` /
+ * `.GetRow(...)` on it changes `valueType` but, per Cycle 4, does NOT
+ * itself establish binding ("a method name on a dynamic value does not by
+ * itself authorize dependency shorthand"). The existing encoder's
+ * `expectedReferenceMember` ternary sets `'field'`/`'record'` purely from
+ * the METHOD NAME (`GetRecord`/`GetRow`), with no receiver-provenance
+ * check at all, so it wrongly treats a subsequent bare member as
+ * dependency-eligible in exactly this shape -- the corpus-confirmed
+ * bug this diagnostic exists to surface.
+ */
+export interface ChainSemanticsDiagnostic {
+  sourceOffset: number;
+  /** The bare member name whose binding eligibility was being decided. */
+  member: string;
+  /** ChainSemantics' own prediction at this point. */
+  predicted: ChainSemantics;
+  /** What the existing encoder actually decided (true = treated as a dependency candidate). */
+  actualBindingEligible: boolean;
+}
+
 export interface EncodeProgramContext {
   owner?: PeopleCodeOwner;
 
@@ -118,6 +148,18 @@ export interface EncodeProgramContext {
    */
   referenceTrace?: (
     event: ReferenceTraceEvent
+  ) => void;
+
+  /**
+   * Optional diagnostic hook reporting a disagreement between
+   * `ChainSemantics`'s own binding prediction and the encoder's existing
+   * decision for a bare postfix member. See `ChainSemanticsDiagnostic`'s
+   * own comment. Purely observational -- never read by any encoding
+   * decision, confirmed by a full corpus zero-behavior-change diff (see
+   * the progress file).
+   */
+  chainSemanticsTrace?: (
+    event: ChainSemanticsDiagnostic
   ) => void;
 
   /**
@@ -2041,6 +2083,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   const rowShorthandRecords = new Map<string, PeopleCodeReference>();
   const rowsetElementRecords = new Map<string, PeopleCodeReference>();
   const rowsetRecordNamesByVariable = new Map<string, string>();
+  /*
+   * Cycle 6, diagnostic-only (see .claude/corpus-progress.md): tracks
+   * which `&variable`s were most recently assigned a top-level
+   * `CreateRowset(Record.X)` result, REGARDLESS of whether that variable
+   * is declared (unlike `rowsetRecordNamesByVariable` above, which is
+   * intentionally scoped to `rowsetVariables`-declared receivers for its
+   * own, separately-evidenced `GetLevel0()(N).GetRowset(Scroll.X)` rule).
+   * This is the missing half of Cycle 4's "schema provenance" finding:
+   * definition 524's own `&RS_Country = CreateRowset(Record.COUNTRY_TBL);`
+   * is an UNDECLARED receiver that nonetheless has known schema
+   * provenance. Consulted only by `initialChainSemantics`'s own
+   * derivation below -- purely observational, never read by any encoding
+   * decision.
+   */
+  const schemaBoundVariables = new Set<string>();
   const level0RowsetRecordsByField = new Map<string, PeopleCodeReference>();
   const createRecordReferences = new Map<string, PeopleCodeReference>();
   const createRecordReferenceCounts = new Map<string, number>();
@@ -4012,6 +4069,18 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             );
           } else {
             rowsetRecordNamesByVariable.delete(statementVariable.toLowerCase());
+          }
+        }
+
+        // Cycle 6, diagnostic-only: see schemaBoundVariables's own
+        // declaration comment. Deliberately NOT scoped to
+        // rowsetVariables/recordVariables -- this specifically tracks the
+        // UNDECLARED case.
+        if (statementVariable !== undefined) {
+          if (/^\s*CreateRowset\s*\(\s*Record\s*\./i.test(source.slice(pos))) {
+            schemaBoundVariables.add(statementVariable.toLowerCase());
+          } else {
+            schemaBoundVariables.delete(statementVariable.toLowerCase());
           }
         }
 
@@ -7614,8 +7683,52 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
               : baseVariableName !== undefined &&
                 recordVariables.has(baseVariableName.toLowerCase())
                 ? { valueType: 'record', binding: 'dependency-bound', provenance: 'declared' }
-                : { valueType: 'unknown', binding: 'dynamic', provenance: 'unknown' };
-    void initialChainSemantics;
+                : /*
+                   * Cycle 6 addition: a declared Rowset variable
+                   * (`Local Rowset &rs;`) is the fourth declared-type
+                   * arm Cycle 4's own evidence table names (500
+                   * occurrences across 122 EXACT definitions for the
+                   * postfix-GetRow `.REC.FIELD.Value` shape reached
+                   * through a declared-Rowset-sourced `GetRowset(Scroll.X)`
+                   * receiver). `rowVariables`/`recordVariables` were
+                   * already read by `initialChainSemantics`'s other arms
+                   * above; `rowsetVariables` is the same kind of existing,
+                   * already-populated declaration-tracking set, just not
+                   * previously consulted here. No declared-Field-variable
+                   * tracking set exists anywhere in the encoder today
+                   * (unlike Row/Rowset/Record), so that arm is
+                   * deliberately left unrepresented rather than invented
+                   * -- see the Cycle 6 report for this as a documented
+                   * gap, not an oversight.
+                   */
+                  baseVariableName !== undefined &&
+                  rowsetVariables.has(baseVariableName.toLowerCase())
+                  ? { valueType: 'rowset', binding: 'dependency-bound', provenance: 'declared' }
+                  : /*
+                     * Cycle 6 addition, closes Cycle 5's own documented
+                     * gap: an UNDECLARED variable most recently assigned
+                     * `CreateRowset(Record.X)` (definition 524's own
+                     * `&RS_Country`) has schema-derived provenance despite
+                     * never being declared -- see `schemaBoundVariables`'s
+                     * own declaration comment.
+                     */
+                    baseVariableName !== undefined &&
+                    schemaBoundVariables.has(baseVariableName.toLowerCase())
+                    ? { valueType: 'rowset', binding: 'dependency-bound', provenance: 'schema' }
+                    : { valueType: 'unknown', binding: 'dynamic', provenance: 'unknown' };
+
+    /*
+     * Cycle 6: `chainSemantics` evolves as the postfix loop below consumes
+     * each `.MEMBER`/`.Method(...)` step, per the transition table in
+     * `.claude/corpus-progress.md`'s Cycle 6 section. Still purely
+     * observational -- every update below is a NEW, ADDITIONAL statement
+     * alongside the existing `expectedReferenceMember`/
+     * `fieldMemberFromGetRecord` logic, never a replacement of it, and
+     * nothing outside this diagnostic tracking (and the opt-in
+     * `chainSemanticsTrace` comparison) reads `chainSemantics`. Confirmed
+     * zero-behavior-change by a full corpus diff (see the progress file).
+     */
+    let chainSemantics: ChainSemantics = initialChainSemantics;
 
     /*
      * Distinguishes "expectedReferenceMember === 'field' because this is
@@ -7683,6 +7796,33 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           directLevel0RecordField === undefined
             ? undefined
             : `${controlGroup}:${baseVariableName!.toLowerCase()}:${member.toLowerCase()}:${directLevel0RecordField.toLowerCase()}`;
+
+        /*
+         * Cycle 6 diagnostic only (see ChainSemanticsDiagnostic's own
+         * comment): for a BARE (non-method-call) member -- the exact
+         * shape definitions 1423/1424/1721/1722 vs. 432/524 distinguish
+         * -- compare ChainSemantics' receiver-provenance-based
+         * prediction against what `expectedReferenceMember` (a purely
+         * name-based decision with no provenance check) actually
+         * decides. Scoped to bare members only: a `.GetField(...)`-style
+         * method call is a structurally different, already-well-evidenced
+         * case this diagnostic is not about. Fires the optional
+         * `chainSemanticsTrace` hook only; never reads its own result,
+         * never branches on it.
+         */
+        if (!isMethodCall && !isInlineRowStateMember) {
+          const predictedEligible = chainSemantics.binding === 'dependency-bound';
+          const actualEligible = expectedReferenceMember !== undefined;
+
+          if (predictedEligible !== actualEligible) {
+            context?.chainSemanticsTrace?.({
+              sourceOffset: pos - member.length,
+              member,
+              predicted: chainSemantics,
+              actualBindingEligible: actualEligible
+            });
+          }
+        }
 
         if (
           expectedReferenceMember !== undefined &&
@@ -7999,11 +8139,26 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
               ? 'field'
               : undefined;
           fieldMemberFromGetRecord = false;
+          // Cycle 6: mirrors expectedReferenceMember's own transition
+          // immediately above exactly (record->field, else->no longer
+          // bound) -- a bound RECORD's own member consumption yields a
+          // bound FIELD; consuming a further member past an already-FIELD
+          // chain yields a scalar (FIELD's own further members, e.g.
+          // .Value, are inline properties per Cycle 4's table).
+          chainSemantics =
+            expectedReferenceMember === 'field'
+              ? { valueType: 'field', binding: chainSemantics.binding, provenance: chainSemantics.provenance }
+              : { valueType: 'scalar', binding: 'dynamic', provenance: 'unknown' };
           continue;
         }
 
         if (isInlineRowStateMember) {
           expectedReferenceMember = undefined;
+          // Cycle 6: inline Row state/property members (.RowNumber,
+          // .IsChanged, etc.) are scalar and do not carry the chain
+          // forward as a bound value -- mirrors expectedReferenceMember's
+          // own reset immediately above.
+          chainSemantics = { valueType: 'scalar', binding: 'dynamic', provenance: 'unknown' };
         }
 
         chunks.push(
@@ -8157,6 +8312,27 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           if (/^GetRow$/i.test(member)) {
             selectedByDirectRowsetPostfix = false;
           }
+          /*
+           * Cycle 6: unlike expectedReferenceMember's own transition just
+           * above (which sets 'field'/'record' from the method NAME
+           * alone, with no receiver check -- exactly the gap
+           * ChainSemanticsDiagnostic exists to surface), chainSemantics
+           * INHERITS binding/provenance from the receiver's OWN state
+           * before this call, per Cycle 4's evidence: "Postfix calls
+           * inherit whether the receiver chain is statically/schema
+           * bound; a method name on a dynamic value does not by itself
+           * authorize dependency shorthand." Calling `.GetRecord(...)`/
+           * `.GetRow(...)`/`.GetRowset(...)` changes valueType but does
+           * NOT itself upgrade an unbound receiver to bound.
+           */
+          chainSemantics =
+            /^GetRecord$/i.test(member)
+              ? { valueType: 'record', binding: chainSemantics.binding, provenance: chainSemantics.provenance }
+              : /^GetRow$/i.test(member)
+                ? { valueType: 'row', binding: chainSemantics.binding, provenance: chainSemantics.provenance }
+                : /^GetRowset$/i.test(member)
+                  ? { valueType: 'rowset', binding: chainSemantics.binding, provenance: chainSemantics.provenance }
+                  : { valueType: 'unknown', binding: 'dynamic', provenance: 'unknown' };
         } else {
           /*
            * A property/member traversal changes the receiver. Without
@@ -8165,6 +8341,12 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
            */
           activeApplicationClassReceiver = undefined;
           expectedReferenceMember = undefined;
+          // Cycle 6: mirrors the reset immediately above -- an
+          // unrecognized property access loses chain-level type/binding
+          // tracking (no property-type metadata exists to carry it
+          // forward), matching Cycle 4's "inline scalar/property members
+          // ... terminate or transform the current member-binding mode."
+          chainSemantics = { valueType: 'unknown', binding: 'dynamic', provenance: 'unknown' };
         }
 
         continue;
@@ -8223,6 +8405,22 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
            */
           expectedReferenceMember = 'record';
           selectedByDirectRowsetPostfix = true;
+          /*
+           * Cycle 6: NOT one of Phase 6A's named evidenced transitions
+           * (the corpus evidence for this specific construct, cited
+           * above, predates this cycle and was never expressed in
+           * receiver-provenance terms). Deliberately NOT inherited from
+           * the receiver's own chainSemantics -- reset to 'unknown'/
+           * 'dynamic' rather than guessed at, per "use unknown where
+           * evidence is insufficient." This means a discrepancy the
+           * diagnostic reports immediately after a Rowset-selector `(...)`
+           * call is a DIFFERENT category from the 1423/1424-style
+           * receiver-provenance gap: it reflects this construct not
+           * being modeled yet, not a claim that the existing
+           * `expectedReferenceMember = 'record'` behavior is wrong (it
+           * is independently evidence-backed, see the comment above).
+           */
+          chainSemantics = { valueType: 'row', binding: 'dynamic', provenance: 'unknown' };
 
           continue;
         }
