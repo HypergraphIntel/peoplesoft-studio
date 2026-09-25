@@ -1,6 +1,50 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #67** landed (src/peoplecode/encoder.ts, `primary()`'s `(`
+  branch): a parenthesized comparison used as a plain expression value
+  (not an If/While condition), e.g.:
+  ```
+  &bWild = (Find("*", &sFile) > 0);
+  &bIsSRM = (GetUserOption("PPTL", "ACCESS") = "A");
+  Visible = (GPGB_EDI_TRANS.GPGB_EDI_AUDIT = "Y");
+  ```
+  was only recognized as needing `booleanExpression()` (rather than
+  plain `expression()`, which cannot parse a trailing comparison
+  operator) when the left side was a bare `&variable`
+  (`startsVariableComparison`'s existing regex). A function-call result
+  (`Find(...)`, `GetUserOption(...)`, `MessageBox(...)`, `RTrim(...)`,
+  `Upper(...)`) or a bare `Record.Field` chain on the left side fell
+  through to plain `expression()`, which parsed the call/chain
+  correctly but then failed expecting `)` right where the comparison
+  operator actually was. Added `startsCallOrFieldComparison`: an
+  identifier, optional `.field` chain, optional single-level `(...)`
+  call arguments, then a comparison operator -- broad enough to cover
+  every shape found without needing balanced-paren lookahead (call
+  arguments in the corpus occurrences are always literals/simple
+  expressions with no further nested parens of their own). Target:
+  definition 26023 (GPGB_EDIFUNCLIB.GPGB_EDI_WORKS_ID.FieldFormula, one
+  of 41 corpus occurrences of this general shape) -- advanced from
+  ENCODE_ERROR to a MISMATCH; the specific parenthesized-comparison
+  construct itself now encodes correctly (confirmed via `--trace-refs`:
+  the comparison's own reference is right), but a SEPARATE, not yet
+  isolated PSPCMNAME reference-reuse divergence remains later in the
+  same (large, complex) program -- not a counter-example against this
+  fix, but not fully EXACT either. Searched the corpus for this general
+  shape before implementing (41 occurrences across Find/GetUserOption/
+  MessageBox/RTrim/Upper calls and bare Record.Field comparisons, 29
+  sampled): all 29 confirmed to no longer fail at the target construct
+  (moved past the fixed offset); of those, several hit the same
+  separate reference-reuse issue noted above (unresolved, deferred), a
+  few hit entirely unrelated pre-existing errors (Application Class
+  declarations, `catch` as a call name, `Continue` ambiguity), and all
+  were confirmed via git-stash comparison to have been ENCODE_ERROR at
+  this exact construct before the fix -- zero regressions. Verified:
+  `npx tsc -p .` clean; `npm test` 456/457 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430, 0 regressions. A full-corpus
+  background diff was also started given this touches shared
+  parenthesized-expression classification in `primary()`; see next
+  entry for its result once complete.
 - **Fix #66** landed (src/peoplecode/encoder.ts + src/peoplecode/
   decoder.ts), a combined encoder+decoder fix for the same construct: a
   `When <condition>;` header (a trailing source semicolon immediately
