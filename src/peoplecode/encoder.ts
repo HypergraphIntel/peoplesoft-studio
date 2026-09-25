@@ -1657,6 +1657,47 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     Set<string> | undefined;
 
   /*
+   * The single-occurrence fallback above (`singleOccurrenceCallArgumentRecordNames`)
+   * originally read straight from `recordReferencesByControlGroup`, the
+   * pool EVERY Record.X allocation writes to (including a RowScrollSelect/
+   * RowScrollSelectNew call's own "last call argument becomes visible"
+   * write a few dozen lines below, evidenced separately by definition
+   * 1145 for a LATER UpdateValue-style reader). AE_UPGCONV_WRK.UPGPATH.
+   * FieldChange (definition 843) disproves reading that shared pool here:
+   *
+   *   ScrollFlush(Record.PSAEAPPLDEFN);
+   *   RowScrollSelect(1, Record.UPGCONV_DEFN, Record.UPGCONV_DEFN);
+   *   RowScrollSelectNew(1, Record.UPGCONV_DEFN, Record.PSAEAPPLDEFN, "...", &UPGPATH);
+   *
+   * RowScrollSelectNew's own UPGCONV_DEFN and PSAEAPPLDEFN arguments both
+   * allocate fresh rows (NAMENUM 4/5) in the stored program -- reusing
+   * neither the intervening RowScrollSelect's own UPGCONV_DEFN row nor
+   * ScrollFlush's earlier PSAEAPPLDEFN row. AE_WRK.AE_DECIDE.SavePreChange
+   * (definition 860) proves the fallback is still real, not merely
+   * disprovable: a bare `ScrollSelectNew(1, Record.A, Record.B, ...)` (not
+   * itself a RowScrollSelect-family name, so an utterly ordinary call)
+   * immediately followed, in the sibling Else branch of the same If, by
+   * `ScrollSelect(1, Record.A, Record.B, ...)` -- ScrollSelect's own A/B
+   * arguments DO reuse ScrollSelectNew's rows.
+   *
+   * The distinguishing factor is not "was the earlier call specifically
+   * ScrollFlush" -- it's whether a RowScrollSelect-family call (RowScrollSelect,
+   * RowScrollSelectNew, or bare ScrollSelect) has intervened since the
+   * earlier allocation. `genericRecordReferencesSinceLastFamilyCall` mirrors
+   * `recordReferencesByControlGroup`'s own ordinary (non-call-private)
+   * writes, but is entirely cleared in the `finally` block of every
+   * RowScrollSelect-family call (after that call's own resolution has
+   * already read it) -- so it carries a row forward across an ordinary
+   * call (ScrollFlush, ScrollSelectNew, or a sibling If/Else branch
+   * boundary) but not across a RowScrollSelect-family call. In definition
+   * 843, RowScrollSelect's own completion clears it, so RowScrollSelectNew
+   * finds neither row. In definition 860, ScrollSelectNew never clears it
+   * (not a family name), so ScrollSelect finds both.
+   */
+  const genericRecordReferencesSinceLastFamilyCall =
+    new Map<string, PeopleCodeReference>();
+
+  /*
    * Bare GetRecord(Record.X) has a narrower reuse scope than GetSetId.
    * It may reuse a same-name RECORD only inside the current control group.
    */
@@ -1981,6 +2022,29 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       );
 
       if (existing !== undefined) {
+        /*
+         * DERIVED_HR.LOOKUP_NID_BTN.FieldChange (definition 5687):
+         *
+         *   ScrollFlush(Record.NID_SRCH_VW);
+         *   &n = ScrollSelect(1, Record.NID_SRCH_VW, Record.NID_SRCH_VW1, ...);
+         *   Else
+         *   ScrollFlush(Record.NID_SRCH_VW);
+         *   &n = ScrollSelect(1, Record.NID_SRCH_VW, Record.NID_DEP_SRCH_V1, ...);
+         *
+         * The If-branch's ScrollSelect (a RowScrollSelect-family call)
+         * clears `genericRecordReferencesSinceLastFamilyCall` on completion
+         * (see that map's own declaration). The Else-branch's ScrollFlush
+         * then reuses NID_SRCH_VW via THIS check, not a fresh allocation --
+         * but that reuse must re-populate the map so the Else-branch's own
+         * ScrollSelect (another family call, right after) can still find
+         * it as a single-occurrence candidate. Without this, the row would
+         * wrongly look "gone" merely because the carrying call happened to
+         * be a reuse rather than a fresh allocation.
+         */
+        genericRecordReferencesSinceLastFamilyCall.set(
+          `${controlGroup}:${recordName.toLowerCase()}`,
+          existing
+        );
         return referenceOperand(existing);
       }
     }
@@ -2022,15 +2086,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * an EARLIER, same-control-group row (e.g. an immediately preceding
        * ScrollFlush's own allocation) -- unlike a name repeated within
        * this call, which stays call-private per the two checks above.
+       *
+       * Read from `genericRecordReferencesSinceLastFamilyCall`, not
+       * `recordReferencesByControlGroup` directly -- see that map's own
+       * declaration (definition 843 vs definition 860) for why an
+       * intervening RowScrollSelect-family call must invalidate this.
        */
       if (
         singleOccurrenceCallArgumentRecordNames?.has(
           recordName.toLowerCase()
         )
       ) {
-        const controlGroupExisting = recordReferencesByControlGroup.get(
-          `${controlGroup}:${recordName.toLowerCase()}`
-        );
+        const controlGroupExisting =
+          genericRecordReferencesSinceLastFamilyCall.get(
+            `${controlGroup}:${recordName.toLowerCase()}`
+          );
 
         if (controlGroupExisting !== undefined) {
           return referenceOperand(controlGroupExisting);
@@ -2100,6 +2170,10 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       !suppressRecordReferenceControlGroupWrite
     ) {
       recordReferencesByControlGroup.set(
+        `${controlGroup}:${recordName.toLowerCase()}`,
+        reference
+      );
+      genericRecordReferencesSinceLastFamilyCall.set(
         `${controlGroup}:${recordName.toLowerCase()}`,
         reference
       );
@@ -6800,6 +6874,18 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           lastCallArgumentReference
         );
       }
+    }
+
+    /*
+     * See `genericRecordReferencesSinceLastFamilyCall`'s own declaration
+     * (definition 843 vs definition 860): every RowScrollSelect-family
+     * call -- including this one -- ends the "carry an ordinary call's
+     * fresh row forward into the next single-occurrence lookup" window.
+     * This call's OWN resolution already read the map above (in the `try`
+     * block); clearing here only affects whatever follows it.
+     */
+    if (/^(?:RowScrollSelect(?:New)?|ScrollSelect)$/i.test(name)) {
+      genericRecordReferencesSinceLastFamilyCall.clear();
     }
 
     reuseRecordReferenceByName =

@@ -881,6 +881,93 @@ test('a later, unrelated initialized top-level Local does not suppress an earlie
   );
 });
 
+test('a RowScrollSelect-family call denies a single-occurrence reuse across an intervening RowScrollSelect-family call', () => {
+  /*
+   * AE_UPGCONV_WRK.UPGPATH.FieldChange (definition_id 843): `ScrollFlush
+   * (Record.PSAEAPPLDEFN);` is followed by `RowScrollSelect(1, Record.
+   * UPGCONV_DEFN, Record.UPGCONV_DEFN);` (a RowScrollSelect-family call,
+   * reusing UPGCONV_DEFN only within its own argument list), then
+   * `RowScrollSelectNew(1, Record.UPGCONV_DEFN, Record.PSAEAPPLDEFN, ...)`.
+   * Both of RowScrollSelectNew's own arguments allocate FRESH rows in the
+   * stored program: the intervening RowScrollSelect call ends the window
+   * in which an ordinary call's row can be picked up by a later
+   * RowScrollSelect-family call's single-occurrence fallback -- reusing
+   * neither the intervening call's own UPGCONV_DEFN row nor ScrollFlush's
+   * earlier PSAEAPPLDEFN row (two statements back).
+   */
+  assert.deepStrictEqual(
+    encodeFragment(
+      'ScrollFlush(Record.PSAEAPPLDEFN);\n' +
+      'RowScrollSelect(1, Record.UPGCONV_DEFN, Record.UPGCONV_DEFN);\n' +
+      'RowScrollSelectNew(1, Record.UPGCONV_DEFN, Record.PSAEAPPLDEFN, "where", &X);\n'
+    ),
+    Buffer.from(
+      '0A5300630072006F006C006C0046006C0075007300680000000B21010014150A52006F0077005300630072006F006C006C00530065006C0065006300740000000B50000001000000000000000000000000000000032102000321020014150A52006F0077005300630072006F006C006C00530065006C006500630074004E006500770000000B500000010000000000000000000000000000000321030003210400031677006800650072006500000003012600580000001415',
+      'hex'
+    )
+  );
+});
+
+test('an ordinary call\'s row carries into a later RowScrollSelect-family call\'s single-occurrence fallback', () => {
+  /*
+   * AE_WRK.AE_DECIDE.SavePreChange (definition_id 860): a bare
+   * `ScrollSelectNew(1, Record.AE_TOOLS_SAV_VW, Record.AE_STMT_TBL, ...)`
+   * -- NOT itself a RowScrollSelect-family name, so an utterly ordinary
+   * call -- is immediately followed (in the sibling Else branch of the
+   * same If) by `ScrollSelect(1, Record.AE_TOOLS_SAV_VW, Record.
+   * AE_STMT_TBL, ...)`. ScrollSelect's own arguments reuse
+   * ScrollSelectNew's rows rather than allocating fresh ones.
+   */
+  assert.deepStrictEqual(
+    encodeFragment(
+      'ScrollSelectNew(1, Record.AE_TOOLS_SAV_VW, Record.AE_STMT_TBL, "where", &X);\n' +
+      'ScrollSelect(1, Record.AE_TOOLS_SAV_VW, Record.AE_STMT_TBL, "where", &X);\n'
+    ),
+    Buffer.from(
+      '0A5300630072006F006C006C00530065006C006500630074004E006500770000000B5000000100000000000000000000000000000003210100032102000316770068006500720065000000030126005800000014150A5300630072006F006C006C00530065006C0065006300740000000B500000010000000000000000000000000000000321010003210200031677006800650072006500000003012600580000001415',
+      'hex'
+    )
+  );
+});
+
+test('a RowScrollSelect-family call\'s own control-group reuse re-populates the single-occurrence fallback pool', () => {
+  /*
+   * DERIVED_HR.LOOKUP_NID_BTN.FieldChange (definition_id 5687):
+   *
+   *   If ... Then
+   *      ScrollFlush(Record.NID_SRCH_VW);
+   *      &n = ScrollSelect(1, Record.NID_SRCH_VW, Record.NID_SRCH_VW1, &W);
+   *   Else
+   *      ScrollFlush(Record.NID_SRCH_VW);
+   *      &n = ScrollSelect(1, Record.NID_SRCH_VW, Record.NID_DEP_SRCH_V1, &W);
+   *   End-If;
+   *
+   * The If-branch's ScrollSelect (a RowScrollSelect-family call) ends the
+   * single-occurrence carry-over window. The Else-branch's ScrollFlush
+   * then reuses NID_SRCH_VW via its own, separate control-group reuse
+   * check (not a fresh allocation) -- and that reuse must re-open the
+   * window so the Else-branch's own ScrollSelect can still find
+   * NID_SRCH_VW as a single-occurrence candidate, exactly as the
+   * If-branch's did. NID_SRCH_VW is stored as ONE PSPCMNAME row shared by
+   * all four calls, not reallocated per branch.
+   */
+  assert.deepStrictEqual(
+    encodeFragment(
+      'If &A = "E" Then\n' +
+      '   ScrollFlush(Record.NID_SRCH_VW);\n' +
+      '   &n = ScrollSelect(1, Record.NID_SRCH_VW, Record.NID_SRCH_VW1, &W);\n' +
+      'Else\n' +
+      '   ScrollFlush(Record.NID_SRCH_VW);\n' +
+      '   &n = ScrollSelect(1, Record.NID_SRCH_VW, Record.NID_DEP_SRCH_V1, &W);\n' +
+      'End-If;\n'
+    ),
+    Buffer.from(
+      '1C012600410000000616450000001F0A5300630072006F006C006C0046006C0075007300680000000B21010014150126006E000000060A5300630072006F006C006C00530065006C0065006300740000000B50000001000000000000000000000000000000032101000321020003012600570000001415190A5300630072006F006C006C0046006C0075007300680000000B21010014150126006E000000060A5300630072006F006C006C00530065006C0065006300740000000B500000010000000000000000000000000000000321010003210300030126005700000014151A15',
+      'hex'
+    )
+  );
+});
+
 test('REM may continue onto an observed single-space prose line', () => {
   const source =
     'REM KJB Removed code for Import Long Term Goals as it is\n' +
