@@ -41,10 +41,9 @@
   byte-identical before and after this fix via git-stash comparison --
   zero regressions. Verified: `npx tsc -p .` clean; `npm test` 456/457
   (1 pre-existing skip); `corpus:verify --limit 430` 430/430, 0
-  regressions. A full-corpus background diff was also started given both
-  halves touch shared, broadly-exercised mechanisms (every Evaluate/When
-  statement in the corpus); see next entries for both this run's and
-  Fix #65's results once complete.
+  regressions. Full-corpus background diff (run_id 253 -> 272, all
+  30,209 definitions) confirmed: 21 improved, 0 regressed, 30188
+  unchanged. New corpus total: 22404/30209 exact (74.2%).
 - **Fix #65** landed (src/peoplecode/decoder.ts, `render()`) -- a
   **decoder** fix, not an encoder fix (first one this session): an empty
   `When-Other` clause (no body statements between it and `End-Evaluate`)
