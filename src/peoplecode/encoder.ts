@@ -3334,7 +3334,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       }
 
     } else if (word('Continue')) {
-      chunks.push(fixed('Continue'));
+      /*
+       * `Continue` is not in the general OPCODES table: 0x6E is heavily
+       * overloaded corpus-wide with unrelated byte values outside this
+       * exact grammatical position (see decoder.ts's gated `opcode ===
+       * 0x6e && bytes[i] === 0x15` handling), so `fixed('Continue')` has
+       * no unambiguous entry to find. The encoder already knows the
+       * source keyword is literally `Continue` here -- unlike the
+       * decoder, which has to infer intent from a raw byte -- so 0x6E can
+       * be emitted directly with no ambiguity.
+       */
+      chunks.push(Buffer.from([0x6e]));
 
     } else if (word('Error')) {
       chunks.push(fixed('Error'));
