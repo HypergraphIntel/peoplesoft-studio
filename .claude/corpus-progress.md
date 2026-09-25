@@ -1,6 +1,45 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #68** landed (src/peoplecode/encoder.ts, top-level statement
+  loop's `selfTerminatingAtEof` check), three new self-terminating-at-EOF
+  shapes added alongside the existing If/Evaluate/assignment/bare-call/
+  try ones, each with its own narrow classification flag:
+  1. **`isForStatement`**: a top-level `For ... End-For` block (no
+     trailing `;`) may end a program at EOF, the same way `If ... End-If`
+     and `Evaluate ... End-Evaluate` already can. Target: definition 6844
+     (GPFR_AF_DON_SQL.GPFR_AF_APPL.FieldFormula) -- confirmed full EXACT.
+  2. **`isTopLevelVariableLedCallStatement`**: a `&variable.Method(...)`
+     (or `@(...)`-led) method-call statement with no assignment `=` may
+     omit its semicolon at EOF, mirroring the existing bare
+     declared-function-call relaxation (`isTopLevelCallStatement`) but
+     for a variable-led receiver. Target: definition 18046
+     (GPFR_AF_ESC.GPFR_AF_ESC_NAME.SavePreChange, `&esc.
+     OnSavePreChange()`) -- confirmed full EXACT.
+  3. **`isWarningOrErrorStatement`**: a bare `Warning <expr>` (or
+     `Error <expr>`) top-level statement may also omit its semicolon at
+     EOF. Target: definition 21801 (GPGB_SCON_TBL.GPGB_SCON.FieldFormula,
+     `Warning MsgGetText(17410, 51, "Message not found")`) -- confirmed
+     full EXACT. Only 1 corpus occurrence found for `Warning`, 0 for
+     `Error` -- `Error` included by direct grammar symmetry with
+     `Warning` (identical statement shape, same reasoning), not separate
+     corpus evidence of its own.
+  Searched the corpus for the general "EOF" `ENCODE_ERROR` construct
+  family (16 occurrences) before implementing; sampled 10: 3 fully EXACT
+  (6844, 18046, 21801 above), 7 advanced past their EOF-omission error
+  into separate, unrelated, deeper issues in the same programs (7118,
+  7126, 23122, 23403, 23419, 23427: small reference-index mismatches
+  elsewhere; 7902: a large, genuinely separate inline-text-vs-PSPCMNAME-
+  reference classification gap for a `&rowset.getrow(&i).RECORD.FIELD`
+  chain, confirmed by its stored bytes using verbose inline text where
+  the current encoder emits compact reference operands -- a real,
+  substantial, distinct bug, not caused by or related to this EOF fix)
+  -- all 7 confirmed via git-stash comparison to have been ENCODE_ERROR
+  at the EOF-omission point before this fix, zero regressions. Verified:
+  `npx tsc -p .` clean; `npm test` 456/457 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430, 0 regressions. A full-corpus
+  background diff was also started; see next entry for its result once
+  complete.
 - **Fix #67** landed (src/peoplecode/encoder.ts, `primary()`'s `(`
   branch): a parenthesized comparison used as a plain expression value
   (not an If/While condition), e.g.:
@@ -41,10 +80,10 @@
   were confirmed via git-stash comparison to have been ENCODE_ERROR at
   this exact construct before the fix -- zero regressions. Verified:
   `npx tsc -p .` clean; `npm test` 456/457 (1 pre-existing skip);
-  `corpus:verify --limit 430` 430/430, 0 regressions. A full-corpus
-  background diff was also started given this touches shared
-  parenthesized-expression classification in `primary()`; see next
-  entry for its result once complete.
+  `corpus:verify --limit 430` 430/430, 0 regressions. Full-corpus
+  background diff (run_id 272 -> 276, all 30,209 definitions) confirmed:
+  13 improved, 0 regressed, 30196 unchanged. New corpus total:
+  22417/30209 exact (74.2%).
 - **Fix #66** landed (src/peoplecode/encoder.ts + src/peoplecode/
   decoder.ts), a combined encoder+decoder fix for the same construct: a
   `When <condition>;` header (a trailing source semicolon immediately
