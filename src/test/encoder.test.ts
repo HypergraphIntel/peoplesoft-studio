@@ -1065,6 +1065,52 @@ test('Record.X.IsChanged is an inline Row-state property, not an explicit Record
   );
 });
 
+test('a quoted 0x48 reference is deduplicated within a control group, not globally', () => {
+  /*
+   * ACA_XML_WRK.ACA_UPDATE_PB.FieldChange (definition_id 369): two
+   * `Transfer(...)` calls with an identical `MenuName."M"`/`BarName."USE"`
+   * pair sit inside the SAME top-level `If` statement (one Then-branch's
+   * nested call, the other's Else) -- one control group -- and both
+   * compiled uses point back to the same PSPCMNAME rows.
+   */
+  assert.deepStrictEqual(
+    encodeFragment(
+      'If &A = "X" Then\n' +
+      '   If &B = "Y" Then\n' +
+      '      Transfer(True, MenuName."M", BarName."USE");\n' +
+      '   Else\n' +
+      '      Transfer(True, MenuName."M", BarName."USE");\n' +
+      '   End-If;\n' +
+      'End-If;\n'
+    ),
+    Buffer.from(
+      '1C012600410000000616580000001F1C012600420000000616590000001F0A5400720061006E00730066006500720000000B2F03480100034802001415190A5400720061006E00730066006500720000000B2F034801000348020014151A151A15',
+      'hex'
+    )
+  );
+
+  /*
+   * AE_DERIVED.AE_TEMPTBL_BTN.FieldChange (definition_id 805) disproves
+   * reusing that GLOBALLY: an identical `BarName."USE"` in two SEPARATE
+   * top-level `If` statements -- different control groups -- allocates a
+   * completely fresh row for the second call, not reusing the first's.
+   */
+  assert.deepStrictEqual(
+    encodeFragment(
+      'If &A = "X" Then\n' +
+      '   Transfer(True, MenuName."M", BarName."USE");\n' +
+      'End-If;\n' +
+      'If &B = "Y" Then\n' +
+      '   Transfer(True, MenuName."M", BarName."USE");\n' +
+      'End-If;\n'
+    ),
+    Buffer.from(
+      '1C012600410000000616580000001F0A5400720061006E00730066006500720000000B2F034801000348020014151A151C012600420000000616590000001F0A5400720061006E00730066006500720000000B2F034803000348040014151A15',
+      'hex'
+    )
+  );
+});
+
 test('a Function header inside a block comment is not counted as a real function', () => {
   /*
    * AE_WRK.MESSAGE_NBR.FieldChange (definition_id 908): a whole
