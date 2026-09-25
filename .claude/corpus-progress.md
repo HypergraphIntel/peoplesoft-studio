@@ -48,9 +48,9 @@
   silently patched over, for a future session searching the corpus for
   that specific decoder shape. Verified: `npx tsc -p .` clean; `npm
   test` 458/459 (1 pre-existing skip); `corpus:verify --limit 430`
-  430/430, 0 regressions. Given this touches several shared comment-
-  handling call sites, a full-corpus background diff was also started;
-  see next entry for its result once complete.
+  430/430, 0 regressions. Full-corpus background diff (run_id 284 ->
+  286, all 30,209 definitions) confirmed: 24 improved, 0 regressed,
+  30185 unchanged. New corpus total: 22506/30209 exact (74.5%).
 - **Fix #71** landed (src/peoplecode/encoder.ts): a statement immediately
   followed by a `REM ...;` comment (no semicolon of its own) may omit
   its trailing source semicolon, in two contexts:
