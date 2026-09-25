@@ -2085,17 +2085,38 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * once across this whole call's own argument list may still reuse
        * an EARLIER, same-control-group row (e.g. an immediately preceding
        * ScrollFlush's own allocation) -- unlike a name repeated within
-       * this call, which stays call-private per the two checks above.
+       * this call, which normally stays call-private per the two checks
+       * above.
        *
        * Read from `genericRecordReferencesSinceLastFamilyCall`, not
        * `recordReferencesByControlGroup` directly -- see that map's own
        * declaration (definition 843 vs definition 860) for why an
        * intervening RowScrollSelect-family call must invalidate this.
+       *
+       * A name REPEATED within this call may ALSO reuse that earlier row,
+       * but only when nested inside a control-flow block (`controlDepth >
+       * 0` -- If/For/While/Evaluate/etc), not at the flat top level.
+       * AE_WRK.AE_REFRESH.FieldChange (definition 889, inside a Function's
+       * `Evaluate ... When` body), AMM_DERIVED.PT_FORCE_RETRY.FieldChange
+       * (definition 1007, inside nested top-level `If` blocks) and
+       * DERIVED_BAS.BN_TOGGLE.ODEM_RemoteCall (definition 1749, inside a
+       * Function's own `If` body) all prove a single-argument
+       * `ScrollFlush(Record.X); RowScrollSelect(N, Record.X, Record.X,
+       * ...)` / `ScrollSelect(...)` pair DOES share one row when nested --
+       * disproving definition 840/1283's own flat-top-level non-reuse
+       * ONLY at that same nesting depth: BENCHMARK.ARCH_FLT_RQST's own
+       * definition 1220 (this fallback's ORIGINAL evidence) is itself
+       * nested inside an `If %PanelGroup = ... Then` block, and 840/1283's
+       * OWN repeated-name ScrollFlush/ScrollSelect pairs sit at flat
+       * top level (`controlDepth === 0`) with no wrapping block at all --
+       * so `controlDepth` is the actual discriminator this fallback was
+       * always missing, not "single occurrence vs repeated".
        */
       if (
         singleOccurrenceCallArgumentRecordNames?.has(
           recordName.toLowerCase()
-        )
+        ) ||
+        controlDepth > 0
       ) {
         const controlGroupExisting =
           genericRecordReferencesSinceLastFamilyCall.get(

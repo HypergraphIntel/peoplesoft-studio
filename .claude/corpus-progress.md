@@ -648,14 +648,14 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #88 (below), validated locally on top
-  of Fix #87's commit `4fecf7b`. Fix #88 and this progress ledger are
+- **Last successful calibration**: Fix #89 (below), validated locally on top
+  of Fix #88's commit `81afbce`. Fix #89 and this progress ledger are
   currently uncommitted. (Prior checkpoint's HEAD `45fccb5` is now behind:
   unrelated MCP-client work landed several commits, through `e9ccca2`,
   between sessions; full typecheck and `npm test` are clean at `e9ccca2`,
   so the previously-recorded typecheck blocker no longer applies -- see
   updated validation note below.)
-- **Corpus total** (full-corpus run_id 1526): 22704/30209 exact (75.1%).
+- **Corpus total** (full-corpus run_id 1545): 22770/30209 exact (75.4%).
   Fix #73 was first rechecked against the already-equivalent full run 1326
   (run 1327: all 30209 materially unchanged). Subsequent full diffs were:
   Fix #74 run 1327 -> 1338 (2 exact, 4 advanced, 0 regressed); Fix #75 run
@@ -674,7 +674,11 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   1470 and 1494, each had a real, caught, and then repaired regression --
   see Fix #86's own notes below for the full two-round isolation trail);
   Fix #87 run 1509 -> 1521 (21 exact, 0 regressed); Fix #88 run 1521 ->
-  1526 (11 exact, 0 regressed). The protected gate remains 430/430.
+  1526 (11 exact, 0 regressed); Fix #89 run 1526 -> 1545 (66 exact, 0
+  regressed -- resolves the `controlDepth` discriminator behind
+  definitions 889/1749's own contradictions, documented in "Identified,
+  not yet fixed" below; 1749 itself progressed but is not yet fully EXACT,
+  see its own updated note). The protected gate remains 430/430.
 - **Locally blocked / deferred, evidence exhausted this session** (see
   their own entries further down for full evidence trails): the `#If
   #ToolsRel` preprocessor-directive family (73 combined occurrences,
@@ -684,11 +688,11 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   occurrences, `parseApplicationClassProgram()` only handles the narrow
   single-method inline shape); a decoder-only rendering gap for `Return
   <number> /* comment */;` noted under Fix #72 (narrow, not corpus-
-  evidenced, deliberately left unfixed); definition 889 (AE_WRK.AE_REFRESH.
-  FieldChange, newly deferred this session -- see Fix #87's own "Current
-  target" entry below for the full contradiction with definition 840's
-  established rule and the corroborating-evidence search that came up
-  empty).
+  evidenced, deliberately left unfixed). (Definition 889, deferred earlier
+  this session, is RESOLVED by Fix #89 below -- no longer deferred.
+  Definition 1749 progressed under Fix #89 but has a SECOND, deeper issue
+  of its own -- still deferred, see its own updated note under "Identified,
+  not yet fixed".)
 - **Validation caveat**: after Fix #87, on HEAD `79765aa`, both `npx tsc -p .
   --noEmit` (whole project) and `npm test` (whole project: 475 tests, 474
   pass, 1 pre-existing skip) are clean. Every post-fix protected gate is
@@ -707,6 +711,50 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   below.
 
 ## Current target
+- **Fix #89** landed locally (src/peoplecode/encoder.ts): a RECORD name
+  REPEATED within a RowScrollSelect-family call's own argument list (e.g.
+  `RowScrollSelect(1, Record.X, Record.X, ...)`) may now ALSO reuse an
+  earlier same-control-group row via `genericRecordReferencesSinceLastFamilyCall`
+  (Fix #86's fallback pool) -- but only when nested inside a control-flow
+  block (`controlDepth > 0`: If/For/While/Evaluate/etc), not at the flat
+  top level. This resolves the exact contradiction Fix #87's session left
+  deferred as definition 889: AE_WRK.AE_REFRESH.FieldChange's `ScrollFlush
+  (Record.MESSAGE_LOG); RowScrollSelect(1, Record.MESSAGE_LOG, Record.
+  MESSAGE_LOG, ...)` -- textually IDENTICAL to definition 840's own
+  calibrated non-reuse disproof -- sits inside a Function's `Evaluate ...
+  When` body (`controlDepth > 0`), while 840's copy sits at flat top level
+  (`controlDepth === 0`). AMM_DERIVED.PT_FORCE_RETRY.FieldChange
+  (definition 1007, nested only in top-level `If` blocks, no Function at
+  all) independently confirms `controlDepth`, not `functionDepth`, is the
+  actual discriminator. ARCH_FLT_RQST.PSARCH_ID.SavePostChange (definition
+  1220, the ORIGINAL single-occurrence-fallback evidence) is itself nested
+  inside its own `If %PanelGroup = ... Then` block, and ARCH_WRK.
+  PSARCH_COPY_ROWS.FieldChange's (definition 1283) own repeated-name
+  ScrollFlush/ScrollSelect pairs sit at flat top level -- so this was
+  always the missing half of the ORIGINAL rule, not a new one. Implemented
+  by widening the existing single-occurrence fallback's guard from
+  `singleOccurrenceCallArgumentRecordNames?.has(name)` to `... || controlDepth
+  > 0`; every previously-calibrated definition this whole mechanism
+  touches (840, 1283, 1220, 1145, 1236, 30, 95, 1172, and Fix #86/#87's own
+  843/860/5687/982) re-verified individually EXACT. Definitions 889 and
+  1007 are now source->bin EXACT, roundtrip EXACT, source MATCH.
+  DERIVED_BAS.BN_TOGGLE.ODEM_RemoteCall (definition 1749, an EARLIER
+  session's own deferred sub-puzzle citing this exact contradiction)
+  progressed -- first diff moved from body offset 717 to 1089 -- but is
+  NOT yet fully EXACT; see its own updated note under "Identified, not yet
+  fixed" for the SECOND, deeper issue this fix uncovered (an intervening
+  RowScrollSelect-family call appears to invalidate the WHOLE fallback
+  pool even at `controlDepth > 0`, when stored evidence suggests it
+  should not for an unrelated key -- deliberately NOT chased further this
+  session to avoid a third speculative change in one session to this
+  already twice-regressed area). Full run 1526 -> 1545: 66 exact, 0
+  regressed -- by far the largest single improvement this session, meaning
+  this exact shape (single-arg `ScrollFlush` immediately followed by a
+  repeated-name RowScrollSelect/RowScrollSelectNew/ScrollSelect call,
+  nested in a control-flow block) is very common in the corpus. Added a
+  minimal-fragment byte-level regression test. Full project `tsc -p .
+  --noEmit` and `npm test` (477 tests, 476 pass, 1 pre-existing skip) both
+  clean; protected gate: 430/430.
 - **Fix #88** landed locally (src/peoplecode/encoder.ts): `parseFunctionMetadata`
   (which scans raw source text for top-level `Function NAME` headers to
   build the program's function directory/trailer) now scans a
@@ -4599,9 +4647,66 @@ intervening statements, with one vs. multiple preceding ScrollFlush
 calls) to triangulate the actual distinguishing rule before writing any
 code.
 
+#### UPDATE (Fix #89, 2026-09-25 /goal resume session): root cause found
+#### and fixed for the FIRST diff; a SECOND, deeper issue remains
+
+The actual discriminator, confirmed by cross-referencing definitions 840,
+1283, 1220, 889, 1007, and 1749 together (see definition 889's own updated
+note immediately below, and Fix #89's "Current target" entry above), is
+`controlDepth`: 840 and 1283's own non-reusing ScrollFlush/ScrollSelect
+pairs sit at flat top level (`controlDepth === 0`); every reusing example
+found (1220, 889, 1007, and 1749's own FIRST ScrollFlush/ScrollSelect
+pair) is nested inside a control-flow block. NOT "statement adjacency" or
+"consecutive ScrollFlush count" as originally guessed here -- 1007 and 889
+each have only ONE preceding ScrollFlush call, disproving that guess
+directly. Fix #89 widens the single-occurrence fallback's guard to `...
+|| controlDepth > 0`, which correctly resolves 1749's FIRST diff (body
+offset 717 -- the `ScrollFlush(Record.BAS_PAR_ONDM_VW);
+ScrollSelect(1, Record.BAS_PAR_ONDM_VW, Record.BAS_PAR_ONDM_VW);` pair now
+reuses correctly) without regressing 840, 1283, or any other previously-
+calibrated definition (full corpus diff: 66 newly exact, 0 regressed).
+
+1749 is STILL not fully EXACT, though: its first diff moved to body offset
+1089, a SECOND, later `ScrollSelect(1, Record.BAS_MESSAGE, Record.
+BAS_MESSAGE, "WHERE PRCSINSTANCE =:1", DERIVED_BAS.PRCSINSTANCE);` deep
+inside nested `If`/`Else` blocks. Stored reuses the very FIRST statement's
+`ScrollFlush(Record.BAS_MESSAGE);` (three statements and one intervening
+RowScrollSelect-family call -- the first `ScrollSelect(...BAS_PAR_ONDM_VW
+...)` -- earlier) for this second call's own two BAS_MESSAGE arguments.
+Fix #86's `genericRecordReferencesSinceLastFamilyCall` map is cleared
+ENTIRELY (every key, not just the key(s) the intervening call itself
+touched) whenever any RowScrollSelect-family call completes -- evidenced
+by definition 843, where an intervening RowScrollSelect call correctly
+invalidates BOTH its own key AND an unrelated key (ScrollFlush's earlier
+PSAEAPPLDEFN). This second 1749 diff suggests that at `controlDepth > 0`
+specifically, an intervening family call may NOT invalidate a key it never
+itself touched (BAS_MESSAGE, untouched by the intervening
+BAS_PAR_ONDM_VW-only ScrollSelect) -- a THIRD layer of nuance possibly
+also `controlDepth`-gated, on top of the two already implemented. Given
+843's own controlDepth is 0 (flat top level) and this new evidence's is
+> 0, these may not actually conflict -- but that is exactly the kind of
+guess Fix #86's own two-round regression history warns against making
+without a corroborating second example. Deliberately NOT attempted this
+session: this is the third distinct nuance found in this one code region
+today, and each of the first two ALSO looked simple before a full-corpus
+diff caught a real regression. Next step when resumed: find a SECOND
+corpus example of "intervening RowScrollSelect-family call, nested inside
+a control-flow block, with an UNRELATED key from before the intervening
+call" before writing any code -- per-key clearing (only invalidate keys
+the intervening call's own resolution actually touched, not the whole
+map) is the most likely shape of the fix, but needs a second data point
+first, exactly as Fix #86's own two prior rounds did.
+
 ### definition_id 889 (AE_WRK.AE_REFRESH.FieldChange) — a FOURTH,
 ### independently-contradictory ScrollFlush-then-RowScrollSelect data
 ### point, found during Fix #87's session (2026-09-25)
+
+**RESOLVED by Fix #89** (same session): the discriminator is
+`controlDepth > 0`, confirmed by cross-referencing this definition against
+1007, 1749, 1220, 840, and 1283 together -- see Fix #89's "Current target"
+entry above and 1749's own updated note immediately above this one for
+the full cross-reference. Definition 889 itself is now source->bin EXACT.
+No longer deferred; kept here for the historical evidence trail.
 
 Surfaced while triaging fresh `UNKNOWN_MISMATCH` candidates after Fix #86
 landed. First diff at body offset 575: `ScrollFlush(Record.MESSAGE_LOG);
@@ -4976,7 +5081,17 @@ project-level blocker").
 - definitions: 430
 - exact: 430
 - regressions: 0
-- last verified: 2026-09-25 (/goal resume session), after Fix #88
+- last verified: 2026-09-25 (/goal resume session), after Fix #89
+  (RowScrollSelect-family single-occurrence fallback extended to also
+  cover a REPEATED name when `controlDepth > 0`, resolving the definition
+  889/1007/1749 `controlDepth` discriminator), REGRESSION GATE: PASS
+  (430/430, no regression). Full corpus run_id 1545 also directly diffed
+  against run_id 1526 (the last known-clean full run before Fix #89) at
+  the per-definition `classification` level: 66 newly exact, 0 regressed,
+  30143 unchanged -- by far the largest single improvement this session.
+  Full-project `npx tsc -p . --noEmit` and `npm test` (477 tests, 476
+  pass, 1 pre-existing skip) both clean.
+- prior verification: 2026-09-25 (/goal resume session), after Fix #88
   (definitions 907/908, `parseFunctionMetadata` now masks block comments
   and string literals before scanning for `Function NAME` headers, so a
   commented-out Function no longer inflates the program's function-
@@ -5156,19 +5271,19 @@ project-level blocker").
 
 ## Next action
 - **Current session (2026-09-25, /goal resume), immediate next step**: Fix
-  #88 landed and verified (430/430, full run 1526, 0 regressed against
-  1521). Resume triage from `npm run corpus:next`, which currently
-  surfaces the `UNKNOWN_MISMATCH`/`(none)` catch-all (4819 remaining, no
+  #89 landed and verified (430/430, full run 1545, 0 regressed against
+  1526). Resume triage from `npm run corpus:next`, which currently
+  surfaces the `UNKNOWN_MISMATCH`/`(none)` catch-all (~4700 remaining, no
   single construct signature -- representatives must be pulled and
-  diagnosed individually, e.g. definitions 528, 843, 982, and 908's
+  diagnosed individually, e.g. definitions 528, 843, 982, 908, and 889's
   families just fixed). No definition is currently mid-investigation. Skip
   definition_id 536 (still recommended by `corpus:next` due to its own
-  documented offset-ordering caveat below) and definition_id 889 (newly
-  deferred this session, see "Identified, not yet fixed" for the full
-  four-way ScrollFlush/RowScrollSelect contradiction, alongside 1749 from
-  an earlier session) when triaging. All other locally-blocked/deferred
-  entries listed below (older sessions) remain unchanged; none were
-  revisited this session.
+  documented offset-ordering caveat below) and definition_id 1749 (STILL
+  deferred -- Fix #89 resolved its first issue but a second, deeper one
+  remains; see "Identified, not yet fixed" for the full trail and the
+  specific next-evidence-needed before touching this area again) when
+  triaging. All other locally-blocked/deferred entries listed below
+  (older sessions) remain unchanged; none were revisited this session.
   Process note worth repeating for future RowScrollSelect/ScrollSelect/
   ScrollFlush-adjacent changes specifically: this whole area has a history
   (fixes #38-#47 in an earlier session, now Fix #86 in this one) of

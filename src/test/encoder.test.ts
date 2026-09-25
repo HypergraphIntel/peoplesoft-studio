@@ -968,6 +968,40 @@ test('a RowScrollSelect-family call\'s own control-group reuse re-populates the 
   );
 });
 
+test('a name repeated within a RowScrollSelect-family call may reuse an earlier ScrollFlush row when nested inside a control-flow block', () => {
+  /*
+   * AE_WRK.AE_REFRESH.FieldChange (definition_id 889), AMM_DERIVED.
+   * PT_FORCE_RETRY.FieldChange (definition_id 1007), and DERIVED_BAS.
+   * BN_TOGGLE.ODEM_RemoteCall (definition_id 1749) all prove that a
+   * single-argument `ScrollFlush(Record.X); RowScrollSelect(N, Record.X,
+   * Record.X, ...)` (or `ScrollSelect`) pair DOES share one PSPCMNAME row
+   * -- even though `X` is REPEATED within RowScrollSelect's own argument
+   * list, normally excluded from the single-occurrence fallback entirely
+   * -- when the pair is nested inside a control-flow block (`If`, in all
+   * three cases; `controlDepth > 0`). AE_UPGCONV_WRK.AE_REFRESH.FieldChange
+   * (definition_id 840) and ARCH_WRK.PSARCH_COPY_ROWS.FieldChange
+   * (definition_id 1283) both disprove reuse for this same repeated-name
+   * shape, but their own ScrollFlush/RowScrollSelect pairs sit at flat
+   * TOP level (`controlDepth === 0`, no wrapping block at all) --
+   * `controlDepth` is the discriminator, not "single occurrence vs
+   * repeated" by itself (ARCH_FLT_RQST.PSARCH_ID.SavePostChange,
+   * definition_id 1220, the ORIGINAL single-occurrence evidence, is
+   * itself nested inside its own `If %PanelGroup = ... Then` block).
+   */
+  assert.deepStrictEqual(
+    encodeFragment(
+      'If &A = "E" Then\n' +
+      '   ScrollFlush(Record.MESSAGE_LOG);\n' +
+      '   RowScrollSelect(1, Record.MESSAGE_LOG, Record.MESSAGE_LOG, "where", &PI);\n' +
+      'End-If;\n'
+    ),
+    Buffer.from(
+      '1C012600410000000616450000001F0A5300630072006F006C006C0046006C0075007300680000000B21010014150A52006F0077005300630072006F006C006C00530065006C0065006300740000000B50000001000000000000000000000000000000032101000321010003167700680065007200650000000301260050004900000014151A15',
+      'hex'
+    )
+  );
+});
+
 test('Record.X.IsChanged is an inline Row-state property, not an explicit Record->FIELD chain', () => {
   /*
    * AMM_DERIVED.IB_FO_BACK_PB.FieldChange (definition_id 982):
