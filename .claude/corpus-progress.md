@@ -1,5 +1,246 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 8 — role map of the remaining postfix binding/reuse coupling (research only, zero behavior change)
+
+**Status: mapping complete; no encoder changes.** Baseline is commit
+`6018f7d` (Cycle 7), 23,182/30,209 EXACT, protected 430/430, 489 tests
+passing plus one intentional skip, zero EXACT regressions. This cycle
+touched nothing in `src/peoplecode/encoder.ts` -- every site below was
+read, not written. No corpus run was needed to validate "no change" since
+no change was made; `git status`/`git diff` are the proof.
+
+### Method
+
+Every read and write site of the flags/pools named in the directive (plus
+the state they directly interact with) was located with `grep -n` and read
+in full context. This is exhaustive, not sampled: the counts below are
+total occurrences in `encoder.ts`, and every one was classified.
+
+### Role taxonomy
+
+| role | question it answers |
+|---|---|
+| **type/provenance** | what runtime-shaped value does this expression hold, and where did its binding evidence come from (this is `ChainSemantics`' own job) |
+| **binding eligibility** | is a following bare `.MEMBER` allowed to become a NEW PSPCMNAME dependency at all |
+| **dependency kind** | if it does become a dependency, is it a RECORD, FIELD, or SCROLL row |
+| **reuse policy** | once a dependency exists, does a later occurrence point at the SAME PSPCMNAME row or allocate a fresh one, and within what scope (control group, base variable, call-local) |
+| **parser control** | pure recursive-descent bookkeeping (did we consume a `(`, are we inside a call's own arguments) with no semantic content of its own |
+
+### Flag-by-flag role map
+
+#### `expectedReferenceMember` (`'record' \| 'field' \| undefined`) -- 4 semantic roles in ONE flag
+
+This is the single most overloaded piece of state in the postfix loop.
+Every site (`encoder.ts:7793`-`8760`, 43 occurrences):
+
+| site | code | role |
+|---|---|---|
+| 7793 | initial ternary (`explicitRecordRootName`/`bareGetRecordCallResult`/`rowStartsRecordFieldChain` or `bareGetRowCallStartsRecordFieldChain`/declared `recordVariables`) | **type/provenance** -- this IS `ChainSemantics`' own four-arm classification, duplicated |
+| 8004 (`isInlineRowStateMember`) | `=== 'record' && /^(?:RowNumber\|...)$/.test(member)` | **dependency kind** disambiguation (a Row-state property vs. a RECORD member) |
+| 8008-8013 (`hasExistingExpectedReference`) | `=== 'record'` / `=== 'field'` branch, matched against `references` by name | **reuse policy** (does an existing reference already cover this exact name) |
+| 8016 (`directLevel0RecordField`) | `=== 'record' && selectedByDirectRowsetPostfix && ...` | **reuse policy**, scoped to one further mechanism (`level0RowsetRecordsByField`) |
+| 8047 (diagnostic `actualEligible`) | `!== undefined` | **binding eligibility** (this is the ONE site that treats it as a pure eligibility bit -- and it is READ-ONLY, diagnostic) |
+| 8089 (the big allocation `if`) | `!== undefined && (...)` | **binding eligibility** (gate) -- as of Cycle 7, ALSO consults `chainSemantics.binding`/`chainSemanticsBindingUnmodeled` here, NOT via this flag |
+| 8094, 8123, 8129 (reference lookup ternary) | `=== 'field' && explicitRecordRootName...` / `=== 'record' && isMethodCall` / `=== 'record'` | **dependency kind** selecting WHICH reuse pool to consult (four-way branch) |
+| 8243 (allocation) | `=== 'record' ? nextReference({kind:'record',...}) : nextReference({kind:'field',...})` | **dependency kind** (this is the actual RECORD-vs-FIELD decision for a NEW allocation) |
+| 8255, 8270, 8289, 8341 (pool population) | four `=== 'record'`/`=== 'field'` conditions selecting which pool(s) to `.set()` into | **dependency kind** (again selecting which reuse pool receives the write) |
+| 8398-8410 (RECORD-then-FIELD transition) | `= (=== 'record' ? 'field' : undefined)` | **type/provenance** transition (mirrors `chainSemantics`' own transition one line below it) |
+| 8423 | `if (expectedReferenceMember !== 'field') chainSemanticsBindingUnmodeled = false;` | reads it for **type/provenance** bookkeeping (Cycle 7's own addition, unrelated to the flag's original purpose) |
+| 8430 (`isInlineRowStateMember` reset) | `= undefined` | **type/provenance** transition |
+| 8544 (`GetField` reuse condition) | `=== 'field'` alongside `fieldMemberFromGetRecord` | **reuse policy** (sets `reuseFieldReferenceWithinControlGroup`) |
+| 8597-8602 (method-call branch) | `= (member==='getrecord'?'field':member==='getrow'?'record':undefined)` | **type/provenance** transition -- the ROOT of the 1423/1424/1721/1722 bug family Cycle 7 fixed, and the site Cycle 7's FIRST (reverted) gate attempt wrongly touched |
+| 8648 (property-traversal else) | `= undefined` | **type/provenance** transition |
+| 8736 (rowset-selector) | `= 'record'` (unconditional) | **type/provenance** transition, deliberately NOT gated by Cycle 7 (see that site's own comment) |
+
+**Finding:** `expectedReferenceMember` is simultaneously (1) a duplicate,
+narrower copy of `ChainSemantics`' own type/provenance classification,
+(2) the dependency-kind selector for both allocation and pool lookup, and
+(3) a direct input to ONE reuse decision (`reuseFieldReferenceWithinControlGroup`
+at 8544/8587). Cycle 7's own regression (114 defs, reverted) is direct,
+reproduced evidence that (1)/(2) and (3) are separable: gating the flag's
+OWN value broke (3) while trying to fix only the binding-eligibility
+question, which is why Cycle 7's actual gate lives at the CONSUMPTION site
+(8089) rather than the ASSIGNMENT site (8597).
+
+#### `fieldMemberFromGetRecord` (boolean) -- 1 role, correctly scoped
+
+| site | role |
+|---|---|
+| 7974 (init `= bareGetRecordCallResult`) | **type/provenance** (mirrors the primary-expression classification) |
+| 8343 (bare-member allocation condition) | **reuse policy** input (decides whether a bare `GetRecord().FIELDNAME` populates `fieldReferencesByControlGroup`) |
+| 8402 (RECORD-then-FIELD transition) | `= false` -- **type/provenance** reset |
+| 8543-8546 (`GetField` reuse condition) | **reuse policy** (the ONE decision this flag exists for, per its own declaration comment: distinguishing "field context came from a GetRecord result" from "field context came from a declared Record variable's own first postfix step") |
+| 8603-8604 (method-call branch) | `= (member.toLowerCase()==='getrecord')` -- **type/provenance** transition |
+
+**Finding:** this flag is well-scoped -- every site is either
+type/provenance bookkeeping feeding the ONE reuse-policy question it was
+built for (line 8543-8546), or that question itself. It is a narrower,
+correctly-separated sibling of what `expectedReferenceMember` is trying
+and failing to be all at once. Its own comment (7966-7972) already states
+its scope precisely; the corpus evidence (Cycle 4's own finding, definition
+524) confirms it is not further decomposable -- it answers exactly one
+question.
+
+#### The RECORD/FIELD reuse pool family (`rowShorthandFields`, `rowShorthandRecords`, `rowShorthandRecordsByBase`, `rowShorthandRecordsByControlGroup`, `explicitRecordFields`, `declaredRecordFields`, `recordVariableFields`, `typedRowFields`, `fieldReferencesByControlGroup`, `level0RowsetRecordsByField`) -- all pure reuse policy, but overlapping and inconsistently scoped
+
+None of these ever appear on the LEFT of a `binding`/`valueType` decision;
+every read is a `.get(key)` feeding the `reference ??= ...` chain at
+8093-8239, and every write is a `.set(key, reference)` after allocation
+(8259-8368). All 10 are **reuse policy**, cleanly separated from
+type/provenance and dependency-kind (those were already decided by the
+time any of these pools is consulted). The coupling here is not
+role-mixing -- it is **pool proliferation with inconsistent keying**:
+
+| pool | key shape | scope |
+|---|---|---|
+| `rowShorthandRecords` | `member` only | GLOBAL (no controlGroup, no base) |
+| `rowShorthandRecordsByBase` | `controlGroup:baseVariable:member` | control-group + base-variable |
+| `rowShorthandRecordsByControlGroup` | `controlGroup:member` | control-group only |
+| `level0RowsetRecordsByField` | `controlGroup:baseVariable:member:directLevel0RecordField` | control-group + base + a SECOND member lookahead |
+| `declaredRecordFields` | `controlGroup:member` | control-group only |
+| `rowShorthandFields` | `controlGroup:member` | control-group only |
+| `explicitRecordFields` | `controlGroup:explicitRecordRootName:member` | control-group + explicit root name |
+| `recordVariableFields` | `controlGroup:baseVariable:member` | control-group + base-variable |
+| `typedRowFields` | `member` only | GLOBAL (no controlGroup) |
+| `fieldReferencesByControlGroup` | `controlGroup:member` | control-group only, but written from TWO unrelated call sites (8364 bare-member shorthand, AND 2609 explicit `Field.X`-in-`GetField(...)`-argument) |
+
+**Finding 1:** `rowShorthandRecords` and `typedRowFields` are the only
+two pools with NO control-group scoping at all -- every other pool in the
+family is at minimum `controlGroup:member`. This is either a real,
+evidenced difference in PeopleTools' own reuse rule for those two specific
+shapes, or an inconsistency nobody has hit corpus evidence for yet; it is
+not explained by any comment in the file and is worth a dedicated,
+narrow research pass before touching either pool.
+
+**Finding 2:** `fieldReferencesByControlGroup` is shared, unmodified,
+across two structurally different call sites (the bare
+`GetRecord().FIELDNAME` shorthand at 8364, and the explicit
+`.GetRecord(...).GetField(Field.X)` argument-parsing path via
+`reuseFieldReferenceWithinControlGroup` at 2594-2613) that happen to
+agree on the same key shape (`controlGroup:fieldName`) but are reached
+through entirely different code paths with different gating conditions
+(`fieldMemberFromGetRecord` vs. `reuseFieldReferenceWithinControlGroup`).
+This is the clearest single candidate for a named, explicit merge point:
+both paths are already evidenced to mean the same thing ("a FIELD
+established from a `.GetRecord(...)` result, within this control group,
+is reusable by name"), so a future `chainSemantics`-driven consumer could
+plausibly read/write ONE pool through one function instead of two
+call sites independently agreeing to use the same map.
+
+**Finding 3:** the four-way `reference ??=` ternary at 8093-8239 IS the
+undocumented "dependency kind" dispatcher -- it silently re-derives, from
+`expectedReferenceMember`/`isMethodCall`/`explicitRecordRootName`/
+`baseVariableName`, which ONE of the ten pools above is authoritative for
+THIS specific member access. That dispatch logic is real semantic content
+(effectively a fifth role, "pool selection") currently expressed only as
+control flow, not as a named function or table anyone can inspect without
+reading all 146 lines of it.
+
+#### Rowset-selector tracking (`selectedByDirectRowsetPostfix`, `directLevel0RecordField`, `directLevel0RecordFieldKey`, `level0RowsetRecordsByField`)
+
+| site | role |
+|---|---|
+| 7975 (init `= false`) | parser-control/type-provenance init |
+| 8016-8026 (`directLevel0RecordField`/`Key` computation) | **reuse policy** input, gated by **type/provenance** (`selectedByDirectRowsetPostfix`) AND a raw two-member SOURCE lookahead (`/^\s*\.\s*(IDENT)/.exec(source.slice(pos))`) -- this is the ONE site in the whole postfix loop that reads ahead in the SOURCE TEXT rather than consulting parser state, a structurally different mechanism from everything else mapped this cycle |
+| 8132 (pool read) | **reuse policy** |
+| 8273-8278 (pool write) | **reuse policy** |
+| 8606 (`GetRow` method-call branch) | `= false` -- **type/provenance** reset (this specific selector-tracking flag is scoped to "was the LAST thing a direct rowset-selector call," which a following `.GetRow(...)` invalidates) |
+| 8737 (rowset-selector branch) | `= true` -- **type/provenance** marker |
+
+**Finding:** `selectedByDirectRowsetPostfix` is itself clean (one
+question: "did a Rowset-selector `(...)` immediately precede this step"),
+but it feeds `directLevel0RecordField`, which is its OWN narrow,
+separately-evidenced mechanism (`GetLevel0()(N).GetRowset(Scroll.X)`,
+per the comment at `encoder.ts:2156-2168`) that happens to share the
+`selectedByDirectRowsetPostfix`/`baseVariableName` inputs but is
+otherwise independent of the rest of the reuse-pool family. It is
+CORRECTLY separated already (its own key shape, its own pool), just
+under-documented as a distinct mechanism at the point of use (7975-8030)
+compared to how thoroughly `level0RowsetRecordsByField`'s OWN declaration
+comment at 2156-2168 explains it.
+
+#### Cycle 7's own temporary/new state -- self-assessment
+
+| flag | role | assessment |
+|---|---|---|
+| `bareGetLevel0CallResult`, `bareGetRowsetCallResult` | **type/provenance** only (feed `initialChainSemantics` exclusively) | Clean. Mirror the pre-existing `bareGetRecordCallResult`/`bareGetRowCallResult` pattern exactly; no other consumer. |
+| `chainSemanticsDeclaredRowVariables`, `chainSemanticsDeclaredRowsetVariables` | **type/provenance** only (feed `initialChainSemantics` exclusively; deliberately isolated from `rowVariables`/`rowsetVariables` to avoid touching reuse policy) | Clean by construction -- this was the explicit design goal in Cycle 7 (see their own declaration comment). |
+| `chainSemanticsBindingUnmodeled` | **binding eligibility** input, but really a confession that **type/provenance** is incomplete (it exists ONLY because the rowset-selector transition's provenance was never modeled) | NOT clean long-term. It is a correct, evidence-backed patch for THIS cycle's scope, but it is a placeholder for real work item #1 below (modeling the selector mechanism in `chainSemantics.provenance` itself, e.g. a `'selector'` provenance value, would let this flag be deleted). |
+| the bare-member gate itself (`bareMemberBindingEligible`, 8083-8090) | **binding eligibility**, cleanly isolated at the ONE site Phase 7A's census validated | Clean -- this is the one new piece of state this cycle added that is NOT a workaround; it is the actual deliverable. |
+
+### Evidence-backed split points (candidate future decomposition, NOT proposed for implementation this cycle)
+
+1. **`expectedReferenceMember` -> two values, not one.** The corpus
+   evidence (Cycle 7's reverted first attempt) already proves splitting is
+   necessary, not just tidy: a `bindingEligible: boolean` (now effectively
+   `chainSemantics.binding === 'dependency-bound' ||
+   chainSemanticsBindingUnmodeled`, computed once per bare member) and a
+   `dependencyKind: 'record' | 'field' | undefined` (the actual RECORD vs.
+   FIELD selector, still name-derived, still needed for pool dispatch and
+   allocation) are DIFFERENT questions answered by the SAME variable today.
+   `chainSemantics.valueType` is not yet a proven substitute for
+   `dependencyKind` (Cycle 7 deliberately did not attempt this, per its own
+   Phase 7F note) -- that substitution is future work, not concluded here.
+
+2. **The ten-pool reuse family -> one dispatch function.** The 146-line
+   `reference ??= ...` ternary at 8093-8239 and its mirrored 100-line
+   write-back block at 8254-8368 are each, in effect, a single function
+   ("resolve/record a RECORD-or-FIELD reuse candidate for this
+   `(controlGroup, baseVariableName, member, dependencyKind,
+   explicitRecordRootName)` tuple") currently inlined as control flow.
+   Naming and extracting that dispatch (still consulting the SAME ten
+   pools, unchanged) would not change behavior but would make the
+   `rowShorthandRecords`/`typedRowFields` un-scoped-key anomaly (Finding 1
+   above) and the `fieldReferencesByControlGroup` dual-writer (Finding 2
+   above) visible to inspection instead of requiring a full read of this
+   section to notice, as this cycle's own mapping work required.
+
+3. **`chainSemanticsBindingUnmodeled` -> a `'selector'` provenance value.**
+   `ChainSemantics.provenance` already has an unused-until-Cycle-7
+   `'navigation'` arm (now wired up for `.ParentRow`/`.ParentRowset`); a
+   parallel `'selector'` value, set at the Rowset-selector `(...)`
+   transition instead of resetting to `'unknown'`, would let
+   `chainSemanticsBindingUnmodeled` be deleted and its ONE remaining
+   caller (`bareMemberBindingEligible`) read `chainSemantics.provenance`
+   directly. This requires actually researching the selector mechanism's
+   OWN receiver-provenance rule first (next action #1 below) -- it is not
+   safe to guess at binding-vs-not for that construct the way
+   `bareGetLevel0CallResult` etc. could be added this cycle, because
+   Cycle 6 explicitly found no evidenced transition for it yet.
+
+### What was NOT found
+
+No flag among those investigated is a pure duplicate of another (no two
+flags always co-vary with no distinct site), and no pool is provably dead
+code -- every one has at least one read site reachable in the corpus
+evidence already cited in prior cycles' own comments. The coupling here is
+real (proven by Cycle 7's own regression) but narrow: it is concentrated
+in `expectedReferenceMember` alone, not spread evenly across all the
+flags this cycle mapped.
+
+### Next action (research cycle)
+
+1. Research the Rowset-selector `(...)` mechanism's own receiver-provenance
+   rule (73% of Cycle 6's discrepancy population, per Cycle 7's own
+   report) -- this is the prerequisite for split point #3 above and for
+   deleting `chainSemanticsBindingUnmodeled`.
+2. Investigate the `rowShorthandRecords`/`typedRowFields` un-scoped-key
+   anomaly (Finding 1) with a dedicated, narrow corpus sweep before
+   assuming it is either a bug or a real rule -- do not guess.
+3. Only after 1-2, and in a separately gated phase: prototype the
+   `dependencyKind` split point (split point #1) as a research-only,
+   zero-behavior-change facade (mirroring how `DependencyScope` and
+   `ChainSemantics` themselves were introduced), validated the same way.
+4. Do not implement split point #2 (pool-dispatch extraction) until #1 is
+   further along -- extracting the dispatch function now would lock in
+   `expectedReferenceMember`'s current overloaded signature as a
+   parameter, making the eventual split harder, not easier.
+5. This cycle intentionally made no exact-count-affecting change; the next
+   corpus run should still show 23,182/30,209 EXACT, 430/430 protected,
+   0 regressions (identical to Cycle 7's own final numbers) -- confirm
+   this with `git status`/`git diff` (clean) rather than re-running the
+   full corpus, since no code changed.
+
 ## Compiler Semantics Cycle 7 — provenance-gated postfix call binding (first semantic change)
 
 **Status: semantic change implemented and validated.** Baseline was the
