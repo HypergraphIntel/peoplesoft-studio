@@ -111,7 +111,6 @@ function functionTypeId(
   applicationClassOffsets?: ReadonlyMap<string, number>
 ): number {
   /*
-<<<<<<< Updated upstream
    * Each nesting level of `array of` contributes its OWN multiple of
    * 0x100000 -- NOT a single OR'd flag bit reused at every level. A bare
    * trailing `array` (no final `of ElementType`) counts as one more
@@ -149,23 +148,6 @@ function functionTypeId(
   }
 
   if (depth > 0) {
-=======
-   * Legacy untyped `array` is the source-level shorthand for an array whose
-   * element descriptor is `any` (type id 4). GPIN_NPRJ_TMP.PIN_NUM.
-   * FieldFormula (definition 8229) proves `&Ern_array As array` stores
-   * parameter descriptor 0xC0100004, while PSSRCHTEST.RUN_QUERY.FieldChange
-   * (definition 16893) proves `Returns array` stores return descriptor
-   * 0x00100004.
-   */
-  if (/^array$/i.test(typeName.trim())) {
-    return 0x100000 | 0x04;
-  }
-
-  const arrayType = /^array\s+of\s+(.+)$/i.exec(
-    typeName.trim()
-  );
-  if (arrayType) {
->>>>>>> Stashed changes
     return (
       (depth * 0x100000) |
       functionTypeId(rest, applicationClassOffsets)
@@ -488,7 +470,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     do {
       space();
       /*
-<<<<<<< Updated upstream
        * `array` (bare, with no `of ElementType` clause at all) is itself a
        * valid, untyped array declaration -- at any nesting level, not just
        * the outermost one.
@@ -501,12 +482,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * keyword byte, nothing after the type name at all. Confirmed for
        * nested bare arrays too, e.g. `Component array of array &Var;`
        * (definition 19016): the second `array` also has no trailing `of`.
-=======
-       * PeopleCode also has a captured untyped `array` form with no `of`
-       * clause. Component declarations 16150/16151 and Function parameter
-       * 8229 store only the existing 0x40 `array` token before the variable
-       * or closing parenthesis. Leave the cursor there when `of` is absent.
->>>>>>> Stashed changes
        */
       if (!word('of')) return elementType;
       chunks.push(textOperand(0x40, TokenKind.Keyword, 'of'));
@@ -660,7 +635,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       space();
 
       const ofMatch = /^of\b/i.exec(source.slice(pos));
-<<<<<<< Updated upstream
 
       /*
        * `Local array &values;` (bare, no `of ElementType` clause) is
@@ -684,17 +658,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         let elementType =
           /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
 
-=======
-      if (ofMatch) {
-        pos += ofMatch[0].length;
-        chunks.push(textOperand(0x40, TokenKind.Keyword, 'of'));
-
-        space();
-
-        let elementType =
-          /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
-
->>>>>>> Stashed changes
         if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
           const appClass = applicationClassPath();
           chunks.push(appClass.bytes);
@@ -2809,7 +2772,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      * only match its `&80` prefix (via the `\d+` branch), leaving
      * `EE_pin_num` to break the declaration's own comma/semicolon check.
      */
-    const match = /^&[A-Za-z0-9_]+/.exec(source.slice(pos));
     const match = /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos));
     if (!match) return fail('expected an ASCII &variable');
     pos += match[0].length;
@@ -5851,10 +5813,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             }
           }
 
-          statement();
-
-          space();
-
           /*
            * The LAST statement in a `When-Other` body may omit its
            * trailing `;` when immediately followed by `End-Evaluate` --
@@ -5888,23 +5846,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
            *
            *   When-Other
            *      &Evtsel(&i).DERIVED_GPFR_AF.GPFR_AF_EXTRACT_ID.Enabled = True /*False*\/;
-           */
-          while (source.startsWith('/*', pos)) {
-            chunks.push(blockCommentByPlacement());
-            space();
-          }
-
-          if (source[pos] !== ';') {
-           * A block comment may sit between a When-Other body statement's
-           * expression and its explicit semicolon, just as it can at the
-           * top level and in the other calibrated control bodies.
-           *
-           * DERIVED_GPFRDSN.FUNCLIB.FieldFormula (definition 5000):
-           *
-           *   &Evtsel(...).Enabled = True /*False*\/;
-           *
-           * stores the same placement-dependent 0x4E/0x24 comment form as
-           * those existing call sites.
            */
           while (source.startsWith('/*', pos)) {
             chunks.push(blockCommentByPlacement());
@@ -7085,8 +7026,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        * among others.
        */
       const startsVariableComparison =
-        /^\(\s*&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)(?:\s*\([^()]*\))?(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:<>|<=|>=|=|<|>)/
-        /^\(\s*&[A-Za-z0-9_]+#?(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:<>|<=|>=|=|<|>)/
+        /^\(\s*&[A-Za-z0-9_]+#?(?:\s*\([^()]*\))?(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:<>|<=|>=|=|<|>)/
           .test(source.slice(pos));
       /*
        * System variables can be the left operand of the same parenthesized
@@ -7118,18 +7058,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         /^\(\s*[A-Za-z_][A-Za-z0-9_]*(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:\([^()]*\))?\s*(?:<>|<=|>=|=|<|>)/
           .test(source.slice(pos));
       /*
-       * A parenthesized comparison whose LEFT side is a `%SystemVariable`
-       * rather than a `&variable`/bare identifier:
-       *
-       *   DERIVED_PA.COPY_ROW_BUTTON.Enabled = (%Mode <> %Action_Add);
-       *   Return (%Language_User <> %Language_Base);
-       *
-       * PA_CONS_HRS.SAVE_ROW.RowInit (one of several corpus occurrences).
-       */
-      const startsSystemVariableComparison =
-        /^\(\s*%[A-Za-z_][A-Za-z0-9_]*\s*(?:<>|<=|>=|=|<|>)/
-          .test(source.slice(pos));
-      /*
        * A parenthesized boolean And/Or chain whose FIRST operand is a
        * bare `&variable`/field-chain truthy reference with no comparison
        * operator at all (not `&var = X`, just `&var` itself, exactly the
@@ -7153,8 +7081,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         startsCallOrFieldComparison ||
         startsSystemVariableComparison ||
         startsVariableBooleanChain
-        startsSystemVariableComparison ||
-        startsCallOrFieldComparison
           ? booleanExpression
           : expression,
         false
@@ -9767,8 +9693,7 @@ function parseFunctionMetadata(
     if (parameterSource.length > 0) {
       for (const parameter of parameterSource.split(',')) {
         const typedMatch =
-          /^\s*&[A-Za-z_][A-Za-z0-9_]*\s+As\s+((?:array\s+of\s+)*[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)\s*$/i.exec(
-          /^\s*&[A-Za-z0-9_]+#?\s+As\s+((?:array\s+of\s+)?[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)\s*$/i.exec(
+          /^\s*&[A-Za-z0-9_]+#?\s+As\s+((?:array\s+of\s+)*[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)\s*$/i.exec(
             parameter
           );
 
