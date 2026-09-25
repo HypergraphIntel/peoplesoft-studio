@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -15,9 +15,6 @@
   "icon": "./resources/ad-slash.png",
   "activationEvents": [
     "onFileSystem:psft",
-    "onView:psft.connections",
-    "onView:psft.projects",
-    "onView:psft.browser",
     "onStartupFinished"
   ],
   "main": "./dist/extension.js",
