@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0
+
+Version **0.2.0** brings editional encoding / decoding maps and AI tooling
+
+- Add tools for the following provider methods:
+  psft_get_peoplecode
+  psft_find_peoplecode_references
+  psft_get_application_class
+  psft_get_record_peoplecode
+  psft_get_component_peoplecode
+
 ## 0.1.9
 
 Version **0.1.9** AI clients added:
