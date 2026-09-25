@@ -120,6 +120,23 @@ function functionTypeId(
     ) >>> 0;
   }
 
+  /*
+   * `array` (bare, with no `of ElementType` clause) as a Function
+   * parameter/return type is encoded the same as `array of any`.
+   *
+   * `Function Get_ACM_Ern(&Acm_Pin As number, &Ern_array As array)`
+   * (definition 8229): the parameter signature tail stores the `number`
+   * parameter as `c0000013`, then the bare `array` parameter as
+   * `c0100004` -- `0x100000` (the same "array of" flag `arrayType` above
+   * sets) OR'd with `0x000004`, `any`'s own primitive id.
+   */
+  if (/^array$/i.test(typeName.trim())) {
+    return (
+      0x100000 |
+      functionTypeId('any', applicationClassOffsets)
+    ) >>> 0;
+  }
+
   const applicationClassOffset = applicationClassOffsets?.get(
     typeName.trim().toLowerCase()
   );
@@ -435,7 +452,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     let elementType: string | undefined;
     do {
       space();
-      if (!word('of')) fail('expected "of" after array type');
+      /*
+       * `array` (bare, with no `of ElementType` clause at all) is itself a
+       * valid, untyped array declaration -- at any nesting level, not just
+       * the outermost one.
+       *
+       * PSMCF_UQSVC_MSGS.MCFUQPUBLISH.RowInit (definition 16150):
+       *
+       *   Component array &QueueIDArrayAdd;
+       *
+       * stores only `54 40 "array" 01 "&QueueIDArrayAdd" 15` -- no `of`
+       * keyword byte, nothing after the type name at all. Confirmed for
+       * nested bare arrays too, e.g. `Component array of array &Var;`
+       * (definition 19016): the second `array` also has no trailing `of`.
+       */
+      if (!word('of')) return elementType;
       chunks.push(textOperand(0x40, TokenKind.Keyword, 'of'));
       space();
       if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
@@ -576,44 +607,57 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       space();
 
       const ofMatch = /^of\b/i.exec(source.slice(pos));
-      if (!ofMatch) {
-        return fail('expected "of" after array in Local declaration');
-      }
-      pos += ofMatch[0].length;
-      chunks.push(textOperand(0x40, TokenKind.Keyword, 'of'));
 
-      space();
+      /*
+       * `Local array &values;` (bare, no `of ElementType` clause) is
+       * itself a valid, untyped array declaration -- the same allowance
+       * `arrayElementTypes()` grants Component/Global/nested array
+       * declarations.
+       *
+       * WEBLIB_MCF_QU.MCF_UQ_TASK_UT.FieldFormula (definition 6350):
+       *
+       *   Local array &NODE_ARRAY, &PARENT_ARRAY, &BRANCH_ARRAY;
+       *
+       * stores only `44 40 "array" 01 "&NODE_ARRAY" ...` -- no `of`
+       * keyword byte at all.
+       */
+      if (ofMatch) {
+        pos += ofMatch[0].length;
+        chunks.push(textOperand(0x40, TokenKind.Keyword, 'of'));
 
-      let elementType =
-        /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+        space();
 
-      if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
-        const appClass = applicationClassPath();
-        chunks.push(appClass.bytes);
-        addApplicationClassReference(appClass.packagePath, appClass.className);
-      } else {
-        chunks.push(typeName());
-        if (/^array$/i.test(elementType ?? '')) {
-          elementType = arrayElementTypes();
+        let elementType =
+          /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+
+        if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
+          const appClass = applicationClassPath();
+          chunks.push(appClass.bytes);
+          addApplicationClassReference(appClass.packagePath, appClass.className);
+        } else {
+          chunks.push(typeName());
+          if (/^array$/i.test(elementType ?? '')) {
+            elementType = arrayElementTypes();
+          }
         }
-      }
 
-      if (/^File$/i.test(elementType ?? '')) {
-        ensureLocalObjectPackageReference('FILE', 'File');
-      } else if (/^XmlDoc$/i.test(elementType ?? '')) {
-        ensureLocalObjectPackageReference('XMLDOC', 'XmlDoc');
-      } else if (/^XmlNode$/i.test(elementType ?? '')) {
-        ensureLocalObjectPackageReference('XMLNODE', 'XmlNode');
-      } else if (/^Record$/i.test(elementType ?? '')) {
-        ensureLocalObjectPackageReference('RECORD', 'Record');
-      } else if (/^Field$/i.test(elementType ?? '')) {
-        ensureLocalObjectPackageReference('FIELD', 'Field');
-      } else if (/^Rowset$/i.test(elementType ?? '')) {
-        ensureLocalObjectPackageReference('ROWSET', 'Rowset');
-      } else if (/^Row$/i.test(elementType ?? '')) {
-        ensureLocalObjectPackageReference('ROW', 'Row');
-      } else if (/^SQL$/i.test(elementType ?? '')) {
-        ensureLocalObjectPackageReference('SQL', 'SQL');
+        if (/^File$/i.test(elementType ?? '')) {
+          ensureLocalObjectPackageReference('FILE', 'File');
+        } else if (/^XmlDoc$/i.test(elementType ?? '')) {
+          ensureLocalObjectPackageReference('XMLDOC', 'XmlDoc');
+        } else if (/^XmlNode$/i.test(elementType ?? '')) {
+          ensureLocalObjectPackageReference('XMLNODE', 'XmlNode');
+        } else if (/^Record$/i.test(elementType ?? '')) {
+          ensureLocalObjectPackageReference('RECORD', 'Record');
+        } else if (/^Field$/i.test(elementType ?? '')) {
+          ensureLocalObjectPackageReference('FIELD', 'Field');
+        } else if (/^Rowset$/i.test(elementType ?? '')) {
+          ensureLocalObjectPackageReference('ROWSET', 'Rowset');
+        } else if (/^Row$/i.test(elementType ?? '')) {
+          ensureLocalObjectPackageReference('ROW', 'Row');
+        } else if (/^SQL$/i.test(elementType ?? '')) {
+          ensureLocalObjectPackageReference('SQL', 'SQL');
+        }
       }
     }
 
