@@ -6766,13 +6766,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         chunks.push(fieldReference());
       } else if (/^Scroll\s*\./i.test(tail)) {
         chunks.push(scrollReference());
-      } else if (/^Component\s*\./i.test(tail)) {
-        chunks.push(componentReference());
       } else if (
         /^[A-Za-z_][A-Za-z0-9_]*\s*\.\s*["']/.test(tail) &&
         quotedReferenceQualifiers.has(identifier.toLowerCase())
       ) {
         chunks.push(quotedReference());
+      } else if (/^Component\s*\./i.test(tail)) {
+        chunks.push(componentReference());
       } else if (/^[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/.test(tail)) {
         chunks.push(ordinaryRecordFieldReference());
       } else {

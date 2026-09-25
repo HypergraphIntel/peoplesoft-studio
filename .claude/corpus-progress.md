@@ -6,10 +6,10 @@
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #83 (below), validated locally on top
-  of current HEAD `e3bd1d4`. Fixes #82-#83 and this progress ledger are
-  currently uncommitted.
-- **Corpus total** (full-corpus run_id 1442): 22655/30209 exact (75.0%).
+- **Last successful calibration**: Fix #84 (below), validated locally on top
+  of current HEAD `45fccb5`. Fix #84 and this progress ledger are currently
+  uncommitted.
+- **Corpus total** (full-corpus run_id 1446): 22656/30209 exact (75.0%).
   Fix #73 was first rechecked against the already-equivalent full run 1326
   (run 1327: all 30209 materially unchanged). Subsequent full diffs were:
   Fix #74 run 1327 -> 1338 (2 exact, 4 advanced, 0 regressed); Fix #75 run
@@ -19,7 +19,8 @@
   regressed); Fix #80 run 1364 -> 1371 (3 exact, 1 advanced, 0 regressed);
   Fix #81 run 1371 -> 1375 (1 exact, 0 regressed); Fix #82 run 1375 -> 1399
   (8 exact, 7 advanced, 0 regressed); Fix #83 run 1399 -> 1442 (15 exact,
-  11 advanced, 0 regressed). The protected gate remains 430/430.
+  11 advanced, 0 regressed); Fix #84 run 1442 -> 1446 (1 exact, 0
+  regressed). The protected gate remains 430/430.
 - **Locally blocked / deferred, evidence exhausted this session** (see
   their own entries further down for full evidence trails): the `#If
   #ToolsRel` preprocessor-directive family (73 combined occurrences,
@@ -38,19 +39,30 @@
   `src/mcp/configure.ts`, `src/mcp/controller.ts`, and `src/mcp/status.ts`:
   unused imports/properties and missing server/status exports). Do not modify
   or revert that work as part of corpus calibration. The directly relevant
-  encoder suite passes after Fix #81 (`npx tsx --test
-  src/test/encoder.test.ts`: 113 tests, 112 pass, 1 pre-existing skip), and
+  encoder suite passes after Fix #84 (`npx tsx --test
+  src/test/encoder.test.ts`: 116 tests, 115 pass, 1 pre-existing skip), and
   every post-fix protected gate is 430/430.
-- **Next action**: resume failure-family triage from full run_id 1442 (group
+- **Next action**: resume failure-family triage from full run_id 1446 (group
   `corpus-results.sqlite`'s latest run by `classification`/`construct`,
   the same query used to find every target this session). The call-string,
   multiline-REM, and terminal-`#` families are calibrated below. Empty/simple
   Application Class definitions such as 28770 remain actionable but require
   adding explicit application-package ownership to encoder context; do not
   infer that owner from source text. The legacy `remark` family is calibrated
-  below; choose the next compact family from run 1399.
+  below; choose the next compact family from run 1446.
 
 ## Current target
+- **Fix #84** landed locally (src/peoplecode/encoder.ts): quoted Component
+  metadata references now dispatch through the already-calibrated quoted-name
+  `0x48` encoder before the bare `Component.NAME` reference parser. Definition
+  13326 proves `%Component = Component."HRS_PKG_MDL_APP"` is PSPCMNAME
+  `COMPONENT/HRS_PKG_MDL_APP` and executable bytes `48 <uint16 reference
+  index>`; both encoder and decoder qualifier maps already contained
+  `COMPONENT`, so no new binary semantics were introduced. Definition 13326
+  is now source->bin EXACT, roundtrip EXACT, and source MATCH. Full run 1442
+  -> 1446: 1 exact, 30208 unchanged, 0 regressed. Added a test proving quoted
+  Component uses `0x48` while bare Component still uses `0x21`. Relevant
+  encoder suite: 115/116 pass (1 pre-existing skip); protected gate: 430/430.
 - **Fix #83** landed locally (src/peoplecode/encoder.ts): captured PeopleCode
   variable names may begin with a digit and may end with `#`. The lexer had
   historically allowed either an ordinary letter/underscore-led identifier
