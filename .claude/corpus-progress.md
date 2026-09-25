@@ -1,6 +1,56 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #72** landed (src/peoplecode/encoder.ts), four related comment-
+  placement gaps found together via the `BLOCK_COMMENT` `ENCODE_ERROR`
+  family, all fixed with the same `restStartsWithKeywordPastComments()`/
+  `blockCommentByPlacement()` machinery Fix #70 introduced:
+  1. **`booleanUnary()`'s comment-after-operator handling was hardcoded
+     inline-only**: a comment right after `And`/`Or` (before its right
+     operand) always used `inlineBlockComment()` (0x4E), but a
+     STANDALONE (own-line) comment there needs `blockComment()` (0x24).
+     HS_EXAM_AUDIO2.<various>.FieldChange (definition 1353) proves it
+     with TWO own-line comments in a row after `And`.
+  2. **Top-level statements had no comment-before-`;` handling at all**
+     (If/For/While bodies already did): added the same placement-aware
+     comment loop right before the top-level `;` check.
+     HR_LINK_WRK.DESCR.FieldFormula (definition 18680):
+     `X = MsgGetText(...) /* Go to */;`.
+  3. **The EOF-omission "trailing standalone comment" allowance
+     (`assignmentBeforeFinalStandaloneComment`) was scoped only to plain
+     assignments**, not the other self-terminating-at-EOF statement
+     types (If/Evaluate/For/bare-call/etc.) added across Fixes #60/#68.
+     Generalized to `selfTerminatingBeforeFinalStandaloneComment`,
+     covering all of them. HS_EXAM_AUDIO2.<various>.FieldChange
+     (definition 1353, same target as #1) also needed this half: a
+     top-level `If ... End-If` (no `;`) followed by one standalone
+     comment then true EOF.
+  4. **A When-body statement omitting its own `;` before the next
+     `When`/`End-Evaluate` had no allowance for a standalone comment in
+     between** (unlike If/For bodies, which already tolerate one).
+     CAR_PLAN_TBL.MAX_LIST_AMT.FieldFormula (definition 2484): a nested
+     `If ... End-If` (no `;`) followed by `/* Lease */` then `When =
+     "L"`.
+  Searched the corpus for the `BLOCK_COMMENT`-construct `ENCODE_ERROR`
+  family (11 occurrences, all sampled): 8 confirmed fully EXACT (1353,
+  2484, 3684, 4393, 6508, 11192, 16873, 18680), 2 advanced past their
+  respective comment-placement construct into separate, unrelated,
+  deeper reference-index/structural issues (18580, 23802), confirmed via
+  git-stash comparison to have failed at the targeted construct before
+  this fix -- zero regressions. **One pre-existing test needed
+  updating**: `encoderNumbers.test.ts`'s `Return 1 /* comment */;` was
+  in the "unsupported" list (predating any comment-before-top-level-`;`
+  support) -- removed without adding a replacement assertion, since a
+  synthetic round-trip check for that exact input surfaced a separate,
+  narrower, decoder-only rendering gap (a same-line `Return <number>
+  /* comment */;` renders across three lines instead of one) that is
+  outside this fix's corpus-evidenced scope; noted here rather than
+  silently patched over, for a future session searching the corpus for
+  that specific decoder shape. Verified: `npx tsc -p .` clean; `npm
+  test` 458/459 (1 pre-existing skip); `corpus:verify --limit 430`
+  430/430, 0 regressions. Given this touches several shared comment-
+  handling call sites, a full-corpus background diff was also started;
+  see next entry for its result once complete.
 - **Fix #71** landed (src/peoplecode/encoder.ts): a statement immediately
   followed by a `REM ...;` comment (no semicolon of its own) may omit
   its trailing source semicolon, in two contexts:

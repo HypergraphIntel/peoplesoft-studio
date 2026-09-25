@@ -2712,11 +2712,22 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   const booleanUnary = () => {
     space();
 
-    // A comment between a boolean operator and its right operand is retained
-    // inline as 0x4E. PSIBLOGICL2_WRK.IB_FIELDTYPE_GUI calibrates
-    // `... = "0" Or /* Save or Reset */ ... = "1"`.
+    /*
+     * A comment between a boolean operator and its right operand is
+     * inline (0x4E) if it continues the operator's own line, or
+     * standalone (0x24) if it starts a new line -- see
+     * `blockCommentByPlacement()`. PSIBLOGICL2_WRK.IB_FIELDTYPE_GUI
+     * calibrates the inline case: `... = "0" Or /* Save or Reset *\/ ...
+     * = "1"`. HS_EXAM_AUDIO2.<various>.FieldChange proves the standalone
+     * case, with two own-line comments in a row after `And`:
+     *
+     *   If None(AUDIOMETRIC_TST.EXAM_TYPE_CD) And
+     *         /***** Start of Resolution 597700 ******\/
+     *         /*The below error message will be thrown ... *\/
+     *         &DEL = "FALSE"
+     */
     while (source.startsWith('/*', pos)) {
-      chunks.push(inlineBlockComment());
+      chunks.push(blockCommentByPlacement());
       space();
     }
 
@@ -5566,6 +5577,30 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
           space();
 
+          /*
+           * A standalone comment may sit between a completed When-body
+           * statement (itself omitting its own semicolon, e.g. a nested
+           * `If ... End-If` with no trailing `;`) and the next `When`/
+           * `End-Evaluate`, the same way one already can before those
+           * keywords with no comment in between.
+           *
+           * CAR_PLAN_TBL.MAX_LIST_AMT.FieldFormula (definition 2484):
+           *
+           *   End-If
+           *   /* Lease *\/
+           *   When = "L"
+           */
+          if (
+            source[pos] !== ';' &&
+            source.startsWith('/*', pos) &&
+            restStartsWithKeywordPastComments(/^(?:When(?:-Other)?|End-Evaluate)\b/i)
+          ) {
+            while (source.startsWith('/*', pos)) {
+              chunks.push(blockCommentByPlacement());
+              space();
+            }
+          }
+
           if (
             source[pos] !== ';' &&
             !/^When(?:-Other)?\b/i.test(source.slice(pos)) &&
@@ -8254,6 +8289,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     space();
 
     /*
+     * A block comment may appear between a top-level statement's
+     * expression and its own terminating semicolon, the same way
+     * If/For/While bodies already allow -- inline (0x4E) or standalone
+     * (0x24) by placement (see `blockCommentByPlacement()`).
+     *
+     * HR_LINK_WRK.DESCR.FieldFormula (definition 18680):
+     *
+     *   HR_LINK_WRK.DESCR = MsgGetText(18032, 485, "Message Not Found, 18032, 485") /* Go to *\/;
+     */
+    while (source.startsWith('/*', pos)) {
+      chunks.push(blockCommentByPlacement());
+      space();
+    }
+
+    /*
      * Some complete block statements are self-terminating at top level.
      *
      * Calibrated cases:
@@ -8292,8 +8342,30 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       const trailingStandaloneCommentEnd = source.startsWith('/*', pos)
         ? source.indexOf('*/', pos + 2)
         : -1;
-      const assignmentBeforeFinalStandaloneComment =
-        startsTopLevelAssignment &&
+      /*
+       * Any self-terminating-at-EOF statement type may have a trailing
+       * standalone comment between its own end and true EOF, not just a
+       * plain assignment -- HS_EXAM_AUDIO2.<various>.FieldChange
+       * (definition 1353) proves this for a top-level `If ... End-If`
+       * (no trailing `;`) immediately followed by
+       * `/*End Resolution 301452 *\/` and nothing else:
+       *
+       *   If %Page = ... Then
+       *      ...
+       *   End-If
+       *   /*End Resolution 301452 *\/
+       */
+      const selfTerminatingBeforeFinalStandaloneComment =
+        (
+          startsTopLevelAssignment ||
+          isIfStatement ||
+          isEvaluateStatement ||
+          isForStatement ||
+          isTopLevelCallStatement ||
+          isTopLevelVariableLedCallStatement ||
+          isWarningOrErrorStatement ||
+          isTryStatement
+        ) &&
         trailingStandaloneCommentEnd >= 0 &&
         /^\s*$/.test(source.slice(trailingStandaloneCommentEnd + 2));
 
@@ -8326,7 +8398,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
             isWarningOrErrorStatement ||
             isTryStatement
           )
-        ) || assignmentBeforeFinalStandaloneComment || precedesRemStatement;
+        ) || selfTerminatingBeforeFinalStandaloneComment || precedesRemStatement;
 
       if (!selfTerminatingAtEof) {
         fail('expected ;');

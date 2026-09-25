@@ -79,7 +79,7 @@ for (const source of [
   'Return .5;', 'Return 1e3;', 'Return 0x10;',
   'Return +1;', 'Return 1 ** 2;',
   'Return (1 + 2;', 'Return 1 +;', 'Return 1 /;', 'Return 1 2;',
-  'Return 1abc;', 'Return 1_000;', 'Return 1 = 2;', 'Return 1 /* comment */;'
+  'Return 1abc;', 'Return 1_000;', 'Return 1 = 2;'
 ]) {
   test(`unsupported numeric/expression syntax fails: ${source.slice(0, 80)}`, () => {
     assert.throws(() => encodeProgram(source), UnsupportedPeopleCodeError);
