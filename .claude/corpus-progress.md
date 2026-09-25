@@ -648,14 +648,14 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   throughout this entire session. `--live` was never used.
 - **Protected baseline**: 430/430, confirmed clean as of this checkpoint
   (`npm run corpus:verify -- --limit 430`).
-- **Last successful calibration**: Fix #86 (below), validated locally on top
-  of Fix #85's commit `22006ac`. Fix #86 and this progress ledger are
+- **Last successful calibration**: Fix #87 (below), validated locally on top
+  of Fix #86's commit `79765aa`. Fix #87 and this progress ledger are
   currently uncommitted. (Prior checkpoint's HEAD `45fccb5` is now behind:
   unrelated MCP-client work landed several commits, through `e9ccca2`,
   between sessions; full typecheck and `npm test` are clean at `e9ccca2`,
   so the previously-recorded typecheck blocker no longer applies -- see
   updated validation note below.)
-- **Corpus total** (full-corpus run_id 1509): 22672/30209 exact (75.0%).
+- **Corpus total** (full-corpus run_id 1521): 22693/30209 exact (75.1%).
   Fix #73 was first rechecked against the already-equivalent full run 1326
   (run 1327: all 30209 materially unchanged). Subsequent full diffs were:
   Fix #74 run 1327 -> 1338 (2 exact, 4 advanced, 0 regressed); Fix #75 run
@@ -672,8 +672,9 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   1509 (1 exact -- definition 843 -- 0 regressed against 1457, diffed the
   same way; two intermediate full runs during Fix #86's OWN development,
   1470 and 1494, each had a real, caught, and then repaired regression --
-  see Fix #86's own notes below for the full two-round isolation trail).
-  The protected gate remains 430/430.
+  see Fix #86's own notes below for the full two-round isolation trail);
+  Fix #87 run 1509 -> 1521 (21 exact, 0 regressed). The protected gate
+  remains 430/430.
 - **Locally blocked / deferred, evidence exhausted this session** (see
   their own entries further down for full evidence trails): the `#If
   #ToolsRel` preprocessor-directive family (73 combined occurrences,
@@ -683,13 +684,15 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   occurrences, `parseApplicationClassProgram()` only handles the narrow
   single-method inline shape); a decoder-only rendering gap for `Return
   <number> /* comment */;` noted under Fix #72 (narrow, not corpus-
-  evidenced, deliberately left unfixed).
-- **Validation caveat**: after Fix #85, on HEAD `e9ccca2`, both `npx tsc -p .
-  --noEmit` (whole project) and `npm test` (whole project: 471 tests, 470
-  pass, 1 pre-existing skip) are clean -- the previously-recorded MCP-related
-  typecheck blocker from the `45fccb5`-era checkpoint is gone; that unrelated
-  work has since been completed/fixed upstream of this session and was not
-  touched here. Every post-fix protected gate is 430/430.
+  evidenced, deliberately left unfixed); definition 889 (AE_WRK.AE_REFRESH.
+  FieldChange, newly deferred this session -- see Fix #87's own "Current
+  target" entry below for the full contradiction with definition 840's
+  established rule and the corroborating-evidence search that came up
+  empty).
+- **Validation caveat**: after Fix #87, on HEAD `79765aa`, both `npx tsc -p .
+  --noEmit` (whole project) and `npm test` (whole project: 475 tests, 474
+  pass, 1 pre-existing skip) are clean. Every post-fix protected gate is
+  430/430.
 - **Next action**: resume failure-family triage from full run_id 1457 (group
   `corpus-results.sqlite`'s latest run by `classification`/`construct`,
   the same query used to find every target this session, or use `npm run
@@ -704,6 +707,32 @@ zero-regression for Fix #73): 2 improved, 0 regressed, 30207 same.
   below.
 
 ## Current target
+- **Fix #87** landed locally (src/peoplecode/encoder.ts): `Record.X.MEMBER`
+  now excludes the six inline Row state/property members (`RowNumber`,
+  `IsNew`, `IsDeleted`, `IsChanged`, `Visible`, `Selected`) from the
+  "explicit `Record.REC.FIELD` chain" detector. AMM_DERIVED.IB_FO_BACK_PB.
+  FieldChange (definition 982) proves it: `If Record.AMM_DERIVED.IsChanged
+  = True Or ...` matched the chain regex (which only checks for two dotted
+  identifiers after `Record`, e.g. `Record.REC.FIELD`, with no requirement
+  for a genuine third `.Value`-style continuation), setting
+  `expectedReferenceMember` to `'field'` mode. That prevented the postfix
+  loop's own `isInlineRowStateMember` check (which requires `'record'`
+  mode, and already correctly keeps a Row VARIABLE's `.IsChanged` inline)
+  from ever running, so `IsChanged` got compiled as an attempted FIELD
+  PSPCMNAME reference instead of staying inline text. Stored emits `21
+  <ref> 05 0A "IsChanged"` -- the RECORD reference alone, no FIELD row.
+  Fixed by checking the second dotted segment against the same row-state
+  regex `isInlineRowStateMember` already uses, and skipping the
+  explicit-chain branch (falling back to plain `recordReference()`, which
+  correctly leaves `expectedReferenceMember` unset for a bare `Record.X`
+  literal base) when it matches. Definition 982 is now source->bin EXACT,
+  roundtrip EXACT, source MATCH. Full run 1509 -> 1521: 21 exact, 0
+  regressed -- a broad, evidently common shape (`Record.X.IsChanged`/
+  `.IsNew`/etc. used directly in a boolean condition, without going
+  through a Row variable first). Added a minimal-fragment byte-level
+  regression test. Full project `tsc -p . --noEmit` and `npm test` (475
+  tests, 474 pass, 1 pre-existing skip) both clean; protected gate:
+  430/430.
 - **Fix #86** landed locally (src/peoplecode/encoder.ts): the
   `singleOccurrenceCallArgumentRecordNames` fallback (a RowScrollSelect/
   RowScrollSelectNew/ScrollSelect call's own Record.X argument, appearing
@@ -4544,6 +4573,59 @@ intervening statements, with one vs. multiple preceding ScrollFlush
 calls) to triangulate the actual distinguishing rule before writing any
 code.
 
+### definition_id 889 (AE_WRK.AE_REFRESH.FieldChange) — a FOURTH,
+### independently-contradictory ScrollFlush-then-RowScrollSelect data
+### point, found during Fix #87's session (2026-09-25)
+
+Surfaced while triaging fresh `UNKNOWN_MISMATCH` candidates after Fix #86
+landed. First diff at body offset 575: `ScrollFlush(Record.MESSAGE_LOG);
+RowScrollSelect(1, Record.MESSAGE_LOG, Record.MESSAGE_LOG, "where
+PROCESS_INSTANCE = :1 order by MESSAGE_SEQ", &PI);` inside `Function
+MSG_PANEL ... Evaluate AE_WRK.AE_VIEW_MODE When = "M" ... End-Evaluate
+End-Function;` (i.e. functionDepth > 0, nested inside an Evaluate's own
+When-clause body, all sharing one control group per the existing
+Function-body/When-clause control-group rules). Stored reuses
+ScrollFlush's own row for BOTH of RowScrollSelect's own MESSAGE_LOG
+arguments (all three occurrences share one NAMENUM row) -- this is the
+EXACT SAME literal source text as definition 840's own calibrated
+disproof (`ScrollFlush(Record.MESSAGE_LOG); RowScrollSelect(1, Record.
+MESSAGE_LOG, Record.MESSAGE_LOG, "where PROCESS_INSTANCE = :1 order by
+MESSAGE_SEQ", &PI);`), except 840's copy sits at the top level
+(functionDepth 0, flat statements, no Function/Evaluate wrapper) and does
+NOT reuse (allocates a fresh row for RowScrollSelect's own pair).
+
+Searched the local snapshot (`source_text LIKE '%ScrollFlush(Record.%'
+AND source_text LIKE '%RowScrollSelect(%'`) for corroborating or
+contradicting examples of this exact single-arg-ScrollFlush +
+repeated-name-RowScrollSelect shape specifically. Found ~35 candidates
+total, but the two shortest OTHER currently-failing ones (definitions
+14222, 4395) both use a structurally different, already-separately-handled
+shape (MULTI-argument `ScrollFlush(Record.X, CurrentRowNumber(), Record.
+Y)`, which already has its own `isMultiArgScrollFlushCall` /
+`marksControlGroupParticipant` mechanism) rather than 889's single-arg
+form, so they are not clean corroborating evidence either way. No SECOND
+example of the single-arg-ScrollFlush + repeated-name-RowScrollSelect
+shape inside a Function/Evaluate body was found. Per the evidence rule, do
+NOT generalize a "functionDepth > 0 enables reuse" rule from this ONE
+contradicting data point against the TWICE-already-validated (840, and
+1283's analogous ScrollSelect variant) top-level non-reuse rule --
+especially given this exact code region already produced two real,
+corpus-diff-caught regressions earlier in this same session (Fix #86's
+own two-round isolation trail) from narrower-than-actual rules. This is
+very likely the SAME underlying unresolved mechanism as definition 1749's
+own contradiction (recorded just above, from an earlier session) --
+worth investigating BOTH together in a dedicated session, since 1749's
+"immediately preceding, no intervening statement, multiple consecutive
+ScrollFlush calls" hypothesis and 889's "functionDepth > 0" hypothesis are
+each single-point observations that could turn out to be the same rule,
+different rules, or both wrong. Next step when resumed: pull EVERY
+`ScrollFlush(Record.X); RowScrollSelect(N, Record.X, Record.X, ...)` (or
+`ScrollSelect` equivalent) occurrence in the local snapshot regardless of
+current classification (not just currently-failing ones -- an
+already-EXACT one confirms which rule its own shape follows) and tabulate:
+functionDepth, statement adjacency, consecutive-ScrollFlush count, and
+observed reuse/no-reuse, before writing any code.
+
 ### definition_id 1285 (ARCH_WRK.PSARCH_COPY_TABLE.FieldChange) — CopyFields
 ### general-cache visibility, deferred pending more corpus evidence
 
@@ -4868,7 +4950,16 @@ project-level blocker").
 - definitions: 430
 - exact: 430
 - regressions: 0
-- last verified: 2026-09-25 (/goal resume session), after Fix #86
+- last verified: 2026-09-25 (/goal resume session), after Fix #87
+  (definition 982, `Record.X.IsChanged`-style inline Row state/property
+  members no longer misrouted through the explicit `Record.REC.FIELD`
+  chain detector), REGRESSION GATE: PASS (430/430, no regression). Full
+  corpus run_id 1521 also directly diffed against run_id 1509 (the last
+  known-clean full run before Fix #87) at the per-definition
+  `classification` level: 21 newly exact, 0 regressed, 30188 unchanged.
+  Full-project `npx tsc -p . --noEmit` and `npm test` (475 tests, 474
+  pass, 1 pre-existing skip) both clean.
+- prior verification: 2026-09-25 (/goal resume session), after Fix #86
   (definition 843, RowScrollSelect-family single-occurrence reuse fallback
   now correctly scoped by `genericRecordReferencesSinceLastFamilyCall`
   instead of the shared `recordReferencesByControlGroup` pool -- see Fix
@@ -5029,14 +5120,19 @@ project-level blocker").
 
 ## Next action
 - **Current session (2026-09-25, /goal resume), immediate next step**: Fix
-  #86 landed and verified (430/430, full run 1509, 0 regressed against
-  1457). Resume triage from `npm run corpus:next`, which currently
-  surfaces the `UNKNOWN_MISMATCH`/`(none)` catch-all (4851 remaining, no
+  #87 landed and verified (430/430, full run 1521, 0 regressed against
+  1509). Resume triage from `npm run corpus:next`, which currently
+  surfaces the `UNKNOWN_MISMATCH`/`(none)` catch-all (4830 remaining, no
   single construct signature -- representatives must be pulled and
-  diagnosed individually, e.g. definitions 528 and 843's families just
-  fixed). No definition is currently mid-investigation. All
-  locally-blocked/deferred entries listed below (older sessions) remain
-  unchanged and still deferred; none were revisited this session.
+  diagnosed individually, e.g. definitions 528, 843, and 982's families
+  just fixed). No definition is currently mid-investigation. Skip
+  definition_id 536 (still recommended by `corpus:next` due to its own
+  documented offset-ordering caveat below) and definition_id 889 (newly
+  deferred this session, see "Identified, not yet fixed" for the full
+  four-way ScrollFlush/RowScrollSelect contradiction, alongside 1749 from
+  an earlier session) when triaging. All other locally-blocked/deferred
+  entries listed below (older sessions) remain unchanged; none were
+  revisited this session.
   Process note worth repeating for future RowScrollSelect/ScrollSelect/
   ScrollFlush-adjacent changes specifically: this whole area has a history
   (fixes #38-#47 in an earlier session, now Fix #86 in this one) of
