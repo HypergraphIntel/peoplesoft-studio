@@ -110,30 +110,47 @@ function functionTypeId(
   typeName: string,
   applicationClassOffsets?: ReadonlyMap<string, number>
 ): number {
-  const arrayType = /^array\s+of\s+(.+)$/i.exec(
-    typeName.trim()
-  );
-  if (arrayType) {
-    return (
-      0x100000 |
-      functionTypeId(arrayType[1], applicationClassOffsets)
-    ) >>> 0;
-  }
-
   /*
-   * `array` (bare, with no `of ElementType` clause) as a Function
-   * parameter/return type is encoded the same as `array of any`.
+   * Each nesting level of `array of` contributes its OWN multiple of
+   * 0x100000 -- NOT a single OR'd flag bit reused at every level. A bare
+   * trailing `array` (no final `of ElementType`) counts as one more
+   * nesting level over an implicit `any` element type.
+   *
+   * `Function savewideqryvalues(..., &arr As array of array of string) ...`
+   * (definition 14899): the parameter signature tail stores this
+   * 2-level-nested parameter as `c0200001` -- `0x200000` (TWO multiples
+   * of `0x100000`, not one) OR'd with `0x000001` (`string`'s own id).
+   *
+   * `Function parse_objclass(..., &array_structobj As array of array of
+   * array of string, ...)` (definition 15115): the 3-level-nested
+   * parameter stores `c0300001` -- `0x300000` (three multiples),
+   * confirming the pattern is `depth * 0x100000`, not a saturating OR.
    *
    * `Function Get_ACM_Ern(&Acm_Pin As number, &Ern_array As array)`
-   * (definition 8229): the parameter signature tail stores the `number`
-   * parameter as `c0000013`, then the bare `array` parameter as
-   * `c0100004` -- `0x100000` (the same "array of" flag `arrayType` above
-   * sets) OR'd with `0x000004`, `any`'s own primitive id.
+   * (definition 8229): the bare (untyped) `array` parameter stores
+   * `c0100004` -- one level (`0x100000`) OR'd with `0x000004`, `any`'s
+   * own primitive id.
    */
-  if (/^array$/i.test(typeName.trim())) {
+  let rest = typeName.trim();
+  let depth = 0;
+  while (true) {
+    const arrayOfMatch = /^array\s+of\s+/i.exec(rest);
+    if (arrayOfMatch) {
+      depth++;
+      rest = rest.slice(arrayOfMatch[0].length);
+      continue;
+    }
+    if (/^array$/i.test(rest)) {
+      depth++;
+      rest = 'any';
+    }
+    break;
+  }
+
+  if (depth > 0) {
     return (
-      0x100000 |
-      functionTypeId('any', applicationClassOffsets)
+      (depth * 0x100000) |
+      functionTypeId(rest, applicationClassOffsets)
     ) >>> 0;
   }
 
@@ -9035,7 +9052,7 @@ function parseFunctionMetadata(
     if (parameterSource.length > 0) {
       for (const parameter of parameterSource.split(',')) {
         const typedMatch =
-          /^\s*&[A-Za-z_][A-Za-z0-9_]*\s+As\s+((?:array\s+of\s+)?[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)\s*$/i.exec(
+          /^\s*&[A-Za-z_][A-Za-z0-9_]*\s+As\s+((?:array\s+of\s+)*[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)\s*$/i.exec(
             parameter
           );
 
@@ -9074,7 +9091,7 @@ function parseFunctionMetadata(
 
     const afterParameters = source.slice(closeParen + (hasParameterList ? 1 : 0));
     const returnMatch =
-      /^[ \t]*Returns\s+((?:array\s+of\s+)?[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)/i.exec(
+      /^[ \t]*Returns\s+((?:array\s+of\s+)*[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)/i.exec(
         afterParameters
       );
 

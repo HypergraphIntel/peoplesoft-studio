@@ -1,5 +1,54 @@
 # Corpus Calibration Progress
 
+## Fix #79: nested `array of array of ... of X` Function parameter/return types
+
+`src/peoplecode/encoder.ts`, two fixes to the same underlying gap:
+
+1. `parseFunctionMetadata()`'s parameter and return-type extraction
+   regexes only allowed ONE optional `array of ` prefix
+   (`(?:array\s+of\s+)?`), so any 2+-level nested array type (`array of
+   array of string`, etc.) failed the regex match entirely and fell
+   through to `throw new Error('Unsupported Function parameter: ...')`.
+   Changed both `(?:array\s+of\s+)?` to `(?:array\s+of\s+)*` (repeatable,
+   not just optional).
+2. `functionTypeId()` itself had a deeper bug once parsing succeeded: its
+   `array of X` handling recursively OR'd the SAME `0x100000` flag bit at
+   every nesting level, which saturates instead of accumulating (`0x100000
+   | 0x100000 == 0x100000`, silently losing all information about depth
+   beyond 1). Rewrote it to count total nesting depth first (including a
+   bare trailing `array` as one more level over an implicit `any` element
+   type, matching Fix #78), then compute `(depth * 0x100000) |
+   functionTypeId(baseType)` -- confirmed by binary evidence this is
+   genuinely multiplicative, not a saturating flag.
+
+Binary evidence for the multiplicative encoding: `Function
+savewideqryvalues(..., &arr As array of array of string) ...` (definition
+14899) stores its 2-level-nested parameter as `c0200001` -- `0x200000`
+(TWO multiples of `0x100000`) OR'd with `0x000001` (`string`). `Function
+parse_objclass(..., &array_structobj As array of array of array of
+string, ...)` (definition 15115) stores its 3-level-nested parameter as
+`c0300001` -- `0x300000` (three multiples), conclusively ruling out a
+saturating-OR interpretation in favor of `depth * 0x100000`.
+
+Searched the corpus for `Unsupported Function parameter` (17 occurrences).
+Sampled all 17: 15 advance past the crash into full encoding (or a
+different, separate, later construct in the same file); 2 remain blocked
+on genuinely DIFFERENT, unrelated sub-issues within the same broad error
+message, left unfixed and NOT investigated further this pass (documented
+below, not guessed at): definition 14727 hits `Unsupported Function
+parameter: ` (empty -- likely a malformed/trailing-comma parameter
+elsewhere in the same multi-Function file, not yet located); definition
+14854 hits a parameter with a trailing block comment inside the parameter
+list itself (`&operation As boolean /*True is for addition...*/)`) which
+the parameter-splitting regex doesn't account for. Neither regressed
+(confirmed: none of the 17 sampled were EXACT before this fix).
+
+Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
+`corpus:verify --limit 430` 430/430, 0 regressed. Full-corpus background
+run (run_id 301, 30209/30209, exact=22523) diffed against the immediately
+preceding full run (run_id 299, exact=22522): 1 improved, 0 regressed,
+30208 same.
+
 ## Fix #78: bare `array` (no `of ElementType`) is a valid, untyped array declaration
 
 `src/peoplecode/encoder.ts`: a bare `array` type -- with NO trailing `of
@@ -154,39 +203,30 @@ run (run_id 295, 30209/30209, exact=22516) diffed against the immediately
 preceding full run (run_id 292, exact=22511): 5 improved, 0 regressed,
 30204 same.
 
-## Status as of Fix #78 (current)
+## Status as of Fix #79 (current)
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
   throughout. `--live` has never been used this session.
 - **Protected baseline**: 430/430, clean.
-- **Last successful calibration**: Fix #78 (above).
-- **Corpus total**: full-corpus run_id 299 = 22522/30209 exact (74.5%),
-  confirmed zero-regression against run_id 297 (Fix #77's baseline,
-  itself confirmed zero-regression against run_id 295/292/290/288).
+- **Last successful calibration**: Fix #79 (above).
+- **Corpus total**: full-corpus run_id 301 = 22523/30209 exact (74.5%),
+  confirmed zero-regression against run_id 299 (Fix #78's baseline,
+  itself confirmed zero-regression against run_id 297/295/292/290/288).
 - **Next action**: resume failure-family triage from the current failure
-  inventory (`GROUP BY classification, error_message` on run_id 299 in
+  inventory (`GROUP BY classification, error_message` on run_id 301 in
   `tools/corpus/corpus-results.sqlite`, excluding `%bare identifiers%` and
-  `%Application Class%` which are the known-deferred gap). One concrete,
-  scoped-but-unsolved candidate remains from Fix #77: the `time` Function
-  parameter/return type id (3 occurrences; bare-`array` was solved by Fix
-  #78) -- needs figuring out how Function metadata is laid out for a file
-  that interleaves `Function ... End-Function;` blocks with ordinary
-  executable code (definition 1016 is the concrete example), since that's
-  structurally different from the dedicated-all-Function-file layout
-  `encodeFunctionMetadata`/`encodeFunctionProgramHeader` currently assume
-  (names were found scattered at large, non-contiguous offsets: 579,
-  3580, 9599, 10517, 16294, 16544, 17070 -- one per Function, each
-  presumably local to its own block rather than batched in one directory
-  at file start). Do not guess at this layout without more binary
-  evidence; if it proves substantial, document it as its own deferred
-  feature gap rather than forcing a narrow fix. Also worth checking: the
-  `Unsupported Function parameter: &ResponseTypeDetails As array of array
-  of string` error (3 occurrences) is a DIFFERENT, earlier-stage parameter
-  parsing issue (not yet investigated) -- confirm whether it's related to
-  nested array-of-array-of-X specifically or something else before
-  assuming it's covered by Fix #78's functionTypeId() change (Fix #78
-  only touched the type-id lookup, not whatever throws this earlier
-  "Unsupported Function parameter" error).
+  `%Application Class%` which are the known-deferred gap). Two small,
+  scoped-but-unsolved leftovers from Fix #77/#79 (low priority, 1
+  occurrence each, not corpus-significant families on their own, revisit
+  only if nothing bigger is actionable): the `time` Function
+  parameter/return type id (needs figuring out Function metadata layout
+  for files that interleave `Function ... End-Function;` blocks with
+  executable code -- see Fix #77's entry for the concrete blocker,
+  definition 1016); definition 14727's empty-parameter and definition
+  14854's comment-inside-parameter-list `Unsupported Function parameter`
+  cases (see Fix #79's entry). Otherwise, re-run the failure-family query
+  fresh against run_id 301 to find the next actionable, non-deferred
+  construct -- nothing further was pre-scoped as of this update.
 - **Locally blocked / deferred, evidence exhausted** (unchanged unless
   noted): the `#If #ToolsRel` preprocessor-directive family (73
   occurrences, environmental per-definition dependency); the general
