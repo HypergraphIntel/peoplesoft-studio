@@ -1,6 +1,71 @@
 # Corpus Calibration Progress
 
 ## Current target
+- **Fix #70** landed (src/peoplecode/encoder.ts, `andExpression()` /
+  `booleanExpression()`): a block comment sitting between a boolean
+  operand and the `And`/`Or` keyword that continues the expression
+  (rather than after it, the only position already handled) made the
+  encoder treat the expression as complete, causing the caller (e.g.
+  `ifStatement()`) to fail "expected Then" when it found a comment where
+  it expected the keyword. Three distinct, evidence-backed sub-rules,
+  all found from the same construct family:
+  1. **Detecting the keyword past comments**: added
+     `restStartsWithKeywordPastComments()`, a non-consuming lookahead
+     that skips whitespace and any number of block comments before
+     checking for `And`/`Or`, replacing the previous immediate
+     `/^And\b/`/`/^Or\b/` checks (both the initial entry check and each
+     while-loop's own re-entry condition -- a comment between a LATER
+     pair of operands in a 3+-operand chain needed the identical
+     treatment, proven separately below).
+  2. **Comment opcode by placement, not by call site**: added
+     `blockCommentByPlacement()`/`blockCommentStartsOwnLine()` -- a
+     comment starting its own source line encodes as standalone (0x24,
+     `blockComment()`); one continuing the previous line's tokens
+     encodes as inline (0x4E, `inlineBlockComment()`). Several call
+     sites in this area (the And/Or-group's own trailing-comment-
+     before-close, and `ifStatement()`'s comment-before-Then) previously
+     hardcoded one or the other based on a single calibrating example
+     that never actually distinguished the two cases (both prior
+     examples happened to need the same opcode their hardcoded choice
+     produced).
+  3. **Group-open (0x41) ordering relative to a LEADING comment**: an
+     INLINE comment before the group's very first `And`/`Or` is emitted
+     BEFORE 0x41 (it still belongs to the first operand's own token
+     stream); a STANDALONE (own-line) one is emitted AFTER 0x41 (it
+     belongs to the group itself). Comments AFTER the group has already
+     opened (between later operands, or trailing before the close) don't
+     need this distinction -- only the very first one does.
+  Target: definition 6509 (HS_INJ_ILL_REHAB.HS_PNLGRP_ROUTE.Value) --
+  ```
+  If %PanelGroup = PanelGroup.HS_INJ_ILL_REHAB
+        /* Start of Resolution Id: 305302 */
+        Or
+        %Component = Component.HS_NE_INJILL_REHAB
+     /* End of Resolution Id: 305302 */
+     Then
+  ```
+  confirmed full EXACT (both the standalone comment before `Or`, opening
+  the group with 0x41 first, AND the standalone comment before `Then`,
+  now correctly emitted AFTER the Or-group's 0x42 close rather than
+  swallowed into the group). Searched the corpus for the "expected Then"
+  `ENCODE_ERROR` family across both the `And` and `Or` construct-snippet
+  groups (11 combined occurrences sampled): 6 confirmed fully EXACT
+  (6509, 3348, 6507 -- a genuine 3-operand Or-chain with the comment
+  between the 2nd and 3rd operand, proving sub-rule 1's while-loop fix
+  independently of the entry-check fix, 13757, 13847, 1411 -- proving
+  sub-rule 3's inline-before-0x41 ordering independently of the
+  standalone case), 5 advanced past the And/Or-comment construct into
+  separate, unrelated, deeper issues (14020: a `When = False` clause's
+  own trailing-comment handling, not this construct at all; 1016:
+  unrelated `time` function-metadata gap; 1420: unrelated `else` used as
+  a call name; 1747, 20933: unrelated reference-index mismatches) -- all
+  5 confirmed via git-stash comparison to have failed at the And/Or-
+  comment construct before this fix, zero regressions. Verified: `npx
+  tsc -p .` clean; `npm test` 459/460 (1 pre-existing skip);
+  `corpus:verify --limit 430` 430/430, 0 regressions. Given this touches
+  the widely-used And/Or boolean-expression machinery, a full-corpus
+  background diff was also started; see next entry for its result once
+  complete.
 - **Fix #69** landed (src/peoplecode/encoder.ts, `value()`) -- a
   significant gap: **decimal number literals were entirely unsupported**.
   `value()`'s number-literal branch only ever matched bare integer digits
