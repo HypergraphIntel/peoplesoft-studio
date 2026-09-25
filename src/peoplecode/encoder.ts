@@ -6600,8 +6600,20 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       chunks.push(systemVariable());
     } else if (source[pos] === '(') {
       const startsBooleanUnary = /^\(\s*Not\b/i.test(source.slice(pos));
+      /*
+       * The `&variable` on the left side of a parenthesized comparison
+       * may itself be indexed/called (e.g. a Rowset access) before its
+       * `.field.field` chain, not just a bare `&variable`:
+       *
+       *   DERIVED.Enabled = (&rs2(&j).PA_CLC_PLN_INPT.USE_PROCESS_SECT.Value = "Y");
+       *   &EmptyRow = (&ShareScheme(&EmplRow).IsNew And ...);
+       *
+       * PA_CLC_PLN_INPT.EXEC_ONLY_CD.RowInit (definition 19037) and
+       * GPGB_SS_EE_DATA.GPGB_SS_DEFN_VW.SavePreChange (definition 21575),
+       * among others.
+       */
       const startsVariableComparison =
-        /^\(\s*&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:<>|<=|>=|=|<|>)/
+        /^\(\s*&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)(?:\s*\([^()]*\))?(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:<>|<=|>=|=|<|>)/
           .test(source.slice(pos));
       /*
        * A parenthesized comparison whose LEFT side is a function call
@@ -6621,10 +6633,42 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       const startsCallOrFieldComparison =
         /^\(\s*[A-Za-z_][A-Za-z0-9_]*(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:\([^()]*\))?\s*(?:<>|<=|>=|=|<|>)/
           .test(source.slice(pos));
+      /*
+       * A parenthesized comparison whose LEFT side is a `%SystemVariable`
+       * rather than a `&variable`/bare identifier:
+       *
+       *   DERIVED_PA.COPY_ROW_BUTTON.Enabled = (%Mode <> %Action_Add);
+       *   Return (%Language_User <> %Language_Base);
+       *
+       * PA_CONS_HRS.SAVE_ROW.RowInit (one of several corpus occurrences).
+       */
+      const startsSystemVariableComparison =
+        /^\(\s*%[A-Za-z_][A-Za-z0-9_]*\s*(?:<>|<=|>=|=|<|>)/
+          .test(source.slice(pos));
+      /*
+       * A parenthesized boolean And/Or chain whose FIRST operand is a
+       * bare `&variable`/field-chain truthy reference with no comparison
+       * operator at all (not `&var = X`, just `&var` itself, exactly the
+       * same shape `booleanUnary`/plain `If &var And ...` already
+       * accepts at statement level):
+       *
+       *   &HALF1 = (&A And &B And &C And ...);
+       *   &AddCRef = (&IncludeHiddenCrefs Or &CRef.IsVisible);
+       *   PTLAYOUT.PT_QAB_TOOLBAR.Visible = (&fldMRU.Visible Or &fldFAV.Visible);
+       *
+       * SCC_PYE_WRK.SCC_PYE_ARCHIVE.FieldFormula (definition 1275) and
+       * WEBLIB_PORTAL.ISCRIPT1.FieldFormula (definitions 19495/25089/
+       * 25090), among others.
+       */
+      const startsVariableBooleanChain =
+        /^\(\s*&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)(?:\s*\([^()]*\))?(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:And|Or)\b/i
+          .test(source.slice(pos));
       parenthesized(
         startsBooleanUnary ||
         startsVariableComparison ||
-        startsCallOrFieldComparison
+        startsCallOrFieldComparison ||
+        startsSystemVariableComparison ||
+        startsVariableBooleanChain
           ? booleanExpression
           : expression,
         false

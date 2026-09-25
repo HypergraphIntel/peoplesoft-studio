@@ -1,5 +1,61 @@
 # Corpus Calibration Progress
 
+## Fix #81: three more parenthesized-RHS boolean-dispatch heuristics
+
+`src/peoplecode/encoder.ts`, the shared `(` dispatch heuristic (used
+wherever a parenthesized value could be either an arithmetic
+`expression()` or a `booleanExpression()`, e.g. `&var = (...)` or `FIELD
+= (...)`): extended the existing `startsBooleanUnary`/
+`startsVariableComparison`/`startsCallOrFieldComparison` checks with
+three more evidenced patterns, all previously falling through to
+`expression()` and failing with `expected )` once the parser hit a
+comparison/boolean-keyword token it didn't expect inside plain
+arithmetic:
+
+1. `startsVariableComparison` widened to allow an optional call/index
+   `(...)` between the leading `&variable` and its `.field.field` chain
+   (a Rowset-style access), not just a bare `&variable`:
+   `(&rs2(&j).PA_CLC_PLN_INPT.USE_PROCESS_SECT.Value = "Y")`.
+2. New `startsSystemVariableComparison`: a parenthesized comparison whose
+   left side is a `%SystemVariable` rather than `&variable`/bare
+   identifier: `(%Mode <> %Action_Add)`.
+3. New `startsVariableBooleanChain`: a parenthesized And/Or chain whose
+   FIRST operand is a bare truthy `&variable`/field-chain reference with
+   NO comparison operator at all (the same shape a plain `If &var And
+   ...` statement condition already accepts, just now also recognized
+   inside an assignment's parenthesized RHS): `(&A And &B And ...)`,
+   `(&IncludeHiddenCrefs Or &CRef.IsVisible)`.
+
+Searched the corpus for the exact `expected )` `ENCODE_ERROR` (26
+occurrences) and manually classified each by its actual construct.
+Sampled all 26: 9 reach full `EXACT` (1275, 11810, 11892, 19037, 19038,
+19039, 19201, 21576, 21579), several more advance into a different,
+separate, later construct in the same file (confirmed non-regressed:
+none of the 26 sampled were EXACT before this fix). Explicitly did NOT
+attempt two other sub-patterns found in the same `expected )` error
+during this investigation, left deferred/undocumented-as-fixed:
+- A structurally different, deeper issue where a parenthesized PURE
+  ARITHMETIC sub-expression is followed by a comparison operator AFTER
+  its own closing paren, e.g. `If ((A / B) * 100) > C Then` (5
+  occurrences: 1656, 1658, 4532, 5216, 17437) -- this isn't a `(`
+  dispatch-heuristic gap (arithmetic-only content correctly routes to
+  `expression()`), it's about whatever calls `primary()`/`expression()`
+  for the outer paren not then trying a trailing comparison operator
+  afterward. Needs its own investigation into the `If`/comparison
+  condition parser, not a heuristic tweak.
+- Comments inside a call's own argument list breaking argument parsing
+  (3 occurrences: 5004, 25124, 27517) and `Not ((Record.Field
+  chain)).Property`-style parenthesized-then-postfix-accessed field
+  references (21960) -- both unrelated to the boolean-vs-arithmetic
+  dispatch this fix targeted.
+
+Verified: `npx tsc -p .` clean; `npm test` 458/459 (1 pre-existing skip);
+`corpus:verify --limit 430` 430/430, 0 regressed. This touches one of the
+most broadly-shared dispatch points in the encoder, so a full-corpus diff
+was essential: background run (run_id 305, 30209/30209, exact=22539)
+diffed against the immediately preceding full run (run_id 303,
+exact=22531): 8 improved, 0 regressed, 30201 same.
+
 ## Fix #80: `&variable` names may start with digits and continue with letters
 
 `src/peoplecode/encoder.ts`, the shared `variable()` primitive (used
@@ -243,33 +299,34 @@ run (run_id 295, 30209/30209, exact=22516) diffed against the immediately
 preceding full run (run_id 292, exact=22511): 5 improved, 0 regressed,
 30204 same.
 
-## Status as of Fix #80 (current)
+## Status as of Fix #81 (current)
 
 - **Datasource mode**: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
   throughout. `--live` has never been used this session.
 - **Protected baseline**: 430/430, clean.
-- **Last successful calibration**: Fix #80 (above).
-- **Corpus total**: full-corpus run_id 303 = 22531/30209 exact (74.6%),
-  confirmed zero-regression against run_id 301 (Fix #79's baseline,
-  itself confirmed zero-regression against run_id 299/297/295/292/290/288).
+- **Last successful calibration**: Fix #81 (above).
+- **Corpus total**: full-corpus run_id 305 = 22539/30209 exact (74.6%),
+  confirmed zero-regression against run_id 303 (Fix #80's baseline,
+  itself confirmed zero-regression against run_id 301/299/297/295/292/290/288).
 - **Next action**: resume failure-family triage from the current failure
-  inventory (`GROUP BY classification, error_message` on run_id 303 in
+  inventory (`GROUP BY classification, error_message` on run_id 305 in
   `tools/corpus/corpus-results.sqlite`, excluding `%bare identifiers%` and
-  `%Application Class%` which are the known-deferred gap). Small,
-  scoped-but-unsolved leftovers from earlier fixes (low priority, 1
-  occurrence each, revisit only if nothing bigger is actionable): the
-  `time` Function parameter/return type id (needs figuring out Function
-  metadata layout for files that interleave `Function ... End-Function;`
-  blocks with executable code -- see Fix #77's entry for the concrete
-  blocker, definition 1016); definition 14727's empty-parameter and
-  definition 14854's comment-inside-parameter-list `Unsupported Function
-  parameter` cases (see Fix #79's entry); definition 13562's newly-exposed
-  `Unsupported function metadata type: Message` (seen during Fix #80's
-  candidate sampling, not yet investigated -- may be a new, real type-id
-  gap similar to Fix #77's SQL/Grid work, worth checking for corroborating
-  occurrences before diving in). Otherwise, re-run the failure-family
-  query fresh against run_id 303 to find the next actionable, non-deferred
-  construct.
+  `%Application Class%` which are the known-deferred gap). A concrete,
+  scoped-but-unsolved candidate from Fix #81 is ready to pick up next: the
+  "parenthesized pure arithmetic followed by a comparison operator AFTER
+  its own closing paren" pattern (`If ((A / B) * 100) > C Then`, 5
+  occurrences: 1656, 1658, 4532, 5216, 17437) -- this needs investigating
+  how the `If`/comparison condition parser handles a trailing comparison
+  operator after a fully-parsed parenthesized arithmetic primary, not
+  another `(` dispatch-heuristic tweak (see Fix #81's entry for the full
+  reasoning). Also still open, smaller/lower-priority (1-3 occurrences
+  each): comments inside a call's own argument list (5004, 25124, 27517);
+  `Not ((Record.Field chain)).Property`-style parenthesized-then-postfix
+  field access (21960); the `time` Function parameter/return type id
+  (Fix #77's entry, definition 1016); definition 14727/14854's remaining
+  `Unsupported Function parameter` sub-cases (Fix #79's entry); definition
+  13562's `Unsupported function metadata type: Message` (Fix #80's
+  entry, not yet investigated for corroborating occurrences).
 - **Locally blocked / deferred, evidence exhausted** (unchanged unless
   noted): the `#If #ToolsRel` preprocessor-directive family (73
   occurrences, environmental per-definition dependency); the general
