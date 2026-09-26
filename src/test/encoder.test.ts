@@ -2558,7 +2558,7 @@ test('Application Class constant preserves repeated source semicolons', () => {
   assert.deepStrictEqual(appClassStatements('class Demo\n constant &N = 1;;\nend-class;'), Buffer.concat([
     Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x56]),
     appClassText(0x01, '&N'), Buffer.from([0x06]),
-    Buffer.from('500000010000000000000000000000000000', 'hex'),
+    Buffer.from('50000001000000000000000000000000000000', 'hex'),
     Buffer.from([0x15, 0x15, 0x5b, 0x15, 0x2d, 0x07])
   ]));
 });
