@@ -1,5 +1,156 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 11 — scoped FIELD identity
+
+**Status: semantic implementation complete and fully validated; committed as a
+separate Cycle 11 change.** The semantic baseline is Cycle 10 commit `a255526`,
+23,182/30,209 full-corpus EXACT and protected 430/430. Cycle 11 makes the
+evidence-backed FIELD identity `(controlGroup, fieldName)` authoritative after
+`ChainSemantics` establishes eligibility and `DependencyKind` selects FIELD.
+The new result is **23,217/30,209 EXACT**, a gain of 35, with zero EXACT
+regressions.
+
+### Implementation
+
+- Added the explicit `FieldDependencyScope` facade backed by
+  `scopedFieldReferences`, keyed only by normalized
+  `controlGroup:fieldName`.
+- Routed explicit `Record.REC.FIELD`, declared Row/Record, inferred row
+  shorthand, `GetField(Field.X)` on an eligible GetRecord result, and bare
+  `GetRecord().FIELD` producers through that shared namespace.
+- Kept `recordVariableFields` as the receiver-specific first-choice lookup.
+  It still runs before the shared namespace and produced 19,393 effective hits
+  population-wide.
+- Made the shared scoped namespace authoritative for name-level FIELD reuse.
+  Legacy FIELD pools remain allocated, written, and shadow-read for Cycle 11
+  observation, but their results cannot select generated references.
+- Did not alter `ChainSemantics`, `DependencyKind`, `DependencyScope`, Record
+  reuse, same-statement reuse, RowScrollSelect-family state, or any decoder
+  behavior.
+- Added a unit control proving that a typed Row same-name FIELD in a later
+  top-level control group allocates a fresh identity even though the retained
+  global `typedRowFields` shadow sees the earlier candidate.
+
+### Targeted controls
+
+The requested local-snapshot targets were run without `--live`.
+
+- Exact after Cycle 11: 24, 437, 524, 535, 9989, 4636, 5358, 6296, and 6298.
+- Still `UNKNOWN_MISMATCH`: 924, 3133, and 14890.
+- Definition 5358 is the direct negative control for global typed-Row reuse:
+  it changed from non-exact to exact only when six later-control-group
+  `typedRowFields` candidates became observational rather than effective.
+- Definitions 4636, 6296, and 6298 are positive controls for shared FIELD
+  identity across structurally different producers and are newly exact.
+- Definition 3133 remains non-exact, confirming this change did not broaden
+  the separate row-shorthand RECORD bridge.
+
+### Full-population result
+
+Compared Cycle 10 full run 1967 with Cycle 11 full run 1994, row by row:
+
+| result | count |
+|---|---:|
+| previous EXACT | 23,182 |
+| new EXACT | **23,217** |
+| newly exact | **35** |
+| exact regressions | **0** |
+| generated-program SHA changes | **173** |
+| advanced but still non-exact | **7** |
+| earlier first diff while still non-exact | **0** |
+| changed outside predicted FIELD population | **0** |
+
+The only classification transition was `UNKNOWN_MISMATCH -> EXACT` for 35
+definitions. Every other classification was unchanged. Newly exact definition
+IDs are: 4636, 5358, 6296, 6298, 13628, 14891, 14897, 14911, 14913, 15533,
+15585, 15628, 15633, 15754, 15895, 16385, 16426, 16994, 17015, 17041,
+17061, 17073, 17074, 17075, 17093, 17159, 18493, 19025, 19030, 19031,
+21750, 22308, 22869, 23813, and 24449.
+
+Seven still-non-exact definitions advanced to a later first diff: 14700
+(1258 -> 1302), 15534 (4537 -> 4983), 16754 (1942 -> 2072), 17013
+(2023 -> 3312), 17574 (5028 -> 5294), 22640 (1887 -> 1977), and 23890
+(4960 -> 5574).
+
+### Generated-SHA and affected-identity audit
+
+The Cycle 11 observational model independently predicted a changed semantic
+FIELD decision in exactly 173 definitions. The generated-program SHA changed
+in exactly those same 173 definitions: no changed definition fell outside the
+prediction, and no predicted definition retained its prior SHA.
+
+Those decisions covered 1,090 distinct
+`definition:controlGroup:fieldName` identities and 314 distinct field names.
+The largest affected field-name populations were `IB_DOCLAYOUT_ID` (93
+decisions), `FIELDTYPE` (81), `IB_DOC_LBL_ID` (51), `SELECT_FLAG` (32),
+`IB_DOCPAGE_INDEX` (30), `IB_DOCLO_PROP_VAL` (28),
+`IB_DOCLO_PROP_NAME` (21), `IB_LBLTEXT` (17), `PARAMETERNAME` (15),
+`PTAI_CHANGE_LOG` (15), `IB_SEQUENCE_NBR` (14), and `HTMLAREA` (14).
+This exact set agreement is the control that changes stayed concentrated in
+the predicted FIELD-keying population; unrelated Record/Scroll reuse produced
+no generated-byte changes.
+
+### Phase 11C legacy-pool observation
+
+`tools/corpus/research/field-scope-contribution-analysis.ts` encoded all
+30,209 local definitions (28,432 source-encodable; 1,777 encode errors) and
+classified old pool results against the authoritative receiver/scoped result.
+Legacy reads below are deliberate shadow observations, so their counts include
+reads that old short-circuit dispatch would not have reached.
+
+| pool | reads | shadow hits | writes | hits after both authoritative paths missed | unmirrored writes | generated selections |
+|---|---:|---:|---:|---:|---:|---:|
+| `typedRowFields` | 2,872 | 1,032 | 4,973 | **906** | 0 | 0 |
+| `fieldReferencesByControlGroup` | 17,890 | 643 | 1,936 | 0 | 0 | 0 |
+| `explicitRecordFields` | 267 | 95 | 267 | 0 | 0 | 0 |
+| `rowShorthandFields` | 30,288 | 1,625 | 24,270 | 0 | 0 | 0 |
+| `declaredRecordFields` | 30,555 | 2,018 | 26,843 | 0 | 0 | 0 |
+
+The 906 `typedRowFields` hits are not evidence for effective global identity:
+they are stale cross-control-group candidates observed precisely where the
+scoped namespace correctly has no prior binding. Stored bytes support fresh
+allocation there. All 4,973 typed-row writes, and every write from the other
+overlapping FIELD pools, had a same-occurrence shared-scope write of the same
+reference.
+
+Two intentionally preserved non-FIELD/first-choice controls remain active:
+
+- `recordVariableFields`: 52,553 reads, 19,393 hits, 50,846 writes across
+  4,181 definitions. This receiver-specific path remains semantically live
+  and first choice.
+- `rowShorthandRecords`: 1,668 reads, 69 effective hits, 29,701 writes across
+  3,580 definitions. This RECORD pool was not changed and is not a deletion
+  candidate from Cycle 11 evidence.
+
+### Deletion candidates
+
+`typedRowFields`, `fieldReferencesByControlGroup`, `explicitRecordFields`,
+`rowShorthandFields`, and `declaredRecordFields` are now observationally
+redundant for generated output: all writes are mirrored, and no read result is
+selected. They are deletion candidates for a later structural commit.
+`typedRowFields` should be deleted with particular care because its 906 unique
+shadow hits document the rejected global behavior; removal must retain a test
+for fresh allocation across control groups. No legacy pool was removed in this
+semantic commit, as requested.
+
+### Validation
+
+- `npm run typecheck`: clean.
+- `npm test`: 490 passed, 0 failed, 1 intentional skip.
+- targeted FIELD controls: complete, local snapshot only.
+- protected baseline: 430/430, zero regressions.
+- full local corpus: 23,217/30,209 EXACT.
+- generated-SHA comparison: 173 changes, exactly matching the predicted
+  scoped-FIELD population; zero outside it.
+- no `--live` use.
+
+### Next action
+
+Stop after the separate Cycle 11 semantic commit. In a later cycle, remove
+legacy FIELD pools one at a time as structural cleanup, preserving the scoped
+namespace and receiver-specific `recordVariableFields`. Do not delete or scope
+`rowShorthandRecords` based on this FIELD-only result.
+
 ## Compiler Semantics Cycle 10 — reuse-pool keying model (research only; no semantic change)
 
 **Status: research complete; a clean model emerged; stopped before semantic
