@@ -89,6 +89,34 @@ interface FieldDependencyScope {
 }
 
 /**
+ * Cycle 20's semantic namespace for static `HTML.NAME` dependencies.
+ *
+ * The serialized artifact remains an ordinary `record-field` reference with
+ * `recordName = "HTML"` and `fieldName = NAME`; this facade owns only the
+ * independently-evidenced lifetime identity. Its namespace key is supplied by
+ * the parser because the lifetime differs by program shape:
+ *
+ * - one namespace for an entire Application Class compilation unit;
+ * - one namespace per ordinary Function body;
+ * - one namespace per ordinary top-level control region.
+ */
+class HtmlDependencyScope {
+  private readonly references = new Map<string, PeopleCodeReference>();
+
+  lookup(namespace: string, name: string): PeopleCodeReference | undefined {
+    return this.references.get(`${namespace}:${name.toLowerCase()}`);
+  }
+
+  record(
+    namespace: string,
+    name: string,
+    reference: PeopleCodeReference
+  ): void {
+    this.references.set(`${namespace}:${name.toLowerCase()}`, reference);
+  }
+}
+
+/**
  * The semantic result of a postfix expression chain (Cycle 4 research:
  * `.claude/corpus-progress.md`'s "Compiler Semantics Research Cycle 4"
  * section) -- deliberately separate from `DependencyScope`. DependencyScope
@@ -322,6 +350,12 @@ export interface EncodeProgramContext {
    * currently-EXACT definition -- unaffected.
    */
   compilationUnitHasCompiledReferences?: boolean;
+}
+
+/** Internal-only state shared by Application Class member fragments. */
+interface EncodeFragmentContext extends EncodeProgramContext {
+  htmlDependencyScope?: HtmlDependencyScope;
+  htmlDependencyLifetime?: 'application-class';
 }
 
 export interface EncodedPeopleCode {
@@ -665,7 +699,7 @@ function textOperand(opcode: number, kind: TokenKind, value: string): Buffer {
  * for this token format. Unary minus is supported; unary plus and member/index
  * access are unsupported.  
  */
-function encodeFragmentInternal(source: string, context?: EncodeProgramContext): { bytes: Buffer; references: PeopleCodeReference[] } {
+function encodeFragmentInternal(source: string, context?: EncodeFragmentContext): { bytes: Buffer; references: PeopleCodeReference[] } {
 
   let commentOpcodeIndex = 0;
 
@@ -1796,6 +1830,42 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     return bytes;
   };
 
+  const htmlDependencyScope =
+    context?.htmlDependencyScope ?? new HtmlDependencyScope();
+
+  const htmlReference = (): Buffer => {
+    const qualifier = /^HTML\b/i.exec(source.slice(pos));
+    if (qualifier === null) return fail('expected HTML reference qualifier');
+    pos += qualifier[0].length;
+
+    space();
+    if (source[pos] !== '.') return fail('expected . after HTML reference qualifier');
+    pos++;
+    space();
+
+    const name = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+    if (name === undefined) return fail('expected HTML definition name');
+    pos += name.length;
+
+    const namespace =
+      context?.htmlDependencyLifetime === 'application-class'
+        ? 'application-class'
+        : functionDepth > 0
+          ? `function:${currentHtmlFunctionNamespace}`
+          : `top-level:${controlGroup}`;
+
+    const existing = htmlDependencyScope.lookup(namespace, name);
+    if (existing !== undefined) return referenceOperand(existing);
+
+    const reference = nextReference({
+      kind: 'record-field',
+      recordName: 'HTML',
+      fieldName: name
+    });
+    htmlDependencyScope.record(namespace, name, reference);
+    return referenceOperand(reference);
+  };
+
   const ordinaryRecordFieldReference = (): Buffer => {
     const recordName = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
     if (!recordName) return fail('expected record name');
@@ -2261,6 +2331,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
    * Keep this separate from top-level offset-179 behavior.
    */
   let functionDepth = 0;
+  let nextHtmlFunctionNamespace = 1;
+  let currentHtmlFunctionNamespace = 0;
 
   /*
    * Ordinary RECORD.FIELD references are grouped by contiguous semantic
@@ -4812,6 +4884,8 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
      */
     let sawLeadingComment = false;
 
+    const previousHtmlFunctionNamespace = currentHtmlFunctionNamespace;
+    currentHtmlFunctionNamespace = nextHtmlFunctionNamespace++;
     functionDepth++;
 
     if (functionDepth === 1) {
@@ -4897,6 +4971,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         chunks.push(Buffer.from([0x2d]));
 
         functionDepth--;
+        currentHtmlFunctionNamespace = previousHtmlFunctionNamespace;
 
         if (functionDepth === 0) {
           functionApplicationClassVariables.clear();
@@ -7885,7 +7960,9 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       if (identifier && !/^(true|false|null)$/i.test(identifier)) {
       const tail = source.slice(pos);
 
-      if (/^Record\s*\./i.test(tail)) {
+      if (/^HTML\s*\./i.test(tail)) {
+        chunks.push(htmlReference());
+      } else if (/^Record\s*\./i.test(tail)) {
         /*
          * Preserve the long-standing Record.X provenance rules.
          *
@@ -10760,6 +10837,7 @@ function encodeApplicationClassProgramV2(
 
   const statementChunks: Buffer[] = [];
   const references: PeopleCodeReference[] = [];
+  const htmlDependencyScope = new HtmlDependencyScope();
   let nextReferenceIndex = 0;
   let firstFragment = true;
 
@@ -10770,7 +10848,9 @@ function encodeApplicationClassProgramV2(
       referenceIndexOffset: nextReferenceIndex,
       suppressOwnerReference: !firstFragment,
       suppressDeclarationSectionMarkers: true,
-      compilationUnitHasCompiledReferences: programHasCompiledReferences
+      compilationUnitHasCompiledReferences: programHasCompiledReferences,
+      htmlDependencyScope,
+      htmlDependencyLifetime: 'application-class'
     });
     firstFragment = false;
     nextReferenceIndex += encoded.references.length;

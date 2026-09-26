@@ -1,18 +1,25 @@
 /**
- * Cycle 19: population analysis of HTML.NAME dependencies.
+ * Cycle 19/20: population analysis and implementation audit of HTML.NAME
+ * dependencies.
  *
  * Read-only. Uses the completed local HCDEV snapshot plus the latest completed
- * 30,209-definition corpus result run. It does not invoke the encoder and does
- * not connect to Oracle.
+ * 30,209-definition corpus result run. It invokes the current local encoder but
+ * does not connect to Oracle or write corpus results.
  *
  * Usage:
  *   npx tsx tools/corpus/research/html-reference-analysis.ts
  *   npx tsx tools/corpus/research/html-reference-analysis.ts --csv
  */
 
+import crypto from 'node:crypto';
+
 import Database from 'better-sqlite3';
 
 import { decodeProgram } from '../../../src/peoplecode/decoder';
+import {
+  encodeProgramArtifacts,
+  type PeopleCodeReference
+} from '../../../src/peoplecode/encoder';
 import { NameTable } from '../../../src/peoplecode/progtext';
 import { listSnapshotDefinitions } from '../snapshot/reader';
 import { openSnapshotDatabase } from '../snapshot/store';
@@ -69,6 +76,213 @@ interface ModelScore {
   explained: number;
   contradictions: number;
   contradictionExamples: string[];
+}
+
+interface BaselineResult {
+  classification: string;
+  generatedSha256?: string;
+}
+
+interface HtmlUse {
+  name: string;
+  sequence: number;
+}
+
+interface ImplementationAudit {
+  definitionId: number;
+  displayName: string;
+  isApplicationClass: boolean;
+  baseline: BaselineResult;
+  success: boolean;
+  error?: string;
+  generatedSha256?: string;
+  generatedChanged: boolean;
+  generatedProgramExact: boolean;
+  sourceOccurrenceCount: number;
+  emittedUses: HtmlUse[];
+  emittedRows: PeopleCodeReference[];
+  operandAgreements: number;
+  operandDisagreements: number;
+  absoluteOperandAgreements: number;
+  absoluteOperandDisagreements: number;
+  rowShapeAgreements: number;
+  rowShapeDisagreements: number;
+  repeatedDecisionAgreements: number;
+  repeatedDecisionDisagreements: number;
+}
+
+function sha256(value: Buffer): string {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function ownerContext(definition: SnapshotDefinition): {
+  recordName: string;
+  fieldName: string;
+  packagePath: string[];
+} {
+  const objectValues = [
+    definition.objectvalue1,
+    definition.objectvalue2,
+    definition.objectvalue3,
+    definition.objectvalue4,
+    definition.objectvalue5,
+    definition.objectvalue6,
+    definition.objectvalue7
+  ].map(value => value.trim());
+  const eventIndex = objectValues.findIndex(
+    value => value.toLowerCase() === 'onexecute'
+  );
+
+  return {
+    recordName: objectValues[0],
+    fieldName: objectValues[1],
+    packagePath: objectValues
+      .slice(0, eventIndex < 0 ? objectValues.length : eventIndex)
+      .filter(Boolean)
+  };
+}
+
+function isHtmlReference(reference: PeopleCodeReference): boolean {
+  return reference.kind === 'record-field' &&
+    reference.recordName?.toUpperCase() === 'HTML';
+}
+
+function auditImplementation(
+  definition: SnapshotDefinition,
+  expectedOccurrences: readonly AlignedOccurrence[],
+  baseline: BaselineResult
+): ImplementationAudit {
+  const emittedUses: HtmlUse[] = [];
+  const emittedRowsBySequence = new Map<number, PeopleCodeReference>();
+  let generated: Buffer | undefined;
+  let error: string | undefined;
+
+  try {
+    const encoded = encodeProgramArtifacts(definition.sourceText, {
+      owner: ownerContext(definition),
+      referenceTrace: event => {
+        if (event.action !== 'USE' || !isHtmlReference(event.reference)) return;
+        emittedUses.push({
+          name: event.reference.fieldName ?? '',
+          sequence: event.reference.sequence
+        });
+        emittedRowsBySequence.set(event.reference.sequence, event.reference);
+      }
+    });
+    generated = encoded.program;
+    for (const reference of encoded.references) {
+      if (isHtmlReference(reference)) {
+        emittedRowsBySequence.set(reference.sequence, reference);
+      }
+    }
+  } catch (caught) {
+    error = caught instanceof Error ? caught.message : String(caught);
+  }
+
+  let operandAgreements = 0;
+  let operandDisagreements = 0;
+  let absoluteOperandAgreements = 0;
+  let absoluteOperandDisagreements = 0;
+  for (let index = 0; index < emittedUses.length; index++) {
+    const expected = expectedOccurrences[index];
+    const actual = emittedUses[index];
+    if (
+      expected !== undefined &&
+      actual.name.toUpperCase() === expected.name.toUpperCase()
+    ) {
+      operandAgreements++;
+      if (actual.sequence === expected.nameNum) absoluteOperandAgreements++;
+      else absoluteOperandDisagreements++;
+    } else {
+      operandDisagreements++;
+      absoluteOperandDisagreements++;
+    }
+  }
+
+  const storedRowsBySequence = new Map(
+    definition.names
+      .filter(row => row.recname.trim().toUpperCase() === 'HTML')
+      .map(row => [row.namenum, row] as const)
+  );
+  const emittedRows = [...emittedRowsBySequence.values()]
+    .sort((a, b) => a.sequence - b.sequence);
+  let rowShapeAgreements = 0;
+  let rowShapeDisagreements = 0;
+  for (const reference of emittedRows) {
+    const useIndex = emittedUses.findIndex(
+      use => use.sequence === reference.sequence
+    );
+    const expectedOccurrence = expectedOccurrences[useIndex];
+    const stored = expectedOccurrence === undefined
+      ? undefined
+      : storedRowsBySequence.get(expectedOccurrence.nameNum);
+    if (
+      stored !== undefined &&
+      reference.index === reference.sequence - 1 &&
+      reference.kind === 'record-field' &&
+      reference.recordName === stored.recname.trim() &&
+      reference.fieldName === stored.refname.trim() &&
+      stored.packageroot.trim() === '' &&
+      stored.qualifypath.trim() === '' &&
+      stored.appclassmethod.trim() === '' &&
+      reference.eventName === undefined &&
+      reference.packageName === undefined &&
+      reference.objectName === undefined &&
+      reference.packagePath === undefined &&
+      reference.className === undefined &&
+      reference.methodName === undefined
+    ) {
+      rowShapeAgreements++;
+    } else {
+      rowShapeDisagreements++;
+    }
+  }
+
+  let repeatedDecisionAgreements = 0;
+  let repeatedDecisionDisagreements = 0;
+  const previousEmittedByName = new Map<string, HtmlUse>();
+  for (let index = 0; index < emittedUses.length; index++) {
+    const expected = expectedOccurrences[index];
+    const actual = emittedUses[index];
+    if (expected === undefined) continue;
+    const key = expected.name.toLowerCase();
+    const previousActual = previousEmittedByName.get(key);
+    if (expected.previousSameName !== undefined) {
+      const actualAllocation = previousActual?.sequence === actual.sequence
+        ? 'REUSE'
+        : 'NEW';
+      if (actualAllocation === expected.allocation) repeatedDecisionAgreements++;
+      else repeatedDecisionDisagreements++;
+    }
+    previousEmittedByName.set(key, actual);
+  }
+
+  const generatedSha256 = generated === undefined ? undefined : sha256(generated);
+  return {
+    definitionId: definition.definitionId,
+    displayName: definition.displayName,
+    isApplicationClass: definition.objectid1 === APPLICATION_CLASS_OBJECT_ID,
+    baseline,
+    success: generated !== undefined,
+    error,
+    generatedSha256,
+    generatedChanged:
+      generatedSha256 !== undefined &&
+      baseline.generatedSha256 !== undefined &&
+      generatedSha256 !== baseline.generatedSha256,
+    generatedProgramExact: generated?.equals(definition.storedProgram) === true,
+    sourceOccurrenceCount: expectedOccurrences.length,
+    emittedUses,
+    emittedRows,
+    operandAgreements,
+    operandDisagreements,
+    absoluteOperandAgreements,
+    absoluteOperandDisagreements,
+    rowShapeAgreements,
+    rowShapeDisagreements,
+    repeatedDecisionAgreements,
+    repeatedDecisionDisagreements
+  };
 }
 
 function maskNonCode(source: string): string {
@@ -356,8 +570,8 @@ function main(): void {
     LIMIT 1
   `).get() as { run_id: number; git_commit: string; definitions: number; exact_count: number } | undefined;
   if (fullRun === undefined) throw new Error('No completed 30,209-definition corpus run found.');
-  const classificationStatement = resultDb.prepare(`
-    SELECT classification
+  const baselineStatement = resultDb.prepare(`
+    SELECT classification, generated_sha256 AS generatedSha256
     FROM result
     WHERE run_id = ? AND definition_id = ?
   `);
@@ -366,6 +580,7 @@ function main(): void {
   const storedAll: Array<StoredOccurrence & { definitionId: number }> = [];
   const aligned: AlignedOccurrence[] = [];
   const unaligned: Array<{ definitionId: number; source: string[]; stored: string[] }> = [];
+  const baselineByDefinitionId = new Map<number, BaselineResult>();
   let definitionsWithSource = 0;
   let definitionsWithStoredRows = 0;
 
@@ -385,7 +600,15 @@ function main(): void {
       continue;
     }
 
-    const classification = (classificationStatement.get(fullRun.run_id, definition.definitionId) as { classification: string } | undefined)?.classification ?? '(missing)';
+    const baseline = baselineStatement.get(
+      fullRun.run_id,
+      definition.definitionId
+    ) as BaselineResult | undefined;
+    const classification = baseline?.classification ?? '(missing)';
+    baselineByDefinitionId.set(definition.definitionId, {
+      classification,
+      generatedSha256: baseline?.generatedSha256
+    });
     const previousByName = new Map<string, AlignedOccurrence>();
     const usedNameNums = new Set<number>();
     source.forEach((occurrence, index) => {
@@ -425,6 +648,22 @@ function main(): void {
     .map(row => ({ definitionId: definition.definitionId, row })));
   const referencedKeys = new Set(storedAll.map(item => `${item.definitionId}:${item.nameNum}`));
   const unreferencedRows = htmlRows.filter(item => !referencedKeys.has(`${item.definitionId}:${item.row.namenum}`));
+
+  const alignedByDefinitionId = new Map<number, AlignedOccurrence[]>();
+  for (const occurrence of aligned) {
+    const definitionOccurrences = alignedByDefinitionId.get(occurrence.definitionId) ?? [];
+    definitionOccurrences.push(occurrence);
+    alignedByDefinitionId.set(occurrence.definitionId, definitionOccurrences);
+  }
+  const implementationAudits = definitions
+    .filter(definition => sourceDefinitionIds.has(definition.definitionId))
+    .map(definition => auditImplementation(
+      definition,
+      alignedByDefinitionId.get(definition.definitionId) ?? [],
+      baselineByDefinitionId.get(definition.definitionId) ?? {
+        classification: '(missing)'
+      }
+    ));
 
   console.log('=== Cycle 19 HTML.NAME population ===');
   console.log(`Snapshot definitions: ${definitions.length}`);
@@ -495,6 +734,109 @@ function main(): void {
   for (const model of models) {
     console.log(`  ${model.label}: explained=${model.explained}, contradictions=${model.contradictions}`);
     for (const example of model.contradictionExamples) console.log(`    ${example}`);
+  }
+
+  const successfulAudits = implementationAudits.filter(item => item.success);
+  const failedAudits = implementationAudits.filter(item => !item.success);
+  const comparableGeneratedAudits = successfulAudits.filter(
+    item => item.baseline.generatedSha256 !== undefined
+  );
+  const exactRegressions = implementationAudits.filter(
+    item => item.baseline.classification === 'EXACT' && !item.generatedProgramExact
+  );
+  const newlyExact = implementationAudits.filter(
+    item => item.baseline.classification !== 'EXACT' && item.generatedProgramExact
+  );
+  const operandAgreements = implementationAudits.reduce(
+    (sum, item) => sum + item.operandAgreements,
+    0
+  );
+  const operandDisagreements = implementationAudits.reduce(
+    (sum, item) => sum + item.operandDisagreements,
+    0
+  );
+  const absoluteOperandAgreements = implementationAudits.reduce(
+    (sum, item) => sum + item.absoluteOperandAgreements,
+    0
+  );
+  const absoluteOperandDisagreements = implementationAudits.reduce(
+    (sum, item) => sum + item.absoluteOperandDisagreements,
+    0
+  );
+  const emittedUseCount = implementationAudits.reduce(
+    (sum, item) => sum + item.emittedUses.length,
+    0
+  );
+  const rowShapeAgreements = implementationAudits.reduce(
+    (sum, item) => sum + item.rowShapeAgreements,
+    0
+  );
+  const rowShapeDisagreements = implementationAudits.reduce(
+    (sum, item) => sum + item.rowShapeDisagreements,
+    0
+  );
+  const emittedRowCount = implementationAudits.reduce(
+    (sum, item) => sum + item.emittedRows.length,
+    0
+  );
+  const repeatedDecisionAgreements = implementationAudits.reduce(
+    (sum, item) => sum + item.repeatedDecisionAgreements,
+    0
+  );
+  const repeatedDecisionDisagreements = implementationAudits.reduce(
+    (sum, item) => sum + item.repeatedDecisionDisagreements,
+    0
+  );
+
+  console.log('\n=== Cycle 20 current-encoder implementation audit ===');
+  console.log(`HTML definitions audited: ${implementationAudits.length}`);
+  console.log(`Complete current encodes: ${successfulAudits.length}`);
+  console.log(`Current encode errors: ${failedAudits.length}`);
+  console.log(`Observed HTML operands: ${emittedUseCount}/${sourceAll.length}`);
+  console.log(`HTML operand name agreements: ${operandAgreements}`);
+  console.log(`HTML operand name disagreements: ${operandDisagreements}`);
+  console.log(`Absolute NAMENUM agreements: ${absoluteOperandAgreements}`);
+  console.log(`Absolute NAMENUM disagreements (includes unrelated prior-reference drift): ${absoluteOperandDisagreements}`);
+  console.log(`Observed emitted HTML rows: ${emittedRowCount}/${htmlRows.length}`);
+  console.log(`HTML row-shape agreements: ${rowShapeAgreements}`);
+  console.log(`HTML row-shape disagreements: ${rowShapeDisagreements}`);
+  console.log(`Observed repeated decisions: ${repeatedDecisionAgreements + repeatedDecisionDisagreements}/${repeated.length}`);
+  console.log(`Repeated-decision agreements: ${repeatedDecisionAgreements}`);
+  console.log(`Repeated-decision disagreements: ${repeatedDecisionDisagreements}`);
+  console.log(`Comparable generated SHA results: ${comparableGeneratedAudits.length}`);
+  console.log(`Changed generated programs: ${comparableGeneratedAudits.filter(item => item.generatedChanged).length}`);
+  console.log(`Newly exact HTML definitions: ${newlyExact.length}`);
+  console.log(`Previously exact HTML regressions: ${exactRegressions.length}`);
+
+  if (failedAudits.length > 0) {
+    printCounts(
+      'Current HTML-definition encode errors',
+      countBy(failedAudits, item => item.error ?? '(unknown)')
+    );
+  }
+
+  const implementationDisagreements = implementationAudits.filter(item =>
+    item.operandDisagreements > 0 ||
+    item.rowShapeDisagreements > 0 ||
+    item.repeatedDecisionDisagreements > 0
+  );
+  if (implementationDisagreements.length > 0) {
+    console.log('\nImplementation disagreement definitions');
+    for (const item of implementationDisagreements) {
+      console.log(
+        `  ${item.definitionId} ${item.displayName}: ` +
+        `operand=${item.operandDisagreements} ` +
+        `row=${item.rowShapeDisagreements} ` +
+        `lifetime=${item.repeatedDecisionDisagreements}`
+      );
+    }
+  }
+
+  if (exactRegressions.length > 0) {
+    console.log('\nPreviously exact HTML regressions');
+    for (const item of exactRegressions) {
+      console.log(`  ${item.definitionId} ${item.displayName}`);
+    }
   }
 
   console.log('\nMatched controls');

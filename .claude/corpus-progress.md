@@ -1,5 +1,82 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 20 — implement HTML.NAME dependency identity and lifetime scoping
+
+**Status: implemented, population-audited, and regression-clean.** Baseline is
+commit `d308f12` (Cycle 19), 23,217/30,209 EXACT, protected 430/430. The
+implementation is limited to static `HTML.NAME` dependencies; Cycle 21 was not
+started.
+
+### What was implemented
+
+- `HTML.NAME` is parsed as its own static primary before the generic
+  `RECORD.FIELD` fallback. It still emits the evidence-backed existing
+  `record-field` artifact: `RECNAME=HTML`, `REFNAME=NAME`, blank package/path/
+  method columns, and an ordinary `0x21` reference operand.
+- A dedicated internal HTML dependency scope owns only the Cycle 19 lifetime
+  identity `(namespace, normalized HTML name)`:
+  - one namespace for an entire Application Class compilation unit;
+  - one namespace per ordinary `Function` body;
+  - one namespace per ordinary top-level control region.
+- Application Class method fragments share one HTML scope while retaining the
+  existing global reference-index offset behavior. Ordinary function namespaces
+  are allocated/restored independently of the existing RECORD/FIELD/SCROLL
+  reuse machinery.
+- Recognition is source-form based, not caller based. There is no
+  `GetHTMLText` special case; direct `HTML.NAME`, `AddJavaScript`,
+  `GetJavaScriptURL`, `GetJSLink`, and future callers use the same path.
+- Eight focused unit controls cover static row shape, flat-region reuse,
+  distinct names, separate top-level control regions, within-function reuse,
+  cross-function NEW allocation, cross-method Application Class reuse, and a
+  direct use outside `GetHTMLText`.
+
+### Population audit
+
+`tools/corpus/research/html-reference-analysis.ts` now invokes the current
+encoder read-only in addition to retaining Cycle 19's stored-population model.
+The authoritative stored population remains fully aligned: 122 definitions,
+364 operands, 289 rows, and 89/89 lifetime decisions explained by the Cycle 19
+model with zero contradictions.
+
+The current encoder can completely encode 67 of those definitions; the other
+55 retain their pre-existing unrelated unsupported/encode-error states. Across
+all reachable prefixes (including prefixes before those unrelated errors), the
+implementation audit observed:
+
+- 115/115 HTML operand names matching their stored source occurrence;
+- 107/107 emitted HTML rows matching stored `RECNAME`/`REFNAME` representation,
+  with blank package/path/method fields;
+- 16/16 reachable repeated-name NEW/REUSE decisions matching Cycle 19;
+- zero row-shape, operand-name, or lifetime disagreements;
+- zero regressions among the 26 previously EXACT HTML definitions.
+
+Absolute `NAMENUM` comparison is deliberately reported separately: 59 observed
+operands match absolutely and 56 inherit earlier, unrelated reference-number
+drift in already-non-EXACT definitions. It is not treated as an HTML row-shape
+contradiction. The eight focused controls exercise every Cycle 19 lifetime
+boundary directly.
+
+### Validation
+
+- Typecheck: clean (`npm run typecheck`).
+- Full unit suite: 498 passed, 1 intentional pre-existing skip before the final
+  audit; the final `npm test` rerun passed all 17 compiled test files.
+- Protected baseline: `npm run corpus:verify -- --limit 430` — 430/430 EXACT,
+  `REGRESSION GATE: PASS`, 0 improved, 0 regressed, 0 unchanged failures.
+- Full local corpus: completed runs 2026 and 2027 are identical at
+  23,217/30,209 EXACT and 6,992 failures. Comparison with Cycle 19's
+  behaviorally identical full run 2019 shows 0 classification changes, 0 newly
+  EXACT, 0 EXACT regressions, and exactly 6/30,209 generated SHA changes.
+- All six generated-byte changes are the intended HTML-bearing Application
+  Class controls: definitions 29640, 29664, 29965, 29967, 29976, and 29977.
+  There are zero generated-byte changes outside that HTML target set.
+
+All Cycle 20 acceptance criteria are met: no previously EXACT regression, no
+unrelated non-HTML byte change, correct HTML row representation, Cycle 19
+lifetime policy preserved, and no `GetHTMLText`-specific behavior.
+
+**STOP after this implementation commit. Do not begin Cycle 21.**
+
 ## Compiler Semantics Cycle 19 — HTML.NAME dependency identity and PSPCMNAME allocation (research only)
 
 **Status: coherent population-wide model established; research-only, no
