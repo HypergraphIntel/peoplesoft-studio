@@ -1,13 +1,10 @@
 /**
- * Cycle 14: Application Class structural model, implementing only the
- * fully evidence-backed rules from Cycle 13's research (see
- * `.claude/corpus-progress.md`, "Compiler Semantics Cycle 13"). This
- * module owns:
+ * Application Class structural model. Cycle 13 established directory and
+ * signature metadata; Cycle 22 established the executable unit/member
+ * statement grammar implemented in Cycle 23. This module owns:
  *
  *  - the Application Class IR (`ApplicationClassProgram`/`ApplicationClassMember`),
- *  - source parsing into that IR, restricted to shapes whose directory
- *    layout is fully evidenced (see `parseApplicationClassSource`'s own
- *    comment for the exact restrictions and why each one exists),
+ *  - source parsing into an ordered executable-declaration IR,
  *  - the type-descriptor encoder (the exact inverse of Cycle 13's own
  *    `decodeDescriptor`),
  *  - directory-record and trailer assembly.
@@ -28,10 +25,9 @@
  *  - `implementationOrder` -- position in method-IMPLEMENTATION (body)
  *    order. Governs physical directory record position for methods.
  *
- * Where Cycle 13 left a question unresolved (interface/abstract method
- * physical ordering; property/instance physical position for 2+ storage
- * members), this module refuses to parse the shape rather than guess --
- * see `parseApplicationClassSource`'s own restrictions.
+ * Executable declaration order remains independent from implementation and
+ * directory order. Cycle 23 broadens only the former; it does not claim to
+ * resolve Cycle 13's open physical-directory ordering questions.
  */
 
 export type ApplicationClassVisibility = 'public' | 'private' | 'protected';
@@ -73,6 +69,10 @@ export interface ApplicationClassMethodMember {
    * with no `0x4F` of its own).
    */
   transitionBlankLines: number;
+  /** Whether the declaration itself ended in `;` before the unit closer. */
+  terminated: boolean;
+  /** The one corpus signature with a comment after a trailing comma retains it. */
+  trailingParameterComma: boolean;
 }
 
 export interface ApplicationClassStorageMember {
@@ -85,20 +85,67 @@ export interface ApplicationClassStorageMember {
   /** Only meaningful for `kind: 'property'`; an `instance` is always private/storage. */
   mode: 'plain' | 'readonly' | 'get' | 'get-set';
   visibility: ApplicationClassVisibility;
+  /** Property modifiers in source order. Empty for instances/plain properties. */
+  modifiers: Array<'readonly' | 'get' | 'set'>;
+}
+
+export interface ApplicationClassConstantMember {
+  kind: 'constant';
+  name: string;
+  sourceOrder: number;
+  value: string;
+  visibility: ApplicationClassVisibility;
 }
 
 export type ApplicationClassMember =
   | ApplicationClassMethodMember
-  | ApplicationClassStorageMember;
+  | ApplicationClassStorageMember
+  | ApplicationClassConstantMember;
+
+export interface ApplicationClassVisibilityStatement {
+  kind: 'visibility';
+  visibility: Exclude<ApplicationClassVisibility, 'public'>;
+  sourceIndex: number;
+}
+
+export interface ApplicationClassInstanceStatement {
+  kind: 'instance-statement';
+  type: string;
+  names: string[];
+  sourceIndex: number;
+}
+
+export type ApplicationClassStatement =
+  | ApplicationClassVisibilityStatement
+  | ApplicationClassMethodMember
+  | ApplicationClassStorageMember
+  | ApplicationClassConstantMember
+  | ApplicationClassInstanceStatement;
+
+export interface ApplicationClassImplementation {
+  kind: 'method' | 'get' | 'set';
+  name: string;
+  sourceIndex: number;
+  body: string;
+  signatureComments: string[];
+  transitionBlankLines: number;
+}
 
 export interface ApplicationClassProgram {
-  unitKind: 'class';
+  unitKind: 'class' | 'interface';
   className: string;
   /** At most one of `extendsType`/`implementsType` -- Cycle 13 found zero classes combining both. */
   extendsType?: string;
   implementsType?: string;
   /** Declaration order (class-header order), matching `declarationOrdinal` above. */
   members: ApplicationClassMember[];
+  /** Executable declaration statements, including visibility transitions. */
+  statements: ApplicationClassStatement[];
+  /** Concrete method/getter/setter wrappers in source implementation order. */
+  implementations: ApplicationClassImplementation[];
+  /** Exact source offsets used to preserve already-supported surrounding syntax. */
+  unitStart: number;
+  unitEnd: number;
 }
 
 function normalizeTypeName(value: string): string {
@@ -178,109 +225,72 @@ function splitParameters(text: string): ApplicationClassParameter[] {
 }
 
 /**
- * Parses Application Class source into the IR above, restricted to
- * shapes whose PHYSICAL DIRECTORY LAYOUT is fully evidenced by Cycle 13.
- * Returns `undefined` (never throws) for anything out of scope, so the
- * caller falls through to the existing unsupported-syntax path.
- *
- * Deliberately rejected, per Cycle 13's own unresolved-cases list
- * (`.claude/corpus-progress.md` Cycle 13 section 10) -- NOT guessed at:
- *
- *  - `interface` units (interface method physical ordering: 4/16 exact,
- *    unresolved).
- *  - any `abstract` method, in a class or interface (abstract method
- *    physical ordering: 2/26 exact, unresolved).
- *  - 2+ combined properties/instances (physical position: 57/643 exact,
- *    unresolved -- 0 or 1 is unambiguous and therefore safe).
- *  - `constant` declarations (no directory representation was found, and
- *    this cycle does not trace their executable-body encoding).
- *  - both `extends` and `implements` present together (zero corpus
- *    examples exist; the self-descriptor rule for that combination was
- *    never tested).
- *  - more than one `implements` target (Cycle 13 never established
- *    which one the self descriptor selects when several are present).
- *  - a method whose body cannot be located between a signature-comment
- *    run and `end-method` in the implementation region.
+ * Parses the full Cycle 22 executable statement population. Returns
+ * `undefined` (never throws) for shapes outside the measured grammar. The
+ * parser records metadata members too, but executable ordering is represented
+ * separately by `statements`; this is what prevents declaration order from
+ * being conflated with implementation or physical directory order.
  */
 export function parseApplicationClassSource(
   source: string
 ): ApplicationClassProgram | undefined {
   const masked = maskNonCode(source);
+  const unitStartMatch = /\b(class|interface)\s+([A-Za-z_][A-Za-z0-9_]*)\b/i.exec(masked);
+  if (!unitStartMatch) return undefined;
+  const unitKind = unitStartMatch[1].toLowerCase() as 'class' | 'interface';
+  const unitStart = unitStartMatch.index ?? 0;
+  const unitRegionStart = unitStart + unitStartMatch[0].length;
+  const unitEndMatch = new RegExp(`\\bend-${unitKind}\\s*;?`, 'i').exec(masked.slice(unitRegionStart));
+  if (!unitEndMatch) return undefined;
+  const unitRegionEnd = unitRegionStart + (unitEndMatch.index ?? 0);
+  const unitEnd = unitRegionEnd + unitEndMatch[0].length;
+  const unitRegion = masked.slice(unitRegionStart, unitRegionEnd);
+  const rawUnitRegion = source.slice(unitRegionStart, unitRegionEnd);
 
-  /*
-   * The `import` statement is NOT required (many classes only reference
-   * types by full package path, or none at all) and, when present, its
-   * path is NOT the class's own owner package -- that comes from the
-   * DEFINITION's own objectValue1/objectValue2 (via the caller's context
-   * at encode time, exactly like the owner reference for ordinary
-   * Record.Field programs), not from source. This parser only needs a
-   * strong enough structural signal that this source IS an Application
-   * Class unit; leading `import`, if present, is skipped over but
-   * otherwise unused here.
-   */
-  const leadingImport = /^\s*(?:import\s+[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*\s*;\s*)*/i.exec(masked);
-  const afterImports = masked.slice(leadingImport?.[0].length ?? 0);
-  const classDeclarationSignal = /^\s*class\s+[A-Za-z_][A-Za-z0-9_]*\b/i;
-  if (!classDeclarationSignal.test(afterImports)) return undefined;
-
-  const classStart = /\bclass\s+([A-Za-z_][A-Za-z0-9_]*)\b/i.exec(masked);
-  if (!classStart || /\binterface\s+[A-Za-z_][A-Za-z0-9_]*\b/i.test(masked.slice(0, classStart.index ?? 0))) {
-    return undefined;
-  }
-  const endClass = /\bend-class\s*;?/i.exec(masked.slice((classStart.index ?? 0) + classStart[0].length));
-  if (!endClass) return undefined;
-
-  const classRegionStart = (classStart.index ?? 0) + classStart[0].length;
-  const classRegionEnd = classRegionStart + (endClass.index ?? 0);
-  const classRegion = masked.slice(classRegionStart, classRegionEnd);
-  const implementationRegion = masked.slice(classRegionEnd + endClass[0].length);
-  const rawImplementationRegion = source.slice(classRegionEnd + endClass[0].length);
-
-  const firstMemberKeyword = /\b(?:public|private|protected|method|property|instance|constant)\b/i.exec(classRegion);
-  const header = classRegion.slice(0, firstMemberKeyword?.index ?? classRegion.length).replace(/;/g, ' ');
-  const extendsMatch = /\bextends\s+([%A-Za-z_][%A-Za-z0-9_]*(?::[%A-Za-z_][%A-Za-z0-9_]*)*)/i.exec(header);
+  const firstMember = /\b(?:public|private|protected|method|property|instance|constant)\b/i.exec(unitRegion);
+  const header = unitRegion.slice(0, firstMember?.index ?? unitRegion.length).replace(/;/g, ' ');
+  const extendsType = /\bextends\s+([%A-Za-z_][%A-Za-z0-9_]*(?::[%A-Za-z_][%A-Za-z0-9_]*)*)/i.exec(header)?.[1];
   const implementsMatch = /\bimplements\s+([\s\S]*)/i.exec(header);
   const implementsTypes = implementsMatch
     ? implementsMatch[1].split(',').map(value => value.trim()).filter(Boolean)
     : [];
-
-  // Unresolved: both extends+implements together, or 2+ implements targets.
-  if (extendsMatch && implementsTypes.length > 0) return undefined;
+  if (extendsType && implementsTypes.length > 0) return undefined;
   if (implementsTypes.length > 1) return undefined;
 
-  if (/\bconstant\b/i.test(classRegion)) return undefined;
-
-  type Event = { index: number; visibility?: ApplicationClassVisibility; member?: ApplicationClassMember };
-  const events: Event[] = [];
-  for (const match of classRegion.matchAll(/\b(public|private|protected)\b/gi)) {
-    events.push({ index: match.index ?? 0, visibility: match[1].toLowerCase() as ApplicationClassVisibility });
+  type Pending = {
+    index: number;
+    visibility?: ApplicationClassVisibility;
+    member?: ApplicationClassMember;
+    instanceNames?: string[];
+  };
+  const pending: Pending[] = [];
+  for (const match of unitRegion.matchAll(/\b(public|private|protected)\b/gi)) {
+    pending.push({ index: match.index ?? 0, visibility: match[1].toLowerCase() as ApplicationClassVisibility });
   }
 
-  let sourceOrder = 0;
-  for (const match of classRegion.matchAll(
-    /\bmethod\s+([A-Za-z_][A-Za-z0-9_$]*)\s*(?:\(([^;]*?)\))?\s*(?:Returns\s+([^;]+?))?\s*(abstract\s*)?;/gi
+  for (const match of unitRegion.matchAll(
+    /\bmethod\s+([A-Za-z_][A-Za-z0-9_$]*)\s*(?:\(([^;]*?)\))?\s*(?:Returns\s+([^;]+?))?\s*(abstract\s*)?(?:;|(?=\s*$))/gi
   )) {
-    if (match[4] !== undefined) return undefined; // unresolved: abstract method ordering
     let returnType = match[3]?.trim();
-    if (returnType && /\s+abstract$/i.test(returnType)) return undefined; // unresolved: abstract method ordering
-    const parameters = splitParameters(match[2] ?? '');
-    if ((match[2] ?? '').trim() !== '' && parameters.length === 0) return undefined; // unparsed parameter shape
-    events.push({
+    let abstract = match[4] !== undefined;
+    if (returnType && /\s+abstract$/i.test(returnType)) {
+      returnType = returnType.replace(/\s+abstract$/i, '').trim();
+      abstract = true;
+    }
+    const rawParameters = match[2] ?? '';
+    const parameters = splitParameters(rawParameters);
+    if (rawParameters.replace(/,\s*$/, '').trim() !== '' && parameters.length === 0) return undefined;
+    pending.push({
       index: match.index ?? 0,
       member: {
-        kind: 'method',
-        name: match[1],
-        sourceOrder: sourceOrder++,
-        declarationOrdinal: -1,
-        implementationOrder: -1,
-        parameters,
+        kind: 'method', name: match[1], sourceOrder: -1,
+        declarationOrdinal: -1, implementationOrder: -1,
+        visibility: 'public', abstract, parameters,
         returnType: returnType === undefined ? undefined : normalizeTypeName(returnType),
-        visibility: 'public',
-        abstract: false,
-        body: '',
-        signatureComments: [],
-        signatureSlotOffset: -1,
-        transitionBlankLines: 0
+        body: '', signatureComments: [], signatureSlotOffset: -1,
+        transitionBlankLines: 0,
+        terminated: /;\s*$/.test(match[0]),
+        trailingParameterComma: /,\s*$/.test(rawParameters)
       }
     });
   }
@@ -290,176 +300,157 @@ export function parseApplicationClassSource(
     `\\bproperty\\s+(${typePattern})\\s+([A-Za-z_][A-Za-z0-9_]*#?)\\s*(readonly|get(?:\\s+set)?|set(?:\\s+get)?)?\\s*;`,
     'gi'
   );
-  for (const match of classRegion.matchAll(propertyPattern)) {
-    const spelling = match[3]?.replace(/\s+/g, ' ').trim().toLowerCase() ?? '';
+  for (const match of unitRegion.matchAll(propertyPattern)) {
+    const modifiers = (match[3]?.replace(/\s+/g, ' ').trim().toLowerCase().split(' ').filter(Boolean) ?? []) as Array<'readonly' | 'get' | 'set'>;
     const mode: ApplicationClassStorageMember['mode'] =
-      spelling === 'readonly'
-        ? 'readonly'
-        : spelling === 'get'
-          ? 'get'
-          : spelling.includes('get') && spelling.includes('set')
-            ? 'get-set'
-            : 'plain';
-    events.push({
+      modifiers.includes('readonly') ? 'readonly' :
+      modifiers.includes('get') && modifiers.includes('set') ? 'get-set' :
+      modifiers.includes('get') ? 'get' : 'plain';
+    pending.push({
       index: match.index ?? 0,
       member: {
-        kind: 'property',
-        type: normalizeTypeName(match[1]),
-        name: match[2],
-        mode,
-        visibility: 'public',
-        sourceOrder: sourceOrder++,
+        kind: 'property', type: normalizeTypeName(match[1]), name: match[2],
+        mode, modifiers, visibility: 'public', sourceOrder: -1,
         declarationOrdinal: -1
       }
     });
   }
+
   const instancePattern = new RegExp(`\\binstance\\s+(${typePattern})\\s+([^;]+?)(?:;|$)`, 'gim');
-  for (const match of classRegion.matchAll(instancePattern)) {
+  for (const match of unitRegion.matchAll(instancePattern)) {
     const names = match[2].match(/&[A-Za-z0-9_][A-Za-z0-9_]*#?/g) ?? [];
+    if (names.length === 0) return undefined;
+    pending.push({ index: match.index ?? 0, instanceNames: names });
     for (const name of names) {
-      events.push({
+      pending.push({
         index: match.index ?? 0,
         member: {
-          kind: 'instance',
-          type: normalizeTypeName(match[1]),
-          name: name.slice(1),
-          mode: 'plain',
-          visibility: 'private',
-          sourceOrder: sourceOrder++,
+          kind: 'instance', type: normalizeTypeName(match[1]), name: name.slice(1),
+          mode: 'plain', modifiers: [], visibility: 'private', sourceOrder: -1,
           declarationOrdinal: -1
         }
       });
     }
   }
 
-  events.sort((a, b) => a.index - b.index);
-  let visibility: ApplicationClassVisibility = 'public';
-  const members: ApplicationClassMember[] = [];
-  for (const event of events) {
-    if (event.visibility) visibility = event.visibility;
-    if (event.member) {
-      if (event.member.kind !== 'instance') event.member.visibility = visibility;
-      members.push(event.member);
-    }
+  for (const match of unitRegion.matchAll(/\bconstant\s+(&?[A-Za-z_][A-Za-z0-9_#]*)\s*=\s*([^;]*);/gi)) {
+    pending.push({
+      index: match.index ?? 0,
+      member: {
+        kind: 'constant', name: match[1], sourceOrder: -1,
+        value: rawUnitRegion.slice(match.index ?? 0, (match.index ?? 0) + match[0].length)
+          .replace(/^[\s\S]*?=/, '').replace(/;\s*$/, '').trim(),
+        visibility: 'public'
+      }
+    });
   }
 
-  // Unresolved: 2+ combined storage-backed members (property/instance
-  // physical directory position).
-  const storageBackedCount = members.filter(member =>
-    member.kind === 'instance' ||
-    (member.kind === 'property' && (member.mode === 'plain' || member.mode === 'readonly'))
-  ).length;
-  if (storageBackedCount > 1) return undefined;
+  // Stable sort keeps an instance statement immediately ahead of its flattened
+  // metadata members at the same source coordinate.
+  pending.sort((a, b) => a.index - b.index);
+  let visibility: ApplicationClassVisibility = 'public';
+  let sourceOrder = 0;
+  const members: ApplicationClassMember[] = [];
+  const statements: ApplicationClassStatement[] = [];
+  const seenInstanceStatements = new Set<number>();
+  for (const event of pending) {
+    if (event.visibility) {
+      visibility = event.visibility;
+      if (visibility !== 'public') {
+        statements.push({ kind: 'visibility', visibility, sourceIndex: unitRegionStart + event.index });
+      }
+      continue;
+    }
+    if (event.instanceNames && !seenInstanceStatements.has(event.index)) {
+      const first = pending.find(candidate => candidate.index === event.index && candidate.member?.kind === 'instance')?.member;
+      if (first?.kind !== 'instance') return undefined;
+      statements.push({
+        kind: 'instance-statement', type: first.type, names: event.instanceNames,
+        sourceIndex: unitRegionStart + event.index
+      });
+      seenInstanceStatements.add(event.index);
+      continue;
+    }
+    if (!event.member) continue;
+    event.member.sourceOrder = sourceOrder++;
+    if (event.member.kind !== 'instance') event.member.visibility = visibility;
+    members.push(event.member);
+    if (event.member.kind !== 'instance') statements.push(event.member);
+  }
 
-  // Assign declarationOrdinal within each kind-specific numbering space.
   let methodOrdinal = 0;
   let storageOrdinal = 0;
   for (const member of members) {
-    if (member.kind === 'method') {
-      member.declarationOrdinal = methodOrdinal++;
-    } else if (
-      member.kind === 'instance' ||
-      (member.kind === 'property' && (member.mode === 'plain' || member.mode === 'readonly'))
-    ) {
+    if (member.kind === 'method') member.declarationOrdinal = methodOrdinal++;
+    else if (member.kind === 'instance' || (member.kind === 'property' && ['plain', 'readonly'].includes(member.mode))) {
       member.declarationOrdinal = storageOrdinal++;
     }
   }
 
-  // Locate each method's implementation body, in IMPLEMENTATION (source)
-  // order -- physical directory position, per Cycle 13 section 3.
-  const methodMembers = members.filter((member): member is ApplicationClassMethodMember => member.kind === 'method');
-  const implementationPattern = /\bmethod\s+([A-Za-z_][A-Za-z0-9_$]*)([\s\S]*?)\bend-method\s*;/gid;
-  const implementationOrder: Array<{ name: string; comments: string[]; body: string; index: number; fullEnd: number; transitionBlankLines: number }> = [];
-  for (const match of implementationRegion.matchAll(implementationPattern)) {
+  const implementationRegion = masked.slice(unitEnd);
+  const rawImplementationRegion = source.slice(unitEnd);
+  const pattern = /\b(method|get|set)\s+([A-Za-z_][A-Za-z0-9_$]*)([\s\S]*?)\bend-(method|get|set)\s*;/gid;
+  const implementations: Array<ApplicationClassImplementation & { localIndex: number; fullEnd: number }> = [];
+  for (const match of implementationRegion.matchAll(pattern)) {
+    const kind = match[1].toLowerCase() as 'method' | 'get' | 'set';
+    if (match[4].toLowerCase() !== kind) continue;
     const indices = (match as RegExpMatchArray & { indices: Array<[number, number]> }).indices;
-    const [interiorStart, interiorEnd] = indices[2];
+    const [interiorStart, interiorEnd] = indices[3];
     const interior = implementationRegion.slice(interiorStart, interiorEnd);
-
-    /*
-     * Cycle 18: split the interior text (everything between the method
-     * NAME and `end-method`) into signature comments and body MANUALLY,
-     * rather than via a single greedy regex -- a `\s*` immediately after
-     * the name or after each `/+ ... +/` comment cannot distinguish
-     * ordinary single-line-break indentation from a genuine interior
-     * blank line (Phase 18B's BODY-GAP), and would silently swallow the
-     * latter before `body` is ever captured. This only ever skips
-     * whitespace when a comment is actually found immediately after it;
-     * once no further comment follows, ALL remaining text (including any
-     * leading blank-line whitespace right there) becomes `body`,
-     * unmodified -- `encodeMethodBody` already tolerates ordinary leading
-     * whitespace in a non-empty body exactly as before.
-     */
-    const comments: string[] = [];
+    const signatureComments: string[] = [];
     let cursor = 0;
     while (true) {
-      const leadingWhitespace = /^[ \t]*(?:\r?\n[ \t]*)*/.exec(interior.slice(cursor))?.[0].length ?? 0;
-      const afterWhitespace = cursor + leadingWhitespace;
-      if (!interior.startsWith('/+', afterWhitespace)) break;
-      const commentEnd = interior.indexOf('+/', afterWhitespace + 2);
+      const whitespace = /^[ \t]*(?:\r?\n[ \t]*)*/.exec(interior.slice(cursor))?.[0].length ?? 0;
+      const commentStart = cursor + whitespace;
+      if (!interior.startsWith('/+', commentStart)) break;
+      const commentEnd = interior.indexOf('+/', commentStart + 2);
       if (commentEnd < 0) break;
-      comments.push(interior.slice(afterWhitespace + 2, commentEnd).trim());
+      signatureComments.push(interior.slice(commentStart + 2, commentEnd).trim());
       cursor = commentEnd + 2;
     }
-
-    implementationOrder.push({
-      name: match[1],
-      comments,
+    implementations.push({
+      kind, name: match[2], sourceIndex: unitEnd + (match.index ?? 0),
       body: rawImplementationRegion.slice(interiorStart + cursor, interiorEnd),
-      index: match.index ?? 0,
-      fullEnd: (match.index ?? 0) + match[0].length,
-      transitionBlankLines: 0
+      signatureComments, transitionBlankLines: 0,
+      localIndex: match.index ?? 0, fullEnd: (match.index ?? 0) + match[0].length
     });
   }
-
-  if (implementationOrder.length !== methodMembers.length) return undefined;
-
-  /*
-   * Cycle 17/18 TRANSITION: one `0x4F` per blank source line between one
-   * method's own `end-method;` and the NEXT method implementation's
-   * `method` keyword (Cycle 17 section 1/5), using raw source (comments
-   * and disabled-code markers between two implementations are exceedingly
-   * rare and, per Cycle 17 section 8, not decomposed -- the gap is
-   * measured on unmasked text exactly like the general encoder's own
-   * blank-line counting elsewhere). Always `0` for the last method: its
-   * own transition is the class program's trailer, not a `0x4F`.
-   */
-  for (let i = 0; i + 1 < implementationOrder.length; i++) {
-    const gap = rawImplementationRegion.slice(implementationOrder[i].fullEnd, implementationOrder[i + 1].index);
-    const hasBlankLine = /(?:\r?\n)[ \t]*(?:\r?\n)/.test(gap);
-    implementationOrder[i].transitionBlankLines = hasBlankLine
-      ? Math.max(1, (gap.match(/\r?\n/g) ?? []).length - 1)
-      : 0;
+  for (let index = 0; index + 1 < implementations.length; index++) {
+    const gap = rawImplementationRegion.slice(implementations[index].fullEnd, implementations[index + 1].localIndex);
+    if (/(?:\r?\n)[ \t]*(?:\r?\n)/.test(gap)) {
+      implementations[index].transitionBlankLines = Math.max(1, (gap.match(/\r?\n/g) ?? []).length - 1);
+    }
   }
 
-  const byName = new Map(methodMembers.map(member => [member.name.toLowerCase(), member]));
-  for (const [position, implementation] of implementationOrder.entries()) {
-    const member = byName.get(implementation.name.toLowerCase());
-    if (member === undefined) return undefined; // an implementation with no matching declaration
-    member.implementationOrder = position;
-    member.body = implementation.body;
-    member.signatureComments = implementation.comments;
-    member.transitionBlankLines = implementation.transitionBlankLines;
-    byName.delete(implementation.name.toLowerCase());
+  const methods = members.filter((member): member is ApplicationClassMethodMember => member.kind === 'method');
+  const methodQueues = new Map<string, ApplicationClassMethodMember[]>();
+  for (const method of methods) {
+    const key = method.name.toLowerCase();
+    methodQueues.set(key, [...(methodQueues.get(key) ?? []), method]);
   }
-  if (byName.size !== 0) return undefined; // a declared method with no matching implementation
+  let implementationOrder = 0;
+  for (const implementation of implementations) {
+    if (implementation.kind !== 'method') continue;
+    const queue = methodQueues.get(implementation.name.toLowerCase());
+    const method = queue?.shift();
+    if (!method) continue;
+    method.implementationOrder = implementationOrder++;
+    method.body = implementation.body;
+    method.signatureComments = implementation.signatureComments;
+    method.transitionBlankLines = implementation.transitionBlankLines;
+  }
 
-  if (methodMembers.some(member => member.implementationOrder < 0)) return undefined;
-
-  // Signature slot offsets: cumulative over methods in DECLARATION order
-  // (Cycle 13 section 3/5 -- separate from implementationOrder above).
-  const methodsInDeclarationOrder = [...methodMembers].sort((a, b) => a.declarationOrdinal - b.declarationOrdinal);
   let slotOffset = 0;
-  for (const member of methodsInDeclarationOrder) {
-    member.signatureSlotOffset = slotOffset;
-    slotOffset += member.parameters.length + 1;
+  for (const method of [...methods].sort((a, b) => a.declarationOrdinal - b.declarationOrdinal)) {
+    method.signatureSlotOffset = slotOffset;
+    slotOffset += method.parameters.length + 1;
   }
 
   return {
-    unitKind: 'class',
-    className: classStart[1],
-    extendsType: extendsMatch?.[1],
-    implementsType: implementsTypes[0],
-    members
+    unitKind, className: unitStartMatch[2], extendsType,
+    implementsType: implementsTypes[0], members, statements,
+    implementations: implementations.map(({ localIndex: _localIndex, fullEnd: _fullEnd, ...implementation }) => implementation),
+    unitStart, unitEnd
   };
 }
 
