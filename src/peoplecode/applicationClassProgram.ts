@@ -123,16 +123,19 @@ export interface ApplicationClassInstanceStatement extends ApplicationClassSourc
   kind: 'instance-statement';
   type: string;
   names: string[];
-  /** Cycle 27: exact explicit source-semicolon multiplicity for the grouped statement. */
+  /** Cycle 27: exact explicit source-semicolon multiplicity for this grouped declaration. */
   terminatorCount: number;
 }
 
-export type ApplicationClassStatement =
-  | ApplicationClassVisibilityStatement
+export type ApplicationClassDeclarationStatement =
   | ApplicationClassMethodMember
   | ApplicationClassStorageMember
   | ApplicationClassConstantMember
   | ApplicationClassInstanceStatement;
+
+export type ApplicationClassStatement =
+  | ApplicationClassVisibilityStatement
+  | ApplicationClassDeclarationStatement;
 
 export interface ApplicationClassImplementation extends ApplicationClassSourceSpan {
   kind: 'method' | 'get' | 'set';
@@ -222,23 +225,6 @@ function maskNonCode(source: string): string {
   return chars.join('');
 }
 
-function extendApplicationClassTerminatorRun(
-  text: string,
-  start: number,
-  matchedEnd: number
-): { end: number; count: number } {
-  let count = (text.slice(start, matchedEnd).match(/;/g) ?? []).length;
-  let end = matchedEnd;
-  while (end < text.length) {
-    const horizontal = /^[ \t]*/.exec(text.slice(end))?.[0] ?? '';
-    const semicolonIndex = end + horizontal.length;
-    if (text[semicolonIndex] !== ';') break;
-    count++;
-    end = semicolonIndex + 1;
-  }
-  return { end, count };
-}
-
 function splitParameters(text: string): ApplicationClassParameter[] {
   const inner = text.trim();
   if (inner === '') return [];
@@ -317,26 +303,20 @@ export function parseApplicationClassSource(
     const rawParameters = match[2] ?? '';
     const parameters = splitParameters(rawParameters);
     if (rawParameters.replace(/,\s*$/, '').trim() !== '' && parameters.length === 0) return undefined;
-    const matchStart = match.index ?? 0;
-    const terminators = extendApplicationClassTerminatorRun(
-      unitRegion,
-      matchStart,
-      matchStart + match[0].length
-    );
     pending.push({
-      index: matchStart,
-      end: terminators.end,
+      index: match.index ?? 0,
+      end: (match.index ?? 0) + match[0].length,
       member: {
         kind: 'method', name: match[1], sourceOrder: -1,
-        sourceIndex: unitRegionStart + matchStart,
-        sourceEnd: unitRegionStart + terminators.end,
+        sourceIndex: unitRegionStart + (match.index ?? 0),
+        sourceEnd: unitRegionStart + (match.index ?? 0) + match[0].length,
         declarationOrdinal: -1, implementationOrder: -1,
         visibility: 'public', abstract, parameters,
         returnType: returnType === undefined ? undefined : normalizeTypeName(returnType),
         body: '', signatureComments: [], signatureSlotOffset: -1,
         transitionBlankLines: 0,
-        terminated: terminators.count > 0,
-        terminatorCount: terminators.count,
+        terminated: /;\s*$/.test(match[0]),
+        terminatorCount: 0,
         trailingParameterComma: /,\s*$/.test(rawParameters)
       }
     });
@@ -348,78 +328,60 @@ export function parseApplicationClassSource(
     'gi'
   );
   for (const match of unitRegion.matchAll(propertyPattern)) {
-    const matchStart = match.index ?? 0;
-    const terminators = extendApplicationClassTerminatorRun(
-      unitRegion,
-      matchStart,
-      matchStart + match[0].length
-    );
     const modifiers = (match[3]?.replace(/\s+/g, ' ').trim().toLowerCase().split(' ').filter(Boolean) ?? []) as Array<'readonly' | 'get' | 'set'>;
     const mode: ApplicationClassStorageMember['mode'] =
       modifiers.includes('readonly') ? 'readonly' :
       modifiers.includes('get') && modifiers.includes('set') ? 'get-set' :
       modifiers.includes('get') ? 'get' : 'plain';
     pending.push({
-      index: matchStart,
-      end: terminators.end,
+      index: match.index ?? 0,
+      end: (match.index ?? 0) + match[0].length,
       member: {
         kind: 'property', type: normalizeTypeName(match[1]), name: match[2],
-        sourceIndex: unitRegionStart + matchStart,
-        sourceEnd: unitRegionStart + terminators.end,
+        sourceIndex: unitRegionStart + (match.index ?? 0),
+        sourceEnd: unitRegionStart + (match.index ?? 0) + match[0].length,
         mode, modifiers, visibility: 'public', sourceOrder: -1,
-        declarationOrdinal: -1, terminatorCount: terminators.count
+        declarationOrdinal: -1, terminatorCount: 0
       }
     });
   }
 
   const instancePattern = new RegExp(`\\binstance\\s+(${typePattern})\\s+([^;]+?)(?:;|$)`, 'gim');
   for (const match of unitRegion.matchAll(instancePattern)) {
-    const matchStart = match.index ?? 0;
-    const terminators = extendApplicationClassTerminatorRun(
-      unitRegion,
-      matchStart,
-      matchStart + match[0].length
-    );
     const names = match[2].match(/&[A-Za-z0-9_][A-Za-z0-9_]*#?/g) ?? [];
     if (names.length === 0) return undefined;
     pending.push({
-      index: matchStart,
-      end: terminators.end,
+      index: match.index ?? 0,
+      end: (match.index ?? 0) + match[0].length,
       instanceNames: names
     });
     for (const name of names) {
       pending.push({
-        index: matchStart,
-        end: terminators.end,
+        index: match.index ?? 0,
+        end: (match.index ?? 0) + match[0].length,
         member: {
           kind: 'instance', type: normalizeTypeName(match[1]), name: name.slice(1),
-          sourceIndex: unitRegionStart + matchStart,
-          sourceEnd: unitRegionStart + terminators.end,
+          sourceIndex: unitRegionStart + (match.index ?? 0),
+          sourceEnd: unitRegionStart + (match.index ?? 0) + match[0].length,
           mode: 'plain', modifiers: [], visibility: 'private', sourceOrder: -1,
-          declarationOrdinal: -1, terminatorCount: terminators.count
+          declarationOrdinal: -1, terminatorCount: 0
         }
       });
     }
   }
 
   for (const match of unitRegion.matchAll(/\bconstant\s+(&?[A-Za-z_][A-Za-z0-9_#]*)\s*=\s*([^;]*);/gi)) {
-    const matchStart = match.index ?? 0;
-    const terminators = extendApplicationClassTerminatorRun(
-      unitRegion,
-      matchStart,
-      matchStart + match[0].length
-    );
     pending.push({
-      index: matchStart,
-      end: terminators.end,
+      index: match.index ?? 0,
+      end: (match.index ?? 0) + match[0].length,
       member: {
         kind: 'constant', name: match[1], sourceOrder: -1,
-        sourceIndex: unitRegionStart + matchStart,
-        sourceEnd: unitRegionStart + terminators.end,
-        value: rawUnitRegion.slice(matchStart, matchStart + match[0].length)
+        sourceIndex: unitRegionStart + (match.index ?? 0),
+        sourceEnd: unitRegionStart + (match.index ?? 0) + match[0].length,
+        value: rawUnitRegion.slice(match.index ?? 0, (match.index ?? 0) + match[0].length)
           .replace(/^[\s\S]*?=/, '').replace(/;\s*$/, '').trim(),
         visibility: 'public',
-        terminatorCount: terminators.count
+        terminatorCount: 0
       }
     });
   }
@@ -452,7 +414,7 @@ export function parseApplicationClassSource(
         kind: 'instance-statement', type: first.type, names: event.instanceNames,
         sourceIndex: unitRegionStart + event.index,
         sourceEnd: unitRegionStart + event.end,
-        terminatorCount: first.terminatorCount
+        terminatorCount: 0
       });
       seenInstanceStatements.add(event.index);
       continue;
@@ -462,6 +424,36 @@ export function parseApplicationClassSource(
     if (event.member.kind !== 'instance') event.member.visibility = visibility;
     members.push(event.member);
     if (event.member.kind !== 'instance') statements.push(event.member);
+  }
+
+  // Cycle 27: punctuation belongs to the declaration that precedes it,
+  // independently of comments, blank lines, visibility transitions, and the
+  // following declaration kind. Measure the exact source-owned semicolon
+  // multiplicity over the same declaration-to-next-declaration ranges used by
+  // the population analyzer, with comments/literals already masked.
+  const declarationStatements = statements.filter(
+    (statement): statement is ApplicationClassDeclarationStatement =>
+      statement.kind !== 'visibility'
+  );
+  for (let index = 0; index < declarationStatements.length; index++) {
+    const statement = declarationStatements[index];
+    const boundaryEnd =
+      declarationStatements[index + 1]?.sourceIndex ?? unitRegionEnd;
+    const terminatorCount =
+      (maskNonCode(source.slice(statement.sourceIndex, boundaryEnd)).match(/;/g) ?? []).length;
+    statement.terminatorCount = terminatorCount;
+    if (statement.kind === 'method') {
+      statement.terminated = terminatorCount > 0;
+    } else if (statement.kind === 'instance-statement') {
+      for (const member of members) {
+        if (
+          member.kind === 'instance' &&
+          member.sourceIndex === statement.sourceIndex
+        ) {
+          member.terminatorCount = terminatorCount;
+        }
+      }
+    }
   }
 
   let methodOrdinal = 0;
@@ -536,10 +528,6 @@ export function parseApplicationClassSource(
   const headerMasked = masked.slice(unitStart, unitRegionStart + (firstMember?.index ?? unitRegion.length));
   const headerTrailingWhitespace = /\s*$/.exec(headerMasked)?.[0].length ?? 0;
   const unitHeaderEnd = unitStart + headerMasked.length - headerTrailingWhitespace;
-  // Comments and literals have already been space-masked. Before the first
-  // member, every remaining semicolon therefore belongs to the class/interface
-  // header itself. Count the complete source-owned run even when comments or
-  // newlines separate the semicolon from the first declaration.
   const unitHeaderTerminatorCount = (headerMasked.match(/;/g) ?? []).length;
 
   return {
