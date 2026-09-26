@@ -1,5 +1,5 @@
 /**
- * Cycle 29: Application Class program-name/directory metadata census.
+ * Cycles 29-30: Application Class program-name/directory metadata census.
  *
  * Read-only. Uses the completed local HCDEV snapshot, the current encoder,
  * and Cycle 28's saved post-fix report. It never connects to Oracle or writes
@@ -269,6 +269,14 @@ function descriptorNameOffset(descriptor: number): number | undefined {
   return sub >= 0x100 ? sub - 0x100 : undefined;
 }
 
+function descriptorShape(descriptor: number, metadata: ParsedMetadata): string {
+  const offset = descriptorNameOffset(descriptor);
+  if (offset === undefined) return `fixed:${descriptor >>> 0}`;
+  const arrayDepth = descriptor >>> 20;
+  const name = metadata.names.find(entry => entry.charOffset === offset)?.text ?? '<invalid-name-offset>';
+  return `${arrayDepth}:${normalize(name)}`;
+}
+
 function storedTypeAllocationOrder(metadata: ParsedMetadata): {
   exact: boolean;
   suffixOffsets: number[];
@@ -427,6 +435,124 @@ function main(): void {
     const metadata = parseMetadata(definition.storedProgram);
     return { definitionId: definition.definitionId, ...storedTypeAllocationOrder(metadata) };
   });
+  const physicalStorageControls = definitions.flatMap(definition => {
+    const parsed = parseApplicationClassSource(definition.sourceText);
+    if (!parsed) return [];
+    const stored = parseMetadata(definition.storedProgram);
+    const sourceMembers = parsed.members.filter(member => member.kind === 'property' || member.kind === 'instance');
+    const storedRecords = stored.records.filter(record => record.kind === 'property' || record.kind === 'instance');
+    if (sourceMembers.length !== storedRecords.length) return [];
+    const sourceKeys = sourceMembers.map(member => `${member.kind}:${normalize(member.name)}`);
+    const storedKeys = storedRecords.map(record => `${record.kind}:${normalize(record.name)}`);
+    if ([...sourceKeys].sort().join('\0') !== [...storedKeys].sort().join('\0')) return [];
+    const implementations = parsed.implementations.map(implementation =>
+      `${implementation.kind}:${normalize(implementation.name)}`
+    );
+    const storedCallables = stored.records
+      .filter(record => record.kind === 'method' || record.kind === 'getter' || record.kind === 'setter')
+      .filter(record => (record.flags & APPLICATION_CLASS_FLAGS.abstract) === 0)
+      .map(record => `${record.kind === 'method' ? 'method' : record.kind === 'getter' ? 'get' : 'set'}:${normalize(record.name)}`);
+    let phase = -1;
+    const phaseOrderExact = stored.records.every(record => {
+      const next = record.kind === 'self'
+        ? 0
+        : record.kind === 'property' || record.kind === 'instance'
+          ? 1
+          : (record.flags & APPLICATION_CLASS_FLAGS.abstract) === 0
+            ? 2
+            : 3;
+      if (next < phase) return false;
+      phase = next;
+      return true;
+    });
+    return [{
+      definitionId: definition.definitionId,
+      sourceKeys,
+      storedKeys,
+      sourceMembers: sourceMembers.map(member => ({
+        kind: member.kind,
+        name: member.name,
+        sourceOrder: member.sourceOrder,
+        declarationOrdinal: member.declarationOrdinal,
+        type: member.type,
+        mode: member.mode,
+        visibility: member.visibility
+      })),
+      storedRecords,
+      allStoredRecords: stored.records,
+      storedNames: stored.names,
+      storedSlots: stored.slots,
+      phaseOrderExact,
+      callableImplementationOrderExact: implementations.join('|') === storedCallables.join('|')
+    }];
+  });
+  const pairDirections = new Map<string, Set<string>>();
+  for (const control of physicalStorageControls) {
+    for (let left = 0; left < control.storedKeys.length; left++) {
+      for (let right = left + 1; right < control.storedKeys.length; right++) {
+        const pair = [control.storedKeys[left], control.storedKeys[right]].sort();
+        const key = pair.join('|');
+        const directions = pairDirections.get(key) ?? new Set<string>();
+        directions.add(control.storedKeys[left] === pair[0] ? 'forward' : 'reverse');
+        pairDirections.set(key, directions);
+      }
+    }
+  }
+  const contradictoryPairs = [...pairDirections]
+    .filter(([, directions]) => directions.size > 1)
+    .map(([pair]) => pair);
+  const storageSetGroups = new Map<string, typeof physicalStorageControls>();
+  for (const control of physicalStorageControls) {
+    const key = [...control.sourceKeys].sort().join('|');
+    const group = storageSetGroups.get(key) ?? [];
+    group.push(control);
+    storageSetGroups.set(key, group);
+  }
+  const repeatedStorageSets = [...storageSetGroups.values()].filter(group => group.length > 1);
+  const permutedSourceSets = repeatedStorageSets.filter(group =>
+    new Set(group.map(control => control.sourceKeys.join('|'))).size > 1
+  );
+  const contradictoryStoredSets = repeatedStorageSets.filter(group =>
+    new Set(group.map(control => control.storedKeys.join('|'))).size > 1
+  );
+  const singletonStorageControls = physicalStorageControls.filter(control => control.sourceMembers.length === 1);
+  const singletonInstanceControls = singletonStorageControls.filter(control => control.sourceMembers[0].kind === 'instance');
+  const concreteSingletonInstanceControls = singletonInstanceControls.filter(control => {
+    const definition = byId.get(control.definitionId)!;
+    const parsed = parseApplicationClassSource(definition.sourceText)!;
+    const methods = parsed.members.filter(member => member.kind === 'method');
+    return parsed.unitKind === 'class' &&
+      methods.every(method => !method.abstract && method.implementationOrder >= 0) &&
+      parsed.implementations.every(implementation => implementation.kind === 'method');
+  });
+  let getterShapeChecks = 0;
+  let getterShapeMatches = 0;
+  let setterShapeChecks = 0;
+  let setterShapeMatches = 0;
+  for (const control of physicalStorageControls) {
+    const metadata: ParsedMetadata = {
+      names: control.storedNames,
+      records: control.allStoredRecords,
+      slots: control.storedSlots
+    };
+    const propertyRecords = new Map(control.allStoredRecords
+      .filter(record => record.kind === 'property')
+      .map(record => [normalize(record.name), record]));
+    for (const accessor of control.allStoredRecords) {
+      const property = propertyRecords.get(normalize(accessor.name));
+      if (!property) continue;
+      if (accessor.kind === 'getter') {
+        getterShapeChecks++;
+        if (accessor.low === 0 && descriptorShape(accessor.descriptor, metadata) === descriptorShape(property.descriptor, metadata) &&
+            control.storedSlots[accessor.signatureSlotOffset] === 7) getterShapeMatches++;
+      } else if (accessor.kind === 'setter') {
+        setterShapeChecks++;
+        if (accessor.low === 1 && accessor.descriptor === 7 &&
+            descriptorShape(control.storedSlots[accessor.signatureSlotOffset], metadata) === descriptorShape(property.descriptor, metadata) &&
+            control.storedSlots[accessor.signatureSlotOffset + 1] === 7) setterShapeMatches++;
+      }
+    }
+  }
   const currentShaById = new Map<number, string>();
   if (baseline !== undefined) {
     for (const definition of definitions) {
@@ -443,6 +569,28 @@ function main(): void {
     .filter(([definitionId, sha]) => baseline.get(definitionId)?.generatedSha256 === sha)
     .map(([definitionId]) => definitionId)
     .sort((a, b) => a - b);
+  const singletonInstanceCurrentControls = singletonInstanceControls.flatMap(control => {
+    if (!currentShaById.has(control.definitionId)) return [];
+    const definition = byId.get(control.definitionId)!;
+    const generatedProgram = encodeProgramArtifacts(definition.sourceText, { owner: ownerContext(definition) }).program;
+    const generatedMetadata = parseMetadata(generatedProgram);
+    const storedMetadata = parseMetadata(definition.storedProgram);
+    return [{
+      definitionId: control.definitionId,
+      changed: baseline?.get(control.definitionId)?.generatedSha256 !== currentShaById.get(control.definitionId),
+      programExact: generatedProgram.equals(definition.storedProgram),
+      namesExact: sectionBytes(generatedProgram, 'names').equals(sectionBytes(definition.storedProgram, 'names')),
+      recordsExact: sectionBytes(generatedProgram, 'records').equals(sectionBytes(definition.storedProgram, 'records')),
+      slotsExact: sectionBytes(generatedProgram, 'slots').equals(sectionBytes(definition.storedProgram, 'slots')),
+      recordedNamePrefixExact: firstDifference(
+        storedMetadata.names.slice(0, 2),
+        generatedMetadata.names.slice(0, 2),
+        (left, right) => left.text === right.text && left.charOffset === right.charOffset
+      ) < 0,
+      instanceRecordExact: sectionBytes(generatedProgram, 'records').subarray(16, 32)
+        .equals(sectionBytes(definition.storedProgram, 'records').subarray(16, 32))
+    }];
+  });
   const targetIdSet = new Set(targetIds);
 
   const report = {
@@ -486,6 +634,41 @@ function main(): void {
       contradictionRows: process.argv.includes('--json')
         ? allocationOrderControls.filter(row => !row.exact)
         : undefined
+    },
+    physicalDirectoryOrder: {
+      completeStoragePopulations: physicalStorageControls.length,
+      multiStoragePopulations: physicalStorageControls.filter(row => row.sourceKeys.length > 1).length,
+      sourceOrderMatches: physicalStorageControls.filter(row => row.sourceKeys.join('|') === row.storedKeys.join('|')).length,
+      phaseOrderMatches: physicalStorageControls.filter(row => row.phaseOrderExact).length,
+      callableImplementationOrderMatches: physicalStorageControls.filter(row => row.callableImplementationOrderExact).length,
+      observedStoragePairs: pairDirections.size,
+      contradictoryPairDirections: contradictoryPairs.length,
+      repeatedStorageMemberSets: repeatedStorageSets.length,
+      repeatedSetsWithSourcePermutation: permutedSourceSets.length,
+      repeatedSetsWithStoredOrderContradiction: contradictoryStoredSets.length,
+      singletonStoragePopulations: singletonStorageControls.length,
+      singletonInstancePopulations: singletonInstanceControls.length,
+      concreteSingletonInstancePopulations: concreteSingletonInstanceControls.length,
+      singletonInstanceRecordOrderMatches: singletonInstanceControls.filter(row =>
+        row.allStoredRecords[0]?.kind === 'self' && row.allStoredRecords[1]?.kind === 'instance'
+      ).length,
+      reachableSingletonInstances: singletonInstanceCurrentControls.length,
+      changedReachableSingletonInstances: singletonInstanceCurrentControls.filter(row => row.changed).length,
+      programExactSingletonInstances: singletonInstanceCurrentControls.filter(row => row.programExact).length,
+      namesExactSingletonInstances: singletonInstanceCurrentControls.filter(row => row.namesExact).length,
+      recordsExactSingletonInstances: singletonInstanceCurrentControls.filter(row => row.recordsExact).length,
+      slotsExactSingletonInstances: singletonInstanceCurrentControls.filter(row => row.slotsExact).length,
+      recordedNamePrefixExactSingletonInstances: singletonInstanceCurrentControls.filter(row => row.recordedNamePrefixExact).length,
+      instanceRecordExactSingletonInstances: singletonInstanceCurrentControls.filter(row => row.instanceRecordExact).length,
+      getterShapeChecks,
+      getterShapeMatches,
+      setterShapeChecks,
+      setterShapeMatches,
+      contradictoryPairs: process.argv.includes('--json') ? contradictoryPairs : undefined,
+      permutedSourceSetRows: process.argv.includes('--json') ? permutedSourceSets : undefined,
+      contradictoryStoredSetRows: process.argv.includes('--json') ? contradictoryStoredSets : undefined,
+      singletonInstanceCurrentControls: process.argv.includes('--json') ? singletonInstanceCurrentControls : undefined,
+      controls: process.argv.includes('--json') ? physicalStorageControls : undefined
     },
     rows: process.argv.includes('--json') ? rows : undefined
   };

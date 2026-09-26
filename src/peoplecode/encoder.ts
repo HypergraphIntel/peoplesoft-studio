@@ -8,7 +8,8 @@ import {
   encodeTypeDescriptor,
   applicationClassHasTrailingSourceTerminator,
   parseApplicationClassSource,
-  type ApplicationClassMethodMember
+  type ApplicationClassMethodMember,
+  type ApplicationClassStorageMember
 } from './applicationClassProgram.js';
 import { encodeSimpleProgramHeader, PROGRAM_DIRECTORY_SEPARATOR } from './programLayout.js';
 import {
@@ -10851,6 +10852,17 @@ function encodeApplicationClassProgramV2(
   const methods = parsed.members.filter(
     (member): member is ApplicationClassMethodMember => member.kind === 'method'
   );
+  const storageMembers = parsed.members.filter(
+    (member): member is ApplicationClassStorageMember => member.kind === 'property' || member.kind === 'instance'
+  );
+  // Cycle 30: the compiler's physical storage-member enumeration remains
+  // opaque for multi-member sets, but the complete singleton-instance
+  // population is unambiguous (116/116 are self, instance, then callables).
+  // Keep broader property/instance metadata frozen until that enumeration is
+  // recovered; this is a population rule, not a definition-specific gate.
+  const singletonInstance = storageMembers.length === 1 && storageMembers[0].kind === 'instance'
+    ? storageMembers[0]
+    : undefined;
   const methodsByImplementationOrder = [...methods].sort((a, b) => {
     if (a.implementationOrder < 0) return b.implementationOrder < 0 ? a.declarationOrdinal - b.declarationOrdinal : 1;
     if (b.implementationOrder < 0) return -1;
@@ -10907,14 +10919,20 @@ function encodeApplicationClassProgramV2(
       : [...ownerPackagePath, parsed.className];
   const selfName = selfPath.join(':');
 
-  // Name table: self, then each method's name in PHYSICAL DIRECTORY
-  // (implementation) order -- Cycle 13's own finding that the first
+  // Name table: self, the proven singleton instance when present, then each
+  // method's name in PHYSICAL DIRECTORY (implementation) order -- Cycle 13's
+  // own finding that the first
   // `recordCount` names correspond 1:1 to directory records, in
   // directory order. Trailing Application-Class type-path names (from
   // parameter/return descriptors) are appended afterward, as encountered
   // -- see `ensureNameOffset` below.
   const names: string[] = [selfName];
   let nameCharOffset = selfName.length + 1;
+  const singletonInstanceNameOffset = singletonInstance === undefined ? undefined : nameCharOffset;
+  if (singletonInstance !== undefined) {
+    names.push(singletonInstance.name);
+    nameCharOffset += singletonInstance.name.length + 1;
+  }
   const nameOffsetOf = new Map<ApplicationClassMethodMember, number>();
   for (const member of methodsByImplementationOrder) {
     nameOffsetOf.set(member, nameCharOffset);
@@ -10936,6 +10954,9 @@ function encodeApplicationClassProgramV2(
   const selfDescriptor = relationshipType === undefined
     ? NO_TYPE_DESCRIPTOR
     : encodeTypeDescriptor(relationshipType, ensureNameOffset);
+  const singletonInstanceDescriptor = singletonInstance === undefined
+    ? undefined
+    : encodeTypeDescriptor(singletonInstance.type, ensureNameOffset);
   const descriptorByMember = new Map<ApplicationClassMethodMember, number>();
   for (const member of methodsByImplementationOrder) {
     descriptorByMember.set(
@@ -10967,6 +10988,17 @@ function encodeApplicationClassProgramV2(
       descriptor: selfDescriptor
     })
   ];
+  if (singletonInstance !== undefined) {
+    directoryChunks.push(encodeApplicationClassDirectoryRecord({
+      nameOffset: singletonInstanceNameOffset!,
+      signatureSlotOffset: 0,
+      flags: APPLICATION_CLASS_FLAGS.private |
+        APPLICATION_CLASS_FLAGS.property |
+        APPLICATION_CLASS_FLAGS.storage,
+      low: singletonInstance.declarationOrdinal,
+      descriptor: singletonInstanceDescriptor!
+    }));
+  }
   for (const member of methodsByImplementationOrder) {
     const visibilityFlag =
       member.visibility === 'private'

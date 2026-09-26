@@ -1,5 +1,159 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 30 — Application Class physical directory ordering
+
+**Status: research, narrow implementation, and corpus validation complete.**
+Baseline is commit `fb240f7` (Cycle 29), 23,217/30,209 EXACT, protected
+430/430, 1,325/1,510 source-encodable Application Classes, and zero EXACT
+Application Classes. This cycle used only the completed local HCDEV snapshot;
+`--live` was not used. Full-corpus comparison is Cycle 29 run 2216 against
+Cycle 30 run 2227.
+
+### Recovered physical directory phases
+
+The Cycle 29 analyzer,
+`tools/corpus/research/application-class-name-metadata-analysis.ts`, now
+contains a full-population physical-order census. It retains complete source
+members, stored records/slots, pair directions, repeated-set controls, and
+current singleton results under `--json`. Across all 1,506 active units, the
+stored directory has this phase structure with zero contradictions:
+
+```text
+self
+property/instance records in compiler-internal storage-symbol order
+concrete method/getter/setter records in implementation order
+abstract/interface callable records in a separate final phase
+```
+
+Accessors are callables, not storage records adjacent to their property. The
+existing concrete-class control remains 1,473/1,473 implementation-order
+matches. Getter metadata is 1,070/1,070 exact as zero parameters, property-
+typed return descriptor, and one slot terminator. Setter metadata is 251/251
+exact as one property-typed parameter, no return descriptor, and a following
+slot terminator. Property/instance `low` remains the independently recovered
+declaration-order storage ordinal (6,249/6,249 controls); physical position
+does not change that identity.
+
+The storage phase itself is not source order:
+
+| stored storage population | definitions | source-order matches |
+|---|---:|---:|
+| zero members | 688 | 688 |
+| one member | 175 | 175 |
+| two or more members | 643 | 57 |
+
+Thus 586/643 multi-member programs contradict declaration order. One repeated
+three-member set is especially decisive: definitions 29483/29493 declare
+`pagename, secname, fldname`, while 29502 declares
+`fldname, secname, pagename`; all three store
+`pagename, fldname, secname`. Sixty-four repeated member sets have zero stored-
+order contradictions, including that source permutation.
+
+A global lexical or fixed-name comparator is also impossible: among 114,642
+observed storage-member pairs, 1,189 named pairs occur in both relative
+directions depending on their enclosing member set. Source order, reverse
+source order, alphabetical order, kind/type grouping, first body use, and
+common standalone hash/comparator simulations all fail population controls.
+The evidence supports deterministic enumeration of an internal symbol table,
+but not its table construction, bucket function, capacity rule, or traversal
+algorithm. No compiler/environment identifier exposing that state exists in
+the local snapshot. A guessed hash or count-forcing permutation was therefore
+not implemented.
+
+Cycle 29's type-name allocation remains orthogonal and unchanged: after the
+physical record sequence is known, named descriptors allocate suffix entries
+in record order and then signature-slot order. Constants still create no
+directory record. Imports, bodies, comments, reference allocation, and package
+paths do not provide a replacement ordering signal.
+
+### Narrow implemented rule
+
+The only target-bearing subpopulation whose storage order is fully determined
+without the unresolved enumeration is a single instance member. All **116/116**
+singleton-instance controls store exactly `self, instance, callables`; all 104
+that the current encoder can reach now emit an exact self/instance recorded-
+name prefix and an exact 16-byte instance record. The other 12 stop before
+metadata on unchanged, unrelated parser/statement errors.
+
+`encodeApplicationClassProgramV2` now emits that singleton instance between
+the self record and callable records. Its name offset, private/property/storage
+flags, declaration ordinal, and type descriptor use the already-proven Cycle
+13/29 rules. Multi-member properties/instances and singleton properties remain
+on the prior path: implementing them would enlarge the semantic surface without
+advancing a Cycle 30 direct root, while multi-member physical order remains
+unknown. This is a population guard (`exactly one instance`), not a definition-
+specific exception.
+
+Two focused tests prove the positive custom-type singleton instance record,
+descriptor-name allocation, callable placement, and signature slots, plus the
+negative control that a two-instance declaration does not receive a guessed
+physical order.
+
+### Direct-root movement and residual uncertainty
+
+The Cycle 29 residual population was exactly 28 property/instance/accessor
+names roots. Three are singleton instances and all three now have exact names,
+records, and slots:
+
+| post-fix outcome | definitions | ids |
+|---|---:|---|
+| PSPCMNAME/reference identity | 2 | 28862, 28898 |
+| independent comment/marker residual | 1 | 29314 |
+| unresolved multi-member physical order | 25 | all other Cycle 29 residuals |
+
+Definitions 28862 and 28898 are now source-program byte exact; their full
+classification remains `DECODE_SOURCE_MISMATCH` because of independent
+decoder/reference semantics. Definition 29314 advances to a pre-existing body
+`0x4F` mismatch. The remaining 25 all contain multiple storage records and
+stay at the same names-metadata root; none was changed or patched.
+
+The exact unresolved semantic input for a future research cycle is therefore:
+the PeopleTools internal storage-symbol table's insertion/bucket/capacity and
+enumeration behavior. The corpus proves the output is deterministic for a
+member set and context-sensitive across sets, but does not expose enough state
+to choose among internal hash-table models. No Cycle 31 work was started.
+
+### Blast-radius reconciliation
+
+The structural population is 116 singleton-instance Application Classes. The
+full run reconciles exactly:
+
+| comparison | definitions |
+|---|---:|
+| reachable and generated SHA changed | 104 |
+| unreachable on unchanged earlier encode errors | 12 |
+| changed outside singleton-instance population | 0 |
+| non-Application-Class changes | 0 |
+
+All 104 reachable programs changed as predicted; all have exact singleton
+recorded-name prefixes and exact instance records. Forty-eight gained complete
+source-program byte equality, and none lost it. Four non-target controls
+(28728, 29247, 29458, 29882) retain independent pre-existing method/type/slot
+metadata differences, so aggregate names/records/slots are respectively exact
+in 100/103/103 of the 104 even though the newly emitted instance component is
+exact in 104/104.
+
+### Validation
+
+- Typecheck: clean.
+- Unit suite: 546 passed, one intentional skip (547 total).
+- Protected local baseline, run 2226: 430/430 EXACT; regression gate pass.
+- Full local run 2227: 23,217/30,209 EXACT; 6,992 residual definitions.
+- Run 2227 versus Cycle 29 run 2216: 104 generated-SHA changes, all and only
+  reachable singleton-instance Application Classes; zero changes outside the
+  116-definition semantic population.
+- Classification diff: zero transitions; newly EXACT 0; previously EXACT
+  regressions 0.
+- Source-program byte equality: 48 gains, zero losses.
+- Direct roots: 3/28 advance; 25/28 remain at the deliberately unresolved
+  multi-member names-metadata boundary.
+- Decoder semantics, PSPCMNAME allocation, statement/layout semantics, and all
+  unrelated dependency families are unchanged.
+- `git diff --check`: clean.
+
+**STOP after the isolated Cycle 30 implementation commit. Do not begin Cycle
+31.**
+
 ## Compiler Semantics Cycle 29 — implement Application Class names metadata
 
 **Status: implementation and corpus validation complete.** Baseline is commit
