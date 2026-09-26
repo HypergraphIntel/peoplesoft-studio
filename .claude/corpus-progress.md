@@ -1,5 +1,217 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 26 — Application Class reference allocation
+
+**Status: research complete; no encoder/decoder semantic change.** Baseline is
+commit `b4ae7d1` (Cycle 25), 23,217/30,209 EXACT, protected 430/430,
+1,325/1,510 source-encodable Application Classes, and zero EXACT Application
+Classes. This cycle used only the completed local HCDEV snapshot; `--live` was
+not used.
+
+Reproducible analyzer:
+`tools/corpus/research/application-class-reference-analysis.ts`. It requires
+Cycle 24's saved 940-row report via `--cycle24-report`; its default output is a
+compact census, while `--json` adds every target's source, exact first operand,
+stored/generated PSPCMNAME identity, source context, complete allocation
+streams, first allocation divergence, collision, and disposition. It invokes
+the current encoder read-only and never writes corpus state.
+
+### Exact target reproduction and first operands
+
+The analyzer exactly reproduces Cycle 25's 940-row downstream partition: 417
+reference-number/identity roots, 333 names-metadata roots, 86 wrapper/body
+roots, 60 newly exposed statement families, and 44 terminator/separator roots.
+The 417 first stored operands are:
+
+| stored PSPCMNAME artifact | definitions / operands | distinct rows | missing operand | extra operand | identity disagreement |
+|---|---:|---:|---:|---:|---:|
+| ordinary `RECNAME/REFNAME` owner-field | 169 | 92 | 0 | 0 | 51 |
+| `RECORD` | 151 | 113 | 15 | 0 | 0 |
+| `FIELD` | 63 | 46 | 38 | 0 | 0 |
+| `SCROLL` | 11 | 10 | 0 | 0 | 0 |
+| no stored row / extra generated operand | 10 | 1 | 0 | 10 | 0 |
+| `HTML` | 7 | 6 | 0 | 0 | 0 |
+| `COMPONENT` | 6 | 6 | 0 | 0 | 0 |
+
+All 417 have a wrong absolute NAMENUM at the first reference root. Separating
+the visible operand from its earlier cause yields 219 correct identities with
+the wrong NAMENUM, 53 missing generated operands, 51 wrong identities, 51
+correct identities with a wrong reuse decision, 33 correct rows in the wrong
+order, and 10 extra generated operands. **256/417 are only downstream NAMENUM
+drift** after an earlier allocation mistake; they are not independent ordinary
+RECORD/FIELD/SCROLL rules.
+
+### Earliest causal allocation families
+
+Every first root is causally assigned; there are 417 FULLY_EXPLAINED, zero
+partial, unrelated, or unresolved rows:
+
+| earliest allocation cause | definitions |
+|---|---:|
+| declaration-phase PACKAGE discovery/order | 246 |
+| suppressed later-fragment owner aliases a real operand to an existing row | 74 |
+| cross-fragment PACKAGE duplicate / failed reuse | 32 |
+| executable/post-class PACKAGE discovery/order | 16 |
+| import PACKAGE discovery/order | 16 |
+| missing non-PACKAGE allocation | 11 |
+| program owner placeholder mutated into first dependency | 6 |
+| other PACKAGE phase/order | 5 |
+| relationship PACKAGE discovery/order | 5 |
+| FIELD operand omission/allocation order | 2 |
+| wrong non-PACKAGE identity | 2 |
+| non-PACKAGE allocation order | 1 |
+| post-class declaration binding not shared with implementations | 1 |
+
+The suppressed-owner failure is concrete rather than inferred: every fragment
+constructs an owner object at its numeric offset even when that owner is not
+appended to the program's reference table. Its first ordinary dependency may
+mutate/use that object, so the emitted operand aliases a row allocated by an
+earlier fragment. This occurs at or before the first root in 74 targets and in
+304 of the 1,325 source-encodable Application Classes overall. Definition
+28721 is the compact control: stored class-instance types allocate
+`WIDGETFACTORY`, `TREEGRID`, and `IFRAME` before its post-class Declare
+Function row, while generated fragments discover those types later, duplicate
+`WIDGETFACTORY`, and then bind an IMAGE use to that prior sequence number.
+Six separate first-fragment controls mutate the one real blank program-owner
+row into the first SQL/owner-field dependency; they are reported separately
+from the 74 suppressed later-fragment collisions.
+
+Definition 29532 supplies the separate binding control: `Component Record
+&Submit_Derived_rec` is encoded post-class, but the next method fragment loses
+that declaration binding and emits no stored FIELD operands for its members.
+The remaining small non-PACKAGE cases are retained separately in the JSON
+report rather than folded into PACKAGE or ordinary reference semantics.
+
+### Allocation stream, lifetime, and candidate models
+
+Across all 1,325 source-encodable Application Classes, 7,307 safely aligned
+repeated-identity transitions were reconstructed from source occurrence to
+generated USE event to stored NAMENUM. Stored behavior is 7,297 REUSE and ten
+NEW. Current fragment encoding agrees on 4,529 REUSE and eight NEW decisions,
+but emits 2,731 NEW rows where stored reuses, two REUSE rows where stored
+allocates NEW, and 37 identity disagreements.
+
+The stored reuse population covers same-control-path and cross-control-path
+uses, method-to-method, constructor-to-method, method-to-getter,
+getter-to-method, post-class Declare Function boundaries, and RECORD, FIELD,
+SCROLL, COMPONENT, ordinary owner-field, and HTML identities. Thus a numeric
+offset appended to independent per-fragment maps is disproved. A naive global
+name interner is also disproved: all ten stored NEW transitions occur in
+definition 29797, where distinct receiver/control contexts inside
+`HandleRunTimeParameter` allocate fresh RECORD/FIELD identities. Eight of
+those ten are already selected as NEW by the existing scoped machinery. The
+correct structural abstraction is one chronological Application Class
+allocation stream and shared declaration/binding environment, while retaining
+the ordinary receiver/control-scoped identity decisions; it is not global
+name-only reuse.
+
+The requested transition negatives are explicit: no safely aligned repeated
+identity crosses getter-to-setter in this population, while method-to-getter
+and getter-to-method each have one REUSE control; declaration TYPE_PATHs emit
+no reference operand and are tested through allocation-stream provenance
+instead. Constructor-to-other, method-to-method, cross-control-path, and
+post-class-declaration controls are all populated and reuse as summarized by
+the analyzer.
+
+Competing reuse-only models quantify the distinction. Global name identity
+explains 7,297/7,307 transitions but contradicts the ten scoped NEW controls.
+Per-method and current per-fragment models contradict 1,603 and 2,770
+transitions respectively. Identity-specific sharing limited to PACKAGE/HTML
+still contradicts 1,601 transitions, because stored RECORD/FIELD/SCROLL and
+ordinary owner-field identities also cross method boundaries. The ten NEW
+controls are explicitly isolated, not discarded.
+
+### PACKAGE discovery and the unresolved ordering rule
+
+The 417 targets contain 2,750 stored PACKAGE rows: 1,541 have blank root/path
+metadata, 1,209 retain qualification, and 162 carry `APPCLASSMETHOD`. The
+current fragments produce zero matching identities for those 162 method rows,
+confirming that declaration/type bindings are not shared into method-call
+allocation. Source provenance finds 321 import rows, 214 relationship rows,
+916 method parameter/return/property/instance type rows, and 1,299 executable,
+post-class, or implicit-context rows. Of 215 relationship-bearing targets,
+214 have a matching PACKAGE row and one does not; relationship TYPE_PATH,
+self descriptor, and PACKAGE allocation therefore remain independent products.
+
+The compiler performs a whole-unit dependency prepass, but its internal order
+is **not raw declaration source order**. Among 280 controls with at least two
+matched declaration types, only 145 preserve the simple source projection and
+135 contradict it. Pairwise relationship/parameter/return/property/instance
+ordering is mixed, and within-kind order also has positive and contradictory
+controls. This is consistent with a compiler symbol-table/prepass order, but
+the exact key is not recovered here. It prevents a safe Cycle 27 reference
+implementation: the architecture is coherent and all first roots are
+explained, but the byte-exact allocation order is not yet contradiction-free.
+
+### Protected ordinary and HTML controls
+
+An Application-Class-only facade is structurally insulated from 23,217 EXACT
+ordinary programs. Those controls include 22,540 with RECORD/FIELD/SCROLL or
+ordinary owner-field rows, 4,272 with PACKAGE rows, 26 with HTML rows, and 246
+with multiple ordinary Functions. No proposed rule changes `DependencyScope`,
+`FieldDependencyScope`, `ChainSemantics`, `rowShorthandRecords`, or any
+ordinary-program lifetime.
+
+Seven of the 417 visible first operands are HTML. All seven have the correct
+stored HTML identity and only inherit an earlier wrong NAMENUM; zero HTML row
+or lifetime decisions disagree. Cycle 19/20 HTML semantics remain closed.
+
+### Boundary populations
+
+All 333 names-metadata roots are clearly independent at their first semantic
+boundary: their projected statement/reference stream is exact and they first
+differ in the Application Class trailer's UTF-16 directory-name section,
+which does not allocate PSPCMNAME. 242 also have a secondary external
+reference-row-stream mismatch, but that cannot cause the earlier names-section
+bytes and is not absorbed into Cycle 26.
+
+The 60 former “other” roots now have no generic bucket:
+
+| concrete family | definitions |
+|---|---:|
+| missing repeated/declaration terminator | 50 |
+| extra declaration terminator before unit closer | 5 |
+| unparameterized `array` type representation | 3 |
+| negative constant literal representation | 1 |
+| trailing parameter comma/terminator boundary | 1 |
+
+All 60 are independent of references and names metadata at their first root.
+
+### Blast radius and Cycle 27 decision
+
+A future Application Class reference facade would be traversed by all 1,325
+currently source-encodable Application Classes (zero currently EXACT); 745
+currently emit at least one reference operand. 1,160 have an evidenced
+allocation-stream disagreement, and 626 have an aligned reference operand
+that would necessarily change when corrected. That 626 is a lower bound, not
+an honest exact generated-SHA prediction while the symbol-table/prepass order
+is unknown. The 417 direct roots should advance under a complete model, but
+aligned operand substitution alone produces zero immediate EXACT candidates.
+
+**Cycle 27 should not implement the reference facade yet.** The recommended
+next subsystem is Application Class declaration terminator/separator semantics:
+55 of the newly classified 60 roots form one direct terminator family adjacent
+to the existing 44 terminator/separator roots. A later reference research pass
+must resolve symbol-table/prepass order and preserve definition 29797's scoped
+NEW controls before implementation. Do not broaden ordinary reference or HTML
+semantics.
+
+### Validation
+
+- Analyzer: 417/417 targets reproduced and fully explained; all 1,325 current
+  source-encodable Application Classes re-encode consistently.
+- Typecheck: clean.
+- Unit suite: 527 passed, one intentional skip (528 total).
+- Protected local baseline, run 2131: 430/430 EXACT; regression gate pass.
+- Full local run 2132: 23,217/30,209 EXACT; 6,992 residual definitions.
+- Run 2132 versus Cycle 25 run 2127: zero classification changes, zero
+  generated-SHA changes, zero source-encoding changes, zero newly EXACT, and
+  zero EXACT regressions across all 30,209 rows.
+- `git diff --check`: clean.
+- No file under `src/` changed; no `--live` use.
+
+**STOP after the isolated Cycle 26 research commit. Do not begin Cycle 27.**
+
 ## Compiler Semantics Cycle 25 — implement Application Class markers
 
 **Status: implementation and corpus validation complete.** Baseline is commit
