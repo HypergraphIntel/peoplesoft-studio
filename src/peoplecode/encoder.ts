@@ -10807,13 +10807,12 @@ function applicationClassBodyHasFinalSourceSemicolon(source: string): boolean {
       if (index < chars.length) chars[index++] = ' ';
       continue;
     }
-    if (chars[index] === '"' || chars[index] === "'") {
-      const quote = chars[index];
+    if (chars[index] === '"') {
       chars[index++] = ' ';
       while (index < chars.length) {
-        if (chars[index] === quote) {
+        if (chars[index] === '"') {
           chars[index++] = ' ';
-          if (chars[index] === quote) {
+          if (chars[index] === '"') {
             chars[index++] = ' ';
             continue;
           }
