@@ -53,7 +53,8 @@ import {
   encodeFragment,
   UnsupportedPeopleCodeError,
   encodeProgram,
-  encodeProgramArtifacts
+  encodeProgramArtifacts,
+  type ReusePoolTraceEvent
 } from '../peoplecode/encoder.js';
 
 for (const capture of protectedCorpusRegressions) {
@@ -1158,6 +1159,51 @@ test('the FIELD half of an explicit Record.REC.FIELD.Value chain is reusable by 
       'hex'
     )
   );
+});
+
+test('typed Row FIELD identity is scoped by control group, not interned globally', () => {
+  /*
+   * DERIVED_GP_CS.GP_CS_SM_KEY.FieldFormula (definition_id 5358) proves
+   * that a typed Row's same-name FIELD in a later top-level control group
+   * gets a fresh PSPCMNAME identity. The legacy typedRowFields pool still
+   * observes its older global candidate during Cycle 11, but cannot select
+   * it over the authoritative (controlGroup, fieldName) namespace.
+   */
+  const events: ReusePoolTraceEvent[] = [];
+
+  encodeProgram(
+    'Local Row &row;\n' +
+    'If &A = "X" Then\n' +
+    '   &row.REC_A.FIELD_A.Value = 1;\n' +
+    'End-If;\n' +
+    'If &B = "Y" Then\n' +
+    '   &row.REC_A.FIELD_A.Value = 2;\n' +
+    'End-If;\n',
+    { reusePoolTrace: event => events.push(event) }
+  );
+
+  const scopedWrites = events.filter(event =>
+    event.pool === 'scopedFieldReferences' &&
+    event.action === 'WRITE'
+  );
+  assert.deepStrictEqual(
+    scopedWrites.map(event => ({
+      key: event.key,
+      sequence: event.reference?.sequence
+    })),
+    [
+      { key: '1:field_a', sequence: 4 },
+      { key: '3:field_a', sequence: 6 }
+    ]
+  );
+
+  const staleTypedCandidate = events.find(event =>
+    event.pool === 'typedRowFields' &&
+    event.action === 'READ' &&
+    event.controlGroup === 3
+  );
+  assert.equal(staleTypedCandidate?.hit, true);
+  assert.equal(staleTypedCandidate?.reference?.sequence, 4);
 });
 
 test('a Function header inside a block comment is not counted as a real function', () => {
