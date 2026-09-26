@@ -1,5 +1,215 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 24 — Application Class comments and structural markers
+
+**Status: research and zero-change corpus validation complete.** Baseline is
+commit `9aad546` (Cycle 23), 23,217/30,209 EXACT, protected 430/430, and zero
+EXACT Application Classes. This cycle used only the completed local HCDEV
+snapshot; `--live` was not used. No encoder or decoder semantics changed.
+
+Reproducible analyzer:
+`tools/corpus/research/application-class-marker-analysis.ts`. Its default
+report is compact; `--json` adds the complete source and one evidence row per
+target, including the source line/offset, enclosing region, neighboring
+constructs, stored/generated statement windows, comment form, blank-line
+counts, marker multiplicity, disposition, and projected next blocker. It reads
+completed result rows and the snapshot only; it does not write corpus state.
+
+### Exact census and semantic partition
+
+The analyzer joins pre-Cycle-23 full run 2038 to the unchanged Cycle-23 encoder
+in Cycle-24 validation run 2051 and exactly reproduces the requested, mutually
+exclusive 940 first roots:
+
+| first root | definitions |
+|---|---:|
+| comment placement | 424 |
+| missing `0x4F` | 399 |
+| extra `0x4F` | 113 |
+| extra `0x2D` | 4 |
+| **total** | **940** |
+
+The source-layout mechanisms are also mutually exclusive:
+
+| evidenced mechanism | definitions | explained | contradictions |
+|---|---:|---:|---:|
+| omitted compilation-unit comment event | 424 | 424 | 0 |
+| omitted inter-declaration gap | 258 | 258 | 0 |
+| omitted pre-class/interface gap | 120 | 120 | 0 |
+| unconditional nonempty-body entry marker with zero source gap | 113 | 113 | 0 |
+| trailing body gap stripped with the synthetic final separator | 10 | 10 | 0 |
+| omitted post-class/pre-wrapper gap | 8 | 8 | 0 |
+| import fragment closed before its following comment | 4 | 4 | 0 |
+| other body-fragment multiplicity mismatch | 3 | 3 | 0 |
+
+Disposition is **940 FULLY_EXPLAINED (100%), 0 PARTIALLY_EXPLAINED, 0
+UNRELATED_ROOT_DISCOVERED, 0 UNRESOLVED**. Stored marker runs span one through
+five `0x4F` bytes; all 386 non-body missing-marker roots have exact equality
+between source blank-line count and total stored marker-run multiplicity.
+
+Mapped to the requested failure categories, the first roots are: A/wrong
+source classification 424 (comments are dropped from the class IR), C/missing
+deferred marker 386 (outer layout gaps), E/marker emitted by the wrong layer
+113 (wrapper hardcode), G/incorrect body multiplicity 13, and H/compilation-
+unit versus fragment scope 4. B, D, F, and I have zero first-root members.
+
+### Comment encoding and newline ownership
+
+Across the 1,506 active units, 41,021 compiled source comments match stored
+comment operands. Twelve additional block comments occur only in inactive
+preprocessor branches in 11 definitions and therefore have no stored operand;
+they are outside the 940 target population. There are no `//` comments.
+
+| source form / position | stored opcode | observations |
+|---|---:|---:|
+| line-leading `/* ... */` | `0x24` | 17,890 |
+| trailing inline `/* ... */` | `0x4E` | 2,727 |
+| `REM ...;` | `0x24` | 3,853 |
+| `<* ... *>` disabled block | `0x55` | 276 |
+| `/+ ... +/` signature annotation | `0x6D` | 16,275 |
+| `// ...` | none present | 0 |
+
+`0x24`, `0x4E`, and `0x55` retain their source delimiters in the operand;
+`0x6D` stores the signature payload and the decoder reconstructs `/+ +/`.
+Newlines internal to a multiline comment stay in that payload. Blank source
+lines adjacent to the comment remain structural state: 41,019/41,021 matched
+comments have exact immediately-preceding marker multiplicity. Following gaps
+are immediately adjacent for 40,786; 234 trailing-inline `0x4E` cases relocate
+or consume the following gap at the next declaration/body/wrapper boundary,
+and one non-inline inactive/preprocessor case is likewise non-adjacent.
+Compiled-reference presence is not sufficient to select either result: both
+adjacent and relocated controls exist with the same reference state.
+
+The population includes 3,939 comments between implementations, 88 after the
+final implementation, 917 before the first implementation, 2,072 in the class
+declaration section, 16,896 inside method bodies, and 94 wrappers with a
+comment-only (zero executable statement) body. Consecutive comments retain one
+operand per source comment; blank-line markers stay outside the operands.
+
+### `0x4F` lifetime and state ownership
+
+The stored rule is source-counted, not a universal one-marker separator:
+
+1. compilation-unit layout owns gaps before the class/interface header,
+   around declaration events, around the unit closer, and before/between/after
+   implementation wrappers;
+2. the wrapper owns its header, signature annotations, and structural closer,
+   but not an unconditional body marker;
+3. the body fragment owns gaps between ordinary body events;
+4. each evidenced source blank line contributes one `0x4F`; zero contributes
+   none and two-or-more preserve exact multiplicity;
+5. a queued outer-layout marker flushes before the next source event. Comments
+   are events and may therefore receive the marker before their operand.
+
+The complete body-edge control population is 10,448 wrappers in 1,473
+definitions. Source versus stored leading multiplicity is exact for
+10,448/10,448, and trailing multiplicity is exact for 10,448/10,448: zero
+contradictions across empty, comment-only, and nonempty bodies; zero, one, and
+many blank lines; method/get/set wrappers; compiled-reference and no-reference
+controls. This disproves the current nonempty-body hardcode of one `0x4F` and
+the unconditional removal of the last `0x4F`. Reference presence does not
+participate in either body-edge rule.
+
+The ten requested contexts resolve as follows: pre-header (120 direct roots),
+class-header/declaration/before-unit-closer (258), post-class/pre-first-wrapper
+(8), body entry (113 extra plus one many-marker control), internal body gaps
+(2 direct roots), before method/get/set closer (10), and pre-final boundary
+(matched negative controls). Inter-implementation gaps are already handled by
+the Cycle 18 transition rule and produce no Cycle 24 first roots. No evidence
+justifies changing that transition rule.
+
+### `0x2D` is context-owned
+
+The stored stream contains distinct `0x2D` roles: import/declaration fragment
+close, class declaration-section close, implementation header separator,
+method/get/set terminator suffix, ordinary leading-declaration boundary, and
+final program boundary. They must not be collapsed into one separator rule.
+
+The only four Cycle 24 roots are definitions 28721, 28964, 28965, and 28967.
+Each has a comment immediately following an import. Current V2 encodes imports
+as an isolated fragment, emits its closing `0x2D`, and only then jumps to the
+class header; stored bytes emit the comment first (`0x4E` when inline, `0x24`
+when line-leading) and defer the structural close to the compilation-unit
+layout boundary. This is one population-supported condition with 1,049
+import-bearing negative controls, not four definition-specific exceptions.
+Wrapper separators, terminator suffixes, leading-Local boundaries, and final
+`[0x2D] 0x07` remain unchanged.
+
+### Stored state machine versus current V2
+
+The required architecture remains four-layered:
+
+```text
+compilation unit: imports -> comments/gaps -> class declarations -> unit close
+                  -> post-class comments/gaps -> implementation sequence
+declaration:      semantic member tokens only; surrounding layout stays outer
+wrapper:          HEADER -> 0x2D -> 0x6D signatures -> BODY -> CLOSER 0x15 0x2D
+body fragment:    ordinary statements/comments plus source-owned internal gaps
+```
+
+Current V2 instead extracts only a leading-import string, closes that fragment,
+drops all outer comments/gaps, emits declarations without layout events, adds
+one `0x4F` before every nonempty body, and strips the final fragment `0x4F`
+without distinguishing a synthetic statement separator from a real trailing
+blank-line marker. Those five code paths account for every target.
+
+Matched controls include standalone versus inline blocks (28700/28704), REM
+(28702), disabled comment (28715), signature annotation (28700), nonempty body
+with zero/one/many entry gaps (28700/28704/28721), empty body with zero/one gap
+(28700/28764), and a body without compiled references (28716). The 940 roots
+contain 926 classes and 14 interfaces, so the rule is not class-only.
+
+### Cycle 25 blast radius and payoff prediction
+
+The first-root count is not the traversal population:
+
+| proposed path | direct roots | semantic traversal | currently EXACT | currently non-EXACT |
+|---|---:|---:|---:|---:|
+| compilation-unit layout stream | 814 | 1,506 definitions | 0 | 1,506 |
+| method body-edge gap accounting | 126 | 1,473 definitions / 10,448 wrappers | 0 | 1,473 |
+
+There are 954 outer-comment-bearing definitions (821 currently encodable),
+and the corrected body-edge rule would change 1,243 currently encodable
+definitions. The source-driven union predicts generated-SHA changes for 1,298
+of the 1,325 currently encodable Application Classes. This is a pre-
+implementation prediction; declaration gaps hidden behind earlier roots make
+the path-specific direct-root component a lower bound. The regression surface
+is the 1,506 active Application Classes; zero current full-corpus EXACT rows
+traverse it, and non-Application-Class/protected behavior must remain unchanged.
+
+Layout-normalized projection predicts **0 immediate EXACT and 940 advances**.
+The next blocker estimate is:
+
+| projected next blocker | definitions |
+|---|---:|
+| Application Class names metadata | 271 |
+| implementation wrapper/body | 256 |
+| reference numbering/operand identity | 210 |
+| class/member statement stream | 163 |
+| statement terminator/separator | 40 |
+
+The narrow Cycle 25 boundary is: add an ordered Application Class layout-event
+stream for imports/comments/gaps/declarations/post-class wrapper transitions;
+replace the nonempty-body `0x4F` hardcode with measured leading multiplicity;
+and preserve measured trailing gaps when removing only the synthetic final
+statement separator. Do not alter decoder semantics, directory/signature
+metadata, ordinary dependency allocation, the Cycle 18 inter-wrapper rule, or
+the independent 151-wrapper/73-separator families beyond a newly exposed next
+root.
+
+### Validation
+
+- Typecheck: clean.
+- Unit suite: 512 passed, one intentional skip.
+- Protected local baseline: 430/430 EXACT; no regression.
+- Full local run 2051: 23,217/30,209 EXACT; 6,992 residual definitions.
+- Run 2051 versus Cycle 23 run 2048: **0 generated-SHA changes, 0
+  classification changes, 0 source-encode flag changes** across 30,209 rows.
+- `src/peoplecode/encoder.ts` and `src/peoplecode/decoder.ts`: unchanged.
+- Local snapshot only; no `--live` use.
+
+**STOP after the isolated Cycle 24 research commit. Do not begin Cycle 25.**
+
 ## Compiler Semantics Cycle 23 — implement Application Class statements
 
 **Status: implementation and corpus validation complete.** Baseline is commit
