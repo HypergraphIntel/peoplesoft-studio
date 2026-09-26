@@ -2502,6 +2502,153 @@ const appClassStatements = (source: string) => {
   );
 };
 
+test('Application Class header preserves one explicit source semicolon', () => {
+  assert.deepStrictEqual(appClassStatements('class Demo;\nend-class;'), Buffer.concat([
+    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'),
+    Buffer.from([0x15, 0x5b, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class header omits a terminator when source omits it', () => {
+  assert.deepStrictEqual(appClassStatements('class Demo\nend-class;'), Buffer.concat([
+    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'),
+    Buffer.from([0x5b, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class method declaration preserves repeated source semicolons', () => {
+  assert.deepStrictEqual(appClassStatements('class Demo\n method Run();;\nend-class;'), Buffer.concat([
+    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x63]),
+    appClassText(0x0a, 'Run'), Buffer.from([0x0b, 0x14, 0x15, 0x15, 0x5b, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class property declaration preserves repeated source semicolons', () => {
+  assert.deepStrictEqual(appClassStatements('class Demo\n property string Name;;\nend-class;'), Buffer.concat([
+    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x5e]),
+    appClassText(0x40, 'string'), appClassText(0x0a, 'Name'),
+    Buffer.from([0x15, 0x15, 0x5b, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class grouped instance preserves repeated source semicolons', () => {
+  assert.deepStrictEqual(appClassStatements('class Demo\n instance Row &one, &two;;\nend-class;'), Buffer.concat([
+    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x62]),
+    appClassText(0x0a, 'Row'), appClassText(0x01, '&one'), Buffer.from([0x03]),
+    appClassText(0x01, '&two'), Buffer.from([0x15, 0x15, 0x5b, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class final instance can omit its source semicolon', () => {
+  assert.deepStrictEqual(appClassStatements('class Demo\n instance Row &only\nend-class;'), Buffer.concat([
+    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x62]),
+    appClassText(0x0a, 'Row'), appClassText(0x01, '&only'),
+    Buffer.from([0x5b, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class constant preserves repeated source semicolons', () => {
+  assert.deepStrictEqual(appClassStatements('class Demo\n constant &N = 1;;\nend-class;'), Buffer.concat([
+    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x56]),
+    appClassText(0x01, '&N'), Buffer.from([0x06]),
+    Buffer.from('500000010000000000000000000000000000', 'hex'),
+    Buffer.from([0x15, 0x15, 0x5b, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class interface method preserves explicit source semicolon count', () => {
+  assert.deepStrictEqual(appClassStatements('interface Demo;\n method Run() abstract;;\nend-interface;'), Buffer.concat([
+    Buffer.from([0x70]), appClassText(0x0a, 'Demo'), Buffer.from([0x15, 0x63]),
+    appClassText(0x0a, 'Run'), Buffer.from([0x0b, 0x14, 0x6f, 0x15, 0x15, 0x71, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class declaration semicolon count is unaffected by a trailing comment', () => {
+  const statements = appClassStatements('class Demo\n property string Name;; /* tail */\nend-class;');
+  const declaration = Buffer.concat([
+    Buffer.from([0x5e]), appClassText(0x40, 'string'), appClassText(0x0a, 'Name'), Buffer.from([0x15, 0x15])
+  ]);
+  assert.notEqual(statements.indexOf(declaration), -1);
+});
+
+test('Application Class declaration semicolon count is unaffected by blank lines', () => {
+  const statements = appClassStatements('class Demo\n property string Name;;\n\nend-class;');
+  const declaration = Buffer.concat([
+    Buffer.from([0x5e]), appClassText(0x40, 'string'), appClassText(0x0a, 'Name'), Buffer.from([0x15, 0x15, 0x4f])
+  ]);
+  assert.notEqual(statements.indexOf(declaration), -1);
+});
+
+test('Application Class body without a final source semicolon drops parser-only 0x15', () => {
+  const statements = appClassStatements(`class Demo
+ property string Name;
+ method Run();
+end-class;
+method Run
+ &value = 1
+end-method;`);
+  const closer = statements.indexOf(Buffer.from([0x64, 0x15, 0x2d]));
+  assert.ok(closer > 0);
+  assert.notEqual(statements[closer - 1], 0x15);
+});
+
+test('Application Class body with a final source semicolon preserves exactly one body 0x15', () => {
+  const statements = appClassStatements(`class Demo
+ property string Name;
+ method Run();
+end-class;
+method Run
+ &value = 1;
+end-method;`);
+  const closer = statements.indexOf(Buffer.from([0x64, 0x15, 0x2d]));
+  assert.ok(closer > 0);
+  assert.equal(statements[closer - 1], 0x15);
+  assert.notEqual(statements[closer - 2], 0x15);
+});
+
+test('Application Class trailing body comment does not create a synthetic semicolon', () => {
+  const statements = appClassStatements(`class Demo
+ property string Name;
+ method Run();
+end-class;
+method Run
+ &value = 1
+ /* tail */
+end-method;`);
+  const closer = statements.indexOf(Buffer.from([0x64, 0x15, 0x2d]));
+  assert.ok(closer > 0);
+  assert.notEqual(statements[closer - 1], 0x15);
+});
+
+test('Application Class trailing comment preserves an existing final statement semicolon', () => {
+  const statements = appClassStatements(`class Demo
+ property string Name;
+ method Run();
+end-class;
+method Run
+ &value = 1;
+ /* tail */
+end-method;`);
+  const closer = statements.indexOf(Buffer.from([0x64, 0x15, 0x2d]));
+  assert.ok(closer > 0);
+  const prefix = statements.subarray(0, closer);
+  assert.ok(prefix.lastIndexOf(0x15) >= 0);
+});
+
+test('Application Class body trailing blank lines keep 0x4F independent from source semicolon accounting', () => {
+  const statements = appClassStatements(`class Demo
+ property string Name;
+ method Run();
+end-class;
+method Run
+ &value = 1;
+
+end-method;`);
+  const closer = statements.indexOf(Buffer.from([0x64, 0x15, 0x2d]));
+  assert.ok(closer > 1);
+  assert.equal(statements[closer - 1], 0x4f);
+});
+
 test('Application Class statement encoding emits a simple class header', () => {
   assert.deepStrictEqual(appClassStatements('class Demo\nend-class;'), Buffer.concat([
     Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x5b, 0x15, 0x2d, 0x07])
