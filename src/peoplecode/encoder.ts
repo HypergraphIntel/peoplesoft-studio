@@ -10418,10 +10418,52 @@ function encodeApplicationClassPathBytes(path: string[]): Buffer {
     if (index > 0) {
       chunks.push(Buffer.from([0x57]));
     }
-    chunks.push(encodeInlineName(component));
+    chunks.push(
+      component.toLowerCase() === '%metadata'
+        ? textOperand(0x12, TokenKind.Name, component)
+        : encodeInlineName(component)
+    );
   });
 
   return Buffer.concat(chunks);
+}
+
+const APPLICATION_CLASS_WORD_TYPES = new Set([
+  'any', 'boolean', 'date', 'datetime', 'integer', 'number', 'object',
+  'string', 'time'
+]);
+
+/** Cycle 22 TYPE: array words are individual 0x40 operands; class paths are inline names. */
+function encodeApplicationClassTypeBytes(typeName: string): Buffer {
+  let remaining = typeName.replace(/\s+/g, ' ').trim();
+  const chunks: Buffer[] = [];
+  while (/^array\s+of\s+/i.test(remaining)) {
+    chunks.push(encodeKeywordText('array'), encodeKeywordText('of'));
+    remaining = remaining.replace(/^array\s+of\s+/i, '');
+  }
+  if (APPLICATION_CLASS_WORD_TYPES.has(remaining.toLowerCase())) {
+    chunks.push(encodeKeywordText(remaining));
+    return Buffer.concat(chunks);
+  }
+  const path = remaining.split(':').map(component => component.trim()).filter(Boolean);
+  path.forEach((component, index) => {
+    if (index > 0) chunks.push(Buffer.from([0x57]));
+    chunks.push(
+      component.toLowerCase() === '%metadata'
+        ? textOperand(0x12, TokenKind.Name, component)
+        : encodeInlineName(component)
+    );
+  });
+  return Buffer.concat(chunks);
+}
+
+function encodeApplicationClassLiteral(value: string): Buffer {
+  const encoded = encodeFragmentInternal(`Return ${value};`).bytes;
+  if (encoded.length < 2 || encoded[encoded.length - 1] !== 0x15) {
+    throw new Error(`Unsupported Application Class constant literal: ${value}`);
+  }
+  // Return and the declaration's own semicolon are emitted by the caller.
+  return encoded.subarray(1, encoded.length - 1);
 }
 
 /**
@@ -10692,23 +10734,11 @@ function encodeApplicationClassProgram(
 }
 
 /**
- * Cycle 14: general Application Class encoder implementing only the
- * fully evidence-backed structural rules from Cycle 13 (see
- * `.claude/corpus-progress.md`'s Cycle 13 report and
- * `applicationClassProgram.ts`'s own module comment). Deliberately
- * narrower than `parseApplicationClassSource` itself accepts: this
- * function additionally requires ZERO `extends`/`implements` and ZERO
- * `property`/`instance` members, because -- unlike the DIRECTORY
- * encoding for those shapes, which Cycle 13 fully solved -- this cycle
- * has no calibrated evidence for how `class X extends Y;` or a
- * `property`/`instance` declaration is represented in the STATEMENT
- * (executable) section specifically. Guessing those bytes would violate
- * this cycle's own "do not guess" instruction even though the directory
- * bytes are fully understood; a future cycle should reverse-engineer
- * those specific statement bytes from real captures before lifting this
- * restriction. Returns `undefined` (never throws) for anything outside
- * this scope, so the caller falls through to the existing narrow
- * template or unsupported-syntax handling.
+ * Application Class encoder. Cycle 14 supplies directory/signature assembly,
+ * Cycles 17-18 supply implementation wrappers, and Cycle 23 supplies the
+ * Cycle 22-proven ordered unit/member statement grammar. Those phases remain
+ * deliberately separate: this cycle does not derive dependency identity or a
+ * new physical directory ordering rule from executable declaration order.
  */
 function encodeApplicationClassProgramV2(
   source: string,
@@ -10716,11 +10746,14 @@ function encodeApplicationClassProgramV2(
 ): { program: Buffer; references: PeopleCodeReference[] } | undefined {
   const parsed = parseApplicationClassSource(source);
   if (parsed === undefined) return undefined;
-  if (parsed.extendsType !== undefined || parsed.implementsType !== undefined) return undefined;
-  if (parsed.members.some(member => member.kind !== 'method')) return undefined;
-
-  const methods = parsed.members as ApplicationClassMethodMember[];
-  const methodsByImplementationOrder = [...methods].sort((a, b) => a.implementationOrder - b.implementationOrder);
+  const methods = parsed.members.filter(
+    (member): member is ApplicationClassMethodMember => member.kind === 'method'
+  );
+  const methodsByImplementationOrder = [...methods].sort((a, b) => {
+    if (a.implementationOrder < 0) return b.implementationOrder < 0 ? a.declarationOrdinal - b.declarationOrdinal : 1;
+    if (b.implementationOrder < 0) return -1;
+    return a.implementationOrder - b.implementationOrder;
+  });
   const methodsByDeclarationOrder = [...methods].sort((a, b) => a.declarationOrdinal - b.declarationOrdinal);
 
   /*
@@ -10739,7 +10772,7 @@ function encodeApplicationClassProgramV2(
    * dependency identity, DependencyScope, method-local ChainSemantics, or
    * method ordering in the real encode.
    */
-  const programHasCompiledReferences = methods.some(member => {
+  const programHasCompiledReferences = parsed.implementations.some(member => {
     const trimmedEnd = member.body.replace(/\s+$/, '');
     const completed = /;$/.test(trimmedEnd) ? member.body : `${member.body};`;
     try {
@@ -10832,8 +10865,8 @@ function encodeApplicationClassProgramV2(
   // the same general-purpose, already-calibrated PeopleCode
   // statement/expression encoder every other program type uses.
   const leadingImportMatch =
-    /^\s*(?:import\s+[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*\s*;\s*)*/i.exec(source);
-  const importText = leadingImportMatch?.[0] ?? '';
+    /^\s*(?:import\s+[%A-Za-z_][%A-Za-z0-9_]*(?::[%A-Za-z_][%A-Za-z0-9_]*)*(?::\*)?\s*;\s*)*/i.exec(source);
+  const prefixText = leadingImportMatch?.[0] ?? '';
 
   const statementChunks: Buffer[] = [];
   const references: PeopleCodeReference[] = [];
@@ -10879,8 +10912,9 @@ function encodeApplicationClassProgramV2(
       : bytes;
   };
 
-  if (importText.trim() !== '') {
-    statementChunks.push(encodeFragment(importText));
+  if (prefixText.trim() !== '') {
+    const prefixBytes = encodeFragment(prefixText);
+    statementChunks.push(prefixBytes);
     /*
      * `encodeFragmentInternal` does not add a trailing inter-statement
      * 0x4f separator after the LAST statement in an isolated call (it
@@ -10889,38 +10923,95 @@ function encodeApplicationClassProgramV2(
      * boundary needs the same separator any two adjacent statements get.
      * Confirmed against the golden OU_CORPUS:Utilities:TestClass fixture.
      */
-    statementChunks.push(Buffer.from([0x4f]));
-  }
-
-  // class NAME
-  statementChunks.push(Buffer.from([0x5a]));
-  statementChunks.push(encodeInlineName(parsed.className));
-
-  // Method declarations, in DECLARATION (class-header source) order.
-  for (const member of methodsByDeclarationOrder) {
-    statementChunks.push(Buffer.from([0x63]));
-    statementChunks.push(encodeInlineName(member.name));
-    statementChunks.push(Buffer.from([0x0b]));
-    member.parameters.forEach((parameter, index) => {
-      if (index > 0) statementChunks.push(fixed(','));
-      statementChunks.push(encodeVariableName(parameter.name));
-      statementChunks.push(Buffer.from([0x35]));
-      statementChunks.push(encodeKeywordText(parameter.type));
-    });
-    statementChunks.push(Buffer.from([0x14]));
-    if (member.returnType !== undefined) {
-      statementChunks.push(Buffer.from([0x39]));
-      statementChunks.push(encodeKeywordText(member.returnType));
+    if (prefixBytes[prefixBytes.length - 1] !== 0x4f) {
+      statementChunks.push(Buffer.from([0x4f]));
     }
-    statementChunks.push(Buffer.from([0x15]));
   }
 
-  // end-class;
-  statementChunks.push(Buffer.from([0x5b, 0x15, 0x2d, 0x4f]));
+  // CLASS|INTERFACE NAME [EXTENDS path] [IMPLEMENTS path]
+  statementChunks.push(Buffer.from([parsed.unitKind === 'class' ? 0x5a : 0x70]));
+  statementChunks.push(encodeInlineName(parsed.className));
+  if (parsed.extendsType !== undefined) {
+    statementChunks.push(Buffer.from([0x5c]));
+    statementChunks.push(encodeApplicationClassPathBytes(parsed.extendsType.split(':')));
+  }
+  if (parsed.implementsType !== undefined) {
+    statementChunks.push(Buffer.from([0x72]));
+    statementChunks.push(encodeApplicationClassPathBytes(parsed.implementsType.split(':')));
+  }
 
-  // Method implementations, in IMPLEMENTATION (physical, body-order) order.
-  for (const member of methodsByImplementationOrder) {
-    statementChunks.push(Buffer.from([0x63, 0x41]));
+  // Cycle 22: one executable stream in exact source declaration order.
+  for (const statement of parsed.statements) {
+    if (statement.kind === 'visibility') {
+      statementChunks.push(Buffer.from([statement.visibility === 'private' ? 0x61 : 0x73]));
+      continue;
+    }
+    if (statement.kind === 'method') {
+      statementChunks.push(Buffer.from([0x63]));
+      statementChunks.push(encodeInlineName(statement.name));
+      statementChunks.push(Buffer.from([0x0b]));
+      statement.parameters.forEach((parameter, index) => {
+        if (index > 0) statementChunks.push(Buffer.from([0x03]));
+        statementChunks.push(encodeVariableName(parameter.name));
+        statementChunks.push(Buffer.from([0x35]));
+        statementChunks.push(encodeApplicationClassTypeBytes(parameter.type));
+        if (parameter.out) statementChunks.push(Buffer.from([0x5d]));
+      });
+      if (statement.trailingParameterComma) statementChunks.push(Buffer.from([0x03]));
+      statementChunks.push(Buffer.from([0x14]));
+      if (statement.returnType !== undefined) {
+        statementChunks.push(Buffer.from([0x39]));
+        statementChunks.push(encodeApplicationClassTypeBytes(statement.returnType));
+      }
+      if (statement.abstract) statementChunks.push(Buffer.from([0x6f]));
+      if (statement.terminated) statementChunks.push(Buffer.from([0x15]));
+      continue;
+    }
+    if (statement.kind === 'property') {
+      statementChunks.push(Buffer.from([0x5e]));
+      statementChunks.push(encodeApplicationClassTypeBytes(statement.type));
+      statementChunks.push(encodeInlineName(statement.name));
+      for (const modifier of statement.modifiers) {
+        statementChunks.push(Buffer.from([modifier === 'readonly' ? 0x60 : modifier === 'get' ? 0x5f : 0x49]));
+      }
+      statementChunks.push(Buffer.from([0x15]));
+      continue;
+    }
+    if (statement.kind === 'instance-statement') {
+      statementChunks.push(Buffer.from([0x62]));
+      statementChunks.push(encodeApplicationClassTypeBytes(statement.type));
+      statement.names.forEach((name, index) => {
+        if (index > 0) statementChunks.push(Buffer.from([0x03]));
+        statementChunks.push(encodeVariableName(name));
+      });
+      statementChunks.push(Buffer.from([0x15]));
+      continue;
+    }
+    // Flattened instance members are metadata-only; their grouped executable
+    // form is the `instance-statement` node handled above.
+    if (statement.kind === 'instance') continue;
+    if (statement.kind === 'constant') {
+      statementChunks.push(Buffer.from([0x56]));
+      statementChunks.push(encodeVariableName(statement.name));
+      statementChunks.push(Buffer.from([0x06]));
+      statementChunks.push(encodeApplicationClassLiteral(statement.value));
+      statementChunks.push(Buffer.from([0x15]));
+    }
+  }
+
+  // END-CLASS|END-INTERFACE ;. A structural boundary exists only when a
+  // post-unit declaration/comment or implementation follows.
+  statementChunks.push(Buffer.from([parsed.unitKind === 'class' ? 0x5b : 0x71, 0x15]));
+  if (parsed.implementations.length > 0) {
+    statementChunks.push(Buffer.from([0x2d, 0x4f]));
+  } else {
+    statementChunks.push(Buffer.from([0x2d]));
+  }
+
+  // Concrete method/getter/setter implementations remain in source order.
+  for (const member of parsed.implementations) {
+    const implementationOpcode = member.kind === 'method' ? 0x63 : member.kind === 'get' ? 0x5f : 0x49;
+    statementChunks.push(Buffer.from([implementationOpcode, 0x41]));
     statementChunks.push(encodeInlineName(member.name));
     statementChunks.push(Buffer.from([0x2d]));
     for (const comment of member.signatureComments) {
@@ -10955,7 +11046,8 @@ function encodeApplicationClassProgramV2(
       statementChunks.push(Buffer.from([0x4f]));
       statementChunks.push(encodeMethodBody(member.body));
     }
-    statementChunks.push(Buffer.from([0x64, 0x15, 0x2d]));
+    const closerOpcode = member.kind === 'method' ? 0x64 : member.kind === 'get' ? 0x6a : 0x6b;
+    statementChunks.push(Buffer.from([closerOpcode, 0x15, 0x2d]));
     /*
      * Cycle 17/18 TRANSITION: one `0x4F` per blank source line between
      * this method's own `end-method;` and the next method implementation

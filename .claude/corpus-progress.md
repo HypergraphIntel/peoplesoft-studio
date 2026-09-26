@@ -1,5 +1,156 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 23 — implement Application Class statements
+
+**Status: implementation and corpus validation complete.** Baseline is commit
+`0a32d52` (Cycle 22), 23,217/30,209 EXACT, protected 430/430, and zero EXACT
+Application Classes. The implementation uses only the completed local HCDEV
+snapshot; `--live` was not used. Full-corpus result rows are baseline run 2038
+(Cycle 22's semantic baseline; its encoder is byte-identical to `0a32d52`) and
+Cycle 23 run 2048.
+
+### Implementation
+
+`ApplicationClassProgram` now retains the Cycle 22 executable declaration IR:
+class/interface kind, extends/implements path, ordered visibility transitions,
+methods and constructors, abstract/out state, properties and accessor modifier
+order, grouped instances, constants, source terminators, and method/get/set
+implementations. The V2 Application Class encoder emits that ordered statement
+stream while leaving the existing directory/signature construction and shared
+method-body dependency machinery separate.
+
+Fourteen targeted controls cover the required class/interface, relationship,
+member, ordering, constant, and declaration-to-body boundary forms. Constants
+remain executable-only and create no directory records. No decoder behavior,
+dependency identity rule, or definition-specific gate was added.
+
+### Corrected blast-radius model
+
+Cycle 22's 1,350 prediction was a **first-root population**, not the complete
+population traversing the statement emitter. Replaying the detached Cycle 22
+encoder and the Cycle 23 encoder against the same snapshot establishes the
+actual population:
+
+| population | definitions |
+|---|---:|
+| all Application Class definitions | 1,510 |
+| active units governed by the Cycle 22 statement grammar | 1,506 |
+| Cycle 22 direct-root subset | 1,350 |
+| generated SHA changed in Cycle 23 | 1,257 |
+| governed units with unchanged generated SHA | 249 |
+| full-corpus EXACT subset | 0 |
+| governed Cycle 21 residuals masked by an earlier root | 156 |
+| changed definitions among those masked residuals | 37 |
+
+The acceptance rule is therefore corrected from “all changes must be inside
+the 1,350 direct-root prediction” to “all changes must be inside the
+evidence-backed 1,506-unit Application Class semantic population traversing
+the implemented statement grammar.” All 1,257 generated SHA changes satisfy
+that rule; all are object type 104 and zero non-Application-Class definitions
+changed. The 11 explicit Cycle 22 exclusions remain byte-unchanged.
+
+### The 37 masked-root changes
+
+The exact outside-direct-root set is:
+
+```text
+28714 28757 28765 28770 28783 28794 28818 28833 28854 28979
+29272 29329 29407 29557 29586 29633 29656 29683 29737 29739
+29741 29743 29746 29751 29756 29762 29763 29765 29770 29771
+29773 29776 29779 29782 29783 30073 30149
+```
+
+Their prior Cycle 21 first roots are mutually accounted for:
+
+| prior earlier root | count | definition IDs |
+|---|---:|---|
+| comment opcode/placement | 30 | 28714, 28783, 28794, 28818, 28833, 28979, 29407, 29557, 29586, 29633, 29683, 29737, 29739, 29741, 29743, 29746, 29751, 29756, 29762, 29763, 29765, 29770, 29771, 29773, 29776, 29779, 29782, 29783, 30073, 30149 |
+| missing `0x4F` | 4 | 28757, 28765, 29272, 29656 |
+| extra `0x4F` | 1 | 28770 |
+| preprocessor / `#ToolsRel` branch | 1 | 28854 |
+| native `Declare Function ... Library` | 1 | 29329 |
+
+Each row was joined across runs 2038/2048 with display name, old/new
+classification, first-difference coordinate, full generated SHA, stored and
+generated diff windows, and parsed Application Class shape. Detached re-encode
+hashes match the stored run hashes for every available old/current artifact.
+Classification is **37 EXPECTED_SHARED_PATH, 0 IMPLEMENTATION_LEAK, 0
+UNKNOWN**:
+
+- after removing comment tokens and structural markers, all 37 current class/
+  member token projections exactly equal the stored grammar; only one old
+  projection did;
+- the 35 definitions that already encoded have byte-identical names, records,
+  and slots sections before/after; 34 also have byte-identical statement bytes
+  outside the unit declaration;
+- the remaining prior-success case, empty class 28770, changes only its proven
+  class boundary from the old extra `0x4F` form to stored `0x2D 0x07`, then
+  advances into names metadata;
+- 28854 and 29329 previously stopped at the earlier preprocessor/native root.
+  Their newly reachable class/member token projections now exactly match
+  stored bytes; the independent preprocessor/native work remains out of scope.
+
+This is shared structural dispatch, not leakage: all 37 parse as active units
+under the same population-wide grammar and enter the same V2 emitter as the
+direct-root set. No Cycle 21 classification gate or per-definition exception
+is justified.
+
+### Movement and downstream blockers
+
+All 1,220 changed direct-root definitions move closer: 1,178 become source-
+encodable and the other 42 advance through the declaration grammar. All 37
+masked-root changes also move closer: two become source-encodable, 34 replace
+an incomplete old declaration projection with the exact stored projection,
+and 28770 fixes its terminal declaration boundary. **Zero statement-region
+changes move farther.**
+
+Among the 77 definitions encodable both before and after, section-aware
+comparison advances the meaningful first divergence in 42 (40 to a later
+statement offset and two into a later metadata section), leaves 35 at their
+already-earlier independent comment/marker roots, and moves zero earlier. The
+raw whole-program `first_diff_offset` field reports four later, one earlier,
+and 72 unchanged because it normally points at header length words; the one
+apparent earlier move (28765, 13 to 5) is only that header coordinate, not a
+semantic regression.
+
+All 1,257 changed programs remain non-EXACT and are blocked downstream. The
+1,180 source-encoding gains cluster by their new independent first root as:
+
+| downstream family | definitions |
+|---|---:|
+| comment / blank-line / structural markers | 940 |
+| Application Class implementation wrapper/body layout | 151 |
+| statement terminator/separator layout | 73 |
+| Application Class names metadata | 12 |
+| reference numbering/operand identity | 3 |
+| preprocessor environment | 1 |
+
+The detailed root counts are comment placement 424, missing `0x4F` 399,
+Application Class wrapper 150, extra `0x4F` 113, separator 73, names metadata
+12, extra `0x2D` 4, reference roots 3, leading class wrapper 1, and
+preprocessor 1. These are Cycle 24 inputs only; none was patched here. The
+Application Class EXACT count staying 0 is therefore expected and is not a
+failure of the class/member implementation.
+
+### Validation
+
+- Typecheck: clean.
+- Unit suite: 512 passed, one intentional pre-existing skip.
+- Protected local baseline: 430/430 EXACT.
+- Full local run 2048: 23,217/30,209 EXACT; 6,992 residual definitions.
+- Generated SHA changes: 1,257, all Application Class; 1,220 inside the old
+  direct-root prediction and 37 proven shared-path members outside it.
+- Source-encoding gains: 1,180; losses: 0.
+- Classification changes: 1,179 `ENCODE_ERROR -> DECODE_SOURCE_MISMATCH`, 85
+  `ENCODE_ERROR -> UNSUPPORTED_SYNTAX`, and one
+  `UNSUPPORTED_SYNTAX -> DECODE_SOURCE_MISMATCH`.
+- Newly EXACT: 0. Previously EXACT regressions: 0. Application Class EXACT:
+  0 -> 0.
+- All 11 explicit exclusions are unchanged.
+
+**STOP after the isolated Cycle 23 implementation commit. Do not begin Cycle
+24.**
+
 ## Compiler Semantics Cycle 22 — Application Class executable statements
 
 **Status: research complete; no encoder/decoder semantic change.** Baseline is

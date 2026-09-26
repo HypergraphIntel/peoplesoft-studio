@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { decodeProgram } from '../peoplecode/decoder.js';
 import { NameTable } from '../peoplecode/progtext.js';
 import { ProgramImage, compareBytes } from '../peoplecode/programImage.js';
+import { readProgramLayout } from '../peoplecode/programLayout.js';
 import { ACTIVATE_BYTES } from './fixtures/compiledPeopleCode.js';
 import { protectedCorpusRegressions } from './fixtures/protectedCorpusRegressions.js';
 import {
@@ -2478,6 +2479,161 @@ End-If;`;
       '4F4F191A15',
       'hex'
     )
+  );
+});
+
+const appClassText = (opcode: number, value: string) =>
+  Buffer.concat([Buffer.from([opcode]), Buffer.from(`${value}\0`, 'utf16le')]);
+
+const appClassStatements = (source: string) => {
+  const program = encodeProgramArtifacts(source).program;
+  const layout = readProgramLayout(program);
+  return program.subarray(
+    layout.statements.offset,
+    layout.statements.offset + layout.statements.byteLength
+  );
+};
+
+test('Application Class statement encoding emits a simple class header', () => {
+  assert.deepStrictEqual(appClassStatements('class Demo\nend-class;'), Buffer.concat([
+    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x5b, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class statement encoding emits an interface header', () => {
+  assert.deepStrictEqual(appClassStatements('interface Contract\nend-interface;'), Buffer.concat([
+    Buffer.from([0x70]), appClassText(0x0a, 'Contract'), Buffer.from([0x71, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class statement encoding emits an extends path', () => {
+  assert.deepStrictEqual(appClassStatements('class Demo extends PKG:Base\nend-class;'), Buffer.concat([
+    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x5c]),
+    appClassText(0x0a, 'PKG'), Buffer.from([0x57]), appClassText(0x0a, 'Base'),
+    Buffer.from([0x5b, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class statement encoding emits implements with a %metadata root', () => {
+  assert.deepStrictEqual(appClassStatements('class Demo implements %metadata:Key\nend-class;'), Buffer.concat([
+    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x72]),
+    appClassText(0x12, '%metadata'), Buffer.from([0x57]), appClassText(0x0a, 'Key'),
+    Buffer.from([0x5b, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class statement encoding treats a constructor as an ordinary method', () => {
+  assert.deepStrictEqual(appClassStatements('class Demo\n method Demo();\nend-class;'), Buffer.concat([
+    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x63]),
+    appClassText(0x0a, 'Demo'), Buffer.from([0x0b, 0x14, 0x15, 0x5b, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class statement encoding emits method types and out parameters', () => {
+  assert.deepStrictEqual(
+    appClassStatements('class Demo\n method Run(&rows As array of PKG:Row out) Returns number;\nend-class;'),
+    Buffer.concat([
+      Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x63]),
+      appClassText(0x0a, 'Run'), Buffer.from([0x0b]), appClassText(0x01, '&rows'),
+      Buffer.from([0x35]), appClassText(0x40, 'array'), appClassText(0x40, 'of'),
+      appClassText(0x0a, 'PKG'), Buffer.from([0x57]), appClassText(0x0a, 'Row'),
+      Buffer.from([0x5d, 0x14, 0x39]), appClassText(0x40, 'number'),
+      Buffer.from([0x15, 0x5b, 0x15, 0x2d, 0x07])
+    ])
+  );
+});
+
+test('Application Class statement encoding emits abstract interface methods', () => {
+  assert.deepStrictEqual(appClassStatements('interface Demo\n method Run() abstract;\nend-interface;'), Buffer.concat([
+    Buffer.from([0x70]), appClassText(0x0a, 'Demo'), Buffer.from([0x63]),
+    appClassText(0x0a, 'Run'), Buffer.from([0x0b, 0x14, 0x6f, 0x15, 0x71, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class statement encoding emits a plain property', () => {
+  assert.deepStrictEqual(appClassStatements('class Demo\n property string Name;\nend-class;'), Buffer.concat([
+    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x5e]),
+    appClassText(0x40, 'string'), appClassText(0x0a, 'Name'),
+    Buffer.from([0x15, 0x5b, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class statement encoding emits readonly properties', () => {
+  assert.deepStrictEqual(appClassStatements('class Demo\n property number Count readonly;\nend-class;'), Buffer.concat([
+    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x5e]),
+    appClassText(0x40, 'number'), appClassText(0x0a, 'Count'),
+    Buffer.from([0x60, 0x15, 0x5b, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class statement encoding preserves getter/setter modifier order', () => {
+  assert.deepStrictEqual(appClassStatements('class Demo\n property boolean Flag set get;\nend-class;'), Buffer.concat([
+    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x5e]),
+    appClassText(0x40, 'boolean'), appClassText(0x0a, 'Flag'),
+    Buffer.from([0x49, 0x5f, 0x15, 0x5b, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class statement encoding emits grouped instance variables', () => {
+  assert.deepStrictEqual(appClassStatements('class Demo\n private\n instance Row &first, &second;\nend-class;'), Buffer.concat([
+    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x61, 0x62]),
+    appClassText(0x0a, 'Row'), appClassText(0x01, '&first'), Buffer.from([0x03]),
+    appClassText(0x01, '&second'), Buffer.from([0x15, 0x5b, 0x15, 0x2d, 0x07])
+  ]));
+});
+
+test('Application Class constants are executable-only literal declarations', () => {
+  const program = encodeProgramArtifacts(`class Demo
+ constant &S = "x";
+ constant &N = 42;
+ constant &B = False;
+end-class;`).program;
+  const layout = readProgramLayout(program);
+  assert.equal(layout.recordCount, 1);
+  assert.deepStrictEqual(
+    program.subarray(layout.statements.offset, layout.statements.offset + layout.statements.byteLength),
+    Buffer.concat([
+      Buffer.from([0x5a]), appClassText(0x0a, 'Demo'),
+      Buffer.from([0x56]), appClassText(0x01, '&S'), Buffer.from([0x06]), appClassText(0x16, 'x'), Buffer.from([0x15]),
+      Buffer.from([0x56]), appClassText(0x01, '&N'), Buffer.from([0x06]), Buffer.from('5000002a000000000000000000000000000000', 'hex'), Buffer.from([0x15]),
+      Buffer.from([0x56]), appClassText(0x01, '&B'), Buffer.from([0x06, 0x30, 0x15, 0x5b, 0x15, 0x2d, 0x07])
+    ])
+  );
+});
+
+test('Application Class statement encoding preserves mixed declaration order', () => {
+  const actual = appClassStatements(`class Demo
+ property string Name;
+protected
+ method Run();
+private
+ instance Row &row;
+ constant &N = 1;
+end-class;`);
+  const expectedOrder = [0x5e, 0x73, 0x63, 0x61, 0x62, 0x56];
+  let cursor = 0;
+  for (const opcode of expectedOrder) {
+    cursor = actual.indexOf(opcode, cursor);
+    assert.notEqual(cursor, -1);
+    cursor++;
+  }
+});
+
+test('Application Class statement encoding preserves the declaration-to-body wrapper boundary', () => {
+  const actual = appClassStatements(`class Demo
+ method Run();
+end-class;
+
+method Run
+ Return;
+end-method;`);
+  assert.equal(
+    actual.includes(Buffer.concat([
+      Buffer.from([0x5b, 0x15, 0x2d, 0x4f, 0x63, 0x41]),
+      appClassText(0x0a, 'Run'),
+      Buffer.from([0x2d, 0x4f, 0x38, 0x15, 0x64, 0x15, 0x2d, 0x07])
+    ])),
+    true
   );
 });
 
