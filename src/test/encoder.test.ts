@@ -1814,6 +1814,140 @@ test('encodeProgramArtifacts allocates record/field references in calibrated PSP
   ]);
 });
 
+function encodeWithHtmlReferenceTrace(source: string) {
+  const uses: number[] = [];
+  const result = encodeProgramArtifacts(source, {
+    owner: {
+      recordName: 'HTML_TEST',
+      fieldName: 'FIELDCHANGE'
+    },
+    referenceTrace: event => {
+      if (
+        event.action === 'USE' &&
+        event.reference.kind === 'record-field' &&
+        event.reference.recordName?.toUpperCase() === 'HTML'
+      ) {
+        uses.push(event.reference.index);
+      }
+    }
+  });
+
+  return {
+    result,
+    uses,
+    htmlReferences: result.references.filter(
+      reference =>
+        reference.kind === 'record-field' &&
+        reference.recordName?.toUpperCase() === 'HTML'
+    )
+  };
+}
+
+test('HTML.NAME is an explicit static record-field dependency', () => {
+  const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(
+    'GetHTMLText(HTML.TEST_CONTENT);'
+  );
+
+  assert.deepStrictEqual(htmlReferences, [
+    {
+      index: 1,
+      sequence: 2,
+      kind: 'record-field',
+      recordName: 'HTML',
+      fieldName: 'TEST_CONTENT'
+    }
+  ]);
+  assert.deepStrictEqual(uses, [1]);
+});
+
+test('repeated HTML.NAME references reuse within one flat top-level region', () => {
+  const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
+GetHTMLText(HTML.TEST_CONTENT);
+GetHTMLText(HTML.TEST_CONTENT);`);
+
+  assert.equal(htmlReferences.length, 1);
+  assert.deepStrictEqual(uses, [1, 1]);
+});
+
+test('different HTML names allocate different dependencies', () => {
+  const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
+GetHTMLText(HTML.FIRST_CONTENT);
+GetHTMLText(HTML.SECOND_CONTENT);`);
+
+  assert.deepStrictEqual(
+    htmlReferences.map(reference => reference.fieldName),
+    ['FIRST_CONTENT', 'SECOND_CONTENT']
+  );
+  assert.deepStrictEqual(uses, [1, 2]);
+});
+
+test('HTML.NAME gets a fresh dependency in each top-level control region', () => {
+  const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
+If True Then
+   GetHTMLText(HTML.TEST_CONTENT);
+End-If;
+
+If True Then
+   GetHTMLText(HTML.TEST_CONTENT);
+End-If;`);
+
+  assert.equal(htmlReferences.length, 2);
+  assert.deepStrictEqual(uses, [1, 2]);
+});
+
+test('HTML.NAME reuses within one ordinary Function', () => {
+  const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
+Function Render()
+   GetHTMLText(HTML.TEST_CONTENT);
+   GetHTMLText(HTML.TEST_CONTENT);
+End-Function;`);
+
+  assert.equal(htmlReferences.length, 1);
+  assert.deepStrictEqual(uses, [1, 1]);
+});
+
+test('HTML.NAME gets a fresh dependency in each ordinary Function', () => {
+  const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
+Function RenderFirst()
+   GetHTMLText(HTML.TEST_CONTENT);
+End-Function;
+
+Function RenderSecond()
+   GetHTMLText(HTML.TEST_CONTENT);
+End-Function;`);
+
+  assert.equal(htmlReferences.length, 2);
+  assert.deepStrictEqual(uses, [1, 2]);
+});
+
+test('Application Class methods share one compilation-unit HTML namespace', () => {
+  const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`class HtmlTest
+   method RenderFirst();
+   method RenderSecond();
+end-class;
+
+method RenderFirst
+   GetHTMLText(HTML.TEST_CONTENT);
+end-method;
+
+method RenderSecond
+   GetHTMLText(HTML.TEST_CONTENT);
+end-method;`);
+
+  assert.equal(htmlReferences.length, 1);
+  assert.deepStrictEqual(uses, [1, 1]);
+});
+
+test('HTML.NAME is recognized outside GetHTMLText calls', () => {
+  const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
+Local any &content;
+&content = HTML.TEST_CONTENT;`);
+
+  assert.equal(htmlReferences.length, 1);
+  assert.equal(htmlReferences[0]?.fieldName, 'TEST_CONTENT');
+  assert.deepStrictEqual(uses, [1]);
+});
+
 test('encodeProgram allocates a distinct RECORD reference for each CreateRecord occurrence', () => {
   const source = `Local Record &rec1;
   Local Record &rec2;
