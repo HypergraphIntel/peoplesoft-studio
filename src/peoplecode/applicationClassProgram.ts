@@ -61,6 +61,18 @@ export interface ApplicationClassMethodMember {
   signatureComments: string[];
   /** Cumulative signature-slot start, in declaration order (Cycle 13 section 3/5). */
   signatureSlotOffset: number;
+  /**
+   * Cycle 17/18: number of `0x4F` inter-member TRANSITION markers stored
+   * between this method's own `end-method;` and the NEXT method
+   * implementation's `method` keyword, in IMPLEMENTATION (source) order --
+   * one per blank source line, using the same
+   * `Math.max(1, newlineCount - 1)` counting rule the general encoder
+   * already uses for ordinary multi-blank-line runs. Always `0` for the
+   * last method in implementation order (Cycle 17 section 1/5: the last
+   * member's transition collapses to the class program's own trailer,
+   * with no `0x4F` of its own).
+   */
+  transitionBlankLines: number;
 }
 
 export interface ApplicationClassStorageMember {
@@ -267,7 +279,8 @@ export function parseApplicationClassSource(
         abstract: false,
         body: '',
         signatureComments: [],
-        signatureSlotOffset: -1
+        signatureSlotOffset: -1,
+        transitionBlankLines: 0
       }
     });
   }
@@ -355,21 +368,68 @@ export function parseApplicationClassSource(
   // Locate each method's implementation body, in IMPLEMENTATION (source)
   // order -- physical directory position, per Cycle 13 section 3.
   const methodMembers = members.filter((member): member is ApplicationClassMethodMember => member.kind === 'method');
-  const implementationPattern = /\bmethod\s+([A-Za-z_][A-Za-z0-9_$]*)\s*((?:\/\+[\s\S]*?\+\/\s*)*)([\s\S]*?)\bend-method\s*;/gid;
-  const implementationOrder: Array<{ name: string; comments: string[]; body: string; index: number }> = [];
+  const implementationPattern = /\bmethod\s+([A-Za-z_][A-Za-z0-9_$]*)([\s\S]*?)\bend-method\s*;/gid;
+  const implementationOrder: Array<{ name: string; comments: string[]; body: string; index: number; fullEnd: number; transitionBlankLines: number }> = [];
   for (const match of implementationRegion.matchAll(implementationPattern)) {
-    const signatureComments = [...match[2].matchAll(/\/\+\s*([\s\S]*?)\s*\+\//g)].map(m => m[1].trim());
     const indices = (match as RegExpMatchArray & { indices: Array<[number, number]> }).indices;
-    const [bodyStart, bodyEnd] = indices[3];
+    const [interiorStart, interiorEnd] = indices[2];
+    const interior = implementationRegion.slice(interiorStart, interiorEnd);
+
+    /*
+     * Cycle 18: split the interior text (everything between the method
+     * NAME and `end-method`) into signature comments and body MANUALLY,
+     * rather than via a single greedy regex -- a `\s*` immediately after
+     * the name or after each `/+ ... +/` comment cannot distinguish
+     * ordinary single-line-break indentation from a genuine interior
+     * blank line (Phase 18B's BODY-GAP), and would silently swallow the
+     * latter before `body` is ever captured. This only ever skips
+     * whitespace when a comment is actually found immediately after it;
+     * once no further comment follows, ALL remaining text (including any
+     * leading blank-line whitespace right there) becomes `body`,
+     * unmodified -- `encodeMethodBody` already tolerates ordinary leading
+     * whitespace in a non-empty body exactly as before.
+     */
+    const comments: string[] = [];
+    let cursor = 0;
+    while (true) {
+      const leadingWhitespace = /^[ \t]*(?:\r?\n[ \t]*)*/.exec(interior.slice(cursor))?.[0].length ?? 0;
+      const afterWhitespace = cursor + leadingWhitespace;
+      if (!interior.startsWith('/+', afterWhitespace)) break;
+      const commentEnd = interior.indexOf('+/', afterWhitespace + 2);
+      if (commentEnd < 0) break;
+      comments.push(interior.slice(afterWhitespace + 2, commentEnd).trim());
+      cursor = commentEnd + 2;
+    }
+
     implementationOrder.push({
       name: match[1],
-      comments: signatureComments,
-      body: rawImplementationRegion.slice(bodyStart, bodyEnd),
-      index: match.index ?? 0
+      comments,
+      body: rawImplementationRegion.slice(interiorStart + cursor, interiorEnd),
+      index: match.index ?? 0,
+      fullEnd: (match.index ?? 0) + match[0].length,
+      transitionBlankLines: 0
     });
   }
 
   if (implementationOrder.length !== methodMembers.length) return undefined;
+
+  /*
+   * Cycle 17/18 TRANSITION: one `0x4F` per blank source line between one
+   * method's own `end-method;` and the NEXT method implementation's
+   * `method` keyword (Cycle 17 section 1/5), using raw source (comments
+   * and disabled-code markers between two implementations are exceedingly
+   * rare and, per Cycle 17 section 8, not decomposed -- the gap is
+   * measured on unmasked text exactly like the general encoder's own
+   * blank-line counting elsewhere). Always `0` for the last method: its
+   * own transition is the class program's trailer, not a `0x4F`.
+   */
+  for (let i = 0; i + 1 < implementationOrder.length; i++) {
+    const gap = rawImplementationRegion.slice(implementationOrder[i].fullEnd, implementationOrder[i + 1].index);
+    const hasBlankLine = /(?:\r?\n)[ \t]*(?:\r?\n)/.test(gap);
+    implementationOrder[i].transitionBlankLines = hasBlankLine
+      ? Math.max(1, (gap.match(/\r?\n/g) ?? []).length - 1)
+      : 0;
+  }
 
   const byName = new Map(methodMembers.map(member => [member.name.toLowerCase(), member]));
   for (const [position, implementation] of implementationOrder.entries()) {
@@ -378,6 +438,7 @@ export function parseApplicationClassSource(
     member.implementationOrder = position;
     member.body = implementation.body;
     member.signatureComments = implementation.comments;
+    member.transitionBlankLines = implementation.transitionBlankLines;
     byName.delete(implementation.name.toLowerCase());
   }
   if (byName.size !== 0) return undefined; // a declared method with no matching implementation

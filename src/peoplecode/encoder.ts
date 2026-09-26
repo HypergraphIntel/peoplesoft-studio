@@ -10846,17 +10846,49 @@ function encodeApplicationClassProgramV2(
     for (const comment of member.signatureComments) {
       statementChunks.push(textOperand(0x6d, TokenKind.Comment, comment));
     }
-    statementChunks.push(Buffer.from([0x4f]));
-    statementChunks.push(encodeMethodBody(member.body));
     /*
-     * Best-evidence extrapolation from the single-method golden
-     * template's own captured terminator bytes (`encodeApplicationClassMetadata`'s
-     * own comment), generalized to N methods: this is NOT independently
-     * re-verified against a multi-method capture beyond this cycle's own
-     * corpus validation pass (see the Cycle 14 report for the actual
-     * measured result).
+     * Cycle 17/18 BODY-GAP: a body with zero executable statements is NOT
+     * one universal compact form (Cycle 17 section 3). `encodeMethodBody`
+     * delegates to `encodeFragmentInternal`, whose own blank-line
+     * bookkeeping only ever queues a boundary once a statement has
+     * completed (`haveCompletedTopLevelStatement`) -- a body with no
+     * statements never reaches that, so it cannot detect an interior
+     * blank line on its own. This is measured directly from the raw body
+     * text instead, using the same `Math.max(1, newlineCount - 1)`
+     * counting rule the general encoder already uses for ordinary
+     * multi-blank-line runs. A body containing only comments (not
+     * whitespace-only) is UNCHANGED -- it still goes through
+     * `encodeMethodBody` below, which already handles standalone/disabled
+     * comments and their own blank-line placement; only the
+     * whitespace-only case is special-cased here (Cycle 17 section 8; do
+     * not generalize further).
      */
+    if (member.body.trim() === '') {
+      const hasInteriorBlankLine = /(?:\r?\n)[ \t]*(?:\r?\n)/.test(member.body);
+      if (hasInteriorBlankLine) {
+        const markerCount = Math.max(1, (member.body.match(/\r?\n/g) ?? []).length - 1);
+        for (let i = 0; i < markerCount; i++) {
+          statementChunks.push(Buffer.from([0x4f]));
+        }
+      }
+    } else {
+      statementChunks.push(Buffer.from([0x4f]));
+      statementChunks.push(encodeMethodBody(member.body));
+    }
     statementChunks.push(Buffer.from([0x64, 0x15, 0x2d]));
+    /*
+     * Cycle 17/18 TRANSITION: one `0x4F` per blank source line between
+     * this method's own `end-method;` and the next method implementation
+     * (Cycle 17 sections 1/5) -- absent entirely for the last method,
+     * whose transition is the class program's own trailer (`07`), not a
+     * `0x4F` this loop should emit. `transitionBlankLines` is always `0`
+     * for the last method in implementation order (see its own
+     * declaration comment in `applicationClassProgram.ts`), so no
+     * `isLast` check is needed here.
+     */
+    for (let i = 0; i < member.transitionBlankLines; i++) {
+      statementChunks.push(Buffer.from([0x4f]));
+    }
   }
 
   const statements = Buffer.concat(statementChunks);
