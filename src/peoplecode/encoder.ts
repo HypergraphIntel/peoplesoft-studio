@@ -307,6 +307,21 @@ export interface EncodeProgramContext {
    * encoding is unaffected.
    */
   suppressDeclarationSectionMarkers?: boolean;
+
+  /**
+   * Cycle 16: overrides the deferred blank-line/declaration-boundary
+   * marker flush decision (`hasCompiledReferences`, see its own
+   * declaration comment) with a caller-supplied, WHOLE-COMPILATION-UNIT
+   * answer, instead of this one call's own local `references` list.
+   * Every other program kind already encodes its entire compilation unit
+   * through one `encodeFragmentInternal` call, so the local computation
+   * IS the whole-unit answer for them; only Application Class method
+   * bodies (each their own independent call, a Cycle 14 design choice)
+   * need this override. Every existing caller omits it (stays
+   * `undefined`), leaving the local, per-call computation -- and every
+   * currently-EXACT definition -- unaffected.
+   */
+  compilationUnitHasCompiledReferences?: boolean;
 }
 
 export interface EncodedPeopleCode {
@@ -10191,12 +10206,34 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     haveCompletedTopLevelStatement = true;
   }
 
-  // The implicit owner placeholder alone does not count as a compiled
-  // reference. A bound/inferred owner or any additional PSPCMNAME row does.
+  /*
+   * Cycle 16: this flush decision governs whether the WHOLE
+   * COMPILATION UNIT's deferred blank-line/declaration-boundary markers
+   * appear at all (Cycle 15's own confirmed finding: identical statement
+   * structure and blank-line placement, differing only in whether a
+   * LATER statement compiles a reference, changes whether EARLIER gaps
+   * get a marker). For every ordinary caller, one `encodeFragmentInternal`
+   * call already IS the whole compilation unit, so the local `references`
+   * list computed below is the right thing to check.
+   *
+   * An Application Class method body is the one exception: Cycle 14
+   * encodes each method as its OWN independent call, so this local
+   * check only sees that ONE method's own references, not the whole
+   * class's. `context.compilationUnitHasCompiledReferences`, when
+   * explicitly supplied, overrides the local computation with the
+   * caller's own whole-program answer instead. Every existing caller
+   * omits it (stays `undefined`), so the local, per-call computation
+   * -- and therefore all 23,217 currently-EXACT definitions -- is
+   * completely unaffected; `??` (not `||`) is used so an explicit
+   * `false` is honored rather than falling back.
+   */
   const hasCompiledReferences =
-    references.length > 1 ||
+    context?.compilationUnitHasCompiledReferences ??
+    // The implicit owner placeholder alone does not count as a compiled
+    // reference. A bound/inferred owner or any additional PSPCMNAME row does.
+    (references.length > 1 ||
     references[0]?.recordName !== undefined ||
-    references[0]?.fieldName !== undefined;
+    references[0]?.fieldName !== undefined);
 
   if (hasCompiledReferences) {
     const insertions: Array<{ index: number; bytes: Buffer[] }> = [];
@@ -10609,6 +10646,37 @@ function encodeApplicationClassProgramV2(
   const methodsByImplementationOrder = [...methods].sort((a, b) => a.implementationOrder - b.implementationOrder);
   const methodsByDeclarationOrder = [...methods].sort((a, b) => a.declarationOrdinal - b.declarationOrdinal);
 
+  /*
+   * Cycle 16 Phase 16A: read-only prepass. Cycle 14 encodes each method
+   * body as its OWN independent `encodeFragmentInternal` call, so the
+   * deferred blank-line/declaration-boundary marker flush decision
+   * (`hasCompiledReferences`, see its own declaration comment) only ever
+   * sees ONE method's own references -- but Cycle 15 proved that decision
+   * is actually scoped to the WHOLE COMPILATION UNIT. This prepass
+   * answers only the single boolean the real encode below needs:
+   * whether ANY method body in this class would, on its own, produce a
+   * compiled PSPCMNAME reference beyond the blank owner placeholder. It
+   * encodes each body in ISOLATION purely to inspect that result and
+   * discards everything else -- it does not allocate a real reference,
+   * does not affect reference ordering/NAMENUM, and does not change
+   * dependency identity, DependencyScope, method-local ChainSemantics, or
+   * method ordering in the real encode.
+   */
+  const programHasCompiledReferences = methods.some(member => {
+    const trimmedEnd = member.body.replace(/\s+$/, '');
+    const completed = /;$/.test(trimmedEnd) ? member.body : `${member.body};`;
+    try {
+      const { references: isolatedReferences } = encodeProgramArtifacts(completed);
+      return (
+        isolatedReferences.length > 1 ||
+        isolatedReferences[0]?.recordName !== undefined ||
+        isolatedReferences[0]?.fieldName !== undefined
+      );
+    } catch {
+      return false;
+    }
+  });
+
   const ownerPackagePath =
     context?.owner?.packagePath !== undefined
       ? [...context.owner.packagePath]
@@ -10701,7 +10769,8 @@ function encodeApplicationClassProgramV2(
       owner: undefined,
       referenceIndexOffset: nextReferenceIndex,
       suppressOwnerReference: !firstFragment,
-      suppressDeclarationSectionMarkers: true
+      suppressDeclarationSectionMarkers: true,
+      compilationUnitHasCompiledReferences: programHasCompiledReferences
     });
     firstFragment = false;
     nextReferenceIndex += encoded.references.length;
