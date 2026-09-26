@@ -32,13 +32,19 @@
 
 export type ApplicationClassVisibility = 'public' | 'private' | 'protected';
 
+export interface ApplicationClassSourceSpan {
+  /** Absolute source offsets; end is exclusive. */
+  sourceIndex: number;
+  sourceEnd: number;
+}
+
 export interface ApplicationClassParameter {
   name: string;
   type: string;
   out: boolean;
 }
 
-export interface ApplicationClassMethodMember {
+export interface ApplicationClassMethodMember extends ApplicationClassSourceSpan {
   kind: 'method';
   name: string;
   /** Index into the class header's own declaration order (0-based). */
@@ -75,7 +81,7 @@ export interface ApplicationClassMethodMember {
   trailingParameterComma: boolean;
 }
 
-export interface ApplicationClassStorageMember {
+export interface ApplicationClassStorageMember extends ApplicationClassSourceSpan {
   kind: 'property' | 'instance';
   name: string;
   sourceOrder: number;
@@ -89,7 +95,7 @@ export interface ApplicationClassStorageMember {
   modifiers: Array<'readonly' | 'get' | 'set'>;
 }
 
-export interface ApplicationClassConstantMember {
+export interface ApplicationClassConstantMember extends ApplicationClassSourceSpan {
   kind: 'constant';
   name: string;
   sourceOrder: number;
@@ -102,17 +108,15 @@ export type ApplicationClassMember =
   | ApplicationClassStorageMember
   | ApplicationClassConstantMember;
 
-export interface ApplicationClassVisibilityStatement {
+export interface ApplicationClassVisibilityStatement extends ApplicationClassSourceSpan {
   kind: 'visibility';
-  visibility: Exclude<ApplicationClassVisibility, 'public'>;
-  sourceIndex: number;
+  visibility: ApplicationClassVisibility;
 }
 
-export interface ApplicationClassInstanceStatement {
+export interface ApplicationClassInstanceStatement extends ApplicationClassSourceSpan {
   kind: 'instance-statement';
   type: string;
   names: string[];
-  sourceIndex: number;
 }
 
 export type ApplicationClassStatement =
@@ -122,10 +126,9 @@ export type ApplicationClassStatement =
   | ApplicationClassConstantMember
   | ApplicationClassInstanceStatement;
 
-export interface ApplicationClassImplementation {
+export interface ApplicationClassImplementation extends ApplicationClassSourceSpan {
   kind: 'method' | 'get' | 'set';
   name: string;
-  sourceIndex: number;
   body: string;
   signatureComments: string[];
   transitionBlankLines: number;
@@ -145,6 +148,8 @@ export interface ApplicationClassProgram {
   implementations: ApplicationClassImplementation[];
   /** Exact source offsets used to preserve already-supported surrounding syntax. */
   unitStart: number;
+  unitHeaderEnd: number;
+  unitCloseStart: number;
   unitEnd: number;
 }
 
@@ -259,13 +264,18 @@ export function parseApplicationClassSource(
 
   type Pending = {
     index: number;
+    end: number;
     visibility?: ApplicationClassVisibility;
     member?: ApplicationClassMember;
     instanceNames?: string[];
   };
   const pending: Pending[] = [];
   for (const match of unitRegion.matchAll(/\b(public|private|protected)\b/gi)) {
-    pending.push({ index: match.index ?? 0, visibility: match[1].toLowerCase() as ApplicationClassVisibility });
+    pending.push({
+      index: match.index ?? 0,
+      end: (match.index ?? 0) + match[0].length,
+      visibility: match[1].toLowerCase() as ApplicationClassVisibility
+    });
   }
 
   for (const match of unitRegion.matchAll(
@@ -282,8 +292,11 @@ export function parseApplicationClassSource(
     if (rawParameters.replace(/,\s*$/, '').trim() !== '' && parameters.length === 0) return undefined;
     pending.push({
       index: match.index ?? 0,
+      end: (match.index ?? 0) + match[0].length,
       member: {
         kind: 'method', name: match[1], sourceOrder: -1,
+        sourceIndex: unitRegionStart + (match.index ?? 0),
+        sourceEnd: unitRegionStart + (match.index ?? 0) + match[0].length,
         declarationOrdinal: -1, implementationOrder: -1,
         visibility: 'public', abstract, parameters,
         returnType: returnType === undefined ? undefined : normalizeTypeName(returnType),
@@ -308,8 +321,11 @@ export function parseApplicationClassSource(
       modifiers.includes('get') ? 'get' : 'plain';
     pending.push({
       index: match.index ?? 0,
+      end: (match.index ?? 0) + match[0].length,
       member: {
         kind: 'property', type: normalizeTypeName(match[1]), name: match[2],
+        sourceIndex: unitRegionStart + (match.index ?? 0),
+        sourceEnd: unitRegionStart + (match.index ?? 0) + match[0].length,
         mode, modifiers, visibility: 'public', sourceOrder: -1,
         declarationOrdinal: -1
       }
@@ -320,12 +336,19 @@ export function parseApplicationClassSource(
   for (const match of unitRegion.matchAll(instancePattern)) {
     const names = match[2].match(/&[A-Za-z0-9_][A-Za-z0-9_]*#?/g) ?? [];
     if (names.length === 0) return undefined;
-    pending.push({ index: match.index ?? 0, instanceNames: names });
+    pending.push({
+      index: match.index ?? 0,
+      end: (match.index ?? 0) + match[0].length,
+      instanceNames: names
+    });
     for (const name of names) {
       pending.push({
         index: match.index ?? 0,
+        end: (match.index ?? 0) + match[0].length,
         member: {
           kind: 'instance', type: normalizeTypeName(match[1]), name: name.slice(1),
+          sourceIndex: unitRegionStart + (match.index ?? 0),
+          sourceEnd: unitRegionStart + (match.index ?? 0) + match[0].length,
           mode: 'plain', modifiers: [], visibility: 'private', sourceOrder: -1,
           declarationOrdinal: -1
         }
@@ -336,8 +359,11 @@ export function parseApplicationClassSource(
   for (const match of unitRegion.matchAll(/\bconstant\s+(&?[A-Za-z_][A-Za-z0-9_#]*)\s*=\s*([^;]*);/gi)) {
     pending.push({
       index: match.index ?? 0,
+      end: (match.index ?? 0) + match[0].length,
       member: {
         kind: 'constant', name: match[1], sourceOrder: -1,
+        sourceIndex: unitRegionStart + (match.index ?? 0),
+        sourceEnd: unitRegionStart + (match.index ?? 0) + match[0].length,
         value: rawUnitRegion.slice(match.index ?? 0, (match.index ?? 0) + match[0].length)
           .replace(/^[\s\S]*?=/, '').replace(/;\s*$/, '').trim(),
         visibility: 'public'
@@ -356,9 +382,14 @@ export function parseApplicationClassSource(
   for (const event of pending) {
     if (event.visibility) {
       visibility = event.visibility;
-      if (visibility !== 'public') {
-        statements.push({ kind: 'visibility', visibility, sourceIndex: unitRegionStart + event.index });
-      }
+      // Public is byte-silent but remains a source layout event: gaps and
+      // comments around an explicit `public` transition belong on their own
+      // side of that event rather than being swallowed into the next member.
+      statements.push({
+        kind: 'visibility', visibility,
+        sourceIndex: unitRegionStart + event.index,
+        sourceEnd: unitRegionStart + event.end
+      });
       continue;
     }
     if (event.instanceNames && !seenInstanceStatements.has(event.index)) {
@@ -366,7 +397,8 @@ export function parseApplicationClassSource(
       if (first?.kind !== 'instance') return undefined;
       statements.push({
         kind: 'instance-statement', type: first.type, names: event.instanceNames,
-        sourceIndex: unitRegionStart + event.index
+        sourceIndex: unitRegionStart + event.index,
+        sourceEnd: unitRegionStart + event.end
       });
       seenInstanceStatements.add(event.index);
       continue;
@@ -410,6 +442,7 @@ export function parseApplicationClassSource(
     }
     implementations.push({
       kind, name: match[2], sourceIndex: unitEnd + (match.index ?? 0),
+      sourceEnd: unitEnd + (match.index ?? 0) + match[0].length,
       body: rawImplementationRegion.slice(interiorStart + cursor, interiorEnd),
       signatureComments, transitionBlankLines: 0,
       localIndex: match.index ?? 0, fullEnd: (match.index ?? 0) + match[0].length
@@ -446,11 +479,15 @@ export function parseApplicationClassSource(
     slotOffset += method.parameters.length + 1;
   }
 
+  const headerMasked = masked.slice(unitStart, unitRegionStart + (firstMember?.index ?? unitRegion.length));
+  const headerTrailingWhitespace = /\s*$/.exec(headerMasked)?.[0].length ?? 0;
+  const unitHeaderEnd = unitStart + headerMasked.length - headerTrailingWhitespace;
+
   return {
     unitKind, className: unitStartMatch[2], extendsType,
     implementsType: implementsTypes[0], members, statements,
     implementations: implementations.map(({ localIndex: _localIndex, fullEnd: _fullEnd, ...implementation }) => implementation),
-    unitStart, unitEnd
+    unitStart, unitHeaderEnd, unitCloseStart: unitRegionEnd, unitEnd
   };
 }
 

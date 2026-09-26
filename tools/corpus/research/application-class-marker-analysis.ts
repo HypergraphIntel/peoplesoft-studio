@@ -7,9 +7,13 @@
  * Usage:
  *   npx tsx tools/corpus/research/application-class-marker-analysis.ts
  *   npx tsx tools/corpus/research/application-class-marker-analysis.ts --json
+ *   npx tsx tools/corpus/research/application-class-marker-analysis.ts \
+ *     --cycle24-report /path/to/cycle24-report.json
  */
 
 import Database from 'better-sqlite3';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 
 import { parseApplicationClassSource } from '../../../src/peoplecode/applicationClassProgram';
 import { decodeProgram, TokenKind, type Token } from '../../../src/peoplecode/decoder';
@@ -590,6 +594,28 @@ function predictedNextBlocker(
   return 'none after layout correction';
 }
 
+function downstreamBlocker(
+  definition: SnapshotDefinition,
+  generated: Buffer,
+  diff: SemanticDiff
+): string {
+  if (hasPreprocessor(definition.sourceText)) return 'preprocessor environment';
+  try {
+    const blocker = predictedNextBlocker(
+      definition.storedProgram,
+      generated,
+      storedNameTable(definition),
+      readProgramLayout(definition.storedProgram),
+      readProgramLayout(generated)
+    );
+    if (blocker === 'none after layout correction' && classifyRoot(diff)) return 'comment/marker residual';
+    if (blocker === 'Application Class class/member statement stream') return 'other newly exposed family';
+    return blocker;
+  } catch {
+    return 'other newly exposed family';
+  }
+}
+
 function arraysEqual(a: readonly string[], b: readonly string[]): boolean {
   return a.length === b.length && a.every((value, index) => value === b[index]);
 }
@@ -791,14 +817,32 @@ function readResults(db: Database.Database, runId: number): Map<number, ResultRo
 }
 
 function main(): void {
+  const cycle24ReportArgument = process.argv.indexOf('--cycle24-report');
+  const cycle24ReportPath = cycle24ReportArgument < 0
+    ? undefined
+    : process.argv[cycle24ReportArgument + 1];
+  if (cycle24ReportArgument >= 0 && cycle24ReportPath === undefined) {
+    throw new Error('--cycle24-report requires a JSON report path.');
+  }
+  const cycle24Report = cycle24ReportPath === undefined
+    ? undefined
+    : JSON.parse(readFileSync(cycle24ReportPath, 'utf8')) as {
+        rows: CensusRow[];
+        baseline?: RunInfo;
+        current?: RunInfo;
+      };
   const resultDb = new Database('tools/corpus/corpus-results.sqlite', { readonly: true });
   const runs = readRuns(resultDb);
-  const currentRun = runs[0];
+  const currentRun = cycle24Report?.current === undefined
+    ? runs[0]
+    : runs.find(run => run.runId === cycle24Report.current?.runId);
   if (!currentRun) throw new Error(`No completed ${TOTAL_CORPUS}-definition run found.`);
-  const baselineRun = runs.find(run =>
-    run.runId < currentRun.runId &&
-    currentRun.appClassEncodeSuccess - run.appClassEncodeSuccess >= 1_000
-  );
+  const baselineRun = cycle24Report?.baseline === undefined
+    ? runs.find(run =>
+        run.runId < currentRun.runId &&
+        currentRun.appClassEncodeSuccess - run.appClassEncodeSuccess >= 1_000
+      )
+    : runs.find(run => run.runId === cycle24Report.baseline?.runId);
   if (!baselineRun) throw new Error('No pre-Cycle-23 full-corpus baseline found.');
   const currentResults = readResults(resultDb, currentRun.runId);
   const baselineResults = readResults(resultDb, baselineRun.runId);
@@ -932,10 +976,82 @@ function main(): void {
     .map(definition => definition.definitionId));
   const parsedDefinitions = definitions.filter(definition => parseApplicationClassSource(definition.sourceText) !== undefined);
   const currentEncodableIds = new Set(currentEncodableDefinitions.map(definition => definition.definitionId));
+  const predictionRootIds = cycle24Report === undefined
+    ? rootIds
+    : new Set(cycle24Report.rows.map(row => row.definitionId));
   const predictedChangeIds = new Set<number>();
   for (const id of outerCommentDefinitions) if (currentEncodableIds.has(id)) predictedChangeIds.add(id);
   for (const id of bodyCurrentChangeDefinitions) if (currentEncodableIds.has(id)) predictedChangeIds.add(id);
-  for (const row of rows) if (currentEncodableIds.has(row.definitionId)) predictedChangeIds.add(row.definitionId);
+  for (const id of predictionRootIds) if (currentEncodableIds.has(id)) predictedChangeIds.add(id);
+
+  const actualChangedIds = new Set<number>();
+  const livePrograms = new Map<number, Buffer>();
+  const liveEncodeFailures: number[] = [];
+  for (const definition of currentEncodableDefinitions) {
+    try {
+      const program = encodeProgramArtifacts(definition.sourceText, { owner: ownerContext(definition) }).program;
+      livePrograms.set(definition.definitionId, program);
+      const generatedSha256 = createHash('sha256').update(program).digest('hex');
+      if (generatedSha256 !== currentResults.get(definition.definitionId)?.generatedSha256) {
+        actualChangedIds.add(definition.definitionId);
+      }
+    } catch {
+      liveEncodeFailures.push(definition.definitionId);
+    }
+  }
+  const unexpectedChangedIds = [...actualChangedIds].filter(id => !predictedChangeIds.has(id)).sort((a, b) => a - b);
+  const predictedUnchangedIds = [...predictedChangeIds].filter(id => !actualChangedIds.has(id)).sort((a, b) => a - b);
+  const rootMovement = cycle24Report?.rows.map(oldRow => {
+    const definition = definitions.find(candidate => candidate.definitionId === oldRow.definitionId);
+    const generated = livePrograms.get(oldRow.definitionId);
+    if (!definition || !generated) return { definitionId: oldRow.definitionId, movement: 'UNENCODABLE' };
+    const next = meaningfulDiff(definition.storedProgram, generated);
+    const oldOffset = oldRow.firstSemanticDifference.relativeOffset;
+    const newOffset = next.relativeOffset;
+    const sectionRank: Record<SemanticDiff['section'], number> = {
+      header: 0,
+      statements: 1,
+      names: 2,
+      records: 3,
+      slots: 4,
+      none: 5
+    };
+    const oldSectionRank = sectionRank[oldRow.firstSemanticDifference.section];
+    const newSectionRank = sectionRank[next.section];
+    const movement = next.section === 'none'
+      ? 'EXACT'
+      : newSectionRank > oldSectionRank
+        ? 'LATER'
+        : newSectionRank < oldSectionRank
+          ? 'EARLIER'
+          : oldOffset === undefined || newOffset === undefined
+        ? 'UNAVAILABLE'
+        : newOffset > oldOffset
+          ? 'LATER'
+          : newOffset < oldOffset
+            ? 'EARLIER'
+            : 'SAME';
+    return {
+      definitionId: oldRow.definitionId,
+      movement,
+      oldRoot: oldRow.rootFamily,
+      oldOffset,
+      newOffset,
+      newDiff: next,
+      nextBlocker: downstreamBlocker(definition, generated, next)
+    };
+  }) ?? [];
+
+  const downstreamBlockers = {
+    'Application Class implementation wrapper/body': 0,
+    'statement terminator/separator': 0,
+    'Application Class names metadata': 0,
+    'reference numbering/operand identity': 0,
+    'preprocessor environment': 0,
+    'comment/marker residual': 0,
+    'other newly exposed family': 0,
+    ...countBy(rootMovement, row => row.nextBlocker ?? 'other newly exposed family')
+  };
 
   const layoutOnlyIds = new Set(rows.filter(row => row.layoutProjectionExact).map(row => row.definitionId));
 
@@ -1100,6 +1216,38 @@ function main(): void {
       },
       predictedGeneratedShaChangePopulation: predictedChangeIds.size,
       predictionKind: 'source-driven union among the 1,325 currently encodable Application Classes; declaration-gap hidden roots remain a lower-bound component'
+    },
+    cycle25Validation: {
+      cycle24ReportPath,
+      semanticPopulation: currentEncodableIds.size,
+      predictionRootPopulation: predictionRootIds.size,
+      predictedGeneratedShaChanges: predictedChangeIds.size,
+      actualGeneratedShaChanges: actualChangedIds.size,
+      actualInsidePrediction: [...actualChangedIds].filter(id => predictedChangeIds.has(id)).length,
+      unexpectedChangedCount: unexpectedChangedIds.length,
+      unexpectedChangedIds,
+      unexpectedChangedDetails: unexpectedChangedIds.map(id => ({
+        definitionId: id,
+        outerCommentPath: outerCommentDefinitions.has(id),
+        bodyEdgePath: bodyCurrentChangeDefinitions.has(id),
+        directRootPath: predictionRootIds.has(id)
+      })),
+      predictedUnchangedCount: predictedUnchangedIds.length,
+      predictedUnchangedIds,
+      predictedUnchangedDetails: predictedUnchangedIds.map(id => ({
+        definitionId: id,
+        outerCommentPath: outerCommentDefinitions.has(id),
+        bodyEdgePath: bodyCurrentChangeDefinitions.has(id),
+        directRootPath: predictionRootIds.has(id)
+      })),
+      liveEncodeFailureCount: liveEncodeFailures.length,
+      liveEncodeFailures,
+      rootMovement: countBy(rootMovement, row => row.movement),
+      downstreamBlockers,
+      rootMovementRows: process.argv.includes('--json') ? rootMovement : undefined,
+      semanticPopulationIds: process.argv.includes('--json') ? [...currentEncodableIds].sort((a, b) => a - b) : undefined,
+      predictedChangeIds: process.argv.includes('--json') ? [...predictedChangeIds].sort((a, b) => a - b) : undefined,
+      actualChangedIds: process.argv.includes('--json') ? [...actualChangedIds].sort((a, b) => a - b) : undefined
     },
     payoff: {
       likelyImmediateExact: layoutOnlyIds.size,

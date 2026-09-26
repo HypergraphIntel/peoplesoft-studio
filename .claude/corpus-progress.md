@@ -1,5 +1,116 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 25 — implement Application Class markers
+
+**Status: implementation and corpus validation complete.** Baseline is commit
+`4bce072` (Cycle 24), 23,217/30,209 EXACT, protected 430/430, and zero
+EXACT Application Classes. This cycle used only the completed local HCDEV
+snapshot; `--live` was not used. Full-corpus comparison is Cycle 24 run 2051
+against Cycle 25 run 2127.
+
+### Implemented semantic model
+
+Application Class parsing now retains absolute source spans for the unit,
+ordered declarations, and implementations. The encoder uses those spans to
+interleave semantic tokens with source-owned layout events without changing
+the Cycle 22/23 class/member grammar or the Cycle 17/18 wrapper grammar:
+
+| owning layer | source condition | emitted state | flush/reset |
+|---|---|---|---|
+| compilation unit | imports, comments, and source gaps before/around the declaration and implementation sequence | source comment operand, one `0x4F` per blank source line, and one context-owned import close `0x2D` | flush before the next source event; the class closer owns its own `0x2D` |
+| class declaration | ordered class/interface statements, including explicit visibility events | statement bytes only | each parsed statement span returns control to the unit layout stream |
+| implementation wrapper | method/get/set header, annotations, closer, and transition | existing wrapper framing and terminator suffix | unchanged Cycle 17/18 wrapper boundaries |
+| body fragment | comments and exact leading/internal/trailing source gaps | `0x24`/`0x4E`/`0x55` plus source-counted `0x4F` | remove only a synthetic final separator; method bodies retain the established suppression of ordinary declaration-section `0x2D` |
+
+Evidenced comment forms are line-leading `/* ... */` and `REM` as
+length-prefixed `0x24`, trailing inline `/* ... */` as `0x4E`, and `<* ... *>`
+as `0x55`. `/+ ... +/` remains wrapper signature metadata (`0x6D`), and no
+`//` behavior was added. Blank multiplicity is exactly
+`max(0, newline count - 1)` at each owned source gap; it is not a universal
+separator rule. Whole-unit reference discovery supplies the existing
+reference-sensitive marker state without introducing a GetHTMLText or other
+definition-specific special case.
+
+The four extra-`0x2D` import roots now keep one compilation-unit import
+section open across attached comments and later imports. Ordinary declaration
+boundaries, wrapper separators, method terminator suffixes, and final program
+boundaries remain distinct and unchanged. Post-class shared fragments are
+traversed only far enough to preserve evidenced comment/gap ownership; native
+library and preprocessor semantics were not added.
+
+Fifteen focused tests cover comments before the unit, inside declarations,
+after the unit closer, before/between implementations, and in comment-only
+bodies; zero/one/many body gaps; missing and extra `0x4F`; deferred import
+`0x2D`; compiled-reference and no-reference controls; final-program behavior;
+and interface parity.
+
+### Blast-radius reproduction and reconciliation
+
+The updated read-only analyzer accepts the saved Cycle 24 report via
+`--cycle24-report`. Before the full run it exactly reproduced the **1,325**
+source-encodable Application Class semantic population, all **940** Cycle 24
+direct roots, and the exact **1,298** predicted generated-SHA set. Live
+encoding produced 1,301 changed definitions, all within the 1,325 semantic
+population, with zero live encode failures:
+
+| comparison | definitions |
+|---|---:|
+| predicted and changed | 1,294 |
+| predicted but unchanged | 4 |
+| changed beyond the prediction | 7 |
+| **actual generated-SHA changes** | **1,301** |
+
+The four predicted-but-unchanged definitions (29646, 29648, 29670, 29672)
+contain their apparent Application Class source entirely inside outer block
+comments. They were Cycle 24 prediction false positives and do not traverse
+the active V2 Application Class path.
+
+The seven additional changes are all evidence-backed paths omitted by the
+Cycle 24 lower-bound union: 28782, 28836, 30022, and 30025 traverse supported
+post-class `Declare Function` fragments; 29599 exposes a declaration-to-closer
+source gap; and 29265 plus 29313 expose method-body leading-`Local` marker
+boundaries after whole-unit package references are visible. No count-forcing
+gate or definition-specific exception was added. Thus 1,298 - 4 + 7 = 1,301.
+
+### Semantic movement and Cycle 26 input
+
+All **940/940** Cycle 24 first roots are fixed and move later; zero remain at
+the same root, move earlier, become unencodable, or regress in the marker
+region. There are no source-encoding gains or losses and no immediate EXACT
+gain, matching the Cycle 24 prediction. The new first-blocker census is:
+
+| downstream first blocker | definitions |
+|---|---:|
+| reference numbering/operand identity | 417 |
+| Application Class names metadata | 333 |
+| Application Class implementation wrapper/body | 86 |
+| other newly exposed family | 60 |
+| statement terminator/separator | 44 |
+| preprocessor environment | 0 |
+| comment/marker residual | 0 |
+| **total** | **940** |
+
+This census is the input for Cycle 26; no Cycle 26 work was started.
+
+### Validation
+
+- Typecheck: clean.
+- Unit suite: 527 passed, one intentional skip (528 total).
+- Protected local baseline, run 2126: 430/430 EXACT; no regression.
+- Full local run 2127: 23,217/30,209 EXACT; 6,992 residual definitions.
+- Run 2127 versus Cycle 24 run 2051: **1,301 generated-SHA changes**, all
+  Application Class and all inside the 1,325 semantic population; zero outside
+  that population and zero non-Application-Class changes.
+- Classification diff: zero transitions; newly EXACT 0; previously EXACT
+  regressions 0.
+- Source encoding: 1,325/1,510 Application Classes before and after; gains 0,
+  losses 0. Application Class EXACT remains 0/1,510 before and after.
+- Decoder semantics and unrelated dependency families are unchanged.
+- `git diff --check`: clean.
+
+**STOP after the isolated Cycle 25 implementation commit. Do not begin Cycle
+26.**
+
 ## Compiler Semantics Cycle 24 — Application Class comments and structural markers
 
 **Status: research and zero-change corpus validation complete.** Baseline is
