@@ -1,5 +1,221 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 10 — reuse-pool keying model (research only; no semantic change)
+
+**Status: research complete; a clean model emerged; stopped before semantic
+implementation as requested.** Baseline is commit `6fbaf97` (Cycle 9),
+23,182/30,209 full-corpus EXACT and protected 430/430. Cycle 10 added only
+an observational `reusePoolTrace` hook plus the read-only local-snapshot tool
+`tools/corpus/research/reuse-pool-keying-analysis.ts`; every existing `Map`
+lookup result and write is still used unchanged. No pool key, fallback order,
+eligibility decision, `ChainSemantics`, `DependencyKind`, PSPCMPROG byte, or
+PSPCMNAME row was changed.
+
+### Method and population
+
+The tool traces each read/write of the six pools in scope, groups fallback
+reads into one member-resolution decision, and compares current behavior with:
+
+1. control-group scoping for the two currently global pools;
+2. global interning for each currently scoped pool;
+3. one shared FIELD namespace keyed by `controlGroup:fieldName`;
+4. the same shared namespace retaining either the latest or the first
+   established identity; and
+5. one shared global FIELD namespace.
+
+It ran against all 30,209 definitions in the completed LOCAL SNAPSHOT (never
+`--live`): 28,432 source-encodable definitions, 1,777 encode errors, 23,462
+source-to-program byte-exact definitions, 4,699 definitions touching at least
+one studied pool, and 167,016 traced pool events. The 23,462 count is the
+encoder-only source→bin population used for the keying controls; the normal
+full classification remains the stricter 23,182 EXACT because it additionally
+requires decoder source and semantic-roundtrip agreement.
+
+For already-non-exact definitions, the tool also pairs the affected generated
+reference occurrence with the stored PSPCMPROG occurrence until the first
+reference-sequence disagreement. A differentiating row is treated as
+authoritative only while that pairing is still aligned; later rows are counted
+as alignment-lost, never as supporting either hypothesis.
+
+### Full pool role/keying map
+
+| pool | current key | writers | readers / role |
+|---|---|---|---|
+| `rowShorthandRecords` | `recordName` (global) | every dependency-bound postfix RECORD member | only `recordReference()` while `reuseRowShorthandRecord` is active; bridges a preceding row-shorthand RECORD dependency into a later explicit `Record.X` argument |
+| `rowShorthandRecordsByBase` | `controlGroup:baseVariable:recordName` | same postfix RECORD write | first ordinary row-shorthand RECORD lookup; preserves same-base preference |
+| `rowShorthandRecordsByControlGroup` | `controlGroup:recordName` | same postfix RECORD write | later ordinary row-shorthand RECORD lookup across different Row/Rowset bases in the group |
+| `level0RowsetRecordsByField` | `controlGroup:baseVariable:recordName:lookaheadField` | direct level-0 selector RECORD write | narrow direct-level-0 schema/lookahead reuse |
+| `recordVariableFields` | `controlGroup:baseVariable:fieldName` | every base-variable postfix FIELD write | first FIELD lookup; preserves the receiver-specific binding before name-level fallback |
+| `typedRowFields` | `fieldName` (global) | declared-Row FIELD write | declared-Row FIELD fallback; the same write also seeds scoped `declaredRecordFields` |
+| `explicitRecordFields` | `controlGroup:rootRecord:fieldName` | explicit `Record.REC.FIELD` write | exact-root FIELD lookup before name-only fallback |
+| `declaredRecordFields` | `controlGroup:fieldName` | explicit-chain bridge, declared-Record FIELD, and declared-Row bridge | name-only fallback for explicit roots, declared Record variables, and ordinary row shorthand |
+| `rowShorthandFields` | `controlGroup:fieldName` | untyped/inferred Row/Rowset shorthand FIELD | first ordinary-row fallback and declared-Record fallback |
+| `fieldReferencesByControlGroup` | `controlGroup:fieldName` | (a) `GetField(Field.X)` directly on a `GetRecord(...)` result; (b) bare `GetRecord().FIELDNAME` | `GetField(Field.X)` self-reuse plus final ordinary-row fallback |
+
+Every read/write site is now named in the trace (`recordReference:*`,
+`fieldReference:*`, `postfixResolve:*`, or `postfixRecord:*`). The static site
+enumeration and dynamic population therefore agree: `rowShorthandRecords` has
+one reader and one writer family; `typedRowFields` has one reader and one
+writer family; `fieldReferencesByControlGroup` has two writers and two readers;
+the other three studied FIELD pools are postfix dispatch/fallback stores.
+
+### Population statistics
+
+| pool | reads | hits | writes | definitions | source→bin-exact definitions |
+|---|---:|---:|---:|---:|---:|
+| `rowShorthandRecords` | 1,668 | 69 | 29,701 | 3,580 | 1,791 |
+| `typedRowFields` | 2,872 | 1,032 | 4,973 | 418 | 162 |
+| `fieldReferencesByControlGroup` | 16,177 | 676 | 1,989 | 3,359 | 1,789 |
+| `explicitRecordFields` | 267 | 95 | 267 | 59 | 29 |
+| `declaredRecordFields` | 29,150 | 1,860 | 26,843 | 4,224 | 2,170 |
+| `rowShorthandFields` | 28,839 | 1,500 | 24,270 | 3,983 | 2,026 |
+
+Observed cross-provenance reuse counts include 359 declared-Record → ordinary
+row fallback hits, 190 row-shorthand → declared-Record hits, 58 typed-Row →
+declared-Record hits, 44 typed-Row → ordinary-row hits, 28 explicit
+`GetField(Field.X)` → ordinary-row hits, 137 bare `GetRecord().FIELD` →
+ordinary-row hits, 7 explicit-root → different-explicit-root name-only hits,
+and 1 declared-Record → explicit-root hit.
+
+### Agreement/disagreement baselines
+
+**Scoping the two global pools:**
+
+| pool | decisions tested | decisions changed | exact changed | aligned stored controls | stored supports current global | stored supports scoped |
+|---|---:|---:|---:|---:|---:|---:|
+| `rowShorthandRecords` | 1,668 | 36 | 0 | included below | 0 | included below |
+| `typedRowFields` | 2,872 | 941 | 0 | included below | 0 | included below |
+| combined | 4,540 | 977 | **0** | 42 | **0** | **42** |
+
+All remaining 935 differentiating occurrences are after an earlier reference
+alignment loss and are deliberately unresolved. Thus the global keys have no
+positive exact control, and every safely paired stored counterexample rejects
+them.
+
+**Globalizing currently scoped pools is disproved by exact captures:**
+
+| pool | exact decisions that would change |
+|---|---:|
+| `fieldReferencesByControlGroup` | 65 |
+| `rowShorthandFields` | 478 |
+| `declaredRecordFields` | 292 |
+| `explicitRecordFields` | 8 |
+| total | **843** |
+
+**One shared FIELD namespace:** across 35,330 FIELD decisions, a shared
+`controlGroup:fieldName` namespace changes 1,113 current decisions (latest
+observed identity) or 1,167 (first identity retained), but changes **zero**
+source→bin-exact definitions in either formulation. Of the differentiating
+non-exact rows, 68 remain positionally aligned to stored PSPCMPROG: all 68
+support the shared scoped namespace and zero support the current separated
+pools, for both first- and latest-identity formulations. A shared **global**
+FIELD namespace changes 817 exact decisions and is rejected.
+
+### Positive and negative controls
+
+- **Cross-root, name-only FIELD identity (positive):** definition 437 stores
+  one FIELD/CLASSID row for `Record.PTIBMAPAUTH_VW.CLASSID` and
+  `Record.PSAUTHWS_VW1.CLASSID` in the same control group. The explicit-root
+  pool misses and the scoped name-only pool reuses.
+- **GetRecord-derived spelling bridge (positive):** definition 535 establishes
+  a FIELD through `.GetRecord(...).GetField(Field.ADDRESS_TYPE)` and later
+  reuses it through `.GetRecord(1).ADDRESS_TYPE`; 28 such GetField-to-ordinary
+  hits occur population-wide. Definition 9989 supplies the complementary bare
+  `GetRecord().FIELD` family; 137 such bare-to-ordinary hits occur.
+- **Declared/inferred provenance bridge (positive):** 190 row-shorthand to
+  declared-Record hits and 44 typed-Row to ordinary-row hits show that source
+  spelling/provenance selects eligibility and lookup order, not a distinct
+  PSPCMNAME FIELD identity once eligible.
+- **Shared scoped namespace on an aligned mismatch (positive):** definitions
+  4636, 6296, and 6298 allocate `EMPLID` through one FIELD path and stored
+  reuses it through `GetField(Field.EMPLID)` in the same group; current
+  separated pools allocate, while the shared namespace predicts the stored
+  reuse. Definition 14890 provides the same result for `CUB_DIMENSIONID`.
+- **Global RECORD bridge rejected (negative):** definition 3133 reaches a
+  later-group `CreateRecord(Record.TL_GROUP_DTL)` after a shorthand RECORD row.
+  Current global reuse selects RECORD sequence 7; stored allocates NAMENUM 9,
+  exactly matching control-group scoping.
+- **Global typed-Row FIELD bridge rejected (negative):** definitions 5358,
+  7174, 12651, 12656, 13628, 14700, 14891, 14897, 14911, 14913, and 14962 all
+  have aligned stored occurrences where the current global typed-Row pool
+  reuses an earlier-group FIELD and stored allocates fresh.
+- **Global FIELD namespace rejected (negative):** 817 exact decisions would
+  change, including the already-calibrated definition-24 later-block fresh
+  FIELD allocations. Control-group lifetime is therefore semantic, not merely
+  an implementation partition.
+
+### Evidence-backed semantic model
+
+The pools are approximating two real concepts, not six independent compiler
+namespaces:
+
+1. **Dependency eligibility/provenance.** `ChainSemantics` decides whether a
+   postfix member is dependency-bound; `DependencyKind` decides whether it is
+   a RECORD or FIELD dependency. Receiver/root/provenance-specific checks and
+   the per-base fast path remain relevant here.
+2. **Scoped dependency identity.** Once eligible, a FIELD dependency is
+   interned by `(controlGroup, fieldName)`, independent of root record and of
+   whether it was spelled through explicit `Record.REC.FIELD`, a declared Row
+   or Record, row shorthand, `GetField(Field.X)`, or bare
+   `GetRecord().FIELD`. RECORD shorthand/explicit bridging is likewise bounded
+   by `controlGroup`; the current global row-shorthand bridge is not compiler
+   semantics.
+
+This explains the `fieldReferencesByControlGroup` dual writer: the two writers
+are not unrelated. They are two syntactic producers of the same
+GetRecord-derived FIELD identity, and both feed the same ordinary-row consumer.
+No direct bare-writer → explicit-GetField read occurred in this population, so
+that particular direction remains unobserved, but the shared scoped namespace
+is independently supported by zero exact contradictions and 68/68 aligned
+stored differentiators.
+
+### Redundant/overlapping state and recommended next abstraction
+
+- `rowShorthandRecords` is redundant with
+  `rowShorthandRecordsByControlGroup` at its write site: both receive the same
+  reference, while only the former's later `recordReference()` bridge drops
+  the scope key. The next semantic phase should route that bridge through the
+  scoped identity and delete the global shadow only after targeted/full gates.
+- `typedRowFields` is a global shadow of a write already copied into scoped
+  `declaredRecordFields`; its distinct lifetime is contradicted by stored
+  evidence. It is a deletion candidate after the shared FIELD facade exists.
+- `explicitRecordFields`, `declaredRecordFields`, `rowShorthandFields`,
+  `typedRowFields`, and `fieldReferencesByControlGroup` overlap as storage for
+  one scoped FIELD-name interner. Their provenance-specific dispatch may remain
+  temporarily as policy labels, but it should not define identity.
+- `recordVariableFields` is a receiver-specific first-choice binding and was
+  not proven redundant by this sweep. Preserve it initially; place a new
+  `FieldDependencyScope`/`FieldInternPool` behind the name-level fallbacks,
+  keyed by `controlGroup:fieldName`, with explicit participation policy.
+
+Recommended next cycle: first add the scoped FIELD interner as a shadow
+diagnostic and prove decision parity; then, in separately gated semantic
+phases, (A) scope/delete `rowShorthandRecords`, (B) route the five FIELD pools
+through the interner while preserving eligibility and per-base precedence,
+and (C) delete only pools made mechanically unreachable. Target controls must
+include 24, 437, 524, 535, 924, 9989, 3133, 4636, 5358, 6296, 6298, and 14890,
+followed by protected 430/430, full 30,209, and row-by-row classification plus
+generated-byte diffs. **No part of that semantic implementation was performed
+in Cycle 10.**
+
+### Validation
+
+- `npm run typecheck`: clean.
+- `npm test`: pass.
+- protected baseline: 430/430, zero improved/regressed.
+- full LOCAL SNAPSHOT: 23,182/30,209 EXACT, unchanged.
+- row-by-row comparison with the pre-Cycle-10 full run: 0/30,209
+  classification changes and 0/30,209 generated-program SHA changes.
+- research source→bin baseline: 23,462 byte-exact encodes.
+- no `--live` use.
+
+### Next action
+
+Stop here for review, per the explicit instruction to report before
+implementation once a clean model survives corpus-scale testing. If approved,
+begin the shadow `FieldDependencyScope` phase above; do not directly collapse
+the maps in one edit.
+
 ## Compiler Semantics Cycle 9 — decompose postfix member state (structural, zero behavior change)
 
 **Status: structural decomposition complete; no semantic calibration.**
