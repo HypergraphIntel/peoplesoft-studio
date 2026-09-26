@@ -182,10 +182,7 @@ export interface ChainSemanticsDiagnostic {
 }
 
 /**
- * Research-only observation of the postfix reuse pools. Cycle 11 includes
- * the shared FIELD namespace and the receiver-specific first-choice path so
- * legacy-pool contribution can be measured after their selection behavior
- * has moved behind the shared scoped namespace.
+ * Research observation of the remaining postfix reuse pools.
  *
  * The callback is deliberately downstream of every existing key choice and
  * Map lookup/write. Consumers can compare authoritative and shadow histories
@@ -196,12 +193,7 @@ export interface ReusePoolTraceEvent {
   pool:
     | 'scopedFieldReferences'
     | 'recordVariableFields'
-    | 'rowShorthandRecords'
-    | 'typedRowFields'
-    | 'fieldReferencesByControlGroup'
-    | 'explicitRecordFields'
-    | 'rowShorthandFields'
-    | 'declaredRecordFields';
+    | 'rowShorthandRecords';
   site: string;
   key: string;
   sourceOffset: number;
@@ -2080,9 +2072,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
    * `Record.COUNTRY_TBL`.
    */
   let reuseFieldReferenceWithinControlGroup = false;
-  // Cycle 11 retains this former path-specific FIELD pool as a traced shadow.
-  const fieldReferencesByControlGroup =
-    new Map<string, PeopleCodeReference>();
   const scopedFieldReferences =
     new Map<string, PeopleCodeReference>();
   const ordinaryRecordFieldsByControlGroup = new Map<string, PeopleCodeReference>();
@@ -2300,53 +2289,17 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   const recordVariableFields = new Map<string, PeopleCodeReference>();
 
   /*
-   * Cycle 11 retains the former declared-Record FIELD pool as a traced
-   * shadow. Its historical examples remain useful provenance controls, but
-   * FIELD identity now comes from `fieldDependencyScope`.
-   *
-   * ACCOMPLISHMENTS.EMPLID.SavePostChange calibrates the behavior:
-   *
-   *   &recAccomp.ACCOMPLISHMENT.Value   // first declared-Record use: allocate
-   *   ...
-   *   &recAccTbl.ACCOMPLISHMENT.Value   // later declared-Record use: reuse
-   *
-   * Both uses point to the same PSPCMNAME FIELD row.
-   */
-  const declaredRecordFields = new Map<string, PeopleCodeReference>();
-
-  // Former inferred-row FIELD pool; retained as a Cycle 11 traced shadow.
-  const rowShorthandFields = new Map<string, PeopleCodeReference>();
-
-  /*
    * Explicit qualified chains:
    *
    *   Record.REC.FIELD.Value
    *
-   * reuse the RECORD dependency within one control group. The FIELD half now
-   * uses the shared scoped namespace; its old root-specific pool is retained
-   * below only as a traced shadow.
+   * reuse the RECORD dependency within one control group. The FIELD half uses
+   * the shared scoped namespace.
    *
    * Offset 433 calibrates this across repeated top-level If blocks.
    */
   const explicitRecordReferences =
     new Map<string, PeopleCodeReference>();
-  const explicitRecordFields =
-    new Map<string, PeopleCodeReference>();
-
-  /*
-   * Cycle 11 retains the former declared-Row FIELD pool as a traced shadow.
-   *
-   * PeopleTools reuses the same FIELD PSPCMNAME row by field name across
-   * different typed Row variables, even when the RECORD differs:
-   *
-   *   &L1Row.REC_A.LASTUPDDTTM.Value
-   *   &L2Row.REC_B.LASTUPDDTTM.Value
-   *
-   * The old global key is not compiler identity: later control groups must
-   * allocate fresh. The population report records its stale candidates while
-   * `fieldDependencyScope` remains authoritative.
-   */
-  const typedRowFields = new Map<string, PeopleCodeReference>();
 
   type TracedReusePoolName = ReusePoolTraceEvent['pool'];
 
@@ -2424,7 +2377,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
   };
 
-  const latestFields = new Map<string, PeopleCodeReference>();
   const resetRecordVariableFields = new Set<string>();
 
   const recordReference = (
@@ -2757,18 +2709,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     // evidenced exception: it reuses within the current control group
     // (see reuseFieldReferenceWithinControlGroup's declaration comment).
     if (reuseFieldReferenceWithinControlGroup) {
-      const key = `${controlGroup}:${fieldName.toLowerCase()}`;
       const existing = fieldDependencyScope.lookupField(fieldName);
-
-      // Retain the legacy read as a shadow observation during Cycle 11.
-      // Its result is deliberately not part of the semantic decision.
-      readTracedReusePool(
-        'fieldReferencesByControlGroup',
-        fieldReferencesByControlGroup,
-        key,
-        'fieldReference:GetField-argument',
-        pos - fieldName.length
-      );
 
       if (existing !== undefined) {
         return referenceOperand(existing);
@@ -2782,14 +2723,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
     if (reuseFieldReferenceWithinControlGroup) {
       fieldDependencyScope.recordField(fieldName, reference);
-      writeTracedReusePool(
-        'fieldReferencesByControlGroup',
-        fieldReferencesByControlGroup,
-        `${controlGroup}:${fieldName.toLowerCase()}`,
-        reference,
-        'fieldReference:GetField-argument',
-        pos - fieldName.length
-      );
     }
 
     return referenceOperand(reference);
@@ -7497,97 +7430,14 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 };
 
   /*
-   * Cycle 9 (Phase 9C) named the postfix reuse-policy dispatch. Cycle 11
-   * leaves its RECORD paths unchanged but makes the scoped FIELD namespace
-   * authoritative ahead of the legacy FIELD pools. The receiver-specific
-   * `recordVariableFields` lookup deliberately remains first choice.
+   * Cycle 9 (Phase 9C) named the postfix reuse-policy dispatch. The
+   * receiver-specific `recordVariableFields` lookup remains first choice,
+   * followed by the authoritative scoped FIELD namespace. RECORD paths keep
+   * their independently calibrated policies.
    *
    * This function still does not decide whether `member` is a dependency;
    * the caller's ChainSemantics/DependencyKind decision remains upstream.
    */
-  const observeLegacyPostfixFieldReuse = (
-    member: string,
-    explicitRecordRootName: string | undefined,
-    baseVariableName: string | undefined
-  ): void => {
-    const scopedKey = `${controlGroup}:${member.toLowerCase()}`;
-
-    if (explicitRecordRootName !== undefined) {
-      readTracedReusePool(
-        'explicitRecordFields',
-        explicitRecordFields,
-        `${controlGroup}:${explicitRecordRootName.toLowerCase()}:${member.toLowerCase()}`,
-        'postfixResolve:explicit-record-field',
-        pos - member.length
-      );
-      readTracedReusePool(
-        'declaredRecordFields',
-        declaredRecordFields,
-        scopedKey,
-        'postfixResolve:explicit-record-field-fallback',
-        pos - member.length
-      );
-      return;
-    }
-
-    if (
-      baseVariableName !== undefined &&
-      recordVariables.has(baseVariableName.toLowerCase())
-    ) {
-      readTracedReusePool(
-        'declaredRecordFields',
-        declaredRecordFields,
-        scopedKey,
-        'postfixResolve:declared-record-field',
-        pos - member.length
-      );
-      readTracedReusePool(
-        'rowShorthandFields',
-        rowShorthandFields,
-        scopedKey,
-        'postfixResolve:declared-record-field-fallback',
-        pos - member.length
-      );
-      return;
-    }
-
-    if (
-      baseVariableName !== undefined &&
-      rowVariables.has(baseVariableName.toLowerCase())
-    ) {
-      readTracedReusePool(
-        'typedRowFields',
-        typedRowFields,
-        member.toLowerCase(),
-        'postfixResolve:typed-row-field',
-        pos - member.length
-      );
-      return;
-    }
-
-    readTracedReusePool(
-      'rowShorthandFields',
-      rowShorthandFields,
-      scopedKey,
-      'postfixResolve:ordinary-row-field',
-      pos - member.length
-    );
-    readTracedReusePool(
-      'declaredRecordFields',
-      declaredRecordFields,
-      scopedKey,
-      'postfixResolve:ordinary-row-field-fallback',
-      pos - member.length
-    );
-    readTracedReusePool(
-      'fieldReferencesByControlGroup',
-      fieldReferencesByControlGroup,
-      scopedKey,
-      'postfixResolve:ordinary-row-field-fallback',
-      pos - member.length
-    );
-  };
-
   const resolvePostfixMemberReuse = (
     member: string,
     dependencyKind: DependencyKind,
@@ -7608,13 +7458,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         if (receiverBinding !== undefined) return receiverBinding;
       }
 
-      const scopedBinding = fieldDependencyScope.lookupField(member);
-      observeLegacyPostfixFieldReuse(
-        member,
-        explicitRecordRootName,
-        baseVariableName
-      );
-      return scopedBinding;
+      return fieldDependencyScope.lookupField(member);
     }
 
     if (dependencyKind === 'record' && isMethodCall) {
@@ -7641,9 +7485,9 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
 
   /*
    * The Cycle 9 write-back companion to `resolvePostfixMemberReuse`.
-   * Cycle 11 preserves every legacy write and mirrors evidenced FIELD
-   * producers into `fieldDependencyScope`, allowing their unique
-   * contribution to be observed before any pool is considered for deletion.
+   * Receiver-specific FIELD bindings and independently calibrated RECORD
+   * policies remain explicit; all eligible FIELD producers also populate the
+   * authoritative scoped namespace.
    */
   const recordPostfixMemberReuse = (
     member: string,
@@ -7654,29 +7498,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     fieldMemberFromGetRecord: boolean,
     reference: PeopleCodeReference
   ): void => {
-    if (
-      dependencyKind === 'field' &&
-      explicitRecordRootName !== undefined &&
-      reference.kind === 'field'
-    ) {
-      writeTracedReusePool(
-        'explicitRecordFields',
-        explicitRecordFields,
-        `${controlGroup}:${explicitRecordRootName.toLowerCase()}:${member.toLowerCase()}`,
-        reference,
-        'postfixRecord:explicit-record-field',
-        pos - member.length
-      );
-      writeTracedReusePool(
-        'declaredRecordFields',
-        declaredRecordFields,
-        `${controlGroup}:${member.toLowerCase()}`,
-        reference,
-        'postfixRecord:explicit-record-field-bridge',
-        pos - member.length
-      );
-    }
-
     if (
       dependencyKind === 'record' &&
       reference.kind === 'record'
@@ -7713,100 +7534,6 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         `${controlGroup}:${baseVariableName.toLowerCase()}:${member.toLowerCase()}`,
         reference,
         'postfixRecord:record-variable-field',
-        pos - member.length
-      );
-      latestFields.set(member.toLowerCase(), reference);
-
-      if (rowVariables.has(baseVariableName.toLowerCase())) {
-        writeTracedReusePool(
-          'typedRowFields',
-          typedRowFields,
-          member.toLowerCase(),
-          reference,
-          'postfixRecord:typed-row-field',
-          pos - member.length
-        );
-
-        /*
-         * AGC_CAT_STEP.AGC_CATEGORY_ID.FieldFormula (definition 924)
-         * proves a Row-typed variable's FIELD binding bridges to the
-         * control-group-scoped `declaredRecordFields` pool too, the same
-         * way a declared Record variable's own FIELD binding already
-         * does (see the ACCOMPLISHMENTS.EMPLID.SavePostChange /
-         * AA_SUMM_JPN_VW.EMPLID.SavePostChange provenance-bridge comment
-         * above): a LATER row-shorthand access
-         * (`&rowsetVar(&i).RECORD.FIELD`, a structurally different access
-         * style reached through the final "ordinary Rowset/row-shorthand
-         * FIELD reuse" branch, which checks `declaredRecordFields` but
-         * never `typedRowFields`) reuses the SAME PSPCMNAME FIELD row a
-         * `Row`-typed parameter's own `.RECORD.FIELD` chain established
-         * earlier in the same control group:
-         *
-         *   Function InitStepDefautAssigneeSection(&rCurrCatTbl As Row,
-         *       &rCurrentStep As Row)
-         *      ...
-         *      &rCurrentStep.AGC_DERIVED_ASG.GROUPBOX4.Visible = &nShow;
-         *      &rsCategorySteps = &rCurrCatTbl.GetRowset(Scroll.AGC_CAT_STEP);
-         *      For &i = 1 To &rsCategorySteps.ActiveRowCount
-         *         &rsCategorySteps(&i).AGC_DERIVED_ASG.GROUPBOX4.Visible = &nShow;
-         */
-        writeTracedReusePool(
-          'declaredRecordFields',
-          declaredRecordFields,
-          `${controlGroup}:${member.toLowerCase()}`,
-          reference,
-          'postfixRecord:typed-row-field-bridge',
-          pos - member.length
-        );
-      } else if (recordVariables.has(baseVariableName.toLowerCase())) {
-        writeTracedReusePool(
-          'declaredRecordFields',
-          declaredRecordFields,
-          `${controlGroup}:${member.toLowerCase()}`,
-          reference,
-          'postfixRecord:declared-record-field',
-          pos - member.length
-        );
-      } else {
-        writeTracedReusePool(
-          'rowShorthandFields',
-          rowShorthandFields,
-          `${controlGroup}:${member.toLowerCase()}`,
-          reference,
-          'postfixRecord:row-shorthand-field',
-          pos - member.length
-        );
-      }
-    } else if (
-      dependencyKind === 'field' &&
-      baseVariableName === undefined &&
-      fieldMemberFromGetRecord
-    ) {
-      /*
-       * A bare `GetRecord().FIELDNAME` field reference (no `&variable.`
-       * receiver) reuses within the current control group the same way
-       * every other FIELD-reuse pool above does -- a second
-       * `GetRecord().FIELDNAME` for the same field name in the same
-       * control group (e.g. the If- and Else-branches of one
-       * `If ... Then ... Else ... End-If;`) points to the SAME PSPCMNAME
-       * FIELD row, not a fresh allocation.
-       *
-       * GPS_EDIT_WRK.GPS_BDG_ORG1.FieldChange (definition 9989):
-       *
-       *   If GetRecord().GPS_LEVELS.Value = 2 Then
-       *      GetRecord().GPS_BDG_ORG2.SqlText = ExpandSqlBinds(...);
-       *   Else
-       *      GetRecord().GPS_BDG_ORG2.SqlText = ExpandSqlBinds(...);
-       *   End-If;
-       *
-       * both `GPS_BDG_ORG2` occurrences store the same FIELD index.
-       */
-      writeTracedReusePool(
-        'fieldReferencesByControlGroup',
-        fieldReferencesByControlGroup,
-        `${controlGroup}:${member.toLowerCase()}`,
-        reference,
-        'postfixRecord:GetRecord-bare-field',
         pos - member.length
       );
     }
