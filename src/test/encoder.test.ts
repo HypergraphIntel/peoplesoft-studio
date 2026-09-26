@@ -1165,9 +1165,8 @@ test('typed Row FIELD identity is scoped by control group, not interned globally
   /*
    * DERIVED_GP_CS.GP_CS_SM_KEY.FieldFormula (definition_id 5358) proves
    * that a typed Row's same-name FIELD in a later top-level control group
-   * gets a fresh PSPCMNAME identity. The legacy typedRowFields pool still
-   * observes its older global candidate during Cycle 11, but cannot select
-   * it over the authoritative (controlGroup, fieldName) namespace.
+   * gets a fresh PSPCMNAME identity from the authoritative
+   * (controlGroup, fieldName) namespace.
    */
   const events: ReusePoolTraceEvent[] = [];
 
@@ -1196,14 +1195,6 @@ test('typed Row FIELD identity is scoped by control group, not interned globally
       { key: '3:field_a', sequence: 6 }
     ]
   );
-
-  const staleTypedCandidate = events.find(event =>
-    event.pool === 'typedRowFields' &&
-    event.action === 'READ' &&
-    event.controlGroup === 3
-  );
-  assert.equal(staleTypedCandidate?.hit, true);
-  assert.equal(staleTypedCandidate?.reference?.sequence, 4);
 });
 
 test('a Function header inside a block comment is not counted as a real function', () => {

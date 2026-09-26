@@ -1,5 +1,110 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 12 — remove redundant legacy FIELD pools
+
+**Status: zero-behavior-change cleanup complete.** Baseline is commit
+`91febd4` (Cycle 11), 23,217/30,209 full-corpus EXACT, protected 430/430,
+and 490 passing tests plus one intentional skip. Cycle 12 removes only the
+legacy FIELD stores Cycle 11 proved had both zero unmirrored writes and zero
+effective generated-output selections. The result remains exactly
+**23,217/30,209 EXACT**, with zero classification or generated-byte changes.
+
+### Verified deletion set
+
+The deletion list was taken from Cycle 11's committed Phase 11C report and
+its instrumentation, not inferred from the Cycle 12 request. Exactly these
+five maps met both required conditions:
+
+1. `typedRowFields`
+2. `fieldReferencesByControlGroup`
+3. `explicitRecordFields`
+4. `rowShorthandFields`
+5. `declaredRecordFields`
+
+Every write to each map had a same-occurrence authoritative scoped-FIELD
+write, and none of their read results selected a generated reference after
+Cycle 11. `typedRowFields`' 906 otherwise-unique shadow hits were stale global
+candidates, not effective selections.
+
+### State and branches removed
+
+- Removed all five `Map` declarations and their five trace-pool variants.
+- Removed nine legacy/shadow read calls: the direct GetField observation plus
+  all explicit-root, declared-Record, typed-Row, and ordinary-row observation
+  paths.
+- Removed eight mirrored legacy write calls from GetField, explicit Record,
+  declared Row/Record, inferred row shorthand, and bare GetRecord producers.
+- Removed the entire four-way `observeLegacyPostfixFieldReuse` diagnostic
+  dispatch.
+- Removed the now-write-only `latestFields` map and its write.
+- Removed the stale typed-row observation from the regression test while
+  retaining its assertion that later control groups allocate distinct scoped
+  FIELD identities.
+- Removed the now-obsolete Cycle 10 keying analyzer and Cycle 11 contribution
+  analyzer; their population evidence remains recorded in the Cycle 10 and
+  Cycle 11 reports below.
+
+The encoder cleanup itself removed 287 lines and added 14 simplified/comment
+lines. The two completed research diagnostics removed another 1,102 lines;
+the regression test removed 11 obsolete observation lines and added two
+updated explanatory lines.
+
+### Remaining FIELD/reference state
+
+The postfix FIELD decision is now explicit and minimal:
+
+```text
+recordVariableFields receiver binding
+    -> FieldDependencyScope(controlGroup, fieldName)
+    -> allocate when neither contains a binding
+```
+
+- `scopedFieldReferences`, accessed only through `FieldDependencyScope`, is
+  the authoritative name-level FIELD identity store.
+- `recordVariableFields` and its existing reset/lifetime state remain the
+  receiver-specific first-choice binding path.
+- `reuseFieldReferenceWithinControlGroup` remains the narrow policy that lets
+  eligible GetField(Field.X) paths consult/record the same authoritative
+  namespace; it is not an identity store.
+- `ordinaryRecordFieldsByControlGroup` and
+  `currentStatementRecordFields` remain for the separate ordinary
+  `RECORD.FIELD` / `record-field` encoding family, not postfix FIELD identity.
+- All RECORD, Scroll, same-statement, DependencyScope, and
+  RowScrollSelect/ScrollSelect state is unchanged.
+
+`expectedReferenceMember` has **no remaining FIELD-identity responsibility**:
+it owns no FIELD key, map lookup, or write. It still participates upstream in
+dependency-kind derivation, eligibility/transition state, existing-reference
+checks, and the narrow GetRecord-then-GetField policy. Actual FIELD identity
+selection is exclusively receiver-specific binding followed by
+`FieldDependencyScope`.
+
+### Why `rowShorthandRecords` remains
+
+`rowShorthandRecords` is a RECORD pool, not one of the redundant FIELD
+shadows. Cycle 11 observed 69 effective generated-output selections from it.
+Its declaration, reads, writes, and the related by-base/by-control-group
+RECORD mechanisms therefore remain intact. Removing it would be a semantic
+change in a different compiler family and was explicitly out of scope.
+
+### Validation
+
+- `npm run typecheck`: clean.
+- `npm test`: 490 passed, 0 failed, 1 intentional skip.
+- Cycle 11 FIELD controls: unchanged (24, 437, 524, 535, 9989, 4636, 5358,
+  6296, and 6298 exact; 924, 3133, and 14890 remain `UNKNOWN_MISMATCH`).
+- protected baseline: 430/430, zero regressions.
+- full local snapshot run 2009: 23,217/30,209 EXACT.
+- comparison against Cycle 11 run 1994: 0 newly exact, 0 regressions,
+  0 classification changes, 0 first-diff changes, and **0/30,209 generated
+  SHA changes**.
+- no `--live` use.
+
+### Next action
+
+Stop after the isolated Cycle 12 cleanup commit. Do not begin another semantic
+family automatically.
+
 ## Compiler Semantics Cycle 11 — scoped FIELD identity
 
 **Status: semantic implementation complete and fully validated; committed as a
