@@ -4,6 +4,7 @@ import { decodeProgram } from '../peoplecode/decoder.js';
 import { NameTable } from '../peoplecode/progtext.js';
 import { ProgramImage, compareBytes } from '../peoplecode/programImage.js';
 import { readProgramLayout } from '../peoplecode/programLayout.js';
+import { APPLICATION_CLASS_FLAGS } from '../peoplecode/applicationClassProgram.js';
 import { ACTIVATE_BYTES } from './fixtures/compiledPeopleCode.js';
 import { protectedCorpusRegressions } from './fixtures/protectedCorpusRegressions.js';
 import {
@@ -2525,8 +2526,12 @@ const appClassMetadata = (source: string, packagePath?: string[]) => {
   }
   const records = Array.from({ length: layout.recordCount }, (_, index) => {
     const base = layout.records.offset + index * 16;
+    const attributesAndCount = program.readUInt32LE(base + 8);
     return {
       nameOffset: program.readUInt32LE(base),
+      signatureSlotOffset: program.readUInt32LE(base + 4),
+      flags: attributesAndCount & 0xffff0000,
+      low: attributesAndCount & 0xffff,
       descriptor: program.readUInt32LE(base + 12)
     };
   });
@@ -2571,6 +2576,45 @@ end-method;`, ['ROOT', 'Demo']);
     metadata.slots,
     [descriptor('PKG:ParamA'), 7, descriptor('PKG:ParamB'), 7]
   );
+});
+
+test('Application Class metadata emits the proven singleton instance directory phase', () => {
+  const metadata = appClassMetadata(`class Demo
+instance PKG:State &state;
+method Run();
+end-class;
+method Run
+end-method;`, ['ROOT', 'Demo']);
+  assert.deepStrictEqual(metadata.names.map(name => name.text), [
+    'ROOT:Demo', 'state', 'Run', 'PKG:State'
+  ]);
+  const stateOffset = metadata.names.find(name => name.text === 'PKG:State')!.charOffset;
+  assert.deepStrictEqual(metadata.records, [
+    { nameOffset: 0, signatureSlotOffset: 0, flags: APPLICATION_CLASS_FLAGS.self, low: 0, descriptor: 7 },
+    {
+      nameOffset: 'ROOT:Demo'.length + 1,
+      signatureSlotOffset: 0,
+      flags: APPLICATION_CLASS_FLAGS.private | APPLICATION_CLASS_FLAGS.property | APPLICATION_CLASS_FLAGS.storage,
+      low: 0,
+      descriptor: 0x80000 | (0x100 + stateOffset)
+    },
+    {
+      nameOffset: 'ROOT:Demo'.length + 1 + 'state'.length + 1,
+      signatureSlotOffset: 0,
+      flags: 0,
+      low: 0,
+      descriptor: 7
+    }
+  ]);
+  assert.deepStrictEqual(metadata.slots, [7]);
+});
+
+test('Application Class metadata leaves multi-instance physical order unresolved', () => {
+  const metadata = appClassMetadata(`class Demo
+instance Row &first, &second;
+end-class;`);
+  assert.deepStrictEqual(metadata.names.map(name => name.text), ['Demo']);
+  assert.equal(metadata.records.length, 1);
 });
 
 test('Application Class statement encoding emits a simple class header', () => {
