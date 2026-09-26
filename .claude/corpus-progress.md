@@ -1,5 +1,139 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 28 — implement Application Class terminators
+
+**Status: implementation and corpus validation complete.** Baseline is commit
+`c8b7657` (Cycle 27), 23,217/30,209 EXACT, protected 430/430,
+1,325/1,510 source-encodable Application Classes, and zero EXACT Application
+Classes. This cycle used only the completed local HCDEV snapshot; `--live` was
+not used. Full-corpus comparison is Cycle 27 run 2135 against Cycle 28 run
+2150.
+
+### Implemented semantic model
+
+The Application Class IR now retains the absolute source offset of every
+active semicolon owned by the unit header or member-declaration stream.
+Comments, disabled/signature comments, REM text, and string literals are
+masked before collecting offsets, so source multiplicity is retained without
+mistaking payload punctuation for bytecode. The V2 emitter consumes every
+offset exactly once in source order:
+
+```text
+stored declaration 0x15 count = explicit source-semicolon count
+```
+
+This applies uniformly to unit headers, methods and constructors, properties,
+grouped instances, constants, abstract methods, and interface methods. An
+omitted final declaration semicolon emits no `0x15`; a doubled semicolon emits
+two. Offset consumption is idempotent so an overlapping parser span cannot
+double-emit punctuation. Semicolons found in compilation-unit gaps are
+interleaved with existing comment events, but they deliberately do not split
+or recalculate Cycle 25 marker gaps. Thus `0x2D`, `0x4F`, and comment operands
+retain their prior ownership and bytes.
+
+Method/getter/setter bodies continue through the shared fragment encoder. The
+wrapper now decides completion from the final non-comment source token rather
+than the raw string tail. When the fragment parser requires a synthetic final
+semicolon, the wrapper removes that one synthetic `0x15` after removing the
+same synthetic final `0x4F` as before. A real source semicolon remains, even
+when a trailing comment follows it. Cycle 17/18 wrapper closers
+`0x64`/`0x6A`/`0x6B 0x15 0x2D` are unchanged.
+
+Fifteen new focused tests plus the corrected comment-only-body expectation
+cover unit-header punctuation; explicit and omitted method/constructor,
+property, instance, constant, abstract/interface declaration punctuation;
+final declarations; comments and blank lines before the unit closer; real and
+synthetic body terminators; repeated semicolons; and the 28974-style partial
+layout control. The partial control proves that the second `0x15` is restored
+while its independent missing-`0x4F` residual remains.
+
+### Direct-root movement and downstream blockers
+
+The updated read-only terminator analyzer accepts Cycle 27's full report via
+`--cycle27-report` and a stable corpus baseline via `--baseline-run`. It
+reproduces all **99** Cycle 27 targets and the **1,506** active-unit semantic
+traversal population. After implementation:
+
+| movement | definitions |
+|---|---:|
+| semicolon projection corrected | 99 |
+| advanced to a later independent blocker | 99 |
+| unchanged at the terminator root | 0 |
+| moved earlier | 0 |
+| became unencodable | 0 |
+| semicolon-region gains | 99 |
+| semicolon-region losses | 0 |
+
+All 55 declaration roots and all 44 body-fragment roots disappear. The five
+partial cases retain only their previously identified Cycle 25 layout issue:
+28920 and 28954 still omit the adjacent comment operand, 28974 still omits two
+markers, 29461 retains its extra `0x2D`, and 30186 retains its independent
+comment-opcode mismatch. No marker/layout fix was folded into this cycle.
+
+The actual post-fix blocker census exactly matches Cycle 27's projection:
+
+| downstream first blocker | definitions |
+|---|---:|
+| Application Class names metadata | 49 |
+| reference numbering/operand identity | 43 |
+| comment/marker residual | 5 |
+| Application Class implementation wrapper/body | 2 |
+| other newly exposed family | 0 |
+| terminator residual | 0 |
+| **total** | **99** |
+
+Names metadata is therefore the largest coherent Cycle 29 candidate. Reference
+identity remains secondary while Cycle 26's unresolved prepass/allocation-order
+problem is still open. No Cycle 29 work was started.
+
+### Blast-radius reconciliation
+
+Cycle 27 predicted 344 generated-SHA changes. Current-encoder read-only
+encoding against run 2135 produced **286** changes, all within the 1,506
+active Application Class path:
+
+| comparison | definitions |
+|---|---:|
+| predicted and changed | 286 |
+| predicted but unchanged | 58 |
+| changed beyond prediction | 0 |
+| **actual generated-SHA changes** | **286** |
+
+The 58 predicted-but-unchanged definitions are analyzer false positives, not
+implementation gates. Twenty-five had `currentTerminators = -1`: Cycle 27's
+change-set filter accidentally admitted unlocated wrapper boundaries because
+it tested inequality without first requiring a located current boundary. The
+other 33 came from the deliberately shallow immediate-pre-closer heuristic:
+source-owned `0x4F`/comment bytes could separate a real final terminator from
+the closer, adjacent earlier statements could look like a second terminator,
+and empty/comment-only bodies could expose the wrapper's own terminator. Their
+generated bytes were already unchanged by the corrected rule. Therefore the
+evidence-corrected prediction is `344 - 25 - 33 = 286`, exactly equal to the
+observed set. All 286 are `EXPECTED_SEMANTIC_PATH`; there are zero
+`IMPLEMENTATION_LEAK` and zero `UNKNOWN` changes.
+
+### Validation
+
+- Typecheck: clean.
+- Unit suite: 542 passed, one intentional skip (543 total).
+- Protected local baseline, run 2149: 430/430 EXACT; regression gate pass.
+- Full local run 2150: 23,217/30,209 EXACT; 6,992 residual definitions.
+- Run 2150 versus Cycle 27 run 2135: 286 generated-SHA changes, all object
+  type 104 and all inside the 1,506-unit semantic population; zero outside
+  that population and zero non-Application-Class changes.
+- Classification diff: zero transitions; newly EXACT 0; previously EXACT
+  regressions 0.
+- Source encoding: 1,325/1,510 Application Classes before and after; gains 0,
+  losses 0. Application Class EXACT remains 0/1,510 before and after.
+- All 99 direct terminator roots advanced with zero semicolon-region
+  regression; the post-fix census is 49/43/5/2 as projected.
+- Decoder semantics, reference allocation/order, names metadata, wrapper
+  structure, and unrelated dependency families are unchanged.
+- `git diff --check`: clean.
+
+**STOP after the isolated Cycle 28 implementation commit. Do not begin Cycle
+29.**
+
 ## Compiler Semantics Cycle 27 — Application Class terminators
 
 **Status: research and zero-change corpus validation complete.** Baseline is

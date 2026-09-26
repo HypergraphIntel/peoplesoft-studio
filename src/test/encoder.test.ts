@@ -2722,7 +2722,7 @@ method Run
 end-method;`);
   assert.equal(actual.includes(Buffer.concat([
     Buffer.from([0x63, 0x41]), appClassText(0x0a, 'Run'), Buffer.from([0x2d, 0x4f]),
-    appClassComment(0x24, '/* only */'), Buffer.from([0x15, 0x4f, 0x64, 0x15, 0x2d, 0x07])
+    appClassComment(0x24, '/* only */'), Buffer.from([0x4f, 0x64, 0x15, 0x2d, 0x07])
   ])), true);
 });
 
@@ -2842,6 +2842,143 @@ test('Application Class interface layout uses the same comment and gap rules', (
       appClassText(0x0a, 'Run'), Buffer.from([0x0b, 0x14, 0x6f, 0x15, 0x71, 0x15, 0x2d, 0x07])
     ])
   );
+});
+
+test('Application Class unit headers preserve an explicit source semicolon', () => {
+  assert.deepStrictEqual(
+    appClassStatements('class Demo;\nend-class;'),
+    Buffer.concat([
+      Buffer.from([0x5a]), appClassText(0x0a, 'Demo'),
+      Buffer.from([0x15, 0x5b, 0x15, 0x2d, 0x07])
+    ])
+  );
+});
+
+test('Application Class method declarations may omit their source semicolon', () => {
+  const actual = appClassStatements('class Demo\nmethod Run()\nend-class;');
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x63]), appClassText(0x0a, 'Run'),
+    Buffer.from([0x0b, 0x14, 0x5b, 0x15])
+  ])), true);
+});
+
+test('Application Class final instance declarations may omit their source semicolon', () => {
+  const actual = appClassStatements('class Demo\ninstance Row &row\nend-class;');
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x62]), appClassText(0x0a, 'Row'), appClassText(0x01, '&row'),
+    Buffer.from([0x5b, 0x15])
+  ])), true);
+});
+
+test('Application Class final instance declarations preserve an explicit semicolon', () => {
+  const actual = appClassStatements('class Demo\ninstance Row &row;\nend-class;');
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x62]), appClassText(0x0a, 'Row'), appClassText(0x01, '&row'),
+    Buffer.from([0x15, 0x5b, 0x15])
+  ])), true);
+});
+
+test('Application Class method declarations preserve their explicit semicolon', () => {
+  const actual = appClassStatements('class Demo\nmethod Run();\nend-class;');
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x63]), appClassText(0x0a, 'Run'),
+    Buffer.from([0x0b, 0x14, 0x15, 0x5b])
+  ])), true);
+});
+
+test('Application Class property declarations preserve their explicit semicolon', () => {
+  const actual = appClassStatements('class Demo\nproperty string Name;\nend-class;');
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x5e]), appClassText(0x40, 'string'), appClassText(0x0a, 'Name'),
+    Buffer.from([0x15, 0x5b])
+  ])), true);
+});
+
+test('Application Class constant declarations preserve their explicit semicolon', () => {
+  const actual = appClassStatements('class Demo\nconstant &Value = "x";\nend-class;');
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x56]), appClassText(0x01, '&Value'), Buffer.from([0x06]),
+    appClassText(0x16, 'x'), Buffer.from([0x15, 0x5b])
+  ])), true);
+});
+
+test('Application Class abstract interface declarations preserve their explicit semicolon', () => {
+  const actual = appClassStatements('interface Demo\nmethod Run() abstract;\nend-interface;');
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x63]), appClassText(0x0a, 'Run'),
+    Buffer.from([0x0b, 0x14, 0x6f, 0x15, 0x71])
+  ])), true);
+});
+
+test('Application Class constructor declarations use the same source-semicolon rule', () => {
+  const actual = appClassStatements('class Demo\nmethod Demo()\nend-class;');
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x63]), appClassText(0x0a, 'Demo'),
+    Buffer.from([0x0b, 0x14, 0x5b])
+  ])), true);
+});
+
+test('Application Class comments before the unit closer do not imply a declaration terminator', () => {
+  const actual = appClassStatements(`class Demo
+instance Row &row
+/* tail */
+end-class;`);
+  assert.equal(actual.includes(Buffer.concat([
+    appClassText(0x01, '&row'), appClassComment(0x24, '/* tail */'),
+    Buffer.from([0x5b, 0x15])
+  ])), true);
+});
+
+test('Application Class blank lines before the unit closer emit layout only, not a terminator', () => {
+  const actual = appClassStatements(`class Demo
+instance Row &row
+
+end-class;`);
+  assert.equal(actual.includes(Buffer.concat([
+    appClassText(0x01, '&row'), Buffer.from([0x4f, 0x5b, 0x15])
+  ])), true);
+});
+
+test('Application Class bodies preserve a real trailing source semicolon', () => {
+  const actual = appClassStatements(`class Demo
+method Run();
+end-class;
+method Run
+Return;
+end-method;`);
+  assert.equal(actual.includes(Buffer.from([0x2d, 0x38, 0x15, 0x64, 0x15, 0x2d])), true);
+});
+
+test('Application Class bodies remove only their parser-synthetic terminator', () => {
+  const actual = appClassStatements(`class Demo
+method Run();
+end-class;
+method Run
+Return
+end-method;`);
+  assert.equal(actual.includes(Buffer.from([0x2d, 0x38, 0x64, 0x15, 0x2d])), true);
+  assert.equal(actual.includes(Buffer.from([0x2d, 0x38, 0x15, 0x64])), false);
+});
+
+test('Application Class declarations preserve repeated explicit semicolons', () => {
+  const actual = appClassStatements('class Demo\nmethod Run();;\nend-class;');
+  assert.equal(actual.includes(Buffer.concat([
+    appClassText(0x0a, 'Run'), Buffer.from([0x0b, 0x14, 0x15, 0x15, 0x5b])
+  ])), true);
+});
+
+test('Application Class repeated-semicolon controls retain the independent layout residual', () => {
+  const actual = appClassStatements(`class Demo
+instance Row &row; /* inline */;
+
+
+end-class;`);
+  const expected = Buffer.concat([
+    appClassText(0x01, '&row'), Buffer.from([0x15]),
+    appClassComment(0x4e, '/* inline */'), Buffer.from([0x15, 0x5b])
+  ]);
+  assert.equal(actual.includes(expected), true);
+  assert.equal(actual.includes(Buffer.concat([expected.subarray(0, -1), Buffer.from([0x4f, 0x5b])])), false);
 });
 
 

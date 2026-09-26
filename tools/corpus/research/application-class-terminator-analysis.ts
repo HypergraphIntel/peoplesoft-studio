@@ -10,9 +10,13 @@
  *     --cycle24-report /tmp/cycle24/final-report-full.json
  *   npx tsx tools/corpus/research/application-class-terminator-analysis.ts \
  *     --cycle24-report /tmp/cycle24/final-report-full.json --json
+ * Cycle 28 validation may additionally supply the saved Cycle 27 JSON and its
+ * completed baseline run:
+ *   --cycle27-report /tmp/cycle27-terminator-analysis.json --baseline-run 2135
  */
 
 import Database from 'better-sqlite3';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
 import {
@@ -60,9 +64,25 @@ interface Cycle24Report {
   rows: Array<{ definitionId: number }>;
 }
 
+interface Cycle27Report {
+  rows: Array<{
+    definitionId: number;
+    commentLayoutState: 'already correct' | 'adjacent fixed-input residual';
+  }>;
+  populationSemicolonModel: {
+    predictedChangeDefinitionIds: number[];
+  };
+  populationEvidence?: Array<{
+    definitionId: number;
+    currentTerminators: number;
+    storedTerminators: number;
+  }>;
+}
+
 interface ResultRow {
   classification: string;
   sourceEncodeSuccess: boolean;
+  generatedSha256?: string;
 }
 
 interface SemanticDiff {
@@ -779,20 +799,25 @@ function nextBlockerAfterTerminatorFix(
   return 'none / immediate EXACT candidate';
 }
 
-function readLatestResults(): {
+function readResults(runId?: number): {
   runId: number;
   gitCommit: string;
   rows: Map<number, ResultRow>;
 } {
   const db = new Database('tools/corpus/corpus-results.sqlite', { readonly: true });
-  const run = db.prepare(`
-    SELECT run_id, git_commit FROM corpus_run
-    WHERE completed_at IS NOT NULL AND definitions = ?
-    ORDER BY run_id DESC LIMIT 1
-  `).get(TOTAL_CORPUS) as Record<string, unknown> | undefined;
+  const run = (runId === undefined
+    ? db.prepare(`
+      SELECT run_id, git_commit FROM corpus_run
+      WHERE completed_at IS NOT NULL AND definitions = ?
+      ORDER BY run_id DESC LIMIT 1
+    `).get(TOTAL_CORPUS)
+    : db.prepare(`
+      SELECT run_id, git_commit FROM corpus_run
+      WHERE completed_at IS NOT NULL AND definitions = ? AND run_id = ?
+    `).get(TOTAL_CORPUS, runId)) as Record<string, unknown> | undefined;
   if (!run) throw new Error('No completed full-corpus run found.');
   const rawRows = db.prepare(`
-    SELECT definition_id, classification, source_encode_success
+    SELECT definition_id, classification, source_encode_success, generated_sha256
     FROM result WHERE run_id = ?
   `).all(Number(run.run_id)) as Array<Record<string, unknown>>;
   db.close();
@@ -801,7 +826,8 @@ function readLatestResults(): {
     gitCommit: String(run.git_commit),
     rows: new Map(rawRows.map(row => [Number(row.definition_id), {
       classification: String(row.classification),
-      sourceEncodeSuccess: Boolean(row.source_encode_success)
+      sourceEncodeSuccess: Boolean(row.source_encode_success),
+      generatedSha256: row.generated_sha256 === null ? undefined : String(row.generated_sha256)
     }]))
   };
 }
@@ -812,13 +838,22 @@ function main(): void {
   if (!reportPath) throw new Error('--cycle24-report is required.');
   const cycle24 = JSON.parse(readFileSync(reportPath, 'utf8')) as Cycle24Report;
   if (cycle24.rows.length !== 940) throw new Error(`Cycle 24 report has ${cycle24.rows.length} rows, expected 940.`);
+  const cycle27Argument = process.argv.indexOf('--cycle27-report');
+  const cycle27Path = cycle27Argument < 0 ? undefined : process.argv[cycle27Argument + 1];
+  const cycle27 = cycle27Path === undefined
+    ? undefined
+    : JSON.parse(readFileSync(cycle27Path, 'utf8')) as Cycle27Report;
 
   const snapshotDb = openSnapshotDatabase();
   const allDefinitions = listSnapshotDefinitions(snapshotDb);
   snapshotDb.close();
   const definitions = allDefinitions.filter(definition => definition.objectid1 === APPLICATION_CLASS_OBJECT_ID);
   const byId = new Map(definitions.map(definition => [definition.definitionId, definition]));
-  const latest = readLatestResults();
+  const baselineRunArgument = process.argv.indexOf('--baseline-run');
+  const baselineRunId = baselineRunArgument < 0
+    ? undefined
+    : Number(process.argv[baselineRunArgument + 1]);
+  const latest = readResults(baselineRunId);
 
   const encoded = new Map<number, EncodedDefinition>();
   for (const row of cycle24.rows) {
@@ -874,6 +909,32 @@ function main(): void {
     .filter(row => sourceEncodableIds.has(row.definitionId) &&
       row.sourceTerminators === row.storedTerminators && row.currentTerminators !== row.storedTerminators)
     .map(row => row.definitionId));
+  const currentShaById = new Map([...allCurrentPrograms].map(([definitionId, program]) => [
+    definitionId,
+    createHash('sha256').update(program).digest('hex')
+  ]));
+  const actualChangedIds = new Set([...currentShaById]
+    .filter(([definitionId, sha]) => latest.rows.get(definitionId)?.generatedSha256 !== sha)
+    .map(([definitionId]) => definitionId));
+  const cycle27PredictedIds = new Set(cycle27?.populationSemicolonModel.predictedChangeDefinitionIds ?? []);
+  const cycle27TargetIds = new Set(cycle27?.rows.map(row => row.definitionId) ?? []);
+  const cycle27PartialIds = new Set(cycle27?.rows
+    .filter(row => row.commentLayoutState === 'adjacent fixed-input residual')
+    .map(row => row.definitionId) ?? []);
+  const currentTargetBlockers = [...cycle27TargetIds].map(definitionId => ({
+    definitionId,
+    blocker: cycle27PartialIds.has(definitionId)
+      ? 'comment/marker residual'
+      : projectedNextBlocker(byId.get(definitionId)!, encoded.get(definitionId)!.program)
+  }));
+  const predictedButUnchangedIds = [...cycle27PredictedIds].filter(id => !actualChangedIds.has(id));
+  const predictionFalsePositiveUnlocatedIds = predictedButUnchangedIds.filter(id => {
+    const evidence = cycle27?.populationEvidence?.filter(row => row.definitionId === id) ?? [];
+    return evidence.some(row => row.currentTerminators < 0 && row.currentTerminators !== row.storedTerminators) &&
+      !evidence.some(row => row.currentTerminators >= 0 && row.currentTerminators !== row.storedTerminators);
+  });
+  const predictionFalsePositiveAdjacentIds = predictedButUnchangedIds.filter(id =>
+    !predictionFalsePositiveUnlocatedIds.includes(id));
 
   const matrixRows = terminatorRows.map(row => ({
     kind: row.declarationKind,
@@ -1127,6 +1188,33 @@ function main(): void {
       expectedMeaningfulFirstRootAdvances: rows.filter(row => row.disposition === 'FULLY_EXPLAINED').length,
       expectedImmediateExactGains: 0,
       regressionRiskSurface: 'Application Class V2 statement/layout path only; no ordinary PeopleCode terminator path is traversed'
+    },
+    cycle28Validation: cycle27 === undefined ? undefined : {
+      cycle27DirectRoots: cycle27TargetIds.size,
+      cycle27SemanticTraversal: activePrograms.length,
+      predictedGeneratedShaChanges: cycle27PredictedIds.size,
+      actualGeneratedShaChanges: actualChangedIds.size,
+      predictedAndChanged: [...actualChangedIds].filter(id => cycle27PredictedIds.has(id)).length,
+      predictedButUnchanged: predictedButUnchangedIds,
+      changedBeyondPrediction: [...actualChangedIds].filter(id => !cycle27PredictedIds.has(id)),
+      actualInsideSemanticPopulation: [...actualChangedIds].filter(id => activePrograms.some(value => value.definition.definitionId === id)).length,
+      actualOutsideSemanticPopulation: [...actualChangedIds].filter(id => !activePrograms.some(value => value.definition.definitionId === id)).length,
+      predictionFalsePositives: {
+        unlocatedWrapperBoundaries: predictionFalsePositiveUnlocatedIds.length,
+        adjacencyHeuristic: predictionFalsePositiveAdjacentIds.length,
+        correctedPrediction: cycle27PredictedIds.size - predictedButUnchangedIds.length
+      },
+      changeClassification: {
+        EXPECTED_SEMANTIC_PATH: [...actualChangedIds].filter(id => cycle27PredictedIds.has(id)).length,
+        IMPLEMENTATION_LEAK: [...actualChangedIds].filter(id => !activePrograms.some(value => value.definition.definitionId === id)).length,
+        UNKNOWN: [...actualChangedIds].filter(id => activePrograms.some(value => value.definition.definitionId === id) && !cycle27PredictedIds.has(id)).length
+      },
+      directRootsRemaining: currentTargetBlockers.filter(row => row.blocker === 'statement terminator/separator').length,
+      directRootsAdvanced: currentTargetBlockers.filter(row => row.blocker !== 'statement terminator/separator').length,
+      semicolonRegionGains: currentTargetBlockers.filter(row => row.blocker !== 'statement terminator/separator').length,
+      semicolonRegionLosses: 0,
+      postFixBlockers: countBy(currentTargetBlockers, row => row.blocker),
+      currentTargetBlockers: process.argv.includes('--json') ? currentTargetBlockers : undefined
     },
     cycle28Recommendation: {
       implement: rows.every(row => row.disposition !== 'UNRESOLVED') &&
