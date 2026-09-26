@@ -1,5 +1,244 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 19 — HTML.NAME dependency identity and PSPCMNAME allocation (research only)
+
+**Status: coherent population-wide model established; research-only, no
+encoder behavior change.** Baseline is commit `023225e` (Cycle 18),
+23,217/30,209 EXACT, protected 430/430. Datasource was exclusively the
+completed LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`); `--live` was
+not used.
+
+Reproducible analyzer:
+`tools/corpus/research/html-reference-analysis.ts`. It masks comments and
+string literals without changing source offsets, enumerates every static
+`HTML.NAME` expression, decodes every stored reference token with its exact
+`NAMENUM`, and aligns the two streams by definition and name sequence. It also
+reads the latest completed 30,209-definition classification run for population
+status. `--csv` emits every aligned occurrence with source offset, caller,
+argument position, statement, lexical control path, function/method, stored
+byte offset/opcode, PSPCMNAME fields, previous same-name use, and NEW/REUSE
+classification.
+
+### 1. Full static HTML population
+
+- 122 definitions, 364 static `HTML.NAME` occurrences, 211 unique HTML names.
+- 71 ordinary PeopleCode definitions / 134 occurrences.
+- 51 Application Class definitions / 230 occurrences.
+- Definition occurrence shapes: 69 single occurrence, 28 multiple occurrences
+  all distinct, 25 containing a repeated same name.
+- Current definition classifications at the Cycle 18 baseline:
+  - 26 EXACT
+  - 25 UNKNOWN_MISMATCH
+  - 16 DECODE_SOURCE_MISMATCH
+  - 44 ENCODE_ERROR
+  - 11 UNSUPPORTED_SYNTAX
+- Construct/caller distribution:
+  - `GetHTMLText` first argument: 294 (24 one-argument calls, 270 calls with
+    additional substitution arguments)
+  - `AddJavaScript` first argument: 28
+  - `%Response.GetJavaScriptURL` first argument: 18
+  - `GetJSLink` first argument: 3
+  - direct primary value/assignment, not inside a call: 21
+- No repeated same HTML name occurs twice inside one call in this snapshot.
+- Source-to-stored alignment is complete: 122/122 definitions and 364/364
+  occurrences. There is no unresolved/counterexample population for static
+  `HTML.NAME`.
+
+The scanner deliberately distinguishes the reserved `HTML.NAME` primary from
+variables such as `&html.Push(...)`, and it masks `REM`, `/* */`, `<* *>`,
+`//`, `/+ +/`, and quoted text. This distinction is necessary: several large
+Application Classes use a variable named `&html`, which a plain case-insensitive
+`HTML.` search falsely counts.
+
+### 2. Stored dependency and operand model
+
+All 289 stored rows reached by the aligned population have exactly:
+
+```text
+RECNAME        = HTML
+REFNAME        = <source HTML name>
+PACKAGEROOT    = blank
+QUALIFYPATH    = blank
+APPCLASSMETHOD = blank
+```
+
+All 364 stored uses are ordinary three-byte `0x21 <uint16-le index>` operands,
+where `index + 1 = NAMENUM`. There are:
+
+- zero alternate opcodes;
+- zero inline-name encodings;
+- zero special `GetHTMLText` operand shapes;
+- zero unreferenced `RECNAME=HTML` rows.
+
+The same row/opcode model holds for all 70 uses outside `GetHTMLText`, including
+direct assignments and the other four callers above. `GetHTMLText` is therefore
+not semantically special for dependency representation; it is merely the most
+common consumer.
+
+### 3. Allocation and reuse model
+
+Among 89 repeated-same-name transitions, stored behavior is 75 REUSE and 14
+NEW. The following identity model explains 89/89 with zero contradictions:
+
+```text
+HTML dependency identity = (HTML lifetime namespace, normalized HTML name)
+
+Application Class:
+  lifetime namespace = whole Application Class compilation unit
+
+ordinary Function ... End-Function body:
+  lifetime namespace = that function
+
+ordinary top-level/event code:
+  lifetime namespace = the enclosing top-level control region
+```
+
+Equivalently, one PSPCMNAME row is allocated on the first use of a name in its
+HTML lifetime namespace and all later uses in that namespace point to the same
+`NAMENUM`.
+
+Population invariants:
+
+- 289 allocated identities (`FIRST + NEW`)
+- 289 inferred `(namespace, HTML name)` identities
+- 289 stored HTML rows
+- zero inferred identities map to multiple rows
+- zero stored rows map to multiple inferred identities
+
+Observed transition evidence:
+
+| Relationship to previous same-name occurrence | Stored result |
+| --- | ---: |
+| Application Class, different method | 17 REUSE / 0 NEW |
+| Application Class, different lexical control path | 28 REUSE / 0 NEW |
+| Application Class, sequential statement | 12 REUSE / 0 NEW |
+| ordinary PeopleCode, different function | 0 REUSE / 13 NEW |
+| ordinary PeopleCode, different top-level control region | 0 REUSE / 1 NEW |
+| ordinary PeopleCode, nested lexical-path change within the surviving unit | 3 REUSE / 0 NEW |
+| ordinary PeopleCode, sequential statement | 5 REUSE / 0 NEW |
+
+Competing models fail materially:
+
+- global HTML-name identity: 75 explained / 14 contradictions (all 13
+  cross-function NEW cases plus the separate-top-level-control-region NEW case)
+- lexical-control-path identity: 41 explained / 48 contradictions (especially
+  Application Class cross-method/control-path reuse)
+- statement-local identity: 15 explained / 74 contradictions
+- occurrence identity: 14 explained / 75 contradictions
+
+This lifetime is not the existing uniform block-scoped `DependencyScope`.
+Application Classes deliberately retain HTML identity across method boundaries;
+ordinary functions deliberately allocate a fresh identity across function
+boundaries; ordinary top-level event code supplies the one evidenced
+control-region split. A dedicated HTML namespace/lifetime policy is therefore
+the smaller model.
+
+### 4. Positive and negative controls
+
+- Single reference: definition 1605, `HTML.PTGPLT_IMG_HTML`, `NAMENUM=4`,
+  `0x21`.
+- Reuse across sequential statements: definition 13562,
+  `HTML.PORTAL_TAB_ADM_3COL`, both uses `NAMENUM=14`.
+- NEW across ordinary function boundary: definition 13559,
+  `HTML.PORTAL_HPTAB_HIDDEN`, `NAMENUM=33` then `NAMENUM=121`.
+- NEW across ordinary top-level control regions (and currently EXACT negative
+  control): definition 18309, `HTML.PTGPLT_IMG_HTML`, `NAMENUM=5` then
+  `NAMENUM=8` in separate top-level `If` regions.
+- REUSE across Application Class method boundary: definition 28936,
+  `HTML.BEN_SUMM_JS`, both uses `NAMENUM=34`.
+- Multiple distinct names: definition 13412.
+- Direct use outside any call: definition 30198 assigns
+  `HTML.PTAL_PGLTAREA_LAYOUT_VL` directly; still `0x21`, `NAMENUM=6`.
+- Cycle 18 focus class: definition 29640 has four distinct HTML dependencies,
+  stored as consecutive `RECNAME=HTML` rows `NAMENUM=4..7` and used by `0x21`
+  operands. The current encoder's generic record/field fallback incorrectly
+  binds these uses through each separately encoded method fragment's synthetic
+  owner slot, confirming the architecture gap without requiring a semantic
+  patch in this cycle.
+
+### 5. Mapping to the current encoder architecture
+
+`HTML.NAME` is a direct primary dependency expression. `ChainSemantics` and
+`DependencyKind` do not participate: there is no receiver chain whose value
+type/provenance must first establish eligibility.
+
+The parser currently reaches `HTML.NAME` only through the generic
+`ordinaryRecordFieldReference()` fallback. That happens to emit the correct
+artifact fields (`recordName=HTML`, `fieldName=NAME`) and the correct `0x21`
+operand shape, but it also inherits semantics that the population disproves for
+HTML:
+
+- ordinary owner-slot inference;
+- ordinary record/field control-group keying;
+- per-fragment maps in Application Class method encoding.
+
+In Cycle 18's Application Class wrapper, each method body is a separate
+`encodeFragmentInternal()` call with only a numeric `referenceIndexOffset`.
+No identity state is shared between fragments. Worse, when the owner row is
+suppressed, the first generic `HTML.NAME` in a fragment can bind the fragment's
+synthetic owner reference instead of allocating an HTML row. Definition 29640's
+reference trace demonstrates this directly.
+
+Future implementation should therefore recognize the `HTML.` qualifier before
+the generic record/field fallback and route it through an explicit HTML
+dependency facade owning the lifetime model above. Application Class encoding
+must share that facade across all method fragments; ordinary encoding must key
+or reset it at the evidenced function/top-level boundaries. The generated
+artifact must remain `RECNAME=HTML`, `REFNAME=<name>`, blank package/method
+columns, and `0x21` operand.
+
+### 6. Does HTML require a new `PeopleCodeReference.kind`?
+
+No stored evidence requires a new public kind. The on-disk row is exactly the
+existing two-part `recordName`/`fieldName` shape and uses the same `0x21`
+operand. An implementation can preserve `kind: 'record-field'` while giving
+the reserved `HTML` qualifier its own parser/facade and lifetime policy.
+
+A new internal or public kind may later be useful for type safety or diagnostics,
+but that would be an implementation-design choice, not a recovered PeopleTools
+semantic fact. Do not add `'html'` merely to mirror the source spelling.
+
+### 7. Future implementation target and boundaries
+
+The semantic target population is all 122 definitions / 364 static occurrences,
+with the 26 currently EXACT definitions as mandatory negative controls. The
+initial implementation should be limited to:
+
+1. explicit static `HTML.NAME` primary recognition;
+2. allocation of the existing `record-field` artifact shape without owner-slot
+   inference;
+3. an HTML identity facade keyed by the lifetime namespace plus normalized
+   name;
+4. shared Application Class state across method fragments;
+5. function/top-level boundary handling evidenced above.
+
+Do not couple it to `GetHTMLText`, do not alter `ChainSemantics`,
+`DependencyKind`, FIELD/RECORD/SCROLL reuse, or generalize to dynamic
+`@("HTML." | ...)` expressions. There is no unresolved static population to
+patch individually.
+
+### 8. Validation for this research cycle
+
+- Analyzer: 122/122 definitions and 364/364 occurrences safely aligned;
+  inferred identity model 89/89 repeated transitions, zero contradictions.
+- Typecheck: clean.
+- Unit suite: 491 tests, 490 pass, 1 pre-existing intentional skip, 0
+  failures.
+- Protected baseline: 430/430 EXACT; regression gate PASS (0 improved,
+  0 regressed, 0 unchanged failures).
+- Full local corpus run 2019: 23,217/30,209 EXACT, 6,992 failures. The complete
+  classification breakdown is unchanged: 23,217 EXACT, 4,541
+  UNKNOWN_MISMATCH, 1,386 ENCODE_ERROR, 814 DECODE_SOURCE_MISMATCH, 251
+  UNSUPPORTED_SYNTAX.
+- Comparison against Cycle 18's completed full run 2016: 0 classification
+  changes, 0 newly exact, 0 EXACT regressions, and **0/30,209 generated SHA
+  changes**.
+- Encoder semantic files changed: none.
+- Working-tree changes are limited to this report and the read-only analyzer.
+
+**STOP after this research commit. Do not begin the HTML implementation in the
+same cycle.**
+
 ## Compiler Semantics Cycle 18 — implement the Application Class member-wrapper grammar established in Cycle 17
 
 **Status: implemented, byte-verified, zero regressions, zero unrelated
