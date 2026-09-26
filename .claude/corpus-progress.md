@@ -1,5 +1,289 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 21 — residual population census and next-subsystem selection
+
+**Status: research complete; no encoder/decoder semantic change.** Baseline is
+commit `d8f1c8f` (Cycle 20), 23,217/30,209 EXACT, with 6,992 residual
+definitions and protected 430/430. The datasource was exclusively the completed
+local HCDEV snapshot; `--live` was not used.
+
+Reproducible analyzer:
+`tools/corpus/research/residual-population-analysis.ts`. The default report is a
+compact census; `--json` emits the complete definition-level evidence and
+`--csv` emits one row per residual definition. It reads the latest completed
+30,209-definition result set, re-encodes every residual that previously encoded
+successfully with the current local encoder, parses stored and generated
+program sections independently, and does not write corpus results.
+
+### Root-cause assignment method
+
+Every definition receives exactly one earliest plausible root family and one
+semantic subsystem. The ordering is deliberate:
+
+1. A source-exact program is decoder-only, even if later roundtrip rendering
+   differs.
+2. A preprocessor-bearing source is environmental before any downstream byte
+   drift is considered.
+3. Statement, name, record, and slot sections are compared independently so a
+   changed header length does not masquerade as a body mismatch.
+4. At the first statement difference, a matching preceding `0x21`/`0x48`/
+   `0x4A` identifies a NAMENUM operand disagreement. The stored token's exact
+   `nameNum` is joined back to PSPCMNAME to distinguish RECORD, FIELD, SCROLL,
+   COMPONENT, ordinary owner/field rows, and Application Class method rows.
+   A reference opcode at the difference is classified as missing/extra
+   reference allocation.
+5. `0x4F`, `0x2D`, and comment opcodes take precedence over generic statement
+   layout. Application Class body/wrapper context and native-library context
+   likewise take precedence over the generic fallback.
+6. Encoder failures are normalized by stable error shape and nearby source
+   construct; numeric offsets and definition-specific text do not create new
+   families. Application Class errors are subdivided by class/interface,
+   extends/implements, property/instance, constant, and method-body structure.
+
+This is a first-root census, not an estimate that fixing a family will make
+every member immediately EXACT. A repaired first root may expose a secondary
+divergence, and downstream symptoms are intentionally not double-counted.
+
+### Full residual inventory
+
+All 6,992 residual definitions were classified. Re-encoding all 5,355 rows
+whose stored result said source encoding succeeds produced zero current-encoder
+inconsistencies.
+
+| classification | count | residual | total corpus | mean source chars | median | major definition types |
+|---|---:|---:|---:|---:|---:|---|
+| UNKNOWN_MISMATCH | 4,541 | 64.95% | 15.03% | 2,781 | 1,031 | Component 1,567; Record 1,447; AE 1,231; Page 275; Message 19 |
+| ENCODE_ERROR | 1,386 | 19.82% | 4.59% | 9,603 | 3,195 | App Class 1,354; Record 14; Component 8; AE 7; Page 2 |
+| DECODE_SOURCE_MISMATCH | 814 | 11.64% | 2.69% | 8,973 | 3,184 | Record 372; App Class 143; AE 141; Component 111; Page 46 |
+| UNSUPPORTED_SYNTAX | 251 | 3.59% | 0.83% | 11,320 | 2,792 | Record 109; Page 61; Component 44; AE 25; App Class 11 |
+| SOURCE_BODY_MISMATCH | 0 | 0% | 0% | — | — | none |
+| SOURCE_REFERENCE_MISMATCH | 0 | 0% | 0% | — | — | none |
+| ROUNDTRIP_BODY_MISMATCH | 0 | 0% | 0% | — | — | none |
+| ROUNDTRIP_REFERENCE_MISMATCH | 0 | 0% | 0% | — | — | none |
+| DECODE_ERROR | 0 | 0% | 0% | — | — | none |
+| UNKNOWN_OPCODE | 0 | 0% | 0% | — | — | none |
+| NO_SOURCE / NO_PROGRAM / OTHER | 0 | 0% | 0% | — | — | none |
+
+### First-divergence families
+
+There are 5,074 successfully encoded, source-binary-nonexact programs. The
+largest mutually exclusive first-divergence families are:
+
+| family | definitions | residual | total | distinct signatures | representative IDs |
+|---|---:|---:|---:|---:|---|
+| NAMENUM disagreement: ordinary record-field/owner | 2,239 | 32.02% | 7.41% | 112 | 849, 1755, 2102 |
+| NAMENUM disagreement: RECORD | 679 | 9.71% | 2.25% | 212 | 871, 968, 1031 |
+| missing `0x4F` marker | 556 | 7.95% | 1.84% | 23 | 1408, 1417, 1419 |
+| built-in object type/declaration encoding | 325 | 4.65% | 1.08% | 2 | 959, 1105, 1106 |
+| NAMENUM disagreement: FIELD | 300 | 4.29% | 0.99% | 117 | 1418, 1420, 3159 |
+| extra `0x4F` marker | 188 | 2.69% | 0.62% | 12 | 1769, 2096, 2097 |
+| missing/extra unresolved reference operand | 185 | 2.65% | 0.61% | 2 | 924, 1295, 2127 |
+| NAMENUM disagreement: SCROLL | 148 | 2.12% | 0.49% | 63 | 1066, 1455, 1525 |
+| extra `0x2D` marker | 127 | 1.82% | 0.42% | 7 | 2958, 3102, 3128 |
+| comment opcode/placement | 93 | 1.33% | 0.31% | 5 | 523, 913, 2809 |
+| missing/extra FIELD operand | 61 | 0.87% | 0.20% | 1 | 969, 3617, 3618 |
+| missing/extra RECORD operand | 55 | 0.79% | 0.18% | 1 | 536, 1287, 1291 |
+| Application Class body/wrapper mismatch | 45 | 0.64% | 0.15% | 7 | 28738, 28740, 28782 |
+| generic statement/expression layout | 21 | 0.30% | 0.07% | 5 | 1635, 4184, 4451 |
+| missing/extra SCROLL operand | 17 | 0.24% | 0.06% | 1 | 2685, 3830, 3912 |
+| Application Class method NAMENUM | 9 | 0.13% | 0.03% | 6 | 2124, 2169, 6270 |
+| Function/native trailer metadata | 5 | 0.07% | 0.02% | 4 | 2158, 5837, 5838 |
+| missing `0x2D` marker | 5 | 0.07% | 0.02% | 2 | 11257, 21969, 23232 |
+| COMPONENT NAMENUM | 5 | 0.07% | 0.02% | 3 | 4589, 13000, 17144 |
+| Application Class names metadata | 3 | 0.04% | 0.01% | 2 | 29631, 29646, 29670 |
+| Application Class leading comment/wrapper | 2 | 0.03% | 0.01% | 1 | 29648, 29672 |
+| statement separator | 2 | 0.03% | 0.01% | 1 | 29143, 29201 |
+
+The built-in-type cluster is unusually coherent: 286 definitions first differ
+as stored `0x0A` versus generated `0x40`, and 39 as stored `0x0A` versus
+generated `0x01`. Stored token context is dominated by object types such as
+Message, Page, GridColumn, IntBroker, RatingBoxChart, and JavaObject. It is not
+being folded into the broad reference family.
+
+### ENCODE_ERROR / UNSUPPORTED_SYNTAX census
+
+The 1,637 non-encoding definitions normalize to these families:
+
+| failure family | count | representative IDs | partial support/model |
+|---|---:|---|---|
+| App Class extends/implements statement grammar | 708 | 28700, 28701, 28702 | directory relation metadata modeled in Cycle 13; executable declaration not encoded |
+| App Class property/instance statement grammar | 526 | 28713, 28715, 28716 | directory/storage metadata modeled; declaration statement not encoded |
+| preprocessor / `#ToolsRel` compile-time branch | 140 | 4115, 4141, 4348 | decoder recognizes directive opcodes; compile environment absent |
+| orphan/extra statement terminator | 89 | 1286, 1592, 2129 | ordinary terminators supported; this source boundary is not |
+| App Class method-body grammar | 41 | 28727, 28779, 28793 | methods-only subset exists |
+| App Class interface statement grammar | 37 | 29044, 29085, 29086 | directory shape researched; executable interface form absent |
+| parenthesized expression/create statement | 28 | 5853, 5854, 5857 | postfix chains supported; parenthesized statement head is not |
+| parser boundary / nested syntax | 18 | 4101, 5004, 5047 | related nested constructs supported |
+| unsupported expression/declaration form | 15 | 522, 1747, 6003 | heterogeneous partial grammar |
+| Function/native signature metadata | 14 | 1016, 13562, 14665 | common scalar/object descriptors supported |
+| bare-identifier expression/postfix | 5 | 826, 13895, 16592 | call-shaped bare identifiers supported |
+| comment-interleaved/noncanonical declaration list | 4 | 6074, 6438, 25960 | ordinary declaration lists supported |
+| cast/member expression before `Then` | 3 | 24800, 24988, 25953 | casts and member access supported separately |
+| disabled-code delimiter at statement boundary | 3 | 2201, 2867, 15537 | ordinary disabled blocks supported |
+| App Class constant statement grammar | 2 | 28806, 30140 | constant metadata recognized |
+| disabled-code block inside `Evaluate` | 1 | 21348 | Evaluate and disabled blocks supported separately |
+| native `Declare Function ... Library` source | 1 | 29329 | decoder shape known; encoder metadata incomplete |
+| Try/Catch statement grammar boundary | 1 | 25111 | ordinary try/catch supported |
+| malformed/in-name `#` statement | 1 | 3430 | not treated as environmental preprocessor source |
+
+Representative source context is retained per family and per definition in the
+JSON/CSV outputs. The normalized raw-error concentration is 1,357 instances of
+`bare identifiers are only supported as calls`, but 1,275 of those are the
+already-identifiable Application Class declaration families above; raw error
+text alone would therefore give the wrong next-subsystem conclusion.
+
+### Semantic subsystem buckets
+
+Here “understood” means the first-root structural family is explained well
+enough to name, not that its binary semantics are already implementable.
+
+| subsystem | count | residual | signatures | understood / unknown | largest common rule | prior model |
+|---|---:|---:|---:|---:|---:|---|
+| PSPCMNAME/dependency identity/reference numbering | 3,693 | 52.82% | 513 | 0 / 3,693 | 2,239 | Cycles 4-12 and 19-20 cover substantial RECORD/FIELD/HTML identity; remaining first-allocation contexts are heterogeneous |
+| App Class executable-body layout | 1,361 | 19.47% | 13 | 1,275 / 86 | 708 | Cycles 13-18 provide metadata, methods-only, and wrapper foundations; broader class/member statements absent |
+| comment/blank-line/structural markers | 969 | 13.86% | 49 | 876 / 93 | 556 | Cycles 15-18 explain core `0x4F`/`0x2D` boundaries; minority contexts remain |
+| statement/expression bytecode layout | 348 | 4.98% | 8 | 325 / 23 | 325 | one concentrated built-in-object declaration cluster plus small remainder |
+| decoder-only | 281 | 4.02% | 4 | 114 / 167 | 167 | all programs decode; source reconstruction/semantic rendering remains |
+| parser/grammar coverage | 168 | 2.40% | 12 | 135 / 33 | 89 | several constructs are adjacent to supported grammar but structurally distinct |
+| preprocessor/compile-time environment | 140 | 2.00% | 2 | 140 / 0 | 140 | directive bytes decode; authoritative compile-time environment unavailable |
+| native/library declaration metadata | 20 | 0.29% | 16 | 0 / 20 | 14 | common Function metadata exists; native/signature tail is incomplete |
+| owner/package/external context | 9 | 0.13% | 6 | 0 / 9 | 9 | package/App Class rows decode; owner-scoped allocation order unresolved |
+| App Class metadata | 3 | 0.04% | 2 | 3 / 0 | 3 | Cycle 13 established most directory semantics |
+| unknown/unclassified | 0 | 0% | 0 | 0 / 0 | 0 | none |
+
+Explicit population checks: 1,510 Application Class residuals; 140
+preprocessor-bearing/environment-dependent definitions; one native
+`Declare Function ... Library` source; 3,693 reference-numbering roots; 969
+comment/blank-line/`0x4F`/`0x2D` roots; 2,472 source definitions bearing a
+package/Application Class dependency (only nine have that dependency as their
+first root); 121 unsupported top-level syntax roots; five unsupported
+expression/postfix roots; zero unknown-opcode roots; and 281 decoder-only
+roots. HTML is not reopened: the census found no HTML-specific residual family.
+
+### Top 10 root families and concentration
+
+The top 10 mutually exclusive families are: ordinary record-field/owner
+NAMENUM (2,239), App Class extends/implements (708), RECORD NAMENUM (679),
+missing `0x4F` (556), App Class property/instance (526), built-in object type
+encoding (325), FIELD NAMENUM (300), extra `0x4F` (188), missing/extra
+unresolved reference operand (185), and decoder semantic roundtrip mismatch
+(167).
+
+- Top 1: 32.02% of residuals.
+- Top 3: 51.86%.
+- Top 5: 67.33%.
+- Top 10: 84.00%.
+- 44 root families total; four singleton families; 16 families contain five or
+  fewer definitions.
+- Genuinely unclassified definitions: **zero**.
+
+The result is a hybrid: a few high-level families dominate the population, but
+the largest reference family alone contains 513 first-byte signatures. Thus
+the residual count is concentrated while the remaining rule space, especially
+reference allocation, has a substantial internal long tail.
+
+### Cycle 22 technical priority ranking
+
+| rank | subsystem | direct roots | confidence / understanding | complexity | leverage | exact-regression risk |
+|---:|---|---:|---|---|---|---|
+| 1 | App Class class-header/member executable statements | 1,361 | high / low-medium | high | high | low: no App Class is currently EXACT |
+| 2 | built-in object type/declaration layout | 348 (325 one cluster) | high for cluster / medium | medium-high | high | medium |
+| 3 | comment/blank-line/structural markers | 969 | high / medium-high | high | medium | medium |
+| 4 | decoder-only reconstruction | 281 | high / medium | medium | medium | low-medium |
+| 5 | parser/grammar coverage | 168 | high / medium | medium | medium-high | medium |
+| 6 | remaining App Class metadata | 3 | high / high | low | medium-high | low |
+| 7 | owner/package/external allocation context | 9 | high / medium | high | high | medium-high |
+| 8 | native/library metadata | 20 | high / low | medium | medium | low-medium |
+| 9 | mature PSPCMNAME/reference subsystem | 3,693 | high family reality / heterogeneous semantics | very high | high | medium-high |
+| 10 | preprocessor/compile environment | 140 | high / low | environment-dependent | medium | high/environmental |
+
+**Recommendation for Cycle 22:** investigate Application Class class-header and
+member-statement encoding: extends/implements, property/instance, interface,
+constant, and the residual method-body entry shapes. This is one architectural
+gap with 1,361 direct first roots, 1,275 already localized to five constructs.
+Cycle 13 supplies the directory/storage evidence and Cycles 14-18 supply the
+wrapper and compilation-unit scaffolding. Although implementation complexity is
+high, the work has strong explanatory power and unusually low risk to the
+23,217 exact ordinary programs because the snapshot currently has zero EXACT
+Application Classes.
+
+Backups, in order:
+
+1. Built-in object type/declaration encoding: a narrow 325-definition,
+   two-signature cluster with strong stored-token controls.
+2. Remaining marker placement: 969 roots and strong prior evidence, but 49
+   signatures and wider interaction with already-exact programs make it a
+   higher-regression surface.
+3. Decoder-only reconstruction: 281 roots, isolated from source-encoder
+   exactness; 114 are already source- and roundtrip-exact text-only cases.
+
+The 3,693-reference bucket is intentionally not the recommendation despite its
+size. Its 513 signatures show that the first reference difference is a symptom
+class spanning many allocation contexts, not one demonstrated common rule; the
+mature RECORD/FIELD/HTML behavior has a much larger regression surface. It
+should remain frozen until a narrower causal population model exists.
+
+### Environmental and unresolved populations
+
+The 140 definitions blocked at their first root by `#If`/`#Else`/`#End-If`/
+`#ToolsRel` compile context are exactly:
+
+`4115, 4141, 4348, 4601, 4602, 5196, 5396, 5628, 5721, 5770, 5830, 9670,
+13848, 13849, 13876, 13882, 13901, 18181, 18191, 18212, 18213, 18228, 18230,
+18246, 18249, 18256, 18300, 18313, 18320, 18321, 18323, 18324, 18328, 18329,
+18353, 18356, 18357, 18417, 18418, 18419, 18420, 18505, 18506, 18507, 18508,
+18509, 18513, 18514, 18772, 18774, 18775, 18776, 18777, 18778, 18782, 18783,
+18784, 18785, 18786, 18967, 18968, 18972, 18973, 18980, 18985, 18987, 19510,
+19554, 19862, 20068, 20070, 20133, 20135, 20267, 20288, 20314, 20555, 20557,
+20796, 20853, 21018, 21239, 23507, 25331, 25332, 25333, 25336, 25876, 25883,
+28541, 28788, 28789, 28791, 28792, 28796, 28797, 28850, 28851, 28854, 28868,
+28870, 28871, 28889, 28890, 28892, 28914, 28918, 28936, 28942, 28943, 28944,
+28946, 28948, 28950, 28951, 28955, 29047, 29048, 29049, 29050, 29051, 29052,
+29053, 29054, 29055, 29056, 29057, 29249, 29606, 29609, 29611, 29617, 29618,
+29619, 29620, 29623, 29713, 29714, 29724, 29734`.
+
+The exact unresolved/unclassified population is empty. This does not mean all
+semantics are known: 4,124 definitions sit in a named subsystem but have an
+unknown rule within that subsystem, primarily the 3,693 heterogeneous
+reference roots. It means no residual lacks a defensible first-root bucket.
+
+### Architectural coverage and path to exactness
+
+There is no honest single “architectural completeness” percentage. The
+measurable capability frontiers are:
+
+- decode succeeds for 30,209/30,209 programs; normalized source matches for
+  27,877/30,209 (92.28%);
+- source encoding succeeds for 28,572/30,209 (94.58%);
+- source encoding is byte-exact for 23,498/30,209 (77.78%);
+- roundtrip encoding succeeds for 28,403/30,209 (94.02%) and is byte-exact for
+  23,371/30,209 (77.36%);
+- the full three-gate EXACT result is 23,217/30,209 (76.85%).
+
+This indicates broad parser/decoder reach but materially lower exact compiler
+semantics. Reaching 90% requires at least 3,972 additional exact definitions:
+even the App Class, marker, built-in-layout, parser, and decoder buckets are
+insufficient as optimistic upper bounds, so a narrowed reference-allocation
+model is eventually unavoidable. Reaching 95% requires 5,482 and therefore
+most large families, including substantial reference work. Reaching 100%
+requires all 6,992 plus authoritative treatment of the 140 environment-bound
+programs, native metadata, and secondary roots revealed after first fixes.
+These are lower-bound counts, not forecasts of one-fix gains.
+
+### Validation
+
+- Analyzer covers 6,992/6,992 residuals and reports zero current re-encode
+  inconsistencies.
+- Typecheck: clean.
+- Unit suite: 498 passed, one intentional pre-existing skip.
+- Protected baseline: 430/430 EXACT, regression gate pass.
+- Full local corpus: 23,217/30,209 EXACT.
+- Classification changes versus the Cycle 20 full run: zero.
+- Generated SHA changes: 0/30,209.
+- No `src/` file changed and `--live` was not used.
+
+**STOP after the Cycle 21 research commit. Do not begin Cycle 22.**
+
 ## Compiler Semantics Cycle 20 — implement HTML.NAME dependency identity and lifetime scoping
 
 **Status: implemented, population-audited, and regression-clean.** Baseline is
