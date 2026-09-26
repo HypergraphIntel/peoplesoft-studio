@@ -1,5 +1,5 @@
 /**
- * Cycles 29-30: Application Class program-name/directory metadata census.
+ * Cycles 29-31: Application Class program-name/directory metadata census.
  *
  * Read-only. Uses the completed local HCDEV snapshot, the current encoder,
  * and Cycle 28's saved post-fix report. It never connects to Oracle or writes
@@ -83,6 +83,50 @@ interface ParsedMetadata {
 
 function normalize(value: string): string {
   return value.trim().toLowerCase();
+}
+
+function storageName(key: string): string {
+  return key.slice(key.indexOf(':') + 1);
+}
+
+function hashJava31(value: string): number {
+  let hash = 0;
+  for (const char of value) hash = (Math.imul(hash, 31) + char.charCodeAt(0)) >>> 0;
+  return hash;
+}
+
+function hashDjb2(value: string): number {
+  let hash = 5381;
+  for (const char of value) hash = (Math.imul(hash, 33) + char.charCodeAt(0)) >>> 0;
+  return hash;
+}
+
+function hashSdbm(value: string): number {
+  let hash = 0;
+  for (const char of value) {
+    hash = (char.charCodeAt(0) + Math.imul(hash, 65599)) >>> 0;
+  }
+  return hash;
+}
+
+function hashFnv1a(value: string): number {
+  let hash = 0x811c9dc5;
+  for (const char of value) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash;
+}
+
+function hashElf(value: string): number {
+  let hash = 0;
+  for (const char of value) {
+    hash = ((hash << 4) + char.charCodeAt(0)) >>> 0;
+    const high = hash & 0xf0000000;
+    if (high !== 0) hash ^= high >>> 24;
+    hash &= ~high;
+  }
+  return hash >>> 0;
 }
 
 function readBaseline(runId: number): Map<number, ResultRow> {
@@ -467,8 +511,13 @@ function main(): void {
     });
     return [{
       definitionId: definition.definitionId,
+      selfName: stored.records[0]?.name,
       sourceKeys,
       storedKeys,
+      allSourceKeys: parsed.members.map(member => `${member.kind}:${normalize(member.name)}`),
+      implementationKeys: parsed.implementations.map(implementation =>
+        `${implementation.kind}:${normalize(implementation.name)}`
+      ),
       sourceMembers: sourceMembers.map(member => ({
         kind: member.kind,
         name: member.name,
@@ -476,7 +525,11 @@ function main(): void {
         declarationOrdinal: member.declarationOrdinal,
         type: member.type,
         mode: member.mode,
-        visibility: member.visibility
+        visibility: member.visibility,
+        firstUseOffset: definition.sourceText.toLowerCase().indexOf(
+          member.name.toLowerCase(),
+          member.sourceEnd
+        )
       })),
       storedRecords,
       allStoredRecords: stored.records,
@@ -501,6 +554,44 @@ function main(): void {
   const contradictoryPairs = [...pairDirections]
     .filter(([, directions]) => directions.size > 1)
     .map(([pair]) => pair);
+  const pairSourceRelations = new Map<string, Array<{
+    definitionId: number;
+    sourceDirection: string;
+    storedDirection: string;
+  }>>();
+  const classScopedPairDirections = new Map<string, Set<string>>();
+  for (const control of physicalStorageControls) {
+    const sourcePosition = new Map(control.sourceKeys.map((key, index) => [key, index]));
+    const className = normalize(control.selfName ?? '').split(':').at(-1) ?? '';
+    for (let left = 0; left < control.storedKeys.length; left++) {
+      for (let right = left + 1; right < control.storedKeys.length; right++) {
+        const lexicalPair = [control.storedKeys[left], control.storedKeys[right]].sort();
+        const pair = lexicalPair.join('|');
+        const storedDirection = control.storedKeys[left] === lexicalPair[0] ? 'forward' : 'reverse';
+        const sourceDirection = (sourcePosition.get(lexicalPair[0]) ?? -1) <
+          (sourcePosition.get(lexicalPair[1]) ?? -1) ? 'forward' : 'reverse';
+        const observations = pairSourceRelations.get(pair) ?? [];
+        observations.push({ definitionId: control.definitionId, sourceDirection, storedDirection });
+        pairSourceRelations.set(pair, observations);
+        const scopedDirections = classScopedPairDirections.get(`${className}|${pair}`) ?? new Set<string>();
+        scopedDirections.add(storedDirection);
+        classScopedPairDirections.set(`${className}|${pair}`, scopedDirections);
+      }
+    }
+  }
+  const contradictoryPairRelations = contradictoryPairs.map(pair => ({
+    pair,
+    observations: pairSourceRelations.get(pair) ?? []
+  }));
+  const contradictoryPairsSometimesPreservingSource = contradictoryPairRelations.filter(row =>
+    row.observations.some(observation => observation.sourceDirection === observation.storedDirection)
+  );
+  const contradictoryPairsAlwaysReversingSource = contradictoryPairRelations.filter(row =>
+    row.observations.every(observation => observation.sourceDirection !== observation.storedDirection)
+  );
+  const contradictoryClassScopedPairs = [...classScopedPairDirections]
+    .filter(([, directions]) => directions.size > 1)
+    .map(([pair]) => pair);
   const storageSetGroups = new Map<string, typeof physicalStorageControls>();
   for (const control of physicalStorageControls) {
     const key = [...control.sourceKeys].sort().join('|');
@@ -515,6 +606,137 @@ function main(): void {
   const contradictoryStoredSets = repeatedStorageSets.filter(group =>
     new Set(group.map(control => control.storedKeys.join('|'))).size > 1
   );
+  const nearSetPairs: Array<{
+    leftDefinitionId: number;
+    rightDefinitionId: number;
+    symmetricDifference: number;
+    commonKeys: string[];
+    leftCommonOrder: string[];
+    rightCommonOrder: string[];
+    stable: boolean;
+  }> = [];
+  for (let left = 0; left < physicalStorageControls.length; left++) {
+    for (let right = left + 1; right < physicalStorageControls.length; right++) {
+      const leftControl = physicalStorageControls[left];
+      const rightControl = physicalStorageControls[right];
+      const leftSet = new Set(leftControl.sourceKeys);
+      const rightSet = new Set(rightControl.sourceKeys);
+      const commonKeys = [...leftSet].filter(key => rightSet.has(key));
+      const symmetricDifference = leftControl.sourceKeys.filter(key => !rightSet.has(key)).length +
+        rightControl.sourceKeys.filter(key => !leftSet.has(key)).length;
+      if (commonKeys.length < 2 || symmetricDifference > 2) continue;
+      const commonSet = new Set(commonKeys);
+      const leftCommonOrder = leftControl.storedKeys.filter(key => commonSet.has(key));
+      const rightCommonOrder = rightControl.storedKeys.filter(key => commonSet.has(key));
+      nearSetPairs.push({
+        leftDefinitionId: leftControl.definitionId,
+        rightDefinitionId: rightControl.definitionId,
+        symmetricDifference,
+        commonKeys,
+        leftCommonOrder,
+        rightCommonOrder,
+        stable: leftCommonOrder.join('|') === rightCommonOrder.join('|')
+      });
+    }
+  }
+  const multiStorageControls = physicalStorageControls.filter(control => control.sourceKeys.length > 1);
+  const exactOrderMatches = (order: (control: typeof physicalStorageControls[number]) => string[]): number =>
+    multiStorageControls.filter(control => order(control).join('|') === control.storedKeys.join('|')).length;
+  const sourceIndex = (control: typeof physicalStorageControls[number]): Map<string, number> =>
+    new Map(control.sourceKeys.map((key, index) => [key, index]));
+  const sourceMemberByKey = (control: typeof physicalStorageControls[number]) =>
+    new Map(control.sourceMembers.map(member => [`${member.kind}:${normalize(member.name)}`, member]));
+  const compareWithSourceTie = (
+    control: typeof physicalStorageControls[number],
+    value: (key: string) => string | number,
+    direction: 1 | -1 = 1
+  ): string[] => {
+    const positions = sourceIndex(control);
+    return [...control.sourceKeys].sort((left, right) => {
+      const leftValue = value(left);
+      const rightValue = value(right);
+      const compared = typeof leftValue === 'number' && typeof rightValue === 'number'
+        ? leftValue - rightValue
+        : String(leftValue).localeCompare(String(rightValue));
+      return direction * compared || (positions.get(left)! - positions.get(right)!);
+    });
+  };
+  const deterministicCandidates = [
+    { name: 'source declaration order', order: (control: typeof physicalStorageControls[number]) => control.sourceKeys },
+    { name: 'reverse source declaration order', order: (control: typeof physicalStorageControls[number]) => [...control.sourceKeys].reverse() },
+    { name: 'lexical member key ascending', order: (control: typeof physicalStorageControls[number]) => compareWithSourceTie(control, key => key) },
+    { name: 'lexical member key descending', order: (control: typeof physicalStorageControls[number]) => compareWithSourceTie(control, key => key, -1) },
+    { name: 'property before instance', order: (control: typeof physicalStorageControls[number]) => compareWithSourceTie(control, key => key.startsWith('property:') ? 0 : 1) },
+    { name: 'instance before property', order: (control: typeof physicalStorageControls[number]) => compareWithSourceTie(control, key => key.startsWith('instance:') ? 0 : 1) },
+    { name: 'declared type ascending', order: (control: typeof physicalStorageControls[number]) => {
+      const members = sourceMemberByKey(control);
+      return compareWithSourceTie(control, key => normalize(members.get(key)?.type ?? ''));
+    } },
+    { name: 'property mode ascending', order: (control: typeof physicalStorageControls[number]) => {
+      const members = sourceMemberByKey(control);
+      return compareWithSourceTie(control, key => normalize(members.get(key)?.mode ?? ''));
+    } },
+    { name: 'first post-declaration source use', order: (control: typeof physicalStorageControls[number]) => {
+      const members = sourceMemberByKey(control);
+      return compareWithSourceTie(control, key => {
+        const offset = members.get(key)?.firstUseOffset ?? -1;
+        return offset < 0 ? Number.MAX_SAFE_INTEGER : offset;
+      });
+    } }
+  ].map(candidate => ({
+    name: candidate.name,
+    exact: exactOrderMatches(candidate.order),
+    population: multiStorageControls.length
+  }));
+  const hashFunctions = [
+    { name: 'java31', hash: hashJava31 },
+    { name: 'djb2', hash: hashDjb2 },
+    { name: 'sdbm', hash: hashSdbm },
+    { name: 'fnv1a', hash: hashFnv1a },
+    { name: 'elf', hash: hashElf }
+  ];
+  const hashSortCandidates = hashFunctions.flatMap(candidate => ([1, -1] as const).flatMap(direction =>
+    (['name', 'kind+name'] as const).map(representation => ({
+      name: `${candidate.name} ${representation} ${direction === 1 ? 'ascending' : 'descending'}`,
+      exact: exactOrderMatches(control => compareWithSourceTie(
+        control,
+        key => candidate.hash(representation === 'name' ? storageName(key) : key),
+        direction
+      )),
+      population: multiStorageControls.length
+    }))
+  ));
+  const bucketCandidates = hashFunctions.flatMap(candidate =>
+    [16, 32, 64, 128, 256, 512, 1024, 2048].flatMap(bucketCount =>
+      (['tail', 'head'] as const).map(chain => ({
+        name: `${candidate.name} ${bucketCount} buckets ${chain}-insert chains`,
+        exact: exactOrderMatches(control => {
+          const positions = sourceIndex(control);
+          return [...control.sourceKeys].sort((left, right) => {
+            const bucketDifference = candidate.hash(storageName(left)) % bucketCount -
+              candidate.hash(storageName(right)) % bucketCount;
+            if (bucketDifference !== 0) return bucketDifference;
+            const sourceDifference = positions.get(left)! - positions.get(right)!;
+            return chain === 'tail' ? sourceDifference : -sourceDifference;
+          });
+        }),
+        population: multiStorageControls.length
+      }))
+    )
+  );
+  const bestHashSortCandidates = [...hashSortCandidates]
+    .sort((left, right) => right.exact - left.exact || left.name.localeCompare(right.name)).slice(0, 5);
+  const bestBucketCandidates = [...bucketCandidates]
+    .sort((left, right) => right.exact - left.exact || left.name.localeCompare(right.name)).slice(0, 5);
+  const twoMemberControls = physicalStorageControls.filter(control => control.sourceKeys.length === 2);
+  const twoMemberDisposition = countBy(twoMemberControls, control =>
+    control.storedKeys.join('|') === control.sourceKeys.join('|') ? 'source' : 'reverse'
+  );
+  const twoMemberKindDisposition = countBy(twoMemberControls, control => {
+    const shape = control.sourceMembers.map(member => member.kind).sort().join('+');
+    const disposition = control.storedKeys.join('|') === control.sourceKeys.join('|') ? 'source' : 'reverse';
+    return `${shape}:${disposition}`;
+  });
   const singletonStorageControls = physicalStorageControls.filter(control => control.sourceMembers.length === 1);
   const singletonInstanceControls = singletonStorageControls.filter(control => control.sourceMembers[0].kind === 'instance');
   const concreteSingletonInstanceControls = singletonInstanceControls.filter(control => {
@@ -591,13 +813,29 @@ function main(): void {
         .equals(sectionBytes(definition.storedProgram, 'records').subarray(16, 32))
     }];
   });
-  const targetIdSet = new Set(targetIds);
+  const cycle31Rows = rows.filter(row => row.currentOutcome === 'names metadata');
+  if (baseline !== undefined && cycle31Rows.length !== 25) {
+    throw new Error(`Expected 25 Cycle 31 names-metadata roots, received ${cycle31Rows.length}.`);
+  }
+  const cycle31TargetIds = cycle31Rows.map(row => row.definitionId);
+  const targetIdSet = new Set(cycle31TargetIds);
+  const cycle31PhysicalControls = physicalStorageControls.filter(control => targetIdSet.has(control.definitionId));
+  const cycle31SetGroups = new Map<string, typeof cycle31PhysicalControls>();
+  for (const control of cycle31PhysicalControls) {
+    const key = [...control.sourceKeys].sort().join('|');
+    const group = cycle31SetGroups.get(key) ?? [];
+    group.push(control);
+    cycle31SetGroups.set(key, group);
+  }
+  const cycle31RepeatedSetGroups = [...cycle31SetGroups.values()].filter(group => group.length > 1);
 
   const report = {
     reproduction: {
       cycle27DirectRoots: cycle28.cycle28Validation.cycle27DirectRoots,
-      namesMetadataRoots: targetIds.length,
-      definitionIds: targetIds
+      cycle29NamesMetadataRoots: targetIds.length,
+      cycle29DefinitionIds: targetIds,
+      cycle31NamesMetadataRoots: cycle31Rows.length,
+      cycle31DefinitionIds: cycle31TargetIds
     },
     families: countBy(rows, row => row.family),
     sourceShapes: countBy(rows, row => row.sourceShape),
@@ -606,6 +844,22 @@ function main(): void {
     typeSuffixCounts: countBy(rows, row => `${row.storedTypeSuffix.length} stored / ${row.generatedTypeSuffix.length} generated`),
     externalReferenceStreams: countBy(rows, row => row.externalReferenceDifference < 0 ? 'exact' : 'different'),
     currentOutcomes: countBy(rows, row => row.currentOutcome),
+    cycle31Targets: {
+      population: cycle31Rows.length,
+      storageMemberCounts: countBy(cycle31Rows, row => String(row.sourceMembers.filter(member =>
+        member.kind === 'property' || member.kind === 'instance'
+      ).length)),
+      storageKindShapes: countBy(cycle31Rows, row => row.sourceMembers
+        .filter(member => member.kind === 'property' || member.kind === 'instance')
+        .map(member => member.kind).sort().join('+')),
+      repeatedMemberSetGroups: cycle31RepeatedSetGroups.length,
+      repeatedMemberSetDefinitions: cycle31RepeatedSetGroups.reduce((sum, group) => sum + group.length, 0),
+      repeatedMemberSetsWithStoredContradiction: cycle31RepeatedSetGroups.filter(group =>
+        new Set(group.map(control => control.storedKeys.join('|'))).size > 1
+      ).length,
+      repeatedMemberSetRows: process.argv.includes('--json') ? cycle31RepeatedSetGroups : undefined,
+      rows: process.argv.includes('--json') ? cycle31Rows : undefined
+    },
     blastRadius: baseline === undefined ? undefined : {
       baselineRunId,
       sourceEncodableApplicationClasses: currentShaById.size,
@@ -643,9 +897,19 @@ function main(): void {
       callableImplementationOrderMatches: physicalStorageControls.filter(row => row.callableImplementationOrderExact).length,
       observedStoragePairs: pairDirections.size,
       contradictoryPairDirections: contradictoryPairs.length,
+      contradictoryPairsSometimesPreservingSource: contradictoryPairsSometimesPreservingSource.length,
+      contradictoryPairsAlwaysReversingSource: contradictoryPairsAlwaysReversingSource.length,
+      classNameScopedPairContradictions: contradictoryClassScopedPairs.length,
       repeatedStorageMemberSets: repeatedStorageSets.length,
       repeatedSetsWithSourcePermutation: permutedSourceSets.length,
       repeatedSetsWithStoredOrderContradiction: contradictoryStoredSets.length,
+      nearIdenticalSetPairs: nearSetPairs.length,
+      nearIdenticalSetPairsWithStableCommonOrder: nearSetPairs.filter(row => row.stable).length,
+      twoMemberDisposition,
+      twoMemberKindDisposition,
+      deterministicCandidates,
+      bestHashSortCandidates,
+      bestBucketCandidates,
       singletonStoragePopulations: singletonStorageControls.length,
       singletonInstancePopulations: singletonInstanceControls.length,
       concreteSingletonInstancePopulations: concreteSingletonInstanceControls.length,
@@ -665,8 +929,11 @@ function main(): void {
       setterShapeChecks,
       setterShapeMatches,
       contradictoryPairs: process.argv.includes('--json') ? contradictoryPairs : undefined,
+      contradictoryPairRelations: process.argv.includes('--json') ? contradictoryPairRelations : undefined,
+      contradictoryClassScopedPairs: process.argv.includes('--json') ? contradictoryClassScopedPairs : undefined,
       permutedSourceSetRows: process.argv.includes('--json') ? permutedSourceSets : undefined,
       contradictoryStoredSetRows: process.argv.includes('--json') ? contradictoryStoredSets : undefined,
+      nearSetPairs: process.argv.includes('--json') ? nearSetPairs : undefined,
       singletonInstanceCurrentControls: process.argv.includes('--json') ? singletonInstanceCurrentControls : undefined,
       controls: process.argv.includes('--json') ? physicalStorageControls : undefined
     },

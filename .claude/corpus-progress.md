@@ -1,5 +1,174 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 31 — Application Class multi-member symbol enumeration
+
+**Status: research and zero-change corpus validation complete; the available
+snapshot does not expose a contradiction-free derivation of multi-member
+storage-symbol order.** Baseline is commit `7232ebb` (Cycle 30),
+23,217/30,209 EXACT, protected 430/430, 1,325/1,510 source-encodable
+Application Classes, and zero EXACT Application Classes. This cycle used only
+the completed local HCDEV snapshot; no `--live` connection or authoritative
+environment mutation was used. Encoder and decoder semantics are unchanged.
+
+### Frozen Cycle 31 population
+
+The extended read-only analyzer,
+`tools/corpus/research/application-class-name-metadata-analysis.ts`, first
+reproduces Cycle 29's 49 names roots against Cycle 30 full run 2227, then
+reclassifies them with the current encoder and freezes exactly these **25**
+remaining multi-member names-metadata roots:
+
+```text
+28731 28827 29085 29086 29095 29121 29132 29133 29149 29150
+29159 29181 29189 29190 29246 29363 29399 29466 29497 29716
+29726 29885 29889 30171 30172
+```
+
+Under `--json`, each row retains its complete corpus display key/package path,
+source member declarations and order, implementations, parameters and return
+types, stored/generated internal names and directory records, signature slots,
+stored/generated PSPCMNAME sequence, section parity, and current outcome. The
+target spans 2 through 50 storage members: five have 2, three have 3, four have
+4, two each have 5/6/10, three have 12, and one each has 8/9/13/50. It includes
+property-only, instance-only, and mixed property/instance classes, with and
+without accessors, constructors, inheritance, named descriptors, and external
+references. It is therefore not one member-kind or size subfamily.
+
+Five natural clone groups provide especially strong differentials (10 target
+definitions total):
+
+| member set | definitions | storage members | result |
+|---|---|---:|---|
+| `ComparisonHandler` | 29085, 29149 | 2 properties | identical stored permutation |
+| `FactorType` | 29095, 29159 | 10 properties + 2 instances | identical stored permutation |
+| `BaseObject` | 29121, 29181 | property + instance | identical stored permutation |
+| `SelectEntity` | 29132, 29189 | 4 properties | identical stored permutation |
+| `SelectFactor` | 29133, 29190 | 5 properties | identical stored permutation |
+
+The paired definitions use different `CAFNUI_*` versus `CAF_*` package roots
+and some have different method populations, yet keep the same order for the
+same storage-symbol set. Conversely, the five two-member targets all happen
+to be reversed, but the full controls are exactly balanced: 42/84 two-member
+units retain source order and 42/84 reverse it. The kind split also contradicts
+a narrow generalization: property/property is 19 source versus 26 reverse,
+property/instance is 6 versus 9, and instance/instance is 17 versus 7.
+
+### Population controls and differential evidence
+
+All **1,506** active Application Class storage populations remain the control
+surface; 643 contain two or more storage members. Only 57/643 match source
+order. The analyzer now makes these additional controls reproducible:
+
+- 64 repeated identical member sets have zero stored-order contradictions.
+  The one repeated set whose declarations occur in different source
+  permutations still converges to one stored order.
+- 95 pairs of definitions have at least two common storage members and a
+  symmetric set difference of at most two. All 95/95 preserve the relative
+  stored order of their common members. Adding or removing one symbol does not
+  scramble the surviving order in these natural controls.
+- Across 114,642 observed storage-member pairs, 1,189 named pairs occur in
+  both stored directions in different enclosing sets. Of those, 1,157 retain
+  their source direction in at least one observation and only 32 always
+  reverse it. A fixed name-only comparator or one fixed collision-chain rule
+  therefore cannot produce the population.
+- Adding the final class name to the pair context still leaves 524 pair-
+  direction contradictions. Package root and class name alone do not expose
+  the missing table state.
+
+These results support a stable compiler-internal enumeration: identical and
+near-identical symbol sets preserve order. They do **not** establish whether
+the hidden mechanism is a compiler pass with insertion history, a dynamically
+sized symbol table, or another internal/environment-derived structure. The
+snapshot contains the final compiled order but no table capacity, insertion
+events, compiler build identifier, or other state that distinguishes those
+models. No local PeopleTools compiler was available for authoritative renamed
+or permuted fixture compilation, so the analysis uses the complete natural
+corpus differential population rather than synthetic generated output.
+
+### Candidate models rejected
+
+The analyzer evaluates source-derived candidates over all 643 multi-member
+controls. Exact whole-order matches are low and every candidate has hundreds
+of contradictions:
+
+| candidate | exact / 643 |
+|---|---:|
+| source declaration order | 57 |
+| reverse declaration order | 60 |
+| lexical member key ascending / descending | 57 / 55 |
+| property-first / instance-first stable partition | 57 / 60 |
+| declared type / property mode | 46 / 59 |
+| first post-declaration source use | 51 |
+
+Common standalone hash sorts (`java31`, `djb2`, `sdbm`, FNV-1a, and ELF),
+tested over normalized name and kind-plus-name in both directions, fare no
+better; the strongest is FNV-1a kind-plus-name ascending at 72/643. Candidate
+16-2048 bucket tables with source-order tail insertion or reverse/head
+insertion also fail; the best sampled model is ELF with 128 head-insert
+buckets at 73/643. Additional exploratory polynomial, signed/unsigned,
+forward/reverse-character, representation, capacity, linear/quadratic probing,
+and open-address scans likewise produced no population model. Their failures
+are research rejections, not encoder constants.
+
+Source declaration/AST traversal, reverse insertion, lexical/canonical name,
+kind/type/mode grouping, first use, implementation/member order, and the tested
+hash/bucket families are therefore rejected as semantic rules. The repeat-set
+stability is positive evidence for determinism, but there is no known function
+from the source metadata available to the encoder to the stored permutation.
+
+### Implementation decision and root accounting
+
+The implementation threshold was not met. Any encoder change would require a
+guessed comparator, magic hash/table constants, or class/member special cases,
+all contradicted or prohibited. No multi-member semantics and no focused unit
+test were added; the analyzer is the sole source change for this research
+cycle. Cycle 29 descriptor allocation and Cycle 30 singleton-instance order
+remain untouched.
+
+The 25-root accounting is exact:
+
+| ending outcome | roots | movement |
+|---|---:|---:|
+| names metadata | 25 | unchanged |
+| reference identity | 0 | 0 |
+| marker residual | 0 | 0 |
+| wrapper/body | 0 | 0 |
+| decoder-only | 0 | 0 |
+| newly source-program exact | 0 | 0 |
+| **total** | **25** | **0** |
+
+The full 99-root Application Class accounting consequently remains 62
+reference identity, 25 names metadata, 9 marker residual, 2 wrapper/body, and
+1 decoder-only. The predicted changed-ID set is empty. A direct read-only
+re-encode of all 1,325 reachable Application Classes against run 2227 observes
+zero generated-SHA changes, exactly matching that prediction; source-program
+gains/losses and EXACT gains/losses are all zero.
+
+### Validation
+
+- Analyzer: reproduces 49 Cycle 29 roots and freezes 25/25 Cycle 31 targets;
+  all 1,506 active storage populations and 643 multi-member controls covered.
+- Typecheck: clean.
+- Unit suite: 546 passed, one intentional skip (547 total); no tests changed.
+- Protected local baseline, run 2228: 430/430 EXACT; regression gate pass.
+- Full local run 2229: 23,217/30,209 EXACT; 6,992 residual definitions.
+- Run 2229 versus Cycle 30 run 2227: zero classification changes, zero
+  generated-SHA changes, zero source-encode flag changes, zero newly EXACT,
+  and zero EXACT regressions across all 30,209 rows. There is no movement
+  outside Application Classes or inside them.
+- Generated SHA prediction versus current run 2227: 0 predicted, 0 actual
+  across all 1,325 reachable Application Classes.
+- Encoder, decoder, external PSPCMNAME identity, markers, wrappers, and all
+  unrelated dependency families are unchanged.
+- `git diff --check`: clean.
+
+The unresolved boundary is precise: recover the PeopleTools storage-symbol
+table's construction/capacity/insertion/enumeration state from new
+authoritative compiler differentials or a compiler-version-specific internal
+artifact. Do not implement a hash or permutation from the present snapshot.
+
+**STOP after the isolated Cycle 31 research commit. Do not begin Cycle 32.**
+
 ## Compiler Semantics Cycle 30 — Application Class physical directory ordering
 
 **Status: research, narrow implementation, and corpus validation complete.**
