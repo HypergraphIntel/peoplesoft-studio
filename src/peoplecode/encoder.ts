@@ -10771,7 +10771,7 @@ function applicationClassLayoutCommentOperand(
   return Buffer.concat([header, payload]);
 }
 
-function applicationClassBodyHasFinalSourceSemicolon(source: string): boolean {
+function applicationClassBodyExecutableSource(source: string): string {
   const chars = [...source];
   let index = 0;
   while (index < chars.length) {
@@ -10825,7 +10825,11 @@ function applicationClassBodyHasFinalSourceSemicolon(source: string): boolean {
     }
     index++;
   }
-  return chars.join('').trimEnd().endsWith(';');
+  return chars.join('').trimEnd();
+}
+
+function applicationClassBodyHasFinalSourceSemicolon(source: string): boolean {
+  return applicationClassBodyExecutableSource(source).endsWith(';');
 }
 
 function scanApplicationClassLayoutComments(
@@ -11072,16 +11076,19 @@ function encodeApplicationClassProgramV2(
   const emitLayoutRange = (
     start: number,
     end: number,
-    flushTrailingGap: boolean
+    flushTrailingGap: boolean,
+    ignoreSourceTerminators = false
   ): void => {
+    const layoutGap = (value: string): string =>
+      ignoreSourceTerminators ? value.replace(/;/g, ' ') : value;
     let cursor = start;
     for (const comment of scanApplicationClassLayoutComments(source, start, end)) {
-      emitMarkers(applicationClassBlankLineCount(source.slice(cursor, comment.start)));
+      emitMarkers(applicationClassBlankLineCount(layoutGap(source.slice(cursor, comment.start))));
       statementChunks.push(applicationClassLayoutCommentOperand(comment));
       cursor = comment.end;
     }
     if (flushTrailingGap) {
-      emitMarkers(applicationClassBlankLineCount(source.slice(cursor, end)));
+      emitMarkers(applicationClassBlankLineCount(layoutGap(source.slice(cursor, end))));
     }
   };
 
@@ -11205,17 +11212,20 @@ function encodeApplicationClassProgramV2(
    * closing bytes -- it is stripped back off here to match.
    */
   const encodeMethodBody = (body: string): Buffer => {
-    const hasExplicitTrailingSemicolon =
-      applicationClassBodyHasFinalSourceSemicolon(body);
+    const executableSource = applicationClassBodyExecutableSource(body);
+    const hasExecutableCode = executableSource.trim() !== '';
+    const hasExplicitTrailingSemicolon = executableSource.endsWith(';');
     const completed = hasExplicitTrailingSemicolon ? body : `${body};`;
     let bytes = encodeFragment(completed);
     if (bytes.length > 0 && bytes[bytes.length - 1] === 0x4f) {
       bytes = bytes.subarray(0, bytes.length - 1);
     }
-    // Cycle 27: a semicolon introduced only to satisfy the fragment parser is
-    // not part of Application Class body bytecode. Remove that parser-owned
-    // completion token while preserving an explicit source-owned final 0x15.
+    // Cycle 27: for a real executable body, a semicolon introduced only to
+    // satisfy the fragment parser is not source-owned bytecode. Comment-only
+    // bodies retain the established Cycle 18/25 synthetic 0x15 framing that
+    // keeps the comment inside the wrapper.
     if (
+      hasExecutableCode &&
       !hasExplicitTrailingSemicolon &&
       bytes.length > 0 &&
       bytes[bytes.length - 1] === 0x15
@@ -11246,7 +11256,7 @@ function encodeApplicationClassProgramV2(
   // opcodes or their metadata order.
   let declarationCursor = parsed.unitHeaderEnd;
   for (const statement of parsed.statements) {
-    emitLayoutRange(declarationCursor, statement.sourceIndex, true);
+    emitLayoutRange(declarationCursor, statement.sourceIndex, true, true);
     declarationCursor = statement.sourceEnd;
     if (statement.kind === 'visibility') {
       if (statement.visibility !== 'public') {
@@ -11306,7 +11316,7 @@ function encodeApplicationClassProgramV2(
       emitSourceTerminators(statement.terminatorCount);
     }
   }
-  emitLayoutRange(declarationCursor, parsed.unitCloseStart, true);
+  emitLayoutRange(declarationCursor, parsed.unitCloseStart, true, true);
 
   // END-CLASS|END-INTERFACE ; and its declaration-boundary 0x2d. Layout
   // between the unit and the first wrapper belongs to the compilation unit;
