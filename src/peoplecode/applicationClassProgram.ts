@@ -536,9 +536,11 @@ export function parseApplicationClassSource(
   const headerMasked = masked.slice(unitStart, unitRegionStart + (firstMember?.index ?? unitRegion.length));
   const headerTrailingWhitespace = /\s*$/.exec(headerMasked)?.[0].length ?? 0;
   const unitHeaderEnd = unitStart + headerMasked.length - headerTrailingWhitespace;
-  const headerCore = headerMasked.slice(0, headerMasked.length - headerTrailingWhitespace);
-  const headerTerminatorRun = /(?:;[ \t]*)+$/.exec(headerCore)?.[0] ?? '';
-  const unitHeaderTerminatorCount = (headerTerminatorRun.match(/;/g) ?? []).length;
+  // Comments and literals have already been space-masked. Before the first
+  // member, every remaining semicolon therefore belongs to the class/interface
+  // header itself. Count the complete source-owned run even when comments or
+  // newlines separate the semicolon from the first declaration.
+  const unitHeaderTerminatorCount = (headerMasked.match(/;/g) ?? []).length;
 
   return {
     unitKind, className: unitStartMatch[2], extendsType,
