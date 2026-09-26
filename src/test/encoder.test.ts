@@ -1940,6 +1940,99 @@ end-method;`);
   assert.deepStrictEqual(uses, [1, 1]);
 });
 
+test('Application Class fragments share one prior-fragment reference identity', () => {
+  const uses: number[] = [];
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method First();
+   method Second();
+end-class;
+
+method First
+   TEST_REC.TEST_FIELD.Value = 1;
+end-method;
+
+method Second
+   TEST_REC.TEST_FIELD.Value = 2;
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    },
+    referenceTrace: event => {
+      if (event.action === 'USE' && event.reference.kind === 'record-field') {
+        uses.push(event.reference.index);
+      }
+    }
+  });
+
+  assert.deepStrictEqual(encoded.references, [
+    { index: 0, sequence: 1, kind: 'owner', recordName: undefined, fieldName: undefined },
+    { index: 1, sequence: 2, kind: 'record-field', recordName: 'TEST_REC', fieldName: 'TEST_FIELD' }
+  ]);
+  assert.deepStrictEqual(uses, [1, 1]);
+});
+
+test('Application Class shared scope preserves fresh identities across local control groups', () => {
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+end-class;
+
+method Run
+   If True Then
+      TEST_REC.TEST_FIELD.Value = 1;
+   End-If;
+   If False Then
+      TEST_REC.TEST_FIELD.Value = 2;
+   End-If;
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  assert.deepStrictEqual(encoded.references, [
+    { index: 0, sequence: 1, kind: 'owner', recordName: undefined, fieldName: undefined },
+    { index: 1, sequence: 2, kind: 'record-field', recordName: 'TEST_REC', fieldName: 'TEST_FIELD' },
+    { index: 2, sequence: 3, kind: 'record-field', recordName: 'TEST_REC', fieldName: 'TEST_FIELD' }
+  ]);
+});
+
+test('Application Class import and one declaration dependency allocate before bodies', () => {
+  const encoded = encodeProgramArtifacts(`import PKG:ImportedClass;
+
+class ReferenceTest
+   method Run(&message As Message);
+end-class;
+
+method Run
+   Local PKG:ImportedClass &value = create PKG:ImportedClass();
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  assert.deepStrictEqual(encoded.references, [
+    { index: 0, sequence: 1, kind: 'owner', recordName: undefined, fieldName: undefined },
+    {
+      index: 1,
+      sequence: 2,
+      kind: 'package',
+      packageName: 'IMPORTEDCLASS',
+      objectName: 'PKG',
+      packagePath: ['PKG'],
+      className: 'IMPORTEDCLASS',
+      methodName: undefined
+    },
+    { index: 2, sequence: 3, kind: 'package', packageName: 'MESSAGE', objectName: 'Message' }
+  ]);
+});
+
 test('HTML.NAME is recognized outside GetHTMLText calls', () => {
   const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
 Local any &content;
