@@ -11006,6 +11006,12 @@ function encodeApplicationClassProgramV2(
     }
   };
 
+  const emitSourceTerminators = (count: number): void => {
+    for (let terminator = 0; terminator < count; terminator++) {
+      statementChunks.push(Buffer.from([0x15]));
+    }
+  };
+
   const emitLayoutRange = (
     start: number,
     end: number,
@@ -11142,12 +11148,23 @@ function encodeApplicationClassProgramV2(
    * closing bytes -- it is stripped back off here to match.
    */
   const encodeMethodBody = (body: string): Buffer => {
-    const trimmedEnd = body.replace(/\s+$/, '');
-    const completed = /;$/.test(trimmedEnd) ? body : `${body};`;
-    const bytes = encodeFragment(completed);
-    return bytes.length > 0 && bytes[bytes.length - 1] === 0x4f
-      ? bytes.subarray(0, bytes.length - 1)
-      : bytes;
+    const masked = [...body];
+    for (const comment of scanApplicationClassLayoutComments(body, 0, body.length)) {
+      for (let index = comment.start; index < comment.end; index++) {
+        if (masked[index] !== '\n' && masked[index] !== '\r') masked[index] = ' ';
+      }
+    }
+    const executableTail = masked.join('').replace(/\s+$/, '');
+    const hasExplicitTrailingSemicolon = /;$/.test(executableTail);
+    const completed = hasExplicitTrailingSemicolon ? body : `${body};`;
+    let bytes = encodeFragment(completed);
+    if (bytes.length > 0 && bytes[bytes.length - 1] === 0x4f) {
+      bytes = bytes.subarray(0, bytes.length - 1);
+    }
+    if (!hasExplicitTrailingSemicolon && bytes.length > 0 && bytes[bytes.length - 1] === 0x15) {
+      bytes = bytes.subarray(0, bytes.length - 1);
+    }
+    return bytes;
   };
 
   emitCompilationUnitPrefix();
@@ -11163,6 +11180,7 @@ function encodeApplicationClassProgramV2(
     statementChunks.push(Buffer.from([0x72]));
     statementChunks.push(encodeApplicationClassPathBytes(parsed.implementsType.split(':')));
   }
+  emitSourceTerminators(parsed.unitHeaderTerminatorCount);
 
   // Cycle 22: one executable stream in exact source declaration order.
   // Cycle 25: declaration layout is a separate compilation-unit layer. It
@@ -11196,7 +11214,7 @@ function encodeApplicationClassProgramV2(
         statementChunks.push(encodeApplicationClassTypeBytes(statement.returnType));
       }
       if (statement.abstract) statementChunks.push(Buffer.from([0x6f]));
-      if (statement.terminated) statementChunks.push(Buffer.from([0x15]));
+      emitSourceTerminators(statement.terminatorCount);
       continue;
     }
     if (statement.kind === 'property') {
@@ -11206,7 +11224,7 @@ function encodeApplicationClassProgramV2(
       for (const modifier of statement.modifiers) {
         statementChunks.push(Buffer.from([modifier === 'readonly' ? 0x60 : modifier === 'get' ? 0x5f : 0x49]));
       }
-      statementChunks.push(Buffer.from([0x15]));
+      emitSourceTerminators(statement.terminatorCount);
       continue;
     }
     if (statement.kind === 'instance-statement') {
@@ -11216,7 +11234,7 @@ function encodeApplicationClassProgramV2(
         if (index > 0) statementChunks.push(Buffer.from([0x03]));
         statementChunks.push(encodeVariableName(name));
       });
-      statementChunks.push(Buffer.from([0x15]));
+      emitSourceTerminators(statement.terminatorCount);
       continue;
     }
     // Flattened instance members are metadata-only; their grouped executable
@@ -11227,7 +11245,7 @@ function encodeApplicationClassProgramV2(
       statementChunks.push(encodeVariableName(statement.name));
       statementChunks.push(Buffer.from([0x06]));
       statementChunks.push(encodeApplicationClassLiteral(statement.value));
-      statementChunks.push(Buffer.from([0x15]));
+      emitSourceTerminators(statement.terminatorCount);
     }
   }
   emitLayoutRange(declarationCursor, parsed.unitCloseStart, true);
