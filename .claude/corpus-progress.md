@@ -1,5 +1,172 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 32 — Application Class reference identity
+
+**Status: narrow reference-identity semantics implemented and corpus-validated.**
+The starting commit is `55e2792` (Cycle 31), with 23,217/30,209 EXACT,
+protected 430/430, and the frozen 99-root Application Class population split
+as 62 reference identity, 25 internal symbol enumeration, 9 marker residual,
+2 wrapper/body, and 1 decoder-only. This cycle used only the completed local
+HCDEV snapshot; `--live` was not used. The 25 symbol-enumeration roots and all
+marker/wrapper/decoder work were left parked. Full-corpus comparison is the
+behaviorally identical Cycle 31 baseline run 2229 against Cycle 32 run 2245.
+
+### Frozen 62-root population and identity census
+
+The read-only analyzer
+`tools/corpus/research/application-class-reference-analysis.ts` now requires
+the saved Cycle 24, Cycle 28, and Cycle 31 reports, accepts an explicit
+`--baseline-run`, and freezes exactly these 62 roots before evaluating the
+current encoder:
+
+```text
+28707 28713 28745 28752 28755 28801 28802 28820 28822 28852
+28862 28898 28904 28915 28925 28935 28947 28949 28959 28964
+28972 28975 29044 29070 29071 29087 29088 29089 29099 29107
+29109 29110 29113 29122 29126 29134 29144 29152 29153 29174
+29182 29186 29191 29202 29221 29225 29228 29310 29389 29448
+29452 29518 29522 29542 29555 29562 29612 29614 29689 29696
+29785 30104
+```
+
+Forty-three were Cycle 28 PSPCMPROG operand roots and 19 were Cycle 31
+external-PSPCMNAME-only roots. Storage shape is deliberately mixed: 21 have
+zero storage members, two have one, and 39 have two or more. Their starting
+identity manifestations are mutually exclusive:
+
+| manifestation | roots |
+|---|---:|
+| correct identity, wrong `NAMENUM` | 21 |
+| exact identity sequence, PSPCMNAME metadata differs | 18 |
+| wrong identity | 7 |
+| extra generated operand | 6 |
+| missing generated operand | 4 |
+| PSPCMNAME stream differs after exact PSPCMPROG | 4 |
+| wrong reuse decision | 2 |
+| **total** | **62** |
+
+Under `--json`, every target retains its corpus key and source, stored and
+generated identity maps, numeric sequence, full row shape, first operand use,
+reuse state, source/member shape, first allocation difference, and ending
+blocker. This corrected one inherited classification error: definition 29555
+already had an exact program and exact reference stream at the Cycle 31
+baseline; the prior generated-PACKAGE projection had labeled it as an external
+reference root. It is retained in the authoritative starting 62 and reconciled
+as a decoder-only reclassification rather than silently removed.
+
+### Proven lifetime and allocation rules
+
+The complete aligned transition population has 9,055 repeated-identity
+observations. Stored bytes reuse 1,905/1,905 identities across two methods,
+83/83 across constructor/other-method boundaries, 79/79 across post-class
+`Declare Function` regions, both observed method/getter transitions, and all
+seven aligned HTML transitions. The reused artifacts include PACKAGE,
+RECORD, FIELD, SCROLL, COMPONENT, ordinary RECNAME/REFNAME rows, and HTML.
+
+Application Class implementations are therefore fragments of one outer
+compilation-unit identity facade. A later fragment may reuse an identity
+committed by an earlier fragment. The facade does not replace ordinary
+within-fragment receiver/control scoping: ten stored NEW transitions in
+definition 29797 remain fresh across local control regions. The owner row is
+still mandatory and blank for the modeled population.
+
+Declaration discovery precedes implementation-body allocation, but the exact
+multi-symbol enumeration is compiler-internal. A declaration population with
+zero or one not-already-imported dependency has no ordering choice and is the
+narrow implementable boundary. All **533/533** such controls contain the
+predicted identity, with zero contradictions. `array`, scalar types, and
+`Exception` allocate no declaration PACKAGE identity. A relationship covered
+by a wildcard import allocates no second relationship identity; an explicit
+property/instance type under that wildcard remains independently allocated.
+The 190/533 controls whose full PACKAGE path columns differ demonstrate that
+identity presence and row representation are separate questions; no broad row
+shape rule was inferred from them.
+
+Inherited `%This.method()` calls can require environment-derived method rows
+(for example, the return type of an inherited method) which source alone does
+not expose. That population is frozen on its prior fragment behavior and does
+not enter either the declaration prepass or the shared facade. Definitions
+29305 and 30197 are exact source-program negative controls for this boundary.
+
+### Rejected identity models and unresolved order
+
+The stored transition population rejects a global Application Class name
+interner (10 contradictions), a per-method or numeric-offset-only stream
+(2,000 contradictions each), and an identity-specific facade limited to
+PACKAGE/Application-Class/HTML rows (1,998 contradictions). Name alone is
+therefore too broad, while method/fragment ownership is too narrow.
+
+Descriptor order is not allocation order: only 149/425 multi-observation
+descriptor projections preserve stored PACKAGE order. Raw source declaration
+discovery is likewise contradicted in 368/1,334 controls. Consequently the
+multi-dependency prepass remains frozen; Cycle 31's 25 storage-symbol
+enumeration roots were not reopened. No definition-specific ordering table,
+count-forcing gate, or guessed hash was added.
+
+### Implementation
+
+`ApplicationClassReferenceScope` is a compilation-unit facade over the
+existing fragment encoder. It exposes only identities committed by completed
+earlier fragments, so all established within-fragment scoping remains intact.
+PACKAGE identities use their semantic class/built-in leaf plus method, while
+wildcard rows retain their full blank-name/path identity. Each successful
+fragment commits its non-owner rows for later implementations.
+
+Before the class statement stream, a source-derived prepass allocates the one
+unambiguous missing declaration dependency after imports and before body
+references. Broader declaration sets and environment-dependent `%This` calls
+do not enter this path. Three focused tests cover cross-method reuse, the
+negative control that two local control groups still allocate fresh identities,
+and import-before-single-declaration-before-body allocation.
+
+### Root movement and blast-radius reconciliation
+
+The ending 62-root accounting is exact:
+
+| ending outcome | roots | movement from frozen root |
+|---|---:|---:|
+| reference identity | 44 | unchanged |
+| names metadata | 1 | advanced |
+| marker residual | 0 | 0 |
+| wrapper/body | 0 | 0 |
+| decoder-only | 17 | reclassified/advanced |
+| fully EXACT | 0 | 0 |
+| **total** | **62** | **18 leave the starting bucket** |
+
+Of the 18 roots leaving the frozen bucket, definition 29555 is the corrected
+baseline false positive described above; the implementation advances the
+other 17. Definitions 28947 and 28949 become source-program exact. Definition
+29562 reaches names metadata. The remaining 44 are precisely characterized by
+multi-dependency discovery/order, import/package representation, unresolved
+environment-derived dependencies, or later allocation-stream differences.
+
+The analyzer predicted 277 generated-program SHA changes, including six
+targets (28852, 28904, 28947, 28949, 29389, 29562). Run 2245 contains exactly
+those same 277 changed IDs: predicted-only 0 and actual-only 0. All 277 are
+Application Classes. There are 40 source-program gains (two targets), zero
+source-program losses, zero classification changes, zero EXACT gains, zero
+EXACT regressions, and zero movement outside Application Classes.
+
+### Validation
+
+- Analyzer: 62/62 starting roots reproduced; 9,055 lifetime transitions;
+  533/533 singleton declaration identities present with zero contradictions;
+  predicted and actual 277-ID generated-SHA sets identical.
+- Typecheck: clean.
+- Unit suite: 549 passed, one intentional skip (550 total).
+- Protected local baseline, run 2244: 430/430 EXACT; regression gate pass.
+- Full local run 2245: 23,217/30,209 EXACT; 6,992 residual definitions.
+- Run 2245 versus run 2229: zero classification changes, zero newly EXACT,
+  zero EXACT regressions, 277 generated-SHA changes, 40 source-program gains,
+  and zero source-program losses.
+- Encoder changes are confined to Application Class reference identity;
+  decoder, storage-symbol order, markers, wrappers, and unrelated dependency
+  families are unchanged.
+- `git diff --check`: clean.
+
+**STOP after the isolated Cycle 32 implementation commit. Do not begin Cycle
+33.**
+
 ## Compiler Semantics Cycle 31 — Application Class multi-member symbol enumeration
 
 **Status: research and zero-change corpus validation complete; the available

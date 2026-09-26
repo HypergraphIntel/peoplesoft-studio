@@ -119,6 +119,63 @@ class HtmlDependencyScope {
 }
 
 /**
+ * Application Class bodies are parsed as separate fragments, but stored
+ * PSPCMNAME evidence gives them one compilation-unit reference namespace.
+ * A fragment may reuse an identity established by an earlier fragment while
+ * retaining all ordinary within-fragment control/receiver scoping rules.
+ */
+class ApplicationClassReferenceScope {
+  private readonly references = new Map<string, PeopleCodeReference>();
+
+  beginFragment(): ApplicationClassReferenceSession {
+    return {
+      lookup: reference => this.references.get(applicationClassReferenceKey(reference))
+    };
+  }
+
+  commit(references: readonly PeopleCodeReference[]): void {
+    for (const reference of references) {
+      if (reference.kind === 'owner') continue;
+      const key = applicationClassReferenceKey(reference);
+      if (!this.references.has(key)) this.references.set(key, reference);
+    }
+  }
+}
+
+interface ApplicationClassReferenceSession {
+  lookup(
+    reference: Omit<PeopleCodeReference, 'index' | 'sequence'>
+  ): PeopleCodeReference | undefined;
+}
+
+function applicationClassReferenceKey(
+  reference: Omit<PeopleCodeReference, 'index' | 'sequence'>
+): string {
+  if (reference.kind === 'package') {
+    const packageIdentity = (reference.className ?? reference.packageName ?? '').toLowerCase();
+    if (packageIdentity !== '') {
+      return JSON.stringify([
+        reference.kind,
+        packageIdentity,
+        reference.methodName?.toLowerCase() ?? ''
+      ]);
+    }
+  }
+  const normalizedPath = reference.packagePath?.map(component => component.toLowerCase()) ?? [];
+  return JSON.stringify([
+    reference.kind,
+    reference.recordName?.toLowerCase() ?? '',
+    reference.fieldName?.toLowerCase() ?? '',
+    reference.eventName?.toLowerCase() ?? '',
+    reference.packageName?.toLowerCase() ?? '',
+    reference.objectName?.toLowerCase() ?? '',
+    normalizedPath,
+    reference.className?.toLowerCase() ?? '',
+    reference.methodName?.toLowerCase() ?? ''
+  ]);
+}
+
+/**
  * The semantic result of a postfix expression chain (Cycle 4 research:
  * `.claude/corpus-progress.md`'s "Compiler Semantics Research Cycle 4"
  * section) -- deliberately separate from `DependencyScope`. DependencyScope
@@ -358,6 +415,8 @@ export interface EncodeProgramContext {
 interface EncodeFragmentContext extends EncodeProgramContext {
   htmlDependencyScope?: HtmlDependencyScope;
   htmlDependencyLifetime?: 'application-class';
+  applicationClassReferenceSession?: ApplicationClassReferenceSession;
+  bindOwnerReference?: boolean;
 }
 
 export interface EncodedPeopleCode {
@@ -1584,6 +1643,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   const nextReference = (
     reference: Omit<PeopleCodeReference, 'index' | 'sequence'>
   ): PeopleCodeReference => {
+    const shared = context?.applicationClassReferenceSession?.lookup(reference);
+    if (shared !== undefined) return shared;
+
     const sequence = references.length + 1 + referenceIndexOffset;
     const created: PeopleCodeReference = {
       ...reference,
@@ -1885,6 +1947,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     // is the only calibrated inference available, so bind the reserved owner
     // slot to it. If it is not the owner, allocate a normal occurrence row.
     const ownerUnbound =
+      context?.bindOwnerReference !== false &&
+      (!context?.suppressOwnerReference || context?.bindOwnerReference === true) &&
       ownerReference.recordName === undefined &&
       ownerReference.fieldName === undefined;
 
@@ -10869,6 +10933,63 @@ function encodeApplicationClassProgramV2(
     return a.implementationOrder - b.implementationOrder;
   });
   const methodsByDeclarationOrder = [...methods].sort((a, b) => a.declarationOrdinal - b.declarationOrdinal);
+  const scalarDeclarationTypes = new Set([
+    'string', 'date', 'any', 'boolean', 'time', 'datetime', 'object', 'integer', 'number', 'exception', 'array'
+  ]);
+  const builtinDeclarationTypes = new Set([
+    'file', 'sql', 'record', 'rowset', 'row', 'field', 'processrequest', 'message',
+    'apiobject', 'grid', 'javaobject', 'xmldoc', 'xmlnode', 'document', 'compound',
+    'collection', 'map', 'mapelement', 'jsonbuilder', 'jsonobject', 'jsonarray'
+  ]);
+  const dependencyTypeLeaf = (typeName: string): string =>
+    typeName.replace(/^(?:array\s+of\s+)+/i, '').trim().split(':').at(-1) ?? '';
+  const importTargets = [...source.slice(0, parsed.unitStart).matchAll(/\bimport\s+([^;]+);/gi)]
+    .map(match => match[1].trim());
+  const importedClassLeaves = new Set(
+    importTargets
+      .map(target => target.split(':').at(-1)?.trim() ?? '')
+      .filter(leaf => leaf !== '' && leaf !== '*')
+      .map(leaf => leaf.toLowerCase())
+  );
+  const importedWildcardRoots = new Set(
+    importTargets
+      .filter(target => target.endsWith(':*'))
+      .map(target => target.slice(0, -2).split(':')[0].toLowerCase())
+  );
+  const declarationTypes = [
+    parsed.extendsType,
+    parsed.implementsType,
+    ...parsed.statements.flatMap(statement => {
+      if (statement.kind === 'method') {
+        return [...statement.parameters.map(parameter => parameter.type), statement.returnType];
+      }
+      if (statement.kind === 'property' || statement.kind === 'instance' || statement.kind === 'instance-statement') {
+        return [statement.type];
+      }
+      return [];
+    })
+  ].filter((typeName): typeName is string => typeName !== undefined);
+  const declarationDependencyTypes = declarationTypes.filter(typeName => {
+    const normalizedType = typeName.replace(/^(?:array\s+of\s+)+/i, '').trim();
+    const leaf = dependencyTypeLeaf(typeName);
+    const root = normalizedType.split(':')[0].toLowerCase();
+    const isRelationship = [parsed.extendsType, parsed.implementsType]
+      .some(relationship => relationship?.toLowerCase() === typeName.toLowerCase());
+    return leaf !== '' &&
+      !scalarDeclarationTypes.has(leaf.toLowerCase()) &&
+      !importedClassLeaves.has(leaf.toLowerCase()) &&
+      !(isRelationship && importedWildcardRoots.has(root));
+  });
+  const missingDeclarationDependencies = [...new Map(
+    declarationDependencyTypes.map(typeName => [dependencyTypeLeaf(typeName).toLowerCase(), typeName])
+  ).values()];
+  // Cycle 26/32 proves declaration discovery precedes body allocation, but
+  // its multi-symbol enumeration remains compiler-internal. A zero/one new
+  // identity population has no ordering choice; broader sets stay frozen.
+  const hasModeledDeclarationDependencyOrder = missingDeclarationDependencies.length <= 1;
+  const hasUnmodeledThisMethodDependencies = /%This\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\(/i.test(source);
+  const hasModeledApplicationClassReferenceScope =
+    hasModeledDeclarationDependencyOrder && !hasUnmodeledThisMethodDependencies;
 
   /*
    * Cycle 16 Phase 16A: read-only prepass. Cycle 14 encodes each method
@@ -11024,6 +11145,7 @@ function encodeApplicationClassProgramV2(
   const statementChunks: Buffer[] = [];
   const references: PeopleCodeReference[] = [];
   const htmlDependencyScope = new HtmlDependencyScope();
+  const applicationClassReferenceScope = new ApplicationClassReferenceScope();
   let nextReferenceIndex = 0;
   let firstFragment = true;
 
@@ -11032,6 +11154,9 @@ function encodeApplicationClassProgramV2(
     commentOpcodes = context?.commentOpcodes,
     suppressDeclarationSectionMarkers = true
   ): Buffer => {
+    const applicationClassReferenceSession = hasModeledApplicationClassReferenceScope
+      ? applicationClassReferenceScope.beginFragment()
+      : undefined;
     const encoded = encodeFragmentInternal(fragmentSource, {
       ...context,
       commentOpcodes,
@@ -11041,8 +11166,14 @@ function encodeApplicationClassProgramV2(
       suppressDeclarationSectionMarkers,
       compilationUnitHasCompiledReferences: programHasCompiledReferences,
       htmlDependencyScope,
-      htmlDependencyLifetime: 'application-class'
+      htmlDependencyLifetime: 'application-class',
+      applicationClassReferenceSession,
+      // Inherited `%This` calls can allocate environment-derived method
+      // rows. Freeze that unsupported population on its prior fragment-owner
+      // behavior; modeled units keep the mandatory owner row blank.
+      bindOwnerReference: hasUnmodeledThisMethodDependencies
     });
+    applicationClassReferenceScope.commit(encoded.references);
     firstFragment = false;
     nextReferenceIndex += encoded.references.length;
     references.push(...encoded.references);
@@ -11053,6 +11184,66 @@ function encodeApplicationClassProgramV2(
     for (let marker = 0; marker < count; marker++) {
       statementChunks.push(Buffer.from([0x4f]));
     }
+  };
+
+  const allocateModeledDeclarationDependency = (): void => {
+    const typeName = missingDeclarationDependencies[0];
+    if (!hasModeledApplicationClassReferenceScope || typeName === undefined) return;
+    if (firstFragment) {
+      references.push({
+        index: 0,
+        sequence: 1,
+        kind: 'owner',
+        recordName: undefined,
+        fieldName: undefined
+      });
+      nextReferenceIndex = 1;
+      firstFragment = false;
+    }
+    const normalizedType = typeName.replace(/^(?:array\s+of\s+)+/i, '').trim();
+    const components = normalizedType.split(':');
+    const leaf = components.at(-1)!;
+    const packagePath = components.slice(0, -1);
+    const candidate: Omit<PeopleCodeReference, 'index' | 'sequence'> =
+      builtinDeclarationTypes.has(leaf.toLowerCase())
+        ? {
+          kind: 'package',
+          packageName: leaf.toUpperCase(),
+          objectName: leaf
+        }
+        : packagePath.length > 0
+          ? {
+            kind: 'package',
+            packageName: leaf.toUpperCase(),
+            objectName: packagePath[0].toUpperCase(),
+            packagePath: packagePath.map((component, index) =>
+              index === 0 ? component.toUpperCase() : component
+            ),
+            className: leaf.toUpperCase()
+          }
+          : {
+            kind: 'package',
+            packageName: leaf.toUpperCase(),
+            className: leaf.toUpperCase()
+          };
+    const existing = applicationClassReferenceScope.beginFragment().lookup(candidate);
+    if (existing !== undefined) return;
+    const reference: PeopleCodeReference = {
+      ...candidate,
+      index: nextReferenceIndex,
+      sequence: nextReferenceIndex + 1
+    };
+    references.push(reference);
+    nextReferenceIndex++;
+    applicationClassReferenceScope.commit([reference]);
+    context?.referenceTrace?.({
+      action: 'ALLOC',
+      sourceOffset: parsed.unitStart,
+      controlGroup: 0,
+      controlDepth: 0,
+      functionDepth: 0,
+      reference
+    });
   };
   const emittedDeclarationTerminatorOffsets = new Set<number>();
 
@@ -11223,6 +11414,7 @@ function encodeApplicationClassProgramV2(
   };
 
   emitCompilationUnitPrefix();
+  allocateModeledDeclarationDependency();
 
   // CLASS|INTERFACE NAME [EXTENDS path] [IMPLEMENTS path]
   statementChunks.push(Buffer.from([parsed.unitKind === 'class' ? 0x5a : 0x70]));
