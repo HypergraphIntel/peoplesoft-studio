@@ -1,5 +1,222 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 27 — Application Class terminators
+
+**Status: research and zero-change corpus validation complete.** Baseline is
+commit `2f0a3db` (Cycle 26), 23,217/30,209 EXACT, protected 430/430,
+1,325/1,510 source-encodable Application Classes, and zero EXACT Application
+Classes. This cycle used only the completed local HCDEV snapshot; `--live` was
+not used. No encoder or decoder semantics changed.
+
+Reproducible analyzer:
+`tools/corpus/research/application-class-terminator-analysis.ts`. It requires
+Cycle 24's saved 940-row report via `--cycle24-report`. Its default output is
+the complete population summary; `--json` additionally emits all 99 target
+rows and their aligned source/stored/current evidence. Each target row includes
+the requested source, unit/declaration kind and ordinal, final-member state,
+source punctuation, neighboring source tokens, comments, blank multiplicity,
+stored/generated windows, differing bytes, next boundary, semantic role,
+mechanism, and disposition. The analyzer invokes the current encoder read-only
+and never writes corpus state.
+
+### Exact target reproduction
+
+The analyzer first exactly reproduces Cycle 25's 940-row downstream partition
+(417 reference roots, 333 names roots, 86 wrapper/body roots, 60 other roots,
+and 44 terminator/separator roots), then recovers the requested disjoint target
+populations:
+
+| Cycle 26 first-root population | definitions |
+|---|---:|
+| declaration terminator | 55 |
+| statement terminator/separator | 44 |
+| overlap | 0 |
+| **total** | **99** |
+
+The semicolon decision is explained for all 99. Root disposition is 94
+`FULLY_EXPLAINED` (94.95%) and five `PARTIALLY_EXPLAINED` (5.05%) because an
+adjacent, already-out-of-scope Cycle 25 comment/marker residual remains at the
+same boundary. There are zero unrelated or unresolved rows, and no
+definition-specific semantic condition is needed.
+
+### Recovered semantic model
+
+`0x15` is a source semicolon in this population. The complete rule is:
+
+```text
+unit header owner:       emit one 0x15 per explicit header semicolon
+member declaration:     emit one 0x15 per explicit declaration semicolon
+implementation body:    retain only the final executable statement's explicit
+                         source semicolon before the wrapper closer
+wrapper owner:           independently emit 64/6A/6B 15 2D
+```
+
+The invariant is exact source-semicolon multiplicity, applied independently by
+the compilation-unit header, ordered member statement, and body-fragment
+owners. Final position, unit kind, declaration kind, next construct, comments,
+and blank lines do not modify it. `0x2D`/`0x4F`, comment operands, unit close,
+and wrapper transition state remain separate.
+
+Population-wide alignment covers **28,426** observations across all 1,506
+active units: 1,506 unit headers, 16,472 member declarations, and 10,448
+implementation bodies. Source and stored multiplicity agree in every row:
+
+| source context | source `0x15` count | stored count | observations |
+|---|---:|---:|---:|
+| unit header | 0 | 0 | 1,363 |
+| unit header | 1 | 1 | 143 |
+| member declaration | 0 | 0 | 10 |
+| member declaration | 1 | 1 | 16,444 |
+| member declaration | 2 | 2 | 18 |
+| implementation body | 0 | 0 | 638 |
+| implementation body | 1 | 1 | 9,810 |
+
+There are zero contradictions, including 3,267 comment-interleaved
+observations. This disproves a universal declaration separator, a final-member
+special case, and declaration-kind-specific punctuation rules.
+
+### The 55 declaration roots
+
+The 55 roots have four manifestations of the same invariant:
+
+| current defect | definitions |
+|---|---:|
+| explicit class-header semicolon omitted before first constructor/method | 42 |
+| repeated member semicolon collapsed to one `0x15` | 8 |
+| final instance declaration without a semicolon receives an extra `0x15` | 5 |
+| **total** | **55** |
+
+The declaration-kind roots are 42 unit headers, eight instances, two ordinary
+methods, one constructor, one property, and one constant. Forty-nine are
+non-final and six are final. All 55 direct roots are classes, but 87 aligned
+interface header/declaration controls obey the same source-count rule with zero
+contradictions.
+
+The full declaration-kind controls are:
+
+| kind | declarations | stored terminator present | stored omitted | direct roots | alleged separator roots |
+|---|---:|---:|---:|---:|---:|
+| unit header | 1,506 | 143 | 1,363 | 42 | 0 |
+| method | 7,861 | 7,856 | 5 | 2 | 27 body roots |
+| constructor | 1,279 | 1,279 | 0 | 1 | 16 body roots |
+| property | 4,745 | 4,745 | 0 | 1 | 1 setter-body root |
+| instance | 2,110 | 2,105 | 5 | 8 | 0 |
+| constant | 339 | 339 | 0 | 1 | 0 |
+| abstract method | 77 | 77 | 0 | 0 | 0 |
+| interface method | 61 | 61 | 0 | 0 | 0 |
+
+The five final methods and five final instances that omit a source semicolon
+all store zero `0x15`, while all 18 doubled source semicolons store two. A
+comment, blank gap, visibility transition, another member kind, or the unit
+closer may follow without taking ownership of punctuation. Visibility itself
+is not a terminator-bearing declaration.
+
+### The 44 alleged separator roots
+
+The independent analysis finds **zero structural separator members** in this
+population. All 44 are body-fragment terminator-accounting errors immediately
+before the wrapper-owned closer: 43 stored `0x64` versus generated extra
+`0x15`, and one stored setter closer `0x6B` versus generated `0x15`. They occur
+in 27 ordinary method bodies, 16 constructor bodies, and one setter body.
+
+Twenty-five bodies have no final source semicolon, so the parser-only
+completion semicolon leaks directly into the output. Nineteen already have a
+source semicolon followed by a trailing comment/raw tail; current completion
+adds a second semicolon because it inspects the raw tail rather than the final
+executable token. Every row therefore has exactly one extra generated `0x15`.
+The wrapper's own `0x64`/`0x6A`/`0x6B 0x15 0x2D` close remains correct and
+independent.
+
+Cycle 25 marker/comment semantics were held fixed rather than reopened. Of the
+99 targets, 94 isolate locally to `0x15`; 97 have the correct local comment
+operands, 96 have the correct local comment opcode/placement, and 97 have the
+correct local `0x4F`/`0x2D` run. Forty-one have an immediately adjacent
+comment. Blank-line multiplicities from zero through ten occur among the 44
+body roots without changing the terminator decision.
+
+The five partial controls are explicit: 28920 and 28954 omit one adjacent
+inline-comment operand; 28974 omits two `0x4F` markers after its dropped second
+semicolon; 29461 has an adjacent extra `0x2D`; and 30186 encodes one adjacent
+block comment as `0x24` rather than stored `0x4E`. Their semicolon decisions
+still obey the population invariant, but these fixed-input layout differences
+remain separate and are not absorbed into the Cycle 27 model.
+
+### Model comparison and IR adequacy
+
+| candidate model | explained | contradictions | unresolved |
+|---|---:|---:|---:|
+| one generic declaration-boundary machine | 55 | 44 | 0 |
+| source-semicolon preservation in the three owning layers | **99** | **0** | **0** |
+| source semicolon plus an independent structural separator | 55 | 44 | 0 |
+| declaration-kind-specific rules | 55 | 0 | 44 |
+| final-declaration special case | 5 | 50 | 44 |
+| current encoder model | 0 | 99 | 0 |
+
+The existing IR retains absolute declaration spans, declaration order,
+comment/layout positions through the compilation-unit source, and each raw
+implementation body. It retains a boolean terminator only for method
+declarations; it does not retain a unit-header terminator, non-method member
+terminator count, or repeated semicolon count. A future implementation needs a
+small source-owned terminator-count extension for the header and each member.
+Body IR needs no new field: the raw body is sufficient to remove every
+parser-only completion byte and preserve only source punctuation.
+
+### Cycle 28 blast radius and downstream blockers
+
+The semantic path contains 1,506 active Application Class units, 1,504 with
+member declarations, and 10,448 wrappers. All 1,506 are non-EXACT and zero
+currently EXACT definitions traverse the path. Of those, 1,325 definitions
+currently complete source encoding and therefore form the generated-output
+population. Comparing current output with the population invariant predicts
+**344 generated-SHA changes**. The affected observations overlap by
+definition: 359 body decisions, 115 header decisions, and 16 member decisions.
+
+All 99 projected terminator decisions should advance; 94 should advance their
+meaningful first root, while the five partial rows retain their fixed-input
+layout residual. Zero should become immediately EXACT. After
+semicolon-normalized statement alignment, their next independent roots are:
+
+| next blocker | definitions |
+|---|---:|
+| Application Class names metadata | 49 |
+| reference numbering / operand identity | 43 |
+| implementation wrapper/body | 2 |
+| comment/marker fixed-input residual | 5 |
+| other newly exposed family | 0 |
+| native/library metadata | 0 |
+| preprocessor/environment | 0 |
+| decoder-only | 0 |
+| terminator/separator residual | 0 |
+| immediate EXACT | 0 |
+
+Cycle 28 may implement this model: the semicolon invariant is
+contradiction-free, the five non-terminator residuals are isolated, the
+344-definition change set, 1,325-definition generated-output population, and
+1,506-definition semantic traversal surface are explicit, and no current EXACT
+Application Class is exposed. The implementation boundary is only the
+Application Class parser/IR and V2 unit/member/body emitters.
+Ordinary PeopleCode terminators, marker/comment rules (including the five
+fixed-input residuals), wrapper closers, references, directory metadata, and
+decoder behavior must remain unchanged.
+
+### Validation
+
+- Analyzer reproduces 55/55 declaration roots and 44/44 separator roots. All
+  99 semicolon decisions are explained with zero population contradictions;
+  dispositions are 94 fully and five partially explained fixed-input layout
+  interactions.
+- Typecheck: clean.
+- Unit suite: 527 passed, one intentional skip (528 total).
+- Protected local baseline, run 2134: 430/430 EXACT; regression gate pass.
+- Full local run 2135: 23,217/30,209 EXACT; 6,992 residual definitions.
+- Run 2135 versus Cycle 26 run 2132: zero classification changes, zero
+  generated-SHA changes, zero source-encoding changes, zero newly EXACT, and
+  zero EXACT regressions across all 30,209 rows.
+- No file under `src/` changed and `--live` was not used.
+- `git diff --check`: clean.
+
+**STOP after the isolated Cycle 27 research commit. Do not begin Cycle 28.**
+
 ## Compiler Semantics Cycle 26 — Application Class reference allocation
 
 **Status: research complete; no encoder/decoder semantic change.** Baseline is
