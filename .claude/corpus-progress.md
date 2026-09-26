@@ -1,5 +1,268 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 17 — reverse-engineer Application Class method/constructor wrapper ordering and empty-body structure (research only, zero behavior change)
+
+**Status: coherent wrapper grammar established, population-supported, one
+constructor-vs-method asymmetry and one interior-blank-line phenomenon
+confirmed. No encoder changes.** Baseline is commit `8aa1947` (Cycle 16),
+23,217/30,209 EXACT, protected 430/430. This cycle adds two new read-only
+research tools
+(`tools/corpus/research/appclass-wrapper-structure-analysis.ts`,
+`tools/corpus/research/appclass-wrapper-terminator-analysis.ts`) and
+touches nothing under `src/` — `git status` confirms only those two new
+files.
+
+Both tools work directly against STORED PSPCMPROG bytes (ground truth),
+located by searching for each member's own UTF-16LE name guarded by a
+preceding `63 41` window (Cycle 15's own validated technique, applied
+here to stored bytes instead of generated ones). This freed the
+population from the strict 154-definition "methods-only" IR subset
+Cycles 14-16 used: a local, permissive regex extraction (NOT
+`parseApplicationClassSource`) locates class name + member name + body
+text only, tolerating interfaces, abstracts, and multi-storage-member
+shapes the strict parser rejects. Population: 1,464 Application Class
+definitions with at least one located method body; 1,463 had every
+member locatable in stored bytes (1 unexplained: definition 29294, one
+or more members not found by the name-search heuristic — likely a name
+collision or an unsupported disabled-code shape, not investigated
+further); 9,076 total member implementations analyzed (1,277
+constructors — method name equals class name — and 7,799 ordinary
+methods).
+
+### 1. Wrapper grammar / state machine (confirmed)
+
+```
+member  := HEADER SEPARATOR COMMENTS? BODY-GAP? TERMINATOR TRANSITION?
+HEADER      := 63 41 <introducer 0x0a> <UTF-16LE name> 00 00
+SEPARATOR   := 2d                                            (always present, exactly once)
+COMMENTS    := <one text-operand (0x6d) per /+ ... +/ signature comment>
+BODY-GAP    := <one 0x4f per blank source line BEFORE the first
+               statement, or, for an entirely empty/whitespace-only
+               body, per interior blank line even with zero statements>
+BODY        := <encodeFragmentInternal's own statement encoding, when
+               the body has at least one real statement>
+TERMINATOR  := 64 15 2d                                       (always present, exactly once)
+TRANSITION  := <one 0x4f per blank source line AFTER end-method, before
+               the next member's HEADER -- absent only for the last
+               member> | <nothing, if this is the last member: the
+               class program's own 0x07 directory separator follows
+               directly>
+```
+
+Evidence: `SEPARATOR` (`2d`) and `TERMINATOR` (`64 15 2d`) are present in
+literally every one of the 8,902 members where a `64 15 2d` sequence
+could be located within the member's own byte range (search
+methodology: last `64 15 2d` occurrence before the next member's own
+name-anchored start, or before the statements-section end). `TRANSITION`
+was recovered for 8,440/8,902 (94.8%) as a short, clean `4f`{1,8}
+sequence (`4171+734+173+36+7+1` = 5,122 single-run cases, plus a further
+comparable share where one or more standalone block comments are encoded
+between the `4f` markers — see "unexplained wrapper shapes" below); for
+last-in-class members, 1,300/1,452 (89.5%) show the transition collapse
+to a bare `07` (directory separator) with **zero** trailing `4f`,
+confirming the last method in a class never gets a trailing blank-line
+marker of its own, regardless of source formatting after it.
+
+### 2. Constructor vs. method comparison (confirmed asymmetry)
+
+A "constructor" here means only: a method implementation whose name
+equals the enclosing class's name (there is no other marker in either
+source or stored bytes; PeopleCode gives constructors no distinct
+keyword). Emptiness breakdown:
+
+| | truly-empty | non-empty |
+|---|---|---|
+| constructors (1,277) | 338 (26.5%) | 939 |
+| ordinary methods (7,799) | 156 (2.0%) | 7,643 |
+
+Constructors are **13x more likely to have a truly-empty body** than
+ordinary methods — expected, since a no-op constructor is idiomatic
+PeopleCode, while a no-op ordinary method is unusual. The wrapper BYTES
+around an empty body do differ measurably by kind, but the difference
+traces to source shape (comments present or not, interior blank line
+present or not — see \#3), not to constructor-ness itself as an
+independent axis: no byte in the wrapper grammar above encodes
+"is-constructor" directly, and the self-record's own directory
+descriptor (Cycle 13) already fully carries class-identity information
+separately from the per-member wrapper.
+
+### 3. Empty vs. non-empty comparison (confirmed, resolves the Cycle 16 overlap)
+
+`BODY-GAP` is the axis that actually varies, and it explains the 6
+Cycle-16-overlap definitions (29640, 29664, 29965, 29967, 29976, 29977)
+completely:
+
+- **29640/29664** (`DesignerAssets()`, no parameters, no return type →
+  zero signature comments; body is byte-for-byte adjacent, `method
+  DesignerAssets\nend-method;`, no interior blank line): bytes
+  immediately before `TERMINATOR` are `00 2d` — i.e. `HEADER SEPARATOR
+  TERMINATOR` directly, no `BODY-GAP` at all.
+- **29965/29967/29976/29977** (`editIcon()`/`pathIcon()`/etc., same
+  param-less/return-less shape, but source has one literal blank line
+  between the method header and `end-method;`): bytes immediately before
+  `TERMINATOR` are `2d 4f` — the SAME `HEADER SEPARATOR`, but with one
+  extra `BODY-GAP` `4f` for that interior blank line, even though the
+  body still has **zero actual statements**.
+
+This directly answers primary question \#2: **an empty body does NOT
+use one universal compact form.** "Truly-empty" (`body.trim() === ''`)
+is necessary but not sufficient to predict wrapper bytes — the presence
+of an interior blank line (with no statement on either side to anchor
+an ordinary inter-statement marker) still produces its own `0x4F`. This
+is a WRAPPER-LEVEL phenomenon, not something `encodeFragmentInternal`'s
+own statement-to-statement blank-line bookkeeping can produce today: that
+mechanism only queues a boundary when
+`haveCompletedTopLevelStatement` is true, which a zero-statement body
+never reaches. Population-wide, the "truly-empty" before-terminator byte
+distribution (494 members) breaks down as:
+
+```
+00 2d   233   (no comments, no interior blank line)
+2d 4f   101   (no comments, one interior blank line)
+00 4f    56   (comments present -- likely an empty /+  +/ pair -- no interior blank line)
+2f 00    43   (body is a disabled-code/comment tail bleeding into the window; not yet decomposed)
+00 00    30   (comments present, no interior blank line, different comment shape)
+4f 4f    18   (two interior blank lines, or comments + one blank line)
+3e 00    11   (disabled `<* ... *>` marker tail; not yet decomposed)
+```
+
+Non-empty bodies show no such uniformity in the same field (30+ distinct
+short byte pairs, e.g. `15 4f`, `00 15`, `14 15`) because that position
+is simply the tail of whatever the body's OWN last statement happens to
+encode — expected, and not itself evidence of a separate wrapper rule.
+
+### 4. Wrapper order vs. Cycle 13 directory order (confirmed, exceptionless)
+
+Wrapper order (the order members' name-anchored headers actually appear
+in the byte stream) matches **source/implementation order in 9,076/9,076
+(100%)** of located members — zero exceptions found. This directly
+answers primary question \#4: physical wrapper placement is governed
+by IMPLEMENTATION (body) order, the same axis Cycle 13 already
+established governs physical DIRECTORY position — the two are the same
+axis, not merely correlated. `declarationOrdinal` (class-header order)
+and `sourceOrder`-within-header do not independently influence wrapper
+placement; only where a method's IMPLEMENTATION appears in the source
+text matters.
+
+### 5. Member-transition model (confirmed)
+
+Transition bytes between two consecutive member wrappers are
+**independent of both members' emptiness** — the `TRANSITION` field
+above (one `0x4F` per blank source line after `end-method;`, or a bare
+`07` for the last member) fires the same way whether the preceding
+and/or following member is empty or not (see \#1's evidence: the
+non-empty and empty "not-last" populations both show the same clean
+`4f`{1,n} distribution). This is the SAME class of marker as `BODY-GAP`
+(a blank-line-preservation `0x4F`), just anchored at the `end-method;` →
+next-`method` source boundary instead of an internal statement boundary
+— PeopleTools appears to treat every source-level blank line uniformly,
+whether it falls between two ordinary statements, before a method's
+first statement, or between two method implementations.
+
+### 6. Population counts supporting each rule
+
+- `SEPARATOR`/`TERMINATOR` always present: 8,902/8,902 located members
+  (100% of the sub-population where a terminator search succeeded).
+- Wrapper order = source order: 9,076/9,076 (100%).
+- Last-member transition collapses to `07`: 1,300/1,452 last-members
+  (89.5%; remainder are longer blobs, see \#8).
+- Not-last transition is a clean `4f`{1,n} run: 5,122/6,988 non-empty
+  cases (73.3%) and 410/462 empty cases (88.7%); remainder interleave
+  disabled/standalone comment encoding (see \#8), not a different rule.
+- Constructor emptiness rate (26.5%) vs. ordinary-method emptiness rate
+  (2.0%): 1,277 and 7,799 members respectively.
+
+### 7. Matched positive/negative controls
+
+- **29640 vs. 29965** (both single-parameter-less, return-less,
+  truly-empty constructors; differ ONLY in one literal interior blank
+  line): `00 2d` vs. `2d 4f` — isolates `BODY-GAP` from every other
+  variable (no comments, no params, same class shape, same next-member
+  kind).
+- **DesignerAssets across 29640/29664** (byte-for-byte identical source
+  shape in two different definitions): identical `00 2d` — confirms the
+  rule is a property of source SHAPE, not of the specific definition.
+- **editIcon/pathIcon/stageIcon/stepIcon across 29965/29967/29976/29977**
+  (four different definitions, same shape): identical `2d 4f` — same
+  confirmation.
+- **Non-empty, not-last vs. empty, not-last** (6,988 vs. 462 members):
+  both show the same `4f`{1,n} `TRANSITION` distribution — isolates
+  `TRANSITION` as independent of `BODY-GAP`/emptiness.
+
+### 8. Unexplained wrapper shapes (explicitly left open)
+
+- The `00 4f` / `00 00` / `2f 00` / `3e 00` / `4f 4f` minority shapes
+  within the "truly-empty" before-terminator population (56+30+43+11+18
+  = 158/494, 32%) are not yet decomposed into their own comment-count /
+  disabled-code-marker rules — plausible but not verified.
+- The ~5-10% of `TRANSITION` occurrences that are long byte blobs
+  (containing `24`-prefixed disabled-comment/REM-block encoding, e.g. a
+  `/* ... */` or `<* ... *>` block sitting between two method
+  implementations) were not decomposed into their own precise grammar —
+  they are consistent with "comment blocks between methods get their own
+  inline encoding, interleaved with the same `4f` markers," but this was
+  not independently isolated with a matched control.
+- Definition 29294 (one or more members not locatable by the
+  name-anchored search) was not investigated further — possibly a
+  duplicate-name collision or a shape the permissive extractor
+  mis-parses.
+- The `singleMemberClasses` trailer population (288 classes) was
+  surveyed but not separately decomposed beyond confirming it follows
+  the same `TERMINATOR 07` last-member rule as multi-member classes.
+
+### 9. Recommended implementation boundary
+
+The evidenced fix for the 6 Cycle-16-overlap definitions (and, by the
+matched-control generalization in \#3 and \#7, the broader
+truly-empty-with-interior-blank-line population) is narrow and
+additive to the existing Cycle 14 hand-written wrapper in
+`encodeApplicationClassProgramV2`:
+
+1. Do not unconditionally push a `0x4F` between `SEPARATOR`/`COMMENTS`
+   and `BODY` — only push one `0x4F` per blank line the source actually
+   has before the first real statement (or, for a body with zero
+   statements, per interior blank line found by inspecting the raw body
+   text directly, since `encodeFragmentInternal` cannot detect this on
+   its own for a body with no statements to anchor a boundary).
+2. Push exactly one `0x4F` per blank source line between one member's
+   `end-method;` and the next member's `method` keyword, EXCEPT after
+   the last member (no trailing `0x4F`, `07` follows directly) — this is
+   currently entirely absent from the hand-written wrapper loop, for
+   BOTH empty and non-empty bodies.
+
+This is NOT implemented in this cycle, per instruction ("no encoder
+semantic changes until the model is population-supported" — the model
+above is population-supported, but implementation is deferred to a
+dedicated Cycle 18 so it can be validated on its own, the same discipline
+Cycles 14→16 used for directory layout → whole-program reference scope).
+
+### 10. Validation (research-only; zero behavior change expected and confirmed)
+
+- `git status`: only the two new research files under
+  `tools/corpus/research/`; nothing under `src/` touched.
+- Typecheck: clean.
+- Unit suite: 491 tests, 490 pass, 1 pre-existing intentional skip, 0
+  failures — identical to the Cycle 16 baseline.
+- Protected baseline / full corpus: unchanged at 23,217/30,209 EXACT,
+  protected 430/430, regression gate PASS (no source changed, so this is
+  confirmatory rather than a new result).
+
+### Next actions
+
+- Cycle 18 (not started): implement the two narrow, evidence-backed
+  wrapper corrections from \#9 (`BODY-GAP` before an empty/statement-less
+  body; `TRANSITION` `0x4F` between consecutive method implementations),
+  targeting the 6 Cycle-16-overlap definitions first, then validating
+  against the full tractable population exactly as Cycle 16 did.
+- Next research population (not started): the minority "truly-empty"
+  before-terminator shapes in \#8 (comment-count and disabled-code-marker
+  decomposition).
+- Carried over from Cycle 15 (unchanged): the 12 residual non-correlating
+  marker mismatches, including the opposite-direction case in definition
+  29315.
+- Datasource mode: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout; `--live` was not used.
+
 ## Compiler Semantics Cycle 16 — restore whole-program reference scope for Application Class deferred structural markers
 
 **Status: implemented, byte-verified, zero regressions. Datasource:
