@@ -10771,6 +10771,64 @@ function applicationClassLayoutCommentOperand(
   return Buffer.concat([header, payload]);
 }
 
+function applicationClassBodyHasFinalSourceSemicolon(source: string): boolean {
+  const chars = [...source];
+  let index = 0;
+  while (index < chars.length) {
+    const pair = `${source[index] ?? ''}${source[index + 1] ?? ''}`;
+    if (pair === '/*' || pair === '<*' || pair === '/+') {
+      const close = pair === '/*' ? '*/' : pair === '<*' ? '*>' : '+/';
+      chars[index++] = ' ';
+      chars[index++] = ' ';
+      while (
+        index < chars.length &&
+        `${source[index] ?? ''}${source[index + 1] ?? ''}` !== close
+      ) {
+        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+        index++;
+      }
+      if (index < chars.length) chars[index++] = ' ';
+      if (index < chars.length) chars[index++] = ' ';
+      continue;
+    }
+    if (pair === '//') {
+      while (index < chars.length && chars[index] !== '\n') chars[index++] = ' ';
+      continue;
+    }
+    if (
+      source.slice(index, index + 3).toLowerCase() === 'rem' &&
+      (index === 0 || !/[A-Za-z0-9_%&]/.test(source[index - 1])) &&
+      !/[A-Za-z0-9_%&]/.test(source[index + 3] ?? '')
+    ) {
+      while (index < chars.length && chars[index] !== ';') {
+        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+        index++;
+      }
+      if (index < chars.length) chars[index++] = ' ';
+      continue;
+    }
+    if (chars[index] === '"' || chars[index] === "'") {
+      const quote = chars[index];
+      chars[index++] = ' ';
+      while (index < chars.length) {
+        if (chars[index] === quote) {
+          chars[index++] = ' ';
+          if (chars[index] === quote) {
+            chars[index++] = ' ';
+            continue;
+          }
+          break;
+        }
+        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+        index++;
+      }
+      continue;
+    }
+    index++;
+  }
+  return chars.join('').trimEnd().endsWith(';');
+}
+
 function scanApplicationClassLayoutComments(
   source: string,
   start: number,
@@ -11148,20 +11206,21 @@ function encodeApplicationClassProgramV2(
    * closing bytes -- it is stripped back off here to match.
    */
   const encodeMethodBody = (body: string): Buffer => {
-    const masked = [...body];
-    for (const comment of scanApplicationClassLayoutComments(body, 0, body.length)) {
-      for (let index = comment.start; index < comment.end; index++) {
-        if (masked[index] !== '\n' && masked[index] !== '\r') masked[index] = ' ';
-      }
-    }
-    const executableTail = masked.join('').replace(/\s+$/, '');
-    const hasExplicitTrailingSemicolon = /;$/.test(executableTail);
+    const hasExplicitTrailingSemicolon =
+      applicationClassBodyHasFinalSourceSemicolon(body);
     const completed = hasExplicitTrailingSemicolon ? body : `${body};`;
     let bytes = encodeFragment(completed);
     if (bytes.length > 0 && bytes[bytes.length - 1] === 0x4f) {
       bytes = bytes.subarray(0, bytes.length - 1);
     }
-    if (!hasExplicitTrailingSemicolon && bytes.length > 0 && bytes[bytes.length - 1] === 0x15) {
+    // Cycle 27: a semicolon introduced only to satisfy the fragment parser is
+    // not part of Application Class body bytecode. Remove that parser-owned
+    // completion token while preserving an explicit source-owned final 0x15.
+    if (
+      !hasExplicitTrailingSemicolon &&
+      bytes.length > 0 &&
+      bytes[bytes.length - 1] === 0x15
+    ) {
       bytes = bytes.subarray(0, bytes.length - 1);
     }
     return bytes;
