@@ -167,6 +167,32 @@ export interface ChainSemanticsDiagnostic {
   actualBindingEligible: boolean;
 }
 
+/**
+ * Cycle 10 research-only observation of the legacy postfix reuse pools.
+ *
+ * The callback is deliberately downstream of every existing key choice and
+ * Map lookup/write. Consumers can compare scoped and unscoped histories,
+ * while the encoder continues to use the original Map result unchanged.
+ */
+export interface ReusePoolTraceEvent {
+  action: 'READ' | 'WRITE';
+  pool:
+    | 'rowShorthandRecords'
+    | 'typedRowFields'
+    | 'fieldReferencesByControlGroup'
+    | 'explicitRecordFields'
+    | 'rowShorthandFields'
+    | 'declaredRecordFields';
+  site: string;
+  key: string;
+  sourceOffset: number;
+  controlGroup: number;
+  controlDepth: number;
+  functionDepth: number;
+  hit?: boolean;
+  reference?: PeopleCodeReference;
+}
+
 export interface EncodeProgramContext {
   owner?: PeopleCodeOwner;
 
@@ -189,6 +215,14 @@ export interface EncodeProgramContext {
    */
   chainSemanticsTrace?: (
     event: ChainSemanticsDiagnostic
+  ) => void;
+
+  /**
+   * Optional Cycle 10 diagnostic hook for reuse-pool population research.
+   * Observational only: the callback result is never read.
+   */
+  reusePoolTrace?: (
+    event: ReusePoolTraceEvent
   ) => void;
 
   /**
@@ -2294,6 +2328,56 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
    */
   const typedRowFields = new Map<string, PeopleCodeReference>();
 
+  type TracedReusePoolName = ReusePoolTraceEvent['pool'];
+
+  const readTracedReusePool = (
+    pool: TracedReusePoolName,
+    map: Map<string, PeopleCodeReference>,
+    key: string,
+    site: string,
+    sourceOffset = pos
+  ): PeopleCodeReference | undefined => {
+    const reference = map.get(key);
+
+    context?.reusePoolTrace?.({
+      action: 'READ',
+      pool,
+      site,
+      key,
+      sourceOffset,
+      controlGroup,
+      controlDepth,
+      functionDepth,
+      hit: reference !== undefined,
+      reference
+    });
+
+    return reference;
+  };
+
+  const writeTracedReusePool = (
+    pool: TracedReusePoolName,
+    map: Map<string, PeopleCodeReference>,
+    key: string,
+    reference: PeopleCodeReference,
+    site: string,
+    sourceOffset = pos
+  ): void => {
+    map.set(key, reference);
+
+    context?.reusePoolTrace?.({
+      action: 'WRITE',
+      pool,
+      site,
+      key,
+      sourceOffset,
+      controlGroup,
+      controlDepth,
+      functionDepth,
+      reference
+    });
+  };
+
   const latestFields = new Map<string, PeopleCodeReference>();
   const resetRecordVariableFields = new Set<string>();
 
@@ -2354,7 +2438,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
         }
       }
 
-      const existing = rowShorthandRecords.get(recordName.toLowerCase());
+      const existing = readTracedReusePool(
+        'rowShorthandRecords',
+        rowShorthandRecords,
+        recordName.toLowerCase(),
+        'recordReference:reuseRowShorthandRecord',
+        pos - recordName.length
+      );
       if (existing !== undefined) {
         return referenceOperand(existing);
       }
@@ -2622,7 +2712,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     // (see reuseFieldReferenceWithinControlGroup's declaration comment).
     if (reuseFieldReferenceWithinControlGroup) {
       const key = `${controlGroup}:${fieldName.toLowerCase()}`;
-      const existing = fieldReferencesByControlGroup.get(key);
+      const existing = readTracedReusePool(
+        'fieldReferencesByControlGroup',
+        fieldReferencesByControlGroup,
+        key,
+        'fieldReference:GetField-argument',
+        pos - fieldName.length
+      );
 
       if (existing !== undefined) {
         return referenceOperand(existing);
@@ -2635,9 +2731,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     });
 
     if (reuseFieldReferenceWithinControlGroup) {
-      fieldReferencesByControlGroup.set(
+      writeTracedReusePool(
+        'fieldReferencesByControlGroup',
+        fieldReferencesByControlGroup,
         `${controlGroup}:${fieldName.toLowerCase()}`,
-        reference
+        reference,
+        'fieldReference:GetField-argument',
+        pos - fieldName.length
       );
     }
 
@@ -7375,8 +7475,12 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     directLevel0RecordFieldKey: string | undefined
   ): PeopleCodeReference | undefined =>
     dependencyKind === 'field' && explicitRecordRootName !== undefined
-      ? explicitRecordFields.get(
-          `${controlGroup}:${explicitRecordRootName.toLowerCase()}:${member.toLowerCase()}`
+      ? readTracedReusePool(
+          'explicitRecordFields',
+          explicitRecordFields,
+          `${controlGroup}:${explicitRecordRootName.toLowerCase()}:${member.toLowerCase()}`,
+          'postfixResolve:explicit-record-field',
+          pos - member.length
         ) ??
         /*
          * The FIELD half of an explicit `Record.REC.FIELD.Value` chain is
@@ -7398,8 +7502,12 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
          * below (ACCOMPLISHMENTS.EMPLID.SavePostChange) via the same
          * shared `declaredRecordFields` pool.
          */
-        declaredRecordFields.get(
-          `${controlGroup}:${member.toLowerCase()}`
+        readTracedReusePool(
+          'declaredRecordFields',
+          declaredRecordFields,
+          `${controlGroup}:${member.toLowerCase()}`,
+          'postfixResolve:explicit-record-field-fallback',
+          pos - member.length
         )
       : dependencyKind === 'record' && isMethodCall
       ? references.find(
@@ -7472,16 +7580,30 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
                  * is FIELD sequence 11 in the first block and FIELD
                  * sequence 23 in the later insert-row block.
                  */
-                declaredRecordFields.get(
-                  `${controlGroup}:${member.toLowerCase()}`
+                readTracedReusePool(
+                  'declaredRecordFields',
+                  declaredRecordFields,
+                  `${controlGroup}:${member.toLowerCase()}`,
+                  'postfixResolve:declared-record-field',
+                  pos - member.length
                 ) ??
-                rowShorthandFields.get(
-                  `${controlGroup}:${member.toLowerCase()}`
+                readTracedReusePool(
+                  'rowShorthandFields',
+                  rowShorthandFields,
+                  `${controlGroup}:${member.toLowerCase()}`,
+                  'postfixResolve:declared-record-field-fallback',
+                  pos - member.length
                 )
               )
             : baseVariableName !== undefined &&
               rowVariables.has(baseVariableName.toLowerCase())
-              ? typedRowFields.get(member.toLowerCase())
+              ? readTracedReusePool(
+                  'typedRowFields',
+                  typedRowFields,
+                  member.toLowerCase(),
+                  'postfixResolve:typed-row-field',
+                  pos - member.length
+                )
               : (
                   /*
                    * Ordinary Rowset/row-shorthand FIELD reuse is
@@ -7508,12 +7630,24 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
                    * Both resolve to the same PSPCMNAME FIELD row for
                    * ADDRESS_TYPE, not a fresh allocation.
                    */
-                  rowShorthandFields.get(
-                    `${controlGroup}:${member.toLowerCase()}`
-                  ) ?? declaredRecordFields.get(
-                    `${controlGroup}:${member.toLowerCase()}`
-                  ) ?? fieldReferencesByControlGroup.get(
-                    `${controlGroup}:${member.toLowerCase()}`
+                  readTracedReusePool(
+                    'rowShorthandFields',
+                    rowShorthandFields,
+                    `${controlGroup}:${member.toLowerCase()}`,
+                    'postfixResolve:ordinary-row-field',
+                    pos - member.length
+                  ) ?? readTracedReusePool(
+                    'declaredRecordFields',
+                    declaredRecordFields,
+                    `${controlGroup}:${member.toLowerCase()}`,
+                    'postfixResolve:ordinary-row-field-fallback',
+                    pos - member.length
+                  ) ?? readTracedReusePool(
+                    'fieldReferencesByControlGroup',
+                    fieldReferencesByControlGroup,
+                    `${controlGroup}:${member.toLowerCase()}`,
+                    'postfixResolve:ordinary-row-field-fallback',
+                    pos - member.length
                   )
                 )
         );
@@ -7543,13 +7677,21 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       explicitRecordRootName !== undefined &&
       reference.kind === 'field'
     ) {
-      explicitRecordFields.set(
+      writeTracedReusePool(
+        'explicitRecordFields',
+        explicitRecordFields,
         `${controlGroup}:${explicitRecordRootName.toLowerCase()}:${member.toLowerCase()}`,
-        reference
+        reference,
+        'postfixRecord:explicit-record-field',
+        pos - member.length
       );
-      declaredRecordFields.set(
+      writeTracedReusePool(
+        'declaredRecordFields',
+        declaredRecordFields,
         `${controlGroup}:${member.toLowerCase()}`,
-        reference
+        reference,
+        'postfixRecord:explicit-record-field-bridge',
+        pos - member.length
       );
     }
 
@@ -7563,7 +7705,14 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
           reference
         );
       }
-      rowShorthandRecords.set(member.toLowerCase(), reference);
+      writeTracedReusePool(
+        'rowShorthandRecords',
+        rowShorthandRecords,
+        member.toLowerCase(),
+        reference,
+        'postfixRecord:row-shorthand-record',
+        pos - member.length
+      );
       rowShorthandRecordsByBase.set(
         `${controlGroup}:${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`,
         reference
@@ -7583,7 +7732,14 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
       latestFields.set(member.toLowerCase(), reference);
 
       if (rowVariables.has(baseVariableName.toLowerCase())) {
-        typedRowFields.set(member.toLowerCase(), reference);
+        writeTracedReusePool(
+          'typedRowFields',
+          typedRowFields,
+          member.toLowerCase(),
+          reference,
+          'postfixRecord:typed-row-field',
+          pos - member.length
+        );
 
         /*
          * AGC_CAT_STEP.AGC_CATEGORY_ID.FieldFormula (definition 924)
@@ -7608,19 +7764,31 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
          *      For &i = 1 To &rsCategorySteps.ActiveRowCount
          *         &rsCategorySteps(&i).AGC_DERIVED_ASG.GROUPBOX4.Visible = &nShow;
          */
-        declaredRecordFields.set(
+        writeTracedReusePool(
+          'declaredRecordFields',
+          declaredRecordFields,
           `${controlGroup}:${member.toLowerCase()}`,
-          reference
+          reference,
+          'postfixRecord:typed-row-field-bridge',
+          pos - member.length
         );
       } else if (recordVariables.has(baseVariableName.toLowerCase())) {
-        declaredRecordFields.set(
+        writeTracedReusePool(
+          'declaredRecordFields',
+          declaredRecordFields,
           `${controlGroup}:${member.toLowerCase()}`,
-          reference
+          reference,
+          'postfixRecord:declared-record-field',
+          pos - member.length
         );
       } else {
-        rowShorthandFields.set(
+        writeTracedReusePool(
+          'rowShorthandFields',
+          rowShorthandFields,
           `${controlGroup}:${member.toLowerCase()}`,
-          reference
+          reference,
+          'postfixRecord:row-shorthand-field',
+          pos - member.length
         );
       }
     } else if (
@@ -7647,9 +7815,13 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        *
        * both `GPS_BDG_ORG2` occurrences store the same FIELD index.
        */
-      fieldReferencesByControlGroup.set(
+      writeTracedReusePool(
+        'fieldReferencesByControlGroup',
+        fieldReferencesByControlGroup,
         `${controlGroup}:${member.toLowerCase()}`,
-        reference
+        reference,
+        'postfixRecord:GetRecord-bare-field',
+        pos - member.length
       );
     }
   };
