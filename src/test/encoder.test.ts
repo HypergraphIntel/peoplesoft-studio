@@ -2502,6 +2502,77 @@ const appClassStatements = (source: string) => {
   );
 };
 
+const appClassMetadata = (source: string, packagePath?: string[]) => {
+  const program = encodeProgramArtifacts(source, packagePath === undefined ? undefined : {
+    owner: {
+      recordName: packagePath[0] ?? '',
+      fieldName: packagePath[1] ?? '',
+      packagePath
+    }
+  }).program;
+  const layout = readProgramLayout(program);
+  const names: Array<{ text: string; charOffset: number }> = [];
+  let offset = layout.names.offset;
+  const namesEnd = offset + layout.names.byteLength;
+  while (offset < namesEnd) {
+    let end = offset;
+    while (program.readUInt16LE(end) !== 0) end += 2;
+    names.push({
+      text: program.toString('utf16le', offset, end),
+      charOffset: (offset - layout.names.offset) / 2
+    });
+    offset = end + 2;
+  }
+  const records = Array.from({ length: layout.recordCount }, (_, index) => {
+    const base = layout.records.offset + index * 16;
+    return {
+      nameOffset: program.readUInt32LE(base),
+      descriptor: program.readUInt32LE(base + 12)
+    };
+  });
+  const slots = Array.from({ length: layout.slotCount }, (_, index) =>
+    program.readUInt32LE(layout.slots.offset + index * 4)
+  );
+  return { names, records, slots };
+};
+
+test('Application Class metadata uses the owner path as the self name exactly once', () => {
+  assert.deepStrictEqual(
+    appClassMetadata('class Demo\nend-class;', ['PKG', 'Demo']).names.map(name => name.text),
+    ['PKG:Demo']
+  );
+  assert.deepStrictEqual(
+    appClassMetadata('class Demo\nend-class;').names.map(name => name.text),
+    ['Demo']
+  );
+});
+
+test('Application Class type names follow record descriptors before declaration-order slots', () => {
+  const metadata = appClassMetadata(`class Demo extends PKG:Base
+method A(&a As PKG:ParamA) Returns PKG:ReturnA;
+method B(&b As PKG:ParamB) Returns PKG:ReturnB;
+end-class;
+method B
+end-method;
+method A
+end-method;`, ['ROOT', 'Demo']);
+  assert.deepStrictEqual(metadata.names.map(name => name.text), [
+    'ROOT:Demo', 'B', 'A',
+    'PKG:Base', 'PKG:ReturnB', 'PKG:ReturnA',
+    'PKG:ParamA', 'PKG:ParamB'
+  ]);
+  const offsets = new Map(metadata.names.map(name => [name.text, name.charOffset]));
+  const descriptor = (name: string) => 0x80000 | (0x100 + offsets.get(name)!);
+  assert.deepStrictEqual(
+    metadata.records.map(record => record.descriptor),
+    [descriptor('PKG:Base'), descriptor('PKG:ReturnB'), descriptor('PKG:ReturnA')]
+  );
+  assert.deepStrictEqual(
+    metadata.slots,
+    [descriptor('PKG:ParamA'), 7, descriptor('PKG:ParamB'), 7]
+  );
+});
+
 test('Application Class statement encoding emits a simple class header', () => {
   assert.deepStrictEqual(appClassStatements('class Demo\nend-class;'), Buffer.concat([
     Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x5b, 0x15, 0x2d, 0x07])

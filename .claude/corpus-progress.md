@@ -1,5 +1,184 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 29 — implement Application Class names metadata
+
+**Status: implementation and corpus validation complete.** Baseline is commit
+`9384397` (Cycle 28), 23,217/30,209 EXACT, protected 430/430,
+1,325/1,510 source-encodable Application Classes, and zero EXACT Application
+Classes. This cycle used only the completed local HCDEV snapshot; `--live` was
+not used. Full-corpus comparison is Cycle 28 run 2150 against Cycle 29 run
+2216.
+
+### Exact starting population and semantic split
+
+The new read-only analyzer,
+`tools/corpus/research/application-class-name-metadata-analysis.ts`, accepts
+Cycle 28's saved report through `--cycle28-report`, exactly reproduces the 99
+Cycle 27 roots and the requested **49** post-Cycle-28 names-metadata roots, and
+retains complete per-definition evidence under `--json`: source shape and
+ordered members, stored/generated internal names, directory records, signature
+slots, statement-section parity, and stored/generated PSPCMNAME streams.
+
+The exact starting population is:
+
+```text
+28707 28731 28820 28827 28862 28898 28915 29070 29071 29085
+29086 29088 29089 29095 29121 29132 29133 29149 29150 29151
+29152 29153 29159 29181 29189 29190 29213 29214 29221 29225
+29228 29246 29310 29314 29363 29399 29466 29497 29555 29689
+29696 29716 29726 29785 29885 29889 29902 30171 30172
+```
+
+They are two real subfamilies rather than one PSPCMNAME rule:
+
+| starting subfamily | definitions | starting manifestation |
+|---|---:|---|
+| concrete method-only metadata | 21 | duplicated self path, omitted relationship descriptor/name, or descriptor names allocated in declaration/parameter-first order |
+| property/instance/accessor metadata | 28 | generated directory records and their corresponding names are absent |
+
+The internal names section is part of PSPCMPROG directory metadata; it is not
+the external PSPCMNAME dependency stream. Among the 49 targets, the external
+reference stream was already exact in seven and different in 42, crossing both
+internal metadata shapes. That rejects PSPCMNAME insertion timing as the cause
+of the internal names root.
+
+### Recovered names and descriptor-allocation model
+
+For the evidence-backed concrete-method population, the stored compiler uses
+this deterministic sequence:
+
+```text
+recorded names:
+  self owner path exactly once
+  callable names in physical directory / implementation order
+
+unrecorded type-name suffix:
+  named directory-record descriptors in physical record order
+    (self relationship, then callable returns)
+  named signature-slot descriptors in slot order
+    (parameters in declaration order)
+```
+
+Every named descriptor occurrence allocates one suffix entry. The suffix is
+not source-first and does not deduplicate repeated type text. The self record's
+descriptor carries `extends` or `implements`; the relationship's inline class
+statement, self descriptor, internal type name, and optional external PACKAGE
+dependency remain separate compiler products.
+
+The complete positive/control population is contradiction-free:
+
+| control | matches | contradictions |
+|---|---:|---:|
+| concrete classes whose callable directory is fully modeled | 667/667 recorded-name sequences | 0 |
+| same concrete controls, relationship/return/parameter suffix | 667/667 type-name suffixes | 0 |
+| all active/inactive stored Application Class programs | 1,510/1,510 descriptor-allocation sequences | 0 |
+| named descriptor occurrences / stored suffix entries | 3,605/3,605 | 0 |
+
+This rejects several competing explanations. Pure source/declaration order
+cannot explain return descriptors following implementation order while
+parameter slots retain declaration order. First textual use cannot explain a
+relationship name allocated with the self record before callable descriptors.
+Duplicate suppression cannot explain one stored suffix entry per named
+descriptor occurrence. Case/canonicalization is not causal: normalized
+identities already agree once offsets and allocation order are corrected.
+
+The 28 storage/accessor cases are deliberately not generalized. Their stored
+programs contain property, instance, getter, and/or setter records that V2 does
+not yet emit. A name cannot be added correctly until its owning record's
+physical position is known. Cycle 13 already found that 586/643 multi-storage
+programs do not follow source declaration order, and no population-supported
+replacement order exists yet; source, alphabetical, reversed, or fixture-
+specific ordering would therefore be speculation. These 28 satisfy Cycle 29's
+second stop condition as a distinct later semantic problem.
+
+### Implementation
+
+`encodeApplicationClassProgramV2` now:
+
+- treats `PeopleCodeOwner.packagePath` as the full owner path and appends the
+  class only when a caller supplies a package-only path, preventing
+  `PACKAGE:Class:Class` while retaining ownerless test support;
+- encodes the self record's relationship type descriptor instead of the
+  hardcoded no-type descriptor;
+- allocates relationship and return-type names while building physical-order
+  directory descriptors, then allocates parameter names while building
+  declaration-order signature slots.
+
+No property/instance/accessor record ordering, PSPCMNAME identity, reference
+numbering, comment/marker, wrapper/body, or decoder behavior changed. Two
+focused tests prove the self owner path is emitted exactly once (including the
+ownerless control) and that relationship plus physical-return descriptors are
+allocated before declaration-order parameter slots.
+
+### Direct-root movement
+
+All 21 concrete-method roots advance and all 28 storage/accessor roots remain
+at the deliberately unresolved names-metadata boundary:
+
+| post-fix outcome | definitions |
+|---|---:|
+| property/instance/accessor names metadata | 28 |
+| PSPCMNAME/reference identity | 17 |
+| independent comment/marker residual | 3 |
+| source program and PSPCMNAME exact; decoder-only mismatch | 1 |
+| **total** | **49** |
+
+The three marker controls are 29151, 29213, and 29214; each now exposes an
+independent missing `0x4F`. Definition 29902 has an exact source-generated
+program and exact PSPCMNAME stream but remains `DECODE_SOURCE_MISMATCH` because
+Application Class source reconstruction is not exact. Thus 21 roots changed
+category, 18 gained source-program byte equality, zero became full-corpus
+EXACT, zero became unencodable, and zero moved earlier.
+
+The 17 reference-identity cases are 28707, 28820, 28915, 29070, 29071, 29088,
+29089, 29152, 29153, 29221, 29225, 29228, 29310, 29555, 29689, 29696, and
+29785. They were classified but not implemented, as required by the Cycle 29
+boundary.
+
+### Blast-radius reconciliation
+
+Read-only current-encoder replay predicted changes in 1,320 of the 1,325
+source-encodable Application Classes: all 49 direct targets plus 1,271 classes
+that traverse the same self/descriptor allocation path behind an earlier or
+later blocker. Run 2216 produced the exact same **1,320-definition ID set**:
+
+| comparison | definitions |
+|---|---:|
+| predicted and changed | 1,320 |
+| predicted but unchanged | 0 |
+| changed beyond prediction | 0 |
+| non-Application-Class changes | 0 |
+
+The five encodable Application Classes whose SHA is unchanged are definition
+29632 (the older narrow golden encoder path) and 29646, 29648, 29670, and
+29672 (entire-unit commented sources that do not traverse active V2 metadata).
+All 49 direct targets changed SHA. Corpus-wide, 187 Application Classes gained
+source-program byte equality—18 direct roots plus 169 masked/downstream
+controls—and none lost it. There were zero classification transitions because
+the improved programs retain independent decoder or later semantic blockers.
+
+### Validation
+
+- Typecheck: clean.
+- Unit suite: 544 passed, one intentional skip (545 total).
+- Protected local baseline, run 2215: 430/430 EXACT; regression gate pass.
+- Full local run 2216: 23,217/30,209 EXACT; 6,992 residual definitions.
+- Run 2216 versus Cycle 28 run 2150: 1,320 generated-SHA changes, exactly the
+  analyzer-predicted ID set; all object type 104, with zero changes outside
+  Application Classes.
+- Classification diff: zero transitions; newly EXACT 0; previously EXACT
+  regressions 0.
+- Source encoding success: unchanged. Source-program byte equality gained in
+  187 Application Classes and was lost in zero definitions.
+- Direct roots: 21/49 advanced, 28/49 remain names metadata, 18/49 source-
+  program exact, and 0/49 full-corpus EXACT.
+- Decoder semantics and all unrelated dependency/layout families are
+  unchanged.
+- `git diff --check`: clean.
+
+**STOP after the isolated Cycle 29 implementation commit. Do not begin Cycle
+30.**
+
 ## Compiler Semantics Cycle 28 — implement Application Class terminators
 
 **Status: implementation and corpus validation complete.** Baseline is commit
