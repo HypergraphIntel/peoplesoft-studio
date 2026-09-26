@@ -1,5 +1,247 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 15 — reverse-engineer blank-line/statement-boundary marker rules (research only, zero behavior change)
+
+**Status: core rule confirmed with matched controls; population evidence
+shows it explains a majority but not all of Cycle 14's remaining
+mismatches; two further, distinct causes found and left unresolved, per
+instruction. No encoder changes.** Baseline is commit `7745f55` (Cycle
+14), 23,217/30,209 EXACT, protected 430/430, 141/154 Application Class
+target-scope definitions encoding without throwing, 1/154 byte-exact.
+This cycle adds one new read-only research tool
+(`tools/corpus/research/appclass-blankline-boundary-analysis.ts`) and
+touches nothing under `src/` -- `git status` confirms only that one new
+file.
+
+### 1. Exact marker/byte model (confirmed)
+
+Two marker bytes are involved, both emitted from a DEFERRED buffer
+(`pendingReferenceGroupBoundaries`/`pendingReferenceLocalBoundary` in
+`encoder.ts`) that is only flushed into the output at the very end of
+one `encodeFragmentInternal` call:
+
+- **`0x4F`**: an ordinary inter-statement/blank-line-preservation marker.
+  One is queued at the position of a blank source line between two
+  statements (declaration-run-internal or ordinary-executable), for
+  later, conditional insertion.
+- **`0x2D`**: a declaration-SECTION-close marker (distinct concept from
+  blank-line preservation, but resolved by the SAME end-of-parse
+  decision below), queued when a leading run of Local declarations (or,
+  separately, an ApplicationClassLocal run) transitions into the first
+  executable statement.
+
+### 2. Circumstances of emission (confirmed, with a direct matched-control test)
+
+The deferred buffer is flushed -- and BOTH marker kinds actually written
+into `chunks` -- if and only if:
+
+```typescript
+const hasCompiledReferences =
+  references.length > 1 ||
+  references[0]?.recordName !== undefined ||
+  references[0]?.fieldName !== undefined;
+```
+
+i.e. the CURRENT compilation unit (one `encodeFragmentInternal` call) has
+at least one compiled PSPCMNAME reference beyond the blank owner
+placeholder. If `hasCompiledReferences` is false, every queued marker is
+silently discarded -- not emitted as a different byte, simply dropped.
+
+This is not newly discovered this cycle -- `encoder.ts`'s own pre-existing
+comment (predating this whole research-cycle series) already states it
+directly: *"Primitive-only fixtures prove that PeopleTools emits no
+trailing 0x2D and no 0x2D/0x4F transition for ordinary Local
+declarations. Reference-bearing programs are different: calibrated
+Record/Field/Rowset/SQL fixtures place 0x2D 0x4F between the leading
+Local run and the first executable statement."* This cycle's own
+contribution is REPRODUCING that claim directly with a fresh, isolated,
+matched-control pair (not relying on the pre-existing comment alone):
+
+```typescript
+encodeFragment('Local number &x = 1;\n\n&x = 2;\n\n&x = 3;')
+// -> ...15 01 26...  (no 0x4F between any statement: PRIMITIVE-only, zero references)
+
+encodeFragment('Local number &x = 1;\n\n&x = 2;\n\nRecord.MY_RECORD.MY_FIELD.Value = 1;')
+// -> ...15 4F 01 26...15 4F 21...  (0x4F before EVERY blank-line gap: reference-bearing)
+```
+
+Same statement sequence, same blank-line placement, differing only in
+whether a later statement happens to compile a reference -- and that
+ONE difference retroactively changes whether EARLIER blank-line gaps
+(which have nothing to do with that later statement) get a marker at
+all. This is the single clearest piece of evidence in this report.
+
+### 3/4. Why the dependency exists, and whether it is genuine (answered)
+
+**Genuine, pre-existing, already-evidence-backed compiler semantics --
+not an implementation artifact and not accidental coupling.** The
+encoder's own comment cites the specific class of fixture evidence
+("primitive-only" vs "Record/Field/Rowset/SQL" captures) that
+established this, prior to this whole cycle series. This cycle's own
+matched-control test (section 2) independently reproduces the same
+behavior from first principles, rather than trusting the comment alone.
+There is no reason to believe the REAL PeopleTools compiler's own
+decision to omit source-formatting bytecode metadata for a reference-free
+compilation unit is anything other than deliberate (plausibly: whatever
+internal facility uses this metadata -- e.g. IDE/debugger source-position
+mapping -- has nothing to anchor to when there are no PSPCMNAME rows to
+correlate positions against, so the compiler skips producing it).
+
+### 5. Does the rule differ across program kinds? (the actual NEW question this cycle targets)
+
+The rule ITSELF (section 2's formula) does not differ across program
+kinds -- there is only one `hasCompiledReferences` check, one shared
+deferred-buffer flush, used identically regardless of caller. What
+DIFFERS is the SCOPE of "the current compilation unit": for ordinary
+top-level PeopleCode, Function bodies, and control-flow bodies, this is
+ALWAYS the same single `encodeFragmentInternal` call already used for the
+entire calibrated program (Function bodies are just statements inside
+that one call; control-flow bodies are nested inside it too) -- so
+`hasCompiledReferences` naturally reflects "does the WHOLE PROGRAM have
+any reference," which is what 23,217 EXACT non-Application-Class
+definitions have already validated.
+
+Cycle 14's Application Class implementation is the ONE caller that
+deviates from this: each method BODY is its own, independent
+`encodeFragmentInternal` call (a deliberate, documented Cycle 14 choice,
+made because cross-method reference-allocation SHARING was out of that
+cycle's scope). This means `hasCompiledReferences` is evaluated PER
+METHOD for Application Class programs, not per class/program -- a
+genuinely different SCOPE than every other caller uses, even though the
+underlying RULE is identical.
+
+### 6. Population-scale evidence (154-definition methods-only target population)
+
+| category | count |
+|---|---:|
+| target population | 154 |
+| byte-exact | 1 |
+| mismatch | 140 |
+| encode errors | 13 |
+| definitions where ALL methods have their own compiled reference | 33 |
+| definitions where NO method has its own compiled reference | 76 |
+| definitions with a MIX (some methods with, some without) | 45 |
+| individual methods with their own compiled reference (of 741 total) | 322 |
+| individual methods with NO compiled reference of their own | 419 |
+
+Of the 140 mismatches, partitioned by where the first real byte
+difference (past the 37-byte header, whose own length fields trivially
+differ once anything later diverges) falls:
+
+| mismatch sub-category | count | share |
+|---|---:|---:|
+| first diff is a leading block comment before `class` (Cycle 14 never encodes one at all -- a separate, unrelated implementation gap, not a marker-rule question) | 40 | 29% |
+| first diff falls after the first method's own implementation begins | 91 | 65% |
+| first diff falls elsewhere (before any method, not a leading comment; 2 of these are empty-method classes) | 9 | 6% |
+
+Of the 91 "falls within the method-implementation region" cases, 38 were
+precisely localized to exactly ONE method's own byte range (the
+remainder's containing method could not be reliably isolated by this
+cycle's own name-marker search -- a research-tool limitation, not
+necessarily a different underlying cause). Of those 38:
+
+| the containing method's own `hasCompiledReferences` | count | share |
+|---|---:|---:|
+| false (no reference of its own) | 26 | 68% |
+| true (has a reference of its own) | 12 | 32% |
+
+**This is the central, quantified answer to Cycle 15's own primary
+question.** The per-method-scope hypothesis is REAL and explains a
+MAJORITY (68%) of the precisely-localized cases -- directly consistent
+with, and now population-quantified beyond, the single golden-fixture
+observation Cycle 14 left as a "found but not fixed" note. It does NOT
+explain the remaining 32%, which have a separate, distinct cause (below).
+
+### Matched controls actually obtained
+
+- **Same statement sequence, with vs. without a later reference**
+  (section 2): confirms the rule's existence and exact trigger condition
+  directly, independent of Application Class content.
+- **Same construct (multi-variable `Local string ...;` immediately
+  followed by another `Local string ...;`, no blank line) inside an
+  isolated `encodeFragment` call vs. inside a real Application Class
+  method body** (definition 29315, `GetDigitalIDValue`): the isolated,
+  SMALL (3-variable) synthetic version produces NO marker between the
+  two declarations, matching expectation (no blank line, so nothing
+  should be queued at all) -- but the REAL captured bytes' own
+  corresponding boundary, and this cycle's OWN generated bytes for the
+  real (9-variable) method, show an EXTRA `0x4F` in the GENERATED output
+  that the STORED bytes do NOT have, at exactly that same-type
+  consecutive-Local boundary. This is the OPPOSITE direction from the
+  primary hypothesis (an unwanted EXTRA marker, not a wrongly-suppressed
+  one), and this method's own `hasCompiledReferences` is TRUE (it uses
+  `SQLExec` extensively) -- ruling out the primary hypothesis as the
+  cause for this specific case. Not yet reproduced in a minimal isolated
+  fixture; the variable-count difference (3 vs. 9) between the
+  synthetic control and the real method is the leading candidate
+  variable to test next, but this cycle did not confirm it.
+
+### Explanation for the reference-allocation dependency: causal or incidental?
+
+**Causal, for the majority (68% of localized cases), via the per-method
+compilation-unit scoping Cycle 14 chose.** Cycle 15 does not conclude the
+dependency itself is incidental -- section 2-4 establish it is genuine,
+load-bearing compiler behavior. What is scope-dependent is WHICH
+reference population a given method's markers get judged against: Cycle
+14's per-method `encodeFragmentInternal` calls judge each method against
+ONLY its own references, while the compiler evidently judges some (or
+all) Application Class markers against a BROADER population -- most
+likely the whole class, mirroring the cross-method PACKAGE-dependency
+SHARING Cycle 14's own design notes already found directly in a real
+capture (`&joRulRs`'s `Local Rowset` in a second method reusing the
+first method's own `PACKAGE|ROWSET` row). This was not implemented or
+further tested this cycle, per instruction.
+
+**The remaining 32% (and the extra-marker case in the "Matched controls"
+section) are NOT explained by this scoping question at all** -- they
+point to at least one further, distinct, still-unidentified mechanism.
+
+### Recommended semantic abstraction (proposal only, not implemented)
+
+If a future cycle confirms the whole-class-scoping hypothesis
+population-wide, the fix would NOT be "make `hasCompiledReferences`
+always true for Application Class programs" (too broad -- Cycle 13/
+Cycle 14's own primitive-only Application Class methods should still
+suppress markers if genuinely reference-free class-wide) -- it would be:
+compute ONE `hasCompiledReferences`-equivalent value ACROSS ALL of a
+class's method bodies before encoding any of them (a pre-pass), and
+thread that single decision into each method's own otherwise-independent
+`encodeFragmentInternal` call (e.g. a new, additive
+`EncodeProgramContext` field carrying the precomputed boolean, read
+instead of each call's own local `references` state for this ONE
+purpose). This is a design sketch for a FUTURE cycle, not attempted here.
+
+### What was explicitly NOT done this cycle
+
+- No change to `encoder.ts` or any other file under `src/`.
+- No attempt to fix the leading-block-comment-before-`class` gap (40/140
+  mismatches) -- confirmed to be unrelated to the marker-rule question
+  (it is a missing encoding path entirely, not a marker-suppression
+  question), and explicitly out of this cycle's own scope.
+- No attempt to reproduce or explain the extra-marker
+  (multi-variable-Local) phenomenon in a minimal fixture.
+- No implementation of the recommended abstraction above.
+
+### Next action
+
+1. Build a minimal, controlled fixture varying ONLY the Local-declaration
+   variable count (3, 5, 7, 9 variables) to test whether the extra-`0x4F`
+   phenomenon (section "Matched controls," definition 29315) is
+   variable-count-dependent, comment-adjacency-dependent, or something
+   else -- do not guess further without this control.
+2. Test the whole-class-scoped `hasCompiledReferences` hypothesis
+   directly: temporarily (research-only, not committed as a behavior
+   change) compute it across all of a class's method bodies and check
+   whether that alone raises the 26 "no-own-reference, but class has
+   others" cases to byte-exact, without regressing the 33 "all methods
+   have references" definitions that Cycle 14 already partially handles
+   correctly.
+3. Separately, fix the leading-comment-before-`class` gap (40/140,
+   independent of 1-2 and lower risk).
+4. Do not implement 1-2 until their own population evidence is gathered,
+   per this cycle's own instruction and this project's established
+   methodology.
+
 ## Compiler Semantics Cycle 14 — implement the evidence-backed Application Class structural model
 
 **Status: real, validated, zero-regression progress; full byte-exactness
