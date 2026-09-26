@@ -2523,6 +2523,13 @@ test('Application Class method declaration preserves repeated source semicolons'
   ]));
 });
 
+test('Application Class constructor declaration preserves repeated source semicolons', () => {
+  assert.deepStrictEqual(appClassStatements('class Demo\n method Demo();;\nend-class;'), Buffer.concat([
+    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x63]),
+    appClassText(0x0a, 'Demo'), Buffer.from([0x0b, 0x14, 0x15, 0x15, 0x5b, 0x15, 0x2d, 0x07])
+  ]));
+});
+
 test('Application Class property declaration preserves repeated source semicolons', () => {
   assert.deepStrictEqual(appClassStatements('class Demo\n property string Name;;\nend-class;'), Buffer.concat([
     Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x5e]),
