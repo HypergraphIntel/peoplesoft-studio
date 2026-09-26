@@ -225,6 +225,63 @@ function maskNonCode(source: string): string {
   return chars.join('');
 }
 
+function maskApplicationClassTerminatorNonCode(source: string): string {
+  const chars = source.split('');
+  let index = 0;
+  while (index < chars.length) {
+    const pair = `${source[index] ?? ''}${source[index + 1] ?? ''}`;
+    if (pair === '/*' || pair === '<*' || pair === '/+') {
+      const close = pair === '/*' ? '*/' : pair === '<*' ? '*>' : '+/';
+      chars[index++] = ' ';
+      chars[index++] = ' ';
+      while (
+        index < chars.length &&
+        `${source[index] ?? ''}${source[index + 1] ?? ''}` !== close
+      ) {
+        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+        index++;
+      }
+      if (index < chars.length) chars[index++] = ' ';
+      if (index < chars.length) chars[index++] = ' ';
+      continue;
+    }
+    if (pair === '//') {
+      while (index < chars.length && chars[index] !== '\n') chars[index++] = ' ';
+      continue;
+    }
+    if (
+      source.slice(index, index + 3).toLowerCase() === 'rem' &&
+      (index === 0 || !/[A-Za-z0-9_%&]/.test(source[index - 1])) &&
+      !/[A-Za-z0-9_%&]/.test(source[index + 3] ?? '')
+    ) {
+      while (index < chars.length && chars[index] !== ';') {
+        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+        index++;
+      }
+      if (index < chars.length) chars[index++] = ' ';
+      continue;
+    }
+    if (chars[index] === '"') {
+      chars[index++] = ' ';
+      while (index < chars.length) {
+        if (chars[index] === '"') {
+          chars[index++] = ' ';
+          if (chars[index] === '"') {
+            chars[index++] = ' ';
+            continue;
+          }
+          break;
+        }
+        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+        index++;
+      }
+      continue;
+    }
+    index++;
+  }
+  return chars.join('');
+}
+
 function splitParameters(text: string): ApplicationClassParameter[] {
   const inner = text.trim();
   if (inner === '') return [];
@@ -253,6 +310,7 @@ export function parseApplicationClassSource(
   source: string
 ): ApplicationClassProgram | undefined {
   const masked = maskNonCode(source);
+  const terminatorMaskedSource = maskApplicationClassTerminatorNonCode(source);
   const unitStartMatch = /\b(class|interface)\s+([A-Za-z_][A-Za-z0-9_]*)\b/i.exec(masked);
   if (!unitStartMatch) return undefined;
   const unitKind = unitStartMatch[1].toLowerCase() as 'class' | 'interface';
@@ -440,7 +498,7 @@ export function parseApplicationClassSource(
     const boundaryEnd =
       declarationStatements[index + 1]?.sourceIndex ?? unitRegionEnd;
     const terminatorCount =
-      (maskNonCode(source.slice(statement.sourceIndex, boundaryEnd)).match(/;/g) ?? []).length;
+      (terminatorMaskedSource.slice(statement.sourceIndex, boundaryEnd).match(/;/g) ?? []).length;
     statement.terminatorCount = terminatorCount;
     if (statement.kind === 'method') {
       statement.terminated = terminatorCount > 0;
@@ -528,7 +586,10 @@ export function parseApplicationClassSource(
   const headerMasked = masked.slice(unitStart, unitRegionStart + (firstMember?.index ?? unitRegion.length));
   const headerTrailingWhitespace = /\s*$/.exec(headerMasked)?.[0].length ?? 0;
   const unitHeaderEnd = unitStart + headerMasked.length - headerTrailingWhitespace;
-  const unitHeaderTerminatorCount = (headerMasked.match(/;/g) ?? []).length;
+  const unitHeaderTerminatorCount =
+    (terminatorMaskedSource
+      .slice(unitStart, unitRegionStart + (firstMember?.index ?? unitRegion.length))
+      .match(/;/g) ?? []).length;
 
   return {
     unitKind, className: unitStartMatch[2], extendsType,
