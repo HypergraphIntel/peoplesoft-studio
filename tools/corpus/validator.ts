@@ -449,13 +449,32 @@ function runValidation(
   capture: CapturedDefinition,
   options: ValidationOptions = {}
 ): InternalValidation {
+  const objectValues = [
+    capture.definition.key.objectValue1,
+    capture.definition.key.objectValue2,
+    capture.definition.key.objectValue3,
+    capture.definition.key.objectValue4,
+    capture.definition.key.objectValue5,
+    capture.definition.key.objectValue6,
+    capture.definition.key.objectValue7
+  ].map(value => value.trim());
+  const eventIndex = objectValues.findIndex(value => value.toLowerCase() === 'onexecute');
+  const packagePath = objectValues
+    .slice(0, eventIndex < 0 ? objectValues.length : eventIndex)
+    .filter(Boolean);
+
   const encodeContext = {
     owner: {
       recordName:
         capture.definition.key.objectValue1.trim(),
 
       fieldName:
-        capture.definition.key.objectValue2.trim()
+        capture.definition.key.objectValue2.trim(),
+
+      // Cycle 14: full nested-package path for Application Class
+      // definitions (see PeopleCodeOwner's own comment); harmless and
+      // unused for ordinary Record.Field-owned PeopleCode.
+      packagePath
     }
   };
 

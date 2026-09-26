@@ -1,4 +1,14 @@
 import { encodePrimitiveMethodSignature } from './applicationClassMetadata.js';
+import {
+  APPLICATION_CLASS_FLAGS,
+  NO_TYPE_DESCRIPTOR,
+  encodeApplicationClassDirectoryRecord,
+  encodeApplicationClassNameEntry,
+  encodeApplicationClassSlot,
+  encodeTypeDescriptor,
+  parseApplicationClassSource,
+  type ApplicationClassMethodMember
+} from './applicationClassProgram.js';
 import { encodeSimpleProgramHeader, PROGRAM_DIRECTORY_SEPARATOR } from './programLayout.js';
 import {
   INLINE_IDENTIFIER_OPCODE,
@@ -136,6 +146,16 @@ type DependencyKind = 'none' | 'record' | 'field';
 export interface PeopleCodeOwner {
   recordName: string;
   fieldName: string;
+  /**
+   * Cycle 14: the full nested-package path (`objectValue1..7`, stopping
+   * before the event name, e.g. `['PKG', 'SubPkg', 'ClassName']`) for an
+   * Application Class definition -- `recordName`/`fieldName` alone only
+   * carry the first TWO components, which is insufficient for the 46%
+   * of Application Class definitions with a nested package path (Cycle
+   * 13's own `nestedPackagePath: 702/1510` finding). Undefined (and
+   * unused) for ordinary Record.Field-owned PeopleCode.
+   */
+  packagePath?: readonly string[];
 }
 
 export interface ReferenceTraceEvent {
@@ -247,6 +267,46 @@ export interface EncodeProgramContext {
    * representation from source placement.
    */
   commentOpcodes?: readonly (0x24 | 0x4e)[];
+
+  /**
+   * Cycle 14: Application Class method bodies are each their own
+   * independent `encodeFragmentInternal` call (own control groups, own
+   * reuse pools), but PSPCMPROG reference operands and PSPCMNAME
+   * sequence numbers are GLOBAL across the whole compiled program, not
+   * per-method. `referenceIndexOffset` shifts every reference this call
+   * allocates by that many slots, so a second/third/etc. method's own
+   * references continue numbering where the previous method's own
+   * references left off. Every existing caller omits this (defaults to
+   * 0), so ordinary encoding is unaffected.
+   */
+  referenceIndexOffset?: number;
+
+  /**
+   * Cycle 14: skips pushing the leading placeholder "owner" reference
+   * (index 0) that every other `encodeFragmentInternal` call makes
+   * unconditionally. An Application Class program has exactly ONE such
+   * blank placeholder for the whole program (confirmed: exactly one
+   * `blankSentinels` row per definition, Cycle 13's own finding) -- the
+   * first method body's own call supplies it; every subsequent method
+   * body's call must not add a second one. Every existing caller omits
+   * this (defaults to `false`), so ordinary encoding is unaffected.
+   */
+  suppressOwnerReference?: boolean;
+
+  /**
+   * Cycle 14: disables the top-level/Application-Class-Local
+   * declaration-SECTION boundary markers (`0x2D`, plus their own
+   * blank-line `0x4F` companions) that `encodeFragmentInternal`
+   * otherwise emits once, at the transition from a program's leading
+   * declaration run into its first executable statement -- see the
+   * `closedTopLevelDeclarationSection`/`closedApplicationClassLocalSection`
+   * declarations' own comment for the direct evidence this cycle found
+   * (the golden OU_CORPUS:Utilities:TestClass fixture's own method body
+   * has no such marker, unlike the equivalent ordinary top-level shape).
+   * Every existing caller omits this (defaults to `false`), so ordinary
+   * encoding is unaffected.
+   */
+  suppressDeclarationSectionMarkers?: boolean;
 }
 
 export interface EncodedPeopleCode {
@@ -1458,19 +1518,22 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
   // bind it to the first matching ordinary record/field reference if one is
   // encountered. This preserves the calibrated encodeProgram(source) API
   // while allowing persistence code to provide the exact owner.
+  const referenceIndexOffset = context?.referenceIndexOffset ?? 0;
   let ownerReference: PeopleCodeReference = {
-    index: 0,
-    sequence: 1,
+    index: referenceIndexOffset,
+    sequence: referenceIndexOffset + 1,
     kind: 'owner',
     recordName: context?.owner?.recordName,
     fieldName: context?.owner?.fieldName
   };
-  references.push(ownerReference);
+  if (!context?.suppressOwnerReference) {
+    references.push(ownerReference);
+  }
 
   const nextReference = (
     reference: Omit<PeopleCodeReference, 'index' | 'sequence'>
   ): PeopleCodeReference => {
-    const sequence = references.length + 1;
+    const sequence = references.length + 1 + referenceIndexOffset;
     const created: PeopleCodeReference = {
       ...reference,
       sequence,
@@ -8787,6 +8850,22 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     }
   };
   let sawTopLevelDeclaration = false;
+  /*
+   * Cycle 14: an Application Class method body is not a top-level
+   * program -- it has no leading declaration SECTION of its own for
+   * PeopleTools to mark the close of with a `0x2D` byte. The golden
+   * OU_CORPUS:Utilities:TestClass fixture's own method body
+   * (`Local OU_CORPUS:Utilities:TestClass &obj;` immediately followed by
+   * `&obj = create ...();`) proves this directly: ordinary top-level
+   * code with this exact shape (declared-then-assigned-separately, no
+   * inline initializer) DOES get a 0x2D boundary marker (this is the
+   * `leadingRunHasInitializedLocal`-gated case a few hundred lines
+   * below), but the captured method-body bytes have none at all -- their
+   * OWN companion blank-line `0x4F` marker(s) are UNAFFECTED and still
+   * fire normally. `context?.suppressDeclarationSectionMarkers` therefore
+   * gates only the specific `0x2D` pushes below (search for it), not
+   * these two tracking flags themselves.
+   */
   let closedTopLevelDeclarationSection = false;
 
   // A leading run of Local declarations is not, by itself, a 0x2D declaration
@@ -9674,8 +9753,12 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
        *   If %Page = Page.CAFNUI_ED_FLST_SCF Then
        *
        * stores only the 0x4F blank-line marker before `If`, no 0x2D.
+       *
+       * Cycle 14: an Application Class METHOD BODY never gets this 0x2D
+       * at all, regardless of `leadingRunHasInitializedLocal` -- see
+       * `context.suppressDeclarationSectionMarkers`'s own comment.
        */
-      if (!leadingRunHasInitializedLocal) {
+      if (!leadingRunHasInitializedLocal && context?.suppressDeclarationSectionMarkers !== true) {
         chunks.push(Buffer.from([0x2d]));
       }
 
@@ -9713,7 +9796,7 @@ function encodeFragmentInternal(source: string, context?: EncodeProgramContext):
     // `pendingReferenceLocalBoundary` insertion site's identical check.
     // See `leadingRunHasInitializedLocal`'s own declaration comment.
     if (closesTopLevelDeclarationSection) {
-      if (!leadingRunHasInitializedLocal) {
+      if (!leadingRunHasInitializedLocal && context?.suppressDeclarationSectionMarkers !== true) {
         chunks.push(Buffer.from([0x2d]));
       }
       const markerCount = Math.max(1, (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1);
@@ -10494,6 +10577,243 @@ function encodeApplicationClassProgram(
   ]);
 }
 
+/**
+ * Cycle 14: general Application Class encoder implementing only the
+ * fully evidence-backed structural rules from Cycle 13 (see
+ * `.claude/corpus-progress.md`'s Cycle 13 report and
+ * `applicationClassProgram.ts`'s own module comment). Deliberately
+ * narrower than `parseApplicationClassSource` itself accepts: this
+ * function additionally requires ZERO `extends`/`implements` and ZERO
+ * `property`/`instance` members, because -- unlike the DIRECTORY
+ * encoding for those shapes, which Cycle 13 fully solved -- this cycle
+ * has no calibrated evidence for how `class X extends Y;` or a
+ * `property`/`instance` declaration is represented in the STATEMENT
+ * (executable) section specifically. Guessing those bytes would violate
+ * this cycle's own "do not guess" instruction even though the directory
+ * bytes are fully understood; a future cycle should reverse-engineer
+ * those specific statement bytes from real captures before lifting this
+ * restriction. Returns `undefined` (never throws) for anything outside
+ * this scope, so the caller falls through to the existing narrow
+ * template or unsupported-syntax handling.
+ */
+function encodeApplicationClassProgramV2(
+  source: string,
+  context: EncodeProgramContext | undefined
+): { program: Buffer; references: PeopleCodeReference[] } | undefined {
+  const parsed = parseApplicationClassSource(source);
+  if (parsed === undefined) return undefined;
+  if (parsed.extendsType !== undefined || parsed.implementsType !== undefined) return undefined;
+  if (parsed.members.some(member => member.kind !== 'method')) return undefined;
+
+  const methods = parsed.members as ApplicationClassMethodMember[];
+  const methodsByImplementationOrder = [...methods].sort((a, b) => a.implementationOrder - b.implementationOrder);
+  const methodsByDeclarationOrder = [...methods].sort((a, b) => a.declarationOrdinal - b.declarationOrdinal);
+
+  const ownerPackagePath =
+    context?.owner?.packagePath !== undefined
+      ? [...context.owner.packagePath]
+      : [context?.owner?.recordName ?? ''].filter(value => value !== '');
+  const selfName = [...ownerPackagePath, parsed.className].join(':');
+
+  // Name table: self, then each method's name in PHYSICAL DIRECTORY
+  // (implementation) order -- Cycle 13's own finding that the first
+  // `recordCount` names correspond 1:1 to directory records, in
+  // directory order. Trailing Application-Class type-path names (from
+  // parameter/return descriptors) are appended afterward, as encountered
+  // -- see `ensureNameOffset` below.
+  const names: string[] = [selfName];
+  let nameCharOffset = selfName.length + 1;
+  const nameOffsetOf = new Map<ApplicationClassMethodMember, number>();
+  for (const member of methodsByImplementationOrder) {
+    nameOffsetOf.set(member, nameCharOffset);
+    names.push(member.name);
+    nameCharOffset += member.name.length + 1;
+  }
+  const ensureNameOffset = (path: string): number => {
+    const offset = nameCharOffset;
+    names.push(path);
+    nameCharOffset += path.length + 1;
+    return offset;
+  };
+
+  // Signature slots: cumulative over methods in DECLARATION order
+  // (Cycle 13 section 3/5), independent of directory physical position.
+  const slotChunks: Buffer[] = [];
+  const descriptorByMember = new Map<ApplicationClassMethodMember, number>();
+  for (const member of methodsByDeclarationOrder) {
+    for (const parameter of member.parameters) {
+      const descriptor = encodeTypeDescriptor(parameter.type, ensureNameOffset);
+      slotChunks.push(encodeApplicationClassSlot(parameter.out ? descriptor | 0x80000000 : descriptor));
+    }
+    slotChunks.push(encodeApplicationClassSlot(NO_TYPE_DESCRIPTOR));
+    descriptorByMember.set(
+      member,
+      member.returnType === undefined
+        ? NO_TYPE_DESCRIPTOR
+        : encodeTypeDescriptor(member.returnType, ensureNameOffset)
+    );
+  }
+
+  // Directory: self, then each method in IMPLEMENTATION (physical) order.
+  const directoryChunks: Buffer[] = [
+    encodeApplicationClassDirectoryRecord({
+      nameOffset: 0,
+      signatureSlotOffset: 0,
+      flags: APPLICATION_CLASS_FLAGS.self,
+      low: 0,
+      descriptor: NO_TYPE_DESCRIPTOR
+    })
+  ];
+  for (const member of methodsByImplementationOrder) {
+    const visibilityFlag =
+      member.visibility === 'private'
+        ? APPLICATION_CLASS_FLAGS.private
+        : member.visibility === 'protected'
+          ? APPLICATION_CLASS_FLAGS.protected
+          : 0;
+    directoryChunks.push(encodeApplicationClassDirectoryRecord({
+      nameOffset: nameOffsetOf.get(member)!,
+      signatureSlotOffset: member.signatureSlotOffset,
+      flags: visibilityFlag,
+      low: member.parameters.length,
+      descriptor: descriptorByMember.get(member)!
+    }));
+  }
+
+  // Statement section. Only the class header's own method-declaration
+  // and method-implementation wrapper bytes are hand-encoded (no
+  // calibrated evidence covers this syntax in the general encoder);
+  // every method BODY is delegated to `encodeFragmentInternal`, reusing
+  // the same general-purpose, already-calibrated PeopleCode
+  // statement/expression encoder every other program type uses.
+  const leadingImportMatch =
+    /^\s*(?:import\s+[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*\s*;\s*)*/i.exec(source);
+  const importText = leadingImportMatch?.[0] ?? '';
+
+  const statementChunks: Buffer[] = [];
+  const references: PeopleCodeReference[] = [];
+  let nextReferenceIndex = 0;
+  let firstFragment = true;
+
+  const encodeFragment = (fragmentSource: string): Buffer => {
+    const encoded = encodeFragmentInternal(fragmentSource, {
+      ...context,
+      owner: undefined,
+      referenceIndexOffset: nextReferenceIndex,
+      suppressOwnerReference: !firstFragment,
+      suppressDeclarationSectionMarkers: true
+    });
+    firstFragment = false;
+    nextReferenceIndex += encoded.references.length;
+    references.push(...encoded.references);
+    return encoded.bytes;
+  };
+
+  /*
+   * A method body's own FINAL statement, immediately before `end-method`,
+   * may omit its trailing `;` in real captured source (the golden
+   * OU_CORPUS:Utilities:TestClass fixture's own `Return "Hi"` has none) --
+   * the general statement parser requires one, so it is added back here
+   * purely to satisfy parsing. The OLD narrow encoder's own hand-written
+   * bytes for this exact fixture prove the LAST statement's own trailing
+   * 0x4f statement-separator byte (which `encodeFragmentInternal` emits
+   * after every ordinary statement, including one this parser had to
+   * complete with an added `;`) is NOT present before the method's own
+   * closing bytes -- it is stripped back off here to match.
+   */
+  const encodeMethodBody = (body: string): Buffer => {
+    const trimmedEnd = body.replace(/\s+$/, '');
+    const completed = /;$/.test(trimmedEnd) ? body : `${body};`;
+    const bytes = encodeFragment(completed);
+    return bytes.length > 0 && bytes[bytes.length - 1] === 0x4f
+      ? bytes.subarray(0, bytes.length - 1)
+      : bytes;
+  };
+
+  if (importText.trim() !== '') {
+    statementChunks.push(encodeFragment(importText));
+    /*
+     * `encodeFragmentInternal` does not add a trailing inter-statement
+     * 0x4f separator after the LAST statement in an isolated call (it
+     * only inserts one BETWEEN statements it itself parses) -- but the
+     * class header immediately follows in the real byte stream, so this
+     * boundary needs the same separator any two adjacent statements get.
+     * Confirmed against the golden OU_CORPUS:Utilities:TestClass fixture.
+     */
+    statementChunks.push(Buffer.from([0x4f]));
+  }
+
+  // class NAME
+  statementChunks.push(Buffer.from([0x5a]));
+  statementChunks.push(encodeInlineName(parsed.className));
+
+  // Method declarations, in DECLARATION (class-header source) order.
+  for (const member of methodsByDeclarationOrder) {
+    statementChunks.push(Buffer.from([0x63]));
+    statementChunks.push(encodeInlineName(member.name));
+    statementChunks.push(Buffer.from([0x0b]));
+    member.parameters.forEach((parameter, index) => {
+      if (index > 0) statementChunks.push(fixed(','));
+      statementChunks.push(encodeVariableName(parameter.name));
+      statementChunks.push(Buffer.from([0x35]));
+      statementChunks.push(encodeKeywordText(parameter.type));
+    });
+    statementChunks.push(Buffer.from([0x14]));
+    if (member.returnType !== undefined) {
+      statementChunks.push(Buffer.from([0x39]));
+      statementChunks.push(encodeKeywordText(member.returnType));
+    }
+    statementChunks.push(Buffer.from([0x15]));
+  }
+
+  // end-class;
+  statementChunks.push(Buffer.from([0x5b, 0x15, 0x2d, 0x4f]));
+
+  // Method implementations, in IMPLEMENTATION (physical, body-order) order.
+  for (const member of methodsByImplementationOrder) {
+    statementChunks.push(Buffer.from([0x63, 0x41]));
+    statementChunks.push(encodeInlineName(member.name));
+    statementChunks.push(Buffer.from([0x2d]));
+    for (const comment of member.signatureComments) {
+      statementChunks.push(textOperand(0x6d, TokenKind.Comment, comment));
+    }
+    statementChunks.push(Buffer.from([0x4f]));
+    statementChunks.push(encodeMethodBody(member.body));
+    /*
+     * Best-evidence extrapolation from the single-method golden
+     * template's own captured terminator bytes (`encodeApplicationClassMetadata`'s
+     * own comment), generalized to N methods: this is NOT independently
+     * re-verified against a multi-method capture beyond this cycle's own
+     * corpus validation pass (see the Cycle 14 report for the actual
+     * measured result).
+     */
+    statementChunks.push(Buffer.from([0x64, 0x15, 0x2d]));
+  }
+
+  const statements = Buffer.concat(statementChunks);
+  const nameBytes = Buffer.concat(names.map(encodeApplicationClassNameEntry));
+  const directory = Buffer.concat(directoryChunks);
+  const slots = Buffer.concat(slotChunks);
+  const trailer = Buffer.concat([nameBytes, directory, slots]);
+
+  const header = Buffer.alloc(37);
+  header[0] = 0xa0;
+  header.writeUInt32LE(statements.length + 1, 5);
+  header.writeUInt32LE(nameBytes.length, 13);
+  header.writeUInt32LE(slots.length / 4, 21);
+  header.writeUInt32LE(directoryChunks.length, 29);
+  header.writeUInt32LE(0x85, 33);
+
+  const program = Buffer.concat([
+    header,
+    statements,
+    Buffer.from([PROGRAM_DIRECTORY_SEPARATOR]),
+    trailer
+  ]);
+
+  return { program, references };
+}
+
 /*
  * Replaces block comments and double-quoted string literals with spaces,
  * preserving every other character's exact position, so a regex scan for
@@ -10654,13 +10974,48 @@ function parseFunctionMetadata(
  * validation; provider saves remain disabled.
  */
 export function encodeProgramArtifacts(source: string, context?: EncodeProgramContext): EncodedPeopleCode {
-  const applicationClassMetadata = parseApplicationClassProgram(source);
+  /*
+   * Cycle 14: the pre-existing narrow, hand-calibrated single-method
+   * golden template (`parseApplicationClassProgram`) is tried FIRST and
+   * kept authoritative for the one exact shape it recognizes -- it is
+   * independently verified byte-exact against a real capture
+   * (`src/test/applicationClassMetadata.test.ts`). The new, general
+   * `encodeApplicationClassProgramV2` (broader member/body support, but
+   * not yet independently re-verified against every construct the OLD
+   * hand-written template's own bytes happen to special-case) is used
+   * only as a fallback, for every OTHER Application Class shape the
+   * narrow template does not itself accept.
+   *
+   * `parseApplicationClassProgram` only returns `undefined` for a very
+   * weak initial test (does this look like `import ...; class NAME
+   * method NAME(`); once past that, any OTHER shape it does not
+   * recognize (2+ methods, a different body shape, ...) makes it THROW
+   * `UnsupportedPeopleCodeError` rather than return `undefined` -- so
+   * that throw is caught here and treated the same as "declined",
+   * falling through to the general path below, instead of killing the
+   * whole encode before `encodeApplicationClassProgramV2` gets a chance.
+   * A throw from `encodeApplicationClassProgramV2` itself (a genuinely
+   * unsupported construct inside a method BODY, once its own OWN
+   * declaration-level scope checks already passed) is NOT caught here --
+   * it propagates normally, exactly like any other unsupported syntax.
+   */
+  let applicationClassMetadata: ApplicationClassProgramMetadata | undefined;
+  try {
+    applicationClassMetadata = parseApplicationClassProgram(source);
+  } catch (error) {
+    if (!(error instanceof UnsupportedPeopleCodeError)) throw error;
+  }
 
   if (applicationClassMetadata !== undefined) {
     return {
       program: encodeApplicationClassProgram(applicationClassMetadata),
       references: []
     };
+  }
+
+  const applicationClassV2 = encodeApplicationClassProgramV2(source, context);
+  if (applicationClassV2 !== undefined) {
+    return applicationClassV2;
   }
 
   const functionMetadata = parseFunctionMetadata(source);

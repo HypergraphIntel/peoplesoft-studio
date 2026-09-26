@@ -1,5 +1,226 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 14 — implement the evidence-backed Application Class structural model
+
+**Status: real, validated, zero-regression progress; full byte-exactness
+for this population remains blocked by one newly-found, uncalibrated
+mechanism.** Baseline is commit `e2591d2` (Cycle 13), 23,217/30,209 EXACT,
+protected 430/430, 490 tests passing plus one intentional skip,
+Application Class EXACT count 0/1,510. Result: **EXACT unchanged at
+23,217/30,209 (zero regressions, confirmed against all 30,209
+definitions), 1 Application Class definition now genuinely byte-exact
+(up from 0), 141/154 (92%) of the evidence-backed target population now
+encode without throwing (up from 0/154), zero changes of any kind outside
+the Application Class id range (28700-30209).**
+
+### Scope actually implemented
+
+Cycle 13 fully solved the DIRECTORY representation for classes with
+`extends`/`implements` and with properties/instances, but never studied
+the STATEMENT-SECTION bytes for a class header's own `extends Y;`/
+`implements Z;`/`property ...;`/`instance ...;` clauses -- only the
+one-method golden template's exact four-statement body was ever
+hand-verified. Rather than guess those specific statement bytes, this
+cycle's actual encoder additionally restricts to: **zero `extends`,
+zero `implements`, zero `property`/`instance` members, class (not
+interface), zero abstract methods, zero constants** -- i.e. methods-only
+classes, of any method count, with arbitrary method bodies. This is
+narrower than `parseApplicationClassSource` itself accepts (that parser
+keeps the broader IR, including `extends`/`implements`/one storage
+member, for future use); `encodeApplicationClassProgramV2` applies the
+additional restriction before attempting a real encode. 154 of the
+1,510 Application Class definitions match this scope.
+
+### 1. Application Class IR (Phase 14A)
+
+`src/peoplecode/applicationClassProgram.ts` (new): `ApplicationClassProgram`
+(`unitKind`, `className`, `extendsType?`, `implementsType?`, `members[]`)
+and `ApplicationClassMember` (`ApplicationClassMethodMember` |
+`ApplicationClassStorageMember`), using Cycle 13's own field names
+throughout: `sourceOrder`, `declarationOrdinal`, `implementationOrder`,
+`signatureSlotOffset`, `visibility`, `abstract`, `parameters`,
+`returnType`, `body`. No field was invented without a Cycle 13
+correlation; `declarationOrdinal` and `implementationOrder` are tracked
+as SEPARATE numbers per Cycle 13's own central finding that these are
+independent axes.
+
+### 2. Parser (Phase 14B)
+
+`parseApplicationClassSource(source)` accepts the broader, still fully
+evidence-backed shape (0/1 storage member, 0/1 relationship target,
+concrete methods only, 0 abstract, 0 constants -- see its own comment for
+each restriction's exact Cycle 13 justification) and returns `undefined`
+(never throws) outside that scope. Reused Cycle 13's own battle-tested
+masking/region-extraction approach rather than re-deriving it. One
+correctness bug found and fixed before any corpus run: the original
+implementation-body extraction used `match[0].indexOf(match[3], ...)` to
+relocate a capture group's own text within the full match, which is
+unreliable if the body text happens to repeat an earlier substring;
+replaced with the regex `d` flag's exact capture-group character offsets.
+A second bug (a `.forEach()` callback's own `return` statement not
+actually rejecting the enclosing parse when an implementation's name
+matched no declared method) was found and fixed the same way.
+
+Population effect of each restriction, measured directly (not asserted):
+`import` required -> not required raised acceptance from 423 to 539/1,510;
+narrowing further to zero relation/zero storage members for the actual
+ENCODE attempt (not just parse acceptance) leaves 154/1,510.
+
+### 3. Directory generation (Phase 14C)
+
+`APPLICATION_CLASS_FLAGS`, `encodeTypeDescriptor` (the exact inverse of
+Cycle 13's own `decodeDescriptor`), `encodeApplicationClassDirectoryRecord`,
+`encodeApplicationClassNameEntry`, and `encodeApplicationClassSlot` in the
+new module; `encodeApplicationClassProgramV2` in `encoder.ts` is the
+orchestrator. `declarationOrdinal` (signature slot offsets, cumulative in
+class-header declaration order) and physical directory position
+(methods placed in `implementationOrder`, matching Cycle 13's own
+1,473/1,473 finding) are computed and used as two genuinely separate
+values, never conflated. Constants generate no directory rows (none are
+in scope for encoding anyway, since this cycle's scope excludes them).
+
+Two structural findings from Cycle 13 required NEW encoder-core support,
+both additive and off by default for every existing caller (verified: a
+full corpus run showed 0 changes outside the Application Class id range):
+
+- **`EncodeProgramContext.referenceIndexOffset`/`suppressOwnerReference`**:
+  method bodies are each encoded independently (their own control groups,
+  their own reuse pools -- Cycle 13 did not study, and this cycle does not
+  attempt, cross-method dependency DEDUPLICATION), but PSPCMPROG reference
+  operands and PSPCMNAME sequence numbers are GLOBAL across the whole
+  program. Without this, a second method's own references would restart
+  numbering at 0, producing structurally invalid bytecode when
+  concatenated, not merely imprecise bytes.
+- **`PeopleCodeOwner.packagePath`**: the existing `recordName`/`fieldName`
+  pair only carries the first two `objectValue` components, insufficient
+  for the 46% of Application Class definitions with a nested package
+  path (Cycle 13's own `nestedPackagePath: 702/1,510` finding).
+  `tools/corpus/validator.ts` now passes the full `objectValue1..7` path
+  (stopping before the event name) for every definition; harmless and
+  unused for ordinary Record.Field-owned PeopleCode.
+
+### 4. Reusing the general encoder for method bodies
+
+Every method body is delegated to the SAME `encodeFragmentInternal` every
+other program type uses -- no new statement/expression encoding logic was
+written. `import` statements are ALSO delegated to it directly (confirmed
+already general-purpose, including the wildcard `import X:*;` form and
+its own PACKAGE dependency row, by reading `importStatement()` before
+writing anything new). Only the class-header method DECLARATIONS and the
+method IMPLEMENTATION wrapper (`method NAME /+ ... +/ ... end-method;`)
+are hand-encoded, generalizing the pre-existing one-method template's own
+already-verified bytes to N methods.
+
+Two real, evidence-driven fixes were required to make this reuse work at
+all, both found via direct byte comparison against the pre-existing
+golden `OU_CORPUS:Utilities:TestClass` fixture
+(`src/test/fixtures/applicationClassSignatures.ts`), not guessed:
+
+- The general parser requires a terminating `;` on every statement, but
+  a method body's own FINAL statement may omit it in real captured
+  source (the golden fixture's own `Return "Hi"` has none, immediately
+  before `end-method`). A semicolon is appended before encoding if
+  missing (parsing convenience only), and the resulting trailing `0x4F`
+  inter-statement separator byte -- which the golden fixture's own
+  hand-written bytes prove does NOT appear before a method's closing
+  bytes -- is stripped back off afterward.
+- The general encoder's existing declaration-section-boundary markers
+  (`0x2D`, tracked by `closedTopLevelDeclarationSection`/
+  `closedApplicationClassLocalSection`) fire for a `Local
+  PKG:Class &var;` declaration immediately followed by executable code --
+  correct for ordinary top-level code, but the golden fixture's own
+  method body has NO such marker for the exact same shape. A new
+  `EncodeProgramContext.suppressDeclarationSectionMarkers` option gates
+  just these two `0x2D` pushes (their own companion blank-line `0x4F`
+  markers are untouched and still fire normally) when set; every
+  existing caller omits it.
+
+A separate, pre-existing narrow-template quirk was also fixed:
+`parseApplicationClassProgram` (the OLD one-method template) returns
+`undefined` only for a very weak initial test: past that, any OTHER
+shape it does not recognize makes it THROW rather than return
+`undefined`, previously killing the encode before
+`encodeApplicationClassProgramV2` ever got a chance. `encodeProgramArtifacts`
+now catches `UnsupportedPeopleCodeError` specifically from the OLD path
+and falls through to the new one -- raising the number of target-scope
+definitions that reach the new encoder at all from 114/154 attempting
+to 141/154 producing output without throwing.
+
+### 5. What remains blocked -- found, not guessed away
+
+Even after both fixes above, only 1/154 target definitions
+(`OU_CORPUS:TestClass`, definition 29632) is fully byte-exact; 1/154 also
+matches on `recordCount`/`slotCount`/`names` byte length (the SAME
+definition -- directory-level correctness was not separately confirmed
+for any OTHER definition beyond this one). The blocking gap, found but
+NOT fixed this cycle: a blank source line between two ORDINARY
+EXECUTABLE statements (not a declaration-section boundary) is preserved
+in real captured bytes as an extra `0x4F`, but `encodeFragmentInternal`'s
+own mechanism for this (`pendingReferenceGroupBoundaries`) defers the
+marker's actual emission until some LATER condition tied to reference
+allocation, not a direct, unconditional per-blank-line byte the way the
+declaration-section boundary is. This was traced far enough to identify
+by name but not far enough to safely fix within this cycle -- doing so
+without population-scale evidence would itself be guessing, which this
+cycle's own instruction explicitly rules out. Almost every real method
+body has 2+ statements with blank lines between them (ordinary PeopleCode
+style), so this single gap is the dominant reason 140/141 successfully-
+encoding definitions do not reach byte-exactness.
+
+### 6. Validation
+
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 490 passed, 0 failed, 1 intentional skip -- including the
+  pre-existing golden `OU_CORPUS:Utilities:TestClass` fixture test,
+  unchanged (still served by the OLD narrow template, tried first).
+- Protected baseline (`corpus:harness --compare-baseline`): 430/430,
+  `Improved: 0, Regressed: 0`.
+- Full local-snapshot run: 23,217/30,209 EXACT, matching the Cycle 13
+  baseline exactly.
+- Row-by-row `classification`+`generated_program_bytes` diff against the
+  Cycle 13 baseline run (2010): **377 definitions changed, all 377
+  within the Application Class id range (28700-30209), zero outside; 0
+  EXACT regressions.** Transitions: 231 `UNSUPPORTED_SYNTAX` ->
+  `ENCODE_ERROR`, 113 `ENCODE_ERROR` -> `DECODE_SOURCE_MISMATCH`, 27
+  `UNSUPPORTED_SYNTAX` -> `DECODE_SOURCE_MISMATCH`, 6 `ENCODE_ERROR` ->
+  `UNSUPPORTED_SYNTAX`. The `UNSUPPORTED_SYNTAX`/`ENCODE_ERROR` shift is
+  cosmetic, not a correctness regression: `src/peoplecode/corpus/classify.ts`
+  assigns `UNSUPPORTED_SYNTAX` purely by checking whether the thrown
+  error message's text contains the word "unsupported" -- many more
+  Application Class definitions now reach a throw site inside the new
+  code (previously they never got past the old template's own weak
+  entry check), and not every one of those throw sites' messages happens
+  to contain that word. Neither classification is `EXACT`; no definition
+  moved between EXACT and non-EXACT except in the improving direction
+  (0 such cases either way here, since 29632 was not previously captured
+  in a prior run to compare against -- see the direct measurement below).
+- Direct measurement against the 154-definition target population
+  (not merely inferred from corpus classifications): 141/154 (92%) now
+  encode without throwing (0/154 before this cycle); 1/154 fully
+  byte-exact; 1/154 directory-structure-matches (`recordCount`/
+  `slotCount`/name-table byte length) its own stored program.
+
+### Next action
+
+1. Reverse-engineer `pendingReferenceGroupBoundaries`' own actual trigger
+   rule (the blocking gap in section 5) -- this is now the single
+   highest-value next research target for this population, since fixing
+   it would likely make a large fraction of the 141 currently-encoding
+   definitions newly EXACT.
+2. Separately, reverse-engineer the STATEMENT-section bytes for
+   `extends`/`implements`/`property`/`instance` class-header clauses
+   (Cycle 13 solved only their DIRECTORY representation) -- this would
+   let `encodeApplicationClassProgramV2`'s own scope restriction (section
+   "Scope actually implemented" above) be lifted, covering meaningfully
+   more than 154/1,510.
+3. Investigate cross-method dependency deduplication (a `Local Rowset
+   &x;` in method 2 reusing method 1's own PACKAGE dependency, observed
+   directly in a real capture during this cycle's own design phase but
+   deliberately NOT implemented, since each method body is encoded via
+   its own independent `encodeFragmentInternal` call).
+4. Do not attempt 1-3 by guessing; each needs its own population-scale
+   evidence pass, matching this project's established methodology.
+
 ## Compiler Semantics Cycle 13 — Application Class structural reverse-engineering (research only, zero behavior change)
 
 **Status: full-population structural model established; no encoder changes.**
