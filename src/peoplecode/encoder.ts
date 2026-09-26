@@ -6,6 +6,7 @@ import {
   encodeApplicationClassNameEntry,
   encodeApplicationClassSlot,
   encodeTypeDescriptor,
+  applicationClassHasTrailingSourceTerminator,
   parseApplicationClassSource,
   type ApplicationClassMethodMember
 } from './applicationClassProgram.js';
@@ -11005,20 +11006,46 @@ function encodeApplicationClassProgramV2(
       statementChunks.push(Buffer.from([0x4f]));
     }
   };
+  const emittedDeclarationTerminatorOffsets = new Set<number>();
 
   const emitLayoutRange = (
     start: number,
     end: number,
-    flushTrailingGap: boolean
+    flushTrailingGap: boolean,
+    includeDeclarationTerminators = false
   ): void => {
+    const terminators = includeDeclarationTerminators
+      ? parsed.declarationTerminatorOffsets.filter(offset =>
+        offset >= start && offset < end && !emittedDeclarationTerminatorOffsets.has(offset))
+      : [];
+    let terminatorIndex = 0;
     let cursor = start;
     for (const comment of scanApplicationClassLayoutComments(source, start, end)) {
       emitMarkers(applicationClassBlankLineCount(source.slice(cursor, comment.start)));
+      while (terminators[terminatorIndex] < comment.start) {
+        emittedDeclarationTerminatorOffsets.add(terminators[terminatorIndex]);
+        statementChunks.push(Buffer.from([0x15]));
+        terminatorIndex++;
+      }
       statementChunks.push(applicationClassLayoutCommentOperand(comment));
       cursor = comment.end;
     }
+    while (terminatorIndex < terminators.length) {
+      emittedDeclarationTerminatorOffsets.add(terminators[terminatorIndex]);
+      statementChunks.push(Buffer.from([0x15]));
+      terminatorIndex++;
+    }
     if (flushTrailingGap) {
       emitMarkers(applicationClassBlankLineCount(source.slice(cursor, end)));
+    }
+  };
+
+  const emitDeclarationTerminators = (start: number, end: number): void => {
+    for (const offset of parsed.declarationTerminatorOffsets) {
+      if (offset >= start && offset < end && !emittedDeclarationTerminatorOffsets.has(offset)) {
+        emittedDeclarationTerminatorOffsets.add(offset);
+        statementChunks.push(Buffer.from([0x15]));
+      }
     }
   };
 
@@ -11130,24 +11157,21 @@ function encodeApplicationClassProgramV2(
   };
 
   /*
-   * A method body's own FINAL statement, immediately before `end-method`,
-   * may omit its trailing `;` in real captured source (the golden
-   * OU_CORPUS:Utilities:TestClass fixture's own `Return "Hi"` has none) --
-   * the general statement parser requires one, so it is added back here
-   * purely to satisfy parsing. The OLD narrow encoder's own hand-written
-   * bytes for this exact fixture prove the LAST statement's own trailing
-   * 0x4f statement-separator byte (which `encodeFragmentInternal` emits
-   * after every ordinary statement, including one this parser had to
-   * complete with an added `;`) is NOT present before the method's own
-   * closing bytes -- it is stripped back off here to match.
+   * A method body's final statement may omit `;`, while the shared fragment
+   * parser requires one. Cycle 28 distinguishes that parser-only completion
+   * from a real final source semicolon after masking trailing comments. The
+   * synthetic final 0x4F remains stripped as before; when completion was
+   * necessary, its synthetic 0x15 is stripped too. Source-owned 0x15 bytes
+   * and the wrapper's own closer suffix remain untouched.
    */
   const encodeMethodBody = (body: string): Buffer => {
-    const trimmedEnd = body.replace(/\s+$/, '');
-    const completed = /;$/.test(trimmedEnd) ? body : `${body};`;
+    const hasSourceTerminator = applicationClassHasTrailingSourceTerminator(body);
+    const completed = hasSourceTerminator ? body : `${body};`;
     const bytes = encodeFragment(completed);
-    return bytes.length > 0 && bytes[bytes.length - 1] === 0x4f
-      ? bytes.subarray(0, bytes.length - 1)
-      : bytes;
+    let end = bytes.length;
+    if (end > 0 && bytes[end - 1] === 0x4f) end--;
+    if (!hasSourceTerminator && end > 0 && bytes[end - 1] === 0x15) end--;
+    return bytes.subarray(0, end);
   };
 
   emitCompilationUnitPrefix();
@@ -11163,6 +11187,7 @@ function encodeApplicationClassProgramV2(
     statementChunks.push(Buffer.from([0x72]));
     statementChunks.push(encodeApplicationClassPathBytes(parsed.implementsType.split(':')));
   }
+  emitDeclarationTerminators(parsed.unitStart, parsed.unitHeaderEnd);
 
   // Cycle 22: one executable stream in exact source declaration order.
   // Cycle 25: declaration layout is a separate compilation-unit layer. It
@@ -11170,7 +11195,7 @@ function encodeApplicationClassProgramV2(
   // opcodes or their metadata order.
   let declarationCursor = parsed.unitHeaderEnd;
   for (const statement of parsed.statements) {
-    emitLayoutRange(declarationCursor, statement.sourceIndex, true);
+    emitLayoutRange(declarationCursor, statement.sourceIndex, true, true);
     declarationCursor = statement.sourceEnd;
     if (statement.kind === 'visibility') {
       if (statement.visibility !== 'public') {
@@ -11196,7 +11221,7 @@ function encodeApplicationClassProgramV2(
         statementChunks.push(encodeApplicationClassTypeBytes(statement.returnType));
       }
       if (statement.abstract) statementChunks.push(Buffer.from([0x6f]));
-      if (statement.terminated) statementChunks.push(Buffer.from([0x15]));
+      emitDeclarationTerminators(statement.sourceIndex, statement.sourceEnd);
       continue;
     }
     if (statement.kind === 'property') {
@@ -11206,7 +11231,7 @@ function encodeApplicationClassProgramV2(
       for (const modifier of statement.modifiers) {
         statementChunks.push(Buffer.from([modifier === 'readonly' ? 0x60 : modifier === 'get' ? 0x5f : 0x49]));
       }
-      statementChunks.push(Buffer.from([0x15]));
+      emitDeclarationTerminators(statement.sourceIndex, statement.sourceEnd);
       continue;
     }
     if (statement.kind === 'instance-statement') {
@@ -11216,7 +11241,7 @@ function encodeApplicationClassProgramV2(
         if (index > 0) statementChunks.push(Buffer.from([0x03]));
         statementChunks.push(encodeVariableName(name));
       });
-      statementChunks.push(Buffer.from([0x15]));
+      emitDeclarationTerminators(statement.sourceIndex, statement.sourceEnd);
       continue;
     }
     // Flattened instance members are metadata-only; their grouped executable
@@ -11227,10 +11252,10 @@ function encodeApplicationClassProgramV2(
       statementChunks.push(encodeVariableName(statement.name));
       statementChunks.push(Buffer.from([0x06]));
       statementChunks.push(encodeApplicationClassLiteral(statement.value));
-      statementChunks.push(Buffer.from([0x15]));
+      emitDeclarationTerminators(statement.sourceIndex, statement.sourceEnd);
     }
   }
-  emitLayoutRange(declarationCursor, parsed.unitCloseStart, true);
+  emitLayoutRange(declarationCursor, parsed.unitCloseStart, true, true);
 
   // END-CLASS|END-INTERFACE ; and its declaration-boundary 0x2d. Layout
   // between the unit and the first wrapper belongs to the compilation unit;
