@@ -1,5 +1,272 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 22 — Application Class executable statements
+
+**Status: research complete; no encoder/decoder semantic change.** Baseline is
+commit `bee465f` (Cycle 21), 23,217/30,209 EXACT, 6,992 residual definitions,
+protected 430/430, and zero EXACT Application Classes. The datasource was only
+the completed local HCDEV snapshot; `--live` was not used. Cycle 23 was not
+started.
+
+Reproducible analyzer:
+`tools/corpus/research/application-class-statement-analysis.ts`. Its default
+report is the population/grammar summary. `--json` adds one row for each of the
+1,361 Cycle 21 targets, including source, display name, source shape, source and
+stored declaration/implementation sequences, stored section boundaries,
+directory records, signature slots, PSPCMNAME rows, and the available source-
+error or stored/generated first-divergence window. It reads the latest
+completed 30,209-definition result set, re-encodes only successful residuals
+needed to reproduce Cycle 21's target selection, and never writes corpus state.
+
+### Target population corrected at the real boundary
+
+The analyzer exactly reproduces all 1,361 Cycle 21 direct-root rows and its
+seven mutually exclusive prior buckets:
+
+| Cycle 21 first-root bucket | definitions |
+|---|---:|
+| extends/implements | 708 |
+| property/instance | 526 |
+| successful executable-body/wrapper mismatch | 45 |
+| method-body grammar | 41 |
+| interface | 37 |
+| leading comment/wrapper | 2 |
+| constant | 2 |
+
+The prior bucket was intentionally coarse. Comparing each source error offset
+or successful stored-byte difference with the class declaration's stored/source
+boundaries yields the actual Cycle 22 split:
+
+- **1,350** first diverge inside the class/interface declaration region;
+- **9** first diverge after the unit closer, in implementation/body/wrapper
+  handling;
+- **2** are whole-source-commented ROADMAP programs with no stored class
+  opcode, so no class declaration boundary exists.
+
+The eleven unrelated roots are definitions `28811, 28812, 29307, 29324,
+29338, 29568, 29571, 29574, 29648, 29672, 29945`. Six (`28811, 28812, 29338,
+29571, 29574, 29945`) are encoder failures in implementation expressions or
+statements, three successful cases first differ after `end-class`, and the two
+ROADMAP cases are the already-known leading-comment population. They must not
+enlarge Cycle 23's class/member implementation scope.
+
+The overlapping source shapes inside the 1,361 rows are: 1,343 real classes,
+16 real interfaces, and two commented/unparsed units; 497 `extends`, 221
+`implements`, 1,339 method-bearing, 549 property-bearing, 494 instance-bearing,
+and 83 constant-bearing definitions. These overlap and are not root buckets.
+
+### Stored section layout
+
+All 1,506 active Application Class/interface sources have a stored class unit
+and obey this section state machine:
+
+```text
+37-byte PROGRAM_HEADER
+IMPORTS / comments / structural markers
+CLASS_OR_INTERFACE_HEADER
+ORDERED_MEMBER_DECLARATIONS
+END_CLASS_OR_INTERFACE [SEMICOLON]
+post-class Declare Function / comments / markers
+IMPLEMENTATION_WRAPPERS in implementation order
+[0x2D] 0x07
+UTF-16 DIRECTORY_NAMES
+16-byte DIRECTORY_RECORDS
+4-byte SIGNATURE_SLOTS
+```
+
+The statement terminator is always `0x07` in the 1,506 analyzable programs.
+It is preceded by structural `0x2D` in 1,454 and directly follows the final
+statement/wrapper in 52. The other four of 1,510 snapshot definitions are
+entire-unit comments (`29646, 29648, 29670, 29672`) with no stored class opcode;
+they are explicit non-controls rather than contradictions.
+
+### Class/interface header grammar
+
+The following matches all 1,506 active units, with zero contradictions:
+
+```text
+UNIT       := CLASS | INTERFACE
+CLASS      := 5A INLINE_NAME [EXTENDS] [IMPLEMENTS] MEMBER* 5B 15
+INTERFACE  := 70 INLINE_NAME MEMBER* 71 15
+EXTENDS    := 5C TYPE_PATH
+IMPLEMENTS := 72 TYPE_PATH
+INLINE_NAME := 0A UTF16LE(name) 0000
+```
+
+- 1,490 active units use `0x5A`/`0x5B`; 16 use `0x70`/`0x71`.
+- All 507 positive `extends` controls contain one `0x5C` path and all 999
+  negatives contain none.
+- All 236 positive `implements` controls contain one `0x72` path and all 1,270
+  negatives contain none.
+- Unit names and relationship path components are inline strings, not
+  PSPCMNAME operands. Ordinary package components use `0x0A`; the special
+  `%metadata` root uses the existing system-name token `0x12`; `0x57` separates
+  path components. Scalar/array type words use ordinary `0x40` type operands.
+
+These opcodes are Application-Class-specific for unit/member structure, while
+types, variables, `As`, `Returns`, punctuation, and literal operands reuse the
+ordinary PeopleCode declaration vocabulary.
+
+### Member declaration grammar
+
+Across all 1,506 active units, 16,472 executable declarations match these
+grammars with zero contradictions:
+
+```text
+METHOD := 63 INLINE_NAME 0B PARAMS 14 [39 TYPE] [6F] [15]
+PARAM  := 01 VARIABLE 35 TYPE [5D]
+PROPERTY := 5E TYPE INLINE_NAME [60 | 5F | 49]* 15
+INSTANCE := 62 TYPE (01 VARIABLE) (03 01 VARIABLE)* 15
+CONSTANT := 56 01 VARIABLE 06 LITERAL 15
+VISIBILITY := 61 private | 73 protected | no opcode for public
+```
+
+- `0x63` introduces all 9,278 method declarations. A constructor is an
+  ordinary method whose inline name equals the unit name (1,279 definitions),
+  not a distinct opcode.
+- Parameters are comma-separated with `0x03`; `0x5D` marks `out` (237 parameter
+  occurrences). One real signature (`28818`) preserves a trailing comma and
+  comment before `)`, but that comma creates no parameter.
+- `0x39 TYPE` carries `Returns`; explicit abstract declarations add `0x6F`
+  before the source terminator. There are 20 abstract-bearing definitions.
+- A final method declaration may omit `0x15` exactly when its source omits the
+  semicolon immediately before `end-class`; this is not a special method kind.
+- All 4,745 properties use `0x5E`; modifiers remain in source order. The
+  population has 1,191 `readonly`, 1,071 `get`, and 251 `set` declarations.
+  Declaration `get`/`set` bytes are modifiers, not implementation wrappers.
+- All 2,110 instance statements use `0x62`, one type followed by one or more
+  `0x01` variables.
+- `public` is the initial/default visibility and emits no byte. The 651
+  `private` and 107 `protected` transitions emit `0x61` and `0x73` at their
+  exact source positions.
+- Interface methods use the ordinary `0x63` declaration. Interface-ness and
+  abstract directory flags come from the enclosing unit/metadata; there is no
+  alternate interface-method statement opcode.
+
+Positive and negative occurrence controls are exact: method 1,485/21,
+property 564/942, instance 520/986, and constant 83/1,423 definitions, with
+zero false positives or false negatives in stored declaration counts.
+
+The manifestations by member kind are therefore:
+
+| member | executable declaration | directory/signature | implementation wrapper |
+|---|---|---|---|
+| concrete method / constructor | yes | method record + slots | yes |
+| abstract/interface method | yes | abstract method record + slots | no |
+| property | yes | property record; custom accessors add callable records/slots | custom accessors only |
+| instance | yes | storage record, no signature slots | no |
+| constant | yes | none | no |
+
+### Ordering model and wrapper relationship
+
+Executable member statements use **source declaration order**, including
+visibility transitions and cross-kind interleaving. All 1,506 active units
+match exactly. Independent controls are exact for 1,194 multi-method units,
+461 multi-property units, 324 multi-instance units, 13 multi-abstract-method
+units, and all 1,279 constructor-bearing units.
+
+This does not replace Cycle 13's metadata axes:
+
+- declaration order still governs signature-slot offsets and storage ordinals;
+- concrete callable directory physical order still follows implementation
+  order;
+- property/instance physical directory order remains compiler-symbol-table
+  order.
+
+Stored implementation wrapper sequence matches source implementation order in
+all 1,506 active units. The Cycle 17-18 wrapper grammar remains a later phase:
+`63 41` method, `5F 41` getter, or `49 41` setter header, its already-solved
+BODY-GAP/body/closer/TRANSITION sequence, then the optional terminal `0x2D`
+and `0x07`. Cycle 22 changes none of those rules.
+
+### Constants
+
+The complete constant-bearing population is 83 definitions and **339**
+declarations. This corrects Cycle 13's parser count of 332: seven legitimate
+constant names contain an internal `#` (for example `&c_#sp`) and were skipped
+by that research parser.
+
+All 339 constants have executable `56 01 name 06 literal 15` statements and
+zero same-name directory records. Their literal population is 265 strings
+(`0x16`), 72 numbers (`0x50`), and two booleans (`False`, `0x30`). There are no
+non-literal or dependency-bearing constant expressions in HCDEV, so no type or
+signature metadata and no constant-specific dependency rule is justified.
+
+### `extends` / `implements` manifestations
+
+All 743 relationship-bearing active units have an exact inline `0x5C` or
+`0x72` TYPE_PATH statement and a non-default self-record descriptor. These are
+independent of PSPCMNAME allocation:
+
+- 721/743 also have a matching `RECNAME=PACKAGE` row;
+- 17 unqualified/built-in relationships (primarily `Exception`) do not;
+- five qualified relationships also have no matching PACKAGE row (`29306,
+  29792, 30186, 30191, 30193`).
+
+Therefore the statement path, Cycle 13 self descriptor, and PSPCMNAME PACKAGE
+row are three separate compiler products. Cycle 23 must not create a PACKAGE
+dependency merely because it emitted `0x5C`/`0x72`.
+
+### Native declaration isolation
+
+No `Declare Function ... Library` source occurs in the 1,361 target. Exactly
+one exists in the full Application Class population (`29329`), already assigned
+by Cycle 21 to native/library metadata. Ordinary post-class `Declare Function
+... PeopleCode` statements can occupy the region between `end-class` and the
+first implementation, but native-library metadata is not part of this member
+grammar.
+
+### Explanation coverage and Cycle 23 boundary
+
+Every target has a disposition:
+
+| disposition | definitions | target percent |
+|---|---:|---:|
+| fully explained by the statement model | 1,350 | 99.19% |
+| unrelated root discovered | 11 | 0.81% |
+| partially explained | 0 | 0% |
+| unresolved | 0 | 0% |
+
+The narrow Cycle 23 change population is therefore **1,350 definitions**, and
+all 1,350 should move their first divergence later. No currently EXACT
+definition traverses the Application Class path.
+
+A statement-only research substitution proves zero immediate EXACT candidates:
+the 42 currently source-encodable declaration-root controls all retain at least
+one later mismatch (42 name sections, 41 record sections, 40 post-class/wrapper
+suffixes, and eight slot sections; overlaps expected). Together with the 11
+unrelated roots, 53 definitions have a directly observed later blocker. The
+other 1,308 declaration-root definitions currently stop during encoding, so
+their final EXACT outcome is deliberately reported as indeterminate until the
+new grammar exists; it is not guessed from first-root counts.
+
+Cycle 14's hand-written fragments are correct only for their narrow
+methods-only subset (`0x5A`/`0x5B`, `0x63`, inline names, parameters, Returns,
+and basic types). They are incomplete for interfaces, relationships,
+visibility, properties, instances, constants, abstract/out modifiers,
+`%metadata`, and source-optional final declaration terminators. The wrong
+abstraction is emitting method declarations separately: Cycle 23 should parse
+one ordered `ApplicationClassStatement` IR containing unit kind/name,
+relationship paths, visibility nodes, and discriminated method/property/
+instance/constant nodes with source terminator/comment state. Statement
+emission, Cycle 13 names/records/slots, and Cycle 17-18 wrappers should remain
+separate phases.
+
+### Validation
+
+- Analyzer reproduces 1,361/1,361 Cycle 21 targets and classifies every row.
+- Active stored grammar: 1,506/1,506 header matches, declaration matches,
+  source-order matches, and terminal-boundary matches; zero contradictions.
+- Typecheck: clean.
+- Unit suite: 498 passed, one intentional pre-existing skip.
+- Protected local baseline: 430/430 EXACT; regression gate pass.
+- Full local run 2038: 23,217/30,209 EXACT, 6,992 failures.
+- Row-by-row run 2031 -> 2038: 0 classification changes, 0 first-diff changes,
+  0 newly EXACT, 0 EXACT regressions, and **0/30,209 generated SHA changes**.
+- No `src/` file changed and `--live` was not used.
+
+**STOP after the Cycle 22 research commit. Do not begin Cycle 23.**
+
 ## Compiler Semantics Cycle 21 — residual population census and next-subsystem selection
 
 **Status: research complete; no encoder/decoder semantic change.** Baseline is
