@@ -1,5 +1,386 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 13 — Application Class structural reverse-engineering (research only, zero behavior change)
+
+**Status: full-population structural model established; no encoder changes.**
+Baseline is commit `55d4066` (Cycle 12), 23,217/30,209 EXACT, protected
+430/430, 490 tests passing plus one intentional skip. This cycle adds one
+new read-only research tool
+(`tools/corpus/research/application-class-structure-analysis.ts`,
+continued from an in-progress, uncommitted ~1060-line draft found at the
+start of this cycle and preserved rather than rewritten) and touches
+nothing in `src/`. All evidence came from the completed local HCDEV
+snapshot; no `--live` access was used.
+
+### Why this population is safe to research freely
+
+Cross-referencing the full Application Class population (1,510
+definitions, `objectid1 = 104`, ids 28700-30209) against the latest full
+corpus run (2009, matching the Cycle 12 baseline exactly) found:
+
+```text
+ENCODE_ERROR         1,242
+UNSUPPORTED_SYNTAX      263
+DECODE_SOURCE_MISMATCH    3
+UNKNOWN_MISMATCH         2
+EXACT                     0
+```
+
+**Zero of the 1,510 Application Class definitions are currently EXACT.**
+The production encoder (`applicationClassMetadata.ts`,
+`parseApplicationClassProgram`/`encodeApplicationClassProgram` in
+`encoder.ts`) only recognizes one exact, hand-calibrated template: a
+single-method class whose body is exactly
+`Local A:B:C &obj; &obj = create A:B:C(); &obj.Method("..."); Return
+"...";`. Every real-world shape this cycle studied -- multiple methods,
+properties, inheritance, interfaces -- currently falls outside that
+template and never reaches comparison. This means: (1) this cycle's
+research could not have regressed anything in this family, since nothing
+in it is currently passing; (2) the 430/430 protected baseline and
+23,217 EXACT count are both structurally insulated from any finding
+here; and (3) this is the single largest untapped failure family in the
+whole corpus -- 1,510 of the corpus's 6,992 current failures (21.6%)
+are Application Class definitions, all currently unreachable by any
+comparison at all.
+
+### Methodology
+
+Full-population analysis, not sampling: every one of the 1,510
+definitions was parsed from source (a dedicated regex-based class/
+interface/member parser, masking comments and strings first) and from
+its stored, compiled `PSPCMPROG` bytes (via the existing, already-
+calibrated generic section reader, `readProgramLayout` --
+`src/peoplecode/programLayout.ts`, unchanged, pre-existing, general-
+purpose header/section-boundary parsing only). Every proposed invariant
+below is a COUNT out of a stated population, not an assertion from a
+handful of examples; every population is partitioned by structural shape
+(class vs. interface, method count buckets, presence of properties/
+instances/constants/inheritance/interfaces/nested package paths/
+constructors) before any rule is proposed.
+
+### 1. Application Class binary layout model
+
+Unchanged from the pre-existing, already-calibrated generic layout:
+37-byte header, then `statements` (the executable body, ending in the
+0x07 directory separator), then a UTF-16LE `names` run, then
+`recordCount` fixed 16-byte directory records, then `slotCount` fixed
+4-byte dispatch slots. All 1,510 definitions use format word `0x85`
+(the `0x84`/`0x85` distinction the layout reader's own comment already
+flagged as unknown remains unresolved -- 0x84 never appeared in this
+population, so it was not investigated further this cycle).
+
+### 2. Directory-entry / bitfield model -- CONFIRMED, zero contradicting evidence
+
+Each 16-byte directory record is `[nameOffset:u32][signatureSlotOffset:u32]
+[flags:u16][low:u16][descriptor:u32]`. The high 16 bits of the third word
+are a genuinely COMPOSABLE bitfield, not per-kind unrelated formats:
+
+```text
+0x010000  private
+0x020000  property
+0x040000  readonly
+0x080000  storage
+0x100000  getter
+0x200000  setter
+0x400000  self
+0x800000  abstract
+0x1000000 protected
+```
+
+Every one of the 16 distinct flag-word values observed across all 19,437
+directory records (`recordFlagCounts` in the tool's own JSON output)
+decomposes cleanly into this bit set with no residual/unexplained bits
+anywhere in the population. A record's KIND is fully determined by the
+flags alone: `self` (0x400000, exactly once per program, always first);
+`getter`/`setter` (their own dedicated bits); `instance` (property +
+private + storage, i.e. a private backing-storage declaration written
+with the `instance` keyword); `property` (property bit set, not private
++ storage); everything else is `method`. This kind classification
+(`classifyRecord`) was cross-checked against the independently-derived
+`recordKindCounts` (getter 1,070, setter 251, self 1,510, instance 2,584)
+and each count matches its corresponding single-flag-word population
+exactly (e.g. every one of the 1,510 `self` records has flags `=== 0x400000`
+with zero exceptions -- `selfRecordFailures: 0`).
+
+**Property/accessor flag formula, validated across all 4,745 property
+records with zero mismatches** (`propertyTypeMatches`/`flagChecks` in the
+tool's output, every category 100%):
+
+```text
+flags = property
+      | (storage  if mode is plain/readonly AND unit is a class, not an interface)
+      | (readonly if mode is readonly or get-only)
+      | (abstract if unit is an interface)
+      | (private/protected per declared visibility)
+```
+
+A `get`-only or `get-set` property additionally materializes ONE
+dedicated `getter` (and, for `get-set`, one `setter`) directory record --
+but ONLY when a concrete IMPLEMENTATION exists. The one `interface:public:get`
+property in the population (a `get`-mode property declared, but not
+implemented, on an interface) does NOT get its own getter record: getter
+count (1,070) is exactly 1 short of the naive sum over every "get"/
+"get-set" mode property category (1,071), and that shortfall is exactly
+the interface case -- interfaces declare property type/mode only, never
+materialize accessor directory records, symmetric with how interfaces
+never materialize method BODIES either.
+
+### 3. Multi-method ordering model -- one question fully solved, two open
+
+**Solved, 100% across the tested population:** for concrete classes, the
+PHYSICAL ORDER of callable (method/getter/setter) directory records
+follows METHOD IMPLEMENTATION order (the order `method X` blocks appear
+in the executable body), NOT class-header declaration order --
+1,473/1,473 classes compared, zero mismatches
+(`directory.implementationOrder`).
+
+**Solved, separately, 100%:** each callable record's OWN
+`signatureSlotOffset` is nonetheless a running counter over
+DECLARATION order (class-header order), continuing across methods then
+accessors: 9,272/9,272 method slot-offset checks and 1,321/1,321 accessor
+slot-offset checks match a counter that starts at 0 and advances by
+`parameterCount + 1` per method (`+1`/`+2` per get/set accessor). Directory
+POSITION and slot-offset NUMBERING are therefore two independent,
+separately-computed properties of the same record -- position follows
+implementation order, offset follows declaration order.
+
+**Open, quantified, not resolved this cycle:** interface method directory
+order does NOT reliably follow interface declaration order (4/16 exact,
+12/16 mismatched -- `directory.interfaceDeclarationOrder`), and abstract
+method order within a program (any unit) does not reliably follow
+declaration order either (2/26 exact, 24/26 differ --
+`directory.abstractDeclarationOrder`). Both populations lack the
+"implementation order" signal concrete methods have (interfaces and
+abstract methods have no bodies to order by), and no alternative
+ordering rule (alphabetical, by return type, by parameter count) was
+found to fit the observed examples on inspection. This is the most
+concrete open item this cycle leaves for a future research pass --
+see Unresolved Cases below for the actual example orderings.
+
+**Property/instance directory position is separately, more broadly
+unresolved:** 91% of programs with 2+ properties/instances (586/643)
+show a directory order that does not match source declaration order,
+in patterns that are neither reversed, alphabetical, nor storage/
+non-storage grouped on inspection (see the tool's own `memberOrderSamples`
+output for concrete examples). However, the ORDINAL VALUE (`low`) every
+storage-backed record carries -- its position among the class's storage-
+backed members alone (instances + plain/readonly properties), in
+DECLARATION order -- is 100% correct with zero exceptions across 6,249
+checks (`storedMemberOrder.ordinalChecks`/`ordinalMatches`). Directory
+PHYSICAL POSITION and per-member ORDINAL IDENTITY are therefore two
+different, independently-computed things here too, exactly as with
+methods above -- but unlike methods, no signal (implementation order or
+otherwise) explaining physical position was identified for this family.
+
+### 4. Property/accessor/storage model
+
+A property is represented as ONE property-kind directory record (holding
+its own type descriptor and the flag formula above) plus ZERO, ONE
+(`get`/`readonly`), or TWO (`get-set`) additional dedicated accessor
+records, all sharing the same NAME. A private backing-storage instance
+variable (`instance` keyword) is its own distinct kind (property +
+private + storage flags) rather than a property with no accessor --
+`instance` and `property` are genuinely separate declaration forms in
+the directory, matching the source language's own separate `instance`/
+`property` keywords (no `instance`-kind record was ever found with
+non-private or non-storage flags, and no plain/readonly property
+lacking the storage bit was found either -- both directions checked,
+zero exceptions). **Constants have NO directory representation at all**:
+332 source `constant` declarations were checked against every program's
+own directory by name, and matched **zero** of them
+(`constants.directoryNameMatches: 0`) -- constants are presumably encoded
+purely as inline literals in the executable body, not as declaration
+metadata, though this cycle did not trace the executable-body encoding
+itself to confirm that positively.
+
+### 5. Signature-slot model
+
+Confirmed, 100% across every checked dimension (`signatures` in the
+tool's output -- every `*Checks`/`*Matches` pair is numerically equal):
+parameter count, return-type descriptor, per-parameter type descriptor,
+per-parameter `out`-mode flag (`0x80000000` on the slot word; 237/10,023
+parameter slots use it, all correctly predicted), and slot offset
+(previous section) are ALL fully determined by source for every method
+where exactly one directory record matches its name (9,272 of the
+methods checked this way; methods whose name is not unique within one
+program were excluded from this specific check, not from the corpus).
+Every one of 10,598 callable records' own parameter range ends in the
+literal terminator value `7` at the slot immediately following its
+declared parameter count (`terminators: 10,598` of `callableRecords:
+10,598`, zero exceptions). Type descriptors decode via a 20-bit core
+value (a fixed table of scalar/built-in-object type ids, or, for `core &
+0x80000` with `core >= 0x180`, a name-table offset for an Application
+Class type) plus a 12-bit array-nesting depth in the high bits; **every
+descriptor observed in the entire population decoded successfully
+against source** (`unresolvedFixedDescriptors: []`) -- zero unexplained
+descriptor values.
+
+Two definitions (of 1,510) failed the aggregate "does the callables-only
+slot accounting add up to the program's total slot count" check
+(`signatures.slotLayoutFailures: 2`): definition 30162's entire class/
+interface unit is inside a `<* ... *>` doc comment (a genuinely inert,
+non-compiled declaration the compiler emits as an effectively-empty
+stub; this cycle's own source parser's fallback heuristic wrongly still
+extracted a "declared" method from the commented text, which is a
+LIMITATION IN THIS RESEARCH TOOL, not a compiler mystery); definition
+29329 (`GPSC_SYSDATA:Utilities`, a class with three plain properties)
+has 30 slots unaccounted for by its callables alone, with no
+immediately obvious explanation from inspection -- flagged as a genuine
+open item, not resolved this cycle (see Unresolved Cases).
+
+### 6. Inheritance/interface dependency model
+
+The `self` record's own type descriptor (the very first directory
+record, always present) encodes the class's superclass OR its (single)
+implemented-interface target, and nothing else: of 1,510 definitions,
+767 have neither `extends` nor `implements` and a descriptor decoding to
+the plain terminator value `7`; 507 have `extends` and the descriptor
+decodes to exactly that type; 236 have `implements` (no `extends`) and
+the descriptor decodes to one of the implemented interfaces. **All
+1,510 definitions fall into exactly one of these three buckets with
+zero exceptions and zero falling into a "both extends and implements"
+or "mismatch" bucket** (`classRelationDescriptor`) -- meaning, at least
+across this population, no class combines an `extends` clause with an
+`implements` clause, so whether the self descriptor could represent
+BOTH simultaneously was never actually tested by any corpus example (a
+population gap, not a proven restriction).
+
+Separately, the extends/implements[0] target is ALSO recorded as a
+`PACKAGE`-kind PSPCMNAME dependency row for 721 of 743 checked programs
+(97%) -- 22 programs' inheritance/interface target does not appear as a
+matching `PACKAGE` row by final path segment, an open, quantified gap
+(`dependencies.relationDependencyChecks`/`relationDependencyMatches`).
+More broadly, of 8,179 total `PACKAGE`-kind dependency rows, this
+cycle's simple source-text type-path scan could positively explain the
+origin of only 4,415 (54%) as coming from the class header region, the
+implementation body region, or both; the remaining 3,796 (46%) are
+recorded as `unresolved` -- the reference exists in the compiled
+dependency table but this cycle's regex-based source scan could not
+locate a matching textual type reference to explain it
+(`dependencies.packageOriginByFinalTypeName`). This is very likely a
+research-tool coverage gap (implicit references, superclass-inherited
+usage, `%This`, or type paths this cycle's regex does not recognize)
+rather than evidence the dependency rows themselves are wrong, but it
+was not resolved this cycle.
+
+### 7. Source-derived vs. environment-derived metadata split
+
+Everything this cycle characterized (directory flags, kind, ordinal,
+signature descriptors and slot offsets, the self record's relation
+descriptor, callable/accessor implementation-order position) was fully
+determined by the SOURCE TEXT alone -- no metadata requiring
+out-of-source/environmental information (compile-time database state,
+build ordering across definitions, etc.) was identified in this cycle's
+own scope. This is a provisional conclusion bounded by what was actually
+tested: the unresolved property/instance/interface/abstract ordering
+questions (sections 3 and 6) remain open, so it is not yet proven that
+NO environmental input is needed for those specific, still-unexplained
+orderings -- only that none was needed for everything else.
+
+### 8. Evidence table across class shapes
+
+| shape | population | definitions |
+|---|---:|---|
+| classes | 1,492 | |
+| interfaces | 16 | |
+| unparsed (no recognizable class/interface unit) | 2 | |
+| entire-unit-commented (class/interface text present but inside a comment) | 2 | |
+| empty (zero methods/properties/instances/constants) | 7 (5 active) | |
+| single method | 289 | |
+| 2+ methods | 1,195 | |
+| has properties | 564 | |
+| has instance (private storage) variables | 520 | |
+| has constants | 83 (332 declarations total) | |
+| has `extends` | 507 | |
+| has `implements` | 236 | |
+| nested package path (depth > 1) | 702 | |
+| has a same-named constructor method | 1,281 | |
+
+Every count above, and every match-rate cited in sections 2-6, comes
+directly from the tool's own JSON summary output
+(`npx tsx tools/corpus/research/application-class-structure-analysis.ts`),
+reproducible on demand; `--examples` prints the actual mismatching
+definition ids and their declared-vs-actual orderings for every
+open question above.
+
+### 9. Proposed IR / parser abstraction (design only, NOT implemented)
+
+A future Application Class encoder would need, at minimum:
+
+```text
+ApplicationClassProgram
+  header: { name, unitKind: class|interface, extends?, implements[], packagePath }
+  members: OrderedList<
+    Method     { name, visibility, abstract, parameters[], returnType?, bodyIndex? }
+    Property   { name, type, mode: plain|readonly|get|get-set, visibility }
+    Instance   { name, type }               // always private+storage
+    Constant   { name, ... }                // no directory representation
+  >
+  implementations: OrderedList<{ kind: method|get|set, name, bodyIndex }>
+```
+
+with directory-generation rules split into exactly the two independent
+axes this cycle found: (a) an ORDINAL/OFFSET numbering pass over
+`members` in DECLARATION order (assigns storage ordinals to storage-
+backed members; assigns signature slot offsets to methods-then-
+accessors); and (b) a PHYSICAL DIRECTORY POSITION pass that, for
+methods/getters/setters in a concrete class, follows `implementations`
+order -- but has NO known rule yet for interface methods, abstract
+methods, or property/instance physical position (these must remain
+UNMODELED, not guessed at, until a future cycle resolves them). Flag and
+descriptor generation are both fully specified by sections 2 and 5
+above and need no further research to implement.
+
+### 10. Explicit list of unresolved cases
+
+1. Interface method directory order (12/16 mismatched) -- no ordering
+   rule identified from inspection of the mismatching examples.
+2. Abstract method directory order (24/26 mismatched) -- same open
+   question, likely related to #1.
+3. Property/instance directory physical position (586/643 mismatched)
+   -- ordinal identity is solved (100%), physical position is not.
+4. 22/743 (3%) extends/implements relationship targets lack a matching
+   `PACKAGE` dependency row by simple name matching.
+5. 3,796/8,179 (46%) `PACKAGE` dependency rows have no source-text
+   origin this cycle's scan could positively identify.
+6. Definition 29329: 30 unaccounted-for dispatch slots beyond its
+   callables' own signature ranges (a 3-plain-property class; no
+   immediately obvious mechanism identified).
+7. The `0x84` vs `0x85` program-format-word distinction (pre-existing,
+   unrelated to this cycle) -- `0x84` never appeared in this population,
+   so it remains untested here.
+8. Constants' actual executable-body encoding was not traced (only that
+   they have no directory representation was confirmed).
+9. Whether a class's self-descriptor CAN represent both `extends` and
+   `implements` simultaneously was never tested by any corpus example
+   (zero such classes exist in this population).
+
+### 11. Zero-behavior validation
+
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 490 passed, 0 failed, 1 intentional skip -- unchanged.
+- Protected baseline (`corpus:harness --compare-baseline`): 430/430,
+  `Improved: 0, Regressed: 0`.
+- Full local-snapshot run: 23,217/30,209 EXACT, matching the Cycle 12
+  baseline exactly.
+- Row-by-row `classification` and `generated_program_bytes` diff against
+  the Cycle 12 baseline run (2009): **0/30,209 changed** -- expected and
+  trivially guaranteed, since no file under `src/` was modified this
+  cycle (`git diff --stat src/` is empty; only the new research tool and
+  this progress-file entry are new).
+- No `--live` use.
+
+### Next action
+
+Do not begin Application Class encoder implementation automatically.
+A future cycle should, in order: (a) resolve interface/abstract method
+ordering (item 1-2 above) since that blocks a general callable-position
+rule; (b) resolve property/instance physical position (item 3); (c)
+only once both are solved, propose the actual encoder implementation
+plan (still a separately-gated phase, not automatic); (d) separately,
+investigate the unresolved dependency-origin gap (items 4-5) and
+definition 29329's slot anomaly (item 6), neither of which blocks (a)-(c).
+
 ## Compiler Semantics Cycle 12 — remove redundant legacy FIELD pools
 
 **Status: zero-behavior-change cleanup complete.** Baseline is commit
