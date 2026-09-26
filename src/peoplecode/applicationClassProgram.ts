@@ -77,6 +77,8 @@ export interface ApplicationClassMethodMember extends ApplicationClassSourceSpan
   transitionBlankLines: number;
   /** Whether the declaration itself ended in `;` before the unit closer. */
   terminated: boolean;
+  /** Cycle 27: exact explicit source-semicolon multiplicity for this declaration. */
+  terminatorCount: number;
   /** The one corpus signature with a comment after a trailing comma retains it. */
   trailingParameterComma: boolean;
 }
@@ -93,6 +95,8 @@ export interface ApplicationClassStorageMember extends ApplicationClassSourceSpa
   visibility: ApplicationClassVisibility;
   /** Property modifiers in source order. Empty for instances/plain properties. */
   modifiers: Array<'readonly' | 'get' | 'set'>;
+  /** Cycle 27: exact explicit source-semicolon multiplicity for this declaration. */
+  terminatorCount: number;
 }
 
 export interface ApplicationClassConstantMember extends ApplicationClassSourceSpan {
@@ -101,6 +105,8 @@ export interface ApplicationClassConstantMember extends ApplicationClassSourceSp
   sourceOrder: number;
   value: string;
   visibility: ApplicationClassVisibility;
+  /** Cycle 27: exact explicit source-semicolon multiplicity for this declaration. */
+  terminatorCount: number;
 }
 
 export type ApplicationClassMember =
@@ -117,6 +123,8 @@ export interface ApplicationClassInstanceStatement extends ApplicationClassSourc
   kind: 'instance-statement';
   type: string;
   names: string[];
+  /** Cycle 27: exact explicit source-semicolon multiplicity for the grouped statement. */
+  terminatorCount: number;
 }
 
 export type ApplicationClassStatement =
@@ -148,6 +156,8 @@ export interface ApplicationClassProgram {
   implementations: ApplicationClassImplementation[];
   /** Exact source offsets used to preserve already-supported surrounding syntax. */
   unitStart: number;
+  /** Cycle 27: exact explicit source-semicolon multiplicity on the class/interface header. */
+  unitHeaderTerminatorCount: number;
   unitHeaderEnd: number;
   unitCloseStart: number;
   unitEnd: number;
@@ -210,6 +220,23 @@ function maskNonCode(source: string): string {
     i++;
   }
   return chars.join('');
+}
+
+function extendApplicationClassTerminatorRun(
+  text: string,
+  start: number,
+  matchedEnd: number
+): { end: number; count: number } {
+  let count = (text.slice(start, matchedEnd).match(/;/g) ?? []).length;
+  let end = matchedEnd;
+  while (end < text.length) {
+    const horizontal = /^[ \t]*/.exec(text.slice(end))?.[0] ?? '';
+    const semicolonIndex = end + horizontal.length;
+    if (text[semicolonIndex] !== ';') break;
+    count++;
+    end = semicolonIndex + 1;
+  }
+  return { end, count };
 }
 
 function splitParameters(text: string): ApplicationClassParameter[] {
@@ -290,19 +317,26 @@ export function parseApplicationClassSource(
     const rawParameters = match[2] ?? '';
     const parameters = splitParameters(rawParameters);
     if (rawParameters.replace(/,\s*$/, '').trim() !== '' && parameters.length === 0) return undefined;
+    const matchStart = match.index ?? 0;
+    const terminators = extendApplicationClassTerminatorRun(
+      unitRegion,
+      matchStart,
+      matchStart + match[0].length
+    );
     pending.push({
-      index: match.index ?? 0,
-      end: (match.index ?? 0) + match[0].length,
+      index: matchStart,
+      end: terminators.end,
       member: {
         kind: 'method', name: match[1], sourceOrder: -1,
-        sourceIndex: unitRegionStart + (match.index ?? 0),
-        sourceEnd: unitRegionStart + (match.index ?? 0) + match[0].length,
+        sourceIndex: unitRegionStart + matchStart,
+        sourceEnd: unitRegionStart + terminators.end,
         declarationOrdinal: -1, implementationOrder: -1,
         visibility: 'public', abstract, parameters,
         returnType: returnType === undefined ? undefined : normalizeTypeName(returnType),
         body: '', signatureComments: [], signatureSlotOffset: -1,
         transitionBlankLines: 0,
-        terminated: /;\s*$/.test(match[0]),
+        terminated: terminators.count > 0,
+        terminatorCount: terminators.count,
         trailingParameterComma: /,\s*$/.test(rawParameters)
       }
     });
@@ -314,59 +348,78 @@ export function parseApplicationClassSource(
     'gi'
   );
   for (const match of unitRegion.matchAll(propertyPattern)) {
+    const matchStart = match.index ?? 0;
+    const terminators = extendApplicationClassTerminatorRun(
+      unitRegion,
+      matchStart,
+      matchStart + match[0].length
+    );
     const modifiers = (match[3]?.replace(/\s+/g, ' ').trim().toLowerCase().split(' ').filter(Boolean) ?? []) as Array<'readonly' | 'get' | 'set'>;
     const mode: ApplicationClassStorageMember['mode'] =
       modifiers.includes('readonly') ? 'readonly' :
       modifiers.includes('get') && modifiers.includes('set') ? 'get-set' :
       modifiers.includes('get') ? 'get' : 'plain';
     pending.push({
-      index: match.index ?? 0,
-      end: (match.index ?? 0) + match[0].length,
+      index: matchStart,
+      end: terminators.end,
       member: {
         kind: 'property', type: normalizeTypeName(match[1]), name: match[2],
-        sourceIndex: unitRegionStart + (match.index ?? 0),
-        sourceEnd: unitRegionStart + (match.index ?? 0) + match[0].length,
+        sourceIndex: unitRegionStart + matchStart,
+        sourceEnd: unitRegionStart + terminators.end,
         mode, modifiers, visibility: 'public', sourceOrder: -1,
-        declarationOrdinal: -1
+        declarationOrdinal: -1, terminatorCount: terminators.count
       }
     });
   }
 
   const instancePattern = new RegExp(`\\binstance\\s+(${typePattern})\\s+([^;]+?)(?:;|$)`, 'gim');
   for (const match of unitRegion.matchAll(instancePattern)) {
+    const matchStart = match.index ?? 0;
+    const terminators = extendApplicationClassTerminatorRun(
+      unitRegion,
+      matchStart,
+      matchStart + match[0].length
+    );
     const names = match[2].match(/&[A-Za-z0-9_][A-Za-z0-9_]*#?/g) ?? [];
     if (names.length === 0) return undefined;
     pending.push({
-      index: match.index ?? 0,
-      end: (match.index ?? 0) + match[0].length,
+      index: matchStart,
+      end: terminators.end,
       instanceNames: names
     });
     for (const name of names) {
       pending.push({
-        index: match.index ?? 0,
-        end: (match.index ?? 0) + match[0].length,
+        index: matchStart,
+        end: terminators.end,
         member: {
           kind: 'instance', type: normalizeTypeName(match[1]), name: name.slice(1),
-          sourceIndex: unitRegionStart + (match.index ?? 0),
-          sourceEnd: unitRegionStart + (match.index ?? 0) + match[0].length,
+          sourceIndex: unitRegionStart + matchStart,
+          sourceEnd: unitRegionStart + terminators.end,
           mode: 'plain', modifiers: [], visibility: 'private', sourceOrder: -1,
-          declarationOrdinal: -1
+          declarationOrdinal: -1, terminatorCount: terminators.count
         }
       });
     }
   }
 
   for (const match of unitRegion.matchAll(/\bconstant\s+(&?[A-Za-z_][A-Za-z0-9_#]*)\s*=\s*([^;]*);/gi)) {
+    const matchStart = match.index ?? 0;
+    const terminators = extendApplicationClassTerminatorRun(
+      unitRegion,
+      matchStart,
+      matchStart + match[0].length
+    );
     pending.push({
-      index: match.index ?? 0,
-      end: (match.index ?? 0) + match[0].length,
+      index: matchStart,
+      end: terminators.end,
       member: {
         kind: 'constant', name: match[1], sourceOrder: -1,
-        sourceIndex: unitRegionStart + (match.index ?? 0),
-        sourceEnd: unitRegionStart + (match.index ?? 0) + match[0].length,
-        value: rawUnitRegion.slice(match.index ?? 0, (match.index ?? 0) + match[0].length)
+        sourceIndex: unitRegionStart + matchStart,
+        sourceEnd: unitRegionStart + terminators.end,
+        value: rawUnitRegion.slice(matchStart, matchStart + match[0].length)
           .replace(/^[\s\S]*?=/, '').replace(/;\s*$/, '').trim(),
-        visibility: 'public'
+        visibility: 'public',
+        terminatorCount: terminators.count
       }
     });
   }
@@ -398,7 +451,8 @@ export function parseApplicationClassSource(
       statements.push({
         kind: 'instance-statement', type: first.type, names: event.instanceNames,
         sourceIndex: unitRegionStart + event.index,
-        sourceEnd: unitRegionStart + event.end
+        sourceEnd: unitRegionStart + event.end,
+        terminatorCount: first.terminatorCount
       });
       seenInstanceStatements.add(event.index);
       continue;
@@ -482,12 +536,16 @@ export function parseApplicationClassSource(
   const headerMasked = masked.slice(unitStart, unitRegionStart + (firstMember?.index ?? unitRegion.length));
   const headerTrailingWhitespace = /\s*$/.exec(headerMasked)?.[0].length ?? 0;
   const unitHeaderEnd = unitStart + headerMasked.length - headerTrailingWhitespace;
+  const headerCore = headerMasked.slice(0, headerMasked.length - headerTrailingWhitespace);
+  const headerTerminatorRun = /(?:;[ \t]*)+$/.exec(headerCore)?.[0] ?? '';
+  const unitHeaderTerminatorCount = (headerTerminatorRun.match(/;/g) ?? []).length;
 
   return {
     unitKind, className: unitStartMatch[2], extendsType,
     implementsType: implementsTypes[0], members, statements,
     implementations: implementations.map(({ localIndex: _localIndex, fullEnd: _fullEnd, ...implementation }) => implementation),
-    unitStart, unitHeaderEnd, unitCloseStart: unitRegionEnd, unitEnd
+    unitStart, unitHeaderTerminatorCount, unitHeaderEnd,
+    unitCloseStart: unitRegionEnd, unitEnd
   };
 }
 
