@@ -10900,7 +10900,12 @@ function encodeApplicationClassProgramV2(
     context?.owner?.packagePath !== undefined
       ? [...context.owner.packagePath]
       : [context?.owner?.recordName ?? ''].filter(value => value !== '');
-  const selfName = [...ownerPackagePath, parsed.className].join(':');
+  const selfPath = ownerPackagePath.length === 0
+    ? [parsed.className]
+    : ownerPackagePath[ownerPackagePath.length - 1].toLowerCase() === parsed.className.toLowerCase()
+      ? ownerPackagePath
+      : [...ownerPackagePath, parsed.className];
+  const selfName = selfPath.join(':');
 
   // Name table: self, then each method's name in PHYSICAL DIRECTORY
   // (implementation) order -- Cycle 13's own finding that the first
@@ -10923,22 +10928,33 @@ function encodeApplicationClassProgramV2(
     return offset;
   };
 
-  // Signature slots: cumulative over methods in DECLARATION order
-  // (Cycle 13 section 3/5), independent of directory physical position.
-  const slotChunks: Buffer[] = [];
+  // Cycle 29: unrecorded type-path names are allocated by metadata storage
+  // phase, not source occurrence: directory-record descriptors in physical
+  // record order, followed by signature slots in slot order. The complete
+  // stored population has 3,605/3,605 suffix entries in exactly that order.
+  const relationshipType = parsed.extendsType ?? parsed.implementsType;
+  const selfDescriptor = relationshipType === undefined
+    ? NO_TYPE_DESCRIPTOR
+    : encodeTypeDescriptor(relationshipType, ensureNameOffset);
   const descriptorByMember = new Map<ApplicationClassMethodMember, number>();
-  for (const member of methodsByDeclarationOrder) {
-    for (const parameter of member.parameters) {
-      const descriptor = encodeTypeDescriptor(parameter.type, ensureNameOffset);
-      slotChunks.push(encodeApplicationClassSlot(parameter.out ? descriptor | 0x80000000 : descriptor));
-    }
-    slotChunks.push(encodeApplicationClassSlot(NO_TYPE_DESCRIPTOR));
+  for (const member of methodsByImplementationOrder) {
     descriptorByMember.set(
       member,
       member.returnType === undefined
         ? NO_TYPE_DESCRIPTOR
         : encodeTypeDescriptor(member.returnType, ensureNameOffset)
     );
+  }
+
+  // Signature slots remain cumulative over methods in DECLARATION order
+  // (Cycle 13 section 3/5), independent of directory physical position.
+  const slotChunks: Buffer[] = [];
+  for (const member of methodsByDeclarationOrder) {
+    for (const parameter of member.parameters) {
+      const descriptor = encodeTypeDescriptor(parameter.type, ensureNameOffset);
+      slotChunks.push(encodeApplicationClassSlot(parameter.out ? descriptor | 0x80000000 : descriptor));
+    }
+    slotChunks.push(encodeApplicationClassSlot(NO_TYPE_DESCRIPTOR));
   }
 
   // Directory: self, then each method in IMPLEMENTATION (physical) order.
@@ -10948,7 +10964,7 @@ function encodeApplicationClassProgramV2(
       signatureSlotOffset: 0,
       flags: APPLICATION_CLASS_FLAGS.self,
       low: 0,
-      descriptor: NO_TYPE_DESCRIPTOR
+      descriptor: selfDescriptor
     })
   ];
   for (const member of methodsByImplementationOrder) {
