@@ -2485,6 +2485,14 @@ End-If;`;
 const appClassText = (opcode: number, value: string) =>
   Buffer.concat([Buffer.from([opcode]), Buffer.from(`${value}\0`, 'utf16le')]);
 
+const appClassComment = (opcode: number, value: string) => {
+  const payload = Buffer.from(value, 'utf16le');
+  const header = Buffer.alloc(3);
+  header[0] = opcode;
+  header.writeUInt16LE(payload.length, 1);
+  return Buffer.concat([header, payload]);
+};
+
 const appClassStatements = (source: string) => {
   const program = encodeProgramArtifacts(source).program;
   const layout = readProgramLayout(program);
@@ -2631,9 +2639,208 @@ end-method;`);
     actual.includes(Buffer.concat([
       Buffer.from([0x5b, 0x15, 0x2d, 0x4f, 0x63, 0x41]),
       appClassText(0x0a, 'Run'),
-      Buffer.from([0x2d, 0x4f, 0x38, 0x15, 0x64, 0x15, 0x2d, 0x07])
+      Buffer.from([0x2d, 0x38, 0x15, 0x64, 0x15, 0x2d, 0x07])
     ])),
     true
+  );
+});
+
+test('Application Class layout emits a comment before the class header', () => {
+  assert.deepStrictEqual(
+    appClassStatements('/* before */\n\nclass Demo\nend-class;'),
+    Buffer.concat([
+      appClassComment(0x24, '/* before */'), Buffer.from([0x4f, 0x5a]),
+      appClassText(0x0a, 'Demo'), Buffer.from([0x5b, 0x15, 0x2d, 0x07])
+    ])
+  );
+});
+
+test('Application Class layout interleaves declaration comments', () => {
+  assert.deepStrictEqual(
+    appClassStatements('class Demo\n\n/* inside */\nmethod Run();\nend-class;'),
+    Buffer.concat([
+      Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x4f]),
+      appClassComment(0x24, '/* inside */'), Buffer.from([0x63]),
+      appClassText(0x0a, 'Run'), Buffer.from([0x0b, 0x14, 0x15, 0x5b, 0x15, 0x2d, 0x07])
+    ])
+  );
+});
+
+test('Application Class layout retains a comment after end-class', () => {
+  assert.deepStrictEqual(
+    appClassStatements('class Demo\nend-class;\n\n/* after */'),
+    Buffer.concat([
+      Buffer.from([0x5a]), appClassText(0x0a, 'Demo'),
+      Buffer.from([0x5b, 0x15, 0x2d, 0x4f]), appClassComment(0x24, '/* after */'),
+      Buffer.from([0x07])
+    ])
+  );
+});
+
+test('Application Class layout places a comment before the first implementation', () => {
+  const actual = appClassStatements(`class Demo
+method Run();
+end-class;
+
+/* before */
+method Run
+Return;
+end-method;`);
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x5b, 0x15, 0x2d, 0x4f]), appClassComment(0x24, '/* before */'),
+    Buffer.from([0x63, 0x41]), appClassText(0x0a, 'Run'), Buffer.from([0x2d, 0x38, 0x15])
+  ])), true);
+});
+
+test('Application Class layout places a comment between implementations', () => {
+  const actual = appClassStatements(`class Demo
+method Run();
+method Next();
+end-class;
+method Run
+Return;
+end-method;
+
+/* between */
+method Next
+Return;
+end-method;`);
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x64, 0x15, 0x2d, 0x4f]), appClassComment(0x24, '/* between */'),
+    Buffer.from([0x63, 0x41]), appClassText(0x0a, 'Next')
+  ])), true);
+});
+
+test('Application Class comment-only bodies keep comments inside the wrapper', () => {
+  const actual = appClassStatements(`class Demo
+method Run();
+end-class;
+method Run
+
+/* only */
+
+end-method;`);
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x63, 0x41]), appClassText(0x0a, 'Run'), Buffer.from([0x2d, 0x4f]),
+    appClassComment(0x24, '/* only */'), Buffer.from([0x15, 0x4f, 0x64, 0x15, 0x2d, 0x07])
+  ])), true);
+});
+
+test('Application Class body edges emit one marker for one blank source line', () => {
+  const actual = appClassStatements(`class Demo
+method Run();
+end-class;
+method Run
+
+Return;
+end-method;`);
+  assert.equal(actual.includes(Buffer.concat([
+    appClassText(0x0a, 'Run'), Buffer.from([0x2d, 0x4f, 0x38, 0x15, 0x64])
+  ])), true);
+});
+
+test('Application Class body edges preserve multiple blank source lines', () => {
+  const actual = appClassStatements(`class Demo
+method Run();
+end-class;
+method Run
+
+
+Return;
+
+
+end-method;`);
+  assert.equal(actual.includes(Buffer.concat([
+    appClassText(0x0a, 'Run'), Buffer.from([0x2d, 0x4f, 0x4f, 0x38, 0x15, 0x4f, 0x4f, 0x64])
+  ])), true);
+});
+
+test('Application Class declaration gaps emit the previously missing marker', () => {
+  const actual = appClassStatements(`class Demo
+method Run();
+
+method Next();
+end-class;`);
+  assert.equal(actual.includes(Buffer.concat([
+    appClassText(0x0a, 'Run'), Buffer.from([0x0b, 0x14, 0x15, 0x4f, 0x63]),
+    appClassText(0x0a, 'Next')
+  ])), true);
+});
+
+test('Application Class nonempty bodies do not receive an extra entry marker', () => {
+  const actual = appClassStatements(`class Demo
+method Run();
+end-class;
+method Run
+Return;
+end-method;`);
+  assert.equal(actual.includes(Buffer.concat([
+    appClassText(0x0a, 'Run'), Buffer.from([0x2d, 0x38, 0x15, 0x64])
+  ])), true);
+});
+
+test('Application Class import comments precede the deferred import close', () => {
+  const actual = appClassStatements('import PTWIDGETS:*; /* @col */\n\nclass Demo\nend-class;');
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x15]), appClassComment(0x4e, '/* @col */'),
+    Buffer.from([0x2d, 0x4f, 0x5a]), appClassText(0x0a, 'Demo')
+  ])), true);
+});
+
+test('Application Class bodies flush deferred internal markers with compiled references', () => {
+  const actual = appClassStatements(`class Demo
+method Run();
+end-class;
+method Run
+&x = 1;
+
+&x = 2;
+Return Record.REC.FIELD.Value;
+end-method;`);
+  const assignment = appClassText(0x01, '&x');
+  const first = actual.indexOf(assignment);
+  assert.notEqual(first, -1);
+  assert.notEqual(actual.indexOf(Buffer.concat([Buffer.from([0x15, 0x4f]), assignment]), first), -1);
+});
+
+test('Application Class bodies discard deferred internal markers without compiled references', () => {
+  const actual = appClassStatements(`class Demo
+method Run();
+end-class;
+method Run
+&x = 1;
+
+&x = 2;
+Return;
+end-method;`);
+  const assignment = appClassText(0x01, '&x');
+  const first = actual.indexOf(assignment);
+  assert.notEqual(first, -1);
+  assert.equal(actual.indexOf(Buffer.concat([Buffer.from([0x15, 0x4f]), assignment]), first), -1);
+  assert.notEqual(actual.indexOf(Buffer.concat([Buffer.from([0x15]), assignment]), first), -1);
+});
+
+test('Application Class final implementation does not flush trailing program whitespace', () => {
+  const actual = appClassStatements(`class Demo
+method Run();
+end-class;
+method Run
+Return;
+end-method;
+
+
+`);
+  assert.deepStrictEqual(actual.subarray(-4), Buffer.from([0x64, 0x15, 0x2d, 0x07]));
+});
+
+test('Application Class interface layout uses the same comment and gap rules', () => {
+  assert.deepStrictEqual(
+    appClassStatements('interface Demo\n\n/* contract */\nmethod Run() abstract;\nend-interface;'),
+    Buffer.concat([
+      Buffer.from([0x70]), appClassText(0x0a, 'Demo'), Buffer.from([0x4f]),
+      appClassComment(0x24, '/* contract */'), Buffer.from([0x63]),
+      appClassText(0x0a, 'Run'), Buffer.from([0x0b, 0x14, 0x6f, 0x15, 0x71, 0x15, 0x2d, 0x07])
+    ])
   );
 });
 

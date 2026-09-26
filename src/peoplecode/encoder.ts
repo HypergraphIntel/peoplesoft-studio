@@ -9806,10 +9806,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         pendingReferenceLocalBoundary === undefined
       ) {
         pendingReferenceLocalBoundary = chunks.length;
-        pendingReferenceLocalMarkers = Math.max(
-          1,
+        const sourceBlankLines = Math.max(
+          0,
           (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
         );
+        pendingReferenceLocalMarkers = context?.suppressDeclarationSectionMarkers === true
+          ? sourceBlankLines
+          : Math.max(1, sourceBlankLines);
       }
 
       leadingLocalRun = false;
@@ -10036,10 +10039,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             pendingReferenceLocalBoundary === undefined
           ) {
             pendingReferenceLocalBoundary = statementChunkStart;
-            pendingReferenceLocalMarkers = Math.max(
-              1,
+            const sourceBlankLines = Math.max(
+              0,
               (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
             );
+            pendingReferenceLocalMarkers = context?.suppressDeclarationSectionMarkers === true
+              ? sourceBlankLines
+              : Math.max(1, sourceBlankLines);
           }
 
           leadingLocalRun = false;
@@ -10325,7 +10331,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            * section boundary -- omit the 0x2D. See
            * leadingRunHasInitializedLocal's declaration comment above.
            */
-          ...(leadingRunHasInitializedLocal ? [] : [Buffer.from([0x2d])]),
+          ...(
+            leadingRunHasInitializedLocal || context?.suppressDeclarationSectionMarkers === true
+              ? []
+              : [Buffer.from([0x2d])]
+          ),
           ...Array.from({ length: pendingReferenceLocalMarkers }, () => Buffer.from([0x4f]))
         ]
       });
@@ -10733,6 +10743,97 @@ function encodeApplicationClassProgram(
   ]);
 }
 
+interface ApplicationClassLayoutComment {
+  start: number;
+  end: number;
+  opcode: 0x24 | 0x4e | 0x55;
+  raw: string;
+}
+
+function applicationClassBlankLineCount(value: string): number {
+  if (!/^\s*$/.test(value)) return 0;
+  return Math.max(0, (value.match(/\r?\n/g) ?? []).length - 1);
+}
+
+function applicationClassLayoutCommentOperand(
+  comment: ApplicationClassLayoutComment
+): Buffer {
+  const payload = Buffer.from(comment.raw, 'utf16le');
+  if (payload.length > 0xffff) {
+    throw new UnsupportedPeopleCodeError(
+      comment.start,
+      'Application Class layout comment exceeds uint16 payload length'
+    );
+  }
+  const header = Buffer.alloc(3);
+  header[0] = comment.opcode;
+  header.writeUInt16LE(payload.length, 1);
+  return Buffer.concat([header, payload]);
+}
+
+function scanApplicationClassLayoutComments(
+  source: string,
+  start: number,
+  end: number
+): ApplicationClassLayoutComment[] {
+  const comments: ApplicationClassLayoutComment[] = [];
+  let index = start;
+  while (index < end) {
+    if (source[index] === '"' || source[index] === "'") {
+      const quote = source[index++];
+      while (index < end) {
+        if (source[index] !== quote) { index++; continue; }
+        if (source[index + 1] === quote) { index += 2; continue; }
+        index++;
+        break;
+      }
+      continue;
+    }
+
+    let commentEnd = -1;
+    let opcode: 0x24 | 0x4e | 0x55 | undefined;
+    if (source.startsWith('/*', index)) {
+      const close = source.indexOf('*/', index + 2);
+      commentEnd = close < 0 || close + 2 > end ? end : close + 2;
+      const lineStart = source.lastIndexOf('\n', index - 1) + 1;
+      opcode = source.slice(lineStart, index).trim() === '' ? 0x24 : 0x4e;
+    } else if (source.startsWith('<*', index)) {
+      const close = source.indexOf('*>', index + 2);
+      commentEnd = close < 0 || close + 2 > end ? end : close + 2;
+      opcode = 0x55;
+    } else if (
+      source.slice(index, index + 3).toLowerCase() === 'rem' &&
+      (index === 0 || !/[A-Za-z0-9_%&]/.test(source[index - 1])) &&
+      /[\s:]/.test(source[index + 3] ?? '')
+    ) {
+      const semicolon = source.indexOf(';', index + 3);
+      commentEnd = semicolon < 0 || semicolon + 1 > end ? end : semicolon + 1;
+      opcode = 0x24;
+    } else if (source.startsWith('/+', index)) {
+      const close = source.indexOf('+/', index + 2);
+      index = close < 0 || close + 2 > end ? end : close + 2;
+      continue;
+    } else if (source.startsWith('//', index)) {
+      const newline = source.indexOf('\n', index + 2);
+      index = newline < 0 || newline > end ? end : newline;
+      continue;
+    }
+
+    if (opcode === undefined) {
+      index++;
+      continue;
+    }
+    comments.push({
+      start: index,
+      end: commentEnd,
+      opcode,
+      raw: source.slice(index, commentEnd)
+    });
+    index = commentEnd;
+  }
+  return comments;
+}
+
 /**
  * Application Class encoder. Cycle 14 supplies directory/signature assembly,
  * Cycles 17-18 supply implementation wrappers, and Cycle 23 supplies the
@@ -10772,13 +10873,20 @@ function encodeApplicationClassProgramV2(
    * dependency identity, DependencyScope, method-local ChainSemantics, or
    * method ordering in the real encode.
    */
-  const programHasCompiledReferences = parsed.implementations.some(member => {
-    const trimmedEnd = member.body.replace(/\s+$/, '');
-    const completed = /;$/.test(trimmedEnd) ? member.body : `${member.body};`;
+  const firstImplementationStart = parsed.implementations[0]?.sourceIndex ?? source.length;
+  const referenceProbeFragments = [
+    source.slice(0, parsed.unitStart),
+    source.slice(parsed.unitEnd, firstImplementationStart),
+    ...parsed.implementations.map(member => member.body)
+  ];
+  const programHasCompiledReferences = referenceProbeFragments.some(fragment => {
+    const trimmedEnd = fragment.replace(/\s+$/, '');
+    const completed = trimmedEnd === '' || /;$/.test(trimmedEnd) ? fragment : `${fragment};`;
     try {
       const { references: isolatedReferences } = encodeProgramArtifacts(completed);
       return (
         isolatedReferences.length > 1 ||
+        isolatedReferences.some(reference => reference.index > 0) ||
         isolatedReferences[0]?.recordName !== undefined ||
         isolatedReferences[0]?.fieldName !== undefined
       );
@@ -10864,23 +10972,24 @@ function encodeApplicationClassProgramV2(
   // every method BODY is delegated to `encodeFragmentInternal`, reusing
   // the same general-purpose, already-calibrated PeopleCode
   // statement/expression encoder every other program type uses.
-  const leadingImportMatch =
-    /^\s*(?:import\s+[%A-Za-z_][%A-Za-z0-9_]*(?::[%A-Za-z_][%A-Za-z0-9_]*)*(?::\*)?\s*;\s*)*/i.exec(source);
-  const prefixText = leadingImportMatch?.[0] ?? '';
-
   const statementChunks: Buffer[] = [];
   const references: PeopleCodeReference[] = [];
   const htmlDependencyScope = new HtmlDependencyScope();
   let nextReferenceIndex = 0;
   let firstFragment = true;
 
-  const encodeFragment = (fragmentSource: string): Buffer => {
+  const encodeFragment = (
+    fragmentSource: string,
+    commentOpcodes = context?.commentOpcodes,
+    suppressDeclarationSectionMarkers = true
+  ): Buffer => {
     const encoded = encodeFragmentInternal(fragmentSource, {
       ...context,
+      commentOpcodes,
       owner: undefined,
       referenceIndexOffset: nextReferenceIndex,
       suppressOwnerReference: !firstFragment,
-      suppressDeclarationSectionMarkers: true,
+      suppressDeclarationSectionMarkers,
       compilationUnitHasCompiledReferences: programHasCompiledReferences,
       htmlDependencyScope,
       htmlDependencyLifetime: 'application-class'
@@ -10889,6 +10998,135 @@ function encodeApplicationClassProgramV2(
     nextReferenceIndex += encoded.references.length;
     references.push(...encoded.references);
     return encoded.bytes;
+  };
+
+  const emitMarkers = (count: number): void => {
+    for (let marker = 0; marker < count; marker++) {
+      statementChunks.push(Buffer.from([0x4f]));
+    }
+  };
+
+  const emitLayoutRange = (
+    start: number,
+    end: number,
+    flushTrailingGap: boolean
+  ): void => {
+    let cursor = start;
+    for (const comment of scanApplicationClassLayoutComments(source, start, end)) {
+      emitMarkers(applicationClassBlankLineCount(source.slice(cursor, comment.start)));
+      statementChunks.push(applicationClassLayoutCommentOperand(comment));
+      cursor = comment.end;
+    }
+    if (flushTrailingGap) {
+      emitMarkers(applicationClassBlankLineCount(source.slice(cursor, end)));
+    }
+  };
+
+  const emitSharedFragmentRange = (
+    start: number,
+    end: number,
+    flushTrailingGap: boolean
+  ): void => {
+    const value = source.slice(start, end);
+    if (value.trim() === '') {
+      if (flushTrailingGap) emitMarkers(applicationClassBlankLineCount(value));
+      return;
+    }
+    const leadingWhitespace = /^\s*/.exec(value)?.[0] ?? '';
+    const trailingWhitespace = /\s*$/.exec(value)?.[0] ?? '';
+    const core = value.slice(
+      leadingWhitespace.length,
+      value.length - trailingWhitespace.length
+    );
+    const firstChunk = statementChunks.length;
+    emitMarkers(applicationClassBlankLineCount(leadingWhitespace));
+    if (core.trim() !== '') {
+      const commentOpcodes = scanApplicationClassLayoutComments(
+        source,
+        start + leadingWhitespace.length,
+        end - trailingWhitespace.length
+      ).flatMap(comment => comment.opcode === 0x24 || comment.opcode === 0x4e ? [comment.opcode] : []);
+      try {
+        statementChunks.push(encodeFragment(core, commentOpcodes, false));
+      } catch (error) {
+        if (!(error instanceof UnsupportedPeopleCodeError)) throw error;
+        // Native/preprocessor declarations remain outside Cycle 25. Preserve
+        // the prior encodable path while still retaining evidenced comments.
+        statementChunks.length = firstChunk;
+        emitLayoutRange(start, end, flushTrailingGap);
+        return;
+      }
+    }
+    if (flushTrailingGap) {
+      emitMarkers(applicationClassBlankLineCount(trailingWhitespace));
+    }
+  };
+
+  const emitCompilationUnitPrefix = (): void => {
+    const end = parsed.unitStart;
+    const prefix = source.slice(0, end);
+    type PrefixEvent =
+      | { kind: 'import'; start: number; end: number; raw: string }
+      | ({ kind: 'comment' } & ApplicationClassLayoutComment);
+    const comments = scanApplicationClassLayoutComments(source, 0, end);
+    const events: PrefixEvent[] = [
+      ...[...prefix.matchAll(/\bimport\s+[%A-Za-z_][%A-Za-z0-9_]*(?::[%A-Za-z_][%A-Za-z0-9_]*)*(?::\*)?\s*;/gi)].map(match => ({
+        kind: 'import' as const,
+        start: match.index ?? 0,
+        end: (match.index ?? 0) + match[0].length,
+        raw: match[0]
+      })).filter(event => !comments.some(comment => event.start >= comment.start && event.start < comment.end)),
+      ...comments.map(comment => ({
+        kind: 'comment' as const,
+        ...comment
+      }))
+    ].sort((left, right) => left.start - right.start);
+
+    let cursor = 0;
+    const grammarCovered = !/(^|\n)\s*#/m.test(prefix) && events.every(event => {
+      const covered = /^\s*$/.test(prefix.slice(cursor, event.start));
+      cursor = Math.max(cursor, event.end);
+      return covered;
+    }) && /^\s*$/.test(prefix.slice(cursor));
+    if (!grammarCovered) {
+      const leadingImports = /^\s*(?:import\s+[%A-Za-z_][%A-Za-z0-9_]*(?::[%A-Za-z_][%A-Za-z0-9_]*)*(?::\*)?\s*;\s*)*/i.exec(source)?.[0] ?? '';
+      if (leadingImports.trim() !== '') {
+        const bytes = encodeFragment(leadingImports);
+        statementChunks.push(bytes);
+        if (bytes[bytes.length - 1] !== 0x4f) statementChunks.push(Buffer.from([0x4f]));
+      }
+      return;
+    }
+
+    cursor = 0;
+    let importSectionOpen = false;
+    const emitGap = (gap: string, nextKind?: PrefixEvent['kind']): void => {
+      const markerCount = applicationClassBlankLineCount(gap);
+      if (markerCount > 0 && importSectionOpen && nextKind !== 'import') {
+        statementChunks.push(Buffer.from([0x2d]));
+        importSectionOpen = false;
+      }
+      emitMarkers(markerCount);
+    };
+    for (const [eventIndex, event] of events.entries()) {
+      let nextSectionEventKind = event.kind;
+      if (event.kind === 'comment') {
+        let lookahead = eventIndex + 1;
+        while (events[lookahead]?.kind === 'comment') lookahead++;
+        if (events[lookahead]?.kind === 'import') nextSectionEventKind = 'import';
+      }
+      emitGap(prefix.slice(cursor, event.start), nextSectionEventKind);
+      if (event.kind === 'comment') {
+        statementChunks.push(applicationClassLayoutCommentOperand(event));
+      } else {
+        const bytes = encodeFragment(event.raw, undefined, false);
+        statementChunks.push(bytes[bytes.length - 1] === 0x2d ? bytes.subarray(0, bytes.length - 1) : bytes);
+        importSectionOpen = true;
+      }
+      cursor = event.end;
+    }
+    emitGap(prefix.slice(cursor));
+    if (importSectionOpen) statementChunks.push(Buffer.from([0x2d]));
   };
 
   /*
@@ -10912,21 +11150,7 @@ function encodeApplicationClassProgramV2(
       : bytes;
   };
 
-  if (prefixText.trim() !== '') {
-    const prefixBytes = encodeFragment(prefixText);
-    statementChunks.push(prefixBytes);
-    /*
-     * `encodeFragmentInternal` does not add a trailing inter-statement
-     * 0x4f separator after the LAST statement in an isolated call (it
-     * only inserts one BETWEEN statements it itself parses) -- but the
-     * class header immediately follows in the real byte stream, so this
-     * boundary needs the same separator any two adjacent statements get.
-     * Confirmed against the golden OU_CORPUS:Utilities:TestClass fixture.
-     */
-    if (prefixBytes[prefixBytes.length - 1] !== 0x4f) {
-      statementChunks.push(Buffer.from([0x4f]));
-    }
-  }
+  emitCompilationUnitPrefix();
 
   // CLASS|INTERFACE NAME [EXTENDS path] [IMPLEMENTS path]
   statementChunks.push(Buffer.from([parsed.unitKind === 'class' ? 0x5a : 0x70]));
@@ -10941,9 +11165,17 @@ function encodeApplicationClassProgramV2(
   }
 
   // Cycle 22: one executable stream in exact source declaration order.
+  // Cycle 25: declaration layout is a separate compilation-unit layer. It
+  // interleaves comments and source-counted gaps without changing the member
+  // opcodes or their metadata order.
+  let declarationCursor = parsed.unitHeaderEnd;
   for (const statement of parsed.statements) {
+    emitLayoutRange(declarationCursor, statement.sourceIndex, true);
+    declarationCursor = statement.sourceEnd;
     if (statement.kind === 'visibility') {
-      statementChunks.push(Buffer.from([statement.visibility === 'private' ? 0x61 : 0x73]));
+      if (statement.visibility !== 'public') {
+        statementChunks.push(Buffer.from([statement.visibility === 'private' ? 0x61 : 0x73]));
+      }
       continue;
     }
     if (statement.kind === 'method') {
@@ -10998,18 +11230,21 @@ function encodeApplicationClassProgramV2(
       statementChunks.push(Buffer.from([0x15]));
     }
   }
+  emitLayoutRange(declarationCursor, parsed.unitCloseStart, true);
 
-  // END-CLASS|END-INTERFACE ;. A structural boundary exists only when a
-  // post-unit declaration/comment or implementation follows.
+  // END-CLASS|END-INTERFACE ; and its declaration-boundary 0x2d. Layout
+  // between the unit and the first wrapper belongs to the compilation unit;
+  // it may contain comments even when there is no implementation.
   statementChunks.push(Buffer.from([parsed.unitKind === 'class' ? 0x5b : 0x71, 0x15]));
-  if (parsed.implementations.length > 0) {
-    statementChunks.push(Buffer.from([0x2d, 0x4f]));
-  } else {
-    statementChunks.push(Buffer.from([0x2d]));
-  }
+  statementChunks.push(Buffer.from([0x2d]));
+  emitSharedFragmentRange(
+    parsed.unitEnd,
+    firstImplementationStart,
+    parsed.implementations.length > 0
+  );
 
   // Concrete method/getter/setter implementations remain in source order.
-  for (const member of parsed.implementations) {
+  for (const [memberIndex, member] of parsed.implementations.entries()) {
     const implementationOpcode = member.kind === 'method' ? 0x63 : member.kind === 'get' ? 0x5f : 0x49;
     statementChunks.push(Buffer.from([implementationOpcode, 0x41]));
     statementChunks.push(encodeInlineName(member.name));
@@ -11017,50 +11252,30 @@ function encodeApplicationClassProgramV2(
     for (const comment of member.signatureComments) {
       statementChunks.push(textOperand(0x6d, TokenKind.Comment, comment));
     }
-    /*
-     * Cycle 17/18 BODY-GAP: a body with zero executable statements is NOT
-     * one universal compact form (Cycle 17 section 3). `encodeMethodBody`
-     * delegates to `encodeFragmentInternal`, whose own blank-line
-     * bookkeeping only ever queues a boundary once a statement has
-     * completed (`haveCompletedTopLevelStatement`) -- a body with no
-     * statements never reaches that, so it cannot detect an interior
-     * blank line on its own. This is measured directly from the raw body
-     * text instead, using the same `Math.max(1, newlineCount - 1)`
-     * counting rule the general encoder already uses for ordinary
-     * multi-blank-line runs. A body containing only comments (not
-     * whitespace-only) is UNCHANGED -- it still goes through
-     * `encodeMethodBody` below, which already handles standalone/disabled
-     * comments and their own blank-line placement; only the
-     * whitespace-only case is special-cased here (Cycle 17 section 8; do
-     * not generalize further).
-     */
+    // Body-edge gaps are owned by the wrapper, while statements and comments
+    // inside the body remain owned by the shared fragment encoder. Splitting
+    // only the leading/trailing whitespace keeps those layers independent.
     if (member.body.trim() === '') {
-      const hasInteriorBlankLine = /(?:\r?\n)[ \t]*(?:\r?\n)/.test(member.body);
-      if (hasInteriorBlankLine) {
-        const markerCount = Math.max(1, (member.body.match(/\r?\n/g) ?? []).length - 1);
-        for (let i = 0; i < markerCount; i++) {
-          statementChunks.push(Buffer.from([0x4f]));
-        }
-      }
+      emitMarkers(applicationClassBlankLineCount(member.body));
     } else {
-      statementChunks.push(Buffer.from([0x4f]));
-      statementChunks.push(encodeMethodBody(member.body));
+      const leadingWhitespace = /^\s*/.exec(member.body)?.[0] ?? '';
+      const trailingWhitespace = /\s*$/.exec(member.body)?.[0] ?? '';
+      const bodyCore = member.body.slice(
+        leadingWhitespace.length,
+        member.body.length - trailingWhitespace.length
+      );
+      emitMarkers(applicationClassBlankLineCount(leadingWhitespace));
+      statementChunks.push(encodeMethodBody(bodyCore));
+      emitMarkers(applicationClassBlankLineCount(trailingWhitespace));
     }
     const closerOpcode = member.kind === 'method' ? 0x64 : member.kind === 'get' ? 0x6a : 0x6b;
     statementChunks.push(Buffer.from([closerOpcode, 0x15, 0x2d]));
-    /*
-     * Cycle 17/18 TRANSITION: one `0x4F` per blank source line between
-     * this method's own `end-method;` and the next method implementation
-     * (Cycle 17 sections 1/5) -- absent entirely for the last method,
-     * whose transition is the class program's own trailer (`07`), not a
-     * `0x4F` this loop should emit. `transitionBlankLines` is always `0`
-     * for the last method in implementation order (see its own
-     * declaration comment in `applicationClassProgram.ts`), so no
-     * `isLast` check is needed here.
-     */
-    for (let i = 0; i < member.transitionBlankLines; i++) {
-      statementChunks.push(Buffer.from([0x4f]));
-    }
+    const nextImplementation = parsed.implementations[memberIndex + 1];
+    emitLayoutRange(
+      member.sourceEnd,
+      nextImplementation?.sourceIndex ?? source.length,
+      nextImplementation !== undefined
+    );
   }
 
   const statements = Buffer.concat(statementChunks);
