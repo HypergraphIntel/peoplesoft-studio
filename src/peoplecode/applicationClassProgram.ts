@@ -77,6 +77,8 @@ export interface ApplicationClassMethodMember extends ApplicationClassSourceSpan
   transitionBlankLines: number;
   /** Whether the declaration itself ended in `;` before the unit closer. */
   terminated: boolean;
+  /** Cycle 27: exact explicit source-semicolon multiplicity for this declaration. */
+  terminatorCount: number;
   /** The one corpus signature with a comment after a trailing comma retains it. */
   trailingParameterComma: boolean;
 }
@@ -93,6 +95,8 @@ export interface ApplicationClassStorageMember extends ApplicationClassSourceSpa
   visibility: ApplicationClassVisibility;
   /** Property modifiers in source order. Empty for instances/plain properties. */
   modifiers: Array<'readonly' | 'get' | 'set'>;
+  /** Cycle 27: exact explicit source-semicolon multiplicity for this declaration. */
+  terminatorCount: number;
 }
 
 export interface ApplicationClassConstantMember extends ApplicationClassSourceSpan {
@@ -101,6 +105,8 @@ export interface ApplicationClassConstantMember extends ApplicationClassSourceSp
   sourceOrder: number;
   value: string;
   visibility: ApplicationClassVisibility;
+  /** Cycle 27: exact explicit source-semicolon multiplicity for this declaration. */
+  terminatorCount: number;
 }
 
 export type ApplicationClassMember =
@@ -117,14 +123,19 @@ export interface ApplicationClassInstanceStatement extends ApplicationClassSourc
   kind: 'instance-statement';
   type: string;
   names: string[];
+  /** Cycle 27: exact explicit source-semicolon multiplicity for this grouped declaration. */
+  terminatorCount: number;
 }
 
-export type ApplicationClassStatement =
-  | ApplicationClassVisibilityStatement
+export type ApplicationClassDeclarationStatement =
   | ApplicationClassMethodMember
   | ApplicationClassStorageMember
   | ApplicationClassConstantMember
   | ApplicationClassInstanceStatement;
+
+export type ApplicationClassStatement =
+  | ApplicationClassVisibilityStatement
+  | ApplicationClassDeclarationStatement;
 
 export interface ApplicationClassImplementation extends ApplicationClassSourceSpan {
   kind: 'method' | 'get' | 'set';
@@ -148,6 +159,8 @@ export interface ApplicationClassProgram {
   implementations: ApplicationClassImplementation[];
   /** Exact source offsets used to preserve already-supported surrounding syntax. */
   unitStart: number;
+  /** Cycle 27: exact explicit source-semicolon multiplicity on the class/interface header. */
+  unitHeaderTerminatorCount: number;
   unitHeaderEnd: number;
   unitCloseStart: number;
   unitEnd: number;
@@ -292,6 +305,63 @@ function maskNonCode(source: string): string {
   return chars.join('');
 }
 
+function maskApplicationClassTerminatorNonCode(source: string): string {
+  const chars = source.split('');
+  let index = 0;
+  while (index < chars.length) {
+    const pair = `${source[index] ?? ''}${source[index + 1] ?? ''}`;
+    if (pair === '/*' || pair === '<*' || pair === '/+') {
+      const close = pair === '/*' ? '*/' : pair === '<*' ? '*>' : '+/';
+      chars[index++] = ' ';
+      chars[index++] = ' ';
+      while (
+        index < chars.length &&
+        `${source[index] ?? ''}${source[index + 1] ?? ''}` !== close
+      ) {
+        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+        index++;
+      }
+      if (index < chars.length) chars[index++] = ' ';
+      if (index < chars.length) chars[index++] = ' ';
+      continue;
+    }
+    if (pair === '//') {
+      while (index < chars.length && chars[index] !== '\n') chars[index++] = ' ';
+      continue;
+    }
+    if (
+      source.slice(index, index + 3).toLowerCase() === 'rem' &&
+      (index === 0 || !/[A-Za-z0-9_%&]/.test(source[index - 1])) &&
+      !/[A-Za-z0-9_%&]/.test(source[index + 3] ?? '')
+    ) {
+      while (index < chars.length && chars[index] !== ';') {
+        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+        index++;
+      }
+      if (index < chars.length) chars[index++] = ' ';
+      continue;
+    }
+    if (chars[index] === '"') {
+      chars[index++] = ' ';
+      while (index < chars.length) {
+        if (chars[index] === '"') {
+          chars[index++] = ' ';
+          if (chars[index] === '"') {
+            chars[index++] = ' ';
+            continue;
+          }
+          break;
+        }
+        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+        index++;
+      }
+      continue;
+    }
+    index++;
+  }
+  return chars.join('');
+}
+
 function splitParameters(text: string): ApplicationClassParameter[] {
   const inner = text.trim();
   if (inner === '') return [];
@@ -320,6 +390,7 @@ export function parseApplicationClassSource(
   source: string
 ): ApplicationClassProgram | undefined {
   const masked = maskNonCode(source);
+  const terminatorMaskedSource = maskApplicationClassTerminatorNonCode(source);
   const unitStartMatch = /\b(class|interface)\s+([A-Za-z_][A-Za-z0-9_]*)\b/i.exec(masked);
   if (!unitStartMatch) return undefined;
   const unitKind = unitStartMatch[1].toLowerCase() as 'class' | 'interface';
@@ -383,6 +454,7 @@ export function parseApplicationClassSource(
         body: '', signatureComments: [], signatureSlotOffset: -1,
         transitionBlankLines: 0,
         terminated: /;\s*$/.test(match[0]),
+        terminatorCount: 0,
         trailingParameterComma: /,\s*$/.test(rawParameters)
       }
     });
@@ -407,7 +479,7 @@ export function parseApplicationClassSource(
         sourceIndex: unitRegionStart + (match.index ?? 0),
         sourceEnd: unitRegionStart + (match.index ?? 0) + match[0].length,
         mode, modifiers, visibility: 'public', sourceOrder: -1,
-        declarationOrdinal: -1
+        declarationOrdinal: -1, terminatorCount: 0
       }
     });
   }
@@ -430,7 +502,7 @@ export function parseApplicationClassSource(
           sourceIndex: unitRegionStart + (match.index ?? 0),
           sourceEnd: unitRegionStart + (match.index ?? 0) + match[0].length,
           mode: 'plain', modifiers: [], visibility: 'private', sourceOrder: -1,
-          declarationOrdinal: -1
+          declarationOrdinal: -1, terminatorCount: 0
         }
       });
     }
@@ -446,7 +518,8 @@ export function parseApplicationClassSource(
         sourceEnd: unitRegionStart + (match.index ?? 0) + match[0].length,
         value: rawUnitRegion.slice(match.index ?? 0, (match.index ?? 0) + match[0].length)
           .replace(/^[\s\S]*?=/, '').replace(/;\s*$/, '').trim(),
-        visibility: 'public'
+        visibility: 'public',
+        terminatorCount: 0
       }
     });
   }
@@ -478,7 +551,8 @@ export function parseApplicationClassSource(
       statements.push({
         kind: 'instance-statement', type: first.type, names: event.instanceNames,
         sourceIndex: unitRegionStart + event.index,
-        sourceEnd: unitRegionStart + event.end
+        sourceEnd: unitRegionStart + event.end,
+        terminatorCount: 0
       });
       seenInstanceStatements.add(event.index);
       continue;
@@ -488,6 +562,36 @@ export function parseApplicationClassSource(
     if (event.member.kind !== 'instance') event.member.visibility = visibility;
     members.push(event.member);
     if (event.member.kind !== 'instance') statements.push(event.member);
+  }
+
+  // Cycle 27: punctuation belongs to the declaration that precedes it,
+  // independently of comments, blank lines, visibility transitions, and the
+  // following declaration kind. Measure the exact source-owned semicolon
+  // multiplicity over the same declaration-to-next-declaration ranges used by
+  // the population analyzer, with comments/literals already masked.
+  const declarationStatements = statements.filter(
+    (statement): statement is ApplicationClassDeclarationStatement =>
+      statement.kind !== 'visibility'
+  );
+  for (let index = 0; index < declarationStatements.length; index++) {
+    const statement = declarationStatements[index];
+    const boundaryEnd =
+      declarationStatements[index + 1]?.sourceIndex ?? unitRegionEnd;
+    const terminatorCount =
+      (terminatorMaskedSource.slice(statement.sourceIndex, boundaryEnd).match(/;/g) ?? []).length;
+    statement.terminatorCount = terminatorCount;
+    if (statement.kind === 'method') {
+      statement.terminated = terminatorCount > 0;
+    } else if (statement.kind === 'instance-statement') {
+      for (const member of members) {
+        if (
+          member.kind === 'instance' &&
+          member.sourceIndex === statement.sourceIndex
+        ) {
+          member.terminatorCount = terminatorCount;
+        }
+      }
+    }
   }
 
   let methodOrdinal = 0;
@@ -562,6 +666,10 @@ export function parseApplicationClassSource(
   const headerMasked = masked.slice(unitStart, unitRegionStart + (firstMember?.index ?? unitRegion.length));
   const headerTrailingWhitespace = /\s*$/.exec(headerMasked)?.[0].length ?? 0;
   const unitHeaderEnd = unitStart + headerMasked.length - headerTrailingWhitespace;
+  const unitHeaderTerminatorCount =
+    (terminatorMaskedSource
+      .slice(unitStart, unitRegionStart + (firstMember?.index ?? unitRegion.length))
+      .match(/;/g) ?? []).length;
 
   return {
     unitKind, className: unitStartMatch[2], extendsType,

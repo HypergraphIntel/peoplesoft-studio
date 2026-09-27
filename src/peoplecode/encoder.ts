@@ -10906,6 +10906,67 @@ function applicationClassLayoutCommentOperand(
   return Buffer.concat([header, payload]);
 }
 
+function applicationClassBodyExecutableSource(source: string): string {
+  const chars = [...source];
+  let index = 0;
+  while (index < chars.length) {
+    const pair = `${source[index] ?? ''}${source[index + 1] ?? ''}`;
+    if (pair === '/*' || pair === '<*' || pair === '/+') {
+      const close = pair === '/*' ? '*/' : pair === '<*' ? '*>' : '+/';
+      chars[index++] = ' ';
+      chars[index++] = ' ';
+      while (
+        index < chars.length &&
+        `${source[index] ?? ''}${source[index + 1] ?? ''}` !== close
+      ) {
+        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+        index++;
+      }
+      if (index < chars.length) chars[index++] = ' ';
+      if (index < chars.length) chars[index++] = ' ';
+      continue;
+    }
+    if (pair === '//') {
+      while (index < chars.length && chars[index] !== '\n') chars[index++] = ' ';
+      continue;
+    }
+    if (
+      source.slice(index, index + 3).toLowerCase() === 'rem' &&
+      (index === 0 || !/[A-Za-z0-9_%&]/.test(source[index - 1])) &&
+      !/[A-Za-z0-9_%&]/.test(source[index + 3] ?? '')
+    ) {
+      while (index < chars.length && chars[index] !== ';') {
+        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+        index++;
+      }
+      if (index < chars.length) chars[index++] = ' ';
+      continue;
+    }
+    if (chars[index] === '"') {
+      chars[index++] = ' ';
+      while (index < chars.length) {
+        if (chars[index] === '"') {
+          chars[index++] = ' ';
+          if (chars[index] === '"') {
+            chars[index++] = ' ';
+            continue;
+          }
+          break;
+        }
+        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+        index++;
+      }
+      continue;
+    }
+    index++;
+  }
+  return chars.join('').trimEnd();
+}
+
+function applicationClassBodyHasFinalSourceSemicolon(source: string): boolean {
+  return applicationClassBodyExecutableSource(source).endsWith(';');
+}
+
 function scanApplicationClassLayoutComments(
   source: string,
   start: number,
@@ -11344,7 +11405,7 @@ function encodeApplicationClassProgramV2(
       terminatorIndex++;
     }
     if (flushTrailingGap) {
-      emitMarkers(applicationClassBlankLineCount(source.slice(cursor, end)));
+      emitMarkers(applicationClassBlankLineCount(layoutGap(source.slice(cursor, end))));
     }
   };
 
