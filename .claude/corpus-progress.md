@@ -1,5 +1,272 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 49 — Application Class marker/wrapper cleanup: the `%Super`-constructor missing-marker family (implemented)
+
+**Status: IMPLEMENTED, validated, zero regressions.** Cycle 48 identified a
+striking 9-member byte-identical pattern within the newly-exposed 16-root
+marker/layout population, described as "missing marker before `%Super`."
+Cycle 49 traced this to its true, general root cause -- proving in the
+process that the defect has **nothing to do with `%Super` specifically** --
+implemented a narrow, evidence-backed fix, and resolved all 9 roots cleanly.
+The fix also reached ordinary (non-Application-Class) PeopleCode, since it
+lives in the shared top-level statement loop rather than an
+Application-Class-gated path: **full corpus EXACT gained +10 (23,241 ->
+23,251), 0 regressions**, protected 430/430 unchanged. Starting commit
+`eac4bb0` (Cycle 48).
+
+### Phase 1 -- fresh reproduction
+
+- HEAD `eac4bb0`, worktree clean, confirmed before any change.
+- Protected: 430/430 EXACT.
+- Full corpus: 23,241/30,209 EXACT (matches Cycle 48's own ending figure).
+- Re-ran Cycle 48's own committed
+  `application-class-reference-closeout-census.ts` tool against the frozen
+  41-root population: reproduced the exact same split (21 reference-operand,
+  14 marker-0x4F auto-tagged + 2 manually-identified "other"-tagged marker
+  variants = 16 total marker/layout, 2 exact, 4 other). Confirmed the 9
+  `%Super`-family IDs precisely: 29087, 29107, 29109, 29110, 29122, 29126,
+  29174, 29182, 29186.
+
+### Phase 2/16 -- freezing the exact 9-root pattern
+
+All 9 share byte-identical structure at their first divergence: stored has
+`... 15 4F 12 25 00 53 00 75 00 70 00 65 00 72 ...` (statement terminator,
+blank-line marker, then the `%Super` special-variable-text token) where
+generated has `... 15 12 25 00 53 00 75 00 70 00 65 00 72 ...` -- the
+`0x4F` marker is missing. Two sub-variants exist only in what PRECEDES the
+`0x15` (some have an extra `0x2D` there too, already correctly matched on
+both sides -- not part of the actual difference). Source reconstruction
+(all 9) shows an identical construct: **every one is a class constructor**
+(a method whose name matches the class name) whose **first executable
+statement is the explicit superclass-constructor-invocation form**,
+`%Super = create ParentClass(args);`, always preceded by a blank line
+following the constructor's own structured signature-comment echo
+(`/+ &param as Type +/;`).
+
+### Phase 3/13/14 -- identifying the marker and encoder path
+
+`0x4F` is the project's established blank-line marker (used throughout the
+encoder for preserving blank-formatting-line counts as source-group
+boundaries -- not a new or `%Super`-specific byte). `%Super` itself is
+**not special-cased anywhere in the encoder** -- it is encoded via the
+same generic `systemVariable()` function (`src/peoplecode/encoder.ts`,
+~line 1589) used for `%This` and every other system variable; there is no
+`%Super`-named branch to find. This immediately falsified the premise
+that a `%Super`-specific emission rule needed to be discovered.
+
+Traced the real cause to the TOP-LEVEL statement-dispatch loop shared by
+every program type (`encodeFragmentInternal`'s main loop): a method
+implementation's own structured signature-comment echo lives inside the
+raw body TEXT passed to the shared fragment encoder (comments are
+extracted into `signatureComments` separately, but the ECHO's own
+trailing `;` is not -- it is source-owned body text). This reaches the
+fragment as a genuine bare top-level `;` (an empty statement). The
+bare-`;` branch (`if (source[pos] === ';') { pos++; chunks.push(fixed(';'));
+continue; }`) `continue`s immediately, bypassing the shared per-statement
+tail that sets `haveCompletedTopLevelStatement = true` -- unlike every
+OTHER statement-completing branch (e.g. the REM-comment branch explicitly
+sets this same flag). Separately, and more centrally: the general
+blank-line-marker path is gated on `!leadingLocalRun`, and the deferred
+declaration-boundary path is gated on `sawLeadingLocalDeclaration` -- for
+the FIRST non-`Local` statement reached while `leadingLocalRun` is still
+`true` AND no `Local` declaration ever occurred (`sawLeadingLocalDeclaration`
+false, exactly the bare-`;`-then-first-statement scenario), **neither path
+fires**, so any blank-line gap there is silently dropped regardless of the
+following statement's own shape.
+
+### Phase 4/8/9 -- proving the defect is general, not `%Super`-specific
+
+Reproduced in complete isolation (no corpus ID, synthetic Application
+Class source) with four different first-statement forms immediately
+following the SAME leading bare-`;`-then-blank-line scenario:
+
+```peoplecode
+%Super = create PKG:BaseObject();
+&ObjectRec = create PKG:BaseObject();
+%This.PrepareFields();
+&SomeObj.PrepareFields();
+```
+
+**All four were missing the marker identically before the fix, and all
+four gain it identically after.** This directly answers Phase 8/9's own
+question: the marker is not `%Super`-specific, not a "self/base-dispatch"
+marker, and not tied to ordinary object dispatch -- it is a pure
+blank-line-formatting marker whose emission was gapped for one specific
+STATE TRANSITION (leading bare `;`, no `Local` run, first real statement),
+completely independent of what that statement contains. A further control
+proved the fix is blank-line-driven, not an unconditional insertion: the
+SAME leading-bare-`;` scenario WITHOUT an actual blank line correctly
+gains no marker, both before and after the fix.
+
+### Phase 5/6/7 -- population and controls
+
+- **Corpus-wide `%Super` census**: not required in the form the directive
+  anticipated, since Phase 4/8 findings prove the defect is not about
+  `%Super` content at all -- the relevant population is "Application Class
+  method/constructor bodies whose own leading content is a bare `;` (their
+  structured signature-comment echo) with no `Local` declarations,
+  followed by a blank line before the first real statement." All 9 known
+  members of this population are the same 9 `%Super`-constructor roots
+  (every corpus occurrence of this exact state-transition scenario
+  happens, in this snapshot, to be a superclass-constructor invocation --
+  not because the rule cares about `%Super`, but because that is the
+  overwhelmingly common first line of a PeopleCode Application Class
+  constructor when the parent class also has its own constructor
+  requiring arguments).
+- **Positive controls**: all 9 corpus roots themselves, plus the isolated
+  4-statement-shape synthetic reproduction above.
+- **Negative control**: the same leading-bare-`;` scenario with no blank
+  line present emits no marker, both before and after the fix (proven in
+  the isolated repro and in a committed regression test).
+- Ordinary PeopleCode's own comparable "leading top-level comment, no
+  Locals, blank line, then first statement" shape was checked directly and
+  found to ALREADY correctly emit its marker via a separate, pre-existing
+  comment-handling branch, unaffected by (and not overlapping with) this
+  fix -- confirmed byte-identical before and after.
+
+### Implementation
+
+Two coupled changes in `src/peoplecode/encoder.ts`'s top-level statement
+loop:
+
+1. The bare top-level `;` branch now sets `haveCompletedTopLevelStatement =
+   true` before its `continue`, matching every other statement-completing
+   branch in the same loop (previously the only one that did not).
+2. The `if (leadingLocalRun && !isLocalDeclaration) { ... }` block (which
+   already handles the deferred declaration-boundary marker when
+   `sawLeadingLocalDeclaration` is true) gained an `else if` covering the
+   previously-unhandled case: `!sawLeadingLocalDeclaration &&
+   haveCompletedTopLevelStatement && hasBlankLine` -- emitting the ordinary
+   blank-line marker(s) directly (no declaration-section `0x2D` is
+   involved here, since there was no `Local` run to close).
+
+Both changes are in the shared, program-type-agnostic top-level loop --
+not gated to Application Class fragments, since the underlying gap is
+general (proven in Phase 4/8/9). No `%Super`-specific code, no
+definition-ID checks, no hardcoded offsets.
+
+### Validation
+
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 569 total, 568 pass, 1 skip, 0 fail (3 new Cycle 49 tests:
+  the leading-bare-`;`-then-blank-line marker gaining its byte, the
+  no-blank-line negative control, and the uniform-across-four-statement-
+  shapes proof).
+- All 9 `%Super`-family roots re-checked directly: all moved from
+  `marker-0x4F`-tagged to `reference-operand`-tagged (their NEXT blocker),
+  with body-relative percentage-through-program increasing in every case
+  (e.g. 29110: 13.3% -> 74.8%; 29174: 13.1% -> 78.9%; 29126: 31.4% ->
+  64.4%) -- clean, complete resolution for the entire 9-root family, zero
+  partial/ambiguous cases.
+- A byproduct: 2 of the remaining 7 marker/layout roots (29134, 29191)
+  ALSO advanced, since they hit the exact same general code path despite
+  their construct being unrelated to `%Super` (Cycle 48's own "missing
+  marker before a Constant declaration's own name" pattern). `29191` fully
+  advanced past marker (63.1%, now reference-operand-tagged); `29134`
+  advanced (12% -> 34.2%) but remains marker-tagged, having hit a
+  DIFFERENT, later, not-yet-investigated instance of a missing-`0x4F`
+  bug (before a `0x44` object-type-declaration opcode) -- documented, not
+  chased further, per Phase 23's "document the transition but stop."
+- Required historical controls, all reconfirmed unchanged: `29389`
+  (`MISMATCH @ 7700`, 18509 bytes), `29528` (`source→bin EXACT`), `29797`
+  (`MISMATCH @ 5`, 123051 bytes), `29522` (`MISMATCH @ 13`, generated
+  38619 bytes -- unaffected, not a member of this family), `29450`
+  (`MISMATCH @ 5`, generated 4628 bytes -- unaffected; its own missing-
+  marker cause, per Cycle 48's own audit, is a different code path not
+  touched this cycle), `28820` (`source→bin EXACT`, decoder-only status
+  preserved).
+- Full corpus (`npm run corpus:verify`): **23,241 -> 23,251 EXACT (+10),
+  0 regressed** per classification-bucket delta -- UNKNOWN_MISMATCH 4517
+  -> 4507 (-10, exactly matching); DECODE_SOURCE_MISMATCH/
+  UNSUPPORTED_SYNTAX/ENCODE_ERROR all unchanged (1994/335/122). REGRESSION
+  GATE: PASS.
+- Protected: reconfirmed 430/430 EXACT after the full corpus run.
+- `git diff --check`: clean.
+
+### Blast-radius reconciliation (partial)
+
+Since neither change is gated to Application Class fragments (the
+underlying gap is in the shared top-level loop), the fix necessarily also
+reaches ordinary PeopleCode -- and unlike Cycles 43/46/47 (each
+deliberately AppClass-gated and therefore structurally unable to move the
+corpus-wide EXACT count), this is why the full-corpus EXACT count moved
+at all this cycle. The +10 gain is fully corroborated by the
+classification-bucket delta (UNKNOWN_MISMATCH -10, everything else
+unchanged, zero regressions) and by the 9 App-Class roots' own direct,
+individually-confirmed advancement. The exact 10 gained ordinary-PeopleCode
+definitionIds were not individually identified within this cycle's time
+budget (a quick targeted census for "a bare `;`-only source line" found
+only 5 low-probability candidates, none matching; the true trigger shape
+is evidently reached through some other, not-yet-enumerated source
+construct that lands the parser on a bare top-level `;` token, such as a
+doubled semicolon or a shape not covered by that narrow regex) -- reported
+honestly as a scope limitation, matching Cycle 46's own precedent for a
+partially-unattributed gain. This does not weaken the validation: the
+regression gate, classification-bucket arithmetic, and protected-baseline
+re-run together fully rule out any hidden regression even though 10
+gained IDs remain individually unidentified.
+
+### Phase 17/18 -- the remaining marker/layout roots, sharpened
+
+Of the original 16 marker/layout roots (per Cycle 48's own census):
+
+| current disposition | count | IDs |
+|---|---:|---|
+| resolved (advanced past marker to their next blocker) | 10 | 29087, 29107, 29109, 29110, 29122, 29126, 29174, 29182, 29186, 29191 |
+| advanced but still marker-blocked at a new, later, different location | 1 | 29134 |
+| unaffected by this cycle's fix (different marker sub-pattern, not yet investigated) | 5 | 28745 (extra `0x2D`), 28852 & 29113 & 29612 (extra `0x4F` before `0x44`-prefixed object-type declarations), 29452 (comment-opcode `0x24`-vs-`0x4E` variant) |
+| **total** | **16** | |
+
+The "extra `0x4F` before `0x44`" family (28852, 29113, 29612) is the
+clear next candidate for a future marker cycle: it is the SAME size
+(3 members) as before, byte-identical across all three, and structurally
+the MIRROR IMAGE of the bug just fixed (an extra marker rather than a
+missing one) -- but it was not investigated this cycle, since Cycle 49's
+own scope was the 9-root family specifically and Phase 17 explicitly says
+"do not implement automatically."
+
+### Updated 99-root Application Class campaign accounting
+
+Replacing this cycle's 10 resolved + 1 partially-advanced IDs' bucket
+membership in Cycle 48's own 99-root table (all other buckets unchanged
+from Cycle 48):
+
+| bucket | count | change this cycle |
+|---|---:|---|
+| reference identity (genuinely active; now includes the 10 newly-arrived roots, whose own new blocker was not further investigated this cycle) | 30 | +10 (was 20) |
+| reference-stream complete, downstream-blocked (names/member ordering) | 1 | 0 |
+| fully source-program exact, roundtrip-masked only | 2 | 0 |
+| parked self-row observability boundary | 1 | 0 |
+| other/structural | 1 | 0 |
+| names metadata (residual) | 3 | 0 |
+| decoder-only | 18 | 0 |
+| marker residual (9 pre-existing + 6 remaining reclassified-from-reference, 29134 counted here since still marker-blocked) | 9 + 6 = **15** | -10 (was 25) |
+| wrapper/body | 2 | 0 |
+| parked storage-symbol enumeration | 25 | 0 |
+| parked observability-boundary (other) | 1 | 0 |
+| **total** | **99** | |
+
+(30+1+2+1+1+3+18+15+2+25+1 = 99, verified by direct addition.) Note: the
+10 roots moving from "marker" to "reference identity" is a RECLASSIFICATION
+based on their NEW first-diff tag (`reference-operand`), not a claim that
+they are freshly-discovered members of one of Cycle 48's own 5 reference
+sub-families -- their specific causal sub-family was not analyzed this
+cycle, consistent with Phase 23's "document the transition but stop."
+
+### Recommendation for Cycle 50 (not performed)
+
+The clear next candidate is the **"extra `0x4F` before `0x44`" 3-member
+marker family** (28852, 29113, 29612) -- same general class of bug
+(a missing-vs-extra blank-line-marker asymmetry in the shared top-level
+loop), already population-frozen, byte-identical across all three, and
+directly adjacent to this cycle's own proven fix location. This is
+preferred over resuming general reference-identity work (Cycle 48's own
+20, now 30, active roots split across 5+ heterogeneous sub-families) or
+the other isolated marker residuals (28745, 29452 -- singletons, weaker
+population support).
+
+**Cycle 50 was not started.**
+
 ## Compiler Semantics Cycle 48 — Application Class reference-identity closeout/reconciliation (forensic only, zero encoder change)
 
 **Status: FORENSIC ONLY. No encoder change.** This was a closeout/
