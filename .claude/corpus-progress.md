@@ -1,5 +1,201 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 39 — solve the self-method row firing condition (forensic only, zero behavior change)
+
+**Status: no encoder change. A decisive, population-wide (305/305,
+zero exceptions), zero-ambiguity finding fundamentally reframes the
+whole investigation: the method-bearing self-reference row is NEVER
+referenced by an executable PSPCMPROG operand. Its allocation cannot
+be driven by how the `%This.method()` call itself compiles -- it is a
+declaration-phase/metadata phenomenon, the same general class of
+mechanism Cycles 26/32 already established (and left deliberately
+unresolved for the general multi-dependency case) for other
+Application Class PACKAGE dependencies. Per instruction ("do not enter
+the large declaration-order family unless a new deterministic
+observable emerges" -- this cycle produced the observable, not a
+deterministic ordering rule), the firing condition remains open and
+nothing was implemented.** Starting commit `1524670` (Cycle 38).
+23,217/30,209 EXACT, protected 430/430 throughout (unchanged -- no
+encoder source was edited this cycle).
+
+### Phase 1 -- fresh reproduction
+
+Reference-root population reproduced fresh against `1524670`: 41
+roots (identical causal-family breakdown to Cycles 36-38), decoder-only
+18 (28820 confirmed present, untouched), 29542 confirmed still in
+reference-identity. Zero drift.
+
+### The decisive finding: method-bearing self-reference rows are never used as operands
+
+New tool,
+`tools/corpus/research/application-class-self-reference-operand-analysis.ts`:
+for all 305 definitions with a stored method-bearing self-reference row
+(`recname=PACKAGE, refname=<own class name>, appclassmethod<>blank`),
+decode the full stored program with `decodeProgram` and check whether
+ANY token's `nameNum` (populated only for the three PSPCMNAME
+reference-operand opcodes, 0x21/0x4A/0x48) equals that row's own
+NAMENUM.
+
+```text
+Definitions with a method-bearing self-reference row:  305
+Row referenced by an executable operand:                  0
+Row never referenced by any operand:                    305
+Decode errors:                                             0
+```
+
+**Zero exceptions.** Direct token-level inspection of 29542's own
+`%This.init()` call confirms why: the call compiles to `0x12 "%This"
+0x5 "." 0xa "init" 0xb "(" 0x14 ")" 0x15 ";"` -- opcode `0xa` renders
+the method name directly through the class's own internal
+method-directory name table, NOT through a PSPCMNAME operand. A
+row-absent control (definition 28704's `%This.ReadMsgCurrencyCode(...)`,
+`%This.ReadMsgAccount(...)`, etc.) compiles to the IDENTICAL opcode
+shape (`0x12 0x5 0xa <name> 0xb ...`) despite having no method-bearing
+row at all for ANY of its four own-method targets. **The executable
+call-site bytes are indistinguishable between row-present and
+row-absent cases.** This directly answers Phase 17's own question
+("are there two distinct opcode/operand forms?") -- there is only one,
+and it does not depend on row presence.
+
+Separately, inspecting 29542's complete reference-operand token list
+(every 0x21/0x4A/0x48 token in the whole stored program) shows
+`SCROLL`/`RECORD`/`FIELD` rows (namenum 16-21, all VALUE-bound
+Get/SetField-style dereferences) ARE used as operands, while every
+PACKAGE-kind row (namenum 2-15, including the FMLAMEDCERT/INIT
+self-reference at namenum 10, and every import-derived Application
+Class type dependency) is NEVER used as an operand anywhere. This
+matches the established pattern for ordinary Application-Class-typed
+declarations (Cycle 13's own type-descriptor encoding resolves
+Application Class types through the name table directly, with no
+0x21-style operand needed) -- the self-reference row is not a special
+case; it is one more member of the SAME "declaration-derived PACKAGE
+dependency, metadata-only" family every other PACKAGE row in this
+program already belongs to.
+
+### Reframing: this is very likely the declaration-phase dependency family, not an executable-`%This`-call question
+
+Cycles 37-38 treated "does `%This.method()` fire a row" as an
+executable-call-driven question because that is where the CORRELATION
+was found (only definitions with own-method `%This` calls have rows).
+This cycle's operand-usage finding shows that correlation cannot be
+CAUSAL in the way assumed: whatever allocates the row does so during
+declaration-phase dependency discovery (Cycle 26/32's own already-
+established phase, which precedes executable-body encoding entirely),
+using the presence of a `%This.method()` call somewhere in the class as
+one OBSERVABLE SIGNAL of a "needed" self-referential dependency --
+exactly parallel to how an `instance`/`property`/parameter/return TYPE
+signals a needed import-derived dependency in the mechanism Cycle 32
+already implemented (narrowly, for the 0/1-missing-dependency case)
+and left EXPLICITLY unresolved for the general multi-dependency case
+(23 of the 41 remaining reference-identity roots are exactly that
+unresolved family).
+
+This also gives Cycle 38's own 187/187 zero-contradiction
+target-selection rule a coherent causal explanation it did not have
+before: "first call site in fragment-traversal order" is a strong
+proxy for "first-discovered self-method dependency" precisely because
+a declaration-phase prepass scanning method bodies for `%This.method()`
+signals would naturally encounter them in that same order. The
+selection rule itself is unchanged and still correct; only the
+mechanism explaining WHY it works is now better understood.
+
+### Why this was not pursued further into an implementation
+
+29542 (8 imports, multiple instance declarations) has a genuinely
+multi-dependency declaration set -- exactly the population Cycle 32
+found `missingDeclarationDependencies.length <= 1` does not cover, and
+which Cycle 32's own rejected-models list (declaration order, descriptor
+order, raw source order, hash/bucket guesses) already tried and failed
+to crack for ordinary import-derived dependencies. Reframing the
+self-method-row question as PART OF that family does not, by itself,
+supply a new ordering rule -- it explains why the question resisted
+every executable-call-based hypothesis Cycles 37-38 tested (call-site
+features cannot determine a declaration-phase decision that happens
+before those call sites are even encoded), but solving the general
+multi-dependency declaration-order problem remains outside this
+cycle's evidentiary bar and explicitly outside its scope per
+instruction.
+
+### Negative controls
+
+- No encoder change was made, so Cycle 33's wildcard-import rule,
+  Cycle 34's `%This` gate rule, Cycle 36's built-in-object method-wide
+  lifetime rule, and definition 29797 are provably unaffected --
+  confirmed by an unchanged `git status` for every source file
+  throughout the investigation.
+- The "identical opcode shape" finding was itself cross-checked against
+  a genuine row-absent control (28704, all four own-method targets)
+  and the row-present primary target (29542), not asserted from one
+  example.
+
+### Validation
+
+- No encoder files changed this cycle -- only the two new research
+  tools; `git status` confirms this before and after the investigation.
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 551 passed, 1 intentional skip (552 total; unchanged from
+  Cycle 38).
+- Protected/full corpus: unchanged at 430/430 and 23,217/30,209 EXACT
+  (no source edited, so this is confirmatory, not a new result).
+- `git diff --check`: clean.
+
+### Ending 41-root accounting
+
+| ending outcome | roots | movement |
+|---|---:|---:|
+| reference identity | 41 | unchanged |
+| names metadata | 0 | 0 |
+| marker | 0 | 0 |
+| wrapper/body | 0 | 0 |
+| decoder-only | 0 | 0 |
+| fully EXACT | 0 | 0 |
+| **total** | **41** | |
+
+Updated 99-root Application Class accounting (unchanged from Cycle 38):
+41 reference identity, 3 names metadata, 18 decoder-only, 9 marker
+residual, 2 wrapper/body, 25 parked storage-symbol enumeration
+(untouched), 1 fully-EXACT placeholder already reconciled in Cycle 32 =
+99.
+
+### Explicitly not done (per instruction)
+
+- Did not implement self-method reference allocation -- the firing
+  condition is now better UNDERSTOOD (declaration-phase, not
+  call-driven) but not SOLVED (no deterministic ordering rule for the
+  underlying multi-dependency declaration-discovery question).
+- Did not enter the 23-root declaration-phase family with a guessed
+  ordering rule -- the reframing above is offered as a new observable
+  for a future cycle, not as license to attempt sort/hash/table
+  guessing this cycle.
+- Did not touch 28820 (decoder-only) or the 25 parked names-metadata
+  roots.
+- Did not modify `applicationClassReferenceKey`,
+  `ApplicationClassReferenceScope`/`ApplicationClassReferenceSession`,
+  or any of the Cycle 33/34/36 proven rules.
+- Did not query live Oracle or fabricate inherited/environment
+  metadata.
+
+### Next actions
+
+- The concrete next research step: determine whether the EXISTING
+  Cycle 32 declaration-dependency prepass machinery
+  (`missingDeclarationDependencies`, `hasModeledDeclarationDependencyOrder`)
+  can be extended to ALSO scan method bodies for `%This.method()`
+  signals (using Cycle 38's own proven traversal order) as one MORE
+  kind of declaration-phase dependency signal, then test whether the
+  SAME "zero or one missing dependency" narrow boundary that already
+  works for import-derived types also cleanly predicts self-method row
+  presence for the definitions where it applies (deferring the
+  multi-dependency case exactly as Cycle 32 already does).
+- If that narrow extension is found to be contradiction-free on its
+  own sub-population, it may be implementable WITHOUT solving the
+  general 23-root ordering problem, since Cycle 32's own precedent is
+  to model only the narrow boundary and leave the rest frozen.
+- Datasource mode: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout; `--live` was not used.
+
+**Cycle 40 was not started.**
+
 ## Compiler Semantics Cycle 38 — discover the self-method allocation trigger (forensic only, zero behavior change)
 
 **Status: no encoder change. TARGET SELECTION is now fully proven with
