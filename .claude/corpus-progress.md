@@ -1,5 +1,222 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 34 — advance Application Class reference identity, phase 2
+
+**Status: one over-broad conservative gate narrowed with full population
+evidence; one of the three targeted "cross-fragment" roots advances to
+names metadata; the other two are forensically distinguished into
+separate, more precise remaining mechanisms rather than being forced to
+move. Do not begin Cycle 35.** Starting commit `179b3f2` (Cycle 33),
+23,217/30,209 EXACT, protected 430/430, 43 frozen Application Class
+reference-identity roots.
+
+### Phase 1 — frozen population and the three cross-fragment roots
+
+Reproduced the current 43-root population against `179b3f2` (not
+assumed from prior cycles):
+
+```text
+23 declaration-phase PACKAGE discovery/order mismatch
+ 5 suppressed fragment-owner operand collision
+ 5 import PACKAGE discovery/order mismatch
+ 3 cross-fragment PACKAGE duplicate / failed reuse
+ 2 row-count/stream-tail mismatch
+ 2 PACKAGE phase/order mismatch
+ 1 non-PACKAGE allocation-order mismatch
+ 1 missing non-PACKAGE allocation
+ 1 executable/post-class PACKAGE discovery/order mismatch
+```
+
+Matches the directive's own frozen list exactly. The three
+cross-fragment roots, their storage shape, and their earliest
+allocation difference:
+
+| id | class | storage | earliest divergence |
+|---|---|---:|---|
+| 28820 | `ANET_CRR:MasterCRR` | 0 | generated has an EXTRA `PACKAGE\|XMLNODE\|XmlNode\|XmlNode` row (ordinal 6) stored does not have at all |
+| 29448 | `GPUS_TRANSFER:Transfer` | 16 (8 instance + 8 property) | stored expects `FIELD\|RECNAME` at ordinal 4; generated substitutes a fresh `PACKAGE\|RECORD\|Record\|Record` row instead |
+| 29542 | `GP_ABS_FMLA:FMLAMedCert` | 4 | stored expects a self-referential method-bearing row `PACKAGE\|FMLAMEDCERT\|GP_ABS_FMLA\|\|INIT`; generated substitutes an unrelated `PACKAGE\|TEXTCATALOG\|HR_TEXT_CATALOG` row |
+
+**These three do NOT share one semantic cause**, confirmed by
+instrumenting `referenceTrace` and locating each duplicate/substitution
+relative to fragment boundaries (detected via `sourceOffset` resets,
+cross-checked directly against source):
+
+- 28820's two `XMLNODE` allocations are BOTH inside the same single
+  method fragment (`ProcessMessage` -- `MasterCRR`'s own constructor
+  body is empty). This is a within-fragment/control-region dedup
+  question, not a cross-fragment one.
+- 29448's duplicated `PACKAGE|RECORD`/`RECORD|GPUS_KEYLST_WRK`/
+  `FIELD|RECNAME`/`FIELD|STRING_FUNCTIONS` identities are genuinely
+  re-allocated across separate method/property-accessor fragments
+  (`Transfer`, `TransferToComponent`, `TransferHandler`, and the
+  `get`/`set` accessor pairs) -- a true cross-fragment reuse failure.
+- 29542's substitution is a method-bearing-identity question (Hypothesis
+  B): `%This.init()` should resolve to a self-referential
+  `PACKAGE|<class>|<package>||<METHOD>` row, not an unrelated
+  import-derived class row.
+
+### The actual cause found: an over-broad conservative gate, not a cross-fragment mechanism
+
+Cycle 32 deliberately disabled the whole shared `ApplicationClassReferenceScope`/
+`ApplicationClassReferenceSession` facade for any definition containing
+`%This.method(...)`, reasoning that an INHERITED method's
+return/parameter metadata is not always derivable from source alone.
+Tracing 29448 and 29542 showed neither is actually blocked by their own
+cross-fragment mechanism most of the time -- both are blocked because
+this gate (`hasUnmodeledThisMethodDependencies`) disables the ENTIRE
+shared session outright, and both classes call their OWN,
+locally-declared-and-implemented methods via `%This.` (`%This.PrepareWhere()`
+in 29448; `%This.init()` in 29542) -- metadata for which is already fully
+parsed into `methods`, no inheritance or environment state needed.
+
+Scanned all 43 remaining roots' `%This.method(...)` calls against each
+definition's own parsed method-declaration set:
+
+| population | roots |
+|---|---:|
+| `%This` calls exclusively to own declared methods (false-positive gate) | 23 |
+| `%This` calls include at least one genuinely external/inherited name | 10 |
+| no `%This.method(...)` calls at all (unaffected either way) | 10 |
+| **total** | **43** |
+
+More than half the remaining population (23/43) was being blocked by
+this over-broad check, including two of the three primary-target
+cross-fragment roots.
+
+### Implementation
+
+`hasUnmodeledThisMethodDependencies` (`encodeApplicationClassProgramV2`,
+`src/peoplecode/encoder.ts`) now flags a `%This.method(...)` call only
+when `method` is NOT one of the class's own parsed, declared method
+names (`ownMethodNames`, derived from the already-in-scope `methods`
+array -- no new parsing, no environment/live query). A genuinely
+external call still disables the shared session exactly as before,
+preserving Cycle 32's own conservative boundary for the population it
+was actually meant to protect. `hasModeledDeclarationDependencyOrder`
+(the OTHER half of the gate, for multi-dependency declaration sets) is
+completely unchanged.
+
+### Phase 5/6 -- results
+
+- **29448** advances out of "reference identity" to "Application Class
+  names metadata" -- its remaining discrepancy, once cross-fragment
+  RECORD/FIELD/bare-PACKAGE-type reuse is correctly modeled, is a
+  directory NAME-TABLE ordering issue (three consecutive `Transfer\0`
+  entries where stored has `Transfer\0pPageName\0pBarName\0...`),
+  outside this cycle's scope and outside the parked 25-root
+  names-metadata population's own territory (a distinct, newly exposed
+  boundary, documented below, not investigated further).
+- **29542** does NOT advance; it is reclassified from "cross-fragment
+  PACKAGE duplicate / failed reuse" to a new causal family, "wrong
+  non-PACKAGE identity" -- confirming Hypothesis B (method-bearing
+  identity is a distinct, unresolved question this cycle does not
+  implement).
+- **28820** is unaffected (confirmed byte-identical before/after) --
+  it has no `%This.method(...)` calls at all, so this fix cannot reach
+  it; it remains the sole root in "cross-fragment PACKAGE duplicate /
+  failed reuse".
+- Across the wider 43-root population, causal reclassification shifted
+  substantially even where roots did not advance out of "reference
+  identity": "suppressed fragment-owner operand collision" dropped from
+  5 to 2 (3 roots' true cause, once the gate no longer masks it, turned
+  out to be something else, now more precisely labeled), and
+  "executable/post-class PACKAGE discovery/order mismatch" grew from 1
+  to 3. This is the directive's own preferred outcome ("optimize for...
+  contradiction-free... not... moving the largest number of roots").
+
+Ending 43-root accounting:
+
+| ending outcome | roots | movement |
+|---|---:|---:|
+| reference identity | 42 | -1 |
+| Application Class names metadata | 1 | +1 (29448) |
+| marker | 0 | 0 |
+| wrapper/body | 0 | 0 |
+| decoder-only | 0 | 0 |
+| fully EXACT | 0 | 0 |
+| **total** | **43** | |
+
+Full original 99-root accounting (unchanged bucket totals except the
+one above): 42 reference identity, 3 names metadata (2 from Cycles
+32/33 + 1 new), 17 decoder-only, 9 marker residual, 2 wrapper/body, 25
+parked storage-symbol enumeration (untouched) = 98 + the 1 fully-EXACT
+placeholder Cycle 32 already reconciled = 99.
+
+### Blast-radius reconciliation
+
+The fix is a general rule, not scoped to the 43 frozen roots, so its
+blast radius is much wider: 259 Application Class definitions change
+generated bytes (vs. the 43-root population's own 1-2 affected roots),
+0 outside Application Classes. 21 source-program gains (up from
+Cycle 33's 19), 0 source-program losses. Full corpus: 23,217/30,209
+EXACT, unchanged -- 0 EXACT gains, 0 EXACT regressions, matching the
+established pattern (Cycles 16/18/33) that reference/gate corrections
+routinely expose or resolve non-byte-exactness blockers without
+flipping full byte-exactness on their own.
+
+### Negative controls
+
+- **Definition 29797** (the established scoped-NEW / local-control-region
+  freshness control): generated bytes confirmed BYTE-IDENTICAL
+  (SHA-256 match) before and after this change -- the fix does not
+  touch control-region freshness at all.
+- The 10 roots with at least one genuinely external `%This.method(...)`
+  call remain gated exactly as before (spot-checked their causal
+  classification is unchanged in the analyzer output).
+
+### Validation
+
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 550 passed, 1 intentional skip (551 total) -- unchanged
+  from Cycle 33 (no existing test's expected behavior regressed).
+- Protected local baseline: 430/430 EXACT; regression gate PASS.
+- Full local corpus: 23,217/30,209 EXACT (identical to Cycle 33);
+  6,992 residual definitions; `Improved: 0, Regressed: 0, Unchanged
+  failures: 0`.
+- `git diff --check`: clean.
+
+### Explicitly not done (per instruction)
+
+- Did not attack the 23-root declaration-phase family (lowest priority
+  this cycle, per instruction).
+- Did not implement a fix for 28820's within-fragment/control-region
+  `XmlNode` dedup question, or for 29542's method-bearing-identity
+  question (`PACKAGE|CLASS|` vs `PACKAGE|CLASS|METHOD`) -- both
+  documented as distinct, unresolved mechanisms for a future cycle, not
+  guessed at.
+- Did not touch the parked 25 Cycle-31 storage-symbol enumeration roots,
+  marker/wrapper/decoder populations, or the existing 2/17-root
+  names-metadata/decoder-only buckets.
+- Did not modify `hasModeledDeclarationDependencyOrder` or any part of
+  the multi-dependency declaration-order boundary.
+- Did not fabricate or query environment/inherited metadata for
+  genuinely external `%This.method()` calls -- that boundary remains
+  frozen exactly as Cycle 32 left it.
+
+### Next actions
+
+- Next Cycle 34 population (if resumed): the now-isolated 28820
+  (within-fragment `XmlNode`/control-region dedup) and 29542
+  (method-bearing PACKAGE identity for `%This.OwnMethod()` calls,
+  Hypothesis B) -- both now cleanly separated from the reuse-gate
+  question this cycle resolved.
+- 29448's own new blocker (directory name-table ordering) is a
+  candidate for whoever next picks up names-metadata work, but is NOT
+  the same population as the parked 25 multi-member storage-symbol
+  roots -- documented as a distinct, newly exposed boundary, not
+  reopening that parked work.
+- Priority order for a future cycle, per the directive's own
+  preference for small deterministic families before the 23-root
+  declaration-order population: the reclassified "suppressed
+  fragment-owner operand collision" (now 2), "wrong non-PACKAGE
+  identity" (1, i.e. 29542), then the 5 import-phase and 23
+  declaration-phase roots.
+- Datasource mode: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout; `--live` was not used.
+
+**Cycle 35 was not started.**
+
 ## Compiler Semantics Cycle 33 — advance Application Class reference identity
 
 **Status: one build-breaking merge artifact repaired; one already-coded
