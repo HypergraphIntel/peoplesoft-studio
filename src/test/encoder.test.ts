@@ -2366,6 +2366,81 @@ End-Function;`
   );
 });
 
+test('Application Class CreateRecord reuses an existing RECORD identity across control groups within one method', () => {
+  // Cycle 47 (definition 29522): `&ConfRec_bef = CreateRecord(Record.X);
+  // ... &ConfRec = CreateRecord(Record.X);` -- two SEPARATE CreateRecord
+  // calls to the SAME record name, assigned to two DIFFERENT target
+  // variables, separated by an If/Else block (different control groups).
+  // Stored reuses ONE RECORD row for both; population census (repeated
+  // same-record-name CreateRecord calls within one Application Class
+  // method) found 83/84 (99%) reuse this way, vs. ordinary PeopleCode's
+  // separately-calibrated, genuinely mixed 58/221 occurrence-based
+  // behavior -- this fix is gated to Application Class fragments only.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+end-class;
+
+method Run
+   Local Record &RecA, &RecB;
+   &RecA = CreateRecord(Record.TEST_REC);
+   If &RecA.FIELD_A.Value = "X" Then
+      &RecA.FIELD_A.Value = "Y";
+   End-If;
+   &RecB = CreateRecord(Record.TEST_REC);
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const recordReferences = encoded.references.filter(r => r.kind === 'record');
+  assert.equal(recordReferences.length, 1);
+});
+
+test('Application Class CreateRecord reuses a RECORD identity established by GetRecord earlier in the method', () => {
+  // Cycle 47: CreateRecord's new read path goes through the SAME
+  // `dependencyScope.lookupRecord` map `GetRecord`/etc. already write into
+  // unconditionally -- an earlier GetRecord(Record.X) in the same method
+  // must also be reusable by a LATER CreateRecord(Record.X).
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+end-class;
+
+method Run
+   Local Record &RecA, &RecB;
+   &RecA = GetLevel0()(1).GetRecord(Record.TEST_REC);
+   &RecB = CreateRecord(Record.TEST_REC);
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const recordReferences = encoded.references.filter(r => r.kind === 'record');
+  assert.equal(recordReferences.length, 1);
+});
+
+test('ordinary PeopleCode CreateRecord reuse remains occurrence-based, not method-wide', () => {
+  // Negative control: outside an Application Class, two flat top-level
+  // CreateRecord(Record.X) calls to DIFFERENT target variables must NOT be
+  // unified -- this is the existing, separately-calibrated, load-bearing
+  // "occurrence-based" behavior Application Class method-wide CreateRecord
+  // reuse must not regress (population census: 146/221 ordinary
+  // same-method-repeated candidates allocate fresh each time).
+  const encoded = encodeProgramArtifacts(
+    `Local Record &RecA, &RecB;
+&RecA = CreateRecord(Record.TEST_REC);
+&RecB = CreateRecord(Record.TEST_REC);`
+  );
+
+  const recordReferences = encoded.references.filter(r => r.kind === 'record');
+  assert.equal(recordReferences.length, 2);
+});
+
 test('HTML.NAME is recognized outside GetHTMLText calls', () => {
   const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
 Local any &content;

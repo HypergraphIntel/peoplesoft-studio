@@ -2915,7 +2915,41 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       }
     }
 
-    if (reuseRecordReferenceWithinControlGroup) {
+    /*
+     * Cycle 47 (definition 29522): `CreateRecord(Record.X)` writes into
+     * `dependencyScope` UNCONDITIONALLY (see the unconditional
+     * `dependencyScope.recordRecord(...)` call below, guarded only by the
+     * unrelated `reuseRecordReferenceWithinCallArguments`/
+     * `suppressRecordReferenceControlGroupWrite` flags -- both false here)
+     * but never READS from it -- `reuseRecordReferenceWithinControlGroup`
+     * (the flag gating this read) is set by `GetRecord`/`CreateRowset`/etc.
+     * but deliberately NOT by `CreateRecord` (see that flag's own
+     * assignment site). For ORDINARY PeopleCode this is calibrated and
+     * correct: `CreateRecord(Record.X)` there is genuinely occurrence-based
+     * (population census: 146/221 same-method-repeated-name candidates
+     * allocate fresh each time, only 58/221 reuse -- a mixed, ALREADY
+     * separately-modeled population via `createRecordReferencesByTarget`/
+     * `createRecordReferenceCounts` below, not method-wide reuse). But
+     * Application Class method bodies behave differently, exactly like
+     * Cycle 43's RECORD/SCROLL finding and Cycle 46's FIELD finding:
+     * population census of repeated-same-record-name `CreateRecord` calls
+     * within one Application Class method found 83/84 (99%) reuse ONE
+     * RECORD row, regardless of target variable or control-group boundary
+     * -- confirmed directly against definition 29522 itself
+     * (`&ConfRec_bef = CreateRecord(Record.GP_ABS_SS); ... &ConfRec =
+     * CreateRecord(Record.GP_ABS_SS);`, two different target variables,
+     * separated by an If/Else block). Gated on
+     * `recordDependenciesHaveMethodWideLifetime` (Cycle 43's own flag, set
+     * only for Application Class method-body fragments) so ordinary
+     * PeopleCode's existing, separately-calibrated CreateRecord behavior
+     * below is completely unaffected -- this new check runs FIRST and
+     * falls through to that existing logic untouched when it finds
+     * nothing.
+     */
+    if (
+      reuseRecordReferenceWithinControlGroup ||
+      (reuseRowShorthandRecord && context?.recordDependenciesHaveMethodWideLifetime)
+    ) {
       const existing = dependencyScope.lookupRecord(recordName);
 
       if (existing !== undefined) {
