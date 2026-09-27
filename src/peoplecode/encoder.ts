@@ -126,18 +126,32 @@ class HtmlDependencyScope {
  */
 class ApplicationClassReferenceScope {
   private readonly references = new Map<string, PeopleCodeReference>();
+  private wildcardImportMetadataAllocated = false;
 
   beginFragment(): ApplicationClassReferenceSession {
     return {
-      lookup: reference => this.references.get(applicationClassReferenceKey(reference))
+      lookup: reference =>
+        this.references.get(applicationClassReferenceKey(reference)),
+
+      claimWildcardImportMetadata: () => {
+        if (this.wildcardImportMetadataAllocated) {
+          return false;
+        }
+
+        this.wildcardImportMetadataAllocated = true;
+        return true;
+      }
     };
   }
 
   commit(references: readonly PeopleCodeReference[]): void {
     for (const reference of references) {
       if (reference.kind === 'owner') continue;
+
       const key = applicationClassReferenceKey(reference);
-      if (!this.references.has(key)) this.references.set(key, reference);
+      if (!this.references.has(key)) {
+        this.references.set(key, reference);
+      }
     }
   }
 }
@@ -146,7 +160,17 @@ interface ApplicationClassReferenceSession {
   lookup(
     reference: Omit<PeopleCodeReference, 'index' | 'sequence'>
   ): PeopleCodeReference | undefined;
+
+  /**
+   * Application Class imports are encoded as independent fragments, but
+   * wildcard-import PACKAGE metadata has compilation-unit lifetime.
+   *
+   * Returns true exactly once for a modeled Application Class compilation
+   * unit. Later wildcard-import fragments return false.
+   */
+  claimWildcardImportMetadata(): boolean;
 }
+
 
 function applicationClassReferenceKey(
   reference: Omit<PeopleCodeReference, 'index' | 'sequence'>
@@ -4152,45 +4176,90 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     chunks.push(Buffer.from([0x58]));
 
     space();
+
+    /*
+    * Application Class wildcard imports have two distinct effects:
+    *
+    *   1. every wildcard import participates in package/class resolution;
+    *   2. only the first wildcard import contributes the blank-REFNAME
+    *      PACKAGE metadata row.
+    *
+    * Cycle 33 controls:
+    *
+    *   28801
+    *   28802
+    *   29087
+    *   29134
+    *   29191
+    *
+    * show that subsequent wildcard imports remain semantically active but do
+    * not consume additional PSPCMNAME identities merely because the import
+    * declaration exists. Concrete classes subsequently resolved through those
+    * wildcard namespaces still allocate their normal PACKAGE dependencies.
+    *
+    * Preserve the pre-import state because sawWildcardImport also describes
+    * the compilation unit's resolution environment after this statement.
+    */
+
     const appClass = applicationClassPath({ allowWildcard: true });
     if (appClass.wildcard) sawWildcardImport = true;
     chunks.push(appClass.bytes);
 
-    /*
-     * Import itself establishes one PSPCMNAME PACKAGE dependency row.
-     *
-     * Ordinary class import:
-     *
-     *   import ROOT:Path:Class;
-     *
-     * => PACKAGE row for Class.
-     *
-     * Wildcard import:
-     *
-     *   import ROOT:Path:Leaf:*;
-     *
-     * => PACKAGE row with blank REFNAME, PACKAGEROOT=ROOT and
-     *    QUALIFYPATH=Path:Leaf.
-     *
-     * The reference is metadata-only here; the executable stream contains
-     * the 0x58/.../0x57/0x59 import bytes rather than a 0x21 operand.
-     */
-    if (appClass.wildcard) {
-      const fullPath = [
-        ...appClass.packagePath,
-        appClass.className
-      ];
 
-      nextReference({
-        kind: 'package',
-        packageName: '',
-        objectName: fullPath[0]?.toUpperCase(),
-        packagePath: fullPath.map(
-          (component, index) =>
-            index === 0 ? component.toUpperCase() : component
-        ),
-        className: ''
-      });
+    /*
+    * Import itself may establish one PSPCMNAME PACKAGE dependency row.
+    *
+    * Ordinary class import:
+    *
+    *   import ROOT:Path:Class;
+    *
+    * => PACKAGE row for Class.
+    *
+    * First wildcard import:
+    *
+    *   import ROOT:Path:Leaf:*;
+    *
+    * => PACKAGE row with blank REFNAME, PACKAGEROOT=ROOT and
+    *    QUALIFYPATH=Path:Leaf.
+    *
+    * Later wildcard imports extend the wildcard resolution environment but do
+    * not independently allocate another blank-REFNAME PACKAGE row.
+    *
+    * The reference is metadata-only here; the executable stream contains
+    * the 0x58/.../0x57/0x59 import bytes rather than a 0x21 operand.
+    */
+    if (appClass.wildcard) {
+      /*
+      * Application Class imports are emitted as independent encoder fragments,
+      * but PSPCMNAME wildcard-import metadata is scoped to the whole
+      * compilation unit.
+      *
+      * The shared ApplicationClassReferenceSession therefore owns the
+      * "first wildcard import" decision. Ordinary fragment encoding retains
+      * the existing fragment-local behavior.
+      */
+      const allocateWildcardMetadata =
+        context?.applicationClassReferenceSession !== undefined
+          ? context.applicationClassReferenceSession.claimWildcardImportMetadata()
+          : true;
+
+      if (allocateWildcardMetadata) {
+        const fullPath = [
+          ...appClass.packagePath,
+          appClass.className
+        ];
+
+        nextReference({
+          kind: 'package',
+          packageName: '',
+          objectName: fullPath[0]?.toUpperCase(),
+          packagePath: fullPath.map(
+            (component, index) =>
+              index === 0 ? component.toUpperCase() : component
+          ),
+          className: ''
+        });
+      }
     } else {
       addApplicationClassReference(
         appClass.packagePath,
