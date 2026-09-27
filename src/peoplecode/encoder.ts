@@ -10443,12 +10443,41 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             pendingReferenceLocalBoundary === undefined
           ) {
             pendingReferenceLocalBoundary = statementChunkStart;
+            /*
+             * Cycle 50 (definitions 28852, 29113, 29612): this whole branch
+             * is reached only when `leadingLocalRun && isLocalDeclaration`
+             * (the enclosing `if` a few lines up) and `sawLeadingLocalDeclaration`
+             * (this `if`'s own condition) are ALL true -- meaning the
+             * SEPARATE "blank formatting lines inside a leading
+             * declaration-only Local run" mechanism above (`leadingLocalRun
+             * && sawLeadingLocalDeclaration && isLocalDeclaration &&
+             * hasBlankLine`) has, by construction, the identical firing
+             * condition reduced to just `hasBlankLine` at this exact point
+             * -- and if it fired, it already pushed the FULL, correct
+             * marker count directly into `chunks` for THIS SAME leading
+             * gap (using the identical `topLevelWhitespace`-derived
+             * formula this branch would otherwise recompute below).
+             * Previously this branch recomputed and separately queued
+             * `pendingReferenceLocalMarkers` for the SAME gap whenever an
+             * initialized Local (with no further uninitialized Local
+             * following) happened to ALSO be preceded by a blank line,
+             * producing a genuine extra `0x4F` -- both mechanisms
+             * independently believed they alone were responsible for it.
+             * Application Class method bodies hit this overlap far more
+             * often than ordinary PeopleCode (hence
+             * `suppressDeclarationSectionMarkers === true` is the only
+             * branch this narrows -- see that flag's own established
+             * Cycle 14 AppClass-only meaning): ordinary PeopleCode's own
+             * `Math.max(1, sourceBlankLines)` floor is unrelated evidence
+             * (the DAEMONGROUP.DAEMONGROUP.SaveEdit control above) and is
+             * deliberately left untouched.
+             */
             const sourceBlankLines = Math.max(
               0,
               (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
             );
             pendingReferenceLocalMarkers = context?.suppressDeclarationSectionMarkers === true
-              ? sourceBlankLines
+              ? (hasBlankLine ? 0 : sourceBlankLines)
               : Math.max(1, sourceBlankLines);
           }
 
