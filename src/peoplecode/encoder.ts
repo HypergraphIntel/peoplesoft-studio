@@ -1013,6 +1013,14 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
     chunks.push(typeName());
 
+    /*
+     * Cycle 45: captured so the `firstDeclaredVariable`/`declaredVariable`
+     * handling below (which only ever branches on `type`, not on this) can
+     * also recognize `Local array of Record &x;` -- see its own use below
+     * for why.
+     */
+    let declaredArrayElementType: string | undefined;
+
     // Calibrated compound declarations:
     //   Local array of string &values;
     // => 44 40 "array" 40 "of" 40 "string" 01 "&values"
@@ -1055,6 +1063,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             elementType = arrayElementTypes();
           }
         }
+
+        declaredArrayElementType = elementType;
 
         if (/^File$/i.test(elementType ?? '')) {
           ensureLocalObjectPackageReference('FILE', 'File');
@@ -1130,11 +1140,25 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     * The comma is the ordinary 0x03 punctuation opcode and each variable
     * remains an ordinary 0x01 text operand.
     */
+    /*
+     * Cycle 45: `Local array of Record &x;` tracked separately from scalar
+     * `Local Record &x;` -- see `recordArrayVariables`'s own declaration
+     * comment for why an indexed element (`&x [&i].FIELDNAME`) must be
+     * distinguished from a bare access on the array itself (`&x.Len`,
+     * `&x.Push(...)`), which is why this is a distinct set rather than
+     * folded into `recordVariables`.
+     */
+    const isRecordArray =
+      /^array$/i.test(type ?? '') &&
+      /^Record$/i.test(declaredArrayElementType ?? '');
+
     space();
     const firstDeclaredVariable =
       /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
     if (/^Record$/i.test(type ?? '') && firstDeclaredVariable) {
       recordVariables.add(firstDeclaredVariable.toLowerCase());
+    } else if (isRecordArray && firstDeclaredVariable) {
+      recordArrayVariables.add(firstDeclaredVariable.toLowerCase());
     } else if (/^Row$/i.test(type ?? '') && firstDeclaredVariable) {
       rowVariables.add(firstDeclaredVariable.toLowerCase());
     } else if (/^Rowset$/i.test(type ?? '') && firstDeclaredVariable) {
@@ -1157,6 +1181,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
       if (/^Record$/i.test(type ?? '') && declaredVariable) {
         recordVariables.add(declaredVariable.toLowerCase());
+      } else if (isRecordArray && declaredVariable) {
+        recordArrayVariables.add(declaredVariable.toLowerCase());
       } else if (/^Row$/i.test(type ?? '') && declaredVariable) {
         rowVariables.add(declaredVariable.toLowerCase());
       } else if (/^Rowset$/i.test(type ?? '') && declaredVariable) {
@@ -1601,6 +1627,23 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   const recordVariables = new Set<string>();
   const rowVariables = new Set<string>();
   const rowsetVariables = new Set<string>();
+
+  /*
+   * Cycle 45: `Local array of Record &x;` declarations, tracked separately
+   * from `recordVariables`. A bare array-of-Record variable is itself an
+   * ARRAY object (`.Len`, `.Push(...)`, `.Delete(...)`, ...), not a Record
+   * -- only an INDEXED element (`&x [&i]`) narrows it to a Record, whose own
+   * bare `.MEMBER` is then a FIELD reference the same way a scalar `Local
+   * Record &rec;`'s `.MEMBER` already is. Folding this into `recordVariables`
+   * directly regressed definition 29522 itself: `&ARYDrvDtl.Len` (the bare
+   * array's own Length property, no subscript) was wrongly resolved as a
+   * FIELD dependency, corrupting the reference stream before the intended
+   * `&ARYDrvDtl [&i].DUR` target was ever reached. This set alone only marks
+   * "this variable IS a Record when indexed" -- see its own use immediately
+   * before the postfix-chain `expectedReferenceMember`/`chainSemantics`
+   * computation for the indexing-aware gate that actually applies it.
+   */
+  const recordArrayVariables = new Set<string>();
 
   /*
    * Cycle 7 (Phase 7C): supplementary, ChainSemantics-only declaration
@@ -4864,6 +4907,31 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             chunks.push(typeName());
             if (isArrayType) {
               arrayElementTypes();
+            } else if (/^Record$/i.test(paramType ?? '')) {
+              /*
+               * Cycle 45: the same class of gap the `Row`-typed-parameter
+               * fix below already documents (definitions 921/924), but for
+               * `Record`. A `Record`-typed Function/method PARAMETER
+               * allocates the same implicit PACKAGE/RECORD dependency row a
+               * `Local Record &var;` declaration already does, AND must
+               * join `recordVariables` so its own bare `.FIELDNAME` shorthand
+               * resolves as a FIELD reference -- `expectedReferenceMember`'s
+               * `recordVariables.has(baseVariableName)` arm only ever checks
+               * that shared set, and the parameter-parsing loop never
+               * populated it for Record.
+               *
+               * GP_ABS_EODI_PACKAGE.Appointments.SchedulingQueue.OnExecute
+               * (definition 29522): `method SaveAppointmentToQueue(...,
+               * &AbsenceRec As Record) ... &AbsenceRec.EMPLID.Value` proves
+               * this directly -- `.EMPLID` fell through to plain inline text
+               * instead of a 0x4A FIELD reference. Population evidence: 265
+               * corpus definitions have a `Record`-typed parameter with bare
+               * field-shorthand access on it.
+               */
+              ensureLocalObjectPackageReference('RECORD', 'Record');
+              if (paramName !== undefined) {
+                recordVariables.add(paramName.toLowerCase());
+              }
             } else if (/^Row$/i.test(paramType ?? '')) {
               /*
                * AGC_CAT_ASGNEE.AGC_CATEGORY_ID.FieldFormula (definition
@@ -8377,6 +8445,20 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       /^\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/
         .test(source.slice(pos));
 
+    /*
+     * Cycle 45: a declared `array of Record` variable is an ARRAY object
+     * until INDEXED (`&x [&i]`) -- only then does it narrow to a Record,
+     * whose own bare `.MEMBER` is a FIELD reference exactly like a scalar
+     * `Local Record &rec;`'s `.MEMBER` already is (see `recordArrayVariables`'s
+     * own declaration comment for the `&x.Len` regression this lookahead
+     * exists to avoid: gated on the array being indexed FIRST, not merely
+     * declared as array-of-Record).
+     */
+    const recordArrayIndexedFieldAccess =
+      baseVariableName !== undefined &&
+      recordArrayVariables.has(baseVariableName.toLowerCase()) &&
+      /^\s*\[/.test(source.slice(pos));
+
     let expectedReferenceMember:
       'record' | 'field' | undefined =
         explicitRecordRootName !== undefined
@@ -8385,8 +8467,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             ? 'field'
             : rowStartsRecordFieldChain || bareGetRowCallStartsRecordFieldChain
               ? 'record'
-              : baseVariableName !== undefined &&
-                recordVariables.has(baseVariableName.toLowerCase())
+              : (baseVariableName !== undefined &&
+                  recordVariables.has(baseVariableName.toLowerCase())) ||
+                recordArrayIndexedFieldAccess
                 ? 'field'
                 : undefined;
 
@@ -8450,8 +8533,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
                    * control) share the same valueType/provenance here.
                    */
                   { valueType: 'rowset', binding: 'dependency-bound', provenance: 'intrinsic' }
-                : baseVariableName !== undefined &&
-                  recordVariables.has(baseVariableName.toLowerCase())
+                : (baseVariableName !== undefined &&
+                    recordVariables.has(baseVariableName.toLowerCase())) ||
+                  recordArrayIndexedFieldAccess
                   ? { valueType: 'record', binding: 'dependency-bound', provenance: 'declared' }
                   : baseVariableName !== undefined &&
                     (rowVariables.has(baseVariableName.toLowerCase()) ||

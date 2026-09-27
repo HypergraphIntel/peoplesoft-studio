@@ -2153,6 +2153,74 @@ Local string &b = GetLevel0()(1).GetRecord(Record.TEST_REC).GetField(Field.B).Va
   assert.equal(recordReferences.length, 2);
 });
 
+test('indexed array-of-Record element row-shorthand field access resolves as a FIELD dependency', () => {
+  // Cycle 45 (definition 29522): `Local array of Record &Arr;` never joined
+  // `recordVariables`, so an indexed element's bare `.FIELDNAME` shorthand
+  // fell through to plain inline text instead of a 0x4A FIELD reference --
+  // unlike a scalar `Local Record &rec;`, whose `.FIELDNAME` already worked.
+  const encoded = encodeProgramArtifacts(
+    `Local array of Record &Arr;
+Local number &i;
+&Arr = CreateArrayRept(CreateRecord(Record.TEST_REC), 0);
+For &i = 1 To 3
+   If &Arr [&i].A.Value = "X" Then
+      &Arr [1].B.Value = "Y";
+   End-If;
+End-For;`
+  );
+
+  const fieldReferences = encoded.references.filter(r => r.kind === 'field');
+  assert.deepStrictEqual(
+    fieldReferences.map(r => (r as { fieldName: string }).fieldName),
+    ['A', 'B']
+  );
+});
+
+test('a bare array-of-Record variable keeps its own Array properties/methods inline, not FIELD references', () => {
+  // Negative control for the fix above: the SAME variable used WITHOUT
+  // indexing first (`&Arr.Len`, an intrinsic Array property) must stay
+  // plain inline text -- only an INDEXED element narrows the variable's
+  // type from Array to Record. Folding array-of-Record variables into the
+  // scalar `recordVariables` set directly (rather than gating on the `[`
+  // that must precede the member access) regressed exactly this shape
+  // during Cycle 45's own investigation.
+  const encoded = encodeProgramArtifacts(
+    `Local array of Record &Arr;
+Local number &i;
+&Arr = CreateArrayRept(CreateRecord(Record.TEST_REC), 0);
+If &Arr.Len = 0 Then
+   &i = 0;
+End-If;
+&i = &Arr [1].A.Value;`
+  );
+
+  const fieldReferences = encoded.references.filter(r => r.kind === 'field');
+  assert.deepStrictEqual(
+    fieldReferences.map(r => (r as { fieldName: string }).fieldName),
+    ['A']
+  );
+});
+
+test('a Record-typed Function parameter resolves bare field-shorthand access as a FIELD dependency', () => {
+  // Cycle 45: the same class of declaration-tracking gap the existing
+  // Row-typed-parameter fix (see its own comment) already covers, but for
+  // Record -- a `Record`-typed Function PARAMETER never joined
+  // `recordVariables`, so its own bare `.FIELDNAME` fell through to plain
+  // inline text instead of a FIELD reference.
+  const encoded = encodeProgramArtifacts(
+    `Function UseRecord(&rec As Record)
+   Local string &v = &rec.A.Value;
+   &rec.B.Value = &v;
+End-Function;`
+  );
+
+  const fieldReferences = encoded.references.filter(r => r.kind === 'field');
+  assert.deepStrictEqual(
+    fieldReferences.map(r => (r as { fieldName: string }).fieldName),
+    ['A', 'B']
+  );
+});
+
 test('HTML.NAME is recognized outside GetHTMLText calls', () => {
   const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
 Local any &content;
