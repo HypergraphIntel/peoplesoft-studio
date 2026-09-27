@@ -1,5 +1,220 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 42 — Application Class RECORD/FIELD reuse semantics (forensic; implementation attempted and reverted)
+
+**Status: no encoder change survives this cycle. Strong population
+evidence (336/339 RECORD, 404/405 FIELD -- both ~99%) supports an
+Application-Class-specific RECORD/FIELD reuse rule distinct from
+ordinary PeopleCode's mixed, control-group-scoped behavior. An
+implementation was built, found to causally resolve 29389's own
+originating symptom, but ALSO caused one real regression (definition
+29528, previously fully byte-exact) -- proving the rule as implemented
+("always method-wide, regardless of construct") is too broad. Per the
+strict zero-regression quality bar, the change was reverted in full.
+The finding and the specific counter-example are documented precisely
+for a future cycle rather than shipped unsafely.** Starting commit
+`42544b9` (Cycle 41). 23,217/30,209 EXACT, protected 430/430
+throughout (unchanged -- the working tree ends this cycle with no
+encoder source modified relative to `42544b9`).
+
+### Phase 1 -- fresh reproduction
+
+Reference-root population reproduced fresh against `42544b9`: 41 roots
+(identical causal-family breakdown to Cycles 36-41). `28959`
+(`non-PACKAGE allocation-order mismatch`), `29389` (`missing
+non-PACKAGE allocation`), `29522` (`wrong non-PACKAGE identity`)
+confirmed as the three 1-root families, unchanged. The parked
+`%This.method()` self-row firing boundary was not reopened; no new
+evidence connecting it to RECORD/FIELD reuse emerged this cycle.
+
+### Phase 2 -- 29389 reconstruction
+
+`GPS_EDITFUNCTIONS:Reset:runAction` contains two CONSECUTIVE, flat
+top-level (no enclosing `If`/`For` yet -- `controlDepth === 0`)
+statements: `&_sSETID = GetLevel0()(1).GetRecord(Record.GPS_DATA_WRK).GetField(Field.SETID).Value;`
+then `&_sGPS_POST_ID = GetLevel0()(1).GetRecord(Record.GPS_DATA_WRK).GetField(Field.GPS_POST_ID).Value;`.
+Stored PSPCMNAME has exactly ONE `RECORD|GPS_DATA_WRK` row (namenum 7,
+reused for both `GetField` calls at namenum 8/9); the encoder allocated
+a second, redundant `RECORD|GPS_DATA_WRK` row, displacing the expected
+`FIELD|GPS_POST_ID` row at ordinal 9. This is exactly the "flat
+top-level" shape ordinary PeopleCode's own established negative control
+(`DERIVED_HR_TRN.ATTENDANCE.FieldChange`, cited in the existing
+`dependencyScope` code comment) proves must NOT reuse -- Application
+Class method bodies apparently reuse there anyway, the same general
+shape of distinction Cycle 36 already proved for built-in-object
+PACKAGE declarations.
+
+### Phase 3/4 -- RECORD and FIELD reuse census
+
+New tool,
+`tools/corpus/research/application-class-record-field-reuse-analysis.ts`:
+for every definition (Application Class and ordinary), find RECORD
+names referenced via `GetRecord(Record.X)` or `CreateRecord(Record.X)`
+(tracked as SEPARATE candidate keys per construct, after an initial
+refinement -- see below) two or more times within one method/program,
+and FIELD names referenced via `GetField(Field.X)` likewise. For each
+candidate, count real stored distinct rows for that name and classify
+as `stored-reuses` (1 row) or `stored-fresh-each-time` (rows >=
+occurrences).
+
+| population | candidates | stored-reuses | stored-fresh-each-time |
+|---|---:|---:|---:|
+| RECORD, Application Class | 339 | 336 (99.1%) | 2 |
+| RECORD, ordinary PeopleCode | 1,029 | 426 (41%) | 465 (45%) |
+| FIELD, Application Class | 405 | 404 (99.8%) | 1 |
+| FIELD, ordinary PeopleCode | 1,331 | 764 (57%) | 410 (31%) |
+
+The contrast is stark and directly parallels Cycle 36's own built-in-
+PACKAGE finding: Application Class method bodies overwhelmingly reuse
+same-construct RECORD/FIELD references regardless of control-group
+boundaries; ordinary PeopleCode remains genuinely mixed (consistent
+with its own existing, heavily-calibrated control-group/control-depth-
+gated behavior being correct there).
+
+**Refinement found during investigation:** the first census pass
+counted `GetRecord` and `CreateRecord` together and found 3 RECORD
+"exceptions." Direct inspection of one (definition 30170's `saveClone`,
+`Record.PTAI_ITEM`) showed its own two occurrences are `CreateRecord(Record.PTAI_ITEM)`
+(a new standalone record) and `&rowset(1).GetRecord(Record.PTAI_ITEM)`
+(an existing record bound through a rowset row) -- genuinely different
+PROVENANCE despite the same record name, and stored correctly does NOT
+unify them. Splitting the two constructs into separate candidate keys
+resolved this exception cleanly (RECORD exceptions dropped from 3 to
+2); the two remaining "exceptions" were confirmed to be measurement
+artifacts of counting stored rows CLASS-WIDE rather than per-method
+(the same artifact Cycle 36 documented for definition 29797) -- e.g.
+`PTAI_ITEM` used via `GetRecord` in three separate methods of the same
+class inflates the whole-class row count relative to what any ONE
+method's own occurrences would predict.
+
+### Implementation attempted, then reverted
+
+Located the responsible mechanism: `dependencyScope` (`src/peoplecode/encoder.ts`,
+~line 2390), a pre-existing, heavily-calibrated facade whose `id`
+getter returns `controlGroup` and whose `isOpen` getter requires
+`controlDepth > 0` (the documented "flat top-level does not reuse"
+rule, cited with real ordinary-program fixture names in its own
+comments). Implemented a narrow, opt-in `EncodeFragmentContext` field,
+`recordDependenciesHaveMethodWideLifetime`, set only by
+`encodeApplicationClassProgramV2` for its own method-body fragments,
+making `dependencyScope.isOpen` unconditionally `true` and `id`
+collapse to one fixed scope -- the same shape as Cycle 36's own
+`builtinObjectDeclarationsHaveMethodWideLifetime` fix.
+
+**Targeted validation:**
+- 29389: SHA changed (causal effect confirmed); its own earliest
+  mismatch moved from ordinal 9 (the RECORD/FIELD issue, now resolved)
+  to ordinal 18, a DIFFERENT, unrelated issue (`PACKAGE|UTILS|GPS_EDITFUNCTIONS||DELETEGPSPOSTINRESET`,
+  a `%Super._utils.deleteGPSPostInReset(...)` method-bearing reference
+  -- a `%Super`-receiver variant of the parked `%This` self-row question,
+  not chased this cycle).
+- 29797 (negative control): byte-identical SHA before/after -- correctly
+  unaffected.
+- 28820 (decoder-only): unaffected, as expected.
+- **29528 (regression): previously fully byte-exact, became a
+  byte-level MISMATCH after this change.** Its source has `Local Record
+  &AR_Sta_rec = CreateRecord(Record.GP_ABS_SS_STA);` immediately
+  followed by `Local Rowset &Abs_Sta_rs = CreateRowset(Record.GP_ABS_SS_STA);`,
+  then `&Abs_Sta_rs.GetRow(1).GP_ABS_SS_STA.CopyFieldsTo(...)` -- a
+  ROW-SHORTHAND chain access. Stored PSPCMNAME shows the RECORD identity
+  IS already reused here (one `RECORD|GP_ABS_SS_STA` row) even before
+  this cycle's change, so the regression is not about RECORD reuse
+  failing to fire -- it is most likely the row-shorthand postfix bridge
+  the `dependencyScope` code comment itself flags as "one documented raw
+  read from `recordReferencesByControlGroup`... not forced through this
+  facade": that read site uses `controlGroup` DIRECTLY rather than going
+  through `dependencyScope.id`, so once this change made `recordRecord`
+  WRITE under a different (method-wide) key, that raw read no longer
+  finds what it used to, breaking a DIFFERENT, previously-correct reuse
+  elsewhere in the same statement family. This was not confirmed by
+  further tracing (time did not permit); it is the most likely
+  explanation given the code's own documented caveat about that
+  specific bypass.
+
+Given the strict "source-program losses = 0, EXACT regressions = 0"
+quality bar, and that narrowing the fix further (e.g. restricting it
+to exactly the same-construct-repeated shape the census actually
+tested, or routing the row-shorthand bypass through the same `id`/
+`isOpen` override) was not achievable with confidence in the remaining
+time, **the encoder change was reverted in full.** `git diff --stat --
+src/` is empty at the end of this cycle; only the new research tool is
+new.
+
+### Validation (of the reverted, baseline state)
+
+- `git checkout -- src/peoplecode/encoder.ts` restored the file exactly
+  to `42544b9`; confirmed via `git status`.
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 551 passed, 1 intentional skip (552 total; unchanged from
+  Cycle 41).
+- Spot-checked 28820/29389/29528/29797 all back to their exact
+  pre-cycle SHAs/status.
+- Protected/full corpus: unchanged at 430/430 and 23,217/30,209 EXACT
+  (no source edited in the final state).
+- `git diff --check`: clean.
+
+### Ending 41-root accounting
+
+| ending outcome | roots | movement |
+|---|---:|---:|
+| reference identity | 41 | unchanged |
+| names metadata | 0 | 0 |
+| marker | 0 | 0 |
+| wrapper/body | 0 | 0 |
+| decoder-only | 0 | 0 |
+| fully EXACT | 0 | 0 |
+| **total** | **41** | |
+
+Updated 99-root Application Class accounting (unchanged from Cycle 41):
+41 reference identity, 3 names metadata, 18 decoder-only, 9 marker
+residual, 2 wrapper/body, 25 parked storage-symbol enumeration
+(untouched), 1 fully-EXACT placeholder already reconciled in Cycle 32 =
+99. `28959` and `29522` remain uninvestigated this cycle (time was
+spent on `29389`'s own family, which turned out to require more
+careful, narrower work than one cycle allowed).
+
+### Explicitly not done (per instruction)
+
+- Did not ship the RECORD/SCROLL method-wide lifetime change --
+  reverted after finding a real regression, per the strict quality bar.
+- Did not chase the `%Super._utils` method-bearing reference newly
+  exposed at 29389's own ordinal 18 -- a distinct, uncharacterized
+  question, not a re-opening of the parked `%This` boundary (different
+  receiver, `%Super` not `%This`).
+- Did not investigate `28959` or `29522` this cycle.
+- Did not reopen the parked self-method firing investigation.
+- Did not touch `28820` (decoder-only), the 25 parked names-metadata
+  roots, or marker/wrapper populations.
+- Did not modify `applicationClassReferenceKey`,
+  `ApplicationClassReferenceScope`/`ApplicationClassReferenceSession`,
+  or any of the Cycle 33/34/36/38 proven rules (the `dependencyScope`
+  edit was reverted).
+- Did not query live Oracle or fabricate inherited/environment
+  metadata.
+
+### Next actions
+
+- The concrete next step for RECORD/FIELD reuse: trace the row-shorthand
+  postfix bridge's own "raw read from `recordReferencesByControlGroup`"
+  precisely (its exact call site was not located this cycle) and either
+  (a) route it through the same `id`/`isOpen` override so both sides of
+  the mechanism agree under the Application Class context, or (b) scope
+  the new context flag more narrowly than "unconditionally open" --
+  e.g. only widening `isOpen` (removing the `controlDepth > 0` gate)
+  while leaving `id` keyed by `controlGroup` as before, which would
+  still fix 29389's own flat-top-level shape without touching
+  cross-control-group reuse at all. Re-test against 29528 specifically
+  before considering either variant safe.
+- Once a safe variant exists, extend the same treatment to
+  `fieldDependencyScope` (currently untouched) if the FIELD side of the
+  census still shows a gap after the RECORD fix alone.
+- `28959` and `29522` remain the next small-family candidates once
+  RECORD/FIELD reuse is resolved or explicitly deferred further.
+- Datasource mode: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout; `--live` was not used.
+
+**Cycle 43 was not started.**
+
 ## Compiler Semantics Cycle 41 — establish the Application Class observability boundary and pivot
 
 **Status: no encoder change. Definitively established Criterion A
