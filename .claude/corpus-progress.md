@@ -1,5 +1,233 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 35 — Application Class reference identity, phase 3 (forensic only, zero behavior change)
+
+**Status: no encoder change this cycle. All four investigated
+priorities (28820, 29542, and the two "suppressed fragment-owner
+operand collision" roots) are precisely characterized, and each is
+found to require either a broad change to an existing, load-bearing
+rule, a genuinely new feature with no precedent in the codebase, or
+turns out to BE the already-deprioritized declaration-order family
+under a different label. None meets the implementation bar
+("deterministic, source/local-data derived, contradiction-free,"
+proven by positive AND negative population controls) with the evidence
+gathered this cycle. Do not begin Cycle 36.** Starting commit `4031293`
+(Cycle 34); `11aa213` ("0.2.4 staging") landed on top of it between
+Cycle 34 and Cycle 35, containing only the pre-existing, unrelated
+version bump that Cycle 34's own report flagged as staged-but-untouched
+-- confirmed preserved exactly, not part of this cycle's work. 23,217/
+30,209 EXACT, protected 430/430 throughout (unchanged -- no source was
+edited this cycle).
+
+### Frozen 42-root population (reproduced fresh against `4031293`, not assumed)
+
+```text
+23 declaration-phase PACKAGE discovery/order mismatch
+ 5 import PACKAGE discovery/order mismatch
+ 3 executable/post-class PACKAGE discovery/order mismatch
+ 3 PACKAGE phase/order mismatch
+ 2 row-count/stream-tail mismatch
+ 2 suppressed fragment-owner operand collision
+ 1 cross-fragment PACKAGE duplicate / failed reuse
+ 1 non-PACKAGE allocation-order mismatch
+ 1 missing non-PACKAGE allocation
+ 1 wrong non-PACKAGE identity
+```
+
+Matches the directive's own frozen list exactly (sums to 42). Note:
+29542's own causal-family label had already shifted once more between
+when Cycle 34's write-up was drafted and this fresh reproduction --
+Cycle 34 documented it as "wrong non-PACKAGE identity," but the
+Cycle-35-start reproduction (same `--baseline-run 2245`, current commit
+`4031293`) instead classifies it "PACKAGE phase/order mismatch." Both
+labels describe the SAME underlying symptom (see below); this is the
+analyzer's own downstream-relabeling behavior as the reference stream
+shifts, not a contradiction. Per instruction ("do not assume
+causal-family counts from an older run"), the fresh classification
+above is what this cycle's own 42-root accounting is built from.
+
+### Priority 1 -- definition 28820 (forensic; not implemented)
+
+Instrumented `referenceTrace` with `controlGroup`/`controlDepth`
+resolution against the method body's own line-by-line text. `MasterCRR:ProcessMessage`
+declares `XmlNode` (a builtin object type, not an Application Class
+type) six times: `&tpIdNode` (top level, before `try`),
+`array of XmlNode &masters` (top level), `&rootNode` (inside `try`,
+right after `CreateXmlDoc`), `&lookUpRef`/`&originalRefNode`/
+`&externalRefNode` (all three inside the `For &idx = 1 To
+&masters.Len` loop). Exactly two `PACKAGE|XMLNODE` references are
+generated:
+
+```text
+ALLOC controlGroup=0 controlDepth=0 sourceOffset=628  (&tpIdNode's own declaration)
+ALLOC controlGroup=3 controlDepth=1 sourceOffset=2304 (&lookUpRef's own declaration, inside the For loop)
+```
+
+`&rootNode` (inside `try`) reuses the `controlGroup=0` identity
+(consistent with `try` not itself incrementing `controlGroup` in this
+encoder, an existing, unrelated behavior); `&originalRefNode`/
+`&externalRefNode` (also inside the `For` loop) reuse the
+`controlGroup=3` identity. This is exactly the EXISTING, documented
+`ensureLocalObjectPackageReference` rule working as designed (its own
+comment, `src/peoplecode/encoder.ts` ~line 1630: "Nested-scope
+declarations allocate a fresh dependency," with a `Local Row &row`
+example). **Stored PeopleTools does not have the second (`For`-scoped)
+row at all** -- for this specific type/shape, it reuses ONE identity
+for the entire method regardless of the `For` loop's own control-group
+boundary, contradicting the existing rule as currently scoped.
+
+This existing rule is not incidental: it backs 4,272 exact ordinary
+(non-Application-Class) PeopleCode programs containing PACKAGE rows
+(`ordinaryPeopleCodeNegativeControls.exactWithPackageRows`, established
+in earlier cycles), so it cannot be narrowed or removed without
+population-scale positive/negative controls proving exactly which
+shapes still need it and which don't. The directive's own requested
+control population (XmlNode, XmlDoc, Row, Rowset, Record, SQL, File,
+ApiObject, Grid, ProcessRequest declared 2+ times across nested control
+regions, both inside and outside Application Class method bodies) was
+not built this cycle -- doing so rigorously (and then verifying zero
+regressions against those 4,272 exact ordinary programs specifically)
+is a substantial, dedicated research task in its own right, not a
+narrow fix. **Not implemented.** Documented here as the precise,
+reproducible boundary for whoever picks this up next: is "one identity
+per method regardless of control-group nesting" an Application-Class-
+method-body-specific carve-out (paralleling Cycle 16's own precedent:
+AppClass method bodies already behave differently from ordinary
+top-level programs for blank-line markers), or does it depend on the
+TYPE (plain builtin object type used as a bare local declaration, no
+executable value binding) rather than the compilation-unit kind?
+
+### Priority 2 -- definition 29542 (forensic; not implemented)
+
+Re-traced with the current (Cycle-34-fixed) encoder. The prior
+`TEXTCATALOG` duplicate Cycle 34 itself fixed is gone (now allocated
+once, shared correctly across fragments); the earliest remaining
+divergence moved to ordinal 10: stored expects a method-bearing
+Application Class identity, `PACKAGE|FMLAMEDCERT|GP_ABS_FMLA||INIT`
+(a self-reference to the class's OWN `INIT` method), where generated
+has nothing there at all -- the very next real allocation (`PACKAGE|
+ROWSET`, from a later `Local Rowset &Comprowset;` in `checkEligibility`)
+shifts up to fill the gap. Grepped `src/peoplecode/encoder.ts` for any
+existing `%This` handling: there is none outside Cycle 34's own gate
+comment. `%This.init();` -- the constructor's ENTIRE body is this one
+bare self-method-call statement -- currently allocates NO reference at
+all; `programSectionsExact` is already `false` for this definition
+(the STATEMENT bytes themselves differ, not only the trailing PSPCMNAME
+stream), meaning a correct fix would need to change how the general
+postfix-call/expression encoder emits bytes for a `%This.method()` call
+site, not just add a reference to the trailing table.
+
+This is net-new: no existing code path allocates a method-bearing
+self-reference for any construct today (`addApplicationClassReference`
+supports a `methodName` parameter, but nothing calls it for a `%This.`
+receiver). Implementing it blind risks getting WHEN it fires wrong
+(every `%This.method()` call? only bare call-statements, not
+value-context calls like `%This.PrepareWhere()` used inside a larger
+expression? only once per distinct method name, reused across call
+sites via the existing shared session -- plausible, since
+`applicationClassReferenceKey`'s own `package` branch already keys
+class+method distinctly from class alone, but unverified) with no
+population-scale positive/negative controls gathered this cycle to
+confirm any of those choices. **Not implemented.**
+
+### Priority 3 -- suppressed fragment-owner operand collision (28925, 29109)
+
+Both roots' earliest allocation differences turn out to be
+declaration-order problems, not a distinct fragment-owner-suppression
+mechanism:
+
+- **28925** (7 storage members: `BEN_SUMMARY_FL:...:PlanX`): stored
+  expects an ordinary `BEN_TRAN_WK.PLAN_TYPE` field-owner row at
+  ordinal 12; generated substitutes an unrelated `PACKAGE|VIEWENROLL`
+  row. 7 storage members is well past the `hasModeledDeclarationDependencyOrder`
+  boundary (`missingDeclarationDependencies.length <= 1`) Cycle 32
+  deliberately left frozen.
+- **29109** (95 methods, `CAFNUI_CORE:HANDLER:ComparisonHandler`):
+  stored expects `PACKAGE|MCFOUTBOUNDEMAIL|PT_MCF_MAIL` at ordinal 4
+  (very early); generated substitutes `PACKAGE||CAFNUI_CORE:ENUM`.
+  Cause is `MISSING_ALLOCATION`, consistent with an import/declaration-
+  order problem, not an owner-suppression artifact.
+
+Both are, in substance, members of the already-deprioritized 23-root
+(now effectively 25-root, including these two under a different label)
+declaration-phase/import-order family. Per instruction ("Only touch
+this family if Cycle 35 uncovers a new observable, contradiction-free
+semantic rule"), and since none was found, **not touched.** The
+"suppressed fragment-owner operand collision" label itself appears to
+be a coarse downstream-symptom bucket (population dropped from 5 in
+Cycle 34's own count to 2 here, purely from Cycle 34's OWN reference-
+gate fix reclassifying 3 of the original 5 elsewhere) rather than a
+distinct causal mechanism of its own; no further roots remain in it
+after 28925/29109 are correctly attributed to declaration order.
+
+### Validation
+
+- No source files changed this cycle -- `git status` before/after
+  investigation is identical.
+- `npx tsc -p . --noEmit`: clean (unchanged).
+- `npm test`: 550 passed, 1 intentional skip (551 total; unchanged from
+  Cycle 34).
+- Protected/full corpus: unchanged at 430/430 and 23,217/30,209 EXACT
+  (no source edited, so this is confirmatory, not a new result).
+- Negative control 29797: not re-checked (no code changed that could
+  affect it).
+
+### Ending 42-root accounting
+
+| ending outcome | roots | movement |
+|---|---:|---:|
+| reference identity | 42 | unchanged |
+| names metadata | 0 | 0 |
+| marker | 0 | 0 |
+| wrapper/body | 0 | 0 |
+| decoder-only | 0 | 0 |
+| fully EXACT | 0 | 0 |
+| **total** | **42** | |
+
+Updated 99-root Application Class accounting (unchanged from Cycle 34):
+42 reference identity, 3 names metadata, 17 decoder-only, 9 marker
+residual, 2 wrapper/body, 25 parked storage-symbol enumeration
+(untouched), 1 fully-EXACT placeholder already reconciled in Cycle 32 =
+99.
+
+### Explicitly not done (per instruction)
+
+- Did not implement a control-group-dedup change for built-in
+  object-type declarations (28820) without the population-scale
+  controls the directive itself asked for.
+- Did not implement `%This.method()` self-reference allocation (29542)
+  without population-scale evidence for exactly when it fires.
+- Did not touch the 23-root declaration-phase family, nor 28925/29109
+  once they were found to belong to it.
+- Did not touch the 25 parked Cycle-31 storage-symbol roots, marker/
+  wrapper/decoder populations, or the 3 existing names-metadata roots.
+- Did not modify `hasModeledDeclarationDependencyOrder`,
+  `applicationClassReferenceKey`, `ApplicationClassReferenceScope`/
+  `ApplicationClassReferenceSession`, or the Cycle 33 wildcard-import
+  rule.
+- Did not query live Oracle or fabricate inherited/environment
+  metadata.
+
+### Next actions
+
+- Build the requested built-in-object-type control population (XmlNode,
+  XmlDoc, Row, Rowset, Record, SQL, File, ApiObject, Grid,
+  ProcessRequest; repeated declarations across nested control regions,
+  both ordinary and Application-Class) before attempting 28820 again --
+  this is the concrete prerequisite research task for Priority 1.
+- Determine the exact firing/reuse semantics for `%This.method()`
+  self-references (call-statement vs. value-context; once-per-method-
+  name vs. once-per-call-site) from population evidence before
+  attempting 29542 -- the concrete prerequisite research task for
+  Priority 2.
+- 28925 and 29109 are folded back into the declaration-phase/import-
+  order population for whoever next tackles that family; they are not
+  a separate, smaller opportunity.
+- Datasource mode: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout; `--live` was not used.
+
+**Cycle 36 was not started.**
+
 ## Compiler Semantics Cycle 34 — advance Application Class reference identity, phase 2
 
 **Status: one over-broad conservative gate narrowed with full population
