@@ -1,5 +1,238 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 41 — establish the Application Class observability boundary and pivot
+
+**Status: no encoder change. Definitively established Criterion A
+(two-or-more opposite-outcome definitions with effectively identical
+observable state) for the self-method row firing decision, via the
+strongest possible evidence: two snapshot definitions
+(29300/29330) share byte-for-byte identical PeopleCode source text
+(identical `sourceSha256`) yet produce OPPOSITE firing outcomes. The
+self-method singleton firing decision is now formally parked. Pivoted
+to the remaining small reference-identity families and precisely
+characterized (but did not implement) the `missing non-PACKAGE
+allocation` root (29389).** Starting commit `33147ab` (Cycle 40).
+23,217/30,209 EXACT, protected 430/430 throughout (unchanged -- no
+encoder source was edited this cycle).
+
+### Phase 1 -- fresh reproduction
+
+Reference-root population reproduced fresh against `33147ab`: 41 roots
+(identical causal-family breakdown to Cycles 36-40), decoder-only 18
+(28820 confirmed present, untouched), 29542 confirmed still in
+reference-identity (now classified `PACKAGE phase/order mismatch`, its
+third distinct causal label across cycles as the analyzer's own
+downstream-relabeling reflects the same underlying, still-unfixed root
+cause each time). Small 1-root families: 28959 (`non-PACKAGE
+allocation-order mismatch`), 29389 (`missing non-PACKAGE allocation`),
+29522 (`wrong non-PACKAGE identity`).
+
+### Phase 2/3 -- observable state vector and exact equivalence classes
+
+New tool,
+`tools/corpus/research/application-class-observability-boundary-analysis.ts`:
+builds a 21-field observable state vector per definition (method
+count, storage/property/instance counts, extends/implements presence,
+import and wildcard-import counts, abstract-method count,
+getter/setter count, constructor presence, own-call count, distinct
+target count, selected target's declaration/implementation ordinal,
+visibility, return-type presence, parameter count, selected caller's
+constructor-ness and implementation ordinal,
+`missingDeclarationDependencies` count) and partitions the 552-
+definition firing population into exact-equivalence classes.
+
+```text
+Distinct observable-state vectors: 519 (out of 552 definitions)
+Equivalence classes containing BOTH row-present and row-absent:  3
+```
+
+The three colliding pairs: (29330 present / 29300 absent), (29451
+present / 30058 absent), (29731 present / 29719 absent).
+
+### The decisive result: byte-identical source, opposite outcomes
+
+Direct inspection of the strongest pair, **29300 and 29330**: both are
+`GPFR_XMLRF`/`GPSC_XMLRF`-owned copies of the exact same `class
+buildtree ... end-class;` utility (XML tree-building helper, `import
+XMLGF:*;`), and their `sourceSha256` values are **identical**
+(`fb0f2d8137a1eabf3c86d074a89a02a9f9d001db13d2484779548b0f6325d6c8`) --
+not merely structurally similar, but byte-for-byte the same PeopleCode
+text. Yet 29300 has no self-method row and 29330 does. The only
+observable differences between the two definitions are their owner
+identity (`objectvalue1`: `GPFR_XMLRF` vs. `GPSC_XMLRF` -- different
+enclosing Application Packages, i.e. two independent deployments of a
+copy-pasted utility class) and their `storedProgramSha256` (naturally
+different, since the self-row's own `packageroot` field embeds the
+owning package name). Owner package identity was NOT part of the
+21-field vector (the vector only captures the CLASS's own declared
+structure); including it would trivially "explain" the difference in a
+way that provides no compiler-semantic insight -- there is no
+plausible reason a self-referencing method dependency's presence
+should depend on the string value of the package that happens to
+contain an otherwise-identical class. The far more plausible
+explanation is that these two artifacts were compiled by different
+PeopleTools patch/build levels at different points in this
+multi-package-copy history, and this specific declaration-phase
+metadata detail is one where compiler behavior drifted across
+versions -- exactly the kind of "hidden state, not reconstructible
+from a single source snapshot" boundary Phase 8's Criterion A and D
+anticipate.
+
+### Phase 6 -- overlap with the 25 parked Cycle 31 names roots
+
+```text
+Parked names roots containing own %This.method() calls:  7 / 25
+  row-present:  29085, 29149, 29466, 29497  (4)
+  row-absent:   28731, 29885, 29889          (3)
+```
+
+No definitive correlation pattern emerged from this small overlap
+(diagnostic only; their own encoder behavior was not touched).
+
+### Phase 8 -- formal boundary decision
+
+**Criterion A is met** with the strongest possible form of evidence
+(identical source, opposite outcomes) -- not merely "effectively
+identical" state, but literally byte-identical PeopleCode text.
+Evidence strength: **strong**. Combined with Cycles 38-40's own
+repeated pattern (every hypothesis that looked clean on a small
+matched sample broke down substantially at population scale), this
+cycle formally parks the firing decision:
+
+```text
+Application Class singleton method-bearing self-reference firing decision
+
+row shape:          SOLVED (Cycle 37)
+cardinality:         SOLVED (0 or 1, never 2+; Cycle 37)
+reuse/lifetime:      SOLVED (100% compilation-unit-wide, zero contradictions; Cycle 37)
+target selection:    SOLVED (187/187, zero contradictions; Cycle 38)
+executable usage:    SOLVED (never used by an operand, 305/305; Cycle 39)
+firing trigger:      NOT DETERMINISTICALLY DERIVABLE from currently
+                      available source/local-snapshot inputs (Cycle 41;
+                      demonstrated by identical source producing
+                      opposite outcomes)
+```
+
+Future cycles should not spend further effort on generic `%This.method()`
+firing heuristics unless a genuinely new class of evidence appears
+(e.g. access to a different PeopleTools build/version's own compiled
+output for the same source, which is outside this snapshot's scope).
+
+### Pivot -- small reference-identity families
+
+Recomputed fresh (not assumed from history): 28959, 29389, 29522
+remain the three 1-root families. Investigated 29389
+(`GPS_EDITFUNCTIONS:Reset`, `extends GPS_EDITFUNCTIONS:BaseEditFunction`,
+4 methods, 0 storage members): stored expects `FIELD|GPS_POST_ID` at
+ordinal 9; generated substitutes a second, redundant `RECORD|GPS_DATA_WRK`
+allocation instead. Root cause identified precisely: `runAction`'s body
+contains two SEPARATE statements each doing
+`GetRecord(Record.GPS_DATA_WRK).GetField(Field.X).Value` (first for
+`Field.SETID`, second for `Field.GPS_POST_ID`) -- stored PeopleTools
+reuses the SAME `RECORD|GPS_DATA_WRK` identity (allocated once, by the
+first statement) across BOTH statements and only allocates the new
+FIELD each time; the current encoder instead allocates a fresh
+`RECORD|GPS_DATA_WRK` a second time for the second statement, pushing
+the expected FIELD allocation out of position.
+
+**Not implemented this cycle.** This is a RECORD/FIELD dependency-
+shorthand reuse question touching the same general class of mechanism
+(`ensureLocalObjectPackageReference`/adjacent RECORD-FIELD reuse pools)
+that Cycle 36 found is load-bearing across 4,272 exact ordinary
+programs, and Cycle 40's own caution against implementing anything
+without population-scale positive AND negative controls applies
+equally here -- a single root is not sufficient evidence to safely
+narrow or extend an existing, heavily-calibrated reuse mechanism.
+Documented precisely as the concrete next investigation target rather
+than attempted blind.
+
+### Negative controls
+
+No encoder change was made, so Cycle 33's wildcard-import rule, Cycle
+34's `%This` gate rule, Cycle 36's built-in-object method-wide lifetime
+rule, Cycle 38's target-selection rule, Cycle 39's operand-usage
+finding, and definition 29797 are provably unaffected -- confirmed by
+an unchanged `git status` for every source file throughout the
+investigation.
+
+### Validation
+
+- No encoder files changed this cycle -- only the one new research
+  tool; `git status` confirms this before and after the investigation.
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 551 passed, 1 intentional skip (552 total; unchanged from
+  Cycle 40).
+- Protected/full corpus: unchanged at 430/430 and 23,217/30,209 EXACT
+  (no source edited, so this is confirmatory, not a new result).
+- `git diff --check`: clean.
+
+### Ending 41-root accounting
+
+| ending outcome | roots | movement |
+|---|---:|---:|
+| reference identity | 41 | unchanged |
+| names metadata | 0 | 0 |
+| marker | 0 | 0 |
+| wrapper/body | 0 | 0 |
+| decoder-only | 0 | 0 |
+| fully EXACT | 0 | 0 |
+| parked observability-boundary blocker | 0* | 0 |
+| **total** | **41** | |
+
+\* The formally parked behavior (self-method row firing) is a
+CROSS-CUTTING mechanism affecting many roots' downstream causal
+classification (e.g. 29542's own `PACKAGE phase/order mismatch`
+label), not a distinct root bucket of its own -- no root's ending
+classification changed this cycle, since no encoder behavior changed.
+The parking decision governs how FUTURE cycles should treat this
+mechanism, not a reclassification of existing roots.
+
+Updated 99-root Application Class accounting (unchanged from Cycle 40):
+41 reference identity, 3 names metadata, 18 decoder-only, 9 marker
+residual, 2 wrapper/body, 25 parked storage-symbol enumeration
+(untouched), 1 fully-EXACT placeholder already reconciled in Cycle 32 =
+99.
+
+### Explicitly not done (per instruction)
+
+- Did not implement anything in the self-method firing area -- Cycle
+  41 found decisive evidence AGAINST source-observability, not for a
+  discriminator.
+- Did not implement the 29389 RECORD/FIELD reuse fix -- one root is
+  insufficient evidence for a mechanism this load-bearing; documented
+  precisely for a future cycle with proper population-scale controls.
+- Did not touch 28959 or 29522 beyond identifying them as the
+  remaining small-family candidates.
+- Did not touch 28820 (decoder-only), the 25 parked names-metadata
+  roots (compared diagnostically only, per instruction), or marker/
+  wrapper populations.
+- Did not enter the 23-root declaration-phase family.
+- Did not modify `applicationClassReferenceKey`,
+  `ApplicationClassReferenceScope`/`ApplicationClassReferenceSession`,
+  or any of the Cycle 33/34/36/38 proven rules.
+- Did not query live Oracle or fabricate inherited/environment
+  metadata.
+
+### Next actions
+
+- 29389's RECORD/FIELD reuse-across-statements question is the
+  concrete next small-family target: build population-scale positive
+  controls (other classes with 2+ `GetRecord(Record.X).GetField(...)`
+  accesses to the SAME record across SEPARATE statements within one
+  method) and negative controls (the existing exact-ordinary-program
+  population this mechanism already serves) before attempting any
+  change.
+- 28959 and 29522 remain uninvestigated; natural candidates for the
+  same future cycle.
+- The self-method firing decision is formally parked; do not reopen
+  without genuinely new evidence (e.g. a different PeopleTools build's
+  own compiled output for the same source, which is outside this
+  snapshot's scope).
+- Datasource mode: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout; `--live` was not used.
+
+**Cycle 42 was not started.**
+
 ## Compiler Semantics Cycle 40 — Application Class declaration-phase dependency prepass (forensic only, zero behavior change)
 
 **Status: no encoder change. Reorganized the investigation around
