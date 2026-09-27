@@ -9724,6 +9724,30 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     if (source[pos] === ';') {
       pos++;
       chunks.push(fixed(';'));
+      /*
+       * Cycle 49: a bare top-level `;` (an empty statement -- e.g. an
+       * Application Class method-implementation's own structured
+       * signature-comment echo, `/+ ... +/;`, which lives inside the body
+       * text passed to the shared fragment encoder) is a genuine
+       * completed top-level item, exactly like every other branch below
+       * that reaches the shared tail at this loop's end (which sets this
+       * same flag). This branch instead `continue`s immediately,
+       * bypassing that tail entirely -- so a blank-line gap AFTER a bare
+       * `;` and before the NEXT statement was never counted at all,
+       * regardless of whether a blank line was actually present (verified
+       * directly: with and without a blank line produced byte-identical
+       * output before this fix). Reproduced in isolation with `%Super =
+       * create X();`, an ordinary `&var = ...;`, `%This.Method();`, and
+       * `&Obj.Method();` all immediately following a leading bare `;` --
+       * every one of them was missing the marker identically, proving the
+       * gap is about the PRECEDING bare semicolon, not about `%Super` (or
+       * any other receiver) at all. Corpus population: 9 Application
+       * Class constructors whose first statement is `%Super = create
+       * ...;`, all sharing this exact scenario (their own structured
+       * signature-comment echo, a blank line, then the constructor's own
+       * first real statement).
+       */
+      haveCompletedTopLevelStatement = true;
       continue;
     }
 
@@ -10154,6 +10178,45 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         pendingReferenceLocalMarkers = context?.suppressDeclarationSectionMarkers === true
           ? sourceBlankLines
           : Math.max(1, sourceBlankLines);
+      } else if (
+        !sawLeadingLocalDeclaration &&
+        haveCompletedTopLevelStatement &&
+        hasBlankLine
+      ) {
+        /*
+         * Cycle 49: the FIRST non-Local statement reached while
+         * `leadingLocalRun` is still true (this block) normally has its own
+         * leading blank-line gap handled one of two ways: the deferred
+         * `pendingReferenceLocalBoundary` mechanism above (when a real
+         * `Local` declaration run preceded it, `sawLeadingLocalDeclaration`
+         * true), or -- for an Application Class method body specifically --
+         * `encodeMethodBody`'s own wrapper-level leading-whitespace count
+         * (when the fragment's raw text starts with pure whitespace, so the
+         * gap never reaches this inner loop at all). Neither covers the
+         * case proven here: the fragment's leading content is NON-
+         * whitespace but still not a `Local` declaration -- concretely, an
+         * Application Class method implementation's own structured
+         * signature-comment echo (`/+ &param as Type +/;`, whose trailing
+         * `;` is source-owned body text, not stripped by the wrapper's
+         * whitespace-only trim) followed by a blank line and then the
+         * method's own first real statement. Confirmed in isolation
+         * (`%Super = create X();`, an ordinary `&var = ...;`, `%This.
+         * Method();`, and `&Obj.Method();` all immediately reproduce
+         * identically after a leading bare `;`, proving this gap is about
+         * the PRECEDING bare-semicolon/no-Local-run state, not about any
+         * particular receiver or statement shape) -- see the bare `;`
+         * branch's own comment for why `haveCompletedTopLevelStatement` is
+         * newly set there. Population: 9 Application Class constructors
+         * whose first statement is `%Super = create ...;`, sharing exactly
+         * this scenario.
+         */
+        const markerCount = Math.max(
+          1,
+          (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
+        );
+        for (let marker = 0; marker < markerCount; marker++) {
+          chunks.push(Buffer.from([0x4f]));
+        }
       }
 
       leadingLocalRun = false;

@@ -2441,6 +2441,109 @@ test('ordinary PeopleCode CreateRecord reuse remains occurrence-based, not metho
   assert.equal(recordReferences.length, 2);
 });
 
+test('a blank line after a leading bare semicolon before the first real statement stores its marker', () => {
+  // Cycle 49 (9 Application Class constructors, e.g. definition 29110):
+  // an Application Class method implementation's own structured
+  // signature-comment echo (`/+ &param as Type +/;`) is source-owned body
+  // TEXT, not stripped by the wrapper's whitespace-only leading trim --
+  // its trailing `;` reaches the shared fragment encoder as a genuine
+  // bare top-level empty statement. A blank line between that bare `;`
+  // and the method's own first real statement was silently dropped
+  // regardless of the statement's own shape: neither the general
+  // blank-line path (blocked by `leadingLocalRun` still being true) nor
+  // the deferred declaration-boundary path (blocked by
+  // `sawLeadingLocalDeclaration` being false, since no `Local` ever
+  // appeared) covered "first non-Local statement after a leading run
+  // with no Local declarations at all." Reproduced here directly with
+  // the real corpus shape (a constructor whose first statement is the
+  // explicit superclass-constructor-invocation form).
+  const encoded = encodeProgramArtifacts(`class Entity
+   method Entity();
+end-class;
+
+method Entity
+   /+ &rec as Record, +/
+   /+ &handler as PKG:Handler +/;
+
+   %Super = create PKG:BaseObject();
+
+   &ObjectRec = &rec;
+end-method;
+`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'Entity',
+      packagePath: ['PKG', 'Entity']
+    }
+  });
+
+  const hex = encoded.program.toString('hex');
+  const implOpen = hex.indexOf('6341');
+  // Bare `;` (0x15) immediately followed by exactly one marker (0x4f)
+  // before the next token -- not zero, and not merged/duplicated.
+  assert.match(hex.slice(implOpen), /^6341.*?15\s*4f(?!4f)/);
+  assert.ok(!hex.slice(implOpen).match(/^6341.*?154f4f/), 'must not emit two markers');
+});
+
+test('no marker is invented when there is no blank line after a leading bare semicolon', () => {
+  // Negative control for the fix above: the SAME leading bare `;` scenario
+  // WITHOUT an actual blank line before the first statement must NOT gain
+  // a marker -- proves the fix is blank-line-driven, not an unconditional
+  // insertion.
+  const encoded = encodeProgramArtifacts(`class Entity
+   method Entity();
+end-class;
+
+method Entity
+   /+ &rec as Record, +/
+   /+ &handler as PKG:Handler +/;
+   %Super = create PKG:BaseObject();
+end-method;
+`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'Entity',
+      packagePath: ['PKG', 'Entity']
+    }
+  });
+
+  const hex = encoded.program.toString('hex');
+  const implOpen = hex.indexOf('6341');
+  assert.match(hex.slice(implOpen), /^6341.*?15(?!4f)12/);
+});
+
+test('the leading-bare-semicolon marker fix applies uniformly regardless of the following statement shape', () => {
+  // Cycle 49: proves the gap was about the PRECEDING bare-semicolon/
+  // no-Local-run state, not about %Super (or any particular receiver)
+  // specifically -- %Super, an ordinary &variable assignment, %This, and
+  // ordinary object dispatch all reproduced the SAME missing marker
+  // before this fix, and all four must now uniformly gain it.
+  function firstMarkerByte(firstStatement: string): string {
+    const encoded = encodeProgramArtifacts(`class Entity
+   method Entity();
+end-class;
+
+method Entity
+   /+ &rec as Record, +/
+   /+ &handler as PKG:Handler +/;
+
+   ${firstStatement}
+end-method;
+`, {
+      owner: { recordName: 'PKG', fieldName: 'Entity', packagePath: ['PKG', 'Entity'] }
+    });
+    const hex = encoded.program.toString('hex');
+    const implOpen = hex.indexOf('6341');
+    const m = /^6341.*?15(4f)?/.exec(hex.slice(implOpen));
+    return m?.[1] ?? '';
+  }
+
+  assert.equal(firstMarkerByte('%Super = create PKG:BaseObject();'), '4f');
+  assert.equal(firstMarkerByte('&ObjectRec = create PKG:BaseObject();'), '4f');
+  assert.equal(firstMarkerByte('%This.PrepareFields();'), '4f');
+  assert.equal(firstMarkerByte('&SomeObj.PrepareFields();'), '4f');
+});
+
 test('HTML.NAME is recognized outside GetHTMLText calls', () => {
   const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
 Local any &content;
