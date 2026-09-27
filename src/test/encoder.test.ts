@@ -2089,6 +2089,70 @@ end-method;`, {
   ]);
 });
 
+test('Application Class RECORD dependencies get method-wide lifetime across flat top-level statements', () => {
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+end-class;
+
+method Run
+   Local string &a = GetLevel0()(1).GetRecord(Record.TEST_REC).GetField(Field.A).Value;
+   Local string &b = GetLevel0()(1).GetRecord(Record.TEST_REC).GetField(Field.B).Value;
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const recordReferences = encoded.references.filter(r => r.kind === 'record');
+  assert.equal(recordReferences.length, 1);
+  const fieldReferences = encoded.references.filter(r => r.kind === 'field');
+  assert.deepStrictEqual(fieldReferences.map(r => (r as { fieldName: string }).fieldName), ['A', 'B']);
+});
+
+test('Application Class row-shorthand RECORD access reuses an earlier same-scope RECORD identity', () => {
+  // Regression control for the Cycle 42 fix attempt that broke this exact
+  // shape: a row-shorthand `.RECORDNAME` postfix access (resolved through
+  // `resolvePostfixMemberReuse`'s own raw read of the SAME underlying pool
+  // `dependencyScope.recordRecord` writes to) must keep finding what an
+  // earlier `CreateRecord(Record.X)` already allocated once Application
+  // Class RECORD dependencies get method-wide lifetime -- not silently
+  // miss it and allocate a duplicate.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+end-class;
+
+method Run
+   Local Record &rec = CreateRecord(Record.TEST_REC);
+   Local Rowset &rs = CreateRowset(Record.TEST_REC);
+   &rs.GetRow(1).TEST_REC.CopyFieldsTo(&rec);
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const recordReferences = encoded.references.filter(r => r.kind === 'record');
+  assert.equal(recordReferences.length, 1);
+});
+
+test('ordinary PeopleCode RECORD reuse remains control-group-scoped, not method-wide', () => {
+  // Negative control: outside an Application Class, two flat top-level
+  // GetRecord(Record.X) calls must NOT be unified -- this is the existing,
+  // load-bearing behavior Application Class method-wide lifetime must not
+  // regress.
+  const encoded = encodeProgramArtifacts(
+    `Local string &a = GetLevel0()(1).GetRecord(Record.TEST_REC).GetField(Field.A).Value;
+Local string &b = GetLevel0()(1).GetRecord(Record.TEST_REC).GetField(Field.B).Value;`
+  );
+
+  const recordReferences = encoded.references.filter(r => r.kind === 'record');
+  assert.equal(recordReferences.length, 2);
+});
+
 test('HTML.NAME is recognized outside GetHTMLText calls', () => {
   const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
 Local any &content;
