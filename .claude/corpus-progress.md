@@ -1,5 +1,283 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 47 — Application Class `CreateRecord(Record.X)` method-wide reuse (implemented)
+
+**Status: IMPLEMENTED, validated, zero regressions.** Cycle 46 exposed
+`29522`'s next divergence: `&ConfRec_bef = CreateRecord(Record.GP_ABS_SS);
+... &ConfRec = CreateRecord(Record.GP_ABS_SS);` -- two separate
+`CreateRecord` calls to the same record name, different target variables,
+stored reuses one RECORD row, the encoder allocated two. Cycle 47 traced
+this to a genuine, population-validated (83/84, 99%) gap -- `CreateRecord`
+writes into the same method-wide RECORD map every other Application Class
+RECORD-allocating construct uses, but never reads from it -- and fixed it,
+narrowly gated to Application Class fragments so ordinary PeopleCode's
+separately-calibrated, genuinely mixed CreateRecord behavior (58/221
+reuse, 146/221 fresh) is completely unaffected. Starting commit `983e4bf`
+(Cycle 46). 23,241/30,209 EXACT, protected 430/430.
+
+### The metric caveat (carried forward from Cycle 46, load-bearing this cycle)
+
+No Application Class definition can register as literal top-level EXACT
+(a separate, pre-existing, universal roundtrip-decode limitation) --
+**this cycle's fix, by construction, cannot move the corpus-wide EXACT
+counter at all**, and indeed did not (23,241 -> 23,241, unchanged, exactly
+as predicted before implementation). Progress for this cycle is measured
+via `source→bin` correctness (`sourceEncodeExact`/body-relative
+`firstDiffOffset`, skipping the fixed 37-byte header) and the reference
+stream directly, per Cycle 46's own established convention.
+
+### Phase 1 -- fresh reproduction
+
+- HEAD `983e4bf`, worktree clean, confirmed before any change.
+- Protected: 430/430 EXACT.
+- Full corpus: 23,241/30,209 EXACT (matches Cycle 46's own ending figure).
+- `29522` reconfirmed via `--verbose --trace-refs`: body diff at offset
+  8963, stored `21 18 00` (namenum 24, a 0x21 reference operand) vs
+  generated `21 1a 00` (namenum 26) -- an off-by-two drift, traced via the
+  reference-allocation trace to a SECOND, unwanted `record GP_ABS_SS`
+  allocation (trace `# 27 idx=26`) where stored expects reuse of the
+  EARLIER `record GP_ABS_SS` allocation (`# 25 idx=24`).
+- `29389`/`29528`/`29797` reconfirmed stable at their exact Cycle 46 ending
+  state.
+
+### Phase 2/3 -- reconstructing 29522's construct and the reused identity's provenance
+
+```peoplecode
+/* get a Config. record to read ALLOW_EODI_ENTRY */
+&ConfRec_bef = CreateRecord(Record.GP_ABS_SS);
+If All(&Befrec.PIN_TAKE_NUM.Value) And ... Then
+   &ConfRec_bef = &CntryTak.GetAbsConfigCOTK(...);
+Else
+   &ConfRec_bef.ALLOW_EODI_ENTRY.Value = "*";
+End-If;
+
+&ConfRec = CreateRecord(Record.GP_ABS_SS);
+&ConfRec = &CntryTak.GetAbsConfigCOTK(...);
+```
+
+Both `&ConfRec_bef` and `&ConfRec` are declared earlier as `Local Record
+&Abs_DAT_rec, &GPAbsEODIRec, &ConfRec, &ConfRec_bef, &EEdatRec;` -- i.e.
+BOTH are already `recordVariables`-registered before either `CreateRecord`
+call. The reused identity's provenance is **the first `CreateRecord`
+call itself** (not a `GetRecord`/`Row.GetRecord`/parameter/array origin --
+this specific case is CreateRecord reusing an EARLIER CreateRecord, the
+simplest possible provenance pairing). The two calls are separated by an
+`If/Else` block, i.e. different control groups.
+
+### Phase 9/10 -- tracing the exact code path (the central finding)
+
+`dependencyScope.recordRecord(recordName, reference)` -- the WRITE side of
+Cycle 43's method-wide RECORD map -- is called **unconditionally** for
+every `kind: 'record'` reference allocation (`recordReference()`, guarded
+only by the unrelated `!reuseRecordReferenceWithinCallArguments &&
+!suppressRecordReferenceControlGroupWrite`, both inactive for
+`CreateRecord`). This means `CreateRecord`'s own allocations were ALREADY
+silently populating the shared method-wide map, available for `GetRecord`/
+etc. to find later. But the READ side
+(`if (reuseRecordReferenceWithinControlGroup) { dependencyScope.lookupRecord(...) }`)
+is gated by `reuseRecordReferenceWithinControlGroup`, set by
+`GetRecord`/`DeleteRow`/`ActiveRowCount`/... (an explicit allow-list) but
+NOT by `CreateRecord` (`CreateRecord` sets only the separate
+`reuseRowShorthandRecord` flag, gating a DIFFERENT, older, occurrence/
+target-variable/count-based reuse mechanism -- see Phase 13/Model
+discussion below). This is a write-without-corresponding-read gap, not a
+key mismatch (Cycle 43's own bug class) -- `CreateRecord` was writing into
+a shared table it never consulted.
+
+### Phase 4/19 -- population census (the justification)
+
+Within one method/event body, repeated `CreateRecord(Record.X)` calls to
+the SAME record name (2+ occurrences), cross-referenced against the count
+of distinct `RECORD|X` rows in stored PSPCMNAME for the whole definition
+(a proxy: `storedRows === 1` is strong reuse evidence; `storedRows >=
+occurrences` is fresh-allocation evidence):
+
+| population | candidates | reuse evidence | fresh evidence | ambiguous |
+|---|---:|---:|---:|---:|
+| Application Class | 84 | 83 (99%) | 1 | 0 |
+| Ordinary PeopleCode | 221 | 58 (26%) | 146 (66%) | 17 (8%) |
+
+The stark contrast (99% vs 26%) is decisive: Application Class method
+bodies reuse `CreateRecord(Record.X)` by record name, method-wide,
+essentially always; ordinary PeopleCode's existing, separately-calibrated
+occurrence/target-variable/3rd-occurrence-count rules (already
+implemented, untouched this cycle) correctly produce a genuinely mixed
+result there, which is why the fix must NOT apply globally.
+
+### The one apparent Application Class exception, investigated and found inconclusive
+
+Definition `30170`, method `saveHier`: `&PTAI_HIER = CreateRecord(Record.
+PTAI_HIER); ... &PTAI_HIER_OLD = CreateRecord(Record.PTAI_HIER);` --
+structurally identical to `29522`'s own pattern -- shows `storedRows = 5`
+for `PTAI_HIER` (more than the 2 CreateRecord occurrences), initially
+looking like a contradiction. Investigated directly: `30170` currently
+fails to encode at all at an EARLIER, wholly unrelated source offset
+(`ERROR: Cannot encode PeopleCode at source offset 2191: unsupported
+PeopleCode statement`, classification `UNSUPPORTED_SYNTAX`) -- the
+encoder never reaches `saveHier`'s own CreateRecord pair, so there is
+currently no way to observe what stored ACTUALLY does for just this pair
+via encoder comparison; the 5 total rows most likely reflect `PTAI_HIER`
+also being referenced via OTHER, different-provenance constructs
+elsewhere in the (much longer) definition. This is reported honestly as
+**inconclusive, not a proven contradiction** -- not silently discarded.
+
+### Implementation
+
+Added a narrow OR-condition to the existing `reuseRecordReferenceWithinControlGroup`-gated
+read check in `recordReference()`:
+
+```ts
+if (
+  reuseRecordReferenceWithinControlGroup ||
+  (reuseRowShorthandRecord && context?.recordDependenciesHaveMethodWideLifetime)
+) {
+  const existing = dependencyScope.lookupRecord(recordName);
+  ...
+}
+```
+
+`reuseRowShorthandRecord` is true only for `CreateRecord` (see its own
+assignment site); `recordDependenciesHaveMethodWideLifetime` is Cycle 43's
+own flag, set only for Application Class method-body fragments. This
+routes `CreateRecord`'s reuse check through the SAME canonical
+`recordScopeId()`-backed facade every other Application Class RECORD path
+already uses (Preferred implementation shape's own instruction: "route...
+through the same canonical method-scope RECORD key... do not duplicate
+inline scope/key logic"), rather than inventing a new mechanism. When this
+new check finds nothing (ordinary PeopleCode; or an Application Class
+`CreateRecord` whose record name was never previously referenced), the
+existing `reuseRowShorthandRecord`-gated logic below (target-variable-
+specific reuse, then the 3rd-occurrence-count fallback) runs completely
+unchanged, exactly as before this cycle.
+
+### Candidate models (Phase 23)
+
+- **Model A** ("CreateRecord participates fully in method-wide RECORD
+  reuse"): matches all 83 positive-control cases and 29522 directly;
+  no ordinary-PeopleCode contradiction because the fix is gated to
+  Application Class fragments only. **Adopted.**
+- **Model B** ("reuses only specific prior-provenance classes"): not
+  needed -- 29522's own reused identity is another `CreateRecord`
+  allocation, and the population evidence does not distinguish by origin.
+- **Model C** ("separate runtime-create metadata, aliased conditionally"):
+  rejected -- no evidence of a distinct metadata pool; the SAME
+  `dependencyScope`/`recordReferencesByControlGroup` map already used by
+  every other Application Class RECORD path is sufficient.
+- **Model D** ("already correct, just a key inconsistency"): this is
+  closest to what was actually found, except it is not a KEY mismatch
+  (both sides already agree on `recordScopeId()`) -- it is a **read-gate**
+  omission. `CreateRecord` was never wired to READ from the map it already
+  unconditionally WRITES into.
+
+### Validation
+
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 566 total, 565 pass, 1 skip, 0 fail (3 new Cycle 47 tests:
+  Application Class CreateRecord reuse across control groups, CreateRecord
+  reusing a GetRecord-established identity, and the ordinary-PeopleCode
+  negative control confirming occurrence-based behavior is preserved).
+- Negative controls (unchanged from Cycle 46's own ending state,
+  confirmed via direct re-run): `29389` (`MISMATCH @ 7700`, size 18509
+  unchanged), `29528` (`source→bin EXACT`, same pre-existing roundtrip
+  quirk), `29797` (`MISMATCH @ 5`, size 123051 unchanged).
+- Full corpus (`npm run corpus:verify`): **23,241 -> 23,241 EXACT (0
+  change, exactly as predicted by the metric caveat)**, 0 regressed per
+  classification-bucket delta -- UNKNOWN_MISMATCH/DECODE_SOURCE_MISMATCH/
+  UNSUPPORTED_SYNTAX/ENCODE_ERROR all unchanged (4517/1994/335/122).
+  REGRESSION GATE: PASS. **Zero movement outside Application Classes**,
+  confirmed both by the unchanged classification buckets and by the
+  fix's own gating (`context?.recordDependenciesHaveMethodWideLifetime`
+  is never set for ordinary PeopleCode).
+- Protected: reconfirmed 430/430 EXACT after the full corpus run.
+- `git diff --check`: clean.
+
+### Blast-radius reconciliation (source→bin body-level, since top-level EXACT cannot reflect it)
+
+Predicted population: Application Class definitions with 2+
+`CreateRecord(Record.X)` calls to the same record name within one method
+(84 candidates by record-name occurrence; 55 distinct definitions).
+Measured `source→bin` body-relative first-difference offset (skipping the
+fixed 37-byte header, matching the harness's own `--verbose` "body diff"
+computation) for all 55, pre- and post-fix:
+
+- **2 improved**: `29522` (body first-diff 8926 -> 38128, i.e. from ~23%
+  through the program to ~98% through -- the reference stream is now
+  100% correct, matching every one of stored's 30 PSPCMNAME rows exactly)
+  and `29450` (2468 -> 2803, a smaller but genuine advance).
+- **0 regressed.**
+- **53 unchanged** -- these fail at an EARLIER, unrelated divergence
+  before their own repeated-`CreateRecord` construct is ever reached by
+  the encoder (Phase 20's own caution: do not attribute downstream drift
+  to CreateRecord when an earlier reference already diverged -- confirmed
+  here directly, not assumed).
+
+This is a clean, fully-explained result: every candidate either advanced
+or was already blocked earlier for an unrelated reason; none regressed.
+
+### 29522's next blocker (characterized, not implemented)
+
+With the reference stream now fully correct, `29522`'s remaining
+divergence (body offset ~38128 of ~38810) is in a completely different
+area: a readable dump around the divergence shows stored continuing with
+what appear to be **property/instance-variable names** (`Start_DTTM`,
+`Start_Time`, `End_DTTM`, `TransactionID`, `End_Ti...`) while generated
+continues with **method names** (`SchedulingQueue` again, `CreateAppointment`,
+`Get_Start_End_DDT...`) at the identical byte position -- both begin from
+the same `GP_ABS_EODI_PACKAGE:Appointments:SchedulingQueue` self-path
+text, then diverge in ordering/content immediately after. This is the
+class's own name-table/member-directory ordering region -- precisely the
+territory Cycle 30 already named "the compiler's physical storage-member
+enumeration remains opaque for multi-member sets... kept frozen until that
+enumeration is recovered," and which this cycle's own directive explicitly
+lists as out-of-scope ("declaration-order guessing"). **Not investigated
+further or implemented this cycle** -- flagged as the next lead, to be
+picked up only if a FUTURE cycle is specifically scoped to storage-member/
+name-table ordering.
+
+### Final status of tracked definitions
+
+| definition | status |
+|---|---|
+| 29522 | non-EXACT (masked by the roundtrip-decoder limitation regardless); reference stream now 100% correct (all 30 rows match stored exactly); body-level `source→bin` divergence advanced from offset 8926 to 38128 of ~38810; next blocker is class name-table/member-directory ordering (out of scope, Cycle 30's own parked territory) |
+| 28959 | unchanged, still parked under the `%This.method()` self-row observability boundary; untouched |
+| 29389 | unchanged, `MISMATCH @ 7700`, stable |
+| 29528 | unchanged, `source→bin EXACT`; pre-existing unrelated roundtrip-only classification quirk |
+| 29797 | unchanged, `MISMATCH @ 5`, stable |
+| 28820 | untouched (decoder-only, parked; not read or modified this cycle) |
+| 29450 | body-level `source→bin` divergence advanced (2468->2803); still blocked by an unrelated, earlier issue |
+
+### Explicitly not done (per instruction)
+
+- Did not investigate or implement anything for 29522's newly-exposed
+  name-table/member-directory-ordering blocker -- explicitly out of scope
+  ("declaration-order guessing"), and Cycle 30's own established parked
+  territory.
+- Did not touch ordinary PeopleCode's existing CreateRecord
+  occurrence/target-variable/3rd-occurrence-count reuse logic at all --
+  confirmed unchanged via the full-corpus zero-regression result and the
+  fix's own Application-Class-only gate.
+- Did not work on the roundtrip-decoder limitation preventing Application
+  Class top-level EXACT (explicitly out of scope this cycle).
+- Did not reopen `28959`, the parked `%This.method()` firing boundary, the
+  25 names/storage-symbol roots, `28820` (decoder-only), marker/wrapper
+  residuals, or the large declaration-order family.
+- Did not merge `CreateRecord`'s reuse state into a new/separate cache --
+  routed through the EXISTING `dependencyScope`/`recordScopeId()` facade
+  only, per the preferred implementation shape.
+- Did not query live Oracle or fabricate inherited/environment metadata.
+
+### Next actions
+
+- 29522's concrete next lead: the class name-table/member-directory
+  ordering question (property/instance names vs. method names, and their
+  relative sequencing) -- requires its own dedicated, carefully-scoped
+  cycle per Cycle 30's own caution against guessing this without a
+  recovered enumeration rule.
+- Datasource mode: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout; `--live` was not used.
+
+**Cycle 48 was not started.**
+
 ## Compiler Semantics Cycle 46 — thread Application Class method parameters into method-body encoding (implemented)
 
 **Status: IMPLEMENTED, validated, zero regressions.** Cycle 45 exposed that
