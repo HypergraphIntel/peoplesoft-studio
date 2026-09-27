@@ -305,63 +305,6 @@ function maskNonCode(source: string): string {
   return chars.join('');
 }
 
-function maskApplicationClassTerminatorNonCode(source: string): string {
-  const chars = source.split('');
-  let index = 0;
-  while (index < chars.length) {
-    const pair = `${source[index] ?? ''}${source[index + 1] ?? ''}`;
-    if (pair === '/*' || pair === '<*' || pair === '/+') {
-      const close = pair === '/*' ? '*/' : pair === '<*' ? '*>' : '+/';
-      chars[index++] = ' ';
-      chars[index++] = ' ';
-      while (
-        index < chars.length &&
-        `${source[index] ?? ''}${source[index + 1] ?? ''}` !== close
-      ) {
-        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
-        index++;
-      }
-      if (index < chars.length) chars[index++] = ' ';
-      if (index < chars.length) chars[index++] = ' ';
-      continue;
-    }
-    if (pair === '//') {
-      while (index < chars.length && chars[index] !== '\n') chars[index++] = ' ';
-      continue;
-    }
-    if (
-      source.slice(index, index + 3).toLowerCase() === 'rem' &&
-      (index === 0 || !/[A-Za-z0-9_%&]/.test(source[index - 1])) &&
-      !/[A-Za-z0-9_%&]/.test(source[index + 3] ?? '')
-    ) {
-      while (index < chars.length && chars[index] !== ';') {
-        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
-        index++;
-      }
-      if (index < chars.length) chars[index++] = ' ';
-      continue;
-    }
-    if (chars[index] === '"') {
-      chars[index++] = ' ';
-      while (index < chars.length) {
-        if (chars[index] === '"') {
-          chars[index++] = ' ';
-          if (chars[index] === '"') {
-            chars[index++] = ' ';
-            continue;
-          }
-          break;
-        }
-        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
-        index++;
-      }
-      continue;
-    }
-    index++;
-  }
-  return chars.join('');
-}
-
 function splitParameters(text: string): ApplicationClassParameter[] {
   const inner = text.trim();
   if (inner === '') return [];
@@ -675,7 +618,7 @@ export function parseApplicationClassSource(
     unitKind, className: unitStartMatch[2], extendsType,
     implementsType: implementsTypes[0], members, statements,
     implementations: implementations.map(({ localIndex: _localIndex, fullEnd: _fullEnd, ...implementation }) => implementation),
-    unitStart, unitHeaderEnd, unitCloseStart: unitRegionEnd, unitEnd,
+    unitStart, unitHeaderTerminatorCount, unitHeaderEnd, unitCloseStart: unitRegionEnd, unitEnd,
     declarationTerminatorOffsets: applicationClassTerminatorOffsets(source, unitStart, unitRegionEnd)
   };
 }

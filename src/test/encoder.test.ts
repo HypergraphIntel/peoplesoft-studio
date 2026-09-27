@@ -2033,6 +2033,38 @@ end-method;`, {
   ]);
 });
 
+test('Application Class only the first wildcard import allocates PACKAGE metadata', () => {
+  const encoded = encodeProgramArtifacts(`import PKGONE:*;
+import PKGTWO:*;
+
+class ReferenceTest
+   method Run();
+end-class;
+
+method Run
+   Local any &x;
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  assert.deepStrictEqual(encoded.references, [
+    { index: 0, sequence: 1, kind: 'owner', recordName: undefined, fieldName: undefined },
+    {
+      index: 1,
+      sequence: 2,
+      kind: 'package',
+      packageName: '',
+      objectName: 'PKGONE',
+      packagePath: ['PKGONE'],
+      className: ''
+    }
+  ]);
+});
+
 test('HTML.NAME is recognized outside GetHTMLText calls', () => {
   const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
 Local any &content;

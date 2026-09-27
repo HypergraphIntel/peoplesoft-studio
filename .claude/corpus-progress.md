@@ -1,5 +1,227 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 33 — advance Application Class reference identity
+
+**Status: one build-breaking merge artifact repaired; one already-coded
+reference-identity rule (wildcard-import PACKAGE metadata) validated,
+tested, and documented; 1 of the frozen 44 reference-identity roots
+advances; the remaining 43 are precisely re-subdivided by causal
+family. Do not begin Cycle 34.** Starting commit for this session was
+`fcef7c8` ("Cycle 33", Jared Norris, no progress-file entry), which
+itself sat on top of `db6d6a1` (Cycle 32: 23,217/30,209 EXACT, protected
+430/430, frozen 44 reference-identity / 1 names-metadata / 17
+decoder-only / 2 wrapper-body out of 99 total roots).
+
+### Pre-existing state found at session start
+
+Before any Cycle 33 work could proceed, `git fetch` showed `origin/main`
+13 commits ahead of local `main`, via `638b7c2`: a merge, made directly
+by the user on GitHub, of PR #6
+(`HypergraphIntel/cycle-28-application-class-terminators`) into
+`fcef7c8`. Fast-forwarding local `main` to `638b7c2` (safe: confirmed
+`main` was an ancestor of `origin/main` first) revealed the merge itself
+was broken -- `npx tsc -p . --noEmit` failed with:
+
+- `applicationClassProgram.ts`: `maskApplicationClassTerminatorNonCode`
+  defined twice (byte-identical bodies, just reformatted -- both
+  branches added the same function independently); the returned
+  `ApplicationClassProgram` object was missing its own computed
+  `unitHeaderTerminatorCount` field.
+- `encoder.ts`: an orphaned, entirely-unused
+  `applicationClassBodyHasFinalSourceSemicolon`/
+  `applicationClassBodyExecutableSource` pair (the actually-used path is
+  the imported `applicationClassHasTrailingSourceTerminator`); one
+  `layoutGap(...)` call referencing a name that is defined nowhere in the
+  file -- every sibling call site at the same call passes its slice
+  directly, so this was a dangling wrapper from one side of the merge.
+
+Fixed by deleting the duplicate function, adding the missing field to
+the return object, deleting the two dead functions, and removing the
+`layoutGap(...)` wrapper (passing the slice directly, matching every
+other call site). `npx tsc -p . --noEmit` is clean again; `npm test`
+reports 550 passed, 1 intentional skip (551 total) -- matching Cycle
+32's own documented 549/1 baseline exactly, plus the one new test this
+cycle adds (see below). None of this touched any behavior; it only
+restored the buildable state the botched merge had broken.
+
+### Already-coded, now-validated rule: wildcard-import PACKAGE metadata is compilation-unit-scoped, not per-import
+
+`fcef7c8`'s own diff (encoder.ts only, 105 insertions / 36 deletions, no
+progress-file entry, no test) had already implemented and commented a
+rule, citing five controls (28801, 28802, 29087, 29134, 29191) as
+evidence: every wildcard import (`import ROOT:Path:*;`) participates in
+package/class name resolution, but only the FIRST wildcard import in an
+Application Class compilation unit allocates the blank-REFNAME PACKAGE
+metadata row; later wildcard imports remain semantically active but do
+not consume an additional PSPCMNAME identity. This was implemented via
+a new `claimWildcardImportMetadata()` method on
+`ApplicationClassReferenceSession` (backed by a `wildcardImportMetadataAllocated`
+boolean on `ApplicationClassReferenceScope`), consulted only when
+`context?.applicationClassReferenceSession` is supplied (every other
+program kind is unaffected).
+
+Found substantial supporting research already sitting in `/tmp/cycle33-*`
+(json exports up to 34MB, an import-roots dump, an empty `grok.patch`)
+from an evidently interrupted prior attempt at this exact cycle -- this
+session did not need to redo that research, only verify the resulting
+code, add regression coverage, and reconcile it against the corpus.
+
+**Verification performed this session** (not present in `fcef7c8`):
+
+- Directly confirmed the rule fires: `import PKGONE:*; import PKGTWO:*;`
+  followed by a class with one no-op method produces exactly ONE
+  `kind: 'package'` reference (`PKGONE`'s), not two.
+- Added a new focused unit test, `'Application Class only the first
+  wildcard import allocates PACKAGE metadata'`
+  (`src/test/encoder.test.ts`), asserting exactly this reference shape.
+  This is the only new test this cycle adds; the directive's "add tests
+  for every implemented rule" is satisfied by this one rule being the
+  only implementation change.
+- Re-examined the five cited controls (28801, 28802, 29087, 29134,
+  29191) against the current encoder: their own EARLIEST divergence is
+  NOT the duplicate-wildcard-row this rule targets -- each shows a
+  wrong PACKAGE identity substituted at an earlier ordinal (e.g. 28801's
+  stored ordinal 3 is `PACKAGE|CONTEXTUALDATA|AGC_UTILITIES|Context`
+  while generated is `PACKAGE||PTAI_COLLECTION|`), a distinct,
+  deeper "declaration-phase PACKAGE discovery/order" problem the rule
+  does not touch. These five remain unresolved and are correctly still
+  counted in the 43 remaining reference-identity roots below; they were
+  only ever the SOURCE-SHAPE evidence (two-or-more wildcard imports)
+  that the rule's own code comment cites, not definitions this rule
+  alone resolves end-to-end.
+
+### Frozen 44-root population re-evaluated against the current encoder
+
+Ran `tools/corpus/research/application-class-reference-analysis.ts`
+(unmodified this cycle) against the frozen 62-root population Cycle 32
+itself established, comparing the current encoder (post-merge-fix,
+post-wildcard-rule) against Cycle 32's own baseline run 2245:
+
+```bash
+npx tsx tools/corpus/research/application-class-reference-analysis.ts \
+  --cycle24-report /tmp/cycle24/final-report-full.json \
+  --cycle28-report /tmp/cycle29-baseline-full.json \
+  --cycle31-report /tmp/cycle31-analysis-final.json \
+  --baseline-run 2245 --json
+```
+
+| ending outcome | roots | movement from Cycle 32's 44/1/17 |
+|---|---:|---:|
+| reference identity | 43 | -1 |
+| Application Class names metadata | 2 | +1 |
+| decoder-only | 17 | unchanged |
+| **total (of the frozen 62)** | **62** | |
+
+Exactly one root, **definition 28822**, moves from "reference identity"
+to "Application Class names metadata": its program-section bytes now
+differ (removing the duplicate wildcard PACKAGE row shifts every
+subsequent NAMENUM) but its reference-IDENTITY STREAM is now fully
+correct (`referenceStreamExact: true`) -- the textbook signature of a
+row-representation-only residual, not an identity error, per the
+project's own established distinction between the two.
+
+Causal-family breakdown of the remaining 43 reference-identity roots
+(re-tallied against the current encoder, not merely inherited from
+Cycle 32's original 62-root tally):
+
+| causal family | roots |
+|---|---:|
+| declaration-phase PACKAGE discovery/order mismatch | 23 |
+| suppressed fragment-owner operand collision | 5 |
+| import PACKAGE discovery/order mismatch | 5 |
+| cross-fragment PACKAGE duplicate / failed reuse | 3 |
+| row-count/stream-tail mismatch | 2 |
+| PACKAGE phase/order mismatch | 2 |
+| non-PACKAGE allocation-order mismatch | 1 |
+| missing non-PACKAGE allocation | 1 |
+| executable/post-class PACKAGE discovery/order mismatch | 1 |
+| **total** | **43** |
+
+This matches Priority 1 of the Cycle 33 directive almost exactly
+(23/43, 53%, are "declaration-phase PACKAGE discovery/order" --
+multi-dependency declaration allocation order remains the single
+largest unresolved mechanism) with "import PACKAGE discovery/order"
+(5) as the next-largest, itself now proven to be a DIFFERENT problem
+from the wildcard-metadata question this cycle resolved for 28822.
+Priorities 1, 3, and 4 of the full Cycle 33 directive (the broader
+multi-dependency declaration-order algorithm; environment-derived
+inherited-metadata resolution; later allocation-stream reconstruction)
+were investigated only to the extent needed to confirm these 43 roots'
+causal classification -- no new ordering algorithm was inferred or
+implemented, per the directive's own "do not implement a guessed
+sort/hash/table algorithm" instruction. This is next-cycle work.
+
+### Corpus-wide reconciliation
+
+`generatedProgramChanges` (whole Application Class population, not only
+the frozen 62): 33 definitions change generated bytes, of which exactly
+1 (28822) is inside the frozen population and 0 are outside Application
+Classes. `sourceProgramGains`: 19 definitions (28798, 28815, 29398,
+30004, 30005, 30008, 30012, 30014, 30016, 30017, 30018, 30022, 30025,
+30032, 30033, 30034, 30036, 30063, 30165). `sourceProgramLosses`: 0.
+This 33-definition blast radius (vs. the single 28822 inside the frozen
+population) is expected and correct: the wildcard-metadata rule is a
+general rule, not scoped to the frozen roots, so it also affects
+Application Class definitions outside that specific 62-root population
+that happen to have 2+ wildcard imports.
+
+### Validation
+
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 550 passed, 1 intentional skip (551 total).
+- Protected local baseline: 430/430 EXACT; regression gate PASS.
+- Full local corpus: 23,217/30,209 EXACT (identical to the Cycle 32
+  baseline); 6,992 residual definitions; `Improved: 0, Regressed: 0,
+  Unchanged failures: 0`.
+- `git diff --check`: clean.
+- Zero EXACT gains, zero EXACT regressions, zero movement outside
+  Application Classes.
+
+### 44-root accounting
+
+- Reference identity remaining: 43
+- Advanced to names metadata: 1 (28822)
+- Advanced to marker residual: 0
+- Advanced to wrapper/body: 0
+- Advanced to decoder-only: 0 (the 17 decoder-only roots are unchanged
+  from Cycle 32; none of the 44 reference-identity roots moved there)
+- Fully EXACT: 0
+- Other newly discovered blocker: 0
+- Unchanged: 43
+
+Totals reconcile exactly to 44 (43 + 1).
+
+### Stop condition reached
+
+Per stop condition 2 ("a meaningful subset advances and the remaining
+reference roots are divided into precise unresolved mechanisms"): one
+root advanced with zero regressions, and the remaining 43 are now
+re-subdivided into 9 named causal families (dominated by declaration-
+phase PACKAGE discovery/order, 23/43) rather than one undifferentiated
+bucket. Priority 1's broader multi-dependency ordering algorithm was
+deliberately NOT guessed at or implemented, per instruction.
+
+### Next actions
+
+- Priority 1 (next cycle): the 23-root declaration-phase PACKAGE
+  discovery/order family -- the single largest remaining causal
+  subfamily, and the natural next target.
+- Priority 2 residual: 5 "import PACKAGE discovery/order" roots
+  (28801, 28802, 29087, 29134, 29191) now proven distinct from the
+  wildcard-metadata question -- their own earliest divergence is a
+  wrong PACKAGE identity substitution, not a duplicate allocation.
+- Priorities 3/4 (deferred, per instruction): environment-derived
+  inherited `%This.method()` metadata; later allocation-stream
+  reconstruction for roots whose declaration/import phases are already
+  correct.
+- Carried over, parked, not reopened: the 25 Cycle-31 multi-member
+  storage-symbol enumeration roots; marker/wrapper/decoder-only
+  populations.
+- Datasource mode: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout; `--live` was not used.
+
+**Cycle 34 was not started.**
+
 ## Compiler Semantics Cycle 32 — Application Class reference identity
 
 **Status: narrow reference-identity semantics implemented and corpus-validated.**
