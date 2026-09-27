@@ -2605,6 +2605,60 @@ Local XmlDoc &XMLdoc;`);
   assert.ok(hex.includes('154f44'), 'must still emit the single correct marker');
 });
 
+test('a blank line after a leading bare semicolon before the first Local declaration stores its marker', () => {
+  // Cycle 51 (definition 29134 and 18 further corpus definitions, 26
+  // total occurrences): the same leading bare-`;` gap Cycle 49 fixed for
+  // the first NON-Local statement in a fragment, extended to cover the
+  // case Cycle 49's own fix did not -- the first real statement in the
+  // fragment IS ITSELF the first `Local` declaration of the run.
+  // `sawLeadingLocalDeclaration` is still false at that exact point (this
+  // IS the first Local reached), so neither the "blank lines inside an
+  // ALREADY-open leading Local run" mechanism (requires it true) nor
+  // Cycle 49's own `!isLocalDeclaration`-gated fix (this statement IS a
+  // Local) can fire.
+  const encoded = encodeProgramArtifacts(`class Entity
+   method CreatePersonalization();
+end-class;
+
+method CreatePersonalization
+   /+ Returns Personalization +/;
+
+   Local PKG:OBJECT:Personalization &Personalization;
+
+   &Personalization = create PKG:OBJECT:Personalization();
+end-method;
+`, {
+    owner: { recordName: 'PKG', fieldName: 'Entity', packagePath: ['PKG', 'Entity'] }
+  });
+
+  const hex = encoded.program.toString('hex');
+  const implOpen = hex.indexOf('6341');
+  assert.match(hex.slice(implOpen), /^6341.*?15\s*4f(?!4f)44/);
+});
+
+test('an import section closing directly into the first Local declaration is not double-marked by the Cycle 51 fix', () => {
+  // Negative control: ordinary PeopleCode's own, already-calibrated
+  // "import section closes, blank line, first Local declaration" shape
+  // (ACCT_CD_NEW_VW.ACCT_CD.SearchInit, golden fixture 412) is handled
+  // UNCONDITIONALLY by the import-section-close branch already -- the
+  // Cycle 51 fix must explicitly exclude `justClosedImportSection` or it
+  // double-emits here. This is a plain import, not a bare `;` from a
+  // signature-comment echo, so Cycle 51's own scenario should never
+  // engage at all.
+  const encoded = encodeProgramArtifacts(`import PKG:Other;
+
+Local Rowset &MYACTIVECFS;
+Local Row &ActiveCf;
+Local number &I;
+
+If &I = 1 Then
+   &I = 2;
+End-If;`);
+
+  const hex = encoded.program.toString('hex');
+  assert.ok(!hex.includes('154f4f'), 'must not duplicate the import-close marker');
+});
+
 test('HTML.NAME is recognized outside GetHTMLText calls', () => {
   const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
 Local any &content;

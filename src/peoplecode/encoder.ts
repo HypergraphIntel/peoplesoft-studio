@@ -10139,6 +10139,52 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       for (let marker = 0; marker < markerCount; marker++) {
         chunks.push(Buffer.from([0x4f]));
       }
+    } else if (
+      leadingLocalRun &&
+      !sawLeadingLocalDeclaration &&
+      isLocalDeclaration &&
+      haveCompletedTopLevelStatement &&
+      !justClosedImportSection &&
+      hasBlankLine
+    ) {
+      /*
+       * Cycle 51 (definition 29134 and 18 further corpus definitions,
+       * 26 total occurrences): the identical leading bare-`;` gap Cycle
+       * 49 fixed for the FIRST non-Local statement in a fragment, but for
+       * the case Cycle 49's own fix did not cover -- the first REAL
+       * statement in the fragment IS ITSELF the first `Local`
+       * declaration of the run. `sawLeadingLocalDeclaration` is still
+       * `false` at this exact point (nothing has set it yet, since this
+       * IS the first Local reached), so the sibling `if` immediately
+       * above -- which requires it `true` -- cannot fire; Cycle 49's own
+       * `!isLocalDeclaration`-gated fix cannot fire either, since this
+       * statement IS a Local declaration. Neither existing mechanism
+       * covers this combination, so the blank line between a bare `;`
+       * (an Application Class method implementation's own structured
+       * signature-comment echo, e.g. `/+ Returns Personalization +/;`)
+       * and its first `Local <AppClassType> &var;` declaration was
+       * silently dropped. Reproduced directly against definition 29134's
+       * own `CreatePersonalization` method.
+       *
+       * `!justClosedImportSection` is required: an import section closing
+       * right before the SAME kind of "first Local declaration, blank
+       * line before it" shape is ALREADY handled, unconditionally,
+       * by the import-section-close branch above (its own cited example,
+       * ACCT_CD_NEW_VW.ACCT_CD.SearchInit's `import HMCF_CHARTFIELDS:*;`
+       * then a blank line then `Local Rowset &MYACTIVECFS;`, is ordinary
+       * PeopleCode's own golden fixture 412) -- without this exclusion,
+       * this new branch double-emits for every import-then-Local
+       * transition, a regression caught directly by that fixture test
+       * and by HCDEV definition 6455's own equivalent shape.
+       */
+      const markerCount = Math.max(
+        1,
+        (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
+      );
+
+      for (let marker = 0; marker < markerCount; marker++) {
+        chunks.push(Buffer.from([0x4f]));
+      }
     }
 
     if (
