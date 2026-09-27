@@ -2221,6 +2221,151 @@ End-Function;`
   );
 });
 
+test('Application Class method Record parameter resolves bare field-shorthand access as a FIELD dependency', () => {
+  // Cycle 46 (definition 29522): an Application Class method
+  // IMPLEMENTATION's own parameter list was never threaded into its body's
+  // own `encodeFragmentInternal` call at all -- `&AbsenceRec As Record`
+  // (declared only in the class header/implementation signature, not
+  // re-parsed from body text) needs the SAME `recordVariables` registration
+  // a `Local Record &rec;` or an ordinary Function parameter already gets.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run(&AbsenceRec As Record);
+end-class;
+
+method Run
+   Local string &v = &AbsenceRec.EMPLID.Value;
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const fieldReferences = encoded.references.filter(r => r.kind === 'field');
+  assert.deepStrictEqual(
+    fieldReferences.map(r => (r as { fieldName: string }).fieldName),
+    ['EMPLID']
+  );
+});
+
+test('Application Class method Record parameter field access reuses across control groups within one method', () => {
+  // Cycle 46 (definition 29522): stored reuses ONE FIELD reference for the
+  // SAME Record-typed parameter's SAME field accessed twice in one method,
+  // even across different control groups (two separate `If` statements
+  // here) -- `fieldDependencyScope`/`recordVariableFields` never got Cycle
+  // 43's method-wide-lifetime treatment (`recordScopeId()` only covered
+  // RECORD/SCROLL via `dependencyScope`), so a second, unwanted FIELD
+  // reference was allocated instead of reusing the first.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run(&AbsenceRec As Record);
+end-class;
+
+method Run
+   If &AbsenceRec.EMPLID.Value = "X" Then
+      Return;
+   End-If;
+   If &AbsenceRec.EMPLID.Value = "Y" Then
+      Return;
+   End-If;
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const fieldReferences = encoded.references.filter(r => r.kind === 'field');
+  assert.equal(fieldReferences.length, 1);
+});
+
+test('a Record-typed variable\'s own bare row-state member stays inline text, not a FIELD reference', () => {
+  // Cycle 46 (definition 29522): `&AbsenceRec.IsDeleted` -- a Record-typed
+  // receiver's own bare row-state property -- must stay inline, exactly
+  // like `isInlineRowStateMember` already keeps `&row.IsDeleted` inline for
+  // a Row-typed receiver (dependencyKind 'record'). Extending Cycle 46's
+  // parameter threading without this regressed 29522 itself: once
+  // `&AbsenceRec` became field-mode-eligible at all, `.IsDeleted` was
+  // wrongly caught by the same "any bare member is a FIELD" rule.
+  const encoded = encodeProgramArtifacts(
+    `Function UseRecord(&rec As Record)
+   If &rec.IsDeleted Then
+      Return;
+   End-If;
+   Local string &v = &rec.A.Value;
+End-Function;`
+  );
+
+  const fieldReferences = encoded.references.filter(r => r.kind === 'field');
+  assert.deepStrictEqual(
+    fieldReferences.map(r => (r as { fieldName: string }).fieldName),
+    ['A']
+  );
+});
+
+test('Application Class method parameters do not leak into another method', () => {
+  // Cycle 46: `EncodeFragmentContext.methodParameters` seeds ONE method
+  // implementation fragment's own type environment -- each method body is
+  // its own fresh `encodeFragmentInternal` call, so a Record-typed
+  // parameter declared on one method must not make an unrelated bare
+  // identifier of the same name in a DIFFERENT method resolve as a FIELD
+  // dependency.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method WithParam(&AbsenceRec As Record);
+   method WithoutParam();
+end-class;
+
+method WithParam
+   Local string &v = &AbsenceRec.EMPLID.Value;
+end-method;
+
+method WithoutParam
+   Local string &AbsenceRec = "not a record here";
+   Local string &v2 = &AbsenceRec;
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const fieldReferences = encoded.references.filter(r => r.kind === 'field');
+  assert.deepStrictEqual(
+    fieldReferences.map(r => (r as { fieldName: string }).fieldName),
+    ['EMPLID']
+  );
+});
+
+test('ordinary Function Row/Record/Rowset parameter registration is unchanged after the registerTypedParameter refactor', () => {
+  // Cycle 46 refactored the Function-parameter loop's Record/Row/Rowset
+  // branches to call the shared `registerTypedParameter` helper instead of
+  // three inlined branches -- this is a pure refactor and must not change
+  // any existing Function-parameter behavior (Row: definitions 921/924;
+  // Record: Cycle 45; Rowset: Cycle 7's narrow
+  // `chainSemanticsDeclaredRowsetVariables`-only treatment).
+  const recordEncoded = encodeProgramArtifacts(
+    `Function UseRecord(&rec As Record)
+   Local string &v = &rec.A.Value;
+End-Function;`
+  );
+  assert.deepStrictEqual(
+    recordEncoded.references.filter(r => r.kind === 'field').map(r => (r as { fieldName: string }).fieldName),
+    ['A']
+  );
+
+  const rowEncoded = encodeProgramArtifacts(
+    `Function UseRow(&rowCategory As Row)
+   &rowCategory.AGC_DERIVED_ASG.GROUPBOX4.Visible = True;
+End-Function;`
+  );
+  assert.deepStrictEqual(
+    rowEncoded.references.filter(r => r.kind === 'record').map(r => (r as { recordName: string }).recordName),
+    ['AGC_DERIVED_ASG']
+  );
+});
+
 test('HTML.NAME is recognized outside GetHTMLText calls', () => {
   const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
 Local any &content;

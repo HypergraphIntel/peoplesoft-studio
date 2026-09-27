@@ -462,6 +462,20 @@ interface EncodeFragmentContext extends EncodeProgramContext {
    * fragments; every other caller omits it.
    */
   recordDependenciesHaveMethodWideLifetime?: boolean;
+  /*
+   * Cycle 46: an Application Class method IMPLEMENTATION's own parameter
+   * list (from the class header's `ApplicationClassMethodMember.parameters`,
+   * already parsed -- never re-parsed from body text), threaded into this
+   * ONE method-body fragment's own type environment before its statements
+   * are encoded. Method bodies are each their own fresh `encodeFragmentInternal`
+   * call (see `encodeApplicationClassProgramV2`'s own `encodeFragment`
+   * closure), so this never leaks between methods or persists past one
+   * fragment -- matching an ordinary Function parameter's own scope, which
+   * this reuses the SAME registration logic for (`registerTypedParameter`).
+   * Absent for the leading-import fragment and for get/set accessor bodies
+   * (no evidenced population for either).
+   */
+  methodParameters?: { name: string; type: string }[];
 }
 
 export interface EncodedPeopleCode {
@@ -1806,6 +1820,37 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     return created;
   };
 
+  /*
+   * Cycle 46: the SAME registration semantics the Function-parameter
+   * parsing loop already applies for `Record`/`Row`/`Rowset`-typed
+   * parameters (see that loop's own comments for the Row/Record evidence),
+   * factored out so an Application Class method implementation's own
+   * parameter list (see `EncodeFragmentContext.methodParameters`'s own
+   * comment) can be seeded into this fragment's type environment through
+   * the identical, already-proven code path rather than a duplicate one.
+   * `Rowset` deliberately joins ONLY `chainSemanticsDeclaredRowsetVariables`,
+   * not `rowsetVariables` and not `ensureLocalObjectPackageReference` --
+   * Cycle 7 found that broader treatment regresses definitions already
+   * EXACT without it (see the Function-parameter loop's own `Rowset`
+   * comment). Any OTHER type (Application Class, array of Record,
+   * built-in objects, primitives, ...) is deliberately left untouched --
+   * no existing, validated registration semantics exist for those as
+   * PARAMETERS yet (even for ordinary Functions), so extending this
+   * helper to them would be inventing new semantics rather than reusing
+   * proven ones.
+   */
+  const registerTypedParameter = (name: string, type: string): void => {
+    if (/^Record$/i.test(type)) {
+      ensureLocalObjectPackageReference('RECORD', 'Record');
+      recordVariables.add(name.toLowerCase());
+    } else if (/^Row$/i.test(type)) {
+      ensureLocalObjectPackageReference('ROW', 'Row');
+      rowVariables.add(name.toLowerCase());
+    } else if (/^Rowset$/i.test(type)) {
+      chainSemanticsDeclaredRowsetVariables.add(name.toLowerCase());
+    }
+  };
+
   const addApplicationClassReference = (
     packagePath: string[],
     className: string,
@@ -2458,6 +2503,28 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   const recordScopeId = (): number =>
     context?.recordDependenciesHaveMethodWideLifetime ? 0 : controlGroup;
 
+  /*
+   * Cycle 46: the FIELD-side counterpart to `recordScopeId()`, governed by
+   * the SAME `recordDependenciesHaveMethodWideLifetime` flag -- Cycle 42
+   * originally scoped its own investigation as "RECORD/FIELD Reuse
+   * Semantics" together; Cycle 43 implemented only the RECORD/SCROLL half
+   * (via `recordScopeId()`), explicitly leaving `fieldDependencyScope` and
+   * `recordVariableFields` "keyed by raw controlGroup -- no evidence
+   * gathered about their own lifetime" (see `recordScopeId()`'s own
+   * declaration comment history). Definition 29522 (`&AbsenceRec.EMPLID.Value`,
+   * used twice in `SaveAppointmentToQueue`, once per SQLExec call --
+   * different control groups) is now direct evidence: stored has exactly
+   * ONE `FIELD|EMPLID` row, reused across both call sites, while the
+   * pre-Cycle-46 encoder allocated two. Both `fieldDependencyScope` (the
+   * receiver-agnostic fallback pool) and `recordVariableFields` (the
+   * receiver-specific pool `resolvePostfixMemberReuse` checks FIRST) must
+   * use this same scope id on BOTH their read and write sides -- Cycle 43's
+   * own precedent is the reason this is a single shared function rather
+   * than two independently-computed keys that could silently diverge.
+   */
+  const fieldScopeId = (): number =>
+    context?.recordDependenciesHaveMethodWideLifetime ? 0 : controlGroup;
+
   const dependencyScope: DependencyScope = {
     get id(): number {
       return recordScopeId();
@@ -2518,6 +2585,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * Keep this separate from top-level offset-179 behavior.
    */
   let functionDepth = 0;
+
+  /*
+   * Cycle 46: seed this fragment's type environment from an Application
+   * Class method implementation's own parameter list (see
+   * `EncodeFragmentContext.methodParameters`'s own comment and
+   * `registerTypedParameter`'s own comment for the registration semantics
+   * this reuses). Must run after `functionDepth`/`controlGroup` (both read
+   * by `ensureLocalObjectPackageReference`) are initialized, and before any
+   * source parsing begins -- `context?.methodParameters` is empty/undefined
+   * for every caller except an Application Class method-body fragment, so
+   * this is a no-op everywhere else.
+   */
+  for (const parameter of context?.methodParameters ?? []) {
+    registerTypedParameter(parameter.name, parameter.type);
+  }
+
   let nextHtmlFunctionNamespace = 1;
   let currentHtmlFunctionNamespace = 0;
 
@@ -2693,7 +2776,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       return readTracedReusePool(
         'scopedFieldReferences',
         scopedFieldReferences,
-        `${controlGroup}:${fieldName.toLowerCase()}`,
+        `${fieldScopeId()}:${fieldName.toLowerCase()}`,
         'fieldDependencyScope:lookup',
         pos - fieldName.length
       );
@@ -2706,7 +2789,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       writeTracedReusePool(
         'scopedFieldReferences',
         scopedFieldReferences,
-        `${controlGroup}:${fieldName.toLowerCase()}`,
+        `${fieldScopeId()}:${fieldName.toLowerCase()}`,
         reference,
         'fieldDependencyScope:record',
         pos - fieldName.length
@@ -4907,96 +4990,24 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             chunks.push(typeName());
             if (isArrayType) {
               arrayElementTypes();
-            } else if (/^Record$/i.test(paramType ?? '')) {
+            } else if (paramName !== undefined && /^(?:Record|Row|Rowset)$/i.test(paramType ?? '')) {
               /*
-               * Cycle 45: the same class of gap the `Row`-typed-parameter
-               * fix below already documents (definitions 921/924), but for
-               * `Record`. A `Record`-typed Function/method PARAMETER
-               * allocates the same implicit PACKAGE/RECORD dependency row a
-               * `Local Record &var;` declaration already does, AND must
-               * join `recordVariables` so its own bare `.FIELDNAME` shorthand
-               * resolves as a FIELD reference -- `expectedReferenceMember`'s
-               * `recordVariables.has(baseVariableName)` arm only ever checks
-               * that shared set, and the parameter-parsing loop never
-               * populated it for Record.
-               *
-               * GP_ABS_EODI_PACKAGE.Appointments.SchedulingQueue.OnExecute
-               * (definition 29522): `method SaveAppointmentToQueue(...,
-               * &AbsenceRec As Record) ... &AbsenceRec.EMPLID.Value` proves
-               * this directly -- `.EMPLID` fell through to plain inline text
-               * instead of a 0x4A FIELD reference. Population evidence: 265
-               * corpus definitions have a `Record`-typed parameter with bare
-               * field-shorthand access on it.
+               * `Record`/`Row`/`Rowset`-typed Function PARAMETERS need the
+               * same declaration-tracking a `Local Record|Row|Rowset &var;`
+               * already gets -- see `registerTypedParameter`'s own
+               * declaration comment for the full Record/Row/Rowset
+               * evidence (definitions 921/924 for Row; 29522 and 265
+               * corpus definitions for Record; Cycle 7's 48-definition
+               * Rowset population, which is why Rowset deliberately joins
+               * ONLY `chainSemanticsDeclaredRowsetVariables`, not
+               * `rowsetVariables`/`ensureLocalObjectPackageReference` --
+               * that broader treatment regressed already-EXACT
+               * definitions). Cycle 46 reuses this exact same helper to
+               * seed an Application Class method implementation's own
+               * parameter list into its body fragment -- see
+               * `EncodeFragmentContext.methodParameters`'s own comment.
                */
-              ensureLocalObjectPackageReference('RECORD', 'Record');
-              if (paramName !== undefined) {
-                recordVariables.add(paramName.toLowerCase());
-              }
-            } else if (/^Row$/i.test(paramType ?? '')) {
-              /*
-               * AGC_CAT_ASGNEE.AGC_CATEGORY_ID.FieldFormula (definition
-               * 921) proves an object-typed Function PARAMETER allocates
-               * the same implicit PACKAGE dependency row a `Local Row
-               * &var;` declaration already does -- this was entirely
-               * missing for parameters:
-               *
-               *   Function DeleteCatAssignee(&rowCategory As Row, ...)
-               *
-               * allocates PACKAGE/ROW before the function body's own
-               * `Local Rowset ...;` allocates its PACKAGE/ROWSET, shifting
-               * every reference index after it by one relative to a
-               * parameter-parsing path that skips this allocation
-               * entirely. Only `Row` is evidenced so far -- Record/Field/
-               * Rowset/SQL/File/XmlDoc/XmlNode/ApiObject parameters may
-               * need the same treatment but are unconfirmed; do not
-               * generalize without evidence.
-               */
-              ensureLocalObjectPackageReference('ROW', 'Row');
-
-              /*
-               * AGC_CAT_STEP.AGC_CATEGORY_ID.FieldFormula (definition 924)
-               * proves a second, related gap: a `Row`-typed PARAMETER also
-               * needs to join the `rowVariables` set, exactly like a
-               * `Local Row &var;` declaration already does --
-               * `rowStartsRecordFieldChain`'s two-dot lookahead (the
-               * mechanism that puts a Row variable's `.RECORD.FIELD` chain
-               * into PSPCMNAME reference mode) only checks that set, and
-               * the parameter-parsing loop never populated it:
-               *
-               *   Function InitStepDefautAssigneeSection(&rCurrCatTbl As
-               *       Row, &rCurrentStep As Row)
-               *      ...
-               *      &rCurrentStep.AGC_DERIVED_ASG.GROUPBOX4.Visible = &nShow;
-               *
-               * Without this, `.AGC_DERIVED_ASG.GROUPBOX4` fell through to
-               * plain inline text instead of two chained 0x4A RECORD/FIELD
-               * references.
-               */
-              if (paramName !== undefined) {
-                rowVariables.add(paramName.toLowerCase());
-              }
-            } else if (/^Rowset$/i.test(paramType ?? '')) {
-              /*
-               * Cycle 7 (Phase 7C): a `Rowset`-typed Function PARAMETER
-               * (evidenced: 48 definitions, 4 currently EXACT) has the
-               * same declaration-tracking gap as the `Row`-typed
-               * parameter above, for the SAME `.GetRow(...)`/
-               * `.GetRecord(...)`/`.GetRowset(...)` receiver-provenance
-               * question ChainSemantics now answers (see the Cycle 7
-               * report). Unlike the `Row` case, this does NOT call
-               * `ensureLocalObjectPackageReference` -- that PACKAGE/ROW
-               * allocation was itself evidenced specifically for `Row`
-               * parameters (definition 921); generalizing it to `Rowset`
-               * parameters is unconfirmed and several of the 48
-               * definitions are already EXACT without it, so adding that
-               * allocation would very likely break them. Only the
-               * isolated `chainSemanticsDeclaredRowsetVariables` set
-               * (see its own declaration comment) is populated, never
-               * the shared `rowsetVariables`.
-               */
-              if (paramName !== undefined) {
-                chainSemanticsDeclaredRowsetVariables.add(paramName.toLowerCase());
-              }
+              registerTypedParameter(paramName, paramType!);
             }
           }
           space();
@@ -7861,7 +7872,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         const receiverBinding = readTracedReusePool(
           'recordVariableFields',
           recordVariableFields,
-          `${controlGroup}:${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`,
+          `${fieldScopeId()}:${baseVariableName?.toLowerCase() ?? ''}:${member.toLowerCase()}`,
           'postfixResolve:record-variable-field',
           pos - member.length
         );
@@ -7948,7 +7959,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       writeTracedReusePool(
         'recordVariableFields',
         recordVariableFields,
-        `${controlGroup}:${baseVariableName.toLowerCase()}:${member.toLowerCase()}`,
+        `${fieldScopeId()}:${baseVariableName.toLowerCase()}:${member.toLowerCase()}`,
         reference,
         'postfixRecord:record-variable-field',
         pos - member.length
@@ -8672,8 +8683,24 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             : expectedReferenceMember === 'field'
               ? 'field'
               : 'none';
+        /*
+         * Cycle 46: extended from `dependencyKind === 'record'` only (a
+         * Row variable's `.RECORD` member, e.g. `&row.IsDeleted`) to also
+         * cover `dependencyKind === 'field'` (a Record-typed variable/
+         * parameter's own bare member, e.g. `&AbsenceRec.IsDeleted`) --
+         * the exact same identifier set the `Record.X.MEMBER` explicit-chain
+         * branch above already excludes for the identical reason
+         * (definition 982's own `Record.AMM_DERIVED.IsChanged`: "a boolean
+         * Row-state property of the RECORD's underlying Row, not a field
+         * name"). Definition 29522's `&AbsenceRec.IsDeleted` (a Record-typed
+         * method PARAMETER, reachable only once Cycle 46's parameter
+         * threading makes `&AbsenceRec` field-mode-eligible at all) is
+         * direct evidence this exclusion was missing for the field-mode
+         * path -- without it, `.IsDeleted` wrongly became a FIELD reference
+         * instead of staying inline text.
+         */
         const isInlineRowStateMember =
-          dependencyKind === 'record' &&
+          (dependencyKind === 'record' || dependencyKind === 'field') &&
           /^(?:RowNumber|IsNew|IsDeleted|IsChanged|Visible|Selected)$/i.test(member);
 
         const hasExistingExpectedReference = references.some(item =>
@@ -11130,6 +11157,18 @@ function encodeApplicationClassProgramV2(
   const methods = parsed.members.filter(
     (member): member is ApplicationClassMethodMember => member.kind === 'method'
   );
+  /*
+   * Cycle 46: `parsed.implementations` (iterated below to encode each
+   * method BODY) carries only `{kind, name, body, ...}` -- no `.parameters`.
+   * The class header's OWN `ApplicationClassMethodMember` (in `methods`,
+   * above) is where `.parameters` lives. Method names are unique within one
+   * Application Class (PeopleCode does not support overloading), so a
+   * name-keyed lookup is exact and does not depend on `methods` and
+   * `parsed.implementations` sharing the same iteration order (get/set
+   * accessor implementations interleave with method implementations in
+   * `parsed.implementations` but never appear in `methods`).
+   */
+  const methodsByName = new Map(methods.map(method => [method.name.toLowerCase(), method]));
   const storageMembers = parsed.members.filter(
     (member): member is ApplicationClassStorageMember => member.kind === 'property' || member.kind === 'instance'
   );
@@ -11386,7 +11425,8 @@ function encodeApplicationClassProgramV2(
   const encodeFragment = (
     fragmentSource: string,
     commentOpcodes = context?.commentOpcodes,
-    suppressDeclarationSectionMarkers = true
+    suppressDeclarationSectionMarkers = true,
+    methodParameters?: { name: string; type: string }[]
   ): Buffer => {
     const applicationClassReferenceSession = hasModeledApplicationClassReferenceScope
       ? applicationClassReferenceScope.beginFragment()
@@ -11410,7 +11450,11 @@ function encodeApplicationClassProgramV2(
       // leading import fragment (no Local declarations) or a method
       // body -- safe to apply uniformly.
       builtinObjectDeclarationsHaveMethodWideLifetime: true,
-      recordDependenciesHaveMethodWideLifetime: true
+      recordDependenciesHaveMethodWideLifetime: true,
+      // Cycle 46: absent (undefined) for the leading-import fragment and
+      // for get/set accessor bodies; only a `kind: 'method'` implementation
+      // body's own call site below passes its method's parameter list.
+      methodParameters
     });
     applicationClassReferenceScope.commit(encoded.references);
     firstFragment = false;
@@ -11642,10 +11686,13 @@ function encodeApplicationClassProgramV2(
    * necessary, its synthetic 0x15 is stripped too. Source-owned 0x15 bytes
    * and the wrapper's own closer suffix remain untouched.
    */
-  const encodeMethodBody = (body: string): Buffer => {
+  const encodeMethodBody = (
+    body: string,
+    methodParameters?: { name: string; type: string }[]
+  ): Buffer => {
     const hasSourceTerminator = applicationClassHasTrailingSourceTerminator(body);
     const completed = hasSourceTerminator ? body : `${body};`;
-    const bytes = encodeFragment(completed);
+    const bytes = encodeFragment(completed, undefined, true, methodParameters);
     let end = bytes.length;
     if (end > 0 && bytes[end - 1] === 0x4f) end--;
     if (!hasSourceTerminator && end > 0 && bytes[end - 1] === 0x15) end--;
@@ -11769,7 +11816,14 @@ function encodeApplicationClassProgramV2(
         member.body.length - trailingWhitespace.length
       );
       emitMarkers(applicationClassBlankLineCount(leadingWhitespace));
-      statementChunks.push(encodeMethodBody(bodyCore));
+      // Cycle 46: only a `kind: 'method'` implementation has a matching
+      // class-header `ApplicationClassMethodMember` with `.parameters` --
+      // get/set accessor bodies pass `undefined` (no evidenced population).
+      const methodParameters =
+        member.kind === 'method'
+          ? methodsByName.get(member.name.toLowerCase())?.parameters
+          : undefined;
+      statementChunks.push(encodeMethodBody(bodyCore, methodParameters));
       emitMarkers(applicationClassBlankLineCount(trailingWhitespace));
     }
     const closerOpcode = member.kind === 'method' ? 0x64 : member.kind === 'get' ? 0x6a : 0x6b;
