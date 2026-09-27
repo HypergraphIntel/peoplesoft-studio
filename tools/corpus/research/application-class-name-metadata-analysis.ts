@@ -1,0 +1,945 @@
+/**
+ * Cycles 29-31: Application Class program-name/directory metadata census.
+ *
+ * Read-only. Uses the completed local HCDEV snapshot, the current encoder,
+ * and Cycle 28's saved post-fix report. It never connects to Oracle or writes
+ * corpus state.
+ *
+ * Usage:
+ *   npx tsx tools/corpus/research/application-class-name-metadata-analysis.ts \
+ *     --cycle28-report /tmp/cycle29-baseline-full.json
+ *   npx tsx tools/corpus/research/application-class-name-metadata-analysis.ts \
+ *     --cycle28-report /tmp/cycle29-baseline-full.json --json
+ */
+
+import Database from 'better-sqlite3';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+
+import {
+  APPLICATION_CLASS_FLAGS,
+  parseApplicationClassSource,
+  type ApplicationClassProgram
+} from '../../../src/peoplecode/applicationClassProgram';
+import {
+  encodeProgramArtifacts,
+  type PeopleCodeOwner,
+  type PeopleCodeReference
+} from '../../../src/peoplecode/encoder';
+import {
+  PROGRAM_DIRECTORY_RECORD_SIZE,
+  PROGRAM_DISPATCH_SLOT_SIZE,
+  readProgramLayout
+} from '../../../src/peoplecode/programLayout';
+import { listSnapshotDefinitions } from '../snapshot/reader';
+import { openSnapshotDatabase } from '../snapshot/store';
+import type { SnapshotDefinition, SnapshotNameRow } from '../snapshot/types';
+
+const APPLICATION_CLASS_OBJECT_ID = 104;
+
+const NON_DIRECTORY_TYPE_NAMES = new Set([
+  'string', 'date', 'any', 'boolean', 'time', 'datetime', 'object', 'integer', 'number',
+  'file', 'sql', 'record', 'rowset', 'row', 'field', 'processrequest', 'message',
+  'apiobject', 'grid', 'javaobject', 'xmldoc', 'exception', 'xmlnode', 'document',
+  'compound', 'collection', 'map', 'mapelement', 'jsonbuilder', 'jsonobject', 'jsonarray'
+]);
+
+interface Cycle28Report {
+  cycle28Validation: {
+    cycle27DirectRoots: number;
+    currentTargetBlockers: Array<{ definitionId: number; blocker: string }>;
+  };
+}
+
+interface ResultRow {
+  sourceEncodeSuccess: boolean;
+  generatedSha256?: string;
+}
+
+interface NameEntry {
+  text: string;
+  charOffset: number;
+}
+
+type RecordKind = 'self' | 'property' | 'instance' | 'getter' | 'setter' | 'method';
+
+interface DirectoryRecord {
+  index: number;
+  nameOffset: number;
+  name: string;
+  signatureSlotOffset: number;
+  attributesAndCount: number;
+  flags: number;
+  low: number;
+  descriptor: number;
+  kind: RecordKind;
+}
+
+interface ParsedMetadata {
+  names: NameEntry[];
+  records: DirectoryRecord[];
+  slots: number[];
+}
+
+function normalize(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function storageName(key: string): string {
+  return key.slice(key.indexOf(':') + 1);
+}
+
+function hashJava31(value: string): number {
+  let hash = 0;
+  for (const char of value) hash = (Math.imul(hash, 31) + char.charCodeAt(0)) >>> 0;
+  return hash;
+}
+
+function hashDjb2(value: string): number {
+  let hash = 5381;
+  for (const char of value) hash = (Math.imul(hash, 33) + char.charCodeAt(0)) >>> 0;
+  return hash;
+}
+
+function hashSdbm(value: string): number {
+  let hash = 0;
+  for (const char of value) {
+    hash = (char.charCodeAt(0) + Math.imul(hash, 65599)) >>> 0;
+  }
+  return hash;
+}
+
+function hashFnv1a(value: string): number {
+  let hash = 0x811c9dc5;
+  for (const char of value) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash;
+}
+
+function hashElf(value: string): number {
+  let hash = 0;
+  for (const char of value) {
+    hash = ((hash << 4) + char.charCodeAt(0)) >>> 0;
+    const high = hash & 0xf0000000;
+    if (high !== 0) hash ^= high >>> 24;
+    hash &= ~high;
+  }
+  return hash >>> 0;
+}
+
+function readBaseline(runId: number): Map<number, ResultRow> {
+  const db = new Database('tools/corpus/corpus-results.sqlite', { readonly: true });
+  const run = db.prepare(`
+    SELECT run_id FROM corpus_run
+    WHERE run_id = ? AND completed_at IS NOT NULL AND definitions = 30209
+  `).get(runId);
+  if (!run) throw new Error(`Completed full-corpus baseline run ${runId} was not found.`);
+  const rows = db.prepare(`
+    SELECT definition_id, source_encode_success, generated_sha256
+    FROM result WHERE run_id = ?
+  `).all(runId) as Array<Record<string, unknown>>;
+  db.close();
+  return new Map(rows.map(row => [Number(row.definition_id), {
+    sourceEncodeSuccess: Boolean(row.source_encode_success),
+    generatedSha256: row.generated_sha256 === null ? undefined : String(row.generated_sha256)
+  }]));
+}
+
+function countBy<T>(values: readonly T[], key: (value: T) => string): Record<string, number> {
+  const counts = new Map<string, number>();
+  for (const value of values) {
+    const label = key(value);
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+  return Object.fromEntries([...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])));
+}
+
+function firstDifference<T>(left: readonly T[], right: readonly T[], equal: (a: T, b: T) => boolean): number {
+  const shared = Math.min(left.length, right.length);
+  for (let index = 0; index < shared; index++) {
+    if (!equal(left[index], right[index])) return index;
+  }
+  return left.length === right.length ? -1 : shared;
+}
+
+function classifyRecord(attributesAndCount: number): RecordKind {
+  const flags = attributesAndCount & 0xffff0000;
+  if ((flags & APPLICATION_CLASS_FLAGS.self) !== 0) return 'self';
+  if ((flags & APPLICATION_CLASS_FLAGS.getter) !== 0) return 'getter';
+  if ((flags & APPLICATION_CLASS_FLAGS.setter) !== 0) return 'setter';
+  if ((flags & APPLICATION_CLASS_FLAGS.property) !== 0) {
+    return (flags & APPLICATION_CLASS_FLAGS.private) !== 0 &&
+      (flags & APPLICATION_CLASS_FLAGS.storage) !== 0
+      ? 'instance'
+      : 'property';
+  }
+  return 'method';
+}
+
+function parseMetadata(program: Buffer): ParsedMetadata {
+  const layout = readProgramLayout(program);
+  const names: NameEntry[] = [];
+  let offset = layout.names.offset;
+  const end = offset + layout.names.byteLength;
+  while (offset < end) {
+    let terminator = offset;
+    while (terminator + 1 < end && (program[terminator] !== 0 || program[terminator + 1] !== 0)) {
+      terminator += 2;
+    }
+    if (terminator + 1 >= end) throw new Error('Unterminated Application Class directory name.');
+    names.push({
+      text: program.toString('utf16le', offset, terminator),
+      charOffset: (offset - layout.names.offset) / 2
+    });
+    offset = terminator + 2;
+  }
+  const nameByOffset = new Map(names.map(name => [name.charOffset, name.text]));
+  const records: DirectoryRecord[] = [];
+  for (let index = 0; index < layout.recordCount; index++) {
+    const base = layout.records.offset + index * PROGRAM_DIRECTORY_RECORD_SIZE;
+    const nameOffset = program.readUInt32LE(base);
+    const attributesAndCount = program.readUInt32LE(base + 8);
+    records.push({
+      index,
+      nameOffset,
+      name: nameByOffset.get(nameOffset) ?? '<invalid-name-offset>',
+      signatureSlotOffset: program.readUInt32LE(base + 4),
+      attributesAndCount,
+      flags: attributesAndCount & 0xffff0000,
+      low: attributesAndCount & 0xffff,
+      descriptor: program.readUInt32LE(base + 12),
+      kind: classifyRecord(attributesAndCount)
+    });
+  }
+  const slots: number[] = [];
+  for (let index = 0; index < layout.slotCount; index++) {
+    slots.push(program.readUInt32LE(layout.slots.offset + index * PROGRAM_DISPATCH_SLOT_SIZE));
+  }
+  return { names, records, slots };
+}
+
+function sectionBytes(program: Buffer, name: 'statements' | 'names' | 'records' | 'slots'): Buffer {
+  const layout = readProgramLayout(program);
+  return program.subarray(layout[name].offset, layout[name].offset + layout[name].byteLength);
+}
+
+function ownerContext(definition: SnapshotDefinition): PeopleCodeOwner {
+  const values = [
+    definition.objectvalue1, definition.objectvalue2, definition.objectvalue3,
+    definition.objectvalue4, definition.objectvalue5, definition.objectvalue6,
+    definition.objectvalue7
+  ].map(value => value.trim());
+  const eventIndex = values.findIndex(value => normalize(value) === 'onexecute');
+  return {
+    recordName: values[0],
+    fieldName: values[1],
+    packagePath: values.slice(0, eventIndex < 0 ? values.length : eventIndex).filter(Boolean)
+  };
+}
+
+function storedReferenceShape(row: SnapshotNameRow): string {
+  return [row.recname, row.refname, row.packageroot, row.qualifypath, row.appclassmethod]
+    .map(value => normalize(value)).join('|');
+}
+
+function generatedReferenceShape(reference: PeopleCodeReference): string {
+  if (reference.kind === 'owner') return '||||';
+  if (reference.kind === 'package') {
+    const path = reference.packagePath ?? (reference.packageName ? [reference.packageName] : []);
+    return [
+      'package', reference.className ?? reference.objectName ?? '',
+      path[0] ?? '', path.slice(1).join(':'), reference.methodName ?? ''
+    ].map(normalize).join('|');
+  }
+  return [
+    reference.recordName ?? '', reference.fieldName ?? '', '', '', reference.methodName ?? ''
+  ].map(normalize).join('|');
+}
+
+function sourceShape(parsed: ApplicationClassProgram): string {
+  const counts = countBy(parsed.members, member => member.kind);
+  return [
+    parsed.unitKind,
+    `methods=${counts.method ?? 0}`,
+    `properties=${counts.property ?? 0}`,
+    `instances=${counts.instance ?? 0}`,
+    `constants=${counts.constant ?? 0}`,
+    `implementations=${parsed.implementations.length}`,
+    `extends=${parsed.extendsType === undefined ? 0 : 1}`,
+    `implements=${parsed.implementsType === undefined ? 0 : 1}`
+  ].join('|');
+}
+
+function typeDirectoryName(typeName: string | undefined): string | undefined {
+  if (typeName === undefined) return undefined;
+  let remaining = normalize(typeName).replace(/^(?:array\s+of\s+)+/, '');
+  if (NON_DIRECTORY_TYPE_NAMES.has(remaining)) return undefined;
+  return typeName.trim().replace(/^(?:array\s+of\s+)+/i, '');
+}
+
+function concreteMethodMetadataModel(
+  definition: SnapshotDefinition,
+  parsed: ApplicationClassProgram
+): { recordedNames: string[]; typeSuffix: string[] } | undefined {
+  const methods = parsed.members.filter(member => member.kind === 'method');
+  if (parsed.unitKind !== 'class' || parsed.members.some(member => member.kind === 'property' || member.kind === 'instance') ||
+      methods.some(method => method.abstract || method.implementationOrder < 0)) return undefined;
+  const owner = ownerContext(definition).packagePath ?? [];
+  const physicalMethods = [...methods].sort((a, b) => a.implementationOrder - b.implementationOrder);
+  const declarationMethods = [...methods].sort((a, b) => a.declarationOrdinal - b.declarationOrdinal);
+  const relationName = typeDirectoryName(parsed.extendsType ?? parsed.implementsType);
+  return {
+    recordedNames: [owner.join(':'), ...physicalMethods.map(method => method.name)],
+    typeSuffix: [
+      ...(relationName === undefined ? [] : [relationName]),
+      ...physicalMethods.flatMap(method => {
+        const name = typeDirectoryName(method.returnType);
+        return name === undefined ? [] : [name];
+      }),
+      ...declarationMethods.flatMap(method => method.parameters.flatMap(parameter => {
+        const name = typeDirectoryName(parameter.type);
+        return name === undefined ? [] : [name];
+      }))
+    ]
+  };
+}
+
+function descriptorNameOffset(descriptor: number): number | undefined {
+  const core = descriptor & 0x000fffff;
+  if ((core & 0x80000) === 0) return undefined;
+  const sub = core & ~0x80000;
+  return sub >= 0x100 ? sub - 0x100 : undefined;
+}
+
+function descriptorShape(descriptor: number, metadata: ParsedMetadata): string {
+  const offset = descriptorNameOffset(descriptor);
+  if (offset === undefined) return `fixed:${descriptor >>> 0}`;
+  const arrayDepth = descriptor >>> 20;
+  const name = metadata.names.find(entry => entry.charOffset === offset)?.text ?? '<invalid-name-offset>';
+  return `${arrayDepth}:${normalize(name)}`;
+}
+
+function storedTypeAllocationOrder(metadata: ParsedMetadata): {
+  exact: boolean;
+  suffixOffsets: number[];
+  descriptorOffsets: number[];
+} {
+  const suffixOffsets = metadata.names.slice(metadata.records.length).map(name => name.charOffset);
+  const descriptorOffsets = [
+    ...metadata.records.flatMap(record => {
+      const offset = descriptorNameOffset(record.descriptor);
+      return offset === undefined ? [] : [offset];
+    }),
+    ...metadata.slots.flatMap(slot => {
+      const offset = descriptorNameOffset(slot);
+      return offset === undefined ? [] : [offset];
+    })
+  ];
+  return {
+    exact: firstDifference(suffixOffsets, descriptorOffsets, (a, b) => a === b) < 0,
+    suffixOffsets,
+    descriptorOffsets
+  };
+}
+
+function nameMismatchFamily(
+  stored: ParsedMetadata,
+  generated: ParsedMetadata
+): string {
+  const storedRecorded = stored.names.slice(0, stored.records.length).map(name => normalize(name.text));
+  const generatedRecorded = generated.names.slice(0, generated.records.length).map(name => normalize(name.text));
+  const storedSuffix = stored.names.slice(stored.records.length).map(name => normalize(name.text));
+  const generatedSuffix = generated.names.slice(generated.records.length).map(name => normalize(name.text));
+  if (stored.records.length !== generated.records.length) return 'missing/extra directory-record names';
+  if (firstDifference(storedRecorded, generatedRecorded, (a, b) => a === b) >= 0) {
+    const sameMultiset = [...storedRecorded].sort().join('\0') === [...generatedRecorded].sort().join('\0');
+    return sameMultiset ? 'directory-record name ordering' : 'directory-record name identity';
+  }
+  if (firstDifference(storedSuffix, generatedSuffix, (a, b) => a === b) >= 0) {
+    const sameMultiset = [...storedSuffix].sort().join('\0') === [...generatedSuffix].sort().join('\0');
+    return sameMultiset ? 'type-name suffix ordering' : 'type-name suffix identity/multiplicity';
+  }
+  return 'names exact after concrete-method metadata fix';
+}
+
+function main(): void {
+  const reportIndex = process.argv.indexOf('--cycle28-report');
+  const reportPath = reportIndex < 0 ? undefined : process.argv[reportIndex + 1];
+  if (!reportPath) throw new Error('--cycle28-report is required.');
+  const cycle28 = JSON.parse(readFileSync(reportPath, 'utf8')) as Cycle28Report;
+  if (cycle28.cycle28Validation.cycle27DirectRoots !== 99) {
+    throw new Error('Cycle 28 report does not reproduce the 99 Cycle 27 roots.');
+  }
+  const targetIds = cycle28.cycle28Validation.currentTargetBlockers
+    .filter(row => row.blocker === 'Application Class names metadata')
+    .map(row => row.definitionId)
+    .sort((a, b) => a - b);
+  if (targetIds.length !== 49) throw new Error(`Expected 49 names-metadata roots, received ${targetIds.length}.`);
+  const baselineIndex = process.argv.indexOf('--baseline-run');
+  const baselineRunId = baselineIndex < 0 ? undefined : Number(process.argv[baselineIndex + 1]);
+  const baseline = baselineRunId === undefined ? undefined : readBaseline(baselineRunId);
+
+  const db = openSnapshotDatabase();
+  const definitions = listSnapshotDefinitions(db)
+    .filter(definition => definition.objectid1 === APPLICATION_CLASS_OBJECT_ID);
+  db.close();
+  const byId = new Map(definitions.map(definition => [definition.definitionId, definition]));
+
+  const rows = targetIds.map(definitionId => {
+    const definition = byId.get(definitionId);
+    if (!definition) throw new Error(`Missing target definition ${definitionId}.`);
+    const parsed = parseApplicationClassSource(definition.sourceText);
+    if (!parsed) throw new Error(`Target definition ${definitionId} does not parse as an active Application Class.`);
+    const artifacts = encodeProgramArtifacts(definition.sourceText, { owner: ownerContext(definition) });
+    const stored = parseMetadata(definition.storedProgram);
+    const generated = parseMetadata(artifacts.program);
+    const storedNames = stored.names.map(name => name.text);
+    const generatedNames = generated.names.map(name => name.text);
+    const firstNameDifference = firstDifference(storedNames, generatedNames, (a, b) => a === b);
+    const firstNormalizedNameDifference = firstDifference(storedNames, generatedNames, (a, b) => normalize(a) === normalize(b));
+    const storedReferences = definition.names.map(storedReferenceShape);
+    const generatedReferences = artifacts.references.map(generatedReferenceShape);
+    const statementsExact = sectionBytes(definition.storedProgram, 'statements')
+      .equals(sectionBytes(artifacts.program, 'statements'));
+    const namesExact = sectionBytes(definition.storedProgram, 'names')
+      .equals(sectionBytes(artifacts.program, 'names'));
+    const recordsExact = sectionBytes(definition.storedProgram, 'records')
+      .equals(sectionBytes(artifacts.program, 'records'));
+    const slotsExact = sectionBytes(definition.storedProgram, 'slots')
+      .equals(sectionBytes(artifacts.program, 'slots'));
+    const externalReferenceDifference = firstDifference(storedReferences, generatedReferences, (a, b) => a === b);
+    const currentOutcome = !namesExact ? 'names metadata'
+      : !recordsExact ? 'directory records metadata'
+        : !slotsExact ? 'signature slots metadata'
+          : !statementsExact ? 'comment/marker residual'
+            : externalReferenceDifference >= 0 ? 'PSPCMNAME/reference identity'
+              : 'source program + PSPCMNAME exact';
+    return {
+      definitionId,
+      displayName: definition.displayName,
+      sourceShape: sourceShape(parsed),
+      sourceMembers: parsed.members.map(member => ({
+        kind: member.kind,
+        name: member.name,
+        sourceOrder: member.sourceOrder,
+        declarationOrdinal: 'declarationOrdinal' in member ? member.declarationOrdinal : undefined,
+        implementationOrder: member.kind === 'method' ? member.implementationOrder : undefined,
+        type: member.kind === 'property' || member.kind === 'instance' ? member.type : undefined,
+        mode: member.kind === 'property' || member.kind === 'instance' ? member.mode : undefined,
+        abstract: member.kind === 'method' ? member.abstract : undefined,
+        parameters: member.kind === 'method' ? member.parameters : undefined,
+        returnType: member.kind === 'method' ? member.returnType : undefined
+      })),
+      implementations: parsed.implementations.map(implementation => `${implementation.kind}:${implementation.name}`),
+      family: nameMismatchFamily(stored, generated),
+      firstNameDifference,
+      firstNormalizedNameDifference,
+      storedNames,
+      generatedNames,
+      storedRecordedNames: stored.records.map(record => `${record.kind}:${record.name}`),
+      generatedRecordedNames: generated.records.map(record => `${record.kind}:${record.name}`),
+      storedTypeSuffix: stored.names.slice(stored.records.length).map(name => name.text),
+      generatedTypeSuffix: generated.names.slice(generated.records.length).map(name => name.text),
+      storedRecords: stored.records,
+      generatedRecords: generated.records,
+      storedSlots: stored.slots,
+      generatedSlots: generated.slots,
+      statementsExact,
+      namesExact,
+      recordsExact,
+      slotsExact,
+      currentOutcome,
+      externalReferenceDifference,
+      storedReferences,
+      generatedReferences
+    };
+  });
+
+  const concreteMethodControls = definitions.flatMap(definition => {
+    const parsed = parseApplicationClassSource(definition.sourceText);
+    if (!parsed) return [];
+    const model = concreteMethodMetadataModel(definition, parsed);
+    if (!model) return [];
+    const stored = parseMetadata(definition.storedProgram);
+    const storedRecordedNames = stored.records.map(record => record.name);
+    const storedTypeSuffix = stored.names.slice(stored.records.length).map(name => name.text);
+    return [{
+      definitionId: definition.definitionId,
+      recordedNamesMatch: firstDifference(storedRecordedNames, model.recordedNames, (a, b) => normalize(a) === normalize(b)) < 0,
+      typeSuffixMatches: firstDifference(storedTypeSuffix, model.typeSuffix, (a, b) => normalize(a) === normalize(b)) < 0,
+      storedRecordedNames,
+      modeledRecordedNames: model.recordedNames,
+      storedTypeSuffix,
+      modeledTypeSuffix: model.typeSuffix
+    }];
+  });
+  const allocationOrderControls = definitions.map(definition => {
+    const metadata = parseMetadata(definition.storedProgram);
+    return { definitionId: definition.definitionId, ...storedTypeAllocationOrder(metadata) };
+  });
+  const physicalStorageControls = definitions.flatMap(definition => {
+    const parsed = parseApplicationClassSource(definition.sourceText);
+    if (!parsed) return [];
+    const stored = parseMetadata(definition.storedProgram);
+    const sourceMembers = parsed.members.filter(member => member.kind === 'property' || member.kind === 'instance');
+    const storedRecords = stored.records.filter(record => record.kind === 'property' || record.kind === 'instance');
+    if (sourceMembers.length !== storedRecords.length) return [];
+    const sourceKeys = sourceMembers.map(member => `${member.kind}:${normalize(member.name)}`);
+    const storedKeys = storedRecords.map(record => `${record.kind}:${normalize(record.name)}`);
+    if ([...sourceKeys].sort().join('\0') !== [...storedKeys].sort().join('\0')) return [];
+    const implementations = parsed.implementations.map(implementation =>
+      `${implementation.kind}:${normalize(implementation.name)}`
+    );
+    const storedCallables = stored.records
+      .filter(record => record.kind === 'method' || record.kind === 'getter' || record.kind === 'setter')
+      .filter(record => (record.flags & APPLICATION_CLASS_FLAGS.abstract) === 0)
+      .map(record => `${record.kind === 'method' ? 'method' : record.kind === 'getter' ? 'get' : 'set'}:${normalize(record.name)}`);
+    let phase = -1;
+    const phaseOrderExact = stored.records.every(record => {
+      const next = record.kind === 'self'
+        ? 0
+        : record.kind === 'property' || record.kind === 'instance'
+          ? 1
+          : (record.flags & APPLICATION_CLASS_FLAGS.abstract) === 0
+            ? 2
+            : 3;
+      if (next < phase) return false;
+      phase = next;
+      return true;
+    });
+    return [{
+      definitionId: definition.definitionId,
+      selfName: stored.records[0]?.name,
+      sourceKeys,
+      storedKeys,
+      allSourceKeys: parsed.members.map(member => `${member.kind}:${normalize(member.name)}`),
+      implementationKeys: parsed.implementations.map(implementation =>
+        `${implementation.kind}:${normalize(implementation.name)}`
+      ),
+      sourceMembers: sourceMembers.map(member => ({
+        kind: member.kind,
+        name: member.name,
+        sourceOrder: member.sourceOrder,
+        declarationOrdinal: member.declarationOrdinal,
+        type: member.type,
+        mode: member.mode,
+        visibility: member.visibility,
+        firstUseOffset: definition.sourceText.toLowerCase().indexOf(
+          member.name.toLowerCase(),
+          member.sourceEnd
+        )
+      })),
+      storedRecords,
+      allStoredRecords: stored.records,
+      storedNames: stored.names,
+      storedSlots: stored.slots,
+      phaseOrderExact,
+      callableImplementationOrderExact: implementations.join('|') === storedCallables.join('|')
+    }];
+  });
+  const pairDirections = new Map<string, Set<string>>();
+  for (const control of physicalStorageControls) {
+    for (let left = 0; left < control.storedKeys.length; left++) {
+      for (let right = left + 1; right < control.storedKeys.length; right++) {
+        const pair = [control.storedKeys[left], control.storedKeys[right]].sort();
+        const key = pair.join('|');
+        const directions = pairDirections.get(key) ?? new Set<string>();
+        directions.add(control.storedKeys[left] === pair[0] ? 'forward' : 'reverse');
+        pairDirections.set(key, directions);
+      }
+    }
+  }
+  const contradictoryPairs = [...pairDirections]
+    .filter(([, directions]) => directions.size > 1)
+    .map(([pair]) => pair);
+  const pairSourceRelations = new Map<string, Array<{
+    definitionId: number;
+    sourceDirection: string;
+    storedDirection: string;
+  }>>();
+  const classScopedPairDirections = new Map<string, Set<string>>();
+  for (const control of physicalStorageControls) {
+    const sourcePosition = new Map(control.sourceKeys.map((key, index) => [key, index]));
+    const className = normalize(control.selfName ?? '').split(':').at(-1) ?? '';
+    for (let left = 0; left < control.storedKeys.length; left++) {
+      for (let right = left + 1; right < control.storedKeys.length; right++) {
+        const lexicalPair = [control.storedKeys[left], control.storedKeys[right]].sort();
+        const pair = lexicalPair.join('|');
+        const storedDirection = control.storedKeys[left] === lexicalPair[0] ? 'forward' : 'reverse';
+        const sourceDirection = (sourcePosition.get(lexicalPair[0]) ?? -1) <
+          (sourcePosition.get(lexicalPair[1]) ?? -1) ? 'forward' : 'reverse';
+        const observations = pairSourceRelations.get(pair) ?? [];
+        observations.push({ definitionId: control.definitionId, sourceDirection, storedDirection });
+        pairSourceRelations.set(pair, observations);
+        const scopedDirections = classScopedPairDirections.get(`${className}|${pair}`) ?? new Set<string>();
+        scopedDirections.add(storedDirection);
+        classScopedPairDirections.set(`${className}|${pair}`, scopedDirections);
+      }
+    }
+  }
+  const contradictoryPairRelations = contradictoryPairs.map(pair => ({
+    pair,
+    observations: pairSourceRelations.get(pair) ?? []
+  }));
+  const contradictoryPairsSometimesPreservingSource = contradictoryPairRelations.filter(row =>
+    row.observations.some(observation => observation.sourceDirection === observation.storedDirection)
+  );
+  const contradictoryPairsAlwaysReversingSource = contradictoryPairRelations.filter(row =>
+    row.observations.every(observation => observation.sourceDirection !== observation.storedDirection)
+  );
+  const contradictoryClassScopedPairs = [...classScopedPairDirections]
+    .filter(([, directions]) => directions.size > 1)
+    .map(([pair]) => pair);
+  const storageSetGroups = new Map<string, typeof physicalStorageControls>();
+  for (const control of physicalStorageControls) {
+    const key = [...control.sourceKeys].sort().join('|');
+    const group = storageSetGroups.get(key) ?? [];
+    group.push(control);
+    storageSetGroups.set(key, group);
+  }
+  const repeatedStorageSets = [...storageSetGroups.values()].filter(group => group.length > 1);
+  const permutedSourceSets = repeatedStorageSets.filter(group =>
+    new Set(group.map(control => control.sourceKeys.join('|'))).size > 1
+  );
+  const contradictoryStoredSets = repeatedStorageSets.filter(group =>
+    new Set(group.map(control => control.storedKeys.join('|'))).size > 1
+  );
+  const nearSetPairs: Array<{
+    leftDefinitionId: number;
+    rightDefinitionId: number;
+    symmetricDifference: number;
+    commonKeys: string[];
+    leftCommonOrder: string[];
+    rightCommonOrder: string[];
+    stable: boolean;
+  }> = [];
+  for (let left = 0; left < physicalStorageControls.length; left++) {
+    for (let right = left + 1; right < physicalStorageControls.length; right++) {
+      const leftControl = physicalStorageControls[left];
+      const rightControl = physicalStorageControls[right];
+      const leftSet = new Set(leftControl.sourceKeys);
+      const rightSet = new Set(rightControl.sourceKeys);
+      const commonKeys = [...leftSet].filter(key => rightSet.has(key));
+      const symmetricDifference = leftControl.sourceKeys.filter(key => !rightSet.has(key)).length +
+        rightControl.sourceKeys.filter(key => !leftSet.has(key)).length;
+      if (commonKeys.length < 2 || symmetricDifference > 2) continue;
+      const commonSet = new Set(commonKeys);
+      const leftCommonOrder = leftControl.storedKeys.filter(key => commonSet.has(key));
+      const rightCommonOrder = rightControl.storedKeys.filter(key => commonSet.has(key));
+      nearSetPairs.push({
+        leftDefinitionId: leftControl.definitionId,
+        rightDefinitionId: rightControl.definitionId,
+        symmetricDifference,
+        commonKeys,
+        leftCommonOrder,
+        rightCommonOrder,
+        stable: leftCommonOrder.join('|') === rightCommonOrder.join('|')
+      });
+    }
+  }
+  const multiStorageControls = physicalStorageControls.filter(control => control.sourceKeys.length > 1);
+  const exactOrderMatches = (order: (control: typeof physicalStorageControls[number]) => string[]): number =>
+    multiStorageControls.filter(control => order(control).join('|') === control.storedKeys.join('|')).length;
+  const sourceIndex = (control: typeof physicalStorageControls[number]): Map<string, number> =>
+    new Map(control.sourceKeys.map((key, index) => [key, index]));
+  const sourceMemberByKey = (control: typeof physicalStorageControls[number]) =>
+    new Map(control.sourceMembers.map(member => [`${member.kind}:${normalize(member.name)}`, member]));
+  const compareWithSourceTie = (
+    control: typeof physicalStorageControls[number],
+    value: (key: string) => string | number,
+    direction: 1 | -1 = 1
+  ): string[] => {
+    const positions = sourceIndex(control);
+    return [...control.sourceKeys].sort((left, right) => {
+      const leftValue = value(left);
+      const rightValue = value(right);
+      const compared = typeof leftValue === 'number' && typeof rightValue === 'number'
+        ? leftValue - rightValue
+        : String(leftValue).localeCompare(String(rightValue));
+      return direction * compared || (positions.get(left)! - positions.get(right)!);
+    });
+  };
+  const deterministicCandidates = [
+    { name: 'source declaration order', order: (control: typeof physicalStorageControls[number]) => control.sourceKeys },
+    { name: 'reverse source declaration order', order: (control: typeof physicalStorageControls[number]) => [...control.sourceKeys].reverse() },
+    { name: 'lexical member key ascending', order: (control: typeof physicalStorageControls[number]) => compareWithSourceTie(control, key => key) },
+    { name: 'lexical member key descending', order: (control: typeof physicalStorageControls[number]) => compareWithSourceTie(control, key => key, -1) },
+    { name: 'property before instance', order: (control: typeof physicalStorageControls[number]) => compareWithSourceTie(control, key => key.startsWith('property:') ? 0 : 1) },
+    { name: 'instance before property', order: (control: typeof physicalStorageControls[number]) => compareWithSourceTie(control, key => key.startsWith('instance:') ? 0 : 1) },
+    { name: 'declared type ascending', order: (control: typeof physicalStorageControls[number]) => {
+      const members = sourceMemberByKey(control);
+      return compareWithSourceTie(control, key => normalize(members.get(key)?.type ?? ''));
+    } },
+    { name: 'property mode ascending', order: (control: typeof physicalStorageControls[number]) => {
+      const members = sourceMemberByKey(control);
+      return compareWithSourceTie(control, key => normalize(members.get(key)?.mode ?? ''));
+    } },
+    { name: 'first post-declaration source use', order: (control: typeof physicalStorageControls[number]) => {
+      const members = sourceMemberByKey(control);
+      return compareWithSourceTie(control, key => {
+        const offset = members.get(key)?.firstUseOffset ?? -1;
+        return offset < 0 ? Number.MAX_SAFE_INTEGER : offset;
+      });
+    } }
+  ].map(candidate => ({
+    name: candidate.name,
+    exact: exactOrderMatches(candidate.order),
+    population: multiStorageControls.length
+  }));
+  const hashFunctions = [
+    { name: 'java31', hash: hashJava31 },
+    { name: 'djb2', hash: hashDjb2 },
+    { name: 'sdbm', hash: hashSdbm },
+    { name: 'fnv1a', hash: hashFnv1a },
+    { name: 'elf', hash: hashElf }
+  ];
+  const hashSortCandidates = hashFunctions.flatMap(candidate => ([1, -1] as const).flatMap(direction =>
+    (['name', 'kind+name'] as const).map(representation => ({
+      name: `${candidate.name} ${representation} ${direction === 1 ? 'ascending' : 'descending'}`,
+      exact: exactOrderMatches(control => compareWithSourceTie(
+        control,
+        key => candidate.hash(representation === 'name' ? storageName(key) : key),
+        direction
+      )),
+      population: multiStorageControls.length
+    }))
+  ));
+  const bucketCandidates = hashFunctions.flatMap(candidate =>
+    [16, 32, 64, 128, 256, 512, 1024, 2048].flatMap(bucketCount =>
+      (['tail', 'head'] as const).map(chain => ({
+        name: `${candidate.name} ${bucketCount} buckets ${chain}-insert chains`,
+        exact: exactOrderMatches(control => {
+          const positions = sourceIndex(control);
+          return [...control.sourceKeys].sort((left, right) => {
+            const bucketDifference = candidate.hash(storageName(left)) % bucketCount -
+              candidate.hash(storageName(right)) % bucketCount;
+            if (bucketDifference !== 0) return bucketDifference;
+            const sourceDifference = positions.get(left)! - positions.get(right)!;
+            return chain === 'tail' ? sourceDifference : -sourceDifference;
+          });
+        }),
+        population: multiStorageControls.length
+      }))
+    )
+  );
+  const bestHashSortCandidates = [...hashSortCandidates]
+    .sort((left, right) => right.exact - left.exact || left.name.localeCompare(right.name)).slice(0, 5);
+  const bestBucketCandidates = [...bucketCandidates]
+    .sort((left, right) => right.exact - left.exact || left.name.localeCompare(right.name)).slice(0, 5);
+  const twoMemberControls = physicalStorageControls.filter(control => control.sourceKeys.length === 2);
+  const twoMemberDisposition = countBy(twoMemberControls, control =>
+    control.storedKeys.join('|') === control.sourceKeys.join('|') ? 'source' : 'reverse'
+  );
+  const twoMemberKindDisposition = countBy(twoMemberControls, control => {
+    const shape = control.sourceMembers.map(member => member.kind).sort().join('+');
+    const disposition = control.storedKeys.join('|') === control.sourceKeys.join('|') ? 'source' : 'reverse';
+    return `${shape}:${disposition}`;
+  });
+  const singletonStorageControls = physicalStorageControls.filter(control => control.sourceMembers.length === 1);
+  const singletonInstanceControls = singletonStorageControls.filter(control => control.sourceMembers[0].kind === 'instance');
+  const concreteSingletonInstanceControls = singletonInstanceControls.filter(control => {
+    const definition = byId.get(control.definitionId)!;
+    const parsed = parseApplicationClassSource(definition.sourceText)!;
+    const methods = parsed.members.filter(member => member.kind === 'method');
+    return parsed.unitKind === 'class' &&
+      methods.every(method => !method.abstract && method.implementationOrder >= 0) &&
+      parsed.implementations.every(implementation => implementation.kind === 'method');
+  });
+  let getterShapeChecks = 0;
+  let getterShapeMatches = 0;
+  let setterShapeChecks = 0;
+  let setterShapeMatches = 0;
+  for (const control of physicalStorageControls) {
+    const metadata: ParsedMetadata = {
+      names: control.storedNames,
+      records: control.allStoredRecords,
+      slots: control.storedSlots
+    };
+    const propertyRecords = new Map(control.allStoredRecords
+      .filter(record => record.kind === 'property')
+      .map(record => [normalize(record.name), record]));
+    for (const accessor of control.allStoredRecords) {
+      const property = propertyRecords.get(normalize(accessor.name));
+      if (!property) continue;
+      if (accessor.kind === 'getter') {
+        getterShapeChecks++;
+        if (accessor.low === 0 && descriptorShape(accessor.descriptor, metadata) === descriptorShape(property.descriptor, metadata) &&
+            control.storedSlots[accessor.signatureSlotOffset] === 7) getterShapeMatches++;
+      } else if (accessor.kind === 'setter') {
+        setterShapeChecks++;
+        if (accessor.low === 1 && accessor.descriptor === 7 &&
+            descriptorShape(control.storedSlots[accessor.signatureSlotOffset], metadata) === descriptorShape(property.descriptor, metadata) &&
+            control.storedSlots[accessor.signatureSlotOffset + 1] === 7) setterShapeMatches++;
+      }
+    }
+  }
+  const currentShaById = new Map<number, string>();
+  if (baseline !== undefined) {
+    for (const definition of definitions) {
+      if (!baseline.get(definition.definitionId)?.sourceEncodeSuccess) continue;
+      const program = encodeProgramArtifacts(definition.sourceText, { owner: ownerContext(definition) }).program;
+      currentShaById.set(definition.definitionId, createHash('sha256').update(program).digest('hex'));
+    }
+  }
+  const changedIds = baseline === undefined ? [] : [...currentShaById]
+    .filter(([definitionId, sha]) => baseline.get(definitionId)?.generatedSha256 !== sha)
+    .map(([definitionId]) => definitionId)
+    .sort((a, b) => a - b);
+  const unchangedIds = baseline === undefined ? [] : [...currentShaById]
+    .filter(([definitionId, sha]) => baseline.get(definitionId)?.generatedSha256 === sha)
+    .map(([definitionId]) => definitionId)
+    .sort((a, b) => a - b);
+  const singletonInstanceCurrentControls = singletonInstanceControls.flatMap(control => {
+    if (!currentShaById.has(control.definitionId)) return [];
+    const definition = byId.get(control.definitionId)!;
+    const generatedProgram = encodeProgramArtifacts(definition.sourceText, { owner: ownerContext(definition) }).program;
+    const generatedMetadata = parseMetadata(generatedProgram);
+    const storedMetadata = parseMetadata(definition.storedProgram);
+    return [{
+      definitionId: control.definitionId,
+      changed: baseline?.get(control.definitionId)?.generatedSha256 !== currentShaById.get(control.definitionId),
+      programExact: generatedProgram.equals(definition.storedProgram),
+      namesExact: sectionBytes(generatedProgram, 'names').equals(sectionBytes(definition.storedProgram, 'names')),
+      recordsExact: sectionBytes(generatedProgram, 'records').equals(sectionBytes(definition.storedProgram, 'records')),
+      slotsExact: sectionBytes(generatedProgram, 'slots').equals(sectionBytes(definition.storedProgram, 'slots')),
+      recordedNamePrefixExact: firstDifference(
+        storedMetadata.names.slice(0, 2),
+        generatedMetadata.names.slice(0, 2),
+        (left, right) => left.text === right.text && left.charOffset === right.charOffset
+      ) < 0,
+      instanceRecordExact: sectionBytes(generatedProgram, 'records').subarray(16, 32)
+        .equals(sectionBytes(definition.storedProgram, 'records').subarray(16, 32))
+    }];
+  });
+  const cycle31Rows = rows.filter(row => row.currentOutcome === 'names metadata');
+  if (baseline !== undefined && cycle31Rows.length !== 25) {
+    throw new Error(`Expected 25 Cycle 31 names-metadata roots, received ${cycle31Rows.length}.`);
+  }
+  const cycle31TargetIds = cycle31Rows.map(row => row.definitionId);
+  const targetIdSet = new Set(cycle31TargetIds);
+  const cycle31PhysicalControls = physicalStorageControls.filter(control => targetIdSet.has(control.definitionId));
+  const cycle31SetGroups = new Map<string, typeof cycle31PhysicalControls>();
+  for (const control of cycle31PhysicalControls) {
+    const key = [...control.sourceKeys].sort().join('|');
+    const group = cycle31SetGroups.get(key) ?? [];
+    group.push(control);
+    cycle31SetGroups.set(key, group);
+  }
+  const cycle31RepeatedSetGroups = [...cycle31SetGroups.values()].filter(group => group.length > 1);
+
+  const report = {
+    reproduction: {
+      cycle27DirectRoots: cycle28.cycle28Validation.cycle27DirectRoots,
+      cycle29NamesMetadataRoots: targetIds.length,
+      cycle29DefinitionIds: targetIds,
+      cycle31NamesMetadataRoots: cycle31Rows.length,
+      cycle31DefinitionIds: cycle31TargetIds
+    },
+    families: countBy(rows, row => row.family),
+    sourceShapes: countBy(rows, row => row.sourceShape),
+    sourceMemberKinds: countBy(rows.flatMap(row => row.sourceMembers), member => member.kind),
+    recordCounts: countBy(rows, row => `${row.storedRecords.length} stored / ${row.generatedRecords.length} generated`),
+    typeSuffixCounts: countBy(rows, row => `${row.storedTypeSuffix.length} stored / ${row.generatedTypeSuffix.length} generated`),
+    externalReferenceStreams: countBy(rows, row => row.externalReferenceDifference < 0 ? 'exact' : 'different'),
+    currentOutcomes: countBy(rows, row => row.currentOutcome),
+    cycle31Targets: {
+      population: cycle31Rows.length,
+      storageMemberCounts: countBy(cycle31Rows, row => String(row.sourceMembers.filter(member =>
+        member.kind === 'property' || member.kind === 'instance'
+      ).length)),
+      storageKindShapes: countBy(cycle31Rows, row => row.sourceMembers
+        .filter(member => member.kind === 'property' || member.kind === 'instance')
+        .map(member => member.kind).sort().join('+')),
+      repeatedMemberSetGroups: cycle31RepeatedSetGroups.length,
+      repeatedMemberSetDefinitions: cycle31RepeatedSetGroups.reduce((sum, group) => sum + group.length, 0),
+      repeatedMemberSetsWithStoredContradiction: cycle31RepeatedSetGroups.filter(group =>
+        new Set(group.map(control => control.storedKeys.join('|'))).size > 1
+      ).length,
+      repeatedMemberSetRows: process.argv.includes('--json') ? cycle31RepeatedSetGroups : undefined,
+      rows: process.argv.includes('--json') ? cycle31Rows : undefined
+    },
+    blastRadius: baseline === undefined ? undefined : {
+      baselineRunId,
+      sourceEncodableApplicationClasses: currentShaById.size,
+      generatedShaChanges: changedIds.length,
+      changedTargets: changedIds.filter(id => targetIdSet.has(id)).length,
+      changedBeyondTargets: changedIds.filter(id => !targetIdSet.has(id)).length,
+      unchangedDefinitions: unchangedIds.length,
+      changedDefinitionIds: process.argv.includes('--json') ? changedIds : undefined,
+      unchangedDefinitionIds: process.argv.includes('--json') ? unchangedIds : undefined
+    },
+    concreteMethodMetadataModel: {
+      population: concreteMethodControls.length,
+      recordedNamesMatch: concreteMethodControls.filter(row => row.recordedNamesMatch).length,
+      recordedNamesContradictions: concreteMethodControls.filter(row => !row.recordedNamesMatch).length,
+      typeSuffixMatches: concreteMethodControls.filter(row => row.typeSuffixMatches).length,
+      typeSuffixContradictions: concreteMethodControls.filter(row => !row.typeSuffixMatches).length,
+      contradictionRows: process.argv.includes('--json')
+        ? concreteMethodControls.filter(row => !row.recordedNamesMatch || !row.typeSuffixMatches)
+        : undefined
+    },
+    storedTypeAllocationOrder: {
+      population: allocationOrderControls.length,
+      exact: allocationOrderControls.filter(row => row.exact).length,
+      contradictions: allocationOrderControls.filter(row => !row.exact).length,
+      suffixEntries: allocationOrderControls.reduce((sum, row) => sum + row.suffixOffsets.length, 0),
+      contradictionRows: process.argv.includes('--json')
+        ? allocationOrderControls.filter(row => !row.exact)
+        : undefined
+    },
+    physicalDirectoryOrder: {
+      completeStoragePopulations: physicalStorageControls.length,
+      multiStoragePopulations: physicalStorageControls.filter(row => row.sourceKeys.length > 1).length,
+      sourceOrderMatches: physicalStorageControls.filter(row => row.sourceKeys.join('|') === row.storedKeys.join('|')).length,
+      phaseOrderMatches: physicalStorageControls.filter(row => row.phaseOrderExact).length,
+      callableImplementationOrderMatches: physicalStorageControls.filter(row => row.callableImplementationOrderExact).length,
+      observedStoragePairs: pairDirections.size,
+      contradictoryPairDirections: contradictoryPairs.length,
+      contradictoryPairsSometimesPreservingSource: contradictoryPairsSometimesPreservingSource.length,
+      contradictoryPairsAlwaysReversingSource: contradictoryPairsAlwaysReversingSource.length,
+      classNameScopedPairContradictions: contradictoryClassScopedPairs.length,
+      repeatedStorageMemberSets: repeatedStorageSets.length,
+      repeatedSetsWithSourcePermutation: permutedSourceSets.length,
+      repeatedSetsWithStoredOrderContradiction: contradictoryStoredSets.length,
+      nearIdenticalSetPairs: nearSetPairs.length,
+      nearIdenticalSetPairsWithStableCommonOrder: nearSetPairs.filter(row => row.stable).length,
+      twoMemberDisposition,
+      twoMemberKindDisposition,
+      deterministicCandidates,
+      bestHashSortCandidates,
+      bestBucketCandidates,
+      singletonStoragePopulations: singletonStorageControls.length,
+      singletonInstancePopulations: singletonInstanceControls.length,
+      concreteSingletonInstancePopulations: concreteSingletonInstanceControls.length,
+      singletonInstanceRecordOrderMatches: singletonInstanceControls.filter(row =>
+        row.allStoredRecords[0]?.kind === 'self' && row.allStoredRecords[1]?.kind === 'instance'
+      ).length,
+      reachableSingletonInstances: singletonInstanceCurrentControls.length,
+      changedReachableSingletonInstances: singletonInstanceCurrentControls.filter(row => row.changed).length,
+      programExactSingletonInstances: singletonInstanceCurrentControls.filter(row => row.programExact).length,
+      namesExactSingletonInstances: singletonInstanceCurrentControls.filter(row => row.namesExact).length,
+      recordsExactSingletonInstances: singletonInstanceCurrentControls.filter(row => row.recordsExact).length,
+      slotsExactSingletonInstances: singletonInstanceCurrentControls.filter(row => row.slotsExact).length,
+      recordedNamePrefixExactSingletonInstances: singletonInstanceCurrentControls.filter(row => row.recordedNamePrefixExact).length,
+      instanceRecordExactSingletonInstances: singletonInstanceCurrentControls.filter(row => row.instanceRecordExact).length,
+      getterShapeChecks,
+      getterShapeMatches,
+      setterShapeChecks,
+      setterShapeMatches,
+      contradictoryPairs: process.argv.includes('--json') ? contradictoryPairs : undefined,
+      contradictoryPairRelations: process.argv.includes('--json') ? contradictoryPairRelations : undefined,
+      contradictoryClassScopedPairs: process.argv.includes('--json') ? contradictoryClassScopedPairs : undefined,
+      permutedSourceSetRows: process.argv.includes('--json') ? permutedSourceSets : undefined,
+      contradictoryStoredSetRows: process.argv.includes('--json') ? contradictoryStoredSets : undefined,
+      nearSetPairs: process.argv.includes('--json') ? nearSetPairs : undefined,
+      singletonInstanceCurrentControls: process.argv.includes('--json') ? singletonInstanceCurrentControls : undefined,
+      controls: process.argv.includes('--json') ? physicalStorageControls : undefined
+    },
+    rows: process.argv.includes('--json') ? rows : undefined
+  };
+  console.log(JSON.stringify(report, null, 2));
+}
+
+main();

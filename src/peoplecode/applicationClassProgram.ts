@@ -164,6 +164,86 @@ export interface ApplicationClassProgram {
   unitHeaderEnd: number;
   unitCloseStart: number;
   unitEnd: number;
+  /**
+   * Cycle 27/28: every active source `;` owned by the unit header or member
+   * declaration stream, in absolute source order. Comments and quoted text are
+   * masked before collecting these offsets; multiplicity is intentionally
+   * preserved.
+   */
+  declarationTerminatorOffsets: number[];
+}
+
+function maskApplicationClassTerminatorNonCode(source: string): string {
+  const chars = source.split('');
+  let index = 0;
+  while (index < chars.length) {
+    const pair = `${source[index] ?? ''}${source[index + 1] ?? ''}`;
+    if (pair === '/*' || pair === '<*' || pair === '/+') {
+      const close = pair === '/*' ? '*/' : pair === '<*' ? '*>' : '+/';
+      chars[index++] = ' ';
+      chars[index++] = ' ';
+      while (index < chars.length && `${source[index]}${source[index + 1] ?? ''}` !== close) {
+        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+        index++;
+      }
+      if (index < chars.length) chars[index++] = ' ';
+      if (index < chars.length) chars[index++] = ' ';
+      continue;
+    }
+    if (pair === '//') {
+      while (index < chars.length && chars[index] !== '\n') chars[index++] = ' ';
+      continue;
+    }
+    if (
+      source.slice(index, index + 3).toLowerCase() === 'rem' &&
+      (index === 0 || !/[A-Za-z0-9_%&]/.test(source[index - 1])) &&
+      !/[A-Za-z0-9_%&]/.test(source[index + 3] ?? '')
+    ) {
+      while (index < chars.length && chars[index] !== ';') {
+        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+        index++;
+      }
+      if (index < chars.length) chars[index++] = ' ';
+      continue;
+    }
+    if (chars[index] === '"') {
+      chars[index++] = ' ';
+      while (index < chars.length) {
+        if (chars[index] === '"') {
+          chars[index++] = ' ';
+          if (chars[index] === '"') {
+            chars[index++] = ' ';
+            continue;
+          }
+          break;
+        }
+        if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+        index++;
+      }
+      continue;
+    }
+    index++;
+  }
+  return chars.join('');
+}
+
+/** Absolute offsets of source-owned Application Class terminators. */
+export function applicationClassTerminatorOffsets(
+  source: string,
+  start = 0,
+  end = source.length
+): number[] {
+  const masked = maskApplicationClassTerminatorNonCode(source.slice(start, end));
+  const offsets: number[] = [];
+  for (let index = 0; index < masked.length; index++) {
+    if (masked[index] === ';') offsets.push(start + index);
+  }
+  return offsets;
+}
+
+/** Whether the last non-comment source token in a body is an explicit `;`. */
+export function applicationClassHasTrailingSourceTerminator(source: string): boolean {
+  return maskApplicationClassTerminatorNonCode(source).trimEnd().endsWith(';');
 }
 
 function normalizeTypeName(value: string): string {
@@ -595,8 +675,8 @@ export function parseApplicationClassSource(
     unitKind, className: unitStartMatch[2], extendsType,
     implementsType: implementsTypes[0], members, statements,
     implementations: implementations.map(({ localIndex: _localIndex, fullEnd: _fullEnd, ...implementation }) => implementation),
-    unitStart, unitHeaderTerminatorCount, unitHeaderEnd,
-    unitCloseStart: unitRegionEnd, unitEnd
+    unitStart, unitHeaderEnd, unitCloseStart: unitRegionEnd, unitEnd,
+    declarationTerminatorOffsets: applicationClassTerminatorOffsets(source, unitStart, unitRegionEnd)
   };
 }
 

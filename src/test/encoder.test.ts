@@ -4,6 +4,7 @@ import { decodeProgram } from '../peoplecode/decoder.js';
 import { NameTable } from '../peoplecode/progtext.js';
 import { ProgramImage, compareBytes } from '../peoplecode/programImage.js';
 import { readProgramLayout } from '../peoplecode/programLayout.js';
+import { APPLICATION_CLASS_FLAGS } from '../peoplecode/applicationClassProgram.js';
 import { ACTIVATE_BYTES } from './fixtures/compiledPeopleCode.js';
 import { protectedCorpusRegressions } from './fixtures/protectedCorpusRegressions.js';
 import {
@@ -1939,6 +1940,99 @@ end-method;`);
   assert.deepStrictEqual(uses, [1, 1]);
 });
 
+test('Application Class fragments share one prior-fragment reference identity', () => {
+  const uses: number[] = [];
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method First();
+   method Second();
+end-class;
+
+method First
+   TEST_REC.TEST_FIELD.Value = 1;
+end-method;
+
+method Second
+   TEST_REC.TEST_FIELD.Value = 2;
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    },
+    referenceTrace: event => {
+      if (event.action === 'USE' && event.reference.kind === 'record-field') {
+        uses.push(event.reference.index);
+      }
+    }
+  });
+
+  assert.deepStrictEqual(encoded.references, [
+    { index: 0, sequence: 1, kind: 'owner', recordName: undefined, fieldName: undefined },
+    { index: 1, sequence: 2, kind: 'record-field', recordName: 'TEST_REC', fieldName: 'TEST_FIELD' }
+  ]);
+  assert.deepStrictEqual(uses, [1, 1]);
+});
+
+test('Application Class shared scope preserves fresh identities across local control groups', () => {
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+end-class;
+
+method Run
+   If True Then
+      TEST_REC.TEST_FIELD.Value = 1;
+   End-If;
+   If False Then
+      TEST_REC.TEST_FIELD.Value = 2;
+   End-If;
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  assert.deepStrictEqual(encoded.references, [
+    { index: 0, sequence: 1, kind: 'owner', recordName: undefined, fieldName: undefined },
+    { index: 1, sequence: 2, kind: 'record-field', recordName: 'TEST_REC', fieldName: 'TEST_FIELD' },
+    { index: 2, sequence: 3, kind: 'record-field', recordName: 'TEST_REC', fieldName: 'TEST_FIELD' }
+  ]);
+});
+
+test('Application Class import and one declaration dependency allocate before bodies', () => {
+  const encoded = encodeProgramArtifacts(`import PKG:ImportedClass;
+
+class ReferenceTest
+   method Run(&message As Message);
+end-class;
+
+method Run
+   Local PKG:ImportedClass &value = create PKG:ImportedClass();
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  assert.deepStrictEqual(encoded.references, [
+    { index: 0, sequence: 1, kind: 'owner', recordName: undefined, fieldName: undefined },
+    {
+      index: 1,
+      sequence: 2,
+      kind: 'package',
+      packageName: 'IMPORTEDCLASS',
+      objectName: 'PKG',
+      packagePath: ['PKG'],
+      className: 'IMPORTEDCLASS',
+      methodName: undefined
+    },
+    { index: 2, sequence: 3, kind: 'package', packageName: 'MESSAGE', objectName: 'Message' }
+  ]);
+});
+
 test('HTML.NAME is recognized outside GetHTMLText calls', () => {
   const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
 Local any &content;
@@ -2502,158 +2596,118 @@ const appClassStatements = (source: string) => {
   );
 };
 
-test('Application Class header preserves one explicit source semicolon', () => {
-  assert.deepStrictEqual(appClassStatements('class Demo;\nend-class;'), Buffer.concat([
-    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'),
-    Buffer.from([0x15, 0x5b, 0x15, 0x2d, 0x07])
-  ]));
+const appClassMetadata = (source: string, packagePath?: string[]) => {
+  const program = encodeProgramArtifacts(source, packagePath === undefined ? undefined : {
+    owner: {
+      recordName: packagePath[0] ?? '',
+      fieldName: packagePath[1] ?? '',
+      packagePath
+    }
+  }).program;
+  const layout = readProgramLayout(program);
+  const names: Array<{ text: string; charOffset: number }> = [];
+  let offset = layout.names.offset;
+  const namesEnd = offset + layout.names.byteLength;
+  while (offset < namesEnd) {
+    let end = offset;
+    while (program.readUInt16LE(end) !== 0) end += 2;
+    names.push({
+      text: program.toString('utf16le', offset, end),
+      charOffset: (offset - layout.names.offset) / 2
+    });
+    offset = end + 2;
+  }
+  const records = Array.from({ length: layout.recordCount }, (_, index) => {
+    const base = layout.records.offset + index * 16;
+    const attributesAndCount = program.readUInt32LE(base + 8);
+    return {
+      nameOffset: program.readUInt32LE(base),
+      signatureSlotOffset: program.readUInt32LE(base + 4),
+      flags: attributesAndCount & 0xffff0000,
+      low: attributesAndCount & 0xffff,
+      descriptor: program.readUInt32LE(base + 12)
+    };
+  });
+  const slots = Array.from({ length: layout.slotCount }, (_, index) =>
+    program.readUInt32LE(layout.slots.offset + index * 4)
+  );
+  return { names, records, slots };
+};
+
+test('Application Class metadata uses the owner path as the self name exactly once', () => {
+  assert.deepStrictEqual(
+    appClassMetadata('class Demo\nend-class;', ['PKG', 'Demo']).names.map(name => name.text),
+    ['PKG:Demo']
+  );
+  assert.deepStrictEqual(
+    appClassMetadata('class Demo\nend-class;').names.map(name => name.text),
+    ['Demo']
+  );
 });
 
-test('Application Class header omits a terminator when source omits it', () => {
-  assert.deepStrictEqual(appClassStatements('class Demo\nend-class;'), Buffer.concat([
-    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'),
-    Buffer.from([0x5b, 0x15, 0x2d, 0x07])
-  ]));
-});
-
-test('Application Class method declaration preserves repeated source semicolons', () => {
-  assert.deepStrictEqual(appClassStatements('class Demo\n method Run();;\nend-class;'), Buffer.concat([
-    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x63]),
-    appClassText(0x0a, 'Run'), Buffer.from([0x0b, 0x14, 0x15, 0x15, 0x5b, 0x15, 0x2d, 0x07])
-  ]));
-});
-
-test('Application Class constructor declaration preserves repeated source semicolons', () => {
-  assert.deepStrictEqual(appClassStatements('class Demo\n method Demo();;\nend-class;'), Buffer.concat([
-    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x63]),
-    appClassText(0x0a, 'Demo'), Buffer.from([0x0b, 0x14, 0x15, 0x15, 0x5b, 0x15, 0x2d, 0x07])
-  ]));
-});
-
-test('Application Class property declaration preserves repeated source semicolons', () => {
-  assert.deepStrictEqual(appClassStatements('class Demo\n property string Name;;\nend-class;'), Buffer.concat([
-    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x5e]),
-    appClassText(0x40, 'string'), appClassText(0x0a, 'Name'),
-    Buffer.from([0x15, 0x15, 0x5b, 0x15, 0x2d, 0x07])
-  ]));
-});
-
-test('Application Class grouped instance preserves repeated source semicolons', () => {
-  assert.deepStrictEqual(appClassStatements('class Demo\n instance Row &one, &two;;\nend-class;'), Buffer.concat([
-    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x62]),
-    appClassText(0x0a, 'Row'), appClassText(0x01, '&one'), Buffer.from([0x03]),
-    appClassText(0x01, '&two'), Buffer.from([0x15, 0x15, 0x5b, 0x15, 0x2d, 0x07])
-  ]));
-});
-
-test('Application Class final instance can omit its source semicolon', () => {
-  assert.deepStrictEqual(appClassStatements('class Demo\n instance Row &only\nend-class;'), Buffer.concat([
-    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x62]),
-    appClassText(0x0a, 'Row'), appClassText(0x01, '&only'),
-    Buffer.from([0x5b, 0x15, 0x2d, 0x07])
-  ]));
-});
-
-test('Application Class constant preserves repeated source semicolons', () => {
-  assert.deepStrictEqual(appClassStatements('class Demo\n constant &N = 1;;\nend-class;'), Buffer.concat([
-    Buffer.from([0x5a]), appClassText(0x0a, 'Demo'), Buffer.from([0x56]),
-    appClassText(0x01, '&N'), Buffer.from([0x06]),
-    Buffer.from('50000001000000000000000000000000000000', 'hex'),
-    Buffer.from([0x15, 0x15, 0x5b, 0x15, 0x2d, 0x07])
-  ]));
-});
-
-test('Application Class interface method preserves explicit source semicolon count', () => {
-  assert.deepStrictEqual(appClassStatements('interface Demo;\n method Run() abstract;;\nend-interface;'), Buffer.concat([
-    Buffer.from([0x70]), appClassText(0x0a, 'Demo'), Buffer.from([0x15, 0x63]),
-    appClassText(0x0a, 'Run'), Buffer.from([0x0b, 0x14, 0x6f, 0x15, 0x15, 0x71, 0x15, 0x2d, 0x07])
-  ]));
-});
-
-test('Application Class declaration semicolon count is unaffected by a trailing comment', () => {
-  const statements = appClassStatements('class Demo\n property string Name;; /* tail */\nend-class;');
-  const declaration = Buffer.concat([
-    Buffer.from([0x5e]), appClassText(0x40, 'string'), appClassText(0x0a, 'Name'), Buffer.from([0x15, 0x15])
+test('Application Class type names follow record descriptors before declaration-order slots', () => {
+  const metadata = appClassMetadata(`class Demo extends PKG:Base
+method A(&a As PKG:ParamA) Returns PKG:ReturnA;
+method B(&b As PKG:ParamB) Returns PKG:ReturnB;
+end-class;
+method B
+end-method;
+method A
+end-method;`, ['ROOT', 'Demo']);
+  assert.deepStrictEqual(metadata.names.map(name => name.text), [
+    'ROOT:Demo', 'B', 'A',
+    'PKG:Base', 'PKG:ReturnB', 'PKG:ReturnA',
+    'PKG:ParamA', 'PKG:ParamB'
   ]);
-  assert.notEqual(statements.indexOf(declaration), -1);
+  const offsets = new Map(metadata.names.map(name => [name.text, name.charOffset]));
+  const descriptor = (name: string) => 0x80000 | (0x100 + offsets.get(name)!);
+  assert.deepStrictEqual(
+    metadata.records.map(record => record.descriptor),
+    [descriptor('PKG:Base'), descriptor('PKG:ReturnB'), descriptor('PKG:ReturnA')]
+  );
+  assert.deepStrictEqual(
+    metadata.slots,
+    [descriptor('PKG:ParamA'), 7, descriptor('PKG:ParamB'), 7]
+  );
 });
 
-test('Application Class declaration semicolon count is unaffected by blank lines', () => {
-  const statements = appClassStatements('class Demo\n property string Name;;\n\nend-class;');
-  const declaration = Buffer.concat([
-    Buffer.from([0x5e]), appClassText(0x40, 'string'), appClassText(0x0a, 'Name'), Buffer.from([0x15, 0x15, 0x4f])
+test('Application Class metadata emits the proven singleton instance directory phase', () => {
+  const metadata = appClassMetadata(`class Demo
+instance PKG:State &state;
+method Run();
+end-class;
+method Run
+end-method;`, ['ROOT', 'Demo']);
+  assert.deepStrictEqual(metadata.names.map(name => name.text), [
+    'ROOT:Demo', 'state', 'Run', 'PKG:State'
   ]);
-  assert.notEqual(statements.indexOf(declaration), -1);
+  const stateOffset = metadata.names.find(name => name.text === 'PKG:State')!.charOffset;
+  assert.deepStrictEqual(metadata.records, [
+    { nameOffset: 0, signatureSlotOffset: 0, flags: APPLICATION_CLASS_FLAGS.self, low: 0, descriptor: 7 },
+    {
+      nameOffset: 'ROOT:Demo'.length + 1,
+      signatureSlotOffset: 0,
+      flags: APPLICATION_CLASS_FLAGS.private | APPLICATION_CLASS_FLAGS.property | APPLICATION_CLASS_FLAGS.storage,
+      low: 0,
+      descriptor: 0x80000 | (0x100 + stateOffset)
+    },
+    {
+      nameOffset: 'ROOT:Demo'.length + 1 + 'state'.length + 1,
+      signatureSlotOffset: 0,
+      flags: 0,
+      low: 0,
+      descriptor: 7
+    }
+  ]);
+  assert.deepStrictEqual(metadata.slots, [7]);
 });
 
-test('Application Class body without a final source semicolon drops parser-only 0x15', () => {
-  const statements = appClassStatements(`class Demo
- property string Name;
- method Run();
-end-class;
-method Run
- &value = 1
-end-method;`);
-  const closer = statements.indexOf(Buffer.from([0x64, 0x15, 0x2d]));
-  assert.ok(closer > 0);
-  assert.notEqual(statements[closer - 1], 0x15);
-});
-
-test('Application Class body with a final source semicolon preserves exactly one body 0x15', () => {
-  const statements = appClassStatements(`class Demo
- property string Name;
- method Run();
-end-class;
-method Run
- &value = 1;
-end-method;`);
-  const closer = statements.indexOf(Buffer.from([0x64, 0x15, 0x2d]));
-  assert.ok(closer > 0);
-  assert.equal(statements[closer - 1], 0x15);
-  assert.notEqual(statements[closer - 2], 0x15);
-});
-
-test('Application Class trailing body comment does not create a synthetic semicolon', () => {
-  const statements = appClassStatements(`class Demo
- property string Name;
- method Run();
-end-class;
-method Run
- &value = 1
- /* tail */
-end-method;`);
-  const closer = statements.indexOf(Buffer.from([0x64, 0x15, 0x2d]));
-  assert.ok(closer > 0);
-  assert.notEqual(statements[closer - 1], 0x15);
-});
-
-test('Application Class trailing comment preserves an existing final statement semicolon', () => {
-  const statements = appClassStatements(`class Demo
- property string Name;
- method Run();
-end-class;
-method Run
- &value = 1;
- /* tail */
-end-method;`);
-  const closer = statements.indexOf(Buffer.from([0x64, 0x15, 0x2d]));
-  assert.ok(closer > 0);
-  const prefix = statements.subarray(0, closer);
-  assert.ok(prefix.lastIndexOf(0x15) >= 0);
-});
-
-test('Application Class body trailing blank lines keep 0x4F independent from source semicolon accounting', () => {
-  const statements = appClassStatements(`class Demo
- property string Name;
- method Run();
-end-class;
-method Run
- &value = 1;
-
-end-method;`);
-  const closer = statements.indexOf(Buffer.from([0x64, 0x15, 0x2d]));
-  assert.ok(closer > 1);
-  assert.equal(statements[closer - 1], 0x4f);
+test('Application Class metadata leaves multi-instance physical order unresolved', () => {
+  const metadata = appClassMetadata(`class Demo
+instance Row &first, &second;
+end-class;`);
+  assert.deepStrictEqual(metadata.names.map(name => name.text), ['Demo']);
+  assert.equal(metadata.records.length, 1);
 });
 
 test('Application Class statement encoding emits a simple class header', () => {
@@ -2876,7 +2930,7 @@ method Run
 end-method;`);
   assert.equal(actual.includes(Buffer.concat([
     Buffer.from([0x63, 0x41]), appClassText(0x0a, 'Run'), Buffer.from([0x2d, 0x4f]),
-    appClassComment(0x24, '/* only */'), Buffer.from([0x15, 0x4f, 0x64, 0x15, 0x2d, 0x07])
+    appClassComment(0x24, '/* only */'), Buffer.from([0x4f, 0x64, 0x15, 0x2d, 0x07])
   ])), true);
 });
 
@@ -2996,6 +3050,143 @@ test('Application Class interface layout uses the same comment and gap rules', (
       appClassText(0x0a, 'Run'), Buffer.from([0x0b, 0x14, 0x6f, 0x15, 0x71, 0x15, 0x2d, 0x07])
     ])
   );
+});
+
+test('Application Class unit headers preserve an explicit source semicolon', () => {
+  assert.deepStrictEqual(
+    appClassStatements('class Demo;\nend-class;'),
+    Buffer.concat([
+      Buffer.from([0x5a]), appClassText(0x0a, 'Demo'),
+      Buffer.from([0x15, 0x5b, 0x15, 0x2d, 0x07])
+    ])
+  );
+});
+
+test('Application Class method declarations may omit their source semicolon', () => {
+  const actual = appClassStatements('class Demo\nmethod Run()\nend-class;');
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x63]), appClassText(0x0a, 'Run'),
+    Buffer.from([0x0b, 0x14, 0x5b, 0x15])
+  ])), true);
+});
+
+test('Application Class final instance declarations may omit their source semicolon', () => {
+  const actual = appClassStatements('class Demo\ninstance Row &row\nend-class;');
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x62]), appClassText(0x0a, 'Row'), appClassText(0x01, '&row'),
+    Buffer.from([0x5b, 0x15])
+  ])), true);
+});
+
+test('Application Class final instance declarations preserve an explicit semicolon', () => {
+  const actual = appClassStatements('class Demo\ninstance Row &row;\nend-class;');
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x62]), appClassText(0x0a, 'Row'), appClassText(0x01, '&row'),
+    Buffer.from([0x15, 0x5b, 0x15])
+  ])), true);
+});
+
+test('Application Class method declarations preserve their explicit semicolon', () => {
+  const actual = appClassStatements('class Demo\nmethod Run();\nend-class;');
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x63]), appClassText(0x0a, 'Run'),
+    Buffer.from([0x0b, 0x14, 0x15, 0x5b])
+  ])), true);
+});
+
+test('Application Class property declarations preserve their explicit semicolon', () => {
+  const actual = appClassStatements('class Demo\nproperty string Name;\nend-class;');
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x5e]), appClassText(0x40, 'string'), appClassText(0x0a, 'Name'),
+    Buffer.from([0x15, 0x5b])
+  ])), true);
+});
+
+test('Application Class constant declarations preserve their explicit semicolon', () => {
+  const actual = appClassStatements('class Demo\nconstant &Value = "x";\nend-class;');
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x56]), appClassText(0x01, '&Value'), Buffer.from([0x06]),
+    appClassText(0x16, 'x'), Buffer.from([0x15, 0x5b])
+  ])), true);
+});
+
+test('Application Class abstract interface declarations preserve their explicit semicolon', () => {
+  const actual = appClassStatements('interface Demo\nmethod Run() abstract;\nend-interface;');
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x63]), appClassText(0x0a, 'Run'),
+    Buffer.from([0x0b, 0x14, 0x6f, 0x15, 0x71])
+  ])), true);
+});
+
+test('Application Class constructor declarations use the same source-semicolon rule', () => {
+  const actual = appClassStatements('class Demo\nmethod Demo()\nend-class;');
+  assert.equal(actual.includes(Buffer.concat([
+    Buffer.from([0x63]), appClassText(0x0a, 'Demo'),
+    Buffer.from([0x0b, 0x14, 0x5b])
+  ])), true);
+});
+
+test('Application Class comments before the unit closer do not imply a declaration terminator', () => {
+  const actual = appClassStatements(`class Demo
+instance Row &row
+/* tail */
+end-class;`);
+  assert.equal(actual.includes(Buffer.concat([
+    appClassText(0x01, '&row'), appClassComment(0x24, '/* tail */'),
+    Buffer.from([0x5b, 0x15])
+  ])), true);
+});
+
+test('Application Class blank lines before the unit closer emit layout only, not a terminator', () => {
+  const actual = appClassStatements(`class Demo
+instance Row &row
+
+end-class;`);
+  assert.equal(actual.includes(Buffer.concat([
+    appClassText(0x01, '&row'), Buffer.from([0x4f, 0x5b, 0x15])
+  ])), true);
+});
+
+test('Application Class bodies preserve a real trailing source semicolon', () => {
+  const actual = appClassStatements(`class Demo
+method Run();
+end-class;
+method Run
+Return;
+end-method;`);
+  assert.equal(actual.includes(Buffer.from([0x2d, 0x38, 0x15, 0x64, 0x15, 0x2d])), true);
+});
+
+test('Application Class bodies remove only their parser-synthetic terminator', () => {
+  const actual = appClassStatements(`class Demo
+method Run();
+end-class;
+method Run
+Return
+end-method;`);
+  assert.equal(actual.includes(Buffer.from([0x2d, 0x38, 0x64, 0x15, 0x2d])), true);
+  assert.equal(actual.includes(Buffer.from([0x2d, 0x38, 0x15, 0x64])), false);
+});
+
+test('Application Class declarations preserve repeated explicit semicolons', () => {
+  const actual = appClassStatements('class Demo\nmethod Run();;\nend-class;');
+  assert.equal(actual.includes(Buffer.concat([
+    appClassText(0x0a, 'Run'), Buffer.from([0x0b, 0x14, 0x15, 0x15, 0x5b])
+  ])), true);
+});
+
+test('Application Class repeated-semicolon controls retain the independent layout residual', () => {
+  const actual = appClassStatements(`class Demo
+instance Row &row; /* inline */;
+
+
+end-class;`);
+  const expected = Buffer.concat([
+    appClassText(0x01, '&row'), Buffer.from([0x15]),
+    appClassComment(0x4e, '/* inline */'), Buffer.from([0x15, 0x5b])
+  ]);
+  assert.equal(actual.includes(expected), true);
+  assert.equal(actual.includes(Buffer.concat([expected.subarray(0, -1), Buffer.from([0x4f, 0x5b])])), false);
 });
 
 

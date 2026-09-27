@@ -1,5 +1,808 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 32 — Application Class reference identity
+
+**Status: narrow reference-identity semantics implemented and corpus-validated.**
+The starting commit is `55e2792` (Cycle 31), with 23,217/30,209 EXACT,
+protected 430/430, and the frozen 99-root Application Class population split
+as 62 reference identity, 25 internal symbol enumeration, 9 marker residual,
+2 wrapper/body, and 1 decoder-only. This cycle used only the completed local
+HCDEV snapshot; `--live` was not used. The 25 symbol-enumeration roots and all
+marker/wrapper/decoder work were left parked. Full-corpus comparison is the
+behaviorally identical Cycle 31 baseline run 2229 against Cycle 32 run 2245.
+
+### Frozen 62-root population and identity census
+
+The read-only analyzer
+`tools/corpus/research/application-class-reference-analysis.ts` now requires
+the saved Cycle 24, Cycle 28, and Cycle 31 reports, accepts an explicit
+`--baseline-run`, and freezes exactly these 62 roots before evaluating the
+current encoder:
+
+```text
+28707 28713 28745 28752 28755 28801 28802 28820 28822 28852
+28862 28898 28904 28915 28925 28935 28947 28949 28959 28964
+28972 28975 29044 29070 29071 29087 29088 29089 29099 29107
+29109 29110 29113 29122 29126 29134 29144 29152 29153 29174
+29182 29186 29191 29202 29221 29225 29228 29310 29389 29448
+29452 29518 29522 29542 29555 29562 29612 29614 29689 29696
+29785 30104
+```
+
+Forty-three were Cycle 28 PSPCMPROG operand roots and 19 were Cycle 31
+external-PSPCMNAME-only roots. Storage shape is deliberately mixed: 21 have
+zero storage members, two have one, and 39 have two or more. Their starting
+identity manifestations are mutually exclusive:
+
+| manifestation | roots |
+|---|---:|
+| correct identity, wrong `NAMENUM` | 21 |
+| exact identity sequence, PSPCMNAME metadata differs | 18 |
+| wrong identity | 7 |
+| extra generated operand | 6 |
+| missing generated operand | 4 |
+| PSPCMNAME stream differs after exact PSPCMPROG | 4 |
+| wrong reuse decision | 2 |
+| **total** | **62** |
+
+Under `--json`, every target retains its corpus key and source, stored and
+generated identity maps, numeric sequence, full row shape, first operand use,
+reuse state, source/member shape, first allocation difference, and ending
+blocker. This corrected one inherited classification error: definition 29555
+already had an exact program and exact reference stream at the Cycle 31
+baseline; the prior generated-PACKAGE projection had labeled it as an external
+reference root. It is retained in the authoritative starting 62 and reconciled
+as a decoder-only reclassification rather than silently removed.
+
+### Proven lifetime and allocation rules
+
+The complete aligned transition population has 9,055 repeated-identity
+observations. Stored bytes reuse 1,905/1,905 identities across two methods,
+83/83 across constructor/other-method boundaries, 79/79 across post-class
+`Declare Function` regions, both observed method/getter transitions, and all
+seven aligned HTML transitions. The reused artifacts include PACKAGE,
+RECORD, FIELD, SCROLL, COMPONENT, ordinary RECNAME/REFNAME rows, and HTML.
+
+Application Class implementations are therefore fragments of one outer
+compilation-unit identity facade. A later fragment may reuse an identity
+committed by an earlier fragment. The facade does not replace ordinary
+within-fragment receiver/control scoping: ten stored NEW transitions in
+definition 29797 remain fresh across local control regions. The owner row is
+still mandatory and blank for the modeled population.
+
+Declaration discovery precedes implementation-body allocation, but the exact
+multi-symbol enumeration is compiler-internal. A declaration population with
+zero or one not-already-imported dependency has no ordering choice and is the
+narrow implementable boundary. All **533/533** such controls contain the
+predicted identity, with zero contradictions. `array`, scalar types, and
+`Exception` allocate no declaration PACKAGE identity. A relationship covered
+by a wildcard import allocates no second relationship identity; an explicit
+property/instance type under that wildcard remains independently allocated.
+The 190/533 controls whose full PACKAGE path columns differ demonstrate that
+identity presence and row representation are separate questions; no broad row
+shape rule was inferred from them.
+
+Inherited `%This.method()` calls can require environment-derived method rows
+(for example, the return type of an inherited method) which source alone does
+not expose. That population is frozen on its prior fragment behavior and does
+not enter either the declaration prepass or the shared facade. Definitions
+29305 and 30197 are exact source-program negative controls for this boundary.
+
+### Rejected identity models and unresolved order
+
+The stored transition population rejects a global Application Class name
+interner (10 contradictions), a per-method or numeric-offset-only stream
+(2,000 contradictions each), and an identity-specific facade limited to
+PACKAGE/Application-Class/HTML rows (1,998 contradictions). Name alone is
+therefore too broad, while method/fragment ownership is too narrow.
+
+Descriptor order is not allocation order: only 149/425 multi-observation
+descriptor projections preserve stored PACKAGE order. Raw source declaration
+discovery is likewise contradicted in 368/1,334 controls. Consequently the
+multi-dependency prepass remains frozen; Cycle 31's 25 storage-symbol
+enumeration roots were not reopened. No definition-specific ordering table,
+count-forcing gate, or guessed hash was added.
+
+### Implementation
+
+`ApplicationClassReferenceScope` is a compilation-unit facade over the
+existing fragment encoder. It exposes only identities committed by completed
+earlier fragments, so all established within-fragment scoping remains intact.
+PACKAGE identities use their semantic class/built-in leaf plus method, while
+wildcard rows retain their full blank-name/path identity. Each successful
+fragment commits its non-owner rows for later implementations.
+
+Before the class statement stream, a source-derived prepass allocates the one
+unambiguous missing declaration dependency after imports and before body
+references. Broader declaration sets and environment-dependent `%This` calls
+do not enter this path. Three focused tests cover cross-method reuse, the
+negative control that two local control groups still allocate fresh identities,
+and import-before-single-declaration-before-body allocation.
+
+### Root movement and blast-radius reconciliation
+
+The ending 62-root accounting is exact:
+
+| ending outcome | roots | movement from frozen root |
+|---|---:|---:|
+| reference identity | 44 | unchanged |
+| names metadata | 1 | advanced |
+| marker residual | 0 | 0 |
+| wrapper/body | 0 | 0 |
+| decoder-only | 17 | reclassified/advanced |
+| fully EXACT | 0 | 0 |
+| **total** | **62** | **18 leave the starting bucket** |
+
+Of the 18 roots leaving the frozen bucket, definition 29555 is the corrected
+baseline false positive described above; the implementation advances the
+other 17. Definitions 28947 and 28949 become source-program exact. Definition
+29562 reaches names metadata. The remaining 44 are precisely characterized by
+multi-dependency discovery/order, import/package representation, unresolved
+environment-derived dependencies, or later allocation-stream differences.
+
+The analyzer predicted 277 generated-program SHA changes, including six
+targets (28852, 28904, 28947, 28949, 29389, 29562). Run 2245 contains exactly
+those same 277 changed IDs: predicted-only 0 and actual-only 0. All 277 are
+Application Classes. There are 40 source-program gains (two targets), zero
+source-program losses, zero classification changes, zero EXACT gains, zero
+EXACT regressions, and zero movement outside Application Classes.
+
+### Validation
+
+- Analyzer: 62/62 starting roots reproduced; 9,055 lifetime transitions;
+  533/533 singleton declaration identities present with zero contradictions;
+  predicted and actual 277-ID generated-SHA sets identical.
+- Typecheck: clean.
+- Unit suite: 549 passed, one intentional skip (550 total).
+- Protected local baseline, run 2244: 430/430 EXACT; regression gate pass.
+- Full local run 2245: 23,217/30,209 EXACT; 6,992 residual definitions.
+- Run 2245 versus run 2229: zero classification changes, zero newly EXACT,
+  zero EXACT regressions, 277 generated-SHA changes, 40 source-program gains,
+  and zero source-program losses.
+- Encoder changes are confined to Application Class reference identity;
+  decoder, storage-symbol order, markers, wrappers, and unrelated dependency
+  families are unchanged.
+- `git diff --check`: clean.
+
+**STOP after the isolated Cycle 32 implementation commit. Do not begin Cycle
+33.**
+
+## Compiler Semantics Cycle 31 — Application Class multi-member symbol enumeration
+
+**Status: research and zero-change corpus validation complete; the available
+snapshot does not expose a contradiction-free derivation of multi-member
+storage-symbol order.** Baseline is commit `7232ebb` (Cycle 30),
+23,217/30,209 EXACT, protected 430/430, 1,325/1,510 source-encodable
+Application Classes, and zero EXACT Application Classes. This cycle used only
+the completed local HCDEV snapshot; no `--live` connection or authoritative
+environment mutation was used. Encoder and decoder semantics are unchanged.
+
+### Frozen Cycle 31 population
+
+The extended read-only analyzer,
+`tools/corpus/research/application-class-name-metadata-analysis.ts`, first
+reproduces Cycle 29's 49 names roots against Cycle 30 full run 2227, then
+reclassifies them with the current encoder and freezes exactly these **25**
+remaining multi-member names-metadata roots:
+
+```text
+28731 28827 29085 29086 29095 29121 29132 29133 29149 29150
+29159 29181 29189 29190 29246 29363 29399 29466 29497 29716
+29726 29885 29889 30171 30172
+```
+
+Under `--json`, each row retains its complete corpus display key/package path,
+source member declarations and order, implementations, parameters and return
+types, stored/generated internal names and directory records, signature slots,
+stored/generated PSPCMNAME sequence, section parity, and current outcome. The
+target spans 2 through 50 storage members: five have 2, three have 3, four have
+4, two each have 5/6/10, three have 12, and one each has 8/9/13/50. It includes
+property-only, instance-only, and mixed property/instance classes, with and
+without accessors, constructors, inheritance, named descriptors, and external
+references. It is therefore not one member-kind or size subfamily.
+
+Five natural clone groups provide especially strong differentials (10 target
+definitions total):
+
+| member set | definitions | storage members | result |
+|---|---|---:|---|
+| `ComparisonHandler` | 29085, 29149 | 2 properties | identical stored permutation |
+| `FactorType` | 29095, 29159 | 10 properties + 2 instances | identical stored permutation |
+| `BaseObject` | 29121, 29181 | property + instance | identical stored permutation |
+| `SelectEntity` | 29132, 29189 | 4 properties | identical stored permutation |
+| `SelectFactor` | 29133, 29190 | 5 properties | identical stored permutation |
+
+The paired definitions use different `CAFNUI_*` versus `CAF_*` package roots
+and some have different method populations, yet keep the same order for the
+same storage-symbol set. Conversely, the five two-member targets all happen
+to be reversed, but the full controls are exactly balanced: 42/84 two-member
+units retain source order and 42/84 reverse it. The kind split also contradicts
+a narrow generalization: property/property is 19 source versus 26 reverse,
+property/instance is 6 versus 9, and instance/instance is 17 versus 7.
+
+### Population controls and differential evidence
+
+All **1,506** active Application Class storage populations remain the control
+surface; 643 contain two or more storage members. Only 57/643 match source
+order. The analyzer now makes these additional controls reproducible:
+
+- 64 repeated identical member sets have zero stored-order contradictions.
+  The one repeated set whose declarations occur in different source
+  permutations still converges to one stored order.
+- 95 pairs of definitions have at least two common storage members and a
+  symmetric set difference of at most two. All 95/95 preserve the relative
+  stored order of their common members. Adding or removing one symbol does not
+  scramble the surviving order in these natural controls.
+- Across 114,642 observed storage-member pairs, 1,189 named pairs occur in
+  both stored directions in different enclosing sets. Of those, 1,157 retain
+  their source direction in at least one observation and only 32 always
+  reverse it. A fixed name-only comparator or one fixed collision-chain rule
+  therefore cannot produce the population.
+- Adding the final class name to the pair context still leaves 524 pair-
+  direction contradictions. Package root and class name alone do not expose
+  the missing table state.
+
+These results support a stable compiler-internal enumeration: identical and
+near-identical symbol sets preserve order. They do **not** establish whether
+the hidden mechanism is a compiler pass with insertion history, a dynamically
+sized symbol table, or another internal/environment-derived structure. The
+snapshot contains the final compiled order but no table capacity, insertion
+events, compiler build identifier, or other state that distinguishes those
+models. No local PeopleTools compiler was available for authoritative renamed
+or permuted fixture compilation, so the analysis uses the complete natural
+corpus differential population rather than synthetic generated output.
+
+### Candidate models rejected
+
+The analyzer evaluates source-derived candidates over all 643 multi-member
+controls. Exact whole-order matches are low and every candidate has hundreds
+of contradictions:
+
+| candidate | exact / 643 |
+|---|---:|
+| source declaration order | 57 |
+| reverse declaration order | 60 |
+| lexical member key ascending / descending | 57 / 55 |
+| property-first / instance-first stable partition | 57 / 60 |
+| declared type / property mode | 46 / 59 |
+| first post-declaration source use | 51 |
+
+Common standalone hash sorts (`java31`, `djb2`, `sdbm`, FNV-1a, and ELF),
+tested over normalized name and kind-plus-name in both directions, fare no
+better; the strongest is FNV-1a kind-plus-name ascending at 72/643. Candidate
+16-2048 bucket tables with source-order tail insertion or reverse/head
+insertion also fail; the best sampled model is ELF with 128 head-insert
+buckets at 73/643. Additional exploratory polynomial, signed/unsigned,
+forward/reverse-character, representation, capacity, linear/quadratic probing,
+and open-address scans likewise produced no population model. Their failures
+are research rejections, not encoder constants.
+
+Source declaration/AST traversal, reverse insertion, lexical/canonical name,
+kind/type/mode grouping, first use, implementation/member order, and the tested
+hash/bucket families are therefore rejected as semantic rules. The repeat-set
+stability is positive evidence for determinism, but there is no known function
+from the source metadata available to the encoder to the stored permutation.
+
+### Implementation decision and root accounting
+
+The implementation threshold was not met. Any encoder change would require a
+guessed comparator, magic hash/table constants, or class/member special cases,
+all contradicted or prohibited. No multi-member semantics and no focused unit
+test were added; the analyzer is the sole source change for this research
+cycle. Cycle 29 descriptor allocation and Cycle 30 singleton-instance order
+remain untouched.
+
+The 25-root accounting is exact:
+
+| ending outcome | roots | movement |
+|---|---:|---:|
+| names metadata | 25 | unchanged |
+| reference identity | 0 | 0 |
+| marker residual | 0 | 0 |
+| wrapper/body | 0 | 0 |
+| decoder-only | 0 | 0 |
+| newly source-program exact | 0 | 0 |
+| **total** | **25** | **0** |
+
+The full 99-root Application Class accounting consequently remains 62
+reference identity, 25 names metadata, 9 marker residual, 2 wrapper/body, and
+1 decoder-only. The predicted changed-ID set is empty. A direct read-only
+re-encode of all 1,325 reachable Application Classes against run 2227 observes
+zero generated-SHA changes, exactly matching that prediction; source-program
+gains/losses and EXACT gains/losses are all zero.
+
+### Validation
+
+- Analyzer: reproduces 49 Cycle 29 roots and freezes 25/25 Cycle 31 targets;
+  all 1,506 active storage populations and 643 multi-member controls covered.
+- Typecheck: clean.
+- Unit suite: 546 passed, one intentional skip (547 total); no tests changed.
+- Protected local baseline, run 2228: 430/430 EXACT; regression gate pass.
+- Full local run 2229: 23,217/30,209 EXACT; 6,992 residual definitions.
+- Run 2229 versus Cycle 30 run 2227: zero classification changes, zero
+  generated-SHA changes, zero source-encode flag changes, zero newly EXACT,
+  and zero EXACT regressions across all 30,209 rows. There is no movement
+  outside Application Classes or inside them.
+- Generated SHA prediction versus current run 2227: 0 predicted, 0 actual
+  across all 1,325 reachable Application Classes.
+- Encoder, decoder, external PSPCMNAME identity, markers, wrappers, and all
+  unrelated dependency families are unchanged.
+- `git diff --check`: clean.
+
+The unresolved boundary is precise: recover the PeopleTools storage-symbol
+table's construction/capacity/insertion/enumeration state from new
+authoritative compiler differentials or a compiler-version-specific internal
+artifact. Do not implement a hash or permutation from the present snapshot.
+
+**STOP after the isolated Cycle 31 research commit. Do not begin Cycle 32.**
+
+## Compiler Semantics Cycle 30 — Application Class physical directory ordering
+
+**Status: research, narrow implementation, and corpus validation complete.**
+Baseline is commit `fb240f7` (Cycle 29), 23,217/30,209 EXACT, protected
+430/430, 1,325/1,510 source-encodable Application Classes, and zero EXACT
+Application Classes. This cycle used only the completed local HCDEV snapshot;
+`--live` was not used. Full-corpus comparison is Cycle 29 run 2216 against
+Cycle 30 run 2227.
+
+### Recovered physical directory phases
+
+The Cycle 29 analyzer,
+`tools/corpus/research/application-class-name-metadata-analysis.ts`, now
+contains a full-population physical-order census. It retains complete source
+members, stored records/slots, pair directions, repeated-set controls, and
+current singleton results under `--json`. Across all 1,506 active units, the
+stored directory has this phase structure with zero contradictions:
+
+```text
+self
+property/instance records in compiler-internal storage-symbol order
+concrete method/getter/setter records in implementation order
+abstract/interface callable records in a separate final phase
+```
+
+Accessors are callables, not storage records adjacent to their property. The
+existing concrete-class control remains 1,473/1,473 implementation-order
+matches. Getter metadata is 1,070/1,070 exact as zero parameters, property-
+typed return descriptor, and one slot terminator. Setter metadata is 251/251
+exact as one property-typed parameter, no return descriptor, and a following
+slot terminator. Property/instance `low` remains the independently recovered
+declaration-order storage ordinal (6,249/6,249 controls); physical position
+does not change that identity.
+
+The storage phase itself is not source order:
+
+| stored storage population | definitions | source-order matches |
+|---|---:|---:|
+| zero members | 688 | 688 |
+| one member | 175 | 175 |
+| two or more members | 643 | 57 |
+
+Thus 586/643 multi-member programs contradict declaration order. One repeated
+three-member set is especially decisive: definitions 29483/29493 declare
+`pagename, secname, fldname`, while 29502 declares
+`fldname, secname, pagename`; all three store
+`pagename, fldname, secname`. Sixty-four repeated member sets have zero stored-
+order contradictions, including that source permutation.
+
+A global lexical or fixed-name comparator is also impossible: among 114,642
+observed storage-member pairs, 1,189 named pairs occur in both relative
+directions depending on their enclosing member set. Source order, reverse
+source order, alphabetical order, kind/type grouping, first body use, and
+common standalone hash/comparator simulations all fail population controls.
+The evidence supports deterministic enumeration of an internal symbol table,
+but not its table construction, bucket function, capacity rule, or traversal
+algorithm. No compiler/environment identifier exposing that state exists in
+the local snapshot. A guessed hash or count-forcing permutation was therefore
+not implemented.
+
+Cycle 29's type-name allocation remains orthogonal and unchanged: after the
+physical record sequence is known, named descriptors allocate suffix entries
+in record order and then signature-slot order. Constants still create no
+directory record. Imports, bodies, comments, reference allocation, and package
+paths do not provide a replacement ordering signal.
+
+### Narrow implemented rule
+
+The only target-bearing subpopulation whose storage order is fully determined
+without the unresolved enumeration is a single instance member. All **116/116**
+singleton-instance controls store exactly `self, instance, callables`; all 104
+that the current encoder can reach now emit an exact self/instance recorded-
+name prefix and an exact 16-byte instance record. The other 12 stop before
+metadata on unchanged, unrelated parser/statement errors.
+
+`encodeApplicationClassProgramV2` now emits that singleton instance between
+the self record and callable records. Its name offset, private/property/storage
+flags, declaration ordinal, and type descriptor use the already-proven Cycle
+13/29 rules. Multi-member properties/instances and singleton properties remain
+on the prior path: implementing them would enlarge the semantic surface without
+advancing a Cycle 30 direct root, while multi-member physical order remains
+unknown. This is a population guard (`exactly one instance`), not a definition-
+specific exception.
+
+Two focused tests prove the positive custom-type singleton instance record,
+descriptor-name allocation, callable placement, and signature slots, plus the
+negative control that a two-instance declaration does not receive a guessed
+physical order.
+
+### Direct-root movement and residual uncertainty
+
+The Cycle 29 residual population was exactly 28 property/instance/accessor
+names roots. Three are singleton instances and all three now have exact names,
+records, and slots:
+
+| post-fix outcome | definitions | ids |
+|---|---:|---|
+| PSPCMNAME/reference identity | 2 | 28862, 28898 |
+| independent comment/marker residual | 1 | 29314 |
+| unresolved multi-member physical order | 25 | all other Cycle 29 residuals |
+
+Definitions 28862 and 28898 are now source-program byte exact; their full
+classification remains `DECODE_SOURCE_MISMATCH` because of independent
+decoder/reference semantics. Definition 29314 advances to a pre-existing body
+`0x4F` mismatch. The remaining 25 all contain multiple storage records and
+stay at the same names-metadata root; none was changed or patched.
+
+The exact unresolved semantic input for a future research cycle is therefore:
+the PeopleTools internal storage-symbol table's insertion/bucket/capacity and
+enumeration behavior. The corpus proves the output is deterministic for a
+member set and context-sensitive across sets, but does not expose enough state
+to choose among internal hash-table models. No Cycle 31 work was started.
+
+### Blast-radius reconciliation
+
+The structural population is 116 singleton-instance Application Classes. The
+full run reconciles exactly:
+
+| comparison | definitions |
+|---|---:|
+| reachable and generated SHA changed | 104 |
+| unreachable on unchanged earlier encode errors | 12 |
+| changed outside singleton-instance population | 0 |
+| non-Application-Class changes | 0 |
+
+All 104 reachable programs changed as predicted; all have exact singleton
+recorded-name prefixes and exact instance records. Forty-eight gained complete
+source-program byte equality, and none lost it. Four non-target controls
+(28728, 29247, 29458, 29882) retain independent pre-existing method/type/slot
+metadata differences, so aggregate names/records/slots are respectively exact
+in 100/103/103 of the 104 even though the newly emitted instance component is
+exact in 104/104.
+
+### Validation
+
+- Typecheck: clean.
+- Unit suite: 546 passed, one intentional skip (547 total).
+- Protected local baseline, run 2226: 430/430 EXACT; regression gate pass.
+- Full local run 2227: 23,217/30,209 EXACT; 6,992 residual definitions.
+- Run 2227 versus Cycle 29 run 2216: 104 generated-SHA changes, all and only
+  reachable singleton-instance Application Classes; zero changes outside the
+  116-definition semantic population.
+- Classification diff: zero transitions; newly EXACT 0; previously EXACT
+  regressions 0.
+- Source-program byte equality: 48 gains, zero losses.
+- Direct roots: 3/28 advance; 25/28 remain at the deliberately unresolved
+  multi-member names-metadata boundary.
+- Decoder semantics, PSPCMNAME allocation, statement/layout semantics, and all
+  unrelated dependency families are unchanged.
+- `git diff --check`: clean.
+
+**STOP after the isolated Cycle 30 implementation commit. Do not begin Cycle
+31.**
+
+## Compiler Semantics Cycle 29 — implement Application Class names metadata
+
+**Status: implementation and corpus validation complete.** Baseline is commit
+`9384397` (Cycle 28), 23,217/30,209 EXACT, protected 430/430,
+1,325/1,510 source-encodable Application Classes, and zero EXACT Application
+Classes. This cycle used only the completed local HCDEV snapshot; `--live` was
+not used. Full-corpus comparison is Cycle 28 run 2150 against Cycle 29 run
+2216.
+
+### Exact starting population and semantic split
+
+The new read-only analyzer,
+`tools/corpus/research/application-class-name-metadata-analysis.ts`, accepts
+Cycle 28's saved report through `--cycle28-report`, exactly reproduces the 99
+Cycle 27 roots and the requested **49** post-Cycle-28 names-metadata roots, and
+retains complete per-definition evidence under `--json`: source shape and
+ordered members, stored/generated internal names, directory records, signature
+slots, statement-section parity, and stored/generated PSPCMNAME streams.
+
+The exact starting population is:
+
+```text
+28707 28731 28820 28827 28862 28898 28915 29070 29071 29085
+29086 29088 29089 29095 29121 29132 29133 29149 29150 29151
+29152 29153 29159 29181 29189 29190 29213 29214 29221 29225
+29228 29246 29310 29314 29363 29399 29466 29497 29555 29689
+29696 29716 29726 29785 29885 29889 29902 30171 30172
+```
+
+They are two real subfamilies rather than one PSPCMNAME rule:
+
+| starting subfamily | definitions | starting manifestation |
+|---|---:|---|
+| concrete method-only metadata | 21 | duplicated self path, omitted relationship descriptor/name, or descriptor names allocated in declaration/parameter-first order |
+| property/instance/accessor metadata | 28 | generated directory records and their corresponding names are absent |
+
+The internal names section is part of PSPCMPROG directory metadata; it is not
+the external PSPCMNAME dependency stream. Among the 49 targets, the external
+reference stream was already exact in seven and different in 42, crossing both
+internal metadata shapes. That rejects PSPCMNAME insertion timing as the cause
+of the internal names root.
+
+### Recovered names and descriptor-allocation model
+
+For the evidence-backed concrete-method population, the stored compiler uses
+this deterministic sequence:
+
+```text
+recorded names:
+  self owner path exactly once
+  callable names in physical directory / implementation order
+
+unrecorded type-name suffix:
+  named directory-record descriptors in physical record order
+    (self relationship, then callable returns)
+  named signature-slot descriptors in slot order
+    (parameters in declaration order)
+```
+
+Every named descriptor occurrence allocates one suffix entry. The suffix is
+not source-first and does not deduplicate repeated type text. The self record's
+descriptor carries `extends` or `implements`; the relationship's inline class
+statement, self descriptor, internal type name, and optional external PACKAGE
+dependency remain separate compiler products.
+
+The complete positive/control population is contradiction-free:
+
+| control | matches | contradictions |
+|---|---:|---:|
+| concrete classes whose callable directory is fully modeled | 667/667 recorded-name sequences | 0 |
+| same concrete controls, relationship/return/parameter suffix | 667/667 type-name suffixes | 0 |
+| all active/inactive stored Application Class programs | 1,510/1,510 descriptor-allocation sequences | 0 |
+| named descriptor occurrences / stored suffix entries | 3,605/3,605 | 0 |
+
+This rejects several competing explanations. Pure source/declaration order
+cannot explain return descriptors following implementation order while
+parameter slots retain declaration order. First textual use cannot explain a
+relationship name allocated with the self record before callable descriptors.
+Duplicate suppression cannot explain one stored suffix entry per named
+descriptor occurrence. Case/canonicalization is not causal: normalized
+identities already agree once offsets and allocation order are corrected.
+
+The 28 storage/accessor cases are deliberately not generalized. Their stored
+programs contain property, instance, getter, and/or setter records that V2 does
+not yet emit. A name cannot be added correctly until its owning record's
+physical position is known. Cycle 13 already found that 586/643 multi-storage
+programs do not follow source declaration order, and no population-supported
+replacement order exists yet; source, alphabetical, reversed, or fixture-
+specific ordering would therefore be speculation. These 28 satisfy Cycle 29's
+second stop condition as a distinct later semantic problem.
+
+### Implementation
+
+`encodeApplicationClassProgramV2` now:
+
+- treats `PeopleCodeOwner.packagePath` as the full owner path and appends the
+  class only when a caller supplies a package-only path, preventing
+  `PACKAGE:Class:Class` while retaining ownerless test support;
+- encodes the self record's relationship type descriptor instead of the
+  hardcoded no-type descriptor;
+- allocates relationship and return-type names while building physical-order
+  directory descriptors, then allocates parameter names while building
+  declaration-order signature slots.
+
+No property/instance/accessor record ordering, PSPCMNAME identity, reference
+numbering, comment/marker, wrapper/body, or decoder behavior changed. Two
+focused tests prove the self owner path is emitted exactly once (including the
+ownerless control) and that relationship plus physical-return descriptors are
+allocated before declaration-order parameter slots.
+
+### Direct-root movement
+
+All 21 concrete-method roots advance and all 28 storage/accessor roots remain
+at the deliberately unresolved names-metadata boundary:
+
+| post-fix outcome | definitions |
+|---|---:|
+| property/instance/accessor names metadata | 28 |
+| PSPCMNAME/reference identity | 17 |
+| independent comment/marker residual | 3 |
+| source program and PSPCMNAME exact; decoder-only mismatch | 1 |
+| **total** | **49** |
+
+The three marker controls are 29151, 29213, and 29214; each now exposes an
+independent missing `0x4F`. Definition 29902 has an exact source-generated
+program and exact PSPCMNAME stream but remains `DECODE_SOURCE_MISMATCH` because
+Application Class source reconstruction is not exact. Thus 21 roots changed
+category, 18 gained source-program byte equality, zero became full-corpus
+EXACT, zero became unencodable, and zero moved earlier.
+
+The 17 reference-identity cases are 28707, 28820, 28915, 29070, 29071, 29088,
+29089, 29152, 29153, 29221, 29225, 29228, 29310, 29555, 29689, 29696, and
+29785. They were classified but not implemented, as required by the Cycle 29
+boundary.
+
+### Blast-radius reconciliation
+
+Read-only current-encoder replay predicted changes in 1,320 of the 1,325
+source-encodable Application Classes: all 49 direct targets plus 1,271 classes
+that traverse the same self/descriptor allocation path behind an earlier or
+later blocker. Run 2216 produced the exact same **1,320-definition ID set**:
+
+| comparison | definitions |
+|---|---:|
+| predicted and changed | 1,320 |
+| predicted but unchanged | 0 |
+| changed beyond prediction | 0 |
+| non-Application-Class changes | 0 |
+
+The five encodable Application Classes whose SHA is unchanged are definition
+29632 (the older narrow golden encoder path) and 29646, 29648, 29670, and
+29672 (entire-unit commented sources that do not traverse active V2 metadata).
+All 49 direct targets changed SHA. Corpus-wide, 187 Application Classes gained
+source-program byte equality—18 direct roots plus 169 masked/downstream
+controls—and none lost it. There were zero classification transitions because
+the improved programs retain independent decoder or later semantic blockers.
+
+### Validation
+
+- Typecheck: clean.
+- Unit suite: 544 passed, one intentional skip (545 total).
+- Protected local baseline, run 2215: 430/430 EXACT; regression gate pass.
+- Full local run 2216: 23,217/30,209 EXACT; 6,992 residual definitions.
+- Run 2216 versus Cycle 28 run 2150: 1,320 generated-SHA changes, exactly the
+  analyzer-predicted ID set; all object type 104, with zero changes outside
+  Application Classes.
+- Classification diff: zero transitions; newly EXACT 0; previously EXACT
+  regressions 0.
+- Source encoding success: unchanged. Source-program byte equality gained in
+  187 Application Classes and was lost in zero definitions.
+- Direct roots: 21/49 advanced, 28/49 remain names metadata, 18/49 source-
+  program exact, and 0/49 full-corpus EXACT.
+- Decoder semantics and all unrelated dependency/layout families are
+  unchanged.
+- `git diff --check`: clean.
+
+**STOP after the isolated Cycle 29 implementation commit. Do not begin Cycle
+30.**
+
+## Compiler Semantics Cycle 28 — implement Application Class terminators
+
+**Status: implementation and corpus validation complete.** Baseline is commit
+`c8b7657` (Cycle 27), 23,217/30,209 EXACT, protected 430/430,
+1,325/1,510 source-encodable Application Classes, and zero EXACT Application
+Classes. This cycle used only the completed local HCDEV snapshot; `--live` was
+not used. Full-corpus comparison is Cycle 27 run 2135 against Cycle 28 run
+2150.
+
+### Implemented semantic model
+
+The Application Class IR now retains the absolute source offset of every
+active semicolon owned by the unit header or member-declaration stream.
+Comments, disabled/signature comments, REM text, and string literals are
+masked before collecting offsets, so source multiplicity is retained without
+mistaking payload punctuation for bytecode. The V2 emitter consumes every
+offset exactly once in source order:
+
+```text
+stored declaration 0x15 count = explicit source-semicolon count
+```
+
+This applies uniformly to unit headers, methods and constructors, properties,
+grouped instances, constants, abstract methods, and interface methods. An
+omitted final declaration semicolon emits no `0x15`; a doubled semicolon emits
+two. Offset consumption is idempotent so an overlapping parser span cannot
+double-emit punctuation. Semicolons found in compilation-unit gaps are
+interleaved with existing comment events, but they deliberately do not split
+or recalculate Cycle 25 marker gaps. Thus `0x2D`, `0x4F`, and comment operands
+retain their prior ownership and bytes.
+
+Method/getter/setter bodies continue through the shared fragment encoder. The
+wrapper now decides completion from the final non-comment source token rather
+than the raw string tail. When the fragment parser requires a synthetic final
+semicolon, the wrapper removes that one synthetic `0x15` after removing the
+same synthetic final `0x4F` as before. A real source semicolon remains, even
+when a trailing comment follows it. Cycle 17/18 wrapper closers
+`0x64`/`0x6A`/`0x6B 0x15 0x2D` are unchanged.
+
+Fifteen new focused tests plus the corrected comment-only-body expectation
+cover unit-header punctuation; explicit and omitted method/constructor,
+property, instance, constant, abstract/interface declaration punctuation;
+final declarations; comments and blank lines before the unit closer; real and
+synthetic body terminators; repeated semicolons; and the 28974-style partial
+layout control. The partial control proves that the second `0x15` is restored
+while its independent missing-`0x4F` residual remains.
+
+### Direct-root movement and downstream blockers
+
+The updated read-only terminator analyzer accepts Cycle 27's full report via
+`--cycle27-report` and a stable corpus baseline via `--baseline-run`. It
+reproduces all **99** Cycle 27 targets and the **1,506** active-unit semantic
+traversal population. After implementation:
+
+| movement | definitions |
+|---|---:|
+| semicolon projection corrected | 99 |
+| advanced to a later independent blocker | 99 |
+| unchanged at the terminator root | 0 |
+| moved earlier | 0 |
+| became unencodable | 0 |
+| semicolon-region gains | 99 |
+| semicolon-region losses | 0 |
+
+All 55 declaration roots and all 44 body-fragment roots disappear. The five
+partial cases retain only their previously identified Cycle 25 layout issue:
+28920 and 28954 still omit the adjacent comment operand, 28974 still omits two
+markers, 29461 retains its extra `0x2D`, and 30186 retains its independent
+comment-opcode mismatch. No marker/layout fix was folded into this cycle.
+
+The actual post-fix blocker census exactly matches Cycle 27's projection:
+
+| downstream first blocker | definitions |
+|---|---:|
+| Application Class names metadata | 49 |
+| reference numbering/operand identity | 43 |
+| comment/marker residual | 5 |
+| Application Class implementation wrapper/body | 2 |
+| other newly exposed family | 0 |
+| terminator residual | 0 |
+| **total** | **99** |
+
+Names metadata is therefore the largest coherent Cycle 29 candidate. Reference
+identity remains secondary while Cycle 26's unresolved prepass/allocation-order
+problem is still open. No Cycle 29 work was started.
+
+### Blast-radius reconciliation
+
+Cycle 27 predicted 344 generated-SHA changes. Current-encoder read-only
+encoding against run 2135 produced **286** changes, all within the 1,506
+active Application Class path:
+
+| comparison | definitions |
+|---|---:|
+| predicted and changed | 286 |
+| predicted but unchanged | 58 |
+| changed beyond prediction | 0 |
+| **actual generated-SHA changes** | **286** |
+
+The 58 predicted-but-unchanged definitions are analyzer false positives, not
+implementation gates. Twenty-five had `currentTerminators = -1`: Cycle 27's
+change-set filter accidentally admitted unlocated wrapper boundaries because
+it tested inequality without first requiring a located current boundary. The
+other 33 came from the deliberately shallow immediate-pre-closer heuristic:
+source-owned `0x4F`/comment bytes could separate a real final terminator from
+the closer, adjacent earlier statements could look like a second terminator,
+and empty/comment-only bodies could expose the wrapper's own terminator. Their
+generated bytes were already unchanged by the corrected rule. Therefore the
+evidence-corrected prediction is `344 - 25 - 33 = 286`, exactly equal to the
+observed set. All 286 are `EXPECTED_SEMANTIC_PATH`; there are zero
+`IMPLEMENTATION_LEAK` and zero `UNKNOWN` changes.
+
+### Validation
+
+- Typecheck: clean.
+- Unit suite: 542 passed, one intentional skip (543 total).
+- Protected local baseline, run 2149: 430/430 EXACT; regression gate pass.
+- Full local run 2150: 23,217/30,209 EXACT; 6,992 residual definitions.
+- Run 2150 versus Cycle 27 run 2135: 286 generated-SHA changes, all object
+  type 104 and all inside the 1,506-unit semantic population; zero outside
+  that population and zero non-Application-Class changes.
+- Classification diff: zero transitions; newly EXACT 0; previously EXACT
+  regressions 0.
+- Source encoding: 1,325/1,510 Application Classes before and after; gains 0,
+  losses 0. Application Class EXACT remains 0/1,510 before and after.
+- All 99 direct terminator roots advanced with zero semicolon-region
+  regression; the post-fix census is 49/43/5/2 as projected.
+- Decoder semantics, reference allocation/order, names metadata, wrapper
+  structure, and unrelated dependency families are unchanged.
+- `git diff --check`: clean.
+
+**STOP after the isolated Cycle 28 implementation commit. Do not begin Cycle
+29.**
+
 ## Compiler Semantics Cycle 27 — Application Class terminators
 
 **Status: research and zero-change corpus validation complete.** Baseline is

@@ -6,8 +6,10 @@ import {
   encodeApplicationClassNameEntry,
   encodeApplicationClassSlot,
   encodeTypeDescriptor,
+  applicationClassHasTrailingSourceTerminator,
   parseApplicationClassSource,
-  type ApplicationClassMethodMember
+  type ApplicationClassMethodMember,
+  type ApplicationClassStorageMember
 } from './applicationClassProgram.js';
 import { encodeSimpleProgramHeader, PROGRAM_DIRECTORY_SEPARATOR } from './programLayout.js';
 import {
@@ -114,6 +116,87 @@ class HtmlDependencyScope {
   ): void {
     this.references.set(`${namespace}:${name.toLowerCase()}`, reference);
   }
+}
+
+/**
+ * Application Class bodies are parsed as separate fragments, but stored
+ * PSPCMNAME evidence gives them one compilation-unit reference namespace.
+ * A fragment may reuse an identity established by an earlier fragment while
+ * retaining all ordinary within-fragment control/receiver scoping rules.
+ */
+class ApplicationClassReferenceScope {
+  private readonly references = new Map<string, PeopleCodeReference>();
+  private wildcardImportMetadataAllocated = false;
+
+  beginFragment(): ApplicationClassReferenceSession {
+    return {
+      lookup: reference =>
+        this.references.get(applicationClassReferenceKey(reference)),
+
+      claimWildcardImportMetadata: () => {
+        if (this.wildcardImportMetadataAllocated) {
+          return false;
+        }
+
+        this.wildcardImportMetadataAllocated = true;
+        return true;
+      }
+    };
+  }
+
+  commit(references: readonly PeopleCodeReference[]): void {
+    for (const reference of references) {
+      if (reference.kind === 'owner') continue;
+
+      const key = applicationClassReferenceKey(reference);
+      if (!this.references.has(key)) {
+        this.references.set(key, reference);
+      }
+    }
+  }
+}
+
+interface ApplicationClassReferenceSession {
+  lookup(
+    reference: Omit<PeopleCodeReference, 'index' | 'sequence'>
+  ): PeopleCodeReference | undefined;
+
+  /**
+   * Application Class imports are encoded as independent fragments, but
+   * wildcard-import PACKAGE metadata has compilation-unit lifetime.
+   *
+   * Returns true exactly once for a modeled Application Class compilation
+   * unit. Later wildcard-import fragments return false.
+   */
+  claimWildcardImportMetadata(): boolean;
+}
+
+
+function applicationClassReferenceKey(
+  reference: Omit<PeopleCodeReference, 'index' | 'sequence'>
+): string {
+  if (reference.kind === 'package') {
+    const packageIdentity = (reference.className ?? reference.packageName ?? '').toLowerCase();
+    if (packageIdentity !== '') {
+      return JSON.stringify([
+        reference.kind,
+        packageIdentity,
+        reference.methodName?.toLowerCase() ?? ''
+      ]);
+    }
+  }
+  const normalizedPath = reference.packagePath?.map(component => component.toLowerCase()) ?? [];
+  return JSON.stringify([
+    reference.kind,
+    reference.recordName?.toLowerCase() ?? '',
+    reference.fieldName?.toLowerCase() ?? '',
+    reference.eventName?.toLowerCase() ?? '',
+    reference.packageName?.toLowerCase() ?? '',
+    reference.objectName?.toLowerCase() ?? '',
+    normalizedPath,
+    reference.className?.toLowerCase() ?? '',
+    reference.methodName?.toLowerCase() ?? ''
+  ]);
 }
 
 /**
@@ -356,6 +439,8 @@ export interface EncodeProgramContext {
 interface EncodeFragmentContext extends EncodeProgramContext {
   htmlDependencyScope?: HtmlDependencyScope;
   htmlDependencyLifetime?: 'application-class';
+  applicationClassReferenceSession?: ApplicationClassReferenceSession;
+  bindOwnerReference?: boolean;
 }
 
 export interface EncodedPeopleCode {
@@ -1582,6 +1667,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   const nextReference = (
     reference: Omit<PeopleCodeReference, 'index' | 'sequence'>
   ): PeopleCodeReference => {
+    const shared = context?.applicationClassReferenceSession?.lookup(reference);
+    if (shared !== undefined) return shared;
+
     const sequence = references.length + 1 + referenceIndexOffset;
     const created: PeopleCodeReference = {
       ...reference,
@@ -1883,6 +1971,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     // is the only calibrated inference available, so bind the reserved owner
     // slot to it. If it is not the owner, allocate a normal occurrence row.
     const ownerUnbound =
+      context?.bindOwnerReference !== false &&
+      (!context?.suppressOwnerReference || context?.bindOwnerReference === true) &&
       ownerReference.recordName === undefined &&
       ownerReference.fieldName === undefined;
 
@@ -4086,45 +4176,90 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     chunks.push(Buffer.from([0x58]));
 
     space();
+
+    /*
+    * Application Class wildcard imports have two distinct effects:
+    *
+    *   1. every wildcard import participates in package/class resolution;
+    *   2. only the first wildcard import contributes the blank-REFNAME
+    *      PACKAGE metadata row.
+    *
+    * Cycle 33 controls:
+    *
+    *   28801
+    *   28802
+    *   29087
+    *   29134
+    *   29191
+    *
+    * show that subsequent wildcard imports remain semantically active but do
+    * not consume additional PSPCMNAME identities merely because the import
+    * declaration exists. Concrete classes subsequently resolved through those
+    * wildcard namespaces still allocate their normal PACKAGE dependencies.
+    *
+    * Preserve the pre-import state because sawWildcardImport also describes
+    * the compilation unit's resolution environment after this statement.
+    */
+
     const appClass = applicationClassPath({ allowWildcard: true });
     if (appClass.wildcard) sawWildcardImport = true;
     chunks.push(appClass.bytes);
 
-    /*
-     * Import itself establishes one PSPCMNAME PACKAGE dependency row.
-     *
-     * Ordinary class import:
-     *
-     *   import ROOT:Path:Class;
-     *
-     * => PACKAGE row for Class.
-     *
-     * Wildcard import:
-     *
-     *   import ROOT:Path:Leaf:*;
-     *
-     * => PACKAGE row with blank REFNAME, PACKAGEROOT=ROOT and
-     *    QUALIFYPATH=Path:Leaf.
-     *
-     * The reference is metadata-only here; the executable stream contains
-     * the 0x58/.../0x57/0x59 import bytes rather than a 0x21 operand.
-     */
-    if (appClass.wildcard) {
-      const fullPath = [
-        ...appClass.packagePath,
-        appClass.className
-      ];
 
-      nextReference({
-        kind: 'package',
-        packageName: '',
-        objectName: fullPath[0]?.toUpperCase(),
-        packagePath: fullPath.map(
-          (component, index) =>
-            index === 0 ? component.toUpperCase() : component
-        ),
-        className: ''
-      });
+    /*
+    * Import itself may establish one PSPCMNAME PACKAGE dependency row.
+    *
+    * Ordinary class import:
+    *
+    *   import ROOT:Path:Class;
+    *
+    * => PACKAGE row for Class.
+    *
+    * First wildcard import:
+    *
+    *   import ROOT:Path:Leaf:*;
+    *
+    * => PACKAGE row with blank REFNAME, PACKAGEROOT=ROOT and
+    *    QUALIFYPATH=Path:Leaf.
+    *
+    * Later wildcard imports extend the wildcard resolution environment but do
+    * not independently allocate another blank-REFNAME PACKAGE row.
+    *
+    * The reference is metadata-only here; the executable stream contains
+    * the 0x58/.../0x57/0x59 import bytes rather than a 0x21 operand.
+    */
+    if (appClass.wildcard) {
+      /*
+      * Application Class imports are emitted as independent encoder fragments,
+      * but PSPCMNAME wildcard-import metadata is scoped to the whole
+      * compilation unit.
+      *
+      * The shared ApplicationClassReferenceSession therefore owns the
+      * "first wildcard import" decision. Ordinary fragment encoding retains
+      * the existing fragment-local behavior.
+      */
+      const allocateWildcardMetadata =
+        context?.applicationClassReferenceSession !== undefined
+          ? context.applicationClassReferenceSession.claimWildcardImportMetadata()
+          : true;
+
+      if (allocateWildcardMetadata) {
+        const fullPath = [
+          ...appClass.packagePath,
+          appClass.className
+        ];
+
+        nextReference({
+          kind: 'package',
+          packageName: '',
+          objectName: fullPath[0]?.toUpperCase(),
+          packagePath: fullPath.map(
+            (component, index) =>
+              index === 0 ? component.toUpperCase() : component
+          ),
+          className: ''
+        });
+      }
     } else {
       addApplicationClassReference(
         appClass.packagePath,
@@ -10911,12 +11046,80 @@ function encodeApplicationClassProgramV2(
   const methods = parsed.members.filter(
     (member): member is ApplicationClassMethodMember => member.kind === 'method'
   );
+  const storageMembers = parsed.members.filter(
+    (member): member is ApplicationClassStorageMember => member.kind === 'property' || member.kind === 'instance'
+  );
+  // Cycle 30: the compiler's physical storage-member enumeration remains
+  // opaque for multi-member sets, but the complete singleton-instance
+  // population is unambiguous (116/116 are self, instance, then callables).
+  // Keep broader property/instance metadata frozen until that enumeration is
+  // recovered; this is a population rule, not a definition-specific gate.
+  const singletonInstance = storageMembers.length === 1 && storageMembers[0].kind === 'instance'
+    ? storageMembers[0]
+    : undefined;
   const methodsByImplementationOrder = [...methods].sort((a, b) => {
     if (a.implementationOrder < 0) return b.implementationOrder < 0 ? a.declarationOrdinal - b.declarationOrdinal : 1;
     if (b.implementationOrder < 0) return -1;
     return a.implementationOrder - b.implementationOrder;
   });
   const methodsByDeclarationOrder = [...methods].sort((a, b) => a.declarationOrdinal - b.declarationOrdinal);
+  const scalarDeclarationTypes = new Set([
+    'string', 'date', 'any', 'boolean', 'time', 'datetime', 'object', 'integer', 'number', 'exception', 'array'
+  ]);
+  const builtinDeclarationTypes = new Set([
+    'file', 'sql', 'record', 'rowset', 'row', 'field', 'processrequest', 'message',
+    'apiobject', 'grid', 'javaobject', 'xmldoc', 'xmlnode', 'document', 'compound',
+    'collection', 'map', 'mapelement', 'jsonbuilder', 'jsonobject', 'jsonarray'
+  ]);
+  const dependencyTypeLeaf = (typeName: string): string =>
+    typeName.replace(/^(?:array\s+of\s+)+/i, '').trim().split(':').at(-1) ?? '';
+  const importTargets = [...source.slice(0, parsed.unitStart).matchAll(/\bimport\s+([^;]+);/gi)]
+    .map(match => match[1].trim());
+  const importedClassLeaves = new Set(
+    importTargets
+      .map(target => target.split(':').at(-1)?.trim() ?? '')
+      .filter(leaf => leaf !== '' && leaf !== '*')
+      .map(leaf => leaf.toLowerCase())
+  );
+  const importedWildcardRoots = new Set(
+    importTargets
+      .filter(target => target.endsWith(':*'))
+      .map(target => target.slice(0, -2).split(':')[0].toLowerCase())
+  );
+  const declarationTypes = [
+    parsed.extendsType,
+    parsed.implementsType,
+    ...parsed.statements.flatMap(statement => {
+      if (statement.kind === 'method') {
+        return [...statement.parameters.map(parameter => parameter.type), statement.returnType];
+      }
+      if (statement.kind === 'property' || statement.kind === 'instance' || statement.kind === 'instance-statement') {
+        return [statement.type];
+      }
+      return [];
+    })
+  ].filter((typeName): typeName is string => typeName !== undefined);
+  const declarationDependencyTypes = declarationTypes.filter(typeName => {
+    const normalizedType = typeName.replace(/^(?:array\s+of\s+)+/i, '').trim();
+    const leaf = dependencyTypeLeaf(typeName);
+    const root = normalizedType.split(':')[0].toLowerCase();
+    const isRelationship = [parsed.extendsType, parsed.implementsType]
+      .some(relationship => relationship?.toLowerCase() === typeName.toLowerCase());
+    return leaf !== '' &&
+      !scalarDeclarationTypes.has(leaf.toLowerCase()) &&
+      !importedClassLeaves.has(leaf.toLowerCase()) &&
+      !(isRelationship && importedWildcardRoots.has(root));
+  });
+  const missingDeclarationDependencies = [...new Map(
+    declarationDependencyTypes.map(typeName => [dependencyTypeLeaf(typeName).toLowerCase(), typeName])
+  ).values()];
+  // Cycle 26/32 proves declaration discovery precedes body allocation, but
+  // its multi-symbol enumeration remains compiler-internal. A zero/one new
+  // identity population has no ordering choice; broader sets stay frozen.
+  const hasModeledDeclarationDependencyOrder = missingDeclarationDependencies.length <= 1;
+  const hasUnmodeledThisMethodDependencies = /%This\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\(/i.test(source);
+  const hasModeledApplicationClassReferenceScope =
+    hasModeledDeclarationDependencyOrder && !hasUnmodeledThisMethodDependencies;
 
   /*
    * Cycle 16 Phase 16A: read-only prepass. Cycle 14 encodes each method
@@ -10960,16 +11163,27 @@ function encodeApplicationClassProgramV2(
     context?.owner?.packagePath !== undefined
       ? [...context.owner.packagePath]
       : [context?.owner?.recordName ?? ''].filter(value => value !== '');
-  const selfName = [...ownerPackagePath, parsed.className].join(':');
+  const selfPath = ownerPackagePath.length === 0
+    ? [parsed.className]
+    : ownerPackagePath[ownerPackagePath.length - 1].toLowerCase() === parsed.className.toLowerCase()
+      ? ownerPackagePath
+      : [...ownerPackagePath, parsed.className];
+  const selfName = selfPath.join(':');
 
-  // Name table: self, then each method's name in PHYSICAL DIRECTORY
-  // (implementation) order -- Cycle 13's own finding that the first
+  // Name table: self, the proven singleton instance when present, then each
+  // method's name in PHYSICAL DIRECTORY (implementation) order -- Cycle 13's
+  // own finding that the first
   // `recordCount` names correspond 1:1 to directory records, in
   // directory order. Trailing Application-Class type-path names (from
   // parameter/return descriptors) are appended afterward, as encountered
   // -- see `ensureNameOffset` below.
   const names: string[] = [selfName];
   let nameCharOffset = selfName.length + 1;
+  const singletonInstanceNameOffset = singletonInstance === undefined ? undefined : nameCharOffset;
+  if (singletonInstance !== undefined) {
+    names.push(singletonInstance.name);
+    nameCharOffset += singletonInstance.name.length + 1;
+  }
   const nameOffsetOf = new Map<ApplicationClassMethodMember, number>();
   for (const member of methodsByImplementationOrder) {
     nameOffsetOf.set(member, nameCharOffset);
@@ -10983,22 +11197,36 @@ function encodeApplicationClassProgramV2(
     return offset;
   };
 
-  // Signature slots: cumulative over methods in DECLARATION order
-  // (Cycle 13 section 3/5), independent of directory physical position.
-  const slotChunks: Buffer[] = [];
+  // Cycle 29: unrecorded type-path names are allocated by metadata storage
+  // phase, not source occurrence: directory-record descriptors in physical
+  // record order, followed by signature slots in slot order. The complete
+  // stored population has 3,605/3,605 suffix entries in exactly that order.
+  const relationshipType = parsed.extendsType ?? parsed.implementsType;
+  const selfDescriptor = relationshipType === undefined
+    ? NO_TYPE_DESCRIPTOR
+    : encodeTypeDescriptor(relationshipType, ensureNameOffset);
+  const singletonInstanceDescriptor = singletonInstance === undefined
+    ? undefined
+    : encodeTypeDescriptor(singletonInstance.type, ensureNameOffset);
   const descriptorByMember = new Map<ApplicationClassMethodMember, number>();
-  for (const member of methodsByDeclarationOrder) {
-    for (const parameter of member.parameters) {
-      const descriptor = encodeTypeDescriptor(parameter.type, ensureNameOffset);
-      slotChunks.push(encodeApplicationClassSlot(parameter.out ? descriptor | 0x80000000 : descriptor));
-    }
-    slotChunks.push(encodeApplicationClassSlot(NO_TYPE_DESCRIPTOR));
+  for (const member of methodsByImplementationOrder) {
     descriptorByMember.set(
       member,
       member.returnType === undefined
         ? NO_TYPE_DESCRIPTOR
         : encodeTypeDescriptor(member.returnType, ensureNameOffset)
     );
+  }
+
+  // Signature slots remain cumulative over methods in DECLARATION order
+  // (Cycle 13 section 3/5), independent of directory physical position.
+  const slotChunks: Buffer[] = [];
+  for (const member of methodsByDeclarationOrder) {
+    for (const parameter of member.parameters) {
+      const descriptor = encodeTypeDescriptor(parameter.type, ensureNameOffset);
+      slotChunks.push(encodeApplicationClassSlot(parameter.out ? descriptor | 0x80000000 : descriptor));
+    }
+    slotChunks.push(encodeApplicationClassSlot(NO_TYPE_DESCRIPTOR));
   }
 
   // Directory: self, then each method in IMPLEMENTATION (physical) order.
@@ -11008,9 +11236,20 @@ function encodeApplicationClassProgramV2(
       signatureSlotOffset: 0,
       flags: APPLICATION_CLASS_FLAGS.self,
       low: 0,
-      descriptor: NO_TYPE_DESCRIPTOR
+      descriptor: selfDescriptor
     })
   ];
+  if (singletonInstance !== undefined) {
+    directoryChunks.push(encodeApplicationClassDirectoryRecord({
+      nameOffset: singletonInstanceNameOffset!,
+      signatureSlotOffset: 0,
+      flags: APPLICATION_CLASS_FLAGS.private |
+        APPLICATION_CLASS_FLAGS.property |
+        APPLICATION_CLASS_FLAGS.storage,
+      low: singletonInstance.declarationOrdinal,
+      descriptor: singletonInstanceDescriptor!
+    }));
+  }
   for (const member of methodsByImplementationOrder) {
     const visibilityFlag =
       member.visibility === 'private'
@@ -11036,6 +11275,7 @@ function encodeApplicationClassProgramV2(
   const statementChunks: Buffer[] = [];
   const references: PeopleCodeReference[] = [];
   const htmlDependencyScope = new HtmlDependencyScope();
+  const applicationClassReferenceScope = new ApplicationClassReferenceScope();
   let nextReferenceIndex = 0;
   let firstFragment = true;
 
@@ -11044,6 +11284,9 @@ function encodeApplicationClassProgramV2(
     commentOpcodes = context?.commentOpcodes,
     suppressDeclarationSectionMarkers = true
   ): Buffer => {
+    const applicationClassReferenceSession = hasModeledApplicationClassReferenceScope
+      ? applicationClassReferenceScope.beginFragment()
+      : undefined;
     const encoded = encodeFragmentInternal(fragmentSource, {
       ...context,
       commentOpcodes,
@@ -11053,8 +11296,14 @@ function encodeApplicationClassProgramV2(
       suppressDeclarationSectionMarkers,
       compilationUnitHasCompiledReferences: programHasCompiledReferences,
       htmlDependencyScope,
-      htmlDependencyLifetime: 'application-class'
+      htmlDependencyLifetime: 'application-class',
+      applicationClassReferenceSession,
+      // Inherited `%This` calls can allocate environment-derived method
+      // rows. Freeze that unsupported population on its prior fragment-owner
+      // behavior; modeled units keep the mandatory owner row blank.
+      bindOwnerReference: hasUnmodeledThisMethodDependencies
     });
+    applicationClassReferenceScope.commit(encoded.references);
     firstFragment = false;
     nextReferenceIndex += encoded.references.length;
     references.push(...encoded.references);
@@ -11067,28 +11316,105 @@ function encodeApplicationClassProgramV2(
     }
   };
 
-  const emitSourceTerminators = (count: number): void => {
-    for (let terminator = 0; terminator < count; terminator++) {
-      statementChunks.push(Buffer.from([0x15]));
+  const allocateModeledDeclarationDependency = (): void => {
+    const typeName = missingDeclarationDependencies[0];
+    if (!hasModeledApplicationClassReferenceScope || typeName === undefined) return;
+    if (firstFragment) {
+      references.push({
+        index: 0,
+        sequence: 1,
+        kind: 'owner',
+        recordName: undefined,
+        fieldName: undefined
+      });
+      nextReferenceIndex = 1;
+      firstFragment = false;
     }
+    const normalizedType = typeName.replace(/^(?:array\s+of\s+)+/i, '').trim();
+    const components = normalizedType.split(':');
+    const leaf = components.at(-1)!;
+    const packagePath = components.slice(0, -1);
+    const candidate: Omit<PeopleCodeReference, 'index' | 'sequence'> =
+      builtinDeclarationTypes.has(leaf.toLowerCase())
+        ? {
+          kind: 'package',
+          packageName: leaf.toUpperCase(),
+          objectName: leaf
+        }
+        : packagePath.length > 0
+          ? {
+            kind: 'package',
+            packageName: leaf.toUpperCase(),
+            objectName: packagePath[0].toUpperCase(),
+            packagePath: packagePath.map((component, index) =>
+              index === 0 ? component.toUpperCase() : component
+            ),
+            className: leaf.toUpperCase()
+          }
+          : {
+            kind: 'package',
+            packageName: leaf.toUpperCase(),
+            className: leaf.toUpperCase()
+          };
+    const existing = applicationClassReferenceScope.beginFragment().lookup(candidate);
+    if (existing !== undefined) return;
+    const reference: PeopleCodeReference = {
+      ...candidate,
+      index: nextReferenceIndex,
+      sequence: nextReferenceIndex + 1
+    };
+    references.push(reference);
+    nextReferenceIndex++;
+    applicationClassReferenceScope.commit([reference]);
+    context?.referenceTrace?.({
+      action: 'ALLOC',
+      sourceOffset: parsed.unitStart,
+      controlGroup: 0,
+      controlDepth: 0,
+      functionDepth: 0,
+      reference
+    });
   };
+  const emittedDeclarationTerminatorOffsets = new Set<number>();
 
   const emitLayoutRange = (
     start: number,
     end: number,
     flushTrailingGap: boolean,
-    ignoreSourceTerminators = false
+    includeDeclarationTerminators = false
   ): void => {
-    const layoutGap = (value: string): string =>
-      ignoreSourceTerminators ? value.replace(/;/g, ' ') : value;
+    const terminators = includeDeclarationTerminators
+      ? parsed.declarationTerminatorOffsets.filter(offset =>
+        offset >= start && offset < end && !emittedDeclarationTerminatorOffsets.has(offset))
+      : [];
+    let terminatorIndex = 0;
     let cursor = start;
     for (const comment of scanApplicationClassLayoutComments(source, start, end)) {
-      emitMarkers(applicationClassBlankLineCount(layoutGap(source.slice(cursor, comment.start))));
+      emitMarkers(applicationClassBlankLineCount(source.slice(cursor, comment.start)));
+      while (terminators[terminatorIndex] < comment.start) {
+        emittedDeclarationTerminatorOffsets.add(terminators[terminatorIndex]);
+        statementChunks.push(Buffer.from([0x15]));
+        terminatorIndex++;
+      }
       statementChunks.push(applicationClassLayoutCommentOperand(comment));
       cursor = comment.end;
     }
+    while (terminatorIndex < terminators.length) {
+      emittedDeclarationTerminatorOffsets.add(terminators[terminatorIndex]);
+      statementChunks.push(Buffer.from([0x15]));
+      terminatorIndex++;
+    }
     if (flushTrailingGap) {
       emitMarkers(applicationClassBlankLineCount(layoutGap(source.slice(cursor, end))));
+    }
+  };
+
+  const emitDeclarationTerminators = (start: number, end: number): void => {
+    for (const offset of parsed.declarationTerminatorOffsets) {
+      if (offset >= start && offset < end && !emittedDeclarationTerminatorOffsets.has(offset)) {
+        emittedDeclarationTerminatorOffsets.add(offset);
+        statementChunks.push(Buffer.from([0x15]));
+      }
     }
   };
 
@@ -11200,42 +11526,25 @@ function encodeApplicationClassProgramV2(
   };
 
   /*
-   * A method body's own FINAL statement, immediately before `end-method`,
-   * may omit its trailing `;` in real captured source (the golden
-   * OU_CORPUS:Utilities:TestClass fixture's own `Return "Hi"` has none) --
-   * the general statement parser requires one, so it is added back here
-   * purely to satisfy parsing. The OLD narrow encoder's own hand-written
-   * bytes for this exact fixture prove the LAST statement's own trailing
-   * 0x4f statement-separator byte (which `encodeFragmentInternal` emits
-   * after every ordinary statement, including one this parser had to
-   * complete with an added `;`) is NOT present before the method's own
-   * closing bytes -- it is stripped back off here to match.
+   * A method body's final statement may omit `;`, while the shared fragment
+   * parser requires one. Cycle 28 distinguishes that parser-only completion
+   * from a real final source semicolon after masking trailing comments. The
+   * synthetic final 0x4F remains stripped as before; when completion was
+   * necessary, its synthetic 0x15 is stripped too. Source-owned 0x15 bytes
+   * and the wrapper's own closer suffix remain untouched.
    */
   const encodeMethodBody = (body: string): Buffer => {
-    const executableSource = applicationClassBodyExecutableSource(body);
-    const hasExecutableCode = executableSource.trim() !== '';
-    const hasExplicitTrailingSemicolon = executableSource.endsWith(';');
-    const completed = hasExplicitTrailingSemicolon ? body : `${body};`;
-    let bytes = encodeFragment(completed);
-    if (bytes.length > 0 && bytes[bytes.length - 1] === 0x4f) {
-      bytes = bytes.subarray(0, bytes.length - 1);
-    }
-    // Cycle 27: for a real executable body, a semicolon introduced only to
-    // satisfy the fragment parser is not source-owned bytecode. Comment-only
-    // bodies retain the established Cycle 18/25 synthetic 0x15 framing that
-    // keeps the comment inside the wrapper.
-    if (
-      hasExecutableCode &&
-      !hasExplicitTrailingSemicolon &&
-      bytes.length > 0 &&
-      bytes[bytes.length - 1] === 0x15
-    ) {
-      bytes = bytes.subarray(0, bytes.length - 1);
-    }
-    return bytes;
+    const hasSourceTerminator = applicationClassHasTrailingSourceTerminator(body);
+    const completed = hasSourceTerminator ? body : `${body};`;
+    const bytes = encodeFragment(completed);
+    let end = bytes.length;
+    if (end > 0 && bytes[end - 1] === 0x4f) end--;
+    if (!hasSourceTerminator && end > 0 && bytes[end - 1] === 0x15) end--;
+    return bytes.subarray(0, end);
   };
 
   emitCompilationUnitPrefix();
+  allocateModeledDeclarationDependency();
 
   // CLASS|INTERFACE NAME [EXTENDS path] [IMPLEMENTS path]
   statementChunks.push(Buffer.from([parsed.unitKind === 'class' ? 0x5a : 0x70]));
@@ -11248,7 +11557,7 @@ function encodeApplicationClassProgramV2(
     statementChunks.push(Buffer.from([0x72]));
     statementChunks.push(encodeApplicationClassPathBytes(parsed.implementsType.split(':')));
   }
-  emitSourceTerminators(parsed.unitHeaderTerminatorCount);
+  emitDeclarationTerminators(parsed.unitStart, parsed.unitHeaderEnd);
 
   // Cycle 22: one executable stream in exact source declaration order.
   // Cycle 25: declaration layout is a separate compilation-unit layer. It
@@ -11282,7 +11591,7 @@ function encodeApplicationClassProgramV2(
         statementChunks.push(encodeApplicationClassTypeBytes(statement.returnType));
       }
       if (statement.abstract) statementChunks.push(Buffer.from([0x6f]));
-      emitSourceTerminators(statement.terminatorCount);
+      emitDeclarationTerminators(statement.sourceIndex, statement.sourceEnd);
       continue;
     }
     if (statement.kind === 'property') {
@@ -11292,7 +11601,7 @@ function encodeApplicationClassProgramV2(
       for (const modifier of statement.modifiers) {
         statementChunks.push(Buffer.from([modifier === 'readonly' ? 0x60 : modifier === 'get' ? 0x5f : 0x49]));
       }
-      emitSourceTerminators(statement.terminatorCount);
+      emitDeclarationTerminators(statement.sourceIndex, statement.sourceEnd);
       continue;
     }
     if (statement.kind === 'instance-statement') {
@@ -11302,7 +11611,7 @@ function encodeApplicationClassProgramV2(
         if (index > 0) statementChunks.push(Buffer.from([0x03]));
         statementChunks.push(encodeVariableName(name));
       });
-      emitSourceTerminators(statement.terminatorCount);
+      emitDeclarationTerminators(statement.sourceIndex, statement.sourceEnd);
       continue;
     }
     // Flattened instance members are metadata-only; their grouped executable
@@ -11313,7 +11622,7 @@ function encodeApplicationClassProgramV2(
       statementChunks.push(encodeVariableName(statement.name));
       statementChunks.push(Buffer.from([0x06]));
       statementChunks.push(encodeApplicationClassLiteral(statement.value));
-      emitSourceTerminators(statement.terminatorCount);
+      emitDeclarationTerminators(statement.sourceIndex, statement.sourceEnd);
     }
   }
   emitLayoutRange(declarationCursor, parsed.unitCloseStart, true, true);
