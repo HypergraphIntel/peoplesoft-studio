@@ -2065,6 +2065,30 @@ end-method;`, {
   ]);
 });
 
+test('Application Class built-in object declarations get method-wide lifetime across control groups', () => {
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+end-class;
+
+method Run
+   Local XmlNode &first;
+   If True Then
+      Local XmlNode &second;
+   End-If;
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  assert.deepStrictEqual(encoded.references, [
+    { index: 0, sequence: 1, kind: 'owner', recordName: undefined, fieldName: undefined },
+    { index: 1, sequence: 2, kind: 'package', packageName: 'XMLNODE', objectName: 'XmlNode' }
+  ]);
+});
+
 test('HTML.NAME is recognized outside GetHTMLText calls', () => {
   const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
 Local any &content;

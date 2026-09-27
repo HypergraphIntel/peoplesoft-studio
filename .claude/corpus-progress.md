@@ -1,5 +1,244 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 36 — Application Class reference identity, phase 4
+
+**Status: Investigation A (definition 28820) produced a proven,
+population-validated, contradiction-minimal rule and was implemented;
+Investigation B (definition 29542) remains forensic-only -- it needs a
+net-new encoder feature whose firing/reuse semantics this cycle could
+not yet verify against controls.** Starting commit `2e69787` (Cycle
+35); `11aa213` ("0.2.4 staging," unrelated) sits between Cycle 34 and
+Cycle 35 in history and was untouched. 23,217/30,209 EXACT, protected
+430/430 throughout (unchanged -- the fix corrects the PSPCMNAME
+reference-stream dimension for its target population, not raw
+PSPCMPROG bytes, matching the established pattern from Cycles 16/18/
+33/34).
+
+### Frozen population (reproduced fresh against `2e69787`)
+
+```text
+23 declaration-phase PACKAGE discovery/order mismatch
+ 5 import PACKAGE discovery/order mismatch
+ 3 executable/post-class PACKAGE discovery/order mismatch
+ 3 PACKAGE phase/order mismatch
+ 2 row-count/stream-tail mismatch
+ 2 suppressed fragment-owner operand collision
+ 1 cross-fragment PACKAGE duplicate / failed reuse (28820)
+ 1 non-PACKAGE allocation-order mismatch
+ 1 missing non-PACKAGE allocation
+ 1 wrong non-PACKAGE identity (29542)
+```
+
+Matches Cycle 35's own ending accounting exactly (42 total; Cycle 35
+made zero encoder changes, so no drift was expected or found).
+
+### Investigation A -- definition 28820 (proven, implemented)
+
+**A1 -- exact reconstruction.** `MasterCRR:ProcessMessage` declares
+`XmlNode` six times across the method: `&tpIdNode`/`array of XmlNode
+&masters` (top level, before `try`), `&rootNode` (inside `try`),
+`&lookUpRef`/`&originalRefNode`/`&externalRefNode` (all three inside a
+`For` loop). The encoder allocated exactly two `PACKAGE|XMLNODE`
+identities -- `controlGroup=0` (covering `&tpIdNode` and, since `try`
+does not itself increment `controlGroup`, `&rootNode` too) and
+`controlGroup=3` (covering all three `For`-loop declarations, which
+share one control group). Stored PSPCMNAME (`definition.names`) has
+exactly ONE `PACKAGE|XMLNODE|XmlNode|XmlNode` row, confirmed directly
+from the real captured table, not inferred.
+
+**A2/A3 -- population.** New read-only tool,
+`tools/corpus/research/appclass-builtin-lifetime-analysis.ts`: for
+every definition (Application Class and ordinary), find methods/
+programs where the SAME built-in type (`XmlNode, XmlDoc, Row, Rowset,
+Record, SQL, File, ApiObject, Grid, ProcessRequest, Message,
+JsonObject, JsonArray`) is declared via `Local TYPE &var` two or more
+times, crossing an approximate control-group boundary (a simple
+If/For/While/Evaluate/Try nesting tracker), where the CURRENT encoder
+allocates 2+ distinct identities for it. For each candidate, count
+real stored `PACKAGE|<TYPE>` rows in `definition.names` and compare
+against the encoder's own distinct-identity count:
+
+| population | candidates | stored reuses across boundary | stored matches generated (current behavior correct) | stored MORE than generated |
+|---|---:|---:|---:|---:|
+| Application Class (1,506 scanned) | 122 | 114 (93%) | 0 | 8 (all definition 29797) |
+| Ordinary PeopleCode (28,699 scanned) | 651 | 2 (0.3%, both definition 14636) | 401 (62%) | 248 |
+
+Broken down by type, Application Class candidates show the SAME
+pattern across every represented type (Rowset 22/22, Record 63/67, SQL
+5/5, XmlNode 18/21, XmlDoc 1/1, Row 1/1, File 2/2, ApiObject 2/3) --
+this is not an XmlNode-specific quirk.
+
+**Reconciling the two apparent exception clusters:**
+
+- All 8 Application Class "exceptions" are `definition 29797` (the
+  standing scoped-NEW negative control) across 7 methods. This is a
+  measurement artifact, not a contradiction: `definition.names` is
+  CLASS-WIDE, but the script's `generatedDistinctIdentities` count is
+  PER-METHOD, and 29797 is a ~20-method class where each method
+  legitimately gets its OWN fresh identity set -- comparing one
+  method's own count against the whole class's stored row total (60
+  XMLNODE rows across the entire class) is apples-to-oranges. This is
+  consistent with the hypothesis being METHOD-wide, not CLASS-wide.
+- Both ordinary "exceptions" are the same single definition, 14636,
+  and match the EXISTING, documented `ensureLocalObjectPackageReference`
+  comment about FUNCTION-body sensitivity (declarations spanning
+  separate `Function ... End-Function;` bodies, not true nested
+  control flow within one function) -- outside this cycle's
+  investigation and irrelevant regardless, since the implemented fix
+  only touches Application Class fragments.
+
+**A4/A5 -- model and implementation.** The boundary is the
+compilation-unit KIND (Application Class method-body fragment vs.
+ordinary program), not the type, not the variable, not the control
+construct: `ensureLocalObjectPackageReference`'s existing dedup key
+(`controlGroup:functionDepth:packageName:objectName`) drops
+`controlGroup` specifically for Application Class fragments via a new,
+additive, opt-in `EncodeFragmentContext` field,
+`builtinObjectDeclarationsHaveMethodWideLifetime`, set only by
+`encodeApplicationClassProgramV2`'s shared `encodeFragment` closure
+(used for both the import fragment, which never has such
+declarations, and every method body). Every ordinary caller omits the
+field, leaving the 401/651-validated ordinary control-group-scoped
+behavior -- and every currently-EXACT ordinary program -- completely
+untouched. `functionDepth` is retained in the key (Application Class
+method bodies do not themselves nest `Function ... End-Function;`
+blocks, so this is inert there but keeps the mechanism uniform).
+
+### Investigation B -- definition 29542 (forensic only, not implemented)
+
+**B1 -- exact reconstruction.** Re-traced with the Cycle 34-fixed
+encoder (the prior `TEXTCATALOG` duplicate is already gone, confirming
+cross-fragment reuse now works correctly for it). The earliest
+remaining divergence is ordinal 10: stored expects a method-bearing
+Application Class identity, `PACKAGE|FMLAMEDCERT|GP_ABS_FMLA||INIT` (a
+self-reference to the class's own `INIT` method, raw PSPCMNAME fields
+inspected directly, not inferred from a label); generated has NOTHING
+there -- the next real allocation (`PACKAGE|ROWSET`, from a later
+`Local Rowset &Comprowset;`) shifts up to fill the gap.
+`programSectionsExact` is already `false` for this definition, meaning
+the STATEMENT bytes themselves (not only the trailing PSPCMNAME
+stream) would need to change for a correct fix -- confirming this is a
+genuinely different mechanism from Investigation A's trailing-metadata-
+only fix.
+
+**B2/B3 -- scope of the open question.** Grepped `src/peoplecode/
+encoder.ts`: no code path allocates a method-bearing self-reference for
+ANY construct today. `%This.method()` is not specially recognized by
+the general postfix/expression encoder at all (only Cycle 34's own
+gate-check regex mentions `%This`). A population-scale census of
+same-class `%This.method(...)` calls (own vs. external, from Cycle 34's
+own scan) already exists (23 own-only / 10 external / 10 none, out of
+the frozen population), but that census only proves such calls are
+GATE-ELIGIBLE for the shared session -- it does not by itself reveal
+WHEN PeopleTools allocates a method-bearing row for one, which requires
+tracing EACH call site's actual stored/generated identity individually
+(call-statement vs. value-context use; first-call vs. repeated-call
+reuse; constructor-vs-method target), none of which was completed this
+cycle. Given implementing this wrong risks a) getting the firing
+condition wrong (every call vs. only bare call-statements) and b)
+needing to also correctly encode the STATEMENT-level operand bytes
+(not just the trailing table) with no existing precedent to build from,
+**this was not implemented.** This is the concrete, well-scoped
+prerequisite research task for whoever picks this up next.
+
+### Priority 3/4 (per instruction, only after A and B)
+
+Not revisited this cycle -- Cycle 35 already established 28925/29109
+fold into the declaration-phase/import-order family, and no new
+observable emerged from Investigations A/B that bears on that
+population.
+
+### Negative controls
+
+- **Definition 29797**: confirmed byte-identical (SHA match) before
+  and after this cycle's change.
+- **Ordinary control-group population** (401/651 candidates where
+  stored already matches the existing per-control-group-fresh rule):
+  the fix is scoped to Application Class fragments only
+  (`outsideApplicationClasses: 0` in the full corpus regression
+  comparison), so this population is provably untouched by
+  construction, not merely by spot-check.
+- **Cycle 33 wildcard-import rule / Cycle 34 `%This` gate rule**: both
+  entirely orthogonal code paths (`ApplicationClassImportScope`/
+  `hasUnmodeledThisMethodDependencies` vs. `ensureLocalObjectPackageReference`'s
+  own dedup key); neither was touched.
+
+### Tests added
+
+`src/test/encoder.test.ts`: one focused test, `'Application Class
+built-in object declarations get method-wide lifetime across control
+groups'`, asserting that two `Local XmlNode &var;` declarations on
+opposite sides of an `If`/`End-If` boundary inside one Application
+Class method body produce exactly ONE `package` reference (not two),
+using semantic assertions on `encoded.references`, not a fixture ID.
+
+### Validation
+
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 551 passed, 1 intentional skip (552 total; +1 from the
+  new test).
+- Protected local baseline: 430/430 EXACT; regression gate PASS.
+- Full local corpus: 23,217/30,209 EXACT (identical to Cycle 35); 6,992
+  residual definitions; `Improved: 0, Regressed: 0, Unchanged
+  failures: 0`.
+- `git diff --check`: clean.
+- Targeted analyzer (`--baseline-run 2245`): 285 generated-SHA changes
+  (up from Cycle 34's 259; the increase is the wider 114-candidate
+  Application Class population this fix reaches, beyond the frozen
+  42-root set), `outsideApplicationClasses: 0`. 21 source-program
+  gains (same list as Cycle 34 -- this fix's own effect is in the
+  reference-stream dimension, which the "source-program exact" metric
+  does not separately track), 0 losses.
+
+### Ending 42-root accounting
+
+| ending outcome | roots | movement |
+|---|---:|---:|
+| reference identity | 41 | -1 |
+| names metadata | 0 | 0 |
+| marker | 0 | 0 |
+| wrapper/body | 0 | 0 |
+| decoder-only | 1 | +1 (28820) |
+| fully EXACT | 0 | 0 |
+| **total** | **42** | |
+
+Updated 99-root Application Class accounting: 41 reference identity,
+3 names metadata, 18 decoder-only (+1), 9 marker residual, 2
+wrapper/body, 25 parked storage-symbol enumeration (untouched), 1
+fully-EXACT placeholder already reconciled in Cycle 32 = 99.
+
+### Explicitly not done (per instruction)
+
+- Did not implement `%This.method()` self-reference allocation
+  (Investigation B) without population-scale evidence for its exact
+  firing/reuse semantics -- explicitly documented, not guessed.
+- Did not touch the 23-root declaration-phase family or 28925/29109.
+- Did not touch the 25 parked Cycle-31 storage-symbol roots, marker/
+  wrapper/decoder populations, or the 3 existing names-metadata roots.
+- Did not modify `applicationClassReferenceKey`, `ApplicationClassReferenceScope`/
+  `ApplicationClassReferenceSession`, the Cycle 33 wildcard-import rule,
+  or the Cycle 34 `%This` gate rule.
+- Did not query live Oracle or fabricate inherited/environment
+  metadata.
+
+### Next actions
+
+- Investigation B's concrete prerequisite: an event-by-event census of
+  every same-class `%This.method()` call site's actual stored vs.
+  generated identity (not just the gate-eligibility census Cycle 34
+  already has), distinguishing call-statement from value-context use
+  and first-call from repeated-call reuse, before attempting an
+  implementation.
+- The 8 definition-29797 "exceptions" surfaced by the new analyzer are
+  themselves a candidate follow-up: verifying the method-wide (not
+  class-wide) reuse hypothesis PER METHOD for a large multi-method
+  class would strengthen Investigation A's own evidence further,
+  though it did not block this cycle's implementation.
+- Datasource mode: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout; `--live` was not used.
+
+**Cycle 37 was not started.**
+
 ## Compiler Semantics Cycle 35 — Application Class reference identity, phase 3 (forensic only, zero behavior change)
 
 **Status: no encoder change this cycle. All four investigated
