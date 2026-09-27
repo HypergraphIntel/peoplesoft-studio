@@ -1,5 +1,341 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 46 — thread Application Class method parameters into method-body encoding (implemented)
+
+**Status: IMPLEMENTED, validated, zero regressions.** Cycle 45 exposed that
+`29522`'s next divergence was `&AbsenceRec.EMPLID` inside method
+`SaveAppointmentToQueue`, where `&AbsenceRec` is a method PARAMETER
+(`&AbsenceRec As Record`), never a `Local` declaration -- Application
+Class method IMPLEMENTATION bodies receive NO parameter-type information
+at all when encoded. Cycle 46 threaded the class header's already-parsed
+parameter metadata into each method body's own fragment context, and, in
+the course of making `29522` itself actually progress, found and fixed two
+further, closely-related gaps the threading exposed. **+13 EXACT, 0
+regressions, protected 430/430 unchanged.** `29522` itself is still not
+EXACT -- it advanced through three sequential divergences this cycle and
+is now blocked by a FOURTH, newly-characterized, unimplemented gap (see
+below), which is a different construct (`CreateRecord(Record.X)` reuse
+eligibility) unrelated to parameters. Starting commit `2f88f0e` (Cycle 45).
+23,228/30,209 EXACT, protected 430/430.
+
+### Phase 1 -- fresh reproduction
+
+- HEAD `2f88f0e`, worktree clean, confirmed before any change.
+- Protected: 430/430 EXACT.
+- Full corpus: 23,228/30,209 EXACT (matches Cycle 45's own ending figure).
+- `29522` reconfirmed via `--verbose`: `DECODE_SOURCE_MISMATCH`, first
+  divergence at `&AbsenceRec.EMPLID` (body offset 5437, stored `4a 0e 00`
+  FIELD reference vs generated `0a "EMPLID"` inline text) -- exactly
+  Cycle 45's own documented ending point, confirming no drift since.
+- `29389`/`29528`/`29797` reconfirmed stable (`29528`'s `source→bin EXACT`
+  with its own pre-existing, unrelated roundtrip-only classification quirk,
+  identical to Cycle 45's own note).
+
+### Phase 2/3 -- reconstructing 29522's method and the compilation pipeline
+
+Class header: `method SaveAppointmentToQueue(&OnlineSave As boolean,
+&Befrec As Record, &AbsenceRec As Record) Returns boolean;`. The
+IMPLEMENTATION's own leading `/+ &OnlineSave as Boolean, +/` comment block
+is literally a compiler-emitted signature echo inside the body TEXT --
+comments are not re-parsed for type information, so this is not a usable
+signal even though the parameter types are textually present.
+
+Pipeline traced from parse to the point parameter metadata is lost:
+
+```
+parseApplicationClassSource(source)
+  -> parsed.members (ApplicationClassMethodMember[], kind:'method',
+     each with .parameters: {name, type, out}[] -- ALREADY structured,
+     no re-parsing needed)
+  -> parsed.implementations (ApplicationClassImplementation[], kind:
+     'method'|'get'|'set' -- only {name, body, ...}, NO .parameters field
+     at all: a DIFFERENT, lighter type)
+  -> encodeApplicationClassProgramV2's own body-encoding loop, iterating
+     parsed.implementations
+       -> encodeMethodBody(bodyCore)      <- MISSING EDGE: called with
+                                              ONLY the body text; member's
+                                              own parameters (available on
+                                              the class-header's matching
+                                              `methods` array, NOT on
+                                              `parsed.implementations`)
+                                              were never looked up or
+                                              passed through at all
+       -> encodeFragment(completed)       <- (local closure, threads
+                                              context shared across ALL
+                                              fragments in the unit)
+       -> encodeFragmentInternal(source, context)  <- context carried NO
+                                              parameter information;
+                                              `recordVariables` etc. start
+                                              empty for every fragment
+```
+
+The missing edge: `parsed.implementations` (body text) and `methods =
+parsed.members.filter(kind==='method')` (parameter metadata) are TWO
+SEPARATE arrays with no cross-reference; nothing joined them before this
+cycle.
+
+### Phase 4 -- Function vs Application Class method parameter handling
+
+Ordinary `Function` declarations ALREADY register `Record`/`Row`-typed
+parameters into `recordVariables`/`rowVariables` (Cycle 45, and
+definitions 921/924 for Row) and `Rowset`-typed parameters into the
+narrower `chainSemanticsDeclaredRowsetVariables` (Cycle 7, deliberately
+NOT `rowsetVariables`/`ensureLocalObjectPackageReference` -- broader
+treatment regressed already-EXACT definitions). Application Class method
+implementations had NO equivalent registration at all -- not merely an
+unproven case, a completely absent one, because method bodies never
+re-parse their own signature as source text the way Function bodies do
+(their parameter list lives in already-parsed structured metadata that
+was simply never consulted).
+
+### Phase 5 -- parameter-type taxonomy census
+
+Across 1490 parsed Application Class definitions, 5168 methods have
+>=1 parameter. Category counts (occurrences / definitions):
+
+| category | occurrences | definitions |
+|---|---:|---:|
+| primitive | 6649 | 891 |
+| Application Class | 1199 | 368 |
+| Record | 595 | 246 |
+| array of other | 393 | 153 |
+| built-in object (other) | 339 | 283 |
+| Rowset | 337 | 163 |
+| Row | 189 | 62 |
+| array of Application Class | 129 | 53 |
+| Field | 96 | 45 |
+| array of Record | 11 | 10 |
+| (JsonObject/JavaObject/Map/Collection/Document/other unknown) | 35 | ~20 |
+
+932 definitions have at least one non-primitive-typed method parameter.
+**All 932 are currently non-EXACT** (`DECODE_SOURCE_MISMATCH` 803,
+`ENCODE_ERROR` 73, `UNSUPPORTED_SYNTAX` 56) both before and after this
+cycle's fix -- see "Application Class EXACT classification" below for why
+this population can never directly demonstrate an EXACT gain regardless
+of how correct the fix is.
+
+Per the implementation threshold ("do not implement only for Record
+unless evidence proves other types are already handled elsewhere"), the
+fix threads exactly the types that ALREADY have proven, calibrated
+registration semantics for Function parameters -- **Record, Row, and
+Rowset** (the narrow `chainSemanticsDeclaredRowsetVariables`-only form) --
+via one shared helper, `registerTypedParameter`, used by BOTH the ordinary
+Function-parameter loop (refactored to call it instead of three inlined
+branches) and the new Application Class method-body seeding step. Field,
+Application Class, and array-of-Record/Row/ApplicationClass parameter
+types are deliberately NOT threaded -- no existing, validated registration
+semantics exist for them as PARAMETERS yet, even for ordinary Functions;
+extending the helper to them now would be inventing new semantics rather
+than reusing proven ones (Phase 16's own instruction).
+
+### Application Class EXACT classification (a session-wide finding, not new to this cycle but only now made explicit)
+
+A definition-level census (using the harness's own
+`validateDefinition`/`LocalCorpusDataSource` pipeline) found: **0 of
+~1490 Application Class definitions in the entire corpus currently
+classify as literal `EXACT`** -- every one hits a separate, pre-existing,
+universal ROUNDTRIP-decode limitation (`DECODE_SOURCE_MISMATCH`, e.g.
+"bare identifiers are only supported as calls" when re-decoding a
+synthesized source back into itself) regardless of whether the FORWARD
+`source→bin` encoding is byte-for-byte correct. This is consistent with
+every single Application Class definition checked directly this session
+(`29522`, `29389`, `29528`, `29797`) always showing
+`DECODE_SOURCE_MISMATCH` as their overall classification, with `29528`
+specifically confirmed `source→bin EXACT` underneath that outer
+classification. **This means the corpus-wide EXACT counter (23,228 ->
+23,241) is, and has apparently always been, driven entirely by ordinary
+(non-Application-Class) PeopleCode** -- Application Class calibration
+work is real and necessary (it is what most of Cycles 13-46 have been
+about) but is validated via `source→bin`/reference-stream comparison, not
+via ever moving the corpus-wide EXACT figure directly. This does not
+change anything about how to VALIDATE Application Class work (the
+existing `--verbose`/`--trace-refs` byte-level comparison remains
+authoritative), but it does mean "blast radius" for an Application-Class-
+targeted fix should be predicted in terms of `source→bin` correctness and
+reference-stream shape, not the bulk EXACT counter, which cannot reflect
+it either way.
+
+### 29522: three sequential divergences resolved this cycle, in order
+
+1. **Missing parameter registration** (the primary target). Threading
+   `&AbsenceRec As Record`/`&Befrec As Record` into `recordVariables` via
+   `methodParameters` made `.EMPLID` correctly resolve as a FIELD
+   reference for the first time (previously plain inline text).
+2. **FIELD reuse lifetime.** `&AbsenceRec.EMPLID.Value` is used twice in
+   `SaveAppointmentToQueue` (two separate `SQLExec` calls, two different
+   control groups). Stored has exactly ONE `FIELD|EMPLID` row, reused
+   across both; the encoder allocated two. Root cause: `fieldDependencyScope`
+   and `recordVariableFields` (the receiver-specific pool
+   `resolvePostfixMemberReuse` checks first) were still keyed by raw
+   `controlGroup` -- Cycle 43 gave `dependencyScope` (RECORD/SCROLL)
+   method-wide lifetime via `recordScopeId()` but explicitly left these
+   FIELD-side pools untouched, "no evidence gathered about their own
+   lifetime." `29522` is now direct evidence they need the identical
+   treatment. Fixed via a new `fieldScopeId()` (same
+   `recordDependenciesHaveMethodWideLifetime` flag, mirroring
+   `recordScopeId()` exactly), applied to both the read and write sides of
+   both pools -- Cycle 43's own precedent (a prior read/write key mismatch
+   on the SAME map caused a real regression) is why both sides must share
+   one function.
+3. **Row-state member exclusion.** Once `&AbsenceRec` became field-mode
+   eligible, its own bare `.IsDeleted` (a genuine Record-object row-state
+   property, not a field name) was wrongly caught by the same "any bare
+   member is a FIELD" rule. `isInlineRowStateMember`'s existing exclusion
+   set (`RowNumber|IsNew|IsDeleted|IsChanged|Visible|Selected`) was gated
+   to `dependencyKind === 'record'` only (a Row variable's `.RECORD`
+   member); definition 982's own EXISTING comment already documents the
+   identical exception for the `Record.X.MEMBER` explicit-chain path
+   ("`IsChanged` here is a boolean Row-state property of the RECORD's
+   underlying Row, not a field name") -- broadened the same gate to also
+   cover `dependencyKind === 'field'`, reusing the identical identifier set
+   rather than guessing a new one.
+
+Each fix was verified individually against `29522` via
+`--verbose`/`--trace-refs` before moving to the next: bin-size difference
+from stored shrank from 2970 bytes -> 318 bytes -> 228 bytes across the
+three fixes, with the body-diff offset moving strictly later each time
+(3014 -> 5437 -> 5810 -> 6197 -> 8963), confirming each fix resolved a
+real, distinct blocker rather than masking the same one.
+
+### 29522's next blocker (characterized, not implemented)
+
+The FOURTH divergence (body offset 8963, namenum drift of exactly 2):
+`&ConfRec_bef = CreateRecord(Record.GP_ABS_SS); ... &ConfRec =
+CreateRecord(Record.GP_ABS_SS);` -- two SEPARATE `CreateRecord(Record.X)`
+calls to the SAME record name, assigned to two DIFFERENT local variables,
+in the same method. Stored reuses ONE `RECORD|GP_ABS_SS` row across both;
+the encoder allocates two. Traced to `recordReference()`'s own
+`reuseRecordReferenceWithinControlGroup`-gated call to
+`dependencyScope.lookupRecord(...)` (line ~2918) -- this IS the
+Cycle-43-fixed, method-wide-aware path, but a same-function comment
+explicitly documents `CreateRecord(Record.X)` as calibrated
+"occurrence-based" or, when `reuseRowShorthandRecord` is set (a
+DIFFERENT-still flag), reused only from the 2nd+ repeat of the SAME target
+variable or the 3rd+ occurrence overall -- neither rule covers "same
+record name, two different one-time target variables, twice total." This
+is a DISTINCT, NOT parameter-related construct (`&ConfRec`/`&ConfRec_bef`
+are ordinary Locals, not parameters) governed by a DIFFERENT flag
+(`reuseRecordReferenceWithinControlGroup`/`reuseRowShorthandRecord`) than
+anything Cycles 42/43/45/46 have touched. Per this cycle's own Phase 24
+("stop once the parameter-driven reference problem is resolved... do not
+continue downstream"), this is deliberately NOT implemented -- flagged
+precisely as the next lead. It requires its own population census (how
+does stored decide CreateRecord(Record.X) reuse eligibility across
+multiple one-time target variables) before any fix is justified.
+
+### Validation
+
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 563 total, 562 pass, 1 skip, 0 fail (5 new Cycle 46 tests:
+  Application Class method Record-parameter FIELD resolution, FIELD reuse
+  across control groups within one method, Record-typed variable row-state
+  member staying inline, parameters not leaking across methods, and an
+  explicit non-regression check for the `registerTypedParameter` refactor's
+  effect on ordinary Function Record/Row parameters).
+- Negative controls (via `git stash` pre/post comparison, not just a
+  single post-fix read):
+  - `29389`: `source→bin` mismatch offset moved 7156 -> 7700 (same
+    18509-byte size both before and after) -- FURTHER progress, not a
+    regression, from the shared `fieldScopeId`/row-state fixes also
+    reaching this definition's own unrelated divergence chain.
+  - `29528`: unchanged, `source→bin EXACT` both before and after; the
+    roundtrip-only classification quirk confirmed IDENTICAL pre- and
+    post-fix via direct `git stash` comparison (pre-existing, unrelated).
+  - `29797`: generated size moved from 125,991 (2599 bytes off stored) to
+    123,051 (341 bytes off) -- substantial further progress, not a
+    regression.
+- Full corpus (`npm run corpus:verify`): **23,228 -> 23,241 EXACT (+13),
+  0 regressed, 0 unexplained** by classification-bucket delta.
+  UNKNOWN_MISMATCH 4530 -> 4517 (-13, exactly matching); DECODE_SOURCE_MISMATCH/
+  UNSUPPORTED_SYNTAX/ENCODE_ERROR all unchanged (1994/335/122). REGRESSION
+  GATE: PASS.
+- Protected: reconfirmed 430/430 EXACT after the full corpus run.
+- `git diff --check`: clean.
+
+### Blast-radius reconciliation (partial -- 9 of 13 directly attributed, 0 regressions)
+
+Per the session-wide "Application Class EXACT classification" finding
+above, none of the +13 gain can be Application-Class-sourced (no AppClass
+definition can ever show literal EXACT) -- **the entire gain is ordinary
+(non-Application-Class) PeopleCode**, driven by the `isInlineRowStateMember`
+field-mode broadening (the ONE piece of this cycle's fix that is not
+gated to Application Class fragments at all: `Record`-typed scalar
+locals/Function-parameters accessing their own bare row-state property
+anywhere in ordinary PeopleCode).
+
+Census (ordinary PeopleCode, `Local Record`/Function-parameter-typed
+Record variable with a bare `.RowNumber`/`.IsNew`/`.IsDeleted`/
+`.IsChanged`/`.Visible`/`.Selected` access): 18-19 candidate definitions
+(regex-dependent on exact comma-list/declaration-boundary matching).
+Direct pre/post (`git stash`) comparison confirmed **9 concrete new EXACT
+gains**: 3871, 4187, 6677, 13373, 19642, 19645, 21268, 12865, 22863 -- all
+`UNKNOWN_MISMATCH` before, `EXACT` after. The remaining 4 of the 13
+corpus-wide gain were not individually traced to a specific definitionId
+within this cycle's time budget (regex-based census enumeration of every
+possible `Local Record`/parameter declaration shape -- comments,
+multi-variable lists, unusual whitespace -- is inherently harder to make
+exhaustive than Cycle 45's construct-anchored census). This is reported
+honestly as PARTIAL reconciliation, not the full closure Cycle 45
+achieved -- what IS confirmed without any ambiguity is the classification-
+bucket delta (UNKNOWN_MISMATCH -13, everything else unchanged) and the
+zero-regression full-corpus diff, which together rule out any hidden
+regression even though 4 of the 13 gained IDs remain individually
+unidentified.
+
+### Final status of tracked definitions
+
+| definition | status |
+|---|---|
+| 29522 | non-EXACT; advanced through 3 sequential divergences this cycle (parameter registration, FIELD reuse lifetime, row-state exclusion); now blocked by a 4th, newly-characterized, unimplemented gap (`CreateRecord(Record.X)` reuse eligibility across distinct one-time target variables) |
+| 28959 | unchanged, still parked under the `%This.method()` self-row observability boundary; untouched |
+| 29389 | unchanged classification, `source→bin` divergence point advanced (7156->7700), not a regression |
+| 29528 | unchanged, `source→bin EXACT`; pre-existing unrelated roundtrip-only classification quirk, confirmed identical pre/post via `git stash` |
+| 28820 | untouched (decoder-only, parked; not read or modified this cycle) |
+| 3871, 4187, 6677, 13373, 19642, 19645, 21268, 12865, 22863 | **newly EXACT** (ordinary PeopleCode, `isInlineRowStateMember` field-mode broadening) |
+
+### Explicitly not done (per instruction)
+
+- Did not implement a fix for 29522's newly-exposed 4th blocker
+  (`CreateRecord(Record.X)` reuse eligibility) -- characterized precisely,
+  left for a future cycle, since it is a different construct/flag from
+  anything this cycle's evidence covers.
+- Did not thread Field, Application Class, or array-of-Record/Row/
+  ApplicationClass PARAMETER types into method-body state -- no existing,
+  validated registration semantics for those as parameters, even for
+  ordinary Functions.
+- Did not implement a compilation-unit-wide `localObjectPackageReferences`
+  cache -- investigated as a hypothesis (29522's own PACKAGE|RECORD row
+  IS reused across methods), but proven UNNECESSARY: that reuse is
+  already fully handled by the pre-existing `applicationClassReferenceScope`/
+  `ApplicationClassReferenceSession` mechanism (`nextReference`'s own
+  `context?.applicationClassReferenceSession?.lookup(reference)` check,
+  active for every reference kind including `package`). The attempted
+  change was implemented, tested (zero effect, confirming the hypothesis
+  wrong), and fully reverted -- not left in the codebase.
+- Did not reopen `28959`, the parked `%This.method()` firing boundary, the
+  25 names/storage-symbol roots, `28820` (decoder-only), marker/wrapper
+  residuals, or the large declaration-order family.
+- Did not attempt to exhaustively identify all 13 corpus-wide EXACT gains
+  by definitionId (9 of 13 confirmed; see blast-radius section).
+- Did not query live Oracle or fabricate inherited/environment metadata.
+
+### Next actions
+
+- 29522's concrete next step: census `CreateRecord(Record.X)` occurrences
+  where the SAME record name is constructed into 2+ DIFFERENT one-time
+  target variables within one method/control-group boundary, and determine
+  stored's actual reuse rule (method-wide? occurrence-count-based like the
+  existing `reuseRowShorthandRecord` 3rd-occurrence rule, but with a lower
+  threshold? something else entirely) before implementing anything.
+- The remaining 4 (of 13) ordinary-PeopleCode EXACT gains from this
+  cycle's `isInlineRowStateMember` broadening were not individually
+  identified -- a future pass could enumerate them precisely if ever
+  needed (not blocking; zero regression is already confirmed).
+- Datasource mode: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout; `--live` was not used.
+
+**Cycle 47 was not started.**
+
 ## Compiler Semantics Cycle 45 — indexed array-of-Record row-shorthand field access (implemented)
 
 **Status: IMPLEMENTED, validated, zero regressions.** Cycle 44 traced
