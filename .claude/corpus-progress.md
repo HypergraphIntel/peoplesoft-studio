@@ -1,5 +1,220 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 40 — Application Class declaration-phase dependency prepass (forensic only, zero behavior change)
+
+**Status: no encoder change. Reorganized the investigation around
+declaration-phase prepass composition rather than executable call
+shape, per Cycle 39's own reframing. Found one narrow, zero-
+contradiction SUFFICIENT condition (n=3, too small to generalize) and
+rejected two broader hypotheses (self-row position relative to
+imports; bare-statement vs. value-context call shape) with substantial
+contradiction rates. The evidence now leans toward Phase 16
+classification C/D (hidden-state-dependent or still unresolved): every
+tested hypothesis that scored well on a narrow matched population broke
+down at population scale, in sharp contrast to Cycle 38's target-
+selection rule, which was clean (187/187) from the population-scale
+test onward.** Starting commit `4406034` (Cycle 39). 23,217/30,209
+EXACT, protected 430/430 throughout (unchanged -- no encoder source
+was edited this cycle).
+
+### Phase 1 -- fresh reproduction
+
+Reference-root population reproduced fresh against `4406034`: 41 roots
+(identical causal-family breakdown to Cycles 36-39), decoder-only 18
+(28820 confirmed present, untouched), 29542 confirmed still in
+reference-identity. Zero drift. Cycle 39's 305/305 operand-usage
+finding is unaffected (no code changed since).
+
+### Phase 4/7 -- self-row position relative to imports: does not generalize
+
+New tool, `tools/corpus/research/application-class-dependency-prepass-analysis.ts`:
+for every definition with a stored self-method row, classify every
+stored PACKAGE-kind PSPCMNAME row (in namenum order) as import-derived
+(its leaf matches an explicit `import ROOT:...:Leaf;`) or not, and
+check whether the self-row sits immediately after the import block
+(i.e. every lower-namenum PACKAGE row is import-derived) or has
+something else interleaved before it.
+
+```text
+Self-row immediately after the import block:      40 / 305 (13%)
+Self-row NOT immediately after the import block:  265 / 305 (87%)
+```
+
+29542 itself IS in the clean "immediately after imports" 13% -- its
+own simplicity (a self-contained class whose only non-scalar storage
+types are already covered by its 8 explicit imports) made it look like
+a representative case when it is not. The self-row's position in the
+stored stream varies too much across the population to support a
+single "subpass boundary" model from this feature alone.
+
+### Phase 5 -- `missingDeclarationDependencyCount` (Cycle 32's own existing metric): weak lean, not clean
+
+Reimplemented Cycle 32's own `missingDeclarationDependencies` filter
+(parameter/return/property/instance types, minus scalars, minus
+already-imported leaves) independently in the research tool and
+cross-referenced its count against self-row presence:
+
+```text
+Present (305) with zero missing dependencies:  94 (31%)
+Absent  (292) with zero missing dependencies:  57 (20%)
+```
+
+Both distributions spread smoothly across 0-23 missing dependencies
+with substantial overlap at every count -- a mild lean (present
+definitions are somewhat more likely to have zero missing
+dependencies) but nowhere near a clean partition. This directly
+answers Phase 14's own question: Cycle 32's `missingDeclarationDependencies.length
+<= 1` gate does not correspond to a clean self-row firing boundary --
+it was, and remains, a conservative approximation for a DIFFERENT
+problem (import-derived type dependency ordering), not evidence that
+self-row firing shares that same threshold.
+
+### Phase 10 -- tightest possible matched examples
+
+Searched for definitions whose constructor body is EXACTLY one bare,
+parameterless `%This.OwnMethod();` call and nothing else (the tightest
+possible structural match to 29542's own shape: `method FMLAMedCert\n
+%This.init();\nend-method;`). Found exactly three such definitions in
+the entire corpus:
+
+```text
+29469  absTelSearchMatch -> initialize   ROW PRESENT
+29471  absTelSecurity    -> initialize   ROW PRESENT
+29542  FMLAMedCert       -> init         ROW PRESENT
+```
+
+**Zero contradictions (3/3)** -- but the population is far too small
+to generalize; the other 302/305 row-present definitions do not share
+this exact shape. This is a genuine, narrow, SUFFICIENT-looking
+condition, not a general rule.
+
+### Rejected: bare-statement vs. value-context call shape
+
+Generalizing the above into "the SELECTED call (per Cycle 38's own
+traversal rule) is a bare statement (preceded by `;`/`Then`/`Else`/
+start-of-body, followed immediately by `;`) rather than used as a
+value (assigned, nested in a condition, passed as an argument)" was
+tested across the full population:
+
+```text
+Bare-statement selected call:  184 present /  112 absent  (112 contradictions)
+Value-context selected call:   110 present /  146 absent  (110 contradictions)
+```
+
+**Rejected** -- roughly 40% contradictions on both sides, far above
+any usable threshold. Definition 28704 (Cycle 37's own row-absent
+example) directly illustrates why: its selected call,
+`&CurrencyCode = %This.ReadMsgCurrencyCode(...)`, IS a value-context
+call, yet Cycle 37 already established 28704 as row-PRESENT for that
+target -- immediately contradicting the "value context never fires"
+half of this hypothesis on the very definition that originally
+motivated the investigation.
+
+### Contrast with Cycle 38's target-selection result
+
+Every hypothesis this cycle tested that looked promising on a small
+matched population (n=3, zero contradictions) broke down substantially
+once tested at full population scale (100+ contradictions out of
+~300-550). This is qualitatively different from Cycle 38's own target-
+selection rule, which went straight to 184/187 on its FIRST
+population-scale test and reached 187/187 (zero contradictions) after
+one masking-bug fix. The repeated pattern of "clean on a small sample,
+badly contradicted at scale" across Cycles 38, 39, and 40 is itself
+evidence -- not proof -- that firing depends on something this
+investigation's feature set does not capture from source/local-
+snapshot data alone (Phase 16 classification C: dependent on
+compiler-internal hidden state, or D: still unresolved; this cycle
+does not have enough evidence to choose definitively between the two).
+
+### Phases not completed this cycle
+
+Phases 2/3 (full stored/generated event-timeline reconstruction across
+all remaining declaration-phase roots), 6 (dependency-category
+interaction combinatorics), 8 (replacement/suppression slot-contention
+model), 9 (first-winner competing-candidate search), 11-13
+(partial-order/subpass reconstruction across the 23-root declaration-
+phase family), and 15 (comparison against the parked 25 storage-symbol
+roots' own hidden ordering) were not reached given this cycle's time
+budget after the above lines of inquiry were exhausted. These remain
+concrete candidates for a future cycle, listed in Next Actions.
+
+### Negative controls
+
+No encoder change was made, so Cycle 33's wildcard-import rule, Cycle
+34's `%This` gate rule, Cycle 36's built-in-object method-wide lifetime
+rule, Cycle 38's target-selection rule, Cycle 39's operand-usage
+finding, and definition 29797 are provably unaffected -- confirmed by
+an unchanged `git status` for every source file throughout the
+investigation.
+
+### Validation
+
+- No encoder files changed this cycle -- only the one new research
+  tool; `git status` confirms this before and after the investigation.
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 551 passed, 1 intentional skip (552 total; unchanged from
+  Cycle 39).
+- Protected/full corpus: unchanged at 430/430 and 23,217/30,209 EXACT
+  (no source edited, so this is confirmatory, not a new result).
+- `git diff --check`: clean.
+
+### Ending 41-root accounting
+
+| ending outcome | roots | movement |
+|---|---:|---:|
+| reference identity | 41 | unchanged |
+| names metadata | 0 | 0 |
+| marker | 0 | 0 |
+| wrapper/body | 0 | 0 |
+| decoder-only | 0 | 0 |
+| fully EXACT | 0 | 0 |
+| **total** | **41** | |
+
+Updated 99-root Application Class accounting (unchanged from Cycle 39):
+41 reference identity, 3 names metadata, 18 decoder-only, 9 marker
+residual, 2 wrapper/body, 25 parked storage-symbol enumeration
+(untouched), 1 fully-EXACT placeholder already reconciled in Cycle 32 =
+99.
+
+### Explicitly not done (per instruction)
+
+- Did not implement self-method reference allocation -- no rule
+  reached zero contradictions at population scale (only the n=3 narrow
+  shape did, too small to generalize).
+- Did not enter the 23-root declaration-phase family with a guessed
+  ordering rule; used a subset of its roots only as evidence, per
+  instruction, and drew no ordering conclusion from them this cycle.
+- Did not touch 28820 (decoder-only), the 25 parked names-metadata
+  roots, or marker/wrapper populations.
+- Did not modify `applicationClassReferenceKey`,
+  `ApplicationClassReferenceScope`/`ApplicationClassReferenceSession`,
+  or any of the Cycle 33/34/36/38 proven rules.
+- Did not query live Oracle or fabricate inherited/environment
+  metadata.
+
+### Next actions
+
+- Complete Phases 2/3 (full event-timeline reconstruction) and 11-13
+  (partial-order/subpass reconstruction) across the 23-root
+  declaration-phase family -- not attempted this cycle after the
+  self-row-specific lines of inquiry were exhausted; this is the
+  concrete next step for connecting the self-row question to the
+  broader family Cycle 39 hypothesized it belongs to.
+- Phase 15: directly compare self-row firing against the physical
+  member/storage-symbol ordering data the parked 25-root population
+  already has evidence for (Cycle 31's own analysis), to test whether
+  firing tracks the SAME hidden ordering source -- this would be
+  positive evidence for classification C rather than a coincidence.
+- The n=3 narrow "constructor body is exactly one bare parameterless
+  own-method call" condition is worth preserving as a documented
+  SUFFICIENT (not necessary) positive control for any future firing
+  model -- any proposed rule must continue to predict these three
+  correctly.
+- Datasource mode: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout; `--live` was not used.
+
+**Cycle 41 was not started.**
+
 ## Compiler Semantics Cycle 39 — solve the self-method row firing condition (forensic only, zero behavior change)
 
 **Status: no encoder change. A decisive, population-wide (305/305,
