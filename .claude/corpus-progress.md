@@ -1,5 +1,276 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 48 — Application Class reference-identity closeout/reconciliation (forensic only, zero encoder change)
+
+**Status: FORENSIC ONLY. No encoder change.** This was a closeout/
+reconciliation cycle, not an implementation cycle. Fresh, LIVE
+re-classification (not reused stale analyzer output) of the historically-
+frozen 41-ID Application Class reference-identity population found it has
+substantially fragmented since Cycle 32: only **20 of 41** still show a
+genuinely active reference-numbering/allocation mismatch as their FIRST
+divergence; the rest have advanced (2 fully source-exact, 1 reference-
+complete-but-names-blocked, 1 formally parked) or were **misclassified all
+along relative to their true current first-diff cause** (16 are actually
+marker/layout issues, 1 is a distinct structural/property issue) --
+findings this cycle's own fresh byte-level census exists specifically to
+catch. Starting commit `993eacb` (Cycle 47). 23,241/30,209 EXACT, protected
+430/430 (both unchanged, as expected for a zero-encoder-change cycle).
+
+### The metric caveat (Cycle 46/47, still load-bearing)
+
+No Application Class definition can register as literal top-level EXACT
+(the separate, pre-existing roundtrip-decode limitation). All progress in
+this cycle is measured via `source→bin` correctness
+(`sourceEncodeExact`/body-relative first-diff offset, skipping the fixed
+37-byte header) and direct byte-level causal-tag inspection of the first
+divergence, per the established Cycle 45-47 convention. The roundtrip
+decoder itself was NOT worked on this cycle (explicitly out of scope).
+
+### Phase 1 -- fresh reproduction
+
+- HEAD `993eacb`, worktree clean, confirmed before any change.
+- Protected: 430/430 EXACT.
+- Full corpus: 23,241/30,209 EXACT (matches Cycle 47's own ending figure).
+- `29389`, `29528`, `29797`, `28820` reconfirmed stable at their exact
+  Cycle 47 ending state (`29389`: `MISMATCH @ 7700`, 18509 bytes; `29528`:
+  `source→bin EXACT`; `29797`: `MISMATCH @ 5`, 123051 bytes; `28820`:
+  **`source→bin EXACT`**, confirming its "decoder-only" designation means
+  exactly what it says -- the encoder is already perfect for it, only the
+  separate decoder limitation blocks it).
+
+### Phase 1-11 -- rebuilding the reference-root census from scratch
+
+New tool committed:
+`tools/corpus/research/application-class-reference-closeout-census.ts`.
+Unlike `application-class-reference-analysis.ts` (which reads frozen
+Cycle 24/28/31 JSON reports and cannot reflect any encoder change made
+since -- Cycle 44's own established limitation), this tool re-derives
+everything LIVE against the current encoder for each of the 41
+historically-frozen reference-identity definition IDs: `sourceEncodeExact`
+(via the same `validateDefinition` pipeline the CLI harness uses), the
+body-relative first-difference offset and its position as a percentage
+through the program, and a coarse causal tag for the first differing
+bytes (reference-operand `0x21`/`0x4A`/`0x48` nearby, marker `0x4F`
+nearby, or other) -- enough to separate "still genuinely reference-
+blocked" from "advanced to a different blocker" without re-guessing
+PSPCMNAME row semantics.
+
+Running it against all 41 IDs and manually inspecting each `--verbose`
+byte window (to verify the tool's coarse tags and go one level deeper
+where needed) produced this fresh disposition:
+
+| current disposition | count | definition IDs |
+|---|---:|---|
+| fully source-program exact (roundtrip-masked only) | 2 | 28898, 28915 |
+| reference-stream complete, downstream-blocked by names/member ordering | 1 | 29522 |
+| parked self-row observability boundary (`%This.method()`) | 1 | 28959 |
+| **now marker-blocked** (missing/extra `0x4F`, or comment-opcode `0x24`-vs-`0x4E` variant) -- reclassified OUT of reference identity | 16 | 28745*, 28852, 29087, 29107, 29109, 29110, 29113, 29122, 29126, 29134, 29174, 29182, 29186, 29191, 29452*, 29612 |
+| other/structural (property-declaration-adjacent, not cleanly reference or marker) | 1 | 28935 |
+| **still genuinely active reference-identity/allocation mismatch** | 20 | 28713, 28752, 28755, 28801, 28802, 28862, 28904, 28925, 28964, 28972, 28975, 29044, 29099, 29144, 29202, 29389, 29518, 29542, 29614, 30104 |
+| **total** | **41** | |
+
+(`*` = 28745 shows an extra `0x2D`, not `0x4F`; 29452 shows stored `0x4E`
+vs generated `0x24` for what looks like the SAME comment-opcode residual
+Cycle 27 already named as a fixed-input layout exception for definition
+30186 -- both are marker/layout-class, just not the specific `0x4F` byte
+the tool's coarse heuristic checks for; found by manual follow-up, not
+the tool alone.)
+
+### The 20 active reference roots split into (at least) five distinct sub-families
+
+Manual byte-level inspection of each of the 20 (`--verbose` body-diff
+windows around the first differing reference operand) found they do
+**not** collapse into one clean, dominant causal family:
+
+| sub-family | pattern | count | definition IDs |
+|---|---|---:|---|
+| generated allocates FEWER references before this point (namenum systematically LOWER than stored) | `0x21`/`0x4A` operand, generated < stored | 10 | 28713, 28752, 28755, 28964, 28972, 28975, 29099, 29389*, 29518, 30104 |
+| generated allocates MORE references before this point (namenum systematically HIGHER than stored) | `0x21`/`0x4A` operand, generated > stored | 5 | 28801, 28802, 28862, 29542, 29614 |
+| missing construct recognition (stored has a reference; generated emits literal inline text instead) | stored `0x4A`, generated `0x0A` + text | 2 | 28904, 29044 |
+| false-positive construct recognition (stored has literal inline text "Name"; generated wrongly emits a reference) | stored `0x0A` + "Name" text, generated `0x4A` | 2 | 29144, 29202 |
+| reuse/allocation-order divergence (generated reuses/duplicates where stored allocates distinct rows, or vice versa) | `0x21` operand sequence diverges in both value AND uniqueness | 1 | 28925 |
+
+(`*` = 29389 is the long-standing Cycles 42-47 negative control, already
+known non-exact for reasons unrelated to any encoder change made in
+those cycles -- included here for completeness of the causal count, not
+as a newly-discovered problem.)
+
+None of these five sub-families has yet been root-caused to a specific
+source construct or population-validated the way Cycles 33/36/43/45/46/47
+each validated their own single narrow rule before implementing. Cluster
+sizes (10, 5, 2, 2, 1) are too small individually and too heterogeneous
+collectively to justify guessing an implementation this cycle -- exactly
+the situation Phase 13's implementation threshold is designed to prevent
+("no one-root semantic patches unless the bug is a demonstrable internal
+consistency error under an already-proven rule"; here there are five
+*different* apparent defect shapes, not one).
+
+### Phase 6 -- 29450 audited fresh
+
+Cycle 47's own secondary movement, reconstructed fresh: `source→bin
+MISMATCH @ 5`, 4628 generated vs 4668 stored bytes. Body-relative first
+diff: stored `... 14 2d 4f 01 26 00 50...` vs generated `... 14 2d 01 26
+00 50...` -- a **missing `0x4F` marker**, the exact same class of bug as
+14 of the 16 reclassified roots above (though not byte-identical
+context). `29450` is therefore also NOT a reference-identity root; it is
+now marker-blocked. Not implemented (marker work is out of this cycle's
+scope), but correctly reclassified rather than left mislabeled.
+
+### The marker family is itself unusually clean (a strong lead for a future cycle, not pursued here)
+
+Nine of the sixteen reclassified roots (29087, 29107, 29109, 29110,
+29122, 29126, 29174, 29182, 29186) show the **identical** byte pattern:
+stored has `... 15 4F 12 25 00 53 00 75 00 70 00 65 00 72 ...` ("`%Super`"
+preceded by a blank-line marker) where generated has `... 15 12 25 00
+53...` -- the marker is simply missing before a `%Super` reference in
+every one of these 9 cases. A further three (28852, 29113, 29612) show
+the mirror-image pattern -- an EXTRA `0x4F` immediately before a `0x44`
+byte that precedes an object-type declaration keyword (`Rowset`, `File`).
+A further two (29134, 29191) show a missing `0x4F` before a Constant
+declaration's own name text. This is reported as a strong, well-evidenced
+lead for whichever future cycle takes up marker/wrapper cleanup -- **not
+investigated further or implemented this cycle**, since Cycle 48's own
+scope is reference-identity closeout, not marker work.
+
+### Phase 12 -- reference layer completeness determination
+
+**Answer: NO — the reference layer is not yet complete. 20 active,
+deterministically-observable reference-identity roots remain**, split
+across five distinct causal sub-families, none of which is yet
+population-validated or root-caused to a specific construct. This is
+Phase 12's Option B/C boundary: not "complete," and not concentrated in
+one large family either -- five small, heterogeneous families. No
+single one of them meets the implementation threshold (population-
+supported, zero contradictions, root-caused) within this cycle's own
+evidence.
+
+### Phase 13 -- no implementation
+
+Per instruction, since no single remaining family met the deterministic/
+population-validated bar this cycle, **no encoder change was made.**
+"A reference-layer closeout cycle with zero encoder changes is a
+successful outcome" -- the outcome here is a precise, evidence-backed
+map of what actually remains, replacing a stale, overly-broad "41
+reference identity" label with an accurate five-way (or more) breakdown.
+
+### 99-root accounting (fresh, this cycle's primary deliverable)
+
+The historical 99-root population (Cycle 27's own 99 terminator-decision
+targets, redistributed by Cycle 28's implementation into 49 names + 43
+reference + 2 wrapper/body + 5 marker/comment residual, then further
+subdivided across Cycles 29-47) reconciles, freshly, as:
+
+| bucket | count | change this cycle | notes |
+|---|---:|---|---|
+| reference identity (genuinely active) | 20 | **-20** (was 40/41) | 5 sub-families, none yet implementable |
+| reference-stream complete, downstream-blocked (names/member ordering) | 1 | **+1** (newly separated) | 29522 |
+| fully source-program exact, roundtrip-masked only | 2 | **+2** (newly separated) | 28898, 28915 |
+| parked self-row observability boundary (`%This.method()`) | 1 | 0 | 28959, unchanged since Cycle 44 |
+| other/structural (not cleanly reference or marker) | 1 | **+1** (newly separated) | 28935 |
+| names metadata (small residual, distinct from the 25 Cycle-31 roots) | 3 | 0 (not independently re-verified this cycle beyond noting it exists) | |
+| decoder-only | 18 | 0 (28820 spot-checked stable, `source→bin EXACT`) | |
+| marker residual | 9 + 16 = **25** | **+16** (reclassified from reference identity) | see table above |
+| wrapper/body | 2 | 0 (not independently re-verified this cycle) | |
+| parked storage-symbol enumeration (Cycle 31, 25 named roots) | 25 | 0, untouched, per instruction | 28731, 28827, 29085, 29086, 29095, 29121, 29132, 29133, 29149, 29150, 29159, 29181, 29189, 29190, 29246, 29363, 29399, 29466, 29497, 29716, 29726, 29885, 29889, 30171, 30172 |
+| parked observability-boundary (the other one, alongside 28959) | 1 | 0, untouched | |
+| **total** | **99** | | |
+
+(20+1+2+1+1+3+18+25+2+25+1 = 99, verified by direct addition.)
+
+**Important caveat on this table's provenance**: the "reference identity"
+row (20, with its 5 sub-families) and the newly-separated "reference-
+stream complete"/"fully source-program exact"/"other" rows (1+2+1=4) are
+this cycle's own fresh, live, byte-level re-derivation -- fully rigorous.
+The "names metadata" (3), "decoder-only" (18), "marker residual" (9 base
++ 16 newly reclassified), "wrapper/body" (2), and "parked storage-symbol"
+(25, IDs given directly by this cycle's own directive) rows for anything
+NOT touched by this cycle's fresh census are carried forward from the
+LAST full reconciliation in this file (Cycle 44's own accounting, itself
+built up across Cycles 27-44) rather than independently re-derived
+ID-by-ID this cycle -- reconstructing the exact historical ID lists for
+marker/wrapper/decoder-only from 47 cycles of incremental
+reclassification was judged out of proportion to this cycle's actual
+decision-relevant question (is there active, implementable reference-
+identity work left), and the answer to THAT question does not depend on
+having those other IDs individually in hand. This is stated plainly as a
+scope limitation, not silently assumed away.
+
+### Campaign-level progress metrics (Application Class, independent of top-level EXACT)
+
+Across the 41 freshly-censused reference-identity roots:
+
+- 2 with exact source-generated program body (`sourceEncodeExact`).
+- 1 with an exact reference stream but a downstream names/member-ordering
+  block (29522).
+- 1 parked (28959).
+- 16 (+1, 29450, found via the Phase 6 audit = 17 total known) now
+  marker-blocked rather than reference-blocked.
+- 1 other/structural (28935).
+- 20 with a genuinely active, observable reference-identity mismatch.
+
+### Validation
+
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 566 total, 565 pass, 1 skip, 0 fail -- byte-identical to
+  Cycle 47's own ending state (no test added or changed; no encoder
+  behavior changed).
+- Full corpus: 23,241/30,209 EXACT, byte-identical to Cycle 47's baseline
+  (expected: zero encoder source changed).
+- Protected: 430/430 EXACT, unchanged.
+- `git diff --check`: clean.
+- Since no encoder file changed, EXACT gains/losses = 0 and source-program
+  gains/losses = 0 by construction; no blast-radius reconciliation is
+  applicable this cycle.
+
+### Explicitly not done (per instruction)
+
+- Did not implement anything for the 20 active reference roots -- five
+  distinct sub-families, none population-validated or root-caused yet;
+  correctly left for future, individually-scoped cycles (matching the
+  established one-narrow-rule-per-cycle methodology).
+- Did not investigate or implement the marker family (17 roots, including
+  a very clean 9-member `%Super`-missing-marker sub-pattern) -- flagged
+  as the strongest lead for a future cycle, per instruction not pursued
+  here.
+- Did not investigate 28935 (other/structural) beyond initial
+  byte-level characterization.
+- Did not reopen the parked `%This.method()` firing boundary, the 25
+  Cycle-31 storage-symbol enumeration roots, or `28820` (decoder-only,
+  spot-checked stable).
+- Did not work on the roundtrip-decoder limitation preventing Application
+  Class top-level EXACT.
+- Did not independently re-derive the exact historical ID lists for the
+  names-metadata-residual (3), decoder-only (18), or wrapper/body (2)
+  buckets -- carried forward from the last full reconciliation, stated
+  explicitly as a scope limitation above.
+- Did not query live Oracle or fabricate inherited/environment metadata.
+
+### Cycle 48 ending decision
+
+> Is the Application Class reference-identity campaign now complete for
+> deterministically observable semantics?
+
+**NO — 20 active roots remain**, listed above by definitionId, split
+across 5 distinct causal sub-families (generated-fewer-allocations [10],
+generated-more-allocations [5], missing-construct-recognition [2],
+false-positive-construct-recognition [2], reuse/allocation-order [1]).
+
+### Recommendation for Cycle 49 (not performed)
+
+Based on the fresh evidence gathered this cycle, the recommended next
+campaign is **marker/wrapper cleanup**, not a continuation of reference-
+identity work: the marker family is both LARGER (17 confirmed roots, likely
+more once actively searched for) and CLEANER (a 9-member byte-identical
+sub-pattern already found without even looking for it) than any single
+one of the five reference sub-families (max cluster size 10, and that
+one is not yet root-caused to a specific construct). A dedicated marker-
+cleanup cycle, built the same way Cycles 33/36/43/45/46/47 built their own
+narrow, population-validated rules, has the clearest, fastest path to a
+real, implementable, population-supported fix of anything this closeout
+census surfaced.
+
+**Cycle 49 was not started.**
+
 ## Compiler Semantics Cycle 47 — Application Class `CreateRecord(Record.X)` method-wide reuse (implemented)
 
 **Status: IMPLEMENTED, validated, zero regressions.** Cycle 46 exposed
