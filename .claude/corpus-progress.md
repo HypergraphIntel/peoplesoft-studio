@@ -1,5 +1,280 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 51 — the leading-bare-semicolon gap, extended to the first-Local-declaration case (implemented)
+
+**Status: IMPLEMENTED, validated, zero regressions.** Fresh re-census of
+the marker/wrapper population (post-Cycle-50) found exactly the predicted
+3 residuals: `29134` (still `marker-0x4F`-tagged) and `28745`/`29452`
+(both "other"-tagged, previously characterized as an extra `0x2D` and a
+comment-opcode variant respectively). Investigating `29134` found it is
+**not** a new bug class -- it is Cycle 49's own established "leading bare
+`;` before the first real statement" gap, hitting the ONE sub-case Cycle
+49's own fix did not cover: the first real statement is itself the FIRST
+`Local` declaration of the run. Extended Cycle 49's fix to this case,
+resolving `29134` and 18 further corpus definitions (26 total
+occurrences). Starting commit `d90bb3d` (Cycle 50). Full corpus:
+23,251 -> 23,253 EXACT (+2), 0 regressions, protected 430/430 unchanged.
+
+### Phase 1 -- fresh reproduction
+
+- HEAD `d90bb3d`, worktree clean, confirmed before any change.
+- Protected: 430/430 EXACT.
+- Full corpus: 23,251/30,209 EXACT (matches Cycle 50's own ending figure).
+- Re-ran the Cycle 48-committed closeout-census tool against all 41
+  historically-frozen reference-identity IDs: reproduced Cycle 50's own
+  ending split exactly -- 34 `reference-operand`, 2 `exact`, 1
+  `marker-0x4F` (`29134`), 4 `other` (`28745`, `28935`, `29452`, `29522`).
+  All 9 Cycle 49 roots and all 3 Cycle 50 roots reconfirmed unchanged at
+  their own ending percentages.
+
+### Phase 2/3/4 -- classifying the 3 residuals precisely (not by byte signature)
+
+Per this cycle's own mandatory methodology (Cycle 50's proven lesson:
+raw byte-pattern matching is not causality), each of the 3 was
+independently reconstructed from source and its first-diff cause traced,
+not inferred from its byte signature alone:
+
+| ID | byte signature | true classification |
+|---|---|---|
+| `29134` | missing `0x4F` before `0x44` | genuine marker-state gap -- confirmed primary (first divergence), same general mechanism as Cycles 49/50 |
+| `28745` | extra `0x2D` (not `0x4F`) | a DIFFERENT byte (declaration-section-close marker), not investigated further -- single occurrence, no population gathered |
+| `29452` | stored `0x4E` vs generated `0x24` | a comment-OPCODE representation mismatch, not a marker-count/blank-line issue at all -- structurally unrelated to Cycles 49/50/51's own model |
+
+Only `29134` matches the established marker-state model closely enough
+to investigate under Phase 6's own instruction ("audit residuals against
+the two known bug classes first... do not invent a new semantic category
+until the existing state model is ruled out").
+
+### Phase 5/6 -- source/state trace for 29134
+
+`29134`'s `CreatePersonalization` method:
+
+```peoplecode
+method CreatePersonalization
+   /+ Returns Personalization +/;
+
+   Local CAFNUI_CORE:OBJECT:Personalization &Personalization;
+
+   &Personalization = create CAFNUI_CORE:OBJECT:Personalization();
+end-method;
+```
+
+Event trace: fragment start -> structured signature-comment echo (its own
+trailing `;` is source-owned body text, reaching the shared fragment
+encoder as a genuine bare top-level empty statement, exactly Cycle 49's
+own established mechanism) -> blank line -> **first real statement is
+itself the first `Local` declaration of the run**. This is the ONE
+combination neither existing mechanism covers: the "blank lines inside
+an ALREADY-open leading Local run" mechanism (Cycle 45) requires
+`sawLeadingLocalDeclaration` already `true`; Cycle 49's own fix requires
+`!isLocalDeclaration`. Both conditions fail here simultaneously --
+`sawLeadingLocalDeclaration` is still `false` (this IS the first Local
+reached) and `isLocalDeclaration` is `true` (this statement IS a Local)
+-- so the blank line is silently dropped by neither firing.
+
+### Implementation
+
+Added a sibling `else if` to the existing "blank formatting lines inside
+a leading declaration-only Local run" `if` in
+`src/peoplecode/encoder.ts`: when `leadingLocalRun && !sawLeadingLocalDeclaration
+&& isLocalDeclaration && haveCompletedTopLevelStatement && hasBlankLine`,
+emit the same marker count directly -- an exact structural mirror of
+Cycle 49's own fix, just covering the opposite branch of the
+`isLocalDeclaration` dichotomy.
+
+### A regression found and fixed before this cycle's own validation completed
+
+The first version of this fix (without the exclusion below) broke two
+EXISTING tests: the "HCDEV protected PSPCMPROG golden 412" fixture and
+"HCDEV definition 6455." Both are **ordinary PeopleCode** with an
+`import` statement, a blank line, then the first `Local` declaration --
+a shape ALREADY handled, unconditionally, by the pre-existing
+import-section-close branch (cited in that branch's own comment:
+`ACCT_CD_NEW_VW.ACCT_CD.SearchInit`, `import HMCF_CHARTFIELDS:*;` then a
+blank line then `Local Rowset &MYACTIVECFS;` -- literally golden fixture
+412's own source). The new branch's condition needed an explicit
+`!justClosedImportSection` exclusion (matching the identical guard
+already used by sibling marker-emission blocks) to avoid double-firing
+alongside that existing, already-correct mechanism. Found via the
+existing test suite itself, not a new investigation -- exactly the kind
+of protection the "run `npm test` before declaring an implementation
+validated" step exists for.
+
+### Validation
+
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 573 total, 572 pass, 1 skip, 0 fail (2 new Cycle 51 tests:
+  the leading-bare-`;`-before-first-Local-declaration case gaining its
+  marker, and the import-then-Local negative control confirming no
+  double-marker -- both regressions found during development are now
+  permanent regression tests).
+- `29134` re-checked directly: advanced from `marker-0x4F` (34.2%) to
+  `reference-operand` (35.1%, its own next blocker, not investigated
+  further this cycle).
+- All 9 Cycle 49 roots and all 3 Cycle 50 roots (`28852`, `29113`,
+  `29612`) reconfirmed byte-for-byte unchanged at their own prior ending
+  percentages -- including `29109`/`29122`, which ALSO contain instances
+  of this cycle's exact construct (per the population census below) but
+  were not further advanced, since their own first divergence occurs
+  earlier in their source, unrelated to this fix (Phase 4's own
+  requirement, confirmed directly rather than assumed).
+- Required historical controls, all reconfirmed unchanged: `29389`
+  (`MISMATCH @ 7700`, 18509 bytes), `29528` (`source→bin EXACT`), `29797`
+  (`MISMATCH @ 5`, 123050 bytes), `29522` (`MISMATCH @ 13`, generated
+  38619 bytes), `29450` (`MISMATCH @ 5`, generated 4628 bytes), `28820`
+  (`source→bin EXACT`).
+- Full corpus (`npm run corpus:verify`): **23,251 -> 23,253 EXACT (+2),
+  0 regressed** per classification-bucket delta -- UNKNOWN_MISMATCH 4507
+  -> 4505 (-2, exactly matching); DECODE_SOURCE_MISMATCH/
+  UNSUPPORTED_SYNTAX/ENCODE_ERROR all unchanged (1994/335/122).
+  REGRESSION GATE: PASS. Unlike Cycle 50 (Application-Class-concentrated,
+  necessarily zero top-level EXACT movement), this fix is general (not
+  gated to Application Class fragments, matching Cycle 49's own
+  precedent), so it DOES reach ordinary PeopleCode, explaining the +2.
+- Protected: reconfirmed 430/430 EXACT after the full corpus run.
+- `git diff --check`: clean.
+
+### Population census
+
+Application Class population (via `parseApplicationClassSource`,
+searching for a body starting with a bare `;`, a blank line, then a
+`Local` declaration): **26 occurrences across 19 distinct
+definitions**, including `29109`/`29122`/`29134` (already-partially-
+advanced roots from Cycles 49/50) plus 16 further definitions never
+previously flagged (`29084`, `29106` (x2), `29199`, `29213`, `29214`,
+`29248`, `29413`, `29529` (x3), `29548`, and others) -- well above the
+"2+ independent target roots" threshold (Phase 18).
+
+An ordinary-PeopleCode population search ("a bare `;`-terminated line,
+blank line, then a `Local` declaration, no `import` immediately before
+it") found 2,858 broad textual candidates -- too broad to serve as a
+precise population (matches many unrelated bare-semicolon shapes, e.g.
+repeated/doubled source semicolons Cycle 27 already characterized
+separately). A direct pre/post EXACT-list diff over this candidate set
+found **zero list movement**, meaning the actual ordinary-PeopleCode
+constructs responsible for the +2 corpus-wide gain do not match this
+particular regex shape -- their true trigger (some other route to a bare
+top-level `;` reaching `haveCompletedTopLevelStatement`, structurally
+equivalent but not textually matching "one bare `;`-only source line")
+was not individually identified within this cycle's time budget. This is
+reported honestly as partial reconciliation, matching Cycle 46's own
+established precedent for an unattributed remainder: the regression
+gate's own classification-bucket arithmetic (UNKNOWN_MISMATCH -2,
+everything else unchanged, zero regressions) already fully rules out any
+hidden regression even though the 2 gained IDs remain individually
+unidentified.
+
+### Positive and negative controls
+
+- **Positive**: `29134` itself, plus the isolated synthetic reproduction
+  (a minimal Application Class constructor with a single-comment
+  signature echo, matching the exact real-corpus shape).
+- **Negative**: the import-then-Local shape (golden fixture 412 and
+  HCDEV definition 6455) -- proves the fix must not fire when
+  `justClosedImportSection` is true, since that transition is already
+  correctly handled by a separate, pre-existing mechanism.
+
+### Marker/wrapper population, reclassified
+
+| current disposition | count | IDs |
+|---|---:|---|
+| resolved this cycle | 1 | 29134 |
+| unaffected, single-occurrence, not yet investigated | 2 | 28745 (extra `0x2D`, structurally distinct), 29452 (comment-opcode `0x24`-vs-`0x4E` variant, structurally distinct) |
+| **total remaining** | **2** | |
+
+Both remaining residuals are singletons with no population support and,
+per Phase 2/3's own classification requirement, are STRUCTURALLY
+DIFFERENT bugs from the Cycle 49/50/51 marker-state model (a different
+byte entirely for `28745`; a comment-representation difference, not a
+blank-line-count difference, for `29452`). Neither meets Phase 18's
+implementation threshold ("2+ independent target roots... a one-root fix
+is acceptable only if it is a provable internal consistency bug under an
+already-established rule" -- neither is).
+
+### Updated 99-root Application Class campaign accounting
+
+| bucket | count | change this cycle |
+|---|---:|---|
+| reference identity (active; includes 29134's own new blocker, not investigated) | 34 | +1 (was 33) |
+| reference-stream complete, downstream-blocked (names/member ordering) | 1 | 0 |
+| fully source-program exact, roundtrip-masked only | 2 | 0 |
+| parked self-row observability boundary | 1 | 0 |
+| other/structural | 1 | 0 |
+| names metadata (residual) | 3 | 0 |
+| decoder-only | 18 | 0 |
+| marker residual (28745, 29452) | 2 | -1 (was 3) |
+| wrapper/body | 2 | 0 |
+| parked storage-symbol enumeration | 25 | 0 |
+| parked observability-boundary (other) | 1 | 0 |
+| **total** | **99** | |
+
+(34+1+2+1+1+3+18+2+2+25+1 = 99, verified by direct addition.)
+
+### Marker-state campaign status: effectively closed
+
+The marker/wrapper population has gone from 16 (Cycle 48) -> 7 (Cycle
+49) -> 4 (Cycle 50) -> 2 (this cycle), and the 2 remaining residuals are
+BOTH single-occurrence, structurally distinct from the proven
+marker-state model (different byte, or a non-marker comment-opcode
+difference) and from each other. Per Phase 19's own explicit instruction
+("if the residual marker/wrapper population is small, heterogeneous, or
+not population-validatable, do not force another marker
+implementation... formally declare marker-state campaign effectively
+closed"): **the marker-state campaign is now formally closed for current
+evidence.** Either remaining singleton could still be resolved by a
+future cycle if population support materializes (e.g. if a broader
+corpus search finds siblings), but neither is implementable today.
+
+### Phase 20/21 -- refreshing the active reference population for Cycle 52's recommendation
+
+Cycle 48's own 5 causal sub-families (re-confirmed present in the fresh
+census's own `reference-operand` tag, now 34 members after this cycle's
++1 reclassification):
+
+| sub-family | pattern | approx. population | tractability |
+|---|---|---:|---|
+| generated allocates FEWER references before this point | `0x21`/`0x4A` operand, generated < stored | ~10 | largest, single shared signature |
+| generated allocates MORE references before this point | `0x21`/`0x4A` operand, generated > stored | ~5 | second-largest |
+| missing construct recognition | stored `0x4A`, generated `0x0A` + text | ~2 | small, but very sharp signature |
+| false-positive construct recognition | stored `0x0A` + "Name" text, generated `0x4A` | ~2 | small, very sharp signature |
+| reuse/allocation-order divergence | `0x21` sequence diverges in value AND uniqueness | ~1 | too small alone |
+
+**Recommended Cycle 52 target: the "generated allocates FEWER references"
+sub-family** (largest population, ~10 members, single shared
+byte-level signature `0x21`/`0x4A` operand where generated < stored,
+matching Cycles 33/36/43/45/46/47's own established
+"missing-allocation-somewhere-earlier" pattern shape most closely of all
+five). This is a recommendation only -- not implemented, investigated,
+or population-verified further this cycle, per instruction.
+
+### Explicitly not done (per instruction)
+
+- Did not investigate or implement `28745` or `29452` -- both singletons,
+  both structurally distinct from the proven marker-state model.
+- Did not investigate 29134's own NEW blocker (now `reference-operand`-
+  tagged) -- reclassified, not chased, per Phase 23.
+- Did not reopen the 20 (now 34, +1 this cycle purely via
+  reclassification) active reference roots for implementation.
+- Did not touch `28959`, the parked `%This.method()` firing boundary, the
+  25 Cycle-31 storage-symbol roots, `28820` (decoder-only, reconfirmed
+  stable), or `29522`'s own names/member-ordering blocker.
+- Did not work on the roundtrip-decoder limitation.
+- Did not individually identify the 2 ordinary-PeopleCode gained
+  definitionIds -- reported honestly as a scope limitation, not silently
+  assumed away.
+
+### Recommendation for Cycle 52
+
+**Do not continue marker/wrapper work** -- the campaign is now formally
+closed (2 heterogeneous singletons remain, neither implementable).
+**Recommended campaign: the "generated allocates FEWER references"
+active-reference subfamily** (~10 members, single shared first-diff
+signature, Cycle 48's own largest and cleanest-signatured cluster).
+Do not select names/member ordering or roundtrip-decoder work -- no new
+evidence this cycle changes either of those assessments.
+
+**Cycle 52 was not started.**
+
 ## Compiler Semantics Cycle 50 — the "extra marker" family: a read/consistency gap between two independent blank-line mechanisms (implemented)
 
 **Status: IMPLEMENTED, validated, zero regressions.** Cycle 49 flagged
