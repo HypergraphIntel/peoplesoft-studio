@@ -11056,7 +11056,27 @@ function encodeApplicationClassProgramV2(
   // its multi-symbol enumeration remains compiler-internal. A zero/one new
   // identity population has no ordering choice; broader sets stay frozen.
   const hasModeledDeclarationDependencyOrder = missingDeclarationDependencies.length <= 1;
-  const hasUnmodeledThisMethodDependencies = /%This\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\(/i.test(source);
+  /*
+   * Cycle 32 froze the shared reference session for any `%This.method()`
+   * call, reasoning that an INHERITED method's return/parameter metadata
+   * (needed to resolve its own dependency identity) is not always
+   * available from source alone. That reasoning does not apply when
+   * `method` is declared AND implemented by THIS SAME CLASS -- its
+   * signature is already fully parsed into `methods` above, no
+   * environment/inheritance metadata is needed, and Cycle 34 population
+   * evidence (23/43 remaining reference-identity roots, including two of
+   * the three "cross-fragment PACKAGE duplicate/failed reuse" roots,
+   * 29448 and 29542) shows their `%This.method()` calls are EXCLUSIVELY
+   * to their own declared methods -- the prior blanket regex disabled
+   * the shared session for them without cause. A genuinely external
+   * (inherited/interface) `%This.method()` call -- one that does not
+   * name a method this class itself declares -- still disables the
+   * session, unchanged from Cycle 32.
+   */
+  const ownMethodNames = new Set(methods.map(method => method.name.toLowerCase()));
+  const hasUnmodeledThisMethodDependencies = [
+    ...source.matchAll(/%This\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(/gi)
+  ].some(match => !ownMethodNames.has(match[1].toLowerCase()));
   const hasModeledApplicationClassReferenceScope =
     hasModeledDeclarationDependencyOrder && !hasUnmodeledThisMethodDependencies;
 
