@@ -1,5 +1,230 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 50 — the "extra marker" family: a read/consistency gap between two independent blank-line mechanisms (implemented)
+
+**Status: IMPLEMENTED, validated, zero regressions.** Cycle 49 flagged
+`28852`/`29113`/`29612` as a byte-identical 3-member "extra marker" family
+and asked whether it was the true inverse of Cycle 49's own missing-marker
+bug. **It was not** -- it is a structurally distinct, pre-existing bug
+(confirmed present before Cycle 49 even started, via direct `git stash`
+comparison) involving a completely different code path: not the leading-
+fragment/bare-`;` scenario Cycle 49 fixed, but a genuine double-counting
+of one blank-line gap by TWO independent, mutually-unaware marker-
+emission mechanisms inside the shared top-level statement loop. Starting
+commit `4f8c4a8` (Cycle 49). 23,251/30,209 EXACT, protected 430/430 (both
+unchanged after the fix, as predicted -- see the metric caveat below).
+
+### Phase 1 -- fresh reproduction
+
+- HEAD `4f8c4a8`, worktree clean, confirmed before any change.
+- Protected: 430/430 EXACT.
+- Full corpus: 23,251/30,209 EXACT (matches Cycle 49's own ending figure).
+- Re-ran the Cycle 48-committed
+  `application-class-reference-closeout-census.ts` tool: reproduced all 9
+  Cycle 49 roots unchanged (still `reference-operand`-tagged at their own
+  Cycle 49 ending percentages) and confirmed `28852`/`29113`/`29612`'s
+  current byte signatures directly via `--verbose`.
+
+### Phase 2/3 -- freezing the exact 3-root pattern
+
+All three share byte-identical structure: stored has `... 15 4F 44 ...`
+(one blank-line marker before a `0x44` Local-declaration-type opcode --
+"string"/"File"/"Rowset" respectively) where generated has `... 15 4F 4F
+44 ...` -- a genuinely EXTRA `0x4F`, not a misplaced one (confirmed: the
+correct marker is present too; there are simply two of them where stored
+has one). `0x4F` is the SAME established blank-line marker Cycle 49 also
+worked with -- no new byte or symbolic meaning to discover here.
+
+### Phase 4-6 -- NOT the inverse of Cycle 49
+
+Direct source reconstruction of all three (via byte-position bisection --
+naive single-method synthetic reconstruction did NOT reproduce the bug at
+all, which was itself the first clue this was not simply "Cycle 49's
+scenario in reverse") shows a completely different construct: **two
+consecutive top-level `Local` declarations, separated by exactly one
+blank line, where the SECOND declaration is INITIALIZED** (e.g. `Local
+string &LONG_TEXT; <blank line> Local string &Key1 = &SummRec.
+BENEFIT_PROGRAM.Value;`) and is also the run's closing declaration (no
+further uninitialized `Local` follows it). Nothing about a leading bare
+`;`, a signature-comment echo, or Cycle 49's own fixed code path is
+involved -- confirmed via `git stash` that all three showed this exact
+"extra marker" byte pattern BEFORE Cycle 49 ever ran.
+
+### Phase 21/13 -- the actual root cause (Model A: stale/duplicate computation, not double emission from two callers)
+
+Bisection (real corpus source, progressively trimmed) found the bug
+additionally requires an `import` statement to be present anywhere in the
+compilation unit, AND the second Local's own initializer to reference a
+field on a Record-typed parameter (activating a genuine compiled
+reference). Tracing (temporary instrumentation, added and fully removed
+before this commit) found why: two INDEPENDENT mechanisms in the
+top-level statement loop both compute a marker count for the SAME
+preceding blank-line gap:
+
+1. **"Blank formatting lines inside a leading declaration-only Local
+   run"** (pre-existing, established since at least Cycle 45): fires
+   immediately, unconditionally, directly into `chunks`, whenever
+   `leadingLocalRun && sawLeadingLocalDeclaration && isLocalDeclaration &&
+   hasBlankLine` -- i.e. exactly when the CURRENT statement (Key1's own
+   declaration) is itself a `Local` preceded by a blank line.
+2. **The initialized-Local-closes-the-run deferred boundary** (a
+   separate, older mechanism handling where to put the declaration-
+   section-close `0x2D`/marker once an initialized Local ends the leading
+   run): recomputes its OWN marker count from the identical
+   `topLevelWhitespace` value, believing it alone is responsible for that
+   gap, and queues it via `pendingReferenceLocalBoundary`/
+   `pendingReferenceLocalMarkers` for a DEFERRED, end-of-fragment
+   insertion -- one that only actually executes when
+   `hasCompiledReferences` is true (which is why the import + Record-
+   field-access combination is required: an import allocates its own
+   compiled reference, and `context.compilationUnitHasCompiledReferences`
+   propagates that whole-compilation-unit answer into every later
+   fragment, including this one, activating the deferred-insertion path
+   this bug lives in).
+
+Since this whole deferred-boundary block is only reached when
+`leadingLocalRun && isLocalDeclaration && sawLeadingLocalDeclaration` are
+ALL already true (the enclosing `if`s guarantee it), mechanism #1's own
+firing condition at that exact point reduces to just `hasBlankLine` --
+meaning whenever it is true, mechanism #1 has ALREADY emitted the full,
+correct marker count for this identical gap by the time mechanism #2
+computes its own. This is Model A (stale/duplicate computation) confirmed
+by direct tracing, not Model B (a second independent CALLER) -- both
+computations happen within the SAME statement-loop iteration, one
+immediate and one deferred, both keyed to the identical source gap.
+
+### Implementation
+
+One narrow change in `src/peoplecode/encoder.ts`'s initialized-Local-
+closes-the-run branch: when `context?.suppressDeclarationSectionMarkers
+=== true` (Cycle 14's own established Application-Class-only gate) AND
+`hasBlankLine` is true (meaning mechanism #1 already fired for this exact
+gap), `pendingReferenceLocalMarkers` is set to `0` instead of recomputing
+from `sourceBlankLines`. Ordinary PeopleCode's own `Math.max(1,
+sourceBlankLines)` branch (unrelated, evidenced separately by the
+`DAEMONGROUP.DAEMONGROUP.SaveEdit` control cited in the surrounding
+comment) is completely untouched.
+
+### Validation
+
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 571 total, 570 pass, 1 skip, 0 fail (2 new Cycle 50 tests:
+  the exact reproduced overlap shape gaining no duplicate marker while
+  keeping its one correct marker, and a negative control confirming the
+  ordinary "two adjacent uninitialized Locals" shape -- which never
+  engages the deferred mechanism at all -- is completely unaffected).
+- All 3 target roots re-checked directly: all moved from `marker-0x4F`
+  (or its "other" cousin) to `reference-operand`-tagged, with body
+  percentage-through-program increasing in every case (28852: 58.2% ->
+  64.1%; 29113: 8.7% -> 12.2%; 29612: 17.5% -> 23.1%).
+- All 9 Cycle 49 roots reconfirmed byte-for-byte unchanged at their own
+  Cycle 49 ending percentages.
+- `29389`, `29528`, `29522`, `29450`, `28820` reconfirmed unchanged
+  (`MISMATCH @ 7700`/18509 bytes; `source→bin EXACT`; `MISMATCH @ 13`/
+  38619 bytes; `MISMATCH @ 5`/4628 bytes; `source→bin EXACT` respectively).
+- `29797` investigated specifically because its OWN generated size
+  shrank by exactly 1 byte (123051 -> 123050): confirmed via direct
+  `--verbose` comparison that its OWN first-diff position and bytes are
+  BYTE-IDENTICAL before and after this cycle (still offset 3250, same
+  `21 0b`-vs-`21 07` divergence, completely unrelated to this fix) --
+  the 1-byte shrink is a genuine, separate, WELCOME instance of the same
+  bug class resolved later in `29797`'s own source (confirmed: 3 raw
+  `15 4F 4F` occurrences before this fix, 2 after -- one resolved, two
+  remain as a different, not-yet-diagnosed variant). Not a regression:
+  the definition's own established negative-control status (first
+  divergence unchanged) is fully preserved.
+- Full corpus (`npm run corpus:verify`): **23,251 -> 23,251 EXACT (0
+  change)**, 0 regressed per classification-bucket delta -- every bucket
+  identical to Cycle 49's own ending state. REGRESSION GATE: PASS. This
+  null top-level movement is fully expected (not a sign of no progress):
+  the fix's own population is Application-Class-concentrated, and no
+  Application Class definition can register as literal top-level EXACT
+  regardless (Cycle 46's own established roundtrip-decoder-masking
+  finding).
+- Protected: reconfirmed 430/430 EXACT after the full corpus run.
+- `git diff --check`: clean.
+
+### An important methodological finding (why this cycle does not claim a full blast-radius census)
+
+A raw byte-pattern search for `15 4F 4F` across all Application Class
+definitions' generated output found **387 definitions still containing
+it** post-fix. This number is **not a remaining-bug count** -- `28820`
+(a required control, confirmed `source→bin EXACT`, i.e. byte-for-byte
+correct) alone contains 4 such occurrences, proving the raw 3-byte
+pattern is frequently LEGITIMATE (a genuine two-consecutive-blank-line
+source gap correctly produces two consecutive `0x4F` markers, matching
+Cycle 27's own established multiplicity rules). Distinguishing a genuine
+duplicate from a correct double-marker requires comparing against STORED
+bytes at each occurrence, not merely counting a byte sequence in
+isolation -- this is exactly the class of methodological trap Cycle 44
+already warned about for a different tool. A full, byte-verified census
+of every OTHER definition sharing this exact overlap condition was not
+performed this cycle; only the 3 originally-flagged roots plus the
+directly-investigated `29797` were byte-verified. This is stated
+explicitly rather than presenting the raw 387 figure as if it were
+meaningful.
+
+### Marker/layout population, reclassified
+
+Of the original Cycle 48 16-root marker/layout population (9 resolved by
+Cycle 49, 3 resolved this cycle):
+
+| current disposition | count | IDs |
+|---|---:|---|
+| resolved by Cycle 49 (`%Super`-constructor family) | 9 | 29087, 29107, 29109, 29110, 29122, 29126, 29174, 29182, 29186 |
+| resolved by Cycle 49's fix as a byproduct | 1 | 29191 |
+| resolved this cycle (extra-marker family) | 3 | 28852, 29113, 29612 |
+| advanced but still marker-blocked (Cycle 49's own byproduct, a different missing-`0x4F` instance) | 1 | 29134 |
+| unaffected, not yet investigated | 2 | 28745 (extra `0x2D`), 29452 (comment-opcode `0x24`-vs-`0x4E` variant) |
+| **total** | **16** | |
+
+All three former "extra marker" roots and all 10 former "missing marker"
+roots have now advanced out of the marker/layout bucket into
+`reference-operand` (their own next blocker, not investigated this
+cycle, per "do not reopen active reference-family work" -- Phase 23).
+
+### Updated 99-root Application Class campaign accounting
+
+Replacing this cycle's 3 resolved IDs' bucket membership in Cycle 49's
+own 99-root table (all other buckets unchanged):
+
+| bucket | count | change this cycle |
+|---|---:|---|
+| reference identity (active; now includes the 3 newly-arrived roots, whose own new blocker was not further investigated, per Phase 23) | 33 | +3 (was 30) |
+| reference-stream complete, downstream-blocked (names/member ordering) | 1 | 0 |
+| fully source-program exact, roundtrip-masked only | 2 | 0 |
+| parked self-row observability boundary | 1 | 0 |
+| other/structural | 1 | 0 |
+| names metadata (residual) | 3 | 0 |
+| decoder-only | 18 | 0 |
+| marker residual (Cycle 49 ended at 15 -- 9 pre-existing + 6 reclassified-from-reference including 29134; this cycle resolves 3 of the 6, leaving 12) | 12 | -3 (was 15) |
+| wrapper/body | 2 | 0 |
+| parked storage-symbol enumeration | 25 | 0 |
+| parked observability-boundary (other) | 1 | 0 |
+| **total** | **99** | |
+
+(33+1+2+1+1+3+18+12+2+25+1 = 99, verified by direct addition.)
+
+### Recommendation for Cycle 51 (not performed)
+
+The two remaining SINGLETON marker residuals (28745's extra `0x2D`,
+29452's comment-opcode `0x24`-vs-`0x4E` variant) have weak population
+support (1 member each) and are a poor next target. `29134`'s own
+remaining marker-blocked state (a different missing-`0x4F` instance, not
+yet diagnosed) is a single, unclustered occurrence too. Given the marker/
+layout family is now down to 3 small, disparate residuals with no clear
+multi-member cluster remaining, and given Cycle 47/48's own established
+finding that the reference-identity family (now 33 roots across the
+5+ sub-families Cycle 48 already characterized) is the LARGEST remaining
+observable population, **the recommended next campaign is one of the
+active reference subfamilies Cycle 48 already characterized** (e.g. the
+10-member "generated allocates fewer references" cluster) -- not further
+marker work, which has been reduced to scattered singletons, and not
+names/member ordering or roundtrip-decoder work (both remain explicitly
+out of scope per every prior cycle's own instruction).
+
+**Cycle 51 was not started.**
+
 ## Compiler Semantics Cycle 49 — Application Class marker/wrapper cleanup: the `%Super`-constructor missing-marker family (implemented)
 
 **Status: IMPLEMENTED, validated, zero regressions.** Cycle 48 identified a

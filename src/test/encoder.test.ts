@@ -2544,6 +2544,67 @@ end-method;
   assert.equal(firstMarkerByte('&SomeObj.PrepareFields();'), '4f');
 });
 
+test('an initialized Local declaration that closes a leading run does not duplicate its own preceding blank-line marker', () => {
+  // Cycle 50 (definitions 28852, 29113, 29612): TWO independent mechanisms
+  // both compute a marker for the SAME leading blank-line gap between two
+  // consecutive Local declarations. The "blank formatting lines inside a
+  // leading declaration-only Local run" mechanism fires immediately,
+  // directly, whenever `isLocalDeclaration && hasBlankLine` (unconditional
+  // on what happens later). A SEPARATE, deferred mechanism decides where
+  // to close the declaration section once an INITIALIZED Local (with no
+  // further uninitialized Local following) ends the run -- and, before
+  // this fix, recomputed its OWN marker count from the SAME preceding gap
+  // rather than recognizing the first mechanism already emitted it,
+  // producing a genuine extra 0x4F. This exact shape (an import present,
+  // a Record-typed parameter whose field is accessed inside the SECOND
+  // Local's own initializer) is required to make `hasCompiledReferences`
+  // true and activate the deferred-insertion path at all.
+  const encoded = encodeProgramArtifacts(`import PKG:Other;
+
+class Entity
+   method Run(&r As Record) Returns string;
+end-class;
+
+method Run
+   /+ &r as Record +/
+   /+ Returns String +/
+   Local string &LONG_TEXT;
+
+   Local string &Key1 = &r.FIELD.Value;
+   Return &LONG_TEXT;
+end-method;
+`, {
+    owner: { recordName: 'PKG', fieldName: 'Entity', packagePath: ['PKG', 'Entity'] }
+  });
+
+  assert.ok(
+    !encoded.program.includes(Buffer.from([0x15, 0x4f, 0x4f])),
+    'must not emit two consecutive markers for one blank-line gap'
+  );
+  // The single, correct marker for the LONG_TEXT-to-Key1 blank line must
+  // still be present -- this is a duplication fix, not a removal.
+  assert.ok(
+    encoded.program.includes(Buffer.from([0x15, 0x4f, 0x44])),
+    'the single correct marker before the second Local declaration must remain'
+  );
+});
+
+test('two adjacent uninitialized Local declarations with a blank line between them still get exactly one marker', () => {
+  // Negative control: the ordinary "blank formatting lines inside a
+  // leading declaration-only Local run" case (Cycle 45's own established
+  // behavior, ACA_ACK_RUNCTL.ACA_ATTACHADD.FieldChange) must be
+  // completely unaffected by the Cycle 50 fix -- neither Local here is
+  // initialized, so the deferred mechanism this cycle touched never
+  // engages at all.
+  const encoded = encodeProgramArtifacts(`Local File &fileWSDL;
+
+Local XmlDoc &XMLdoc;`);
+
+  const hex = encoded.program.toString('hex');
+  assert.ok(!hex.includes('154f4f'), 'must not duplicate the marker');
+  assert.ok(hex.includes('154f44'), 'must still emit the single correct marker');
+});
+
 test('HTML.NAME is recognized outside GetHTMLText calls', () => {
   const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
 Local any &content;
