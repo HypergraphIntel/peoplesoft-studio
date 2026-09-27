@@ -279,8 +279,23 @@ function generatedShape(reference: PeopleCodeReference | undefined): RowShape | 
  * Application Class rows omit them even when the source path is qualified,
  * and treating that omission as a missing allocation would manufacture an
  * ordinal drift that does not exist. Method-bearing PACKAGE rows keep the
- * method in their identity. Declare-Function event names are likewise not
- * stored in APPCLASSMETHOD.
+ * method in their identity.
+ *
+ * Cycle 44 correction: the prior comment here claimed "Declare-Function
+ * event names are likewise not stored in APPCLASSMETHOD" and
+ * `rowShape()`'s own `declare-function` branch hardcodes `appclassmethod:
+ * ''` to match. A population check (583 `Declare Function ... PeopleCode
+ * RECORD.FIELD EVENT;` occurrences across the Application Class corpus)
+ * shows this is NOT a reliable blanket rule: 316/583 (54%) have the real
+ * stored row's own APPCLASSMETHOD populated with the event name; 267/583
+ * (46%) do not. The encoder's own in-memory `declare-function` reference
+ * already carries `eventName` correctly (verified directly against
+ * definition 29522, where it is `"FieldFormula"`) -- what determines
+ * whether STORED PeopleTools also puts it in APPCLASSMETHOD is an open
+ * question this analyzer does not yet model. Treat any
+ * `declare-function`-kind "wrong non-PACKAGE identity"/"missing
+ * appclassmethod" finding this comparison reports as provisional until
+ * that split is understood, not as a proven encoder defect.
  */
 function allocationIdentity(row: RowShape | undefined): string {
   if (!row) return '<missing>';

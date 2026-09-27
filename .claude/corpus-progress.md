@@ -1,5 +1,203 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 44 — characterize the remaining Application Class reference residuals (forensic only, zero encoder behavior change)
+
+**Status: no encoder change. Both one-root families were independently
+reconstructed to their TRUE earliest cause, and neither matches its
+analyzer-assigned causal label. `28959` traces directly into the
+already-parked `%This.method()` self-row firing boundary and is
+reclassified there rather than treated as a new family. `29522`'s
+analyzer-reported "wrong non-PACKAGE identity" (a Declare-Function
+APPCLASSMETHOD mismatch) turns out to be a downstream artifact of the
+analyzer's OWN incomplete row-shape mapping, not a real encoder defect
+-- the definition's TRUE first byte divergence is a genuinely new,
+previously-uncharacterized construct: row-shorthand FIELD access on an
+indexed array-of-Record element (`&arr[&i].FIELDNAME`), which the
+general encoder does not yet recognize as a field reference.** Starting
+commit `735f6dc` (Cycle 43). 23,217/30,209 EXACT, protected 430/430
+throughout (unchanged -- only a documentation correction to the
+research tool was made; no `src/` file changed).
+
+### Phase 1 -- fresh reproduction
+
+Reference-root population reproduced fresh against `735f6dc`: 41 roots
+(identical causal-family breakdown to Cycles 36-43). `29389` confirmed
+advanced to its new causal family exactly as Cycle 43 documented
+(`cross-fragment non-PACKAGE duplicate / failed reuse`, ordinal 18, the
+uncharacterized `%Super._utils` lead). `29528` confirmed fully EXACT.
+`29797` confirmed as the standing negative control. `28959`
+(`non-PACKAGE allocation-order mismatch`) and `29522` (`wrong
+non-PACKAGE identity`) confirmed as the two remaining one-root
+families, unchanged from Cycle 42/43's own freeze.
+
+### 28959 -- reclassified into the parked `%This` boundary
+
+Definition `28959` (`BNE_OPEN_ENROLL_FL:...:EnrollmentSchedule`)
+declares a PRIVATE method `SetDates(&dStart As date, &dEnd As date)`
+and calls it via `%This.SetDates(&rcBNE_OE_CTX_VW.FROM_DT.Value,
+&rcBNE_OE_CTX_VW.TO_DT.Value);` inside `LoadScheduleByEmplID`. The
+analyzer's own reported earliest mismatch (ordinal 7, stored
+`PACKAGE|ENROLLMENTSCHEDULE|BNE_OPEN_ENROLL_FL|Object|SETDATES` vs.
+generated `FIELD|FROM_DT`) is, on direct inspection, EXACTLY the
+`PACKAGE|<self class>|<package>|<qualifypath>|<METHOD>` method-bearing
+self-reference row shape Cycles 37-41 already fully characterized and
+formally parked -- `ENROLLMENTSCHEDULE` is the class's own name, and
+`SETDATES` is the target of a `%This.method()` call to an own,
+concretely-implemented method. This is NOT a new "non-PACKAGE
+allocation-order" family; it is the SAME parked, source-non-observable
+firing decision (Cycle 41's own `29300`/`29330` identical-source,
+opposite-outcome proof) appearing under a different, coarser causal
+label. Per instruction ("if either root traces into an already-known
+population: reclassify it rather than inventing an ordering
+algorithm"), `28959` is reclassified as governed by the parked
+observability boundary, not investigated further.
+
+### 29522 -- analyzer artifact found and corrected; true defect identified but not implemented
+
+**The analyzer's own claim was wrong.** `application-class-reference-analysis.ts`'s
+`rowShape()` function hardcodes `appclassmethod: ''` for every
+`declare-function`-kind reference, with a comment asserting "Declare-
+Function event names are likewise not stored in APPCLASSMETHOD." Direct
+inspection of `29522`'s own stored PSPCMNAME (`FUNCLIB_GP_ABS.CALC_END_DT_BTN`,
+declared via `Declare Function ResolveSchedule PeopleCode
+FUNCLIB_GP_ABS.CALC_END_DT_BTN FieldFormula;` right after `end-class;`)
+shows `appclassmethod='FieldFormula'` -- populated, directly
+contradicting that comment. A population check across all 583
+`Declare Function ... PeopleCode RECORD.FIELD EVENT;` occurrences in
+the Application Class corpus found the real split is genuinely mixed:
+**316/583 (54%) have the event name in stored APPCLASSMETHOD; 267/583
+(46%) do not** -- neither "always populated" nor "never populated" is
+correct, and this cycle did not find the discriminator. The comment and
+hardcoded mapping were corrected to document this honestly as an open
+question rather than a confidently-wrong assertion (a documentation-
+only change to the research tool; `rowShape()`'s actual behavior is
+unchanged since no replacement rule was proven).
+
+**More importantly**, tracing `29522`'s TRUE first byte divergence
+(`generated.equals(storedProgram)` comparison, not the analyzer's own
+row-identity comparison) found it is NOT the declare-function row at
+all -- it occurs much later, at a completely different construct:
+`&ARYDrvDtl [&i].DUR.Value` inside `Get_Start_End_DDTM`, where
+`&ARYDrvDtl` is declared `Local array of Record &ARYDrvDtl;`. Stored
+correctly encodes `.DUR` as a `FIELD|DUR` reference operand (opcode
+`0x4A`, namenum 9); the current encoder instead emits `.DUR` as a
+literal inline-text operand (opcode `0x0a`, spelling `"DUR"`), meaning
+it does not recognize row-shorthand FIELD access on an INDEXED
+ARRAY-OF-RECORD element (`&arrayVariable[&index].FIELDNAME`) as a field
+reference at all -- a distinct construct from the already-supported
+`&rowsetVariable(&index).RECORDNAME.FIELDNAME` (Rowset-row) and
+`&row.RECORDNAME.FIELDNAME` (Row) shorthand forms. This is
+`programSectionsExact: false`'s real cause, confirmed directly from raw
+bytes, not inferred from the analyzer's own (now-corrected-to-honest,
+still incomplete) row-shape reconstruction.
+
+This is a genuinely new, previously-uncharacterized parsing/chain-
+semantics gap -- not a "wrong non-PACKAGE identity" reuse question at
+all, and not connected to Cycle 43's RECORD/FIELD reuse work (no
+`recordScopeId()`/`dependencyScope` code path is involved; this is
+about whether the postfix-chain resolver recognizes the construct as a
+field reference in the first place). Implementing recognition for
+array-of-Record indexed-element field shorthand would require tracing
+how `Local array of Record &x;` typing propagates through the general
+postfix/chain-semantics resolver (`ChainSemantics`-adjacent code, per
+Cycles 4-9's own established terminology) -- genuinely new research,
+not something safely attemptable with this cycle's remaining time
+without risking the same class of regression Cycle 42 hit. **Not
+implemented.**
+
+### Phase 8/9 -- Cycle 43 key-consistency audit
+
+Checked whether either root's TRUE defect touches `recordScopeId()`,
+`dependencyScope`, or `resolvePostfixMemberReuse` (the machinery Cycle
+43 just unified). Neither does: `28959`'s real cause is the parked
+`%This` metadata question (unrelated to RECORD/FIELD scope keys);
+`29522`'s real cause is field-reference RECOGNITION for a new postfix
+shape, not reuse/lifetime of an already-recognized reference. No new
+instance of Cycle 43's "same map, different key" bug pattern was found
+this cycle.
+
+### Validation
+
+- No `src/` files changed this cycle -- only
+  `tools/corpus/research/application-class-reference-analysis.ts`'s own
+  documentation/comment was corrected; `git status` confirms this
+  before and after the investigation.
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 554 passed, 1 intentional skip (555 total; unchanged from
+  Cycle 43).
+- Protected/full corpus: unchanged at 430/430 and 23,217/30,209 EXACT
+  (no encoder source edited, so this is confirmatory, not a new
+  result).
+- `git diff --check`: clean.
+
+### Ending 41-root accounting
+
+| ending outcome | roots | movement |
+|---|---:|---:|
+| reference identity | 40 | -1 |
+| names metadata | 0 | 0 |
+| marker | 0 | 0 |
+| wrapper/body | 0 | 0 |
+| decoder-only | 0 | 0 |
+| fully EXACT | 0 | 0 |
+| parked observability-boundary blocker | 1 | +1 (28959) |
+| **total** | **41** | |
+
+`28959` moves from the generic "reference identity" bucket to the
+explicitly parked observability-boundary bucket (a reclassification,
+not a behavior change -- no encoder code ran differently for it).
+`29522` remains "reference identity" with its TRUE cause now
+documented precisely for a future cycle, rather than under its old,
+misleading "wrong non-PACKAGE identity" label.
+
+Updated 99-root Application Class accounting: 40 reference identity
+(-1), 3 names metadata, 18 decoder-only, 9 marker residual, 2
+wrapper/body, 25 parked storage-symbol enumeration (untouched), 2
+parked observability-boundary (the `%This` mechanism itself, plus this
+cycle's `28959` reclassification counted under it), 1 fully-EXACT
+placeholder already reconciled in Cycle 32 = 99 (accounting method
+updated this cycle to give the parked `%This` boundary its own visible
+bucket, per instruction, rather than leaving affected roots
+indistinguishable from ordinary unresolved reference-identity work).
+
+### Explicitly not done (per instruction)
+
+- Did not attempt to solve the parked `%This.method()` firing question
+  for `28959` -- correctly left parked, no new evidence emerged.
+- Did not implement array-of-Record indexed-element FIELD-shorthand
+  recognition for `29522` -- identified precisely, not attempted, given
+  the scope of tracing postfix/chain-semantics typing propagation
+  safely in the remaining time.
+- Did not guess a rule for the mixed 54%/46% Declare-Function
+  APPCLASSMETHOD population split -- documented as genuinely open,
+  not resolved.
+- Did not touch `29389`, `29528`, `29797`, or any of Cycle 43's
+  `recordScopeId()`/`dependencyScope` machinery.
+- Did not touch `28820` (decoder-only), the 25 parked names-metadata
+  roots, or marker/wrapper populations.
+- Did not enter the 23-root declaration-phase family.
+- Did not query live Oracle or fabricate inherited/environment
+  metadata.
+
+### Next actions
+
+- `29522`'s concrete next step: trace how `Local array of Record &x;`
+  typing is (or is not) tracked through the general postfix/chain-
+  semantics resolver, and determine whether `&arr[&i].FIELDNAME` can be
+  recognized as a field reference using the SAME general mechanism
+  already handling `&row.RECORDNAME.FIELDNAME`/
+  `&rowset(&i).RECORDNAME.FIELDNAME`, or whether it needs its own path.
+  Build a population census of this specific shape before implementing.
+- The mixed Declare-Function APPCLASSMETHOD population (316/583 vs.
+  267/583) is its own, separate open research question -- worth a
+  dedicated census (by declaration position, record/field pair reuse
+  across multiple Declare Function statements, or event name) before
+  either the analyzer or the encoder encodes a rule for it.
+- Datasource mode: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout; `--live` was not used.
+
+**Cycle 45 was not started.**
+
 ## Compiler Semantics Cycle 43 — provenance-aware Application Class RECORD/SCROLL reuse (implemented)
 
 **Status: proven and implemented.** Cycle 42's regression was caused by
