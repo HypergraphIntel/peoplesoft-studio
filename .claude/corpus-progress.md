@@ -1,5 +1,246 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 37 — Application Class self-method references (forensic only, zero behavior change)
+
+**Status: no encoder change. Reuse semantics for method-bearing
+`%This.method()` self-references are now fully solved (zero
+contradictions across the whole corpus). A new, striking population
+invariant was discovered -- at most ONE method-bearing self-reference
+row exists per Application Class compilation unit, with zero exceptions
+across 597 definitions -- but the exact rule determining WHICH call
+site earns that one row remains unproven after testing four
+hypotheses, each rejected by direct counter-examples. Per the cycle's
+own standard, this was not implemented.** Starting commit `719b509`
+(Cycle 36). 23,217/30,209 EXACT, protected 430/430 throughout
+(unchanged -- no source was edited this cycle).
+
+### Frozen population (reproduced fresh against `719b509`)
+
+```text
+23 declaration-phase PACKAGE discovery/order mismatch
+ 5 import PACKAGE discovery/order mismatch
+ 3 executable/post-class PACKAGE discovery/order mismatch
+ 3 PACKAGE phase/order mismatch
+ 2 row-count/stream-tail mismatch
+ 2 suppressed fragment-owner operand collision
+ 1 non-PACKAGE allocation-order mismatch
+ 1 missing non-PACKAGE allocation
+ 1 wrong non-PACKAGE identity (29542)
+```
+
+41 total, decoder-only 18 (including 28820, untouched this cycle, per
+instruction), names metadata 3 -- matches Cycle 36's own ending exactly;
+zero drift.
+
+### Phase 1 -- definition 29542, exact reconstruction
+
+Raw stored PSPCMNAME (`definition.names`, inspected directly, not
+inferred from analyzer labels): namenum 10 is
+`recname=PACKAGE, refname=FMLAMEDCERT, packageroot=GP_ABS_FMLA,
+qualifypath=(blank), appclassmethod=INIT` -- i.e. exactly the shape
+`addApplicationClassReference(packagePath, className, methodName)`
+already produces elsewhere, confirming the row representation
+definitively: **`PACKAGE|<self class>|<package>||<METHOD>`**, with the
+class's own identity (not a generic "self" marker) plus
+`appclassmethod` set to the target method name.
+
+This row is entirely MISSING from the generated reference stream (the
+constructor's own `%This.init();` call allocates nothing); every
+subsequent allocation (namenum 11 `ROWSET`, 12 `ROW`, 13 `FIELD`, ...)
+is consequently one PSPCMNAME position ahead of where generated places
+it. The first PSPCMPROG statement-byte divergence (`0b 21 11 00` stored
+vs `0b 21 18 00` generated, a `GetRowset(Scroll.GP_ABS_LVL3_VW)`
+operand deep in `checkEligibility`) reflects this same missing-row
+cascade compounded with unrelated record/field/scroll allocations
+between the two points -- confirming `programSectionsExact: false` is
+a downstream consequence of the ONE missing row, not a second,
+independent defect.
+
+### Phase 2 -- corpus census of own-method `%This.method()` calls
+
+New read-only tool,
+`tools/corpus/research/application-class-this-method-analysis.ts`:
+for every Application Class definition, extract every `%This.method(...)`
+call inside every method body, classify the target against the class's
+own declared method set, and cross-reference each own-method call
+against the real stored PSPCMNAME table.
+
+```text
+Definitions scanned:                          1,506
+Definitions with >=1 own-method %This call:      556
+Total %This.method(...) call sites:            6,863
+  own concrete method:                         6,253
+  own abstract method:                            29
+  external/inherited (unresolved):               581
+  recursive self-calls:                           39
+```
+
+For the 6,253 own-concrete-method calls:
+
+```text
+With a stored method-bearing row:                773  (12%)
+Without a stored method-bearing row:            5,480  (88%)
+First calls (per target) with row:                280
+First calls (per target) without row:           2,567
+Repeat calls with row:                            493
+Repeat calls without row:                       2,913
+```
+
+### Reuse semantics -- solved, zero contradictions
+
+```text
+Targets called 2+ times:                       1,101
+  -- every occurrence resolves to the SAME stored namenum:  1,101 / 1,101 (100%)
+  -- any occurrence resolving to a DIFFERENT namenum:            0 / 1,101
+Targets called from 2+ DIFFERENT caller methods:  795
+  -- every occurrence shares the SAME stored namenum:          795 / 795 (100%)
+```
+
+**When a method-bearing row exists for a given target, it is reused
+identically across every call site to that target, regardless of
+caller method or control-group position, with zero known
+contradictions.** This mirrors the compilation-unit-wide reuse Cycle
+32 already established for PACKAGE/RECORD/FIELD/SCROLL/COMPONENT/HTML
+identities -- method-bearing rows behave the same way once allocated.
+The open question is entirely about allocation (WHEN one gets created),
+never about reuse (WHERE an existing one gets found again).
+
+### A new population invariant: at most one method-bearing row per class
+
+Across all 597 definitions containing `%This.method()` calls, the
+count of DISTINCT method-bearing rows (`recname=PACKAGE, refname=<own
+class name>, appclassmethod<>blank`) is:
+
+```text
+0 rows: 292 definitions
+1 row:  305 definitions
+2+ rows: 0 definitions
+```
+
+**Zero definitions have two or more distinct method-bearing rows, even
+though many call several different own methods via `%This.`** (28704,
+for example, calls four distinct own methods but only one --
+`ReadMsgCurrencyCode` -- gets a row). This is a genuinely new,
+population-wide, contradiction-free finding in its own right, distinct
+from the reuse question above: whatever determines allocation looks
+like a scarce, singleton-like resource per compilation unit, not a
+per-call-site or per-target mechanism.
+
+### Hypotheses tested for the firing condition -- all rejected
+
+| hypothesis | test | result |
+|---|---|---|
+| Every own-method call allocates a row | population count | rejected: 5,480/6,253 (88%) have none |
+| First call to a given target allocates a row | first-call-only subset | rejected: 2,567/2,847 first calls have none |
+| The first `%This` call anywhere in the class (chronological, any target) allocates the row | spot check: 28704 (4 distinct targets, only the first-encountered one has a row) is consistent, but this does not explain why 28713 (7+ distinct targets, first-encountered call included) has ZERO rows at all | rejected: does not explain the 0-row population |
+| Row presence correlates with the class having a singleton storage member (paralleling Cycle 30's own singleton-instance rule) | storage-member-count distribution, with-row vs. without-row buckets | rejected: both buckets show materially the same distribution across 0..189+ storage members, no clean cutoff |
+| Row presence correlates with the CONSTRUCTOR itself containing a `%This.method()` call | constructor-body-scan, with-row vs. without-row buckets | rejected: `constructor-has-this-call` appears in both buckets (92/305 with-row vs. 48/292 without-row) with no clean separation |
+
+No hypothesis tested this cycle survives its own population check. The
+firing condition remains genuinely open.
+
+### Phases 3-8
+
+Phases 3 (firing semantics) and 4 (class-only vs. method-bearing key
+distinction) are covered by the hypothesis table and the raw-row
+inspection above. Phase 5 (reuse lifetime) is the fully-solved result
+in its own section. Phase 6 (member-metadata vs. executable-reference
+distinction) is answered by 29542 itself: the method IS already fully
+present in the class's own member directory/name table regardless of
+whether a method-bearing PACKAGE row exists, so row presence is
+provably an INDEPENDENT, executable-reference-allocation question, not
+a byproduct of declaration/directory metadata. Phase 7
+(`applicationClassReferenceKey` review): unchanged and untouched --
+with no firing rule proven, there is nothing to key correctly yet;
+the existing `package` branch's `[kind, packageIdentity, methodName]`
+shape was directly confirmed (via 29542's own raw row) to already be
+the CORRECT representation, so no key change is anticipated to be
+needed once a firing rule is found. Phase 8 (negative controls): moot
+this cycle since no encoder change was made; Controls 1-5 (external
+`%This`, own-`%This`-exact classes, 29797, Cycle 36 built-in-lifetime
+rule, Cycle 33 wildcard rule) remain exactly as Cycle 36 left them,
+confirmed by an unchanged `git status` for every source file.
+
+### Secondary priorities (per instruction, only after primary investigation)
+
+Not reached this cycle -- the primary investigation (Phases 1-2 and
+the hypothesis testing above) consumed the cycle's full scope on its
+own, and per instruction ("do not force an implementation... a
+forensic-only result is acceptable"), no secondary family was opened
+once it became clear method-bearing self-references were still
+unresolved.
+
+### Validation
+
+- No source files changed this cycle -- `git status` before and after
+  investigation shows only the new, additive
+  `tools/corpus/research/application-class-this-method-analysis.ts`.
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 551 passed, 1 intentional skip (552 total; unchanged from
+  Cycle 36).
+- Protected/full corpus: unchanged at 430/430 and 23,217/30,209 EXACT
+  (no source edited, so this is confirmatory, not a new result).
+- `git diff --check`: clean.
+
+### Ending 41-root accounting
+
+| ending outcome | roots | movement |
+|---|---:|---:|
+| reference identity | 41 | unchanged |
+| names metadata | 0 | 0 |
+| marker | 0 | 0 |
+| wrapper/body | 0 | 0 |
+| decoder-only | 0 | 0 |
+| fully EXACT | 0 | 0 |
+| **total** | **41** | |
+
+Updated 99-root Application Class accounting (unchanged from Cycle 36):
+41 reference identity, 3 names metadata, 18 decoder-only, 9 marker
+residual, 2 wrapper/body, 25 parked storage-symbol enumeration
+(untouched), 1 fully-EXACT placeholder already reconciled in Cycle 32 =
+99.
+
+### Explicitly not done (per instruction)
+
+- Did not implement method-bearing self-reference allocation without a
+  contradiction-free firing rule -- four hypotheses were tested and
+  rejected rather than one being force-fit to 29542 alone.
+- Did not touch 28820 (decoder-only) -- explicitly out of scope this
+  cycle.
+- Did not touch the 25 parked Cycle-31 storage-symbol roots, marker/
+  wrapper/decoder populations, or the 3 existing names-metadata roots.
+- Did not touch the 23-root declaration-phase family, the 5-root
+  import-order family, or any secondary small-family priority -- the
+  primary investigation was not completed to a decision point that
+  would justify opening a new family this cycle.
+- Did not modify `applicationClassReferenceKey`, `ApplicationClassReferenceScope`/
+  `ApplicationClassReferenceSession`, the Cycle 33 wildcard-import rule,
+  the Cycle 34 `%This` gate rule, or the Cycle 36 built-in-object
+  method-wide-lifetime rule.
+- Did not query live Oracle or fabricate inherited/environment
+  metadata.
+
+### Next actions
+
+- The concrete next research step for Investigation B: since none of
+  the four tested hypotheses (call order, target order, storage
+  singleton, constructor-call) explain the 0-vs-1 split, examine the
+  ACTUAL SOURCE TEXT differences between definitions' own "the one
+  target that gets a row" more closely than this cycle had time for --
+  candidates not yet tested include: whether the winning call is the
+  one whose result feeds a SPECIFIC later construct (e.g. an `If`
+  condition, a `Return`, an assignment to a property vs. a plain
+  local), whether it correlates with RELATIONSHIP (`extends`/
+  `implements`) presence, or whether it is tied to declaration-order
+  position of the TARGET method specifically (not the caller).
+- Re-examine whether the "0 rows" population (305/597) shares some
+  OTHER class-level trait Cycle 37 did not test (e.g. import shape,
+  presence of `constant` declarations, interface implementation).
+- Datasource mode: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout; `--live` was not used.
+
+**Cycle 38 was not started.**
+
 ## Compiler Semantics Cycle 36 — Application Class reference identity, phase 4
 
 **Status: Investigation A (definition 28820) produced a proven,
