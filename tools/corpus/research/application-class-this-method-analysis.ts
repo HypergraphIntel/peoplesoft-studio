@@ -1,30 +1,124 @@
 /**
- * Cycle 37: census of `%This.SomeMethod(...)` calls across the Application
- * Class corpus, where `SomeMethod` is declared on the same class, to
- * determine whether -- and under what conditions -- PeopleTools allocates
- * a method-bearing self-reference (`PACKAGE|<class>|<package>||<METHOD>`,
- * confirmed directly from definition 29542's own raw PSPCMNAME row 10)
- * for such a call. Read-only, no encoder changes.
+ * Cycles 37-38: census of `%This.SomeMethod(...)` calls across the
+ * Application Class corpus, where `SomeMethod` is declared on the same
+ * class, to determine whether -- and under what conditions -- PeopleTools
+ * allocates a method-bearing self-reference
+ * (`PACKAGE|<class>|<package>||<METHOD>`, confirmed directly from
+ * definition 29542's own raw PSPCMNAME row 10) for such a call.
+ * Read-only, no encoder changes.
+ *
+ * Cycle 37 established: row shape confirmed; reuse semantics solved
+ * (100% compilation-unit-wide reuse, zero contradictions); a strict
+ * population invariant (0 or 1 distinct method-bearing rows per
+ * definition, never 2+). Cycle 38 extends this tool with per-target
+ * features (declaration/implementation ordinal, call count, caller
+ * count, constructor involvement, return type, parameters, visibility)
+ * to test target-selection and class-level firing hypotheses.
  *
  * Usage:
  *   npx tsx tools/corpus/research/application-class-this-method-analysis.ts
  */
 
-import { parseApplicationClassSource, type ApplicationClassMethodMember } from '../../../src/peoplecode/applicationClassProgram';
+import { parseApplicationClassSource, type ApplicationClassMethodMember, type ApplicationClassStorageMember } from '../../../src/peoplecode/applicationClassProgram';
 import { listSnapshotDefinitions } from '../snapshot/reader';
 import { openSnapshotDatabase } from '../snapshot/store';
-import type { SnapshotDefinition } from '../snapshot/types';
 
 const APPLICATION_CLASS_OBJECT_ID = 104;
 
-interface CallSite {
+interface TargetInfo {
   definitionId: number;
   className: string;
-  callerMethod: string;
   targetMethod: string;
-  targetKind: 'own-concrete' | 'own-abstract' | 'external-or-unresolved';
-  occurrenceIndexForTarget: number; // 0 = first call to this target anywhere in the class
-  callerIsAlsoTarget: boolean; // recursive self-call
+  targetDeclarationOrdinal: number;
+  targetImplementationOrdinal: number;
+  targetVisibility: string;
+  targetAbstract: boolean;
+  targetReturnType: string | undefined;
+  targetParameterCount: number;
+  callCount: number;
+  callerMethods: string[];
+  callerCount: number;
+  calledFromConstructor: boolean;
+  isRecursiveSelfCall: boolean;
+  isWinner: boolean; // has the stored method-bearing row
+  /** [callerImplementationOrdinal, offsetWithinCallerBody] of this
+   * target's chronologically FIRST call site, in the order the encoder
+   * actually processes fragments (implementation order), for testing
+   * "first call site across the whole compilation unit" as distinct
+   * from "first target by declaration/implementation ordinal." */
+  firstCallOrder: [number, number];
+}
+
+interface DefinitionInfo {
+  definitionId: number;
+  className: string;
+  storageMemberCount: number;
+  methodCount: number;
+  extendsType: string | undefined;
+  implementsType: string | undefined;
+  hasWildcardImport: boolean;
+  hasConstructorImpl: boolean;
+  hasSelfMethodRow: boolean;
+  selfMethodRowTarget: string | undefined;
+  selfMethodRowNamenum: number | undefined;
+  distinctTargets: number;
+  targets: TargetInfo[];
+}
+
+/** Masks comments, disabled `rem`/`<* *>` code, and quoted strings so a
+ * `%This.method(` scan never matches text inside disabled code -- three
+ * of the Cycle 38 target-selection hypothesis's own apparent
+ * contradictions turned out to be `rem`-commented-out calls the raw
+ * regex scan wrongly counted as real. */
+function maskNonExecutable(source: string): string {
+  const chars = [...source];
+  let i = 0;
+  while (i < chars.length) {
+    if (
+      source.slice(i, i + 3).toLowerCase() === 'rem' &&
+      (i === 0 || !/[A-Za-z0-9_%&]/.test(source[i - 1])) &&
+      /[\s:]/.test(source[i + 3] ?? '')
+    ) {
+      while (i < chars.length && chars[i] !== ';') {
+        if (chars[i] !== '\n' && chars[i] !== '\r') chars[i] = ' ';
+        i++;
+      }
+      if (i < chars.length) chars[i++] = ' ';
+      continue;
+    }
+    const pair = `${chars[i] ?? ''}${chars[i + 1] ?? ''}`;
+    if (pair === '/*' || pair === '<*') {
+      const close = pair === '/*' ? '*/' : '*>';
+      chars[i++] = ' ';
+      chars[i++] = ' ';
+      while (i < chars.length && `${chars[i]}${chars[i + 1] ?? ''}` !== close) {
+        if (chars[i] !== '\n' && chars[i] !== '\r') chars[i] = ' ';
+        i++;
+      }
+      if (i < chars.length) chars[i++] = ' ';
+      if (i < chars.length) chars[i++] = ' ';
+      continue;
+    }
+    if (pair === '//') {
+      while (i < chars.length && chars[i] !== '\n') chars[i++] = ' ';
+      continue;
+    }
+    if (chars[i] === '"') {
+      chars[i++] = ' ';
+      while (i < chars.length) {
+        if (chars[i] === '"') {
+          chars[i++] = ' ';
+          if (chars[i] === '"') { chars[i++] = ' '; continue; }
+          break;
+        }
+        if (chars[i] !== '\n' && chars[i] !== '\r') chars[i] = ' ';
+        i++;
+      }
+      continue;
+    }
+    i++;
+  }
+  return chars.join('');
 }
 
 function countBy<T>(values: readonly T[], key: (value: T) => string): Record<string, number> {
@@ -38,129 +132,230 @@ function main(): void {
   const definitions = listSnapshotDefinitions(db).filter(d => d.objectid1 === APPLICATION_CLASS_OBJECT_ID);
   db.close();
 
-  const callSites: CallSite[] = [];
-  let definitionsWithOwnCalls = 0;
-  let definitionsScanned = 0;
-
-  interface StoredEvidence {
-    definitionId: number;
-    className: string;
-    callerMethod: string;
-    targetMethod: string;
-    occurrenceIndexForTarget: number;
-    storedMethodBearingRowPresent: boolean;
-    storedNamenum?: number;
-  }
-  const storedEvidence: StoredEvidence[] = [];
+  const analyzed: DefinitionInfo[] = [];
 
   for (const definition of definitions) {
     const parsed = parseApplicationClassSource(definition.sourceText);
     if (parsed === undefined) continue;
-    definitionsScanned++;
     const methods = parsed.members.filter((m): m is ApplicationClassMethodMember => m.kind === 'method');
     if (methods.length === 0) continue;
+    const storageMembers = parsed.members.filter((m): m is ApplicationClassStorageMember => m.kind === 'property' || m.kind === 'instance');
     const declaredByName = new Map(methods.map(m => [m.name.toLowerCase(), m]));
+    const className = parsed.className;
+    const classNameLower = className.toLowerCase();
 
-    const targetOccurrence = new Map<string, number>();
+    const selfMethodRows = definition.names.filter(row =>
+      row.recname.trim() === 'PACKAGE' &&
+      row.refname.trim().toLowerCase() === classNameLower &&
+      row.appclassmethod.trim() !== ''
+    );
+    const winnerTarget = selfMethodRows[0]?.appclassmethod.trim().toLowerCase();
+
+    // Gather own-method call sites across all method bodies, in the
+    // order the encoder actually processes fragments (implementation
+    // order among methods, source offset within each method body).
+    const perTarget = new Map<string, { callCount: number; callers: Set<string>; firstCallOrder: [number, number] }>();
     let anyOwnCall = false;
-
-    for (const method of methods) {
-      const calls = [...method.body.matchAll(/%This\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(/gi)];
+    const methodsByImplementationOrder = [...methods].sort((a, b) => a.implementationOrder - b.implementationOrder);
+    for (const method of methodsByImplementationOrder) {
+      const maskedBody = maskNonExecutable(method.body);
+      const calls = [...maskedBody.matchAll(/%This\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(/gi)];
       for (const call of calls) {
-        const targetName = call[1];
-        const targetKey = targetName.toLowerCase();
-        const target = declaredByName.get(targetKey);
-        const targetKind: CallSite['targetKind'] =
-          target === undefined ? 'external-or-unresolved'
-            : target.abstract ? 'own-abstract'
-            : 'own-concrete';
+        const targetKey = call[1].toLowerCase();
+        if (!declaredByName.has(targetKey)) continue; // external/unresolved
+        const target = declaredByName.get(targetKey)!;
+        if (target.abstract) continue; // own-abstract, tracked separately if needed
+        anyOwnCall = true;
+        const order: [number, number] = [method.implementationOrder, call.index ?? 0];
+        const entry = perTarget.get(targetKey) ?? { callCount: 0, callers: new Set<string>(), firstCallOrder: order };
+        entry.callCount++;
+        entry.callers.add(method.name);
+        perTarget.set(targetKey, entry);
+      }
+    }
+    if (!anyOwnCall) continue;
 
-        const occurrenceIndex = targetOccurrence.get(targetKey) ?? 0;
-        targetOccurrence.set(targetKey, occurrenceIndex + 1);
+    const constructor = methods.find(m => m.name.toLowerCase() === classNameLower);
+    const constructorCallsTarget = (targetKey: string): boolean =>
+      constructor !== undefined && perTarget.get(targetKey)?.callers.has(constructor.name) === true;
 
-        callSites.push({
-          definitionId: definition.definitionId,
-          className: parsed.className,
-          callerMethod: method.name,
-          targetMethod: targetName,
-          targetKind,
-          occurrenceIndexForTarget: occurrenceIndex,
-          callerIsAlsoTarget: method.name.toLowerCase() === targetKey
-        });
+    const targets: TargetInfo[] = [...perTarget.entries()].map(([targetKey, info]) => {
+      const target = declaredByName.get(targetKey)!;
+      return {
+        definitionId: definition.definitionId,
+        className,
+        targetMethod: target.name,
+        targetDeclarationOrdinal: target.declarationOrdinal,
+        targetImplementationOrdinal: target.implementationOrder,
+        targetVisibility: target.visibility,
+        targetAbstract: target.abstract,
+        targetReturnType: target.returnType,
+        targetParameterCount: target.parameters.length,
+        callCount: info.callCount,
+        callerMethods: [...info.callers],
+        callerCount: info.callers.size,
+        calledFromConstructor: constructorCallsTarget(targetKey),
+        isRecursiveSelfCall: info.callers.has(target.name),
+        isWinner: targetKey === winnerTarget,
+        firstCallOrder: info.firstCallOrder
+      };
+    });
 
-        if (targetKind === 'own-concrete') {
-          anyOwnCall = true;
-          const storedRow = definition.names.find(row =>
-            row.recname.trim() === 'PACKAGE' &&
-            row.refname.trim().toLowerCase() === parsed.className.toLowerCase() &&
-            row.appclassmethod.trim().toLowerCase() === targetKey
-          );
-          storedEvidence.push({
-            definitionId: definition.definitionId,
-            className: parsed.className,
-            callerMethod: method.name,
-            targetMethod: targetName,
-            occurrenceIndexForTarget: occurrenceIndex,
-            storedMethodBearingRowPresent: storedRow !== undefined,
-            storedNamenum: storedRow?.namenum
+    analyzed.push({
+      definitionId: definition.definitionId,
+      className,
+      storageMemberCount: storageMembers.length,
+      methodCount: methods.length,
+      extendsType: parsed.extendsType,
+      implementsType: parsed.implementsType,
+      hasWildcardImport: /import\s+[^;]+:\*\s*;/i.test(definition.sourceText.slice(0, parsed.unitStart)),
+      hasConstructorImpl: constructor !== undefined,
+      hasSelfMethodRow: selfMethodRows.length > 0,
+      selfMethodRowTarget: selfMethodRows[0]?.appclassmethod.trim(),
+      selfMethodRowNamenum: selfMethodRows[0]?.namenum,
+      distinctTargets: perTarget.size,
+      targets
+    });
+  }
+
+  const present = analyzed.filter(d => d.hasSelfMethodRow);
+  const absent = analyzed.filter(d => !d.hasSelfMethodRow);
+
+  // Phase 4: target-selection hypotheses, evaluated only on present-row definitions
+  // with 2+ distinct targets (definitions with exactly 1 target are uninformative --
+  // any hypothesis trivially "matches" there).
+  const multiTargetPresent = present.filter(d => d.distinctTargets > 1);
+
+  function hypothesisReport(name: string, predicate: (t: TargetInfo, allTargetsInDef: TargetInfo[]) => boolean) {
+    let matches = 0;
+    let contradictions = 0;
+    const contradictionExamples: Array<{ definitionId: number; winner: string; predicted: string[] }> = [];
+    for (const def of multiTargetPresent) {
+      const winner = def.targets.find(t => t.isWinner);
+      if (winner === undefined) continue;
+      const predictedWinners = def.targets.filter(t => predicate(t, def.targets));
+      const winnerPredicted = predictedWinners.some(t => t.targetMethod === winner.targetMethod);
+      const onlyWinnerPredicted = predictedWinners.length === 1 && winnerPredicted;
+      if (onlyWinnerPredicted) matches++;
+      else {
+        contradictions++;
+        if (contradictionExamples.length < 5) {
+          contradictionExamples.push({
+            definitionId: def.definitionId,
+            winner: winner.targetMethod,
+            predicted: predictedWinners.map(t => t.targetMethod)
           });
         }
       }
     }
-
-    if (anyOwnCall) definitionsWithOwnCalls++;
+    return { name, totalMultiTargetDefinitions: multiTargetPresent.length, matches, contradictions, contradictionExamples };
   }
 
-  const ownConcrete = callSites.filter(c => c.targetKind === 'own-concrete');
-  const ownAbstract = callSites.filter(c => c.targetKind === 'own-abstract');
-  const external = callSites.filter(c => c.targetKind === 'external-or-unresolved');
-  const firstCalls = storedEvidence.filter(e => e.occurrenceIndexForTarget === 0);
-  const repeatCalls = storedEvidence.filter(e => e.occurrenceIndexForTarget > 0);
+  const orderKey = (o: [number, number]): number => o[0] * 1_000_000 + o[1];
+  const targetHypotheses = [
+    hypothesisReport('first call site chronologically (implementation order, then offset)', (t, all) =>
+      orderKey(t.firstCallOrder) === Math.min(...all.map(x => orderKey(x.firstCallOrder)))),
+    hypothesisReport('last call site chronologically', (t, all) =>
+      orderKey(t.firstCallOrder) === Math.max(...all.map(x => orderKey(x.firstCallOrder)))),
+    hypothesisReport('first declaration ordinal', (t, all) => t.targetDeclarationOrdinal === Math.min(...all.map(x => x.targetDeclarationOrdinal))),
+    hypothesisReport('last declaration ordinal', (t, all) => t.targetDeclarationOrdinal === Math.max(...all.map(x => x.targetDeclarationOrdinal))),
+    hypothesisReport('first implementation ordinal', (t, all) => t.targetImplementationOrdinal === Math.min(...all.map(x => x.targetImplementationOrdinal))),
+    hypothesisReport('last implementation ordinal', (t, all) => t.targetImplementationOrdinal === Math.max(...all.map(x => x.targetImplementationOrdinal))),
+    hypothesisReport('highest call count', (t, all) => t.callCount === Math.max(...all.map(x => x.callCount))),
+    hypothesisReport('highest caller count', (t, all) => t.callerCount === Math.max(...all.map(x => x.callerCount))),
+    hypothesisReport('called from constructor', (t) => t.calledFromConstructor),
+    hypothesisReport('recursive self call', (t) => t.isRecursiveSelfCall),
+    hypothesisReport('is public', (t) => t.targetVisibility === 'public'),
+    hypothesisReport('is private', (t) => t.targetVisibility === 'private'),
+    hypothesisReport('returns object-ish (non-primitive, non-void)', (t) =>
+      t.targetReturnType !== undefined && !/^(string|number|integer|boolean|date|datetime|time|any)$/i.test(t.targetReturnType)),
+    hypothesisReport('returns void', (t) => t.targetReturnType === undefined),
+    hypothesisReport('zero parameters', (t) => t.targetParameterCount === 0),
+    hypothesisReport('has parameters', (t) => t.targetParameterCount > 0),
+    hypothesisReport('called from 2+ distinct callers', (t) => t.callerCount > 1),
+    hypothesisReport('called exactly once total', (t) => t.callCount === 1)
+  ];
 
-  // Per (definitionId, targetMethod), does EVERY occurrence resolve to the SAME stored namenum (i.e. one shared row reused)?
-  const byDefinitionTarget = new Map<string, StoredEvidence[]>();
-  for (const e of storedEvidence) {
-    const key = `${e.definitionId}:${e.targetMethod.toLowerCase()}`;
-    byDefinitionTarget.set(key, [...(byDefinitionTarget.get(key) ?? []), e]);
+  function classHypothesis(name: string, predicate: (d: DefinitionInfo) => boolean) {
+    const presentMatch = present.filter(predicate).length;
+    const absentMatch = absent.filter(predicate).length;
+    return {
+      name,
+      presentTotal: present.length,
+      absentTotal: absent.length,
+      presentMatch,
+      absentMatch,
+      presentMatchPct: Math.round((presentMatch / present.length) * 100),
+      absentMatchPct: Math.round((absentMatch / absent.length) * 100)
+    };
   }
-  const multiCallTargets = [...byDefinitionTarget.values()].filter(list => list.length > 1);
-  const multiCallSameNamenum = multiCallTargets.filter(list => new Set(list.map(e => e.storedNamenum)).size === 1);
-  const multiCallDifferentNamenum = multiCallTargets.filter(list => new Set(list.map(e => e.storedNamenum)).size > 1);
 
-  // Cross-caller reuse: for a given (definitionId, targetMethod), are calls from DIFFERENT caller methods present, and do they share the same stored namenum?
-  const crossCallerTargets = multiCallTargets.filter(list => new Set(list.map(e => e.callerMethod.toLowerCase())).size > 1);
-  const crossCallerSameNamenum = crossCallerTargets.filter(list => new Set(list.map(e => e.storedNamenum)).size === 1);
+  // Firing hypothesis: the row exists iff the WINNING call's caller is
+  // processed (implementation order) BEFORE the target's own
+  // implementation -- a forward-reference pattern.
+  let forwardRefPresentMatches = 0;
+  let forwardRefPresentTotal = 0;
+  for (const def of present) {
+    const winner = def.targets.find(t => t.isWinner);
+    if (winner === undefined) continue;
+    forwardRefPresentTotal++;
+    if (winner.firstCallOrder[0] < winner.targetImplementationOrdinal) forwardRefPresentMatches++;
+  }
+  // For absent definitions, check whether EVERY target's first call
+  // happens AFTER (or at) its own implementation (i.e. never forward).
+  let forwardRefAbsentAnyForward = 0;
+  for (const def of absent) {
+    if (def.targets.some(t => t.firstCallOrder[0] < t.targetImplementationOrdinal)) forwardRefAbsentAnyForward++;
+  }
+
+  const classHypotheses = [
+    {
+      name: 'forward-reference: winning call precedes target implementation',
+      presentMatches: forwardRefPresentMatches,
+      presentTotal: forwardRefPresentTotal,
+      absentDefinitionsWithAnyForwardCall: forwardRefAbsentAnyForward,
+      absentTotal: absent.length
+    },
+    classHypothesis('extends another Application Class', d => d.extendsType !== undefined),
+    classHypothesis('implements an interface', d => d.implementsType !== undefined),
+    classHypothesis('has wildcard import', d => d.hasWildcardImport),
+    classHypothesis('has constructor implementation', d => d.hasConstructorImpl),
+    classHypothesis('storageMemberCount === 0', d => d.storageMemberCount === 0),
+    classHypothesis('storageMemberCount === 1', d => d.storageMemberCount === 1),
+    classHypothesis('storageMemberCount >= 2', d => d.storageMemberCount >= 2),
+    classHypothesis('distinctTargets === 1', d => d.distinctTargets === 1),
+    classHypothesis('distinctTargets >= 2', d => d.distinctTargets >= 2),
+    classHypothesis('methodCount <= 3', d => d.methodCount <= 3),
+    classHypothesis('methodCount >= 10', d => d.methodCount >= 10),
+    classHypothesis('any target called from constructor', d => d.targets.some(t => t.calledFromConstructor)),
+    classHypothesis('any recursive self call', d => d.targets.some(t => t.isRecursiveSelfCall)),
+    classHypothesis('any target called from 2+ distinct callers', d => d.targets.some(t => t.callerCount > 1)),
+    classHypothesis('any target called 2+ times total', d => d.targets.some(t => t.callCount > 1)),
+    classHypothesis('winner/first-target called from 2+ callers', d => {
+      const winner = d.targets.find(t => t.isWinner);
+      const first = [...d.targets].sort((a, b) => (a.firstCallOrder[0] - b.firstCallOrder[0]) || (a.firstCallOrder[1] - b.firstCallOrder[1]))[0];
+      const check = winner ?? first;
+      return check !== undefined && check.callerCount > 1;
+    })
+  ];
 
   console.log(JSON.stringify({
-    population: { definitionsScanned, definitionsWithOwnCalls },
-    callSiteCounts: {
-      totalCallSites: callSites.length,
-      ownConcrete: ownConcrete.length,
-      ownAbstract: ownAbstract.length,
-      externalOrUnresolved: external.length,
-      recursiveSelfCalls: callSites.filter(c => c.callerIsAlsoTarget).length
+    population: { totalDefinitionsWithOwnCalls: analyzed.length, present: present.length, absent: absent.length },
+    storageMemberDistribution: {
+      present: countBy(present, d => String(d.storageMemberCount)),
+      absent: countBy(absent, d => String(d.storageMemberCount))
     },
-    storedMethodBearingRow: {
-      totalOwnConcreteCalls: storedEvidence.length,
-      withStoredRow: storedEvidence.filter(e => e.storedMethodBearingRowPresent).length,
-      withoutStoredRow: storedEvidence.filter(e => !e.storedMethodBearingRowPresent).length,
-      firstCallsWithRow: firstCalls.filter(e => e.storedMethodBearingRowPresent).length,
-      firstCallsWithoutRow: firstCalls.filter(e => !e.storedMethodBearingRowPresent).length,
-      repeatCallsWithRow: repeatCalls.filter(e => e.storedMethodBearingRowPresent).length,
-      repeatCallsWithoutRow: repeatCalls.filter(e => !e.storedMethodBearingRowPresent).length
+    methodCountDistribution: {
+      present: countBy(present, d => String(d.methodCount)),
+      absent: countBy(absent, d => String(d.methodCount))
     },
-    reuseAcrossCalls: {
-      multiCallTargetsTotal: multiCallTargets.length,
-      multiCallSameNamenum: multiCallSameNamenum.length,
-      multiCallDifferentNamenum: multiCallDifferentNamenum.length,
-      crossCallerTargetsTotal: crossCallerTargets.length,
-      crossCallerSameNamenum: crossCallerSameNamenum.length
+    distinctTargetsDistribution: {
+      present: countBy(present, d => String(d.distinctTargets)),
+      absent: countBy(absent, d => String(d.distinctTargets))
     },
-    targetKindBreakdown: countBy(callSites, c => c.targetKind),
-    sampleWithoutStoredRow: storedEvidence.filter(e => !e.storedMethodBearingRowPresent).slice(0, 15),
-    sampleWithStoredRow: storedEvidence.filter(e => e.storedMethodBearingRowPresent).slice(0, 15),
-    sampleMultiCallDifferentNamenum: multiCallDifferentNamenum.slice(0, 10),
-    sampleExternal: external.slice(0, 15)
+    classHypotheses,
+    targetHypotheses,
+    sampleContradictionsForFirstImplementationOrdinal: targetHypotheses.find(h => h.name === 'first implementation ordinal')?.contradictionExamples
   }, null, 2));
 }
 

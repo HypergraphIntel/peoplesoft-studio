@@ -1,5 +1,199 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 38 — discover the self-method allocation trigger (forensic only, zero behavior change)
+
+**Status: no encoder change. TARGET SELECTION is now fully proven with
+zero contradictions across the whole population -- a major result.
+FIRING (whether the singleton row exists at all) remains unsolved
+after testing 16 target-level and 16 class-level hypotheses, none of
+which approach a clean split. Per the cycle's own explicit rule ("do
+not implement target selection without a proven firing condition"),
+nothing was implemented.** Starting commit `6fe4109` (Cycle 37).
+23,217/30,209 EXACT, protected 430/430 throughout (unchanged -- no
+source was edited this cycle).
+
+### Frozen population (reproduced fresh against `6fe4109`)
+
+41 reference-identity roots (same causal-family breakdown as Cycles
+36/37), decoder-only 18 (28820 confirmed present, untouched this
+cycle), names metadata 3 (untouched), 29542 confirmed still in
+reference-identity. Zero drift from Cycle 37's own ending.
+
+### The breakthrough: target selection is fully solved
+
+Extended `tools/corpus/research/application-class-this-method-analysis.ts`
+(Cycle 37's own tool) with per-target features: declaration/
+implementation ordinal, call count, caller count, constructor
+involvement, recursion, visibility, return type, parameter count, and
+-- critically -- **the chronological order of each target's own FIRST
+call site**, expressed as `[callerImplementationOrdinal,
+sourceOffsetWithinCallerBody]`, i.e. the order the encoder actually
+processes method fragments, not raw source-text position.
+
+Tested against the 194 Application-Class definitions that have a
+stored method-bearing row AND call 2+ distinct own methods (a
+single-target definition is uninformative for target selection --
+there is nothing to choose between):
+
+| hypothesis | matches | contradictions |
+|---|---:|---:|
+| **first call site chronologically (implementation order, then offset)** | **187 / 187** | **0** |
+| last call site chronologically | 0 | 187 |
+| first implementation ordinal (of the TARGET, not the call) | 102 | 92 |
+| first declaration ordinal | 77 | 110 |
+| highest call count | 28 | 159 |
+| called from constructor | 31 | 156 |
+| (12 more single-feature hypotheses tested; none exceeded 55% match) | | |
+
+**Proven rule (zero contradictions, 187/187):** the method-bearing
+self-reference row names whichever own-method target's FIRST call site
+is encountered earliest in the order the encoder actually walks
+Application Class method fragments -- i.e. by the CALLER method's own
+`implementationOrder`, then by source offset within that caller's
+body. This is a genuinely different axis from "which target is
+declared/implemented first" (that hypothesis only reached 53%): the
+determining factor is where the CALL SITE falls, not where the TARGET
+itself sits in the class.
+
+**Finding the bug that got this from 184/187 to 187/187 (still 0
+contradictions either way, but worth recording):** the first version
+of this test showed 3 contradictions (28850, 29586, 29633). Direct
+source inspection showed all three were `rem`-commented-out (disabled)
+`%This.method()` calls -- the census script's regex scan did not mask
+`rem` statements before searching (`maskNonExecutable`, newly added to
+the research tool, now masks `rem`, `/* */`, `<* *>`, `//`, and quoted
+strings, mirroring `applicationClassProgram.ts`'s own `maskNonCode`).
+Once disabled code was correctly excluded from the call census, all
+three contradictions resolved to correct matches with no other change
+needed.
+
+### Firing (row presence 0 vs. 1): unsolved
+
+16 class-level hypotheses were tested across the full 552-definition
+population (294 present / 258 absent, after the same `rem`-masking fix
+was applied -- 4 definitions whose only apparent own-calls were inside
+disabled code moved from the earlier miscounted population entirely):
+
+| hypothesis | present match | absent match |
+|---|---:|---:|
+| storageMemberCount === 0 | 83/294 (28%) | 36/258 (14%) |
+| any target called from constructor | 92/294 (31%) | 42/258 (16%) |
+| extends another Application Class | 126/294 (43%) | 81/258 (31%) |
+| any target called 2+ times total | 143/294 (49%) | 163/258 (63%) |
+| any target called from 2+ distinct callers | 116/294 (39%) | 126/258 (49%) |
+| has wildcard import | 148/294 (50%) | 153/258 (59%) |
+| has constructor implementation | 267/294 (91%) | 238/258 (92%) |
+| implements an interface | 14/294 (5%) | 14/258 (5%) |
+| (9 more tested: storage>=1/>=2, method-count buckets, distinctTargets buckets, recursion, winner-caller-count) | | no clean split |
+
+None approaches a clean binary separator; the strongest lean
+(`storageMemberCount === 0`, roughly 2x more common in the present
+bucket) is far short of proof. A "forward-reference" hypothesis
+(winning call's caller is processed before the target's own
+implementation) was also tested directly: 228/280 (81%) present
+definitions match, but 220/258 (85%) absent definitions ALSO contain
+at least one forward-shaped call that gets no row -- rejected, the
+absent population exhibits the same shape just as often.
+
+**No source-observable, population-clean firing discriminator was
+found this cycle.** Per Phase 12's own framing, this is consistent
+with (but does not prove) the possibility that firing depends on
+compiler-internal state not observable from source or the local
+snapshot -- the same kind of boundary Cycle 31 already documented for
+physical storage-symbol enumeration. This cycle does not claim that
+conclusion definitively; it documents that an exhaustive, honest search
+across 16 class-level and 16 target-level candidate signals did not
+surface one.
+
+### 29542 revisited
+
+`FMLAMedCert` has exactly ONE own-method target (`init`, called once,
+from the constructor) -- target selection is trivially satisfied (there
+is only one candidate), consistent with, not contradicted by, the
+proven selection rule. The open question for 29542 specifically remains
+entirely on the FIRING side: no class-level hypothesis tested this
+cycle explains why this particular single-target, single-call,
+single-caller class gets a row while many structurally similar ones do
+not.
+
+### Prior Cycle 37 rejections (restated, unchanged)
+
+Still correctly rejected, with direct corpus counterexamples: allocate
+for every own call; allocate once per target; allocate for the first
+own-method call in the whole class (by declaration/implementation
+ordinal of the TARGET); allocate when the class has exactly one storage
+member; allocate for a constructor-body call. The Cycle 38 target-order
+breakthrough is a materially different formulation from any of these
+(it orders by CALL SITE, not by target declaration/implementation
+position), which is why it succeeds where they failed.
+
+### Validation
+
+- No encoder files changed this cycle -- only
+  `tools/corpus/research/application-class-this-method-analysis.ts`
+  (extended, not new) is modified; `git status` confirms this both
+  before and after the investigation.
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 551 passed, 1 intentional skip (552 total; unchanged from
+  Cycle 37).
+- Protected/full corpus: unchanged at 430/430 and 23,217/30,209 EXACT
+  (no source edited, so this is confirmatory, not a new result).
+- `git diff --check`: clean.
+
+### Ending 41-root accounting
+
+| ending outcome | roots | movement |
+|---|---:|---:|
+| reference identity | 41 | unchanged |
+| names metadata | 0 | 0 |
+| marker | 0 | 0 |
+| wrapper/body | 0 | 0 |
+| decoder-only | 0 | 0 |
+| fully EXACT | 0 | 0 |
+| **total** | **41** | |
+
+Updated 99-root Application Class accounting (unchanged from Cycle 37):
+41 reference identity, 3 names metadata, 18 decoder-only, 9 marker
+residual, 2 wrapper/body, 25 parked storage-symbol enumeration
+(untouched), 1 fully-EXACT placeholder already reconciled in Cycle 32 =
+99.
+
+### Explicitly not done (per instruction)
+
+- Did not implement self-method reference allocation -- target
+  selection is proven, but the directive's own rule ("do not implement
+  target selection without a proven firing condition") blocks
+  implementation until firing is also solved.
+- Did not touch 28820 (decoder-only) or the 25 parked names-metadata
+  roots.
+- Did not open a secondary small-family investigation -- the primary
+  question was pursued for the cycle's full scope and produced a
+  genuine, valuable partial result (target selection) rather than
+  being abandoned early for a secondary target.
+- Did not modify `applicationClassReferenceKey`,
+  `ApplicationClassReferenceScope`/`ApplicationClassReferenceSession`,
+  or any of the Cycle 33/34/36 proven rules.
+- Did not query live Oracle or fabricate inherited/environment
+  metadata.
+
+### Next actions
+
+- Firing remains the single concrete blocker to implementation. Candidate
+  directions not yet tried: combinations of the tested class-level
+  signals (e.g. `storageMemberCount === 0 AND extends`), a proper
+  call-graph analysis (Phase 7's in-degree/cycle/dominator questions,
+  not yet built), and Phase 8's suggested "compare structurally similar
+  present vs. absent classes" approach, which this cycle only did
+  informally (the 28704 spot-check from Cycle 37) rather than
+  systematically.
+- If firing is found in a future cycle, target selection is already
+  proven and ready to implement alongside it -- no further target-
+  selection research is needed.
+- Datasource mode: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout; `--live` was not used.
+
+**Cycle 39 was not started.**
+
 ## Compiler Semantics Cycle 37 — Application Class self-method references (forensic only, zero behavior change)
 
 **Status: no encoder change. Reuse semantics for method-bearing
