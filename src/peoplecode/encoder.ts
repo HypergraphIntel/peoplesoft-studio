@@ -441,6 +441,15 @@ interface EncodeFragmentContext extends EncodeProgramContext {
   htmlDependencyLifetime?: 'application-class';
   applicationClassReferenceSession?: ApplicationClassReferenceSession;
   bindOwnerReference?: boolean;
+  /**
+   * Cycle 36: gives bare built-in-object `Local`-declaration PACKAGE
+   * identities (`ensureLocalObjectPackageReference`'s own reuse pool)
+   * METHOD-WIDE lifetime instead of the ordinary control-group-scoped
+   * lifetime -- see that function's own declaration comment for the
+   * population evidence. Set only by `encodeApplicationClassProgramV2`
+   * for its own method-body fragments; every other caller omits it.
+   */
+  builtinObjectDeclarationsHaveMethodWideLifetime?: boolean;
 }
 
 export interface EncodedPeopleCode {
@@ -1706,9 +1715,26 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * control group despite being in clearly different declaration scopes
      * -- stored allocates a distinct PACKAGE/ROWSET row for each, not one
      * shared row.
+     *
+     * Cycle 36: this control-group-scoped reuse pool is population-
+     * validated for ORDINARY PeopleCode (401/651 corpus candidates with a
+     * bare built-in-type Local declared 2+ times across a control-group
+     * boundary match this behavior exactly; only 1 isolated exception).
+     * Application Class METHOD BODIES behave differently: 114/122 corpus
+     * candidates show PeopleTools reusing ONE identity for the whole
+     * method regardless of control-group nesting (definition 28820's own
+     * `PACKAGE|XMLNODE` duplicate is this exact case) -- the reuse pool
+     * has METHOD-WIDE, not control-group-scoped, lifetime there.
+     * `context.builtinObjectDeclarationsHaveMethodWideLifetime` (set only
+     * by `encodeApplicationClassProgramV2` for its own method-body
+     * fragments) drops `controlGroup` from the key for exactly that
+     * population; every ordinary caller omits it, leaving this reuse pool
+     * -- and the 4,272 exact ordinary programs containing PACKAGE rows --
+     * completely unaffected.
      */
-    const key =
-      `${controlGroup}:${functionDepth}:${packageName.toLowerCase()}:${objectName.toLowerCase()}`;
+    const key = context?.builtinObjectDeclarationsHaveMethodWideLifetime
+      ? `${functionDepth}:${packageName.toLowerCase()}:${objectName.toLowerCase()}`
+      : `${controlGroup}:${functionDepth}:${packageName.toLowerCase()}:${objectName.toLowerCase()}`;
 
     const existing = localObjectPackageReferences.get(key);
     if (existing !== undefined) {
@@ -11260,7 +11286,11 @@ function encodeApplicationClassProgramV2(
       // Inherited `%This` calls can allocate environment-derived method
       // rows. Freeze that unsupported population on its prior fragment-owner
       // behavior; modeled units keep the mandatory owner row blank.
-      bindOwnerReference: hasUnmodeledThisMethodDependencies
+      bindOwnerReference: hasUnmodeledThisMethodDependencies,
+      // Cycle 36: every fragment this closure encodes is either the
+      // leading import fragment (no Local declarations) or a method
+      // body -- safe to apply uniformly.
+      builtinObjectDeclarationsHaveMethodWideLifetime: true
     });
     applicationClassReferenceScope.commit(encoded.references);
     firstFragment = false;
