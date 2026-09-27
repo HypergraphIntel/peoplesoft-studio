@@ -1,5 +1,5 @@
 /**
- * Cycle 26: Application Class reference-allocation census.
+ * Cycles 26 and 32: Application Class reference-allocation census.
  *
  * Read-only. Uses the completed local HCDEV snapshot, completed corpus result
  * rows, the current encoder, and Cycle 24's saved 940-row marker report. It
@@ -7,12 +7,16 @@
  *
  * Usage:
  *   npx tsx tools/corpus/research/application-class-reference-analysis.ts \
- *     --cycle24-report /tmp/cycle24/final-report-full.json
+ *     --cycle24-report /tmp/cycle24/final-report-full.json \
+ *     --cycle28-report /tmp/cycle29-baseline-full.json \
+ *     --cycle31-report /tmp/cycle31-analysis-final.json \
+ *     --baseline-run 2229
  *   npx tsx tools/corpus/research/application-class-reference-analysis.ts \
  *     --cycle24-report /tmp/cycle24/final-report-full.json --json
  */
 
 import Database from 'better-sqlite3';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
 import {
@@ -67,10 +71,22 @@ interface Cycle24Report {
   rows: Cycle24Row[];
 }
 
+interface Cycle28Report {
+  cycle28Validation: {
+    cycle27DirectRoots: number;
+    currentTargetBlockers: Array<{ definitionId: number; blocker: string }>;
+  };
+}
+
+interface Cycle31Report {
+  rows: Array<{ definitionId: number; currentOutcome: string }>;
+}
+
 interface ResultRow {
   definitionId: number;
   classification: string;
   sourceEncodeSuccess: boolean;
+  sourceEncodeExact: boolean;
   generatedSha256?: string;
 }
 
@@ -179,6 +195,10 @@ interface ReferenceRootRow {
 
 function normalize(value: string | undefined): string {
   return (value ?? '').trim().toUpperCase();
+}
+
+function sha256(value: Buffer): string {
+  return createHash('sha256').update(value).digest('hex');
 }
 
 function shapeSignature(row: RowShape | undefined): string {
@@ -309,6 +329,47 @@ function firstDifference(a: Buffer, b: Buffer): number | undefined {
 function section(bytes: Buffer, layout: ProgramLayout, name: 'statements' | 'names' | 'records' | 'slots'): Buffer {
   const target = layout[name];
   return bytes.subarray(target.offset, target.offset + target.byteLength);
+}
+
+function programSectionsExact(stored: Buffer, generated: Buffer): boolean {
+  const storedLayout = readProgramLayout(stored);
+  const generatedLayout = readProgramLayout(generated);
+  return (['statements', 'names', 'records', 'slots'] as const).every(name =>
+    section(stored, storedLayout, name).equals(section(generated, generatedLayout, name))
+  );
+}
+
+function fullReferenceSignature(row: RowShape | undefined): string {
+  if (!row) return '<missing>';
+  return [row.recname, row.refname, row.packageroot, row.qualifypath, row.appclassmethod]
+    .map(normalize).join('|');
+}
+
+function referenceStreamsExact(
+  storedRows: readonly SnapshotNameRow[],
+  generatedReferences: readonly PeopleCodeReference[]
+): boolean {
+  if (storedRows.length !== generatedReferences.length) return false;
+  return storedRows.every((row, index) =>
+    fullReferenceSignature(storedShape(row)) === fullReferenceSignature(generatedShape(generatedReferences[index]))
+  );
+}
+
+function internalTypeSuffix(program: Buffer): string[] {
+  const layout = readProgramLayout(program);
+  const names: string[] = [];
+  let offset = layout.names.offset;
+  const end = offset + layout.names.byteLength;
+  while (offset < end) {
+    let terminator = offset;
+    while (terminator + 1 < end && (program[terminator] !== 0 || program[terminator + 1] !== 0)) {
+      terminator += 2;
+    }
+    if (terminator + 1 >= end) throw new Error('Unterminated Application Class directory name.');
+    names.push(program.toString('utf16le', offset, terminator));
+    offset = terminator + 2;
+  }
+  return names.slice(layout.recordCount);
 }
 
 function meaningfulDiff(stored: Buffer, generated: Buffer): SemanticDiff {
@@ -565,6 +626,103 @@ function declarationTypeLeaves(definition: SnapshotDefinition): string[] {
     }
   }
   return leaves.filter(Boolean);
+}
+
+const APPLICATION_CLASS_SCALAR_TYPES = new Set([
+  'STRING', 'DATE', 'ANY', 'BOOLEAN', 'TIME', 'DATETIME', 'OBJECT', 'INTEGER', 'NUMBER', 'EXCEPTION', 'ARRAY'
+]);
+
+const APPLICATION_CLASS_BUILTIN_TYPES = new Set([
+  'FILE', 'SQL', 'RECORD', 'ROWSET', 'ROW', 'FIELD', 'PROCESSREQUEST', 'MESSAGE',
+  'APIOBJECT', 'GRID', 'JAVAOBJECT', 'XMLDOC', 'XMLNODE', 'DOCUMENT', 'COMPOUND',
+  'COLLECTION', 'MAP', 'MAPELEMENT', 'JSONBUILDER', 'JSONOBJECT', 'JSONARRAY'
+]);
+
+function declarationDependencyLeaves(definition: SnapshotDefinition): string[] {
+  const leaves = declarationTypeLeaves(definition)
+    .filter(leaf => leaf !== '' && !APPLICATION_CLASS_SCALAR_TYPES.has(leaf));
+  return [...new Set(leaves)];
+}
+
+function importDependencyLeaves(definition: SnapshotDefinition): string[] {
+  const parsed = parseApplicationClassSource(definition.sourceText);
+  if (!parsed) return [];
+  const prefix = definition.sourceText.slice(0, parsed.unitStart);
+  return [...prefix.matchAll(/\bimport\s+([^;]+);/gi)].map(match => {
+    const components = match[1].split(':').map(component => normalize(component));
+    return components.at(-1) === '*' ? '' : components.at(-1) ?? '';
+  });
+}
+
+function declarationDiscoveryProjection(definition: SnapshotDefinition): string[] {
+  const imports = importDependencyLeaves(definition);
+  const seen = new Set(imports.filter(Boolean));
+  return [
+    ...imports,
+    ...declarationDependencyLeaves(definition).filter(leaf => {
+      if (seen.has(leaf)) return false;
+      seen.add(leaf);
+      return true;
+    })
+  ];
+}
+
+function singleModeledDeclarationDependency(definition: SnapshotDefinition): {
+  leaf: string;
+  expected: RowShape;
+} | undefined {
+  const imported = new Set(importDependencyLeaves(definition).filter(Boolean));
+  const parsed = parseApplicationClassSource(definition.sourceText);
+  if (!parsed) return undefined;
+  const importedWildcardRoots = new Set(
+    [...definition.sourceText.slice(0, parsed.unitStart).matchAll(/\bimport\s+([^;]+);/gi)]
+      .map(match => match[1].trim())
+      .filter(target => target.endsWith(':*'))
+      .map(target => normalize(target.slice(0, -2).split(':')[0]))
+  );
+  const sourceTypes: string[] = [
+    parsed.extendsType,
+    parsed.implementsType,
+    ...parsed.statements.flatMap(statement => {
+      if (statement.kind === 'method') {
+        return [...statement.parameters.map(parameter => parameter.type), statement.returnType];
+      }
+      if (statement.kind === 'property' || statement.kind === 'instance' || statement.kind === 'instance-statement') {
+        return [statement.type];
+      }
+      return [];
+    })
+  ].filter((typeName): typeName is string => typeName !== undefined);
+  const missing = [...new Map(sourceTypes.flatMap(typeName => {
+    const normalizedType = typeName.replace(/^(?:array\s+of\s+)+/i, '').trim();
+    const leaf = typeLeaf(normalizedType);
+    const root = normalize(normalizedType.split(':')[0]);
+    const isRelationship = [parsed.extendsType, parsed.implementsType]
+      .some(relationship => normalize(relationship ?? '') === normalize(typeName));
+    if (!leaf || APPLICATION_CLASS_SCALAR_TYPES.has(leaf) || imported.has(leaf) ||
+        (isRelationship && importedWildcardRoots.has(root))) return [];
+    return [[leaf, normalizedType] as const];
+  })).entries()];
+  if (missing.length !== 1) return undefined;
+  const [leaf, typeName] = missing[0];
+  const components = typeName.split(':');
+  const path = components.slice(0, -1);
+  if (APPLICATION_CLASS_BUILTIN_TYPES.has(leaf)) {
+    return {
+      leaf,
+      expected: {
+        recname: 'PACKAGE', refname: leaf, packageroot: components.at(-1)!,
+        qualifypath: components.at(-1)!, appclassmethod: ''
+      }
+    };
+  }
+  return {
+    leaf,
+    expected: {
+      recname: 'PACKAGE', refname: leaf,
+      packageroot: path[0] ?? '', qualifypath: path.slice(1).join(':'), appclassmethod: ''
+    }
+  };
 }
 
 function declarationTypeGroups(definition: SnapshotDefinition): Record<string, string[]> {
@@ -974,16 +1132,21 @@ function becomesExactAfterAlignedOperandSubstitution(
   return substituted.equals(definition.storedProgram);
 }
 
-function readLatestResults(): { runId: number; gitCommit: string; rows: Map<number, ResultRow> } {
+function readResults(runId?: number): { runId: number; gitCommit: string; rows: Map<number, ResultRow> } {
   const db = new Database('tools/corpus/corpus-results.sqlite', { readonly: true });
-  const run = db.prepare(`
-    SELECT run_id, git_commit FROM corpus_run
-    WHERE completed_at IS NOT NULL AND definitions = ?
-    ORDER BY run_id DESC LIMIT 1
-  `).get(TOTAL_CORPUS) as Record<string, unknown> | undefined;
+  const run = runId === undefined
+    ? db.prepare(`
+      SELECT run_id, git_commit FROM corpus_run
+      WHERE completed_at IS NOT NULL AND definitions = ?
+      ORDER BY run_id DESC LIMIT 1
+    `).get(TOTAL_CORPUS) as Record<string, unknown> | undefined
+    : db.prepare(`
+      SELECT run_id, git_commit FROM corpus_run
+      WHERE completed_at IS NOT NULL AND definitions = ? AND run_id = ?
+    `).get(TOTAL_CORPUS, runId) as Record<string, unknown> | undefined;
   if (!run) throw new Error('No completed full-corpus run found.');
   const rawRows = db.prepare(`
-    SELECT definition_id, classification, source_encode_success, generated_sha256
+    SELECT definition_id, classification, source_encode_success, source_encode_exact, generated_sha256
     FROM result WHERE run_id = ?
   `).all(Number(run.run_id)) as Array<Record<string, unknown>>;
   db.close();
@@ -993,6 +1156,7 @@ function readLatestResults(): { runId: number; gitCommit: string; rows: Map<numb
       definitionId: Number(row.definition_id),
       classification: String(row.classification),
       sourceEncodeSuccess: Boolean(row.source_encode_success),
+      sourceEncodeExact: Boolean(row.source_encode_exact),
       generatedSha256: row.generated_sha256 === null ? undefined : String(row.generated_sha256)
     }]))
   };
@@ -1004,13 +1168,33 @@ function main(): void {
   if (!reportPath) throw new Error('--cycle24-report is required.');
   const cycle24 = JSON.parse(readFileSync(reportPath, 'utf8')) as Cycle24Report;
   if (cycle24.rows.length !== 940) throw new Error(`Cycle 24 report has ${cycle24.rows.length} rows, expected 940.`);
+  const cycle28Argument = process.argv.indexOf('--cycle28-report');
+  const cycle28Path = cycle28Argument < 0 ? undefined : process.argv[cycle28Argument + 1];
+  if (!cycle28Path) throw new Error('--cycle28-report is required.');
+  const cycle28 = JSON.parse(readFileSync(cycle28Path, 'utf8')) as Cycle28Report;
+  if (cycle28.cycle28Validation.cycle27DirectRoots !== 99 ||
+      cycle28.cycle28Validation.currentTargetBlockers.length !== 99) {
+    throw new Error('Cycle 28 report does not reproduce the 99 Application Class roots.');
+  }
+  const cycle31Argument = process.argv.indexOf('--cycle31-report');
+  const cycle31Path = cycle31Argument < 0 ? undefined : process.argv[cycle31Argument + 1];
+  if (!cycle31Path) throw new Error('--cycle31-report is required.');
+  const cycle31 = JSON.parse(readFileSync(cycle31Path, 'utf8')) as Cycle31Report;
+  if (cycle31.rows.length !== 49) throw new Error(`Cycle 31 report has ${cycle31.rows.length} rows, expected 49.`);
 
   const snapshotDb = openSnapshotDatabase();
   const allDefinitions = listSnapshotDefinitions(snapshotDb);
   const definitions = allDefinitions.filter(definition => definition.objectid1 === APPLICATION_CLASS_OBJECT_ID);
   snapshotDb.close();
   const byId = new Map(definitions.map(definition => [definition.definitionId, definition]));
-  const latest = readLatestResults();
+  const baselineRunArgument = process.argv.indexOf('--baseline-run');
+  const baselineRunId = baselineRunArgument < 0
+    ? undefined
+    : Number(process.argv[baselineRunArgument + 1]);
+  if (baselineRunId !== undefined && !Number.isInteger(baselineRunId)) {
+    throw new Error('--baseline-run must be an integer run id.');
+  }
+  const latest = readResults(baselineRunId);
 
   const encoded = new Map<number, {
     program: Buffer;
@@ -1048,6 +1232,23 @@ function main(): void {
     .filter(([, item]) => item.blocker === 'other newly exposed family')
     .map(([definitionId]) => definitionId)
     .sort((a, b) => a - b);
+  const cycle28TargetBlockerById = new Map(
+    cycle28.cycle28Validation.currentTargetBlockers.map(row => [row.definitionId, row.blocker])
+  );
+  const cycle32ReferenceTargetIds = [...new Set([
+    ...cycle28.cycle28Validation.currentTargetBlockers
+      .filter(row => row.blocker === 'reference numbering/operand identity')
+      .map(row => row.definitionId),
+    ...cycle31.rows
+      .filter(row => row.currentOutcome === 'PSPCMNAME/reference identity')
+      .map(row => row.definitionId)
+  ])].sort((a, b) => a - b);
+  if (cycle32ReferenceTargetIds.length !== 62) {
+    throw new Error(
+      `Expected 62 Cycle 32 reference roots, received ${cycle32ReferenceTargetIds.length}: ` +
+      cycle32ReferenceTargetIds.join(', ')
+    );
+  }
 
   const allEncoded = new Map(encoded);
   for (const definition of definitions) {
@@ -1175,6 +1376,90 @@ function main(): void {
       disposition: causalFamily === 'row-count/stream-tail mismatch' ? 'PARTIALLY_EXPLAINED' : 'FULLY_EXPLAINED'
     });
   }
+
+  const rootByDefinitionId = new Map(roots.map(row => [row.definitionId, row]));
+  const cycle32Rows = cycle32ReferenceTargetIds.map(definitionId => {
+    const definition = byId.get(definitionId)!;
+    const current = encoded.get(definitionId)!;
+    const parsed = parseApplicationClassSource(definition.sourceText);
+    const allocationDifference = compareAllocationStreams(definition.names, current.references);
+    const streams = streamComparison(definition.names, current.references);
+    const collision = firstOperandCollision(current.trace, current.references);
+    const inheritedRoot = rootByDefinitionId.get(definitionId);
+    const firstFullRowDifference = (() => {
+      const count = Math.max(definition.names.length, current.references.length);
+      for (let index = 0; index < count; index++) {
+        if (fullReferenceSignature(storedShape(definition.names[index])) !==
+            fullReferenceSignature(generatedShape(current.references[index]))) return index;
+      }
+      return -1;
+    })();
+    const storedTokens = referenceTokens(projectedTokens(definition.storedProgram, storedNameTable(definition)));
+    const generatedUses = current.trace.filter(event => event.action === 'USE');
+    const storedIdentityMap = definition.names.map((row, index) => ({
+      sequence: row.namenum,
+      identity: allocationIdentity(storedShape(row)),
+      rowShape: storedShape(row),
+      firstOperandOrdinal: (() => {
+        const found = storedTokens.findIndex(token => token.token.nameNum === row.namenum);
+        return found < 0 ? undefined : found + 1;
+      })(),
+      reused: storedTokens.filter(token => token.token.nameNum === row.namenum).length > 1
+    }));
+    const generatedIdentityMap = current.references.map(reference => ({
+      sequence: reference.sequence,
+      identity: allocationIdentity(generatedShape(reference)),
+      rowShape: generatedShape(reference),
+      firstOperandOrdinal: (() => {
+        const found = generatedUses.findIndex(event => event.reference.sequence === reference.sequence);
+        return found < 0 ? undefined : found + 1;
+      })(),
+      reused: generatedUses.filter(event => event.reference.sequence === reference.sequence).length > 1
+    }));
+    const storedPackageLeaves = definition.names
+      .filter(row => normalize(row.recname) === 'PACKAGE')
+      .map(row => normalize(row.refname))
+      .filter(Boolean);
+    const descriptorLeaves = [...new Set(internalTypeSuffix(definition.storedProgram).map(typeLeaf))]
+      .filter(leaf => storedPackageLeaves.includes(leaf));
+    return {
+      definitionId,
+      displayName: definition.displayName,
+      source: definition.sourceText,
+      storageMemberCount: parsed?.members.filter(member =>
+        member.kind === 'property' || member.kind === 'instance'
+      ).length,
+      sourceShape: parsed === undefined ? 'unparsed' : countBy(parsed.members, member => member.kind),
+      projectedBlocker: current.blocker,
+      startingManifestation: cycle28TargetBlockerById.get(definitionId) === 'reference numbering/operand identity'
+        ? 'PSPCMPROG operand identity'
+        : 'external PSPCMNAME table only',
+      startingOperandDifference:
+        cycle28TargetBlockerById.get(definitionId) === 'reference numbering/operand identity',
+      operandDifference: inheritedRoot !== undefined,
+      programSectionsExact: programSectionsExact(definition.storedProgram, current.program),
+      referenceStreamExact: referenceStreamsExact(definition.names, current.references),
+      firstFullRowDifference,
+      identityOrderingClass: inheritedRoot?.identityOrderingClass ??
+        (allocationDifference.cause === 'NONE'
+          ? 'H. exact identity sequence, PSPCMNAME row metadata differs'
+          : 'I. PSPCMNAME allocation stream differs after exact PSPCMPROG'),
+      causalFamily: inheritedRoot?.causalFamily ??
+        (allocationDifference.cause === 'NONE'
+          ? 'PSPCMNAME PACKAGE metadata representation mismatch'
+          : causalFamilyFor(definition, allocationDifference, streams, collision)),
+      earliestAllocationDifference: allocationDifference,
+      streamComparison: streams,
+      firstOperandCollision: collision,
+      descriptorPackageOrder: {
+        descriptorLeaves,
+        storedPackageLeaves,
+        preserved: isSubsequence(descriptorLeaves, storedPackageLeaves)
+      },
+      storedIdentityMap,
+      generatedIdentityMap
+    };
+  });
 
   const artifactSummary = Object.entries(countBy(roots, row => row.storedArtifact)).map(([kind, definitions]) => {
     const subset = roots.filter(row => row.storedArtifact === kind);
@@ -1424,6 +1709,75 @@ function main(): void {
     const current = encoded.get(definitionId)!;
     return becomesExactAfterAlignedOperandSubstitution(definition, current.program, current.references);
   });
+  const descriptorPackageOrderControls = definitions.map(definition => {
+    const storedPackageLeaves = definition.names
+      .filter(row => normalize(row.recname) === 'PACKAGE')
+      .map(row => normalize(row.refname))
+      .filter(Boolean);
+    const descriptorLeaves = [...new Set(internalTypeSuffix(definition.storedProgram).map(typeLeaf))]
+      .filter(leaf => storedPackageLeaves.includes(leaf));
+    return {
+      definitionId: definition.definitionId,
+      observations: descriptorLeaves.length,
+      preserved: isSubsequence(descriptorLeaves, storedPackageLeaves)
+    };
+  }).filter(row => row.observations >= 2);
+  const declarationDiscoveryControls = definitions.map(definition => {
+    const projection = declarationDiscoveryProjection(definition);
+    const stored = definition.names
+      .filter(row => normalize(row.recname) === 'PACKAGE')
+      .map(row => normalize(row.refname));
+    const parsed = parseApplicationClassSource(definition.sourceText);
+    const storageMemberCount = parsed?.members.filter(member =>
+      member.kind === 'property' || member.kind === 'instance'
+    ).length ?? -1;
+    return {
+      definitionId: definition.definitionId,
+      storageMemberCount,
+      observations: projection.length,
+      exactPrefix: projection.every((leaf, index) => leaf === stored[index])
+    };
+  }).filter(row => row.observations > 0);
+  const singleDeclarationDependencyControls = definitions.flatMap(definition => {
+    const modeled = singleModeledDeclarationDependency(definition);
+    if (!modeled) return [];
+    const stored = definition.names.map(storedShape);
+    const matching = stored.find(row => allocationIdentity(row) === allocationIdentity(modeled.expected));
+    return [{
+      definitionId: definition.definitionId,
+      leaf: modeled.leaf,
+      identityPresent: matching !== undefined,
+      rowShapeExact: fullReferenceSignature(matching) === fullReferenceSignature(modeled.expected)
+    }];
+  });
+  const cycle32TargetSet = new Set(cycle32ReferenceTargetIds);
+  const cycle32ExternalOnlyIds = cycle32Rows.filter(row => !row.startingOperandDifference).map(row => row.definitionId);
+  const cycle32Outcome = (row: typeof cycle32Rows[number]): string => {
+    if (!row.referenceStreamExact) return 'reference identity';
+    if (row.programSectionsExact) return 'decoder-only';
+    if (row.projectedBlocker === 'Application Class names metadata') return 'names metadata';
+    if (row.projectedBlocker === 'Application Class implementation wrapper/body') return 'wrapper/body';
+    if (row.projectedBlocker === 'other newly exposed family') return 'marker/other residual';
+    return row.projectedBlocker;
+  };
+  const currentGeneratedChanges = [...allEncoded].filter(([definitionId, current]) =>
+    latest.rows.get(definitionId)?.generatedSha256 !== sha256(current.program)
+  ).map(([definitionId]) => definitionId).sort((a, b) => a - b);
+  const sourceProgramGains = [...allEncoded].filter(([definitionId, current]) => {
+    const definition = byId.get(definitionId)!;
+    return latest.rows.get(definitionId)?.sourceEncodeExact === false &&
+      current.program.equals(definition.storedProgram);
+  }).map(([definitionId]) => definitionId).sort((a, b) => a - b);
+  const sourceProgramLosses = [...allEncoded].filter(([definitionId, current]) => {
+    const definition = byId.get(definitionId)!;
+    return latest.rows.get(definitionId)?.sourceEncodeExact === true &&
+      !current.program.equals(definition.storedProgram);
+  }).map(([definitionId]) => definitionId).sort((a, b) => a - b);
+  const cycle32ReferenceExactControls = [...allEncoded].filter(([definitionId, current]) => {
+    const definition = byId.get(definitionId);
+    return definition !== undefined && !cycle32TargetSet.has(definitionId) &&
+      referenceStreamsExact(definition.names, current.references);
+  }).map(([definitionId]) => definitionId);
   const report = {
     baseline: { runId: latest.runId, gitCommit: latest.gitCommit },
     reproduction: {
@@ -1432,6 +1786,76 @@ function main(): void {
       namesMetadataRoots: namesBoundaryIds.length,
       otherRoots: otherIds.length,
       allBlockers: countBy([...encoded.values()], row => row.blocker)
+    },
+    cycle32: {
+      targetRoots: cycle32ReferenceTargetIds.length,
+      definitionIds: cycle32ReferenceTargetIds,
+      operandDifferenceRoots: cycle32Rows.filter(row => row.startingOperandDifference).length,
+      externalTableOnlyRoots: cycle32ExternalOnlyIds.length,
+      externalTableOnlyDefinitionIds: cycle32ExternalOnlyIds,
+      storageMemberCounts: countBy(cycle32Rows, row => String(row.storageMemberCount)),
+      identityVsOrdering: countBy(cycle32Rows, row => row.identityOrderingClass),
+      causalFamilies: countBy(cycle32Rows, row => row.causalFamily),
+      allocationDifferenceCauses: countBy(cycle32Rows, row => row.earliestAllocationDifference.cause),
+      descriptorPackageOrder: {
+        controls: descriptorPackageOrderControls.length,
+        preserved: descriptorPackageOrderControls.filter(row => row.preserved).length,
+        contradictions: descriptorPackageOrderControls.filter(row => !row.preserved).length,
+        targetControls: cycle32Rows.filter(row => row.descriptorPackageOrder.descriptorLeaves.length >= 2).length,
+        targetPreserved: cycle32Rows.filter(row =>
+          row.descriptorPackageOrder.descriptorLeaves.length >= 2 && row.descriptorPackageOrder.preserved
+        ).length
+      },
+      declarationDiscoveryProjection: {
+        controls: declarationDiscoveryControls.length,
+        exactPrefix: declarationDiscoveryControls.filter(row => row.exactPrefix).length,
+        contradictions: declarationDiscoveryControls.filter(row => !row.exactPrefix).length,
+        byStorageMemberCount: Object.fromEntries(
+          [...new Set(declarationDiscoveryControls.map(row => row.storageMemberCount))]
+            .sort((a, b) => a - b)
+            .map(count => {
+              const controls = declarationDiscoveryControls.filter(row => row.storageMemberCount === count);
+              return [String(count), {
+                controls: controls.length,
+                exactPrefix: controls.filter(row => row.exactPrefix).length,
+                contradictions: controls.filter(row => !row.exactPrefix).length
+              }];
+            })
+        )
+      },
+      singleDeclarationDependencyControls: {
+        controls: singleDeclarationDependencyControls.length,
+        identityPresent: singleDeclarationDependencyControls.filter(row => row.identityPresent).length,
+        identityContradictions: singleDeclarationDependencyControls.filter(row => !row.identityPresent).length,
+        identityContradictionIds: singleDeclarationDependencyControls
+          .filter(row => !row.identityPresent).map(row => row.definitionId),
+        rowShapeExact: singleDeclarationDependencyControls.filter(row => row.rowShapeExact).length,
+        rowShapeDifferences: singleDeclarationDependencyControls.filter(row => !row.rowShapeExact).length
+      },
+      exactReferenceStreamControls: cycle32ReferenceExactControls.length,
+      outcomeAccounting: countBy(cycle32Rows, cycle32Outcome),
+      rootsAdvanced: cycle32Rows.filter(row => cycle32Outcome(row) !== 'reference identity').length,
+      rootsUnchanged: cycle32Rows.filter(row => cycle32Outcome(row) === 'reference identity').length,
+      generatedProgramChanges: {
+        definitions: currentGeneratedChanges.length,
+        ids: currentGeneratedChanges,
+        targetDefinitions: currentGeneratedChanges.filter(id => cycle32TargetSet.has(id)).length,
+        targetIds: currentGeneratedChanges.filter(id => cycle32TargetSet.has(id)),
+        outsideApplicationClasses: 0
+      },
+      sourceProgramGains: {
+        definitions: sourceProgramGains.length,
+        ids: sourceProgramGains,
+        targetDefinitions: sourceProgramGains.filter(id => cycle32TargetSet.has(id)).length,
+        targetIds: sourceProgramGains.filter(id => cycle32TargetSet.has(id))
+      },
+      sourceProgramLosses: {
+        definitions: sourceProgramLosses.length,
+        ids: sourceProgramLosses,
+        targetDefinitions: sourceProgramLosses.filter(id => cycle32TargetSet.has(id)).length,
+        targetIds: sourceProgramLosses.filter(id => cycle32TargetSet.has(id))
+      },
+      rows: process.argv.includes('--json') ? cycle32Rows : undefined
     },
     referenceArtifacts: artifactSummary,
     identityVsOrdering: countBy(roots, row => row.identityOrderingClass),
