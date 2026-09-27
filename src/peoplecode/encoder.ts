@@ -450,6 +450,18 @@ interface EncodeFragmentContext extends EncodeProgramContext {
    * for its own method-body fragments; every other caller omits it.
    */
   builtinObjectDeclarationsHaveMethodWideLifetime?: boolean;
+  /**
+   * Cycle 43: gives `DependencyScope`'s own RECORD/SCROLL reuse
+   * (`dependencyScope.lookupRecord`/`lookupScroll`, and
+   * `resolvePostfixMemberReuse`'s own raw read of the SAME underlying
+   * map) METHOD-WIDE lifetime, ignoring both `controlGroup` and the
+   * ordinary `controlDepth > 0` "open" gate -- see `recordScopeId`'s own
+   * declaration comment for the population evidence and the Cycle 42
+   * regression (definition 29528) this cycle's fix corrects. Set only
+   * by `encodeApplicationClassProgramV2` for its own method-body
+   * fragments; every other caller omits it.
+   */
+  recordDependenciesHaveMethodWideLifetime?: boolean;
 }
 
 export interface EncodedPeopleCode {
@@ -2387,13 +2399,29 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * Ordinary RECORD.FIELD interning, owner resolution, FIELD interning, and
    * every other reference pool remain outside this facade.
    */
+  /*
+   * Cycle 43: the effective RECORD/SCROLL dependency-scope id, shared by
+   * `dependencyScope` below AND `resolvePostfixMemberReuse`'s own raw
+   * read of `recordReferencesByControlGroup` (search for
+   * `recordScopeId()` there). Cycle 42's own attempt computed this
+   * override only inside `dependencyScope`, leaving that OTHER,
+   * independent consumer of the SAME map still keyed by raw
+   * `controlGroup` -- a write/read key mismatch that silently broke a
+   * previously-correct reuse (definition 29528's own row-shorthand
+   * `&rowset.GetRow(1).RECORDNAME...` chain) once the write side started
+   * using a different key. Both sites must use this one function so
+   * they can never diverge again.
+   */
+  const recordScopeId = (): number =>
+    context?.recordDependenciesHaveMethodWideLifetime ? 0 : controlGroup;
+
   const dependencyScope: DependencyScope = {
     get id(): number {
-      return controlGroup;
+      return recordScopeId();
     },
 
     get isOpen(): boolean {
-      return controlDepth > 0;
+      return context?.recordDependenciesHaveMethodWideLifetime ? true : controlDepth > 0;
     },
 
     lookupRecord(recordName: string): PeopleCodeReference | undefined {
@@ -7792,8 +7820,15 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       rowShorthandRecordsByControlGroup.get(
         `${controlGroup}:${member.toLowerCase()}`
       ) ??
+      /*
+       * Cycle 43: this is the SAME map `dependencyScope.recordRecord`
+       * writes to (see `recordScopeId()`'s own declaration comment) --
+       * must use the identical key computation, not raw `controlGroup`,
+       * or an Application Class context whose write side is
+       * method-wide-scoped silently stops finding what it wrote.
+       */
       recordReferencesByControlGroup.get(
-        `${controlGroup}:${member.toLowerCase()}`
+        `${recordScopeId()}:${member.toLowerCase()}`
       );
   };
 
@@ -11290,7 +11325,8 @@ function encodeApplicationClassProgramV2(
       // Cycle 36: every fragment this closure encodes is either the
       // leading import fragment (no Local declarations) or a method
       // body -- safe to apply uniformly.
-      builtinObjectDeclarationsHaveMethodWideLifetime: true
+      builtinObjectDeclarationsHaveMethodWideLifetime: true,
+      recordDependenciesHaveMethodWideLifetime: true
     });
     applicationClassReferenceScope.commit(encoded.references);
     firstFragment = false;

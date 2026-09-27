@@ -1,5 +1,202 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 43 — provenance-aware Application Class RECORD/SCROLL reuse (implemented)
+
+**Status: proven and implemented.** Cycle 42's regression was caused by
+a write/read key mismatch, not by the underlying "Application Class
+RECORD/SCROLL dependency-scope reuse is method-wide" rule being wrong.
+Found and fixed the exact bypass: `resolvePostfixMemberReuse`'s own
+row-shorthand postfix path reads the SAME map
+(`recordReferencesByControlGroup`) `dependencyScope.recordRecord`
+writes to, but computed its own key directly from raw `controlGroup`
+instead of going through `dependencyScope.id`. Once both sites share
+one `recordScopeId()` function, the fix resolves 29389's originating
+symptom AND restores 29528 to fully exact, with zero source-program
+losses and zero movement outside Application Classes. Starting commit
+`02342ab` (Cycle 42). Full corpus unchanged at 23,217/30,209 EXACT
+(this fix corrects the PSPCMNAME reference-stream dimension for its
+target population, not raw byte-exactness counts at the corpus scale,
+matching the established pattern from Cycles 16/18/33/34/36), protected
+430/430, regression gate PASS.
+
+### Phase 1 -- fresh reproduction
+
+Confirmed clean worktree at `02342ab`; `git diff --stat -- src/` empty
+(Cycle 42's attempted change was fully reverted, as documented).
+Reference-root population reproduced fresh: 41 roots (identical
+causal-family breakdown to Cycles 36-42). `29389` confirmed still
+`missing non-PACKAGE allocation`; `29528` confirmed fully EXACT at
+baseline; `29797` confirmed as the standing negative control.
+
+### Phase 8 -- the raw-read bypass, found and confirmed
+
+Traced `resolvePostfixMemberReuse` (`src/peoplecode/encoder.ts`, the
+row-shorthand `.RECORDNAME` postfix-member resolver used by chains like
+`&rowset.GetRow(1).RECORDNAME.CopyFieldsTo(...)`): after checking three
+OTHER, genuinely distinct row-shorthand pools
+(`rowShorthandRecordsByBase`, `rowsetElementRecords`,
+`rowShorthandRecordsByControlGroup`), it falls back to
+`recordReferencesByControlGroup.get(\`${controlGroup}:${member}\`)` --
+directly reading the EXACT SAME map `dependencyScope.recordRecord`
+writes to, but keyed by raw `controlGroup`, never through
+`dependencyScope.id`. Cycle 42's own fix changed only `dependencyScope.id`/
+`isOpen`, leaving this second, independent consumer of the same map
+keyed the old way -- a write/read key mismatch, confirmed as the
+regression's exact mechanism (not merely a hypothesis this cycle,
+per instruction).
+
+**Definition 29528's own exact shape** (`AbsenceManagement extends
+HMAP_APPROVAL:ApprovalComments`, method `AddApplicationComments`):
+`Local Record &AR_Sta_rec = CreateRecord(Record.GP_ABS_SS_STA);` then
+`Local Rowset &Abs_Sta_rs = CreateRowset(Record.GP_ABS_SS_STA);` then
+`&Abs_Sta_rs.GetRow(1).GP_ABS_SS_STA.CopyFieldsTo(&AR_Sta_rec);` -- the
+row-shorthand `.GP_ABS_SS_STA` access on the third line is exactly the
+bypass path. Stored PSPCMNAME already has only ONE `RECORD|GP_ABS_SS_STA`
+row (namenum 5) at baseline, confirming stored PeopleTools already
+reuses this identity across `CreateRecord` and the row-shorthand access
+-- Cycle 42's fix broke the ENCODER's own ability to find that reuse
+(a regression in the fix, not evidence against the underlying stored
+behavior).
+
+### The fix
+
+Introduced one shared function, `recordScopeId()`, computing
+`context?.recordDependenciesHaveMethodWideLifetime ? 0 : controlGroup`,
+used by BOTH `dependencyScope.id`/`isOpen` (as Cycle 42 already did)
+AND the specific `recordReferencesByControlGroup.get(...)` call inside
+`resolvePostfixMemberReuse` (the fix Cycle 42 was missing). The OTHER
+two row-shorthand pools that call also consults
+(`rowShorthandRecordsByBase`, `rowShorthandRecordsByControlGroup`) were
+deliberately left keyed by raw `controlGroup` -- they are genuinely
+separate, independently-calibrated pools or ordinary programs, not
+consumers of the same map this fix targets, and Cycle 42's own census
+never claimed evidence about their lifetime.
+
+### Targeted validation
+
+- **29389**: SHA changed (causal effect); earliest mismatch moved from
+  ordinal 9 (the RECORD/FIELD issue, now resolved) to ordinal 18, a
+  DIFFERENT, unrelated `%Super._utils.deleteGPSPostInReset(...)`
+  method-bearing reference (a `%Super`-receiver variant of the parked
+  `%This` question -- not chased this cycle, not a reopening of that
+  boundary since the receiver differs).
+- **29528**: restored to fully EXACT (byte-for-byte), confirmed via
+  direct `generated.equals(storedProgram)` check, not merely SHA
+  comparison.
+- **29797** (negative control): byte-identical SHA before/after,
+  confirmed via direct hash comparison against the Cycle 34/36/38/40-
+  confirmed baseline value.
+- **28820** (decoder-only): unaffected, as expected.
+
+### Full validation
+
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 554 passed, 1 intentional skip (555 total; +3 new tests).
+- Targeted analyzer: `sourceProgramLosses: 0` (the Cycle 42 regression
+  is gone), `outsideApplicationClasses: 0`, 322 generated-SHA changes,
+  22 source-program gains (same population as Cycle 42's own attempt).
+- Protected local baseline: 430/430 EXACT; regression gate PASS.
+- Full local corpus: 23,217/30,209 EXACT (identical to Cycle 42); 6,992
+  residual definitions; `Improved: 0, Regressed: 0, Unchanged
+  failures: 0`.
+- `git diff --check`: clean.
+
+### Tests added
+
+`src/test/encoder.test.ts`, three focused, semantic (not corpus-ID-
+based) regression tests:
+
+1. `'Application Class RECORD dependencies get method-wide lifetime
+   across flat top-level statements'` -- two `GetRecord(Record.X)`
+   calls at flat top level (no enclosing `If`/`For`) in one Application
+   Class method reuse one RECORD identity (29389's own shape).
+2. `'Application Class row-shorthand RECORD access reuses an earlier
+   same-scope RECORD identity'` -- structurally reproduces 29528's own
+   mechanism (`CreateRecord` then a row-shorthand `.RECORDNAME` postfix
+   access) without using any corpus definition ID, asserting exactly
+   one RECORD reference results.
+3. `'ordinary PeopleCode RECORD reuse remains control-group-scoped, not
+   method-wide'` -- the negative control: the same flat-top-level shape
+   OUTSIDE an Application Class must still allocate two distinct RECORD
+   references, preserving the existing, load-bearing ordinary-program
+   behavior.
+
+### Blast-radius reconciliation
+
+Predicted: Application Class definitions containing 2+ same-construct
+RECORD/SCROLL references (via `GetRecord`, `CreateRecord`, or
+row-shorthand postfix access) crossing a control-group or control-depth
+boundary the OLD `dependencyScope` gate would have blocked. Actual: 322
+generated-SHA changes, all confirmed inside Application Classes
+(`outsideApplicationClasses: 0`); 0 unexpected ordinary-program
+movement; 0 source-program losses. No unreconciled blast radius.
+
+### Ending 41-root accounting
+
+| ending outcome | roots | movement |
+|---|---:|---:|
+| reference identity | 41 | unchanged |
+| names metadata | 0 | 0 |
+| marker | 0 | 0 |
+| wrapper/body | 0 | 0 |
+| decoder-only | 0 | 0 |
+| fully EXACT | 0 | 0 |
+| **total** | **41** | |
+
+29389 remains counted under "reference identity" (moved to a new
+causal family, `cross-fragment non-PACKAGE duplicate / failed reuse`,
+but did not exit the frozen population's own bucket this cycle -- its
+NEW ordinal-18 issue is a distinct, uncharacterized problem). No root
+crossed into a different top-level bucket this cycle.
+
+Updated 99-root Application Class accounting (unchanged from Cycle 42):
+41 reference identity, 3 names metadata, 18 decoder-only, 9 marker
+residual, 2 wrapper/body, 25 parked storage-symbol enumeration
+(untouched), 1 fully-EXACT placeholder already reconciled in Cycle 32 =
+99. `28959` and `29522` remain uninvestigated (time this cycle went
+entirely into resolving the Cycle 42 regression properly, which the
+directive's own priority ordering supports: 29389 was the designated
+primary target, and a real, in-hand regression took priority over
+opening new small families).
+
+### Explicitly not done (per instruction)
+
+- Did not widen the fix beyond the one confirmed bypass site --
+  `rowShorthandRecordsByBase`/`rowShorthandRecordsByControlGroup`
+  remain untouched, no evidence was gathered about their own lifetime.
+- Did not chase the newly-exposed `%Super._utils` method-bearing
+  reference at 29389's own ordinal 18.
+- Did not investigate `28959` or `29522` this cycle.
+- Did not reopen the parked `%This.method()` self-row firing
+  investigation -- no new evidence connecting it to this fix emerged.
+- Did not touch `28820` (decoder-only), the 25 parked names-metadata
+  roots, or marker/wrapper populations.
+- Did not modify `applicationClassReferenceKey`,
+  `ApplicationClassReferenceScope`/`ApplicationClassReferenceSession`,
+  `fieldDependencyScope`, or any of the Cycle 33/34/36/38 proven rules.
+- Did not extend `tools/corpus/research/application-class-record-field-reuse-analysis.ts`
+  further this cycle -- Cycle 42's own census plus this cycle's direct
+  code trace and targeted definition checks were sufficient evidence
+  for this specific, narrow fix.
+- Did not query live Oracle or fabricate inherited/environment
+  metadata.
+
+### Next actions
+
+- `28959` and `29522` are the next small-family candidates.
+- 29389's own new ordinal-18 issue (`%Super._utils` method-bearing
+  reference) is a concrete, well-characterized lead for a future cycle
+  -- distinct from the parked `%This` boundary since the receiver is
+  `%Super`, not `%This`.
+- If FIELD-side reuse (via `fieldDependencyScope`) is found to have an
+  analogous gap in a future census, apply the same "shared key
+  function, all consumers of one map must agree" discipline this cycle
+  established.
+- Datasource mode: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout; `--live` was not used.
+
+**Cycle 44 was not started.**
+
 ## Compiler Semantics Cycle 42 — Application Class RECORD/FIELD reuse semantics (forensic; implementation attempted and reverted)
 
 **Status: no encoder change survives this cycle. Strong population
