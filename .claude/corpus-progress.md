@@ -1,5 +1,297 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 45 — indexed array-of-Record row-shorthand field access (implemented)
+
+**Status: IMPLEMENTED, validated, zero regressions.** Cycle 44 traced
+`29522`'s true first byte divergence to `&ARYDrvDtl [&i].DUR` -- row-shorthand
+FIELD access on an INDEXED element of a `Local array of Record &x;`
+variable. Cycle 45 confirmed this is a genuine, population-evidenced
+construct-recognition gap (not a reuse/lifetime question, and not specific
+to Application Classes), implemented a narrow, code-consistency fix plus a
+closely related second fix it exposed, and validated both at full-corpus
+scale: **+11 EXACT, 0 regressions, protected 430/430 unchanged.** `29522`
+itself remains non-EXACT -- it has a SECOND, independent, newly-discovered
+defect (Application Class method `Record`-typed parameters have no
+field-shorthand support at all) that this cycle characterizes precisely
+but does not implement. Starting commit `9243f0a` (Cycle 44).
+
+### Phase 1 -- fresh reproduction
+
+- HEAD `9243f0a`, worktree clean, confirmed before any change.
+- Protected: 430/430 EXACT (`npm run corpus:harness -- --limit 430`).
+- Full corpus: 23,217/30,209 EXACT (identical to Cycle 44's own ending
+  figure -- confirms no drift since Cycle 44).
+- `28959` reconfirmed parked under the `%This.method()` self-row
+  observability boundary (unaffected this cycle -- not reopened).
+- `29389`, `29528`, `29797` reconfirmed stable (see Phase "negative
+  controls" below for the `29528` `source→bin EXACT`-but-roundtrip-fails
+  nuance, which predates this cycle).
+
+### Phase 2/3 -- reconstructing 29522's true construct
+
+`29522` (`class SchedulingQueue`, method `Get_Start_End_DDTM`) declares:
+
+```peoplecode
+Local array of Record &ARYDrvDtl;
+...
+For &i = 1 To &ARYDrvDtl.Len
+   If &BGN_DT = &ARYDrvDtl [&i].DUR.Value Then
+      &ARYDrvDtl [1].START_DTTM.Value = &ARYDrvDtl [&i].START_DTTM.Value;
+```
+
+`array of Record` (no bound record name) is the GENERIC `Record` object
+type -- there is no compile-time-known field list, exactly like a scalar
+`Local Record &rec;`. An INDEXED element (`&ARYDrvDtl [&i]`) narrows the
+array to a single `Record` value, whose own bare `.MEMBER` access
+(`.DUR`, `.START_DTTM`) is then a FIELD reference the same way
+`&rec.MEMBER` already is for a scalar Record variable -- confirmed
+directly against stored PSPCMNAME (`.DUR` is `FIELD|DUR`, a `0x4A`
+reference operand). The BARE (non-indexed) array variable itself
+(`&ARYDrvDtl.Len`) is a different type entirely -- an ARRAY object with
+its own intrinsic properties/methods (`Len`, `Push`, `Delete`, ...) --
+and must NOT be treated the same way.
+
+### Root cause (traced to source, not guessed)
+
+`localDeclaration()`'s scalar `Local Record &rec;` path already adds the
+declared variable to `recordVariables` (`src/peoplecode/encoder.ts`, near
+the `firstDeclaredVariable`/`declaredVariable` handling). The postfix-chain
+parser's `expectedReferenceMember`/`initialChainSemantics` computation
+(`src/peoplecode/encoder.ts`, ~line 8420-8515) checks
+`recordVariables.has(baseVariableName)` to decide whether a bare `.MEMBER`
+following a variable is a FIELD dependency. `Local array of Record &x;`
+(the `array` + `of Record` branch of the SAME declaration function) never
+added its variable to `recordVariables` at all -- only
+`ensureLocalObjectPackageReference('RECORD', 'Record')` fired (the
+PACKAGE/RECORD import-metadata allocation), leaving the variable itself
+untracked. `[&i]` array-subscript handling (~line 9051) does not touch
+`baseVariableName`/`expectedReferenceMember`/`chainSemantics` at all --
+subscripting is a pure no-op with respect to this state -- so whatever was
+decided BEFORE the `[` persists through it unchanged. Reproduced in
+isolation with a synthetic (non-corpus-ID) fixture BEFORE any fix: a
+`Local array of Record &Arr; ... &Arr [&i].MY_FIELD.Value` emitted
+`.MY_FIELD` as literal inline text (`0a "MY_FIELD"`), while a structurally
+identical scalar `Local Record &Rec; ... &Rec.MY_FIELD.Value` correctly
+emitted a `0x4A` FIELD reference -- proving the defect is purely the
+missing declaration-tracking, not something 29522-specific.
+
+### First fix attempt regressed 29522 itself -- corrected
+
+The first attempt folded array-of-Record variables directly into the
+SAME `recordVariables` set scalar Record variables use. This regressed
+`29522` itself: `&ARYDrvDtl.Len` (the bare array's own `.Len` property, no
+subscript) was wrongly resolved as a FIELD dependency, corrupting the
+reference stream well before the intended `&ARYDrvDtl [&i].DUR` target was
+even reached (harness `--verbose` showed the body-diff moving to `.Len`'s
+own position, stored `0a "Len"` vs generated `4a 08 00` -- a FIELD
+reference where inline text was expected). Root cause: `recordVariables`
+membership alone does not distinguish "the base variable was indexed
+first" from "the base variable is being used bare" -- for a SCALAR
+Record variable there is never a `[...]` step so this ambiguity cannot
+arise, but for an array-of-Record variable it can.
+
+**Corrected fix**: a SEPARATE set, `recordArrayVariables` (declared next
+to `recordVariables`), populated only by `Local array of Record &x;`
+declarations. A new lookahead, `recordArrayIndexedFieldAccess`, computed
+at the same point as the existing `rowStartsRecordFieldChain` lookahead
+(right after the base variable token, before the postfix loop runs):
+
+```ts
+const recordArrayIndexedFieldAccess =
+  baseVariableName !== undefined &&
+  recordArrayVariables.has(baseVariableName.toLowerCase()) &&
+  /^\s*\[/.test(source.slice(pos));
+```
+
+This is true only when the base variable is a known record-array AND the
+very next token is `[` (indexing), not `.` (bare member access) --
+`&Arr [&i].FIELD` narrows to `'field'` mode exactly like a scalar Record
+variable; `&Arr.Len` does not, since the lookahead is false and
+`expectedReferenceMember` stays `undefined` for it. Verified with the
+same synthetic fixture PLUS `&Arr.Len` in the same program: `.Len` now
+stays literal inline text while `.MY_FIELD`/`.OTHER_FIELD` (after
+indexing) correctly become FIELD references.
+
+### Second, closely related gap this exposed: Record-typed Function parameters
+
+Applying the fix to `29522` moved its first byte divergence further (from
+`.DUR` to a LATER point), exposing a second, structurally similar but
+distinct gap: `method SaveAppointmentToQueue(..., &AbsenceRec As Record)
+... &AbsenceRec.EMPLID.Value` -- `&AbsenceRec` is a Function/method
+PARAMETER typed `Record`, and parameter-typing tracking
+(`src/peoplecode/encoder.ts`, the Function-parameter parsing loop, ~line
+4870-4995) had an EXISTING, already-validated precedent for `Row`-typed
+parameters (evidenced by definitions 921/924, joining `rowVariables` and
+calling `ensureLocalObjectPackageReference('ROW','Row')`) but had NO
+equivalent branch for `Record` at all. Population check: 265 corpus
+definitions have a `Record`-typed parameter with bare field-shorthand
+access on it (113 of them ordinary, non-Application-Class `Function`
+declarations). Implemented symmetrically with the Row precedent: a
+`Record`-typed parameter now calls
+`ensureLocalObjectPackageReference('RECORD','Record')` and joins
+`recordVariables` directly (no indexing ambiguity here -- a scalar
+Record parameter has no array-vs-indexed distinction, matching the
+existing scalar `Local Record &rec;` case exactly).
+
+**This fix does NOT reach Application Class method bodies.** Application
+Class method implementations are encoded through a completely different
+path (`encodeApplicationClassProgramV2`'s own `encodeFragment` closure,
+which calls `encodeFragmentInternal` fresh per method body); the class
+header's `method Name(&param As Record) ...;` signature and the
+implementation's own parameter list are parsed by dedicated
+Application-Class structural parsing (`ApplicationClassMethodMember.
+parameters`), never re-parsed as literal source text through the
+Function-parameter loop this fix touches. `encodeMethodBody(bodyCore)` is
+called with ONLY the body text -- no parameter-type context is threaded
+into the per-method `encodeFragmentInternal` call at all currently. This
+means `29522`'s own `&AbsenceRec As Record` parameter is UNAFFECTED by
+either fix and remains a genuinely separate, NOT-yet-implemented
+blocker -- see "29522's remaining blocker" below.
+
+### Validation
+
+- `npx tsc -p . --noEmit`: clean.
+- `npm test`: 558 total, 557 pass, 1 skip, 0 fail (4 new Cycle 45 tests:
+  indexed-array FIELD resolution, the `.Len`-stays-inline negative
+  control, the Record-parameter FIELD resolution, plus the pre-existing
+  555 unchanged).
+- Full corpus (`npm run corpus:verify`): **23,217 -> 23,228 EXACT (+11),
+  0 regressed, 0 unexplained.** Classification deltas: UNKNOWN_MISMATCH
+  4541 -> 4530 (-11, exactly matching the EXACT gain);
+  DECODE_SOURCE_MISMATCH/UNSUPPORTED_SYNTAX/ENCODE_ERROR all unchanged
+  (1994/335/122). REGRESSION GATE: PASS.
+- Protected: reconfirmed 430/430 EXACT after the full corpus run.
+- `git diff --check`: clean.
+
+### Blast-radius reconciliation (predicted vs actual, fully closed)
+
+Predicted populations (both censused via the harness's own
+`validateDefinition`/`LocalCorpusDataSource` pipeline, not an ad hoc
+re-implementation, to avoid the exact kind of false-classification error
+Cycle 44 found in the research tooling):
+
+- Indexed array-of-Record field access: 26 candidate definitions (11
+  Application Class, 15 ordinary), 1 pre-fix EXACT (unrelated) -> 2
+  post-fix EXACT. **+1 new EXACT (definition 4127)**, confirmed via a
+  direct pre/post `git stash` comparison of the SAME population.
+- Record-typed Function parameter with field-shorthand access, ordinary
+  PeopleCode only: 113 candidate definitions, 1 pre-fix EXACT (unrelated,
+  definition 23453) -> 11 post-fix EXACT. **+10 new EXACT** (969, 5003,
+  5282, 6598, 6605, 14890, 15013, 15513, 15519, 15521).
+
+**1 + 10 = 11, exactly matching the full-corpus +11 delta.** Zero
+unexplained movement; every EXACT gain is individually attributed to one
+of the two evidenced fixes; zero false positives or negatives in the
+predicted population.
+
+None of the 11 Application Class candidates in the indexed-array
+population reached EXACT -- consistent with the second (unfixed)
+Application Class parameter-typing gap: every one of them also depends on
+that separate, not-yet-implemented mechanism.
+
+### Negative controls
+
+- `29389`: unchanged (`DECODE_SOURCE_MISMATCH`, same as Cycle 44's ending
+  state -- not touched by either fix, does not contain the indexed-array
+  or Record-parameter construct).
+- `29528`: unchanged. `--verbose` shows `source→bin EXACT` (the forward
+  encode is still byte-for-byte correct) with a separate `roundtrip
+  ERROR` classification (`DECODE_SOURCE_MISMATCH`) from the harness's
+  decode-then-reencode self-test -- confirmed via `git stash` to be
+  IDENTICAL on pre-Cycle-45 HEAD, i.e. entirely pre-existing and
+  unrelated to this cycle's changes.
+- `29797`: unchanged (`DECODE_SOURCE_MISMATCH`, same as before).
+- `28959`: unchanged, still parked under the `%This.method()` boundary;
+  not reopened.
+- New test `'a bare array-of-Record variable keeps its own Array
+  properties/methods inline, not FIELD references'` is itself the
+  regression control for the first-attempt's own `.Len` bug, kept
+  permanently in the suite.
+- New test `'ordinary PeopleCode RECORD reuse remains
+  control-group-scoped, not method-wide'` (Cycle 43, pre-existing) and
+  the Cycle 43 Application Class RECORD/SCROLL tests all still pass
+  unchanged -- confirms the Cycle 43 `recordScopeId()`/`dependencyScope`
+  machinery is untouched by this cycle (no code path this cycle edited
+  overlaps it).
+
+### 29522's remaining blocker (characterized, not implemented)
+
+`29522` is not EXACT. Its first byte divergence (post-fix) has moved past
+`.DUR` to `&AbsenceRec.EMPLID` inside `SaveAppointmentToQueue`, where
+`&AbsenceRec` is declared only as a method PARAMETER
+(`&AbsenceRec As Record`) in the class's `method
+SaveAppointmentToQueue(..., &AbsenceRec As Record) ...;` signature.
+Application Class method bodies are encoded via `encodeApplicationClassProgramV2`'s
+own `encodeFragment`/`encodeMethodBody`, which calls
+`encodeFragmentInternal` fresh per method with ONLY the body text -- no
+mechanism currently threads `ApplicationClassMethodMember.parameters`
+(which already carries `{name, type}` pairs, available at the exact
+call site of `encodeMethodBody(bodyCore)`) into that per-method
+`recordVariables`/`rowVariables`/`rowsetVariables` tracking at all. Fixing
+this would require a genuinely different, larger change (extending
+`EncodeFragmentContext` with a way to pre-seed the fragment's own
+variable-type tracking from the member's own parameter list, then
+validating it against whatever population of Application Class methods
+have Record/Row/Rowset-typed parameters with body-scope shorthand access)
+-- structurally similar in spirit to this cycle's two fixes, but a
+different mechanism, a different code path, and an unmeasured population.
+**Not implemented this cycle** -- flagged precisely as the next concrete
+lead, consistent with "do not force it" when a construct's fix would
+require a larger, less-narrow change than what has been evidence-validated
+so far.
+
+### Final status of tracked definitions
+
+| definition | status |
+|---|---|
+| 29522 | non-EXACT; indexed-array defect FIXED; blocked by a second, newly-characterized, unimplemented Application-Class-method-parameter-typing gap |
+| 28959 | parked under the `%This.method()` self-row observability boundary (Cycle 44); untouched |
+| 29389 | unchanged, `DECODE_SOURCE_MISMATCH`, unrelated to this cycle's constructs |
+| 29528 | unchanged, `source→bin EXACT` (forward encode correct); pre-existing unrelated roundtrip-only classification quirk |
+| 4127 | **newly EXACT** (indexed array-of-Record fix) |
+| 969, 5003, 5282, 6598, 6605, 14890, 15013, 15513, 15519, 15521 | **newly EXACT** (Record-typed Function parameter fix) |
+
+### Explicitly not done (per instruction)
+
+- Did not reopen `28959` or the parked `%This.method()` firing boundary.
+- Did not start the large declaration-order family, names-metadata
+  ordering, decoder cleanup, or marker/wrapper cleanup.
+- Did not implement Application Class method parameter type-seeding
+  (the newly-found second blocker for 29522) -- characterized precisely,
+  left for a future cycle, since it is a different mechanism/code path
+  from what this cycle's evidence covers.
+- Did not touch `Global`/`Component array of Record` declarations --
+  population check found 5 corpus definitions with `Global array of
+  Record` + indexed field access (0 `Component`), but `globalDeclaration()`
+  has NO `recordVariables` tracking at all currently (not even for
+  scalar `Global Record &x;` -- a separate, pre-existing, out-of-scope
+  gap), so extending only the array case there would be an unevidenced,
+  ungrounded change. Left untouched and documented as a related lead.
+- Did not touch `fieldDependencyScope`, `resolvePostfixMemberReuse`'s
+  RECORD-reuse raw-read path, or any of Cycle 43's `recordScopeId()`
+  machinery -- confirmed via passing regression tests that machinery is
+  unaffected.
+
+### Next actions
+
+- The precise next lead for `29522` (and any Application Class method
+  with a Record/Row/Rowset-typed parameter and body-scope shorthand
+  access): thread `ApplicationClassMethodMember.parameters` into
+  `encodeMethodBody`'s per-method `encodeFragmentInternal` context, then
+  census the affected population before implementing (mirroring this
+  cycle's own methodology).
+- `Global array of Record` (5 corpus definitions) remains an open,
+  unevidenced-for-implementation lead blocked on the pre-existing
+  `Global Record` scalar gap being resolved first.
+- Datasource mode: LOCAL SNAPSHOT (`tools/corpus/hcdev-snapshot.sqlite`)
+  throughout; `--live` was not used.
+- New research tool committed:
+  `tools/corpus/research/indexed-record-array-analysis.ts` (uses the
+  harness's own `validateDefinition`/`LocalCorpusDataSource` pipeline for
+  its EXACT/classification numbers, not an ad hoc re-implementation).
+
+**Cycle 46 was not started.**
+
 ## Compiler Semantics Cycle 44 — characterize the remaining Application Class reference residuals (forensic only, zero encoder behavior change)
 
 **Status: no encoder change. Both one-root families were independently
