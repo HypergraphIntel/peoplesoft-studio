@@ -2059,6 +2059,57 @@ end-method;`, {
   ]);
 });
 
+test('Application Class declaration-dependency types allocate before a Declare Function reference even when the class has an inherited %This.method() call', () => {
+  // Cycle 60: a corpus-wide census of 82 Application Class definitions
+  // with an inherited (not-own-declared) %This.method() call AND at
+  // least one undiscovered declaration-dependency type found stored
+  // PSPCMNAME allocates an early PACKAGE row for every single one
+  // (82/82, zero contradictions) -- `allocateModeledDeclarationDependency()`'s
+  // own guard on `hasModeledApplicationClassReferenceScope` (which
+  // disables it entirely for classes with an inherited %This call) was
+  // too broad: that gate exists for method-dependency reuse uncertainty
+  // (Cycle 32/34), not declaration-TYPE discovery. Definitions 28755,
+  // 28964, and 29099 (originally suspected of "declare-function
+  // misrecognition") are three real-world instances of exactly this
+  // shape: a class-header parameter/return type (here, `Rowset`) was
+  // being discovered late -- via a coincidental body-level Local
+  // declaration, if one happened to exist, or never -- instead of early,
+  // landing AFTER a `Declare Function` statement's own reference instead
+  // of before it, as stored requires.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run(&x As Rowset);
+   method CallInherited();
+end-class;
+
+Declare Function ExternalHelper PeopleCode FUNCLIB_TEST.HELPER FieldFormula;
+
+method Run
+end-method;
+
+method CallInherited
+   %This.SomeInheritedMethod();
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  assert.deepStrictEqual(encoded.references, [
+    { index: 0, sequence: 1, kind: 'owner', recordName: undefined, fieldName: undefined },
+    { index: 1, sequence: 2, kind: 'package', packageName: 'ROWSET', objectName: 'Rowset' },
+    {
+      index: 2,
+      sequence: 3,
+      kind: 'declare-function',
+      recordName: 'FUNCLIB_TEST',
+      fieldName: 'HELPER',
+      eventName: 'FieldFormula'
+    }
+  ]);
+});
+
 test('Application Class only the first wildcard import allocates PACKAGE metadata', () => {
   const encoded = encodeProgramArtifacts(`import PKGONE:*;
 import PKGTWO:*;
