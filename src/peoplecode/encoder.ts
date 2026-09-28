@@ -4608,10 +4608,27 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       * The shared ApplicationClassReferenceSession therefore owns the
       * "first wildcard import" decision. Ordinary fragment encoding retains
       * the existing fragment-local behavior.
+      *
+      * Cycle 61: "only the first wildcard import claims the metadata row"
+      * is a purely mechanical, source-derived tracking concern -- it has
+      * nothing to do with the method-dependency-resolution uncertainty
+      * `applicationClassReferenceSession`'s own gate exists for (Cycle
+      * 32/34). When that session is gated off (an inherited %This.method()
+      * call elsewhere in the class), this call previously fell back to
+      * `true` unconditionally -- meaning EVERY wildcard import in the
+      * class's leading fragment claimed the row, not just the first. A
+      * corpus-wide census of 28 Application Class definitions with an
+      * inherited %This call AND 2+ wildcard imports found stored PSPCMNAME
+      * has exactly the ordinary "one claim" row count in 27/28 (28726 is a
+      * distinct, unrelated residual -- stored has ZERO blank rows for it,
+      * a different gap this fix does not address). Use the always-present
+      * `applicationClassTypeReferenceSession` (Cycle 57) instead, which
+      * shares the SAME underlying `ApplicationClassReferenceScope`
+      * instance and its claim-tracking state -- not a new cache.
       */
       const allocateWildcardMetadata =
-        context?.applicationClassReferenceSession !== undefined
-          ? context.applicationClassReferenceSession.claimWildcardImportMetadata()
+        context?.applicationClassTypeReferenceSession !== undefined
+          ? context.applicationClassTypeReferenceSession.claimWildcardImportMetadata()
           : true;
 
       if (allocateWildcardMetadata) {

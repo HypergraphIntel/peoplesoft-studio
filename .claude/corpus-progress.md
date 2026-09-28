@@ -1,5 +1,181 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 61 — a fourth instance of the same overbroad `%This`-inherited-call gate, in wildcard-import metadata claiming (implemented)
+
+**Status: IMPLEMENTED, validated, zero regressions, zero exposed
+discrepancies (clean gain this time).** Datasource: LOCAL SNAPSHOT
+throughout. Starting commit `7f8ff65` (Cycle 60). Protected/full baseline
+reproduced: `npm run corpus:verify` — 23,253/30,209 EXACT, REGRESSION
+GATE: PASS (0 improved, 0 regressed) — matches Cycle 60's documented
+ending state.
+
+### Motivation and framing
+
+This cycle was explicitly scoped by its own brief as a **targeted policy-
+gate audit**, not a broad refactor: Cycle 60 was the third confirmed case
+of `hasUnmodeledThisMethodDependencies` (the inherited, not-own-declared
+`%This.method()` predicate — Cycle 32/34's original method-dependency-
+reuse safety gate) suppressing behavior unrelated to the uncertainty it
+was designed for. The brief asked for (1) a full inventory of every
+remaining consultation site of that predicate / of
+`hasModeledApplicationClassReferenceScope` / of
+`applicationClassReferenceSession`, (2) a check of whether Cycle 60's own
+honestly-exposed-but-unexplained `30197` discrepancy (a duplicate
+blank-REFNAME wildcard-import metadata row) traces to the same pattern,
+and (3) narrow fixes only where population evidence supports them — no
+architecture rewrite, no removing the gate globally.
+
+### Phase 1 — full consultation-site inventory
+
+`grep -n` across `encoder.ts` for all three names found exactly these live
+sites (post-Cycle-60):
+
+1. `nextReference()` (line ~1849): `context?.applicationClassReferenceSession?.lookup(reference)`
+   — the genuine, intended cross-fragment method-dependency-reuse
+   mechanism Cycle 32/34 built the gate for. This is the gate's real
+   target, not an instance of overbreadth.
+2. `claimWildcardImportMetadata()` call site inside `importStatement()`'s
+   wildcard branch (line ~4602, pre-fix): consulted the GATED
+   `applicationClassReferenceSession`, falling back to unconditional
+   `true` when gated off — **a fourth instance of overbreadth**, found and
+   fixed this cycle (below).
+3. `bindOwnerReference: hasUnmodeledThisMethodDependencies` (line ~11809,
+   now ~11871): a separate, directly-set context flag consulted only by
+   the `ownerUnbound` computation (line ~2256) governing whether a bare
+   `RECORD.FIELD` reference binds the reserved owner slot. Unlike the
+   other three (now four) fixed instances, this one does not suppress a
+   deterministic, source-derived behavior when the gate is on — it
+   *permits* owner-slot binding even in fragments where it would
+   otherwise be suppressed. It is mechanistically different in kind (an
+   allow-rule, not a reuse-suppression rule) and no population evidence
+   was gathered this cycle showing it is wrong. **Not touched. Flagged as
+   the one remaining unaudited consultation site for a possible future
+   cycle**, not claimed as a fifth confirmed instance.
+
+### Phase 21/(30197 follow-up) — the exposed duplicate traces directly to consultation site #2
+
+Investigating `30197`'s duplicate blank-REFNAME wildcard-import row
+(honestly exposed, not caused, by Cycle 60's fix) led straight to the
+`claimWildcardImportMetadata()` call site: it read the GATED
+`context?.applicationClassReferenceSession`, defaulting to unconditional
+`true` — meaning "claim the metadata row" — whenever that session was
+undefined (i.e. whenever the class has an inherited `%This` call). Result:
+**every** wildcard import in such a class incorrectly claims a metadata
+row, not just the first, directly producing `30197`'s duplicate. This
+directly contradicts Phase 21's own premise that the duplicate "might
+simply be a pre-existing Cycle 33/54 edge" — it is not; it is gate-related,
+the same pattern as Cycles 52/57/60.
+
+### Phase 5-8 (mandatory) — corpus-wide census: 27/28, one distinct unrelated residual
+
+Built `tools/corpus/research/cycle61-wildcard-gate-census.ts`: scanned
+every Application Class definition with an inherited `%This` call AND 2+
+wildcard imports (28 candidates). Pre-fix: **0/28 matched** — stored
+PSPCMNAME's blank-REFNAME row count was always 1 less than generated's
+(every wildcard claimed). Post-fix: **27/28 matched**. The one remaining
+mismatch, `28726`, is a *different-direction* residual (stored has ZERO
+blank rows for it, not a duplicate) — an already-known, separate
+create-local reuse issue from Cycles 55/56 unrelated to "how many imports
+claim the row," not a contradiction of this fix.
+
+### Fix implemented (`src/peoplecode/encoder.ts`)
+
+One-line change at the `claimWildcardImportMetadata()` call site: switched
+from the gated `context?.applicationClassReferenceSession` to the
+always-present `context?.applicationClassTypeReferenceSession` (Cycle
+57's addition — the same underlying `ApplicationClassReferenceScope`
+instance and claim-tracking state, not a new cache). "Only the first
+wildcard import claims the metadata row" is a purely mechanical,
+source-order tracking concern with no dependency on method-dependency
+resolution, so it never belonged behind the method-dependency gate in the
+first place — the same root cause as Cycles 52/57/60.
+
+### Validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 581 total, 580 pass, 1 pre-existing skip, 0 fail. Two tests
+  added:
+  - Positive/regression: *"Application Class only the first wildcard
+    import allocates PACKAGE metadata even when the class has an
+    inherited `%This.method()` call"* — confirmed to FAIL pre-fix (via
+    `git stash` on `encoder.ts` alone) and PASS post-fix.
+  - **Mandatory negative control** (Phase 36): *"Application Class
+    inherited `%This.method()` call still prevents cross-fragment
+    method-dependency reuse (negative control)"* — two methods each
+    `create` the same helper type and call the same method on it; without
+    an inherited call the two method-dependency references correctly
+    dedup to one, with an inherited call they correctly stay as two
+    (genuine Cycle 32/34 safety preserved). Confirmed this test PASSES
+    both before and after the fix (i.e. it isolates a boundary the fix
+    does not touch) via the same `git stash` check.
+- `git diff --check`: clean.
+- Protected/full corpus (`npm run corpus:verify`): 23,253/30,209 EXACT,
+  REGRESSION GATE: PASS, 0 improved / 0 regressed.
+- Full 30,209-definition byte-identical-encode scan (`git stash` on
+  `encoder.ts` before/after): **+1 gained (`30197`), 0 lost** — a clean
+  improvement, no exposed discrepancies this time.
+- `30197` is now fully `sourceEncodeExact: true` — Cycle 60's own
+  honestly-exposed-but-unexplained duplicate is now fully resolved, not
+  just explained.
+- Cycle 55/56/57/60 populations re-verified with zero regressions:
+  171/173 (unchanged), 1,752/1,778 (unchanged), 1,037/1,053 (unchanged),
+  82/82 (unchanged; "already sourceEncodeExact despite the gate" count
+  now 2 — `29274` and `30197`, up from 1 before this cycle, since `30197`
+  newly joined).
+- Active-reference-root re-census (Cycle 58's comparator, re-run
+  unmodified): all of `28713`, `28752`, `28755`, `28964`, `28964`,
+  `29099`, `29144`, `29202`, `29389`, `29518`, `29542`, `29614`, `30104`
+  unchanged — confirming this cycle's fix is fully isolated to the
+  wildcard-import-metadata mechanism, as predicted.
+- Phase 9 explicit re-check: `28755`/`28964`/`29099` (Cycle 60's genuine
+  targets) show unchanged `sourceEncodeExact: false` and unchanged
+  top-level `DECODE_SOURCE_MISMATCH` classification — this cycle's fix
+  does not touch them, as expected (unrelated mechanism).
+
+### Phase 42/43 — safety-gate-audit conclusion and targeted-refactor decision
+
+**Conclusion: a fourth confirmed instance of the same overbroad gate
+pattern was found and fixed. One remaining consultation site
+(`bindOwnerReference`) is unaudited but mechanistically different (an
+allow-rule, not a reuse-suppression rule) and has no population evidence
+of being wrong.** Per the brief's explicit instruction, no refactor is
+performed: each of the four fixes (Cycles 52, 57, 60, 61) was narrow,
+canonical-mechanism-preserving, and independently population-validated
+(11, 49, 82, and 27 candidates respectively, all with zero or
+single-explained-outlier contradictions). The genuine Cycle 32/34
+mechanism itself (`nextReference()`'s `applicationClassReferenceSession.lookup()`,
+consultation site #1) remains untouched and is now further confirmed
+correct by this cycle's mandatory negative control. **Recommending, as
+before, a future (not necessarily next) read-only audit cycle targeting
+specifically `bindOwnerReference`** — the one remaining consultation site
+with no population evidence either way — rather than reopening the
+reuse-lookup mechanism itself, which now has four independent rounds of
+population validation behind it.
+
+### Explicitly not done this cycle
+
+- `bindOwnerReference`'s own behavior — investigated as the source of the
+  negative control's differentiating case, but not modified; no evidence
+  gathered that it is over-broad.
+- `28726` — flagged by the census as a distinct, unrelated residual
+  (zero, not duplicate, blank rows); belongs to the Cycle 55/56
+  create-local-reuse population, not this cycle's mechanism.
+- `29144`/`29202` (wrong-identity-substitution family), parked
+  self-metadata, marker campaign, member-ordering, and the decoder — all
+  untouched.
+- Did not start Cycle 62.
+
+### Recommendation for Cycle 62 (not started)
+
+Per Cycle 60's own recommendation (still valid, unaffected by this
+cycle's unrelated fix): the wrong-identity-substitution family (`29144`,
+`29202`) is the next target. A secondary option: the read-only
+`bindOwnerReference` audit flagged above, now that four rounds of
+population validation give higher confidence the core reuse-lookup
+mechanism itself does not need further changes.
+
+Do not start Cycle 62 in this session.
+
 ## Compiler Semantics Cycle 60 — declaration-dependency prepass gate overly broad for an inherited `%This` call (implemented)
 
 **Status: IMPLEMENTED, validated, one honestly-reported exposed
