@@ -1940,7 +1940,9 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
           previous.opcode === 0x56 ||
           previous.opcode === 0x31 ||
           previous.opcode === 0x58 ||
-          previous.opcode === 0x51
+          previous.opcode === 0x51 ||
+          previous.opcode === 0x5b ||
+          previous.opcode === 0x64
         ) {
           /*
            * 0x51 is PanelGroup's own declaration opcode (see encoder.ts's
@@ -1964,6 +1966,26 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
            * correctly re-encodes whatever the decoder hands it), so this
            * was purely a decoder rendering bug, breaking only the
            * roundtrip (decode -> re-encode) check.
+           *
+           * Cycle 79: 0x5b (`end-class`) belongs on this list too, found
+           * via a corpus-wide first-true-roundtrip-byte-divergence census:
+           * 430 of 482 ROUNDTRIP_ONLY definitions share one first
+           * divergence, always immediately after `end-class;`, regardless
+           * of what follows it (`Declare Function`, `method` [an
+           * out-of-line implementation section], a standalone comment,
+           * `Global`, `Component`). AAOTOAA_MSGS.OnNotify (definition
+           * 28700) proves it: `end-class;\n\nDeclare Function ...;`
+           * decoded to `end-class;\n\n\nDeclare Function ...;` (one extra
+           * blank line) -- source→bin was already EXACT, so this was
+           * purely a decoder rendering bug, breaking only the roundtrip
+           * check, exactly like the 0x51 case above.
+           *
+           * 0x64 (`end-method`) shares the exact same gap: a method
+           * implementation followed by a blank line then another method
+           * implementation (`end-method;\n\nmethod ...`) hit this same
+           * missing-suppression bug once 0x5b's own occurrences were
+           * fixed -- confirmed on the same definition 28700, whose second
+           * method implementation is preceded by exactly this shape.
            */
           followsDeclaration = true;
           break;
