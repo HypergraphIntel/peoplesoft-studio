@@ -1,5 +1,245 @@
 # Corpus Calibration Progress
 
+## Cycle 79 — decoder's redundant-blank-line suppression list was missing `end-class`/`end-method`: +409 EXACT, the second-largest single-cycle gain in this project's history
+
+**Status: IMPLEMENTED, validated, zero regressions. Cycle 78 exposed `ROUNDTRIP_ONLY` (482 definitions, 92% Application Class) as the next roadmap signal. A first-true-BODY-byte-divergence census (explicitly NOT trusting the first TEXTUAL divergence, per this cycle's own critical constraint) found that the initial "3-space vs 2-space method indentation" textual difference every App-Class definition shows is a complete red herring -- cosmetic, byte-insignificant, and unrelated to why re-encoding fails. The TRUE first byte-significant divergence, found by comparing bodies with the 37-byte header excluded and mapping the exact offset back to its source token, is always immediately after `end-class;` (0x5b) or `end-method;` (0x64): the decoder's own `followsDeclaration` redundant-newline-suppression list (already proven and used for exactly this purpose for PanelGroup's 0x51) was simply missing these two opcodes, so a blank line following either construct rendered as TWO blank lines instead of one. Adding `0x5b` and `0x64` to that existing list resolved 409 of 482 ROUNDTRIP_ONLY definitions outright. Result: +409 EXACT, 0 regressions.**
+
+Datasource: LOCAL SNAPSHOT throughout. Starting commit `22a682c` (Cycle
+78). Protected/full-corpus regression gate reproduced before any change:
+`npm run corpus:verify` — Improved: 0, Regressed: 0, REGRESSION GATE:
+PASS. Full harness reproduced fresh: **24,192 / 30,209 EXACT (6,017
+NONEXACT)** — matches Cycle 78's own ending state exactly. Test
+baseline reproduced: 607/608 (1 skipped). Cycle 73's own taxonomy tool
+reproduced exactly: `ROUNDTRIP_ONLY` = 482, `DECODE_SOURCE_MISMATCH` =
+923, `DECODER_BARE_IDENTIFIER` = 26, `REFERENCE_ACTIVE_PACKAGE` = 715,
+no drift.
+
+### Phase 1/2 — extracting the 482-definition population
+
+`ROUNDTRIP_ONLY` (per the taxonomy tool's own definition) is exactly
+`sourceEncodeExact === true && roundtripExact === false`: original
+source encodes byte-identically, but decoding the stored bytes and
+re-encoding THAT text does not reproduce the stored bytes. New script:
+`tools/corpus/research/cycle79-roundtrip-only-extract.ts`, writing
+`.claude/cycle79-roundtrip-only.json`. Composition: **445/482 (92%)
+Application Class, 37 ordinary**; 474/482 re-encode LONGER than stored
+(consistent with an inserted, not dropped, marker).
+
+### Phase 5/6 — the "indentation" textual difference is a red herring
+
+The FIRST textual divergence between original and decoded source is,
+in 436/482 cases, a `method`/`property`/`end-method`/`end-class` line
+rendered with **2 leading spaces instead of 3** inside Application
+Class bodies. This looked like an obvious, dominant lead -- but per
+this cycle's own critical constraint ("do not assume extra blank line
+is the universal cause... visible source symptoms must not be treated
+as root causes without byte-level clustering"), it was verified against
+the actual re-encode BYTE comparison before acting on it. **It is not
+byte-significant**: `typeName`/statement parsing is whitespace-width-
+insensitive, so 2-space vs 3-space indentation produces IDENTICAL
+re-encoded bytes. Byte offset 5 in the FULL buffer (where an initial
+naive diff pointed) is a program-length HEADER field, itself just a
+downstream reflection of a real divergence much later in the body --
+not the true first difference. Excluding the 37-byte header and
+diffing bodies directly was required to find the real signal.
+
+### Phase 3/4/23 — body-level first-divergence census: one dominant, unified mechanism
+
+```text
+Body-relative first-divergence clusters (stored -> re-encoded byte):
+  0x63 ('method')  -> 0x4f   177 definitions
+  0x31 ('Declare Function') -> 0x4f  146
+  0x24 (comment)   -> 0x4f    63
+  0x45 ('Global')  -> 0x4f    31
+  0x54 ('Component')-> 0x4f   13
+  ------------------------------------
+  subtotal (all "X -> 0x4f")           430
+  0x4f -> 0x5b (missing marker)          8
+  0x4f -> 0x62 (missing marker)          6
+  0x4e -> 0x24 (comment-opcode lost)    33
+  (other singletons)                     5
+```
+
+Mapping each divergence's exact byte offset back to the nearest decoded
+token (not just "the first 0x4f anywhere") found that in **every single
+one** of the dominant 430 cases, the token immediately preceding the
+extra blank line is `end-class;` (0x5b) or `end-method;` (0x64) --
+regardless of what follows (`method` [an out-of-line implementation
+section], `Declare Function`, a standalone comment, `Global`,
+`Component`). The apparent "different" stored bytes (0x63/0x31/0x24/
+0x45/0x54) are simply whatever real content the extra marker pushed one
+position later -- not independent triggers.
+
+### Phase 20/21 — where the loss occurs: decoder rendering, not decode/IR
+
+Direct proof on AAOTOAA_MSGS.OnNotify (definition 28700):
+
+```text
+original: ...end-class;\n\nDeclare Function Subscribe_FullReplication...
+decoded:  ...end-class;\n\n\nDeclare Function Subscribe_FullReplication...
+```
+
+Identical up to this point; the decoder inserts one extra `\n`. The
+stored bytes contain exactly ONE `0x4F` marker here (confirmed via
+direct token dump) -- so this is not a missing/extra BYTE in the
+program, it is the decoder's own TEXT RENDERING of that one marker
+plus the preceding `0x2D` producing three newlines instead of two.
+`sourceEncode` was already exact for all 482 definitions, proving the
+encoder was never the problem -- confirming Phase 20's expectation
+exactly ("ROUNDTRIP_ONLY should generally imply rendering, not
+decoding").
+
+### Phase 19/24/25 — the exact renderer mechanism (already proven, just incomplete)
+
+`decoder.ts`'s `followsDeclaration` check (used to suppress a
+redundant `0x2D` newline immediately before a `0x4F` blank-line
+marker, since the marker already supplies the blank line) already
+exists and is already correctly used for exactly this purpose -- its
+own comment documents the identical bug being found and fixed once
+before for PanelGroup's `0x51`:
+
+```typescript
+if (
+  previous.opcode === 0x44 || previous.opcode === 0x45 ||
+  previous.opcode === 0x54 || previous.opcode === 0x56 ||
+  previous.opcode === 0x31 || previous.opcode === 0x58 ||
+  previous.opcode === 0x51        // <- PanelGroup, fixed previously
+) {
+  followsDeclaration = true;
+  break;
+}
+```
+
+`0x5b` (`end-class`) and `0x64` (`end-method`) were simply never added
+to this list. This is a renderer-only, IR-preserving fix (Phase 44):
+the decoder's own token stream already correctly contains exactly one
+`0x4F` per case; only the text-rendering suppression logic needed
+correcting. No IR fields were added (Phase 43 was not needed -- the
+existing token/opcode information was already sufficient).
+
+### Fix
+
+```typescript
+previous.opcode === 0x51 ||
+previous.opcode === 0x5b ||   // Cycle 79: end-class
+previous.opcode === 0x64      // Cycle 79: end-method
+```
+
+Two opcodes added to the existing list in `decoder.ts`'s
+`followsDeclaration` check. No encoder changes -- `sourceEncode` was
+already exact for the entire population, confirming this campaign
+never touched forward encoding (Phase 48).
+
+`0x71` (`end-interface`) was considered by symmetry but explicitly
+**not** added: a corpus-wide search found zero `end-interface`
+occurrences anywhere in the 482-definition population, so there is no
+evidence either way for it (Phase 41: no speculative additions).
+
+### Fail-before/pass-after proof (`git stash`)
+
+```text
+Before fix (stashed): 28700 -> UNKNOWN_MISMATCH, 28727 -> UNKNOWN_MISMATCH
+After fix (restored):  28700 -> EXACT,            28727 -> EXACT
+```
+
+Adding only `0x5b` first (without `0x64`) moved 28700's own first
+divergence from the `end-class`/`Declare Function` boundary to a
+SECOND, later `end-method`/`method` boundary inside the same
+definition -- direct proof both opcodes are independently real and
+that the fix generalizes rather than being a coincidental shift.
+
+### Full validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped -- unchanged (no unit test added;
+  `tools/corpus/`'s own reusable extraction script plus the git-stash
+  proof above is this cycle's regression evidence, consistent with
+  Cycles 77/78's own precedent for harness/decoder-wiring fixes outside
+  the `tsc -p .` build `rootDir`).
+- `git diff --check`: clean.
+- Protected/full-corpus gate: `npm run corpus:verify` — Improved: 0,
+  Regressed: 0, REGRESSION GATE: PASS.
+- Full top-level harness re-run: **EXACT 24,192 → 24,601 (+409),
+  NONEXACT 6,017 → 5,608 (-409)** -- the second-largest single-cycle
+  gain in this project's history (behind only Cycle 76's +858).
+- Re-ran `cycle76-rowset-package-census.ts`: Matched 5,228 / Mismatched
+  262 / Contradictions 1 -- byte-for-byte unchanged, confirming File/
+  Rowset/PACKAGE campaigns remain fully intact (Phase 56).
+- Re-validated the ORIGINAL 482-definition population directly: 409
+  EXACT, 73 still `UNKNOWN_MISMATCH` -- accounts for the entire +409
+  gain with zero contribution from outside this population.
+
+### Taxonomy redistribution: a perfectly clean 1:1 swap
+
+```text
+Category                  Cycle 78   Cycle 79   Delta
+EXACT                        24,192     24,601     +409
+ROUNDTRIP_ONLY                   482         73     -409
+DECODE_SOURCE_MISMATCH           923        923        0
+DECODER_BARE_IDENTIFIER           26         26        0
+REFERENCE_ACTIVE_PACKAGE         715        715        0
+(every other category unchanged)
+```
+
+Every other category held EXACTLY constant -- the cleanest
+redistribution this project has recorded, confirming the fix is
+correctly and narrowly scoped to decode-rendering fidelity alone, with
+zero bleed into reference/PACKAGE/decode-mismatch classification
+(Phases 54/55/56 all directly confirmed).
+
+### Residual: 73 ROUNDTRIP_ONLY definitions, dominated by a different, separate mechanism
+
+```text
+Residual first-divergence clusters (post-fix):
+  0x4e -> 0x24 (comment-opcode provenance lost)   50
+  0x4f -> 0x5b (missing marker)                    8
+  0x4f -> 0x62 (missing marker)                    6
+  0x4e -> 0x2d                                     2
+  0x01 -> 0x4f                                     2
+  0x21 -> 0x4f                                     1
+  (buffer-length-only divergence)                  4
+```
+
+The dominant residual (50/73, 68%) is a genuinely SEPARATE mechanism:
+PeopleTools sometimes stores a comment using opcode `0x4E` (the
+"alternate/trailing" comment representation `encodeApplicationClassProgramV2`'s
+own `commentOpcodes`/`consumeCommentOpcode` machinery already models)
+but re-encoding decoded text chooses the default `0x24` instead --
+comment-opcode PROVENANCE is not surviving the decode-then-re-encode
+round trip, even though the comment TEXT itself is preserved exactly
+(confirmed via direct inspection: e.g. definition 29859 stores `4e`
+immediately before an otherwise byte-identical comment payload).
+**Not investigated further this cycle** -- Phase 40 ("fix exactly one
+dominant high-payoff family... do not recursively solve all rendering
+issues") and Phase 33's own guidance to stop once the dominant family
+is closed.
+
+### PACKAGE/decoder stability (Phases 48/54/55/56)
+
+`REFERENCE_ACTIVE_PACKAGE`: 715 (unchanged). `DECODE_SOURCE_MISMATCH`:
+923 (unchanged) -- this campaign never touched decode-vs-source
+matching, only decode-to-TEXT rendering fidelity used solely by the
+roundtrip test. `DECODER_BARE_IDENTIFIER`: 26 (unchanged), confirming
+Cycle 77's validator wiring fix remains stable. 671-ordinary-residual
+(Cycle 77's own separate population): unaffected, not investigated,
+since this fix is 92%-App-Class-scoped and the two touched opcodes
+(`end-class`/`end-method`) don't exist in ordinary PeopleCode at all.
+
+### Recommendation for Cycle 80 (not started)
+
+**The 50-definition comment-opcode-provenance residual (`0x4E` vs
+`0x24`)** is the clear, well-evidenced next target within this same
+rendering-fidelity campaign -- small but clean, isolated, and already
+substantially diagnosed (the `commentOpcodes` provenance-tracking
+mechanism already exists in the encoder; the gap is in how/whether the
+roundtrip re-encode path populates it from the decoded token's own
+opcode). Alternatively, `REFERENCE_ACTIVE_RECORD_FIELD` (1,245, now the
+single largest NONEXACT category by a wide margin) offers a much larger
+population if a comparably clean, zero-contradiction mechanism can be
+found there instead.
+
+Per this cycle's own brief: do not start Cycle 80.
+
 ## Cycle 78 — `typeName()` chose the wrong token introducer for six built-in object types: `Local Message`, `JsonArray`, `JsonObject`, `JavaObject`, `GridColumn`, `Exception`
 
 **Status: IMPLEMENTED, validated, zero regressions. Decomposed the 1,042-definition "newly exposed encoder-side" population Cycle 77 uncovered (100% Application Class, 0 ordinary) via a first-true-byte-divergence census. Found a single dominant, zero-contradiction cluster: 160 definitions (15.4% of the population) share one exact first divergence, always at the exact same position -- the token-introducer byte immediately following a `Local <Type> &var;` declaration's type name, where PeopleTools uses `0x0A` (inline-identifier text) but the encoder emits `0x40` (generic keyword) because the type name is not one of the 11 types the encoder's `typeName()` already special-cases. Added `Message` (140/160), `JsonArray`, `JsonObject`, `JavaObject`, `GridColumn`, and `Exception` to that list, following the exact evidentiary precedent already established for `ApiObject`/`Grid`/`ProcessRequest`. Zero contradictions found across 583 corpus-wide declaration-position candidates. Result: +15 EXACT, 0 regressions. Also corrected a Cycle-77-documented mischaracterization: the "`/*OD` comment-terminator byte" lead was never about comments at all -- it was this same type-introducer byte, misread during a quick aside.**
