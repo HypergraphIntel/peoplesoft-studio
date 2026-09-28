@@ -1,5 +1,293 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 62 — method-dependency reuse of an existing class-wide type identity (implemented); the "wrong-identity substitution" label did not survive fresh reconstruction
+
+**Status: IMPLEMENTED, validated, zero classification-level regressions,
+clean gain (+2/-0); one Cycle-61 test ASSUMPTION corrected by direct
+population evidence (documented honestly, not swept aside).** Datasource:
+LOCAL SNAPSHOT throughout. Starting commit `34d6bfd` (Cycle 61).
+Protected/full baseline reproduced: `npm run corpus:verify` —
+23,253/30,209 EXACT, REGRESSION GATE: PASS (0 improved, 0 regressed) —
+matches Cycle 61's documented ending state. Population metrics reproduced
+fresh, all unchanged from Cycle 61's ending values: Cycle 55 171/173,
+Cycle 56 1,752/1,778, Cycle 57 1,037/1,053, Cycle 60 82/82, Cycle 61
+27/28.
+
+### Headline result: "wrong-identity substitution" was a stale label; the real mechanism is a missing reuse check
+
+Reconstructing `29144`/`29202` fresh (both `CAFNUI_UTIL:StringHelper`/
+`CAF_UTIL:StringHelper` — structurally identical twins, differing only in
+whether an `import CAFNUI_CORE:ObjectManager;`/`&Manager.CAFTrace(...)`
+call is present) found the divergence is **not** an existing identity
+being swapped for a wrong one — Phase 3's own test ("does generated
+output contain the expected row somewhere else?") applies cleanly: the
+expected `PACKAGE.FORMATTER` identity (from `import
+FIN_APPROVAL:Helper:Formatter;`) already exists in generated, at the same
+early position as stored. The actual defect was that TWO *additional*
+method-qualified `FORMATTER` references (`.FormatLongDate()`,
+`.FormatCurrencyAmount()`, called on `Local FIN_APPROVAL:Helper:Formatter
+&formatter = %This.Formatter;` — a plain, non-`create` Local assigned
+from a property-getter call) were being allocated as *extra*, separate
+rows instead of being recognized as the same identity — a **missing
+reuse check**, not a substitution. The cycle 58 comparator's own
+`generatedIdentity()` function renders all `kind==='package'` references
+by `className`/`packageName` alone (ignoring `methodName`), so it
+literally could not distinguish "the type row, printed 3 times because 2
+extra method rows exist" from "a genuine wrong-identity swap" — this is
+the same category of comparator-rendering blind spot Cycles 59/60 each
+found once before (see those cycles' own "Lesson" notes), now confirmed a
+third time and worked around by reasoning from the underlying
+`PeopleCodeReference` objects directly rather than the comparator's
+rendered text.
+
+### Phase 9/11/17 (mandatory census) — 722 candidates, 417 supporting, ZERO contradicting
+
+Built `tools/corpus/research/cycle62-method-dependency-typeonly-reuse-census.ts`:
+for every reference the encoder currently allocates via
+`addApplicationClassReference(..., methodName)` (the `isMethodCall`
+branch inside the postfix-chain parser, encoder.ts ~line 9117 pre-fix),
+check stored PSPCMNAME for the same `(PACKAGEROOT, REFNAME)` leaf:
+
+```text
+Candidates (generated method-dependency references): 722
+Reuse hypothesis supported (stored has a type-only row, NO separate
+  method-qualified row for this method):                           417
+Stored HAS its own separate method-qualified row (would be a genuine
+  negative control -- current behavior correct):                     0
+Neither row exists in stored (leaf missing entirely -- a different,
+  unrelated, not-yet-characterized gap):                            305
+```
+
+**Zero cases, across the entire corpus, where stored PeopleTools
+allocates a genuinely separate `APPCLASSMETHOD`-qualified PACKAGE row
+once a type-only identity for that class already exists.** 47 of the 417
+supporting candidates occur in classes that ALSO have an inherited,
+not-own-declared `%This.method()` call elsewhere (the
+`hasUnmodeledThisMethodDependencies` gate) — confirmed with zero
+contradictions there too (see the Cycle 61 test correction below).
+Definition `29109` (`CAFNUI_UTIL:HtmlHelper`, `&helper.GenHtml(...)`
+called from 7+ different methods via `Local CAFNUI_UTIL:HtmlHelper
+&helper = %This.Manager.HtmlHelper;`, in a class with an inherited
+`%This` call elsewhere) is a concrete, real-world instance: stored has
+exactly ONE row for `HtmlHelper` across every calling method.
+
+The 305 "neither" candidates are a heterogeneous, unrelated population
+(spot-checked: `%METADATA`-rooted system types with no import mechanism
+at all; multi-level chains with no single declared local backing them) —
+explicitly NOT investigated or fixed this cycle (Phase 31/Explicitly-not
+below).
+
+### Phase 4 — PSPCMPROG operand mapping (mandatory): the reference's return value is discarded
+
+Tracing the call site: `addApplicationClassReference(...)`'s return value
+is **never captured** by its caller inside the `isMethodCall` branch — the
+method name operand itself is encoded as inline text
+(`textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, member)`, emitted
+a few lines earlier, unconditionally) a few lines before this branch even
+runs. The call exists purely to register a bookkeeping PSPCMNAME row (an
+allocation with no consuming operand) — exactly why `--trace-refs` never
+shows a matching `USE` event for these rows (confirmed by tracing
+`ReferenceTraceEvent`'s three actual `'USE'`-firing call sites, none of
+which cover this branch). This means the complete fix is to **skip the
+allocation entirely** when a compatible identity already exists — no
+operand needs to be redirected to a different reference object.
+
+### Fix implemented (`src/peoplecode/encoder.ts`)
+
+Inside the `isMethodCall` branch (the "leading/declaration-phase
+instances... reuse their runtime-create dependency" logic, unchanged),
+added one additional check before falling through to
+`addApplicationClassReference(...)`: consult the always-present
+`applicationClassTypeReferenceSession` (Cycle 57) for a compatible
+TYPE-only (`methodName` omitted) identity for the same class; if found,
+skip the allocation. Uses the exact same lookup pattern already proven at
+`ensureLocalApplicationClassPackageReference`/`ensureRuntimeCreateReference`'s
+own Cycle 57 call sites — no new cache, no new class, the same
+`ApplicationClassReferenceScope` facade every other Application Class
+reference path already shares.
+
+### An exposed, corrected test assumption: Cycle 61's "negative control" was never population-validated
+
+Running the full test suite after the fix failed exactly one test: Cycle
+61's own mandatory negative control (`'Application Class inherited
+%This.method() call still prevents cross-fragment method-dependency
+reuse'`), which asserted that two `create`-initialized locals of the same
+type, called from two different methods, must allocate SEPARATE
+method-dependency references when the class also has an unrelated
+inherited `%This` call. That assertion was written from architectural
+reasoning alone at the time (extending Cycle 32/34's inherited-method
+gate defensively) — it was **never checked against direct corpus
+evidence**. This cycle's own census directly contradicts it: 47/47
+gate-active candidates support reuse, zero contradict, and `29109`'s real
+`HtmlHelper` usage is textbook confirmation. `%This.method()` calls
+themselves never intersect this code path at all (`%This` is never a
+`&variable`, so `activeApplicationClassReceiver` is never set for it —
+confirmed by a new, second test asserting a `%This` call to a
+not-own-declared method still allocates zero PACKAGE references, exactly
+as every prior cycle found). Per this project's own evidence rule ("the
+stored PeopleSoft representation is the external oracle... do not
+generalize... without evidence") and its "masked equality"/honest-
+reporting precedent, the test's assumption — not this cycle's fix — was
+wrong, and has been corrected in place (renamed, re-documented, expected
+count changed from 2 to 1) rather than silently deleted or left failing.
+A new, second test was added alongside it to keep testing the boundary
+the original test's name implied but its body never actually exercised.
+
+### Validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 582 total, 581 pass, 1 pre-existing skip, 0 fail. The
+  corrected Cycle 61 test and the new companion test both pass; confirmed
+  via `git stash` on `encoder.ts` alone that the corrected test's new
+  expectation (`methodDependencyRefsOn.length === 1`) genuinely depends on
+  this cycle's fix (fails pre-fix with the old encoder, as expected, since
+  pre-fix behavior is exactly what the OLD assertion described).
+- `git diff --check`: clean.
+- Protected/full corpus (`npm run corpus:verify`): 23,253/30,209 EXACT,
+  REGRESSION GATE: PASS, 0 improved / 0 regressed.
+- Full 30,209-definition byte-identical-encode scan (`git stash` on
+  `encoder.ts` before/after): **+2 gained (`29640`, `29664`), 0 lost** —
+  a clean improvement, zero exposed discrepancies this time.
+- Cycle 55/56/57/60/61 populations re-verified with zero regressions:
+  171/173, 1,752/1,778, 1,037/1,053, 82/82, 27/28 — all byte-for-byte
+  identical to Cycle 61's ending values (expected: this fix only touches
+  the METHOD-dependency allocation branch, never consulted by any of
+  those five census scripts, which all test TYPE-only/`create`/wildcard
+  provenance exclusively).
+- **Known multi-identity negative controls** (`29883`, `29797`, `30192`,
+  `28854` — Cycle 56/57's own "genuinely multiple stored identities, never
+  reused" population): `30192`/`28854` generate zero method-dependency
+  references either way (unaffected). `29883`/`29797` DID have generated
+  method-dependency references pre-fix (4 and 3 respectively) that are
+  now zero post-fix (collapsed into their existing type-only reference,
+  e.g. `REPORTDEFN`/`PSXP_RPTDEFNMANAGER`, sequence 7, already present
+  pre-fix). This is **not a new regression**: per Cycle 56's own Phase 22
+  finding, generated was **already** drastically under-allocating for
+  these 4 definitions relative to stored's 2–13 genuinely distinct
+  identities (a pre-existing, unrelated, already-flagged gap); reducing
+  an already-wrong count from "wrong by allocating 3 extra unrelated
+  method rows" to "wrong by collapsing everything to 1" does not cross
+  any classification boundary these definitions weren't already on the
+  wrong side of, and the full-corpus scan and protected gate both confirm
+  zero regression at the authoritative level.
+
+### 29144/29202 status: advanced, cleanly split into two remaining, unrelated, already-isolated issues (Phase 30/43)
+
+Both `29144` and `29202` now show **generated identity count exactly
+matching stored's** (5=5 and 4=4, respectively — the two spurious
+`FORMATTER`-shaped extra rows are gone). Per Phase 30's explicit "stop at
+the next distinct blocker," this cycle does **not** chase either of the
+following, both now newly and cleanly isolated (same two causes, in both
+definitions — the family remains one family, per Phase 21):
+
+1. **The `STRINGHELPER` self-referencing method-dependency row is still
+   missing** (`%This.GetTemplateFields()`, a call to the class's OWN
+   declared method from a sibling method, with no pre-existing type-only
+   identity for the class's own self-type to reuse — this cycle's fix
+   correctly does not fire here, since there is nothing to reuse). This
+   is the SAME shape Cycle 37–41 already formally parked ("Application
+   Class singleton method-bearing self-reference firing decision... NOT
+   DETERMINISTICALLY DERIVABLE from currently available source/
+   local-snapshot inputs" — proven via byte-identical source producing
+   opposite outcomes, `29300`/`29330`). Not reopened, per Phase 34/35's
+   explicit instruction.
+2. **A newly isolated, NOT previously characterized defect**: `.Name`
+   property access on a `GetField(...)`-returned `Field` value and a
+   Record-typed local (`&recValue.Name`, `&fld.Name` inside a
+   `SQLExec(...)` argument list) is wrongly encoded as a symbolic FIELD
+   reference (`FIELD.NAME`) instead of the built-in intrinsic scalar
+   property it actually is (the same category as `.Value`) — a
+   misclassification in the "inline builtin property vs. symbolic
+   reference" boundary the postfix-chain parser already partially
+   handles for other cases (`.Value`, `.RowNumber`, etc. per the encoder's
+   own `isInlineRowStateMember`-style comments). Not investigated further
+   this cycle (out of scope per Phase 30); flagged as a clean, well-
+   isolated lead for a future cycle.
+
+Per Phase 43: both `29144` and `29202` are classified **advanced to
+downstream blocker** (2/2 — not resolved, not split into different
+causes, not reclassified into a different family). Neither reaches
+`sourceEncodeExact=true` this cycle.
+
+### Phase 38/Blast-radius prediction vs. actual
+
+Predicted: only Application Class method calls on a `&variable` whose
+Application-Class type ALREADY has a class-wide (import/property/
+instance/earlier-occurrence) type-only identity established would change;
+calls where no such identity exists yet (including every `%This.method()`
+call, and the `STRINGHELPER` self-method case) are unaffected; ordinary
+(non-Application-Class) PeopleCode is unaffected (context field only
+populated by `encodeApplicationClassProgramV2`). Actual: confirmed
+exactly — the full-corpus scan shows changes limited to Application Class
+definitions with a matching shape, the five existing TYPE-only census
+populations show zero movement (as predicted, since none of them test
+this code path), and the two byte-identical gains are both genuine
+Application Class definitions of exactly the predicted shape.
+
+### Explicitly not done this cycle
+
+- The `STRINGHELPER` self-method row gap — confirmed to be Cycle 37–41's
+  already-parked, proven-non-deterministic family; not reopened.
+- The `.Name` intrinsic-property-vs-symbolic-reference misclassification
+  — newly isolated, clean, but not investigated (a good Cycle 63
+  candidate, see below).
+- The 305-candidate "neither row exists" population from this cycle's own
+  census (heterogeneous: `%METADATA`-rooted system types, multi-level
+  chains with no single declared-local backing) — flagged, not
+  characterized.
+- `28755`/`28964`/`29099` (Cycle 60's genuine declare-function-prepass
+  roots) — reconfirmed unchanged (`sourceEncodeExact: false` for all
+  three, identical first-diff shape to Cycle 61's ending state); this
+  cycle's mechanism does not touch them.
+- `29144`/`29202`'s original 39-root-family siblings, the marker/wildcard/
+  self-metadata campaigns, Cycle 30/31 member-order roots, `29522`, and
+  the decoder — all untouched.
+- Did not start Cycle 63.
+
+### Phase 44 — refreshed active-reference census
+
+Cycle 58's active-reference roots, re-run against current code
+(`cycle58-active-root-recensus.ts`, unmodified): `28713`, `28752`,
+`28755`, `28964`, `29099`, `29389`, `29518`, `29542`, `29614`, `30104`
+unchanged (identical first-divergence shape to Cycle 61's ending state —
+confirming this cycle's fix does not touch them). `29144`/`29202`
+**advanced** (identity count now matches stored; first divergence moved
+from a 3-row spurious-allocation gap to the two distinct, smaller issues
+described above) but remain active (not yet `sourceEncodeExact`).
+
+### Phase 48 — architecture assessment
+
+**Isolated compatibility-policy gap, not evidence of broader conflation.**
+The method-dependency allocation branch (`isMethodCall`,
+`addApplicationClassReference(..., methodName)`) was the ONLY consultation
+site of `activeApplicationClassReceiver` that did not already check the
+class-wide TYPE reuse facade before allocating — every other Application
+Class package-reference allocator (`ensureLocalApplicationClassPackageReference`,
+`ensureRuntimeCreateReference`) already had this check since Cycle 57. This
+is best read as Cycle 57 having covered TWO (not three) of what should
+have been three call sites for the SAME lookup, not a new instance of the
+inherited-`%This`-call gate problem (Cycles 52/57/60/61) — no gate was
+overbroad here; a lookup was simply never wired up at this THIRD call
+site. No further un-wired call sites were found (Phase 1's inventory from
+Cycle 61 remains complete: `nextReference`'s own lookup, the now-fixed
+`isMethodCall` branch, and `bindOwnerReference` — still correctly left
+alone, mechanistically unrelated). Continuing narrow cycling; no broader
+refactor recommended.
+
+### Recommendation for Cycle 63 (not started)
+
+The `.Name` intrinsic-property-vs-symbolic-reference misclassification
+(newly isolated this cycle, affecting both `29144` and `29202` identically)
+is the cleanest, most population-promising next target: a well-bounded,
+previously-uncharacterized construct-recognition question, directly
+advancing two known active roots. Secondary options: the 305-candidate
+"neither row exists" population (heterogeneous, needs its own forensic
+census before any fix); `29144`/`29202`'s original sibling roots from the
+39-root family; or a read-only `bindOwnerReference` audit (Cycle 61's
+still-standing recommendation).
+
+Do not start Cycle 63 in this session.
+
 ## Compiler Semantics Cycle 61 — a fourth instance of the same overbroad `%This`-inherited-call gate, in wildcard-import metadata claiming (implemented)
 
 **Status: IMPLEMENTED, validated, zero regressions, zero exposed
