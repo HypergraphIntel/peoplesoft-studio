@@ -433,6 +433,31 @@ export interface EncodeProgramContext {
    * currently-EXACT definition -- unaffected.
    */
   compilationUnitHasCompiledReferences?: boolean;
+
+  /**
+   * Cycle 67 (definition 28964 and a 31-candidate corpus population,
+   * zero contradictions): `%Super.<property>` accesses an INHERITED
+   * property -- one declared on an ANCESTOR class, never on this class's
+   * own `source`. When that property's declared type is an Application
+   * Class, stored PeopleTools allocates a PACKAGE dependency for it (at
+   * the point of first body-level use, interleaved with other body-level
+   * references -- NOT via the early declaration-dependency prepass,
+   * confirmed by definition `28972`'s own stored PSPCMNAME: its
+   * `PACKAGE.TEXTCATALOG` row for `%Super.TxtCat` lands AFTER a body-level
+   * `RECORD.FIELD` reference, not before it). This class's own source has
+   * no way to discover an ancestor's property declarations (a genuinely
+   * different architectural gap from the already-proven declaration-
+   * dependency PREPASS, Cycle 52/60, which only ever scans THIS class's
+   * own header) -- so the caller externally resolves the ancestor
+   * chain's own property-name -> declared-type map (e.g. from local
+   * snapshot metadata, when the ancestor class is itself present there)
+   * and supplies it here. Every existing caller omits this (stays
+   * `undefined`), so ordinary encoding -- and every already-EXACT
+   * definition -- is completely unaffected. Keys are lowercased property
+   * names; values are the property's declared type exactly as written
+   * (e.g. `"BNE_OPEN_ENROLL_FL:Utility:TextCatalog"`).
+   */
+  inheritedPropertyTypes?: ReadonlyMap<string, string>;
 }
 
 /** Internal-only state shared by Application Class member fragments. */
@@ -8394,6 +8419,18 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     let activeApplicationClassReceiver = baseApplicationClass;
 
     /*
+     * Cycle 67: set true only when THIS primary expression's base token is
+     * literally `%Super` -- consulted, and always cleared, by the VERY
+     * NEXT postfix `.member` step only (see that step's own comment for
+     * why only the first member after `%Super` can be a property name at
+     * all: `%Super.Property.Method(...)`'s `.Method` step is a call on
+     * the PROPERTY's result, not on `%Super` itself, exactly the same
+     * "traverses the property first" distinction `activeApplicationClassReceiver`'s
+     * own comment above already makes for `&typedVar.Property.Method(...)`).
+     */
+    let pendingSuperPropertyResolution = false;
+
+    /*
      * Track an explicit Record.REC root through the postfix parser so its
      * next dotted identifier is encoded as a FIELD PSPCMNAME operand rather
      * than an inline member name.
@@ -8420,6 +8457,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     }
 
     if (source[pos] === '%') {
+      if (/^%Super\b/i.test(source.slice(pos))) {
+        pendingSuperPropertyResolution = true;
+      }
       chunks.push(systemVariable());
     } else if (source[pos] === '(') {
       const startsBooleanUnary = /^\(\s*Not\b/i.test(source.slice(pos));
@@ -8984,6 +9024,39 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         const member = memberMatch[0];
         pos += member.length;
 
+        /*
+         * Cycle 67: resolve `%Super.<property>` to its ancestor-declared
+         * Application Class type, exactly once, for the property step
+         * immediately following `%Super` -- see
+         * `pendingSuperPropertyResolution`'s own declaration comment.
+         * Setting `activeApplicationClassReceiver` here reuses the
+         * EXISTING, already-proven `isMethodCall` branch below (Cycle 62)
+         * to allocate/reuse the type dependency exactly the same way a
+         * `&typedVariable.Property.Method(...)` chain already does --
+         * no new allocation path, no new dedup logic.
+         */
+        let resolvedInheritedPropertyThisStep = false;
+        if (pendingSuperPropertyResolution) {
+          pendingSuperPropertyResolution = false;
+
+          const inheritedType = context?.inheritedPropertyTypes?.get(member.toLowerCase());
+          if (inheritedType !== undefined) {
+            const components = inheritedType
+              .replace(/^(?:array\s+of\s+)+/i, '')
+              .trim()
+              .split(':');
+
+            if (components.length >= 2) {
+              activeApplicationClassReceiver = {
+                packagePath: components.slice(0, -1),
+                className: components.at(-1)!,
+                reuseRuntimeCreateForMethods: false
+              };
+              resolvedInheritedPropertyThisStep = true;
+            }
+          }
+        }
+
         space();
 
         const isMethodCall = source[pos] === '(';
@@ -9515,8 +9588,19 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            * A property/member traversal changes the receiver. Without
            * property-type metadata, any later method in the chain must not be
            * attributed to the original Application Class variable.
+           *
+           * Cycle 67 exception: `%Super.<inheritedProperty>` IS a property
+           * traversal WITH property-type metadata (externally resolved via
+           * `context.inheritedPropertyTypes`) -- exactly the same shape of
+           * carve-out `.ParentRow`/`.ParentRowset` already have a few lines
+           * below for `chainSemantics`, just for `activeApplicationClassReceiver`
+           * instead. Only this ONE step (the property access itself) is
+           * exempted; a SECOND, unrelated bare member later in the same
+           * chain still resets normally on its own iteration.
            */
-          activeApplicationClassReceiver = undefined;
+          if (!resolvedInheritedPropertyThisStep) {
+            activeApplicationClassReceiver = undefined;
+          }
           expectedReferenceMember = undefined;
           /*
            * Cycle 6: mirrors the reset immediately above -- an
