@@ -1,5 +1,313 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 55 — Application Class local declaration reuse for repeated Application-Class leaf types (implemented)
+
+**Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL
+SNAPSHOT throughout. Starting commit `f1872ee` (Cycle 54). Protected/full
+baseline reproduced: `npm run corpus:verify` — 23,253/30,209 EXACT,
+REGRESSION GATE: PASS (0 improved, 0 regressed) — matches Cycle 54's
+documented ending state exactly.
+
+### Phase 1 — reconstructing 28882 fresh: the premise needed correcting
+
+The working hypothesis ("two separate `Local <Package:Class> &var;`
+declarations of the SAME leaf type") was checked against the actual
+source, per the task's own instruction not to assume the shape. The real
+declarations are:
+
+```peoplecode
+Local BEN_EE_DATA_FL:Object:Resource &oResource;
+Local array of BEN_EE_DATA_FL:Object:Resource &arrResource;
+```
+
+— a scalar declaration and an **array-of** declaration of the same LEAF
+type, not two identical declarations. Stored PSPCMNAME has exactly ONE
+`PACKAGE|RESOURCE` row (namenum 9); the current (pre-fix) encoder
+allocated it TWICE (once per declaration, via two different, uncoordinated
+code paths — see Phase 16 below).
+
+28882 also turned out to have several OTHER, unrelated gaps bundled in
+the same definition (stored has 11 PSPCMNAME rows; pre-fix generated only
+produced 6): missing `JSONARRAY`/`JSONBUILDER`/`BENEFITPLANDETAIL` rows
+entirely (a separate, broader "early Local declarations get zero
+allocation" gating issue — see Phase 21 note below, explicitly NOT
+pursued this cycle), the parked self-class row (`PLAN_PROVIDERS`, Cycle
+53's family), and `BENEFITDATAMANAGER` (an inherited property whose type
+this project's per-class encoder cannot resolve from source alone). Per
+Phase 33/34, only the proven repeated-local mechanism was fixed; the rest
+remain open, independent, unrelated gaps.
+
+### Phase 4 — mandatory corpus-wide census (the decisive evidence)
+
+Built `cycle55-repeated-local-census.ts`: scanned all 9,127 Application
+Class method implementations across 1,510 definitions for 2+ `Local`
+(scalar or `array of`) declarations of the same Application-Class leaf
+type within one method body. **173 candidates found.**
+
+**Stored PSPCMNAME allocates exactly ONE identity in every single
+candidate — 173/173, zero contradictions** — regardless of scalar vs
+array-of mixing, regardless of declaration count (up to 21 declarations
+of one leaf in a single method, e.g. `checkEligibility`/`AbsTmplField`),
+regardless of package/method. This directly answers the primary question:
+**Model A (method-wide type reuse) — one identity per Application-Class
+leaf type per method — is proven with zero contradictions.**
+
+The pre-fix generated count, by contrast, ranged from 1 (85→ later
+recounted 116 once method-dependency rows were correctly excluded, see
+below) up to **30** for the same leaf in one method — `addApplicationClassReference`
+(the raw allocator both offending code paths call) has no dedup at all.
+
+### Phase 3 — exact row shape confirmation
+
+A methodology correction was needed mid-investigation: the census's first
+pass counted ALL `package`-kind references matching the leaf class name,
+which conflates the plain type-dependency row (`PACKAGE|<leaf>|||`,
+`appclassmethod` blank) with a **separate, unrelated** per-method-call
+dependency row (`PACKAGE|<leaf>|<pkg>||<METHOD>`, `appclassmethod`
+populated — e.g. definition 29541's `AbsTmplField.SetValue`/`GetValue`
+calls). Stored keeps exactly one of each kind separately; conflating them
+made some pre-fix "generated" counts look larger than the actual
+type-dependency-only mismatch. The census was corrected to filter
+`methodName === undefined` / `appclassmethod === ''` on both sides before
+any further analysis — this only affects the ANALYSIS, not the encoder
+change itself (method-dependency allocation is untouched, per Phase 32's
+explicit provenance-preservation instruction).
+
+### Phase 16/17 — current encoder path trace and canonical key audit
+
+Two code paths in `localDeclaration()` (`encoder.ts`) allocate an
+Application-Class PACKAGE reference for a body-level `Local` declaration,
+neither with any dedup:
+
+1. The **scalar branch** (a "late top-level Application Class Local,
+   after executable code has already begun" — Cycle 26's own rule):
+   gated by `sawTopLevelExecutableStatement` and `controlDepth === 0`,
+   calls `addApplicationClassReference(...)` directly.
+2. The **`array of Package:Class` branch**: unconditional (no gating at
+   all), also calls `addApplicationClassReference(...)` directly.
+
+`addApplicationClassReference` itself (`encoder.ts`) is a raw allocator
+with zero dedup — every call unconditionally appends a fresh reference.
+This is the root cause: two declarations of the same leaf type (via
+either or both branches) always produced two references.
+
+The **already-proven, canonical fix pattern already exists** in the same
+file: `ensureLocalObjectPackageReference` (used for built-in types —
+Record/Field/Rowset/Row/SQL/File/XmlDoc/XmlNode) already implements
+exactly this reuse semantics, and its own comment directly documents the
+precedent this cycle's census re-derived independently: *"Application
+Class METHOD BODIES ... PeopleTools reusing ONE identity for the whole
+method regardless of control-group nesting ... the reuse pool has
+METHOD-WIDE, not control-group-scoped, lifetime there"* (Cycle 36,
+114/122 controls, for built-in types). Application-Class-typed Locals
+were simply never wired into this same mechanism.
+
+### Fix implemented (`src/peoplecode/encoder.ts`)
+
+Added `ensureLocalApplicationClassPackageReference(packagePath,
+className)`, mirroring `ensureLocalObjectPackageReference`'s exact
+key/scope strategy (keyed by `functionDepth:packagePath:className`,
+guarded by `context?.builtinObjectDeclarationsHaveMethodWideLifetime` so
+ordinary — non-Application-Class — PeopleCode is completely unaffected,
+identical to how the built-in-type helper is scoped). Routed BOTH
+offending call sites (the scalar "late Local" branch and the `array of
+Package:Class` branch) through it instead of calling
+`addApplicationClassReference` directly. The raw allocator itself, and
+its OTHER callers (imports, Component declarations, method-dependency
+allocation, runtime-create) are untouched — per Phase 32, this cycle
+deliberately does not collapse those distinct provenances into the same
+pool without population evidence for each.
+
+### Validation ladder
+
+- `npx tsc --noEmit`: clean.
+- `npm test`: 575 total, 574 pass, 1 pre-existing skip, 0 fail (1 new
+  regression test: "Application Class local declarations of the same
+  leaf type reuse one PACKAGE reference regardless of scalar vs array-of
+  shape", reproducing 28882's exact shape; independently confirmed to
+  FAIL against the pre-fix code and PASS against the fix).
+- `git diff --check`: clean.
+- Protected/full corpus (`npm run corpus:verify`): 23,253/30,209 EXACT,
+  REGRESSION GATE: PASS, 0 improved / 0 regressed (unchanged from Cycle
+  54's baseline — expected, see the metric-distinction note below).
+- **Full 30,209-definition byte-identical-encode scan** (before/after via
+  `git stash`, same methodology as Cycle 52): **0 gained, 0 lost**
+  population-wide at the whole-definition level. This is NOT a sign the
+  fix had no effect (see below) — every one of the 173 affected methods'
+  owning definitions has at least one OTHER, independent, pre-existing
+  gap (missing rows, decoder limitations, etc.) that still blocks full
+  byte-identity, exactly matching Cycle 52's own precedent of "encoder
+  genuinely more correct, but the file doesn't cross the finish line
+  because of an unrelated blocker."
+- **Reference-stream-level improvement (the metric that actually shows
+  this fix's effect), re-running the 173-candidate census before/after**:
+  of the 57 originally-mismatched (method, leaf) pairs (using the
+  corrected, method-dependency-excluded count): **3 now fully match
+  stored** (definitions 28882/`Resource`, 29122/`GetInputEntities`/
+  `entitydata`, 29182/`GetInputEntities`/`entitydata`) and **40 more show
+  a direct, measurable reduction in over-allocation count** (e.g. 28726's
+  `adsrelationship`: 7→5; 29109's `entity`: 25→21) even though they don't
+  yet reach full parity, because of a SEPARATE, uncollapsed provenance
+  (see Phase 21 below). **Zero regressions**: no pair moved from matching
+  to mismatched, and no pair's generated count increased.
+- 15 required historical controls (Cycle 52's 6 fixed roots — 28713,
+  28752, 28755, 28964, 29099, 29518; Cycle 53's parked self-class family —
+  28972, 28975, 30104, 28757, 29841; 29522, 29528, 29797, 28820)
+  re-run via the closeout-census tool: identical `sourceEncodeExact`,
+  causal tag, and first-diff percentage in every case, before and after —
+  no movement, no contradiction. 29528 and 28820 remain fully
+  `sourceEncodeExact=true`.
+
+### Phase 21/30 — the residual: a separate, NOT-implemented provenance-unification lead
+
+Investigating one of the 40 "improved but still mismatched" cases
+(definition 28726, method `GetOutgoingRelationships`, leaf
+`ADSRelationship`) found the exact cause of the remaining gap:
+
+```peoplecode
+Local ADSM:ADSRelationship &ship;
+Local array of ADSM:ADSRelationship &AdsRelations = CreateArrayRept(&ship, 0);
+...
+For &i = 1 To &relations.Len
+   Local ADSM:ADSRelationship &relation = create ADSM:ADSRelationship(&m_AdsmDefn, ...);
+   ...
+End-For;
+```
+
+The first two declarations now correctly dedupe via this cycle's fix. The
+THIRD (`&relation`) is excluded from both fixed branches — it has a
+`create AppClass(...)` initializer (the scalar branch's own explicit
+`!/^\s*=\s*create\b/i` guard) AND sits inside a `For` loop (`controlDepth
+> 0`, outside the scalar branch's `controlDepth === 0` requirement) — so
+it is allocated instead through the entirely separate
+`ensureRuntimeCreateReference` cache, which this cycle's fix does not
+touch. Stored PSPCMNAME still wants only ONE identity across all three.
+This is real, concrete evidence that the SAME method-wide identity pool
+should likely also cover `create`-initialized Application-Class locals,
+but that is a **different, broader claim** than this cycle's proven
+population (which only covers same-provenance repeated Local
+declarations) — implementing it now would violate the population
+threshold (Phase 29/30). **Recommended as the priority Cycle 56 target**
+(see below), with a concrete starting definition (28726) and a clear,
+falsifiable hypothesis already stated.
+
+### Phase 21 note — the broader "early vs late Local" gating question (NOT pursued)
+
+While reconstructing 28882, controlled `encodeProgramArtifacts` experiments
+(`cycle55-experiment.ts`, kept as a research artifact) established that
+`sawTopLevelExecutableStatement` — which gates the scalar branch — is
+flipped to `true` by ANY initialized Local declaration (even a plain
+scalar one, e.g. `Local number &n = 5;`) appearing earlier in the same
+leading declaration run, and any Application-Class-typed Local declared
+BEFORE that flip gets ZERO allocation via this mechanism (not merely
+deferred — genuinely nothing). Ground truth (28882's stored
+`BENEFITPLANDETAIL`/`JSONARRAY` rows) suggests early-declared types
+should likely also get a row, which would mean this gate is miscalibrated
+for Application Class method bodies generally — but this is a
+**substantially broader** claim (affecting even single, non-repeated
+Local declarations) that this cycle's population (specifically scoped to
+2+ declarations of the same leaf) does not test or prove. Flagged for
+awareness; not investigated further, per "this cycle is specifically
+about repeated locals unless the population proves a broader rule."
+
+### Important metric distinction (as requested)
+
+- **Top-level EXACT**: unchanged, 23,253/30,209 (masked by the known
+  Application Class decoder-roundtrip limitation, same as every prior
+  encoder-only cycle).
+- **Source → generated binary equality (byte-identical)**: 0 gained, 0
+  lost population-wide (every affected definition has an independent,
+  pre-existing separate blocker).
+- **Reference-stream equality** (the census's own count comparison): 3
+  pairs newly exact, 40 more measurably improved, 0 regressed, out of 57
+  originally mismatched (116/173 → 119/173 correctly matching).
+- **PSPCMNAME equality**: not separately tracked beyond the above (this
+  project's validator does not compare PACKAGEROOT/QUALIFYPATH per Cycle
+  54's own finding, so "PSPCMNAME equality" here reduces to the
+  RECNAME/REFNAME/count/order comparison already captured above).
+
+### Blast-radius prediction vs. actual
+
+Predicted (from source semantics, before running the corpus): only
+Application Class method bodies containing 2+ `Local`/`Local array of`
+declarations of the identical Application-Class leaf type would change;
+ordinary (non-Application-Class) PeopleCode would be completely
+unaffected (the fix is gated by `builtinObjectDeclarationsHaveMethodWideLifetime`,
+set only for Application Class method-body fragments). Actual: confirmed
+exactly — the full 30,209-definition byte-identical scan shows 0 changes
+outside the 173-candidate population's own reference counts, and the
+protected/full gate shows 0 regressions system-wide.
+
+### Explicitly not done this cycle
+
+- The `create`-initialized-Local unification lead (28726) — characterized,
+  not implemented (needs its own population census).
+- The broader "early vs late Local allocation gating" question — flagged,
+  not investigated (out of this cycle's proven scope).
+- 28972/28975/30104/28757/29841 (Cycle 53's parked self-class family) —
+  unchanged, confirmed via historical-control re-run; this cycle's
+  analysis does not explain them.
+- The blank-REFNAME wildcard-import population (Cycle 54) — untouched.
+- Cycle 49–51 marker campaign, Cycle 31 member-order roots, 29522 — all
+  untouched.
+- Did not start Cycle 56.
+
+### Updated active-reference-family accounting
+
+No change to the six numbered active-reference subfamilies from Cycle 53/
+54 (this cycle's target — repeated local Application-Class declarations —
+was a newly-discovered mechanism outside that specific 20-root
+population, not a member of it). New family, now resolved for its proven
+scope:
+
+- **(f) repeated-local Application-Class type reuse**: 173 candidate
+  (method, leaf) pairs censused; 119/173 now correctly match stored
+  (up from 116/173 pre-fix); 3 pairs fully resolved, 40 more measurably
+  improved but blocked by the separate create-initializer/control-depth
+  provenance gap (Phase 21/30); 0 regressions.
+
+**Updated 99-root Application Class campaign accounting:** unchanged
+totals from Cycle 54 (total remains 99) — this cycle's fix operates at a
+finer (method, leaf) granularity within/across many of the 99 roots
+rather than resolving any specific named root outright (none of the 99
+roots happen to be a case where this was the ONLY remaining gap).
+
+### Architectural/refactor signal assessment (Phase 44)
+
+**Not yet, but watch closely.** This is the SECOND time in three cycles
+(Cycle 36's original built-in-type finding, now this cycle's Application-
+Class-type finding) that the SAME underlying fact — Application Class
+method bodies reuse a type-dependency identity method-wide, not
+per-declaration — has needed its own SEPARATE implementation for a
+different type category (built-in vs Application-Class), because
+`addApplicationClassReference` and `ensureLocalObjectPackageReference`
+are two independent, uncoordinated allocators for what is semantically
+the same underlying PeopleTools rule. Phase 21/30's `create`-initializer
+lead is a plausible THIRD instance of the same pattern (a third
+allocator, `ensureRuntimeCreateReference`, also not sharing the pool).
+**If Cycle 56 confirms the `create`-initializer case needs the same
+unification, that would be 3 independent allocators implementing the
+same proven rule inconsistently — a genuine refactor trigger** (a single
+canonical "Application Class method-wide type-identity pool" covering
+Local declarations, array-of-Local declarations, and create-initialized
+locals alike). Not recommending the refactor yet — one more confirmed
+instance is the threshold this project's own convention has used before
+recommending one.
+
+### Recommendation for Cycle 56 (not started)
+
+**Priority target: unify `ensureRuntimeCreateReference` (create-initialized
+locals) with this cycle's `ensureLocalApplicationClassPackageReference`
+(plain/array-of Local declarations) for Application-Class leaf types**,
+starting from definition 28726 (`GetOutgoingRelationships`,
+`ADSRelationship`) as the concrete positive lead. Needs its own
+population census (methods mixing a plain/array-of Local declaration with
+a later `create AppClass(...)` local of the SAME leaf type) before
+implementation, per this project's own population-threshold discipline —
+do not implement from 28726 alone.
+
+Do not start Cycle 56 in this session.
+
 ## Compiler Semantics Cycle 54 — blank-REFNAME PACKAGE row population: fully explained, zero encoder changes (forensic-only)
 
 **Status: FORENSIC ONLY, zero encoder changes.** Datasource: LOCAL SNAPSHOT

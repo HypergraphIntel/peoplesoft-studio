@@ -986,7 +986,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           (functionDepth > 0 && !/^\s*=/.test(source.slice(pos)))) &&
         !/^\s*=\s*create\b/i.test(source.slice(pos))
       ) {
-        addApplicationClassReference(
+        ensureLocalApplicationClassPackageReference(
           appClass.packagePath,
           appClass.className
         );
@@ -1070,7 +1070,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
           const appClass = applicationClassPath();
           chunks.push(appClass.bytes);
-          addApplicationClassReference(appClass.packagePath, appClass.className);
+          ensureLocalApplicationClassPackageReference(appClass.packagePath, appClass.className);
         } else {
           chunks.push(typeName());
           if (/^array$/i.test(elementType ?? '')) {
@@ -1720,6 +1720,47 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    */
   const localObjectPackageReferences =
     new Map<string, PeopleCodeReference>();
+
+  /*
+   * Cycle 55: local Application-Class-typed declarations share the SAME
+   * method-wide reuse pool `ensureLocalObjectPackageReference` already
+   * proved for built-in object types (Cycle 36's 114/122-control finding
+   * just above) -- a corpus-wide census of every Application Class method
+   * body containing 2+ `Local`/`Local array of` declarations of the same
+   * Application-Class leaf type (173 candidates, scalar/array-of mixed
+   * freely, up to 21 declarations of one leaf in a single method) found
+   * stored PSPCMNAME allocates exactly ONE identity in every single case
+   * (173/173, zero contradictions) -- regardless of scalar vs array-of
+   * shape and regardless of declaration count. `addApplicationClassReference`
+   * itself has no dedup at all, so each qualifying declaration allocated an
+   * independent reference (up to 30 duplicates observed for one leaf type
+   * in one method). Scoped identically to `ensureLocalObjectPackageReference`
+   * (guarded by `builtinObjectDeclarationsHaveMethodWideLifetime`, set only
+   * for Application Class method-body fragments) so ordinary PeopleCode's
+   * existing Local-declaration behavior is completely unaffected.
+   */
+  const localApplicationClassPackageReferences =
+    new Map<string, PeopleCodeReference>();
+
+  const ensureLocalApplicationClassPackageReference = (
+    packagePath: string[],
+    className: string
+  ): PeopleCodeReference => {
+    if (!context?.builtinObjectDeclarationsHaveMethodWideLifetime) {
+      return addApplicationClassReference(packagePath, className);
+    }
+
+    const key = `${functionDepth}:${packagePath.map(component => component.toLowerCase()).join(':')}:${className.toLowerCase()}`;
+
+    const existing = localApplicationClassPackageReferences.get(key);
+    if (existing !== undefined) {
+      return existing;
+    }
+
+    const created = addApplicationClassReference(packagePath, className);
+    localApplicationClassPackageReferences.set(key, created);
+    return created;
+  };
 
   const same = (a: string | undefined, b: string | undefined): boolean =>
     (a ?? '').toLowerCase() === (b ?? '').toLowerCase();
