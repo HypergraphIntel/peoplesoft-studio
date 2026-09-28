@@ -620,12 +620,24 @@ function runValidation(
       );
     }
 
+    /*
+     * Cycle 77: `class`/`end-class`/`method`/`end-method` (0x5a/0x5b/
+     * 0x63/0x64) only decode when the caller tells decodeProgram this
+     * program is Application Class PeopleCode (see DecodeOptions.
+     * isApplicationClass's own comment in decoder.ts) -- this call site
+     * never set it, so that already-implemented, already-tested decoder
+     * mechanism never activated anywhere in corpus validation. OBJECTID1
+     * 104 is this project's established Application Class PeopleCode
+     * marker (used consistently by every prior cycle's census tooling).
+     */
     const decoded =
       decodeProgram(
         capture.program,
         names,
         {
-          mode: 'auto'
+          mode: 'auto',
+          isApplicationClass:
+            capture.definition.key.objectId1 === 104
         }
       );
 
