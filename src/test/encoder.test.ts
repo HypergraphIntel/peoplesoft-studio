@@ -3344,6 +3344,126 @@ end-method;`, {
   assert.notStrictEqual(recordReferences[0].index, scrollReferences[0].index);
 });
 
+test('Application Class Record.X passed to a generic method-call argument reuses one class-wide identity across methods, even with an unrelated inherited %This.method() call', () => {
+  // Cycle 72 (definitions 28954/28998/...): outside every RECORD-aware
+  // consumer (GetRecord/Select/GetSetId/CreateRecord's own argument),
+  // `recordReference()` had NO reuse check at all -- a bare `Record.X`
+  // passed to some OTHER, generic consumer (an Application Class method
+  // call, an arbitrary function) always allocated fresh, even though
+  // Cycle 66 already proved the analogous rule for `Field.X`. A
+  // corpus-wide census (`cycle72-generic-record-argument-census.ts`, 511
+  // RECORD candidates repeated 2+ times via a non-RECORD-aware consumer)
+  // found 69 supporting mismatches, 0 contradictions.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run(&obj As ReferenceTest);
+   method RunAgain(&obj As ReferenceTest);
+   method Consume(&rec As Record);
+   method CallInherited();
+end-class;
+
+method Run
+   %This.Consume(Record.TEST_REC);
+end-method;
+
+method RunAgain
+   %This.Consume(Record.TEST_REC);
+end-method;
+
+method Consume
+end-method;
+
+method CallInherited
+   %This.SomeInheritedMethod();
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const recordReferences = encoded.references.filter(r => r.kind === 'record');
+  assert.strictEqual(recordReferences.length, 1);
+});
+
+test('Application Class Scroll.X passed to a generic method-call argument reuses one class-wide identity across methods, even with an unrelated inherited %This.method() call', () => {
+  // Cycle 72 SCROLL-side counterpart to the RECORD test above (180
+  // corpus candidates, 0 contradictions, now 100% matched).
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+   method RunAgain();
+   method Consume(&scrollName As string);
+   method CallInherited();
+end-class;
+
+method Run
+   %This.Consume(Scroll.TEST_SCROLL);
+end-method;
+
+method RunAgain
+   %This.Consume(Scroll.TEST_SCROLL);
+end-method;
+
+method Consume
+end-method;
+
+method CallInherited
+   %This.SomeInheritedMethod();
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const scrollReferences = encoded.references.filter(r => r.kind === 'scroll');
+  assert.strictEqual(scrollReferences.length, 1);
+});
+
+test('Application Class CreateRecord(Record.X) behavior is unaffected by Cycle 72 (its own, pre-existing, separately-calibrated rule)', () => {
+  // Mandatory negative control (Phase 32/33): CreateRecord's own argument
+  // must remain governed by its OWN, separately-calibrated rule (Cycle
+  // 43/47), never Cycle 72's new generic-argument fallback --
+  // `reuseRowShorthandRecord` (set only for CreateRecord's own argument)
+  // explicitly excludes it from the new unconditional class-wide check.
+  //
+  // Verified via `git stash` that this exact source already produces ONE
+  // shared identity on Cycle 71's own code (a PRE-EXISTING cross-method
+  // CreateRecord mechanism, unrelated to and unchanged by this cycle) --
+  // an earlier draft of this test wrongly assumed CreateRecord stays
+  // occurrence-based across methods here and asserted `2`, which failed
+  // (`1 !== 2`); the failure was investigated and confirmed to be a wrong
+  // test assumption, not a Cycle 72 regression, before correcting the
+  // assertion to `1`.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+   method RunAgain();
+   method CallInherited();
+end-class;
+
+method Run
+   Local Record &RecA = CreateRecord(Record.TEST_REC);
+end-method;
+
+method RunAgain
+   Local Record &RecB = CreateRecord(Record.TEST_REC);
+end-method;
+
+method CallInherited
+   %This.SomeInheritedMethod();
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const recordReferences = encoded.references.filter(r => r.kind === 'record');
+  assert.strictEqual(recordReferences.length, 1);
+});
+
 test('ordinary PeopleCode CreateRecord reuse remains occurrence-based, not method-wide', () => {
   // Negative control: outside an Application Class, two flat top-level
   // CreateRecord(Record.X) calls to DIFFERENT target variables must NOT be

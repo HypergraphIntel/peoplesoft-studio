@@ -1,5 +1,296 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 72 — generic Record.X/Scroll.X arguments are ordinary symbolic constants too (mirroring Cycle 66's FIELD rule): SCROLL fully closed (125/125), RECORD 307/318; a deeper, smaller residual remains
+
+**Status: IMPLEMENTED, validated, zero regressions. Cycle 71's own hypothesis (CreateRecord/CreateRowset/generic-argument constructs "never read `dependencyScope` at all") was PARTIALLY right: CreateRowset (bare-call syntax) already worked via Cycle 71's own fix, and CreateRecord is correctly, deliberately excluded (Cycle 43's own mixed population) -- but a THIRD, previously-uncharacterized bucket, "generic Record.X/Scroll.X passed to a non-RECORD-aware consumer" (e.g. an Application Class method-call argument), had NO reuse check at all and is the TRUE remaining mechanism. A corpus-wide census (511 RECORD + 180 SCROLL candidates) found 0 contradictions. SCROLL's cross-method population is now FULLY RESOLVED (125/125, 100%). RECORD improved substantially (294/318 -> 307/318) but 11 rows remain, involving a further, more complex interaction not chased this cycle. The deterministic reference campaign does NOT close -- Outcome B.**
+Datasource: LOCAL SNAPSHOT throughout. Starting commit `719893b` (Cycle
+71). Protected baseline reproduced: `npm run corpus:verify -- --limit
+430` — 430/430 EXACT, REGRESSION GATE: PASS, before any change. Full
+harness reproduced fresh: **23,259 / 30,209 EXACT (6,950 NONEXACT)** —
+again differs slightly from the brief's assumed starting figures
+(23,254/6,955); matches Cycle 71's own actual ending state exactly, and
+the freshly measured values are used throughout. Population metrics
+reproduced fresh, all unchanged from Cycle 71's ending values: Cycle 55
+171/173, Cycle 56 1,758/1,778, Cycle 57 1,037/1,053, Cycle 60 82/82,
+Cycle 61 27/28, Cycle 62 82/205, Cycle 63 65 candidates, Cycle 64
+447/451, Cycle 65 1,457/1,575, Cycle 66 58/58, Cycle 67 63/90, Cycle 68
+record-field 574/581, Cycle 69 296/296, Cycle 70 86/86, Cycle 71 RECORD
+294/318, SCROLL 122/125.
+
+### Phase 1/2 — rebuilding the 27-mismatch set fresh, partitioned by source path
+
+Wrote a classification script bucketing each remaining mismatch's actual
+source occurrences by enclosing consumer (`CreateRecord`, `CreateRowset`,
+`GetRecordAware` [GetRecord/GetRowset/Select/GetSetId], `generic`).
+Confirmed **exactly 27 remaining mismatches** (24 RECORD across 14
+definitions, 3 SCROLL across 3 definitions), matching Cycle 71's saved
+count precisely. Result: only 2 rows were PURELY `CreateRecord`, 2 purely
+`CreateRowset`, 3 purely `GetRecordAware`, 1 purely `generic` — **19 of
+27 were MIXED**, i.e. the SAME record/scroll name reached via 2+
+DIFFERENT consumer types within the same definition. This immediately
+falsified treating "CreateRecord" or "CreateRowset" as the primary
+culprit in isolation — a definition mixing a correctly-reused
+`GetRecordAware` occurrence with an unrelated `generic` occurrence would
+show up as a "GetRecordAware" mismatch even though the GetRecordAware
+side was already fine.
+
+### Phase 4 (unplanned early finding) — `CreateRowset` bare-call syntax already benefits from Cycle 71's fix
+
+Direct empirical test (`CreateRowset(Record.TEST_REC)` called from two
+different methods, gated by an unrelated inherited `%This` call) showed
+**ONE shared identity even on Cycle 71's own code, unmodified this
+cycle** — `CreateRowset`'s bare-call argument-parsing path (a SEPARATE
+code region from the `.member` postfix-chain handler, but setting the
+SAME shared `reuseRecordReferenceWithinControlGroup` flag) was ALREADY
+wired to `dependencyScope.lookupRecord()`, and therefore already
+benefits from Cycle 71's class-wide fallback. This directly falsifies
+Cycle 71's own "CreateRowset never reads dependencyScope at all" analogy
+for the BARE-CALL form — it was only ever true for `CreateRecord`
+specifically (which deliberately sets a DIFFERENT flag,
+`reuseRowShorthandRecord`, and never reads the RECORD-aware pool).
+
+### Phase 19-23 (mandatory census) — the TRUE remaining mechanism: generic Application-Class-method-call arguments
+
+Built `tools/corpus/research/cycle72-generic-record-argument-census.ts`:
+for every Application Class method, finds `Record.X`/`Scroll.X`
+occurrences NOT immediately preceded by one of `CreateRecord`/
+`CreateRowset`/`GetRecord`/`GetRowset`/`Select`/`GetSetId`'s own opening
+paren (e.g. `%This.SomeMethod(Record.X)`, a plain function-call argument),
+repeated 2+ times, and compares stored vs. generated identity counts.
+
+```text
+RECORD: Candidates: 511  Matched: 442  Mismatched (generated>stored): 69  Contradictions: 0
+SCROLL: Candidates: 180  Matched: 176  Mismatched (generated>stored): 4   Contradictions: 0
+```
+
+**Zero contradictions across 691 candidates** — a MUCH larger and
+cleaner population than Cycle 71's own RECORD-aware-path fix (46+24=70
+candidates), decisively crossing the implementation threshold. This
+mirrors Cycle 66's own proven rule for `Field.X` outside `GetField(...)`
+exactly, never previously tested for RECORD/SCROLL.
+
+### Fix: generic-argument fallback in both `recordReference()` and `scrollReference()`
+
+```typescript
+// recordReference(), inserted immediately before the final nextReference() fallthrough
+if (
+  !reuseRowShorthandRecord &&
+  !reuseRecordReferenceWithinControlGroup &&
+  !reuseRecordReferenceByName &&
+  !reuseRecordReferenceWithinCallArguments &&
+  context?.recordDependenciesHaveMethodWideLifetime
+) {
+  const existing =
+    dependencyScope.lookupRecord(recordName) ??
+    context?.applicationClassTypeReferenceSession?.lookup({ kind: 'record', recordName });
+  if (existing !== undefined) {
+    dependencyScope.recordRecord(recordName, existing);
+    return referenceOperand(existing);
+  }
+}
+
+// scrollReference(), inserted before the final occurrence-based fallback
+if (context?.recordDependenciesHaveMethodWideLifetime) {
+  const existing =
+    dependencyScope.lookupScroll(recordName) ??
+    context?.applicationClassTypeReferenceSession?.lookup({ kind: 'scroll', recordName });
+  if (existing !== undefined) {
+    dependencyScope.recordScroll(recordName, existing);
+    return referenceOperand(existing);
+  }
+  const genericReference = nextReference({ kind: 'scroll', recordName });
+  dependencyScope.recordScroll(recordName, genericReference);
+  return referenceOperand(genericReference);
+}
+```
+
+Deliberately excludes `reuseRowShorthandRecord` (CreateRecord's own
+argument, Cycle 43's separately-calibrated mixed population) from the
+RECORD side's new check — the ONLY existing flag standing between "a
+truly generic consumer" and "CreateRecord's own occurrence," confirmed
+by grep to be the SOLE setting site for that flag. Both share the SAME
+`dependencyScope` pool every RECORD-aware consumer already reads/writes
+— one identity regardless of which consumer reaches it first, matching
+Phase 30/31's "mirror established architecture, no new cache" mandate
+exactly.
+
+### Post-fix results
+
+```text
+RECORD generic-argument census: 442/511 -> 491/511 matched (69 -> 20 mismatched), 0 contradictions
+SCROLL generic-argument census: 176/180 -> 180/180 matched (4 -> 0 mismatched) -- FULLY RESOLVED
+Cycle 68 cross-method census (68-record-scroll-classwide-census.ts):
+  RECORD: 294/318 -> 307/318 matched (24 -> 11 mismatched), 0 contradictions
+  SCROLL: 122/125 -> 125/125 matched (3 -> 0 mismatched) -- FULLY RESOLVED
+```
+
+**SCROLL's entire cross-method class-wide reuse population is now
+100% resolved** across both census methodologies.
+
+### Phase 13/27 (unplanned finding) — the remaining 11 RECORD rows involve a deeper, more complex interaction
+
+Direct `--trace-refs` inspection of `29516`'s `GP_ABS_EA_STA` (a bare
+`CreateRowset(Record.GP_ABS_EA_STA)` call repeated in 5 different
+methods) showed PARTIAL success: 4 of the 5 occurrences correctly share
+one identity (confirming both Cycle 71's and this cycle's fixes work
+together for the straightforward case), but a 5th occurrence — inside
+`update_ABS_EA_STA`, a large method with dozens of subsequent bare-member
+`&RSXref(1).GP_ABS_EA_STA.FIELD.Value` accesses, including intervening
+`%This.GetCountry(...)`/`GetEligibilityGroup(...)` calls — allocates
+THREE further distinct identities of its own (`idx=40`, `idx=53`,
+`idx=54`), not just one extra. This is NOT explained by either this
+cycle's or Cycle 71's own fix, and is NOT simply "CreateRecord/CreateRowset
+still unfixed" (CreateRowset's own mechanism is confirmed working
+elsewhere in the SAME definition, e.g. the other 4 occurrences). **A
+distinct, more complex, not-yet-characterized interaction** — plausibly
+related to intra-method control-flow/receiver-chain complexity
+interacting with the reuse pool, not a simple missing-consumer gap.
+Deliberately NOT investigated further this cycle (Phase 28's "stop after
+one mechanism" — this cycle's OWN mechanism, generic-argument reuse, is
+complete and validated).
+
+### Remaining mismatch IDs (Phase 53 accounting)
+
+```text
+RECORD (11 rows across 8 definitions): 28954, 29122 (x2), 29416, 29457 (x3),
+  29516 (x2), 29591, 29621
+SCROLL: none remaining (0/0) -- fully resolved
+```
+
+Of the original 27: **16 resolved by this cycle's fix** (27 - 11 = 16,
+all SCROLL plus 13 RECORD rows), **11 RECORD rows still active, same
+broad family (class-wide RECORD reuse) but a DEEPER, more complex,
+not-yet-characterized sub-mechanism** (not downstream, not parked).
+
+### Test corrections and additions
+
+Added `'Application Class Record.X passed to a generic method-call
+argument reuses one class-wide identity across methods...'` and the
+SCROLL counterpart — both verified via `git stash` to fail before the
+fix (`0 !== 1`-shaped failures) and pass after, per Phase 37's mandatory
+requirement (echoing Cycles 65/71's own caught weak-test lesson).
+
+Added a negative control,
+`'Application Class CreateRecord(Record.X) behavior is unaffected by
+Cycle 72...'`. **First draft asserted CreateRecord stays occurrence-based
+across two different methods (expecting `2`) — this FAILED (`1 !== 2`)
+even though it was meant to be a negative control, not a target.**
+Investigated via `git stash`: the exact same source ALREADY produces `1`
+on Cycle 71's own unmodified code, proving this is a PRE-EXISTING,
+already-established Application Class `CreateRecord` cross-method
+reuse mechanism (separate from and unaffected by this cycle's own fix —
+likely `createRecordReferences`/`createRecordReferenceCounts` being
+shared across fragments, not investigated further since it is out of
+this cycle's scope), not a regression. Corrected the assertion to `1`
+and documented the investigation inline, rather than silently accepting
+a wrong assumption or masking a real question.
+
+### Validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 598/599 pass, 1 skipped (3 tests added, one corrected
+  in-authoring before commit) — zero unrelated failures.
+- `git diff --check`: clean.
+- Cycle 72 own census: RECORD 491/511 (20 mismatched), SCROLL 180/180
+  (0 mismatched), 0 contradictions either way.
+- Cycle 68 cross-method census (re-verified): RECORD 307/318 (11
+  mismatched), SCROLL 125/125 (0 mismatched, fully resolved).
+- Protected gate: `npm run corpus:verify -- --limit 430` — 430/430
+  EXACT, REGRESSION GATE: PASS.
+- Full corpus byte-identical scan (30,209 definitions, `git stash`
+  before/after): **+3 gains (`29373`, `29375`, `29602`), 0 losses.**
+- Full top-level harness re-run: **EXACT 23,259 → 23,259 (unchanged),
+  NONEXACT 6,950 → 6,950 (unchanged)** — the 3 byte-identical gains did
+  not flip to full top-level EXACT (other separate issues remain in
+  those definitions — the established "masked equality" pattern).
+- Re-ran all prior population census scripts (Cycles 55–70): all
+  unchanged — zero regressions.
+
+### `29389`, `28964`, `28755`, `29099`, `28790` re-verification (Phases 41-46)
+
+- **`29389`**: re-verified — **35/35, zero divergence, unchanged.**
+  Remains `reference-complete / downstream`. Not reopened.
+- **`28964`**: unchanged — `DECODE_SOURCE_MISMATCH`, ancestor class still
+  absent locally. Remains parked external-metadata boundary.
+- **`28755`**: unchanged — `DECODE_SOURCE_MISMATCH`, diff at byte 5. Not
+  in either remaining RECORD or SCROLL mismatch list.
+- **`29099`**: unchanged — `DECODE_SOURCE_MISMATCH`, diff at byte 13,
+  same decoder-boundary symptom. Not in either mismatch list — Cycle 72's
+  work does not move it.
+- **`28790`**: unchanged — `DECODE_SOURCE_MISMATCH`, same decoder-boundary
+  symptom. Not in either mismatch list.
+- **OutputField** (Cycle 59 lead): not investigated this cycle, no
+  evidence it overlaps this cycle's mechanism.
+
+### Consumer inventory (closeout question, refreshed)
+
+`recordReference()`'s generic (non-RECORD-aware) argument path and
+`scrollReference()`'s generic argument path both move from "proven
+missing" to "**correctly wired**" — matching every other proven
+consumer's pattern. The remaining 11-row RECORD residual is
+characterized as a DEEPER interaction within the ALREADY-wired
+`CreateRowset`/`GetRecordAware` paths (not a missing-consumer gap;
+`29516`'s own trace confirms the mechanism DOES work for 4 of 5
+occurrences), not a new proven-but-unimplemented consumer.
+
+**Answer: uncertain but leaning YES for identified consumers** — every
+RECORD/SCROLL consumer TYPE this project has explicitly investigated
+(GetRecord/Select/GetSetId/GetRowset/CreateRecord/CreateRowset/generic
+argument) is now correctly wired to the class-wide facade where proven
+appropriate. The remaining 11 RECORD rows are NOT a new unwired consumer
+— they are a not-yet-understood interaction WITHIN an already-wired
+path, requiring its own dedicated chronology/trace investigation (Phase
+27) before it can be classified as either a genuine architecture gap or
+something else entirely (e.g. a method-processing-order effect).
+
+### Fresh active-root census
+
+Unchanged from Cycle 71's own list (none of the 11 active roots appear
+in either RECORD or SCROLL remaining mismatch list this cycle). **Count:
+11, unchanged:**
+
+```text
+28713, 28752, 28755, 28904, 28925, 28964, 29044, 29099,
+29518, 29542, 29614
+```
+
+### 99-root accounting
+
+Unchanged from Cycle 71: total remains 99. No root moved buckets this
+cycle (fix targeted census-discovered definitions, not previously-counted
+roots).
+
+### Architecture assessment
+
+**Substantially more complete, but not fully closed.** SCROLL's
+cross-method class-wide reuse is now a CLOSED, 100%-resolved population
+across every consumer type this project has investigated. RECORD is
+close (307/318, 96.5%) but the remaining 11 rows involve a genuinely
+different, more complex mechanism than "missing class-wide fallback" —
+confirmed by `29516`'s own trace showing the EXISTING fix already works
+for 4/5 occurrences within the same definition. The deterministic
+reference campaign should NOT close this cycle. This is Outcome B:
+fix landed cleanly and closed one entire kind (SCROLL), one smaller,
+structurally different RECORD-only residual remains.
+
+### Recommendation for Cycle 73 (not started)
+
+**Primary: chronological/trace-based investigation of the remaining
+11 RECORD rows** (`29516`'s `GP_ABS_EA_STA`/`GP_ABS_SS_STA` is the
+clearest, most tractable starting point — 4/5 occurrences already work,
+only the 5th, inside a large method with many intervening bare-member
+accesses and `%This`/function calls, produces 3 EXTRA distinct
+identities instead of reusing). This is a smaller, more surgical
+investigation than Cycle 72's own census-driven work, since the
+BROAD population evidence (RECORD/SCROLL class-wide reuse) is already
+established — only this specific interaction remains unexplained.
+Secondary (unchanged from Cycle 70/71): the decoder-side "bare
+identifiers are only supported as calls" symptom, still confirmed
+affecting `28755`/`28964`/`28790`/`29099` independent of
+reference-allocation status.
+
+Do not start Cycle 73 in this session.
+
 ## Compiler Semantics Cycle 71 — RECORD/SCROLL gated-read paths now consult the class-wide facade too (partial resolution: +22 RECORD, +21 SCROLL, 0 contradictions); a deeper, different-population residual identified and deferred
 
 **Status: IMPLEMENTED, validated, zero regressions. `dependencyScope.lookupRecord`/`lookupScroll`'s SINGLE gated read site each now falls back to the class-wide `applicationClassTypeReferenceSession` facade, exactly mirroring the now-proven FIELD pattern (Cycles 69/70). This is a clean, 0-contradiction, evidence-backed improvement (RECORD 272/318 -> 294/318, SCROLL 101/125 -> 122/125) -- but Cycle 70's own "70-candidate population" analogy was only PARTIALLY correct: 27 of the 70 candidates involve a DIFFERENT, deeper mechanism (`CreateRecord`/`CreateRowset`(Record.X) and generic Application-Class-method-call arguments, which never read `dependencyScope` at all, gated or otherwise) that this fix cannot and does not touch. The deterministic reference campaign does NOT close this cycle -- Outcome B (fix lands, one coherent -- but structurally different and harder -- family remains).**
