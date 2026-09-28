@@ -1307,6 +1307,20 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       if (/^Record$/i.test(arrayElementTypes() ?? '')) {
         ensureLocalObjectPackageReference('RECORD', 'Record');
       }
+    } else if (/^File$/i.test(declaredType ?? '')) {
+      /*
+       * Cycle 75 (Application Engine definitions 25388/25391/...,
+       * objectid1 66 -- a 965-candidate corpus population, 0
+       * contradictions, the 2 apparent negative controls both confirmed
+       * to be `rem`-commented, non-compiled declarations): `Global File
+       * &x;` allocates the same PACKAGE/FILE local object dependency row
+       * a `Local File &x;` declaration already does -- `globalDeclaration()`
+       * had NO general built-in-type dispatch at all (only the one
+       * array-of-Record special case above), unlike `componentDeclaration()`,
+       * which already handles Record/Rowset/XmlDoc for the identical
+       * reason.
+       */
+      ensureLocalObjectPackageReference('FILE', 'File');
     }
 
     space();
@@ -1434,6 +1448,17 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * the same treatment but are unconfirmed.
        */
       ensureLocalObjectPackageReference('XMLDOC', 'XmlDoc');
+    } else if (/^File$/i.test(declaredType ?? '')) {
+      /*
+       * Cycle 75 (Application Engine definitions 25969/25971/...,
+       * objectid1 66 -- an 11-candidate corpus population, 0
+       * contradictions): `Component File &var;` allocates the same
+       * PACKAGE/FILE dependency row the Rowset/XmlDoc cases immediately
+       * above already do -- File was the exact gap the XmlDoc comment
+       * above flagged as "unconfirmed," now confirmed. XmlNode/SQL/Row/
+       * ApiObject Component declarations remain unconfirmed.
+       */
+      ensureLocalObjectPackageReference('FILE', 'File');
     }
 
     /*

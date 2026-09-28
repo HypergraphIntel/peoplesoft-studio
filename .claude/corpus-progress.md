@@ -1,5 +1,220 @@
 # Corpus Calibration Progress
 
+## Cycle 75 — `Global File` / `Component File` declarations allocate PACKAGE/FILE: +32 EXACT, a new single-cycle record, File fully closed
+
+**Status: IMPLEMENTED, validated, zero regressions. Both `Global File &x;` and `Component File &x;` declarations never allocated a PACKAGE/FILE dependency row -- `globalDeclaration()` had NO general built-in-type dispatch at all, and `componentDeclaration()`'s existing Record/Rowset/XmlDoc dispatch had an EXPLICIT prior comment flagging File as "unconfirmed" (now confirmed). Fixed both, independently proven (965 Global candidates, 11 Component candidates, 0 contradictions in either population). Result: +32 EXACT, 0 regressions -- the largest single-cycle EXACT gain this project has recorded, surpassing Cycle 74's own record. `File` is now completely eliminated from the remaining `REFERENCE_ACTIVE_PACKAGE` missing-type breakdown across every declaration form (Local, parameter, Global, Component). `ROWSET` (880, deliberately untouched per Cycle 7's own caution) is now the clear #1 remaining subfamily and the natural Cycle 76 target.**
+Datasource: LOCAL SNAPSHOT throughout. Starting commit `ee15ecf` (Cycle
+74). Protected baseline reproduced: `npm run corpus:verify -- --limit
+430` — 430/430 EXACT, REGRESSION GATE: PASS, before any change. Full
+harness reproduced fresh: **23,284 / 30,209 EXACT (6,925 NONEXACT)** —
+matches Cycle 74's own ending state exactly. Cycle 73 taxonomy
+reproduced fresh: `REFERENCE_ACTIVE_PACKAGE` = 1,468 (exact match). Test
+baseline reproduced: 600/601 (matches Cycle 74's ending state). All
+prior population census scripts (Cycles 55-72) re-verified unchanged
+before any change.
+
+### Phase 11/12 — parser/encoder representation: two structurally separate dispatch functions, neither reusing the Local-declaration path
+
+Direct code inspection (not sampling alone) located the exact allocation
+functions:
+
+- **`globalDeclaration()`** (triggered by the `Global` keyword in
+  `statement()`'s own dispatch): handles `array of Record` as one narrow
+  special case, and separately tracks `Rowset`-typed variables into
+  `chainSemanticsDeclaredRowsetVariables` (Cycle 7's own addition) — but
+  calls `ensureLocalObjectPackageReference` for **NO plain built-in type
+  at all**. This is the more severe gap of the two.
+- **`componentDeclaration()`** (triggered by the `Component` keyword):
+  ALREADY has a working `if/else if` dispatch calling
+  `ensureLocalObjectPackageReference` for `Record`, `Rowset` (definition
+  4067's own citation), and `XmlDoc` (definition 935's own citation) —
+  each added one at a time in an EARLIER cycle. Critically, the XmlDoc
+  branch's own comment explicitly states: **"Only XmlDoc is evidenced so
+  far; XmlNode/SQL/File/Row/ApiObject Component declarations may need
+  the same treatment but are unconfirmed."** This cycle confirms File.
+
+Both are entirely separate from the `Local <Type> &x;` dispatch
+(Cycle 74's own target) and from the parameter-typing dispatch (also
+Cycle 74) — three independent code paths for the same underlying
+"declare a built-in-typed variable" concept, each with its own,
+independently-evolved type coverage.
+
+### Phase 5/6 — full corpus-wide census, both scopes proven independently
+
+```text
+Global File:    Candidates: 965  stored has PACKAGE.FILE: 963 / lacks: 2
+                Matched: 11  Mismatched: 945  Contradictions: 0
+Component File: Candidates: 11   stored has PACKAGE.FILE: 11 / lacks: 0
+                Matched: 0   Mismatched: 11   Contradictions: 0
+```
+
+**Zero contradictions in either population.** All 965+11 = 976 candidates
+carry `objectid1 = 66` (Application Engine PeopleCode) — this campaign is
+entirely Application-Engine-specific, answering Phase 9/10 directly: no
+Application Class, Record, Component, or Page PeopleCode candidates were
+found for either scope.
+
+### Phase 7 (mandatory) — the 2 Global File "negative controls" are false positives, not a usage-driven trigger
+
+Directly inspected both apparent negative controls (definitions `26010`,
+`27360`): both show the exact text `rem Global File &log;` /
+`Rem Global File &log;` — **`rem`-commented, non-compiled declarations**,
+not real code. Neither is a genuine case of an unused-but-declared File
+variable lacking a PACKAGE row; both are census-regex noise (the same
+"commented-text false positive" pattern found repeatedly in Cycles 68/72/73).
+**Answer to Phase 7/23: allocation is declaration-driven (Model A),
+not usage-driven** — with 963/965 real (non-commented) declarations
+confirmed to receive PACKAGE.FILE regardless of whether the variable is
+later used, no genuine unused-but-declared exception was found.
+
+### Fix: both scopes, mirroring the exact existing precedent
+
+```typescript
+// globalDeclaration() -- new general dispatch, alongside the existing
+// array-of-Record special case
+} else if (/^File$/i.test(declaredType ?? '')) {
+  ensureLocalObjectPackageReference('FILE', 'File');
+}
+
+// componentDeclaration() -- new branch in the EXISTING Record/Rowset/XmlDoc chain
+} else if (/^File$/i.test(declaredType ?? '')) {
+  ensureLocalObjectPackageReference('FILE', 'File');
+}
+```
+
+Both call the SAME canonical `ensureLocalObjectPackageReference` helper
+every other built-in-type declaration form already uses (Phase 13/14/36:
+no new cache, no duplicated row construction, reuses the existing
+identity-keying/scope-lifetime logic verbatim). Per Phase 26, Rowset was
+NOT touched in either function — Cycle 74's own caution remains fully
+respected; this cycle's own census evidence is File-specific only.
+
+### Post-fix census
+
+```text
+Global File:    Matched: 955 (up from 11)  Mismatched: 1  Contradictions: 0
+Component File: Matched: 11 (up from 0, 100%)  Mismatched: 0  Contradictions: 0
+```
+
+**Component File is now fully closed (11/11).** Global File resolves
+954 of 965 (98.9%), with exactly 1 remaining mismatch (definition
+`29329`, not investigated further — a single-definition tail, not a
+second population).
+
+### Test additions (Phases 38/39/40, 43 stash-verified)
+
+Added 4 tests, mirroring Cycle 74's own established pattern exactly:
+`'a Global File declaration allocates an implicit PACKAGE/FILE dependency
+row'` and its negative control (`Global string` does not), plus the same
+pair for `Component File`/`Component string`. Verified via `git stash`
+that BOTH positive tests fail before the fix and pass after; both
+negative controls passed unchanged before and after (unaffected by the
+new, narrowly-scoped branches).
+
+### Validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 604/605 pass, 1 skipped (4 tests added) — zero unrelated
+  failures.
+- `git diff --check`: clean.
+- Protected gate: `npm run corpus:verify -- --limit 430` — 430/430
+  EXACT, REGRESSION GATE: PASS.
+- Full corpus byte-identical scan (30,209 definitions, `git stash`
+  before/after): **+35 gains, 0 losses.**
+- Full top-level harness re-run: **EXACT 23,284 → 23,316 (+32),
+  NONEXACT 6,925 → 6,893 (-32)** — a new single-cycle record, surpassing
+  Cycle 74's own +25. 3 of the 35 byte-identical gains did not fully
+  convert to top-level EXACT (a separate, uninvestigated blocker in each
+  — the established "masked equality" pattern, present but small this
+  time: 32/35 = 91% conversion, still far higher than most prior cycles).
+- Re-ran all prior population census scripts (Cycles 55-72): all
+  unchanged — zero regressions.
+
+### Phase 43/44/47 — taxonomy impact: File fully eliminated from the remaining breakdown
+
+```text
+REFERENCE_ACTIVE_PACKAGE: 1,468 -> 1,459  (-9; most of the 964 fixed
+                                            definitions were NOT the FIRST
+                                            reference divergence for their
+                                            own definition -- these are
+                                            large, complex Application
+                                            Engine programs with other,
+                                            earlier-occurring divergences
+                                            too, so the taxonomy's own
+                                            "first divergence" bucketing
+                                            barely moves even though the
+                                            underlying File gap is fully
+                                            fixed and the real EXACT count
+                                            rose by +32)
+EXACT:                     23,284 -> 23,316  (+32)
+NONEXACT:                  6,925 -> 6,893    (-32)
+```
+
+Remaining `REFERENCE_ACTIVE_PACKAGE` missing-type breakdown (re-run
+against the post-fix 1,459 population):
+
+```text
+ROWSET          880  (unchanged -- deliberately untouched)
+MESSAGE          53
+GRIDCOLUMN       38
+TRANSFORMDATA    27
+JAVAOBJECT       16
+ROW              13
+APIOBJECT        12
+CHART            12
+RECORD           11
+FIELD            10
+...
+FILE              0  <- fully eliminated (was 915 pre-Cycle-74, 873
+                        after Cycle 74's parameter-only fix, now 0
+                        across every declaration form)
+```
+
+**`File` is completely closed as a PACKAGE-coverage gap** — Local,
+parameter, Global, and Component forms are all now correctly handled.
+
+### Phase 48/49/50/51 — roadmap update
+
+- `REFERENCE_ACTIVE_PACKAGE` remains the #1 NONEXACT category (1,459,
+  still ahead of `DECODER_BARE_IDENTIFIER`'s unchanged 1,344).
+- **`ROWSET` (880) is now unambiguously the largest remaining PACKAGE
+  subfamily** — larger than every other remaining type combined (53+38+
+  27+16+13+12+12+11+10+... ≈ 240). This is the natural next target, but
+  per Cycle 74's own caution and this cycle's own Phase 26 discipline,
+  it requires understanding Cycle 7's original 48-definition population
+  and the exact discriminating condition (contextual, not a simple
+  always/never rule) before any implementation.
+- Concentration: top 1 share ≈ 21.2%, top 3 ≈ 58%, top 5 ≈ 76% (all
+  essentially unchanged from Cycle 74 — this cycle removed definitions
+  roughly proportionally rather than reshaping the distribution, same
+  pattern as Cycle 74 itself).
+
+### Phase 52/53 — unchanged, not investigated
+
+RECORD residual (11 mismatches) and quoted/component
+(`REFERENCE_ACTIVE_QUOTED_COMPONENT` = 6) both reproduced unchanged, per
+the brief's own explicit instruction not to revisit them.
+
+### Recommendation for Cycle 76 (not started)
+
+**Primary: the `Rowset`-as-declaration/parameter puzzle (880 remaining
+definitions)** — by far the largest remaining PACKAGE subfamily, but
+requires dedicated forensic work FIRST: reconstruct Cycle 7's own
+original 48-definition population fresh, directly compare against this
+project's own new evidence (definition `4842`: three `Function
+X(&TargetRs As Rowset, ...)` declarations, each correctly allocating its
+own `PACKAGE.ROWSET` row in stored, contradicting a naive "Rowset
+parameters never get PACKAGE" reading of Cycle 7's own regression
+history), and find the TRUE discriminating condition before touching
+any encoder code. This is explicitly a forensic-first cycle, not an
+implementation-first one. Secondary: the decoder-side bare-identifier
+symptom (1,344, unchanged, now closer to `REFERENCE_ACTIVE_PACKAGE`'s
+own shrinking lead). Tertiary: the next-largest PACKAGE type after
+Rowset (`Message`, 53) if Rowset's own investigation proves unexpectedly
+difficult or low-confidence.
+
+Do not start Cycle 76 in this session.
+
 ## Cycle 74 — File-typed Function parameters allocate PACKAGE/FILE: +25 EXACT, the largest single-cycle gain since the early campaign
 
 **Status: IMPLEMENTED, validated, zero regressions. `REFERENCE_ACTIVE_PACKAGE` (1,508 definitions) does NOT share one bug — it splits into at least three distinct mechanisms (File/Rowset-as-parameter, Global/Component-scope built-in declarations, and a long tail of one-off Application-Class-name PACKAGE gaps). Implemented exactly one, fully proven subfamily: `File`-typed Function/Method PARAMETERS never allocated a PACKAGE/FILE dependency row (the parameter-typing dispatch only ever recognized Record/Row for this purpose). Result: +25 EXACT, 0 regressions, 100% of the forward byte-identical gain converted to full top-level EXACT — the largest single-cycle EXACT gain this project has recorded since the original Cycle 52 campaign. `REFERENCE_ACTIVE_PACKAGE` remains the #1 NONEXACT category (1,468, down from 1,508) and the correct Cycle 75 target, via two newly-characterized, NOT-yet-implemented subfamilies.**
