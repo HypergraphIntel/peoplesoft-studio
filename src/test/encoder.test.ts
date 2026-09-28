@@ -3571,6 +3571,57 @@ test('a Component string declaration does not allocate a PACKAGE/FILE dependency
   assert.strictEqual(packageReferences.filter(r => r.packageName === 'FILE').length, 0);
 });
 
+test('a Global Rowset declaration allocates an implicit PACKAGE/ROWSET dependency row', () => {
+  // Cycle 76 (definitions 4290/7146/..., objectid1 1/9/10/66/104 -- a
+  // 962-candidate corpus population spanning multiple program types, 0
+  // contradictions): `globalDeclaration()` had the SAME gap for Rowset
+  // that Cycle 75 found and fixed for File -- `Local Rowset &x;`/
+  // `Component Rowset &x;` already allocate PACKAGE/ROWSET, but `Global
+  // Rowset &x;` never did.
+  const encoded = encodeProgramArtifacts(
+    `Global Rowset &rs;
+&rs = GetLevel0()(1).GetRowset(Scroll.TEST_REC);`
+  );
+
+  const packageReferences = encoded.references.filter(r => r.kind === 'package');
+  assert.ok(
+    packageReferences.some(r => r.packageName === 'ROWSET'),
+    'a Global Rowset declaration must allocate a PACKAGE/ROWSET dependency row'
+  );
+});
+
+test('a Global string declaration does not allocate a PACKAGE/ROWSET dependency row, unaffected by Cycle 76', () => {
+  // Mandatory negative control: only a genuine Rowset-typed Global
+  // declaration triggers the new allocation.
+  const encoded = encodeProgramArtifacts(`Global string &s;`);
+
+  const packageReferences = encoded.references.filter(r => r.kind === 'package');
+  assert.strictEqual(packageReferences.filter(r => r.packageName === 'ROWSET').length, 0);
+});
+
+test('a Rowset-typed Function parameter still does not allocate PACKAGE/ROWSET, preserving Cycle 7\'s own historical finding', () => {
+  // Mandatory historical negative control (Phase 39): Cycle 7's own
+  // 48-definition Rowset-typed-parameter population found 4 definitions
+  // ALREADY EXACT with NO PACKAGE/ROWSET row for their own parameter --
+  // a broad "Rowset parameter always allocates PACKAGE.ROWSET" rule was
+  // attempted and reverted specifically because it regressed those
+  // already-correct definitions. This cycle's own Global-declaration fix
+  // must not accidentally widen to cover parameters too -- `registerTypedParameter`
+  // (the parameter-typing dispatch) still deliberately excludes Rowset.
+  const encoded = encodeProgramArtifacts(
+    `Function HideRecordColumns(&TargetRs As Rowset, &TargetRow As number)
+   Local Record &GridRecord;
+End-Function;`
+  );
+
+  const packageReferences = encoded.references.filter(r => r.kind === 'package');
+  assert.strictEqual(
+    packageReferences.filter(r => r.packageName === 'ROWSET').length,
+    0,
+    'a Rowset-typed Function parameter must remain unaffected by Cycle 76 -- that population is genuinely mixed (Cycle 7) and was not touched'
+  );
+});
+
 test('a blank line after a leading bare semicolon before the first real statement stores its marker', () => {
   // Cycle 49 (9 Application Class constructors, e.g. definition 29110):
   // an Application Class method implementation's own structured

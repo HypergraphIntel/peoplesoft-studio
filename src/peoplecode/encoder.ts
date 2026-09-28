@@ -1321,6 +1321,26 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * reason.
        */
       ensureLocalObjectPackageReference('FILE', 'File');
+    } else if (/^Rowset$/i.test(declaredType ?? '')) {
+      /*
+       * Cycle 76 (definitions 4290/7146/..., objectid1 1/9/10/66/104 --
+       * a 962-candidate corpus population spanning multiple program
+       * types, 0 contradictions, the 2 apparent negative controls both
+       * confirmed to have zero PACKAGE.ROWSET expectation on EITHER side,
+       * not a real counter-example): `Global Rowset &x;` allocates the
+       * same PACKAGE/ROWSET local object dependency row a `Local Rowset
+       * &x;`/`Component Rowset &x;` declaration already does -- the SAME
+       * class of gap `globalDeclaration()` had for `File` (Cycle 75),
+       * just never previously evidenced for Rowset specifically. Cycle
+       * 7's OWN Rowset caution (mixed behavior, regression risk) applies
+       * ONLY to the SEPARATE, still-unproven `Function/Method parameter
+       * As Rowset` population (49.6% matched, genuinely mixed per that
+       * cycle's own 48-definition census) -- NOT to this declaration
+       * scope, which this cycle's own census shows is clean and
+       * one-directional, exactly like `Local`/`Component Rowset` already
+       * are.
+       */
+      ensureLocalObjectPackageReference('ROWSET', 'Rowset');
     }
 
     space();
