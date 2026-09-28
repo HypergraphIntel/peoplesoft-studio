@@ -3491,10 +3491,32 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     // GetField(Field.X) on a .GetRecord(...) chain result is the one
     // evidenced exception: it reuses within the current control group
     // (see reuseFieldReferenceWithinControlGroup's declaration comment).
+    //
+    // Cycle 70 (definitions 29401/29445): this branch only ever consulted
+    // `fieldDependencyScope` (method-wide, via `fieldScopeId()`), unlike
+    // its sibling branch below (fixed in Cycle 69), which also falls back
+    // to the class-wide `applicationClassTypeReferenceSession` facade.
+    // `29445`'s `&GrnRowInfo.GetRecord(Record.GPUS_GRN).GetField(Field.RECIPIENT_ID)`
+    // is reached from TWO different methods (`AddRecipientInfo`,
+    // `SetRecipientID`); stored has exactly ONE PSPCMNAME row, shared by
+    // both, while each method independently (but correctly, method-wide)
+    // allocated its OWN fresh identity. A corpus-wide census
+    // (`cycle70-getfield-chain-classwide-census.ts`, 86 candidates via the
+    // direct `.GetRecord(Record.X).GetField(Field.Y)` chain shape alone --
+    // the same branch is also reached via a numeric-index
+    // `.GetRecord(n).GetField(...)` chain, per 29457's own
+    // `&rsDefaultsSet(&i).GetRecord(1).GetField(Field.EFFDT)`, not
+    // separately re-counted) found 79/86 matched, 0 contradictions.
     if (reuseFieldReferenceWithinControlGroup) {
-      const existing = fieldDependencyScope.lookupField(fieldName);
+      const existing =
+        fieldDependencyScope.lookupField(fieldName) ??
+        context?.applicationClassTypeReferenceSession?.lookup({
+          kind: 'field',
+          fieldName
+        });
 
       if (existing !== undefined) {
+        fieldDependencyScope.recordField(fieldName, existing);
         return referenceOperand(existing);
       }
     }

@@ -1,5 +1,309 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 70 — direct `.GetRecord(...).GetField(...)` chain now reuses class-wide too (Cycle 69's own residual, resolved); RECORD/SCROLL facade gap characterized, deferred
+
+**Status: IMPLEMENTED, validated, zero regressions. The 8-candidate
+residual Cycle 69 left uncharacterized is now fully resolved (100%
+matched on both its own census and Cycle 69's own census). A SECOND
+coherent, zero-contradiction family (RECORD/SCROLL cross-method class-wide
+reuse, 70 candidates, unchanged from Cycle 68) remains ready for
+implementation but was deliberately NOT touched this cycle, per "stop
+after one implemented mechanism." The deterministic reference campaign
+does NOT close this cycle — Outcome A (one family fixed), not Outcome B.**
+Datasource: LOCAL SNAPSHOT throughout. Starting commit `14d3b92` (Cycle
+69). Protected baseline reproduced: `npm run corpus:verify -- --limit
+430` — 430/430 EXACT, REGRESSION GATE: PASS, before any change. Full
+harness reproduced fresh: **23,259 / 30,209 EXACT (6,950 NONEXACT)** —
+again differs slightly from the brief's assumed starting figures
+(23,254/6,955); the freshly measured values (matching Cycle 69's own
+actual ending state exactly) are used throughout. Population metrics
+reproduced fresh, all unchanged from Cycle 69's ending values: Cycle 55
+171/173, Cycle 56 1,758/1,778, Cycle 57 1,037/1,053, Cycle 60 82/82,
+Cycle 61 27/28, Cycle 62 82/205, Cycle 63 65 candidates, Cycle 64
+447/451, Cycle 65 1,448/1,575 (pre-fix), Cycle 66 58/58, Cycle 67 63/90,
+Cycle 68 record-field 574/581, Cycle 68 record-scroll 272/318 RECORD +
+101/125 SCROLL, Cycle 69 288/296.
+
+### Part A/B — reconstructing the 8-candidate residual fresh
+
+Re-ran `cycle69-getfield-argument-reuse-census.ts` fresh (not relying on
+Cycle 69's own shorthand description): confirmed the 8 mismatches collapse
+to exactly **2 definitions** — `29445` (`GrnCi`: EMPLID, RECIPIENT_ID x2,
+GPUS_DED_STARTDT) and `29457` (`TmplCreation`: EFFDT x4, one row per
+qualifying method).
+
+Direct `--trace-refs` inspection of `29445`'s `RECIPIENT_ID` disproved the
+"census-counting artifact" hypothesis carried over from Cycle 69's own
+speculation: the trace shows a clean `ALLOC`+multiple-`USE` sequence
+within `AddRecipientInfo` (correct method-wide reuse, confirming Cycle
+69's OWN fix works), followed by a SEPARATE, FRESH `ALLOC` inside
+`SetRecipientID` — a genuine SECOND identity for a field stored allocates
+only ONE row for. **Not a census artifact — a real, distinct gap.**
+
+Source construct for both: `&receiver.GetRecord(Record.X).GetField(Field.Y)`
+(`29445`) and `&rsDefaultsSet(&i).GetRecord(1).GetField(Field.EFFDT)`
+(`29457`, a NUMERIC row-index `.GetRecord(1)`, not `Record.X` — the same
+code branch, reached via a different GetRecord argument shape), each used
+via this DIRECT chain shape across 2+ methods of the same class. This is
+the `fieldMemberFromGetRecord && expectedReferenceMember === 'field'` case
+that sets `reuseFieldReferenceWithinControlGroup` — a DIFFERENT branch of
+`fieldReference()` than the one Cycle 69 fixed.
+
+### Part C/D/E — exact semantic shape distinguishing the residual from Cycle 69's own fix
+
+Cycle 69 fixed the branch guarded by `!reuseFieldReferenceWithinControlGroup`
+(a stored `Local Record` variable's LATER `.GetField(Field.X)` call, not
+an immediate chain continuation) — that branch already had a class-wide
+`applicationClassTypeReferenceSession` fallback (Cycle 65's own wiring).
+**The `reuseFieldReferenceWithinControlGroup` branch itself (direct
+`.GetRecord(...).GetField(...)` chain continuation) never had that
+fallback at all** — it only ever consulted `fieldDependencyScope`
+(method-wide, via `fieldScopeId()`). Defect classification (Part C): pure
+**reference allocation** (generated has extra identities stored never
+allocates), not ordering/binding/kind/decoder. Both `29445` and `29457`
+remain reference-active before the fix (Part C's "already reference-complete"
+carve-out does not apply to either).
+
+### Part G (mandatory corpus-wide census)
+
+Built `tools/corpus/research/cycle70-getfield-chain-classwide-census.ts`
+(deliberately scoped to the `.GetRecord(Record.X).GetField(Field.Y)` shape
+specifically — the numeric-index `.GetRecord(n)` variant is the SAME code
+branch but not separately re-counted by this script's regex, a known,
+disclosed undercount):
+
+```text
+Pre-fix:  Candidates: 86  Matched: 79  Mismatched (generated>stored): 7  Contradictions: 0
+```
+
+3 definitions involved: `29401` (2 fields), `29445` (5 fields), plus
+`29457` (reached via the numeric-index variant, not counted by this
+script's own regex but confirmed by direct source inspection and by
+Cycle 69's own broader census, which DOES capture it). Zero
+contradictions across 86 candidates — crosses the implementation
+threshold decisively (Part H: no negative control found where stored
+intentionally keeps this exact chain shape occurrence-based across
+methods).
+
+### Fix: add the class-wide fallback to `reuseFieldReferenceWithinControlGroup`'s own branch
+
+```typescript
+if (reuseFieldReferenceWithinControlGroup) {
+  const existing =
+    fieldDependencyScope.lookupField(fieldName) ??
+    context?.applicationClassTypeReferenceSession?.lookup({
+      kind: 'field',
+      fieldName
+    });
+
+  if (existing !== undefined) {
+    fieldDependencyScope.recordField(fieldName, existing);
+    return referenceOperand(existing);
+  }
+}
+```
+
+Mirrors the sibling branch's exact pattern (consult the EXISTING canonical
+class-wide facade, Cycle 65's own mechanism — no new cache, no new
+allocator, no fixture hacks, per Part's "preferred implementation
+principles"). `applicationClassTypeReferenceSession` is `undefined` for
+ordinary PeopleCode, so this is a no-op there regardless.
+
+Post-fix: **`cycle70-getfield-chain-classwide-census.ts`: 86/86 matched, 0
+mismatched, 0 contradictions. `cycle69-getfield-argument-reuse-census.ts`:
+296/296 matched, 0 mismatched, 0 contradictions** (confirms the
+numeric-index variant, not separately counted by Cycle 70's own script,
+is ALSO resolved via the same code path). **The 8-candidate residual is
+fully closed.**
+
+### Part F — do the 8 candidates form one family?
+
+Yes: both `29445` and `29457` share the identical allocator
+(`fieldReference()`'s `reuseFieldReferenceWithinControlGroup` branch), the
+identical missing mechanism (no class-wide fallback), and the identical
+expected reuse rule (Cycle 65's own class-wide FIELD reuse, already
+proven for every OTHER FIELD-kind consumer). One family, one fix.
+
+### Part I/J/K/L/M/N/O/P — RECORD/SCROLL facade gap: characterized, NOT implemented this cycle
+
+Re-ran `cycle68-record-scroll-classwide-census.ts` fresh: **unchanged from
+Cycle 68 — RECORD 272/318 matched (46 mismatched, 0 contradictions),
+SCROLL 101/125 matched (24 mismatched, 0 contradictions)**. This cycle's
+FIELD-kind fix does not touch RECORD/SCROLL kind at all (confirmed: the
+numbers are byte-for-byte identical to Cycle 68's own values).
+
+This is a SECOND coherent, zero-contradiction, cross-method class-wide
+reuse gap — same architecture, same missing pattern
+(`dependencyScope`'s `lookupRecord`/`lookupScroll`, keyed by
+`recordScopeId()`, never consults `applicationClassTypeReferenceSession`
+as a fallback the way `fieldReference()`'s two branches now both do).
+`applicationClassReferenceKey()` already includes `kind` in its JSON key
+(Part M: `record` and `scroll` kinds with the SAME leaf text produce
+DIFFERENT keys — `["record", "gpus_grn", ...]` vs `["scroll", "gpus_grn", ...]`
+— no collision risk, confirmed by inspection, not assumed). This satisfies
+Part P's implementation threshold (2+ independent definitions, 0
+contradictions, existing facade can express the rule safely) — **but is
+deliberately NOT implemented this cycle**, per the brief's own explicit
+"stop after one implemented mechanism" instruction (Cycle 70 already
+implemented the FIELD-kind fix above). Recommended as the primary Cycle
+71 target.
+
+### Part Q — decoder-side "bare identifiers" symptom: confirmed NOT reference-related, out of scope
+
+Re-checked `28755`, `29099`, `28964`, `28790` fresh: all four remain
+`DECODE_SOURCE_MISMATCH`, unchanged byte-diff positions (5, 13, 5,
+no-diff-shown respectively) and the SAME `Cannot encode PeopleCode at
+source offset N: bare identifiers are only supported as calls` error.
+This cycle's own fix targets (`29445`, `29457`, `29401`) ALSO carry this
+IDENTICAL symptom (offsets 397, 664, 440) despite their OWN
+reference-allocation gap now being fully resolved — direct confirmation
+that this decoder symptom is COMPLETELY INDEPENDENT of reference
+allocation (a definition can be simultaneously reference-complete AND
+still blocked by this decoder issue). The FIRST-diff byte positions for
+the four tracked roots (5, 13, 5) are far too early in the encoded
+program to plausibly be reference-operand-related (0x21 operands
+typically appear well into a program's body) — these are classified
+**decoder-only / structural**, not active deterministic reference work,
+confirming Part Q's classification without needing to fix decoder logic.
+Not investigated further (encoder/decoder separation rule).
+
+### `29389`, `28964` verification (Parts U/V)
+
+- **`29389`**: re-verified via `cycle69-29389-reconstruction.ts` — **35/35,
+  zero divergence, unchanged.** Remains `reference-complete / downstream`.
+  Not reopened.
+- **`28964`**: unchanged — `DECODE_SOURCE_MISMATCH`, ancestor class
+  (`BNE_OPEN_ENROLL_FL:Page:SubPage:EnrollElect`) still absent from the
+  local snapshot. Remains parked external-metadata boundary. No ancestor
+  declarations invented.
+
+### Validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 592/593 pass, 1 skipped — zero regressions (no test needed
+  correction this cycle; no pre-existing test encoded the disproven
+  assumption this time).
+- `git diff --check`: clean.
+- Cycle 70 own census: 86/86 matched (post-fix), 0 mismatched, 0
+  contradictions.
+- Cycle 69 own census (re-verified post-fix): 296/296 matched (up from
+  288), 0 mismatched, 0 contradictions — the residual's numeric-index
+  variant confirmed resolved too.
+- Protected gate: `npm run corpus:verify -- --limit 430` — 430/430 EXACT,
+  REGRESSION GATE: PASS.
+- Full corpus byte-identical scan (30,209 definitions, `git stash`
+  before/after): **+0 gains, 0 losses** — `29401`/`29445`/`29457` all
+  carry the separate decoder-side blocker (and possibly other issues),
+  so this correct reference-allocation fix does not by itself flip any
+  definition to byte-identical (same "masked equality" pattern as most
+  prior cycles).
+- Full top-level harness re-run: **EXACT 23,259 → 23,259 (unchanged),
+  NONEXACT 6,950 → 6,950 (unchanged)**.
+- Re-ran all prior population census scripts (Cycles 55–68): all
+  unchanged EXCEPT Cycle 65's own census, which IMPROVED AGAIN
+  (1,448/1,575 → 1,457/1,575 matched, +9) — a second consecutive genuine
+  side-effect improvement (Cycle 69 also improved it, 1,430→1,448); zero
+  regressions anywhere.
+
+### Reference-complete-but-NONEXACT metric (closeout metric)
+
+`29389` remains the sole confirmed **fully reference-complete** definition
+in this project's own tracked history (35/35, zero divergence) that is
+still top-level NONEXACT purely due to out-of-scope causes (production
+harness scoping + decoder). `29445`/`29457`/`29401` are now FIELD-reference-complete
+for the specific mechanism this cycle targeted, but have not been given a
+full fresh reference-stream reconstruction (unlike `29389`'s own
+dedicated, ancestor-aware script) — their remaining NONEXACT status is
+confirmed caused by the decoder-side symptom, but whether their FULL
+reference streams are now zero-divergence (like `29389`'s) was not
+individually verified this cycle; scoped out to keep this cycle bounded.
+
+### Explicitly not done this cycle
+
+- The RECORD/SCROLL cross-method class-wide facade wiring (characterized
+  above, 70 candidates, 0 contradictions, ready for implementation) — left
+  for Cycle 71, per "stop after one implemented mechanism."
+- A full fresh reference-stream reconstruction of `29401`/`29445`/`29457`
+  (only the specific FIELD-reuse mechanism was verified fixed; their
+  OVERALL reference-completeness, like `29389`'s, was not separately
+  confirmed).
+- Any decoder-side investigation or fix for the "bare identifiers are
+  only supported as calls" symptom (confirmed decoder-only, out of
+  encoder-reference scope; a plausible dedicated future campaign).
+- A full fresh reconstruction of `28755`'s quoted-reference lead or
+  `29099`'s record-field/quoted-reference/component ordering lead beyond
+  confirming their unchanged top-level classification.
+- OutputField (Cycle 59 lead, no fixed definitionId readily available) —
+  not investigated this cycle.
+- Did not start Cycle 71.
+
+### Consumer inventory (closeout question)
+
+**One proven-but-unimplemented class-wide consumer remains**:
+`dependencyScope`'s RECORD/SCROLL lookups (characterized this cycle,
+population-proven, architecturally identical fix to what Cycle 70 just
+implemented for FIELD's `reuseFieldReferenceWithinControlGroup` branch).
+Every OTHER investigated FIELD-kind consumer (`fieldReference()`'s BOTH
+branches, as of this cycle) is now correctly wired. `componentReferencesByControlGroup`
+and bare-receiverless-`GetField` remain uninvestigated (no evidence either
+way). `htmlDependencyScope`/`bindOwnerReference` remain intentionally
+local/parked (Cycle 32/34's own genuine method-dependency-reuse concern).
+
+**Answer: NO, the class-wide reference architecture is not yet
+semantically complete for all proven consumers** — the RECORD/SCROLL gap
+is a PROVEN (not merely suspected) missing consumer, with population
+evidence already gathered.
+
+### Fresh active-root census (Part S)
+
+Rebuilt from Cycle 69's own ending list, not older Cycle 58 numbers.
+Re-verified `28755`/`29099`/`28964`/`28790` fresh this cycle (unchanged);
+the other 7 roots (`28713`, `28752`, `28904`, `28925`, `29044`, `29518`,
+`29542`, `29614`) were NOT individually re-run this cycle (would require a
+fresh reconstruction pass beyond this cycle's bounded scope) — carried
+forward from Cycle 69's own count, not reconfirmed. **Count: 11,
+unchanged from Cycle 69** (no root moved buckets this cycle — this
+cycle's fix targeted newly-discovered definitions from its own census,
+not a previously-tracked active root):
+
+```text
+28713, 28752, 28755, 28904, 28925, 28964, 29044, 29099,
+29518, 29542, 29614
+```
+
+### 99-root accounting
+
+Unchanged from Cycle 69: total remains 99. No root moved buckets this
+cycle (this cycle's fix resolved newly-discovered census candidates, not
+a previously-counted root).
+
+### Architecture assessment
+
+**NOT semantically complete.** One proven, population-backed class-wide
+consumer gap remains open (RECORD/SCROLL). The deterministic reference
+campaign should NOT close this cycle — Model A applies (one coherent
+family, the RECORD/SCROLL gap, remains actionable), not Model C. This
+cycle is Outcome A (one family fixed, campaign continues), not Outcome B.
+
+### Recommendation for Cycle 71 (not started)
+
+**Primary: implement the RECORD/SCROLL cross-method class-wide facade
+wiring** — population already gathered this cycle (unchanged from Cycle
+68: 70 candidates, 0 contradictions), architecturally identical to this
+cycle's own fix (add an `applicationClassTypeReferenceSession` fallback to
+`dependencyScope`'s `lookupRecord`/`lookupScroll`, mirroring
+`fieldReference()`'s now-uniform pattern across both its branches). This
+is the single strongest, most page-turnable next mechanism — do not open
+a new investigation when this one is already population-proven and
+ready. Secondary (only after RECORD/SCROLL closes with no further
+family emerging): the decoder-side "bare identifiers are only supported
+as calls" symptom, confirmed this cycle to affect at least 7 definitions
+independent of reference-allocation status — a genuine candidate for
+"the largest downstream NONEXACT category" once reference work is
+exhausted, but NOT yet, since RECORD/SCROLL remains open.
+
+Do not start Cycle 71 in this session.
+
 ## Compiler Semantics Cycle 69 — `29389`'s reference stream fully resolved: `GetField(...)`'s own Field.X argument reuses like any other explicit constant in Application Class bodies
 
 **Status: IMPLEMENTED, validated, zero regressions. `29389`'s reference
