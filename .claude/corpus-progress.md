@@ -1,5 +1,236 @@
 # Corpus Calibration Progress
 
+## Cycle 77 — `DECODER_BARE_IDENTIFIER` was a harness wiring defect, not a decoder bug: `isApplicationClass` was never passed to the corpus validator's decode call
+
+**Status: IMPLEMENTED, validated, zero regressions. Reframed the entire investigation mid-stream: the "bare identifiers are only supported as calls" text the whole `DECODER_BARE_IDENTIFIER` taxonomy category (1,344 definitions) was keyed on turned out to come from a DOWNSTREAM re-encode test operating on ALREADY-WRONG decoded text, not from the true decode failure. Direct inspection found `tools/corpus/validator.ts`'s own decode call never set `isApplicationClass`, so the decoder's already-implemented, already-tested `class`/`end-class`/`method`/`end-method` recognition (decoder.ts, gated behind that flag specifically to avoid corpus-wide false positives -- see its own comment) never activated for ANY Application Class definition during corpus validation. Fixed with a single-line wiring change (`isApplicationClass: capture.definition.key.objectId1 === 104`), reusing this project's own established `objectid1===104` Application Class marker. Result: `DECODER_BARE_IDENTIFIER` collapsed from 1,344 to 26 (-1,318, a 98.1% reduction) as those definitions correctly redistributed into their TRUE categories; net +3 EXACT, 0 regressions.**
+
+Datasource: LOCAL SNAPSHOT throughout. Starting commit `c48f938` (Cycle
+76). Protected baseline reproduced before any change: full-corpus
+`npm run corpus:verify` — 0 regressed, 0 improved (pre-fix), REGRESSION
+GATE: PASS. Full harness reproduced fresh: **24,174 / 30,209 EXACT
+(6,035 NONEXACT)** — matches Cycle 76's own ending state exactly. Test
+baseline reproduced: 607/608 (1 skipped), matching Cycle 76's ending
+state. Cycle 73's own taxonomy tool reproduced `DECODER_BARE_IDENTIFIER`
+= 1,344, `REFERENCE_ACTIVE_PACKAGE` = 598 exactly, no drift. Several
+prior cycles' own census scripts (55, 68, 74, 76) spot-checked unchanged.
+
+### The taxonomy's own classification signal was misleading
+
+The entire `DECODER_BARE_IDENTIFIER` bucket (Cycle 73-76) was keyed on
+the literal error string `'bare identifiers are only supported as
+calls'` (encoder.ts:7786). Direct tracing found this string is thrown
+during `semanticRoundTrip` -- re-encoding the DECODER's own output --
+not during the original decode-vs-source comparison that actually
+determines `DECODE_SOURCE_MISMATCH`. `validator.ts`'s own verbose
+"decode off"/"decode ctx" diagnostic labels only ever print
+`semanticRoundTrip`'s error offset/context, never the true decode-vs-
+original-source divergence, which the harness never surfaced anywhere.
+
+Direct inspection of 1,344 definitions' actual decoded text found
+**1,341 of 1,344 (99.8%) contain the decoder's own "this program could
+not be fully decoded... N unmapped opcode(s)" fallback marker**
+(decoder.ts's own wrapper, fired whenever `unknownOpcodes.length > 0`)
+-- i.e. not real bare-identifier source at all, but the decoder's
+failure placeholder. The "bare identifiers" text was pure downstream
+noise from re-encoding that placeholder comment.
+
+### First-unmapped-opcode census: `0x5a` dominates, cascading misalignment is real
+
+An initial census counting ALL unmapped opcodes (not just the first per
+definition) across the combined 1,994-definition
+`DECODER_BARE_IDENTIFIER + DECODE_SOURCE_MISMATCH` population was
+dominated by already-correctly-mapped opcodes (`0x21`: 1,380 defs;
+`0x00`: 1,422 defs) -- diagnosed as cascading misalignment (once a
+decoder loses its place at one true failure point, every subsequent
+byte is misread, producing a long tail of spurious "unmapped" hits that
+are pure noise). Redone counting only each definition's FIRST unmapped
+opcode:
+
+```text
+0x5a (90):  1,305 definitions (66%) -- examples: 28700, 28701, 28702, 28703, 28705
+0x21 (33):    632 definitions
+0x4a (74):     29 definitions
+0x70 (112):    16 definitions
+```
+
+`0x5a` is the `class` keyword opcode. A grep of `decoder.ts` found it,
+and its siblings `0x63`/`0x5b`/`0x64`/`0x70`/`0x6f`/`0x71`
+(`method`/`end-class`/`end-method`/`interface`/`abstract`/
+`end-interface`), are ALREADY fully implemented, gated behind
+`options.isApplicationClass` -- and MANY existing decoder tests
+(`src/test/decoder.test.ts`, `applicationClassMetadata.test.ts`) already
+correctly construct calls with `isApplicationClass: true`, including a
+test whose own comment states directly: **"isApplicationClass -- which
+OracleProvider sets from the definition's real OBJECTTYPE (58), not
+decoded content"** and documents WHY it's gated ("unconditionally
+mapping these opcodes collided with ordinary bytes in non-class
+programs corpus-wide... `end-method` matched real source only 8.9% of
+the time"). This is a real, deliberate, already-solved design decision
+-- the decoder was never broken.
+
+### Root cause: `validator.ts` never set the flag
+
+`tools/corpus/validator.ts`'s own decode call site (~line 623) passed
+only `{ mode: 'auto' }` to `decodeProgram` -- never `isApplicationClass`
+-- for every one of the 30,209 corpus definitions, regardless of
+whether the definition genuinely is Application Class PeopleCode. This
+project's own `objectid1 === 104` Application Class marker (used
+consistently by every prior cycle's own census tooling, e.g.
+`cycle74-package-missing-allocation-census.ts`) was sitting right there
+at the call site (`capture.definition.key.objectId1`) and simply never
+consulted.
+
+### Direct empirical verification before implementing (Phase 21)
+
+Before touching `validator.ts`, decoded 6 representative `0x5a`-first
+definitions (28700-28703, 28705, 29389) directly with
+`isApplicationClass: true` set explicitly:
+
+```text
+28700: without=11 unmapped, no match  ->  with=0 unmapped, EXACT source match
+28701: without=11 unmapped, no match  ->  with=0 unmapped, EXACT source match
+28702: without=11 unmapped, no match  ->  with=0 unmapped, EXACT source match
+28703: without=11 unmapped, no match  ->  with=0 unmapped, EXACT source match
+28705: without=11 unmapped, no match  ->  with=0 unmapped, EXACT source match
+29389: without=19 unmapped, no match  ->  with=0 unmapped, still no match
+       (indentation-only divergence inside the class body: 1 space vs.
+       3 spaces -- a separate, narrower decoder formatting issue, NOT
+       an unmapped-opcode problem; left untouched, noted for later)
+```
+
+Decisive: 5/6 achieve a perfect decode; the 6th confirms the fix
+correctly resolves the unmapped-opcode failure while surfacing an
+unrelated, much narrower cosmetic issue -- exactly the kind of "separate
+any false positives" outcome Phase 3 required.
+
+### Fix
+
+```typescript
+const decoded =
+  decodeProgram(
+    capture.program,
+    names,
+    {
+      mode: 'auto',
+      isApplicationClass:
+        capture.definition.key.objectId1 === 104
+    }
+  );
+```
+
+One line, in `tools/corpus/validator.ts` only. No changes to
+`decoder.ts` -- its `isApplicationClass` mechanism was already correct
+and already tested; the defect was entirely in how the harness invoked
+it.
+
+### Fail-before/pass-after proof (`git stash`)
+
+```text
+Before fix (stashed): definition 28700 -> DECODE_SOURCE_MISMATCH
+After fix (restored): definition 28700 -> UNKNOWN_MISMATCH (decode now
+  matches source; reveals a SEPARATE, pre-existing, previously-masked
+  encoder bug -- see below)
+```
+
+No unit test was added to `src/test/*` for this fix: `tools/corpus/`
+sits outside the `tsc -p .` / `dist-test` build `rootDir` (`src`) that
+`npm test` runs against, and the underlying decoder mechanism itself
+already has full, passing coverage in `decoder.test.ts`/
+`applicationClassMetadata.test.ts` (unchanged by this fix). The
+git-stash proof above, plus the full-corpus zero-regression re-run
+below, is this cycle's regression evidence.
+
+### Full population impact census (the 1,994-definition population re-validated post-fix)
+
+```text
+Newly EXACT:                     3   (28770, 29632, 29905)
+Decode now correct, but a SEPARATE pre-existing bug remains
+  (UNKNOWN_MISMATCH):        1,042
+    - fails at sourceEncode (original source -> bytes): 739
+    - passes sourceEncode, fails only roundtrip:          303
+Still DECODE_SOURCE_MISMATCH:  949
+    - objectid1 === 104 (App Class, further decoder gaps
+      beyond class/method -- e.g. 29389's indentation issue):  278
+    - ordinary (objectid1 !== 104 -- confirmed a SEPARATE,
+      unrelated root cause, not fixed by this change,
+      consistent with the 632-definition `0x21`-first
+      population found in the opcode census):                671
+```
+
+1,318 = 1,315 reclassified + 3 newly EXACT, matching the taxonomy's own
+`DECODER_BARE_IDENTIFIER` drop exactly (1,344 -> 26). The 1,042
+`UNKNOWN_MISMATCH` population is NOT a decoder problem at all -- it is a
+large, previously-invisible population of pre-existing ENCODER-side (or
+roundtrip-only) bugs that this fix's correct decoding simply unmasked
+(739 of them fail at the ordinary source encode stage, entirely
+independent of anything decode-related; one concrete example, 28700,
+diverges at a `/*OD` block-comment terminator byte, `0x0a` stored vs.
+`0x40` generated -- an unrelated, narrow encoder comment-encoding
+defect). This is explicitly out of scope for this decoder-wiring cycle
+and is the natural next target.
+
+### Validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped -- unchanged, zero unrelated
+  failures (no new unit tests added; see above).
+- `git diff --check`: clean.
+- Protected gate: full-corpus `npm run corpus:verify` — Improved: 0,
+  Regressed: 0, REGRESSION GATE: PASS.
+- Full top-level harness re-run: **EXACT 24,174 → 24,177 (+3), NONEXACT
+  6,035 → 6,032 (-3)**, zero regressions across all 30,209 definitions.
+- Re-ran Cycle 73's own taxonomy tool in full: see breakdown below.
+
+### Taxonomy impact: `DECODER_BARE_IDENTIFIER` collapses from #1 to a 26-definition residual
+
+```text
+Category                          Cycle 76   Cycle 77   Delta
+DECODER_BARE_IDENTIFIER              1,344         26   -1,318
+DECODE_SOURCE_MISMATCH                 650        923     +273
+REFERENCE_COMPLETE_DOWNSTREAM           463        808     +345
+REFERENCE_ACTIVE_PACKAGE                598        723     +125
+REFERENCE_ACTIVE_RECORD_FIELD         1,195      1,245      +50
+REFERENCE_ACTIVE_FIELD                  603        651      +48
+REFERENCE_ACTIVE_RECORD                 330        391      +61
+ROUNDTRIP_ONLY                           37        340     +303
+REFERENCE_ACTIVE_OTHER                   77        160      +83
+REFERENCE_ACTIVE_SCROLL                 142        146       +4
+REFERENCE_ACTIVE_DECLARE_FUNCTION        85         88       +3
+STRUCTURAL_ORDERING                      48         66      +18
+REFERENCE_ACTIVE_QUOTED_COMPONENT         6          8       +2
+UNSUPPORTED_SYNTAX                      335        335        0
+ENCODE_ERROR                            122        122        0
+EXACT                               24,174     24,177       +3
+```
+
+Every one of the 1,318 definitions that left `DECODER_BARE_IDENTIFIER`
+landed in an ACCURATE category (the deltas above sum to exactly +1,318
+across the other categories plus EXACT) -- this is not raw EXACT
+progress, it is a large diagnostic-accuracy correction: 1,315
+definitions that were previously invisible to the right kind of
+targeted campaign (misfiled under a misleading decoder label) are now
+correctly filed under `REFERENCE_ACTIVE_*`/`REFERENCE_COMPLETE_DOWNSTREAM`/
+`ROUNDTRIP_ONLY` categories -- exactly the kind of population Cycles
+68-76 have already been successfully closing at high rates.
+
+### Recommendation for Cycle 78 (not started)
+
+Two independent, well-evidenced decoder-adjacent leads, both explicitly
+out of scope for this cycle:
+
+1. **The 1,042-definition `UNKNOWN_MISMATCH` population newly unmasked
+   by this fix** -- primarily encoder-side (739 fail at ordinary
+   sourceEncode), not decoder-side. The `/*OD` comment-terminator byte
+   divergence found in the 28700 cluster (`0x0a` vs `0x40`) is one
+   concrete, likely-high-payoff starting example.
+2. **The 671-definition ordinary (non-App-Class) residual within
+   `DECODE_SOURCE_MISMATCH`**, consistent with the 632-definition
+   `0x21`-first-opcode population found in this cycle's own census --
+   confirmed a genuinely SEPARATE root cause from the `isApplicationClass`
+   fix (unaffected by it), not yet investigated.
+
+Per this cycle's own brief: do not start Cycle 78.
+
 ## Cycle 76 — `Global Rowset` declarations allocate PACKAGE/ROWSET: +858 EXACT, the largest single-cycle gain in this project's history; decoder becomes the new #1 category
 
 **Status: IMPLEMENTED, validated, zero regressions. Reconstructed Cycle 7's own historical Rowset-parameter finding (48 definitions, 4 already-EXACT with no PACKAGE.ROWSET for their own parameter -- confirming a broad "Rowset always allocates" rule is genuinely wrong for parameters) and proved, independently, that `Global Rowset &x;` declarations are a CLEAN, separate, zero-contradiction subfamily (962 candidates, 0 contradictions) -- the exact same class of gap `globalDeclaration()` had for `File` (Cycle 75), never previously evidenced for Rowset. Fixed ONLY the Global-declaration scope, explicitly leaving the genuinely-mixed parameter population untouched. Result: +858 EXACT, 0 regressions -- by far the largest single-cycle top-level gain this project has ever recorded (874 forward byte-identical gains, 98.2% converting to full EXACT). `REFERENCE_ACTIVE_PACKAGE` collapsed from 1,459 to 598, and `DECODER_BARE_IDENTIFIER` (1,344, unchanged) is now the #1 NONEXACT category -- exactly the roadmap pivot point Cycle 75's own recommendation anticipated.**
