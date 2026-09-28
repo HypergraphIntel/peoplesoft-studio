@@ -1757,6 +1757,23 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       return existing;
     }
 
+    /*
+     * Cycle 56: a `create Package:X:Y(...)`-initialized local of the SAME
+     * leaf type occurring earlier in this same method already established
+     * an identity through `runtimeCreateReferences` (see
+     * `ensureRuntimeCreateReference`'s own mirrored check below) -- reuse
+     * it rather than allocating a second one for a plain/array-of Local
+     * declaration of the identical leaf that happens to follow it.
+     */
+    const runtimeCreateKey = [...packagePath, className]
+      .map(component => component.toLowerCase())
+      .join(':');
+    const createdEarlier = runtimeCreateReferences.get(runtimeCreateKey);
+    if (createdEarlier !== undefined) {
+      localApplicationClassPackageReferences.set(key, createdEarlier);
+      return createdEarlier;
+    }
+
     const created = addApplicationClassReference(packagePath, className);
     localApplicationClassPackageReferences.set(key, created);
     return created;
@@ -1939,12 +1956,44 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       return existing;
     }
 
+    /*
+     * Cycle 56: a corpus-wide census of 1,778 (method, leaf) create-local
+     * candidates found stored PSPCMNAME allocates exactly one identity for
+     * the create target's leaf type in 1758/1778 cases -- including every
+     * case where a plain/array-of Local declaration of the SAME leaf
+     * already exists earlier in this same method (definition 28726's
+     * `GetOutgoingRelationships`: a plain `Local ADSM:ADSRelationship
+     * &ship;` and an `array of` declaration of the same leaf, followed by
+     * `Local ADSM:ADSRelationship &relation = create
+     * ADSM:ADSRelationship(...)` inside a nested `For` loop, all reuse ONE
+     * stored identity; the pre-fix encoder allocated 3). Reuse the SAME
+     * method-wide pool `ensureLocalApplicationClassPackageReference`
+     * already established for that population before falling back to this
+     * helper's own runtime-create dedup (unchanged, and still the sole
+     * path for ordinary -- non-Application-Class-method-body -- PeopleCode,
+     * per the same `builtinObjectDeclarationsHaveMethodWideLifetime` guard
+     * that scopes the Local-declaration pool). Cross-method and
+     * import-established reuse (49/1,778 candidates) are a separate,
+     * broader claim this population does not test -- not extended here.
+     */
+    if (context?.builtinObjectDeclarationsHaveMethodWideLifetime) {
+      const localKey = `${functionDepth}:${key}`;
+      const existingLocal = localApplicationClassPackageReferences.get(localKey);
+      if (existingLocal !== undefined) {
+        runtimeCreateReferences.set(key, existingLocal);
+        return existingLocal;
+      }
+    }
+
     const created = addApplicationClassReference(
       packagePath,
       className
     );
 
     runtimeCreateReferences.set(key, created);
+    if (context?.builtinObjectDeclarationsHaveMethodWideLifetime) {
+      localApplicationClassPackageReferences.set(`${functionDepth}:${key}`, created);
+    }
     return created;
   };
 
