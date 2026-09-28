@@ -906,7 +906,21 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     // ProcessRequest belongs on it too: `Local ProcessRequest &RQST;`
     // stores its type as `44 0A "ProcessRequest"`, not `44 40
     // "ProcessRequest"`.
-    if (/^(Record|Field|Rowset|Row|SQL|File|XmlDoc|XmlNode|ApiObject|Grid|ProcessRequest)$/i.test(name)) {
+    //
+    // Cycle 78: Message, JsonArray, JsonObject, JavaObject, GridColumn, and
+    // Exception belong on this list too, found via a corpus-wide first-
+    // true-byte-divergence census of the population Cycle 77's decoder fix
+    // newly exposed as genuinely encoder-wrong (rather than decoder-
+    // blocked): 160 definitions share one first divergence, always at this
+    // exact type-name introducer byte (`0A` expected, `40` generated),
+    // dominated by `Local Message` (140/160). AAOTOAA_MSGS.OnNotify
+    // (definition 28700) proves Message: `Local Message &MSG;` stores its
+    // type as `44 0A "Message"`, not `44 40 "Message"`. Zero contradictions
+    // found corpus-wide (583 definitions with a declaration-position use of
+    // one of these six names; the only 5 currently-EXACT matches are all
+    // the literal type name appearing inside disabled/commented-out code,
+    // which bypasses this function entirely).
+    if (/^(Record|Field|Rowset|Row|SQL|File|XmlDoc|XmlNode|ApiObject|Grid|ProcessRequest|Message|JsonArray|JsonObject|JavaObject|GridColumn|Exception)$/i.test(name)) {
       return textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, name);
     }
 

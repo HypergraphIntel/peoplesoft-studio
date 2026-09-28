@@ -1,5 +1,270 @@
 # Corpus Calibration Progress
 
+## Cycle 78 — `typeName()` chose the wrong token introducer for six built-in object types: `Local Message`, `JsonArray`, `JsonObject`, `JavaObject`, `GridColumn`, `Exception`
+
+**Status: IMPLEMENTED, validated, zero regressions. Decomposed the 1,042-definition "newly exposed encoder-side" population Cycle 77 uncovered (100% Application Class, 0 ordinary) via a first-true-byte-divergence census. Found a single dominant, zero-contradiction cluster: 160 definitions (15.4% of the population) share one exact first divergence, always at the exact same position -- the token-introducer byte immediately following a `Local <Type> &var;` declaration's type name, where PeopleTools uses `0x0A` (inline-identifier text) but the encoder emits `0x40` (generic keyword) because the type name is not one of the 11 types the encoder's `typeName()` already special-cases. Added `Message` (140/160), `JsonArray`, `JsonObject`, `JavaObject`, `GridColumn`, and `Exception` to that list, following the exact evidentiary precedent already established for `ApiObject`/`Grid`/`ProcessRequest`. Zero contradictions found across 583 corpus-wide declaration-position candidates. Result: +15 EXACT, 0 regressions. Also corrected a Cycle-77-documented mischaracterization: the "`/*OD` comment-terminator byte" lead was never about comments at all -- it was this same type-introducer byte, misread during a quick aside.**
+
+Datasource: LOCAL SNAPSHOT throughout. Starting commit `02d25d8` (Cycle
+77). Protected/full-corpus regression gate reproduced before any change:
+`npm run corpus:verify` — Improved: 0, Regressed: 0, REGRESSION GATE:
+PASS. Full harness reproduced fresh: **24,177 / 30,209 EXACT (6,032
+NONEXACT)** — matches Cycle 77's own ending state exactly. Test
+baseline reproduced: 607/608 (1 skipped), matching Cycle 77's ending
+state. Cycle 73's own taxonomy tool reproduced exactly: `DECODER_BARE_IDENTIFIER`
+= 26, `REFERENCE_ACTIVE_PACKAGE` = 723, `REFERENCE_COMPLETE_DOWNSTREAM`
+= 808, `ROUNDTRIP_ONLY` = 340, `DECODE_SOURCE_MISMATCH` = 923, no drift.
+
+### Phase 1 — extracting the exact 1,042-definition population
+
+Rather than rely on any taxonomy label directly (Cycle 77's own central
+lesson: labels can mask the true failure stage), reconstructed the
+population set-theoretically: took the pre-Cycle-77 taxonomy's
+`DECODER_BARE_IDENTIFIER ∪ DECODE_SOURCE_MISMATCH` set (1,994
+definitions, read directly from git history at commit `c48f938` so the
+extraction script stays reproducible), and subtracted (a) the 3 that
+became EXACT in Cycle 77 and (b) the 949 that remain
+`DECODE_SOURCE_MISMATCH` today. The remainder -- 1,994 - 3 - 949 =
+**1,042** -- matches the brief's expected figure exactly. New script:
+`tools/corpus/research/cycle78-encoder-population-extract.ts`, writing
+`.claude/cycle78-encoder-population.json`.
+
+**Composition: 1,042 / 1,042 (100%) Application Class (`objectid1 ===
+104`), 0 ordinary.** This makes sense in hindsight -- the population is
+by construction drawn from what Cycle 77's `isApplicationClass` fix
+newly unblocked, which only ever touches App Class definitions. Split:
+597 fail at the `sourceEncode` stage (original source → bytes, entirely
+independent of decoding); 445 pass `sourceEncode` exactly but fail only
+`semanticRoundTrip` (a separate, decoder-rendering-fidelity family, out
+of scope this cycle per the brief's own Phase 28).
+
+### Phase 3/4 — first-true-byte-divergence census: one dominant cluster, then a long tail
+
+Built `tools/corpus/research/cycle78-byte-divergence-census.ts`:
+re-encodes each definition's own stored source directly (reusing the
+exact `encodeContext` construction `validator.ts` uses) and locates the
+first differing byte independently, rather than trusting any pre-packed
+diff field (which can silently truncate near buffer boundaries).
+Clustering by `(storedByte, generatedByte)` at the first divergence:
+
+```text
+0x0a -> 0x40   160 definitions   <- dominant cluster (15.4%)
+0x04 -> 0x03    10 definitions
+0x03 -> 0x04     9
+0x05 -> 0x04     7
+(every other cluster: <= 5 definitions each)
+```
+
+Every other cluster is a single-digit long tail -- no second cluster
+comes close to `0x0a -> 0x40`'s size. Per Phase 35 ("fix exactly one
+dominant high-payoff cluster... do not recursively fix all clusters"),
+this cycle targets only that cluster.
+
+### Phase 6/9/10 — the `/*OD` lead was a mischaracterization, not a comment bug
+
+Cycle 77's own documentation described definition 28700's divergence as
+"a `/*OD` block-comment terminator byte, `0x0a` stored vs `0x40`
+generated" -- a quick aside, not a verified finding. Direct byte-level
+tracing this cycle found that description is **wrong**: 28700's actual
+source at that offset is `/* Variable Declaration */\n   \n   Local
+Message &MSG;` -- an ordinary comment, followed by a blank line, followed
+by `Local Message &MSG;`. The stored bytes are:
+
+```text
+... 2a 00 2f 00 [4f] [44] [0a] 4d 00 65 00 73 00 73 00 61 00 67 00 65 00 ...
+      "*"  "/"   |    |    |    M    e    s    s    a    g    e
+                 |    |    inline-identifier introducer (PeopleTools)
+                 |    fixed "Local" declaration opcode (correct both sides)
+                 one 0x4F blank-line marker (correct both sides; matches
+                 the already-calibrated blank-line-after-comment logic)
+```
+
+`4f` and `44` are byte-identical on both stored and generated sides --
+the ONLY divergence is the single introducer byte, and the very next
+bytes spell the literal type name (confirmed by direct UTF-16LE decode:
+`Message`, `JsonArray`, `JsonObject`, `JavaObject`, `GridColumn`,
+`Exception` across the 160-member cluster). There was never a special
+`/*OD` comment marker -- "OD" was simply a misreading of two unrelated,
+correctly-emitted opcode bytes sitting next to a truncated hex dump
+during a prior aside, not a real construct. No comment-encoding
+investigation (Phases 7/8/11-13, 25-27, 30-32) was needed once this was
+traced to ground truth.
+
+### Phase 15/18 — encoder path: `typeName()`'s own type-keyword list
+
+```typescript
+// src/peoplecode/encoder.ts, inside encodeFragmentInternal()
+const typeName = (): Buffer => {
+  ...
+  if (/^(Record|Field|Rowset|Row|SQL|File|XmlDoc|XmlNode|ApiObject|Grid|ProcessRequest)$/i.test(name)) {
+    return textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, name);
+  }
+  return textOperand(0x40, TokenKind.Keyword, name);
+};
+```
+
+This single function is called from **10 separate sites** across the
+encoder (Local, Global, Component, parameter typing, array element
+types, and more) -- already the shared, canonical mechanism every
+declaration form routes through, unlike the PACKAGE-allocation
+campaign's own scattered per-site dispatches (Cycles 74-76). The
+function's own comment history already documents the EXACT same
+evidentiary pattern being used to add `ApiObject`, `Grid`, and
+`ProcessRequest` in past work: PeopleTools reserves the `0x40`
+"keyword" introducer only for its small set of true PeopleCode
+primitive/reserved-word types, and encodes every other built-in system
+object type name (which is syntactically just an ordinary identifier
+that happens to resolve to a system class) via the same
+`INLINE_IDENTIFIER_OPCODE` (`0x0A`) mechanism used for plain
+identifiers.
+
+### Population census: 160/160 cleanly account for 6 known types
+
+```text
+Message       140
+JsonArray       4
+JsonObject      6
+JavaObject      4
+GridColumn      1
+Exception       5
+-----------------
+Total         160
+```
+
+### Contradiction check (mandatory, zero found)
+
+Searched the full corpus for any definition using one of these 6 names
+in declaration position (`Local|Global|Component|As|of <Type>`): 583
+candidates. Only 5 are currently EXACT -- direct inspection found ALL 5
+are the literal type name appearing only inside disabled/commented-out
+code (`/* ... Local GridColumn ... */` or `<* ... *>`), which
+`blockComment()`/`disabledCodeComment()` store as opaque verbatim text
+and never reach `typeName()` at all. **Zero genuine contradictions.**
+Positive control: `Rowset` (already on the list) still resolves via
+`INLINE_IDENTIFIER_OPCODE` in 28700 itself, confirmed by direct token
+inspection.
+
+### Fix
+
+```typescript
+if (/^(Record|Field|Rowset|Row|SQL|File|XmlDoc|XmlNode|ApiObject|Grid|ProcessRequest|Message|JsonArray|JsonObject|JavaObject|GridColumn|Exception)$/i.test(name)) {
+  return textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, name);
+}
+```
+
+One list extension, in `typeName()` only (`src/peoplecode/encoder.ts`).
+Applies uniformly across all 10 call sites with no per-site changes
+needed.
+
+### Fail-before/pass-after proof (`git stash`)
+
+```text
+Definition 28879 (contains two JsonArray declarations):
+Before fix (stashed): first divergence at offset 611 (0a expected, 40 generated)
+After fix (restored):  first divergence at offset 982 (0a expected, 40 generated)
+  -- i.e. the FIRST occurrence is now correctly resolved; the diff
+  correctly advances to the SECOND JsonArray declaration in the same
+  definition, proving the fix is a genuine root-cause correction and
+  not a coincidental shift.
+```
+
+Definition 28700 confirmed `source→bin EXACT` after the fix (previously
+`MISMATCH @ 765`) -- its only remaining gap is a separate, pre-existing
+`semanticRoundTrip`-only issue (an extra `0x4F` blank-line marker when
+re-encoding decoded text), unrelated to this fix and out of scope.
+
+### Full validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped -- unchanged (no unit test added;
+  `tools/corpus/` sits outside the `tsc -p .` build `rootDir`, same as
+  Cycle 77 -- the git-stash proof above plus the full-corpus
+  zero-regression re-run below is this cycle's regression evidence).
+- `git diff --check`: clean.
+- Protected/full-corpus gate: `npm run corpus:verify` — Improved: 0,
+  Regressed: 0, REGRESSION GATE: PASS (across all 30,209 definitions,
+  which subsumes the 430-definition protected set).
+- Full top-level harness re-run: **EXACT 24,177 → 24,192 (+15), NONEXACT
+  6,032 → 6,017 (-15)**, zero regressions.
+- Re-ran `cycle76-rowset-package-census.ts` (the broadest existing
+  PACKAGE/Rowset regression check, spanning File-adjacent declaration
+  forms conceptually): **Matched 5,228 / Mismatched 262 / Contradictions
+  1** -- byte-for-byte unchanged from Cycle 77's own re-verification.
+  The full-corpus zero-regression gate above additionally subsumes every
+  other prior campaign (File, PACKAGE, validator App Class decoding) in
+  one shot.
+
+### Taxonomy redistribution
+
+```text
+Category                          Cycle 77   Cycle 78   Delta
+EXACT                                24,177     24,192      +15
+ROUNDTRIP_ONLY                          340        482     +142
+REFERENCE_ACTIVE_PACKAGE                723        715       -8
+REFERENCE_COMPLETE_DOWNSTREAM            808        680     -128
+REFERENCE_ACTIVE_OTHER                  160        140      -20
+STRUCTURAL_ORDERING                      66         65       -1
+DECODER_BARE_IDENTIFIER                  26         26        0
+DECODE_SOURCE_MISMATCH                  923        923        0
+(all other categories unchanged)
+```
+
+Deltas sum to zero (-8-128-20-1+15+142 = 0), confirming clean
+redistribution with no unaccounted movement. `DECODER_BARE_IDENTIFIER`
+holding exactly at 26 confirms Cycle 77's validator wiring fix is
+stable (Phase 49). `DECODE_SOURCE_MISMATCH` holding exactly at 923 at
+the CATEGORY level (composition shifted slightly within it, 278 App
+Class / 645 ordinary vs. 278/671 previously -- not investigated further
+per Phase 47) confirms this cycle stayed correctly scoped to
+already-decoded, encoder-only failures and did not touch decode
+semantics.
+
+### Remaining 1,042-population status (Phase 46)
+
+Within the original 1,042: 160 had their first divergence resolved by
+this fix. Some fully closed to EXACT; most (142) advanced to a
+`sourceEncode`-exact-but-`roundtrip`-only state (a different,
+pre-existing decoder-rendering-fidelity defect, e.g. 28700's own extra
+blank-line marker on decode→re-encode) or still have a SECOND,
+later `sourceEncode`-stage divergence from a different construct
+(definitions with multiple declarations of different unsupported
+types). The population's own internal split moved from 739/303
+(sourceEncode-fail/roundtrip-only-fail) to **597/445** -- a net 142
+migration from the harder-to-diagnose sourceEncode-fail bucket into the
+narrower, already-separately-tracked roundtrip-only bucket.
+
+### 671 ordinary residual (Phase 47, not investigated)
+
+Current count: 645 (down from 671; composition change not investigated
+this cycle, per the brief's explicit instruction not to dig into this
+population unless proven to overlap with the selected cluster -- it
+does not, since this fix only touches Application Class-side source
+encoding and this residual is entirely the non-App-Class,
+`objectid1 !== 104` decode-stage population).
+
+### PACKAGE status (Phase 48)
+
+`REFERENCE_ACTIVE_PACKAGE`: 715 (down slightly from 723, incidental
+redistribution, not a target this cycle -- still well below
+`REFERENCE_ACTIVE_RECORD_FIELD` (1,245), so no pivot back is warranted).
+
+### Recommendation for Cycle 79 (not started)
+
+Two well-evidenced options, in priority order:
+
+1. **The 445-definition `ROUNDTRIP_ONLY` growth this cycle exposed**
+   (was 303, now 482 total) -- a decoder-rendering-fidelity family
+   (decoded text, when re-encoded, doesn't byte-match, even though the
+   original source does). Definition 28700's own extra blank-line
+   marker on roundtrip is one concrete, already-diagnosed starting
+   example.
+2. **The remaining 597 `sourceEncode`-not-exact definitions within the
+   1,042 population** (was 739) -- the long tail of small (<=10
+   definitions each) byte-divergence clusters found in Phase 3/4,
+   likely several distinct, smaller mechanisms requiring their own
+   forensic decomposition.
+
+Per this cycle's own brief: do not start Cycle 79.
+
 ## Cycle 77 — `DECODER_BARE_IDENTIFIER` was a harness wiring defect, not a decoder bug: `isApplicationClass` was never passed to the corpus validator's decode call
 
 **Status: IMPLEMENTED, validated, zero regressions. Reframed the entire investigation mid-stream: the "bare identifiers are only supported as calls" text the whole `DECODER_BARE_IDENTIFIER` taxonomy category (1,344 definitions) was keyed on turned out to come from a DOWNSTREAM re-encode test operating on ALREADY-WRONG decoded text, not from the true decode failure. Direct inspection found `tools/corpus/validator.ts`'s own decode call never set `isApplicationClass`, so the decoder's already-implemented, already-tested `class`/`end-class`/`method`/`end-method` recognition (decoder.ts, gated behind that flag specifically to avoid corpus-wide false positives -- see its own comment) never activated for ANY Application Class definition during corpus validation. Fixed with a single-line wiring change (`isApplicationClass: capture.definition.key.objectId1 === 104`), reusing this project's own established `objectid1===104` Application Class marker. Result: `DECODER_BARE_IDENTIFIER` collapsed from 1,344 to 26 (-1,318, a 98.1% reduction) as those definitions correctly redistributed into their TRUE categories; net +3 EXACT, 0 regressions.**
