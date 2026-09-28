@@ -1,5 +1,339 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 65 — FIELD-kind class-wide reuse (implemented); 29099's actual first divergence is a different, uncharacterized mechanism (forensic, not implemented)
+
+**Status: PARTIALLY IMPLEMENTED — one proven, well-evidenced, SAFE fix
+shipped (bare-member FIELD cross-method class-wide reuse); 29099's own
+actual root cause turned out to be a DIFFERENT, newly-discovered
+mechanism, precisely characterized but NOT implemented this cycle,
+per the "same canonical rule, same facade, zero contradictions"
+threshold not being met for it.** Datasource: LOCAL SNAPSHOT throughout.
+Starting commit `5766742` (Cycle 64). Protected/full baseline reproduced:
+`npm run corpus:verify` — 23,253/30,209 EXACT, REGRESSION GATE: PASS (0
+improved, 0 regressed) — matches Cycle 64's documented ending state.
+Population metrics reproduced fresh, all unchanged from Cycle 64's ending
+values: Cycle 55 171/173, Cycle 56 1,752/1,778, Cycle 57 1,037/1,053,
+Cycle 60 82/82, Cycle 61 27/28, Cycle 62 205 candidates, Cycle 63 65
+candidates, Cycle 64 447/451.
+
+### Phase 1-4 — reconstructing 29099 fresh: an important correction mid-cycle
+
+Initial reconstruction (matching Cycle 64's own prediction) showed
+`29099`'s first divergence at a `FIELD.CAF_RECNAME` duplicate, and the
+source appeared to show `&recFct.CAF_RECNAME.Value` (a bare-member access
+in method `GenChart`) duplicating an earlier explicit `Field.CAF_RECNAME`
+reference from method `Chart` — exactly the predicted cross-method
+`FieldDependencyScope` gap. **Direct instrumentation (`referenceTrace`,
+mapping each ALLOC's `sourceOffset` back to the exact method-body
+substring) proved this reading wrong**: `GenChart`'s bare-member access
+correctly reuses `Chart`'s identity even on the ORIGINAL, unmodified
+encoder — it is not the cause of the duplicate at all. The genuine
+duplicate is entirely WITHIN `Chart`'s own body: `%This.FieldsUsed =
+CreateArray(..., Field.CAF_RECNAME, ...); %This.FieldsRequired =
+CreateArray(Field.CAF_RECNAME, Field.CAF_FIELDNAME_1, Field.CAF_FIELDNAME_2);`
+— two adjacent statements in the SAME control group, both containing
+BARE, EXPLICIT `Field.X` references (not `GetField(...)`-wrapped) to the
+SAME three field names. This is an important correction, documented
+transparently rather than glossed over — the original hypothesis was
+reasonable given the identity-stream evidence alone, but source-level
+instrumentation was needed to locate the TRUE cause (Phase 4's mandatory
+operand-to-row mapping is exactly why this correction was possible).
+
+### Phase 6 — `FieldDependencyScope` current semantics (confirmed, unchanged)
+
+`fieldScopeId()` (Cycle 46) returns a constant `0` when
+`context?.recordDependenciesHaveMethodWideLifetime` is set (always true
+for Application Class method bodies), giving `fieldDependencyScope`/
+`recordVariableFields` METHOD-WIDE lifetime — but the pool itself
+(`scopedFieldReferences`, `recordVariableFields`) is declared inside
+`encodeFragmentInternal`, so it is fresh per fragment (per method), never
+class-wide. It is consulted by the BARE-MEMBER postfix-chain path
+(`resolvePostfixMemberReuse`, unconditionally) and by the EXPLICIT
+`Field.X` allocator (`fieldReference()`) ONLY when the transient
+`reuseFieldReferenceWithinControlGroup` flag is set — which is currently
+true ONLY for `GetField(...)` chained directly onto a `.GetRecord(...)`
+result (Cycle 46's own narrow, already-calibrated scope). An EXISTING,
+calibrated test (`'encodeProgramArtifacts allocates repeated Scroll and
+Field references by occurrence'`) proves `GetField(Field.CODE)` called
+TWICE on a STORED (not freshly-`.GetRecord(...)`-chained) Record variable
+must remain occurrence-based (2 separate rows) — this is DELIBERATE,
+proven behavior, not a gap.
+
+### Phase 8/9/10/11 (mandatory census) — TWO separate populations, TWO separate mechanisms
+
+Reconstructing broadly surfaced two DISTINCT, independently-evidenced
+FIELD-reuse gaps, not one:
+
+**Population A — bare-member cross-method class-wide reuse** (the
+originally-hypothesized, Cycle-64-analogous mechanism — genuinely real,
+just not 29099's own primary cause):
+`tools/corpus/research/cycle65-field-classwide-reuse-census.ts`, 1,575
+(definition, field-name) candidates referenced in 2+ methods (via EITHER
+source form, as a broad pre-filter):
+
+```text
+Matched: 1,215
+Mismatched: 360
+  generated>stored (duplicate, supports class-wide reuse):        246
+  generated=0 (missing -- heuristic noise, see below):             101
+  generated<stored (under-allocated, non-zero):                     13
+```
+
+The 101 "missing" entries are confirmed heuristic false positives from
+the census's own broad `.Value`-suffix regex (spot-checked `28808`:
+`&recSearchKey.AGC_TMA_EDITTYPE.Value` where `&recSearchKey` is declared
+`instance Record &recSearchKey;` — an INSTANCE-declared Record variable,
+which `recordVariables` currently never tracks at all, a genuinely
+different, unrelated, not-yet-characterized gap, flagged but not chased
+this cycle). The 13 "under-allocated" entries are ALL definition `29797`
+— the SAME already-known, pre-existing, unrelated multi-identity negative
+control Cycles 56/57/62/64 each already found (generated was already 1
+before this cycle's fix; confirmed unaffected). **246 clean supporting
+candidates, zero genuine contradictions** — crosses Phase 34's
+implementation threshold cleanly.
+
+**Population B — bare explicit `Field.X` reuse within one control group,
+for a source shape OUTSIDE the existing `GetField(...)`-chain exception**
+(the mechanism that actually explains `29099`'s own first divergence):
+a focused follow-up census (34 mismatches / 58 candidates, all
+`storedCount=1`, zero contradictions in the opposite direction) found
+that when the SAME field name appears as a bare `Field.X` argument
+(inside `CreateArray(...)` and similar ordinary expression contexts, NOT
+`GetField(...)`) 2+ times within roughly the same statement run, stored
+PeopleTools reuses ONE identity — a genuinely DIFFERENT rule from the
+already-proven `GetField(...)`-chain exception, and **not yet
+distinguishable from it by any code path currently available to
+`fieldReference()`** (it does not know whether its own `Field.X` operand
+is being parsed as a `GetField(...)` argument or an ordinary expression
+argument at the point it must decide reuse).
+
+### Fix implemented (`src/peoplecode/encoder.ts`) — Population A only
+
+Inside the bare-member postfix-chain allocation fallback (the
+`resolvePostfixMemberReuse` → `nextReference` transition, encoder.ts
+~line 9075), added: when `resolvePostfixMemberReuse` returns `undefined`
+AND `dependencyKind === 'field'`, consult
+`context?.applicationClassTypeReferenceSession?.lookup({kind:'field',
+fieldName: member})` before falling back to a fresh `nextReference` call.
+The existing write-back (`recordPostfixMemberReuse`, called
+unconditionally afterward regardless of where `reference` came from)
+already caches whatever is found into the local method-wide pools, so no
+separate caching step was needed. Scoped to `dependencyKind === 'field'`
+only — `dependencyKind === 'record'` (Cycle 43/45's own RECORD
+canonicalization) is completely untouched, and `fieldReference()`'s own
+explicit-syntax allocator (Population B, NOT implemented) is a
+completely separate code path, unaffected by this change.
+
+### Population B — explicitly NOT implemented this cycle
+
+Per Phase 20's explicit threshold ("A second allocator may be fixed in
+the same cycle only if: same canonical rule, same corpus population
+evidence, same safe facade, zero contradictions. Otherwise document it
+for Cycle 66") and Phase 17's caution against inventing new facades
+without necessity: Population B requires a DIFFERENT canonical rule
+(control-group-scoped reuse for a source-syntax shape distinguished by
+its ENCLOSING FUNCTION CALL, not by receiver type or class-wide identity)
+and touches `fieldReference()`'s own, separately-calibrated,
+occurrence-based default — which has a real, existing negative control
+(`GetField(Field.CODE)` twice) that must not regress. Implementing this
+correctly requires threading "is this `Field.X` an argument to
+`GetField(...)`" context into `fieldReference()`, which does not
+currently exist and was not designed or tested this cycle. **34/58
+population, zero contradictions — a strong Cycle 66 candidate**, but not
+implemented here.
+
+### Validation ladder (Population A fix)
+
+- `npx tsc -p .`: clean.
+- `npm test`: 588 total, 587 pass, 1 pre-existing skip, 0 fail. Two tests
+  added:
+  - Positive/regression: *"Application Class bare-member FIELD access
+    reuses one class-wide identity across different methods, even with an
+    unrelated inherited `%This.method()` call"* — confirmed to FAIL
+    pre-fix (via `git stash` on `encoder.ts` alone) and PASS post-fix.
+    (Mirrors Cycle 64's inherited-`%This`-call construction, needed for
+    the same reason: without the gate, the pre-existing GATED
+    `applicationClassReferenceSession` already provides cross-method
+    reuse.)
+  - **Negative control**: *"`Field.X` used twice as a `GetField(...)`
+    argument on a stored Record variable remains occurrence-based,
+    unaffected by Cycle 65"* — confirmed to PASS both before and after,
+    proving the EXISTING calibrated `GetField(...)`-chain behavior
+    (Population B's own negative control) is completely untouched.
+- `git diff --check`: clean.
+- Protected/full corpus (`npm run corpus:verify`): 23,253/30,209 EXACT,
+  REGRESSION GATE: PASS, 0 improved / 0 regressed.
+- Full 30,209-definition byte-identical-encode scan (`git stash` on
+  `encoder.ts` before/after): **+0 gained, 0 lost** — no definition
+  reaches full byte-identity from this fix alone (every affected
+  definition, including `29099` itself, has at least one further,
+  independent gap), but zero regressions confirms the fix is safe.
+- Cycle 55/56/57/60/61/62/63/64 populations re-verified with zero
+  regressions: 171/173, 1,752/1,778, 1,037/1,053, 82/82, 27/28, 205
+  candidates, 65 candidates, 447/451 — all unchanged, expected since this
+  fix targets `kind: 'field'` bare-member allocation exclusively.
+- This cycle's own Population A census: after the fix, mismatches dropped
+  from 360 to 176 (246 duplicate-supporting cases collapsed to 62
+  remaining — the 62 residual are Population B's own distinct mechanism,
+  confirmed by direct inspection of `29099`'s own entries still showing
+  `generatedCount:2` for `CAF_RECNAME`/`CAF_FIELDNAME_1`/`CAF_FIELDNAME_2`
+  even after this fix, exactly matching the within-Chart-method
+  Population-B cause identified above).
+
+### Phase 21/22 — 29099 after the fix: advanced, but NOT reference-complete
+
+`29099`'s generated identity count moved from 60 (Cycle 64's ending) to
+58; its first divergence position is UNCHANGED (still the
+`FIELD.CAF_RECNAME`/`CAF_FIELDNAME_1`/`CAF_FIELDNAME_2` duplicate,
+entirely WITHIN method `Chart`, Population B's own mechanism). `29099`
+remains **still active, same FIELD family, now precisely attributed to a
+different, newly-isolated sub-mechanism** — not reference-complete, not
+resolved, not reclassified into a downstream/parked bucket.
+
+### Phase 25/50 — current status of the Cycle 64 trio
+
+- **`28755`**: identity count 18→16 (the Population-A fix removed its own
+  `PTBINDSYMBOL` cross-method duplicate, per Cycle 64's own prediction).
+  First divergence UNCHANGED (index 10 — the `Page."X"` quoted-reference/
+  possible Cycle 53 self-class-name compound lead, per Cycle 64's own
+  characterization; not investigated further, per Phase 24).
+- **`28964`**: identity count 103→84 (a substantial -19 reduction — many
+  overlapping field names across its 6-7 methods, e.g. `OPTION_CD`,
+  `BENEFIT_PLAN`, `COVERAGE_TYPE`, now correctly reused class-wide). First
+  divergence UNCHANGED (index 8 — the `%Super.TxtCat`-accessed inherited
+  property type gap, per Cycle 64's own characterization; not modified,
+  per Phase 23/26).
+- **`29099`**: see Phase 21/22 above — advanced, still active, same FIELD
+  family, new sub-mechanism identified.
+
+### Phase 27/29/30 — brief status checks (not investigated further)
+
+- `OutputField` (Cycle 59 lead): does NOT overlap with either Population
+  A or B (`OutputField` is not a Record-typed-variable bare member nor a
+  bare `Field.X` construct) — kept separate, per Phase 27.
+- `28790`: unchanged (`sourceEncodeExact: true`, `referenceStreamExact:
+  false`, identical first-diff shape to Cycle 64's ending state) — does
+  not cluster with either population.
+- `29389`: unchanged (identical first-diff shape) — remains a genuine
+  active reference root, its own historical "wrong non-PACKAGE identity"
+  label; does not share either this cycle's mechanism.
+
+### Phase 40/Blast-radius prediction vs. actual (Population A)
+
+Predicted: any Application Class definition with the same field name
+reached via a Record-typed variable's bare-member access in 2+ different
+methods would lose its duplicate FIELD allocations; the explicit
+`Field.X`-as-argument shape (Population B) and ordinary
+(non-Application-Class) PeopleCode would be unaffected. Actual: confirmed
+exactly — the mismatch count dropped by precisely the 246 predicted
+Population-A candidates (360→176, with the residual 62 confirmed to be
+Population B plus the 101 heuristic-noise/instance-variable entries which
+were never truly "fixable" by either mechanism), zero regressions
+anywhere, and the negative control confirms `GetField(...)`'s own
+behavior is untouched.
+
+### Phase 45/46 — consumer inventory (read-only)
+
+| allocator/helper | reference kind | class-wide facade consulted? | proven need? | status |
+|---|---|---|---|---|
+| `ensureLocalApplicationClassPackageReference` | package (App Class type) | yes (Cycle 57) | yes | correctly wired |
+| `ensureRuntimeCreateReference` | package (App Class type) | yes (Cycle 57) | yes | correctly wired |
+| `ensureLocalObjectPackageReference` | package (built-in Record/Rowset/Row/Field/SQL/etc.) | yes (Cycle 64) | yes | correctly wired |
+| `isMethodCall` branch / `addApplicationClassReference(...,methodName)` | package (method-dependency) | yes (Cycle 62, reuse-only check) | yes | correctly wired |
+| `allocateModeledDeclarationDependency` | package (declaration-dependency types) | yes (uses the raw `applicationClassReferenceScope` directly, unconditional) | yes | correctly wired |
+| `claimWildcardImportMetadata` | package (wildcard-import metadata) | yes (Cycle 61) | yes | correctly wired |
+| bare-member FIELD fallback (`resolvePostfixMemberReuse` → allocation) | field | yes (Cycle 65, this cycle) | yes (246/246) | correctly wired |
+| `fieldReference()` (explicit `Field.X` syntax) | field | no | yes, for a NARROWER shape than class-wide (34/58, control-group-scoped, non-`GetField` argument context) | **proven missing (Population B), not yet implemented** |
+| `dependencyScope` (RECORD/SCROLL, `recordReferencesByControlGroup`/`scrollReferencesByControlGroup`) | record / scroll | no | unknown — not investigated this cycle | no evidence |
+| `componentReferencesByControlGroup` | component | no | unknown — not investigated this cycle | no evidence |
+| `htmlDependencyScope` | record-field (HTML.NAME) | no (has its own, separately-evidenced, `application-class`-lifetime facade, Cycle 20) | no — already has its own proven, purpose-built lifetime | intentionally local |
+| `bindOwnerReference` / owner-slot binding | owner | n/a (different mechanism entirely) | no — Cycle 61 already confirmed no population evidence | parked/unknown |
+
+### Phase 52 — architecture assessment
+
+**Small remaining consumer inventory, not a broader architectural gap.**
+Of the ~12 distinct class-visible allocation mechanisms inventoried, 7 are
+now correctly wired (2 from Cycle 57, 1 from Cycle 64, 1 from Cycle 62, 1
+from Cycle 61, 1 always-unconditional, 1 from this cycle), 1 has a
+PROVEN but NOT-YET-implemented gap for a narrower shape than "class-wide"
+(Population B — genuinely a different rule, not simply "another unwired
+consumer of the SAME rule"), 1 is intentionally local with its own
+already-proven lifetime (`htmlDependencyScope`), and 3 have no
+investigated evidence either way (RECORD/SCROLL/component control-group
+pools). This does not cross the threshold for a broad audit — each
+remaining item needs its OWN population evidence before any conclusion,
+exactly the discipline this cycle's own correction (Phase 1-4) reinforces
+the value of.
+
+### Explicitly not done this cycle
+
+- Population B (bare `Field.X`-as-plain-argument, non-`GetField`,
+  control-group-scoped reuse) — precisely characterized (34/58
+  candidates, zero contradictions) but NOT implemented; the strongest
+  Cycle 66 candidate.
+- The instance-declared-Record-variable tracking gap (`instance Record
+  &x;` never joining `recordVariables`, confirmed via definition `28808`)
+  — a genuinely different, unrelated, not-yet-investigated defect
+  surfaced as census noise; flagged, not characterized further.
+- `28755`'s `Page."X"` quoted-reference/self-class-name lead, `28964`'s
+  `%Super`-inherited-property-type gap — both reconfirmed unchanged, not
+  touched, per Phase 23/24/26.
+- The RECORD/SCROLL and COMPONENT control-group pools' own class-wide
+  reuse question — no evidence gathered either way this cycle.
+- `OutputField`, `28790`, `29389`, Cycle 53's parked self-class-name
+  family, the marker/wildcard campaigns, Cycle 30/31 member-order roots,
+  `29522`, and the decoder — all untouched.
+- Did not start Cycle 66.
+
+### Phase 48 — refreshed active-reference census
+
+Unchanged in COUNT from Cycle 64's own accounting (this cycle advanced
+several roots' identity counts but did not resolve or reclassify any of
+them to a different bucket): the same 12 active, deterministically
+non-exact reference roots remain active:
+
+```text
+28713, 28752, 28755, 28904, 28925, 28964, 29044, 29099,
+29389, 29518, 29542, 29614
+```
+
+`28862` remains fully `sourceEncodeExact=true`. Parked self-metadata
+(`28801`, `28802`, `28972`, `28975`, `30104`, `28757`, `29841`, `29305`,
+`29144`, `29202`) remain excluded per Phase 32.
+
+### Phase 49 — reclassify 29099
+
+**Advanced to new blocker** — same FIELD reference family as before, but
+the specific mechanism is now precisely re-attributed from "cross-method
+class-wide reuse" (Population A, now fixed and confirmed NOT the cause)
+to "bare explicit `Field.X`-as-plain-argument control-group reuse"
+(Population B, characterized, not yet implemented). Not resolved, not
+reference-complete, not reclassified into a parked/downstream bucket.
+
+### Phase 43/51 — 99-root accounting
+
+Unchanged from Cycle 64's own accounting: total remains 99. No root moved
+between categories this cycle (28755/28964/29099 all remain in "active
+reference," now with more precisely identified next-blockers; no root
+reached "reference-complete" or "resolved" status).
+
+### Recommendation for Cycle 66 (not started)
+
+**Population B (`fieldReference()`'s bare `Field.X`-as-plain-argument
+control-group reuse)** is the strongest, most direct candidate: it is
+34/58, zero contradictions, directly explains `29099`'s own actual first
+divergence, and has a clear (if not yet designed) implementation shape
+(thread "is this a `GetField(...)` argument" context into
+`fieldReference()`, or invert the exclusion to name `GetField` explicitly
+rather than requiring an inclusion flag). Secondary options: the
+instance-declared-Record-variable tracking gap (newly surfaced, not yet
+sized); `28964`'s `%Super`-inherited-property-type gap; `28755`'s
+compound quoted-reference/self-class-name lead; a focused census of the
+RECORD/SCROLL/component control-group pools' own class-wide-reuse
+question (Phase 45's remaining "no evidence" row).
+
+Do not start Cycle 66 in this session.
+
 ## Compiler Semantics Cycle 64 — built-in object declarations lack class-wide reuse (implemented); the three Cycle 60 roots split into one shared, now-fixed mechanism plus three distinct new blockers
 
 **Status: IMPLEMENTED, validated, zero classification-level regressions,
