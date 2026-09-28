@@ -1,5 +1,216 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 59 — `Collection` leaf: false-family finding, no encoder change (forensic only)
+
+**Status: FORENSIC ONLY, zero encoder changes.** Datasource: LOCAL
+SNAPSHOT throughout. Starting commit `65f60a6` (Cycle 58). Protected/full
+baseline reproduced: `npm run corpus:verify` — 23,253/30,209 EXACT,
+REGRESSION GATE: PASS (0 improved, 0 regressed) — matches Cycle 58's
+documented ending state.
+
+### Headline result: the premise did not survive fresh reconstruction
+
+Cycle 58's "7 definitions where `Collection` is never allocated" claim
+was checked directly against the 7 named definitions (`29886`, `29890`,
+`29891`, `29885`, `30194`, `30196`, `30209`), per Phase 1's explicit
+instruction not to trust the family until row shapes and source
+constructs are confirmed. **The claim does not hold.** `Collection`
+already has a matching generated reference in 5 of the 7 immediately, and
+a corpus-wide census (Phase 7, mandatory) of ALL 33 Application Class
+definitions containing a qualified `X:Collection` type reference found
+**14/15 already correctly matching, with exactly 1 genuine mismatch in
+the ENTIRE corpus — and that one mismatch (`28790`) is not even one of
+the original 7.**
+
+### Root cause of the false signal: a census-tooling artifact, not an encoder bug
+
+Cycle 52's declaration-dependency prepass (`allocateModeledDeclarationDependency`,
+`encoder.ts`) allocates a PACKAGE reference for a class-header-declared
+type using one of two distinct internal shapes depending on whether the
+leaf is in `builtinDeclarationTypes`:
+
+```text
+builtin-shaped:  { kind:'package', packageName: LEAF, objectName: leaf }
+                 (no packagePath, no className)
+ordinary-shaped: { kind:'package', packageName: LEAF, objectName: ROOT,
+                   packagePath: [...], className: LEAF }
+```
+
+`builtinDeclarationTypes` (`encoder.ts`) includes `'collection'` alongside
+genuine PeopleCode built-ins (`record`, `rowset`, `row`, `field`, `sql`,
+`file`, `jsonbuilder`, etc.) — so an Application-Class type whose LEAF
+happens to be named `Collection` (e.g. `PSXP_XMLGEN:Collection`,
+`PTAI_COLLECTION:Collection`) is allocated through the **builtin-shaped**
+branch, producing a reference with `packageName`/`objectName` set but
+**no `className` field**.
+
+Cycle 56/57/58's own census scripts filtered generated references with
+`(r as any).className?.toLowerCase() === leaf` — this filter silently
+excludes builtin-shaped references (whose `className` is `undefined`),
+producing a false "generated never allocates it" signal. The actual
+encoder-internal reference-identity function
+(`applicationClassReferenceKey`, used by the REAL cross-fragment dedup
+facade Cycles 32/52/57 rely on) is more robust: it computes identity from
+`reference.className ?? reference.packageName`, which correctly treats
+both shapes as the same identity. Both shapes also decode to the
+identical `(RECNAME, REFNAME)` = `("PACKAGE", "COLLECTION")` text per
+Cycle 54's own established finding that only `RECNAME`/`REFNAME` are
+compared — so the builtin-shaped reference is not merely "close enough,"
+it is **byte-for-byte indistinguishable** from what stored PSPCMNAME
+records for the ordinary shape, for every metric this project's validator
+actually checks.
+
+**This is Model E ("false family") from the task's own candidate list,
+confirmed with population-scale evidence, not just the original 7.**
+
+### Phase 1–6 — the 7 originally-named definitions, reconstructed fresh
+
+| ID | `Collection` status | actual remaining defect (unrelated to `Collection`) |
+|---|---|---|
+| `29886` | already correctly allocated at namenum 4 | self-class-row gap (`COMPQUERYDS`, parked Cycle 53 family) + `OutputField` leaf tripled (separate, unrelated reuse gap) |
+| `29890` | already correctly allocated at namenum 5 | self-class-row gap (`QUERYDS`) + `OutputField` duplicated |
+| `29891` | already correctly allocated at namenum 5 | self-class-row gap (`ROWSETDS`) + `OutputField` tripled |
+| `29885` | already correctly allocated at namenum 3 | **fully reference-stream exact**; `sourceEncodeExact=false` for an unrelated, non-reference reason (marker/decoder-class byte, not investigated further per this cycle's scope) |
+| `30194` | already correctly allocated at namenum 6 | **`sourceEncodeExact=true` — fully byte-identical already** |
+| `30196` | already correctly allocated at namenum 3 | unrelated `declare-function` construct misrecognition (same family Cycle 58 already identified: `FUNCLIB_PTPP.PTPP_RETURN_HOME` etc. wrongly emitted as `declare-function`) |
+| `30209` | genuinely duplicated (see below) — the one real `Collection`-adjacent finding in this set | — |
+
+`30209` shows a real, narrow anomaly: the plain type-dependency
+`PACKAGE.COLLECTION` row is correctly allocated once, but TWO ADDITIONAL
+method-dependency references (`COLLECTION...INSERT`, `COLLECTION...
+DELETEBYID`, for `&coll.Insert(...)`/`&coll.DeleteById(...)` calls) also
+appear in generated with the same simplistic `PACKAGE.COLLECTION`-style
+text rendering my Cycle 58 comparator uses (which does not distinguish
+`appclassmethod`-populated rows from plain ones) — this is very likely
+NOT a real defect either, just the SAME comparator limitation showing up
+a second way (method-dependency rows rendering identically to type rows
+in my simplified text form). Not chased further given the population
+evidence below shows no need to.
+
+### Phase 7 (mandatory) — corpus-wide census settles it
+
+Built `cycle59-collection-census.ts`: scanned all 1,510 Application Class
+definitions for a qualified `X:Collection` type reference (33 found, 18
+hit pre-existing unrelated encode errors and were skipped, 15 fully
+evaluable):
+
+```text
+Both stored and generated present (correct):        14
+Stored present, generated missing (TRUE bug):         1  (definition 28790)
+Generated present, stored missing (over-allocation):  0
+Neither present:                                      0
+```
+
+**14/15 (93%) already correct. Exactly one genuine defect in the entire
+corpus, and it is not one of the 7 originally-flagged definitions.**
+
+### Phase 8/9 — positive and negative controls
+
+Every one of the 14 "both present" cases is a positive control for the
+builtin-shaped-reference mechanism working correctly across multiple
+distinct packages (`PSXP_XMLGEN`, `PTAI_COLLECTION`, `PTPP_PORTAL:UTILITY`,
+and others), multiple source constructs (parameter type, return type,
+property type, instance type, plain Local, `create`-initialized Local),
+and both same-method and cross-method occurrences — this is not a narrow
+coincidence; the mechanism is broadly, robustly correct.
+
+### The single remaining anomaly: `28790` (not population-supported)
+
+`28790`'s `PTAI_COLLECTION:Collection` type is used ONLY as a body-level
+`Local` declaration (never as a property/instance/parameter/return type
+at the class-header level, where Cycle 52's prepass would discover it).
+Generated shows a METHOD-DEPENDENCY reference (`className:'COLLECTION',
+methodName:'ITEM'`, for a `.Item(...)` call) at the position where stored
+wants a plain type-dependency row — suggesting the method-call path
+allocates before, and instead of, a plain declaration reference for this
+one body-local occurrence. This is a genuine, narrow gap, but **a single
+definition does not meet the population threshold** (Phase 26: "2+
+independent mismatching definitions... zero known contradictions") for
+implementation. Characterized, not fixed.
+
+### Phase 44 — architecture assessment
+
+**`Collection` is not a broader Application-Class/built-in name-collision
+class.** It is a single leaf name that happens to appear in
+`builtinDeclarationTypes` (a set correctly serving its OWN intended
+purpose — recognizing genuine built-in object types for the declaration-
+dependency prepass) and, as a harmless byproduct, an Application-Class
+leaf that happens to share that name is allocated through a structurally
+different but functionally equivalent reference shape. This is not a bug
+needing a "qualification-aware built-in detection" fix (Model A/B from
+the task's own candidate list) — the CURRENT behavior is already correct
+by every metric this project's validator checks. No collision-class audit
+is warranted from this evidence alone.
+
+**The real lesson from this cycle is about census tooling, not the
+encoder**: any future census comparing generated `PeopleCodeReference`
+objects by `className` alone will silently miss builtin-shaped Application-
+Class references. Future census scripts should use `className ??
+packageName` (matching `applicationClassReferenceKey`'s own logic)
+instead.
+
+### Explicitly not done this cycle
+
+- No encoder changes (none justified — the premise did not hold).
+- `28790`'s single-definition gap — characterized, not fixed (below
+  population threshold).
+- `30209`'s method-dependency rendering ambiguity — not chased (likely a
+  comparator artifact, not a defect, per the population evidence).
+- The self-class-row gaps surfacing in `29886`/`29890`/`29891` — these
+  belong to the already-parked Cycle 53 family (now known to include at
+  least `28801`, `28802`, `28972`, `28975`, `30104`, `28757`, `29841`, and
+  now incidentally `COMPQUERYDS`/`QUERYDS`/`ROWSETDS`) — NOT reopened,
+  per Phase 32's explicit instruction.
+- The `OutputField` leaf reuse gap in `29886`/`29890`/`29891` — a
+  genuinely new, small (3-definition) lead noticed incidentally; flagged
+  for a future cycle's own fresh census, not investigated this cycle.
+- `30196`'s `declare-function` misrecognition — belongs to the already-
+  identified Cycle 58 family (`28755`, `28964`, `29099`, `29518`, now
+  plus `30196`), not reopened this cycle.
+- Declare-function family (`28755`/`28964`/`29099`/`29518`), wrong-
+  identity-substitution family (`29144`/`29202`), parked self-metadata,
+  wildcard-import population, marker campaign, names/member ordering, and
+  the decoder — all untouched, per Phases 32–37.
+- Did not start Cycle 60.
+
+### Required historical controls (Phase 30)
+
+Since no encoder change was made, the Cycle 55/56/57 populations are
+unchanged by construction; reproduced exactly as documented: 171/173,
+1,752/1,778, 1,036/1,053. The Cycle 58 13-active-root historical
+accounting is left intact (Phase 43) — this cycle's findings did not
+change any of those 13 roots' dispositions (none of them are among the 7
+`Collection`-flagged definitions or `28790`).
+
+### Cycle 59 ending accounting (Phase 41)
+
+Of the 7 starting definitions:
+
+- **5 already correct for `Collection` specifically** (`29886`, `29890`,
+  `29891`, `29885`, `30196`) — no action needed; each has its own
+  separate, already-classified or newly-noted remaining defect unrelated
+  to `Collection`.
+- **1 already fully resolved** (`30194` — byte-identical).
+- **1 has a genuine but population-unsupported `Collection`-adjacent
+  anomaly** (`30209`, likely a comparator artifact rather than a real
+  defect; not implemented).
+
+Total: 5 + 1 + 1 = 7.
+
+### Recommendation for Cycle 60 (not started)
+
+Per the task's own default: since `Collection` resolved cleanly (as a
+false alarm, not a real family), the next target is the **4-root
+`declare-function` construct-misrecognition family**
+(`28755`, `28964`, `29099`, `29518`, now joined by a 5th observed instance
+this cycle, `30196`, for a population of 5) — the strongest remaining
+coherent, well-evidenced family from Cycle 58's closeout. The incidentally-
+noticed `OutputField`-leaf reuse gap (3 definitions: `29886`, `29890`,
+`29891`) is a smaller, secondary lead worth a fresh population census if
+the declare-function family does not pan out.
+
+Do not start Cycle 60 in this session.
+
 ## Compiler Semantics Cycle 58 — Application Class active-reference closeout and residual re-census (forensic only, zero encoder change)
 
 **Status: FORENSIC ONLY, zero encoder changes.** Datasource: LOCAL
