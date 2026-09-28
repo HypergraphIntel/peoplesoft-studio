@@ -2727,26 +2727,44 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
   /*
    * Cycle 66 (definition 29099): `GetField(Field.X)` deliberately OWNS its
-   * own FIELD occurrence -- each call allocates a fresh row even when the
-   * SAME field name was already referenced elsewhere in the same control
-   * group (the existing calibrated test, 'encodeProgramArtifacts allocates
-   * repeated Scroll and Field references by occurrence', proves this for
-   * `GetField(Field.CODE)` called twice on a stored Record variable).
-   * Every OTHER consumer of an explicit `Field.X` reference (a plain
-   * expression/array argument such as `CreateArray(Field.X, ...)`, or an
-   * argument to any OTHER function/method such as
-   * `%This.GetSpecificRow(..., Field.X, ...)`/`%This.GetLongTranslateValue(Field.X, ...)`)
-   * treats `Field.X` as an ordinary symbolic constant that stored
-   * PeopleTools reuses -- a corpus-wide census
-   * (`cycle66-field-consumer-context-census.ts`) found ZERO cases, across
-   * every enclosing call EXCEPT `GetField` itself, where stored keeps
-   * repeated identical `Field.X` references distinct. Set true only while
-   * parsing arguments to a `GetField(...)` call specifically (regardless
-   * of `fieldMemberFromGetRecord`, unlike `reuseFieldReferenceWithinControlGroup`'s
-   * own narrower condition below), so `fieldReference()` can tell "am I
-   * this call's own occurrence-owned argument" apart from "am I a plain
-   * symbolic reference" without touching `reuseFieldReferenceWithinControlGroup`'s
-   * own, already-proven, narrower semantics.
+   * own FIELD occurrence for ORDINARY (non-Application-Class) PeopleCode --
+   * each call allocates a fresh row even when the SAME field name was
+   * already referenced elsewhere in the same control group (the existing
+   * calibrated test, 'encodeProgramArtifacts allocates repeated Scroll and
+   * Field references by occurrence', proves this for `GetField(Field.CODE)`
+   * called twice on a stored Record variable). Every OTHER consumer of an
+   * explicit `Field.X` reference (a plain expression/array argument such as
+   * `CreateArray(Field.X, ...)`, or an argument to any OTHER function/method
+   * such as `%This.GetSpecificRow(..., Field.X, ...)`/
+   * `%This.GetLongTranslateValue(Field.X, ...)`) treats `Field.X` as an
+   * ordinary symbolic constant that stored PeopleTools reuses -- a
+   * corpus-wide census (`cycle66-field-consumer-context-census.ts`) found
+   * ZERO cases, across every enclosing call EXCEPT `GetField` itself, where
+   * stored keeps repeated identical `Field.X` references distinct.
+   *
+   * Cycle 69 (definition 29389): that "existing calibrated test" supplies
+   * no Application Class `owner` (no `packagePath`) -- it is ordinary
+   * PeopleCode, where `fieldReference()`'s own reuse check below is ALREADY
+   * gated by `recordDependenciesHaveMethodWideLifetime`, so the test's
+   * outcome is unaffected by this flag's value either way; it never
+   * actually tested Application Class bodies. A dedicated corpus census
+   * (`cycle69-getfield-argument-reuse-census.ts`, 296 candidates) found 78
+   * Application Class cases where stored reuses ONE identity across
+   * repeated RECEIVER-based `.GetField(Field.X)` calls (`29389`'s own
+   * `&_recDtl.GetField(Field.EFFDT)`/`&_recDtl.GetField(Field.GPS_POST_ID)`,
+   * called twice from two different `SQLExec(...)` statements, reusing an
+   * identity first allocated even earlier via a DIFFERENT receiver
+   * entirely), 0 contradictions, and 0 matched cases with a stored count of
+   * 2+ (i.e., zero direct evidence Application Class bodies ever want
+   * occurrence-based behavior here). Scoped to ordinary PeopleCode only,
+   * matching the one construct this flag was ever actually proven for; set
+   * true only while parsing arguments to a `GetField(...)` call
+   * specifically (regardless of `fieldMemberFromGetRecord`, unlike
+   * `reuseFieldReferenceWithinControlGroup`'s own narrower condition below),
+   * so `fieldReference()` can tell "am I this call's own occurrence-owned
+   * argument" apart from "am I a plain symbolic reference" without touching
+   * `reuseFieldReferenceWithinControlGroup`'s own, already-proven, narrower
+   * semantics.
    */
   let fieldReferenceOccurrenceOwnedByGetField = false;
   const ordinaryRecordFieldsByControlGroup = new Map<string, PeopleCodeReference>();
@@ -9496,13 +9514,18 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             fieldReferenceOccurrenceOwnedByGetField;
 
           /*
-           * Cycle 66: ANY `GetField(...)` call (regardless of
+           * Cycle 66/69: ANY `GetField(...)` call (regardless of
            * `fieldMemberFromGetRecord`, unlike `reuseFieldReferenceWithinControlGroup`
            * just below) owns its own explicit `Field.X` argument's
-           * occurrence -- see `fieldReferenceOccurrenceOwnedByGetField`'s
-           * own declaration comment for the population evidence.
+           * occurrence for ORDINARY PeopleCode only -- see
+           * `fieldReferenceOccurrenceOwnedByGetField`'s own declaration
+           * comment for the population evidence (Cycle 69 confirmed
+           * Application Class bodies do NOT share this behavior).
            */
-          if (/^GetField$/i.test(member)) {
+          if (
+            /^GetField$/i.test(member) &&
+            !context?.recordDependenciesHaveMethodWideLifetime
+          ) {
             fieldReferenceOccurrenceOwnedByGetField = true;
           }
 

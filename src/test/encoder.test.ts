@@ -2913,13 +2913,24 @@ end-method;`, {
   );
 });
 
-test('Application Class GetField(Field.CODE) called twice remains occurrence-based, unaffected by Cycle 66', () => {
-  // Mandatory negative control (Phase 41): `GetField(...)` deliberately
-  // owns its own explicit Field.X argument's occurrence -- this must
-  // remain true even inside an Application Class method body, the exact
-  // context Cycle 66's own fix operates in (unlike the pre-existing plain-
-  // PeopleCode test above, which never even reaches
-  // `recordDependenciesHaveMethodWideLifetime`-gated code).
+// Cycle 69 (definition 29389): this test originally asserted that
+// `GetField(...)` always owns its own explicit Field.X argument's
+// occurrence, even inside an Application Class method body -- but the
+// "existing calibrated test" Cycle 66 cited as proof
+// ('encodeProgramArtifacts allocates repeated Scroll and Field references
+// by occurrence', still above) supplies no Application Class `owner` (no
+// `packagePath`): it is ordinary PeopleCode, where this reuse check is
+// already gated off by `recordDependenciesHaveMethodWideLifetime`, so
+// that test's outcome never actually depended on GetField-occurrence
+// ownership at all -- it was an untested extrapolation into the
+// Application Class case. A corpus-wide census
+// (`cycle69-getfield-argument-reuse-census.ts`, 296 candidates) found 78
+// Application Class cases where stored reuses ONE identity across
+// repeated receiver-based `.GetField(Field.X)` calls (0 contradictions,
+// 0 matched cases with a stored count of 2+), matching `29389`'s own
+// `&_recDtl.GetField(Field.EFFDT)` called from two different `SQLExec(...)`
+// statements. Corrected in place rather than left as a stale pin.
+test('Application Class GetField(Field.CODE) called twice reuses one identity, corrected by Cycle 69', () => {
   const encoded = encodeProgramArtifacts(`class ReferenceTest
    method Run();
 end-class;
@@ -2940,8 +2951,8 @@ end-method;`, {
   const fieldReferences = encoded.references.filter(r => r.kind === 'field');
   assert.strictEqual(
     fieldReferences.length,
-    2,
-    'GetField(Field.CODE) called twice inside an Application Class method must remain occurrence-based, unaffected by Cycle 66\'s generic explicit-FIELD reuse fix'
+    1,
+    'GetField(Field.CODE) called twice inside an Application Class method reuses one identity, per Cycle 69\'s corpus evidence'
   );
 });
 
