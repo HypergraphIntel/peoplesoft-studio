@@ -2841,6 +2841,77 @@ Local Field &fld1, &fld2;
   );
 });
 
+test('Application Class explicit Field.X repeated in adjacent CreateArray(...) statements reuses one identity', () => {
+  // Cycle 66 (definition 29099): within ONE method, two adjacent
+  // `CreateArray(...)` statements each contain a bare, explicit `Field.X`
+  // argument for the same field name -- stored PeopleTools reuses ONE
+  // identity; the pre-Cycle-66 encoder allocated a fresh, occurrence-based
+  // row for each (matching `fieldReference()`'s own general default,
+  // deliberately correct for `GetField(...)` but not for this shape). A
+  // corpus-wide census (`cycle66-field-consumer-context-census.ts`, 58
+  // (definition, field-name) candidates with 2+ NON-GetField bare Field.X
+  // occurrences) found 100% support once GetField's own argument is
+  // excluded (0 contradictions) -- broken down by enclosing call
+  // (`CreateArray`, other Application Class method calls such as
+  // `%This.GetSpecificRow(...)`/`%This.GetLongTranslateValue(...)`, and no
+  // enclosing call at all), confirming the discriminator is "is this
+  // Field.X a GetField(...) argument", not "is this specifically
+  // CreateArray".
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Chart();
+end-class;
+
+method Chart
+   %This.FieldsUsed = CreateArray(Field.CAF_TEXT_1, Field.CAF_RECNAME);
+   %This.FieldsRequired = CreateArray(Field.CAF_RECNAME, Field.CAF_TEXT_1);
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const fieldReferences = encoded.references.filter(r => r.kind === 'field');
+  assert.deepStrictEqual(
+    fieldReferences.map(r => (r as { fieldName: string }).fieldName).sort(),
+    ['CAF_RECNAME', 'CAF_TEXT_1'],
+    'CAF_RECNAME and CAF_TEXT_1 should each reuse one identity across both CreateArray(...) statements, not allocate a fresh row per occurrence'
+  );
+});
+
+test('Application Class GetField(Field.CODE) called twice remains occurrence-based, unaffected by Cycle 66', () => {
+  // Mandatory negative control (Phase 41): `GetField(...)` deliberately
+  // owns its own explicit Field.X argument's occurrence -- this must
+  // remain true even inside an Application Class method body, the exact
+  // context Cycle 66's own fix operates in (unlike the pre-existing plain-
+  // PeopleCode test above, which never even reaches
+  // `recordDependenciesHaveMethodWideLifetime`-gated code).
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+end-class;
+
+method Run
+   Local Record &rec = GetRecord(Record.OU_CORPUS);
+   Local Field &fld1, &fld2;
+   &fld1 = &rec.GetField(Field.CODE);
+   &fld2 = &rec.GetField(Field.CODE);
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const fieldReferences = encoded.references.filter(r => r.kind === 'field');
+  assert.strictEqual(
+    fieldReferences.length,
+    2,
+    'GetField(Field.CODE) called twice inside an Application Class method must remain occurrence-based, unaffected by Cycle 66\'s generic explicit-FIELD reuse fix'
+  );
+});
+
 test('a Record-typed variable\'s own bare row-state member stays inline text, not a FIELD reference', () => {
   // Cycle 46 (definition 29522): `&AbsenceRec.IsDeleted` -- a Record-typed
   // receiver's own bare row-state property -- must stay inline, exactly

@@ -2631,6 +2631,31 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   let reuseFieldReferenceWithinControlGroup = false;
   const scopedFieldReferences =
     new Map<string, PeopleCodeReference>();
+
+  /*
+   * Cycle 66 (definition 29099): `GetField(Field.X)` deliberately OWNS its
+   * own FIELD occurrence -- each call allocates a fresh row even when the
+   * SAME field name was already referenced elsewhere in the same control
+   * group (the existing calibrated test, 'encodeProgramArtifacts allocates
+   * repeated Scroll and Field references by occurrence', proves this for
+   * `GetField(Field.CODE)` called twice on a stored Record variable).
+   * Every OTHER consumer of an explicit `Field.X` reference (a plain
+   * expression/array argument such as `CreateArray(Field.X, ...)`, or an
+   * argument to any OTHER function/method such as
+   * `%This.GetSpecificRow(..., Field.X, ...)`/`%This.GetLongTranslateValue(Field.X, ...)`)
+   * treats `Field.X` as an ordinary symbolic constant that stored
+   * PeopleTools reuses -- a corpus-wide census
+   * (`cycle66-field-consumer-context-census.ts`) found ZERO cases, across
+   * every enclosing call EXCEPT `GetField` itself, where stored keeps
+   * repeated identical `Field.X` references distinct. Set true only while
+   * parsing arguments to a `GetField(...)` call specifically (regardless
+   * of `fieldMemberFromGetRecord`, unlike `reuseFieldReferenceWithinControlGroup`'s
+   * own narrower condition below), so `fieldReference()` can tell "am I
+   * this call's own occurrence-owned argument" apart from "am I a plain
+   * symbolic reference" without touching `reuseFieldReferenceWithinControlGroup`'s
+   * own, already-proven, narrower semantics.
+   */
+  let fieldReferenceOccurrenceOwnedByGetField = false;
   const ordinaryRecordFieldsByControlGroup = new Map<string, PeopleCodeReference>();
   const currentStatementRecordFields = new Map<string, PeopleCodeReference>();
   const componentReferencesByControlGroup = new Map<string, PeopleCodeReference>();
@@ -3363,12 +3388,50 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       }
     }
 
+    /*
+     * Cycle 66 (definition 29099): outside a `GetField(...)` call's own
+     * occurrence-owned arguments (see `fieldReferenceOccurrenceOwnedByGetField`'s
+     * own declaration comment for the population evidence), an explicit
+     * `Field.X` reference is an ordinary symbolic constant -- reuse it the
+     * same way a Record-typed variable's bare-member FIELD access already
+     * does (Cycle 46's method-wide `fieldDependencyScope`, Cycle 65's
+     * class-wide `applicationClassTypeReferenceSession` fallback for when
+     * an inherited `%This.method()` call disables the gated cross-fragment
+     * session). Scoped to Application Class method bodies only
+     * (`recordDependenciesHaveMethodWideLifetime`, set only by
+     * `encodeApplicationClassProgramV2`) -- this cycle's census covered
+     * only that population; ordinary PeopleCode's own occurrence-based
+     * default (a large, already-EXACT population) is left untouched.
+     */
+    if (
+      !reuseFieldReferenceWithinControlGroup &&
+      !fieldReferenceOccurrenceOwnedByGetField &&
+      context?.recordDependenciesHaveMethodWideLifetime
+    ) {
+      const existing =
+        fieldDependencyScope.lookupField(fieldName) ??
+        context?.applicationClassTypeReferenceSession?.lookup({
+          kind: 'field',
+          fieldName
+        });
+
+      if (existing !== undefined) {
+        fieldDependencyScope.recordField(fieldName, existing);
+        return referenceOperand(existing);
+      }
+    }
+
     const reference = nextReference({
       kind: 'field',
       fieldName
     });
 
     if (reuseFieldReferenceWithinControlGroup) {
+      fieldDependencyScope.recordField(fieldName, reference);
+    } else if (
+      !fieldReferenceOccurrenceOwnedByGetField &&
+      context?.recordDependenciesHaveMethodWideLifetime
+    ) {
       fieldDependencyScope.recordField(fieldName, reference);
     }
 
@@ -9288,6 +9351,19 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             reuseScrollReferenceWithinControlGroup;
           const previousReuseFieldReferenceWithinControlGroup =
             reuseFieldReferenceWithinControlGroup;
+          const previousFieldReferenceOccurrenceOwnedByGetField =
+            fieldReferenceOccurrenceOwnedByGetField;
+
+          /*
+           * Cycle 66: ANY `GetField(...)` call (regardless of
+           * `fieldMemberFromGetRecord`, unlike `reuseFieldReferenceWithinControlGroup`
+           * just below) owns its own explicit `Field.X` argument's
+           * occurrence -- see `fieldReferenceOccurrenceOwnedByGetField`'s
+           * own declaration comment for the population evidence.
+           */
+          if (/^GetField$/i.test(member)) {
+            fieldReferenceOccurrenceOwnedByGetField = true;
+          }
 
           /*
            * Record.X arguments to Select() reuse the same RECORD dependency
@@ -9372,6 +9448,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
               previousReuseScrollReferenceWithinControlGroup;
             reuseFieldReferenceWithinControlGroup =
               previousReuseFieldReferenceWithinControlGroup;
+            fieldReferenceOccurrenceOwnedByGetField =
+              previousFieldReferenceOccurrenceOwnedByGetField;
           }
 
           /*
