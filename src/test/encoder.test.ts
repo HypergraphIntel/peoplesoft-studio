@@ -2199,6 +2199,84 @@ end-method;`, {
   ]);
 });
 
+test('Application Class method-local create/Local references reuse a class-wide identity already established by an explicit import', () => {
+  // Cycle 57: a corpus-wide census of 1,053 class-wide/import-established
+  // (definition, leaf) candidates found stored PSPCMNAME converges to
+  // ONE identity in 1,041/1,053 cases when a method-local Local/create
+  // occurrence resolves to a leaf already named by an explicit import,
+  // property, instance, or method parameter/return type elsewhere in the
+  // class. `nextReference`'s own `applicationClassReferenceSession.lookup()`
+  // already handled 906/920 of these (every class with no inherited
+  // `%This.method()` call); the new `applicationClassTypeReferenceSession`
+  // (always present, unlike the gated session) resolves the remaining
+  // 106 of 133 candidates whose class DOES have an inherited call
+  // elsewhere -- see the next test.
+  const encoded = encodeProgramArtifacts(`import PKG:Object:Resource;
+
+class ReferenceTest
+   method Run();
+end-class;
+
+method Run
+   Local PKG:Object:Resource &oResource;
+   &oResource = create PKG:Object:Resource();
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  assert.deepStrictEqual(encoded.references, [
+    { index: 0, sequence: 1, kind: 'owner', recordName: undefined, fieldName: undefined },
+    {
+      index: 1,
+      sequence: 2,
+      kind: 'package',
+      packageName: 'RESOURCE',
+      objectName: 'PKG',
+      packagePath: ['PKG', 'Object'],
+      className: 'RESOURCE',
+      methodName: undefined
+    }
+  ]);
+});
+
+test('Application Class class-wide reuse survives an unrelated inherited %This.method() call that disables the gated cross-fragment session', () => {
+  // Cycle 57's key finding: `hasModeledApplicationClassReferenceScope`
+  // (and the `applicationClassReferenceSession` it gates) is disabled
+  // entirely whenever the class has ANY inherited (not-own-declared)
+  // `%This.method()` call -- a Cycle 32/34 rule that is genuinely about
+  // method-dependency resolution uncertainty, not about plain TYPE
+  // reuse. The new, ALWAYS-present `applicationClassTypeReferenceSession`
+  // is unaffected by that gate, so class-wide TYPE reuse still works here
+  // even though `%This.SomeInheritedMethod()` (a method this class does
+  // not itself declare) is present.
+  const encoded = encodeProgramArtifacts(`import PKG:Object:Resource;
+
+class ReferenceTest extends PKG:Base:Parent
+   method Run();
+end-class;
+
+method Run
+   %This.SomeInheritedMethod();
+   Local PKG:Object:Resource &oResource;
+   &oResource = create PKG:Object:Resource();
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const resourceRefs = encoded.references.filter(
+    (r): r is Extract<typeof r, { kind: 'package' }> => r.kind === 'package' && r.className === 'RESOURCE'
+  );
+  assert.strictEqual(resourceRefs.length, 1);
+});
+
 test('Application Class RECORD dependencies get method-wide lifetime across flat top-level statements', () => {
   const encoded = encodeProgramArtifacts(`class ReferenceTest
    method Run();
