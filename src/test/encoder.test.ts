@@ -3481,6 +3481,40 @@ test('ordinary PeopleCode CreateRecord reuse remains occurrence-based, not metho
   assert.equal(recordReferences.length, 2);
 });
 
+test('a File-typed Function parameter allocates an implicit PACKAGE/FILE dependency row', () => {
+  // Cycle 74 (definitions 7499/7500/..., among a 53-candidate corpus
+  // population with 0 contradictions): `Local File &f;` already allocates
+  // PACKAGE/FILE (see the ApiObject/Grid/ProcessRequest tests' own
+  // precedent), but `Function X(&f As File, ...)` never did -- the
+  // parameter-typing dispatch only ever recognized Record/Row/Rowset.
+  const encoded = encodeProgramArtifacts(
+    `Function EDI_ALC1(&EDIFile As File, &Rec As Record, &bWrite As boolean) Returns boolean
+   Local string &s = &EDIFile.IsOpen;
+   Return True;
+End-Function;`
+  );
+
+  const packageReferences = encoded.references.filter(r => r.kind === 'package');
+  assert.ok(
+    packageReferences.some(r => r.packageName === 'FILE'),
+    'a File-typed Function parameter must allocate a PACKAGE/FILE dependency row'
+  );
+});
+
+test('a string-typed Function parameter does not allocate a PACKAGE/FILE dependency row, unaffected by Cycle 74', () => {
+  // Mandatory negative control: only a genuine File-typed parameter
+  // triggers the new allocation -- an unrelated scalar-typed parameter in
+  // the same function must not.
+  const encoded = encodeProgramArtifacts(
+    `Function DoSomething(&s As string) Returns boolean
+   Return True;
+End-Function;`
+  );
+
+  const packageReferences = encoded.references.filter(r => r.kind === 'package');
+  assert.strictEqual(packageReferences.filter(r => r.packageName === 'FILE').length, 0);
+});
+
 test('a blank line after a leading bare semicolon before the first real statement stores its marker', () => {
   // Cycle 49 (9 Application Class constructors, e.g. definition 29110):
   // an Application Class method implementation's own structured
