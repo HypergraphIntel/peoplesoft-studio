@@ -9135,11 +9135,44 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
               !runtimeCreateReferences.has(classKey) ||
               !activeApplicationClassReceiver.reuseRuntimeCreateForMethods
             ) {
-              addApplicationClassReference(
-                activeApplicationClassReceiver.packagePath,
-                activeApplicationClassReceiver.className,
-                member
-              );
+              /*
+               * Cycle 62: a compatible TYPE-only identity for this SAME
+               * class may already have been committed by an EARLIER
+               * fragment -- an explicit import, a property/instance
+               * declaration, or an earlier create/Local occurrence --
+               * exactly the class-wide facade `ensureLocalApplicationClassPackageReference`/
+               * `ensureRuntimeCreateReference` already consult (Cycle 57's
+               * `applicationClassTypeReferenceSession`). A corpus-wide
+               * census (`cycle62-method-dependency-typeonly-reuse-census.ts`,
+               * 722 candidates) found ZERO cases where stored PeopleTools
+               * allocates a genuinely separate method-qualified PACKAGE row
+               * once a type-only identity for the class already exists --
+               * 417/722 show stored reusing the existing type row instead
+               * (the remaining 305 are an unrelated, pre-existing gap: the
+               * receiver's leaf has no PSPCMNAME row of ANY shape in
+               * stored, a different, not-yet-characterized defect this
+               * cycle does not touch). This call's return value is already
+               * discarded by every caller -- the method name itself is
+               * encoded as inline text a few lines above, not via this
+               * reference's namenum -- so skipping the allocation entirely
+               * when a compatible identity already exists is the complete
+               * fix; no operand needs to be redirected.
+               */
+              const classWideTypeIdentity = context?.applicationClassTypeReferenceSession?.lookup({
+                kind: 'package',
+                packageName: activeApplicationClassReceiver.className.toUpperCase(),
+                objectName: activeApplicationClassReceiver.packagePath[0]?.toUpperCase(),
+                packagePath: activeApplicationClassReceiver.packagePath.map((component, index) => index === 0 ? component.toUpperCase() : component),
+                className: activeApplicationClassReceiver.className.toUpperCase()
+              });
+
+              if (classWideTypeIdentity === undefined) {
+                addApplicationClassReference(
+                  activeApplicationClassReceiver.packagePath,
+                  activeApplicationClassReceiver.className,
+                  member
+                );
+              }
             }
           }
 

@@ -2192,31 +2192,38 @@ end-method;`, {
   ]);
 });
 
-test('Application Class inherited %This.method() call still prevents cross-fragment method-dependency reuse (negative control)', () => {
-  // Cycle 61 mandatory negative control: the wildcard-import fix above
-  // (and Cycles 52/57/60's fixes) each routed a purely mechanical,
-  // source-derived behavior around the `hasUnmodeledThisMethodDependencies`
-  // gate onto the always-present `applicationClassTypeReferenceSession`.
-  // None of them touch the gate's own genuine purpose: when a class has
-  // an inherited (not-own-declared) %This.method() call, the *method*-
-  // dependency reuse pool (as opposed to the *type* reuse pool) must
-  // stay uncertain, because the encoder cannot resolve the inherited
-  // method's identity/signature. This test proves that boundary still
-  // holds after all four fixes.
+test('Application Class method-dependency reuse of an existing class-wide type identity is unconditional on the inherited %This.method() gate', () => {
+  // Cycle 61 wrote this test as a negative control, ASSUMING (without
+  // direct corpus evidence at the time) that an inherited %This.method()
+  // call must keep method-dependency reuse gated even for a COMPLETELY
+  // UNRELATED, statically-known external class receiver -- i.e. that
+  // `hasUnmodeledThisMethodDependencies` should suppress reuse here too.
+  //
+  // Cycle 62 population evidence overturns that assumption. A corpus-wide
+  // census (`cycle62-method-dependency-typeonly-reuse-census.ts`, 722
+  // candidates) found that whenever a class-wide TYPE-only identity for a
+  // leaf already exists, stored PeopleTools reuses it for a method call
+  // instead of allocating a separate method-qualified row -- and this
+  // holds EQUALLY for the 47 candidates whose class ALSO has an inherited
+  // %This call (zero contradictions). Definition `29109`
+  // (`CAFNUI_UTIL:HtmlHelper`, `&helper.GenHtml(...)` called from 7+
+  // different methods via `Local CAFNUI_UTIL:HtmlHelper &helper =
+  // %This.Manager.HtmlHelper;`) is a real-world instance: stored has
+  // exactly ONE row for `HtmlHelper` despite the class having an
+  // inherited %This call elsewhere. The inherited-%This-call gate exists
+  // for `%This.method()` calls' OWN dispatch uncertainty (Cycle 32/34) --
+  // it was never evidenced to extend to an unrelated, statically-known
+  // external class receiver, and Cycle 62's fix (routing this lookup
+  // through the always-present `applicationClassTypeReferenceSession`,
+  // exactly like Cycle 57's own type-only lookups) makes both cases
+  // below converge, matching stored.
   //
   // Two methods (Run, RunAgain) each independently `create` the same
   // helper type and call the same method (.DoSomething()) on it. The
   // TYPE reference (sequence 3) is class-wide reused either way (Cycle
-  // 57). The METHOD-dependency reference (methodName: 'DOSOMETHING') is
-  // the one under test:
-  //   - CallOther calling its OWN method (%This.Run()): gate is OFF
-  //     (hasUnmodeledThisMethodDependencies === false) -> the second
-  //     .DoSomething() call reuses the first method-dependency reference
-  //     (only sequence 4 appears; no sequence 5).
-  //   - CallOther calling an INHERITED method (%This.SomeInheritedMethod()):
-  //     gate is ON -> the second .DoSomething() call allocates its own,
-  //     separate method-dependency reference (sequence 4 AND sequence 5
-  //     both appear) -- genuine safety preserved.
+  // 57). The METHOD-dependency reference (methodName: 'DOSOMETHING') now
+  // reuses that same class-wide type identity in BOTH cases -- whether or
+  // not the class also has an unrelated inherited %This call.
   const source = (inherited: boolean) => `class ReferenceTest extends PKG:Base:Parent
    method Run();
    method RunAgain();
@@ -2261,8 +2268,46 @@ end-method;`;
   );
   assert.strictEqual(
     methodDependencyRefsOn.length,
-    2,
-    'with an inherited %This call, method-dependency reuse must remain gated -- each .DoSomething() call keeps its own reference'
+    1,
+    'an unrelated inherited %This call must not prevent reuse of an already-established class-wide type identity for a different, statically-known receiver'
+  );
+});
+
+test('Application Class an inherited %This.method() call itself still allocates no method-dependency reference (genuine gate boundary)', () => {
+  // Genuine negative control for what the inherited-%This-call gate
+  // actually governs (Cycle 32/34): a %This.method() call's OWN dispatch
+  // target, when the method is NOT one of this class's own declarations.
+  // Unlike the `&typedLocal.Method()` case above, %This is never a
+  // `&variable` and so never sets `activeApplicationClassReceiver` --
+  // Cycle 62's fix lives entirely inside that `activeApplicationClassReceiver
+  // !== undefined` branch and cannot affect a %This call, which is
+  // confirmed here to still allocate no method-dependency (or any other)
+  // PACKAGE reference at all, matching every prior cycle's finding for
+  // this construct.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+   method CallInherited();
+end-class;
+
+method Run
+   Local any &x;
+end-method;
+
+method CallInherited
+   %This.SomeInheritedMethod();
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const packageRefs = encoded.references.filter((r: any) => r.kind === 'package');
+  assert.strictEqual(
+    packageRefs.length,
+    0,
+    '%This.method() calls to a not-own-declared method allocate no PACKAGE reference, unaffected by Cycle 62'
   );
 });
 
