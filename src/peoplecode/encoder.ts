@@ -440,6 +440,28 @@ interface EncodeFragmentContext extends EncodeProgramContext {
   htmlDependencyScope?: HtmlDependencyScope;
   htmlDependencyLifetime?: 'application-class';
   applicationClassReferenceSession?: ApplicationClassReferenceSession;
+  /**
+   * Cycle 57: a SEPARATE, ALWAYS-present (never gated by
+   * `hasUnmodeledThisMethodDependencies`) cross-fragment lookup for plain
+   * TYPE-dependency identities only (`kind: 'package'`, `methodName`
+   * undefined). `applicationClassReferenceSession` above stays gated
+   * exactly as Cycle 32/34 established, since it also governs
+   * method-dependency reference reuse for inherited `%This.method()`
+   * calls (an environment-dependent case this cycle's population does not
+   * test). A corpus-wide census of 1,053 class-wide/import-established
+   * (definition, leaf) candidates found the underlying
+   * `ApplicationClassReferenceScope` already answers this correctly for
+   * 906/920 candidates whose class has NO inherited `%This` call (the
+   * gated session already covers them); of the 106 mismatches that DO
+   * have an inherited `%This` call elsewhere in the class, the mismatch
+   * is caused entirely by the gate suppressing an otherwise-unrelated
+   * TYPE lookup, not by any genuine method-dependency concern -- `commit()`
+   * on `ApplicationClassReferenceScope` is already unconditional, so the
+   * shared map already has the right entries; only the LOOKUP was denied.
+   * Consulted only by `ensureLocalApplicationClassPackageReference` and
+   * `ensureRuntimeCreateReference`.
+   */
+  applicationClassTypeReferenceSession?: ApplicationClassReferenceSession;
   bindOwnerReference?: boolean;
   /**
    * Cycle 36: gives bare built-in-object `Local`-declaration PACKAGE
@@ -1774,6 +1796,27 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       return createdEarlier;
     }
 
+    /*
+     * Cycle 57: a compatible TYPE-dependency identity for this same leaf
+     * may already have been committed by an EARLIER fragment -- an
+     * explicit import, a property/instance declaration, or a
+     * declaration-dependency allocation (Cycle 52) -- reuse it rather
+     * than allocating a fresh method-scoped one. See
+     * `EncodeFragmentContext.applicationClassTypeReferenceSession`'s own
+     * declaration comment for the population evidence.
+     */
+    const classWide = context?.applicationClassTypeReferenceSession?.lookup({
+      kind: 'package',
+      packageName: className.toUpperCase(),
+      objectName: packagePath[0]?.toUpperCase(),
+      packagePath: packagePath.map((component, index) => index === 0 ? component.toUpperCase() : component),
+      className: className.toUpperCase()
+    });
+    if (classWide !== undefined) {
+      localApplicationClassPackageReferences.set(key, classWide);
+      return classWide;
+    }
+
     const created = addApplicationClassReference(packagePath, className);
     localApplicationClassPackageReferences.set(key, created);
     return created;
@@ -1983,6 +2026,30 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         runtimeCreateReferences.set(key, existingLocal);
         return existingLocal;
       }
+    }
+
+    /*
+     * Cycle 57: same class-wide compatible-identity lookup as
+     * `ensureLocalApplicationClassPackageReference` -- a `create` may be
+     * the FIRST method-local occurrence of a leaf already established at
+     * class/declaration scope (import, property, instance, or a Cycle 52
+     * declaration-dependency row), with no plain/array-of Local
+     * declaration of the same leaf in this method to have already found
+     * it via the check above.
+     */
+    const classWide = context?.applicationClassTypeReferenceSession?.lookup({
+      kind: 'package',
+      packageName: className.toUpperCase(),
+      objectName: packagePath[0]?.toUpperCase(),
+      packagePath: packagePath.map((component, index) => index === 0 ? component.toUpperCase() : component),
+      className: className.toUpperCase()
+    });
+    if (classWide !== undefined) {
+      runtimeCreateReferences.set(key, classWide);
+      if (context?.builtinObjectDeclarationsHaveMethodWideLifetime) {
+        localApplicationClassPackageReferences.set(`${functionDepth}:${key}`, classWide);
+      }
+      return classWide;
     }
 
     const created = addApplicationClassReference(
@@ -11702,6 +11769,11 @@ function encodeApplicationClassProgramV2(
     const applicationClassReferenceSession = hasModeledApplicationClassReferenceScope
       ? applicationClassReferenceScope.beginFragment()
       : undefined;
+    // Cycle 57: unlike the gated session above, this is ALWAYS present --
+    // see `EncodeFragmentContext.applicationClassTypeReferenceSession`'s
+    // own declaration comment for the population evidence and the
+    // provenance distinction from `applicationClassReferenceSession`.
+    const applicationClassTypeReferenceSession = applicationClassReferenceScope.beginFragment();
     const encoded = encodeFragmentInternal(fragmentSource, {
       ...context,
       commentOpcodes,
@@ -11713,6 +11785,7 @@ function encodeApplicationClassProgramV2(
       htmlDependencyScope,
       htmlDependencyLifetime: 'application-class',
       applicationClassReferenceSession,
+      applicationClassTypeReferenceSession,
       // Inherited `%This` calls can allocate environment-derived method
       // rows. Freeze that unsupported population on its prior fragment-owner
       // behavior; modeled units keep the mandatory owner row blank.

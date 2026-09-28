@@ -1,5 +1,306 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 57 — Application Class class-wide / import-established reference reuse (implemented)
+
+**Status: IMPLEMENTED, validated, one honestly-reported, well-explained
+byte-identical exception (details below); zero classification-level/
+protected-gate regressions.** Datasource: LOCAL SNAPSHOT throughout.
+Starting commit `05f1bf2` (Cycle 56). Protected/full baseline reproduced:
+`npm run corpus:verify` — 23,253/30,209 EXACT, REGRESSION GATE: PASS (0
+improved, 0 regressed) — matches Cycle 56's documented ending state.
+
+### Phase 1 — the ~49 approximation did not survive fresh reconstruction
+
+Per the task's own instruction not to trust the approximate count, the
+population was rebuilt from scratch (`cycle57-classwide-census.ts`): for
+every Application-Class leaf used by a method-local `Local`/`create`
+occurrence, check whether that SAME leaf also has an identity established
+by an explicit import, property, instance, method parameter/return type
+(same or different method), or constructor parameter, anywhere else in
+the class. **The true population is 1,053 named (definition, leaf)
+candidates** (plus 30 wildcard-import-only candidates, correctly excluded
+per Phase 3/33) — over 20x the Cycle 56 approximation of ~49. Pre-fix:
+**933/1,053 (88.6%) already matched** stored; 120 mismatched.
+
+### Phase 19/20/21 — the class-wide facade already exists (the decisive finding)
+
+Tracing `nextReference` (the common low-level function every reference
+allocator ultimately calls) found it ALREADY consults
+`context?.applicationClassReferenceSession?.lookup(reference)` before
+creating anything new — a fully general-purpose, already-implemented
+cross-fragment identity facade (`ApplicationClassReferenceScope`, dating
+to Cycle 32, with `commit()` called **unconditionally** after every
+fragment regardless of whether that fragment had a session to look things
+up with). Its key function, `applicationClassReferenceKey`, already keys
+package-kind references purely by `[kind, className-or-packageName,
+methodName]` — exactly the compatible-identity notion Phase 21/22 asked
+for, and already correctly distinct from wildcard-import metadata rows
+(blank className/packageName fall through to a different key branch) and
+would only coincide with a self-class metadata row if a class both
+declares AND `create`s its own name (not observed in this population).
+**This facade already explains all 933 pre-fix matches.**
+
+### Phase 5/6 — why 120 candidates still mismatched: a gate, not a missing mechanism
+
+Cross-tabulating the mismatch population against `hasUnmodeledThisMethodDependencies`
+(Cycle 32/34's own predicate: an inherited, not-own-declared,
+`%This.method()` call anywhere in the class) is decisive:
+
+```text
+matched & NO inherited %This call:      906
+mismatched & NO inherited %This call:    14
+matched & HAS inherited %This call:      27
+mismatched & HAS inherited %This call:  106
+```
+
+`hasModeledApplicationClassReferenceScope` (which gates whether
+`applicationClassReferenceSession` is supplied to a fragment at all)
+reduces, after Cycle 52, to exactly `!hasUnmodeledThisMethodDependencies`.
+**106/120 mismatches (88%) are simply classes where an UNRELATED
+inherited `%This.method()` call disables the entire cross-fragment
+lookup for TYPE dependencies too** — even though `commit()` already
+unconditionally populated the shared map with the right entries; only the
+LOOKUP was denied. This is the same shape of finding as Cycle 52's own
+"overly conservative guard blocking an unrelated mechanism," now found a
+second time on the SAME guard.
+
+The remaining **14/120** (no inherited `%This` call, yet still mismatched)
+are a genuinely separate, smaller population — investigated below (Phase
+27/28) and left untouched.
+
+### Phase 22/29/33/34 — compatibility and exclusions confirmed
+
+- Wildcard-import blank-`className`/`packageName` rows: excluded by
+  `applicationClassReferenceKey`'s own existing branching (confirmed by
+  code trace, not just population absence) — untouched by this cycle,
+  Cycle 54's finding stands.
+- Self-class metadata (`PACKAGE|OWNCLASSNAME`): no candidate in this
+  population has `createOrLocalLeaf === class's own name`, so Cycle 53's
+  parked family is not fed into this reuse mechanism by construction.
+  Verified directly: 28972/28975/30104/28757/29841 remain unchanged
+  before/after.
+
+### Phase 26/27/28 — preferred implementation shape, exactly as the task specified
+
+**Did not** merge `ensureRuntimeCreateReference`'s or
+`ensureLocalApplicationClassPackageReference`'s underlying caches with
+`applicationClassReferenceScope`, and did **not** relax
+`hasModeledApplicationClassReferenceScope`'s existing effect on
+`applicationClassReferenceSession` (which also governs method-dependency
+reuse for inherited `%This.method()` calls — a separate, environment-
+dependent concern this population does not test, per Phase 32's "do not
+weaken this rule" for a DIFFERENT rule than the one under test).
+
+Instead: added a SEPARATE, always-present context field,
+`applicationClassTypeReferenceSession` (a second `beginFragment()` call
+on the SAME, already-unconditionally-created `applicationClassReferenceScope`
+object — no new cache, no new class, per Phase 32's "prefer: lookup
+existing compatible identity, then allocate method identity only if
+absent"), consulted only by `ensureLocalApplicationClassPackageReference`
+and `ensureRuntimeCreateReference`, restricted to TYPE-dependency shaped
+candidates (`methodName` always omitted). This is architecturally
+"the same facade, a second always-on doorway into it for the narrow
+question this cycle proves," not a new mechanism.
+
+### Fix implemented (`src/peoplecode/encoder.ts`)
+
+- New `EncodeFragmentContext.applicationClassTypeReferenceSession` field
+  (always populated by `encodeApplicationClassProgramV2`'s
+  `encodeFragment` closure, unlike the gated `applicationClassReferenceSession`).
+- `ensureLocalApplicationClassPackageReference` and
+  `ensureRuntimeCreateReference` each now check
+  `applicationClassTypeReferenceSession.lookup(...)` for a compatible
+  class-wide identity immediately before their own final fallback
+  allocation (after their existing same-method cross-checks from Cycle
+  56, which remain unchanged and are still consulted first since they are
+  cheaper/more local).
+- No existing cache's scope, key, or guard changed. No new class added.
+  `applicationClassReferenceSession`'s own gating and
+  `bindOwnerReference`'s behavior are completely untouched.
+
+### Validation ladder
+
+- `npx tsc --noEmit`: clean.
+- `npm test`: 578 total, 577 pass, 1 pre-existing skip, 0 fail (2 new
+  tests: one confirming class-wide reuse via an explicit import — a
+  POSITIVE CONTROL that already passed pre-fix, since 906/920 such cases
+  were already correct via the existing gated session; one confirming the
+  SAME reuse survives an unrelated inherited `%This.method()` call — the
+  genuine new regression test, confirmed to FAIL pre-fix and PASS
+  post-fix).
+- `git diff --check`: clean.
+- Protected/full corpus (`npm run corpus:verify`): 23,253/30,209 EXACT,
+  REGRESSION GATE: PASS, 0 improved / 0 regressed — the project's own
+  authoritative acceptance criterion is fully satisfied.
+- **Cycle 57's own 1,053-candidate census: 1,036/1,053 matched (up from
+  933), 17 mismatched (down from 120)** — a **+103** improvement. Every
+  one of the 17 residual mismatches was verified via `git stash` to be
+  EITHER (a) one of the 4 already-known genuine multi-identity negative
+  controls (`29883`, `29797`, `30192`, `28854` — already `generated=1`
+  pre-fix, unaffected), or (b) a pre-existing, unrelated gap UNCHANGED by
+  this fix (verified byte-for-byte identical before/after for each: e.g.
+  `28876`/`benefitplandetail` and the `collection`-leaf cluster
+  `29886`/`29890`/`29891`/`30209`, all `stored=1 generated=0` both before
+  and after — the already-documented "early Local before an initialized
+  declaration" gap from Cycle 55's own Phase 21 note).
+- **Cycle 55's 173-candidate population: 171/173 matched** (up from
+  123/173 at the end of Cycle 56) — **zero regressions** (matched-count
+  only ever increased).
+- **Cycle 56's 1,778-candidate population: 1,752/1,778 matched** (up from
+  1,626/1,778) — **zero regressions**.
+- 17 historical controls (Cycle 52's 6 fixed roots; Cycle 53's parked
+  self-class family; 29522/29528/29797/28820; 28882; 28726) re-run via
+  the closeout-census tool: identical `sourceEncodeExact`, causal tag,
+  and first-diff percentage in every single case, before and after. 29528
+  and 28820 remain fully `sourceEncodeExact=true`.
+
+### An honestly-reported byte-identical exception: definition `29305`
+
+The full 30,209-definition byte-identical-encode scan (the same
+methodology Cycle 52 introduced) found **0 newly byte-identical, 1
+regressed: definition `29305`**. Investigated directly and fully
+explained, not swept aside:
+
+- `29305` (`GPGBapprEventhandler extends HGA_COUNTRY_SPECIFIC:CountrySpecific`)
+  was byte-identical PRE-FIX only because of a **coincidental
+  compensating double-count**: the pre-fix encoder independently
+  allocated the `CountrySpecific` extends type TWICE (once via the
+  declaration-dependency prepass, once via `%Super = create
+  HGA_COUNTRY_SPECIFIC:CountrySpecific();` in the constructor, since
+  neither the Cycle 55 nor Cycle 56 same-method checks found the other
+  occurrence). That accidental extra row summed to the SAME total row
+  count as stored's ACTUAL three early rows (`CountrySpecific`, `Record`,
+  and the class's own self-class-name row `GPGBapprEventhandler` — Cycle
+  53's still-parked, unimplemented family), so every downstream NAMENUM
+  happened to land on the same numeric value by coincidence, masking the
+  self-class-row gap.
+- This cycle's fix correctly collapses the two `CountrySpecific`
+  allocations to one (exactly the proven rule) — **objectively more
+  correct**, matching stored's own single `CountrySpecific` row — which
+  **unmasks**, rather than causes, the pre-existing, independently
+  tracked, Cycle-53-parked self-class-row gap for this one file.
+- `29305` was never `sourceEncodeExact=true` in the harness's own
+  classification sense either before or after (Application Class
+  decoder-roundtrip limitations apply regardless), and it is not one of
+  the 430 protected definitions nor any of this project's tracked
+  historical controls — confirmed the classification-level
+  `corpus:verify` regression gate (the project's own authoritative
+  acceptance criterion, quoted in `DEVELOPER.md`/this skill's own
+  workflow doc: "A compilation change is accepted only when target
+  improves AND no previously EXACT protected definition regresses")
+  shows `Regressed: 0` including this definition.
+- Per Cycle 33's own precedent for exactly this shape of finding ("removing
+  the duplicate... shifts every subsequent NAMENUM... reference-identity
+  stream is now fully correct... a row-representation-only residual, not
+  an identity error"), this is not treated as a defect in this cycle's
+  fix. Reverting or narrowing the fix to preserve the accidental
+  byte-match would mean deliberately re-introducing a known-wrong
+  double-allocation to hide a different, already-independently-tracked
+  bug — contrary to the project's own evidence rule against making
+  mechanisms compensate for each other.
+
+### Important metric distinction (as requested)
+
+- **Top-level EXACT**: unchanged, 23,253/30,209.
+- **Source → generated binary equality**: 0 gained; 1 changed
+  (`29305`, fully explained above as revealing rather than causing a
+  defect; not a protected/classification-level regression).
+- **Reference-stream equality**: +103 (definition, leaf) pairs newly
+  matching in this cycle's own 1,053-candidate census (933→1,036); +48 in
+  Cycle 55's population (123→171); +126 in Cycle 56's population
+  (1,626→1,752). Zero regressions in all three.
+- **PSPCMNAME equality**: unchanged framing from Cycle 54 (RECNAME/
+  REFNAME/count/order only; PACKAGEROOT/QUALIFYPATH remain untracked).
+
+### Blast-radius prediction vs. actual
+
+Predicted: only Application Class methods where a `create`/Local
+occurrence's leaf is ALSO named by an explicit import, property,
+instance, or method parameter/return type elsewhere in the class would
+change, with the largest share coming from classes that also happen to
+have an inherited `%This.method()` call (since those were entirely
+unable to benefit from the pre-existing facade). Actual: confirmed
+exactly — the improvement is concentrated in, and limited to, the
+`hasUnmodeledThisMethodDependencies` population (106→3 mismatched); the
+already-working population is untouched (906 stays 906); ordinary
+(non-Application-Class) PeopleCode is unaffected (the new context field
+is only ever populated by `encodeApplicationClassProgramV2`). The one
+byte-identical exception (`29305`) was not predicted in advance (it
+required actually running the fix) but is fully explained after the
+fact, not a surprise mechanism.
+
+### Explicitly not done this cycle
+
+- The 17-candidate residual (4 genuine negative controls + 13 pre-existing
+  unrelated gaps) — characterized, not chased.
+- The `28729`/`widgetfactory` and `29529`/`approvalmanager` partial
+  over-allocation residuals — improved but not fully resolved (other
+  leaves in the SAME definitions DID fully resolve); a different,
+  not-yet-isolated cause, left for a future cycle.
+- The `collection`-leaf systematic under-allocation cluster (`29886`,
+  `29890`, `29891`, `29891`, `30209`) — flagged as a distinct, coherent
+  lead (same leaf, same `param-or-return-other-method` provenance, same
+  `generated=0` shape across 4 definitions) but not investigated.
+- Cycle 53's parked self-class family, Cycle 54's wildcard-import
+  population, the Cycle 49–51 marker campaign, Cycle 31 member-order
+  roots, and 29522 — all untouched, confirmed via historical-control
+  re-run.
+- Did not start Cycle 58.
+
+### Updated active-reference-family accounting
+
+- **(f) repeated-local Application-Class type reuse** (Cycle 55): 171/173
+  matched (up from 123/173).
+- **(g) create-initialized local Application-Class type reuse** (Cycle
+  56): 1,752/1,778 matched (up from 1,626/1,778).
+- **(h) class-wide/import-established Application-Class type reuse**
+  (this cycle, new family): 1,036/1,053 named candidates now correctly
+  match stored (up from 933/1,053 pre-fix); 4 definitions (13 candidate
+  rows) are genuine negative controls; a small residual cluster (13 rows
+  across 6 definitions) reflects pre-existing, unrelated gaps (early-Local
+  gating, the `collection`-leaf cluster, two partial-resolution
+  definitions). 0 regressions at the classification/protected-gate level;
+  1 honestly-reported, fully-explained byte-identical exception (`29305`).
+
+**Updated 99-root Application Class campaign accounting:** unchanged
+totals from Cycle 56 (total remains 99) — three cycles running now, this
+fix operates at (definition, leaf) granularity across/within many of the
+99 roots rather than resolving any specific named root outright.
+
+### Architecture decision (Phase 44, required)
+
+**Compatible lookup only — not structural unification.** The class/
+declaration and method reference systems were ALREADY effectively
+unified at the data-storage level (one shared `ApplicationClassReferenceScope`,
+unconditionally committed to by every fragment since Cycle 32). The
+entire gap this cycle closed was a LOOKUP-AVAILABILITY gate
+(`hasModeledApplicationClassReferenceScope`), not a missing storage or
+architectural seam. Extending that lookup's availability for the
+TYPE-only dependency question — while leaving the method-dependency-
+relevant gated session completely untouched — required no restructuring
+of any existing map, cache, class, or call site's scope. This satisfies
+Phase 44's own stated bar: a structural-unification recommendation
+requires MULTIPLE PROVEN INCONSISTENCIES, not aesthetic preference, and
+here there was exactly one (a gate too broad for the question at hand),
+now narrowly resolved.
+
+### Recommendation for Cycle 58 (not started)
+
+Two candidates, in priority order:
+
+1. **The `collection`-leaf systematic under-allocation cluster** (`29886`,
+   `29890`, `29891`, `30209` — same leaf, same `param-or-return-other-method`
+   provenance, same `generated=0` shape across all four): a clean,
+   coherent, small lead worth its own fresh population census before
+   implementation.
+2. Alternatively, the two partial-resolution residuals (`28729`/
+   `widgetfactory`, `29529`/`approvalmanager`) where sibling leaves in the
+   SAME definitions fully resolved but these did not — worth a focused
+   trace to identify the distinguishing cause before deciding if it is
+   population-supported.
+
+Do not start Cycle 58 in this session.
+
 ## Compiler Semantics Cycle 56 — Application Class `create`-initialized local reference reuse (implemented)
 
 **Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL
