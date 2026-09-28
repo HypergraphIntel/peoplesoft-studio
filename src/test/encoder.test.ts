@@ -2154,6 +2154,51 @@ end-method;`, {
   ]);
 });
 
+test('Application Class create-initialized locals reuse the same method-wide PACKAGE identity as plain/array-of locals of the same leaf type', () => {
+  // Cycle 56: a corpus-wide census of 1,778 Application Class (method,
+  // leaf) create-local candidates found stored PSPCMNAME allocates
+  // exactly ONE identity in 1,758/1,778 cases, including every case where
+  // a plain/array-of Local declaration of the SAME leaf already exists in
+  // the same method (definition 28726's `GetOutgoingRelationships`: a
+  // plain `Local ADSM:ADSRelationship &ship;`, an `array of` declaration
+  // of the same leaf, and a `create ADSM:ADSRelationship(...)`-initialized
+  // local all reuse ONE stored identity; the pre-fix encoder allocated 3
+  // for this one method alone). `ensureRuntimeCreateReference` (the
+  // `create` expression's own allocator) now checks the same method-wide
+  // pool `ensureLocalApplicationClassPackageReference` established in
+  // Cycle 55 before falling back to its own dedup, and vice versa.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+end-class;
+
+method Run
+   Local number &n = 5;
+   Local PKG:Object:Resource &oResource;
+   Local array of PKG:Object:Resource &arrResource;
+   Local PKG:Object:Resource &created = create PKG:Object:Resource();
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  assert.deepStrictEqual(encoded.references, [
+    { index: 0, sequence: 1, kind: 'owner', recordName: undefined, fieldName: undefined },
+    {
+      index: 1,
+      sequence: 2,
+      kind: 'package',
+      packageName: 'RESOURCE',
+      objectName: 'PKG',
+      packagePath: ['PKG', 'Object'],
+      className: 'RESOURCE',
+      methodName: undefined
+    }
+  ]);
+});
+
 test('Application Class RECORD dependencies get method-wide lifetime across flat top-level statements', () => {
   const encoded = encodeProgramArtifacts(`class ReferenceTest
    method Run();

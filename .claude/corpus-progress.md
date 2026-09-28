@@ -1,5 +1,303 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 56 — Application Class `create`-initialized local reference reuse (implemented)
+
+**Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL
+SNAPSHOT throughout. Starting commit `1725698` (Cycle 55). Protected/full
+baseline reproduced: `npm run corpus:verify` — 23,253/30,209 EXACT,
+REGRESSION GATE: PASS (0 improved, 0 regressed) — matches Cycle 55's
+documented ending state exactly.
+
+### Phase 1/2/3 — reconstructing 28726 fresh
+
+`28726` (`ADSMDefinition`) explicitly imports `ADSM:ADSRelationship` (a
+non-wildcard import) and also declares/creates it in two methods
+(`GetOutgoingRelationships`, `GetIncomingRelationships`):
+
+```peoplecode
+Local ADSM:ADSRelationship &ship;
+Local array of ADSM:ADSRelationship &AdsRelations = CreateArrayRept(&ship, 0);
+...
+For &i = 1 To &relations.Len
+   Local ADSM:ADSRelationship &relation = create ADSM:ADSRelationship(&m_AdsmDefn, ...);
+   ...
+End-For;
+```
+
+**Declared local type and create target type are identical** (both
+`ADSM:ADSRelationship`) — not merely compatible or alias-equivalent.
+Stored PSPCMNAME has exactly **one** `PACKAGE|ADSRELATIONSHIP` row
+(namenum 2, from the import; metadata-only, 0 executable operand uses).
+Pre-fix generated had **five**: the import's own (correct) plus two more
+from each of the two methods (one from the now-Cycle-55-deduped local
+pair, one from the `create` inside the nested `For` loop — the `create`
+branch's own explicit `create`-initializer guard and `controlDepth > 0`
+both route it away from the Cycle 55 scalar branch and into the
+completely separate `ensureRuntimeCreateReference` cache, which has no
+awareness of the local-declaration pool).
+
+### Phase 4 — mandatory corpus-wide create-local census
+
+Built `cycle56-create-local-census.ts`: scanned 6,562 Application Class
+method implementations for `create Package:X:Y(...)` expressions,
+cross-referenced against (a) whether a plain/array-of Local declaration
+of the identical leaf exists in the SAME method, (b) in a DIFFERENT
+method, (c) whether the class explicitly imports that leaf, and (d) both
+stored and generated identity counts at whole-definition granularity.
+**1,778 (method, leaf) candidates found.**
+
+- **`storedIdentityCountWholeDefinition === 1` in 1,758/1,778 (98.9%)** —
+  a class-wide-appearing convergence to one identity whenever a `create`
+  expression targets an Application-Class leaf, essentially regardless of
+  method or import status.
+- Pre-fix: **1,592/1,778 already matched** (stored === generated) at this
+  granularity; **186 mismatched**. Of the mismatches, **130 had a
+  plain/array-of Local declaration of the SAME leaf in the SAME method**
+  (the population Cycle 55's own helper could reach but the `create` path
+  bypassed) and **56 did not** (49 of those 56 have `hasImportSameLeaf:
+  true` — a separate, broader, NOT-implemented cross-method/import-reuse
+  claim; the remaining handful are unrelated artifacts, see below).
+
+### Phase 22 — genuine negative controls (multi-identity population)
+
+A small population (4 definitions: `29883`, `29797`, `30192`, `28854`)
+shows `storedIdentityCountWholeDefinition` of 2–13 — genuinely MULTIPLE
+stored identities for one leaf, contradicting "always 1." Investigated
+`29883`/`ReportDefn` directly: 13 stored rows, all identically shaped
+(blank `appclassmethod`/`packageroot`/`qualifypath`), for a leaf used via
+only 3 `create` calls plus a handful of parameter/return/property
+occurrences, with **no explicit import** of that leaf. In every one of
+these 4 definitions, **the pre-fix encoder's own generated count was
+already 1** (already under-allocating relative to stored, for reasons
+unrelated to this cycle's mechanism) — meaning this population poses **no
+regression risk**: a dedup-only fix can only ever reduce a count, never
+increase it, so it cannot make an already-under-allocating case worse.
+These remain open, unrelated, pre-existing gaps (likely explained by
+declaration-phase-vs-body-phase provenance distinctions this cycle does
+not test) — flagged, not chased (Phase 33's "do not weaken the proven
+rule" and this cycle's own narrow scope both counsel leaving them alone).
+
+### Phase 17/18/19 — current allocator trace and read/write symmetry
+
+`create Package:X:Y(...)` (the boolean/primary-expression `create`
+handler, `encoder.ts`) already had its OWN dedicated helper,
+`ensureRuntimeCreateReference` — a SEPARATE cache
+(`runtimeCreateReferences`, keyed by `packagePath:className`, no
+`functionDepth` — but declared inside `encodeFragmentInternal` so it is
+already reset per method fragment, i.e. already method-scoped by
+construction, just via an independent Map from Cycle 55's
+`localApplicationClassPackageReferences`). Its own code comment
+documents this as a deliberate, pre-existing design: *"The first runtime
+create of an Application Class establishes a new PACKAGE dependency row
+even when that class was already imported. Later creates of the same
+class reuse that runtime dependency"* — i.e. it already dedupes AMONG
+MULTIPLE CREATES of the same class, just never against plain/array-of
+Local declarations of the same leaf (a genuine read/write asymmetry: it
+writes to and reads from its own pool only, exactly the Cycle 43/47-style
+late-stage consistency gap this project's own conventions warn to watch
+for). `runtimeCreateReferences` is ALSO consulted downstream (line
+~9005ish) to decide whether a `&var.Method()` call reuses the
+runtime-create dependency or allocates a separate method-dependency
+reference — so it could not simply be replaced by Cycle 55's helper
+without risk of breaking that unrelated, already-proven mechanism.
+
+### Phase 20/25/27 — model fit and the strong-consistency exception
+
+**Model A/E (create shares the method-wide local-type pool; current
+encoder has multiple uncoordinated allocators) fits with the population
+support required, and Phase 27's exact "strong consistency exception"
+criteria are all satisfied**: create target resolves to the same leaf as
+an existing same-method Local declaration (confirmed, 28726 and 129
+others); stored PeopleTools reuses the same identity (confirmed, 1,758/
+1,778 population, and specifically for the "has prior same-method local"
+subset); the current create path bypasses the canonical Cycle 55 helper
+(confirmed by direct code trace); no negative control contradicts sharing
+(the 4 multi-identity definitions above already generate 1, so they
+cannot be made worse by adding reuse). Per Phase 27, this justifies
+implementing the narrow same-method fix directly in this cycle rather
+than only documenting it for a later one.
+
+### Fix implemented (`src/peoplecode/encoder.ts`)
+
+Bidirectional, symmetric cross-check between the two method-scoped pools,
+per Phase 28's explicit preference ("one canonical helper/pool... do not
+add a third cache"):
+
+- `ensureRuntimeCreateReference` (the `create` path) now checks
+  `localApplicationClassPackageReferences` (Cycle 55's pool, same
+  `functionDepth`-scoped key, same `builtinObjectDeclarationsHaveMethodWideLifetime`
+  guard) FIRST; if a plain/array-of Local declaration of the same leaf
+  already populated it, reuse that reference (and mirror it into
+  `runtimeCreateReferences` too, so the downstream method-call-dependency
+  check still sees the class as "already created" — preserving that
+  unrelated, already-proven mechanism unchanged). Otherwise, falls
+  through to its own existing dedup/allocation, and now ALSO writes its
+  result into `localApplicationClassPackageReferences` (so a LATER plain
+  Local declaration of the same leaf, after a `create`, also correctly
+  finds and reuses it — the create-first directionality Phase 7 asked
+  for).
+- `ensureLocalApplicationClassPackageReference` (Cycle 55's helper)
+  symmetrically checks `runtimeCreateReferences` before allocating fresh,
+  for the reverse ordering.
+- `ensureRuntimeCreateReference`'s own dedup-among-multiple-creates
+  behavior, its downstream method-call-dependency consultation, and its
+  behavior for ordinary (non-Application-Class-method-body) PeopleCode
+  are all completely unchanged — the new checks are strictly additive and
+  guarded by the same existing flag.
+- No new cache was added; no existing cache's scope, key, or guard was
+  changed.
+
+### Validation ladder
+
+- `npx tsc --noEmit`: clean.
+- `npm test`: 576 total, 575 pass, 1 pre-existing skip, 0 fail (1 new
+  regression test: "Application Class create-initialized locals reuse the
+  same method-wide PACKAGE identity as plain/array-of locals of the same
+  leaf type", reproducing 28726's exact shape in miniature; confirmed to
+  FAIL against the pre-fix code and PASS against the fix).
+- `git diff --check`: clean.
+- Protected/full corpus (`npm run corpus:verify`): 23,253/30,209 EXACT,
+  REGRESSION GATE: PASS, 0 improved / 0 regressed (unchanged from Cycle
+  55's baseline, expected per the metric-distinction note).
+- Full 30,209-definition byte-identical-encode scan (before/after via
+  `git stash`): **0 gained, 0 lost** — every affected definition has at
+  least one other independent, pre-existing gap, same pattern as Cycles
+  52/55.
+- Cycle 56's own 1,778-candidate census: **1,626/1,778 matched (up from
+  1,592), 152 mismatched (down from 186)** — a clean **+34** improvement,
+  entirely concentrated in (and only in) the `hasPriorLocalDeclSameMethod`
+  subset (130→96 mismatched; the `!hasPriorLocalDeclSameMethod` subset is
+  unchanged at 56, exactly as predicted for a narrowly-scoped fix).
+  Definition `28726` itself improved from 5 to 3 total `ADSRELATIONSHIP`
+  allocations (the two same-method duplicates collapsed; the import's own
+  + the OTHER method's own separate identity remain, since cross-method
+  reuse is explicitly out of scope this cycle).
+- **Cycle 55's own 173-candidate population re-validated**: improved
+  further from 119/173 to **123/173** matched (some Cycle 55 candidates'
+  own regex also picked up a `create`-initialized declaration as a third
+  "local," so this cycle's fix helps a few of those too) — **zero
+  regressions** (no candidate moved from matched to mismatched).
+- 17 required historical controls (Cycle 52's 6 fixed roots; Cycle 53's
+  parked self-class family — 28972/28975/30104/28757/29841; 29522/29528/
+  29797/28820; plus 28882 and 28726 themselves) re-run via the
+  closeout-census tool: identical `sourceEncodeExact`, causal tag, and
+  first-diff percentage in every case except the two targets, which show
+  the expected reference-count improvement without any byte-level first-
+  diff movement (both remain blocked by other, unrelated, independent
+  gaps — same pattern as every prior cycle in this series). 29528 and
+  28820 remain fully `sourceEncodeExact=true`.
+
+### Important metric distinction (as requested)
+
+- **Top-level EXACT**: unchanged, 23,253/30,209 (masked by the known
+  decoder-roundtrip limitation).
+- **Source → generated binary equality**: 0 gained, 0 lost
+  population-wide.
+- **Reference-stream equality**: +34 (method, leaf) pairs newly matching
+  stored in this cycle's own 1,778-candidate census (1,592→1,626), plus
+  +4 in Cycle 55's own re-validated population (119→123); 0 regressions
+  in either.
+- **PSPCMNAME equality**: same as Cycle 54's finding — reduces to the
+  RECNAME/REFNAME/count/order comparison already captured above
+  (PACKAGEROOT/QUALIFYPATH remain untracked by this project's validator).
+
+### Blast-radius prediction vs. actual
+
+Predicted: only Application Class methods where a `create` expression's
+target leaf ALSO has a plain/array-of Local declaration of the identical
+leaf in the SAME method would change; no effect on imports, declaration-
+phase types, cross-method cases, or ordinary (non-Application-Class)
+PeopleCode. Actual: confirmed exactly by the census (only the
+`hasPriorLocalDeclSameMethod` subset moved) and by the full-corpus scan
+(0 changes outside the targeted population's own reference counts, 0
+regressions system-wide).
+
+### Explicitly not done this cycle
+
+- Cross-method reuse (a `create`/Local occurrence in one method reusing
+  an identity established in a DIFFERENT method with no shared import) —
+  characterized (76 candidates have `hasLocalDeclOtherMethod`), not
+  implemented; needs its own population census isolating this dimension
+  from the import-based cases.
+- Import-established identity reuse for `create`/Local occurrences with
+  NO same-method Local declaration (49 candidates) — characterized, not
+  implemented; this is the natural, well-evidenced Cycle 57 target (see
+  below).
+- The 4-definition genuine multi-identity negative-control population
+  (`29883`, `29797`, `30192`, `28854`) — flagged, not investigated
+  further (pre-existing, unrelated, and already at generated=1, so
+  non-regressable by this cycle's mechanism).
+- 28972/28975/30104/28757/29841 (Cycle 53's parked self-class family) —
+  unchanged, confirmed via historical-control re-run.
+- The blank-REFNAME wildcard-import population (Cycle 54) — untouched.
+- Cycle 49–51 marker campaign, Cycle 31 member-order roots, 29522 — all
+  untouched.
+- Did not start Cycle 57.
+
+### Updated active-reference-family accounting
+
+- **(f) repeated-local Application-Class type reuse** (Cycle 55): now
+  123/173 matched (up from 119/173), 0 regressions.
+- **(g) create-initialized local Application-Class type reuse** (this
+  cycle, new family): 1,778 (method, leaf) candidates censused; 1,626/
+  1,778 now correctly match stored (up from 1,592/1,778 pre-fix); 130
+  same-method mismatches resolved to 96 (remaining 96 are NOT explained
+  by same-method reuse and need further investigation — some may still
+  be same-method cases with a DIFFERENT root cause, not yet isolated);
+  56 cross-method/import cases untouched (49 of those explained by
+  import-established identity, a clear Cycle 57 lead); 4 definitions
+  (13 candidate rows) are genuine negative controls with pre-existing,
+  unrelated under-allocation. 0 regressions.
+
+**Updated 99-root Application Class campaign accounting:** unchanged
+totals from Cycle 55 (total remains 99) — this cycle's fix, like Cycle
+55's, operates at a finer (method, leaf) granularity across/within many
+of the 99 roots rather than resolving any specific named root outright.
+
+### Architectural/refactor decision (Phase 39, required)
+
+**Yes — three independent allocation paths for the same Application-Class
+method-scoped PACKAGE identity rule were identified across Cycles 55–56**:
+
+1. `localDeclaration()`'s scalar "late Local" branch (`addApplicationClassReference`, direct).
+2. `localDeclaration()`'s `array of Package:Class` branch (`addApplicationClassReference`, direct).
+3. The `create Package:X:Y(...)` expression handler (`ensureRuntimeCreateReference`, its own separate cache).
+
+Paths 1 and 2 were unified under `ensureLocalApplicationClassPackageReference`
+in Cycle 55. Path 3 is unified with that same pool in THIS cycle via a
+bidirectional cross-check (not a new cache). **The method-scoped
+consolidation across all three paths is therefore already complete as of
+this cycle** — this is not a "recommend a future cycle" finding but a
+"the targeted consolidation happened now" finding, matching the git
+message chosen below (`resolve`, not `characterize`).
+
+What remains OUTSIDE this consolidation, and is NOT yet unified, is the
+CLASS-WIDE (cross-method / import-established) identity layer — a
+structurally different scope (compilation-unit-wide, not per-method) that
+this cycle's population evidence shows is real and substantial (49+
+candidates) but was deliberately not touched, per the population-
+threshold discipline (it needs its own fresh census isolating import-
+reuse from cross-method-without-import reuse, per Phase 6/7's own
+distinction). **Recommending a Cycle 57 targeted consolidation for THAT
+layer specifically** — not a broad encoder refactor, and not a repeat of
+this cycle's already-completed method-scoped work.
+
+### Recommendation for Cycle 57 (not started)
+
+**Priority target: extend the now-unified method-scoped Application-Class
+identity pool to also recognize identities already established by
+explicit (non-wildcard) imports**, addressing the 49-candidate population
+where a `create`/Local occurrence has no same-method Local declaration
+but the leaf IS explicitly imported by the class (definition `28726`
+itself remains a live example post-fix: its import-established identity
+and its two methods' own now-per-method-correct identities still don't
+converge into one). Needs its own population census (explicit-import +
+create/Local reuse, isolated from cross-method-without-import cases)
+before implementation, per this project's own population-threshold
+discipline — do not implement from 28726 alone.
+
+Do not start Cycle 57 in this session.
+
 ## Compiler Semantics Cycle 55 — Application Class local declaration reuse for repeated Application-Class leaf types (implemented)
 
 **Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL
