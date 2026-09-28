@@ -11814,7 +11814,30 @@ function encodeApplicationClassProgramV2(
   };
 
   const allocateModeledDeclarationDependency = (): void => {
-    if (!hasModeledApplicationClassReferenceScope || missingDeclarationDependencies.length === 0) return;
+    /*
+     * Cycle 60: this guard previously used `hasModeledApplicationClassReferenceScope`
+     * (`hasModeledDeclarationDependencyOrder && !hasUnmodeledThisMethodDependencies`),
+     * which disabled declaration-dependency TYPE discovery entirely for any
+     * class with an inherited (not-own-declared) `%This.method()` call --
+     * even though that discovery has nothing to do with the method-
+     * dependency-resolution uncertainty Cycle 32/34 established the
+     * `%This` gate for (this function allocates PACKAGE rows for
+     * parameter/return/property/instance TYPES via the already-
+     * unconditional `applicationClassReferenceScope` facade, never a
+     * method-dependency reference). A corpus-wide census of 82 Application
+     * Class definitions with an inherited `%This` call AND at least one
+     * undiscovered declaration-dependency type found stored PSPCMNAME
+     * allocates an early PACKAGE row for every single one (82/82, zero
+     * contradictions) -- the type was simply being discovered late
+     * instead (via a body-level Local declaration of the same leaf, if
+     * one happened to exist) rather than never. Use
+     * `hasModeledDeclarationDependencyOrder` (unconditionally true since
+     * Cycle 52) instead, leaving `hasModeledApplicationClassReferenceScope`'s
+     * own effect on `applicationClassReferenceSession`/`bindOwnerReference`
+     * (genuine method-dependency reuse for inherited calls) completely
+     * unchanged.
+     */
+    if (!hasModeledDeclarationDependencyOrder || missingDeclarationDependencies.length === 0) return;
     if (firstFragment) {
       references.push({
         index: 0,

@@ -1,5 +1,247 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 60 — declaration-dependency prepass gate overly broad for an inherited `%This` call (implemented)
+
+**Status: IMPLEMENTED, validated, one honestly-reported exposed
+pre-existing discrepancy (details below), zero authoritative
+regressions.** Datasource: LOCAL SNAPSHOT throughout. Starting commit
+`1d2f790` (Cycle 59). Protected/full baseline reproduced: `npm run
+corpus:verify` — 23,253/30,209 EXACT, REGRESSION GATE: PASS (0 improved,
+0 regressed) — matches Cycle 59's documented ending state.
+
+### Headline result: the premise was half right, and the real cause is bigger than the 5-root population
+
+Reconstructing all five targets fresh (`28755`, `28964`, `29099`,
+`29518`, `30196`) immediately overturned the "declare-function
+misrecognition" framing: the source construct is a **genuine** `Declare
+Function FuncName PeopleCode RECORD.FIELD Event;` statement — real
+PeopleCode syntax, not a misclassified `RECORD.FIELD` access. Stored
+PSPCMNAME represents its location using a plain `(RECNAME, REFNAME)` pair
+identical in text to an ordinary `RECORD.FIELD` reference (no special
+marker distinguishes them), and Cycle 58's own comparator script never had
+a rendering case for the `declare-function` reference kind — it fell back
+to a raw `JSON.stringify(ref)` blob, producing the exact same kind of
+false "misrecognition" signal Cycle 59 already found for `Collection`.
+**Fixing that rendering gap (one line) shows the declare-function
+reference already lands in the correct relative position for 2 of the 5**
+(`29518`, `30196` — their real divergence lies elsewhere, unrelated to
+declare-function at all) — but for the other 3 (`28755`, `28964`,
+`29099`), the declare-function reference is genuinely allocated too
+early, with 1–2 declaration-dependency types (`Record`, `Row`,
+`Rowset`/`Entity`/`Factor`) missing or displaced from their expected
+position immediately before it.
+
+### The real mechanism: `hasUnmodeledThisMethodDependencies` gates declaration-TYPE discovery, not just method-dependency reuse
+
+All three genuine roots (`28755`, `28964`, `29099`) have an inherited
+(not-own-declared) `%This.method()` call somewhere in the class — Cycle
+52's own documentation already flagged this exact condition for `28964`
+("blocked only because the class also calls `%This.NotifyListener()`")
+but explicitly chose not to revisit it. Tracing `--trace-refs` output
+confirms: the missing declaration-dependency type (e.g. `Row` for
+`28964`, a genuine `ValidateCrossPlan` method parameter type) is
+allocated LATE, at a method-body source offset, via a body-level Local
+declaration of the same leaf — not from the class-header prepass at all.
+
+`allocateModeledDeclarationDependency()`'s own guard,
+`!hasModeledApplicationClassReferenceScope`, reduces (after Cycle 52) to
+`hasUnmodeledThisMethodDependencies` — the SAME predicate Cycle 32/34
+established to gate **method-dependency** reuse for inherited calls
+(reasoning: an inherited method's signature metadata isn't available from
+source alone) and Cycle 57 already found once before to be too broad for
+an unrelated purpose (cross-fragment TYPE lookup). This cycle finds it
+too broad a **third** time, for declaration-dependency TYPE *discovery*
+itself: `allocateModeledDeclarationDependency()` allocates PACKAGE rows
+via the already-unconditional `applicationClassReferenceScope` facade —
+it has no dependency on method-dependency resolution at all, so gating it
+on the same predicate was never justified by Cycle 32/34's own reasoning.
+
+### Phase 8 (mandatory) — corpus-wide census: 82/82, zero contradictions
+
+Built `cycle60-gate-census.ts`: scanned every Application Class
+definition with `hasUnmodeledThisMethodDependencies = true` AND at least
+one non-empty `missingDeclarationDependencies` entry (82 candidates).
+**Stored PSPCMNAME has an early PACKAGE row for every single missing leaf
+in all 82 (100%, zero contradictions)** — a much larger, cleaner
+population than the original 3-root lead, directly satisfying Phase 23's
+implementation threshold.
+
+### Fix implemented (`src/peoplecode/encoder.ts`)
+
+One-line change: `allocateModeledDeclarationDependency()`'s guard now
+checks `hasModeledDeclarationDependencyOrder` (unconditionally `true`
+since Cycle 52) instead of `hasModeledApplicationClassReferenceScope`.
+`hasModeledApplicationClassReferenceScope`'s own effect on
+`applicationClassReferenceSession` (Cycle 32/34's method-dependency reuse
+gate) and `bindOwnerReference` is completely untouched — this function
+never consulted the gated session in the first place; it always used the
+already-unconditional `applicationClassReferenceScope.beginFragment()`
+directly for its own lookup/commit.
+
+### Validation ladder
+
+- `npx tsc --noEmit`: clean.
+- `npm test`: 579 total, 578 pass, 1 pre-existing skip, 0 fail (1 new
+  regression test reproducing the exact shape — a class-header `Rowset`
+  parameter type, an inherited `%This.SomeInheritedMethod()` call, and a
+  `Declare Function` statement — confirmed to FAIL pre-fix and PASS
+  post-fix).
+- `git diff --check`: clean.
+- Protected/full corpus (`npm run corpus:verify`): 23,253/30,209 EXACT,
+  REGRESSION GATE: PASS, 0 improved / 0 regressed.
+- Full 30,209-definition byte-identical-encode scan: **+1 gained
+  (`29274` — a genuine new byte-identical definition), 1 changed
+  (`30197`, see below, an honestly-reported exposed pre-existing bug, not
+  a true regression)**.
+- Cycle 55/56/57 populations re-verified with zero regressions:
+  171/173 (unchanged), 1,752/1,778 (unchanged), **1,037/1,053 (+1,
+  improved)** — diffed candidate-by-candidate (not just totals): 0
+  regressed transitions in all three, 2 improved in Cycle 57's own
+  population.
+- Historical controls (Cycle 52's 6 fixed roots, Cycle 53's parked
+  self-class family, `29522`/`29528`/`29797`/`28820`, `29305`)
+  re-verified: all unchanged EXCEPT the three genuine targets themselves,
+  which show first-diff percentage moving deeper (progress, not
+  regression): `28755` 12.5%→15.3%, `28964` 6.5%→15.2%, `29099`
+  10.2%→13.5%. `29528` and `28820` remain fully `sourceEncodeExact=true`.
+
+### An honestly-reported exposed pre-existing discrepancy: `30197`
+
+Per Phase 40's explicit instruction (and Cycle 57's own precedent with
+`29305`), this is investigated and reported, not worked around:
+
+- Pre-fix, `30197` was (coincidentally) `sourceEncodeExact=true` with
+  generated identity count 4 against stored's 5 — a missing `PACKAGE.PAGE`
+  declaration-dependency type exactly compensating, in raw byte length,
+  for an ALREADY-PRESENT (pre-fix, confirmed via direct comparison)
+  duplicate blank-refname `PACKAGE` row (`--trace-refs` shows two separate
+  wildcard-import allocations for the same `PTAL_PAGE` root: `import
+  PTAL_PAGE:*;` and `import PTAL_PAGE:PageTemplate:*;`, both producing a
+  blank-refname row, apparently contradicting Cycle 33's "only the first
+  wildcard import allocates metadata" rule for this specific two-wildcard
+  shape).
+- This cycle's fix correctly discovers `PAGE` (the genuine improvement),
+  which removes the coincidental length-compensation and exposes the
+  ALREADY-PRESENT duplicate wildcard-metadata row as a real byte
+  difference.
+- The duplicate-wildcard-metadata issue is **not new** (directly confirmed
+  present in the pre-fix generated output too, via `git stash`) and is
+  **not this cycle's mechanism** — it belongs to Cycle 33/54's
+  already-closed wildcard-import-metadata family. Per Phase 33/34's
+  explicit instruction not to reopen that population, it is flagged here
+  (as a genuine, newly-observed counter-example to the "only first
+  wildcard" rule, worth a future cycle's attention) but **not
+  investigated or fixed this cycle**.
+- `30197` is not part of the 430 protected definitions nor any tracked
+  historical control; the classification-level `corpus:verify` regression
+  gate (the project's authoritative acceptance criterion) already
+  confirms `Regressed: 0` including this definition.
+
+### Phase 21 — family homogeneity: the 5-root population splits
+
+- **3 genuine members, same mechanism**: `28755`, `28964`, `29099` — all
+  have an inherited `%This.method()` call, all show a declaration-
+  dependency type discovered late instead of early. All three advanced
+  (first-diff moved substantially deeper; none reached full byte-identity
+  yet, since each has at least one further, independent remaining gap,
+  consistent with "stop after first proven mechanism").
+- **2 false family members**: `29518`, `30196` — their declare-function
+  references were ALREADY correctly positioned before this cycle (a
+  comparator-rendering artifact, not a defect); their actual remaining
+  divergence is unrelated (a different missing-FIELD gap for `29518`; a
+  missing `PACKAGE.ACTIONITEM` gap, unrelated to declare-function
+  positioning, for `30196`).
+
+### Phase 44 — architecture assessment: third confirmed instance of the same overbroad gate
+
+**This is the third time this project has found `hasUnmodeledThisMethodDependencies`
+(the inherited-`%This`-call predicate) gating something unrelated to the
+method-dependency-resolution uncertainty it was designed for:**
+
+1. Cycle 52: gated `hasModeledDeclarationDependencyOrder`'s multi-symbol
+   modeling (fixed by making that term unconditionally `true`).
+2. Cycle 57: gated `applicationClassReferenceSession`'s availability for
+   cross-fragment TYPE lookup (fixed by adding a second, always-present
+   `applicationClassTypeReferenceSession`).
+3. Cycle 60 (this cycle): gated `allocateModeledDeclarationDependency()`'s
+   own TYPE-discovery guard (fixed by switching it to
+   `hasModeledDeclarationDependencyOrder`).
+
+**This crosses the "3+ distinct residual families caused by bypassing the
+same canonical mechanism" threshold this project's own convention has
+used before recommending a targeted audit** (see e.g. Cycle 52's own
+Phase 39 language). However, per this cycle's explicit "do not refactor
+broadly" instruction, no refactor is performed now — each of the three
+fixes was narrow, canonical-mechanism-preserving, and independently
+population-validated. **Recommending a targeted, read-only audit of every
+remaining use of `hasUnmodeledThisMethodDependencies`/
+`hasModeledApplicationClassReferenceScope` as a future (not necessarily
+next) cycle's target**, to check whether any OTHER currently-gated
+behavior is similarly over-broad, now that the pattern has repeated three
+times.
+
+### Blast-radius prediction vs. actual
+
+Predicted: only Application Class definitions with BOTH an inherited
+`%This.method()` call AND at least one class-header declaration-dependency
+type not otherwise discovered would change; ordinary PeopleCode and
+classes without an inherited call are unaffected (the changed guard is
+read only inside `allocateModeledDeclarationDependency()`, itself only
+called from `encodeApplicationClassProgramV2`). Actual: confirmed exactly
+— the full-corpus scan shows changes limited to Application Class
+definitions, the Cycle 55/56/57 populations show zero regressions outside
+genuine improvements, and the one exposed discrepancy (`30197`) is
+unrelated to this mechanism (a pre-existing wildcard-metadata duplicate).
+
+### Explicitly not done this cycle
+
+- `29518`/`30196`'s own actual (unrelated) remaining defects — not
+  chased; they were false family members, not this cycle's target.
+- `30197`'s exposed duplicate-wildcard-metadata discrepancy — flagged,
+  not investigated (Cycle 33/54's closed domain).
+- The broader `hasUnmodeledThisMethodDependencies` audit this cycle's own
+  finding motivates — recommended, not performed (no refactor this
+  cycle).
+- `29144`/`29202` (wrong-identity-substitution family), parked self-
+  metadata, marker campaign, wildcard-import population, names/member
+  ordering, and the decoder — all untouched.
+- Did not start Cycle 61.
+
+### Cycle 60 ending accounting (Phase 41)
+
+Of the 5 starting roots:
+
+- **3 resolved to the proven mechanism and advanced** (`28755`, `28964`,
+  `29099` — first-diff moved substantially deeper; each still has at
+  least one further, independent remaining gap).
+- **2 reclassified as false family members** (`29518`, `30196` — their
+  own actual defects are unrelated and untouched).
+
+Total: 3 + 2 = 5.
+
+### Updated historical active-reference census (Phase 42)
+
+Cycle 58's 13 active roots are updated only for the 3 genuine targets'
+status (still active — advanced, not resolved): `28755`, `28964`,
+`29099` remain active (now further along); `29144`/`29202`
+(wrong-identity-substitution) and the 7 scattered singletons are
+unchanged. `29518`/`30196` were never part of Cycle 58's 13-root
+historical population (they were Cycle 58/59's own incidental
+`declare-function`-family additions), so no change to that specific
+count.
+
+### Recommendation for Cycle 61 (not started)
+
+Per the task's own default: the wrong-identity-substitution family
+(`29144`, `29202`) is the next target, since the declare-function-shaped
+lead resolved (3 of 5 advanced via one proven mechanism; the other 2 were
+a false-family artifact, now corrected). A secondary option, if that
+family does not pan out: a read-only audit of remaining
+`hasUnmodeledThisMethodDependencies` consultation sites, given this
+cycle's finding that the SAME gate has now been too broad three times.
+
+Do not start Cycle 61 in this session.
+
 ## Compiler Semantics Cycle 59 — `Collection` leaf: false-family finding, no encoder change (forensic only)
 
 **Status: FORENSIC ONLY, zero encoder changes.** Datasource: LOCAL
