@@ -1,5 +1,225 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 58 — Application Class active-reference closeout and residual re-census (forensic only, zero encoder change)
+
+**Status: FORENSIC ONLY, zero encoder changes.** Datasource: LOCAL
+SNAPSHOT throughout. Starting commit `15c545d` (Cycle 57). Protected/full
+baseline reproduced: `npm run corpus:verify` — 23,253/30,209 EXACT,
+REGRESSION GATE: PASS (0 improved, 0 regressed) — matches Cycle 57's
+documented ending state. Cycle 55/56/57 candidate populations reproduced
+exactly as documented: 171/173, 1,752/1,778, 1,036/1,053.
+
+### Fresh reconstruction of the Cycle 48 20-root population
+
+Built `cycle58-active-root-recensus.ts`: for each of the 20 IDs Cycle 48
+named as "still genuinely active reference-identity/allocation mismatch"
+(28713, 28752, 28755, 28801, 28802, 28862, 28904, 28925, 28964, 28972,
+28975, 29044, 29099, 29144, 29202, 29389, 29518, 29542, 29614, 30104),
+compares the STORED PSPCMNAME identity sequence (the same `(RECNAME,
+REFNAME)` text the validator's decoder uses, per Cycle 54's own finding)
+against the GENERATED reference identity sequence, independent of
+downstream byte-level noise (markers, statement encoding). This directly
+answers "is the reference stream itself now exact" without needing a
+byte-perfect file.
+
+**Fresh disposition of all 20 (sums to exactly 20):**
+
+| ID | current disposition | evidence |
+|---|---|---|
+| 28862 | **RESOLVED** — fully source-program exact AND reference-stream exact | `sourceEncodeExact=true`, identity sequences match exactly |
+| 28801 | **RECLASSIFIED → parked self-class-row metadata** (Cycle 53 family) | missing `PACKAGE.AGCBATCHNOTIFICATIONS` (own class name) at the same declaration-phase boundary position as every other self-row case |
+| 28802 | **RECLASSIFIED → parked self-class-row metadata** | missing `PACKAGE.AGCBATCHNOTIFICATIONSNC` (own class name), same shape |
+| 28972 | parked self-class-row metadata (already known) + separate `TEXTCATALOG` gap (already known, Cycle 52) | missing `PACKAGE.CONTRIBUTION`, `PACKAGE.TEXTCATALOG` |
+| 28975 | parked self-class-row metadata (already known) + separate `TEXTCATALOG` gap | missing `PACKAGE.VOLUNTARY`, `PACKAGE.TEXTCATALOG` |
+| 30104 | parked self-class-row metadata (already known) | missing `PACKAGE.MODALWINDOW` |
+| 29389 | **parked wrong-shape singleton** (already established, Cycle 52/54, out of scope) — unchanged | missing `PACKAGE.UTILS`; different, already-documented shape defect |
+| 28755, 28964, 29099, 29518 | **ACTIVE — new coherent family: `declare-function` construct misrecognition** | generated wrongly emits a `kind:'declare-function'` reference where stored has a plain `RECORD.FIELD`-shaped reference (e.g. `PSADSDEFN_WRK.FUNCLIB`, `FUNCLIB_HR.XLATVALUES`, `PTNUI_LAND_WRK.FUNCLIB`, `FUNCLIB_GP_ABS.FCST_PB`) — same exact shape in all 4 |
+| 29144, 29202 | **ACTIVE — wrong-identity substitution family** (matches original Cycle 48 family (d), re-confirmed unchanged) | stored wants `PACKAGE.STRINGHELPER`; generated substitutes `PACKAGE.FORMATTER` (duplicated) instead |
+| 28713, 28752, 28904, 28925, 29044, 29542, 29614 | **ACTIVE — scattered missing/extra allocation, no shared mechanism found** (each individually distinct; not deeply investigated per Phase 10) | see individual first-divergence identities in the raw tool output |
+
+Reconciliation: 1 (resolved) + 5 (self-class-row: 28801, 28802, 28972,
+28975, 30104) + 1 (wrong-shape, unchanged) + 4 (declare-function family)
++ 2 (wrong-identity family) + 7 (scattered) = **20 exactly.**
+
+### Phase 6/7 — self-class-row family grows by 2, and `29305` confirmed exactly as predicted
+
+**New finding, not previously recognized:** `28801` and `28802` (originally
+classified in Cycle 48 as family (b), "generated-allocates-more") are
+ACTUALLY missing their own self-class-name row — the same Cycle 53
+mechanism as `28972`/`28975`/`30104`/`28757`/`29841`. This grows the
+parked self-class-row population from 5 to **7** known members. Per the
+task's explicit instruction (Phase 20 of Cycle 53's own brief, and this
+cycle's Phase 20), this is NOT reopened or re-investigated — it remains
+parked pending genuinely new deterministic evidence; it is only
+reclassified out of the "active reference" bucket into the already-parked
+one, since the underlying cause is now known to be the SAME unproven
+mechanism, not a new active bug.
+
+`29305` (Cycle 57's honestly-reported byte-identical exception) was
+re-checked directly: the duplicate `CountrySpecific` allocation is
+confirmed fixed (only one `PACKAGE.COUNTRYSPECIFIC` now, matching
+stored), and the ONLY remaining discrepancy is the missing
+`PACKAGE.GPGBAPPREVENTHANDLER` — its own class name. **Classification:
+reference semantics correct; parked self-class metadata discrepancy
+exposed** — exactly as Cycle 57 predicted, confirmed fresh, not
+special-cased.
+
+### Phase 11/12/13 — Cycle 55/56/57 residuals do not explain any of the 20 roots, but reveal a new cross-population lead
+
+None of the 20 historical roots appear in Cycle 55's 2-candidate residual,
+Cycle 56's 26-candidate residual, or Cycle 57's 17-candidate residual.
+Conversely, every one of the 20 roots' OWN leaf-reuse dimensions (the
+specific leaves Cycles 55–57 target) now shows `stored=1 generated=1`
+(matched) when queried directly against those three census tools — direct
+confirmation that Cycles 55–57 are fully exhausted for this population;
+whatever remains in the 13 genuinely active roots is a DIFFERENT kind of
+defect (construct recognition / missing discovery / wrong substitution),
+not reuse/dedup.
+
+**A new, coherent, cross-population lead emerged while checking overlap**:
+the leaf **`Collection`** shows a `stored=1, generated=0` (always-missing)
+signature across **7 definitions** spanning all three residual
+populations — `29886`, `29890`, `29891` appear in BOTH Cycle 56's and
+Cycle 57's residuals; `29885`, `30194`, `30196` appear only in Cycle 56's;
+`30209` appears only in Cycle 57's. This is a stronger, more coherent
+population than any single cycle's own residual alone suggested, and is
+the clearest concrete Cycle 59 lead (see recommendation below). Separately,
+`29997`/`userlistfactory` shows the identical `stored=1, generated=0`
+shape and appears in BOTH Cycle 55's and Cycle 56's residuals — a second,
+smaller (1-definition, 2-method) instance of what may be the SAME
+"leaf never discovered at all" mechanism (as opposed to a discovered-
+but-wrongly-deduped one).
+
+### Phase 14/15/16 — facade/gate audit on the remaining active roots
+
+For the 13 remaining active roots, none show evidence of bypassing
+`ApplicationClassReferenceScope`/`ensureLocalApplicationClassPackageReference`/
+`ensureRuntimeCreateReference` — their defects are upstream of reference
+allocation entirely (construct recognition deciding WHICH kind of
+reference to emit at all, or whether to discover one in the first place),
+not a canonical-pool bypass. No new overbroad safety gate was found for
+this specific 13-root population (unlike Cycles 52/57's own findings) —
+this is a genuinely different class of problem, consistent with Phase 33's
+architectural conclusion holding.
+
+### Phase 29/30 — population reconciliation table
+
+| Population | Matching | Total | Residual |
+|---|---:|---:|---:|
+| Cycle 55 locals | 171 | 173 | 2 |
+| Cycle 56 create | 1,752 | 1,778 | 26 |
+| Cycle 57 compatible | 1,036 | 1,053 | 17 |
+
+Residuals are NOT summed naively (populations overlap by construction —
+Cycle 56's candidates are a superset-adjacent population to Cycle 55's,
+and Cycle 57's candidates are drawn from the same underlying method-local
+leaf set). Overlap found:
+
+- **56+57 overlap (3 definitions, `Collection` leaf): `29886`, `29890`,
+  `29891`** — same defect, counted in both cycles' own residual tallies.
+- **55+56 overlap (1 definition, `userlistfactory` leaf): `29997`** —
+  same defect, counted in both.
+- No 55+57 or 55+56+57 overlap found.
+- No overlap between the residual populations and the 20 historical
+  Cycle 48 roots (see above).
+
+### Phase 22/23/24/25 — forward-encode and reference-stream exact counts (99-root scale)
+
+A full re-derivation of forward-encode-exactness for all 99 original
+Application Class roots was NOT performed this cycle (out of proportion
+for a closeout cycle focused on the reference population specifically,
+per Phase 10's "do not investigate everything deeply"). For the 20-root
+reference population specifically: **1/20 now forward-encode exact**
+(`28862`); **1/20 reference-stream exact** (`28862`, same one). The
+other 19 are reference-stream-inexact for the reasons tabulated above.
+
+### Phase 31/32 — 99-root accounting: an honest note on a pre-existing tracking inconsistency
+
+The project's own historical bucket table shows an inconsistency that
+predates this cycle: Cycle 51's own full 99-root table used **34** for
+the "reference identity" bucket, while Cycle 52 onward consistently
+described and operated on a **20**-root population under that same label
+("20-root, 5 subfamilies"). This cycle cannot responsibly reconcile that
+gap without re-auditing the ~14 unaccounted roots from scratch (outside
+this cycle's closeout scope) — it is flagged here rather than silently
+papered over with invented numbers.
+
+Working from the 20-root population this cycle DID fully reconcile (per
+Cycle 52–57's own consistent usage), the resulting bucket deltas are:
+
+- "reference identity / active": 20 → **13** (−7).
+- "fully source-program exact, roundtrip-masked only": +1 (`28862`).
+- "parked self-row observability boundary": +5 (now spans `28801`,
+  `28802`, `28972`, `28975`, `30104`, joining the pre-existing `28757`/
+  `29841`/`28959`-family members tracked elsewhere in the doc — total
+  self-class/self-row parked population across all prior cycles' notes is
+  now at least **9**, not recomputed as one consolidated figure this
+  cycle).
+- "other/structural": +1 (`29389`, unchanged classification, just
+  re-confirmed).
+
+All other buckets (names metadata, decoder-only, marker residual,
+wrapper/body, parked storage-symbol enumeration, parked observability-
+boundary) are UNCHANGED — this cycle did not touch or re-examine them,
+consistent with every cycle since Cycle 52 reporting "total remains 99"
+without re-deriving those buckets.
+
+### Phase 33 — architecture audit: no new evidence for refactor
+
+The 13 remaining active roots do not bypass the canonical facade; their
+causes (construct misrecognition, missing first-occurrence discovery,
+wrong-identity substitution) are entirely upstream of the reference-
+allocation/reuse machinery Cycles 55–57 unified. **No structural
+duplication evidence found this cycle.** Cycle 57's conclusion stands:
+isolated policy/construct edges, not architectural duplication.
+
+### Phase 26 — can the reference campaign close?
+
+**NO — 13 active reference roots remain**, with exact IDs and causes
+tabulated above:
+
+- 4: `declare-function` construct-misrecognition family (`28755`,
+  `28964`, `29099`, `29518`).
+- 2: wrong-identity substitution family (`29144`, `29202`).
+- 7: scattered, individually-distinct missing/extra allocation defects
+  (`28713`, `28752`, `28904`, `28925`, `29044`, `29542`, `29614`) — no
+  shared mechanism found across them this cycle.
+
+Plus, outside the 20-root population but surfaced by this cycle's overlap
+analysis: the `Collection`-leaf cross-population lead (7 definitions) and
+the `userlistfactory` 55+56 overlap (1 definition) — both are
+"never-discovered" (not reuse/dedup) defects, a third distinct shape.
+
+### Recommendation for Cycle 59 (not started)
+
+**Priority target: the `Collection`-leaf "never discovered" defect**
+(`29886`, `29890`, `29891`, `29885`, `30194`, `30196`, `30209` — 7
+definitions, consistent `stored=1 generated=0` signature across three
+independent census sweeps). This is preferred over the `declare-function`
+family because:
+
+1. It is a pure missing-discovery gap (likely a type-name recognition
+   issue — "Collection" may be falling through a scalar/builtin-type
+   check somewhere before ever reaching the Application-Class reference
+   machinery), which is architecturally closer to the already-proven
+   canonical-pool pattern of Cycles 55–57 than a construct-recognition
+   parsing ambiguity.
+2. It already has cross-population, multi-cycle evidence (found
+   independently by Cycle 56 AND Cycle 57's own census criteria),
+   reducing the risk of a population-threshold failure.
+3. `29997`/`userlistfactory`'s identical shape (same predicate: `stored=1
+   generated=0`, prior local declaration present, never allocated) is a
+   plausible second member of the SAME general mechanism, worth including
+   in that cycle's own fresh census rather than treating as unrelated.
+
+Secondary candidate if the above does not pan out: the `declare-function`
+construct-misrecognition family (4 roots, `28755`/`28964`/`29099`/
+`29518`) — a clean, well-evidenced population, but requires understanding
+construct-recognition/parsing logic rather than reference-pool reuse, a
+different and less-proven category of fix for this project.
+
+Do not start Cycle 59 in this session.
+
 ## Compiler Semantics Cycle 57 — Application Class class-wide / import-established reference reuse (implemented)
 
 **Status: IMPLEMENTED, validated, one honestly-reported, well-explained
