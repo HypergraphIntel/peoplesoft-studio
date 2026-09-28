@@ -1,5 +1,265 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 53 — self-class-name PACKAGE row: characterized, NOT implemented (forensic-only)
+
+**Status: FORENSIC ONLY, zero encoder changes.** Datasource: LOCAL SNAPSHOT
+throughout. Starting commit `6384141` (Cycle 52). Protected baseline
+reproduced: `npm run corpus:verify` — 23,253/30,209 EXACT, REGRESSION GATE:
+PASS (0 improved, 0 regressed, 0 source changed vs. baseline) — exactly
+matches Cycle 52's documented ending state. `npx tsc --noEmit`: clean.
+`npm test`: 574 total, 573 pass, 1 pre-existing skip, 0 fail — unchanged.
+Cycle 52's 6 fixed roots and 12 negative controls, plus all Cycle 49–51
+marker controls, are covered by the same 0-improved/0-regressed full-corpus
+diff (no code changed since Cycle 52, so no per-ID re-verification was
+needed beyond this).
+
+**Target: 28972, 28975, 30104** — the 3-root self-class-name PACKAGE-row
+subfamily split off from Cycle 52's 6-root fix. Current status re-confirmed
+via `application-class-reference-closeout-census.ts`: all 3 remain
+`sourceEncodeExact=false`, causal tag `reference-operand`, first-diff at
+10.2% / 26.4% / 47.8% through the program respectively — unchanged from
+Cycle 52.
+
+### Phase 2 — exact row reconstruction (all 3 targets)
+
+Built `cycle53-self-class-row-analysis.ts` (stored-vs-generated PSPCMNAME
+row comparator + decode-based operand-usage check + source-occurrence
+scan). Findings:
+
+- **28972** (`Contribution`, package `BNE_OPEN_ENROLL_FL:Page:
+  OptionSpecificSection:Contribution`, extends `BNE_OPEN_ENROLL_FL:
+  Page:Section`): stored rows 2–7 are `SECTION, DATACONTROLLER,
+  PARTICBENEFITPROGRAM, BENEFITSPLANOPTION, RECORD, CONTRIBUTION` — the
+  self row (`PACKAGE|CONTRIBUTION`) is namenum 7, the LAST row of the
+  declaration-phase group, immediately before the first body-derived row
+  (`BNE_ENR_L0_WRK.FLAT_DED_AMT`, namenum 8). The current encoder already
+  generates rows 2–6 correctly (via the existing Component-declaration and
+  `missingDeclarationDependencies` mechanisms — this pair is NOT part of
+  the declaration-dependency-prepass gap Cycle 52 fixed); only row 7 is
+  missing.
+- **28975** (`Voluntary`, same package family, same extends target):
+  identical shape — stored rows 2–7 are `SECTION, DATACONTROLLER,
+  PARTICBENEFITPROGRAM, BENEFITSPLANOPTION, RECORD, VOLUNTARY` (self row
+  namenum 7, same position: last-of-declaration-phase, immediately before
+  the first body row).
+- **30104** (`modalWindow`, package `PTAF_GUI:MODAL_WINDOW:modalWindow`,
+  NO extends, NO implements, NO Application-Class-typed members — only
+  scalar properties): stored row 2 (`PACKAGE|MODALWINDOW`) is the self row,
+  and it is the VERY FIRST reference of the entire program, immediately
+  after the blank owner placeholder (row 1) and before literally
+  everything else (including `HTML.PTAF_POPUP_SCRIPT` at row 3). Since
+  this class has zero other declaration-phase dependencies, the self row
+  is the only member of that phase — fully consistent with "self row is
+  the LAST row of the declaration-phase group" degenerating to "first (and
+  only) row" when the group is otherwise empty.
+
+**Row shape is uniform across all 3**: `PACKAGE|<OWNCLASSNAME>` with blank
+`packageroot`/`qualifypath`/`appclassmethod` — same shape family, not a
+mix of different mechanisms (Phase 22 requirement satisfied).
+
+### Phase 3/4 — self-identity confirmation and executable usage audit
+
+All 3 rows have `recname=PACKAGE` and `refname` exactly equal to the
+owning class's own leaf name (case-insensitive) — not namespace, not
+parent class, not an interface, not an import, not a property/parameter/
+return type (none of the 3 classes declares any member typed as its own
+class). **Executable usage: ZERO for all three** — `decodeProgram`
+confirms no PSPCMPROG operand anywhere in any of the 3 stored programs
+references the self row's namenum. **Unanimous: metadata-only**, matching
+the earlier Cycle 39 finding for the parked `%This.method()` row family
+(see Phase 10 below).
+
+### Phase 5 — earliest source trigger
+
+None of the 3 classes uses its own name as an explicit type anywhere.
+28972/28975's earliest non-declaration-header occurrence of the class name
+is inside `/* Bug NNNNN ... */` comments (irrelevant). All 3 make
+`%This.<ownMethod>(...)` calls to methods they themselves declare and
+implement (28972: `SetSectionVisible`, `SetSectionTitle`, etc.; 28975:
+same pattern; 30104: `%This.appendNewWin(&url)` inside `genHTMLString`).
+30104's constructor itself never calls a method via `%This` (only
+`%This.<property> = <value>` assignments) yet still gets the row
+positioned earliest of all three — ruling out "first %This method call
+specifically inside the constructor" as the trigger.
+
+### Phase 7 — corpus-wide population census (mandatory)
+
+Built `cycle53-self-class-row-census.ts`: scanned all 1,510 Application
+Class definitions in the snapshot (1,506 parse successfully).
+
+- **Self-row PRESENT: 614.** Self-row absent, clean: 599. Self-row absent
+  but with a BLANK-refname `PACKAGE` row present elsewhere in the same
+  definition's name table: **293** — see Phase 22/29 note below; these are
+  excluded from the negative-control population because they are evidence
+  of a DIFFERENT, already out-of-scope failure mode (a `PACKAGE` row
+  allocated at/near the same slot but with an empty name instead of the
+  class's own name — the same general shape as the already-parked
+  wrong-shape root 29389, and independently reproduced here for `28935`,
+  `30053`, `30143`), not genuine absence.
+- **`hasExplicitSelfType`** (own name used as an explicit declared type
+  somewhere): present&TRUE=47, present&FALSE=567, absentClean&TRUE=0,
+  absentClean&FALSE=892. Zero contradictions, but only explains 47/614 —
+  and this population is ALREADY correctly handled by the existing
+  Cycle 26/32/52 `missingDeclarationDependencies` mechanism (nothing in
+  that filter excludes a self-referencing leaf name), so it is not part of
+  the Cycle 53 gap at all.
+- **`hasOwnThisMethodCall`** (source calls `%This.<method>(...)` where
+  `<method>` is declared by the class itself — Cycle 32/34's "modeled"
+  bucket): present&TRUE=559/614.
+- **Combined rule `hasOwnThisMethodCall OR hasExplicitSelfType`**:
+  explains **573/614 (93%)** present cases, with only **2 genuine
+  ground-truth contradictions** in the clean-negative population (out of
+  599): `28757` (`DynGridUpdateManager`, no extends, own `%This` calls to
+  its own methods, but stored PSPCMNAME has NO self row anywhere) and
+  `29841` (`CRefValidation`, extends `PTADSDEFN:AdsValidationBase`, own
+  `%This` calls, no self row). Both were independently re-confirmed by
+  dumping their full stored name tables — no blank-slot row either; these
+  are genuine, clean negatives that the rule wrongly predicts positive.
+  41/614 present cases remain unexplained by either predicate (false
+  negatives of the rule — lower risk, since not implementing the rule for
+  them only forgoes a gain, it does not risk a wrong allocation).
+
+### Phase 10 — relationship to the parked `%This.method()` metadata row
+
+The two families share their most important trait: **both are
+metadata-only, never referenced by any PSPCMPROG operand** (independently
+reconfirmed for this cycle's 3 targets; Cycle 39 established the same for
+the `%This.method()` singleton-metadata family). Row SHAPE differs
+(`PACKAGE|<OWNCLASSNAME>` vs. the method-bearing `PACKAGE|<class>|
+<package>||<METHOD>` shape), so they are not literally the same row — but
+the causal-mechanism parallel is exact: Cycle 41 already proved the
+`%This.method()` family's firing trigger is "not source-deterministic from
+current inputs," and this cycle's own population census reaches the
+identical verdict for the self-class row by the same kind of evidence (a
+strong-but-imperfect source correlate with genuine, irreducible
+counterexamples). This is treated as a warning sign per the task's own
+Phase 10 instruction, not a reason to conflate the two row shapes.
+
+### Phase 19/20 — declaration-prepass interaction
+
+The Cycle 52 first-occurrence declaration scan (`declarationDependencyTypes`
+→ `missingDeclarationDependencies`) does NOT discover the self-class type
+for any of the 3 targets, because none of them uses its own class name as
+an explicit declared type anywhere (property/instance/parameter/return/
+extends/implements) — there is nothing for that scan to find. The self row
+is therefore NOT a case of the existing mechanism "rejecting or skipping"
+a discovered dependency; it is a source signal (implicit `%This`-based
+self-reference) that mechanism was never designed to look for. Wiring it
+into that mechanism would require inventing a NEW discovery predicate
+(e.g. "own-method call via `%This`"), not just relaxing an existing guard.
+
+### Phase 25 — implementation threshold: NOT MET
+
+Per the task's own stated threshold ("implement only if all 3 roots
+explained, larger population supports the rule, negative controls
+explained, zero known contradictions, source-derived trigger"): the best
+candidate rule found (`hasOwnThisMethodCall OR hasExplicitSelfType`)
+explains all 3 targets and 93% of the population, but has **2 confirmed,
+irreducible ground-truth contradictions** in the clean-negative
+population, and structurally parallels the already-proven-non-
+deterministic `%This.method()` family. **Implementation is not justified
+this cycle.** This is a deliberate, evidence-backed "Outcome B" per the
+task's own success criteria ("three roots split [by mechanism from the
+rest of the population], no speculative fix, one precise next target
+identified").
+
+### Blast-radius note (why this was NOT implemented despite looking tempting)
+
+A population-wide `hasOwnThisMethodCall`-based rule would touch roughly
+529+ Application Class definitions (the `present & rule TRUE` count minus
+the 47 already-handled `hasExplicitSelfType` cases). Given 2 known
+counterexamples already found by a fairly shallow census, and given this
+mechanism's structural resemblance to the already-parked non-deterministic
+`%This.method()` family, the risk of silently encoding wrong reference
+streams for an unknown number of additional as-yet-unsampled classes
+outweighs the gain of advancing 2–3 targets that are already blocked by
+other independent issues anyway (28972/28975 also need a separate, still
+fully unexplained `PACKAGE|TEXTCATALOG` row; none of the 3 would reach
+full EXACT even if the self row were fixed, since 30104 in particular has
+no other known blockers but was not verified byte-identical beyond this
+one gap this cycle).
+
+### Explicitly not done this cycle
+
+- No encoder changes.
+- 28972/28975's separate `PACKAGE|TEXTCATALOG` gap — untouched (different,
+  unrelated mechanism, flagged by Cycle 52, still unexplained).
+- The wrong-shape-row family (29389 plus the newly-observed broader
+  blank-refname-`PACKAGE`-row population, see below) — untouched, per
+  Phase 29.
+- Cycle 49–51 marker campaign, Cycle 31 member-order roots, 29522 — all
+  untouched.
+- Did not start Cycle 54.
+
+### Phase 7 addendum — the wrong-shape family is bigger than previously known
+
+The mandatory population census incidentally surfaced that **293/1,506**
+Application Class definitions have at least one blank-refname `PACKAGE`
+row somewhere in stored PSPCMNAME — far more than the single previously-
+tracked wrong-shape root (`29389`). This is a rough proxy (it does not
+confirm the blank row sits specifically at the self-row's declaration-
+phase slot for all 293 — only 3 of them, `28935`/`30053`/`30143`, were
+spot-checked and confirmed to have the blank row at exactly that
+position), but it strongly suggests the wrong-shape family is a
+substantially larger, previously-undersized population, not a singleton.
+**Recommended as a strong Cycle 54 candidate** (see below) — it may also
+be the SAME underlying self-row-identity mechanism as this cycle's target,
+just with the name field resolving to blank instead of the class's own
+name under some as-yet-uncharacterized condition, which would make it
+worth investigating together with fresh evidence rather than in isolation.
+
+### Updated reference-family accounting (unchanged counts, refined characterization)
+
+- (a) generated-allocates-fewer, declaration-dependency-prepass mechanism:
+  6 resolved (Cycle 52, unchanged).
+- (a-residual) generated-allocates-fewer, self-class-name PACKAGE-row gap:
+  **3 (28972, 28975, 30104) — characterized this cycle, root cause
+  identified (implicit `%This`-own-method-call correlate, metadata-only,
+  NOT population-clean), NOT implemented.** Still active, same cause,
+  better understood.
+- (a-residual) wrong-shape row: 1 known (29389), now suspected to be part
+  of a much larger (up to ~293-candidate) population — needs its own
+  dedicated future census before any fix attempt.
+- (b) generated-allocates-more: 4 remain (28801, 28802, 29542, 29614) —
+  unchanged.
+- (c) missing-construct-recognition: 2 remain (28904, 29044) — unchanged.
+- (d) false-positive-construct-recognition: 2 remain (29144, 29202) —
+  unchanged.
+- (e) reuse/allocation-order: 1 remains (28925) — unchanged.
+
+**Updated 99-root Application Class campaign accounting:** unchanged
+totals from Cycle 52 (total remains 99); no root moved to full resolution
+this cycle, but 28972/28975/30104's remaining gap is now much better
+characterized (root cause identified even though not fixed).
+
+### Architectural/refactor signal assessment (Phase 39)
+
+Not met. This cycle found ONE gap (implicit self-reference not modeled by
+any existing mechanism) that is source-correlated but not source-
+deterministic — this is evidence of an unmodeled PHENOMENON, not evidence
+of multiple declaration paths bypassing the SAME canonical allocator (that
+was Cycle 52's finding, already fixed). Continue narrow, targeted cycles;
+no refactor trigger yet.
+
+### Recommendation for Cycle 54 (not started)
+
+Two reasonable candidates, in priority order:
+
+1. **The wrong-shape blank-refname-`PACKAGE`-row family**, now known to be
+   a much larger population (up to ~293 candidates, 3 spot-confirmed at
+   the exact self-row slot) than the single previously-tracked root
+   (29389) suggested. A fresh, dedicated census of this population (which
+   definitions have it, what predicts it, whether it's the SAME mechanism
+   as this cycle's self-row question with a name-resolution bug) is
+   likely higher-leverage than continuing to chase the self-row's exact
+   trigger with no new evidence.
+2. Alternatively, another active-reference subfamily (generated-allocates-
+   more: 28801/28802/29542/29614, or missing/false-positive-construct-
+   recognition: 28904/29044/29144/29202) if the wrong-shape census is not
+   picked up.
+
+Do not start Cycle 54 in this session.
+
 ## Compiler Semantics Cycle 52 — Application Class multi-symbol declaration-dependency prepass (implemented)
 
 **Status: IMPLEMENTED, validated, zero regressions (encoder-level).** Datasource:
