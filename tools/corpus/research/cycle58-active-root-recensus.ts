@@ -48,6 +48,8 @@ function generatedIdentity(ref: any): string {
   if (ref.kind === 'record-field') return `${ref.recordName?.toUpperCase() ?? ''}.${ref.fieldName?.toUpperCase() ?? ''}`;
   if (ref.kind === 'scroll') return `SCROLL.${ref.recordName?.toUpperCase() ?? ''}`;
   if (ref.kind === 'declare-function') return `${ref.recordName?.toUpperCase() ?? ''}.${ref.fieldName?.toUpperCase() ?? ''}`;
+  if (ref.kind === 'component') return `COMPONENT.${ref.objectName?.toUpperCase() ?? ''}`;
+  if (ref.kind === 'quoted-reference') return `${ref.recordName?.toUpperCase() ?? ''}.${ref.fieldName?.toUpperCase() ?? ''}`;
   return JSON.stringify(ref);
 }
 

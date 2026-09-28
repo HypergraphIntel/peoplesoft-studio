@@ -2335,6 +2335,80 @@ end-method;`, {
   ]);
 });
 
+test('Application Class built-in object declarations reuse one class-wide PACKAGE reference across different methods, even with an unrelated inherited %This.method() call', () => {
+  // Cycle 64 (definitions 28755/28964/29099): `ensureLocalObjectPackageReference`
+  // already gives built-in-object (Record/Rowset/Row/Field/SQL/File/
+  // XmlDoc/XmlNode) `Local` declarations METHOD-WIDE lifetime (Cycle 36,
+  // the test immediately above), but never consulted the class-wide
+  // `applicationClassTypeReferenceSession` facade Cycle 57 built for
+  // Application Class leaf types. Without an inherited %This call, the
+  // pre-existing GATED `applicationClassReferenceSession` (`nextReference`'s
+  // own Cycle 32 lookup) already reuses across methods -- this construct
+  // alone does not isolate the new mechanism. All three real-world
+  // targets (28755/28964/29099) have an inherited (not-own-declared)
+  // %This.method() call elsewhere in the class, which disables that
+  // GATED session (Cycle 32/34) -- exactly the condition this test
+  // reproduces to isolate Cycle 64's own fix. A corpus-wide census
+  // (`cycle64-builtin-classwide-reuse-census.ts`, 451 (definition,
+  // built-in-leaf) candidates declared via `Local` in 2+ methods) found
+  // 47 cases where stored collapses to exactly ONE identity across every
+  // method while generated allocated 2-30 -- zero contradictions.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+   method RunAgain();
+   method CallInherited();
+end-class;
+
+method Run
+   Local Record &first;
+end-method;
+
+method RunAgain
+   Local Record &second;
+end-method;
+
+method CallInherited
+   %This.SomeInheritedMethod();
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const recordPackageRefs = encoded.references.filter(
+    (r: any) => r.kind === 'package' && r.packageName === 'RECORD'
+  );
+  assert.strictEqual(
+    recordPackageRefs.length,
+    1,
+    'a built-in-object leaf declared via Local in two different methods should reuse one class-wide PACKAGE identity, even with an unrelated inherited %This call'
+  );
+});
+
+test('ordinary PeopleCode built-in object declarations keep their own control-group-scoped lifetime, unaffected by Cycle 64', () => {
+  // Negative control: `applicationClassTypeReferenceSession` is only ever
+  // populated by `encodeApplicationClassProgramV2` -- ordinary
+  // (non-Application-Class) PeopleCode's own Cycle 36 control-group-
+  // scoped behavior (401/651 population) must remain exactly as proven,
+  // with a genuinely NEW control-group boundary still allocating its own
+  // separate PACKAGE/RECORD identity.
+  const encoded = encodeProgramArtifacts(`Local Record &first;
+If True Then
+   Local Record &second;
+End-If;`);
+
+  const recordPackageRefs = encoded.references.filter(
+    (r: any) => r.kind === 'package' && r.packageName === 'RECORD'
+  );
+  assert.strictEqual(
+    recordPackageRefs.length,
+    2,
+    'ordinary PeopleCode must keep allocating a separate PACKAGE/RECORD identity per control group, unaffected by the Application-Class-only class-wide reuse fix'
+  );
+});
+
 test('Application Class local declarations of the same leaf type reuse one PACKAGE reference regardless of scalar vs array-of shape', () => {
   // Cycle 55: a corpus-wide census of 173 Application Class methods
   // declaring 2+ Locals of the same Application-Class leaf type (mixing
