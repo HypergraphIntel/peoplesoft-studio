@@ -3515,6 +3515,62 @@ End-Function;`
   assert.strictEqual(packageReferences.filter(r => r.packageName === 'FILE').length, 0);
 });
 
+test('a Global File declaration allocates an implicit PACKAGE/FILE dependency row', () => {
+  // Cycle 75 (Application Engine definitions 25388/25391/..., among a
+  // 965-candidate corpus population with 0 genuine contradictions --
+  // the 2 apparent negative controls found during the census were both
+  // `rem`-commented, non-compiled declarations): `globalDeclaration()`
+  // had NO general built-in-type dispatch at all (only one array-of-Record
+  // special case), unlike `Local File &f;`, which already allocates
+  // PACKAGE/FILE.
+  const encoded = encodeProgramArtifacts(
+    `Global File &log;
+&log = GetFile("test.txt", "W", %FilePath_Absolute);`
+  );
+
+  const packageReferences = encoded.references.filter(r => r.kind === 'package');
+  assert.ok(
+    packageReferences.some(r => r.packageName === 'FILE'),
+    'a Global File declaration must allocate a PACKAGE/FILE dependency row'
+  );
+});
+
+test('a Global string declaration does not allocate a PACKAGE/FILE dependency row, unaffected by Cycle 75', () => {
+  // Mandatory negative control: only a genuine File-typed Global
+  // declaration triggers the new allocation.
+  const encoded = encodeProgramArtifacts(`Global string &s;`);
+
+  const packageReferences = encoded.references.filter(r => r.kind === 'package');
+  assert.strictEqual(packageReferences.filter(r => r.packageName === 'FILE').length, 0);
+});
+
+test('a Component File declaration allocates an implicit PACKAGE/FILE dependency row', () => {
+  // Cycle 75 (Application Engine definitions 25969/25971/..., 11-candidate
+  // corpus population, 0 contradictions): `componentDeclaration()`
+  // already handles Record/Rowset/XmlDoc for this identical reason (see
+  // those cases' own comments) -- File was the exact gap the XmlDoc
+  // comment flagged as "unconfirmed," now confirmed.
+  const encoded = encodeProgramArtifacts(
+    `Component File &log;
+&log = GetFile("test.txt", "W", %FilePath_Absolute);`
+  );
+
+  const packageReferences = encoded.references.filter(r => r.kind === 'package');
+  assert.ok(
+    packageReferences.some(r => r.packageName === 'FILE'),
+    'a Component File declaration must allocate a PACKAGE/FILE dependency row'
+  );
+});
+
+test('a Component string declaration does not allocate a PACKAGE/FILE dependency row, unaffected by Cycle 75', () => {
+  // Mandatory negative control: only a genuine File-typed Component
+  // declaration triggers the new allocation.
+  const encoded = encodeProgramArtifacts(`Component string &s;`);
+
+  const packageReferences = encoded.references.filter(r => r.kind === 'package');
+  assert.strictEqual(packageReferences.filter(r => r.packageName === 'FILE').length, 0);
+});
+
 test('a blank line after a leading bare semicolon before the first real statement stores its marker', () => {
   // Cycle 49 (9 Application Class constructors, e.g. definition 29110):
   // an Application Class method implementation's own structured
