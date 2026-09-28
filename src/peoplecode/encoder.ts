@@ -1911,6 +1911,42 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       return existing;
     }
 
+    /*
+     * Cycle 64 (definitions 28755/28964/29099): a compatible TYPE-only
+     * identity for this SAME built-in leaf (Record/Rowset/Row/Field/SQL/
+     * File/XmlDoc/XmlNode) may already have been committed by an EARLIER
+     * method's own `Local` declaration of the identical leaf, or by the
+     * declaration-dependency prepass (Cycle 52/60, for a parameter/return
+     * type of the same leaf) -- exactly the class-wide facade
+     * `ensureLocalApplicationClassPackageReference`/`ensureRuntimeCreateReference`
+     * already consult (Cycle 57's `applicationClassTypeReferenceSession`).
+     * That facade was never extended to THIS allocator, so a built-in
+     * leaf's SECOND (and every subsequent) method kept allocating its own
+     * fresh, duplicate PACKAGE row instead of reusing the class-wide one.
+     * A corpus-wide census (`cycle64-builtin-classwide-reuse-census.ts`,
+     * 451 (definition, leaf) candidates declared via `Local` in 2+
+     * methods) found 47 cases where stored collapses to exactly ONE
+     * identity across every method while generated allocated 2-30, and
+     * ZERO cases where stored allocates 2+ AND generated does not already
+     * (independently, for a pre-existing, unrelated reason -- the same 4
+     * definitions Cycles 56/57/62 already found under-allocating relative
+     * to stored's own genuine multiplicity) match at 1 -- i.e. no corpus
+     * evidence this reuse is ever wrong. `context?.applicationClassTypeReferenceSession`
+     * is `undefined` for every non-Application-Class caller (only
+     * `encodeApplicationClassProgramV2` ever populates it), so ordinary
+     * PeopleCode's own control-group-scoped behavior (Cycle 36, 401/651
+     * population) is completely unaffected.
+     */
+    const classWideTypeIdentity = context?.applicationClassTypeReferenceSession?.lookup({
+      kind: 'package',
+      packageName,
+      objectName
+    });
+    if (classWideTypeIdentity !== undefined) {
+      localObjectPackageReferences.set(key, classWideTypeIdentity);
+      return classWideTypeIdentity;
+    }
+
     const created = nextReference({
       kind: 'package',
       packageName,

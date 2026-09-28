@@ -1,5 +1,335 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 64 — built-in object declarations lack class-wide reuse (implemented); the three Cycle 60 roots split into one shared, now-fixed mechanism plus three distinct new blockers
+
+**Status: IMPLEMENTED, validated, zero classification-level regressions,
+zero new byte-identical gains this cycle (each target has at least one
+further, independent gap) but a large, clean population improvement
+(447/451, up from 400/451).** Datasource: LOCAL SNAPSHOT throughout.
+Starting commit `4482335` (Cycle 63). Protected/full baseline reproduced:
+`npm run corpus:verify` — 23,253/30,209 EXACT, REGRESSION GATE: PASS (0
+improved, 0 regressed) — matches Cycle 63's documented ending state.
+Population metrics reproduced fresh, all unchanged from Cycle 63's ending
+values: Cycle 55 171/173, Cycle 56 1,752/1,778, Cycle 57 1,037/1,053,
+Cycle 60 82/82, Cycle 61 27/28, Cycle 62 205 candidates (82/0/123), Cycle
+63 65 candidates (0 negative controls — the post-Cycle-63 residual, see
+below).
+
+### Phase 13/14 (mandatory comparator sanity check) — a third rendering gap found and fixed, zero impact on this cycle's own findings
+
+`29099` uses the `component`-kind reference; `cycle58-active-root-recensus.ts`'s
+own `generatedIdentity()` had no case for `component` or `quoted-reference`
+(falling back to raw `JSON.stringify(ref)`, the same class of artifact
+Cycles 59/60 each found once before). Added both cases
+(`COMPONENT.<objectName>`, `<recordName>.<fieldName>`, matching the
+authoritative rendering already established in
+`application-class-reference-analysis.ts`). Re-running confirmed this had
+**zero effect** on any of the three targets' reported first divergence
+(the `component` reference in `29099` occurs after its actual first
+divergence) — a clean sanity check, not a new family.
+
+### Phase 1/2/3/4 — reconstructing all three fresh: one shared duplicate-allocation pattern, immediately visible
+
+Full stored-vs-generated identity streams (not just the windowed
+comparator output) for all three show the **exact same shape**: a
+built-in object type (`Record`/`Rowset`/`Row`/`Field`/`SQL`) declared via
+`Local` in 2+ different methods. Stored allocates **exactly one**
+`PACKAGE.<LEAF>` row for the whole definition; generated allocates a
+**fresh, duplicate** one in every method beyond the first:
+
+```text
+28755: Local Record &WorkRec  in ContentSearchGrid AND DefineGrid
+       Local Field &fld       in BuildFieldList AND isFieldInSearchViewColumns
+28964: Local Record/Row/Rowset repeated across 6-7 different methods
+29099: Local Record repeated across 3 different methods
+```
+
+### Phase 9/18 — the canonical pool exists; the allocator never asks it
+
+Tracing `ensureLocalObjectPackageReference` (Cycle 36, the established
+built-in-object reuse pool): it already gives METHOD-WIDE lifetime
+(`builtinObjectDeclarationsHaveMethodWideLifetime`) but its dedup key
+(`${functionDepth}:packageName:objectName}`) is scoped to the current
+`encodeFragmentInternal` call only — each method is its own fragment, so
+the pool itself is brand-new and empty per method. Unlike
+`ensureLocalApplicationClassPackageReference`/`ensureRuntimeCreateReference`
+(Cycle 57), it never consulted the always-present
+`applicationClassTypeReferenceSession` facade before falling back to a
+fresh allocation — the identical "canonical pool exists, this one
+allocator was never wired to it" pattern Cycles 57/60/61/62 each found
+once before, now for a **different allocator function** than any of
+those four fixes touched.
+
+Confirming this is genuinely about the CLASS-WIDE facade and not the
+already-working GATED session (Cycle 32): all three targets have an
+inherited, not-own-declared `%This.method()` call elsewhere in the class
+(`28755`: `%This.EventCtlPage = ...` inside a chain, confirmed inherited;
+`28964`: `%This.Calculate2xCoverage(...)`/`%This.ValidateCrossPlan(...)`,
+Cycle 60's own already-documented inherited calls; `29099`:
+`%This.Manager.CAFTrace(...)`) — meaning `hasUnmodeledThisMethodDependencies`
+disables the pre-existing gated `applicationClassReferenceSession` for
+all three, exactly the condition under which the always-present
+`applicationClassTypeReferenceSession` is the only remaining route to
+class-wide reuse.
+
+### Phase 6/9 (mandatory census) — 451 candidates, 47 supporting, 4 pre-existing/unrelated, ZERO contradicting
+
+Built `tools/corpus/research/cycle64-builtin-classwide-reuse-census.ts`:
+for every (definition, built-in-leaf) pair declared via `Local` in 2+
+different methods, compared stored vs generated PACKAGE row count for
+that leaf across the whole definition:
+
+```text
+Candidates: 451
+Matched (already correct, mostly single-method usage): 400
+Mismatched: 51
+  47: stored = 1, generated = 2-30  (supports class-wide reuse)
+   4: stored = 3-17, generated = 1  (29797/29883 -- the SAME already-
+                                      known multi-identity negative
+                                      controls Cycles 56/57/62 found
+                                      under-allocating for a separate,
+                                      unrelated, pre-existing reason;
+                                      generated was ALREADY 1 before this
+                                      cycle's fix, so this fix is a no-op
+                                      for them -- confirmed unaffected)
+```
+
+**Zero genuine contradictions.** The 4 apparent "negative controls" are
+not new evidence against the rule — they are the identical, already-
+tracked, pre-existing under-allocation gap this project's own precedent
+(Cycle 56 Phase 22, Cycle 62) already explains and explicitly declined to
+fix, confirmed by direct inspection to be unaffected by this cycle's
+change (`generatedCount` was already 1 pre-fix).
+
+### Fix implemented (`src/peoplecode/encoder.ts`)
+
+`ensureLocalObjectPackageReference` now consults
+`context?.applicationClassTypeReferenceSession?.lookup({kind:'package',
+packageName, objectName})` immediately before its own fresh-allocation
+fallback — the exact same lookup shape and precedence order Cycle 57
+established at `ensureLocalApplicationClassPackageReference`. Ordinary
+(non-Application-Class) PeopleCode is unaffected by construction
+(`applicationClassTypeReferenceSession` is only ever populated by
+`encodeApplicationClassProgramV2`).
+
+### Validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 586 total, 585 pass, 1 pre-existing skip, 0 fail. Two tests
+  added:
+  - Positive/regression: *"Application Class built-in object declarations
+    reuse one class-wide PACKAGE reference across different methods, even
+    with an unrelated inherited `%This.method()` call"* — confirmed to
+    FAIL pre-fix (via `git stash` on `encoder.ts` alone) and PASS
+    post-fix. (An earlier draft of this test omitted the inherited
+    `%This` call and — instructively — PASSED even pre-fix, because
+    without the gate, the pre-existing GATED `applicationClassReferenceSession`
+    already provides cross-method reuse; the inherited call is what
+    isolates this cycle's own, distinct fix, mirroring Cycle 57's own
+    test-construction lesson.)
+  - **Negative control**: *"ordinary PeopleCode built-in object
+    declarations keep their own control-group-scoped lifetime, unaffected
+    by Cycle 64"* — confirmed to PASS both before and after, proving
+    Cycle 36's established ordinary-PeopleCode behavior is untouched.
+- `git diff --check`: clean.
+- Protected/full corpus (`npm run corpus:verify`): 23,253/30,209 EXACT,
+  REGRESSION GATE: PASS, 0 improved / 0 regressed.
+- Full 30,209-definition byte-identical-encode scan (`git stash` on
+  `encoder.ts` before/after): **+0 gained, 0 lost** — no definition in
+  this population reaches full byte-identity from this fix alone (every
+  one of the 51 mismatched candidates has at least one further,
+  independent gap beyond this mechanism, exactly as this cycle's own
+  targets demonstrate), but zero regressions confirms the fix is safe.
+- Cycle 55/56/57/60/61/62/63 populations re-verified with zero
+  regressions: 171/173, 1,752/1,778, 1,037/1,053, 82/82, 27/28, Cycle 62's
+  205-candidate census unchanged, Cycle 63's 65-candidate census unchanged
+  (0 negative controls in both) — expected, since this fix targets a
+  DIFFERENT allocator (`ensureLocalObjectPackageReference`) than any of
+  those seven census scripts test.
+- This cycle's own census: **447/451 matched** (up from 400/451), 4
+  remaining mismatches confirmed unaffected (pre-existing, already-known,
+  unrelated gap).
+
+### Phase 5/21/42 — the three roots split: one shared (now-fixed) mechanism, three distinct new blockers
+
+All three benefited from this cycle's fix (identity count dropped:
+28755 25→18, 28964 116→103, 29099 60→58) but **none reaches full
+reference-stream exactness**, because each has at least one further,
+independent, newly-isolated blocker exposed once the shared duplicate was
+removed:
+
+- **`28755`** (first divergence advanced from index 7 to index 10):
+  stored's next two entries are `PAGE.PTADSDMWCONTENTSCH` (a `Page."X"`
+  quoted-reference construct, `%This.EventCtlPage = Page.PTADSDMWCONTENTSCH;`
+  — a reference kind/qualifier not yet traced in this cycle) and
+  `PACKAGE.CONTENTSEARCHGRID` — the class's own name (`class
+  ContentSearchGrid extends ADS_DMW:UI:Widgets:DynamicGrid;`), strongly
+  resembling Cycle 53's still-parked self-class-name family. **Not
+  investigated further this cycle** (Phase 24: stop at the next distinct
+  blocker) — flagged as a compound lead for a future cycle, likely
+  requiring BOTH a quoted-reference-kind audit AND Cycle 53's parked
+  question.
+- **`28964`** (first divergence position unchanged at index 8, but total
+  identity count still dropped 116→103 from removed downstream
+  duplicates): the actual blocking construct is
+  `BNE_ENR_L0_WRK.PB_SUMMARY.Label = %Super.TxtCat.getSimpleTextPlan(...)`
+  — `%Super.TxtCat` accesses a property presumably declared on the
+  PARENT class (via `%Super`), which the declaration-dependency prepass
+  (Cycle 52/60) never discovers, since it only scans the CURRENT class's
+  own declarations, not an ancestor's. A **newly isolated, distinct**
+  construct (`%Super`-accessed inherited property type discovery) not
+  previously characterized by any prior cycle. Not investigated further
+  this cycle.
+- **`29099`** (first divergence position unchanged at index 22, total
+  identity count dropped 60→58): the blocking construct is a **different
+  reference kind** than this cycle's fix touches — `FIELD.CAF_RECNAME`/
+  `FIELD.CAF_FIELDNAME_1-4` (genuine field names, bare-member access on a
+  Record-typed receiver, `dependencyKind === 'field'`, Cycle 46/63's own
+  mechanism) duplicated across multiple methods, the SAME "no class-wide
+  reuse" shape as this cycle's fix but for `FieldDependencyScope`/
+  `resolvePostfixMemberReuse`'s pool instead of
+  `ensureLocalObjectPackageReference`'s. This cycle's own
+  `cycle64-builtin-classwide-reuse-census.ts` ALSO confirms `29099`'s
+  `Record` leaf duplicate independently (methodCount 3, now fixed) — but
+  the FIELD-kind duplicate is a sibling, not-yet-implemented mechanism
+  that blocks `29099` earlier in its own stream. **Not investigated
+  further this cycle** (a strong, promising Cycle 65 candidate — see
+  recommendation below).
+
+Per Phase 5's explicit question: **the three roots no longer form one
+family** — they shared exactly one mechanism (now fixed, benefiting all
+three), and now split into three materially different new blockers (a
+quoted-reference/self-class-name compound lead, a `%Super`-inherited-
+property-type gap, and a sibling FIELD-kind class-wide-reuse gap). Model B
+("shared mechanism + fragmentation after the fix") fits best of the
+candidate models in Phase 21 — not Model A (no single mechanism explains
+all three's REMAINING gap) and not Model C (they were not always distinct
+— they DID share one real, now-resolved mechanism).
+
+### Phase 42 — family ending accounting
+
+- **`28755`**: still active, same cause resolved but **new blocker
+  identified** (compound: quoted-reference `Page."X"` construct +
+  possible Cycle 53 self-class-name re-entry).
+- **`28964`**: still active, same cause resolved but **new blocker
+  identified** (distinct: `%Super`-inherited property type discovery).
+- **`29099`**: still active, same cause resolved but **new blocker
+  identified** (distinct: sibling FIELD-kind class-wide-reuse gap).
+
+Total: 3 (all three "still active, new blocker" — none resolved to full
+exactness, none reference-complete, none reclassified as parked).
+
+### Phase 40/Blast-radius prediction vs. actual
+
+Predicted: any Application Class definition with a built-in-object leaf
+(`Record`/`Rowset`/`Row`/`Field`/`SQL`/`File`/`XmlDoc`/`XmlNode`) declared
+via `Local` in 2+ different methods would lose its duplicate allocations;
+ordinary PeopleCode and single-method usage unaffected. Actual: confirmed
+exactly — all 51 census candidates are Application Class definitions
+matching this precise shape, the 4 unrelated-mismatch definitions
+confirmed unaffected by direct inspection, and the seven pre-existing
+census populations show zero movement (none of them exercise
+`ensureLocalObjectPackageReference`'s own reuse pool).
+
+### Explicitly not done this cycle
+
+- `28755`'s new `Page."X"` quoted-reference gap and possible Cycle 53
+  self-class-name re-entry — characterized, not implemented.
+- `28964`'s new `%Super`-inherited-property-type discovery gap —
+  characterized, not implemented.
+- `29099`'s new FIELD-kind class-wide-reuse gap (the sibling mechanism to
+  this cycle's own fix, for a different allocator) — characterized, a
+  strong Cycle 65 candidate, not implemented.
+- The `OutputField` reuse lead (Cycle 59) — none of the three targets hit
+  this path; left untouched, per Phase 10/33.
+- `28790` — reconfirmed unchanged (`sourceEncodeExact: true`,
+  `referenceStreamExact: false`, identical first-diff shape); does not
+  cluster with any of this cycle's targets.
+- `29389` — reconfirmed unchanged (identical first-diff shape, still a
+  genuine active reference root, "wrong non-PACKAGE identity" per its own
+  historical label); not investigated further.
+- Cycle 53's parked self-class-name family (`28801`, `28802`, `28972`,
+  `28975`, `30104`), `28757`, `29841`, `29305`, and `29144`/`29202`
+  (Cycle 63's now-reference-complete pair) — all remain parked, per Phase
+  32's explicit list; not reopened.
+- The marker/wildcard campaigns, Cycle 30/31 member-order roots, `29522`,
+  and the decoder — all untouched.
+- Did not start Cycle 65.
+
+### Phase 26/36/46 — refreshed active-reference census
+
+Re-ran `cycle58-active-root-recensus.ts` (now with the `component`/
+`quoted-reference` rendering fix) against the full historical population.
+**12 active, deterministically non-exact reference roots remain**:
+
+```text
+28713, 28752, 28755, 28904, 28925, 28964, 29044, 29099,
+29389, 29518, 29542, 29614
+```
+
+(Down from the pre-Cycle-63 population by the removal of `29144`/`29202`,
+now reference-complete/parked per Cycle 63's own Phase 27.) `28862`
+remains fully `sourceEncodeExact=true`. Parked self-metadata (`28801`,
+`28802`, `28972`, `28975`, `30104` — Cycle 53's family; `28757`, `29841`,
+`29305`, `29144`, `29202` — the broader self-method/self-class parked
+set) are excluded from this active count per Phase 32/27.
+
+### Phase 28 — current singleton census
+
+Of the 12 active roots, none currently cluster into a NEW shared family
+beyond what prior cycles already established (each root's own historical
+label — declare-function-prepass residual, wrong-shape, wrong-identity,
+PACKAGE phase/order mismatch, etc. — is unchanged by this cycle). No new
+census beyond confirming this cycle's fix does not touch any of the other
+9 (non-target) active roots was performed; a full fresh single-family
+re-audit of all 12 is recommended future work, not done this cycle.
+
+### Phase 29 — OutputField population status (brief, not investigated)
+
+Unchanged from Cycle 59/63's own characterization: a small lead, not
+directly involved in any of this cycle's three targets. Given `29099`'s
+newly-isolated FIELD-kind gap is a different, cleaner, better-understood
+mechanism with a direct architectural precedent (Cycle 57's own pattern,
+now proven twice), it looks **stronger** than the `OutputField` lead as a
+Cycle 65 candidate.
+
+### Phase 44 — architecture assessment
+
+**A second confirmed instance of "canonical class-wide facade exists,
+one specific allocator was never wired to it" — but for a DIFFERENT
+allocator (`ensureLocalObjectPackageReference`) than any of Cycles
+57/60/61/62's four fixes.** This is not the SAME overbroad-gate pattern
+those four cycles addressed (this allocator was never gated at all — it
+simply never consulted the facade); it is the SAME general
+architecture-level observation Cycle 57 first made: `ApplicationClassReferenceScope`
+is a single, already-unconditionally-populated, shared map, and each
+specific consumer must be individually wired to query it. Two consumers
+(`ensureLocalApplicationClassPackageReference`, `ensureRuntimeCreateReference`)
+were wired in Cycle 57; a third (`ensureLocalObjectPackageReference`) is
+wired this cycle. `29099`'s own newly-isolated blocker suggests at least
+a FOURTH candidate consumer (`FieldDependencyScope`/
+`resolvePostfixMemberReuse`'s FIELD-name pool) may need the same
+treatment — **this crosses the threshold for a targeted, read-only
+inventory of every remaining reference-allocation pool NOT yet consulting
+the class-wide facade**, similar in spirit to Cycle 61's own
+gate-inventory recommendation. Per this cycle's own scope, no such
+inventory is performed now; recommended as a candidate for Cycle 65 or a
+future cycle.
+
+### Recommendation for Cycle 65 (not started)
+
+**`29099`'s newly-isolated FIELD-kind class-wide-reuse gap** is the
+strongest candidate: it directly extends this cycle's own proven
+architecture (the same facade, a third consumer), has a concrete,
+already-identified real-world instance, and — per Phase 44 — may
+generalize into a short, targeted inventory of remaining un-wired
+allocators rather than a one-off fix. Secondary options:
+`28755`'s compound `Page."X"`-quoted-reference/self-class-name lead;
+`28964`'s `%Super`-inherited-property-type discovery gap; the
+`OutputField` lead (weaker, per Phase 29).
+
+Do not start Cycle 65 in this session.
+
 ## Compiler Semantics Cycle 63 — `.Name` intrinsic Record-object property wrongly allocated a FIELD reference (implemented)
 
 **Status: IMPLEMENTED, validated, zero classification-level regressions,
