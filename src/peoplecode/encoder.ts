@@ -3408,6 +3408,48 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       }
     }
 
+    /*
+     * Cycle 72 (definitions 28954/28998/...): outside every RECORD-aware
+     * consumer above (GetRecord/Select/GetSetId/CreateRecord's own
+     * argument -- none of `reuseRecordReferenceWithinControlGroup`,
+     * `reuseRowShorthandRecord`, `reuseRecordReferenceByName`, or
+     * `reuseRecordReferenceWithinCallArguments` fired), a bare `Record.X`
+     * passed to some OTHER, generic consumer (an Application Class method
+     * call, an arbitrary function) is an ordinary symbolic constant --
+     * exactly Cycle 66's own proven rule for `Field.X` outside
+     * `GetField(...)`. A corpus-wide census
+     * (`cycle72-generic-record-argument-census.ts`, 511 RECORD + 180
+     * SCROLL candidates, repeated 2+ times via a non-RECORD-aware
+     * consumer) found 0 contradictions either kind. Deliberately excludes
+     * `reuseRowShorthandRecord` (CreateRecord's own argument) --
+     * CreateRecord is its OWN, separately calibrated, genuinely mixed
+     * population (Cycle 43: 146/221 fresh vs 58/221 reuse for ordinary
+     * PeopleCode) and must not be folded into this unconditional rule.
+     * Shares the SAME `dependencyScope` pool (method-wide via
+     * `recordScopeId()`, class-wide via `applicationClassTypeReferenceSession`)
+     * every RECORD-aware consumer already reads from -- one identity
+     * regardless of which consumer happens to reach it first.
+     */
+    if (
+      !reuseRowShorthandRecord &&
+      !reuseRecordReferenceWithinControlGroup &&
+      !reuseRecordReferenceByName &&
+      !reuseRecordReferenceWithinCallArguments &&
+      context?.recordDependenciesHaveMethodWideLifetime
+    ) {
+      const existing =
+        dependencyScope.lookupRecord(recordName) ??
+        context?.applicationClassTypeReferenceSession?.lookup({
+          kind: 'record',
+          recordName
+        });
+
+      if (existing !== undefined) {
+        dependencyScope.recordRecord(recordName, existing);
+        return referenceOperand(existing);
+      }
+    }
+
     const reference = nextReference({
       kind: 'record',
       recordName
@@ -3632,6 +3674,40 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       dependencyScope.recordScroll(recordName, reference);
 
       return referenceOperand(reference);
+    }
+
+    /*
+     * Cycle 72: SCROLL-side counterpart to `recordReference()`'s own
+     * generic-argument fix above -- outside the calibrated `GetRowset()`
+     * context, a bare `Scroll.X` passed to some OTHER, generic consumer
+     * still shares the SAME class-wide identity `GetRowset(Scroll.X)`
+     * itself would reuse (a corpus-wide census,
+     * `cycle72-generic-record-argument-census.ts`, found 180 SCROLL
+     * candidates, 0 contradictions). Ordinary PeopleCode is unaffected:
+     * `applicationClassTypeReferenceSession` is `undefined` there, and
+     * `recordDependenciesHaveMethodWideLifetime` gates the whole check.
+     */
+    if (context?.recordDependenciesHaveMethodWideLifetime) {
+      const existing =
+        dependencyScope.lookupScroll(recordName) ??
+        context?.applicationClassTypeReferenceSession?.lookup({
+          kind: 'scroll',
+          recordName
+        });
+
+      if (existing !== undefined) {
+        dependencyScope.recordScroll(recordName, existing);
+        return referenceOperand(existing);
+      }
+
+      const genericReference = nextReference({
+        kind: 'scroll',
+        recordName
+      });
+
+      dependencyScope.recordScroll(recordName, genericReference);
+
+      return referenceOperand(genericReference);
     }
 
     // Outside the calibrated GetRowset() context, preserve the long-standing
