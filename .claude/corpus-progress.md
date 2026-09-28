@@ -1,5 +1,354 @@
 # Corpus Calibration Progress
 
+## Cycle 73 — Full NONEXACT Taxonomy and Payoff Ranking (forensic/analytical only, zero semantic changes)
+
+**Status: FORENSIC-ONLY, as required. No encoder/decoder semantic changes.
+Built a reusable, corpus-wide taxonomy tool
+(`tools/corpus/research/cycle73-nonexact-taxonomy.ts`) that classifies
+all 6,950 current NONEXACT definitions by their CURRENT, fresh, HEAD-derived
+primary failure category, discovering along the way that the previous
+"decoder bare-identifier campaign" assumption (implicit in Cycles
+70-72's own recommendations) was likely premature: a NEW,
+previously-uncharacterized category, `REFERENCE_ACTIVE_PACKAGE` (1,508
+definitions, ~100%-missing-allocation pattern in a 40-definition sample,
+zero decoder-symptom overlap by construction), is now the SINGLE LARGEST
+category and the recommended Cycle 74 target.**
+Datasource: LOCAL SNAPSHOT throughout. Starting commit `d98b4a2` (Cycle
+72). Protected baseline reproduced: `npm run corpus:verify -- --limit
+430` — 430/430 EXACT, REGRESSION GATE: PASS. Full harness reproduced
+fresh: **23,259 / 30,209 EXACT (6,950 NONEXACT)** — again differs
+slightly from the brief's assumed starting figures (23,254/6,955);
+matches Cycle 72's own actual ending state exactly, and the freshly
+measured values are used throughout. All prior population census scripts
+(Cycles 55-72) re-verified unchanged — zero regressions, as expected for
+a forensic-only cycle with no encoder edits.
+
+### Methodology (Phases 1-3, 41-43)
+
+Built `tools/corpus/research/cycle73-nonexact-taxonomy.ts`, which for
+every one of the 30,209 snapshot definitions calls `validateDefinition`
+(the SAME authoritative function `npm run corpus:harness` calls — no
+parallel classification logic) to get `classification`,
+`sourceEncodeExact` (forward byte-identical), `roundtripExact`, and
+`errorMessage`. For every NONEXACT result, ADDS one new, project-wide
+signal this cycle needed and no prior cycle had computed at full-corpus
+scale: whether the forward REFERENCE STREAM (PSPCMNAME) is structurally
+exact, via `encodeProgramArtifacts` + a structural (kind-aware)
+comparison against stored names — independent of whether the rest of the
+program bytes match. This distinguishes a genuine, still-unproven
+reference gap (`REFERENCE_ACTIVE_*`) from a definition whose references
+are ALREADY correct but something else blocks full EXACT
+(`REFERENCE_COMPLETE_DOWNSTREAM`). Output:
+`.claude/nonexact-taxonomy.json` (6,950 rows, one per NONEXACT
+definition; not duplicated into this file per Phase 44's instruction).
+
+**Primary category is mutually exclusive per definition** (Phase 34):
+decode/encode/roundtrip-level classifications are checked FIRST (in the
+SAME priority order `classifyResult` itself uses), and only definitions
+that reach `UNKNOWN_MISMATCH` (decode succeeded, source matched, forward
+encode not fully exact) get the additional reference-stream comparison.
+This has an important, non-obvious consequence used throughout this
+cycle's payoff analysis: **every `REFERENCE_ACTIVE_*`/
+`REFERENCE_COMPLETE_DOWNSTREAM` definition is, by construction, ALREADY
+confirmed free of the decoder-bare-identifier symptom (or any other
+decode-level problem)** — these categories never overlap with
+`DECODER_BARE_IDENTIFIER`/`DECODE_SOURCE_MISMATCH`/`UNSUPPORTED_SYNTAX`/
+`ENCODE_ERROR`, unlike this project's own earlier RECORD-residual work
+(Cycle 72's own 11 remaining RECORD mismatches, re-checked this cycle and
+confirmed to ALL ALSO carry the bare-identifier symptom independently —
+see below).
+
+### Three tooling bugs found and fixed during this cycle's own verification (Phase 41: permitted "instrumentation" fixes only, no semantic encoder changes)
+
+Sampling the FIRST draft's results immediately exposed the exact same
+discipline this project has repeatedly needed on itself (Cycles 65/68/71
+each caught a similarly-shaped issue, there in encoder tests; here in
+brand-new forensic tooling):
+
+1. **Owner-row key bug**: `gKeyOf('owner')` hardcoded `'.'`
+   unconditionally, but ordinary Record.Field PeopleCode's OWNER row
+   (NAMENUM 1) carries the ACTUAL owning record/field name (confirmed:
+   definition `536`'s stored row 1 is `ADDRESS_TYPE_VW.ADDRESS_TYPE`, not
+   blank) — only Application Class/Component/Page/Menu-level owner rows
+   are genuinely blank. This alone inflated the catch-all bucket to 3,896
+   definitions (56% of ALL NONEXACT) before the fix.
+2. **Component-type owner-binding mismatch**: even after fix 1, 3,069
+   definitions still showed a spurious "owner" divergence — sampling
+   definition `18190` (a Component `Activate` program) showed a
+   genuinely BLANK stored owner row while the reference object's own
+   `recordName`/`fieldName` fields still carried the SUPPLIED
+   `objectValue1`/`objectValue2` context (the component name and event
+   name, not a record.field pair) — a structural mismatch this cheap,
+   generic comparator cannot reliably resolve per definition TYPE.
+   Fixed by excluding the owner row entirely from the structural
+   comparison (index 0 on the stored side, `kind === 'owner'` on the
+   generated side) — `validateDefinition`'s own `sourceEncodeExact`
+   already captures true byte-level owner-row correctness separately.
+3. **`declare-function`/`component`/`quoted-reference` key bugs**:
+   `gKeyOf` had NEVER been verified against real PSPCMNAME data for these
+   three kinds (added speculatively in Cycle 69's own `gKeyOf` helper,
+   never previously exercised since prior census scripts only ever
+   filtered for `record`/`field`/`scroll`/`package`/`record-field`
+   kinds). Direct inspection of the encoder's own allocation sites
+   (`componentReference()`, the declare-function allocator, the
+   quoted-reference allocator) found: `component` uses `objectName`
+   (not `recordName`/`fieldName`), `declare-function` uses
+   `recordName`/`fieldName` directly (RECNAME/REFNAME, e.g. stored
+   `AE_WRK.FUNCLIB`, not a `'DECLARE.'`-prefixed key), and
+   `quoted-reference` also uses `recordName`/`fieldName` directly (the
+   quoting keyword and quoted text, not a `'QUOTED.'`-prefixed key). This
+   single fix alone moved ~1,900 definitions out of the catch-all bucket.
+
+Final catch-all (`REFERENCE_ACTIVE_OTHER`) after all three fixes: **77**
+(down from an initial, badly-misleading 3,896) — small enough to be a
+genuine, low-priority residual rather than a hidden large family.
+
+### Full primary taxonomy (6,950 NONEXACT definitions, sums exactly)
+
+```text
+REFERENCE_ACTIVE_PACKAGE            1,508  (21.7%)
+DECODER_BARE_IDENTIFIER             1,344  (19.3%)
+REFERENCE_ACTIVE_RECORD_FIELD       1,233  (17.7%)
+DECODE_SOURCE_MISMATCH (other)        650  ( 9.4%)
+REFERENCE_ACTIVE_FIELD                583  ( 8.4%)
+REFERENCE_COMPLETE_DOWNSTREAM          449  ( 6.5%)
+UNSUPPORTED_SYNTAX                     335  ( 4.8%)
+REFERENCE_ACTIVE_RECORD                330  ( 4.7%)
+REFERENCE_ACTIVE_SCROLL                142  ( 2.0%)
+ENCODE_ERROR                           122  ( 1.8%)
+REFERENCE_ACTIVE_DECLARE_FUNCTION       86  ( 1.2%)
+REFERENCE_ACTIVE_OTHER                  77  ( 1.1%)
+STRUCTURAL_ORDERING                     48  ( 0.7%)
+ROUNDTRIP_ONLY                          37  ( 0.5%)
+REFERENCE_ACTIVE_QUOTED_COMPONENT        6  ( 0.1%)
+                                     -----
+                                     6,950
+```
+
+**Top 3 categories account for 58.8% of all NONEXACT (4,085/6,950). Top 5
+account for 76.5% (5,318/6,950)** — directly answering Phase 49: the
+remaining project is HIGHLY tractable, heavily concentrated rather than
+a long tail of one-off issues.
+
+### Baseline metrics (Phases 31-33)
+
+```text
+Top-level EXACT:            23,259 / 30,209
+Forward byte-identical:     23,878 / 30,209  (23,259 EXACT + 619 additional NONEXACT-but-forward-exact)
+Reference-stream-exact:     23,708+ / 30,209 (23,259 EXACT + 449 REFERENCE_COMPLETE_DOWNSTREAM;
+                                               a lower bound -- decoder/unsupported/encode-error
+                                               definitions were never reference-compared, since
+                                               classification short-circuits before that check)
+NONEXACT:                    6,950 / 30,209
+```
+
+### One-blocker-away population (Phase 21 — the most important metric)
+
+By construction (see Methodology above), **every `REFERENCE_ACTIVE_*`
+definition (1,508+1,233+583+330+142+86+77 = 3,959) is confirmed
+decoder-clean** — its ONLY currently-identified blocker is the reference
+gap itself. This is the single most actionable population in the
+project: 3,959 definitions (57% of all NONEXACT) where a proven
+reference-allocation fix is the ONLY known remaining obstacle (though,
+as this project's own history with `29389` proved across Cycles
+67-70, "the only KNOWN blocker" does not guarantee "the only blocker" --
+some fraction will reveal a second, smaller issue once the first is
+fixed).
+
+Separately, the shared-decoder-symptom population
+(`DECODER_BARE_IDENTIFIER` + `DECODE_SOURCE_MISMATCH` = 1,344 + 650 =
+1,994) is a SECOND large "one-blocker-away-from-a-different-subsystem"
+population, but requires decoder-side work (out of scope this cycle, and
+historically treated with more caution per this project's own
+encoder/decoder separation discipline).
+
+### `REFERENCE_ACTIVE_PACKAGE` deep-dive (Phase 5-10, 22-24) — the standout Cycle 74 candidate
+
+Sampled 40 of the 1,508 PACKAGE-category definitions and computed the
+EXACT missing/extra PACKAGE identity at each one's first divergence:
+
+```text
+Missing PACKAGE names (stored has it, generated lacks it entirely): 20/40
+  PACKAGE.MESSAGE:        8
+  PACKAGE.ROW:            5
+  PACKAGE.GRIDCOLUMN:     2
+  PACKAGE.RECORD:         2
+  PACKAGE.OBJECTMANAGER:  1
+  PACKAGE.PAGE:           1
+  PACKAGE.APIOBJECT:      1
+Extra PACKAGE names (generated has it, stored lacks it): 0/40
+```
+
+**Every single sampled mismatch is a MISSING allocation, never a spurious
+extra one** — a clean, one-directional, single-mechanism signal:
+Cycle 36/64's own `ensureLocalObjectPackageReference` built-in-object-type
+PACKAGE-reference allocator does not yet cover the FULL set of built-in
+object types PeopleTools recognizes (confirmed gaps: `Row`, `Message`,
+`ObjectManager`, `Page`, `GridColumn`, `APIObject`, and even `Record`
+itself in some as-yet-uncharacterized shape distinct from Cycle 36's own
+original `Local Record` coverage). All 40 sampled definitions are
+ORDINARY (non-Application-Class) PeopleCode (`objectid1` values like 1,
+not 104) — this gap may be specific to, or at least more prevalent in,
+ordinary PeopleCode's own built-in-object-declaration path. **Not
+implemented this cycle** (forensic-only), but the population size
+(1,508), zero-decoder-overlap guarantee, and 100%-one-directional sample
+pattern make this the strongest evidence-backed Cycle 74 recommendation
+this project has had since Cycle 68's own original 574/581 RECORD.FIELD
+finding.
+
+### `REFERENCE_ACTIVE_RECORD_FIELD` and `REFERENCE_ACTIVE_FIELD` — larger populations, weaker single-mechanism signal
+
+Sampled 25 of each:
+
+```text
+RECORD_FIELD (25 sampled): 14 missing-only, 0 extra-only, 11 "other" (ambiguous/positional)
+FIELD        (25 sampled):  6 missing-only, 7 extra-only,  12 "other"
+```
+
+RECORD_FIELD's pattern is WEAKER than PACKAGE's (56% missing vs
+PACKAGE's ~100%, plus a large "other/ambiguous" fraction suggesting
+MULTIPLE distinct sub-causes, not one). FIELD's pattern is the WEAKEST
+and most MIXED (both missing AND extra allocations present, matching
+this category's OWN already-mature, mostly-resolved history across
+Cycles 65/66/69/70 — Cycle 65's own census still shows 118/1,575
+unresolved, a SMALLER, better-understood residual than this cycle's raw
+583-definition count, which includes many definitions blocked by
+causes OTHER than the specific reuse mechanisms Cycles 65-70 already
+proved). Both are LOWER-CONFIDENCE Cycle 74 candidates than PACKAGE.
+
+### `REFERENCE_COMPLETE_DOWNSTREAM` (449) — not a reference problem at all
+
+Sampled 5: ALL show `sourceEncodeExact: false`, `roundtripExact: false`,
+and a `firstDiffOffset` of 5 (four of five) or 192 (one) — an
+EXTREMELY EARLY byte divergence, almost certainly in program
+header/statement-structure encoding rather than anywhere near a
+reference operand. **Not a reference-allocation category at all** —
+these 449 definitions already have fully correct PSPCMNAME/reference
+streams; their blocker is an unrelated, not-yet-characterized
+opcode/statement-emission issue very early in the encode. A smaller
+(449), genuinely DIFFERENT future campaign, not ranked highly this
+cycle given its small size relative to PACKAGE/decoder.
+
+### Remaining 11 RECORD residuals (Cycle 72's own leftover) — payoff re-confirmed near-zero (Phase 12-13, 26, 47)
+
+Re-checked all 7 distinct definitions behind Cycle 72's own 11 remaining
+RECORD mismatches (`28954`, `29122`, `29416`, `29457`, `29516`, `29591`,
+`29621`) via the standard harness: **all 7 independently show
+`DECODE_SOURCE_MISMATCH` with the IDENTICAL "bare identifiers are only
+supported as calls" decoder symptom**, confirmed by this cycle's own
+taxonomy classification too (none of them appear in any
+`REFERENCE_ACTIVE_*` bucket — they were already absorbed into
+`DECODER_BARE_IDENTIFIER` by this cycle's classification priority).
+**Answer to Phase 13/47: fixing all 11 RECORD residuals would flip
+approximately ZERO definitions to top-level EXACT** — every beneficiary
+is independently blocked by the decoder symptom regardless. **YES —
+defer.** This is now doubly confirmed (Cycle 72's own forensic note, and
+this cycle's full-corpus classification agreeing independently).
+
+### SCROLL and FIELD campaign status (Phases 14-15)
+
+- **SCROLL**: re-verified — the SCROLL cross-method census remains
+  125/125 (100%, Cycle 71's own closure holds). `REFERENCE_ACTIVE_SCROLL`
+  (142) in this cycle's taxonomy is a DIFFERENT, broader population (any
+  NONEXACT definition whose first divergence happens to be SCROLL-kind,
+  not specifically the cross-method-reuse construct Cycle 71 already
+  closed) — not a regression, a different lens on a different question.
+- **FIELD**: re-ran Cycles 65/66/69/70's own censuses — all unchanged
+  (65: 1,457/1,575; 66: 58/58; 69: 296/296; 70: 86/86). No coherent new
+  FIELD-specific gap found this cycle; `REFERENCE_ACTIVE_FIELD`'s own
+  583-definition population is mixed/lower-confidence per the sampling
+  above, not a clean new campaign.
+
+### Quoted/component and decoder priority decisions (Phases 27, 57-60)
+
+- **Quoted/component** (Phase 60): `REFERENCE_ACTIVE_QUOTED_COMPONENT` =
+  **6 definitions total** — confirms this is NOT a meaningful population
+  (historical leads `28755`/`29099` remain isolated singletons, not part
+  of a larger family). **Quoted/component should NOT be a Cycle 74
+  priority.**
+- **Decoder** (Phase 57): **NO, decoder is not the single highest-payoff
+  subsystem** — `DECODER_BARE_IDENTIFIER` (1,344) is large, but
+  `REFERENCE_ACTIVE_PACKAGE` (1,508) is LARGER, carries zero
+  decoder-symptom overlap by construction, and has a cleaner,
+  more-confident single-mechanism signal (100% one-directional in
+  sample vs. the decoder symptom's own not-yet-investigated internal
+  diversity). Decoder work remains a strong SECOND priority, not
+  deferred, but not first.
+- **Reference semantics** (Phase 58): **YES, but a DIFFERENT reference
+  sub-area than Cycles 68-72 pursued.** RECORD/SCROLL/FIELD
+  cross-method-reuse work (Cycles 68-72) is now largely mature
+  (SCROLL 100% closed, RECORD 96.5%, FIELD well-characterized) — the
+  NEWLY discovered PACKAGE gap is the actionable reference work
+  remaining, not a continuation of the RECORD/FIELD/SCROLL campaigns.
+- **Names-order** (Phase 59): not separately, structurally isolated this
+  cycle (would require the same per-construct research Cycles 30/31
+  originally did); likely folds into `STRUCTURAL_ORDERING`'s own small
+  48-definition count, itself too small to prioritize over PACKAGE/decoder.
+
+### Reference campaign status (Phase 48)
+
+**OPEN — high-payoff reference family remains.** The RECORD/SCROLL/FIELD
+class-wide-reuse campaign specifically (Cycles 68-72) is functionally
+CLOSED FOR PRIORITIZATION (SCROLL 100%, RECORD 96.5% with a
+near-zero-payoff residual, FIELD mature) — but this cycle's own
+discovery of `REFERENCE_ACTIVE_PACKAGE` (1,508, clean single-mechanism
+signal) means "reference semantics" as a BROAD category remains open and
+high-payoff, just via a different, previously-uninvestigated construct
+(built-in object type PACKAGE allocation) rather than the RECORD.FIELD/
+GetField/CreateRecord constructs Cycles 68-72 already resolved.
+
+### Historical root re-verification (unchanged, not reopened)
+
+`29389` (35/35, reference-complete/downstream, unchanged), `28964`
+(parked external-metadata boundary, unchanged), `28755`/`29099`/`28790`
+(all `DECODE_SOURCE_MISMATCH` with the bare-identifier symptom, none in
+any `REFERENCE_ACTIVE_*` bucket this cycle — consistent with their own
+prior characterization as either decoder-bound or otherwise unrelated to
+the RECORD/SCROLL/FIELD/PACKAGE campaigns).
+
+### Validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 598/599 pass, 1 skipped — unchanged from Cycle 72 (no test
+  file changes this cycle; zero encoder/decoder edits).
+- `git diff --check`: clean.
+- Protected gate: `npm run corpus:verify -- --limit 430` — 430/430
+  EXACT, REGRESSION GATE: PASS.
+- Full harness cross-validation: this cycle's own taxonomy tool's
+  EXACT/NONEXACT counts (23,259/6,950) match the standard
+  `npm run corpus:harness` full run exactly, confirming the taxonomy
+  tool's classification logic is consistent with the authoritative
+  validator (no parallel/diverging logic).
+- Re-ran all prior population census scripts (Cycles 55-72): all
+  unchanged — zero regressions, as expected for a forensic-only cycle.
+- EXACT/NONEXACT unchanged throughout this cycle's own work (23,259/6,950
+  before and after) — expected per Phase 51, since no semantic code
+  changed.
+
+### Recommendation for Cycle 74 (not started)
+
+**Primary: `REFERENCE_ACTIVE_PACKAGE`** — implement the missing built-in
+object type coverage in the class-wide/method-wide PACKAGE-reference
+allocator (`ensureLocalObjectPackageReference` or its ordinary-PeopleCode
+equivalent), starting from the 7 confirmed-missing built-in types found
+in this cycle's own 40-definition sample (`Row`, `Message`,
+`ObjectManager`, `Page`, `GridColumn`, `APIObject`, `Record`-in-an-
+uncharacterized-shape). Population: 1,508 definitions, zero
+decoder-symptom overlap, ~100% one-directional (missing-only) sample
+pattern — the strongest, cleanest, highest-confidence population this
+project has found since Cycle 68's own original RECORD.FIELD discovery.
+Requires its own fresh reconstruction and corpus-wide census per this
+project's own standing evidence-first discipline (do not implement from
+a 40-definition sample alone) before any encoder change.
+
+Secondary: the decoder-side `DECODER_BARE_IDENTIFIER` symptom (1,344,
+plus 650 more under the broader `DECODE_SOURCE_MISMATCH` umbrella) — a
+strong, well-evidenced second priority once PACKAGE is characterized or
+if PACKAGE's own fresh reconstruction reveals a smaller true population
+than this cycle's sample suggests.
+
+Do not start Cycle 74 in this session.
+
 ## Compiler Semantics Cycle 72 — generic Record.X/Scroll.X arguments are ordinary symbolic constants too (mirroring Cycle 66's FIELD rule): SCROLL fully closed (125/125), RECORD 307/318; a deeper, smaller residual remains
 
 **Status: IMPLEMENTED, validated, zero regressions. Cycle 71's own hypothesis (CreateRecord/CreateRowset/generic-argument constructs "never read `dependencyScope` at all") was PARTIALLY right: CreateRowset (bare-call syntax) already worked via Cycle 71's own fix, and CreateRecord is correctly, deliberately excluded (Cycle 43's own mixed population) -- but a THIRD, previously-uncharacterized bucket, "generic Record.X/Scroll.X passed to a non-RECORD-aware consumer" (e.g. an Application Class method-call argument), had NO reuse check at all and is the TRUE remaining mechanism. A corpus-wide census (511 RECORD + 180 SCROLL candidates) found 0 contradictions. SCROLL's cross-method population is now FULLY RESOLVED (125/125, 100%). RECORD improved substantially (294/318 -> 307/318) but 11 rows remain, involving a further, more complex interaction not chased this cycle. The deterministic reference campaign does NOT close -- Outcome B.**
