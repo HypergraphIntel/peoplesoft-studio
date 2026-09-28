@@ -11408,10 +11408,19 @@ function encodeApplicationClassProgramV2(
   const missingDeclarationDependencies = [...new Map(
     declarationDependencyTypes.map(typeName => [dependencyTypeLeaf(typeName).toLowerCase(), typeName])
   ).values()];
-  // Cycle 26/32 proves declaration discovery precedes body allocation, but
-  // its multi-symbol enumeration remains compiler-internal. A zero/one new
-  // identity population has no ordering choice; broader sets stay frozen.
-  const hasModeledDeclarationDependencyOrder = missingDeclarationDependencies.length <= 1;
+  // Cycle 26/32 proves declaration discovery precedes body allocation, and
+  // froze modeling to a zero/one new identity population because broader
+  // sets' enumeration order was unproven. Cycle 52 population evidence
+  // (6/6 multi-symbol "generated allocates fewer references" roots --
+  // 28713, 28752, 28755, 29099, 29518, plus 12/12 already-EXACT multi-symbol
+  // negative controls -- e.g. 28860, 28898, 29096, 29995, 30038, 30192)
+  // shows `declarationDependencyTypes`'s own first-occurrence scan order
+  // (extends, implements, then each statement's parameter/return/property/
+  // instance types, in source declaration order) already matches stored
+  // PSPCMNAME order exactly, with zero contradictions. The enumeration is
+  // not compiler-internal after all -- it is the same order this array is
+  // already built in.
+  const hasModeledDeclarationDependencyOrder = true;
   /*
    * Cycle 32 froze the shared reference session for any `%This.method()`
    * call, reasoning that an INHERITED method's return/parameter metadata
@@ -11642,8 +11651,7 @@ function encodeApplicationClassProgramV2(
   };
 
   const allocateModeledDeclarationDependency = (): void => {
-    const typeName = missingDeclarationDependencies[0];
-    if (!hasModeledApplicationClassReferenceScope || typeName === undefined) return;
+    if (!hasModeledApplicationClassReferenceScope || missingDeclarationDependencies.length === 0) return;
     if (firstFragment) {
       references.push({
         index: 0,
@@ -11655,50 +11663,56 @@ function encodeApplicationClassProgramV2(
       nextReferenceIndex = 1;
       firstFragment = false;
     }
-    const normalizedType = typeName.replace(/^(?:array\s+of\s+)+/i, '').trim();
-    const components = normalizedType.split(':');
-    const leaf = components.at(-1)!;
-    const packagePath = components.slice(0, -1);
-    const candidate: Omit<PeopleCodeReference, 'index' | 'sequence'> =
-      builtinDeclarationTypes.has(leaf.toLowerCase())
-        ? {
-          kind: 'package',
-          packageName: leaf.toUpperCase(),
-          objectName: leaf
-        }
-        : packagePath.length > 0
+    // Cycle 52: stored PSPCMNAME allocates ONE row per distinct declaration-
+    // dependency type, in the SAME first-occurrence order this array is
+    // already built in (see `hasModeledDeclarationDependencyOrder`'s own
+    // comment for the population evidence) -- not just the first one.
+    for (const typeName of missingDeclarationDependencies) {
+      const normalizedType = typeName.replace(/^(?:array\s+of\s+)+/i, '').trim();
+      const components = normalizedType.split(':');
+      const leaf = components.at(-1)!;
+      const packagePath = components.slice(0, -1);
+      const candidate: Omit<PeopleCodeReference, 'index' | 'sequence'> =
+        builtinDeclarationTypes.has(leaf.toLowerCase())
           ? {
             kind: 'package',
             packageName: leaf.toUpperCase(),
-            objectName: packagePath[0].toUpperCase(),
-            packagePath: packagePath.map((component, index) =>
-              index === 0 ? component.toUpperCase() : component
-            ),
-            className: leaf.toUpperCase()
+            objectName: leaf
           }
-          : {
-            kind: 'package',
-            packageName: leaf.toUpperCase(),
-            className: leaf.toUpperCase()
-          };
-    const existing = applicationClassReferenceScope.beginFragment().lookup(candidate);
-    if (existing !== undefined) return;
-    const reference: PeopleCodeReference = {
-      ...candidate,
-      index: nextReferenceIndex,
-      sequence: nextReferenceIndex + 1
-    };
-    references.push(reference);
-    nextReferenceIndex++;
-    applicationClassReferenceScope.commit([reference]);
-    context?.referenceTrace?.({
-      action: 'ALLOC',
-      sourceOffset: parsed.unitStart,
-      controlGroup: 0,
-      controlDepth: 0,
-      functionDepth: 0,
-      reference
-    });
+          : packagePath.length > 0
+            ? {
+              kind: 'package',
+              packageName: leaf.toUpperCase(),
+              objectName: packagePath[0].toUpperCase(),
+              packagePath: packagePath.map((component, index) =>
+                index === 0 ? component.toUpperCase() : component
+              ),
+              className: leaf.toUpperCase()
+            }
+            : {
+              kind: 'package',
+              packageName: leaf.toUpperCase(),
+              className: leaf.toUpperCase()
+            };
+      const existing = applicationClassReferenceScope.beginFragment().lookup(candidate);
+      if (existing !== undefined) continue;
+      const reference: PeopleCodeReference = {
+        ...candidate,
+        index: nextReferenceIndex,
+        sequence: nextReferenceIndex + 1
+      };
+      references.push(reference);
+      nextReferenceIndex++;
+      applicationClassReferenceScope.commit([reference]);
+      context?.referenceTrace?.({
+        action: 'ALLOC',
+        sourceOffset: parsed.unitStart,
+        controlGroup: 0,
+        controlDepth: 0,
+        functionDepth: 0,
+        reference
+      });
+    }
   };
   const emittedDeclarationTerminatorOffsets = new Set<number>();
 

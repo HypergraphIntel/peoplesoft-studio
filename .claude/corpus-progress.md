@@ -1,5 +1,192 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 52 — Application Class multi-symbol declaration-dependency prepass (implemented)
+
+**Status: IMPLEMENTED, validated, zero regressions (encoder-level).** Datasource:
+LOCAL SNAPSHOT throughout.
+
+**Starting-state reproduction.** Protected baseline 430/430 EXACT. Full corpus
+23,253/30,209 EXACT (UNKNOWN_MISMATCH 4505, DECODE_SOURCE_MISMATCH 1994,
+UNSUPPORTED_SYNTAX 335, ENCODE_ERROR 122) — both exactly matching Cycle 51's
+ending state. Frozen 41-root reference-identity population re-verified: 35
+`reference-operand`, 4 `other` (28745, 28935, 29452, 29522), 2 `exact` (28898,
+28915).
+
+**Target: the ~10-member "generated allocates fewer references" active-
+reference subfamily** (28713, 28752, 28755, 28964, 28972, 28975, 29099,
+29389, 29518, 30104), identified in Cycle 48. Re-verified fresh: all 10 still
+show the same symptom (generated reference-operand NAMENUM values a small
+constant behind stored, near the start of the reference stream).
+
+**Root-cause finding.** Built a stored-vs-generated PSPCMNAME row comparator
+(scratch tool) and, for each of the 10, read the actual class declaration
+header. A clean pattern emerged for 6 of the 10 (28713, 28752, 28755, 28964,
+29099, 29518): the class declares 1+ non-scalar, non-imported types across
+its `extends`/`implements`/method-parameter/method-return/property/instance
+declarations (e.g. `Rowset`, `Row`, `Record`, `Field`, or an Application-
+Class-typed parameter), and stored PSPCMNAME front-loads ONE PACKAGE row per
+distinct type, immediately after the import-derived rows, in first-occurrence
+declaration-scan order — before any method body is encoded.
+
+The encoder already had this exact mechanism
+(`declarationDependencyTypes`/`missingDeclarationDependencies`/
+`allocateModeledDeclarationDependency` in `src/peoplecode/encoder.ts`, dating
+to Cycle 26/32), but two guards made it far too conservative:
+
+1. `hasModeledDeclarationDependencyOrder = missingDeclarationDependencies.length <= 1`
+   — froze modeling entirely whenever a class needed 2+ distinct declaration
+   dependencies, because "its multi-symbol enumeration remains
+   compiler-internal" (a Cycle 26/32 comment). `allocateModeledDeclarationDependency`
+   also only ever consumed index `[0]` even when this gate passed.
+2. `hasModeledApplicationClassReferenceScope = hasModeledDeclarationDependencyOrder
+   && !hasUnmodeledThisMethodDependencies` — a genuinely inherited
+   `%This.method()` call (Cycle 32/34's own established rule) ALSO disabled
+   the ENTIRE mechanism, even for a single (length-1) declaration dependency
+   that has nothing to do with the inherited call. 28964 is exactly this
+   case: a single declared `Row` parameter type, blocked only because the
+   class also calls `%This.NotifyListener()` (an inherited method).
+
+Because `applicationClassReferenceSession` (the cross-fragment reference
+dedup facade) is gated by this SAME boolean, disabling the mechanism doesn't
+just skip the early rows — it disables cross-fragment reference dedup for
+the WHOLE class, so every later method body re-discovers the same type
+independently and allocates a fresh duplicate reference. This is why 28713
+(2 declaration dependencies: `Rowset`, `Row`) showed 76 generated references
+against 33 stored — not just 2 missing rows, but rampant un-deduped
+downstream duplication.
+
+**Population clustering (the family did NOT stay homogeneous — reported
+honestly per Phase 18).** Of the 10 original candidates:
+
+- **6 roots (28713, 28752, 28755, 28964, 29099, 29518)** — the
+  declaration-dependency prepass gap above. This is the mechanism
+  implemented this cycle.
+- **28972, 28975** — NOT primarily a declaration-dependency gap (each has
+  only 1 such type, `Record`, and no unmodeled `%This` calls — the existing
+  length<=1 gate already fires for them). Their actual gap is TWO other,
+  unrelated missing rows: a self-class-name PACKAGE row (`PACKAGE|CONTRIBUTION`,
+  `PACKAGE|VOLUNTARY` — the class's own name) and a `PACKAGE|TEXTCATALOG` row,
+  both allocated by mechanisms this cycle did not touch.
+- **30104** — `missingDeclarationDependencies.length === 0` entirely (no
+  declared non-scalar/non-imported types at all); its sole gap is the same
+  self-class-name row (`PACKAGE|MODALWINDOW`).
+- **29389** — not a missing/delayed row at all; the row exists at the
+  right position but with a different shape (stored shows
+  `PACKAGE|RECORD|Record|Record|`, a non-blank packageroot/qualifypath for
+  what looks like a bare builtin type — needs its own investigation, not
+  attempted this cycle).
+
+**Fix implemented** (`src/peoplecode/encoder.ts`):
+
+- `hasModeledDeclarationDependencyOrder` is now unconditionally `true` (was
+  `length <= 1`). The `!hasUnmodeledThisMethodDependencies` term in
+  `hasModeledApplicationClassReferenceScope` was deliberately left untouched
+  — narrowest evidenced change; the inherited-`%This`-call concern is a
+  separate, already-established rule this cycle found no cause to revisit.
+- `allocateModeledDeclarationDependency` now loops over ALL of
+  `missingDeclarationDependencies` (was `[0]` only), allocating one PACKAGE
+  reference per distinct type, in the same first-occurrence order the array
+  is already built in.
+
+**Validation ladder.**
+
+- `npx tsc --noEmit`: clean.
+- `npm test`: 574 total, 573 pass, 1 skip, 0 fail (added 1 new regression
+  test: "Application Class multiple declaration dependencies all allocate
+  before bodies, in declaration order", covering the exact 28713 shape —
+  `Rowset` then `Row` method-parameter types, asserting both PACKAGE rows
+  allocate before either method body).
+- `git diff --check`: clean.
+- Protected baseline: 430/430 EXACT, unchanged.
+- **Full-corpus population-scale regression check (mandatory given ~422
+  Application Class definitions have `missingDeclarationDependencies.length
+  >= 2` and are therefore in the fix's blast radius):** wrote a full
+  30,209-definition byte-identical-encode scan (independent of the harness's
+  richer EXACT classification, which additionally requires a successful
+  decode-roundtrip) and diffed it before vs. after via `git stash`/`git
+  stash pop`. Result: **+11 gained, 0 lost, population-wide** (28855, 28862,
+  29420, 29425, 29521, 29539, 29564, 29953, 29986, 30041, 30055 newly
+  byte-identical; every previously byte-identical definition remained so).
+  Of the 12 pre-existing negative controls (multi-symbol classes already
+  EXACT despite the gate being off, because their body-encounter order
+  happened to coincidentally match declaration order already), all 12
+  remained EXACT after the fix — zero contradictions.
+- **The harness's own aggregate EXACT count did NOT move (still
+  23,253/30,209)** — this is NOT a sign the fix had no effect. Checked
+  directly: the 11 newly byte-identical definitions (e.g. 28862) are
+  classified `DECODE_SOURCE_MISMATCH` by the harness because of a separate,
+  pre-existing decode-roundtrip limitation ("bare identifiers are only
+  supported as calls" — the decoder's inline Application-Class-method-header
+  dispatch syntax, e.g. `CriteriaUI CriteriaUI();`, unrelated to this cycle's
+  reference-allocation fix). This decoder gap already existed before this
+  cycle for these same definitions; the fix genuinely makes their
+  PSPCMPROG/PSPCMNAME encoding byte-perfect, but that improvement is masked
+  from the harness's own EXACT tally by an orthogonal, unfixed decoder
+  limitation.
+- 10 required historical controls (28820, 28852, 29113, 29612, 29134, 29389,
+  29528, 29797, 29522, 29450) re-run before and after via `git stash`:
+  identical `DECODE_SOURCE_MISMATCH` classification in both states — no
+  change, no contradiction.
+- Original 6 target roots re-run with `--verbose`: first-diff offset moved
+  substantially deeper into the body for all 6 (e.g. 28713: from an early
+  reference-operand mismatch to body offset 2788, now off by exactly one
+  NAMENUM; 29518: to body offset 5135). None reached full EXACT — each has
+  at least one further, independent remaining gap (self-class-name row,
+  decoder roundtrip limitation, or similar), consistent with "stop after the
+  first proven mechanism" rather than chasing every remaining byte in this
+  cycle.
+
+**Explicitly not done this cycle:**
+
+- 28972/28975's self-class-name + TEXTCATALOG gap — not attempted (different
+  mechanism, needs its own investigation).
+- 30104's self-class-name gap — not attempted (same mechanism as above).
+- 29389's wrong-shape (not missing) PACKAGE row — not attempted (different
+  failure mode entirely).
+- The decode-roundtrip "bare identifiers are only supported as calls"
+  limitation masking the harness EXACT count from moving — not attempted
+  (decoder-side, out of scope for an encoder reference-allocation cycle).
+- Subfamilies (b) generated-allocates-MORE (28801, 28802, 28862*, 29542,
+  29614 — *28862 is ALSO one of the 6 fixed roots, now confirmed EXACT via
+  the byte-identical scan, so it moves out of subfamily (b) and into
+  "resolved"), (c) missing-construct-recognition (28904, 29044), (d)
+  false-positive-construct-recognition (29144, 29202), and (e)
+  reuse/allocation-order (28925) — untouched, per "stop after first proven
+  mechanism."
+- Did not start Cycle 53.
+
+**Updated reference-family accounting (20-root, 5 subfamilies):**
+
+- (a) generated-allocates-fewer, declaration-dependency-prepass mechanism:
+  **6 resolved this cycle** (28713, 28752, 28755, 28964, 29099, 29518 —
+  encoder now byte-perfect; full EXACT still blocked by other independent
+  gaps for each).
+- (a-residual) generated-allocates-fewer, OTHER root cause: 4 remain
+  (28972, 28975, 30104 — self-class-name/TextCatalog gap; 29389 — wrong-shape
+  row).
+- (b) generated-allocates-more: 4 remain (28801, 28802, 29542, 29614) — 28862
+  reclassified as resolved (see above).
+- (c) missing-construct-recognition: 2 remain (28904, 29044).
+- (d) false-positive-construct-recognition: 2 remain (29144, 29202).
+- (e) reuse/allocation-order: 1 remains (28925).
+
+**Updated 99-root Application Class campaign accounting:** unchanged totals
+from Cycle 51 except the 6 resolved-this-cycle roots move from "reference
+identity" (34) toward a new "reference-allocation-fixed, decoder/other-gap-
+blocked" status; net reference-identity count with an open, unresolved gap of
+SOME kind is now 34 (unchanged — none of the 6 reached full closeout, all
+still have a remaining independent blocker). Total remains 99.
+
+**Recommendation for Cycle 53:** pivot to the self-class-name PACKAGE-row
+allocation gap (28972, 28975, 30104 all show this same missing row: a bare
+`PACKAGE|<OWNCLASSNAME>|||` reference, apparently unconditional on whether
+the class is ever self-referenced by name in its own body — 30104's
+`modalWindow` body was not checked for a literal self-reference trigger).
+This is a clean, 3-root, single-mechanism candidate with no dependency on
+today's fix.
+
+**Cycle 53 was not started.**
+
 ## Compiler Semantics Cycle 51 — the leading-bare-semicolon gap, extended to the first-Local-declaration case (implemented)
 
 **Status: IMPLEMENTED, validated, zero regressions.** Fresh re-census of

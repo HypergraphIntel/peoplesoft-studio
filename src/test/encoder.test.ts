@@ -2033,6 +2033,32 @@ end-method;`, {
   ]);
 });
 
+test('Application Class multiple declaration dependencies all allocate before bodies, in declaration order', () => {
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method First(&rs As Rowset) Returns string;
+   method Second(&row As Row, &load As boolean);
+end-class;
+
+method First
+   Return "";
+end-method;
+
+method Second
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  assert.deepStrictEqual(encoded.references, [
+    { index: 0, sequence: 1, kind: 'owner', recordName: undefined, fieldName: undefined },
+    { index: 1, sequence: 2, kind: 'package', packageName: 'ROWSET', objectName: 'Rowset' },
+    { index: 2, sequence: 3, kind: 'package', packageName: 'ROW', objectName: 'Row' }
+  ]);
+});
+
 test('Application Class only the first wildcard import allocates PACKAGE metadata', () => {
   const encoded = encodeProgramArtifacts(`import PKGONE:*;
 import PKGTWO:*;
