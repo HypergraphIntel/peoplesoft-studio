@@ -1,5 +1,362 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 67 — `%Super.<inheritedProperty>` Application Class type discovery (implemented); a new architecture layer, not a prepass extension
+
+**Status: IMPLEMENTED, validated, zero classification-level regressions,
+28/28 supported candidates fully resolved, `28964` itself confirmed
+genuinely unresolvable from local metadata (parked, honestly).**
+Datasource: LOCAL SNAPSHOT throughout. Starting commit `bdcf2ca` (Cycle
+66). Protected/full baseline reproduced: `npm run corpus:verify` —
+23,253/30,209 EXACT, REGRESSION GATE: PASS (0 improved, 0 regressed) —
+matches Cycle 66's documented ending state. Population metrics
+reproduced fresh, all unchanged from Cycle 66's ending values: Cycle 55
+171/173, Cycle 56 1,752/1,778, Cycle 57 1,037/1,053, Cycle 60 82/82,
+Cycle 61 27/28, Cycle 62 205 candidates, Cycle 63 65 candidates, Cycle 64
+447/451, Cycle 65 1,430/1,575, Cycle 66 58/58.
+
+### Phase 1/2 — reconstructing 28964: the ancestor class is genuinely absent from the local snapshot
+
+`28964` (`class Plan2X extends BNE_OPEN_ENROLL_FL:Page:SubPage:EnrollElect`)
+accesses `%Super.TxtCat.getSimpleTextPlan(...)`,
+`%Super.CreditUtility.GetCreditText(...)`, `%Super.FormatAmount.GetFormatedAmount(...)`,
+among others — inherited properties whose declared types (confirmed via
+stored PSPCMNAME: `PACKAGE.TEXTCATALOG` etc.) are Application Classes.
+**Direct lookup confirms `BNE_OPEN_ENROLL_FL:Page:SubPage:EnrollElect` is
+not present as its own definition anywhere in the local HCDEV
+snapshot** — zero matches across all 30,209 captured definitions. This
+class's own source (`Plan2X`) has no way to discover `TxtCat`'s declared
+type: the declaration-dependency prepass (Cycle 52/60) only ever scans
+`Plan2X`'s own header, and `EnrollElect`'s own header — which WOULD
+declare `TxtCat`'s type — was simply never captured. **The primary
+question's answer for `28964` itself is definitively "no, not locally
+resolvable"** — confirmed, not assumed, per the brief's own instruction.
+
+### Phase 3 — stored allocation phase: body-use order, not declaration-prepass order
+
+Definition `28972` (a RESOLVED sibling case, `extends BNE_OPEN_ENROLL_FL:Page:Section`,
+`%Super.TxtCat`/`%Super.FormatAmount`) settles this decisively: stored
+PSPCMNAME's `PACKAGE.TEXTCATALOG` row is namenum **9**, landing
+**immediately AFTER** a body-level `BNE_ENR_L0_WRK.FLAT_DED_AMT`
+record-field reference (namenum 8) — NOT before it, and NOT grouped with
+the early declaration-dependency-prepass block (namenum 2–7, from
+`Plan2X`'s own extends/parameter/property types). **This is allocated at
+the point of first body-level use, interleaved with ordinary body
+references — architecturally a BODY-ENCODING-TIME discovery, not a
+PREPASS extension**, contradicting the Cycle 64 brief's own working
+hypothesis ("wire it into the existing declaration-dependency prepass")
+and requiring a different implementation shape than originally assumed.
+
+### Phase 5/12 — `%This.OwnProperty` vs `%Super.InheritedProperty`: confirming the true boundary
+
+`%This`'s own bare member/property access ALREADY allocates zero
+references regardless of inheritance (Cycle 63's own finding for
+`%This.Name`) — own-declared PROPERTY *types* are discovered entirely via
+the declaration-dependency prepass scanning `parsed.statements` (the
+class header), completely independent of whether `%This.Property` is
+ever used in a method body at all. For an INHERITED property, there is no
+equivalent statement to scan (it belongs to `parsed`'s ANCESTOR, a
+different AST `encodeApplicationClassProgramV2` never sees) — confirming
+the gap is specifically about *inherited* properties having no
+declaration to discover from, not a general "property access never
+allocates" rule.
+
+### Phase 6/7/8/9 (mandatory census) — 90 definitions, 84/90 chains partially or fully resolved, 63 Application-Class-typed properties, 28 clean supporting candidates
+
+Built `tools/corpus/research/cycle67-super-property-census.ts`: for every
+Application Class definition with a bare `%Super.<property>` access
+(excluding `%Super.Method(...)` calls), walked the `extends` chain as far
+as locally resolvable (nearest ancestor wins on a name collision,
+correctly modeling shadowing per Phase 30 by construction), and compared
+stored vs generated PACKAGE-row presence for every Application-Class-typed
+resolved property:
+
+```text
+Definitions using %Super.<property>: 90
+Full ancestor chain resolved to a real root: 80
+Chain stopped early at an unresolved ancestor (including 28964 itself): 10
+
+Property type category breakdown (any resolved ancestor):
+  application-class: 63
+  primitive-or-other: 96 (built-in objects + scalars, out of scope per Phase 33/34)
+
+Application-Class-typed (definition, property) pairs (3 excluded for
+unrelated pre-existing encode errors): 60
+  Stored has a PACKAGE row for the leaf: 46
+    already matched BEFORE this cycle's fix: 18 (Phase 5's own positive
+      controls — reachable via OTHER already-proven mechanisms, e.g. the
+      SAME leaf also imported/declared elsewhere in the child class)
+    missing BEFORE the fix: 28
+      FIXED (now matched once inheritedPropertyTypes is supplied): 28
+      still missing after the fix: 0
+  regressed by the fix: 0
+  genuine contradictions (stored lacks the leaf, fix would add it): 0
+```
+
+**28/28 clean, zero contradictions, zero regressions** — crosses Phase
+24's implementation threshold decisively. `29389` (one of this project's
+OWN tracked active reference roots since Cycle 60) is a member of this
+28-candidate population (`_utils` property, type
+`GPS_EDITFUNCTIONS:Utils`), confirmed to genuinely advance from this fix
+(Phase 20/32 below).
+
+### Phase 15 — confirming the Cycles 37–41 parked boundary is untouched
+
+The Cycles 37–41 parked question concerns the SELF-referencing method
+row's *firing decision* for `%This`/inherited method calls (proven
+non-deterministic from source alone, via byte-identical source producing
+opposite outcomes). This cycle's mechanism is entirely different:
+`%Super.<property>` PROPERTY TYPE resolution, driven by EXTERNALLY
+supplied, deterministic ancestor metadata — no firing-decision uncertainty
+involved at all. Confirmed no interaction: the fix activates only when
+`context.inheritedPropertyTypes` explicitly resolves a name, never
+touches `hasUnmodeledThisMethodDependencies`, `bindOwnerReference`, or any
+other gate-related state.
+
+### Phase 16 — no gate interaction found
+
+Checked directly: `%Super` is parsed via `systemVariable()`, entirely
+independent of `activeApplicationClassReceiver`'s `baseApplicationClass`
+initialization (which only ever matches `&variable`-shaped bases). No
+existing gate (`hasUnmodeledThisMethodDependencies` or otherwise)
+intercepts this code path at all — the gap was pure absence of a
+resolution mechanism, not suppression by an existing condition. The
+safety-gate audit (Cycles 52/57/60/61) remains closed; not reopened.
+
+### Phase 17/25 — architecture: NOT a prepass extension, a body-encoding-time resolution reusing Cycle 62's own machinery
+
+Given Phase 3's ordering evidence (body-use order, not prepass order),
+implementation targets the postfix-chain parser directly, not
+`allocateModeledDeclarationDependency()`. Design:
+
+1. **New context field**: `EncodeProgramContext.inheritedPropertyTypes?: ReadonlyMap<string, string>`
+   (lowercased property name → declared type, e.g.
+   `"BNE_OPEN_ENROLL_FL:Utility:TextCatalog"`) — the caller externally
+   resolves the ancestor chain (this class's own source cannot) and
+   supplies the result. Every existing caller omits it, so ordinary
+   encoding — and every already-EXACT definition — is completely
+   unaffected (confirmed: adding an unused optional field changes nothing
+   for any caller that doesn't pass it).
+2. **`%Super` detection**: a new transient flag,
+   `pendingSuperPropertyResolution`, set when the primary expression's
+   base token is literally `%Super`, consulted (and always cleared)
+   by only the VERY NEXT postfix `.member` step.
+3. **Type resolution reuses Cycle 62's own machinery**: when that step's
+   member name resolves via `inheritedPropertyTypes`, set
+   `activeApplicationClassReceiver` to the resolved type — the EXACT same
+   receiver-tracking field a `&typedVariable.Property.Method(...)` chain
+   already uses. The immediately-following `.Method(...)` call then
+   automatically flows through the ALREADY-PROVEN `isMethodCall` branch
+   (Cycle 62), allocating/reusing the type dependency via the existing
+   class-wide facade — **zero new allocation logic, zero new dedup
+   logic**.
+4. **One necessary carve-out**: the existing "a property/member traversal
+   without type metadata resets `activeApplicationClassReceiver`" logic
+   (which exists specifically because *most* property accesses carry no
+   type information) unconditionally cleared the receiver immediately
+   after step 3 set it, since the resolved property step is itself a bare
+   (non-method-call) member. Added an explicit, narrowly-scoped exception
+   for exactly this one step — the same shape of carve-out `.ParentRow`/
+   `.ParentRowset` already have for `chainSemantics` (Cycle 7), just for
+   `activeApplicationClassReceiver`.
+
+### Phase 26/27 — deliberately NOT preallocating, NOT touching inherited-method safety
+
+Only the SPECIFIC property named in `inheritedPropertyTypes` and actually
+referenced via `%Super.<name>` in the body triggers allocation (Model A —
+usage-driven, confirmed, not Model B's "preallocate the whole hierarchy
+eagerly," which the population never needed and was never implemented).
+`hasUnmodeledThisMethodDependencies`/`bindOwnerReference`/`applicationClassReferenceSession`'s
+own gating is completely untouched — this mechanism does not read or
+write any of that state.
+
+### Fix implemented (`src/peoplecode/encoder.ts`)
+
+Three additions, all in `encodeFragmentInternal`'s postfix-chain parser
+and its shared `EncodeProgramContext`:
+1. `EncodeProgramContext.inheritedPropertyTypes?: ReadonlyMap<string, string>`.
+2. `pendingSuperPropertyResolution` flag, set in the `%` primary-token
+   branch when the token is `%Super`.
+3. Resolution logic in the postfix loop's `.member` step, plus the
+   one-line carve-out in the existing reset logic described in Phase 17
+   above.
+
+### Validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 592 total, 591 pass, 1 pre-existing skip, 0 fail. Two tests
+  added:
+  - Positive/regression: *"`%Super.<inheritedProperty>` allocates the
+    ancestor-declared Application Class type dependency"* — confirmed to
+    FAIL pre-fix (via `git stash` on `encoder.ts` alone — the test file
+    fails to even COMPILE against the old `EncodeProgramContext`, since
+    `inheritedPropertyTypes` does not exist yet, the strongest possible
+    form of "fails before, passes after" for a brand-new context field)
+    and PASS post-fix.
+  - **Mandatory negative control** (Phase 14/38): *"`%Super.<property>`
+    with no resolved inherited type allocates nothing, unaffected by
+    Cycle 67"* — confirms the fallback (ancestor genuinely unresolvable,
+    `28964`'s own real-world case) allocates zero references, exactly the
+    pre-Cycle-67 behavior, rather than guessing.
+- `git diff --check`: clean.
+- Protected/full corpus (`npm run corpus:verify`): 23,253/30,209 EXACT,
+  REGRESSION GATE: PASS, 0 improved / 0 regressed.
+- **Full 30,209-definition byte-identical-encode scan, WITH ancestor
+  resolution wired in** (`tools/corpus/research/cycle67-full-corpus-byte-scan.ts`,
+  a Cycle-67-specific variant of Cycle 55's own script — necessary because
+  NO existing caller, including the standard scan script and the
+  production corpus harness, supplies `inheritedPropertyTypes` at all, so
+  testing via the UNMODIFIED tooling would trivially show +0/-0
+  regardless of correctness): **+0 gained, 0 lost**. Every one of the 28
+  fixed (definition, property) pairs belongs to a large, complex
+  Application Class with at least one further, independent, unrelated gap
+  (confirmed directly for `28926` and `29389`: both show their FIRST
+  DIVERGENCE moving substantially deeper — `28926` from index 2 to index
+  3+ with `TEXTCATALOG` now correctly positioned, `29389` from index 16
+  all the way to index 27 — genuine, large advancement, just not reaching
+  full byte-identity because each has a SEPARATE, unrelated remaining
+  gap). This matches the exact pattern Cycles 64/65 already established:
+  a clean, population-proven fix with zero classification-level
+  regressions does not require a positive full-scan delta to be correct.
+- Cycle 55/56/57/60/61/62/63/64/65/66 populations re-verified with zero
+  regressions: 171/173, 1,752/1,778, 1,037/1,053, 82/82, 27/28, 205
+  candidates, 65 candidates, 447/451, 1,430/1,575, 58/58 — all unchanged,
+  expected since none of those census scripts supply
+  `inheritedPropertyTypes` at all.
+
+### Phase 39/45 — 28964 ending status: confirmed still genuinely unresolvable, correctly left parked
+
+`28964`'s own generated/stored identity counts and first divergence are
+UNCHANGED (75 stored / 83 generated, first divergence at index 8) when
+run through any of the project's STANDARD tooling (which never supplies
+`inheritedPropertyTypes`, by design — matching every OTHER already-EXACT
+definition's own unaffected behavior). This is not a failure of the fix;
+it is the CORRECT, honest outcome given `28964`'s own ancestor class is
+provably absent from the local snapshot. **`28964` remains classified:
+still active, same construct family, root cause now fully understood and
+documented as a genuine local-metadata boundary** (not reference-complete,
+not resolved, not reclassified as parked-self-metadata — it is a
+different kind of "cannot proceed": missing EXTERNAL data, not an
+undecidable compiler behavior).
+
+### Phase 41/44 — 28755/29099 status (unchanged, not investigated further)
+
+- **`28755`**: UNCHANGED (identity count 16, first divergence index 10 —
+  the `Page."X"` quoted-reference/possible Cycle 53 self-class-name
+  compound lead, per Cycle 64's own characterization). Does not involve
+  `%Super`.
+- **`29099`**: UNCHANGED (identity count 41 generated / 43 stored, first
+  divergence index 24 — record-field vs. quoted-reference/component
+  ordering, per Cycle 66's own characterization). Does not involve
+  `%Super`; not investigated further, per Phase 42's explicit scope
+  limitation.
+
+### Phase 43/50 — OutputField, 29389, 28790 status
+
+- **`OutputField`** (Cycle 59 lead): does not overlap `%Super`-property
+  discovery at all — kept separate, unchanged status.
+- **`29389`**: when run through the STANDARD (non-ancestor-resolving)
+  tooling, UNCHANGED (identity count 34 stored / 45 generated, first
+  divergence index 16 — matches its own historical "wrong non-PACKAGE
+  identity" label). **When ancestor resolution is supplied (this cycle's
+  own targeted verification, not the standard toolchain), it advances
+  substantially** — first divergence moves from index 16 to index 27 —
+  confirming this cycle's fix is genuinely relevant to one of `29389`'s
+  own multiple gaps, though `29389` itself has at least one further,
+  separate RECORD/SCROLL-related issue beyond `%Super.<property>`
+  discovery (not investigated this cycle).
+- **`28790`**: UNCHANGED (`sourceEncodeExact: true`, identical first-diff
+  shape). Does not involve `%Super`.
+
+### Phase 46 — consumer inventory (confirmed, not re-audited)
+
+Reproduced Cycle 66's own ending inventory unchanged: all 8 proven
+class-visible consumers remain correctly wired (no new allocator was
+found unwired this cycle — this cycle's mechanism is a genuinely NEW
+architectural layer, "externally-resolved ancestor metadata," not another
+instance of "consult the existing class-wide facade"). The 3
+uninvestigated rows (RECORD/SCROLL/component control-group pools,
+`bindOwnerReference`, bare-receiverless-`GetField`) remain untouched, per
+the brief's explicit scope limitation.
+
+### Explicitly not done this cycle
+
+- Wiring the PRODUCTION corpus harness (`tools/corpus/validator.ts`/
+  `cli.ts`) to automatically resolve `inheritedPropertyTypes` for every
+  Application Class definition it validates — this cycle proves the
+  encoder-level mechanism correct via a dedicated research-script variant
+  instead; production wiring (if ever desired) is a separate,
+  lower-risk follow-on task that does not change any encoding decision.
+- `29389`'s own further, separate RECORD/SCROLL gap (beyond `%Super.<property>`
+  discovery) — newly surfaced by this cycle's own targeted check, not
+  characterized.
+- `28755`'s quoted-reference/self-class-name lead, `29099`'s record-field/
+  quoted-reference/component ordering gap — both reconfirmed unchanged,
+  not touched.
+- The RECORD/SCROLL/component control-group pools' own class-wide-reuse
+  question, `OutputField`, `28790`, Cycle 53's parked self-class-name
+  family, the marker/wildcard campaigns, Cycle 30/31 member-order roots,
+  `29522`, and the decoder — all untouched.
+- Did not start Cycle 68.
+
+### Phase 47/48 — refreshed active-reference census and closeout assessment
+
+Unchanged in COUNT from Cycle 66's own accounting (via the STANDARD,
+non-ancestor-resolving tooling every other metric in this project uses):
+the same 12 active, deterministically non-exact reference roots remain
+active:
+
+```text
+28713, 28752, 28755, 28904, 28925, 28964, 29044, 29099,
+29389, 29518, 29542, 29614
+```
+
+Of these 12: **`28964` is now precisely characterized as a genuine
+LOCAL-METADATA boundary** (not a compiler-behavior uncertainty like
+Cycles 37–41's parked question) — its own next step, if ever pursued,
+would require EITHER live/expanded snapshot capture of the missing
+ancestor class, or accepting it as permanently out of scope for this
+snapshot. **`29389` is confirmed to benefit from this cycle's fix
+(though not fully resolved)** — a good candidate to revisit once its
+OWN separate RECORD/SCROLL gap is characterized. The other 10 roots
+remain exactly as previously characterized or uninvestigated.
+
+### Phase 49 — 99-root accounting
+
+Unchanged from Cycle 66's own accounting: total remains 99. No root
+formally moved between categories this cycle (via the standard toolchain
+metrics) — `28964`'s own DISPOSITION narrative is refined (from "cause
+unknown" to "genuine local-metadata boundary, root cause fully
+understood") without changing its bucket (still "active deterministic
+reference").
+
+### Phase 58 (renumbered from brief's Phase 50) — architecture assessment
+
+**An isolated, NEW architectural layer — not evidence of a general
+missing typed-member usage model.** This is the FIRST cycle in the
+project's history to require EXTERNALLY-supplied (cross-definition)
+metadata at all; every prior fix (Cycles 52–66) operated entirely within
+ONE definition's own source text. The fix itself is narrow and
+self-contained (a new optional context field, consulted only when
+supplied, with zero effect on any existing caller) — it does not imply
+OTHER typed-member forms need the same treatment. No second construct
+requiring cross-definition resolution was found this cycle. Continuing
+narrow cycling; no broader typed-member prepass audit recommended.
+
+### Recommendation for Cycle 68 (not started)
+
+Given `29389`'s confirmed (if partial) benefit from this cycle's fix, and
+that it is one of this project's own longest-tracked active roots (since
+Cycle 60), a fresh, full reconstruction of `29389`'s OWN remaining
+RECORD/SCROLL gap (now that its `%Super`-property component is
+understood) is the strongest candidate: it directly builds on this
+cycle's proven mechanism and targets an already-well-known root.
+Secondary options: `28755`'s quoted-reference/self-class-name compound
+lead; `29099`'s record-field/quoted-reference/component ordering gap; a
+read-only census of the RECORD/SCROLL/component control-group pools' own
+class-wide-reuse question (Phase 46's last uninvestigated rows).
+
+Do not start Cycle 68 in this session.
+
 ## Compiler Semantics Cycle 66 — explicit `Field.X` reuse outside `GetField(...)`'s own occurrence-owned arguments (implemented); Population B resolved 58/58
 
 **Status: IMPLEMENTED, validated, zero classification-level regressions,

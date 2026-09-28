@@ -2912,6 +2912,81 @@ end-method;`, {
   );
 });
 
+test('%Super.<inheritedProperty> allocates the ancestor-declared Application Class type dependency', () => {
+  // Cycle 67 (definition 28964, among a 28-candidate corpus-supported
+  // population with zero contradictions): `%Super.<property>` accesses an
+  // INHERITED property -- declared on an ANCESTOR class, never on this
+  // class's own source, so the declaration-dependency prepass (Cycle 52/
+  // 60, which only ever scans THIS class's own header) can never discover
+  // its type. The caller externally resolves the ancestor's own property
+  // declarations (e.g. from local snapshot metadata, when the ancestor is
+  // itself locally resolvable) and supplies them via the new
+  // `inheritedPropertyTypes` context field. Setting
+  // `activeApplicationClassReceiver` for the resolved property reuses the
+  // EXISTING, already-proven `isMethodCall` branch (Cycle 62) to allocate
+  // the type dependency exactly the same way a
+  // `&typedVariable.Property.Method(...)` chain already does -- no new
+  // allocation path. Definition `28972`'s own stored PSPCMNAME (namenum 9,
+  // `PACKAGE.TEXTCATALOG`, landing AFTER a body-level `RECORD.FIELD`
+  // reference at namenum 8) proves this is allocated at the point of
+  // first body-level use, not via the early declaration-dependency
+  // prepass -- exactly what routing it through the postfix-chain's own
+  // `isMethodCall` branch (rather than the prepass) naturally produces.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest extends PKG:Base:Parent
+   method Run();
+end-class;
+
+method Run
+   Local string &x = %Super.TxtCat.getSimpleTextPlan("A", "B");
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    },
+    inheritedPropertyTypes: new Map([['txtcat', 'BEN_SUMMARY_FL:Utility:TextCatalog']])
+  });
+
+  const packageRefs = encoded.references.filter(
+    (r: any) => r.kind === 'package' && (r.className ?? r.packageName) === 'TEXTCATALOG'
+  );
+  assert.strictEqual(
+    packageRefs.length,
+    1,
+    '%Super.TxtCat should allocate a PACKAGE dependency for its ancestor-declared TextCatalog type when inheritedPropertyTypes resolves it'
+  );
+});
+
+test('%Super.<property> with no resolved inherited type allocates nothing, unaffected by Cycle 67', () => {
+  // Mandatory negative control (Phase 14/38): when the ancestor chain is
+  // NOT locally resolvable (definition 28964's own real-world case --
+  // `inheritedPropertyTypes` omitted or missing the entry), `%Super.<property>`
+  // must fall back to its pre-Cycle-67 behavior -- plain inline text, zero
+  // PACKAGE references -- rather than guessing.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest extends PKG:Base:Parent
+   method Run();
+end-class;
+
+method Run
+   Local string &x = %Super.TxtCat.getSimpleTextPlan("A", "B");
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const textCatalogRefs = encoded.references.filter(
+    (r: any) => r.kind === 'package' && (r.className ?? r.packageName) === 'TEXTCATALOG'
+  );
+  assert.strictEqual(
+    textCatalogRefs.length,
+    0,
+    'without a resolved ancestor property type, %Super.<property> must not allocate any PACKAGE reference for it'
+  );
+});
+
 test('a Record-typed variable\'s own bare row-state member stays inline text, not a FIELD reference', () => {
   // Cycle 46 (definition 29522): `&AbsenceRec.IsDeleted` -- a Record-typed
   // receiver's own bare row-state property -- must stay inline, exactly
