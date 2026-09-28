@@ -2142,6 +2142,130 @@ end-method;`, {
   ]);
 });
 
+test('Application Class only the first wildcard import allocates PACKAGE metadata even when the class has an inherited %This.method() call', () => {
+  // Cycle 61: `claimWildcardImportMetadata()`'s "only first wildcard
+  // claims" tracking previously fell back to unconditional `true` when
+  // `applicationClassReferenceSession` was gated off by an inherited
+  // (not-own-declared) %This.method() call elsewhere in the class -- a
+  // fourth confirmed instance of the same overbroad gate (Cycles 52, 57,
+  // 60 each found one before). A corpus-wide census of 28 Application
+  // Class definitions with an inherited %This call AND 2+ wildcard
+  // imports found stored PSPCMNAME allocates exactly ONE blank-REFNAME
+  // metadata row in 27/28 (definition 30197 is a real-world instance,
+  // now fully byte-identical after this fix). Routed through the
+  // always-present `applicationClassTypeReferenceSession` (Cycle 57)
+  // instead -- the same underlying `ApplicationClassReferenceScope`
+  // instance and claim-tracking state, not a new cache.
+  const encoded = encodeProgramArtifacts(`import PKGONE:*;
+import PKGTWO:*;
+
+class ReferenceTest
+   method Run();
+   method CallInherited();
+end-class;
+
+method Run
+   Local any &x;
+end-method;
+
+method CallInherited
+   %This.SomeInheritedMethod();
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  assert.deepStrictEqual(encoded.references, [
+    { index: 0, sequence: 1, kind: 'owner', recordName: undefined, fieldName: undefined },
+    {
+      index: 1,
+      sequence: 2,
+      kind: 'package',
+      packageName: '',
+      objectName: 'PKGONE',
+      packagePath: ['PKGONE'],
+      className: ''
+    }
+  ]);
+});
+
+test('Application Class inherited %This.method() call still prevents cross-fragment method-dependency reuse (negative control)', () => {
+  // Cycle 61 mandatory negative control: the wildcard-import fix above
+  // (and Cycles 52/57/60's fixes) each routed a purely mechanical,
+  // source-derived behavior around the `hasUnmodeledThisMethodDependencies`
+  // gate onto the always-present `applicationClassTypeReferenceSession`.
+  // None of them touch the gate's own genuine purpose: when a class has
+  // an inherited (not-own-declared) %This.method() call, the *method*-
+  // dependency reuse pool (as opposed to the *type* reuse pool) must
+  // stay uncertain, because the encoder cannot resolve the inherited
+  // method's identity/signature. This test proves that boundary still
+  // holds after all four fixes.
+  //
+  // Two methods (Run, RunAgain) each independently `create` the same
+  // helper type and call the same method (.DoSomething()) on it. The
+  // TYPE reference (sequence 3) is class-wide reused either way (Cycle
+  // 57). The METHOD-dependency reference (methodName: 'DOSOMETHING') is
+  // the one under test:
+  //   - CallOther calling its OWN method (%This.Run()): gate is OFF
+  //     (hasUnmodeledThisMethodDependencies === false) -> the second
+  //     .DoSomething() call reuses the first method-dependency reference
+  //     (only sequence 4 appears; no sequence 5).
+  //   - CallOther calling an INHERITED method (%This.SomeInheritedMethod()):
+  //     gate is ON -> the second .DoSomething() call allocates its own,
+  //     separate method-dependency reference (sequence 4 AND sequence 5
+  //     both appear) -- genuine safety preserved.
+  const source = (inherited: boolean) => `class ReferenceTest extends PKG:Base:Parent
+   method Run();
+   method RunAgain();
+   method CallOther();
+end-class;
+
+method Run
+   %Super.SomeSetup();
+   Local PKG:Object:Helper &h = create PKG:Object:Helper();
+   &h.DoSomething();
+end-method;
+
+method RunAgain
+   %Super.SomeSetup();
+   Local PKG:Object:Helper &h2 = create PKG:Object:Helper();
+   &h2.DoSomething();
+end-method;
+
+method CallOther
+   ${inherited ? '%This.SomeInheritedMethod();' : '%This.Run();'}
+end-method;`;
+
+  const owner = {
+    recordName: 'PKG',
+    fieldName: 'ReferenceTest',
+    packagePath: ['PKG', 'ReferenceTest']
+  };
+
+  const gateOff = encodeProgramArtifacts(source(false), { owner });
+  const methodDependencyRefsOff = gateOff.references.filter(
+    (r: any) => r.kind === 'package' && r.methodName === 'DOSOMETHING'
+  );
+  assert.strictEqual(
+    methodDependencyRefsOff.length,
+    1,
+    'without an inherited %This call, both .DoSomething() calls should reuse one method-dependency reference'
+  );
+
+  const gateOn = encodeProgramArtifacts(source(true), { owner });
+  const methodDependencyRefsOn = gateOn.references.filter(
+    (r: any) => r.kind === 'package' && r.methodName === 'DOSOMETHING'
+  );
+  assert.strictEqual(
+    methodDependencyRefsOn.length,
+    2,
+    'with an inherited %This call, method-dependency reuse must remain gated -- each .DoSomething() call keeps its own reference'
+  );
+});
+
 test('Application Class built-in object declarations get method-wide lifetime across control groups', () => {
   const encoded = encodeProgramArtifacts(`class ReferenceTest
    method Run();
