@@ -8480,13 +8480,31 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * `expectedReferenceMember` into `'field'` mode, so the postfix
          * loop's own `isInlineRowStateMember` check (which requires
          * `'record'` mode) never got a chance to keep `IsChanged` inline.
+         *
+         * Cycle 63 adds `Name`: `Record.Name`/a Record-typed variable's
+         * bare `.Name` is the intrinsic Record-object property (the
+         * record's own technical name as a string), encoded by stored
+         * PeopleTools as plain inline member text (`INLINE_IDENTIFIER_OPCODE`
+         * + "Name") exactly like `.Value`/`.FormatLongDate`/any other
+         * non-field member -- never a FIELD PSPCMNAME reference, even
+         * though a field literally named NAME is a plausible schema name
+         * (definitions 29144/29202's `&recValue.Name`, `&recValues[&i].Name`
+         * proved this a genuine defect, not merely a Cycle 46-style gap). A
+         * corpus-wide census (`cycle63-name-intrinsic-census.ts`) found 144
+         * definitions where the encoder allocates a FIELD reference for a
+         * bare `.Name` on a Record-typed receiver, and ZERO of them have a
+         * matching FIELD row in stored PSPCMNAME -- i.e. zero corpus
+         * evidence of a genuine field named NAME ever needing this bare
+         * shorthand, and 144/144 support treating it as intrinsic,
+         * unconditionally, the same way `isInlineRowStateMember` already
+         * treats `RowNumber`/`IsChanged`/etc.
          */
         const explicitRecordFieldChain =
           /^Record\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)/i
             .exec(tail);
         const explicitRecordFieldChainIsRowStateMember =
           explicitRecordFieldChain !== null &&
-          /^(?:RowNumber|IsNew|IsDeleted|IsChanged|Visible|Selected)$/i.test(
+          /^(?:RowNumber|IsNew|IsDeleted|IsChanged|Visible|Selected|Name)$/i.test(
             explicitRecordFieldChain[2]
           );
 
@@ -8906,10 +8924,15 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * direct evidence this exclusion was missing for the field-mode
          * path -- without it, `.IsDeleted` wrongly became a FIELD reference
          * instead of staying inline text.
+         *
+         * Cycle 63 adds `Name` -- see the `explicitRecordFieldChainIsRowStateMember`
+         * comment above (the explicit `Record.X.MEMBER` chain's own mirrored
+         * exclusion) for the population evidence (144/144, zero
+         * contradictions) motivating this addition.
          */
         const isInlineRowStateMember =
           (dependencyKind === 'record' || dependencyKind === 'field') &&
-          /^(?:RowNumber|IsNew|IsDeleted|IsChanged|Visible|Selected)$/i.test(member);
+          /^(?:RowNumber|IsNew|IsDeleted|IsChanged|Visible|Selected|Name)$/i.test(member);
 
         const hasExistingExpectedReference = references.some(item =>
           expectedReferenceMember === 'record'

@@ -2712,6 +2712,57 @@ End-Function;`
   );
 });
 
+test('a Record-typed variable\'s own bare .Name stays inline text, not a FIELD reference', () => {
+  // Cycle 63 (definitions 29144/29202): `.Name` on a Record-typed
+  // receiver is the intrinsic Record-object property (the record's own
+  // technical name as a string), encoded by stored PeopleTools as plain
+  // inline member text -- exactly like `.Value`/`.IsDeleted`/any other
+  // non-field member -- never a FIELD PSPCMNAME reference. A corpus-wide
+  // census (`cycle63-name-intrinsic-census.ts`) found 144 definitions
+  // where the encoder previously allocated a spurious FIELD reference for
+  // a bare `.Name` on a Record-typed receiver, and ZERO of them have a
+  // matching FIELD row in stored PSPCMNAME -- i.e. zero evidence a real
+  // field literally named NAME is ever reached through this bare
+  // shorthand. `.Name` now joins `isInlineRowStateMember`'s existing
+  // exclusion set alongside `RowNumber`/`IsChanged`/etc. An ordinary
+  // field access on the SAME receiver (`.A.Value`) must remain a genuine
+  // FIELD reference, unaffected.
+  const encoded = encodeProgramArtifacts(
+    `Function UseRecord(&rec As Record)
+   Local string &n = &rec.Name;
+   Local string &v = &rec.A.Value;
+End-Function;`
+  );
+
+  const fieldReferences = encoded.references.filter(r => r.kind === 'field');
+  assert.deepStrictEqual(
+    fieldReferences.map(r => (r as { fieldName: string }).fieldName),
+    ['A']
+  );
+});
+
+test('a genuine field literally named NAME, reached via GetField, still allocates a FIELD reference', () => {
+  // Negative control (Cycle 63 Phase 22/27): the intrinsic `.Name`
+  // exclusion is scoped to the bare-member shorthand only
+  // (`dependencyKind === 'record' | 'field'`'s own bare-postfix path) --
+  // it must not suppress an EXPLICIT `Field.NAME`/`GetField(Field.NAME)`
+  // reference to a genuinely-named field, which goes through the
+  // established, separately-evidenced Field-reference mechanism
+  // untouched by this cycle's change.
+  const encoded = encodeProgramArtifacts(
+    `Function UseRecord(&rec As Record)
+   Local Field &f = &rec.GetField(Field.NAME);
+   Local string &v = &f.Value;
+End-Function;`
+  );
+
+  const fieldReferences = encoded.references.filter(r => r.kind === 'field');
+  assert.deepStrictEqual(
+    fieldReferences.map(r => (r as { fieldName: string }).fieldName),
+    ['NAME']
+  );
+});
+
 test('Application Class method parameters do not leak into another method', () => {
   // Cycle 46: `EncodeFragmentContext.methodParameters` seeds ONE method
   // implementation fragment's own type environment -- each method body is

@@ -1,5 +1,281 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 63 — `.Name` intrinsic Record-object property wrongly allocated a FIELD reference (implemented)
+
+**Status: IMPLEMENTED, validated, zero classification-level regressions,
+clean broad gain (+11/-0).** Datasource: LOCAL SNAPSHOT throughout.
+Starting commit `3b22187` (Cycle 62). Protected/full baseline reproduced:
+`npm run corpus:verify` — 23,253/30,209 EXACT, REGRESSION GATE: PASS (0
+improved, 0 regressed) — matches Cycle 62's documented ending state.
+Population metrics reproduced fresh, all unchanged from Cycle 62's ending
+values: Cycle 55 171/173, Cycle 56 1,752/1,778, Cycle 57 1,037/1,053,
+Cycle 60 82/82, Cycle 61 27/28, Cycle 62 205 candidates (82 supporting, 0
+negative controls, 123 unrelated).
+
+### Phase 1 — reconstructing 29144/29202's remaining divergence fresh
+
+With Cycle 62's fix in place, both `29144` and `29202`'s generated
+identity STREAM now differs from stored by exactly one missing entry each
+(`PACKAGE.STRINGHELPER`, Cycle 37–41's already-parked self-method row —
+untouched, per Phase 29) **plus** one extra, spurious entry: a
+`field`-kind reference named `Name`. The exact source (identical shape in
+both twins, `CAFNUI_UTIL:StringHelper`/`CAF_UTIL:StringHelper`'s
+`GenStringFromTemplateWithRecords` method):
+
+```peoplecode
+Local Record &recValue;
+Local Field &fld;
+...
+SQLExec("select CURCTLFIELDNAME from PSRECFIELD WHERE RECNAME = :1 AND FIELDNAME = :2",
+        &recValue.Name, &fld.Name, &ctlFld);
+```
+
+`&recValue` is declared `Local Record &recValue;` — a genuine built-in
+`Record` object, not an Application Class instance. `&fld` is `Local
+Field &fld;`. Both `.Name` occurrences in the SQLExec argument list are
+used directly as bind-parameter strings (never followed by `.Value`),
+confirming they are read as the RECORD's/FIELD's own **name string**, not
+a request for a field object.
+
+### Phase 4/18 — parser vs encoder: the encoder's own reference-allocation layer is at fault
+
+Tracing `encodeFragmentInternal`'s postfix-chain parser:
+`expectedReferenceMember`/`dependencyKind` is set to `'field'` whenever
+the postfix chain's base variable is in `recordVariables` (a `Local
+Record &x;`/`Record`-typed parameter) — the documented, proven mechanism
+for `&recordVar.SOMEFIELDNAME` (a bare member on a Record-typed variable
+IS a symbolic FIELD reference, Cycle 46's own established rule). This
+mechanism already has one narrow, name-based exclusion,
+`isInlineRowStateMember` (`RowNumber|IsNew|IsDeleted|IsChanged|Visible|Selected`,
+Cycle 6/46), which keeps genuine Row/Record-state intrinsic properties
+inline instead of misrouting them into the FIELD-reference path. `Name`
+was simply missing from that exclusion list — the parser/AST layer is
+correct (member names are read identically either way); the defect is
+entirely in the encoder's reference-allocation decision, exactly as Cycle
+46's `IsDeleted` fix was. `&fld.Name` (a `Field`-typed variable, which has
+NO `recordVariables`-style tracking at all — confirmed by grep, no
+`fieldVariables` set exists anywhere in the encoder) never independently
+enters this decision; its own `.Name` occurrence in the trace only shows
+up because `FieldDependencyScope` reuses an existing FIELD reference by
+**name alone** within a control group, regardless of which variable
+requested it — a pre-existing, unrelated mechanism, not a second bug.
+
+### Phase 3/19 — stored treatment: plain inline text, the same opcode as `.Value`/`.FormatLongDate`
+
+Byte comparison at the first divergence: stored emits `0x0a` (`INLINE_IDENTIFIER_OPCODE`,
+`format.ts`) followed by inline UTF-16 `"Name"` text — the exact same
+opcode used for every OTHER bare postfix member name that is not itself a
+new PSPCMNAME dependency (`.Value`, `.FormatLongDate`, `.IsDeleted`,
+etc.). Generated instead emits `0x4a` (the FIELD-reference name-operand
+opcode) plus a reference index. Stored allocates **zero** PSPCMNAME rows
+for `.Name` in this position; the entire fix is therefore to prevent the
+allocation, not to redirect it to a different existing identity.
+
+### Phase 6/7/8/9 (mandatory census) — 144 candidates, 144 supporting, ZERO contradicting
+
+Built `tools/corpus/research/cycle63-name-intrinsic-census.ts`: scanned
+the **entire local snapshot** (not just Application Class definitions,
+since `.Name` on a Record-typed variable is ordinary ubiquitous
+PeopleCode, unrelated to Application Classes) for every generated
+`field`-kind reference with `fieldName === 'NAME'`, and checked whether
+stored PSPCMNAME has ANY matching blank-`RECNAME`/`REFNAME='NAME'` row:
+
+```text
+Candidates (definitions with a generated field|NAME reference): 144
+Stored has NO matching field|NAME row (supports "always intrinsic"): 144
+Stored HAS a matching field|NAME row (genuine negative control):        0
+```
+
+**Zero corpus evidence, across all 30,209 definitions, of a genuine field
+literally named `NAME` ever being reached through the bare
+`&recordVar.Name` shorthand.** This is Phase 9's critical negative
+control fully addressed: PeopleTools reserves the bare-member shorthand
+for the intrinsic property unconditionally (matching `isInlineRowStateMember`'s
+existing, already-proven design for `RowNumber`/`IsChanged`/etc.) — a
+genuinely-named `NAME` field remains reachable via the unambiguous,
+already-correct explicit path, `&recordVar.GetField(Field.NAME)`/`Field.NAME`
+(Phase 22's negative control, confirmed still allocates a real FIELD
+reference — see the new regression test below). Application Class member/
+property access (including a user-defined `property string Name get
+set;`) never enters this mechanism at all — `%This.Name` allocates zero
+references regardless of member name, confirmed directly (Phase 7:
+zero Application-Class candidates exist in this population by
+construction, since Application Class member access always uses inline
+text unconditionally, independent of `recordVariables`).
+
+### Fix implemented (`src/peoplecode/encoder.ts`)
+
+Two-location, one-word addition — `Name` joins the existing
+`isInlineRowStateMember` reserved-word list (`encodeFragmentInternal`'s
+main postfix-chain loop) and its mirrored copy,
+`explicitRecordFieldChainIsRowStateMember` (the `Record.X.MEMBER`
+explicit-chain branch, Cycle 46's twin fix location). Both now read
+`/^(?:RowNumber|IsNew|IsDeleted|IsChanged|Visible|Selected|Name)$/i`. No
+new mechanism, no new exclusion table — the canonical, already-proven
+intrinsic-property resolver is simply extended with one more reserved
+name, per Phase 26's preferred shape.
+
+### Validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 584 total, 583 pass, 1 pre-existing skip, 0 fail. Two tests
+  added:
+  - Positive/regression: *"a Record-typed variable's own bare `.Name`
+    stays inline text, not a FIELD reference"* — confirmed to FAIL
+    pre-fix (via `git stash` on `encoder.ts` alone) and PASS post-fix.
+  - **Mandatory negative control** (Phase 22/27/41): *"a genuine field
+    literally named NAME, reached via `GetField`, still allocates a FIELD
+    reference"* — confirmed to PASS both before and after the fix,
+    proving the exclusion is correctly scoped to the bare-member
+    shorthand only and does not suppress the explicit, unambiguous path.
+- `git diff --check`: clean.
+- Protected/full corpus (`npm run corpus:verify`): 23,253/30,209 EXACT,
+  REGRESSION GATE: PASS, 0 improved / 0 regressed.
+- Full 30,209-definition byte-identical-encode scan (`git stash` on
+  `encoder.ts` before/after): **+11 gained (`5002`, `6120`, `14076`,
+  `14404`, `14500`, `17804`, `28858`, `28859`, `28894`, `28895`, `29791`),
+  0 lost** — a broad, clean improvement (the largest single-cycle
+  byte-identical gain since Cycle 52's +11), spanning both ordinary
+  PeopleCode and Application Class definitions, zero exposed
+  discrepancies.
+- Cycle 55/56/57/60/61/62 populations re-verified with zero regressions:
+  171/173, 1,752/1,778, 1,037/1,053, 82/82, 27/28, and Cycle 62's own
+  205-candidate census unchanged (82 supporting/0 negative/123 unrelated)
+  — expected, since this fix targets `field`-kind references exclusively,
+  never consulted by any of those six census scripts (all `package`-kind/
+  Application-Class-specific).
+
+### 29144/29202 status: `.Name` fully resolved; only the already-parked self-method row remains (Phase 30/45)
+
+Both definitions now show **generated identity count exactly one less
+than stored** (4 vs 5, and 3 vs 4 respectively) — the spurious
+`FIELD.NAME` row is gone, and zero `field`-kind references remain in
+either definition's generated output. The sole remaining divergence in
+both is `PACKAGE.STRINGHELPER` (Cycle 37–41's proven-non-deterministic
+self-method metadata row) — **not reopened**, per Phase 29's explicit
+instruction. Per Phase 30's classification: both `29144` and `29202` are
+now **"observable reference semantics complete; parked metadata only"** —
+every deterministically-resolvable reference-allocation question in these
+two definitions is now correctly handled; the one remaining gap is a
+compiler-internal firing decision already formally proven undecidable
+from source alone.
+
+### Phase 45 — family ending accounting
+
+Both `29144` and `29202`: **reference-complete / parked self metadata
+only** (2/2 — total 2, matching Phase 45's requirement). Neither
+reclassified into a different family; neither split.
+
+### Phase 40/Blast-radius prediction vs. actual
+
+Predicted: any definition (Application Class or ordinary PeopleCode) with
+a bare `.Name` postfix member on a `Local`/parameter `Record`-typed
+variable (or an `array of Record` indexed element) would lose exactly one
+spurious FIELD reference; genuinely-named-`NAME`-field access via
+`GetField`/explicit `Field.NAME` qualification would be unaffected; no
+change outside this exact shape. Actual: confirmed exactly — all 11
+byte-identical gains are definitions matching this precise shape, the six
+pre-existing TYPE/method-dependency census populations show zero movement
+(none of them test `field`-kind references), and the negative-control
+test confirms the explicit path is untouched.
+
+### Explicitly not done this cycle
+
+- The `STRINGHELPER` self-method row gap (Cycle 37–41's parked, proven-
+  non-deterministic family) — not reopened, per Phase 29.
+- `28755`/`28964`/`29099` (Cycle 60's genuine declare-function-prepass
+  roots) — reconfirmed unchanged (identical first-diff shape to Cycle
+  62's ending state, none involve `.Name`); this cycle's mechanism does
+  not touch them.
+- `28972`/`28975`/`30104` (Cycle 53's parked self-class-name family),
+  `28801`/`28802`/`28904`/`28925`/`29044` (other historical active roots)
+  — reconfirmed unchanged, none show any `.Name`-related pattern.
+- The `OutputField` reuse lead (Cycle 59) — checked, not the same
+  mechanism (`OutputField` is not a Record/Field-typed-variable bare
+  member); left for a future cycle's own consideration, per Phase 33.
+- `28790`'s `Collection` singleton (Phase 34) — unrelated, untouched.
+- `bindOwnerReference` (Phase 35) — the `.Name` trace never passes
+  through it (this mechanism is entirely inside the ordinary postfix
+  member-resolution loop, upstream of any owner-binding decision); not
+  modified.
+- The marker/wildcard/self-metadata campaigns, Cycle 30/31 member-order
+  roots, `29522`, and the decoder — all untouched.
+- Did not start Cycle 64.
+
+### Phase 31/46 — refreshed active-reference census
+
+Re-ran `cycle58-active-root-recensus.ts` (unmodified) against the full
+historical population: `28713`, `28752`, `28755`, `28801`, `28802`,
+`28904`, `28925`, `28964`, `28972`, `28975`, `29044`, `29099`, `29389`,
+`29518`, `29542`, `29614`, `30104` all **unchanged** (identical
+first-divergence shape to Cycle 62's ending state — none involve `.Name`,
+confirming this cycle's fix is fully isolated). `28862` remains fully
+`sourceEncodeExact=true`/`referenceStreamExact=true` (already resolved
+historically, unaffected). **`29144`/`29202` advance** to
+reference-complete/parked-metadata-only status, as described above — no
+longer counted among the "active, deterministically-actionable" reference
+roots; they now belong in a "parked metadata only" bucket alongside
+Cycle 53's self-class-name family conceptually, though their underlying
+CAUSE (self-method, not self-class-name) is Cycle 37–41's, not Cycle 53's.
+
+### Phase 47 — reassessing how much of the reference campaign remains actionable
+
+Of the population tracked across Cycles 58–63: **15 definitions remain
+actively, deterministically non-exact** (`28713`, `28752`, `28755`,
+`28801`, `28802`, `28904`, `28925`, `28964`, `28972`, `28975`, `29044`,
+`29099`, `29389`, `29518`, `29542`, `29614`, `30104` — 17 listed above,
+minus `28862` which is already exact — 16 actively non-exact after
+removing `28862`); **2 definitions** (`29144`, `29202`) have moved to
+"parked metadata only" (no further deterministic work possible without
+reopening Cycle 37–41's formally-closed question). No definitions this
+cycle moved into "downstream non-reference" (decoder-only) territory.
+This narrows the deterministically-actionable population but does not
+close it — 16 roots remain genuinely active.
+
+### Phase 48 — 99-root accounting (refreshed)
+
+Unchanged from Cycle 62's own accounting except for the `29144`/`29202`
+transition (active reference → parked/reference-complete): total remains
+99. The two definitions move from the "active reference" bucket to a
+"parked self metadata" bucket (joining, conceptually if not by shared
+cause, `28972`/`28975`/`30104`'s bucket) — active-reference count
+decreases by 2, parked-self-metadata count increases by 2; all other
+category totals (source-program exact, reference-exact/downstream
+blocked, marker/layout parked, names/member ordering, decoder-only, other
+structural) unchanged from Cycle 62.
+
+### Phase 49 — architecture assessment
+
+**Isolated intrinsic-property omission, not evidence of a broader
+classification gap.** `isInlineRowStateMember`'s exclusion table already
+existed, was already proven correct in concept (Cycle 6/46), and already
+covered six reserved names; `Name` was a single missing entry in an
+already-correct, already-narrow mechanism — not a symptom of the postfix
+resolver lacking type-awareness generally (it already IS type-aware:
+`dependencyKind` already distinguishes Record/Field-typed receivers from
+everything else; the gap was purely in the reserved-word list, not the
+receiver-type logic). No second intrinsic-member/type pairing was found
+missing during this investigation (Phase 8's built-in-object survey:
+`.Value`/`.LongTranslateValue`/`.RowNumber`/`.IsChanged`/etc. all already
+correctly excluded; no corpus evidence surfaced any OTHER reserved name
+behaving like `Name` did). **Continuing narrow cycling; no broader
+intrinsic-property audit recommended** — this was a one-name gap, cleanly
+closed, with a population-clean (144/144) fix.
+
+### Recommendation for Cycle 64 (not started)
+
+The remaining declare-function-prepass roots (`28755`, `28964`, `29099`,
+Cycle 60's genuine, still-active targets) are the largest remaining
+deterministically-actionable population with an already-understood
+general cause (each has at least one further, independent gap beyond
+Cycle 60's own fix). Secondary options: the `OutputField` reuse lead
+(Cycle 59, not yet investigated for whether it shares any mechanism with
+this cycle's fix — confirmed NOT the same construct, so still open); a
+fresh census of the remaining 16 active roots to look for a new shared
+pattern now that `29144`/`29202` have been removed from that population.
+
+Do not start Cycle 64 in this session.
+
 ## Compiler Semantics Cycle 62 — method-dependency reuse of an existing class-wide type identity (implemented); the "wrong-identity substitution" label did not survive fresh reconstruction
 
 **Status: IMPLEMENTED, validated, zero classification-level regressions,
