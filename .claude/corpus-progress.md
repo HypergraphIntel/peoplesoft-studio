@@ -1,5 +1,257 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 54 — blank-REFNAME PACKAGE row population: fully explained, zero encoder changes (forensic-only)
+
+**Status: FORENSIC ONLY, zero encoder changes.** Datasource: LOCAL SNAPSHOT
+throughout. Starting commit `78bf4f0` (Cycle 53). Protected/full baseline
+reproduced: `npm run corpus:verify` — 23,253/30,209 EXACT, REGRESSION GATE:
+PASS (0 improved, 0 regressed, 0 source changed). `npx tsc --noEmit`:
+clean. `npm test`: 574 total, 573 pass, 1 pre-existing skip, 0 fail —
+unchanged from Cycle 53.
+
+### Headline result
+
+**The premise did not survive fresh reconstruction.** Cycle 53's own
+"293/1,506" figure was a scoping artifact of that cycle's script (it
+counted blank-refname `PACKAGE` rows only WITHIN the subset of
+definitions that separately lacked a *named* self-class row — not the
+population's true size). Reconstructed fresh, with no scoping restriction:
+
+- **614 / 1,510** Application Class definitions contain a blank-REFNAME
+  `PACKAGE` row (i.e. `recname='PACKAGE'`, `refname=''`).
+- **Exactly 614 total such rows** — zero definitions have 2 or more (every
+  hit is a single row per definition).
+- **100% (614/614) have a wildcard import** (`import ROOT[:Path]:*;`)
+  somewhere in the compilation unit. **There is no non-wildcard residual
+  population at all** — Phase 4's "split presence from mismatch" and
+  Phase 8's "audit whether some or many of the 293 are already-solved
+  Cycle 33 rows" both resolve to the same answer: ALL of them are.
+- This single mechanism is **already fully implemented** (Cycle 33,
+  `importStatement()` in `encoder.ts`, `claimWildcardImportMetadata()`).
+  There is no distinct "wrong-shape" cluster to characterize, split, or
+  fix within this population.
+
+### Phase 2 — canonical row shape (field-level, not prose)
+
+A critical clarification, discovered by tracing `tools/corpus/
+validator.ts`: **`PACKAGEROOT`/`QUALIFYPATH`/`APPCLASSMETHOD` are never
+read anywhere in the comparison pipeline.** `validateDefinition`'s decode
+step builds its name-table text purely from `(RECNAME, REFNAME)` (`name =
+recname && refname ? recname+'.'+refname : refname || recname` —
+validator.ts:594-615), and `sourceEncodeExact` is a raw generated-vs-
+stored PSPCMPROG buffer comparison (`exactProgramMatch`), which depends
+only on reference COUNT and ORDER, never on PACKAGEROOT/QUALIFYPATH
+content. So the only field-level shape that matters for this project's
+correctness metrics is:
+
+```text
+recname = "PACKAGE"
+refname = ""            (decodes to the bare token "PACKAGE")
+```
+
+`PACKAGEROOT`/`QUALIFYPATH` DO vary across the 614 rows in the raw stored
+data (e.g. `28707`: `packageroot="HR_INTEGRATION", qualifypath=""`;
+`28715`: `packageroot="", qualifypath=""` for the structurally-identical-
+looking `import ADSM:*;` — a genuine ground-truth inconsistency in these
+untracked columns) but this has **zero effect on any metric this project
+computes** (byte-identical encode, roundtrip, top-level EXACT). 5
+representative rows (full field detail):
+
+```text
+28707  PACKAGE | ""  | HR_INTEGRATION | ""       | ""   (import HR_INTEGRATION:*;)
+28715  PACKAGE | ""  | ""             | ""       | ""   (import ADSM:*;)
+28745  PACKAGE | ""  | ""             | ""       | ""   (import ADS_DMW:UI:Widgets:*;)
+28935  PACKAGE | ""  | BEN_SUMMARY_FL | "Utility"| ""   (import BEN_SUMMARY_FL:Utility:*;)
+30143  PACKAGE | ""  | ""             | ""       | ""   (import PTAF_CORE:*;, 3rd of 3 wildcard imports)
+```
+
+### Phase 3 — fresh re-identification of the "motivating wrong-shape root": it does not exist in this population
+
+The task's own historical label (`29389`) was checked directly against
+fresh ground truth: **`29389` has NO wildcard import and NO blank-REFNAME
+PACKAGE row of any kind** (`import GPS_EDITFUNCTIONS:BaseEditFunction;`
+only — an ordinary, non-wildcard import). Its previously-documented
+wrong-shape issue (`PACKAGE|RECORD|Record|Record|` — a *named*, non-blank
+`refname="RECORD"`) is a real but **entirely unrelated** phenomenon that
+was never part of the blank-REFNAME family at all.
+
+More importantly, **Cycle 53's own hypothesis was independently
+re-checked and found wrong**: Cycle 53 flagged `28935`, `30053`, `30143`
+as spot-confirmed instances of a suspected "self-class-row-with-blank-
+name" wrong-shape mechanism (because their blank `PACKAGE` row sat near
+the position a self-row would occupy). Fresh reconstruction this cycle
+shows **all three simply have a wildcard import** (`BEN_SUMMARY_FL:
+Utility:*`, `PTAF_CORE:EXCEPTIONS:*`, `PTAF_CORE:*` respectively) and
+their blank row is the ordinary, already-correct Cycle 33 mechanism — not
+a self-row variant at all. This is exactly the kind of stale-label error
+the task instructions warned against, and it is now corrected: **no
+"wrong-shape self-row" population exists; it was a mischaracterization by
+an earlier cycle's own imprecise heuristic** (a same-definition
+coincidence between a wildcard-import row's position and where a
+self-row would sit, not a shared mechanism).
+
+**No fresh active wrong-shape root was found within the blank-REFNAME
+population** — the search comes back empty, which is itself the Phase 3
+answer the task explicitly permits ("If no such root exists under fresh
+classification, say so").
+
+### Phase 4/7/11 — presence vs. mismatch, phase, and executable usage
+
+- **Metadata-only: 614/614 (100%)** — `decodeProgram` confirms zero
+  PSPCMPROG operands reference any of the 614 rows' namenum anywhere,
+  matching Cycle 33's own original documentation and Cycle 53's finding
+  for the (unrelated) self-class-row family.
+- **Already stored-and-generated-correct (positive controls): 115/614
+  (18.7%)** are already `sourceEncodeExact=true` (byte-identical forward
+  encode) — e.g. `28707`. None reach top-level `EXACT` classification
+  (all show `DECODE_SOURCE_MISMATCH`), consistent with the already-known,
+  separately-tracked Application Class decoder-roundtrip limitation
+  (Cycle 52's own documented masking effect) — this is the "important
+  metric distinction" the task asked to keep separate: byte-identical
+  encode is unaffected by, and should not be confused with, the
+  unrelated decoder gap.
+- **499/614 (81.3%) are NOT byte-identical**, classified `DECODE_SOURCE_
+  MISMATCH` (522 total across the full 614, including some of the 115
+  above for unrelated decoder-rendering reasons), `UNSUPPORTED_SYNTAX`
+  (39), `ENCODE_ERROR` (53 — the encoder throws entirely, always on an
+  UNRELATED construct elsewhere in the same file). None of these
+  classifications indicate an active bug in the wildcard-import mechanism
+  itself.
+- Of the 499, a first-difference causal-tag sweep (byte context around
+  the first divergence) found 236 tagged "reference-operand", 49 "marker-
+  0x4F", 122 "other", and 92 that could not even be diffed (encode-error).
+  **Spot-checking the reference-operand-tagged cases directly disproves
+  the wildcard mechanism as the cause**: `28882`'s trace
+  (`--trace-refs`) shows the encoder's own generated allocation order
+  (`INTENTBYPLANTYPE` [extends], `BEN_EE_DATA_FL` [the wildcard row],
+  `CONTACT`, `FSASUMMARY`, `RESOURCE`, `RESOURCE` again) exactly matches
+  stored for the first two (extends type + wildcard row — both correct),
+  while the STORED roundtrip-operand-used set only ever references those
+  same first two names; the actual divergence traces to a **different,
+  unrelated gap**: the encoder allocates two independent references for
+  two separate `Local <AppClassType> &var;` declarations of the identical
+  leaf type (`Resource`) in the same method body, which may need the
+  same kind of same-scope reuse/dedup already calibrated for Record/Field
+  references in earlier cycles — a real, but **entirely separate**,
+  candidate bug, unrelated to blank-REFNAME/PACKAGE-row construction.
+  `28715`'s first diff (independently confirmed via the existing
+  closeout-census tool) is tagged `marker-0x4F`, not reference-operand, at
+  9.8% through the program — also unrelated to the wildcard row itself
+  (which sits correctly at position 2 in both stored and generated).
+
+### Phase 27 — candidate models
+
+- **Model A (wildcard/import metadata)**: explains **100% of the
+  population with zero contradictions**. This is not a "candidate" — it
+  is the already-implemented, already-correct mechanism.
+- **Models B/C/D (declaration package dependency, alias/source-name
+  metadata, shape-specific dedup bug)**: no supporting population found;
+  not needed, since Model A already accounts for every row.
+- **Model E (multiple unrelated mechanisms)**: rejected for THIS
+  population — it is homogeneous, not a union of families. (Model E does
+  describe the broader "blank/odd PACKAGE row" search space in general,
+  since 29389's wrong-shape issue and the reference-operand-tagged
+  Local-declaration-dedup gap found by accident above are real, but they
+  are simply NOT blank-REFNAME rows, so they fall outside Phase 2's
+  precise definition rather than inside this population as a second
+  cluster.)
+
+### Phase 32 — implementation threshold: not applicable (no defect found)
+
+There is no blank-REFNAME PACKAGE-row mismatch family to implement a fix
+for. The mechanism is already correct, population-wide, with zero known
+contradictions. No encoder change is warranted or attempted.
+
+### Phase 28 — self-class family (Cycle 53) remains parked, as instructed
+
+`28757` and `29841` (Cycle 53's two clean counterexamples) were checked
+directly: **neither has a wildcard import nor a blank-REFNAME PACKAGE row
+of any kind.** This cycle's analysis does not touch or explain them. The
+self-class-name PACKAGE-row mechanism remains parked, unchanged.
+
+### Explicitly not done this cycle
+
+- No encoder changes.
+- Did not chase the incidentally-discovered Local-declaration Application-
+  Class-type dedup gap (glimpsed via `28882`) — flagged as a promising,
+  well-scoped candidate for a **future** cycle, not investigated further
+  here, per "stop after first proven mechanism" (no mechanism was proven
+  this cycle; this is a lead, not a finding).
+- `29389`'s named-but-wrong-shape row — confirmed unrelated to this
+  family; still untouched.
+- Cycle 49–51 marker campaign, Cycle 31 member-order roots, 29522 — all
+  untouched.
+- Did not start Cycle 55.
+
+### Phase 38 — blank-REFNAME ending accounting (reconciled)
+
+```text
+Total Application Class definitions:                 1,510
+Definitions with >=1 blank-REFNAME PACKAGE row:         614
+Total blank-REFNAME PACKAGE rows:                       614  (0 multi-row defs)
+Explained by known wildcard-import mechanism (Cycle 33): 614  (100%)
+Non-wildcard / unexplained residual:                       0
+Executable-used:                                           0
+Metadata-only:                                            614
+Already byte-identical forward encode (positive controls): 115
+Not byte-identical (unrelated other-cause failures):        499
+```
+
+Counts reconcile exactly: 614 = 614 (wildcard) + 0 (residual); 614 = 115
+(exact) + 499 (not exact); 499 = 522(DECODE_SOURCE_MISMATCH, overlapping
+with the 115) is not a clean partition by itself, so the authoritative
+partition is by `sourceEncodeExact` (115/499 above), with `classification`
+reported separately per the task's own "track metrics separately"
+instruction: 522 DECODE_SOURCE_MISMATCH / 39 UNSUPPORTED_SYNTAX / 53
+ENCODE_ERROR across all 614 (these three sum to 614; some
+DECODE_SOURCE_MISMATCH definitions are also `sourceEncodeExact=true`,
+which is exactly the already-known, separately-tracked decoder-roundtrip
+masking effect Cycle 52 documented).
+
+### Updated reference-family accounting
+
+No change to the active-reference-family table from Cycle 53 — this
+cycle's investigation targeted the blank-REFNAME population specifically
+(a previously-mischaracterized side finding, now closed out), not any of
+the six numbered active-reference subfamilies. `29389` (wrong-shape,
+named-refname) remains its own singleton, now conclusively confirmed
+NOT part of a larger population (the "up to ~293" concern raised at the
+end of Cycle 53 is retracted — reconstructed fresh, it was a scoping
+artifact, and the real population it pointed to is the already-solved
+wildcard-import mechanism, not a wrong-shape cluster).
+
+**Updated 99-root Application Class campaign accounting:** unchanged
+totals from Cycle 53 (total remains 99); no root moved this cycle.
+
+### Architectural/refactor signal assessment (Phase 41)
+
+**No.** The blank-REFNAME population reveals a single, correctly-scoped,
+already-canonical construction path (`importStatement()`'s wildcard
+branch), not multiple inconsistent call sites. No refactor trigger.
+Continue narrow, targeted cycles.
+
+### Recommendation for Cycle 55 (not started)
+
+Two candidates, in priority order:
+
+1. **Application-Class-typed `Local` declaration reuse/dedup**, glimpsed
+   incidentally via `28882`: two separate `Local <Package:Class> &var;`
+   declarations of the SAME leaf Application Class type in one method
+   body currently allocate two independent references; this may need the
+   same same-scope reuse rule already calibrated for Record/Field
+   references in earlier cycles (Cycles 11-22's control-group-scoped
+   reuse family). This was found by accident while ruling out the
+   wildcard-import mechanism as a cause for `28882`'s failure — it has
+   not been population-censused yet and needs its own fresh Phase-1-style
+   reproduction before any implementation.
+2. Alternatively, continue with another already-known active-reference
+   subfamily (generated-allocates-more: 28801/28802/29542/29614, or
+   missing/false-positive-construct-recognition: 28904/29044/29144/
+   29202) if the Local-declaration-dedup lead does not pan out on first
+   inspection.
+
+Do not start Cycle 55 in this session.
+
 ## Compiler Semantics Cycle 53 — self-class-name PACKAGE row: characterized, NOT implemented (forensic-only)
 
 **Status: FORENSIC ONLY, zero encoder changes.** Datasource: LOCAL SNAPSHOT
