@@ -5558,6 +5558,24 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
                * `EncodeFragmentContext.methodParameters`'s own comment.
                */
               registerTypedParameter(paramName, paramType!);
+            } else if (/^File$/i.test(paramType ?? '')) {
+              /*
+               * Cycle 74 (definitions 7499/7500/...): `File`-typed
+               * FUNCTION PARAMETERS (`Function X(&f As File, ...)`) allocate
+               * a PACKAGE/FILE dependency row the same way `Local File &f;`
+               * already does (line ~1160 above) -- this parameter-typing
+               * dispatch never called `ensureLocalObjectPackageReference`
+               * for ANY built-in type except Record/Row (via
+               * `registerTypedParameter`, which deliberately excludes File
+               * entirely -- it only tracks Record/Row/Rowset-specific
+               * declaration state, none of which File needs). A corpus-wide
+               * census (53 candidates with an `As File` parameter anywhere
+               * in source) found 48 supporting mismatches, 0 contradictions
+               * -- unlike Rowset (see the comment immediately above), File
+               * was never previously attempted here and carries no known
+               * regression history.
+               */
+              ensureLocalObjectPackageReference('FILE', 'File');
             }
           }
           space();

@@ -1,5 +1,280 @@
 # Corpus Calibration Progress
 
+## Cycle 74 — File-typed Function parameters allocate PACKAGE/FILE: +25 EXACT, the largest single-cycle gain since the early campaign
+
+**Status: IMPLEMENTED, validated, zero regressions. `REFERENCE_ACTIVE_PACKAGE` (1,508 definitions) does NOT share one bug — it splits into at least three distinct mechanisms (File/Rowset-as-parameter, Global/Component-scope built-in declarations, and a long tail of one-off Application-Class-name PACKAGE gaps). Implemented exactly one, fully proven subfamily: `File`-typed Function/Method PARAMETERS never allocated a PACKAGE/FILE dependency row (the parameter-typing dispatch only ever recognized Record/Row for this purpose). Result: +25 EXACT, 0 regressions, 100% of the forward byte-identical gain converted to full top-level EXACT — the largest single-cycle EXACT gain this project has recorded since the original Cycle 52 campaign. `REFERENCE_ACTIVE_PACKAGE` remains the #1 NONEXACT category (1,468, down from 1,508) and the correct Cycle 75 target, via two newly-characterized, NOT-yet-implemented subfamilies.**
+Datasource: LOCAL SNAPSHOT throughout. Starting commit `263a7d3` (Cycle
+73). Protected baseline reproduced: `npm run corpus:verify -- --limit
+430` — 430/430 EXACT, REGRESSION GATE: PASS, before any change. Full
+harness reproduced fresh: **23,259 / 30,209 EXACT (6,950 NONEXACT)** —
+matches Cycle 73's own ending state exactly. Cycle 73 taxonomy
+reproduced fresh: `REFERENCE_ACTIVE_PACKAGE` = 1,508 (exact match). All
+prior population census scripts (Cycles 55-72) re-verified unchanged
+before any change.
+
+### Phase 1 — rebuilding `REFERENCE_ACTIVE_PACKAGE`, and a methodology lesson
+
+An initial attempt to rebuild the 1,508-definition population by
+re-running `encodeProgramArtifacts` directly against all 30,209
+definitions (rather than loading Cycle 73's own precomputed list)
+produced **1,936** candidates, not 1,508 — because it skipped
+`validateDefinition`/`classifyResult`'s own classification PRIORITY
+(decode success and source match are checked before any reference
+comparison); some `DECODER_BARE_IDENTIFIER`/`DECODE_SOURCE_MISMATCH`
+definitions ALSO happen to show a package-kind first reference
+divergence, but Cycle 73's own taxonomy correctly excludes them from
+`REFERENCE_ACTIVE_PACKAGE`. Corrected by loading
+`.claude/nonexact-taxonomy.json` directly and filtering to
+`primaryCategory === 'REFERENCE_ACTIVE_PACKAGE'`, which reproduced
+1,508 exactly — a second instance (after Cycle 73's own three
+comparator bugs) of this project's standing lesson: reuse an already-
+validated authoritative result rather than re-deriving a population
+independently with slightly different methodology.
+
+### Phase 2/6 — missing-allocation directionality
+
+Of the 1,508: **1,160 (77%) are "pure missing allocation"** (stored has
+a `PACKAGE.X` row, generated lacks it entirely, with zero extra/spurious
+`PACKAGE.Y` rows generated has that stored lacks) — confirming Cycle
+73's own 40-definition sample's ~100%-one-directional finding holds at
+full-corpus scale, though not quite as cleanly as the small sample
+suggested (348, 23%, show a more complex mixed/wrong-identity/wrong-order
+shape, not investigated further this cycle). **Application Class: 0 of
+1,508. Ordinary PeopleCode: 1,508 of 1,508** — this is a PURELY
+ordinary-PeopleCode phenomenon, directly answering Phase 27/28.
+
+### Phase 3/7 — type breakdown reveals the population does NOT share one bug
+
+```text
+ROWSET          880 definitions
+FILE            915 definitions  (pre-fix)
+MESSAGE          53
+GRIDCOLUMN       38
+TRANSFORMDATA    27
+JAVAOBJECT       16
+ROW              13
+APIOBJECT        12
+CHART            12
+RECORD           11
+FIELD            10
+...then a long tail of ~60 further one-off types, each 1-7 definitions,
+    many of which are NOT built-in PeopleCode object types at all but
+    Application-Class-shaped classnames (ADMINADDDELEGATIONUI,
+    XMLPMANAGER, PAGEFACTORY, SCROLLER, ...) -- an entirely different,
+    likely per-class self/ancestor-metadata gap, not a built-in-type
+    coverage issue, and NOT investigated this cycle.
+```
+
+**ROWSET and FILE alone account for ~1,180 of the 1,508** (some overlap,
+since a definition can be missing both). This directly falsifies Model
+E's alternative (many small unrelated mechanisms) as the DOMINANT
+story, while confirming Model D (multiple adjacent missing paths): the
+population splits into a FEW large, distinct mechanisms, not one.
+
+### Phase 4/9/10/11 — source-form census finds the exact allocator gap, and a critical caution
+
+Direct inspection of `encoder.ts`'s own allocation code (not sampling
+alone) found the precise mechanism, confirmed against 4 sampled
+definitions (`4842`, `6328`, `7499`, `7500`):
+
+- **The `Local <Type> &x;` declaration dispatch** (~line 1150) recognizes
+  11 built-in types (Record, Field, Rowset, Row, SQL, File, XmlDoc,
+  XmlNode, ApiObject, Grid, ProcessRequest) via `ensureLocalObjectPackageReference`
+  — each added ONE AT A TIME in prior cycles (ApiObject/Grid/ProcessRequest
+  each carry their own single-definition corpus citation, e.g. "definition
+  772" for ApiObject) — a well-precedented, low-risk extension pattern.
+  Message/ObjectManager/Page/GridColumn are absent from this dispatch
+  entirely (Model A: type coverage omission, confirmed for these 4 types
+  specifically, not implemented this cycle).
+- **Function/method PARAMETER typing** (`&x As Type`, ~line 5543) only
+  recognizes `Record|Row` for PACKAGE allocation, via `registerTypedParameter`
+  — EVERY other built-in type used as a parameter, including the 9 OTHER
+  types the Local-declaration dispatch DOES cover, allocates NO PACKAGE
+  row as a parameter (Model B: source-form coverage omission). `File`
+  (never previously attempted here) and `Rowset` (attempted in Cycle 7,
+  see below) are the two by far the largest, directly matching the
+  ROWSET/FILE dominance in Phase 3's breakdown.
+- **CRITICAL FINDING (mandatory negative control, Phase 26)**:
+  `registerTypedParameter`'s own comment states Rowset-typed parameters
+  were DELIBERATELY excluded from `ensureLocalObjectPackageReference`
+  because "that broader treatment regressed already-EXACT definitions"
+  in Cycle 7's own 48-definition population. Direct inspection of
+  definition `4842` (3 `Function X(&TargetRs As Rowset, ...)` declarations,
+  each with its own `Local Record &GridRecord;`) shows stored DOES
+  allocate a `PACKAGE.ROWSET` row for EACH function's own Rowset
+  parameter (namenum 2, 4, 6) — meaning the Cycle 7 "never allocate for
+  Rowset parameters" reading is NOT simply correct either; the TRUE rule
+  is more nuanced than either extreme, and was NOT resolved this cycle.
+  **Rowset is deliberately NOT touched this cycle** — implementing it
+  without first understanding the exact discriminating condition would
+  risk repeating Cycle 7's own regression.
+
+### Fix: `File`-typed Function/Method parameters allocate PACKAGE/FILE
+
+```typescript
+} else if (/^File$/i.test(paramType ?? '')) {
+  ensureLocalObjectPackageReference('FILE', 'File');
+}
+```
+
+Added as a new, separate branch alongside the existing Record/Row/Rowset
+check at the SAME parameter-typing dispatch site — File needs none of
+`registerTypedParameter`'s OTHER Record/Row/Rowset-specific declaration
+tracking (`recordVariables`/`rowVariables`/`chainSemanticsDeclaredRowsetVariables`),
+just the PACKAGE allocation itself, so it calls
+`ensureLocalObjectPackageReference` directly rather than being folded
+into `registerTypedParameter`. Mirrors the EXACT precedent set by the
+prior ApiObject/Grid/ProcessRequest additions to the Local-declaration
+dispatch (Phase 36: no name-based hack — `File` is already a member of
+that SAME canonical built-in-type list, just missing from this ONE
+OTHER dispatch site).
+
+### Dedicated corpus-wide census for File-as-parameter (Phase 12, mandatory before implementation)
+
+Built a targeted census: every definition with an `As File` parameter
+ANYWHERE in source (broader than just `REFERENCE_ACTIVE_PACKAGE`, to
+also capture genuine negative controls where File happens to already be
+EXACT for an unrelated reason):
+
+```text
+Pre-fix:  Candidates: 53   Stored has PACKAGE.FILE: 50 / lacks: 1
+          Matched: 3   Mismatched (generated<stored): 48   Contradictions: 0
+Post-fix: Matched: 50   Mismatched: 1   Contradictions: 0
+```
+
+**Zero contradictions before or after.** The one remaining post-fix
+mismatch (definition `19618`, storedCount 6 vs generatedCount 5) is a
+narrower residual, not investigated further (Phase 33's threshold —
+2+ independent definitions, zero contradictions — was already met
+decisively by the other 52). The one pre-fix negative control (definition
+`25507`, stored genuinely lacks `PACKAGE.FILE` despite the source
+containing "File" text) was confirmed to be inside a `rem`-commented
+declaration (`rem Component XML:XMLFile &xmlRow;`), not a real,
+compiled File parameter — consistent with the fix, not a counter-example.
+
+### Test corrections and additions (Phases 42/43)
+
+Added `'a File-typed Function parameter allocates an implicit PACKAGE/FILE
+dependency row'` (positive) and `'a string-typed Function parameter does
+not allocate a PACKAGE/FILE dependency row, unaffected by Cycle 74'`
+(negative control), matching this project's own established
+ApiObject/Grid/ProcessRequest test precedent. Verified via `git stash`
+that the positive test fails before the fix (`1 !== 0`-shaped failure:
+zero PACKAGE/FILE references generated) and passes after; the negative
+control passed both before and after, as expected (unaffected by the
+new, narrowly-scoped branch).
+
+### Validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 600/601 pass, 1 skipped (2 tests added) — zero unrelated
+  failures.
+- `git diff --check`: clean.
+- Dedicated File-as-parameter census (post-fix): 50/53 matched, 1
+  mismatched, 0 contradictions.
+- Protected gate: `npm run corpus:verify -- --limit 430` — 430/430
+  EXACT, REGRESSION GATE: PASS.
+- Full corpus byte-identical scan (30,209 definitions, `git stash`
+  before/after): **+25 gains (definitions 7499-7537, all
+  `EDI_*`-family Functions in the same source file/program), 0
+  losses.**
+- Full top-level harness re-run: **EXACT 23,259 → 23,284 (+25),
+  NONEXACT 6,950 → 6,925 (-25)** — a full, clean 1:1 conversion from
+  forward-byte-identical gain to top-level EXACT; no partial/masked
+  cases this time (unlike most prior cycles' gains, which typically
+  carried other separate blockers).
+- Re-ran all prior population census scripts (Cycles 55-72): all
+  unchanged — zero regressions.
+
+### Phase 44/45/48 — re-taxonomy impact
+
+```text
+REFERENCE_ACTIVE_PACKAGE:  1,508 -> 1,468  (-40; 25 flipped fully to EXACT,
+                                             15 more advanced to a NEW first
+                                             divergence, landing in
+                                             REFERENCE_ACTIVE_FIELD, which
+                                             correspondingly rose 583 -> 598)
+EXACT:                     23,259 -> 23,284  (+25)
+NONEXACT:                  6,950 -> 6,925    (-25)
+```
+
+`REFERENCE_ACTIVE_PACKAGE` **remains the #1 NONEXACT category** after
+this cycle's fix (1,468, still larger than `DECODER_BARE_IDENTIFIER`'s
+unchanged 1,344) — Phase 48 confirmed. Reference-stream-exact among
+NONEXACT held steady at 449 (`REFERENCE_COMPLETE_DOWNSTREAM` unchanged)
+— the 25 EXACT gains came directly out of the active-reference bucket,
+not via a reference-complete intermediate stage, matching the clean
+1:1 conversion above.
+
+### Phase 50 — remaining PACKAGE subfamilies, and a second major finding
+
+Re-ran the type breakdown against the POST-FIX 1,468 population:
+
+```text
+ROWSET   880  (unchanged -- deliberately not touched, per the Cycle 7 caution above)
+FILE     873  (barely moved from 915, despite the parameter fix)
+MESSAGE   53
+...
+```
+
+**`FILE` remaining at 873 (not ~0) revealed a SECOND, SEPARATE, NOT-YET-FIXED
+mechanism**: sampling 3 of the remaining File-missing definitions
+(`25391`, `25969`, `25979`) found `Global File &file_evt_notif;` and
+`Component File &logFile;` — **`Global`/`Component`-SCOPED declarations of
+built-in types, not the `Local` keyword the entire existing
+`ensureLocalObjectPackageReference` call-site inventory is scoped to.**
+This is a THIRD distinct mechanism within `REFERENCE_ACTIVE_PACKAGE`
+(alongside parameter-typing and the still-untouched Rowset caution),
+confirming Model D (multiple adjacent missing paths) decisively.
+**Not implemented this cycle** (Phase 34: stop after one family) — the
+single strongest, most concrete Cycle 75 candidate, with a population
+likely comparable in size to this cycle's own File-parameter fix.
+
+### Phase 51/52/53 — decoder, RECORD residual, quoted/component unchanged
+
+- Decoder bare-identifier population: **1,344, unchanged** (Cycle 74 did
+  not touch decoder.ts). PACKAGE (1,468) remains larger.
+- RECORD residual: not revisited, per the brief's own explicit
+  instruction — expected priority remains low (Cycle 73's own
+  confirmation that all 7 underlying definitions are independently
+  decoder-blocked still holds, since this cycle changed nothing about
+  RECORD or the decoder).
+- Quoted/component: `REFERENCE_ACTIVE_QUOTED_COMPONENT` reproduced at
+  **6**, unchanged.
+
+### Phase 57 — category concentration after Cycle 74
+
+```text
+Top 1 (PACKAGE):        1,468 / 6,925 = 21.2%  (was 21.7% of 6,950)
+Top 3 (PACKAGE+DECODER+RECORD_FIELD): 4,045 / 6,925 = 58.4%  (was 58.8%)
+Top 5 (+ DECODE_SOURCE_MISMATCH + FIELD): 5,290 / 6,925 = 76.4%  (was 76.5%)
+```
+
+Concentration is essentially unchanged (the fix removed definitions
+proportionally without meaningfully reshaping the distribution) —
+consistent with fixing ONE narrow, well-scoped subfamily rather than an
+entire category.
+
+### Recommendation for Cycle 75 (not started)
+
+**Primary: `Global`/`Component`-scoped built-in object type declarations**
+(this cycle's own Phase 50 discovery) — `Global File &x;`/`Component File
+&x;` (and presumably the SAME gap for Rowset, Record, Field, SQL,
+XmlDoc, XmlNode, ApiObject, Grid, ProcessRequest — not yet individually
+confirmed) never reach `ensureLocalObjectPackageReference` at all, since
+its entire call-site inventory is scoped to the `Local` declaration
+dispatch specifically. Requires its own fresh, dedicated corpus-wide
+census (mirroring this cycle's own File-as-parameter methodology)
+before implementation — do not assume the SAME zero-contradiction result
+holds without proving it fresh, per this project's own standing
+discipline. Secondary: the Rowset-as-parameter puzzle (880 definitions,
+KNOWN to be more nuanced than a simple always/never rule, requires
+understanding Cycle 7's own original 48-definition population and
+finding the true discriminating condition before any implementation).
+Tertiary (unchanged): the decoder-side bare-identifier symptom (1,344).
+
+Do not start Cycle 75 in this session.
+
 ## Cycle 73 — Full NONEXACT Taxonomy and Payoff Ranking (forensic/analytical only, zero semantic changes)
 
 **Status: FORENSIC-ONLY, as required. No encoder/decoder semantic changes.
