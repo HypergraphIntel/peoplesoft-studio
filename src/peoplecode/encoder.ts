@@ -3279,9 +3279,28 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       reuseRecordReferenceWithinControlGroup ||
       (reuseRowShorthandRecord && context?.recordDependenciesHaveMethodWideLifetime)
     ) {
-      const existing = dependencyScope.lookupRecord(recordName);
+      /*
+       * Cycle 71 (definitions 28726/28755/...): `dependencyScope.lookupRecord`
+       * only ever consulted the method-wide `recordReferencesByControlGroup`
+       * pool -- unlike `fieldReference()`'s own two branches (Cycle 69/70),
+       * it never fell back to the class-wide `applicationClassTypeReferenceSession`
+       * facade, so cross-method reuse never happened. `28726`'s
+       * `CreateRowset(Record.PSADSDEFNITEM)` (method `FindLikeShape`) and
+       * `CreateRecord(Record.PSADSDEFNITEM)` (method `BuildAdsRecList`)
+       * share ONE stored identity; each method independently (but
+       * correctly, method-wide) allocated its own fresh one. A corpus-wide
+       * census (`cycle71-record-scroll-classwide-census.ts`) found 0
+       * contradictions across the RECORD population.
+       */
+      const existing =
+        dependencyScope.lookupRecord(recordName) ??
+        context?.applicationClassTypeReferenceSession?.lookup({
+          kind: 'record',
+          recordName
+        });
 
       if (existing !== undefined) {
+        dependencyScope.recordRecord(recordName, existing);
         /*
          * DERIVED_HR.LOOKUP_NID_BTN.FieldChange (definition 5687):
          *
@@ -3584,9 +3603,24 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     // Record.X check a few lines above -- see that check's own comment
     // for the full evidence trail (definitions 6352 vs 802).
     if (reuseScrollReferenceWithinControlGroup && dependencyScope.isOpen) {
-      const existing = dependencyScope.lookupScroll(recordName);
+      /*
+       * Cycle 71: same class-wide facade fallback as `recordReference()`'s
+       * own fix a few dozen lines above -- `dependencyScope.lookupScroll`
+       * only ever consulted the method-wide pool. `28713`'s
+       * `GetRowset(Scroll.PSADSRELATION)` reused across 6 different
+       * occurrences (some cross-method) is the concrete evidence; a
+       * corpus-wide census found 0 contradictions across the SCROLL
+       * population.
+       */
+      const existing =
+        dependencyScope.lookupScroll(recordName) ??
+        context?.applicationClassTypeReferenceSession?.lookup({
+          kind: 'scroll',
+          recordName
+        });
 
       if (existing !== undefined) {
+        dependencyScope.recordScroll(recordName, existing);
         return referenceOperand(existing);
       }
 

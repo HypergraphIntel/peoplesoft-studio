@@ -3226,6 +3226,124 @@ end-method;`, {
   assert.equal(recordReferences.length, 1);
 });
 
+test('Application Class GetRecord(Record.X) reuses one class-wide RECORD identity across different methods, even with an unrelated inherited %This.method() call', () => {
+  // Cycle 71 (definitions 28726/28954/...): `dependencyScope.lookupRecord`
+  // already gives GetRecord(Record.X)/Select(Record.X) METHOD-WIDE
+  // lifetime (Cycle 43), but -- like Cycle 65's FIELD fix before it --
+  // never consulted the class-wide `applicationClassTypeReferenceSession`
+  // facade (Cycle 57) before falling back to a fresh allocation, so the
+  // SAME record name reached from a SECOND method allocated its own
+  // duplicate RECORD row. A corpus-wide census
+  // (`cycle68-record-scroll-classwide-census.ts`, 318 (definition, record)
+  // candidates referenced in 2+ methods) found this exact shape (e.g.
+  // `28726`'s `CreateRowset(Record.PSADSDEFNITEM)` in one method and
+  // `CreateRecord(Record.PSADSDEFNITEM)` in another, sharing ONE stored
+  // identity) with 0 contradictions.
+  //
+  // A third method with an unrelated inherited %This.method() call is
+  // mandatory here (matching Cycle 65's own FIELD test precedent): without
+  // it, `nextReference()`'s own universal, GATED `applicationClassReferenceSession`
+  // check (Cycle 32 -- active whenever the class has NO inherited %This
+  // call at all) already provides cross-fragment reuse for EVERY reference
+  // kind, masking whether the class-wide TYPE-only facade this cycle wires
+  // RECORD/SCROLL into is actually doing any work.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+   method RunAgain();
+   method CallInherited();
+end-class;
+
+method Run
+   Local Record &RecA = GetLevel0()(1).GetRecord(Record.TEST_REC);
+end-method;
+
+method RunAgain
+   Local Record &RecB = GetLevel0()(1).GetRecord(Record.TEST_REC);
+end-method;
+
+method CallInherited
+   %This.SomeInheritedMethod();
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const recordReferences = encoded.references.filter(r => r.kind === 'record');
+  assert.strictEqual(recordReferences.length, 1);
+});
+
+test('Application Class GetRowset(Scroll.X) reuses one class-wide SCROLL identity across different methods, even with an unrelated inherited %This.method() call', () => {
+  // Cycle 71 SCROLL-side counterpart to the RECORD test above --
+  // `dependencyScope.lookupScroll` had the identical gap. Same mandatory
+  // inherited-%This-call gating as above.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+   method RunAgain();
+   method CallInherited();
+end-class;
+
+method Run
+   Local Rowset &RsA = GetLevel0()(1).GetRowset(Scroll.TEST_SCROLL);
+end-method;
+
+method RunAgain
+   Local Rowset &RsB = GetLevel0()(1).GetRowset(Scroll.TEST_SCROLL);
+end-method;
+
+method CallInherited
+   %This.SomeInheritedMethod();
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const scrollReferences = encoded.references.filter(r => r.kind === 'scroll');
+  assert.strictEqual(scrollReferences.length, 1);
+});
+
+test('Application Class RECORD and SCROLL of the same textual leaf remain distinct class-wide identities', () => {
+  // Mandatory negative control (Phase 20/26): the class-wide facade key
+  // includes `kind`, so Record.X and Scroll.X sharing the same leaf text
+  // must NOT collapse into one identity even though both are now
+  // class-wide reused independently. Same mandatory inherited-%This-call
+  // gating as the two tests above.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+   method RunAgain();
+   method CallInherited();
+end-class;
+
+method Run
+   Local Record &RecA = GetLevel0()(1).GetRecord(Record.TEST_REC);
+end-method;
+
+method RunAgain
+   Local Rowset &RsA = GetLevel0()(1).GetRowset(Scroll.TEST_REC);
+end-method;
+
+method CallInherited
+   %This.SomeInheritedMethod();
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const recordReferences = encoded.references.filter(r => r.kind === 'record');
+  const scrollReferences = encoded.references.filter(r => r.kind === 'scroll');
+  assert.strictEqual(recordReferences.length, 1);
+  assert.strictEqual(scrollReferences.length, 1);
+  assert.notStrictEqual(recordReferences[0].index, scrollReferences[0].index);
+});
+
 test('ordinary PeopleCode CreateRecord reuse remains occurrence-based, not method-wide', () => {
   // Negative control: outside an Application Class, two flat top-level
   // CreateRecord(Record.X) calls to DIFFERENT target variables must NOT be
