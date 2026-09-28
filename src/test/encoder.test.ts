@@ -2762,6 +2762,85 @@ end-method;`, {
   assert.equal(fieldReferences.length, 1);
 });
 
+test('Application Class bare-member FIELD access reuses one class-wide identity across different methods, even with an unrelated inherited %This.method() call', () => {
+  // Cycle 65 (definition 29099, among 246 corpus candidates): Cycle 46's
+  // `fieldDependencyScope` already gives bare-member FIELD access
+  // METHOD-WIDE lifetime (the test immediately above), but -- like Cycle
+  // 64's `ensureLocalObjectPackageReference` before it -- never consulted
+  // the class-wide `applicationClassTypeReferenceSession` facade (Cycle
+  // 57) before falling back to a fresh allocation, so the SAME field name
+  // accessed from a SECOND method's own Record-typed receiver allocated
+  // its own duplicate FIELD row. A corpus-wide census
+  // (`cycle65-field-classwide-reuse-census.ts`, 1,575 (definition,
+  // field-name) candidates referenced in 2+ methods) found 246 cases
+  // where stored collapses to exactly ONE identity across every method
+  // while generated allocated 2+ -- the only contradicting-looking
+  // mismatches (13, all definition `29797`) are the same already-known,
+  // pre-existing, unrelated multi-identity gap Cycles 56/57/62/64 each
+  // found (generated was already 1 before this cycle, unaffected). Like
+  // Cycle 64, mirrors the inherited-%This-call condition so this test
+  // isolates the class-wide facade rather than the pre-existing GATED
+  // `applicationClassReferenceSession` (which already reuses across
+  // methods when the class has no inherited call at all).
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run(&AbsenceRec As Record);
+   method RunAgain(&OtherRec As Record);
+   method CallInherited();
+end-class;
+
+method Run
+   Local string &v = &AbsenceRec.EMPLID.Value;
+end-method;
+
+method RunAgain
+   Local string &v2 = &OtherRec.EMPLID.Value;
+end-method;
+
+method CallInherited
+   %This.SomeInheritedMethod();
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const fieldReferences = encoded.references.filter(r => r.kind === 'field');
+  assert.strictEqual(
+    fieldReferences.length,
+    1,
+    'the same field name accessed via bare-member on two different methods\' Record-typed receivers should reuse one class-wide FIELD identity, even with an unrelated inherited %This call'
+  );
+});
+
+test('Field.X used twice as a GetField(...) argument on a stored Record variable remains occurrence-based, unaffected by Cycle 65', () => {
+  // Negative control: this is the SAME already-calibrated construct the
+  // existing test 'encodeProgramArtifacts allocates repeated Scroll and
+  // Field references by occurrence' covers (GetField(Field.CODE) called
+  // twice on a STORED, not-freshly-.GetRecord(...)-chained, Record
+  // variable) -- Cycle 65's own fix lives entirely in the bare-member
+  // postfix-chain fallback (`dependencyKind === 'field'`), a completely
+  // different code path from GetField(...)'s own method-call argument
+  // parsing, so this must remain unaffected.
+  const encoded = encodeProgramArtifacts(
+    `Local Record &rec;
+Local Field &fld1, &fld2;
+
+&rec = GetRecord(Record.OU_CORPUS);
+
+&fld1 = &rec.GetField(Field.CODE);
+&fld2 = &rec.GetField(Field.CODE);`
+  );
+
+  const fieldReferences = encoded.references.filter(r => r.kind === 'field');
+  assert.strictEqual(
+    fieldReferences.length,
+    2,
+    'GetField(Field.CODE) called twice on a stored Record variable must remain occurrence-based, unaffected by Cycle 65\'s bare-member class-wide reuse fix'
+  );
+});
+
 test('a Record-typed variable\'s own bare row-state member stays inline text, not a FIELD reference', () => {
   // Cycle 46 (definition 29522): `&AbsenceRec.IsDeleted` -- a Record-typed
   // receiver's own bare row-state property -- must stay inline, exactly

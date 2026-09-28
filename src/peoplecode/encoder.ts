@@ -9072,6 +9072,42 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             directLevel0RecordFieldKey
           );
 
+          /*
+           * Cycle 65 (definition 29099): a compatible FIELD identity for
+           * this SAME field name may already have been committed by an
+           * EARLIER method's own bare-member/`Field.X` occurrence --
+           * `fieldDependencyScope` (Cycle 46) already gives this pool
+           * METHOD-WIDE lifetime via `fieldScopeId()`, but (like Cycle
+           * 64's `ensureLocalObjectPackageReference` before this cycle)
+           * never consulted the class-wide `applicationClassTypeReferenceSession`
+           * facade (Cycle 57) before falling back to a fresh allocation --
+           * so the SAME field name referenced from a SECOND method
+           * allocated its own duplicate FIELD row. This project's own
+           * `PeopleCodeReference` shape for `kind: 'field'` carries no
+           * `recordName` at all -- field identity is already modeled as
+           * "field name only" within one scope (Cycle 9), so extending
+           * that same name-only key to be class-wide is a direct,
+           * evidence-backed analog of Cycle 64's PACKAGE-kind fix, not a
+           * new abstraction. A corpus-wide census
+           * (`cycle65-field-classwide-reuse-census.ts`, 1,575 (definition,
+           * field-name) candidates referenced in 2+ methods) found 246
+           * cases where stored collapses to exactly ONE identity across
+           * every method while generated allocated 2+, and the only
+           * "under-allocated" mismatches (13, all definition `29797`) are
+           * the SAME already-known, pre-existing, unrelated multi-identity
+           * gap Cycles 56/57/62/64 each found (generated was already 1
+           * before this cycle, so this fix is a no-op for them). Scoped
+           * to `dependencyKind === 'field'` only -- Cycle 43/45's own
+           * RECORD canonicalization (`dependencyKind === 'record'`) is
+           * completely untouched.
+           */
+          if (reference === undefined && dependencyKind === 'field') {
+            reference = context?.applicationClassTypeReferenceSession?.lookup({
+              kind: 'field',
+              fieldName: member
+            });
+          }
+
           if (reference === undefined) {
             reference =
               dependencyKind === 'record'
