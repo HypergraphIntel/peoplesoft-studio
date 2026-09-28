@@ -2115,6 +2115,45 @@ end-method;`, {
   ]);
 });
 
+test('Application Class local declarations of the same leaf type reuse one PACKAGE reference regardless of scalar vs array-of shape', () => {
+  // Cycle 55: a corpus-wide census of 173 Application Class methods
+  // declaring 2+ Locals of the same Application-Class leaf type (mixing
+  // scalar and array-of freely, up to 21 declarations of one leaf) found
+  // stored PSPCMNAME allocates exactly ONE identity in every single case
+  // (definition 28882's `Local BEN_EE_DATA_FL:Object:Resource &oResource;`
+  // followed by `Local array of BEN_EE_DATA_FL:Object:Resource
+  // &arrResource;` is the shape that surfaced this).
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+end-class;
+
+method Run
+   Local number &n = 5;
+   Local PKG:Object:Resource &oResource;
+   Local array of PKG:Object:Resource &arrResource;
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  assert.deepStrictEqual(encoded.references, [
+    { index: 0, sequence: 1, kind: 'owner', recordName: undefined, fieldName: undefined },
+    {
+      index: 1,
+      sequence: 2,
+      kind: 'package',
+      packageName: 'RESOURCE',
+      objectName: 'PKG',
+      packagePath: ['PKG', 'Object'],
+      className: 'RESOURCE',
+      methodName: undefined
+    }
+  ]);
+});
+
 test('Application Class RECORD dependencies get method-wide lifetime across flat top-level statements', () => {
   const encoded = encodeProgramArtifacts(`class ReferenceTest
    method Run();
