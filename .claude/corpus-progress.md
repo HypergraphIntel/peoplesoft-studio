@@ -1,5 +1,212 @@
 # Corpus Calibration Progress
 
+## Cycle 76 — `Global Rowset` declarations allocate PACKAGE/ROWSET: +858 EXACT, the largest single-cycle gain in this project's history; decoder becomes the new #1 category
+
+**Status: IMPLEMENTED, validated, zero regressions. Reconstructed Cycle 7's own historical Rowset-parameter finding (48 definitions, 4 already-EXACT with no PACKAGE.ROWSET for their own parameter -- confirming a broad "Rowset always allocates" rule is genuinely wrong for parameters) and proved, independently, that `Global Rowset &x;` declarations are a CLEAN, separate, zero-contradiction subfamily (962 candidates, 0 contradictions) -- the exact same class of gap `globalDeclaration()` had for `File` (Cycle 75), never previously evidenced for Rowset. Fixed ONLY the Global-declaration scope, explicitly leaving the genuinely-mixed parameter population untouched. Result: +858 EXACT, 0 regressions -- by far the largest single-cycle top-level gain this project has ever recorded (874 forward byte-identical gains, 98.2% converting to full EXACT). `REFERENCE_ACTIVE_PACKAGE` collapsed from 1,459 to 598, and `DECODER_BARE_IDENTIFIER` (1,344, unchanged) is now the #1 NONEXACT category -- exactly the roadmap pivot point Cycle 75's own recommendation anticipated.**
+Datasource: LOCAL SNAPSHOT throughout. Starting commit `1b33f0a` (Cycle
+75). Protected baseline reproduced: `npm run corpus:verify -- --limit
+430` — 430/430 EXACT, REGRESSION GATE: PASS, before any change. Full
+harness reproduced fresh: **23,316 / 30,209 EXACT (6,893 NONEXACT)** —
+matches Cycle 75's own ending state exactly. Test baseline reproduced:
+604/605 (matches Cycle 75's ending state). All prior population census
+scripts (Cycles 55-72) re-verified unchanged before any change.
+
+### Mandatory historical reconstruction: Cycle 7's own Rowset finding (not from memory)
+
+Located Cycle 7's own progress-file entry ("provenance-gated postfix call
+binding," line ~16239) and its Phase 7A census table directly — NOT
+relying on the encoder.ts code comments alone. Cycle 7's own scope was
+the SEPARATE "bare-member postfix-call binding eligibility" mechanism;
+the Rowset-PACKAGE finding was a SIDE DISCOVERY made while classifying
+receiver provenance:
+
+```text
+Cycle 7 Phase 7A census (receiver-provenance breakdown, 12 categories):
+  typed parameter (As Rowset):        157 chains / 48 defs / 4 EXACT / 44 non-EXACT
+  Global Rowset declaration:           98 chains /  5 defs / 0 EXACT /  5 non-EXACT
+  Component Rowset declaration:      2,091 chains / 139 defs / 70 EXACT / 69 non-EXACT
+```
+
+The critical sentence, verified directly in Phase 7C's own implementation
+notes: **"Deliberately does NOT add a `Rowset`-typed parameter to the
+shared `rowVariables` precedent's `ensureLocalObjectPackageReference`
+call (that PACKAGE allocation was evidenced specifically for `Row`
+parameters; several of the 48 `Rowset`-parameter definitions are already
+EXACT without it)."** This is the exact historical regression Cycle
+74/75's own cautionary comments referenced: **4 of the 48 Rowset-typed-parameter
+definitions were ALREADY EXACT, genuinely lacking a PACKAGE.ROWSET row
+for their own parameter** — a real, corpus-proven negative control for
+that SPECIFIC source form, not a hypothetical caution.
+
+Critically, Cycle 7's own table shows the **"Global Rowset declaration"
+population was only 5 definitions, ALL non-EXACT** — far too small a
+sample to have established any rule about Global declarations
+specifically (Cycle 7's own scope never tested this systematically; the
+5 were just incidentally-observed receiver-provenance instances within
+its own postfix-binding investigation, not a targeted Rowset-PACKAGE
+census). This left the door open for this cycle's own much larger,
+purpose-built census.
+
+### Fresh full-corpus Rowset census: declaration scope is the discriminant, not type identity
+
+Built `tools/corpus/research/cycle76-rowset-package-census.ts`: every
+definition with any ROWSET/PACKAGE signal (5,491 candidates total,
+spanning objectid1 1/9/10/60/66/104), classified by source form (a
+definition may match multiple forms simultaneously):
+
+```text
+Source form                          total  matched  mismatched  match-rate
+Local Rowset                         3,983   3,767        215      94.6%
+Component Rowset                       793     747         46      94.2%
+array of Rowset                         21      18          3      85.7%
+other/undetermined                      33      23         10      69.7%
+Function/Method parameter As Rowset    335     166        169      49.6%  <- GENUINELY MIXED (matches Cycle 7)
+Global Rowset                          950      46        904       4.8%  <- DOMINANT GAP
+```
+
+**`Global Rowset`'s 4.8% match rate is the standout signal** — a
+near-total, one-directional gap, structurally identical to `Local`/
+`Component Rowset`'s own already-working ~94% baseline (the residual
+~5-6% in EACH of those is a separate, smaller, not-investigated tail).
+`Function/Method parameter As Rowset`'s 49.6% match rate independently
+CONFIRMS Cycle 7's own finding at full-corpus scale: this population is
+genuinely, irreducibly mixed and was correctly left untouched by every
+prior cycle.
+
+### Isolated `Global Rowset` census (zero contradictions)
+
+```text
+Candidates: 962   stored has PACKAGE.ROWSET: 960 / lacks: 2
+Matched: 48   Mismatched: 904   Contradictions: 0
+Program types: objectid1 1 (45), 9 (1), 10 (13), 66 (895), 104 (8)
+```
+
+**Zero contradictions.** The 2 apparent negative controls (definitions
+`4976`, `29789`) both show `storedRowsetCount: 0, generatedRowsetCount: 0`
+— i.e. NEITHER side expects a PACKAGE.ROWSET row for these two
+definitions at all (not a counter-example to the fix; both are
+consistent before and after). Unlike `File` (Cycle 75, essentially
+100% Application Engine), Global Rowset spans FIVE program types
+including 8 Application Class definitions, directly answering Phase
+9/10/24/25: this is NOT Application-Class-specific, and the fix
+(routed through the shared `ensureLocalObjectPackageReference` helper
+every OTHER declaration form already uses) applies uniformly.
+
+### Fix: `Global Rowset` only, mirroring the exact File precedent
+
+```typescript
+} else if (/^Rowset$/i.test(declaredType ?? '')) {
+  ensureLocalObjectPackageReference('ROWSET', 'Rowset');
+}
+```
+
+Added as a new branch in `globalDeclaration()`'s dispatch, alongside the
+File branch Cycle 75 added and the pre-existing array-of-Record case.
+**Deliberately does NOT touch the parameter-typing dispatch
+(`registerTypedParameter`)** — Cycle 7's own historical negative controls
+for that population remain fully respected (Phase 36/37: no broad
+"if type == Rowset" rule was added; the fix is scoped to the ONE proven,
+zero-contradiction declaration scope).
+
+### Post-fix census
+
+```text
+Global Rowset: Matched 947/962 (98.4%, up from 48)  Mismatched: 5  Contradictions: 0
+```
+
+5 remaining mismatches (definitions `4290`, `10860`, `10870`, `18580`,
+`26605`) are a small tail, not investigated further this cycle.
+
+### Test additions (Phases 38/39/40, stash-verified)
+
+Added 3 tests: `'a Global Rowset declaration allocates an implicit
+PACKAGE/ROWSET dependency row'` (positive, verified via `git stash` to
+fail before the fix and pass after), `'a Global string declaration does
+not allocate...'` (ordinary negative control), and — per Phase 39's own
+explicit mandatory requirement — **`'a Rowset-typed Function parameter
+still does not allocate PACKAGE/ROWSET, preserving Cycle 7's own
+historical finding'`**, using the EXACT source shape
+(`Function HideRecordColumns(&TargetRs As Rowset, ...)`) that
+historically justified NOT implementing a broad rule. This test passed
+unchanged both before and after the fix, directly proving the new Global
+branch does not widen to cover parameters.
+
+### Validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped (3 tests added) — zero unrelated
+  failures.
+- `git diff --check`: clean.
+- Protected gate: `npm run corpus:verify -- --limit 430` — 430/430
+  EXACT, REGRESSION GATE: PASS.
+- Full corpus byte-identical scan (30,209 definitions, `git stash`
+  before/after): **+874 gains, 0 losses.**
+- Full top-level harness re-run: **EXACT 23,316 → 24,174 (+858),
+  NONEXACT 6,893 → 6,035 (-858)** — by far the largest single-cycle gain
+  this project has recorded (previous record: Cycle 75's own +32). 16 of
+  the 874 byte-identical gains did not fully convert to top-level EXACT
+  (98.2% conversion rate, still far higher than most prior cycles' own
+  "masked equality" ratios).
+- Re-ran all prior population census scripts (Cycles 55-72): all
+  unchanged — zero regressions. File (Cycle 75) remains fully closed,
+  unaffected by this cycle's own, separate Rowset fix.
+
+### Taxonomy impact: a genuine roadmap pivot
+
+```text
+REFERENCE_ACTIVE_PACKAGE:  1,459 -> 598   (-861)
+DECODER_BARE_IDENTIFIER:   1,344 -> 1,344 (unchanged)
+EXACT:                     23,316 -> 24,174  (+858)
+NONEXACT:                  6,893 -> 6,035    (-858)
+```
+
+**`DECODER_BARE_IDENTIFIER` (1,344, unchanged) is now the #1 NONEXACT
+category** — `REFERENCE_ACTIVE_PACKAGE` fell to 598, well below it.
+This is EXACTLY the pivot Cycle 75's own recommendation anticipated
+("If PACKAGE drops below decoder, note roadmap implications"). Updated
+top five:
+
+```text
+DECODER_BARE_IDENTIFIER          1,344
+REFERENCE_ACTIVE_RECORD_FIELD    1,195
+DECODE_SOURCE_MISMATCH             650
+REFERENCE_ACTIVE_FIELD             603
+REFERENCE_ACTIVE_PACKAGE           598
+```
+
+Concentration: top 1 ≈ 22.3%, top 3 ≈ 52.9%, top 5 ≈ 76.4% (relative to
+the new NONEXACT total of 6,035) — the top-1 share actually GREW
+slightly (decoder alone is now a larger fraction of a smaller remaining
+pool), while top-3/top-5 concentration held roughly steady.
+
+### Phase 52/53 — unchanged, not investigated
+
+RECORD residual and quoted/component both left untouched per the
+brief's own explicit instruction; not re-verified numerically this cycle
+since they are unrelated to Rowset/PACKAGE and the brief only required
+reporting on categories directly affected by this cycle's own work.
+
+### Recommendation for Cycle 77 (not started)
+
+**Primary: the decoder-side `DECODER_BARE_IDENTIFIER` symptom (1,344
+definitions, unchanged across Cycles 70-76)** — now unambiguously the
+largest NONEXACT category, with zero further PACKAGE-type work left at
+comparable scale (the next-largest remaining PACKAGE subfamily, the
+5-definition Global Rowset tail plus the ~240-definition combination of
+Message/GridColumn/TransformData/JavaObject/etc., is an order of
+magnitude smaller). This requires a genuinely NEW investigation
+(decoder.ts, not encoder.ts) — this project's own encoder/decoder
+separation discipline means Cycle 77 should be scoped and staffed
+differently than Cycles 68-76's own encoder-only reference/PACKAGE work.
+Secondary: `REFERENCE_ACTIVE_RECORD_FIELD` (1,195, essentially unchanged
+across recent cycles despite Cycle 68's own extensive RECORD.FIELD work
+— likely dominated by causes OTHER than the specific reuse mechanisms
+already fixed, not yet characterized at this scale). Tertiary: the
+remaining smaller PACKAGE type tail, if a decoder investigation proves
+higher-risk than expected.
+
+Do not start Cycle 77 in this session.
+
 ## Cycle 75 — `Global File` / `Component File` declarations allocate PACKAGE/FILE: +32 EXACT, a new single-cycle record, File fully closed
 
 **Status: IMPLEMENTED, validated, zero regressions. Both `Global File &x;` and `Component File &x;` declarations never allocated a PACKAGE/FILE dependency row -- `globalDeclaration()` had NO general built-in-type dispatch at all, and `componentDeclaration()`'s existing Record/Rowset/XmlDoc dispatch had an EXPLICIT prior comment flagging File as "unconfirmed" (now confirmed). Fixed both, independently proven (965 Global candidates, 11 Component candidates, 0 contradictions in either population). Result: +32 EXACT, 0 regressions -- the largest single-cycle EXACT gain this project has recorded, surpassing Cycle 74's own record. `File` is now completely eliminated from the remaining `REFERENCE_ACTIVE_PACKAGE` missing-type breakdown across every declaration form (Local, parameter, Global, Component). `ROWSET` (880, deliberately untouched per Cycle 7's own caution) is now the clear #1 remaining subfamily and the natural Cycle 76 target.**
