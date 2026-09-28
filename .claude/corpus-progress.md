@@ -1,5 +1,329 @@
 # Corpus Calibration Progress
 
+## Compiler Semantics Cycle 68 — `29389` RECORD/SCROLL/record-field reuse gap: found in `ordinaryRecordFieldReference()`, not RECORD/SCROLL themselves (implemented, three fixes, one mechanism)
+
+**Status: IMPLEMENTED, validated, zero regressions. 574/581 census
+candidates matched (0 genuine contradictions; 7 confirmed unrelated
+SQL-string-literal noise). `29389` advanced substantially (first
+reference-stream divergence moved from index 27 to index 33) but remains
+active — a NEW, distinct, NOT-implemented mechanism (GetField-argument
+same-receiver reuse) is its next blocker, recommended for Cycle 69.**
+Datasource: LOCAL SNAPSHOT throughout. Starting commit `d679f0e` (Cycle
+67). Protected baseline reproduced: `npm run corpus:verify -- --limit
+430` — 430/430 EXACT, REGRESSION GATE: PASS, before any change. Population
+metrics reproduced fresh, all unchanged from Cycle 67's ending values:
+Cycle 55 171/173, Cycle 56 1,752/1,778 (whole-definition matched), Cycle
+57 1,037/1,053, Cycle 60 82/82, Cycle 61 27/28, Cycle 62 205 candidates
+(82 supported), Cycle 63 65 candidates, Cycle 64 447/451, Cycle 65
+1,430/1,575, Cycle 66 58/58.
+
+### Phase 1/2 — fresh reconstruction of `29389`, not trusting historical labels
+
+Built an ancestor-aware identity-dump check (mirroring Cycle 67's own
+`resolveInheritedProperties` helper, since `29389` extends
+`GPS_EDITFUNCTIONS:BaseEditFunction` and uses `%Super`-derived
+declaration dependencies Cycle 67 already fixed). An initial reconstruction
+using the STANDARD, non-ancestor-resolving identity-dump approach gave a
+MISLEADING first divergence at index 16 — this was merely re-exposing
+Cycle 67's ALREADY-FIXED gap, an artifact of the test script omitting the
+`inheritedPropertyTypes` context Cycle 67's fix requires, not a live
+regression. With ancestor resolution correctly supplied, indices 0–26 of
+`29389`'s identity stream matched stored exactly (confirming Cycle 67's
+fix is genuinely effective here), with the TRUE first divergence at index
+27 — a distinct, unrelated construct.
+
+### Phase 3/4 — root cause: `GetRowset(Scroll.GPS_POST).Sort(GPS_POST.SETID, ...)` repeated across two top-level `If` blocks in one method
+
+`29389`'s `runAction` method calls
+`GetLevel0()(1).GetRowset(Scroll.GPS_POST).Sort(GPS_POST.SETID, "A",
+GPS_POST.YEAR, "A", GPS_POST.GPS_POST_PLN_TYPE, "A", GPS_POST.GPS_ROWID,
+"A", GPS_POST.GPS_GRADE, "A", GPS_POST.GPS_RANK, "A",
+GPS_POST.GPS_POST_TYPE, "A", GPS_POST.SEQ_NBR, "A")` TWICE, each time
+nested inside a DIFFERENT top-level `If` block. Direct `referenceTrace`
+instrumentation confirmed the exact `controlGroup`/`controlDepth` values:
+first occurrence `controlGroup=3, controlDepth=2`; second occurrence
+`controlGroup=7, controlDepth=1` — NEITHER at `controlDepth===0`. Stored
+PSPCMNAME reuses the SAME 8 `record-field`-kind identities (`GPS_POST.SETID`
+through `GPS_POST.SEQ_NBR`) both times; generated (pre-fix) allocated a
+fresh set of 8 the second time, plus 2 further duplicated items
+downstream, inflating `29389`'s own identity count from 34 (stored) to 45
+(generated pre-fix).
+
+Traced the cause in `src/peoplecode/encoder.ts`'s `ordinaryRecordFieldReference()`
+(the allocator for bare, explicit `RECORD.FIELD` symbolic syntax — kind
+`'record-field'`, distinct from `Record.X`/`Field.X`/`Scroll.X`'s own
+explicit-constant syntax, and from bare-member access): its reuse pool
+(`ordinaryRecordFieldsByControlGroup`) keyed by RAW `controlGroup` rather
+than `recordScopeId()` — the SAME method-wide override Cycle 43/46
+already proved and wired for `dependencyScope`/`fieldDependencyScope`.
+Since the two occurrences fall in different raw control groups (3 and
+7), the second occurrence's lookup key never matched the first's stored
+entry, so it fell through to fresh allocation regardless of nesting
+depth.
+
+### Phase 16/17/18/19 (mandatory census) — 581 candidates, 401/581 matched pre-fix
+
+Built `tools/corpus/research/cycle68-record-field-classwide-census.ts`:
+for every Application Class method with the same (record, field) pair
+referenced 2+ times via bare `RECORD.FIELD` syntax, compares stored vs.
+generated identity counts.
+
+```text
+Pre-fix:  Candidates: 581  Matched: 401  Mismatched (generated>stored): 173  Contradictions: 7
+```
+
+All 7 apparent contradictions (`generated < stored`, specifically
+`generatedCount: 0`) were spot-checked (one directly: `28925`/`InfoButton`/
+`BEN_TRAN_WK.PLAN_TYPE`) and confirmed to be unrelated census-tooling
+noise — the regex match lands INSIDE a `SQLExec("...")` string literal's
+own bind-argument position, a different, pre-existing, uncharacterized
+gap `ordinaryRecordFieldReference()` never reaches at all, not a genuine
+negative control contradicting the reuse hypothesis. 173 clean supporting
+mismatches, 0 genuine contradictions — crosses the implementation
+threshold decisively even before the two further fixes below.
+
+### Fix 1 — method-wide key: `recordScopeId()` instead of raw `controlGroup`
+
+Changed `ordinaryRecordFieldReference()`'s key construction (both the
+initial key and the `controlDepth===0` "fresh start" reassignment) from
+`` `${controlGroup}:...` `` to `` `${recordScopeId()}:...` ``. Leaves
+ordinary (non-Application-Class) PeopleCode's own calibrated behavior
+completely unchanged (`recordScopeId()` returns raw `controlGroup` there)
+and only affects Application Class method bodies, where it already
+returns a constant `0`.
+
+Post-fix census: **461/581 matched, 113 mismatched, 7 contradictions
+(unchanged)**. Progress, but not yet clean — a portion of the 173
+original mismatches were NOT nested-control-group cases at all.
+
+### Phase 37/38 (unplanned second finding) — the `controlDepth===0` "fresh start" rule itself needed gating
+
+Definition `28794`/`TileSelectFieldChange` reuses `AGC_TILE_TBL.AGC_IMAGE_NAME`
+(one stored identity) across two literal TOP-LEVEL statements (no `If`/
+control structure at all, `controlDepth===0` for both). Definition
+`28795`/`CreateTemplate` reuses `AGC_TMPL_TBL.AGC_CATEGORY_ID` and
+`AGC_TMPL_TBL.EFFDT` (one stored identity each) across several literal
+top-level `Fill(...)` bind-argument statements, again with no nesting at
+all. Both directly contradict `ordinaryRecordFieldReference()`'s own
+`controlDepth===0` "start fresh" branch (calibrated by
+ABS_HIST_UK_SBR.SMP_MA_ELIG.FieldFormula for ORDINARY, non-Application-Class
+PeopleCode) — which fired unconditionally, with no
+`recordDependenciesHaveMethodWideLifetime` gate, unlike its sibling
+`dependencyScope.isOpen` (Cycle 43's own unconditional `true` for
+Application Class method bodies, RECORD/SCROLL kind). **The ABSENCE_HIST
+"top-level repeat starts fresh" calibration is specific to ordinary
+PeopleCode and was never meant to override method-wide reuse for
+Application Class bodies.**
+
+Fix 2: gated the `controlDepth===0` branch with
+`!context?.recordDependenciesHaveMethodWideLifetime`, mirroring
+`dependencyScope.isOpen`'s exact pattern. Post-fix census: **532/581
+matched, 42 mismatched, 7 contradictions (unchanged)**.
+
+### Phase 46 (unplanned third finding) — the same allocator was ALSO never wired to the class-wide facade
+
+Definition `28932`/`EnrolledPlan` reuses `BEN_TRAN_WK.ASOFDATE` — stored
+has exactly ONE PSPCMNAME row, used across EIGHT different methods of the
+same Application Class (`EnrolledPlan`, `RefreshByDate`, `DateSelection`,
+...) — CLASS-wide, not just method-wide. This is the SAME canonical
+class-wide facade (`applicationClassTypeReferenceSession` /
+`ApplicationClassReferenceScope`) Cycles 62/64/65/66 already wired five
+other allocators to (each a different explicit/implicit reference
+syntax); `ordinaryRecordFieldReference()` was never one of them.
+
+Fix 3: before allocating fresh, also check
+`context?.applicationClassTypeReferenceSession?.lookup({kind:
+'record-field', recordName, fieldName})`, falling back to the method-wide
+pool first (cheaper, no cross-fragment concern) and to `nextReference()`
+only if neither finds an entry. `applicationClassReferenceKey()` already
+distinguishes `'record-field'` kind from `'field'`/`'record'` kind by
+including `kind` in its JSON key — no collision risk confirmed by
+inspection.
+
+Post-fix census: **574/581 matched, 0 mismatched, 7 contradictions
+(unchanged, confirmed unrelated noise)**. Clean population result.
+
+### Test corrections
+
+`'Application Class shared scope preserves fresh identities across local
+control groups'` (a pre-existing test) asserted the OLD, now-disproven
+behavior — TWO top-level `If` blocks in one method, each referencing
+`TEST_REC.TEST_FIELD`, expecting FRESH identities. This assumption was
+never corpus-verified; corrected in place (renamed to `'...reuses one
+identity across local control groups within a method'`) per the Cycle 62
+precedent of correcting a stale pin when evidence overturns it, rather
+than leaving it as a silently-passing regression risk.
+
+Added a negative control: `'ordinary PeopleCode top-level RECORD.FIELD
+repeats still start fresh, unaffected by Cycle 68'` — confirms ordinary
+(non-Application-Class) programs, which never set
+`recordDependenciesHaveMethodWideLifetime`, keep the ABSENCE_HIST-style
+fresh-start behavior unchanged. (An explicit, different `owner` context is
+supplied so the first `TEST_REC.TEST_FIELD` occurrence is not itself
+consumed as the program's own implicit owner reference — a top-level
+program with no supplied owner binds its first bare RECORD.FIELD mention
+to the reserved owner slot rather than allocating a normal occurrence.)
+
+### `29389` final status: substantially advanced, NOT resolved — new distinct blocker found
+
+Re-ran the ancestor-aware reference-stream comparison after all three
+fixes: **indices 0–32 now match stored exactly** (up from 0–26
+pre-fix) — the entire RECORD/SCROLL/record-field control-group reuse
+gap this cycle targeted is closed for `29389`. The new first divergence
+(index 33) is a DIFFERENT, previously uninvestigated construct: two
+`SQLExec(...)` calls in the same method both pass
+`&_recDtl.GetField(FIELD.EFFDT).Value` and
+`&_recDtl.GetField(FIELD.GPS_POST_ID).Value` as bind arguments (SAME
+receiver variable `&_recDtl`, both receiver-based `.GetField(...)`
+calls). Stored reuses ONE identity each for `FIELD.EFFDT` and
+`FIELD.GPS_POST_ID` across both calls; generated allocates fresh each
+time. This APPEARS to conflict with Cycle 66's own established
+negative control (`'Application Class GetField(Field.CODE) called twice
+remains occurrence-based, unaffected by Cycle 66'` —
+`fieldReferenceOccurrenceOwnedByGetField`, set for ANY `.GetField(...)`
+call to keep its own argument occurrence-based) — but Cycle 66's own
+census only confirmed ZERO candidates for the BARE/receiverless shape;
+whether a SAME-RECEIVER exception exists for the receiver-based shape
+was never separately tested. **Not investigated further this cycle** —
+implementing a fix here without dedicated population evidence would risk
+silently narrowing an already-shipped, tested rule. Recommended as the
+precise Cycle 69 target (see below).
+
+Via the STANDARD (non-ancestor-resolving) production toolchain, `29389`
+now shows `DECODE_SOURCE_MISMATCH` with the binary divergence at byte
+7700 (a single reference-index off-by-one, `0x12`→`0x11`, immediately
+before a `.Sort(...)` call) — consistent with, but not a substitute for,
+the ancestor-aware comparison above; the overall top-level classification
+is additionally affected by a separate, unrelated, already-known decoder
+boundary (`Cannot encode PeopleCode at source offset 443: bare
+identifiers are only supported as calls`), not touched this cycle.
+
+`29389` is reclassified: **still active, same 12-root bucket, but its own
+construct family has narrowed from "RECORD/SCROLL reference gap" to
+"receiver-based GetField-argument same-receiver reuse"** — a genuinely
+different, smaller remaining surface than what this cycle started with.
+
+### Mandatory RECORD/SCROLL-kind check (Phase 9/10/16-19): same gap exists, NOT fixed this cycle
+
+Built `tools/corpus/research/cycle68-record-scroll-classwide-census.ts`:
+checked whether pure `Record.X`/`Scroll.X` explicit-constant syntax
+(kinds `'record'`/`'scroll'`, allocated via `dependencyScope`, already
+method-wide per Cycle 43) has the SAME residual CLASS-WIDE (cross-method)
+gap `ordinaryRecordFieldReference()` had before Fix 3, or was already
+correctly wired.
+
+```text
+RECORD (kind='record'): Candidates: 318  Matched: 272  Mismatched (generated>stored): 46  Contradictions: 0
+SCROLL (kind='scroll'): Candidates: 125  Matched: 101  Mismatched (generated>stored): 24  Contradictions: 0
+```
+
+**Confirmed: the SAME "method-wide via Cycle 43, never wired to the
+class-wide facade" gap exists for both `'record'` and `'scroll'` kinds**
+— 70 candidates total, 0 contradictions, a population at least as clean
+as what justified Fix 3 above. **Deliberately NOT implemented this
+cycle**, per the brief's own "stop after one mechanism" instruction: Fix
+3 above is scoped to `ordinaryRecordFieldReference()`'s own allocator;
+extending the same pattern to `dependencyScope`'s `lookupRecord`/
+`lookupScroll` is a separate allocator requiring its own dedicated
+before/after validation (interaction with `dependencyScope.isOpen`,
+`recordVariableFields`, and `resolvePostfixMemberReuse`'s own raw reads
+of the same maps, per Cycle 43/46's own precedent of two independent
+consumers needing to move together). Recommended as a secondary Cycle 69
+candidate.
+
+### Validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 592/593 pass, 1 skipped (2 tests corrected/added, see
+  above) — zero unrelated failures.
+- Cycle 68 own census: 574/581 matched, 0 mismatched, 7 confirmed-noise
+  contradictions (final, post all three fixes).
+- Protected gate: `npm run corpus:verify -- --limit 430` — 430/430 EXACT,
+  REGRESSION GATE: PASS (0 improved, 0 regressed).
+- Full corpus byte-identical scan (30,209 definitions, `git stash`
+  before/after comparison via `cycle55-full-corpus-byte-scan.ts`): **+1
+  gain (`28913`), 0 losses.** The small gain count relative to the
+  population size matches the established "masked equality" pattern —
+  most affected Application Class definitions carry other, separate,
+  still-unresolved issues, so a correct reference-stream fix here does
+  not by itself flip them to full byte-identical.
+- Re-ran all prior population census scripts (Cycles 55–66): all
+  unchanged from Cycle 67's own ending values — zero regressions.
+
+### Explicitly not done this cycle
+
+- The RECORD/SCROLL cross-method class-wide facade wiring (documented
+  above with clean population evidence) — left for Cycle 69.
+- `29389`'s own NEW receiver-based GetField-argument same-receiver reuse
+  question — left for Cycle 69, flagged as needing its own dedicated
+  census before any fix (interaction with Cycle 66's shipped rule).
+- Wiring the production corpus harness to supply `inheritedPropertyTypes`
+  automatically (still an explicit, separate, lower-risk follow-on task
+  per Cycle 67's own note).
+- `28755`, `29099`, `OutputField`, `28790` — rechecked status only
+  (unchanged from Cycle 67), not touched.
+- `28964` — remains honestly parked (ancestor still unresolvable from
+  local snapshot; no ancestor declarations invented).
+- Did not start Cycle 69.
+
+### Phase 46/47/48/49 — consumer inventory, active-root census, 99-root accounting
+
+Consumer inventory: `ordinaryRecordFieldReference()` moves from
+"unwired" to a SIXTH proven class-visible consumer of
+`applicationClassTypeReferenceSession` (alongside the 5 from Cycles
+61/62/64/65/66). `dependencyScope`'s RECORD/SCROLL pools are now
+CHARACTERIZED (population-proven gap) but remain unwired — moved from
+"uninvestigated" to "investigated, fix pending Cycle 69" in the inventory.
+`componentReferencesByControlGroup` and bare-receiverless-`GetField`
+remain uninvestigated.
+
+Active-reference-root census (via the standard toolchain): the same
+12-root set from Cycle 67 is unchanged in COUNT —
+
+```text
+28713, 28752, 28755, 28904, 28925, 28964, 29044, 29099,
+29389, 29518, 29542, 29614
+```
+
+— `29389`'s own DISPOSITION narrative is refined (RECORD/SCROLL/record-field
+control-group gap closed; GetField-argument same-receiver reuse is its
+new, narrower remaining construct) without changing its bucket. 99-root
+accounting: unchanged from Cycle 67 (total 99; no root formally moved
+buckets this cycle via standard-toolchain metrics).
+
+### Architecture assessment
+
+**A confirmed instance of the established "canonical facade exists, this
+specific allocator was never wired to it" pattern (now six occurrences:
+Cycles 62, 64, 65, 66, and this cycle's Fix 3), plus a separate, narrower
+"raw controlGroup instead of the proven `recordScopeId()` override"
+pattern (Fix 1, and the discovered-but-deferred RECORD/SCROLL sibling
+gap) and one calibration-scope correction (Fix 2: the ABSENCE_HIST rule
+was over-broadly applied to Application Class bodies).** This is now
+enough repetition (three distinct allocators needing the SAME class-wide
+wiring, across four cycles) to flag as a signal worth a dedicated,
+read-only sweep of every remaining reference-allocation site for the same
+unwired-facade shape, rather than continuing to discover them one at a
+time via unrelated definitions' own first-divergence investigations —
+recorded as a signal only, per this project's standing "do not refactor
+speculatively" discipline; not acted on this cycle.
+
+### Recommendation for Cycle 69 (not started)
+
+Primary: `29389`'s own receiver-based GetField-argument same-receiver
+reuse question — directly continues this cycle's work on the SAME
+tracked root, has a concrete two-occurrence reproduction already
+identified, and requires careful population census given its apparent
+tension with Cycle 66's shipped rule. Secondary: implement the
+RECORD/SCROLL cross-method class-wide facade wiring in `dependencyScope`
+(70-candidate population already gathered this cycle, 0 contradictions —
+ready for implementation pending Cycle 43/46's own "both consumers must
+move together" check). Tertiary: a dedicated read-only sweep for other
+unwired-facade allocators, per this cycle's architecture-assessment
+signal.
+
+Do not start Cycle 69 in this session.
+
 ## Compiler Semantics Cycle 67 — `%Super.<inheritedProperty>` Application Class type discovery (implemented); a new architecture layer, not a prepass extension
 
 **Status: IMPLEMENTED, validated, zero classification-level regressions,

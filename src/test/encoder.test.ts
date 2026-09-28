@@ -1973,7 +1973,18 @@ end-method;`, {
   assert.deepStrictEqual(uses, [1, 1]);
 });
 
-test('Application Class shared scope preserves fresh identities across local control groups', () => {
+// Cycle 68 (definition 29389): this test originally asserted that a bare
+// RECORD.FIELD reference in one top-level `If` block allocates a FRESH
+// identity from an identical reference in a separate top-level `If` block
+// later in the same method -- pinning `ordinaryRecordFieldReference()`'s
+// then-current raw-`controlGroup` keying. A corpus-wide census
+// (`cycle68-record-field-classwide-census.ts`, 581 candidates, 173 clean
+// supporting mismatches, 0 genuine contradictions) proved stored PeopleTools
+// instead reuses ONE identity for both occurrences here, matching the
+// method-wide reuse `recordScopeId()` already provides for plain RECORD and
+// FIELD references (Cycle 43/46). The original assumption was never
+// corpus-verified; it is corrected in place rather than left as a stale pin.
+test('Application Class shared scope reuses one identity across local control groups within a method', () => {
   const encoded = encodeProgramArtifacts(`class ReferenceTest
    method Run();
 end-class;
@@ -1995,9 +2006,31 @@ end-method;`, {
 
   assert.deepStrictEqual(encoded.references, [
     { index: 0, sequence: 1, kind: 'owner', recordName: undefined, fieldName: undefined },
-    { index: 1, sequence: 2, kind: 'record-field', recordName: 'TEST_REC', fieldName: 'TEST_FIELD' },
-    { index: 2, sequence: 3, kind: 'record-field', recordName: 'TEST_REC', fieldName: 'TEST_FIELD' }
+    { index: 1, sequence: 2, kind: 'record-field', recordName: 'TEST_REC', fieldName: 'TEST_FIELD' }
   ]);
+});
+
+// Negative control: ordinary (non-Application-Class) PeopleCode must keep the
+// existing "top-level repeat starts fresh" behavior (ABSENCE_HIST.SHPL_EE_WEEKS
+// shape) -- `recordScopeId()` only collapses to a constant for Application
+// Class method bodies (`recordDependenciesHaveMethodWideLifetime`), so a
+// top-level (non-Application-Class) program's raw `controlGroup` is
+// unaffected by this cycle's change. An explicit, different owner is
+// supplied so the first TEST_REC.TEST_FIELD occurrence is not itself
+// consumed as the program's own implicit owner reference.
+test('ordinary PeopleCode top-level RECORD.FIELD repeats still start fresh, unaffected by Cycle 68', () => {
+  const encoded = encodeProgramArtifacts(`If True Then
+   TEST_REC.TEST_FIELD.Value = 1;
+End-If;
+If False Then
+   TEST_REC.TEST_FIELD.Value = 2;
+End-If;`, {
+    owner: { recordName: 'OWNER_REC', fieldName: 'OWNER_FIELD' }
+  });
+
+  const fieldRefs = encoded.references.filter(r => r.kind === 'record-field');
+  assert.strictEqual(fieldRefs.length, 2);
+  assert.notStrictEqual(fieldRefs[0].index, fieldRefs[1].index);
 });
 
 test('Application Class import and one declaration dependency allocate before bodies', () => {

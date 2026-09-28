@@ -2343,10 +2343,61 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     *
     * This is distinct from explicit Record.X / Field.X / Scroll.X
     * references, which have separate occurrence-based calibration.
+    *
+    * Cycle 68 (definition 29389): this reuse pool's own key used raw
+    * `controlGroup` directly, unlike `dependencyScope`/`fieldDependencyScope`
+    * (Cycle 43/46's own already-proven `recordScopeId()`/`fieldScopeId()`
+    * method-wide override for Application Class method bodies) -- a third
+    * instance of the same "canonical method-wide override exists, this
+    * allocator was never wired to it" shape (Cycles 64/65/66 each found
+    * one before, for different allocators). `29389`'s own
+    * `GetRowset(Scroll.GPS_POST).Sort(GPS_POST.SETID, "A", GPS_POST.YEAR, "A", ...)`
+    * call appears twice in one method (`runAction`), each time nested
+    * inside a DIFFERENT top-level `If` block (controlDepth 2 and 1,
+    * never 0, so the existing "top-level repeat starts fresh" rule a few
+    * lines below never applies to either) -- stored reuses the SAME 8
+    * identities both times; generated allocated a fresh set the second
+    * time purely because the two occurrences fall in different RAW
+    * control groups (3 and 7), which the old key-by-`controlGroup`
+    * design could never bridge. A corpus-wide census
+    * (`cycle68-record-field-classwide-census.ts`, 581 (definition,
+    * method, record.field) candidates repeated 2+ times in one method)
+    * found 173 cases where stored collapses to one identity across
+    * control-group boundaries within a method while generated allocated
+    * 2+, and the 7 apparent "contradictions" (generated already allocated
+    * ZERO occurrences, not merely fewer than stored) are confirmed
+    * unrelated -- a different, pre-existing, not-yet-characterized gap
+    * (spot-checked `28925`: the construct is inside a SQL string literal
+    * bind-argument position `ordinaryRecordFieldReference()` never
+    * reaches at all, regardless of this cycle's change). Using
+    * `recordScopeId()` here (rather than raw `controlGroup`) leaves
+    * ordinary PeopleCode's own existing, calibrated behavior completely
+    * unchanged (it returns raw `controlGroup` there) and only affects
+    * Application Class method bodies, where it already returns a
+    * constant `0` -- the SAME method-wide scoping `dependencyScope`
+    * already uses for plain RECORD/SCROLL reuse.
     */
-    let key = `${controlGroup}:${recordName.toLowerCase()}:${fieldName.toLowerCase()}`;
+    let key = `${recordScopeId()}:${recordName.toLowerCase()}:${fieldName.toLowerCase()}`;
     const statementKey = `${recordName.toLowerCase()}:${fieldName.toLowerCase()}`;
-    const existing = ordinaryRecordFieldsByControlGroup.get(key);
+    /*
+     * Cycle 68 (definition 28932): BEN_TRAN_WK.ASOFDATE's stored PSPCMNAME
+     * has exactly one row, reused across EIGHT different methods
+     * (EnrolledPlan, RefreshByDate, DateSelection, ...) of the same
+     * Application Class -- CLASS-wide, not just method-wide. This is the
+     * SAME canonical class-wide facade (`applicationClassTypeReferenceSession`
+     * / `ApplicationClassReferenceScope`) Cycles 62/64/65/66 already wired
+     * five other allocators to (each a different explicit/implicit
+     * reference syntax); `ordinaryRecordFieldReference()` was never one of
+     * them. The method-wide pool is checked first since it never requires
+     * crossing the facade at all.
+     */
+    const existing =
+      ordinaryRecordFieldsByControlGroup.get(key) ??
+      context?.applicationClassTypeReferenceSession?.lookup({
+        kind: 'record-field',
+        recordName,
+        fieldName
+      });
 
     const statementReference = currentStatementRecordFields.get(statementKey);
     if (statementReference !== undefined) {
@@ -2374,10 +2425,27 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * Consecutive field SetDefault() statements are already modeled as one
        * explicit allocation run, so do not split that run merely because a
        * SetDefault field repeats.
+       *
+       * Cycle 68: this "start fresh" rule is itself gated out entirely for
+       * Application Class method bodies, mirroring `dependencyScope.isOpen`
+       * (Cycle 43's own unconditional `true` for
+       * `recordDependenciesHaveMethodWideLifetime`). Definition 28795's
+       * `CreateTemplate` method reuses `AGC_TMPL_TBL.AGC_CATEGORY_ID` and
+       * `AGC_TMPL_TBL.EFFDT` (one stored identity each) across several
+       * literal top-level statements (controlDepth 0, no intervening
+       * control structure at all) as `Fill(...)` bind arguments -- proving
+       * ABSENCE_HIST's "top-level repeat starts fresh" calibration is
+       * specific to ordinary (non-Application-Class) PeopleCode and was
+       * never meant to override method-wide reuse for Application Class
+       * bodies.
        */
-      if (controlDepth === 0 && !inTopLevelRecordFieldSetDefaultRun) {
+      if (
+        !context?.recordDependenciesHaveMethodWideLifetime &&
+        controlDepth === 0 &&
+        !inTopLevelRecordFieldSetDefaultRun
+      ) {
         controlGroup = nextControlGroup++;
-        key = `${controlGroup}:${recordName.toLowerCase()}:${fieldName.toLowerCase()}`;
+        key = `${recordScopeId()}:${recordName.toLowerCase()}:${fieldName.toLowerCase()}`;
       } else {
         return referenceOperand(existing);
       }
