@@ -2,6 +2,100 @@
 
 ## Compiler Architecture
 
+### Consolidation #3: `emitBlankLineMarkers()` (2026-09-29, Phase 1)
+
+**Status: DONE, proven byte-for-byte equivalent (full row-level taxonomy
+diff), 0 regressions.**
+
+Full inventory of all 40 raw `0x4F` emission sites performed BEFORE any
+edit (see the audit report exchanged with the user for the complete
+per-site table). Every site resolved to exactly one of three families:
+
+1. **36 sites -- Shape M (multiplicity)**: `Math.max(1, (whitespace.match(/\r?\n/g) ?? []).length - 1)`
+   followed by a `for` loop pushing that many `0x4F` bytes. Verified
+   BYTE-FOR-BYTE IDENTICAL at every one of the 36 sites (only the
+   captured-whitespace variable name differs: `bodyWhitespace`,
+   `topLevelWhitespace`, `operandWhitespace`, `tryWhitespace`,
+   `catchBodyWhitespace`, `commentWhitespace`, `functionBodyWhitespace`,
+   `selectorTrailingWhitespace`). Spans every statement handler in the
+   file: And/Or-group operand gaps, Function/For/While/try/catch/
+   Evaluate/When body gaps, top-level declaration/import section gaps.
+2. **4 sites -- Shape S (capped-at-one)**: `if (hasBlankLine) chunks.push(0x4F)`,
+   always exactly one marker regardless of blank-line count. Corpus-
+   proven to be a DIFFERENT rule, not a simplified case of Shape M (one
+   existing comment explicitly contrasts "two blank lines... stores 4F
+   4F, not a single 4F" against these capped sites). All 4 sit
+   immediately before a closing keyword or immediately after a bare
+   header: For-header trailing blank, ordinary-When's own "before
+   End-Evaluate", When-Other's own "before End-Evaluate", and the
+   When/When-Other body's generic fallthrough item. Left as literal
+   one-line pushes -- there is no computation to hide, and wrapping a
+   single guarded byte-push in a named function would be exactly the
+   "helper that merely hides a duplicated byte push" anti-pattern.
+3. **13 sites -- a DIFFERENT mechanism entirely, discovered during this
+   audit**: the identical `Math.max(1, ...)` formula also appears
+   feeding `pendingReferenceGroupBoundaries.push(chunks.length)` inside
+   For/While/try body-item loops -- NOT direct byte emission, but
+   recording deferred chunk-array POSITIONS for a separate finalization
+   pass (`pendingReferenceGroupBoundaries` is declared once at the top
+   of `encodeFragmentInternal` and consumed much later, at a single
+   `for (const index of pendingReferenceGroupBoundaries)` site). This is
+   the same class of stateful, deferred mechanism as
+   `pendingReferenceLocalBoundary` in the declaration-section closers --
+   explicitly out of scope per this session's instruction not to touch
+   declaration-section/App-Class state yet. Left completely untouched.
+
+**Abstraction introduced** (only for the 36 proven-identical sites):
+```ts
+/** Converts a captured whitespace span into the 0x4F blank-line layout
+ *  markers PeopleTools stores for it -- see full comment in encoder.ts. */
+const emitBlankLineMarkers = (whitespace: string): void => {
+  const markerCount = Math.max(1, (whitespace.match(/\r?\n/g) ?? []).length - 1);
+  for (let marker = 0; marker < markerCount; marker++) chunks.push(Buffer.from([0x4f]));
+};
+```
+Every call site's own guard condition (the genuine per-construct logic
+deciding WHETHER a gap counts -- `!firstForBodyItem`,
+`!justClosedImportSection`, `sawTopLevelDeclaration`, etc.) was left
+completely untouched; only the identical post-guard computation was
+extracted. Migration performed via a verified regex transformation
+(dry-run inspected before writing) rather than 36 manual edits, with the
+transformation's own match against `emitBlankLineMarkers`'s freshly-
+inserted body explicitly excluded to avoid self-substitution.
+
+**Positive controls (corpus citations already in the migrated code):**
+AMM_DERIVED.AMM_CANCEL_M (942) and AMM_DERIVED.AMM_COLLAPSE_ALL (945)
+proving the scaling rule; ADDRESSES.EMPLID.RowInit (518); 1643, 935, 521,
+6455 -- all individually re-verified unchanged after migration.
+**Negative control:** the 4 Shape-S sites, proving "always exactly one"
+is a real, separate, evidenced rule.
+
+**Equivalence proof:**
+- `tsc` clean, `git diff --check` clean.
+- 607/608 tests unchanged.
+- 13 targeted fixtures spanning every migrated statement handler
+  (1643, 935, 521, 518, 2200, 945, 6455, 2102, 942, 3128, 6459, 4122,
+  21256) individually re-checked; 2200/2102 show `UNKNOWN_MISMATCH`,
+  confirmed via `git stash` to be pre-existing and unrelated.
+- Full 30,209-definition corpus: EXACT 25,265 → 25,265, 0 regressions, 0
+  improvements.
+- Full taxonomy rebuild diffed ROW BY ROW against the pre-migration
+  taxonomy: **byte-for-byte identical** for all 30,209 definitions.
+- Net code change: -271/+76 lines (-195 net) in `encoder.ts`.
+
+**Remaining duplication after Phase 1:** the 4 Shape-S sites (correctly
+left alone) and the 13 `pendingReferenceGroupBoundaries` sites (a
+genuinely separate, stateful mechanism -- candidate for a FUTURE,
+dedicated consolidation once the declaration-section/App-Class state
+abstractions this session was told to defer are tackled, since it is
+architecturally the same KIND of problem as `pendingReferenceLocalBoundary`).
+
+**Next architectural boundary exposed:** none of the remaining 0x4F/0x2D
+duplication is safely migratable without first doing the declaration-
+section-state work Phase 1 was explicitly told to defer. Phase 1 is
+therefore complete for now -- proceeding to Phase 2 (built-in type
+registry) per instruction.
+
 ### Consolidation #2: minimal `TrailingTrivia` + `emitBoundary()` (2026-09-29)
 
 **Status: DONE, proven byte-for-byte equivalent (full row-level taxonomy
