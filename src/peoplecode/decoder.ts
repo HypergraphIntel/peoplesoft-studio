@@ -1995,6 +1995,22 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
     if (t.kind === TokenKind.Header) continue;
     const f = t.format;
 
+    /*
+     * Cycle 80: shared by both this token's own NEWLINE_BEFORE suppression
+     * (rendering the comment inline right after the statement) and its
+     * NEWLINE_AFTER suppression below (not also adding a second, redundant
+     * newline on top of whatever separator -- a following 0x2D/0x4F blank-
+     * line sequence, or nothing -- comes next). See inlineCommentAfterStatement's
+     * own comment for why "any real preceding token" is the rule, not a
+     * specific keyword.
+     */
+    const commentInlineAfterStatement =
+      t.kind === TokenKind.Comment &&
+      t.opcode === 0x4e &&
+      tokens[tokenIndex - 1]?.opcode === 0x15 &&
+      tokens[tokenIndex - 2] !== undefined &&
+      tokens[tokenIndex - 2]?.kind !== TokenKind.Header;
+
     if (f & F.DECREASE_INDENT) indent = Math.max(0, indent - 1);
     // NO_SPACE_BEFORE overrides whatever trailing space the previous token's
     // own SPACE_AFTER left behind (e.g. `;` right after `False `), not just
@@ -2081,12 +2097,24 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
        * Suppress NEWLINE_BEFORE only when the token immediately before the
        * semicolon is End-If.
        */
-      const inlineCommentAfterEndIf =
-        t.kind === TokenKind.Comment &&
-        t.opcode === 0x4e &&
-        tokens[tokenIndex - 1]?.opcode === 0x15 &&
-        tokens[tokenIndex - 2]?.text === 'End-If';
-
+      /*
+       * Cycle 80: End-If was never the actual rule -- it was the only
+       * preceding keyword the original single fixture happened to use.
+       * A corpus-wide roundtrip-fidelity census (50 definitions, split
+       * 18 Application Class / 32 ordinary -- not an App-Class-specific
+       * construct) found the SAME shape after ordinary declaration
+       * statements with no special keyword at all: `Component string
+       * &CHECK_STATUS; /* comment *\/`, `Declare Function ...; /*
+       * comment *\/`, etc. The real distinguishing feature the `; 0x4E`
+       * fixture above (decoder.test.ts) isolates is not "which keyword
+       * precedes the semicolon" but whether there is a genuine preceding
+       * statement AT ALL: that fixture's `0x15` is the very first token
+       * in the stream (nothing but the Header token before it), which
+       * PeopleTools apparently never treats as inline. Generalizing to
+       * "any real token precedes the semicolon" keeps that fixture's own
+       * expectation intact (tokens[tokenIndex - 2] is the Header token
+       * there) while covering every real declaration statement.
+       */
       /*
        * DERIVED_CO.FUNCLIB.FieldFormula also proves 0x4E immediately after
        * Then is an inline comment:
@@ -2119,7 +2147,7 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         /^(?:REM|remark)\b/i.test(tokens[tokenIndex - 1]?.text ?? '');
 
       if (!(
-        inlineCommentAfterEndIf ||
+        commentInlineAfterStatement ||
         inlineCommentAfterThen ||
         inlineCommentAfterElse ||
         inlineCommentAfterBooleanOperator ||
@@ -2200,9 +2228,38 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
       nextToken?.opcode === 0x15 &&
       /^(?:Then|Else)$/.test(tokens[tokenIndex - 1]?.text ?? '');
 
+    /*
+     * Cycle 80: only suppress this inline comment's OWN NEWLINE_AFTER when
+     * a 0x2D immediately follows it -- that 0x2D contributes its own,
+     * independent line break (NEWLINE_ONCE, always emits), so the
+     * comment's own newline would double it. When a 0x4F follows directly
+     * with no 0x2D (a single blank-line marker, no separate line-ending
+     * token), the comment's own newline is the ONLY thing supplying the
+     * ordinary line break before that marker's own blank line -- skipping
+     * it loses a required newline instead of removing a redundant one.
+     *
+     * PORTAL_FLDR_FAV.PT_BUTTON_DEL.FieldChange (definition 13623) proves
+     * the distinction: two block comments separated by one blank line,
+     * with no 0x2D between them, stores comment, 0x4F, comment -- and
+     * needs the first comment's own newline preserved to reach its one
+     * blank line.
+     */
+    const commentInlineAfterStatementBeforeNewlineOnce =
+      commentInlineAfterStatement && nextToken?.opcode === 0x2d;
+
     if (f & F.NEWLINE_AFTER) {
-      if (inlineHeaderCommentBeforeSemicolon || whenOtherFollowedByBareSemicolon || elseFollowedByBareSemicolon) {
-        // The semicolon terminates the clause on the same source line.
+      if (
+        inlineHeaderCommentBeforeSemicolon ||
+        whenOtherFollowedByBareSemicolon ||
+        elseFollowedByBareSemicolon ||
+        commentInlineAfterStatementBeforeNewlineOnce
+      ) {
+        /*
+         * Cycle 80: an inline trailing comment's own NEWLINE_AFTER is
+         * skipped too -- whatever follows (typically a 0x2D/0x4F blank-
+         * line sequence) supplies its own, complete separator already;
+         * adding this comment's own newline on top double-counted it.
+         */
       } else if (suppressNewlineForInlineComment) {
         trimTrailing();
         out.push(' ');

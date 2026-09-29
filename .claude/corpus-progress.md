@@ -1,5 +1,222 @@
 # Corpus Calibration Progress
 
+## Cycle 80 — comment opcode `0x4E` (trailing) is textually derivable, but the decoder's own "render this comment inline" list was hardcoded to `End-If` when the real rule is "any real preceding statement"
+
+**Status: IMPLEMENTED, validated, zero regressions. Cycle 79 left a 73-definition `ROUNDTRIP_ONLY` residual, 50 of which shared a first-divergence signature of stored opcode `0x4E` (trailing/inline comment) re-encoding as `0x24` (standalone). Direct inspection found the ENCODER already deterministically derives `0x4E` vs `0x24` purely from source text ("does non-whitespace precede this comment on its own line") -- `sourceEncodeExact` was true for all 50, proving this. The decoder's own existing "render this comment inline" allowlist (already used once before, for `End-If`) was simply hardcoded to that one keyword instead of the real, general rule: any comment directly after a statement's own semicolon, as long as a genuine statement (not just the start of the program) precedes it. Generalizing that one check, plus fixing a second-order blank-line-count regression it exposed, resolved 39 of the 50 target definitions plus 2 more outside it. Result: +41 EXACT, 0 regressions.**
+
+Datasource: LOCAL SNAPSHOT throughout. Starting commit `d136ae1` (Cycle
+79). Protected/full-corpus regression gate reproduced before any change:
+`npm run corpus:verify` — Improved: 0, Regressed: 0, REGRESSION GATE:
+PASS. Full harness reproduced fresh: **24,601 / 30,209 EXACT (5,608
+NONEXACT)** — matches Cycle 79's own ending state exactly. Test
+baseline reproduced: 607/608 (1 skipped). Cycle 73's own taxonomy tool
+reproduced exactly: `ROUNDTRIP_ONLY` = 73, `DECODE_SOURCE_MISMATCH` =
+923, `DECODER_BARE_IDENTIFIER` = 26, `REFERENCE_ACTIVE_PACKAGE` = 715,
+no drift.
+
+### Phase 1-4 — extracting and clustering the 73-definition residual
+
+New script: `tools/corpus/research/cycle80-comment-opcode-extract.ts`,
+writing `.claude/cycle80-roundtrip-residual.json`. Body-level (header
+excluded) first-divergence clusters:
+
+```text
+0x4e -> 0x24 (comment opcode)     50
+0x4f -> 0x5b (missing marker)      8
+0x4f -> 0x62 (missing marker)      6
+0x4e -> 0x2d                       2
+0x01 -> 0x4f                       2
+0x21 -> 0x4f                       1
+(buffer-length-only)               4
+```
+
+**100% one-directional**: 50/50 are `0x4E -> 0x24`, zero in the reverse
+(`0x24 -> 0x4E`), directly rejecting any model requiring both
+directions. Program-type split: **18 Application Class, 32 ordinary**
+-- rejecting Model D ("0x4E is App-Class-only") outright; this is a
+general PeopleCode mechanism.
+
+### Phase 6/17/19 — the encoder already knows the rule; it's purely textual
+
+`scanApplicationClassLayoutComments()` (encoder.ts) already implements
+the exact selection rule for the Application Class prefix scanner:
+
+```typescript
+const lineStart = source.lastIndexOf('\n', index - 1) + 1;
+opcode = source.slice(lineStart, index).trim() === '' ? 0x24 : 0x4e;
+```
+
+i.e. **`0x4E` means "something other than whitespace precedes this
+comment on its own source line"** (a trailing/inline comment); `0x24`
+means the comment is the first thing on its line (standalone). Because
+`sourceEncodeExact` was true for all 50 candidates, this rule (or an
+equivalent one used by the general fragment encoder for non-prefix
+comments) is ALREADY producing the historically-correct byte for every
+one of them when working from genuine original source -- there is no
+"guessing" to fix on the encoder side at all (Model A confirmed,
+Model C -- explicit opcode provenance preservation -- rejected as
+unnecessary).
+
+### Phase 13 — same-text minimal pairs: the smoking gun
+
+Direct three-way comparison (original source / decoded source) for 7 of
+the 50 candidates, e.g. AR_UPD_SW.CHECK_STATUS.SavePreChange (definition
+5682):
+
+```text
+original: Component string &CHECK_STATUS; /* Used to flag... */
+decoded:  Component string &CHECK_STATUS;
+          /* Used to flag... */
+```
+
+Identical comment text, identical everything else -- only the
+POSITIONING differs: original keeps the comment on the same line
+(trailing), decoded moves it to its own line (standalone). Re-parsing
+the decoded text, the encoder's own (correct) textual rule naturally
+computes `0x24` for a comment that is now, textually, standalone --
+not because the encoder guessed wrong, but because the DECODER already
+destroyed the very textual signal the encoder's rule depends on.
+
+### Phase 20/21 — provenance loss point: decoder rendering, not IR
+
+`decoder.ts` already carries the correct opcode on each comment TOKEN
+(`t.opcode === 0x4e`, confirmed via direct token dump) -- nothing is
+lost at the byte-decode or token/IR stage. The loss is purely in
+TEXT RENDERING: an existing, already-proven mechanism (`decoder.ts`'s
+"render this 0x4E comment inline, suppressing its leading newline" list)
+already exists for exactly this purpose -- it was simply too narrow:
+
+```typescript
+const inlineCommentAfterEndIf =
+  t.kind === TokenKind.Comment && t.opcode === 0x4e &&
+  tokens[tokenIndex - 1]?.opcode === 0x15 &&
+  tokens[tokenIndex - 2]?.text === 'End-If';   // <- the ONLY recognized keyword
+```
+
+Its own comment already documented this ("the calibrated inline case...
+is specifically an End-If statement") without ever testing whether
+`End-If` was load-bearing or just the one example the original fixture
+happened to use. A corpus-wide census answered that directly: 32/50
+ordinary declaration statements (`Component string ...;`, `Declare
+Function ...;`, etc.) have NOTHING to do with `End-If` at all.
+
+### Phase 27 — architecture decision: Option A (fix decoder renderer placement)
+
+Generalized the check from "previous is exactly `End-If`" to "previous
+is a real statement" -- reusing the existing synthetic fixture in
+`decoder.test.ts` (`; 0x4E` with nothing at all before the semicolon,
+which must still render on its own line) as the negative control that
+pins down what "real" means:
+
+```typescript
+const inlineCommentAfterStatement =
+  t.kind === TokenKind.Comment && t.opcode === 0x4e &&
+  tokens[tokenIndex - 1]?.opcode === 0x15 &&
+  tokens[tokenIndex - 2] !== undefined &&
+  tokens[tokenIndex - 2]?.kind !== TokenKind.Header;
+```
+
+The existing fixture's own semicolon is the very first token in the
+stream (`tokens[tokenIndex - 2]` is the Header token), so this
+generalization keeps its expectation intact while covering every real
+declaration statement -- confirmed by `npm test` staying 607/608
+unchanged.
+
+### Phase 33/35 — a second-order marker-count bug the first fix exposed
+
+Making the comment itself render inline was necessary but not
+sufficient: comments carry `NEWLINE_AFTER` unconditionally (format
+`NEWLINE_BOTH`), so an inline comment's own mandatory trailing newline
+now double-counted with whatever blank-line markers follow it,
+producing ONE EXTRA blank line where a genuine one existed after the
+inline comment (e.g. AR_UPD_SW.CHECK_STATUS.SavePreChange again:
+`...*/\n\n\n/****...` instead of the original's `...*/\n\n/****...`).
+This is the exact same "redundant newline not suppressed" family
+Cycle 79 fixed for `end-class`/`end-method`, now needed for `0x4E`
+itself. A second, subtler case (PORTAL_FLDR_FAV.PT_BUTTON_DEL.FieldChange,
+definition 13623) proved suppression must be CONDITIONAL: when a `0x2D`
+immediately follows the inline comment, its own newline is genuinely
+redundant (the `0x2D` supplies one, the following `0x4F` supplies the
+blank line); but when a `0x4F` follows the comment DIRECTLY with no
+`0x2D`, the comment's own newline is the ONLY ordinary line break
+available and must NOT be suppressed, or the required blank line is
+lost outright (an under-count regression caught before it shipped).
+Final condition: suppress only when `nextToken?.opcode === 0x2d`.
+
+### Fail-before/pass-after proof (`git stash`)
+
+```text
+Definition 5682  (comment, 0x2D, 0x4F shape): before -> UNKNOWN_MISMATCH, after -> EXACT
+Definition 13623 (comment, 0x4F only shape):  before -> UNKNOWN_MISMATCH, after -> EXACT
+```
+
+Both sub-shapes independently verified fail-before/pass-after.
+
+### Full validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped -- unchanged, including the
+  existing `; 0x4E` synthetic fixture (negative control, still passes
+  with its original "renders on the next line" expectation).
+- `git diff --check`: clean.
+- Protected/full-corpus gate: `npm run corpus:verify` — Improved: 0,
+  Regressed: 0, REGRESSION GATE: PASS.
+- Full top-level harness re-run: **EXACT 24,601 → 24,642 (+41),
+  NONEXACT 5,608 → 5,567 (-41)**.
+- Re-ran `cycle76-rowset-package-census.ts`: Matched 5,228 / Mismatched
+  262 / Contradictions 1 -- byte-for-byte unchanged (Phase 56).
+- Spot-checked Cycle 79's own fixed definitions (28700, 28727, 28707,
+  28768): all remain EXACT (Phase 54).
+- Re-validated the original 50-member `0x4E -> 0x24` family directly:
+  **39 EXACT, 11 still `UNKNOWN_MISMATCH`** (a second, later divergence
+  of the same general family). The remaining +2 of the total +41 gain
+  came from outside the original 50 (the fix is a general decoder
+  change, not scoped to that specific taxonomy snapshot).
+
+### Taxonomy redistribution: another clean 1:1 swap
+
+```text
+Category                  Cycle 79   Cycle 80   Delta
+EXACT                        24,601     24,642     +41
+ROUNDTRIP_ONLY                    73         32     -41
+DECODE_SOURCE_MISMATCH           923        923        0
+DECODER_BARE_IDENTIFIER           26         26        0
+REFERENCE_ACTIVE_PACKAGE         715        715        0
+(every other category unchanged)
+```
+
+Zero bleed into any other category, confirming this campaign stayed
+correctly scoped to comment-opcode roundtrip fidelity alone.
+
+### Remaining 32 ROUNDTRIP_ONLY residual (Phase 49/60)
+
+```text
+EOF->EOF (length-only divergence, no body byte differs)   15
+0x4f -> 0x5b (missing marker, pre-existing)                 8
+0x4f -> 0x62 (missing marker, pre-existing)                 6
+(other singletons)                                          3
+```
+
+The `0x4f -> 0x5b`/`0x4f -> 0x62` clusters were already present,
+unchanged, in Cycle 79's own residual characterization -- not
+investigated this cycle (Phase 40 scope discipline: one family per
+cycle). The 15-member `EOF->EOF` (pure length divergence within the
+shared prefix) is a NEW signal, not investigated.
+
+### Recommendation for Cycle 81 (not started)
+
+**The 15-definition `EOF->EOF` (length-only) cluster** within the
+remaining 32 `ROUNDTRIP_ONLY` residual is the most promising immediate
+lead -- a pure trailing-content difference, likely a single narrow
+mechanism given its clean signature. Alternatively, the `0x4f ->
+0x5b`/`0x4f -> 0x62` "missing marker" pairs (14 total, carried over
+unchanged from Cycle 79) are a smaller but already-partially-scoped
+option. `REFERENCE_ACTIVE_RECORD_FIELD` (1,245) remains the largest
+NONEXACT category overall if a larger population is preferred over
+continuing the rendering-fidelity campaign.
+
+Per this cycle's own brief: do not start Cycle 81.
+
 ## Cycle 79 — decoder's redundant-blank-line suppression list was missing `end-class`/`end-method`: +409 EXACT, the second-largest single-cycle gain in this project's history
 
 **Status: IMPLEMENTED, validated, zero regressions. Cycle 78 exposed `ROUNDTRIP_ONLY` (482 definitions, 92% Application Class) as the next roadmap signal. A first-true-BODY-byte-divergence census (explicitly NOT trusting the first TEXTUAL divergence, per this cycle's own critical constraint) found that the initial "3-space vs 2-space method indentation" textual difference every App-Class definition shows is a complete red herring -- cosmetic, byte-insignificant, and unrelated to why re-encoding fails. The TRUE first byte-significant divergence, found by comparing bodies with the 37-byte header excluded and mapping the exact offset back to its source token, is always immediately after `end-class;` (0x5b) or `end-method;` (0x64): the decoder's own `followsDeclaration` redundant-newline-suppression list (already proven and used for exactly this purpose for PanelGroup's 0x51) was simply missing these two opcodes, so a blank line following either construct rendered as TWO blank lines instead of one. Adding `0x5b` and `0x64` to that existing list resolved 409 of 482 ROUNDTRIP_ONLY definitions outright. Result: +409 EXACT, 0 regressions.**
