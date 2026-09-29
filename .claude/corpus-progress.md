@@ -1,5 +1,143 @@
 # Corpus Calibration Progress
 
+## Continuation session (2026-09-28), part 2 — method/get implementation-header closing semicolon never renders on its own line
+
+**Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL
+SNAPSHOT throughout. Starting commit `f4fb022` (this session's own prior
+fix). Baseline before this change: 25,058/30,209 EXACT, REGRESSION GATE: PASS.
+
+### What was found
+
+Re-running `decode-mismatch-census.ts` on the shrunk 289-definition
+`DECODE_SOURCE_MISMATCH` population (down from 512 after the qualifier-case
+fix) and classifying the "other" bucket by shape found a ~99-definition
+cluster, 100% Application Class: an implementation header for `method Name`
+or `get Name` (an Application Class method or property-getter body, not the
+one-line class-body declaration) whose closing `;` is immediately glued to
+the header's own last token in stored source -- either the bare name
+(`method ActionCode;`) or, when the header carries parameter/return doc
+comments, the last one's closing `+/` (`/+ Returns Boolean +/;`) -- but the
+decoder always rendered it on a fresh line instead (`method ActionCode\n;`,
+`+/\n;`).
+
+Token-level inspection (`decodeProgram`'s own token stream, via a throwaway
+script using `snapshot/store.ts`+`snapshot/reader.ts` directly -- no Oracle
+involved) showed the real binary shape:
+
+```text
+method(0x63) <name>(0xa) newline(0x2D, NEWLINE_ONCE) ;(0x15) <body...>
+method(0x63) <name>(0xa) newline(0x2D) comment(0x6D)+ ;(0x15) <body...>
+```
+
+`0x2D` (format.ts: `TokenKind.Newline`, `F.NEWLINE_ONCE` -- always emits,
+unconditionally) sits directly between the header's name and the semicolon
+in the bare-name case. In the doc-comment case, `0x2D` correctly separates
+the name from the first comment (each `/+ +/` doc comment, opcode `0x6D`,
+already carries its own `NEWLINE_BOTH` format), but the LAST comment's own
+`NEWLINE_AFTER` then pushes the closing `;` onto a fresh line.
+
+### Why this is safe to fix universally (not just narrow to these samples)
+
+This is corpus-wide REAL binary content (0x2D genuinely present), not a
+decoder invention — so the question was whether some other part of the
+30,209-definition corpus relies on the CURRENT (forced-newline) rendering
+being correct, i.e. whether any real source anywhere puts this semicolon on
+its own line. A direct SQL scan of `hcdev-snapshot.sqlite`'s
+`snapshot_definition.source_text` for both shapes
+(`method \w+\s*\n\s*;` and `\+/\s*\n\s*;`) across ALL 30,209 definitions
+found:
+
+```text
+same-line ("method Foo;" / ".../+/;"):  70 + 135 = 205 definitions
+different-line ("method Foo\n;" / ".../+/\n;"): 0 definitions, anywhere
+```
+
+Zero counter-examples anywhere in the entire corpus. The decoder's
+forced-newline rendering for this specific token adjacency was simply wrong
+in 100% of real cases — there is no tension with any already-EXACT
+definition to preserve.
+
+### Fix
+
+`src/peoplecode/decoder.ts`:
+
+1. Added `followsMethodOrGetHeader` to the existing 0x2D lookbehind
+   mechanism (which already special-cases `Catch`/`While`/`For`/`Function`/
+   `When` headers the identical way — "keep the explicit semicolon on the
+   header line"), triggered by `previous.opcode === 0x63 || previous.opcode
+   === 0x5f` (method / get). Wired into the same suppression list as
+   `catchHeaderBoundary`/`whileHeaderBoundary`/etc as
+   `methodOrGetHeaderBoundary`.
+2. Added `docCommentFollowedByBareSemicolon` (`t.opcode === 0x6d &&
+   nextToken?.opcode === 0x15`) to the existing `F.NEWLINE_AFTER`
+   suppression list alongside `whenOtherFollowedByBareSemicolon`/
+   `elseFollowedByBareSemicolon` — 0x6D (`/+ +/` signature annotation
+   comment) only ever appears in this one structural role corpus-wide, so
+   no further scoping was needed.
+
+### Fail-before/pass-after proof (`git stash -- src/peoplecode/decoder.ts`)
+
+```text
+Definition 29148 (method pageActivate;): before -> DECODE_SOURCE_MISMATCH, after -> EXACT
+```
+
+### Spot checks
+
+```text
+29148, 4112       -> EXACT
+29090, 29456      -> UNKNOWN_MISMATCH (decode SOURCE MATCH confirmed fixed; a SEPARATE, unrelated
+                     source->bin/roundtrip mismatch elsewhere in the same definition remains --
+                     not a regression, matches the qualifier-case fix's own earlier pattern)
+28961             -> still DECODE_SOURCE_MISMATCH (a DIFFERENT, not-yet-fixed decoder bug: a `get`
+                     accessor header where the decoder INSERTS a semicolon not present in source
+                     at all, rather than misplacing an existing one -- flagged as a separate lead,
+                     not addressed this session)
+```
+
+### Full validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped — unchanged.
+- Protected/full-corpus gate: `npm run corpus:verify` — REGRESSION GATE:
+  PASS, 0 regressed.
+- Full top-level harness re-run: **EXACT 25,058 → 25,082 (+24)**, NONEXACT
+  5,151 → 5,127.
+- Taxonomy rebuild: `DECODE_SOURCE_MISMATCH` 289 → 164 (net -125,
+  consistent with most of the ~99-definition cluster flipping away from
+  this classification, plus a few incidental others), `UNKNOWN_MISMATCH`
+  4,379 → 4,480 (+101, definitions whose header-semicolon rendering was
+  fixed but which have a second, still-open issue elsewhere), other
+  categories held steady (`UNSUPPORTED_SYNTAX` 335, `ENCODE_ERROR` 122,
+  `DECODER_BARE_IDENTIFIER` 26 all unchanged — containment confirmed).
+
+### Next action
+
+Re-run `decode-mismatch-census.ts` again (population now 164, down from
+289) to re-triage. Known remaining leads from this session's earlier
+classification pass, not yet investigated:
+
+- The `;;` → `;\n;` empty-statement-adjacency cluster (~65 candidates
+  seen pre-fix; re-check current count).
+- The `)[index]` → `) [index]` bracket-spacing-after-call-result cluster
+  (~14 seen) — note this is the OPPOSITE direction of commit `51a50f1`'s
+  multi-dimensional array-bracket fix (that one removed an unwanted space
+  after `]`; this one is an unwanted space the decoder ADDS after `)`
+  before `[`).
+- The `*/`-same-line-as-next-statement cluster (~14-41 seen depending on
+  how it's bucketed) — likely related to but distinct from commit
+  `8e6b357`'s comment-rendering generalization; needs its own
+  first-difference trace.
+- Definition 28961's `get`-header stray-semicolon-insertion bug (decoder
+  ADDS a `;` not present in source) — a different mechanism from the one
+  just fixed, worth checking population size via a fresh census/grep
+  before investing time.
+- The mojibake/curly-quote cluster (~57-61 seen) — still not determined
+  whether this is a genuine unfixable source-capture encoding artifact
+  (candidate for `PROVEN_UNAVAILABLE_METADATA`) or an actual decoder bug;
+  investigate the encoding mechanism (Windows-1252 vs UTF-8 byte
+  sequences for the specific curly-quote/em-dash characters involved)
+  before assuming either way.
+
 ## Continuation session (2026-09-28) — generalize decoder-rendering qualifier-case normalization (CompIntfc/Image/FileLayout/Interlink/Portal/Node)
 
 **Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL

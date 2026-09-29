@@ -1856,6 +1856,7 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
     let followsForHeader = false;
     let followsFunctionHeader = false;
     let followsWhenHeader = false;
+    let followsMethodOrGetHeader = false;
 
     if (t.opcode === 0x2d) {
       for (let lookbehind = tokenIndex - 2; lookbehind >= 0; lookbehind--) {
@@ -1930,6 +1931,25 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
            *      UnGray(CONTRACT.PAYMENT_END_DT);
            */
           followsWhenHeader = true;
+          break;
+        }
+
+        if (previous.opcode === 0x63 || previous.opcode === 0x5f) {
+          /*
+           * A method/property-getter implementation header with no
+           * parameter/return doc comment compiles as:
+           *
+           *   63 <name> 2D 15 <body...>   (method Name; ...)
+           *   5F <name> 2D 15 <body...>   (get Name; ...)
+           *
+           * A corpus-wide check found zero examples anywhere in the
+           * 30,209-definition corpus of a method/get implementation
+           * header's closing `;` on its own source line -- it is always
+           * glued to the header's last token. Keep the explicit semicolon
+           * on the method/get header line, mirroring the Function-header
+           * case just above.
+           */
+          followsMethodOrGetHeader = true;
           break;
         }
 
@@ -2096,6 +2116,11 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         followsWhenHeader &&
         nextToken?.opcode === 0x15;
 
+      const methodOrGetHeaderBoundary =
+        t.opcode === 0x2d &&
+        followsMethodOrGetHeader &&
+        nextToken?.opcode === 0x15;
+
       const redundantStructuralBoundary =
         t.opcode === 0x2d &&
         nextToken?.opcode === 0x4f &&
@@ -2107,6 +2132,7 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         forHeaderBoundary ||
         functionHeaderBoundary ||
         whenHeaderBoundary ||
+        methodOrGetHeaderBoundary ||
         redundantStructuralBoundary
       )) {
         out.push('\n');
@@ -2281,6 +2307,19 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
      */
     const elseFollowedByBareSemicolon =
       t.opcode === 0x19 && nextToken?.opcode === 0x15;
+    /*
+     * A method/property-getter implementation header's trailing
+     * parameter/return doc comment (`/+ ... +/`, opcode 0x6D) is
+     * immediately followed by the header's own closing `;` on the SAME
+     * source line -- `/+ Returns Boolean +/;`, not `/+ Returns Boolean
+     * +/\n;`. 0x6D's own NEWLINE_AFTER exists to separate it from the
+     * next doc comment or the method body's first statement; the
+     * semicolon's own NEWLINE_AFTER already supplies that line break. A
+     * corpus-wide check found zero examples anywhere in the corpus of
+     * this semicolon on its own line after a doc comment.
+     */
+    const docCommentFollowedByBareSemicolon =
+      t.opcode === 0x6d && nextToken?.opcode === 0x15;
     const inlineHeaderCommentBeforeSemicolon =
       t.opcode === 0x4e &&
       nextToken?.opcode === 0x15 &&
@@ -2348,6 +2387,7 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         inlineHeaderCommentBeforeSemicolon ||
         whenOtherFollowedByBareSemicolon ||
         elseFollowedByBareSemicolon ||
+        docCommentFollowedByBareSemicolon ||
         commentInlineAfterStatementBeforeNewlineOnce
       ) {
         /*
