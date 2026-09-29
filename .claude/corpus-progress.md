@@ -3,22 +3,25 @@
 ## Current status (2026-09-29)
 
 - **Current target:** Application Class self-class `%This.method()`
-  reference hidden-input investigation (against the corrected
-  26,113/30,209 baseline). Exhausted corpus-only metadata correlation
-  (614 App Class definitions with a stored self-class row; no
-  source-derivable field -- package depth, extends, implements, import
-  shape, which method calls %This, constructor-vs-not -- predicts
-  whether PACKAGEROOT/APPCLASSMETHOD get populated; 29300/29330 remain
-  IDENTICAL across every dimension tested, output still differs). Static
-  analysis of the PeopleTools 8.61 binaries (`pssys.dll`) found strong,
-  concrete evidence of the likely hidden input: a SEPARATE repository
-  table, `PSAPPCLASSDEFN` (APPCLASSID/PACKAGEROOT/QUALIFYPATH/APPCLASSREF/
-  DESCR), cross-referenced against `PSPCMPROG`-derived class identities --
-  not present anywhere in the local corpus snapshot. See "Application
-  Class Self-Reference Metadata" below for the full evidence chain and a
-  concrete decisive experiment for the user to run in a live environment.
-  Classified as **UNKNOWN, converging on PROVEN_UNAVAILABLE_METADATA**
-  pending that experiment's result. No encoder change made.
+  native call-path tracing (against the corrected 26,113/30,209
+  baseline). Escalated from string/co-occurrence evidence to real
+  radare2 XREF/vtable analysis of `pspcm.dll`/`pssys.dll`/`pside.exe`.
+  Confirmed `CApm` (Application Package Manager, owns `PSAPPCLASSDEFN`)
+  is a real class with virtual `Get`/`LoadDefn`/`UpdateImp` methods, and
+  found `ApmCopyPCode`/`ApmDeletePCode` -- direct, named evidence that
+  Apm-managed repository operations are coupled to PeopleCode program
+  lifecycle. However, `pspcm.dll` (the actual compiler) imports ZERO
+  Apm-family symbols, and `pside.exe` (App Designer) does not import
+  them either, nor does it call `PcmCompileObject` directly (which has
+  zero internal callers within `pspcm.dll` itself -- it's invoked from
+  an external, not-yet-identified caller). The `CApm::Get`/`LoadDefn`
+  methods are virtual (interface-dispatched), which is almost certainly
+  why simple import-table/string analysis cannot resolve the exact
+  call path further -- genuine ambiguity (stop condition D), not a
+  dead end. See "Application Class Self-Reference Metadata" below for
+  full addresses/evidence and the still-standing decisive live
+  experiment. Classification remains **UNKNOWN** (evidence is richer
+  but causality is not yet proven either way). No encoder change made.
 - **Last successful calibration (previous phase):** owner-key-by-OBJECTID
   fix in `tools/corpus/validator.ts` (test-harness fix, not an encoder.ts
   change) -- EXACT 25,265 -> 26,113, 0 regressions, protected 430/430
@@ -48,11 +51,12 @@
 
 ## Compiler Architecture: Application Class Self-Reference Metadata (2026-09-29)
 
-**Status: hidden-input candidate identified via native DLL evidence, not
-yet confirmed. Classification: UNKNOWN, converging on
-PROVEN_UNAVAILABLE_METADATA pending one decisive live-environment
-experiment (below). No source-only rule found or implemented -- correctly,
-per the corpus evidence.**
+**Status: escalated from string co-occurrence to real XREF/vtable
+analysis (radare2). Evidence is now much richer but STILL does not
+establish causality either way -- classification remains UNKNOWN. No
+source-only rule found or implemented -- correctly, per the evidence.
+The decisive live experiment (below, unchanged from the prior session)
+remains the fastest path to resolution.**
 
 ### Phase 1: exhaustive corpus-metadata correlation (150 + 614 populations)
 
@@ -152,31 +156,120 @@ exported names in `pspcm.dll` via `objdump -p` + `c++filt`), found:
   matching AppClass/compile/save patterns either -- it appears to hold
   shared SQL text used by some other caller (Application Designer itself,
   or a command-line repository utility), not the decision logic.
-- Limits of this analysis: no disassembler/decompiler was used (only
-  `strings`, `objdump -p`, `c++filt` -- all read-only, no execution). The
-  exact call path from "%This.method() encountered during compile" to
-  "PSAPPCLASSDEFN consulted" was NOT traced instruction-by-instruction;
-  the evidence is the CO-OCCURRENCE of the table and the exact key shape
-  in the same DLL that also handles PSPCMNAME, not a proven call graph.
+- Limits of this analysis (prior session): no disassembler/decompiler was
+  used (only `strings`, `objdump -p`, `c++filt` -- all read-only, no
+  execution). The exact call path was NOT traced instruction-by-
+  instruction; the evidence was the CO-OCCURRENCE of the table and the
+  exact key shape in the same DLL that also handles PSPCMNAME, not a
+  proven call graph.
+
+### Phase 5 continued (this session): real XREF/vtable tracing with radare2
+
+`r2`, `radare2`, `rizin`, and `ghidra` are all installed and available
+(none were in the prior session's toolset assumptions). Ran real
+analysis (`aa` fast-analysis mode; full `aaa` was not needed) against
+`pspcm.dll`, `pssys.dll`, and `pside.exe` (PE32+, x86-64; read-only the
+whole time -- no binary modified, patched, or executed).
+
+**Confirmed `CApm` is a real class implementing the standard PeopleTools
+"Definition Manager" pattern**, in `pssys.dll`:
+
+| Symbol | RVA | Demangled |
+|---|---|---|
+| `CApm::Get` | `0x1800708c0` | `virtual int CApm::Get(wchar_t const*, void**, int, int, void*, int)` |
+| `CApm::LoadDefn` | `0x180070940` | `virtual int CApm::LoadDefn(void*, HSAMTRAN__*, void*)` |
+| `CApm::UpdateImp` | `0x180073aa0` | `virtual int CApm::UpdateImp(void*) const` |
+| `CApm::GenerateSubClauseForUpdate` | `0x180070777` | builds dynamic SQL WHERE/SET clauses |
+| `CApm::BuildKey`, `BuildObjectID`, `RenameImp`, `DeleteImp`, `Free*` | -- | standard CRUD/lifecycle set |
+
+**`Get` and `LoadDefn` are VIRTUAL methods** (dispatched through a base
+"Definition Manager" interface shared by every PeopleTools definition
+type -- the same pattern produces `CRdm`/Record, `CFlm`/Field,
+`CPbm`/Page, etc., all visible as sibling `Xxx::Get`/`XxxGet` families in
+the same export table). This is almost certainly WHY plain string/import
+analysis cannot find a direct caller: a generic "Manager::Save()"-style
+dispatcher calls `Get()`/`LoadDefn()` through a base-class pointer without
+ever needing to reference `CApm` by name.
+
+**Found the plain-C export family mirroring `CApm`'s methods** (the
+cross-DLL-callable boundary functions other DLLs would actually import,
+since C++ vtable calls don't cross DLL boundaries by name):
+`ApmAllocDefn, ApmAllocateClass, ApmClassSubordinateExists, ApmCopyPCode,
+ApmDeletePCode, ApmFree, ApmFreeClassList, ApmFreeDelete, ApmFreeDiscard,
+ApmFreePackageList, ApmFreeRename, ApmFreeUpdate, ApmGet,
+ApmGetAppClassList (RVA `0x180079180`), ApmGetLevel, ApmGetList,
+ApmGetPackageKeyList, ApmGetUpdate, ApmQualifyPathNextLevel, ApmQuery,
+ApmRenameSubordinate, ApmRenameSubordinates, ApmStringKeys, ApmUpdate`.
+
+**`ApmCopyPCode` (RVA `0x180078d00`) and `ApmDeletePCode` (RVA
+`0x180078ed0`) are the single strongest piece of NEW evidence this
+session**: their names directly couple Apm (Application Package Manager,
+i.e. PSAPPCLASSDEFN) repository operations to PeopleCode ("PCode")
+program lifecycle -- when a class is copied or deleted at the repository
+level, its compiled PeopleCode program is explicitly handled by the SAME
+manager. This is concrete, named, non-circumstantial evidence that the
+Apm and PCode domains are architecturally coupled, not merely
+co-located in the same SQL text.
+
+**However, the DIRECT cross-DLL linkage that would prove the COMPILER
+itself consults PSAPPCLASSDEFN was NOT found, and in fact weighs against
+the simplest version of the hypothesis:**
+- `pspcm.dll`'s own import table (431 symbols imported from `pssys.dll`)
+  contains **zero** `Apm`-family symbols (checked the complete list, not
+  a sample). It does import dozens of sibling `Xxxm`-family functions
+  (`RdmGet`, `FlmGet`, `PbmGet`, `CrmGetUpdate`, etc.) for OTHER
+  definition types, so the absence of any `Apm*` entry is a real,
+  meaningful negative, not incidental.
+- `pside.exe` (Application Designer, 1.1MB, PE32+; imports `pspcm.dll`,
+  `pssys.dll`, `psmgr.dll`) also imports **zero** `Apm`-family symbols
+  from `pssys.dll` in its own 48-entry import list from that DLL. It
+  imports `PcmGet`/`PcmFreeDiscard`/`PcmGetObjOwnerID` (generic
+  PeopleCode-object load, for display/editing) and exactly one Pcm
+  function, `PcmBuildText` -- but not `PcmCompileObject`.
+- `PcmCompileObject` (RVA `0x1801e4b20`) has **zero XREFs found within
+  `pspcm.dll` itself** -- it is called from some OTHER, not-yet-identified
+  external caller (not `pside.exe`, per its import table). This means
+  the actual "compile Application Class source into PSPCMPROG/PSPCMNAME"
+  trigger during a save lives in a caller this investigation has not yet
+  located.
+- `psmgr.dll` (despite its promising name) imports from neither
+  `pspcm.dll` nor `pssys.dll` -- ruled out as the orchestrator.
+
+**Net assessment:** the evidence is now substantially richer (a real
+class, real methods, real coupling between Apm and PCode lifecycle) but
+does NOT resolve to a proven call path. The virtual-dispatch pattern
+means the true caller of `CApm::Get`/`LoadDefn` is architecturally
+hidden from both string search and import-table analysis by design --
+resolving it needs either instruction-level disassembly of the generic
+"Manager::Save()" dispatcher (interactive Ghidra/radare2 work well
+beyond this session's time budget) or finding the actual external caller
+of `PcmCompileObject` (possibly a separate batch-compile utility/EXE not
+present in the `pt861` binary set captured here). This is a genuine
+Phase-6/Outcome-D stopping point: ambiguous, with the exact function/RVA
+where the trace goes dark identified above, not a dead end reached by
+giving up early.
 
 ### Recovered hidden-input candidate
 
-**Hypothesis (not yet confirmed):** the self-class reference's
-PACKAGEROOT/APPCLASSMETHOD content is populated from the class's own
-entry in the `PSAPPCLASSDEFN` repository table at compile time -- a
-piece of state that lives in the PeopleSoft database (or is passed to
-the compiler via project/environment context) but is captured NOWHERE
-in the local PSPCMPROG/PSPCMNAME/source snapshot this project's corpus
-was built from. This would explain 29300/29330 perfectly: byte-identical
-class BODY, but each is a DIFFERENT class registered under a DIFFERENT
-package (`GPFR_XMLRF` vs `GPSC_XMLRF`) -- if one of those two classes'
-PSAPPCLASSDEFN registration is missing, stale, or differently populated
-(e.g. one was saved through Application Designer's normal "new class"
-flow and correctly registered; the other was copied/renamed without
-re-registering), the compiler would emit a blank self-class row for the
-one it cannot resolve and a populated one for the one it can.
+**Hypothesis (still not confirmed, now more precisely scoped):** the
+self-class reference's PACKAGEROOT/APPCLASSMETHOD content is populated
+from the class's own entry in the `PSAPPCLASSDEFN` repository table --
+architecturally plausible (Apm and PCode lifecycle are confirmedly
+coupled via `ApmCopyPCode`/`ApmDeletePCode`) but NOT shown to happen
+inside the compile call itself (`pspcm.dll` never imports Apm functions).
+The more precise version of the hypothesis, consistent with all evidence
+found so far: **the orchestrating SAVE logic (wherever `PcmCompileObject`
+is actually called from) resolves the class's PSAPPCLASSDEFN identity
+BEFORE invoking the compiler, and passes it in as part of the compile
+context** (candidate carrier: the `CPSBufContext`/`IPCHost` parameters
+seen in `CPCObject::InvokeAppClassFunction`'s signature) -- rather than
+the compiler querying the repository mid-compile. This still explains
+29300/29330 identically to the original hypothesis: two byte-identical
+class bodies, registered as two different classes (`GPFR_XMLRF` vs
+`GPSC_XMLRF`), whose PSAPPCLASSDEFN-resolved context differs before
+compilation ever begins.
 
-### Decisive experiment (for live execution -- not run by this session)
+### Decisive experiment (for live execution -- not run by this session, unchanged from the prior phase)
 
 **Goal:** confirm or reject the PSAPPCLASSDEFN hypothesis with ONE
 variable changed.
