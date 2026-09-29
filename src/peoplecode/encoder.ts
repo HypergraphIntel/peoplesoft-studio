@@ -4785,6 +4785,42 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     return undefined;
   };
 
+  /*
+   * Compiler architecture: the trivia that may sit between a construct's
+   * own core tokens and the structural boundary marker (0x2D/0x4F) that
+   * follows it. Proven, corpus-wide, to be exactly ONE optional inline
+   * comment for the Function/catch/When header closers (each fixed
+   * independently earlier this session before this consolidation) -- NOT
+   * a generalized "anything can precede a boundary" bag. A second trivia
+   * kind must have its own corpus proof before being added here; do not
+   * widen this type speculatively.
+   */
+  interface TrailingTrivia {
+    readonly inlineComment?: Buffer;
+  }
+
+  const captureTrailingTrivia = (): TrailingTrivia => ({
+    inlineComment: captureTrailingInlineComment()
+  });
+
+  /*
+   * Emits a construct's own TrailingTrivia (if any) immediately before
+   * the structural boundary marker itself -- the inline comment, when
+   * present, always renders BEFORE the marker, never after (proven
+   * identically for End-Function/catch/When's own header closers). This
+   * only replaces call sites already proven to share this EXACT shape
+   * (trivia capture immediately followed by a bare marker push, nothing
+   * else in between); a raw `chunks.push(Buffer.from([0x2d/0x4f]))` site
+   * that has NOT been proven to accept a preceding inline comment must
+   * not be routed through this function speculatively.
+   */
+  const emitBoundary = (trivia: TrailingTrivia, marker: 0x2d | 0x4f): void => {
+    if (trivia.inlineComment !== undefined) {
+      chunks.push(trivia.inlineComment);
+    }
+    chunks.push(Buffer.from([marker]));
+  };
+
   const andExpression = () => {
     booleanUnary();
     space();
@@ -6184,15 +6220,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          *
          * stores `... 15 4E <comment> 2D ...`, not `... 15 2D 24 <comment> ...`.
          */
-        {
-          const comment = captureTrailingInlineComment();
-          if (comment !== undefined) {
-            chunks.push(comment);
-          }
-        }
-
         // Confirmed Function-definition boundary.
-        chunks.push(Buffer.from([0x2d]));
+        emitBoundary(captureTrailingTrivia(), 0x2d);
 
         functionDepth--;
         currentHtmlFunctionNamespace = previousHtmlFunctionNamespace;
@@ -6465,15 +6494,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * stores `... &exMask 4E <comment> 2D ...`, not
          * `... &exMask 2D 24 <comment> ...`.
          */
-        {
-          const comment = captureTrailingInlineComment();
-          if (comment !== undefined) {
-            chunks.push(comment);
-          }
-        }
-
         // Confirmed catch-header -> body boundary.
-        chunks.push(Buffer.from([0x2d]));
+        emitBoundary(captureTrailingTrivia(), 0x2d);
 
         /*
          * Catch-header semicolon handling is source-dependent.
@@ -7868,18 +7890,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          *
          * stores `... "SKN" 00 4E ... 2D ...` (comment then 0x2D), not
          * `... "SKN" 00 2D 24 ...` (0x2D then a standalone-style comment).
-         */
-        {
-          const comment = captureTrailingInlineComment();
-          if (comment !== undefined) {
-            chunks.push(comment);
-          }
-        }
-
-        /*
-         * The structural 0x2D boundary comes BEFORE a When header's own
-         * optional trailing source semicolon, not after it -- the reverse
-         * of the order this previously emitted.
+         *
+         * The structural 0x2D boundary itself comes BEFORE a When header's
+         * own optional trailing source semicolon, not after it -- the
+         * reverse of the order this previously emitted.
          *
          * CONTRACT.PAYMENT_TERM.FieldChange (definition 3062):
          *
@@ -7889,7 +7903,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * stores `... "X" 2D 15 0A "UnGray" ...` (0x2D then 0x15), not
          * `... "X" 15 2D ...`.
          */
-        chunks.push(Buffer.from([0x2d]));
+        emitBoundary(captureTrailingTrivia(), 0x2d);
 
         if (source[pos] === ';') {
           pos++;
