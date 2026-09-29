@@ -5,6 +5,9 @@ Must be compatible with legacy.
 
 Oracle Documentation for 8.63 MCP:
 
+https://docs.oracle.com/en/applications/peoplesoft/peopletools/8.63/application-designer-developer-s-guide/understanding-mcp-server-support-peopletools-metadata.html
+
+
 https://docs.oracle.com/en/applications/peoplesoft/peopletools/8.63/application-designer-developer-s-guide/using-mcp-tools-exposed-mcp-server.html#GUID-8FCBC8E9-6B88-4D5C-8DC5-A2A646FFFA22
 
 
