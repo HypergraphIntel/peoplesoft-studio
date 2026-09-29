@@ -1,5 +1,103 @@
 # Corpus Calibration Progress
 
+## Continuation session (2026-09-28), part 4 — `)[index]` never renders with a space after the closing paren
+
+**Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL
+SNAPSHOT throughout. Starting commit `f933c5e` (this session's prior fix).
+Baseline before this change: 25,103/30,209 EXACT (raw `classify.ts` category
+counts at this point, confirmed via direct `corpus-results.sqlite` query on
+run 2942: `DECODE_SOURCE_MISMATCH=122`, `UNKNOWN_MISMATCH=4527`,
+`ENCODE_ERROR=122`, `UNSUPPORTED_SYNTAX=335` — see the procedural note below
+about not confusing this raw count with the finer taxonomy tool's own
+`DECODE_SOURCE_MISMATCH` sub-count).
+
+### What was found
+
+Continuing the `decode-mismatch-census.ts` triage: indexing directly into a
+function call's or parenthesized expression's result (`Split(&s, "/")[1]`,
+`GetElementsByTagName("X")[0]`, `getChildActions()[&j]`) renders with an
+unwanted space after the closing `)` (`Split(&s, "/") [1]`) — the mirror
+image of commit `51a50f1`'s multi-dimensional-array-bracket fix (which
+addressed an unwanted space after a closing `]`, not `)`). A corpus-wide scan
+for `)[` (no space) vs `) [` (space) in real code found 14 genuine
+`DECODE_SOURCE_MISMATCH` cases with no space, and confirmed the only 2
+textual `EXACT`/matches for either shape were false positives (regex
+patterns and JS-string-literal text embedded inside PeopleCode string
+literals, not real code) — no genuine counter-example anywhere.
+
+### Fix
+
+`src/peoplecode/decoder.ts`: extended the existing `[`-side `SPACE_BEFORE`
+exception (previously scoped only to "previous token is `]`", from the
+multi-dim-array fix) to also cover "previous token is `)`" (`0x14`). Kept as
+a narrow, opcode-pair-based check rather than adding `)` to the `TIGHT_AFTER`
+character set, which would have wrongly suppressed the genuinely-needed space
+after `)` in most other contexts (`If (x) Then`, etc).
+
+### Fail-before/pass-after proof (`git stash -- src/peoplecode/decoder.ts`)
+
+```text
+Definition 17859: before -> DECODE_SOURCE_MISMATCH, after -> EXACT
+```
+
+### Procedural note: two different classification granularities
+
+This fix's yield looked ambiguous mid-investigation because two different
+tools report a same-named category at different granularity:
+`classify.ts`'s raw `DECODE_SOURCE_MISMATCH` (what `corpus:verify` prints
+directly, and what actually gates the top-line EXACT count) vs
+`cycle73-nonexact-taxonomy.ts`'s own finer `primaryCategory` sub-bucketing
+(what `decode-mismatch-census.ts` reads its ID list from). Re-running
+`decode-mismatch-census.ts` right after a code change WITHOUT first
+rebuilding `nonexact-taxonomy.json` silently re-uses the STALE, pre-change
+population list — it does not re-derive its candidate set live. Always
+rebuild the taxonomy (`cycle73-nonexact-taxonomy.ts`) before trusting
+`decode-mismatch-census.ts`'s population count as current. Verified via
+direct `corpus-results.sqlite` queries (`corpus_run`/`result` tables, keyed
+by `run_id`, each full run's `git_commit` column reflects `HEAD` at
+invocation time — which can be stale relative to uncommitted working-tree
+changes, so match by `started_at`/`exact_count` context, not the commit hash
+alone, when auditing history) that there was no actual regression: raw
+`DECODE_SOURCE_MISMATCH` went 122 → 108 (a real decrease), `ENCODE_ERROR`
+and `UNSUPPORTED_SYNTAX` held exactly steady (122, 335) across both runs.
+
+### Full validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped — unchanged.
+- Protected/full-corpus gate: `npm run corpus:verify` — REGRESSION GATE:
+  PASS, 0 regressed (protected-430 subset); full-corpus per-category audit
+  above independently confirms 0 regressions across the whole 30,209.
+- Full top-level harness re-run: **EXACT 25,103 → 25,104 (+1)** — a modest
+  yield since most of the 14-candidate population had a second, independent
+  blocking issue (moved to `UNKNOWN_MISMATCH` instead of `EXACT`), but a
+  real, zero-regression, well-evidenced fix worth keeping regardless of
+  small immediate yield.
+- Taxonomy rebuild: `DECODE_SOURCE_MISMATCH` (fine-grained) 96 → 82.
+
+### Next action
+
+Fine-grained `DECODE_SOURCE_MISMATCH` is now 82 (down from 512 at session
+start — an 84% reduction across four fixes). Remaining known leads, not yet
+investigated: definition 28961's `get`-header stray-semicolon-insertion bug
+(decoder ADDS a `;` not present in source — a different mechanism from the
+method/get-header fix already landed this session), the `#If`/`#Then`
+preprocessor same-line rendering case (definition 28854, likely a 1-off), and
+the mojibake/curly-quote cluster (~57-61 seen, still undetermined whether
+fixable or a `PROVEN_UNAVAILABLE_METADATA` candidate — see part 3's notes for
+the working theory that this is a snapshot-capture charset artifact rather
+than a decoder bug, since the decoder derives its OWN text straight from
+PSPCMPROG bytes independently of the possibly-mis-captured `source_text`
+column; investigating this properly would need inspecting how `source_text`
+was captured into the snapshot, not encoder/decoder logic, and is deferred).
+With `DECODE_SOURCE_MISMATCH`'s remaining population now small and
+increasingly dominated by the not-yet-triaged mojibake cluster, the next
+session should rebuild the FULL taxonomy (not just decode-mismatch-census)
+and compare expected payoff-per-effort against continuing here versus
+pivoting to the much larger `REFERENCE_ACTIVE_RECORD_FIELD` (1,257),
+`REFERENCE_COMPLETE_DOWNSTREAM` (873), `REFERENCE_ACTIVE_FIELD` (757), or
+`REFERENCE_ACTIVE_PACKAGE` (683) families.
+
 ## Continuation session (2026-09-28), part 3 — directly-adjacent `;;` tokens never render on separate lines
 
 **Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL

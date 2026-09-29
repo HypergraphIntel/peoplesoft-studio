@@ -2243,8 +2243,22 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
        * this needs a targeted exception on the `[` side specifically
        * rather than a blanket "no space after ]" rule that would also
        * suppress the space assignment/operators genuinely need.
+       *
+       * The same targeted exception is needed when `[` immediately
+       * follows a closing `)` (0x14) instead of `]` -- indexing directly
+       * into a function call's or parenthesized expression's result,
+       * e.g. `Split(&s, "/")[1]`, `GetElementsByTagName("X")[0]`,
+       * `getChildActions()[&j]`. A corpus-wide scan of all 30,209
+       * definitions' stored source found zero real-code counter-examples
+       * of a genuine space between `)` and a following `[` (the only
+       * textual matches for `) [` were inside a comment, not real code).
+       * `)` itself always carries NO_SPACE_BEFORE but no SPACE_AFTER of
+       * its own, so this also needs its own narrow, opcode-based
+       * exception on the `[` side rather than adding `)` to
+       * `TIGHT_AFTER` (which would wrongly suppress the space genuinely
+       * needed after `)` in most other contexts, e.g. `If (x) Then`).
        */
-      !(t.opcode === 0x4c && tokens[tokenIndex - 1]?.opcode === 0x4d)
+      !(t.opcode === 0x4c && (tokens[tokenIndex - 1]?.opcode === 0x4d || tokens[tokenIndex - 1]?.opcode === 0x14))
     ) {
       out.push(' ');
     }
