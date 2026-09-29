@@ -2,31 +2,200 @@
 
 ## Current status (2026-09-29)
 
-- **Current target:** Declaration/section-closure architecture phase.
-  Phase 0 (preserve the completed closer audit, this entry) done. Next:
-  Phase 1 (centralize reference-gated deferred-marker production), then
-  Phase 2A/2B/2C (Import / App-Class-Local / Generic-Declaration closer
-  consolidation, in that order, each independently validated).
-- **Last successful calibration:** Consolidation #4 batch 2
-  (Global/Component/`registerTypedParameter` migrated to
-  `BUILTIN_TYPE_REGISTRY`) -- see entry below. 0 regressions, row-by-row
-  taxonomy identical.
-- **Protected baseline:** 430/430 (unaffected by any architecture work
-  this session -- protected set is disjoint from all touched chains).
-- **Locally blocked definitions:** none newly blocked this session; the
-  910-ish `REFERENCE_COMPLETE_DOWNSTREAM` population surveyed in the
-  "Continuation session, part 9" entry below remains fragmented/long-tail
-  and was intentionally not pursued further once the architecture-
-  consolidation redirect superseded it.
-- **Next action:** Phase 1 -- audit-before-edit report for the 14
-  `pendingReferenceGroupBoundaries` producer sites, then introduce
-  `deferReferenceGatedMarker()` (or the name the audit's semantics
-  justify) and migrate all 14, proving byte-for-byte equivalence before
-  touching any closer family.
-- **Newly established rules this session:** none new beyond what's
-  recorded in each Consolidation entry below -- this was pure
-  behavior-preserving refactoring, not semantic calibration.
+- **Current target:** Reference-allocation / PSPCMNAME-ordering
+  architecture phase. Found and fixed the single largest proven
+  mechanism (owner-key misderivation for multi-part-key definitions,
+  see "Compiler semantics: correct owner record/field derivation" below)
+  -- +848 EXACT, 0 regressions. Remaining reference-heavy categories
+  (`REFERENCE_COMPLETE_DOWNSTREAM`, `REFERENCE_ACTIVE_FIELD`,
+  `REFERENCE_ACTIVE_RECORD`, `REFERENCE_ACTIVE_PACKAGE`,
+  `REFERENCE_ACTIVE_SCROLL`, `STRUCTURAL_ORDERING`) are UNCHANGED by this
+  fix and, per extensive prior research (Cycles 4-70+, see below), do
+  NOT reduce to one further unifying rule at full-population scale --
+  this is a genuine architectural checkpoint, not a paused search.
+- **Last successful calibration:** owner-key-by-OBJECTID fix in
+  `tools/corpus/validator.ts` (test-harness fix, not an encoder.ts
+  change) -- EXACT 25,265 -> 26,113, 0 regressions, protected 430/430
+  intact.
+- **Protected baseline:** 430/430 (confirmed via `corpus:verify`'s
+  baseline-comparison gate: 0 regressed among the protected set).
+- **Locally blocked definitions:** none newly blocked this session.
+  Declaration/section-closure architecture work (Consolidations #1-4 +
+  Phases 1/2A/2B/2C) completed and validated prior to this phase -- see
+  entries below. The 910-ish `REFERENCE_COMPLETE_DOWNSTREAM` population
+  remains fragmented/long-tail per Cycle-era research; not pursued
+  further this session.
+- **Next action:** deliver the required reference-allocation-phase final
+  report (alignment tooling used, mechanism found, EXACT gain, remaining
+  unknowns, recommended next target) to the user. Do not resume
+  leaf-level corpus grinding or start further speculative reference-
+  ordering fixes for the remaining categories without new evidence.
+- **Newly established rules this session:** (1) declaration-section
+  closer-family consolidation (Import/App-Class-Local/Generic-
+  Declaration, each with a named state-transition primitive); (2) the
+  owner-record/field for a PeopleCode definition must be located by
+  OBJECTID (1=RECNAME, 2=FIELDNAME) among all 7 key slots, not assumed
+  at fixed array position 1/2 -- Component-scoped Record Field
+  PeopleCode (and other multi-part key shapes) place a leading
+  Component/Market pair first, pushing RECNAME/FIELDNAME later.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Architecture: Reference Allocation / PSPCMNAME Ordering (2026-09-29)
+
+**Status: one major mechanism found, fixed, and validated (+848 EXACT, 0
+regressions). Architectural checkpoint reached -- remaining reference-
+heavy categories require either new corpus evidence or native/compiler
+evidence, not further speculation.**
+
+### Prior research inventory (read before any new work; see full detail
+in the archived research-agent report referenced by this session)
+
+Two large, mostly-independent prior research bodies already exist:
+
+- **Ordinary-PeopleCode `DependencyScope` cycle** (Cycles 4-6, Phase 5/6,
+  Research Cycle 2/3): found and IMPLEMENTED a narrow, population-proven
+  rule -- a value-fetch/binding call's (`FetchValue`, `ActiveRowCount`,
+  etc.) own leading `Record.X`/`Scroll.X` argument only participates in
+  the shared control-group reuse pool when `controlDepth > 0`; at the
+  program's flat top level it always allocates fresh. Several broader
+  "one universal ordering rule" hypotheses (loop-epoch boundaries,
+  branch-vs-sequential reliability, multi-argument-position interaction)
+  were explicitly tested at FULL population scale (up to 28,402
+  observations) and FALSIFIED as unifying mechanisms -- they don't
+  generalize past their narrow, already-implemented slice.
+- **Application Class reference-identity cycle** (Cycles 26-44-ish):
+  established that Application Class reference ordering follows "one
+  chronological allocation stream + shared declaration/binding
+  environment," not global name-only reuse, not per-method/per-fragment
+  models (all rejected with 1,600+ contradictions each). The exact
+  internal enumeration order is only proven for narrow slices (0-or-1
+  missing dependency: 533/533; full multi-symbol dedup by first-
+  occurrence scan order: extended by Cycle 52, 6/6 + 12/12 controls) and
+  implemented as `allocateModeledDeclarationDependency`. The general
+  case remains the single largest historically-named unresolved
+  mechanism ("declaration-phase PACKAGE discovery/order," 23/43 of one
+  census's roots at the time).
+
+**No prior cycle claims a fully-general, contradiction-free reference-
+allocation-order model.** This phase's own new finding (below) is a
+THIRD, previously-undocumented mechanism, orthogonal to both of the
+above -- it is a test-harness input-derivation bug, not an encoder
+ordering-algorithm gap.
+
+### The finding: owner record/field must be located by OBJECTID, not array position
+
+Traced via `tools/corpus/research/reference-lifecycle.ts` (pre-existing
+alignment tool; stored-vs-generated positional pairing with ALLOC/REUSE
+derivation) against definition 22915
+(`Declare Function add_attachment PeopleCode GPUS_GRN_WRK.ATTACHADD
+FieldChange; Declare Function display_attachment_buttons PeopleCode
+GPUS_GRN_WRK.ATTACHADD RowInit;`): both Declare-Function statements
+target the program's own true owner record/field
+(`GPUS_GRN_WRK.ATTACHADD`), so PeopleTools reuses ONE PSPCMNAME row
+(NAMENUM 1) for both -- but the generator allocated a FRESH row for
+each, an off-by-one (then off-by-two) cascade for the rest of the
+definition.
+
+Root cause, confirmed via a temporary debug trace (reverted before
+commit) and cross-checked against `tools/corpus/discovery.ts`'s
+`keyDescription()`: `tools/corpus/validator.ts`'s owner-context
+construction (`runValidation`) read `objectValue1`/`objectValue2`
+directly as RECNAME/FIELDNAME. This is correct ONLY for simple Record
+Field PeopleCode, where OBJECTID 1 (RECNAME) and OBJECTID 2 (FIELDNAME)
+happen to occupy the first two physical key slots. For **Component-
+scoped Record Field PeopleCode** (and other multi-part key shapes), a
+leading Component/Market pair occupies OBJECTID 10/39 FIRST, pushing the
+true RECNAME/FIELDNAME to physical slots 3/4 -- `objectValue1`/
+`objectValue2` for definition 22915 were actually `"GPUS_GRN"`/`"GBL"`
+(component name / market code), not `"GPUS_GRN_WRK"`/`"ATTACHADD"`. The
+encoder's own `ownerReference` binding/reuse logic
+(`declareFunction()`, encoder.ts:5147-5151; the ordinary RECORD.FIELD
+`ownerUnbound` path, encoder.ts:2464-2477) is CORRECT given a correct
+owner -- it was being fed the wrong one.
+
+**Population, measured directly against the local snapshot** (not
+sampled): of 35,831 definitions in the snapshot, **3,247 have a real
+RECNAME (OBJECTID 1) and FIELDNAME (OBJECTID 2) somewhere among their 7
+key slots but NOT at physical position 1/2**. Of those, 1,209 were in
+the 30,209-corpus NONEXACT population (916 in `REFERENCE_ACTIVE_RECORD_FIELD`
+alone -- 74% of that category's 1,232 total). The other 2,038 were
+already EXACT: confirmed by inspection (definition 19514) that a
+misplaced-owner definition stays unaffected whenever its source never
+explicitly references its own true owner record.field by name (e.g.
+only reaches it via row-chained postfix access, `&row.RECNAME.FIELDNAME.Value`,
+a different code path that never consults `ownerReference`) -- the wrong
+owner is harmless unless something in source would need to bind/reuse
+it.
+
+### Fix
+
+`tools/corpus/validator.ts`'s `runValidation`: locate RECNAME/FIELDNAME
+by scanning all 7 `(objectId, objectValue)` pairs for `objectId === 1`
+/ `objectId === 2` respectively, falling back to the historical
+`objectValue1`/`objectValue2` positions when no such OBJECTID exists at
+all (Component-level, Menu-level, and Application Class definitions have
+no RECNAME/FIELDNAME key component -- this preserves their existing
+owner value, and every already-`objectId1===1 && objectId2===2`
+definition is completely unaffected since the scan finds them at the
+same position). Same fix applied to
+`tools/corpus/research/reference-lifecycle.ts` (research tooling that
+explicitly claims to mirror `validator.ts`'s owner derivation).
+
+This is a **test-harness fix, not an encoder.ts/decoder.ts change** --
+the production encoder's owner-reuse logic was already correct.
+
+### Equivalence proof
+
+- `tsc -p .` clean, `git diff --check` clean, 607/608 tests unchanged.
+- Fail-before/pass-after on definition 22915: NONEXACT -> EXACT.
+- Batch test against the full 1,209-definition misplaced-owner NONEXACT
+  population (via a standalone script calling `validateDefinition`
+  directly against the local snapshot): 848 EXACT (70%), 361 still
+  NONEXACT (other, unrelated causes -- not investigated further here).
+- Full 30,209-definition corpus: EXACT 25,265 -> **26,113** (+848), 0
+  regressions (`REGRESSION GATE: PASS`), protected baseline 430/430
+  intact (0 regressed in the baseline-comparison gate).
+- Full taxonomy rebuild, row-by-row diff against the pre-fix taxonomy:
+  848 rows removed (now EXACT) -- ALL 848 within the predicted
+  misplaced-owner set, 0 unexpected removals; 0 rows added (0 new
+  failures); 36 rows changed detail but kept the SAME `primaryCategory`,
+  all within the misplaced-owner set (expected: the fix moved their
+  reference stream closer to correct, exposing a different remaining
+  offset, without reaching full EXACT). Every other NONEXACT row
+  (`REFERENCE_COMPLETE_DOWNSTREAM` 843, `REFERENCE_ACTIVE_FIELD` 785,
+  `REFERENCE_ACTIVE_RECORD` 439, `STRUCTURAL_ORDERING` 69, etc.)
+  unchanged.
+
+### Remaining reference-ordering unknowns (explicit, not pursued further this session)
+
+- The 361 misplaced-owner definitions that did NOT reach EXACT after
+  this fix -- other, unidentified causes.
+- `REFERENCE_COMPLETE_DOWNSTREAM` (843), `REFERENCE_ACTIVE_FIELD` (785),
+  `REFERENCE_ACTIVE_RECORD` (439), `REFERENCE_ACTIVE_PACKAGE` (607),
+  `REFERENCE_ACTIVE_SCROLL` (144), `STRUCTURAL_ORDERING` (69): untouched
+  by this fix. Per the prior-research inventory above, these have
+  already resisted several full-population-scale unifying hypotheses
+  (loop-epoch, branch-vs-sequential, multi-argument-position). No new
+  evidence was found this session to reopen any of those falsified
+  hypotheses.
+- The Application Class "declaration-phase PACKAGE discovery/order"
+  mechanism remains the single largest NAMED unresolved mechanism from
+  prior cycles; not investigated further this session (would require
+  either a fresh full-population census of the CURRENT remaining
+  population, since prior censuses predate several since-implemented
+  fixes, or native/compiler evidence).
+
+### Why this is an architectural checkpoint, not a paused search
+
+Continuing to search for one more unifying rule across the remaining
+categories without new evidence would mean guessing -- the prior
+research cycles already tested the obvious candidate hypotheses at full
+population scale and falsified them as universal rules. Further
+progress on the remaining categories needs either: a fresh census of
+the CURRENT (post-this-session) remaining population (many prior
+censuses are now stale), or controlled PeopleTools compiler experiments
+/ native DLL evidence per the original phase instructions, neither of
+which this session had grounds to fabricate.
 
 ## Compiler Architecture: Declaration / Section Closure Audit (2026-09-29)
 
