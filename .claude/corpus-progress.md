@@ -1,5 +1,124 @@
 # Corpus Calibration Progress
 
+## Continuation session (2026-09-28), part 7 — `Rowset`-typed Function/method PARAMETERS: Cycle 7's "genuinely mixed" finding did not survive re-investigation either
+
+**Status: IMPLEMENTED, validated, zero regressions, by far this session's
+largest single fix.** Datasource: LOCAL SNAPSHOT throughout. Starting
+commit `79a6b71` (this session's prior fix). Baseline before this change:
+25,137/30,209 EXACT.
+
+### What was found
+
+Tracing definition 6328's `PACKAGE.ROWSET` divergence
+(`recordfield-census.ts`'s cluster) led to `Function
+activateHyperlinkSuccPlan(..., &rs As Rowset) Returns boolean;` — a
+Rowset-typed Function PARAMETER. `registerTypedParameter` (the shared
+dispatch for both ordinary Function parameters and Application Class
+method parameters) already grants Record/Row/SQL/ApiObject/Message
+parameters their own `PACKAGE` row, but Rowset was deliberately excluded,
+citing "Cycle 7's own 48-definition Rowset-typed-parameter population
+found 4 definitions ALREADY EXACT with NO PACKAGE/ROWSET row" — encoded
+directly as a negative-assertion unit test
+(`src/test/encoder.test.ts`, "a Rowset-typed Function parameter still does
+not allocate PACKAGE/ROWSET").
+
+Applying the exact same token-level, comment-excluding census methodology
+that resolved the analogous `Field`-parameter caution (part 5 of this
+session) found a clean, **unanimous 395/395 population** — 163 Application
+Class method parameters + 232 ordinary Function parameters, **0
+contradictions in either group**. The unit test's own concrete example
+(`HideRecordColumns`) was traced to its real corpus source, definition
+4842 (`DERIVED_GP.FUNCLIB_FG.FieldFormula`) — and it is NOT, and per the
+full-corpus gate below never was, an EXACT definition; it has a separate,
+unrelated pre-existing bug (`&GridRecord.FieldCount`, a well-known Record
+property access, gets mis-encoded as a RECORD.FIELD-style reference lookup
+instead of a plain inline identifier). Cycle 7's cited "4 already-EXACT"
+evidence did not hold up under direct inspection — the same class of
+census error (comment-only or unrelated-construct false positives, or in
+this case apparently a stale/incorrect EXACT-status claim) that the
+Field-parameter re-investigation already found once this session.
+
+### Fix
+
+`src/peoplecode/encoder.ts`'s `registerTypedParameter`: added
+`ensureLocalObjectPackageReference('ROWSET', 'Rowset')` to the `Rowset`
+branch, alongside (not replacing) the existing
+`chainSemanticsDeclaredRowsetVariables.add(...)` tracking, which is
+unrelated to the PACKAGE-row question and serves a different purpose
+(tracking the variable's own later `.GetRow()`/`.GetRowset()` chain
+semantics for field-reference resolution).
+
+### Stale test corrected
+
+`src/test/encoder.test.ts`: rewrote the negative-assertion test into a
+positive one asserting exactly one `PACKAGE/ROWSET` reference for the same
+fixture, with a comment documenting the re-investigation and its evidence
+(so a future session doesn't need to redo this work). Also updated a
+second test's own comment (~line 3148) that referenced Cycle 7's original
+narrow treatment, to avoid leaving stale rationale in place.
+
+### Fail-before/pass-after proof (`git stash -- src/peoplecode/encoder.ts`)
+
+```text
+Definition 6328: before -> UNKNOWN_MISMATCH, after -> EXACT
+```
+
+### Spot checks
+
+```text
+6328, 6599, 6729, 6744, 14507, 14865  -> EXACT
+10263, 11399                          -> UNKNOWN_MISMATCH (this layer fixed;
+                                          each has a separate remaining issue)
+4842                                  -> still UNKNOWN_MISMATCH (the
+                                          pre-existing, unrelated FieldCount
+                                          bug described above; NOT a
+                                          regression -- this definition was
+                                          never EXACT, contrary to the old
+                                          test's cited claim)
+```
+
+### Full validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped, after correcting the one test whose
+  assertion directly encoded the now-disproven premise.
+- Protected/full-corpus gate: `npm run corpus:verify` — REGRESSION GATE:
+  PASS, 0 regressed.
+- Full top-level harness re-run: **EXACT 25,137 → 25,189 (+52)** — this
+  session's largest single-fix yield. `DECODE_SOURCE_MISMATCH`/
+  `ENCODE_ERROR`/`UNSUPPORTED_SYNTAX` all held exactly steady (108/122/335),
+  confirming full containment.
+
+### Methodological note for future sessions
+
+This is the SECOND time this session a documented "genuinely mixed, do not
+touch" finding did not survive direct re-investigation (see part 5's
+`Field`-parameter fix for the first). Both times, the original census
+methodology counted textual matches without verifying they were (a) real
+compiled code rather than comment text, and (b) actually reached through
+the code path in question rather than an unrelated grammatical construct
+using the same surface keywords. Before accepting an old "negative
+control" / "genuinely mixed" comment at face value, re-derive its cited
+evidence directly (read the actual source of the cited definition IDs, or
+re-run a corrected census) rather than treating the comment as
+permanently authoritative — it may only be as good as the census that
+produced it.
+
+### Next action
+
+Re-run `recordfield-census.ts` and `package-census.ts` fresh (population
+counts will have shifted substantially after two large fixes). The
+`ROWSET`(144) cluster from part 7's own investigation is now mostly
+resolved; re-triage what remains (a mix of the pre-existing FieldCount-style
+bug seen in 4842, an unrelated "extra 0x2D before a disabled-code comment"
+shape seen in 2092/4585, and a "missing 0x4F blank marker" shape seen in
+4599 -- each is its own separate, smaller investigation, not one unified
+mechanism). Also worth checking: does the SAME "genuinely mixed" caution
+exist anywhere else in this file for a different type/construct that
+hasn't been re-examined with this methodology yet? A repo-wide search for
+"genuinely mixed" / "negative control" / "do not touch" comments would
+surface any remaining candidates before assuming the pattern is exhausted.
+
 ## Continuation session (2026-09-28), part 6 — a top-level built-in-type Local declaration WITH an initializer starts a fresh reference-allocation group
 
 **Status: IMPLEMENTED, validated, zero regressions, broad positive impact.**
