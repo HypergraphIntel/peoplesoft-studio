@@ -10204,6 +10204,23 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     pendingReferenceLocalMarkers = 1;
   };
 
+  /*
+   * The state transition shared by the two mid-loop Application-Class-
+   * Local closers (a standalone comment following the section, and the
+   * ordinary end-of-run path): closing this section also closes the
+   * generic top-level declaration section, since one boundary serves
+   * both (emitting the generic closer's own 0x2D again would duplicate
+   * it). NOT used by the EOF flush -- nothing reads either flag once the
+   * fragment has ended. `0x2D`/`0x4F` emission differs between the two
+   * mid-loop sites (unconditional at the comment site; conditional on
+   * `leadingRunHasInitializedLocal`/`suppressDeclarationSectionMarkers`
+   * at the main-path site) and stays explicit at each call site.
+   */
+  const closeApplicationClassLocalSection = (): void => {
+    closedApplicationClassLocalSection = true;
+    closedTopLevelDeclarationSection = true;
+  };
+
   while (true) {
     const whitespaceStart = pos;
     space();
@@ -10541,8 +10558,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           !nextIsLocal
         ) {
           chunks.push(Buffer.from([0x2d]));
-          closedApplicationClassLocalSection = true;
-          closedTopLevelDeclarationSection = true;
+          closeApplicationClassLocalSection();
         }
 
         emitBlankLineMarkers(topLevelWhitespace);
@@ -11133,10 +11149,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         emitBlankLineMarkers(topLevelWhitespace);
       }
 
-      closedApplicationClassLocalSection = true;
       // This one section boundary also closes preceding Declare/Component
       // declarations; emitting their boundary again duplicates 0x2D 0x4F.
-      closedTopLevelDeclarationSection = true;
+      closeApplicationClassLocalSection();
     }
 
     // Calibrated top-level declaration transition:

@@ -347,13 +347,53 @@ blocks purely to prevent double-firing, not import-section state itself.
 - Full taxonomy rebuild diffed ROW BY ROW: 0 diffs across all 4,944
   non-exact definitions.
 
+### Phase 2B: Application-Class-Local closer consolidation (2026-09-29)
+
+**Status: DONE, proven byte-for-byte equivalent (full row-level taxonomy
+diff), 0 regressions.**
+
+Audit found 3 sites (comment-adjacent, main-path, EOF) with a real,
+UNRESOLVED asymmetry: the comment-adjacent closer (line ~10538) never
+checks `context.suppressDeclarationSectionMarkers`, while its sibling
+main-path closer (line ~11097) does. An Application-Class method body
+(where that flag is always `true`) reaching this closer via a
+standalone-comment path rather than the ordinary statement path would
+therefore emit a `0x2D` the main path would have suppressed. No corpus
+definition was found exercising this exact combination, so whether it's
+a latent bug or genuinely unreachable is unknown -- preserved exactly,
+NOT fixed, per this phase's behavior-preserving discipline.
+
+Extracted `closeApplicationClassLocalSection()`: the 2-statement pair
+(`closedApplicationClassLocalSection = true; closedTopLevelDeclarationSection
+= true`) that was byte-for-byte identical at both mid-loop closing sites.
+Not used by the EOF flush, which doesn't need either flag (nothing reads
+them once the fragment ends). `0x2D`/`0x4F` emission stays explicit and
+separate at each site, since the comment site emits unconditionally and
+the main-path site is gated on `leadingRunHasInitializedLocal`/
+`suppressDeclarationSectionMarkers`.
+
+**Equivalence proof:**
+- `tsc -p .` clean, `git diff --check` clean, 607/608 tests unchanged.
+- Targeted fixtures: 513, 29632 EXACT (unchanged); 3596 byte-identical
+  via `git stash` before/after (remains its pre-existing
+  UNKNOWN_MISMATCH, unrelated to this refactor -- confirmed as the
+  mandatory cross-family integration test, no new double-close
+  introduced).
+- Full 30,209-definition corpus: EXACT 25,265 -> 25,265, 0 regressions
+  (`REGRESSION GATE: PASS`).
+- Full taxonomy rebuild diffed ROW BY ROW: 0 diffs across all 4,944
+  non-exact definitions.
+
 ### Next action
 
-Phase 2B: audit and consolidate the Application-Class-Local closer
-(never reopens once closed; cross-references the Generic-Declaration
-closer but not vice versa). Then Phase 2C (Generic top-level declaration
-closer, last, highest risk -- reopen-capable, most historical
-exclusions).
+Phase 2C: audit and consolidate the Generic top-level declaration
+closer -- last and highest risk (reopen-capable, most historical
+exclusions and collisions, cross-referenced by both sibling families).
+Preserve every currently proven guard (`nextIsLocal`,
+`pendingReferenceLocalBoundary`, `sawApplicationClassLocalSection`/
+`closedApplicationClassLocalSection`, `leadingRunHasInitializedLocal`,
+`justClosedImportSection`) exactly. Definition 3596 is the mandatory
+cross-family integration test for this phase too.
 
 ## Compiler Architecture
 
