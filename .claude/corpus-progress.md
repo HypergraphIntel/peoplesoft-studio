@@ -2,6 +2,119 @@
 
 ## Compiler Architecture
 
+### Consolidation #2: minimal `TrailingTrivia` + `emitBoundary()` (2026-09-29)
+
+**Status: DONE, proven byte-for-byte equivalent (full row-level taxonomy
+diff, not just category counts), 0 regressions.**
+
+Per explicit instruction: inventory and classify every remaining raw
+`0x2D`/`0x4F` emission BEFORE migrating anything, and migrate only the
+group already proven to share one exact shape -- not a bulk replacement,
+and not a "generic helper that merely hides duplicated special cases."
+
+**Inventory of all 8 `captureTrailingInlineComment()` call sites** (from
+Consolidation #1), classified by what immediately follows the capture:
+
+| Sites | What follows | In scope for emitBoundary? |
+|---|---|---|
+| 4 (And/Or-group leading/trailing) | `0x41`/`0x42` boolean-group markers | No -- different marker family entirely |
+| 1 (When-Other) | body loop directly, no boundary push at all | No -- has no boundary marker of its own here |
+| 3 (End-Function, catch, ordinary When) | bare `chunks.push(Buffer.from([0x2d]))`, nothing but JS comments in between | **Yes -- the proven common shape** |
+
+**Migrated exactly the 3 proven sites** to:
+```ts
+interface TrailingTrivia { readonly inlineComment?: Buffer; }
+const captureTrailingTrivia = (): TrailingTrivia => ({ inlineComment: captureTrailingInlineComment() });
+const emitBoundary = (trivia: TrailingTrivia, marker: 0x2d | 0x4f): void => {
+  if (trivia.inlineComment !== undefined) chunks.push(trivia.inlineComment);
+  chunks.push(Buffer.from([marker]));
+};
+```
+Each of the 3 sites' `{ capture; if (comment) push; } // JS comment \n chunks.push([0x2d])` became one
+`emitBoundary(captureTrailingTrivia(), 0x2d);` call, with the original per-site corpus-citation
+comments (definition numbers, byte-shape examples) preserved as documentation.
+
+**Equivalence proof:**
+- `tsc` clean, 607/608 tests unchanged.
+- 10 targeted fixtures (3128, 14626, 17332, 17341, 17354, 21256, 21305,
+  21415, 27819, 3062 -- covering End-Function, catch, and ordinary When)
+  individually re-checked: all unchanged.
+- Full 30,209-definition corpus: EXACT 25,265 → 25,265, 0 regressions, 0
+  improvements.
+- Full taxonomy rebuild diffed ROW-BY-ROW (not just category totals)
+  against the pre-migration taxonomy: **byte-for-byte identical** for
+  all 30,209 definitions.
+
+### Remaining `0x2D`/`0x4F` inventory (classified, NOT migrated)
+
+**Remaining raw `0x2D` sites: 14** (down from 17), split into two
+semantically distinct families:
+
+1. **3 unproven single-header-boundary candidates** -- same textual
+   shape as the 3 just migrated (`// Confirmed X boundary.` comment then
+   a bare push), but with NO existing trivia capture before them and NO
+   corpus evidence yet that a comment can precede them:
+   - `Function` header → body boundary (the OPENING boundary; distinct
+     from `End-Function`'s CLOSING one, already migrated)
+   - `For`-loop header → body boundary ("PeopleTools boundary between
+     loop header and body")
+   - One further "condition/body boundary" site, construct not yet
+     identified (comment only says "0x2D is the structural
+     condition/body boundary and 0x15 is the explicit source semicolon")
+   These should NOT be migrated to `emitBoundary` until a failing corpus
+   definition proves each one individually needs the same inline-comment
+   treatment -- do not assume symmetry with Function/catch/When.
+
+2. **11 declaration/import/Application-Class-local-SECTION closers** --
+   structurally a DIFFERENT kind of boundary from the 3 above. These do
+   not close a single statement's own header; they close a multi-
+   statement RUN (a leading declaration run, an open import section, an
+   Application-Class-typed Local section) and are gated by multiple
+   mutually-exclusive stateful conditions (`closedTopLevelDeclarationSection`,
+   `pendingReferenceLocalBoundary`, `sawApplicationClassLocalSection`,
+   `leadingRunHasInitializedLocal`, `suppressDeclarationSectionMarkers`)
+   built up across this session's part 10 fix and earlier cycles. Folding
+   these into `emitBoundary` would be exactly the "generic helper hiding
+   duplicated special cases" anti-pattern -- these sites are NOT
+   duplicates of one rule, they are genuinely different rules that
+   happen to end in the same single byte. If this family is worth
+   consolidating, it needs its own purpose-built abstraction (something
+   like a `DeclarationSectionState` object owning these flags explicitly,
+   per architecture target 3), not `emitBoundary`.
+
+**Remaining raw `0x4F` sites: 40**, coarsely classified by enclosing
+statement handler:
+
+| Handler | Count |
+|---|---|
+| `evaluateStatement` (When/When-Other body blank-line handling) | 23 |
+| `ifStatement` (Then/Else body blank-line handling) | 4 |
+| `functionStatement` (Function-body blank-line handling) | 4 |
+| `forStatement` (loop-body blank-line handling) | 4 |
+| `tryStatement` (try/catch body blank-line handling) | 3 |
+| top-level statement loop (declaration/import section blank lines) | 2 |
+
+Every one of these sits inside a `for (let marker = 0; marker < markerCount; marker++)`
+loop computing `Math.max(1, newlineCount - 1)` -- a MULTIPLICITY shape,
+not a single trivia-then-marker shape like the 3 just migrated. This is
+a genuinely different abstraction candidate (`emitBlankLines(newlineText)`
+or similar), not more `emitBoundary` calls, and per the same discipline
+needs its own per-group corpus proof before any migration -- not
+attempted in this pass.
+
+### Next action
+
+Per instruction, holding here. Two independent next candidates, NEITHER
+started:
+(a) find a concrete failing definition for one of the 3 unproven
+single-header-boundary sites (Function-open, For-header, or the
+unidentified condition/body site) to prove or disprove it shares the
+`emitBoundary` shape;
+(b) design and prove a SEPARATE `emitBlankLines`-style abstraction for
+the 40-site blank-line-multiplicity family, which is large enough
+(23 of 40 in `evaluateStatement` alone) to be worth its own dedicated
+consolidation pass once corpus-proven equivalent group by group.
+
 ### Architecture consolidation audit (2026-09-29)
 
 A full architecture audit was requested and delivered (see `AUDIT_REPORT.md`
