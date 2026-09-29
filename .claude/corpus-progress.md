@@ -1,5 +1,33 @@
 # Corpus Calibration Progress
 
+## Current status (2026-09-29)
+
+- **Current target:** Phase 1 (blank-line/layout consolidation) and Phase
+  2 (built-in type registry consolidation) are both DONE as far as corpus
+  evidence safely supports; delivering the required stop-and-report to
+  the user now. Not resuming leaf-level corpus grinding per explicit
+  instruction until directed otherwise.
+- **Last successful calibration:** Consolidation #4 batch 2
+  (Global/Component/`registerTypedParameter` migrated to
+  `BUILTIN_TYPE_REGISTRY`) -- see entry below. 0 regressions, row-by-row
+  taxonomy identical.
+- **Protected baseline:** 430/430 (unaffected by any architecture work
+  this session -- protected set is disjoint from all touched chains).
+- **Locally blocked definitions:** none newly blocked this session; the
+  910-ish `REFERENCE_COMPLETE_DOWNSTREAM` population surveyed in the
+  "Continuation session, part 9" entry below remains fragmented/long-tail
+  and was intentionally not pursued further once the architecture-
+  consolidation redirect superseded it.
+- **Next action:** deliver the Phase 1 + Phase 2 final report (architecture
+  changes, duplication removed, sites deliberately left separate,
+  recommended next architecture target) per the user's explicit stop
+  condition. Do not start declaration-section-state or Application-Class
+  compilation-state refactors unless the user directs it next.
+- **Newly established rules this session:** none new beyond what's
+  recorded in each Consolidation entry below -- this was pure
+  behavior-preserving refactoring, not semantic calibration.
+- **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
 ## Compiler Architecture
 
 ### Consolidation #4: `BUILTIN_TYPE_REGISTRY` + batch 1 migration (2026-09-29, Phase 2)
@@ -90,6 +118,63 @@ parameter chain, and `functionStatement()`'s Returns chain.
 **Next:** batch 2 (Global/Component/`registerTypedParameter`), same
 discipline -- behavior-preserving first, evidence-driven corrections
 only afterward and only as their own separate, explicitly-labeled change.
+
+### Consolidation #4 batch 2: Global/Component/`registerTypedParameter` (2026-09-29, Phase 2)
+
+**Status: DONE, proven byte-for-byte equivalent (full row-level taxonomy
+diff), 0 regressions.**
+
+Migrated the three chains deliberately deferred from batch 1:
+
+- Added `'global-array-element'` to `BuiltinTypeContext` (Global's
+  array-of-Record case was already its own distinct context from plain
+  `'global'`; Record's registry row extended to include it) and migrated
+  `globalDeclaration()`'s array-element chain plus its plain File/Rowset/
+  Record chain. Confirmed by reading past the migrated chain that a
+  separate, independent `chainSemanticsDeclaredRowsetVariables.add(...)`
+  call for Rowset (unrelated side effect, keyed on the same `declaredType`
+  but firing later against `firstGlobalVariable`) remains untouched.
+- Migrated `registerTypedParameter()`'s SQL/ApiObject/Grid/Message
+  branches to the registry (`'application-class-parameter'` context).
+  Kept Record/Row/Rowset as literal `ensureLocalObjectPackageReference`
+  calls -- these three also do `recordVariables.add`/`rowVariables.add`/
+  `chainSemanticsDeclaredRowsetVariables.add` for downstream chained-
+  field-access resolution, so collapsing them into the registry call
+  would silently drop those side effects (same operating rule as batch 1).
+- Migrated `componentDeclaration()`'s Record/Rowset/XmlDoc/File/ApiObject/
+  Row chain (`'component'` context, all 6 types already present in the
+  registry with `'component'` in their context set from batch 1). Verified
+  by reading past this chain that a separate comma-separated-multiple-
+  variables tracking chain (`recordVariables`/`chainSemanticsDeclaredRowsetVariables`/
+  `chainSemanticsDeclaredRowVariables`, keyed on `declaredType` + `firstVariable`)
+  is fully independent and untouched. Component's array-element case
+  (`arrayElementTypes()`) has no PACKAGE allocation at all currently --
+  left alone, since Component differs from Local/Global here and there is
+  no evidence to add one.
+- Historical per-type corpus citations (definition 4067 for Rowset, 935
+  for XmlDoc, Cycle 75 11-candidate for File, 14-candidate for ApiObject,
+  34-candidate for Row) preserved as a single condensed comment, matching
+  the pattern already used for batch 1's `localDeclaration()`/`globalDeclaration()`
+  migrations.
+
+**Equivalence proof:**
+- `tsc -p .` clean, `git diff --check` clean, 607/608 tests unchanged.
+- Targeted fixtures: 4067 (Component Rowset), 935 (Component XmlDoc), 525
+  (Component Application Class instance, `ensureLocalObjectPackageReference`-
+  adjacent path) all EXACT.
+- Full 30,209-definition corpus: EXACT 25,265 → 25,265, 0 regressions, 0
+  improvements (`REGRESSION GATE: PASS`).
+- Full taxonomy rebuild diffed ROW BY ROW against the batch-1 taxonomy
+  snapshot: 0 diffs across all 4,944 non-exact rows.
+- Net: encoder.ts +41/-133 lines (-92 net).
+
+**Batch 2 closes out the built-in type registry consolidation.** All 7
+original dispatch chains now route through `BUILTIN_TYPE_REGISTRY` except
+the two deliberately-excluded classes: `typeName()`'s own token-introducer
+list (mismatched type set, no PACKAGE evidence for its 3 extra types),
+and the Record/Row/Rowset branches with side effects beyond PACKAGE
+allocation (`registerTypedParameter()` and `functionStatement()`'s
+parameter chain).
 
 ### Consolidation #3: `emitBlankLineMarkers()` (2026-09-29, Phase 1)
 
