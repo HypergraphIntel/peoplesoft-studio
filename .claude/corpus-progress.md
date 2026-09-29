@@ -2,24 +2,104 @@
 
 ## Current status (2026-09-29)
 
-- **Current target:** Cycle 86 completed -- general Function -> Local
-  declaration-run restart, after removing its two collisions. EXACT 26,443
-  -> 26,528 (+85), failed 3,766 -> 3,681, protected PASS, 0 EXACT ->
-  non-EXACT across three commits. See "Compiler Semantics Cycle 86".
-- **Last successful calibration:** Cycle 86 (the single declaration-gap
-  owner; initialized Locals never close a started run; restart after
-  Function).
+- **Current target:** Cycle 87 completed -- Mechanism C, part 1. EXACT
+  26,528 -> 26,576 (+48), failed 3,681 -> 3,633, protected PASS, 0 EXACT ->
+  non-EXACT. See "Compiler Semantics Cycle 87".
+- **Last successful calibration:** Cycle 87. Close serialization is
+  independent of the trigger, and a REM does not end leading-run
+  eligibility before a run starts.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** none newly blocked. 15609 and 28343
-  need the REM fix (Mechanism C). 13559 is a decoder-side
-  DECODE_SOURCE_MISMATCH.
-- **Next action:** Mechanism C. Comment/REM adjacency at declaration
-  closes: 137 EXTRA_2D (40 one-blocker), MISSING_2D after a comment or
-  REM, and the REM branch's `leadingLocalRun` reset. Then the import-group
-  missing 0x4F.
-- **Newly established rules this session:** the Cycle 86 rules; Cycle 85
-  (subsumed); Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
+- **Locally blocked definitions:** none newly blocked. 13559 is a
+  decoder-side DECODE_SOURCE_MISMATCH.
+- **Next action:** the remaining Mechanism C subfamilies:
+  1. 0x2D on the wrong side of a comment (~11);
+  2. a section closed at a comment although a Local follows (~9);
+  3. App-Class Local -> comment -> Component (4).
+  Then the import-group missing 0x4F (14 + 5).
+- **Newly established rules this session:** the Cycle 87 rules; the Cycle
+  86 rules; Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 87 -- Mechanism C: comments / REM at declaration close
+
+**Baseline reproduced fresh at `ad870e0`:** 26,528 / 3,681, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only; no DLL work.
+
+**Result:** two separately validated semantic commits. EXACT **26,528 ->
+26,576 (+48)**, 0 EXACT -> non-EXACT.
+
+The comment categories were kept separate throughout: standalone `/* */`
+(0x24), REM (0x24 with REM text), trailing 0x4E, and disabled code `<* *>`
+(0x55). Each closer site was measured on its own before any
+generalization.
+
+### Rule 1 -- close serialization is independent of the trigger (commit `3f93a6f`)
+
+- **Observation:** the 137 extra-0x2D cases were dominated by a
+  declaration section that contains an initialized Local, then a
+  standalone comment. Stored has `...; 4F /*comment*/ X` with no 0x2D;
+  generated had `2D 4F /*comment*/`. Examples: 4585
+  `D D D D Li L L L L L[4F] C X`; 2094, 5497, 18578, 14623.
+- **Cause:** the main closer omits 0x2D for an informal close (Cycle 84
+  rule B), but the three comment-adjacent closers (standalone comment,
+  including its App-Class-Local sub-site; REM; disabled code) pushed 0x2D
+  unconditionally.
+- **Per category (forward-exact gain / loss):**
+
+  | closer site | result |
+  |---|---|
+  | standalone comment, generic section | +23 / 0 |
+  | standalone comment, App-Class-Local section | +8 / 0 |
+  | disabled code | +1 / 0; boundary corrected in all 4 changed (2092, 2093, 25330, 17512) |
+  | REM | 0 / 0; boundary corrected in all 3 changed (19459, 20295, 22889) |
+
+  Zero contradictions in any category. Adding method-body
+  (`suppressDeclarationSectionMarkers`) suppression at these sites
+  changes no bytes, so there is no evidence for it and it is not added.
+- **Implementation:** one helper, `pushDeclarationSectionCloseByte()`,
+  used at the four sites. The state transitions are unchanged.
+- **Gates:** +33 EXACT (26,561), protected PASS, row diff 0 regressions.
+  `npm test` 634 run / 633 pass (3 category tests fail before and pass
+  after; the formal-close control passes both ways). Extra-0x2D population
+  137 -> 77.
+
+### Rule 2 -- a REM does not end leading-run eligibility before a run starts (this commit)
+
+- **Cause:** the REM branch ended with an unconditional `leadingLocalRun =
+  false`. The standalone-comment branch leaves the run untouched when no
+  Local run has started yet.
+- **Symptoms:**
+  - a REM before the first Local meant the run never got its formal
+    `2D 4F` close (5242 `Rem Payee List; Local Rowset &RS;`, 7222, 9482,
+    10300);
+  - a REM before the first declaration lost that declaration's blank-line
+    marker (5613, 7880, 14170).
+- **Fix:** reset only if a run has started.
+- **Result:** +15 forward-exact, 0 lost. All 22 changed definitions match
+  stored at the changed boundary, including the Cycle 85/86 residuals
+  15609 and 28343. Of the 17 missing-0x2D runs preceded by a comment, 17
+  followed a REM.
+- **Gates:** +15 EXACT (26,576), protected PASS, row diff 0 regressions,
+  `npm test` 636 run / 635 pass (the REM test fails before and passes
+  after).
+
+### Remaining boundary population (pre-rule-2 NONEXACT list, both rules applied)
+
+105 definitions (was 185 at the cycle start), 32 strict one-blockers (was
+74). EXTRA_2D 77, MISSING_2D 28, MISSING_4F 20, ORDER 5. Remaining
+subfamilies:
+
+1. **0x2D on the wrong side of a comment** (paired MISSING_2D before the
+   comment and EXTRA_2D after it; stored places it BEFORE the comment),
+   about 11 definitions:
+   - import -> REM -> Component: 2128, 18969, 23519, 25337, 25507;
+   - executable -> comment -> executable: 18061, 19449, 24626;
+   - executable -> comment -> Local: 14543, 17594, 26010.
+2. **A section closed at a comment although a Local follows the comment**
+   (Declare Function / Component, then a comment, then Local): about 9
+   (27360, 28208, 28250, 14136, 14144).
+3. **App-Class Local -> comment -> Component:** 4 (18998, 23568).
+4. **Outside Mechanism C:** the import-group MISSING_4F (14 + 5).
 
 ## Compiler Semantics Cycle 86 -- general declaration-run restart after Function (collisions removed)
 

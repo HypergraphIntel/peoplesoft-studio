@@ -10935,7 +10935,21 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        */
       chunks.push(remComment(true));
       haveCompletedTopLevelStatement = true;
-      leadingLocalRun = false;
+      /*
+       * Cycle 87: a REM does not end leading-Local-run eligibility when no
+       * Local run has started yet -- the same rule the standalone block
+       * comment branch already follows ("If no Local run has started yet,
+       * leave leadingLocalRun untouched"). Previously this reset was
+       * unconditional, so a REM before the first Local (5242: `Rem Payee
+       * List; Local Rowset &RS;`) meant the run never got its formal
+       * `2D 4F` close, and a REM before the first declaration lost that
+       * declaration's blank-line marker (5613, 7880). LOCAL SNAPSHOT: +15
+       * forward-exact, 0 lost; all 22 changed definitions match stored at
+       * the changed boundary (incl. Cycle 85 residuals 15609, 28343).
+       */
+      if (sawLeadingLocalDeclaration) {
+        leadingLocalRun = false;
+      }
       continue;
     }
 
