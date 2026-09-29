@@ -1386,6 +1386,19 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * are.
        */
       ensureLocalObjectPackageReference('ROWSET', 'Rowset');
+    } else if (/^Record$/i.test(declaredType ?? '')) {
+      /*
+       * Compiler closure: `Global Record &x;` (71-candidate corpus
+       * population, 0 contradictions -- every single stored occurrence
+       * has a PACKAGE/RECORD row) allocates the same dependency row
+       * `Global File`/`Global Rowset` above already do -- the identical
+       * class of gap, just never evidenced for plain `Record` at Global
+       * scope specifically (an earlier cycle's own census covered File
+       * and Rowset but explicitly found no Global-Record evidence at the
+       * time; this fresh, corpus-wide census found 71/71 one-directional
+       * matches).
+       */
+      ensureLocalObjectPackageReference('RECORD', 'Record');
     }
 
     space();
@@ -1524,6 +1537,24 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * ApiObject Component declarations remain unconfirmed.
        */
       ensureLocalObjectPackageReference('FILE', 'File');
+    } else if (/^ApiObject$/i.test(declaredType ?? '')) {
+      /*
+       * Compiler closure: `Component ApiObject &var;` (14-candidate
+       * corpus population, 0 contradictions) allocates the same
+       * PACKAGE/APIOBJECT dependency row the Rowset/XmlDoc/File cases
+       * above already do -- this was the exact gap those cases' own
+       * comments flagged as "unconfirmed," now confirmed.
+       */
+      ensureLocalObjectPackageReference('APIOBJECT', 'ApiObject');
+    } else if (/^Row$/i.test(declaredType ?? '')) {
+      /*
+       * Compiler closure: `Component Row &var;` (34-candidate corpus
+       * population, 0 contradictions) allocates the same PACKAGE/ROW
+       * dependency row the other Component built-in-type cases above
+       * already do -- the same class of gap, also flagged "unconfirmed"
+       * by those cases' own comments, now confirmed.
+       */
+      ensureLocalObjectPackageReference('ROW', 'Row');
     }
 
     /*
