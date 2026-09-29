@@ -1,5 +1,109 @@
 # Corpus Calibration Progress
 
+## Continuation session (2026-09-28), part 6 — a top-level built-in-type Local declaration WITH an initializer starts a fresh reference-allocation group
+
+**Status: IMPLEMENTED, validated, zero regressions, broad positive impact.**
+Datasource: LOCAL SNAPSHOT throughout. Starting commit `08f779b` (this
+session's prior fix). Baseline before this change: 25,111/30,209 EXACT.
+
+### What was found
+
+Continuing to decompose `REFERENCE_ACTIVE_RECORD_FIELD`'s `PACKAGE`
+sub-clusters, the `SQL` cluster (13 definitions) split into at least two
+unrelated shapes on inspection. Definition 22515 traced cleanly:
+
+```text
+Local SQL &_SQL = GetSQL(SQL.GPS_ACTION_TBL_SQL);
+Local SQL &_SQLx = GetSQL(SQL.GPS_ACTION_LNG_SQL);
+```
+
+Stored PSPCMNAME has TWO separate `PACKAGE/SQL` rows (NAMENUM 4 and 6), one
+per declaration. But `ensureLocalObjectPackageReference`'s existing dedup
+pool (keyed by `controlGroup:functionDepth:packageName:objectName`) put both
+top-level leading declarations in the same control group, so the encoder
+only allocated one. Critically, a DIRECT corpus counter-example
+(AE_WRK.AE_GO.DeleteAEInfo, definition 802) has three BARE (uninitialized)
+`Local SQL` declarations in the exact same leading-run/top-level-group shape,
+and stores only ONE shared `PACKAGE/SQL` row — proving the dedup pool itself
+isn't wrong in general, only for this specific INITIALIZED-declaration case.
+A second counter-example (definition 19565) has three INITIALIZED
+`Local Rowset` declarations, but inside a nested `If ... Then` block
+(`controlDepth > 0`) — and these correctly DEDUPE to one row, proving the
+new rule needed is scoped specifically to `controlDepth === 0` (top level),
+exactly mirroring the encoder's own pre-existing `assignsCreateRecord` rule
+("a top-level `&REC1 = CreateRecord(...)` RE-assignment starts a new
+allocation group") which already handles the analogous case for ordinary
+assignment statements, just never for a DECLARATION's own initializer.
+
+### Fix
+
+`src/peoplecode/encoder.ts`'s `localDeclaration()`: added a lookahead
+(`declarationHasInitializer`, matching the variable-list-then-`=` shape
+immediately after the type name) that bumps `controlGroup` before the
+built-in-type `ensureLocalObjectPackageReference` dispatch, scoped to
+`controlDepth === 0`, applying uniformly to every built-in type this
+dispatch already handles (Record/Field/Rowset/Row/SQL/File/XmlDoc/XmlNode/
+ApiObject/Grid/GridColumn/Message/JavaObject/TransformData/Chart/
+ProcessRequest) rather than being SQL-specific.
+
+### Fail-before/pass-after proof (`git stash -- src/peoplecode/encoder.ts`)
+
+```text
+Definition 28211: before -> UNKNOWN_MISMATCH, after -> EXACT
+```
+
+### Spot checks
+
+```text
+28211                          -> EXACT
+22515, 22536, 28204, 28229,
+28293                          -> UNKNOWN_MISMATCH (this layer fixed --
+                                   confirmed via decode SOURCE MATCH and the
+                                   byte-diff offset moving further into the
+                                   stream -- each has a separate, unrelated
+                                   remaining issue, e.g. an extra/missing
+                                   blank-line marker much later)
+802, 6, 9, 3611, 19565          -> unchanged, still EXACT (critical negative
+                                   controls: bare-declaration dedup and
+                                   nested-control-depth dedup are both
+                                   provably UNAFFECTED by this change)
+```
+
+### Full validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped — unchanged.
+- Protected/full-corpus gate: `npm run corpus:verify` — REGRESSION GATE:
+  PASS, 0 regressed.
+- Full top-level harness re-run: **EXACT 25,111 → 25,137 (+26)** — a much
+  larger yield than the ~5 SQL-specific candidates directly investigated,
+  confirming the same initialized-declaration gap existed broadly across
+  the OTHER built-in types sharing this dispatch (Record/Rowset/File/
+  ApiObject/etc), not just SQL. `DECODE_SOURCE_MISMATCH`/`ENCODE_ERROR`/
+  `UNSUPPORTED_SYNTAX` all held exactly steady (108/122/335), confirming
+  full containment to the intended mechanism.
+- Taxonomy rebuild: confirmed (first attempt hit the shell's 300s timeout,
+  exit 137 -- not a memory issue, `free -h` showed 20GB available; re-run
+  to completion in the background). `REFERENCE_ACTIVE_RECORD_FIELD` 1257 →
+  1238 (net -19; this fix's own real effect is larger, partially offset by
+  new definitions shifting INTO this taxonomy bucket from elsewhere as
+  their own first divergence changed), other categories moved consistently
+  with a broad, well-contained fix.
+
+### Next action
+
+Re-run `recordfield-census.ts` and `package-census.ts` fresh (population
+counts will have shifted) to re-triage remaining `PACKAGE`-prefixed
+sub-clusters. This fix likely resolved most of the `SQL`/`ROWSET`/`RECORD`/
+`APIOBJECT`/`ROW`/`GRID`/`JAVAOBJECT` clusters identified in part 5's notes
+that specifically involved multiple TOP-LEVEL INITIALIZED declarations of
+the same type -- re-verify what's actually left in each before assuming
+they still need separate investigation. The broader
+`REFERENCE_ACTIVE_RECORD_FIELD`/`REFERENCE_COMPLETE_DOWNSTREAM`/
+`REFERENCE_ACTIVE_FIELD` families (each still 700-1250+ definitions) remain
+the primary long-term target per the operating principle of attacking the
+highest-payoff deterministic mechanism.
+
 ## Continuation session (2026-09-28), part 5 — `Field`-typed Function PARAMETERS: the "genuinely mixed" caution was based on flawed evidence
 
 **Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL

@@ -1170,6 +1170,42 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       }
     }
 
+    /*
+     * A top-level `Local <BuiltinType> &var = <initializer>;` declaration
+     * starts a new ordinary reference-allocation group, the same
+     * "assignsCreateRecord" rule already applies to a plain top-level
+     * `&REC1 = CreateRecord(...)` RE-assignment (see its own declaration
+     * comment a few hundred lines below). Two consecutive top-level
+     * declarations of the SAME built-in type, each with its own
+     * initializer, each allocate their OWN fresh PACKAGE dependency row --
+     * they do NOT dedupe with each other the way two consecutive BARE
+     * (uninitialized) declarations of the same type already correctly do.
+     *
+     * GPS_POSTPLN_DTL.RowInit (definition 22515):
+     *
+     *   Local SQL &_SQL = GetSQL(SQL.GPS_ACTION_TBL_SQL);
+     *   Local SQL &_SQLx = GetSQL(SQL.GPS_ACTION_LNG_SQL);
+     *
+     * stores two separate PACKAGE/SQL rows (NAMENUM 4 and 6), while
+     * AE_WRK.AE_GO.DeleteAEInfo (definition 802)'s three BARE
+     * `Local SQL &SelectRec;` / `&SelectOvrd;` / `&Delete;` declarations
+     * share exactly one. A declaration inside a nested control structure
+     * (If/For/etc, controlDepth > 0) is unaffected -- GPMX_...ACA_EMP_XMIT_PART3
+     * (definition 19565)'s three INITIALIZED `Local Rowset` declarations
+     * inside an `If %Page = ... Then` block correctly dedupe to one
+     * PACKAGE/ROWSET row, proving this rule is specific to top-level
+     * (controlDepth === 0) declarations, exactly mirroring
+     * assignsCreateRecord's own scope.
+     */
+    const declarationHasInitializer =
+      /^\s*&[A-Za-z0-9_]+#?(?:\s*,\s*&[A-Za-z0-9_]+#?)*\s*=(?!=)/.test(
+        source.slice(pos)
+      );
+
+    if (declarationHasInitializer && controlDepth === 0) {
+      controlGroup = nextControlGroup++;
+    }
+
     if (/^Record$/i.test(type ?? '')) {
       ensureLocalObjectPackageReference('RECORD', 'Record');
     } else if (/^Field$/i.test(type ?? '')) {
