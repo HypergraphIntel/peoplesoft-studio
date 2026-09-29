@@ -864,8 +864,96 @@ function textOperand(opcode: number, kind: TokenKind, value: string): Buffer {
  * value: &variable | quoted string (doubled delimiters) | True | False | uint128.
  * Operators retain source order; no folding, type checking or AST is needed
  * for this token format. Unary minus is supported; unary plus and member/index
- * access are unsupported.  
+ * access are unsupported.
  */
+
+/*
+ * Compiler architecture: canonical built-in PeopleCode type semantics.
+ *
+ * Historically this project maintained the SAME type-to-PACKAGE-reference
+ * mapping independently in 7 separate dispatch chains (Local declaration,
+ * both the plain and array-element-type branches; Global declaration;
+ * Component declaration; Application Class method parameters; ordinary
+ * Function parameters; Function Returns types), each hand-copied when a
+ * corpus definition exposed a gap. This caused real drift: one dispatch
+ * chain's own comment still asserted (until this consolidation) that
+ * Rowset-typed parameters "deliberately" do NOT allocate a PACKAGE
+ * reference, citing a historical regression -- even though a SIBLING
+ * dispatch chain (`registerTypedParameter`) had already been corrected
+ * earlier the same session to prove that claim false for 395/395 genuine
+ * corpus occurrences. A single source of truth prevents this class of
+ * drift by construction: fixing one cell fixes every context that reads
+ * from it.
+ *
+ * `packageAllocationContexts` encodes ONLY contexts with direct, current
+ * corpus evidence (or an existing, already-migrated dispatch chain) that
+ * this type allocates a PACKAGE dependency row there. A context's ABSENCE
+ * from this set means "not currently evidenced to allocate here" -- which
+ * may mean "genuinely does not" (a real compiler restriction) OR "not yet
+ * investigated." Do NOT treat an empty set membership as a claim that the
+ * type is proven excluded from that context; only add a context here once
+ * a corpus census (the same discipline every entry below already
+ * required) supports it. This table is a faithful, behavior-preserving
+ * transcription of the union of all 7 chains as they stood at the time of
+ * this consolidation -- it does not, by itself, add or remove any type/
+ * context combination.
+ */
+type BuiltinTypeContext =
+  | 'local'
+  | 'local-array-element'
+  | 'global'
+  | 'component'
+  | 'application-class-parameter'
+  | 'function-parameter'
+  | 'function-returns';
+
+interface BuiltinTypeSemantics {
+  readonly packageKey: string;
+  readonly canonicalName: string;
+  readonly packageAllocationContexts: ReadonlySet<BuiltinTypeContext>;
+}
+
+const BUILTIN_TYPE_REGISTRY: ReadonlyMap<string, BuiltinTypeSemantics> = new Map(
+  (
+    [
+      ['Record', ['local', 'local-array-element', 'global', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
+      ['Row', ['local', 'local-array-element', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
+      ['Rowset', ['local', 'local-array-element', 'global', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
+      ['SQL', ['local', 'local-array-element', 'application-class-parameter', 'function-parameter', 'function-returns']],
+      ['File', ['local', 'local-array-element', 'global', 'component', 'function-parameter', 'function-returns']],
+      ['Field', ['local', 'local-array-element', 'function-parameter', 'function-returns']],
+      ['XmlDoc', ['local', 'local-array-element', 'component', 'function-returns']],
+      ['XmlNode', ['local', 'local-array-element', 'function-returns']],
+      ['ApiObject', ['local', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
+      ['Grid', ['local', 'application-class-parameter', 'function-parameter', 'function-returns']],
+      ['Message', ['local', 'application-class-parameter', 'function-parameter', 'function-returns']],
+      ['GridColumn', ['local']],
+      ['JavaObject', ['local', 'function-returns']],
+      ['TransformData', ['local']],
+      ['Chart', ['local']],
+      ['ProcessRequest', ['local']]
+    ] as const
+  ).map(([name, contexts]) => [
+    name.toLowerCase(),
+    {
+      packageKey: name.toUpperCase(),
+      canonicalName: name,
+      packageAllocationContexts: new Set(contexts) as ReadonlySet<BuiltinTypeContext>
+    }
+  ])
+);
+
+/*
+ * The 3 additional names `typeName()`'s own inline-identifier-introducer
+ * list recognizes but which have NO entry above (JsonArray, JsonObject,
+ * Exception): token-rendering behavior is proven for these, but whether
+ * they ever allocate a PACKAGE reference in any context is NOT yet
+ * evidenced either way. Deliberately left out of BUILTIN_TYPE_REGISTRY
+ * rather than added with an empty context set, so a future census adding
+ * real evidence is additive rather than editing an existing "proven empty"
+ * row.
+ */
+
 function encodeFragmentInternal(source: string, context?: EncodeFragmentContext): { bytes: Buffer; references: PeopleCodeReference[]; commentOpcodesConsumed: number } {
 
   let commentOpcodeIndex = 0;
@@ -1150,22 +1238,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
         declaredArrayElementType = elementType;
 
-        if (/^File$/i.test(elementType ?? '')) {
-          ensureLocalObjectPackageReference('FILE', 'File');
-        } else if (/^XmlDoc$/i.test(elementType ?? '')) {
-          ensureLocalObjectPackageReference('XMLDOC', 'XmlDoc');
-        } else if (/^XmlNode$/i.test(elementType ?? '')) {
-          ensureLocalObjectPackageReference('XMLNODE', 'XmlNode');
-        } else if (/^Record$/i.test(elementType ?? '')) {
-          ensureLocalObjectPackageReference('RECORD', 'Record');
-        } else if (/^Field$/i.test(elementType ?? '')) {
-          ensureLocalObjectPackageReference('FIELD', 'Field');
-        } else if (/^Rowset$/i.test(elementType ?? '')) {
-          ensureLocalObjectPackageReference('ROWSET', 'Rowset');
-        } else if (/^Row$/i.test(elementType ?? '')) {
-          ensureLocalObjectPackageReference('ROW', 'Row');
-        } else if (/^SQL$/i.test(elementType ?? '')) {
-          ensureLocalObjectPackageReference('SQL', 'SQL');
+        if (elementType !== undefined) {
+          allocateBuiltinTypePackageReferenceIfSupported(elementType, 'local-array-element');
         }
       }
     }
@@ -1206,93 +1280,18 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       controlGroup = nextControlGroup++;
     }
 
-    if (/^Record$/i.test(type ?? '')) {
-      ensureLocalObjectPackageReference('RECORD', 'Record');
-    } else if (/^Field$/i.test(type ?? '')) {
-      ensureLocalObjectPackageReference('FIELD', 'Field');
-    } else if (/^Rowset$/i.test(type ?? '')) {
-      ensureLocalObjectPackageReference('ROWSET', 'Rowset');
-    } else if (/^Row$/i.test(type ?? '')) {
-      ensureLocalObjectPackageReference('ROW', 'Row');
-    } else if (/^SQL$/i.test(type ?? '')) {
-      ensureLocalObjectPackageReference('SQL', 'SQL');
-    } else if (/^File$/i.test(type ?? '')) {
-      ensureLocalObjectPackageReference('FILE', 'File');
-    } else if (/^XmlDoc$/i.test(type ?? '')) {
-      ensureLocalObjectPackageReference('XMLDOC', 'XmlDoc');
-    } else if (/^XmlNode$/i.test(type ?? '')) {
-      ensureLocalObjectPackageReference('XMLNODE', 'XmlNode');
-    } else if (/^ApiObject$/i.test(type ?? '')) {
-      /*
-       * ADSRECORDS1_WRK.QRYSEARCHBTN.FieldChange (definition 772):
-       * `Local ApiObject &aRecordsList;` allocates an implicit
-       * PACKAGE/APIOBJECT dependency row the same way Rowset/Record/SQL/
-       * File/XmlDoc/XmlNode already do -- this case was missing entirely,
-       * so every PSPCMNAME index after the first ApiObject declaration
-       * was shifted by one relative to stored.
-       */
-      ensureLocalObjectPackageReference('APIOBJECT', 'ApiObject');
-    } else if (/^Grid$/i.test(type ?? '')) {
-      /*
-       * AMM_FILTER.IB_DIRECTION.FieldFormula (definition 1046):
-       * `Local Grid &GRID, &GRID2;` allocates an implicit PACKAGE/GRID
-       * dependency row the same way ApiObject above does -- the same
-       * class of gap, a separate object-declaration type missing from
-       * this dispatch entirely.
-       */
-      ensureLocalObjectPackageReference('GRID', 'Grid');
-    } else if (/^GridColumn$/i.test(type ?? '')) {
-      /*
-       * Compiler closure: corpus-wide REFERENCE_ACTIVE_RECORD_FIELD
-       * census (45 definitions) found `Local GridColumn &x;` missing
-       * from this dispatch entirely -- the same class of gap as
-       * Grid/ApiObject/ProcessRequest above, just never covered. Cycle
-       * 78 already added `GridColumn` to `typeName()`'s inline-
-       * identifier introducer list (the token-BYTE concern) but never
-       * to this separate PACKAGE-allocation dispatch (the reference-
-       * ROW concern) -- two independent mechanisms for the same type
-       * name. GP_ACM_MBR.ENTRY_TYPE_ELEM.RowInit (definition 10760)
-       * proves it: `Local GridColumn &colPinPctName;` followed by
-       * `&colPinPctName = &grdAcmMbr.GetColumn(...)` stores a
-       * PACKAGE/GRIDCOLUMN row this dispatch never allocated, shifting
-       * every subsequent reference index down by one.
-       */
-      ensureLocalObjectPackageReference('GRIDCOLUMN', 'GridColumn');
-    } else if (/^Message$/i.test(type ?? '')) {
-      /*
-       * Compiler closure: same REFERENCE_ACTIVE_RECORD_FIELD census,
-       * PACKAGE.MESSAGE cluster (15 definitions). `Message` was added to
-       * `typeName()`'s inline-identifier list in Cycle 78 (the token-
-       * byte concern) but never to this PACKAGE-allocation dispatch.
-       */
-      ensureLocalObjectPackageReference('MESSAGE', 'Message');
-    } else if (/^JavaObject$/i.test(type ?? '')) {
-      /*
-       * Compiler closure: same census, PACKAGE.JAVAOBJECT cluster (10
-       * definitions). Same gap as Message above.
-       */
-      ensureLocalObjectPackageReference('JAVAOBJECT', 'JavaObject');
-    } else if (/^TransformData$/i.test(type ?? '')) {
-      /*
-       * Compiler closure: REFERENCE_ACTIVE_PACKAGE census,
-       * PACKAGE.TRANSFORMDATA cluster (31-candidate corpus population, 0
-       * contradictions) -- same class of Local-declaration dispatch gap.
-       */
-      ensureLocalObjectPackageReference('TRANSFORMDATA', 'TransformData');
-    } else if (/^Chart$/i.test(type ?? '')) {
-      /*
-       * Compiler closure: same census, PACKAGE.CHART cluster (17-candidate
-       * corpus population, 0 contradictions).
-       */
-      ensureLocalObjectPackageReference('CHART', 'Chart');
-    } else if (/^ProcessRequest$/i.test(type ?? '')) {
-      /*
-       * BENEF_PB_WRK.ODEM_SCHED_ACTY_PB.FieldDefault (definition 1749):
-       * `Local ProcessRequest &RQST;` allocates an implicit
-       * PACKAGE/PROCESSREQUEST dependency row the same class of gap as
-       * ApiObject/Grid above.
-       */
-      ensureLocalObjectPackageReference('PROCESSREQUEST', 'ProcessRequest');
+    /*
+     * Compiler architecture: this was the most complete of the 7
+     * historically-independent type dispatch chains (see
+     * BUILTIN_TYPE_REGISTRY's own comment) -- its per-type corpus
+     * citations are preserved there rather than here: ApiObject
+     * (definition 772), Grid (1046), GridColumn (45-definition census,
+     * definition 10760), Message (15-definition census), JavaObject
+     * (10-definition census), TransformData (31-definition census),
+     * Chart (17-definition census), ProcessRequest (definition 1749).
+     */
+    if (type !== undefined) {
+      allocateBuiltinTypePackageReferenceIfSupported(type, 'local');
     }
 
     /*
@@ -2162,6 +2161,27 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
     localObjectPackageReferences.set(key, created);
     return created;
+  };
+
+  /*
+   * Compiler architecture: the single dispatch point every migrated
+   * declaration-context call site now consults instead of maintaining its
+   * own independent if/else-if type-name chain. Looks up `typeName` in
+   * `BUILTIN_TYPE_REGISTRY` (case-insensitively) and allocates the type's
+   * PACKAGE reference only if `context` is one of its proven
+   * `packageAllocationContexts` -- an unrecognized type name, or a
+   * recognized type not yet evidenced for this specific context, is a
+   * silent no-op, matching every migrated chain's own prior behavior
+   * exactly (none of them threw or warned on an unhandled type either).
+   */
+  const allocateBuiltinTypePackageReferenceIfSupported = (
+    typeName: string,
+    context: BuiltinTypeContext
+  ): void => {
+    const semantics = BUILTIN_TYPE_REGISTRY.get(typeName.toLowerCase());
+    if (semantics === undefined) return;
+    if (!semantics.packageAllocationContexts.has(context)) return;
+    ensureLocalObjectPackageReference(semantics.packageKey, semantics.canonicalName);
   };
 
   /*
@@ -5887,84 +5907,23 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
                * `EncodeFragmentContext.methodParameters`'s own comment.
                */
               registerTypedParameter(paramName, paramType!);
-            } else if (/^File$/i.test(paramType ?? '')) {
+            } else if (paramType !== undefined && !/^(?:Record|Row|Rowset)$/i.test(paramType)) {
               /*
-               * Cycle 74 (definitions 7499/7500/...): `File`-typed
-               * FUNCTION PARAMETERS (`Function X(&f As File, ...)`) allocate
-               * a PACKAGE/FILE dependency row the same way `Local File &f;`
-               * already does (line ~1160 above) -- this parameter-typing
-               * dispatch never called `ensureLocalObjectPackageReference`
-               * for ANY built-in type except Record/Row (via
-               * `registerTypedParameter`, which deliberately excludes File
-               * entirely -- it only tracks Record/Row/Rowset-specific
-               * declaration state, none of which File needs). A corpus-wide
-               * census (53 candidates with an `As File` parameter anywhere
-               * in source) found 48 supporting mismatches, 0 contradictions
-               * -- unlike Rowset (see the comment immediately above), File
-               * was never previously attempted here and carries no known
-               * regression history.
+               * Compiler architecture: File (definitions 7499/7500,
+               * 48/53-candidate census), SQL (8-candidate), ApiObject
+               * (65-candidate), Grid (8-candidate), Message (207-
+               * candidate, this project's single largest population),
+               * and Field (122-candidate, after excluding 4 false leads
+               * -- 2 comment-only, 2 an unrelated `value As Field`
+               * runtime type-check expression) are all a plain PACKAGE
+               * allocation with NO other side effect, unlike Record/Row/
+               * Rowset above (which also need `registerTypedParameter`'s
+               * own variable-set tracking) -- so these route through the
+               * shared registry instead. Every citation's own corpus
+               * population size is preserved in `BUILTIN_TYPE_REGISTRY`'s
+               * own history for these types.
                */
-              ensureLocalObjectPackageReference('FILE', 'File');
-            } else if (/^SQL$/i.test(paramType ?? '')) {
-              /*
-               * Compiler closure: `SQL`-typed Function PARAMETERS
-               * (8-candidate corpus population, 0 contradictions)
-               * allocate a PACKAGE/SQL dependency row the same way File
-               * above does.
-               */
-              ensureLocalObjectPackageReference('SQL', 'SQL');
-            } else if (/^ApiObject$/i.test(paramType ?? '')) {
-              /*
-               * Compiler closure: `ApiObject`-typed Function PARAMETERS
-               * (65-candidate corpus population, 0 contradictions) --
-               * the same class of gap as SQL/File above.
-               */
-              ensureLocalObjectPackageReference('APIOBJECT', 'ApiObject');
-            } else if (/^Grid$/i.test(paramType ?? '')) {
-              /*
-               * Compiler closure: `Grid`-typed Function PARAMETERS
-               * (8-candidate corpus population, 0 contradictions).
-               */
-              ensureLocalObjectPackageReference('GRID', 'Grid');
-            } else if (/^Message$/i.test(paramType ?? '')) {
-              /*
-               * Compiler closure: `Message`-typed Function PARAMETERS --
-               * by far the largest single population found in this
-               * campaign (207-candidate corpus population, 0
-               * contradictions -- every single stored occurrence has a
-               * PACKAGE/MESSAGE row).
-               */
-              ensureLocalObjectPackageReference('MESSAGE', 'Message');
-            } else if (/^Field$/i.test(paramType ?? '')) {
-              /*
-               * Compiler closure: `Field`-typed Function PARAMETERS were
-               * previously left DELIBERATELY unhandled here on the
-               * strength of a 122-candidate census that found "2 genuine
-               * negative controls" (definitions 17113, 20911). Re-
-               * investigation found BOTH of those were false: 17113's and
-               * 20911's entire `Function ...(&f As Field...)` bodies are
-               * wrapped in one large `/* *\/`-style comment -- no real
-               * Function-parameter declaration is compiled there at all,
-               * so the absence of a PACKAGE/FIELD row is correct and
-               * irrelevant to this dispatch. A follow-up TOKEN-LEVEL
-               * census (decoding each candidate and requiring a genuine
-               * opcode-tagged `As`(0x35) immediately followed by a real
-               * `Field` keyword token, which a comment's own single
-               * Comment-kind token can never produce) found two
-               * DIFFERENT remaining textual matches (definitions 20912,
-               * 30151) that turned out to be an entirely unrelated
-               * grammatical construct: the runtime `value As Field`
-               * TYPE-CHECK EXPRESSION (`(&keys [&i] As Field <> Null)`,
-               * `ShowPartialActivityCoeff(&fld As Field)` as a call-site
-               * argument type assertion), parsed through a completely
-               * different code path than this Function-parameter-list
-               * loop, not a parameter declaration at all. With those 4
-               * false leads excluded, the corpus shows 0 real
-               * counter-examples anywhere for the genuine
-               * `Function name(&x As Field, ...)` declaration shape this
-               * dispatch actually handles.
-               */
-              ensureLocalObjectPackageReference('FIELD', 'Field');
+              allocateBuiltinTypePackageReferenceIfSupported(paramType, 'function-parameter');
             }
           }
           space();
@@ -6009,46 +5968,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         const returnType =
           /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
         chunks.push(typeName());
+        /*
+         * Compiler architecture: a Function's `Returns <BuiltinType>`
+         * type never allocated a PACKAGE dependency row for ANY built-in
+         * type at all until a corpus-wide, token-level census (decoding
+         * every candidate and requiring a genuine `Returns`(text) token
+         * immediately followed by a real type keyword token) found a
+         * unanimous, zero-contradiction population across every built-in
+         * type this file already grants a PACKAGE row elsewhere: Record
+         * (57), Rowset (75), Row (23), SQL (4), File (1), ApiObject (13),
+         * Message (32), JavaObject (3), XmlDoc (22), XmlNode (13), Field
+         * (11) -- 254 occurrences total, 0 exceptions.
+         */
         if (isArrayType) {
           arrayElementTypes();
-        } else if (/^Record$/i.test(returnType ?? '')) {
-          /*
-           * Compiler closure: a Function's `Returns <BuiltinType>` type
-           * never allocated a PACKAGE dependency row for ANY built-in
-           * type at all -- this dispatch only ever handled an
-           * Application Class return type. A corpus-wide, token-level
-           * census (decoding every candidate and requiring a genuine
-           * `Returns`(text) token immediately followed by a real type
-           * keyword token) found a unanimous, zero-contradiction
-           * population across every built-in type this file already
-           * grants a PACKAGE row elsewhere: Record (57), Rowset (75),
-           * Row (23), SQL (4), File (1), ApiObject (13), Message (32),
-           * JavaObject (3), XmlDoc (22), XmlNode (13), Field (11) -- 254
-           * occurrences total, 0 exceptions.
-           */
-          ensureLocalObjectPackageReference('RECORD', 'Record');
-        } else if (/^Rowset$/i.test(returnType ?? '')) {
-          ensureLocalObjectPackageReference('ROWSET', 'Rowset');
-        } else if (/^Row$/i.test(returnType ?? '')) {
-          ensureLocalObjectPackageReference('ROW', 'Row');
-        } else if (/^SQL$/i.test(returnType ?? '')) {
-          ensureLocalObjectPackageReference('SQL', 'SQL');
-        } else if (/^File$/i.test(returnType ?? '')) {
-          ensureLocalObjectPackageReference('FILE', 'File');
-        } else if (/^ApiObject$/i.test(returnType ?? '')) {
-          ensureLocalObjectPackageReference('APIOBJECT', 'ApiObject');
-        } else if (/^Grid$/i.test(returnType ?? '')) {
-          ensureLocalObjectPackageReference('GRID', 'Grid');
-        } else if (/^Message$/i.test(returnType ?? '')) {
-          ensureLocalObjectPackageReference('MESSAGE', 'Message');
-        } else if (/^JavaObject$/i.test(returnType ?? '')) {
-          ensureLocalObjectPackageReference('JAVAOBJECT', 'JavaObject');
-        } else if (/^XmlDoc$/i.test(returnType ?? '')) {
-          ensureLocalObjectPackageReference('XMLDOC', 'XmlDoc');
-        } else if (/^XmlNode$/i.test(returnType ?? '')) {
-          ensureLocalObjectPackageReference('XMLNODE', 'XmlNode');
-        } else if (/^Field$/i.test(returnType ?? '')) {
-          ensureLocalObjectPackageReference('FIELD', 'Field');
+        } else if (returnType !== undefined) {
+          allocateBuiltinTypePackageReferenceIfSupported(returnType, 'function-returns');
         }
       }
 

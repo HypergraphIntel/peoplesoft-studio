@@ -2,6 +2,95 @@
 
 ## Compiler Architecture
 
+### Consolidation #4: `BUILTIN_TYPE_REGISTRY` + batch 1 migration (2026-09-29, Phase 2)
+
+**Status: DONE, proven byte-for-byte equivalent (full row-level taxonomy
+diff), 0 regressions.**
+
+Full audit performed before any edit (see the report exchanged with the
+user for the complete per-type-per-context matrix). Found **7 dispatch
+chains** (not 6 as the prior architecture audit estimated) plus a
+**3rd, independent mechanism** entirely: `typeName()`'s own inline-
+identifier-introducer regex, which recognizes 19 type names (3 more than
+the PACKAGE-allocation union: `JsonArray`/`JsonObject`/`Exception` have
+proven token behavior but no proven PACKAGE-allocation context anywhere).
+
+**Concrete drift found by the audit**: `functionStatement()`'s parameter
+chain still carried a comment (until this consolidation) asserting
+Rowset "deliberately" avoids PACKAGE allocation for parameters, citing a
+historical regression -- factually stale, since `registerTypedParameter`
+(a sibling, independently-maintained chain) was already fixed earlier
+this session to prove that claim false for 395/395 genuine occurrences.
+This is exactly the class of error a single source of truth prevents by
+construction.
+
+**Registry introduced** (module-level static data, faithfully
+transcribing all 7 chains' CURRENT behavior -- zero new type/context
+combinations added):
+```ts
+type BuiltinTypeContext =
+  | 'local' | 'local-array-element' | 'global' | 'component'
+  | 'application-class-parameter' | 'function-parameter' | 'function-returns';
+interface BuiltinTypeSemantics {
+  readonly packageKey: string;
+  readonly canonicalName: string;
+  readonly packageAllocationContexts: ReadonlySet<BuiltinTypeContext>;
+}
+const BUILTIN_TYPE_REGISTRY: ReadonlyMap<string, BuiltinTypeSemantics> = ...
+```
+Plus a thin closure-scoped lookup, `allocateBuiltinTypePackageReferenceIfSupported(typeName, context)`,
+that no-ops silently for an unrecognized type OR a recognized type not
+yet evidenced for that specific context -- matching every migrated
+chain's own prior behavior exactly (none of them threw or warned on an
+unhandled type either). Absence from a context's set means "not
+currently evidenced," NOT "proven excluded" -- documented explicitly in
+the registry's own comment so a future census can add a row without
+that being read as contradicting a prior "proven false" claim.
+
+**Batch 1 migrated** (per your suggested safest-first order):
+`localDeclaration()`'s array-element chain, `localDeclaration()`'s plain
+chain (the most complete of the 7, whose per-type corpus citations --
+ApiObject/772, Grid/1046, GridColumn/10760, Message, JavaObject,
+TransformData, Chart, ProcessRequest/1749 -- were preserved as a
+condensed comment rather than deleted), `functionStatement()`'s
+parameter chain, and `functionStatement()`'s Returns chain.
+
+**Deliberately NOT migrated in batch 1:**
+- `typeName()`'s own token-introducer list -- mismatched type set from
+  the PACKAGE registry (3 extra types with no PACKAGE evidence); forcing
+  it through the same registry would mean either adding unproven data or
+  building a second, parallel field. Left as its own independent
+  mechanism for now.
+- The Record/Row/Rowset branch of `functionStatement()`'s parameter
+  chain -- routes through `registerTypedParameter()`, which does MORE
+  than PACKAGE allocation (also `recordVariables.add`/`rowVariables.add`/
+  `chainSemanticsDeclaredRowsetVariables.add` for downstream chained-
+  field-access resolution). Collapsing this into the same simple
+  registry call would silently drop those side effects. This is exactly
+  the "operating rule" in practice: surface-level similarity (both end
+  in a PACKAGE allocation) without semantic identity (one does
+  meaningfully more) must not be merged.
+- `globalDeclaration()`, `componentDeclaration()`, `registerTypedParameter()`
+  itself -- deferred to a second batch per your suggested order.
+
+**Equivalence proof:**
+- `tsc` clean, `git diff --check` clean, 607/608 tests unchanged.
+- 14 targeted fixtures spanning every migrated chain (772, 1046, 10760,
+  1749, 4686, 15701, 16389, 6328, 6599, 6459, 21256, 21305, 3128, 4122)
+  individually re-checked; 1749 shows `UNKNOWN_MISMATCH`, confirmed via
+  `git stash` to be pre-existing and unrelated.
+- Full 30,209-definition corpus: EXACT 25,265 → 25,265, 0 regressions, 0
+  improvements.
+- Full taxonomy rebuild diffed ROW BY ROW: byte-for-byte identical for
+  all 30,209 definitions.
+- Net: +153/-218 lines in `encoder.ts` (-65 net; smaller than the raw
+  line count suggests, since a large fraction of the registry's own
+  lines are the preserved historical-evidence comment, not code).
+
+**Next:** batch 2 (Global/Component/`registerTypedParameter`), same
+discipline -- behavior-preserving first, evidence-driven corrections
+only afterward and only as their own separate, explicitly-labeled change.
+
 ### Consolidation #3: `emitBlankLineMarkers()` (2026-09-29, Phase 1)
 
 **Status: DONE, proven byte-for-byte equivalent (full row-level taxonomy
