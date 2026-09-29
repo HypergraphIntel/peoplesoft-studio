@@ -11319,7 +11319,31 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         emitBlankLineMarkers(topLevelWhitespace);
       }
 
-      leadingLocalRun = false;
+      /*
+       * Cycle 85: a top-level `Function ... End-Function;` definition is
+       * not executable code, so it does not end the leading declaration
+       * phase. When no Local run has started yet, a Local run that follows
+       * one or more Function definitions (before any executable statement)
+       * is still the leading declaration run and gets its own deferred
+       * formal close. PSCUBWRK.CUB_ACTION.FieldChange (definition 14862):
+       *
+       *   Function cubeaction(&rs As Rowset) ... End-Function;
+       *
+       *   Local Rowset &rs;
+       *
+       *   If %Component = "CUB_OUTLINE" Then
+       *
+       * stores `... &rs 15 2D 4F 1C ...`. LOCAL SNAPSHOT: 32 definitions
+       * with an uninitialized Local run after Function definitions store
+       * `2D 4F` there; +22 forward-exact, 0 lost; bytes change only for
+       * that shape plus 13179 (a Global after Functions, also fixed).
+       * Only a run that has NOT started keeps its eligibility: a run
+       * already closed before the Function keeps its single boundary.
+       */
+      const functionPreservesLeadingRun = isFunction && !sawLeadingLocalDeclaration;
+      if (!functionPreservesLeadingRun) {
+        leadingLocalRun = false;
+      }
     }
 
 

@@ -2,27 +2,149 @@
 
 ## Current status (2026-09-29)
 
-- **Current target:** Cycle 84 completed -- the generic declaration-close
-  serialization rule (B) is implemented. EXACT 26,330 -> 26,421 (+91),
-  failed 3,879 -> 3,788, protected 430/430 PASS, row diff 0 EXACT ->
-  non-EXACT. See "Compiler Semantics Cycle 84".
-- **Last successful calibration:** Cycle 84 rule B (the floor of one 0x4F
-  applies to the formal 0x2D close only).
+- **Current target:** Cycle 85 completed -- declaration phase preserved
+  across top-level Function definitions (narrow rule). EXACT 26,421 ->
+  26,443 (+22), failed 3,788 -> 3,766, protected PASS, row diff 0 EXACT ->
+  non-EXACT. See "Compiler Semantics Cycle 85".
+- **Last successful calibration:** Cycle 85 narrow Function-continuity
+  rule.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** none newly blocked. Follow-ups:
-  - 23358, 23418, 29886, 29890 are ROUNDTRIP_ONLY (a decoder rendering
-    defect with an inline `While`-header comment).
-  - The Cycle 84 boundary mechanisms C (comment between the run and the
-    next item) and D (Local after executable code) are not yet
-    zero-contradiction.
-- **Next action:** implement Cycle 84 mechanism A. A Function definition
-  does not end the declaration phase, so a Local run after Function
-  definitions and before executable code closes with the formal `2D 4F`.
-  The experiment gave +22 forward-exact, 0 lost. Then re-census the
-  boundary family (C, D, import MISSING_4F).
-- **Newly established rules this session:** Cycle 84 rule B; the Cycle 83
-  `While`-body gap rule; the Cycle 82 rules.
+- **Locally blocked definitions:** none newly blocked. 16720 and 28343
+  need the REM-reset fix (Mechanism C).
+- **Next action:** the general Function-continuity form. Every Local run
+  after a Function starts a new declaration run, with archived deferred
+  boundaries: +54 / -12 measured. Resolve its two collisions first:
+  1. the double blank-line producers for Function -> declaration;
+  2. initialized-run handling after a restart.
+  Then Mechanisms D and C, then the import-group 0x4F.
+- **Newly established rules this session:** Cycle 85 narrow rule; Cycle
+  84 rule B; Cycle 83 While gaps; Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 85 -- declaration phase across top-level Function definitions
+
+**Baseline reproduced fresh at `287ad75`:** 26,421 / 3,788, REGRESSION GATE
+PASS, taxonomy row-by-row identical. LOCAL SNAPSHOT only; no DLL work.
+
+### Pre-edit audit (what a top-level Function changes)
+
+The `isFunction` branch sets `haveCompletedTopLevelStatement` and
+`continue`s BEFORE the end-of-statement block, so a Function never changes
+`sawTopLevelExecutableStatement`, `sawTopLevelDeclaration` or
+`closedTopLevelDeclarationSection` directly. Before `statement()`, the
+loop does run three things:
+
+1. The `leadingLocalRun && !isLocalDeclaration` block. It sets the
+   deferred Local boundary if a run had started, or emits Cycle 49
+   blank-line markers; then it **unconditionally sets `leadingLocalRun =
+   false`**. This is the lost state.
+2. The generic closer (`closesTopLevelDeclarationSection`), when a
+   declaration section is open. It emits `2D` + markers before the
+   Function.
+3. The App-Class-Local closer, when that section is open.
+
+The deferred-marker state is untouched unless a run had started. Imports
+take a separate path: an import close restarts the run through
+`restartLocalDeclarationRun()`. Function bodies are encoded by
+`functionStatement()` and do not touch the outer run state.
+
+### Census (tool: `cycle85-function-continuity-census.ts`, stored bytes of all non-App-Class definitions)
+
+- 1,625 definitions have a top-level Function before their first
+  executable statement. In **144**, a Local run follows a Function.
+- The first run of the tool missed most of them: the decoder's program
+  header token (0xA0, empty text) was taken as the first statement word,
+  so only programs that START with a Function were seen (37). Fixed.
+- **Stored behavior has zero contradictions:**
+  - every plain (uninitialized) Local run after a Function, before
+    executable code, closes with the formal `2D 4F`: 103 definitions;
+  - initialized runs close informally (Cycle 84 rule B);
+  - runs that continue into a declaration are not closed.
+- This holds whatever precedes the Function: nothing, declarations,
+  imports, or an earlier Local run that was already closed (15038:
+  `L L[2D 4F] F ... F L[2D 4F] X`).
+
+### Implemented (narrow, zero-contradiction subset)
+
+**A Function reached while the leading Local run has not yet started
+does not end that run's eligibility** (`functionPreservesLeadingRun =
+isFunction && !sawLeadingLocalDeclaration`). The later Local run then gets
+the existing deferred formal close. No serialization path is new.
+
+- The predicate is `!sawLeadingLocalDeclaration`, not
+  `!sawTopLevelExecutableStatement`. The latter is implied: the first
+  executable statement already clears `leadingLocalRun`. The extra
+  condition keeps a run that was already closed from being reopened.
+- Evidence: reproduced the Cycle 84 experiment at `287ad75`: **+22
+  forward-exact, 0 lost**. The final code is byte-identical to the
+  experiment across all sources. Bytes change for 30 definitions: 29 of
+  the target shape, plus 13179 (a Global after Functions; its blank-line
+  gap now follows the leading-phase rule, gained).
+- Gates:
+  - `npx tsc`, `npm test` (620 run, 619 pass, 0 fail; 2 new tests fail
+    before the fix and pass after; the initialized-Local control passes
+    both ways), `git diff --check`;
+  - protected PASS; full corpus **26,443 EXACT / 3,766 failed**;
+  - taxonomy row diff **0 EXACT -> non-EXACT**, 22 non-EXACT -> EXACT
+    (all REFERENCE_COMPLETE_DOWNSTREAM). No compensating errors.
+- Mechanism check: 28 post-Function runs corrected (86 -> 58 mismatched
+  runs). In the rule's own scope (only Functions and comments before the
+  run), just 16720 and 28343 remain. Both have a top-level REM between
+  the Functions and the run: the REM branch unconditionally clears
+  `leadingLocalRun`. That is Mechanism C (5242 and 7222 show the same
+  reset without any Function), so it is left out.
+- Negative controls:
+  - 1,625 - 30 definitions with a Function before executable code have
+    unchanged bytes, including every `F X`, `F I ... X` and
+    executable-then-Function shape;
+  - the initialized runs 17931, 24608, 28643 and 28686 are unchanged
+    (informal close preserved);
+  - historical controls 3596, 6455, 29315, 5002, 3539, 1257, 1929, 942,
+    945, 528, 2043, 6007, 6276, 513 and 29632 stay EXACT; 29134 and 5026
+    are unchanged.
+
+### General form: measured, NOT implemented (stop conditions B/C)
+
+Every Local run after a Function (in the declaration phase) starts a new
+declaration run. The experiment archived the current deferred boundary
+and restarted run tracking when a Function completes before executable
+code. Result: **+54 forward-exact, but 12 previously-exact lost**, from
+two collisions with OTHER existing producers:
+
+1. Function -> declaration with a blank line (11552, 13561, 15186, 17857,
+   19126, 27129 ...). The restarted run lets the Cycle 49 "first
+   non-Local statement" branch emit blank-line markers, while the
+   declaration-gap block (`(sawTopLevelDeclaration ||
+   sawLeadingLocalDeclaration) && isTopLevelDeclaration && hasBlankLine`)
+   also emits them, doubling the 0x4F.
+2. Initialized runs after a restart (28204): the leading-run path's
+   initialized-Local handling produces a formal `2D 4F` inside a run that
+   stored closes informally.
+
+Resolving them means changing those producers. That is the next phase,
+not this one.
+
+### Post-fix boundary census (3,766 NONEXACT)
+
+296 definitions have a top-level boundary hunk (was 326), 157 strict
+one-blockers (was 179).
+
+| signature | affected | one-blocker |
+|---|---:|---:|
+| EXTRA_2D | 137 | 40 |
+| MISSING_2D | 92 | 42 |
+| EXTRA_2D_4F | 49 | 43 |
+| MISSING_4F | 31 | 9 |
+| ORDER | 16 | 11 |
+
+Largest remaining shapes, ranked:
+
+| rank | mechanism | hunks | notes |
+|---|---|---:|---|
+| 1 | general Function continuity (runs after Functions that follow declarations, imports or an earlier run) | 30 + 11 + 6 | the general experiment already gives +54 / -12, with the two collisions identified |
+| 2 | Mechanism D, extra `2D 4F` around a Local after executable code | 18 + 17 + 9 | |
+| 3 | Mechanism C, comment/REM | MISSING_2D after comment 20 + 6; EXTRA_2D with a standalone comment 13 + 11 + 7 + 6 + 5 + 5 | includes the REM reset of `leadingLocalRun` |
+| 4 | import-group MISSING_4F | 14 + 5 | |
 
 ## Compiler Semantics Cycle 84 -- generic top-level declaration-section boundary
 
