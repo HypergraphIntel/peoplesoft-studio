@@ -2139,6 +2139,17 @@ end-method;`, {
       recordName: 'FUNCLIB_TEST',
       fieldName: 'HELPER',
       eventName: 'FieldFormula'
+    },
+    // Cycle 82: the inherited `%This.SomeInheritedMethod()` call allocates
+    // the class's own self row (see the self-row tests below).
+    {
+      index: 3,
+      sequence: 4,
+      kind: 'package',
+      packageName: 'REFERENCETEST',
+      objectName: 'PKG',
+      packagePath: ['PKG'],
+      className: 'REFERENCETEST'
     }
   ]);
 });
@@ -2221,6 +2232,16 @@ end-method;`, {
       objectName: 'PKGONE',
       packagePath: ['PKGONE'],
       className: ''
+    },
+    // Cycle 82: self row from the inherited `%This` call.
+    {
+      index: 2,
+      sequence: 3,
+      kind: 'package',
+      packageName: 'REFERENCETEST',
+      objectName: 'PKG',
+      packagePath: ['PKG'],
+      className: 'REFERENCETEST'
     }
   ]);
 });
@@ -2285,38 +2306,41 @@ end-method;`;
     packagePath: ['PKG', 'ReferenceTest']
   };
 
+  // Cycle 82: each `.DoSomething()` call now reuses the HELPER identity its
+  // own method's `create` already established (method-local reuse, 25/57
+  // changed App Class PSPCMNAME lists match stored further, 0 less), so no
+  // separate method-qualified row exists in either variant.
+  const helperRows = (encoded: ReturnType<typeof encodeProgramArtifacts>) =>
+    encoded.references.filter((r: any) => r.kind === 'package' && r.className === 'HELPER');
+
   const gateOff = encodeProgramArtifacts(source(false), { owner });
-  const methodDependencyRefsOff = gateOff.references.filter(
-    (r: any) => r.kind === 'package' && r.methodName === 'DOSOMETHING'
-  );
   assert.strictEqual(
-    methodDependencyRefsOff.length,
+    helperRows(gateOff).length,
     1,
-    'without an inherited %This call, both .DoSomething() calls should reuse one method-dependency reference'
+    'without an inherited %This call, both .DoSomething() calls reuse the one HELPER identity'
   );
 
   const gateOn = encodeProgramArtifacts(source(true), { owner });
-  const methodDependencyRefsOn = gateOn.references.filter(
-    (r: any) => r.kind === 'package' && r.methodName === 'DOSOMETHING'
+  assert.strictEqual(
+    helperRows(gateOn).length,
+    1,
+    'an unrelated inherited %This call must not prevent reuse of an already-established identity for a different, statically-known receiver'
   );
   assert.strictEqual(
-    methodDependencyRefsOn.length,
-    1,
-    'an unrelated inherited %This call must not prevent reuse of an already-established class-wide type identity for a different, statically-known receiver'
+    gateOn.references.filter((r: any) => r.kind === 'package' && r.methodName === 'DOSOMETHING').length,
+    0
   );
 });
 
-test('Application Class an inherited %This.method() call itself still allocates no method-dependency reference (genuine gate boundary)', () => {
-  // Genuine negative control for what the inherited-%This-call gate
-  // actually governs (Cycle 32/34): a %This.method() call's OWN dispatch
-  // target, when the method is NOT one of this class's own declarations.
-  // Unlike the `&typedLocal.Method()` case above, %This is never a
-  // `&variable` and so never sets `activeApplicationClassReceiver` --
-  // Cycle 62's fix lives entirely inside that `activeApplicationClassReceiver
-  // !== undefined` branch and cannot affect a %This call, which is
-  // confirmed here to still allocate no method-dependency (or any other)
-  // PACKAGE reference at all, matching every prior cycle's finding for
-  // this construct.
+test('Application Class an inherited %This.method() call allocates the class self row, not a base-class row', () => {
+  // Cycle 82 replaces an earlier synthetic assertion that this call
+  // allocates nothing. Corpus evidence (LOCAL SNAPSHOT): 28886's first
+  // `%This` call is the inherited `%This.getDataFromInputJson(...)` and
+  // stored has its own `PACKAGE|URL_BENEFITSUMMARY` row there; 29341's
+  // stored self row even names an inherited method. Treating inherited
+  // calls like own-method calls moves 8 more App Classes to a names-exact
+  // PSPCMNAME list and 0 away. Natively, `%This`'s static class is always
+  // the compilation unit's own class.
   const encoded = encodeProgramArtifacts(`class ReferenceTest
    method Run();
    method CallInherited();
@@ -2337,11 +2361,135 @@ end-method;`, {
   });
 
   const packageRefs = encoded.references.filter((r: any) => r.kind === 'package');
+  assert.deepStrictEqual(packageRefs.map((r: any) => r.className), ['REFERENCETEST']);
+  assert.strictEqual(packageRefs[0].methodName, undefined);
+});
+
+test('Application Class own %This.method() calls allocate ONE self row, at the first call, before its arguments', () => {
+  // Cycle 82 (LOCAL SNAPSHOT census, `cycle82-self-row-allocation-census.ts`):
+  // every App Class with a live own-method `%This` call has exactly one
+  // `PACKAGE|<CLASSNAME>` row, at the first call in encode order -- 28713
+  // stores CRITERIAUI at NAMENUM 11, between the FIELD rows used before
+  // and after its first `%This.IsNeedBrackets(&op)` call. Calls inside
+  // comments allocate nothing (28757, 30143).
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+   method Helper(&x As string) Returns boolean;
+   method Other();
+end-class;
+
+method Run
+   /* %This.Other(); */
+   Local Record &r = CreateRecord(Record.FIRST_REC);
+   If %This.Helper(&r.SECOND_FLD.Value) Then
+      %This.Other();
+   End-If;
+end-method;
+
+method Helper
+   Return True;
+end-method;
+
+method Other
+   %This.Helper("x");
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const rows = encoded.references
+    .filter((r: any) => r.kind !== 'owner')
+    .map((r: any) => r.kind === 'package' ? `PACKAGE.${r.className ?? r.packageName}` : `${r.kind}.${r.recordName ?? r.fieldName}`);
+  assert.deepStrictEqual(rows.filter(row => row === 'PACKAGE.REFERENCETEST').length, 1);
+  assert.ok(rows.indexOf('PACKAGE.REFERENCETEST') > rows.indexOf('record.FIRST_REC'));
+  assert.ok(rows.indexOf('PACKAGE.REFERENCETEST') < rows.findIndex(row => row.includes('SECOND_FLD')));
+});
+
+test('Application Class %This self row reuses an own-class identity already established by a Local', () => {
+  // Cycle 82: 28731 declares `Local ADSM:ADSMTreeNode &ChildNode;` in an
+  // earlier method; its later `%This.IsNodeHidden()` call adds no second row.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Make() Returns boolean;
+   method Check() Returns boolean;
+end-class;
+
+method Make
+   Local PKG:ReferenceTest &child;
+   Return True;
+end-method;
+
+method Check
+   Return %This.Make();
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
   assert.strictEqual(
-    packageRefs.length,
-    0,
-    '%This.method() calls to a not-own-declared method allocate no PACKAGE reference, unaffected by Cycle 62'
+    encoded.references.filter((r: any) => r.kind === 'package' && r.className === 'REFERENCETEST').length,
+    1
   );
+});
+
+test('Application Class top-level Component App Class declarations allocate at the declaration across the import fragment boundary', () => {
+  // Cycle 82: 29420's `Component GPS_WFS_REPORT_MANAGER:MappingEntry
+  // &_entry;` (wildcard-imported in the separate leading import fragment,
+  // never used elsewhere) is stored at its declaration; 130/130 top-level
+  // Global/Component App Class declarations in App Classes have the row.
+  const encoded = encodeProgramArtifacts(`import PKG:*;
+
+class ReferenceTest
+   method Run();
+end-class;
+
+Component PKG:Entry &entry;
+
+method Run
+   Local Record &r = CreateRecord(Record.FIRST_REC);
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const rows = encoded.references
+    .filter((r: any) => r.kind !== 'owner')
+    .map((r: any) => r.kind === 'package' ? `PACKAGE.${r.className ?? r.packageName}` : `${r.kind}.${r.recordName}`);
+  assert.strictEqual(rows.filter(row => row === 'PACKAGE.ENTRY').length, 1);
+  assert.ok(rows.indexOf('PACKAGE.ENTRY') < rows.indexOf('record.FIRST_REC'));
+});
+
+test('Application Class leading method-body App Class Locals allocate at their declaration', () => {
+  // Cycle 82: 29413's never-used leading `Local GPS_UTILS:ClassUtility
+  // &_classUtil;` is stored before the method's first Record reference.
+  const encoded = encodeProgramArtifacts(`class ReferenceTest
+   method Run();
+end-class;
+
+method Run
+   Local PKG:Other:Helper &unused;
+   Local Record &r = CreateRecord(Record.FIRST_REC);
+end-method;`, {
+    owner: {
+      recordName: 'PKG',
+      fieldName: 'ReferenceTest',
+      packagePath: ['PKG', 'ReferenceTest']
+    }
+  });
+
+  const kinds = encoded.references
+    .filter((r: any) => r.kind !== 'owner')
+    .map((r: any) => r.kind === 'package' ? `PACKAGE.${r.className ?? r.packageName}` : `${r.kind}.${r.recordName}`);
+  assert.ok(kinds.indexOf('PACKAGE.HELPER') >= 0);
+  assert.ok(kinds.indexOf('PACKAGE.HELPER') < kinds.indexOf('record.FIRST_REC'));
 });
 
 test('Application Class built-in object declarations get method-wide lifetime across control groups', () => {
