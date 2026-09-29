@@ -1,5 +1,133 @@
 # Corpus Calibration Progress
 
+## Continuation session (2026-09-28) — generalize decoder-rendering qualifier-case normalization (CompIntfc/Image/FileLayout/Interlink/Portal/Node)
+
+**Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL
+SNAPSHOT throughout. Starting commit `51a50f1` (HEAD, clean worktree except
+unrelated `863_MCP_SUPPORT.md`/`.claude/settings.json`, synced with
+`origin/main`). Baseline reproduced fresh before any change: `npm run
+corpus:verify` — 24,972/30,209 EXACT, REGRESSION GATE: PASS. `npm test`:
+607/608 (1 pre-existing skip). `npx tsc -p .`: clean.
+
+### What was found
+
+`decode-mismatch-census.ts`'s taxonomy rebuild confirmed the prior session's
+handoff lead (a `CompIntfc`/`Image` decoder-rendering qualifier-case mismatch,
+same mechanism `normalizePeopleCodeSource()`'s existing case-insensitive list
+already handles for `Record|Field|Scroll|Component|Page|PanelGroup|Panel`).
+Per the handoff's own instruction to scan further before implementing, a
+full-population regex scan (any `Word.` in stored source where `Word` is not
+all-caps, but the decoded text has `WORD.` in the same relative position) was
+run across all 512 `DECODE_SOURCE_MISMATCH` definitions instead of stopping at
+the two named keywords. It found **six** keywords showing the identical shape,
+not two: `CompIntfc` (72), `Image` (73), `FileLayout` (79), `Interlink` (3),
+`Portal` (3), `Node` (3) — 227 candidate definitions combined, the single
+largest lead in the current taxonomy.
+
+Confirmed mechanism (`decoder.ts`/`encoder.ts` already establish this pattern
+for `Record`/`Component`/etc.: the decoder always renders a PACKAGE-type
+reference qualifier in its canonical all-uppercase internal form — e.g.
+`ensureLocalObjectPackageReference('RECORD', 'Record')` — regardless of how a
+human typed the keyword's case in the original source (`Record`, `record`,
+`RECORD` are all equivalent PeopleCode syntax). `CompIntfc`/`Image`/
+`FileLayout`/`Interlink`/`Portal`/`Node` are the same class of built-in
+PeopleCode reference namespace (Component Interface, Image, File Layout,
+Integration Broker Interlink/Node, Portal) and were simply never added to the
+classifier's case-insensitive normalization list.
+
+### Why this is the correct fix site, not the decoder itself
+
+`classify.ts`'s `classifyResult()` gates classification on
+`decode.normalizedSourceMatch` (from `sourcesMatch()`/
+`normalizePeopleCodeSource()`) BEFORE checking `sourceEncode.exactProgramMatch`
+/`semanticRoundTrip.exactProgramMatch` — i.e. a normalizer fix here can flip a
+definition straight from `DECODE_SOURCE_MISMATCH` to `EXACT` without touching
+encoder/decoder binary logic at all, exactly like commit
+`8e6b357`'s inline-comment generalization did. Because normalization is
+applied identically and independently to both `expected` (original stored
+source) and `actual` (decoded text) before comparison, this class of change is
+provably monotonic: two texts that already matched byte-for-byte before this
+change still match afterward (same casing on both sides, untouched), so it can
+only convert existing mismatches into matches, never the reverse — no
+regression is possible from this specific class of edit as long as the
+keyword list itself is accurate.
+
+### Fix
+
+Added `CompIntfc|Image|Interlink|FileLayout|Portal|Node` to the existing
+case-insensitive namespace regex in
+`src/peoplecode/corpus/sourceNormalize.ts` (~line 128), alongside
+`Record|Field|Scroll|Component|Page|PanelGroup|Panel`.
+
+### Fail-before/pass-after proof (`git stash`)
+
+```text
+Definition 3045 (CompIntfc.CI_CONTRACT_PAY): before -> DECODE_SOURCE_MISMATCH, after -> EXACT
+```
+
+Verified independently both directions.
+
+### Spot checks across all six keyword clusters
+
+```text
+3045  (CompIntfc)        -> EXACT
+25338 (Portal/Node)      -> EXACT
+3316  (Image)            -> UNKNOWN_MISMATCH (was DECODE_SOURCE_MISMATCH; case fixed, a SEPARATE unrelated issue remains — not a regression, expected per DEVELOPER.md's "root cause may be layered" guidance)
+15114 (Interlink)        -> UNKNOWN_MISMATCH (same: case fixed, different residual issue exposed)
+28916 (Portal/Node)      -> UNKNOWN_MISMATCH (same)
+```
+
+Not every one of the 227 candidates was expected to flip all the way to
+`EXACT` — some only had this ONE blocking issue (those became `EXACT`
+directly), others have a second, independent issue that the case-match gate
+was previously masking (those moved to `UNKNOWN_MISMATCH`, now classified by
+their real remaining blocker instead of a generic decode-source-mismatch
+label). Both outcomes are net-positive: no definition regressed, and the
+previously-hidden-behind-case-mismatch population is now correctly
+sub-classified for future targeting.
+
+### Full validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped — unchanged (pure classifier-normalizer
+  change, no encoder/decoder/runtime logic touched).
+- Protected/full-corpus gate: `npm run corpus:verify` — REGRESSION GATE: PASS,
+  0 regressed.
+- Full top-level harness re-run: **EXACT 24,972 → 25,058 (+86)**, NONEXACT
+  5,237 → 5,151.
+- Taxonomy rebuild: `DECODE_SOURCE_MISMATCH` 538 → 289 (net -249, consistent
+  with the 227-candidate population plus a handful of other unrelated
+  first-differences also present in that bucket), `UNKNOWN_MISMATCH` 4,242 →
+  4,379 (+137, definitions whose case-mismatch was fixed but which have a
+  second, still-open issue), other categories unchanged in aggregate:
+  `REFERENCE_ACTIVE_RECORD_FIELD` 1214→1244, `REFERENCE_COMPLETE_DOWNSTREAM`
+  797→827, `REFERENCE_ACTIVE_FIELD` 702→738, `REFERENCE_ACTIVE_PACKAGE`
+  629→649, `REFERENCE_ACTIVE_RECORD` 419→438 (these categories' small upward
+  shifts are the 137 definitions above landing in whichever taxonomy bucket
+  matches their now-exposed real first difference — `UNSUPPORTED_SYNTAX` 335,
+  `ENCODE_ERROR` 122, `DECODER_BARE_IDENTIFIER` 26, `ROUNDTRIP_ONLY` 17 all
+  held exactly steady, confirming containment).
+
+### Next action
+
+Re-run `decode-mismatch-census.ts` fresh (population is now 289, down from
+512) to re-triage the residual `DECODE_SOURCE_MISMATCH` bucket for the next
+highest-confidence cluster — the `;;` → `;\n;` empty-statement-adjacency
+pattern (~63 candidates seen in this session's pre-fix census pass) and the
+`method X;` header trailing-semicolon-placement cluster (~13+ seen in the
+"other" bucket, all Application Class) are both promising next leads, plus a
+`)[index]` → `) [index]` bracket-spacing-after-call cluster (~14 seen) and a
+`*/` same-line-as-next-statement cluster (~41 seen, likely related to but
+distinct from commit `8e6b357`'s comment-rendering generalization). The
+mojibake/curly-quote cluster (~57 seen) should be investigated for whether
+it's a genuine source-capture encoding artifact (candidate for
+`PROVEN_UNAVAILABLE_METADATA`) before assuming it's fixable — do not spend
+further effort on it without first determining which. None of these were
+investigated yet this session; all are fresh leads from the same census run
+that found the qualifier-case cluster. Continue with `decode-mismatch-census.ts`
+re-run first since the DECODE_SOURCE_MISMATCH population size and composition
+has changed.
+
 ## Cycle 81 — `encodeApplicationClassProgramV2`'s shared `commentOpcodes` provenance array was never sliced per fragment, so every fragment after the first silently misread another one's entries
 
 **Status: IMPLEMENTED, validated, zero regressions. Cycle 80's closing residual census mislabeled 15 of 32 `ROUNDTRIP_ONLY` definitions "EOF->EOF" (a bug in that census script itself: its byte-diff helper returns `undefined` for two FULLY IDENTICAL buffers, and the display logic printed 'EOF' for that undefined offset -- indistinguishable from "ran off the end of a shorter buffer"). Direct re-diffing found these 15 definitions' re-encoded PSPCMPROG (from decoded text) is ALREADY 100% byte-identical to stored, header and body both -- there is no length-only or tail divergence at all. The real cause: `validator.ts`'s roundtrip test passes an explicit `commentOpcodes` array (every 0x24/0x4E opcode in decoder order) that a naive re-encode omits; passing it exposed that `encodeApplicationClassProgramV2` encodes several independent fragments (the leading import/prefix, then each method body) through a shared `encodeFragment` closure whose `commentOpcodes` default was the WHOLE, unsliced program-level array on every call -- each fragment's own `encodeFragmentInternal` invocation starts its local comment-consumption index at 0, so every fragment after the first silently re-read entries meant for an earlier one, or for comments consumed entirely outside `consumeCommentOpcode` (the prefix and declaration-layout comment scanners). Threading a shared, running index through all three consumption paths -- exactly the same pattern already used for `nextReferenceIndex` -- fixed all 15. Result: +15 EXACT, 0 regressions.**

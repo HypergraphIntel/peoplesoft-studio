@@ -125,7 +125,7 @@ export function normalizePeopleCodeSource(source: string): string {
        * comments and string literals.
        */
       const namespaceMatch =
-        /^(Record|Field|Scroll|Component|Page|PanelGroup|Panel)\b/i.exec(
+        /^(Record|Field|Scroll|Component|Page|PanelGroup|Panel|CompIntfc|Image|Interlink|FileLayout|Portal|Node)\b/i.exec(
           line.slice(i)
         );
 
