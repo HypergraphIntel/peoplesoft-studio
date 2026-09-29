@@ -1,5 +1,144 @@
 # Corpus Calibration Progress
 
+## Continuation session (2026-09-29), part 10 — re-clustered `REFERENCE_COMPLETE_DOWNSTREAM` by actual byte-diff shape; found and fixed a top-level declaration-section double-close/missing-close bug
+
+**Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL
+SNAPSHOT throughout. Starting commit `86278c7` (part 9's survey-only
+commit). Baseline before this change: 25,196/30,209 EXACT.
+
+### Re-clustering methodology (per explicit instruction to re-cluster by
+### first true mechanism rather than treat the population as long-tail)
+
+Part 9's hand-sampled survey used a flawed quick script (a raw
+`encodeProgram` call with no real context) that produced noise. Built
+`tools/corpus/research/downstream-shape-census.ts`, which runs the
+REAL validator (`validateDefinition`, the same path `corpus:harness`
+uses, via `LocalCorpusDataSource`) against all 910
+`REFERENCE_COMPLETE_DOWNSTREAM` definitions and buckets by the first
+BYTE POSITION where `storedDiffHex`/`generatedDiffHex` actually diverge
+(scanning from the window start, not trusting the naive center index --
+a length-changing diff shifts everything downstream, so the literal
+center byte can coincidentally match, especially in UTF-16LE text where
+every ASCII character's high byte is 0x00). This produced a clean ranked
+list instead of hand-picked noise. Top shape: `stored=0x4f gen=0x2d`,
+35 definitions -- the encoder emits a spurious extra `0x2D` where stored
+has none, immediately before a `0x4F` blank-line marker.
+
+### What was found
+
+Token-level decoding of definitions 2043/3140/3596 (three members of the
+top-35 cluster) against their STORED bytes revealed: a `Declare Function
+...;` run (or any `Global`/`PanelGroup`/`Component`/`Constant` top-level
+declaration) followed by a standalone comment, itself followed by MORE
+`Local` declarations, stores only a bare `0x4F` before that comment -- NO
+`0x2D` -- because the declaration SECTION has not actually ended (it
+continues through the following Local run and closes once, later, at the
+section's true end). The encoder's existing comment-boundary closing
+condition (`sawTopLevelDeclaration && !closedTopLevelDeclarationSection &&
+!nextIsTopLevelDeclaration`) was missing the `!nextIsLocal` exclusion its
+own sibling block (the `leadingLocalRun`-based comment handler, a few
+lines above) already has -- `Local` is deliberately NOT a member of
+`isTopLevelDeclaration`'s set, so `!nextIsTopLevelDeclaration` alone was
+true even when the next real content was a Local declaration, causing a
+premature, spurious close.
+
+Fixing this naively caused a NEW regression on definition 3596
+(caught by this session's own fail-before/pass-after discipline before
+committing): once `!nextIsLocal` was added, a SEPARATE, later closing
+boundary (Local-run-then-comment-then-non-Local) triggered TWO sibling
+mechanisms simultaneously -- the `leadingLocalRun`/`pendingReferenceLocalBoundary`
+deferred-insertion mechanism AND this newly-widened block -- producing a
+double `0x2D`. A second definition (3596 again, coincidentally) exposed a
+THIRD sibling mechanism collision: an Application-Class-typed `Local`
+(e.g. `Local EO:CA:Address &x;`) sets `sawApplicationClassLocalSection`
+instead of `sawLeadingLocalDeclaration`, so the `pendingReferenceLocalBoundary`
+guard alone didn't catch it either.
+
+### Fix
+
+`src/peoplecode/encoder.ts`, the `sawTopLevelDeclaration`-based
+comment-boundary closer: added THREE guards, not one --
+`!nextIsLocal`, `pendingReferenceLocalBoundary === undefined`, and
+`!(sawApplicationClassLocalSection && !closedApplicationClassLocalSection)`
+-- making this block mutually exclusive with both sibling closing
+mechanisms it can now collide with, having widened its own trigger
+condition.
+
+### Fail-before/pass-after proof (`git stash -- src/peoplecode/encoder.ts`)
+
+```text
+Definitions 2043, 6007, 6276: before -> UNKNOWN_MISMATCH, after -> EXACT
+```
+
+### Spot checks
+
+```text
+2043, 6007, 6276         -> EXACT
+3140                     -> unchanged, UNKNOWN_MISMATCH (its own comment is a
+                            REM-style comment, `Rem ...;`, parsed as an
+                            ordinary STATEMENT via remComment(), not through
+                            this block-comment-handling code path at all --
+                            a separate, not-yet-fixed mechanism)
+3596                     -> unchanged, UNKNOWN_MISMATCH, but CONFIRMED its
+                            original divergence (offset 628, the double-2D)
+                            is fully resolved -- decode SOURCE MATCH holds
+                            and the remaining divergence moved to a later,
+                            unrelated offset (2850, a missing 0x4F elsewhere)
+3875, 3883, 4666         -> unchanged, UNKNOWN_MISMATCH (this layer's own
+                            gap is fixed; each has a further, separate
+                            remaining issue)
+```
+
+### Full validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped — unchanged.
+- Protected/full-corpus gate: `npm run corpus:verify` — REGRESSION GATE:
+  PASS, 0 regressed.
+- Full top-level harness re-run: **EXACT 25,196 → 25,236 (+40)**.
+  `DECODE_SOURCE_MISMATCH`/`ENCODE_ERROR`/`UNSUPPORTED_SYNTAX` all held
+  exactly steady (108/122/335).
+
+### Next action
+
+`downstream-shape-census.ts` is a reusable tool now -- re-run it fresh
+(the shape distribution has shifted) before picking the next
+`REFERENCE_COMPLETE_DOWNSTREAM` target. Known remaining shapes from the
+last run, not yet fixed:
+
+- `stored=0x4e gen=0x24` (34) and `stored=0x24 gen=0x4e` (3) -- comment
+  OPCODE confusion (0x4E vs 0x24, both valid "comment" introducers per
+  format.ts). Definition 523's own back-to-back-comments-on-one-line
+  shape (`/* 811477 end */ /* Begin Bug ... */`) is in this cluster and
+  was already cited in decoder.ts's OWN historical notes for a
+  DIFFERENT, already-fixed DECODER-side bug -- this looks like a related
+  but distinct ENCODER-side comment-opcode-array consumption-order
+  issue, possibly in the same family as Cycle 81's
+  `encodeApplicationClassProgramV2` fix but at a different call site
+  (523 does not appear to be Application Class). Worth checking whether
+  `context.commentOpcodes` consumption order has an analogous ordinary-
+  program (non-App-Class) bug.
+- `stored=0x4e gen=0x2d` (19) -- likely a variant of the same declaration-
+  boundary-vs-comment confusion this fix addressed, but for a comment
+  that itself carries the `0x4E` "inline/same-line" opcode rather than
+  `0x24`; check whether the same three-guard fix already covers it or
+  needs its own extension (3128 is in both this cluster's example list
+  AND was part of the earlier hand-sample -- worth checking first since
+  it may already be resolved as a side effect).
+- `stored=0x2d gen=0x4f` (10) -- the reverse direction (stored expects a
+  0x2D that generated is missing) -- a DIFFERENT bug from this fix, not
+  yet investigated.
+- The REM-comment variant of this exact fix's own construct (definition
+  3140) -- `Rem ...;` after a Declare-Function run, before more Local
+  declarations -- needs the equivalent fix wherever `remComment()`/its
+  top-level dispatch handles the same declaration-section-still-open
+  question.
+- A long tail of many small 1-6-definition clusters, mostly single-byte-
+  value-differs-by-1 shapes (likely individual length-prefix or
+  parameter-count off-by-ones, NOT reference-index issues since this
+  category's reference stream is already exact by definition) -- lower
+  priority than the above shared clusters.
+
 ## Continuation session (2026-09-29), part 9 — `REFERENCE_COMPLETE_DOWNSTREAM` survey (910 definitions): fragmented, no single systemic mechanism found yet
 
 **Status: SURVEY ONLY, no code change.** Baseline: 25,196/30,209 EXACT,

@@ -10650,8 +10650,60 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         if (
           sawTopLevelDeclaration &&
           !closedTopLevelDeclarationSection &&
-          !nextIsTopLevelDeclaration
+          !nextIsTopLevelDeclaration &&
+          !nextIsLocal &&
+          pendingReferenceLocalBoundary === undefined &&
+          !(sawApplicationClassLocalSection && !closedApplicationClassLocalSection)
         ) {
+          /*
+           * Compiler closure: this condition was missing the `!nextIsLocal`
+           * exclusion its sibling block (leadingLocalRun's own comment
+           * handling, immediately above) already has. `Local` is not
+           * itself a member of `isTopLevelDeclaration`'s set (Global/
+           * PanelGroup/Component/Constant/Declare Function), so a comment
+           * between a run of Declare-Function/Global/etc statements and a
+           * FOLLOWING Local declaration wrongly looked like "declaration
+           * section ended here" and closed early with a spurious 0x2D --
+           * the section should instead continue through the Local run and
+           * close once, at the true end of the whole declaration section
+           * (mirrors the ARCH_SQL_LNG.ARCH_SQL.SavePostChange precedent
+           * cited a few dozen lines above for the analogous
+           * Local-then-comment-then-Global shape).
+           *
+           * FUNCLIB_HR_JPN.CI_JPN's own defining program (definition 2043):
+           *
+           *   Declare Function CI_Insert_Jobcode PeopleCode FUNCLIB_HR_JPN.CI_JPN FieldFormula;
+           *
+           *   /* Codes for Component Publish - Next 2 lines. *\/
+           *   Local Message &MSG;
+           *   Local Rowset &RS;
+           *
+           * stores no 0x2D before the comment -- only a bare 0x4F -- with
+           * the real section-closing 0x2D deferred to the true end of the
+           * Local run that follows.
+           *
+           * The added `pendingReferenceLocalBoundary === undefined` guard
+           * prevents a DIFFERENT double-close: when a Declare-Function/
+           * Global/etc run is later followed by an ACTUAL Local run
+           * (setting `sawLeadingLocalDeclaration`), and THAT run's own
+           * closing comment is followed by something that is neither
+           * top-level-declaration nor Local, the sibling `leadingLocalRun`
+           * block just above already claims this exact boundary via
+           * `pendingReferenceLocalBoundary` (a deferred insertion, not an
+           * immediate one) -- without this guard this block fired too,
+           * emitting a second, spurious 0x2D on top of the deferred one
+           * (found via EO:CA:Address's own defining program, definition
+           * 3596, during this fix's own regression testing).
+           *
+           * The `sawApplicationClassLocalSection` exclusion guards the
+           * identical double-close against the THIRD sibling mechanism
+           * (the Application-Class-typed Local section closer immediately
+           * below this block) -- an Application-Class-typed `Local` (e.g.
+           * `Local EO:CA:Address &x;`) sets that flag instead of
+           * `sawLeadingLocalDeclaration`, so `pendingReferenceLocalBoundary`
+           * alone does not catch this case; confirmed on the SAME
+           * definition 3596, whose own Local is Application-Class-typed.
+           */
           chunks.push(Buffer.from([0x2d]));
           closedTopLevelDeclarationSection = true;
         }
