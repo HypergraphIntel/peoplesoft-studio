@@ -1,5 +1,88 @@
 # Corpus Calibration Progress
 
+## Continuation session (2026-09-28/29), part 8 — a Function's `Returns <BuiltinType>` never allocated a PACKAGE dependency row for any built-in type
+
+**Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL
+SNAPSHOT throughout. Starting commit `d8c857f` (this session's prior fix).
+Baseline before this change: 25,189/30,209 EXACT.
+
+**Note on session continuity**: this fix's own validation ladder (fail-
+before/pass-after, tsc, tests, full `corpus:verify`) was completed BEFORE a
+~6 hour gap in which a background taxonomy-rebuild wait-loop's completion
+notification was never delivered/acted on -- the rebuild itself finished
+in under a minute (23:53:xx) and just sat unread. Not a hang in the
+corpus tooling; a orchestration gap in the session loop. Resumed and
+committed normally once noticed. Future sessions: prefer `Monitor` or a
+short, bounded re-check rather than a long `ScheduleWakeup` delay for a
+background command that normally finishes in under a minute.
+
+### What was found
+
+Continuing to decompose `REFERENCE_ACTIVE_RECORD_FIELD`'s `PACKAGE`
+sub-clusters, definition 6459's `PACKAGE.RECORD` divergence traced to
+`Function GetCurrJob(...) Returns Record;` -- a Function RETURN TYPE.
+`functionStatement()`'s own `Returns` handling only ever recognized an
+Application Class return type (`applicationClassPath()`); it had NO
+built-in-type dispatch at all, unlike the analogous parameter-typing
+chain a few hundred lines away. A token-level corpus census (decoding
+every candidate and requiring a genuine `Returns`(text) token immediately
+followed by a real type keyword token) found a unanimous, zero-
+contradiction population across every built-in type already granted a
+PACKAGE row elsewhere: Record (57), Rowset (75), Row (23), SQL (4), File
+(1), ApiObject (13), Message (32), JavaObject (3), XmlDoc (22), XmlNode
+(13), Field (11) -- 254 occurrences total.
+
+### Fix
+
+`src/peoplecode/encoder.ts`'s `functionStatement()`: added the same
+built-in-type dispatch chain (Record/Rowset/Row/SQL/File/ApiObject/Grid/
+Message/JavaObject/XmlDoc/XmlNode/Field) to the `Returns` type handler
+that the parameter-typing chain already has.
+
+### Fail-before/pass-after proof (`git stash -- src/peoplecode/encoder.ts`)
+
+```text
+Definition 6459: before -> UNKNOWN_MISMATCH, after -> EXACT
+```
+
+### Full validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped — unchanged.
+- Protected/full-corpus gate: `npm run corpus:verify` — REGRESSION GATE:
+  PASS, 0 regressed.
+- Full top-level harness re-run: **EXACT 25,189 → 25,196 (+7)** — a much
+  smaller yield than the 254-occurrence census suggested. Investigated
+  why: `functionStatement()` only handles the ordinary
+  `Function ... End-Function;` construct. An Application Class METHOD's
+  return type is a SEPARATE mechanism entirely -- the class-body one-line
+  declaration (`method X(...) Returns Y;`) is parsed via
+  `parseApplicationClassSource`/`encodeApplicationClassTypeBytes` (a
+  standalone byte-encoder with no reference-allocation hook at all), and
+  a method IMPLEMENTATION's return type renders as a `/+ Returns Type +/`
+  DOC COMMENT (opcode 0x6D), not literal `Returns`/type keyword tokens --
+  a third, structurally different mechanism. Both are UNTOUCHED by this
+  fix and most of the 254-occurrence census population is Application
+  Class, not ordinary Function. `DECODE_SOURCE_MISMATCH`/`ENCODE_ERROR`/
+  `UNSUPPORTED_SYNTAX` all held exactly steady (108/122/335).
+
+### Next action
+
+The Application Class method return-type PACKAGE-allocation gap (both the
+class-body declaration path and the implementation doc-comment path) is a
+real, larger, NOT-yet-investigated lead -- this file's own comment above
+`parseApplicationClassProgram` already flags "reference allocation is not
+yet generalized" for Application Class. Before implementing, determine
+whether a class-body declaration line's own return-type mention needs a
+PACKAGE row at all (it may be purely decorative/metadata, with the actual
+reference belonging only to the implementation's doc-comment occurrence,
+or vice versa) -- do not assume symmetry with the ordinary-Function case
+without direct evidence, the same discipline that made the Field/Rowset
+parameter fixes safe. Re-run `recordfield-census.ts`/`package-census.ts`
+fresh first (population counts have shifted again) before picking the
+next target; the `ROWSET` PACKAGE sub-cluster is down to 68 (from 144
+originally) and the `RECORD` sub-cluster to 12.
+
 ## Continuation session (2026-09-28), part 7 — `Rowset`-typed Function/method PARAMETERS: Cycle 7's "genuinely mixed" finding did not survive re-investigation either
 
 **Status: IMPLEMENTED, validated, zero regressions, by far this session's
