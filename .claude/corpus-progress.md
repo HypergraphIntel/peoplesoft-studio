@@ -3,25 +3,28 @@
 ## Current status (2026-09-29)
 
 - **Current target:** Application Class self-class `%This.method()`
-  native call-path tracing (against the corrected 26,113/30,209
-  baseline). Escalated from string/co-occurrence evidence to real
-  radare2 XREF/vtable analysis of `pspcm.dll`/`pssys.dll`/`pside.exe`.
-  Confirmed `CApm` (Application Package Manager, owns `PSAPPCLASSDEFN`)
-  is a real class with virtual `Get`/`LoadDefn`/`UpdateImp` methods, and
-  found `ApmCopyPCode`/`ApmDeletePCode` -- direct, named evidence that
-  Apm-managed repository operations are coupled to PeopleCode program
-  lifecycle. However, `pspcm.dll` (the actual compiler) imports ZERO
-  Apm-family symbols, and `pside.exe` (App Designer) does not import
-  them either, nor does it call `PcmCompileObject` directly (which has
-  zero internal callers within `pspcm.dll` itself -- it's invoked from
-  an external, not-yet-identified caller). The `CApm::Get`/`LoadDefn`
-  methods are virtual (interface-dispatched), which is almost certainly
-  why simple import-table/string analysis cannot resolve the exact
-  call path further -- genuine ambiguity (stop condition D), not a
-  dead end. See "Application Class Self-Reference Metadata" below for
-  full addresses/evidence and the still-standing decisive live
-  experiment. Classification remains **UNKNOWN** (evidence is richer
-  but causality is not yet proven either way). No encoder change made.
+  hidden-input investigation. **PSAPPCLASSDEFN is now DISPROVEN as the
+  compiler-consulted input**, via real disassembly (not just
+  import-table absence): located `psprj.dll` as `PcmCompileObject`'s
+  actual external caller, traced its call site, and confirmed the ONLY
+  arguments passed are a generic 14-field OBJECTID/OBJECTVALUE key
+  structure (the same key shape already in the local corpus snapshot)
+  and a log/output handle -- no App-Class-specific or PSAPPCLASSDEFN-
+  derived data. Disassembled `PcmCompileObject`'s own body: it opens its
+  own DB session (`SamCreate`) and executes ONLY raw SQL built from
+  strings embedded in `pspcm.dll` itself (already confirmed to exclude
+  `PSAPPCLASSDEFN` entirely) via the generic `SamBindX`/`SamExec`/
+  `SamFetch` layer -- it never touches the `CApm`/`Apm*` repository
+  layer at any point in the traced path. This is a genuine, evidence-
+  backed **Result B** (H0: PSAPPCLASSDEFN insufficient/wrong). A new,
+  weaker, unconfirmed lead surfaced during tracing: `PcmCompileObject`'s
+  fallback logic references `PTTOOLSREL` (PeopleTools release version
+  stamp on `PSPCMPROG`) -- not present in the local snapshot either, but
+  not yet connected to the self-class reference specifically. See
+  "Application Class Self-Reference Metadata" for full addresses/
+  disassembly evidence. Classification remains **UNKNOWN** (one strong
+  candidate eliminated with real evidence; no new candidate confirmed).
+  No encoder change made.
 - **Last successful calibration (previous phase):** owner-key-by-OBJECTID
   fix in `tools/corpus/validator.ts` (test-harness fix, not an encoder.ts
   change) -- EXACT 25,265 -> 26,113, 0 regressions, protected 430/430
@@ -244,32 +247,95 @@ resolving it needs either instruction-level disassembly of the generic
 "Manager::Save()" dispatcher (interactive Ghidra/radare2 work well
 beyond this session's time budget) or finding the actual external caller
 of `PcmCompileObject` (possibly a separate batch-compile utility/EXE not
-present in the `pt861` binary set captured here). This is a genuine
-Phase-6/Outcome-D stopping point: ambiguous, with the exact function/RVA
-where the trace goes dark identified above, not a dead end reached by
-giving up early.
+present in the `pt861` binary set captured here). This was the prior
+session's stopping point -- resolved below.
 
-### Recovered hidden-input candidate
+### Phase 3 (this session): PcmCompileObject's external caller found and traced -- PSAPPCLASSDEFN disproven
 
-**Hypothesis (still not confirmed, now more precisely scoped):** the
-self-class reference's PACKAGEROOT/APPCLASSMETHOD content is populated
-from the class's own entry in the `PSAPPCLASSDEFN` repository table --
-architecturally plausible (Apm and PCode lifecycle are confirmedly
-coupled via `ApmCopyPCode`/`ApmDeletePCode`) but NOT shown to happen
-inside the compile call itself (`pspcm.dll` never imports Apm functions).
-The more precise version of the hypothesis, consistent with all evidence
-found so far: **the orchestrating SAVE logic (wherever `PcmCompileObject`
-is actually called from) resolves the class's PSAPPCLASSDEFN identity
-BEFORE invoking the compiler, and passes it in as part of the compile
-context** (candidate carrier: the `CPSBufContext`/`IPCHost` parameters
-seen in `CPCObject::InvokeAppClassFunction`'s signature) -- rather than
-the compiler querying the repository mid-compile. This still explains
-29300/29330 identically to the original hypothesis: two byte-identical
-class bodies, registered as two different classes (`GPFR_XMLRF` vs
-`GPSC_XMLRF`), whose PSAPPCLASSDEFN-resolved context differs before
-compilation ever begins.
+Searched every DLL/EXE in the `pt861` set for an import of
+`PcmCompileObject` (not just `pside.exe`): found exactly two --
+`pspcm.dll` itself (the export) and **`psprj.dll`** (3.1MB, PE32+,
+"PS PRoJect" -- PeopleSoft's project copy/build/migration module; imports
+both `pspcm.dll` and `pssys.dll`). `psprj.dll`'s own 114-entry import
+list from `pssys.dll` contains **zero** `Apm`-family symbols (checked in
+full, same as `pspcm.dll` and `pside.exe` before it) -- three independent
+binaries in the compile chain, none of them importing the Apm/PSAPPCLASSDEFN
+layer by name.
 
-### Decisive experiment (for live execution -- not run by this session, unchanged from the prior phase)
+**Disassembled the actual call site** (raw byte-pattern search via `/r`,
+since r2's fast `aa` analysis didn't recognize the containing function;
+found 3 reference sites in `psprj.dll`, examined the first at file offset
+`0x18008ccce`). Immediately before the call, the argument registers are
+set up as:
+- `rcx` = pointer to a zeroed, then partially-filled, STACK-LOCAL buffer
+  (built via a helper call at `0x1800ff0f2`) -- shape consistent with the
+  generic 14-field `OBJECTID1..7`/`OBJECTVALUE1..7` key structure (the
+  exact shape of the `SELECT ... FROM PSPCMPROG WHERE ... OBJECTID1=:1
+  AND OBJECTVALUE1=:2 AND ...` query string found inside `PcmCompileObject`
+  itself).
+- `rdx` = `r13`, a register PERSISTED from earlier in the same function,
+  where it was already used as the target of a logging call (`rcx=r13`
+  passed to a function at `0x1800b9030` with format string `"   %s\n"`)
+  -- consistent with a log/output-stream handle, not class metadata.
+- `r8` = 0, `r9` = 0 (both explicitly zeroed).
+
+**No PACKAGEROOT, QUALIFYPATH, APPCLASSID, APPCLASSREF, or any other
+App-Class-specific value is visible in this call's arguments** -- only
+the same generic definition key already captured in the local snapshot,
+plus a log handle.
+
+**Disassembled `PcmCompileObject`'s own body** (1,785 bytes, RVA
+`0x1801e4b20`, full instruction listing captured). Every `call`
+instruction within it targets either: (a) generic memory/string utility
+functions (`FixedGlobalAlloc/Free/Lock/Handle` in `pscmnutils64.dll`,
+`_wtol`), or (b) the **generic SQL execution layer in `pssam.dll`**
+(`SamCreate`, `SamBindInt`/`SamBindLong`/`SamBindStr`, `SamSetSqlProc`,
+`SamExec`, `SamFetch`, `SamDestroy`, `SamBufInt`/`SamBufStr`), or (c)
+`pssys.dll`'s generic `MsgGetText`/`PcmFreeDiscard`/`PcmFreeMemory`.
+**Zero calls to any `CApm`/`Apm*` symbol anywhere in the function.** The
+function opens its OWN database session at entry (`SamCreate`; on
+failure, falls back to a `SELECT ... FROM PSPCMPROG WHERE PROGSEQ=0 AND
+PTTOOLSREL IS NOT NULL AND PTTOOLSREL <> '' AND OBJECTID1..7/OBJECTVALUE1..7
+= :1..:14` query -- the SQL text for this was already found in the
+prior session's string dump) and executes ONLY the SQL text already
+confirmed (prior session) to live inside `pspcm.dll` itself, which does
+NOT include `PSAPPCLASSDEFN` anywhere.
+
+**Conclusion: PSAPPCLASSDEFN is DISPROVEN as a compile-time input to the
+self-class reference**, to the standard of evidence static analysis can
+provide -- not merely "not imported" (which could be explained by virtual
+dispatch, as the prior session left open) but "not passed as an argument,
+and not queried by any SQL the compile function itself executes." This
+is a genuine **Result B** (H0 confirmed) per the experiment's own
+classification scheme, reached through native evidence instead of a live
+compile.
+
+**A new, weaker, unconfirmed lead surfaced during this tracing:**
+`PTTOOLSREL` (the PeopleTools release version stamped on a `PSPCMPROG`
+row at last compile) appears in `PcmCompileObject`'s own fallback logic.
+This field does not exist in the local snapshot schema either, and no
+evidence was found connecting it specifically to self-class reference
+content (only to a PSPCMPROG existence/version check) -- flagged as a
+candidate worth a targeted disassembly pass on `PcmCompileObject`'s
+LATER logic (past the session-setup prologue traced here) if the live
+experiment does not resolve things, not elevated to a new leading
+hypothesis without further evidence.
+
+### Recovered hidden-input candidate: retracted
+
+The (still unconfirmed either way) remaining possibility is that
+whatever determines self-class reference content is **internal compiler
+logic operating on data already available to it** (source text + the
+generic definition key) rather than any external repository table --
+which would make it a genuine `SOURCE_DERIVABLE_AFTER_ALL` case this
+project simply has not found the rule for yet, since the exhaustive
+Phase 1 correlation (previous section) only tested a specific set of
+source-visible dimensions, not an exhaustive one. This has NOT been
+re-investigated this session; it is the most evidence-consistent
+remaining possibility after PSAPPCLASSDEFN's elimination, not a proven
+conclusion.
+
+### Decisive experiment (for live execution -- not run by this session, unchanged from the prior phase; still valuable -- it can also test whether the SAME source compiled twice in immediate succession, or under different PeopleTools patch/session state, changes the self-class row, which would rule in or out the PTTOOLSREL lead above)
 
 **Goal:** confirm or reject the PSAPPCLASSDEFN hypothesis with ONE
 variable changed.
@@ -326,14 +392,15 @@ Designer itself (not these shared DLLs) owns the decision.
 
 ### Why no encoder change was made
 
-Per the explicit implementation threshold for this phase: no controlled
-or native evidence yet CONFIRMS the PSAPPCLASSDEFN hypothesis (it is a
-strong, concrete lead from static analysis, not a proven rule). A
-guessed default (e.g. "always populate, using the class's own known
-package path") would fix the ALLOCATION gap (150 definitions) but risk
-wrong CONTENT for roughly half of them (per the 309/305 split), and the
-project's own standing rule is zero unexplained contradictions before
-any semantic change. Holding for the experiment's result.
+Updated per this session's findings: the PSAPPCLASSDEFN hypothesis is now
+DISPROVEN by call-argument and internal-SQL tracing, not merely
+unconfirmed. No replacement rule has been established. A guessed default
+(e.g. "always populate, using the class's own known package path") would
+fix the ALLOCATION gap (150 definitions) but risk wrong CONTENT for
+roughly half of them (per the 309/305 split), and the project's own
+standing rule is zero unexplained contradictions before any semantic
+change. Holding for either the live experiment's result or a further
+native trace of `PcmCompileObject`'s post-prologue logic.
 
 ## Compiler Architecture: Application Class Declaration-Phase References (2026-09-29)
 
