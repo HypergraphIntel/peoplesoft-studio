@@ -5473,3 +5473,26 @@ test('a section without an initialized Local still closes formally before a stan
     '15 2d 4f'
   );
 });
+
+/*
+ * Cycle 87: a REM before the first Local does not end leading-run
+ * eligibility (5242); the run still closes formally.
+ */
+test('a REM before the first Local keeps the leading Local run eligible for its formal close', () => {
+  assert.strictEqual(
+    boundaryOpcodesBeforeLastStatement(`REM note;
+Local Rowset &r;
+
+&r = GetRowset(Scroll.TEST_REC);`),
+    '15 2d 4f'
+  );
+});
+
+test('a REM after a started Local run still ends that run (unchanged)', () => {
+  const before = boundaryOpcodesBeforeLastStatement(`Local Rowset &r;
+
+REM note;
+
+&r = GetRowset(Scroll.TEST_REC);`);
+  assert.ok(!before.startsWith('15 2d'), before);
+});
