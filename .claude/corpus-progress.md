@@ -1,5 +1,121 @@
 # Corpus Calibration Progress
 
+## Continuation session (2026-09-28), part 5 — `Field`-typed Function PARAMETERS: the "genuinely mixed" caution was based on flawed evidence
+
+**Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL
+SNAPSHOT throughout. Starting commit `1684b66` (this session's prior fix).
+Baseline before this change: 25,104/30,209 EXACT.
+
+### Pivot: from DECODE_SOURCE_MISMATCH to REFERENCE_ACTIVE_RECORD_FIELD
+
+With the fine-grained `DECODE_SOURCE_MISMATCH` taxonomy category down to 82
+(from 512 at session start) and increasingly dominated by the deferred
+mojibake cluster, this session pivoted to the much larger
+`REFERENCE_ACTIVE_RECORD_FIELD` family (1,257 definitions) using the
+already-built `recordfield-census.ts` tool (from an earlier session).
+Clustering its `firstDivStoredKey` by prefix confirmed the earlier
+session's own finding: the taxonomy label is frequently misleading — the
+TRUE first-diverging STORED reference is very often `PACKAGE.<name>`
+(339/1,257, the single largest sub-cluster), not a record/field at all.
+Sub-clustering the PACKAGE names found a large, fragmented long tail of
+Application-Class instance names (the already-known-and-deferred
+"fresh-non-dedup PACKAGE reference per occurrence" mechanism — STACK(14),
+GPCCSETUPONLINE(10), WIPUTILITIES(3), SCHEDULE_ROLLOVER(3),
+CONTRIBUTION_ROLLOVER(3), CIPHERUTILITY(3), REPORTDATAAE(3), etc., ~39+
+definitions, left deferred as before) alongside a cluster of genuine
+BUILT-IN PeopleCode object type names: `FIELD` (16), `SQL` (13), `ROWSET`
+(7), `RECORD` (7), `APIOBJECT` (6), `ROW` (2), `GRID` (3), `JAVAOBJECT` (2).
+
+### What was found
+
+Definition 4686's first divergence (`stored=PACKAGE.FIELD`) traced to:
+`Function SetFPSLabels(&field As Field, &labelid As string)` — a
+Field-typed Function PARAMETER. `encoder.ts`'s `functionStatement()` already
+has an else-if chain granting File/SQL/ApiObject/Grid/Message-typed
+parameters their own `PACKAGE` dependency row (each landed in a separate
+earlier cycle), but a comment on the `Field` case explicitly left it
+**deliberately unhandled**, citing "a 122-candidate corpus census found 119
+supporting matches but 2 genuine negative controls (definitions 17113,
+20911)".
+
+Re-investigating those two "negative controls" directly (reading their full
+stored source) found BOTH were false: **the entire `Function
+...(&f As Field...)` body in both 17113 and 20911 is wrapped in one large
+`/* ... */` comment** — no real Function-parameter declaration is compiled
+there at all; the prior census's naive text-based "As Field" search matched
+inside dead comment text, not real code. Re-running a corrected,
+TOKEN-LEVEL census (decoding each of the 142 textual `"As Field"` candidates
+and requiring a genuine opcode-tagged `As`(0x35) token immediately followed
+by a real `Field` keyword token — impossible to produce from inside a
+comment, which decodes as a single Comment-kind token regardless of its
+text) found 118 genuine occurrences, 116 already carrying a `PACKAGE.FIELD`
+row, and exactly 2 new candidates (20912, 30151) — which turned out to be a
+**third, unrelated false lead**: both are the entirely different
+`value As Field` runtime TYPE-CHECK EXPRESSION (`(&keys [&i] As Field <>
+Null)`, `ShowPartialActivityCoeff(&fld As Field)` as a call-site argument
+type assertion) — parsed through a completely different code path than the
+Function-parameter-list loop, not a parameter declaration at all.
+
+With all 4 false leads excluded (2 comment-only, 2 unrelated-construct),
+there are 0 genuine counter-examples anywhere in the corpus for
+`Function name(&x As Field, ...)` needing a `PACKAGE.FIELD` row — the
+"genuinely mixed" classification was an artifact of an imprecise census
+methodology, not a real semantic ambiguity.
+
+### Fix
+
+`src/peoplecode/encoder.ts`'s `functionStatement()`: added `Field` to the
+Function-parameter-typing else-if chain (`ensureLocalObjectPackageReference('FIELD', 'Field')`),
+alongside File/SQL/ApiObject/Grid/Message.
+
+### Fail-before/pass-after proof (`git stash -- src/peoplecode/encoder.ts`)
+
+```text
+Definition 4686: before -> UNKNOWN_MISMATCH, after -> EXACT
+```
+
+### Spot checks (all 16 current PACKAGE.FIELD-divergence candidates)
+
+```text
+4686, 15701, 16389   -> EXACT
+15682, 15709, 15790, 16701, 16938, 16945, 17846, 17847, 19371, 19414,
+24529, 24532, 24537  -> UNKNOWN_MISMATCH (this layer fixed; each has a
+                        separate, independent remaining issue -- not a
+                        regression)
+```
+
+### Full validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped — unchanged.
+- Protected/full-corpus gate: `npm run corpus:verify` — REGRESSION GATE:
+  PASS, 0 regressed.
+- Full top-level harness re-run: **EXACT 25,104 → 25,111 (+7)**.
+  `DECODE_SOURCE_MISMATCH`/`ENCODE_ERROR`/`UNSUPPORTED_SYNTAX` all held
+  exactly steady (108/122/335), confirming this fix is fully contained to
+  the `UNKNOWN_MISMATCH`↔`EXACT` boundary as expected.
+
+### Next action
+
+This session's methodological finding — that a prior "genuinely mixed,
+do not touch" caution can itself be wrong if its census didn't exclude
+comment-only occurrences and unrelated grammatical constructs sharing the
+same surface text — is worth applying to the OTHER "genuinely mixed"
+caution already on record: `Rowset`-typed Function parameters (Cycle 7's own
+finding, cited in this same code region). Re-investigate that one with the
+same token-level, comment-excluding methodology before assuming it still
+holds. Separately, continue decomposing `REFERENCE_ACTIVE_RECORD_FIELD`'s
+remaining `PACKAGE`-prefixed sub-clusters (`SQL`(13), `ROWSET`(7),
+`RECORD`(7), `APIOBJECT`(6), `ROW`(2), `GRID`(3), `JAVAOBJECT`(2) — all
+built-in types with existing dispatch code elsewhere in the encoder,
+suggesting a similarly narrow, specific gap rather than a wholesale missing
+feature) using the same investigation pattern: trace one representative's
+first divergence, find which specific encoder call site is missing the
+type, verify with a token-level corpus-wide census before implementing.
+`recordfield-census.json` (freshly regenerated this session) and
+`package-census.ts` (from an earlier session, not yet re-run against the
+current population) are both available to resume from directly.
+
 ## Continuation session (2026-09-28), part 4 — `)[index]` never renders with a space after the closing paren
 
 **Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL
