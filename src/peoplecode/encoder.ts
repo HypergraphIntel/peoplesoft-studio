@@ -2131,6 +2131,26 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       rowVariables.add(name.toLowerCase());
     } else if (/^Rowset$/i.test(type)) {
       chainSemanticsDeclaredRowsetVariables.add(name.toLowerCase());
+    } else if (/^SQL$/i.test(type)) {
+      ensureLocalObjectPackageReference('SQL', 'SQL');
+    } else if (/^ApiObject$/i.test(type)) {
+      ensureLocalObjectPackageReference('APIOBJECT', 'ApiObject');
+    } else if (/^Grid$/i.test(type)) {
+      ensureLocalObjectPackageReference('GRID', 'Grid');
+    } else if (/^Message$/i.test(type)) {
+      /*
+       * Compiler closure: this function is the ONLY dispatch for an
+       * Application Class method implementation's own parameter list
+       * (seeded via the loop at this function's own call site above,
+       * line ~3050) -- the separate SQL/ApiObject/Grid/Message branches
+       * added to the ordinary Function-parameter path (~line 5680) never
+       * run for App Class method parameters at all. 206 of the
+       * 207-candidate `As Message` parameter corpus population (this
+       * campaign's single largest population) are Application Class
+       * method signatures, so without this, the ordinary-path fix alone
+       * only reached 1 of them.
+       */
+      ensureLocalObjectPackageReference('MESSAGE', 'Message');
     }
   };
 
@@ -5697,7 +5717,48 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
                * regression history.
                */
               ensureLocalObjectPackageReference('FILE', 'File');
+            } else if (/^SQL$/i.test(paramType ?? '')) {
+              /*
+               * Compiler closure: `SQL`-typed Function PARAMETERS
+               * (8-candidate corpus population, 0 contradictions)
+               * allocate a PACKAGE/SQL dependency row the same way File
+               * above does.
+               */
+              ensureLocalObjectPackageReference('SQL', 'SQL');
+            } else if (/^ApiObject$/i.test(paramType ?? '')) {
+              /*
+               * Compiler closure: `ApiObject`-typed Function PARAMETERS
+               * (65-candidate corpus population, 0 contradictions) --
+               * the same class of gap as SQL/File above.
+               */
+              ensureLocalObjectPackageReference('APIOBJECT', 'ApiObject');
+            } else if (/^Grid$/i.test(paramType ?? '')) {
+              /*
+               * Compiler closure: `Grid`-typed Function PARAMETERS
+               * (8-candidate corpus population, 0 contradictions).
+               */
+              ensureLocalObjectPackageReference('GRID', 'Grid');
+            } else if (/^Message$/i.test(paramType ?? '')) {
+              /*
+               * Compiler closure: `Message`-typed Function PARAMETERS --
+               * by far the largest single population found in this
+               * campaign (207-candidate corpus population, 0
+               * contradictions -- every single stored occurrence has a
+               * PACKAGE/MESSAGE row).
+               */
+              ensureLocalObjectPackageReference('MESSAGE', 'Message');
             }
+            /*
+             * `Field`-typed Function PARAMETERS are DELIBERATELY left
+             * unhandled here: a 122-candidate corpus census found 119
+             * supporting matches but 2 genuine negative controls
+             * (definitions 17113, 20911 -- both currently EXACT with NO
+             * PACKAGE/FIELD row for their own `&x As Field` parameter),
+             * the same "genuinely mixed" shape Cycle 7 found for
+             * `Rowset`-typed parameters. Do not add an unconditional
+             * rule without first distinguishing what differs between the
+             * 119 supporting cases and these 2 counter-examples.
+             */
           }
           space();
         } else {
