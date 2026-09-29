@@ -1,5 +1,113 @@
 # Corpus Calibration Progress
 
+## Continuation session (2026-09-29), part 9 — `REFERENCE_COMPLETE_DOWNSTREAM` survey (910 definitions): fragmented, no single systemic mechanism found yet
+
+**Status: SURVEY ONLY, no code change.** Baseline: 25,196/30,209 EXACT,
+REGRESSION GATE: PASS (reconfirmed after the session gap described below).
+
+### Session continuity note
+
+A background taxonomy-rebuild wait-loop's completion notification was not
+acted on for roughly 6 hours (flagged by the user). Root cause: the
+rebuild itself finished in under a minute; the gap was in this session's
+own check-in loop (a `ScheduleWakeup` was set but its firing did not lead
+to resuming work), not a stuck/hung process. The one pending fix (Returns-
+type PACKAGE allocation) was still sitting correctly staged and was
+committed normally once resumed (see part 8, commit `7bc3a95`). No corpus
+state was lost or corrupted. **Going forward: avoid multi-minute
+`ScheduleWakeup` delays for a background command that normally completes
+in well under a minute; prefer a short, bounded wait or just re-issue the
+command with output redirected to a log file and check it directly on the
+next turn.**
+
+### What was surveyed
+
+With `DECODE_SOURCE_MISMATCH` and the `PACKAGE`-prefixed
+`REFERENCE_ACTIVE_*` sub-clusters both substantially reduced this session,
+surveyed `REFERENCE_COMPLETE_DOWNSTREAM` (910 definitions -- reference
+stream already exact, something else in the body still blocks full EXACT)
+via a ~22-definition sample's own `--verbose` body-diff output. Found a
+HETEROGENEOUS mix with no single dominant shape, unlike every prior fix
+this session:
+
+- `0x4E`/`0x24` comment-opcode confusion (523, 2809, 3290, 3316) -- 523 is
+  specifically the two-back-to-back-comments-on-one-line shape
+  (`/* 811477 end */ /* Begin Bug 19722155 */`) already cited in
+  decoder.ts's own historical notes for a DIFFERENT (decoder-side, already
+  fixed) bug; this looks like a related but distinct ENCODER-side
+  comment-opcode-array consumption-order issue, in the same family as
+  Cycle 81's `encodeApplicationClassProgramV2` fix but apparently a
+  different call site since 523 does not appear to be Application Class.
+- Missing/extra `0x4F` blank-line markers at various positions (1408,
+  1769, 1939, 2128, 2959, 2960, 3054, 3102, 3237) -- NOT one construct:
+  1769 is a top-level `Local Record &x = <initializer>;` immediately
+  followed by a statement with NO blank line, yet generated adds an
+  unwanted 0x4F (opposite direction from most of this session's fixes --
+  worth checking whether this is genuinely new or pre-existing, since
+  `git log`/full-corpus-verify already confirmed 0 regressions after every
+  commit this session). 1408 traced to a blank-line-multiplicity gap
+  after `End-For` (opcode 0x2C) inside a Function body, needing 2 markers
+  but getting 1 -- `forStatement()`'s OWN internal blank-line handling
+  (inside the loop body) already correctly implements the `max(1, n-1)`
+  formula in multiple places, so the gap is specifically in whatever
+  general body-statement-loop mechanism handles blank lines AFTER a
+  closed For-loop, before the NEXT enclosing-scope statement -- not yet
+  isolated to a specific code location.
+- Missing/extra `0x2D` declaration-boundary markers (2043, 2093, 2991,
+  3128, 3140, 3155, 3181, 3236, 3237) -- again not obviously one
+  construct across all of them.
+
+### Why this wasn't pursued further this session
+
+Every fix this session so far (parts 5-8) found ONE construct/mechanism
+explaining a clean double-digit-to-50+ population with a corpus-wide,
+zero-contradiction census. This survey found the OPPOSITE: many small,
+seemingly-independent one-off shapes, each needing its own dedicated
+trace-and-fix cycle -- matching the OLDER, pre-this-session project
+history's own extensive "Cycle N: fix blank-line multiplicity for
+construct X" pattern (dozens of such narrow fixes already recorded earlier
+in this file, each worth only a handful of EXACT). This is real,
+legitimate work, but lower expected payoff-per-effort than what this
+session found elsewhere, and none of the individual leads converged
+quickly enough in the time available to reach the same evidence bar
+(corpus-wide zero-contradiction census) the other fixes met before
+implementation.
+
+### Next action for this family
+
+Do NOT implement anything here without repeating the same discipline used
+for every other fix this session: isolate ONE specific construct, build
+the corpus-wide census showing 2+ supporting definitions and 0
+contradictions, THEN implement. Concretely:
+
+1. Trace definition 1408's `End-For` blank-line gap fully: find the
+   general body-loop blank-line-marker code (likely near wherever
+   `enteredExecutableSection`/`sawLocalDeclaration` are checked, per the
+   Function-header comment's own cross-reference) and determine why a
+   For-loop's own closing boundary doesn't feed into that shared
+   mechanism's multiplicity counting the same way other constructs do.
+2. Trace 1769's unwanted-extra-0x4F case fully before assuming it's
+   fixable the same way -- confirm whether the population it belongs to
+   is "declaration-with-initializer specifically" or something else
+   entirely; do not conflate with this session's part-6 fix without
+   direct evidence, since part 6 was about REFERENCE allocation timing,
+   not blank-line rendering.
+3. Investigate 523's comment-opcode-array consumption order as a
+   POSSIBLE broader mechanism (check whether other back-to-back-comment
+   cases share it) before treating it as a one-off.
+4. If none of these converge into a clean multi-definition population
+   quickly, consider whether `REFERENCE_COMPLETE_DOWNSTREAM` is simply a
+   "long tail" category better worked definition-by-definition (as the
+   pre-Cycle-73 project history did for years) rather than searched for
+   one more big systemic win -- re-affirm this judgment against a fresh
+   taxonomy rebuild before committing significant further time to it.
+
+Also still open from part 8: the Application Class method return-type
+PACKAGE-allocation gap (class-body declaration path via
+`encodeApplicationClassTypeBytes`, and the doc-comment-based
+implementation-signature path) -- flagged as a real, not-yet-investigated,
+potentially sizable lead.
+
 ## Continuation session (2026-09-28/29), part 8 — a Function's `Returns <BuiltinType>` never allocated a PACKAGE dependency row for any built-in type
 
 **Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL
