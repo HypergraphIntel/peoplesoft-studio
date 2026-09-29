@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-09-29T02:16:10.899Z",
+ "generatedAt": "2026-09-29T02:52:42.952Z",
  "totalDefinitions": 30209,
- "exactCount": 24952,
- "nonexactCount": 5257,
+ "exactCount": 25058,
+ "nonexactCount": 5151,
  "rows": [
   {
    "definitionId": 522,
@@ -457,14 +457,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 897: unsupported PeopleCode statement",
    "construct": ";\n            Er",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 1626,
-   "displayName": "1=BAS_PARTIC, 2=SCHED_ID, 12=SaveEdit, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 1635,
@@ -1376,11 +1368,18 @@
   {
    "definitionId": 2676,
    "displayName": "1=CDM_WRK, 2=REFRESH_BTN, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13142,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 123,
+    "generatedCount": 121,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 2685,
@@ -1559,30 +1558,6 @@
    }
   },
   {
-   "definitionId": 3045,
-   "displayName": "1=CONTRACT, 2=CONTRACT_BEGIN_DT, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 3048,
-   "displayName": "1=CONTRACT, 2=CONTRACT_END_DT, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 3050,
-   "displayName": "1=CONTRACT, 2=CONTRACT_PAY_TYPE, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 3054,
    "displayName": "1=CONTRACT, 2=HP_WORKDAYS, 12=SaveEdit, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -1596,30 +1571,6 @@
     "storedCount": 13,
     "generatedCount": 13
    }
-  },
-  {
-   "definitionId": 3055,
-   "displayName": "1=CONTRACT, 2=PAYMENT_BEGIN_DT, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 3060,
-   "displayName": "1=CONTRACT, 2=PAYMENT_TERM, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 3084,
-   "displayName": "1=CONTRACT_DATA, 2=EMPLID, 12=SavePostChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 3095,
@@ -1914,11 +1865,17 @@
   {
    "definitionId": 3316,
    "displayName": "1=CQ_WZ_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 64,
+    "generatedCount": 64
+   }
   },
   {
    "definitionId": 3330,
@@ -1981,11 +1938,18 @@
   {
    "definitionId": 3465,
    "displayName": "1=CTPRDERIVED_ESP, 2=XML_NODE_ID, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 4919,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 62,
+    "generatedCount": 63,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 3547,
@@ -2433,11 +2397,18 @@
   {
    "definitionId": 3907,
    "displayName": "1=DEP_BEN_EFF, 2=RELATIONSHIP, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 53,
+    "generatedCount": 53,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 3912,
@@ -3569,14 +3540,6 @@
    }
   },
   {
-   "definitionId": 4633,
-   "displayName": "1=DERIVED_FE, 2=WF_SRCH_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 4638,
    "displayName": "1=DERIVED_FE3, 2=LOOKUP_NID_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -3705,11 +3668,18 @@
   {
    "definitionId": 4701,
    "displayName": "1=DERIVED_FP, 2=FP_SAVE, 12=SavePostChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 516,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 14,
+    "generatedCount": 15,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 4725,
@@ -3976,11 +3946,18 @@
   {
    "definitionId": 4858,
    "displayName": "1=DERIVED_GP, 2=PIN_ACM_ADJ_NUM, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 2988,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 42,
+    "generatedCount": 43,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 4859,
@@ -4059,14 +4036,6 @@
     "generatedCount": 19,
     "firstDivergenceKind": "scroll"
    }
-  },
-  {
-   "definitionId": 4876,
-   "displayName": "1=DERIVED_GPAU, 2=GPAU_ADV_BUTTON, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 4880,
@@ -4196,11 +4165,17 @@
   {
    "definitionId": 4950,
    "displayName": "1=DERIVED_GPDE, 2=GPDE_MT_EVENTSYNC, 12=SavePostChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 21,
+    "generatedCount": 21
+   }
   },
   {
    "definitionId": 4954,
@@ -4316,11 +4291,18 @@
   {
    "definitionId": 5001,
    "displayName": "1=DERIVED_GPFRDSN, 2=GPFR_AF_EXTRACT_ID, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 2171,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 30,
+    "generatedCount": 32,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 5004,
@@ -4516,14 +4498,6 @@
    "primaryCategory": "ENCODE_ERROR"
   },
   {
-   "definitionId": 5053,
-   "displayName": "1=DERIVED_GPFR_AF, 2=GPFR_AF_UPGRADE, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 5055,
    "displayName": "1=DERIVED_GPFR_AF, 2=GPFR_AF_UPGRADE, 12=SavePostChange, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -4695,14 +4669,6 @@
    "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
-   "definitionId": 5129,
-   "displayName": "1=DERIVED_GPGB, 2=GPGB_SS_TOT_CONT, 12=SaveEdit, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 5134,
    "displayName": "1=DERIVED_GPGB, 2=GP_SELECT_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -4837,14 +4803,6 @@
     "storedCount": 28,
     "generatedCount": 28
    }
-  },
-  {
-   "definitionId": 5213,
-   "displayName": "1=DERIVED_GPMX, 2=DATE_FROM, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 5215,
@@ -5019,14 +4977,6 @@
     "generatedCount": 10,
     "firstDivergenceKind": "scroll"
    }
-  },
-  {
-   "definitionId": 5278,
-   "displayName": "1=DERIVED_GPNZ, 2=GPNZ_ADV_BUTTON, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 5305,
@@ -5266,11 +5216,18 @@
   {
    "definitionId": 5525,
    "displayName": "1=DERIVED_HCR_SM, 2=SM_SEARCH_BTN, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 181,
+    "generatedCount": 183,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 5526,
@@ -5525,14 +5482,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 3415: unsupported PeopleCode statement",
    "construct": "#If #ToolsRel>=\"",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 5644,
-   "displayName": "1=DERIVED_HR, 2=FIELDNAME_VISUAL, 12=RowInit, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 5672,
@@ -6305,11 +6254,18 @@
   {
    "definitionId": 6221,
    "displayName": "1=DERIVED_HR_REG, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 672,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 72,
+    "generatedCount": 63,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 6230,
@@ -6982,14 +6938,6 @@
    }
   },
   {
-   "definitionId": 6478,
-   "displayName": "1=DERIVED_HR_WP, 2=WP_LABEL, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 6493,
    "displayName": "1=DERIVED_HR_WTD, 2=BEGIN_DT, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -7454,11 +7402,18 @@
   {
    "definitionId": 6675,
    "displayName": "1=GPES_RATES_WRK, 2=EFFDT, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1034,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 20,
+    "generatedCount": 17,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 6690,
@@ -7973,14 +7928,6 @@
     "generatedCount": 42,
     "firstDivergenceKind": "field"
    }
-  },
-  {
-   "definitionId": 7073,
-   "displayName": "1=GPFR_CRM_WRK, 2=IMAGE_FIELD, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 7078,
@@ -8576,14 +8523,6 @@
    }
   },
   {
-   "definitionId": 7363,
-   "displayName": "1=GPFR_LOAN, 2=EMPLID, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 7397,
    "displayName": "1=GPFR_ONPAY_WRK, 2=GPFR_RESULTS_PB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -9001,11 +8940,18 @@
   {
    "definitionId": 7580,
    "displayName": "1=GPGB_EE_CO_HDR, 2=EMPLID, 12=SaveEdit, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 32,
+    "generatedCount": 21,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 7618,
@@ -10094,22 +10040,6 @@
    }
   },
   {
-   "definitionId": 8623,
-   "displayName": "1=GPMX_AA_PAYGRP, 2=GP_PAYGROUP, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 8633,
-   "displayName": "1=GPMX_AB_PAYGRP, 2=GP_PAYGROUP, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 8648,
    "displayName": "1=GPMX_CFDI_DTL, 2=ENTRY_TYPE_ELEM, 12=RowInit, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -10234,14 +10164,6 @@
     "storedCount": 10,
     "generatedCount": 10
    }
-  },
-  {
-   "definitionId": 8687,
-   "displayName": "1=GPMX_EE_NOADJ_D, 2=GPMX_BALANCE_YEAR, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 8707,
@@ -10374,27 +10296,18 @@
   {
    "definitionId": 8778,
    "displayName": "1=GPMX_OVRTM_PARM, 2=GP_PAYGROUP, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 7442,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 8799,
-   "displayName": "1=GPMX_OVR_DAILY, 2=GP_PAYGROUP, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 8806,
-   "displayName": "1=GPMX_OVR_WEEKLY, 2=EMPLID, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 10,
+    "generatedCount": 11,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 8824,
@@ -10431,11 +10344,18 @@
   {
    "definitionId": 8826,
    "displayName": "1=GPMX_OVR_WEEKLY, 2=GP_PAYGROUP, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 11497,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 51,
+    "generatedCount": 58,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 8837,
@@ -10629,22 +10549,6 @@
    }
   },
   {
-   "definitionId": 9044,
-   "displayName": "1=GPMX_SAL_ERNDED, 2=GPMX_LEVEL_ERN_DED, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 9045,
-   "displayName": "1=GPMX_SAL_ERNDED, 2=PIN_NUM, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 9050,
    "displayName": "1=GPMX_SDI_CAL_E, 2=EFFDT, 12=RowInit, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -10677,21 +10581,20 @@
    }
   },
   {
-   "definitionId": 9090,
-   "displayName": "1=GPMX_TAX_PARM, 2=GP_PAYGROUP, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 9092,
    "displayName": "1=GPMX_TERM_PYE, 2=EMPLID, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 9729,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 25,
+    "generatedCount": 26,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 9093,
@@ -11257,11 +11160,17 @@
   {
    "definitionId": 9482,
    "displayName": "1=GPNL_WAO_DATA, 2=EMPLID, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 9,
+    "generatedCount": 9
+   }
   },
   {
    "definitionId": 9511,
@@ -12040,11 +11949,18 @@
   {
    "definitionId": 10231,
    "displayName": "1=GPUS_BND_DATA, 2=EMPLID, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 20,
+    "generatedCount": 21,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 10233,
@@ -12160,29 +12076,48 @@
   {
    "definitionId": 10300,
    "displayName": "1=GPUS_FPMT_PYE, 2=EMPLID, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 12,
+    "generatedCount": 12
+   }
   },
   {
    "definitionId": 10303,
    "displayName": "1=GPUS_FPMT_PYE, 2=TERMINATION_DT, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 7,
+    "generatedCount": 7
+   }
   },
   {
    "definitionId": 10351,
    "displayName": "1=GPUS_LOAN_PAY, 2=EMPLID, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 11722,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 18,
+    "generatedCount": 19,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 10354,
@@ -12203,11 +12138,17 @@
   {
    "definitionId": 10364,
    "displayName": "1=GPUS_LOAN_SCHED, 2=EMPLID, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 25,
+    "generatedCount": 25
+   }
   },
   {
    "definitionId": 10365,
@@ -12259,11 +12200,17 @@
   {
    "definitionId": 10435,
    "displayName": "1=GPUS_REV_WRK, 2=SUBMIT_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 31,
+    "generatedCount": 31
+   }
   },
   {
    "definitionId": 10487,
@@ -12727,11 +12674,18 @@
   {
    "definitionId": 10860,
    "displayName": "1=GP_AUDIT_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 1350,
+    "generatedCount": 1371,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 10864,
@@ -14325,11 +14279,18 @@
   {
    "definitionId": 13413,
    "displayName": "1=PMN_DERIVED, 2=REFRESH_BTN, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 161,
+    "generatedCount": 167,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 13417,
@@ -14540,14 +14501,6 @@
    }
   },
   {
-   "definitionId": 13547,
-   "displayName": "1=PORTAL_CREF_ADM, 2=MSGNODENAME, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 13559,
    "displayName": "1=PORTAL_CREF_ADM, 2=PORTAL_CREF_USGT, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -14612,14 +14565,6 @@
     "generatedCount": 389,
     "firstDivergenceKind": "record"
    }
-  },
-  {
-   "definitionId": 13572,
-   "displayName": "1=PORTAL_CREF_LNK, 2=MSGNODENAME, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 13584,
@@ -14771,14 +14716,6 @@
    }
   },
   {
-   "definitionId": 13633,
-   "displayName": "1=PORTAL_GROUPLET, 2=MSGNODENAME, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 13645,
    "displayName": "1=PORTAL_HPWRK, 2=PORTAL_HP_DELBTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -14791,11 +14728,18 @@
   {
    "definitionId": 13646,
    "displayName": "1=PORTAL_HPWRK, 2=PORTAL_HP_LAYOUT, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 505,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 10,
+    "generatedCount": 8,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 13647,
@@ -14875,14 +14819,6 @@
     "generatedCount": 5,
     "firstDivergenceKind": "field"
    }
-  },
-  {
-   "definitionId": 13681,
-   "displayName": "1=PORTAL_REG_ADM, 2=PORTAL_NAME, 12=RowInit, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 13682,
@@ -15675,11 +15611,18 @@
   {
    "definitionId": 14327,
    "displayName": "1=PSADSDEFN_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 82,
+    "generatedCount": 69,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 14328,
@@ -15704,28 +15647,33 @@
   {
    "definitionId": 14333,
    "displayName": "1=PSADSDMWCM_WRK, 2=PTADSGROUPACTION, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 10,
+    "generatedCount": 10
+   }
   },
   {
    "definitionId": 14335,
    "displayName": "1=PSADSDMWCM_WRK, 2=PTADSGROUPACTION, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 543,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 14336,
-   "displayName": "1=PSADSDMWCM_WRK, 2=PTADSGROUP_LINK, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 16,
+    "generatedCount": 15,
+    "firstDivergenceKind": "scroll"
+   }
   },
   {
    "definitionId": 14339,
@@ -15762,11 +15710,18 @@
   {
    "definitionId": 14343,
    "displayName": "1=PSADSGRP_WRK, 2=PTPROPDISPNAME, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 122,
+    "generatedCount": 142,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 14350,
@@ -16131,11 +16086,18 @@
   {
    "definitionId": 14506,
    "displayName": "1=PSBCDEFN_VW2, 2=BCNAME, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 118,
+    "generatedCount": 112,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 14507,
@@ -16535,11 +16497,18 @@
   {
    "definitionId": 14651,
    "displayName": "1=PSCONQRS_WRK, 2=TREEVIEW_FUNCS, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 171,
+    "generatedCount": 159,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 14652,
@@ -16821,11 +16790,18 @@
   {
    "definitionId": 14707,
    "displayName": "1=PSCPQFILTER_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 138,
+    "generatedCount": 136,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 14710,
@@ -17330,14 +17306,6 @@
    }
   },
   {
-   "definitionId": 14883,
-   "displayName": "1=PSCUBWRK, 2=CUB_QUERYCHUNK, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 14886,
    "displayName": "1=PSCUBWRK, 2=CUB_REMOVEDIM, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -17387,27 +17355,18 @@
   {
    "definitionId": 14899,
    "displayName": "1=PSCUBWRK, 2=TREECTLEVENT, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 14904,
-   "displayName": "1=PSCUBWRK2, 2=CUB_NAVFIRST, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 14905,
-   "displayName": "1=PSCUBWRK2, 2=CUB_NAVNEXT, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 838,
+    "generatedCount": 798,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 14906,
@@ -17424,14 +17383,6 @@
     "generatedCount": 4,
     "firstDivergenceKind": "package"
    }
-  },
-  {
-   "definitionId": 14907,
-   "displayName": "1=PSCUBWRK2, 2=CUB_NAVPREV, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 14912,
@@ -17918,29 +17869,50 @@
   {
    "definitionId": 15114,
    "displayName": "1=PSDSRIMCFG, 2=DSDIRID, 12=FieldDefault, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 85,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 11,
+    "generatedCount": 6,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 15115,
    "displayName": "1=PSDSSCHEMA, 2=DSDIRID, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 250,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 11,
+    "generatedCount": 7,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 15128,
    "displayName": "1=PSFUNCLIB_PTIC, 2=MRCHSIGNONFNCTN, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1653,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 23,
+    "generatedCount": 17,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 15165,
@@ -18128,11 +18100,18 @@
   {
    "definitionId": 15235,
    "displayName": "1=PSIBDOCLOGUI1, 2=IB_DOC_LBL_ALT_ID, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 3071,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 13,
+    "generatedCount": 12,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 15236,
@@ -18185,11 +18164,18 @@
   {
    "definitionId": 15256,
    "displayName": "1=PSIBDOCLOPALWRK, 2=IB_DOCLOPALHDR, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 966,
+    "generatedCount": 821,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 15257,
@@ -18332,20 +18318,34 @@
   {
    "definitionId": 15337,
    "displayName": "1=PSIBINTNET_WRK, 2=IB_PINGGATE, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1361,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 28,
+    "generatedCount": 27,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 15344,
    "displayName": "1=PSIBINTNET_WRK, 2=IB_SAVE_PB, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 40,
+    "generatedCount": 40,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 15345,
@@ -18366,11 +18366,18 @@
   {
    "definitionId": 15348,
    "displayName": "1=PSIBINTNET_WRK, 2=IB_STATUSCHECK, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 2200,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 49,
+    "generatedCount": 46,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 15355,
@@ -18891,11 +18898,18 @@
   {
    "definitionId": 15578,
    "displayName": "1=PSIBLOGICL2_WRK, 2=IB_DOCVIEWLAYOUT, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 7526,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 40,
+    "generatedCount": 37,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 15581,
@@ -19894,11 +19908,18 @@
   {
    "definitionId": 15856,
    "displayName": "1=PSIBLOGICL9_WRK, 2=OK_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 2309,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 51,
+    "generatedCount": 46,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 15861,
@@ -20030,11 +20051,18 @@
   {
    "definitionId": 15957,
    "displayName": "1=PSIBPCODE_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 13,
+    "generatedCount": 14,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 15971,
@@ -20083,14 +20111,6 @@
     "generatedCount": 2,
     "firstDivergenceKind": "record-field"
    }
-  },
-  {
-   "definitionId": 16002,
-   "displayName": "1=PSIBSTATWRK, 2=SEARCH_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 16009,
@@ -20482,11 +20502,18 @@
   {
    "definitionId": 16335,
    "displayName": "1=PSNODE_WRK, 2=SAVE_PB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 6478,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 165,
+    "generatedCount": 156,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 16351,
@@ -20507,11 +20534,18 @@
   {
    "definitionId": 16389,
    "displayName": "1=PSOPERATIONAC, 2=PACKAGEID, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 8510,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 4,
+    "generatedCount": 2,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 16401,
@@ -20936,11 +20970,18 @@
   {
    "definitionId": 16701,
    "displayName": "1=PSPTTSTMAINTWRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 255,
+    "generatedCount": 246,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 16710,
@@ -20976,11 +21017,18 @@
   {
    "definitionId": 16720,
    "displayName": "1=PSPTTSTMAINTWRK, 2=PTTST_GENRELRPT, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 116,
+    "generatedCount": 86,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 16733,
@@ -21133,14 +21181,6 @@
     "generatedCount": 19,
     "firstDivergenceKind": "field"
    }
-  },
-  {
-   "definitionId": 16875,
-   "displayName": "1=PSRF_FUNC_WRK, 2=PSRF_REPORT_ID, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 16884,
@@ -21963,11 +22003,18 @@
   {
    "definitionId": 17191,
    "displayName": "1=PSSIGNONPPC, 2=SEQNO, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 111,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 4,
+    "generatedCount": 2,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 17196,
@@ -22359,20 +22406,34 @@
   {
    "definitionId": 17303,
    "displayName": "1=PSTREEMGRFUNCS, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 166,
+    "generatedCount": 190,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 17304,
    "displayName": "1=PSTREEMGRFUNCS, 2=HTML_FUNCS, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 131,
+    "generatedCount": 143,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 17305,
@@ -22402,11 +22463,18 @@
   {
    "definitionId": 17307,
    "displayName": "1=PSTREEMGRFUNCS, 2=MULTINODESEL_FUNCS, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 37,
+    "generatedCount": 29,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 17308,
@@ -22489,20 +22557,33 @@
   {
    "definitionId": 17313,
    "displayName": "1=PSTREEMGRFUNCS, 2=TREECTLEVENT, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 290,
+    "generatedCount": 334,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 17314,
    "displayName": "1=PSTREEMGRFUNCS, 2=TREEFACETS, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 2,
+    "generatedCount": 2
+   }
   },
   {
    "definitionId": 17315,
@@ -22515,21 +22596,20 @@
    "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
-   "definitionId": 17316,
-   "displayName": "1=PSTREEMGRNAV_VW, 2=PAGELABEL, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 17320,
    "displayName": "1=PSTREEMGRNAV_WK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 52,
+    "generatedCount": 51,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 17321,
@@ -22688,14 +22768,6 @@
    }
   },
   {
-   "definitionId": 17417,
-   "displayName": "1=PSUSRPRFL_WRK, 2=EXECUTE_PB, 12=SaveEdit, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 17473,
    "displayName": "1=PSWEBPROFILE_SB, 2=PORTALCACHEHPBROW, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -22777,11 +22849,18 @@
   {
    "definitionId": 17527,
    "displayName": "1=PSWSDL_WRK, 2=WZ_FINISH, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 42,
+    "generatedCount": 43,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 17533,
@@ -23564,11 +23643,18 @@
   {
    "definitionId": 17805,
    "displayName": "1=PTACEDELINST, 2=EXPORT, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 234,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 10,
+    "generatedCount": 9,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 17806,
@@ -23651,20 +23737,34 @@
   {
    "definitionId": 17815,
    "displayName": "1=PTACEMDLLOAD, 2=PTACELOADBTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 127,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 11,
+    "generatedCount": 10,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 17818,
    "displayName": "1=PTACEMDLLOAD, 2=PTACEUNLDBTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 68,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 4,
+    "generatedCount": 3,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 17819,
@@ -23694,11 +23794,18 @@
   {
    "definitionId": 17822,
    "displayName": "1=PTACEMDLVWR, 2=HTML_AREA_02, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 38,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 46,
+    "generatedCount": 44,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 17825,
@@ -24719,11 +24826,18 @@
   {
    "definitionId": 18077,
    "displayName": "1=PTAFAW_WRK, 2=PTAFLINK, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 6,
+    "generatedCount": 6,
+    "firstDivergenceKind": "scroll"
+   }
   },
   {
    "definitionId": 18078,
@@ -24874,11 +24988,18 @@
   {
    "definitionId": 18134,
    "displayName": "1=PTAL_FREF_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 18,
+    "generatedCount": 19,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 18135,
@@ -25668,11 +25789,18 @@
   {
    "definitionId": 18368,
    "displayName": "9=CAFNUI_FILTER_SCF, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1595,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 15,
+    "generatedCount": 13,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 18369,
@@ -26092,14 +26220,6 @@
     "generatedCount": 19,
     "firstDivergenceKind": "record"
    }
-  },
-  {
-   "definitionId": 18499,
-   "displayName": "9=CUB_QUERYNAV_SEC, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 18505,
@@ -27187,14 +27307,6 @@
    }
   },
   {
-   "definitionId": 18914,
-   "displayName": "9=GP_ABS_OVRD, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 18918,
    "displayName": "9=GP_ABS_SS_BALANCES, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -27277,11 +27389,18 @@
   {
    "definitionId": 18960,
    "displayName": "9=GP_FRML_EDIT_FL, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 2493,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 50,
+    "generatedCount": 53,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 18967,
@@ -27579,38 +27698,66 @@
   {
    "definitionId": 19016,
    "displayName": "9=PAY_NACHK_CTX_LIA, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 4094,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 31,
+    "generatedCount": 33,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 19017,
    "displayName": "9=PAY_NACHK_DED_LIA, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5369,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 35,
+    "generatedCount": 37,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 19019,
    "displayName": "9=PAY_NACHK_NET_LIA, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 3394,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 14,
+    "generatedCount": 15,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 19020,
    "displayName": "9=PAY_NACHK_TAX_LIA, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 4314,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 32,
+    "generatedCount": 34,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 19065,
@@ -28040,21 +28187,20 @@
    }
   },
   {
-   "definitionId": 19161,
-   "displayName": "9=POSN_INCUM_ALL_FL, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 19163,
    "displayName": "9=POSN_INCUM_DAT_SEC, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 11,
+    "generatedCount": 12,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 19164,
@@ -28185,11 +28331,18 @@
   {
    "definitionId": 19196,
    "displayName": "9=PSADSDEFNPAGE, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 24,
+    "generatedCount": 27,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 19197,
@@ -28556,21 +28709,19 @@
    }
   },
   {
-   "definitionId": 19279,
-   "displayName": "9=PSPMMASTSERVER_SEC, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 19280,
    "displayName": "9=PSPMMETRICS_SEC, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 115,
+    "generatedCount": 115
+   }
   },
   {
    "definitionId": 19282,
@@ -28604,14 +28755,6 @@
    }
   },
   {
-   "definitionId": 19303,
-   "displayName": "9=PSPTTSTCOMPAREGEN, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 19304,
    "displayName": "9=PSPTTSTCOMPARERPT, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -28625,30 +28768,6 @@
     "storedCount": 21,
     "generatedCount": 21
    }
-  },
-  {
-   "definitionId": 19305,
-   "displayName": "9=PSPTTSTCOMPARESEL, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 19306,
-   "displayName": "9=PSPTTSTCOVERAGEGEN, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 19308,
-   "displayName": "9=PSPTTSTCOVERAGESEL, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 19310,
@@ -29072,11 +29191,18 @@
   {
    "definitionId": 19414,
    "displayName": "9=PTACM_MONIT_SEC, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 139,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 6,
+    "generatedCount": 5,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 19417,
@@ -29177,11 +29303,18 @@
   {
    "definitionId": 19433,
    "displayName": "9=PTADSDMWCONTENTSCH, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 77,
+    "generatedCount": 79,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 19434,
@@ -29218,11 +29351,18 @@
   {
    "definitionId": 19436,
    "displayName": "9=PTADSDMWPRJDEFN, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 81,
+    "generatedCount": 84,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 19438,
@@ -29242,11 +29382,18 @@
   {
    "definitionId": 19440,
    "displayName": "9=PTADSDMWSEARCH_LD, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 33,
+    "generatedCount": 32,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 19441,
@@ -30058,11 +30205,18 @@
   {
    "definitionId": 19618,
    "displayName": "10=ACCDNT_INS_TABLE, 39=DEU, 1=HRDE_AI_DERIVED, 2=HRDE_AI_UPLOAD_BTN, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 29,
+    "generatedCount": 25,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 19620,
@@ -30864,11 +31018,18 @@
   {
    "definitionId": 19809,
    "displayName": "10=AGC_CAT_TBL, 39=GBL, 1=AGC_CAT_IMG, 2=AGC_IMAGE_TYPE, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 462,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 8,
+    "generatedCount": 9,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 19817,
@@ -31999,11 +32160,18 @@
   {
    "definitionId": 20113,
    "displayName": "10=AGC_TMPL_STEP2_FL, 39=GBL, 1=AGC_DERIVED_WRK, 2=AGC_MOVE_ACTION, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 298,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 1,
+    "generatedCount": 2,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 20115,
@@ -32068,14 +32236,6 @@
     "generatedCount": 4,
     "firstDivergenceKind": "record-field"
    }
-  },
-  {
-   "definitionId": 20128,
-   "displayName": "10=AGC_TMPL_STEP2_FL, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 20131,
@@ -32176,14 +32336,6 @@
     "generatedCount": 20,
     "firstDivergenceKind": "scroll"
    }
-  },
-  {
-   "definitionId": 20159,
-   "displayName": "10=AMM_SYNCDETAIL, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 20166,
@@ -32898,14 +33050,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 144: unsupported PeopleCode statement",
    "construct": "#If #ToolsRel < ",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 20328,
-   "displayName": "10=BEN_ATTCH_TILE_FL, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 20337,
@@ -33876,20 +34020,34 @@
   {
    "definitionId": 20626,
    "displayName": "10=CAFNUI_FILTER_FL, 39=GBL, 1=CAFNUI_FLTR_WRK, 2=CAF_FLTR_REMOVE, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1119,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 9,
+    "generatedCount": 10,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 20627,
    "displayName": "10=CAFNUI_FILTER_FL, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1266,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 15,
+    "generatedCount": 13,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 20673,
@@ -34033,14 +34191,6 @@
     "storedCount": 7,
     "generatedCount": 7
    }
-  },
-  {
-   "definitionId": 20729,
-   "displayName": "10=CHANGE_PASSWORD, 39=GBL, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 20737,
@@ -34443,14 +34593,6 @@
     "generatedCount": 3,
     "firstDivergenceKind": "record-field"
    }
-  },
-  {
-   "definitionId": 20802,
-   "displayName": "10=COMPANY_TABLE, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 20806,
@@ -35715,14 +35857,6 @@
    }
   },
   {
-   "definitionId": 20984,
-   "displayName": "10=CONTRACT_PAY, 39=GBL, 1=CONTRACT, 12=SaveEdit, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 20986,
    "displayName": "10=CONTRACT_PAY, 39=GBL, 1=DERIVED_GL, 2=GL_DEL_COMBO_PB, 12=FieldChange, 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -35769,14 +35903,6 @@
     "generatedCount": 2,
     "firstDivergenceKind": "record-field"
    }
-  },
-  {
-   "definitionId": 20992,
-   "displayName": "10=CONTRACT_PAY, 39=GBL, 1=HP_CNTRACT_LIST, 12=SaveEdit, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 20995,
@@ -36883,14 +37009,6 @@
     "generatedCount": 5,
     "firstDivergenceKind": "record-field"
    }
-  },
-  {
-   "definitionId": 21243,
-   "displayName": "10=DEPARTMENT_TBL, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 21245,
@@ -38242,11 +38360,18 @@
   {
    "definitionId": 21499,
    "displayName": "10=GPFR_DSN_UPDATE, 39=GBL, 1=DERIVED_GPFR_AF, 2=HR_DR_DRILL_DN_LNK, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 38,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 1,
+    "generatedCount": 2,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 21503,
@@ -38718,11 +38843,18 @@
   {
    "definitionId": 21578,
    "displayName": "10=GPGB_EE_SS, 39=GBL, 12=PreBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 2361,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 20,
+    "generatedCount": 18,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 21579,
@@ -39443,11 +39575,18 @@
   {
    "definitionId": 21703,
    "displayName": "10=GPHK_PYE_PI, 39=GBL, 12=SavePostChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 26,
+    "generatedCount": 28,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 21705,
@@ -41387,11 +41526,18 @@
   {
    "definitionId": 22367,
    "displayName": "10=GPSG_MOM_DATA_GEN, 39=GBL, 12=SavePostChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 967,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 23,
+    "generatedCount": 19,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 22368,
@@ -46069,14 +46215,6 @@
    "primaryCategory": "DECODER_BARE_IDENTIFIER"
   },
   {
-   "definitionId": 23361,
-   "displayName": "10=GP_ABS_OVRD, 39=GBL, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 23390,
    "displayName": "10=GP_ABS_SRCH_LAUNCH, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -46201,14 +46339,6 @@
     "generatedCount": 10,
     "firstDivergenceKind": "field"
    }
-  },
-  {
-   "definitionId": 23425,
-   "displayName": "10=GP_ACM_USER_ADJ, 39=GBL, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 23431,
@@ -49460,11 +49590,18 @@
   {
    "definitionId": 23957,
    "displayName": "10=PERSONAL_DATA, 39=GBL, 1=DERIVED_GPS, 12=SavePostChange, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1041,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 7,
+    "generatedCount": 9,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 23958,
@@ -49802,11 +49939,17 @@
   {
    "definitionId": 24025,
    "displayName": "10=PORTAL_CREF_LNK, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 136,
+    "generatedCount": 136
+   }
   },
   {
    "definitionId": 24027,
@@ -49879,11 +50022,17 @@
   {
    "definitionId": 24039,
    "displayName": "10=PORTAL_HOMEPAGE, 39=GBL, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 37,
+    "generatedCount": 37
+   }
   },
   {
    "definitionId": 24044,
@@ -49900,14 +50049,6 @@
     "generatedCount": 25,
     "firstDivergenceKind": "record-field"
    }
-  },
-  {
-   "definitionId": 24046,
-   "displayName": "10=PORTAL_REG_ADM, 39=GBL, 1=PORTAL_NTDYVW, 12=RowInsert, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 24053,
@@ -49960,11 +50101,18 @@
   {
    "definitionId": 24062,
    "displayName": "10=POSITION_DATA, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 609,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 29,
+    "generatedCount": 27,
+    "firstDivergenceKind": "scroll"
+   }
   },
   {
    "definitionId": 24064,
@@ -50467,14 +50615,6 @@
    }
   },
   {
-   "definitionId": 24141,
-   "displayName": "10=PRCSMULTI, 39=GBL, 1=PRCSSAMPLEREC, 2=RUNCNTLCOMPINTF, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 24144,
    "displayName": "10=PRCSRECURDEFN, 39=GBL, 1=PRCSRECUR, 2=RECURDESCR, 12=FieldDefault, 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -50925,11 +51065,18 @@
   {
    "definitionId": 24218,
    "displayName": "10=PROCESSMONITOR, 39=GBL, 1=PMN_DERIVED, 2=RESTARTREQUEST, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 244,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 14,
+    "generatedCount": 15,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 24225,
@@ -51348,14 +51495,6 @@
    }
   },
   {
-   "definitionId": 24296,
-   "displayName": "10=PSIBNET_WRKCNTR, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 24306,
    "displayName": "10=PSOPRALIASTYPE, 39=GBL, 12=SavePreChange, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -51374,20 +51513,34 @@
   {
    "definitionId": 24309,
    "displayName": "10=PSPMAPPDOM, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 43,
+    "generatedCount": 33,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 24311,
    "displayName": "10=PSPMCOMPPERF, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 152,
+    "generatedCount": 144,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 24313,
@@ -51456,53 +51609,49 @@
   {
    "definitionId": 24319,
    "displayName": "10=PSPMMASTSCHED, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 886,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 24325,
-   "displayName": "10=PSPMPCODEEVENTS, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 19,
+    "generatedCount": 19
+   }
   },
   {
    "definitionId": 24328,
    "displayName": "10=PSPMPSCHEDDOM, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 24329,
-   "displayName": "10=PSPMSQLEVENTS, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 41,
+    "generatedCount": 32,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 24331,
    "displayName": "10=PSPMSYSHEALTH, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 24332,
-   "displayName": "10=PSPMTOPPCODE, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 19,
+    "generatedCount": 17,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 24334,
@@ -51570,11 +51719,18 @@
   {
    "definitionId": 24340,
    "displayName": "10=PSPMWEBDOM, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 40,
+    "generatedCount": 25,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 24341,
@@ -51880,14 +52036,6 @@
    }
   },
   {
-   "definitionId": 24387,
-   "displayName": "10=PS_PHCALERTS, 39=GBL, 1=PTHCDWRK, 2=PTHC_SAVE, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 24391,
    "displayName": "10=PTADSADMINRPT, 39=GBL, 1=PSPTADSADMINRPT, 2=PTADSRPTGRP, 12=FieldChange, 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -52129,11 +52277,18 @@
   {
    "definitionId": 24429,
    "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMWCM_WRK, 2=PTADSCOPYACTION, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 7140,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 36,
+    "generatedCount": 35,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 24431,
@@ -52153,11 +52308,18 @@
   {
    "definitionId": 24432,
    "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMWCM_WRK, 2=PTADSMERGE_FLG, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 81,
+    "generatedCount": 84,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 24436,
@@ -52193,11 +52355,18 @@
   {
    "definitionId": 24441,
    "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMW_WRK, 2=DELETE_BTN, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 14,
+    "generatedCount": 14,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 24442,
@@ -52250,11 +52419,18 @@
   {
    "definitionId": 24451,
    "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMW_WRK, 2=PTADSNAME, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 16,
+    "generatedCount": 16,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 24452,
@@ -52307,11 +52483,18 @@
   {
    "definitionId": 24458,
    "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMW_WRK, 2=PTADSUPDMERGEACT, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 43,
+    "generatedCount": 36,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 24459,
@@ -52331,11 +52514,18 @@
   {
    "definitionId": 24462,
    "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMW_WRK, 2=PTADS_HTMLCTLEVENT, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 12,
+    "generatedCount": 18,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 24467,
@@ -52450,11 +52640,18 @@
   {
    "definitionId": 24500,
    "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMW_WRK, 2=SELECT_ALL, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 16,
+    "generatedCount": 15,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 24501,
@@ -52491,11 +52688,18 @@
   {
    "definitionId": 24503,
    "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMW_WRK, 2=UNSELECT_ALL, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 16,
+    "generatedCount": 15,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 24504,
@@ -52628,11 +52832,17 @@
   {
    "definitionId": 24515,
    "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSPROJADS_VW, 12=RowInit, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 11,
+    "generatedCount": 11
+   }
   },
   {
    "definitionId": 24516,
@@ -52684,20 +52894,34 @@
   {
    "definitionId": 24521,
    "displayName": "10=PTADSDMW, 39=GBL, 1=PSCOMPOBJDIF_VW, 2=PTDONE, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 15,
+    "generatedCount": 16,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 24522,
    "displayName": "10=PTADSDMW, 39=GBL, 1=PSCOMPOBJDIF_VW, 2=PTMERGESTATUS2, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 15,
+    "generatedCount": 15,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 24527,
@@ -52862,11 +53086,18 @@
   {
    "definitionId": 24538,
    "displayName": "10=PTADSDMW, 39=GBL, 1=PSPTUNIRVW_WRK, 2=PTADSDETAILS, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 9,
+    "generatedCount": 8,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 24539,
@@ -52903,11 +53134,18 @@
   {
    "definitionId": 24543,
    "displayName": "10=PTADSDMW, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 72,
+    "generatedCount": 69,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 24544,
@@ -53519,11 +53757,18 @@
   {
    "definitionId": 24648,
    "displayName": "10=PTADSMMGR, 39=GBL, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 43,
+    "generatedCount": 48,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 24650,
@@ -55135,11 +55380,17 @@
   {
    "definitionId": 25036,
    "displayName": "10=PTAI_QSTNAIRE_NUI, 39=GBL, 1=PTAI_QSTNR_WRK, 2=PTAI_NEXT_PB, 12=FieldChange, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 9,
+    "generatedCount": 9
+   }
   },
   {
    "definitionId": 25037,
@@ -55353,14 +55604,6 @@
    }
   },
   {
-   "definitionId": 25137,
-   "displayName": "60=CURRENCY_FULLSYNC, 87=CurrencyFullSync, 12=Subscription, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 25139,
    "displayName": "60=DEPT_SYNC, 87=TLDeptSubscription, 12=Subscription, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -55441,20 +55684,34 @@
   {
    "definitionId": 25241,
    "displayName": "66=ACA_NOTIFY, 77=80SNDMAI, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 252,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 12,
+    "generatedCount": 11,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 25272,
    "displayName": "66=ACA_RESET, 77=ACAUPXSN, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1372,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 15,
+    "generatedCount": 12,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 25274,
@@ -55490,29 +55747,47 @@
   {
    "definitionId": 25282,
    "displayName": "66=AE_DETYA_AET, 77=Fulltime, 39=GBL, 20=default, 21=1900-01-01, 78=Step11, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 20,
+    "generatedCount": 20
+   }
   },
   {
    "definitionId": 25283,
    "displayName": "66=AE_DETYA_FIL, 77=Casual, 39=GBL, 20=default, 21=1900-01-01, 78=Step02, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 11,
+    "generatedCount": 11
+   }
   },
   {
    "definitionId": 25284,
    "displayName": "66=AE_DETYA_FIL, 77=Fulltime, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 20,
+    "generatedCount": 20
+   }
   },
   {
    "definitionId": 25288,
@@ -55533,11 +55808,18 @@
   {
    "definitionId": 25289,
    "displayName": "66=AN_GL_REV_RS, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1465,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 26,
+    "generatedCount": 18,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 25290,
@@ -55584,11 +55866,18 @@
   {
    "definitionId": 25296,
    "displayName": "66=AN_OA_T3_RS1, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 3340,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 21,
+    "generatedCount": 15,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 25297,
@@ -55625,11 +55914,18 @@
   {
    "definitionId": 25302,
    "displayName": "66=AN_OA_T5_RS1, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 36,
+    "generatedCount": 24,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 25303,
@@ -55650,11 +55946,18 @@
   {
    "definitionId": 25306,
    "displayName": "66=AN_OA_T6_RS, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 37,
+    "generatedCount": 24,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 25309,
@@ -55872,22 +56175,6 @@
     "generatedCount": 53,
     "firstDivergenceKind": "package"
    }
-  },
-  {
-   "definitionId": 25338,
-   "displayName": "66=BEN_COMP_LNK, 77=BuildDat, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 25340,
-   "displayName": "66=BEN_COMP_LNK, 77=CompLink, 39=GBL, 20=default, 21=1900-01-01, 78=Step02, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 25343,
@@ -56153,11 +56440,17 @@
   {
    "definitionId": 25464,
    "displayName": "66=BN_HIPAA5010, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step06, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 149,
+    "generatedCount": 149
+   }
   },
   {
    "definitionId": 25469,
@@ -56276,11 +56569,18 @@
   {
    "definitionId": 25487,
    "displayName": "66=CITY_UPDATE, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Upload, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 6,
+    "generatedCount": 7,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 25490,
@@ -56300,11 +56600,17 @@
   {
    "definitionId": 25492,
    "displayName": "66=COPY_OPRID, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 21,
+    "generatedCount": 21
+   }
   },
   {
    "definitionId": 25503,
@@ -56731,11 +57037,18 @@
   {
    "definitionId": 25959,
    "displayName": "66=GPES_TAX_345, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step02, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 15205,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 70,
+    "generatedCount": 72,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 25960,
@@ -57014,11 +57327,18 @@
   {
    "definitionId": 26014,
    "displayName": "66=GPFR_SMPL_PS, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 37,
+    "generatedCount": 39,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 26016,
@@ -57038,11 +57358,17 @@
   {
    "definitionId": 26017,
    "displayName": "66=GPGB_CNC, 77=ReadData, 39=GBL, 20=default, 21=1900-01-01, 78=ReadData, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 40,
+    "generatedCount": 40
+   }
   },
   {
    "definitionId": 26018,
@@ -57103,62 +57429,6 @@
     "storedCount": 8,
     "generatedCount": 8
    }
-  },
-  {
-   "definitionId": 26025,
-   "displayName": "66=GPGB_EDI, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=P45(1), 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 26026,
-   "displayName": "66=GPGB_EDI, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=P45(3), 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 26027,
-   "displayName": "66=GPGB_EDI, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=P46, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 26028,
-   "displayName": "66=GPGB_EDI, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=P46EXPAT, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 26029,
-   "displayName": "66=GPGB_EDI, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=P6P9, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 26030,
-   "displayName": "66=GPGB_EDI, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=PEN, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 26036,
-   "displayName": "66=GPGB_EDI, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=WNU, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 26076,
@@ -57272,45 +57542,20 @@
    }
   },
   {
-   "definitionId": 26572,
-   "displayName": "66=GPGB_EOYR, 77=Outrec1, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 26573,
    "displayName": "66=GPGB_EOYR, 77=Outrec2, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1994,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 26574,
-   "displayName": "66=GPGB_EOYR, 77=Outrec2s, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 26576,
-   "displayName": "66=GPGB_EOYR, 77=Outrec3, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 26577,
-   "displayName": "66=GPGB_EOYR, 77=Outrec4, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 70,
+    "generatedCount": 80,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 26604,
@@ -57331,28 +57576,33 @@
   {
    "definitionId": 26605,
    "displayName": "66=GPGB_IRPYMT, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step02, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 16,
+    "generatedCount": 18,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 26616,
    "displayName": "66=GPGB_NI_UPD, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step04, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 26619,
-   "displayName": "66=GPGB_P11D, 77=GetData, 39=GBL, 20=default, 21=1900-01-01, 78=GetDat01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 12,
+    "generatedCount": 12
+   }
   },
   {
    "definitionId": 26621,
@@ -57373,11 +57623,18 @@
   {
    "definitionId": 26622,
    "displayName": "66=GPGB_P11D, 77=GetFlds, 39=GBL, 20=default, 21=1900-01-01, 78=GetFld03, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 3237,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 8,
+    "generatedCount": 17,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 26624,
@@ -57414,11 +57671,18 @@
   {
    "definitionId": 26640,
    "displayName": "66=GPGB_P45, 77=OutP45Fl, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 3019,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 99,
+    "generatedCount": 105,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 26680,
@@ -57462,22 +57726,6 @@
    }
   },
   {
-   "definitionId": 26708,
-   "displayName": "66=GPGB_PPIN, 77=Details, 39=GBL, 20=default, 21=1900-01-01, 78=Employee, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 26709,
-   "displayName": "66=GPGB_PPIN, 77=Heading, 39=GBL, 20=default, 21=1900-01-01, 78=Heading, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 26713,
    "displayName": "66=GPGB_PPR_P45, 77=XML_File, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
    "classification": "UNKNOWN_MISMATCH",
@@ -57492,30 +57740,6 @@
     "generatedCount": 57,
     "firstDivergenceKind": "package"
    }
-  },
-  {
-   "definitionId": 26714,
-   "displayName": "66=GPGB_RTI_EAS, 77=EAS, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 26718,
-   "displayName": "66=GPGB_RTI_EAS, 77=EASAll, 39=GBL, 20=default, 21=1900-01-01, 78=Step09, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 26729,
-   "displayName": "66=GPGB_RTI_EAS, 77=EASFoot, 39=GBL, 20=default, 21=1900-01-01, 78=Filegen, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 26752,
@@ -57602,14 +57826,6 @@
    }
   },
   {
-   "definitionId": 26766,
-   "displayName": "66=GPGB_RTI_EPS, 77=EPS, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 26849,
    "displayName": "66=GPGB_RTI_EPS, 77=EPSWrt06, 39=GBL, 20=default, 21=1900-01-01, 78=Wr_summ2, 12=OnExecute",
    "classification": "UNSUPPORTED_SYNTAX",
@@ -57618,14 +57834,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 6354: unsupported PeopleCode statement",
    "construct": ";\n   &rec.Insert",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 26850,
-   "displayName": "66=GPGB_RTI_EYU, 77=EYU, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 26883,
@@ -57697,14 +57905,6 @@
    "sourceEncodeExact": false,
    "roundtripExact": true,
    "firstDiffOffset": 635,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 26961,
-   "displayName": "66=GPGB_RTI_FPS, 77=FPS, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
@@ -57785,14 +57985,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 27208,
-   "displayName": "66=GPGB_RTI_NRP, 77=NVREP, 39=GBL, 20=default, 21=1900-01-01, 78=Step02, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 27209,
    "displayName": "66=GPGB_RTI_NRP, 77=PROCESS, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
    "classification": "UNSUPPORTED_SYNTAX",
@@ -57801,14 +57993,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 6762: unsupported PeopleCode statement",
    "construct": ";\n              ",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 27210,
-   "displayName": "66=GPGB_RTI_NRQ, 77=NREQ, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 27282,
@@ -57965,29 +58149,50 @@
   {
    "definitionId": 27348,
    "displayName": "66=GPHK_EFT, 77=BLD_IFIL, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 942,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 56,
+    "generatedCount": 55,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 27358,
    "displayName": "66=GPHK_EFT_RCP, 77=BLD_EFT, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 700,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 22,
+    "generatedCount": 21,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 27359,
    "displayName": "66=GPHK_I56_EFL, 77=BUILD_FL, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 122,
+    "generatedCount": 123,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 27360,
@@ -58314,14 +58519,6 @@
    }
   },
   {
-   "definitionId": 27427,
-   "displayName": "66=GPJP_BA01, 77=GEN_FILE, 39=GBL, 20=default, 21=1900-01-01, 78=Step04, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 27431,
    "displayName": "66=GPJP_EFILE, 77=01INIT, 39=GBL, 20=default, 21=1900-01-01, 78=Step08, 12=OnExecute",
    "classification": "UNKNOWN_MISMATCH",
@@ -58340,20 +58537,33 @@
   {
    "definitionId": 27441,
    "displayName": "66=GPJP_EFILE, 77=07DOWHT, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 33,
+    "generatedCount": 33
+   }
   },
   {
    "definitionId": 27442,
    "displayName": "66=GPJP_EFILE, 77=08DOWGP, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 40,
+    "generatedCount": 42,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 27474,
@@ -58367,20 +58577,32 @@
   {
    "definitionId": 27499,
    "displayName": "66=GPJP_IHMUN2, 77=READFILE, 39=GBL, 20=default, 21=1900-01-01, 78=Step05, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 15,
+    "generatedCount": 15
+   }
   },
   {
    "definitionId": 27502,
    "displayName": "66=GPJP_IH_TXFL, 77=D0-FILE, 39=GBL, 20=default, 21=1900-01-01, 78=Step010, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 25,
+    "generatedCount": 25
+   }
   },
   {
    "definitionId": 27510,
@@ -58404,56 +58626,97 @@
   {
    "definitionId": 27518,
    "displayName": "66=GPJP_LA03, 77=GEN_FIL, 39=GBL, 20=default, 21=1900-01-01, 78=Step10, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1502,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 17,
+    "generatedCount": 18,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 27519,
    "displayName": "66=GPJP_LA03, 77=GEN_FIL, 39=GBL, 20=default, 21=1900-01-01, 78=Step15, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 14,
+    "generatedCount": 14
+   }
   },
   {
    "definitionId": 27541,
    "displayName": "66=GPJP_LI_RPT, 77=ENR_FILE, 39=GBL, 20=default, 21=1900-01-01, 78=Step04, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 3839,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 28,
+    "generatedCount": 42,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 27544,
    "displayName": "66=GPJP_LI_RPT, 77=TER_FILE, 39=GBL, 20=default, 21=1900-01-01, 78=Step05, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 3296,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 28,
+    "generatedCount": 45,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 27548,
    "displayName": "66=GPJP_LI_RPT, 77=XFR_FILE, 39=GBL, 20=default, 21=1900-01-01, 78=Step12, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 3292,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 26,
+    "generatedCount": 41,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 27549,
    "displayName": "66=GPJP_RA_WH, 77=GEN_FIL, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1168,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 10,
+    "generatedCount": 12,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 27557,
@@ -58505,57 +58768,83 @@
    }
   },
   {
-   "definitionId": 27705,
-   "displayName": "66=GPMX_INTERC, 77=adjustAc, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 27724,
    "displayName": "66=GPMX_MASSABS, 77=PROCDEL1, 39=GBL, 20=default, 21=1900-01-01, 78=Delete01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 3822,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 11,
+    "generatedCount": 15,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 27725,
    "displayName": "66=GPMX_MASSABS, 77=PROCINS1, 39=GBL, 20=default, 21=1900-01-01, 78=Insert01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 4646,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 13,
+    "generatedCount": 27,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 27727,
    "displayName": "66=GPMX_MASS_PI, 77=PROC_DEL, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 4299,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 9,
+    "generatedCount": 13,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 27728,
    "displayName": "66=GPMX_MASS_PI, 77=PROC_INS, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 15,
+    "generatedCount": 22,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 27731,
    "displayName": "66=GPMX_PI_BTCH, 77=PROC_A, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 11,
+    "generatedCount": 11
+   }
   },
   {
    "definitionId": 27732,
@@ -58951,20 +59240,34 @@
   {
    "definitionId": 27860,
    "displayName": "66=GPNZ_EFT_MT9, 77=GEN_FILE, 39=GBL, 20=default, 21=1900-01-01, 78=Step03, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 33,
+    "generatedCount": 34,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 27873,
    "displayName": "66=GPNZ_IR348_F, 77=KK000, 39=GBL, 20=default, 21=1900-01-01, 78=StepKK01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 3695,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 42,
+    "generatedCount": 40,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 27902,
@@ -59260,87 +59563,82 @@
   {
    "definitionId": 28096,
    "displayName": "66=GPSG_CPFLINE, 77=C11000, 39=GBL, 20=default, 21=1900-01-01, 78=Exist_EE, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1062,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 23,
+    "generatedCount": 22,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 28097,
    "displayName": "66=GPSG_CPFLINE, 77=C11000, 39=GBL, 20=default, 21=1900-01-01, 78=New_EE, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1223,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 28099,
-   "displayName": "66=GPSG_CPFLINE, 77=C11000, 39=GBL, 20=default, 21=1900-01-01, 78=Ser_Rslt, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 28100,
-   "displayName": "66=GPSG_CPFLINE, 77=C11000, 39=GBL, 20=default, 21=1900-01-01, 78=Summary1, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 25,
+    "generatedCount": 25,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 28101,
    "displayName": "66=GPSG_CPFLINE, 77=C11000, 39=GBL, 20=default, 21=1900-01-01, 78=Summary2, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1198,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 28102,
-   "displayName": "66=GPSG_CPFLINE, 77=C11000, 39=GBL, 20=default, 21=1900-01-01, 78=Summary3, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 28103,
-   "displayName": "66=GPSG_CPFLINE, 77=C11000, 39=GBL, 20=default, 21=1900-01-01, 78=Summary4, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 28104,
-   "displayName": "66=GPSG_CPFLINE, 77=C11000, 39=GBL, 20=default, 21=1900-01-01, 78=Tot_Cntb, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 29,
+    "generatedCount": 28,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 28105,
    "displayName": "66=GPSG_CPF_PAL, 77=C10000, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5825,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 41,
+    "generatedCount": 40,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 28107,
    "displayName": "66=GPSG_EFT_GIR, 77=GEN-FILE, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 40,
+    "generatedCount": 41,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 28145,
@@ -59504,11 +59802,18 @@
   {
    "definitionId": 28191,
    "displayName": "66=GPS_STD_PRCS, 77=Job_Std, 39=GBL, 20=default, 21=1900-01-01, 78=Step03, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 40,
+    "generatedCount": 39,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 28192,
@@ -59672,29 +59977,50 @@
   {
    "definitionId": 28206,
    "displayName": "66=GPTH_DMFITFA, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 81,
+    "generatedCount": 78,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 28207,
    "displayName": "66=GPTH_DMFITFV, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 98,
+    "generatedCount": 95,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 28208,
    "displayName": "66=GPTH_DMF_ITF, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 102,
+    "generatedCount": 99,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 28209,
@@ -60176,11 +60502,18 @@
   {
    "definitionId": 28276,
    "displayName": "66=GPTH_REGI_AE, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step10, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 8618,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 25,
+    "generatedCount": 24,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 28280,
@@ -60467,56 +60800,65 @@
    }
   },
   {
-   "definitionId": 28325,
-   "displayName": "66=GPUS_BNDPRCH, 77=GEN_FILE, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 28333,
-   "displayName": "66=GPUS_BNDPRCH, 77=PROC_BND, 39=GBL, 20=default, 21=1900-01-01, 78=Step02, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 28336,
    "displayName": "66=GPUS_CTX_EFT, 77=GEN-FILE, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 102,
+    "generatedCount": 102
+   }
   },
   {
    "definitionId": 28343,
    "displayName": "66=GPUS_EFW2CPR, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=FileGen, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 122,
+    "generatedCount": 126,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 28344,
    "displayName": "66=GPUS_FM1_C, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step100, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 246,
+    "generatedCount": 246
+   }
   },
   {
    "definitionId": 28345,
    "displayName": "66=GPUS_FM2_C, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step50, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 229,
+    "generatedCount": 229
+   }
   },
   {
    "definitionId": 28347,
@@ -60547,11 +60889,17 @@
   {
    "definitionId": 28359,
    "displayName": "66=GPUS_SM1_C, 77=PROCESS, 39=GBL, 20=default, 21=1900-01-01, 78=Step30, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 266,
+    "generatedCount": 266
+   }
   },
   {
    "definitionId": 28361,
@@ -60616,14 +60964,6 @@
     "generatedCount": 20,
     "firstDivergenceKind": "package"
    }
-  },
-  {
-   "definitionId": 28368,
-   "displayName": "66=GPUS_W4ID, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step02, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 28369,
@@ -61220,11 +61560,18 @@
   {
    "definitionId": 28522,
    "displayName": "66=PI_EXTFL, 77=PIXPRT_B, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 733,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 5,
+    "generatedCount": 4,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 28524,
@@ -61283,14 +61630,6 @@
     "generatedCount": 15,
     "firstDivergenceKind": "field"
    }
-  },
-  {
-   "definitionId": 28543,
-   "displayName": "66=PODC24522711, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 28548,
@@ -61355,20 +61694,32 @@
   {
    "definitionId": 28555,
    "displayName": "66=PORTALPATHAE, 77=FillPath, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 16,
+    "generatedCount": 16
+   }
   },
   {
    "definitionId": 28556,
    "displayName": "66=PORTAL_CSS, 77=CREFPERM, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 15,
+    "generatedCount": 15
+   }
   },
   {
    "definitionId": 28557,
@@ -61388,11 +61739,17 @@
   {
    "definitionId": 28558,
    "displayName": "66=PORTAL_MENU, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 48,
+    "generatedCount": 48
+   }
   },
   {
    "definitionId": 28559,
@@ -61804,19 +62161,17 @@
   {
    "definitionId": 28652,
    "displayName": "66=PSTL_LD_JPN, 77=GEN_FILE, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 28654,
-   "displayName": "66=PSTL_LD_JPN, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step03, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 11,
+    "generatedCount": 11
+   }
   },
   {
    "definitionId": 28659,
@@ -61985,14 +62340,6 @@
    }
   },
   {
-   "definitionId": 28693,
-   "displayName": "66=PTAUTOLOCKUP, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 28704,
    "displayName": "104=ACCOUNT_CHARTFIELD_SYNC, 107=HPYPSAPAccountChartFieldSync, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "ENCODE_ERROR",
@@ -62124,11 +62471,18 @@
   {
    "definitionId": 28721,
    "displayName": "104=ADSM, 107=ADSDesignerTreeGrid, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 18,
+    "generatedCount": 12,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 28722,
@@ -62188,11 +62542,18 @@
   {
    "definitionId": 28726,
    "displayName": "104=ADSM, 107=ADSMDefinition, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 16,
+    "generatedCount": 21,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 28728,
@@ -62213,11 +62574,18 @@
   {
    "definitionId": 28729,
    "displayName": "104=ADSM, 107=ADSMTreeGrid, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 17,
+    "generatedCount": 15,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 28730,
@@ -62237,11 +62605,18 @@
   {
    "definitionId": 28731,
    "displayName": "104=ADSM, 107=ADSMTreeNode, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 8,
+    "generatedCount": 7,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 28732,
@@ -62322,11 +62697,18 @@
   {
    "definitionId": 28737,
    "displayName": "104=ADSM, 107=CompareDataManager, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 87,
+    "generatedCount": 86,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 28739,
@@ -62362,11 +62744,18 @@
   {
    "definitionId": 28741,
    "displayName": "104=ADS_ADDPRJ, 107=AdsAddToProjWithFilters, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 4,
+    "generatedCount": 3,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 28742,
@@ -62418,11 +62807,17 @@
   {
    "definitionId": 28745,
    "displayName": "104=ADS_DMW, 105=UI, 106=Widgets, 107=DynamicGrid, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 18,
+    "generatedCount": 18
+   }
   },
   {
    "definitionId": 28746,
@@ -62517,11 +62912,18 @@
   {
    "definitionId": 28752,
    "displayName": "104=ADS_DMW, 105=UI, 107=AdministratorReportGrid, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 18,
+    "generatedCount": 13,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 28753,
@@ -62661,11 +63063,18 @@
   {
    "definitionId": 28764,
    "displayName": "104=ADS_DMW, 107=Data, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 92,
+    "generatedCount": 97,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 28765,
@@ -62711,11 +63120,18 @@
   {
    "definitionId": 28769,
    "displayName": "104=ADS_DMW, 107=RelationPrompt, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 23,
+    "generatedCount": 22,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 28771,
@@ -63014,11 +63430,18 @@
   {
    "definitionId": 28795,
    "displayName": "104=AGC_SETUP, 107=AgcTemplateDefinition, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 91,
+    "generatedCount": 92,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 28796,
@@ -63177,11 +63600,18 @@
   {
    "definitionId": 28810,
    "displayName": "104=AGC_UTILITIES, 105=Assignment, 107=TemplateMatch, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 14,
+    "generatedCount": 14,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 28811,
@@ -64206,11 +64636,18 @@
   {
    "definitionId": 28916,
    "displayName": "104=BEN_LE_DATA_SRCH_RTI, 107=LoadLEData, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 16,
+    "generatedCount": 15,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 28917,
@@ -64478,11 +64915,18 @@
   {
    "definitionId": 28934,
    "displayName": "104=BEN_SUMMARY_FL, 105=Page, 106=SubPage, 107=RightPanel, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 39,
+    "generatedCount": 38,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 28935,
@@ -64886,11 +65330,17 @@
   {
    "definitionId": 28977,
    "displayName": "104=BNE_OPEN_ENROLL_FL, 105=Page, 107=Section, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 15,
+    "generatedCount": 15
+   }
   },
   {
    "definitionId": 28978,
@@ -66966,11 +67416,18 @@
   {
    "definitionId": 29193,
    "displayName": "104=CAF_SEARCH_NUI, 107=Prompt, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 49,
+    "generatedCount": 49,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 29194,
@@ -67390,46 +67847,36 @@
    "primaryCategory": "ROUNDTRIP_ONLY"
   },
   {
-   "definitionId": 29275,
-   "displayName": "104=CURRENCY_SYNC, 107=CurrencySync, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29281,
-   "displayName": "104=DELETE_ROLE, 107=Delete_Role, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29282,
-   "displayName": "104=DELETE_USER_PROFILE, 107=delete_user_profile, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 29286,
    "displayName": "104=DEPT_FULLSYNC, 107=DeptFullSync, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 18,
+    "generatedCount": 17,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 29288,
    "displayName": "104=DEPT_SYNC, 107=DeptSync, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 15,
+    "generatedCount": 12,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 29292,
@@ -67586,11 +68033,18 @@
   {
    "definitionId": 29304,
    "displayName": "104=GPFR_XMLRF, 107=xmlrf_api, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 15,
+    "generatedCount": 19,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29305,
@@ -67607,14 +68061,6 @@
     "generatedCount": 11,
     "firstDivergenceKind": "record"
    }
-  },
-  {
-   "definitionId": 29307,
-   "displayName": "104=GPGB_P11D, 107=Extract, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 29312,
@@ -67723,11 +68169,18 @@
   {
    "definitionId": 29321,
    "displayName": "104=GPSC_COMPARE, 107=RSDiff, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 9,
+    "generatedCount": 11,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 29322,
@@ -67905,11 +68358,18 @@
   {
    "definitionId": 29334,
    "displayName": "104=GPSC_XMLRF, 107=xmlrf_api, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 15,
+    "generatedCount": 19,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29335,
@@ -67930,20 +68390,34 @@
   {
    "definitionId": 29336,
    "displayName": "104=GPSG_MOM_UTILS, 107=FileDataUpload, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 24,
+    "generatedCount": 19,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 29337,
    "displayName": "104=GPSG_MOM_UTILS, 107=FileManagement, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 14,
+    "generatedCount": 13,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29338,
@@ -70243,11 +70717,18 @@
   {
    "definitionId": 29541,
    "displayName": "104=GP_ABS_FMLA, 107=FMLAElig, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 21,
+    "generatedCount": 19,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29542,
@@ -70375,11 +70856,18 @@
   {
    "definitionId": 29561,
    "displayName": "104=GP_CC_MAP, 107=GpAccLine, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 11,
+    "generatedCount": 9,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29562,
@@ -70589,11 +71077,18 @@
   {
    "definitionId": 29584,
    "displayName": "104=G_FAMILY_EPAF, 107=FamilySearchEvents, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 7,
+    "generatedCount": 6,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 29585,
@@ -70608,11 +71103,18 @@
   {
    "definitionId": 29586,
    "displayName": "104=G_FAMILY_EPAF, 107=MethodLibrary, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 98,
+    "generatedCount": 95,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29588,
@@ -71092,11 +71594,18 @@
   {
    "definitionId": 29633,
    "displayName": "104=OU_G_FAMILY_EPAF, 107=MethodLibrary, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 98,
+    "generatedCount": 95,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29634,
@@ -71767,11 +72276,18 @@
   {
    "definitionId": 29725,
    "displayName": "104=PNA_W4, 105=Handlers, 107=UpdateW4Main, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 72,
+    "generatedCount": 70,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 29726,
@@ -71930,14 +72446,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 616: unsupported PeopleCode statement",
    "construct": "As",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 29791,
-   "displayName": "104=POSN_INDEX_CONTROL, 107=RTIPositionIndex, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 29793,
@@ -72838,11 +73346,18 @@
   {
    "definitionId": 29894,
    "displayName": "104=PS_PEN_SVCPURCHASE, 107=UpdateEmplAccts, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 19,
+    "generatedCount": 1,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29895,
@@ -73012,20 +73527,34 @@
   {
    "definitionId": 29908,
    "displayName": "104=PTADSDEFN, 107=AdsValidationBase, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 22,
+    "generatedCount": 22,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29914,
    "displayName": "104=PTADSDEFNFORRCF, 107=ConfigurationManagedObject, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 34,
+    "generatedCount": 34,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29915,
@@ -73040,20 +73569,34 @@
   {
    "definitionId": 29916,
    "displayName": "104=PTADSDEFNFORRCF, 107=MenuLayoutValidationBase, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 15,
+    "generatedCount": 14,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29917,
    "displayName": "104=PTADSDEFNFORRCF, 107=MenuLinkValidationBase, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 23,
+    "generatedCount": 22,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29919,
@@ -73067,11 +73610,18 @@
   {
    "definitionId": 29921,
    "displayName": "104=PTADSDEFNFORWC, 107=WCConfigurationManagedObject, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 21,
+    "generatedCount": 23,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 29922,
@@ -74920,11 +75470,18 @@
   {
    "definitionId": 30116,
    "displayName": "104=PTAF_MONITOR, 105=ADHOC_OBJECTS, 107=insertParallelAdhocButton, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 11,
+    "generatedCount": 10,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 30119,
@@ -74995,29 +75552,50 @@
   {
    "definitionId": 30124,
    "displayName": "104=PTAF_MONITOR, 105=MONITOR, 107=awSMThread, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 20,
+    "generatedCount": 18,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 30125,
    "displayName": "104=PTAF_MONITOR, 105=MONITOR, 107=awSMThreadComments, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 9,
+    "generatedCount": 8,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 30126,
    "displayName": "104=PTAF_MONITOR, 105=MONITOR, 107=awSMThreadHistoryComments, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 10,
+    "generatedCount": 8,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 30128,
@@ -75288,11 +75866,17 @@
   {
    "definitionId": 30152,
    "displayName": "104=PTAF_XLAT_SYMBOL, 105=API, 107=symbolicNameManager, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 5,
+    "generatedCount": 5
+   }
   },
   {
    "definitionId": 30153,
@@ -75347,11 +75931,17 @@
   {
    "definitionId": 30160,
    "displayName": "104=PTAI_ACTION_ITEMS, 105=HGrid, 107=HGrid_Row, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 14,
+    "generatedCount": 14
+   }
   },
   {
    "definitionId": 30161,
@@ -75637,11 +76227,18 @@
   {
    "definitionId": 30185,
    "displayName": "104=PTAI_ADSPKG, 107=ItemValidationBase, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 33,
+    "generatedCount": 33,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 30186,
@@ -75759,11 +76356,18 @@
   {
    "definitionId": 30200,
    "displayName": "104=PTAL_PAGE, 105=PageTemplate, 107=RightPageletAreaTemplate, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 12,
+    "generatedCount": 11,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 30201,
