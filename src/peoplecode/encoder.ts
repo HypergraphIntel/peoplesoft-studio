@@ -902,6 +902,7 @@ type BuiltinTypeContext =
   | 'local'
   | 'local-array-element'
   | 'global'
+  | 'global-array-element'
   | 'component'
   | 'application-class-parameter'
   | 'function-parameter'
@@ -916,7 +917,7 @@ interface BuiltinTypeSemantics {
 const BUILTIN_TYPE_REGISTRY: ReadonlyMap<string, BuiltinTypeSemantics> = new Map(
   (
     [
-      ['Record', ['local', 'local-array-element', 'global', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
+      ['Record', ['local', 'local-array-element', 'global', 'global-array-element', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
       ['Row', ['local', 'local-array-element', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
       ['Rowset', ['local', 'local-array-element', 'global', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
       ['SQL', ['local', 'local-array-element', 'application-class-parameter', 'function-parameter', 'function-returns']],
@@ -1405,60 +1406,24 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
     const declaredType = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
     chunks.push(typeName());
+    /*
+     * Compiler architecture: File (Cycle 75, 965-candidate census), Rowset
+     * (Cycle 76, 962-candidate census -- Cycle 7's own "genuinely mixed"
+     * caution was scoped to the SEPARATE Function/Method-parameter Rowset
+     * population, not this declaration scope, and was itself later
+     * disproven for parameters too, see registerTypedParameter's own
+     * history), and Record (71-candidate census) all route through the
+     * shared registry now; `array of Record` is `global-array-element`'s
+     * own, narrower cell (only Record evidenced there, unlike Local's
+     * wider array-element coverage).
+     */
     if (/^array$/i.test(declaredType ?? '')) {
-      if (/^Record$/i.test(arrayElementTypes() ?? '')) {
-        ensureLocalObjectPackageReference('RECORD', 'Record');
+      const elementType = arrayElementTypes();
+      if (elementType !== undefined) {
+        allocateBuiltinTypePackageReferenceIfSupported(elementType, 'global-array-element');
       }
-    } else if (/^File$/i.test(declaredType ?? '')) {
-      /*
-       * Cycle 75 (Application Engine definitions 25388/25391/...,
-       * objectid1 66 -- a 965-candidate corpus population, 0
-       * contradictions, the 2 apparent negative controls both confirmed
-       * to be `rem`-commented, non-compiled declarations): `Global File
-       * &x;` allocates the same PACKAGE/FILE local object dependency row
-       * a `Local File &x;` declaration already does -- `globalDeclaration()`
-       * had NO general built-in-type dispatch at all (only the one
-       * array-of-Record special case above), unlike `componentDeclaration()`,
-       * which already handles Record/Rowset/XmlDoc for the identical
-       * reason.
-       */
-      ensureLocalObjectPackageReference('FILE', 'File');
-    } else if (/^Rowset$/i.test(declaredType ?? '')) {
-      /*
-       * Cycle 76 (definitions 4290/7146/..., objectid1 1/9/10/66/104 --
-       * a 962-candidate corpus population spanning multiple program
-       * types, 0 contradictions, the 2 apparent negative controls both
-       * confirmed to have zero PACKAGE.ROWSET expectation on EITHER side,
-       * not a real counter-example): `Global Rowset &x;` allocates the
-       * same PACKAGE/ROWSET local object dependency row a `Local Rowset
-       * &x;`/`Component Rowset &x;` declaration already does -- the SAME
-       * class of gap `globalDeclaration()` had for `File` (Cycle 75),
-       * just never previously evidenced for Rowset specifically. Cycle
-       * 7's own Rowset caution (mixed behavior, regression risk) was
-       * scoped to the SEPARATE `Function/Method parameter As Rowset`
-       * population (49.6% matched per that cycle's own 48-definition
-       * census) -- not this declaration scope, which was already clean
-       * and one-directional, exactly like `Local`/`Component Rowset`.
-       * The parameter population itself was later re-investigated with a
-       * token-level, comment-excluding census (see
-       * `registerTypedParameter`'s own `Rowset` branch) and found to be
-       * 100% (395/395) matched, not "genuinely mixed" at all -- Cycle 7's
-       * 49.6% figure did not survive re-derivation.
-       */
-      ensureLocalObjectPackageReference('ROWSET', 'Rowset');
-    } else if (/^Record$/i.test(declaredType ?? '')) {
-      /*
-       * Compiler closure: `Global Record &x;` (71-candidate corpus
-       * population, 0 contradictions -- every single stored occurrence
-       * has a PACKAGE/RECORD row) allocates the same dependency row
-       * `Global File`/`Global Rowset` above already do -- the identical
-       * class of gap, just never evidenced for plain `Record` at Global
-       * scope specifically (an earlier cycle's own census covered File
-       * and Rowset but explicitly found no Global-Record evidence at the
-       * time; this fresh, corpus-wide census found 71/71 one-directional
-       * matches).
-       */
-      ensureLocalObjectPackageReference('RECORD', 'Record');
+    } else if (declaredType !== undefined) {
+      allocateBuiltinTypePackageReferenceIfSupported(declaredType, 'global');
     }
 
     space();
@@ -1550,71 +1515,18 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     if (/^array$/i.test(declaredType ?? '')) {
       arrayElementTypes();
     }
-    if (/^Record$/i.test(declaredType ?? '')) {
-      ensureLocalObjectPackageReference('RECORD', 'Record');
-    } else if (/^Rowset$/i.test(declaredType ?? '')) {
-      /*
-       * DERIVED_ABS_EA.CLEAR_ALL.FieldChange (definition 4067):
-       *
-       *   Component Rowset &RsEA_Abs;
-       *   For &i = &RsEA_Abs.ActiveRowCount To 1 Step - 1
-       *      &RsEA_Abs.GetRow(&i).DERIVED_ABS_EA.SELECT_REC.Value = "N";
-       *   End-For;
-       *
-       * `Component Rowset &var;` allocates the same PACKAGE/ROWSET local
-       * object dependency row a `Local Rowset &var;` declaration already
-       * does (see the Local-declaration handling above) -- this branch was
-       * missing entirely for Component declarations, so the RECORD/FIELD
-       * references allocated later for DERIVED_ABS_EA.SELECT_REC were both
-       * off by one PSPCMNAME index.
-       */
-      ensureLocalObjectPackageReference('ROWSET', 'Rowset');
-    } else if (/^XmlDoc$/i.test(declaredType ?? '')) {
-      /*
-       * AMM_ARCHIVE_WK.FUNCLIB.FieldFormula (definition 935):
-       *
-       *   Component XmlDoc &xmldoc;
-       *   ...
-       *   &UncompressedSize = &MsgSizeRootNode.FindNode(...).NodeValue;
-       *
-       * `Component XmlDoc &var;` allocates the same PACKAGE/XMLDOC local
-       * object dependency row a `Local XmlDoc &var;` declaration already
-       * does, exactly like the Rowset case above -- this branch was also
-       * missing entirely for Component declarations, shifting every
-       * reference index after it by one. Only XmlDoc is evidenced so far;
-       * XmlNode/SQL/File/Row/ApiObject Component declarations may need
-       * the same treatment but are unconfirmed.
-       */
-      ensureLocalObjectPackageReference('XMLDOC', 'XmlDoc');
-    } else if (/^File$/i.test(declaredType ?? '')) {
-      /*
-       * Cycle 75 (Application Engine definitions 25969/25971/...,
-       * objectid1 66 -- an 11-candidate corpus population, 0
-       * contradictions): `Component File &var;` allocates the same
-       * PACKAGE/FILE dependency row the Rowset/XmlDoc cases immediately
-       * above already do -- File was the exact gap the XmlDoc comment
-       * above flagged as "unconfirmed," now confirmed. XmlNode/SQL/Row/
-       * ApiObject Component declarations remain unconfirmed.
-       */
-      ensureLocalObjectPackageReference('FILE', 'File');
-    } else if (/^ApiObject$/i.test(declaredType ?? '')) {
-      /*
-       * Compiler closure: `Component ApiObject &var;` (14-candidate
-       * corpus population, 0 contradictions) allocates the same
-       * PACKAGE/APIOBJECT dependency row the Rowset/XmlDoc/File cases
-       * above already do -- this was the exact gap those cases' own
-       * comments flagged as "unconfirmed," now confirmed.
-       */
-      ensureLocalObjectPackageReference('APIOBJECT', 'ApiObject');
-    } else if (/^Row$/i.test(declaredType ?? '')) {
-      /*
-       * Compiler closure: `Component Row &var;` (34-candidate corpus
-       * population, 0 contradictions) allocates the same PACKAGE/ROW
-       * dependency row the other Component built-in-type cases above
-       * already do -- the same class of gap, also flagged "unconfirmed"
-       * by those cases' own comments, now confirmed.
-       */
-      ensureLocalObjectPackageReference('ROW', 'Row');
+    /*
+     * `Component <BuiltinType> &var;` allocates the same PACKAGE/<TYPE>
+     * local object dependency row the matching Local declaration already
+     * does (see BUILTIN_TYPE_REGISTRY). Evidenced across Record, Rowset
+     * (DERIVED_ABS_EA.CLEAR_ALL.FieldChange, definition 4067), XmlDoc
+     * (AMM_ARCHIVE_WK.FUNCLIB.FieldFormula, definition 935), File (Cycle
+     * 75, 11-candidate corpus population), ApiObject (14-candidate
+     * population), and Row (34-candidate population) -- 0 contradictions
+     * across all six.
+     */
+    if (declaredType !== undefined) {
+      allocateBuiltinTypePackageReferenceIfSupported(declaredType, 'component');
     }
 
     /*
@@ -2233,26 +2145,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        */
       ensureLocalObjectPackageReference('ROWSET', 'Rowset');
       chainSemanticsDeclaredRowsetVariables.add(name.toLowerCase());
-    } else if (/^SQL$/i.test(type)) {
-      ensureLocalObjectPackageReference('SQL', 'SQL');
-    } else if (/^ApiObject$/i.test(type)) {
-      ensureLocalObjectPackageReference('APIOBJECT', 'ApiObject');
-    } else if (/^Grid$/i.test(type)) {
-      ensureLocalObjectPackageReference('GRID', 'Grid');
-    } else if (/^Message$/i.test(type)) {
+    } else if (!/^(?:Record|Row|Rowset)$/i.test(type)) {
       /*
-       * Compiler closure: this function is the ONLY dispatch for an
-       * Application Class method implementation's own parameter list
-       * (seeded via the loop at this function's own call site above,
-       * line ~3050) -- the separate SQL/ApiObject/Grid/Message branches
-       * added to the ordinary Function-parameter path (~line 5680) never
-       * run for App Class method parameters at all. 206 of the
+       * Compiler architecture: SQL/ApiObject/Grid/Message have no
+       * tracking side effect beyond PACKAGE allocation (unlike Record/
+       * Row/Rowset above), so they route through the shared registry.
+       * This function is the ONLY dispatch for an Application Class
+       * method implementation's own parameter list (seeded via this
+       * function's own call site above) -- the separate SQL/ApiObject/
+       * Grid/Message branches on the ordinary Function-parameter path
+       * never run for App Class method parameters at all. 206 of the
        * 207-candidate `As Message` parameter corpus population (this
-       * campaign's single largest population) are Application Class
+       * project's single largest population) are Application Class
        * method signatures, so without this, the ordinary-path fix alone
        * only reached 1 of them.
        */
-      ensureLocalObjectPackageReference('MESSAGE', 'Message');
+      allocateBuiltinTypePackageReferenceIfSupported(type, 'application-class-parameter');
     }
   };
 
