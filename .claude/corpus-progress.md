@@ -1,5 +1,78 @@
 # Corpus Calibration Progress
 
+## Continuation session (2026-09-29), part 13 — `catch`'s own trailing inline comment shared the same ordering bug (4th occurrence)
+
+**Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL
+SNAPSHOT throughout. Starting commit `3ad962d` (part 12's fix). Baseline
+before this change: 25,262/30,209 EXACT.
+
+### What was found
+
+Following part 12's own flagged lead (systematically checking other
+unconditional `0x2D` structural-boundary pushes for the same missing
+inline-comment guard), traced the remaining `stored=0x4e gen=0x2d`
+cluster members (12, down from 19) and found CONCRETE corpus evidence
+(definitions 21256, 21305) for the exact `catch`-header variant
+speculated in part 12's own notes:
+
+```text
+catch Exception &exMask /*Masking API don't exist*/
+   Local string &exMasks = &exMask.ToString();
+```
+
+`tryStatement()`'s `catch` clause pushes its own structural `0x2D`
+boundary immediately after the exception variable, unconditionally, with
+no check for a same-line trailing comment first -- the fourth occurrence
+of the identical bug shape this session (ordinary `When`, `When-Other`,
+`End-Function`, now `catch`).
+
+### Fix
+
+`src/peoplecode/encoder.ts`'s `tryStatement()`, right after the catch
+exception variable: added the identical inline-comment check used by all
+three prior fixes.
+
+### Fail-before/pass-after proof (`git stash -- src/peoplecode/encoder.ts`)
+
+```text
+Definition 21256: before -> UNKNOWN_MISMATCH, after -> EXACT
+```
+
+### Spot checks
+
+```text
+21256, 21305, 21415  -> EXACT
+14621, 17597, 17647, 25324, 28587 -> unchanged, UNKNOWN_MISMATCH (this
+                        layer's own gap fixed where applicable; each has
+                        a separate remaining issue -- 14621 in particular
+                        looks like a DIFFERENT construct, a bare call
+                        statement's closing `)` followed by an inline
+                        comment with no semicolon or End-Function nearby,
+                        not yet traced to a specific boundary)
+```
+
+### Full validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped — unchanged.
+- Protected/full-corpus gate: `npm run corpus:verify` — REGRESSION GATE:
+  PASS, 0 regressed.
+- Full top-level harness re-run: **EXACT 25,262 → 25,265 (+3)**.
+  `DECODE_SOURCE_MISMATCH`/`ENCODE_ERROR`/`UNSUPPORTED_SYNTAX` all held
+  exactly steady (108/122/335).
+
+### Next action
+
+The remaining `chunks.push(Buffer.from([0x2d]))` call sites flagged in
+part 12's notes but not yet checked for corpus evidence: line ~6710 ("loop
+header and body" boundary, likely `For`'s own header) and line ~6950 (an
+unidentified condition/body boundary, possibly `If` or `While`). Do NOT
+implement speculatively -- first find a concrete failing definition via a
+fresh `downstream-shape-census.ts` re-triage or a targeted source grep
+(e.g. `For ... Step ...  /*comment*/` shapes) before touching either.
+Definition 14621's bare-call-then-comment shape is a genuinely different,
+not-yet-identified construct worth its own trace if it recurs elsewhere.
+
 ## Continuation session (2026-09-29), part 12 — `End-Function;`'s own inline trailing comment had the same standalone-vs-inline ordering bug, plus a spurious 0x2D
 
 **Status: IMPLEMENTED, validated, zero regressions, this session's best
