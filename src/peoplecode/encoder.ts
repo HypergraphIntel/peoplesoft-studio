@@ -1435,13 +1435,16 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * &x;`/`Component Rowset &x;` declaration already does -- the SAME
        * class of gap `globalDeclaration()` had for `File` (Cycle 75),
        * just never previously evidenced for Rowset specifically. Cycle
-       * 7's OWN Rowset caution (mixed behavior, regression risk) applies
-       * ONLY to the SEPARATE, still-unproven `Function/Method parameter
-       * As Rowset` population (49.6% matched, genuinely mixed per that
-       * cycle's own 48-definition census) -- NOT to this declaration
-       * scope, which this cycle's own census shows is clean and
-       * one-directional, exactly like `Local`/`Component Rowset` already
-       * are.
+       * 7's own Rowset caution (mixed behavior, regression risk) was
+       * scoped to the SEPARATE `Function/Method parameter As Rowset`
+       * population (49.6% matched per that cycle's own 48-definition
+       * census) -- not this declaration scope, which was already clean
+       * and one-directional, exactly like `Local`/`Component Rowset`.
+       * The parameter population itself was later re-investigated with a
+       * token-level, comment-excluding census (see
+       * `registerTypedParameter`'s own `Rowset` branch) and found to be
+       * 100% (395/395) matched, not "genuinely mixed" at all -- Cycle 7's
+       * 49.6% figure did not survive re-derivation.
        */
       ensureLocalObjectPackageReference('ROWSET', 'Rowset');
     } else if (/^Record$/i.test(declaredType ?? '')) {
@@ -2188,6 +2191,27 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       ensureLocalObjectPackageReference('ROW', 'Row');
       rowVariables.add(name.toLowerCase());
     } else if (/^Rowset$/i.test(type)) {
+      /*
+       * Compiler closure: `Rowset`-typed PARAMETERS (both ordinary
+       * Function parameters and Application Class method parameters,
+       * this function's two call sites) were previously believed
+       * "genuinely mixed" (Cycle 7's own note: "that broader treatment
+       * regressed already-EXACT definitions") and deliberately excluded
+       * from the PACKAGE-allocation dispatch every sibling type (Record/
+       * Row/SQL/ApiObject/Message) already has. Re-investigation with
+       * the same token-level, comment-excluding census methodology that
+       * resolved the analogous Field-parameter caution (see
+       * functionStatement()'s own `Field` branch) found a clean,
+       * unanimous 395/395 corpus population (163 Application Class + 232
+       * ordinary Function, 0 contradictions either way) -- every single
+       * genuine `As Rowset` parameter occurrence stores a PACKAGE/ROWSET
+       * row. `chainSemanticsDeclaredRowsetVariables` tracking is
+       * unrelated to this allocation and is kept alongside it unchanged;
+       * whatever caused Cycle 7's regression was evidently a different,
+       * unexamined interaction, not a genuine absence of the reference
+       * itself in real corpus evidence.
+       */
+      ensureLocalObjectPackageReference('ROWSET', 'Rowset');
       chainSemanticsDeclaredRowsetVariables.add(name.toLowerCase());
     } else if (/^SQL$/i.test(type)) {
       ensureLocalObjectPackageReference('SQL', 'SQL');

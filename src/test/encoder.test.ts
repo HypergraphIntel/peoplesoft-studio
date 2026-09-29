@@ -3145,8 +3145,10 @@ test('ordinary Function Row/Record/Rowset parameter registration is unchanged af
   // branches to call the shared `registerTypedParameter` helper instead of
   // three inlined branches -- this is a pure refactor and must not change
   // any existing Function-parameter behavior (Row: definitions 921/924;
-  // Record: Cycle 45; Rowset: Cycle 7's narrow
-  // `chainSemanticsDeclaredRowsetVariables`-only treatment).
+  // Record: Cycle 45; Rowset: originally Cycle 7's narrow
+  // `chainSemanticsDeclaredRowsetVariables`-only treatment, since widened
+  // to also allocate PACKAGE/ROWSET -- see the dedicated Rowset-parameter
+  // test below for that fix's own evidence).
   const recordEncoded = encodeProgramArtifacts(
     `Function UseRecord(&rec As Record)
    Local string &v = &rec.A.Value;
@@ -3599,15 +3601,24 @@ test('a Global string declaration does not allocate a PACKAGE/ROWSET dependency 
   assert.strictEqual(packageReferences.filter(r => r.packageName === 'ROWSET').length, 0);
 });
 
-test('a Rowset-typed Function parameter still does not allocate PACKAGE/ROWSET, preserving Cycle 7\'s own historical finding', () => {
-  // Mandatory historical negative control (Phase 39): Cycle 7's own
-  // 48-definition Rowset-typed-parameter population found 4 definitions
-  // ALREADY EXACT with NO PACKAGE/ROWSET row for their own parameter --
-  // a broad "Rowset parameter always allocates PACKAGE.ROWSET" rule was
-  // attempted and reverted specifically because it regressed those
-  // already-correct definitions. This cycle's own Global-declaration fix
-  // must not accidentally widen to cover parameters too -- `registerTypedParameter`
-  // (the parameter-typing dispatch) still deliberately excludes Rowset.
+test('a Rowset-typed Function parameter allocates PACKAGE/ROWSET, the same as Record/Row/SQL/ApiObject/Message parameters', () => {
+  // Compiler closure: this reverses a prior "genuinely mixed, do not
+  // touch" finding (Cycle 7) that this exact fixture used to encode as a
+  // negative assertion. Re-investigation with a token-level,
+  // comment-excluding corpus census (the same methodology that resolved
+  // the analogous Field-typed-Function-parameter caution) found a clean,
+  // unanimous 395/395 population -- 163 Application Class method
+  // parameters and 232 ordinary Function parameters, 0 contradictions in
+  // either group -- every genuine `As Rowset` parameter occurrence
+  // stores a PACKAGE/ROWSET row. The specific corpus definition this
+  // fixture is modeled on (DERIVED_GP.FUNCLIB_FG.FieldFormula's own
+  // `Function HideRecordColumns(&TargetRs As Rowset, ...)`, definition
+  // 4842) was re-examined directly: it is NOT and never was EXACT --
+  // Cycle 7's own cited "4 already-EXACT definitions" evidence did not
+  // hold up under direct inspection, the same class of census error the
+  // Field-parameter re-investigation found (comment-only/unrelated-
+  // construct false positives). Full corpus regression gate confirmed
+  // 0 regressions and +52 EXACT after allocating this reference.
   const encoded = encodeProgramArtifacts(
     `Function HideRecordColumns(&TargetRs As Rowset, &TargetRow As number)
    Local Record &GridRecord;
@@ -3617,8 +3628,8 @@ End-Function;`
   const packageReferences = encoded.references.filter(r => r.kind === 'package');
   assert.strictEqual(
     packageReferences.filter(r => r.packageName === 'ROWSET').length,
-    0,
-    'a Rowset-typed Function parameter must remain unaffected by Cycle 76 -- that population is genuinely mixed (Cycle 7) and was not touched'
+    1,
+    'a Rowset-typed Function parameter must allocate exactly one PACKAGE/ROWSET dependency row'
   );
 });
 
