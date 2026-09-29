@@ -4753,6 +4753,38 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   const blockCommentByPlacement = (): Buffer =>
     blockCommentStartsOwnLine() ? blockComment() : inlineBlockComment();
 
+  /*
+   * Compiler architecture: extracted from 8 previously-duplicated call
+   * sites (the And/Or-group leading/trailing comment checks, and the
+   * ordinary When / When-Other / catch / End-Function header trailing-
+   * comment checks) that each independently re-implemented this exact
+   * lookahead. This is a strictly behavior-preserving consolidation --
+   * every call site's own literal code (outer `[ \t]*` lookahead, then
+   * `space()`, then the `blockCommentStartsOwnLine()` gate) is unchanged,
+   * just shared instead of copy-pasted.
+   *
+   * If a `/*` comment is reachable from the current position by skipping
+   * only horizontal whitespace (no newline in between), advances past
+   * that whitespace and, when the comment is genuinely INLINE (non-
+   * whitespace precedes it on its own source line, per
+   * `blockCommentStartsOwnLine()`), consumes and returns its encoded
+   * 0x4E buffer. Otherwise returns `undefined`.
+   *
+   * Callers that previously called `space()` again immediately after
+   * consuming the comment (the And/Or-group sites) must still do so
+   * themselves -- this helper does not, matching the header-trailing-
+   * comment sites' own original behavior, which never had a trailing
+   * `space()` call either.
+   */
+  const captureTrailingInlineComment = (): Buffer | undefined => {
+    if (!/^[ \t]*\/\*/.test(source.slice(pos))) return undefined;
+    space();
+    if (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
+      return inlineBlockComment();
+    }
+    return undefined;
+  };
+
   const andExpression = () => {
     booleanUnary();
     space();
@@ -4778,8 +4810,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * comment before `Or` (definition 6509), which stores
      * `... 41 24<comment> 1E(Or) ...` -- 0x41 first.
      */
-    while (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
-      chunks.push(inlineBlockComment());
+    while (true) {
+      const comment = captureTrailingInlineComment();
+      if (comment === undefined) break;
+      chunks.push(comment);
       space();
     }
 
@@ -4851,9 +4885,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * booleanExpression's Or-group below for the original inline-only
      * calibrating fixture this narrows).
      */
-    if (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
-      chunks.push(inlineBlockComment());
-      space();
+    {
+      const comment = captureTrailingInlineComment();
+      if (comment !== undefined) {
+        chunks.push(comment);
+        space();
+      }
     }
 
     chunks.push(Buffer.from([0x42]));
@@ -4940,9 +4977,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * ifStatement()'s own comment-before-Then handling), proving the
      * own-line case must NOT be consumed here.
      */
-    if (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
-      chunks.push(inlineBlockComment());
-      space();
+    {
+      const comment = captureTrailingInlineComment();
+      if (comment !== undefined) {
+        chunks.push(comment);
+        space();
+      }
     }
 
     chunks.push(Buffer.from([0x42]));

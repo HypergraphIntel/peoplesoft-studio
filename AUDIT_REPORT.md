@@ -1,4 +1,4 @@
-.## Architecture Consolidation Audit
+## Architecture Consolidation Audit
 
 **1. Current HEAD:** `6731001` — clean, pushed, synced with `origin/main`.
 
@@ -154,5 +154,3 @@ The decoder's own `followsCatchHeader` / `followsWhileHeader` / `followsForHeade
 ### Proposed first refactor
 
 **(a), the trivia/boundary model**, extracted narrowly first: a single `captureTrailingInlineComment()` helper replacing the 4 duplicate blocks I personally added this session (When, When-Other, End-Function, catch) plus the 4 pre-existing And/Or-group ones — proven equivalent by running it through all 8 current call sites and confirming byte-identical output on their own fail-before/pass-after fixtures, then the full corpus gate. This satisfies the refactor rule directly: 8 existing sites express one semantic rule, strong corpus evidence (4 fixes landed this session alone), negative controls exist (the And/Or-group tests already in `encoder.test.ts`), and it removes real duplication.
-
-I'll start there. Want me to proceed with that extraction now, or discuss the shape of the abstraction first?
