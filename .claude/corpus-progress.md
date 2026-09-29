@@ -303,12 +303,57 @@ conditionality or bloat the helper with special cases.
   non-exact definitions.
 - Net: encoder.ts +45/-107 lines (-62 net).
 
+### Phase 2A: Import-section closer consolidation (2026-09-29)
+
+**Status: DONE, proven byte-for-byte equivalent (full row-level taxonomy
+diff), 0 regressions.**
+
+Audit found 4 closing sites with 3 genuinely different serialization
+shapes (bare `0x2D`; combined `0x2D,0x4F` pushed atomically so the
+generic deferred blank-line mechanism can't reorder them; `0x2D` then a
+separately-deferred `0x4F`) plus one unconditional EOF flush. Also found
+a completely unrelated, same-named `importSectionOpen` local inside
+`encodeApplicationClass`'s own prefix-layout handling (line ~12740) --
+confirmed by reading it, not by name, to be a different mechanism in a
+different function scope; left untouched.
+
+Extracted exactly what's genuinely shared and nothing more:
+- `closeImportSection()`: the one state transition every closer performs
+  (`importSectionOpen = false`). Byte serialization stays explicit and
+  separate at each of the 4 call sites, since 3 different shapes exist
+  and forcing them together would hide a proven distinction (the
+  combined-byte site's own comment: "Keep both bytes together here so
+  the generic deferred blank-line mechanism cannot reorder them as
+  4F 2D").
+- `restartLocalDeclarationRun()`: the 4-statement Local-run reset
+  (`leadingLocalRun/sawLeadingLocalDeclaration/pendingReferenceLocalBoundary/pendingReferenceLocalMarkers`)
+  that appeared byte-for-byte identical at 2 of the 4 sites (the
+  decoded-trailing-comment closer and the ordinary closer) -- real,
+  previously-unnamed duplication, now a single named concept.
+
+`justClosedImportSection` deliberately left untouched: it's a
+same-iteration-only signal (declared inside the loop body, not the
+persistent state block) consumed by 3 unrelated sibling blank-line-marker
+blocks purely to prevent double-firing, not import-section state itself.
+
+**Equivalence proof:**
+- `tsc -p .` clean, `git diff --check` clean, 607/608 tests unchanged.
+- Targeted fixtures: 1257, 1929, 6455 EXACT (unchanged); 2200, 2102
+  byte-identical via `git stash` before/after (both remain their
+  pre-existing UNKNOWN_MISMATCH at the same offset, unrelated to this
+  refactor).
+- Full 30,209-definition corpus: EXACT 25,265 -> 25,265, 0 regressions
+  (`REGRESSION GATE: PASS`).
+- Full taxonomy rebuild diffed ROW BY ROW: 0 diffs across all 4,944
+  non-exact definitions.
+
 ### Next action
 
-Phase 2A: audit and consolidate the Import-section closer family (most
-self-contained of the 3; no cross-family exclusion guards of its own).
-Then Phase 2B (Application-Class-Local closer) and Phase 2C (Generic
-top-level declaration closer, last, highest risk).
+Phase 2B: audit and consolidate the Application-Class-Local closer
+(never reopens once closed; cross-references the Generic-Declaration
+closer but not vice versa). Then Phase 2C (Generic top-level declaration
+closer, last, highest risk -- reopen-capable, most historical
+exclusions).
 
 ## Compiler Architecture
 

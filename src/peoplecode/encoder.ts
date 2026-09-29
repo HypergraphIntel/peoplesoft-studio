@@ -10175,6 +10175,35 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   let sawApplicationClassLocalSection = false;
   let closedApplicationClassLocalSection = false;
 
+  /*
+   * The one state transition every import-section closer shares: the
+   * section is no longer open. How that fact gets SERIALIZED differs by
+   * site (bare 0x2D, 0x2D+0x4F pushed atomically, or 0x2D followed by a
+   * separately-deferred 0x4F) and is left explicit at each call site --
+   * only the state mutation itself is centralized here.
+   */
+  const closeImportSection = (): void => {
+    importSectionOpen = false;
+  };
+
+  /*
+   * An import section closing immediately before an ordinary (non-
+   * Application-Class-typed) Local declaration starts a fresh,
+   * declaration-only Local run -- a distinct compiled declaration group
+   * from the import section that just closed (ACCT_CD_NEW_VW.ACCT_CD.
+   * SearchInit). Two of the four import-closer sites need this identical
+   * reset (the decoded-trailing-import-comment site and the ordinary
+   * non-comment site); the other two (a plain standalone comment, and
+   * EOF) do not, because neither is immediately followed by a Local
+   * declaration in the shapes those sites handle.
+   */
+  const restartLocalDeclarationRun = (): void => {
+    leadingLocalRun = true;
+    sawLeadingLocalDeclaration = false;
+    pendingReferenceLocalBoundary = undefined;
+    pendingReferenceLocalMarkers = 1;
+  };
+
   while (true) {
     const whitespaceStart = pos;
     space();
@@ -10331,7 +10360,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         context?.commentOpcodes?.[commentOpcodeIndex] !== 0x4e
       ) {
         chunks.push(Buffer.from([0x2d]));
-        importSectionOpen = false;
+        closeImportSection();
       }
 
       /*
@@ -10539,12 +10568,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
         if (decodedTrailingImportComment && hasBlankLineAfterComment) {
           chunks.push(Buffer.from([0x2d, 0x4f]));
-          importSectionOpen = false;
+          closeImportSection();
           if (nextIsLocal) {
-            leadingLocalRun = true;
-            sawLeadingLocalDeclaration = false;
-            pendingReferenceLocalBoundary = undefined;
-            pendingReferenceLocalMarkers = 1;
+            restartLocalDeclarationRun();
           }
         } else if (hasBlankLineAfterComment) {
           /*
@@ -10820,7 +10846,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         emitBlankLineMarkers(topLevelWhitespace);
       }
 
-      importSectionOpen = false;
+      closeImportSection();
       justClosedImportSection = true;
 
       /*
@@ -10862,10 +10888,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * Ordinary Locals after an import still need the distinct second
          * declaration section proven by offset 411.
          */
-        leadingLocalRun = true;
-        sawLeadingLocalDeclaration = false;
-        pendingReferenceLocalBoundary = undefined;
-        pendingReferenceLocalMarkers = 1;
+        restartLocalDeclarationRun();
       }
     }
 
@@ -11630,7 +11653,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
   if (importSectionOpen) {
     chunks.push(Buffer.from([0x2d]));
-    importSectionOpen = false;
+    closeImportSection();
   }
 
   if (
