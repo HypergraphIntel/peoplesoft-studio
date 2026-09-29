@@ -2,59 +2,165 @@
 
 ## Current status (2026-09-29)
 
-- **Current target:** Application Class self-class `%This.method()`
-  row. **Mechanism split and the allocation half is resolved.** See
-  "PcmCompileObject Native Trace" below. Summary: (1) **allocation
-  (trigger) is source-derived** -- every one of the 558 App Classes with
-  an own-method `%This.X(` call has a self row (0 contradictions across
-  all 1,510 App Classes); 554/558 have exactly one; 29300/29330 have
-  byte-identical operands with the row at the same NAMENUM 5. (2)
-  **content** (REFNAME-only 275 vs full `ROOT|QUALIFYPATH|METHOD` 305 vs
-  root-no-method 34) is NOT source-derived, but **content never appears
-  in PSPCMPROG bytes**, so it does not affect EXACT. The only natively
-  located PACKAGE-with-method constructor (the method-call resolver)
-  always writes the full shape; REFNAME-only rows are best explained by
-  compile history (release/path), whose candidate columns (`PTTOOLSREL`,
-  `PROGFLAGS`, `VERSION`, `LASTUPDDTTM`) `PcmLoadProg` reads natively but
-  the snapshot extractor does not capture. Classification: allocation
-  **deterministic from source**; content **UNKNOWN (missing but
-  extractable)**. No encoder change made in this research phase --
-  implementing allocation is the recommended next semantic phase.
-  **Corrections to earlier sessions**: PTTOOLSREL is a WHERE filter in
-  `PcmCompileObject`'s main selection query, not "fallback logic"; and
-  the historical 29300/29330 "row present vs absent" parking was a
-  misreading -- both have the row, only its content differs.
-- **Last successful calibration (previous phase):** owner-key-by-OBJECTID
-  fix in `tools/corpus/validator.ts` (test-harness fix, not an encoder.ts
-  change) -- EXACT 25,265 -> 26,113, 0 regressions, protected 430/430
-  intact. This phase found and fixed a SECOND, related tooling bug: the
-  taxonomy script's own separate, stale copy of the owner-derivation
-  logic (see "Compiler research: fix stale owner-context copy" below) --
-  tooling-only, EXACT/NONEXACT unchanged.
-- **Protected baseline:** 430/430 (confirmed via `corpus:verify`'s
-  baseline-comparison gate: 0 regressed among the protected set).
-- **Locally blocked definitions:** none newly blocked. The 150
-  self-class %This.method() definitions are **no longer blocked on
-  allocation**. Allocation is source-derived (see the PcmCompileObject
-  Native Trace). Only row *content* is still unresolved, and content is
-  EXACT-neutral.
-- **Next action:** semantic phase: implement Mechanism A. Allocate one
-  self PACKAGE row per App Class at the first own `%This.method()` call.
-  Before implementing, first explain (a) the 13 FULL rows whose
-  APPCLASSMETHOD is not the first own `%This` call in implementation
-  order, and (b) the 4 multi-self-row outlier classes. Then validate
-  against 30,209 / 26,113 / 4,096 and protected 430/430. Optional and
-  user-approved only: a snapshot maintenance rebuild that adds PSPCMPROG
-  PTTOOLSREL/PROGFLAGS/VERSION/LASTUPDDTTM, to test the content rule.
-- **Newly established rules this session:** (1) declaration-section
-  closer-family consolidation (Import/App-Class-Local/Generic-
-  Declaration, each with a named state-transition primitive); (2) the
-  owner-record/field for a PeopleCode definition must be located by
-  OBJECTID (1=RECNAME, 2=FIELDNAME) among all 7 key slots, not assumed
-  at fixed array position 1/2 -- Component-scoped Record Field
-  PeopleCode (and other multi-part key shapes) place a leading
-  Component/Market pair first, pushing RECNAME/FIELDNAME later.
+- **Current target:** Cycle 82 -- Application Class self-row NAMENUM
+  allocation. **Implemented.** EXACT 26,113 -> 26,149 (+36), failed
+  4,096 -> 4,060, protected 430/430 (REGRESSION GATE: PASS), row-by-row
+  taxonomy diff: 0 EXACT -> non-EXACT, 36 non-EXACT -> EXACT. See
+  "Compiler Semantics Cycle 82" below. Four evidence-backed rules:
+  (1) the first `%This.<method>(...)` call in encode order (own OR
+  inherited method) allocates ONE class-level `PACKAGE|<CLASSNAME>` row,
+  reusing an existing own-class identity if there is one; (2) leading
+  App Class `Local` declarations in method bodies allocate at the
+  declaration; (3) a method call on an App Class receiver reuses an
+  identity the same method already established (`Local`/`create`);
+  (4) top-level `Global`/`Component` App Class declarations in App Class
+  programs allocate at the declaration.
+  Self-row content (PACKAGEROOT/QUALIFYPATH/APPCLASSMETHOD) stays a
+  separate research track: it is compile-history content, never reaches
+  PSPCMPROG, and is not guessed.
+- **Last successful calibration:** Cycle 82 (above).
+- **Protected baseline:** 430/430 (corpus:verify gate: 0 regressed).
+- **Locally blocked definitions:** none newly blocked. Out-of-scope
+  family recorded: 29797, 29883, 30170, 30179 key every App Class
+  method-dependency row per (method body, called method), including
+  their foreign-class rows -- an unmodeled lifetime regime, not a
+  self-row rule exception. 29632 (imports its own class, no `%This`
+  call) is unrelated.
+- **Next action:** (a) re-derive the NONEXACT taxonomy and pick the
+  next largest actionable family; (b) candidate: the per-(method body,
+  method) method-dependency regime above (4+ definitions) -- first
+  establish what distinguishes those programs; (c) content track only
+  with user-approved snapshot maintenance (PTTOOLSREL/PROGFLAGS/VERSION/
+  LASTUPDDTTM extraction).
+- **Newly established rules this session:** Cycle 82 rules (1)-(3)
+  above; `%This` calls inside `/* */` and `<* *>` comments allocate
+  nothing (28757, 30143).
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 82 -- Application Class self-row NAMENUM allocation (implemented)
+
+**Status: implemented; EXACT 26,113 -> 26,149, protected 430/430, 0
+EXACT -> non-EXACT across all 30,209 (taxonomy row diff).** Scope
+was NAMENUM allocation only. The self row is never an executable operand
+(Cycle 39: 305/305), so only its allocation point shifts later operands.
+Its descriptive columns are compile-history content, a separate track;
+they are not guessed. LOCAL SNAPSHOT throughout; no `--live`, no
+snapshot rebuild.
+
+Tool: `tools/corpus/research/cycle82-self-row-allocation-census.ts`.
+For all 1,506 parsed App Classes it compares stored and generated
+RECNAME.REFNAME lists. Its **position verdict** removes self rows from
+both lists and compares the non-self rows allocated before the first
+self row: AGREE / CONTRADICT, or UNDETERMINED when an unrelated earlier
+reference mismatch prevents comparison.
+
+### Controls explained
+
+- **The "13 populated residuals"**: the earlier count included calls
+  inside comments and inherited-method calls. With comments stripped and
+  every `%This.X(` call counted, only 4 FULL rows record a method other
+  than the first call: 28850, 29451, 29586 and 29633. 29586 and 29633
+  still AGREE on position, so APPCLASSMETHOD does not determine
+  allocation. It is history content, consistent with the native trace.
+- **The 4 multi-self-row classes** (29797 has 7 rows, 29883 has 2,
+  30170 has 54, 30179 has 48): these programs allocate a method-dependency
+  row per (method body, called method). For 29797 and 29883 the
+  self-row count equals that pair count exactly (7 and 2). 30170 and
+  30179 also add rows for own-class `create` and typed variables. Their
+  foreign-class rows repeat the same way (29883: UTILITY and REPORTDEFN
+  appear many times). This is a separate, unmodeled lifetime regime, not
+  a self-row exception. Every other App Class with a `%This` call has
+  exactly one self row.
+- **5 apparent "own call but no row" classes** (28757, 28935, 29841,
+  30053, 30143): every one of their `%This` calls is inside a `/* */` or
+  `<* *>` comment. The encoder never sees those calls, so nothing is
+  allocated.
+- **Inherited calls**: 28886's first `%This` call is the inherited
+  `%This.getDataFromInputJson(...)`, and stored has a
+  `PACKAGE|URL_BENEFITSUMMARY` row there. 29341's self row names the
+  inherited `THROWNOSOURCEEXEPTION`. Natively, `%This`'s static class is
+  always the unit's own class. This supersedes the earlier synthetic
+  test asserting that inherited `%This` calls allocate nothing.
+- **Position contradictions under the first prototype** (29413, 29876,
+  29877, plus 29875's double row): in every case, a *leading*
+  `Local <AppClass> &v;` in the method body is stored at its declaration.
+  29413's never-used `Local GPS_UTILS:ClassUtility &_classUtil;` sits
+  before the method's first Record row. The encoder instead deferred it
+  to first use. With declaration-time allocation, all of them AGREE.
+- **Double allocation** (23 classes under the first prototype, e.g.
+  28731): an own-class identity already existed (for example
+  `Local ADSM:ADSMTreeNode &ChildNode;` in an earlier method). Stored
+  reuses it, as in the Cycle 62 class-wide reuse rule.
+
+### Rules implemented (encoder.ts)
+
+1. `%This.<member>(` (own or inherited method, not an own
+   property/instance) allocates the class-level `PACKAGE|<CLASSNAME>` row
+   once per class. It is allocated at the first such call in encode
+   order, before the call's arguments. An own-class identity already
+   established (in the committed type session or earlier in the fragment)
+   is reused instead. `ApplicationClassSelfMethodDependency` holds the
+   class-wide claim.
+2. Leading App Class `Local` declarations in Application Class method
+   bodies allocate at the declaration (previously only after executable
+   code). This is gated on `builtinObjectDeclarationsHaveMethodWideLifetime`,
+   which only App Class fragments set.
+3. The App Class receiver method-call path also reuses an identity the
+   same method established through `Local` or `create`
+   (`localApplicationClassPackageReferences`). Across the 57 App Classes
+   whose generated list this changes, 25 match stored further (all 25
+   fully) and 0 match less. That includes `create`-initialized Locals:
+   28847's `Local ...:ActionItem &oItem = create ...;` followed by
+   `.open()`/`.save()` stores a single ACTIONITEM row.
+4. Top-level `Global`/`Component` App Class declarations in an
+   Application Class program allocate at the declaration, reusing an
+   identity that already exists. The previous path used the per-fragment
+   `sawWildcardImport`, which never sees an App Class's separate import
+   fragment. Census: stored has the row for 130 of 130 such
+   declarations; before this rule, generated missed 16 of them.
+   Names-exact: +5, -0.
+
+**Regression found and repaired: 29420.** The first full run showed
+29420 moving from EXACT to non-EXACT. It was not caught by the protected
+gate; the row-by-row taxonomy diff found it. At HEAD, 29420 was EXACT by
+coincidence: generated was missing stored's MAPPINGENTRY row (from
+`Component GPS_WFS_REPORT_MANAGER:MappingEntry &_entry;`) and had one
+extra MAPPINGCLASSGENERIC method row. The row counts cancelled out, and
+PACKAGE rows are never operands. Rule 3 correctly removed the extra row
+and exposed the missing one. Narrowing rule 3 to exclude `create` was
+tested and rejected: it restored 29420 but lost 12 correct cases (for
+example 28847). Rule 4 fixes the real gap.
+
+### Results
+
+| | before | after |
+|---|---|---|
+| App Class names-exact (RECNAME.REFNAME list) | 710 | 951 |
+| classes with own `%This` call: position AGREE / CONTRADICT | -- | 332 / 0 (102 UNDETERMINED, 121 encode errors) |
+| corpus EXACT | 26,113 | 26,149 |
+| corpus failed | 4,096 | 4,060 |
+| protected | 430/430 | 430/430 |
+
+Each rule was isolated before it was adopted:
+- rule 1 on its own (own methods): names-exact 710 -> 878
+- adding rule 2: +36 / -1 (28790's COLLECTION method row)
+- adding rule 3: that -1 is fixed; the total change of rules 2 and 3 is
+  +60 / -0
+- inherited calls: +8 / -0
+
+**The 150 previously missing-allocation definitions:** 143 have own
+`%This` calls. The other 7 have only inherited calls, so the earlier
+statement that "all 150 have `%This` calls" counted inherited calls.
+Final position verdicts: **147 AGREE, 0 CONTRADICT, 3 UNDETERMINED**
+(an earlier unrelated mismatch). All 7 inherited-only definitions AGREE.
+85 of the 150 now have a fully names-exact PSPCMNAME list, and 15 are
+byte-EXACT (0 before). Most of the rest are non-EXACT for
+unrelated downstream reasons: 69 are `REFERENCE_COMPLETE_DOWNSTREAM`,
+and the others first diverge on FIELD, RECORD or OTHER references.
+
+**Unit tests:** 612 run, 611 pass, 0 fail. Four synthetic
+inherited-`%This` tests were updated to the corpus-backed behavior, and
+five new Cycle 82 tests were added.
 
 ## Compiler Architecture: Application Class Self-Reference Metadata (2026-09-29)
 

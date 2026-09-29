@@ -172,6 +172,41 @@ interface ApplicationClassReferenceSession {
 }
 
 
+/**
+ * Cycle 82: `%This.<ownMethod>(...)` allocates the class's own
+ * `PACKAGE|<CLASSNAME>` PSPCMNAME row.
+ *
+ * Native evidence (pspcm.dll method-call resolver at 0x1804f0e9c, see the
+ * progress file's "PcmCompileObject Native Trace"): a method call on an
+ * Application Class object builds a PACKAGE row for the receiver's class
+ * and adds it to the name table. `%This` is a receiver whose class is the
+ * compilation unit itself.
+ *
+ * Corpus evidence (LOCAL SNAPSHOT, all 1,510 App Classes,
+ * `cycle82-self-row-allocation-census.ts`): every class with a live
+ * (non-comment) own-method `%This` call has a self row. Inherited
+ * `%This.<baseMethod>(...)` calls allocate the SAME self row (28886's
+ * first call is the inherited `%This.getDataFromInputJson(...)`; 29341's
+ * stored row even names an inherited method). The row is allocated ONCE
+ * per class, at the first such call in encode order, unless an own-class
+ * PACKAGE identity already exists (then it is reused), and it is never an
+ * executable operand -- it only shifts later NAMENUMs.
+ *
+ * Only the allocation point is modeled. The row's descriptive columns
+ * (PACKAGEROOT/QUALIFYPATH/APPCLASSMETHOD) are compile-history content and
+ * never reach PSPCMPROG, so the row is emitted as a class-level identity.
+ *
+ * Out of scope: a handful of programs (29797, 29883, 30170, 30179) key
+ * every Application Class method-dependency row per (method body, called
+ * method) -- their foreign-class rows repeat the same way -- a separate,
+ * unmodeled lifetime family.
+ */
+interface ApplicationClassSelfMethodDependency {
+  isSelfMethodCall(memberName: string): boolean;
+  /** Returns the row template on the class's first `%This` method call only. */
+  claim(): Omit<PeopleCodeReference, 'index' | 'sequence'> | undefined;
+}
+
 function applicationClassReferenceKey(
   reference: Omit<PeopleCodeReference, 'index' | 'sequence'>
 ): string {
@@ -487,6 +522,12 @@ interface EncodeFragmentContext extends EncodeProgramContext {
    * `ensureRuntimeCreateReference`.
    */
   applicationClassTypeReferenceSession?: ApplicationClassReferenceSession;
+  /**
+   * Cycle 82: the compilation unit's own self-class PACKAGE row. Present
+   * only for Application Class programs. See
+   * `ApplicationClassSelfMethodDependency`'s own comment.
+   */
+  applicationClassSelfMethodDependency?: ApplicationClassSelfMethodDependency;
   bindOwnerReference?: boolean;
   /**
    * Cycle 36: gives bare built-in-object `Local`-declaration PACKAGE
@@ -1138,10 +1179,25 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * after executable statements as PSPCMNAME PACKAGE sequence 28, before
        * the following Record.DERIVED_ADDRESS dependency.
        */
+      /*
+       * Cycle 82: Application Class method bodies have no separate
+       * declaration phase for this purpose -- a LEADING App Class Local
+       * also allocates at its declaration. Evidence (LOCAL SNAPSHOT,
+       * `cycle82-self-row-allocation-census.ts`): 29413's never-used
+       * `Local GPS_UTILS:ClassUtility &_classUtil;` is stored at NAMENUM 6,
+       * before the method's first Record.GPS_ACTION_TBL; 29876/29877's
+       * `Local PSXP_RPTDEFNMANAGER:Utility &util;` is stored before the
+       * self row allocated by the following `%This.GetMetaData()`, not at
+       * the later `create`. Across all Application Classes this moves 60
+       * definitions to a names-exact PSPCMNAME list and 0 away.
+       * `builtinObjectDeclarationsHaveMethodWideLifetime` is set only for
+       * Application Class fragments.
+       */
       if (
         ((functionDepth === 0 &&
           controlDepth === 0 &&
-          sawTopLevelExecutableStatement) ||
+          (sawTopLevelExecutableStatement ||
+            context?.builtinObjectDeclarationsHaveMethodWideLifetime === true)) ||
           (functionDepth > 0 && !/^\s*=/.test(source.slice(pos)))) &&
         !/^\s*=\s*create\b/i.test(source.slice(pos))
       ) {
@@ -1399,6 +1455,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       const appClass = applicationClassPath();
       chunks.push(appClass.bytes);
 
+      // Cycle 82: Application Class programs only -- see the matching
+      // `componentDeclaration()` comment (130/130 census, e.g. 29531).
+      if (context?.builtinObjectDeclarationsHaveMethodWideLifetime) {
+        ensureLocalApplicationClassPackageReference(appClass.packagePath, appClass.className);
+      }
+
       space();
       chunks.push(variable());
       return;
@@ -1600,7 +1662,23 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         reuseRuntimeCreateForMethods:
           componentAppClassReuseRuntimeCreateForMethods
       });
-      if (sawWildcardImport) {
+      if (context?.builtinObjectDeclarationsHaveMethodWideLifetime) {
+        /*
+         * Cycle 82: in an Application Class program the class's imports
+         * live in a SEPARATE leading fragment, so the fragment-local
+         * `sawWildcardImport` below never sees them. LOCAL SNAPSHOT census
+         * (all App Classes): stored has the declared class's PACKAGE row
+         * for 130/130 top-level Global/Component App Class declarations;
+         * 29420's `Component GPS_WFS_REPORT_MANAGER:MappingEntry &_entry;`
+         * (wildcard-imported, never used elsewhere) is stored at NAMENUM
+         * 5, at the declaration. Allocate here, reusing any identity an
+         * explicit import or earlier declaration already established.
+         */
+        ensureLocalApplicationClassPackageReference(
+          appClassType.packagePath,
+          appClassType.className
+        );
+      } else if (sawWildcardImport) {
         addApplicationClassReference(
           appClassType.packagePath,
           appClassType.className
@@ -8771,6 +8849,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     let pendingSuperPropertyResolution = false;
 
     /*
+     * Cycle 82: set true only when this primary's base token is literally
+     * `%This` inside an Application Class compilation unit; consulted and
+     * cleared by the very next postfix step only.
+     */
+    let pendingThisMethodResolution = false;
+
+    /*
      * Track an explicit Record.REC root through the postfix parser so its
      * next dotted identifier is encoded as a FIELD PSPCMNAME operand rather
      * than an inline member name.
@@ -8799,6 +8884,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     if (source[pos] === '%') {
       if (/^%Super\b/i.test(source.slice(pos))) {
         pendingSuperPropertyResolution = true;
+      }
+      if (
+        context?.applicationClassSelfMethodDependency !== undefined &&
+        /^%This\b/i.test(source.slice(pos))
+      ) {
+        pendingThisMethodResolution = true;
       }
       chunks.push(systemVariable());
     } else if (source[pos] === '(') {
@@ -9348,6 +9439,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     while (true) {
       space();
 
+      const thisMethodResolutionStep = pendingThisMethodResolution;
+      pendingThisMethodResolution = false;
+
       if (source[pos] === '.') {
         pos++;
         chunks.push(fixed('.'));
@@ -9363,6 +9457,35 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
         const member = memberMatch[0];
         pos += member.length;
+
+        /*
+         * Cycle 82: `%This.<ownMethod>(` -- see
+         * `ApplicationClassSelfMethodDependency`'s own comment. Allocated
+         * here, before the call's arguments are encoded.
+         */
+        if (
+          thisMethodResolutionStep &&
+          /^\s*\(/.test(source.slice(pos)) &&
+          context?.applicationClassSelfMethodDependency?.isSelfMethodCall(member) === true
+        ) {
+          const selfRow = context.applicationClassSelfMethodDependency.claim();
+          /*
+           * Same class-wide identity rule as the ordinary method-call path
+           * (Cycle 62): an own-class PACKAGE identity already established
+           * -- by an earlier fragment (committed type session) or earlier
+           * in this fragment (e.g. `Local <OwnClass> &x`) -- is reused.
+           */
+          const existingSelfIdentity = selfRow === undefined
+            ? undefined
+            : context.applicationClassTypeReferenceSession?.lookup(selfRow) ??
+              references.find(reference =>
+                reference.kind === 'package' &&
+                reference.className?.toUpperCase() === selfRow.className
+              );
+          if (selfRow !== undefined && existingSelfIdentity === undefined) {
+            nextReference(selfRow);
+          }
+        }
 
         /*
          * Cycle 67: resolve `%Super.<property>` to its ancestor-declared
@@ -9737,7 +9860,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
                 className: activeApplicationClassReceiver.className.toUpperCase()
               });
 
-              if (classWideTypeIdentity === undefined) {
+              /*
+               * Cycle 82: the same reuse applies to an identity this SAME
+               * Application Class method already established through a
+               * `Local` declaration or `create` (not yet committed to the
+               * class-wide session). 28790's `Local PTAI_COLLECTION:Collection
+               * &collContextData;` followed by `&collContextData.Item(...)`
+               * stores one COLLECTION row, not a second method row. Across
+               * all App Classes (LOCAL SNAPSHOT) this changes 57 generated
+               * PSPCMNAME lists: 25 now match stored further (all 25 fully),
+               * 0 match less. The pool is populated only for Application
+               * Class fragments, so ordinary PeopleCode's calibrated
+               * create-plus-method behavior (offset 411) is unaffected.
+               */
+              const methodLocalTypeIdentity =
+                localApplicationClassPackageReferences.get(`${functionDepth}:${classKey}`);
+              if (classWideTypeIdentity === undefined && methodLocalTypeIdentity === undefined) {
                 addApplicationClassReference(
                   activeApplicationClassReceiver.packagePath,
                   activeApplicationClassReceiver.className,
@@ -12447,6 +12585,30 @@ function encodeApplicationClassProgramV2(
   const references: PeopleCodeReference[] = [];
   const htmlDependencyScope = new HtmlDependencyScope();
   const applicationClassReferenceScope = new ApplicationClassReferenceScope();
+  const selfPackagePath = selfPath.slice(0, -1);
+  const ownStorageNames = new Set(parsed.members
+    .filter(member => member.kind === 'property' || member.kind === 'instance')
+    .map(member => (member as { name: string }).name.replace(/^&/, '').toLowerCase()));
+  let selfMethodDependencyClaimed = false;
+  const applicationClassSelfMethodDependency: ApplicationClassSelfMethodDependency = {
+    // Own AND inherited methods: `%This`'s static class is always this
+    // class. Own storage members are excluded because `%This.<prop>(n)`
+    // indexes a property rather than calling a method.
+    isSelfMethodCall: memberName => !ownStorageNames.has(memberName.toLowerCase()),
+    // The row is a class-level identity: no method name, so it shares the
+    // TYPE-identity key later own-class type references look up.
+    claim: () => {
+      if (selfMethodDependencyClaimed) return undefined;
+      selfMethodDependencyClaimed = true;
+      return {
+        kind: 'package',
+        packageName: parsed.className.toUpperCase(),
+        objectName: selfPackagePath[0]?.toUpperCase(),
+        packagePath: selfPackagePath.map((component, index) => index === 0 ? component.toUpperCase() : component),
+        className: parsed.className.toUpperCase()
+      };
+    }
+  };
   let nextReferenceIndex = 0;
   let nextCommentOpcodeIndex = 0;
   let firstFragment = true;
@@ -12503,6 +12665,7 @@ function encodeApplicationClassProgramV2(
       htmlDependencyLifetime: 'application-class',
       applicationClassReferenceSession,
       applicationClassTypeReferenceSession,
+      applicationClassSelfMethodDependency,
       // Inherited `%This` calls can allocate environment-derived method
       // rows. Freeze that unsupported population on its prior fragment-owner
       // behavior; modeled units keep the mandatory owner row blank.
