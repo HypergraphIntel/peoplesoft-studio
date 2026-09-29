@@ -463,13 +463,54 @@ function runValidation(
     .slice(0, eventIndex < 0 ? objectValues.length : eventIndex)
     .filter(Boolean);
 
+  /*
+   * PeopleTools' own OBJECTID/OBJECTVALUE pairing tells you WHICH key
+   * component occupies a given positional slot; it is not always
+   * RECNAME/FIELDNAME at slots 1/2. Component-scoped Record Field
+   * PeopleCode (and other multi-part key shapes) place a leading
+   * Component/Market pair at OBJECTID 10/39 first, pushing the real
+   * RECNAME (OBJECTID 1) and FIELDNAME (OBJECTID 2) to a later physical
+   * slot (typically 3/4). Locating them by their OBJECTID rather than by
+   * fixed array position is required for the owner-reuse identity
+   * (`ownerReference`, encoder.ts) to ever match an explicit self-
+   * referencing RECORD.FIELD expression or `Declare Function ...
+   * PeopleCode RECORD.FIELD Event;` target in such a definition's own
+   * source -- previously this always read slots 1/2 verbatim, so any
+   * definition whose true RECNAME/FIELDNAME lived elsewhere silently got
+   * a syntactically-valid but semantically-wrong owner (e.g. a Component
+   * name and Market code instead of a record and field), causing the
+   * encoder to allocate a fresh, duplicate PSPCMNAME row instead of
+   * reusing the owner slot PeopleTools itself reuses -- a systemic
+   * off-by-N NAMENUM shift for the rest of the definition. Falls back to
+   * the historical objectValue1/objectValue2 positions when no OBJECTID
+   * 1/2 pair exists at all (Component-level, Menu-level, and Application
+   * Class definitions have no RECNAME/FIELDNAME key component; this
+   * preserves their existing, already-otherwise-handled owner value
+   * unchanged).
+   */
+  const objectIdValuePairs: [number, string][] = [
+    [capture.definition.key.objectId1, capture.definition.key.objectValue1],
+    [capture.definition.key.objectId2, capture.definition.key.objectValue2],
+    [capture.definition.key.objectId3, capture.definition.key.objectValue3],
+    [capture.definition.key.objectId4, capture.definition.key.objectValue4],
+    [capture.definition.key.objectId5, capture.definition.key.objectValue5],
+    [capture.definition.key.objectId6, capture.definition.key.objectValue6],
+    [capture.definition.key.objectId7, capture.definition.key.objectValue7]
+  ];
+  const recordNameValue =
+    objectIdValuePairs.find(([id]) => id === 1)?.[1] ??
+    capture.definition.key.objectValue1;
+  const fieldNameValue =
+    objectIdValuePairs.find(([id]) => id === 2)?.[1] ??
+    capture.definition.key.objectValue2;
+
   const encodeContext = {
     owner: {
       recordName:
-        capture.definition.key.objectValue1.trim(),
+        recordNameValue.trim(),
 
       fieldName:
-        capture.definition.key.objectValue2.trim(),
+        fieldNameValue.trim(),
 
       // Cycle 14: full nested-package path for Application Class
       // definitions (see PeopleCodeOwner's own comment); harmless and

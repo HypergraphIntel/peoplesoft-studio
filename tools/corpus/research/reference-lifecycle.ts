@@ -1049,16 +1049,34 @@ export function generateEvidence(
   let sourceEncodeError: { message: string } | undefined;
 
   // Match validator.ts's real corpus-harness behavior: the owning
-  // record/field always comes from the definition's own key
-  // (objectvalue1/objectvalue2), never inferred from source text. Omitting
-  // this would make every bare owner-record.field reference look like a
-  // spurious ALLOC-vs-USE disagreement that has nothing to do with real
-  // encoder behavior.
+  // record/field comes from the definition's own key, located by OBJECTID
+  // (1=RECNAME, 2=FIELDNAME) rather than fixed array position -- a
+  // Component-scoped Record Field PeopleCode definition (and other
+  // multi-part key shapes) places a leading Component/Market pair at
+  // OBJECTID 10/39 first, pushing the real RECNAME/FIELDNAME to a later
+  // physical slot (see validator.ts's own runValidation for the full
+  // rationale and corpus evidence). Omitting this would make every bare
+  // owner-record.field reference look like a spurious ALLOC-vs-USE
+  // disagreement that has nothing to do with real encoder behavior.
+  const objectIdValuePairs: [number, string][] = [
+    [definition.objectid1, definition.objectvalue1],
+    [definition.objectid2, definition.objectvalue2],
+    [definition.objectid3, definition.objectvalue3],
+    [definition.objectid4, definition.objectvalue4],
+    [definition.objectid5, definition.objectvalue5],
+    [definition.objectid6, definition.objectvalue6],
+    [definition.objectid7, definition.objectvalue7]
+  ];
+  const ownerRecordName =
+    objectIdValuePairs.find(([id]) => id === 1)?.[1] ?? definition.objectvalue1;
+  const ownerFieldName =
+    objectIdValuePairs.find(([id]) => id === 2)?.[1] ?? definition.objectvalue2;
+
   try {
     encodeProgram(definition.sourceText, {
       owner: {
-        recordName: definition.objectvalue1.trim(),
-        fieldName: definition.objectvalue2.trim()
+        recordName: ownerRecordName.trim(),
+        fieldName: ownerFieldName.trim()
       },
       referenceTrace: event => events.push(event)
     });
