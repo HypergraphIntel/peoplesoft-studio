@@ -1,5 +1,79 @@
 # Corpus Calibration Progress
 
+## Continuation session (2026-09-29), part 12 — `End-Function;`'s own inline trailing comment had the same standalone-vs-inline ordering bug, plus a spurious 0x2D
+
+**Status: IMPLEMENTED, validated, zero regressions, this session's best
+yield-per-fix ratio in this vein.** Datasource: LOCAL SNAPSHOT throughout.
+Starting commit `614d46a` (part 11's fix). Baseline before this change:
+25,242/30,209 EXACT.
+
+### What was found
+
+Re-running `downstream-shape-census.ts`, the second-largest cluster
+(`stored=0x4e gen=0x2d`, 19 definitions) traced to definition 3128:
+`End-Function; /* FieldRowsetProcessing*/` -- an inline trailing comment
+immediately after a Function's closing `End-Function;`, same source
+line. `functionStatement()`'s `End-Function` handling unconditionally
+pushes a structural `0x2D` function-definition-boundary marker
+immediately after the semicolon, with no check for an inline comment
+first -- so a following comment always renders as a standalone (0x24)
+comment AFTER that 0x2D, instead of an inline (0x4E) comment BEFORE it
+(matching stored). This is the third occurrence this session of the exact
+same "trailing comment must be captured and emitted before the
+structural boundary marker" pattern (ordinary `When` header, part 11's
+`When-Other` header, now `End-Function`).
+
+### Fix
+
+`src/peoplecode/encoder.ts`'s `functionStatement()`, right after
+`End-Function`'s own semicolon: added the identical inline-comment check
+(`/^[ \t]*\/\*/` lookahead, `inlineBlockComment()` when
+`!blockCommentStartsOwnLine()`), positioned BEFORE the unconditional
+`0x2D` push.
+
+### Fail-before/pass-after proof (`git stash -- src/peoplecode/encoder.ts`)
+
+```text
+Definition 3128: before -> UNKNOWN_MISMATCH, after -> EXACT
+```
+
+### Spot checks (full `stored=0x4e gen=0x2d` cluster sample, 8 of 19)
+
+```text
+3128, 14626, 17332, 17341, 17354  -> EXACT (5 of 8 sampled)
+14621, 17597, 17647               -> unchanged, UNKNOWN_MISMATCH (this
+                                      layer's own gap fixed; each has a
+                                      separate remaining issue)
+```
+
+### Full validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped — unchanged.
+- Protected/full-corpus gate: `npm run corpus:verify` — REGRESSION GATE:
+  PASS, 0 regressed.
+- Full top-level harness re-run: **EXACT 25,242 → 25,262 (+20)** — the
+  best yield-per-effort of this session's comment-placement fixes (5/8
+  sampled candidates went straight to EXACT, and the cluster itself is
+  19 wide, suggesting most of the remaining 14 resolved too).
+  `DECODE_SOURCE_MISMATCH`/`ENCODE_ERROR`/`UNSUPPORTED_SYNTAX` all held
+  exactly steady (108/122/335).
+
+### Pattern now established, worth checking systematically
+
+Three header/closer constructs (`When <value>`, `When-Other`,
+`End-Function`) all shared the identical "trailing inline comment before
+a structural boundary marker" bug, fixed with IDENTICAL code each time.
+Before continuing to find these one at a time via census sampling, grep
+`src/peoplecode/encoder.ts` for every OTHER unconditional structural-
+boundary push (`chunks.push(Buffer.from([0x2d]))` or similar) that
+follows a statement's own closing keyword/semicolon (`End-If`, `End-For`,
+`End-While`, `end-try`, `End-Evaluate`, `end-method`, `end-class`, etc.)
+and check whether each already has the equivalent inline-comment guard.
+This could resolve several more members of the current census clusters
+(and possibly future ones) in one pass rather than one definition at a
+time.
+
 ## Continuation session (2026-09-29), part 11 — `When-Other`'s own inline trailing comment used the standalone (0x24) opcode unconditionally
 
 **Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL

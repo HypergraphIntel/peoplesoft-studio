@@ -6128,6 +6128,27 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         pos++;
         chunks.push(fixed(';'));
 
+        /*
+         * An inline trailing comment immediately after End-Function's own
+         * semicolon (same source line) renders BEFORE the structural 0x2D
+         * function-definition boundary, with the inline (0x4E) comment
+         * opcode -- the same inline-vs-standalone ordering already proven
+         * for the ordinary `When <value>` header's own trailing comment
+         * and (this session) `When-Other`'s.
+         *
+         * FieldRowsetProcessing's own defining program (definition 3128):
+         *
+         *   End-Function; /* FieldRowsetProcessing*\/
+         *
+         * stores `... 15 4E <comment> 2D ...`, not `... 15 2D 24 <comment> ...`.
+         */
+        if (/^[ \t]*\/\*/.test(source.slice(pos))) {
+          space();
+          if (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
+            chunks.push(inlineBlockComment());
+          }
+        }
+
         // Confirmed Function-definition boundary.
         chunks.push(Buffer.from([0x2d]));
 
