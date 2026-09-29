@@ -37,6 +37,97 @@
   nothing (28757, 30143).
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
 
+## Compiler Semantics Cycle 83 -- fresh post-Cycle-82 census and target selection
+
+**Baseline reproduced fresh at `7f4bb0e` (LOCAL SNAPSHOT):** 30,209 total,
+26,149 EXACT (86.56%), 4,060 NONEXACT. REGRESSION GATE: PASS. The rebuilt
+taxonomy is row-by-row identical to the committed one.
+
+Fresh taxonomy (Cycle 73 categories):
+
+| category | count |
+|---|---:|
+| REFERENCE_COMPLETE_DOWNSTREAM | 1,012 |
+| REFERENCE_ACTIVE_FIELD | 810 |
+| REFERENCE_ACTIVE_PACKAGE | 537 |
+| REFERENCE_ACTIVE_RECORD | 413 |
+| REFERENCE_ACTIVE_RECORD_FIELD | 337 |
+| UNSUPPORTED_SYNTAX | 335 |
+| REFERENCE_ACTIVE_SCROLL | 136 |
+| ENCODE_ERROR | 122 |
+| REFERENCE_ACTIVE_OTHER | 113 |
+| DECODE_SOURCE_MISMATCH | 82 |
+| STRUCTURAL_ORDERING | 70 |
+| REFERENCE_ACTIVE_DECLARE_FUNCTION | 36 |
+| DECODER_BARE_IDENTIFIER | 26 |
+| ROUNDTRIP_ONLY | 23 |
+| REFERENCE_ACTIVE_QUOTED_COMPONENT | 8 |
+
+### New tooling (research only)
+
+- `tools/corpus/research/cycle83-token-divergence-extract.ts` decodes both
+  the stored and the generated PSPCMPROG for every NONEXACT definition. It
+  maps each name operand to its RECNAME.REFNAME identity (stored names vs.
+  generated references), so the token streams compare by identity rather
+  than by NAMENUM.
+- `tools/corpus/research/cycle83-divergence-analyze.py` finds the first
+  true divergence and classifies reference-list edits (missing / extra /
+  over-reuse / under-reuse / order). It computes one-blocker-away counts:
+  a definition counts only when that single signature is its ONLY
+  remaining difference. The owner row (NAMENUM 1) is normalized, because
+  it is stored blank for many definition types (Cycle 73 artifact). Without
+  normalization it produced a false "MISSING OWNER" cluster of 873.
+
+### First true divergence (all 4,060)
+
+| class | count | meaning |
+|---|---:|---|
+| REFERENCE_ALLOCATION | 1,381 | identical token identities; only NAMENUMs differ (allocation/reuse/order) |
+| STRUCTURAL_BYTE | 902 | first differing token is 0x4F (682) or 0x2D (96) line structure |
+| REFERENCE_IDENTITY | 533 | an operand names a different identity; mostly stored inline member vs generated FIELD operand (`.FieldCount` 86, `.FIELDVALUE` 33 ...) |
+| UNSUPPORTED_SYNTAX | 335 | |
+| HEADER_ONLY_DOWNSTREAM | 313 | identical tokens and NAMENUMs; 282 are App Classes where generated is shorter: the storage-member directory/metadata |
+| TOKEN_ENCODING | 235 | |
+| COMMENT_TRIVIA | 199 | |
+| ENCODE_ERROR | 122 | |
+| DECODER_RENDERING | 40 | forward encode already exact |
+
+### Candidate table (ranked by one-blocker-away payoff and coherence)
+
+"One-blocker" means the definition's only remaining difference is this
+mechanism (strict: every token hunk / reference edit has this one
+signature, and the rest of the reference list is identical).
+
+| # | mechanism | affected | one-blocker | positive controls | negative controls / contradictions | inputs | risk |
+|---|---|---:|---:|---|---|---|---|
+| 1 | blank line before a `While`-body item emits no 0x4F (`whileStatement` handles only End-While/REM gaps) | 400 defs / 1,535 markers | 150 | 3054, 3237, 5844, 28266 | to be tested: EXACT While programs with body gaps (Cycle 15 reference gating) | source | low: mirrors the proven If-body rule |
+| 2 | RECORD over-reuse (stored allocates a fresh RECORD row; generated reuses) | 490 | 277 | 7782, 8707, 4100 | fragmented: row-shorthand `&rs(n).REC`, `(1).REC`, and plain `REC.FLD` contexts; the RECORD lifetime family was historically mixed | source | high |
+| 3 | PACKAGE over-reuse | 549 | 197 | STACK x19, ROWSET x13, REPORTDEFN x12 ... | App Class method-dependency lifetime (Cycles 56-62); many receiver shapes | source | high |
+| 4 | FIELD under-reuse | 355 | 167 | 1418, 1420 | not drilled; FIELD control-group scope family | source | high |
+| 5 | RECORD under-reuse | 328 | 158 | 871, 1428 | not drilled | source | high |
+| 6 | App Class storage-member directory (HEADER_ONLY) | 282 | 27 (single property) + 251 blocked | 28780, 28781 (single property) | multi-member order is an unresolved internal enumeration (Cycle 30: 57/643 source order, 114,642 pairs) | source for singleton; order unavailable for multi | medium |
+| 7 | extra 0x4F at top level | 137 | 81 | 1769, 2669 | top-level declaration-section closer family (many guards; 29315 anomaly) | source | medium-high |
+| 8 | comment introducer 0x24 vs 0x4E | 163 | 65 | 523, 3290 | placement rule family; several shapes | source | medium |
+| 9 | top-level 0x2D declaration-section byte (missing 135/54, extra 155/39, extra 2D+4F 65/48) | ~355 | ~141 | 5242, 3869 | same closer family as #7; guard-heavy history | source | high |
+| 10 | stored inline member vs generated operand (`.FieldCount` etc.), both directions | 666 | 14 | 3830, 4440 | usually co-occurs with other blockers | source | medium |
+| 11 | missing 0x4F in For / Evaluate / method / Function bodies | 88 / 51 / 35 / 80 | 24 / 26 / 23 / 11 | 4859, 1939, 28758 | per-statement-kind gap rules | source | medium |
+| -- | KNOWN_SMALL_UNMODELED_PATTERN (per-method-body rows) | 8 | -- | -- | not elevated: the fresh census shows no growth | -- | -- |
+
+**Selected: #1.** It is the largest coherent single mechanism with a
+crisp semantic boundary, and it has the third-highest strict one-blocker
+count. The two reference clusters above it (#2, #3) are surface
+signatures spanning several lifetime scopes that earlier cycles found
+mixed. #1 also has a documented cause: the Phase 1 consolidation audit
+recorded "`whileStatement` defers before End-While/REM only (comment and
+statement gaps have no handling)". It preserved that inconsistency
+without testing it against the corpus.
+
+Historical controls re-run at HEAD: 3235 (End-While blank line) is
+non-EXACT, REFERENCE_ACTIVE_FIELD. 9661 (While + REM) is non-EXACT,
+REFERENCE_ACTIVE_RECORD. 29315 (Cycle 15 EXTRA-0x4F anomaly), 942, 945,
+518, 7041, 2406 and 1269 are EXACT. 3596 is REFERENCE_COMPLETE_DOWNSTREAM.
+All match their historical descriptions (still valid).
+
 ## Compiler Semantics Cycle 82 -- Application Class self-row NAMENUM allocation (implemented)
 
 **Status: implemented; EXACT 26,113 -> 26,149, protected 430/430, 0
