@@ -49,11 +49,18 @@ import type { CorpusDefinition } from '../classifications';
 
 function ownerContextOf(def: any) {
   const values = [def.objectvalue1, def.objectvalue2, def.objectvalue3, def.objectvalue4, def.objectvalue5, def.objectvalue6, def.objectvalue7].map((v: string) => (v ?? '').trim());
+  const ids = [def.objectid1, def.objectid2, def.objectid3, def.objectid4, def.objectid5, def.objectid6, def.objectid7];
   const eventIndex = values.findIndex((v: string) => v.toLowerCase() === 'onexecute');
   const packagePath = values.slice(0, eventIndex < 0 ? values.length : eventIndex).filter(Boolean);
+  // Match validator.ts's OBJECTID-based owner derivation (RECNAME=1,
+  // FIELDNAME=2) rather than fixed array position -- Component-scoped
+  // Record Field PeopleCode places a Component/Market pair first,
+  // displacing RECNAME/FIELDNAME to a later physical slot.
+  const recordIndex = ids.findIndex(id => id === 1);
+  const fieldIndex = ids.findIndex(id => id === 2);
   return {
-    recordName: values[0],
-    fieldName: values[1],
+    recordName: recordIndex >= 0 ? values[recordIndex] : values[0],
+    fieldName: fieldIndex >= 0 ? values[fieldIndex] : values[1],
     packagePath
   };
 }
