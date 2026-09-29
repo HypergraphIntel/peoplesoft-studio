@@ -250,12 +250,65 @@ family's own close is one particular consumer of it.
    cross-referenced by both siblings -- migrate only after their shapes
    are stable objects it can cleanly exclude against).
 
+### Phase 1: `deferReferenceGatedMarkers()` producer-side centralization (2026-09-29)
+
+**Status: DONE, proven byte-for-byte equivalent (full row-level taxonomy
+diff), 0 regressions.**
+
+Audit-before-edit found the 14 sites are NOT one uniform rule:
+`repeatStatement` defers before Until/comment/REM (no ordinary
+statement-gap handling at all); `forStatement` defers ONLY before
+End-For (comment and statement gaps there use immediate
+`emitBlankLineMarkers()` instead; REM gap has no handling at all);
+`whileStatement` defers before End-While/REM only (comment and statement
+gaps have no handling); `ifStatement`'s Then/Else bodies defer before
+Else/End-If/REM AND ordinary statement gaps (comment gaps use
+immediate); the top-level loop defers one ordinary executable-statement
+gap. This inconsistency is preserved exactly -- the new helper only
+centralizes the identical producer FORMULA at all 14 sites, it does not
+unify which sites call it.
+
+Introduced `deferReferenceGatedMarkers(whitespace: string): void`
+(mirrors `emitBlankLineMarkers`'s signature deliberately), migrated all
+14 sites via a verified script-based transform.
+
+**Self-inflicted bug caught before validation**: the first mechanical
+regex replacement also matched the new helper's OWN body (identical
+shape to its call sites), producing `deferReferenceGatedMarkers(whitespace)
+{ deferReferenceGatedMarkers(whitespace); }` -- infinite recursion.
+Caught immediately by grepping for the helper's own name post-edit
+(same class of self-match bug as the earlier `emitBlankLineMarkers`
+migration this session), fixed before any test ran. The top-level
+loop's site also used a single-line `Math.max(1, ...)` formatting the
+regex didn't match; migrated separately by hand.
+
+`pendingReferenceLocalBoundary` deliberately NOT migrated to this helper
+-- it's a single deferred slot with 3 different marker-count formula
+variants and an independent 0x2D-vs-not decision, not a plain list-push;
+forcing it through a list-shaped helper would either drop that
+conditionality or bloat the helper with special cases.
+
+**Equivalence proof:**
+- `tsc -p .` clean, `git diff --check` clean, 607/608 tests unchanged.
+- Historical control definitions 9661, 3235, 29315: byte-identical via
+  `git stash` before/after (9661 and 3235 remain their pre-existing
+  UNKNOWN_MISMATCH, unchanged; 29315 remains EXACT).
+- Cycle 15 matched-control pair re-verified directly: `Local number
+  &x=1;\n\n&x=2;\n\n&x=3;` still emits zero `0x4F` bytes; appending
+  `Record.MY_RECORD.MY_FIELD.Value = 1;` still retroactively emits
+  `0x4F` before every earlier blank-line gap.
+- Full 30,209-definition corpus: EXACT 25,265 -> 25,265, 0 regressions
+  (`REGRESSION GATE: PASS`).
+- Full taxonomy rebuild diffed ROW BY ROW: 0 diffs across all 4,944
+  non-exact definitions.
+- Net: encoder.ts +45/-107 lines (-62 net).
+
 ### Next action
 
-Phase 1: centralize reference-gated deferred-marker production (item 1
-above). Full audit-before-edit report required before touching the 14
-producer sites; see the Phase 1 entry that follows once that work
-begins.
+Phase 2A: audit and consolidate the Import-section closer family (most
+self-contained of the 3; no cross-family exclusion guards of its own).
+Then Phase 2B (Application-Class-Local closer) and Phase 2C (Generic
+top-level declaration closer, last, highest risk).
 
 ## Compiler Architecture
 

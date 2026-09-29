@@ -4789,6 +4789,37 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     }
   };
 
+  /*
+   * Sibling to `emitBlankLineMarkers` above -- same source-gap-to-marker-
+   * count formula, but the resulting 0x4F markers are not written into
+   * `chunks` immediately. Instead each marker's chunk-index position is
+   * queued into `pendingReferenceGroupBoundaries` and resolved once,
+   * at the end of the whole fragment, only if the fragment ultimately
+   * contains a compiled PSPCMNAME reference (see that array's own
+   * declaration comment and the `hasCompiledReferences` flush block).
+   * A fragment with no compiled references drops every queued marker
+   * here silently -- a real, corpus-proven PeopleTools rule (Compiler
+   * Semantics Cycle 15's matched-control pair), not a simplified case
+   * of `emitBlankLineMarkers`'s unconditional emission.
+   *
+   * Which specific gaps in a given body route through this deferred
+   * mechanism versus the immediate one above, or get no marker handling
+   * at all, differs by statement kind (Repeat/For/While/If each accrued
+   * this coverage independently) -- this helper only centralizes the
+   * producer-side mechanics already proven identical at all 14 existing
+   * call sites; it does not change, or attempt to unify, which sites
+   * call it.
+   */
+  const deferReferenceGatedMarkers = (whitespace: string): void => {
+    const markerCount = Math.max(
+      1,
+      (whitespace.match(/\r?\n/g) ?? []).length - 1
+    );
+    for (let marker = 0; marker < markerCount; marker++) {
+      pendingReferenceGroupBoundaries.push(chunks.length);
+    }
+  };
+
   const andExpression = () => {
     booleanUnary();
     space();
@@ -6491,14 +6522,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
       if (word('Until')) {
         if (hasBlankLine) {
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-
-          for (let marker = 0; marker < markerCount; marker++) {
-            pendingReferenceGroupBoundaries.push(chunks.length);
-          }
+          deferReferenceGatedMarkers(bodyWhitespace);
         }
 
         chunks.push(fixed('Until'));
@@ -6527,14 +6551,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        */
       if (source.startsWith('/*', pos)) {
         if (hasBlankLine) {
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-
-          for (let marker = 0; marker < markerCount; marker++) {
-            pendingReferenceGroupBoundaries.push(chunks.length);
-          }
+          deferReferenceGatedMarkers(bodyWhitespace);
         }
 
         chunks.push(blockComment());
@@ -6543,14 +6560,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
       if (/^REM\b/i.test(source.slice(pos))) {
         if (hasBlankLine) {
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-
-          for (let marker = 0; marker < markerCount; marker++) {
-            pendingReferenceGroupBoundaries.push(chunks.length);
-          }
+          deferReferenceGatedMarkers(bodyWhitespace);
         }
 
         chunks.push(remComment(true));
@@ -6704,14 +6714,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
       if (word('End-For')) {
         if (hasBlankLine) {
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-
-          for (let marker = 0; marker < markerCount; marker++) {
-            pendingReferenceGroupBoundaries.push(chunks.length);
-          }
+          deferReferenceGatedMarkers(bodyWhitespace);
         }
         chunks.push(fixed('End-For'));
         return;
@@ -6873,14 +6876,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * the enclosing End-If.
          */
         if (hasBlankLine) {
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-
-          for (let marker = 0; marker < markerCount; marker++) {
-            pendingReferenceGroupBoundaries.push(chunks.length);
-          }
+          deferReferenceGatedMarkers(bodyWhitespace);
         }
 
         chunks.push(fixed('End-While'));
@@ -6911,14 +6907,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        */
       if (startsRemComment()) {
         if (hasBlankLine) {
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-
-          for (let marker = 0; marker < markerCount; marker++) {
-            pendingReferenceGroupBoundaries.push(chunks.length);
-          }
+          deferReferenceGatedMarkers(bodyWhitespace);
         }
 
         chunks.push(remComment(true));
@@ -7053,13 +7042,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         * the 0x19 Else opcode.
         */
         if (hasBlankLine) {
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-          for (let marker = 0; marker < markerCount; marker++) {
-            pendingReferenceGroupBoundaries.push(chunks.length);
-          }
+          deferReferenceGatedMarkers(bodyWhitespace);
         }
 
         chunks.push(fixed('Else'));
@@ -7128,14 +7111,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            *
            *   ... 15 4F 4F 1A ...
            */
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-
-          for (let marker = 0; marker < markerCount; marker++) {
-            pendingReferenceGroupBoundaries.push(chunks.length);
-          }
+          deferReferenceGatedMarkers(bodyWhitespace);
         }
         chunks.push(fixed('End-If'));
         return;
@@ -7187,14 +7163,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        */
       if (startsRemComment()) {
         if (hasBlankLine) {
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-
-          for (let marker = 0; marker < markerCount; marker++) {
-            pendingReferenceGroupBoundaries.push(chunks.length);
-          }
+          deferReferenceGatedMarkers(bodyWhitespace);
         }
 
         chunks.push(remComment(true));
@@ -7212,14 +7181,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * Keep these deferred because this structural marker is calibrated
          * only for programs that actually have compiled references.
          */
-        const markerCount = Math.max(
-          1,
-          (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-        );
-
-        for (let marker = 0; marker < markerCount; marker++) {
-          pendingReferenceGroupBoundaries.push(chunks.length);
-        }
+        deferReferenceGatedMarkers(bodyWhitespace);
       }
 
       statement();
@@ -7285,14 +7247,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            *
            *   ... 15 4F 4F 1A ...
            */
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-
-          for (let marker = 0; marker < markerCount; marker++) {
-            pendingReferenceGroupBoundaries.push(chunks.length);
-          }
+          deferReferenceGatedMarkers(bodyWhitespace);
         }
         chunks.push(fixed('End-If'));
         return;
@@ -7342,14 +7297,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        */
       if (startsRemComment()) {
         if (hasBlankLine) {
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-
-          for (let marker = 0; marker < markerCount; marker++) {
-            pendingReferenceGroupBoundaries.push(chunks.length);
-          }
+          deferReferenceGatedMarkers(bodyWhitespace);
         }
 
         chunks.push(remComment(true));
@@ -7367,14 +7315,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * Keep these deferred because this structural marker is calibrated
          * only for programs that actually have compiled references.
          */
-        const markerCount = Math.max(
-          1,
-          (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-        );
-
-        for (let marker = 0; marker < markerCount; marker++) {
-          pendingReferenceGroupBoundaries.push(chunks.length);
-        }
+        deferReferenceGatedMarkers(bodyWhitespace);
       }
 
       statement();
@@ -11063,10 +11004,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       !justClosedImportSection &&
       !closesApplicationClassLocalSection
     ) {
-      const markerCount = Math.max(1, (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1);
-      for (let marker = 0; marker < markerCount; marker++) {
-        pendingReferenceGroupBoundaries.push(chunks.length);
-      }
+      deferReferenceGatedMarkers(topLevelWhitespace);
     }
 
     if (
