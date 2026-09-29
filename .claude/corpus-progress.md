@@ -384,16 +384,67 @@ the main-path site is gated on `leadingRunHasInitializedLocal`/
 - Full taxonomy rebuild diffed ROW BY ROW: 0 diffs across all 4,944
   non-exact definitions.
 
+### Phase 2C: Generic top-level declaration closer consolidation (2026-09-29)
+
+**Status: DONE, proven byte-for-byte equivalent (full row-level taxonomy
+diff), 0 regressions. All 3 closer families are now consolidated.**
+
+Audit found 5 closing sites (disabled-code, standalone-comment, REM,
+main-path, EOF), 4 of which share the identical `chunks.push(0x2D);
+closedTopLevelDeclarationSection = true;` shape once their own
+(different) conditions fire; the main path's `0x2D` is genuinely
+conditional (`leadingRunHasInitializedLocal`/
+`suppressDeclarationSectionMarkers`) and stays fully explicit. Real,
+UNRESOLVED guard asymmetries confirmed between the 3 mid-loop sites
+sharing that shape: the disabled-code site has neither the
+`sawApplicationClassLocalSection` exclusion nor the `!nextIsLocal`/
+`pendingReferenceLocalBoundary===undefined` guards the comment site has;
+the REM site has NONE of either -- just `sawTopLevelDeclaration &&
+!closedTopLevelDeclarationSection`. Each guard set was independently,
+narrowly corpus-proven (per the `96b0eb7c` archaeology) for the site
+that has it; none were added to the sites lacking them.
+
+Extracted `closeTopLevelDeclarationSection()`: the single-statement
+`closedTopLevelDeclarationSection = true` shared by 4 of 5 sites
+(disabled-code, comment, REM, main-path). Deliberately NOT used by:
+the EOF flush (nothing reads the flag after fragment end), and the
+`isImport` branch's own cross-family suppression write (`closedTopLevelDeclarationSection
+= true` set unconditionally when opening an import section) -- that
+write represents "keep the generic closer out of the way," a distinct
+concept from "a declaration section actually closed," even though the
+underlying assignment is identical; folding it in would blur that
+distinction the audit itself established. The genuine reopen mechanism
+(`if (!sawTopLevelExecutableStatement) { closedTopLevelDeclarationSection
+= false; }`, unique to this family) is untouched -- it's a single
+already-unified codepath, nothing to extract.
+
+**Equivalence proof:**
+- `tsc -p .` clean, `git diff --check` clean, 607/608 tests unchanged.
+- Full mandatory historical regression set (1257, 1929, 5002, 5026, 942,
+  945, 528, 2043, 6007, 6276, 3596, 513, 29632, 29134, 6455): 12/15
+  EXACT (unchanged); 5026/3596/29134 byte-identical via `git stash`
+  before/after (all three remain their pre-existing UNKNOWN_MISMATCH,
+  unrelated to this refactor). 3596 reconfirmed as the cross-family
+  integration test -- no new double-close introduced across any of the
+  3 families.
+- Full 30,209-definition corpus: EXACT 25,265 -> 25,265, 0 regressions
+  (`REGRESSION GATE: PASS`).
+- Full taxonomy rebuild diffed ROW BY ROW: 0 diffs across all 4,944
+  non-exact definitions.
+
 ### Next action
 
-Phase 2C: audit and consolidate the Generic top-level declaration
-closer -- last and highest risk (reopen-capable, most historical
-exclusions and collisions, cross-referenced by both sibling families).
-Preserve every currently proven guard (`nextIsLocal`,
-`pendingReferenceLocalBoundary`, `sawApplicationClassLocalSection`/
-`closedApplicationClassLocalSection`, `leadingRunHasInitializedLocal`,
-`justClosedImportSection`) exactly. Definition 3596 is the mandatory
-cross-family integration test for this phase too.
+All 3 closer families are consolidated and the reference-gated
+deferred-marker mechanism is centralized. Next: rerun the taxonomy and
+inspect STRUCTURAL_ORDERING / REFERENCE_COMPLETE_DOWNSTREAM /
+REFERENCE_ACTIVE_RECORD_FIELD / REFERENCE_ACTIVE_RECORD /
+REFERENCE_ACTIVE_FIELD to determine whether centralizing the real state
+machinery exposed a shared semantic gap previously obscured by
+duplicated implementation -- without fixing anything yet. Then choose
+and report the next architecture target from: Application Class
+compilation-unit state, reference-allocation scope unification, lossless
+decoded IR/CST, type token-introducer semantics, Record/Row/Rowset
+declaration side-effect tracking.
 
 ## Compiler Architecture
 
