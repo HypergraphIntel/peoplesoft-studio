@@ -10316,6 +10316,19 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * function. Set alongside `pendingReferenceLocalMarkers` everywhere.
    */
   let pendingReferenceLocalBlankLines = 0;
+  /*
+   * Cycle 86: deferred leading-Local boundaries of runs that already ended
+   * before a top-level Function definition. Each Local run in the
+   * declaration phase closes on its own (see the restart in the
+   * `isFunction` branch); these are flushed exactly like the current
+   * pending boundary, each with its own run's initialized flag.
+   */
+  const archivedReferenceLocalBoundaries: Array<{
+    index: number;
+    markers: number;
+    blankLines: number;
+    initialized: boolean;
+  }> = [];
   const pendingReferenceGroupBoundaries: number[] = [];
   let haveCompletedTopLevelStatement = false;
 
@@ -11329,31 +11342,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         emitBlankLineMarkers(topLevelWhitespace);
       }
 
-      /*
-       * Cycle 85: a top-level `Function ... End-Function;` definition is
-       * not executable code, so it does not end the leading declaration
-       * phase. When no Local run has started yet, a Local run that follows
-       * one or more Function definitions (before any executable statement)
-       * is still the leading declaration run and gets its own deferred
-       * formal close. PSCUBWRK.CUB_ACTION.FieldChange (definition 14862):
-       *
-       *   Function cubeaction(&rs As Rowset) ... End-Function;
-       *
-       *   Local Rowset &rs;
-       *
-       *   If %Component = "CUB_OUTLINE" Then
-       *
-       * stores `... &rs 15 2D 4F 1C ...`. LOCAL SNAPSHOT: 32 definitions
-       * with an uninitialized Local run after Function definitions store
-       * `2D 4F` there; +22 forward-exact, 0 lost; bytes change only for
-       * that shape plus 13179 (a Global after Functions, also fixed).
-       * Only a run that has NOT started keeps its eligibility: a run
-       * already closed before the Function keeps its single boundary.
-       */
-      const functionPreservesLeadingRun = isFunction && !sawLeadingLocalDeclaration;
-      if (!functionPreservesLeadingRun) {
-        leadingLocalRun = false;
-      }
+      // A top-level Function's own continuity is restored after the
+      // definition completes -- see the Cycle 86 restart in the
+      // `isFunction` branch below.
+      leadingLocalRun = false;
     }
 
 
@@ -11611,6 +11603,30 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * => ... 37 15 2D 4F 32 ...
        */
       haveCompletedTopLevelStatement = true;
+
+      /*
+       * Cycle 86 (generalizes Cycle 85): before executable code begins, a
+       * top-level Function definition does not end the declaration phase.
+       * A Local run that follows it starts a NEW declaration run, even if an
+       * earlier run already closed, or declarations/imports preceded the
+       * Function. LOCAL SNAPSHOT (`cycle85-function-continuity-census.ts`):
+       * every plain Local run after a Function, before executable code,
+       * stores the formal `2D 4F` close (103 definitions, 0 contradictions),
+       * e.g. 15038 `L L[2D 4F] F ... F L[2D 4F] X`. The ended run's deferred
+       * boundary is archived, then run tracking restarts.
+       */
+      if (!sawTopLevelExecutableStatement) {
+        if (pendingReferenceLocalBoundary !== undefined) {
+          archivedReferenceLocalBoundaries.push({
+            index: pendingReferenceLocalBoundary,
+            markers: pendingReferenceLocalMarkers,
+            blankLines: pendingReferenceLocalBlankLines,
+            initialized: leadingRunHasInitializedLocal
+          });
+        }
+        restartLocalDeclarationRun();
+        leadingRunHasInitializedLocal = false;
+      }
       continue;
     }
 
@@ -11893,10 +11909,31 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       });
     }
 
+    for (const archived of archivedReferenceLocalBoundaries) {
+      // Same serialization as the current pending boundary above (formal
+      // 0x2D + floor, or informal blank lines only -- Cycle 84).
+      const informalClose = archived.initialized && context?.suppressDeclarationSectionMarkers !== true;
+      insertions.push({
+        index: archived.index,
+        bytes: [
+          ...(archived.initialized || context?.suppressDeclarationSectionMarkers === true
+            ? []
+            : [Buffer.from([0x2d])]),
+          ...Array.from(
+            { length: informalClose ? archived.blankLines : archived.markers },
+            () => Buffer.from([0x4f])
+          )
+        ]
+      });
+    }
+
     for (const index of pendingReferenceGroupBoundaries) {
-      // Do not duplicate the 0x4F already supplied by the leading-Local
+      // Do not duplicate the 0x4F already supplied by a leading-Local
       // reference boundary at the same source boundary.
-      if (index !== pendingReferenceLocalBoundary) {
+      if (
+        index !== pendingReferenceLocalBoundary &&
+        !archivedReferenceLocalBoundaries.some(archived => archived.index === index)
+      ) {
         insertions.push({
           index,
           bytes: [Buffer.from([0x4f])]

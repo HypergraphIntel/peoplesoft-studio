@@ -2,24 +2,128 @@
 
 ## Current status (2026-09-29)
 
-- **Current target:** Cycle 85 completed -- declaration phase preserved
-  across top-level Function definitions (narrow rule). EXACT 26,421 ->
-  26,443 (+22), failed 3,788 -> 3,766, protected PASS, row diff 0 EXACT ->
-  non-EXACT. See "Compiler Semantics Cycle 85".
-- **Last successful calibration:** Cycle 85 narrow Function-continuity
-  rule.
+- **Current target:** Cycle 86 completed -- general Function -> Local
+  declaration-run restart, after removing its two collisions. EXACT 26,443
+  -> 26,528 (+85), failed 3,766 -> 3,681, protected PASS, 0 EXACT ->
+  non-EXACT across three commits. See "Compiler Semantics Cycle 86".
+- **Last successful calibration:** Cycle 86 (the single declaration-gap
+  owner; initialized Locals never close a started run; restart after
+  Function).
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** none newly blocked. 16720 and 28343
-  need the REM-reset fix (Mechanism C).
-- **Next action:** the general Function-continuity form. Every Local run
-  after a Function starts a new declaration run, with archived deferred
-  boundaries: +54 / -12 measured. Resolve its two collisions first:
-  1. the double blank-line producers for Function -> declaration;
-  2. initialized-run handling after a restart.
-  Then Mechanisms D and C, then the import-group 0x4F.
-- **Newly established rules this session:** Cycle 85 narrow rule; Cycle
-  84 rule B; Cycle 83 While gaps; Cycle 82 rules.
+- **Locally blocked definitions:** none newly blocked. 15609 and 28343
+  need the REM fix (Mechanism C). 13559 is a decoder-side
+  DECODE_SOURCE_MISMATCH.
+- **Next action:** Mechanism C. Comment/REM adjacency at declaration
+  closes: 137 EXTRA_2D (40 one-blocker), MISSING_2D after a comment or
+  REM, and the REM branch's `leadingLocalRun` reset. Then the import-group
+  missing 0x4F.
+- **Newly established rules this session:** the Cycle 86 rules; Cycle 85
+  (subsumed); Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 86 -- general declaration-run restart after Function (collisions removed)
+
+**Baseline reproduced fresh at `fd10317`:** 26,443 / 3,766, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only; no DLL work.
+
+**Result:** three separately validated semantic commits. EXACT **26,443 ->
+26,528 (+85)**, 0 EXACT -> non-EXACT across all three.
+
+Re-measured against HEAD, the Cycle 85 general-restart experiment gives
+**+32 / -12**. (The "+54" quoted in Cycle 85 included the 22 the narrow
+rule already captured.)
+
+### Collision A -- duplicate blank-line ownership (commit `b82d8a2`)
+
+- **Losses:** 11552, 13561, 15186, 17857, 19126, 19131, 19138, 27129.
+  After a restart, a declaration that follows a Function got `F[2D 4F 4F]`
+  instead of `F[2D 4F]`.
+- **Producer P1:** the Cycle 49 "first non-Local statement" branch
+  (`leadingLocalRun && !isLocalDeclaration && !sawLeadingLocalDeclaration
+  && haveCompletedTopLevelStatement && hasBlankLine`), immediate. It was
+  calibrated for non-declaration statements in method bodies.
+- **Producer P2:** the declaration-to-declaration gap block
+  (`(sawTopLevelDeclaration || sawLeadingLocalDeclaration) &&
+  isTopLevelDeclaration && hasBlankLine && !justClosedImportSection`,
+  control 5026), immediate.
+- The two can only co-fire once `leadingLocalRun` restarts after a
+  Function.
+- **Rightful owner:** P2, the dedicated declaration-gap owner. P1 remains
+  the fallback when P2 does not fire: 13179 (Functions then a Global,
+  with no earlier declaration) needs P1.
+- **Fix:** the predicate is named once (`declarationGapOwnsBlankLine`)
+  and P1 skips gaps that P2 owns.
+- Byte-identical across all sources on its own (no co-firing yet).
+  Under the restart it changes 13 definitions, 9 of which become exact.
+
+### Collision B -- initialized Local classified as a formal close (commit `46d9550`)
+
+- **State:** the leading-run initialized-Local branch. When a plain Local
+  had started the run and the NEXT Local was not uninitialized, it set
+  the deferred boundary at `statementChunkStart`, immediately BEFORE the
+  initialized Local. That boundary was formal because
+  `leadingRunHasInitializedLocal` was still false.
+- **This was not a restart artifact.** The same branch is wrong in
+  ordinary program-start runs. `cycle86-initialized-run-census.ts start`:
+  52/52 runs of that shape store only the source's blank lines there,
+  never `2D 4F` (3869, 3880, 4415 ...). These were Cycle 84's
+  EXTRA_2D_4F `Local -> Local` cluster. After a Function: 28204, 28210,
+  25295, 25296.
+- **Fix:** an initialized Local never closes an already-started run. It
+  marks the run initialized, and the run continues to the first non-Local
+  statement, where the informal close is anchored. An initialized FIRST
+  Local (protected 256) still ends the run without a boundary.
+  `statementChunkStart` became unused and was removed.
+- **Result:** **+53**, 0 lost. Controls 256, 3539, 5002 and 17931 remain
+  exact; 28852, 29113 and 29612 (Cycle 50) are unchanged.
+
+### General restart (this commit)
+
+- **Rule:** before executable code begins, a top-level Function definition
+  does not end the declaration phase. When the definition completes, the
+  current run's deferred boundary is archived (index, marker counts,
+  initialized flag), and Local-run tracking restarts through
+  `restartLocalDeclarationRun()`. The flush emits each archived boundary
+  with the same formal/informal serialization as the current one.
+- Cycle 85's narrow predicate is subsumed and removed.
+- **Result:** +33 forward-exact, 0 lost; byte-identical to the measured
+  experiment; **+32 EXACT**. 13559 is forward-exact but was already
+  DECODE_SOURCE_MISMATCH and stays non-EXACT.
+- **Covered shapes (tests):** F L, F F L, L F L, Global F L,
+  Component F L, import F L, F comment L, initialized variants.
+- **Must-not-affect shapes (tests):** executable before the Function
+  (`X F L`); a declaration after a Function gets exactly one marker.
+- **Completion census:** plain Local runs after a Function that mismatch
+  went 58 -> **2**. Both remaining (15609, 28343) have a top-level REM
+  between the last Function and the run, which is Mechanism C. 16720 is
+  now fixed, because a later Function restarts the run after its REM.
+  All 37 initialized post-Function runs match.
+- **Gates:** `tsc`, `npm test` (630 run, 629 pass, 0 fail; the 4 restart
+  tests fail before and pass after), `git diff --check`, protected PASS,
+  full corpus **26,528 / 3,681**, taxonomy row diff 0 EXACT ->
+  non-EXACT, 32 fixed.
+
+### Post-fix boundary census (3,681 NONEXACT)
+
+185 definitions have a top-level boundary hunk (was 296), 74 strict
+one-blockers (was 157). EXTRA_2D_4F is now 0 (was 49).
+
+| signature | affected | one-blocker |
+|---|---:|---:|
+| EXTRA_2D | 137 | 40 |
+| MISSING_2D | 40 | 12 |
+| MISSING_4F | 30 | 8 |
+| ORDER | 5 | 2 |
+
+**Next mechanism: C.** A standalone comment or REM next to a declaration
+close:
+- EXTRA_2D with a 0x24 comment between the run and the next item: 13 + 11
+  + 7 + 6 + 5 + 5 + 4 + 4 + 4 ... hunks;
+- MISSING_2D for a run that follows a comment or REM: 14 + 5 + 5;
+- the REM branch's unconditional `leadingLocalRun = false` (15609, 28343,
+  5242, 7222).
+
+Then the import-group MISSING_4F (14 + 5 + 4).
 
 ## Compiler Semantics Cycle 85 -- declaration phase across top-level Function definitions
 

@@ -5361,3 +5361,74 @@ Local Rowset &r;
 &r = GetRowset(Scroll.TEST_REC);`, 'GetRowset');
   assert.ok(!opcodes.includes('2d'), opcodes);
 });
+
+/*
+ * Cycle 86: generalized declaration-run restart after a top-level Function
+ * (before executable code). Every plain Local run after a Function closes
+ * formally, whatever preceded the Function (15038, 15548, 17835 ...).
+ */
+const functionFn = `Function A()
+End-Function;`;
+const restartTail = `Local Rowset &r;
+
+&r = GetRowset(Scroll.TEST_REC);`;
+
+for (const [label, prefix] of [
+  ['a prior Local run', 'Local Rowset &q;\n\n'],
+  ['a Global declaration', 'Global string &g;\n\n'],
+  ['a Component declaration', 'Component string &c;\n\n'],
+  ['an import', 'import PKG:*;\n\n']
+] as const) {
+  test(`a Local run after a Function closes formally even after ${label}`, () => {
+    assert.strictEqual(
+      boundaryOpcodesBeforeLastStatement(`${prefix}${functionFn}\n\n${restartTail}`),
+      '15 2d 4f'
+    );
+  });
+}
+
+test('a Local run after a Function and a standalone comment closes formally', () => {
+  assert.strictEqual(
+    boundaryOpcodesBeforeLastStatement(`${functionFn}\n\n/* note */\n\n${restartTail}`),
+    '15 2d 4f'
+  );
+});
+
+test('an initialized Local run after a Function and a Global keeps the informal close', () => {
+  const opcodes = boundaryOpcodesBeforeLastStatement(`Global string &g;
+
+${functionFn}
+
+Local Rowset &x = GetRowset(Scroll.TEST_REC);
+Local Rowset &r;
+
+&r = &x;`);
+  assert.ok(!opcodes.includes('2d'), opcodes);
+});
+
+test('executable code before a Function prevents a later Local run from restarting', () => {
+  const opcodes = boundaryOpcodesBeforeLastStatement(`Local Rowset &q = GetRowset(Scroll.TEST_REC);
+&q.Flush();
+
+${functionFn}
+
+${restartTail}`);
+  assert.ok(!opcodes.includes('2d'), opcodes);
+});
+
+test('a declaration after a Function gets exactly one blank-line marker (single gap owner)', () => {
+  const artifacts = encodeProgramArtifacts(`Global string &g;
+
+${functionFn}
+
+Component string &c;
+
+&c = TEST_REC.TEST_FLD;`, whileGapOwner as any);
+  const names = new NameTable();
+  for (const reference of artifacts.references) names.add(reference.sequence, `N${reference.sequence}`);
+  const tokens = decodeProgram(artifacts.program, names, { mode: 'auto' }).tokens;
+  const endFunction = tokens.findIndex(t => String(t.text ?? '').trim() === 'End-Function');
+  const component = tokens.findIndex(t => String(t.text ?? '').trim() === 'Component');
+  const between = tokens.slice(endFunction + 1, component).map(t => t.opcode.toString(16)).join(' ');
+  assert.strictEqual(between, '15 2d 4f');
+});
