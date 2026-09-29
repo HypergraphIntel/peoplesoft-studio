@@ -2206,7 +2206,19 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
       }
     } else if (
       f & F.SPACE_BEFORE && !(f & F.NO_SPACE_BEFORE) &&
-      !atLineStart && lastChar() !== ' ' && !TIGHT_AFTER.has(lastChar())
+      !atLineStart && lastChar() !== ' ' && !TIGHT_AFTER.has(lastChar()) &&
+      /*
+       * Compiler closure: `[` (0x4C) always carries SPACE_BEFORE (correct
+       * for the FIRST index of an array variable, e.g. `&arr [1]`), but
+       * multi-dimensional indexing (`&arr [&I][1]`, definition 1626) has
+       * NO space between a closing `]` (0x4D) and the next `[` opening a
+       * second dimension. `]` itself always carries SPACE_AFTER (correct
+       * before whatever follows an indexed VALUE, e.g. `&arr[1] = 5`), so
+       * this needs a targeted exception on the `[` side specifically
+       * rather than a blanket "no space after ]" rule that would also
+       * suppress the space assignment/operators genuinely need.
+       */
+      !(t.opcode === 0x4c && tokens[tokenIndex - 1]?.opcode === 0x4d)
     ) {
       out.push(' ');
     }
@@ -2352,7 +2364,20 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         out.push('\n');
         writeIndent();
       }
-    } else if (f & F.SPACE_AFTER && !(f & F.NO_SPACE_AFTER)) {
+    } else if (
+      f & F.SPACE_AFTER && !(f & F.NO_SPACE_AFTER) &&
+      /*
+       * Compiler closure: the actual source of the unwanted space in
+       * `&arr [&I][1]` (definition 1626) is `]`'s (0x4D) own
+       * unconditional SPACE_AFTER, fired here while processing `]`
+       * itself, BEFORE the `[` (0x4C) exception above ever runs -- that
+       * exception alone had no effect. `]` genuinely needs its trailing
+       * space in every OTHER context (`&arr[1] = 5`, `&arr[1].Value`),
+       * so this is scoped narrowly to "next token is another `[`," the
+       * one shape multi-dimensional indexing produces.
+       */
+      !(t.opcode === 0x4d && nextToken?.opcode === 0x4c)
+    ) {
       out.push(' ');
     }
   }
