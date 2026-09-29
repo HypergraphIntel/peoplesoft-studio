@@ -2320,6 +2320,24 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
      */
     const docCommentFollowedByBareSemicolon =
       t.opcode === 0x6d && nextToken?.opcode === 0x15;
+    /*
+     * Two directly-adjacent `;` tokens in the byte stream (a statement's
+     * own terminator immediately followed by a bare empty-statement `;`,
+     * with no intervening token at all) render on the SAME source line --
+     * `GetRowset(Scroll.X);;`, not `GetRowset(Scroll.X);\n;`. The first
+     * semicolon's own NEWLINE_AFTER exists to end an ordinary statement;
+     * the second semicolon's own NEWLINE_AFTER already supplies that line
+     * break here. A corpus-wide scan of all 30,209 definitions' stored
+     * source found every genuinely adjacent `0x15 0x15` token pair
+     * renders this way with zero counter-examples -- a `Global ...;`
+     * declaration list followed, much later in the SOURCE TEXT, by an
+     * unrelated standalone empty statement on its own line (definitions
+     * 21969/23232) is a textually-adjacent but NOT token-adjacent case
+     * (other tokens intervene in the binary), so it is unaffected by this
+     * check.
+     */
+    const bareSemicolonFollowedByBareSemicolon =
+      t.opcode === 0x15 && nextToken?.opcode === 0x15;
     const inlineHeaderCommentBeforeSemicolon =
       t.opcode === 0x4e &&
       nextToken?.opcode === 0x15 &&
@@ -2388,6 +2406,7 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         whenOtherFollowedByBareSemicolon ||
         elseFollowedByBareSemicolon ||
         docCommentFollowedByBareSemicolon ||
+        bareSemicolonFollowedByBareSemicolon ||
         commentInlineAfterStatementBeforeNewlineOnce
       ) {
         /*
