@@ -1,0 +1,200 @@
+{
+  "generatedAt": "2026-09-29T00:43:03.578Z",
+  "count": 15,
+  "rows": [
+    {
+      "definitionId": 28816,
+      "appClass": true,
+      "commentOpcodeCount": 4,
+      "commentOpcodes": [
+        "0x4e",
+        "0x24",
+        "0x24",
+        "0x24"
+      ],
+      "note": "body+header fully identical without explicit provenance; explicit commentOpcodes array (matching validator.ts) misaligns and breaks it"
+    },
+    {
+      "definitionId": 28830,
+      "appClass": true,
+      "commentOpcodeCount": 11,
+      "commentOpcodes": [
+        "0x24",
+        "0x24",
+        "0x24",
+        "0x24",
+        "0x24",
+        "0x24",
+        "0x4e",
+        "0x4e",
+        "0x4e",
+        "0x4e",
+        "0x24"
+      ],
+      "note": "body+header fully identical without explicit provenance; explicit commentOpcodes array (matching validator.ts) misaligns and breaks it"
+    },
+    {
+      "definitionId": 29061,
+      "appClass": true,
+      "commentOpcodeCount": 4,
+      "commentOpcodes": [
+        "0x4e",
+        "0x24",
+        "0x24",
+        "0x24"
+      ],
+      "note": "body+header fully identical without explicit provenance; explicit commentOpcodes array (matching validator.ts) misaligns and breaks it"
+    },
+    {
+      "definitionId": 29062,
+      "appClass": true,
+      "commentOpcodeCount": 3,
+      "commentOpcodes": [
+        "0x4e",
+        "0x24",
+        "0x24"
+      ],
+      "note": "body+header fully identical without explicit provenance; explicit commentOpcodes array (matching validator.ts) misaligns and breaks it"
+    },
+    {
+      "definitionId": 29203,
+      "appClass": true,
+      "commentOpcodeCount": 3,
+      "commentOpcodes": [
+        "0x4e",
+        "0x24",
+        "0x24"
+      ],
+      "note": "body+header fully identical without explicit provenance; explicit commentOpcodes array (matching validator.ts) misaligns and breaks it"
+    },
+    {
+      "definitionId": 29205,
+      "appClass": true,
+      "commentOpcodeCount": 3,
+      "commentOpcodes": [
+        "0x4e",
+        "0x24",
+        "0x24"
+      ],
+      "note": "body+header fully identical without explicit provenance; explicit commentOpcodes array (matching validator.ts) misaligns and breaks it"
+    },
+    {
+      "definitionId": 29207,
+      "appClass": true,
+      "commentOpcodeCount": 3,
+      "commentOpcodes": [
+        "0x4e",
+        "0x24",
+        "0x24"
+      ],
+      "note": "body+header fully identical without explicit provenance; explicit commentOpcodes array (matching validator.ts) misaligns and breaks it"
+    },
+    {
+      "definitionId": 29215,
+      "appClass": true,
+      "commentOpcodeCount": 3,
+      "commentOpcodes": [
+        "0x4e",
+        "0x24",
+        "0x24"
+      ],
+      "note": "body+header fully identical without explicit provenance; explicit commentOpcodes array (matching validator.ts) misaligns and breaks it"
+    },
+    {
+      "definitionId": 29764,
+      "appClass": true,
+      "commentOpcodeCount": 5,
+      "commentOpcodes": [
+        "0x24",
+        "0x24",
+        "0x24",
+        "0x24",
+        "0x4e"
+      ],
+      "note": "body+header fully identical without explicit provenance; explicit commentOpcodes array (matching validator.ts) misaligns and breaks it"
+    },
+    {
+      "definitionId": 29768,
+      "appClass": true,
+      "commentOpcodeCount": 5,
+      "commentOpcodes": [
+        "0x24",
+        "0x24",
+        "0x24",
+        "0x24",
+        "0x4e"
+      ],
+      "note": "body+header fully identical without explicit provenance; explicit commentOpcodes array (matching validator.ts) misaligns and breaks it"
+    },
+    {
+      "definitionId": 29769,
+      "appClass": true,
+      "commentOpcodeCount": 5,
+      "commentOpcodes": [
+        "0x24",
+        "0x24",
+        "0x24",
+        "0x24",
+        "0x4e"
+      ],
+      "note": "body+header fully identical without explicit provenance; explicit commentOpcodes array (matching validator.ts) misaligns and breaks it"
+    },
+    {
+      "definitionId": 29780,
+      "appClass": true,
+      "commentOpcodeCount": 5,
+      "commentOpcodes": [
+        "0x24",
+        "0x24",
+        "0x24",
+        "0x24",
+        "0x4e"
+      ],
+      "note": "body+header fully identical without explicit provenance; explicit commentOpcodes array (matching validator.ts) misaligns and breaks it"
+    },
+    {
+      "definitionId": 29819,
+      "appClass": true,
+      "commentOpcodeCount": 3,
+      "commentOpcodes": [
+        "0x4e",
+        "0x24",
+        "0x24"
+      ],
+      "note": "body+header fully identical without explicit provenance; explicit commentOpcodes array (matching validator.ts) misaligns and breaks it"
+    },
+    {
+      "definitionId": 29821,
+      "appClass": true,
+      "commentOpcodeCount": 3,
+      "commentOpcodes": [
+        "0x4e",
+        "0x24",
+        "0x24"
+      ],
+      "note": "body+header fully identical without explicit provenance; explicit commentOpcodes array (matching validator.ts) misaligns and breaks it"
+    },
+    {
+      "definitionId": 29920,
+      "appClass": true,
+      "commentOpcodeCount": 14,
+      "commentOpcodes": [
+        "0x24",
+        "0x24",
+        "0x24",
+        "0x24",
+        "0x4e",
+        "0x4e",
+        "0x4e",
+        "0x4e",
+        "0x24",
+        "0x24",
+        "0x24",
+        "0x24",
+        "0x24",
+        "0x24"
+      ],
+      "note": "body+header fully identical without explicit provenance; explicit commentOpcodes array (matching validator.ts) misaligns and breaks it"
+    }
+  ]
+}
