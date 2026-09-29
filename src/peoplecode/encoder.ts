@@ -4821,6 +4821,46 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     chunks.push(Buffer.from([marker]));
   };
 
+  /*
+   * Compiler architecture: PeopleTools represents a vertical gap in
+   * source (a run of blank formatting lines) as a run of 0x4F layout
+   * markers -- one marker per BLANK line, not per newline. The first
+   * newline in any captured gap is the ordinary line separator between
+   * two real source items; only each ADDITIONAL newline is a genuine
+   * blank line and contributes its own 0x4F.
+   *
+   * Proven identically at 36 independent call sites across every
+   * statement handler in this file (Function/For/While/try/catch/
+   * Evaluate/When bodies, top-level declaration/import sections, And/Or-
+   * group operand gaps) -- this is the SAME semantic rule, not 36
+   * coincidentally similar ones. Corpus evidence: AMM_DERIVED.AMM_CANCEL_M
+   * (definition 942) and AMM_DERIVED.AMM_COLLAPSE_ALL (945) both prove
+   * the rule scales with blank-line count ("two blank lines" -> two
+   * 0x4F, not one); ADDRESSES.EMPLID.RowInit (518) and many other cited
+   * definitions throughout this file corroborate it independently.
+   *
+   * This function intentionally does NOT decide WHETHER a gap counts --
+   * every call site keeps its own guard (whether this position even
+   * permits a blank-line marker at all is genuine per-construct logic:
+   * `!firstForBodyItem`, `!justClosedImportSection`,
+   * `sawTopLevelDeclaration`, etc.). It only answers, once a caller has
+   * already decided a gap is real: how many 0x4F bytes is this specific
+   * captured whitespace span worth. Do NOT route the 4 corpus-proven
+   * "always exactly one 0x4F regardless of blank-line count" sites
+   * (before End-Evaluate, after a bare For header) through this function
+   * -- that is a different, evidenced rule, not a simplified case of
+   * this one.
+   */
+  const emitBlankLineMarkers = (whitespace: string): void => {
+    const markerCount = Math.max(
+      1,
+      (whitespace.match(/\r?\n/g) ?? []).length - 1
+    );
+    for (let marker = 0; marker < markerCount; marker++) {
+      chunks.push(Buffer.from([0x4f]));
+    }
+  };
+
   const andExpression = () => {
     booleanUnary();
     space();
@@ -4897,13 +4937,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       space();
       const operandWhitespace = source.slice(operandWhitespaceStart, pos);
       if (/(?:\r?\n)[ \t]*(?:\r?\n)/.test(operandWhitespace)) {
-        const markerCount = Math.max(
-          1,
-          (operandWhitespace.match(/\r?\n/g) ?? []).length - 1
-        );
-        for (let marker = 0; marker < markerCount; marker++) {
-          chunks.push(Buffer.from([0x4f]));
-        }
+        emitBlankLineMarkers(operandWhitespace);
       }
 
       booleanUnary();
@@ -4984,13 +5018,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       space();
       const operandWhitespace = source.slice(operandWhitespaceStart, pos);
       if (/(?:\r?\n)[ \t]*(?:\r?\n)/.test(operandWhitespace)) {
-        const markerCount = Math.max(
-          1,
-          (operandWhitespace.match(/\r?\n/g) ?? []).length - 1
-        );
-        for (let marker = 0; marker < markerCount; marker++) {
-          chunks.push(Buffer.from([0x4f]));
-        }
+        emitBlankLineMarkers(operandWhitespace);
       }
 
       andExpression();
@@ -6089,14 +6117,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        *
        *   2D 4F 4F 21 ...
        */
-      const markerCount = Math.max(
-        1,
-        (functionBodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-      );
-
-      for (let marker = 0; marker < markerCount; marker++) {
-        chunks.push(Buffer.from([0x4f]));
-      }
+      emitBlankLineMarkers(functionBodyWhitespace);
     }
 
     let sawLocalDeclaration = false;
@@ -6159,14 +6180,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         !/^End-Function\b/i.test(source.slice(pos)) &&
         /(?:\r?\n)[ \t]*(?:\r?\n)/.test(bodyWhitespace)
       ) {
-        const markerCount = Math.max(
-          1,
-          (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-        );
-
-        for (let marker = 0; marker < markerCount; marker++) {
-          chunks.push(Buffer.from([0x4f]));
-        }
+        emitBlankLineMarkers(bodyWhitespace);
       }
 
       if (word('End-Function')) {
@@ -6185,14 +6199,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          *   ... 1A 15 4F 37 15 ...
          */
         if (/(?:\r?\n)[ \t]*(?:\r?\n)/.test(bodyWhitespace)) {
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-
-          for (let marker = 0; marker < markerCount; marker++) {
-            chunks.push(Buffer.from([0x4f]));
-          }
+          emitBlankLineMarkers(bodyWhitespace);
         }
 
         chunks.push(fixed('End-Function'));
@@ -6260,10 +6267,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
       if (!isLocal && sawLocalDeclaration && !enteredExecutableSection) {
         if (/(?:\r?\n)[ \t]*(?:\r?\n)/.test(bodyWhitespace)) {
-          const markerCount = Math.max(1, (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1);
-          for (let marker = 0; marker < markerCount; marker++) {
-            chunks.push(Buffer.from([0x4f]));
-          }
+          emitBlankLineMarkers(bodyWhitespace);
         }
         enteredExecutableSection = true;
       }
@@ -6414,14 +6418,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          *   ... 15 4F 66 ...
          */
         if (hasBlankLine) {
-          const markerCount = Math.max(
-            1,
-            (tryWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-
-          for (let marker = 0; marker < markerCount; marker++) {
-            chunks.push(Buffer.from([0x4f]));
-          }
+          emitBlankLineMarkers(tryWhitespace);
         }
 
         chunks.push(fixed('catch'));
@@ -6552,14 +6549,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           firstCatchBodyItem = false;
 
           if (/(?:\r?\n)[ \t]*(?:\r?\n)/.test(catchBodyWhitespace)) {
-            const markerCount = Math.max(
-              1,
-              (catchBodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-            );
-
-            for (let marker = 0; marker < markerCount; marker++) {
-              chunks.push(Buffer.from([0x4f]));
-            }
+            emitBlankLineMarkers(catchBodyWhitespace);
           }
 
           if (source.startsWith('/*', pos)) {
@@ -6614,14 +6604,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * as a single 0x4F.
        */
       if (hasBlankLine) {
-        const markerCount = Math.max(
-          1,
-          (tryWhitespace.match(/\r?\n/g) ?? []).length - 1
-        );
-
-        for (let marker = 0; marker < markerCount; marker++) {
-          chunks.push(Buffer.from([0x4f]));
-        }
+        emitBlankLineMarkers(tryWhitespace);
       }
 
       if (source.startsWith('/*', pos)) {
@@ -6900,14 +6883,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       // can inside If bodies; preserve their calibrated 0x24 provenance.
       if (source.startsWith('<*', pos)) {
         if (hasBlankLine && !firstForBodyItem) {
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-
-          for (let marker = 0; marker < markerCount; marker++) {
-            chunks.push(Buffer.from([0x4f]));
-          }
+          emitBlankLineMarkers(bodyWhitespace);
         }
 
         chunks.push(disabledCodeComment());
@@ -6916,14 +6892,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
       if (source.startsWith('/*', pos)) {
         if (hasBlankLine && !firstForBodyItem) {
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-
-          for (let marker = 0; marker < markerCount; marker++) {
-            chunks.push(Buffer.from([0x4f]));
-          }
+          emitBlankLineMarkers(bodyWhitespace);
         }
         chunks.push(blockComment());
         continue;
@@ -6961,14 +6930,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          *
          *   ... 1A 15 4F 4F 01 ...
          */
-        const markerCount = Math.max(
-          1,
-          (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-        );
-
-        for (let marker = 0; marker < markerCount; marker++) {
-          chunks.push(Buffer.from([0x4f]));
-        }
+        emitBlankLineMarkers(bodyWhitespace);
       }
 
       firstForBodyItem = false;
@@ -7349,14 +7311,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        */
       if (source.startsWith('<*', pos)) {
         if (hasBlankLine) {
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-
-          for (let marker = 0; marker < markerCount; marker++) {
-            chunks.push(Buffer.from([0x4f]));
-          }
+          emitBlankLineMarkers(bodyWhitespace);
         }
 
         chunks.push(disabledCodeComment());
@@ -7365,13 +7320,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
       if (source.startsWith('/*', pos)) {
         if (hasBlankLine) {
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-          for (let marker = 0; marker < markerCount; marker++) {
-            chunks.push(Buffer.from([0x4f]));
-          }
+          emitBlankLineMarkers(bodyWhitespace);
         }
 
         chunks.push(blockComment());
@@ -7517,14 +7466,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        */
       if (source.startsWith('<*', pos)) {
         if (hasBlankLine) {
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-
-          for (let marker = 0; marker < markerCount; marker++) {
-            chunks.push(Buffer.from([0x4f]));
-          }
+          emitBlankLineMarkers(bodyWhitespace);
         }
 
         chunks.push(disabledCodeComment());
@@ -7533,13 +7475,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
       if (source.startsWith('/*', pos)) {
         if (hasBlankLine) {
-          const markerCount = Math.max(
-            1,
-            (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-          for (let marker = 0; marker < markerCount; marker++) {
-            chunks.push(Buffer.from([0x4f]));
-          }
+          emitBlankLineMarkers(bodyWhitespace);
         }
 
         chunks.push(blockComment());
@@ -7711,14 +7647,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
           if (source.startsWith('<*', pos)) {
             if (hasBlankLine) {
-              const markerCount = Math.max(
-                1,
-                (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-              );
-
-              for (let marker = 0; marker < markerCount; marker++) {
-                chunks.push(Buffer.from([0x4f]));
-              }
+              emitBlankLineMarkers(bodyWhitespace);
             }
 
             chunks.push(disabledCodeComment());
@@ -7727,14 +7656,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
           if (source.startsWith('/*', pos)) {
             if (hasBlankLine) {
-              const markerCount = Math.max(
-                1,
-                (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-              );
-
-              for (let marker = 0; marker < markerCount; marker++) {
-                chunks.push(Buffer.from([0x4f]));
-              }
+              emitBlankLineMarkers(bodyWhitespace);
             }
 
             chunks.push(blockComment());
@@ -7743,14 +7665,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
           if (startsRemComment()) {
             if (hasBlankLine) {
-              const markerCount = Math.max(
-                1,
-                (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-              );
-
-              for (let marker = 0; marker < markerCount; marker++) {
-                chunks.push(Buffer.from([0x4f]));
-              }
+              emitBlankLineMarkers(bodyWhitespace);
             }
 
             chunks.push(remComment(true));
@@ -7773,14 +7688,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            *   3E 4F 01 ...
            */
           if (hasBlankLine) {
-            const markerCount = Math.max(
-              1,
-              (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-            );
-
-            for (let marker = 0; marker < markerCount; marker++) {
-              chunks.push(Buffer.from([0x4f]));
-            }
+            emitBlankLineMarkers(bodyWhitespace);
           }
 
           /*
@@ -7938,13 +7846,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            * has two blank lines after the When header and stores 4F 4F, not
            * a single 4F.
            */
-          const markerCount = Math.max(
-            1,
-            (selectorTrailingWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-          for (let marker = 0; marker < markerCount; marker++) {
-            chunks.push(Buffer.from([0x4f]));
-          }
+          emitBlankLineMarkers(selectorTrailingWhitespace);
         }
 
         // Parse this When body until the next clause/end.
@@ -7986,14 +7888,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
               hasBlankLine &&
               /^When(?:-Other)?\b/i.test(source.slice(pos))
             ) {
-              const markerCount = Math.max(
-                1,
-                (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-              );
-
-              for (let marker = 0; marker < markerCount; marker++) {
-                chunks.push(Buffer.from([0x4f]));
-              }
+              emitBlankLineMarkers(bodyWhitespace);
             } else if (
               hasBlankLine &&
               /^End-Evaluate\b/i.test(source.slice(pos))
@@ -8010,14 +7905,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
           if (source.startsWith('<*', pos)) {
             if (hasBlankLine) {
-              const markerCount = Math.max(
-                1,
-                (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-              );
-
-              for (let marker = 0; marker < markerCount; marker++) {
-                chunks.push(Buffer.from([0x4f]));
-              }
+              emitBlankLineMarkers(bodyWhitespace);
             }
 
             chunks.push(disabledCodeComment());
@@ -8034,14 +7922,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
                * Example: three newline separators before the comment produce
                * two 0x4F markers.
                */
-              const markerCount = Math.max(
-                1,
-                (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-              );
-
-              for (let marker = 0; marker < markerCount; marker++) {
-                chunks.push(Buffer.from([0x4f]));
-              }
+              emitBlankLineMarkers(bodyWhitespace);
             }
 
             chunks.push(blockComment());
@@ -8066,14 +7947,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            */
           if (startsRemComment()) {
             if (hasBlankLine) {
-              const markerCount = Math.max(
-                1,
-                (bodyWhitespace.match(/\r?\n/g) ?? []).length - 1
-              );
-
-              for (let marker = 0; marker < markerCount; marker++) {
-                chunks.push(Buffer.from([0x4f]));
-              }
+              emitBlankLineMarkers(bodyWhitespace);
             }
 
             chunks.push(remComment(true));
@@ -10573,14 +10447,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       }
 
       if (haveCompletedTopLevelStatement && hasBlankLine) {
-        const markerCount = Math.max(
-          1,
-          (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
-        );
-
-        for (let marker = 0; marker < markerCount; marker++) {
-          chunks.push(Buffer.from([0x4f]));
-        }
+        emitBlankLineMarkers(topLevelWhitespace);
       }
 
       chunks.push(disabledCodeComment());
@@ -10865,14 +10732,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           closedTopLevelDeclarationSection = true;
         }
 
-        const markerCount = Math.max(
-          1,
-          (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
-        );
-
-        for (let marker = 0; marker < markerCount; marker++) {
-          chunks.push(Buffer.from([0x4f]));
-        }
+        emitBlankLineMarkers(topLevelWhitespace);
       }
 
       do {
@@ -10910,14 +10770,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            * One ordinary newline separates the comment from the next
            * source item; each additional newline contributes one 0x4F.
            */
-          const markerCount = Math.max(
-            1,
-            (commentWhitespace.match(/\r?\n/g) ?? []).length - 1
-          );
-
-          for (let marker = 0; marker < markerCount; marker++) {
-            chunks.push(Buffer.from([0x4f]));
-          }
+          emitBlankLineMarkers(commentWhitespace);
         }
       } while (source.startsWith('/*', pos));
 
@@ -10989,13 +10842,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           chunks.push(Buffer.from([0x2d]));
           closedTopLevelDeclarationSection = true;
         }
-        const markerCount = Math.max(
-          1,
-          (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
-        );
-        for (let marker = 0; marker < markerCount; marker++) {
-          chunks.push(Buffer.from([0x4f]));
-        }
+        emitBlankLineMarkers(topLevelWhitespace);
       }
       /*
        * A top-level REM comment may omit its trailing semicolon, the same
@@ -11186,13 +11033,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * Local) stores TWO 0x4F markers, not one.
        */
       if (hasBlankLine) {
-        const markerCount = Math.max(
-          1,
-          (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
-        );
-        for (let marker = 0; marker < markerCount; marker++) {
-          chunks.push(Buffer.from([0x4f]));
-        }
+        emitBlankLineMarkers(topLevelWhitespace);
       }
 
       importSectionOpen = false;
@@ -11297,13 +11138,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * PanelGroup simply never triggered this block). `Constant` remains
        * unconfirmed by any corpus evidence and is deliberately left off.
        */
-      const markerCount = Math.max(
-        1,
-        (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
-      );
-      for (let marker = 0; marker < markerCount; marker++) {
-        chunks.push(Buffer.from([0x4f]));
-      }
+      emitBlankLineMarkers(topLevelWhitespace);
     }
 
     const closesApplicationClassLocalSection =
@@ -11334,14 +11169,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       isLocalDeclaration &&
       hasBlankLine
     ) {
-      const markerCount = Math.max(
-        1,
-        (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
-      );
-
-      for (let marker = 0; marker < markerCount; marker++) {
-        chunks.push(Buffer.from([0x4f]));
-      }
+      emitBlankLineMarkers(topLevelWhitespace);
     } else if (
       leadingLocalRun &&
       !sawLeadingLocalDeclaration &&
@@ -11380,14 +11208,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * transition, a regression caught directly by that fixture test
        * and by HCDEV definition 6455's own equivalent shape.
        */
-      const markerCount = Math.max(
-        1,
-        (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
-      );
-
-      for (let marker = 0; marker < markerCount; marker++) {
-        chunks.push(Buffer.from([0x4f]));
-      }
+      emitBlankLineMarkers(topLevelWhitespace);
     }
 
     if (
@@ -11459,13 +11280,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * whose first statement is `%Super = create ...;`, sharing exactly
          * this scenario.
          */
-        const markerCount = Math.max(
-          1,
-          (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
-        );
-        for (let marker = 0; marker < markerCount; marker++) {
-          chunks.push(Buffer.from([0x4f]));
-        }
+        emitBlankLineMarkers(topLevelWhitespace);
       }
 
       leadingLocalRun = false;
@@ -11511,14 +11326,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       }
 
       if (hasBlankLine) {
-        const markerCount = Math.max(
-          1,
-          (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
-        );
-
-        for (let marker = 0; marker < markerCount; marker++) {
-          chunks.push(Buffer.from([0x4f]));
-        }
+        emitBlankLineMarkers(topLevelWhitespace);
       }
 
       closedApplicationClassLocalSection = true;
@@ -11547,10 +11355,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       if (!leadingRunHasInitializedLocal && context?.suppressDeclarationSectionMarkers !== true) {
         chunks.push(Buffer.from([0x2d]));
       }
-      const markerCount = Math.max(1, (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1);
-      for (let marker = 0; marker < markerCount; marker++) {
-        chunks.push(Buffer.from([0x4f]));
-      }
+      emitBlankLineMarkers(topLevelWhitespace);
       closedTopLevelDeclarationSection = true;
     }
 
