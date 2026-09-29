@@ -2,31 +2,173 @@
 
 ## Current status (2026-09-29)
 
-- **Current target:** Cycle 83 completed -- `While`-body blank-line
-  boundaries implemented. EXACT 26,149 -> 26,330 (+181), failed
-  4,060 -> 3,879, protected 430/430 PASS, row-by-row taxonomy diff 0
-  EXACT -> non-EXACT. See "Compiler Semantics Cycle 83".
-- **Last successful calibration:** Cycle 83 (above). Previous: Cycle 82
-  (App Class self row, +36).
-- **Protected baseline:** 430/430 (corpus:verify gate: 0 regressed).
-- **Locally blocked definitions:** none newly blocked. Recorded
-  follow-ups:
-  - 23358, 23418, 29886, 29890 are ROUNDTRIP_ONLY: the decoder renders an
-    inline `While`-header comment plus 0x4F as two blank lines (decoder
-    fix, not encoder).
-  - The KNOWN_SMALL_UNMODELED_PATTERN (29797, 29883, 30170, 30179)
-    stays small.
-  - Multi-member App Class storage order remains unavailable (Cycle 30).
-- **Next action:** build a clean census of the top-level
-  declaration-section boundary family, about 241 strict one-blocker
-  definitions: extra 0x4F (83), missing 0x2D (63), extra 0x2D+0x4F (54)
-  and extra 0x2D (41). Re-run its historical controls first (3596, 6455,
-  29134, 29315, 412, 5026). Candidates after that: the App Class
-  single-property directory record (27 one-blocker); `Repeat`-body
-  statement gaps (same shape as `While`, small).
-- **Newly established rules this session:** the `While` body gap rule
-  (above); Cycle 82 rules.
+- **Current target:** Cycle 84 completed -- the generic declaration-close
+  serialization rule (B) is implemented. EXACT 26,330 -> 26,421 (+91),
+  failed 3,879 -> 3,788, protected 430/430 PASS, row diff 0 EXACT ->
+  non-EXACT. See "Compiler Semantics Cycle 84".
+- **Last successful calibration:** Cycle 84 rule B (the floor of one 0x4F
+  applies to the formal 0x2D close only).
+- **Protected baseline:** 430/430.
+- **Locally blocked definitions:** none newly blocked. Follow-ups:
+  - 23358, 23418, 29886, 29890 are ROUNDTRIP_ONLY (a decoder rendering
+    defect with an inline `While`-header comment).
+  - The Cycle 84 boundary mechanisms C (comment between the run and the
+    next item) and D (Local after executable code) are not yet
+    zero-contradiction.
+- **Next action:** implement Cycle 84 mechanism A. A Function definition
+  does not end the declaration phase, so a Local run after Function
+  definitions and before executable code closes with the formal `2D 4F`.
+  The experiment gave +22 forward-exact, 0 lost. Then re-census the
+  boundary family (C, D, import MISSING_4F).
+- **Newly established rules this session:** Cycle 84 rule B; the Cycle 83
+  `While`-body gap rule; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 84 -- generic top-level declaration-section boundary
+
+**Baseline reproduced fresh at `8bcd794`:** 30,209 / 26,330 EXACT / 3,879
+NONEXACT, REGRESSION GATE PASS, taxonomy row-by-row identical to the
+committed one. LOCAL SNAPSHOT only; no `--live`, no DLL work.
+
+### Declaration-boundary census
+
+Tool: `tools/corpus/research/cycle84-declaration-boundary-census.py`. It
+reads the Cycle 83 token extract and considers every TOP-LEVEL token hunk
+made only of 0x2D / 0x4F. For each hunk it records the signature, the
+previous statement kind (from the stored tokens), the statement before the
+enclosing Local run, the intervening comment trivia, and the next real
+token. "One-blocker" means the definition's ONLY differences are top-level
+2D/4F hunks and its reference key lists are identical.
+
+Population: **458 definitions** have a top-level boundary hunk, and **262
+are strict one-blockers**.
+
+| signature | affected | first divergence | one-blocker |
+|---|---:|---:|---:|
+| EXTRA_2D | 137 | 113 | 39 |
+| EXTRA_4F | 137 | 124 | 83 |
+| MISSING_2D | 120 | 101 | 63 |
+| EXTRA_2D_4F | 49 | 49 | 43 |
+| MISSING_4F | 33 | 33 | 10 |
+| ORDER (gen `4F 2D`) | 13 | 13 | 8 |
+| ORDER (gen `4F 4F 2D`) | 3 | 3 | 3 |
+
+Largest source shapes (hunks):
+
+| hunks | signature | previous statement | before the run | trivia | next |
+|---:|---|---|---|---|---|
+| 91 | EXTRA_4F | initialized Local | Component / Global / Declare / comment | - | executable |
+| 48 | MISSING_2D | Local | Function | - | executable (+11 before Function, +11 via comment) |
+| 22 | MISSING_2D | Local | comment | - | executable |
+| 18 | EXTRA_2D_4F | executable | - | - | Local |
+| 17 | EXTRA_2D_4F | Local | executable | - | Local |
+| 25 + 23 | EXTRA_2D | Local / init Local | Component ... | standalone comment | executable |
+| 14 | MISSING_4F | import | - | - | import |
+
+The population is **several distinct mechanisms**, not one.
+
+### Closer-site guard matrix (current code)
+
+| site | fires when | serialization |
+|---|---|---|
+| disabled-code `<*` | `haveCompletedTopLevelStatement && hasBlankLine && sawTopLevelDeclaration && !closed && next is not Global/PanelGroup/Component/Constant/Declare` | `2D`, then immediate blank-line 4F |
+| standalone `/*` | `haveCompletedTopLevelStatement && hasBlankLine && sawTopLevelDeclaration && !closed && !nextIsTopLevelDeclaration && !nextIsLocal && pendingReferenceLocalBoundary === undefined && !(AppClassLocal open)` | `2D`, immediate 4F. Also sets a deferred Local boundary with 0 markers when a Local run ends here |
+| REM | `haveCompletedTopLevelStatement && hasBlankLine && sawTopLevelDeclaration && !closed` | `2D`, immediate 4F. Deferred Local boundary with 0 markers |
+| main (`closesTopLevelDeclarationSection`) | `!isTopLevelDeclaration && !isLocal && sawTopLevelDeclaration && !closed && !(AppClassLocal open)` | `2D` unless `leadingRunHasInitializedLocal` or suppressed; then `emitBlankLineMarkers` (floor 1) |
+| deferred leading-Local boundary (flush) | first non-Local after a leading Local run, program has compiled references | `2D` unless initialized or suppressed; then `pendingReferenceLocalMarkers` (floor 1) |
+| EOF | `sawTopLevelDeclaration && !closed` | bare `2D` (no state mutation) |
+
+### Truth table (observed shapes)
+
+| decl. section open | run has initialized Local | real blank lines before next | next | expected | current (pre-fix) | status |
+|---|---|---|---|---|---|---|
+| yes (Global/Component/Declare) | no | n >= 0 | executable | `2D` + max(1, n) x 4F | same | correct (fixtures, 1257, 942) |
+| yes | yes | n >= 1 | executable | n x 4F (no 2D) | same | correct (5002: 3 blank lines, 3539) |
+| yes | **yes** | **0** | executable | **nothing** | 4F (floor) | **fixed, rule B** |
+| leading Local run, compiled refs | no | n | executable | `2D` + max(1, n) x 4F (deferred) | same | correct |
+| leading Local run, compiled refs | **yes** | **0** | executable | **nothing** | 4F (floor) | **fixed, rule B** |
+| Local run after Function defs, no exec yet | no | n | executable | `2D` + max(1, n) 4F | only n x 4F | rule A (proven, not implemented) |
+| Local after executable code | - | n | Local | no close | `2D 4F` | mechanism D (open) |
+| standalone comment between run and exec | varies | - | executable | varies | varies | mechanism C (open) |
+
+### Rule implemented (B -- serialization)
+
+**The "at least one 0x4F" floor belongs to the FORMAL `0x2D 0x4F`
+declaration-section close. When the close is informal (no 0x2D, because
+the run contains an initialized Local), it carries only the source's actual
+blank lines, possibly zero.**
+
+- The close-state transition is unchanged; only serialization changes, at
+  the two sites that serialize an informal close: the main closer and the
+  deferred leading-Local flush.
+- App Class method bodies (`suppressDeclarationSectionMarkers`) keep their
+  separately calibrated counts.
+- `pendingReferenceLocalBlankLines` records the raw count at every site
+  that sets `pendingReferenceLocalMarkers`.
+- Evidence (LOCAL SNAPSHOT, forward encode of all 30,208 sources with
+  source text): **+91 forward-exact, 0 lost**. Of those, 77 go through the
+  main closer and 14 more through the deferred flush; 20 definitions'
+  bytes depend on the flush part.
+- Positive controls: 1769, 2959, 3881, 7167, 14381, 22396.
+- Archaeology: `b17130a` (definition 5002) removed the 0x2D for an
+  initialized Local but kept `emitBlankLineMarkers`' floor; 5002 has three
+  blank lines. Cycle 50 (`d90bb3d`) kept `Math.max(1, ...)` citing 3539,
+  which has one blank line. Neither exercised an initialized close with
+  zero blank lines, and both remain EXACT.
+
+### Rule B validation and accounting
+
+- `npx tsc`, `npm test` (617 run, 616 pass, 0 fail) and `git diff --check`
+  are clean. The two new tests fail before the fix and pass after: one on
+  the main closer, and one on the deferred flush (the 14381 shape).
+- Protected gate: PASS. Full corpus: **26,421 EXACT / 3,788 failed**,
+  up from 26,330.
+- Taxonomy row diff: **0 EXACT -> non-EXACT**, 91 non-EXACT -> EXACT (83
+  were REFERENCE_COMPLETE_DOWNSTREAM, 8 REFERENCE_ACTIVE_OTHER). No
+  compensating-error cases were found.
+- Boundary-corrected: 136 definitions lost their EXTRA_4F hunk (93 of them
+  in the initialized-Local shape). 91 are now EXACT and 45 are still
+  blocked later.
+- Strict one-blockers among the corrected: 84, of which 83 are now EXACT.
+  28255 still has an EXTRA_2D hunk from another boundary mechanism.
+- Post-fix census:
+  - The EXTRA_4F-after-initialized-Local signature is **0**, on both the
+    new NONEXACT list and a re-extract of the pre-fix list.
+  - The boundary population is 458 -> 326 definitions; strict one-blockers
+    262 -> 179.
+  - Remaining largest shape: MISSING_2D for a Local run after Function
+    definitions (48 + 11 + 11 hunks). That is mechanism A.
+
+### Historical controls revalidated (current HEAD, and under rule B)
+
+- **Still EXACT, and still EXACT under B:** 3596, 6455, 29315, 1257, 1929,
+  5002, 942, 945, 528, 2043, 6007, 6276, 513, 29632, 3539.
+- **Non-EXACT, with no top-level boundary hunk at all:** 29134, 5026, 2102,
+  28852, 29113, 29612, 3235, 9661. Their first divergence is elsewhere:
+  inline member vs operand, reference allocation, App Class metadata, and
+  a nested 0x4F.
+- All historical boundary claims still hold. None was invalidated.
+
+### Mechanisms reported, not implemented (stop condition B)
+
+- **A. A Function definition does not end the declaration phase.** A Local
+  run after `Function ... End-Function;` definitions, and before any
+  executable code, is still a leading declaration run and closes with the
+  formal `2D 4F`.
+  - The encoder sets `leadingLocalRun = false` at the first Function
+    (14862, 15038, 9633).
+  - Experiment: keep `leadingLocalRun` when `isFunction &&
+    !sawLeadingLocalDeclaration`. Result: **+22 forward-exact, 0 lost**,
+    independent of B (A + B = +113).
+  - Proven, and the next implementation target.
+- **C. A standalone comment between a Local run and the next item.**
+  Several shapes (22 + 6 + 6 MISSING_2D; 25 + 23 EXTRA_2D). The comment and
+  REM closers' guards disagree (for example the REM site lacks `!nextIsLocal`).
+  Not yet a zero-contradiction rule.
+- **D. A Local after executable code** (18 + 17 EXTRA_2D_4F): the
+  generated code closes a declaration section that stored does not open.
+- **Import blank lines:** 14 MISSING_4F between import groups.
+- **EOF:** 2 MISSING_2D after disabled code at EOF.
 
 ## Compiler Semantics Cycle 83 -- fresh post-Cycle-82 census and target selection
 

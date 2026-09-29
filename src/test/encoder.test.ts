@@ -5235,3 +5235,35 @@ End-While;`;
   );
   assert.deepStrictEqual(delta, [0x4f]);
 });
+
+/*
+ * Cycle 84: a declaration-section close WITHOUT the 0x2D byte (the run
+ * contains an initialized Local) is an ordinary blank-line gap -- it carries
+ * only the source's own blank lines, possibly none (definition 1769, and 90
+ * more). Before the fix, the formal close's floor of one 0x4F was emitted
+ * even with no blank line, so the with/without-blank-line programs did not
+ * differ at all.
+ */
+test('an initialized-Local close after a Component declaration emits 0x4F only for a real blank line', () => {
+  const program = (gap: string) => `Component Rowset &x;
+Local number &n = 1;${gap}
+&x = GetRowset(Scroll.TEST_REC);`;
+  const delta = insertedBytes(
+    encodeProgram(program('\n'), whileGapOwner as any),
+    encodeProgram(program(''), whileGapOwner as any)
+  );
+  assert.deepStrictEqual(delta, [0x4f]);
+});
+
+test('a deferred leading-Local close with an initialized Local emits 0x4F only for a real blank line', () => {
+  // PTADSCOMPST (definition 14381) shape: the run starts with an
+  // initialized Local, then an uninitialized Local, then executable code.
+  const program = (gap: string) => `Local Rowset &rs = GetRowset(Scroll.TEST_REC);
+Local integer &i;${gap}
+&i = &rs.ActiveRowCount;`;
+  const delta = insertedBytes(
+    encodeProgram(program('\n'), whileGapOwner as any),
+    encodeProgram(program(''), whileGapOwner as any)
+  );
+  assert.deepStrictEqual(delta, [0x4f]);
+});

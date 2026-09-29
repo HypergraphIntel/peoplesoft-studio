@@ -10307,6 +10307,15 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   let lastLocalHadInitializer = false;
   let pendingReferenceLocalBoundary: number | undefined;
   let pendingReferenceLocalMarkers = 1;
+  /*
+   * Cycle 84: the deferred leading-Local boundary's marker count when the
+   * close is INFORMAL (no 0x2D, because the run contains an initialized
+   * Local): the source's actual blank-line count, which may be zero. The
+   * `pendingReferenceLocalMarkers` floor of one belongs to the formal
+   * `0x2D 0x4F` close only -- see the flush block at the end of this
+   * function. Set alongside `pendingReferenceLocalMarkers` everywhere.
+   */
+  let pendingReferenceLocalBlankLines = 0;
   const pendingReferenceGroupBoundaries: number[] = [];
   let haveCompletedTopLevelStatement = false;
 
@@ -10385,6 +10394,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     sawLeadingLocalDeclaration = false;
     pendingReferenceLocalBoundary = undefined;
     pendingReferenceLocalMarkers = 1;
+    pendingReferenceLocalBlankLines = 0;
   };
 
   /*
@@ -10524,6 +10534,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         ) {
           pendingReferenceLocalBoundary = chunks.length;
           pendingReferenceLocalMarkers = 0;
+          pendingReferenceLocalBlankLines = 0;
           leadingLocalRun = false;
         }
       }
@@ -10641,6 +10652,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            * deferred Local-section insertion therefore contributes only 0x2D.
            */
           pendingReferenceLocalMarkers = 0;
+          pendingReferenceLocalBlankLines = 0;
         }
         leadingLocalRun = false;
       }
@@ -10862,6 +10874,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       ) {
         pendingReferenceLocalBoundary = chunks.length;
         pendingReferenceLocalMarkers = 0;
+        pendingReferenceLocalBlankLines = 0;
         leadingLocalRun = false;
       }
 
@@ -11270,6 +11283,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         pendingReferenceLocalMarkers = context?.suppressDeclarationSectionMarkers === true
           ? sourceBlankLines
           : Math.max(1, sourceBlankLines);
+        pendingReferenceLocalBlankLines = sourceBlankLines;
       } else if (
         !sawLeadingLocalDeclaration &&
         haveCompletedTopLevelStatement &&
@@ -11376,7 +11390,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       if (!leadingRunHasInitializedLocal && context?.suppressDeclarationSectionMarkers !== true) {
         chunks.push(Buffer.from([0x2d]));
       }
-      emitBlankLineMarkers(topLevelWhitespace);
+      /*
+       * Cycle 84: without the 0x2D (an initialized Local ended the pure-
+       * declaration phase), this is an ordinary blank-line gap: emit only
+       * the source's own blank lines, possibly none. The "at least one
+       * 0x4F" floor of `emitBlankLineMarkers` belongs to the formal
+       * `0x2D 0x4F` close. BEN_BEN_DTL_WK.BEN_PROV_DETAIL.FieldChange (definition 1769):
+       * `Component ... &c; Local Record &rc = ...;` directly followed by
+       * `&cPlanXController.OpenResource(...)` on the next line stores no
+       * 0x4F. Method bodies (`suppressDeclarationSectionMarkers`) keep their
+       * separately calibrated behavior.
+       */
+      const informalClose =
+        leadingRunHasInitializedLocal && context?.suppressDeclarationSectionMarkers !== true;
+      if (!informalClose || hasBlankLine) {
+        emitBlankLineMarkers(topLevelWhitespace);
+      }
       closeTopLevelDeclarationSection();
     }
 
@@ -11554,6 +11583,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             pendingReferenceLocalMarkers = context?.suppressDeclarationSectionMarkers === true
               ? (hasBlankLine ? 0 : sourceBlankLines)
               : Math.max(1, sourceBlankLines);
+            pendingReferenceLocalBlankLines = sourceBlankLines;
           }
 
           leadingLocalRun = false;
@@ -11844,7 +11874,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
               ? []
               : [Buffer.from([0x2d])]
           ),
-          ...Array.from({ length: pendingReferenceLocalMarkers }, () => Buffer.from([0x4f]))
+          /*
+           * Cycle 84: an informal close (no 0x2D) carries only the source's
+           * actual blank lines; the floor of one in
+           * `pendingReferenceLocalMarkers` belongs to the formal 0x2D close.
+           * LOCAL SNAPSHOT: 91 definitions whose only difference was this
+           * floor marker (e.g. 2959, 3881, 7167) become forward-exact, 0
+           * definitions lose exactness.
+           */
+          ...Array.from(
+            {
+              length: leadingRunHasInitializedLocal && context?.suppressDeclarationSectionMarkers !== true
+                ? pendingReferenceLocalBlankLines
+                : pendingReferenceLocalMarkers
+            },
+            () => Buffer.from([0x4f])
+          )
         ]
       });
     }
