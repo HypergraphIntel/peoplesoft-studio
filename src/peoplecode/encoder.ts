@@ -11443,8 +11443,6 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       closeTopLevelDeclarationSection();
     }
 
-    const statementChunkStart = chunks.length;
-
     statement();
 
     /*
@@ -11568,58 +11566,25 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         const nextIsAnotherUninitializedLocal =
           nextLocalMatch !== undefined && nextLocalMatch !== null && nextLocalMatch[1] === undefined;
 
-        if (nextIsAnotherUninitializedLocal) {
+        /*
+         * Cycle 86: an initialized Local never closes a leading run that has
+         * already started. It marks the run initialized (so the run's single
+         * eventual close is informal, Cycle 84) and the run continues to the
+         * first non-Local statement, where the ordinary deferred boundary is
+         * anchored. The earlier rule closed the run formally, immediately
+         * BEFORE this initialized Local, whenever the next Local was not an
+         * uninitialized one. LOCAL SNAPSHOT (`cycle86-initialized-run-
+         * census.ts start`): in 52/52 program-start runs of that shape the
+         * stored bytes there are only the source's blank lines, never
+         * `2D 4F` (e.g. 3869: `L L Li X`); after a top-level Function the
+         * same holds (28204, 28210, 25295, 25296). +53 forward-exact, 0 lost.
+         * An initialized FIRST Local (no declaration-only run yet, e.g.
+         * protected definition 256) still ends the run without a boundary.
+         */
+        if (nextIsAnotherUninitializedLocal || sawLeadingLocalDeclaration) {
           leadingRunHasInitializedLocal = true;
           sawLeadingLocalDeclaration = true;
         } else {
-          // `leadingRunHasInitializedLocal` is already set unconditionally
-          // for any initialized top-level Local right after `statement()`
-          // above, regardless of `leadingLocalRun` -- see that check's own
-          // comment.
-          if (
-            sawLeadingLocalDeclaration &&
-            pendingReferenceLocalBoundary === undefined
-          ) {
-            pendingReferenceLocalBoundary = statementChunkStart;
-            /*
-             * Cycle 50 (definitions 28852, 29113, 29612): this whole branch
-             * is reached only when `leadingLocalRun && isLocalDeclaration`
-             * (the enclosing `if` a few lines up) and `sawLeadingLocalDeclaration`
-             * (this `if`'s own condition) are ALL true -- meaning the
-             * SEPARATE "blank formatting lines inside a leading
-             * declaration-only Local run" mechanism above (`leadingLocalRun
-             * && sawLeadingLocalDeclaration && isLocalDeclaration &&
-             * hasBlankLine`) has, by construction, the identical firing
-             * condition reduced to just `hasBlankLine` at this exact point
-             * -- and if it fired, it already pushed the FULL, correct
-             * marker count directly into `chunks` for THIS SAME leading
-             * gap (using the identical `topLevelWhitespace`-derived
-             * formula this branch would otherwise recompute below).
-             * Previously this branch recomputed and separately queued
-             * `pendingReferenceLocalMarkers` for the SAME gap whenever an
-             * initialized Local (with no further uninitialized Local
-             * following) happened to ALSO be preceded by a blank line,
-             * producing a genuine extra `0x4F` -- both mechanisms
-             * independently believed they alone were responsible for it.
-             * Application Class method bodies hit this overlap far more
-             * often than ordinary PeopleCode (hence
-             * `suppressDeclarationSectionMarkers === true` is the only
-             * branch this narrows -- see that flag's own established
-             * Cycle 14 AppClass-only meaning): ordinary PeopleCode's own
-             * `Math.max(1, sourceBlankLines)` floor is unrelated evidence
-             * (the DAEMONGROUP.DAEMONGROUP.SaveEdit control above) and is
-             * deliberately left untouched.
-             */
-            const sourceBlankLines = Math.max(
-              0,
-              (topLevelWhitespace.match(/\r?\n/g) ?? []).length - 1
-            );
-            pendingReferenceLocalMarkers = context?.suppressDeclarationSectionMarkers === true
-              ? (hasBlankLine ? 0 : sourceBlankLines)
-              : Math.max(1, sourceBlankLines);
-            pendingReferenceLocalBlankLines = sourceBlankLines;
-          }
-
           leadingLocalRun = false;
         }
       } else {
