@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-09-29T02:53:49.577Z",
-  "count": 289,
+  "generatedAt": "2026-09-29T03:11:07.562Z",
+  "count": 164,
   "rows": [
     {
       "definitionId": 1635,
@@ -987,15 +987,6 @@
       "decCtx": "RAGE_BEGIN_DT.Value &nBenYr = Year(&CovrgBeginDT);\\n;\\nrem actual code will use %date;\\n&CovrgBeginDT ="
     },
     {
-      "definitionId": 28954,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 31149,
-      "origCtx": "et\\n/+ &sPlanType as String +/\\n/+ Returns Rowset +/;\\n/* &Plan_TYPE_ROW= W3EB_nXPLNPT_VW */\\nLocal Row ",
-      "decCtx": "et\\n/+ &sPlanType as String +/\\n/+ Returns Rowset +/\\n;\\n/* &Plan_TYPE_ROW= W3EB_nXPLNPT_VW */\\nLocal Row"
-    },
-    {
       "definitionId": 28961,
       "appClass": true,
       "objectid1": 104,
@@ -1050,15 +1041,6 @@
       "decCtx": "nce record &moCovrgCd;\\ninstance number &mnMsgMode;\\n;\\ninstance Rowset &moDEPCPTRS;\\ninstance BN_COVERA"
     },
     {
-      "definitionId": 28998,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 2583,
-      "origCtx": "nd-method;\\nmethod DepBen\\n/+ &asemplid as String +/;\\n&msEMPLID = &asemplid;\\n&moUtil = create BN_DEPBE",
-      "decCtx": "nd-method;\\nmethod DepBen\\n/+ &asemplid as String +/\\n;\\n&msEMPLID = &asemplid;\\n&moUtil = create BN_DEPB"
-    },
-    {
       "definitionId": 28999,
       "appClass": true,
       "objectid1": 104,
@@ -1086,895 +1068,49 @@
       "decCtx": "nCategory get;\\nproperty string BenefitProgram get;\\n;\\nproperty string CurrencyCode get;\\n;\\nproperty bo"
     },
     {
-      "definitionId": 29081,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 165,
-      "origCtx": "thod Action\\n/+ &c as String, +/\\n/+ &t as String +/;\\n%This.Code = &c;\\n%This.Title = &t;\\nend-method;",
-      "decCtx": "thod Action\\n/+ &c as String, +/\\n/+ &t as String +/\\n;\\n%This.Code = &c;\\n%This.Title = &t;\\nend-method;"
-    },
-    {
-      "definitionId": 29082,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 468,
-      "origCtx": "s CAFNUI_CORE:OBJECT:Factor, +/\\n/+ &h as String +/;\\nLocal CAFNUI_API:OBJECT:Action &action;\\n%This.En",
-      "decCtx": "s CAFNUI_CORE:OBJECT:Factor, +/\\n/+ &h as String +/\\n;\\nLocal CAFNUI_API:OBJECT:Action &action;\\n%This.E"
-    },
-    {
-      "definitionId": 29083,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 379,
-      "origCtx": "s CAFNUI_CORE:OBJECT:Factor, +/\\n/+ &h as String +/;\\n%This.Entity = &e;\\n%This.Factor = &f;\\n%This.Html",
-      "decCtx": "s CAFNUI_CORE:OBJECT:Factor, +/\\n/+ &h as String +/\\n;\\n%This.Entity = &e;\\n%This.Factor = &f;\\n%This.Htm"
-    },
-    {
-      "definitionId": 29084,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1807,
-      "origCtx": "onent boolean &refreshNeeded;\\nmethod ActionHandler;\\n%Super = create CAFNUI_API:Handler();\\nend-method",
-      "decCtx": "onent boolean &refreshNeeded;\\nmethod ActionHandler\\n;\\n%Super = create CAFNUI_API:Handler();\\nend-metho"
-    },
-    {
-      "definitionId": 29085,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 3170,
-      "origCtx": "\\n/+ &config as CAFNUI_CORE:OBJECT:Configuration +/;\\n%Super = create CAFNUI_API:SessionHandler();\\nIf ",
-      "decCtx": "\\n/+ &config as CAFNUI_CORE:OBJECT:Configuration +/\\n;\\n%Super = create CAFNUI_API:SessionHandler();\\nIf"
-    },
-    {
-      "definitionId": 29086,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 3325,
-      "origCtx": "\\n/+ &config as CAFNUI_CORE:OBJECT:Configuration +/;\\n%Super = create CAFNUI_API:SessionHandler();\\nIf ",
-      "decCtx": "\\n/+ &config as CAFNUI_CORE:OBJECT:Configuration +/\\n;\\n%Super = create CAFNUI_API:SessionHandler();\\nIf"
-    },
-    {
-      "definitionId": 29087,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 3529,
-      "origCtx": "class;\\n/**\\n * Constructor\\n */\\nmethod FactorHandler;\\n%Super = create CAFNUI_API:SessionHandler();\\nend",
-      "decCtx": "class;\\n/**\\n * Constructor\\n */\\nmethod FactorHandler\\n;\\n%Super = create CAFNUI_API:SessionHandler();\\nen"
-    },
-    {
-      "definitionId": 29088,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 238,
-      "origCtx": ";\\nend-class;\\n/**\\n * Constructor\\n */\\nmethod Handler;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject();",
-      "decCtx": ";\\nend-class;\\n/**\\n * Constructor\\n */\\nmethod Handler\\n;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject()"
-    },
-    {
-      "definitionId": 29089,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 784,
-      "origCtx": "lass;\\n/**\\n * Constructor\\n */\\nmethod SessionHandler;\\n%Super = create CAFNUI_API:Handler();\\nend-method",
-      "decCtx": "lass;\\n/**\\n * Constructor\\n */\\nmethod SessionHandler\\n;\\n%Super = create CAFNUI_API:Handler();\\nend-metho"
-    },
-    {
-      "definitionId": 29090,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1337,
-      "origCtx": "vedSessions readonly;\\nend-class;\\nmethod ActionCode;\\n&ConfiguredAction = \"cra\";\\n&ComparisonAction = \"",
-      "decCtx": "vedSessions readonly;\\nend-class;\\nmethod ActionCode\\n;\\n&ConfiguredAction = \"cra\";\\n&ComparisonAction = "
-    },
-    {
-      "definitionId": 29091,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 320,
-      "origCtx": "ActionCommonFactors;\\nend-class;\\nmethod ActionLevel;\\n&ActionComparison = \"C\";\\n&ActionFactorData = \"D\"",
-      "decCtx": "ActionCommonFactors;\\nend-class;\\nmethod ActionLevel\\n;\\n&ActionComparison = \"C\";\\n&ActionFactorData = \"D"
-    },
-    {
-      "definitionId": 29092,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 201,
-      "origCtx": "nTypeFilter readonly;\\nend-class;\\nmethod ActionType;\\n&ActionTypeAppClass = \"A\";\\n&ActionTypecomponent ",
-      "decCtx": "nTypeFilter readonly;\\nend-class;\\nmethod ActionType\\n;\\n&ActionTypeAppClass = \"A\";\\n&ActionTypecomponent"
-    },
-    {
-      "definitionId": 29093,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1003,
-      "origCtx": "thod Asset\\n/+ &mgr as CAFNUI_CORE:ObjectManager +/;\\nLocal CAFNUI_CORE:ENUM:ActionCode &actCode = cre",
-      "decCtx": "thod Asset\\n/+ &mgr as CAFNUI_CORE:ObjectManager +/\\n;\\nLocal CAFNUI_CORE:ENUM:ActionCode &actCode = cr"
-    },
-    {
-      "definitionId": 29094,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1511,
-      "origCtx": "Constructor to set the values\\n */\\nmethod Constants;\\n/* Set to false to disable system data editing. ",
-      "decCtx": "Constructor to set the values\\n */\\nmethod Constants\\n;\\n/* Set to false to disable system data editing."
-    },
-    {
-      "definitionId": 29095,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 662,
-      "origCtx": "onstructor to set the values\\n */\\nmethod FactorType;\\n&APP_CLASS = \"AC\";\\n&component = \"CP\";\\n&URL = \"UL",
-      "decCtx": "onstructor to set the values\\n */\\nmethod FactorType\\n;\\n&APP_CLASS = \"AC\";\\n&component = \"CP\";\\n&URL = \"U"
-    },
-    {
-      "definitionId": 29096,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1401,
-      "origCtx": "plements CAFNUI_API:ActionHandler.ActionHandler +/;\\n%Super = create CAFNUI_API:ActionHandler();\\nend-",
-      "decCtx": "plements CAFNUI_API:ActionHandler.ActionHandler +/\\n;\\n%Super = create CAFNUI_API:ActionHandler();\\nend"
-    },
-    {
-      "definitionId": 29097,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 638,
-      "origCtx": " Returns string;\\nend-class;\\nmethod ComponentAction;\\n%Super = create CAFNUI_CORE:HANDLER:ActionHandle",
-      "decCtx": " Returns string;\\nend-class;\\nmethod ComponentAction\\n;\\n%Super = create CAFNUI_CORE:HANDLER:ActionHandl"
-    },
-    {
-      "definitionId": 29098,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 965,
-      "origCtx": "ieldFormula;\\n/**\\n * Contructor\\n */\\nmethod AppClass;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandle",
-      "decCtx": "ieldFormula;\\n/**\\n * Contructor\\n */\\nmethod AppClass\\n;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandl"
-    },
-    {
-      "definitionId": 29099,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1240,
-      "origCtx": "K FieldFormula;\\n/**\\n * Contructor\\n */\\nmethod Chart;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandle",
-      "decCtx": "K FieldFormula;\\n/**\\n * Contructor\\n */\\nmethod Chart\\n;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandl"
-    },
-    {
-      "definitionId": 29100,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1562,
-      "origCtx": "PTPP.PTPP_HYPERLINK FieldFormula;\\nmethod component;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandle",
-      "decCtx": "PTPP.PTPP_HYPERLINK FieldFormula;\\nmethod component\\n;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandl"
-    },
-    {
-      "definitionId": 29101,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 866,
-      "origCtx": "d-class;\\n/**\\n * Contructor\\n */\\nmethod ExternalLink;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandle",
-      "decCtx": "d-class;\\n/**\\n * Contructor\\n */\\nmethod ExternalLink\\n;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandl"
-    },
-    {
-      "definitionId": 29103,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 680,
-      "origCtx": "turns array of number;\\nend-class;\\nmethod FieldList;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandle",
-      "decCtx": "turns array of number;\\nend-class;\\nmethod FieldList\\n;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandl"
-    },
-    {
-      "definitionId": 29104,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 397,
-      "origCtx": "mber;\\nend-class;\\n/**\\n * Contructor\\n */\\nmethod Grid;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandle",
-      "decCtx": "mber;\\nend-class;\\n/**\\n * Contructor\\n */\\nmethod Grid\\n;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandl"
-    },
-    {
-      "definitionId": 29105,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 560,
-      "origCtx": "ns array of number;\\nend-class;\\nmethod HtmlTemplate;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandle",
-      "decCtx": "ns array of number;\\nend-class;\\nmethod HtmlTemplate\\n;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandl"
-    },
-    {
-      "definitionId": 29107,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 966,
-      "origCtx": ") Returns string;\\nend-class;\\nmethod PsQueryPagelet;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandle",
-      "decCtx": ") Returns string;\\nend-class;\\nmethod PsQueryPagelet\\n;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandl"
-    },
-    {
-      "definitionId": 29108,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 487,
-      "origCtx": "ng) Returns array of number;\\nend-class;\\nmethod URL;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandle",
-      "decCtx": "ng) Returns array of number;\\nend-class;\\nmethod URL\\n;\\n%Super = create CAFNUI_CORE:HANDLER:FactorHandl"
-    },
-    {
       "definitionId": 29109,
       "appClass": true,
       "objectid1": 104,
       "unmappedOpcodeCount": 0,
-      "diffOffset": 6476,
-      "origCtx": " CAFNUI_API:ComparisonHandler.ComparisonHandler +/;\\n%Super = create CAFNUI_API:ComparisonHandler(&co",
-      "decCtx": " CAFNUI_API:ComparisonHandler.ComparisonHandler +/\\n;\\n%Super = create CAFNUI_API:ComparisonHandler(&c"
-    },
-    {
-      "definitionId": 29110,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1658,
-      "origCtx": "plements CAFNUI_API:EntityHandler.EntityHandler +/;\\n%Super = create CAFNUI_API:EntityHandler(&config",
-      "decCtx": "plements CAFNUI_API:EntityHandler.EntityHandler +/\\n;\\n%Super = create CAFNUI_API:EntityHandler(&confi"
-    },
-    {
-      "definitionId": 29111,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 2352,
-      "origCtx": "ss;\\n/**\\n * Constructor\\n */\\nmethod PVGPromptHandler;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject();",
-      "decCtx": "ss;\\n/**\\n * Constructor\\n */\\nmethod PVGPromptHandler\\n;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject()"
-    },
-    {
-      "definitionId": 29112,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 211,
-      "origCtx": "d-class;\\n/**\\n * Constructor\\n */\\nmethod PersHandler;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject();",
-      "decCtx": "d-class;\\n/**\\n * Constructor\\n */\\nmethod PersHandler\\n;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject()"
-    },
-    {
-      "definitionId": 29113,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 2321,
-      "origCtx": "**\\n * Constructor\\n */\\nmethod TransferToCAFAnalysis;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject();",
-      "decCtx": "**\\n * Constructor\\n */\\nmethod TransferToCAFAnalysis\\n;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject()"
-    },
-    {
-      "definitionId": 29114,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 611,
-      "origCtx": " +/\\n/+ &currency as String +/\\n/+ Returns String +/;\\nLocal record &rec;\\n&rec = %This.GetCurrency(&cur",
-      "decCtx": " +/\\n/+ &currency as String +/\\n/+ Returns String +/\\n;\\nLocal record &rec;\\n&rec = %This.GetCurrency(&cu"
-    },
-    {
-      "definitionId": 29115,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 243,
-      "origCtx": "d-class;\\nmethod EntityData\\n/+ &recKey as record +/;\\n&Keyrecord = &recKey;\\nend-method;",
-      "decCtx": "d-class;\\nmethod EntityData\\n/+ &recKey as record +/\\n;\\n&Keyrecord = &recKey;\\nend-method;"
-    },
-    {
-      "definitionId": 29116,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 197,
-      "origCtx": "orData\\n/+ &id as String, +/\\n/+ &subId as String +/;\\n&FactorId = &id;\\n&SubfactorId = &subId;\\nend-meth",
-      "decCtx": "orData\\n/+ &id as String, +/\\n/+ &subId as String +/\\n;\\n&FactorId = &id;\\n&SubfactorId = &subId;\\nend-met"
-    },
-    {
-      "definitionId": 29119,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 351,
-      "origCtx": "+/\\n/+ &title as String, +/\\n/+ &filter as String +/;\\n&ActionCode = &actCode;\\n&UserCode = &usrCode;\\n&A",
-      "decCtx": "+/\\n/+ &title as String, +/\\n/+ &filter as String +/\\n;\\n&ActionCode = &actCode;\\n&UserCode = &usrCode;\\n&"
-    },
-    {
-      "definitionId": 29120,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 355,
-      "origCtx": "oprid as String, +/\\n/+ &cafPublicFlag as String +/;\\n&ViewId = &id;\\nIf &oprid = %OperatorId Then\\n&Vie",
-      "decCtx": "oprid as String, +/\\n/+ &cafPublicFlag as String +/\\n;\\n&ViewId = &id;\\nIf &oprid = %OperatorId Then\\n&Vi"
-    },
-    {
-      "definitionId": 29121,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 298,
-      "origCtx": "et Manager\\n/+ Returns CAFNUI_CORE:ObjectManager +/;\\nIf &_manager = Null Then;\\n&_manager = create CAF",
-      "decCtx": "et Manager\\n/+ Returns CAFNUI_CORE:ObjectManager +/\\n;\\nIf &_manager = Null Then;\\n&_manager = create CA"
+      "diffOffset": 42556,
+      "origCtx": "_Entity(&j).CAF_ENT_DV.CAF_SELECT_FLG.Value = \"N\";;\\n&RS_Flt_Entity(&j).Style = \" \";\\nEnd-For;\\nend-met",
+      "decCtx": "_Entity(&j).CAF_ENT_DV.CAF_SELECT_FLG.Value = \"N\";\\n;\\n&RS_Flt_Entity(&j).Style = \" \";\\nEnd-For;\\nend-me"
     },
     {
       "definitionId": 29122,
       "appClass": true,
       "objectid1": 104,
       "unmappedOpcodeCount": 0,
-      "diffOffset": 4918,
-      "origCtx": "lass;\\n/**\\n * Constructor\\n */\\nmethod CompareSession;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject();",
-      "decCtx": "lass;\\n/**\\n * Constructor\\n */\\nmethod CompareSession\\n;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject()"
-    },
-    {
-      "definitionId": 29124,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 676,
-      "origCtx": "urrentUser\\n/+ &mgr as CAFNUI_CORE:ObjectManager +/;\\n&_manager = &mgr;\\nend-method;\\nmethod CanAccessFa",
-      "decCtx": "urrentUser\\n/+ &mgr as CAFNUI_CORE:ObjectManager +/\\n;\\n&_manager = &mgr;\\nend-method;\\nmethod CanAccessF"
-    },
-    {
-      "definitionId": 29125,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 320,
-      "origCtx": "+ &name as String, +/\\n/+ &description as String +/;\\n&EmailId = &Id;\\n&EmailName = &name;\\n&EmailDescri",
-      "decCtx": "+ &name as String, +/\\n/+ &description as String +/\\n;\\n&EmailId = &Id;\\n&EmailName = &name;\\n&EmailDescr"
-    },
-    {
-      "definitionId": 29126,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 926,
-      "origCtx": "ord, +/\\n/+ &handler as CAFNUI_API:EntityHandler +/;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject();",
-      "decCtx": "ord, +/\\n/+ &handler as CAFNUI_API:EntityHandler +/\\n;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject()"
-    },
-    {
-      "definitionId": 29129,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 365,
-      "origCtx": " Returns CAFNUI_CORE:OBJECT:SESSION:SessionData +/;\\nLocal CAFNUI_CORE:OBJECT:SESSION:SessionData &t ",
-      "decCtx": " Returns CAFNUI_CORE:OBJECT:SESSION:SessionData +/\\n;\\nLocal CAFNUI_CORE:OBJECT:SESSION:SessionData &t"
-    },
-    {
-      "definitionId": 29130,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 645,
-      "origCtx": ";\\nend-class;\\nmethod PVGPrompt\\n/+ &rec as record +/;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject();",
-      "decCtx": ";\\nend-class;\\nmethod PVGPrompt\\n/+ &rec as record +/\\n;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject()"
-    },
-    {
-      "definitionId": 29131,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 531,
-      "origCtx": "class;\\nmethod Personalization\\n/+ &rec as record +/;\\nLocal string &wherePers, &tempStr;\\nLocal number ",
-      "decCtx": "class;\\nmethod Personalization\\n/+ &rec as record +/\\n;\\nLocal string &wherePers, &tempStr;\\nLocal number"
-    },
-    {
-      "definitionId": 29132,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 432,
-      "origCtx": "nd-class;\\nmethod SelectEntity\\n/+ &rec as record +/;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject();",
-      "decCtx": "nd-class;\\nmethod SelectEntity\\n/+ &rec as record +/\\n;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject()"
-    },
-    {
-      "definitionId": 29133,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 444,
-      "origCtx": "Factor\\n/+ &id as String, +/\\n/+ &subId as String +/;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject();",
-      "decCtx": "Factor\\n/+ &id as String, +/\\n/+ &subId as String +/\\n;\\n%Super = create CAFNUI_CORE:OBJECT:BaseObject()"
-    },
-    {
-      "definitionId": 29134,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 3312,
-      "origCtx": "LS_VAR;\\n/**\\n * Contructor\\n */\\nmethod ObjectManager;\\n&Constants = create CAFNUI_CORE:ENUM:Constants()",
-      "decCtx": "LS_VAR;\\n/**\\n * Contructor\\n */\\nmethod ObjectManager\\n;\\n&Constants = create CAFNUI_CORE:ENUM:Constants("
+      "diffOffset": 97883,
+      "origCtx": "\\n/+ Returns Array of CAFNUI_CORE:OBJECT:Factor +/;;\\nLocal CAFNUI_CORE:ObjectManager &mgr = %This.Man",
+      "decCtx": "\\n/+ Returns Array of CAFNUI_CORE:OBJECT:Factor +/;\\n;\\nLocal CAFNUI_CORE:ObjectManager &mgr = %This.Ma"
     },
     {
       "definitionId": 29140,
       "appClass": true,
       "objectid1": 104,
       "unmappedOpcodeCount": 0,
-      "diffOffset": 842,
-      "origCtx": "rray of any &_map;\\nend-class;\\nmethod AccessControl;\\n&_manager = create CAFNUI_CORE:ObjectManager();\\n",
-      "decCtx": "rray of any &_map;\\nend-class;\\nmethod AccessControl\\n;\\n&_manager = create CAFNUI_CORE:ObjectManager();"
-    },
-    {
-      "definitionId": 29142,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 835,
-      "origCtx": "ass;\\n/**\\n * Constructor\\n */\\nmethod HandlerRegistry;\\n&_manager = create CAFNUI_CORE:ObjectManager();\\n",
-      "decCtx": "ass;\\n/**\\n * Constructor\\n */\\nmethod HandlerRegistry\\n;\\n&_manager = create CAFNUI_CORE:ObjectManager();"
-    },
-    {
-      "definitionId": 29143,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 535,
-      "origCtx": "ng, +/\\n/+ &isId as Boolean +/\\n/+ Returns String +/;\\nIf &isId Then;\\nReturn \"<script type='text/javasc",
-      "decCtx": "ng, +/\\n/+ &isId as Boolean +/\\n/+ Returns String +/\\n;\\nIf &isId Then;\\nReturn \"<script type='text/javas"
-    },
-    {
-      "definitionId": 29144,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 859,
-      "origCtx": "emplate as String +/\\n/+ Returns Array of String +/;\\nLocal array of string &fields = CreateArrayRept(",
-      "decCtx": "emplate as String +/\\n/+ Returns Array of String +/\\n;\\nLocal array of string &fields = CreateArrayRept"
-    },
-    {
-      "definitionId": 29145,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 165,
-      "origCtx": "thod Action\\n/+ &c as String, +/\\n/+ &t as String +/;\\n%This.Code = &c;\\n%This.Title = &t;\\nend-method;",
-      "decCtx": "thod Action\\n/+ &c as String, +/\\n/+ &t as String +/\\n;\\n%This.Code = &c;\\n%This.Title = &t;\\nend-method;"
-    },
-    {
-      "definitionId": 29146,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 441,
-      "origCtx": "f as CAF_CORE:OBJECT:Factor, +/\\n/+ &h as String +/;\\nLocal CAF_API:OBJECT:Action &action;\\n%This.Entit",
-      "decCtx": "f as CAF_CORE:OBJECT:Factor, +/\\n/+ &h as String +/\\n;\\nLocal CAF_API:OBJECT:Action &action;\\n%This.Enti"
-    },
-    {
-      "definitionId": 29147,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 358,
-      "origCtx": "f as CAF_CORE:OBJECT:Factor, +/\\n/+ &h as String +/;\\n%This.Entity = &e;\\n%This.Factor = &f;\\n%This.Html",
-      "decCtx": "f as CAF_CORE:OBJECT:Factor, +/\\n/+ &h as String +/\\n;\\n%This.Entity = &e;\\n%This.Factor = &f;\\n%This.Htm"
-    },
-    {
-      "definitionId": 29148,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1076,
-      "origCtx": ") Returns boolean;\\nend-class;\\nmethod ActionHandler;\\n%Super = create CAF_API:Handler();\\nend-method;\\nm",
-      "decCtx": ") Returns boolean;\\nend-class;\\nmethod ActionHandler\\n;\\n%Super = create CAF_API:Handler();\\nend-method;\\n"
-    },
-    {
-      "definitionId": 29149,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 2358,
-      "origCtx": "ler\\n/+ &config as CAF_CORE:OBJECT:Configuration +/;\\n%Super = create CAF_API:SessionHandler();\\nIf &co",
-      "decCtx": "ler\\n/+ &config as CAF_CORE:OBJECT:Configuration +/\\n;\\n%Super = create CAF_API:SessionHandler();\\nIf &c"
-    },
-    {
-      "definitionId": 29150,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 3146,
-      "origCtx": "ler\\n/+ &config as CAF_CORE:OBJECT:Configuration +/;\\n%Super = create CAF_API:SessionHandler();\\nIf &co",
-      "decCtx": "ler\\n/+ &config as CAF_CORE:OBJECT:Configuration +/\\n;\\n%Super = create CAF_API:SessionHandler();\\nIf &c"
-    },
-    {
-      "definitionId": 29151,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 2959,
-      "origCtx": "class;\\n/**\\n * Constructor\\n */\\nmethod FactorHandler;\\n%Super = create CAF_API:SessionHandler();\\nend-me",
-      "decCtx": "class;\\n/**\\n * Constructor\\n */\\nmethod FactorHandler\\n;\\n%Super = create CAF_API:SessionHandler();\\nend-m"
-    },
-    {
-      "definitionId": 29152,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 229,
-      "origCtx": ";\\nend-class;\\n/**\\n * Constructor\\n */\\nmethod Handler;\\n%Super = create CAF_CORE:OBJECT:BaseObject();\\nen",
-      "decCtx": ";\\nend-class;\\n/**\\n * Constructor\\n */\\nmethod Handler\\n;\\n%Super = create CAF_CORE:OBJECT:BaseObject();\\ne"
-    },
-    {
-      "definitionId": 29153,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 763,
-      "origCtx": "lass;\\n/**\\n * Constructor\\n */\\nmethod SessionHandler;\\n%Super = create CAF_API:Handler();\\nend-method;\\nm",
-      "decCtx": "lass;\\n/**\\n * Constructor\\n */\\nmethod SessionHandler\\n;\\n%Super = create CAF_API:Handler();\\nend-method;\\n"
-    },
-    {
-      "definitionId": 29154,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1009,
-      "origCtx": "nflagEntity readonly;\\nend-class;\\nmethod ActionCode;\\n&ConfiguredAction = \"cra\";\\n&ComparisonAction = \"",
-      "decCtx": "nflagEntity readonly;\\nend-class;\\nmethod ActionCode\\n;\\n&ConfiguredAction = \"cra\";\\n&ComparisonAction = "
-    },
-    {
-      "definitionId": 29155,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 320,
-      "origCtx": "ActionCommonFactors;\\nend-class;\\nmethod ActionLevel;\\n&ActionComparison = \"C\";\\n&ActionFactorData = \"D\"",
-      "decCtx": "ActionCommonFactors;\\nend-class;\\nmethod ActionLevel\\n;\\n&ActionComparison = \"C\";\\n&ActionFactorData = \"D"
-    },
-    {
-      "definitionId": 29156,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 201,
-      "origCtx": "nTypeFilter readonly;\\nend-class;\\nmethod ActionType;\\n&ActionTypeAppClass = \"A\";\\n&ActionTypecomponent ",
-      "decCtx": "nTypeFilter readonly;\\nend-class;\\nmethod ActionType\\n;\\n&ActionTypeAppClass = \"A\";\\n&ActionTypecomponent"
-    },
-    {
-      "definitionId": 29157,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 988,
-      "origCtx": "\\nmethod Asset\\n/+ &mgr as CAF_CORE:ObjectManager +/;\\nLocal CAF_CORE:ENUM:ActionCode &actCode = create",
-      "decCtx": "\\nmethod Asset\\n/+ &mgr as CAF_CORE:ObjectManager +/\\n;\\nLocal CAF_CORE:ENUM:ActionCode &actCode = creat"
-    },
-    {
-      "definitionId": 29158,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 849,
-      "origCtx": "Constructor to set the values\\n */\\nmethod Constants;\\n/* Set to false to disable system data editing. ",
-      "decCtx": "Constructor to set the values\\n */\\nmethod Constants\\n;\\n/* Set to false to disable system data editing."
-    },
-    {
-      "definitionId": 29159,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 662,
-      "origCtx": "onstructor to set the values\\n */\\nmethod FactorType;\\n&APP_CLASS = \"AC\";\\n&component = \"CP\";\\n&URL = \"UL",
-      "decCtx": "onstructor to set the values\\n */\\nmethod FactorType\\n;\\n&APP_CLASS = \"AC\";\\n&component = \"CP\";\\n&URL = \"U"
-    },
-    {
-      "definitionId": 29160,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1326,
-      "origCtx": "/implements CAF_API:ActionHandler.ActionHandler +/;\\n%Super = create CAF_API:ActionHandler();\\nend-met",
-      "decCtx": "/implements CAF_API:ActionHandler.ActionHandler +/\\n;\\n%Super = create CAF_API:ActionHandler();\\nend-me"
-    },
-    {
-      "definitionId": 29161,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 577,
-      "origCtx": " Returns string;\\nend-class;\\nmethod ComponentAction;\\n%Super = create CAF_CORE:HANDLER:ActionHandler:A",
-      "decCtx": " Returns string;\\nend-class;\\nmethod ComponentAction\\n;\\n%Super = create CAF_CORE:HANDLER:ActionHandler:"
-    },
-    {
-      "definitionId": 29162,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 189,
-      "origCtx": ";\\nend-class;\\n/**\\n * Contructor\\n */\\nmethod AppClass;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:F",
-      "decCtx": ";\\nend-class;\\n/**\\n * Contructor\\n */\\nmethod AppClass\\n;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:"
-    },
-    {
-      "definitionId": 29163,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 602,
-      "origCtx": "ct);\\nend-class;\\n/**\\n * Contructor\\n */\\nmethod Chart;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:c",
-      "decCtx": "ct);\\nend-class;\\n/**\\n * Contructor\\n */\\nmethod Chart\\n;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:"
-    },
-    {
-      "definitionId": 29164,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 493,
-      "origCtx": "actor) Returns string;\\nend-class;\\nmethod component;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:E",
-      "decCtx": "actor) Returns string;\\nend-class;\\nmethod component\\n;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:"
-    },
-    {
-      "definitionId": 29165,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 651,
-      "origCtx": "d-class;\\n/**\\n * Contructor\\n */\\nmethod ExternalLink;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:F",
-      "decCtx": "d-class;\\n/**\\n * Contructor\\n */\\nmethod ExternalLink\\n;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:"
-    },
-    {
-      "definitionId": 29167,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 348,
-      "origCtx": "olean) Returns string;\\nend-class;\\nmethod FieldList;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:F",
-      "decCtx": "olean) Returns string;\\nend-class;\\nmethod FieldList\\n;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:"
-    },
-    {
-      "definitionId": 29168,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 177,
-      "origCtx": "id();\\nend-class;\\n/**\\n * Contructor\\n */\\nmethod Grid;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:F",
-      "decCtx": "id();\\nend-class;\\n/**\\n * Contructor\\n */\\nmethod Grid\\n;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:"
-    },
-    {
-      "definitionId": 29169,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 357,
-      "origCtx": "an) Returns string;\\nend-class;\\nmethod HtmlTemplate;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:F",
-      "decCtx": "an) Returns string;\\nend-class;\\nmethod HtmlTemplate\\n;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:"
-    },
-    {
-      "definitionId": 29171,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 751,
-      "origCtx": ") Returns string;\\nend-class;\\nmethod PsQueryPagelet;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:A",
-      "decCtx": ") Returns string;\\nend-class;\\nmethod PsQueryPagelet\\n;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:"
-    },
-    {
-      "definitionId": 29172,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 287,
-      "origCtx": "JECT:Factor) Returns string;\\nend-class;\\nmethod URL;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:E",
-      "decCtx": "JECT:Factor) Returns string;\\nend-class;\\nmethod URL\\n;\\n%Super = create CAF_CORE:HANDLER:FactorHandler:"
-    },
-    {
-      "definitionId": 29174,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1402,
-      "origCtx": "/implements CAF_API:EntityHandler.EntityHandler +/;\\n%Super = create CAF_API:EntityHandler(&config);\\n",
-      "decCtx": "/implements CAF_API:EntityHandler.EntityHandler +/\\n;\\n%Super = create CAF_API:EntityHandler(&config);"
-    },
-    {
-      "definitionId": 29175,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 243,
-      "origCtx": "d-class;\\nmethod EntityData\\n/+ &recKey as record +/;\\n&Keyrecord = &recKey;\\nend-method;",
-      "decCtx": "d-class;\\nmethod EntityData\\n/+ &recKey as record +/\\n;\\n&Keyrecord = &recKey;\\nend-method;"
-    },
-    {
-      "definitionId": 29176,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 197,
-      "origCtx": "orData\\n/+ &id as String, +/\\n/+ &subId as String +/;\\n&FactorId = &id;\\n&SubfactorId = &subId;\\nend-meth",
-      "decCtx": "orData\\n/+ &id as String, +/\\n/+ &subId as String +/\\n;\\n&FactorId = &id;\\n&SubfactorId = &subId;\\nend-met"
-    },
-    {
-      "definitionId": 29179,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 281,
-      "origCtx": "/\\n/+ &usrCode as String, +/\\n/+ &title as String +/;\\n&ActionCode = &actCode;\\n&UserCode = &usrCode;\\n&A",
-      "decCtx": "/\\n/+ &usrCode as String, +/\\n/+ &title as String +/\\n;\\n&ActionCode = &actCode;\\n&UserCode = &usrCode;\\n&"
-    },
-    {
-      "definitionId": 29180,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 196,
-      "origCtx": "sisView\\n/+ &id as String, +/\\n/+ &name as String +/;\\n&ViewId = &id;\\n&ViewName = &name;\\nend-method;",
-      "decCtx": "sisView\\n/+ &id as String, +/\\n/+ &name as String +/\\n;\\n&ViewId = &id;\\n&ViewName = &name;\\nend-method;"
-    },
-    {
-      "definitionId": 29181,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 286,
-      "origCtx": "/\\nget Manager\\n/+ Returns CAF_CORE:ObjectManager +/;\\nIf &_manager = Null Then;\\n&_manager = create CAF",
-      "decCtx": "/\\nget Manager\\n/+ Returns CAF_CORE:ObjectManager +/\\n;\\nIf &_manager = Null Then;\\n&_manager = create CA"
+      "diffOffset": 3968,
+      "origCtx": "al array of any &idnames = CreateArrayAny(\"\", \"\");;\\nLocal array of string &ids = CreateArrayRept(\"\",",
+      "decCtx": "al array of any &idnames = CreateArrayAny(\"\", \"\");\\n;\\nLocal array of string &ids = CreateArrayRept(\"\""
     },
     {
       "definitionId": 29182,
       "appClass": true,
       "objectid1": 104,
       "unmappedOpcodeCount": 0,
-      "diffOffset": 3653,
-      "origCtx": "lass;\\n/**\\n * Constructor\\n */\\nmethod CompareSession;\\n%Super = create CAF_CORE:OBJECT:BaseObject();\\n&_",
-      "decCtx": "lass;\\n/**\\n * Constructor\\n */\\nmethod CompareSession\\n;\\n%Super = create CAF_CORE:OBJECT:BaseObject();\\n&"
-    },
-    {
-      "definitionId": 29184,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 655,
-      "origCtx": "d CurrentUser\\n/+ &mgr as CAF_CORE:ObjectManager +/;\\n&_manager = &mgr;\\nend-method;\\nmethod CanAccessFa",
-      "decCtx": "d CurrentUser\\n/+ &mgr as CAF_CORE:ObjectManager +/\\n;\\n&_manager = &mgr;\\nend-method;\\nmethod CanAccessF"
-    },
-    {
-      "definitionId": 29185,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 320,
-      "origCtx": "+ &name as String, +/\\n/+ &description as String +/;\\n&EmailId = &Id;\\n&EmailName = &name;\\n&EmailDescri",
-      "decCtx": "+ &name as String, +/\\n/+ &description as String +/\\n;\\n&EmailId = &Id;\\n&EmailName = &name;\\n&EmailDescr"
-    },
-    {
-      "definitionId": 29186,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 880,
-      "origCtx": "record, +/\\n/+ &handler as CAF_API:EntityHandler +/;\\n%Super = create CAF_CORE:OBJECT:BaseObject();\\n&O",
-      "decCtx": "record, +/\\n/+ &handler as CAF_API:EntityHandler +/\\n;\\n%Super = create CAF_CORE:OBJECT:BaseObject();\\n&"
-    },
-    {
-      "definitionId": 29188,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 353,
-      "origCtx": "\\n/+ Returns CAF_CORE:OBJECT:SESSION:SessionData +/;\\nLocal CAF_CORE:OBJECT:SESSION:SessionData &t = &",
-      "decCtx": "\\n/+ Returns CAF_CORE:OBJECT:SESSION:SessionData +/\\n;\\nLocal CAF_CORE:OBJECT:SESSION:SessionData &t = "
-    },
-    {
-      "definitionId": 29189,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 426,
-      "origCtx": "nd-class;\\nmethod SelectEntity\\n/+ &rec as record +/;\\n%Super = create CAF_CORE:OBJECT:BaseObject();\\n&O",
-      "decCtx": "nd-class;\\nmethod SelectEntity\\n/+ &rec as record +/\\n;\\n%Super = create CAF_CORE:OBJECT:BaseObject();\\n&"
-    },
-    {
-      "definitionId": 29190,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 438,
-      "origCtx": "Factor\\n/+ &id as String, +/\\n/+ &subId as String +/;\\n%Super = create CAF_CORE:OBJECT:BaseObject();\\n&F",
-      "decCtx": "Factor\\n/+ &id as String, +/\\n/+ &subId as String +/\\n;\\n%Super = create CAF_CORE:OBJECT:BaseObject();\\n&"
-    },
-    {
-      "definitionId": 29191,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 2506,
-      "origCtx": "LS_VAR;\\n/**\\n * Contructor\\n */\\nmethod ObjectManager;\\n&Constants = create CAF_CORE:ENUM:Constants();\\n&",
-      "decCtx": "LS_VAR;\\n/**\\n * Contructor\\n */\\nmethod ObjectManager\\n;\\n&Constants = create CAF_CORE:ENUM:Constants();\\n"
+      "diffOffset": 50933,
+      "origCtx": " +/\\n/+ Returns Array of CAF_CORE:OBJECT:Factor +/;;\\nLocal CAF_CORE:ObjectManager &mgr = %This.Manage",
+      "decCtx": " +/\\n/+ Returns Array of CAF_CORE:OBJECT:Factor +/;\\n;\\nLocal CAF_CORE:ObjectManager &mgr = %This.Manag"
     },
     {
       "definitionId": 29198,
       "appClass": true,
       "objectid1": 104,
       "unmappedOpcodeCount": 0,
-      "diffOffset": 836,
-      "origCtx": "rray of any &_map;\\nend-class;\\nmethod AccessControl;\\n&_manager = create CAF_CORE:ObjectManager();\\n&_m",
-      "decCtx": "rray of any &_map;\\nend-class;\\nmethod AccessControl\\n;\\n&_manager = create CAF_CORE:ObjectManager();\\n&_"
-    },
-    {
-      "definitionId": 29200,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 622,
-      "origCtx": "ass;\\n/**\\n * Constructor\\n */\\nmethod HandlerRegistry;\\n&_manager = create CAF_CORE:ObjectManager();\\nend",
-      "decCtx": "ass;\\n/**\\n * Constructor\\n */\\nmethod HandlerRegistry\\n;\\n&_manager = create CAF_CORE:ObjectManager();\\nen"
-    },
-    {
-      "definitionId": 29201,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 535,
-      "origCtx": "ng, +/\\n/+ &isId as Boolean +/\\n/+ Returns String +/;\\nIf &isId Then;\\nReturn \"<script type='text/javasc",
-      "decCtx": "ng, +/\\n/+ &isId as Boolean +/\\n/+ Returns String +/\\n;\\nIf &isId Then;\\nReturn \"<script type='text/javas"
-    },
-    {
-      "definitionId": 29202,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 825,
-      "origCtx": "emplate as String +/\\n/+ Returns Array of String +/;\\nLocal array of string &fields = CreateArrayRept(",
-      "decCtx": "emplate as String +/\\n/+ Returns Array of String +/\\n;\\nLocal array of string &fields = CreateArrayRept"
-    },
-    {
-      "definitionId": 29213,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 836,
-      "origCtx": "PS_PT:Integration:INotificationHandler.OnNotify +/;\\nLocal HR_INTEGRATION:HR_Subscription &mySubscrip",
-      "decCtx": "PS_PT:Integration:INotificationHandler.OnNotify +/\\n;\\nLocal HR_INTEGRATION:HR_Subscription &mySubscri"
-    },
-    {
-      "definitionId": 29214,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 812,
-      "origCtx": "PS_PT:Integration:INotificationHandler.OnNotify +/;\\nLocal HR_INTEGRATION:HR_Subscription &mySubscrip",
-      "decCtx": "PS_PT:Integration:INotificationHandler.OnNotify +/\\n;\\nLocal HR_INTEGRATION:HR_Subscription &mySubscri"
-    },
-    {
-      "definitionId": 29247,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 12001,
-      "origCtx": "/\\n/+ &CheckDigit as String +/\\n/+ Returns String +/;\\nLocal record &REC1;\\nLocal SQL &SQL;\\nLocal string",
-      "decCtx": "/\\n/+ &CheckDigit as String +/\\n/+ Returns String +/\\n;\\nLocal record &REC1;\\nLocal SQL &SQL;\\nLocal strin"
-    },
-    {
-      "definitionId": 29248,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 3878,
-      "origCtx": "ng());\\nend-try;\\nend-method;\\nmethod CalculateButton;\\nLocal CO_BANKING:IBAN &IBAN;\\n&IBAN = create CO_B",
-      "decCtx": "ng());\\nend-try;\\nend-method;\\nmethod CalculateButton\\n;\\nLocal CO_BANKING:IBAN &IBAN;\\n&IBAN = create CO_"
+      "diffOffset": 3970,
+      "origCtx": "al array of any &idnames = CreateArrayAny(\"\", \"\");;\\nLocal array of string &ids = CreateArrayRept(\"\",",
+      "decCtx": "al array of any &idnames = CreateArrayAny(\"\", \"\");\\n;\\nLocal array of string &ids = CreateArrayRept(\"\""
     },
     {
       "definitionId": 29303,
@@ -2022,78 +1158,6 @@
       "decCtx": "cMappingDtl.Getfield(field.GPS_CAR_RPT_FLD).Value;\\n;\\n%This._sMappingSourceLoader = RTrim(%This._recM"
     },
     {
-      "definitionId": 29360,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 3160,
-      "origCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/;\\n/***********************************************",
-      "decCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/\\n;\\n/**********************************************"
-    },
-    {
-      "definitionId": 29364,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1472,
-      "origCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/;\\n/***********************************************",
-      "decCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/\\n;\\n/**********************************************"
-    },
-    {
-      "definitionId": 29366,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1496,
-      "origCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/;\\n/***********************************************",
-      "decCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/\\n;\\n/**********************************************"
-    },
-    {
-      "definitionId": 29369,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 2957,
-      "origCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/;\\n/***********************************************",
-      "decCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/\\n;\\n/**********************************************"
-    },
-    {
-      "definitionId": 29371,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 2330,
-      "origCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/;\\n/***********************************************",
-      "decCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/\\n;\\n/**********************************************"
-    },
-    {
-      "definitionId": 29373,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 2340,
-      "origCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/;\\n/***********************************************",
-      "decCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/\\n;\\n/**********************************************"
-    },
-    {
-      "definitionId": 29375,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 2322,
-      "origCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/;\\n/***********************************************",
-      "decCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/\\n;\\n/**********************************************"
-    },
-    {
-      "definitionId": 29377,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 2330,
-      "origCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/;\\n/***********************************************",
-      "decCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/\\n;\\n/**********************************************"
-    },
-    {
       "definitionId": 29380,
       "appClass": true,
       "objectid1": 104,
@@ -2101,15 +1165,6 @@
       "diffOffset": 7989,
       "origCtx": "  * returns boolean\\n    * Description:    Get the ¿New¿ and ¿Individualized¿ remarks of the post pla",
       "decCtx": "  * returns boolean\\n    * Description:    Get the “New” and “Individualized” remarks of the post pla"
-    },
-    {
-      "definitionId": 29381,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 2339,
-      "origCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/;\\n/***********************************************",
-      "decCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/\\n;\\n/**********************************************"
     },
     {
       "definitionId": 29383,
@@ -2128,24 +1183,6 @@
       "diffOffset": 1849,
       "origCtx": "\"P\" Or\\nUpper(&_sGPS_STATUS) = \"T\" Then\\n/** blocked¿, `Inactive¿, `Reserved¿, `Pending¿, `Terminated¿",
       "decCtx": "\"P\" Or\\nUpper(&_sGPS_STATUS) = \"T\" Then\\n/** blocked’, ‘Inactive’, ‘Reserved’, ‘Pending’, ‘Terminated’"
-    },
-    {
-      "definitionId": 29387,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1447,
-      "origCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/;\\n/***********************************************",
-      "decCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/\\n;\\n/**********************************************"
-    },
-    {
-      "definitionId": 29389,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 10975,
-      "origCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/;\\n/***********************************************",
-      "decCtx": "s GPS_EDITFUNCTIONS:BaseEditFunction.planAction +/\\n;\\n/**********************************************"
     },
     {
       "definitionId": 29392,
@@ -2184,15 +1221,6 @@
       "decCtx": " \"<\" | &sTag | \">\" | &sValue | \"</\" | &sTag | \">\";\\n;\\nend-method;\\nmethod getCarXmlNodeValue\\n/+ &sXml "
     },
     {
-      "definitionId": 29413,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 473,
-      "origCtx": "pAction as field, +/\\n/+ &pClassMethod as String +/;\\nLocal record &_rRec;\\nLocal GPS_UTILS:ClassUtilit",
-      "decCtx": "pAction as field, +/\\n/+ &pClassMethod as String +/\\n;\\nLocal record &_rRec;\\nLocal GPS_UTILS:ClassUtili"
-    },
-    {
       "definitionId": 29414,
       "appClass": true,
       "objectid1": 104,
@@ -2220,15 +1248,6 @@
       "decCtx": " \"<\" | &sTag | \">\" | &sValue | \"</\" | &sTag | \">\";\\n;\\nend-method;"
     },
     {
-      "definitionId": 29456,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 883,
-      "origCtx": "en-Other\\nEnd-Evaluate;\\nend-method;\\nmethod PreBuild;\\n&recTmplCopy = &rsLvl0(1).Getrecord(record.GP_AB",
-      "decCtx": "en-Other\\nEnd-Evaluate;\\nend-method;\\nmethod PreBuild\\n;\\n&recTmplCopy = &rsLvl0(1).Getrecord(record.GP_A"
-    },
-    {
       "definitionId": 29482,
       "appClass": true,
       "objectid1": 104,
@@ -2247,15 +1266,6 @@
       "decCtx": "g &Action_txt;\\nConstant &CommentVar = \"%COMMENT%\";\\n;\\nend-class;\\nGlobal string &AbsEmailApprComments,"
     },
     {
-      "definitionId": 29529,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 2472,
-      "origCtx": "ndler:ApprovalFrameworkBase.PopulateItemForList +/;\\nLocal HMAP_APPROVAL:Object:Datafield &field;\\nLoc",
-      "decCtx": "ndler:ApprovalFrameworkBase.PopulateItemForList +/\\n;\\nLocal HMAP_APPROVAL:Object:Datafield &field;\\nLo"
-    },
-    {
       "definitionId": 29542,
       "appClass": true,
       "objectid1": 104,
@@ -2263,33 +1273,6 @@
       "diffOffset": 973,
       "origCtx": "Cert();\\nmethod checkEligibility() Returns boolean;;\\nprivate\\nmethod init();\\ninstance GP_ABS_CS_TMPL:T",
       "decCtx": "Cert();\\nmethod checkEligibility() Returns boolean;\\n;\\nprivate\\nmethod init();\\ninstance GP_ABS_CS_TMPL:"
-    },
-    {
-      "definitionId": 29548,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1435,
-      "origCtx": "/\\n/+ &AftRow as Row, +/\\n/+ &AuditActn as String +/;\\nLocal integer &counter;\\nLocal string &UpdExistRo",
-      "decCtx": "/\\n/+ &AftRow as Row, +/\\n/+ &AuditActn as String +/\\n;\\nLocal integer &counter;\\nLocal string &UpdExistR"
-    },
-    {
-      "definitionId": 29549,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 2375,
-      "origCtx": "date\\n/+ &BefRec as record, +/\\n/+ &AftRow as Row +/;\\nLocal string &AuditActn;\\nLocal date &min_bgndate",
-      "decCtx": "date\\n/+ &BefRec as record, +/\\n/+ &AftRow as Row +/\\n;\\nLocal string &AuditActn;\\nLocal date &min_bgndat"
-    },
-    {
-      "definitionId": 29552,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1118,
-      "origCtx": "/+ &Emplid as String, +/\\n/+ &Empl_rcd as Number +/;\\n/* open CI */\\nLocal ApiObject &Session;\\nLocal bo",
-      "decCtx": "/+ &Emplid as String, +/\\n/+ &Empl_rcd as Number +/\\n;\\n/* open CI */\\nLocal ApiObject &Session;\\nLocal b"
     },
     {
       "definitionId": 29560,
@@ -2301,24 +1284,6 @@
       "decCtx": ".EMAIL_ADDR.Value = Substitute(&EmailID, \" \", \"\");\\n;\\n&CB_Rec.NAME_DISPLAY.Value = &Name;\\n&CB_Rec.PHO"
     },
     {
-      "definitionId": 29562,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 631,
-      "origCtx": "inessUnit as String, +/\\n/+ &parAsofdate as Date +/;\\nLocal record &CcSetup;\\n&PayEntity = &parPayEntit",
-      "decCtx": "inessUnit as String, +/\\n/+ &parAsofdate as Date +/\\n;\\nLocal record &CcSetup;\\n&PayEntity = &parPayEnti"
-    },
-    {
-      "definitionId": 29563,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1300,
-      "origCtx": "r\\n*/\\nmethod GpCcSetupOnline\\n/+ &EffdtRow as Row +/;\\n&ThisRow = &EffdtRow;\\n&SetupRowset = &ThisRow.Ge",
-      "decCtx": "r\\n*/\\nmethod GpCcSetupOnline\\n/+ &EffdtRow as Row +/\\n;\\n&ThisRow = &EffdtRow;\\n&SetupRowset = &ThisRow.G"
-    },
-    {
       "definitionId": 29570,
       "appClass": true,
       "objectid1": 104,
@@ -2326,15 +1291,6 @@
       "diffOffset": 1670,
       "origCtx": "\\n  *\\n  * @exception     - None\\n  * @return String ¿ None\\n  */\\nmethod Parser\\n&CRLF = Char(13) | Char(",
       "decCtx": "\\n  *\\n  * @exception     - None\\n  * @return String – None\\n  */\\nmethod Parser\\n&CRLF = Char(13) | Char("
-    },
-    {
-      "definitionId": 29577,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 617,
-      "origCtx": "+/\\n/+ &sLabel_ID as String +/\\n/+ Returns String +/;\\nLocal string &LABEL;\\nIf None(&sLabel_ID) Then\\nSQ",
-      "decCtx": "+/\\n/+ &sLabel_ID as String +/\\n/+ Returns String +/\\n;\\nLocal string &LABEL;\\nIf None(&sLabel_ID) Then\\nS"
     },
     {
       "definitionId": 29594,
@@ -2373,15 +1329,6 @@
       "decCtx": "ns in one or two Web Library FieldFormula records — JSONEscape, GetRequireConfigJs, GetDesignerBodyH"
     },
     {
-      "definitionId": 29674,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 3830,
-      "origCtx": "ze run control record ***/\\nmethod InitAERunControl;\\nSQLExec(\"delete from PS_HP_RC_BUDRSP where oprid",
-      "decCtx": "ze run control record ***/\\nmethod InitAERunControl\\n;\\nSQLExec(\"delete from PS_HP_RC_BUDRSP where opri"
-    },
-    {
       "definitionId": 29789,
       "appClass": true,
       "objectid1": 104,
@@ -2416,33 +1363,6 @@
       "diffOffset": 3075,
       "origCtx": "of string &ArraySrvrList = CreateArrayRept(\"\", 0);;\\nIf(&paramSrvrName.Len = 0) Then\\nLocal SQL &SQL_S",
       "decCtx": "of string &ArraySrvrList = CreateArrayRept(\"\", 0);\\n;\\nIf(&paramSrvrName.Len = 0) Then\\nLocal SQL &SQL_"
-    },
-    {
-      "definitionId": 29841,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 2183,
-      "origCtx": "\\nmethod UpdateSystemVersions\\n/+ Returns Integer +/;\\nLocal number &psversion;\\nSQLExec(\"SELECT VERSION",
-      "decCtx": "\\nmethod UpdateSystemVersions\\n/+ Returns Integer +/\\n;\\nLocal number &psversion;\\nSQLExec(\"SELECT VERSIO"
-    },
-    {
-      "definitionId": 29842,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 2045,
-      "origCtx": "\\nmethod UpdateSystemVersions\\n/+ Returns Integer +/;\\nLocal number &psversion;\\nSQLExec(\"SELECT VERSION",
-      "decCtx": "\\nmethod UpdateSystemVersions\\n/+ Returns Integer +/\\n;\\nLocal number &psversion;\\nSQLExec(\"SELECT VERSIO"
-    },
-    {
-      "definitionId": 29854,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 3265,
-      "origCtx": "+/\\n/+ &sErr as String out +/\\n/+ Returns Boolean +/;\\nLocal JavaObject &oInputs;\\nLocal JavaObject &oAr",
-      "decCtx": "+/\\n/+ &sErr as String out +/\\n/+ Returns Boolean +/\\n;\\nLocal JavaObject &oInputs;\\nLocal JavaObject &oA"
     },
     {
       "definitionId": 29858,
@@ -2491,24 +1411,6 @@
       "decCtx": "TH_ID.Value, \"&\", \"&amp;\") | \"</text>\" | Char(13);\\n;\\n%This.startingY_ = %This.startingY_ + %This.awB"
     },
     {
-      "definitionId": 29964,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 582,
-      "origCtx": "\\nend-method;\\nmethod outputSVG\\n/+ Returns String +/;\\nLocal string &svg;\\nLocal number &i;\\n&svg = \"<def",
-      "decCtx": "\\nend-method;\\nmethod outputSVG\\n/+ Returns String +/\\n;\\nLocal string &svg;\\nLocal number &i;\\n&svg = \"<de"
-    },
-    {
-      "definitionId": 29976,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 148,
-      "origCtx": "\\nend-method;\\nmethod outputSVG\\n/+ Returns String +/;\\nReturn GetHTMLText(HTML.PTAF_AP_BUILDER_STAGE_IC",
-      "decCtx": "\\nend-method;\\nmethod outputSVG\\n/+ Returns String +/\\n;\\nReturn GetHTMLText(HTML.PTAF_AP_BUILDER_STAGE_I"
-    },
-    {
       "definitionId": 30047,
       "appClass": true,
       "objectid1": 104,
@@ -2545,15 +1447,6 @@
       "decCtx": "thod genHTMLString(&url As string) Returns string;\\n;\\n/**Deprecated.  Use genHTMLString() instead*/\\nm"
     },
     {
-      "definitionId": 30108,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 467,
-      "origCtx": "hod;\\nmethod Submit\\n/+ &pendingActions as Rowset +/;\\nLocal Message &MSG;\\nLocal Rowset &rs;\\nLocal Row ",
-      "decCtx": "hod;\\nmethod Submit\\n/+ &pendingActions as Rowset +/\\n;\\nLocal Message &MSG;\\nLocal Rowset &rs;\\nLocal Row"
-    },
-    {
       "definitionId": 30120,
       "appClass": true,
       "objectid1": 104,
@@ -2561,24 +1454,6 @@
       "diffOffset": 728,
       "origCtx": "eStatusIcon(&statusCode As string) Returns string;;\\nmethod getLocalTimeStamp() Returns string;\\ninsta",
       "decCtx": "eStatusIcon(&statusCode As string) Returns string;\\n;\\nmethod getLocalTimeStamp() Returns string;\\ninst"
-    },
-    {
-      "definitionId": 30134,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 938,
-      "origCtx": "g\\n/+ &fileName as String, +/\\n/+ &mode as String +/;\\n&mode = Upper(&mode);\\nIf(&mode = \"R\" Or /* Read ",
-      "decCtx": "g\\n/+ &fileName as String, +/\\n/+ &mode as String +/\\n;\\n&mode = Upper(&mode);\\nIf(&mode = \"R\" Or /* Read"
-    },
-    {
-      "definitionId": 30143,
-      "appClass": true,
-      "objectid1": 104,
-      "unmappedOpcodeCount": 0,
-      "diffOffset": 1476,
-      "origCtx": "Push(\"0\");\\nEnd-If;\\nend-method;\\nmethod pageActivate;\\nLocal Grid &grid = GetGrid(page.PTAF_AUTH, \"SAC_",
-      "decCtx": "Push(\"0\");\\nEnd-If;\\nend-method;\\nmethod pageActivate\\n;\\nLocal Grid &grid = GetGrid(page.PTAF_AUTH, \"SAC"
     },
     {
       "definitionId": 30145,

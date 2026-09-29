@@ -1,5 +1,93 @@
 # Corpus Calibration Progress
 
+## Continuation session (2026-09-28), part 3 — directly-adjacent `;;` tokens never render on separate lines
+
+**Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL
+SNAPSHOT throughout. Starting commit `3c06091` (this session's prior fix).
+Baseline before this change: 25,082/30,209 EXACT, REGRESSION GATE: PASS.
+
+### What was found
+
+Re-running `decode-mismatch-census.ts` on the (now 164-definition)
+`DECODE_SOURCE_MISMATCH` population surfaced the `;;` → `;\n;` cluster flagged
+earlier in this session's own notes (~65 candidates): a statement's own
+terminating `;` immediately followed, on the SAME source line, by a second,
+bare empty-statement `;` (`GetRowset(Scroll.X);;`) -- the decoder always
+rendered these on separate lines instead (`GetRowset(Scroll.X);\n;`).
+
+A naive corpus-wide text scan for `;;` (same line) vs `;\n;` (different
+lines) initially looked ambiguous -- it found 2 genuine `;\n;` occurrences in
+real, non-string/non-comment source (definitions 21969, 23232). Token-level
+inspection (`decodeProgram`'s own token stream) resolved the ambiguity: in
+BOTH of those two cases, the two semicolons are textually close in SOURCE but
+NOT adjacent in the TOKEN STREAM -- they belong to unrelated constructs (a
+multi-variable `Global` declaration list's own terminator, then, separately,
+a later standalone empty statement), with no genuinely adjacent `0x15 0x15`
+token pair anywhere in either definition. Every case where the token stream
+itself contains two DIRECTLY adjacent `0x15` tokens (no intervening token at
+all) was confirmed, corpus-wide, to belong on the same source line -- zero
+exceptions found. All 11 textual `;;` matches that were already `EXACT`
+turned out to be false positives entirely inside string literals (`"CDocument;;CDocument"`)
+or comments (`/* ... End-If;; */`), not real adjacent-semicolon statements at
+all -- confirming there was no live tension with any already-passing
+definition.
+
+### Fix
+
+`src/peoplecode/decoder.ts`: added `bareSemicolonFollowedByBareSemicolon`
+(`t.opcode === 0x15 && nextToken?.opcode === 0x15`) to the existing
+`F.NEWLINE_AFTER` suppression list, alongside
+`whenOtherFollowedByBareSemicolon`/`elseFollowedByBareSemicolon`/
+`docCommentFollowedByBareSemicolon` -- the first semicolon's own
+`NEWLINE_AFTER` is skipped; the second semicolon's own `NEWLINE_AFTER`
+already supplies the line break to whatever follows.
+
+### Fail-before/pass-after proof (`git stash -- src/peoplecode/decoder.ts`)
+
+```text
+Definition 4740: before -> DECODE_SOURCE_MISMATCH, after -> EXACT
+Definition 5344: before -> DECODE_SOURCE_MISMATCH, after -> EXACT
+```
+
+### Spot checks
+
+```text
+4740, 5344         -> EXACT
+4422               -> still UNKNOWN_MISMATCH (decode SOURCE MATCH now fixed; a separate,
+                      unrelated issue elsewhere in the same definition remains)
+21969, 23232        -> unchanged (UNKNOWN_MISMATCH both before and after -- these are the
+                      confirmed NON-token-adjacent negative controls; unaffected as expected)
+```
+
+### Full validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped — unchanged.
+- Protected/full-corpus gate: `npm run corpus:verify` — REGRESSION GATE:
+  PASS, 0 regressed.
+- Full top-level harness re-run: **EXACT 25,082 → 25,103 (+21)**, NONEXACT
+  5,127 → 5,106.
+- Taxonomy rebuild: `DECODE_SOURCE_MISMATCH` 164 → 96, other categories held
+  steady (`UNSUPPORTED_SYNTAX` 335, `ENCODE_ERROR` 122, `DECODER_BARE_IDENTIFIER`
+  26 all unchanged).
+
+### Next action
+
+`DECODE_SOURCE_MISMATCH` is now down to 96 (from 512 at the start of this
+session -- three fixes in a row have shrunk it by over 80%). Re-run
+`decode-mismatch-census.ts` again to re-triage the residual before picking
+the next target. Known remaining leads not yet investigated this session:
+the `)[index]` → `) [index]` bracket-spacing-after-call-result cluster
+(~14 seen), the `*/`-same-line-as-next-statement cluster, definition 28961's
+`get`-header stray-semicolon-insertion bug (decoder ADDS a `;` not present in
+source), and the mojibake/curly-quote cluster (~57-61 seen, still
+undetermined whether fixable or a `PROVEN_UNAVAILABLE_METADATA` candidate).
+With `DECODE_SOURCE_MISMATCH` shrinking fast, it is also worth checking
+whether the much larger `UNKNOWN_MISMATCH` (now 4,527) or
+`REFERENCE_ACTIVE_*` families offer better payoff-per-effort than continuing
+to chase the shrinking tail of this one category -- rebuild the full taxonomy
+(not just the decode-mismatch census) before deciding.
+
 ## Continuation session (2026-09-28), part 2 — method/get implementation-header closing semicolon never renders on its own line
 
 **Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL
