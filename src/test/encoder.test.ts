@@ -5267,3 +5267,61 @@ Local integer &i;${gap}
   );
   assert.deepStrictEqual(delta, [0x4f]);
 });
+
+/*
+ * Cycle 85: a top-level Function definition does not end the leading
+ * declaration phase. A Local run that follows Function definitions (before
+ * any executable statement) closes formally with 0x2D 0x4F
+ * (definition 14862 and 31 more); an initialized run keeps the informal
+ * close (Cycle 84).
+ */
+function boundaryOpcodesBeforeLastStatement(source: string): string {
+  const artifacts = encodeProgramArtifacts(source, whileGapOwner as any);
+  const names = new NameTable();
+  for (const reference of artifacts.references) names.add(reference.sequence, `N${reference.sequence}`);
+  const tokens = decodeProgram(artifacts.program, names, { mode: 'auto' }).tokens;
+  // The final statement starts at the last `&r` token; return the three
+  // opcodes before it (the Local's `;` and the boundary bytes).
+  const assignmentStart = tokens.map(t => t.text).lastIndexOf('&r');
+  return tokens.slice(Math.max(0, assignmentStart - 3), assignmentStart).map(t => t.opcode.toString(16)).join(' ');
+}
+
+test('a Local run after a Function definition closes formally with 0x2D 0x4F', () => {
+  assert.strictEqual(
+    boundaryOpcodesBeforeLastStatement(`Function A()
+End-Function;
+
+Local Rowset &r;
+
+&r = GetRowset(Scroll.TEST_REC);`),
+    '15 2d 4f'
+  );
+});
+
+test('declaration-phase continuity survives several Function definitions and comments between them', () => {
+  assert.strictEqual(
+    boundaryOpcodesBeforeLastStatement(`Function A()
+End-Function;
+
+/* helper */
+
+Function B()
+End-Function;
+
+Local Rowset &r;
+
+&r = GetRowset(Scroll.TEST_REC);`),
+    '15 2d 4f'
+  );
+});
+
+test('an initialized Local run after a Function keeps the informal close (no 0x2D)', () => {
+  const opcodes = boundaryOpcodesBeforeLastStatement(`Function A()
+End-Function;
+
+Local Rowset &x = GetRowset(Scroll.TEST_REC);
+Local Rowset &r;
+
+&r = &x;`);
+  assert.ok(!opcodes.includes('2d'), opcodes);
+});
