@@ -1996,20 +1996,48 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
     const f = t.format;
 
     /*
-     * Cycle 80: shared by both this token's own NEWLINE_BEFORE suppression
-     * (rendering the comment inline right after the statement) and its
-     * NEWLINE_AFTER suppression below (not also adding a second, redundant
-     * newline on top of whatever separator -- a following 0x2D/0x4F blank-
-     * line sequence, or nothing -- comes next). See inlineCommentAfterStatement's
-     * own comment for why "any real preceding token" is the rule, not a
-     * specific keyword.
+     * Cycle 80 generalized this from "previous is exactly End-If" to
+     * "previous is a semicolon with a real statement before it." Compiler
+     * closure: a corpus-wide DECODE_SOURCE_MISMATCH census found the SAME
+     * mechanism needed far more generally -- 0x4E's own definition (see
+     * encoder.ts's `scanApplicationClassLayoutComments`: chosen whenever
+     * non-whitespace precedes the comment on its own source line) already
+     * means "inline," regardless of WHAT precedes it. `Evaluate
+     * &country\nWhen "CHN" /* China *\/` (definition 913), `%component =
+     * "GPSC_BANK_ACC_FL" /*FLUID*\/) And` (definitions 1406/1411/1412/...),
+     * and a comment directly after ANOTHER comment (definition 523,
+     * `/* 811477 end *\/ /* Begin Bug ... *\/`) all proved a semicolon is
+     * not required -- a When-clause value, an expression value before a
+     * closing paren, and another comment all precede an inline 0x4E just
+     * as validly. Generalizing to "any real token precedes it" (dropping
+     * the 0x15-specifically requirement entirely) still respects the
+     * existing `; 0x4E` synthetic fixture below (bare stream start, only
+     * a Header token before it).
+     */
+    const effectivePrecedingToken =
+      tokens[tokenIndex - 1]?.opcode === 0x15
+        ? tokens[tokenIndex - 2]
+        : tokens[tokenIndex - 1];
+    /*
+     * Compiler closure: an 0x4E comment immediately followed by a 0x15
+     * semicolon IN TOKEN ORDER is a real, separate shape, not covered by
+     * the generalization above. ABSENCE_HIST.RETURN_DT.FieldChange
+     * (definition 55) proves it: `ABSENCE_HIST.DURATION_DAYS = 0;\n/*--
+     * Start 150555--*\/\n` stores the comment's bytes BEFORE the
+     * statement's own terminating semicolon (`0, 0x4E, 0x15`), even
+     * though the comment appears textually AFTER the semicolon in
+     * source, on its own line. Rendering this comment inline with its
+     * preceding token ("0") regressed this exact definition from EXACT.
+     * The semicolon must render first, then the comment starts a fresh
+     * line -- the opposite of every other case this generalization
+     * covers.
      */
     const commentInlineAfterStatement =
       t.kind === TokenKind.Comment &&
       t.opcode === 0x4e &&
-      tokens[tokenIndex - 1]?.opcode === 0x15 &&
-      tokens[tokenIndex - 2] !== undefined &&
-      tokens[tokenIndex - 2]?.kind !== TokenKind.Header;
+      nextToken?.opcode !== 0x15 &&
+      effectivePrecedingToken !== undefined &&
+      effectivePrecedingToken.kind !== TokenKind.Header;
 
     if (f & F.DECREASE_INDENT) indent = Math.max(0, indent - 1);
     // NO_SPACE_BEFORE overrides whatever trailing space the previous token's
@@ -2160,6 +2188,21 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         // NEWLINE_ONCE) already got us here.
         if (!atLineStart) out.push('\n');
         writeIndent();
+      } else if (
+        commentInlineAfterStatement &&
+        !atLineStart &&
+        lastChar() !== ' '
+      ) {
+        /*
+         * Compiler closure: the generalized commentInlineAfterStatement
+         * case (unlike the enumerated Then/Else/And/Or/REM cases, which
+         * already render their own trailing space) has no SPACE_BEFORE
+         * formatting of its own -- comments carry only NEWLINE_BOTH.
+         * `"CHN" /* China *\/` needs the ordinary single space PeopleTools
+         * always renders between a value and a same-line trailing
+         * comment.
+         */
+        out.push(' ');
       }
     } else if (
       f & F.SPACE_BEFORE && !(f & F.NO_SPACE_BEFORE) &&
@@ -2175,19 +2218,22 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
 
     if (f & (F.INCREASE_INDENT | F.INCREASE_INDENT_ONCE)) indent++;
 
+    /*
+     * Compiler closure: generalized the same way as
+     * commentInlineAfterStatement above -- this used to require THIS
+     * token to be one of a specific enumerated set (0x15/Then/Else/And/
+     * Or/a REM comment) before suppressing its own NEWLINE_AFTER in
+     * favor of a same-line inline comment. A corpus-wide
+     * DECODE_SOURCE_MISMATCH census found the same gap on this side too:
+     * `When-Other /* Other *\/` (definition 913) needs When-Other's own
+     * NEWLINE_AFTER suppressed exactly the same way, and there is no
+     * enumerable end to which keyword/token might legitimately precede
+     * an inline comment this way. The comment's OWN opcode (0x4E) is
+     * already the authoritative signal that it belongs on the same line
+     * as whatever precedes it -- checking only `nextToken` needs no
+     * enumeration of `t` at all.
+     */
     const suppressNewlineForInlineComment =
-      (
-        t.opcode === 0x15 ||
-        t.text === 'Then' ||
-        t.text === 'Else' ||
-        t.text === 'And' ||
-        t.text === 'Or' ||
-        (
-          t.kind === TokenKind.Comment &&
-          t.opcode === 0x24 &&
-          /^(?:REM|remark)\b/i.test(t.text)
-        )
-      ) &&
       nextToken?.kind === TokenKind.Comment &&
       nextToken.opcode === 0x4e;
     /*
@@ -2247,6 +2293,44 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
     const commentInlineAfterStatementBeforeNewlineOnce =
       commentInlineAfterStatement && nextToken?.opcode === 0x2d;
 
+    /*
+     * Compiler closure: an inline comment sandwiched mid-expression can
+     * ALSO need its own trailing NEWLINE_AFTER replaced with a space --
+     * `"GPSC_BANK_ACC_FL" /*FLUID*\/ And` (definition 1411) and
+     * `.../*FLUID*\/) And` (definition 1406) both need "And"/")" to stay
+     * on the comment's own line. This is NOT a blanket "anything but
+     * 0x2D/0x4F" rule, though: `decoder.test.ts`'s own "0x4E after a
+     * boolean operator stays attached to that operator" fixture proves
+     * `True Or /* Save or Reset *\/\nFalse` keeps its newline before
+     * `False` even though `False` is neither 0x2D nor 0x4F -- a blanket
+     * version of this rule regressed that fixture directly. Scoped to
+     * only the specific next-tokens corpus evidence supports: 0x18/0x1E
+     * (And/Or, continuing the SAME boolean expression the comment
+     * interrupted) and 0x14 (a closing paren completing that same
+     * expression).
+     */
+    const tokenAfterNext = tokens[tokenIndex + 2];
+    const commentInlineContinuesToNextToken =
+      commentInlineAfterStatement &&
+      (
+        nextToken?.opcode === 0x18 ||
+        nextToken?.opcode === 0x1e ||
+        nextToken?.opcode === 0x14 ||
+        // 0x1f (Then) directly follows an inline comment with no
+        // intermediate marker at all -- confirmed on definition 1406's
+        // own tokens (`"GPSC_BANK_ACC_FL" /*FLUID*/ Then`).
+        nextToken?.opcode === 0x1f ||
+        // 0x41/0x42 are documented elsewhere in this file as zero-width
+        // markers (render no text) that sit immediately before And/Or
+        // (0x41) or a closing paren/Then (0x42) -- confirmed on
+        // definitions 1411 (comment, 0x41, And), 1406 (comment, 0x42,
+        // closing paren), and 1417 (comment, 0x42, Then) -- so this
+        // comment's own next-token check must see past whichever one
+        // intervenes.
+        (nextToken?.opcode === 0x41 && (tokenAfterNext?.opcode === 0x18 || tokenAfterNext?.opcode === 0x1e)) ||
+        (nextToken?.opcode === 0x42 && (tokenAfterNext?.opcode === 0x14 || tokenAfterNext?.opcode === 0x1f))
+      );
+
     if (f & F.NEWLINE_AFTER) {
       if (
         inlineHeaderCommentBeforeSemicolon ||
@@ -2260,7 +2344,7 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
          * line sequence) supplies its own, complete separator already;
          * adding this comment's own newline on top double-counted it.
          */
-      } else if (suppressNewlineForInlineComment) {
+      } else if (suppressNewlineForInlineComment || commentInlineContinuesToNextToken) {
         trimTrailing();
         out.push(' ');
       } else {
