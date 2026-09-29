@@ -1196,6 +1196,37 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * this dispatch entirely.
        */
       ensureLocalObjectPackageReference('GRID', 'Grid');
+    } else if (/^GridColumn$/i.test(type ?? '')) {
+      /*
+       * Compiler closure: corpus-wide REFERENCE_ACTIVE_RECORD_FIELD
+       * census (45 definitions) found `Local GridColumn &x;` missing
+       * from this dispatch entirely -- the same class of gap as
+       * Grid/ApiObject/ProcessRequest above, just never covered. Cycle
+       * 78 already added `GridColumn` to `typeName()`'s inline-
+       * identifier introducer list (the token-BYTE concern) but never
+       * to this separate PACKAGE-allocation dispatch (the reference-
+       * ROW concern) -- two independent mechanisms for the same type
+       * name. GP_ACM_MBR.ENTRY_TYPE_ELEM.RowInit (definition 10760)
+       * proves it: `Local GridColumn &colPinPctName;` followed by
+       * `&colPinPctName = &grdAcmMbr.GetColumn(...)` stores a
+       * PACKAGE/GRIDCOLUMN row this dispatch never allocated, shifting
+       * every subsequent reference index down by one.
+       */
+      ensureLocalObjectPackageReference('GRIDCOLUMN', 'GridColumn');
+    } else if (/^Message$/i.test(type ?? '')) {
+      /*
+       * Compiler closure: same REFERENCE_ACTIVE_RECORD_FIELD census,
+       * PACKAGE.MESSAGE cluster (15 definitions). `Message` was added to
+       * `typeName()`'s inline-identifier list in Cycle 78 (the token-
+       * byte concern) but never to this PACKAGE-allocation dispatch.
+       */
+      ensureLocalObjectPackageReference('MESSAGE', 'Message');
+    } else if (/^JavaObject$/i.test(type ?? '')) {
+      /*
+       * Compiler closure: same census, PACKAGE.JAVAOBJECT cluster (10
+       * definitions). Same gap as Message above.
+       */
+      ensureLocalObjectPackageReference('JAVAOBJECT', 'JavaObject');
     } else if (/^ProcessRequest$/i.test(type ?? '')) {
       /*
        * BENEF_PB_WRK.ODEM_SCHED_ACTY_PB.FieldDefault (definition 1749):
