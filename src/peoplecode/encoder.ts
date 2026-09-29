@@ -866,7 +866,7 @@ function textOperand(opcode: number, kind: TokenKind, value: string): Buffer {
  * for this token format. Unary minus is supported; unary plus and member/index
  * access are unsupported.  
  */
-function encodeFragmentInternal(source: string, context?: EncodeFragmentContext): { bytes: Buffer; references: PeopleCodeReference[] } {
+function encodeFragmentInternal(source: string, context?: EncodeFragmentContext): { bytes: Buffer; references: PeopleCodeReference[]; commentOpcodesConsumed: number } {
 
   let commentOpcodeIndex = 0;
 
@@ -11623,7 +11623,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
   return {
     bytes: finalBytes,
-    references
+    references,
+    commentOpcodesConsumed: commentOpcodeIndex
   };
 }
 
@@ -12365,6 +12366,7 @@ function encodeApplicationClassProgramV2(
   const htmlDependencyScope = new HtmlDependencyScope();
   const applicationClassReferenceScope = new ApplicationClassReferenceScope();
   let nextReferenceIndex = 0;
+  let nextCommentOpcodeIndex = 0;
   let firstFragment = true;
 
   const encodeFragment = (
@@ -12373,6 +12375,32 @@ function encodeApplicationClassProgramV2(
     suppressDeclarationSectionMarkers = true,
     methodParameters?: { name: string; type: string }[]
   ): Buffer => {
+    /*
+     * Cycle 81: this closure encodes several independent fragments in
+     * sequence (the leading import/prefix leftover, then one per method
+     * body). `context.commentOpcodes` is the WHOLE program's comment-
+     * opcode provenance list, built once from every 0x24/0x4E token in
+     * decoder order (validator.ts's own roundtrip test). Each fragment's
+     * own `encodeFragmentInternal` call starts its local comment index at
+     * 0, so every fragment after the first was reading the SAME leading
+     * entries meant for an EARLIER fragment's comments -- 15 Application
+     * Class definitions (e.g. AltAcctCFFullSync.OnNotify, definition
+     * 28816) proved this: re-encoding decoded text WITHOUT the (correct,
+     * validator-supplied) commentOpcodes array produced byte-exact
+     * output via the encoder's own positional fallback, while WITH it
+     * produced the wrong bytes, because the array was misaligned per
+     * fragment. Slicing from a shared, running index (exactly the same
+     * pattern `nextReferenceIndex` already uses for cross-fragment
+     * reference numbering below) fixes the alignment. Reference equality
+     * against the default distinguishes this shared-array case from the
+     * unrelated prefix-leftover call below, which passes its OWN,
+     * independently-scoped array from `scanApplicationClassLayoutComments`
+     * and must not participate in this shared counter.
+     */
+    const usesSharedCommentOpcodes = commentOpcodes === context?.commentOpcodes;
+    if (usesSharedCommentOpcodes) {
+      commentOpcodes = context?.commentOpcodes?.slice(nextCommentOpcodeIndex);
+    }
     const applicationClassReferenceSession = hasModeledApplicationClassReferenceScope
       ? applicationClassReferenceScope.beginFragment()
       : undefined;
@@ -12410,6 +12438,9 @@ function encodeApplicationClassProgramV2(
     applicationClassReferenceScope.commit(encoded.references);
     firstFragment = false;
     nextReferenceIndex += encoded.references.length;
+    if (usesSharedCommentOpcodes) {
+      nextCommentOpcodeIndex += encoded.commentOpcodesConsumed;
+    }
     references.push(...encoded.references);
     return encoded.bytes;
   };
@@ -12530,6 +12561,16 @@ function encodeApplicationClassProgramV2(
       }
       statementChunks.push(applicationClassLayoutCommentOperand(comment));
       cursor = comment.end;
+      // Cycle 81: a 0x24/0x4E comment here is a real token in decoder
+      // order, so it still occupies a slot in validator.ts's whole-
+      // program commentOpcodes array even though it never goes through
+      // consumeCommentOpcode() -- keep the shared counter in sync with it
+      // (see encodeFragment's own comment for the full explanation).
+      // 0x55 (<* *> disabled code) is a different comment family, never
+      // counted into that array, and must not advance this counter.
+      if (comment.opcode === 0x24 || comment.opcode === 0x4e) {
+        nextCommentOpcodeIndex++;
+      }
     }
     while (terminatorIndex < terminators.length) {
       emittedDeclarationTerminatorOffsets.add(terminators[terminatorIndex]);
@@ -12576,6 +12617,15 @@ function encodeApplicationClassProgramV2(
       ).flatMap(comment => comment.opcode === 0x24 || comment.opcode === 0x4e ? [comment.opcode] : []);
       try {
         statementChunks.push(encodeFragment(core, commentOpcodes, false));
+        // Cycle 81: this range's own comments were consumed here, via a
+        // locally-scoped array sized just for this range (an explicit
+        // override, not the shared default) -- but they still occupy
+        // their own slots in the whole-program array, so the shared
+        // counter must skip past them for whatever fragment comes next.
+        // Only on this success path: the catch below re-emits the same
+        // comments through emitLayoutRange, which advances the counter
+        // itself.
+        nextCommentOpcodeIndex += commentOpcodes.length;
       } catch (error) {
         if (!(error instanceof UnsupportedPeopleCodeError)) throw error;
         // Native/preprocessor declarations remain outside Cycle 25. Preserve
@@ -12625,6 +12675,18 @@ function encodeApplicationClassProgramV2(
       }
       return;
     }
+
+    /*
+     * Cycle 81: prefix comments are encoded directly via
+     * applicationClassLayoutCommentOperand() below, never through
+     * consumeCommentOpcode() -- but they are still ordinary comment
+     * tokens in decoder order, so validator.ts's whole-program
+     * commentOpcodes array still counts them. Skip past them in the
+     * shared counter here so the first method body's own encodeFragment
+     * call starts reading from its own true position instead of
+     * re-consuming entries meant for these prefix comments.
+     */
+    nextCommentOpcodeIndex += comments.filter(c => c.opcode === 0x24 || c.opcode === 0x4e).length;
 
     cursor = 0;
     let importSectionOpen = false;

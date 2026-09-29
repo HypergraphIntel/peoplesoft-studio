@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-09-29T00:08:21.154Z",
+ "generatedAt": "2026-09-29T00:40:41.512Z",
  "totalDefinitions": 30209,
- "exactCount": 24642,
- "nonexactCount": 5567,
+ "exactCount": 24657,
+ "nonexactCount": 5552,
  "rows": [
   {
    "definitionId": 522,
@@ -65801,14 +65801,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 28816,
-   "displayName": "104=ALTACCT_CF_FULLSYNC, 107=AltAcctCFFullSync, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
-  },
-  {
    "definitionId": 28818,
    "displayName": "104=ANET_CRR, 107=CRR, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -65948,14 +65940,6 @@
     "storedCount": 1,
     "generatedCount": 1
    }
-  },
-  {
-   "definitionId": 28830,
-   "displayName": "104=ANET_UTILS, 107=ConfirmBOD, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
   },
   {
    "definitionId": 28831,
@@ -68478,22 +68462,6 @@
    }
   },
   {
-   "definitionId": 29061,
-   "displayName": "104=BUDGET_REF_CF_FULLSYNC, 107=BudgetRefCFFullSync, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
-  },
-  {
-   "definitionId": 29062,
-   "displayName": "104=BUDGET_REF_CF_SYNC, 107=BudgetRefCFSync, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
-  },
-  {
    "definitionId": 29081,
    "displayName": "104=CAFNUI_API, 105=OBJECT, 107=Action, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -69656,30 +69624,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 29203,
-   "displayName": "104=CHARTFIELD1_FULLSYNC, 107=Chartfield1FullSync, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
-  },
-  {
-   "definitionId": 29205,
-   "displayName": "104=CHARTFIELD2_FULLSYNC, 107=Chartfield2FullSync, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
-  },
-  {
-   "definitionId": 29207,
-   "displayName": "104=CHARTFIELD3_FULLSYNC, 107=Chartfield3FullSync, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
-  },
-  {
    "definitionId": 29213,
    "displayName": "104=CITIZEN_STS_TBL_FULLSYNC, 107=CitizenStsTblFullsync, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -69694,14 +69638,6 @@
    "sourceEncodeExact": true,
    "roundtripExact": true,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29215,
-   "displayName": "104=CLASS_CF_FULLSYNC, 107=ClassCFFullSync, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
   },
   {
    "definitionId": 29230,
@@ -74515,38 +74451,6 @@
    }
   },
   {
-   "definitionId": 29764,
-   "displayName": "104=PNA_W4_FORM, 105=SpecialFunction, 107=OKEXMT1, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
-  },
-  {
-   "definitionId": 29768,
-   "displayName": "104=PNA_W4_FORM, 105=SpecialFunction, 107=OREXMT1, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
-  },
-  {
-   "definitionId": 29769,
-   "displayName": "104=PNA_W4_FORM, 105=SpecialFunction, 107=ORMRST, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
-  },
-  {
-   "definitionId": 29780,
-   "displayName": "104=PNA_W4_FORM, 105=SpecialFunction, 107=VTEXMT2, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
-  },
-  {
    "definitionId": 29784,
    "displayName": "104=PNA_W4_FORM, 105=Utilities, 107=Validate, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -74813,22 +74717,6 @@
    "sourceEncodeExact": true,
    "roundtripExact": false,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29819,
-   "displayName": "104=PRODUCT_CHARTFIELD_FULLSYNC, 107=ProductChartfieldFullSync, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
-  },
-  {
-   "definitionId": 29821,
-   "displayName": "104=PROGRAM_CF_FULLSYNC, 107=ProgramCFFullSync, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
   },
   {
    "definitionId": 29823,
@@ -75686,14 +75574,6 @@
    "roundtripExact": false,
    "firstDiffOffset": 5,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29920,
-   "displayName": "104=PTADSDEFNFORRCF, 107=ServicesManagedObject, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
   },
   {
    "definitionId": 29921,

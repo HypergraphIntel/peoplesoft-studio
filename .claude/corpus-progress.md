@@ -1,5 +1,207 @@
 # Corpus Calibration Progress
 
+## Cycle 81 — `encodeApplicationClassProgramV2`'s shared `commentOpcodes` provenance array was never sliced per fragment, so every fragment after the first silently misread another one's entries
+
+**Status: IMPLEMENTED, validated, zero regressions. Cycle 80's closing residual census mislabeled 15 of 32 `ROUNDTRIP_ONLY` definitions "EOF->EOF" (a bug in that census script itself: its byte-diff helper returns `undefined` for two FULLY IDENTICAL buffers, and the display logic printed 'EOF' for that undefined offset -- indistinguishable from "ran off the end of a shorter buffer"). Direct re-diffing found these 15 definitions' re-encoded PSPCMPROG (from decoded text) is ALREADY 100% byte-identical to stored, header and body both -- there is no length-only or tail divergence at all. The real cause: `validator.ts`'s roundtrip test passes an explicit `commentOpcodes` array (every 0x24/0x4E opcode in decoder order) that a naive re-encode omits; passing it exposed that `encodeApplicationClassProgramV2` encodes several independent fragments (the leading import/prefix, then each method body) through a shared `encodeFragment` closure whose `commentOpcodes` default was the WHOLE, unsliced program-level array on every call -- each fragment's own `encodeFragmentInternal` invocation starts its local comment-consumption index at 0, so every fragment after the first silently re-read entries meant for an earlier one, or for comments consumed entirely outside `consumeCommentOpcode` (the prefix and declaration-layout comment scanners). Threading a shared, running index through all three consumption paths -- exactly the same pattern already used for `nextReferenceIndex` -- fixed all 15. Result: +15 EXACT, 0 regressions.**
+
+Datasource: LOCAL SNAPSHOT throughout. Starting commit `888403f` (Cycle
+80). Protected/full-corpus regression gate reproduced before any change:
+`npm run corpus:verify` — Improved: 0, Regressed: 0, REGRESSION GATE:
+PASS. Full harness reproduced fresh: **24,642 / 30,209 EXACT (5,567
+NONEXACT)** — matches Cycle 80's own ending state exactly. Test
+baseline reproduced: 607/608 (1 skipped). Cycle 73's own taxonomy tool
+reproduced exactly: `ROUNDTRIP_ONLY` = 32, `DECODE_SOURCE_MISMATCH` =
+923, `DECODER_BARE_IDENTIFIER` = 26, `REFERENCE_ACTIVE_PACKAGE` = 715,
+no drift.
+
+### Phase 1/2 — extracting the population, and correcting a prior mislabel
+
+Cycle 80's own closing note described a 15-definition "EOF->EOF"
+cluster within the 32-definition `ROUNDTRIP_ONLY` residual, framed as
+"stored and re-encoded bodies are identical throughout their shared
+prefix, but total lengths differ." Per this cycle's own critical
+constraint ("start at the binary tail, not rendered source"), a fresh,
+independent byte-level re-diff was built rather than trusting that
+label. It found **zero** genuine length-only divergences -- instead,
+all 15 definitions' re-encoded HEADER (37 bytes) and BODY are BOTH
+already fully byte-identical to stored. `roundtripExact` was still
+`false` for a reason invisible to a naive re-encode: the REAL
+`validateDefinition` roundtrip test (`tools/corpus/validator.ts`)
+passes an explicit `commentOpcodes` context array that a plain
+`encodeProgram(decoded.text, context)` call omits.
+
+```text
+without explicit commentOpcodes: byte-identical to stored (all 15)
+with the SAME provenance array validator.ts actually passes: WRONG bytes (all 15)
+```
+
+This is the opposite of every prior "provenance loss" story in this
+project -- here, supplying the CORRECT provenance information is what
+broke the result, revealing a consumption-order bug rather than a
+missing-information one.
+
+### Phase 11/12 — 100% Application Class
+
+All 15 are `objectid1 === 104`. This immediately pointed at
+`encodeApplicationClassProgramV2`, the only encoder path with multiple
+independent, sequentially-encoded fragments sharing one context object.
+
+### Phase 19/21/25 — the exact mechanism
+
+`encodeApplicationClassProgramV2` builds one whole-program
+`commentOpcodes` array (in `validator.ts`, from decoder-order 0x24/0x4E
+tokens) and threads it through a local `encodeFragment` closure used for
+the leading prefix and every method body:
+
+```typescript
+const encodeFragment = (
+  fragmentSource: string,
+  commentOpcodes = context?.commentOpcodes,   // the WHOLE array, every call
+  ...
+): Buffer => {
+  const encoded = encodeFragmentInternal(fragmentSource, { ...context, commentOpcodes, ... });
+  ...
+};
+```
+
+`encodeFragmentInternal`'s own `commentOpcodeIndex` (which
+`consumeCommentOpcode` advances) is a fresh local variable starting at 0
+on every call. Cross-fragment reference numbering already solves this
+exact class of problem for PSPCMNAME indices via a shared,
+externally-threaded `nextReferenceIndex` counter
+(`nextReferenceIndex += encoded.references.length` after each call) --
+but no equivalent existed for comment-opcode consumption.
+
+Three separate call sites consume comment opcodes WITHOUT going through
+this shared default at all, and had to be accounted for too:
+
+1. `emitCompilationUnitPrefix()` -- prefix comments (before `class`) are
+   encoded directly via `applicationClassLayoutCommentOperand()`, never
+   through `consumeCommentOpcode()`.
+2. `emitLayoutRange()` -- class-body declaration-section comments,
+   same direct-encode mechanism.
+3. `emitSharedFragmentRange()` -- the `end-class;`-to-first-
+   implementation trailer (e.g. `Declare Function ...;`) computes its
+   OWN locally-scoped `commentOpcodes` slice (via
+   `scanApplicationClassLayoutComments`) and passes it explicitly,
+   correctly consuming its own comments -- but those comments still
+   occupy real slots in the whole-program array that the SHARED counter
+   must skip past for whatever comes next.
+
+AAOTOAA_MSGS-family definition 28816 (`import ...;\n\nclass
+AltAcctCFFullSync implements ...\n  method AltAcctCFFullSync();\n
+method OnNotify(...);\n\nend-class;\n\nDeclare Function
+Subscribe_FullReplication ...;`) has zero prefix comments but 4 body/
+trailer comments (`0x4e, 0x24, 0x24, 0x24`) -- proving the misalignment
+occurs purely from cross-fragment/cross-mechanism sharing, not
+specifically from prefix comments.
+
+### Fix
+
+```typescript
+let nextCommentOpcodeIndex = 0;   // alongside the existing nextReferenceIndex
+
+const encodeFragment = (fragmentSource, commentOpcodes = context?.commentOpcodes, ...) => {
+  const usesSharedCommentOpcodes = commentOpcodes === context?.commentOpcodes;
+  if (usesSharedCommentOpcodes) {
+    commentOpcodes = context?.commentOpcodes?.slice(nextCommentOpcodeIndex);
+  }
+  const encoded = encodeFragmentInternal(fragmentSource, { ...context, commentOpcodes, ... });
+  ...
+  if (usesSharedCommentOpcodes) {
+    nextCommentOpcodeIndex += encoded.commentOpcodesConsumed;  // new field on encodeFragmentInternal's return
+  }
+  return encoded.bytes;
+};
+```
+
+Reference equality against the default distinguishes fragments using
+the shared array from the trailer's own explicit override (a different
+array object), which must not double-advance the counter. The three
+direct-encode sites (prefix, layout-range, trailer) each advance
+`nextCommentOpcodeIndex` by their own 0x24/0x4E comment count (0x55
+`<* *>` disabled-code comments are a separate family never counted into
+`validator.ts`'s array, and are explicitly excluded from the count).
+`encodeFragmentInternal`'s return type gained one field,
+`commentOpcodesConsumed: number` (its final `commentOpcodeIndex`),
+mirroring how `references` already exposes consumption for the
+reference-numbering counter.
+
+### Fail-before/pass-after proof (`git stash`)
+
+```text
+Definition 28816: before -> UNKNOWN_MISMATCH, after -> EXACT
+Definition 29819: before -> UNKNOWN_MISMATCH, after -> EXACT
+```
+
+Both independently verified.
+
+### Full validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped -- unchanged (no unit test added;
+  same rationale as Cycles 77-80 -- this fix lives entirely inside
+  `encodeApplicationClassProgramV2`'s internal fragment bookkeeping, and
+  the git-stash proof plus full-corpus zero-regression re-run below is
+  this cycle's regression evidence).
+- `git diff --check`: clean.
+- Protected/full-corpus gate: `npm run corpus:verify` — Improved: 0,
+  Regressed: 0, REGRESSION GATE: PASS.
+- Full top-level harness re-run: **EXACT 24,642 → 24,657 (+15),
+  NONEXACT 5,567 → 5,552 (-15)** -- all 15 target definitions became
+  fully EXACT, one-blocker-away confirmed at 100%.
+- Re-ran `cycle76-rowset-package-census.ts`: Matched 5,228 / Mismatched
+  262 / Contradictions 1 -- byte-for-byte unchanged (Phase 54-56 prior
+  campaign stability).
+
+### Taxonomy redistribution: another clean 1:1 swap
+
+```text
+Category                  Cycle 80   Cycle 81   Delta
+EXACT                        24,642     24,657     +15
+ROUNDTRIP_ONLY                    32         17     -15
+DECODE_SOURCE_MISMATCH           923        923        0
+DECODER_BARE_IDENTIFIER           26         26        0
+REFERENCE_ACTIVE_PACKAGE         715        715        0
+(every other category unchanged)
+```
+
+### Remaining 17 ROUNDTRIP_ONLY residual (Phase 49)
+
+```text
+0x4f -> 0x5b (missing marker, carried over from Cycle 79's residual)   8
+0x4f -> 0x62 (missing marker, carried over from Cycle 79's residual)   6
+(other singletons: 3948, 16496, 18387)                                 3
+```
+
+No single dominant, zero-contradiction family remains -- the residual
+has fragmented across four consecutive successful campaigns (482 -> 73
+-> 32 -> 17), each closing the era's one dominant mechanism and leaving
+a smaller, more scattered remainder.
+
+### Phase 58 — strategic pivot decision: yes, pivot away from `ROUNDTRIP_ONLY`
+
+17 residual definitions, split into two small (8 and 6) "missing
+marker" clusters plus 3 unrelated singletons -- no population large
+enough to justify another dedicated cycle at this campaign's own past
+scale (409, 41, 15 EXACT gained in Cycles 79-81 respectively).
+`REFERENCE_ACTIVE_RECORD_FIELD` (1,245) is now **73x larger** than the
+entire remaining `ROUNDTRIP_ONLY` residual and has not been touched
+since the RECORD/SCROLL/FIELD class-wide reuse campaign (Cycles 68-72).
+
+### Recommendation for Cycle 82 (not started)
+
+**Pivot to `REFERENCE_ACTIVE_RECORD_FIELD`** (1,245, the single largest
+NONEXACT category, untouched since Cycle 72) or **`DECODE_SOURCE_MISMATCH`**
+(923, untouched since Cycle 77's own validator fix, containing the
+671-ordinary-residual population Cycle 77 first exposed) as the two
+highest-payoff remaining targets. The 17-definition `ROUNDTRIP_ONLY`
+tail is better revisited opportunistically (e.g. if a future cycle's
+own forensic work happens to touch the same App-Class comment-marker
+mechanisms) than pursued as its own dedicated campaign.
+
+Per this cycle's own brief: do not start Cycle 82.
+
 ## Cycle 80 — comment opcode `0x4E` (trailing) is textually derivable, but the decoder's own "render this comment inline" list was hardcoded to `End-If` when the real rule is "any real preceding statement"
 
 **Status: IMPLEMENTED, validated, zero regressions. Cycle 79 left a 73-definition `ROUNDTRIP_ONLY` residual, 50 of which shared a first-divergence signature of stored opcode `0x4E` (trailing/inline comment) re-encoding as `0x24` (standalone). Direct inspection found the ENCODER already deterministically derives `0x4E` vs `0x24` purely from source text ("does non-whitespace precede this comment on its own line") -- `sourceEncodeExact` was true for all 50, proving this. The decoder's own existing "render this comment inline" allowlist (already used once before, for `End-If`) was simply hardcoded to that one keyword instead of the real, general rule: any comment directly after a statement's own semicolon, as long as a genuine statement (not just the start of the program) precedes it. Generalizing that one check, plus fixing a second-order blank-line-count regression it exposed, resolved 39 of the 50 target definitions plus 2 more outside it. Result: +41 EXACT, 0 regressions.**
