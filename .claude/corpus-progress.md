@@ -2,34 +2,38 @@
 
 ## Current status (2026-09-29)
 
-- **Current target:** Reference-allocation / PSPCMNAME-ordering
-  architecture phase. Found and fixed the single largest proven
-  mechanism (owner-key misderivation for multi-part-key definitions,
-  see "Compiler semantics: correct owner record/field derivation" below)
-  -- +848 EXACT, 0 regressions. Remaining reference-heavy categories
-  (`REFERENCE_COMPLETE_DOWNSTREAM`, `REFERENCE_ACTIVE_FIELD`,
-  `REFERENCE_ACTIVE_RECORD`, `REFERENCE_ACTIVE_PACKAGE`,
-  `REFERENCE_ACTIVE_SCROLL`, `STRUCTURAL_ORDERING`) are UNCHANGED by this
-  fix and, per extensive prior research (Cycles 4-70+, see below), do
-  NOT reduce to one further unifying rule at full-population scale --
-  this is a genuine architectural checkpoint, not a paused search.
-- **Last successful calibration:** owner-key-by-OBJECTID fix in
-  `tools/corpus/validator.ts` (test-harness fix, not an encoder.ts
+- **Current target:** Application Class declaration-phase reference
+  model rebuild (against the corrected 26,113/30,209 baseline). Found
+  the single largest mechanism in the current App-Class reference-active
+  population (150/514, 29%): the self-class `%This.method()` PACKAGE
+  reference is NEVER allocated at all by the current generator (a real
+  implementation gap, more precise than the historical "parked"
+  characterization -- see "Application Class Declaration-Phase
+  References" below). Its CONTENT (PACKAGEROOT/APPCLASSMETHOD
+  population) is independently reconfirmed genuinely non-deterministic
+  from source alone (re-verified the historical 29300/29330
+  byte-identical-source contradiction directly against current tooling
+  -- it still holds). No encoder change made this phase: implementing
+  allocation without a proven content rule would not meet the "zero
+  unexplained contradictions" bar. This is stop condition C (requires
+  unavailable evidence) for this specific mechanism.
+- **Last successful calibration (previous phase):** owner-key-by-OBJECTID
+  fix in `tools/corpus/validator.ts` (test-harness fix, not an encoder.ts
   change) -- EXACT 25,265 -> 26,113, 0 regressions, protected 430/430
-  intact.
+  intact. This phase found and fixed a SECOND, related tooling bug: the
+  taxonomy script's own separate, stale copy of the owner-derivation
+  logic (see "Compiler research: fix stale owner-context copy" below) --
+  tooling-only, EXACT/NONEXACT unchanged.
 - **Protected baseline:** 430/430 (confirmed via `corpus:verify`'s
   baseline-comparison gate: 0 regressed among the protected set).
 - **Locally blocked definitions:** none newly blocked this session.
-  Declaration/section-closure architecture work (Consolidations #1-4 +
-  Phases 1/2A/2B/2C) completed and validated prior to this phase -- see
-  entries below. The 910-ish `REFERENCE_COMPLETE_DOWNSTREAM` population
-  remains fragmented/long-tail per Cycle-era research; not pursued
-  further this session.
-- **Next action:** deliver the required reference-allocation-phase final
-  report (alignment tooling used, mechanism found, EXACT gain, remaining
-  unknowns, recommended next target) to the user. Do not resume
-  leaf-level corpus grinding or start further speculative reference-
-  ordering fixes for the remaining categories without new evidence.
+  The self-class %This.method() mechanism (150 App Class definitions)
+  is the one NAMED blocked population from this phase -- blocked on
+  live PeopleTools/native evidence, not on missing corpus investigation.
+- **Next action:** deliver the required Application-Class-declaration-
+  phase final report to the user. Do not resume leaf-level corpus
+  grinding or attempt a source-only guess at the self-class-reference
+  content rule without new evidence.
 - **Newly established rules this session:** (1) declaration-section
   closer-family consolidation (Import/App-Class-Local/Generic-
   Declaration, each with a named state-transition primitive); (2) the
@@ -39,6 +43,139 @@
   PeopleCode (and other multi-part key shapes) place a leading
   Component/Market pair first, pushing RECNAME/FIELDNAME later.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Architecture: Application Class Declaration-Phase References (2026-09-29)
+
+**Status: dominant mechanism identified and precisely characterized; not
+fixed (requires unavailable evidence). One tooling bug found and fixed
+along the way (0 EXACT/NONEXACT change).**
+
+### Fresh population (rebuilt from scratch, not reused from stale JSON)
+
+The prior session's "~5,059 App Class definitions" figure was WRONG --
+it was a naive text match for `objectvalue = 'OnExecute'`, which ALSO
+matches Application Engine Step PeopleCode (OBJECTID pattern
+66/77/39/20/21/78/12, 3,549 definitions in the snapshot) since AE steps
+also terminate in an "OnExecute" event. The TRUE Application Class
+population is identified by `OBJECTID1 = 104` (3 key shapes:
+`104|107|12` = 808, `104|105|107|12` = 596, `104|105|106|107|12` = 106;
+total 1,510 in the snapshot, matching the historical "~1,510" figure
+independently). Caught by noticing many "REFERENCE_ACTIVE_PACKAGE"
+samples were actually Application Engine step programs with `66=`/`77=`
+key prefixes -- corrected before any conclusion was drawn from the
+contaminated sample.
+
+Of the 1,510 true Application Class definitions in the 30,209 corpus:
+**1,034 NONEXACT, 476 EXACT** (fresh count via `validateDefinition`
+directly against the local snapshot, not the stale taxonomy). Breakdown
+of the 1,034: `REFERENCE_COMPLETE_DOWNSTREAM` 279, `REFERENCE_ACTIVE_PACKAGE`
+155, `REFERENCE_ACTIVE_RECORD` 105, `UNSUPPORTED_SYNTAX` 95,
+`REFERENCE_ACTIVE_OTHER` 93, `ENCODE_ERROR` 90, `REFERENCE_ACTIVE_FIELD`
+76, `REFERENCE_ACTIVE_RECORD_FIELD` 70, `DECODE_SOURCE_MISMATCH` 25,
+`STRUCTURAL_ORDERING` 16, `ROUNDTRIP_ONLY` 15, `REFERENCE_ACTIVE_SCROLL`
+11, `REFERENCE_ACTIVE_QUOTED_COMPONENT` 4. The declaration-phase-relevant
+population (`REFERENCE_ACTIVE_*` excluding `_DOWNSTREAM`) is **514
+definitions**.
+
+### Historical contradictions revalidated
+
+Delegated a full archival extraction of every "genuinely mixed,"
+"negative control," "contradiction," "parked" claim related to
+Application Class declaration/PACKAGE references from Cycles 26-52-ish.
+Cross-checked the key finding directly:
+
+- **Application Class definitions are NOT contaminated by the
+  owner-context bug.** Confirmed by direct SQL: zero App Class
+  definitions (`objectid1=104`) have an OBJECTID-1/2 (RECNAME/FIELDNAME)
+  pair anywhere in their 7 key slots -- their key shape never included
+  that concept, so the old and new owner-derivation code produce
+  byte-identical results for them. All Cycles 26-52 findings stand.
+- **The 29300/29330 byte-identical-source contradiction (Cycle 41's
+  strongest parking evidence for "%This.method() self-row firing")
+  STILL HOLDS**, reconfirmed directly this session: both have identical
+  `source_sha256`; both stored PSPCMNAME tables have a self-class PACKAGE
+  row at NAMENUM 5, but 29300's has blank PACKAGEROOT/APPCLASSMETHOD
+  while 29330's has `PACKAGEROOT='GPSC_XMLRF'`/`APPCLASSMETHOD='ADDNODE'`
+  populated. Same source, different stored content -- genuinely not
+  derivable from source alone. This specific parking decision is
+  CORRECT and was not stale.
+- Cycle 44's "Declare-Function APPCLASSMETHOD 316/583 split" and Cycle
+  47's "CreateRecord ordinary-PeopleCode genuinely mixed" population were
+  flagged by the archival agent as worth re-deriving (per this project's
+  own established pattern of occasionally-imprecise censuses catching
+  itself twice already -- Rowset/Field-typed parameters, see the
+  Compiler Architecture section below from an earlier phase) but were
+  NOT re-investigated this session: the first is Declare-Function-only
+  metadata (not this phase's declaration-prepass scope), the second is
+  explicitly ordinary PeopleCode, out of scope per instruction not to
+  broaden into non-Application-Class categories.
+
+### The mechanism: self-class `%This.method()` reference is never allocated
+
+Traced via direct full raw-trace instrumentation (the existing
+`context.referenceTrace` hook, no code changes) against 5 independent
+Application Class definitions (29266, 29038, 29267, 28934, 30083),
+cross-checked byte-for-byte against their complete stored PSPCMNAME
+tables. In every case, the first true divergence is a COMPLETELY ABSENT
+row in the generated sequence -- not a wrong identity, not a reordering,
+a total gap -- corresponding exactly to a stored `PACKAGE` row whose
+REFNAME equals the class's OWN name (e.g. definition 29038's constructor
+calls `%This.getElection();`; stored NAMENUM 5 is
+`PACKAGE|PLANTYPE5X|BN_ELECTIONS|PlanElection|GETELECTION`, but the
+generator's raw trace jumps straight from sequence 4 to 6, skipping this
+identity entirely).
+
+Confirmed this is a genuine implementation gap, not a gated/disabled
+existing mechanism: grepped the full encoder for any code path emitting
+a self-referencing PACKAGE reference for a `%This.method()` call --
+found none. What DOES exist (`hasModeledApplicationClassReferenceScope`,
+encoder.ts:12292-12293, Cycle 32/34) only gates whether the
+CROSS-FRAGMENT REUSE SESSION is active for %This calls to the class's
+OWN declared methods (vs. inherited/external ones, which correctly stay
+gated per Cycle 32's original, still-valid reasoning) -- it does not
+itself trigger the initial allocation. The trigger was apparently never
+built to consume that gate.
+
+**Population, measured directly (not sampled):** ran the same raw-trace
+comparison across all 514 `REFERENCE_ACTIVE_*` App Class definitions.
+**150/514 (29%)** have their first true divergence be exactly this
+missing self-class row -- the single largest mechanism in the
+population, well ahead of any other single identity (the remaining
+337 "other cause" divergences are genuinely fragmented across dozens of
+different record/field/package names, matching the historical finding
+that this population resists single-rule explanation; largest individual
+bucket is 25 occurrences of one specific unrelated record name, not a
+generalizable pattern).
+
+### Why this is not fixed (stop condition C)
+
+Two genuinely separate questions, confirmed via evidence:
+
+1. **Does a self-class reference get allocated at all?** Appears
+   consistently true whenever a `%This.method()` call targets the
+   class's OWN declared method -- the ALLOCATION side may be
+   source-derivable (not proven population-wide this session, but no
+   counterexample found in 5 direct traces).
+2. **What CONTENT does that row have** (is PACKAGEROOT/APPCLASSMETHOD
+   populated or blank)? PROVEN non-deterministic from source alone
+   (29300 vs 29330, byte-identical source, different content).
+
+Implementing allocation with a guessed default content would not meet
+the "zero unexplained contradictions" bar the phase requires, and
+guessing risks producing confidently-wrong bytes for a currently-honest
+NONEXACT population. This requires either: a source-external signal not
+captured in the local snapshot (e.g. compile-time environment/component
+context), or controlled live-PeopleTools experiments varying %This call
+placement while holding source otherwise byte-identical, per the
+original phase instructions' own "controlled experiments" escape hatch.
+Recommended experiment: compile the SAME class body under two different
+enclosing component/menu contexts (if the live system allows attaching
+identical class source under different callers) and diff stored
+PSPCMNAME to isolate the environmental discriminant.
+
+### Semantic implementation threshold not met
+
+Per instruction, no production encoder change was made this phase.
 
 ## Compiler Architecture: Reference Allocation / PSPCMNAME Ordering (2026-09-29)
 
