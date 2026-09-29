@@ -10446,6 +10446,29 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     closedTopLevelDeclarationSection = true;
   };
 
+  /*
+   * Cycle 87: the serialization of a declaration-section close does not
+   * depend on WHICH construct triggers it. The close is informal (no
+   * 0x2D, only the ordinary blank-line markers) whenever the open section
+   * contains an initialized Local (Cycle 84 rule B), whether the trigger is
+   * executable code, a standalone block comment, a REM, or disabled code.
+   * The main (executable-code) closer already applied this; the three
+   * comment-adjacent closers pushed 0x2D unconditionally.
+   *
+   * LOCAL SNAPSHOT, measured per comment category (forward-exact gain/loss):
+   * standalone block comment, generic section +23/0 (4585
+   * `D D D D Li L L L L L[4F] /*Bug 12766944*\/ Evaluate`); standalone
+   * comment, App-Class-Local section +8/0 (14623); disabled code +1/0 with
+   * the boundary corrected in all 4 changed definitions (2092, 2093,
+   * 25330); REM 0/0 with the boundary corrected in all 3 changed
+   * definitions (19459, 20295, 22889). Combined +33, 0 lost.
+   */
+  const pushDeclarationSectionCloseByte = (): void => {
+    if (!leadingRunHasInitializedLocal) {
+      chunks.push(Buffer.from([0x2d]));
+    }
+  };
+
   while (true) {
     const whitespaceStart = pos;
     space();
@@ -10496,7 +10519,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           );
 
         if (!nextIsTopLevelDeclarationAfterDisabledComment) {
-          chunks.push(Buffer.from([0x2d]));
+          pushDeclarationSectionCloseByte();
           closeTopLevelDeclarationSection();
         }
       }
@@ -10749,7 +10772,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            * alone does not catch this case; confirmed on the SAME
            * definition 3596, whose own Local is Application-Class-typed.
            */
-          chunks.push(Buffer.from([0x2d]));
+          pushDeclarationSectionCloseByte();
           closeTopLevelDeclarationSection();
         }
 
@@ -10784,7 +10807,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           !closedApplicationClassLocalSection &&
           !nextIsLocal
         ) {
-          chunks.push(Buffer.from([0x2d]));
+          pushDeclarationSectionCloseByte();
           closeApplicationClassLocalSection();
         }
 
@@ -10893,7 +10916,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
       if (haveCompletedTopLevelStatement && hasBlankLine) {
         if (sawTopLevelDeclaration && !closedTopLevelDeclarationSection) {
-          chunks.push(Buffer.from([0x2d]));
+          pushDeclarationSectionCloseByte();
           closeTopLevelDeclarationSection();
         }
         emitBlankLineMarkers(topLevelWhitespace);

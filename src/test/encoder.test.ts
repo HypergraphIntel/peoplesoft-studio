@@ -5432,3 +5432,44 @@ Component string &c;
   const between = tokens.slice(endFunction + 1, component).map(t => t.opcode.toString(16)).join(' ');
   assert.strictEqual(between, '15 2d 4f');
 });
+
+/*
+ * Cycle 87: a declaration-section close is informal (no 0x2D) whenever the
+ * open section contains an initialized Local, whichever construct triggers
+ * the close -- standalone block comment (4585), REM (19459), disabled code
+ * (2092) -- not only executable code (Cycle 84).
+ */
+function opcodesBeforeFirstComment(source: string): string {
+  const artifacts = encodeProgramArtifacts(source, whileGapOwner as any);
+  const names = new NameTable();
+  for (const reference of artifacts.references) names.add(reference.sequence, `N${reference.sequence}`);
+  const tokens = decodeProgram(artifacts.program, names, { mode: 'auto' }).tokens;
+  const comment = tokens.findIndex(t => t.opcode === 0x24 || t.opcode === 0x55);
+  return tokens.slice(Math.max(0, comment - 3), comment).map(t => t.opcode.toString(16)).join(' ');
+}
+
+const initializedSection = `Component string &c;
+Local number &n = 1;
+Local Rowset &r;
+`;
+const uninitializedSection = `Component string &c;
+Local Rowset &r;
+`;
+
+for (const [label, comment] of [
+  ['a standalone block comment', '/* next */'],
+  ['a REM comment', 'REM next;'],
+  ['disabled code', '<* &r = Null; *>']
+] as const) {
+  test(`a section with an initialized Local closes informally before ${label}`, () => {
+    const opcodes = opcodesBeforeFirstComment(`${initializedSection}\n${comment}\n\n&r = GetRowset(Scroll.TEST_REC);`);
+    assert.ok(!opcodes.includes('2d'), opcodes);
+  });
+}
+
+test('a section without an initialized Local still closes formally before a standalone comment', () => {
+  assert.strictEqual(
+    opcodesBeforeFirstComment(`${uninitializedSection}\n/* next */\n\n&r = GetRowset(Scroll.TEST_REC);`),
+    '15 2d 4f'
+  );
+});
