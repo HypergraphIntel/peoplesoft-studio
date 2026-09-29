@@ -920,7 +920,16 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     // one of these six names; the only 5 currently-EXACT matches are all
     // the literal type name appearing inside disabled/commented-out code,
     // which bypasses this function entirely).
-    if (/^(Record|Field|Rowset|Row|SQL|File|XmlDoc|XmlNode|ApiObject|Grid|ProcessRequest|Message|JsonArray|JsonObject|JavaObject|GridColumn|Exception)$/i.test(name)) {
+    //
+    // Compiler closure: TransformData and Chart belong on this list too --
+    // same exact byte pattern (`44 0A "TransformData"`/`44 0A "Chart"`
+    // expected, `44 40 ...` generated), found while decomposing the
+    // REFERENCE_ACTIVE_PACKAGE census. Both are ALSO missing their own
+    // separate PACKAGE-allocation dispatch entry (see
+    // ensureLocalObjectPackageReference's own call sites) -- two
+    // independent mechanisms for the same type name, exactly like Cycle
+    // 78's own six types.
+    if (/^(Record|Field|Rowset|Row|SQL|File|XmlDoc|XmlNode|ApiObject|Grid|ProcessRequest|Message|JsonArray|JsonObject|JavaObject|GridColumn|Exception|TransformData|Chart)$/i.test(name)) {
       return textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, name);
     }
 
@@ -1227,6 +1236,19 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * definitions). Same gap as Message above.
        */
       ensureLocalObjectPackageReference('JAVAOBJECT', 'JavaObject');
+    } else if (/^TransformData$/i.test(type ?? '')) {
+      /*
+       * Compiler closure: REFERENCE_ACTIVE_PACKAGE census,
+       * PACKAGE.TRANSFORMDATA cluster (31-candidate corpus population, 0
+       * contradictions) -- same class of Local-declaration dispatch gap.
+       */
+      ensureLocalObjectPackageReference('TRANSFORMDATA', 'TransformData');
+    } else if (/^Chart$/i.test(type ?? '')) {
+      /*
+       * Compiler closure: same census, PACKAGE.CHART cluster (17-candidate
+       * corpus population, 0 contradictions).
+       */
+      ensureLocalObjectPackageReference('CHART', 'Chart');
     } else if (/^ProcessRequest$/i.test(type ?? '')) {
       /*
        * BENEF_PB_WRK.ODEM_SCHED_ACTY_PB.FieldDefault (definition 1749):
