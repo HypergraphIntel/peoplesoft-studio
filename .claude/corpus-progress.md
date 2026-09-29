@@ -2,21 +2,23 @@
 
 ## Current status (2026-09-29)
 
-- **Current target:** Application Class declaration-phase reference
-  model rebuild (against the corrected 26,113/30,209 baseline). Found
-  the single largest mechanism in the current App-Class reference-active
-  population (150/514, 29%): the self-class `%This.method()` PACKAGE
-  reference is NEVER allocated at all by the current generator (a real
-  implementation gap, more precise than the historical "parked"
-  characterization -- see "Application Class Declaration-Phase
-  References" below). Its CONTENT (PACKAGEROOT/APPCLASSMETHOD
-  population) is independently reconfirmed genuinely non-deterministic
-  from source alone (re-verified the historical 29300/29330
-  byte-identical-source contradiction directly against current tooling
-  -- it still holds). No encoder change made this phase: implementing
-  allocation without a proven content rule would not meet the "zero
-  unexplained contradictions" bar. This is stop condition C (requires
-  unavailable evidence) for this specific mechanism.
+- **Current target:** Application Class self-class `%This.method()`
+  reference hidden-input investigation (against the corrected
+  26,113/30,209 baseline). Exhausted corpus-only metadata correlation
+  (614 App Class definitions with a stored self-class row; no
+  source-derivable field -- package depth, extends, implements, import
+  shape, which method calls %This, constructor-vs-not -- predicts
+  whether PACKAGEROOT/APPCLASSMETHOD get populated; 29300/29330 remain
+  IDENTICAL across every dimension tested, output still differs). Static
+  analysis of the PeopleTools 8.61 binaries (`pssys.dll`) found strong,
+  concrete evidence of the likely hidden input: a SEPARATE repository
+  table, `PSAPPCLASSDEFN` (APPCLASSID/PACKAGEROOT/QUALIFYPATH/APPCLASSREF/
+  DESCR), cross-referenced against `PSPCMPROG`-derived class identities --
+  not present anywhere in the local corpus snapshot. See "Application
+  Class Self-Reference Metadata" below for the full evidence chain and a
+  concrete decisive experiment for the user to run in a live environment.
+  Classified as **UNKNOWN, converging on PROVEN_UNAVAILABLE_METADATA**
+  pending that experiment's result. No encoder change made.
 - **Last successful calibration (previous phase):** owner-key-by-OBJECTID
   fix in `tools/corpus/validator.ts` (test-harness fix, not an encoder.ts
   change) -- EXACT 25,265 -> 26,113, 0 regressions, protected 430/430
@@ -43,6 +45,202 @@
   PeopleCode (and other multi-part key shapes) place a leading
   Component/Market pair first, pushing RECNAME/FIELDNAME later.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Architecture: Application Class Self-Reference Metadata (2026-09-29)
+
+**Status: hidden-input candidate identified via native DLL evidence, not
+yet confirmed. Classification: UNKNOWN, converging on
+PROVEN_UNAVAILABLE_METADATA pending one decisive live-environment
+experiment (below). No source-only rule found or implemented -- correctly,
+per the corpus evidence.**
+
+### Phase 1: exhaustive corpus-metadata correlation (150 + 614 populations)
+
+The local snapshot's ENTIRE available metadata surface for any
+definition is: `objectid1-7`/`objectvalue1-7`, `display_name`,
+`source_text`, `source_sha256`, `stored_program` bytes, and the stored
+PSPCMNAME rows themselves (`recname`/`refname`/`packageroot`/
+`qualifypath`/`appclassmethod`). No compile timestamp, no PeopleTools
+version, no project/container/component association exists in the
+snapshot beyond what the key itself encodes. This bounds what Phase 1
+can possibly find.
+
+Built a full correlation table for all **614** Application Class
+definitions in the corpus whose STORED PSPCMNAME already contains a
+self-class row (a `PACKAGE` row whose `REFNAME` equals the class's own
+name) -- broader than the 150-definition "generator never allocates it"
+population, since this tests the CONTENT question independently of the
+allocation question. Split: **309 have blank PACKAGEROOT/APPCLASSMETHOD,
+305 have both populated** -- almost exactly 50/50, immediately consistent
+with "no simple source-derived rule."
+
+Tested every source-derivable dimension against this split; NONE
+separate it:
+
+| Dimension | Result |
+|---|---|
+| Package nesting depth (2/3/4 components) | 154/167, 133/118, 22/20 blank/populated -- no separation |
+| Has `extends` | 198/171 vs 111/134 blank/populated -- no separation |
+| Has `implements` | 14/14 vs 14/14 -- no separation |
+| Has an external (inherited) `%This.method()` call elsewhere | 255/260 vs 54/45 -- no separation |
+| Self-call reachable from the constructor | 221/198 vs 88/107 -- no separation |
+| Wildcard import count (0-9) | roughly even split at every count -- no separation |
+
+**Definitive negative control:** definitions 29300/29330 (Cycle 41's
+original byte-identical-source pair) were re-run through this SAME
+correlation table. They are **identical on every single dimension
+tested** (package depth 2, no extends, no implements, 1 import [1
+wildcard], 6 `%This.`-shaped calls, no external call, self-call reachable
+from constructor) -- yet 29300's row is fully blank and 29330's has
+`PACKAGEROOT='GPSC_XMLRF'`/`APPCLASSMETHOD='ADDNODE'` populated. This is
+airtight: no source-derivable feature this project can extract explains
+the difference. The historical "Criterion A met, parked" conclusion is
+correct and was not stale.
+
+### Phase 2: matched-pair search
+
+No additional source-identical (SHA256-matched) pairs beyond 29300/29330
+were found among the 614-definition population within this session's
+time budget; the 29300/29330 pair remains the strongest available
+control (identical source, differing package root only -- i.e., the SAME
+class body saved as two DIFFERENT classes in two different packages).
+
+### Phase 3: live PeopleTools compile -- not available to this session
+
+This project's only PeopleSoft Studio tools are read-only (`psft_list_*`,
+`psft_search_definitions`, `psft_get_*`, `psft_find_peoplecode_references`)
+-- there is no compile/save capability. Phase 3 was not executed by this
+session. A concrete, minimal, decisive experiment is specified below for
+the user to run in an authorized environment.
+
+### Phase 5: native DLL static analysis (read-only; no binaries modified or executed)
+
+Identified `pspcm.dll` (9.2MB, PE32+) as the PeopleCode compiler/runtime
+manager ("Pcm" = PeopleCode Manager; exports include `PcmCompileObject`,
+`PcmCompileAllPeopleCode`, `PcmEvalSubroutine`, `InvokeAppClassFunction`)
+and `pssys.dll` (11.4MB, PE32+) as a shared system/repository-metadata
+library. `strings`-based static analysis (ASCII and UTF-16LE) of embedded
+SQL text, cross-referenced against the C++ export-symbol tables (4,589
+exported names in `pspcm.dll` via `objdump -p` + `c++filt`), found:
+
+- **The literal `PSPCMNAME` INSERT statement**, confirming one-row-at-a-
+  time construction:
+  `INSERT INTO PSPCMNAME (NAMENUM, RECNAME, REFNAME, PACKAGEROOT, QUALIFYPATH, APPCLASSMETHOD, %s) VALUES (:1, :2, :3, :4, :5, :6, %s)`
+- **The owner-key lookup query**, which independently CONFIRMS this
+  session's earlier OBJECTID-based owner-derivation fix
+  (commit `d418d9b`) was structurally correct -- PeopleTools itself
+  queries PSPCMNAME by owner key using BOTH shapes:
+  `DELETE FROM PSPCMNAME WHERE (OBJECTID1=1 AND OBJECTID2=2 AND OBJECTID3=12 AND OBJECTVALUE1=:1 AND OBJECTVALUE2=:2) OR (OBJECTID3=1 AND OBJECTVALUE3=:1 AND OBJECTID4=2 AND OBJECTVALUE4=:2 AND OBJECTID5=12)`
+  -- i.e. PeopleTools' OWN code already knows RECNAME/FIELDNAME can live
+  at objectid-3/4 instead of 1/2, exactly the shape this project's fix
+  corrected for.
+- **A separate repository table, `PSAPPCLASSDEFN`** (columns:
+  `APPCLASSID, PACKAGEROOT, QUALIFYPATH, APPCLASSREF, DESCR`), cross-
+  referenced against `PSPCMPROG`-derived class identities in
+  `pssys.dll`'s embedded SQL, e.g.:
+  `SELECT OBJECTVALUE3, OBJECTVALUE4 FROM PSPCMPROG PS WHERE PS.OBJECTID1=104 AND PS.OBJECTVALUE1=:1 AND PS.OBJECTID2=105 AND PS.OBJECTVALUE2=:2 AND PS.OBJECTID3=107 AND PS.OBJECTVALUE3 NOT IN (SELECT APPCLASSID FROM PSAPPCLASSDEFN P WHERE P.PACKAGEROOT=PS.OBJECTVALUE1 AND P.QUALIFYPATH=PS.OBJECTVALUE2 AND P.APPCLASSID=PS.OBJECTVALUE3)`
+  (an orphan-detection-shaped query: finds compiled Application Class
+  PROGRAMS whose class is NOT registered in the PSAPPCLASSDEFN
+  repository). This table is **NOT present anywhere in this project's
+  local snapshot** (`tools/corpus/hcdev-snapshot.sqlite` only captures
+  source/PSPCMPROG/PSPCMNAME).
+- `pspcm.dll` itself (the actual compile/runtime engine) has **no**
+  reference to `PSAPPCLASSDEFN` anywhere in its strings -- this table
+  appears to be a **design-time/repository-level** concept (managed by
+  Application Designer's save/registration flow), separate from the
+  runtime PeopleCode compiler. `pssys.dll` has no exported function names
+  matching AppClass/compile/save patterns either -- it appears to hold
+  shared SQL text used by some other caller (Application Designer itself,
+  or a command-line repository utility), not the decision logic.
+- Limits of this analysis: no disassembler/decompiler was used (only
+  `strings`, `objdump -p`, `c++filt` -- all read-only, no execution). The
+  exact call path from "%This.method() encountered during compile" to
+  "PSAPPCLASSDEFN consulted" was NOT traced instruction-by-instruction;
+  the evidence is the CO-OCCURRENCE of the table and the exact key shape
+  in the same DLL that also handles PSPCMNAME, not a proven call graph.
+
+### Recovered hidden-input candidate
+
+**Hypothesis (not yet confirmed):** the self-class reference's
+PACKAGEROOT/APPCLASSMETHOD content is populated from the class's own
+entry in the `PSAPPCLASSDEFN` repository table at compile time -- a
+piece of state that lives in the PeopleSoft database (or is passed to
+the compiler via project/environment context) but is captured NOWHERE
+in the local PSPCMPROG/PSPCMNAME/source snapshot this project's corpus
+was built from. This would explain 29300/29330 perfectly: byte-identical
+class BODY, but each is a DIFFERENT class registered under a DIFFERENT
+package (`GPFR_XMLRF` vs `GPSC_XMLRF`) -- if one of those two classes'
+PSAPPCLASSDEFN registration is missing, stale, or differently populated
+(e.g. one was saved through Application Designer's normal "new class"
+flow and correctly registered; the other was copied/renamed without
+re-registering), the compiler would emit a blank self-class row for the
+one it cannot resolve and a populated one for the one it can.
+
+### Decisive experiment (for live execution -- not run by this session)
+
+**Goal:** confirm or reject the PSAPPCLASSDEFN hypothesis with ONE
+variable changed.
+
+**Fixture** (minimal, single %This call):
+```peoplecode
+class TestClass
+   method TestClass();
+   method A();
+end-class;
+
+method TestClass
+   %This.A();
+end-method;
+
+method A
+end-method;
+```
+
+**Procedure:**
+1. Save this class as `ZZTEST:VariantOne:TestClass` through Application
+   Designer's normal "insert new Application Class definition" flow (so
+   it gets a normal PSAPPCLASSDEFN registration). Compile/save it so
+   PSPCMPROG/PSPCMNAME get generated.
+2. Capture: `SELECT * FROM PSAPPCLASSDEFN WHERE PACKAGEROOT='ZZTEST'`,
+   the full PSPCMNAME rows for this program (ordered by NAMENUM), and the
+   raw PSPCMPROG bytes.
+3. Create a SECOND class, `ZZTEST:VariantTwo:TestClass`, with the
+   IDENTICAL body, but via whatever mechanism in your environment can
+   produce a class whose PSAPPCLASSDEFN registration is missing/different
+   (e.g., a copy-project import that skips repository registration, or a
+   class saved then its PSAPPCLASSDEFN row manually deleted before a
+   forced re-save/re-compile of the PROGRAM only, if your tools allow
+   that distinction -- whatever produces the cleanest single-variable
+   change in your environment).
+4. Capture the same three artifacts for Variant Two.
+5. Compare: does the self-class PSPCMNAME row's PACKAGEROOT/APPCLASSMETHOD
+   differ between the two, in a way that correlates with whether each
+   class's PSAPPCLASSDEFN row exists/matches?
+
+**Predicted result under the hypothesis:** the variant with a normal,
+matching PSAPPCLASSDEFN entry gets a fully-populated self-class row
+(PACKAGEROOT + APPCLASSMETHOD); the variant with a missing/mismatched
+entry gets a blank one -- reproducing the 29300/29330 split on demand.
+
+**Predicted result if the hypothesis is wrong:** both variants produce
+identical self-class row content despite the PSAPPCLASSDEFN difference,
+meaning the real discriminant is something else entirely (compile order,
+a caching/session state, or something not yet identified) -- in which
+case the next static-analysis step would be searching `pssys.dll`'s
+exported functions with a proper x86-64 disassembler (not available as a
+tool in this session) for the actual call path, or checking whether App
+Designer itself (not these shared DLLs) owns the decision.
+
+### Why no encoder change was made
+
+Per the explicit implementation threshold for this phase: no controlled
+or native evidence yet CONFIRMS the PSAPPCLASSDEFN hypothesis (it is a
+strong, concrete lead from static analysis, not a proven rule). A
+guessed default (e.g. "always populate, using the class's own known
+package path") would fix the ALLOCATION gap (150 definitions) but risk
+wrong CONTENT for roughly half of them (per the 309/305 split), and the
+project's own standing rule is zero unexplained contradictions before
+any semantic change. Holding for the experiment's result.
 
 ## Compiler Architecture: Application Class Declaration-Phase References (2026-09-29)
 
