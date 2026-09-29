@@ -4909,8 +4909,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * the group's first `Or` is emitted before the group-open 0x41; a
      * STANDALONE one is emitted after it.
      */
-    while (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
-      chunks.push(inlineBlockComment());
+    while (true) {
+      const comment = captureTrailingInlineComment();
+      if (comment === undefined) break;
+      chunks.push(comment);
       space();
     }
 
@@ -6182,10 +6184,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          *
          * stores `... 15 4E <comment> 2D ...`, not `... 15 2D 24 <comment> ...`.
          */
-        if (/^[ \t]*\/\*/.test(source.slice(pos))) {
-          space();
-          if (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
-            chunks.push(inlineBlockComment());
+        {
+          const comment = captureTrailingInlineComment();
+          if (comment !== undefined) {
+            chunks.push(comment);
           }
         }
 
@@ -6463,10 +6465,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * stores `... &exMask 4E <comment> 2D ...`, not
          * `... &exMask 2D 24 <comment> ...`.
          */
-        if (/^[ \t]*\/\*/.test(source.slice(pos))) {
-          space();
-          if (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
-            chunks.push(inlineBlockComment());
+        {
+          const comment = captureTrailingInlineComment();
+          if (comment !== undefined) {
+            chunks.push(comment);
           }
         }
 
@@ -7657,10 +7659,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          *
          * stores the comment as 0x4E, not 0x24.
          */
-        if (/^[ \t]*\/\*/.test(source.slice(pos))) {
-          space();
-          if (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
-            chunks.push(inlineBlockComment());
+        {
+          const comment = captureTrailingInlineComment();
+          if (comment !== undefined) {
+            chunks.push(comment);
           }
         }
 
@@ -7867,10 +7869,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * stores `... "SKN" 00 4E ... 2D ...` (comment then 0x2D), not
          * `... "SKN" 00 2D 24 ...` (0x2D then a standalone-style comment).
          */
-        if (/^[ \t]*\/\*/.test(source.slice(pos))) {
-          space();
-          if (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
-            chunks.push(inlineBlockComment());
+        {
+          const comment = captureTrailingInlineComment();
+          if (comment !== undefined) {
+            chunks.push(comment);
           }
         }
 

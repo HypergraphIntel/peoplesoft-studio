@@ -1,5 +1,89 @@
 # Corpus Calibration Progress
 
+## Compiler Architecture
+
+### Architecture consolidation audit (2026-09-29)
+
+A full architecture audit was requested and delivered (see `AUDIT_REPORT.md`
+at the repo root -- auto-saved by this environment's own snapshotting, not
+authored as a project doc, but accurate and worth keeping as a reference).
+Summary of findings: `encoder.ts`/`decoder.ts` are a single parse-and-
+serialize pass each (no lossless CST/IR between source and bytes, or bytes
+and rendered text); 6 independent built-in-type-to-PACKAGE dispatch chains
+(~59 call sites, no two agreeing on coverage); 8 independent copies of the
+identical "is this comment inline or standalone" lookahead; 17 raw `0x2D`
+and 40 raw `0x4F` structural-boundary byte pushes with 59 duplicated
+blank-line-multiplicity calculations; at least 8 differently-named
+reference-allocation pool/scope mechanisms; comment-opcode/reference-index
+cursors manually threaded across Application Class fragments by convention
+rather than owned by an explicit compilation-unit state object.
+
+### Consolidation #1: `captureTrailingInlineComment()`
+
+**Status: DONE, proven byte-for-byte equivalent, 0 regressions.**
+
+Extracted the 8 duplicated "comment is inline (0x4E) vs standalone (0x24)"
+call sites (4 pre-existing: both And/Or-group leading-comment loops, both
+And/Or-group trailing-comment-before-0x42 checks; 4 added this session's
+own leaf fixes: ordinary `When`, `When-Other`, `catch`, `End-Function`
+header trailing comments) into one shared helper,
+`captureTrailingInlineComment(): Buffer | undefined`, defined once
+alongside `blockCommentStartsOwnLine()`/`blockCommentByPlacement()`.
+
+This was a strictly literal extraction, not a behavior change: the
+helper's body is the exact code every "Shape B" call site (When/When-
+Other/catch/End-Function) already had; the 4 "Shape A" call sites
+(And/Or-group) were proven to reach the helper's extra outer lookahead in
+a way that is always a no-op for them, since their own callers already
+call `space()` immediately beforehand (so there is never leftover
+horizontal whitespace for the helper's lookahead to newly discover).
+
+**Proof of equivalence:**
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608, byte-identical to baseline.
+- Every definition-specific fixture this session's leaf fixes and the
+  pre-existing And/Or-group fixes cite (4122, 6713, 3128, 14626, 17332,
+  17341, 17354, 21256, 21305, 21415, 1406, 1411, 1412, 27819) re-checked
+  individually: all unchanged. (1417 shows `UNKNOWN_MISMATCH`, confirmed
+  via `git stash` to be pre-existing and unrelated to this change.)
+- Protected + full 30,209-definition corpus gate: **EXACT 25,265 →
+  25,265 (±0)**, 0 regressions, 0 improvements.
+- Full taxonomy rebuild: every single category count is byte-for-byte
+  identical to the pre-refactor taxonomy, not just the top-line EXACT
+  count (REFERENCE_ACTIVE_RECORD_FIELD 1232, REFERENCE_COMPLETE_DOWNSTREAM
+  843, REFERENCE_ACTIVE_FIELD 785, ... all unchanged).
+
+**Duplication reduction:** 8 independent ~4-6 line predicate blocks (most
+with their own explanatory comment repeating the same rule) collapsed to
+1 shared 12-line helper + 8 one-line call sites. Net: the 8 call sites
+together previously totaled ~40 lines of near-identical logic (excluding
+their individual corpus-citation comments, which were left in place at
+each site since they document WHICH definition motivated that specific
+construct, not the shared mechanism itself) now totaling 8 lines plus one
+shared implementation.
+
+**Next abstraction boundary exposed:** all 4 "Shape B" call sites
+(When/When-Other/catch/End-Function) now read identically:
+```ts
+{
+  const comment = captureTrailingInlineComment();
+  if (comment !== undefined) chunks.push(comment);
+}
+chunks.push(Buffer.from([0x2d]));   // or [0x4f], depending on construct
+```
+This is precisely the "capture trailing trivia, then emit structural
+boundary" pattern the architecture audit's target 1/5 (lossless trivia
+model / central boundary emitter) describes conceptually. The natural
+next consolidation is `emitBoundary(marker, { trailingComment? })` (or
+equivalent), which would fold the comment-then-marker ordering into one
+call and be the first piece of a real `TrailingTrivia` concept — worth
+doing next, but deliberately NOT done in this same change (kept this
+consolidation narrow, per instruction, to isolate the equivalence proof).
+The 17 raw `0x2D` / 40 raw `0x4F` push sites and their 59 duplicated
+blank-line-multiplicity calculations remain the larger, not-yet-touched
+part of this same architectural gap.
+
+
 ## Continuation session (2026-09-29), part 13 — `catch`'s own trailing inline comment shared the same ordering bug (4th occurrence)
 
 **Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL
