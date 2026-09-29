@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-09-29T12:01:23.222Z",
+ "generatedAt": "2026-09-29T12:11:36.680Z",
  "totalDefinitions": 30209,
- "exactCount": 25262,
- "nonexactCount": 4947,
+ "exactCount": 25265,
+ "nonexactCount": 4944,
  "rows": [
   {
    "definitionId": 522,
@@ -35124,21 +35124,6 @@
    }
   },
   {
-   "definitionId": 21256,
-   "displayName": "10=DEPEND_BENEF, 39=GBL, 1=DEP_BEN, 12=RowInit, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 3816,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 19,
-    "generatedCount": 19
-   }
-  },
-  {
    "definitionId": 21257,
    "displayName": "10=DEPEND_BENEF, 39=GBL, 1=DEP_BEN, 12=RowInsert, 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -35272,21 +35257,6 @@
     "storedCount": 8,
     "generatedCount": 10,
     "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 21305,
-   "displayName": "10=GPES_PP_RSLT, 39=GBL, 1=GPES_PP_RSLT, 2=EMPLID, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 3146,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 11,
-    "generatedCount": 11
    }
   },
   {
@@ -36048,21 +36018,6 @@
     "storedCount": 8,
     "generatedCount": 10,
     "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 21415,
-   "displayName": "10=GPES_TAX2_RSLT, 39=GBL, 1=GPES_TAX2_RSLT, 2=EMPLID, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 3146,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 11,
-    "generatedCount": 11
    }
   },
   {
@@ -73858,7 +73813,7 @@
    "displayName": "104=PTAF_NEM, 107=Evaluator, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
-   "roundtripExact": false,
+   "roundtripExact": true,
    "firstDiffOffset": 2998,
    "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {

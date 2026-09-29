@@ -6409,6 +6409,27 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
         chunks.push(variable());
 
+        /*
+         * An inline trailing comment immediately after catch's own
+         * exception variable (same source line, no semicolon) renders
+         * BEFORE the structural 0x2D catch-header boundary, with the
+         * inline (0x4E) comment opcode -- the same ordering already
+         * proven for When/When-Other/End-Function's own trailing
+         * comments this session.
+         *
+         *   catch Exception &exMask /*Masking API don't exist*\/
+         *      Local string &exMasks = &exMask.ToString();
+         *
+         * stores `... &exMask 4E <comment> 2D ...`, not
+         * `... &exMask 2D 24 <comment> ...`.
+         */
+        if (/^[ \t]*\/\*/.test(source.slice(pos))) {
+          space();
+          if (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
+            chunks.push(inlineBlockComment());
+          }
+        }
+
         // Confirmed catch-header -> body boundary.
         chunks.push(Buffer.from([0x2d]));
 
