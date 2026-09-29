@@ -5325,3 +5325,39 @@ Local Rowset &r;
 &r = &x;`);
   assert.ok(!opcodes.includes('2d'), opcodes);
 });
+
+/*
+ * Cycle 86: an initialized Local never closes an already-started leading
+ * Local run; the run continues and its eventual close is informal
+ * (definition 3869 and 51 more program-start runs; 28204 after a Function).
+ */
+function opcodesAfterFirstStatementUntil(source: string, stopText: string): string {
+  const artifacts = encodeProgramArtifacts(source, whileGapOwner as any);
+  const names = new NameTable();
+  for (const reference of artifacts.references) names.add(reference.sequence, `N${reference.sequence}`);
+  const tokens = decodeProgram(artifacts.program, names, { mode: 'auto' }).tokens;
+  const firstSemicolon = tokens.findIndex(t => t.opcode === 0x15);
+  const stop = tokens.findIndex((t, i) => i > firstSemicolon && String(t.text ?? '').trim() === stopText);
+  return tokens.slice(firstSemicolon + 1, stop).map(t => t.opcode.toString(16)).join(' ');
+}
+
+test('an initialized Local does not close the leading Local run it follows', () => {
+  // `Local Rowset &rs;` directly followed by an initialized Local: nothing
+  // between them (stored), not `2D 4F`.
+  assert.strictEqual(
+    opcodesAfterFirstStatementUntil(`Local Rowset &rs;
+Local number &n = 1;
+&rs = GetRowset(Scroll.TEST_REC);`, 'Local'),
+    ''
+  );
+});
+
+test('a leading run containing an initialized Local closes informally before executable code (3539 shape)', () => {
+  const opcodes = opcodesAfterFirstStatementUntil(`Local number &i;
+Local number &cnt = 0;
+
+Local Rowset &r;
+
+&r = GetRowset(Scroll.TEST_REC);`, 'GetRowset');
+  assert.ok(!opcodes.includes('2d'), opcodes);
+});
