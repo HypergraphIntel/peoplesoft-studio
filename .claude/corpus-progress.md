@@ -1,5 +1,91 @@
 # Corpus Calibration Progress
 
+## Continuation session (2026-09-29), part 11 — `When-Other`'s own inline trailing comment used the standalone (0x24) opcode unconditionally
+
+**Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL
+SNAPSHOT throughout. Starting commit `96b0eb7` (part 10's fix). Baseline
+before this change: 25,236/30,209 EXACT.
+
+### What was found
+
+Continuing the `downstream-shape-census.ts` re-triage, the new top cluster
+was `stored=0x4e gen=0x24` (34 definitions). Chasing this down took several
+false starts worth recording:
+
+1. Initial hypothesis (comment-opcode-ARRAY consumption-order bug, the same
+   class as Cycle 81's `encodeApplicationClassProgramV2` fix) was WRONG for
+   this cluster -- a minimal standalone reproduction with a real
+   `commentOpcodes` array showed the encoder already produces byte-identical
+   comment opcodes when that array is supplied.
+2. The actual failing test is `sourceEncode` (TEST A in `validator.ts`),
+   which does NOT supply a `commentOpcodes` array at all -- it relies
+   entirely on the encoder's own SOURCE-TEXT-based placement logic
+   (`blockCommentStartsOwnLine()` / `blockCommentByPlacement()` /
+   `inlineBlockComment()`). Reproducing that EXACT call (owner context, no
+   commentOpcodes) against definition 4122's real source isolated the true
+   divergence: `When-Other; /*Hide All*/` -- an inline trailing comment
+   immediately after `When-Other`'s own optional semicolon, on the same
+   source line.
+3. The `When-Other` body-parsing loop's own comment dispatch calls the
+   PLAIN `blockComment()` helper (always `consumeCommentOpcode(0x24)`,
+   ignoring placement) for ANY comment encountered as a body item --
+   correct for genuine standalone body comments, but this specific
+   position (immediately after the header, before any real body
+   statement) needed the SAME inline-vs-standalone check the ordinary
+   `When <value>` header already has for its own trailing comment.
+
+### Fix
+
+`src/peoplecode/encoder.ts`'s `evaluateStatement()`, the `When-Other`
+branch: added the identical inline-comment check the ordinary `When`
+header already has (`/^[ \t]*\/\*/.test(...)` lookahead, then
+`inlineBlockComment()` when `!blockCommentStartsOwnLine()`), inserted
+right after the optional header semicolon and before the general body
+loop begins.
+
+### Fail-before/pass-after proof (`git stash -- src/peoplecode/encoder.ts`)
+
+```text
+Definition 4122: before -> UNKNOWN_MISMATCH, after -> EXACT
+```
+
+### Spot checks (full `stored=0x4e gen=0x24` cluster sample)
+
+```text
+4122, 6713   -> EXACT
+523, 3290, 3749, 3751, 4746, 11875 -> unchanged, UNKNOWN_MISMATCH (each has
+             a DIFFERENT specific comment-placement construct within the
+             same census symptom -- 523 is a back-to-back-comments-on-one-
+             line case, 3749/3751 involve a comment after End-For, 3290
+             involves a comment after a plain assignment statement -- none
+             of these are the When-Other case this fix addresses)
+```
+
+This confirms the census's byte-shape clustering groups definitions by
+SYMPTOM (a byte value pair at the divergence point), not by root cause --
+each construct within a shared symptom bucket needs its own targeted
+investigation, exactly like the pre-Cycle-73 project history's own long
+run of narrow, single-construct fixes.
+
+### Full validation ladder
+
+- `npx tsc -p .`: clean.
+- `npm test`: 607/608 pass, 1 skipped — unchanged.
+- Protected/full-corpus gate: `npm run corpus:verify` — REGRESSION GATE:
+  PASS, 0 regressed.
+- Full top-level harness re-run: **EXACT 25,236 → 25,242 (+6)**.
+  `DECODE_SOURCE_MISMATCH`/`ENCODE_ERROR`/`UNSUPPORTED_SYNTAX` all held
+  exactly steady (108/122/335).
+
+### Next action
+
+Remaining `stored=0x4e gen=0x24`/`0x24 gen=0x4e` cluster members each need
+their own construct-specific investigation (back-to-back same-line
+comments, comment-after-End-For, comment-after-plain-statement). The
+`stored=0x4e gen=0x2d` (19) and `stored=0x2d gen=0x4f` (10) clusters are
+still unexamined. Re-run `downstream-shape-census.ts` fresh first --
+population and distribution have shifted again.
+
 ## Continuation session (2026-09-29), part 10 — re-clustered `REFERENCE_COMPLETE_DOWNSTREAM` by actual byte-diff shape; found and fixed a top-level declaration-section double-close/missing-close bug
 
 **Status: IMPLEMENTED, validated, zero regressions.** Datasource: LOCAL

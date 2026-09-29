@@ -7559,6 +7559,29 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           chunks.push(fixed(';'));
         }
 
+        /*
+         * An inline trailing comment immediately after When-Other's own
+         * header (same line as the keyword/semicolon) renders with the
+         * inline (0x4E) comment opcode, not the standalone (0x24) one the
+         * general body-item dispatch below always uses via `blockComment()`
+         * -- the same inline-vs-standalone distinction the ordinary `When
+         * <value>` header already makes for its own trailing comment, a
+         * few dozen lines above.
+         *
+         * DERIVED_ABS_SS.PARTIAL_DAYS.FieldChange (definition 4122):
+         *
+         *   When-Other; /*Hide All*\/
+         *      DERIVED_ABS_SS.BGN_DT.Visible = False;
+         *
+         * stores the comment as 0x4E, not 0x24.
+         */
+        if (/^[ \t]*\/\*/.test(source.slice(pos))) {
+          space();
+          if (source.startsWith('/*', pos) && !blockCommentStartsOwnLine()) {
+            chunks.push(inlineBlockComment());
+          }
+        }
+
         // Parse When-Other body until End-Evaluate.
         while (true) {
           
