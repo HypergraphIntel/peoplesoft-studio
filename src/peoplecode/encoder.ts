@@ -10221,6 +10221,25 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     closedTopLevelDeclarationSection = true;
   };
 
+  /*
+   * The one state transition shared by 4 of the 5 Generic-Declaration
+   * closing sites (disabled-code, standalone-comment, REM, and the main
+   * `closesTopLevelDeclarationSection` path): the section is no longer
+   * open. Each site's own firing CONDITION differs on purpose and is
+   * proven independently by its own corpus evidence -- the disabled-code
+   * and REM sites lack guards the comment site has (`!nextIsLocal`,
+   * `pendingReferenceLocalBoundary === undefined`, the
+   * `sawApplicationClassLocalSection` exclusion), and this helper does
+   * not add them. `0x2D` emission also differs per site (unconditional
+   * at 3 sites, conditional on `leadingRunHasInitializedLocal`/
+   * `suppressDeclarationSectionMarkers` at the main path) and stays
+   * explicit at each call site. The EOF flush does not use this helper:
+   * nothing reads the flag once the fragment has ended.
+   */
+  const closeTopLevelDeclarationSection = (): void => {
+    closedTopLevelDeclarationSection = true;
+  };
+
   while (true) {
     const whitespaceStart = pos;
     space();
@@ -10272,7 +10291,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
         if (!nextIsTopLevelDeclarationAfterDisabledComment) {
           chunks.push(Buffer.from([0x2d]));
-          closedTopLevelDeclarationSection = true;
+          closeTopLevelDeclarationSection();
         }
       }
 
@@ -10523,7 +10542,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            * definition 3596, whose own Local is Application-Class-typed.
            */
           chunks.push(Buffer.from([0x2d]));
-          closedTopLevelDeclarationSection = true;
+          closeTopLevelDeclarationSection();
         }
 
         /*
@@ -10666,7 +10685,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       if (haveCompletedTopLevelStatement && hasBlankLine) {
         if (sawTopLevelDeclaration && !closedTopLevelDeclarationSection) {
           chunks.push(Buffer.from([0x2d]));
-          closedTopLevelDeclarationSection = true;
+          closeTopLevelDeclarationSection();
         }
         emitBlankLineMarkers(topLevelWhitespace);
       }
@@ -11175,7 +11194,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         chunks.push(Buffer.from([0x2d]));
       }
       emitBlankLineMarkers(topLevelWhitespace);
-      closedTopLevelDeclarationSection = true;
+      closeTopLevelDeclarationSection();
     }
 
     const statementChunkStart = chunks.length;
