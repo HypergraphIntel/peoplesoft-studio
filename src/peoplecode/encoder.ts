@@ -11123,13 +11123,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       }
     }
 
-    if (
+    /*
+     * Cycle 86: the blank-line gap before a top-level declaration has ONE
+     * owner. This block (the declaration-to-declaration boundary, 5026)
+     * owns it whenever its predicate holds; the Cycle 49 "first non-Local
+     * statement" branch below only takes gaps this block does not own.
+     * Both previously emitted immediate markers for the same gap once a
+     * Local run could restart after a Function (11552, 13561: `F[2D 4F 4F]`
+     * instead of `F[2D 4F]` before a declaration).
+     */
+    const declarationGapOwnsBlankLine =
       (sawTopLevelDeclaration || sawLeadingLocalDeclaration) &&
       isTopLevelDeclaration &&
       /^(?:ComponentLife|Component|Global|PanelGroup|Declare\s+Function)\b/i.test(source.slice(pos)) &&
       hasBlankLine &&
-      !justClosedImportSection
-    ) {
+      !justClosedImportSection;
+    if (declarationGapOwnsBlankLine) {
       /*
        * DERIVED_GPFR_AF.GPFR_AF_DUPLICATE.FieldChange (definition 5026)
        * proves this same declaration-to-declaration boundary also applies
@@ -11287,7 +11296,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       } else if (
         !sawLeadingLocalDeclaration &&
         haveCompletedTopLevelStatement &&
-        hasBlankLine
+        hasBlankLine &&
+        !declarationGapOwnsBlankLine
       ) {
         /*
          * Cycle 49: the FIRST non-Local statement reached while
