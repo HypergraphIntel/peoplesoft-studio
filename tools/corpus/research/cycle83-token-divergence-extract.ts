@@ -24,7 +24,7 @@
  * Input:  .claude/nonexact-taxonomy.json (fresh run of cycle73 taxonomy)
  * Output: JSON lines, one row per NONEXACT definition (--out path).
  *
- * Usage: npx tsx tools/corpus/research/cycle83-token-divergence-extract.ts --out <file.jsonl>
+ * Usage: npx tsx tools/corpus/research/cycle83-token-divergence-extract.ts --out <file.jsonl> [--taxonomy <nonexact-taxonomy.json>]
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -94,7 +94,11 @@ function main(): void {
   if (outIndex < 0) throw new Error('--out <file.jsonl> is required');
   const outPath = process.argv[outIndex + 1];
 
-  const taxonomy = JSON.parse(fs.readFileSync(path.join(__dirname, '../../../.claude/nonexact-taxonomy.json'), 'utf8'));
+  const taxonomyIndex = process.argv.indexOf('--taxonomy');
+  const taxonomyPath = taxonomyIndex >= 0
+    ? process.argv[taxonomyIndex + 1]
+    : path.join(__dirname, '../../../.claude/nonexact-taxonomy.json');
+  const taxonomy = JSON.parse(fs.readFileSync(taxonomyPath, 'utf8'));
   const rowsById = new Map<number, any>(taxonomy.rows.map((r: any) => [r.definitionId, r]));
 
   const db = openSnapshotDatabase();
