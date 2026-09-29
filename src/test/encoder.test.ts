@@ -5174,3 +5174,64 @@ test.skip('TODO: 0x4F marker : encodeProgram exactly reproduces PeopleTools vari
 
   assert.deepEqual(actual, expected);
 });
+
+/*
+ * Cycle 83: blank formatting lines before While-body items are 0x4F
+ * boundaries (definitions 3054, 3237, 2991). Each case encodes the same
+ * program with and without the blank line and asserts that the ONLY byte
+ * difference is one inserted 0x4F. The program carries a compiled
+ * Record.Field reference so the reference-gated producer flushes.
+ */
+function insertedBytes(withGapProgram: Buffer, withoutGapProgram: Buffer): number[] {
+  // Skip the 37-byte header: its program-length field changes with any insertion.
+  const withGap = withGapProgram.subarray(37);
+  const withoutGap = withoutGapProgram.subarray(37);
+  let start = 0;
+  while (start < withoutGap.length && withGap[start] === withoutGap[start]) start++;
+  let endWith = withGap.length;
+  let endWithout = withoutGap.length;
+  while (endWithout > start && withGap[endWith - 1] === withoutGap[endWithout - 1]) {
+    endWith--;
+    endWithout--;
+  }
+  return [...withGap.subarray(start, endWith)];
+}
+
+const whileGapOwner = { owner: { recordName: 'TEST_REC', fieldName: 'TEST_FLD' } };
+
+test('a blank line before a While-body statement emits one 0x4F', () => {
+  const body = (gap: string) => `While &i < 3;
+   &x = TEST_REC.TEST_FLD.Value;${gap}
+   &i = &i + 1;
+End-While;`;
+  const delta = insertedBytes(
+    encodeProgram(body('\n'), whileGapOwner as any),
+    encodeProgram(body(''), whileGapOwner as any)
+  );
+  assert.deepStrictEqual(delta, [0x4f]);
+});
+
+test('a blank line after a semicolon-less While header emits one 0x4F', () => {
+  const body = (gap: string) => `While &i < 3
+${gap}   &x = TEST_REC.TEST_FLD.Value;
+   &i = &i + 1;
+End-While;`;
+  const delta = insertedBytes(
+    encodeProgram(body('\n'), whileGapOwner as any),
+    encodeProgram(body(''), whileGapOwner as any)
+  );
+  assert.deepStrictEqual(delta, [0x4f]);
+});
+
+test('a blank line before a standalone comment in a While body emits one 0x4F', () => {
+  const body = (gap: string) => `While &i < 3
+   &x = TEST_REC.TEST_FLD.Value;${gap}
+   /* next */
+   &i = &i + 1;
+End-While;`;
+  const delta = insertedBytes(
+    encodeProgram(body('\n'), whileGapOwner as any),
+    encodeProgram(body(''), whileGapOwner as any)
+  );
+  assert.deepStrictEqual(delta, [0x4f]);
+});

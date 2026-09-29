@@ -2,39 +2,30 @@
 
 ## Current status (2026-09-29)
 
-- **Current target:** Cycle 82 -- Application Class self-row NAMENUM
-  allocation. **Implemented.** EXACT 26,113 -> 26,149 (+36), failed
-  4,096 -> 4,060, protected 430/430 (REGRESSION GATE: PASS), row-by-row
-  taxonomy diff: 0 EXACT -> non-EXACT, 36 non-EXACT -> EXACT. See
-  "Compiler Semantics Cycle 82" below. Four evidence-backed rules:
-  (1) the first `%This.<method>(...)` call in encode order (own OR
-  inherited method) allocates ONE class-level `PACKAGE|<CLASSNAME>` row,
-  reusing an existing own-class identity if there is one; (2) leading
-  App Class `Local` declarations in method bodies allocate at the
-  declaration; (3) a method call on an App Class receiver reuses an
-  identity the same method already established (`Local`/`create`);
-  (4) top-level `Global`/`Component` App Class declarations in App Class
-  programs allocate at the declaration.
-  Self-row content (PACKAGEROOT/QUALIFYPATH/APPCLASSMETHOD) stays a
-  separate research track: it is compile-history content, never reaches
-  PSPCMPROG, and is not guessed.
-- **Last successful calibration:** Cycle 82 (above).
+- **Current target:** Cycle 83 completed -- `While`-body blank-line
+  boundaries implemented. EXACT 26,149 -> 26,330 (+181), failed
+  4,060 -> 3,879, protected 430/430 PASS, row-by-row taxonomy diff 0
+  EXACT -> non-EXACT. See "Compiler Semantics Cycle 83".
+- **Last successful calibration:** Cycle 83 (above). Previous: Cycle 82
+  (App Class self row, +36).
 - **Protected baseline:** 430/430 (corpus:verify gate: 0 regressed).
-- **Locally blocked definitions:** none newly blocked. Out-of-scope
-  family recorded: 29797, 29883, 30170, 30179 key every App Class
-  method-dependency row per (method body, called method), including
-  their foreign-class rows -- an unmodeled lifetime regime, not a
-  self-row rule exception. 29632 (imports its own class, no `%This`
-  call) is unrelated.
-- **Next action:** (a) re-derive the NONEXACT taxonomy and pick the
-  next largest actionable family; (b) candidate: the per-(method body,
-  method) method-dependency regime above (4+ definitions) -- first
-  establish what distinguishes those programs; (c) content track only
-  with user-approved snapshot maintenance (PTTOOLSREL/PROGFLAGS/VERSION/
-  LASTUPDDTTM extraction).
-- **Newly established rules this session:** Cycle 82 rules (1)-(3)
-  above; `%This` calls inside `/* */` and `<* *>` comments allocate
-  nothing (28757, 30143).
+- **Locally blocked definitions:** none newly blocked. Recorded
+  follow-ups:
+  - 23358, 23418, 29886, 29890 are ROUNDTRIP_ONLY: the decoder renders an
+    inline `While`-header comment plus 0x4F as two blank lines (decoder
+    fix, not encoder).
+  - The KNOWN_SMALL_UNMODELED_PATTERN (29797, 29883, 30170, 30179)
+    stays small.
+  - Multi-member App Class storage order remains unavailable (Cycle 30).
+- **Next action:** build a clean census of the top-level
+  declaration-section boundary family, about 241 strict one-blocker
+  definitions: extra 0x4F (83), missing 0x2D (63), extra 0x2D+0x4F (54)
+  and extra 0x2D (41). Re-run its historical controls first (3596, 6455,
+  29134, 29315, 412, 5026). Candidates after that: the App Class
+  single-property directory record (27 one-blocker); `Repeat`-body
+  statement gaps (same shape as `While`, small).
+- **Newly established rules this session:** the `While` body gap rule
+  (above); Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
 
 ## Compiler Semantics Cycle 83 -- fresh post-Cycle-82 census and target selection
@@ -127,6 +118,103 @@ non-EXACT, REFERENCE_ACTIVE_FIELD. 9661 (While + REM) is non-EXACT,
 REFERENCE_ACTIVE_RECORD. 29315 (Cycle 15 EXTRA-0x4F anomaly), 942, 945,
 518, 7041, 2406 and 1269 are EXACT. 3596 is REFERENCE_COMPLETE_DOWNSTREAM.
 All match their historical descriptions (still valid).
+
+### Implemented: While-body blank-line boundaries (Cycle 83 semantic fix)
+
+**Rule recovered:** a blank formatting line before ANY `While`-body item
+is a 0x4F boundary, with the same multiplicity formula as every other
+body (one marker per additional newline). "Any item" covers ordinary
+statements, standalone `/*` comments, REM, and End-While.
+`whileStatement()` previously handled only End-While and REM gaps. Three
+changes were made:
+1. Statement gaps use `deferReferenceGatedMarkers`, the If-body sibling's
+   producer.
+2. Standalone `/*` comment gaps use `emitBlankLineMarkers`, also as in
+   the If body.
+3. For a semicolon-less header, the whitespace the condition's trailing
+   `space()` already consumed is recovered by a backward scan (the same
+   technique `forStatement()` uses), so the FIRST body item sees its gap
+   (3237).
+
+**Controls:**
+- Positive: 3054, 3237, 5844, 28266, 2991, 3181.
+- Negative: all 344 previously forward-exact `While` programs stay
+  forward-exact.
+- Deferred vs immediate gating produces byte-identical output for every
+  one of the 1,233 `While` programs in the corpus, so the corpus cannot
+  discriminate them. The If-body sibling's choice was used.
+- Measured step by step on the 1,233 `While` programs (forward-exact
+  gain / loss):
+  - statements only: +67 / 0
+  - adding header gaps: +154 / 0
+  - adding comment gaps: +186 / 0
+
+**Mechanism-corrected count vs EXACT gain:**
+- Mechanism corrected: re-extracting the pre-change 4,060 NONEXACT list
+  leaves **0** missing-0x4F hunks in `While` context, down from 1,535
+  markers across 400 definitions.
+- EXACT gain: **+181** (26,149 -> 26,330).
+- Why the two differ: most of the 400 have other blockers (only 150 were
+  strict one-blockers under the pre-fix nesting reconstruction). The gain
+  is higher than 150 because the reconstruction had labelled many
+  top-level `While` bodies as TOP.
+- Four more definitions (23358, 23418, 29886, 29890) are now
+  forward-exact but move to ROUNDTRIP_ONLY. The decoder renders an
+  inline comment at the end of a `While` header, followed by a 0x4F
+  marker, as TWO blank lines: the comment's own newline plus the marker.
+  Re-encoding that text then counts two. This is a decoder rendering
+  defect, not compensated in the encoder. All four were non-EXACT before.
+
+**Validation:**
+- `npx tsc`, `npm test` (615 run, 614 pass, 0 fail; the 3 new tests fail
+  before the fix and pass after) and `git diff --check` are clean.
+- Protected gate: PASS.
+- Full 30,209: 26,330 EXACT / 3,879 failed.
+- Taxonomy row diff: **0 EXACT -> non-EXACT**, 181 non-EXACT -> EXACT
+  (180 were REFERENCE_COMPLETE_DOWNSTREAM, 1 REFERENCE_ACTIVE_PACKAGE; 13
+  are App Classes).
+- No compensating-error cases were found.
+
+### Post-fix census (3,879 NONEXACT)
+
+First true divergence:
+
+| class | count |
+|---|---:|
+| REFERENCE_ALLOCATION | 1,456 |
+| STRUCTURAL_BYTE | 611 (was 902) |
+| REFERENCE_IDENTITY | 553 |
+| HEADER_ONLY_DOWNSTREAM | 345 |
+| UNSUPPORTED_SYNTAX | 335 |
+| TOKEN_ENCODING | 237 |
+| COMMENT_TRIVIA | 175 |
+| ENCODE_ERROR | 122 |
+| DECODER_RENDERING | 45 |
+
+Taxonomy deltas:
+- REFERENCE_COMPLETE_DOWNSTREAM: 1,012 -> 828.
+- ROUNDTRIP_ONLY: 23 -> 27.
+- REFERENCE_ACTIVE_PACKAGE: 537 -> 536.
+- Everything else unchanged.
+
+**New highest-value coherent candidate:** the top-level
+declaration-section boundary family, which shows up as four related
+signatures. Together they are about 241 strict one-blocker definitions,
+and all sit at the declaration-section close. This family carries heavy
+historical guards (`sawLeadingLocalDeclaration`, `justClosedImportSection`,
+the 29315 anomaly, controls 3596/6455/29134), so it needs its own census
+before any change.
+
+| signature | one-blocker | affected |
+|---|---:|---:|
+| extra 0x4F at top level | 83 | 137 |
+| missing 0x2D at top level | 63 | 135 |
+| extra 0x2D+0x4F | 54 | 65 |
+| extra 0x2D | 41 | 155 |
+
+The largest reference signatures remain RECORD over-reuse (286
+one-blocker) and PACKAGE over-reuse (206). Both are fragmented across
+lifetime scopes (row-shorthand `&rs(n).REC`, method-dependency rows).
 
 ## Compiler Semantics Cycle 82 -- Application Class self-row NAMENUM allocation (implemented)
 

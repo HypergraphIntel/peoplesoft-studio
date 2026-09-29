@@ -6920,19 +6920,40 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      */
     chunks.push(Buffer.from([0x2d]));
 
+    /*
+     * Cycle 83: every While-body item is a gap boundary (see the body loop
+     * below). Without a header semicolon, the condition's own trailing
+     * `space()` has already consumed the whitespace before the FIRST body
+     * item, so recover it here -- the same backward scan forStatement()
+     * uses for a semicolon-less For header. CO_STATETAX_TBL.EFFDT.RowInsert
+     * (definition 3237):
+     *
+     *   While &LibAccFetch.Fetch(&Status, &TaxClass, &Category)
+     *
+     *      &Found = "N";
+     *
+     * stores 0x4F before the first body statement.
+     */
     const afterWhileCondition = pos;
     space();
+    let headerTrailingWhitespace = '';
     if (source[pos] === ';') {
       pos++;
       chunks.push(fixed(';'));
     } else {
       pos = afterWhileCondition;
+      let trailingWhitespaceStart = pos;
+      while (trailingWhitespaceStart > 0 && /\s/.test(source[trailingWhitespaceStart - 1])) {
+        trailingWhitespaceStart--;
+      }
+      headerTrailingWhitespace = source.slice(trailingWhitespaceStart, pos);
     }
 
     while (true) {
       const whitespaceStart = pos;
       space();
-      const bodyWhitespace = source.slice(whitespaceStart, pos);
+      const bodyWhitespace = headerTrailingWhitespace + source.slice(whitespaceStart, pos);
+      headerTrailingWhitespace = '';
       const hasBlankLine =
         /(?:\r?\n)[ \t]*(?:\r?\n)/.test(bodyWhitespace);
 
@@ -6966,6 +6987,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       }
 
       if (source.startsWith('/*', pos)) {
+        // Cycle 83: same comment-gap rule as the If body's `/*` branch.
+        // COMP_PROP.DT_RETURNED.SaveEdit (definition 2991) stores 0x4F
+        // before a standalone comment that follows a blank line.
+        if (hasBlankLine) {
+          emitBlankLineMarkers(bodyWhitespace);
+        }
         chunks.push(blockComment());
         continue;
       }
@@ -6990,6 +7017,24 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
         chunks.push(remComment(true));
         continue;
+      }
+
+      if (hasBlankLine) {
+        /*
+         * Cycle 83: a blank formatting line before an ordinary While-body
+         * statement is a 0x4F source-group boundary, exactly as in an If
+         * body (same deferred, reference-gated producer). This branch was
+         * missing: the Phase 1 consolidation audit recorded that
+         * whileStatement handled only End-While/REM gaps. HP_WORKDAYS
+         * SaveEdit (definition 3054) stores `15 4F` between the body's
+         * statements. LOCAL SNAPSHOT: 1,535 missing markers across 400
+         * NONEXACT definitions; among all 1,233 While programs the full
+         * rule (statement + comment + header gaps) makes 186 more forward-
+         * exact and 0 fewer. Deferred vs immediate gating produces
+         * byte-identical output for every While program in the corpus, so
+         * the If-body sibling's producer is used.
+         */
+        deferReferenceGatedMarkers(bodyWhitespace);
       }
 
       statement();
