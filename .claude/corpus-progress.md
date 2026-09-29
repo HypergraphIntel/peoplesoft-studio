@@ -2,11 +2,11 @@
 
 ## Current status (2026-09-29)
 
-- **Current target:** Phase 1 (blank-line/layout consolidation) and Phase
-  2 (built-in type registry consolidation) are both DONE as far as corpus
-  evidence safely supports; delivering the required stop-and-report to
-  the user now. Not resuming leaf-level corpus grinding per explicit
-  instruction until directed otherwise.
+- **Current target:** Declaration/section-closure architecture phase.
+  Phase 0 (preserve the completed closer audit, this entry) done. Next:
+  Phase 1 (centralize reference-gated deferred-marker production), then
+  Phase 2A/2B/2C (Import / App-Class-Local / Generic-Declaration closer
+  consolidation, in that order, each independently validated).
 - **Last successful calibration:** Consolidation #4 batch 2
   (Global/Component/`registerTypedParameter` migrated to
   `BUILTIN_TYPE_REGISTRY`) -- see entry below. 0 regressions, row-by-row
@@ -18,15 +18,244 @@
   "Continuation session, part 9" entry below remains fragmented/long-tail
   and was intentionally not pursued further once the architecture-
   consolidation redirect superseded it.
-- **Next action:** deliver the Phase 1 + Phase 2 final report (architecture
-  changes, duplication removed, sites deliberately left separate,
-  recommended next architecture target) per the user's explicit stop
-  condition. Do not start declaration-section-state or Application-Class
-  compilation-state refactors unless the user directs it next.
+- **Next action:** Phase 1 -- audit-before-edit report for the 14
+  `pendingReferenceGroupBoundaries` producer sites, then introduce
+  `deferReferenceGatedMarker()` (or the name the audit's semantics
+  justify) and migrate all 14, proving byte-for-byte equivalence before
+  touching any closer family.
 - **Newly established rules this session:** none new beyond what's
   recorded in each Consolidation entry below -- this was pure
   behavior-preserving refactoring, not semantic calibration.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Architecture: Declaration / Section Closure Audit (2026-09-29)
+
+**Status: AUDIT COMPLETE, no code changed by this entry.** Full forensic
+trace of the top-level declaration-section state machine in
+`encodeFragmentInternal` (`src/peoplecode/encoder.ts:10150-11716`),
+performed before any edit per explicit instruction. Combines direct code
+tracing (state read/write/reset sites for every variable) with git
+archaeology (`git log -S`, `git show`) and this file's own chronological
+history.
+
+### Corrected counts
+
+Prior architecture-audit assumptions said "11 stateful closers" and "13
+`pendingReferenceGroupBoundaries` sites." Direct enumeration found:
+
+- **12 distinct `0x2D`-pushing closer sites**, not 11 (lines 10287, 10392,
+  10538, 10573, 10600, 10685, 10857, 11168, 11199, 11694, 11702, 11706).
+- **14 `pendingReferenceGroupBoundaries.push(chunks.length)` sites**, not
+  13 (3 in `repeatStatement`, 1 in `forStatement`, 2 in `whileStatement`,
+  7 in `ifStatement`, 1 in the top-level loop itself).
+
+### The 12 closer sites resolve into 3 families
+
+| Family | Mid-loop close sites | EOF-flush site |
+|---|---|---|
+| Import section | 10392 (comment), 10600 (decoded trailing-import-comment, combined `0x2D,0x4F`), 10857 (ordinary statement) | 11694 |
+| Generic top-level declaration | 10287 (disabled-code), 10538 (comment), 10685 (REM), 11199 (main path) | 11706 |
+| Application-Class-typed-Local | 10573 (comment), 11168 (main path) | 11702 |
+
+Each family's EOF-flush site is the same predicate as its mid-loop
+sites, evaluated once more after the loop exits -- these pair cleanly.
+Site 10600 is the one outlier: it pushes `0x2D` and `0x4F` together as
+one immediate combo, not fitting the "state transition, then separately
+serialize" shape the other 11 share.
+
+**The three families are related but NOT identical state machines**:
+- Import section never reopens once closed mid-loop, but a NEW
+  declaration section can open again afterward independently.
+- Generic top-level declaration section **does reopen**: closing an
+  import section sets `closedTopLevelDeclarationSection = true`
+  unconditionally (line 11557); if a fresh top-level declaration is then
+  reached before any executable statement, line 11596 resets
+  `closedTopLevelDeclarationSection = false` so a SECOND `0x2D` can fire
+  later (calibrated by `DERIVED_CO.FUNCLIB.FieldFormula`: import, then
+  Global/PanelGroup declarations, each section gets its own `0x2D`).
+- Application-Class-Local section **never reopens** once closed -- no
+  evidence of a comparable reopen path, and none should be added.
+
+### `pendingReferenceGroupBoundaries` / `pendingReferenceLocalBoundary`: NOT declaration-section state
+
+Traced the actual state flow (not the variable names) through the single
+consumption site (`encodeFragmentInternal`'s tail, lines 11643-11691):
+both mechanisms queue a chunk-index position during parsing, then are
+resolved in ONE shared block gated on `hasCompiledReferences` (does the
+whole fragment ultimately have a compiled PSPCMNAME reference beyond the
+owner placeholder?). If false, **every queued marker is silently
+discarded** -- confirmed directly by Compiler Semantics Cycle 15's own
+matched-control pair:
+
+```text
+Local number &x = 1;
+
+&x = 2;
+
+&x = 3;
+```
+
+(no references) emits **no** `0x4F` anywhere, but appending a single
+`Record.MY_RECORD.MY_FIELD.Value = 1;` retroactively causes `0x4F`
+before EVERY earlier blank-line gap in the same fragment.
+
+This is a **reference-allocation-gated serialization mechanism**, a
+sibling to declaration-section lifetime, not part of it -- even though
+the Generic-Declaration closer's own boundary
+(`pendingReferenceLocalBoundary`) is one particular application of the
+same underlying rule. `pendingReferenceGroupBoundaries` additionally
+covers body-internal blank-line gaps inside `repeatStatement`/
+`forStatement`/`whileStatement`/`ifStatement` -- entirely separate from
+any top-level declaration-section concept.
+
+**Real, load-bearing asymmetry found in every one of those 4 body
+handlers**: a blank-line gap immediately before a STANDALONE COMMENT
+(`/* */` or `<* *>`) uses immediate, unconditional `emitBlankLineMarkers()`;
+a gap before a STATEMENT or the body's own closing keyword
+(End-For/End-While/Until/Else/End-If/REM) uses the deferred,
+reference-gated `pendingReferenceGroupBoundaries` mechanism instead. Not
+an oversight -- confirmed by an explicit in-code comment ("Keep these
+deferred because this structural marker is calibrated only for programs
+that actually have compiled references") and must be preserved exactly
+by any consolidation.
+
+### State-variable inventory (ownership)
+
+Declared together in `encoder.ts:10153-10236`, but NOT one homogeneous
+group:
+
+- **Genuine declaration-section-lifetime state (9):**
+  `sawTopLevelDeclaration`, `closedTopLevelDeclarationSection`,
+  `leadingLocalRun`, `sawLeadingLocalDeclaration`,
+  `sawApplicationClassLocalSection`, `closedApplicationClassLocalSection`,
+  `importSectionOpen`, `leadingRunHasInitializedLocal`,
+  `sawTopLevelExecutableStatement`.
+- **Reference-allocation-scope state, co-located but conceptually
+  separate (3):** `pendingReferenceLocalBoundary`,
+  `pendingReferenceLocalMarkers`, `pendingReferenceGroupBoundaries`.
+- **Cross-function coupling, not self-contained:**
+  `lastLocalHadInitializer` is owned and mutated entirely inside
+  `localDeclaration()` (a sibling function, lines 1061/1174/1361) via
+  closure capture, even though it feeds declaration-section state
+  (`leadingRunHasInitializedLocal`) back in the top-level loop.
+- **Co-located but NOT declaration-section state at all:**
+  `sawWildcardImport` -- declared in the same `let` block, but its only
+  read site (line 1603) is an unrelated Application-Class
+  PSPCMNAME-reference decision in `localDeclaration()`, never consulted
+  by any of the 12 closer sites. `sawTopLevelExecutableStatement` is
+  genuine declaration-section state AND is separately consulted by
+  `componentDeclaration()` (line 1594) for an unrelated
+  runtime-create-reuse decision -- one variable serving two masters.
+
+### Cross-fragment (Application-Class) state
+
+Each Application-Class method body is encoded via its OWN independent
+`encodeFragmentInternal` call (Cycle 14 design) -- confirmed by reading
+`encodeApplicationClass`'s `encodeFragment` closure (line ~12459-12518).
+**All 15 state variables above are fragment-local**, freshly initialized
+per method, with exactly ONE exception: `programHasCompiledReferences`
+(computed once, class-wide, via a read-only reference-probe prepass at
+line 12322 that isolates-and-discards-encodes every method body purely
+to check whether ANY of them would produce a compiled reference) is
+threaded into each fragment's `context.compilationUnitHasCompiledReferences`,
+overriding that fragment's own local `hasCompiledReferences` computation.
+`suppressDeclarationSectionMarkers` is also supplied per-call (always
+`true` for method bodies, per Cycle 14 / the `OU_CORPUS:Utilities:TestClass`
+golden fixture, definition 29632) -- a context-level serialization
+override, not itself cross-fragment state.
+
+### Historical archaeology (commit + corpus motivation per mechanism)
+
+- **`sawTopLevelDeclaration`/`closedTopLevelDeclarationSection`**:
+  introduced pre-harness (`60e42b6a`, 2026-09-22, no corpus citation).
+  Modified by `d65cf84` (defs 1257, 1929), `b17130a2` (def 5002),
+  `3abc6061` (def 5026, negative controls 942/945), `88575610` (def 528,
+  negative controls DERIVED_GPFRDSN/CAFNUI_CTRL_WRK), `96b0eb7c` (defs
+  2043/6007/6276/3596, 3596 also the negative control the fix had to
+  avoid re-breaking).
+- **`nextIsLocal`/`nextIsLocalAfterDisabledComment`**: introduced
+  pre-harness (`f1a50bfb`, `5f539584`). Modified by `96b0eb7c`
+  (2026-09-29) -- adding `!nextIsLocal` to a sibling closer that lacked
+  it caused a double-`0x2D` regression on def 3596 mid-fix, resolved by
+  two more guards.
+- **`pendingReferenceLocalBoundary`/`pendingReferenceLocalMarkers`**:
+  introduced pre-harness (`771f93a5`). Modified by `c1195970`,
+  `f1a50bfb`, `5f539584`, `4f8c4a8d` (Cycle 49, 9 "%Super" roots),
+  `d90bb3db` (Cycle 50, defs 28852/29113/29612, duplicate-marker fix),
+  `96b0eb7c`.
+- **`sawApplicationClassLocalSection`/`closedApplicationClassLocalSection`**:
+  introduced pre-harness (`771f93a5`). Modified by the 2026-09-24 session
+  (def 513), `96b0eb7c` (def 3596 again), `7745f55c` (Cycle 14,
+  introduces `suppressDeclarationSectionMarkers`, golden fixture def
+  29632, 377-definition diff scoped to id range 28700-30209, 0
+  regressions).
+- **`sawLeadingLocalDeclaration`**: introduced pre-harness (`c1195970`).
+  Modified by `3abc6061` (def 5026), `4f8c4a8d`/`d90bb3db` (Cycle 49/50),
+  `66ce2c5e` (Cycle 51, def 29134 positive, HCDEV golden fixture 412 +
+  def 6455 negative controls caught as a pre-commit regression, fixed
+  via `!justClosedImportSection`).
+- **`pendingReferenceGroupBoundaries`**: introduced pre-harness
+  (`771f93a5`), a foundational architectural decision, not a micro-fix.
+  Modified by `0856046f` (def 9661, While+REM), `d090e822`/def-3235-fix
+  (Repeat/While body parity). Explicitly audited and DECLINED for
+  migration by the earlier `33737ee` Phase-1 consolidation, which
+  already recognized it as "the same class of stateful, deferred
+  mechanism as `pendingReferenceLocalBoundary`." Compiler Semantics
+  Cycle 15 (research-only) is the source of the `hasCompiledReferences`
+  matched-control proof, and flags def **29315** as an unexplained
+  anomalous negative control (opposite-direction defect -- an unwanted
+  EXTRA `0x4F`, not a missing one -- not resolved by the primary rule,
+  still open, NOT to be "fixed" during this consolidation).
+
+**Cross-cutting pattern**: nearly every modifying commit has the
+identical shape -- a condition gains one more `&&`-clause after a
+specific corpus definition disproved the narrower version, validated by
+re-running the specific definitions that originally motivated the
+now-widened check as negative controls. `96b0eb7c` is the single richest
+event: it touches 3 of the mechanism-families in one commit because
+fixing one exposed collisions with the other two on the same definition
+(**3596**) -- the single most important cross-family integration test
+for any future consolidation.
+
+### Positive/negative control roster (re-run before trusting any future corpus gate)
+
+`1257, 1929, 5002, 5026, 942, 945, 528, 2043, 6007, 6276, 3596, 513,
+29632, 5026, 29134, 6455, 9661, 3235, 29315` (HCDEV golden fixture 412
+also referenced, no numeric definition_id).
+
+### Candidate abstraction shape (decided, not yet built)
+
+**Rejected**: a single `DeclarationPhase` enum -- disproven by evidence,
+since the three closer families can be open/closed independently and
+overlap (an import section can close while an Application-Class-Local
+section remains open pending its own separate close).
+
+**Adopted direction**: independent per-family state, e.g.
+`ImportSectionState`, `GenericDeclarationSectionState`,
+`ApplicationClassLocalSectionState`, plus a separate
+`ReferenceGatedMarkerState` (deferred-marker queue) that is NOT a member
+of any of the three section states, even though the Generic-Declaration
+family's own close is one particular consumer of it.
+
+### Recommended migration order
+
+1. `deferReferenceGatedMarker()`-style producer-side helper for all 14
+   `pendingReferenceGroupBoundaries` sites (lowest risk, consumption
+   already unified).
+2. Import-section closer (most self-contained family, no cross-family
+   exclusion guards of its own).
+3. Application-Class-Local closer (only cross-references the generic
+   closer, not vice versa; never reopens).
+4. Generic top-level declaration closer last (most guards, reopen-capable,
+   cross-referenced by both siblings -- migrate only after their shapes
+   are stable objects it can cleanly exclude against).
+
+### Next action
+
+Phase 1: centralize reference-gated deferred-marker production (item 1
+above). Full audit-before-edit report required before touching the 14
+producer sites; see the Phase 1 entry that follows once that work
+begins.
 
 ## Compiler Architecture
 
