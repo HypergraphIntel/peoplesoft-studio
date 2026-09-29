@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-09-29T02:52:42.952Z",
+ "generatedAt": "2026-09-29T03:09:57.156Z",
  "totalDefinitions": 30209,
- "exactCount": 25058,
- "nonexactCount": 5151,
+ "exactCount": 25082,
+ "nonexactCount": 5127,
  "rows": [
   {
    "definitionId": 522,
@@ -65073,11 +65073,18 @@
   {
    "definitionId": 28954,
    "displayName": "104=BNE_OPEN_ENROLL_FL, 105=Controller, 107=DataController, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 108,
+    "generatedCount": 108,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 28955,
@@ -65613,11 +65620,18 @@
   {
    "definitionId": 28998,
    "displayName": "104=BN_DEPBEN, 107=DepBen, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 22,
+    "generatedCount": 21,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 28999,
@@ -66369,188 +66383,281 @@
   {
    "definitionId": 29081,
    "displayName": "104=CAFNUI_API, 105=OBJECT, 107=Action, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29082,
    "displayName": "104=CAFNUI_API, 105=OBJECT, 107=FactorDisplay, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 4,
+    "generatedCount": 4
+   }
   },
   {
    "definitionId": 29083,
    "displayName": "104=CAFNUI_API, 105=OBJECT, 107=FactorHtml, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 3,
+    "generatedCount": 3
+   }
   },
   {
    "definitionId": 29084,
    "displayName": "104=CAFNUI_API, 107=ActionHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 32,
+    "generatedCount": 30,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29085,
    "displayName": "104=CAFNUI_API, 107=ComparisonHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 12,
+    "generatedCount": 11,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29086,
    "displayName": "104=CAFNUI_API, 107=EntityHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 6,
+    "generatedCount": 6
+   }
   },
   {
    "definitionId": 29087,
    "displayName": "104=CAFNUI_API, 107=FactorHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29088,
-   "displayName": "104=CAFNUI_API, 107=Handler, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29089,
-   "displayName": "104=CAFNUI_API, 107=SessionHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 22,
+    "generatedCount": 25,
+    "firstDivergenceKind": "scroll"
+   }
   },
   {
    "definitionId": 29090,
    "displayName": "104=CAFNUI_CORE, 105=ENUM, 107=ActionCode, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29091,
    "displayName": "104=CAFNUI_CORE, 105=ENUM, 107=ActionLevel, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29092,
    "displayName": "104=CAFNUI_CORE, 105=ENUM, 107=ActionType, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29093,
    "displayName": "104=CAFNUI_CORE, 105=ENUM, 107=Asset, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 4,
+    "generatedCount": 3,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 29094,
    "displayName": "104=CAFNUI_CORE, 105=ENUM, 107=Constants, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29095,
    "displayName": "104=CAFNUI_CORE, 105=ENUM, 107=FactorType, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29096,
-   "displayName": "104=CAFNUI_CORE, 105=HANDLER, 106=ActionHandler, 107=ActionHandler, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29097,
    "displayName": "104=CAFNUI_CORE, 105=HANDLER, 106=ActionHandler, 107=ComponentAction, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 26,
+    "generatedCount": 23,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29098,
    "displayName": "104=CAFNUI_CORE, 105=HANDLER, 106=FactorHandler, 107=AppClass, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 25,
+    "generatedCount": 22,
+    "firstDivergenceKind": "scroll"
+   }
   },
   {
    "definitionId": 29099,
    "displayName": "104=CAFNUI_CORE, 105=HANDLER, 106=FactorHandler, 107=Chart, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 43,
+    "generatedCount": 40,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 29100,
    "displayName": "104=CAFNUI_CORE, 105=HANDLER, 106=FactorHandler, 107=Component, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 30,
+    "generatedCount": 28,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29101,
    "displayName": "104=CAFNUI_CORE, 105=HANDLER, 106=FactorHandler, 107=ExternalLink, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 6690,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 15,
+    "generatedCount": 13,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29102,
@@ -66565,29 +66672,50 @@
   {
    "definitionId": 29103,
    "displayName": "104=CAFNUI_CORE, 105=HANDLER, 106=FactorHandler, 107=FieldList, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 4236,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 24,
+    "generatedCount": 24,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 29104,
    "displayName": "104=CAFNUI_CORE, 105=HANDLER, 106=FactorHandler, 107=Grid, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 2306,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 14,
+    "generatedCount": 15,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 29105,
    "displayName": "104=CAFNUI_CORE, 105=HANDLER, 106=FactorHandler, 107=HtmlTemplate, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 15,
+    "generatedCount": 15,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29106,
@@ -66602,20 +66730,34 @@
   {
    "definitionId": 29107,
    "displayName": "104=CAFNUI_CORE, 105=HANDLER, 106=FactorHandler, 107=PsQueryPagelet, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 24,
+    "generatedCount": 22,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 29108,
    "displayName": "104=CAFNUI_CORE, 105=HANDLER, 106=FactorHandler, 107=URL, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 14,
+    "generatedCount": 14,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29109,
@@ -66629,64 +66771,96 @@
   {
    "definitionId": 29110,
    "displayName": "104=CAFNUI_CORE, 105=HANDLER, 107=EntityHandler, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 10,
+    "generatedCount": 11,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 29111,
    "displayName": "104=CAFNUI_CORE, 105=HANDLER, 107=PVGPromptHandler, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 12096,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29112,
-   "displayName": "104=CAFNUI_CORE, 105=HANDLER, 107=PersHandler, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 24,
+    "generatedCount": 22,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29113,
    "displayName": "104=CAFNUI_CORE, 105=HANDLER, 107=TransferToCAFAnalysis, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 64,
+    "generatedCount": 63,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29114,
    "displayName": "104=CAFNUI_CORE, 105=Helper, 107=Formatter, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1203,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 5,
+    "generatedCount": 4,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 29115,
    "displayName": "104=CAFNUI_CORE, 105=OBJECT, 106=SESSION, 107=EntityData, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 1,
+    "generatedCount": 1
+   }
   },
   {
    "definitionId": 29116,
    "displayName": "104=CAFNUI_CORE, 105=OBJECT, 106=SESSION, 107=FactorData, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29117,
@@ -66716,29 +66890,47 @@
   {
    "definitionId": 29119,
    "displayName": "104=CAFNUI_CORE, 105=OBJECT, 107=ActionData, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29120,
    "displayName": "104=CAFNUI_CORE, 105=OBJECT, 107=AnalysisView, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29121,
    "displayName": "104=CAFNUI_CORE, 105=OBJECT, 107=BaseObject, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 1,
+    "generatedCount": 1
+   }
   },
   {
    "definitionId": 29122,
@@ -66762,29 +66954,48 @@
   {
    "definitionId": 29124,
    "displayName": "104=CAFNUI_CORE, 105=OBJECT, 107=CurrentUser, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 6,
+    "generatedCount": 5,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29125,
    "displayName": "104=CAFNUI_CORE, 105=OBJECT, 107=EmailAddress, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29126,
    "displayName": "104=CAFNUI_CORE, 105=OBJECT, 107=Entity, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 4,
+    "generatedCount": 4
+   }
   },
   {
    "definitionId": 29127,
@@ -66809,56 +67020,94 @@
   {
    "definitionId": 29129,
    "displayName": "104=CAFNUI_CORE, 105=OBJECT, 107=Globals, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 2,
+    "generatedCount": 2
+   }
   },
   {
    "definitionId": 29130,
    "displayName": "104=CAFNUI_CORE, 105=OBJECT, 107=PVGPrompt, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 12,
+    "generatedCount": 4,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29131,
    "displayName": "104=CAFNUI_CORE, 105=OBJECT, 107=Personalization, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 6,
+    "generatedCount": 6
+   }
   },
   {
    "definitionId": 29132,
    "displayName": "104=CAFNUI_CORE, 105=OBJECT, 107=SelectEntity, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 3,
+    "generatedCount": 3
+   }
   },
   {
    "definitionId": 29133,
    "displayName": "104=CAFNUI_CORE, 105=OBJECT, 107=SelectFactor, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 2,
+    "generatedCount": 2
+   }
   },
   {
    "definitionId": 29134,
    "displayName": "104=CAFNUI_CORE, 107=ObjectManager, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 69,
+    "generatedCount": 70,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29135,
@@ -66948,210 +67197,257 @@
   {
    "definitionId": 29142,
    "displayName": "104=CAFNUI_UI, 107=HandlerRegistry, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29143,
-   "displayName": "104=CAFNUI_UTIL, 107=HtmlHelper, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 22,
+    "generatedCount": 22,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29144,
    "displayName": "104=CAFNUI_UTIL, 107=StringHelper, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 5,
+    "generatedCount": 4,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29145,
    "displayName": "104=CAF_API, 105=OBJECT, 107=Action, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29146,
    "displayName": "104=CAF_API, 105=OBJECT, 107=FactorDisplay, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 4,
+    "generatedCount": 4
+   }
   },
   {
    "definitionId": 29147,
    "displayName": "104=CAF_API, 105=OBJECT, 107=FactorHtml, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29148,
-   "displayName": "104=CAF_API, 107=ActionHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 3,
+    "generatedCount": 3
+   }
   },
   {
    "definitionId": 29149,
    "displayName": "104=CAF_API, 107=ComparisonHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 11,
+    "generatedCount": 10,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29150,
    "displayName": "104=CAF_API, 107=EntityHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29151,
-   "displayName": "104=CAF_API, 107=FactorHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29152,
-   "displayName": "104=CAF_API, 107=Handler, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29153,
-   "displayName": "104=CAF_API, 107=SessionHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 6,
+    "generatedCount": 6
+   }
   },
   {
    "definitionId": 29154,
    "displayName": "104=CAF_CORE, 105=ENUM, 107=ActionCode, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29155,
    "displayName": "104=CAF_CORE, 105=ENUM, 107=ActionLevel, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29156,
    "displayName": "104=CAF_CORE, 105=ENUM, 107=ActionType, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29157,
    "displayName": "104=CAF_CORE, 105=ENUM, 107=Asset, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 4,
+    "generatedCount": 3,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 29158,
    "displayName": "104=CAF_CORE, 105=ENUM, 107=Constants, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29159,
    "displayName": "104=CAF_CORE, 105=ENUM, 107=FactorType, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29160,
-   "displayName": "104=CAF_CORE, 105=HANDLER, 106=ActionHandler, 107=ActionHandler, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29161,
    "displayName": "104=CAF_CORE, 105=HANDLER, 106=ActionHandler, 107=ComponentAction, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29162,
-   "displayName": "104=CAF_CORE, 105=HANDLER, 106=FactorHandler, 107=AppClass, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 25,
+    "generatedCount": 22,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29163,
    "displayName": "104=CAF_CORE, 105=HANDLER, 106=FactorHandler, 107=Chart, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1946,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 28,
+    "generatedCount": 24,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 29164,
    "displayName": "104=CAF_CORE, 105=HANDLER, 106=FactorHandler, 107=Component, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": true,
    "roundtripExact": false,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "ROUNDTRIP_ONLY"
   },
   {
    "definitionId": 29165,
    "displayName": "104=CAF_CORE, 105=HANDLER, 106=FactorHandler, 107=ExternalLink, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 6014,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 7,
+    "generatedCount": 4,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29166,
@@ -67166,28 +67462,34 @@
   {
    "definitionId": 29167,
    "displayName": "104=CAF_CORE, 105=HANDLER, 106=FactorHandler, 107=FieldList, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 3169,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29168,
-   "displayName": "104=CAF_CORE, 105=HANDLER, 106=FactorHandler, 107=Grid, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 16,
+    "generatedCount": 15,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 29169,
    "displayName": "104=CAF_CORE, 105=HANDLER, 106=FactorHandler, 107=HtmlTemplate, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 7,
+    "generatedCount": 6,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29170,
@@ -67202,20 +67504,34 @@
   {
    "definitionId": 29171,
    "displayName": "104=CAF_CORE, 105=HANDLER, 106=FactorHandler, 107=PsQueryPagelet, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 16,
+    "generatedCount": 14,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29172,
    "displayName": "104=CAF_CORE, 105=HANDLER, 106=FactorHandler, 107=URL, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 6,
+    "generatedCount": 5,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29173,
@@ -67230,29 +67546,48 @@
   {
    "definitionId": 29174,
    "displayName": "104=CAF_CORE, 105=HANDLER, 107=EntityHandler, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 9,
+    "generatedCount": 10,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 29175,
    "displayName": "104=CAF_CORE, 105=OBJECT, 106=SESSION, 107=EntityData, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 1,
+    "generatedCount": 1
+   }
   },
   {
    "definitionId": 29176,
    "displayName": "104=CAF_CORE, 105=OBJECT, 106=SESSION, 107=FactorData, 12=OnExecute, 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29177,
@@ -67282,29 +67617,47 @@
   {
    "definitionId": 29179,
    "displayName": "104=CAF_CORE, 105=OBJECT, 107=ActionData, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29180,
    "displayName": "104=CAF_CORE, 105=OBJECT, 107=AnalysisView, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29181,
    "displayName": "104=CAF_CORE, 105=OBJECT, 107=BaseObject, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 1,
+    "generatedCount": 1
+   }
   },
   {
    "definitionId": 29182,
@@ -67328,29 +67681,48 @@
   {
    "definitionId": 29184,
    "displayName": "104=CAF_CORE, 105=OBJECT, 107=CurrentUser, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 6,
+    "generatedCount": 5,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29185,
    "displayName": "104=CAF_CORE, 105=OBJECT, 107=EmailAddress, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 29186,
    "displayName": "104=CAF_CORE, 105=OBJECT, 107=Entity, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 4,
+    "generatedCount": 4
+   }
   },
   {
    "definitionId": 29187,
@@ -67365,38 +67737,63 @@
   {
    "definitionId": 29188,
    "displayName": "104=CAF_CORE, 105=OBJECT, 107=Globals, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 2,
+    "generatedCount": 2
+   }
   },
   {
    "definitionId": 29189,
    "displayName": "104=CAF_CORE, 105=OBJECT, 107=SelectEntity, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 3,
+    "generatedCount": 3
+   }
   },
   {
    "definitionId": 29190,
    "displayName": "104=CAF_CORE, 105=OBJECT, 107=SelectFactor, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 2,
+    "generatedCount": 2
+   }
   },
   {
    "definitionId": 29191,
    "displayName": "104=CAF_CORE, 107=ObjectManager, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 36,
+    "generatedCount": 35,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29192,
@@ -67512,44 +67909,34 @@
   {
    "definitionId": 29200,
    "displayName": "104=CAF_UI, 107=HandlerRegistry, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29201,
-   "displayName": "104=CAF_UTIL, 107=HtmlHelper, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 21,
+    "generatedCount": 17,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29202,
    "displayName": "104=CAF_UTIL, 107=StringHelper, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29213,
-   "displayName": "104=CITIZEN_STS_TBL_FULLSYNC, 107=CitizenStsTblFullsync, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29214,
-   "displayName": "104=CITIZEN_STS_TBL_SYNC, 107=CitizenStatusTableSync, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 4,
+    "generatedCount": 3,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29230,
@@ -67625,20 +68012,34 @@
   {
    "definitionId": 29247,
    "displayName": "104=CO_BANKING, 107=IBAN, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_QUOTED_COMPONENT",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 12,
+    "generatedCount": 10,
+    "firstDivergenceKind": "component"
+   }
   },
   {
    "definitionId": 29248,
    "displayName": "104=CO_BANKING, 107=IBANInterface, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 18,
+    "generatedCount": 13,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 29249,
@@ -68742,11 +69143,18 @@
   {
    "definitionId": 29360,
    "displayName": "104=GPS_EDITFUNCTIONS, 107=AddPost, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 34,
+    "generatedCount": 32,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29361,
@@ -68790,14 +69198,6 @@
    }
   },
   {
-   "definitionId": 29364,
-   "displayName": "104=GPS_EDITFUNCTIONS, 107=BlockFinally, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 29365,
    "displayName": "104=GPS_EDITFUNCTIONS, 107=BlockFinallyContent, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -68812,14 +69212,6 @@
     "generatedCount": 25,
     "firstDivergenceKind": "field"
    }
-  },
-  {
-   "definitionId": 29366,
-   "displayName": "104=GPS_EDITFUNCTIONS, 107=BlockTemporarily, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 29367,
@@ -68853,14 +69245,6 @@
    }
   },
   {
-   "definitionId": 29369,
-   "displayName": "104=GPS_EDITFUNCTIONS, 107=Cut, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 29370,
    "displayName": "104=GPS_EDITFUNCTIONS, 107=CutContent, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -68879,11 +69263,18 @@
   {
    "definitionId": 29371,
    "displayName": "104=GPS_EDITFUNCTIONS, 107=Decrement, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 41,
+    "generatedCount": 41,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29372,
@@ -68902,14 +69293,6 @@
    }
   },
   {
-   "definitionId": 29373,
-   "displayName": "104=GPS_EDITFUNCTIONS, 107=DefineKU, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 29374,
    "displayName": "104=GPS_EDITFUNCTIONS, 107=DefineKUContent, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -68924,14 +69307,6 @@
     "generatedCount": 17,
     "firstDivergenceKind": "record-field"
    }
-  },
-  {
-   "definitionId": 29375,
-   "displayName": "104=GPS_EDITFUNCTIONS, 107=DefineKW, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 29376,
@@ -68952,11 +69327,18 @@
   {
    "definitionId": 29377,
    "displayName": "104=GPS_EDITFUNCTIONS, 107=Increment, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 42,
+    "generatedCount": 42,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29378,
@@ -68986,11 +69368,18 @@
   {
    "definitionId": 29381,
    "displayName": "104=GPS_EDITFUNCTIONS, 107=NewPostPlanRow, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 2542,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 23,
+    "generatedCount": 29,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 29382,
@@ -69053,14 +69442,6 @@
    }
   },
   {
-   "definitionId": 29387,
-   "displayName": "104=GPS_EDITFUNCTIONS, 107=Reserve, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 29388,
    "displayName": "104=GPS_EDITFUNCTIONS, 107=ReserveContent, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -69079,11 +69460,18 @@
   {
    "definitionId": 29389,
    "displayName": "104=GPS_EDITFUNCTIONS, 107=Reset, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 7700,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 34,
+    "generatedCount": 33,
+    "firstDivergenceKind": "scroll"
+   }
   },
   {
    "definitionId": 29390,
@@ -69361,11 +69749,18 @@
   {
    "definitionId": 29413,
    "displayName": "104=GPS_UTILS, 107=ClassUtility, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 9,
+    "generatedCount": 8,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29414,
@@ -69871,11 +70266,18 @@
   {
    "definitionId": 29456,
    "displayName": "104=GP_ABS_CS_CMPNT, 107=TmplCopy, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 22,
+    "generatedCount": 19,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29457,
@@ -70602,11 +71004,18 @@
   {
    "definitionId": 29529,
    "displayName": "104=GP_ABS_EVT_HANDLER, 105=DataHandler, 107=AbsenceManagement, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1971,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 33,
+    "generatedCount": 31,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29530,
@@ -70805,29 +71214,50 @@
   {
    "definitionId": 29548,
    "displayName": "104=GP_ABS_OWS, 107=GP_ABS_OWS, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 33,
+    "generatedCount": 35,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29549,
    "displayName": "104=GP_ABS_TLECD, 107=GP_ABS_TLECD, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 25,
+    "generatedCount": 24,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29552,
    "displayName": "104=GP_ABS_UTILS, 107=GP_ABSENCE_EVENT_ci, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 3,
+    "generatedCount": 2,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29556,
@@ -70872,20 +71302,33 @@
   {
    "definitionId": 29562,
    "displayName": "104=GP_CC_MAP, 107=GpCcSetupDb, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 9,
+    "generatedCount": 9
+   }
   },
   {
    "definitionId": 29563,
    "displayName": "104=GP_CC_MAP, 107=GpCcSetupOnline, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 61,
+    "generatedCount": 51,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 29565,
@@ -71002,14 +71445,6 @@
     "storedCount": 14,
     "generatedCount": 14
    }
-  },
-  {
-   "definitionId": 29577,
-   "displayName": "104=GP_FUNCLIB, 107=COMMON, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 29578,
@@ -72006,11 +72441,18 @@
   {
    "definitionId": 29674,
    "displayName": "104=PAYROLL_KK_TRANSACTIONS, 107=PayrollAcctgLine_EncResponse, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 4397,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 28,
+    "generatedCount": 27,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29679,
@@ -72729,20 +73171,34 @@
   {
    "definitionId": 29841,
    "displayName": "104=PSPRSM, 107=CRefValidation, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 31,
+    "generatedCount": 32,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29842,
    "displayName": "104=PSPRSM, 107=HomepageTileValidation, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 35,
+    "generatedCount": 35,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29843,
@@ -72861,11 +73317,18 @@
   {
    "definitionId": 29854,
    "displayName": "104=PSXP_ENGINE, 107=PDFMerger, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 6,
+    "generatedCount": 5,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29855,
@@ -74189,14 +74652,6 @@
    }
   },
   {
-   "definitionId": 29964,
-   "displayName": "104=PTAF_AP_BUILDER, 105=SVG_OBJECTS, 107=defs, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 29966,
    "displayName": "104=PTAF_AP_BUILDER, 105=SVG_OBJECTS, 107=minusIcon, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -74334,14 +74789,6 @@
     "storedCount": 0,
     "generatedCount": 0
    }
-  },
-  {
-   "definitionId": 29976,
-   "displayName": "104=PTAF_AP_BUILDER, 105=SVG_OBJECTS, 107=stageIcon, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 29978,
@@ -75367,11 +75814,17 @@
   {
    "definitionId": 30108,
    "displayName": "104=PTAF_MASS_APPROVALS, 105=CLIENT, 107=MassApprovalsSubmit, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 10,
+    "generatedCount": 10
+   }
   },
   {
    "definitionId": 30110,
@@ -75693,11 +76146,17 @@
   {
    "definitionId": 30134,
    "displayName": "104=PTAF_NEM, 107=Status, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 1,
+    "generatedCount": 1
+   }
   },
   {
    "definitionId": 30137,
@@ -75791,11 +76250,18 @@
   {
    "definitionId": 30143,
    "displayName": "104=PTAF_UI, 107=AuthorizationController, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 6626,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 23,
+    "generatedCount": 24,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 30145,
