@@ -5769,18 +5769,37 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
                * PACKAGE/MESSAGE row).
                */
               ensureLocalObjectPackageReference('MESSAGE', 'Message');
+            } else if (/^Field$/i.test(paramType ?? '')) {
+              /*
+               * Compiler closure: `Field`-typed Function PARAMETERS were
+               * previously left DELIBERATELY unhandled here on the
+               * strength of a 122-candidate census that found "2 genuine
+               * negative controls" (definitions 17113, 20911). Re-
+               * investigation found BOTH of those were false: 17113's and
+               * 20911's entire `Function ...(&f As Field...)` bodies are
+               * wrapped in one large `/* *\/`-style comment -- no real
+               * Function-parameter declaration is compiled there at all,
+               * so the absence of a PACKAGE/FIELD row is correct and
+               * irrelevant to this dispatch. A follow-up TOKEN-LEVEL
+               * census (decoding each candidate and requiring a genuine
+               * opcode-tagged `As`(0x35) immediately followed by a real
+               * `Field` keyword token, which a comment's own single
+               * Comment-kind token can never produce) found two
+               * DIFFERENT remaining textual matches (definitions 20912,
+               * 30151) that turned out to be an entirely unrelated
+               * grammatical construct: the runtime `value As Field`
+               * TYPE-CHECK EXPRESSION (`(&keys [&i] As Field <> Null)`,
+               * `ShowPartialActivityCoeff(&fld As Field)` as a call-site
+               * argument type assertion), parsed through a completely
+               * different code path than this Function-parameter-list
+               * loop, not a parameter declaration at all. With those 4
+               * false leads excluded, the corpus shows 0 real
+               * counter-examples anywhere for the genuine
+               * `Function name(&x As Field, ...)` declaration shape this
+               * dispatch actually handles.
+               */
+              ensureLocalObjectPackageReference('FIELD', 'Field');
             }
-            /*
-             * `Field`-typed Function PARAMETERS are DELIBERATELY left
-             * unhandled here: a 122-candidate corpus census found 119
-             * supporting matches but 2 genuine negative controls
-             * (definitions 17113, 20911 -- both currently EXACT with NO
-             * PACKAGE/FIELD row for their own `&x As Field` parameter),
-             * the same "genuinely mixed" shape Cycle 7 found for
-             * `Rowset`-typed parameters. Do not add an unconditional
-             * rule without first distinguishing what differs between the
-             * 119 supporting cases and these 2 counter-examples.
-             */
           }
           space();
         } else {
