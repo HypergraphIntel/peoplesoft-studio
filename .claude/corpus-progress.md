@@ -3,28 +3,27 @@
 ## Current status (2026-09-29)
 
 - **Current target:** Application Class self-class `%This.method()`
-  hidden-input investigation. **PSAPPCLASSDEFN is now DISPROVEN as the
-  compiler-consulted input**, via real disassembly (not just
-  import-table absence): located `psprj.dll` as `PcmCompileObject`'s
-  actual external caller, traced its call site, and confirmed the ONLY
-  arguments passed are a generic 14-field OBJECTID/OBJECTVALUE key
-  structure (the same key shape already in the local corpus snapshot)
-  and a log/output handle -- no App-Class-specific or PSAPPCLASSDEFN-
-  derived data. Disassembled `PcmCompileObject`'s own body: it opens its
-  own DB session (`SamCreate`) and executes ONLY raw SQL built from
-  strings embedded in `pspcm.dll` itself (already confirmed to exclude
-  `PSAPPCLASSDEFN` entirely) via the generic `SamBindX`/`SamExec`/
-  `SamFetch` layer -- it never touches the `CApm`/`Apm*` repository
-  layer at any point in the traced path. This is a genuine, evidence-
-  backed **Result B** (H0: PSAPPCLASSDEFN insufficient/wrong). A new,
-  weaker, unconfirmed lead surfaced during tracing: `PcmCompileObject`'s
-  fallback logic references `PTTOOLSREL` (PeopleTools release version
-  stamp on `PSPCMPROG`) -- not present in the local snapshot either, but
-  not yet connected to the self-class reference specifically. See
-  "Application Class Self-Reference Metadata" for full addresses/
-  disassembly evidence. Classification remains **UNKNOWN** (one strong
-  candidate eliminated with real evidence; no new candidate confirmed).
-  No encoder change made.
+  row. **Mechanism split and the allocation half is resolved.** See
+  "PcmCompileObject Native Trace" below. Summary: (1) **allocation
+  (trigger) is source-derived** -- every one of the 558 App Classes with
+  an own-method `%This.X(` call has a self row (0 contradictions across
+  all 1,510 App Classes); 554/558 have exactly one; 29300/29330 have
+  byte-identical operands with the row at the same NAMENUM 5. (2)
+  **content** (REFNAME-only 275 vs full `ROOT|QUALIFYPATH|METHOD` 305 vs
+  root-no-method 34) is NOT source-derived, but **content never appears
+  in PSPCMPROG bytes**, so it does not affect EXACT. The only natively
+  located PACKAGE-with-method constructor (the method-call resolver)
+  always writes the full shape; REFNAME-only rows are best explained by
+  compile history (release/path), whose candidate columns (`PTTOOLSREL`,
+  `PROGFLAGS`, `VERSION`, `LASTUPDDTTM`) `PcmLoadProg` reads natively but
+  the snapshot extractor does not capture. Classification: allocation
+  **deterministic from source**; content **UNKNOWN (missing but
+  extractable)**. No encoder change made in this research phase --
+  implementing allocation is the recommended next semantic phase.
+  **Corrections to earlier sessions**: PTTOOLSREL is a WHERE filter in
+  `PcmCompileObject`'s main selection query, not "fallback logic"; and
+  the historical 29300/29330 "row present vs absent" parking was a
+  misreading -- both have the row, only its content differs.
 - **Last successful calibration (previous phase):** owner-key-by-OBJECTID
   fix in `tools/corpus/validator.ts` (test-harness fix, not an encoder.ts
   change) -- EXACT 25,265 -> 26,113, 0 regressions, protected 430/430
@@ -34,14 +33,19 @@
   tooling-only, EXACT/NONEXACT unchanged.
 - **Protected baseline:** 430/430 (confirmed via `corpus:verify`'s
   baseline-comparison gate: 0 regressed among the protected set).
-- **Locally blocked definitions:** none newly blocked this session.
-  The self-class %This.method() mechanism (150 App Class definitions)
-  is the one NAMED blocked population from this phase -- blocked on
-  live PeopleTools/native evidence, not on missing corpus investigation.
-- **Next action:** deliver the required Application-Class-declaration-
-  phase final report to the user. Do not resume leaf-level corpus
-  grinding or attempt a source-only guess at the self-class-reference
-  content rule without new evidence.
+- **Locally blocked definitions:** none newly blocked. The 150
+  self-class %This.method() definitions are **no longer blocked on
+  allocation**. Allocation is source-derived (see the PcmCompileObject
+  Native Trace). Only row *content* is still unresolved, and content is
+  EXACT-neutral.
+- **Next action:** semantic phase: implement Mechanism A. Allocate one
+  self PACKAGE row per App Class at the first own `%This.method()` call.
+  Before implementing, first explain (a) the 13 FULL rows whose
+  APPCLASSMETHOD is not the first own `%This` call in implementation
+  order, and (b) the 4 multi-self-row outlier classes. Then validate
+  against 30,209 / 26,113 / 4,096 and protected 430/430. Optional and
+  user-approved only: a snapshot maintenance rebuild that adds PSPCMPROG
+  PTTOOLSREL/PROGFLAGS/VERSION/LASTUPDDTTM, to test the content rule.
 - **Newly established rules this session:** (1) declaration-section
   closer-family consolidation (Import/App-Class-Local/Generic-
   Declaration, each with a named state-transition primitive); (2) the
@@ -293,11 +297,13 @@ functions (`FixedGlobalAlloc/Free/Lock/Handle` in `pscmnutils64.dll`,
 `SamExec`, `SamFetch`, `SamDestroy`, `SamBufInt`/`SamBufStr`), or (c)
 `pssys.dll`'s generic `MsgGetText`/`PcmFreeDiscard`/`PcmFreeMemory`.
 **Zero calls to any `CApm`/`Apm*` symbol anywhere in the function.** The
-function opens its OWN database session at entry (`SamCreate`; on
-failure, falls back to a `SELECT ... FROM PSPCMPROG WHERE PROGSEQ=0 AND
-PTTOOLSREL IS NOT NULL AND PTTOOLSREL <> '' AND OBJECTID1..7/OBJECTVALUE1..7
-= :1..:14` query -- the SQL text for this was already found in the
-prior session's string dump) and executes ONLY the SQL text already
+function opens its OWN database session at entry (`SamCreate`) and
+selects one of two key-selection queries **by its 4th argument, not by
+any failure path** [CORRECTED in the PcmCompileObject Native Trace below:
+the earlier reading of this as "fallback after SamCreate failure" was
+wrong -- `SamCreate` returns 0 on success and the `je` goes to the main
+path; the PTTOOLSREL-filtered 7-pair query is chosen when arg4 != 0],
+and executes ONLY the SQL text already
 confirmed (prior session) to live inside `pspcm.dll` itself, which does
 NOT include `PSAPPCLASSDEFN` anywhere.
 
@@ -400,7 +406,209 @@ fix the ALLOCATION gap (150 definitions) but risk wrong CONTENT for
 roughly half of them (per the 309/305 split), and the project's own
 standing rule is zero unexplained contradictions before any semantic
 change. Holding for either the live experiment's result or a further
-native trace of `PcmCompileObject`'s post-prologue logic.
+native trace of `PcmCompileObject`'s post-prologue logic. [SUPERSEDED by
+the PcmCompileObject Native Trace below: allocation is now source-derived;
+only content remains open, and content does not affect EXACT.]
+
+### PcmCompileObject Native Trace (2026-09-29)
+
+Read-only static analysis: objdump/radare2 on the pt861 binaries, plus a
+custom pure-Python PE + MSVC RTTI vtable resolver for virtual slots. No
+binary was executed or patched, and no `--live` was used. All corpus
+statistics come from the LOCAL SNAPSHOT. The addresses below are VAs at the
+default image base (0x180000000).
+
+#### 1. PcmCompileObject itself (pspcm.dll, 0x1801e4b20, 1,785 bytes, pcmconv.cpp ~2882-2985) -- confidence HIGH
+
+This is an **enumerator only**. It does no type dispatch, has no App Class
+branch, and builds no references.
+
+- `SamCreate(&h)`. A nonzero return logs "Error creating database
+  transaction" and returns 1. Zero is success: `je` goes to the main path.
+- **SQL selection:** `test ebx,ebx; cmovne` on arg4.
+  - arg4 != 0: `SELECT OBJECTID1..7, OBJECTVALUE1..7 FROM PSPCMPROG WHERE
+    PROGSEQ=0 AND PTTOOLSREL IS NOT NULL AND PTTOOLSREL <> ' ' AND
+    OBJECTID1=:1 AND OBJECTVALUE1=:2 ... (7 pairs)`.
+  - arg4 == 0: the same select, filtered on OBJECTID1/OBJECTVALUE1 only.
+- **PTTOOLSREL purpose:** a WHERE filter, when arg4 is set, that restricts
+  the enumeration to programs that already carry a release stamp (that is,
+  previously compiled and saved programs). It is not a fallback, and it is
+  not read into any compile decision.
+- **Output buffer:** 0x8c0 bytes (r13). It holds 7x `SamBufInt` at +0x6c8
+  and 7x `SamBufStr` at +0x140 (stride 0xca, 101 wchar).
+- **Binds:**
+  - if `[arg1+0x10]>0 && [arg1+0x18]==0x30`: one `SamBindLong(_wtol(...))`.
+    This numeric-key form is unresolved and not App-Class-relevant.
+  - else if arg4: a 7-pair `SamBindInt`/`SamBindStr` loop.
+  - else: OBJECTID1/OBJECTVALUE1.
+- `SamExec` (on error, logs "Error executing SQL command"), then a
+  `SamFetch` loop (0 = row, 3 = end). Each row becomes a 0x1d8 node:
+  - 7 strings of 0x3e bytes at 0x00-0x1b2
+  - 7 ints at 0x1b4-0x1cc
+  - next pointer at 0x1d0, prepended.
+- It calls `fcn.1801e11e0(list, logHandle, arg3, arg5, arg4)`, then cleans
+  up (PcmFreeMemory, node frees, SamDestroy, PcmFreeDiscard).
+
+**Stop condition C (delegation)** applies to PcmCompileObject itself: all
+the semantics live below it.
+
+#### 2. Per-object loop fcn.1801e11e0 (pspcm.dll, 3,105 bytes) -- HIGH
+
+It calls `PcmSetCompileObserver`, then does the following for each node:
+
+1. `SamCreate` ("Error creating database transaction for object: %s")
+2. `pssys!PcmLoadProg` ("Error reading program from database for object: %s")
+3. `pssys!PcmReCompile` ("Error compiling program: %1")
+4. conditional `pssys!PcmUpdate` ("Unable to save:")
+5. "Compile successful: %1"
+
+It ends with "Compile summary: %d errors; %d warnings; %d auto-declared
+variables". The only other state it touches is `psmgr!MgrGetCntrl`. It has
+no type dispatch either. The loop treats every definition type identically.
+
+#### 3. pssys!PcmLoadProg (pcmget.cpp, 2,932 bytes) -- HIGH
+
+- It reads PSPCMPROG `VERSION, PROGRUNLOC, NAMECOUNT, PROGLEN, LICENSE_CODE,
+  LASTUPDDTTM, LASTUPDOPRID, PROGFLAGS, PROGEXTENDS, PTTOOLSREL, PROGTXT`
+  ORDER BY PROGSEQ. NAMECOUNT goes to +0x6e4 (a SamBufShort).
+- If NAMECOUNT != 0 and a flag is clear, it runs
+  `FixedGlobalAlloc(NAMECOUNT*0x216)` into +0x6f8, filled from PSPCMNAME
+  by fcn.180273950.
+- It also calls `GenCheckLicenseCd` and `MetadataBulkOperationInProcess`.
+- **Snapshot gap:** `tools/corpus/discovery.ts` captures only
+  `PROGSEQ, PROGTXT`. VERSION, PROGFLAGS, PTTOOLSREL, LASTUPDDTTM and the
+  others are *missing but extractable*.
+
+#### 4. pssys!PcmReCompile (0x180279300, 1,212 bytes) -- HIGH
+
+It is also reached from `CPcm::Get` and `CPcm::LoadDefn`.
+
+1. `r13 = [prog+0x6f8]`, the old name table.
+2. `g_PcmInt->vt[0](prog)` calls `pspceval!PcBuildText`. This **decompiles
+   the stored program to text** using the old name table. The compiler never
+   sees the saved source text. It sees text regenerated from stored bytes.
+3. It copies the key (+0x140, 0x586 bytes) into a fresh prog.
+4. `g_PcmInt->vt[3](text, arg4, r13, r13+0x20, 0, &newProg, ...)`, which
+   is **PcmParseEdit**.
+5. On success it frees the old program and installs the new
+   +0x6e8/+0x6f0/+0x700/+0x708, the new name table (+0x6f8), NAMECOUNT
+   (+0x6e4) and +0x718. **The name table is rebuilt from scratch.** The old
+   table is not merged.
+
+**Vtable evidence:** the `CPSPcmInt` RTTI Complete Object Locator is at
+RVA 0x6bc088, which resolves the vtable at 0x1806a4980.
+- slot 0 = 0x180539d50: a jmp thunk to `pspceval!PcBuildText`
+- slot 3 = 0x18053bee0: a thunk to `PcmParseEdit` at 0x1804f78d0
+
+#### 5. PcmParseEdit and core compile fcn.1804e9c40 -- HIGH
+
+- The modes are 0 "Full", 1 "Lite", and 2 "None".
+- The core receives `ownerStr0 = r13` and `ownerStr1 = r13+0x20`, which are
+  **the first two string fields of old name-table entry 0** (the owner
+  RECNAME/REFNAME). The core only checks `word [p]` on them as wide
+  strings. The rest of the old table is not passed.
+- It sets `[compiler+0x2ff0] = (ownerStr0[0] && ownerStr1[0])`.
+- **Existing-state dependency:** the only prior compiled state that reaches
+  the compiler is (a) owner identity and (b) the decompiled text. This
+  natively corroborates the encoder's owner-context design. No global or
+  session table of App Class metadata is consulted on this path.
+
+#### 6. PACKAGE-row constructors (the wide literal "PACKAGE" at 0x1805ece60 has 4 xrefs) -- HIGH for 0x1804f0e9c, MEDIUM for the others
+
+- **0x1804f0e9c** is inside the method-call resolver (a function around
+  0x1804f0ae0).
+  - It is gated by `[r14]-0x80100 <= 0x3feff`.
+  - It resolves the object's class, then splits the path with 0x18013a160.
+  - It fills: +0x20 = component[0] (PACKAGEROOT), +0x60 = last component
+    (REFNAME, the class), +0x120 = components 1..n-2 joined by ':'
+    (QUALIFYPATH), and +0xa0 = method name (wcsncpy 0x3c, APPCLASSMETHOD).
+  - Then it calls **AddName 0x1804f67b0** with r9d=1, which is the
+    PSPCMNAME write path: dedup, append at the next NAMENUM, and return the
+    NAMENUM for the 0x21/0x4A/0x48 operand.
+  - `_wcsicmp(method, class)==0` raises error 0x61 "The constructor cannot
+    be directly called."
+  - It **always writes FULL content** (root + qualify + method).
+- **0x1804f1dde and 0x1804f260a** are type-reference builders (class
+  names in declarations or casts).
+- **0x18013a823** is the import/package path parser (error 0x46 is length
+  > 100; error 0x47 is depth >= 4).
+
+#### 7. Caller census (all pt861 DLL/EXE import tables) -- HIGH
+
+- Only **psprj.dll** imports `PcmCompileObject`. It has 3 reference sites:
+  0x18008ccce, 0x18008d555, and jmp thunk 0x1800fa7ef.
+- The call sites pass only a generic 14-field key, a log handle, and 0/0.
+  They differ only in the key-buffer source (project item iteration).
+- `pside.exe` imports only `PcmBuildText`, `PcmGet`, `PcmFreeDiscard` and
+  `PcmGetObjOwnerID` from the Pcm family. Interactive App Designer
+  save/compile reaches `PcmReCompile`/`PcmParseEdit` through `CPcm` and the
+  `CPSPcmInt` vtable, not through PcmCompileObject.
+- Batch compile and interactive compile therefore **converge on the same
+  PcmParseEdit core**. No caller-specific self-reference path exists.
+
+#### 8. Trigger vs content -- the two mechanisms
+
+**Mechanism A: allocation (the trigger).** This is SOURCE-DERIVED, with 0
+contradictions. Allocation census over all 1,510 App Classes
+(OBJECTID1=104), LOCAL SNAPSHOT:
+
+| | self row | no self row |
+|---|---|---|
+| own `%This.X(` call present | 558 | **0** |
+| no own `%This.X(` call | 56 (type refs / inherited calls) | 896 |
+
+- 554 of the 558 have exactly one self row. The outliers (7, 2, 54 and 48
+  rows) are consistent with same-named foreign classes. They are still
+  open.
+- **For FULL rows, APPCLASSMETHOD equals an own `%This` target in 284/305
+  cases.** The first own `%This` call in implementation order matches 284.
+  261 rows have blank content (n/a) and 13 are other. Declaration order
+  matches 0/10 tested: for example, 28986 records `validateinput` while
+  its first call is `calccost`, and 29099/29103/29105/29108 record
+  `resolvetemplate`. The 13 residuals may shift which call site allocates
+  the row. That matters for NAMENUM position, so it must be resolved
+  before implementation.
+- **All 150 "missing" definitions** (the encoder's current allocation gap)
+  contain `%This` method calls (100 FULL, 49 REFONLY, 1 ROOT_NO_METHOD).
+  Mechanism A explains them all.
+
+**Mechanism B: content (REFONLY 275 / FULL 305 / ROOT_NO_METHOD 34).**
+This is NOT source-derivable.
+- **29300 vs 29330:** both have the self row at NAMENUM 5. 29300's row is
+  REFONLY. 29330's is FULL (`PACKAGEROOT=GPSC_XMLRF`,
+  `APPCLASSMETHOD=ADDNODE`). The two programs differ in only 2 bytes, the
+  trailer class path. The same source shape gets different content. [This
+  corrects the Cycle 41 "row present vs absent" claim.]
+- Stored header bytes don't discriminate the shapes.
+- Only 8/614 self rows have a source-identical twin, so cloning is not the
+  explanation.
+- The only native constructor for a method-bearing PACKAGE row writes FULL.
+  REFONLY rows are therefore best explained by **compile history** (an
+  older PeopleTools release, or rows written by a path other than the
+  8.61 recompile, such as migration or bulk metadata).
+- Candidate discriminators are exactly the PSPCMPROG columns that
+  PcmLoadProg reads and the snapshot omits: PTTOOLSREL, PROGFLAGS, VERSION,
+  LASTUPDDTTM.
+- **Content does not affect EXACT.** EXACT compares PSPCMPROG bytes, and
+  operands carry only NAMENUM. The row's count and order matter; its field
+  content does not.
+
+#### 9. Classification
+
+- **Allocation: effectively COMPLETE (source-derived).** It is pending the
+  13 position residuals and the 4 multi-row outliers.
+- **Content: UNKNOWN (missing but extractable).** The rule is hypothesised
+  as compile-history-dependent. It can be tested by extracting PTTOOLSREL,
+  PROGFLAGS, VERSION and LASTUPDDTTM in an explicit, user-approved snapshot
+  maintenance rebuild.
+- There is no global or session hidden state on the native path. The only
+  prior-state inputs are the owner identity and the decompiled text.
+- **No encoder/decoder change was made.** Implementing Mechanism A (one
+  self row per class, allocated at the first own `%This.method()` call,
+  FULL content per native 8.61) is the next *semantic* phase, after the
+  13 residuals and 4 outliers are explained. That change is justified
+  natively and by the corpus, and it is not a heuristic. Content is
+  EXACT-neutral.
 
 ## Compiler Architecture: Application Class Declaration-Phase References (2026-09-29)
 
