@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-09-30T12:53:40.281Z",
+ "generatedAt": "2026-09-30T14:42:44.782Z",
  "totalDefinitions": 30209,
- "exactCount": 26609,
- "nonexactCount": 3600,
+ "exactCount": 26616,
+ "nonexactCount": 3593,
  "rows": [
   {
    "definitionId": 522,
@@ -19318,7 +19318,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 25,
-    "generatedCount": 27,
+    "generatedCount": 24,
     "firstDivergenceKind": "package"
    }
   },
@@ -19366,7 +19366,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 19,
-    "generatedCount": 19,
+    "generatedCount": 16,
     "firstDivergenceKind": "package"
    }
   },
@@ -23842,22 +23842,6 @@
    }
   },
   {
-   "definitionId": 19393,
-   "displayName": "9=PTACECELLPROP_SEC, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 2533,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 23,
-    "generatedCount": 24,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 19396,
    "displayName": "9=PTACECRTINST_SEC, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -24408,22 +24392,6 @@
    }
   },
   {
-   "definitionId": 19538,
-   "displayName": "10=ACA_ALE_XMIT, 39=GBL, 1=ACA_ALE_MEMBER, 12=RowInsert, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 22306,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 92,
-    "generatedCount": 92,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
    "definitionId": 19554,
    "displayName": "10=ACA_EE_YE_FORM_FL, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
    "classification": "UNSUPPORTED_SYNTAX",
@@ -24447,22 +24415,6 @@
     "storedCount": 23,
     "generatedCount": 22,
     "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 19570,
-   "displayName": "10=ACA_EMP_XMIT, 39=GBL, 1=ACA_EMPLOYEE, 12=RowInsert, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 9801,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 180,
-    "generatedCount": 180,
-    "firstDivergenceKind": "record"
    }
   },
   {
@@ -32990,38 +32942,6 @@
    }
   },
   {
-   "definitionId": 24445,
-   "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMW_WRK, 2=PTADSCHANGEDCOUNT, 12=FieldEdit, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 321,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 4,
-    "generatedCount": 4,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 24447,
-   "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMW_WRK, 2=PTADSDELETEDCOUNT, 12=FieldEdit, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 321,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 4,
-    "generatedCount": 4,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
    "definitionId": 24451,
    "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMW_WRK, 2=PTADSNAME, 12=FieldChange, 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -33034,22 +32954,6 @@
     "referenceSetExact": false,
     "storedCount": 16,
     "generatedCount": 15,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 24452,
-   "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMW_WRK, 2=PTADSNAME, 12=FieldEdit, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 315,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 4,
-    "generatedCount": 4,
     "firstDivergenceKind": "record-field"
    }
   },
@@ -33067,22 +32971,6 @@
     "storedCount": 33,
     "generatedCount": 34,
     "firstDivergenceKind": "record"
-   }
-  },
-  {
-   "definitionId": 24455,
-   "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMW_WRK, 2=PTADSNEWCOUNT, 12=FieldEdit, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 321,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 4,
-    "generatedCount": 4,
-    "firstDivergenceKind": "record-field"
    }
   },
   {

@@ -5763,3 +5763,52 @@ End-Function;
   const fn = opcodes.indexOf('Function');
   assert.deepStrictEqual(opcodes.slice(fn - 3, fn), ['15', '2d', '4f']);
 });
+
+// Cycle 93: PSPCMNAME identities of an ordinary program, in allocation order.
+const referenceKeys = (source: string): string[] =>
+  encodeProgramArtifacts(source).references.map(reference =>
+    reference.kind === 'package'
+      ? `PACKAGE.${reference.packageName ?? ''}`
+      : reference.kind === 'scroll'
+        ? `SCROLL.${reference.recordName ?? ''}`
+        : `${reference.recordName ?? ''}.${reference.fieldName ?? ''}`
+  );
+
+test('a nested uninitialized App Class Local allocates its row at the declaration and create reuses it', () => {
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:Helper;
+
+If &a = 1 Then
+   Local PKG:Helper &h;
+   &r = GetRowset(Scroll.TEST_A);
+   &h = create PKG:Helper();
+End-If;`),
+    ['PACKAGE.HELPER', 'PACKAGE.HELPER', 'SCROLL.TEST_A']
+  );
+});
+
+test('a nested App Class Local reuses a row an earlier create established', () => {
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:Helper;
+
+If &a = 1 Then
+   &h0 = create PKG:Helper();
+   &r = GetRowset(Scroll.TEST_A);
+   Local PKG:Helper &h;
+   &r = GetRowset(Scroll.TEST_B);
+End-If;`),
+    ['PACKAGE.HELPER', 'PACKAGE.HELPER', 'SCROLL.TEST_A', 'SCROLL.TEST_B']
+  );
+});
+
+test('a top-level late App Class Local keeps its own row, separate from a later create', () => {
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:Helper;
+
+&r = GetRowset(Scroll.TEST_B);
+Local PKG:Helper &h2;
+&r = GetRowset(Scroll.TEST_C);
+&h2 = create PKG:Helper();`),
+    ['PACKAGE.HELPER', 'SCROLL.TEST_B', 'PACKAGE.HELPER', 'SCROLL.TEST_C', 'PACKAGE.HELPER']
+  );
+});
