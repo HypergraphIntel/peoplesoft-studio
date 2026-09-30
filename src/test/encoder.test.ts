@@ -5595,3 +5595,57 @@ import PKG:B;
     '15'
   );
 });
+
+/*
+ * Cycle 90: before executable code, top-level comments (block, REM,
+ * disabled code) are transparent to the declaration section: a comment
+ * closes it only when the next real item neither is a declaration nor a
+ * Local (27360, 28208, 28250, 19549).
+ */
+const declaredSection = `Declare Function F PeopleCode TEST_REC.TEST_FLD FieldFormula;
+`;
+
+test('a REM between a declaration and a Local does not close the section', () => {
+  const source = `${declaredSection}
+REM note;
+
+Local Rowset &r;
+
+&r = GetRowset(Scroll.TEST_REC);`;
+  assert.ok(!opcodesBeforeFirstComment(source).includes('2d'));
+  assert.strictEqual(boundaryOpcodesBeforeLastStatement(source), '15 2d 4f');
+});
+
+test('a block comment followed by a REM before a Local does not close the section', () => {
+  const source = `${declaredSection}
+/* note */
+REM more;
+
+Local Rowset &r;
+
+&r = GetRowset(Scroll.TEST_REC);`;
+  assert.ok(!opcodesBeforeFirstComment(source).includes('2d'));
+  assert.strictEqual(boundaryOpcodesBeforeLastStatement(source), '15 2d 4f');
+});
+
+test('a block comment followed by disabled code before a Local does not close the section', () => {
+  const source = `${declaredSection}
+/* note */
+<* &old = 1; *>
+
+Local Rowset &r;
+
+&r = GetRowset(Scroll.TEST_REC);`;
+  assert.ok(!opcodesBeforeFirstComment(source).includes('2d'));
+  assert.strictEqual(boundaryOpcodesBeforeLastStatement(source), '15 2d 4f');
+});
+
+test('a REM between a declaration and executable code still closes the section before the REM', () => {
+  assert.strictEqual(
+    opcodesBeforeFirstComment(`${declaredSection}
+REM note;
+
+&r = GetRowset(Scroll.TEST_REC);`),
+    '15 2d 4f'
+  );
+});
