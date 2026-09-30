@@ -2,23 +2,113 @@
 
 ## Current status (2026-09-29)
 
-- **Current target:** Cycle 87 completed -- Mechanism C, part 1. EXACT
-  26,528 -> 26,576 (+48), failed 3,681 -> 3,633, protected PASS, 0 EXACT ->
-  non-EXACT. See "Compiler Semantics Cycle 87".
-- **Last successful calibration:** Cycle 87. Close serialization is
-  independent of the trigger, and a REM does not end leading-run
-  eligibility before a run starts.
+- **Current target:** Cycle 88 completed -- an import section closes
+  before a REM whose next real item is not an import, and that REM also
+  takes over the gap to the next item. EXACT 26,576 -> 26,583 (+7),
+  protected PASS, 0 EXACT -> non-EXACT. See "Compiler Semantics Cycle 88".
+- **Last successful calibration:** Cycle 88.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** none newly blocked. 13559 is a
-  decoder-side DECODE_SOURCE_MISMATCH.
-- **Next action:** the remaining Mechanism C subfamilies:
-  1. 0x2D on the wrong side of a comment (~11);
-  2. a section closed at a comment although a Local follows (~9);
-  3. App-Class Local -> comment -> Component (4).
-  Then the import-group missing 0x4F (14 + 5).
-- **Newly established rules this session:** the Cycle 87 rules; the Cycle
-  86 rules; Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
+- **Locally blocked definitions:** none newly blocked. 14543: tokens
+  match, but the program is 1 byte longer outside the token stream (not
+  boundary). 13559: decoder-side. 20860: the disabled-code Local-run
+  anchor.
+- **Next action:** choose between Mechanism C subfamily 2 (a section closed
+  at a comment although a Local follows; 5 + 4 + 3 + 3 hunks) and the
+  import-group missing 0x4F (19 hunks, one coherent shape). Then the
+  missing 0x2D for a comment-preceded Local run (8) and App-Class Local ->
+  comment -> Component (4).
+- **Newly established rules this session:** the Cycle 88 rule; the Cycle
+  87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle 83 While gaps; the
+  Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 88 -- 0x2D on the wrong side of a comment (Mechanism C subfamily 1)
+
+**Baseline reproduced fresh at `3050ac6`:** 26,576 / 3,633, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only; no DLL work.
+
+**Result:** EXACT **26,576 -> 26,583 (+7)**, 0 EXACT -> non-EXACT.
+Positional population **16 -> 1**.
+
+### Positional census (tool: `cycle88-close-position-census.py`)
+
+The tool aligns stored and generated real-token skeletons and compares the
+ordered layout/comment gap after each aligned top-level token. A gap is
+positional when both sides hold the same multiset of 0x2D, 0x4F and
+comments in a different order.
+
+- **16 definitions**, 7 strict one-blockers.
+- By comment kind: **REM 15** (one also has a standalone comment after
+  it), **DISABLED 1** (20860), BLOCK-only 0, TRAILING 0.
+- Stored order is always `2D 4F <comment> ...`: the 0x2D and the
+  comment's leading blank line come BEFORE the comment. Generated had
+  `4F <comment> ... 2D`.
+
+### Two distinct mechanisms, implemented only the first
+
+1. **An import section closes before a REM** (15 definitions: 2128, 14543,
+   17594, 18011, 18061, 18969, 19449, 23494, 23519, 24626, 24648, 25337,
+   25507, 26010, 28257).
+   - Shape: import(s), blank line, top-level REM (often a commented-out
+     import or declaration), then a non-import item.
+   - Logical close point: the import section is complete before the REM.
+     The REM is intervening trivia; the next real item is not an import.
+   - The standalone block comment branch already closes the import section
+     there (`importSectionOpen && !nextIsImport`). The REM branch had no
+     import close, so the section closed at the next statement and its
+     0x2D landed after the REM.
+   - Stored bytes, every definition (REM directly after an import):
+     - next real item not an import -> 0x2D before the REM in **18/18**;
+     - next real item an import -> no close in **3/3** (17759, 28853,
+       30184).
+   - Fix: at a top-level REM with an open import section, look past REMs
+     and block comments (`nextSignificantAfterComments`); if the next real
+     item is not an import, emit 0x2D there and close the section. A
+     following plain Local restarts the Local run, mirroring the main
+     import closer (26010: `rem Global ...; rem Local ...; Local date`;
+     without the restart it is not corrected).
+   - Compensating ownership found and fixed: the import closer also owned
+     the blank-line gap up to the next real item. Moving the close to the
+     REM left the gap after the REM unowned when a declaration followed
+     (23494 and 24648 gained a MISSING_4F: stored `2D 4F REM 4F Declare`).
+     The REM that took over the close now also takes over that gap,
+     consuming the whitespace after itself as the block comment branch
+     does. This changes exactly those two definitions. The alternative of
+     widening the declaration-gap owner to count a closed import section
+     changed six unrelated definitions (1417, 1419, 12813, 19885, 20824,
+     23568) and was rejected.
+2. **Disabled code after a Local run** (20860): the deferred Local-run
+   boundary is anchored AFTER the disabled-code comment. This is a
+   different mechanism (the deferred boundary's anchor, not the import
+   close) and is left separate.
+
+### Validation
+
+- Bytes change for exactly the 15 REM definitions, plus nothing else.
+  The negative controls are unchanged, including the `import; REM; import`
+  cases and the disabled-after-import cases (24926, 29920, 29928, 29935).
+- Position corrected: all 15. EXACT gain +7: 18061, 18969, 19449, 23519,
+  24626, 26010, 28257. The 7 positional one-blockers minus 14543 (its
+  tokens now match, but the program is still 1 byte longer outside the
+  token stream), plus 26010.
+- `npm test` 640 run / 639 pass. Two tests fail before and pass after;
+  the `import; REM; import` and 26010-shape controls pass both ways.
+- Protected PASS; full 30,209: 26,583 / 3,626; row diff 0 regressions,
+  7 fixed.
+
+### Post-fix Mechanism C census (pre-change NONEXACT list)
+
+93 definitions with a top-level boundary hunk (was 105), 25 strict
+one-blockers (was 32). EXTRA_2D 64, MISSING_4F 20, MISSING_2D 15, ORDER 5.
+Positional: 1 (20860).
+
+| rank | mechanism | hunks | examples |
+|---|---|---:|---|
+| 1 | subfamily 2: section closed at a comment although a Local follows (EXTRA_2D after Declare / Component / executable / Local, then a comment, then a Local) | 5 + 4 + 3 + 3 | 27360, 28208, 14136, 3140, 4422 |
+| 2 | import-group missing 0x4F (import -> import 14, executable -> import 5) | 19 | 5565, 13516, 13522, 14357 |
+| 3 | missing 0x2D for a Local run preceded by a comment, before executable code | 8 | 2128, 3140, 18822, 23494, 25056 |
+| 4 | App-Class Local -> comment -> Component | 4 | 18998, 23568 |
+| 5 | disabled-code Local-run anchor | 1 | 20860 |
 
 ## Compiler Semantics Cycle 87 -- Mechanism C: comments / REM at declaration close
 

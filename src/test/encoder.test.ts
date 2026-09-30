@@ -5496,3 +5496,55 @@ REM note;
 &r = GetRowset(Scroll.TEST_REC);`);
   assert.ok(!before.startsWith('15 2d'), before);
 });
+
+/*
+ * Cycle 88: an open import section closes BEFORE a top-level REM whose next
+ * real item is not another import (18061: `2D 4F REM`), as it already does
+ * before a standalone block comment. A REM between imports keeps it open.
+ */
+test('an import section closes before a REM that is followed by a non-import item', () => {
+  assert.strictEqual(
+    opcodesBeforeFirstComment(`import PKG:*;
+
+REM next;
+
+&r = GetRowset(Scroll.TEST_REC);`),
+    '15 2d 4f'
+  );
+});
+
+test('an import section stays open across a REM that is followed by another import', () => {
+  const opcodes = opcodesBeforeFirstComment(`import PKG:*;
+REM more imports;
+import OTHER:*;
+
+&r = GetRowset(Scroll.TEST_REC);`);
+  assert.ok(!opcodes.includes('2d'), opcodes);
+});
+
+test('a Local run after an import and a REM still closes formally (26010 shape)', () => {
+  assert.strictEqual(
+    boundaryOpcodesBeforeLastStatement(`import PKG:*;
+
+rem Local string &old;
+Local Rowset &r;
+
+&r = GetRowset(Scroll.TEST_REC);`),
+    '15 2d 4f'
+  );
+});
+
+test('a REM that closes the import section also owns the blank line before a following declaration (23494 shape)', () => {
+  const artifacts = encodeProgramArtifacts(`import PKG:*;
+
+REM c;
+
+Declare Function F PeopleCode TEST_REC.TEST_FLD FieldFormula;
+
+&a = TEST_REC.TEST_FLD;`, whileGapOwner as any);
+  const names = new NameTable();
+  for (const reference of artifacts.references) names.add(reference.sequence, `N${reference.sequence}`);
+  const opcodes = decodeProgram(artifacts.program, names, { mode: 'auto' }).tokens.map(t => t.opcode.toString(16));
+  const rem = opcodes.indexOf('24');
+  assert.deepStrictEqual(opcodes.slice(rem - 2, rem + 3), ['2d', '4f', '24', '4f', '31']);
+});

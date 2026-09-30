@@ -4159,6 +4159,24 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * whether a comment is still inside a leading Local declaration run or
    * follows the end of that run.
    */
+  /*
+   * Cycle 88: like `nextSignificantAfterBlockComments`, but also skips REM
+   * statements (a REM runs to its terminating `;`, possibly across lines,
+   * exactly as `remComment()` consumes it). Used to find the next REAL
+   * top-level item after a REM.
+   */
+  const nextSignificantAfterComments = (start: number): number => {
+    let scan = start;
+    while (true) {
+      scan = nextSignificantAfterBlockComments(scan);
+      if (!startsRemComment(scan)) {
+        return scan;
+      }
+      const end = source.indexOf(';', scan);
+      scan = end < 0 ? source.length : end + 1;
+    }
+  };
+
   const nextSignificantAfterBlockComments = (
     start: number
   ): number => {
@@ -10894,6 +10912,45 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      */
     if (startsRemComment()) {
       /*
+       * Cycle 88: an open import section closes BEFORE a top-level REM whose
+       * next real item is not another import -- the same rule the
+       * standalone block comment branch already applies (`!nextIsImport`).
+       * The REM branch had no import close, so the section stayed open
+       * across the REM and its 0x2D was serialized after it
+       * (`4F REM 2D` instead of stored `2D 4F REM`).
+       *
+       * PTAFAW_TXN.PTAFPRCS_ID.SavePostChange (definition 18061):
+       *
+       *   import PTAF_CORE:DEFN:*;
+       *
+       *   REM Create a Counter for the new Registry entry;
+       *
+       *   If GetRow().IsNew Then
+       *
+       * stores `... 15 2D 4F 24 <REM> 4F 1C ...`. LOCAL SNAPSHOT, stored
+       * bytes of every definition: REM after an import section, next real
+       * item not an import -> 0x2D before the REM in 18/18; next real item
+       * an import -> no close in 3/3 (17759, 28853, 30184). As at the main
+       * import closer, a following plain Local restarts the Local run
+       * (26010: `rem Global ...; rem Local ...; Local date &ASOFDATE;`).
+       */
+      let remClosedImportSection = false;
+      if (importSectionOpen) {
+        const remEnd = source.indexOf(';', pos);
+        const afterRemComments = nextSignificantAfterComments(
+          remEnd < 0 ? source.length : remEnd + 1
+        );
+        if (!/^import\b/i.test(source.slice(afterRemComments))) {
+          chunks.push(Buffer.from([0x2d]));
+          closeImportSection();
+          remClosedImportSection = true;
+          if (/^Local\s+[A-Za-z_][A-Za-z0-9_]*\s+&/i.test(source.slice(afterRemComments))) {
+            restartLocalDeclarationRun();
+          }
+        }
+      }
+
+      /*
        * A REM comment after the final leading Local closes a reference-bearing
        * Local section just like a standalone block comment does. The ordinary
        * blank-line path below supplies the 0x4F; defer only the 0x2D until we
@@ -10935,6 +10992,26 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        */
       chunks.push(remComment(true));
       haveCompletedTopLevelStatement = true;
+      /*
+       * Cycle 88: the import closer owns the blank-line gap up to the next
+       * real item (its own `if (hasBlankLine) emitBlankLineMarkers` at the
+       * main import-close site). When this REM took over the import close,
+       * it also takes over that gap -- the same way the standalone block
+       * comment branch owns the whitespace after itself. Without this, a
+       * declaration following the REM lost its 0x4F: no other producer owns
+       * a declaration gap with no prior declaration or Local run (23494,
+       * 24648: `... 2D 4F REM 4F Declare ...`). Changes exactly those two
+       * definitions; the alternative of widening the declaration-gap owner
+       * changed six unrelated ones and was not taken.
+       */
+      if (remClosedImportSection) {
+        const remWhitespaceStart = pos;
+        space();
+        const remWhitespace = source.slice(remWhitespaceStart, pos);
+        if (/(?:\r?\n)[ \t]*(?:\r?\n)/.test(remWhitespace)) {
+          emitBlankLineMarkers(remWhitespace);
+        }
+      }
       /*
        * Cycle 87: a REM does not end leading-Local-run eligibility when no
        * Local run has started yet -- the same rule the standalone block
