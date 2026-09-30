@@ -1671,8 +1671,18 @@ export function decodeProgram(
       // (353/53 occurrences corpus-wide in plain Function programs,
       // pass twenty-eight's own count, are why this needs the gate at
       // all).
+      /*
+       * Cycle 101: `private` / `protected` are section headers on a line
+       * of their own, so they END their line too (NEWLINE_BOTH). With only
+       * NEWLINE_BEFORE, a following 0x4F blank-line marker merely ended the
+       * `private` line and the blank line under it vanished from the
+       * decoded text: 56 source-exact Application Classes (e.g. 28769
+       * `private\n   \n   method ...`) failed the roundtrip by one missing
+       * 0x4F. Without a marker, the next member's NEWLINE_BEFORE finds the
+       * line already started, so nothing changes there.
+       */
       if (opcode === 0x61) {
-        tokens.push({ kind: TokenKind.Keyword, text: 'private', offset, opcode, format: F.NEWLINE_BEFORE });
+        tokens.push({ kind: TokenKind.Keyword, text: 'private', offset, opcode, format: NEWLINE_BOTH });
         continue;
       }
       // private's own sibling section header. Confirmed against ADSM.
@@ -1683,7 +1693,7 @@ export function decodeProgram(
       // */`), then `method LoadBackingData() Returns ...`. This
       // program's only unmapped opcode.
       if (opcode === 0x73) {
-        tokens.push({ kind: TokenKind.Keyword, text: 'protected', offset, opcode, format: F.NEWLINE_BEFORE });
+        tokens.push({ kind: TokenKind.Keyword, text: 'protected', offset, opcode, format: NEWLINE_BOTH });
         continue;
       }
       if (opcode === 0x62) {
@@ -1962,7 +1972,9 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
           previous.opcode === 0x58 ||
           previous.opcode === 0x51 ||
           previous.opcode === 0x5b ||
-          previous.opcode === 0x64
+          previous.opcode === 0x64 ||
+          previous.opcode === 0x6a ||
+          previous.opcode === 0x6b
         ) {
           /*
            * 0x51 is PanelGroup's own declaration opcode (see encoder.ts's
@@ -2006,6 +2018,13 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
            * missing-suppression bug once 0x5b's own occurrences were
            * fixed -- confirmed on the same definition 28700, whose second
            * method implementation is preceded by exactly this shape.
+           *
+           * Cycle 101: 0x6a (`end-get`) and 0x6b (`end-set`) close an
+           * accessor implementation exactly like `end-method` closes a
+           * method, and had the same gap: `end-get;\n\nset X` decoded with
+           * two blank lines (53 source-exact Application Classes carry
+           * `6a|6b 15 2d 4f`, e.g. 28716, 29086; each failed the roundtrip
+           * by one extra 0x4F).
            */
           followsDeclaration = true;
           break;
