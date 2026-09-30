@@ -2306,7 +2306,67 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    */
   const recordRowsByUnit = new Map<string, { unit: number; reference: PeopleCodeReference }>();
   const unitScopedRecordRows = !context?.builtinObjectDeclarationsHaveMethodWideLifetime;
+
+  /*
+   * Cycle 96: the same one-row-per-unit lifetime holds for these operand
+   * rows of an ordinary program, each kind in its own pool, keyed by the
+   * PSPCMNAME row identity (RECNAME.REFNAME):
+   *
+   *   FIELD         FIELD.<name>       30,420 / 30,420 reuse in unit; 40,405 /
+   *                                      40,405 new otherwise (the same field
+   *                                      name under different records is ONE
+   *                                      FIELD row: the row carries no record)
+   *
+   * Stored evidence: `cycle95-record-unit-census.ts --all`, every aligned
+   * operand occurrence of every ordinary definition. Construct, receiver
+   * and access direction do not matter, exactly as for RECORD.
+   *
+   * The key is the ROW identity, not the encoder's reference kind: the
+   * statement-start path parses `Field.VERSION.Value = &x;` as a
+   * record-field reference "Field|VERSION" (16080) and
+   * `Scroll.X.Flush();` as "Scroll|X" (5037); both are the stored FIELD /
+   * SCROLL row and share the unit's row with `Field.VERSION` /
+   * `GetRowset(Scroll.X)` elsewhere in the statement.
+   *
+   * Declare Function operands (`Declare Function f PeopleCode REC.FIELD
+   * FieldFormula`, reference kind 'declare-function') are NOT unit-scoped:
+   * stored reuses one row per REC.FIELD for the whole program (3,692 in the
+   * same unit, 10 across units -- 4601, 4602, 13823, 13915, 21321, 27129 --
+   * and never a second row), so they stay out of these pools.
+   */
+  type UnitScopedRowFamily = 'field' | 'scroll' | 'record-field';
+  const UNIT_SCOPED_ROW_FAMILIES: ReadonlySet<UnitScopedRowFamily> = new Set<UnitScopedRowFamily>(['field']);
+  const unitScopedRows: Record<UnitScopedRowFamily, Map<string, { unit: number; reference: PeopleCodeReference }>> = {
+    field: new Map(),
+    scroll: new Map(),
+    'record-field': new Map()
+  };
+  const unitScopedRowIdentity = (
+    reference: Omit<PeopleCodeReference, 'index' | 'sequence'>
+  ): { pool: Map<string, { unit: number; reference: PeopleCodeReference }>; key: string } | undefined => {
+    if (!unitScopedRecordRows) return undefined;
+    if (reference.kind !== 'field' && reference.kind !== 'scroll' && reference.kind !== 'record-field') {
+      return undefined;
+    }
+    const key =
+      reference.kind === 'field'
+        ? `FIELD.${(reference.fieldName ?? '').toUpperCase()}`
+        : reference.kind === 'scroll'
+          ? `SCROLL.${(reference.recordName ?? '').toUpperCase()}`
+          : `${(reference.recordName ?? '').toUpperCase()}.${(reference.fieldName ?? '').toUpperCase()}`;
+    const family: UnitScopedRowFamily =
+      key.startsWith('FIELD.') ? 'field' : key.startsWith('SCROLL.') ? 'scroll' : 'record-field';
+    return UNIT_SCOPED_ROW_FAMILIES.has(family) ? { pool: unitScopedRows[family], key } : undefined;
+  };
+
   const unitRecordOperand = (reference: PeopleCodeReference): PeopleCodeReference => {
+    const identity = unitScopedRowIdentity(reference);
+    if (identity !== undefined) {
+      const current = identity.pool.get(identity.key);
+      if (current !== undefined && current.unit === allocationUnit) return current.reference;
+      const { index: _index, sequence: _sequence, ...fields } = reference;
+      return nextReference(fields);
+    }
     if (!unitScopedRecordRows || reference.kind !== 'record') return reference;
     const current = recordRowsByUnit.get((reference.recordName ?? '').toLowerCase());
     if (current !== undefined && current.unit === allocationUnit) return current.reference;
@@ -2327,6 +2387,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       const current = recordRowsByUnit.get(unitRecordKey);
       if (current !== undefined && current.unit === allocationUnit) return current.reference;
     }
+    const unitRowIdentity = unitScopedRowIdentity(reference);
+    if (unitRowIdentity !== undefined) {
+      const current = unitRowIdentity.pool.get(unitRowIdentity.key);
+      if (current !== undefined && current.unit === allocationUnit) return current.reference;
+    }
 
     const sequence = references.length + 1 + referenceIndexOffset;
     const created: PeopleCodeReference = {
@@ -2337,6 +2402,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     references.push(created);
     if (unitRecordKey !== undefined) {
       recordRowsByUnit.set(unitRecordKey, { unit: allocationUnit, reference: created });
+    }
+    if (unitRowIdentity !== undefined) {
+      unitRowIdentity.pool.set(unitRowIdentity.key, { unit: allocationUnit, reference: created });
     }
 
     context?.referenceTrace?.({
