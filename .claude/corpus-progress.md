@@ -2,32 +2,124 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 100 completed -- Application Class directory
-  written in PeopleTools' hash-table order (members and unimplemented
-  methods), with every property / instance / accessor record. EXACT
-  28,160 -> 28,421 (+261), protected PASS, 0 EXACT -> non-EXACT. See
-  "Compiler Semantics Cycle 100" and "Compiler Research Cycle 100".
-- **Last successful calibration:** Cycle 100.
+- **Current target:** Cycle 101 completed -- decoder renders the blank
+  line under `private` / `protected` and treats `end-get` / `end-set` as
+  declaration closers; all 92 forward-exact Application Classes in
+  ROUNDTRIP_ONLY now roundtrip. EXACT 28,421 -> 28,513 (+92), protected
+  PASS, 0 EXACT -> non-EXACT, 0 direct-encode streams changed. See
+  "Compiler Semantics Cycle 101" and "Compiler Research Cycle 101".
+- **Last successful calibration:** Cycle 101.
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked: package
   canonical case in App Class type-path names (external package
   metadata); FIELDVALUE / XLAT*; undeclared-variable receivers;
   UNRESOLVED_EXTERNAL_CLASS_METADATA class rows; 2125, 24500, 24503, 19433.
-- **Next action:** ROUNDTRIP_ONLY (102; 68 are forward-exact App Classes
-  whose decoder roundtrip fails), then PACKAGE-only rows, then
-  STRUCTURAL_BYTE. Census before editing.
-- **Newly established rules this session:** Cycle 100 App Class directory
-  hash-table order; Cycle 99 Declare Function identity REC.FIELD; Cycle 98
-  receiver types and member binding; Cycle 97 built-in object property
-  registry; Cycle 96 FIELD / SCROLL / RECORD.FIELD rows per allocation
-  unit, Declare Function rows program-wide; Cycle 95 RECORD rows per
-  allocation unit; the Cycle 94 allocation-unit rule for Application
-  Class rows, Global and parameter receivers, late initialized `Local
-  array of <Builtin>` group order; the Cycle 93 wildcard-row claim and
-  external-metadata fallback; the Cycle 92 rule; the Cycle 91 rules;
-  Cycle 90; Cycle 89; Cycle 88; the Cycle 87 rules; the Cycle 86 rules;
-  Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
+- **Next action:** the 10 remaining ROUNDTRIP_ONLY (decoder, one extra
+  0x4F after a 0x2D boundary): N1 ComponentLife (0x79) / Component
+  declaration closers (2202, 3948, 16496, 18387, 18580); N2 While header
+  ending in a trailing comment `4e 42 2d 4f` (10624, 10640, 10732, 23358,
+  23418). Then PACKAGE-only rows (220 taxonomy / 242 first-divergence),
+  then STRUCTURAL_BYTE. Census before editing.
+- **Newly established rules this session:** Cycle 101 decoder: section
+  headers `private` / `protected` end their line; `end-get` / `end-set`
+  suppress the redundant 0x2D newline like `end-method`; Cycle 100 App
+  Class directory hash-table order; Cycle 99 Declare Function identity
+  REC.FIELD; Cycle 98 receiver types and member binding; Cycle 97 built-in
+  object property registry; Cycle 96 FIELD / SCROLL / RECORD.FIELD rows
+  per allocation unit, Declare Function rows program-wide; Cycle 95 RECORD
+  rows per allocation unit; the Cycle 94 allocation-unit rule for
+  Application Class rows, Global and parameter receivers, late
+  initialized `Local array of <Builtin>` group order; the Cycle 93
+  wildcard-row claim and external-metadata fallback; the Cycle 92 rule;
+  the Cycle 91 rules; Cycle 90; Cycle 89; Cycle 88; the Cycle 87 rules;
+  the Cycle 86 rules; Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82
+  rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 101 -- decoder blank lines after `private` / `protected` and `end-get` / `end-set`
+
+**Result:** EXACT **28,421 -> 28,513 (+92)**, **0 EXACT -> non-EXACT**,
+protected 430/430. ROUNDTRIP_ONLY **102 -> 10**. Decoder-only; the
+encoder (and its Cycle 100 directory writer) is untouched, and **0**
+direct-encode streams change corpus-wide. LOCAL SNAPSHOT only.
+
+`src/peoplecode/decoder.ts`:
+
+1. `private` (0x61) / `protected` (0x73) render with `NEWLINE_BOTH`
+   instead of `NEWLINE_BEFORE`: a section header ends its own line, so a
+   following 0x4F renders the blank line stored under it (`4f 61 4f`,
+   e.g. 28769). Without a marker the next member's NEWLINE_BEFORE finds
+   the line already started -- no change.
+2. 0x6a (`end-get`) / 0x6b (`end-set`) join the `followsDeclaration`
+   closers (0x51, 0x5b, 0x64): their `15 2d 4f` already implies the one
+   blank line, so `redundantStructuralBoundary` must suppress the 0x2D's
+   own newline -- the Cycle 79 `end-method` gap, for accessors (28716,
+   29086).
+
+| | value |
+|---|---|
+| roundtrip-exact programs (full sweep) | 28,525 -> 28,618 (+93, 0 lost) |
+| direct-encode streams changed | 0 |
+| decoded text changed | 276 programs (all Application Classes) |
+| of which roundtrip status unchanged | 183, all roundtrip-failing before and after; statement first-diff moved later in 28, unchanged in 155, earlier in 0 |
+| App Class ROUNDTRIP_ONLY | 92 -> 0 |
+
+Tests: `src/test/decoderAppClassLayout.test.ts` (encode -> decode ->
+re-encode for a blank line under `private`, under `protected`, `private`
+without one, and `end-get;` / `end-set;` followed by one); 3 of 4 fail at
+369cb7b, all pass after.
+
+Fixed by old category: ROUNDTRIP_ONLY 92 (all App Classes); 0 category
+moves among the remaining non-EXACT rows. Forward-exact among non-EXACT
+122 -> 30. Taxonomy after: COMPLETE_DOWNSTREAM 443, UNSUPPORTED_SYNTAX
+335, ACTIVE_PACKAGE 220, ENCODE_ERROR 122, ACTIVE_RECORD_FIELD 118,
+ACTIVE_RECORD 109, ACTIVE_FIELD 106, DECODE_SOURCE_MISMATCH 82,
+ACTIVE_OTHER 51, ACTIVE_SCROLL 49, DECODER_BARE_IDENTIFIER 26,
+STRUCTURAL_ORDERING 16, ROUNDTRIP_ONLY 10, QUOTED_COMPONENT 9.
+
+### Remaining ROUNDTRIP_ONLY (10, ordinary programs) -- next mechanism
+
+All are one extra 0x4F after a 0x2D boundary (`2d 4f` re-encodes `2d 4f
+4f`): the decoder renders two blank lines.
+
+- **N1 (5):** a `ComponentLife` declaration (opcode **0x79**, missing from
+  the `followsDeclaration` list) followed by a blank line -- 2202, 3948,
+  16496, 18387; 18580 is `Component ... /*, &x*/;` (trailing comment
+  before `;`).
+- **N2 (5):** a `While` header with no `;` whose condition ends in a
+  trailing comment, then a blank line: `4e 42 2d 4f` -- 10624, 10640,
+  10732, 23358, 23418.
+
+## Compiler Research Cycle 101 -- Application Class roundtrip failures
+
+**Baseline reproduced fresh at `369cb7b`:** 28,421 / 1,788, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only; no HCDEV, no DLL work.
+
+Tool: `tools/corpus/research/cycle101-roundtrip-section-census.ts`.
+
+- ROUNDTRIP_ONLY 102 = **92 Application Classes** (the 68 forward-exact
+  from Cycle 100 plus 24 already there) + 10 ordinary programs.
+- For all 92 the roundtrip reproduces the name table, the directory
+  records and the slots **exactly**; class members parse identically;
+  only the statement stream differs (84 with a statement-length change).
+- **Directory hypothesis refuted:** the decoder never reads the directory
+  (it renders statement text; the encoder re-derives the directory), so
+  there is no chain-link / physical-vs-semantic order to interpret.
+- Token-level first divergence (every case is one 0x4F):
+
+| count | shape |
+|---|---|
+| 45 App | 4F lost after `private` |
+| 7 App | 4F lost after `protected` |
+| 4 App | second 4F lost under `private` (double blank line) |
+| 36 App | extra 4F after `end-get;` / `end-set;` (`6a|6b 15 2d 4f`) |
+| 5 other | extra 4F after a ComponentLife / Component declaration |
+| 5 other | extra 4F after a While header's trailing comment |
+
+  56 App Classes contain a section-keyword marker, 53 an accessor-closer
+  marker, 17 both (39 need only the first fix, 36 only the second); 0
+  contain neither. Env-gated experiments: first fix alone 39, second
+  alone 36, both 92/92.
 
 ## Compiler Semantics Cycle 100 -- Application Class directory in hash-table order
 
