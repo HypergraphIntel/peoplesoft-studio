@@ -2,7 +2,7 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 95 completed -- RECORD rows in ordinary
+- **Current target:** Cycle 96 in progress (FIELD landed, SCROLL and RECORD.FIELD next); Cycle 95 completed -- RECORD rows in ordinary
   programs live for one allocation unit (the Cycle 94 unit). EXACT 27,018
   -> 27,520 (+502), protected PASS, 0 EXACT -> non-EXACT. See "Compiler
   Semantics Cycle 95" and "Compiler Research Cycle 95".
@@ -26,6 +26,16 @@
   Cycle 90; Cycle 89; Cycle 88; the Cycle 87 rules; the Cycle 86 rules;
   Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 96 -- FIELD, SCROLL and RECORD.FIELD rows per allocation unit
+
+Three separate semantic commits, each with its own pool keyed by the
+PSPCMNAME row identity plus `allocationUnit`; Declare Function operands
+stay program-wide. LOCAL SNAPSHOT only.
+
+| commit | pool | EXACT | EXACT -> non-EXACT | aligned disagreements of that kind |
+|---|---|---|---|---|
+| FIELD | `FIELD.<name>` | 27,520 -> 27,809 (+289) | 0 | 2,038 -> 0 |
 
 ## Compiler Research Cycle 96 -- FIELD, SCROLL and RECORD.FIELD rows per allocation unit
 

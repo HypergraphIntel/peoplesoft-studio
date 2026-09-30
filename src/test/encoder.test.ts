@@ -6200,3 +6200,36 @@ End-Function;`),
     2
   );
 });
+
+// Cycle 96: FIELD rows of an ordinary program live for one allocation unit.
+
+test('a FIELD row is reused within an allocation unit and reopened in the next', () => {
+  const fieldRows = (source: string) =>
+    encodeProgramArtifacts(source).references.filter(reference =>
+      (reference.kind === 'field' || reference.kind === 'record-field') &&
+      (reference.kind === 'field' || /^Field$/i.test(reference.recordName ?? ''))
+    ).length;
+  // Row shorthand in two top-level statements: two FIELD rows.
+  assert.strictEqual(
+    fieldRows(`&a = &rs(1).TEST_REC.TEST_FIELD.Value;
+&b = &rs(2).TEST_REC.TEST_FIELD.Value;`),
+    2
+  );
+  // In the If and Else of one If: one.
+  assert.strictEqual(
+    fieldRows(`If &y Then
+   &a = &rs(1).TEST_REC.TEST_FIELD.Value;
+Else
+   &b = &rs(1).TEST_REC.TEST_FIELD.Value;
+End-If;`),
+    1
+  );
+  // One If statement: one FIELD row, including the statement-start
+  // `Field.X.Value = ...` form (16080).
+  assert.strictEqual(
+    fieldRows(`If &rec.GetField(Field.TEST_FIELD).Value = 0 Then
+   Field.TEST_FIELD.Value = 1;
+End-If;`),
+    1
+  );
+});
