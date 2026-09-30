@@ -29,6 +29,95 @@
   Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
 
+## Compiler Research Cycle 97 -- built-in object members vs PSPCMNAME rows
+
+**Baseline reproduced fresh at `30d49b1`:** 27,905 / 2,304, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only.
+
+### Method
+
+`cycle97-member-identity-dump.ts` writes the stored and generated token
+streams of all 28,427 encodable ordinary definitions (EXACT ones
+included), name operands resolved to RECNAME.REFNAME.
+`cycle97-member-identity-census.py` aligns them on a member-normalized
+form (inline `a:X` and shorthand row `N4a:KIND.X` both become `M:X`) and
+classifies every aligned member position: both rows (ROW_ROW), generated
+row / stored inline (GEN_ROW, Direction 1), stored row / generated inline
+(STORED_ROW, Direction 2). It also counts every stored shorthand row
+KIND.X anywhere in the corpus, the contradiction check for a proposed
+built-in.
+
+The row KIND the encoder produced is the receiver position it believed it
+was in: a RECORD row off a Row / Rowset value (`dependencyKind 'record'`),
+a FIELD row off a Record value (`dependencyKind 'field'`). The classifier
+key is that position plus the member name.
+
+### Population
+
+Aligned member positions: Direction 1 in 294 definitions (937
+occurrences), Direction 2 in 161 (888).
+
+### Direction 1 candidates (every one is property syntax)
+
+| position | member | GEN_ROW occ (defs) | ROW_ROW | stored KIND.member rows anywhere | verdict |
+|---|---|---|---|---|---|
+| Record value (FIELD row) | FieldCount | 170 (124) | 0 | 0 | built-in |
+| Record value | ParentRow | 49 (22) | 0 | 0 | built-in |
+| Record value | DBRecordName | 8 (8) | 0 | 0 | built-in |
+| Record value | IsEditError | 7 (5) | 0 | 0 | built-in |
+| Record value | RelLangRecName | 6 (5) | 0 | 0 | built-in |
+| Record value | ActiveRowCount | 2 (2) | 0 | 0 | built-in |
+| Record value | ParentRowset | 1 (1) | 0 | 0 | built-in |
+| Row / Rowset value (RECORD row) | DeleteEnabled | 38 (24) | 0 | 0 | built-in |
+| Row / Rowset value | ParentRowset | 34 (19) | 0 | 0 | built-in |
+| Row / Rowset value | Style | 28 (15) | 0 | 0 | built-in |
+| Row / Rowset value | ChildCount | 16 (10) | 0 | 0 | built-in |
+| Row / Rowset value | RecordCount | 4 (4) | 0 | 0 | built-in |
+| Record value | FIELDVALUE | 40 (35) | 115 (75) | 115 rows / 75 defs | mixed: real field of the translate records |
+| Record value | XLATLONGNAME | 35 (26) | 76 (60) | 76 / 60 | mixed, same |
+| Record value | XLATSHORTNAME | 12 (8) | 12 (10) | 12 / 10 | mixed, same |
+
+The mixed three need the record's field list (whether the record in the
+chain has a field of that name), which the encoder does not have; parked.
+
+Elsewhere the same names are already inline on both sides (e.g.
+ActiveRowCount 9,360 inline-both occurrences, Style 593, ParentRow 127,
+ParentRowset 89, DeleteEnabled 154, DBRecordName 88): the positions above
+are exactly where the encoder had a record / field binding active.
+
+Property vs method: every GEN_ROW occurrence is property syntax; method
+calls are not bound by the encoder unless an existing reference matches,
+and none of these members appears as a method at those positions.
+
+Chains / result types: after an inline built-in the encoder already makes
+the chain scalar (as for the existing `RowNumber`/`IsChanged`/... set), and
+no current failure needs `ParentRow -> Row` or `ParentRowset -> Rowset`
+propagation; not modeled.
+
+Unknown receivers: not classified. The registry only applies where the
+encoder's own record / field binding is active.
+
+### Isolated experiments (baseline 27,956 forward-exact)
+
+| entry | programs changed | forward-exact gained | lost |
+|---|---|---|---|
+| Record.FieldCount | 171 | 62 | 0 |
+| Row.DeleteEnabled | 26 | 21 | 0 |
+| Row.ParentRowset | 20 | 13 | 0 |
+| Row.Style | 17 | 12 | 0 |
+| Record.ParentRow | 28 | 10 | 0 |
+| Row.ChildCount | 16 | 5 | 0 |
+| Row.RecordCount | 6 | 3 | 0 |
+| Record.IsEditError | 5 | 2 | 0 |
+| Record.RelLangRecName | 6 | 2 | 0 |
+| Record.DBRecordName | 8 | 0 | 0 |
+| Record.ActiveRowCount | 2 | 0 | 0 |
+| Record.ParentRowset | 1 | 0 | 0 |
+| all twelve | 262 | 135 | 0 |
+
+Direction 2 negative controls (3617, 4429, 10106, 18834, 560, 6367,
+30084, 20419, 24348, 29135, 8837): bytes unchanged.
+
 ## Compiler Semantics Cycle 96 -- FIELD, SCROLL and RECORD.FIELD rows per allocation unit
 
 Three separate semantic commits, each with its own pool keyed by the
