@@ -1870,13 +1870,23 @@ test('HTML.NAME is an explicit static record-field dependency', () => {
   assert.deepStrictEqual(uses, [1]);
 });
 
-test('repeated HTML.NAME references reuse within one flat top-level region', () => {
-  const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
+test('repeated HTML.NAME references reuse only within one allocation unit', () => {
+  // Cycle 96: each top-level statement is its own allocation unit; stored
+  // opens a new HTML row in a later statement (24020) and reuses inside one
+  // (18446, 20328: two uses in one If).
+  const flat = encodeWithHtmlReferenceTrace(`
 GetHTMLText(HTML.TEST_CONTENT);
 GetHTMLText(HTML.TEST_CONTENT);`);
+  assert.equal(flat.htmlReferences.length, 2);
+  assert.deepStrictEqual(flat.uses, [1, 2]);
 
-  assert.equal(htmlReferences.length, 1);
-  assert.deepStrictEqual(uses, [1, 1]);
+  const oneStatement = encodeWithHtmlReferenceTrace(`
+If True Then
+   GetHTMLText(HTML.TEST_CONTENT);
+   GetHTMLText(HTML.TEST_CONTENT);
+End-If;`);
+  assert.equal(oneStatement.htmlReferences.length, 1);
+  assert.deepStrictEqual(oneStatement.uses, [1, 1]);
 });
 
 test('different HTML names allocate different dependencies', () => {
@@ -1905,15 +1915,18 @@ End-If;`);
   assert.deepStrictEqual(uses, [1, 2]);
 });
 
-test('HTML.NAME reuses within one ordinary Function', () => {
+test('HTML.NAME opens a new row in each Function body statement', () => {
+  // Cycle 96: each Function body statement is its own allocation unit
+  // (stored: 13559, 13562, 14727, 18130 open a new HTML row in a later
+  // body statement).
   const { htmlReferences, uses } = encodeWithHtmlReferenceTrace(`
 Function Render()
    GetHTMLText(HTML.TEST_CONTENT);
    GetHTMLText(HTML.TEST_CONTENT);
 End-Function;`);
 
-  assert.equal(htmlReferences.length, 1);
-  assert.deepStrictEqual(uses, [1, 1]);
+  assert.equal(htmlReferences.length, 2);
+  assert.deepStrictEqual(uses, [1, 2]);
 });
 
 test('HTML.NAME gets a fresh dependency in each ordinary Function', () => {
@@ -6255,4 +6268,39 @@ test('a SCROLL row is reused within an allocation unit and reopened in the next'
 End-If;`),
     1
   );
+});
+
+// Cycle 96: RECORD.FIELD rows of an ordinary program live for one allocation unit.
+
+test('a RECORD.FIELD row is shared across one try block and reopened in the next statement', () => {
+  const recordFieldRows = (source: string) =>
+    encodeProgramArtifacts(source, { owner: { recordName: 'OWN_REC', fieldName: 'OWN_FIELD' } })
+      .references.filter(reference => reference.kind === 'record-field').length;
+  // 10351: a try block is one unit, however deep the second use is nested.
+  assert.strictEqual(
+    recordFieldRows(`try
+   &a = TEST_REC.F1;
+   If &x Then
+      &b = TEST_REC.F1;
+   End-If;
+catch Exception &e
+end-try;`),
+    1
+  );
+  assert.strictEqual(
+    recordFieldRows(`&a = TEST_REC.F1;
+&b = TEST_REC.F1;`),
+    2
+  );
+});
+
+test('Declare Function operands keep one row per REC.FIELD for the whole program', () => {
+  // 27129: two Declares of one FieldFormula after a Function definition.
+  const keys = encodeProgramArtifacts(`Function A()
+End-Function;
+
+Declare Function B PeopleCode TEST_LIB.F1 FieldFormula;
+Declare Function C PeopleCode TEST_LIB.F1 FieldFormula;`, { owner: { recordName: 'OWN_REC', fieldName: 'OWN_FIELD' } })
+    .references.filter(reference => reference.kind !== 'owner');
+  assert.strictEqual(keys.length, 1);
 });

@@ -2,29 +2,31 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 96 in progress (FIELD and SCROLL landed, RECORD.FIELD next); Cycle 95 completed -- RECORD rows in ordinary
-  programs live for one allocation unit (the Cycle 94 unit). EXACT 27,018
-  -> 27,520 (+502), protected PASS, 0 EXACT -> non-EXACT. See "Compiler
-  Semantics Cycle 95" and "Compiler Research Cycle 95".
-- **Last successful calibration:** Cycle 95.
+- **Current target:** Cycle 96 completed -- FIELD, SCROLL and RECORD.FIELD
+  rows live for one allocation unit, in separate pools keyed by the
+  PSPCMNAME row identity; Declare Function operands are program-wide.
+  EXACT 27,520 -> 27,905 (+385) in three commits, protected PASS, 0
+  EXACT -> non-EXACT. See "Compiler Semantics Cycle 96" and "Compiler
+  Research Cycle 96".
+- **Last successful calibration:** Cycle 96.
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked.
-  UNRESOLVED_EXTERNAL_CLASS_METADATA programs stay parked for class rows
-  (their RECORD rows now use the units).
-- **Next action:** extend the allocation-unit row lifetime to FIELD,
-  SCROLL and RECORD.FIELD operands. Stored obeys it for every operand kind
-  (324,466 occurrences, 11 RECORD.FIELD exceptions: 4601, 4602, 13823,
-  13915, 21321). Experiment: +402 forward-exact beyond RECORD, 1 loss
-  (27129) to trace first. Parked: 2125, 24500, 24503, 19433 (method-row
-  disagreements). The boundary quick-win queue (12 definitions + 8
-  comment-kind cases) is untouched.
-- **Newly established rules this session:** Cycle 95 RECORD rows per
-  allocation unit; the Cycle 94 allocation-unit rule for Application Class
-  rows, Global and parameter receivers, late initialized `Local array of
-  <Builtin>` group order; the Cycle 93 wildcard-row claim and
-  external-metadata fallback; the Cycle 92 rule; the Cycle 91 rules;
-  Cycle 90; Cycle 89; Cycle 88; the Cycle 87 rules; the Cycle 86 rules;
-  Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
+- **Next action:** re-rank. Operand allocation is nearly exhausted (257
+  definitions differ only in row numbering, 219 of them in PACKAGE rows).
+  Candidates: REFERENCE_IDENTITY (573; inline `.FieldCount` 96,
+  `.FIELDVALUE` 33, `.DeleteEnabled` 23), builtin PACKAGE type rows,
+  Declare Function program-wide rows (30 aligned disagreements), quoted
+  kinds (14). Parked: 2125, 24500, 24503, 19433. The boundary quick-win
+  queue (12 definitions + 8 comment-kind cases) is untouched.
+- **Newly established rules this session:** Cycle 96 FIELD / SCROLL /
+  RECORD.FIELD rows per allocation unit, Declare Function rows
+  program-wide; Cycle 95 RECORD rows per allocation unit; the Cycle 94
+  allocation-unit rule for Application Class rows, Global and parameter
+  receivers, late initialized `Local array of <Builtin>` group order; the
+  Cycle 93 wildcard-row claim and external-metadata fallback; the Cycle 92
+  rule; the Cycle 91 rules; Cycle 90; Cycle 89; Cycle 88; the Cycle 87
+  rules; the Cycle 86 rules; Cycle 84 rule B; Cycle 83 While gaps; the
+  Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
 
 ## Compiler Semantics Cycle 96 -- FIELD, SCROLL and RECORD.FIELD rows per allocation unit
@@ -37,6 +39,68 @@ stay program-wide. LOCAL SNAPSHOT only.
 |---|---|---|---|---|
 | FIELD | `FIELD.<name>` | 27,520 -> 27,809 (+289) | 0 | 2,038 -> 0 |
 | SCROLL | `SCROLL.<name>` | 27,809 -> 27,884 (+75) | 0 | 201 -> 0 |
+| RECORD.FIELD | `<REC>.<FIELD>` (code operands) | 27,884 -> 27,905 (+21) | 0 | 104 -> 0 |
+
+**Cycle total:** EXACT **27,520 -> 27,905 (+385)**, 0 EXACT -> non-EXACT
+after each commit, protected 430/430 each time. PACKAGE row lists
+unchanged in all 29,752 encodable programs; RECORD aligned disagreements
+stay 0.
+
+### Rule and architecture
+
+Same lifetime as RECORD (Cycle 95): one row per identity per
+`allocationUnit`. Separate pools (`unitScopedRows.field`, `.scroll`,
+`['record-field']`, enabled through `UNIT_SCOPED_ROW_FAMILIES`) keyed by
+the PSPCMNAME row identity (RECNAME.REFNAME), not by the encoder's
+reference kind -- the statement-start path encodes `Field.X.Value = ...`
+and `Scroll.X.Method()` as record-field references "Field|X" /
+"Scroll|X", which are the stored FIELD / SCROLL rows. HTML.<name> rows
+(record-field references) fall into the RECORD.FIELD pool; stored HTML
+rows follow the unit too (11 same-unit reuses, 123 new, 0 cross-unit).
+`nextReference` returns the unit's row; the 0x21 / 0x4A writers replace a
+stale one. Declare Function operands keep their program-wide lifetime.
+
+### Tests
+
+New: FIELD (row shorthand across statements vs If / Else), SCROLL (two
+calls in one If vs two statements), RECORD.FIELD (one try block vs two
+statements), Declare Function (two Declares after a Function share one
+row). Two earlier synthetic HTML tests asserted reuse across flat
+top-level statements and across Function body statements; stored opens a
+new HTML row in both cases (24020; 13559, 13562, 14727, 18130), so they
+now assert the unit behavior.
+
+### Controls
+
+Cycle 95 RECORD controls 871, 968, 1360, 1428, 1749, 1835 stay EXACT;
+860, 2093, 18375 unchanged. Cycle 94 PACKAGE controls unchanged, except
+17594, which becomes EXACT. Parked 2125, 24500, 24503, 19433 unchanged.
+
+### Post-fix census (2,304 NONEXACT)
+
+| | 8ac4a48 | now |
+|---|---|---|
+| taxonomy REFERENCE_ACTIVE_FIELD | 572 | 289 |
+| taxonomy REFERENCE_ACTIVE_SCROLL | 130 | 53 |
+| taxonomy REFERENCE_ACTIVE_RECORD_FIELD | 177 | 141 |
+| taxonomy REFERENCE_COMPLETE_DOWNSTREAM | 628 | 674 |
+| definitions differing only in row numbering | 643 | 257 (219 of them PACKAGE rows only) |
+| first divergences FIELD / SCROLL / RECORD.FIELD (operand decision) | 98+64+45+37+67 / 67 / 53 | 8 / 0 / 29 |
+| aligned disagreements FIELD / SCROLL / RECORD.FIELD / RECORD | 2,038 / 201 / 104 / 0 | 0 / 0 / 0 / 0 |
+| aligned disagreements Declare Function / quoted | 30 / 17 | 30 / 14 |
+
+The remaining FIELD / RECORD.FIELD / RECORD first divergences are in
+programs whose generated token identities do not align with stored.
+
+### Next mechanism
+
+Reference allocation is nearly exhausted for operands. Largest classes
+now: **REFERENCE_IDENTITY 573** (wrong operand identity, e.g. inline
+`.FieldCount` 96, `.FIELDVALUE` 33, `.DeleteEnabled` 23), HEADER_ONLY
+360, STRUCTURAL_BYTE 264, PACKAGE-only row differences 219 (builtin type
+rows / non-class programs), Declare Function program-wide rows (30
+aligned disagreements), quoted kinds (14).
+
 
 ## Compiler Research Cycle 96 -- FIELD, SCROLL and RECORD.FIELD rows per allocation unit
 
