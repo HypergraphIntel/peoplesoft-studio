@@ -1193,7 +1193,49 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * `builtinObjectDeclarationsHaveMethodWideLifetime` is set only for
        * Application Class fragments.
        */
-      if (
+      /*
+       * Cycle 93: an UNINITIALIZED App Class Local nested inside a
+       * top-level control structure (ordinary PeopleCode only) allocates
+       * its PACKAGE row at the declaration, and a later `create` of the
+       * same class reuses that row instead of allocating its own.
+       *
+       * Definition 25507:
+       *
+       *   If &RootNode <> "" Then
+       *      ...
+       *      Local FM_PS_ESP:PSFormProcessor &FP;
+       *      Local FM_PS_ESP:PSForm &Form;
+       *      ...
+       *      &Form = create FM_PS_ESP:PSForm(&RootNode, CTPR_ESP_AET.LANGUAGE_CD.Value, ...);
+       *
+       * stores PSFORMPROCESSOR (27) and PSFORM (28) adjacently, BEFORE the
+       * create argument's CTPR_ESP_AET.LANGUAGE_CD (29), and no second
+       * PSFORM row. LOCAL SNAPSHOT, all definitions: allocating at the
+       * nested declaration (rather than at the first `create`) moves 17
+       * generated PSPCMNAME lists closer to stored and 0 farther
+       * (19393, 19538, 19570, 24445, 24447, 24452, 24455 become EXACT).
+       * A row already established by an earlier `create` is reused.
+       */
+      const nestedUninitializedLocal =
+        !context?.builtinObjectDeclarationsHaveMethodWideLifetime &&
+        functionDepth === 0 &&
+        controlDepth > 0 &&
+        !/^\s*=/.test(source.slice(pos));
+
+      if (nestedUninitializedLocal) {
+        const classKey = [...appClass.packagePath, appClass.className]
+          .map(component => component.toLowerCase())
+          .join(':');
+        if (!runtimeCreateReferences.has(classKey)) {
+          runtimeCreateReferences.set(
+            classKey,
+            ensureLocalApplicationClassPackageReference(
+              appClass.packagePath,
+              appClass.className
+            )
+          );
+        }
+      } else if (
         ((functionDepth === 0 &&
           controlDepth === 0 &&
           (sawTopLevelExecutableStatement ||
