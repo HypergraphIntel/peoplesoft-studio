@@ -6328,3 +6328,32 @@ test('built-in Row and Record properties open no PSPCMNAME row', () => {
     ['record:TEST_REC', 'field:TEST_FIELD']
   );
 });
+
+// Cycle 98: receiver types that were lost before a member was bound.
+
+test('Component Row, Global Record, CreateRecord and ParentRow results are typed receivers', () => {
+  const rows = (source: string) =>
+    encodeProgramArtifacts(source).references
+      .filter(reference => reference.kind === 'record' || reference.kind === 'field')
+      .map(reference => `${reference.kind}:${reference.kind === 'record' ? reference.recordName : reference.fieldName}`);
+  assert.deepStrictEqual(
+    rows(`Component Row &r;
+&x = &r.TEST_REC.TEST_FIELD.Value;`),
+    ['record:TEST_REC', 'field:TEST_FIELD']
+  );
+  assert.deepStrictEqual(
+    rows(`Global Record &g1, &g2;
+&x = &g2.TEST_FIELD.Value;`),
+    ['field:TEST_FIELD']
+  );
+  assert.deepStrictEqual(
+    rows('&x = CreateRecord(Record.TEST_REC).TEST_FIELD.Value;'),
+    ['record:TEST_REC', 'field:TEST_FIELD']
+  );
+  assert.deepStrictEqual(
+    rows(`Local Field &f;
+&x = &f.ParentRow.TEST_REC.TEST_FIELD.Value;
+&n = &f.ParentRow.RowNumber;`),
+    ['record:TEST_REC', 'field:TEST_FIELD']
+  );
+});
