@@ -10730,7 +10730,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       if (
         leadingLocalRun &&
         sawLeadingLocalDeclaration &&
-        !nextIsLocal &&
+        // Cycle 91: look past REM and disabled code too (13957: `L L L
+        // <blank> /*c*\/ REM ... <* *> ... Local` continues the run).
+        !/^Local\b/i.test(source.slice(nextSignificantAfterTrivia(pos))) &&
         pendingReferenceLocalBoundary === undefined
       ) {
         /*
@@ -11010,11 +11012,25 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * ACL_WS_WRK.WSOPRACCESS.FieldFormula stores:
        *   Local number &I; 2D 4F REM ...
        */
+      /*
+       * Cycle 91: a REM does not queue the leading Local run's close when the
+       * next real item (past all comment trivia) is another Local -- stored
+       * has no close at the REM (28207 `L <blank> REM ... Li Li La L X`,
+       * 28285). Same comment transparency Cycle 90 established for the
+       * generic declaration section. (Whether a PLAIN run then continues
+       * through the REM to a formal close has no corpus instance; the
+       * Cycle 87 end-of-branch reset is left unchanged.)
+       */
+      const remEndForRun = source.indexOf(';', pos);
+      const localFollowsRem = /^Local\b/i.test(
+        source.slice(nextSignificantAfterTrivia(remEndForRun < 0 ? source.length : remEndForRun + 1))
+      );
       if (
         leadingLocalRun &&
         sawLeadingLocalDeclaration &&
         hasBlankLine &&
-        pendingReferenceLocalBoundary === undefined
+        pendingReferenceLocalBoundary === undefined &&
+        !localFollowsRem
       ) {
         pendingReferenceLocalBoundary = chunks.length;
         pendingReferenceLocalMarkers = 0;

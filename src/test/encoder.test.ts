@@ -5669,3 +5669,33 @@ Local Rowset &r;
     '15 2d 4f'
   );
 });
+
+/*
+ * Cycle 91: comments are transparent to the leading Local run's close as
+ * well. A REM followed by another Local queues no close at the REM (28207:
+ * stored `L[4F] REM Li ...`, initialized run -> informal close, no 0x2D),
+ * and a block comment followed by disabled code before another Local does
+ * not end the run, which closes formally at its real end (13957).
+ */
+test('a REM followed by another Local queues no Local-run close at the REM', () => {
+  const opcodes = opcodesBeforeFirstComment(`Local Rowset &q;
+
+REM note;
+Local Rowset &x = GetRowset(Scroll.TEST_REC);
+Local Rowset &r;
+
+&r = &x;`);
+  assert.ok(!opcodes.includes('2d'), opcodes);
+});
+
+test('a block comment and disabled code between two Locals do not end the leading Local run', () => {
+  const source = `Local Rowset &q;
+
+/* note */
+<* &old = 1; *>
+Local Rowset &r;
+
+&r = GetRowset(Scroll.TEST_REC);`;
+  assert.ok(!opcodesBeforeFirstComment(source).includes('2d'));
+  assert.strictEqual(boundaryOpcodesBeforeLastStatement(source), '15 2d 4f');
+});
