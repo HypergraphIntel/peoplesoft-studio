@@ -7,11 +7,11 @@ PeopleSoft Studio includes its own MCP server and does not require PeopleTools 8
 AI compatibility in both directions:
 
 ```text
-Older PeopleTools
-    -> PeopleSoft Studio implements the functionality itself
-
 PeopleTools 8.63+
     -> PeopleSoft Studio can delegate to delivered MCP
+
+Older PeopleTools
+    -> PeopleSoft Studio implements the functionality itself thru its own MCP
 
 AI Agent
     -> sees the same PeopleSoft Studio tools either way
