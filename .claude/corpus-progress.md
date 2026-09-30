@@ -2,27 +2,115 @@
 
 ## Current status (2026-09-29)
 
-- **Current target:** Cycle 90 completed -- top-level comments are
-  transparent to the generic declaration section. EXACT 26,586 -> 26,603
-  (+17), protected PASS, 0 EXACT -> non-EXACT. See "Compiler Semantics
-  Cycle 90".
-- **Last successful calibration:** Cycle 90.
+- **Current target:** Cycle 91 completed. "Mechanism D" (post-executable
+  Local) turned out to be essentially correct already: 1,105 programs, 2
+  marker-count mismatches. Its listed cases were pre-executable
+  collisions. Fixed:
+  - the doubled 0x2D at a comment (the App-Class-Local closer owns it);
+  - comment transparency for the leading-run close.
+  EXACT 26,603 -> 26,604, protected PASS, 0 regressions. See "Compiler
+  Semantics Cycle 91".
+- **Last successful calibration:** Cycle 91.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** none newly blocked. The residuals are
-  classified in the Cycle 90 section.
-- **Next action:** Mechanism D. A Local after executable code produces a
-  doubled `2D 2D` or an extra `2D 4F` (10 + 3 comment-adjacent, plus the
-  EXTRA_2D Local-after-executable shapes). Smaller follow-ups:
-  - the import closed at a block comment does not restart the Local run
-    (25056, 27390);
-  - App-Class Local -> comment -> Component;
-  - the comment kind 0x24 vs 0x4E;
-  - the Constant gap;
-  - 20860.
-- **Newly established rules this session:** the Cycle 90 rule; the Cycle
-  89 rule; the Cycle 88 rule; the Cycle 87 rules; the Cycle 86 rules;
-  Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
+- **Locally blocked definitions:** none newly blocked.
+- **Next action:** the App-Class-Local state machine at comments and
+  declarations (10 definitions: 18998, 23567, 23568, 23570, 23572, 23975,
+  18673, 21969, 23068, 23402) is now the largest remaining boundary
+  family. Smaller follow-ups:
+  - comment kind 0x24 vs 0x4E (8);
+  - disabled-code / EOF (4);
+  - import restart (25056, 27390);
+  - doubled 0x2D across two comments (9986, 28161);
+  - the Constant gap (3).
+- **Newly established rules this session:** the Cycle 91 rules; Cycle 90;
+  Cycle 89; Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84
+  rule B; Cycle 83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 91 -- "Mechanism D" decomposed: post-executable Locals are already correct
+
+**Baseline reproduced fresh at `60589ae`:** 26,603 / 3,606, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only; no DLL work.
+
+**Result:** two semantic commits. EXACT **26,603 -> 26,604 (+1)**, 0 EXACT
+-> non-EXACT. Boundary definitions 55 -> 44; doubled `2D 2D` 10 -> 2.
+
+### The premise did not hold
+
+Tool: `cycle91-post-executable-local-census.ts`. It uses stored bytes for
+every non-App-Class program and compares the layout after each top-level
+Local that follows the first executable statement.
+
+- **1,105 programs** have such a Local, and every shape already matches
+  (executable -> Local -> executable / Local / comment / declaration /
+  Function; initialized and uninitialized; App-Class-typed). The
+  calibrated late-Local formal close (`L next=X [2D 4F]`: 850, 3617, 3618,
+  8115, 13645) also matches.
+- The only mismatches are **2 marker counts** (14751, 20358), both after
+  the first executable statement and not declaration closes.
+- The "Mechanism D" population in Cycles 84 and 90 came from a census
+  labeling artifact: the statement-kind helper labels import statements
+  as "executable". Every listed case is pre-executable, after imports.
+- `sawTopLevelExecutableStatement` and `leadingLocalRun` already keep
+  post-executable Locals out of the leading-run machinery. The Function
+  restart (Cycle 86) is already gated on `!sawTopLevelExecutableStatement`.
+  No change was needed there.
+
+### What the family actually is
+
+1. **Doubled 0x2D at a comment in mixed plain / App-Class Local runs**
+   (4916, 5216, 18229, 18247, 19867, 20027, 20077, 25289).
+   - Producer A: the block comment branch's leading-run close (deferred
+     boundary, 0x2D only).
+   - Producer B: the Application-Class-Local section closer at the same
+     comment (`2D` + markers).
+   - Stored has one `2D 4F`. The executable-statement path already gives
+     the App-Class closer ownership (`!closesApplicationClassLocalSection`
+     before queuing the leading boundary); the comment path lacked it.
+   - **Fix (commit `c054e73`):** when the App-Class-Local closer fires at
+     this comment, the leading boundary is not queued.
+   - Bytes change for exactly these 8, each now identical to stored at
+     every top-level boundary. EXACT +0: they are blocked elsewhere.
+2. **Comment transparency for the leading-Local-run close** (Cycle 90
+   applied it only to the generic section).
+   - A REM queued the run close even when another Local followed (28207,
+     28285; both runs initialized, so informal close, stored no 0x2D).
+   - The block comment's `nextIsLocal` looked past block comments only;
+     13957 has disabled code before the next Local, and stored closes the
+     run formally at its real end.
+   - **Fix (this commit):** both run-close sites use
+     `nextSignificantAfterTrivia`. Bytes change for 28207, 28285 and
+     13957, all now matching stored; +1 EXACT (28207).
+   - A variant where the REM also stops ending an already-started PLAIN
+     run changed no bytes (no corpus instance), so Cycle 87's end-of-branch
+     reset is unchanged.
+3. **App-Class-Local section closing at a declaration** (18673, 21969,
+   23068, 23402): the App-Class-Local state machine, out of scope.
+
+### Validation
+
+- `npm test` 650 run / 649 pass. The new tests fail before and pass
+  after (1 in commit `c054e73`, 2 here).
+- `git diff --check`; protected PASS; row diff 0 regressions for each
+  commit (commit `c054e73`: taxonomy row-identical, EXACT unchanged).
+- Historical controls (3596, 6455, 29315, 5002, 3539, 1257, 1929, 942,
+  945, 528, 2043, 6007, 6276, 513, 29632, 29134, 5026) and the Cycle 84-90
+  controls have unchanged bytes. Only the 11 definitions above change.
+
+### Post-fix boundary census
+
+44 definitions with a top-level boundary hunk (was 55), 8 strict
+one-blockers. EXTRA_2D 31, MISSING_2D 6, ORDER 5, MISSING_4F 3.
+
+Comment-adjacent residuals (25 definitions):
+
+| mechanism | count | examples |
+|---|---:|---|
+| comment kind 0x24 vs 0x4E | 8 | 17624, 26756-26759, 26883, 26891, 27402 |
+| App-Class Local | 6 + 4 | 18998, 23567, 23568, 23570, 23572, 23975; 18673, 21969, 23068, 23402 |
+| disabled-code / EOF | 4 | 20860, 21271, 21323, 24926 |
+| import restart gap | 2 | 25056, 27390 |
+| doubled 0x2D split across two consecutive comments | 2 | 9986, 28161 |
 
 ## Compiler Semantics Cycle 90 -- top-level comments are transparent to the declaration section
 
