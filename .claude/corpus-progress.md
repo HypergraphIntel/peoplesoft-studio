@@ -2,22 +2,123 @@
 
 ## Current status (2026-09-29)
 
-- **Current target:** Cycle 89 completed -- an open import section owns
-  blank-line gaps before its next import. EXACT 26,583 -> 26,586 (+3),
-  protected PASS, 0 EXACT -> non-EXACT. See "Compiler Semantics Cycle 89".
-- **Last successful calibration:** Cycle 89.
+- **Current target:** Cycle 90 completed -- top-level comments are
+  transparent to the generic declaration section. EXACT 26,586 -> 26,603
+  (+17), protected PASS, 0 EXACT -> non-EXACT. See "Compiler Semantics
+  Cycle 90".
+- **Last successful calibration:** Cycle 90.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** none newly blocked. 13 corrected
-  import-gap definitions wait on PACKAGE reference allocation. 14543: 1
-  byte outside the token stream. 20860: the disabled-code anchor.
-- **Next action:** Mechanism C subfamily 2 (a section closed at a comment
-  although a Local follows), with the missing 0x2D on a Local run after a
-  comment as its likely counterpart. Census them together, since both are
-  close-predicate questions at comments.
-- **Newly established rules this session:** the Cycle 89 rule; the Cycle
-  88 rule; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
-  83 While gaps; the Cycle 82 rules.
+- **Locally blocked definitions:** none newly blocked. The residuals are
+  classified in the Cycle 90 section.
+- **Next action:** Mechanism D. A Local after executable code produces a
+  doubled `2D 2D` or an extra `2D 4F` (10 + 3 comment-adjacent, plus the
+  EXTRA_2D Local-after-executable shapes). Smaller follow-ups:
+  - the import closed at a block comment does not restart the Local run
+    (25056, 27390);
+  - App-Class Local -> comment -> Component;
+  - the comment kind 0x24 vs 0x4E;
+  - the Constant gap;
+  - 20860.
+- **Newly established rules this session:** the Cycle 90 rule; the Cycle
+  89 rule; the Cycle 88 rule; the Cycle 87 rules; the Cycle 86 rules;
+  Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 90 -- top-level comments are transparent to the declaration section
+
+**Baseline reproduced fresh at `6d453da`:** 26,586 / 3,623, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only; no DLL work.
+
+**Result:** EXACT **26,586 -> 26,603 (+17)**, 0 EXACT -> non-EXACT.
+
+### One mechanism, two symptoms
+
+Tool: `cycle90-comment-state-census.py`. It aligns skeletons and keeps
+every top-level gap whose 0x2D differs, where the gap contains a comment
+(A) or closes a Local run that started after a comment (B).
+
+- **58 definitions** (29 one-blocker) before the fix.
+- **A (extra 0x2D at the comment):** a declaration section (Declare
+  Function / Component / Global / PanelGroup), then a REM or comment(s),
+  then a Local or declaration. Stored `4F REM`; generated `2D 4F REM`.
+  Examples: 2128, 14136, 14144, 27360, 28208, 23494, 17762, 19236, 19253,
+  20176, 14766, 14768; `Declare -> /*c*/ REM -> Local` in 28250, 28258,
+  28286; `Declare -> /*c*/ <* *> -> Local` in 19549.
+- **B (missing 0x2D later):** the same definitions (2128, 3140, 18822,
+  23494, 27360, 19549). Stored closes formally at the run's real end
+  (`Local ...[2D 4F] X`); generated had already closed at the comment.
+- **Run identity:** Declaration, comment, Local is ONE section, closed
+  once, at the first real item that is not a declaration or Local, and
+  formal or informal per the run (Cycle 84 rule B, unchanged). The comment
+  owns only its own whitespace.
+
+### Closer sites and state responsible
+
+- **Standalone block comment closer:** already had the correct guard
+  (`!nextIsTopLevelDeclaration && !nextIsLocal && pending === undefined
+  && !AppClassLocalOpen`). But its lookahead
+  (`nextSignificantAfterBlockComments`) skipped only `/* */`, so a
+  following REM or `<* *>` hid the Local (28250, 19549).
+- **REM closer:** no guard at all. It closed whenever a declaration
+  section was open. It dates from the pre-harness commits (`4661657`,
+  `5f53958`) and never received the guards the block comment closer later
+  gained (3596's double-close, `!nextIsLocal`, the App-Class-Local
+  exclusion).
+- **Disabled-code closer:** adding the same guard changed no bytes (its
+  own `nextIsTopLevelDeclaration` guard suffices in the corpus), so it is
+  unchanged.
+
+### Rule implemented
+
+**Before executable code, top-level comments of every kind (block, REM,
+disabled code) are transparent to the generic declaration section. A
+comment closes the section only when the next REAL item, past all
+intervening comment trivia, is neither a declaration nor a Local.**
+
+- New `nextSignificantAfterTrivia` (skips whitespace, block comments, REM
+  statements and `<* *>`) and a named predicate,
+  `nextRealItemContinuesDeclarationSection`.
+- The block comment closer uses it in place of its narrower lookahead.
+- The REM closer gains the same guard (predicate, pending-Local boundary,
+  open App-Class-Local section).
+- The import-close lookaheads of Cycles 88/89 are untouched.
+- Measured: the REM guard alone +13/0; the block lookahead past REM +3/0,
+  and past disabled code +1/0 (19549); combined +17 forward-exact, 0
+  lost. Bytes change in 22 definitions, none of them a historical or
+  Cycle 87-89 control.
+
+### Validation
+
+- `npm test` 647 run / 646 pass. Three tests fail before and pass after;
+  the "REM before executable still closes" control passes both ways.
+- `git diff --check`; protected PASS; full corpus 26,603 / 3,606; row
+  diff 0 regressions, 17 fixed.
+- Historical controls (3596, 6455, 29315, 5002, 3539, 1257, 1929, 942,
+  945, 528, 2043, 6007, 6276, 513, 29632, 29134, 5026) and the Cycle 87-89
+  controls (17759, 28853, 30184, 24926, 29920, 29928, 29935, 25507, 4585,
+  14623, 5242, 7222, 16720, 15609, 28343) all have unchanged bytes.
+
+### Post-fix residuals of the comment-state census (36 definitions, all out of scope)
+
+| mechanism | count | examples |
+|---|---:|---|
+| Mechanism D (doubled `2D 2D` after executable code) | 10 | 4916, 18229, 20027, 25289 |
+| Local after executable code | 3 | 21969, 28207, 28285 |
+| comment kind 0x24 vs 0x4E | 8 | 26756-26759, 17624, 27402 |
+| App-Class Local | 6 | 18998, 23567, 23568, 23570, 23572, 23975; also 23068, 23402 |
+| disabled-code anchor / EOF | 5 | 20860, 21271, 21323, 24926, 13957 |
+| import state | 2 | 25056, 27390 |
+
+The import-state follow-up (25056, 27390): an import closed at a block
+comment does not restart the Local run for a following Local, so the run
+misses its formal close. The main import closer and the Cycle 88 REM close
+both restart it.
+
+### Post-fix boundary census
+
+55 definitions with a top-level boundary hunk (was 77), 9 strict
+one-blockers (was 25). EXTRA_2D 42, MISSING_2D 7, ORDER 5, MISSING_4F 3
+(Constant).
 
 ## Compiler Semantics Cycle 89 -- blank lines inside an open import section
 

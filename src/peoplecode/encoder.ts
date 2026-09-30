@@ -4177,6 +4177,42 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     }
   };
 
+  /*
+   * Cycle 90: the next REAL top-level item, looking past every kind of
+   * comment trivia -- block comments, REM statements and `<* ... *>`
+   * disabled code.
+   */
+  const nextSignificantAfterTrivia = (start: number): number => {
+    let scan = start;
+    while (true) {
+      scan = nextSignificantAfterComments(scan);
+      if (!source.startsWith('<*', scan)) {
+        return scan;
+      }
+      const end = source.indexOf('*>', scan + 2);
+      if (end < 0) {
+        return scan;
+      }
+      scan = end + 2;
+    }
+  };
+
+  /*
+   * Cycle 90: before executable code, top-level comments are transparent to
+   * the generic declaration section. A comment only closes the section when
+   * the next REAL item (past all intervening comment trivia) neither
+   * continues the section as a declaration nor as a Local. LOCAL SNAPSHOT
+   * (`cycle90-comment-state-census.py`): stored never closes at the comment
+   * when a declaration or Local follows -- e.g. 2128 `Component ...; <blank>
+   * REM ...; <blank> Local ...` stores `4F REM` there and the formal
+   * `2D 4F` only at the end of the Local run; 28250 `Declare ...; /*c*\/
+   * REM ...; Local` and 19549 `Declare ...; /*c*\/ <* *> Local` likewise.
+   */
+  const nextRealItemContinuesDeclarationSection = (start: number): boolean => {
+    const rest = source.slice(nextSignificantAfterTrivia(start));
+    return /^(?:Global|PanelGroup|Component|Constant|Declare\s+Function|Local)\b/i.test(rest);
+  };
+
   const nextSignificantAfterBlockComments = (
     start: number
   ): number => {
@@ -10736,8 +10772,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         if (
           sawTopLevelDeclaration &&
           !closedTopLevelDeclarationSection &&
-          !nextIsTopLevelDeclaration &&
-          !nextIsLocal &&
+          !nextRealItemContinuesDeclarationSection(pos) &&
           pendingReferenceLocalBoundary === undefined &&
           !(sawApplicationClassLocalSection && !closedApplicationClassLocalSection)
         ) {
@@ -10972,7 +11007,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       }
 
       if (haveCompletedTopLevelStatement && hasBlankLine) {
-        if (sawTopLevelDeclaration && !closedTopLevelDeclarationSection) {
+        /*
+         * Cycle 90: the same close guard as the standalone block comment
+         * closer (this REM closer predates those guards and closed
+         * unconditionally). A REM does not close the section when the next
+         * real item continues it (27360, 28208: `Declare ...; REM ...;
+         * Local ...`); the pending-Local-boundary and open App-Class-Local
+         * exclusions mirror the block comment closer's own.
+         */
+        const remEndForClose = source.indexOf(';', pos);
+        if (
+          sawTopLevelDeclaration &&
+          !closedTopLevelDeclarationSection &&
+          !nextRealItemContinuesDeclarationSection(remEndForClose < 0 ? source.length : remEndForClose + 1) &&
+          pendingReferenceLocalBoundary === undefined &&
+          !(sawApplicationClassLocalSection && !closedApplicationClassLocalSection)
+        ) {
           pushDeclarationSectionCloseByte();
           closeTopLevelDeclarationSection();
         }
