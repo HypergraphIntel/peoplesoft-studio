@@ -13303,6 +13303,197 @@ function scanApplicationClassLayoutComments(
  * deliberately separate: this cycle does not derive dependency identity or a
  * new physical directory ordering rule from executable declaration order.
  */
+/*
+ * Cycle 100: Application Class directory layout, recovered in full.
+ *
+ * PeopleTools keeps a class's properties and instances in one chained hash
+ * table and its methods in another, and writes the directory by walking
+ * them. Stored evidence (`cycle100-appclass-section-census.ts`, LOCAL
+ * SNAPSHOT, all 1,510 Application Classes):
+ *
+ *   hash      h = h * 2 + charCode over the UPPER-CASED name, mod 2^32
+ *   capacity  the first of 20, 31, 67, 127, 257, 521, ... whose 80 % load
+ *             (ceil) holds the table's symbol count -- properties +
+ *             instances for the member table, all declared methods for the
+ *             method table. Observed: <= 16 symbols -> 20, 17..25 -> 31,
+ *             26..51 -> 67, 57..92 -> 127, 104..189 -> 257, 232 -> 521,
+ *             with no overlap.
+ *   order     bucket (h mod capacity) ascending; within a bucket, upper-cased
+ *             name DESCENDING (987 / 987 collision buckets).
+ *
+ * The member order predicts 643 / 643 classes with two or more property /
+ * instance records -- the population Cycle 31 could not model (it tested
+ * fixed capacities and insertion-order chains); the unimplemented-method
+ * order predicts 26 / 26.
+ *
+ * Directory records, in physical order:
+ *
+ *   1. self (existing Cycle 13 record);
+ *   2. every property / instance in member-table order:
+ *        instance           private | property | storage, low = storage ordinal
+ *        plain property     property | storage (+visibility), low = storage ordinal
+ *        readonly property  property | storage | readonly, low = storage ordinal
+ *        get property       property | readonly, low 0
+ *        get-set property   property, low 0
+ *        interface property property | abstract (| readonly for get), low 0
+ *      descriptor = the member's type;
+ *   3. method / get / set implementations in source order: a method as
+ *      before; a getter `getter`, low 0, descriptor = property type; a
+ *      setter `setter`, low 1, descriptor 7;
+ *   4. methods without an implementation (abstract, and every interface
+ *      method) in method-table order, flagged `abstract` only.
+ *
+ * Names: every record's name in record order, then type-path names as the
+ * descriptors of records (in record order) and then slots allocate them
+ * (Cycle 29). Slots: methods in declaration order (Cycle 13), then each
+ * accessor in source order -- a getter's terminator, a setter's parameter
+ * (property type) and terminator.
+ *
+ * Replaces the Cycle 30 freeze (self, singleton instance, methods only).
+ * Residual, not modeled: the package path's canonical case written in
+ * type-path names (source `%metadata:` is stored `%Metadata:`,
+ * `GPS_car_...` is stored `GPS_CAR_...`: the package definition's own case)
+ * and a bare `array` member type (stored `array of any`).
+ */
+function applicationClassSymbolHash(name: string): number {
+  let hash = 0;
+  for (const character of name.toUpperCase()) hash = ((hash * 2) + character.charCodeAt(0)) >>> 0;
+  return hash;
+}
+
+const APPLICATION_CLASS_SYMBOL_TABLE_CAPACITIES = [20, 31, 67, 127, 257, 521, 1031, 2053];
+
+function applicationClassSymbolTableCapacity(symbolCount: number): number {
+  for (const capacity of APPLICATION_CLASS_SYMBOL_TABLE_CAPACITIES) {
+    if (symbolCount <= Math.ceil(capacity * 0.8)) return capacity;
+  }
+  throw new UnsupportedPeopleCodeError(0, 'Application Class symbol table capacity beyond the observed range');
+}
+
+function buildApplicationClassDirectory(
+  parsed: NonNullable<ReturnType<typeof parseApplicationClassSource>>,
+  selfName: string,
+  methods: ApplicationClassMethodMember[]
+): { names: string[]; records: Buffer[]; slots: Buffer[] } {
+  const names: string[] = [selfName];
+  let nameCharOffset = selfName.length + 1;
+  const allocateName = (text: string): number => {
+    const offset = nameCharOffset;
+    names.push(text);
+    nameCharOffset += text.length + 1;
+    return offset;
+  };
+  const members = parsed.members.filter(
+    (member): member is ApplicationClassStorageMember => member.kind === 'property' || member.kind === 'instance'
+  );
+  const bare = (name: string) => name.replace(/^&/, '');
+  const capacity = applicationClassSymbolTableCapacity(members.length);
+  const memberOrder = [...members].sort((a, b) => {
+    const bucket = (applicationClassSymbolHash(bare(a.name)) % capacity) - (applicationClassSymbolHash(bare(b.name)) % capacity);
+    if (bucket !== 0) return bucket;
+    const ua = bare(a.name).toUpperCase(), ub = bare(b.name).toUpperCase();
+    return ua < ub ? 1 : ua > ub ? -1 : 0;
+  });
+  type Callable =
+    | { kind: 'method'; member: ApplicationClassMethodMember }
+    | { kind: 'get' | 'set'; property: ApplicationClassStorageMember | undefined; name: string };
+  const methodsByName = new Map(methods.map(method => [method.name.toLowerCase(), method]));
+  const propertiesByName = new Map(members.map(member => [bare(member.name).toLowerCase(), member]));
+  const callables: Callable[] = [];
+  const implementedMethods = new Set<ApplicationClassMethodMember>();
+  for (const implementation of parsed.implementations) {
+    if (implementation.kind === 'method') {
+      const member = methodsByName.get(implementation.name.toLowerCase());
+      if (member !== undefined && !implementedMethods.has(member)) {
+        implementedMethods.add(member);
+        callables.push({ kind: 'method', member });
+      }
+    } else {
+      callables.push({ kind: implementation.kind, property: propertiesByName.get(implementation.name.toLowerCase()), name: implementation.name });
+    }
+  }
+  const methodCapacity = applicationClassSymbolTableCapacity(methods.length);
+  const unimplemented = methods.filter(member => !implementedMethods.has(member)).sort((a, b) => {
+    const bucket = (applicationClassSymbolHash(a.name) % methodCapacity) - (applicationClassSymbolHash(b.name) % methodCapacity);
+    if (bucket !== 0) return bucket;
+    const ua = a.name.toUpperCase(), ub = b.name.toUpperCase();
+    return ua < ub ? 1 : ua > ub ? -1 : 0;
+  });
+  for (const member of unimplemented) callables.push({ kind: 'method', member });
+
+  // Names of all records first, in physical order.
+  const memberNameOffsets = memberOrder.map(member => allocateName(bare(member.name)));
+  const callableNameOffsets = callables.map(callable =>
+    allocateName(callable.kind === 'method' ? callable.member.name : callable.name));
+  const ensureNameOffset = (path: string): number => allocateName(path);
+
+  // Descriptors: self, members, callables (physical order), then slots.
+  const relationshipType = parsed.extendsType ?? parsed.implementsType;
+  const selfDescriptor = relationshipType === undefined ? NO_TYPE_DESCRIPTOR : encodeTypeDescriptor(relationshipType, ensureNameOffset);
+  const memberDescriptors = memberOrder.map(member => encodeTypeDescriptor(member.type, ensureNameOffset));
+  const callableDescriptors = callables.map(callable =>
+    callable.kind === 'method'
+      ? (callable.member.returnType === undefined ? NO_TYPE_DESCRIPTOR : encodeTypeDescriptor(callable.member.returnType, ensureNameOffset))
+      : callable.kind === 'get' && callable.property !== undefined
+        ? encodeTypeDescriptor(callable.property.type, ensureNameOffset)
+        : NO_TYPE_DESCRIPTOR);
+
+  // Slots: methods in declaration order (Cycle 13), then accessors in physical order.
+  const slots: Buffer[] = [];
+  for (const member of [...methods].sort((a, b) => a.declarationOrdinal - b.declarationOrdinal)) {
+    for (const parameter of member.parameters) {
+      const descriptor = encodeTypeDescriptor(parameter.type, ensureNameOffset);
+      slots.push(encodeApplicationClassSlot(parameter.out ? descriptor | 0x80000000 : descriptor));
+    }
+    slots.push(encodeApplicationClassSlot(NO_TYPE_DESCRIPTOR));
+  }
+  const accessorSlotOffset = new Map<number, number>();
+  callables.forEach((callable, index) => {
+    if (callable.kind === 'method') return;
+    accessorSlotOffset.set(index, slots.length);
+    if (callable.kind === 'set' && callable.property !== undefined) {
+      slots.push(encodeApplicationClassSlot(encodeTypeDescriptor(callable.property.type, ensureNameOffset)));
+    }
+    slots.push(encodeApplicationClassSlot(NO_TYPE_DESCRIPTOR));
+  });
+
+  const visibility = (value: string) =>
+    value === 'private' ? APPLICATION_CLASS_FLAGS.private : value === 'protected' ? APPLICATION_CLASS_FLAGS.protected : 0;
+  const records: Buffer[] = [encodeApplicationClassDirectoryRecord({
+    nameOffset: 0, signatureSlotOffset: 0, flags: APPLICATION_CLASS_FLAGS.self, low: 0, descriptor: selfDescriptor
+  })];
+  const isInterface = parsed.unitKind === 'interface';
+  memberOrder.forEach((member, index) => {
+    const storage = !isInterface && (member.kind === 'instance' || member.mode === 'plain' || member.mode === 'readonly');
+    const flags =
+      APPLICATION_CLASS_FLAGS.property |
+      (isInterface ? APPLICATION_CLASS_FLAGS.abstract : member.kind === 'instance' ? APPLICATION_CLASS_FLAGS.private : visibility(member.visibility)) |
+      (storage ? APPLICATION_CLASS_FLAGS.storage : 0) |
+      (member.mode === 'readonly' || member.mode === 'get' ? APPLICATION_CLASS_FLAGS.readonly : 0);
+    records.push(encodeApplicationClassDirectoryRecord({
+      nameOffset: memberNameOffsets[index], signatureSlotOffset: 0, flags,
+      low: storage ? member.declarationOrdinal : 0, descriptor: memberDescriptors[index]
+    }));
+  });
+  callables.forEach((callable, index) => {
+    if (callable.kind === 'method') {
+      const member = callable.member;
+      records.push(encodeApplicationClassDirectoryRecord({
+        nameOffset: callableNameOffsets[index], signatureSlotOffset: member.signatureSlotOffset,
+        flags: member.abstract || isInterface ? APPLICATION_CLASS_FLAGS.abstract : visibility(member.visibility),
+        low: member.parameters.length, descriptor: callableDescriptors[index]
+      }));
+    } else {
+      records.push(encodeApplicationClassDirectoryRecord({
+        nameOffset: callableNameOffsets[index], signatureSlotOffset: accessorSlotOffset.get(index)!,
+        flags: callable.kind === 'get' ? APPLICATION_CLASS_FLAGS.getter : APPLICATION_CLASS_FLAGS.setter,
+        low: callable.kind === 'set' ? 1 : 0, descriptor: callableDescriptors[index]
+      }));
+    }
+  });
+  return { names, records, slots };
+}
+
 function encodeApplicationClassProgramV2(
   source: string,
   context: EncodeProgramContext | undefined
@@ -13324,23 +13515,6 @@ function encodeApplicationClassProgramV2(
    * `parsed.implementations` but never appear in `methods`).
    */
   const methodsByName = new Map(methods.map(method => [method.name.toLowerCase(), method]));
-  const storageMembers = parsed.members.filter(
-    (member): member is ApplicationClassStorageMember => member.kind === 'property' || member.kind === 'instance'
-  );
-  // Cycle 30: the compiler's physical storage-member enumeration remains
-  // opaque for multi-member sets, but the complete singleton-instance
-  // population is unambiguous (116/116 are self, instance, then callables).
-  // Keep broader property/instance metadata frozen until that enumeration is
-  // recovered; this is a population rule, not a definition-specific gate.
-  const singletonInstance = storageMembers.length === 1 && storageMembers[0].kind === 'instance'
-    ? storageMembers[0]
-    : undefined;
-  const methodsByImplementationOrder = [...methods].sort((a, b) => {
-    if (a.implementationOrder < 0) return b.implementationOrder < 0 ? a.declarationOrdinal - b.declarationOrdinal : 1;
-    if (b.implementationOrder < 0) return -1;
-    return a.implementationOrder - b.implementationOrder;
-  });
-  const methodsByDeclarationOrder = [...methods].sort((a, b) => a.declarationOrdinal - b.declarationOrdinal);
   const scalarDeclarationTypes = new Set([
     'string', 'date', 'any', 'boolean', 'time', 'datetime', 'object', 'integer', 'number', 'exception', 'array'
   ]);
@@ -13477,101 +13651,9 @@ function encodeApplicationClassProgramV2(
       : [...ownerPackagePath, parsed.className];
   const selfName = selfPath.join(':');
 
-  // Name table: self, the proven singleton instance when present, then each
-  // method's name in PHYSICAL DIRECTORY (implementation) order -- Cycle 13's
-  // own finding that the first
-  // `recordCount` names correspond 1:1 to directory records, in
-  // directory order. Trailing Application-Class type-path names (from
-  // parameter/return descriptors) are appended afterward, as encountered
-  // -- see `ensureNameOffset` below.
-  const names: string[] = [selfName];
-  let nameCharOffset = selfName.length + 1;
-  const singletonInstanceNameOffset = singletonInstance === undefined ? undefined : nameCharOffset;
-  if (singletonInstance !== undefined) {
-    names.push(singletonInstance.name);
-    nameCharOffset += singletonInstance.name.length + 1;
-  }
-  const nameOffsetOf = new Map<ApplicationClassMethodMember, number>();
-  for (const member of methodsByImplementationOrder) {
-    nameOffsetOf.set(member, nameCharOffset);
-    names.push(member.name);
-    nameCharOffset += member.name.length + 1;
-  }
-  const ensureNameOffset = (path: string): number => {
-    const offset = nameCharOffset;
-    names.push(path);
-    nameCharOffset += path.length + 1;
-    return offset;
-  };
-
-  // Cycle 29: unrecorded type-path names are allocated by metadata storage
-  // phase, not source occurrence: directory-record descriptors in physical
-  // record order, followed by signature slots in slot order. The complete
-  // stored population has 3,605/3,605 suffix entries in exactly that order.
-  const relationshipType = parsed.extendsType ?? parsed.implementsType;
-  const selfDescriptor = relationshipType === undefined
-    ? NO_TYPE_DESCRIPTOR
-    : encodeTypeDescriptor(relationshipType, ensureNameOffset);
-  const singletonInstanceDescriptor = singletonInstance === undefined
-    ? undefined
-    : encodeTypeDescriptor(singletonInstance.type, ensureNameOffset);
-  const descriptorByMember = new Map<ApplicationClassMethodMember, number>();
-  for (const member of methodsByImplementationOrder) {
-    descriptorByMember.set(
-      member,
-      member.returnType === undefined
-        ? NO_TYPE_DESCRIPTOR
-        : encodeTypeDescriptor(member.returnType, ensureNameOffset)
-    );
-  }
-
-  // Signature slots remain cumulative over methods in DECLARATION order
-  // (Cycle 13 section 3/5), independent of directory physical position.
-  const slotChunks: Buffer[] = [];
-  for (const member of methodsByDeclarationOrder) {
-    for (const parameter of member.parameters) {
-      const descriptor = encodeTypeDescriptor(parameter.type, ensureNameOffset);
-      slotChunks.push(encodeApplicationClassSlot(parameter.out ? descriptor | 0x80000000 : descriptor));
-    }
-    slotChunks.push(encodeApplicationClassSlot(NO_TYPE_DESCRIPTOR));
-  }
-
-  // Directory: self, then each method in IMPLEMENTATION (physical) order.
-  const directoryChunks: Buffer[] = [
-    encodeApplicationClassDirectoryRecord({
-      nameOffset: 0,
-      signatureSlotOffset: 0,
-      flags: APPLICATION_CLASS_FLAGS.self,
-      low: 0,
-      descriptor: selfDescriptor
-    })
-  ];
-  if (singletonInstance !== undefined) {
-    directoryChunks.push(encodeApplicationClassDirectoryRecord({
-      nameOffset: singletonInstanceNameOffset!,
-      signatureSlotOffset: 0,
-      flags: APPLICATION_CLASS_FLAGS.private |
-        APPLICATION_CLASS_FLAGS.property |
-        APPLICATION_CLASS_FLAGS.storage,
-      low: singletonInstance.declarationOrdinal,
-      descriptor: singletonInstanceDescriptor!
-    }));
-  }
-  for (const member of methodsByImplementationOrder) {
-    const visibilityFlag =
-      member.visibility === 'private'
-        ? APPLICATION_CLASS_FLAGS.private
-        : member.visibility === 'protected'
-          ? APPLICATION_CLASS_FLAGS.protected
-          : 0;
-    directoryChunks.push(encodeApplicationClassDirectoryRecord({
-      nameOffset: nameOffsetOf.get(member)!,
-      signatureSlotOffset: member.signatureSlotOffset,
-      flags: visibilityFlag,
-      low: member.parameters.length,
-      descriptor: descriptorByMember.get(member)!
-    }));
-  }
+  // Name table, directory records and signature slots: see
+  // `buildApplicationClassDirectory` (Cycle 100).
+  const directoryLayout = buildApplicationClassDirectory(parsed, selfName, methods);
 
   // Statement section. Only the class header's own method-declaration
   // and method-implementation wrapper bytes are hand-encoded (no
@@ -14121,9 +14203,9 @@ function encodeApplicationClassProgramV2(
   }
 
   const statements = Buffer.concat(statementChunks);
-  const nameBytes = Buffer.concat(names.map(encodeApplicationClassNameEntry));
-  const directory = Buffer.concat(directoryChunks);
-  const slots = Buffer.concat(slotChunks);
+  const nameBytes = Buffer.concat(directoryLayout.names.map(encodeApplicationClassNameEntry));
+  const directory = Buffer.concat(directoryLayout.records);
+  const slots = Buffer.concat(directoryLayout.slots);
   const trailer = Buffer.concat([nameBytes, directory, slots]);
 
   const header = Buffer.alloc(37);
@@ -14131,7 +14213,7 @@ function encodeApplicationClassProgramV2(
   header.writeUInt32LE(statements.length + 1, 5);
   header.writeUInt32LE(nameBytes.length, 13);
   header.writeUInt32LE(slots.length / 4, 21);
-  header.writeUInt32LE(directoryChunks.length, 29);
+  header.writeUInt32LE(directoryLayout.records.length, 29);
   header.writeUInt32LE(0x85, 33);
 
   const program = Buffer.concat([

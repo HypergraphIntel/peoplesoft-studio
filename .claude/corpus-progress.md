@@ -2,33 +2,161 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 99 completed -- Declare Function rows are
-  keyed by REC.FIELD (the event is not part of the identity). EXACT
-  28,135 -> 28,160 (+25), protected PASS, 0 EXACT -> non-EXACT. See
-  "Compiler Semantics Cycle 99" and "Compiler Research Cycle 99".
-- **Last successful calibration:** Cycle 99.
+- **Current target:** Cycle 100 completed -- Application Class directory
+  written in PeopleTools' hash-table order (members and unimplemented
+  methods), with every property / instance / accessor record. EXACT
+  28,160 -> 28,421 (+261), protected PASS, 0 EXACT -> non-EXACT. See
+  "Compiler Semantics Cycle 100" and "Compiler Research Cycle 100".
+- **Last successful calibration:** Cycle 100.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** none newly blocked. Parked:
-  FIELDVALUE / XLATLONGNAME / XLATSHORTNAME; undeclared-variable
-  receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class rows; 2125, 24500,
-  24503, 19433.
-- **Next action:** pick from the fresh ranking in "Compiler Semantics
-  Cycle 99": Application Class header / trailer metadata (351 definitions
-  whose tokens and rows already match), PACKAGE-only rows (242), then
-  STRUCTURAL_BYTE (268, incl. the boundary quick-win queue). Census before
-  editing.
-- **Newly established rules this session:** Cycle 99 Declare Function
-  identity REC.FIELD; Cycle 98 receiver types and member binding; Cycle 97
-  built-in object property registry; Cycle 96 FIELD / SCROLL /
-  RECORD.FIELD rows per allocation unit, Declare Function rows
-  program-wide; Cycle 95 RECORD rows per allocation unit; the Cycle 94
-  allocation-unit rule for Application Class rows, Global and parameter
-  receivers, late initialized `Local array of <Builtin>` group order; the
-  Cycle 93 wildcard-row claim and external-metadata fallback; the Cycle 92
-  rule; the Cycle 91 rules; Cycle 90; Cycle 89; Cycle 88; the Cycle 87
-  rules; the Cycle 86 rules; Cycle 84 rule B; Cycle 83 While gaps; the
-  Cycle 82 rules.
+- **Locally blocked definitions:** none newly blocked. Parked: package
+  canonical case in App Class type-path names (external package
+  metadata); FIELDVALUE / XLAT*; undeclared-variable receivers;
+  UNRESOLVED_EXTERNAL_CLASS_METADATA class rows; 2125, 24500, 24503, 19433.
+- **Next action:** ROUNDTRIP_ONLY (102; 68 are forward-exact App Classes
+  whose decoder roundtrip fails), then PACKAGE-only rows, then
+  STRUCTURAL_BYTE. Census before editing.
+- **Newly established rules this session:** Cycle 100 App Class directory
+  hash-table order; Cycle 99 Declare Function identity REC.FIELD; Cycle 98
+  receiver types and member binding; Cycle 97 built-in object property
+  registry; Cycle 96 FIELD / SCROLL / RECORD.FIELD rows per allocation
+  unit, Declare Function rows program-wide; Cycle 95 RECORD rows per
+  allocation unit; the Cycle 94 allocation-unit rule for Application
+  Class rows, Global and parameter receivers, late initialized `Local
+  array of <Builtin>` group order; the Cycle 93 wildcard-row claim and
+  external-metadata fallback; the Cycle 92 rule; the Cycle 91 rules;
+  Cycle 90; Cycle 89; Cycle 88; the Cycle 87 rules; the Cycle 86 rules;
+  Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 100 -- Application Class directory in hash-table order
+
+**Result:** EXACT **28,160 -> 28,421 (+261)**, **0 EXACT -> non-EXACT**,
+protected 430/430. LOCAL SNAPSHOT only.
+
+`buildApplicationClassDirectory` (`src/peoplecode/encoder.ts`) now builds
+the whole name table, directory and slot area: self; every property and
+instance in member-hash-table order with its flags / low / descriptor;
+method / get / set implementations in source order; unimplemented methods
+in method-hash-table order. It replaces the Cycle 30 freeze (self,
+singleton instance, methods). See "Compiler Research Cycle 100" for the
+rule and evidence.
+
+| | value |
+|---|---|
+| programs changed | 595 (all Application Classes; no ordinary program) |
+| forward-exact gained / lost | 329 / 0 |
+| EXACT gained / lost | 261 / 0 |
+| forward-exact but roundtrip-only now | 68 (moved to ROUNDTRIP_ONLY: the decoder side) |
+| cohort of 351 | 261 EXACT, 68 forward-exact / roundtrip-only, 22 remaining |
+
+Remaining cohort: package canonical case (29341, 29342, 29343, 29578,
+28722, 28734, 29824, 29826, 29869, 29874, 29876, 29877, 29884 ...),
+unparseable 29646, 29648, 29670, 29672, statement-only 28861, 28982,
+29429, others 28774, 29406.
+
+Tests: the old "multi-instance physical order unresolved" test is replaced
+by the member-table order (28723's RecordName / FieldName) and a
+same-bucket collision test.
+
+Fixed by old category: REFERENCE_COMPLETE_DOWNSTREAM 241,
+REFERENCE_ACTIVE_OTHER 10, REFERENCE_ACTIVE_PACKAGE 10. Taxonomy:
+COMPLETE_DOWNSTREAM 746 -> 443, ROUNDTRIP_ONLY 34 -> 102.
+
+### Next target
+
+**ROUNDTRIP_ONLY (102)** -- 68 of them are now forward-exact Application
+Classes whose decode / re-encode roundtrip fails: the decoder side of the
+same directory (it must read the directory the encoder now writes).
+Then PACKAGE-only rows (220 taxonomy / 242 first-divergence), then the
+package canonical-case residual (needs package metadata).
+
+## Compiler Research Cycle 100 -- Application Class directory: the member and method hash tables
+
+**Baseline reproduced fresh at `f3b9627`:** 28,160 / 2,049, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only; no HCDEV, no DLL work.
+
+### Cohort
+
+379 NONEXACT definitions had identical tokens and row numbers
+(HEADER_ONLY_DOWNSTREAM); 351 are Application Classes (324 with identical
+PSPCMNAME lists, 27 also differing in PACKAGE rows). Tool:
+`cycle100-appclass-section-census.ts` splits stored and generated programs
+into header / statements / name table / directory records / slots and
+compares field by field.
+
+| signature (stored vs generated) | classes |
+|---|---|
+| header name bytes + record count; names set differs; records missing | 185 |
+| the same + slot values differ | 74 |
+| the same + slot count differs | 70 |
+| records flags / low differ only | 5 |
+| names reordered + record fields | 7 |
+| statements (+ names) | 10 |
+
+So the "header / trailer" cohort is one mechanism: the encoder wrote only
+self + (singleton instance) + methods into the directory -- the Cycle 30
+freeze, because the multi-member physical order was unknown (Cycle 31:
+source / lexical / fixed-capacity hash models all failed, best 73 / 643).
+Header differences are only the counts that follow from missing records.
+
+### The recovered rule
+
+Key observation: for the same pair of member names, stored relative order
+is consistent whenever the class has the same number of properties +
+instances (1,582 / 1,583) and changes across different counts -- a hash
+table whose capacity depends on its symbol count. Then:
+
+- hash `h = h * 2 + charCode` over the upper-cased name (mod 2^32);
+  bucket `h mod capacity` alone orders 228 / 251 small classes, and every
+  miss is a same-bucket collision;
+- capacity: the first of 20, 31, 67, 127, 257, 521 with
+  `count <= ceil(0.8 * capacity)`, count = properties + instances. Per
+  fitted capacity the counts are 2-16 -> 20, 17-25 -> 31, 26-51 -> 67,
+  57-92 -> 127, 104-189 -> 257, 232 -> 521, with no overlap. Every class
+  fits exactly this model;
+- within a bucket: upper-cased name DESCENDING (987 / 987 collision
+  buckets; declaration order 412, reverse 459, full hash 426 / 455);
+- result: 643 / 643 classes with two or more property / instance records
+  in exact order, non-storage get / get-set properties included;
+- methods without an implementation (abstract, interface methods) use the
+  same hash in a separate method table sized by the class's method count:
+  26 / 26.
+
+Rejected: source / reverse / lexical order, fixed capacities (20 alone
+fails from ~9 members), insertion-order chains (head / tail, with and
+without rehash: 351-372 / 608).
+
+### Other record fields (all from source metadata)
+
+| member | flags | low | stored occurrences |
+|---|---|---|---|
+| instance | private + property + storage (0xB0000) | storage ordinal | 2,584 |
+| plain property | property + storage (0xA0000) (+ protected 0x1000000) | storage ordinal | 2,351 (+123) |
+| readonly property | property + storage + readonly (0xE0000) | storage ordinal | 1,157 (+34) |
+| get property | property + readonly (0x60000) | 0 | 806 (+13) |
+| get-set property | property (0x20000) | 0 | 251 |
+| interface property | property + abstract (0x820000) | 0 | 10 |
+
+Getter records: getter flag, low 0, descriptor = property type; setter:
+setter flag, low 1, descriptor 7; their slots follow the methods' slots in
+source order (getter: terminator; setter: property type + terminator).
+Unimplemented methods carry only the abstract flag (no visibility bit).
+
+### Section census across all 1,510 Application Classes
+
+| | before | after |
+|---|---|---|
+| names + records + slots identical to stored | 719 | 1,295 |
+| sections all identical | 563 | ~880 |
+| trailer lost | | 0 |
+
+Remaining 30 trailer mismatches: package-path canonical case in type-path
+names (22: source `%metadata:` stored `%Metadata:`; `GPS_car_` stored
+`GPS_CAR_`; `page` stored `Page`; `g3form` stored `G3FORM` -- the package
+definition's own case, external metadata), bare `array` member type (4:
+stored `array of any`, descriptor 0x100004), 4 unparseable classes, 2
+others.
 
 ## Compiler Semantics Cycle 99 -- Declare Function rows keyed by REC.FIELD
 
