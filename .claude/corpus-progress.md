@@ -2,7 +2,7 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 96 in progress (FIELD landed, SCROLL and RECORD.FIELD next); Cycle 95 completed -- RECORD rows in ordinary
+- **Current target:** Cycle 96 in progress (FIELD and SCROLL landed, RECORD.FIELD next); Cycle 95 completed -- RECORD rows in ordinary
   programs live for one allocation unit (the Cycle 94 unit). EXACT 27,018
   -> 27,520 (+502), protected PASS, 0 EXACT -> non-EXACT. See "Compiler
   Semantics Cycle 95" and "Compiler Research Cycle 95".
@@ -36,6 +36,7 @@ stay program-wide. LOCAL SNAPSHOT only.
 | commit | pool | EXACT | EXACT -> non-EXACT | aligned disagreements of that kind |
 |---|---|---|---|---|
 | FIELD | `FIELD.<name>` | 27,520 -> 27,809 (+289) | 0 | 2,038 -> 0 |
+| SCROLL | `SCROLL.<name>` | 27,809 -> 27,884 (+75) | 0 | 201 -> 0 |
 
 ## Compiler Research Cycle 96 -- FIELD, SCROLL and RECORD.FIELD rows per allocation unit
 

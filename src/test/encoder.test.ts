@@ -6233,3 +6233,26 @@ End-If;`),
     1
   );
 });
+
+// Cycle 96: SCROLL rows of an ordinary program live for one allocation unit.
+
+test('a SCROLL row is reused within an allocation unit and reopened in the next', () => {
+  const scrollRows = (source: string) =>
+    encodeProgramArtifacts(source).references.filter(reference =>
+      reference.kind === 'scroll' ||
+      (reference.kind === 'record-field' && /^Scroll$/i.test(reference.recordName ?? ''))
+    ).length;
+  assert.strictEqual(
+    scrollRows(`&a = GetRowset(Scroll.TEST_REC);
+&b = GetRowset(Scroll.TEST_REC);`),
+    2
+  );
+  // Two calls in one If: one row.
+  assert.strictEqual(
+    scrollRows(`If &x Then
+   Hide(Scroll.TEST_REC);
+   &n = ActiveRowCount(Scroll.TEST_REC);
+End-If;`),
+    1
+  );
+});
