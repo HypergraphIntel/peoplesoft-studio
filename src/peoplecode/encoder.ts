@@ -497,6 +497,26 @@ export interface EncodeProgramContext {
 
 /** Internal-only state shared by Application Class member fragments. */
 interface EncodeFragmentContext extends EncodeProgramContext {
+  /**
+   * Cycle 93: out-parameter. `unresolvedReceiverCalls` counts, for an
+   * ordinary program, every method call whose receiver is the RESULT of a
+   * property access or method call on an Application Class instance
+   * (`&obj.PROP.Method(...)`, `&obj.Get().Method(...)`). PeopleTools may
+   * allocate a PACKAGE row for the class of that result, but the class is
+   * declared in ANOTHER definition (the receiver class's property or
+   * method signature) and is not an input to this encoder. See
+   * `encodeOrdinaryProgramFragment`.
+   */
+  externalClassMetadata?: { unresolvedReceiverCalls: number };
+
+  /**
+   * Cycle 93: encode Application Class PACKAGE rows of an ordinary program
+   * WITHOUT the import-resolution rules (the behavior before them). Set
+   * only by `encodeOrdinaryProgramFragment`, for a program whose
+   * references depend on unavailable external class metadata.
+   */
+  applicationClassRowsWithoutImportResolution?: boolean;
+
   htmlDependencyScope?: HtmlDependencyScope;
   htmlDependencyLifetime?: 'application-class';
   applicationClassReferenceSession?: ApplicationClassReferenceSession;
@@ -1066,8 +1086,15 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     return textOperand(0x40, TokenKind.Keyword, name);
   };
 
+  // Cycle 93: the Application Class element type of the array declaration
+  // `arrayElementTypes()` last parsed, if any.
+  let arrayElementApplicationClass:
+    | { packagePath: string[]; className: string }
+    | undefined;
+
   const arrayElementTypes = (): string | undefined => {
     let elementType: string | undefined;
+    arrayElementApplicationClass = undefined;
     do {
       space();
       /*
@@ -1090,6 +1117,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
         const appClass = applicationClassPath();
         elementType = appClass.className;
+        arrayElementApplicationClass = appClass;
         continue;
       }
       elementType = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
@@ -1222,7 +1250,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         controlDepth > 0 &&
         !/^\s*=/.test(source.slice(pos));
 
-      if (nestedUninitializedLocal) {
+      if (importResolutionRows && inLeadingDeclarationPhase()) {
+        // Cycle 93: see `ensureDeclarationTypeReference`. A `= create`
+        // initializer's own row is the create's.
+        if (!/^\s*=\s*create\b/i.test(source.slice(pos))) {
+          ensureDeclarationTypeReference(appClass.packagePath, appClass.className);
+        }
+      } else if (nestedUninitializedLocal) {
         const classKey = [...appClass.packagePath, appClass.className]
           .map(component => component.toLowerCase())
           .join(':');
@@ -1273,7 +1307,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
         pos++;
         chunks.push(fixed('='));
+        localInitializerCreateClass = /^\s*create\b/i.test(source.slice(pos))
+          ? applicationClassKey(appClass.packagePath, appClass.className)
+          : undefined;
         expression();
+        localInitializerCreateClass = undefined;
       }
 
       return;
@@ -1327,7 +1365,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
           const appClass = applicationClassPath();
           chunks.push(appClass.bytes);
-          ensureLocalApplicationClassPackageReference(appClass.packagePath, appClass.className);
+          if (importResolutionRows && inLeadingDeclarationPhase()) {
+            // Cycle 93: see `ensureDeclarationTypeReference`.
+            ensureDeclarationTypeReference(appClass.packagePath, appClass.className);
+          } else {
+            ensureLocalApplicationClassPackageReference(appClass.packagePath, appClass.className);
+          }
         } else {
           chunks.push(typeName());
           if (/^array$/i.test(elementType ?? '')) {
@@ -1501,6 +1544,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       // `componentDeclaration()` comment (130/130 census, e.g. 29531).
       if (context?.builtinObjectDeclarationsHaveMethodWideLifetime) {
         ensureLocalApplicationClassPackageReference(appClass.packagePath, appClass.className);
+      } else if (importResolutionRows) {
+        // Cycle 93: see `ensureDeclarationTypeReference`.
+        ensureDeclarationTypeReference(appClass.packagePath, appClass.className);
       }
 
       space();
@@ -1618,6 +1664,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     chunks.push(appClassType?.bytes ?? typeName());
     if (/^array$/i.test(declaredType ?? '')) {
       arrayElementTypes();
+      if (importResolutionRows && arrayElementApplicationClass !== undefined) {
+        // Cycle 93: see `ensureDeclarationTypeReference` (14888).
+        ensureDeclarationTypeReference(
+          arrayElementApplicationClass.packagePath,
+          arrayElementApplicationClass.className
+        );
+      }
     }
     /*
      * `Component <BuiltinType> &var;` allocates the same PACKAGE/<TYPE>
@@ -1720,11 +1773,25 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           appClassType.packagePath,
           appClassType.className
         );
-      } else if (sawWildcardImport) {
-        addApplicationClassReference(
-          appClassType.packagePath,
-          appClassType.className
-        );
+      } else {
+        /*
+         * Cycle 93: previously every Component App Class declaration under
+         * a wildcard import allocated a row. Stored allocates only for a
+         * class WITHOUT a named import, and once per class -- see
+         * `ensureDeclarationTypeReference` (18028, 24499, 19433: no row for
+         * a named-import class; 35 lists closer, 1 coincidence).
+         */
+        if (importResolutionRows) {
+          ensureDeclarationTypeReference(
+            appClassType.packagePath,
+            appClassType.className
+          );
+        } else if (sawWildcardImport) {
+          addApplicationClassReference(
+            appClassType.packagePath,
+            appClassType.className
+          );
+        }
       }
     }
     chunks.push(variable());
@@ -2059,6 +2126,84 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     localApplicationClassPackageReferences.set(key, created);
     return created;
   };
+
+  /*
+   * Cycle 93: Application Class TYPE rows in ORDINARY PeopleCode follow the
+   * class's import resolution.
+   *
+   * A class named by its own `import PKG:Class;` is resolved through that
+   * import's PACKAGE row: declaring a variable of it allocates nothing. A
+   * class reachable only through a wildcard import (`import PKG:*;`) has no
+   * row of its own, so its FIRST declaration allocates one -- a leading
+   * `Local` (scalar or `array of`), a `Component` (scalar or `array of`) or
+   * a `Global` -- and every later declaration of the same class reuses it.
+   *
+   * Stored evidence (LOCAL SNAPSHOT):
+   *
+   *   15559  import PT_SCHEMA:*; import PT_DOCUMENT_LAYOUT:*;
+   *          Local PT_DOCUMENT_LAYOUT:DocLayoutDefn &DocLayout;
+   *          ... GetRowset(Scroll.PSDOCLO_VW) ... create ...DocLayoutDefn(...)
+   *          => PACKAGE.(blank) 2, DOCLAYOUTDEFN 3, SCROLL 4, DOCLAYOUTDEFN 5
+   *   381    leading Locals of named-import classes: no row between the
+   *          import rows and the first builtin type row
+   *   18028  `Component PTAF_UI:ProcessController &pc;` (named import, a
+   *          wildcard import also present): PROCESSCONTROLLER appears once,
+   *          for the import
+   *   14888  `Component array of ...:QueryChunker` then
+   *          `Local ...:QueryChunker`: one QUERYCHUNKER row, at the first
+   *   17900  two `Local array of ...:PTEMHelpMessage` and one scalar
+   *          Local: one PTEMHELPMESSAGE row
+   *
+   * A top-level Local after a Function definition is no longer in the
+   * declaration phase (17893: such Locals allocate even for named-import
+   * classes -- the existing late-Local path).
+   *
+   * Measured with `cycle93-names-distance-sweep.ts` against the state with
+   * only the wildcard-row rule: 213 generated PSPCMNAME lists change, 201
+   * move closer to stored; of the 10 that move farther, 8 are the
+   * create-row-position family fixed alongside (12620, 12621, 12629, 12735,
+   * 12740, 12741, 20249, 20266) and 2 are coincidences in unrelated
+   * create / method rows (17900, 24744).
+   *
+   * No corpus program declares a class that has neither a named nor a
+   * wildcard import, so that case keeps its previous behavior (no row).
+   * Application Class programs are unaffected: their type rows belong to
+   * the class-wide session.
+   */
+  const ordinaryProgram = !context?.builtinObjectDeclarationsHaveMethodWideLifetime;
+  /*
+   * The import-resolution rules model a program's Application Class rows
+   * only when every such row's class identity is derivable from the
+   * program's own source. A program with an unresolved-receiver call (see
+   * `EncodeFragmentContext.externalClassMetadata`) is encoded with them
+   * off -- `encodeOrdinaryProgramFragment` decides.
+   */
+  const importResolutionRows =
+    ordinaryProgram && !context?.applicationClassRowsWithoutImportResolution;
+  const applicationClassKey = (packagePath: string[], className: string): string =>
+    [...packagePath, className].map(component => component.toLowerCase()).join(':');
+  const declarationTypeReferences = new Map<string, PeopleCodeReference>();
+  let sawFunctionDefinition = false;
+  const inLeadingDeclarationPhase = (): boolean =>
+    functionDepth === 0 &&
+    controlDepth === 0 &&
+    !sawTopLevelExecutableStatement &&
+    !sawFunctionDefinition;
+  const ensureDeclarationTypeReference = (packagePath: string[], className: string): void => {
+    const key = applicationClassKey(packagePath, className);
+    if (!sawWildcardImport || namedImportClasses.has(key) || declarationTypeReferences.has(key)) {
+      return;
+    }
+    declarationTypeReferences.set(key, addApplicationClassReference(packagePath, className));
+  };
+
+  /*
+   * Cycle 93: set while the initializer of `Local PKG:Class &v = create
+   * PKG:Class(...)` is being encoded -- see the `create` branch.
+   */
+  let localInitializerCreateClass: string | undefined;
+  // Cycle 93: `try` blocks are not control groups but are not top level either.
+  let tryDepth = 0;
 
   const same = (a: string | undefined, b: string | undefined): boolean =>
     (a ?? '').toLowerCase() === (b ?? '').toLowerCase();
@@ -5377,7 +5522,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     */
 
     const appClass = applicationClassPath({ allowWildcard: true });
-    if (appClass.wildcard) sawWildcardImport = true;
+    if (appClass.wildcard) {
+      sawWildcardImport = true;
+    } else {
+      namedImportClasses.add(applicationClassKey(appClass.packagePath, appClass.className));
+    }
     chunks.push(appClass.bytes);
 
 
@@ -5430,10 +5579,26 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       * shares the SAME underlying `ApplicationClassReferenceScope`
       * instance and its claim-tracking state -- not a new cache.
       */
+      /*
+       * Cycle 93: the same single claim holds for ORDINARY programs, which
+       * encode the whole compilation unit in this one call. LOCAL SNAPSHOT
+       * census (`cycle93-wildcard-import-census.ts`): every one of the
+       * 1,556 definitions with a wildcard import stores exactly ONE
+       * blank-REFNAME PACKAGE row, at the first wildcard import --
+       * including all 125 ordinary programs with two or more wildcard
+       * imports (5495: `import GVT_PAR_UTILITIES:*; import
+       * GVT_WIP_UTILITIES:*;` stores one blank row at NAMENUM 2). The
+       * previous unconditional `true` allocated one row per wildcard
+       * import; 109 generated PSPCMNAME lists move closer to stored and 0
+       * farther.
+       */
       const allocateWildcardMetadata =
         context?.applicationClassTypeReferenceSession !== undefined
           ? context.applicationClassTypeReferenceSession.claimWildcardImportMetadata()
-          : true;
+          : context?.applicationClassRowsWithoutImportResolution
+            ? true
+            : !claimedWildcardImportMetadata;
+      claimedWildcardImportMetadata = true;
 
       if (allocateWildcardMetadata) {
         const fullPath = [
@@ -5629,7 +5794,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     } else if (word('Repeat')) {
       inControlGroup(repeatStatement);
     } else if (word('try')) {
-      tryStatement();
+      tryDepth++;
+      try {
+        tryStatement();
+      } finally {
+        tryDepth--;
+      }
     } else if (word('throw')) {
       throwStatement();
 
@@ -6195,6 +6365,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     const previousHtmlFunctionNamespace = currentHtmlFunctionNamespace;
     currentHtmlFunctionNamespace = nextHtmlFunctionNamespace++;
     functionDepth++;
+    sawFunctionDefinition = true;
 
     if (functionDepth === 1) {
       functionApplicationClassVariables.clear();
@@ -8978,6 +9149,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     let activeApplicationClassReceiver = baseApplicationClass;
 
     /*
+     * Cycle 93: true once this chain has stepped from an Application Class
+     * instance onto a property or method result. The class of that result
+     * is external metadata (see `EncodeFragmentContext.externalClassMetadata`).
+     */
+    let receiverClassIsExternalMetadata = false;
+
+    /*
      * Cycle 67: set true only when THIS primary expression's base token is
      * literally `%Super` -- consulted, and always cleared, by the VERY
      * NEXT postfix `.member` step only (see that step's own comment for
@@ -9119,11 +9297,36 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * The first runtime create of an Application Class establishes a new
        * PACKAGE dependency row even when that class was already imported.
        * Later creates of the same class reuse that runtime dependency.
+       *
+       * Cycle 93 (ordinary PeopleCode): that row is allocated AFTER the
+       * constructor arguments, not before them.
+       *
+       *   20249  Local BAS_STATEMENT:PrintConfirmation &oPrint;
+       *          &oPrint = create BAS_STATEMENT:PrintConfirmation("", BAS_STMT_SUMM.EFFDT.Value);
+       *          => PRINTCONFIRMATION 3 (declaration), BAS_STMT_SUMM.EFFDT 4,
+       *             PRINTCONFIRMATION 5 (create)
+       *
+       * Stored census (`cycle93-create-row-position-census.ts`, creates
+       * whose arguments allocate a row): the class row follows the last
+       * argument row in 117 cases and only precedes the first in 21. Those
+       * 21 are rows a declaration already established -- the declared
+       * `Local PKG:Class &v = create PKG:Class(...)` form, whose row is
+       * allocated with the declaration (24442, 13522), and nested / function
+       * Locals the create then reuses (25507, 15478). 57 generated PSPCMNAME
+       * lists move closer to stored, 0 farther once the nested-Local rule is
+       * in place.
        */
-      ensureRuntimeCreateReference(
-        appClass.packagePath,
-        appClass.className
-      );
+      const createRowAfterArguments =
+        importResolutionRows &&
+        localInitializerCreateClass !== applicationClassKey(appClass.packagePath, appClass.className);
+      localInitializerCreateClass = undefined;
+
+      if (!createRowAfterArguments) {
+        ensureRuntimeCreateReference(
+          appClass.packagePath,
+          appClass.className
+        );
+      }
 
       space();
       if (source[pos] !== '(') {
@@ -9147,6 +9350,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           space();
         }
       }, true);
+
+      if (createRowAfterArguments) {
+        ensureRuntimeCreateReference(
+          appClass.packagePath,
+          appClass.className
+        );
+      }
     } else {
       const identifier =
         /^[A-Za-z_][A-Za-z0-9_]*#?/.exec(source.slice(pos))?.[0];
@@ -9950,7 +10160,19 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         );
 
         if (isMethodCall) {
+          if (
+            activeApplicationClassReceiver === undefined &&
+            receiverClassIsExternalMetadata &&
+            ordinaryProgram &&
+            context?.externalClassMetadata !== undefined
+          ) {
+            context.externalClassMetadata.unresolvedReceiverCalls++;
+          }
+
           if (activeApplicationClassReceiver !== undefined) {
+            // The call's RESULT is of a class only the method signature names.
+            receiverClassIsExternalMetadata = true;
+
             const classKey = [
               ...activeApplicationClassReceiver.packagePath,
               activeApplicationClassReceiver.className
@@ -9966,9 +10188,36 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
              * begun, stores both the runtime-create dependency and a distinct
              * method dependency.
              */
+            /*
+             * Cycle 93: a TOP-LEVEL method call (not inside a Function, a
+             * control structure or a try block) on an instance of a class
+             * that has no named import always opens its own method row; it
+             * never reuses the create row.
+             *
+             *   18918  import HR_EMPL_PHOTO:*;
+             *          Local HR_EMPL_PHOTO:EmployeePhoto &h = create HR_EMPL_PHOTO:EmployeePhoto();
+             *          &h.DisplayPhotoHeader(DERIVED_ABS_SS.EMPLID.Value, ...);
+             *          => EMPLOYEEPHOTO 6 (create), EMPLOYEEPHOTO 7
+             *             (APPCLASSMETHOD DISPLAYPHOTOHEADER), EMPLID 8
+             *   22882  the same shape with a NAMED import stores one row
+             *          after the import row, carrying the method name: the
+             *          call reused the create row (unchanged behavior).
+             *   17594  the same calls inside `try`: no method rows.
+             *
+             * 142 generated PSPCMNAME lists change: 141 move closer to
+             * stored, 0 farther.
+             */
+            const topLevelCallOnWildcardResolvedClass =
+              importResolutionRows &&
+              !namedImportClasses.has(classKey) &&
+              functionDepth === 0 &&
+              controlDepth === 0 &&
+              tryDepth === 0;
+
             if (
               !runtimeCreateReferences.has(classKey) ||
-              !activeApplicationClassReceiver.reuseRuntimeCreateForMethods
+              !activeApplicationClassReceiver.reuseRuntimeCreateForMethods ||
+              topLevelCallOnWildcardResolvedClass
             ) {
               /*
                * Cycle 62: a compatible TYPE-only identity for this SAME
@@ -10223,6 +10472,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            * chain still resets normally on its own iteration.
            */
           if (!resolvedInheritedPropertyThisStep) {
+            if (activeApplicationClassReceiver !== undefined) {
+              receiverClassIsExternalMetadata = true;
+            }
             activeApplicationClassReceiver = undefined;
           }
           expectedReferenceMember = undefined;
@@ -10472,6 +10724,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    */
   let importSectionOpen = false;
   let sawWildcardImport = false;
+  // Cycle 93: see `importStatement` / `ensureDeclarationTypeReference`.
+  let claimedWildcardImportMetadata = false;
+  const namedImportClasses = new Set<string>();
 
   let sawApplicationClassLocalSection = false;
   let closedApplicationClassLocalSection = false;
@@ -13721,6 +13976,65 @@ function parseFunctionMetadata(
  * generated. Producing bytes is not a database write or a PeopleTools runtime
  * validation; provider saves remain disabled.
  */
+/*
+ * Cycle 93: encode an ordinary program's statements, respecting the
+ * boundary between class identities the source supplies and class
+ * identities only external metadata supplies.
+ *
+ * The import-resolution rules place a program's Application Class PACKAGE
+ * rows from what the source declares: imports, declarations, creates and
+ * calls on declared instances. A method call through a property or a
+ * method result (`&joIterator.POPULATION_MANAGER.setAllEligible(...)`) is
+ * different: stored may hold a PACKAGE row for the class of that property
+ * (13525 NAMENUM 6, PACKAGE.POPULATIONMANAGER / SETALLELIGIBLE), a class
+ * named nowhere in the program -- it is declared by the property in the
+ * receiver's own class definition. Whether a row is allocated at all
+ * depends on that declared type too (a builtin-typed property allocates
+ * none), so neither the row nor its absence can be modeled here.
+ *
+ * LOCAL SNAPSHOT: 49 ordinary definitions store a PACKAGE row whose class
+ * name is absent from their source; 45 of the 46 encodable ones contain
+ * such a call. 100 ordinary definitions contain one.
+ *
+ * For those programs the row stream cannot be reconstructed, so they keep
+ * the behavior calibrated before the import-resolution rules rather than
+ * a partial application of them: 38 programs encode differently from the
+ * unguarded rules, all 38 byte-identical to the previous behavior. This
+ * keeps 13525 EXACT and parks 5 definitions the unguarded rules would
+ * have made EXACT (2169, 13517, 15038, 15039, 20754) until class metadata
+ * is an encoder input.
+ *
+ * The first pass runs with trace hooks buffered so observers see exactly
+ * one pass -- the one whose bytes are returned.
+ */
+function encodeOrdinaryProgramFragment(
+  source: string,
+  context?: EncodeProgramContext
+): ReturnType<typeof encodeFragmentInternal> {
+  const externalClassMetadata = { unresolvedReceiverCalls: 0 };
+  const buffered: Array<() => void> = [];
+  const buffer = <T>(hook: ((event: T) => void) | undefined) =>
+    hook === undefined ? undefined : (event: T) => { buffered.push(() => hook(event)); };
+
+  const encoded = encodeFragmentInternal(source, {
+    ...context,
+    referenceTrace: buffer(context?.referenceTrace),
+    chainSemanticsTrace: buffer(context?.chainSemanticsTrace),
+    reusePoolTrace: buffer(context?.reusePoolTrace),
+    externalClassMetadata
+  });
+
+  if (externalClassMetadata.unresolvedReceiverCalls === 0) {
+    for (const replay of buffered) replay();
+    return encoded;
+  }
+
+  return encodeFragmentInternal(source, {
+    ...context,
+    applicationClassRowsWithoutImportResolution: true
+  });
+}
+
 export function encodeProgramArtifacts(source: string, context?: EncodeProgramContext): EncodedPeopleCode {
   /*
    * Cycle 14: the pre-existing narrow, hand-calibrated single-method
@@ -13767,7 +14081,7 @@ export function encodeProgramArtifacts(source: string, context?: EncodeProgramCo
   }
 
   const functionMetadata = parseFunctionMetadata(source);
-  const encoded = encodeFragmentInternal(source, context);
+  const encoded = encodeOrdinaryProgramFragment(source, context);
   const statements = encoded.bytes;
 
   let program: Buffer;

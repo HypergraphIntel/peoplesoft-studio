@@ -1,27 +1,257 @@
 # Corpus Calibration Progress
 
-## Current status (2026-09-29)
+## Current status (2026-09-30)
 
-- **Current target:** Cycle 92 completed -- the App-Class-Local section
-  stays open across declarations and comments. EXACT 26,604 -> 26,609
-  (+5), protected PASS, 0 EXACT -> non-EXACT. Top-level boundary
-  population 44 -> 12 definitions. See "Compiler Semantics Cycle 92".
-- **Last successful calibration:** Cycle 92.
+- **Current target:** Cycle 93 completed at zero regressions --
+  Application Class PACKAGE rows in ordinary programs follow import
+  resolution, applied only to programs whose class identities are all
+  derivable from their own source. EXACT 26,609 -> 26,756 (+147),
+  protected PASS, 0 EXACT -> non-EXACT. See "Compiler Semantics Cycle 93",
+  "UNRESOLVED_EXTERNAL_CLASS_METADATA" and "Compiler Research Cycle 93".
+- **Last successful calibration:** Cycle 93.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** none newly blocked.
-- **Next action:** the top-level boundary family is nearly exhausted (12
-  definitions in 5 small mechanisms). Either finish those small ones:
-  - the comment before a Function (3);
-  - the import restart (2);
-  - the Constant gap (3);
-  - disabled code (4);
-  - the comment kind 0x24 vs 0x4E (8);
-  or re-rank the whole NONEXACT population with the Cycle 83 census, where
-  reference allocation dominates (FIELD 810, PACKAGE ~530, RECORD 413).
-- **Newly established rules this session:** the Cycle 92 rule; the Cycle 91
+- **Locally blocked definitions:** none newly blocked. The
+  UNRESOLVED_EXTERNAL_CLASS_METADATA population (100 ordinary programs
+  with a method call through a property or method result) is parked, not
+  blocked: the mechanism is known, the class identity is not an encoder
+  input. 13525 stays EXACT under the conservative path.
+- **Next action:** method-dependency rows -- when a call reuses the create
+  row and when it opens its own. Evidence base: stored APPCLASSMETHOD
+  content (`cycle93-method-row-census.ts`). Open cases: named-import
+  classes at top level (22882 reuses, 24744 does not), nested and
+  function-body calls, repeated calls. The naive rule is mixed (395
+  closer / 88 farther); do not implement without a discriminator. Then
+  the RECORD row-shorthand family (`&rs(i).REC` after `CreateRowset`),
+  then `GetField(Field.X)`. The boundary quick-win queue (12 definitions
+  + 8 comment-kind cases) is untouched.
+- **Newly established rules this session:** the Cycle 93 rules (one
+  wildcard-import row per ordinary program; declaration type rows only for
+  classes without a named import, once per class; create row after its
+  arguments; nested Local row at the declaration; top-level method row for
+  wildcard-resolved classes; programs with unresolved external class
+  metadata keep the earlier behavior); the Cycle 92 rule; the Cycle 91
   rules; Cycle 90; Cycle 89; Cycle 88; the Cycle 87 rules; the Cycle 86
   rules; Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 93 -- Application Class rows in ordinary programs follow import resolution
+
+**Result:** EXACT **26,609 -> 26,756 (+147)** in two semantic commits,
+**0 EXACT -> non-EXACT** in each. Protected 430/430 after each. LOCAL
+SNAPSHOT only.
+
+| commit | rule | EXACT | EXACT -> non-EXACT |
+|---|---|---|---|
+| `53dbd89` | nested uninitialized App Class Local allocates at its declaration; create reuses it | 26,609 -> 26,616 (+7) | 0 |
+| import-resolution commit | wildcard row claimed once; declaration type rows by import resolution; create row after its arguments; top-level method row for a wildcard-resolved class; all of it only for programs without unresolved external class metadata | 26,616 -> 26,756 (+140) | 0 |
+
+A first version of the second commit applied the rules to every ordinary
+program: +145 / **-1 (13525)**. It was never pushed and was rebuilt with
+the availability guard described under
+"UNRESOLVED_EXTERNAL_CLASS_METADATA": 13525 stays EXACT, 5 of the 145
+gains are parked (2169, 13517, 15038, 15039, 20754).
+
+### The mechanism
+
+In an ordinary (non-class) program the compiler resolves an Application
+Class type through the program's imports, and where the PACKAGE rows go
+depends on HOW the class was resolved:
+
+| event | class has a named import | class only reachable through `import PKG:*` |
+|---|---|---|
+| `import` | one row per named import | ONE blank-REFNAME row for the whole program, at the first wildcard import |
+| leading `Local` / `Local array of` | no row | row at the first declaration of the class |
+| `Component` / `Component array of` / `Global` | no row | row at the first declaration of the class (shared with the Locals) |
+| `create Class(args)` | own row, allocated AFTER the argument rows | own row, allocated AFTER the argument rows |
+| `Local Class &v = create Class(args)` | row stays before the arguments | row stays before the arguments |
+| top-level `&v.Method(...)` | reuses the create row (unchanged) | opens its own method row, before its arguments |
+
+"Leading" = before any executable statement and before any Function
+definition. Calls inside a Function, a control structure or `try` are
+unchanged.
+
+### Evidence per rule (tool: `cycle93-names-distance-sweep.ts` / `-compare.py`)
+
+PACKAGE rows are never operands, so forward-exact bytes cannot see them
+directly; each rule was measured by whether generated PSPCMNAME lists move
+closer to or farther from stored.
+
+| rule | stored evidence | lists closer | farther |
+|---|---|---|---|
+| wildcard row once | 1,556 / 1,556 definitions with a wildcard import store one blank row; 125 ordinary programs have 2+ wildcard imports | 109 | 0 |
+| declaration type rows | 15559, 381, 18028, 24499, 19433, 14888, 17900 | 201 | 10 (8 = create position, fixed below; 17900, 24744 coincidences) |
+| create row after arguments | `cycle93-create-row-position-census.ts`: after 117, before-only 21 (all declaration-established rows) | 57 | 0 with the nested-Local rule |
+| nested Local at declaration | 25507 | 17 | 0 |
+| top-level method row | 18918 vs 22882 (APPCLASSMETHOD content), 17594 (`try`) | 141 | 0 |
+| **all, vs `53dbd89`** | | **367 of 374** | **2** (17900, 24744) |
+
+Names-exact lists gained: 185; lost: 1 (24744, see below).
+
+Negative controls kept unchanged: named-import leading Local (381);
+named-import Component (18028, 24499); top-level Local after a Function
+(17893); `Local X &v = create X(args)` (24442, 13522); named-import
+top-level method call (22882); method call inside `try` (17594);
+top-level late Local keeps its own row, separate from create (merging
+them: 9 closer / 34 farther -- rejected); function-local Local reused by
+create (51 closer / 38 farther -- rejected); leading `Local X &v = create
+X()` getting a declaration row (28 closer / 28 farther -- rejected).
+
+### Compensating errors found
+
+These definitions were EXACT only because two mistakes cancelled. Each one
+is what forced the next rule into the same change:
+
+| definition | was EXACT because | real cause | status |
+|---|---|---|---|
+| 15559 | a second blank wildcard row stood in for the missing declaration row | leading Local of a wildcard-resolved class allocates | fixed |
+| 12629 | the create row, wrongly placed before its arguments, sat where the declaration row belongs | create row follows its arguments | fixed (stays EXACT; the same rule makes 12606, 12620, 12621, 12735, 12740, 12741, 20249, 20266 EXACT) |
+| 18028 | a Component row for a named-import class stood in for a missing method row | top-level method call on a wildcard-resolved class opens its own row | fixed |
+| **13525** | the second blank wildcard row stood in for a missing POPULATIONMANAGER row | the row's class is external metadata | kept EXACT: the program is outside the rules' domain (see UNRESOLVED_EXTERNAL_CLASS_METADATA) |
+
+### 13525 -- why the unguarded rules lost it
+
+`POP_MGT_UI_WRK.WCS_REMOVE_FILTER.FieldChange`:
+
+    import WCS_POP_MGT:*;
+    import WCS_POPULATION_MGMT:PopulationNode;
+    import WCS_ITERATOR_TREE:*;
+    ...
+    Local WCS_ITERATOR_TREE:IteratorTree &joIterator = &coPopMgtDisplayMgr.TREE_OBJECT;
+    &joIterator.POPULATION_MANAGER.setAllEligible(&joIterator.ROOT_NODE.NODE_OBJECT);
+
+- Stored rows 2..11: blank, POPULATIONNODE, POPMGTDISPLAYMGR, ITERATORTREE,
+  **POPULATIONMANAGER (APPCLASSMETHOD SETALLELIGIBLE)**, ITERATORTREE
+  (REFRESHTREE), three RECORD.FIELD rows, ITERATORTREE (TOHTML).
+- The POPULATIONMANAGER row is the class of the PROPERTY
+  `IteratorTree.POPULATION_MANAGER`. The name `PopulationManager` does not
+  occur anywhere in this program's source: the compiler read it from the
+  IteratorTree class definition.
+- Before: two blank rows + no POPULATIONMANAGER row = the right row COUNT
+  ahead of the three operands, by coincidence. After: one blank row
+  (correct), still no POPULATIONMANAGER row -> operands shift by one.
+- Generated PSPCMNAME is strictly closer to stored after the change.
+- Evidence searched: source (no occurrence of the class name); stored
+  PSPCMNAME descriptive content; the snapshot's 1,510 Application Classes
+  (`WCS_ITERATOR_TREE:IteratorTree` is not among them); the same pattern in
+  13516, 13522, 2096, 2097 (all already non-EXACT for it).
+- Missing evidence: the property's declared type, which lives in another
+  class definition. The encoder has no cross-definition type input.
+- Not fixable by narrowing the wildcard rule: that would reinstate a
+  proven-wrong second blank row for 125 programs.
+- Resolution: the availability guard below. The measurements in the
+  tables above are for the unguarded rules; with the guard 326 of 333
+  changed lists move closer, the same 2 farther, 183 names-exact gained.
+
+### UNRESOLVED_EXTERNAL_CLASS_METADATA
+
+**Source shape.** A method call whose receiver is the RESULT of a property
+access or a method call on an Application Class instance:
+
+    &joIterator.POPULATION_MANAGER.setAllEligible(...)     property -> method
+    &page.GetSectionList().GetSection(1).GetName()         method result -> method
+
+**What PeopleTools does.** It resolves the declared type of the property
+(or the method's return type) and, when that type is an Application Class,
+allocates a PACKAGE row for it, labeled with the called method (13525
+NAMENUM 6: PACKAGE.POPULATIONMANAGER, APPCLASSMETHOD SETALLELIGIBLE). When
+the type is a builtin (array, Rowset, string) it allocates none
+(`&collItemType.ProfileItemElements.Push(...)`). The mechanism is known;
+only the type is missing.
+
+**Which metadata is missing.** The property declaration / method signature
+in the RECEIVER's class definition (PSPCMPROG of the class, or its
+PSAPPCLASSDEFN source): `property WCS_POPULATION_MGMT:PopulationManager
+POPULATION_MANAGER`. The calling program spells neither the class name nor
+its package.
+
+**Why source alone is insufficient.** Tool:
+`cycle93-external-class-identity-census.ts`. 49 ordinary definitions store
+61 PACKAGE rows whose class name occurs nowhere in their own source. 45 of
+the 46 encodable ones contain this call shape. 29 of the 61 rows name a
+class that exists in the snapshot, but the class that DECLARES the property
+must be present and parsed for its property types, and the encoder has no
+cross-definition input at all (`WCS_ITERATOR_TREE:IteratorTree` is not in
+the snapshot). Whether a row exists cannot be inferred from the shape: 100
+ordinary programs have the shape, 45 store such a row.
+
+**Discriminator.** Decided from compiler state, not from names: the postfix
+chain in `primary()` already drops `activeApplicationClassReceiver` when a
+property is traversed ("without property-type metadata ...") or a method
+returns. A later method call in the same chain, with the receiver dropped
+that way, is an unresolved-receiver call
+(`EncodeFragmentContext.externalClassMetadata.unresolvedReceiverCalls`).
+
+**Conservative behavior.** `encodeOrdinaryProgramFragment` encodes once;
+if the program has any unresolved-receiver call it is re-encoded with
+`applicationClassRowsWithoutImportResolution` -- every import-resolution
+rule off, i.e. exactly the behavior before them. No row is invented, no
+identity is guessed, and the known-wrong second wildcard row is NOT
+restored for programs the rules can model. Trace hooks see one pass.
+
+| | count |
+|---|---|
+| ordinary programs with an unresolved-receiver call | 100 |
+| ... that encode differently from the unguarded rules | 38 (all byte-identical to the previous behavior) |
+| EXACT before the rules | 25 -- all 25 still EXACT |
+| kept EXACT by the guard | 13525 |
+| gains parked by the guard | 2169, 13517, 15038, 15039, 20754 (their property is not App-Class-typed, which the shape cannot show) |
+| EXACT -> non-EXACT | 0 |
+
+A narrower guard (only the wildcard claim reverts) parks 3 instead of 5
+but leaves 7 programs in a hybrid state matching neither model; a
+top-level-only guard parks 1 but contradicts stored rows at nested calls
+(5340, 5352). Both rejected: fitted to the count, not to the boundary.
+
+**To lift it:** supply class metadata to the encoder (property types and
+method return types per class, from the class definitions), allocate the
+method row for the resolved class at the call, then remove the fallback.
+
+24744 (names-exact lost, still EXACT in bytes): its PSPCMNAME matched only
+because a wrong Component row stood in for the method row of
+`&pc.enableStageNumber()` on a named-import Component instance -- the
+method-row family below.
+
+### Post-fix reference census (3,453 NONEXACT)
+
+| | before | after |
+|---|---|---|
+| REFERENCE_ALLOCATION (token identities equal) | 1,569 | 1,417 |
+| NON_OPERAND_ROWS first divergence | 600 | 448 |
+| PACKAGE: stored allocates, generated reuses | 533 (237 one-blocker) | 417 (193) |
+| PACKAGE: stored reuses, generated allocates | 322 (102) | 234 (74) |
+| PACKAGE: missing | 311 (60) | 304 (59) |
+| PACKAGE: wrong order | 117 | 71 |
+| RECORD / FIELD / SCROLL clusters | unchanged | unchanged |
+| taxonomy REFERENCE_ACTIVE_PACKAGE | 527 | 397 |
+
+Fixed by old category (both commits): REFERENCE_ACTIVE_PACKAGE 70,
+REFERENCE_ACTIVE_RECORD_FIELD 47, STRUCTURAL_ORDERING 16,
+REFERENCE_ACTIVE_RECORD 8, REFERENCE_ACTIVE_DECLARE_FUNCTION 3,
+REFERENCE_ACTIVE_SCROLL 3.
+
+### Next mechanism
+
+**Method-dependency rows: when does a call reuse the create row and when
+does it open its own?** This cycle settled only the top-level,
+wildcard-resolved case. Open:
+
+- named-import classes at top level: 22882 reuses, 24744 (Component
+  instance) does not;
+- nested and function-body calls: mixed in
+  `cycle93-method-row-census.ts` (e.g. leading wildcard Local, nested
+  call: 58 without a row, 20 with);
+- repeated calls of the same method;
+- naive "every top-level call opens a row": 395 closer / 88 farther --
+  a discriminator is still missing.
+
+Stored APPCLASSMETHOD content (5,165 ordinary programs carry it) labels
+which row each method used and is the evidence base for that work. After
+it: the RECORD row-shorthand family (`&rs(i).REC` after `CreateRowset`,
+335 first divergences), then `GetField(Field.X)`.
+
+Boundary quick-win queue untouched: 9986, 28161, 14356, 25056, 27390,
+18134, 18135, 28555, 21323, 24926, 20860, 21271 and the 8 comment-kind
+cases.
 
 ## Compiler Research Cycle 93 -- reference-allocation census and candidate ranking
 
