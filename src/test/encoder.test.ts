@@ -4689,12 +4689,30 @@ end-method;`, ['ROOT', 'Demo']);
   assert.deepStrictEqual(metadata.slots, [7]);
 });
 
-test('Application Class metadata leaves multi-instance physical order unresolved', () => {
-  const metadata = appClassMetadata(`class Demo
+test('Application Class properties and instances follow the member hash table order', () => {
+  // Cycle 100: bucket = (h * 2 + char over the upper-cased name) mod 20,
+  // ascending. 28723 declares RecordName then FieldName and stores
+  // FieldName (bucket 7) before RecordName (bucket 19).
+  const properties = appClassMetadata(`class Demo
+   property string RecordName;
+   property string FieldName;
+end-class;`);
+  assert.deepStrictEqual(properties.names.map(name => name.text), ['Demo', 'FieldName', 'RecordName']);
+  const instances = appClassMetadata(`class Demo
 instance Row &first, &second;
 end-class;`);
-  assert.deepStrictEqual(metadata.names.map(name => name.text), ['Demo']);
-  assert.equal(metadata.records.length, 1);
+  assert.deepStrictEqual(instances.names.map(name => name.text), ['Demo', 'first', 'second']);
+  assert.equal(instances.records.length, 3);
+});
+
+test('colliding members are ordered by upper-cased name descending within a bucket', () => {
+  // AK and BI hash alike (2 * 'A' + 'K' = 2 * 'B' + 'I'); BI sorts first
+  // although AK is declared first.
+  const metadata = appClassMetadata(`class Demo
+   property string AK;
+   property string BI;
+end-class;`);
+  assert.deepStrictEqual(metadata.names.map(name => name.text), ['Demo', 'BI', 'AK']);
 });
 
 test('Application Class statement encoding emits a simple class header', () => {
