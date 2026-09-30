@@ -2,26 +2,26 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 98 completed -- receiver types recovered for
-  Component Row / Global Record variables, `CreateRecord()` and
-  `.ParentRow` results; single Row members bind; `Selected` is a Row-only
-  property. EXACT 28,038 -> 28,135 (+97) in two commits, protected PASS,
-  0 EXACT -> non-EXACT. See "Compiler Semantics Cycle 98" and "Compiler
-  Research Cycle 98".
-- **Last successful calibration:** Cycle 98.
+- **Current target:** Cycle 99 completed -- Declare Function rows are
+  keyed by REC.FIELD (the event is not part of the identity). EXACT
+  28,135 -> 28,160 (+25), protected PASS, 0 EXACT -> non-EXACT. See
+  "Compiler Semantics Cycle 99" and "Compiler Research Cycle 99".
+- **Last successful calibration:** Cycle 99.
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
-  FIELDVALUE / XLATLONGNAME / XLATSHORTNAME (need the record's field
-  list); undeclared-variable receivers (type only via assignment);
-  UNRESOLVED_EXTERNAL_CLASS_METADATA class rows; 2125, 24500, 24503, 19433.
-- **Next action:** Declare Function program-wide rows (33 aligned
-  disagreements), then PACKAGE-only row differences (235 definitions),
-  then the rest of Direction 2 (51 definitions). The boundary quick-win
-  queue (12 definitions + 8 comment-kind cases) is untouched.
-- **Newly established rules this session:** Cycle 98 receiver types and
-  member binding; Cycle 97 built-in object property registry; Cycle 96
-  FIELD / SCROLL / RECORD.FIELD rows per allocation unit, Declare Function
-  rows program-wide; Cycle 95 RECORD rows per allocation unit; the Cycle 94
+  FIELDVALUE / XLATLONGNAME / XLATSHORTNAME; undeclared-variable
+  receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class rows; 2125, 24500,
+  24503, 19433.
+- **Next action:** pick from the fresh ranking in "Compiler Semantics
+  Cycle 99": Application Class header / trailer metadata (351 definitions
+  whose tokens and rows already match), PACKAGE-only rows (242), then
+  STRUCTURAL_BYTE (268, incl. the boundary quick-win queue). Census before
+  editing.
+- **Newly established rules this session:** Cycle 99 Declare Function
+  identity REC.FIELD; Cycle 98 receiver types and member binding; Cycle 97
+  built-in object property registry; Cycle 96 FIELD / SCROLL /
+  RECORD.FIELD rows per allocation unit, Declare Function rows
+  program-wide; Cycle 95 RECORD rows per allocation unit; the Cycle 94
   allocation-unit rule for Application Class rows, Global and parameter
   receivers, late initialized `Local array of <Builtin>` group order; the
   Cycle 93 wildcard-row claim and external-metadata fallback; the Cycle 92
@@ -29,6 +29,107 @@
   rules; the Cycle 86 rules; Cycle 84 rule B; Cycle 83 While gaps; the
   Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 99 -- Declare Function rows keyed by REC.FIELD
+
+**Result:** EXACT **28,135 -> 28,160 (+25)**, **0 EXACT -> non-EXACT**,
+protected 430/430. LOCAL SNAPSHOT only.
+
+Rule: a `Declare Function f PeopleCode REC.FIELD Event` target reuses the
+program's existing Declare Function row for the same REC.FIELD whatever
+the event (`declareFunction()` in `src/peoplecode/encoder.ts`: the reuse
+lookup no longer compares `eventName`). The event keyword is still
+written into the program; owner-row reuse and the program-wide lifetime
+are unchanged.
+
+| | before | after |
+|---|---|---|
+| aligned Declare Function decision disagreements | 37 | 0 |
+| forward-exact gained / lost | | 25 / 0 |
+| taxonomy REFERENCE_ACTIVE_DECLARE_FUNCTION | 33 | 0 |
+
+Programs changed: 36 (25 now EXACT; 10865, 10870, 14317, 15345, 15598,
+15626, 15697, 15698, 17037, 17111, 19150 still non-EXACT for other
+reasons: 4 now PACKAGE-first, 2 downstream, 1 FIELD, 1 RECORD).
+
+Invariants: PACKAGE row lists unchanged; allocation-unit lifetime
+disagreements FIELD / SCROLL / RECORD.FIELD / RECORD stay 0; Cycle 97 / 98
+identity controls (1295, 2127, 5182, 5313, 924, 3689, 2085, 2086, 1417,
+1419, 24578, 7078, 17295, 536, 560, 10106, 18834, 20419, 6367) stay EXACT;
+the Cycle 96 Declare controls 13823, 13915, 21321, 21483, 27129 are EXACT
+(4601, 4602 do not encode: `#If` directives). No compensating errors.
+
+### Fresh ranking of the remaining 2,049 NONEXACT
+
+| first true divergence | definitions | notes |
+|---|---|---|
+| HEADER_ONLY_DOWNSTREAM | 379 | tokens and row numbers identical; header / trailer only. 351 Application Classes (the known class-metadata family), 28 ordinary |
+| UNSUPPORTED_SYNTAX | 335 | parser coverage |
+| REFERENCE_IDENTITY | 282 | stored row / generated inline 171 (Direction 2: 51 aligned definitions -- undeclared receivers, GetRecord chain end, SCROLL off call results); generated row / stored inline 91 (FIELDVALUE / XLAT* 33+, parked); both rows 24 |
+| STRUCTURAL_BYTE | 268 | boundary / marker bytes |
+| REFERENCE_ALLOCATION | 253 | 242 of them PACKAGE rows only (all single-signature): missing PACKAGE row 298 affected / 66 one-blocker; stored allocates, generated reuses PACKAGE 170 / 79 |
+| COMMENT_TRIVIA | 194 | |
+| TOKEN_ENCODING | 162 | |
+| ENCODE_ERROR | 122 | |
+| DECODER_RENDERING | 54 | |
+
+Ranking by one-blocker payoff and coherence:
+1. **Application Class header / trailer metadata** (351 definitions whose
+   tokens and rows already match) -- largest single-signature class, but
+   a different subsystem (class metadata sections); needs its own census.
+2. **PACKAGE-only rows** (242 definitions, all single-signature) -- two
+   directions: missing builtin / external rows (298 affected, 66
+   one-blocker) and method / create rows stored opens where generated
+   reuses (170 / 79). Mixed mechanisms; census first.
+3. **STRUCTURAL_BYTE** (268) including the untouched boundary quick-win
+   queue.
+4. **Direction 2 remainder** (51 aligned definitions) -- needs assignment
+   provenance for undeclared receivers; the old caches
+   (`rowsetRecordNamesByVariable`, `rowsetElementRecords`,
+   `recordVariableFields`, `rowShorthandRecords`) still carry it and must
+   stay until that provenance is unified.
+
+## Compiler Research Cycle 99 -- Declare Function reference identity
+
+**Baseline reproduced fresh at `65e6805`** (compiler state `b49b509`):
+28,135 / 2,074, gate PASS, taxonomy row-identical. LOCAL SNAPSHOT only.
+
+Tool: `cycle99-declare-function-identity-census.ts`. 14,094 stored
+Declare Function operands in 7,694 ordinary programs. Every PAIR of
+declarations in a program is tested against four candidate keys:
+
+| key | key equal, same row | key equal, different rows | key differs, same row | key differs, different rows |
+|---|---|---|---|---|
+| A REC + FIELD + EVENT | 13,587 | 0 | **339** | 15,944 |
+| **B REC + FIELD** | **13,926** | **0** | **0** | **15,944** |
+| C REC only | 13,926 | 8,263 | 0 | 7,681 |
+| D FIELD only | 13,926 | 504 | 0 | 15,440 |
+
+Only B is contradiction-free. The event does not split the row: 339
+declaration pairs name the same REC.FIELD with different events and
+stored gives them one row. Same record / different field (8,263 pairs)
+and different record / same field (504 pairs) always get separate rows.
+The lifetime is program-wide (Cycle 96), so no allocation unit is
+involved.
+
+The encoder keyed reuse on REC + FIELD + EVENT: 37 aligned occurrences
+opened a second row where stored reuses (6270, 6278: FUNCLIB_HR.NEW_COMPRATE
+FieldFormula then FieldChange; 10864, 10865, 10870; 14317; 15010 ...
+15737; 17037; 17111; 17148; 18267; 19150; 24314 ... 24336).
+
+Owner row: a declaration whose REC.FIELD is the program's own owner
+reuses the owner row; that check already ignores the event and is
+unchanged.
+
+PSPCMNAME serialization: the row carries RECNAME / REFNAME; the event
+appears only in the descriptive APPCLASSMETHOD column of newer compiles,
+which this project does not generate. `eventName` on the in-memory
+reference object is therefore metadata, not identity.
+
+Cross-kind note (not changed): a CODE operand with the same REC.FIELD as a
+Declare Function target reuses the declaration's row in 537 stored
+occurrences and has its own row in 1,139; the encoder already agrees on
+every aligned code RECORD.FIELD occurrence.
 
 ## Compiler Semantics Cycle 98 -- receiver types for real member bindings
 

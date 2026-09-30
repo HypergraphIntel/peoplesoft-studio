@@ -6387,3 +6387,25 @@ test('Selected off a Record value is a field, off a Row value a property', () =>
     ['record:TEST_REC', 'field:SELECTED']
   );
 });
+
+// Cycle 99: Declare Function rows are keyed by REC.FIELD, not by event.
+
+test('Declare Functions of one REC.FIELD share a row whatever the event', () => {
+  const rows = (source: string) =>
+    encodeProgramArtifacts(source, { owner: { recordName: 'OWN_REC', fieldName: 'OWN_FIELD' } })
+      .references.filter(reference => reference.kind === 'declare-function')
+      .map(reference => `${reference.recordName}.${reference.fieldName}`);
+  // 6270: FieldFormula and FieldChange of one target -> one row.
+  assert.deepStrictEqual(
+    rows(`Declare Function A PeopleCode TEST_LIB.F1 FieldFormula;
+Declare Function B PeopleCode TEST_LIB.F1 FieldChange;`),
+    ['TEST_LIB.F1']
+  );
+  // Different field or different record -> separate rows.
+  assert.deepStrictEqual(
+    rows(`Declare Function A PeopleCode TEST_LIB.F1 FieldFormula;
+Declare Function B PeopleCode TEST_LIB.F2 FieldFormula;
+Declare Function C PeopleCode OTHER_LIB.F1 FieldFormula;`),
+    ['TEST_LIB.F1', 'TEST_LIB.F2', 'OTHER_LIB.F1']
+  );
+});
