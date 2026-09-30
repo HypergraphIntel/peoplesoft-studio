@@ -10750,7 +10750,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           hasBlankLine &&
           sawApplicationClassLocalSection &&
           !closedApplicationClassLocalSection &&
-          !nextIsLocal;
+          !nextRealItemContinuesDeclarationSection(pos);
         if (!nextIsTopLevelDeclaration && !nextIsImport && !applicationClassLocalCloserFiresHere) {
           pendingReferenceLocalBoundary = chunks.length;
 
@@ -10873,10 +10873,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * loop's early `continue`, so the 0x2D is wrongly deferred past
          * the comment to the next executable statement.
          */
+        // Cycle 92: comment-transparent, and a following declaration
+        // continues the section (23068, 23567: `La ... /*c*\/ Component`).
         if (
           sawApplicationClassLocalSection &&
           !closedApplicationClassLocalSection &&
-          !nextIsLocal
+          !nextRealItemContinuesDeclarationSection(pos)
         ) {
           pushDeclarationSectionCloseByte();
           closeApplicationClassLocalSection();
@@ -11368,8 +11370,17 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * Local run could restart after a Function (11552, 13561: `F[2D 4F 4F]`
      * instead of `F[2D 4F]` before a declaration).
      */
+    /*
+     * Cycle 92: an OPEN Application-Class-Local section is also a prior
+     * declaration region for this gap. Its premature closer used to supply
+     * the blank-line 0x4F before the first following declaration; with the
+     * section now staying open, this owner takes that gap (1417, 12813,
+     * 19885, 20824, 23568: stored `La[4F] D`).
+     */
     const declarationGapOwnsBlankLine =
-      (sawTopLevelDeclaration || sawLeadingLocalDeclaration) &&
+      (sawTopLevelDeclaration ||
+        sawLeadingLocalDeclaration ||
+        (sawApplicationClassLocalSection && !closedApplicationClassLocalSection)) &&
       isTopLevelDeclaration &&
       /^(?:ComponentLife|Component|Global|PanelGroup|Declare\s+Function)\b/i.test(source.slice(pos)) &&
       hasBlankLine &&
@@ -11424,8 +11435,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       emitBlankLineMarkers(topLevelWhitespace);
     }
 
+    /*
+     * Cycle 92: the Application-Class-Local section stays open across
+     * following top-level DECLARATIONS, exactly like the generic declaration
+     * section. It closes where the declaration region ends: at a Function
+     * definition, executable code, or EOF. The predicate used to be "next
+     * item is not a Local", which closed it prematurely at a declaration.
+     *
+     * LOCAL SNAPSHOT (`cycle92-appclass-local-section-census.ts`, 441
+     * programs with an App-Class Local before executable code): stored has
+     * no 0x2D at a Local -> declaration transition in 46/46 cases (e.g.
+     * 18673 `La L L D D D[2D 4F] X`), and always closes at a Function (35)
+     * or executable code.
+     */
     const closesApplicationClassLocalSection =
       !isLocalDeclaration &&
+      !isTopLevelDeclaration &&
       sawApplicationClassLocalSection &&
       !closedApplicationClassLocalSection;
 

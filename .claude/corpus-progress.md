@@ -2,30 +2,110 @@
 
 ## Current status (2026-09-29)
 
-- **Current target:** Cycle 91 completed. "Mechanism D" (post-executable
-  Local) turned out to be essentially correct already: 1,105 programs, 2
-  marker-count mismatches. Its listed cases were pre-executable
-  collisions. Fixed:
-  - the doubled 0x2D at a comment (the App-Class-Local closer owns it);
-  - comment transparency for the leading-run close.
-  EXACT 26,603 -> 26,604, protected PASS, 0 regressions. See "Compiler
-  Semantics Cycle 91".
-- **Last successful calibration:** Cycle 91.
+- **Current target:** Cycle 92 completed -- the App-Class-Local section
+  stays open across declarations and comments. EXACT 26,604 -> 26,609
+  (+5), protected PASS, 0 EXACT -> non-EXACT. Top-level boundary
+  population 44 -> 12 definitions. See "Compiler Semantics Cycle 92".
+- **Last successful calibration:** Cycle 92.
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked.
-- **Next action:** the App-Class-Local state machine at comments and
-  declarations (10 definitions: 18998, 23567, 23568, 23570, 23572, 23975,
-  18673, 21969, 23068, 23402) is now the largest remaining boundary
-  family. Smaller follow-ups:
-  - comment kind 0x24 vs 0x4E (8);
-  - disabled-code / EOF (4);
-  - import restart (25056, 27390);
-  - doubled 0x2D across two comments (9986, 28161);
-  - the Constant gap (3).
-- **Newly established rules this session:** the Cycle 91 rules; Cycle 90;
-  Cycle 89; Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84
-  rule B; Cycle 83 While gaps; the Cycle 82 rules.
+- **Next action:** the top-level boundary family is nearly exhausted (12
+  definitions in 5 small mechanisms). Either finish those small ones:
+  - the comment before a Function (3);
+  - the import restart (2);
+  - the Constant gap (3);
+  - disabled code (4);
+  - the comment kind 0x24 vs 0x4E (8);
+  or re-rank the whole NONEXACT population with the Cycle 83 census, where
+  reference allocation dominates (FIELD 810, PACKAGE ~530, RECORD 413).
+- **Newly established rules this session:** the Cycle 92 rule; the Cycle 91
+  rules; Cycle 90; Cycle 89; Cycle 88; the Cycle 87 rules; the Cycle 86
+  rules; Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 92 -- the Application-Class-Local section stays open across declarations
+
+**Baseline reproduced fresh at `66ad0ac`:** 26,604 / 3,605, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only; no DLL work.
+
+**Result:** EXACT **26,604 -> 26,609 (+5)**, 0 EXACT -> non-EXACT.
+Boundary definitions **44 -> 12**.
+
+### Census (tool: `cycle92-appclass-local-section-census.ts`)
+
+441 non-App-Class programs have an App-Class-typed Local before executable
+code. For every transition out of a Local run inside that section, stored
+behaves as follows:
+
+| next real item | stored closes (0x2D)? | generated before the fix |
+|---|---|---|
+| declaration (Global / Component / Constant / PanelGroup / Declare Function) | **never** (46/46) | closed in 29 (mismatch) |
+| comment -> declaration | never (4/4) | closed in all 4 (2 before the comment, 2 after it) |
+| comment -> Local | never | match |
+| Function (direct or via comment) | always (35) | match |
+| executable (direct or via comment) | yes; informal for an initialized run | match |
+
+- The population was **29 + 4 definitions**, not 10. 21969 from the
+  earlier list has no App-Class Local and is a generic-section case.
+- The continuation set (declarations + Locals) is identical to the generic
+  section's `nextRealItemContinuesDeclarationSection`. Function,
+  executable code and EOF close it.
+- Item classification was verified with the Cycle 85 splitter (imports
+  are `I`), not the mislabeling helper found in Cycle 91.
+
+### Closer sites and the premature-close predicate
+
+- **Main path:** `closesApplicationClassLocalSection = !isLocalDeclaration
+  && sawApplicationClassLocalSection && !closed`. "Next is not a Local"
+  closed the section at any declaration.
+- **Standalone comment site:** `... && !nextIsLocal`. Same flaw, and it was
+  not comment-transparent.
+- **Cycle 91's mixed-run ownership check** mirrored that comment-site
+  predicate.
+- **EOF flush:** unchanged.
+
+### Rule implemented
+
+**The App-Class-Local section stays open across following declarations and
+intervening comments. It closes where the declaration region ends (a
+Function, executable code, EOF).** Serialization is unchanged.
+
+- Main path: add `!isTopLevelDeclaration`.
+- Comment site, and the Cycle 91 ownership check: use
+  `nextRealItemContinuesDeclarationSection`.
+- **Compensating ownership fixed:** the premature closer had been
+  supplying the blank-line 0x4F before the first following declaration
+  (stored `La[4F] D`). With the section staying open, the declaration-gap
+  owner now also treats an OPEN App-Class-Local section as a prior
+  declaration region. This affects 1417, 1419, 12813, 19885, 20824 and
+  23568.
+
+### Validation
+
+- Forward-exact +5, 0 lost; bytes change in 33 definitions. 32 of them now
+  match stored at every top-level boundary. The 33rd, 14356, has an extra
+  0x2D at a comment before a Function (the two-comment residual family).
+- The census afterwards has 0 mismatches for Local -> declaration and
+  comment -> declaration.
+- The Cycle 91 doubled-close controls (4916, 5216, 18229, 18247, 19867,
+  20027, 20077, 25289) and the historical controls are unchanged in bytes.
+- `npm test` 653 run / 652 pass. Two tests fail before and pass after;
+  the executable/Function control passes both ways.
+- `git diff --check`; protected PASS; full corpus 26,609 / 3,600; row diff
+  0 regressions, 5 fixed (10563, 18114, 18673, 23975, 25036).
+
+### Post-fix boundary census (12 definitions, 5 strict one-blockers)
+
+| mechanism | definitions |
+|---|---|
+| extra 0x2D at a comment before a Function | 9986, 28161, 14356 |
+| import closed at a block comment does not restart the Local run | 25056, 27390 |
+| Constant declaration gap (missing 0x4F) | 18134, 18135, 28555 |
+| disabled code at EOF (missing 0x2D) | 21323, 24926 |
+| disabled-code Local-run anchor | 20860, 21271 |
+
+Outside the 0x2D/0x4F boundary census: the comment kind 0x24 vs 0x4E (8
+definitions).
 
 ## Compiler Semantics Cycle 91 -- "Mechanism D" decomposed: post-executable Locals are already correct
 
