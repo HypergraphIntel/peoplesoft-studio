@@ -10733,7 +10733,23 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         !nextIsLocal &&
         pendingReferenceLocalBoundary === undefined
       ) {
-        if (!nextIsTopLevelDeclaration && !nextIsImport) {
+        /*
+         * Cycle 91: when the Application-Class-Local section closer below
+         * fires at this SAME comment, it owns the single 0x2D for the
+         * combined section (mixed plain / App-Class-typed Locals). Queuing
+         * the leading-run boundary as well produced `2D 2D 4F` (4916, 18229,
+         * 20077, 25289: `import ...; L La L L <blank> /*c*\/`). The
+         * executable-statement path already applies the same ownership
+         * (`!closesApplicationClassLocalSection` before queuing the leading
+         * boundary). The run itself still ends here.
+         */
+        const applicationClassLocalCloserFiresHere =
+          haveCompletedTopLevelStatement &&
+          hasBlankLine &&
+          sawApplicationClassLocalSection &&
+          !closedApplicationClassLocalSection &&
+          !nextIsLocal;
+        if (!nextIsTopLevelDeclaration && !nextIsImport && !applicationClassLocalCloserFiresHere) {
           pendingReferenceLocalBoundary = chunks.length;
 
           /*

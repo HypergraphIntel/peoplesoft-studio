@@ -5649,3 +5649,23 @@ REM note;
     '15 2d 4f'
   );
 });
+
+/*
+ * Cycle 91: a mixed plain / App-Class-typed Local run closed by a standalone
+ * comment gets ONE 0x2D, owned by the App-Class-Local section closer
+ * (4916, 18229, 20077, 25289 stored `2D 4F /*c*\/`, not `2D 2D 4F`).
+ */
+test('a mixed plain / App-Class Local run closed by a comment emits a single 0x2D', () => {
+  assert.strictEqual(
+    opcodesBeforeFirstComment(`import PKG:*;
+
+Local Rowset &q;
+Local PKG:Helper &h;
+Local Rowset &r;
+
+/* note */
+
+&r = GetRowset(Scroll.TEST_REC);`),
+    '15 2d 4f'
+  );
+});
