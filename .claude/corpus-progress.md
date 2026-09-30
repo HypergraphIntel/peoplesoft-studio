@@ -29,6 +29,77 @@
   Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
 
+## Compiler Research Cycle 98 -- receiver types behind Direction 2 identity failures
+
+**Baseline reproduced fresh at `496b261`:** 28,038 / 2,171, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only.
+
+Tool: `cycle98-receiver-type-census.py` (on `cycle97-member-identity-dump.ts`
+output plus the sources). It classifies the receiver of every aligned
+member position from the STORED tokens -- a variable with its declared
+type and declaring keyword, an indexed variable, a call / method result,
+a member after a RECORD row -- and, with `--end`, whether the member ends
+the chain.
+
+### Direction 2 population (stored row, generated inline)
+
+161 definitions / 888 occurrences at aligned positions.
+
+| receiver | stored kind | Direction 2 occ (defs) | both rows (defs) | notes |
+|---|---|---|---|---|
+| member after a RECORD row | FIELD | 220 (37) | 27,816 (2,807) | subfamilies below |
+| `Local Row` variable, chain end | RECORD | 56 (34) | 0 | `&rec = &row.REC;` |
+| bare `GetRow()`, chain end | RECORD | 23 (23) | 0 | |
+| `Global Record` variable | FIELD | 70 (20) + 18 (3) | 0 | never typed |
+| `Component Row` variable | RECORD | 176 (8) | 0 | never typed |
+| `.ParentRow` result | RECORD | 13 (9) + 1 | 0 | |
+| bare `CreateRecord(...)` | FIELD | 15 (7) + 1 | 0 | |
+| bare `GetRecord(...)`, chain end | FIELD | 10 (9) | 8 (5) | not addressed |
+| call-result index / `GetRow()` / `.GetRow(...)` | SCROLL | 12 + 6 + 10 | 21 | not addressed |
+| undeclared variable | FIELD | 192 (4) | 0 | no type in source; parked |
+
+### Where the type was lost
+
+- **Row at chain end.** A Row variable (and a bare `GetRow()`) entered
+  record-binding mode only when two dotted identifiers followed, to keep
+  single Row properties inline. Every inline property after a Row value in
+  the corpus is now covered by the row-state list and Cycle 97's
+  `BUILTIN_OBJECT_PROPERTIES`; the rest are method calls.
+- **Component Row** variables were put only in the diagnostic set
+  `chainSemanticsDeclaredRowVariables`, never in `rowVariables`.
+- **Global Record** variables were never added to `recordVariables`.
+- **`.ParentRow`** reset the chain to an untyped value; its result is a
+  Row (all inline members after it are Row properties / methods).
+- **`CreateRecord(...)`** result was untyped; `GetRecord(...)` already
+  returned a Record.
+- **`Selected`** was in the row-state list for BOTH positions; off a
+  Record value it is a field (6 / 6 FIELD rows after a RECORD row, 0
+  inline), not a Record property. This is 6 of the 37 "after a RECORD
+  row" definitions.
+
+Contradiction scan (all stored occurrences with the same receiver shape,
+EXACT programs included): Global Record 70 / 70 bind; Component Row 176 /
+176; `.ParentRow` -> every other member is ParentRowset / RowNumber /
+IsNew / IsDeleted / DeleteEnabled or a method; Row chain end -> every other
+member is in the builtin lists or a method; CreateRecord 15 / 15.
+
+### Isolated experiments (baseline 28,091 forward-exact)
+
+| rule | programs changed | gained | lost |
+|---|---|---|---|
+| Row / GetRow() single member binds | 65 | 50 | 0 |
+| Global Record typed | 22 | 18 | 0 |
+| ParentRow -> Row | 14 | 8 | 0 |
+| CreateRecord -> Record | 8 | 8 | 0 |
+| Selected only a Row property | 13 | 8 | 0 |
+| Component Row typed | 8 | 6 | 0 |
+
+With all six, every one of the 105 changed non-exact programs moves its
+first token / row divergence LATER (0 earlier). Direction 2 aligned
+positions 161 / 888 -> 51 / 304; Direction 1 unchanged (93 / 574);
+allocation-unit lifetime disagreements stay 0; PACKAGE row lists
+unchanged; Cycle 97 property controls stay EXACT.
+
 ## Compiler Semantics Cycle 97 -- built-in object properties stay inline
 
 **Result:** EXACT **27,905 -> 28,038 (+133)**, **0 EXACT -> non-EXACT**,
