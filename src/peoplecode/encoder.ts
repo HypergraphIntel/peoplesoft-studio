@@ -5721,12 +5721,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         ? ownerReference
         : undefined;
 
+    /*
+     * Cycle 99: the reusable row is keyed by REC.FIELD alone. Stored gives
+     * every Declare Function target one PSPCMNAME row for the whole program
+     * whatever the event: across all 14,094 stored Declare Function operands
+     * (7,694 ordinary programs), two declarations of the same REC.FIELD share
+     * a row in every pair (13,926) and different REC.FIELD targets never do
+     * (15,944) -- including 339 pairs with DIFFERENT events (e.g. 6270:
+     * FieldFormula and FieldChange of FUNCLIB_HR.NEW_COMPRATE). Keying on the
+     * event as well opened a second row in 37 aligned occurrences. The event
+     * is still written into the program (0x40 keyword below).
+     */
     reference ??= references.find(
       item =>
         item.kind === 'declare-function' &&
         same(item.recordName, recordName) &&
-        same(item.fieldName, fieldName) &&
-        same(item.eventName, eventName)
+        same(item.fieldName, fieldName)
     );
 
     if (reference === undefined) {
