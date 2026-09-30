@@ -586,6 +586,62 @@ interface EncodeFragmentContext extends EncodeProgramContext {
   methodParameters?: { name: string; type: string }[];
 }
 
+/*
+ * Cycle 97: built-in object properties that stay INLINE member names.
+ *
+ * In a postfix chain the encoder binds a bare member as a PSPCMNAME row
+ * when it sits where a record or a field name belongs:
+ *
+ *   dependencyKind 'record'  -- off a Row / Rowset value (`&rs(1).X`,
+ *                               `GetRow().X`): X would become a RECORD row
+ *   dependencyKind 'field'   -- off a Record value (`&rs(1).REC.X`,
+ *                               `&rec.X`): X would become a FIELD row
+ *
+ * The members below are properties of the object at that position, not
+ * record or field names. Stored writes them inline (0x0A text) and opens no
+ * row. Evidence (`cycle97-member-identity-census.py`, every ordinary
+ * definition, EXACT ones included): at each listed position the generated
+ * row had no stored counterpart, and stored never has a row with that
+ * identity anywhere in the corpus (RECORD.DELETEENABLED, FIELD.FIELDCOUNT,
+ * ... : 0 rows). All occurrences are property syntax.
+ *
+ *   position 'record' (Row / Rowset value)
+ *     DeleteEnabled  38 occurrences / 24 definitions (5182, 5313)
+ *     ParentRowset   34 / 19 (924, 3689)
+ *     Style          28 / 15 (2085, 2086)
+ *     ChildCount     16 / 10 (24578)
+ *     RecordCount     4 /  4 (5065, 14194)
+ *   position 'field' (Record value)
+ *     FieldCount    170 / 124 (1295, 2127)
+ *     ParentRow      49 / 22 (1417, 1419)
+ *     DBRecordName    8 /  8 (4132)
+ *     IsEditError     7 /  5 (7078)
+ *     RelLangRecName  6 /  5 (17295)
+ *     ActiveRowCount  2 /  2 (20777, 21252)
+ *     ParentRowset    1 /  1 (924)
+ *
+ * The key is position + member, never the member name alone: the same
+ * names are left to the existing rules everywhere else. FIELDVALUE,
+ * XLATLONGNAME and XLATSHORTNAME are NOT listed: they are real field names
+ * of the translate records (stored FIELD rows in 75 / 60 / 10 definitions)
+ * and inline properties elsewhere, which needs the record's field list to
+ * decide.
+ */
+const BUILTIN_OBJECT_PROPERTIES: Readonly<Record<'record' | 'field', ReadonlySet<string>>> = {
+  record: new Set(
+    ['DeleteEnabled', 'ParentRowset', 'Style', 'ChildCount', 'RecordCount'].map(name => name.toLowerCase())
+  ),
+  field: new Set(
+    ['FieldCount', 'ParentRow', 'DBRecordName', 'IsEditError', 'RelLangRecName', 'ActiveRowCount', 'ParentRowset']
+      .map(name => name.toLowerCase())
+  )
+};
+
+function isBuiltinObjectProperty(position: string, member: string): boolean {
+  return (position === 'record' || position === 'field') &&
+    BUILTIN_OBJECT_PROPERTIES[position].has(member.toLowerCase());
+}
+
 export interface EncodedPeopleCode {
   program: Buffer;
   references: PeopleCodeReference[];
@@ -10112,8 +10168,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * contradictions) motivating this addition.
          */
         const isInlineRowStateMember =
-          (dependencyKind === 'record' || dependencyKind === 'field') &&
-          /^(?:RowNumber|IsNew|IsDeleted|IsChanged|Visible|Selected|Name)$/i.test(member);
+          ((dependencyKind === 'record' || dependencyKind === 'field') &&
+            /^(?:RowNumber|IsNew|IsDeleted|IsChanged|Visible|Selected|Name)$/i.test(member)) ||
+          (!isMethodCall && isBuiltinObjectProperty(dependencyKind, member));
 
         const hasExistingExpectedReference = references.some(item =>
           expectedReferenceMember === 'record'
