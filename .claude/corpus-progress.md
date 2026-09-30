@@ -34,6 +34,142 @@
   rules; Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
 
+## Compiler Research Cycle 94 -- method-dependency rows and the allocation-unit discriminator
+
+**Baseline reproduced fresh at `4039a08`:** 26,756 / 3,453, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only; no HCDEV, no DLL work.
+
+### Method
+
+Tools: `cycle94-method-row-truth-census.ts` (per call and per gap) and
+`cycle94-method-row-matrix.py`.
+
+Truth is positional. The generated allocation sequence (with source
+offsets) and the stored rows are aligned on every row that is not a
+PACKAGE row of the receiver's class; each declaration / create / call of
+that class then falls into one gap between two aligned anchors, and the
+stored PACKAGE.<class> rows inside the gap are the rows those events
+opened. Stored APPCLASSMETHOD labels are supporting evidence only: a label
+marks a row a method call OPENED; a call that reuses a row does not
+relabel it (25507: PSFORMPROCESSOR stays unlabeled after four nested calls).
+
+Population: 5,660 direct calls `&var.Method(` on a variable whose class the
+source names. 370 are in programs with UNRESOLVED_EXTERNAL_CLASS_METADATA
+and excluded; 2,697 sit in gaps shared with a declaration or create, or in
+unaligned regions; **2,593 usable** (ALLOC 1,075 / REUSE 802 / 716 in
+multi-call gaps where only some calls opened a row).
+
+### Matrices (usable calls; ALLOC / REUSE / mixed gap)
+
+Call context:
+
+| context | ALLOC | REUSE | mixed |
+|---|---|---|---|
+| top-level statement | 522 | 48 | 19 |
+| inside a control structure | 352 | 649 | 316 |
+| inside a Function | 193 | 97 | 379 |
+| inside try | 8 | 8 | 2 |
+
+Receiver origin:
+
+| receiver | ALLOC | REUSE | mixed |
+|---|---|---|---|
+| Component | 583 | 236 | 253 |
+| Local | 393 | 300 | 448 |
+| Global | 75 | 15 | 5 |
+| Function parameter | 24 | 10 | 4 |
+| undeclared (`&v = create X()` only) | **0** | **241** | 6 |
+
+Context x receiver: top-level Component 302 / 0, top-level Local 152 / 0,
+top-level Global 68 / 0, top-level undeclared 0 / 48. **Every one of the
+48 top-level REUSE calls is on an undeclared variable.**
+
+Import mode: named 518 / 510, wildcard 557 / 292 -- not a discriminator on
+its own. Inside the top-level context both are 100 % ALLOC (named 246,
+wildcard 276, once undeclared receivers are removed).
+
+First vs later call (declared receivers): top-level first call 220 / 0,
+later call 302 / 0; same method repeated at top level 190 / 0. In a control
+structure first call 227 / 71, later 125 / 397.
+
+Receiver created earlier (`&v = create`): top level 361 / 48 (the 48
+undeclared) vs not created 161 / 0 -- a prior create does not make a
+top-level call reuse.
+
+### Gap patterns (events of one class between two anchors -> stored rows, imports subtracted)
+
+| class import | events in the gap | stored rows |
+|---|---|---|
+| named | `Component X &c;` | 0 (372 of 373) |
+| wildcard | `Component X &c;` | 1 (294 / 294) |
+| named | leading `Local X &v;` | 0 (158 of 159) |
+| wildcard | leading `Local X &v;` | 1 (113 of 115) |
+| named / wildcard | Function-body `Local X &v;` | 1 (37 of 38 / 145 of 146) |
+| named / wildcard | late or nested `Local X &v;` | 1 (29 of 30, 9 / 9; 17 of 18, 9 / 9) |
+| named | leading `Local X &v = create X()` | **0 (68 / 68)** |
+| wildcard | leading `Local X &v = create X()` | 1 (22 / 22) |
+| named / wildcard | late `Local X &v = create X()` | 1 (29 / 29, 37 / 37) |
+| named | leading `Local X &v = create X()` + top-level call | 1 (68 of 69) |
+| wildcard | the same | 2 (17 / 17) |
+| named | nested `Local X &v = create X()` + call in the same block | 1 (56 of 58) |
+| any | one top-level call, declared receiver | >= 1 (every one of 338) |
+| named | two top-level calls in one gap | 2 (6), 1 (4: both calls in ONE statement) |
+| any | two or three calls in one control structure | 0 or 1, never more (except 1 of 116) |
+| named | top-level `&v = create X()` | 1 (78 of 88) |
+| any | calls on an undeclared variable | 0 (69 / 69 single, 57 of 58 multi) |
+
+### Discriminator: the allocation unit
+
+None of provenance, receiver kind, import mode or method name decides
+reuse. What decides it is whether the class already has a row **in the
+current allocation unit**:
+
+- the leading declaration section (imports, Component / Global / Declare,
+  leading Locals, and the first initialized Local) is one unit;
+- after it, every top-level statement is a unit -- a whole If / For /
+  While / Evaluate / try block is ONE statement;
+- in a Function, every body statement (Locals included) is a unit; the
+  header belongs to the unit before it.
+
+Every use of a class (declaration type, create, `As` cast, method call on
+a declared instance) reuses the unit's row for that class or opens one. A
+row a method call opens carries the method name. Same class + same unit is
+the whole key: not the receiver variable, not the method, not how the
+earlier row came to exist.
+
+This subsumes the five Cycle 93 rules (they were its special cases) and
+explains the earlier "mixed" naive experiments:
+
+- "every top-level call opens a row" (395 closer / 88 farther): right for
+  declared receivers, wrong because (a) calls inside top-level `try` were
+  counted as top level, (b) undeclared receivers open nothing, and (c) the
+  leading named `Local X &v = create X()` was given a create row it does
+  not have, so the call's row made one too many.
+- "method rows never reuse under a wildcard import" (168 / 115): import
+  mode is not the discriminator at all.
+
+### Candidate table (recorded before the production edit)
+
+| rank | submechanism | lists affected | one-blocker (EXACT) | positive controls | negative controls | contradictions | risk |
+|---|---|---|---|---|---|---|---|
+| 1 | **allocation unit for every class use** (declaration, create, cast, call) | 645 | 229 | 18918, 26262, 1769, 17900, 2102 | 381, 18028, 24499, 17594, 25507, 22882 | 3 (6622-6624: displaced by unrelated RECORD rows) | low |
+| 2 | Global instances are receivers | 66 | 34 | 18698, 4618, 22510 | -- | 0 | low |
+| 3 | Function parameters are receivers; header uses the class in the unit before it | 21 | 2 | 19494, 28681 | 14356 | 0 (2 programs move into the external-metadata fallback) | low |
+| 4 | builtin type rows share the same units | 212 | -- | -- | -- | 96 closer / 110 farther | rejected |
+| 5 | bare Locals join the previous unit | 13 | -- | -- | -- | 1 closer / 12 farther | rejected |
+| 6 | Function Locals share a unit | -- | -- | -- | 8327, 18080 | 3 more farther | rejected |
+| 7 | leading unit runs through all consecutive Locals | 670 | -- | -- | 18302, 2179 | 41 farther | rejected |
+
+Compensating error found: **2092** was EXACT only because a duplicate
+COMPARISONHANDLER row stood in for a missing second PACKAGE.RECORD row.
+Cause: a late `Local array of Record &x = ...` allocated its element type
+row before starting its new reference group (the scalar form already
+starts the group first). Negative controls 2093, 18375, 18376 (the same
+two lines in the leading section: one RECORD row).
+
+UNRESOLVED_EXTERNAL_CLASS_METADATA stays excluded and parked: those
+programs still encode with the pre-Cycle-93 behavior.
+
 ## Compiler Semantics Cycle 93 -- Application Class rows in ordinary programs follow import resolution
 
 **Result:** EXACT **26,609 -> 26,756 (+147)** in two semantic commits,
