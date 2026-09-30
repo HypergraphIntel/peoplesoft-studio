@@ -27,6 +27,114 @@
   Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
 
+## Compiler Research Cycle 96 -- FIELD, SCROLL and RECORD.FIELD rows per allocation unit
+
+**Baseline reproduced fresh at `8ac4a48`:** 27,520 / 2,689, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only.
+
+Tool: `cycle95-record-unit-census.ts --all` (stored token stream of every
+ordinary definition; Declare Function operands now tagged
+`declare-function`).
+
+### Stored unit matrices (every ordinary definition)
+
+| kind | earlier in unit -> reuse | earlier in unit -> new | not in unit -> new | not in unit -> reuse |
+|---|---|---|---|---|
+| FIELD (0x21 + 0x4A) | 30,420 | 0 | 40,405 | 0 |
+| SCROLL (0x21 + 0x4A) | 1,494 | 0 | 7,186 | 0 |
+| RECORD.FIELD, code operands | 66,393 | 0 | 96,991 | 1 (census artifact, below) |
+| RECORD.FIELD, Declare Function operands | 3,692 | 0 | 9,117 (all first occurrences) | 10 |
+| RECORD (Cycle 95) | 32,292 | 0 | 20,640 | 0 |
+
+FIELD constructs, all following the unit: `GetField(Field.X)` 4,394 new /
+2,525 reuse, other call arguments 335 / 98, bare `Field.X` 258 / 85,
+shorthand `.X` 35,418 / 27,712. SCROLL: `GetRowset(Scroll.X)` 6,591 /
+883, other calls (`ScrollFlush`, `ActiveRowCount`, `Hide`, `Gray`,
+`Select`, later arguments ...) 522 / 538, shorthand 37 / 25. Provenance of
+the earlier row never matters once the unit is known.
+
+**FIELD key:** the FIELD row is `FIELD.<name>` -- it carries no record, so
+one field name under different records in one unit is one row (by
+definition of the row; the census confirms no second row in a unit).
+**SCROLL key:** `SCROLL.<name>`. **RECORD.FIELD key:** `<REC>.<FIELD>`.
+
+### The 11 RECORD.FIELD exceptions
+
+| definition | row | unit | explanation |
+|---|---|---|---|
+| 4601 | FUNCLIB_EP.HR_SSTEXT_KEY1 | 3 | Declare Function operand; `#If #ToolsRel` directives before the Declares end the census's leading unit |
+| 4602 | FUNCLIB_EP.HR_SSTEXT_KEY1 (x2), FUNCLIB_EP.EP_REVIEW_TYPE | 3, 7, 9 | Declare Function operands, same directive shape |
+| 13823 | FUNCLIB_HR.REG_REGION | 3 | Declare Function operand |
+| 13915 | FUNCLIB_HR.REG_REGION | 3 | Declare Function operand |
+| 21321 | GPES_RC_CRT.RUN_CNTL_ID (x3) | 2, 3, 4 | Declare Function operands after a disabled-code block |
+| 21483 | GPFR_DSN_DECL_R.GPFR_DSN_DECL_REF | 1 | Declare Function operand after disabled code the census did not treat as trivia (tagged `explicit:bare` by the census) |
+| 27129 | GPGB_EDIFUNCLIB.GPGB_EDI_ATT5 | 11 | Declare Function operands AFTER a Function definition (lines 27-28) |
+
+Discriminator: **all 11 are Declare Function operands.** Stored gives a
+Declare Function `PeopleCode REC.FIELD` operand ONE row per REC.FIELD for
+the whole program: 3,692 same-unit reuses, 10 cross-unit reuses, and not
+one second row for an identity already declared. It is a different
+reference kind with a program-wide lifetime, not a RECORD.FIELD lifetime
+exception. Code RECORD.FIELD operands follow the unit with 0 exceptions.
+
+### 27129
+
+The earlier all-kind experiment pooled Declare Function operands by unit.
+27129 declares `EDI_ATT5` and `ConvNumToString` from the same
+`GPGB_EDIFUNCLIB.GPGB_EDI_ATT5` in two consecutive statements after
+`Function validate_AlphaNumeric ... End-Function`, so they are two units:
+the unit pool opened a second row where stored reuses the first, and every
+later NAMENUM shifted. It is a Declare Function contradiction (wrong
+lifetime for that kind), not a FIELD / SCROLL / RECORD.FIELD one, and not
+compensation. Declare Function operands stay on their existing
+program-wide path.
+
+### Parent RECORD / FIELD relationship
+
+RECORD.FIELD rows are keyed by the textual `<REC>.<FIELD>` identity plus
+unit. The census's "earlier in unit" test uses that identity alone and has
+0 contradictions, so no binding to a particular RECORD or FIELD row
+(NAMENUM) is needed. No alternative key (record-row NAMENUM, field-row
+NAMENUM, access provenance) is required by any occurrence.
+
+### Current encoder vs stored (aligned occurrences)
+
+| kind | before | after FIELD | after SCROLL | after RECORD.FIELD |
+|---|---|---|---|---|
+| FIELD disagreements | 2,038 | 0 | 0 | 0 |
+| SCROLL disagreements | 201 | 201 | 0 | 0 |
+| RECORD.FIELD disagreements | 104 | 104 | 104 | 0 |
+
+A first cut keyed the pools by the encoder's reference kind and left 10
+disagreements: the statement-start path encodes `Field.VERSION.Value =
+&x;` as a record-field reference "Field|VERSION" (16080, 16087, 16088,
+16846) and `Scroll.X.Flush();` as "Scroll|X" (5037, 5087). Stored gives
+them the same FIELD / SCROLL row as the other occurrences, so the pools
+are keyed by the PSPCMNAME row identity.
+
+### Isolated forward experiments (baseline 27,571 forward-exact)
+
+| pool | forward-exact | gained | lost |
+|---|---|---|---|
+| FIELD only | 27,860 | 289 | 0 |
+| SCROLL only | 27,640 | 69 | 0 |
+| RECORD.FIELD only | 27,590 | 19 | 0 |
+| all three | 27,956 | 385 | 0 |
+| Declare Function by unit (rejected) | 27,592 | 22 | 1 (27129) |
+
+### Existing caches (FIELD / SCROLL / RECORD.FIELD)
+
+`fieldDependencyScope` and `recordVariableFields` (field + control group
+via `fieldScopeId()`), `fieldReferenceOccurrenceOwnedByGetField`
+(GetField occurrences), `dependencyScope.lookupScroll/recordScroll`
+(scroll + control group, gated by `reuseScrollReferenceWithinControlGroup`),
+`level0RowsetRecordsByField`, and the RECORD.FIELD group runs
+(`inTopLevelRecordFieldSetDefaultRun`, "contiguous semantic statement
+runs"). All key on the control group, which merges consecutive flat
+top-level statements and splits a control structure from its siblings --
+the same mismatch as RECORD. They stay as candidate selectors; the unit
+pools have the final word.
+
 ## Compiler Semantics Cycle 95 -- RECORD rows are scoped to the allocation unit
 
 **Result:** EXACT **27,018 -> 27,520 (+502)**, **0 EXACT -> non-EXACT**,
