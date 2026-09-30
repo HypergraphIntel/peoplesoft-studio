@@ -30,6 +30,103 @@
   rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
 
+## Compiler Research Cycle 95 -- RECORD row lifetime is the allocation unit
+
+**Baseline reproduced fresh at `994afaf`:** 27,018 / 3,191, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only; no HCDEV, no DLL work.
+
+### Method
+
+Tool: `cycle95-record-unit-census.ts`. RECORD rows are operands, so every
+stored occurrence's decision is visible directly: it allocates when its
+NAMENUM is new. The tool walks the STORED token stream of every ordinary
+definition (EXACT ones included), computes the Cycle 94 allocation unit of
+each occurrence from the tokens themselves (leading declaration section
+through the first initialized Local; then each top-level statement, a whole
+control structure being one; each Function body statement), and records
+the construct, region, sub-statement and earlier occurrences of the same
+record. Generated decisions are compared where generated token identities
+align with stored.
+
+### The test (52,932 RECORD occurrences, 7,112 ordinary definitions)
+
+| kind | earlier occurrence in the same unit? | earlier in another unit? | stored NEW | stored REUSE (same unit) | stored REUSE (other unit) |
+|---|---|---|---|---|---|
+| shorthand 0x4A | yes | no | 0 | 15,320 | 0 |
+| shorthand 0x4A | yes | yes | 0 | 8,831 | 0 |
+| shorthand 0x4A | no | no | 4,425 | 0 | 0 |
+| shorthand 0x4A | no | yes | 3,813 | 0 | 0 |
+| explicit 0x21 | yes | no | 0 | 5,683 | 0 |
+| explicit 0x21 | yes | yes | 0 | 2,458 | 0 |
+| explicit 0x21 | no | no | 9,057 | 0 | 0 |
+| explicit 0x21 | no | yes | 3,345 | 0 | 0 |
+
+**Zero contradictions.** Same unit -> reuse (32,292 / 32,292); not in the
+unit -> new row (20,640 / 20,640), including the 7,158 whose record
+occurred in an earlier unit. No reuse ever crosses a unit.
+
+By region (stored decision in every row matches the unit rule):
+
+| region | first in unit (NEW) | earlier unit only (NEW) | other sub-statement, same unit (REUSE) | same sub-statement (REUSE) |
+|---|---|---|---|---|
+| leading section | 79 | 0 | 0 | 0 |
+| top-level statement | 3,321 | 1,532 | 0 | 147 |
+| nested in a control structure | 7,373 | 1,923 | 19,221 | 3,616 |
+| Function body | 2,709 | 3,703 | 8,070 | 1,238 |
+
+- Top-level: two statements never share; one statement shares.
+- Nested: everything under one top-level If / For / While / Evaluate / try
+  shares one row per record (19,221 reuses across different nested
+  statements, 0 new rows).
+- Function body: each body statement is its own unit (3,703 new rows for
+  records used by an earlier body statement; 8,070 reuses inside one).
+
+Provenance of the earlier same-unit occurrence does not matter: shorthand
+reuses rows first opened by shorthand (16,986 + 2,585), by
+`CreateRowset(Record.X)` (1,457 + 354), `GetRecord` (387 + 100),
+`CreateRecord` (197), `Select` (189), `InsertRow` (106), later call
+arguments (827 + 82), ... Explicit occurrences follow the same rule in
+every construct (`GetRecord` 3,649 new / 2,149 reuse by unit, `CreateRecord`
+1,770 / --, `FetchValue`, `UpdateValue`, `Gray`, `Hide`, bare `Record.X`).
+Receiver, index expression, access direction and argument nesting are not
+part of the key: RECORD name + unit is the whole key.
+
+### Current encoder vs stored (aligned occurrences)
+
+1,621 disagreements before: 909 shorthand reused across units, 462
+explicit opened a second row inside one unit, 231 explicit reused across
+units, 19 shorthand opened a second row inside one unit. The existing
+pools (`dependencyScope`/`recordScopeId`, `explicitRecordReferences`,
+`rowShorthandRecords`, `rowShorthandRecordsByBase`,
+`rowShorthandRecordsByControlGroup`, `createRecordReferences(ByTarget)`,
+`recordReferencesWithinCallArguments`, `level0RowsetRecordsByField`,
+`rowsetElementRecords`) are keyed by record plus control group /
+receiver / target variable / call. The control group treats consecutive
+flat top-level statements as one group and splits a top-level control
+structure from its siblings, which is exactly the over-reuse (shorthand)
+and under-reuse (explicit) seen.
+
+### Beyond RECORD (measured, not implemented)
+
+The same census over every operand kind (324,466 occurrences): FIELD
+(0x21 / 0x4A), SCROLL, RECORD.FIELD, and the quoted kinds (PAGE,
+COMPONENT, MENUNAME, SQL, BARNAME, ...) follow the same rule -- in unit ->
+reuse, not in unit -> new -- with 11 exceptions, all RECORD.FIELD reuse
+across units (4601, 4602, 13823, 13915, 21321; unit-detection edge cases
+still to check). An experiment applying the unit pool to every operand
+kind: +906 forward-exact, 1 lost (27129) -- versus +504 / 0 for RECORD
+alone.
+
+### Candidate table (recorded before the production edit)
+
+| rank | submechanism | affected | one-blocker (EXACT) | same-unit evidence | cross-unit evidence | positive controls | negative controls | contradictions | risk |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | **RECORD rows (0x21 + 0x4A) per record per allocation unit** | 1,621 aligned occurrences, ~580 first-divergence definitions | 504 forward-exact | 32,292 reuse | 20,640 new | 871, 968, 1360, 1428, 1749 | 860 (If/Else siblings share), 2093 | 0 | low |
+| 2 | FIELD rows per allocation unit | 390+ first divergences | (part of +402) | yes | yes | -- | -- | 0 | next cycle |
+| 3 | SCROLL rows per allocation unit | 67 | (part) | yes | yes | -- | -- | 0 | next cycle |
+| 4 | RECORD.FIELD rows per allocation unit | 53 | (part) | yes | 11 exceptions | -- | 4601, 4602 | 11 | needs the exceptions explained |
+| 5 | shorthand-only RECORD rule | -- | -- | -- | -- | -- | -- | -- | unnecessary: explicit follows the same rule |
+
 ## Compiler Semantics Cycle 94 -- Application Class rows are scoped to an allocation unit
 
 **Result:** EXACT **26,756 -> 27,018 (+262)**, **0 EXACT -> non-EXACT**,
