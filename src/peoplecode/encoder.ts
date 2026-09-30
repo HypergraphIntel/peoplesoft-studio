@@ -11178,6 +11178,33 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      */
     let justClosedImportSection = false;
 
+    /*
+     * Cycle 89: the open import section owns a real blank-line gap before
+     * its next import. The section stays open (no 0x2D); each blank line is
+     * one immediate 0x4F. The Application Class prefix encoder already
+     * models this (`emitCompilationUnitPrefix`'s `emitGap`); ordinary
+     * PeopleCode had no producer for it: the declaration-gap owner's keyword
+     * list excludes `import`, the generic deferred gap excludes
+     * declarations, and the first import already cleared `leadingLocalRun`.
+     *
+     * DERIVED_HR.CAREER_STR_FUNC.FieldChange (definition 5565):
+     *
+     *   import HJPM_PROFILE_TYPES:Profile:ProfileType_v1_0:ProfileType;
+     *
+     *   import HJPM_PROFILE_SERVICES:Profile:SetProfileProperties_v1_0:...;
+     *
+     * stores `... 15 4F 58 ...`. LOCAL SNAPSHOT (`cycle89-import-gap-
+     * census.ts`): every ordinary import -> blank line(s) -> import gap was
+     * missing its markers (18 one-blank-line gaps, 17551 with two -> 4F 4F);
+     * Application Class programs matched in all 35. Comment- and REM-
+     * separated import gaps are unaffected: those branches consume their
+     * own trailing gap, and a REM that closes the section (Cycle 88) is
+     * never followed by an import.
+     */
+    if (isImport && importSectionOpen && haveCompletedTopLevelStatement && hasBlankLine) {
+      emitBlankLineMarkers(topLevelWhitespace);
+    }
+
     if (!isImport && importSectionOpen) {
       chunks.push(Buffer.from([0x2d]));
 

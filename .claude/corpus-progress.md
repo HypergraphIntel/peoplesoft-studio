@@ -2,25 +2,108 @@
 
 ## Current status (2026-09-29)
 
-- **Current target:** Cycle 88 completed -- an import section closes
-  before a REM whose next real item is not an import, and that REM also
-  takes over the gap to the next item. EXACT 26,576 -> 26,583 (+7),
-  protected PASS, 0 EXACT -> non-EXACT. See "Compiler Semantics Cycle 88".
-- **Last successful calibration:** Cycle 88.
+- **Current target:** Cycle 89 completed -- an open import section owns
+  blank-line gaps before its next import. EXACT 26,583 -> 26,586 (+3),
+  protected PASS, 0 EXACT -> non-EXACT. See "Compiler Semantics Cycle 89".
+- **Last successful calibration:** Cycle 89.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** none newly blocked. 14543: tokens
-  match, but the program is 1 byte longer outside the token stream (not
-  boundary). 13559: decoder-side. 20860: the disabled-code Local-run
-  anchor.
-- **Next action:** choose between Mechanism C subfamily 2 (a section closed
-  at a comment although a Local follows; 5 + 4 + 3 + 3 hunks) and the
-  import-group missing 0x4F (19 hunks, one coherent shape). Then the
-  missing 0x2D for a comment-preceded Local run (8) and App-Class Local ->
-  comment -> Component (4).
-- **Newly established rules this session:** the Cycle 88 rule; the Cycle
-  87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle 83 While gaps; the
-  Cycle 82 rules.
+- **Locally blocked definitions:** none newly blocked. 13 corrected
+  import-gap definitions wait on PACKAGE reference allocation. 14543: 1
+  byte outside the token stream. 20860: the disabled-code anchor.
+- **Next action:** Mechanism C subfamily 2 (a section closed at a comment
+  although a Local follows), with the missing 0x2D on a Local run after a
+  comment as its likely counterpart. Census them together, since both are
+  close-predicate questions at comments.
+- **Newly established rules this session:** the Cycle 89 rule; the Cycle
+  88 rule; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
+  83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 89 -- blank lines inside an open import section
+
+**Baseline reproduced fresh at `7b3d632`:** 26,583 / 3,626, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only; no DLL work.
+
+**Result:** EXACT **26,583 -> 26,586 (+3)**, 0 EXACT -> non-EXACT.
+Import-gap mismatches **19 hunks -> 0**.
+
+### Census (tool: `cycle89-import-gap-census.ts`, every import -> import pair in all definitions)
+
+| program type | gap | stored | generated | count |
+|---|---|---|---|---|
+| ordinary | no blank line | nothing | nothing | 783 (match) |
+| ordinary | 1 blank line | `4F` | nothing | **18 (mismatch)** |
+| ordinary | 2 blank lines (17551) | `4F 4F` | nothing | **mismatch** |
+| ordinary | blank + block comment | `4F BLOCK` | `4F BLOCK` | 12 + 2 (match) |
+| ordinary | REM (17759) | `REM` | `REM` | match |
+| App Class | plain blank gaps | 1/2/3 markers | 1/2/3 markers | 32 + 2 (match) |
+
+- Every in-scope boundary hunk was shape A/B: import, blank line(s),
+  import. There are no comment or REM variants in the mismatch
+  population.
+- The 3 other MISSING_4F hunks are Constant declarations (18134, 18135,
+  28555), out of scope.
+- **Multiplicity:** one 0x4F per blank line (1 -> 1, 2 -> 2, 3 -> 3), the
+  `emitBlankLineMarkers` formula.
+- **Section state:** the import section correctly stays open (no 0x2D in
+  stored or generated); only the gap marker was lost. This is not a
+  close/reopen bug.
+
+### Producers audited
+
+- **Main import closer** (`!isImport && importSectionOpen`): `2D` plus
+  immediate markers, only when a non-import follows.
+- **Block comment branch:** closes before a non-import and owns the
+  whitespace after itself.
+- **REM branch:** Cycle 88 close before a non-import; owns the following
+  gap only when it closed the section.
+- **Declaration-gap owner (P2):** its keyword list excludes `import`.
+- **Generic deferred gap:** excludes declarations, imports included.
+- **Cycle 49 branch:** needs `leadingLocalRun`, which the first import
+  clears.
+
+So nothing owned a plain gap between imports in ordinary PeopleCode.
+The Application Class prefix encoder's `emitGap` already owns it (markers
+while the section stays open; 0x2D only before a non-import), and that is
+the architectural model used here.
+
+### Rule implemented
+
+**An open import section owns a real blank-line gap before its next
+import:** immediate `emitBlankLineMarkers`, section stays open. It sits
+beside the import-close logic in the top-level loop. The close and the
+gap remain separate operations.
+
+### Validation
+
+- Bytes change for exactly the 17 import-gap definitions.
+- The census shows 0 mismatches afterwards, including the comment- and
+  REM-separated gaps (no double emission).
+- Controls: Cycle 88's 17759, 28853, 30184, 24926, 29920, 29928, 29935 and
+  every REM import-close case are unchanged. The exception is 25507, which
+  has both a REM close and an import gap: its full top-level layout now
+  matches stored.
+- Corrected 19 hunks / 17 definitions:
+  - EXACT +3 (13525, 18174, 20295);
+  - 13 still blocked by PACKAGE reference allocation, 1 by a decoder
+    source mismatch.
+- `npm test` 643 run / 642 pass (2 tests fail before and pass after; the
+  adjacent-imports control passes both ways), `git diff --check`,
+  protected PASS, row diff 0 regressions.
+
+### Post-fix boundary census (pre-change NONEXACT list)
+
+77 definitions with a top-level boundary hunk (was 93), 25 strict
+one-blockers. EXTRA_2D 64, MISSING_2D 15, MISSING_4F 3 (Constant), ORDER 5.
+
+| rank | mechanism | hunks | examples |
+|---|---|---:|---|
+| 1 | Mechanism C subfamily 2: section closed at a comment although a Local follows | 5 + 4 + 3 + 3 + 3 | 27360, 28208, 14136, 3140, 4422 |
+| 2 | missing 0x2D on a Local run after a comment | 8 + 2 | 2128, 3140, 18822, 23494, 25056 |
+| 3 | EXTRA_2D Local after executable, then a declaration | 3 + 2 + 2 | 18673, 1417, 6564 |
+| 4 | App-Class Local -> comment -> Component | 4 | 18998, 23568 |
+| 5 | Constant declaration gap MISSING_4F | 3 | 18134, 18135, 28555 |
+| 6 | disabled-code wrong-side case | 1 | 20860 |
 
 ## Compiler Semantics Cycle 88 -- 0x2D on the wrong side of a comment (Mechanism C subfamily 1)
 

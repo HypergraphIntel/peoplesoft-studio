@@ -5548,3 +5548,50 @@ Declare Function F PeopleCode TEST_REC.TEST_FLD FieldFormula;
   const rem = opcodes.indexOf('24');
   assert.deepStrictEqual(opcodes.slice(rem - 2, rem + 3), ['2d', '4f', '24', '4f', '31']);
 });
+
+/*
+ * Cycle 89: the open import section owns a real blank-line gap before its
+ * next import (5565: `import A; <blank> import B;` -> `15 4F 58`).
+ */
+function opcodesBetweenImports(source: string): string {
+  const artifacts = encodeProgramArtifacts(source, whileGapOwner as any);
+  const names = new NameTable();
+  for (const reference of artifacts.references) names.add(reference.sequence, `N${reference.sequence}`);
+  const tokens = decodeProgram(artifacts.program, names, { mode: 'auto' }).tokens;
+  const imports = tokens.flatMap((t, i) => (String(t.text ?? '').trim() === 'import' ? [i] : []));
+  const firstEnd = tokens.findIndex((t, i) => i > imports[0] && t.opcode === 0x15);
+  return tokens.slice(firstEnd, imports[1]).map(t => t.opcode.toString(16)).join(' ');
+}
+
+test('a blank line between two imports emits 0x4F and keeps the import section open', () => {
+  assert.strictEqual(
+    opcodesBetweenImports(`import PKG:A;
+
+import PKG:B;
+
+&r = GetRowset(Scroll.TEST_REC);`),
+    '15 4f'
+  );
+});
+
+test('two blank lines between imports emit two 0x4F markers', () => {
+  assert.strictEqual(
+    opcodesBetweenImports(`import PKG:A;
+
+
+import PKG:B;
+
+&r = GetRowset(Scroll.TEST_REC);`),
+    '15 4f 4f'
+  );
+});
+
+test('adjacent imports emit no marker between them', () => {
+  assert.strictEqual(
+    opcodesBetweenImports(`import PKG:A;
+import PKG:B;
+
+&r = GetRowset(Scroll.TEST_REC);`),
+    '15'
+  );
+});
