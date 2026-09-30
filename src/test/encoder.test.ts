@@ -6304,3 +6304,27 @@ Declare Function C PeopleCode TEST_LIB.F1 FieldFormula;`, { owner: { recordName:
     .references.filter(reference => reference.kind !== 'owner');
   assert.strictEqual(keys.length, 1);
 });
+
+// Cycle 97: built-in object properties stay inline member names.
+
+test('built-in Row and Record properties open no PSPCMNAME row', () => {
+  const rows = (source: string) =>
+    encodeProgramArtifacts(source).references
+      .filter(reference => reference.kind === 'record' || reference.kind === 'field')
+      .map(reference => `${reference.kind}:${reference.recordName ?? reference.fieldName}`);
+  // Record value: FieldCount is a property, TEST_FIELD a field (1295, 2127).
+  assert.deepStrictEqual(
+    rows(`Local Rowset &rs;
+&n = &rs(1).TEST_REC.FieldCount;
+&m = &rs(1).TEST_REC.TEST_FIELD.Value;`),
+    ['record:TEST_REC', 'record:TEST_REC', 'field:TEST_FIELD']
+  );
+  // Row / Rowset value: DeleteEnabled and ParentRowset are properties (5182, 924).
+  assert.deepStrictEqual(
+    rows(`Local Rowset &rs;
+&b = &rs(1).DeleteEnabled;
+&r = &rs(1).ParentRowset;
+&c = &rs(1).TEST_REC.TEST_FIELD.Value;`),
+    ['record:TEST_REC', 'field:TEST_FIELD']
+  );
+});

@@ -2,32 +2,88 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 96 completed -- FIELD, SCROLL and RECORD.FIELD
-  rows live for one allocation unit, in separate pools keyed by the
-  PSPCMNAME row identity; Declare Function operands are program-wide.
-  EXACT 27,520 -> 27,905 (+385) in three commits, protected PASS, 0
-  EXACT -> non-EXACT. See "Compiler Semantics Cycle 96" and "Compiler
-  Research Cycle 96".
-- **Last successful calibration:** Cycle 96.
+- **Current target:** Cycle 97 completed -- built-in object properties
+  (FieldCount, ParentRow, DeleteEnabled, ParentRowset, Style, ...) stay
+  inline where the encoder had a record / field binding active. EXACT
+  27,905 -> 28,038 (+133), protected PASS, 0 EXACT -> non-EXACT. See
+  "Compiler Semantics Cycle 97" and "Compiler Research Cycle 97".
+- **Last successful calibration:** Cycle 97.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** none newly blocked.
-- **Next action:** re-rank. Operand allocation is nearly exhausted (257
-  definitions differ only in row numbering, 219 of them in PACKAGE rows).
-  Candidates: REFERENCE_IDENTITY (573; inline `.FieldCount` 96,
-  `.FIELDVALUE` 33, `.DeleteEnabled` 23), builtin PACKAGE type rows,
-  Declare Function program-wide rows (30 aligned disagreements), quoted
-  kinds (14). Parked: 2125, 24500, 24503, 19433. The boundary quick-win
-  queue (12 definitions + 8 comment-kind cases) is untouched.
-- **Newly established rules this session:** Cycle 96 FIELD / SCROLL /
-  RECORD.FIELD rows per allocation unit, Declare Function rows
-  program-wide; Cycle 95 RECORD rows per allocation unit; the Cycle 94
-  allocation-unit rule for Application Class rows, Global and parameter
-  receivers, late initialized `Local array of <Builtin>` group order; the
-  Cycle 93 wildcard-row claim and external-metadata fallback; the Cycle 92
-  rule; the Cycle 91 rules; Cycle 90; Cycle 89; Cycle 88; the Cycle 87
-  rules; the Cycle 86 rules; Cycle 84 rule B; Cycle 83 While gaps; the
-  Cycle 82 rules.
+- **Locally blocked definitions:** none newly blocked. Parked:
+  FIELDVALUE / XLATLONGNAME / XLATSHORTNAME Direction-1 cases (need the
+  record's field list); UNRESOLVED_EXTERNAL_CLASS_METADATA class rows;
+  2125, 24500, 24503, 19433.
+- **Next action:** Direction 2 -- receiver-type tracking for real FIELD /
+  RECORD / SCROLL names the encoder writes inline (286 first divergences).
+  Then Declare Function program-wide rows (31 aligned disagreements). The
+  boundary quick-win queue (12 definitions + 8 comment-kind cases) is
+  untouched.
+- **Newly established rules this session:** Cycle 97 built-in object
+  property registry; Cycle 96 FIELD / SCROLL / RECORD.FIELD rows per
+  allocation unit, Declare Function rows program-wide; Cycle 95 RECORD
+  rows per allocation unit; the Cycle 94 allocation-unit rule for
+  Application Class rows, Global and parameter receivers, late initialized
+  `Local array of <Builtin>` group order; the Cycle 93 wildcard-row claim
+  and external-metadata fallback; the Cycle 92 rule; the Cycle 91 rules;
+  Cycle 90; Cycle 89; Cycle 88; the Cycle 87 rules; the Cycle 86 rules;
+  Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 97 -- built-in object properties stay inline
+
+**Result:** EXACT **27,905 -> 28,038 (+133)**, **0 EXACT -> non-EXACT**,
+protected 430/430. LOCAL SNAPSHOT only.
+
+### Rule
+
+Where the encoder has a record / field binding active in a postfix chain,
+twelve members are properties of the object at that position, not record
+or field names, and stay inline with no PSPCMNAME row:
+
+- off a Record value (would become a FIELD row): FieldCount, ParentRow,
+  DBRecordName, IsEditError, RelLangRecName, ActiveRowCount, ParentRowset;
+- off a Row / Rowset value (would become a RECORD row): DeleteEnabled,
+  ParentRowset, Style, ChildCount, RecordCount.
+
+Property syntax only; key = position + member (no global reserved list).
+Implemented as the module-level `BUILTIN_OBJECT_PROPERTIES` registry,
+consulted at the existing `isInlineRowStateMember` decision in the postfix
+loop -- before any reference is allocated. No result-type propagation.
+
+### Measurements
+
+| | before | after |
+|---|---|---|
+| aligned Direction 1 member positions (defs / occurrences) | 294 / 937 | 93 / 574 |
+| of which registry members | 205 defs | 0 |
+| aligned Direction 2 positions (defs / occurrences) | 161 / 888 | 161 / 888 |
+| identity first divergences | 577 | 400 |
+| -- generated row, stored inline | 273 | 90 |
+| -- stored row, generated inline | 280 | 286 |
+| -- both rows, different identity | 24 | 24 |
+| forward-exact / EXACT gained | | 135 / 133 |
+
+Fixed by old category: REFERENCE_ACTIVE_FIELD 79, REFERENCE_ACTIVE_RECORD
+54. Taxonomy: FIELD 289 -> 142, RECORD 188 -> 121, COMPLETE_DOWNSTREAM
+674 -> 743.
+
+Invariants: PACKAGE row lists unchanged in all 29,752 encodable programs;
+aligned lifetime disagreements FIELD / SCROLL / RECORD.FIELD / RECORD stay
+0 (more tokens now align: FIELD 52,131 -> 57,033 aligned occurrences).
+Direction 2 negative controls (3617, 4429, 10106, 18834, 560, 6367,
+30084, 20419, 24348, 29135, 8837): bytes unchanged. Positive targets now
+EXACT: 1295, 2127, 5182, 5313, 924, 3689, 2085, 2086, 1417, 1419, 24578,
+7078, 17295 (1106 still non-EXACT for another reason; 913 and 7670 need
+the parked FIELDVALUE / XLAT* decision). No compensating errors.
+
+### Next mechanism
+
+Direction 2 -- receiver-type tracking for real names written inline by the
+encoder but bound by stored (286 first divergences; EMPLID, GPTH_PF_DATA,
+SELECTED, PTAFEMC_PMT_SBR, BNE_RESOURC_DVW, RUN_CNTL_ID, RECNAME,
+GPMX_PAYSL_FORM). Also parked: FIELDVALUE / XLATLONGNAME / XLATSHORTNAME
+(need the record's field list); Declare Function program-wide rows (31
+aligned disagreements).
 
 ## Compiler Research Cycle 97 -- built-in object members vs PSPCMNAME rows
 
