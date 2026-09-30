@@ -1680,6 +1680,14 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     if (/^Rowset$/i.test(declaredType ?? '') && firstGlobalVariable) {
       chainSemanticsDeclaredRowsetVariables.add(firstGlobalVariable.toLowerCase());
     }
+    /*
+     * Cycle 98: a Global Record is a Record receiver like a Local or
+     * Component one: stored binds `&gRec.FIELD` as a FIELD row in all 70
+     * occurrences (20 definitions, e.g. 4429, 4589), none inline.
+     */
+    if (/^Record$/i.test(declaredType ?? '') && firstGlobalVariable) {
+      recordVariables.add(firstGlobalVariable.toLowerCase());
+    }
     chunks.push(variable());
 
     while (true) {
@@ -1697,6 +1705,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
       if (/^Rowset$/i.test(declaredType ?? '') && nextGlobalVariable) {
         chainSemanticsDeclaredRowsetVariables.add(nextGlobalVariable.toLowerCase());
+      }
+      if (/^Record$/i.test(declaredType ?? '') && nextGlobalVariable) {
+        recordVariables.add(nextGlobalVariable.toLowerCase());
       }
       chunks.push(variable());
     }
@@ -1806,6 +1817,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * isolated-set treatment as `Component Rowset` immediately above.
        */
       chainSemanticsDeclaredRowVariables.add(firstVariable.toLowerCase());
+      /*
+       * Cycle 98: a Component Row is a Row receiver like a Local one.
+       * Stored binds `&cRow.REC` as a RECORD row in all 176 occurrences
+       * (8 definitions, e.g. 1066, 22666) and never writes a record name
+       * inline after one; before this the encoder never bound it.
+       */
+      rowVariables.add(firstVariable.toLowerCase());
     }
     /*
      * A Component-declared Application Class instance reuses its
@@ -1913,6 +1931,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         chainSemanticsDeclaredRowsetVariables.add(nextVariable.toLowerCase());
       } else if (/^Row$/i.test(declaredType ?? '') && nextVariable) {
         chainSemanticsDeclaredRowVariables.add(nextVariable.toLowerCase());
+        rowVariables.add(nextVariable.toLowerCase());
       }
       if (appClassType !== undefined && nextVariable) {
         applicationClassVariables.set(nextVariable.toLowerCase(), {
@@ -9736,9 +9755,15 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * (definition 535's `GetRecord(1)` / `GetRecord(Record.X)`) puts a
          * following bare `.MEMBER` into field-reference mode.
          */
+        /*
+         * Cycle 98: `CreateRecord(Record.X)` returns a Record too; stored
+         * binds `CreateRecord(Record.X).FIELD` as a FIELD row in all 15
+         * occurrences (7 definitions, e.g. 6694, 21479).
+         */
         const wasBareGetRecordCall =
-          /^GetRecord$/i.test(identifier) &&
-          !/^GetRecord\s*\(\s*\)/i.test(tail);
+          (/^GetRecord$/i.test(identifier) &&
+            !/^GetRecord\s*\(\s*\)/i.test(tail)) ||
+          /^CreateRecord$/i.test(identifier);
 
         /*
          * A bare, EMPTY-PARENS `GetRecord()` call is normally a
@@ -10772,6 +10797,20 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
                     : 'navigation'
               }
             : { valueType: 'unknown', binding: 'dynamic', provenance: 'unknown' };
+
+          /*
+           * Cycle 98: `.ParentRow` returns a Row, whose next bare member
+           * is a record name (`&fld.ParentRow.REC.FIELD`, `&rec.ParentRow.REC`)
+           * unless it is a Row property. Stored binds it as a RECORD row in
+           * all 14 occurrences (10 definitions, e.g. 7912, 21644); every
+           * inline member after `.ParentRow` in the corpus is a Row
+           * property or method (ParentRowset, RowNumber, IsNew, IsDeleted,
+           * DeleteEnabled, GetRecord, GetRowset).
+           */
+          if (/^ParentRow$/i.test(member) && !isMethodCall) {
+            expectedReferenceMember = 'record';
+            chainSemantics = { valueType: 'row', binding: 'dependency-bound', provenance: 'navigation' };
+          }
         }
 
         continue;

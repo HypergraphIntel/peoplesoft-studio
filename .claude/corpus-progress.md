@@ -2,7 +2,7 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 97 completed -- built-in object properties
+- **Current target:** Cycle 98 in progress (receiver types landed; single-member Row binding and Selected next); Cycle 97 completed -- built-in object properties
   (FieldCount, ParentRow, DeleteEnabled, ParentRowset, Style, ...) stay
   inline where the encoder had a record / field binding active. EXACT
   27,905 -> 28,038 (+133), protected PASS, 0 EXACT -> non-EXACT. See
@@ -28,6 +28,14 @@
   Cycle 90; Cycle 89; Cycle 88; the Cycle 87 rules; the Cycle 86 rules;
   Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 98 -- receiver types for real member bindings
+
+Two semantic commits. LOCAL SNAPSHOT only.
+
+| commit | rules | EXACT | EXACT -> non-EXACT |
+|---|---|---|---|
+| receiver types | Component Row and Global Record variables typed; `CreateRecord(...)` returns a Record; `.ParentRow` returns a Row | 28,038 -> 28,077 (+39) | 0 |
 
 ## Compiler Research Cycle 98 -- receiver types behind Direction 2 identity failures
 
