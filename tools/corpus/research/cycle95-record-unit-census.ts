@@ -109,9 +109,11 @@ function occurrences(tokens: any[], keyOf: (nn: number) => string | undefined): 
       construct = receiverText === ')' ? 'shorthand:call-or-index' : receiverText.startsWith('&') ? 'shorthand:variable' : `shorthand:${receiverText || receiver?.opcode?.toString(16)}`;
     } else {
       const previous = String(tokens[i - 1]?.text ?? '').trim();
-      construct = previous === '(' || previous === ','
-        ? `explicit-arg:${previous === '(' ? String(tokens[i - 2]?.text ?? '').trim() : 'later-arg'}`
-        : 'explicit:bare';
+      construct = inDeclare
+        ? 'declare-function'
+        : previous === '(' || previous === ','
+          ? `explicit-arg:${previous === '(' ? String(tokens[i - 2]?.text ?? '').trim() : 'later-arg'}`
+          : 'explicit:bare';
     }
     const family = key.startsWith('RECORD.') ? 'RECORD' : key.startsWith('FIELD.') ? 'FIELD' : key.startsWith('SCROLL.') ? 'SCROLL' : key.startsWith('PACKAGE.') ? 'PACKAGE' : /^[A-Z]+\./.test(key) && ['COMPONENT', 'PAGE', 'MENUNAME', 'SQL', 'MESSAGE', 'URL', 'BARNAME', 'ITEMNAME', 'PANELGROUP', 'IMAGE', 'HTML', 'FILELAYOUT', 'OPERATION', 'NODE', 'MARKET', 'PORTAL', 'STYLESHEET', 'BUSPROCESS', 'BUSACTIVITY', 'BUSEVENT', 'COMPINTFC', 'INTERLINK', 'ANALYTICMODEL'].includes(key.split('.')[0]) ? 'QUOTED:' + key.split('.')[0] : 'RECORD.FIELD';
     out.push({ subStatement, depth, inFunction, i, nn: token.nameNum, key, unit, kind: ALL_KINDS ? `${family}/${token.opcode.toString(16)}` : token.opcode === 0x4a ? 'shorthand' : 'explicit', construct, statement });
