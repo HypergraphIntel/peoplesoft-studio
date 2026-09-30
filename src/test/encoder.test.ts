@@ -5812,3 +5812,221 @@ Local PKG:Helper &h2;
     ['PACKAGE.HELPER', 'SCROLL.TEST_B', 'PACKAGE.HELPER', 'SCROLL.TEST_C', 'PACKAGE.HELPER']
   );
 });
+
+// Cycle 93: Application Class TYPE rows in ordinary programs follow the
+// class's import resolution (named import vs wildcard import).
+
+test('an ordinary program claims the wildcard-import row once', () => {
+  // 5495: two wildcard imports, one blank-REFNAME PACKAGE row.
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG_A:*;
+import PKG_B:*;
+
+&r = GetRowset(Scroll.TEST_A);`),
+    ['PACKAGE.', 'SCROLL.TEST_A']
+  );
+  // The row sits at the FIRST wildcard import, after earlier named imports.
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG_A:Named;
+import PKG_B:*;
+import PKG_C:*;
+
+&r = GetRowset(Scroll.TEST_A);`),
+    ['PACKAGE.NAMED', 'PACKAGE.', 'SCROLL.TEST_A']
+  );
+});
+
+test('a leading Local of a wildcard-resolved class allocates its type row at the declaration', () => {
+  // 15559: blank row, declaration row, Scroll, then the create row.
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:*;
+
+Local PKG:Helper &h;
+
+&r = GetRowset(Scroll.TEST_A);
+&h = create PKG:Helper();`),
+    ['PACKAGE.', 'PACKAGE.HELPER', 'SCROLL.TEST_A', 'PACKAGE.HELPER']
+  );
+});
+
+test('a leading Local of a named-import class allocates no declaration row', () => {
+  // 381: the import row resolves the class, even with a wildcard import present.
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:Helper;
+import OTHER:*;
+
+Local PKG:Helper &h;
+
+&r = GetRowset(Scroll.TEST_A);
+&h = create PKG:Helper();`),
+    ['PACKAGE.HELPER', 'PACKAGE.', 'SCROLL.TEST_A', 'PACKAGE.HELPER']
+  );
+});
+
+test('declarations of one wildcard-resolved class share a single type row', () => {
+  // 14888: Component array of, then Local. 17900: array-of Locals and a scalar.
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:*;
+
+Component array of PKG:Helper &list;
+Component PKG:Helper &c;
+Local array of PKG:Helper &more;
+Local PKG:Helper &h;
+
+&r = GetRowset(Scroll.TEST_A);`),
+    ['PACKAGE.', 'PACKAGE.HELPER', 'SCROLL.TEST_A']
+  );
+});
+
+test('a Component of a named-import class allocates no row under a wildcard import', () => {
+  // 18028 / 24499: PROCESSCONTROLLER appears once, for the import.
+  assert.deepStrictEqual(
+    referenceKeys(`import OTHER:*;
+import PKG:Helper;
+
+Component PKG:Helper &c;
+Component array of PKG:Helper &list;
+
+&r = GetRowset(Scroll.TEST_A);`),
+    ['PACKAGE.', 'PACKAGE.HELPER', 'SCROLL.TEST_A']
+  );
+});
+
+test('a top-level Local after a Function definition is not in the declaration phase', () => {
+  // 17893: such Locals are outside the leading declaration run.
+  const keys = referenceKeys(`import PKG:*;
+
+Function A()
+End-Function;
+
+Local PKG:Helper &h;
+
+&r = GetRowset(Scroll.TEST_A);`);
+  assert.deepStrictEqual(keys, ['PACKAGE.', 'SCROLL.TEST_A']);
+});
+
+test('the create row is allocated after the rows its arguments allocate', () => {
+  // 20249: declaration row, argument row, create row.
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:*;
+
+Local PKG:Helper &h;
+
+&h = create PKG:Helper(GetRowset(Scroll.TEST_A));`),
+    ['PACKAGE.', 'PACKAGE.HELPER', 'SCROLL.TEST_A', 'PACKAGE.HELPER']
+  );
+  // Named import: no declaration row, the create row still follows its arguments.
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:Helper;
+
+&h = create PKG:Helper(GetRowset(Scroll.TEST_A));`),
+    ['PACKAGE.HELPER', 'SCROLL.TEST_A', 'PACKAGE.HELPER']
+  );
+});
+
+test('a create initializing its own declared Local keeps its row before the arguments', () => {
+  // 24442 / 13522: `Local PKG:Class &v = create PKG:Class(args)`.
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:Helper;
+
+&r = GetRowset(Scroll.TEST_A);
+Local PKG:Helper &h = create PKG:Helper(GetRowset(Scroll.TEST_B));`),
+    ['PACKAGE.HELPER', 'SCROLL.TEST_A', 'PACKAGE.HELPER', 'SCROLL.TEST_B']
+  );
+});
+
+test('a top-level method call on a wildcard-resolved class opens its own row', () => {
+  // 18918: create row, then the method row, then the argument rows.
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:*;
+
+Local PKG:Helper &h = create PKG:Helper();
+&h.Run(GetRowset(Scroll.TEST_A));`),
+    ['PACKAGE.', 'PACKAGE.HELPER', 'PACKAGE.HELPER', 'SCROLL.TEST_A']
+  );
+});
+
+test('a top-level method call on a named-import class still reuses the create row', () => {
+  // 22882: one row after the import row.
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:Helper;
+
+Local PKG:Helper &h = create PKG:Helper();
+&h.Run(GetRowset(Scroll.TEST_A));`),
+    ['PACKAGE.HELPER', 'PACKAGE.HELPER', 'SCROLL.TEST_A']
+  );
+});
+
+test('a method call inside try on a wildcard-resolved class reuses the create row', () => {
+  // 17594: no method rows inside the try block.
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:*;
+
+Local PKG:Helper &h = create PKG:Helper();
+try
+   &h.Run(GetRowset(Scroll.TEST_A));
+catch Exception &e
+end-try;`),
+    ['PACKAGE.', 'PACKAGE.HELPER', 'SCROLL.TEST_A']
+  );
+});
+
+// Cycle 93: programs whose PACKAGE rows depend on external class metadata.
+
+test('a method call through an App Class property keeps the pre-import-resolution rows', () => {
+  // 13525: the class of `&h.Owner` is declared in PKG_B:Helper, not here, so
+  // the program's row stream cannot be modeled and the import-resolution
+  // rules stay off for the whole program (both wildcard imports claim a row).
+  const source = (call: string) => `import PKG_A:*;
+import PKG_B:*;
+
+Local PKG_B:Helper &h = create PKG_B:Helper();
+${call}
+&r = GetRowset(Scroll.TEST_A);`;
+  assert.deepStrictEqual(
+    referenceKeys(source('&h.Owner.Run();')),
+    ['PACKAGE.', 'PACKAGE.', 'PACKAGE.HELPER', 'SCROLL.TEST_A']
+  );
+  // The same program without the property hop is fully resolvable.
+  assert.deepStrictEqual(
+    referenceKeys(source('&h.Run();')),
+    ['PACKAGE.', 'PACKAGE.HELPER', 'PACKAGE.HELPER', 'SCROLL.TEST_A']
+  );
+  // A property READ alone needs no class identity.
+  assert.deepStrictEqual(
+    referenceKeys(source('&x = &h.Owner;')),
+    ['PACKAGE.', 'PACKAGE.HELPER', 'SCROLL.TEST_A']
+  );
+});
+
+test('a method call on an App Class method result is external class metadata too', () => {
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG_A:*;
+import PKG_B:*;
+
+Local PKG_B:Helper &h = create PKG_B:Helper();
+&h.GetOwner().Run();`).filter(key => key === 'PACKAGE.').length,
+    2
+  );
+});
+
+test('trace hooks observe exactly one encoding pass', () => {
+  for (const call of ['&h.Owner.Run();', '&h.Run();']) {
+    const source = `import PKG_A:*;
+import PKG_B:*;
+
+Local PKG_B:Helper &h = create PKG_B:Helper();
+${call}
+&r = GetRowset(Scroll.TEST_A);`;
+    let allocations = 0;
+    const encoded = encodeProgramArtifacts(source, {
+      referenceTrace: event => {
+        if (event.action === 'ALLOC') allocations++;
+      }
+    });
+    assert.strictEqual(
+      allocations,
+      encoded.references.filter(reference => reference.kind !== 'owner').length
+    );
+  }
+});
