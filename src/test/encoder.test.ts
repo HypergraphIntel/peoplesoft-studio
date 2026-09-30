@@ -968,20 +968,28 @@ test('an ordinary call\'s row carries into a later RowScrollSelect-family call\'
    * AE_WRK.AE_DECIDE.SavePreChange (definition_id 860): a bare
    * `ScrollSelectNew(1, Record.AE_TOOLS_SAV_VW, Record.AE_STMT_TBL, ...)`
    * -- NOT itself a RowScrollSelect-family name, so an utterly ordinary
-   * call -- is immediately followed (in the sibling Else branch of the
-   * same If) by `ScrollSelect(1, Record.AE_TOOLS_SAV_VW, Record.
-   * AE_STMT_TBL, ...)`. ScrollSelect's own arguments reuse
-   * ScrollSelectNew's rows rather than allocating fresh ones.
+   * call -- is followed in the sibling Else branch of the SAME If by
+   * `ScrollSelect(1, Record.AE_TOOLS_SAV_VW, Record.AE_STMT_TBL, ...)`.
+   * ScrollSelect's own arguments reuse ScrollSelectNew's rows.
+   *
+   * Cycle 95: the reuse holds because both calls are in one allocation
+   * unit (the If statement). As two separate top-level statements they
+   * are two units and each opens its own rows.
    */
-  assert.deepStrictEqual(
-    encodeFragment(
-      'ScrollSelectNew(1, Record.AE_TOOLS_SAV_VW, Record.AE_STMT_TBL, "where", &X);\n' +
-      'ScrollSelect(1, Record.AE_TOOLS_SAV_VW, Record.AE_STMT_TBL, "where", &X);\n'
-    ),
-    Buffer.from(
-      '0A5300630072006F006C006C00530065006C006500630074004E006500770000000B5000000100000000000000000000000000000003210100032102000316770068006500720065000000030126005800000014150A5300630072006F006C006C00530065006C0065006300740000000B500000010000000000000000000000000000000321010003210200031677006800650072006500000003012600580000001415',
-      'hex'
-    )
+  const recordRows = (source: string) =>
+    encodeProgramArtifacts(source).references.filter(reference => reference.kind === 'record').length;
+  assert.strictEqual(
+    recordRows(`If &a = 1 Then
+   ScrollSelectNew(1, Record.AE_TOOLS_SAV_VW, Record.AE_STMT_TBL, "where", &X);
+Else
+   ScrollSelect(1, Record.AE_TOOLS_SAV_VW, Record.AE_STMT_TBL, "where", &X);
+End-If;`),
+    2
+  );
+  assert.strictEqual(
+    recordRows(`ScrollSelectNew(1, Record.AE_TOOLS_SAV_VW, Record.AE_STMT_TBL, "where", &X);
+ScrollSelect(1, Record.AE_TOOLS_SAV_VW, Record.AE_STMT_TBL, "where", &X);`),
+    4
   );
 });
 
@@ -6148,4 +6156,47 @@ Local array of Record &records = CreateArrayRept(&record, 0);`);
 Local array of Record &records = CreateArrayRept(&record, 0);
 &r = GetRowset(Scroll.TEST_A);`);
   assert.strictEqual(leading.filter(key => key === 'PACKAGE.RECORD').length, 1);
+});
+
+// Cycle 95: RECORD rows of an ordinary program live for one allocation unit.
+
+test('a RECORD row is reused within an allocation unit and reopened in the next', () => {
+  const recordRows = (source: string) =>
+    encodeProgramArtifacts(source).references.filter(reference => reference.kind === 'record').length;
+  // CreateRowset in one top-level statement, shorthand in the next: two rows.
+  assert.strictEqual(
+    recordRows(`Local Rowset &rs;
+&rs = CreateRowset(Record.TEST_REC);
+&x = &rs(1).TEST_REC.TEST_FIELD.Value;`),
+    2
+  );
+  // The same two statements inside one If: one row.
+  assert.strictEqual(
+    recordRows(`Local Rowset &rs;
+If &a = 1 Then
+   &rs = CreateRowset(Record.TEST_REC);
+   While &b
+      &x = &rs(1).TEST_REC.TEST_FIELD.Value;
+   End-While;
+End-If;`),
+    1
+  );
+  // Shorthand in two top-level statements: two rows; in one statement: one.
+  assert.strictEqual(
+    recordRows(`&x = &rs(1).TEST_REC.F1.Value;
+&y = &rs(2).TEST_REC.F2.Value;`),
+    2
+  );
+  assert.strictEqual(
+    recordRows(`&x = &rs(1).TEST_REC.F1.Value + &rs2(2).TEST_REC.F2.Value;`),
+    1
+  );
+  // Function body statements are separate units.
+  assert.strictEqual(
+    recordRows(`Function A()
+   &x = &rs(1).TEST_REC.F1.Value;
+   &y = &rs(1).TEST_REC.F2.Value;
+End-Function;`),
+    2
+  );
 });

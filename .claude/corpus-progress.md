@@ -2,33 +2,133 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 94 completed -- Application Class PACKAGE rows
-  in ordinary programs are scoped to an allocation unit (leading
-  declaration section, then each top-level statement, then each Function
-  body statement). EXACT 26,756 -> 27,018 (+262), protected PASS, 0
-  EXACT -> non-EXACT. See "Compiler Semantics Cycle 94" and "Compiler
-  Research Cycle 94".
-- **Last successful calibration:** Cycle 94.
+- **Current target:** Cycle 95 completed -- RECORD rows in ordinary
+  programs live for one allocation unit (the Cycle 94 unit). EXACT 27,018
+  -> 27,520 (+502), protected PASS, 0 EXACT -> non-EXACT. See "Compiler
+  Semantics Cycle 95" and "Compiler Research Cycle 95".
+- **Last successful calibration:** Cycle 95.
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked.
-  UNRESOLVED_EXTERNAL_CLASS_METADATA programs stay parked on the
-  pre-Cycle-93 path (see Cycle 93).
-- **Next action:** RECORD row-shorthand reuse -- `&rs(i).REC` (0x4A)
-  after `CreateRowset(Record.REC)` or an earlier `&rs(i).REC`: stored
-  opens a new row, generated reuses (335 first divergences, 156
-  single-signature). Test the allocation unit there first. Then
-  `GetField(Field.X)` reuse (134 / 98), builtin type row units (2092 vs
-  2093), App Class bodies. The boundary quick-win queue (12 definitions +
-  8 comment-kind cases) is untouched.
-- **Newly established rules this session:** the Cycle 94 allocation-unit
-  rule (supersedes the separate Cycle 93 declaration / create / method
-  rules for ordinary programs); Global and parameter receivers; late
-  initialized `Local array of <Builtin>` group order; the Cycle 93
-  wildcard-row claim and external-metadata fallback; the Cycle 92 rule;
-  the Cycle 91 rules; Cycle 90; Cycle 89; Cycle 88; the Cycle 87 rules;
-  the Cycle 86 rules; Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82
-  rules.
+  UNRESOLVED_EXTERNAL_CLASS_METADATA programs stay parked for class rows
+  (their RECORD rows now use the units).
+- **Next action:** extend the allocation-unit row lifetime to FIELD,
+  SCROLL and RECORD.FIELD operands. Stored obeys it for every operand kind
+  (324,466 occurrences, 11 RECORD.FIELD exceptions: 4601, 4602, 13823,
+  13915, 21321). Experiment: +402 forward-exact beyond RECORD, 1 loss
+  (27129) to trace first. Parked: 2125, 24500, 24503, 19433 (method-row
+  disagreements). The boundary quick-win queue (12 definitions + 8
+  comment-kind cases) is untouched.
+- **Newly established rules this session:** Cycle 95 RECORD rows per
+  allocation unit; the Cycle 94 allocation-unit rule for Application Class
+  rows, Global and parameter receivers, late initialized `Local array of
+  <Builtin>` group order; the Cycle 93 wildcard-row claim and
+  external-metadata fallback; the Cycle 92 rule; the Cycle 91 rules;
+  Cycle 90; Cycle 89; Cycle 88; the Cycle 87 rules; the Cycle 86 rules;
+  Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 95 -- RECORD rows are scoped to the allocation unit
+
+**Result:** EXACT **27,018 -> 27,520 (+502)**, **0 EXACT -> non-EXACT**,
+protected 430/430. LOCAL SNAPSHOT only.
+
+### Rule
+
+In an ordinary program a RECORD row lives for exactly one allocation unit
+(the Cycle 94 unit: leading declaration section; each top-level statement;
+each Function body statement). Every occurrence of a record in a unit --
+`Record.REC` (0x21) or row shorthand `<row>.REC` (0x4A), in any construct,
+through any receiver -- uses one row; the first occurrence in a later unit
+opens a new one.
+
+### Architecture (`src/peoplecode/encoder.ts`)
+
+- The Cycle 94 unit counter is now the program-wide `allocationUnit`
+  (renamed from `classRowUnit`), advanced in every ordinary program --
+  including the programs on the external-metadata fallback, whose class
+  rows are unaffected. Same splitter, no second unit detector.
+- Separate pool `recordRowsByUnit` (record name -> row + unit). Class rows
+  keep `classRowsByUnit`. They share the boundary, not the pool.
+- `nextReference` returns the unit's row for a RECORD instead of allocating
+  a second one; `unitRecordOperand`, called where 0x21 and 0x4A operands
+  are written, replaces a row that one of the existing caches carried over
+  from an earlier unit. The existing caches still pick a candidate; the
+  unit pool has the final word.
+- Application Class programs keep their method-wide RECORD lifetime.
+
+### Measurements
+
+| | value |
+|---|---|
+| aligned RECORD occurrences agreeing with stored, before | 42,338 (1,621 disagree) |
+| after | 43,959 (0 disagree) |
+| forward-exact gained / lost | 504 / 0 |
+| EXACT gained / lost | 502 / 0 |
+| PACKAGE row lists changed | 0 |
+
+First-divergence population (at `994afaf`), definitions now forward-exact:
+
+| first divergence | definitions | now exact | single-signature | now exact |
+|---|---|---|---|---|
+| stored allocates / generated reuses RECORD 0x4A | 337 | 283 | 157 | 153 |
+| stored reuses / generated allocates RECORD 0x21 | 191 | 165 | 121 | 111 |
+| stored allocates / generated reuses RECORD 0x21 | 58 | 51 | 25 | 22 |
+| stored reuses / generated allocates RECORD 0x4A | 20 | 2 | 5 | 1 |
+| both reuse, different rows RECORD 0x4A | 4 | 3 | 2 | 2 |
+
+The inverse direction (stored reuses, generated allocates) is fixed by the
+same rule: 165 of 191.
+
+Fixed by old category: REFERENCE_ACTIVE_FIELD 277, REFERENCE_ACTIVE_RECORD
+172, REFERENCE_ACTIVE_RECORD_FIELD 26, REFERENCE_ACTIVE_OTHER 10,
+STRUCTURAL_ORDERING 6, REFERENCE_ACTIVE_PACKAGE 5,
+REFERENCE_COMPLETE_DOWNSTREAM 4, REFERENCE_ACTIVE_SCROLL 2. The FIELD count
+is downstream: a wrong RECORD row shifted every later FIELD NAMENUM.
+
+### Controls
+
+Positive: 871, 968, 1360, 1428, 1749, 1835 (all now EXACT). Negative: 860
+(ScrollSelectNew / ScrollSelect in If / Else of one If share), 2093,
+18375 (leading-section RECORD rows). Cycle 94 PACKAGE controls 18918,
+26262, 1769, 4134, 18698, 19494, 28681, 2102, 2104, 381, 18028, 22882,
+5495, 15559, 20249, 12629, 13525 stay EXACT; 17900, 24499, 17594, 25507,
+17893, 14356 stay non-EXACT for their earlier reasons; PACKAGE row lists
+unchanged in all 29,752 encodable programs. Parked PACKAGE cases 2125,
+24500, 24503, 19433 unchanged.
+
+One unit test was rewritten: it flattened 860's If / Else into two
+top-level statements, a shape stored does not have; the rewritten test
+checks both the real shape (shared) and the flat one (two rows each).
+
+No compensating errors surfaced.
+
+### Post-fix census (2,689 NONEXACT)
+
+| | before | after |
+|---|---|---|
+| taxonomy REFERENCE_ACTIVE_RECORD | 398 | 203 |
+| taxonomy REFERENCE_ACTIVE_RECORD_FIELD | 203 | 177 |
+| taxonomy REFERENCE_ACTIVE_FIELD | 874 | 572 |
+| taxonomy REFERENCE_COMPLETE_DOWNSTREAM | 595 | 628 |
+| REFERENCE_ALLOCATION (token identities equal) | 1,151 | 643 |
+| first divergence RECORD 0x4A stored allocates | 335 | 0 |
+| first divergence RECORD 0x21 stored reuses | 171 | 6 |
+| first divergence RECORD 0x4A stored reuses | 18 | 15 |
+| RECORD.FIELD 0x21 stored reuses (first divergence) | 52 | 53 |
+
+The 21 remaining RECORD first divergences sit in programs whose generated
+token identities do not align with stored (identity or structure issue
+upstream of the row choice).
+
+### Next mechanism
+
+**FIELD, SCROLL and RECORD.FIELD rows per allocation unit.** Stored obeys
+the same rule for every operand kind (324,466 occurrences, 11 exceptions,
+all RECORD.FIELD). Largest first divergences now: FIELD 0x21 / 0x4A
+stored reuses (98 + 64 + 45 + 37), FIELD 0x4A stored allocates (67),
+SCROLL stored reuses (67), RECORD.FIELD (53). Experiment: +402 more
+forward-exact with one loss (27129) to trace first; explain the 11
+RECORD.FIELD exceptions before applying the rule to that kind.
 
 ## Compiler Research Cycle 95 -- RECORD row lifetime is the allocation unit
 
