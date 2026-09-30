@@ -2218,10 +2218,19 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   const applicationClassKey = (packagePath: string[], className: string): string =>
     [...packagePath, className].map(component => component.toLowerCase()).join(':');
 
-  let classRowUnit = 0;
-  let nextClassRowUnit = 1;
-  const startClassRowUnit = (): void => {
-    classRowUnit = nextClassRowUnit++;
+  /*
+   * Cycle 94 / 95: the ALLOCATION UNIT of an ordinary program -- the
+   * leading declaration section (through the first initialized Local),
+   * then each top-level statement (a whole control structure or try block
+   * being one statement), then each Function body statement. Advanced by
+   * the top-level statement loop and the Function body loop. Application
+   * Class rows (`classRowsByUnit`) and RECORD rows (`recordRowsByUnit`)
+   * are scoped to it, each in its own pool.
+   */
+  let allocationUnit = 0;
+  let nextAllocationUnit = 1;
+  const startAllocationUnit = (): void => {
+    allocationUnit = nextAllocationUnit++;
   };
   const classRowsByUnit = new Map<string, { unit: number; reference: PeopleCodeReference }>();
   const useApplicationClassRow = (
@@ -2231,11 +2240,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   ): PeopleCodeReference => {
     const key = applicationClassKey(packagePath, className);
     const current = classRowsByUnit.get(key);
-    if (current !== undefined && current.unit === classRowUnit) {
+    if (current !== undefined && current.unit === allocationUnit) {
       return current.reference;
     }
     const reference = addApplicationClassReference(packagePath, className, methodName);
-    classRowsByUnit.set(key, { unit: classRowUnit, reference });
+    classRowsByUnit.set(key, { unit: allocationUnit, reference });
     return reference;
   };
 
@@ -2265,11 +2274,59 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     references.push(ownerReference);
   }
 
+  /*
+   * Cycle 95: RECORD rows of an ordinary program live for exactly one
+   * allocation unit (see `allocationUnit`). Within a unit every occurrence
+   * of a record -- `Record.REC` (0x21) or row shorthand `<row>.REC` (0x4A),
+   * whatever construct it sits in -- uses ONE row; the first occurrence in
+   * a later unit opens a new one.
+   *
+   * Stored evidence (`cycle95-record-unit-census.ts`, LOCAL SNAPSHOT, every
+   * ordinary definition, EXACT ones included): 52,932 RECORD occurrences in
+   * 7,112 definitions. An occurrence whose record already occurred in the
+   * same unit reuses (32,292 / 32,292: explicit 8,141, shorthand 24,151); an
+   * occurrence whose record did not occur in the unit opens a new row
+   * (20,640 / 20,640), even when the record occurred in an earlier unit
+   * (7,158 of them). No reuse ever crosses a unit.
+   *
+   *   &rs = CreateRowset(Record.REC);     unit n: RECORD.REC row A
+   *   &x = &rs(1).REC.FIELD.Value;        unit n+1: new row B
+   *   If ... Then
+   *      &y = &rs(1).REC.FIELD.Value;     unit n+2: new row C ...
+   *      &z = &rs(2).REC.OTHER.Value;     ... reused inside the If
+   *   End-If;
+   *
+   * The receiver, the construct (CreateRowset / GetRecord / CreateRecord
+   * argument, bare Record.REC, shorthand) and the access direction do not
+   * matter. The existing RECORD reuse caches still choose a candidate
+   * row; this pool has the final word: `nextReference` returns the unit's
+   * row instead of allocating a second one, and `unitRecordOperand`
+   * replaces a row that a cache carried over from an earlier unit.
+   * Application Class programs keep their method-wide RECORD lifetime.
+   */
+  const recordRowsByUnit = new Map<string, { unit: number; reference: PeopleCodeReference }>();
+  const unitScopedRecordRows = !context?.builtinObjectDeclarationsHaveMethodWideLifetime;
+  const unitRecordOperand = (reference: PeopleCodeReference): PeopleCodeReference => {
+    if (!unitScopedRecordRows || reference.kind !== 'record') return reference;
+    const current = recordRowsByUnit.get((reference.recordName ?? '').toLowerCase());
+    if (current !== undefined && current.unit === allocationUnit) return current.reference;
+    return nextReference({ kind: 'record', recordName: reference.recordName });
+  };
+
   const nextReference = (
     reference: Omit<PeopleCodeReference, 'index' | 'sequence'>
   ): PeopleCodeReference => {
     const shared = context?.applicationClassReferenceSession?.lookup(reference);
     if (shared !== undefined) return shared;
+
+    const unitRecordKey =
+      unitScopedRecordRows && reference.kind === 'record'
+        ? (reference.recordName ?? '').toLowerCase()
+        : undefined;
+    if (unitRecordKey !== undefined) {
+      const current = recordRowsByUnit.get(unitRecordKey);
+      if (current !== undefined && current.unit === allocationUnit) return current.reference;
+    }
 
     const sequence = references.length + 1 + referenceIndexOffset;
     const created: PeopleCodeReference = {
@@ -2278,6 +2335,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       index: sequence - 1
     };
     references.push(created);
+    if (unitRecordKey !== undefined) {
+      recordRowsByUnit.set(unitRecordKey, { unit: allocationUnit, reference: created });
+    }
 
     context?.referenceTrace?.({
       action: 'ALLOC',
@@ -2694,7 +2754,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     };
   };
 
-  const referenceOperand = (reference: PeopleCodeReference): Buffer => {
+  const referenceOperand = (candidate: PeopleCodeReference): Buffer => {
+    const reference = unitRecordOperand(candidate);
     if (reference.index > 0xffff) {
       throw new UnsupportedPeopleCodeError(
         pos,
@@ -5667,7 +5728,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         // later uses of the class find it.
         classRowsByUnit.set(
           applicationClassKey(appClass.packagePath, appClass.className),
-          { unit: classRowUnit, reference: imported }
+          { unit: allocationUnit, reference: imported }
         );
       }
     }
@@ -6631,9 +6692,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         controlGroup = nextControlGroup++;
       }
       // Cycle 94: every Function body statement, Locals included, is its
-      // own Application Class allocation unit.
-      if (unitScopedClassRows && controlDepth === 0) {
-        startClassRowUnit();
+      // own allocation unit.
+      if (ordinaryProgram && controlDepth === 0) {
+        startAllocationUnit();
       }
 
       const isRemStatement = startsRemComment();
@@ -10151,19 +10212,20 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           // must fire its own diagnostic USE trace the same way -- see the
           // matching note on the 0x48 quoted-reference site. Purely
           // observational: does not affect encoding.
+          const emitted = unitRecordOperand(reference);
           context?.referenceTrace?.({
             action: 'USE',
             sourceOffset: pos,
             controlGroup,
             controlDepth,
             functionDepth,
-            reference
+            reference: emitted
           });
 
           chunks.push(Buffer.from([
             0x4a,
-            reference.index & 0xff,
-            (reference.index >>> 8) & 0xff
+            emitted.index & 0xff,
+            (emitted.index >>> 8) & 0xff
           ]));
 
           /*
@@ -11598,14 +11660,16 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * and including the first initialized Local -- stays in the initial
      * unit; every later top-level statement starts its own. A Function
      * header stays in the unit before it; its body statements start their
-     * own in the Function body loop.
+     * own in the Function body loop. Cycle 95: advanced in every ordinary
+     * program (RECORD rows use the units even where the class-row model is
+     * off).
      */
-    if (unitScopedClassRows && !isFunction) {
+    if (ordinaryProgram && !isFunction) {
       const inLeadingSection =
         !sawTopLevelExecutableStatement &&
         !sawFunctionDefinition &&
         (isTopLevelDeclaration || isLocalDeclaration);
-      if (!inLeadingSection) startClassRowUnit();
+      if (!inLeadingSection) startAllocationUnit();
     }
 
 
