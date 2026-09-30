@@ -5893,16 +5893,24 @@ Component array of PKG:Helper &list;
 });
 
 test('a top-level Local after a Function definition is not in the declaration phase', () => {
-  // 17893: such Locals are outside the leading declaration run.
-  const keys = referenceKeys(`import PKG:*;
+  // 17893: such Locals are outside the leading unit and open their own row,
+  // even for a named-import class.
+  const source = (importLine: string) => `${importLine}
 
 Function A()
 End-Function;
 
 Local PKG:Helper &h;
 
-&r = GetRowset(Scroll.TEST_A);`);
-  assert.deepStrictEqual(keys, ['PACKAGE.', 'SCROLL.TEST_A']);
+&r = GetRowset(Scroll.TEST_A);`;
+  assert.deepStrictEqual(
+    referenceKeys(source('import PKG:*;')),
+    ['PACKAGE.', 'PACKAGE.HELPER', 'SCROLL.TEST_A']
+  );
+  assert.deepStrictEqual(
+    referenceKeys(source('import PKG:Helper;')),
+    ['PACKAGE.HELPER', 'PACKAGE.HELPER', 'SCROLL.TEST_A']
+  );
 });
 
 test('the create row is allocated after the rows its arguments allocate', () => {
@@ -5957,17 +5965,19 @@ Local PKG:Helper &h = create PKG:Helper();
   );
 });
 
-test('a method call inside try on a wildcard-resolved class reuses the create row', () => {
-  // 17594: no method rows inside the try block.
+test('a try block is one allocation unit for Application Class rows', () => {
+  // 17594: the create and the calls inside one try share a single row.
   assert.deepStrictEqual(
     referenceKeys(`import PKG:*;
 
-Local PKG:Helper &h = create PKG:Helper();
+Local PKG:Helper &h;
 try
+   &h = create PKG:Helper();
    &h.Run(GetRowset(Scroll.TEST_A));
+   &h.Stop();
 catch Exception &e
 end-try;`),
-    ['PACKAGE.', 'PACKAGE.HELPER', 'SCROLL.TEST_A']
+    ['PACKAGE.', 'PACKAGE.HELPER', 'PACKAGE.HELPER', 'SCROLL.TEST_A']
   );
 });
 
@@ -6029,4 +6039,113 @@ ${call}
       encoded.references.filter(reference => reference.kind !== 'owner').length
     );
   }
+});
+
+// Cycle 94: Application Class rows are scoped to an allocation unit -- the
+// leading declaration section, then each top-level statement.
+
+test('every top-level statement opens its own method row on a declared instance', () => {
+  // 26262 / 1769: named and wildcard alike; 522 stored single-call gaps.
+  for (const [importLine, importRow] of [['import PKG:Helper;', 'PACKAGE.HELPER'], ['import PKG:*;', 'PACKAGE.']] as const) {
+    const declarationRow = importLine.endsWith('*;') ? ['PACKAGE.HELPER'] : [];
+    assert.deepStrictEqual(
+      referenceKeys(`${importLine}
+
+Component PKG:Helper &h;
+
+&h.Run();
+&r = GetRowset(Scroll.TEST_A);
+&h.Run();`),
+      [importRow, ...declarationRow, 'PACKAGE.HELPER', 'SCROLL.TEST_A', 'PACKAGE.HELPER']
+    );
+  }
+});
+
+test('a leading create-initialized Local of a named-import class allocates nothing', () => {
+  // 68 / 68 stored gaps: the import row is in the same (leading) unit. The
+  // method call in the next statement opens the only new row.
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:Helper;
+
+Local PKG:Helper &h = create PKG:Helper(GetRowset(Scroll.TEST_A));
+&h.Run();`),
+    ['PACKAGE.HELPER', 'SCROLL.TEST_A', 'PACKAGE.HELPER']
+  );
+});
+
+test('uses of a class nested in one control structure share one row', () => {
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:Helper;
+
+Component PKG:Helper &h;
+
+If &a = 1 Then
+   &h = create PKG:Helper();
+   &h.Run(GetRowset(Scroll.TEST_A));
+   &h.Stop(GetRowset(Scroll.TEST_B));
+End-If;
+&h.Run();`),
+    ['PACKAGE.HELPER', 'PACKAGE.HELPER', 'SCROLL.TEST_A', 'SCROLL.TEST_B', 'PACKAGE.HELPER']
+  );
+});
+
+test('creates in separate top-level statements each open a row', () => {
+  // 17900: three consecutive STRINGMAP rows.
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:Helper;
+
+&r = GetRowset(Scroll.TEST_A);
+&a = create PKG:Helper();
+&b = create PKG:Helper();`),
+    ['PACKAGE.HELPER', 'SCROLL.TEST_A', 'PACKAGE.HELPER', 'PACKAGE.HELPER']
+  );
+});
+
+test('a method call on an undeclared variable allocates no row', () => {
+  // 69 / 69 stored gaps.
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:Helper;
+
+&r = GetRowset(Scroll.TEST_A);
+&a = create PKG:Helper();
+&a.Run();`),
+    ['PACKAGE.HELPER', 'SCROLL.TEST_A', 'PACKAGE.HELPER']
+  );
+});
+
+test('a Global Application Class instance is a method-call receiver', () => {
+  // 18698: 58 / 58 stored single-call gaps.
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:Helper;
+
+Global PKG:Helper &g;
+
+&g.Run();`),
+    ['PACKAGE.HELPER', 'PACKAGE.HELPER']
+  );
+});
+
+test('Function body statements are separate units and parameters are receivers', () => {
+  assert.deepStrictEqual(
+    referenceKeys(`import PKG:Helper;
+
+Function A(&p As PKG:Helper)
+   Local PKG:Helper &h;
+   &p.Run();
+   &h.Run();
+End-Function;`),
+    ['PACKAGE.HELPER', 'PACKAGE.HELPER', 'PACKAGE.HELPER', 'PACKAGE.HELPER']
+  );
+});
+
+test('a late initialized Local array of a builtin type opens its own type row', () => {
+  // 2092 (late: two RECORD rows) vs 2093 (leading section: one).
+  const late = referenceKeys(`&r = GetRowset(Scroll.TEST_A);
+Local Record &record;
+Local array of Record &records = CreateArrayRept(&record, 0);`);
+  assert.strictEqual(late.filter(key => key === 'PACKAGE.RECORD').length, 2);
+  const leading = referenceKeys(`Local Record &record;
+Local array of Record &records = CreateArrayRept(&record, 0);
+&r = GetRowset(Scroll.TEST_A);`);
+  assert.strictEqual(leading.filter(key => key === 'PACKAGE.RECORD').length, 1);
 });

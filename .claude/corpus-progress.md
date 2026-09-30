@@ -2,37 +2,148 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 93 completed at zero regressions --
-  Application Class PACKAGE rows in ordinary programs follow import
-  resolution, applied only to programs whose class identities are all
-  derivable from their own source. EXACT 26,609 -> 26,756 (+147),
-  protected PASS, 0 EXACT -> non-EXACT. See "Compiler Semantics Cycle 93",
-  "UNRESOLVED_EXTERNAL_CLASS_METADATA" and "Compiler Research Cycle 93".
-- **Last successful calibration:** Cycle 93.
+- **Current target:** Cycle 94 completed -- Application Class PACKAGE rows
+  in ordinary programs are scoped to an allocation unit (leading
+  declaration section, then each top-level statement, then each Function
+  body statement). EXACT 26,756 -> 27,018 (+262), protected PASS, 0
+  EXACT -> non-EXACT. See "Compiler Semantics Cycle 94" and "Compiler
+  Research Cycle 94".
+- **Last successful calibration:** Cycle 94.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** none newly blocked. The
-  UNRESOLVED_EXTERNAL_CLASS_METADATA population (100 ordinary programs
-  with a method call through a property or method result) is parked, not
-  blocked: the mechanism is known, the class identity is not an encoder
-  input. 13525 stays EXACT under the conservative path.
-- **Next action:** method-dependency rows -- when a call reuses the create
-  row and when it opens its own. Evidence base: stored APPCLASSMETHOD
-  content (`cycle93-method-row-census.ts`). Open cases: named-import
-  classes at top level (22882 reuses, 24744 does not), nested and
-  function-body calls, repeated calls. The naive rule is mixed (395
-  closer / 88 farther); do not implement without a discriminator. Then
-  the RECORD row-shorthand family (`&rs(i).REC` after `CreateRowset`),
-  then `GetField(Field.X)`. The boundary quick-win queue (12 definitions
-  + 8 comment-kind cases) is untouched.
-- **Newly established rules this session:** the Cycle 93 rules (one
-  wildcard-import row per ordinary program; declaration type rows only for
-  classes without a named import, once per class; create row after its
-  arguments; nested Local row at the declaration; top-level method row for
-  wildcard-resolved classes; programs with unresolved external class
-  metadata keep the earlier behavior); the Cycle 92 rule; the Cycle 91
-  rules; Cycle 90; Cycle 89; Cycle 88; the Cycle 87 rules; the Cycle 86
-  rules; Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
+- **Locally blocked definitions:** none newly blocked.
+  UNRESOLVED_EXTERNAL_CLASS_METADATA programs stay parked on the
+  pre-Cycle-93 path (see Cycle 93).
+- **Next action:** RECORD row-shorthand reuse -- `&rs(i).REC` (0x4A)
+  after `CreateRowset(Record.REC)` or an earlier `&rs(i).REC`: stored
+  opens a new row, generated reuses (335 first divergences, 156
+  single-signature). Test the allocation unit there first. Then
+  `GetField(Field.X)` reuse (134 / 98), builtin type row units (2092 vs
+  2093), App Class bodies. The boundary quick-win queue (12 definitions +
+  8 comment-kind cases) is untouched.
+- **Newly established rules this session:** the Cycle 94 allocation-unit
+  rule (supersedes the separate Cycle 93 declaration / create / method
+  rules for ordinary programs); Global and parameter receivers; late
+  initialized `Local array of <Builtin>` group order; the Cycle 93
+  wildcard-row claim and external-metadata fallback; the Cycle 92 rule;
+  the Cycle 91 rules; Cycle 90; Cycle 89; Cycle 88; the Cycle 87 rules;
+  the Cycle 86 rules; Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82
+  rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 94 -- Application Class rows are scoped to an allocation unit
+
+**Result:** EXACT **26,756 -> 27,018 (+262)**, **0 EXACT -> non-EXACT**,
+protected 430/430. LOCAL SNAPSHOT only.
+
+### Rule
+
+In an ordinary program every use of an Application Class -- a declaration's
+type, a `create`, an `As` cast, a method call on a declared instance --
+reuses the PACKAGE row the class already has in the current **allocation
+unit**, and otherwise opens a new one (a method call's row carries the
+method name).
+
+| unit | contents |
+|---|---|
+| leading unit | imports, Component / Global / Declare declarations, leading Locals, the first initialized Local |
+| each later top-level statement | the whole statement, including everything nested in an If / For / While / Evaluate / try |
+| each Function body statement | the same, Locals included; the Function header belongs to the unit before it |
+
+Receivers are declared instances only: Local, Component, Global (new) and
+Application-Class-typed Function parameters (new). A call on an undeclared
+variable opens nothing.
+
+### What changed in the allocator (`src/peoplecode/encoder.ts`)
+
+- New pool `classRowsByUnit` + `useApplicationClassRow`, with
+  `startClassRowUnit` called from the top-level statement loop and the
+  Function body loop.
+- It replaces, for ordinary programs, the Cycle 93 declaration pool, the
+  nested-Local special case, the create-before/after-arguments switch, the
+  program-wide `runtimeCreateReferences` dedupe and the
+  `reuseRuntimeCreateForMethods` decision. Those remain only on the
+  pre-Cycle-93 path used for UNRESOLVED_EXTERNAL_CLASS_METADATA programs.
+- Global instances and class-typed parameters are registered as receivers.
+- Builtin type rows are untouched, except one ordering fix (below).
+
+### Measurements
+
+| | value |
+|---|---|
+| generated PSPCMNAME lists changed | 714 |
+| closer to stored | 704 |
+| farther | 5 (6622-6624: displaced by unrelated RECORD rows; 15257, 15598: now under the external-metadata fallback) |
+| names-exact gained / lost | 520 / 0 |
+| per-call agreement with stored truth, before | 1,279 of 2,593 usable calls (555 disagree) |
+| per-call agreement, after | 2,934 of 2,954 (5 disagree: 2125 x2, 24500, 24503, 19433; 15 in mixed gaps) |
+| forward-exact gained / lost | 265 / 0 |
+| EXACT gained / lost | 262 / 0 |
+
+Fixed by old category: REFERENCE_ACTIVE_RECORD_FIELD 99,
+REFERENCE_ACTIVE_PACKAGE 90, STRUCTURAL_ORDERING 32,
+REFERENCE_ACTIVE_RECORD 21, REFERENCE_ACTIVE_FIELD 13,
+REFERENCE_ACTIVE_SCROLL 7.
+
+### Controls
+
+Positive: 18918 (create row + labeled method row), 26262 (later top-level
+call opens a second row), 1769 / 4134 (named Component, top-level call),
+17900 (three consecutive creates, three rows), 18698 (Global receiver),
+19494 / 28681 (parameter receivers), 2102 / 2104.
+
+Negative (unchanged behavior, now explained by the unit): 381, 18028,
+24499 (named-import declarations find the import row in the leading
+unit); 22882 (leading named `Local X &v = create X()` opens nothing; the
+call opens the one row); 17594 (create and calls inside one try share a
+row); 25507 (nested Locals and the create in the same block share); 17893
+(Local after a Function is its own unit); 14356 (first Function's named
+parameter type opens nothing).
+
+Cycle 93 controls: 5495, 15559, 20249, 12629 stay EXACT; 13525 stays
+EXACT on the fallback path; 24744 EXACT in bytes.
+
+### Compensating error
+
+2092 was EXACT because a duplicate COMPARISONHANDLER row compensated a
+missing second PACKAGE.RECORD row. Fixed at the cause: a late initialized
+`Local array of <Builtin> &x = ...` now starts its reference group before
+its element type row, as the scalar form already did. Evidence is narrow
+(2092 positive; 2093, 18375, 18376 negative for the leading section; no
+other program changes).
+
+### Post-fix reference census (3,191 NONEXACT)
+
+| | before | after |
+|---|---|---|
+| REFERENCE_ALLOCATION (token identities equal) | 1,417 | 1,151 |
+| PACKAGE-only first divergence | 448 | 182 |
+| PACKAGE: stored allocates, generated reuses | 417 (193 one-blocker) | 171 (44) |
+| PACKAGE: stored reuses, generated allocates | 234 (74) | 67 (11) |
+| PACKAGE: missing | 304 (59) | 299 (58) |
+| PACKAGE: wrong order | 71 | 35 |
+| taxonomy REFERENCE_ACTIVE_PACKAGE | 397 | 239 |
+| RECORD 0x4A: stored allocates, generated reuses (first divergence) | 335 | 335 |
+| RECORD 0x21: stored reuses, generated allocates | 171 | 171 |
+| FIELD 0x21 / 0x4A: stored reuses | 94 / 57 | 94 / 57 |
+
+### Remaining PACKAGE work
+
+- PACKAGE missing (299): mostly builtin type rows (PACKAGE.FIELD /
+  MESSAGE / RECORD ...) and the external-metadata rows.
+- Builtin type row units: not the class units (96 closer / 110 farther);
+  2092 / 2093 show a leading-section effect worth its own census.
+- UNRESOLVED_EXTERNAL_CLASS_METADATA: 100+ programs on the old path.
+- App Class bodies: untouched this cycle.
+
+### Next mechanism
+
+The PACKAGE family is no longer dominant. Next by one-blocker payoff:
+**RECORD row-shorthand** -- `&rs(i).REC` (0x4A) after
+`CreateRowset(Record.REC)` (0x21) or an earlier `&rs(i).REC`: stored opens
+a new row where generated reuses (335 first divergences, 156
+single-signature). The allocation unit found here is the first hypothesis
+to test there: the existing control-group pools treat flat top-level
+statements as one group.
 
 ## Compiler Research Cycle 94 -- method-dependency rows and the allocation-unit discriminator
 
@@ -113,8 +224,8 @@ top-level call reuse.
 | wildcard | the same | 2 (17 / 17) |
 | named | nested `Local X &v = create X()` + call in the same block | 1 (56 of 58) |
 | any | one top-level call, declared receiver | >= 1 (every one of 338) |
-| named | two top-level calls in one gap | 2 (6), 1 (4: both calls in ONE statement) |
-| any | two or three calls in one control structure | 0 or 1, never more (except 1 of 116) |
+| named | two top-level calls in one gap | 2 (6), 1 (4: one call nested in the other's statement) |
+| any | two or three calls in one control structure | 0 or 1, never more (except 1 of 126) |
 | named | top-level `&v = create X()` | 1 (78 of 88) |
 | any | calls on an undeclared variable | 0 (69 / 69 single, 57 of 58 multi) |
 
