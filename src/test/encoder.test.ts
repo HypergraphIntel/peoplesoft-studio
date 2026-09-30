@@ -5699,3 +5699,67 @@ Local Rowset &r;
   assert.ok(!opcodesBeforeFirstComment(source).includes('2d'));
   assert.strictEqual(boundaryOpcodesBeforeLastStatement(source), '15 2d 4f');
 });
+
+/*
+ * Cycle 92: the Application-Class-Local section stays open across following
+ * declarations (and comments before them); it closes at executable code or
+ * a Function (18673, 23568, 23068; 46/46 stored Local -> declaration
+ * transitions carry no 0x2D).
+ */
+function topLevelOpcodes(source: string): string[] {
+  const artifacts = encodeProgramArtifacts(source, whileGapOwner as any);
+  const names = new NameTable();
+  for (const reference of artifacts.references) names.add(reference.sequence, `N${reference.sequence}`);
+  return decodeProgram(artifacts.program, names, { mode: 'auto' }).tokens.map(t =>
+    /^(Component|Function)$/.test(String(t.text ?? '').trim()) ? String(t.text).trim() : t.opcode.toString(16)
+  );
+}
+
+test('an App-Class Local section stays open across a following declaration', () => {
+  const source = `import PKG:*;
+
+Local PKG:Helper &h;
+
+Component string &c;
+
+&r = GetRowset(Scroll.TEST_REC);`;
+  const opcodes = topLevelOpcodes(source);
+  const component = opcodes.indexOf('Component');
+  // only the blank-line marker before the declaration, no section close
+  assert.deepStrictEqual(opcodes.slice(component - 2, component), ['15', '4f']);
+  assert.strictEqual(boundaryOpcodesBeforeLastStatement(source), '15 2d 4f');
+});
+
+test('a comment before a declaration does not close the App-Class Local section', () => {
+  const source = `import PKG:*;
+
+Local PKG:Helper &h;
+
+/* note */
+Component string &c;
+
+&r = GetRowset(Scroll.TEST_REC);`;
+  assert.ok(!opcodesBeforeFirstComment(source).includes('2d'));
+  assert.strictEqual(boundaryOpcodesBeforeLastStatement(source), '15 2d 4f');
+});
+
+test('an App-Class Local section still closes at executable code and at a Function', () => {
+  assert.strictEqual(
+    boundaryOpcodesBeforeLastStatement(`import PKG:*;
+
+Local PKG:Helper &h;
+
+&r = GetRowset(Scroll.TEST_REC);`),
+    '15 2d 4f'
+  );
+  const opcodes = topLevelOpcodes(`import PKG:*;
+
+Local PKG:Helper &h;
+
+Function A()
+End-Function;
+
+&r = GetRowset(Scroll.TEST_REC);`);
+  const fn = opcodes.indexOf('Function');
+  assert.deepStrictEqual(opcodes.slice(fn - 3, fn), ['15', '2d', '4f']);
+});
