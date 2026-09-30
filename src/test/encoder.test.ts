@@ -6357,3 +6357,33 @@ test('Component Row, Global Record, CreateRecord and ParentRow results are typed
     ['record:TEST_REC', 'field:TEST_FIELD']
   );
 });
+
+test('a single bare member off a Row is a record reference unless it is a Row property', () => {
+  const rows = (source: string) =>
+    encodeProgramArtifacts(source).references
+      .filter(reference => reference.kind === 'record' || reference.kind === 'field')
+      .map(reference => `${reference.kind}:${reference.kind === 'record' ? reference.recordName : reference.fieldName}`);
+  // 536 / 2182: `&row.REC` and `GetRow().REC` at a chain end.
+  assert.deepStrictEqual(
+    rows(`Local Row &row;
+&rec = &row.TEST_REC;
+&n = &row.RowNumber;
+&b = &row.IsChanged;
+&o = GetRow().OTHER_REC;`),
+    ['record:TEST_REC', 'record:OTHER_REC']
+  );
+});
+
+test('Selected off a Record value is a field, off a Row value a property', () => {
+  // 560: `&rs.GetRow(&i).ADHOC_SALCHG_WK.SELECTED.Value`.
+  const rows = (source: string) =>
+    encodeProgramArtifacts(source).references
+      .filter(reference => reference.kind === 'record' || reference.kind === 'field')
+      .map(reference => `${reference.kind}:${reference.kind === 'record' ? reference.recordName : reference.fieldName}`);
+  assert.deepStrictEqual(
+    rows(`Local Rowset &rs;
+&rs.GetRow(&i).TEST_REC.SELECTED.Value = "N";
+&s = &rs.GetRow(&i).Selected;`),
+    ['record:TEST_REC', 'field:SELECTED']
+  );
+});

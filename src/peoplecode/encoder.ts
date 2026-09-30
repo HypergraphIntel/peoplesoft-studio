@@ -9868,16 +9868,26 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * source structurally has at least two dotted identifiers following the
      * Row variable. This preserves ordinary single-member Row properties.
      */
+    /*
+     * Cycle 98: a SINGLE bare member off a Row is a record reference too
+     * (`&rec = &row.REC;`, `&r = GetRow().REC;`): stored binds it as a
+     * RECORD row in all 79 occurrences at a chain end (57 definitions, e.g.
+     * 536, 2182). The "two dotted identifiers" requirement existed to keep
+     * Row properties inline; every inline property member after a Row
+     * value in the corpus is now covered by the row-state list and
+     * `BUILTIN_OBJECT_PROPERTIES` (IsNew, IsDeleted, RowNumber, IsChanged,
+     * Visible, Selected, Style, ChildCount, RecordCount, DeleteEnabled,
+     * ParentRowset), and a member followed by `(` is a method, not bound.
+     */
+    const rowMemberFollows = /^\s*\.\s*[A-Za-z_][A-Za-z0-9_]*(?!\s*\()/;
     const rowStartsRecordFieldChain =
       baseVariableName !== undefined &&
       rowVariables.has(baseVariableName.toLowerCase()) &&
-      /^\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/
-        .test(source.slice(pos));
+      rowMemberFollows.test(source.slice(pos));
 
     const bareGetRowCallStartsRecordFieldChain =
       bareGetRowCallResult &&
-      /^\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/
-        .test(source.slice(pos));
+      rowMemberFollows.test(source.slice(pos));
 
     /*
      * Cycle 45: a declared `array of Record` variable is an ARRAY object
@@ -10194,7 +10204,14 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          */
         const isInlineRowStateMember =
           ((dependencyKind === 'record' || dependencyKind === 'field') &&
-            /^(?:RowNumber|IsNew|IsDeleted|IsChanged|Visible|Selected|Name)$/i.test(member)) ||
+            /^(?:RowNumber|IsNew|IsDeleted|IsChanged|Visible|Selected|Name)$/i.test(member) &&
+            /*
+             * Cycle 98: `Selected` is a Row property, not a Record one. Off a
+             * Record value stored binds it as a FIELD row (6 / 6, e.g.
+             * `&rs.GetRow(&i).ADHOC_SALCHG_WK.SELECTED.Value`, 560, 562);
+             * no Record-value `.Selected` is inline anywhere.
+             */
+            !(dependencyKind === 'field' && /^Selected$/i.test(member))) ||
           (!isMethodCall && isBuiltinObjectProperty(dependencyKind, member));
 
         const hasExistingExpectedReference = references.some(item =>

@@ -2,31 +2,32 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 98 in progress (receiver types landed; single-member Row binding and Selected next); Cycle 97 completed -- built-in object properties
-  (FieldCount, ParentRow, DeleteEnabled, ParentRowset, Style, ...) stay
-  inline where the encoder had a record / field binding active. EXACT
-  27,905 -> 28,038 (+133), protected PASS, 0 EXACT -> non-EXACT. See
-  "Compiler Semantics Cycle 97" and "Compiler Research Cycle 97".
-- **Last successful calibration:** Cycle 97.
+- **Current target:** Cycle 98 completed -- receiver types recovered for
+  Component Row / Global Record variables, `CreateRecord()` and
+  `.ParentRow` results; single Row members bind; `Selected` is a Row-only
+  property. EXACT 28,038 -> 28,135 (+97) in two commits, protected PASS,
+  0 EXACT -> non-EXACT. See "Compiler Semantics Cycle 98" and "Compiler
+  Research Cycle 98".
+- **Last successful calibration:** Cycle 98.
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
-  FIELDVALUE / XLATLONGNAME / XLATSHORTNAME Direction-1 cases (need the
-  record's field list); UNRESOLVED_EXTERNAL_CLASS_METADATA class rows;
-  2125, 24500, 24503, 19433.
-- **Next action:** Direction 2 -- receiver-type tracking for real FIELD /
-  RECORD / SCROLL names the encoder writes inline (286 first divergences).
-  Then Declare Function program-wide rows (31 aligned disagreements). The
-  boundary quick-win queue (12 definitions + 8 comment-kind cases) is
-  untouched.
-- **Newly established rules this session:** Cycle 97 built-in object
-  property registry; Cycle 96 FIELD / SCROLL / RECORD.FIELD rows per
-  allocation unit, Declare Function rows program-wide; Cycle 95 RECORD
-  rows per allocation unit; the Cycle 94 allocation-unit rule for
-  Application Class rows, Global and parameter receivers, late initialized
-  `Local array of <Builtin>` group order; the Cycle 93 wildcard-row claim
-  and external-metadata fallback; the Cycle 92 rule; the Cycle 91 rules;
-  Cycle 90; Cycle 89; Cycle 88; the Cycle 87 rules; the Cycle 86 rules;
-  Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
+  FIELDVALUE / XLATLONGNAME / XLATSHORTNAME (need the record's field
+  list); undeclared-variable receivers (type only via assignment);
+  UNRESOLVED_EXTERNAL_CLASS_METADATA class rows; 2125, 24500, 24503, 19433.
+- **Next action:** Declare Function program-wide rows (33 aligned
+  disagreements), then PACKAGE-only row differences (235 definitions),
+  then the rest of Direction 2 (51 definitions). The boundary quick-win
+  queue (12 definitions + 8 comment-kind cases) is untouched.
+- **Newly established rules this session:** Cycle 98 receiver types and
+  member binding; Cycle 97 built-in object property registry; Cycle 96
+  FIELD / SCROLL / RECORD.FIELD rows per allocation unit, Declare Function
+  rows program-wide; Cycle 95 RECORD rows per allocation unit; the Cycle 94
+  allocation-unit rule for Application Class rows, Global and parameter
+  receivers, late initialized `Local array of <Builtin>` group order; the
+  Cycle 93 wildcard-row claim and external-metadata fallback; the Cycle 92
+  rule; the Cycle 91 rules; Cycle 90; Cycle 89; Cycle 88; the Cycle 87
+  rules; the Cycle 86 rules; Cycle 84 rule B; Cycle 83 While gaps; the
+  Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
 
 ## Compiler Semantics Cycle 98 -- receiver types for real member bindings
@@ -36,6 +37,57 @@ Two semantic commits. LOCAL SNAPSHOT only.
 | commit | rules | EXACT | EXACT -> non-EXACT |
 |---|---|---|---|
 | receiver types | Component Row and Global Record variables typed; `CreateRecord(...)` returns a Record; `.ParentRow` returns a Row | 28,038 -> 28,077 (+39) | 0 |
+| member binding | a single bare member off a Row / `GetRow()` binds as a record unless it is a Row property; `Selected` is a Row property only | 28,077 -> 28,135 (+58) | 0 |
+
+**Cycle total:** EXACT **28,038 -> 28,135 (+97)**, 0 EXACT -> non-EXACT
+after each commit, protected 430/430.
+
+### Model
+
+Receiver type decides the member's meaning, in this order:
+
+1. the receiver's PeopleCode type -- declared variable (Local / Component
+   / Global / parameter), indexed Rowset, `GetRow()` / `GetRecord()` /
+   `CreateRecord()` result, `.ParentRow` result;
+2. whether the member is a built-in of that type (row-state list, now
+   position-specific for `Selected`, plus `BUILTIN_OBJECT_PROPERTIES`);
+3. otherwise a Row member is a RECORD row, a Record member a FIELD row;
+4. the row itself comes from the allocation-unit pools (unchanged).
+
+No member names are used as type evidence.
+
+### Measurements
+
+| | before | after |
+|---|---|---|
+| Direction 2 aligned positions (defs / occurrences) | 161 / 888 | 51 / 304 |
+| Direction 1 aligned positions | 93 / 574 | 93 / 574 |
+| identity first divergences | 400 | 286 |
+| -- stored row, generated inline | 286 | 171 |
+| -- generated row, stored inline | 90 | 91 |
+| -- both rows, different identity | 24 | 24 |
+| changed non-exact programs whose first divergence moved later / earlier | | 105 / 0 |
+
+Taxonomy: FIELD 142 -> 105, RECORD 121 -> 108, RECORD_FIELD 141 -> 118,
+SCROLL 55 -> 49, COMPLETE_DOWNSTREAM 743 -> 744.
+
+Invariants: PACKAGE row lists unchanged; allocation-unit lifetime
+disagreements FIELD / SCROLL / RECORD.FIELD / RECORD stay 0; Cycle 97
+property controls (1295, 2127, 5182, 5313, 924, 3689, 2085, 2086, 1417,
+1419, 24578, 7078, 17295) stay EXACT. Direction 2 controls now EXACT:
+536, 560, 10106, 18834, 20419, 6367 (plus 1066, 3617, 4429, 29135, 30084,
+24348, 8837 changed or still failing for other receivers). FIELDVALUE /
+XLAT* stay parked. No compensating errors.
+
+### Remaining Direction 2 and next
+
+Undeclared variables (192 occurrences, 4 definitions; the type exists only
+through an assignment), `GetRecord(...)` at a chain end (10 / 9), SCROLL
+members of call results / `GetRow()` (~28 occurrences), and the rest of
+the member-after-RECORD-row family. Next by payoff: Declare Function
+program-wide rows (33 aligned disagreements) and PACKAGE-only row
+differences (235 definitions).
+
 
 ## Compiler Research Cycle 98 -- receiver types behind Direction 2 identity failures
 
