@@ -23,6 +23,140 @@
   rules; Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
 
+## Compiler Research Cycle 93 -- reference-allocation census and candidate ranking
+
+**Baseline reproduced fresh at `6ebd652`:** 26,609 / 3,600, gate PASS,
+taxonomy row-identical to the committed one. LOCAL SNAPSHOT only; no HCDEV,
+no snapshot rebuild, no DLL work.
+
+### Fresh taxonomy (3,600 NONEXACT)
+
+| category | count |
+|---|---|
+| REFERENCE_ACTIVE_FIELD | 810 |
+| REFERENCE_COMPLETE_DOWNSTREAM | 571 |
+| REFERENCE_ACTIVE_PACKAGE | 527 |
+| REFERENCE_ACTIVE_RECORD | 413 |
+| REFERENCE_ACTIVE_RECORD_FIELD | 337 |
+| UNSUPPORTED_SYNTAX | 335 |
+| REFERENCE_ACTIVE_SCROLL | 136 |
+| ENCODE_ERROR | 122 |
+| REFERENCE_ACTIVE_OTHER | 100 |
+| DECODE_SOURCE_MISMATCH | 82 |
+| STRUCTURAL_ORDERING | 70 |
+| REFERENCE_ACTIVE_DECLARE_FUNCTION | 36 |
+| ROUNDTRIP_ONLY | 27 |
+| DECODER_BARE_IDENTIFIER | 26 |
+| REFERENCE_ACTIVE_QUOTED_COMPONENT | 8 |
+
+Token-level first true divergence (`cycle83-token-divergence-extract.ts` +
+`cycle83-divergence-analyze.py`): REFERENCE_ALLOCATION 1,569 (token
+identities equal, only row numbers differ), REFERENCE_IDENTITY 573,
+HEADER_ONLY_DOWNSTREAM 349, UNSUPPORTED_SYNTAX 335, STRUCTURAL_BYTE 264,
+COMMENT_TRIVIA 181, TOKEN_ENCODING 161, ENCODE_ERROR 122,
+DECODER_RENDERING 46.
+
+### First reference divergence by allocator decision
+
+Tool: `cycle93-first-reference-divergence.py`. Population: 1,596
+definitions whose stored and generated token identity streams are equal.
+Operands are walked in order; the first operand whose allocate/reuse
+decision differs is classified.
+
+| first divergence | definitions | single-signature |
+|---|---|---|
+| NON_OPERAND_ROWS (operand decisions agree; only PACKAGE rows differ) | 600 | 600 |
+| STORED_ALLOCATES_GENERATED_REUSES, RECORD, 0x4A | 335 | 156 |
+| STORED_REUSES_GENERATED_ALLOCATES, RECORD, 0x21 | 171 (+20 same statement) | 108 |
+| STORED_REUSES_GENERATED_ALLOCATES, FIELD, 0x21 | 94 (+40 same statement) | 76 |
+| STORED_REUSES_GENERATED_ALLOCATES, SCROLL, 0x21 | 61 | 46 |
+| STORED_REUSES_GENERATED_ALLOCATES, FIELD, 0x4A | 57 (+35 same statement) | 47 |
+| STORED_ALLOCATES_GENERATED_REUSES, RECORD, 0x21 | 52 | 23 |
+| STORED_REUSES_GENERATED_ALLOCATES, RECORD.FIELD, 0x21 | 52 | 26 |
+| STORED_ALLOCATES_GENERATED_REUSES, FIELD, 0x4A | 32 | 21 |
+| WRONG_REUSE_TARGET (both reuse, different rows) | 4 | 2 |
+
+Mapping to the requested classes: WRONG_SCOPE_REUSE = the RECORD / FIELD /
+SCROLL rows above; WRONG_RECEIVER_REUSE = the receiver-shaped signatures
+(`&v(i).REC`, `GetField(`, `GetRowset(`); WRONG_DECLARATION_TIME_ALLOCATION
+and MISSING / EXTRA_REFERENCE = NON_OPERAND_ROWS; WRONG_REFERENCE_ORDER =
+the create-row position below; WRONG_REFERENCE_IDENTITY = 573 (separate
+class, not allocation).
+
+### NON_OPERAND_ROWS sub-clusters (600)
+
+Every one is a PACKAGE row question. Non-class programs: stored has a
+duplicate row generated lacks 235; generated has a duplicate stored lacks
+102; both directions in the rest (~190); App Classes: missing 47, mixed 19.
+By identity: blank-REFNAME wildcard row extra in 63 definitions (stored 1,
+generated 2..6); method/create rows for REPORTDATAAE, REPORTDEFN, STACK,
+ACTIONITEM, NOTEPAD, ... missing; declaration rows for wildcard-resolved
+classes missing.
+
+### Stored reference lifetime (independent of the encoder)
+
+Tool: `cycle93-reference-lifetime-census.ts` decodes every STORED program
+and, for each operand whose key already has a row, records reuse vs new row
+and the lexical relation to the earlier row.
+
+| kind / opcode | reuse: same block | reuse: enclosing open | reuse: closed block | reuse: other function | new row: same block | new row: enclosing | new row: closed | new row: other function |
+|---|---|---|---|---|---|---|---|---|
+| RECORD 0x21 | 3,020 | 2,787 | 3,132 | 1,896 | 1,235 | 556 | 656 | 930 |
+| RECORD 0x4A | 8,477 | 10,228 | 9,126 | 4,386 | 1,437 | 749 | 1,006 | 637 |
+| FIELD 0x21 | 729 | 567 | 1,871 | 859 | 52 | 92 | 242 | 807 |
+| FIELD 0x4A | 7,825 | 7,121 | 19,849 | 10,417 | 935 | 865 | 2,983 | 5,913 |
+| SCROLL 0x21 | 481 | 483 | 713 | 684 | 276 | 208 | 202 | 646 |
+
+Cross-function reuse first appears at definition 17,864 (a handful of
+ordinary programs) and is otherwise an App Class effect; below that every
+ordinary program opens new rows per Function. No kind has a purely lexical
+lifetime: every cell is populated, so RECORD / FIELD / SCROLL lifetime is
+receiver- and construct-specific, not block-scoped. That is why the generic
+"scope" candidates below stay mixed.
+
+### Cache / scope inventory (`src/peoplecode/encoder.ts`)
+
+| cache | keyed by | lifetime today |
+|---|---|---|
+| `dependencyScope` (RECORD, SCROLL) | name + `recordScopeId()` | control group; method-wide in App Class bodies |
+| `fieldDependencyScope` (FIELD) | name + `fieldScopeId()` | control group; method-wide in App Class bodies |
+| `recordVariableFields` | receiver variable + field | same scope id as FIELD |
+| `htmlDependencyScope` | function namespace + name | per Function; class-wide session in App Classes |
+| `applicationClassReferenceScope` | class + method | class-wide method-dependency session (gated off by inherited `%This` calls) |
+| `applicationClassTypeReferenceSession` | class | class-wide type rows; owns the single wildcard-import claim |
+| `runtimeCreateReferences` | class | whole program: first `create` / `As` cast allocates, later ones reuse |
+| `localObjectPackageReferences` | builtin type | control group; method-wide in App Class bodies |
+| `localApplicationClassPackageReferences` | functionDepth + class | App Class method bodies only |
+| `explicitRecordReferences` | `Record.REC.FIELD` record | control group |
+| `rowShorthandRecords`, `rowShorthandRecordsByBase`, `rowShorthandRecordsByControlGroup` | record (+ base) | statement / base / control group |
+| `rowsetElementRecords`, `level0RowsetRecordsByField`, `rowsetRecordNamesByVariable` | rowset receiver | program |
+| `createRecordReferences`, `createRecordReferencesByTarget` | record (+ target variable) | control group |
+| **missing before this cycle** | -- | no pool for declaration-phase App Class TYPE rows in ordinary programs; no single-claim state for the wildcard-import row outside App Classes; no notion of named vs wildcard-resolved class |
+
+### Top 10 candidate mechanisms (recorded before any production edit)
+
+| # | mechanism | affected | one-blocker | stored contradictions | verdict |
+|---|---|---|---|---|---|
+| 1 | **Application Class TYPE rows in ordinary programs follow import resolution** (wildcard row claimed once; a declared class with no named import gets a declaration row; create row order) | 386 lists | ~150 | 0 after sub-rules (see Cycle 93 semantics) | **selected** |
+| 2 | method-dependency rows: when a call reuses the create row vs opens its own (named-import classes, nested / function calls, repeated calls) | ~500 lists | unknown | mixed: 395 closer / 88 farther for the naive rule | next; needs a discriminator |
+| 3 | row-shorthand `&rs(i).REC` (0x4A) after `CreateRowset(Record.REC)` (0x21): stored opens a new row | 160 first | 50 | not measured; historically mixed | parked |
+| 4 | `GetField(Field.X)` row reuse across statements and receivers | 108 first | 77 | stored FIELD 0x21: 3,167 reuse vs 1,193 new; receiver-specific | parked, mixed |
+| 5 | repeated same-shape `&v(i).REC`: stored opens a second row | 49 first | 47 | not measured | candidate |
+| 6 | `, Record.X` argument reuse (ScrollFlush / ScrollSelect / CreateRowset argument lists) | 69 first | 41 | mixed by callee | parked |
+| 7 | `Declare Function ... PeopleCode REC.FIELD` row reuse | 29 first | 20 | not measured | candidate |
+| 8 | `GetRowset(Scroll.X)` reuse | 34 first | 25 | stored SCROLL: 1,677 reuse vs 1,332 new | parked, mixed |
+| 9 | App Class bodies: missing PACKAGE rows | 47 pure | 47 | includes the known multi-row per-method pattern (not prioritized) | parked |
+| 10 | property-typed member chains (`&obj.PROP.Method(`) allocate a row for the property's class | 13525, 13516, 13522, 2096, 2097, ... | few | needs class metadata the snapshot does not hold for most classes | blocked on external class metadata |
+
+Historical "mixed/parked" conclusions revalidated for #1: the Cycle 33 /
+61 note that "ordinary fragment encoding retains the existing fragment-local
+behavior" (every wildcard import claims a blank row) is **stale** -- stored
+has exactly one blank row in 1,556 / 1,556 definitions with a wildcard
+import, including all 125 ordinary programs with two or more
+(`cycle93-wildcard-import-census.ts`). The pre-existing comment "the
+declaration itself does NOT allocate a PSPCMNAME dependency row" for a
+leading `Local PKG:Class &x;` is true only for a class with a named import.
+
 ## Compiler Semantics Cycle 92 -- the Application-Class-Local section stays open across declarations
 
 **Baseline reproduced fresh at `66ad0ac`:** 26,604 / 3,605, gate PASS,
