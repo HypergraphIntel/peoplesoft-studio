@@ -2317,6 +2317,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    *                                      name under different records is ONE
    *                                      FIELD row: the row carries no record)
    *   SCROLL        SCROLL.<name>      1,494 / 1,494 reuse; 7,186 / 7,186 new
+   *   RECORD.FIELD  <REC>.<FIELD>      66,393 / 66,393 reuse; 96,991 / 96,991 new
+   *                                      (code operands; Declare Function
+   *                                      operands excluded, see below)
    *
    * Stored evidence: `cycle95-record-unit-census.ts --all`, every aligned
    * operand occurrence of every ordinary definition. Construct, receiver
@@ -2336,7 +2339,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * and never a second row), so they stay out of these pools.
    */
   type UnitScopedRowFamily = 'field' | 'scroll' | 'record-field';
-  const UNIT_SCOPED_ROW_FAMILIES: ReadonlySet<UnitScopedRowFamily> = new Set<UnitScopedRowFamily>(['field', 'scroll']);
+  const UNIT_SCOPED_ROW_FAMILIES: ReadonlySet<UnitScopedRowFamily> = new Set<UnitScopedRowFamily>(['field', 'scroll', 'record-field']);
   const unitScopedRows: Record<UnitScopedRowFamily, Map<string, { unit: number; reference: PeopleCodeReference }>> = {
     field: new Map(),
     scroll: new Map(),
