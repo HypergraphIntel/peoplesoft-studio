@@ -4,18 +4,20 @@
 
 - **Current target:** Cycle 103 -- built-in PACKAGE dependencies in
   ordinary programs. Registry coverage (+23) and the built-in row
-  lifetime (+62) landed: EXACT 28,523 -> 28,608 (+85), protected PASS,
-  0 EXACT -> non-EXACT. PanelGroup declaration trigger next. See
-  "Compiler Semantics Cycle 103" and "Compiler Research Cycle 103".
-- **Last successful calibration:** Cycle 103 lifetime.
+  lifetime (+62) and the PanelGroup trigger landed: EXACT 28,523 ->
+  28,608 (+85), protected PASS, 0 EXACT -> non-EXACT. See "Compiler
+  Semantics Cycle 103" and "Compiler Research Cycle 103".
+- **Last successful calibration:** Cycle 103 (registry, lifetime,
+  PanelGroup trigger).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked: package
   canonical case in App Class type-path names (external package
   metadata); FIELDVALUE / XLAT*; undeclared-variable receivers;
   UNRESOLVED_EXTERNAL_CLASS_METADATA class rows; 2125, 24500, 24503, 19433.
-- **Next action:** PanelGroup declarations trigger built-in rows like
-  Component (23/23 sole-context programs store the row; 959, 3618). Then
-  rerank PACKAGE.
+- **Next action:** see "PACKAGE rerank after Cycle 103" -- candidates:
+  DECODER_BARE_IDENTIFIER (26; 8 of them now forward-exact: 849, 959,
+  1105, 6448, 14325, 18278, 18279, 23134), named-import stored-opens,
+  App Class wildcard / self ordering, built-in array contexts.
 - **Newly established rules this session:** Cycle 103: every type declared
   without a package path that stores PACKAGE.<TYPE> is a built-in and
   every evidenced declaration context allocates its row (registry
@@ -36,6 +38,22 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 103c -- PanelGroup declarations trigger built-in rows
+
+**Result:** EXACT 28,608 (unchanged), **0 EXACT -> non-EXACT**, protected
+430/430. `panelGroupDeclaration` now consults the registry with the
+`component` context, like `componentDeclaration` (PanelGroup is its legacy
+spelling). Evidence: 23/23 programs whose only declaration of a built-in
+type is a PanelGroup one store the row; 15 of the census's 22
+"untriggered" stored built-in rows were PanelGroup declarations; the
+lifetime model still has 0 errors with them as events.
+
+21 PSPCMNAME lists change, all closer, 0 farther; names-exact +14;
+forward-exact +8 (849, 959, 1105, 6448, 14325, 18278, 18279, 23134) -- all
+DECODER_BARE_IDENTIFIER, so they stay non-EXACT on the decoder side
+(forward-exact among non-EXACT 21 -> 29). Tests: PanelGroup Message
+allocates (fails at a66124a), PanelGroup + Local share the leading run.
 
 ## Compiler Semantics Cycle 103b -- built-in PACKAGE row lifetime
 

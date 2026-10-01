@@ -63,3 +63,11 @@ for (const [name, source, expected] of [
     assert.deepEqual(packageRows(source), expected);
   });
 }
+
+test('a PanelGroup built-in declaration allocates its row like Component (959, 3618)', () => {
+  assert.deepEqual(packageRows('PanelGroup Message &msg;\n&msg = Null;\n'), ['MESSAGE']);
+});
+
+test('a PanelGroup declaration shares the leading run with the declarations after it', () => {
+  assert.deepEqual(packageRows('PanelGroup Record &a;\nLocal Record &b;\n&a = Null;\n'), ['RECORD']);
+});
