@@ -5683,9 +5683,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     readonly inlineComment?: Buffer;
   }
 
-  const captureTrailingTrivia = (): TrailingTrivia => ({
-    inlineComment: captureTrailingInlineComment()
-  });
+  const captureTrailingTrivia = (): TrailingTrivia => {
+    const comments: Buffer[] = [];
+    for (let comment = captureTrailingInlineComment(); comment !== undefined; comment = captureTrailingInlineComment()) {
+      comments.push(comment);
+    }
+    return { inlineComment: comments.length > 0 ? Buffer.concat(comments) : undefined };
+  };
 
   /*
    * Emits a construct's own TrailingTrivia (if any) immediately before
@@ -7000,7 +7004,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     }
 
     // Confirmed Function header -> body boundary.
-    chunks.push(Buffer.from([0x2d]));
+    const functionHeaderTrivia = captureTrailingTrivia();
+    emitBoundary(functionHeaderTrivia, 0x2d);
+    if (functionHeaderTrivia.inlineComment !== undefined) {
+      const afterHeaderCommentWhitespaceStart = pos;
+      space();
+      functionBodyWhitespace = source.slice(afterHeaderCommentWhitespaceStart, pos);
+    }
 
     /*
      * A Function header may carry an explicit source semicolon:
@@ -7751,7 +7761,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     }
 
     // Confirmed PeopleTools boundary between loop header and body.
-    chunks.push(Buffer.from([0x2d]));
+    const forHeaderTrivia = captureTrailingTrivia();
+    emitBoundary(forHeaderTrivia, 0x2d);
 
     /*
      * A For header may carry an explicit source semicolon:
@@ -7793,7 +7804,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      */
     let headerTrailingWhitespace: string;
 
-    if (explicitHeaderSemicolon) {
+    if (explicitHeaderSemicolon || forHeaderTrivia.inlineComment !== undefined) {
       const afterHeaderSemicolonWhitespaceStart = pos;
       space();
       headerTrailingWhitespace =
@@ -7963,7 +7974,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * 0x2D is the structural condition/body boundary and 0x15 is the
      * explicit source semicolon.
      */
-    chunks.push(Buffer.from([0x2d]));
+    emitBoundary(captureTrailingTrivia(), 0x2d);
 
     /*
      * Cycle 83: every While-body item is a gap boundary (see the body loop
@@ -14661,6 +14672,26 @@ function encodeApplicationClassProgramV2(
     }
   };
 
+  /*
+   * Cycle 113: block comments on the same source line as a closer's `;`
+   * (`end-method; /* Name *\/`, `end-class; /* Name *\/`) precede the
+   * closer's 0x2D boundary -- stored never writes a 0x2D before an inline
+   * comment (28726, 28736). Emits them and returns the offset after them.
+   */
+  const emitClosingLineComments = (from: number): number => {
+    const trailingComment = /^[ \t]*\/\*/;
+    let cursor = from;
+    for (let match = trailingComment.exec(source.slice(cursor)); match !== null; match = trailingComment.exec(source.slice(cursor))) {
+      const start = cursor + match[0].length - 2;
+      const close = source.indexOf('*/', start + 2);
+      if (close < 0) break;
+      statementChunks.push(applicationClassLayoutCommentOperand({ start, end: close + 2, opcode: 0x4e, raw: source.slice(start, close + 2) }));
+      nextCommentOpcodeIndex++;
+      cursor = close + 2;
+    }
+    return cursor;
+  };
+
   const emitDeclarationTerminators = (start: number, end: number): void => {
     for (const offset of parsed.declarationTerminatorOffsets) {
       if (offset >= start && offset < end && !emittedDeclarationTerminatorOffsets.has(offset)) {
@@ -14908,9 +14939,10 @@ function encodeApplicationClassProgramV2(
   // between the unit and the first wrapper belongs to the compilation unit;
   // it may contain comments even when there is no implementation.
   statementChunks.push(Buffer.from([parsed.unitKind === 'class' ? 0x5b : 0x71, 0x15]));
+  const afterUnitClose = emitClosingLineComments(parsed.unitEnd);
   statementChunks.push(Buffer.from([0x2d]));
   emitSharedFragmentRange(
-    parsed.unitEnd,
+    afterUnitClose,
     firstImplementationStart,
     parsed.implementations.length > 0
   );
@@ -14949,10 +14981,12 @@ function encodeApplicationClassProgramV2(
       emitMarkers(applicationClassBlankLineCount(trailingWhitespace));
     }
     const closerOpcode = member.kind === 'method' ? 0x64 : member.kind === 'get' ? 0x6a : 0x6b;
-    statementChunks.push(Buffer.from([closerOpcode, 0x15, 0x2d]));
+    statementChunks.push(Buffer.from([closerOpcode, 0x15]));
+    const afterCloser = emitClosingLineComments(member.sourceEnd);
+    statementChunks.push(Buffer.from([0x2d]));
     const nextImplementation = parsed.implementations[memberIndex + 1];
     emitLayoutRange(
-      member.sourceEnd,
+      afterCloser,
       nextImplementation?.sourceIndex ?? source.length,
       nextImplementation !== undefined
     );
