@@ -5073,8 +5073,16 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * REM immediately followed by a trailing 0x4E block comment; failing to
      * consume the REM's entry shifts the trailing comment back to 0x24 on
      * roundtrip.
+     *
+     * Cycle 113: without decoded provenance the opcode is the comment's
+     * PLACEMENT, whichever call site reaches it -- 0x24 when the `/*`
+     * starts its own source line, 0x4E when anything precedes it on that
+     * line (another comment, `try`, a REM, a For / If header). Across the
+     * local corpus 70,152 aligned block comments follow this with no
+     * exception; e.g. 523 `/* 811477 end *\/ /* Begin Bug 19722155 *\/`
+     * stores the second comment as 0x4E.
      */
-    header[0] = consumeCommentOpcode(0x24);
+    header[0] = consumeCommentOpcode(blockCommentStartsOwnLine() ? 0x24 : 0x4e);
     header.writeUInt16LE(payload.length, 1);
 
     pos = end + 2;
@@ -5238,7 +5246,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     }
 
     const header = Buffer.alloc(3);
-    header[0] = consumeCommentOpcode(0x4e);
+    // Cycle 113: by placement, as in `blockComment()` (2809: an own-line
+    // comment reached through this inline site stores 0x24).
+    header[0] = consumeCommentOpcode(blockCommentStartsOwnLine() ? 0x24 : 0x4e);
     header.writeUInt16LE(payload.length, 1);
 
     pos = end + 2;
