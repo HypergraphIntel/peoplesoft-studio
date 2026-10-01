@@ -157,6 +157,62 @@ class ApplicationClassReferenceScope {
   }
 }
 
+/**
+ * Cycle 108: the Application Class PACKAGE rows of ONE Application Class
+ * PROGRAM -- the lifetime of a method-dependency row there.
+ *
+ * In an Application Class program a class has ONE row for the whole
+ * program. The first occurrence that needs the class opens it -- a type
+ * (import, declaration dependency, Local, `create`) or a method call on a
+ * receiver of the class -- and every later occurrence reuses it, in any
+ * method body, statement or control structure, whatever method it calls.
+ * The row's APPCLASSMETHOD (descriptive stores only) is the method of the
+ * call that opened it, blank when a type opened it; it is not part of the
+ * identity. Ordinary programs scope these rows to the Cycle 94 allocation
+ * unit instead (`classRowsByUnit`); this pool is never used there.
+ *
+ * LOCAL SNAPSHOT (`cycle108-app-class-method-row-census.ts`,
+ * `cycle108-app-class-method-row-models.py`; 1,506 Application Class
+ * programs, 15,841 typed calls, 2,218 (program, class) groups):
+ *
+ *   - consecutive calls on one class where the later call is alone in its
+ *     gap: 903 reuse, 8 open -- all 8 in 29797 / 29883, programs whose
+ *     every row repeats; per body / per called method / per statement
+ *     scopes would need 454 / 551 / 674 cross-scope reuses;
+ *   - every %Super-property (30), %This-property (105), typed-property
+ *     (32) and method-result (24) receiver group stores exactly ONE row,
+ *     including 69 groups whose calls span several method bodies and 65
+ *     calling several methods; 28927 calls `%Super.TxtCat` eighteen times
+ *     (getSimpleTextPlan, getTextPlan; three bodies): one TEXTCATALOG row;
+ *   - descriptive stores: 284 call-opened rows carry the opening call's
+ *     method, 527 type-opened rows are blank; 393 groups calling several
+ *     methods store one row.
+ *
+ * A row matches by the class NAME (REFNAME), the key the Cycle 57
+ * class-wide session already uses: 29422 imports GPS_CAR_REPORT_MANAGER:Utils
+ * and creates and calls GPS_WFS_REPORT_MANAGER:Utils, and stores ONE
+ * UTILS row (rooted at the import) -- a package-path-aware key reopened it
+ * (and 9 more programs' rows, e.g. PTAI_COLLECTION:Collection declared as
+ * a built-in-shaped COLLECTION row).
+ */
+class ApplicationClassProgramRows {
+  private readonly rows: PeopleCodeReference[] = [];
+
+  commit(references: readonly PeopleCodeReference[]): void {
+    for (const reference of references) {
+      if (reference.kind === 'package' && (reference.className ?? reference.packageName ?? '') !== '') this.rows.push(reference);
+    }
+  }
+
+  /** The program's row of the class, from earlier fragments or `pending` (the current one). */
+  find(className: string, pending: readonly PeopleCodeReference[] = []): PeopleCodeReference | undefined {
+    const name = className.toLowerCase();
+    const matches = (reference: PeopleCodeReference): boolean =>
+      reference.kind === 'package' && (reference.className ?? reference.packageName ?? '').toLowerCase() === name;
+    return this.rows.find(matches) ?? pending.find(matches);
+  }
+}
+
 interface ApplicationClassReferenceSession {
   lookup(
     reference: Omit<PeopleCodeReference, 'index' | 'sequence'>
@@ -569,6 +625,12 @@ interface EncodeFragmentContext extends EncodeProgramContext {
    * `ensureRuntimeCreateReference`.
    */
   applicationClassTypeReferenceSession?: ApplicationClassReferenceSession;
+  /**
+   * Cycle 108: the program-wide Application Class rows of an Application
+   * Class program (see `ApplicationClassProgramRows`). Set only by
+   * `encodeApplicationClassProgramV2`.
+   */
+  applicationClassProgramRows?: ApplicationClassProgramRows;
   /**
    * Cycle 82: the compilation unit's own self-class PACKAGE row. Present
    * only for Application Class programs. See
@@ -1424,10 +1486,23 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           );
         }
       } else if (
-        ((functionDepth === 0 &&
-          controlDepth === 0 &&
-          (sawTopLevelExecutableStatement ||
-            context?.builtinObjectDeclarationsHaveMethodWideLifetime === true)) ||
+        /*
+         * Cycle 108: an Application Class body's Local uses its class's
+         * program row (`ApplicationClassProgramRows`) at the declaration at
+         * ANY control depth, as at the top of the body. 29983:
+         *
+         *   If (&count > 0) Then
+         *      Local PTAF_CRITERIA:DEFINITION:CriteriaBase &crit = &fact.GetCriteria(...);
+         *      ... &crit.Check(...) ... &crit.Check(...)
+         *
+         * stores one CRITERIABASE row (two method rows before); 29998's
+         * nested `Local PTAF_CORE:DEFN:UserListBase &u = ...` stores
+         * USERLISTBASE at the declaration, before the next statement's rows.
+         * LOCAL SNAPSHOT: 7 generated lists closer, 0 farther (30065
+         * forward-exact); uninitialized nested Locals alone, 2.
+         */
+        (context?.builtinObjectDeclarationsHaveMethodWideLifetime === true ||
+          (functionDepth === 0 && controlDepth === 0 && sawTopLevelExecutableStatement) ||
           (functionDepth > 0 && !/^\s*=/.test(source.slice(pos)))) &&
         !/^\s*=\s*create\b/i.test(source.slice(pos))
       ) {
@@ -2378,9 +2453,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       packagePath: packagePath.map((component, index) => index === 0 ? component.toUpperCase() : component),
       className: className.toUpperCase()
     });
-    if (classWide !== undefined) {
-      localApplicationClassPackageReferences.set(key, classWide);
-      return classWide;
+    // Cycle 108: or a row an earlier fragment opened for a method call.
+    const programRow = classWide ?? context?.applicationClassProgramRows?.find(className);
+    if (programRow !== undefined) {
+      localApplicationClassPackageReferences.set(key, programRow);
+      return programRow;
     }
 
     const created = addApplicationClassReference(packagePath, className);
@@ -2963,12 +3040,14 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       packagePath: packagePath.map((component, index) => index === 0 ? component.toUpperCase() : component),
       className: className.toUpperCase()
     });
-    if (classWide !== undefined) {
-      runtimeCreateReferences.set(key, classWide);
+    // Cycle 108: or a row an earlier fragment opened for a method call.
+    const programRow = classWide ?? context?.applicationClassProgramRows?.find(className);
+    if (programRow !== undefined) {
+      runtimeCreateReferences.set(key, programRow);
       if (context?.builtinObjectDeclarationsHaveMethodWideLifetime) {
-        localApplicationClassPackageReferences.set(`${functionDepth}:${key}`, classWide);
+        localApplicationClassPackageReferences.set(`${functionDepth}:${key}`, programRow);
       }
-      return classWide;
+      return programRow;
     }
 
     const created = addApplicationClassReference(
@@ -10369,7 +10448,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
               references.find(reference =>
                 reference.kind === 'package' &&
                 reference.className?.toUpperCase() === selfRow.className
-              );
+              ) ??
+              // Cycle 108: or a row an earlier fragment opened for a method call.
+              context.applicationClassProgramRows?.find(selfRow.className!);
           if (selfRow !== undefined && existingSelfIdentity === undefined) {
             nextReference(selfRow);
           }
@@ -10759,6 +10840,27 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
                 activeApplicationClassReceiver.className,
                 member
               );
+            } else if (context?.applicationClassProgramRows !== undefined) {
+              /*
+               * Cycle 108: in an Application Class program the call uses the
+               * program's row of its class (`ApplicationClassProgramRows`):
+               * a new row only when the class has none yet. A later Local or
+               * `create` of the class in this fragment reuses it too.
+               */
+              const programRow = context.applicationClassProgramRows.find(
+                activeApplicationClassReceiver.className,
+                references
+              );
+              if (programRow === undefined) {
+                localApplicationClassPackageReferences.set(
+                  `${functionDepth}:${classKey}`,
+                  addApplicationClassReference(
+                    activeApplicationClassReceiver.packagePath,
+                    activeApplicationClassReceiver.className,
+                    member
+                  )
+                );
+              }
             } else if (
               !runtimeCreateReferences.has(classKey) ||
               !activeApplicationClassReceiver.reuseRuntimeCreateForMethods
@@ -13964,6 +14066,7 @@ function encodeApplicationClassProgramV2(
   const references: PeopleCodeReference[] = [];
   const htmlDependencyScope = new HtmlDependencyScope();
   const applicationClassReferenceScope = new ApplicationClassReferenceScope();
+  const applicationClassProgramRows = new ApplicationClassProgramRows();
   const selfPackagePath = selfPath.slice(0, -1);
   const ownStorageNames = new Set(parsed.members
     .filter(member => member.kind === 'property' || member.kind === 'instance')
@@ -14045,6 +14148,7 @@ function encodeApplicationClassProgramV2(
       htmlDependencyLifetime: 'application-class',
       applicationClassReferenceSession,
       applicationClassTypeReferenceSession,
+      applicationClassProgramRows,
       applicationClassSelfMethodDependency,
       // Inherited `%This` calls can allocate environment-derived method
       // rows. Freeze that unsupported population on its prior fragment-owner
@@ -14065,6 +14169,7 @@ function encodeApplicationClassProgramV2(
         : event => context.referenceTrace!({ ...event, sourceOffset: event.sourceOffset + sourceStart })
     });
     applicationClassReferenceScope.commit(encoded.references);
+    applicationClassProgramRows.commit(encoded.references);
     firstFragment = false;
     nextReferenceIndex += encoded.references.length;
     if (usesSharedCommentOpcodes) {
@@ -14157,6 +14262,7 @@ function encodeApplicationClassProgramV2(
       references.push(reference);
       nextReferenceIndex++;
       applicationClassReferenceScope.commit([reference]);
+      applicationClassProgramRows.commit([reference]);
       context?.referenceTrace?.({
         action: 'ALLOC',
         sourceOffset: parsed.unitStart,
