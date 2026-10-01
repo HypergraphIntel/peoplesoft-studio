@@ -5741,11 +5741,16 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * `!firstForBodyItem`, `!justClosedImportSection`,
    * `sawTopLevelDeclaration`, etc.). It only answers, once a caller has
    * already decided a gap is real: how many 0x4F bytes is this specific
-   * captured whitespace span worth. Do NOT route the 4 corpus-proven
-   * "always exactly one 0x4F regardless of blank-line count" sites
-   * (before End-Evaluate, after a bare For header) through this function
-   * -- that is a different, evidenced rule, not a simplified case of
-   * this one.
+   * captured whitespace span worth. The "exactly one 0x4F regardless of
+   * blank-line count" site after a bare For header is a different rule.
+   *
+   * Cycle 113: the Evaluate sites once treated the same way (before
+   * End-Evaluate, before a When-body statement) follow THIS rule -- their
+   * single-marker evidence held only single blank lines. LOCAL SNAPSHOT:
+   * before End-Evaluate the stored 0x4F count equals the source's blank
+   * lines in every occurrence (393 programs; 6956 / 7000 two blank lines
+   * -> `4F 4F 3F`); a When-body statement after two blank lines stores two
+   * (5208, 5373).
    */
   const emitBlankLineMarkers = (whitespace: string): void => {
     const markerCount = Math.max(
@@ -8606,7 +8611,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             
           if (word('End-Evaluate')) {
             if (hasBlankLine) {
-              chunks.push(Buffer.from([0x4f]));
+              emitBlankLineMarkers(bodyWhitespace);
             }
             chunks.push(fixed('End-Evaluate'));
             return;
@@ -8864,7 +8869,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
               hasBlankLine &&
               /^End-Evaluate\b/i.test(source.slice(pos))
             ) {
-              chunks.push(Buffer.from([0x4f]));
+              emitBlankLineMarkers(bodyWhitespace);
             }
 
             break;
@@ -8925,8 +8930,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             continue;
           }
 
+          // Cycle 113: one 0x4F per blank line (see `emitBlankLineMarkers`).
           if (hasBlankLine) {
-            chunks.push(Buffer.from([0x4f]));
+            emitBlankLineMarkers(bodyWhitespace);
           }
 
           statement();
