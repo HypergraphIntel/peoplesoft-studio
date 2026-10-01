@@ -11853,13 +11853,6 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         }
       }
 
-      if (haveCompletedTopLevelStatement && hasBlankLine) {
-        emitBlankLineMarkers(topLevelWhitespace);
-      }
-
-      chunks.push(disabledCodeComment());
-      haveCompletedTopLevelStatement = true;
-
       /*
        * A standalone disabled-code marker (<* ... *>) does not, by
        * itself, terminate the leading Local declaration run any more than
@@ -11885,10 +11878,30 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * being tracked by the leading-run mechanism at all, so the
        * section's eventual 0x2D/0x4F close before `SQLExec(...)` was
        * never emitted.
+       *
+       * Cycle 113: the run's close is queued BEFORE the blank-line markers
+       * and the 0x55 record, like the block-comment branch's -- 20860 `L L
+       * <blank> <*...*>` stores `15 2D 4F 55`, 21323 `15 2D 4F 4F 55`
+       * (queued after the 0x55, the close landed behind it).
        */
+      /*
+       * Cycle 113: like a REM, a disabled-code block closes an open import
+       * section unless another import follows it -- 24926 `import ...:*;
+       * <blank> <*...*>` stores `15 2D 4F 55`.
+       */
+      if (importSectionOpen) {
+        const disabledCodeEnd = source.indexOf('*>', pos + 2);
+        const afterDisabledCode = nextSignificantAfterComments(disabledCodeEnd >= 0 ? disabledCodeEnd + 2 : source.length);
+        if (!/^import\b/i.test(source.slice(afterDisabledCode))) {
+          chunks.push(Buffer.from([0x2d]));
+          closeImportSection();
+        }
+      }
+
       if (sawLeadingLocalDeclaration) {
+        const disabledCodeEnd = source.indexOf('*>', pos + 2);
         const afterDisabledComment =
-          nextSignificantAfterBlockComments(pos);
+          nextSignificantAfterBlockComments(disabledCodeEnd >= 0 ? disabledCodeEnd + 2 : pos);
         const nextIsLocalAfterDisabledComment =
           /^Local\b/i.test(source.slice(afterDisabledComment));
 
@@ -11903,6 +11916,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           leadingLocalRun = false;
         }
       }
+
+      if (haveCompletedTopLevelStatement && hasBlankLine) {
+        emitBlankLineMarkers(topLevelWhitespace);
+      }
+
+      chunks.push(disabledCodeComment());
+      haveCompletedTopLevelStatement = true;
       continue;
     }
 
@@ -13523,19 +13543,45 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
   }
 
+  const chunksBeforeEndCloses = chunks.length;
   if (importSectionOpen) {
     chunks.push(Buffer.from([0x2d]));
     closeImportSection();
   }
 
+  /*
+   * Cycle 113: a declaration run still open at the end of the program
+   * closes with 0x2D only when it holds no initialized Local -- the same
+   * condition the mid-program close applies (`leadingRunHasInitializedLocal`).
+   * 16461 `Declare Function ...; Local boolean &ret = ...;` and 17992
+   * (imports, then `Local ... = create ...; Local boolean &check = ...;`)
+   * end `15 07`, not `15 2D 07`.
+   */
   if (
     sawApplicationClassLocalSection &&
-    !closedApplicationClassLocalSection
+    !closedApplicationClassLocalSection &&
+    !leadingRunHasInitializedLocal
   ) {
     chunks.push(Buffer.from([0x2d]));
   }
 
-  if (sawTopLevelDeclaration && !closedTopLevelDeclarationSection) {
+  if (sawTopLevelDeclaration && !closedTopLevelDeclarationSection && !leadingRunHasInitializedLocal) {
+    chunks.push(Buffer.from([0x2d]));
+  } else if (
+    chunks.length === chunksBeforeEndCloses &&
+    leadingLocalRun &&
+    sawLeadingLocalDeclaration &&
+    pendingReferenceLocalBoundary === undefined &&
+    !leadingRunHasInitializedLocal &&
+    !sawTopLevelExecutableStatement &&
+    context?.suppressDeclarationSectionMarkers !== true
+  ) {
+    /*
+     * Cycle 113: a program that is only a run of uninitialized Locals
+     * closes it with 0x2D at the end, references or not -- 11257 `Local
+     * integer &a;` and 25511 `Local number &Next;` end `15 2D 07` (one
+     * close: not when an import / App-Class-Local close above wrote it).
+     */
     chunks.push(Buffer.from([0x2d]));
   }
 
