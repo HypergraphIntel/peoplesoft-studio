@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-09-30T23:35:08.843Z",
+ "generatedAt": "2026-10-01T00:13:58.390Z",
  "totalDefinitions": 30209,
- "exactCount": 28513,
- "nonexactCount": 1696,
+ "exactCount": 28518,
+ "nonexactCount": 1691,
  "rows": [
   {
    "definitionId": 522,
@@ -481,14 +481,6 @@
    "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
-   "definitionId": 2202,
-   "displayName": "1=CAF_SRCH, 2=CAF_SRCH_BTN, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
-  },
-  {
    "definitionId": 2612,
    "displayName": "1=CBR_PAR_PLN_VW1, 2=OPTION_CD, 12=SaveEdit, 0= , 0= , 0= , 0= ",
    "classification": "UNSUPPORTED_SYNTAX",
@@ -810,14 +802,6 @@
     "generatedCount": 5,
     "firstDivergenceKind": "record-field"
    }
-  },
-  {
-   "definitionId": 3948,
-   "displayName": "1=DERIVEDNUI_SRCH, 2=NUI_SRCH_CHANGE, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
   },
   {
    "definitionId": 4081,
@@ -6187,14 +6171,6 @@
    }
   },
   {
-   "definitionId": 16496,
-   "displayName": "1=PSPGSAVEHIST_DV, 2=PTPG_PGRIDTITLE, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
-  },
-  {
    "definitionId": 16498,
    "displayName": "1=PSPGSETTINGS, 2=PTPG_DSVALUE, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "UNSUPPORTED_SYNTAX",
@@ -8651,14 +8627,6 @@
    }
   },
   {
-   "definitionId": 18387,
-   "displayName": "9=CAF_NUI_ENTSCF, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
-  },
-  {
    "definitionId": 18410,
    "displayName": "9=CHANGE_PASSWORD, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
    "classification": "UNSUPPORTED_SYNTAX",
@@ -8932,14 +8900,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 10493: expected ] after array subscript",
    "construct": ", 1] = &string T",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 18580,
-   "displayName": "9=GPFR_DSN_SRCH, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
   },
   {
    "definitionId": 18610,

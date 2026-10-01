@@ -2,39 +2,104 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 101 completed -- decoder renders the blank
-  line under `private` / `protected` and treats `end-get` / `end-set` as
-  declaration closers; all 92 forward-exact Application Classes in
-  ROUNDTRIP_ONLY now roundtrip. EXACT 28,421 -> 28,513 (+92), protected
-  PASS, 0 EXACT -> non-EXACT, 0 direct-encode streams changed. See
-  "Compiler Semantics Cycle 101" and "Compiler Research Cycle 101".
-- **Last successful calibration:** Cycle 101.
+- **Current target:** Cycle 102 -- the last 10 ROUNDTRIP_ONLY (decoder
+  blank-line ownership before a 0x2D boundary). N1 landed: EXACT 28,513
+  -> 28,518 (+5), protected PASS, 0 EXACT -> non-EXACT, 0 direct-encode
+  streams changed. N2 (While header ending in a comment, 5) next. See
+  "Compiler Semantics Cycle 102" and "Compiler Research Cycle 102".
+- **Last successful calibration:** Cycle 102 N1.
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked: package
   canonical case in App Class type-path names (external package
   metadata); FIELDVALUE / XLAT*; undeclared-variable receivers;
   UNRESOLVED_EXTERNAL_CLASS_METADATA class rows; 2125, 24500, 24503, 19433.
-- **Next action:** the 10 remaining ROUNDTRIP_ONLY (decoder, one extra
-  0x4F after a 0x2D boundary): N1 ComponentLife (0x79) / Component
-  declaration closers (2202, 3948, 16496, 18387, 18580); N2 While header
-  ending in a trailing comment `4e 42 2d 4f` (10624, 10640, 10732, 23358,
-  23418). Then PACKAGE-only rows (220 taxonomy / 242 first-divergence),
-  then STRUCTURAL_BYTE. Census before editing.
-- **Newly established rules this session:** Cycle 101 decoder: section
-  headers `private` / `protected` end their line; `end-get` / `end-set`
-  suppress the redundant 0x2D newline like `end-method`; Cycle 100 App
-  Class directory hash-table order; Cycle 99 Declare Function identity
-  REC.FIELD; Cycle 98 receiver types and member binding; Cycle 97 built-in
-  object property registry; Cycle 96 FIELD / SCROLL / RECORD.FIELD rows
-  per allocation unit, Declare Function rows program-wide; Cycle 95 RECORD
-  rows per allocation unit; the Cycle 94 allocation-unit rule for
-  Application Class rows, Global and parameter receivers, late
-  initialized `Local array of <Builtin>` group order; the Cycle 93
-  wildcard-row claim and external-metadata fallback; the Cycle 92 rule;
-  the Cycle 91 rules; Cycle 90; Cycle 89; Cycle 88; the Cycle 87 rules;
-  the Cycle 86 rules; Cycle 84 rule B; Cycle 83 While gaps; the Cycle 82
-  rules.
+- **Next action:** Cycle 102 N2 -- an inline 0x4E comment's own newline
+  must also be suppressed when the 0x2D follows after zero-width 0x42
+  markers (10624, 10640, 10732, 23358, 23418). Then rebuild the taxonomy
+  and rerank PACKAGE failures by first true mechanism
+  (`cycle102-package-mechanism-census.ts`).
+- **Newly established rules this session:** Cycle 102 decoder:
+  `ComponentLife` (0x79) closes a declaration section like `Component`;
+  an inline 0x4E comment directly before a declaration's `;` belongs to
+  that declaration; Cycle 101 decoder: section headers `private` /
+  `protected` end their line, `end-get` / `end-set` suppress the
+  redundant 0x2D newline like `end-method`; Cycle 100 App Class directory
+  hash-table order; Cycle 99 Declare Function identity REC.FIELD; Cycle 98
+  receiver types and member binding; Cycle 97 built-in object property
+  registry; Cycle 96 FIELD / SCROLL / RECORD.FIELD rows per allocation
+  unit, Declare Function rows program-wide; Cycle 95 RECORD rows per
+  allocation unit; the Cycle 94 allocation-unit rule for Application Class
+  rows, Global and parameter receivers, late initialized `Local array of
+  <Builtin>` group order; the Cycle 93 wildcard-row claim and
+  external-metadata fallback; the Cycle 92 rule; the Cycle 91 rules; Cycle
+  90; Cycle 89; Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84
+  rule B; Cycle 83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 102 -- decoder line-ending ownership before a 0x2D boundary
+
+**Baseline reproduced fresh at `db61198`:** 28,513 / 1,696, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only. Decoder-only; the encoder is
+the control.
+
+All 10 remaining ROUNDTRIP_ONLY encode byte-exact from source and re-encode
+their decoded text with exactly ONE extra 0x4F right after a stored
+`2d 4f` (statement stream otherwise identical; names / records / slots
+identical). A 0x2D (NEWLINE_ONCE) always emits a line ending unless a
+rendered token already owns it; in each family the owner was not seen.
+
+### N1 -- declaration boundary (5): landed
+
+`src/peoplecode/decoder.ts`, the 0x2D lookbehind that sets
+`followsDeclaration`:
+
+1. **N1a** 0x79 (`ComponentLife`) joins the declaration keywords (0x44
+   Local, 0x45 Global, 0x54 Component, 0x56 Constant, 0x31 Declare
+   Function, 0x58 import, 0x51 PanelGroup) and closers (0x5b, 0x64, 0x6a,
+   0x6b). Census: every `ComponentLife ...; 2d 4f` decoded one blank line
+   too many (5 sites: 2202, 3945, 3948, 16496, 18387); `;` / `; 4f` sites
+   were already right (controls 2092, 2093, 2128 roundtrip); Component /
+   Global decode the identical `; 2d 4f` correctly at thousands of sites.
+2. **N1b** an inline 0x4E comment directly before the `;` the 0x2D
+   follows is part of that statement: the lookbehind continues past it
+   instead of stopping. `Component string ... /*, &x*/;` stores
+   `4e 15 2d 4f`; the comment hid `Component`. Every such site in the
+   corpus was wrong (18580, 28920, 28954, 28963); comments elsewhere in
+   the lookbehind are the previous statement's trailing comment and are
+   never reached. 18580 was comment placement, not `Component` itself.
+
+| N1 | value |
+|---|---|
+| roundtrips | 28,618 -> 28,623 (+5: 2202, 3948, 16496, 18387, 18580), 0 lost |
+| decoded text changed | 9 programs = exactly the census sites (N1a 5, N1b 4) |
+| other changed programs | 3945 (first statement diff 187 -> 242), 28920 / 28954 (first diff earlier, unchanged), 28963 (encoder unsupported before and after) |
+| direct-encode streams changed | 0 |
+| Cycle 101 App Classes | 92 / 92 still roundtrip |
+| EXACT | 28,513 -> 28,518 (+5), 0 EXACT -> non-EXACT, protected 430/430 |
+
+Isolated experiments: N1a alone fixed 4, N1b alone 1 (18580), no
+interaction. Tests: `src/test/decoderBoundaryOwnership.test.ts`
+(ComponentLife + blank line; Component with a comment before `;` + blank
+line; control without the comment) -- 2 fail at db61198, all pass.
+
+## Compiler Research Cycle 102 -- roundtrip blank-line census
+
+Tool: `tools/corpus/research/cycle102-roundtrip-blankline-census.ts`
+(A: ComponentLife sites; B: `15 2d` boundaries whose statement contains a
+0x4E; C: 0x4E + zero-width 0x41/0x42 + 0x2D). Every site of the three
+target shapes is wrong and every other site of the same families is right
+-- zero contradictions:
+
+| census | wrong sites | definitions |
+|---|---|---|
+| A ComponentLife `; 2d 4f` | 5 / 5 | 2202, 3945, 3948, 16496, 18387 |
+| B `Component ... 4e 15 2d` | 4 / 4 | 18580, 28920, 28954, 28963 |
+| C `While ... 4e 42 2d 4f` | 7 / 7 | 10624, 10640, 10732, 23141, 23358, 23418, 25951 |
+
+No `4e 41 2d`, no `4e 42 2d` without a following 4F, and no If / For /
+Evaluate / When header shows the C shape: `While ... And <cond> /*c*/` is
+the only corpus-exposed instance (If headers end at Then, which the
+existing `commentInlineContinuesToNextToken` already handles past 0x42).
 
 ## Compiler Semantics Cycle 101 -- decoder blank lines after `private` / `protected` and `end-get` / `end-set`
 

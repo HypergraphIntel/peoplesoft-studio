@@ -1873,6 +1873,16 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         const previous = tokens[lookbehind];
 
         if (previous.opcode === 0x15 || previous.kind === TokenKind.Comment) {
+          /*
+           * Cycle 102: an inline 0x4E comment directly before the `;`
+           * this 0x2D follows belongs to the statement that `;` closes --
+           * `Component string &a, &b /*, &c*\/;` stores `... 4e 15 2d`.
+           * Stopping here hid the declaration keyword, so the boundary's
+           * newline was not suppressed and `2d 4f` decoded as two blank
+           * lines (18580; also 28920, 28954, 28963 -- every such site in
+           * the corpus).
+           */
+          if (previous.opcode === 0x4e && lookbehind === tokenIndex - 2 && tokens[tokenIndex - 1]?.opcode === 0x15) continue;
           break;
         }
 
@@ -1974,7 +1984,8 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
           previous.opcode === 0x5b ||
           previous.opcode === 0x64 ||
           previous.opcode === 0x6a ||
-          previous.opcode === 0x6b
+          previous.opcode === 0x6b ||
+          previous.opcode === 0x79
         ) {
           /*
            * 0x51 is PanelGroup's own declaration opcode (see encoder.ts's
@@ -2025,6 +2036,12 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
            * two blank lines (53 source-exact Application Classes carry
            * `6a|6b 15 2d 4f`, e.g. 28716, 29086; each failed the roundtrip
            * by one extra 0x4F).
+           *
+           * Cycle 102: 0x79 (`ComponentLife`) is a declaration keyword like
+           * 0x54 (`Component`) and 0x45 (`Global`), and PeopleTools closes
+           * its section with the same `15 2d 4f`; every such site decoded
+           * one blank line too many (2202, 3945, 3948, 16496, 18387), while
+           * Component / Global decode the identical shape correctly.
            */
           followsDeclaration = true;
           break;
