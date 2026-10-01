@@ -1,15 +1,16 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-01, Cycle 109)
+## Current status (2026-10-01, Cycle 110)
 
-- **Current target:** Cycle 109 -- the fully indexed element of an
-  `array of <Class>` value is a receiver in Application Class bodies, and
-  type metadata types every chain step there (typed receivers, results).
-  EXACT 28,654 -> 28,663 (+9), protected PASS, 0 EXACT -> non-EXACT,
-  fallback 63 -> 63 (13525 stays, EXACT). See "Compiler Semantics Cycle
-  109".
-- **Last successful calibration:** Cycle 109 (App Class array-element
-  receivers, declared-variable receivers, typed chain steps).
+- **Current target:** Cycle 110 -- the PACKAGE-only App Class "external"
+  cluster was mostly a measurement artifact (both rerank tools encoded
+  without the type metadata the harness uses); the real residue is 7
+  programs blocked by classes absent from the snapshot and 3 built-in
+  registry gaps, now fixed (Collection, Document, Map + 4). EXACT 28,663
+  (no change), protected PASS, 0 EXACT -> non-EXACT. See "Compiler
+  Semantics Cycle 110".
+- **Last successful calibration:** Cycle 110 (built-in registry:
+  Collection, Document, Map, JsonNode, Response, CQRuntime, Crypt).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked: package
   canonical case in App Class type-path names (external package
@@ -20,14 +21,20 @@
   -- Cycle 105); `%This` method results (no evidenced change); 29797 /
   29883 (every row repeats); 30192 (parameter receivers reopen per body,
   unexplained); ordinary `Function` parameters `As array of <Class>`
-  (1 element call, unregistered); 2125, 24500, 24503, 19433.
-- **Next action:** the PACKAGE-only "external" Application Class family
-  (24 definitions: 15 missing identity, 9 ordering -- e.g. the
-  BEN_EE_DATA_FL cluster 28874-28885); census first. Every resolvable
-  hidden App Class row of an encodable program is now generated. See
-  "PACKAGE rerank after Cycle 109". The fallback wildcard over-claim stays
-  parked (correct rule, masked in 13525 by a missing external method row).
-- **Newly established rules this session:** Cycle 109: in an
+  (1 element call, unregistered); hidden rows behind classes absent from
+  the snapshot (28731 PTWIDGETS, 28968 EnrollElect, 29230
+  WCS_LOOKUPTABLE, 29567 PTCBAPPLSVCDEFN, 29598 EOAW_CORE, 29715 / 29725
+  EOEN_EVENT_MANAGER -- need metadata the local snapshot lacks); 2125,
+  24500, 24503, 19433.
+- **Next action:** ordinary-program Application Class row ORDERING (14
+  PACKAGE-only programs, e.g. 13517, 13522, 13523, 14636, 14707, 14899,
+  14919, 15540, 15800, 20754) -- census first; see "PACKAGE rerank after
+  Cycle 110". The fallback wildcard over-claim stays parked (correct rule,
+  masked in 13525 by a missing external method row).
+- **Newly established rules this session:** Cycle 110: Collection,
+  Document, Map, JsonNode, Response, CQRuntime, Crypt are built-in object
+  types (self-rooted rows; a short name wins over a wildcard-imported
+  class); rerank tools must encode with the harness's metadata; Cycle 109: in an
   Application Class body the element of an `array of <Class>` value
   (Local, parameter, instance, property, Component / Global, or a
   metadata property / result) is a receiver once every array level is
@@ -69,6 +76,90 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 110 -- the "external" App Class cluster, re-measured; built-in registry gaps
+
+**Baseline reproduced fresh at `cd286b2`:** 28,663 / 1,546, protected
+430/430, taxonomy row-identical, sweep identical, PACKAGE census 109 /
+204. **Result:** EXACT 28,663 (unchanged), **0 EXACT -> non-EXACT**,
+protected 430/430, ROUNDTRIP_ONLY 0. LOCAL SNAPSHOT only.
+
+### Research (4b3e52b) -- the measurement was wrong
+
+`cycle102-package-mechanism-census.ts` and the taxonomy's category
+classifier (`compareReferences`) encoded WITHOUT the snapshot type
+metadata; the harness and the taxonomy's own EXACT decision use it since
+Cycle 107. Both now pass it (`--no-metadata` reproduces the old rerank):
+PACKAGE-only 109 -> 91, first PACKAGE difference 204 -> 169, 30
+non-EXACT programs re-categorized (ACTIVE_PACKAGE 132 -> 118,
+COMPLETE_DOWNSTREAM 551 -> 569); EXACT unchanged.
+
+`cycle110-app-class-package-only-census.ts` on the 24 programs the old
+rerank called PACKAGE-only "external":
+
+| result under the harness context | programs |
+|---|---|
+| names-exact (no PACKAGE divergence) | 14: 28874, 28875, 28880, 28882, 28883, 28884, 28885 (BEN_EE_DATA_FL cluster, `%This.BenDataMgr`), 28927, 28931, 28933 (TextCatalog), 29171, 29320, 29917, 30112 |
+| missing row behind a class absent from the snapshot | 7 |
+| missing self-rooted built-in row (registry gap) | 3: 29530 Collection, 29531 Map, 29880 Document |
+
+Every one of the 10 is a MISSING row (the three "ordering" ones are a
+missing row with the rest shifted); all are body-phase first uses -- no
+header prepass, `extends` / `implements`, self-class, import-only or
+property / instance / signature declaration row is involved.
+
+| def | row | source event (provenance) | blocker |
+|---|---|---|---|
+| 28731 | COLLECTION | `&mTree.mNodesCol.getItem(&i)` -- instance `PTWIDGETS:TreeControl` | PTWIDGETS absent |
+| 28968 | FORMATAMOUNT, TEXTCATALOG | `%Super.FormatAmount...`, `%Super.TxtCat...` -- ancestor chain Plan6X -> Plan357AX -> `BNE_OPEN_ENROLL_FL:Page:SubPage:EnrollElect` | EnrollElect absent |
+| 29230 | APPMSG (root WCS_LOOKUPTABLE, method OUTPUT) | chain through `WCS_LOOKUPTABLE:FACTORY:LookupCatalog` / `CONTENT:LookupTableContent` | WCS_LOOKUPTABLE absent |
+| 29567 | MESSAGEAPI | `%This.ServiceAPI.getInputParameter(...)` -- inherited from `PTCBAPPLSVCDEFN:ApplicationServiceBase` | PTCBAPPLSVCDEFN absent |
+| 29598 | THREAD | `&appinst.thread.GetAppKeys()` -- parameter `As EOAW_CORE:ENGINE:AppInst` | EOAW_CORE absent |
+| 29715, 29725 | EXECSTATUSTYPE | `&inEvent.HandlerStatus.AddException(...)` -- parameter `As EOEN_EVENT_MANAGER:Base:baseEvent` | EOEN_EVENT_MANAGER absent |
+| 29530 | COLLECTION | `Local Collection &collInfo, ...` (method body) | registry |
+| 29531 | MAP | `Local Map &MAP = %This.ReqArgs.mapRequest;` | registry |
+| 29880 | DOCUMENT | `Local Document &UriDoc;` | registry |
+
+### Semantics (2d63487)
+
+BUILT-IN registry: Collection, Document, Map, JsonNode, Response,
+CQRuntime, Crypt (`local`). Every unregistered bare type with a stored
+PACKAGE row stores it wherever it is declared (Collection 8/8, Document
+7/7, Map 3/3, others 1/1, ordinary and App Class); descriptive stores
+root it at the type itself (29527, 28890, 29530, 29531); PTAI_COLLECTION
+/ PSXP_XMLGEN Collection classes are always written qualified, and a
+short `Collection` under `import PSXP_XMLGEN:*` (29870) stores the
+built-in. App Class header declarations of these types already allocate
+through the declaration prepass. 6 lists closer, 0 farther (names-exact:
+13646, 15875 ordinary; 29530, 29531, 29880; 29883 closer); only rows of
+the new types added; non-PACKAGE unchanged; fallback 63 -> 63 (13525
+EXACT); diagnostics-only identical to no metadata. 5 programs
+ACTIVE_PACKAGE -> COMPLETE_DOWNSTREAM; no EXACT gain (other byte
+differences remain).
+
+## PACKAGE rerank after Cycle 110
+
+(with metadata) PACKAGE-only 91 -> 86; first PACKAGE difference 169 ->
+164 (ORDERING 111, STORED_REUSES 24, MISSING 18, STORED_OPENS 10, WRONG 1).
+
+| bucket | definitions (package-only) |
+|---|---|
+| hidden-class / genuine external / unknown | 39 (27) -- ordinary ORDERING 14, ordinary MISSING 7, App Class MISSING 6 (blocked) |
+| built-in residual | 38 (16) |
+| App Class wildcard / self ordering | 33 (2) |
+| method-dependency rows | 21 (14) -- ordinary |
+| other ordering | 16 (12) |
+| fallback wildcard over-claim (parked) | 10 (9) |
+| named-import stored-opens (parked) | 5 (4) |
+| other (19433, 24647) | 2 (2) |
+
+Categories: COMPLETE_DOWNSTREAM 574, UNSUPPORTED_SYNTAX 335,
+ENCODE_ERROR 122, ACTIVE_PACKAGE 113, ACTIVE_FIELD 90, ACTIVE_RECORD 85,
+DECODE_SOURCE_MISMATCH 82, ACTIVE_RECORD_FIELD 39, ACTIVE_OTHER 39,
+DECODER_BARE_IDENTIFIER 26, STRUCTURAL_ORDERING 20, ACTIVE_SCROLL 13,
+QUOTED_COMPONENT 8.
+
+Next: ordinary-program Application Class row ORDERING (14 PACKAGE-only).
 
 ## Compiler Semantics Cycle 109 -- Application Class array-element receivers and typed chain steps
 
