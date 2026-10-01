@@ -578,6 +578,13 @@ export interface EncodeProgramContext {
    * Observational only.
    */
   onExternalMetadataFallback?: () => void;
+  /**
+   * Cycle 112 research switch: encode an ordinary program with allocation
+   * units even when its class rows depend on external metadata, i.e. never
+   * take the Cycle 93 fallback. For measuring the fallback; the harness
+   * never sets it.
+   */
+  suppressExternalMetadataFallback?: boolean;
 }
 
 export interface ApplicationClassTypeMetadataEvent {
@@ -15147,7 +15154,7 @@ function encodeOrdinaryProgramFragment(
     externalClassMetadata
   });
 
-  if (externalClassMetadata.unresolvedReceiverCalls === 0) {
+  if (externalClassMetadata.unresolvedReceiverCalls === 0 || context?.suppressExternalMetadataFallback) {
     for (const replay of buffered) replay();
     return encoded;
   }
