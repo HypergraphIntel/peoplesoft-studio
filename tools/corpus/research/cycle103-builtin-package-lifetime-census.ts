@@ -120,7 +120,7 @@ const DECLARATION_WORDS = new Set(['local', 'global', 'component', 'componentlif
 const VARIABLE_DECLARATION_WORDS = new Set(['local', 'global', 'component', 'componentlife']);
 
 /* Structure facts at every offset, from one word / ';' walk of the masked source. */
-function structureAt(masked: string) {
+export function structureAt(masked: string) {
   type Mark = { offset: number; controlDepth: number; functionId: number; statement: number; late: boolean; structure: number; leadingClosed: boolean; functionsBefore: number };
   const marks: Mark[] = [];
   let controlDepth = 0, functionId = 0, nextFunction = 1, statement = 0, structure = 0, nextStructure = 1;
