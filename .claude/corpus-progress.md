@@ -16,7 +16,8 @@
   2097, 2167, 2175, 2194, 14162, 18236, 19877, 23068, 23402); the fallback
   wildcard over-claim (25 programs, blocked by 13525 -- Cycle 105); 2125,
   24500, 24503, 19433.
-- **Next action:** see "PACKAGE rerank after Cycle 106"; the fallback
+- **Next action:** see "PACKAGE rerank after Cycle 106" (next: a snapshot
+  class-metadata provider for the 54 source-hidden App Class rows); the fallback
   wildcard over-claim stays parked (correct rule, masked in 13525 by a
   missing external method row).
 - **Newly established rules this session:** Cycle 106: an import rooted
@@ -44,6 +45,28 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## PACKAGE rerank after Cycle 106
+
+`cycle102-package-mechanism-census.ts` at 05f496a (1,594 NONEXACT):
+PACKAGE-only 163 -> 157; first difference is a PACKAGE row 259 -> 253
+(ORDERING 142, MISSING 67, STORED_REUSES 27, STORED_OPENS 16, WRONG 1).
+
+| bucket | definitions (package-only) | notes |
+|---|---|---|
+| class absent from local source, App Class in the snapshot | 54 of the 61 snapshot-visible | inherited members, property / method-result types; mostly App Class programs (35 missing rows, 14 ordering; 16 are method rows) -- needs the snapshot's class metadata as an encoder input |
+| App Class wildcard / self ordering | 51 (16) | |
+| built-in residual | 40 (15) | array contexts, App Class method bodies, Exception App Class parameter |
+| other ordering | 26 (22) | incl. parked 2125 |
+| genuine external (not in snapshot) / unknown | ~47 | TreeControl, AppDataSetMgr, StyleSheet ... |
+| method-dependency rows | 18 (14) | |
+| fallback wildcard over-claim | 12 (11) | parked behind 13525 (Cycle 105) |
+| named-import stored-opens | 11 (10) | parked (fallback + 18989) |
+
+Next: a snapshot class-metadata provider (inherited members, property and
+method-result types of classes defined in the snapshot) -- the 54
+source-hidden rows; it does not unblock 13525 (its classes are not in the
+snapshot).
 
 ## Compiler Semantics Cycle 106 -- `%metadata` imports allocate no PACKAGE rows
 
