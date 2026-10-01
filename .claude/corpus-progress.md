@@ -17,7 +17,9 @@
   receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class rows (incl. 2096,
   2097, 2167, 2175, 2194, 14162, 18236, 19877, 23068, 23402); 2125, 24500,
   24503, 19433.
-- **Next action:** see "PACKAGE rerank after Cycle 104".
+- **Next action:** see "PACKAGE rerank after Cycle 104" -- the empty
+  generated PACKAGE identity (12), then snapshot-visible App Classes with
+  missing rows (33).
 - **Newly established rules this session:** Cycle 104: ComponentLife
   Application Class variables and elements of `array of <Class>` are
   receivers under the Cycle 94 unit rule; the named-import row seeds the
@@ -41,6 +43,26 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## PACKAGE rerank after Cycle 104
+
+`cycle102-package-mechanism-census.ts` at fcc006c (1,595 NONEXACT):
+PACKAGE-only 181 -> 163; first difference is a PACKAGE row 277 -> 259
+(ORDERING 150, MISSING 67, STORED_REUSES 25, STORED_OPENS 16, WRONG 1).
+
+| bucket | definitions (package-only) | notes |
+|---|---|---|
+| App Class, source-visible in snapshot | 52 | generated misses (33: BenefitDataManager, TextCatalog, ObjectManager, CriteriaBase ...) or misplaces (19) a class that IS in the snapshot |
+| App Class wildcard / self ordering | 51 (16) | |
+| built-in residual | 43 (18) | array contexts, App Class method bodies, Exception App Class parameter |
+| unknown identity | 31 | TreeControl, AppDataSetMgr, StyleSheet ... |
+| genuine external App Class | 31 | 12 with an EMPTY generated identity (14650, 14651, 15038, 15039, 15256, 15257, 15598, 15609 ...) |
+| other ordering | 26 (22) | incl. parked 2125 |
+| method-dependency rows | 15 (11) | |
+| named-import stored-opens | 11 (10) | = the 10 external-metadata fallback programs + 18989 (FIELDVALUE): parked |
+
+Next: the empty generated PACKAGE identity (12, a generator defect, one
+signature), then snapshot-visible App Classes with missing rows (33).
 
 ## Compiler Semantics Cycle 104b -- array-element Application Class receivers
 
