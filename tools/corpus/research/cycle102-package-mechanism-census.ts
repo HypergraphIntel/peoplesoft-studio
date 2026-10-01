@@ -36,7 +36,13 @@
  *
  * plus whether the definition is an Application Class.
  *
- * Usage: npx tsx tools/corpus/research/cycle102-package-mechanism-census.ts [--taxonomy t.json] [--json out.json]
+ * Cycle 110: programs are encoded as the harness encodes them -- with the
+ * snapshot Application Class type metadata (Cycle 107). Before Cycle 110
+ * this census encoded without it and so reported rows the harness already
+ * generates (e.g. 28874-28885, names-exact under the harness, listed as
+ * "external" PACKAGE-only). `--no-metadata` reproduces the old numbers.
+ *
+ * Usage: npx tsx tools/corpus/research/cycle102-package-mechanism-census.ts [--taxonomy t.json] [--json out.json] [--no-metadata]
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -44,6 +50,7 @@ import path from 'node:path';
 import { openSnapshotDatabase } from '../snapshot/store';
 import { listSnapshotDefinitions } from '../snapshot/reader';
 import { encodeProgramArtifacts } from '../../../src/peoplecode/encoder';
+import { snapshotApplicationClassTypeMetadata } from '../snapshot/applicationClassTypeMetadata';
 
 const ROOT = path.join(__dirname, '../../..');
 
@@ -87,7 +94,9 @@ const taxonomy = JSON.parse(fs.readFileSync(taxonomyPath, 'utf8'));
 const category = new Map<number, string>(taxonomy.rows.map((r: any) => [r.definitionId, r.primaryCategory]));
 const builtins = builtinTypes();
 
-const definitions = listSnapshotDefinitions(openSnapshotDatabase()) as any[];
+const db = openSnapshotDatabase();
+const definitions = listSnapshotDefinitions(db) as any[];
+const applicationClassTypeMetadata = process.argv.includes('--no-metadata') ? undefined : snapshotApplicationClassTypeMetadata(db);
 /* Snapshot Application Classes: class name -> package roots that define it. */
 const classPackages = new Map<string, Set<string>>();
 for (const def of definitions) {
@@ -109,7 +118,7 @@ let firstPackage = 0;
 for (const def of definitions) {
   if (!category.has(def.definitionId)) continue;
   let artifacts: any;
-  try { artifacts = encodeProgramArtifacts(def.sourceText, { owner: context(def) } as any); } catch { continue; }
+  try { artifacts = encodeProgramArtifacts(def.sourceText, { owner: context(def), applicationClassTypeMetadata } as any); } catch { continue; }
   const generatedRows = artifacts.references.filter((r: any) => r.kind !== 'owner');
   const generated = generatedRows.map(generatedKey);
   const stored = def.names.slice(1).map((r: any) => `${String(r.recname ?? '').trim().toUpperCase()}.${String(r.refname ?? '').trim().toUpperCase()}`);

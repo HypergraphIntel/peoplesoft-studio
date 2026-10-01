@@ -46,6 +46,7 @@ import { listSnapshotDefinitions } from '../snapshot/reader';
 import { validateDefinition } from '../validator';
 import { snapshotApplicationClassTypeMetadata } from '../snapshot/applicationClassTypeMetadata';
 import { encodeProgramArtifacts } from '../../../src/peoplecode/encoder';
+import type { ApplicationClassTypeMetadataProvider } from '../../../src/peoplecode/applicationClassTypeMetadata';
 import type { CorpusDefinition } from '../classifications';
 
 function ownerContextOf(def: any) {
@@ -128,10 +129,16 @@ interface ReferenceComparison {
   encodeThrew: boolean;
 }
 
-function compareReferences(sourceText: string, owner: ReturnType<typeof ownerContextOf>, storedNames: any[]): ReferenceComparison {
+function compareReferences(
+  sourceText: string,
+  owner: ReturnType<typeof ownerContextOf>,
+  storedNames: any[],
+  applicationClassTypeMetadata?: ApplicationClassTypeMetadataProvider
+): ReferenceComparison {
   let artifacts;
   try {
-    artifacts = encodeProgramArtifacts(sourceText, { owner } as any);
+    // Cycle 110: with the same type metadata the EXACT decision uses (Cycle 107).
+    artifacts = encodeProgramArtifacts(sourceText, { owner, applicationClassTypeMetadata } as any);
   } catch {
     return {
       referenceExact: false,
@@ -360,7 +367,7 @@ async function main(): Promise<void> {
     }
 
     const owner = ownerContextOf(def);
-    const { category, ref } = classifyPrimary(result, () => compareReferences(def.sourceText, owner, def.names));
+    const { category, ref } = classifyPrimary(result, () => compareReferences(def.sourceText, owner, def.names, applicationClassTypeMetadata));
 
     rows.push({
       definitionId: def.definitionId,
