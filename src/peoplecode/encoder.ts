@@ -1037,19 +1037,42 @@ const BUILTIN_TYPE_REGISTRY: ReadonlyMap<string, BuiltinTypeSemantics> = new Map
       ['Record', ['local', 'local-array-element', 'global', 'global-array-element', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
       ['Row', ['local', 'local-array-element', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
       ['Rowset', ['local', 'local-array-element', 'global', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
-      ['SQL', ['local', 'local-array-element', 'application-class-parameter', 'function-parameter', 'function-returns']],
-      ['File', ['local', 'local-array-element', 'global', 'component', 'function-parameter', 'function-returns']],
-      ['Field', ['local', 'local-array-element', 'function-parameter', 'function-returns']],
-      ['XmlDoc', ['local', 'local-array-element', 'component', 'function-returns']],
-      ['XmlNode', ['local', 'local-array-element', 'function-returns']],
-      ['ApiObject', ['local', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
-      ['Grid', ['local', 'application-class-parameter', 'function-parameter', 'function-returns']],
-      ['Message', ['local', 'application-class-parameter', 'function-parameter', 'function-returns']],
+      ['SQL', ['local', 'local-array-element', 'global', 'application-class-parameter', 'function-parameter', 'function-returns']],
+      ['File', ['local', 'local-array-element', 'global', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
+      ['Field', ['local', 'local-array-element', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
+      ['XmlDoc', ['local', 'local-array-element', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
+      ['XmlNode', ['local', 'local-array-element', 'function-parameter', 'function-returns']],
+      ['ApiObject', ['local', 'global', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
+      ['Grid', ['local', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
+      ['Message', ['local', 'local-array-element', 'component', 'application-class-parameter', 'function-parameter', 'function-returns']],
       ['GridColumn', ['local']],
-      ['JavaObject', ['local', 'function-returns']],
+      ['JavaObject', ['local', 'application-class-parameter', 'function-returns']],
       ['TransformData', ['local']],
-      ['Chart', ['local']],
-      ['ProcessRequest', ['local']]
+      ['Chart', ['local', 'global', 'component']],
+      ['ProcessRequest', ['local', 'component', 'application-class-parameter']],
+      // Cycle 103 (see the comment below the table).
+      ['Page', ['local']],
+      ['Exception', ['local', 'function-parameter']],
+      ['JsonObject', ['local', 'application-class-parameter']],
+      ['JsonArray', ['local', 'application-class-parameter']],
+      ['JsonBuilder', ['local', 'application-class-parameter']],
+      ['JsonParser', ['local']],
+      ['CubeCollection', ['local', 'global', 'component']],
+      ['AnalyticInstance', ['local', 'component']],
+      ['AnalyticGrid', ['local', 'component']],
+      ['AnalyticModel', ['component']],
+      ['RatingBoxChart', ['global']],
+      ['DocumentKey', ['local', 'function-parameter']],
+      ['Compound', ['local', 'function-parameter']],
+      ['Primitive', ['local', 'function-parameter']],
+      ['Interlink', ['local']],
+      ['PostReport', ['local']],
+      ['Request', ['local']],
+      ['SOAPDoc', ['local']],
+      ['IntBroker', ['local']],
+      ['CompositeQuery', ['local']],
+      ['BIDocs', ['local']],
+      ['IBInfo', ['local']]
     ] as const
   ).map(([name, contexts]) => [
     name.toLowerCase(),
@@ -1062,14 +1085,29 @@ const BUILTIN_TYPE_REGISTRY: ReadonlyMap<string, BuiltinTypeSemantics> = new Map
 );
 
 /*
- * The 3 additional names `typeName()`'s own inline-identifier-introducer
- * list recognizes but which have NO entry above (JsonArray, JsonObject,
- * Exception): token-rendering behavior is proven for these, but whether
- * they ever allocate a PACKAGE reference in any context is NOT yet
- * evidenced either way. Deliberately left out of BUILTIN_TYPE_REGISTRY
- * rather than added with an empty context set, so a future census adding
- * real evidence is additive rather than editing an existing "proven empty"
- * row.
+ * Cycle 103: every type declared WITHOUT a package path that PeopleTools
+ * stores a PACKAGE.<TYPE> row for is a built-in object type, and every
+ * declaration context evidenced in the corpus allocates its row. Evidence
+ * (`cycle103-builtin-package-lifetime-census.ts` and a per-context census
+ * of programs where the type occurs in ONE context only): the stored row
+ * is present in every such program for every entry and context added here
+ * -- Page 20/20, Exception 38/38, JsonObject 25/25, JsonArray 22/22,
+ * CubeCollection 11/11, AnalyticInstance 11/11, JsonBuilder 12/12, ... --
+ * and none of these names is ever stored as an Application Class row
+ * (PACKAGEROOT is the type itself or blank, never a package). Added
+ * contexts of registered types: SQL global 7/7, ApiObject global 2/2,
+ * Chart component 3/3 / global 1/1, Grid component 2/2, Message component
+ * 1/1, Field component 2/2 / App Class parameter 20/20, ProcessRequest
+ * component 4/4, XmlDoc parameter 1/1 + 51/51, File / JavaObject App Class
+ * parameter; XmlNode function-parameter and Message local-array-element
+ * from the lifetime census's interval evidence.
+ *
+ * Exception as an Application Class METHOD parameter also stores a row
+ * (10/10), but it is deliberately not added: the Application Class
+ * declaration prepass lists `exception` among its scalar declaration types,
+ * so the row would be allocated at the implementation instead of in the
+ * class-header order (30206). That is Application Class semantics, not
+ * built-in registry coverage.
  */
 
 function encodeFragmentInternal(source: string, context?: EncodeFragmentContext): { bytes: Buffer; references: PeopleCodeReference[]; commentOpcodesConsumed: number } {

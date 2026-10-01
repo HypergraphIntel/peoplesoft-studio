@@ -2,43 +2,150 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 102 completed -- ROUNDTRIP_ONLY 10 -> 0
-  (decoder line-ending ownership before a 0x2D boundary: N1 declaration
-  boundary, N2 commented While header). EXACT 28,513 -> 28,523 (+10),
-  roundtrips 28,618 -> 28,628, protected PASS, 0 EXACT -> non-EXACT, 0
-  direct-encode streams changed. See "Compiler Semantics Cycle 102" and
-  "Compiler Research Cycle 102".
-- **Last successful calibration:** Cycle 102 (N1 + N2).
+- **Current target:** Cycle 103 -- built-in PACKAGE dependencies in
+  ordinary programs. Registry coverage landed: EXACT 28,523 -> 28,546
+  (+23), protected PASS, 0 EXACT -> non-EXACT. Built-in row lifetime
+  ("runs" unit) next. See "Compiler Semantics Cycle 103" and "Compiler
+  Research Cycle 103".
+- **Last successful calibration:** Cycle 103 registry.
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked: package
   canonical case in App Class type-path names (external package
   metadata); FIELDVALUE / XLAT*; undeclared-variable receivers;
   UNRESOLVED_EXTERNAL_CLASS_METADATA class rows; 2125, 24500, 24503, 19433.
-- **Next action:** PACKAGE rows, by first true mechanism (see "PACKAGE
-  rerank" under Compiler Research Cycle 102): built-in type rows first
-  (ORDERING 70 / stored opens, generated reuses 56 -- Record, Rowset,
-  SQL, ApiObject), after splitting the "external / missing" bucket into
-  unregistered built-in classes (Page, AnalyticInstance, TextCatalog,
-  JsonParser ...) vs genuinely external App Classes. Census before
-  editing.
-- **Newly established rules this session:** Cycle 102 decoder:
-  `ComponentLife` (0x79) closes a declaration section like `Component`;
-  an inline 0x4E comment directly before a declaration's `;` belongs to
-  that declaration; an inline comment yields its line ending to a 0x2D
-  that follows it after zero-width 0x42 markers; Cycle 101 decoder: section headers `private` /
-  `protected` end their line, `end-get` / `end-set` suppress the
-  redundant 0x2D newline like `end-method`; Cycle 100 App Class directory
-  hash-table order; Cycle 99 Declare Function identity REC.FIELD; Cycle 98
-  receiver types and member binding; Cycle 97 built-in object property
-  registry; Cycle 96 FIELD / SCROLL / RECORD.FIELD rows per allocation
-  unit, Declare Function rows program-wide; Cycle 95 RECORD rows per
-  allocation unit; the Cycle 94 allocation-unit rule for Application Class
-  rows, Global and parameter receivers, late initialized `Local array of
-  <Builtin>` group order; the Cycle 93 wildcard-row claim and
-  external-metadata fallback; the Cycle 92 rule; the Cycle 91 rules; Cycle
-  90; Cycle 89; Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84
-  rule B; Cycle 83 While gaps; the Cycle 82 rules.
+- **Next action:** land the built-in row lifetime (`builtinUnit`, the
+  "runs" model: 0 contradictions) -- measured +58 forward-exact alone, 107
+  lists closer / 0 farther. Then rerank PACKAGE.
+- **Newly established rules this session:** Cycle 103: every type declared
+  without a package path that stores PACKAGE.<TYPE> is a built-in and
+  every evidenced declaration context allocates its row (registry
+  extended); built-in row lifetime = the "runs" unit; Cycle 102 decoder:
+  `ComponentLife` closes a declaration section, an inline 0x4E comment
+  before a declaration's `;` belongs to it, an inline comment yields its
+  line ending to a 0x2D after zero-width 0x42 markers; Cycle 101 decoder:
+  `private` / `protected` end their line, `end-get` / `end-set` suppress
+  the redundant 0x2D newline; Cycle 100 App Class directory hash-table
+  order; Cycle 99 Declare Function identity REC.FIELD; Cycle 98 receiver
+  types and member binding; Cycle 97 built-in object property registry;
+  Cycle 96 FIELD / SCROLL / RECORD.FIELD rows per allocation unit, Declare
+  Function rows program-wide; Cycle 95 RECORD rows per allocation unit;
+  the Cycle 94 allocation-unit rule for Application Class rows, Global
+  and parameter receivers, late initialized `Local array of <Builtin>`
+  group order; the Cycle 93 wildcard-row claim and external-metadata
+  fallback; the Cycle 92 rule; the Cycle 91 rules; Cycle 90; Cycle 89;
+  Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
+  83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 103 -- built-in PACKAGE registry coverage
+
+**Result:** EXACT **28,523 -> 28,546 (+23)**, **0 EXACT -> non-EXACT**,
+protected 430/430, ROUNDTRIP_ONLY 0. LOCAL SNAPSHOT only.
+
+`BUILTIN_TYPE_REGISTRY` (`src/peoplecode/encoder.ts`), no lifetime change:
+
+- 22 new types: Page, JsonParser, Interlink, PostReport, Request, SOAPDoc,
+  IntBroker, CompositeQuery, BIDocs, IBInfo (local); Exception (local,
+  function-parameter); JsonObject / JsonArray / JsonBuilder (local, App
+  Class parameter); CubeCollection (local, global, component);
+  AnalyticInstance / AnalyticGrid (local, component); AnalyticModel
+  (component); RatingBoxChart (global); DocumentKey / Compound / Primitive
+  (local, function-parameter).
+- new contexts: SQL / ApiObject global; Chart component + global; Grid /
+  Message component; Field / ProcessRequest component + App Class
+  parameter; XmlDoc parameter + App Class parameter; File / JavaObject App
+  Class parameter; XmlNode function-parameter; Message local-array-element.
+
+Evidence: per-context census of programs where the type occurs in one
+context only -- the stored row is present in every one, for every entry
+and context added; none of the new names is ever stored as an Application
+Class row. Not added: Exception as an App Class METHOD parameter (10/10
+store a row, but the App Class declaration prepass lists `exception` as a
+scalar declaration type, so the row would be placed at the implementation
+instead of in class-header order -- 30206, App Class follow-up); array
+contexts with no registry kind yet (`Component array of`, `As array of`,
+`Returns array of`: 4470, 4861, 9986, 14341, 19433, 25290, 28161).
+
+| registry-only experiment | value |
+|---|---|
+| PSPCMNAME lists changed | 142: 141 closer, 0 farther, 1 same (19432: first FIELD now right, later differences unrelated) |
+| names-exact gained / lost | 103 / 0 |
+| forward-exact gained / lost | 23 / 0 |
+| non-PACKAGE and App Class PACKAGE generated sequences | unchanged in all 29,752 encodable definitions |
+
+Fixed by old category: ACTIVE_PACKAGE 14, ACTIVE_RECORD_FIELD 6,
+ACTIVE_SCROLL 1, COMPLETE_DOWNSTREAM 1, ACTIVE_FIELD 1. 82 more non-EXACT
+definitions moved category, mostly to COMPLETE_DOWNSTREAM (their PACKAGE
+rows now right). Tests: `src/test/encoderBuiltinPackage.test.ts` (6 fail
+at 6d591af, pass after; an Application Class `MY_PKG:Page` control).
+
+## Compiler Research Cycle 103 -- built-in PACKAGE identities and lifetime
+
+**Baseline reproduced fresh at `6d591af`:** 28,523 / 1,686, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only; no HCDEV, no DLL work.
+
+Tools: `cycle103-builtin-package-lifetime-census.ts` (positional census),
+`cycle103-builtin-package-unit-model.py` (model scorer).
+
+### Method
+
+A built-in PACKAGE row is never an operand. In an ordinary program whose
+non-PACKAGE rows align with the generated references (6,759 programs),
+each stored built-in row sits between two operand rows whose source
+offsets come from the encoder's referenceTrace; the built-in declaration
+events of that type inside the interval (comment / string-masked source
+scan: Local / Global / Component, scalar or `array of`, Function parameter,
+Returns) opened it. Generated rows are placed the same way.
+
+### Classification (stored row shape is ground truth)
+
+Stored PACKAGE rows carry PACKAGEROOT / QUALIFYPATH: `= <TypeName>` only
+for built-ins (9,943 rows), a package root for Application Classes, blank
+in older stores (18,820, either). The old "external / missing" bucket of
+185 definitions splits into: built-in, self-rooted row 54 (Page,
+RatingBoxChart, Exception, JsonObject, JsonArray, JsonParser, ...);
+built-in, bare declaration, no package anywhere 32 (AnalyticInstance,
+CubeCollection, AnalyticModel, AnalyticGrid, Request, SOAPDoc, ...);
+Application Class, source-visible in the snapshot 45 (TextCatalog,
+ObjectManager, CriteriaBase, ...); Application Class, external (not in
+the snapshot) 30 -- 12 of them with an EMPTY generated identity
+(`PACKAGE.`), a separate bug; unknown 30 (TreeControl, AppDataSetMgr,
+StyleSheet, ...).
+
+### Trigger
+
+Every declaration of a built-in type needs that type's row: the first
+declaration of a type in a program opens a stored row in every context
+(Local, Component, Global, parameter, Returns, array element, nested,
+initialized). Stored built-in rows with no declaration event in their
+interval: 22 corpus-wide (Rowset 7, Chart 6, Message 3, ...).
+
+### Lifetime -- the "runs" unit (0 contradictions)
+
+Reused within one unit, opened in a new one:
+
+- the leading top-level declaration section, closed by the first
+  executable statement / control structure or after the first initialized
+  declaration of ANY type (`Local boolean &b = False;` closes it: 4052,
+  22786, 26713), NOT by a Function definition: each Function starts a new
+  RUN (declarations after it share among themselves 7/7, never with an
+  earlier run 106/106 -- the Cycle 86 run structure of the `2D 4F` bytes);
+  a Function header (parameters, Returns) joins the run just before it
+  while the section is open (35/50 `local -> param` reuse), else is its
+  own unit;
+- otherwise each top-level statement (a control structure is one: nested
+  declarations in one structure share 120/121), each Function header,
+  each Function body statement / outermost body structure (consecutive
+  bare body Locals open one row each: Record 26/26, Rowset 20/20, ...).
+
+| model | event errors (17,063 determined) | interval mismatches (15,296, ambiguous incl.) |
+|---|---|---|
+| runs | 0 | 0 |
+| Cycle 94 unit (Function closes the section) | 8 | 19 |
+| encoder control-group pool | 460 | 285 |
+
+Same rule for all 35 types (Record, Row, Rowset, SQL, File, Field, XmlDoc,
+XmlNode, ApiObject, Grid, Message, ... and the unregistered ones).
 
 ## Compiler Semantics Cycle 102 -- decoder line-ending ownership before a 0x2D boundary
 
