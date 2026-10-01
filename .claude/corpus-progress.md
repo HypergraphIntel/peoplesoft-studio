@@ -1,16 +1,15 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-01, Cycle 110)
+## Current status (2026-10-01, Cycle 111)
 
-- **Current target:** Cycle 110 -- the PACKAGE-only App Class "external"
-  cluster was mostly a measurement artifact (both rerank tools encoded
-  without the type metadata the harness uses); the real residue is 7
-  programs blocked by classes absent from the snapshot and 3 built-in
-  registry gaps, now fixed (Collection, Document, Map + 4). EXACT 28,663
-  (no change), protected PASS, 0 EXACT -> non-EXACT. See "Compiler
-  Semantics Cycle 110".
-- **Last successful calibration:** Cycle 110 (built-in registry:
-  Collection, Document, Map, JsonNode, Response, CQRuntime, Crypt).
+- **Current target:** Cycle 111 -- the 14 ordinary PACKAGE-only
+  "ordering" programs were no ordering error: 9 fallback programs, 3
+  Function-header rows, 1 catch receiver, 1 cast. Later Function headers
+  are their own allocation unit, `Returns <Class>` uses its class, catch
+  variables are receivers. EXACT 28,663 -> 28,664 (25033), protected
+  PASS, 0 EXACT -> non-EXACT. See "Compiler Semantics Cycle 111".
+- **Last successful calibration:** Cycle 111 (Function-header unit,
+  Returns class rows, catch receivers).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked: package
   canonical case in App Class type-path names (external package
@@ -24,14 +23,23 @@
   (1 element call, unregistered); hidden rows behind classes absent from
   the snapshot (28731 PTWIDGETS, 28968 EnrollElect, 29230
   WCS_LOOKUPTABLE, 29567 PTCBAPPLSVCDEFN, 29598 EOAW_CORE, 29715 / 29725
-  EOEN_EVENT_MANAGER -- need metadata the local snapshot lacks); 2125,
+  EOEN_EVENT_MANAGER -- need metadata the local snapshot lacks); ordinary
+  `As` casts (6 agree with "a cast uses its class in the unit", 4 store
+  no row: 18110, 19528, 20687, 14919 -- no discriminator yet); 2125,
   24500, 24503, 19433.
-- **Next action:** ordinary-program Application Class row ORDERING (14
-  PACKAGE-only programs, e.g. 13517, 13522, 13523, 14636, 14707, 14899,
-  14919, 15540, 15800, 20754) -- census first; see "PACKAGE rerank after
-  Cycle 110". The fallback wildcard over-claim stays parked (correct rule,
-  masked in 13525 by a missing external method row).
-- **Newly established rules this session:** Cycle 110: Collection,
+- **Next action:** the Cycle 93 fallback population -- 46 of the 79
+  PACKAGE-only programs are encoded without allocation units because a
+  receiver's class metadata is absent (wildcard over-claim 13517 / 13522
+  / 13523 / 25337, fallback-model declaration rows 14636, 14707, 20754,
+  25504, 25506, ...); census which rows the fallback model gets wrong vs
+  which need the absent metadata. See "PACKAGE rerank after Cycle 111".
+  The fallback wildcard over-claim stays parked (13525).
+- **Newly established rules this session:** Cycle 111: in ordinary
+  programs a Function header after the leading section is its own
+  allocation unit; `Returns <Class>` uses its class there; a catch
+  variable is a receiver (the clause allocates nothing); a PACKAGE
+  difference is ORDERING only when both sides hold equal row counts;
+  Cycle 110: Collection,
   Document, Map, JsonNode, Response, CQRuntime, Crypt are built-in object
   types (self-rooted rows; a short name wins over a wildcard-imported
   class); rerank tools must encode with the harness's metadata; Cycle 109: in an
@@ -76,6 +84,85 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 111 -- Function headers and catch receivers (ordinary programs)
+
+**Baseline reproduced fresh at `3c33706`:** 28,663 / 1,546, protected
+430/430, taxonomy row-identical, sweep identical; PACKAGE census 86 / 164
+(metadata), 104 / 199 (`--no-metadata` control). **Result:** EXACT
+**28,663 -> 28,664 (+1, 25033)**, **0 EXACT -> non-EXACT**, protected
+430/430, ROUNDTRIP_ONLY 0. LOCAL SNAPSHOT only.
+
+### Research (8ca0da9)
+
+The 14 ordinary PACKAGE-only "ordering" programs, traced row by row
+(harness context):
+
+| group | programs | what is wrong |
+|---|---|---|
+| Cycle 93 fallback (no allocation units) | 13517, 13522, 13523, 25337 | wildcard over-claim: one blank row per wildcard import (parked) |
+| | 14636, 14707, 20754, 25504, 25506 | fallback-model declaration rows (Component / leading Local) |
+| Function header (too late) | 14899, 15540, 15800 | a later Function's App Class parameter: stored opens at the header, the encoder reused the previous Function's last-statement row |
+| catch receiver (missing) | 25033 | `catch ...:PageletException &EX` then `&EX.GetSubstitution(...)` |
+| cast (extra) | 14919 | `(&DiagnosticObj As PT_DIAGNOSTICS:PTDiagnostics).Where`: no stored row |
+
+No identity was wrong; no genuine ordering error remained. The rerank's
+ORDERING label had called missing / extra rows ordering whenever the row
+existed later on the other side; it now requires equal row counts (and
+tags fallback programs, via the new observational hook
+`onExternalMetadataFallback`): ORDERING 111 -> 67 of 164 first PACKAGE
+differences; 46 of 86 PACKAGE-only programs are fallback programs.
+
+`cycle111-class-row-event-census.ts` (unit-encoded ordinary programs,
+positional truth):
+
+| event | stored vs committed encoder |
+|---|---|
+| after-function header parameter, encoder opened | 45 agree |
+| after-function header parameter, encoder reused | 5 / 5 stored opens (14899, 15540, 15800, 18110, 24546) |
+| leading-section header parameter | 6 agree (14356 reuses an imported class) |
+| `Returns <Class>` | encoder never allocated; stored opens in the header unit (2116, 2158) |
+| catch with a method call on the variable | 9 / 9 stored row (method row: 10567 APPCLASSMETHOD OUTPUT) |
+| catch without one | 7 / 7 no row |
+| cast | 6 agree, 4 over-allocate (18110, 19528, 20687, 14919) -- parked |
+
+### Semantics (8ef93c5, f7a45e3)
+
+- A Function definition after the leading section starts a new
+  allocation unit for its header; `Returns <Package:Class>` uses its
+  class there. 8 lists closer, 0 farther (7 names-exact).
+- A `catch <Package:Class> &ex` variable is a receiver (the clause
+  allocates nothing). 7 lists closer, 0 farther (7 names-exact, 25033
+  EXACT).
+
+Combined: 15 lists closer, 0 farther, all ordinary; non-PACKAGE and
+built-in PACKAGE sequences unchanged; diagnostics-only identical to no
+metadata; fallback 63 -> 63 (13525 EXACT); every header and catch event
+of the event census now agrees with stored.
+
+## PACKAGE rerank after Cycle 111
+
+(metadata, refined labels) PACKAGE-only 86 -> 79; first PACKAGE
+difference 164 -> 157 (ORDERING 67, STORED_REUSES 39, MISSING 27,
+STORED_OPENS 23, EXTRA 1); `--no-metadata` control 99 / 194.
+
+| bucket | first-PACKAGE (package-only) |
+|---|---|
+| Cycle 93 fallback programs | 47 (46) |
+| App Class ORDERING | 40 (2) |
+| built-in | 32 (10) |
+| method-dependency rows | 14 (6) |
+| App Class missing (blocked by absent metadata) | 11 (6) |
+| ordinary class stored-reuses | 6 (6) |
+| other | 7 (3) |
+
+Categories: COMPLETE_DOWNSTREAM 580, UNSUPPORTED_SYNTAX 335,
+ENCODE_ERROR 122, ACTIVE_PACKAGE 107, ACTIVE_FIELD 90, ACTIVE_RECORD 84,
+DECODE_SOURCE_MISMATCH 82, ACTIVE_RECORD_FIELD 39, ACTIVE_OTHER 39,
+DECODER_BARE_IDENTIFIER 26, STRUCTURAL_ORDERING 20, ACTIVE_SCROLL 13,
+QUOTED_COMPONENT 8.
+
+Next: the Cycle 93 fallback population (46 PACKAGE-only).
 
 ## Compiler Semantics Cycle 110 -- the "external" App Class cluster, re-measured; built-in registry gaps
 
