@@ -2,25 +2,33 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 106 -- `%metadata` imports contribute no
-  PSPCMNAME row and do not take the first-wildcard claim. EXACT 28,614 ->
-  28,615 (+1), protected PASS, 0 EXACT -> non-EXACT. See "Compiler
-  Semantics Cycle 106". (Cycle 105: the fallback wildcard over-claim stays
-  parked behind 13525.)
-- **Last successful calibration:** Cycle 106 (`%metadata` imports).
+- **Current target:** Cycle 107 -- snapshot Application Class type
+  metadata (optional provider) types hidden property / method-result
+  receivers in ORDINARY programs. EXACT 28,615 -> 28,635 (+20), protected
+  PASS, 0 EXACT -> non-EXACT, fallback 102 -> 63 (13525 stays). See
+  "Compiler Semantics Cycle 107". Application Class programs parked (their
+  method-row lifetime is unmodeled).
+- **Last successful calibration:** Cycle 107 (ordinary-program type
+  metadata).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked: package
   canonical case in App Class type-path names (external package
   metadata); FIELDVALUE / XLAT* (18989 too); undeclared-variable
-  receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class rows (incl. 2096,
-  2097, 2167, 2175, 2194, 14162, 18236, 19877, 23068, 23402); the fallback
-  wildcard over-claim (25 programs, blocked by 13525 -- Cycle 105); 2125,
-  24500, 24503, 19433.
-- **Next action:** see "PACKAGE rerank after Cycle 106" (next: a snapshot
-  class-metadata provider for the 54 source-hidden App Class rows); the fallback
-  wildcard over-claim stays parked (correct rule, masked in 13525 by a
-  missing external method row).
-- **Newly established rules this session:** Cycle 106: an import rooted
+  receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class rows for classes
+  absent from the snapshot (14162, 19877, 23068, 23402 ...); the fallback
+  wildcard over-claim (19 programs still in the fallback, blocked by 13525
+  -- Cycle 105); provider hooks in Application Class programs (Cycle 107);
+  2125, 24500, 24503, 19433.
+- **Next action:** Application Class method-dependency row lifetime (the
+  blocker for enabling type metadata in App Class programs: 75 resolvable
+  hidden rows) -- census before editing; see "PACKAGE rerank after Cycle
+  107". The fallback wildcard over-claim stays parked (correct rule, masked
+  in 13525 by a missing external method row).
+- **Newly established rules this session:** Cycle 107: in ordinary
+  programs a property / method-result step on a known Application Class
+  receiver takes the class its declaration (own or inherited, snapshot
+  metadata) names; a resolved non-class result is not external metadata;
+  Cycle 106: an import rooted
   at `%metadata` allocates no PSPCMNAME row and does not take the
   first-wildcard claim; Cycle 104: ComponentLife
   Application Class variables and elements of `array of <Class>` are
@@ -45,6 +53,102 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 107 -- snapshot Application Class type metadata (ordinary programs)
+
+**Baseline reproduced fresh at `0d9910b`:** 28,615 / 1,594, gate PASS,
+taxonomy row-identical. **Result:** EXACT **28,615 -> 28,635 (+20)**, **0
+EXACT -> non-EXACT**, protected 430/430, ROUNDTRIP_ONLY 0. LOCAL SNAPSHOT
+only.
+
+### Architecture (19d4cd3)
+
+- `src/peoplecode/applicationClassTypeMetadata.ts` -- pure, optional
+  provider over class definitions (path + source), parsed lazily with
+  `parseApplicationClassSource`: `memberType(class, member)` /
+  `methodReturnType(class, method)`, own declaration first then the
+  nearest ancestor (`extends`, cycle-safe). Written types resolve through
+  the DECLARING class's imports: qualified path; named import; a short name
+  only when exactly one available class matches in its package or a
+  wildcard-imported one; built-in object types (`isBuiltinObjectTypeName`,
+  the encoder's registry) win over same-named classes. Anything uncertain
+  answers undefined. It never allocates.
+- `tools/corpus/snapshot/applicationClassTypeMetadata.ts` -- the snapshot's
+  1,510 Application Classes (1,506 parse) as provider input, one provider
+  per process. The encoder never opens SQLite.
+- Snapshot consistency: 1,905 / 1,917 App-Class-typed declarations parsed
+  from class sources appear in the class's own compiled type-path names;
+  the 12 others are 29585's `Returns Rowset` -- the BUILT-IN Rowset despite
+  an imported G3FORM:TAGS:Rowset (hence built-in precedence).
+
+### Semantics (b9897eb)
+
+Encoder (`applicationClassTypeMetadata` context field, ordinary programs
+only): a `.Prop` step or `.M(...)` result on a known Application Class
+receiver takes the declared class as the next receiver; the existing Cycle
+94 allocator opens that class's method row. A resolved non-class type ends
+the chain without counting as external metadata; an unresolved step keeps
+the Cycle 93 accounting. `applicationClassTypeMetadataTrace` /
+`...DiagnosticsOnly` for research (the trace follows the two-pass
+buffering). Harness: `ValidationOptions.applicationClassTypeMetadata`,
+one encode context for TEST A and TEST B; `corpus-runner` builds the
+provider once for every local run; the taxonomy tool likewise.
+
+| measure | value |
+|---|---|
+| diagnostics-only vs no provider | byte- and list-identical (29,752 definitions) |
+| broad experiment (all programs) | 112 lists: 70 closer, 30 farther, 12 same; +33 forward-exact |
+| -- ordinary programs | 38 changed, 38 closer, 0 farther, +20 forward-exact |
+| -- Application Class programs | 74 changed, 32 closer, 30 farther, +13 |
+| App Class hooks alone | `%Super` 8 closer / 11 farther; `%This` property 13 / 8; typed receivers 0 / 7; `%This` result 0 changed |
+| landed (ordinary only) | 38 lists, 38 closer, 0 farther; names-exact +34; 23 byte changes |
+| fallback population | 102 -> 63: 39 leave, 0 enter; 13525 stays (its classes are not in the snapshot) and EXACT |
+| non-PACKAGE / built-in PACKAGE generated rows | unchanged in all 29,752 encodable definitions |
+| provider consultations (single pass) | class 386, other type 4,906, unresolved 7,624 |
+
+Newly EXACT: 2096, 2097, 2131, 2166, 2167, 2169, 2175, 2178, 2194, 17668,
+17671, 17673, 17680, 17681, 17682, 17757, 17767, 18236, 18362, 19889
+(ACTIVE_PACKAGE 7, ACTIVE_SCROLL 6, ACTIVE_RECORD_FIELD 6,
+STRUCTURAL_ORDERING 1). 12 already-EXACT programs became names-exact too
+(e.g. 2091, 10562, 23457); 18 still non-EXACT moved closer (2125 21 -> 1).
+2169, 17757, 17767 were parked behind the fallback (Cycle 93 / 105): they
+leave it because their property chains now resolve.
+
+Why Application Class programs stay off: typed results expose a method-row
+LIFETIME the class-wide allocator lacks -- 28927 calls
+`%Super.TxtCat.getSimpleTextPlan(...)` twelve times and stores ONE
+TEXTCATALOG row; with the provider the allocator opened twelve. Identity
+right, lifetime missing (stop condition D).
+
+Tests: `applicationClassTypeMetadata.test.ts` (provider: own, inherited,
+shadowed, named / wildcard / qualified, built-in, ambiguous, unavailable,
+cycle), `encoderTypeMetadata.test.ts` (property and result typing,
+built-in / unavailable members, diagnostics-only identity, App Class
+programs unaffected).
+
+## PACKAGE rerank after Cycle 107
+
+`cycle102-package-mechanism-census.ts` at b9897eb (1,574 NONEXACT):
+PACKAGE-only 157 -> 138; first difference is a PACKAGE row 253 -> 233
+(ORDERING 134, MISSING 65, STORED_REUSES 23, STORED_OPENS 10, WRONG 1).
+
+| bucket | definitions (package-only) |
+|---|---|
+| hidden-class / genuine external / unknown | 89 (64) |
+| App Class wildcard / self ordering | 51 (16) |
+| built-in residual | 40 (15) |
+| other ordering | 18 (14) |
+| method-dependency rows | 18 (14) |
+| fallback wildcard over-claim (parked) | 10 (9) |
+| named-import stored-opens (parked) | 5 (4) |
+
+Hidden Application Class rows in NONEXACT programs
+(`cycle107-app-class-metadata-census.ts`): 147 -> 138; ordinary resolvable
+13 -> 4, ordinary unresolved 25 (classes absent from the snapshot);
+Application Class resolvable 75 (parked), unresolved 34.
+
+Next: Application Class method-dependency row lifetime -- the blocker for
+the 75 resolvable App Class rows.
 
 ## PACKAGE rerank after Cycle 106
 
