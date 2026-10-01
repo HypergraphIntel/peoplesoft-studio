@@ -152,6 +152,12 @@ End-Function;
 });
 
 test('Function metadata points Application Class descriptors into its name trailer', () => {
+  /*
+   * Cycle 113: one trailer name per use -- the return type's `PKG:Type` at
+   * char offset 9, then the parameter's own `PKG:Type` at 18 (14352
+   * `InsertNode(..., &NodePar As ADSM:ADSMTreeNode, ...) Returns
+   * ADSM:ADSMTreeNode` stores the class twice).
+   */
   const program = encodeProgram(`
 Function AppTypes(&value As PKG:Type) Returns PKG:Type;
    Return &value;
@@ -161,7 +167,7 @@ End-Function;
   assert.deepStrictEqual(
     program.subarray(program.length - 8),
     Buffer.from([
-      0x09, 0x01, 0x08, 0xc0,
+      0x12, 0x01, 0x08, 0xc0,
       0x07, 0x00, 0x00, 0x00
     ])
   );
