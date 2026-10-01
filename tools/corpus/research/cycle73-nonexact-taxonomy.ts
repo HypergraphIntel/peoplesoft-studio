@@ -44,6 +44,7 @@ import path from 'node:path';
 import { openSnapshotDatabase } from '../snapshot/store';
 import { listSnapshotDefinitions } from '../snapshot/reader';
 import { validateDefinition } from '../validator';
+import { snapshotApplicationClassTypeMetadata } from '../snapshot/applicationClassTypeMetadata';
 import { encodeProgramArtifacts } from '../../../src/peoplecode/encoder';
 import type { CorpusDefinition } from '../classifications';
 
@@ -293,6 +294,8 @@ function classifyPrimary(
 async function main(): Promise<void> {
   const db = openSnapshotDatabase();
   const allDefs = listSnapshotDefinitions(db);
+  // Cycle 107: the same snapshot class metadata `corpus:verify` gives the encoder.
+  const applicationClassTypeMetadata = snapshotApplicationClassTypeMetadata(db);
   console.log(`Total definitions: ${allDefs.length}`);
 
   const rows: TaxonomyRow[] = [];
@@ -337,7 +340,7 @@ async function main(): Promise<void> {
 
     let result;
     try {
-      result = await validateDefinition(capture as any);
+      result = await validateDefinition(capture as any, { applicationClassTypeMetadata });
     } catch (e) {
       rows.push({
         definitionId: def.definitionId,

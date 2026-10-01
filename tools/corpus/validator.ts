@@ -5,6 +5,10 @@ import {
   ReferenceTraceEvent
 } from '../../src/peoplecode/encoder';
 
+import type {
+  ApplicationClassTypeMetadataProvider
+} from '../../src/peoplecode/applicationClassTypeMetadata';
+
 import {
   decodeProgram
 } from '../../src/peoplecode/decoder';
@@ -154,6 +158,12 @@ export function sha256(
 export interface ValidationOptions {
   traceRefs?: boolean;
   verbose?: boolean;
+  /**
+   * Cycle 107: Application Class type metadata (e.g. from the local
+   * snapshot) for the encoder. One context carries it to both the source
+   * encode (TEST A) and the roundtrip re-encode (TEST B).
+   */
+  applicationClassTypeMetadata?: ApplicationClassTypeMetadataProvider;
 }
 
 function referenceDescription(
@@ -516,7 +526,9 @@ function runValidation(
       // definitions (see PeopleCodeOwner's own comment); harmless and
       // unused for ordinary Record.Field-owned PeopleCode.
       packagePath
-    }
+    },
+    applicationClassTypeMetadata:
+      options.applicationClassTypeMetadata
   };
 
   const sourceTrace =
