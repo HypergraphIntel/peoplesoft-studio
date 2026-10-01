@@ -1,15 +1,15 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-01)
+## Current status (2026-10-01, Cycle 109)
 
-- **Current target:** Cycle 108 -- Application Class method-dependency
-  rows have PROGRAM lifetime (one row per class name per Application Class
-  program); type metadata enabled there for `%Super.<property>` and
-  `%This.<property>`. EXACT 28,635 -> 28,654 (+19), protected PASS, 0
-  EXACT -> non-EXACT, fallback 63 -> 63 (13525 stays, EXACT). See
-  "Compiler Semantics Cycle 108".
-- **Last successful calibration:** Cycle 108 (App Class program rows,
-  nested App Class Locals, %Super / %This property metadata).
+- **Current target:** Cycle 109 -- the fully indexed element of an
+  `array of <Class>` value is a receiver in Application Class bodies, and
+  type metadata types every chain step there (typed receivers, results).
+  EXACT 28,654 -> 28,663 (+9), protected PASS, 0 EXACT -> non-EXACT,
+  fallback 63 -> 63 (13525 stays, EXACT). See "Compiler Semantics Cycle
+  109".
+- **Last successful calibration:** Cycle 109 (App Class array-element
+  receivers, declared-variable receivers, typed chain steps).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked: package
   canonical case in App Class type-path names (external package
@@ -17,17 +17,23 @@
   receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class rows for classes
   absent from the snapshot (14162, 19877, 23068, 23402 ...); the fallback
   wildcard over-claim (19 programs still in the fallback, blocked by 13525
-  -- Cycle 105); typed-receiver / method-result metadata steps in
-  Application Class programs (29109: array-element receivers untyped
-  there; Cycle 108); 29797 / 29883 (every row repeats); 30192 (parameter
-  receivers reopen per body, unexplained); 2125, 24500, 24503, 19433.
-- **Next action:** Application Class array-element receivers (`&arr [i]`
-  of an `array of <Class>` Local / parameter in an App Class body) -- the
-  blocker for the typed-receiver metadata step there (29109) and most of
-  the 17 still-missing resolvable hidden rows; census first. See "PACKAGE
-  rerank after Cycle 108". The fallback wildcard over-claim stays parked
-  (correct rule, masked in 13525 by a missing external method row).
-- **Newly established rules this session:** Cycle 108: in an
+  -- Cycle 105); `%This` method results (no evidenced change); 29797 /
+  29883 (every row repeats); 30192 (parameter receivers reopen per body,
+  unexplained); ordinary `Function` parameters `As array of <Class>`
+  (1 element call, unregistered); 2125, 24500, 24503, 19433.
+- **Next action:** the PACKAGE-only "external" Application Class family
+  (24 definitions: 15 missing identity, 9 ordering -- e.g. the
+  BEN_EE_DATA_FL cluster 28874-28885); census first. Every resolvable
+  hidden App Class row of an encodable program is now generated. See
+  "PACKAGE rerank after Cycle 109". The fallback wildcard over-claim stays
+  parked (correct rule, masked in 13525 by a missing external method row).
+- **Newly established rules this session:** Cycle 109: in an
+  Application Class body the element of an `array of <Class>` value
+  (Local, parameter, instance, property, Component / Global, or a
+  metadata property / result) is a receiver once every array level is
+  indexed; declared variables (parameters, instances, properties,
+  Component / Global) are receivers; metadata types every chain step
+  (ordinary programs keep metadata arrays unmodeled); Cycle 108: in an
   Application Class program a class has ONE PACKAGE row (keyed by class
   NAME): the first type or method-call occurrence opens it, all later ones
   reuse it, across bodies / statements / called methods; APPCLASSMETHOD is
@@ -63,6 +69,112 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 109 -- Application Class array-element receivers and typed chain steps
+
+**Baseline reproduced fresh at `b9742cf`:** 28,654 / 1,555, protected
+430/430, taxonomy row-identical, sweep identical to Cycle 108's.
+**Result:** EXACT **28,654 -> 28,663 (+9)**, **0 EXACT -> non-EXACT**,
+protected 430/430, ROUNDTRIP_ONLY 0. LOCAL SNAPSHOT only.
+
+### Research (d3ebebd)
+
+`cycle109-app-class-array-receiver-census.ts`: 6,167 array declarations
+(primitive 4,557, class 1,046, built-in 550, untyped 14). The 1,046
+`array of <App Class>` declarations are all QUALIFIED (no short-name
+resolution needed): 916 in Application Class programs (Local 427,
+method parameter 129, Returns 118, instance 92, property 70, Component
+9, Global 1), 130 ordinary (Component 46, Local 74, Function parameter
+10); depth 1 except 8 (depth 2). App Class uses: 4,861, fully indexed
+1,703 (method call 276, property 1,068), array members (`.Len`,
+`.Push`) 1,339, never over-indexed. Fully indexed element calls with
+positional truth: the 43 encodable already match stored -- the element
+class's declaration row exists (35 stored reuse / 35) or the call opens
+(7 / 7), generated identical; 233 are in programs that do not encode.
+Ordinary: Cycle 94 units hold; 1 `Function` parameter array element
+call stores a row the encoder misses (unregistered, parked).
+
+The 17 resolvable hidden App Class rows still missing after Cycle 108:
+method results on typed Locals (5: 29320, 29452, 29474, 29542 x2),
+multi-hop `%This` chains (7: 29948, 29990, 29997 x2, 30116, 30121,
+30124), typed-variable property chains (5: 30047 x3, 30126, 30130) --
+none an array element; all need the typed chain step, which 29109
+blocked.
+
+### Semantics (3a4d19d, 1a45f9e)
+
+- Provider: `{ kind: 'array', element, depth }` for an array of an
+  available class; arrays of built-ins / primitives stay `other`; an
+  unresolvable element answers undefined. Ordinary programs map arrays to
+  undefined (Cycle 107 accounting unchanged).
+- Encoder: one pending-array-element state (generalizing Cycle 104's
+  base-variable form): each index group consumes a level, the last one
+  yields the receiver, a member of the array ends it. App Class bodies
+  register Local arrays at any depth and receive their declared
+  variables (instances, properties `&Name`, Component / Global of the
+  program, the method's parameters; qualified or named-import types);
+  %Super / %This / typed property steps and method results that are
+  arrays feed the same state. Own array properties come from the source
+  header first.
+- Every metadata chain step in App Class programs (typed receivers,
+  method results); declared scalar variables are receivers. `%This`
+  method results stay untyped.
+
+| experiment (vs b9742cf) | changed | closer | farther | same | forward-exact |
+|---|---|---|---|---|---|
+| array elements only | 1 | 1 (30127) | 0 | 0 | 0 |
+| + declared scalars | 1 | 1 | 0 | 0 | 0 |
+| typed steps, no arrays | 24 | 23 | 1 (29109) | 0 | +4 |
+| typed + declared scalars, no arrays | 38 | 37 | 1 (29109) | 0 | +8 |
+| arrays + typed steps | 27 | 26 | 0 | 1 | +5 |
+| **landed: arrays + scalars + typed** | **41** | **40** | **0** | **1** (29109) | **+9** |
+
+29109: `&factors` is the parameter `As array of CAFNUI_CORE:OBJECT:Factor`;
+`&factors [&f].FactorHandler.GetFactorDisplays(...)` (Factor.FactorHandler
+-> CAFNUI_API:FactorHandler) opens FACTORHANDLER (stored 76,
+APPCLASSMETHOD GETFACTORDISPLAYS) right after FACTORDISPLAY, now as
+stored ("same" distance only because the list has unrelated RECORD /
+FIELD excess). 29182: `%This.Configuration.ComparisonHandler.SetInitSession`
+types through the committed %This hook plus the typed step.
+
+Newly EXACT: 29182, 29452, 29474, 29504, 29542, 30116, 30121, 30126,
+30130. Invariants (29,752): non-PACKAGE and built-in PACKAGE sequences
+unchanged; diagnostics-only identical to no metadata; no-metadata output
+identical to Cycle 108; ordinary fallback 63 -> 63, 13525 EXACT; all 41
+changed lists are App Class programs; 29422, 29374, 29797, 29883, 30192
+untouched (30047 closer).
+
+Context matrix (App Class bodies): Local / nested Local / method
+parameter / instance / property / Component / Global -- element known
+from source, indexed receiver works; method result, snapshot property,
+snapshot method return -- element from metadata, works through the
+metadata steps. Ordinary: Cycle 104 Local / Component / Global; Function
+parameters not registered.
+
+## PACKAGE rerank after Cycle 109
+
+`cycle102-package-mechanism-census.ts` at 1a45f9e (1,546 NONEXACT):
+PACKAGE-only 118 -> 109; first difference is a PACKAGE row 213 -> 204
+(ORDERING 129, MISSING 41, STORED_REUSES 23, STORED_OPENS 10, WRONG 1).
+
+| bucket | definitions (package-only) |
+|---|---|
+| hidden-class / genuine external / unknown | 73 (48) |
+| built-in residual | 40 (15) |
+| App Class wildcard / self ordering | 39 (3) |
+| other ordering | 18 (14) |
+| method-dependency rows | 17 (14) |
+| fallback wildcard over-claim (parked) | 10 (9) |
+| named-import stored-opens (parked) | 5 (4) |
+| other (19433, 24647) | 2 (2) |
+
+External package-only: App Class missing 15 (28731, 28880, 28882,
+28927, 28933, ...), App Class ordering 9 (28874, 28875, 28883, 28884,
+28885, 28931, 29530, 29531, 29880), ordinary ordering 16, ordinary
+missing 8. Hidden App Class rows in NONEXACT programs: 129 / 103 -> 120
+/ 95; every resolvable one in an encodable program is generated (33),
+29 sit in programs that do not encode; the 58 unresolved name classes
+absent from the snapshot or undeclared members.
 
 ## Compiler Semantics Cycle 108 -- Application Class method-dependency rows have program lifetime
 
