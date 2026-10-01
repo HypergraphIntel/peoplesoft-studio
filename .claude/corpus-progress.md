@@ -1,42 +1,54 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-01, Cycle 112)
+## Current status (2026-10-01, Cycle 113)
 
-- **Current target:** Cycle 112 -- the Cycle 93 external-metadata
-  fallback keeps the allocation-unit model; only its per-wildcard blank
-  row claim remains (13525's compensation, the parked Cycle 105
-  correction). EXACT 28,664 -> 28,671 (+7), protected PASS, 0 EXACT ->
-  non-EXACT, fallback membership 63 -> 63 (13525 EXACT). See "Compiler
-  Semantics Cycle 112".
-- **Last successful calibration:** Cycle 112 (allocation units in the
-  external-metadata fallback).
+- **Current target:** Cycle 113 -- REFERENCE_COMPLETE_DOWNSTREAM byte
+  rules (reference lists exact, bytes not). Census tool
+  `cycle113-complete-downstream-census.ts`; 14 byte rules landed. EXACT
+  28,671 -> 29,159 (+488), protected PASS, 0 EXACT -> non-EXACT in every
+  commit, no PSPCMNAME change, fallback 63 (13525 EXACT),
+  COMPLETE_DOWNSTREAM 580 -> 94. See "Compiler Semantics Cycle 113".
+- **Last successful calibration:** Cycle 113 (Function metadata writes
+  one class type name per use).
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** none newly blocked. Parked: package
-  canonical case in App Class type-path names (external package
-  metadata); FIELDVALUE / XLAT* (18989 too); undeclared-variable
+- **Locally blocked definitions:** none newly blocked. Parked (Cycle
+  113): row-shorthand record resolution `GetRow(n).X.Y` -- stored 0x4A
+  (resolved record, uppercased) or 0x0A (source case) depending on whether
+  X names a real record: needs a record catalog the snapshot lacks (25
+  programs: 4269, 4440, 5931, 29004, 29169, ...); the unterminated last
+  `end-method` (13 programs: +8 exact, but restoring the dropped method
+  changes PSPCMNAME for 29894 -- distance 18 -> 1 -- and exposes 29560's
+  `;;` in an If body as ENCODE_ERROR; land with empty-statement support);
+  sub-package canonical case in type-path names (28942). Earlier parks
+  unchanged: FIELDVALUE / XLAT* (18989 too); undeclared-variable
   receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class rows for classes
   absent from the snapshot (14162, 19877, 23068, 23402 ...); the fallback
-  wildcard over-claim (19 programs still in the fallback, blocked by 13525
-  -- Cycle 105); `%This` method results (no evidenced change); 29797 /
-  29883 (every row repeats); 30192 (parameter receivers reopen per body,
-  unexplained); ordinary `Function` parameters `As array of <Class>`
-  (1 element call, unregistered); hidden rows behind classes absent from
-  the snapshot (28731 PTWIDGETS, 28968 EnrollElect, 29230
-  WCS_LOOKUPTABLE, 29567 PTCBAPPLSVCDEFN, 29598 EOAW_CORE, 29715 / 29725
-  EOEN_EVENT_MANAGER -- need metadata the local snapshot lacks); ordinary
-  `As` casts (6 agree with "a cast uses its class in the unit", 4 store
-  no row: 18110, 19528, 20687, 14919 -- no discriminator yet); 2125,
+  wildcard over-claim (blocked by 13525 -- Cycle 105); `%This` method
+  results; 29797 / 29883; 30192; ordinary `Function` parameters `As array
+  of <Class>`; hidden rows behind classes absent from the snapshot (28968
+  EnrollElect, 29230 WCS_LOOKUPTABLE, 29598 EOAW_CORE, 29715 / 29725
+  EOEN_EVENT_MANAGER; 28731 and 29567 were decode artefacts -- both are
+  now EXACT); ordinary `As` casts (18110, 19528, 20687, 14919); 2125,
   24500, 24503, 19433.
-- **Next action:** PACKAGE-only residue is now mostly blocked: 39 of 72
-  are external-metadata programs (missing rows of classes absent from the
-  snapshot, and the parked over-claim). Remaining source-local families:
-  built-in (10 PACKAGE-only), ordinary class stored-reuses (6: 17893,
-  18110, 18372, 19155, 22665, 22673), ordinary method-dependency rows
-  (6); snapshot-local: known array types mapped to "unresolved" in
-  ordinary programs (19433, 24500, 24503). Beyond PACKAGE, the largest
-  category is COMPLETE_DOWNSTREAM (580). See "PACKAGE rerank after Cycle
-  112".
-- **Newly established rules this session:** Cycle 112: a program with
+- **Next action:** empty statements (`;;`) outside For bodies: 89
+  ordinary ENCODE_ERROR programs stop at a stray `;` (If / Function /
+  While bodies; the For body already keeps a lone 0x15) -- census the
+  stored 0x15 placement, then land it together with the parked
+  unterminated-closer rule (29560 needs both). COMPLETE_DOWNSTREAM
+  residue (94) has no family above 8 except the parked 0x0A / 0x4A
+  record-resolution one. See "COMPLETE_DOWNSTREAM rerank after Cycle 113".
+- **Newly established rules this session:** Cycle 113: only primitive
+  type names are keywords (0x40); a block comment's opcode is its
+  placement; same-line comments precede a header's / closer's 0x2D; the
+  `array of Pkg:Class` element type is written; a type-path name's root is
+  uppercase / `%Metadata`; declaration runs at program end close only
+  without an initialized Local (a Local-only run closes), and close before
+  `<*`; a Function inside `<* *>` is not a function; every Evaluate, For
+  and Repeat site keeps one 0x4F per blank line (the "exactly one" rules
+  were single-blank-line artefacts); no declaration 0x2D in App Class
+  method bodies; App Class programs keep blank lines without compiled
+  references; Function metadata writes one class type name per use
+  (returns first, then parameters); Cycle 112: a program with
   unresolved external class metadata keeps every allocation-unit rule;
   only each wildcard import claiming a blank row differs (parked
   compensation); Cycle 111: in ordinary
@@ -89,6 +101,100 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 113 -- REFERENCE_COMPLETE_DOWNSTREAM byte rules
+
+**Baseline reproduced fresh at `119893a`:** 28,671 / 1,538, protected
+430/430, taxonomy row-identical, fallback membership 63 (13525 in it),
+REFERENCE_COMPLETE_DOWNSTREAM 580 (414 ordinary / 166 Application
+Class), every one reference-exact. **Result:** EXACT **28,671 ->
+29,159 (+488)**, **0 EXACT -> non-EXACT** in every commit, protected 430/430,
+ROUNDTRIP_ONLY 0, fallback 63 (13525 EXACT), no PSPCMNAME list change in
+any commit. COMPLETE_DOWNSTREAM 580 -> 94. LOCAL SNAPSHOT only.
+
+### Research (6d78242)
+
+`cycle113-complete-downstream-census.ts` encodes each COMPLETE_DOWNSTREAM
+program as the harness does, re-checks the reference list, decodes both
+PSPCMPROG streams with the stored name table and classifies the FIRST
+differing token: inserted / missing / marker-count / operand /
+substituted / tail / outside (token streams equal, bytes differ in the
+header / directory / trailer). Baseline shapes: substituted 224, missing
+177, marker-count 84, inserted 45, outside 42, tail 8. Length deltas: 0
+in 182, -1 in 182, +1 in 33. The raw first byte sits in the 37-byte
+header (length fields) for 398 programs, so movement is measured on the
+token stream, not raw bytes.
+
+### Rules (one commit each, all measured on the full corpus)
+
+| commit | rule | evidence | EXACT | CD |
+|---|---|---|---|---|
+| b8157cb | only primitive type names are keywords (0x40); every other type name is 0x0A | 72,048 primitive / 28,581 other occurrences, none both ways | +76 | 580 -> 505 |
+| 3c520d9 | blank lines between a Function body's leading Locals emit 0x4F | 131 / 131 pairs | +61 | -> 444 |
+| a401f58 | a block comment's opcode is its placement (own line 0x24, else 0x4E) at every site | 70,152 aligned comments, 0 exceptions | +59 | -> 385 |
+| eb84190 | every same-line comment precedes a header's / closer's 0x2D (For, While, Function, When, end-method / end-class) | stored never writes 0x2D before an inline comment | +27 | -> 359 |
+| 57d94d6 | `array of Pkg:Class` writes the element class (it was parsed, never written) | 14888, 17894; 31 programs | +34 | -> 325 |
+| 096faee | a type-path name's package root is written uppercase / `%Metadata` | 5,220 stored type-path names | +15 | -> 310 |
+| 9c8de9e | declaration runs at program end / before `<*`: no close with an initialized Local; Local-only runs close; close before the 0x55; `<*` closes an import section | 36 / 15 / 11 programs | +15 | -> 295 |
+| 6ef5b37 | a Function inside `<* ... *>` is not a function | 15641, 11118, 15626 | +7 | -> 288 |
+| 496d705 | Evaluate bodies keep one 0x4F per blank line (End-Evaluate, When-body statements) | 393 programs, 0 exceptions | +70 | -> 218 |
+| 99c490e | no declaration-section 0x2D in an App Class method body | 0 of 6,044 runs | +25 | -> 193 |
+| 8130b71 | App Class programs keep blank lines without compiled references | 34 changed, 34 exact | +34 | -> 159 |
+| 2dbffae | loop bodies keep one 0x4F per blank line (For header, For-body REM, Repeat statement) | For header 745 programs, 0 exceptions | +61 | -> 98 |
+| ed7733c | Function metadata writes one class type name per use (returns in directory order, then parameters in slot order) | 15800, 24546, 14327, 14352; 19 changed pools all equal stored | +4 | -> 94 |
+
+Superseded documentation: the "exactly one 0x4F regardless of blank-line
+count" sites (End-Evaluate, When-body statement, For header) held only
+single-blank-line evidence; the Cycle 16 App Class reference-gating
+prepass; two synthetic unit tests (App Class markers without references,
+shared Function type-name entry) updated to the corpus behaviour.
+
+Forward-exact but harness-classified elsewhere: 28911 (DECODE_SOURCE_
+MISMATCH), 1106 (DECODER_BARE_IDENTIFIER), 16759 (DECODE_SOURCE_MISMATCH).
+
+Every commit: tsc, npm test, git diff --check, protected 430/430, full
+corpus, taxonomy row-by-row (0 EXACT -> non-EXACT), metadata-aware sweep
+(0 forward-exact lost), token-level first difference (never earlier;
+unchanged only where the divergence sits earlier and every changed site
+equals stored), PSPCMNAME lists of all 30,209 programs unchanged,
+fallback 63 with 13525 EXACT, ROUNDTRIP_ONLY 0.
+
+### Parked: the unterminated last closer
+
+13 Application Class programs end `end-method` (no `;`) at EOF; the
+implementation pattern required `end-method;`, so the last method was
+dropped. Stored ends `64 07` (bare closer; 1,414 terminated programs end
+`64 15 2D 07`). Accepting `end-(method|get|set)\s*(?:;|$)` and writing
+the bare opcode: +8 exact, 0 lost -- but restoring the method changes
+PSPCMNAME for 29894 (distance 18 -> 1) and makes 29560 an ENCODE_ERROR
+(`Substitute(...);;` in an If body). Not a byte-only rule: parked for
+the empty-statement cycle.
+
+## COMPLETE_DOWNSTREAM rerank after Cycle 113
+
+580 -> 94 (57 ordinary / 37 Application Class), every one still
+reference-exact. Shapes: missing 36, substituted 35, outside 10, tail 8,
+marker-count 3, inserted 2. Families: 0x0A / 0x4A record resolution 25
+(parked, record catalog), blank-line markers 34 (no family above 5:
+5525, 14899, 15318 ...; 6493-6503 a top-level Evaluate after a comment;
+14927, 21069 ...), outside 10 (Function-metadata trailer: 2116, 2158,
+15527, 15627, 15634, 17573, 17613, 17913; App Class 29646 / 29670),
+unterminated closer 8 (parked), inline comment before `;` 4 (28910 ...),
+0x40 / 0x0A 3 (28821 ...).
+
+Categories: UNSUPPORTED_SYNTAX 335, ENCODE_ERROR 122, ACTIVE_PACKAGE 97,
+COMPLETE_DOWNSTREAM 94, ACTIVE_FIELD 92, ACTIVE_RECORD 85,
+DECODE_SOURCE_MISMATCH 82, ACTIVE_RECORD_FIELD 39, ACTIVE_OTHER 37,
+DECODER_BARE_IDENTIFIER 26, STRUCTURAL_ORDERING 20, ACTIVE_SCROLL 13,
+QUOTED_COMPONENT 8 (NONEXACT 1,050). PACKAGE census (metadata):
+PACKAGE-only 72 -> 70, first PACKAGE difference 150 -> 148 (28731, 29567
+became EXACT through byte rules -- their "missing identity" was decoded
+from misaligned bytes). Non-PACKAGE and built-in PACKAGE sequences
+identical to the Cycle 112 final (29,752 encodable programs).
+
+Next mechanism: empty statements outside For bodies (89 ordinary
+ENCODE_ERROR programs stop at a stray `;`), then the parked unterminated
+closer.
 
 ## Compiler Semantics Cycle 112 -- the external-metadata fallback keeps allocation units
 
