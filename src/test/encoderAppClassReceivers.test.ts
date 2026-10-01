@@ -32,3 +32,24 @@ test('two calls on a ComponentLife receiver in one control structure share one r
     ['SEARCH', 'SEARCH.CLEAR']
   );
 });
+
+test('a method call on an element of an array of a class opens a method row per unit (24504, 17870)', () => {
+  assert.deepEqual(
+    classRows('import PKG:Panel;\nComponent array of PKG:Panel &panels;\n&panels [1].Draw();\n&panels [2].Draw();\n'),
+    ['PANEL', 'PANEL.DRAW', 'PANEL.DRAW']
+  );
+});
+
+test('only a fully indexed element is a receiver: `&m [1].Len` is the inner array', () => {
+  assert.deepEqual(
+    classRows('import PKG:Panel;\nLocal array of array of PKG:Panel &m;\n&n = &m [1].Len;\n&m [1][2].Draw();\n'),
+    ['PANEL', 'PANEL.DRAW']
+  );
+});
+
+test('a call through a property of an element allocates nothing and does not switch to the external-metadata fallback', () => {
+  assert.deepEqual(
+    classRows('import PKG:Panel;\nComponent array of PKG:Panel &panels;\n&panels [1].Columns.Draw();\n&panels [2].Draw();\n'),
+    ['PANEL', 'PANEL.DRAW']
+  );
+});
