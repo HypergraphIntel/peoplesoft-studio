@@ -7374,15 +7374,18 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          *   2D 15
          *
          * The exception type path itself is executable-stream metadata and
-         * does not allocate another PSPCMNAME dependency row here.
+         * does not allocate another PSPCMNAME dependency row here (Cycle
+         * 111: its variable is a receiver, see below).
          */
         const qualifiedCatchType =
           /^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_]*)/
             .test(source.slice(pos));
 
+        let catchClass: { packagePath: string[]; className: string } | undefined;
         if (qualifiedCatchType) {
           const exceptionClass = applicationClassPath();
           chunks.push(exceptionClass.bytes);
+          catchClass = exceptionClass;
         } else {
           const typeMatch =
             /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
@@ -7405,6 +7408,26 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
         space();
 
+        /*
+         * Cycle 111: the exception variable of an Application Class `catch`
+         * is a receiver of the class (the clause itself allocates nothing):
+         * a method call on it uses the class in its allocation unit. 10567:
+         *
+         *   catch GP_ABS_CS_TMPL:TEL:absTelTransferEx &ex
+         *      &ex.Output();
+         *
+         * stores ABSTELTRANSFEREX with APPCLASSMETHOD OUTPUT. LOCAL SNAPSHOT:
+         * of the 16 qualified catch clauses of unit-encoded ordinary
+         * programs, the 9 whose body calls a method on the variable store
+         * the row (4074, 10565 x3, 10567, 10568, 17382, 17383, 25033); the
+         * 7 without a call store none (14134, 14149, 18130, 25111, 5525 x3).
+         */
+        const catchVariable = /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
+        if (unitScopedClassRows && catchClass !== undefined && catchVariable !== undefined) {
+          const receiver = { packagePath: catchClass.packagePath, className: catchClass.className, reuseRuntimeCreateForMethods: false };
+          applicationClassVariables.set(catchVariable.toLowerCase(), receiver);
+          if (functionDepth > 0) functionApplicationClassVariables.set(catchVariable.toLowerCase(), receiver);
+        }
         chunks.push(variable());
 
         /*
