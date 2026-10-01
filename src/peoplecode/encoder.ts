@@ -2006,12 +2006,17 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * FieldFormula (definition 2092): `ComponentLife string &p_compkey,
      * &p_entityname;`.
      *
-     * Deliberately narrower than componentDeclaration(): no evidence yet
-     * that a ComponentLife-declared Application Class variable
-     * (`ComponentLife CAF_SEARCH_NUI:Search &var;`, also attested in the
-     * corpus) participates in the same runtime-create PSPCMNAME reuse
-     * rules Component's own declaration carefully calibrates -- so this
-     * does not track it into `applicationClassVariables` at all yet.
+     * Cycle 104: in an ordinary program a ComponentLife Application Class
+     * variable is a receiver like a Component one: the declaration uses
+     * its class in the allocation unit, and a method call on the variable
+     * uses it in the call's unit -- a new method row unless the unit
+     * already has one (`useApplicationClassRow`, Cycle 94). LOCAL SNAPSHOT
+     * (`cycle104-receiver-method-row-census.ts`): the Cycle 94 prediction
+     * equals stored in all 8 aligned gaps; untracked, the calls had no row
+     * (2200 `ComponentLife CAF_SEARCH_NUI:Search &cafsrch;` then
+     * `&cafsrch.ClearAllPromptFilters();` -> PACKAGE SEARCH with
+     * APPCLASSMETHOD CLEARALLPROMPTFILTERS, and three more). Exempt from
+     * the external-metadata detector (`externalMetadataExempt`).
      */
     chunks.push(fixed('ComponentLife'));
 
@@ -2028,8 +2033,24 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     if (/^array$/i.test(declaredType ?? '')) {
       arrayElementTypes();
     }
+    const tracksClass = unitScopedClassRows && appClassType !== undefined;
+    if (tracksClass) {
+      useApplicationClassRow(appClassType!.packagePath, appClassType!.className);
+    }
+    const registerReceiver = () => {
+      const name = /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
+      if (tracksClass && name) {
+        applicationClassVariables.set(name.toLowerCase(), {
+          packagePath: appClassType!.packagePath,
+          className: appClassType!.className,
+          reuseRuntimeCreateForMethods: false,
+          externalMetadataExempt: true
+        });
+      }
+    };
 
     space();
+    registerReceiver();
     chunks.push(variable());
 
     while (true) {
@@ -2043,6 +2064,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       chunks.push(fixed(','));
 
       space();
+      registerReceiver();
       chunks.push(variable());
     }
   };
@@ -2095,6 +2117,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       packagePath: string[];
       className: string;
       reuseRuntimeCreateForMethods: boolean;
+      /*
+       * Cycle 104: a receiver the Cycle 93 external-metadata detector must
+       * not count (a call through its property is not counted as an
+       * unresolved receiver call), so the fallback population stays the
+       * one Cycle 93 calibrated: these receivers were unknown to it.
+       */
+      externalMetadataExempt?: boolean;
     }
   >();
 
@@ -2114,6 +2143,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       packagePath: string[];
       className: string;
       reuseRuntimeCreateForMethods: boolean;
+      externalMetadataExempt?: boolean;
     }
   >();
 
@@ -10565,7 +10595,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
           if (activeApplicationClassReceiver !== undefined) {
             // The call's RESULT is of a class only the method signature names.
-            receiverClassIsExternalMetadata = true;
+            if (!activeApplicationClassReceiver.externalMetadataExempt) receiverClassIsExternalMetadata = true;
 
             const classKey = [
               ...activeApplicationClassReceiver.packagePath,
@@ -10857,7 +10887,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            * chain still resets normally on its own iteration.
            */
           if (!resolvedInheritedPropertyThisStep) {
-            if (activeApplicationClassReceiver !== undefined) {
+            if (activeApplicationClassReceiver !== undefined && !activeApplicationClassReceiver.externalMetadataExempt) {
               receiverClassIsExternalMetadata = true;
             }
             activeApplicationClassReceiver = undefined;
