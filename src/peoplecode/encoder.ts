@@ -5919,6 +5919,26 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     const appClass = applicationClassPath({ allowWildcard: true });
     if (appClass.wildcard) sawWildcardImport = true;
     chunks.push(appClass.bytes);
+    /*
+     * Cycle 106: an import rooted at `%metadata` contributes no PSPCMNAME
+     * row -- neither a named import's class row nor a wildcard's blank
+     * metadata row -- and its wildcard does not take the one-time "first
+     * wildcard claims the metadata row" (Cycle 93): the first ORDINARY
+     * wildcard still claims it. The import stays part of the resolution
+     * environment (`sawWildcardImport` above); the class gets its rows from
+     * its uses, under the ordinary unit rules. LOCAL SNAPSHOT
+     * (`cycle106-metadata-import-census.ts`, 37 definitions with
+     * `%metadata` imports): programs whose wildcards are all `%metadata`
+     * store no blank row (11 / 11); mixed programs with a `%metadata`
+     * wildcard first still store one (7 / 7); a named `%metadata` import of
+     * a class used nowhere else stores no row (3 / 3) while ordinary ones do
+     * (301 / 301). 28726: `import %metadata:*; import
+     * %metadata:RecordDefn:*; import %metadata:AppDataSetMgr:*;` -- no blank
+     * row; APPDATASETMGR / KEY / APPDATASETMGR_MANAGER at their declarations.
+     */
+    if (/^%metadata$/i.test([...appClass.packagePath, appClass.className][0] ?? '')) {
+      return;
+    }
 
 
     /*

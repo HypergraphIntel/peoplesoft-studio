@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-01T02:49:50.051Z",
+ "generatedAt": "2026-10-01T03:33:47.212Z",
  "totalDefinitions": 30209,
- "exactCount": 28614,
- "nonexactCount": 1595,
+ "exactCount": 28615,
+ "nonexactCount": 1594,
  "rows": [
   {
    "definitionId": 522,
@@ -5636,7 +5636,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 17,
-    "generatedCount": 26,
+    "generatedCount": 22,
     "firstDivergenceKind": "package"
    }
   },
@@ -5646,13 +5646,13 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 712,
+   "firstDiffOffset": 858,
    "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 11,
-    "generatedCount": 18,
+    "generatedCount": 15,
     "firstDivergenceKind": "package"
    }
   },
@@ -6880,22 +6880,6 @@
     "referenceSetExact": false,
     "storedCount": 11,
     "generatedCount": 11
-   }
-  },
-  {
-   "definitionId": 17830,
-   "displayName": "1=PTACEVWRDBG, 2=HTML_AREA_01, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 2153,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 23,
-    "generatedCount": 25,
-    "firstDivergenceKind": "package"
    }
   },
   {
@@ -10650,13 +10634,13 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 744,
+   "firstDiffOffset": 1513,
    "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 16,
-    "generatedCount": 18,
+    "generatedCount": 17,
     "firstDivergenceKind": "package"
    }
   },
@@ -13184,13 +13168,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 12085,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 4,
-    "generatedCount": 5,
-    "firstDivergenceKind": "package"
+    "generatedCount": 4
    }
   },
   {
@@ -13199,14 +13182,13 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 10858,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "firstDiffOffset": 32350,
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 16,
-    "generatedCount": 17,
-    "firstDivergenceKind": "package"
+    "generatedCount": 16
    }
   },
   {
@@ -13216,13 +13198,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 3,
-    "generatedCount": 4,
-    "firstDivergenceKind": "package"
+    "generatedCount": 3
    }
   },
   {
@@ -19780,14 +19761,13 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 660,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "firstDiffOffset": 8558,
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 10,
-    "generatedCount": 11,
-    "firstDivergenceKind": "package"
+    "generatedCount": 10
    }
   },
   {
@@ -19897,15 +19877,14 @@
    "displayName": "104=PTADSDEFN, 107=AdsValidationBase, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
-   "roundtripExact": false,
+   "roundtripExact": true,
    "firstDiffOffset": 22508,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 22,
-    "generatedCount": 23,
-    "firstDivergenceKind": "package"
+    "generatedCount": 22
    }
   },
   {

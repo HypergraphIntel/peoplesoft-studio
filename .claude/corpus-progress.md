@@ -2,16 +2,12 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 105 -- the 12 "empty generated PACKAGE
-  identity" definitions. Research only: they are wildcard-import metadata
-  rows over-claimed by the Cycle 93 external-metadata fallback pass, not
-  broken class identities. The single-claim fix is measured (+5
-  forward-exact) but costs 13525, whose compensating row needs genuinely
-  external metadata -- not landed (zero-regression gate, the Cycle 93
-  directive on 13525). EXACT 28,614 unchanged. See "Compiler Research
-  Cycle 105".
-- **Last successful calibration:** Cycle 104 (ComponentLife and
-  array-element receivers).
+- **Current target:** Cycle 106 -- `%metadata` imports contribute no
+  PSPCMNAME row and do not take the first-wildcard claim. EXACT 28,614 ->
+  28,615 (+1), protected PASS, 0 EXACT -> non-EXACT. See "Compiler
+  Semantics Cycle 106". (Cycle 105: the fallback wildcard over-claim stays
+  parked behind 13525.)
+- **Last successful calibration:** Cycle 106 (`%metadata` imports).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked: package
   canonical case in App Class type-path names (external package
@@ -20,11 +16,12 @@
   2097, 2167, 2175, 2194, 14162, 18236, 19877, 23068, 23402); the fallback
   wildcard over-claim (25 programs, blocked by 13525 -- Cycle 105); 2125,
   24500, 24503, 19433.
-- **Next action:** decide the fallback wildcard trade (+5 / -13525) or
-  keep it parked; then `%metadata` imports (no import rows in stored, 11+
-  programs) or the source-hidden, snapshot-visible App Class rows (54:
-  needs snapshot class metadata as an encoder input).
-- **Newly established rules this session:** Cycle 104: ComponentLife
+- **Next action:** see "PACKAGE rerank after Cycle 106"; the fallback
+  wildcard over-claim stays parked (correct rule, masked in 13525 by a
+  missing external method row).
+- **Newly established rules this session:** Cycle 106: an import rooted
+  at `%metadata` allocates no PSPCMNAME row and does not take the
+  first-wildcard claim; Cycle 104: ComponentLife
   Application Class variables and elements of `array of <Class>` are
   receivers under the Cycle 94 unit rule; the named-import row seeds the
   unit pool (no separate import identity); Cycle 103: every type declared
@@ -47,6 +44,47 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 106 -- `%metadata` imports allocate no PACKAGE rows
+
+**Baseline reproduced fresh at `00a6a9f`:** 28,614 / 1,595, gate PASS,
+taxonomy row-identical. **Result:** EXACT **28,614 -> 28,615 (+1: 17830)**,
+**0 EXACT -> non-EXACT**, protected 430/430. LOCAL SNAPSHOT only.
+
+`importStatement`: after parsing an import (and recording a wildcard in
+`sawWildcardImport`, the resolution environment), an import whose root is
+`%metadata` returns: no named-import row, no unit-pool seed, no wildcard
+metadata row, and the one-time wildcard claim is left for the first
+ordinary wildcard -- in the normal and the fallback pass alike.
+
+Evidence (`cycle106-metadata-import-census.ts`; 37 definitions import from
+`%metadata`, 16 ordinary / 21 Application Class, none in the fallback):
+
+| shape | stored | programs |
+|---|---|---|
+| named `%metadata` import, class used nowhere else | no row | 3 / 3 (ordinary named: row 301 / 301) |
+| wildcards all `%metadata` | no blank row | 11 / 11 |
+| mixed, `%metadata` wildcard first | one blank row (the ordinary wildcard's) | 7 / 7 -- model "consumes the claim" fails all 7 |
+| mixed, ordinary wildcard first | one blank row | 16 / 16 |
+
+`%metadata` classes then get rows from their uses under the existing unit
+rules -- 28726's generated list now equals stored (ADSRELATIONSHIP,
+ADSGROUP, ADSPROPERTY, ADSMFACTORY from its ordinary named imports;
+APPDATASETMGR, KEY, APPDATASETMGR_MANAGER at their declarations), as do
+17830's and 16084's (but one later row).
+
+| experiment | value |
+|---|---|
+| PSPCMNAME lists changed | 10 (all `%metadata` programs): 10 closer, 0 farther |
+| names-exact gained / lost | 6 / 0 |
+| forward-exact gained / lost | 1 (17830) / 0 |
+| mixed `%metadata`-first programs | unchanged lists: the ordinary wildcard now claims the blank row at the same position (17911: PROJECT) |
+| fallback population | 102 -> 102 |
+| non-PACKAGE / built-in generated rows | unchanged everywhere |
+
+5 more programs moved ACTIVE_PACKAGE -> COMPLETE_DOWNSTREAM. Tests:
+`src/test/encoderMetadataImports.test.ts` (3 fail at 00a6a9f; ordinary
+control).
 
 ## Compiler Research Cycle 105 -- the "empty generated PACKAGE identity" rows
 
