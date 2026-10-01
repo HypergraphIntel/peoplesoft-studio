@@ -1,15 +1,15 @@
 # Corpus Calibration Progress
 
-## Current status (2026-09-30)
+## Current status (2026-10-01)
 
-- **Current target:** Cycle 107 -- snapshot Application Class type
-  metadata (optional provider) types hidden property / method-result
-  receivers in ORDINARY programs. EXACT 28,615 -> 28,635 (+20), protected
-  PASS, 0 EXACT -> non-EXACT, fallback 102 -> 63 (13525 stays). See
-  "Compiler Semantics Cycle 107". Application Class programs parked (their
-  method-row lifetime is unmodeled).
-- **Last successful calibration:** Cycle 107 (ordinary-program type
-  metadata).
+- **Current target:** Cycle 108 -- Application Class method-dependency
+  rows have PROGRAM lifetime (one row per class name per Application Class
+  program); type metadata enabled there for `%Super.<property>` and
+  `%This.<property>`. EXACT 28,635 -> 28,654 (+19), protected PASS, 0
+  EXACT -> non-EXACT, fallback 63 -> 63 (13525 stays, EXACT). See
+  "Compiler Semantics Cycle 108".
+- **Last successful calibration:** Cycle 108 (App Class program rows,
+  nested App Class Locals, %Super / %This property metadata).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked: package
   canonical case in App Class type-path names (external package
@@ -17,14 +17,24 @@
   receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class rows for classes
   absent from the snapshot (14162, 19877, 23068, 23402 ...); the fallback
   wildcard over-claim (19 programs still in the fallback, blocked by 13525
-  -- Cycle 105); provider hooks in Application Class programs (Cycle 107);
-  2125, 24500, 24503, 19433.
-- **Next action:** Application Class method-dependency row lifetime (the
-  blocker for enabling type metadata in App Class programs: 75 resolvable
-  hidden rows) -- census before editing; see "PACKAGE rerank after Cycle
-  107". The fallback wildcard over-claim stays parked (correct rule, masked
-  in 13525 by a missing external method row).
-- **Newly established rules this session:** Cycle 107: in ordinary
+  -- Cycle 105); typed-receiver / method-result metadata steps in
+  Application Class programs (29109: array-element receivers untyped
+  there; Cycle 108); 29797 / 29883 (every row repeats); 30192 (parameter
+  receivers reopen per body, unexplained); 2125, 24500, 24503, 19433.
+- **Next action:** Application Class array-element receivers (`&arr [i]`
+  of an `array of <Class>` Local / parameter in an App Class body) -- the
+  blocker for the typed-receiver metadata step there (29109) and most of
+  the 17 still-missing resolvable hidden rows; census first. See "PACKAGE
+  rerank after Cycle 108". The fallback wildcard over-claim stays parked
+  (correct rule, masked in 13525 by a missing external method row).
+- **Newly established rules this session:** Cycle 108: in an
+  Application Class program a class has ONE PACKAGE row (keyed by class
+  NAME): the first type or method-call occurrence opens it, all later ones
+  reuse it, across bodies / statements / called methods; APPCLASSMETHOD is
+  the opening call's method (blank when a type opened it); an App Class
+  body's Local allocates at its declaration at any control depth;
+  `%Super.<property>` / `%This.<property>` are typed (source header first,
+  then snapshot metadata); Cycle 107: in ordinary
   programs a property / method-result step on a known Application Class
   receiver takes the class its declaration (own or inherited, snapshot
   metadata) names; a resolved non-class result is not external metadata;
@@ -53,6 +63,120 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 108 -- Application Class method-dependency rows have program lifetime
+
+**Baseline reproduced fresh at `3dbef27`:** 28,635 / 1,574, protected
+430/430, taxonomy row-identical. **Result:** EXACT **28,635 -> 28,654
+(+19)**, **0 EXACT -> non-EXACT**, protected 430/430, ROUNDTRIP_ONLY 0.
+LOCAL SNAPSHOT only.
+
+### Research (dc1e0e5)
+
+`cycle108-app-class-method-row-census.ts` types every method call in
+every Application Class program (1,506 programs, 15,841 calls, 2,218
+(program, class) groups) -- receivers from source (Local, parameter,
+instance / property, Component / Global), `%This`, `%Super`, and snapshot
+metadata (property / result steps) -- and places each call against the
+stored rows (LCS on the other rows; `referenceTrace` now reports program
+offsets in App Class programs). `cycle108-app-class-method-row-models.py`
+scores lifetimes.
+
+Consecutive same-class calls whose later call is alone in its gap:
+
+| scope | same-scope reuse | same-scope open | cross-scope reuse | cross-scope open |
+|---|---|---|---|---|
+| A program | 903 | 8 | 0 | 0 |
+| B method body | 449 | 3 | 454 | 5 |
+| C called method | 352 | 1 | 551 | 7 |
+| D body + method | 212 | 0 | 691 | 8 |
+| S statement | 229 | 0 | 674 | 8 |
+
+The 8 A-opens are all 29797 / 29883 (programs whose every row repeats).
+Per gap (4,071 gaps), the committed encoder: 135 bad; program scope where
+any earlier row of the class (type or call) is reused, both directions:
+35 (the rest: 29797 / 29883, array-element receivers the census misses,
+leaf collisions, type-row placement). Every %Super-property (30),
+%This-property (105), typed (32) and method-result (24) group stores ONE
+row (69 groups span several bodies, 65 call several methods); 28927:
+eighteen `%Super.TxtCat` calls (getSimpleTextPlan, getTextPlan; three
+bodies), one TEXTCATALOG row. Descriptive APPCLASSMETHOD: 284 call-opened
+rows carry the opening call's method, 527 type-opened rows are blank;
+393 groups calling several methods store one row -- identity is the
+class, the method is metadata.
+
+### Semantics (7f28afe, ca5559e)
+
+- `ApplicationClassProgramRows` (dedicated; not `classRowsByUnit`, not
+  the built-in runs): an App Class method call uses the program's row of
+  its class, opening one only when the class has none; a Local / `create`
+  after a call-opened row reuses it. Keyed by class NAME like the Cycle 57
+  session (29422: CAR:Utils imported, WFS:Utils used, one UTILS row; a
+  path-aware key reopened rows in 10 programs).
+- An App Class body's Local allocates at its declaration at any control
+  depth (29983, 29998). Lifetime + this: 8 lists closer, 0 farther, EXACT
+  +1 (30065).
+- Type metadata in App Class programs for the property right after
+  `%Super` (provider `superclassOf`) and `%This` (own header declaration
+  first, then metadata). Typed-receiver property / result steps stay
+  parked (29109: first use is an array element the encoder does not
+  type); `%This` method results change nothing.
+
+| experiment (each on the new lifetime) | changed | closer | farther | same | forward-exact |
+|---|---|---|---|---|---|
+| lifetime only (no hooks) | 2 | 2 | 0 | 0 | 0 |
+| + nested App Class Locals | 8 (vs committed) | 8 | 0 | 0 | +1 |
+| %Super property | 26 | 25 | 0 | 1 | +13 |
+| %This property (without nested Locals) | 24 | 23 | 1 (29998) | 0 | +5 |
+| %This property (with nested Locals) | 24 | 24 | 0 | 0 | +5 |
+| typed / result steps | 8 | 5 | 2 (29109, 29182) | 1 | +1 |
+| %This method result | 0 | | | | |
+| landed (lifetime + nested + %Super + %This) | 57 | 56 | 0 | 1 (29374) | +19 |
+
+Cycle 107's old-lifetime hooks: %Super 8 closer / 11 farther, %This
+property 13 / 8, typed 0 / 7. 29374 "same": its UTILS row is now right
+and exposes a pre-existing extra GPS_REMARK_DTL RECORD row that had
+compensated for the missing row.
+
+Newly EXACT: 28865, 28926, 28928, 28929, 28930, 28973, 29084, 29111,
+29113, 29365, 29367, 29372, 29376, 29378, 29382, 29388, 29389, 30065,
+30110 (ACTIVE_FIELD 7, ACTIVE_RECORD_FIELD 5, ACTIVE_PACKAGE 3,
+ACTIVE_RECORD 3, ACTIVE_SCROLL 1); 30048 ACTIVE_PACKAGE ->
+COMPLETE_DOWNSTREAM. Invariants (all 29,752 encodable): non-PACKAGE
+reference sequence and built-in PACKAGE sequence unchanged (with and
+without the provider); diagnostics-only identical to no provider;
+ordinary fallback 63 -> 63 (none leave / enter), 13525 EXACT and in it.
+
+Tests: `encoderApplicationClassProgramRows.test.ts` (one row across
+bodies / methods, first call's method; create after a call; own vs
+inherited %This property; nested Local; same-name classes;
+diagnostics-only), provider `superclassOf`.
+
+## PACKAGE rerank after Cycle 108
+
+`cycle102-package-mechanism-census.ts` at ca5559e (1,555 NONEXACT):
+PACKAGE-only 138 -> 118; first difference is a PACKAGE row 233 -> 213
+(ORDERING 130, MISSING 49, STORED_REUSES 23, STORED_OPENS 10, WRONG 1).
+
+| bucket | definitions (package-only) |
+|---|---|
+| hidden-class / genuine external / unknown | 79 (54) |
+| App Class wildcard / self ordering | 42 (6) |
+| built-in residual | 40 (15) |
+| other ordering | 18 (14) |
+| method-dependency rows | 17 (14) |
+| fallback wildcard over-claim (parked) | 10 (9) |
+| named-import stored-opens (parked) | 5 (4) |
+| other (19433, 24647) | 2 (2) |
+
+Hidden Application Class rows in NONEXACT programs: 138 / 112 -> 129 /
+103. Of Cycle 107's 75 resolvable App Class rows, 30 are now generated,
+28 are in programs the sweep cannot encode, 17 remain -- all through
+typed-receiver property / result chains (method results 9+, multi-hop
+properties, inherited properties off typed receivers), the parked step.
+
+Next: Application Class array-element receivers (29109), then the typed
+step in App Class programs.
 
 ## Compiler Semantics Cycle 107 -- snapshot Application Class type metadata (ordinary programs)
 
