@@ -2,23 +2,26 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 103 -- built-in PACKAGE dependencies in
-  ordinary programs. Registry coverage (+23) and the built-in row
-  lifetime (+62) and the PanelGroup trigger landed: EXACT 28,523 ->
-  28,608 (+85), protected PASS, 0 EXACT -> non-EXACT. See "Compiler
-  Semantics Cycle 103" and "Compiler Research Cycle 103".
-- **Last successful calibration:** Cycle 103 (registry, lifetime,
-  PanelGroup trigger).
+- **Current target:** Cycle 104 -- the "named-import stored-opens" PACKAGE
+  family. It is not a named-import reopen: the extra stored rows are
+  method-dependency rows for receivers the encoder did not track.
+  ComponentLife receivers landed: EXACT 28,608 -> 28,612 (+4), protected
+  PASS, 0 EXACT -> non-EXACT. Array-element receivers next. See "Compiler
+  Semantics Cycle 104" and "Compiler Research Cycle 104".
+- **Last successful calibration:** Cycle 104 ComponentLife receivers.
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked: package
   canonical case in App Class type-path names (external package
-  metadata); FIELDVALUE / XLAT*; undeclared-variable receivers;
-  UNRESOLVED_EXTERNAL_CLASS_METADATA class rows; 2125, 24500, 24503, 19433.
-- **Next action:** see "PACKAGE rerank after Cycle 103" -- candidates:
-  DECODER_BARE_IDENTIFIER (26; 8 of them now forward-exact: 849, 959,
-  1105, 6448, 14325, 18278, 18279, 23134), named-import stored-opens,
-  App Class wildcard / self ordering, built-in array contexts.
-- **Newly established rules this session:** Cycle 103: every type declared
+  metadata); FIELDVALUE / XLAT* (18989 too); undeclared-variable
+  receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class rows (incl. 2096,
+  2097, 2167, 2175, 2194, 14162, 18236, 19877, 23068, 23402); 2125, 24500,
+  24503, 19433.
+- **Next action:** land array-element receivers (`&arr [i].M(`, 19 lists
+  closer / 0 farther measured), then rerank PACKAGE.
+- **Newly established rules this session:** Cycle 104: ComponentLife
+  Application Class variables and elements of `array of <Class>` are
+  receivers under the Cycle 94 unit rule; the named-import row seeds the
+  unit pool (no separate import identity); Cycle 103: every type declared
   without a package path that stores PACKAGE.<TYPE> is a built-in and
   every evidenced declaration context allocates its row (registry
   extended); built-in row lifetime = the "runs" unit; Cycle 102 decoder:
@@ -38,6 +41,52 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 104 -- ComponentLife Application Class receivers
+
+**Result:** EXACT **28,608 -> 28,612 (+4: 2200, 3945, 18375, 18376)**,
+**0 EXACT -> non-EXACT**, protected 430/430. LOCAL SNAPSHOT only.
+
+`componentLifeDeclaration` now mirrors `componentDeclaration` for an
+Application Class type in an ordinary program: the declaration uses the
+class in its allocation unit and each variable is registered as a
+receiver, so a method call on it uses the class in the call's unit (a
+method row unless the unit has one). Receivers it registers carry
+`externalMetadataExempt`: a call through their property does not count
+toward the Cycle 93 external-metadata fallback, which therefore keeps its
+exact population (102 programs, none entering or leaving).
+
+7 PSPCMNAME lists change, all closer; names-exact +7; forward-exact +4;
+non-PACKAGE generated sequences unchanged everywhere. Tests:
+`src/test/encoderAppClassReceivers.test.ts` (both fail at da06747).
+
+## Compiler Research Cycle 104 -- the named-import stored-opens family
+
+**Baseline reproduced fresh at `da06747`:** 28,608 / 1,601, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only.
+
+The Cycle 102 census keyed PACKAGE rows by class NAME. Compared field by
+field (PACKAGEROOT / QUALIFYPATH / APPCLASSMETHOD), the 26 "stored opens /
+generated reuses" rows of named-imported classes are not reopened import
+rows: in descriptive stores the extra rows carry APPCLASSMETHOD (method
+rows; 2096 / 2097 even a different package, CAFNUI_API), in blank stores
+they are the same events. The population:
+
+| cause | n | definitions |
+|---|---|---|
+| Cycle 93 external-metadata fallback (protected) | 10 | 2096, 2097, 2167, 2175, 2194, 14162, 18236, 19877, 23068, 23402 |
+| method call on an array element `&arr [i].M(` | 11 | 14357, 17869, 17870, 17894, 19417, 24441, 24451, 24458, 24504, 24521, 24522 |
+| method call on a ComponentLife variable | 4 | 2200, 3945, 18375, 18376 |
+| FIELDVALUE / XLAT (parked) | 1 | 18989 |
+
+"Import row does not seed the runtime pool" is refuted: in named-import
+gaps, leading `Component X` (141), leading `Local X` (65), `Global X`
+(28) and leading `Local X &v = create X()` (35) add no row beyond the
+import row; later units open one row each (Cycle 94).
+`cycle104-receiver-method-row-census.ts` applies the Cycle 94 unit rule to
+the untracked receiver shapes: model = stored in all 29 aligned
+array-element gaps (25 named, 4 wildcard -- not named-import specific) and
+all 8 ComponentLife gaps; 0 contradictions.
 
 ## PACKAGE rerank after Cycle 103
 

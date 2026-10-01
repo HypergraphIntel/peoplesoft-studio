@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-01T01:38:35.146Z",
+ "generatedAt": "2026-10-01T02:39:54.158Z",
  "totalDefinitions": 30209,
- "exactCount": 28608,
- "nonexactCount": 1601,
+ "exactCount": 28612,
+ "nonexactCount": 1597,
  "rows": [
   {
    "definitionId": 522,
@@ -450,22 +450,6 @@
    }
   },
   {
-   "definitionId": 2200,
-   "displayName": "1=CAF_SRCH, 2=CAF_CLEAR, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 1377,
-   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 10,
-    "generatedCount": 6,
-    "firstDivergenceKind": "scroll"
-   }
-  },
-  {
    "definitionId": 2201,
    "displayName": "1=CAF_SRCH, 2=CAF_SRCH_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "UNSUPPORTED_SYNTAX",
@@ -778,22 +762,6 @@
     "storedCount": 8,
     "generatedCount": 7,
     "firstDivergenceKind": "scroll"
-   }
-  },
-  {
-   "definitionId": 3945,
-   "displayName": "1=DERIVEDNUI_SRCH, 2=NUI_RETURN_TO_LIST, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 279,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 7,
-    "generatedCount": 5,
-    "firstDivergenceKind": "record-field"
    }
   },
   {
@@ -7935,38 +7903,6 @@
     "storedCount": 16,
     "generatedCount": 17,
     "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 18375,
-   "displayName": "9=CAFNUI_SRCHPAGE_FL, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 4066,
-   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 34,
-    "generatedCount": 31,
-    "firstDivergenceKind": "scroll"
-   }
-  },
-  {
-   "definitionId": 18376,
-   "displayName": "9=CAFNUI_SRCHPG36_FL, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 3487,
-   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 35,
-    "generatedCount": 32,
-    "firstDivergenceKind": "scroll"
    }
   },
   {
