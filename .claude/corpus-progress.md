@@ -5,10 +5,11 @@
 - **Current target:** Cycle 104 -- the "named-import stored-opens" PACKAGE
   family. It is not a named-import reopen: the extra stored rows are
   method-dependency rows for receivers the encoder did not track.
-  ComponentLife receivers landed: EXACT 28,608 -> 28,612 (+4), protected
-  PASS, 0 EXACT -> non-EXACT. Array-element receivers next. See "Compiler
-  Semantics Cycle 104" and "Compiler Research Cycle 104".
-- **Last successful calibration:** Cycle 104 ComponentLife receivers.
+  ComponentLife receivers (+4) and array-element receivers (+2) landed:
+  EXACT 28,608 -> 28,614 (+6), protected PASS, 0 EXACT -> non-EXACT. See
+  "Compiler Semantics Cycle 104" and "Compiler Research Cycle 104".
+- **Last successful calibration:** Cycle 104 (ComponentLife and
+  array-element receivers).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked: package
   canonical case in App Class type-path names (external package
@@ -16,8 +17,7 @@
   receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class rows (incl. 2096,
   2097, 2167, 2175, 2194, 14162, 18236, 19877, 23068, 23402); 2125, 24500,
   24503, 19433.
-- **Next action:** land array-element receivers (`&arr [i].M(`, 19 lists
-  closer / 0 farther measured), then rerank PACKAGE.
+- **Next action:** see "PACKAGE rerank after Cycle 104".
 - **Newly established rules this session:** Cycle 104: ComponentLife
   Application Class variables and elements of `array of <Class>` are
   receivers under the Cycle 94 unit rule; the named-import row seeds the
@@ -41,6 +41,34 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 104b -- array-element Application Class receivers
+
+**Result:** EXACT **28,612 -> 28,614 (+2: 17886, 19417)**, **0 EXACT ->
+non-EXACT**, protected 430/430. LOCAL SNAPSHOT only.
+
+`applicationClassArrayVariables` records variables declared `array of
+<Package:Class>` (Local / Global / Component / ComponentLife) with their
+depth; indexing one that many times makes the element the chain's
+Application Class receiver, so `&arr [i].M(...)` uses the class in the
+call's allocation unit (Cycle 94). Element receivers are
+`externalMetadataExempt`; without that, 24458 (`&AdsProjectBinds
+[&adsIndex].GridColumns [&column].SelectAll()`) entered the Cycle 93
+fallback and moved farther.
+
+| combined Cycle 104 experiment (ComponentLife + arrays) | value |
+|---|---|
+| PSPCMNAME lists changed | 26: 26 closer, 0 farther |
+| names-exact gained / lost | 21 / 0 |
+| forward-exact gained / lost | 6 / 0 |
+| external-metadata fallback population | 102 programs, none entering or leaving |
+| non-PACKAGE generated sequences | unchanged in all 29,752 encodable definitions |
+
+13 more non-EXACT definitions moved category (mostly to
+COMPLETE_DOWNSTREAM: their PACKAGE rows are now right). Tests: 3 array
+cases in `encoderAppClassReceivers.test.ts` (element call per unit; only a
+fully indexed element is a receiver; a property chain on an element
+allocates nothing and does not trigger the fallback).
 
 ## Compiler Semantics Cycle 104 -- ComponentLife Application Class receivers
 

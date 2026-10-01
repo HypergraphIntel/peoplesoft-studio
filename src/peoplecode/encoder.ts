@@ -2137,6 +2137,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    *   &MYDISPLAY.SetupDisplayTmplt()
    *   &MYDISPLAY.GetChartfieldnrow(...)
    */
+  /*
+   * Cycle 104: variables declared `array of <Package:Class>` (Local /
+   * Global / Component / ComponentLife), with their array depth. Indexing
+   * one that many times yields an element of the class: a receiver under
+   * the Cycle 94 unit rule like a declared instance -- `&arr [i].M(...)`
+   * uses the class in the call's allocation unit, a method row unless the
+   * unit already has one. LOCAL SNAPSHOT
+   * (`cycle104-receiver-method-row-census.ts`): the Cycle 94 prediction
+   * equals stored in all 29 aligned array-element gaps, named and wildcard
+   * imports alike; untracked, the calls had no row (24504
+   * `Component array of ADS_DMW:UI:ProjectBindsGrid &AdsProjectBinds;` ...
+   * `&AdsProjectBinds [&CurrentAds].GenerateHTML()`). Ordinary programs
+   * with unit-scoped class rows only; element receivers are exempt from
+   * the Cycle 93 external-metadata detector (`externalMetadataExempt`).
+   */
+  const applicationClassArrayVariables = new Map<string, { packagePath: string[]; className: string; depth: number }>();
   const functionApplicationClassVariables = new Map<
     string,
     {
@@ -6144,6 +6160,23 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       }
     }
 
+    if (unitScopedClassRows) {
+      const arrayDeclaration =
+        /^(?:Local|Global|ComponentLife|Component)\s+((?:array\s+of\s+)+)([A-Za-z_][A-Za-z0-9_]*(?:\s*:\s*[A-Za-z_][A-Za-z0-9_]*)+)\s+(&[A-Za-z0-9_]+#?(?:\s*,\s*&[A-Za-z0-9_]+#?)*)/i
+          .exec(source.slice(pos));
+      if (arrayDeclaration) {
+        const components = arrayDeclaration[2].split(':').map(component => component.trim());
+        const depth = (arrayDeclaration[1].match(/array/gi) ?? []).length;
+        for (const name of arrayDeclaration[3].split(',')) {
+          applicationClassArrayVariables.set(name.trim().toLowerCase(), {
+            packagePath: components.slice(0, -1),
+            className: components.at(-1)!,
+            depth
+          });
+        }
+      }
+    }
+
     if (source.startsWith('/*', pos)) {
       chunks.push(blockComment());
     } else if (word('import')) {
@@ -9558,6 +9591,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * PeopleTools does not allocate a collProfileItemType.Push PSPCMNAME row.
      */
     let activeApplicationClassReceiver = baseApplicationClass;
+    // Cycle 104: see `applicationClassArrayVariables`.
+    const baseApplicationClassArray =
+      unitScopedClassRows && baseVariableName !== undefined
+        ? applicationClassArrayVariables.get(baseVariableName.toLowerCase())
+        : undefined;
+    let remainingArrayIndexGroups = baseApplicationClassArray?.depth ?? 0;
 
     /*
      * Cycle 93: true once this chain has stepped from an Application Class
@@ -10977,6 +11016,17 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
         pos++;
         chunks.push(Buffer.from([0x4d]));
+        if (baseApplicationClassArray !== undefined && remainingArrayIndexGroups > 0) {
+          remainingArrayIndexGroups--;
+          if (remainingArrayIndexGroups === 0) {
+            activeApplicationClassReceiver = {
+              packagePath: baseApplicationClassArray.packagePath,
+              className: baseApplicationClassArray.className,
+              reuseRuntimeCreateForMethods: false,
+              externalMetadataExempt: true
+            };
+          }
+        }
         continue;
       }
 
