@@ -39,6 +39,36 @@
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
 
+## PACKAGE rerank after Cycle 103
+
+`cycle102-package-mechanism-census.ts` at f73d273 (1,601 NONEXACT), the
+"external" identities split by stored row shape (PACKAGEROOT):
+
+| | before Cycle 103 | after |
+|---|---|---|
+| PACKAGE-only definitions | 373 | 181 |
+| first difference is a PACKAGE row | 478 | 277 |
+| ORDERING / MISSING / STORED_OPENS / STORED_REUSES / WRONG | 230 / 134 / 85 / 28 / 1 | 153 / 66 / 33 / 24 / 1 |
+
+| bucket | definitions (package-only) | notes |
+|---|---|---|
+| Application Class, source-visible in snapshot | 52 | BenefitDataManager 10, TextCatalog 10, ObjectManager 9, CriteriaBase 5: generated misses (33) or misplaces (19) a class that IS in the snapshot -- import / class resolution |
+| App Class wildcard / self ordering | 51 (16) | App Class programs |
+| built-in residual | 42 (18) | ordinary 22 (Record / Rowset / Field ordering, 4 stored-opens), App Class 20 (method bodies / declaration prepass -- incl. Exception) |
+| unknown identity | 32 | TreeControl 5, AppDataSetMgr 4, StyleSheet 3, ... |
+| genuine external App Class (not in snapshot) | 31 | 12 with an EMPTY generated identity `PACKAGE.` (STORED_REUSES_GENERATED_OPENS: 14650, 14651, 15038, 15039, 15256, 15257, 15598, 15609) -- a generator bug, not metadata |
+| other ordering | 28 (23) | |
+| named-import stored-opens | 25 (24) | ordinary, one signature: stored opens a fresh row for a named-import class where generated reuses |
+| method-dependency rows | 17 (13) | |
+
+Ranking (payoff, population, evidence): (1) named-import stored-opens --
+25 nearly all PACKAGE-only, single signature, ordinary programs; (2) the
+empty generated PACKAGE identity (12, a concrete generator defect); (3)
+source-visible App Class missing rows (33); (4) DECODER_BARE_IDENTIFIER
+(26, 8 now forward-exact); (5) built-in array contexts (`Component array
+of`, `As array of`, `Returns array of`: 4470, 4861, 9986, 14341, 19433,
+25290, 28161) and Exception as an App Class method parameter (30206).
+
 ## Compiler Semantics Cycle 103c -- PanelGroup declarations trigger built-in rows
 
 **Result:** EXACT 28,608 (unchanged), **0 EXACT -> non-EXACT**, protected
