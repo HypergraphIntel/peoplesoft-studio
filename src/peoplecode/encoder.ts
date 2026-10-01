@@ -14052,11 +14052,28 @@ function scanApplicationClassLayoutComments(
  * (property type) and terminator.
  *
  * Replaces the Cycle 30 freeze (self, singleton instance, methods only).
- * Residual, not modeled: the package path's canonical case written in
- * type-path names (source `%metadata:` is stored `%Metadata:`,
- * `GPS_car_...` is stored `GPS_CAR_...`: the package definition's own case)
- * and a bare `array` member type (stored `array of any`).
+ * A type-path name's package ROOT is written in the package definition's
+ * case (Cycle 113, `canonicalTypePathName`). Residual, not modeled: a
+ * sub-package's canonical case (28942 source `...:page:SubPage:...` is
+ * stored `...:Page:...`) and a bare `array` member type (stored `array of
+ * any`).
  */
+/*
+ * Cycle 113: application package names are uppercase definitions, so a
+ * type-path name's root is written uppercase whatever the source spelling;
+ * the system root is `%Metadata`. Across the local corpus 5,220 stored
+ * type-path names have an uppercase root except `%Metadata` (17 programs)
+ * -- 29341 source `GPS_car_REPORT_MANAGER:MappingClass` is stored
+ * `GPS_CAR_REPORT_MANAGER:MappingClass`, 28722 `%metadata:AppDataSetMgr:
+ * AppDataSetMgr` is stored `%Metadata:...`. The rest of the path keeps its
+ * source spelling.
+ */
+function canonicalTypePathName(path: string): string {
+  const [root, ...rest] = path.split(':');
+  if (rest.length === 0) return path;
+  return [/^%metadata$/i.test(root) ? '%Metadata' : root.toUpperCase(), ...rest].join(':');
+}
+
 function applicationClassSymbolHash(name: string): number {
   let hash = 0;
   for (const character of name.toUpperCase()) hash = ((hash * 2) + character.charCodeAt(0)) >>> 0;
@@ -14127,7 +14144,7 @@ function buildApplicationClassDirectory(
   const memberNameOffsets = memberOrder.map(member => allocateName(bare(member.name)));
   const callableNameOffsets = callables.map(callable =>
     allocateName(callable.kind === 'method' ? callable.member.name : callable.name));
-  const ensureNameOffset = (path: string): number => allocateName(path);
+  const ensureNameOffset = (path: string): number => allocateName(canonicalTypePathName(path));
 
   // Descriptors: self, members, callables (physical order), then slots.
   const relationshipType = parsed.extendsType ?? parsed.implementsType;
