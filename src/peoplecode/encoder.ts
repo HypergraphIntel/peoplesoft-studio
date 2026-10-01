@@ -1,4 +1,5 @@
 import { encodePrimitiveMethodSignature } from './applicationClassMetadata.js';
+import type { ApplicationClassMemberType, ApplicationClassTypeMetadataProvider } from './applicationClassTypeMetadata.js';
 import {
   APPLICATION_CLASS_FLAGS,
   NO_TYPE_DESCRIPTOR,
@@ -493,6 +494,32 @@ export interface EncodeProgramContext {
    * (e.g. `"BNE_OPEN_ENROLL_FL:Utility:TextCatalog"`).
    */
   inheritedPropertyTypes?: ReadonlyMap<string, string>;
+
+  /**
+   * Cycle 107: optional Application Class TYPE metadata -- the declared
+   * types of other classes' properties / instances and method results
+   * (`applicationClassTypeMetadata.ts`), e.g. from the local corpus
+   * snapshot. It only answers "which class is this value?" for a chain step
+   * the source cannot type -- `&obj.Prop.M()`, `&obj.Get().M()` on a
+   * variable of a known class, in ordinary programs. The resulting receiver
+   * then uses the existing Cycle 94 method-row allocator; the provider
+   * never allocates. A step it cannot resolve keeps the conservative
+   * behavior (and the Cycle 93 external-metadata accounting). Absent:
+   * encoding is unchanged.
+   */
+  applicationClassTypeMetadata?: ApplicationClassTypeMetadataProvider;
+  /** Cycle 107 research hook: every provider consultation. Observational only. */
+  applicationClassTypeMetadataTrace?: (event: ApplicationClassTypeMetadataEvent) => void;
+  /** Cycle 107 research mode: consult and trace the provider, but encode as if it were absent. */
+  applicationClassTypeMetadataDiagnosticsOnly?: boolean;
+}
+
+export interface ApplicationClassTypeMetadataEvent {
+  kind: 'member' | 'method-result';
+  receiver: readonly string[];
+  member: string;
+  result: ApplicationClassMemberType | undefined;
+  sourceOffset: number;
 }
 
 /** Internal-only state shared by Application Class member fragments. */
@@ -1118,6 +1145,37 @@ export function isBuiltinObjectTypeName(name: string): boolean {
 function encodeFragmentInternal(source: string, context?: EncodeFragmentContext): { bytes: Buffer; references: PeopleCodeReference[]; commentOpcodesConsumed: number } {
 
   let commentOpcodeIndex = 0;
+
+  /*
+   * Cycle 107: the optional type-metadata provider (see
+   * `EncodeProgramContext.applicationClassTypeMetadata`). Consultation is
+   * traced; in diagnostics-only mode its answers are not used.
+   */
+  const consultTypeMetadata = (
+    kind: 'member' | 'method-result',
+    receiver: readonly string[],
+    member: string
+  ): ApplicationClassMemberType | undefined => {
+    const provider = context?.applicationClassTypeMetadata;
+    /*
+     * Ordinary programs only. In Application Class programs a typed result
+     * exposes a separate, unmodeled method-row lifetime: 28927 calls
+     * `%Super.TxtCat.getSimpleTextPlan(...)` twelve times and stores ONE
+     * TEXTCATALOG row, where the class-wide allocator would open twelve.
+     */
+    if (provider === undefined || context?.builtinObjectDeclarationsHaveMethodWideLifetime) return undefined;
+    const result = kind === 'member' ? provider.memberType(receiver, member) : provider.methodReturnType(receiver, member);
+    context?.applicationClassTypeMetadataTrace?.({ kind, receiver, member, result, sourceOffset: pos });
+    if (context?.applicationClassTypeMetadataDiagnosticsOnly) return undefined;
+    /* An array type is not modeled as a receiver: keep the conservative behavior. */
+    if (result?.kind === 'other' && /^array\b/i.test(result.type)) return undefined;
+    return result;
+  };
+  const metadataReceiver = (path: readonly string[]) => ({
+    packagePath: path.slice(0, -1),
+    className: path[path.length - 1],
+    reuseRuntimeCreateForMethods: false
+  });
 
   const consumeCommentOpcode = (
     fallback: 0x24 | 0x4e
@@ -10657,9 +10715,16 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             context.externalClassMetadata.unresolvedReceiverCalls++;
           }
 
+          let methodResultType: ApplicationClassMemberType | undefined;
           if (activeApplicationClassReceiver !== undefined) {
-            // The call's RESULT is of a class only the method signature names.
-            if (!activeApplicationClassReceiver.externalMetadataExempt) receiverClassIsExternalMetadata = true;
+            // The call's RESULT is of a class only the method signature names
+            // -- unless the type-metadata provider resolves it (Cycle 107).
+            methodResultType = consultTypeMetadata(
+              'method-result',
+              [...activeApplicationClassReceiver.packagePath, activeApplicationClassReceiver.className],
+              member
+            );
+            if (!activeApplicationClassReceiver.externalMetadataExempt && methodResultType === undefined) receiverClassIsExternalMetadata = true;
 
             const classKey = [
               ...activeApplicationClassReceiver.packagePath,
@@ -10755,11 +10820,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           }
 
           /*
-           * We do not currently have return-type metadata for arbitrary
-           * Application Class methods, so the result of a call cannot safely
-           * retain the root receiver's class provenance.
+           * Without return-type metadata the result of a call cannot retain
+           * class provenance. Cycle 107: with it, the declared result class
+           * is the receiver of the next step.
            */
-          activeApplicationClassReceiver = undefined;
+          activeApplicationClassReceiver =
+            methodResultType?.kind === 'class' ? metadataReceiver(methodResultType.path) : undefined;
 
           const previousReuseRecordReferenceByName =
             reuseRecordReferenceByName;
@@ -10951,10 +11017,33 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            * chain still resets normally on its own iteration.
            */
           if (!resolvedInheritedPropertyThisStep) {
-            if (activeApplicationClassReceiver !== undefined && !activeApplicationClassReceiver.externalMetadataExempt) {
-              receiverClassIsExternalMetadata = true;
+            /*
+             * Cycle 107: the type-metadata provider may know the
+             * property's declared type: an Application Class becomes the
+             * receiver (`&cmpSession.Manager.CAFTrace(...)`, 2134); a
+             * resolved non-class type ends the chain WITHOUT counting as
+             * external metadata; an unresolved one keeps the Cycle 93
+             * accounting.
+             */
+            const propertyType = activeApplicationClassReceiver === undefined
+              ? undefined
+              : consultTypeMetadata(
+                'member',
+                [...activeApplicationClassReceiver.packagePath, activeApplicationClassReceiver.className],
+                member
+              );
+            if (propertyType?.kind === 'class') {
+              activeApplicationClassReceiver = metadataReceiver(propertyType.path);
+            } else {
+              if (
+                activeApplicationClassReceiver !== undefined &&
+                !activeApplicationClassReceiver.externalMetadataExempt &&
+                propertyType === undefined
+              ) {
+                receiverClassIsExternalMetadata = true;
+              }
+              activeApplicationClassReceiver = undefined;
             }
-            activeApplicationClassReceiver = undefined;
           }
           expectedReferenceMember = undefined;
           /*
@@ -14641,6 +14730,7 @@ function encodeOrdinaryProgramFragment(
     referenceTrace: buffer(context?.referenceTrace),
     chainSemanticsTrace: buffer(context?.chainSemanticsTrace),
     reusePoolTrace: buffer(context?.reusePoolTrace),
+    applicationClassTypeMetadataTrace: buffer(context?.applicationClassTypeMetadataTrace),
     externalClassMetadata
   });
 

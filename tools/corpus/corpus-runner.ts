@@ -52,6 +52,14 @@ import {
   openSnapshotDatabase
 } from './snapshot/store';
 
+import {
+  snapshotApplicationClassTypeMetadata
+} from './snapshot/applicationClassTypeMetadata';
+
+import type {
+  ApplicationClassTypeMetadataProvider
+} from '../../src/peoplecode/applicationClassTypeMetadata';
+
 export interface CorpusRunOptions
   extends DiscoveryOptions {
   databaseName?: string;
@@ -163,6 +171,9 @@ export async function runCorpus(
 
     let workItems:
       CorpusWorkItem[];
+
+    let applicationClassTypeMetadata:
+      ApplicationClassTypeMetadataProvider | undefined;
 
     if (
       options.definitionId !== undefined
@@ -331,6 +342,24 @@ export async function runCorpus(
     } else {
       dataSource =
         new LocalCorpusDataSource();
+
+      /*
+       * Cycle 107: the snapshot's Application Class definitions are the
+       * compiler's class metadata for a local run -- built once per
+       * process, classes parsed lazily -- for every selection (full,
+       * --limit, --definition-id, --failed). Live runs have none.
+       */
+      const metadataDb =
+        openSnapshotDatabase();
+
+      try {
+        applicationClassTypeMetadata =
+          snapshotApplicationClassTypeMetadata(
+            metadataDb
+          );
+      } finally {
+        metadataDb.close();
+      }
     }
 
     const run =
@@ -361,7 +390,8 @@ export async function runCorpus(
             traceRefs:
               options.traceRefs ?? false,
             verbose:
-              options.verbose ?? false
+              options.verbose ?? false,
+            applicationClassTypeMetadata
           }
         );
 
