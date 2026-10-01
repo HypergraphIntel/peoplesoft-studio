@@ -7212,6 +7212,24 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       }
 
       /*
+       * Cycle 113: so does a blank line BETWEEN two leading Local
+       * declarations of a Function body. 2116:
+       *
+       *   Local CAFNUI_CORE:HANDLER:FactorHandler:Chart &fctHandler;
+       *
+       *   Local Record &record;
+       *
+       * stores `... 15 4F 44 ...`. LOCAL SNAPSHOT (every ordinary Function
+       * body, consecutive Locals separated by whitespace only): stored
+       * writes one 0x4F per blank line in all 131 such pairs -- plain or
+       * Application-Class-typed, initialized or not -- of which the
+       * encoder kept 22 (after an executable statement) and dropped 109.
+       */
+      if (isLocal && sawLocalDeclaration && !enteredExecutableSection && /(?:\r?\n)[ \t]*(?:\r?\n)/.test(bodyWhitespace)) {
+        emitBlankLineMarkers(bodyWhitespace);
+      }
+
+      /*
        * A standalone block comment inside an already-entered Function
        * executable section is a complete body item and does not require a
        * following 0x15 statement terminator.

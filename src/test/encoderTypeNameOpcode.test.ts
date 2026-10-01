@@ -25,3 +25,19 @@ for (const type of ['string', 'number', 'boolean', 'integer', 'date', 'datetime'
     assert.equal(typeOpcode(`Local ${type} &x`), 0x40);
   });
 }
+
+/*
+ * Cycle 113: a blank line between two leading Local declarations of a
+ * Function body is a 0x4F marker (2116: `Local ... &fctHandler;` <blank>
+ * `Local Record &record;` stores `15 4F 44`).
+ */
+test('a blank line between two leading Locals of a Function body is a 0x4F marker', () => {
+  const marked = encodeFragment('Function F()\n   Local Record &a;\n\n   Local Rowset &b;\n   &a = Null;\nEnd-Function;\n');
+  const plain = encodeFragment('Function F()\n   Local Record &a;\n   Local Rowset &b;\n   &a = Null;\nEnd-Function;\n');
+  const between = (bytes: Buffer) => {
+    const first = bytes.indexOf(0x44), second = bytes.indexOf(0x44, first + 1);
+    return [...bytes.subarray(first, second)].filter(byte => byte === 0x4f).length;
+  };
+  assert.equal(between(marked), 1);
+  assert.equal(between(plain), 0);
+});
