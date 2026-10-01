@@ -34,6 +34,8 @@ export interface ApplicationClassTypeMetadataProvider {
   memberType(classPath: ApplicationClassPath, member: string): ApplicationClassMemberType | undefined;
   /** Declared return type of method `method` of the class or of its nearest ancestor declaring it. */
   methodReturnType(classPath: ApplicationClassPath, method: string): ApplicationClassMemberType | undefined;
+  /** The class's parent (`extends`), when the class and its parent are available (`%Super`). */
+  superclassOf(classPath: ApplicationClassPath): ApplicationClassPath | undefined;
 }
 
 export interface ApplicationClassTypeMetadataOptions {
@@ -175,6 +177,10 @@ export function createApplicationClassTypeMetadataProvider(
 
   return {
     memberType: (classPath, member) => lookup(classPath, member.replace(/^&/, ''), 'members'),
-    methodReturnType: (classPath, method) => lookup(classPath, method, 'methods')
+    methodReturnType: (classPath, method) => lookup(classPath, method, 'methods'),
+    superclassOf: classPath => {
+      const parent = index(canonicalClassKey(classPath))?.extendsType;
+      return parent === undefined || parent === 'unresolved' ? undefined : sources.get(canonicalClassKey(parent))?.path;
+    }
   };
 }
