@@ -3,19 +3,19 @@
 ## Current status (2026-09-30)
 
 - **Current target:** Cycle 103 -- built-in PACKAGE dependencies in
-  ordinary programs. Registry coverage landed: EXACT 28,523 -> 28,546
-  (+23), protected PASS, 0 EXACT -> non-EXACT. Built-in row lifetime
-  ("runs" unit) next. See "Compiler Semantics Cycle 103" and "Compiler
-  Research Cycle 103".
-- **Last successful calibration:** Cycle 103 registry.
+  ordinary programs. Registry coverage (+23) and the built-in row
+  lifetime (+62) landed: EXACT 28,523 -> 28,608 (+85), protected PASS,
+  0 EXACT -> non-EXACT. PanelGroup declaration trigger next. See
+  "Compiler Semantics Cycle 103" and "Compiler Research Cycle 103".
+- **Last successful calibration:** Cycle 103 lifetime.
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked: package
   canonical case in App Class type-path names (external package
   metadata); FIELDVALUE / XLAT*; undeclared-variable receivers;
   UNRESOLVED_EXTERNAL_CLASS_METADATA class rows; 2125, 24500, 24503, 19433.
-- **Next action:** land the built-in row lifetime (`builtinUnit`, the
-  "runs" model: 0 contradictions) -- measured +58 forward-exact alone, 107
-  lists closer / 0 farther. Then rerank PACKAGE.
+- **Next action:** PanelGroup declarations trigger built-in rows like
+  Component (23/23 sole-context programs store the row; 959, 3618). Then
+  rerank PACKAGE.
 - **Newly established rules this session:** Cycle 103: every type declared
   without a package path that stores PACKAGE.<TYPE> is a built-in and
   every evidenced declaration context allocates its row (registry
@@ -36,6 +36,35 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 103b -- built-in PACKAGE row lifetime
+
+**Result:** EXACT **28,546 -> 28,608 (+62)**, **0 EXACT -> non-EXACT**,
+protected 430/430, ROUNDTRIP_ONLY 0. LOCAL SNAPSHOT only.
+
+Ordinary programs: `ensureLocalObjectPackageReference` keys built-in rows
+by the new `builtinUnit` instead of `controlGroup:functionDepth` -- the
+"runs" unit of the research section: the leading top-level declaration
+section (closed by executable code or after an initialized declaration)
+split into runs by Function definitions, a Function header joining the
+run before it; otherwise each top-level statement / Function header /
+Function body statement. A separate counter: Cycle 94's `allocationUnit`
+(where a Function closes the section) is untouched, and Application Class
+method bodies keep their method-wide pool.
+
+| lifetime experiment (on top of the registry) | value |
+|---|---|
+| PSPCMNAME lists changed | 109: 109 closer, 0 farther |
+| names-exact gained / lost | 94 / 0 |
+| forward-exact gained / lost | 63 / 0 |
+| census: generated vs stored interval mismatches | 285 -> 22 (remaining: PanelGroup trigger, array contexts) |
+| non-PACKAGE / App Class PACKAGE generated sequences | unchanged in all 29,752 encodable definitions |
+
+Fixed by old category: ACTIVE_PACKAGE 26, ACTIVE_RECORD_FIELD 17,
+ACTIVE_RECORD 12, ACTIVE_SCROLL 7. Tests: 8 lifetime cases in
+`encoderBuiltinPackage.test.ts` (Function body statements, closure after
+an initialized declaration -- both fail at eb75a04 --, Function runs,
+and the 802 / 22515 / 19565 controls).
 
 ## Compiler Semantics Cycle 103 -- built-in PACKAGE registry coverage
 

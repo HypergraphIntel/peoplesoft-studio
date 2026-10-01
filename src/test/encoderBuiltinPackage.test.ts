@@ -33,3 +33,33 @@ test('a type written with a package path is an Application Class, not a registry
   assert.equal(rows[0].packageName, 'PAGE');
   assert.notEqual((rows[0] as { packagePath?: string[] }).packagePath, undefined);
 });
+
+/*
+ * Built-in row LIFETIME: one row per type per built-in unit (see the
+ * encoder's `builtinUnit`). Each case is a corpus shape. The first two were
+ * wrong under the control-group pool it replaces; the Function-run cases
+ * document the rule (the old pool happened to agree on these shapes); the
+ * controls must not move.
+ */
+for (const [name, source, expected] of [
+  ['each Function body statement is its own unit (10263)',
+    'Function F()\n   Local Record &a;\n   Local Record &b;\n   &a = Null;\nEnd-Function;\n', ['RECORD', 'RECORD']],
+  ['a bare declaration after an initialized one opens again (the section closed)',
+    'Local Rowset &a = GetLevel0();\nLocal Rowset &b;\n&b = Null;\n', ['ROWSET', 'ROWSET']],
+  ['a Function header joins the open run before it',
+    'Local Rowset &rs;\nFunction F(&r As Rowset)\n   &r = Null;\nEnd-Function;\n&rs = Null;\n', ['ROWSET']],
+  ['a Function definition starts a new run: declarations after it do not share with its header',
+    'Function F(&r As Rowset)\n   &r = Null;\nEnd-Function;\nLocal Rowset &rs;\n&rs = Null;\n', ['ROWSET', 'ROWSET']],
+  ['declarations after a Function share their own run (13627)',
+    'Function F()\n   F2();\nEnd-Function;\nLocal ApiObject &a;\nLocal ApiObject &b;\n&a = Null;\n', ['APIOBJECT']],
+  ['control: bare top-level leading declarations share one row (802)',
+    'Local SQL &a;\nLocal SQL &b;\nLocal SQL &c;\n&a = Null;\n', ['SQL']],
+  ['control: consecutive initialized top-level declarations open one each (22515)',
+    'Local SQL &a = GetSQL(SQL.ONE);\nLocal SQL &b = GetSQL(SQL.TWO);\n', ['SQL', 'SQL']],
+  ['control: initialized declarations in one control structure share (19565)',
+    'If True Then\n   Local Rowset &a = GetLevel0();\n   Local Rowset &b = GetLevel0();\nEnd-If;\n', ['ROWSET']]
+] as const) {
+  test(`built-in row lifetime: ${name}`, () => {
+    assert.deepEqual(packageRows(source), expected);
+  });
+}

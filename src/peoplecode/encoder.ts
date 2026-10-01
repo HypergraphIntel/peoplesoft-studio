@@ -2345,6 +2345,43 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   const startAllocationUnit = (): void => {
     allocationUnit = nextAllocationUnit++;
   };
+  /*
+   * Cycle 103: the BUILT-IN TYPE UNIT of an ordinary program -- the
+   * lifetime of a built-in type's PACKAGE row (`ensureLocalObjectPackageReference`).
+   * Every declaration of a built-in type (Local / Global / Component,
+   * scalar or array element, Function parameter, Returns) needs the row;
+   * within one unit the row is reused, a new unit opens a new one:
+   *
+   *   - the leading top-level declaration section, closed by the first
+   *     executable statement or control structure, or after the first
+   *     initialized declaration of any type (`sawTopLevelExecutableStatement`)
+   *     -- but NOT closed by a Function definition: each Function starts a
+   *     new RUN of it, and a Function's own header (parameter and Returns
+   *     types) belongs to the run immediately before it;
+   *   - otherwise: each top-level statement (a whole control structure
+   *     being one), each Function header, each Function body statement.
+   *
+   * This differs from the Cycle 94 allocation unit only at Function
+   * definitions (which close Cycle 94's leading section): that difference
+   * is why built-in rows could not share `allocationUnit` (96 closer / 110
+   * farther). LOCAL SNAPSHOT (`cycle103-builtin-package-lifetime-census.ts`,
+   * `cycle103-builtin-package-unit-model.py`): 0 errors on 17,063 events
+   * whose stored outcome is determined, and the opened-row count matches
+   * stored in all 15,296 (type, interval) groups of 6,759 aligned ordinary
+   * programs, 35 types; the control-group pool it replaces was wrong on 460
+   * events / 285 intervals. E.g. AE_WRK.AE_GO.DeleteAEInfo (802): three
+   * bare top-level `Local SQL` declarations in the leading section share
+   * one row; definition 10263's three consecutive bare `Local Record`
+   * statements inside a Function body open three (the control-group pool
+   * shared one). Application Class method bodies keep their method-wide
+   * pool (`builtinObjectDeclarationsHaveMethodWideLifetime`).
+   */
+  let builtinUnit = 0;
+  let nextBuiltinUnit = 1;
+  let builtinRunSplitPending = false;
+  const startBuiltinUnit = (): void => {
+    builtinUnit = nextBuiltinUnit++;
+  };
   const classRowsByUnit = new Map<string, { unit: number; reference: PeopleCodeReference }>();
   const useApplicationClassRow = (
     packagePath: string[],
@@ -2571,7 +2608,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      */
     const key = context?.builtinObjectDeclarationsHaveMethodWideLifetime
       ? `${functionDepth}:${packageName.toLowerCase()}:${objectName.toLowerCase()}`
-      : `${controlGroup}:${functionDepth}:${packageName.toLowerCase()}:${objectName.toLowerCase()}`;
+      : `unit${builtinUnit}:${packageName.toLowerCase()}:${objectName.toLowerCase()}`;
 
     const existing = localObjectPackageReferences.get(key);
     if (existing !== undefined) {
@@ -6890,6 +6927,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       // own allocation unit.
       if (ordinaryProgram && controlDepth === 0) {
         startAllocationUnit();
+        // Cycle 103: so is every Function body statement for built-in rows.
+        startBuiltinUnit();
       }
 
       const isRemStatement = startsRemComment();
@@ -11897,6 +11936,20 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * program (RECORD rows use the units even where the class-row model is
      * off).
      */
+    /*
+     * Cycle 103: built-in type units (see `builtinUnit`). A declaration --
+     * or a Function, whose header joins the run -- continues the open
+     * leading run unless a Function definition just ended it; anything
+     * else, or anything once the section has closed, is its own unit.
+     */
+    if (ordinaryProgram) {
+      const continuesBuiltinRun =
+        !sawTopLevelExecutableStatement &&
+        !builtinRunSplitPending &&
+        (isFunction || isTopLevelDeclaration || isLocalDeclaration);
+      if (!continuesBuiltinRun) startBuiltinUnit();
+      builtinRunSplitPending = false;
+    }
     if (ordinaryProgram && !isFunction) {
       const inLeadingSection =
         !sawTopLevelExecutableStatement &&
@@ -12513,6 +12566,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * => ... 37 15 2D 4F 32 ...
        */
       haveCompletedTopLevelStatement = true;
+      // Cycle 103: the next declaration starts a new built-in run.
+      builtinRunSplitPending = true;
 
       /*
        * Cycle 86 (generalizes Cycle 85): before executable code begins, a
