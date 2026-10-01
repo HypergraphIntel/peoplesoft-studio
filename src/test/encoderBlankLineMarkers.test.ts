@@ -55,3 +55,22 @@ test('an Application Class method keeps blank lines without references (29137)',
   const bytes = encodeProgramArtifacts(source, { owner: { recordName: 'PKG', fieldName: 'Constants', packagePath: ['PKG', 'Constants'] } }).program;
   assert.equal(markersBeforeIn(bytes, '&b'), 1);
 });
+
+/*
+ * Cycle 113: loop bodies keep one 0x4F per blank line -- after a For
+ * header (4950: two blank lines -> `2D 4F 4F`), before a REM in a For body
+ * (4094), and before a statement in a Repeat body (4827).
+ */
+test('two blank lines after a For header are two markers (4950)', () => {
+  assert.equal(markersBefore('For &i = 1 To 3\n\n\n   &first = 1;\nEnd-For;\n', '&first'), 2);
+});
+
+test('a blank line before a REM in a For body is a marker (4094)', () => {
+  const bytes = encodeFragment('For &i = 1 To 3\n   F();\n\n   rem skip G;\n   H();\nEnd-For;\n');
+  const rem = bytes.indexOf(Buffer.from('rem skip G;', 'utf16le'));
+  assert.equal(bytes.subarray(rem - 5, rem - 3).toString('hex'), '154f');
+});
+
+test('a blank line before a Repeat-body statement is a marker (4827)', () => {
+  assert.equal(markersBefore('Repeat\n   F(Record.REC);\n\n   &second = 2;\nUntil &second = 2;\n', '&second'), 1);
+});

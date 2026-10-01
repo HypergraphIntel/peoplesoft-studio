@@ -5741,16 +5741,17 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * `!firstForBodyItem`, `!justClosedImportSection`,
    * `sawTopLevelDeclaration`, etc.). It only answers, once a caller has
    * already decided a gap is real: how many 0x4F bytes is this specific
-   * captured whitespace span worth. The "exactly one 0x4F regardless of
-   * blank-line count" site after a bare For header is a different rule.
+   * captured whitespace span worth.
    *
-   * Cycle 113: the Evaluate sites once treated the same way (before
-   * End-Evaluate, before a When-body statement) follow THIS rule -- their
+   * Cycle 113: the sites once documented as "always exactly one 0x4F
+   * regardless of blank-line count" (before End-Evaluate, before a
+   * When-body statement, after a For header) follow THIS rule -- their
    * single-marker evidence held only single blank lines. LOCAL SNAPSHOT:
    * before End-Evaluate the stored 0x4F count equals the source's blank
    * lines in every occurrence (393 programs; 6956 / 7000 two blank lines
    * -> `4F 4F 3F`); a When-body statement after two blank lines stores two
-   * (5208, 5373).
+   * (5208, 5373); after a For header in every occurrence (745 programs;
+   * 4950 `For ... <2 blank> &Emplid = ...` -> `2D 4F 4F 01`).
    */
   const emitBlankLineMarkers = (whitespace: string): void => {
     const markerCount = Math.max(
@@ -7713,6 +7714,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         continue;
       }
 
+      // Cycle 113: a statement keeps its blank lines too, like the comment,
+      // REM and Until above (4827 `&NEW_ROW_NUM = ...; <blank> For ...`
+      // inside a Repeat stores `15 4F 29`).
+      if (hasBlankLine) {
+        deferReferenceGatedMarkers(bodyWhitespace);
+      }
+
       statement();
 
       space();
@@ -7841,8 +7849,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         headerTrailingWhitespace
       );
 
+    // Cycle 113: one 0x4F per blank line (see `emitBlankLineMarkers`).
     if (hadBlankLineAfterForHeader) {
-      chunks.push(Buffer.from([0x4f]));
+      emitBlankLineMarkers(headerTrailingWhitespace);
     }
 
     let firstForBodyItem = true;
@@ -7892,6 +7901,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       }
 
       if (startsRemComment()) {
+        // Cycle 113: a REM keeps its blank lines, like a block comment
+        // (4094, 6288: `End-If; <blank> rem ...;` in a For body stores
+        // `15 4F 24`).
+        if (hasBlankLine && !firstForBodyItem) {
+          emitBlankLineMarkers(bodyWhitespace);
+        }
         chunks.push(remComment(true));
         continue;
       }
