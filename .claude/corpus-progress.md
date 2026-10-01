@@ -161,6 +161,56 @@ Evaluate / When header shows the C shape: `While ... And <cond> /*c*/` is
 the only corpus-exposed instance (If headers end at Then, which the
 existing `commentInlineContinuesToNextToken` already handles past 0x42).
 
+### PACKAGE rerank after ROUNDTRIP_ONLY = 0
+
+Tool: `tools/corpus/research/cycle102-package-mechanism-census.ts` (stored
+PSPCMNAME vs generated reference list, row order, row 1 excluded; first
+differing PACKAGE row classified, identity at fault tagged). Population:
+the 1,686 NONEXACT at e010cb1.
+
+- **PACKAGE-only** (non-PACKAGE rows identical, PACKAGE rows differ):
+  **373** (taxonomy REFERENCE_ACTIVE_PACKAGE 220, the rest filed under
+  ACTIVE_RECORD_FIELD 92, ACTIVE_SCROLL 38, ACTIVE_RECORD 33, ACTIVE_FIELD
+  31, ...). First divergence is a PACKAGE row: 478.
+
+| first PACKAGE divergence | all | package-only |
+|---|---|---|
+| ORDERING (row exists on the other side, at another position) | 230 | |
+| GENERATED_MISSING_IDENTITY | 134 | |
+| STORED_OPENS_GENERATED_REUSES | 85 | |
+| STORED_REUSES_GENERATED_OPENS | 28 | |
+| WRONG_IDENTITY | 1 | |
+
+| mechanism / identity source / program | count |
+|---|---|
+| ORDERING / builtin / ordinary | 69 (package-only 58) |
+| STORED_OPENS_GENERATED_REUSES / builtin / ordinary | 56 (54) -- Record 19, Rowset 16, SQL 7, ApiObject 6 |
+| GENERATED_MISSING_IDENTITY / "external" / app | 51 (38) |
+| GENERATED_MISSING_IDENTITY / "external" / ordinary | 47 (47) |
+| ORDERING / "external" / ordinary + app | 41 + 32 |
+| STORED_OPENS_GENERATED_REUSES / named-import / ordinary | 25 (24) |
+| ORDERING / wildcard-import / app + ordinary | 23 + 9 |
+| GENERATED_MISSING_IDENTITY / builtin / ordinary | 21 |
+| ORDERING / builtin / app | 18 |
+| ORDERING / self / app | 14 |
+| GENERATED_MISSING_IDENTITY / wildcard-import / app | 14 |
+| STORED_REUSES_GENERATED_OPENS / external + builtin + named-import (method) | 12 + 7 + 9 |
+| method-dependency rows at fault (any mechanism) | 15 |
+
+Caveat: "external" means not in BUILTIN_TYPE_REGISTRY, not named-imported,
+and no snapshot Application Class of that name under a wildcard import.
+The missing "external" identities are mostly PeopleTools built-in classes
+the registry does not list (Page 12, AnalyticInstance 8, TextCatalog 8,
+ObjectManager 6, CubeCollection 6, JsonParser 5) -- registry coverage,
+not missing metadata. Split them first.
+
+Ranking for the next cycle: (1) built-in type row lifetime -- ORDERING +
+STORED_OPENS_GENERATED_REUSES on Record / Rowset / SQL / ApiObject in
+ordinary programs (~125, mostly package-only, one subsystem); (2)
+unregistered built-in classes (GENERATED_MISSING "external", ~98); (3)
+named-import stored-opens (25); (4) wildcard / self ordering in App
+Classes (~46); (5) method-dependency rows (15).
+
 ## Compiler Semantics Cycle 101 -- decoder blank lines after `private` / `protected` and `end-get` / `end-set`
 
 **Result:** EXACT **28,421 -> 28,513 (+92)**, **0 EXACT -> non-EXACT**,
