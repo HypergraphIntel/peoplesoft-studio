@@ -1110,6 +1110,11 @@ const BUILTIN_TYPE_REGISTRY: ReadonlyMap<string, BuiltinTypeSemantics> = new Map
  * built-in registry coverage.
  */
 
+/** Cycle 107: whether a type name is a PeopleTools built-in object type (`BUILTIN_TYPE_REGISTRY`). */
+export function isBuiltinObjectTypeName(name: string): boolean {
+  return BUILTIN_TYPE_REGISTRY.has(name.toLowerCase());
+}
+
 function encodeFragmentInternal(source: string, context?: EncodeFragmentContext): { bytes: Buffer; references: PeopleCodeReference[]; commentOpcodesConsumed: number } {
 
   let commentOpcodeIndex = 0;
