@@ -573,9 +573,8 @@ export interface EncodeProgramContext {
   applicationClassTypeMetadataDiagnosticsOnly?: boolean;
   /**
    * Cycle 111 research hook: called when an ordinary program is re-encoded
-   * without allocation units because its class rows depend on external
-   * metadata (Cycle 93, `applicationClassRowsWithoutImportResolution`).
-   * Observational only.
+   * because its class rows depend on external metadata (Cycle 93 / 112,
+   * `externalMetadataWildcardClaims`). Observational only.
    */
   onExternalMetadataFallback?: () => void;
   /**
@@ -610,12 +609,12 @@ interface EncodeFragmentContext extends EncodeProgramContext {
   externalClassMetadata?: { unresolvedReceiverCalls: number };
 
   /**
-   * Cycle 93: encode Application Class PACKAGE rows of an ordinary program
-   * WITHOUT the allocation-unit model (the behavior before Cycle 93). Set
-   * only by `encodeOrdinaryProgramFragment`, for a program whose
-   * references depend on unavailable external class metadata.
+   * Cycle 93 / 112: every wildcard import of an ordinary program claims a
+   * blank-REFNAME PACKAGE row (instead of the first one only). Set only by
+   * `encodeOrdinaryProgramFragment`, for a program whose references depend
+   * on unavailable external class metadata; see there.
    */
-  applicationClassRowsWithoutImportResolution?: boolean;
+  externalMetadataWildcardClaims?: boolean;
 
   htmlDependencyScope?: HtmlDependencyScope;
   htmlDependencyLifetime?: 'application-class';
@@ -2584,15 +2583,14 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * these units (tested: 96 closer / 110 farther); they keep their own
    * control-group pool. Application Class programs are unaffected.
    *
-   * A program whose rows depend on external class metadata is encoded
-   * without any of this (`applicationClassRowsWithoutImportResolution`,
-   * see `encodeOrdinaryProgramFragment`).
+   * A program whose rows depend on external class metadata uses all of
+   * this too (Cycle 112); only its wildcard imports differ, see
+   * `encodeOrdinaryProgramFragment`.
    */
   const ordinaryProgram = !context?.builtinObjectDeclarationsHaveMethodWideLifetime;
   // Cycle 109: a fragment of an Application Class program (its program-wide rows, `ApplicationClassProgramRows`).
   const applicationClassBody = context?.applicationClassProgramRows !== undefined;
-  const unitScopedClassRows =
-    ordinaryProgram && !context?.applicationClassRowsWithoutImportResolution;
+  const unitScopedClassRows = ordinaryProgram;
   const applicationClassKey = (packagePath: string[], className: string): string =>
     [...packagePath, className].map(component => component.toLowerCase()).join(':');
 
@@ -6239,7 +6237,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       const allocateWildcardMetadata =
         context?.applicationClassTypeReferenceSession !== undefined
           ? context.applicationClassTypeReferenceSession.claimWildcardImportMetadata()
-          : context?.applicationClassRowsWithoutImportResolution
+          : context?.externalMetadataWildcardClaims
             ? true
             : !claimedWildcardImportMetadata;
       claimedWildcardImportMetadata = true;
@@ -15125,13 +15123,19 @@ function parseFunctionMetadata(
  * name is absent from their source; 45 of the 46 encodable ones contain
  * such a call. 100 ordinary definitions contain one.
  *
- * For those programs the row stream cannot be reconstructed, so they keep
- * the behavior calibrated before the allocation-unit model rather than
- * a partial application of it (Cycle 93 measurement: 38 programs differ from the
- * unguarded rules, all 38 byte-identical to the previous behavior). This
- * keeps 13525 EXACT and parks 5 definitions the unguarded rules would
- * have made EXACT (2169, 13517, 15038, 15039, 20754) until class metadata
- * is an encoder input.
+ * Cycle 93 encoded those programs with the whole pre-allocation-unit
+ * model. Cycle 112 measured it against the normal encoding, program by
+ * program (`cycle112-fallback-census.ts`, all 63 fallback programs): the
+ * normal encoding is never farther from stored (41 closer, 22 same; 20
+ * names-exact vs 8), and the rows it cannot know are missing either way.
+ * The one thing the old model kept that mattered was its wildcard rows:
+ * each wildcard import claims a blank row, and in 13525 the second blank
+ * row stands where the unknowable POPULATIONMANAGER row belongs, keeping
+ * it byte-exact. So such a program now uses the normal model with only
+ * that claim (`externalMetadataWildcardClaims`): 37 generated lists
+ * change, 34 closer, 0 farther; 7 become byte-exact, none stop; 13525
+ * stays EXACT. Claiming only the first wildcard (the Cycle 105
+ * correction) stays parked behind 13525 until class metadata reaches it.
  *
  * The first pass runs with trace hooks buffered so observers see exactly
  * one pass -- the one whose bytes are returned.
@@ -15162,7 +15166,7 @@ function encodeOrdinaryProgramFragment(
   context?.onExternalMetadataFallback?.();
   return encodeFragmentInternal(source, {
     ...context,
-    applicationClassRowsWithoutImportResolution: true
+    externalMetadataWildcardClaims: true
   });
 }
 
