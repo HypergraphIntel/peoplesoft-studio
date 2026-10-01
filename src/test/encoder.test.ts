@@ -1239,6 +1239,27 @@ test('a Function header inside a block comment is not counted as a real function
   );
 });
 
+test('a Function header inside disabled code is not counted as a real function', () => {
+  /*
+   * Cycle 113: the same for `<* ... *>` disabled code -- 15641 / 11118 /
+   * 15626 store no directory entry for a `Function` inside `<* ... *>`.
+   */
+  const program = encodeProgram(
+    '<*\n' +
+    'Function Disabled\n' +
+    '   &X = 1;\n' +
+    'End-Function;\n' +
+    '*>\n' +
+    '\n' +
+    'Function real_one\n' +
+    '   &Y = 1;\n' +
+    'End-Function;\n'
+  );
+  assert.equal(program.readUInt32LE(29), 1);
+  assert.ok(!program.includes(Buffer.from('Disabled\0', 'utf16le')));
+  assert.ok(program.includes(Buffer.from('real_one\0', 'utf16le')));
+});
+
 test('REM may continue onto an observed single-space prose line', () => {
   const source =
     'REM KJB Removed code for Import Long Term Goals as it is\n' +

@@ -15113,6 +15113,17 @@ function maskCommentsAndStringLiteralsForFunctionScan(
       const stop = end === -1 ? source.length : end + 2;
       masked += ' '.repeat(stop - i);
       i = stop;
+    } else if (source.startsWith('<*', i)) {
+      /*
+       * Cycle 113: disabled code (`<* ... *>`, ending at the first `*>`,
+       * as `disabledCodeComment()` reads it) is not compiled, so a
+       * Function header inside it is not a function. 15641 / 11118 /
+       * 15626: a `Function` inside `<* ... *>` has no directory entry.
+       */
+      const end = source.indexOf('*>', i + 2);
+      const stop = end === -1 ? source.length : end + 2;
+      masked += ' '.repeat(stop - i);
+      i = stop;
     } else if (source[i] === '"') {
       let j = i + 1;
       while (j < source.length) {
