@@ -557,9 +557,12 @@ export interface EncodeProgramContext {
    * (`applicationClassTypeMetadata.ts`), e.g. from the local corpus
    * snapshot. It only answers "which class is this value?" for a chain step
    * the source cannot type -- `&obj.Prop.M()`, `&obj.Get().M()` on a
-   * variable of a known class, in ordinary programs. The resulting receiver
-   * then uses the existing Cycle 94 method-row allocator; the provider
-   * never allocates. A step it cannot resolve keeps the conservative
+   * variable of a known class, `%Super.Prop.M()`, `%This.Prop.M()` (Cycle
+   * 108), and, in Application Class programs, the element of an
+   * `array of <Class>` property or result (Cycle 109). The resulting
+   * receiver then uses the existing method-row allocator (the Cycle 94
+   * unit in ordinary programs, the Cycle 108 program row in Application
+   * Class programs); the provider never allocates. A step it cannot resolve keeps the conservative
    * behavior (and the Cycle 93 external-metadata accounting). Absent:
    * encoding is unchanged.
    */
@@ -636,10 +639,20 @@ interface EncodeFragmentContext extends EncodeProgramContext {
   /**
    * Cycle 108: the Application Class's own properties / instances whose
    * declared class the source alone names (a qualified type, or a short
-   * name with a named import) -- lowercased name -> class path. Source
-   * declarations win over the type-metadata provider.
+   * name with a named import) -- lowercased name -> class and array depth
+   * (0 for a scalar; Cycle 109). Source declarations win over the
+   * type-metadata provider.
    */
-  applicationClassOwnPropertyTypes?: ReadonlyMap<string, readonly string[]>;
+  applicationClassOwnPropertyTypes?: ReadonlyMap<string, { packagePath: readonly string[]; className: string; depth: number }>;
+  /**
+   * Cycle 109: the Application Class variables an Application Class method
+   * body sees without declaring them -- its program's instances, properties
+   * (`&Name`), Component / Global declarations, and its own method's
+   * parameters -- whose declared type the source alone names (a qualified
+   * path or a named import): lowercased `&name` -> element class and array
+   * depth (0 for a scalar).
+   */
+  applicationClassDeclaredVariables?: ReadonlyMap<string, { packagePath: readonly string[]; className: string; depth: number }>;
   /**
    * Cycle 82: the compilation unit's own self-class PACKAGE row. Present
    * only for Application Class programs. See
@@ -1232,7 +1245,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * array element (`&factors [&f].FactorHandler.GetFactorDisplays(...)`)
    * the encoder does not type, so typing the later ones opens the row too
    * late (LOCAL SNAPSHOT: typed steps 5 closer, 2 farther; `%This`
-   * results change nothing).
+   * results change nothing). An array of a class is modeled in Application
+   * Class programs only (Cycle 109).
    */
   const consultTypeMetadata = (
     kind: 'member' | 'method-result',
@@ -1248,6 +1262,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     if (context?.applicationClassTypeMetadataDiagnosticsOnly) return undefined;
     /* An array type is not modeled as a receiver: keep the conservative behavior. */
     if (result?.kind === 'other' && /^array\b/i.test(result.type)) return undefined;
+    // Cycle 109: an array of a class is modeled in Application Class programs only.
+    if (result?.kind === 'array' && !context?.builtinObjectDeclarationsHaveMethodWideLifetime) return undefined;
     return result;
   };
   const metadataReceiver = (path: readonly string[]) => ({
@@ -2541,6 +2557,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * see `encodeOrdinaryProgramFragment`).
    */
   const ordinaryProgram = !context?.builtinObjectDeclarationsHaveMethodWideLifetime;
+  // Cycle 109: a fragment of an Application Class program (its program-wide rows, `ApplicationClassProgramRows`).
+  const applicationClassBody = context?.applicationClassProgramRows !== undefined;
   const unitScopedClassRows =
     ordinaryProgram && !context?.applicationClassRowsWithoutImportResolution;
   const applicationClassKey = (packagePath: string[], className: string): string =>
@@ -3883,6 +3901,20 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    */
   for (const parameter of context?.methodParameters ?? []) {
     registerTypedParameter(parameter.name, parameter.type);
+  }
+  /*
+   * Cycle 109: an Application Class body's declared `array of <Class>`
+   * variables (`applicationClassDeclaredVariables`) are array receivers
+   * (`applicationClassArrayVariables`) -- 29109's parameter
+   * `&factors As array of CAFNUI_CORE:OBJECT:Factor`, then
+   * `&factors [&f].FactorHandler.GetFactorDisplays(...)`. An element's
+   * method call uses its class's program row
+   * (`ApplicationClassProgramRows`).
+   */
+  for (const [name, declared] of context?.applicationClassDeclaredVariables ?? []) {
+    if (declared.depth > 0) {
+      applicationClassArrayVariables.set(name, { packagePath: [...declared.packagePath], className: declared.className, depth: declared.depth });
+    }
   }
 
   let nextHtmlFunctionNamespace = 1;
@@ -6339,7 +6371,18 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       }
     }
 
-    if (unitScopedClassRows) {
+    if (applicationClassBody) {
+      /*
+       * Cycle 109: a Local of an Application Class body shadows a declared
+       * variable of the same name (`applicationClassDeclaredVariables`).
+       */
+      const localNames = /^Local\s+(?:array\s+of\s+)*[%A-Za-z_][\w:]*\s+(&[A-Za-z0-9_]+#?(?:\s*,\s*&[A-Za-z0-9_]+#?)*)/i.exec(source.slice(pos));
+      for (const name of localNames?.[1].split(',') ?? []) {
+        applicationClassArrayVariables.delete(name.trim().toLowerCase());
+        applicationClassVariables.delete(name.trim().toLowerCase());
+      }
+    }
+    if (unitScopedClassRows || applicationClassBody) {
       const arrayDeclaration =
         /^(?:Local|Global|ComponentLife|Component)\s+((?:array\s+of\s+)+)([A-Za-z_][A-Za-z0-9_]*(?:\s*:\s*[A-Za-z_][A-Za-z0-9_]*)+)\s+(&[A-Za-z0-9_]+#?(?:\s*,\s*&[A-Za-z0-9_]+#?)*)/i
           .exec(source.slice(pos));
@@ -9770,12 +9813,28 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * PeopleTools does not allocate a collProfileItemType.Push PSPCMNAME row.
      */
     let activeApplicationClassReceiver = baseApplicationClass;
-    // Cycle 104: see `applicationClassArrayVariables`.
+    /*
+     * Cycle 104 / 109: an `array of <Class>` value awaiting its index
+     * groups -- a declared array variable (`applicationClassArrayVariables`)
+     * or, in an Application Class program, a property or method result the
+     * type-metadata provider declares as one. Each index group consumes one
+     * array level; the element reached by the last one is a receiver of the
+     * class. Any member step on the array itself (`.Len`, `.Push(...)`)
+     * ends it.
+     */
     const baseApplicationClassArray =
-      unitScopedClassRows && baseVariableName !== undefined
+      (unitScopedClassRows || applicationClassBody) && baseVariableName !== undefined
         ? applicationClassArrayVariables.get(baseVariableName.toLowerCase())
         : undefined;
-    let remainingArrayIndexGroups = baseApplicationClassArray?.depth ?? 0;
+    let pendingArrayElement: { packagePath: string[]; className: string; remaining: number } | undefined =
+      baseApplicationClassArray === undefined
+        ? undefined
+        : { packagePath: baseApplicationClassArray.packagePath, className: baseApplicationClassArray.className, remaining: baseApplicationClassArray.depth };
+    const arrayElementOf = (type: ApplicationClassMemberType & { kind: 'array' }) => ({
+      packagePath: type.element.slice(0, -1),
+      className: type.element[type.element.length - 1],
+      remaining: type.depth
+    });
 
     /*
      * Cycle 93: true once this chain has stepped from an Application Class
@@ -10456,6 +10515,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
         const member = memberMatch[0];
         pos += member.length;
+        // Cycle 109: a member of the array itself (`.Len`, `.Push(...)`) ends its pending element.
+        pendingArrayElement = undefined;
 
         /*
          * Cycle 82: `%This.<ownMethod>(` -- see
@@ -10535,6 +10596,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             if (propertyType?.kind === 'class') {
               activeApplicationClassReceiver = metadataReceiver(propertyType.path);
               resolvedInheritedPropertyThisStep = true;
+            } else if (propertyType?.kind === 'array') {
+              // Cycle 109: an array property: its element, once indexed
+              pendingArrayElement = arrayElementOf(propertyType);
+              resolvedInheritedPropertyThisStep = true;
             }
           }
         }
@@ -10555,9 +10620,15 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             const declared = context?.applicationClassOwnPropertyTypes?.get(member.toLowerCase());
             const propertyType: ApplicationClassMemberType | undefined =
               declared !== undefined && !context?.applicationClassTypeMetadataDiagnosticsOnly
-                ? { kind: 'class', path: [...declared] }
+                ? declared.depth > 0
+                  ? { kind: 'array', element: [...declared.packagePath, declared.className], depth: declared.depth }
+                  : { kind: 'class', path: [...declared.packagePath, declared.className] }
                 : consultTypeMetadata('member', context!.applicationClassSelfPath!, member, 'this-property');
-            if (propertyType?.kind === 'class') {
+            if (propertyType?.kind === 'array') {
+              // Cycle 109: an array property: its element, once indexed
+              pendingArrayElement = arrayElementOf(propertyType);
+              resolvedInheritedPropertyThisStep = true;
+            } else if (propertyType?.kind === 'class') {
               activeApplicationClassReceiver = metadataReceiver(propertyType.path);
               resolvedInheritedPropertyThisStep = true;
             }
@@ -11003,6 +11074,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            */
           activeApplicationClassReceiver =
             methodResultType?.kind === 'class' ? metadataReceiver(methodResultType.path) : undefined;
+          // Cycle 109: an array result: its element, once indexed
+          if (methodResultType?.kind === 'array') pendingArrayElement = arrayElementOf(methodResultType);
 
           const previousReuseRecordReferenceByName =
             reuseRecordReferenceByName;
@@ -11211,6 +11284,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
               );
             if (propertyType?.kind === 'class') {
               activeApplicationClassReceiver = metadataReceiver(propertyType.path);
+            } else if (propertyType?.kind === 'array') {
+              // Cycle 109: an array property: its element, once indexed
+              pendingArrayElement = arrayElementOf(propertyType);
+              activeApplicationClassReceiver = undefined;
             } else {
               if (
                 activeApplicationClassReceiver !== undefined &&
@@ -11307,15 +11384,16 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
         pos++;
         chunks.push(Buffer.from([0x4d]));
-        if (baseApplicationClassArray !== undefined && remainingArrayIndexGroups > 0) {
-          remainingArrayIndexGroups--;
-          if (remainingArrayIndexGroups === 0) {
+        if (pendingArrayElement !== undefined && pendingArrayElement.remaining > 0) {
+          pendingArrayElement.remaining--;
+          if (pendingArrayElement.remaining === 0) {
             activeApplicationClassReceiver = {
-              packagePath: baseApplicationClassArray.packagePath,
-              className: baseApplicationClassArray.className,
+              packagePath: pendingArrayElement.packagePath,
+              className: pendingArrayElement.className,
               reuseRuntimeCreateForMethods: false,
               externalMetadataExempt: true
             };
+            pendingArrayElement = undefined;
           }
         }
         continue;
@@ -14142,21 +14220,37 @@ function encodeApplicationClassProgramV2(
   const htmlDependencyScope = new HtmlDependencyScope();
   const applicationClassReferenceScope = new ApplicationClassReferenceScope();
   const applicationClassProgramRows = new ApplicationClassProgramRows();
-  // Cycle 108: see `EncodeFragmentContext.applicationClassOwnPropertyTypes`.
+  /*
+   * Cycle 108 / 109: an Application Class type as the source alone names it
+   * -- a qualified path, or a short name with a named import -- and its
+   * array depth. A built-in object type wins over a same-named import
+   * (29585); anything else (primitive, untyped array, unresolved short
+   * name) is undefined.
+   */
   const namedImportPaths = new Map(importTargets
     .map(target => target.split(':').map(component => component.trim()))
     .filter(components => components.length >= 2 && components.at(-1) !== '*')
     .map(components => [components.at(-1)!.toLowerCase(), components]));
-  const applicationClassOwnPropertyTypes = new Map<string, string[]>();
-  const declareOwnPropertyType = (name: string, type: string): void => {
-    const written = type.trim();
-    // An array, or a built-in object type (29585: built-ins win over a same-named import).
-    const path = /^array\b/i.test(written) || isBuiltinObjectTypeName(written)
+  const declaredApplicationClass = (type: string): { packagePath: string[]; className: string; depth: number } | undefined => {
+    const written = type.replace(/\s+/g, ' ').trim();
+    const array = /^((?:array\s+of\s+)*)(.*)$/i.exec(written)!;
+    const element = array[2].trim();
+    if (element === '' || /^array$/i.test(element) || isBuiltinObjectTypeName(element)) return undefined;
+    const path = element.includes(':')
+      ? element.split(':').map(component => component.trim())
+      : namedImportPaths.get(element.toLowerCase());
+    return path === undefined
       ? undefined
-      : written.includes(':')
-        ? written.split(':').map(component => component.trim())
-        : namedImportPaths.get(written.toLowerCase());
-    if (path !== undefined) applicationClassOwnPropertyTypes.set(name.replace(/^&/, '').toLowerCase(), path);
+      : { packagePath: path.slice(0, -1), className: path.at(-1)!, depth: (array[1].match(/array/gi) ?? []).length };
+  };
+  // See `EncodeFragmentContext.applicationClassOwnPropertyTypes` / `.applicationClassDeclaredVariables`.
+  const applicationClassOwnPropertyTypes = new Map<string, { packagePath: string[]; className: string; depth: number }>();
+  const programDeclaredVariables = new Map<string, { packagePath: string[]; className: string; depth: number }>();
+  const declareOwnPropertyType = (name: string, type: string): void => {
+    const declared = declaredApplicationClass(type);
+    if (declared === undefined) return;
+    applicationClassOwnPropertyTypes.set(name.replace(/^&/, '').toLowerCase(), declared);
+    programDeclaredVariables.set(`&${name.replace(/^&/, '').toLowerCase()}`, declared);
   };
   for (const member of parsed.members) {
     if (member.kind === 'property' || member.kind === 'instance') declareOwnPropertyType(member.name, member.type);
@@ -14166,6 +14260,24 @@ function encodeApplicationClassProgramV2(
       for (const name of statement.names) declareOwnPropertyType(name, statement.type);
     }
   }
+  const declarationSection = source
+    .slice(parsed.unitEnd, parsed.implementations[0]?.sourceIndex ?? source.length)
+    .replace(/\/\*[\s\S]*?\*\//g, comment => comment.replace(/[^\n]/g, ' '));
+  for (const match of declarationSection.matchAll(/\b(?:Component|Global)\s+((?:array\s+of\s+)*[%A-Za-z_][\w:]*)\s+(&\w+(?:\s*,\s*&\w+)*)/gi)) {
+    const declared = declaredApplicationClass(match[1]);
+    if (declared !== undefined) {
+      for (const name of match[2].split(',')) programDeclaredVariables.set(name.trim().toLowerCase(), declared);
+    }
+  }
+  const bodyDeclaredVariables = (methodParameters?: { name: string; type: string }[]) => {
+    const variables = new Map(programDeclaredVariables);
+    for (const parameter of methodParameters ?? []) {
+      const name = `&${parameter.name.replace(/^&/, '').toLowerCase()}`;
+      const declared = declaredApplicationClass(parameter.type);
+      if (declared !== undefined) variables.set(name, declared); else variables.delete(name);
+    }
+    return variables;
+  };
   const selfPackagePath = selfPath.slice(0, -1);
   const ownStorageNames = new Set(parsed.members
     .filter(member => member.kind === 'property' || member.kind === 'instance')
@@ -14199,7 +14311,8 @@ function encodeApplicationClassProgramV2(
     commentOpcodes = context?.commentOpcodes,
     suppressDeclarationSectionMarkers = true,
     methodParameters?: { name: string; type: string }[],
-    sourceStart?: number
+    sourceStart?: number,
+    declaredVariables?: ReadonlyMap<string, { packagePath: readonly string[]; className: string; depth: number }>
   ): Buffer => {
     /*
      * Cycle 81: this closure encodes several independent fragments in
@@ -14250,6 +14363,7 @@ function encodeApplicationClassProgramV2(
       applicationClassProgramRows,
       applicationClassSelfPath: selfPath,
       applicationClassOwnPropertyTypes,
+      applicationClassDeclaredVariables: declaredVariables,
       applicationClassSelfMethodDependency,
       // Inherited `%This` calls can allocate environment-derived method
       // rows. Freeze that unsupported population on its prior fragment-owner
@@ -14570,7 +14684,7 @@ function encodeApplicationClassProgramV2(
   ): Buffer => {
     const hasSourceTerminator = applicationClassHasTrailingSourceTerminator(body);
     const completed = hasSourceTerminator ? body : `${body};`;
-    const bytes = encodeFragment(completed, undefined, true, methodParameters, sourceStart);
+    const bytes = encodeFragment(completed, undefined, true, methodParameters, sourceStart, bodyDeclaredVariables(methodParameters));
     let end = bytes.length;
     if (end > 0 && bytes[end - 1] === 0x4f) end--;
     if (!hasSourceTerminator && end > 0 && bytes[end - 1] === 0x15) end--;

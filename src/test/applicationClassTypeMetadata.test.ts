@@ -80,3 +80,28 @@ test('the parent class (`%Super`): available classes only, never through a cycle
   assert.deepEqual(provider.superclassOf(['LOOP', 'A']), ['LOOP', 'B']);
   assert.equal(provider.superclassOf(['NOPE', 'Class']), undefined);
 });
+
+test('an array of an available class keeps its element and depth; other arrays are not classes', () => {
+  const arrays = createApplicationClassTypeMetadataProvider([
+    cls('PKG:Holder', [
+      'import PKG:Other;',
+      'class Holder',
+      '   property array of PKG:Other Many;',
+      '   property array of array of Other Grid;',
+      '   property array of string Names;',
+      '   property array of Rowset Sets;',
+      '   property array of MISSING:Gone Lost;',
+      '   method All() Returns array of Other;',
+      'end-class;',
+      ''
+    ].join('\n')),
+    cls('PKG:Other', 'class Other\nend-class;\n')
+  ], { isBuiltinType: isBuiltinObjectTypeName });
+  const holder = ['PKG', 'Holder'];
+  assert.deepEqual(arrays.memberType(holder, 'Many'), { kind: 'array', element: ['PKG', 'Other'], depth: 1 });
+  assert.deepEqual(arrays.memberType(holder, 'Grid'), { kind: 'array', element: ['PKG', 'Other'], depth: 2 });
+  assert.deepEqual(arrays.methodReturnType(holder, 'All'), { kind: 'array', element: ['PKG', 'Other'], depth: 1 });
+  assert.deepEqual(arrays.memberType(holder, 'Names'), { kind: 'other', type: 'array of string' });
+  assert.deepEqual(arrays.memberType(holder, 'Sets'), { kind: 'other', type: 'array of Rowset' });
+  assert.equal(arrays.memberType(holder, 'Lost'), undefined);
+});
