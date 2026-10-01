@@ -2593,8 +2593,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * Cycle 94 / 95: the ALLOCATION UNIT of an ordinary program -- the
    * leading declaration section (through the first initialized Local),
    * then each top-level statement (a whole control structure or try block
-   * being one statement), then each Function body statement. Advanced by
-   * the top-level statement loop and the Function body loop. Application
+   * being one statement), each Function header after the leading section
+   * (Cycle 111; the first Function's header stays in the leading section),
+   * then each Function body statement. Advanced by the top-level statement
+   * loop and the Function body loop. Application
    * Class rows (`classRowsByUnit`) and RECORD rows (`recordRowsByUnit`)
    * are scoped to it, each in its own pool.
    */
@@ -6930,7 +6932,17 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
       space();
       if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
-        chunks.push(applicationClassPath().bytes);
+        const returnClass = applicationClassPath();
+        chunks.push(returnClass.bytes);
+        /*
+         * Cycle 111: like an Application-Class-typed parameter, a
+         * `Returns <Package:Class>` type uses its class in the header's
+         * unit. 2116 / 2158 store COMPARESESSION and CONFIGURATION rows at
+         * `Function GetSessionFromParms() Returns ...:CompareSession` and
+         * `... Returns ...:Configuration`, and none for the first Function's
+         * `Returns` (its class is in the leading unit).
+         */
+        if (unitScopedClassRows) useApplicationClassRow(returnClass.packagePath, returnClass.className);
       } else {
         const isArrayType = /^array\b/i.test(source.slice(pos));
         const returnType =
@@ -12451,6 +12463,23 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         (isTopLevelDeclaration || isLocalDeclaration);
       if (!inLeadingSection) startAllocationUnit();
     }
+    /*
+     * Cycle 111: a Function definition after the leading section starts a
+     * new allocation unit for its header -- an Application-Class-typed
+     * parameter there opens its class's row even when the previous
+     * Function's last statement used the class. 15800:
+     *
+     *   ...&params.GetPageLabel(&internalpages [1])...   (last statement)
+     *   End-Function;
+     *   Function SetInternal(&params As PTIB_PACKAGE:MobileURLParams, &fld As Field, ...)
+     *
+     * stores MOBILEURLPARAMS 11 (the header) before FIELD 12. LOCAL SNAPSHOT
+     * (`cycle111-class-row-event-census.ts`): every such header the
+     * committed allocator reused (5: 14899, 15540, 15800, 18110, 24546)
+     * stores a new row, and every one it opened (45) agrees; the first
+     * Function of the leading section still shares its unit (14356).
+     */
+    if (ordinaryProgram && isFunction && (sawTopLevelExecutableStatement || sawFunctionDefinition)) startAllocationUnit();
 
 
     const closesTopLevelDeclarationSection =
