@@ -20,7 +20,7 @@
  *              the interval reused it (`inferred`)
  *   k == 0, m > 0  a row with no declaration event (other trigger)
  *
- * Events: `Local` / `Global` / `Component` declarations (scalar or `array
+ * Events: `Local` / `Global` / `Component` / `PanelGroup` / `ComponentLife` declarations (scalar or `array
  * of`, bare or initialized), Function parameters (`&x As T`) and
  * `Returns T`, for every type in BUILTINS -- the registry types plus the
  * Cycle 103 candidates (registered or not; an unregistered type has no
@@ -94,7 +94,7 @@ export function maskSource(src: string): string {
 export interface BuiltinEvent {
   offset: number;
   type: string;
-  kind: 'local' | 'global' | 'component' | 'param' | 'returns';
+  kind: 'local' | 'global' | 'component' | 'panelgroup' | 'componentlife' | 'param' | 'returns';
   array: boolean;
   initialized: boolean;
   controlDepth: number;
@@ -181,7 +181,7 @@ export function builtinEvents(source: string): BuiltinEvent[] {
     // A declaration's own `late` is whether an executable statement came BEFORE it.
     events.push({ offset, type: canonical, kind, array, initialized, controlDepth: s.controlDepth, functionId: s.functionId, statement: s.statement, late: s.late, structure: s.structure, leadingClosed: s.leadingClosed, functionsBefore: s.functionsBefore });
   };
-  for (const m of masked.matchAll(/\b(Local|Global|Component)\s+((?:array\s+of\s+)*)([A-Za-z_]\w*)(?=\s+&)(\s+&\w+#?(?:\s*,\s*&\w+#?)*)\s*(=(?!=))?/gi)) {
+  for (const m of masked.matchAll(/\b(Local|Global|ComponentLife|Component|PanelGroup)\s+((?:array\s+of\s+)*)([A-Za-z_]\w*)(?=\s+&)(\s+&\w+#?(?:\s*,\s*&\w+#?)*)\s*(=(?!=))?/gi)) {
     const typeOffset = m.index! + m[0].indexOf(m[3], m[1].length + m[2].length);
     add(typeOffset, m[3], m[1].toLowerCase() as BuiltinEvent['kind'], m[2].length > 0, m[5] !== undefined);
   }
