@@ -26,7 +26,16 @@ export type ApplicationClassPath = readonly string[];
 export type ApplicationClassMemberType =
   /** An Application Class available to the provider. */
   | { kind: 'class'; path: ApplicationClassPath }
-  /** Not an Application Class: a primitive, built-in object, or array type, as written. */
+  /**
+   * An array (`depth` times `array of`) whose element is an available
+   * Application Class: the value is an array; an element reached by
+   * `depth` index groups is of the class.
+   */
+  | { kind: 'array'; element: ApplicationClassPath; depth: number }
+  /**
+   * Not an Application Class: a primitive, built-in object, or an array of
+   * those (or an untyped array), as written.
+   */
   | { kind: 'other'; type: string };
 
 export interface ApplicationClassTypeMetadataProvider {
@@ -91,7 +100,15 @@ export function createApplicationClassTypeMetadataProvider(
   const resolveType = (owner: IndexedClass, written: string): ApplicationClassMemberType | undefined => {
     const type = written.replace(/\s+/g, ' ').trim();
     if (type === '') return { kind: 'other', type };
-    if (/^array\b/i.test(type)) return { kind: 'other', type };
+    if (/^array\b/i.test(type)) {
+      /* Cycle 109: an array of an available class keeps its element; an unresolvable element answers undefined. */
+      const array = /^((?:array\s+of\s+)+)(.+)$/i.exec(type);
+      if (array === null || /^array$/i.test(array[2].trim())) return { kind: 'other', type };
+      const element = resolveType(owner, array[2]);
+      if (element === undefined) return undefined;
+      if (element.kind !== 'class') return { kind: 'other', type };
+      return { kind: 'array', element: element.path, depth: (array[1].match(/array/gi) ?? []).length };
+    }
     if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(type) && options.isBuiltinType?.(type) === true) return { kind: 'other', type };
     const available = (path: string[]) => sources.get(canonicalClassKey(path))?.path;
     if (type.includes(':')) {
