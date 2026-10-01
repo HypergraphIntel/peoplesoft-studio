@@ -1766,7 +1766,19 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     chunks.push(Buffer.from([0x51]));
 
     space();
+    const declaredType = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
     chunks.push(typeName());
+    /*
+     * Cycle 103: PanelGroup is the legacy spelling of Component, and a
+     * built-in type declared with it needs the same PACKAGE/<TYPE> row
+     * (`componentDeclaration`). Every program whose only declaration of
+     * a built-in type is a PanelGroup one stores the row (23/23: Rowset
+     * 14, Message 4, XmlDoc 2, Record, Field, Row), e.g. 959's leading
+     * `PanelGroup Message &Msg;` (row 2) and 3618's `PanelGroup Record`.
+     */
+    if (declaredType !== undefined) {
+      allocateBuiltinTypePackageReferenceIfSupported(declaredType, 'component');
+    }
 
     space();
     chunks.push(variable());

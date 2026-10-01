@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-01T01:29:18.233Z",
+ "generatedAt": "2026-10-01T01:38:35.146Z",
  "totalDefinitions": 30209,
  "exactCount": 28608,
  "nonexactCount": 1601,
@@ -43,11 +43,10 @@
    "definitionId": 849,
    "displayName": "1=AE_WRK, 2=AE_BIND_VALUE, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": false,
+   "sourceEncodeExact": true,
    "roundtripExact": false,
    "errorMessage": "Cannot encode PeopleCode at source offset 6: bare identifiers are only supported as calls",
    "construct": "&MYFLD;\n\nIf &MYF",
-   "firstDiffOffset": 210,
    "primaryCategory": "DECODER_BARE_IDENTIFIER"
   },
   {
@@ -80,11 +79,10 @@
    "definitionId": 959,
    "displayName": "1=AMM_DERIVED, 2=ARCHIVE_BTN, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": false,
+   "sourceEncodeExact": true,
    "roundtripExact": false,
    "errorMessage": "Cannot encode PeopleCode at source offset 214: bare identifiers are only supported as calls",
    "construct": "&Msg;\nMessage &M",
-   "firstDiffOffset": 3457,
    "primaryCategory": "DECODER_BARE_IDENTIFIER"
   },
   {
@@ -117,11 +115,10 @@
    "definitionId": 1105,
    "displayName": "1=AMM_TREE_WS, 2=RECNAME, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": false,
+   "sourceEncodeExact": true,
    "roundtripExact": false,
    "errorMessage": "Cannot encode PeopleCode at source offset 90: bare identifiers are only supported as calls",
    "construct": "&Msg;\nPanelGroup",
-   "firstDiffOffset": 1405,
    "primaryCategory": "DECODER_BARE_IDENTIFIER"
   },
   {
@@ -2154,11 +2151,10 @@
    "definitionId": 6448,
    "displayName": "1=DERIVED_HR_VC, 2=VC_MEM_DATA_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": false,
+   "sourceEncodeExact": true,
    "roundtripExact": false,
    "errorMessage": "Cannot encode PeopleCode at source offset 4: bare identifiers are only supported as calls",
    "construct": "&GRP_ROW;\n\nFunct",
-   "firstDiffOffset": 215,
    "primaryCategory": "DECODER_BARE_IDENTIFIER"
   },
   {
@@ -4266,11 +4262,10 @@
    "definitionId": 14325,
    "displayName": "1=PSACTIVITYGUIDE, 2=STEP_OFFSET_NEXT, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": false,
+   "sourceEncodeExact": true,
    "roundtripExact": false,
    "errorMessage": "Cannot encode PeopleCode at source offset 376: bare identifiers are only supported as calls",
    "construct": "&LOG_RS;\n\n\nFunct",
-   "firstDiffOffset": 850,
    "primaryCategory": "DECODER_BARE_IDENTIFIER"
   },
   {
@@ -7743,22 +7738,20 @@
    "definitionId": 18278,
    "displayName": "9=AMM_RAWXML2, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": false,
+   "sourceEncodeExact": true,
    "roundtripExact": false,
    "errorMessage": "Cannot encode PeopleCode at source offset 7: bare identifiers are only supported as calls",
    "construct": "&xmldoc2;\nPanelG",
-   "firstDiffOffset": 366,
    "primaryCategory": "DECODER_BARE_IDENTIFIER"
   },
   {
    "definitionId": 18279,
    "displayName": "9=AMM_RAWXML3, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": false,
+   "sourceEncodeExact": true,
    "roundtripExact": false,
    "errorMessage": "Cannot encode PeopleCode at source offset 7: bare identifiers are only supported as calls",
    "construct": "&xmldoc3;\nPanelG",
-   "firstDiffOffset": 334,
    "primaryCategory": "DECODER_BARE_IDENTIFIER"
   },
   {
@@ -10452,11 +10445,10 @@
    "definitionId": 23134,
    "displayName": "10=GP_ABS_EVENT, 39=GBL, 12=PreBuild, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": false,
+   "sourceEncodeExact": true,
    "roundtripExact": false,
    "errorMessage": "Cannot encode PeopleCode at source offset 212: bare identifiers are only supported as calls",
    "construct": "&RS0;\nComponent ",
-   "firstDiffOffset": 775,
    "primaryCategory": "DECODER_BARE_IDENTIFIER"
   },
   {
