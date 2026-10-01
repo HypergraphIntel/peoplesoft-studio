@@ -46,3 +46,10 @@ test('a Returns class uses its class in the header unit, like a parameter (2116)
   ].join('\n');
   assert.deepEqual(rows(source), ['WIDGET']);
 });
+
+test('a catch variable is a receiver: a method call on it opens the class row, the clause itself none (10567, 14134)', () => {
+  const called = 'try\n   F();\ncatch PKG:Oops &ex\n   &ex.Output();\nend-try;\n';
+  const silent = 'try\n   F();\ncatch PKG:Oops &ex\nend-try;\n';
+  assert.deepEqual(rows(called), ['OOPS.OUTPUT']);
+  assert.deepEqual(rows(silent), []);
+});
