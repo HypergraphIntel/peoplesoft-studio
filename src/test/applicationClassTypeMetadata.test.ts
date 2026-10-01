@@ -105,3 +105,12 @@ test('an array of an available class keeps its element and depth; other arrays a
   assert.deepEqual(arrays.memberType(holder, 'Sets'), { kind: 'other', type: 'array of Rowset' });
   assert.equal(arrays.memberType(holder, 'Lost'), undefined);
 });
+
+test('a short built-in name wins over a wildcard-imported class of the same name (Cycle 110: Collection, 29870)', () => {
+  const builtins = createApplicationClassTypeMetadataProvider([
+    cls('APP:User', 'import XMLGEN:*;\nclass User\n   property Collection Items;\n   property XMLGEN:Collection Mine;\nend-class;\n'),
+    cls('XMLGEN:Collection', 'class Collection\nend-class;\n')
+  ], { isBuiltinType: isBuiltinObjectTypeName });
+  assert.deepEqual(builtins.memberType(['APP', 'User'], 'Items'), { kind: 'other', type: 'Collection' });
+  assert.deepEqual(builtins.memberType(['APP', 'User'], 'Mine'), { kind: 'class', path: ['XMLGEN', 'Collection'] });
+});
