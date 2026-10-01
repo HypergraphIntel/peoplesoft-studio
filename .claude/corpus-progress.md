@@ -79,13 +79,15 @@ protected 430/430, ROUNDTRIP_ONLY 0. LOCAL SNAPSHOT only.
 
 ### Research (d3ebebd)
 
-`cycle109-app-class-array-receiver-census.ts`: 6,167 array declarations
-(primitive 4,557, class 1,046, built-in 550, untyped 14). The 1,046
-`array of <App Class>` declarations are all QUALIFIED (no short-name
-resolution needed): 916 in Application Class programs (Local 427,
-method parameter 129, Returns 118, instance 92, property 70, Component
-9, Global 1), 130 ordinary (Component 46, Local 74, Function parameter
-10); depth 1 except 8 (depth 2). App Class uses: 4,861, fully indexed
+`cycle109-app-class-array-receiver-census.ts`: 5,974 array declarations
+(primitive 4,447, class 976, built-in 537, untyped 14; the tool's 6,167
+decl records list each property twice, once per access form
+`%This.Name` / `&Name`). The 976 `array of <App Class>` declarations are
+all QUALIFIED (no short-name resolution needed): 846 in Application
+Class programs (Local 427 -- 35 nested, method parameter 129, Returns
+118, instance 92, property 70, Component 9, Global 1), 130 ordinary
+(Component 46, Local 74, Function parameter 10); depth 1 except 7
+(depth 2). App Class uses (both property forms): 4,861, fully indexed
 1,703 (method call 276, property 1,068), array members (`.Len`,
 `.Push`) 1,339, never over-indexed. Fully indexed element calls with
 positional truth: the 43 encodable already match stored -- the element
