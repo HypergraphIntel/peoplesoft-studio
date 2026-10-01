@@ -4,7 +4,7 @@
 
 - **Current target:** Cycle 113 -- REFERENCE_COMPLETE_DOWNSTREAM byte
   rules (reference lists exact, bytes not). Census tool
-  `cycle113-complete-downstream-census.ts`; 14 byte rules landed. EXACT
+  `cycle113-complete-downstream-census.ts`; 13 byte-rule commits. EXACT
   28,671 -> 29,159 (+488), protected PASS, 0 EXACT -> non-EXACT in every
   commit, no PSPCMNAME change, fallback 63 (13525 EXACT),
   COMPLETE_DOWNSTREAM 580 -> 94. See "Compiler Semantics Cycle 113".
