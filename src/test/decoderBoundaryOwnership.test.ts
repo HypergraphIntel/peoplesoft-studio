@@ -42,3 +42,23 @@ test('the same declaration without the comment was already one blank line (contr
   assert.equal(text, 'Component string &sA, &sB;\n\n/* next section */\n&sA = "X";\n');
   assert.deepEqual(again, bytes);
 });
+
+for (const blank of [true, false]) {
+  test(`a While condition ending in a comment then the zero-width 0x42 owns one line ending (${blank ? 'blank line' : 'no blank line'})`, () => {
+    // 10624, 10640, 10732, 23358, 23418: `While ... And\n &n <= 55 /* c */\n\n body`
+    // stores `4e 42 2d 4f`; without the blank line it is `4e 42 2d`.
+    const source = `While &n < 10 And\n      &m < 5 /* bounded */\n${blank ? '\n' : ''}   &n = &n + 1;\nEnd-While;\n`;
+    const { bytes, text, again } = roundTrip(source);
+    // The 0x4E comment's UTF-16 text ends in `*/`, then 0x42, 0x2D (+ 0x4F).
+    const close = [0x2a, 0x00, 0x2f, 0x00, 0x42, 0x2d];
+    assert.equal(bytes.includes(Buffer.from(blank ? [...close, 0x4f] : [...close, 0x01])), true);
+    assert.match(text, new RegExp(`/\\* bounded \\*/\\n${blank ? '\\n' : ''}  &n = &n \\+ 1;`));
+    assert.deepEqual(again, bytes);
+  });
+}
+
+test('a While comment with no And clause after it is unaffected (control: stores `2d` before the comment)', () => {
+  const { bytes, text, again } = roundTrip('While &n < 10 /* bounded */\n   &n = &n + 1;\nEnd-While;\n');
+  assert.doesNotMatch(text, /\n\n/);
+  assert.deepEqual(again, bytes);
+});
