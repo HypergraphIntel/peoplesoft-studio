@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-01T05:15:01.754Z",
+ "generatedAt": "2026-10-01T12:07:14.910Z",
  "totalDefinitions": 30209,
- "exactCount": 28654,
- "nonexactCount": 1555,
+ "exactCount": 28663,
+ "nonexactCount": 1546,
  "rows": [
   {
    "definitionId": 522,
@@ -15550,7 +15550,7 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 6690,
+   "firstDiffOffset": 7238,
    "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
    "referenceComparison": {
     "referenceExact": false,
@@ -15692,7 +15692,7 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 13157,
+   "firstDiffOffset": 32095,
    "primaryCategory": "REFERENCE_ACTIVE_FIELD",
    "referenceComparison": {
     "referenceExact": false,
@@ -15987,22 +15987,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 53: expected )",
    "construct": "F_CORE",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29182,
-   "displayName": "104=CAF_CORE, 105=OBJECT, 107=CompareSession, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 9202,
-   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 48,
-    "generatedCount": 47,
-    "firstDivergenceKind": "field"
-   }
   },
   {
    "definitionId": 29183,
@@ -17033,22 +17017,6 @@
    }
   },
   {
-   "definitionId": 29452,
-   "displayName": "104=GP_ABS_CS_CMPNT, 107=FieldPrompt, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 16593,
-   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 22,
-    "generatedCount": 21,
-    "firstDivergenceKind": "field"
-   }
-  },
-  {
    "definitionId": 29453,
    "displayName": "104=GP_ABS_CS_CMPNT, 107=RecDefn, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -17182,22 +17150,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 74: unsupported PeopleCode statement",
    "construct": "ct",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 29474,
-   "displayName": "104=GP_ABS_CS_TMPL, 105=TMPL, 107=absTmplBuild, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 51431,
-   "primaryCategory": "REFERENCE_ACTIVE_QUOTED_COMPONENT",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 72,
-    "generatedCount": 71,
-    "firstDivergenceKind": "component"
-   }
   },
   {
    "definitionId": 29476,
@@ -17343,22 +17295,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 269: keyword catch is not a supported call name",
    "construct": "_CS_TMPL",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29504,
-   "displayName": "104=GP_ABS_CS_TMPL, 105=TMPL, 107=absTmplSearch, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5341,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 12,
-    "generatedCount": 11,
-    "firstDivergenceKind": "record"
-   }
   },
   {
    "definitionId": 29505,
@@ -17641,22 +17577,6 @@
     "storedCount": 12,
     "generatedCount": 12,
     "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 29542,
-   "displayName": "104=GP_ABS_FMLA, 107=FMLAMedCert, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 4754,
-   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 20,
-    "generatedCount": 18,
-    "firstDivergenceKind": "scroll"
    }
   },
   {
@@ -20344,22 +20264,6 @@
    }
   },
   {
-   "definitionId": 30116,
-   "displayName": "104=PTAF_MONITOR, 105=ADHOC_OBJECTS, 107=insertParallelAdhocButton, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 2562,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 11,
-    "generatedCount": 10,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
    "definitionId": 30119,
    "displayName": "104=PTAF_MONITOR, 105=MONITOR, 107=approverInfoLink, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -20372,22 +20276,6 @@
     "referenceSetExact": false,
     "storedCount": 6,
     "generatedCount": 6
-   }
-  },
-  {
-   "definitionId": 30121,
-   "displayName": "104=PTAF_MONITOR, 105=MONITOR, 107=awSMPath, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 16395,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 15,
-    "generatedCount": 14,
-    "firstDivergenceKind": "record-field"
    }
   },
   {
@@ -20417,22 +20305,6 @@
    }
   },
   {
-   "definitionId": 30126,
-   "displayName": "104=PTAF_MONITOR, 105=MONITOR, 107=awSMThreadHistoryComments, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 2561,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 10,
-    "generatedCount": 9,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
    "definitionId": 30128,
    "displayName": "104=PTAF_MONITOR, 105=MONITOR, 107=awSMToolBarAction, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -20445,22 +20317,6 @@
     "referenceSetExact": false,
     "storedCount": 0,
     "generatedCount": 0
-   }
-  },
-  {
-   "definitionId": 30130,
-   "displayName": "104=PTAF_MONITOR, 105=MONITOR, 107=awStatusMonitor, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 17845,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 24,
-    "generatedCount": 21,
-    "firstDivergenceKind": "package"
    }
   },
   {
