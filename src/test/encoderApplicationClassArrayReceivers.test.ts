@@ -63,6 +63,36 @@ test('an element still holding an array level is not a receiver; indexing every 
   assert.deepEqual(others(fully, typed, 'Heir'), ['OTHER.PING']);
 });
 
+test('the fully indexed element of an array parameter is a receiver (29109)', () => {
+  const source = kid(['method Run(&items As array of PKG:Widget);'], ['&items [1].Partner.Ping();', '&items [2].Partner.Ping();']);
+  assert.deepEqual(others(source, typed), ['OTHER.PING']);
+  assert.deepEqual(others(source), []);
+});
+
+test('typed steps after an array parameter element: every array level indexed first', () => {
+  const partly = kid(['method Run(&grid As array of array of PKG:Widget);'], ['&grid [1].Partner.Ping();']);
+  const fully = kid(['method Run(&grid As array of array of PKG:Widget);'], ['&grid [1] [2].Partner.Ping();']);
+  assert.deepEqual(others(partly, typed), []);
+  assert.deepEqual(others(fully, typed), ['OTHER.PING']);
+});
+
+test('Local, own property and instance arrays', () => {
+  for (const [header, body] of [
+    [['method Run();'], ['Local array of PKG:Widget &ws;', '&ws [1].Partner.Ping();']],
+    [['method Run();', 'property array of PKG:Widget Items;'], ['%This.Items [1].Partner.Ping();']],
+    [['method Run();', 'private', 'instance array of PKG:Widget &mItems;'], ['&mItems [1].Partner.Ping();']]
+  ]) {
+    assert.deepEqual(others(kid(header, body), typed), ['OTHER.PING'], body.join(' '));
+  }
+});
+
+test('an array property or array method result the metadata declares', () => {
+  for (const line of ['&w.Children [1].Partner.Ping();', '&w.GetAll() [1].Partner.Ping();']) {
+    const source = kid(['method Run();'], ['Local PKG:Widget &w = create PKG:Widget();', line]);
+    assert.deepEqual(others(source, typed), ['OTHER.PING'], line);
+  }
+});
+
 test('a member of the array itself is not an element', () => {
   const source = kid(['method Run(&items As array of PKG:Widget);'], ['Local number &n = &items.Len;', '&items.Push(create PKG:Widget());']);
   assert.deepEqual(rows(source, typed), rows(source));

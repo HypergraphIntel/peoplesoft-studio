@@ -1235,28 +1235,26 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * `EncodeProgramContext.applicationClassTypeMetadata`). Consultation is
    * traced; in diagnostics-only mode its answers are not used.
    *
-   * Every step of an ordinary program consults it (Cycle 107). An
-   * Application Class program consults it only for the receiver families
-   * proven with its program-wide method-row lifetime
-   * (`ApplicationClassProgramRows`, Cycle 108): the property right after
-   * `%Super` or `%This`. Other steps there -- a property or method result
-   * on a typed receiver (`&x.Prop.M()`, `%This.A.B.M()`), a `%This`
-   * method's result -- stay untyped: 29109's first FACTORHANDLER use is an
-   * array element (`&factors [&f].FactorHandler.GetFactorDisplays(...)`)
-   * the encoder does not type, so typing the later ones opens the row too
-   * late (LOCAL SNAPSHOT: typed steps 5 closer, 2 farther; `%This`
-   * results change nothing). An array of a class is modeled in Application
-   * Class programs only (Cycle 109).
+   * Ordinary programs consult it at every step (Cycle 107). So do
+   * Application Class programs (Cycle 109): their method rows have program
+   * lifetime (`ApplicationClassProgramRows`, Cycle 108), and the element of
+   * an `array of <Class>` value is a receiver. 29109's first FACTORHANDLER
+   * use is `&factors [&f].FactorHandler.GetFactorDisplays(...)` on an
+   * array parameter; with array elements untyped, typing only the later
+   * uses opened the row too late (LOCAL SNAPSHOT: typed steps without
+   * array elements 24 lists changed, 1 farther -- 29109; with them, and
+   * with the body's declared variables as receivers, 41 changed, 40
+   * closer, 0 farther). An array of a class is modeled in Application
+   * Class programs only. A `%This` method's result stays untyped (no
+   * evidenced change, Cycle 108).
    */
   const consultTypeMetadata = (
     kind: 'member' | 'method-result',
     receiver: readonly string[],
-    member: string,
-    step: 'chain' | 'super-property' | 'this-property' = 'chain'
+    member: string
   ): ApplicationClassMemberType | undefined => {
     const provider = context?.applicationClassTypeMetadata;
     if (provider === undefined) return undefined;
-    if (context?.builtinObjectDeclarationsHaveMethodWideLifetime && step === 'chain') return undefined;
     const result = kind === 'member' ? provider.memberType(receiver, member) : provider.methodReturnType(receiver, member);
     context?.applicationClassTypeMetadataTrace?.({ kind, receiver, member, result, sourceOffset: pos });
     if (context?.applicationClassTypeMetadataDiagnosticsOnly) return undefined;
@@ -3903,17 +3901,25 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     registerTypedParameter(parameter.name, parameter.type);
   }
   /*
-   * Cycle 109: an Application Class body's declared `array of <Class>`
-   * variables (`applicationClassDeclaredVariables`) are array receivers
+   * Cycle 109: an Application Class body's declared App Class variables
+   * (`applicationClassDeclaredVariables`) are receivers: a scalar one of
+   * its class, an `array of <Class>` one once indexed
    * (`applicationClassArrayVariables`) -- 29109's parameter
    * `&factors As array of CAFNUI_CORE:OBJECT:Factor`, then
-   * `&factors [&f].FactorHandler.GetFactorDisplays(...)`. An element's
+   * `&factors [&f].FactorHandler.GetFactorDisplays(...)`. A receiver's
    * method call uses its class's program row
-   * (`ApplicationClassProgramRows`).
+   * (`ApplicationClassProgramRows`), which its declaration already opened
+   * in every evidenced case (alone, these change no generated row).
    */
   for (const [name, declared] of context?.applicationClassDeclaredVariables ?? []) {
     if (declared.depth > 0) {
       applicationClassArrayVariables.set(name, { packagePath: [...declared.packagePath], className: declared.className, depth: declared.depth });
+    } else {
+      applicationClassVariables.set(name, {
+        packagePath: [...declared.packagePath],
+        className: declared.className,
+        reuseRuntimeCreateForMethods: false
+      });
     }
   }
 
@@ -10592,7 +10598,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             const superPath = context.applicationClassTypeMetadata?.superclassOf(context.applicationClassSelfPath);
             const propertyType = superPath === undefined
               ? undefined
-              : consultTypeMetadata('member', superPath, member, 'super-property');
+              : consultTypeMetadata('member', superPath, member);
             if (propertyType?.kind === 'class') {
               activeApplicationClassReceiver = metadataReceiver(propertyType.path);
               resolvedInheritedPropertyThisStep = true;
@@ -10623,7 +10629,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
                 ? declared.depth > 0
                   ? { kind: 'array', element: [...declared.packagePath, declared.className], depth: declared.depth }
                   : { kind: 'class', path: [...declared.packagePath, declared.className] }
-                : consultTypeMetadata('member', context!.applicationClassSelfPath!, member, 'this-property');
+                : consultTypeMetadata('member', context!.applicationClassSelfPath!, member);
             if (propertyType?.kind === 'array') {
               // Cycle 109: an array property: its element, once indexed
               pendingArrayElement = arrayElementOf(propertyType);

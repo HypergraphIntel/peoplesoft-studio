@@ -97,8 +97,8 @@ test('an inherited %This property is typed through the metadata; an own one by i
     applicationClassTypeMetadataTrace: event => events.push(`${event.kind}:${event.member}`)
   });
   assert.deepEqual(generated.filter(row => row.startsWith('PATH') || row.startsWith('WIDGET')), ['WIDGET', 'PATH.BUILDSTEPS']);
-  // `Mine` is declared by the program itself: the provider is not asked
-  assert.deepEqual(events, ['member:Route', 'member:Route']);
+  // `Mine` is declared by the program itself: the provider is not asked about it
+  assert.deepEqual(events.filter(event => event.startsWith('member:')), ['member:Route', 'member:Route']);
 });
 
 test('a Local inside a control structure uses its class row at the declaration; later calls reuse it', () => {
