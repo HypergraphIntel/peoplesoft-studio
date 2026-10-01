@@ -2,12 +2,14 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 104 -- the "named-import stored-opens" PACKAGE
-  family. It is not a named-import reopen: the extra stored rows are
-  method-dependency rows for receivers the encoder did not track.
-  ComponentLife receivers (+4) and array-element receivers (+2) landed:
-  EXACT 28,608 -> 28,614 (+6), protected PASS, 0 EXACT -> non-EXACT. See
-  "Compiler Semantics Cycle 104" and "Compiler Research Cycle 104".
+- **Current target:** Cycle 105 -- the 12 "empty generated PACKAGE
+  identity" definitions. Research only: they are wildcard-import metadata
+  rows over-claimed by the Cycle 93 external-metadata fallback pass, not
+  broken class identities. The single-claim fix is measured (+5
+  forward-exact) but costs 13525, whose compensating row needs genuinely
+  external metadata -- not landed (zero-regression gate, the Cycle 93
+  directive on 13525). EXACT 28,614 unchanged. See "Compiler Research
+  Cycle 105".
 - **Last successful calibration:** Cycle 104 (ComponentLife and
   array-element receivers).
 - **Protected baseline:** 430/430.
@@ -15,11 +17,13 @@
   canonical case in App Class type-path names (external package
   metadata); FIELDVALUE / XLAT* (18989 too); undeclared-variable
   receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class rows (incl. 2096,
-  2097, 2167, 2175, 2194, 14162, 18236, 19877, 23068, 23402); 2125, 24500,
-  24503, 19433.
-- **Next action:** see "PACKAGE rerank after Cycle 104" -- the empty
-  generated PACKAGE identity (12), then snapshot-visible App Classes with
-  missing rows (33).
+  2097, 2167, 2175, 2194, 14162, 18236, 19877, 23068, 23402); the fallback
+  wildcard over-claim (25 programs, blocked by 13525 -- Cycle 105); 2125,
+  24500, 24503, 19433.
+- **Next action:** decide the fallback wildcard trade (+5 / -13525) or
+  keep it parked; then `%metadata` imports (no import rows in stored, 11+
+  programs) or the source-hidden, snapshot-visible App Class rows (54:
+  needs snapshot class metadata as an encoder input).
 - **Newly established rules this session:** Cycle 104: ComponentLife
   Application Class variables and elements of `array of <Class>` are
   receivers under the Cycle 94 unit rule; the named-import row seeds the
@@ -43,6 +47,72 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Research Cycle 105 -- the "empty generated PACKAGE identity" rows
+
+**Baseline reproduced fresh at `ef9c168`:** 28,614 / 1,595, gate PASS,
+taxonomy row-identical. LOCAL SNAPSHOT only. No semantic change landed.
+
+### What the 12 are
+
+14650, 14651, 15038, 15039, 15256, 15257, 15598, 15609, 15697, 15795,
+17757, 17767 (census mechanism STORED_REUSES_GENERATED_OPENS: stored has a
+`PACKAGE.` row earlier). The generated `PACKAGE.` row is a wildcard-import
+metadata row (`packageName ''`, `className ''`, `packagePath` = the
+wildcard's package), not a broken class identity: every class row of these
+programs is generated with its full identity. Each program has 2+ wildcard
+imports; stored has ONE blank row, generated one PER wildcard import.
+
+Corpus-wide (`cycle105-wildcard-metadata-row-census.ts`): every generated
+empty-name PACKAGE row (1,412 in 1,374 definitions) is a wildcard metadata
+row; none is a broken class identity. Every program with a wildcard import
+stores exactly one blank row, at the first wildcard import (descriptive
+stores: rooted at the FIRST wildcard's package) -- 0 contradictions --
+except the `%metadata` family below.
+
+### Origin: the Cycle 93 fallback pass
+
+`importStatement` claims the row once (`claimedWildcardImportMetadata`),
+except `context.applicationClassRowsWithoutImportResolution ? true` -- the
+external-metadata fallback re-encode keeps the pre-Cycle-93 "every wildcard
+claims". All 12 are fallback programs; so are 13 more with 2+ wildcards
+(2116, 2125, 2158, 13516, 13517, 13522, 13523, 13525, 14327, 17675, 19196,
+25337, 28190): 25 in all, the only programs whose generated blank-row
+count differs from stored.
+
+### Experiment (fallback pass claims once too)
+
+25 PSPCMNAME lists change, all closer; names-exact +3; forward-exact +5
+(13517, 15038, 15039, 15697, 19196 -- three of Cycle 93's "parked by the
+guard" five) and **-1: 13525** (EXACT today). 13525 is a compensating
+error: its extra generated blank row offsets the missing stored row
+PACKAGE POPULATIONMANAGER / SETALLELIGIBLE from
+`&joIterator.POPULATION_MANAGER.setAllEligible(...)` -- the type of a
+property of WCS_ITERATOR_TREE:IteratorTree, and none of WCS_ITERATOR_TREE,
+WCS_POPULATION_MGMT, WCS_POP_MGT has any definition in the snapshot
+(source-hidden, snapshot-missing). The paired cause cannot be fixed
+locally, so the fix is not landed: zero-regression gate, and the Cycle 93
+directive not to accept 13525 as a regression. Parked: the fallback
+wildcard over-claim, blocked by 13525.
+
+### New finding: `%metadata` imports
+
+Programs whose only wildcard imports are `%metadata...:*` store NO blank
+row (16082, 16084, 16085, 16498, 24416, 28722, 28726 -- Cycle 61's
+"zero blank rows" residual --, 28728, 28754, 29882, 29908), and more
+broadly `%metadata` imports (named too) store no import rows at all:
+16084 stores MACRODEFN_MANAGER / MACRODEFN / MACRO / KEY at their
+declarations, where generated has import rows. Separate mechanism; census
+before editing.
+
+### The snapshot-visible App Class bucket, split
+
+61 definitions whose missing / misplaced class exists in the snapshot: in
+54 the class is ABSENT from the program's own source (mostly Application
+Class programs: inherited members, property / method-result types) --
+source-hidden, snapshot-visible: needs the snapshot's class metadata as an
+encoder input. 6 name the class in source (5 ordering, 1 stored-opens),
+1 bare name under a wildcard.
 
 ## PACKAGE rerank after Cycle 104
 
