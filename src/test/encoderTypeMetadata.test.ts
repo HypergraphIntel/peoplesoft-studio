@@ -61,7 +61,7 @@ test('diagnostics-only mode consults the provider but encodes as if it were abse
   assert.deepEqual(events.sort(), ['member:Partner', 'method-result:GetOther']);
 });
 
-test('Application Class programs ignore the provider (their method-row lifetime is not modeled yet)', () => {
+test('Application Class programs do not type a property of a typed receiver (Cycle 108: parked, 29109)', () => {
   const source = 'import PKG:Widget;\nclass Thing\n   method Run();\nend-class;\n\nmethod Run\n   Local PKG:Widget &w = create PKG:Widget();\n   &w.Partner.Ping();\nend-method;\n';
   const context = { owner: { recordName: 'X', fieldName: 'Y', packagePath: ['APP', 'Thing'] } };
   const plain = encodeProgramArtifacts(source, context);

@@ -73,3 +73,10 @@ test('unavailable, ambiguous, and missing answers are undefined, never guessed',
 test('an inheritance cycle terminates', () => {
   assert.equal(provider.memberType(['LOOP', 'A'], 'Anything'), undefined);
 });
+
+test('the parent class (`%Super`): available classes only, never through a cycle guess', () => {
+  assert.deepEqual(provider.superclassOf(widget), ['PKG', 'Base']);
+  assert.equal(provider.superclassOf(['PKG', 'Base']), undefined);
+  assert.deepEqual(provider.superclassOf(['LOOP', 'A']), ['LOOP', 'B']);
+  assert.equal(provider.superclassOf(['NOPE', 'Class']), undefined);
+});

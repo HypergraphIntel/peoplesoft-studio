@@ -631,6 +631,15 @@ interface EncodeFragmentContext extends EncodeProgramContext {
    * `encodeApplicationClassProgramV2`.
    */
   applicationClassProgramRows?: ApplicationClassProgramRows;
+  /** Cycle 108: the class an Application Class fragment belongs to (`%This`). */
+  applicationClassSelfPath?: readonly string[];
+  /**
+   * Cycle 108: the Application Class's own properties / instances whose
+   * declared class the source alone names (a qualified type, or a short
+   * name with a named import) -- lowercased name -> class path. Source
+   * declarations win over the type-metadata provider.
+   */
+  applicationClassOwnPropertyTypes?: ReadonlyMap<string, readonly string[]>;
   /**
    * Cycle 82: the compilation unit's own self-class PACKAGE row. Present
    * only for Application Class programs. See
@@ -1212,20 +1221,28 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * Cycle 107: the optional type-metadata provider (see
    * `EncodeProgramContext.applicationClassTypeMetadata`). Consultation is
    * traced; in diagnostics-only mode its answers are not used.
+   *
+   * Every step of an ordinary program consults it (Cycle 107). An
+   * Application Class program consults it only for the receiver families
+   * proven with its program-wide method-row lifetime
+   * (`ApplicationClassProgramRows`, Cycle 108): the property right after
+   * `%Super` or `%This`. Other steps there -- a property or method result
+   * on a typed receiver (`&x.Prop.M()`, `%This.A.B.M()`), a `%This`
+   * method's result -- stay untyped: 29109's first FACTORHANDLER use is an
+   * array element (`&factors [&f].FactorHandler.GetFactorDisplays(...)`)
+   * the encoder does not type, so typing the later ones opens the row too
+   * late (LOCAL SNAPSHOT: typed steps 5 closer, 2 farther; `%This`
+   * results change nothing).
    */
   const consultTypeMetadata = (
     kind: 'member' | 'method-result',
     receiver: readonly string[],
-    member: string
+    member: string,
+    step: 'chain' | 'super-property' | 'this-property' = 'chain'
   ): ApplicationClassMemberType | undefined => {
     const provider = context?.applicationClassTypeMetadata;
-    /*
-     * Ordinary programs only. In Application Class programs a typed result
-     * exposes a separate, unmodeled method-row lifetime: 28927 calls
-     * `%Super.TxtCat.getSimpleTextPlan(...)` twelve times and stores ONE
-     * TEXTCATALOG row, where the class-wide allocator would open twelve.
-     */
-    if (provider === undefined || context?.builtinObjectDeclarationsHaveMethodWideLifetime) return undefined;
+    if (provider === undefined) return undefined;
+    if (context?.builtinObjectDeclarationsHaveMethodWideLifetime && step === 'chain') return undefined;
     const result = kind === 'member' ? provider.memberType(receiver, member) : provider.methodReturnType(receiver, member);
     context?.applicationClassTypeMetadataTrace?.({ kind, receiver, member, result, sourceOffset: pos });
     if (context?.applicationClassTypeMetadataDiagnosticsOnly) return undefined;
@@ -9787,6 +9804,14 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     let pendingThisMethodResolution = false;
 
     /*
+     * Cycle 108: set when this primary's base is `%This` in an Application
+     * Class fragment with a type-metadata provider; consulted and cleared
+     * by the very next postfix step (a property of this class or an
+     * ancestor).
+     */
+    let pendingThisPropertyTyping = false;
+
+    /*
      * Track an explicit Record.REC root through the postfix parser so its
      * next dotted identifier is encoded as a FIELD PSPCMNAME operand rather
      * than an inline member name.
@@ -9821,6 +9846,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         /^%This\b/i.test(source.slice(pos))
       ) {
         pendingThisMethodResolution = true;
+      }
+      if (
+        context?.applicationClassSelfPath !== undefined &&
+        context?.applicationClassTypeMetadata !== undefined &&
+        /^%This\b/i.test(source.slice(pos))
+      ) {
+        pendingThisPropertyTyping = true;
       }
       chunks.push(systemVariable());
     } else if (source[pos] === '(') {
@@ -10484,6 +10516,49 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
                 className: components.at(-1)!,
                 reuseRuntimeCreateForMethods: false
               };
+              resolvedInheritedPropertyThisStep = true;
+            }
+          } else if (context?.applicationClassSelfPath !== undefined && !/^\s*\(/.test(source.slice(pos))) {
+            /*
+             * Cycle 108: otherwise the type-metadata provider's declaration
+             * of the property on the parent class (or its ancestors). The
+             * receiver's class then uses its program row
+             * (`ApplicationClassProgramRows`): 28927's eighteen
+             * `%Super.TxtCat.<method>(...)` calls, one TEXTCATALOG row.
+             * LOCAL SNAPSHOT: 26 generated lists changed, 25 closer, 0
+             * farther (13 programs forward-exact).
+             */
+            const superPath = context.applicationClassTypeMetadata?.superclassOf(context.applicationClassSelfPath);
+            const propertyType = superPath === undefined
+              ? undefined
+              : consultTypeMetadata('member', superPath, member, 'super-property');
+            if (propertyType?.kind === 'class') {
+              activeApplicationClassReceiver = metadataReceiver(propertyType.path);
+              resolvedInheritedPropertyThisStep = true;
+            }
+          }
+        }
+
+        /*
+         * Cycle 108: `%This.<property>` -- the property's declared class,
+         * own (the header's declaration as written, when the source alone
+         * names the class) or inherited (the type-metadata provider),
+         * becomes the receiver, and uses its program row
+         * (`%This.BenDataMgr.GetAdminContactInfo()`, 28874). A `%This`
+         * method call is the Cycle 82 self row; its result stays untyped.
+         * LOCAL SNAPSHOT: 24 generated lists changed, 24 closer, 0 farther
+         * (5 programs forward-exact).
+         */
+        if (pendingThisPropertyTyping) {
+          pendingThisPropertyTyping = false;
+          if (!/^\s*\(/.test(source.slice(pos))) {
+            const declared = context?.applicationClassOwnPropertyTypes?.get(member.toLowerCase());
+            const propertyType: ApplicationClassMemberType | undefined =
+              declared !== undefined && !context?.applicationClassTypeMetadataDiagnosticsOnly
+                ? { kind: 'class', path: [...declared] }
+                : consultTypeMetadata('member', context!.applicationClassSelfPath!, member, 'this-property');
+            if (propertyType?.kind === 'class') {
+              activeApplicationClassReceiver = metadataReceiver(propertyType.path);
               resolvedInheritedPropertyThisStep = true;
             }
           }
@@ -14067,6 +14142,30 @@ function encodeApplicationClassProgramV2(
   const htmlDependencyScope = new HtmlDependencyScope();
   const applicationClassReferenceScope = new ApplicationClassReferenceScope();
   const applicationClassProgramRows = new ApplicationClassProgramRows();
+  // Cycle 108: see `EncodeFragmentContext.applicationClassOwnPropertyTypes`.
+  const namedImportPaths = new Map(importTargets
+    .map(target => target.split(':').map(component => component.trim()))
+    .filter(components => components.length >= 2 && components.at(-1) !== '*')
+    .map(components => [components.at(-1)!.toLowerCase(), components]));
+  const applicationClassOwnPropertyTypes = new Map<string, string[]>();
+  const declareOwnPropertyType = (name: string, type: string): void => {
+    const written = type.trim();
+    // An array, or a built-in object type (29585: built-ins win over a same-named import).
+    const path = /^array\b/i.test(written) || isBuiltinObjectTypeName(written)
+      ? undefined
+      : written.includes(':')
+        ? written.split(':').map(component => component.trim())
+        : namedImportPaths.get(written.toLowerCase());
+    if (path !== undefined) applicationClassOwnPropertyTypes.set(name.replace(/^&/, '').toLowerCase(), path);
+  };
+  for (const member of parsed.members) {
+    if (member.kind === 'property' || member.kind === 'instance') declareOwnPropertyType(member.name, member.type);
+  }
+  for (const statement of parsed.statements) {
+    if (statement.kind === 'instance-statement') {
+      for (const name of statement.names) declareOwnPropertyType(name, statement.type);
+    }
+  }
   const selfPackagePath = selfPath.slice(0, -1);
   const ownStorageNames = new Set(parsed.members
     .filter(member => member.kind === 'property' || member.kind === 'instance')
@@ -14149,6 +14248,8 @@ function encodeApplicationClassProgramV2(
       applicationClassReferenceSession,
       applicationClassTypeReferenceSession,
       applicationClassProgramRows,
+      applicationClassSelfPath: selfPath,
+      applicationClassOwnPropertyTypes,
       applicationClassSelfMethodDependency,
       // Inherited `%This` calls can allocate environment-derived method
       // rows. Freeze that unsupported population on its prior fragment-owner
