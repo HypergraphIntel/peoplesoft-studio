@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-01T13:07:40.192Z",
+ "generatedAt": "2026-10-01T14:12:52.370Z",
  "totalDefinitions": 30209,
- "exactCount": 28663,
- "nonexactCount": 1546,
+ "exactCount": 28664,
+ "nonexactCount": 1545,
  "rows": [
   {
    "definitionId": 522,
@@ -223,13 +223,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 76,
-    "generatedCount": 72,
-    "firstDivergenceKind": "package"
+    "generatedCount": 76
    }
   },
   {
@@ -280,13 +279,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 36,
-    "generatedCount": 32,
-    "firstDivergenceKind": "package"
+    "generatedCount": 36
    }
   },
   {
@@ -4744,13 +4742,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 838,
-    "generatedCount": 837,
-    "firstDivergenceKind": "package"
+    "generatedCount": 838
    }
   },
   {
@@ -5148,13 +5145,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 84,
-    "generatedCount": 83,
-    "firstDivergenceKind": "package"
+    "generatedCount": 84
    }
   },
   {
@@ -5413,13 +5409,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 23,
-    "generatedCount": 22,
-    "firstDivergenceKind": "package"
+    "generatedCount": 23
    }
   },
   {
@@ -7170,7 +7165,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 338,
-    "generatedCount": 338,
+    "generatedCount": 339,
     "firstDivergenceKind": "package"
    }
   },
@@ -10736,13 +10731,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 37,
-    "generatedCount": 36,
-    "firstDivergenceKind": "record"
+    "generatedCount": 37
    }
   },
   {
@@ -10917,22 +10911,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 890: unsupported PeopleCode statement",
    "construct": ";\n      &currIte",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 25033,
-   "displayName": "10=PTAI_PUBASPGLT, 39=GBL, 1=PTAI_PBPGLT_WRK, 2=PTAI_PGLTPUBBUTTON, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 8073,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 24,
-    "generatedCount": 23,
-    "firstDivergenceKind": "package"
-   }
   },
   {
    "definitionId": 25056,
