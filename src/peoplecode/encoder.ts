@@ -11797,9 +11797,18 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * the boundary corrected in all 4 changed definitions (2092, 2093,
    * 25330); REM 0/0 with the boundary corrected in all 3 changed
    * definitions (19459, 20295, 22889). Combined +33, 0 lost.
+   *
+   * Cycle 113: nor is there a 0x2D where the fragment suppresses
+   * declaration-section markers (an Application Class method body), the
+   * same condition every other close site applies. Stored never writes a
+   * 0x2D after a Local run in an Application Class program (LOCAL
+   * SNAPSHOT: 0 of 6,044 runs, 806 of them followed by a comment); the
+   * comment-site closer wrote one before a comment following an
+   * App-Class-typed Local (28782, 28801 `Local PTAI_ACTION_ITEMS:ActionItem
+   * &item; <blank> /* ... *\/` stores `15 4F 24`).
    */
   const pushDeclarationSectionCloseByte = (): void => {
-    if (!leadingRunHasInitializedLocal) {
+    if (!leadingRunHasInitializedLocal && context?.suppressDeclarationSectionMarkers !== true) {
       chunks.push(Buffer.from([0x2d]));
     }
   };
