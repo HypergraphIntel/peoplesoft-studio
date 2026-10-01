@@ -1362,7 +1362,18 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     // ensureLocalObjectPackageReference's own call sites) -- two
     // independent mechanisms for the same type name, exactly like Cycle
     // 78's own six types.
-    if (/^(Record|Field|Rowset|Row|SQL|File|XmlDoc|XmlNode|ApiObject|Grid|ProcessRequest|Message|JsonArray|JsonObject|JavaObject|GridColumn|Exception|TransformData|Chart)$/i.test(name)) {
+    //
+    // Cycle 113: the list was the wrong way round. Only the PRIMITIVE
+    // types are keywords; every other type name is an inline identifier.
+    // LOCAL SNAPSHOT (every stored program decoded, every type token after
+    // Local / Global / Component / ComponentLife / As / Returns / of /
+    // instance / property that is not a package path): the 11 primitive
+    // names below are 0x40 in all 72,048 occurrences, the 47 other names
+    // (every built-in object type -- Page, JsonBuilder, JsonParser,
+    // CubeCollection, AnalyticInstance, RatingBoxChart, Document, ... --
+    // and `long`) are 0x0A in all 28,581, with no name ever written both
+    // ways. 2171: `Local Page &MYPAGE;` stores `44 0A "Page"`.
+    if (!/^(string|number|boolean|array|integer|date|any|object|datetime|time|float)$/i.test(name)) {
       return textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, name);
     }
 
