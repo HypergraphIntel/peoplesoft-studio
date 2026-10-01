@@ -2,26 +2,30 @@
 
 ## Current status (2026-09-30)
 
-- **Current target:** Cycle 102 -- the last 10 ROUNDTRIP_ONLY (decoder
-  blank-line ownership before a 0x2D boundary). N1 landed: EXACT 28,513
-  -> 28,518 (+5), protected PASS, 0 EXACT -> non-EXACT, 0 direct-encode
-  streams changed. N2 (While header ending in a comment, 5) next. See
-  "Compiler Semantics Cycle 102" and "Compiler Research Cycle 102".
-- **Last successful calibration:** Cycle 102 N1.
+- **Current target:** Cycle 102 completed -- ROUNDTRIP_ONLY 10 -> 0
+  (decoder line-ending ownership before a 0x2D boundary: N1 declaration
+  boundary, N2 commented While header). EXACT 28,513 -> 28,523 (+10),
+  roundtrips 28,618 -> 28,628, protected PASS, 0 EXACT -> non-EXACT, 0
+  direct-encode streams changed. See "Compiler Semantics Cycle 102" and
+  "Compiler Research Cycle 102".
+- **Last successful calibration:** Cycle 102 (N1 + N2).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked: package
   canonical case in App Class type-path names (external package
   metadata); FIELDVALUE / XLAT*; undeclared-variable receivers;
   UNRESOLVED_EXTERNAL_CLASS_METADATA class rows; 2125, 24500, 24503, 19433.
-- **Next action:** Cycle 102 N2 -- an inline 0x4E comment's own newline
-  must also be suppressed when the 0x2D follows after zero-width 0x42
-  markers (10624, 10640, 10732, 23358, 23418). Then rebuild the taxonomy
-  and rerank PACKAGE failures by first true mechanism
-  (`cycle102-package-mechanism-census.ts`).
+- **Next action:** PACKAGE rows, by first true mechanism (see "PACKAGE
+  rerank" under Compiler Research Cycle 102): built-in type rows first
+  (ORDERING 70 / stored opens, generated reuses 56 -- Record, Rowset,
+  SQL, ApiObject), after splitting the "external / missing" bucket into
+  unregistered built-in classes (Page, AnalyticInstance, TextCatalog,
+  JsonParser ...) vs genuinely external App Classes. Census before
+  editing.
 - **Newly established rules this session:** Cycle 102 decoder:
   `ComponentLife` (0x79) closes a declaration section like `Component`;
   an inline 0x4E comment directly before a declaration's `;` belongs to
-  that declaration; Cycle 101 decoder: section headers `private` /
+  that declaration; an inline comment yields its line ending to a 0x2D
+  that follows it after zero-width 0x42 markers; Cycle 101 decoder: section headers `private` /
   `protected` end their line, `end-get` / `end-set` suppress the
   redundant 0x2D newline like `end-method`; Cycle 100 App Class directory
   hash-table order; Cycle 99 Declare Function identity REC.FIELD; Cycle 98
@@ -81,6 +85,62 @@ Isolated experiments: N1a alone fixed 4, N1b alone 1 (18580), no
 interaction. Tests: `src/test/decoderBoundaryOwnership.test.ts`
 (ComponentLife + blank line; Component with a comment before `;` + blank
 line; control without the comment) -- 2 fail at db61198, all pass.
+
+### N2 -- While header ending in a comment (5): landed
+
+An inline 0x4E comment's own NEWLINE_AFTER is skipped when a 0x2D follows
+it (Cycle 80, `commentInlineAfterStatementBeforeNewlineOnce`): the 0x2D
+supplies the line ending. A While condition ending in an `And` clause
+closes that clause with the zero-width 0x42 AFTER the comment:
+
+    While &sql.Fetch(&a) And
+          &n <= 55 /* comment */
+
+       &n = &n + 1;
+
+stores `... 50 4e 42 2d 4f`; the next-token check saw 0x42, kept the
+comment's newline, and the 0x2D added a second: two blank lines. The
+check now looks past zero-width 0x42 markers -- the same look-past the
+neighbouring `commentInlineContinuesToNextToken` already does. Comment /
+newline ownership, not a While special case.
+
+Controls: ordinary While headers end `[cond] 2d` (no blank line) or
+`2d 4f` (one) and decode correctly at ~2,000 sites; a While comment with
+no following `And` clause is stored `2d 4e` (the 0x2D first) and is
+unaffected; `[14 4e] 2d` (comment directly after `)`, e.g. 25324, 28587)
+decodes exactly like its source -- its roundtrip difference is encoder
+side. `4e 42 2d` without a 4F does not occur in the corpus (synthetic
+test). No `4e 41 2d` exists.
+
+| N2 | value |
+|---|---|
+| roundtrips | 28,623 -> 28,628 (+5: 10624, 10640, 10732, 23358, 23418), 0 lost |
+| decoded text changed | 7 programs = exactly census C (also 23141, 25951) |
+| direct-encode streams changed | 0 |
+| EXACT | 28,518 -> 28,523 (+5), 0 EXACT -> non-EXACT, protected 430/430 |
+
+Tests: While + And + trailing comment, with and without a blank line
+(both fail at ae54083, pass after); control without the And clause.
+
+### Cycle 102 totals
+
+| | before (db61198) | after |
+|---|---|---|
+| EXACT / NONEXACT | 28,513 / 1,696 | 28,523 / 1,686 |
+| roundtrip-exact | 28,618 | 28,628 |
+| ROUNDTRIP_ONLY | 10 | 0 |
+| App Class ROUNDTRIP_ONLY | 0 | 0 (Cycle 101's 92 still roundtrip) |
+| direct-encode streams changed | | 0 (all 30,209 hashed) |
+| decoded text changed | | 16 programs, all census sites |
+
+The final code is identical, for every definition (roundtrip status,
+roundtrip bytes, decoded text, direct bytes), to the combined env-gated
+experiment. Taxonomy after: COMPLETE_DOWNSTREAM 443, UNSUPPORTED_SYNTAX
+335, ACTIVE_PACKAGE 220, ENCODE_ERROR 122, ACTIVE_RECORD_FIELD 118,
+ACTIVE_RECORD 109, ACTIVE_FIELD 106, DECODE_SOURCE_MISMATCH 82,
+ACTIVE_OTHER 51, ACTIVE_SCROLL 49, DECODER_BARE_IDENTIFIER 26,
+STRUCTURAL_ORDERING 16, QUOTED_COMPONENT 9. Forward-exact among
+non-EXACT: 30 -> 20 (decode-side, other categories).
 
 ## Compiler Research Cycle 102 -- roundtrip blank-line census
 

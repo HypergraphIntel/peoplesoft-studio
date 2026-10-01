@@ -2409,8 +2409,26 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
      * needs the first comment's own newline preserved to reach its one
      * blank line.
      */
+    /*
+     * Cycle 102: the 0x2D need not be the very next token. A `While`
+     * condition ending in an `And` clause closes that clause with the
+     * zero-width 0x42 AFTER the trailing comment:
+     *
+     *   While &sql.Fetch(&a) And
+     *         &n <= 55 /* comment *\/
+     *
+     *      &n = &n + 1;
+     *
+     * stores `... 50 4e 42 2d 4f`. Looking only at the next token left the
+     * comment's own newline in place on top of the 0x2D's, so the one
+     * stored blank line decoded as two (10624, 10640, 10732, 23358, 23418;
+     * also 23141, 25951 -- every `4e 42+ 2d` site in the corpus; no
+     * `4e 41 2d` exists).
+     */
+    let newlineOnceIndex = tokenIndex + 1;
+    while (tokens[newlineOnceIndex]?.opcode === 0x42) newlineOnceIndex++;
     const commentInlineAfterStatementBeforeNewlineOnce =
-      commentInlineAfterStatement && nextToken?.opcode === 0x2d;
+      commentInlineAfterStatement && tokens[newlineOnceIndex]?.opcode === 0x2d;
 
     /*
      * Compiler closure: an inline comment sandwiched mid-expression can

@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-01T00:13:58.390Z",
+ "generatedAt": "2026-10-01T00:22:33.217Z",
  "totalDefinitions": 30209,
- "exactCount": 28518,
- "nonexactCount": 1691,
+ "exactCount": 28523,
+ "nonexactCount": 1686,
  "rows": [
   {
    "definitionId": 522,
@@ -3500,30 +3500,6 @@
     "storedCount": 6,
     "generatedCount": 6
    }
-  },
-  {
-   "definitionId": 10624,
-   "displayName": "1=GP_ABS_GPI_DISP, 2=SEARCH_PB, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
-  },
-  {
-   "definitionId": 10640,
-   "displayName": "1=GP_ABS_NEG_DISP, 2=SEARCH_PB, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
-  },
-  {
-   "definitionId": 10732,
-   "displayName": "1=GP_ABS_UNP_DISP, 2=SEARCH_PB, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
   },
   {
    "definitionId": 10782,
@@ -11440,14 +11416,6 @@
    }
   },
   {
-   "definitionId": 23358,
-   "displayName": "10=GP_ABS_NEGBAL_ANLY, 39=GBL, 12=PreBuild, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
-  },
-  {
    "definitionId": 23360,
    "displayName": "10=GP_ABS_OVRD, 39=GBL, 12=PreBuild, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -11472,14 +11440,6 @@
     "generatedCount": 35,
     "firstDivergenceKind": "record-field"
    }
-  },
-  {
-   "definitionId": 23418,
-   "displayName": "10=GP_ABS_UN_PR_ANLY, 39=GBL, 12=PreBuild, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "ROUNDTRIP_ONLY"
   },
   {
    "definitionId": 23465,
