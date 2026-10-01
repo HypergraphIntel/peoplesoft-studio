@@ -71,3 +71,26 @@ test('a PanelGroup built-in declaration allocates its row like Component (959, 3
 test('a PanelGroup declaration shares the leading run with the declarations after it', () => {
   assert.deepEqual(packageRows('PanelGroup Record &a;\nLocal Record &b;\n&a = Null;\n'), ['RECORD']);
 });
+
+/*
+ * Cycle 110: Collection, Document, Map, JsonNode, Response, CQRuntime and
+ * Crypt are built-in object types (descriptive stores root the row at the
+ * type itself). A Local of one allocates its row, in ordinary programs and
+ * in Application Class method bodies.
+ */
+for (const [type, evidence] of [
+  ['Collection', '15515, 29530'], ['Document', '15875, 29880'], ['Map', '29531'], ['JsonNode', '28890'],
+  ['Response', '13646'], ['CQRuntime', '14641'], ['Crypt', '25484']
+] as const) {
+  test(`a built-in ${type} Local allocates its PACKAGE row (${evidence})`, () => {
+    assert.deepEqual(packageRows(`Local ${type} &x;\n&x = Null;\n`), [type.toUpperCase()]);
+  });
+}
+
+test('a Collection Local in an Application Class body is the built-in, even under a wildcard import of a package defining a Collection class (29870)', () => {
+  const source = 'import PSXP_XMLGEN:*;\nclass Kid\n   method Run();\nend-class;\n\nmethod Run\n   Local Collection &c;\n   Local Document &d;\nend-method;\n';
+  const rows = encodeProgramArtifacts(source, { owner: { recordName: 'APP', fieldName: 'Kid', packagePath: ['APP', 'Kid'] } }).references
+    .filter(reference => reference.kind === 'package' && reference.packageName);
+  assert.deepEqual(rows.map(reference => reference.packageName), ['COLLECTION', 'DOCUMENT']);
+  assert.ok(rows.every(reference => (reference as { packagePath?: string[] }).packagePath === undefined));
+});

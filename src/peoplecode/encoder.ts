@@ -1183,7 +1183,15 @@ const BUILTIN_TYPE_REGISTRY: ReadonlyMap<string, BuiltinTypeSemantics> = new Map
       ['IntBroker', ['local']],
       ['CompositeQuery', ['local']],
       ['BIDocs', ['local']],
-      ['IBInfo', ['local']]
+      ['IBInfo', ['local']],
+      // Cycle 110 (see the comment below the table).
+      ['Collection', ['local']],
+      ['Document', ['local']],
+      ['Map', ['local']],
+      ['JsonNode', ['local']],
+      ['Response', ['local']],
+      ['CQRuntime', ['local']],
+      ['Crypt', ['local']]
     ] as const
   ).map(([name, contexts]) => [
     name.toLowerCase(),
@@ -1212,6 +1220,18 @@ const BUILTIN_TYPE_REGISTRY: ReadonlyMap<string, BuiltinTypeSemantics> = new Map
  * component 4/4, XmlDoc parameter 1/1 + 51/51, File / JavaObject App Class
  * parameter; XmlNode function-parameter and Message local-array-element
  * from the lifetime census's interval evidence.
+ *
+ * Cycle 110: Collection, Document, Map, JsonNode, Response, CQRuntime and
+ * Crypt are built-ins too. A `Local` of one stores its PACKAGE row in every
+ * program that declares it (Collection 8/8, Document 7/7, Map 3/3, the
+ * others 1/1; ordinary and Application Class alike), and descriptive
+ * stores root the row at the type itself (29527 Collection / Document /
+ * Map, 28890 JsonNode, 29530, 29531) -- never at a package. Two packages
+ * define an Application Class named Collection (PTAI_COLLECTION,
+ * PSXP_XMLGEN); every reference to those classes is written qualified, and
+ * a short `Collection` under `import PSXP_XMLGEN:*` (29870) still stores
+ * the self-rooted built-in row. Application Class header declarations of
+ * these types already allocate through the declaration prepass.
  *
  * Exception as an Application Class METHOD parameter also stores a row
  * (10/10), but it is deliberately not added: the Application Class
