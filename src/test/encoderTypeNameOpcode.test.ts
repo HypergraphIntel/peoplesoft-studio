@@ -41,3 +41,24 @@ test('a blank line between two leading Locals of a Function body is a 0x4F marke
   assert.equal(between(marked), 1);
   assert.equal(between(plain), 0);
 });
+
+/*
+ * Cycle 113: an array's Application Class element type is written in full
+ * after `array of`, at every declaration site. 14888: `Component array of
+ * PT_CUBQUERYCHUNK:QueryChunker &aQChunker;`; 17894: `Local array of array
+ * of PT_PC_UTIL:StringMap &vmap_array;`.
+ */
+for (const declaration of [
+  'Component array of PKG:Sub:Widget &w',
+  'Global array of PKG:Widget &w',
+  'Local array of array of PKG:Widget &w'
+]) {
+  test(`an array's class element type is encoded: ${declaration}`, () => {
+    const bytes = encodeFragment(`${declaration};`);
+    const of = bytes.indexOf(Buffer.from('of', 'utf16le'));
+    const pkg = bytes.indexOf(Buffer.from('PKG', 'utf16le'), of);
+    const variable = bytes.indexOf(Buffer.from('&w', 'utf16le'));
+    assert.ok(of > 0 && pkg > of && variable > pkg, `${declaration}: class path between \`of\` and the variable`);
+    assert.ok(bytes.indexOf(Buffer.from('Widget', 'utf16le'), pkg) < variable);
+  });
+}

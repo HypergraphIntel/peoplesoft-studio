@@ -1410,6 +1410,14 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       space();
       if (/^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(source.slice(pos))) {
         const appClass = applicationClassPath();
+        /*
+         * Cycle 113: the element class is written like any qualified type
+         * -- 14888 `Component array of PT_CUBQUERYCHUNK:QueryChunker
+         * &aQChunker;` stores `40 "array" 40 "of" 0A "PT_CUBQUERYCHUNK" 57
+         * 0A "QueryChunker" 01 "&aQChunker"`; 17894 the same after a
+         * nested `array of array of`.
+         */
+        chunks.push(appClass.bytes);
         elementType = appClass.className;
         arrayElementApplicationClass = appClass;
         continue;
