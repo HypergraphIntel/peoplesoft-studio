@@ -5037,7 +5037,13 @@ end-method;`);
   assert.notEqual(actual.indexOf(Buffer.concat([Buffer.from([0x15, 0x4f]), assignment]), first), -1);
 });
 
-test('Application Class bodies discard deferred internal markers without compiled references', () => {
+test('Application Class bodies keep internal blank-line markers without compiled references', () => {
+  /*
+   * Cycle 113: the Cycle 15 reference gating is an ordinary-program rule.
+   * An Application Class program without any compiled reference keeps its
+   * blank-line markers -- 29137 `Constants` (string assignments only)
+   * stores `15 4F 01` between assignments separated by a blank line.
+   */
   const actual = appClassStatements(`class Demo
 method Run();
 end-class;
@@ -5050,8 +5056,7 @@ end-method;`);
   const assignment = appClassText(0x01, '&x');
   const first = actual.indexOf(assignment);
   assert.notEqual(first, -1);
-  assert.equal(actual.indexOf(Buffer.concat([Buffer.from([0x15, 0x4f]), assignment]), first), -1);
-  assert.notEqual(actual.indexOf(Buffer.concat([Buffer.from([0x15]), assignment]), first), -1);
+  assert.notEqual(actual.indexOf(Buffer.concat([Buffer.from([0x15, 0x4f]), assignment]), first), -1);
 });
 
 test('Application Class final implementation does not flush trailing program whitespace', () => {

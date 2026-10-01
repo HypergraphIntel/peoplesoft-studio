@@ -14382,43 +14382,18 @@ function encodeApplicationClassProgramV2(
   const hasModeledApplicationClassReferenceScope =
     hasModeledDeclarationDependencyOrder && !hasUnmodeledThisMethodDependencies;
 
-  /*
-   * Cycle 16 Phase 16A: read-only prepass. Cycle 14 encodes each method
-   * body as its OWN independent `encodeFragmentInternal` call, so the
-   * deferred blank-line/declaration-boundary marker flush decision
-   * (`hasCompiledReferences`, see its own declaration comment) only ever
-   * sees ONE method's own references -- but Cycle 15 proved that decision
-   * is actually scoped to the WHOLE COMPILATION UNIT. This prepass
-   * answers only the single boolean the real encode below needs:
-   * whether ANY method body in this class would, on its own, produce a
-   * compiled PSPCMNAME reference beyond the blank owner placeholder. It
-   * encodes each body in ISOLATION purely to inspect that result and
-   * discards everything else -- it does not allocate a real reference,
-   * does not affect reference ordering/NAMENUM, and does not change
-   * dependency identity, DependencyScope, method-local ChainSemantics, or
-   * method ordering in the real encode.
-   */
   const firstImplementationStart = parsed.implementations[0]?.sourceIndex ?? source.length;
-  const referenceProbeFragments = [
-    source.slice(0, parsed.unitStart),
-    source.slice(parsed.unitEnd, firstImplementationStart),
-    ...parsed.implementations.map(member => member.body)
-  ];
-  const programHasCompiledReferences = referenceProbeFragments.some(fragment => {
-    const trimmedEnd = fragment.replace(/\s+$/, '');
-    const completed = trimmedEnd === '' || /;$/.test(trimmedEnd) ? fragment : `${fragment};`;
-    try {
-      const { references: isolatedReferences } = encodeProgramArtifacts(completed);
-      return (
-        isolatedReferences.length > 1 ||
-        isolatedReferences.some(reference => reference.index > 0) ||
-        isolatedReferences[0]?.recordName !== undefined ||
-        isolatedReferences[0]?.fieldName !== undefined
-      );
-    } catch {
-      return false;
-    }
-  });
+  /*
+   * Cycle 113: an Application Class program keeps its blank-line markers
+   * whether or not it has compiled references -- the Cycle 15 reference
+   * gating is an ordinary-program rule. (Cycle 16's prepass answered
+   * "does ANY fragment compile a reference" and dropped every marker when
+   * none did.) LOCAL SNAPSHOT: treating every Application Class program
+   * as reference-bearing changes exactly 34 programs, all to exact, 0
+   * lost -- 29137 `Constants` (string assignments only) stores `15 4F 01`
+   * between assignments separated by a blank line; 29090, 29095.
+   */
+  const programHasCompiledReferences = true;
 
   const ownerPackagePath =
     context?.owner?.packagePath !== undefined
