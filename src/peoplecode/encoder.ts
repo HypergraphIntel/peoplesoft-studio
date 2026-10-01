@@ -13996,7 +13996,8 @@ function encodeApplicationClassProgramV2(
     fragmentSource: string,
     commentOpcodes = context?.commentOpcodes,
     suppressDeclarationSectionMarkers = true,
-    methodParameters?: { name: string; type: string }[]
+    methodParameters?: { name: string; type: string }[],
+    sourceStart?: number
   ): Buffer => {
     /*
      * Cycle 81: this closure encodes several independent fragments in
@@ -14057,7 +14058,11 @@ function encodeApplicationClassProgramV2(
       // Cycle 46: absent (undefined) for the leading-import fragment and
       // for get/set accessor bodies; only a `kind: 'method'` implementation
       // body's own call site below passes its method's parameter list.
-      methodParameters
+      methodParameters,
+      // Cycle 108: trace offsets relative to the whole program, not the fragment.
+      referenceTrace: context?.referenceTrace === undefined || sourceStart === undefined
+        ? context?.referenceTrace
+        : event => context.referenceTrace!({ ...event, sourceOffset: event.sourceOffset + sourceStart })
     });
     applicationClassReferenceScope.commit(encoded.references);
     firstFragment = false;
@@ -14240,7 +14245,7 @@ function encodeApplicationClassProgramV2(
         end - trailingWhitespace.length
       ).flatMap(comment => comment.opcode === 0x24 || comment.opcode === 0x4e ? [comment.opcode] : []);
       try {
-        statementChunks.push(encodeFragment(core, commentOpcodes, false));
+        statementChunks.push(encodeFragment(core, commentOpcodes, false, undefined, start + leadingWhitespace.length));
         // Cycle 81: this range's own comments were consumed here, via a
         // locally-scoped array sized just for this range (an explicit
         // override, not the shared default) -- but they still occupy
@@ -14293,7 +14298,7 @@ function encodeApplicationClassProgramV2(
     if (!grammarCovered) {
       const leadingImports = /^\s*(?:import\s+[%A-Za-z_][%A-Za-z0-9_]*(?::[%A-Za-z_][%A-Za-z0-9_]*)*(?::\*)?\s*;\s*)*/i.exec(source)?.[0] ?? '';
       if (leadingImports.trim() !== '') {
-        const bytes = encodeFragment(leadingImports);
+        const bytes = encodeFragment(leadingImports, undefined, true, undefined, 0);
         statementChunks.push(bytes);
         if (bytes[bytes.length - 1] !== 0x4f) statementChunks.push(Buffer.from([0x4f]));
       }
@@ -14333,7 +14338,7 @@ function encodeApplicationClassProgramV2(
       if (event.kind === 'comment') {
         statementChunks.push(applicationClassLayoutCommentOperand(event));
       } else {
-        const bytes = encodeFragment(event.raw, undefined, false);
+        const bytes = encodeFragment(event.raw, undefined, false, undefined, event.start);
         statementChunks.push(bytes[bytes.length - 1] === 0x2d ? bytes.subarray(0, bytes.length - 1) : bytes);
         importSectionOpen = true;
       }
@@ -14353,11 +14358,12 @@ function encodeApplicationClassProgramV2(
    */
   const encodeMethodBody = (
     body: string,
-    methodParameters?: { name: string; type: string }[]
+    methodParameters?: { name: string; type: string }[],
+    sourceStart?: number
   ): Buffer => {
     const hasSourceTerminator = applicationClassHasTrailingSourceTerminator(body);
     const completed = hasSourceTerminator ? body : `${body};`;
-    const bytes = encodeFragment(completed, undefined, true, methodParameters);
+    const bytes = encodeFragment(completed, undefined, true, methodParameters, sourceStart);
     let end = bytes.length;
     if (end > 0 && bytes[end - 1] === 0x4f) end--;
     if (!hasSourceTerminator && end > 0 && bytes[end - 1] === 0x15) end--;
@@ -14488,7 +14494,8 @@ function encodeApplicationClassProgramV2(
         member.kind === 'method'
           ? methodsByName.get(member.name.toLowerCase())?.parameters
           : undefined;
-      statementChunks.push(encodeMethodBody(bodyCore, methodParameters));
+      const bodyStart = source.indexOf(bodyCore, member.sourceIndex);
+      statementChunks.push(encodeMethodBody(bodyCore, methodParameters, bodyStart < 0 ? undefined : bodyStart));
       emitMarkers(applicationClassBlankLineCount(trailingWhitespace));
     }
     const closerOpcode = member.kind === 'method' ? 0x64 : member.kind === 'get' ? 0x6a : 0x6b;
