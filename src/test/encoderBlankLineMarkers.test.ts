@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { encodeFragment } from '../peoplecode/encoder.js';
+import { encodeFragment, encodeProgramArtifacts } from '../peoplecode/encoder.js';
 
 /*
  * Cycle 113: a statement inside a When body keeps one 0x4F per blank line
@@ -8,13 +8,13 @@ import { encodeFragment } from '../peoplecode/encoder.js';
  * 5373: `End-If;` + two blank lines + `If ...` inside a When stores
  * `1A 15 4F 4F 1C`.
  */
-const markersBefore = (source: string, name: string): number => {
-  const bytes = encodeFragment(source);
+const markersBeforeIn = (bytes: Buffer, name: string): number => {
   let at = bytes.indexOf(Buffer.from(name, 'utf16le')) - 1;
   let markers = 0;
   while (bytes[--at] === 0x4f) markers++;
   return markers;
 };
+const markersBefore = (source: string, name: string): number => markersBeforeIn(encodeFragment(source), name);
 
 test('two blank lines before a When-body statement are two markers (5373)', () => {
   const source = 'Evaluate &x\nWhen 1\n   F();\n\n\n   &second = 2;\nEnd-Evaluate;\n';
@@ -32,4 +32,26 @@ test('two blank lines before End-Evaluate are two markers (6956)', () => {
   let markers = 0;
   while (bytes[at--] === 0x4f) markers++;
   assert.equal(markers, 2);
+});
+
+/*
+ * Cycle 113: an Application Class program keeps its blank-line markers
+ * without any compiled reference (29137 `Constants`: string assignments
+ * separated by a blank line store `15 4F 01`).
+ */
+test('an Application Class method keeps blank lines without references (29137)', () => {
+  const source = [
+    'class Constants',
+    '   method Constants();',
+    'end-class;',
+    '',
+    'method Constants',
+    '   &a = "A";',
+    '',
+    '   &b = "B";',
+    'end-method;',
+    ''
+  ].join('\n');
+  const bytes = encodeProgramArtifacts(source, { owner: { recordName: 'PKG', fieldName: 'Constants', packagePath: ['PKG', 'Constants'] } }).program;
+  assert.equal(markersBeforeIn(bytes, '&b'), 1);
 });
