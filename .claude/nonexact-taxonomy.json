@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-01T03:33:47.212Z",
+ "generatedAt": "2026-10-01T04:21:52.423Z",
  "totalDefinitions": 30209,
- "exactCount": 28615,
- "nonexactCount": 1594,
+ "exactCount": 28635,
+ "nonexactCount": 1574,
  "rows": [
   {
    "definitionId": 522,
@@ -217,38 +217,6 @@
    }
   },
   {
-   "definitionId": 2096,
-   "displayName": "1=CAFNUI_CAF_WRK, 2=CAFNUI_PB07, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 3246,
-   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 16,
-    "generatedCount": 15,
-    "firstDivergenceKind": "scroll"
-   }
-  },
-  {
-   "definitionId": 2097,
-   "displayName": "1=CAFNUI_CAF_WRK, 2=CAFNUI_PB08, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 3133,
-   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 16,
-    "generatedCount": 15,
-    "firstDivergenceKind": "scroll"
-   }
-  },
-  {
    "definitionId": 2116,
    "displayName": "1=CAFNUI_CTRL_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -291,22 +259,6 @@
    "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
-   "definitionId": 2131,
-   "displayName": "1=CAFNUI_WRK, 2=CAF_SRCH_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 1323,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 39,
-    "generatedCount": 40,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 2134,
    "displayName": "1=CAF_360_HDR, 2=CAF_FCT_OPT_GB, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -339,54 +291,6 @@
    }
   },
   {
-   "definitionId": 2166,
-   "displayName": "1=CAF_ENTITY_HDR, 2=CAF_360_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 1531,
-   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 37,
-    "generatedCount": 41,
-    "firstDivergenceKind": "scroll"
-   }
-  },
-  {
-   "definitionId": 2167,
-   "displayName": "1=CAF_ENTITY_HDR, 2=CAF_CLOSE_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 1434,
-   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 12,
-    "generatedCount": 10,
-    "firstDivergenceKind": "scroll"
-   }
-  },
-  {
-   "definitionId": 2169,
-   "displayName": "1=CAF_ENTITY_HDR, 2=CAF_RELACT_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 440,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 13,
-    "generatedCount": 13,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 2171,
    "displayName": "1=CAF_ENTITY_HDR, 2=GROUPLET_ID, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -399,54 +303,6 @@
     "referenceSetExact": false,
     "storedCount": 15,
     "generatedCount": 15
-   }
-  },
-  {
-   "definitionId": 2175,
-   "displayName": "1=CAF_FACTOR_360, 2=CAF_CLOSE_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 1360,
-   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 12,
-    "generatedCount": 10,
-    "firstDivergenceKind": "scroll"
-   }
-  },
-  {
-   "definitionId": 2178,
-   "displayName": "1=CAF_FACTOR_360, 2=CAF_RELACT_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 2445,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 22,
-    "generatedCount": 24,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 2194,
-   "displayName": "1=CAF_GROUPLET_RC, 2=CAF_CLOSE_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 1579,
-   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 12,
-    "generatedCount": 10,
-    "firstDivergenceKind": "scroll"
    }
   },
   {
@@ -6564,146 +6420,18 @@
    }
   },
   {
-   "definitionId": 17668,
-   "displayName": "1=PSXPRPTTMPF_WRK, 2=PDFMAPFILE, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 845,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 11,
-    "generatedCount": 10,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 17671,
-   "displayName": "1=PSXPRPTTMPF_WRK, 2=PSXPGENMAPPB, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 4127,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 21,
-    "generatedCount": 20,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 17673,
-   "displayName": "1=PSXPRPTTMPF_WRK, 2=PSXPMAPPER, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 889,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 14,
-    "generatedCount": 12,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 17675,
    "displayName": "1=PSXPRPTTMPF_WRK, 2=PSXPPREVIEWTMPLPB, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 212,
+   "roundtripExact": true,
+   "firstDiffOffset": 24038,
    "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 42,
     "generatedCount": 46,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 17680,
-   "displayName": "1=PSXPRPTTMPF_WRK, 2=PSXPXSDFILE, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 845,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 11,
-    "generatedCount": 10,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 17681,
-   "displayName": "1=PSXPRPTTMPF_WRK, 2=PSXPXSLTFILE, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 847,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 11,
-    "generatedCount": 10,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 17682,
-   "displayName": "1=PSXPRPTTMPF_WRK, 2=TEMPLATEFILE, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 747,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 11,
-    "generatedCount": 10,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 17757,
-   "displayName": "1=PSXPTRNSLTF_WRK, 2=PSXPPREVIEWXLIFFPB, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 150,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 25,
-    "generatedCount": 23,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 17767,
-   "displayName": "1=PSXPTRNSLT_WRK, 2=PSXPPREVIEWTMPLPB, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 150,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 19,
-    "generatedCount": 16,
     "firstDivergenceKind": "package"
    }
   },
@@ -7594,22 +7322,6 @@
    "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
-   "definitionId": 18236,
-   "displayName": "9=AGC_MYAG_DETAIL_FL, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 2288,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 41,
-    "generatedCount": 35,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
    "definitionId": 18239,
    "displayName": "9=AGC_START_AG_FL, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
    "classification": "UNSUPPORTED_SYNTAX",
@@ -7826,29 +7538,13 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 955,
+   "firstDiffOffset": 1258,
    "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 14,
     "generatedCount": 13,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 18362,
-   "displayName": "9=CAFNUI_DISPLAY_FL, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 1156,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 20,
-    "generatedCount": 18,
     "firstDivergenceKind": "record-field"
    }
   },
@@ -9041,22 +8737,6 @@
     "storedCount": 22,
     "generatedCount": 21,
     "firstDivergenceKind": "record"
-   }
-  },
-  {
-   "definitionId": 19889,
-   "displayName": "10=AGC_MYAG_FL, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 1470,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 38,
-    "generatedCount": 38,
-    "firstDivergenceKind": "package"
    }
   },
   {
