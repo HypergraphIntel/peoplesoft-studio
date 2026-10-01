@@ -888,25 +888,39 @@ function parameterTypeDescriptor(
   ) >>> 0;
 }
 
+/*
+ * Cycle 113: the Function metadata's Application Class type names are one
+ * entry PER USE, allocated as they are written -- every Function's return
+ * type in directory order, then every parameter type in signature-slot
+ * order -- never deduplicated (the same order the Application Class
+ * directory allocates its type paths, Cycle 29). LOCAL SNAPSHOT: 15800
+ * stores `PTIB_PACKAGE:MobileURLParams` three times (three parameters),
+ * 24546 `PROJECT:ProjectDefn` twice; 14327 stores its two return types
+ * (`PTADSDEFN:AdsValidationBase`, `ADSM:ADSInstance`) before the
+ * parameter types. Every changed program's pool equals stored (19); a
+ * parameters-first order mismatches 14327.
+ */
+function functionApplicationClassTypeUses(
+  metadata: readonly FunctionMetadata[]
+): { typeName: string; key: string }[] {
+  const uses: { typeName: string; key: string }[] = [];
+  const add = (rawType: string | undefined, key: string) => {
+    if (rawType === undefined) return;
+    const typeName = rawType.replace(/^(?:array\s+of\s+)+/i, '').trim();
+    if (!typeName.includes(':')) return;
+    uses.push({ typeName, key });
+  };
+  metadata.forEach((item, fn) => add(item.returnType, `${fn}:return`));
+  metadata.forEach((item, fn) => {
+    if (item.hasParameterList) item.parameterTypes.forEach((typeName, slot) => add(typeName, `${fn}:${slot}`));
+  });
+  return uses;
+}
+
 function functionApplicationClassTypes(
   metadata: readonly FunctionMetadata[]
 ): string[] {
-  const types: string[] = [];
-  const seen = new Set<string>();
-
-  for (const item of metadata) {
-    for (const rawType of [...item.parameterTypes, item.returnType]) {
-      if (rawType === undefined) continue;
-      const typeName = rawType.replace(/^array\s+of\s+/i, '').trim();
-      if (!typeName.includes(':')) continue;
-      const key = typeName.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      types.push(typeName);
-    }
-  }
-
-  return types;
+  return functionApplicationClassTypeUses(metadata).map(use => use.typeName);
 }
 
 function encodeFunctionProgramHeader(
@@ -998,21 +1012,19 @@ function encodeFunctionMetadata(
   const names = metadata.map(
     item => Buffer.from(item.name + '\0', 'utf16le')
   );
-  const applicationClassTypes = functionApplicationClassTypes(metadata);
-  const applicationClassNames = applicationClassTypes.map(
-    typeName => Buffer.from(typeName + '\0', 'utf16le')
+  const applicationClassUses = functionApplicationClassTypeUses(metadata);
+  const applicationClassNames = applicationClassUses.map(
+    use => Buffer.from(use.typeName + '\0', 'utf16le')
   );
-  const applicationClassOffsets = new Map<string, number>();
+  // Each use's own name offset, keyed `<function>:return` / `<function>:<slot>`.
+  const useOffsets = new Map<string, ReadonlyMap<string, number>>();
   let applicationClassCharOffset = metadata.reduce(
     (total, item) => total + item.name.length + 1,
     0
   );
-  for (const typeName of applicationClassTypes) {
-    applicationClassOffsets.set(
-      typeName.toLowerCase(),
-      applicationClassCharOffset
-    );
-    applicationClassCharOffset += typeName.length + 1;
+  for (const use of applicationClassUses) {
+    useOffsets.set(use.key, new Map([[use.typeName.toLowerCase(), applicationClassCharOffset]]));
+    applicationClassCharOffset += use.typeName.length + 1;
   }
 
   const directory = Buffer.alloc(metadata.length * 16);
@@ -1028,7 +1040,7 @@ function encodeFunctionMetadata(
     directory.writeUInt32LE(item.hasParameterList ? signatureSlotOffset : 0, offset + 4);
     directory.writeUInt32LE(item.parameterTypes.length, offset + 8);
     directory.writeUInt32LE(
-      returnTypeDescriptor(item.returnType, applicationClassOffsets),
+      returnTypeDescriptor(item.returnType, useOffsets.get(`${i}:return`)),
       offset + 12
     );
 
@@ -1043,12 +1055,12 @@ function encodeFunctionMetadata(
    */
   const signatureTails: Buffer[] = [];
 
-  for (const item of metadata) {
+  for (const [fn, item] of metadata.entries()) {
     if (!item.hasParameterList) continue;
-    for (const typeName of item.parameterTypes) {
+    for (const [slot, typeName] of item.parameterTypes.entries()) {
       const parameter = Buffer.alloc(4);
       parameter.writeUInt32LE(
-        parameterTypeDescriptor(typeName, applicationClassOffsets),
+        parameterTypeDescriptor(typeName, useOffsets.get(`${fn}:${slot}`)),
         0
       );
       signatureTails.push(parameter);
