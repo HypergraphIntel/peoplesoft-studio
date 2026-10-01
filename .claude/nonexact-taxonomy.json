@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-01T12:52:22.223Z",
+ "generatedAt": "2026-10-01T13:07:40.192Z",
  "totalDefinitions": 30209,
  "exactCount": 28663,
  "nonexactCount": 1546,
@@ -3709,13 +3709,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 505,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 10,
-    "generatedCount": 9,
-    "firstDivergenceKind": "package"
+    "generatedCount": 10
    }
   },
   {
@@ -5445,13 +5444,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 292,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 24,
-    "generatedCount": 22,
-    "firstDivergenceKind": "package"
+    "generatedCount": 24
    }
   },
   {
@@ -17464,13 +17462,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 4510,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 51,
-    "generatedCount": 50,
-    "firstDivergenceKind": "package"
+    "generatedCount": 51
    }
   },
   {
@@ -17480,13 +17477,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 2820,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 11,
-    "generatedCount": 10,
-    "firstDivergenceKind": "package"
+    "generatedCount": 11
    }
   },
   {
@@ -19058,13 +19054,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 873,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 10,
-    "generatedCount": 9,
-    "firstDivergenceKind": "package"
+    "generatedCount": 10
    }
   },
   {
@@ -19094,7 +19089,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 47,
-    "generatedCount": 16,
+    "generatedCount": 17,
     "firstDivergenceKind": "package"
    }
   },
