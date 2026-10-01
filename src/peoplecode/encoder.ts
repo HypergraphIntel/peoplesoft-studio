@@ -571,6 +571,13 @@ export interface EncodeProgramContext {
   applicationClassTypeMetadataTrace?: (event: ApplicationClassTypeMetadataEvent) => void;
   /** Cycle 107 research mode: consult and trace the provider, but encode as if it were absent. */
   applicationClassTypeMetadataDiagnosticsOnly?: boolean;
+  /**
+   * Cycle 111 research hook: called when an ordinary program is re-encoded
+   * without allocation units because its class rows depend on external
+   * metadata (Cycle 93, `applicationClassRowsWithoutImportResolution`).
+   * Observational only.
+   */
+  onExternalMetadataFallback?: () => void;
 }
 
 export interface ApplicationClassTypeMetadataEvent {
@@ -15093,6 +15100,7 @@ function encodeOrdinaryProgramFragment(
     return encoded;
   }
 
+  context?.onExternalMetadataFallback?.();
   return encodeFragmentInternal(source, {
     ...context,
     applicationClassRowsWithoutImportResolution: true

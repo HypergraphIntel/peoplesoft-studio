@@ -42,6 +42,14 @@
  * generates (e.g. 28874-28885, names-exact under the harness, listed as
  * "external" PACKAGE-only). `--no-metadata` reproduces the old numbers.
  *
+ * Cycle 111: ORDERING only when both sides hold as many rows of the
+ * identity at fault (s, and g) as each other; a side holding MORE rows of
+ * it is a missing / extra row (the labels above), whatever comes later --
+ * the old "exists later on the other side" test called 25033's missing
+ * catch row and 14919's extra cast row ORDERING. Each row is tagged
+ * `fallback` when the harness encodes its program without allocation units
+ * (Cycle 93, `onExternalMetadataFallback`).
+ *
  * Usage: npx tsx tools/corpus/research/cycle102-package-mechanism-census.ts [--taxonomy t.json] [--json out.json] [--no-metadata]
  */
 import fs from 'node:fs';
@@ -118,7 +126,12 @@ let firstPackage = 0;
 for (const def of definitions) {
   if (!category.has(def.definitionId)) continue;
   let artifacts: any;
-  try { artifacts = encodeProgramArtifacts(def.sourceText, { owner: context(def), applicationClassTypeMetadata } as any); } catch { continue; }
+  let fallback = false;
+  try {
+    artifacts = encodeProgramArtifacts(def.sourceText, {
+      owner: context(def), applicationClassTypeMetadata, onExternalMetadataFallback: () => { fallback = true; }
+    } as any);
+  } catch { continue; }
   const generatedRows = artifacts.references.filter((r: any) => r.kind !== 'owner');
   const generated = generatedRows.map(generatedKey);
   const stored = def.names.slice(1).map((r: any) => `${String(r.recname ?? '').trim().toUpperCase()}.${String(r.refname ?? '').trim().toUpperCase()}`);
@@ -138,21 +151,22 @@ for (const def of definitions) {
   let mechanism: string;
   let identity: string;
   let generatedAtFault: any;
-  if (isPackage(s) && isPackage(g)) {
+  const count = (list: string[], k: string) => list.filter(x => x === k).length;
+  const storedMore = (k: string) => count(stored, k) > count(generated, k);
+  const generatedMore = (k: string) => count(generated, k) > count(stored, k);
+  if (isPackage(s) && storedMore(s)) {
     identity = s;
-    const sLater = generated.indexOf(s, i) > i, gLater = stored.indexOf(g, i) > i;
-    mechanism = sLater || gLater ? 'ORDERING' : 'WRONG_IDENTITY';
-    generatedAtFault = generatedRows[i];
-  } else if (isPackage(s)) {
-    identity = s;
-    mechanism = generated.slice(0, i).includes(s) ? 'STORED_OPENS_GENERATED_REUSES'
-      : generated.indexOf(s, i) > i ? 'ORDERING' : 'GENERATED_MISSING_IDENTITY';
+    mechanism = generated.includes(s) ? 'STORED_OPENS_GENERATED_REUSES' : 'GENERATED_MISSING_IDENTITY';
     generatedAtFault = generatedRows[generated.lastIndexOf(s, i)];
-  } else {
+  } else if (isPackage(g) && generatedMore(g)) {
     identity = g;
-    mechanism = stored.slice(0, i).includes(g) ? 'STORED_REUSES_GENERATED_OPENS'
-      : stored.indexOf(g, i) > i ? 'ORDERING' : 'GENERATED_EXTRA_IDENTITY';
+    mechanism = stored.includes(g) ? 'STORED_REUSES_GENERATED_OPENS' : 'GENERATED_EXTRA_IDENTITY';
     generatedAtFault = generatedRows[i];
+  } else {
+    identity = isPackage(s) ? s : g;
+    const sLater = isPackage(s) && generated.indexOf(s, i) > i, gLater = isPackage(g) && stored.indexOf(g, i) > i;
+    mechanism = sLater || gLater ? 'ORDERING' : 'WRONG_IDENTITY';
+    generatedAtFault = generatedRows[isPackage(s) ? generated.lastIndexOf(s, i) : i];
   }
 
   const name = identity.slice('PACKAGE.'.length);
@@ -164,10 +178,10 @@ for (const def of definitions) {
   else if (imports.some(p => p.endsWith(':' + name))) source = 'named-import';
   else if (imports.some(p => p.endsWith(':*') && classPackages.get(name)?.has(p.slice(0, -2)))) source = 'wildcard-import';
   else source = 'external';
-  const tags = [source, generatedAtFault?.methodName ? 'method' : '', def.objectid1 === 104 ? 'app' : 'ordinary'].filter(Boolean).join(' ');
+  const tags = [source, generatedAtFault?.methodName ? 'method' : '', def.objectid1 === 104 ? 'app' : 'ordinary', fallback ? 'fallback' : ''].filter(Boolean).join(' ');
 
   add(`${mechanism.padEnd(31)} ${tags.padEnd(30)} ${onlyPackage ? 'package-only' : 'mixed'} ${category.get(def.definitionId)}`, def.definitionId);
-  rows.push({ id: def.definitionId, category: category.get(def.definitionId), mechanism, identity, source, method: !!generatedAtFault?.methodName, app: def.objectid1 === 104, packageOnly: onlyPackage });
+  rows.push({ id: def.definitionId, category: category.get(def.definitionId), mechanism, identity, source, method: !!generatedAtFault?.methodName, app: def.objectid1 === 104, packageOnly: onlyPackage, fallback });
 }
 
 console.log(`NONEXACT ${category.size}; PACKAGE-only ${packageOnly}; first divergence is a PACKAGE row ${firstPackage}`);
