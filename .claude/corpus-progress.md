@@ -1,15 +1,15 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-01, Cycle 111)
+## Current status (2026-10-01, Cycle 112)
 
-- **Current target:** Cycle 111 -- the 14 ordinary PACKAGE-only
-  "ordering" programs were no ordering error: 9 fallback programs, 3
-  Function-header rows, 1 catch receiver, 1 cast. Later Function headers
-  are their own allocation unit, `Returns <Class>` uses its class, catch
-  variables are receivers. EXACT 28,663 -> 28,664 (25033), protected
-  PASS, 0 EXACT -> non-EXACT. See "Compiler Semantics Cycle 111".
-- **Last successful calibration:** Cycle 111 (Function-header unit,
-  Returns class rows, catch receivers).
+- **Current target:** Cycle 112 -- the Cycle 93 external-metadata
+  fallback keeps the allocation-unit model; only its per-wildcard blank
+  row claim remains (13525's compensation, the parked Cycle 105
+  correction). EXACT 28,664 -> 28,671 (+7), protected PASS, 0 EXACT ->
+  non-EXACT, fallback membership 63 -> 63 (13525 EXACT). See "Compiler
+  Semantics Cycle 112".
+- **Last successful calibration:** Cycle 112 (allocation units in the
+  external-metadata fallback).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked: package
   canonical case in App Class type-path names (external package
@@ -27,14 +27,19 @@
   `As` casts (6 agree with "a cast uses its class in the unit", 4 store
   no row: 18110, 19528, 20687, 14919 -- no discriminator yet); 2125,
   24500, 24503, 19433.
-- **Next action:** the Cycle 93 fallback population -- 46 of the 79
-  PACKAGE-only programs are encoded without allocation units because a
-  receiver's class metadata is absent (wildcard over-claim 13517 / 13522
-  / 13523 / 25337, fallback-model declaration rows 14636, 14707, 20754,
-  25504, 25506, ...); census which rows the fallback model gets wrong vs
-  which need the absent metadata. See "PACKAGE rerank after Cycle 111".
-  The fallback wildcard over-claim stays parked (13525).
-- **Newly established rules this session:** Cycle 111: in ordinary
+- **Next action:** PACKAGE-only residue is now mostly blocked: 39 of 72
+  are external-metadata programs (missing rows of classes absent from the
+  snapshot, and the parked over-claim). Remaining source-local families:
+  built-in (10 PACKAGE-only), ordinary class stored-reuses (6: 17893,
+  18110, 18372, 19155, 22665, 22673), ordinary method-dependency rows
+  (6); snapshot-local: known array types mapped to "unresolved" in
+  ordinary programs (19433, 24500, 24503). Beyond PACKAGE, the largest
+  category is COMPLETE_DOWNSTREAM (580). See "PACKAGE rerank after Cycle
+  112".
+- **Newly established rules this session:** Cycle 112: a program with
+  unresolved external class metadata keeps every allocation-unit rule;
+  only each wildcard import claiming a blank row differs (parked
+  compensation); Cycle 111: in ordinary
   programs a Function header after the leading section is its own
   allocation unit; `Returns <Class>` uses its class there; a catch
   variable is a receiver (the clause allocates nothing); a PACKAGE
@@ -84,6 +89,95 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 112 -- the external-metadata fallback keeps allocation units
+
+**Baseline reproduced fresh at `b29abe5`:** 28,664 / 1,545, protected
+430/430, taxonomy row-identical, sweep identical, PACKAGE census 79 /
+157, fallback membership 63 (13525 in it). **Result:** EXACT **28,664 ->
+28,671 (+7)**, **0 EXACT -> non-EXACT**, protected 430/430,
+ROUNDTRIP_ONLY 0. LOCAL SNAPSHOT only.
+
+### What the fallback did (code audit)
+
+`applicationClassRowsWithoutImportResolution` (Cycle 93) did not touch
+import resolution: it switched `unitScopedClassRows` off -- every
+allocation-unit rule (Cycle 93 declaration rows and create-after-
+arguments, Cycle 94 units and method rows, Global / parameter receivers,
+Cycle 104 array elements, Cycle 111 Function headers, Returns, catch
+receivers) -- leaving the pre-Cycle-93 model: Locals allocate nothing,
+Component declarations allocate a new row whenever any wildcard import
+exists (14636's extra CONQRSMGR), creates allocate before their
+arguments with a program-wide dedupe; and every wildcard import claimed
+a blank row.
+
+### Research (7ee0b49)
+
+`cycle112-fallback-census.ts`, all 63 fallback programs, A = normal
+encoding (research switch `suppressExternalMetadataFallback`), B = the
+fallback, C = stored:
+
+| | B (fallback) | A (normal) |
+|---|---|---|
+| distance to stored | -- | 41 closer, 22 same, 0 farther |
+| names-exact | 8 | 20 |
+| forward-exact | 14 | 24 (+11; -1: 13525) |
+
+Triggers (unresolved metadata consultations): 54 programs reach only
+receivers whose class is absent from the snapshot, 5 absent ancestors;
+4 (19433, 19877, 24500, 24503) fall back only because ordinary programs
+map snapshot-KNOWN array-typed properties to unresolved (Cycle 107 /
+109) -- snapshot-local, a separate provider-consumer mechanism.
+
+13525: stored blank, POPULATIONNODE, POPMGTDISPLAYMGR, ITERATORTREE,
+**POPULATIONMANAGER** (IteratorTree.POPULATION_MANAGER's class --
+`WCS_ITERATOR_TREE:IteratorTree` is not in the snapshot), ITERATORTREE,
+ITERATORTREE; fallback: blank, POPULATIONNODE, **blank** (second
+wildcard), POPMGTDISPLAYMGR, ITERATORTREE, ITERATORTREE. The extra blank
+row precedes, and the missing row would precede, the same operand rows:
+byte-exact by compensation. Minimal missing knowledge: the declared type
+of `IteratorTree.POPULATION_MANAGER`.
+
+### Semantics (3017870)
+
+The fallback re-encode now uses the normal model with only
+`externalMetadataWildcardClaims` (each wildcard import claims a blank
+row). 37 lists changed (all fallback programs): 34 closer, 0 farther, 3
+same (13520, 25795, 28190); names-exact +5; forward-exact +7 (3872,
+14162, 19877, 20754, 24647, 25504, 25506), 0 lost; 13525 EXACT and in
+the fallback; membership 63 -> 63; non-PACKAGE and built-in PACKAGE
+sequences unchanged; no Application Class program changed.
+
+Cycle 105 re-test on the new state (single claim): 19 lists closer (the
+2+-wildcard programs), 0 farther; forward-exact +4 (13517, 15038, 15039,
+15697), -1 (13525) -- stays parked.
+
+Remaining non-EXACT fallback programs (42): missing rows of classes
+absent from the snapshot 17 (+2 absent ancestors, 2 mixed); over-claim
+only 8 (15038, 15039, 15256, 15257, 15598, 15609, 15697, 15795);
+over-claim + missing 8; array-mapping (F2) 3.
+
+## PACKAGE rerank after Cycle 112
+
+PACKAGE-only 79 -> 72; first PACKAGE difference 157 -> 150 (ORDERING
+66, MISSING 36, STORED_REUSES 34, STORED_OPENS 13, EXTRA 1);
+`--no-metadata` control 92 / 187.
+
+| bucket | first-PACKAGE (package-only) |
+|---|---|
+| external-metadata (fallback) programs | 40 (39) |
+| App Class ORDERING | 40 (2) |
+| built-in | 32 (10) |
+| method-dependency rows | 14 (6) |
+| App Class missing (blocked) | 11 (6) |
+| ordinary class stored-reuses | 6 (6) |
+| other | 7 (3) |
+
+Categories: COMPLETE_DOWNSTREAM 580, UNSUPPORTED_SYNTAX 335,
+ENCODE_ERROR 122, ACTIVE_PACKAGE 97, ACTIVE_FIELD 92, ACTIVE_RECORD 85,
+DECODE_SOURCE_MISMATCH 82, ACTIVE_RECORD_FIELD 39, ACTIVE_OTHER 39,
+DECODER_BARE_IDENTIFIER 26, STRUCTURAL_ORDERING 20, ACTIVE_SCROLL 13,
+QUOTED_COMPONENT 8.
 
 ## Compiler Semantics Cycle 111 -- Function headers and catch receivers (ordinary programs)
 
