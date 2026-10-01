@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-01T12:07:14.910Z",
+ "generatedAt": "2026-10-01T12:52:22.223Z",
  "totalDefinitions": 30209,
  "exactCount": 28663,
  "nonexactCount": 1546,
@@ -228,7 +228,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 76,
-    "generatedCount": 82,
+    "generatedCount": 72,
     "firstDivergenceKind": "package"
    }
   },
@@ -244,7 +244,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 39,
-    "generatedCount": 52,
+    "generatedCount": 40,
     "firstDivergenceKind": "package"
    }
   },
@@ -265,13 +265,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 27,
-    "generatedCount": 26,
-    "firstDivergenceKind": "package"
+    "generatedCount": 27
    }
   },
   {
@@ -286,7 +285,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 36,
-    "generatedCount": 29,
+    "generatedCount": 32,
     "firstDivergenceKind": "package"
    }
   },
@@ -6426,13 +6425,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": true,
    "firstDiffOffset": 24038,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 42,
-    "generatedCount": 46,
-    "firstDivergenceKind": "package"
+    "generatedCount": 42
    }
   },
   {
@@ -7539,13 +7537,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1258,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 14,
-    "generatedCount": 13,
-    "firstDivergenceKind": "record-field"
+    "generatedCount": 14
    }
   },
   {
@@ -13080,7 +13077,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 18,
-    "generatedCount": 14,
+    "generatedCount": 15,
     "firstDivergenceKind": "package"
    }
   },
@@ -13886,13 +13883,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 775,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 6,
-    "generatedCount": 5,
-    "firstDivergenceKind": "package"
+    "generatedCount": 6
    }
   },
   {
@@ -13902,13 +13898,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 9,
-    "generatedCount": 8,
-    "firstDivergenceKind": "package"
+    "generatedCount": 9
    }
   },
   {
@@ -13953,13 +13948,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 10,
-    "generatedCount": 9,
-    "firstDivergenceKind": "stored-only"
+    "generatedCount": 10
    }
   },
   {
@@ -13984,13 +13978,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 734,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 10,
-    "generatedCount": 9,
-    "firstDivergenceKind": "stored-only"
+    "generatedCount": 10
    }
   },
   {
@@ -14000,13 +13993,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 923,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 7,
-    "generatedCount": 6,
-    "firstDivergenceKind": "package"
+    "generatedCount": 7
    }
   },
   {
@@ -14016,13 +14008,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 922,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 7,
-    "generatedCount": 6,
-    "firstDivergenceKind": "package"
+    "generatedCount": 7
    }
   },
   {
@@ -14032,13 +14023,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 503,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 6,
-    "generatedCount": 5,
-    "firstDivergenceKind": "package"
+    "generatedCount": 6
    }
   },
   {
@@ -14053,7 +14043,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 10,
-    "generatedCount": 8,
+    "generatedCount": 9,
     "firstDivergenceKind": "component"
    }
   },
@@ -14069,7 +14059,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 10,
-    "generatedCount": 8,
+    "generatedCount": 9,
     "firstDivergenceKind": "component"
    }
   },
@@ -14080,13 +14070,13 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 3791,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_ACTIVE_QUOTED_COMPONENT",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 10,
-    "generatedCount": 8,
-    "firstDivergenceKind": "package"
+    "generatedCount": 9,
+    "firstDivergenceKind": "component"
    }
   },
   {
@@ -14305,13 +14295,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 50,
-    "generatedCount": 49,
-    "firstDivergenceKind": "record-field"
+    "generatedCount": 50
    }
   },
   {
@@ -14321,13 +14310,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 36,
-    "generatedCount": 35,
-    "firstDivergenceKind": "package"
+    "generatedCount": 36
    }
   },
   {
@@ -14342,7 +14330,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 52,
-    "generatedCount": 49,
+    "generatedCount": 50,
     "firstDivergenceKind": "package"
    }
   },
@@ -14353,13 +14341,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 27,
-    "generatedCount": 26,
-    "firstDivergenceKind": "record-field"
+    "generatedCount": 27
    }
   },
   {
@@ -14648,12 +14635,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "primaryCategory": "STRUCTURAL_ORDERING",
    "referenceComparison": {
     "referenceExact": false,
-    "referenceSetExact": false,
+    "referenceSetExact": true,
     "storedCount": 56,
-    "generatedCount": 54,
+    "generatedCount": 56,
     "firstDivergenceKind": "record-field"
    }
   },
@@ -14669,7 +14656,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 31,
-    "generatedCount": 21,
+    "generatedCount": 23,
     "firstDivergenceKind": "record"
    }
   },
@@ -14680,13 +14667,13 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 16,
-    "generatedCount": 14,
-    "firstDivergenceKind": "record-field"
+    "generatedCount": 15,
+    "firstDivergenceKind": "field"
    }
   },
   {
@@ -15426,13 +15413,13 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 13417,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 22,
-    "generatedCount": 26,
-    "firstDivergenceKind": "package"
+    "generatedCount": 27,
+    "firstDivergenceKind": "field"
    }
   },
   {
@@ -15492,7 +15479,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 26,
-    "generatedCount": 24,
+    "generatedCount": 25,
     "firstDivergenceKind": "field"
    }
   },
@@ -15508,7 +15495,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 25,
-    "generatedCount": 24,
+    "generatedCount": 26,
     "firstDivergenceKind": "field"
    }
   },
@@ -15524,7 +15511,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 43,
-    "generatedCount": 41,
+    "generatedCount": 42,
     "firstDivergenceKind": "package"
    }
   },
@@ -15540,7 +15527,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 30,
-    "generatedCount": 29,
+    "generatedCount": 31,
     "firstDivergenceKind": "field"
    }
   },
@@ -15551,13 +15538,13 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 7238,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 15,
-    "generatedCount": 14,
-    "firstDivergenceKind": "package"
+    "generatedCount": 16,
+    "firstDivergenceKind": "field"
    }
   },
   {
@@ -15640,7 +15627,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 24,
-    "generatedCount": 23,
+    "generatedCount": 25,
     "firstDivergenceKind": "field"
    }
   },
@@ -15672,7 +15659,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 173,
-    "generatedCount": 301,
+    "generatedCount": 302,
     "firstDivergenceKind": "record-field"
    }
   },
@@ -15693,13 +15680,13 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 32095,
-   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 87,
     "generatedCount": 113,
-    "firstDivergenceKind": "field"
+    "firstDivergenceKind": "record"
    }
   },
   {
@@ -15882,7 +15869,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 25,
-    "generatedCount": 23,
+    "generatedCount": 24,
     "firstDivergenceKind": "field"
    }
   },
@@ -15898,7 +15885,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 28,
-    "generatedCount": 25,
+    "generatedCount": 26,
     "firstDivergenceKind": "package"
    }
   },
@@ -15944,13 +15931,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 16,
-    "generatedCount": 15,
-    "firstDivergenceKind": "stored-only"
+    "generatedCount": 16
    }
   },
   {
@@ -16073,13 +16059,13 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 12,
-    "generatedCount": 10,
-    "firstDivergenceKind": "package"
+    "generatedCount": 11,
+    "firstDivergenceKind": "stored-only"
    }
   },
   {
@@ -16331,13 +16317,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 1437,
-   "primaryCategory": "REFERENCE_ACTIVE_QUOTED_COMPONENT",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 14,
-    "generatedCount": 13,
-    "firstDivergenceKind": "component"
+    "generatedCount": 14
    }
   },
   {
@@ -16570,13 +16555,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 54,
-    "generatedCount": 53,
-    "firstDivergenceKind": "field"
+    "generatedCount": 54
    }
   },
   {
@@ -16612,13 +16596,13 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 4094,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 18,
-    "generatedCount": 18,
-    "firstDivergenceKind": "record-field"
+    "generatedCount": 19,
+    "firstDivergenceKind": "record"
    }
   },
   {
@@ -16697,12 +16681,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "primaryCategory": "STRUCTURAL_ORDERING",
    "referenceComparison": {
     "referenceExact": false,
-    "referenceSetExact": false,
+    "referenceSetExact": true,
     "storedCount": 51,
-    "generatedCount": 50,
+    "generatedCount": 51,
     "firstDivergenceKind": "record"
    }
   },
@@ -19232,13 +19216,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 23,
-    "generatedCount": 22,
-    "firstDivergenceKind": "record"
+    "generatedCount": 23
    }
   },
   {
@@ -19293,7 +19276,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 25,
-    "generatedCount": 15,
+    "generatedCount": 16,
     "firstDivergenceKind": "package"
    }
   },
@@ -19383,7 +19366,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 27,
-    "generatedCount": 16,
+    "generatedCount": 17,
     "firstDivergenceKind": "record"
    }
   },
@@ -19399,7 +19382,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 13,
-    "generatedCount": 8,
+    "generatedCount": 9,
     "firstDivergenceKind": "package"
    }
   },
@@ -19456,13 +19439,13 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 13,
-    "generatedCount": 7,
-    "firstDivergenceKind": "record-field"
+    "generatedCount": 8,
+    "firstDivergenceKind": "stored-only"
    }
   },
   {
@@ -19477,7 +19460,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 15,
-    "generatedCount": 8,
+    "generatedCount": 9,
     "firstDivergenceKind": "record-field"
    }
   },
@@ -19493,7 +19476,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 18,
-    "generatedCount": 8,
+    "generatedCount": 9,
     "firstDivergenceKind": "record-field"
    }
   },
@@ -19662,7 +19645,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 16,
-    "generatedCount": 9,
+    "generatedCount": 11,
     "firstDivergenceKind": "package"
    }
   },
@@ -19708,7 +19691,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 21,
-    "generatedCount": 14,
+    "generatedCount": 17,
     "firstDivergenceKind": "package"
    }
   },
@@ -19724,7 +19707,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 13,
-    "generatedCount": 11,
+    "generatedCount": 12,
     "firstDivergenceKind": "package"
    }
   },
@@ -19837,12 +19820,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "STRUCTURAL_ORDERING",
    "referenceComparison": {
     "referenceExact": false,
-    "referenceSetExact": false,
+    "referenceSetExact": true,
     "storedCount": 48,
-    "generatedCount": 45,
+    "generatedCount": 48,
     "firstDivergenceKind": "package"
    }
   },
@@ -19969,7 +19952,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 19,
-    "generatedCount": 16,
+    "generatedCount": 17,
     "firstDivergenceKind": "record"
    }
   },
@@ -20254,13 +20237,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 4,
-    "generatedCount": 3,
-    "firstDivergenceKind": "stored-only"
+    "generatedCount": 4
    }
   },
   {
@@ -20295,12 +20277,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 8692,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "STRUCTURAL_ORDERING",
    "referenceComparison": {
     "referenceExact": false,
-    "referenceSetExact": false,
+    "referenceSetExact": true,
     "storedCount": 20,
-    "generatedCount": 19,
+    "generatedCount": 20,
     "firstDivergenceKind": "package"
    }
   },
