@@ -61,11 +61,13 @@ test('diagnostics-only mode consults the provider but encodes as if it were abse
   assert.deepEqual(events.sort(), ['member:Partner', 'method-result:GetOther']);
 });
 
-test('Application Class programs do not type a property of a typed receiver (Cycle 108: parked, 29109)', () => {
-  const source = 'import PKG:Widget;\nclass Thing\n   method Run();\nend-class;\n\nmethod Run\n   Local PKG:Widget &w = create PKG:Widget();\n   &w.Partner.Ping();\nend-method;\n';
+test('Application Class programs type a property of a typed receiver too (Cycle 109)', () => {
+  const source = 'import PKG:Widget;\nclass Thing\n   method Run();\nend-class;\n\nmethod Run\n   Local PKG:Widget &w = create PKG:Widget();\n   &w.Partner.Ping();\n   &w.Partner.Ping();\nend-method;\n';
   const context = { owner: { recordName: 'X', fieldName: 'Y', packagePath: ['APP', 'Thing'] } };
-  const plain = encodeProgramArtifacts(source, context);
-  const withProvider = encodeProgramArtifacts(source, { ...context, applicationClassTypeMetadata: provider });
-  assert.deepEqual(withProvider.program, plain.program);
-  assert.deepEqual(withProvider.references, plain.references);
+  const rows = (extra: Partial<EncodeProgramContext>) => encodeProgramArtifacts(source, { ...context, ...extra }).references
+    .filter(reference => reference.kind === 'package' && reference.packageName)
+    .map(reference => `${reference.packageName}${reference.methodName ? `.${reference.methodName}` : ''}`);
+  // one OTHER row for the program (Cycle 108 lifetime), opened by the first call
+  assert.deepEqual(rows({ applicationClassTypeMetadata: provider }), ['WIDGET', 'OTHER.PING']);
+  assert.deepEqual(rows({}), ['WIDGET']);
 });
