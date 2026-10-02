@@ -2715,6 +2715,21 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       for (const name of m[1].matchAll(/&\w+#?/g)) declaredVariableNames.add(name[0].toLowerCase());
     }
   }
+  /*
+   * Cycle 134: a variable whose every declaration here is `any` is late-bound
+   * like an undeclared one -- its chains' bare members stay inline names,
+   * whatever the chain looks like. 29921 (App Class) `Local any &tempRowset`
+   * then `&tempRowset.GetRow(&tempRowset.ActiveRowCount).PTAL_PAGELET`
+   * stores `0A PTAL_PAGELET`; the encoder typed the GetRow() result.
+   */
+  const anyDeclaredVariables = new Set<string>();
+  {
+    const typed = new Set<string>();
+    for (const m of source.matchAll(/\b(?:Local|Global|Component|ComponentLife|PanelGroup|instance)\s+((?:array\s+of\s+)*[%A-Za-z_][\w:]*)\s+(&\w+#?(?:\s*,\s*&\w+#?)*)/gi)) {
+      for (const name of m[2].split(',')) (/^any$/i.test(m[1]) ? anyDeclaredVariables : typed).add(name.trim().toLowerCase());
+    }
+    for (const name of typed) anyDeclaredVariables.delete(name);
+  }
   // Cycle 109: a fragment of an Application Class program (its program-wide rows, `ApplicationClassProgramRows`).
   const applicationClassBody = context?.applicationClassProgramRows !== undefined;
   const unitScopedClassRows = ordinaryProgram;
@@ -4078,6 +4093,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    */
   for (const [name, type] of context?.applicationClassDeclaredBuiltinVariables ?? []) {
     if (/^Record$/i.test(type.trim())) recordVariables.add(name);
+    // Cycle 134: `Global array of Record &x;` -- once indexed, a Record (28764)
+    else if (/^array\s+of\s+Record$/i.test(type.trim())) recordArrayVariables.add(name);
   }
   for (const parameter of context?.methodParameters ?? []) {
     const name = `&${parameter.name.replace(/^&/, '')}`.toLowerCase();
@@ -10830,9 +10847,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * references and unaffected.
      */
     const rootIsUndeclaredVariable =
-      ordinaryProgram &&
       baseVariableName !== undefined &&
-      !declaredVariableNames.has(baseVariableName.toLowerCase());
+      ((ordinaryProgram && !declaredVariableNames.has(baseVariableName.toLowerCase())) ||
+        anyDeclaredVariables.has(baseVariableName.toLowerCase()));
 
     /*
      * Distinguishes "expectedReferenceMember === 'field' because this is
@@ -11612,7 +11629,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           expectedReferenceMember =
             member.toLowerCase() === 'getrecord'
               ? 'field'
-              : member.toLowerCase() === 'getrow'
+              // Cycle 134: GetCurrEffRow() returns the Rowset's current
+              // effective Row like GetRow() (3767, 5758, 13000: its member is a
+              // RECORD reference in 3 / 3 corpus occurrences)
+              : /^(?:GetRow|GetCurrEffRow)$/i.test(member)
                 ? 'record'
                 : undefined;
           fieldMemberFromGetRecord =
@@ -11645,7 +11665,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           chainSemantics =
             /^GetRecord$/i.test(member)
               ? { valueType: 'record', binding: chainSemantics.binding, provenance: chainSemantics.provenance }
-              : /^GetRow$/i.test(member)
+              : /^(?:GetRow|GetCurrEffRow)$/i.test(member)
                 ? { valueType: 'row', binding: chainSemantics.binding, provenance: chainSemantics.provenance }
                 : /^GetRowset$/i.test(member)
                   ? { valueType: 'rowset', binding: chainSemantics.binding, provenance: chainSemantics.provenance }
@@ -11763,6 +11783,17 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           if (/^ParentRow$/i.test(member) && !isMethodCall) {
             expectedReferenceMember = 'record';
             chainSemantics = { valueType: 'row', binding: 'dependency-bound', provenance: 'navigation' };
+          }
+          /*
+           * Cycle 134: `.ParentRecord` returns a Record, whose next bare
+           * member is a FIELD reference (29140 `&fld.ParentRecord
+           * .CAF_ACCESS_LVL_VAL.Visible` stores `4A`) unless it is a Record
+           * property: every inline member after `.ParentRecord` in the
+           * corpus is `.ParentRow` or `.Name` (21 EXACT).
+           */
+          if (/^ParentRecord$/i.test(member) && !isMethodCall) {
+            expectedReferenceMember = 'field';
+            chainSemantics = { valueType: 'record', binding: 'dependency-bound', provenance: 'navigation' };
           }
 
           /*
@@ -14821,9 +14852,10 @@ function encodeApplicationClassProgramV2(
     const declared = declaredApplicationClass(match[1]);
     if (declared !== undefined) {
       for (const name of match[2].split(',')) programDeclaredVariables.set(name.trim().toLowerCase(), declared);
-    } else if (isBuiltinObjectTypeName(match[1].trim())) {
-      // Cycle 120: `Global Record &GBL_rec_share;` (29617)
-      for (const name of match[2].split(',')) declaredBuiltinVariables.set(name.trim().toLowerCase(), match[1].trim());
+    } else if (isBuiltinObjectTypeName(match[1].trim().replace(/^(?:array\s+of\s+)+/i, ''))) {
+      // Cycle 120: `Global Record &GBL_rec_share;` (29617); Cycle 134 also an
+      // `array of` one (28764 `Global array of Record &PMN_AllHomeStates;`)
+      for (const name of match[2].split(',')) declaredBuiltinVariables.set(name.trim().toLowerCase(), match[1].trim().replace(/\s+/g, ' '));
     }
   }
   const bodyDeclaredVariables = (methodParameters?: { name: string; type: string }[]) => {
