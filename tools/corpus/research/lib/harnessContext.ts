@@ -95,6 +95,21 @@ export function encodeAsHarness(ctx: HarnessContext, def: SnapshotDefinition, ex
   }
 }
 
+/**
+ * The harness roundtrip: decode the stored program, encode the decoded text
+ * in the harness context; exact when the re-encoded bytes equal stored.
+ */
+export function roundtripAsHarness(ctx: HarnessContext, def: SnapshotDefinition): { decodedText?: string; exact: boolean; error?: string } {
+  let decodedText: string;
+  try {
+    decodedText = decodeAsHarness(def, def.storedProgram, storedNameTable(def)).text;
+  } catch (error: any) {
+    return { exact: false, error: String(error?.message ?? error) };
+  }
+  const encoded = encodeAsHarness(ctx, { ...(def as any), sourceText: decodedText } as SnapshotDefinition);
+  return { decodedText, exact: encoded.artifacts !== undefined && Buffer.compare(encoded.artifacts.program, def.storedProgram) === 0, error: encoded.error };
+}
+
 /** The stored PSPCMNAME table, keyed by NAMENUM (1-based). */
 export function storedNameTable(def: SnapshotDefinition): NameTable {
   const names = new NameTable();
