@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-02T21:03:38.444Z",
+ "generatedAt": "2026-10-02T21:38:43.214Z",
  "totalDefinitions": 30209,
- "exactCount": 29754,
- "nonexactCount": 455,
+ "exactCount": 29764,
+ "nonexactCount": 445,
  "rows": [
   {
    "definitionId": 522,
@@ -42,36 +42,6 @@
    "roundtripExact": false,
    "firstDiffOffset": 25271,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 2116,
-   "displayName": "1=CAFNUI_CTRL_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 19743,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 76,
-    "generatedCount": 76
-   }
-  },
-  {
-   "definitionId": 2158,
-   "displayName": "1=CAF_DISP_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 6349,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 36,
-    "generatedCount": 36
-   }
   },
   {
    "definitionId": 2201,
@@ -297,21 +267,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 3440: expected ] after array subscript",
    "construct": ", 1]; /* Absence",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 5525,
-   "displayName": "1=DERIVED_HCR_SM, 2=SM_SEARCH_BTN, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 114063,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 181,
-    "generatedCount": 181
-   }
   },
   {
    "definitionId": 5565,
@@ -1183,21 +1138,6 @@
    "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
-   "definitionId": 14691,
-   "displayName": "1=PSCPQFIELD_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 59125,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 211,
-    "generatedCount": 211
-   }
-  },
-  {
    "definitionId": 14707,
    "displayName": "1=PSCPQFILTER_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -1394,21 +1334,6 @@
    "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
-   "definitionId": 15527,
-   "displayName": "1=PSIBLOGICAL_WRK, 2=TREECTLEVENT, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 41849,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 227,
-    "generatedCount": 227
-   }
-  },
-  {
    "definitionId": 15528,
    "displayName": "1=PSIBLOGICAL_WRK, 2=TREECTLEVENT, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "UNSUPPORTED_SYNTAX",
@@ -1468,36 +1393,6 @@
     "storedCount": 517,
     "generatedCount": 518,
     "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 15627,
-   "displayName": "1=PSIBLOGICL2_WRK, 2=IB_PROPERTIES, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 74278,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 266,
-    "generatedCount": 266
-   }
-  },
-  {
-   "definitionId": 15634,
-   "displayName": "1=PSIBLOGICL2_WRK, 2=IB_SAVE, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 143433,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 876,
-    "generatedCount": 876
    }
   },
   {
@@ -1731,36 +1626,6 @@
    "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
-   "definitionId": 17573,
-   "displayName": "1=PSXPFUNCLIB, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 52228,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 29,
-    "generatedCount": 29
-   }
-  },
-  {
-   "definitionId": 17613,
-   "displayName": "1=PSXPRPTDEFN_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 132953,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 559,
-    "generatedCount": 559
-   }
-  },
-  {
    "definitionId": 17821,
    "displayName": "1=PTACEMDLVWR, 2=HTML_AREA_01, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "UNSUPPORTED_SYNTAX",
@@ -1804,21 +1669,6 @@
     "storedCount": 49,
     "generatedCount": 50,
     "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 17913,
-   "displayName": "1=PTADSPRJSRCH_W, 2=DETAIL_BTN, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 21818,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 108,
-    "generatedCount": 108
    }
   },
   {
