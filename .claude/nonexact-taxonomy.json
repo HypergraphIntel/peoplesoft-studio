@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-02T19:11:18.622Z",
+ "generatedAt": "2026-10-02T19:43:59.901Z",
  "totalDefinitions": 30209,
- "exactCount": 29719,
- "nonexactCount": 490,
+ "exactCount": 29720,
+ "nonexactCount": 489,
  "rows": [
   {
    "definitionId": 522,
@@ -469,16 +469,6 @@
     "generatedCount": 77,
     "firstDivergenceKind": "scroll"
    }
-  },
-  {
-   "definitionId": 6080,
-   "displayName": "1=DERIVED_HR_GB, 2=GB_QUERY_LNCH_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 408: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": ",,, /, \"A\")",
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 6084,

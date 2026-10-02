@@ -8,7 +8,8 @@ chronological notes in `corpus-progress.md` where they disagree (see
 Corpus at Cycle 123 HEAD: TOTAL 30,209 / EXACT 29,656 / NONEXACT 553 (Cycle 124:
 EXACT 29,681 / NONEXACT 528; Cycle 125: EXACT 29,707 / NONEXACT 502; Cycle 126:
 EXACT 29,715 / NONEXACT 494; Cycle 127: EXACT 29,718 / NONEXACT 491; Cycle 128:
-EXACT 29,719 / NONEXACT 490 -- all decoder only); forward-exact
+EXACT 29,719 / NONEXACT 490; Cycle 129: EXACT 29,720 / NONEXACT 489 -- all
+decoder only); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -237,12 +238,18 @@ a following 0x15 is the source's own `;`, not part of the keyword
 (`Then Continue End-If;` stores `1F 6E 1A 15`, 16759). The encoder emits
 it directly; it is not in the shared OPCODES table.
 
-Remaining rendering gaps (forward-exact programs that fail only on decoded
-source, 2) are decoder failures: 6080 0x48 references to PSPCMNAME rows
-with a qualifier and a blank name (`BARNAME` / `ITEMNAME` / `PANEL` rows
-for `Transfer(True, MenuName.X, BarName."", ItemName."", Panel."", ...)`,
-`48 02 00`; the 0x48 decoder needs `QUALIFIER.name`), 18105 the 0x07
-trailer after a final statement with no `;` (`sourceDisplay()`).
+0x48 quoted qualified references (`Qualifier."name"`; RECORD unquoted):
+a PSPCMNAME row with a qualifier and a blank name (REFNAME ' ') joins to
+the bare qualifier in the name table and renders as an empty quoted name,
+`BarName.""` (Cycle 129, `cycle129-quoted-reference-census.ts`: 1,025
+sites, 5 blank-name rows, all source `Qualifier.""`). Only known quoted
+qualifiers; unknown bare names and failed lookups stay unknown.
+
+Remaining rendering gap (forward-exact programs that fail only on decoded
+source, 1): 18105 -- the relaxed trailer check accepts a 0x07 only after
+a comment token, 0x15, 0xC0 or 0x64 (end-method); 18105's final statement
+`sourceDisplay()` has no `;`, so its trailer starts `14 07` (offset 805)
+and decodes as code.
 
 ## 11. Taxonomy semantics (`cycle73-nonexact-taxonomy.ts`)
 
