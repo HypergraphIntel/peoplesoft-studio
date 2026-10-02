@@ -6901,10 +6901,56 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          */
         primary();
       }
+    } else if (source[pos] === '(' && groupedExpressionStatementFollows(pos)) {
+      /*
+       * Cycle 116: a statement may start with a parenthesized (grouped)
+       * expression continued by a postfix chain -- 56 of the 73 corpus
+       * occurrences are `(create PKG:Class()).Method(...);`
+       * (`cycle116-grouped-expression-census.ts`). Stored writes the group
+       * as the ordinary 0x0B `(` ... 0x14 `)` expression bytes and the
+       * chain after it as any postfix chain (5857
+       * `0B 69 <class path> 0B 14 14 05 0A "doSignOut" 0B 14 15`); there
+       * is no grouping opcode. primary() already parses a parenthesized
+       * primary and continues its postfix loop after it. A group with
+       * no postfix step (`(&a + &b);`) has no corpus evidence and stays
+       * unsupported.
+       */
+      primary();
+      space();
+      if (source[pos] === '=') {
+        pos++;
+        chunks.push(fixed('='));
+        expression();
+      }
     } else {
       fail('unsupported PeopleCode statement');
     }
   };
+
+  /**
+   * Cycle 116: true when the `(` at `start` opens a group directly followed
+   * by a postfix step (`.` or `[`). Strings and comments inside the group
+   * are skipped.
+   */
+  function groupedExpressionStatementFollows(start: number): boolean {
+    let depth = 0;
+    for (let i = start; i < source.length; i++) {
+      const c = source[i];
+      if (c === '"') {
+        i++;
+        while (i < source.length && !(source[i] === '"' && source[i + 1] !== '"')) i += source[i] === '"' ? 2 : 1;
+      } else if (source.startsWith('/*', i)) {
+        const end = source.indexOf('*/', i + 2);
+        if (end < 0) return false;
+        i = end + 1;
+      } else if (c === '(') {
+        depth++;
+      } else if (c === ')' && --depth === 0) {
+        return /^\s*[.[]/.test(source.slice(i + 1));
+      }
+    }
+    return false;
+  }
 
   function functionStatement(): void {
     chunks.push(fixed('Function'));
@@ -12686,9 +12732,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * GPFR_AF_ESC.GPFR_AF_ESC_NAME.SavePreChange (definition 18046):
      *
      *   &esc.OnSavePreChange()
+     *
+     * Cycle 116: likewise a grouped-expression call statement (5854
+     * `(create HRS_CG_SEARCH_FLU:Controller:CustomAction()).LaunchPage(
+     * Page.HRS_CAREERS_FL)` at EOF stores no 0x15).
      */
     const isTopLevelVariableLedCallStatement =
-      (source[pos] === '&' || source[pos] === '@') &&
+      (source[pos] === '&' || source[pos] === '@' || source[pos] === '(') &&
       !/=/.test(source.slice(pos));
 
     const isApplicationClassLocal =
