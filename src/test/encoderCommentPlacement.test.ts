@@ -76,3 +76,42 @@ test('a comment trailing end-method; precedes its boundary (28743)', () => {
   assert.equal(boundaryOrder(bytes, '/* Child */'), '4e 2d');
   assert.equal(boundaryOrder(bytes, '/* Go */'), '4e 2d');
 });
+
+/*
+ * Cycle 133: a comment between a statement's last token and its `;` is
+ * written before the 0x15 (`4E 15`); one after the `;` after it (`15 4E`)
+ * -- in ordinary code and in an Application Class header member alike
+ * (28910 `property string TypeDesc /* e.g. Website *\/;`, `Type; /* e.g.
+ * url *\/`; 28920's last member with no `;` before `end-class`).
+ */
+{
+  const around = (bytes: Buffer, comment: string): string => {
+    const text = Buffer.from(comment, 'utf16le');
+    const at = bytes.indexOf(text);
+    return `${bytes[at - 4].toString(16).padStart(2, '0')} ${bytes[at - 3].toString(16)} .. ${bytes[at + text.length].toString(16).padStart(2, '0')}`;
+  };
+  const appClass = (header: string[]): Buffer => encodeProgramArtifacts(
+    ['class Widget', ...header, 'end-class;', ''].join('\n'),
+    { owner: { recordName: 'PKG', fieldName: 'Widget', packagePath: ['PKG', 'Widget'] } }
+  ).program;
+
+  test('an ordinary comment before a statement\'s ; precedes its 0x15', () => {
+    assert.match(around(encodeFragment('&a = F() /* c */;\n'), '/* c */'), /^14 4e \.\. 15$/);
+  });
+
+  test('a class member\'s comment before its ; precedes its 0x15 (28910)', () => {
+    assert.match(around(appClass(['   property string TypeDesc /* e.g. Website */;']), '/* e.g. Website */'), /^00 4e \.\. 15$/);
+  });
+
+  test('a class member\'s comment after its ; follows its 0x15 (28910)', () => {
+    assert.match(around(appClass(['   property string Type; /* e.g. url */', '   property string URL;']), '/* e.g. url */'), /^15 4e \.\. /);
+  });
+
+  test('a method declaration\'s comment before its ; precedes its 0x15 (28954)', () => {
+    assert.match(around(appClass(['   method Fetch(&rs As Rowset) /* BUG 32195582 */;']), '/* BUG 32195582 */'), /^14 4e \.\. 15$/);
+  });
+
+  test('the last member\'s comment with no ; precedes end-class (28920)', () => {
+    assert.match(around(appClass(['   instance Rowset &m_rs /* DEPENDENT_BENEF */']), '/* DEPENDENT_BENEF */'), /^00 4e \.\. 5b$/);
+  });
+}

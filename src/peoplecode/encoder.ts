@@ -15064,13 +15064,29 @@ function encodeApplicationClassProgramV2(
     let cursor = start;
     for (const comment of scanApplicationClassLayoutComments(source, start, end)) {
       emitConditionalRegionsIn(cursor, comment.start);
-      emitMarkers(applicationClassBlankLineCount(source.slice(cursor, comment.start)));
+      // Cycle 133: a terminator in the gap is written before the gap's
+      // blank lines, which are counted after it (decoded `X` / `/* c *\/` /
+      // `;` / <blank> stores `4E 15 4F`).
       while (terminators[terminatorIndex] < comment.start) {
         emittedDeclarationTerminatorOffsets.add(terminators[terminatorIndex]);
         statementChunks.push(Buffer.from([0x15]));
+        cursor = Math.max(cursor, terminators[terminatorIndex] + 1);
         terminatorIndex++;
       }
-      statementChunks.push(applicationClassLayoutCommentOperand(comment));
+      emitMarkers(applicationClassBlankLineCount(source.slice(cursor, comment.start)));
+      // Cycle 133: a comment directly before a member's `;` is that
+      // declaration's trailing trivia; a roundtrip of decoded source keeps
+      // the decoder's own opcode for it (validator TEST B `commentOpcodes`),
+      // as the statement encoder's consumeCommentOpcode() does -- the
+      // decoder renders `0A 4E 15` as `TypeDesc` / `/* c *\/` / `;`, the
+      // same text an own-line 0x24 before a `;` has (12 App Class, 19
+      // ordinary stored `24 15`).
+      const beforeTerminator = comment.opcode !== 0x55 &&
+        terminators.slice(terminatorIndex).some(offset => offset >= comment.end && /^\s*$/.test(source.slice(comment.end, offset)));
+      const decodedOpcode = beforeTerminator ? context?.commentOpcodes?.[nextCommentOpcodeIndex] : undefined;
+      statementChunks.push(applicationClassLayoutCommentOperand(
+        decodedOpcode === 0x24 || decodedOpcode === 0x4e ? { ...comment, opcode: decodedOpcode } : comment
+      ));
       cursor = comment.end;
       // Cycle 81: a 0x24/0x4E comment here is a real token in decoder
       // order, so it still occupies a slot in validator.ts's whole-
@@ -15086,6 +15102,7 @@ function encodeApplicationClassProgramV2(
     while (terminatorIndex < terminators.length) {
       emittedDeclarationTerminatorOffsets.add(terminators[terminatorIndex]);
       statementChunks.push(Buffer.from([0x15]));
+      cursor = Math.max(cursor, terminators[terminatorIndex] + 1);
       terminatorIndex++;
     }
     emitConditionalRegionsIn(cursor, end);
@@ -15112,6 +15129,34 @@ function encodeApplicationClassProgramV2(
       cursor = close + 2;
     }
     return cursor;
+  };
+
+  /*
+   * Cycle 133: a class-header member declaration's comments between its
+   * last token and its `;` belong to it -- written before its 0x15, as
+   * everywhere in PeopleCode (`cycle133-comment-terminator-census.ts`,
+   * LOCAL SNAPSHOT: 6,306 stored 0x4E / 0x15 pairs, `4E 15` exactly when
+   * the source comment precedes the `;`, `15 4E` exactly when it follows).
+   * 28910 `property string TypeDesc /* e.g. Website *\/;` stores `0A 4E
+   * 15`; 28954 `method FatchBenefitRider(...) /* BUG 32195582 *\/;` `14 4E
+   * 15`; 28920's last member, with no `;`, `instance Rowset &x /* c *\/`
+   * <newline> `end-class;`, `01 4E 5B`. Layout comments are otherwise
+   * scanned only between members, so these were dropped (or surfaced
+   * later as a 0x24).
+   */
+  const emitMemberTerminators = (start: number, end: number): void => {
+    const terminator = parsed.declarationTerminatorOffsets.find(offset => offset >= start && offset < end);
+    const runEnd = terminator ?? end;
+    const comments = scanApplicationClassLayoutComments(source, start, runEnd);
+    let runStart = runEnd;
+    for (let index = comments.length - 1; index >= 0 && /^\s*$/.test(source.slice(comments[index].end, runStart)); index--) {
+      runStart = comments[index].start;
+    }
+    if (runStart < runEnd) {
+      emitLayoutRange(runStart, end, false, true);
+      return;
+    }
+    emitDeclarationTerminators(start, end);
   };
 
   const emitDeclarationTerminators = (start: number, end: number): void => {
@@ -15163,11 +15208,20 @@ function encodeApplicationClassProgramV2(
     emitConditionalRegionsIn(start, start + leadingWhitespace.length);
     emitMarkers(applicationClassBlankLineCount(leadingWhitespace));
     if (core.trim() !== '') {
-      const commentOpcodes = scanApplicationClassLayoutComments(
+      const placementOpcodes = scanApplicationClassLayoutComments(
         source,
         start + leadingWhitespace.length,
         end - trailingWhitespace.length
       ).flatMap(comment => comment.opcode === 0x24 || comment.opcode === 0x4e ? [comment.opcode] : []);
+      // Cycle 133: a roundtrip of decoded source keeps the decoder's own
+      // opcodes for this range's comments (validator TEST B
+      // `commentOpcodes`), like every other statement-encoder comment: 28920
+      // `Component ... &cPBPWRK /* c *\/;` stores `01 4E 15`, decoded as
+      // `&cPBPWRK` / `/* c *\/` / `;`.
+      const decodedOpcodes = context?.commentOpcodes?.slice(nextCommentOpcodeIndex, nextCommentOpcodeIndex + placementOpcodes.length);
+      const commentOpcodes = decodedOpcodes !== undefined && decodedOpcodes.length === placementOpcodes.length
+        ? decodedOpcodes
+        : placementOpcodes;
       try {
         statementChunks.push(encodeFragment(core, commentOpcodes, false, undefined, start + leadingWhitespace.length));
         // Cycle 81: this range's own comments were consumed here, via a
@@ -15356,7 +15410,7 @@ function encodeApplicationClassProgramV2(
         statementChunks.push(encodeApplicationClassTypeBytes(statement.returnType));
       }
       if (statement.abstract) statementChunks.push(Buffer.from([0x6f]));
-      emitDeclarationTerminators(statement.sourceIndex, statement.sourceEnd);
+      emitMemberTerminators(statement.sourceIndex, statement.sourceEnd);
       continue;
     }
     if (statement.kind === 'property') {
@@ -15366,7 +15420,7 @@ function encodeApplicationClassProgramV2(
       for (const modifier of statement.modifiers) {
         statementChunks.push(Buffer.from([modifier === 'readonly' ? 0x60 : modifier === 'get' ? 0x5f : 0x49]));
       }
-      emitDeclarationTerminators(statement.sourceIndex, statement.sourceEnd);
+      emitMemberTerminators(statement.sourceIndex, statement.sourceEnd);
       continue;
     }
     if (statement.kind === 'instance-statement') {
@@ -15376,7 +15430,7 @@ function encodeApplicationClassProgramV2(
         if (index > 0) statementChunks.push(Buffer.from([0x03]));
         statementChunks.push(encodeVariableName(name));
       });
-      emitDeclarationTerminators(statement.sourceIndex, statement.sourceEnd);
+      emitMemberTerminators(statement.sourceIndex, statement.sourceEnd);
       continue;
     }
     // Flattened instance members are metadata-only; their grouped executable
@@ -15387,7 +15441,7 @@ function encodeApplicationClassProgramV2(
       statementChunks.push(encodeVariableName(statement.name));
       statementChunks.push(Buffer.from([0x06]));
       statementChunks.push(encodeApplicationClassLiteral(statement.value));
-      emitDeclarationTerminators(statement.sourceIndex, statement.sourceEnd);
+      emitMemberTerminators(statement.sourceIndex, statement.sourceEnd);
     }
   }
   emitLayoutRange(declarationCursor, parsed.unitCloseStart, true, true);
