@@ -321,7 +321,15 @@ export const OPCODES = new Map<number, OpcodeSpec>([
   [0x46, { kind: TokenKind.Punctuation, text: '**', format: F.NONE }],
   [0x47, { kind: TokenKind.Punctuation, text: '@', format: F.SPACE_BEFORE | F.NO_SPACE_AFTER }],
   [0x4c, { kind: TokenKind.Punctuation, text: '[', format: F.SPACE_BEFORE | F.NO_SPACE_AFTER }],
-  [0x4d, { kind: TokenKind.Punctuation, text: ']', format: F.NO_SPACE_BEFORE | F.SPACE_AFTER }],
+  /*
+   * Cycle 127: `]` writes no space after itself; what follows decides
+   * (`cycle127-index-spacing-census.ts`, 10,974 sites, 0 contradictions):
+   * tight before `.` `;` `)` `[` `,` `]` `(` (`&arr [&I](&J)`, 13645),
+   * spaced before every operator / keyword, which carry SPACE_BEFORE. It
+   * had SPACE_AFTER with a next-is-`[` exception (1626), and `](` decoded
+   * as `] (`.
+   */
+  [0x4d, { kind: TokenKind.Punctuation, text: ']', format: F.NO_SPACE_BEFORE }],
   [0x59, { kind: TokenKind.Punctuation, text: '*', format: SPACE_BOTH }],
 
   // Keyword survivors (>=95% real-source match; see note above):
