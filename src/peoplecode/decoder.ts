@@ -1061,8 +1061,30 @@ export function decodeProgram(
   // correctly. 185 of 204 corpus programs have it; the relaxed check
   // below is scoped to (a small few of) the other 19.
   const hasStrictTrailerMarker = bytes.indexOf(Buffer.from(TRAILER_MARKER), i) !== -1;
+  /*
+   * Cycle 130: the header says where the body ends. The encoder writes
+   * statements.length + 1 at header offset 5, then the 0x07 separator, then
+   * the trailer (names, records, slots), so the separator sits at 36 +
+   * header[5] -- a 0x07 in all 30,209 corpus programs
+   * (`cycle130-trailer-boundary-census.ts`, LOCAL SNAPSHOT), whatever the
+   * last statement ends with. The marker scans below only ever guessed it
+   * from the byte before, and missed a final statement with no `;`:
+   * `sourceDisplay()` (18105) stores `14 07` + a 48-byte trailer, while
+   * 6080's identical `14 07` is the separator of an empty trailer. Used when
+   * the header's byte is a 0x07; the scans remain for buffers without a
+   * real header.
+   */
+  const declaredSeparator = i === HEADER_LENGTH ? HEADER_LENGTH - 1 + bytes.readUInt32LE(5) : undefined;
+  const headerSeparator =
+    declaredSeparator !== undefined && declaredSeparator < bytes.length && bytes[declaredSeparator] === 0x07
+      ? declaredSeparator
+      : undefined;
 
   while (i < bytes.length) {
+    if (i === headerSeparator) {
+      trailerOffset = i - 1;
+      break;
+    }
     if (bytes[i] === TRAILER_MARKER[0] && bytes[i + 1] === TRAILER_MARKER[1]) {
       trailerOffset = i;
       break;
