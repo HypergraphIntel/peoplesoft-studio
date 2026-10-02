@@ -1,21 +1,21 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 120)
+## Current status (2026-10-02, Cycle 121)
 
-- **Current target:** Cycle 120 -- a Record declared outside an App
-  Class method body (header instance / property, top-level Global /
-  Component) is a Record variable in every body. EXACT 29,503 -> 29,563
-  (+60), protected PASS, 0 EXACT -> non-EXACT, only FIELD rows added (81
-  lists closer, 0 farther), COMPLETE_DOWNSTREAM 97 -> 101, fallback 70
-  (13525 in, EXACT), ROUNDTRIP_ONLY 0. See "Compiler Semantics Cycle 120".
-- **Last successful calibration:** Cycle 120 (header / Global /
-  Component Record declarations reach method bodies; decoder keeps `;
-  /* c */;` on one line).
+- **Current target:** Cycle 121 -- ordinary programs: a member chain
+  rooted at an undeclared variable keeps its RECORD / FIELD members
+  inline; PanelGroup Record / Rowset / Row variables are typed like
+  Component ones. EXACT 29,563 -> 29,647 (+84), protected PASS, 0 EXACT
+  -> non-EXACT, no App Class change, COMPLETE_DOWNSTREAM 101 -> 87,
+  fallback 70 (13525 in, EXACT), ROUNDTRIP_ONLY 0. See "Compiler
+  Semantics Cycle 121".
+- **Last successful calibration:** Cycle 121 (undeclared-root late
+  binding; PanelGroup typing).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
-  row-shorthand record resolution `GetRow(n).X.Y` (0x4A resolved record /
-  0x0A source case; needs a record catalog the snapshot lacks; 25
-  programs: 4269, 4440, 5931, 29004, 29169, ...); sub-package canonical
+  row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
+  (an undeclared root's members are inline names: 4269, 4440, 5931 ...
+  forward-exact; no record catalog needed); sub-package canonical
   case in type-path names (28942); FIELDVALUE / XLAT* (18989 too);
   undeclared-variable receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class
   rows for classes absent from the snapshot (14162, 19877, 23068, 23402
@@ -26,16 +26,23 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action:** ordinary-program FIELD over-allocation -- the
-  largest first-divergence groups are now ordinary: generated FIELD rows
-  stored never has (27; e.g. 913 `&XLAT.GetRow(&I).GetRecord(1).
-  FIELDVALUE.Value` -- a record selected by index, member stored inline),
-  stored REC.FIELD vs generated FIELD (20), PACKAGE vs PACKAGE (33).
-  Check whether `GetRecord(<number>)` / dynamically selected Record
-  receivers keep their members inline in ordinary programs. Parked:
-  undeclared `= CreateRecord` targets (stored no FIELD rows, 0 / 11).
-  See "Rerank after Cycle 120".
-- **Newly established rules this session:** Cycle 120: a Record declared
+- **Next action:** ordinary PACKAGE row reuse for named-import and
+  built-in classes -- 75 ordinary programs first diverge at a PACKAGE row
+  (`cycle102-package-mechanism-census.ts`), 43 of them in the external-
+  metadata fallback (parked: classes absent from the snapshot); the rest
+  include stored-reuses / generated-opens for named imports (8) and
+  stored-opens / generated-reuses for built-ins (7), e.g. 5565 (a second
+  PROFILETYPE row), 4602 (a missing RCPARMBASE row). Also open: untyped
+  Function parameters shadowing a declared Record (11513 -- stored keeps
+  their members inline; needs scope-aware declarations), ordinary SCROLL
+  vs SCROLL (10). See "Rerank after Cycle 121".
+- **Newly established rules this session:** Cycle 121: in an ordinary
+  program a chain rooted at a variable the program never declares is
+  late-bound -- its bare RECORD / FIELD members are inline names (symbolic
+  `Record.X` / `Field.X` arguments still reference); receiver record
+  identity (GetRecord by number / Record.X, row shorthand) does not decide
+  the kind; PanelGroup Record / Rowset / Row variables are typed like
+  Component ones; Cycle 120: a Record declared
   outside an App Class body (header instance / property `&<name>`,
   top-level Global / Component) is a Record variable in every body
   (parameter / Local of another type shadows it; nothing allocated from
@@ -141,6 +148,64 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 121 -- ordinary Record member reference kinds
+
+**Baseline reproduced fresh at `b939141`:** 29,563 / 646, protected
+430/430, taxonomy row-identical, fallback 70 (13525 in), ROUNDTRIP_ONLY
+0. **Result:** EXACT **29,563 -> 29,647 (+84)**, **0 EXACT -> non-EXACT**,
+protected 430/430, ROUNDTRIP_ONLY 0, no App Class change. LOCAL SNAPSHOT
+only. Commits: 6e32473 (census), 4e7115f (PanelGroup), 2d564cd
+(undeclared roots).
+
+Census (`cycle121-record-member-kind-census.ts`: stored vs generated
+programs aligned token by token; each member written as a FIELD operand
+by either side classified by stored kind, receiver construction and the
+chain's root declaration): declared roots store FIELD rows (Local Record
+22,090 / 4 inline, Local Rowset 21,852 / 1, Local Row 4,254 / 21, typed
+parameter 3,165 / 3, Component / Global 4,452 / 0); receiver construction
+does not decide it (`GetRecord(number)` 671 FIELD / 109 inline across all
+roots). Undeclared roots: 219 inline, 28 FIELD -- the 28 under a
+`PanelGroup Rowset` (8115); 370 members the encoder wrote inline store
+FIELD rows under `PanelGroup Record` (4432, 4434). No aligned member stores
+RECORD.FIELD where the encoder writes FIELD: the 20 "REC.FIELD vs FIELD"
+first divergences were positions shifted by extra FIELD rows. Models: A
+(every Record receiver -> FIELD) 219 contradictions; B (dynamic results
+inline) contradicted by 671 GetRecord(number) FIELD rows; C / D
+(identity-based) likewise; root-declaration model: 0 after PanelGroup.
+Untyped Function parameters are mixed (11513 inline, scope not modelled)
+-- left as is (a Function parameter counts as declared).
+
+Rules: (1) PanelGroup declarations register Record / Rowset / Row
+variables like `componentDeclaration` (isolated: 8 lists, all closer and
+names-exact, +328 FIELD / +11 RECORD; +7 forward-exact, all
+DECODER_BARE_IDENTIFIER). (2) Ordinary programs: a source scan collects
+every declared variable name (any declaration keyword, Function
+parameters); a chain rooted at a name outside it allocates no bare-member
+reference (isolated on (1): 70 lists, all closer and names-exact, -131
+FIELD / -36 RECORD; 15 byte-only changes, all forward-exact -- including
+the parked `GetRow(n).X.Y` 0x4A / 0x0A programs 4269, 4440, 5931). A first
+version stripped strings before comments and lost declarations after a
+REM holding a quote (4 lists farther, 11024 lost); the raw-source scan
+has 0 farther. Targets: none-vs-FIELD 26 / 27 EXACT, REC.FIELD-vs-FIELD
+19 / 20 EXACT; 913 EXACT. Two Cycle 95 / 96 lifetime tests now declare
+their synthetic rowsets. Correction: the Cycle 119 census's generated
+side was off by one NAMENUM (fixed; its stored-side findings stand).
+
+## Rerank after Cycle 121
+
+ACTIVE_FIELD 76 -> 26, ACTIVE_RECORD 48 -> 28, COMPLETE_DOWNSTREAM 101 ->
+87 (14 left, none entered; all reference-exact); DSM 114, ENCODE_ERROR 69,
+UNSUPPORTED_SYNTAX 30 unchanged. PACKAGE census: PACKAGE-only 92, first
+divergence a PACKAGE row 138 (ordinary 75, 43 in the fallback). First
+divergence groups: ordinary PACKAGE vs PACKAGE 33, ordinary REC.FIELD vs
+PACKAGE 14, App Class PACKAGE vs PACKAGE 13, ordinary PACKAGE vs
+REC.FIELD 12, ordinary SCROLL vs SCROLL 10, App Class RECORD vs none 9.
+Categories: DSM 114, COMPLETE_DOWNSTREAM 87, ACTIVE_PACKAGE 81,
+ENCODE_ERROR 69, ACTIVE_RECORD_FIELD 38, UNSUPPORTED_SYNTAX 30,
+DECODER_BARE_IDENTIFIER 28, ACTIVE_RECORD 28, ACTIVE_FIELD 26,
+ACTIVE_OTHER 20, STRUCTURAL_ORDERING 18, ACTIVE_SCROLL 14,
+QUOTED_COMPONENT 8, ACTIVE_DECLARE_FUNCTION 1 (NONEXACT 562).
 
 ## Compiler Semantics Cycle 120 -- App Class Record variables declared outside the body
 
