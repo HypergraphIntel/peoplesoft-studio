@@ -6,7 +6,8 @@ chronological notes in `corpus-progress.md` where they disagree (see
 "Stale assumptions"). Code is authority; line numbers are approximate.
 
 Corpus at Cycle 123 HEAD: TOTAL 30,209 / EXACT 29,656 / NONEXACT 553 (Cycle 124:
-EXACT 29,681 / NONEXACT 528 -- decoder only); forward-exact
+EXACT 29,681 / NONEXACT 528; Cycle 125: EXACT 29,707 / NONEXACT 502 -- both
+decoder only); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -205,11 +206,16 @@ loops. Decoder: format flags + contextual rules (e.g. Cycle 120 `15 4E 15`
 ## 10. Decoder boundary
 
 0x51 is always the `PanelGroup` keyword (Cycle 124; 402 / 402 occurrences,
-`cycle124-panelgroup-occurrence-census.ts`). Remaining rendering gaps
-(forward-exact programs that fail only on decoded source, 40): empty
-statement after a comment (13), after a keyword (8), after a statement
-(6), a comment followed by code on its line (7), decoder failures (3),
-spacing of an index followed by a call `[&I](&J)` (3).
+`cycle124-panelgroup-occurrence-census.ts`). A `;` (0x15) directly after a
+token that would end its line stays on that line (Cycle 125, one rule
+for every token but the 0x4E inline comment: Then, Else, try, When-Other,
+`;`, 0x24 comment / REM statement, doc comment, directives;
+`cycle125-empty-statement-census.ts`). The source normalizer's `Then` / `;`
+join is now redundant for decoded text. Remaining rendering gaps
+(forward-exact programs that fail only on decoded source, 14): a 0x4E
+inline comment followed by code on its line (8: `If /* c */&x ...`),
+decoder failures (3), spacing of an index followed by a call `[&I](&J)`
+(3).
 
 ## 11. Taxonomy semantics (`cycle73-nonexact-taxonomy.ts`)
 
