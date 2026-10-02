@@ -2095,6 +2095,24 @@ test('a section close right after a directive record adds no line break of its o
     'End-If;\n');
 });
 
+test('an inline comment between a statement and an empty statement stays on the statement line (28975)', () => {
+  // Cycle 120: `instance ... &m_oBenPlanOpt; /* ... */;` stores `15 4E 15`:
+  // the comment follows the first `;` inline and the empty statement's
+  // `;` follows the comment on the same line (unlike definition 55's
+  // `0 4E 15`, a comment before a statement's own semicolon).
+  const comment = utf16('/* c */');
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x44, 0x40, ...utf16('string'), 0x00, 0x00, 0x01, ...utf16('&a'), 0x00, 0x00, 0x15,
+      0x4e, comment.length & 0xff, comment.length >> 8, ...comment,
+      0x15
+    ]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'Local string &a; /* c */;\n');
+});
+
 test('a string literal with a real non-ASCII character survives whole, the same bug as comments once had', () => {
   // readTextRun (used for string literals and bare identifiers, unlike
   // comments' own length-prefixed readLengthPrefixedText) had the same
