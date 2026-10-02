@@ -2386,3 +2386,41 @@ test('a string with no quotes is unchanged', () => {
     });
   }
 }
+
+/*
+ * Cycle 130: the header says where the body ends -- statements.length + 1
+ * at offset 5, then the 0x07 separator and the trailer -- whatever the
+ * last statement ends with.
+ */
+{
+  const name = (text: string) => [...utf16(text), 0x00, 0x00];
+  const program = (body: number[], trailer: number[]) => {
+    const header = Buffer.from(HEADER);
+    header.writeUInt32LE(body.length + 1, 5);
+    return Buffer.concat([header, Buffer.from(body), Buffer.from([0x07]), Buffer.from(trailer)]);
+  };
+  // PTAFUSER_LIST.PTAFUSER_SOURCE.FieldChange (18105): one declared name, its
+  // 16-byte record and one slot
+  const trailer = [...name('sourceDisplay'), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x07, 0, 0, 0, 0x07, 0, 0, 0];
+
+  test('the trailer follows a final statement with no ; (18105)', () => {
+    const result = decodeProgram(program([0x0a, ...name('sourceDisplay'), 0x0b, 0x14], trailer), new NameTable());
+    assert.equal(result.unknownOpcodes.length, 0);
+    assert.equal(result.text, 'sourceDisplay()');
+    assert.deepEqual(result.declarations?.map((d) => d.name), ['sourceDisplay']);
+  });
+
+  test('a `)` 0x07 at the end of the buffer is the separator of an empty trailer (6080)', () => {
+    const result = decodeProgram(program([0x0a, ...name('f'), 0x0b, 0x14], []), new NameTable());
+    assert.equal(result.unknownOpcodes.length, 0);
+    assert.equal(result.text, 'f()');
+    assert.equal(result.declarations, undefined);
+  });
+
+  test('the trailer follows a final `;`', () => {
+    const result = decodeProgram(program([0x0a, ...name('f'), 0x0b, 0x14, 0x15], trailer), new NameTable());
+    assert.equal(result.unknownOpcodes.length, 0);
+    assert.equal(result.text, 'f();\n');
+    assert.deepEqual(result.declarations?.map((d) => d.name), ['sourceDisplay']);
+  });
+}
