@@ -1,14 +1,13 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 126)
+## Current status (2026-10-02, Cycle 127)
 
-- **Current target:** Cycle 126 -- decoder: an inline comment (0x4E) takes
-  over the line ending of the token it follows. EXACT 29,707 -> 29,715
-  (+8), protected PASS, 0 EXACT -> non-EXACT, forward encode unchanged (0
-  bytes / 0 reference lists), ROUNDTRIP_ONLY 0, fallback 70 (13525 in,
-  EXACT). See "Compiler Decoder Cycle 126".
-- **Last successful calibration:** Cycle 126 (decoder inline comment line
-  continuation).
+- **Current target:** Cycle 127 -- decoder: `]` writes no space after
+  itself; the next token decides. EXACT 29,715 -> 29,718 (+3), protected
+  PASS, 0 EXACT -> non-EXACT, forward encode unchanged (0 bytes / 0
+  reference lists), ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See
+  "Compiler Decoder Cycle 127".
+- **Last successful calibration:** Cycle 127 (decoder spacing after `]`).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -24,16 +23,22 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 127):** decoder -- spacing of an index followed by a
-  call / index, `&arr [&I](&J)` rendered `&arr [&I] (&J)` (3 forward-exact:
-  13559 13645 24037). `]` (0x4D) has SPACE_AFTER with a `[`-only exception;
-  census every `4D 0B` against source spacing (tight / spaced) with EXACT
-  controls before extending it. Then, separately, the 3 decoder failures
-  (6080 0x48 run in `Transfer(True, MenuName.X, BarName."", ItemName.`,
-  16759 0x6E at 3785 not before 0x15, 18105 0x00 run) -- one opcode
-  question each. Out of scope: the 66 source-encoding artefacts and
-  encoder families.
-- **Newly established rules this session:** Cycle 126 (decoder): a 0x4E
+- **Next action (Cycle 128):** decoder -- the last 3 forward-exact
+  decoder failures, one opcode question each, in this order: 16759 `Then
+  Continue End-If;` (bytes `42 1F 6E 1A 15`: the 0x6E `Continue` gate
+  requires a following 0x15 -- census every 0x6E by next byte against
+  source); 18105 (the 0x07 trailer after a final statement with no `;`,
+  `sourceDisplay()` at EOF -- the trailer-marker gate at decoder.ts ~1110
+  requires a preceding 0x15); 6080 (`48 02 00` / `48 03 00` / `48 04 00`
+  in `Transfer(True, MenuName.QUERY_MANAGER, BarName."", ItemName."",
+  Panel."", ...)` -- 0x48 references to PSPCMNAME rows with a blank
+  refname). Then the decoder-only frontier is empty; the remaining work is
+  encoder families (COMPLETE_DOWNSTREAM 92, ACTIVE_PACKAGE 72,
+  ENCODE_ERROR 69 ...). Out of scope: the 66 source-encoding artefacts.
+- **Newly established rules this session:** Cycle 127 (decoder): `]`
+  writes no trailing space -- tight before postfix / closing tokens
+  (incl. `(`), spaced before operators / keywords by their own flags;
+  Cycle 126 (decoder): a 0x4E
   inline comment ends its line iff the token before it has NEWLINE_AFTER
   (else the code continues on its line; operands tight after `*/`);
   Cycle 125 (decoder): a 0x15
@@ -156,6 +161,45 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Decoder Cycle 127 -- spacing after `]`
+
+**Baseline reproduced fresh at `ffa26a7`:** 29,715 / 494, forward-exact
+29,721, protected 430/430, taxonomy row-identical, decoder-only frontier
+6 (spacing 13559 13645 24037, decoder failures 6080 16759 18105), fallback
+70 (13525 in, EXACT), ROUNDTRIP_ONLY 0. **Result:** EXACT **29,715 ->
+29,718 (+3: 13559 13645 24037)**, 0 EXACT -> non-EXACT, no category moves,
+forward encode unchanged (0 program bytes / 0 reference lists across
+30,209), protected 430/430, ROUNDTRIP_ONLY 0, fallback 70. LOCAL SNAPSHOT
+only. Commits: a1e8bbf (census), c010a72 (decoder).
+
+Census (`cycle127-index-spacing-census.ts`): 0x4D in 967 programs (393 App
+Class); 10,974 sites aligned in 937 (30 skipped, `]` counts differ).
+Source after `]`: tight before `.` 2,953, `;` 1,893, `)` 1,705, `[`
+1,595, `,` 1,089, `]` 10, `(` 7; spaced before `=` 1,017, `|` 283, `<>`
+152, Then 87, `+` 61, `-` 17, `>` 12, As 10, `*` 5, Step 5, `<` 4 ...;
+line break before When / End-If / End-For / Else. 0 contradictions. The
+only decoder disagreements were the 7 `](` sites (no EXACT `](` existed):
+13559 x2 / 24037 x1 `&arrsPgltFldr [&I](1).GetRecord(1)...`, 13645 x4
+`&arRowset [&I](&J)...` -- an array of Rowsets indexed then called, bytes
+`4C 01 "&I" 4D 0B`; all three forward-exact and reference-exact.
+
+Root cause: `]` had SPACE_AFTER with a next-is-`[` exception (1626); `(`
+has no NO_SPACE_BEFORE (it needs the space after If / `=` / And), so
+`](` kept the space. Fix: `]` has no SPACE_AFTER; the following token's
+own flags already give every other spacing. Variants (`(` added to the
+exception; the postfix set `[` `(` `.`; no SPACE_AFTER) rendered
+identically on all 30,209; the last removes a special case. Decoded text
+changed in exactly the 3 targets; all 757 EXACT programs with `]`, and
+the Cycle 124 (25) / 125 (26) / 126 (8) gains, still EXACT.
+
+Rerank: forward-exact but not EXACT 6 -> 3 (decoder failures 6080 16759
+18105). DECODE_SOURCE_MISMATCH 74 -> 71 (66 source-encoding artefacts).
+Categories: COMPLETE_DOWNSTREAM 92, ACTIVE_PACKAGE 72, DSM 71,
+ENCODE_ERROR 69, ACTIVE_RECORD_FIELD 39, ACTIVE_RECORD 32,
+UNSUPPORTED_SYNTAX 30, ACTIVE_FIELD 26, ACTIVE_OTHER 20,
+STRUCTURAL_ORDERING 18, ACTIVE_SCROLL 13, QUOTED_COMPONENT 8,
+ACTIVE_DECLARE_FUNCTION 1 (NONEXACT 491).
 
 ## Compiler Decoder Cycle 126 -- code after an inline comment
 
