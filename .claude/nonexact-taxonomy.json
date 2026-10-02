@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-02T12:14:04.380Z",
+ "generatedAt": "2026-10-02T12:59:05.405Z",
  "totalDefinitions": 30209,
- "exactCount": 29503,
- "nonexactCount": 706,
+ "exactCount": 29563,
+ "nonexactCount": 646,
  "rows": [
   {
    "definitionId": 522,
@@ -5676,22 +5676,6 @@
    }
   },
   {
-   "definitionId": 28808,
-   "displayName": "104=AGC_UTILITIES, 105=Assignment, 107=SearchKeySetup, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 22,
-    "generatedCount": 15,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 28813,
    "displayName": "104=AGC_UTILITIES, 105=Context, 107=ContextualData, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -5762,67 +5746,19 @@
    }
   },
   {
-   "definitionId": 28851,
-   "displayName": "104=BAS_STATEMENT, 105=Pages, 107=ViewStatementPage, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 220,
-    "generatedCount": 220,
-    "firstDivergenceKind": "field"
-   }
-  },
-  {
-   "definitionId": 28853,
-   "displayName": "104=BAS_STATEMENT, 107=PrintConfirmation, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 266,
-    "generatedCount": 264,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
    "definitionId": 28854,
    "displayName": "104=BAS_STATEMENT, 107=SendNotifications, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 5,
+   "firstDiffOffset": 1206,
    "primaryCategory": "REFERENCE_ACTIVE_DECLARE_FUNCTION",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 32,
-    "generatedCount": 28,
+    "generatedCount": 30,
     "firstDivergenceKind": "declare-function"
-   }
-  },
-  {
-   "definitionId": 28856,
-   "displayName": "104=BEN_APPR_EVT_HNDLR, 107=ApprovalMonitorFluid, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 8,
-    "generatedCount": 7,
-    "firstDivergenceKind": "stored-only"
    }
   },
   {
@@ -5849,22 +5785,6 @@
    "roundtripExact": true,
    "firstDiffOffset": 6016,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 28867,
-   "displayName": "104=BEN_ATTACHMENTS, 107=AttComponentController, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 27,
-    "generatedCount": 22,
-    "firstDivergenceKind": "field"
-   }
   },
   {
    "definitionId": 28868,
@@ -5975,22 +5895,6 @@
    }
   },
   {
-   "definitionId": 28904,
-   "displayName": "104=BEN_EE_DATA_FL, 105=Object, 107=DependentBeneficiary, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 10,
-    "generatedCount": 3,
-    "firstDivergenceKind": "stored-only"
-   }
-  },
-  {
    "definitionId": 28910,
    "displayName": "104=BEN_EE_DATA_FL, 105=Object, 107=Resource, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -6042,14 +5946,13 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "firstDiffOffset": 6,
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 28,
-    "generatedCount": 10,
-    "firstDivergenceKind": "record"
+    "generatedCount": 28
    }
   },
   {
@@ -6059,13 +5962,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_QUOTED_COMPONENT",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 18,
-    "generatedCount": 16,
-    "firstDivergenceKind": "component"
+    "generatedCount": 18
    }
   },
   {
@@ -6233,22 +6135,6 @@
    }
   },
   {
-   "definitionId": 28960,
-   "displayName": "104=BNE_OPEN_ENROLL_FL, 105=Object, 107=OEConfig, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 7,
-    "generatedCount": 3,
-    "firstDivergenceKind": "stored-only"
-   }
-  },
-  {
    "definitionId": 28961,
    "displayName": "104=BNE_OPEN_ENROLL_FL, 105=Object, 107=ParticBenefitProgram, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -6264,13 +6150,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_QUOTED_COMPONENT",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 20,
-    "generatedCount": 18,
-    "firstDivergenceKind": "component"
+    "generatedCount": 20
    }
   },
   {
@@ -6313,14 +6198,14 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "firstDiffOffset": 6647,
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 24,
-    "generatedCount": 19,
-    "firstDivergenceKind": "record"
+    "generatedCount": 23,
+    "firstDivergenceKind": "field"
    }
   },
   {
@@ -6333,51 +6218,18 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 28972,
-   "displayName": "104=BNE_OPEN_ENROLL_FL, 105=Page, 106=OptionSpecificSection, 107=Contribution, 12=OnExecute, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 56,
-    "generatedCount": 56,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
    "definitionId": 28974,
    "displayName": "104=BNE_OPEN_ENROLL_FL, 105=Page, 106=OptionSpecificSection, 107=HoursToBuyOrSell, 12=OnExecute, 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 31,
-    "generatedCount": 23,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
-   "definitionId": 28975,
-   "displayName": "104=BNE_OPEN_ENROLL_FL, 105=Page, 106=OptionSpecificSection, 107=Voluntary, 12=OnExecute, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 16,
-    "generatedCount": 15,
-    "firstDivergenceKind": "field"
+    "generatedCount": 31
    }
   },
   {
@@ -6411,13 +6263,13 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 5,
+   "firstDiffOffset": 7679,
    "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 20,
-    "generatedCount": 16,
+    "generatedCount": 19,
     "firstDivergenceKind": "package"
    }
   },
@@ -6492,60 +6344,13 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 18,
-    "generatedCount": 9,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
-   "definitionId": 28999,
-   "displayName": "104=BN_DEPBEN, 107=HealthDependents, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
    "primaryCategory": "REFERENCE_ACTIVE_FIELD",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
-    "storedCount": 26,
-    "generatedCount": 24,
+    "storedCount": 18,
+    "generatedCount": 15,
     "firstDivergenceKind": "field"
-   }
-  },
-  {
-   "definitionId": 29004,
-   "displayName": "104=BN_DEPBEN, 107=eBenefits, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 26,
-    "generatedCount": 26
-   }
-  },
-  {
-   "definitionId": 29005,
-   "displayName": "104=BN_EF_1X, 107=COMMON, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 6,
-    "generatedCount": 5,
-    "firstDivergenceKind": "stored-only"
    }
   },
   {
@@ -6555,29 +6360,13 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 45,
-    "generatedCount": 39,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
-   "definitionId": 29007,
-   "displayName": "104=BN_EF_1X, 107=DPPlan, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 6,
-    "generatedCount": 5,
-    "firstDivergenceKind": "field"
+    "generatedCount": 41,
+    "firstDivergenceKind": "scroll"
    }
   },
   {
@@ -6597,51 +6386,18 @@
    }
   },
   {
-   "definitionId": 29016,
-   "displayName": "104=BN_ELECTIONS, 105=CoveredPersons, 107=CoveredPerson, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 4,
-    "generatedCount": 1,
-    "firstDivergenceKind": "stored-only"
-   }
-  },
-  {
-   "definitionId": 29018,
-   "displayName": "104=BN_ELECTIONS, 105=PlanCategories, 107=PlanCategory, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 14,
-    "generatedCount": 11,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
    "definitionId": 29020,
    "displayName": "104=BN_ELECTIONS, 105=PlanDefinition, 107=PlanDefn1X, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 10,
-    "generatedCount": 7,
-    "firstDivergenceKind": "stored-only"
+    "generatedCount": 10
    }
   },
   {
@@ -6657,54 +6413,6 @@
     "referenceSetExact": false,
     "storedCount": 5,
     "generatedCount": 5
-   }
-  },
-  {
-   "definitionId": 29030,
-   "displayName": "104=BN_ELECTIONS, 105=PlanDefinition, 107=PlanDefnBase, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 21,
-    "generatedCount": 16,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
-   "definitionId": 29044,
-   "displayName": "104=BN_ELECTIONS, 105=PlanElection, 107=PlanTypeBase, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 26,
-    "generatedCount": 21,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 29045,
-   "displayName": "104=BN_ELECTIONS, 105=PlanElection, 107=SavingsInvestment, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 10,
-    "generatedCount": 3,
-    "firstDivergenceKind": "package"
    }
   },
   {
@@ -6775,26 +6483,9 @@
    "definitionId": 29123,
    "displayName": "104=CAFNUI_CORE, 105=OBJECT, 107=Configuration, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
+   "sourceEncodeExact": true,
+   "roundtripExact": true,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29135,
-   "displayName": "104=CAFNUI_FILTER_BUILDER, 105=Configuration, 107=Fields, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 55,
-    "generatedCount": 52,
-    "firstDivergenceKind": "record-field"
-   }
   },
   {
    "definitionId": 29136,
@@ -6802,13 +6493,13 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 5,
+   "firstDiffOffset": 73692,
    "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 87,
-    "generatedCount": 85,
+    "generatedCount": 86,
     "firstDivergenceKind": "record-field"
    }
   },
@@ -6872,9 +6563,8 @@
    "definitionId": 29183,
    "displayName": "104=CAF_CORE, 105=OBJECT, 107=Configuration, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
+   "sourceEncodeExact": true,
+   "roundtripExact": true,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
@@ -6962,14 +6652,13 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "firstDiffOffset": 13,
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 12,
-    "generatedCount": 11,
-    "firstDivergenceKind": "stored-only"
+    "generatedCount": 12
    }
   },
   {
@@ -6980,53 +6669,6 @@
    "roundtripExact": false,
    "firstDiffOffset": 5,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29258,
-   "displayName": "104=CS_PERSON_SERVICES, 105=Person, 106=AddPersonCS_v1_0, 107=implAddPersonCS, 12=OnExecute, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 145,
-    "generatedCount": 139,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
-   "definitionId": 29288,
-   "displayName": "104=DEPT_SYNC, 107=DeptSync, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 15,
-    "generatedCount": 12,
-    "firstDivergenceKind": "field"
-   }
-  },
-  {
-   "definitionId": 29292,
-   "displayName": "104=DEPT_SYNC, 107=TLDeptSubscription, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 14,
-    "generatedCount": 14
-   }
   },
   {
    "definitionId": 29293,
@@ -7062,22 +6704,6 @@
     "storedCount": 16,
     "generatedCount": 15,
     "firstDivergenceKind": "field"
-   }
-  },
-  {
-   "definitionId": 29312,
-   "displayName": "104=GPGB_SHARES, 107=ShareSchemes, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 28,
-    "generatedCount": 27,
-    "firstDivergenceKind": "record-field"
    }
   },
   {
@@ -7234,22 +6860,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 29386,
-   "displayName": "104=GPS_EDITFUNCTIONS, 107=RelocateContent, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 51,
-    "generatedCount": 51,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
    "definitionId": 29391,
    "displayName": "104=GPS_EDITFUNCTIONS, 107=StaffingContent, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "ENCODE_ERROR",
@@ -7273,8 +6883,8 @@
    "displayName": "104=GPS_HR_CORE, 107=JobData, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
    "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
+   "roundtripExact": true,
+   "firstDiffOffset": 33615,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
@@ -7329,22 +6939,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 29409,
-   "displayName": "104=GPS_RPT_PERSON_MGT, 107=PersonXmlEditor, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 20,
-    "generatedCount": 18,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 29412,
    "displayName": "104=GPS_UTILS, 107=Buttons, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -7394,38 +6988,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 29438,
-   "displayName": "104=GPS_WFS_REPORT_MANAGER, 107=PersonXmlEditor, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 13,
-    "generatedCount": 11,
-    "firstDivergenceKind": "stored-only"
-   }
-  },
-  {
-   "definitionId": 29446,
-   "displayName": "104=GPUS_TAX, 107=GPUS_TAX, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 57,
-    "generatedCount": 26,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
    "definitionId": 29451,
    "displayName": "104=GP_ABS_CRITERIA, 107=AbsCriteria, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -7442,24 +7004,8 @@
    }
   },
   {
-   "definitionId": 29453,
-   "displayName": "104=GP_ABS_CS_CMPNT, 107=RecDefn, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 24,
-    "generatedCount": 13,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 29454,
-   "displayName": "104=GP_ABS_CS_CMPNT, 107=SecDefn, 12=OnExecute, 0= , 0= , 0= , 0= ",
+   "definitionId": 29457,
+   "displayName": "104=GP_ABS_CS_CMPNT, 107=TmplCreation, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
@@ -7468,57 +7014,9 @@
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
-    "storedCount": 52,
-    "generatedCount": 31,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 29455,
-   "displayName": "104=GP_ABS_CS_CMPNT, 107=TmplCategory, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 8,
-    "generatedCount": 5,
-    "firstDivergenceKind": "stored-only"
-   }
-  },
-  {
-   "definitionId": 29456,
-   "displayName": "104=GP_ABS_CS_CMPNT, 107=TmplCopy, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 22,
-    "generatedCount": 20,
-    "firstDivergenceKind": "field"
-   }
-  },
-  {
-   "definitionId": 29457,
-   "displayName": "104=GP_ABS_CS_CMPNT, 107=TmplCreation, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
     "storedCount": 137,
-    "generatedCount": 90,
-    "firstDivergenceKind": "record"
+    "generatedCount": 126,
+    "firstDivergenceKind": "record-field"
    }
   },
   {
@@ -7688,14 +7186,14 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "firstDiffOffset": 29362,
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 82,
-    "generatedCount": 76,
-    "firstDivergenceKind": "record"
+    "generatedCount": 81,
+    "firstDivergenceKind": "field"
    }
   },
   {
@@ -7726,7 +7224,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 110,
-    "generatedCount": 85,
+    "generatedCount": 104,
     "firstDivergenceKind": "field"
    }
   },
@@ -7788,22 +7286,6 @@
    }
   },
   {
-   "definitionId": 29532,
-   "displayName": "104=GP_ABS_EVT_HANDLER, 107=AM_Admin_RouteTo, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 7,
-    "generatedCount": 4,
-    "firstDivergenceKind": "stored-only"
-   }
-  },
-  {
    "definitionId": 29535,
    "displayName": "104=GP_ABS_EVT_HANDLER, 107=apprEventHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -7825,14 +7307,14 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "firstDiffOffset": 43507,
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 92,
-    "generatedCount": 85,
-    "firstDivergenceKind": "field"
+    "generatedCount": 91,
+    "firstDivergenceKind": "record-field"
    }
   },
   {
@@ -7897,22 +7379,6 @@
     "storedCount": 11,
     "generatedCount": 11,
     "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 29561,
-   "displayName": "104=GP_CC_MAP, 107=GpAccLine, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 11,
-    "generatedCount": 10,
-    "firstDivergenceKind": "record"
    }
   },
   {
@@ -8086,22 +7552,6 @@
    }
   },
   {
-   "definitionId": 29605,
-   "displayName": "104=HCSC_DELEGATION_FL, 107=EODelegationController, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 25,
-    "generatedCount": 24,
-    "firstDivergenceKind": "field"
-   }
-  },
-  {
    "definitionId": 29609,
    "displayName": "104=HCSC_ESIGNATURE, 107=Common, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "ENCODE_ERROR",
@@ -8128,38 +7578,6 @@
    }
   },
   {
-   "definitionId": 29613,
-   "displayName": "104=HCSC_ESIGNATURE, 107=SetupComponentController, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 44,
-    "generatedCount": 44,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 29617,
-   "displayName": "104=HRRC_FUNCTIONS, 107=CreateRecognition, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 31,
-    "generatedCount": 27,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
    "definitionId": 29618,
    "displayName": "104=HRRC_FUNCTIONS, 107=CurrentRecognition, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -8176,38 +7594,6 @@
    }
   },
   {
-   "definitionId": 29620,
-   "displayName": "104=HRRC_FUNCTIONS, 107=ManagerSelfService, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 57,
-    "generatedCount": 57,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 29621,
-   "displayName": "104=HRRC_FUNCTIONS, 107=PageLinks, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 42,
-    "generatedCount": 41,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 29622,
    "displayName": "104=HRRC_FUNCTIONS, 107=PersonSearchRC, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "ENCODE_ERROR",
@@ -8218,34 +7604,18 @@
    "primaryCategory": "ENCODE_ERROR"
   },
   {
-   "definitionId": 29623,
-   "displayName": "104=HRRC_FUNCTIONS, 107=RecognitionTab, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 97,
-    "generatedCount": 94,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 29625,
    "displayName": "104=HRRC_FUNCTIONS, 107=Utilities, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 5,
+   "firstDiffOffset": 7974,
    "primaryCategory": "REFERENCE_ACTIVE_RECORD",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 26,
-    "generatedCount": 25,
+    "generatedCount": 26,
     "firstDivergenceKind": "record"
    }
   },
@@ -8303,22 +7673,6 @@
     "storedCount": 17,
     "generatedCount": 16,
     "firstDivergenceKind": "scroll"
-   }
-  },
-  {
-   "definitionId": 29653,
-   "displayName": "104=OU_PAGEUP_API, 105=Utility, 107=SocialSecurityNumber, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 15,
-    "generatedCount": 7,
-    "firstDivergenceKind": "package"
    }
   },
   {
@@ -8431,7 +7785,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 56,
-    "generatedCount": 35,
+    "generatedCount": 48,
     "firstDivergenceKind": "record"
    }
   },
@@ -8479,56 +7833,8 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 69,
-    "generatedCount": 44,
+    "generatedCount": 60,
     "firstDivergenceKind": "record"
-   }
-  },
-  {
-   "definitionId": 29758,
-   "displayName": "104=PNA_W4_FORM, 105=SpecialFunction, 107=NYCRES, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 18,
-    "generatedCount": 14,
-    "firstDivergenceKind": "field"
-   }
-  },
-  {
-   "definitionId": 29760,
-   "displayName": "104=PNA_W4_FORM, 105=SpecialFunction, 107=NYYRES, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 18,
-    "generatedCount": 14,
-    "firstDivergenceKind": "stored-only"
-   }
-  },
-  {
-   "definitionId": 29790,
-   "displayName": "104=POSN_INDEX_CONTROL, 107=Index, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 38,
-    "generatedCount": 36,
-    "firstDivergenceKind": "field"
    }
   },
   {
@@ -8688,22 +7994,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 29893,
-   "displayName": "104=PS_GUK_SHARES, 107=ShareSchemes, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 28,
-    "generatedCount": 27,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
    "definitionId": 29915,
    "displayName": "104=PTADSDEFNFORRCF, 107=MenuFolderValidationBase, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -8773,22 +8063,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 438: expected )",
    "construct": " method doAdminA",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29954,
-   "displayName": "104=PTAF_ADM_MON, 107=transactionSearch, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 21,
-    "generatedCount": 21,
-    "firstDivergenceKind": "field"
-   }
   },
   {
    "definitionId": 29955,
@@ -8871,150 +8145,6 @@
    }
   },
   {
-   "definitionId": 29980,
-   "displayName": "104=PTAF_CORE, 105=DEFN, 107=AWTxn, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 47,
-    "generatedCount": 32,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 29981,
-   "displayName": "104=PTAF_CORE, 105=DEFN, 107=AppDef, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_SCROLL",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 49,
-    "generatedCount": 45,
-    "firstDivergenceKind": "scroll"
-   }
-  },
-  {
-   "definitionId": 29982,
-   "displayName": "104=PTAF_CORE, 105=DEFN, 107=AuthDef, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 15,
-    "generatedCount": 8,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 29984,
-   "displayName": "104=PTAF_CORE, 105=DEFN, 107=StepDef, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 15,
-    "generatedCount": 6,
-    "firstDivergenceKind": "stored-only"
-   }
-  },
-  {
-   "definitionId": 29985,
-   "displayName": "104=PTAF_CORE, 105=DEFN, 107=UserListBase, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 9,
-    "generatedCount": 7,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 29987,
-   "displayName": "104=PTAF_CORE, 105=DEFN, 107=UserListQuery, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 7,
-    "generatedCount": 6,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 29988,
-   "displayName": "104=PTAF_CORE, 105=DEFN, 107=UserListRole, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 6,
-    "generatedCount": 5,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 29989,
-   "displayName": "104=PTAF_CORE, 105=DEFN, 107=UserListSQL, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 8,
-    "generatedCount": 6,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 29993,
-   "displayName": "104=PTAF_CORE, 105=ENGINE, 107=AppInst, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 34,
-    "generatedCount": 34,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 29998,
    "displayName": "104=PTAF_CORE, 105=ENGINE, 107=DynamicPathInst, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -9027,70 +8157,6 @@
     "referenceSetExact": false,
     "storedCount": 13,
     "generatedCount": 12,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 30000,
-   "displayName": "104=PTAF_CORE, 105=ENGINE, 107=StageInst, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 34,
-    "generatedCount": 32,
-    "firstDivergenceKind": "field"
-   }
-  },
-  {
-   "definitionId": 30001,
-   "displayName": "104=PTAF_CORE, 105=ENGINE, 107=StepInst, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 25,
-    "generatedCount": 21,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 30002,
-   "displayName": "104=PTAF_CORE, 105=ENGINE, 107=Thread, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 23,
-    "generatedCount": 22,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 30003,
-   "displayName": "104=PTAF_CORE, 105=ENGINE, 107=UserStepInst, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 24,
-    "generatedCount": 16,
     "firstDivergenceKind": "package"
    }
   },
@@ -9116,45 +8182,13 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 5,
+   "firstDiffOffset": 734,
    "primaryCategory": "STRUCTURAL_ORDERING",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": true,
     "storedCount": 16,
     "generatedCount": 16,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 30056,
-   "displayName": "104=PTAF_CRITERIA, 105=DEFINITION, 107=CriteriaRec, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 20,
-    "generatedCount": 8,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 30057,
-   "displayName": "104=PTAF_CRITERIA, 105=DEFINITION, 107=CriteriaValues, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 16,
-    "generatedCount": 12,
     "firstDivergenceKind": "package"
    }
   },
