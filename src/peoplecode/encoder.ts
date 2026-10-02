@@ -9877,7 +9877,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     directLevel0RecordFieldKey: string | undefined,
     fieldMemberFromGetRecord: boolean,
     reference: PeopleCodeReference,
-    receiverIsDeclaredRecord = false
+    registersFieldByName = false
   ): void => {
     if (
       dependencyKind === 'record' &&
@@ -9905,6 +9905,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         `${controlGroup}:${member.toLowerCase()}`,
         reference
       );
+      // Cycle 119: and in the method-wide record scope (see the session lookup above)
+      if (context?.recordDependenciesHaveMethodWideLifetime) dependencyScope.recordRecord(member, reference);
     } else if (
       dependencyKind === 'field' &&
       baseVariableName !== undefined
@@ -9927,13 +9929,19 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         baseVariableName !== undefined ||
         fieldMemberFromGetRecord ||
         /*
+         * Cycle 119: in an Application Class body, a FIELD after a
+         * Row-shorthand RECORD (`GetLevel0()(1).PSADSDMW_WRK.PTSESSIONID`,
+         * twice in one 28764 statement) registers too -- stored keeps one
+         * row per field name (repeats: 5,305 reuse, 19 open, all in 29797
+         * / 30170 / 30179).
+         *
          * Cycle 118: a declared Record value with no variable of its own
          * (a Record-typed property, `%This.ObjectRecord`) registers its
          * FIELD rows in the same scope, so a later use of the field reuses
          * the row (29954: one APPROVEOPRID row for its repeated
          * `%This.<rec>.APPROVEOPRID`).
          */
-        receiverIsDeclaredRecord
+        registersFieldByName
       )
     ) {
       fieldDependencyScope.recordField(member, reference);
@@ -10664,6 +10672,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * .GetField(...) call -- see its own comment where it's checked below.
      */
     let fieldMemberFromGetRecord = bareGetRecordCallResult;
+    /*
+     * Cycle 119: true for the bare member right after a Row-shorthand RECORD
+     * member (`&row.REC.FIELD`, `GetLevel0()(1).REC.FIELD`) -- see the FIELD
+     * registration in `recordPostfixMemberReuse`.
+     */
+    let fieldMemberFromRowShorthand = false;
     let selectedByDirectRowsetPostfix = false;
 
     // Calibrated postfix forms may be chained arbitrarily:
@@ -11015,6 +11029,28 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
               fieldName: member
             });
           }
+          /*
+           * Cycle 119: in an Application Class body a Row-shorthand RECORD
+           * member (`&rwAgcTmplTbl.AGC_TMPL_TBL.DESCR100.Value`) has the
+           * same lifetime as an explicit `Record.X` (Cycle 71): the
+           * method-wide record scope, then the class-wide session -- one
+           * RECORD row per record name in the whole program. Formerly it
+           * was looked up only in its own control-group pools, so a later
+           * control group or method opened the record again.
+           * `cycle119-row-shorthand-lifetime-census.ts` (stored App Class
+           * programs): of 8,432 repeated shorthand RECORD occurrences,
+           * 8,417 reuse the earlier row (same statement 1,494, same method
+           * 5,175, other method 1,748; other control group 2,143) -- the
+           * 15 that open again are all in 29797 / 30179. Ordinary programs
+           * keep their allocation units (stored opens 3,257 of 20,760
+           * same-method repeats there).
+           */
+          if (reference === undefined && dependencyKind === 'record' && !isMethodCall && context?.recordDependenciesHaveMethodWideLifetime) {
+            reference = context?.applicationClassTypeReferenceSession?.lookup({
+              kind: 'record',
+              recordName: member
+            });
+          }
 
           if (reference === undefined) {
             reference =
@@ -11040,7 +11076,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             directLevel0RecordFieldKey,
             fieldMemberFromGetRecord,
             reference,
-            chainSemantics.valueType === 'record' && chainSemantics.provenance === 'declared'
+            (chainSemantics.valueType === 'record' && chainSemantics.provenance === 'declared') ||
+              (fieldMemberFromRowShorthand && context?.recordDependenciesHaveMethodWideLifetime === true)
           );
 
           // This 0x4A path writes its own operand bytes directly instead of
@@ -11072,6 +11109,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           * RECORD is followed by FIELD. FIELD then returns us to normal
           * member/property encoding.
           */
+          fieldMemberFromRowShorthand = expectedReferenceMember === 'record';
           expectedReferenceMember =
             expectedReferenceMember === 'record'
               ? 'field'
@@ -11406,6 +11444,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
                 : undefined;
           fieldMemberFromGetRecord =
             member.toLowerCase() === 'getrecord';
+          fieldMemberFromRowShorthand = false;
           if (/^GetRow$/i.test(member)) {
             selectedByDirectRowsetPostfix = false;
           }
