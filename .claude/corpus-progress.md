@@ -1,16 +1,17 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 117)
+## Current status (2026-10-02, Cycle 118)
 
-- **Current target:** Cycle 117 -- grouped expressions parse the full
-  expression grammar (comparison / And / Or / Not) whatever their left
-  operand. EXACT 29,387 -> 29,415 (+28), protected PASS, 0 EXACT ->
-  non-EXACT, encode errors 171 -> 99 (72 newly encodable),
-  COMPLETE_DOWNSTREAM 92 -> 95, fallback 70 (13525 in, EXACT),
-  ROUNDTRIP_ONLY 0. See "Compiler Semantics Cycle 117".
-- **Last successful calibration:** Cycle 117 (primary()'s `(` always
-  parses booleanExpression(); booleanUnary() no longer special-cases `(`
-  and `@`).
+- **Current target:** Cycle 118 -- a Record-typed App Class property
+  (type metadata, own / inherited / typed receiver) is a declared Record
+  value whose next bare member is a FIELD row. EXACT 29,415 -> 29,462
+  (+47), protected PASS, 0 EXACT -> non-EXACT, only FIELD rows added
+  (55 lists closer, 0 farther), COMPLETE_DOWNSTREAM 95 -> 92, fallback
+  70 (13525 in, EXACT), ROUNDTRIP_ONLY 0. See "Compiler Semantics Cycle
+  118".
+- **Last successful calibration:** Cycle 118 (metadata `Record` property
+  results enter the Record receiver state; their FIELD rows join the
+  field dependency scope).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand record resolution `GetRow(n).X.Y` (0x4A resolved record /
@@ -26,18 +27,23 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action:** FIELD rows for `%This.<Record-typed property>.<FIELD>`
-  in Application Class programs -- 17 ACTIVE_OTHER / ACTIVE_FIELD
-  programs (29014, 29021 .. 29028, 29118, 29128, 29130, 29178, 29344,
-  29972, 29994, 29996) first diverge at a stored FIELD row the encoder
-  never allocates for e.g. `Return %This.ObjectRecord.CAF_FCTLST_ID.Value`
-  (grouped or not). Then the error families: `catch` as a call name (14),
-  bare identifiers (12), "expected ] after array subscript" (11), the
-  remaining "expected )" (9: a comment before `,` in an argument list
-  5004 / 25124 / 27517 / 28704; `#` inside names 28771 / 29825;
-  `GetRowset()(1)` 30098; 6318; 29950). See "Error rerank after Cycle
-  117".
-- **Newly established rules this session:** Cycle 117: a grouped
+- **Next action:** App Class Row-shorthand RECORD / FIELD row lifetime
+  -- 44 App Class programs (28764, 28793, 28795, 28797, 28853, 28871 ...)
+  first diverge where generated allocates a fresh RECORD row (and a
+  repeated FIELD row) for `&row.REC.FIELD` (`&rwAgcTmplTbl.AGC_TMPL_TBL.
+  DESCR100.Value`) that stored reuses from an earlier statement. Not the
+  parked 0x4A / 0x0A `GetRow(n).X.Y` byte question. Other first-
+  divergence groups: ordinary PACKAGE vs PACKAGE 33, ordinary missing
+  stored row vs generated FIELD 27, App Class FIELD vs PACKAGE 22. Error
+  families unchanged (catch 14, bare identifiers 12, `]` 11, expected-)
+  9). See "Rerank after Cycle 118".
+- **Newly established rules this session:** Cycle 118: a property the
+  type metadata declares `Record` (own, %Super, typed receiver, chained)
+  makes its next bare member a FIELD row exactly like a `Local Record &r`
+  base, registered in the field dependency scope for reuse; Record
+  intrinsics stay inline; no PACKAGE row; only Record (Row / Rowset /
+  Field results store no FIELD row; method results not typed -- no
+  encodable evidence); Cycle 117: a grouped
   expression holds the full expression grammar in every position (no
   left-operand lookahead); a group or `@` operand in a boolean operand
   is an ordinary primary with its postfix chain and arithmetic; the
@@ -126,6 +132,71 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 118 -- Record-typed App Class property receivers
+
+**Baseline reproduced fresh at `9a9f407`:** 29,415 / 794, protected
+430/430, taxonomy row-identical, forward-exact 29,468, fallback 70 (13525
+in), ROUNDTRIP_ONLY 0. **Result:** EXACT **29,415 -> 29,462 (+47)**, **0
+EXACT -> non-EXACT**, protected 430/430, ROUNDTRIP_ONLY 0. LOCAL SNAPSHOT
+only. Commits: 6d1312d (census), 26e5cd9 (semantics).
+
+Root cause: the provider answers `{ kind: 'other', type: 'Record' }` for
+`property Record ObjectRecord;`; the encoder's consumers (%This property
+-- own types from the header map only hold classes, so own Record
+properties come from the provider too -- %Super property, typed-receiver
+property) act only on `class` / `array` results, and the generic
+property step then resets `expectedReferenceMember` / `chainSemantics`,
+so the next member stayed inline. A `Local Record &r` base starts in
+`'field'` mode with a dependency-bound declared Record chain.
+
+Census (`cycle118-builtin-metadata-receiver-census.ts`): 545 bare members
+after a Record-typed property / method result (App Class code only;
+%This 529, typed `&var` 16), 503 with a stored FIELD row of that name, 0
+with a RECORD row; the rest Record intrinsics (FieldCount 15, GetField
+12, Name 11) and 4 in a REM / encoder-excluded code. Row (43 members): 0
+FIELD, 5 RECORD; Rowset (66), Field (23): no rows. Record method results
++ field: 44, all in unencodable 29391.
+
+Rule: a metadata `Record` property step (not a call) sets
+`expectedReferenceMember = 'field'` and the declared dependency-bound
+Record chain (the Cycle 98 `.ParentRow` precedent); a FIELD reached from
+a declared Record value registers in `fieldDependencyScope` (Record
+variables already did through their base name). Experiment P (receiver
+only): 56 lists changed, 52 closer, 4 farther (29954, 29956, 29959,
+30001: repeated fields allocated again). Experiment Q (+ scope
+registration): 55 closer, 0 farther, 1 same (30001), 43 names-exact,
+distance 337 -> 53.
+
+Result: 56 lists changed, only FIELD rows added (265), no RECORD /
+PACKAGE / other change; 9 byte-only changes (members now FIELD operands
+of existing rows; 29169, 29171, 29172 forward-exact; 29105 / 29107 /
+29108 / 29109 first difference later; 28764, 30047 unchanged at 5).
+Ordinary programs: 19423, 19424, 19432 (typed receivers, e.g.
+`&AdsProjectBinds [&CurrentADS].CompareLogRec.PTSESSIONID.Value`) EXACT.
+Targets: 16 of the 17 EXACT; 29996 -> ACTIVE_RECORD. 29128: own
+`property Record ObjectRecord readonly;`, provider `other Record`; stored
+FIELD rows 6 .. 16 (CAF_FCTLST_ID first) now generated; its PACKAGE.RECORD
+row 3 is the existing Cycle 103 declaration row.
+
+## Rerank after Cycle 118
+
+ACTIVE_PACKAGE 119 -> 98, ACTIVE_OTHER 48 -> 31, ACTIVE_FIELD 98 -> 95,
+ACTIVE_RECORD_FIELD 42 -> 38, ACTIVE_RECORD 105 -> 106,
+COMPLETE_DOWNSTREAM 95 -> 92 (29169 / 29171 / 29172 left; all
+reference-exact), STRUCTURAL_ORDERING 22. Error families unchanged
+(ENCODE_ERROR 69, UNSUPPORTED_SYNTAX 30). PACKAGE census: PACKAGE-only
+84, first divergence a PACKAGE row 161. Missing FIELD rows after a Record
+result: 3 definitions, all unencodable (28760, 28872, 29391). First
+reference divergence groups (REFERENCE_ACTIVE_*): App Class stored FIELD
+vs generated RECORD 44 (Row-shorthand RECORD / FIELD reuse), ordinary
+PACKAGE vs PACKAGE 33, ordinary none vs FIELD 27, App Class FIELD vs
+PACKAGE 22, ordinary REC.FIELD vs FIELD 20, App Class FIELD vs FIELD 20.
+Categories: DSM 114, ACTIVE_RECORD 106, ACTIVE_PACKAGE 98, ACTIVE_FIELD
+95, COMPLETE_DOWNSTREAM 92, ENCODE_ERROR 69, ACTIVE_RECORD_FIELD 38,
+ACTIVE_OTHER 31, UNSUPPORTED_SYNTAX 30, DECODER_BARE_IDENTIFIER 28,
+STRUCTURAL_ORDERING 22, ACTIVE_SCROLL 13, QUOTED_COMPONENT 10,
+ACTIVE_DECLARE_FUNCTION 1 (NONEXACT 747).
 
 ## Compiler Semantics Cycle 117 -- grouped expressions through the full grammar
 
