@@ -10,7 +10,8 @@ EXACT 29,681 / NONEXACT 528; Cycle 125: EXACT 29,707 / NONEXACT 502; Cycle 126:
 EXACT 29,715 / NONEXACT 494; Cycle 127: EXACT 29,718 / NONEXACT 491; Cycle 128:
 EXACT 29,719 / NONEXACT 490; Cycle 129: EXACT 29,720 / NONEXACT 489; Cycle 130:
 EXACT 29,721 / NONEXACT 488 -- all decoder only; Cycle 131 encoder: EXACT
-29,754 / NONEXACT 455, forward-exact 29,754); forward-exact
+29,754 / NONEXACT 455; Cycle 132: EXACT 29,764 / NONEXACT 445; forward-exact
+= EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -208,6 +209,13 @@ the comment sits -- For body first item, Evaluate selector gap, boolean
 operand, after an If / Else statement with no `;`). Cycle 113 / 115 / 119
 rules live inside these loops. Decoder: format flags + contextual rules (e.g. Cycle 120 `15 4E 15`
 -> `; /* c */;`).
+
+Function metadata type descriptors (trailer record return kind, parameter
+slots): scalar codes, `depth * 0x100000` per `array of` level, built-in
+objects 0x80000 + subtype, Application Class types 0x80000 + (0x100 +
+the class name's character offset in the trailer name run) -- a sum
+(Cycle 132: `functionTypeId` ORed it and lost bit 8;
+`cycle132-trailer-type-census.ts`, 3,761 / 3,761).
 
 ## 10. Decoder boundary
 

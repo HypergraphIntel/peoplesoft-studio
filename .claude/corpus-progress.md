@@ -1,14 +1,15 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 131)
+## Current status (2026-10-02, Cycle 132)
 
-- **Current target:** Cycle 131 -- encoder: blank lines after a standalone
-  comment run are 0x4F markers wherever the comment sits. EXACT 29,721 ->
-  29,754 (+33) = forward-exact; COMPLETE_DOWNSTREAM 93 -> 60; protected
-  PASS, 0 EXACT -> non-EXACT, 0 reference lists changed, ROUNDTRIP_ONLY 0,
-  fallback 70 (13525 in, EXACT). See "Compiler Semantics Cycle 131".
-- **Last successful calibration:** Cycle 131 (encoder blank lines after
-  comment runs).
+- **Current target:** Cycle 132 -- encoder: an Application Class type
+  descriptor in Function metadata is 0x80000 + (0x100 + name offset), a
+  sum. EXACT 29,754 -> 29,764 (+10) = forward-exact; COMPLETE_DOWNSTREAM
+  60 -> 50; trailer bytes only, 0 reference lists changed, protected PASS,
+  0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT).
+  See "Compiler Semantics Cycle 132".
+- **Last successful calibration:** Cycle 132 (Function type descriptor
+  offset sum).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -24,18 +25,20 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 132):** encoder -- the Function signature trailer byte
-  (stored 02 / generated 01), now the largest COMPLETE_DOWNSTREAM family:
-  10 ordinary programs whose tokens are identical and only one trailer
-  byte differs (2116 2158 5525 14691 15527 15627 15634 17573 17613 ...),
-  references exact. Census every trailer record's flag byte against the
-  Function signature (parameters / Returns / types) before changing the
-  metadata encoder. Others: App Class inline 0x4E where the encoder writes
-  0x15 (9), 0x4A reference operand vs inline name (5 App Class + 4
-  ordinary), `array` 0x40 (5), marker order 0x4F / 0x2D (4 + 2), 0x4F
-  before Constant / instance / method (3 + 2). README.md has unrelated
-  uncommitted user edits -- never stage it.
-- **Newly established rules this session:** Cycle 131 (encoder): the blank
+- **Next action (Cycle 133):** encoder -- the largest COMPLETE_DOWNSTREAM
+  family: App Class programs storing an inline comment 0x4E where the
+  encoder writes 0x15 (9: 28910 28920 28923 28924 28934 28954 28958 28961
+  ...), i.e. a `/* c */` on a statement's line placed before its `;` in
+  the stored stream (cf. definition 55's `0 4E 15`, ordinary). Census
+  every stored `4E 15` / `15 4E` in App Class and ordinary programs
+  against source placement before touching the App Class comment path.
+  Others: 0x4A vs inline name (5 App Class + 4 ordinary), `array` 0x40
+  (5), marker order (4 + 2), 0x4F before Constant / instance / method
+  (3 + 2). README.md has unrelated uncommitted user edits -- never stage
+  it.
+- **Newly established rules this session:** Cycle 132 (encoder): a
+  Function metadata Application Class type is 0x80000 + (0x100 + name
+  offset), a sum; Cycle 131 (encoder): the blank
   lines after a standalone 0x24 comment are 0x4F markers in every position
   (For first item, Evaluate selector gap, boolean operand, If / Else
   statement without `;`); Cycle 130 (decoder): the body
@@ -170,6 +173,58 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 132 -- Application Class type descriptor offset
+
+**Baseline reproduced fresh at `82d389d`:** 29,754 / 455, forward-exact
+29,754 (decoder-only frontier 0), COMPLETE_DOWNSTREAM 60, protected
+430/430, taxonomy row-identical, fallback 70 (13525 in, EXACT),
+ROUNDTRIP_ONLY 0. **Result:** EXACT **29,754 -> 29,764 (+10: 2116 2158
+5525 14691 15527 15627 15634 17573 17613 17913)** = forward-exact; bytes
+changed in 19 programs, all trailer descriptors (0 body bytes), 0
+reference lists changed, 0 EXACT -> non-EXACT, no category moves,
+COMPLETE_DOWNSTREAM 60 -> 50, protected 430/430, ROUNDTRIP_ONLY 0,
+fallback 70. LOCAL SNAPSHOT only. Commits: 40c4e84 (census), 18491ec
+(encoder). README.md untouched, never staged.
+
+The "Function signature trailer flag byte 02 / 01" family (10 ordinary
+programs, tokens identical) is not a flag: the differing byte is byte 1 of
+a type descriptor -- a trailer record's return kind (int32 at record +12;
+2116, 2158) or a parameter slot (5525 14691 15527 15627 15634 17573
+17613 17913) -- with 06 / 05, 08 / 07, 04 / 03 too; stored is always
+generated + 0x100. Trailer record: charOffset, slotStart, paramCount,
+return kind (7 = none); then 4-byte parameter slots (Function slots carry
+0xc0000000; terminator 7). An Application Class type is 0x80000 + (0x100
++ charOffset of the class name in the name run) (decoder.ts
+decodeReturnType). 2116: `Returns CAFNUI_CORE:OBJECT:CompareSession`,
+name at 284, stored 8021C, generated 8011C (offset 28 -- not a name);
+5525: four parameter slots, HRS_APPLICANT_TYPES:... at 270 / 341,
+SCC_ORGANIZATION_TYPES:... at 428 / 503; 17613: TemplateDefn at 780,
+stored 8040C / generated 8030C.
+
+Census (`cycle132-trailer-type-census.ts`): 3,761 Application Class type
+descriptors, every one 0x100 + charOffset on a class name. Root cause:
+`functionTypeId` returned `0x80000 | 0x100 | offset`: equal to the sum
+for offsets < 256 and 512-767 (bit 8 clear), 256 too low for 256-511 /
+768-1023. Ordinary programs: 67 descriptors where OR and sum differ, all
+non-EXACT, none EXACT; App Class metadata (its own encoder path) already
+correct. Not signature-dependent (parameter count, Returns, primitive /
+object / array types have no bearing) -- only the class name's position
+in the run, which grows with the number and length of declared names
+(5525's 594-char run, 17613's 813). Fix: the sum. Variant sweep: +10
+forward-exact, 19 programs changed (9 more with earlier, unrelated
+divergences -- first difference unchanged), 0 farther, 0 reference
+changes. Cycle 124-131 gains all still EXACT.
+
+Rerank COMPLETE_DOWNSTREAM (50): App Class inline 0x4E where the encoder
+writes 0x15 9, 0x4A vs inline name 5 App Class + 4 ordinary, `array`
+0x40 5, marker order 0x4F / 0x2D 4 + 0x2D / 0x4F 2, 0x4F before Constant
+/ instance / method 3 + 2, App Class 0x4E vs 0x2D 3, singletons.
+Categories: ACTIVE_PACKAGE 72, ENCODE_ERROR 69, DSM 67,
+COMPLETE_DOWNSTREAM 50, ACTIVE_RECORD_FIELD 39, ACTIVE_RECORD 32,
+UNSUPPORTED_SYNTAX 30, ACTIVE_FIELD 26, ACTIVE_OTHER 20,
+STRUCTURAL_ORDERING 18, ACTIVE_SCROLL 13, QUOTED_COMPONENT 8,
+ACTIVE_DECLARE_FUNCTION 1 (NONEXACT 445).
 
 ## Compiler Semantics Cycle 131 -- blank lines after standalone comment runs
 
