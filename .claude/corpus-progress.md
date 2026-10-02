@@ -1,16 +1,15 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-01, Cycle 115)
+## Current status (2026-10-01, Cycle 116)
 
-- **Current target:** Cycle 115 -- `#If #ToolsRel ... #Then ... #Else
-  ... #End-If` conditional compilation. EXACT 29,244 -> 29,352 (+108),
-  protected PASS, 0 EXACT -> non-EXACT, encode errors 338 -> 216 (122
-  definitions newly encodable), COMPLETE_DOWNSTREAM 88 -> 92 (4 newly
-  encodable entered), fallback 69 (13525 in, EXACT), ROUNDTRIP_ONLY 0.
-  See "Compiler Semantics Cycle 115".
-- **Last successful calibration:** Cycle 115 (a comment before a
-  directive closes no section; decoder: no 0x2D line break after a
-  directive record).
+- **Current target:** Cycle 116 -- grouped (parenthesized) expression
+  statements, `(create PKG:Class()).Method(...);`. EXACT 29,352 ->
+  29,387 (+35), protected PASS, 0 EXACT -> non-EXACT, encode errors 216
+  -> 171 (45 newly encodable), COMPLETE_DOWNSTREAM 92 (unchanged),
+  fallback 69 -> 70 (14328 via the existing wildcard claim; 13525 in,
+  EXACT), ROUNDTRIP_ONLY 0. See "Compiler Semantics Cycle 116".
+- **Last successful calibration:** Cycle 116 (statement dispatch hands a
+  statement-leading `(` group with a postfix chain to primary()).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand record resolution `GetRow(n).X.Y` (0x4A resolved record /
@@ -26,15 +25,21 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action:** the parenthesized expression statement
-  `(create X(...)).Method()` -- now the first failure of 11 of the 14
-  directive programs still unsupported (live branches of
-  `#If #toolsrel >= "8.55.06"` calling `(create
-  PT_PAGE_UTILS:Utils()).SetGridAnnouncement(...)`), plus the 29 found in
-  Cycle 114 (overlapping). Then "expected )" (59, App Class), the
-  "unsupported PeopleCode statement" remainder, operand "expected a
-  variable ..." (21). See "Error rerank after Cycle 115".
-- **Newly established rules this session:** Cycle 115: directives
+- **Next action:** "expected )" (59, now the largest error family):
+  parenthesized comparisons / boolean groups whose left operand the
+  `(`-branch lookahead regexes in primary() do not recognize, so the group
+  is parsed by expression() instead of booleanExpression() --
+  `Return (%This.AppMsgs.Len > 0)`, `(&rs.GetRow(1).X.Y.Value = "Y")`,
+  `(IsNewWindowEnabled() And Not (...))` (19510), `If (%This.level = 1)
+  Then`. Then operand "expected a variable ..." (21), `catch` as a call
+  name (14), bare identifiers (12), "expected Then" (12), "expected ]
+  after array subscript" (11). See "Error rerank after Cycle 116".
+- **Newly established rules this session:** Cycle 116: a statement may
+  start with a grouped expression continued by a postfix chain (`.`
+  method call or property assignment); the group is the ordinary 0x0B /
+  0x14 bytes, the chain the ordinary postfix chain, allocation and
+  receiver rules unchanged; a group with no postfix step is not a
+  statement (no evidence); at EOF it may omit its `;`; Cycle 115: directives
   `#If <cond> #Then` / `#Else` / `#End-If` are compiled to text records
   0x75 (`#If` text up to `#Then`, trimmed) / 0x76 / 0x77 (bare keyword
   when its branch is live, keyword plus the branch text up to the last
@@ -113,6 +118,67 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 116 -- grouped expression statements
+
+**Baseline reproduced fresh at `bd9c4d2`:** 29,352 / 857, protected
+430/430, taxonomy row-identical, forward-exact 29,403, UNSUPPORTED_SYNTAX
+91, ENCODE_ERROR 125, COMPLETE_DOWNSTREAM 92, fallback 69 (13525 in),
+ROUNDTRIP_ONLY 0. **Result:** EXACT **29,352 -> 29,387 (+35)**, **0
+EXACT -> non-EXACT**, protected 430/430, ROUNDTRIP_ONLY 0. LOCAL SNAPSHOT
+only. Commits: c3bb16d (census), 3f1c6e3 (grammar).
+
+Census (`cycle116-grouped-expression-census.ts`): 74 statements in 50
+definitions (35 ordinary / 15 App Class), all one level of parentheses.
+Inner: create 56 (all `create PKG:Class()`, no constructor arguments;
+PT_PAGE_UTILS:Utils 40), `<expr> As PKG:Class` cast 10, method-call result
+7, Record.X 1. Postfix: method call 71, property assignment 3, no index.
+Starts: after `;` 46, `#Then` 15, Then 11, For header 1, method header 1.
+No plain group without postfix (`(&a);`), no `(&obj).M()`, no nesting,
+no comment inside a group, no `;;` after one; 2 end with a same-line
+comment (19137, 24034 -- EXACT). Grouped `(create` in REM 7, comments 4,
+disabled code 4 (not statements).
+
+Stored: the group is the ordinary 0x0B `(` / 0x14 `)` expression bytes,
+no grouping opcode (5857 `0B 69 <path> 0B 14 14 05 0A "doSignOut" 0B 14
+15`); the statement bytes equal those of the same group as an assignment
+right side. The create inside allocates through the existing rules
+(ordinary: Cycle 94 unit -- 18410's grouped Banner create reuses the row
+its `If` unit's Local create opened; App Class: Cycle 108 class row --
+28800 reuses the named-import row); no grouped call stores a method row.
+Unterminated at EOF: 5854 stores no 0x15 (like `&x.M()`).
+
+Parser: statement() had no `(` branch ("unsupported PeopleCode
+statement"); primary() already parsed a parenthesized primary and
+continued its postfix loop. The new branch requires a postfix step after
+the group, then takes an optional `=` assignment.
+
+Newly encodable 45: EXACT 35; ACTIVE_PACKAGE 4 (14328, 28805, 29618,
+29623), ACTIVE_RECORD 3 (28871, 29617, 29619), QUOTED_COMPONENT 1
+(28850), ACTIVE_RECORD_FIELD 1 (29620), ACTIVE_FIELD 1 (29713) -- first
+reference divergences are in existing App Class ordering families /
+the wildcard claim (14328), none at a grouped statement. 28760, 28936,
+29465 moved UNSUPPORTED_SYNTAX -> ENCODE_ERROR (later constructs: a bare
+identifier, a DOTTED-STMT comment, `catch` as a call name); 5853 .. 5864
+all EXACT. Directive controls (Cycle 115's 12, first failure at a group):
+18191, 18775, 18967, 18980, 23507 EXACT; 28850, 28871, 29617, 29618,
+29620, 29623, 29713 encodable (reference families). Population: 30
+non-directive programs (Cycle 114's 29 + attribution) and 12 directive
+programs, disjoint (union 42).
+
+## Error rerank after Cycle 116
+
+UNSUPPORTED_SYNTAX 91 -> 43, ENCODE_ERROR 125 -> 128 (28760, 28936,
+29465). Families: "expected )" 59, operand "expected a variable ..." 21,
+`catch` as a call name 14, bare identifiers 12, "expected Then" 12,
+"expected ] after array subscript" 11, "unsupported PeopleCode
+statement" 7 (stray `*>` / `<**` disabled-code markers, `assign_seq#`),
+"expected ; in catch body" 5, "expected an ASCII &variable" 4, Function
+metadata types (time 3, DocumentKey 2, CubeCollection 2, Message 1,
+CompositeQuery 1). DECODE_SOURCE_MISMATCH 110 (unchanged; every newly
+forward-exact program is EXACT). COMPLETE_DOWNSTREAM 92 (same members,
+all reference-exact). PACKAGE census: PACKAGE-only 79, first divergence
+a PACKAGE row 162. NONEXACT 822.
 
 ## Compiler Semantics Cycle 115 -- `#If #ToolsRel` conditional compilation
 
