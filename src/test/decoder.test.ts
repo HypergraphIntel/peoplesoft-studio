@@ -2059,7 +2059,8 @@ test('0x77 is #Else, completing the #If/#Then/#Else/#End-If directive family', (
     '#Else\n' +
     '  If True Then\n' +
     '  End-If;\n' +
-    '#End-If');
+    // Cycle 115: a directive is a line of its own (line break after #End-If)
+    '#End-If\n');
 });
 
 test('a string literal with a real non-ASCII character survives whole, the same bug as comments once had', () => {
