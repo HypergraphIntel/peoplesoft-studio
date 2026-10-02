@@ -887,7 +887,17 @@ function functionTypeId(
     typeName.trim().toLowerCase()
   );
   if (applicationClassOffset !== undefined) {
-    return (0x80000 | 0x100 | applicationClassOffset) >>> 0;
+    /*
+     * Cycle 132: an Application Class type is 0x80000 + (0x100 + the class
+     * name's character offset in the trailer name run) -- a sum, as
+     * decoder.ts decodeReturnType reads it. `0x100 | offset` lost the
+     * carry whenever the offset has bit 8 set (256-511, 768-1023 ...), one
+     * byte 256 too low: 2116 `Returns CAFNUI_CORE:OBJECT:CompareSession`
+     * at offset 284 stores `8021C`, not `8011C`
+     * (`cycle132-trailer-type-census.ts`, LOCAL SNAPSHOT: 3,761 / 3,761
+     * stored descriptors are the sum; 67 ordinary ones the OR got wrong).
+     */
+    return (0x80000 | (0x100 + applicationClassOffset)) >>> 0;
   }
 
   // Built-in object descriptors use 0x80000 plus their calibrated subtype.
