@@ -5646,8 +5646,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      *         &DEL = "FALSE"
      */
     while (source.startsWith('/*', pos)) {
-      chunks.push(blockCommentByPlacement());
+      const comment = blockCommentByPlacement();
+      chunks.push(comment);
+      const gapStart = pos;
       space();
+      blankLinesAfterStandaloneComment(comment, source.slice(gapStart, pos), emitBlankLineMarkers);
     }
 
     /*
@@ -5878,6 +5881,23 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     for (let marker = 0; marker < markerCount; marker++) {
       pendingReferenceGroupBoundaries.push(chunks.length);
     }
+  };
+
+  /*
+   * Cycle 131: the blank lines after a standalone comment (0x24, own line)
+   * are 0x4F markers like any other gap, wherever the comment sits -- one
+   * per blank line (`cycle131-comment-run-blank-census.ts`, LOCAL SNAPSHOT:
+   * 34 programs whose first divergence was exactly this missing marker,
+   * after a comment leading a boolean operand (2958 `Or /* c *\/ <blank>
+   * %PanelGroup = ...`), after an If / Else body statement with no `;`
+   * (2809 `&Searching_Row = &i /*End-If;*\/ <blank> End-If;`), between
+   * an Evaluate selector and its first When, and before a For body's
+   * first statement). `emit` is the caller's own marker kind (immediate
+   * or reference-gated). An inline comment (0x4E) keeps its line and has
+   * no gap of its own here.
+   */
+  const blankLinesAfterStandaloneComment = (comment: Buffer, gap: string, emit: (whitespace: string) => void): void => {
+    if (comment[0] === 0x24 && /(?:\r?\n)[ \t]*(?:\r?\n)/.test(gap)) emit(gap);
   };
 
   const andExpression = () => {
@@ -8059,6 +8079,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         }
 
         chunks.push(disabledCodeComment());
+        // Cycle 131: a comment is a body item -- the gap after it is a body
+        // gap, not the header gap `hadBlankLineAfterForHeader` already
+        // counted (14899 `For ... <rem ...;> <blank> &bNew = False;` stores
+        // `2D 24 4F 01`; 21 programs, 8 App Class).
+        firstForBodyItem = false;
         continue;
       }
 
@@ -8067,6 +8092,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           emitBlankLineMarkers(bodyWhitespace);
         }
         chunks.push(blockComment());
+        firstForBodyItem = false;
         continue;
       }
 
@@ -8078,6 +8104,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           emitBlankLineMarkers(bodyWhitespace);
         }
         chunks.push(remComment(true));
+        firstForBodyItem = false;
         continue;
       }
 
@@ -8578,8 +8605,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * before the semicolon, so accept that canonical form here as well.
        */
       while (source.startsWith('/*', pos)) {
-        chunks.push(inlineBlockComment());
+        const comment = inlineBlockComment();
+        chunks.push(comment);
+        const gapStart = pos;
         space();
+        blankLinesAfterStandaloneComment(comment, source.slice(gapStart, pos), deferReferenceGatedMarkers);
       }
 
       if (source[pos] === ';') {
@@ -8700,8 +8730,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       space();
 
       while (source.startsWith('/*', pos)) {
-        chunks.push(inlineBlockComment());
+        const comment = inlineBlockComment();
+        chunks.push(comment);
+        const gapStart = pos;
         space();
+        blankLinesAfterStandaloneComment(comment, source.slice(gapStart, pos), deferReferenceGatedMarkers);
       }
 
       if (source[pos] === ';') {
@@ -8721,14 +8754,26 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
     let sawWhen = false;
     let sawWhenOther = false;
+    // Cycle 131: a comment between the selector and the first When keeps the
+    // blank lines after it (6493 `Evaluate %Component /*Department
+    // Inquiry*\/ <blank> When ...` stores `24 4F 3D`; 17527 two blank lines
+    // `24 24 24 4F 4F 3D`); a selector followed directly by a blank line
+    // has no corpus occurrence.
+    let sawSelectorComment = false;
 
     while (true) {
+      const gapStart = pos;
       space();
+      const gap = source.slice(gapStart, pos);
+      if (!sawWhen && sawSelectorComment && /(?:\r?\n)[ \t]*(?:\r?\n)/.test(gap)) {
+        emitBlankLineMarkers(gap);
+      }
 
       // Evaluate may carry a REM comment between its selector and first When.
       // PSXPRPTDEFN_WRK.PROPTYPE stores it directly as a 0x24 comment record.
       if (!sawWhen && startsRemComment()) {
         chunks.push(remComment(true));
+        sawSelectorComment = true;
         continue;
       }
 
@@ -8747,6 +8792,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        */
       if (!sawWhen && source.startsWith('/*', pos)) {
         chunks.push(blockComment());
+        sawSelectorComment = true;
         continue;
       }
 
