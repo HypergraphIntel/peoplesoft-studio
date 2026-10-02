@@ -170,15 +170,19 @@ const OPERAND_FORMAT = new Map<number, number>([
   // would: #Then's body is a real indented block, whether or not it was
   // actually compiled.
   [0x75, F.NEWLINE_BEFORE],
-  [0x76, F.SPACE_BEFORE | F.INCREASE_INDENT],
+  // Cycle 115: every directive is a line of its own -- a compiled branch
+  // starts on the next line and a blank line after `#End-If` (0x4F) needs
+  // `#End-If`'s own line break (4141 `#End-If <blank> &Country = ...`);
+  // an attached `;` (`#End-If;`, `#Then;`) stays on the directive's line.
+  [0x76, F.SPACE_BEFORE | F.INCREASE_INDENT | F.NEWLINE_AFTER],
   // #Else: unlike #Then, it starts its own fresh line (after the #Then
   // branch's body, not glued to #If's own line), so it needs its own
   // NEWLINE_BEFORE; DECREASE_INDENT undoes #Then's indent before writing,
   // INCREASE_INDENT re-establishes it after for #Else's own body. No
   // NEWLINE_AFTER, same reasoning as #Then: real content (or an embedded
   // dead-branch newline) supplies its own leading break.
-  [0x77, F.NEWLINE_BEFORE | F.DECREASE_INDENT | F.INCREASE_INDENT],
-  [0x78, F.NEWLINE_BEFORE | F.SPACE_BEFORE | F.DECREASE_INDENT],
+  [0x77, F.NEWLINE_BEFORE | F.DECREASE_INDENT | F.INCREASE_INDENT | F.NEWLINE_AFTER],
+  [0x78, F.NEWLINE_BEFORE | F.SPACE_BEFORE | F.DECREASE_INDENT | F.NEWLINE_AFTER],
   [0x21, F.SPACE_BEFORE],  // name/record-field reference
   [0x50, F.SPACE_BEFORE | F.NO_SPACE_AFTER], // byte integer literal
   [0x11, F.SPACE_BEFORE | F.NO_SPACE_AFTER]  // second number-literal shape (14-byte operand)
@@ -1869,7 +1873,19 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
     let followsMethodOrGetHeader = false;
 
     if (t.opcode === 0x2d) {
-      for (let lookbehind = tokenIndex - 2; lookbehind >= 0; lookbehind--) {
+      /*
+       * Cycle 115: conditional-compilation directive records -- and a
+       * directive's own attached `;` (`#End-If;`) -- are transparent to
+       * this boundary: 18323 `Global date &x; #If ... #End-If; <2 blank>`
+       * stores `15 75 76 78 15 2D 4F 4F`, the declaration's boundary.
+       */
+      const isDirective = (token: Token | undefined) => token !== undefined && token.opcode >= 0x75 && token.opcode <= 0x78;
+      let boundary = tokenIndex - 1;
+      while (
+        boundary >= 0 &&
+        (isDirective(tokens[boundary]) || (tokens[boundary].opcode === 0x15 && isDirective(tokens[boundary - 1]) && tokens[boundary - 1].opcode !== 0x75))
+      ) boundary--;
+      for (let lookbehind = boundary - 1; lookbehind >= 0; lookbehind--) {
         const previous = tokens[lookbehind];
 
         if (previous.opcode === 0x15 || previous.kind === TokenKind.Comment) {
@@ -1882,7 +1898,7 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
            * lines (18580; also 28920, 28954, 28963 -- every such site in
            * the corpus).
            */
-          if (previous.opcode === 0x4e && lookbehind === tokenIndex - 2 && tokens[tokenIndex - 1]?.opcode === 0x15) continue;
+          if (previous.opcode === 0x4e && lookbehind === boundary - 1 && tokens[boundary]?.opcode === 0x15) continue;
           break;
         }
 
@@ -2388,6 +2404,9 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
      */
     const bareSemicolonFollowedByBareSemicolon =
       t.opcode === 0x15 && nextToken?.opcode === 0x15;
+    // Cycle 115: `#End-If;` / `#Then;` -- see the 0x76 .. 0x78 formats.
+    const directiveFollowedByBareSemicolon =
+      t.opcode >= 0x76 && t.opcode <= 0x78 && nextToken?.opcode === 0x15;
     const inlineHeaderCommentBeforeSemicolon =
       t.opcode === 0x4e &&
       nextToken?.opcode === 0x15 &&
@@ -2475,6 +2494,7 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         elseFollowedByBareSemicolon ||
         docCommentFollowedByBareSemicolon ||
         bareSemicolonFollowedByBareSemicolon ||
+        directiveFollowedByBareSemicolon ||
         commentInlineAfterStatementBeforeNewlineOnce
       ) {
         /*
