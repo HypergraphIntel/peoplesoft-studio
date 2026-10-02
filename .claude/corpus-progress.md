@@ -1,14 +1,14 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 129)
+## Current status (2026-10-02, Cycle 130)
 
-- **Current target:** Cycle 129 -- decoder: a 0x48 reference to a row with
-  a qualifier and a blank name is an empty quoted name (`BarName.""`).
-  EXACT 29,719 -> 29,720 (+1: 6080), protected PASS, 0 EXACT ->
-  non-EXACT, forward encode unchanged (0 bytes / 0 reference lists),
-  ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See "Compiler Decoder
-  Cycle 129".
-- **Last successful calibration:** Cycle 129 (decoder blank quoted names).
+- **Current target:** Cycle 130 -- decoder: the body ends at the
+  header-declared trailer separator. EXACT 29,720 -> 29,721 (+1: 18105) =
+  forward-exact; the decoder-only frontier is empty. Protected PASS, 0
+  EXACT -> non-EXACT, forward encode unchanged (0 bytes / 0 reference
+  lists), ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See "Compiler
+  Decoder Cycle 130".
+- **Last successful calibration:** Cycle 130 (decoder trailer boundary).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -24,20 +24,21 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 130):** decoder -- 18105, the last decoder-only
-  program: its final statement `sourceDisplay()` has no `;`, so the
-  trailer's 0x07 follows `)` (`14 07` at 805 of 854) and the relaxed
-  trailer check (decoder.ts ~1063-1140: 0x07 after a comment token / 0x15
-  / 0xC0 / 0x64, only without a strict `2D 07`) misses it; the trailer
-  decodes as code (14 unmapped). 6080 also ends `14 07` but as its last
-  byte (no trailer). Census every program's trailer start -- the encoder's
-  own program / trailer boundary for forward-exact programs is the
-  ground truth -- by the byte before the 0x07, before relaxing the gate.
-  After 18105 the decoder-only frontier is empty; remaining work is
-  encoder families (COMPLETE_DOWNSTREAM 92, ACTIVE_PACKAGE 72,
-  ENCODE_ERROR 69 ...). README.md has unrelated uncommitted user edits --
-  never stage it.
-- **Newly established rules this session:** Cycle 129 (decoder): a 0x48 row
+- **Next action (Cycle 131):** encoder -- every remaining non-EXACT program
+  needs encoder (or reference) work. Largest single byte mechanism with
+  references already exact (COMPLETE_DOWNSTREAM 93): a stored 0x4F
+  (blank-line marker) after a standalone comment / disabled-code run that
+  the encoder does not write -- 26 ordinary (2809 2958 4429 4666 4928 5525
+  6493 6495 ...) + 8 App Class (28869 28927 29138 ...). Census every
+  stored 0x4F after a 0x24 / 0x55 run against source blank lines and the
+  encoder's layout rule (emitLayoutRange / comment runs) before changing
+  it; keep the App Class layout path separate. Other candidates: Function
+  signature trailer byte 02 vs 01 (9), try / catch grammar (19
+  ENCODE_ERROR), ACTIVE_PACKAGE (72). README.md has unrelated uncommitted
+  user edits -- never stage it.
+- **Newly established rules this session:** Cycle 130 (decoder): the body
+  ends at the 0x07 separator at 36 + header[5] (header-declared length);
+  Cycle 129 (decoder): a 0x48 row
   with a qualifier and a blank name renders `Qualifier.""`;
   Cycle 128 (decoder): 0x6E at
   an opcode position is always `Continue` (its `;` is a separate 0x15);
@@ -167,6 +168,58 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Decoder Cycle 130 -- the header-declared trailer boundary
+
+**Baseline reproduced fresh at `a4b0296`:** 29,720 / 489, forward-exact
+29,721, protected 430/430, taxonomy row-identical, decoder-only frontier
+1 (18105), fallback 70 (13525 in, EXACT), ROUNDTRIP_ONLY 0. **Result:**
+EXACT **29,720 -> 29,721 (+1: 18105) = forward-exact**: the forward-exact
+decoder-only frontier is empty. 0 EXACT -> non-EXACT, forward encode
+unchanged (0 program bytes / 0 reference lists across 30,209), protected
+430/430, ROUNDTRIP_ONLY 0, fallback 70. LOCAL SNAPSHOT only. Commits:
+cfd7f00 (census), 4994f44 (decoder). README.md (unrelated uncommitted
+user edits) untouched and never staged.
+
+Census (`cycle130-trailer-boundary-census.ts`): the encoder writes
+statements.length + 1 at header offset 5, then 0x07, then the trailer
+(names, 16-byte records, 4-byte slots); the byte at 36 + header[5] is a
+0x07 in all 30,209 programs (App Class 1,510). Trailer present 3,150
+programs, empty 27,059. Byte before the separator: 0x15 25,217, 0x2D
+2,373, 0x00 2,112, End-If 328, `)` 75, End-Evaluate 74, end-method 13,
+end-try 6, End-For 4, False 3, True 2, End-While 1, end-interface 1. The
+decoder's boundary (strict `2D 07` scan, then relaxed predecessors
+comment / 0x15 / 0xC0 / 0x64, only without a strict marker) agreed with
+the header everywhere but 18105 (`14 07`, 48-byte trailer) and 30162
+(`71 07`, 128 bytes). `14 07`: 76 -- the separator of an empty trailer in
+74 EXACT programs (6080 ...), of a trailer once (18105), and once inside
+a body. Local bytes cannot separate 6080 from 18105; the header can.
+
+18105 (PTAFUSER_LIST.PTAFUSER_SOURCE.FieldChange, ordinary): forward- and
+reference-exact; source ends `End-Function;` / blank / `sourceDisplay()`
+(no `;`); header[5] 769 -> separator 805 (encoder: 805); trailer =
+`sourceDisplay` (28 bytes) + one record + one slot. The decoder read the
+trailer as code (`sourceDisplay() sourceDisplay` + 14 unmapped). 6080:
+header[5] 45 -> separator 81 = its last byte; empty trailer.
+
+Fix: stop at the header separator when that byte is a 0x07 (trailerOffset
+= separator - 1, as the scans set it); the scans remain for buffers
+without a real header (synthetic fixtures). Variants: `)` as another
+predecessor +1 (not 30162); header-first +1, 2 programs changed (18105,
+30162); header-only (scans skipped when the header is valid) +1 but the
+marker 0x2D re-renders in 2,339 programs -- rejected. Decoded text
+changed in 18105 and 30162 (DSM -> COMPLETE_DOWNSTREAM, not forward-exact,
+masked); decoder / header disagreements 2 -> 0. Cycle 124-129 gains, all
+2,803 EXACT trailer-bearing programs and the 74 EXACT `14 07`
+empty-trailer programs still EXACT.
+
+Rerank: forward-exact but not EXACT 1 -> 0. DECODE_SOURCE_MISMATCH 69 ->
+67 (66 source-encoding artefacts + 29858: App Class, not forward-exact,
+unreadable 0x50 number literal). Categories: COMPLETE_DOWNSTREAM 93,
+ACTIVE_PACKAGE 72, ENCODE_ERROR 69, DSM 67, ACTIVE_RECORD_FIELD 39,
+ACTIVE_RECORD 32, UNSUPPORTED_SYNTAX 30, ACTIVE_FIELD 26, ACTIVE_OTHER 20,
+STRUCTURAL_ORDERING 18, ACTIVE_SCROLL 13, QUOTED_COMPONENT 8,
+ACTIVE_DECLARE_FUNCTION 1 (NONEXACT 488).
 
 ## Compiler Decoder Cycle 129 -- blank qualified names are empty quoted names
 
