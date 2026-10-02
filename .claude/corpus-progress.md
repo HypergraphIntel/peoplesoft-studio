@@ -193,8 +193,8 @@ Census (`cycle133-comment-terminator-census.ts`): 6,306 stored 0x4E /
 4E` (6,178) always a comment after the `;` (4,456 EXACT); 0 other.
 Opcode: an own-line comment before a `;` stores 0x24 (19 ordinary, 12
 App Class), an inline one 0x4E (47 / 81). Targets (9, App Class, all
-class-header members; target statement kinds: property 5, instance 2,
-method signature 1, get 1): 28910 `property string TypeDesc /* e.g.
+class-header members; target statement kinds: property 5 (one with `get`),
+instance 3, method signature 1): 28910 `property string TypeDesc /* e.g.
 Website */;` stores `0A 4E 15`, the encoder dropped the comment (layout
 comments were scanned only between members, a member's span runs to its
 `;`); 28961 `get /* .. */;` resurfaced as a 0x24 later; 28920 / 28954
