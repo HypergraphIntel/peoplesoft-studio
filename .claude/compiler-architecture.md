@@ -6,8 +6,8 @@ chronological notes in `corpus-progress.md` where they disagree (see
 "Stale assumptions"). Code is authority; line numbers are approximate.
 
 Corpus at Cycle 123 HEAD: TOTAL 30,209 / EXACT 29,656 / NONEXACT 553 (Cycle 124:
-EXACT 29,681 / NONEXACT 528; Cycle 125: EXACT 29,707 / NONEXACT 502 -- both
-decoder only); forward-exact
+EXACT 29,681 / NONEXACT 528; Cycle 125: EXACT 29,707 / NONEXACT 502; Cycle 126:
+EXACT 29,715 / NONEXACT 494 -- all decoder only); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -211,11 +211,23 @@ token that would end its line stays on that line (Cycle 125, one rule
 for every token but the 0x4E inline comment: Then, Else, try, When-Other,
 `;`, 0x24 comment / REM statement, doc comment, directives;
 `cycle125-empty-statement-census.ts`). The source normalizer's `Then` / `;`
-join is now redundant for decoded text. Remaining rendering gaps
-(forward-exact programs that fail only on decoded source, 14): a 0x4E
-inline comment followed by code on its line (8: `If /* c */&x ...`),
-decoder failures (3), spacing of an index followed by a call `[&I](&J)`
-(3).
+join is now redundant for decoded text.
+
+Comment opcodes and lines: 0x24 (standalone comment / REM; only
+whitespace before it on its source line) and 0x6D (doc comment) end their
+line. 0x4E (inline; code before it on its line) takes over the line ending
+of the token it follows (Cycle 126, `cycle126-inline-comment-census.ts`):
+the line ends after the comment exactly when that token has NEWLINE_AFTER
+(`;`, Then, Else, And, Or, When-Other); otherwise the code goes on on the
+comment's line (`If /* c */&x`, `f(&a, /* c */&b)`, `"X" /* c */ And`),
+an operand tight against `*/`, keywords / operators with their own space.
+0x2D / 0x4F after a comment still supply their own line breaks; a 0x4E
+before a statement's own `;` (definition 55's `0 4E 15`) keeps its rule.
+
+Remaining rendering gaps (forward-exact programs that fail only on decoded
+source, 6): decoder failures (3: 6080 unmapped 0x48 run in `Transfer(...,
+ItemName...)`, 16759 0x6E, 18105 0x00 run), spacing of an index followed
+by a call `[&I](&J)` (3: 13559 13645 24037).
 
 ## 11. Taxonomy semantics (`cycle73-nonexact-taxonomy.ts`)
 

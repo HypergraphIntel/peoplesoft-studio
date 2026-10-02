@@ -1,14 +1,14 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 125)
+## Current status (2026-10-02, Cycle 126)
 
-- **Current target:** Cycle 125 -- decoder: a `;` after a token that
-  would end its line stays on that line. EXACT 29,681 -> 29,707 (+26),
-  protected PASS, 0 EXACT -> non-EXACT, forward encode unchanged (0 bytes
-  / 0 reference lists), ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT).
-  See "Compiler Decoder Cycle 125".
-- **Last successful calibration:** Cycle 125 (decoder empty-statement
-  semicolon placement).
+- **Current target:** Cycle 126 -- decoder: an inline comment (0x4E) takes
+  over the line ending of the token it follows. EXACT 29,707 -> 29,715
+  (+8), protected PASS, 0 EXACT -> non-EXACT, forward encode unchanged (0
+  bytes / 0 reference lists), ROUNDTRIP_ONLY 0, fallback 70 (13525 in,
+  EXACT). See "Compiler Decoder Cycle 126".
+- **Last successful calibration:** Cycle 126 (decoder inline comment line
+  continuation).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -24,18 +24,19 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 126):** decoder -- a 0x4E inline comment followed by
-  code on its line, the largest remaining decoder-only family (8
-  forward-exact: 2775 2791 7177 9284 18217 19510 21798 28912; 28818 too):
-  `If /*Not ... And*/&RS.GetRow(&i)...`, `If /* ... */%PanelGroup = ...`
-  store `1C 4E 01|12 ...` and decode with a line break after the comment.
-  `commentInlineContinuesToNextToken` only keeps And / Or / `)` / Then on
-  the comment's line, and the `True Or /* c */\nFalse` fixture forbids a
-  blanket rule -- census every 0x4E by next opcode against source
-  placement (same line / newline) first. Out of scope: spacing `[&I](&J)`
-  (13559 13645 24037), decoder failures (6080 16759 18105), the 66
-  source-encoding artefacts, encoder families.
-- **Newly established rules this session:** Cycle 125 (decoder): a 0x15
+- **Next action (Cycle 127):** decoder -- spacing of an index followed by a
+  call / index, `&arr [&I](&J)` rendered `&arr [&I] (&J)` (3 forward-exact:
+  13559 13645 24037). `]` (0x4D) has SPACE_AFTER with a `[`-only exception;
+  census every `4D 0B` against source spacing (tight / spaced) with EXACT
+  controls before extending it. Then, separately, the 3 decoder failures
+  (6080 0x48 run in `Transfer(True, MenuName.X, BarName."", ItemName.`,
+  16759 0x6E at 3785 not before 0x15, 18105 0x00 run) -- one opcode
+  question each. Out of scope: the 66 source-encoding artefacts and
+  encoder families.
+- **Newly established rules this session:** Cycle 126 (decoder): a 0x4E
+  inline comment ends its line iff the token before it has NEWLINE_AFTER
+  (else the code continues on its line; operands tight after `*/`);
+  Cycle 125 (decoder): a 0x15
   directly after any NEWLINE_AFTER token but 0x4E renders on that token's
   line (`Then;`, `try;`, `/* c */;`, `rem X;;`); Cycle 124 (decoder): 0x51 is
   always `PanelGroup` (402 / 402); Cycle 122: an ordinary
@@ -155,6 +156,56 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Decoder Cycle 126 -- code after an inline comment
+
+**Baseline reproduced fresh at `2eafdbd`:** 29,707 / 502, forward-exact
+29,721, protected 430/430, taxonomy row-identical, decoder-only frontier
+14 (8 inline-comment targets), fallback 70 (13525 in, EXACT),
+ROUNDTRIP_ONLY 0. **Result:** EXACT **29,707 -> 29,715 (+8: 2775 2791
+7177 9284 18217 19510 21798 28912)**, 0 EXACT -> non-EXACT, forward encode
+unchanged (0 program bytes / 0 reference lists across 30,209), protected
+430/430, ROUNDTRIP_ONLY 0, fallback 70. LOCAL SNAPSHOT only. Commits:
+82fd7aa (census), 77598b6 (decoder).
+
+Census (`cycle126-inline-comment-census.ts`): 10,719 0x4E in 2,170
+programs (323 App Class; 54 unaligned). Next token alone does not decide
+the line: an operand after the comment is on a new line in every EXACT
+site (0x01 1,374, 0x21 408, 0x0A 292, 0x12 23) yet on the same line in
+all 8 targets. Previous token decides it: new line after `;` (EXACT 0 /
+2,765), Then (0 / 956), Else (0 / 157), Or (0 / 44), And (0 / 36),
+When-Other (0 / 21); same line after If (19 / 0, every one non-EXACT),
+`,` (22 / 0), `]` (21 / 0), `|` (7 / 0); `)` mixed (EXACT 8 / 9, the new
+lines before End-If or 0x42 0x2D, which break on their own). The 0x41
+before Or / And is not the discriminator (~50 of 130 sites lack it).
+0x2D (2,325) / 0x4F (1,394) after a 0x4E are always new lines. Spacing on
+a continued line: operand tight (44 / 44), keyword / operator spaced
+(74 / 74).
+
+Targets: every one is `If` + 0x4E + the condition's first token (`1C 4E
+.. 01 | 0A | 12 | 1D`): 2775 2791 9284 `If /*..*/%PanelGroup`, 28912 x5
+`If /* INSTALLATION.EONC_INSTALLED */%This...` (its Cycle 125 `;;;` is
+intact), 7177 / 18217 / 21798 `If /*..*/&x`, 19510 x5 (four `*/ Not (`,
+one `*/IsNotificationEnabled()`). 7177 was exposed by Cycle 125 fixing
+its `/* c */;` site.
+
+Rule: an inline comment ends its line iff the token before it (skipping
+earlier inline comments) has NEWLINE_AFTER. Variants
+(`RESEARCH_DECODER_MODULE`): comment never ends the line (A) +6 / -959
+(636 roundtrip losses) -- rejected; new rule plus the old next-token list
+(And / Or / `)` / Then through 0x41 / 0x42) and new rule alone identical
+on all 30,209 (+8, 0 lost) -- list removed; If-only +8 (10 programs
+changed vs 21). Decoded text changed in 21 programs, none previously
+EXACT; line disagreements after a 0x4E 103 -> 0. Cycle 124 (25) and 125
+(26) gains all still EXACT; 28818 DECODE_SOURCE_MISMATCH -> COMPLETE_DOWNSTREAM
+(masked, not forward-exact).
+
+Rerank: forward-exact but not EXACT 14 -> 6 (decoder failures 3, spacing
+3). Categories: COMPLETE_DOWNSTREAM 92, DSM 74 (66 source-encoding
+artefacts), ACTIVE_PACKAGE 72, ENCODE_ERROR 69, ACTIVE_RECORD_FIELD 39,
+ACTIVE_RECORD 32, UNSUPPORTED_SYNTAX 30, ACTIVE_FIELD 26, ACTIVE_OTHER 20,
+STRUCTURAL_ORDERING 18, ACTIVE_SCROLL 13, QUOTED_COMPONENT 8,
+ACTIVE_DECLARE_FUNCTION 1 (NONEXACT 494).
 
 ## Compiler Decoder Cycle 125 -- empty-statement semicolons stay on their line
 

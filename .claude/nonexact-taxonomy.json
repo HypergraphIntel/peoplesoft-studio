@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-02T17:19:20.575Z",
+ "generatedAt": "2026-10-02T17:58:50.375Z",
  "totalDefinitions": 30209,
- "exactCount": 29707,
- "nonexactCount": 502,
+ "exactCount": 29715,
+ "nonexactCount": 494,
  "rows": [
   {
    "definitionId": 522,
@@ -98,22 +98,6 @@
     "generatedCount": 5,
     "firstDivergenceKind": "scroll"
    }
-  },
-  {
-   "definitionId": 2775,
-   "displayName": "1=CM_ROLE_ACCOMPS, 2=CM_IMPORTANCE, 12=RowInit, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 2791,
-   "displayName": "1=CM_ROLE_COMP_VW, 2=CM_IMPORTANCE, 12=RowInit, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 2809,
@@ -631,14 +615,6 @@
    "primaryCategory": "ENCODE_ERROR"
   },
   {
-   "definitionId": 7177,
-   "displayName": "1=GPFR_DSN_WRK, 2=TREECNTRLFIELD, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 7285,
    "displayName": "1=GPFR_GAR_DAT, 2=EMPLID, 12=SavePreChange, 0= , 0= , 0= , 0= ",
    "classification": "UNSUPPORTED_SYNTAX",
@@ -761,14 +737,6 @@
     "generatedCount": 2,
     "firstDivergenceKind": "stored-only"
    }
-  },
-  {
-   "definitionId": 9284,
-   "displayName": "1=GPMY_RPT_RC, 2=GPMY_ORG_LINK_OPTN, 12=SaveEdit, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 9986,
@@ -2249,14 +2217,6 @@
    }
   },
   {
-   "definitionId": 18217,
-   "displayName": "9=ADDR_HISTORY_SEC, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 18280,
    "displayName": "9=AMM_RAWXML4, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
    "classification": "ENCODE_ERROR",
@@ -2404,14 +2364,6 @@
    "sourceEncodeExact": false,
    "roundtripExact": true,
    "firstDiffOffset": 13758,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 19510,
-   "displayName": "9=PT_HEADERPAGE, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
@@ -2632,14 +2584,6 @@
     "storedCount": 26,
     "generatedCount": 26
    }
-  },
-  {
-   "definitionId": 21798,
-   "displayName": "10=GPIN_TDS_GEN, 39=GBL, 1=GPIN_TDS_GEN, 12=SaveEdit, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 21943,
@@ -3838,11 +3782,17 @@
   {
    "definitionId": 28818,
    "displayName": "104=ANET_CRR, 107=CRR, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 6,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 20,
+    "generatedCount": 20
+   }
   },
   {
    "definitionId": 28821,
@@ -4053,14 +4003,6 @@
     "storedCount": 0,
     "generatedCount": 0
    }
-  },
-  {
-   "definitionId": 28912,
-   "displayName": "104=BEN_HOMEPAGE_NOTIFY, 107=HomePageNotification, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 28920,
