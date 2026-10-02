@@ -8,8 +8,8 @@ chronological notes in `corpus-progress.md` where they disagree (see
 Corpus at Cycle 123 HEAD: TOTAL 30,209 / EXACT 29,656 / NONEXACT 553 (Cycle 124:
 EXACT 29,681 / NONEXACT 528; Cycle 125: EXACT 29,707 / NONEXACT 502; Cycle 126:
 EXACT 29,715 / NONEXACT 494; Cycle 127: EXACT 29,718 / NONEXACT 491; Cycle 128:
-EXACT 29,719 / NONEXACT 490; Cycle 129: EXACT 29,720 / NONEXACT 489 -- all
-decoder only); forward-exact
+EXACT 29,719 / NONEXACT 490; Cycle 129: EXACT 29,720 / NONEXACT 489; Cycle 130:
+EXACT 29,721 / NONEXACT 488 -- all decoder only); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -245,11 +245,18 @@ the bare qualifier in the name table and renders as an empty quoted name,
 sites, 5 blank-name rows, all source `Qualifier.""`). Only known quoted
 qualifiers; unknown bare names and failed lookups stay unknown.
 
-Remaining rendering gap (forward-exact programs that fail only on decoded
-source, 1): 18105 -- the relaxed trailer check accepts a 0x07 only after
-a comment token, 0x15, 0xC0 or 0x64 (end-method); 18105's final statement
-`sourceDisplay()` has no `;`, so its trailer starts `14 07` (offset 805)
-and decodes as code.
+Body / trailer boundary (Cycle 130, `cycle130-trailer-boundary-census.ts`):
+the header's uint32 at offset 5 is statements.length + 1, so the 0x07
+separator sits at 36 + header[5] (a 0x07 in all 30,209 programs) and the
+trailer (declaration names, 16-byte records, slots) follows it, empty
+when nothing is declared. The decoder ends the body there; the strict
+`2D 07` / relaxed predecessor scans only serve buffers without a real
+header. A final statement may lack its `;` (`sourceDisplay()` 18105).
+
+The forward-exact decoder-only frontier is empty (EXACT = forward-exact =
+29,721). What remains in DECODE_SOURCE_MISMATCH: 66 snapshot
+source-encoding artefacts and 29858 (App Class, not forward-exact, a 0x50
+number literal it cannot read).
 
 ## 11. Taxonomy semantics (`cycle73-nonexact-taxonomy.ts`)
 

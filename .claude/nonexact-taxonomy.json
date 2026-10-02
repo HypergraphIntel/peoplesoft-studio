@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-02T19:43:59.901Z",
+ "generatedAt": "2026-10-02T20:25:56.723Z",
  "totalDefinitions": 30209,
- "exactCount": 29720,
- "nonexactCount": 489,
+ "exactCount": 29721,
+ "nonexactCount": 488,
  "rows": [
   {
    "definitionId": 522,
@@ -2085,16 +2085,6 @@
    "errorMessage": "Unsupported function metadata type: object",
    "construct": "UNKNOWN",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 18105,
-   "displayName": "1=PTAFUSER_LIST, 2=PTAFUSER_SOURCE, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1895: expected ;",
-   "construct": "sourceDisplay",
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 18110,
@@ -6577,11 +6567,17 @@
   {
    "definitionId": 30162,
    "displayName": "104=PTAI_ACTION_ITEMS, 105=Pagelet, 107=GetAGInstanceForPagelet, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 0,
+    "generatedCount": 0
+   }
   },
   {
    "definitionId": 30170,
