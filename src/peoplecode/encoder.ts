@@ -4093,12 +4093,24 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    */
   for (const [name, type] of context?.applicationClassDeclaredBuiltinVariables ?? []) {
     if (/^Record$/i.test(type.trim())) recordVariables.add(name);
+    /*
+     * Cycle 135: likewise a Rowset (header `instance` / `property`,
+     * `Global` / `Component`) is a declared Rowset in every body: its
+     * `.GetRow(...)` is a Row whose bare member is a RECORD row (30107
+     * `instance Rowset &pendingActions` ... `&pendingActions.GetRow(&rsCount)
+     * .PTAFAW_DECISION` stores `4A`). `cycle135-reference-delta.ts`: 15
+     * programs changed, every added row (12 RECORD, 21 FIELD) in the stored
+     * list, 0 lists or programs farther. A header Row declaration changes
+     * no program -- not modeled.
+     */
+    else if (/^Rowset$/i.test(type.trim())) chainSemanticsDeclaredRowsetVariables.add(name);
     // Cycle 134: `Global array of Record &x;` -- once indexed, a Record (28764)
     else if (/^array\s+of\s+Record$/i.test(type.trim())) recordArrayVariables.add(name);
   }
   for (const parameter of context?.methodParameters ?? []) {
     const name = `&${parameter.name.replace(/^&/, '')}`.toLowerCase();
     if (context?.applicationClassDeclaredBuiltinVariables?.has(name) && !/^Record$/i.test(parameter.type.trim())) recordVariables.delete(name);
+    if (context?.applicationClassDeclaredBuiltinVariables?.has(name) && !/^Rowset$/i.test(parameter.type.trim())) chainSemanticsDeclaredRowsetVariables.delete(name);
     registerTypedParameter(parameter.name, parameter.type);
   }
   /*
@@ -6626,6 +6638,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         applicationClassVariables.delete(name.trim().toLowerCase());
         // Cycle 120: and a Record declared outside the body (a Local Record re-adds it)
         if (context?.applicationClassDeclaredBuiltinVariables?.has(name.trim().toLowerCase())) recordVariables.delete(name.trim().toLowerCase());
+        // Cycle 135: and a Rowset declared outside the body (a Local Rowset is in rowsetVariables)
+        if (context?.applicationClassDeclaredBuiltinVariables?.has(name.trim().toLowerCase())) chainSemanticsDeclaredRowsetVariables.delete(name.trim().toLowerCase());
       }
     }
     if (unitScopedClassRows || applicationClassBody) {
@@ -11818,6 +11832,20 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           if (metadataBuiltinType !== undefined && /^Record$/i.test(metadataBuiltinType.trim()) && !isMethodCall) {
             expectedReferenceMember = 'field';
             chainSemantics = { valueType: 'record', binding: 'dependency-bound', provenance: 'declared' };
+          }
+          /*
+           * Cycle 135: a property the provider declares `Rowset` is a
+           * declared Rowset value -- its `.GetRow(...)` a Row whose bare
+           * member is a RECORD row, `.GetRow(..).GetRecord(..)` a Record whose
+           * member is a FIELD row (29415 `%This.rsTreeWrk_L1.GetRow(&i)
+           * .GetRecord(1).FIELD_VALUE` stores `4A`; 30084 ...). Its own
+           * immediate bare member stays as before (Cycle 118: no member after
+           * a Rowset result stores a row). `cycle135-reference-delta.ts`: 25
+           * programs changed, every added row (16 RECORD, 35 FIELD) in the
+           * stored list, 0 lists or programs farther.
+           */
+          if (metadataBuiltinType !== undefined && /^Rowset$/i.test(metadataBuiltinType.trim()) && !isMethodCall) {
+            chainSemantics = { valueType: 'rowset', binding: 'dependency-bound', provenance: 'declared' };
           }
         }
 
