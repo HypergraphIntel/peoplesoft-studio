@@ -149,10 +149,11 @@ for (const def of listSnapshotDefinitions(db) as any[]) {
     const generatedNames = new Map<number, [string, string]>();
     const names = new NameTable();
     for (const r of artifacts.references as any[]) {
-      if (r.kind === 'record') generatedNames.set(Number(r.index), ['RECORD', String(r.recordName).toUpperCase()]);
-      else if (r.kind === 'field') generatedNames.set(Number(r.index), ['FIELD', String(r.fieldName).toUpperCase()]);
+      // Cycle 121 fix: a generated reference's index is 0-based (owner row index 0 = NAMENUM 1)
+      if (r.kind === 'record') generatedNames.set(Number(r.index) + 1, ['RECORD', String(r.recordName).toUpperCase()]);
+      else if (r.kind === 'field') generatedNames.set(Number(r.index) + 1, ['FIELD', String(r.fieldName).toUpperCase()]);
       // the decoder needs every operand's text to walk the stream
-      names.add(Number(r.index), String(r.recordName ?? r.fieldName ?? r.packageName ?? r.objectName ?? 'X'));
+      names.add(Number(r.index) + 1, String(r.recordName ?? r.fieldName ?? r.packageName ?? r.objectName ?? 'X'));
     }
     const tokens = decodeProgram(artifacts.program, names, { mode: 'auto', isApplicationClass: app } as any).tokens;
     generated = occurrences(tokens, num => generatedNames.get(num), app);
