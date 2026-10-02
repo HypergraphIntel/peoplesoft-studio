@@ -2121,6 +2121,37 @@ test('an inline comment between a statement and an empty statement stays on the 
   assert.equal(result.text, 'Local string &a; /* c */;\n');
 });
 
+/*
+ * Cycle 125: a `;` (0x15) directly after a token that would end its line
+ * stays on that line -- in source, a `;` after a comment, REM statement,
+ * `;`, Then, Else, try or When-Other is never on a line of its own.
+ */
+function commentBytes(text: string): number[] {
+  const body = utf16(text);
+  return [0x24, body.length & 0xff, body.length >> 8, ...body];
+}
+
+for (const [label, bytes, expected] of [
+  // 19344 / 23465: `X;` then `/* c */;` on the next line stores `15 24 15`
+  ['a standalone comment (19344)', [0x44, 0x40, ...utf16('string'), 0x00, 0x00, 0x01, ...utf16('&a'), 0x00, 0x00, 0x15, ...commentBytes('/* c */'), 0x15], 'Local string &a;\n/* c */;\n'],
+  // 28911: `rem ... Year(&CovrgBeginDT);;` -- the REM statement owns the first `;`
+  ['a REM statement (28911)', [...commentBytes('rem X;'), 0x15], 'rem X;;\n'],
+  // 29722: `try;`
+  ['try (29722)', [0x65, 0x15, 0x67, 0x15], 'try;\nend-try;\n'],
+  // 29123: `If Not &_recConfig.SelectByKey() Then;;`
+  ['Then (29123)', [0x1c, 0x2f, 0x1f, 0x15, 0x15, 0x1a, 0x15], 'If True Then;;\nEnd-If;\n'],
+  // 24226: `When = "1"` / `/* Next Panel */;` stores `2D 24 15`
+  ['a comment after a When header (24226)', [0x3c, 0x01, ...utf16('&a'), 0x00, 0x00, 0x3d, 0x06, 0x16, ...utf16('1'), 0x00, 0x00, 0x2d, ...commentBytes('/* c */'), 0x15, 0x3f, 0x15], 'Evaluate &a\nWhen = "1"\n  /* c */;\nEnd-Evaluate;\n'],
+  // 9136: `Else` / `/* ... */;` stores `19 24 15`
+  ['a comment after Else (9136)', [0x1c, 0x2f, 0x1f, 0x19, ...commentBytes('/* c */'), 0x15, 0x1a, 0x15], 'If True Then\nElse\n  /* c */;\nEnd-If;\n']
+] as const) {
+  test(`an empty statement after ${label} stays on its line`, () => {
+    const result = decodeProgram(Buffer.from([...HEADER, ...bytes]), new NameTable());
+    assert.equal(result.unknownOpcodes.length, 0);
+    assert.equal(result.text, expected);
+  });
+}
+
 test('a string literal with a real non-ASCII character survives whole, the same bug as comments once had', () => {
   // readTextRun (used for string literals and bare identifiers, unlike
   // comments' own length-prefixed readLengthPrefixedText) had the same

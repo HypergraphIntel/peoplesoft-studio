@@ -2324,72 +2324,26 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
       nextToken?.kind === TokenKind.Comment &&
       nextToken.opcode === 0x4e;
     /*
-     * An empty When-Other clause (no body statements) is immediately
-     * followed by its own bare `;`, on the SAME source line --
-     * `When-Other;`, not `When-Other\n;`. When-Other's own NEWLINE_AFTER
-     * exists to separate it from real body statements
-     * (`When-Other\n   <stmt>;`); the semicolon's own NEWLINE_AFTER
-     * already supplies the line break in the empty-body case, so adding
-     * one here too just splits "When-Other" and ";" onto separate lines
-     * -- the exact same reasoning as ENDBLOCK_STYLE/END_FUNCTION_STYLE's
-     * own comments.
+     * A `;` (0x15) directly after a token that would end its line stays on
+     * that token's line; the `;`'s own NEWLINE_AFTER ends it instead.
+     * Enumerated one token at a time until Cycle 125:
      *
-     * ADD_PAY_DTA_NLD.EFFDT.FieldChange (definition 548):
+     *   When-Other;   (548)          Else;   (12251)
+     *   /+ Returns Boolean +/;       X;;  (`GetRowset(Scroll.X);;`)
+     *   #End-If; / #Then;  (Cycle 115)
      *
-     *   When-Other;
-     *   End-Evaluate;
+     * Cycle 125 (`cycle125-empty-statement-census.ts`, LOCAL SNAPSHOT): a
+     * source `;` after a comment, REM statement, `;`, Then, Else, try,
+     * When-Other or doc comment is on the same line in every program (the
+     * only `;` / newline / `;` pairs, 21969 / 23232, store a 0x2D between
+     * them). The enumeration missed Then (`Then;`, 928 EXACT sites the
+     * source normalizer joined; `Then;;` 29123), a standalone comment or
+     * REM statement (`/* c *\/;` 2807, `rem X;;` 28911 -- 39 sites, every
+     * one in a non-EXACT program) and try (`try;` 29722). 0x4E inline
+     * comments keep their own rules (definition 55's `0 4E 15`).
      */
-    const whenOtherFollowedByBareSemicolon =
-      t.opcode === 0x3e && nextToken?.opcode === 0x15;
-    /*
-     * `Else` may carry its own optional, immediately-following `;` before
-     * its body starts (see encoder.ts's matching fix) -- `Else;`, not
-     * `Else\n;`. Else's own NEWLINE_AFTER exists to separate it from its
-     * body's first statement; the semicolon's own NEWLINE_AFTER already
-     * supplies that line break, the same reasoning as the When-Other
-     * case just above.
-     *
-     * PA_DFN_OPT_SET.FORM_CD_PROMPT.RowInit (definition 12251):
-     *
-     *   Else;
-     *      DERIVED.FORM_CD_PROMPT = "PA_DFN_FORM_VW";
-     */
-    const elseFollowedByBareSemicolon =
-      t.opcode === 0x19 && nextToken?.opcode === 0x15;
-    /*
-     * A method/property-getter implementation header's trailing
-     * parameter/return doc comment (`/+ ... +/`, opcode 0x6D) is
-     * immediately followed by the header's own closing `;` on the SAME
-     * source line -- `/+ Returns Boolean +/;`, not `/+ Returns Boolean
-     * +/\n;`. 0x6D's own NEWLINE_AFTER exists to separate it from the
-     * next doc comment or the method body's first statement; the
-     * semicolon's own NEWLINE_AFTER already supplies that line break. A
-     * corpus-wide check found zero examples anywhere in the corpus of
-     * this semicolon on its own line after a doc comment.
-     */
-    const docCommentFollowedByBareSemicolon =
-      t.opcode === 0x6d && nextToken?.opcode === 0x15;
-    /*
-     * Two directly-adjacent `;` tokens in the byte stream (a statement's
-     * own terminator immediately followed by a bare empty-statement `;`,
-     * with no intervening token at all) render on the SAME source line --
-     * `GetRowset(Scroll.X);;`, not `GetRowset(Scroll.X);\n;`. The first
-     * semicolon's own NEWLINE_AFTER exists to end an ordinary statement;
-     * the second semicolon's own NEWLINE_AFTER already supplies that line
-     * break here. A corpus-wide scan of all 30,209 definitions' stored
-     * source found every genuinely adjacent `0x15 0x15` token pair
-     * renders this way with zero counter-examples -- a `Global ...;`
-     * declaration list followed, much later in the SOURCE TEXT, by an
-     * unrelated standalone empty statement on its own line (definitions
-     * 21969/23232) is a textually-adjacent but NOT token-adjacent case
-     * (other tokens intervene in the binary), so it is unaffected by this
-     * check.
-     */
-    const bareSemicolonFollowedByBareSemicolon =
-      t.opcode === 0x15 && nextToken?.opcode === 0x15;
-    // Cycle 115: `#End-If;` / `#Then;` -- see the 0x76 .. 0x78 formats.
-    const directiveFollowedByBareSemicolon =
-      t.opcode >= 0x76 && t.opcode <= 0x78 && nextToken?.opcode === 0x15;
+    const bareSemicolonFollows =
+      t.opcode !== 0x4e && nextToken?.opcode === 0x15;
     const inlineHeaderCommentBeforeSemicolon =
       t.opcode === 0x4e &&
       nextToken?.opcode === 0x15 &&
@@ -2475,11 +2429,7 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
     if (f & F.NEWLINE_AFTER) {
       if (
         inlineHeaderCommentBeforeSemicolon ||
-        whenOtherFollowedByBareSemicolon ||
-        elseFollowedByBareSemicolon ||
-        docCommentFollowedByBareSemicolon ||
-        bareSemicolonFollowedByBareSemicolon ||
-        directiveFollowedByBareSemicolon ||
+        bareSemicolonFollows ||
         commentInlineAfterStatementBeforeNewlineOnce
       ) {
         /*
