@@ -6246,17 +6246,21 @@ End-If;`),
   );
   // Shorthand in two top-level statements: two rows; in one statement: one.
   assert.strictEqual(
-    recordRows(`&x = &rs(1).TEST_REC.F1.Value;
+    // (Cycle 121: the rowsets are declared -- an undeclared root's members are inline)
+    recordRows(`Local Rowset &rs;
+&x = &rs(1).TEST_REC.F1.Value;
 &y = &rs(2).TEST_REC.F2.Value;`),
     2
   );
   assert.strictEqual(
-    recordRows(`&x = &rs(1).TEST_REC.F1.Value + &rs2(2).TEST_REC.F2.Value;`),
+    recordRows(`Local Rowset &rs, &rs2;
+&x = &rs(1).TEST_REC.F1.Value + &rs2(2).TEST_REC.F2.Value;`),
     1
   );
   // Function body statements are separate units.
   assert.strictEqual(
     recordRows(`Function A()
+   Local Rowset &rs;
    &x = &rs(1).TEST_REC.F1.Value;
    &y = &rs(1).TEST_REC.F2.Value;
 End-Function;`),
@@ -6274,13 +6278,15 @@ test('a FIELD row is reused within an allocation unit and reopened in the next',
     ).length;
   // Row shorthand in two top-level statements: two FIELD rows.
   assert.strictEqual(
-    fieldRows(`&a = &rs(1).TEST_REC.TEST_FIELD.Value;
+    fieldRows(`Local Rowset &rs;
+&a = &rs(1).TEST_REC.TEST_FIELD.Value;
 &b = &rs(2).TEST_REC.TEST_FIELD.Value;`),
     2
   );
   // In the If and Else of one If: one.
   assert.strictEqual(
-    fieldRows(`If &y Then
+    fieldRows(`Local Rowset &rs;
+If &y Then
    &a = &rs(1).TEST_REC.TEST_FIELD.Value;
 Else
    &b = &rs(1).TEST_REC.TEST_FIELD.Value;
