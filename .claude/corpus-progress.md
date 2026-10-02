@@ -1,16 +1,15 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 121)
+## Current status (2026-10-02, Cycle 122)
 
-- **Current target:** Cycle 121 -- ordinary programs: a member chain
-  rooted at an undeclared variable keeps its RECORD / FIELD members
-  inline; PanelGroup Record / Rowset / Row variables are typed like
-  Component ones. EXACT 29,563 -> 29,647 (+84), protected PASS, 0 EXACT
-  -> non-EXACT, no App Class change, COMPLETE_DOWNSTREAM 101 -> 87,
-  fallback 70 (13525 in, EXACT), ROUNDTRIP_ONLY 0. See "Compiler
-  Semantics Cycle 121".
-- **Last successful calibration:** Cycle 121 (undeclared-root late
-  binding; PanelGroup typing).
+- **Current target:** Cycle 122 -- actionable ordinary PACKAGE failures
+  (leaf-name class identity, directive block ends the leading unit,
+  Component / Returns array built-in rows). EXACT 29,647 -> 29,656 (+9),
+  protected PASS, 0 EXACT -> non-EXACT, only PACKAGE rows changed (15
+  lists closer, 0 farther), COMPLETE_DOWNSTREAM 87 -> 89, fallback 70
+  (13525 in, EXACT), ROUNDTRIP_ONLY 0. See "Compiler Semantics Cycle 122".
+- **Last successful calibration:** Cycle 122 (Component / Returns array
+  built-in rows).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -26,17 +25,23 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action:** ordinary PACKAGE row reuse for named-import and
-  built-in classes -- 75 ordinary programs first diverge at a PACKAGE row
-  (`cycle102-package-mechanism-census.ts`), 43 of them in the external-
-  metadata fallback (parked: classes absent from the snapshot); the rest
-  include stored-reuses / generated-opens for named imports (8) and
-  stored-opens / generated-reuses for built-ins (7), e.g. 5565 (a second
-  PROFILETYPE row), 4602 (a missing RCPARMBASE row). Also open: untyped
-  Function parameters shadowing a declared Record (11513 -- stored keeps
-  their members inline; needs scope-aware declarations), ordinary SCROLL
-  vs SCROLL (10). See "Rerank after Cycle 121".
-- **Newly established rules this session:** Cycle 121: in an ordinary
+- **Next action:** COMPLETE_DOWNSTREAM blank-line markers -- 47 of the
+  89 reference-exact COMPLETE_DOWNSTREAM programs (41 App Class / 48
+  ordinary overall) first differ where stored has a 0x4F the encoder does
+  not write (before If 5, When 4, End-If 2, %Component 2, Constant 2 ...);
+  then `array` as 0x40 keyword vs 0x0A name (5), 0x4F vs 0x2D (4), the 13
+  end-of-program differences. Remaining ordinary PACKAGE: 14 actionable
+  (named-import stored-opens / generated-reuses 3 -- 16567, 19289, 14641;
+  ordering 3 -- 22705 / 22709 / 22713; built-in 3; wildcard 3), 43
+  fallback and 7 metadata-blocked (parked). Also open: untyped Function
+  parameters shadowing a declared Record (11513); ordinary SCROLL (10).
+  See "Rerank after Cycle 122".
+- **Newly established rules this session:** Cycle 122: an ordinary
+  program's Application Class row is identified by its leaf class name
+  within an allocation unit (a same-leaf named import opens none); a
+  conditional-compilation block ends the ordinary leading unit (one
+  program, 4602 -- narrow); `Component array of` / `Returns array of` a
+  built-in type open its row; Cycle 121: in an ordinary
   program a chain rooted at a variable the program never declares is
   late-bound -- its bare RECORD / FIELD members are inline names (symbolic
   `Record.X` / `Field.X` arguments still reference); receiver record
@@ -148,6 +153,53 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 122 -- actionable ordinary PACKAGE failures
+
+**Baseline reproduced fresh at `51a6f4a`:** 29,647 / 562, protected
+430/430, taxonomy row-identical, forward-exact 29,712, fallback 70 (13525
+in), ROUNDTRIP_ONLY 0. (The scratch tools were recreated this session and
+reproduce those numbers.) **Result:** EXACT **29,647 -> 29,656 (+9)**, **0
+EXACT -> non-EXACT**, protected 430/430, ROUNDTRIP_ONLY 0. LOCAL SNAPSHOT
+only. Commits: 7ccf27b (census), a7809a1 (leaf identity), dbf2ae9
+(directive unit), 78181d8 (built-in arrays).
+
+Population (`cycle122-ordinary-package-actionable-census.ts`): 75 ordinary
+first-PACKAGE programs = fallback 43 + metadata-blocked 7 (external class
+identity) + actionable 25. 5565 is in the fallback (not targeted; its
+list moved closer through the import rule).
+
+Rules (each isolated, 0 farther):
+- Leaf-name identity: a named import whose leaf already has a row in the
+  unit opens none (22665 two ReportManager packages, 19155 one class
+  twice: 5 lists closer, +3 forward-exact); the unit pool keys class rows
+  by leaf (18372 `CAFNUI_CORE:OBJECT:Action` after importing
+  `CAFNUI_API:OBJECT:Action`; 2125: 2 lists closer, +2).
+- A conditional-compilation block ends the leading unit (4602: its
+  `Global RCParmBase` after a `#If` block opens a new row). Narrow: the
+  only such program; 1,104 EXACT programs without a directive reuse the
+  import row. Rejected alternatives: a `Declare Function` starts a unit
+  (279 farther); a built-in declaration ends the unit (138 farther).
+- `Component array of <built-in>` (4470, 14341) and `Returns array of
+  <built-in>` (9986, 25290) open the element type's row (8 lists closer,
+  +3).
+Cycle total: 15 lists changed, 15 closer, 12 names-exact, PACKAGE
+distance 39 -> 7, net +6 PACKAGE rows, no non-PACKAGE change; App Class
+programs unchanged; fallback trigger, wildcard claim and 13525 untouched.
+
+## Rerank after Cycle 122
+
+ACTIVE_PACKAGE 81 -> 70, COMPLETE_DOWNSTREAM 87 -> 89 (9986, 28161
+entered; all reference-exact), ACTIVE_RECORD 28 -> 29 (19433), ACTIVE_SCROLL
+14 -> 13. PACKAGE census: PACKAGE-only 92 -> 81, first divergence a
+PACKAGE row 138 -> 127; ordinary first-PACKAGE 64 = fallback 43 +
+metadata-blocked 7 + actionable 14. COMPLETE_DOWNSTREAM shapes: missing
+0x4F 47, substituted 22, end-of-program 13, inserted 6, marker count 1.
+Categories: DSM 114, COMPLETE_DOWNSTREAM 89, ACTIVE_PACKAGE 70,
+ENCODE_ERROR 69, ACTIVE_RECORD_FIELD 38, UNSUPPORTED_SYNTAX 30,
+ACTIVE_RECORD 29, DECODER_BARE_IDENTIFIER 28, ACTIVE_FIELD 26,
+ACTIVE_OTHER 20, STRUCTURAL_ORDERING 18, ACTIVE_SCROLL 13,
+QUOTED_COMPONENT 8, ACTIVE_DECLARE_FUNCTION 1 (NONEXACT 553).
 
 ## Compiler Semantics Cycle 121 -- ordinary Record member reference kinds
 
