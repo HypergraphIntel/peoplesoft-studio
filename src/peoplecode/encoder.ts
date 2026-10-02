@@ -5570,81 +5570,17 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       space();
     }
 
-    if (source[pos] === '@') {
-      pos++;
-      chunks.push(fixed('@'));
-      space();
-      if (source[pos] !== '(') return fail('expected ( after @');
-      parenthesized(expression, false);
-      space();
-      const operator =
-        /^(<>|<=|>=|=|<|>)/.exec(source.slice(pos))?.[0];
-      if (operator !== undefined) {
-        pos += operator.length;
-        chunks.push(fixed(operator));
-        expression();
-      }
-      return;
-    } else if (
-      /^\(\s*&[A-Za-z0-9_]+#?(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*\)\s*\./
-        .test(source.slice(pos))
-    ) {
-      /*
-       * Parentheses may group an object/field expression before a postfix
-       * property access; they are not necessarily a parenthesized boolean
-       * subexpression. Let primary() consume the group and its postfix chain.
-       *
-       * PRCSRUNCNTL_WRK.<fields> (definitions 14194-14196):
-       *
-       *   If (&recRunCtlLang.LANGUAGE_CD).IsInBuf Then
-       *
-       * stores 0x0B...0x14 for the grouped field, followed by ordinary
-       * member access and Then.
-       */
-      comparisonExpression();
-      return;
-    } else if (source[pos] === '(') {
-      parenthesized(booleanExpression, false);
-      space();
-
-      /*
-       * A parenthesized group here may turn out to have held PURE
-       * arithmetic (no top-level And/Or/comparison of its own) that is
-       * itself only part of a larger arithmetic expression, not the
-       * complete boolean operand -- the parenthesized group is just its
-       * first primary. Continue the same flat left-to-right arithmetic
-       * loop `expression()` itself uses before re-checking for a
-       * trailing comparison operator.
-       *
-       * BAS_PARTIC_PLAN.FLAT_DED_AMT.SavePreChange (one of 5 corpus
-       * occurrences of this shape):
-       *
-       *   If ((BAS_PARTIC_PLAN.FLAT_DED_AMT / &MAX_AMT) * 100) > DERIVED_BAS.EMPL_PCT_BTAX Then
-       *
-       * Without this, closing the outer paren fails outright: the inner
-       * `(... / &MAX_AMT)` group is parsed and closed correctly, but the
-       * trailing `* 100` is left unconsumed, so the outer paren's own
-       * close is never reached.
-       */
-      while (true) {
-        const arithmeticOperator = /^[+\-*/|]/.exec(source.slice(pos))?.[0];
-        if (!arithmeticOperator) break;
-        pos += arithmeticOperator.length;
-        chunks.push(fixed(arithmeticOperator, arithmeticOperator === '*' ? 0x0f : undefined));
-        castPrimary();
-        space();
-      }
-
-      const operator =
-        /^(<>|<=|>=|=|<|>)/.exec(source.slice(pos))?.[0];
-      if (operator !== undefined) {
-        pos += operator.length;
-        chunks.push(fixed(operator));
-        expression();
-      }
-      return;
-    }
-
+    /*
+     * Cycle 117: a `(` group or an `@` operand is an ordinary primary --
+     * comparisonExpression() -> expression() -> primary() parses it with
+     * the full grammar inside and its postfix chain, arithmetic and
+     * comparison after it. booleanUnary() formerly parsed both itself
+     * (a group with no postfix chain, `@` only before `(` with no
+     * arithmetic after it), so `Not ((Record.GP_ABS_EVENT).IsDeleted)`
+     * (21960) and `... And (&row.GetRowset(1)).GetRow(1)...` (29945) failed
+     * with "expected )", and `(@&L_SCROLL)` (4861) / `(@(...) + @(...))`
+     * (26573) would have once groups use booleanExpression().
+     */
     if (/^Not\b/i.test(source.slice(pos))) {
       pos += 3;
       chunks.push(fixed('Not'));
@@ -10203,79 +10139,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       }
       chunks.push(systemVariable());
     } else if (source[pos] === '(') {
-      const startsBooleanUnary = /^\(\s*Not\b/i.test(source.slice(pos));
       /*
-       * The `&variable` on the left side of a parenthesized comparison
-       * may itself be indexed/called (e.g. a Rowset access) before its
-       * `.field.field` chain, not just a bare `&variable`:
-       *
-       *   DERIVED.Enabled = (&rs2(&j).PA_CLC_PLN_INPT.USE_PROCESS_SECT.Value = "Y");
-       *   &EmptyRow = (&ShareScheme(&EmplRow).IsNew And ...);
-       *
-       * PA_CLC_PLN_INPT.EXEC_ONLY_CD.RowInit (definition 19037) and
-       * GPGB_SS_EE_DATA.GPGB_SS_DEFN_VW.SavePreChange (definition 21575),
-       * among others.
+       * Cycle 117: a grouped expression holds the full expression grammar --
+       * arithmetic, comparison, And / Or, Not -- whatever its operands.
+       * booleanExpression() is that grammar (a group with no comparison or
+       * And / Or writes exactly the bytes expression() would: its 0x41 /
+       * 0x42 markers only wrap an And / Or chain). The group is followed by
+       * this primary's ordinary postfix loop. This replaces five
+       * source-shape lookaheads that chose booleanExpression() only for
+       * recognized left operands (`&var ...`, `Name(...)`, `%Sys`, `Not`,
+       * `&var And`) and expression() otherwise, which stopped at the first
+       * comparison of e.g. `Return (%This.AppMsgs.Len > 0)` with "expected
+       * )" (`cycle117-grouped-boolean-census.ts`: 131 groups in 51
+       * definitions); 813 groups the lookaheads did recognize are
+       * byte-identical.
        */
-      const startsVariableComparison =
-        /^\(\s*&[A-Za-z0-9_]+#?(?:\s*\([^()]*\))?(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:<>|<=|>=|=|<|>)/
-          .test(source.slice(pos));
-      /*
-       * System variables can be the left operand of the same parenthesized
-       * comparison shape. Four independent HCDEV definitions use exactly:
-       *
-       *   (%Mode <> %Action_Add)
-       *
-       * and store the ordinary 0x0B / 0x10 / 0x14 grouped-comparison bytes.
-       */
-      const startsSystemVariableComparison =
-        /^\(\s*%[A-Za-z_][A-Za-z0-9_]*\s*(?:<>|<=|>=|=|<|>)/
-          .test(source.slice(pos));
-      /*
-       * A parenthesized comparison whose LEFT side is a function call
-       * (optionally with one level of call arguments) or a bare
-       * Record.Field chain, rather than a `&variable`, e.g.:
-       *
-       *   &bWild = (Find("*", &sFile) > 0);
-       *   &bIsSRM = (GetUserOption("PPTL", "ACCESS") = "A");
-       *   Visible = (GPGB_EDI_TRANS.GPGB_EDI_AUDIT = "Y");
-       *
-       * PORTAL_UTILS.FUNCLIB.FieldFormula (one of 41 corpus occurrences
-       * of this shape, across Find/GetUserOption/MessageBox/RTrim/Upper
-       * calls and bare Record.Field comparisons) proves these also need
-       * `booleanExpression()`, not just the already-covered `&variable`
-       * case.
-       */
-      const startsCallOrFieldComparison =
-        /^\(\s*[A-Za-z_][A-Za-z0-9_]*(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:\([^()]*\))?\s*(?:<>|<=|>=|=|<|>)/
-          .test(source.slice(pos));
-      /*
-       * A parenthesized boolean And/Or chain whose FIRST operand is a
-       * bare `&variable`/field-chain truthy reference with no comparison
-       * operator at all (not `&var = X`, just `&var` itself, exactly the
-       * same shape `booleanUnary`/plain `If &var And ...` already
-       * accepts at statement level):
-       *
-       *   &HALF1 = (&A And &B And &C And ...);
-       *   &AddCRef = (&IncludeHiddenCrefs Or &CRef.IsVisible);
-       *   PTLAYOUT.PT_QAB_TOOLBAR.Visible = (&fldMRU.Visible Or &fldFAV.Visible);
-       *
-       * SCC_PYE_WRK.SCC_PYE_ARCHIVE.FieldFormula (definition 1275) and
-       * WEBLIB_PORTAL.ISCRIPT1.FieldFormula (definitions 19495/25089/
-       * 25090), among others.
-       */
-      const startsVariableBooleanChain =
-        /^\(\s*&(?:[A-Za-z_][A-Za-z0-9_]*|\d+)(?:\s*\([^()]*\))?(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*\s*(?:And|Or)\b/i
-          .test(source.slice(pos));
-      parenthesized(
-        startsBooleanUnary ||
-        startsVariableComparison ||
-        startsCallOrFieldComparison ||
-        startsSystemVariableComparison ||
-        startsVariableBooleanChain
-          ? booleanExpression
-          : expression,
-        false
-      );
+      parenthesized(booleanExpression, false);
     } else if (/^create\b/i.test(source.slice(pos))) {
       word('create');
       chunks.push(Buffer.from([0x69]));
