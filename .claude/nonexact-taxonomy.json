@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-02T17:58:50.375Z",
+ "generatedAt": "2026-10-02T18:38:28.116Z",
  "totalDefinitions": 30209,
- "exactCount": 29715,
- "nonexactCount": 494,
+ "exactCount": 29718,
+ "nonexactCount": 491,
  "rows": [
   {
    "definitionId": 522,
@@ -1061,14 +1061,6 @@
    }
   },
   {
-   "definitionId": 13559,
-   "displayName": "1=PORTAL_CREF_ADM, 2=PORTAL_CREF_USGT, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
    "definitionId": 13562,
    "displayName": "1=PORTAL_CREF_ADM, 2=PORTAL_HP_LAYOUT, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "UNSUPPORTED_SYNTAX",
@@ -1077,14 +1069,6 @@
    "errorMessage": "Unsupported function metadata type: Message",
    "construct": "UNKNOWN",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 13645,
-   "displayName": "1=PORTAL_HPWRK, 2=PORTAL_HP_DELBTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 13657,
@@ -2845,14 +2829,6 @@
     "generatedCount": 31,
     "firstDivergenceKind": "record-field"
    }
-  },
-  {
-   "definitionId": 24037,
-   "displayName": "10=PORTAL_HOMEPAGE, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": true,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 24054,
