@@ -6427,6 +6427,26 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   };
 
   function statement(): void {
+    /*
+     * Cycle 114: the empty statement. A `;` where a statement starts is a
+     * statement with no tokens; the caller's own terminator path writes
+     * its 0x15, so every statement list -- If / Else, While, Repeat,
+     * When / When-Other, try / catch, Function and method bodies --
+     * accepts it with that list's blank-line and comment handling intact.
+     * Each `;` is one statement: `;;` stores `15 15`, `;;;` `15 15 15`.
+     *
+     * LOCAL SNAPSHOT: 309 standalone semicolons in 216 programs; in every
+     * one the stored stream holds one 0x15 per empty statement at the
+     * source position -- directly after the previous 0x15 when on the same
+     * line (5061 `... ".pdf";;` -> `15 15`), after an intervening comment
+     * (14641 `...; /* bugdb 12896908 *\/;` -> `15 4E 15`; 29570 `rem;;` ->
+     * `24 "rem;" 15`), first in a body (9136 `Else /* ... *\/;`). It is an
+     * executable statement: a Function body's empty statement enters the
+     * executable section (3219 `Function ... Returns boolean;; <blank>
+     * If` keeps the If's 0x4F). No reference list in the corpus
+     * distinguishes whether it also opens a reference / allocation unit.
+     */
+    if (source[pos] === ';') return;
     currentStatementRecordFields.clear();
     recordReferencesWithinCurrentStatement.clear();
     /*
@@ -12264,6 +12284,20 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     }
 
     if (source[pos] === ';') {
+      /*
+       * Cycle 114: an empty statement is executable code: it closes an
+       * open top-level declaration section first -- the 0x2D only, no
+       * floor 0x4F (21969 `Component ... &endDatePinNum;\n;` and 23232
+       * `Global string ...;\n;` store `15 2D 15`).
+       */
+      if (
+        sawTopLevelDeclaration &&
+        !closedTopLevelDeclarationSection &&
+        !(sawApplicationClassLocalSection && !closedApplicationClassLocalSection)
+      ) {
+        pushDeclarationSectionCloseByte();
+        closeTopLevelDeclarationSection();
+      }
       pos++;
       chunks.push(fixed(';'));
       /*
