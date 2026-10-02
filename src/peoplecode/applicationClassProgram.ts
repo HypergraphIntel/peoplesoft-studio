@@ -143,6 +143,11 @@ export interface ApplicationClassImplementation extends ApplicationClassSourceSp
   body: string;
   signatureComments: string[];
   transitionBlankLines: number;
+  /**
+   * Cycle 114: false when the implementation's closer is the last item of
+   * the source and has no `;` (`end-method` + EOF).
+   */
+  closerTerminated: boolean;
 }
 
 export interface ApplicationClassProgram {
@@ -548,7 +553,12 @@ export function parseApplicationClassSource(
 
   const implementationRegion = masked.slice(unitEnd);
   const rawImplementationRegion = source.slice(unitEnd);
-  const pattern = /\b(method|get|set)\s+([A-Za-z_][A-Za-z0-9_$]*)([\s\S]*?)\bend-(method|get|set)\s*;/gid;
+  /*
+   * Cycle 114: the last implementation's closer may omit its `;` at the
+   * end of the source (13 programs, e.g. 29494 `... end-method` + EOF);
+   * requiring the `;` dropped that whole implementation.
+   */
+  const pattern = /\b(method|get|set)\s+([A-Za-z_][A-Za-z0-9_$]*)([\s\S]*?)\bend-(method|get|set)\s*(?:;|$)/gid;
   const implementations: Array<ApplicationClassImplementation & { localIndex: number; fullEnd: number }> = [];
   for (const match of implementationRegion.matchAll(pattern)) {
     const kind = match[1].toLowerCase() as 'method' | 'get' | 'set';
@@ -572,6 +582,7 @@ export function parseApplicationClassSource(
       sourceEnd: unitEnd + (match.index ?? 0) + match[0].length,
       body: rawImplementationRegion.slice(interiorStart + cursor, interiorEnd),
       signatureComments, transitionBlankLines: 0,
+      closerTerminated: match[0].trimEnd().endsWith(';'),
       localIndex: match.index ?? 0, fullEnd: (match.index ?? 0) + match[0].length
     });
   }

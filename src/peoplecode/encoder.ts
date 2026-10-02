@@ -15103,6 +15103,16 @@ function encodeApplicationClassProgramV2(
       emitMarkers(applicationClassBlankLineCount(trailingWhitespace));
     }
     const closerOpcode = member.kind === 'method' ? 0x64 : member.kind === 'get' ? 0x6a : 0x6b;
+    if (!member.closerTerminated) {
+      /*
+       * Cycle 114: an unterminated last closer is written as the bare
+       * opcode -- no 0x15, no 0x2D. LOCAL SNAPSHOT: all 13 such programs
+       * end `64 07` (29494 `end-method` + EOF), against `64 15 2D 07` in
+       * the 1,414 terminated ones.
+       */
+      statementChunks.push(Buffer.from([closerOpcode]));
+      continue;
+    }
     statementChunks.push(Buffer.from([closerOpcode, 0x15]));
     const afterCloser = emitClosingLineComments(member.sourceEnd);
     statementChunks.push(Buffer.from([0x2d]));
