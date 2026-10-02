@@ -21,6 +21,13 @@ import {
   TokenKind
 } from './format.js';
 import { UNSIGNED_NUMBER_FORMAT } from './numberFormats.js';
+import {
+  ConditionalCompilationError,
+  hasConditionalDirectives,
+  preprocessConditionalCompilation,
+  type ConditionalCompilationOptions,
+  type ConditionalDirectiveRegion
+} from './conditionalCompilation.js';
 
 const MAX_UNSIGNED_INTEGER = (1n << BigInt(UNSIGNED_NUMBER_FORMAT.valueBytes * 8)) - 1n;
 const MAX_INTEGER_DIGITS = MAX_UNSIGNED_INTEGER.toString().length;
@@ -429,6 +436,31 @@ export interface ReusePoolTraceEvent {
 
 export interface EncodeProgramContext {
   owner?: PeopleCodeOwner;
+
+  /**
+   * Cycle 115: the Tools release `#If #ToolsRel ...` conditional
+   * compilation is evaluated against (see `conditionalCompilation.ts`).
+   * Without it the source is encoded as before Cycle 115 -- a directive is
+   * not understood (an encode error almost everywhere); the encoder never
+   * assumes a release.
+   */
+  conditionalCompilation?: ConditionalCompilationOptions;
+
+  /**
+   * Cycle 115, internal: the program's directive regions (absolute
+   * offsets in the preprocessed source), set by `encodeProgramArtifacts`.
+   */
+  conditionalDirectiveRegions?: ReadonlyMap<number, ConditionalDirectiveRegion>;
+
+  /**
+   * Cycle 115, internal: the absolute offset of the fragment being
+   * encoded within the program source (Application Class member
+   * fragments), for `conditionalDirectiveRegions` lookups.
+   */
+  conditionalDirectiveBase?: number;
+
+  /** Cycle 115, internal: the start of every directive region whose records were written. */
+  conditionalDirectiveEmissions?: Set<number>;
 
   /**
    * Optional diagnostic hook for PSPCMNAME/reference provenance tracing.
@@ -4980,7 +5012,25 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   const fail = (message: string): never => {
     throw new UnsupportedPeopleCodeError(pos, message);
   };
-  const space = () => { while (pos < source.length && /\s/.test(source[pos])) pos++; };
+  /*
+   * Cycle 115: a conditional-compilation directive region is masked as
+   * whitespace (see `conditionalCompilation.ts`); its records are written
+   * the first time the encoder's whitespace skipping reaches it -- after
+   * the preceding token, before any boundary marker of the next item.
+   */
+  const conditionalRegions = context?.conditionalDirectiveRegions;
+  const conditionalBase = context?.conditionalDirectiveBase ?? 0;
+  const emittedConditionalRegions = new Set<number>();
+  const emitConditionalRegionAt = (at: number): void => {
+    const region = conditionalRegions!.get(conditionalBase + at);
+    if (region === undefined || emittedConditionalRegions.has(region.start)) return;
+    emittedConditionalRegions.add(region.start);
+    context?.conditionalDirectiveEmissions?.add(region.start);
+    chunks.push(region.records);
+  };
+  const space = conditionalRegions === undefined
+    ? () => { while (pos < source.length && /\s/.test(source[pos])) pos++; }
+    : () => { while (pos < source.length && /\s/.test(source[pos])) { emitConditionalRegionAt(pos); pos++; } };
 
   /*
    * Look past one or more standalone block comments to determine what the
@@ -11995,6 +12045,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       const nextIsLocal =
         /^Local\b/i.test(source.slice(afterComments));
 
+
       const nextIsImport =
         /^import\b/i.test(source.slice(afterComments));
       const nextIsTopLevelDeclaration =
@@ -12148,7 +12199,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           sawTopLevelDeclaration &&
           !closedTopLevelDeclarationSection &&
           !nextRealItemContinuesDeclarationSection(pos) &&
-          pendingReferenceLocalBoundary === undefined &&
+            pendingReferenceLocalBoundary === undefined &&
           !(sawApplicationClassLocalSection && !closedApplicationClassLocalSection)
         ) {
           /*
@@ -12253,6 +12304,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
         const commentWhitespaceStart = pos;
         space();
+
 
         const commentWhitespace =
           source.slice(commentWhitespaceStart, pos);
@@ -14612,6 +14664,8 @@ function encodeApplicationClassProgramV2(
     const applicationClassTypeReferenceSession = applicationClassReferenceScope.beginFragment();
     const encoded = encodeFragmentInternal(fragmentSource, {
       ...context,
+      // Cycle 115: directive regions are keyed by program offset.
+      conditionalDirectiveBase: sourceStart,
       commentOpcodes,
       owner: undefined,
       referenceIndexOffset: nextReferenceIndex,
@@ -14765,6 +14819,7 @@ function encodeApplicationClassProgramV2(
     let terminatorIndex = 0;
     let cursor = start;
     for (const comment of scanApplicationClassLayoutComments(source, start, end)) {
+      emitConditionalRegionsIn(cursor, comment.start);
       emitMarkers(applicationClassBlankLineCount(source.slice(cursor, comment.start)));
       while (terminators[terminatorIndex] < comment.start) {
         emittedDeclarationTerminatorOffsets.add(terminators[terminatorIndex]);
@@ -14789,6 +14844,7 @@ function encodeApplicationClassProgramV2(
       statementChunks.push(Buffer.from([0x15]));
       terminatorIndex++;
     }
+    emitConditionalRegionsIn(cursor, end);
     if (flushTrailingGap) {
       emitMarkers(applicationClassBlankLineCount(source.slice(cursor, end)));
     }
@@ -14823,6 +14879,25 @@ function encodeApplicationClassProgramV2(
     }
   };
 
+  /*
+   * Cycle 115: conditional-compilation directive regions (masked as
+   * whitespace; see `conditionalCompilation.ts`) in a gap the wrapper owns
+   * -- a method body's leading / trailing whitespace, a layout range, the
+   * import prefix -- write their records where the gap starts, before the
+   * gap's own markers, exactly as the fragment encoder's whitespace
+   * skipping does inside a body.
+   */
+  const emitConditionalRegionsIn = (start: number, end: number): void => {
+    const regions = context?.conditionalDirectiveRegions;
+    if (regions === undefined) return;
+    for (const region of [...regions.values()].sort((a, b) => a.start - b.start)) {
+      if (region.start < start || region.start >= end) continue;
+      if (context?.conditionalDirectiveEmissions?.has(region.start)) continue;
+      context?.conditionalDirectiveEmissions?.add(region.start);
+      statementChunks.push(region.records);
+    }
+  };
+
   const emitSharedFragmentRange = (
     start: number,
     end: number,
@@ -14830,6 +14905,7 @@ function encodeApplicationClassProgramV2(
   ): void => {
     const value = source.slice(start, end);
     if (value.trim() === '') {
+      emitConditionalRegionsIn(start, end);
       if (flushTrailingGap) emitMarkers(applicationClassBlankLineCount(value));
       return;
     }
@@ -14840,6 +14916,7 @@ function encodeApplicationClassProgramV2(
       value.length - trailingWhitespace.length
     );
     const firstChunk = statementChunks.length;
+    emitConditionalRegionsIn(start, start + leadingWhitespace.length);
     emitMarkers(applicationClassBlankLineCount(leadingWhitespace));
     if (core.trim() !== '') {
       const commentOpcodes = scanApplicationClassLayoutComments(
@@ -14867,6 +14944,7 @@ function encodeApplicationClassProgramV2(
         return;
       }
     }
+    emitConditionalRegionsIn(end - trailingWhitespace.length, end);
     if (flushTrailingGap) {
       emitMarkers(applicationClassBlankLineCount(trailingWhitespace));
     }
@@ -14877,6 +14955,7 @@ function encodeApplicationClassProgramV2(
     const prefix = source.slice(0, end);
     type PrefixEvent =
       | { kind: 'import'; start: number; end: number; raw: string }
+      | { kind: 'directive'; start: number; end: number; records: Buffer }
       | ({ kind: 'comment' } & ApplicationClassLayoutComment);
     const comments = scanApplicationClassLayoutComments(source, 0, end);
     const events: PrefixEvent[] = [
@@ -14889,7 +14968,11 @@ function encodeApplicationClassProgramV2(
       ...comments.map(comment => ({
         kind: 'comment' as const,
         ...comment
-      }))
+      })),
+      // Cycle 115: directive regions (whitespace in the preprocessed source)
+      ...[...(context?.conditionalDirectiveRegions?.values() ?? [])]
+        .filter(region => region.start < end)
+        .map(region => ({ kind: 'directive' as const, start: region.start, end: region.end, records: region.records }))
     ].sort((left, right) => left.start - right.start);
 
     let cursor = 0;
@@ -14931,10 +15014,18 @@ function encodeApplicationClassProgramV2(
       emitMarkers(markerCount);
     };
     for (const [eventIndex, event] of events.entries()) {
+      if (event.kind === 'directive') {
+        // records at once; the gap before the next event spans the region
+        if (!context?.conditionalDirectiveEmissions?.has(event.start)) {
+          context?.conditionalDirectiveEmissions?.add(event.start);
+          statementChunks.push(event.records);
+        }
+        continue;
+      }
       let nextSectionEventKind = event.kind;
       if (event.kind === 'comment') {
         let lookahead = eventIndex + 1;
-        while (events[lookahead]?.kind === 'comment') lookahead++;
+        while (events[lookahead]?.kind === 'comment' || events[lookahead]?.kind === 'directive') lookahead++;
         if (events[lookahead]?.kind === 'import') nextSectionEventKind = 'import';
       }
       emitGap(prefix.slice(cursor, event.start), nextSectionEventKind);
@@ -15082,6 +15173,7 @@ function encodeApplicationClassProgramV2(
     // inside the body remain owned by the shared fragment encoder. Splitting
     // only the leading/trailing whitespace keeps those layers independent.
     if (member.body.trim() === '') {
+      emitConditionalRegionsIn(member.sourceIndex, member.sourceEnd);
       emitMarkers(applicationClassBlankLineCount(member.body));
     } else {
       const leadingWhitespace = /^\s*/.exec(member.body)?.[0] ?? '';
@@ -15090,6 +15182,8 @@ function encodeApplicationClassProgramV2(
         leadingWhitespace.length,
         member.body.length - trailingWhitespace.length
       );
+      const coreStart = source.indexOf(bodyCore, member.sourceIndex);
+      emitConditionalRegionsIn(member.sourceIndex, coreStart < 0 ? member.sourceIndex : coreStart);
       emitMarkers(applicationClassBlankLineCount(leadingWhitespace));
       // Cycle 46: only a `kind: 'method'` implementation has a matching
       // class-header `ApplicationClassMethodMember` with `.parameters` --
@@ -15100,6 +15194,7 @@ function encodeApplicationClassProgramV2(
           : undefined;
       const bodyStart = source.indexOf(bodyCore, member.sourceIndex);
       statementChunks.push(encodeMethodBody(bodyCore, methodParameters, bodyStart < 0 ? undefined : bodyStart));
+      if (bodyStart >= 0) emitConditionalRegionsIn(bodyStart + bodyCore.length, member.sourceEnd);
       emitMarkers(applicationClassBlankLineCount(trailingWhitespace));
     }
     const closerOpcode = member.kind === 'method' ? 0x64 : member.kind === 'get' ? 0x6a : 0x6b;
@@ -15387,6 +15482,36 @@ function encodeOrdinaryProgramFragment(
 }
 
 export function encodeProgramArtifacts(source: string, context?: EncodeProgramContext): EncodedPeopleCode {
+  /*
+   * Cycle 115: conditional compilation is lexical and comes first -- every
+   * later stage (Application Class parsing, Function metadata, the
+   * statement encoder) sees the preprocessed source, where each directive
+   * region is a same-length block comment and dead branches are invisible.
+   */
+  if (context?.conditionalCompilation !== undefined && hasConditionalDirectives(source)) {
+    let preprocessed;
+    try {
+      preprocessed = preprocessConditionalCompilation(source, context.conditionalCompilation);
+    } catch (error) {
+      if (error instanceof ConditionalCompilationError) throw new UnsupportedPeopleCodeError(error.offset, error.message);
+      throw error;
+    }
+    if (preprocessed !== undefined) {
+      const emissions = new Set<number>();
+      const encoded = encodeProgramArtifacts(preprocessed.source, {
+        ...context,
+        conditionalDirectiveRegions: preprocessed.regions,
+        conditionalDirectiveEmissions: emissions
+      });
+      // every directive must have been written exactly where the encoder met it
+      for (const region of preprocessed.regions.values()) {
+        if (!emissions.has(region.start)) {
+          throw new UnsupportedPeopleCodeError(region.start, 'conditional-compilation directive at an unsupported position');
+        }
+      }
+      return encoded;
+    }
+  }
   /*
    * Cycle 14: the pre-existing narrow, hand-calibrated single-method
    * golden template (`parseApplicationClassProgram`) is tried FIRST and
