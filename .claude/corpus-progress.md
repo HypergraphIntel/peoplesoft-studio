@@ -1,14 +1,14 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 133)
+## Current status (2026-10-02, Cycle 134)
 
-- **Current target:** Cycle 133 -- encoder: App Class class-header member
-  comments before their `;` (`4E 15`). EXACT 29,764 -> 29,774 (+10) =
-  forward-exact; COMPLETE_DOWNSTREAM 50 -> 40; 0 reference lists changed,
-  protected PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70
-  (13525 in, EXACT). See "Compiler Semantics Cycle 133".
-- **Last successful calibration:** Cycle 133 (App Class declaration
-  trailing comments).
+- **Current target:** Cycle 134 -- encoder: reference-vs-inline operand
+  of a bare chain member follows the receiver's static typing. EXACT
+  29,774 -> 29,781 (+7) = forward-exact; COMPLETE_DOWNSTREAM 40 -> 33; 0
+  reference lists changed, protected PASS, 0 EXACT -> non-EXACT,
+  ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See "Compiler
+  Semantics Cycle 134".
+- **Last successful calibration:** Cycle 134 (chain member operand typing).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -24,17 +24,26 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 134):** encoder -- COMPLETE_DOWNSTREAM 40, led by a
-  stored reference operand 0x4A where the encoder writes an inline name
-  0x0A (5 App Class: 28764 29140 29198 29415 30107; 4 ordinary: 3767 5758
-  13000 15840; plus 29921 the reverse) -- references already exact, so
-  only the operand form differs; census every stored 0x4A vs generated
-  0x0A by receiver / member context before touching receiver typing.
-  Then `array` stored as keyword 0x40 (5 App Class), marker order 0x4F /
-  0x2D (4 + 2), App Class 0x4E vs 0x2D after a method header (3: 29320
-  29866 30199), 0x4F before Constant / instance / method (3 + 1). README.md
-  has unrelated uncommitted user edits -- never stage it.
-- **Newly established rules this session:** Cycle 133 (encoder): a comment
+- **Next action (Cycle 135):** encoder, reference layer -- App Class
+  Rowset typing, parked in Cycle 134 because it changes PSPCMNAME: (a) a
+  metadata-typed `Rowset` property (`%This.rsTreeWrk_L1`, typed receivers)
+  as a declared Rowset in the chain (variant measured +22 forward-exact:
+  19884 28990 28992 29412 29415 29611 29712 29955 29956 29957 29959 29998
+  30067 30084 30085 30088 30089 30093-30097; 25 programs changed, 23
+  reference lists, 0 farther); (b) header `instance` / `property` /
+  `Global` Rowset / Row declarations reaching method bodies (+6: 30107
+  28995 29336 29525 29526 30141; 16 changed, 11 reference lists, 0
+  farther). Census the reference rows these allocate (ACTIVE_RECORD /
+  RECORD_FIELD / PACKAGE families) before landing, then rerank.
+  Remaining COMPLETE_DOWNSTREAM (33): `array` keyword 0x40 (5), marker
+  order (4 + 2), App Class 0x4E vs 0x2D (3), 0x4F before Constant /
+  instance / method (3 + 1), 0x4A after an App Class / metadata receiver
+  (29415 30107 15840). README.md has unrelated uncommitted user edits --
+  never stage it.
+- **Newly established rules this session:** Cycle 134 (encoder): a bare
+  chain member is 0x4A after a statically typed Row / Record value, 0x0A on
+  a late-bound chain (undeclared or `any` root) even with the row present;
+  GetCurrEffRow() -> Row, .ParentRecord -> Record; Cycle 133 (encoder): a comment
   before a `;` is written before its 0x15 (`4E 15`), App Class header
   members included; Cycle 132 (encoder): a
   Function metadata Application Class type is 0x80000 + (0x100 + name
@@ -173,6 +182,60 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 134 -- reference vs inline chain members
+
+**Baseline reproduced fresh at `f1c8e4e`:** 29,774 / 435, forward-exact
+29,774, COMPLETE_DOWNSTREAM 40, protected 430/430, taxonomy row-identical,
+fallback 70 (13525 in, EXACT), ROUNDTRIP_ONLY 0. **Result:** EXACT
+**29,774 -> 29,781 (+7: 3767 5758 13000 28764 29140 29198 29921)** =
+forward-exact; bytes changed in exactly those 7, 0 reference lists
+changed, 0 EXACT -> non-EXACT, no category moves, COMPLETE_DOWNSTREAM 40
+-> 33, ROUNDTRIP_ONLY 0, protected 430/430, fallback 70. LOCAL SNAPSHOT
+only. Commits: 82dcf73 (census), 3bf988f (encoder). README.md untouched,
+never staged.
+
+Census (`cycle134-member-operand-census.ts`): every stored bare chain
+member (0x4A / 0x0A after `.`, not called) by the chain step before it.
+The 10 related programs (all reference-exact): stored 4A / generated 0A
+after `getcurreffrow()` (3767 5758 13000), `.parentrecord` (29140 29198),
+`getrow()` (15840 30107), `getrecord()` (29415), an array element (28764);
+stored 0A / generated 4A after `getrow()` (29921). A step alone does not
+decide (`getrow()` 5,167 / 1,690 EXACT 4A / 0A): the receiver's typing
+does. Receivers: 3767 `Local Row &rowDeleted.ParentRowset.GetCurrEffRow()`;
+5758 / 13000 `GetLevel0()(1).GetRowset(..).GetCurrEffRow()`; 29140 / 29198
+`&fld As Field` `.ParentRecord`; 28764 `Global array of Record
+&PMN_AllHomeStates [..]`; 30107 `instance Rowset &pendingActions
+.GetRow(..)`; 29415 `%This.rsTreeWrk_L1` (`property Rowset`) `.GetRow(..)
+.GetRecord(1)`; 15840 `Component PTIB_PACKAGE:MobileURLParams
+&URLParams.URIParams.GetRow(1)` (ordinary); 29921 `Local any &tempRowset
+.GetRow(..)` -- the encoder referenced PTAL_PAGELET because a RECORD row of
+that name already existed (`hasExistingExpectedReference`), stored inline:
+row existence is not operand selection. `.parentrecord` members are
+inline only for Record properties (ParentRow, Name: 21 EXACT); after
+`getcurreffrow()` 3 / 3 4A.
+
+Fixes (each measured alone; each 0 reference changes, 0 farther):
+GetCurrEffRow() -> Row like GetRow() (+3); a root declared only `any` is
+late-bound like an undeclared one in any program kind (+1: 29921);
+`Global array of Record` in an App Class reaches the bodies' record-array
+set (+1: 28764); `.ParentRecord` -> Record, FIELD member unless a Record
+property (+2: 29140 29198). Parked (they change PSPCMNAME -- stop rule D
+of this cycle): header `instance` / `property` / `Global` Rowset / Row as
+typed roots (+6 forward-exact incl. 30107, 11 reference lists changed, 0
+farther) and a metadata-typed `Rowset` property as a declared Rowset (+22
+incl. 29415, 23 reference lists changed, 0 farther). 15840 not reached by
+either. Cycle 124-133 gains all still EXACT.
+
+Rerank COMPLETE_DOWNSTREAM (33): `array` keyword 0x40 5, marker order 4
++ 2, App Class 0x4E vs 0x2D 3, 0x4F before Constant / instance / method 3
++ 1, 0x4A after an App Class / metadata receiver 2 + 1, App Class 24 / 63
+2, type-path case 2, 64 / 2D 2, text after end 2, singletons.
+Categories: ACTIVE_PACKAGE 72, ENCODE_ERROR 69, DSM 67,
+ACTIVE_RECORD_FIELD 39, COMPLETE_DOWNSTREAM 33, ACTIVE_RECORD 32,
+UNSUPPORTED_SYNTAX 30, ACTIVE_FIELD 26, ACTIVE_OTHER 20,
+STRUCTURAL_ORDERING 18, ACTIVE_SCROLL 13, QUOTED_COMPONENT 8,
+ACTIVE_DECLARE_FUNCTION 1 (NONEXACT 428).
 
 ## Compiler Semantics Cycle 133 -- App Class declaration trailing comments
 
