@@ -1,15 +1,14 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 132)
+## Current status (2026-10-02, Cycle 133)
 
-- **Current target:** Cycle 132 -- encoder: an Application Class type
-  descriptor in Function metadata is 0x80000 + (0x100 + name offset), a
-  sum. EXACT 29,754 -> 29,764 (+10) = forward-exact; COMPLETE_DOWNSTREAM
-  60 -> 50; trailer bytes only, 0 reference lists changed, protected PASS,
-  0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT).
-  See "Compiler Semantics Cycle 132".
-- **Last successful calibration:** Cycle 132 (Function type descriptor
-  offset sum).
+- **Current target:** Cycle 133 -- encoder: App Class class-header member
+  comments before their `;` (`4E 15`). EXACT 29,764 -> 29,774 (+10) =
+  forward-exact; COMPLETE_DOWNSTREAM 50 -> 40; 0 reference lists changed,
+  protected PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70
+  (13525 in, EXACT). See "Compiler Semantics Cycle 133".
+- **Last successful calibration:** Cycle 133 (App Class declaration
+  trailing comments).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -25,18 +24,19 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 133):** encoder -- the largest COMPLETE_DOWNSTREAM
-  family: App Class programs storing an inline comment 0x4E where the
-  encoder writes 0x15 (9: 28910 28920 28923 28924 28934 28954 28958 28961
-  ...), i.e. a `/* c */` on a statement's line placed before its `;` in
-  the stored stream (cf. definition 55's `0 4E 15`, ordinary). Census
-  every stored `4E 15` / `15 4E` in App Class and ordinary programs
-  against source placement before touching the App Class comment path.
-  Others: 0x4A vs inline name (5 App Class + 4 ordinary), `array` 0x40
-  (5), marker order (4 + 2), 0x4F before Constant / instance / method
-  (3 + 2). README.md has unrelated uncommitted user edits -- never stage
-  it.
-- **Newly established rules this session:** Cycle 132 (encoder): a
+- **Next action (Cycle 134):** encoder -- COMPLETE_DOWNSTREAM 40, led by a
+  stored reference operand 0x4A where the encoder writes an inline name
+  0x0A (5 App Class: 28764 29140 29198 29415 30107; 4 ordinary: 3767 5758
+  13000 15840; plus 29921 the reverse) -- references already exact, so
+  only the operand form differs; census every stored 0x4A vs generated
+  0x0A by receiver / member context before touching receiver typing.
+  Then `array` stored as keyword 0x40 (5 App Class), marker order 0x4F /
+  0x2D (4 + 2), App Class 0x4E vs 0x2D after a method header (3: 29320
+  29866 30199), 0x4F before Constant / instance / method (3 + 1). README.md
+  has unrelated uncommitted user edits -- never stage it.
+- **Newly established rules this session:** Cycle 133 (encoder): a comment
+  before a `;` is written before its 0x15 (`4E 15`), App Class header
+  members included; Cycle 132 (encoder): a
   Function metadata Application Class type is 0x80000 + (0x100 + name
   offset), a sum; Cycle 131 (encoder): the blank
   lines after a standalone 0x24 comment are 0x4F markers in every position
@@ -173,6 +173,61 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 133 -- App Class declaration trailing comments
+
+**Baseline reproduced fresh at `e302bf7`:** 29,764 / 445, forward-exact
+29,764 (decoder-only frontier 0), COMPLETE_DOWNSTREAM 50, protected
+430/430, taxonomy row-identical, fallback 70 (13525 in, EXACT),
+ROUNDTRIP_ONLY 0. **Result:** EXACT **29,764 -> 29,774 (+10: 28910 28920
+28923 28924 28934 28954 28958 28961 28962 + 28974)** = forward-exact;
+bytes changed in 12 programs (28935 / 28963 closer), 0 reference lists
+changed, 0 EXACT -> non-EXACT, no category moves, COMPLETE_DOWNSTREAM 50
+-> 40, ROUNDTRIP_ONLY 0, protected 430/430, fallback 70. LOCAL SNAPSHOT
+only. Commits: 92e26f3 (census), 7f647b0 (encoder). README.md
+untouched, never staged.
+
+Census (`cycle133-comment-terminator-census.ts`): 6,306 stored 0x4E /
+0x15 pairs. `4E 15` (128) always a source comment before the statement's
+`;` (35 EXACT: 25 ordinary, 8 App Class body, 2 App Class header); `15
+4E` (6,178) always a comment after the `;` (4,456 EXACT); 0 other.
+Opcode: an own-line comment before a `;` stores 0x24 (19 ordinary, 12
+App Class), an inline one 0x4E (47 / 81). Targets (9, App Class, all
+class-header members; target statement kinds: property 5, instance 2,
+method signature 1, get 1): 28910 `property string TypeDesc /* e.g.
+Website */;` stores `0A 4E 15`, the encoder dropped the comment (layout
+comments were scanned only between members, a member's span runs to its
+`;`); 28961 `get /* .. */;` resurfaced as a 0x24 later; 28920 / 28954
+also a last member with no `;` before `end-class` (`01 4E 5B`). Fix:
+`emitMemberTerminators` emits the comment run ending a member's span
+(before the `;`, or at the span's end with no `;`) through
+`emitLayoutRange`, which interleaves terminators by source offset.
+
+Roundtrip: the first landing attempt made the 9 forward-exact but
+ROUNDTRIP_ONLY -- the decoder renders `0A 4E 15` as `TypeDesc` / `/* c */`
+/ `;`, the same text an own-line 0x24 before a `;` has, and the App
+Class layout path chose opcodes by placement. Now (validator TEST B
+`commentOpcodes`, as consumeCommentOpcode() does in the statement
+encoder): a layout comment directly before a declaration terminator takes
+the decoder's opcode; `emitSharedFragmentRange` (after `end-class`; 28920
+`Component ... &cPBPWRK /* c */;`) takes the decoder's opcodes for its
+comments; `emitLayoutRange` writes a gap's terminators before counting its
+blank lines after them (28924 `... /* c */;` <2 blank> `instance` = `4E 15
+4F 4F 62`). The last also fixed 28974 (`instance ...;` <blank>
+`end-class;` = `15 4F 5B`, from the "0x4F before Constant / instance /
+method" family) and overturned the Cycle 28 "independent layout residual"
+test, which now asserts the stored markers. Cycle 124-132 gains all still
+EXACT; App Class 0x4E vs 0x2D (29320 29866 30199) unchanged.
+
+Rerank COMPLETE_DOWNSTREAM (40): 0x4A vs inline name 5 App Class + 4
+ordinary, `array` 0x40 5, marker order 4 + 2, App Class 0x4E vs 0x2D 3,
+0x4F before Constant / instance / method 3 + 1, App Class 24 / 63 2,
+type-path case 2, 64 / 2D 2, text after end of program 2, singletons.
+Categories: ACTIVE_PACKAGE 72, ENCODE_ERROR 69, DSM 67,
+COMPLETE_DOWNSTREAM 40, ACTIVE_RECORD_FIELD 39, ACTIVE_RECORD 32,
+UNSUPPORTED_SYNTAX 30, ACTIVE_FIELD 26, ACTIVE_OTHER 20,
+STRUCTURAL_ORDERING 18, ACTIVE_SCROLL 13, QUOTED_COMPONENT 8,
+ACTIVE_DECLARE_FUNCTION 1 (NONEXACT 435).
 
 ## Compiler Semantics Cycle 132 -- Application Class type descriptor offset
 

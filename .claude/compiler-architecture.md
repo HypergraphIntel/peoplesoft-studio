@@ -10,8 +10,8 @@ EXACT 29,681 / NONEXACT 528; Cycle 125: EXACT 29,707 / NONEXACT 502; Cycle 126:
 EXACT 29,715 / NONEXACT 494; Cycle 127: EXACT 29,718 / NONEXACT 491; Cycle 128:
 EXACT 29,719 / NONEXACT 490; Cycle 129: EXACT 29,720 / NONEXACT 489; Cycle 130:
 EXACT 29,721 / NONEXACT 488 -- all decoder only; Cycle 131 encoder: EXACT
-29,754 / NONEXACT 455; Cycle 132: EXACT 29,764 / NONEXACT 445; forward-exact
-= EXACT); forward-exact
+29,754 / NONEXACT 455; Cycle 132: EXACT 29,764 / NONEXACT 445; Cycle 133:
+EXACT 29,774 / NONEXACT 435; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -207,7 +207,13 @@ And / Or operands (1 each), App Class wrapper layout (`emitMarkers`,
 the blank lines after a standalone 0x24 comment are 0x4F markers wherever
 the comment sits -- For body first item, Evaluate selector gap, boolean
 operand, after an If / Else statement with no `;`). Cycle 113 / 115 / 119
-rules live inside these loops. Decoder: format flags + contextual rules (e.g. Cycle 120 `15 4E 15`
+rules live inside these loops. Cycle 133: a comment before a statement's /
+declaration's `;` is written before its 0x15 (`4E 15`; after the `;`,
+`15 4E`) -- the App Class wrapper's class-header members included
+(`emitMemberTerminators`); in a roundtrip (validator `commentOpcodes`) a
+comment directly before a declaration terminator and the comments of a
+shared fragment range take the decoder's opcodes, and a layout gap counts
+its blank lines after the terminators it writes. Decoder: format flags + contextual rules (e.g. Cycle 120 `15 4E 15`
 -> `; /* c */;`).
 
 Function metadata type descriptors (trailer record return kind, parameter
