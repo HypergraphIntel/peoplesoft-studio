@@ -55,6 +55,12 @@ import {
 import {
   snapshotApplicationClassTypeMetadata
 } from './snapshot/applicationClassTypeMetadata';
+import {
+  snapshotConditionalCompilation
+} from './snapshot/toolsRelease';
+import type {
+  ConditionalCompilationOptions
+} from '../../src/peoplecode/conditionalCompilation';
 
 import type {
   ApplicationClassTypeMetadataProvider
@@ -174,6 +180,11 @@ export async function runCorpus(
 
     let applicationClassTypeMetadata:
       ApplicationClassTypeMetadataProvider | undefined;
+
+    // Cycle 115: the snapshot's Tools release, for `#If #ToolsRel`
+    // conditional compilation. Live runs have none (like metadata).
+    let conditionalCompilation:
+      ConditionalCompilationOptions | undefined;
 
     if (
       options.definitionId !== undefined
@@ -357,6 +368,10 @@ export async function runCorpus(
           snapshotApplicationClassTypeMetadata(
             metadataDb
           );
+        conditionalCompilation =
+          snapshotConditionalCompilation(
+            metadataDb
+          );
       } finally {
         metadataDb.close();
       }
@@ -391,7 +406,8 @@ export async function runCorpus(
               options.traceRefs ?? false,
             verbose:
               options.verbose ?? false,
-            applicationClassTypeMetadata
+            applicationClassTypeMetadata,
+            conditionalCompilation
           }
         );
 
