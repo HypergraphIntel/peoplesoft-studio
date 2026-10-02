@@ -2052,8 +2052,26 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     if (declaredType !== undefined) {
       allocateBuiltinTypePackageReferenceIfSupported(declaredType, 'component');
     }
+    /*
+     * Cycle 121: and its variables are typed exactly as a Component
+     * declaration's (`componentDeclaration`): 4434 `PanelGroup Record
+     * &REC_JOB;` ... `&REC_JOB.EMPLID.Value` stores a FIELD row, 8115
+     * `PanelGroup Rowset &RS2;` binds `&RS2(&R1).GPHK_PSLP_SECT.SEQ_NUM`.
+     */
+    const registerPanelGroupVariable = (name: string | undefined) => {
+      if (name === undefined) return;
+      if (/^Record$/i.test(declaredType ?? '')) {
+        recordVariables.add(name.toLowerCase());
+      } else if (/^Rowset$/i.test(declaredType ?? '')) {
+        chainSemanticsDeclaredRowsetVariables.add(name.toLowerCase());
+      } else if (/^Row$/i.test(declaredType ?? '')) {
+        chainSemanticsDeclaredRowVariables.add(name.toLowerCase());
+        rowVariables.add(name.toLowerCase());
+      }
+    };
 
     space();
+    registerPanelGroupVariable(/^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0]);
     chunks.push(variable());
 
     while (true) {
@@ -2067,6 +2085,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       chunks.push(fixed(','));
 
       space();
+      registerPanelGroupVariable(/^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0]);
       chunks.push(variable());
     }
   };
