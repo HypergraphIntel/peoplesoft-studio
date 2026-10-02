@@ -87,3 +87,29 @@ test('nested directives are not supported (no corpus evidence)', () => {
 test('without a Tools release the source is encoded as before Cycle 115', () => {
   assert.throws(() => encodeProgramArtifacts('F();\n#If #ToolsRel >= "8.55" #Then\n   G();\n#End-If;\n', { owner }), UnsupportedPeopleCodeError);
 });
+
+/*
+ * Cycle 115: a comment right before a directive closes no section; the
+ * open section closes at the next real statement, after the directive's
+ * records (25883: `15 4F 24 75 76 2D 4F`; 4601: the import section stays
+ * open to the Declare, `15 24 75 76 78 15 2D 4F 31`).
+ */
+test('a comment before a directive leaves the leading Local run open (25883)', () => {
+  const bytes = encode('Local Row &r;\n\n/* c */\n#If #ToolsRel >= "8.55" #Then\n\n   &x = F(Record.REC);\n#End-If;\n');
+  const comment = record(0x24, '/* c */');
+  const condition = record(0x75, '#If #ToolsRel >= "8.55"');
+  const at = bytes.indexOf(comment);
+  assert.equal(bytes.subarray(at - 2, at).toString('hex'), '154f');
+  const then = record(0x76, '#Then');
+  const afterThen = bytes.indexOf(Buffer.concat([condition, then])) + condition.length + then.length;
+  assert.equal(bytes.subarray(afterThen, afterThen + 2).toString('hex'), '2d4f');
+});
+
+test('a comment before a directive keeps the import section open (4601)', () => {
+  const bytes = encode('import PKG:*;\n/* c */\n#If #ToolsRel >= "8.62" #Then\n   import OTHER:Thing;\n#End-If;\n\nDeclare Function F PeopleCode REC.FLD FieldFormula;\n');
+  const end = Buffer.concat([record(0x78, '#End-If'), Buffer.from([0x15])]);
+  const at = bytes.indexOf(end) + end.length;
+  assert.equal(bytes.subarray(at, at + 3).toString('hex'), '2d4f31');
+  const comment = record(0x24, '/* c */');
+  assert.equal(bytes[bytes.indexOf(comment) - 1], 0x15);
+});

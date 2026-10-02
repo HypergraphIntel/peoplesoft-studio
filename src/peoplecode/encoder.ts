@@ -5028,6 +5028,14 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     context?.conditionalDirectiveEmissions?.add(region.start);
     chunks.push(region.records);
   };
+  // Cycle 115: whether a directive region starts in [from, to).
+  const conditionalRegionBetween = (from: number, to: number): boolean => {
+    if (conditionalRegions === undefined) return false;
+    for (let at = from; at < to; at++) {
+      if (conditionalRegions.has(conditionalBase + at)) return true;
+    }
+    return false;
+  };
   const space = conditionalRegions === undefined
     ? () => { while (pos < source.length && /\s/.test(source[pos])) pos++; }
     : () => { while (pos < source.length && /\s/.test(source[pos])) { emitConditionalRegionAt(pos); pos++; } };
@@ -12045,6 +12053,17 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       const nextIsLocal =
         /^Local\b/i.test(source.slice(afterComments));
 
+      /*
+       * Cycle 115: a comment followed by a conditional-compilation
+       * directive closes no section; the open section closes at the next
+       * real statement, after the directive's records. 25883 `Local Row
+       * &rowTwilio; <blank> /*AES128*\/ #If ... #Then <blank> &rsTwilio =
+       * ...` stores `15 4F 24 75 76 2D 4F`; 4601 `import ...; /* Landing
+       * *\/ #If ... #End-If; <blank> Declare` keeps the import section open
+       * to the Declare (`15 24 75 76 78 15 2D 4F 31`).
+       */
+      const conditionalDirectiveFollows =
+        conditionalRegionBetween(pos, nextSignificantAfterTrivia(pos));
 
       const nextIsImport =
         /^import\b/i.test(source.slice(afterComments));
@@ -12085,6 +12104,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       if (
         importSectionOpen &&
         !nextIsImport &&
+        !conditionalDirectiveFollows &&
         context?.commentOpcodes?.[commentOpcodeIndex] !== 0x4e
       ) {
         chunks.push(Buffer.from([0x2d]));
@@ -12141,6 +12161,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         // Cycle 91: look past REM and disabled code too (13957: `L L L
         // <blank> /*c*\/ REM ... <* *> ... Local` continues the run).
         !/^Local\b/i.test(source.slice(nextSignificantAfterTrivia(pos))) &&
+        !conditionalDirectiveFollows &&
         pendingReferenceLocalBoundary === undefined
       ) {
         /*
@@ -12199,7 +12220,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           sawTopLevelDeclaration &&
           !closedTopLevelDeclarationSection &&
           !nextRealItemContinuesDeclarationSection(pos) &&
-            pendingReferenceLocalBoundary === undefined &&
+          !conditionalDirectiveFollows &&
+          pendingReferenceLocalBoundary === undefined &&
           !(sawApplicationClassLocalSection && !closedApplicationClassLocalSection)
         ) {
           /*
@@ -12286,7 +12308,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         if (
           sawApplicationClassLocalSection &&
           !closedApplicationClassLocalSection &&
-          !nextRealItemContinuesDeclarationSection(pos)
+          !nextRealItemContinuesDeclarationSection(pos) &&
+          !conditionalDirectiveFollows
         ) {
           pushDeclarationSectionCloseByte();
           closeApplicationClassLocalSection();
@@ -12305,6 +12328,21 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         const commentWhitespaceStart = pos;
         space();
 
+        // Cycle 115: a directive after the comment, while a section the
+        // comment did not close is still open, leaves the gap (its records
+        // already written) to the next item, whose close and markers follow
+        // the records (25883, 4601). With nothing open the gap's markers
+        // stay here (28870 `/* c *\/ #If ... #End-If <blank> /* c *\/`
+        // stores `24 75 76 78 4F 24`).
+        const sectionAwaitsClose =
+          importSectionOpen ||
+          (leadingLocalRun && sawLeadingLocalDeclaration && pendingReferenceLocalBoundary === undefined) ||
+          (sawTopLevelDeclaration && !closedTopLevelDeclarationSection) ||
+          (sawApplicationClassLocalSection && !closedApplicationClassLocalSection);
+        if (sectionAwaitsClose && conditionalRegionBetween(commentWhitespaceStart, pos)) {
+          pos = commentWhitespaceStart;
+          break;
+        }
 
         const commentWhitespace =
           source.slice(commentWhitespaceStart, pos);

@@ -2063,6 +2063,38 @@ test('0x77 is #Else, completing the #If/#Then/#Else/#End-If directive family', (
     '#End-If\n');
 });
 
+test('a section close right after a directive record adds no line break of its own (25883, 4601)', () => {
+  // Cycle 115: a comment right before a directive closes no section, so the
+  // 0x2D close lands after the directive's record -- 25883 `24 75 76 2D 4F`
+  // (live `#Then`), 4601 `78 15 2D 4F 31` (`#End-If;`). The directive
+  // already ended its line; 0x4F alone is the blank line.
+  const cond = utf16('#If #ToolsRel >= "8.60"');
+  const then = utf16('#Then');
+  const endIf = utf16('#End-If');
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x75, cond.length & 0xff, cond.length >> 8, ...cond,
+      0x76, then.length & 0xff, then.length >> 8, ...then,
+      0x2d, 0x4f,
+      0x1c, 0x2f, 0x1f, 0x1a, 0x15,
+      0x78, endIf.length & 0xff, endIf.length >> 8, ...endIf,
+      0x15, 0x2d, 0x4f,
+      0x1c, 0x2f, 0x1f, 0x1a, 0x15
+    ]),
+    new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text,
+    '#If #ToolsRel >= "8.60" #Then\n' +
+    '\n' +
+    '  If True Then\n' +
+    '  End-If;\n' +
+    '#End-If;\n' +
+    '\n' +
+    'If True Then\n' +
+    'End-If;\n');
+});
+
 test('a string literal with a real non-ASCII character survives whole, the same bug as comments once had', () => {
   // readTextRun (used for string literals and bare identifiers, unlike
   // comments' own length-prefixed readLengthPrefixedText) had the same
