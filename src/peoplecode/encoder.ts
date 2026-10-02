@@ -5089,12 +5089,15 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   const conditionalRegions = context?.conditionalDirectiveRegions;
   const conditionalBase = context?.conditionalDirectiveBase ?? 0;
   const emittedConditionalRegions = new Set<number>();
+  // Cycle 122: set when a directive's records are written; read by the top-level unit logic
+  let directiveSinceTopLevelStatement = false;
   const emitConditionalRegionAt = (at: number): void => {
     const region = conditionalRegions!.get(conditionalBase + at);
     if (region === undefined || emittedConditionalRegions.has(region.start)) return;
     emittedConditionalRegions.add(region.start);
     context?.conditionalDirectiveEmissions?.add(region.start);
     chunks.push(region.records);
+    directiveSinceTopLevelStatement = true;
   };
   // Cycle 115: whether a directive region starts in [from, to).
   const conditionalRegionBetween = (from: number, to: number): boolean => {
@@ -12848,7 +12851,20 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         !sawFunctionDefinition &&
         (isTopLevelDeclaration || isLocalDeclaration);
       if (!inLeadingSection) startAllocationUnit();
+      /*
+       * Cycle 122: a conditional-compilation block ends the leading unit:
+       * 4602 imports HR_RELATED_CONTENT:RCParmBase, then `#If #ToolsRel >=
+       * "8.62" #Then import ...; #End-If;`, then (after Declares and
+       * Globals) `Global HR_RELATED_CONTENT:RCParmBase &gHCRCSParms;`, and
+       * stores a second RCPARMBASE row there. The only program in the
+       * corpus with a directive between an import and a later use of its
+       * class in the leading section; 1,104 EXACT programs without one
+       * reuse the import's row. A built-in declaration does not end the
+       * unit (that alternative: 138 lists farther).
+       */
+      else if (directiveSinceTopLevelStatement) startAllocationUnit();
     }
+    directiveSinceTopLevelStatement = false;
     /*
      * Cycle 111: a Function definition after the leading section starts a
      * new allocation unit for its header -- an Application-Class-typed
