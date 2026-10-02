@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-02T03:25:18.462Z",
+ "generatedAt": "2026-10-02T04:15:28.509Z",
  "totalDefinitions": 30209,
- "exactCount": 29352,
- "nonexactCount": 857,
+ "exactCount": 29387,
+ "nonexactCount": 822,
  "rows": [
   {
    "definitionId": 522,
@@ -896,106 +896,6 @@
     "storedCount": 13,
     "generatedCount": 13
    }
-  },
-  {
-   "definitionId": 5853,
-   "displayName": "1=DERIVED_HRS_CG, 2=HRS_APPL_PRINT_PB, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 236: unsupported PeopleCode statement",
-   "construct": "(create HRS_CG_P",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 5854,
-   "displayName": "1=DERIVED_HRS_CG, 2=HRS_HOME_PB, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 51: unsupported PeopleCode statement",
-   "construct": "(create HRS_CG_S",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 5857,
-   "displayName": "1=DERIVED_HRS_CG, 2=HRS_LOGOUT_PB, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 46: unsupported PeopleCode statement",
-   "construct": "(create HRS_CG_S",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 5858,
-   "displayName": "1=DERIVED_HRS_CG, 2=HRS_MY_APP_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 52: unsupported PeopleCode statement",
-   "construct": "(create HRS_CG_C",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 5859,
-   "displayName": "1=DERIVED_HRS_CG, 2=HRS_MY_FVO_JOB_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 52: unsupported PeopleCode statement",
-   "construct": "(create HRS_CG_C",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 5860,
-   "displayName": "1=DERIVED_HRS_CG, 2=HRS_MY_NOTIFY_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 52: unsupported PeopleCode statement",
-   "construct": "(create HRS_CG_C",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 5861,
-   "displayName": "1=DERIVED_HRS_CG, 2=HRS_MY_PROF_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 171: unsupported PeopleCode statement",
-   "construct": "(create HRS_CG_C",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 5862,
-   "displayName": "1=DERIVED_HRS_CG, 2=HRS_MY_SAVED_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 51: unsupported PeopleCode statement",
-   "construct": "(create HRS_CG_S",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 5863,
-   "displayName": "1=DERIVED_HRS_CG, 2=HRS_REGISTER_PB, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 51: unsupported PeopleCode statement",
-   "construct": "(create HRS_CG_S",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 5864,
-   "displayName": "1=DERIVED_HRS_CG, 2=HRS_VIEW_LAST_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 51: unsupported PeopleCode statement",
-   "construct": "(create HRS_CG_S",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
    "definitionId": 5931,
@@ -2326,12 +2226,18 @@
   {
    "definitionId": 14328,
    "displayName": "1=PSADSDEFN_WRK, 2=PARRECLOOKUP, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 2676: unsupported PeopleCode statement",
-   "construct": "(Record.PSADSDEF",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "firstDiffOffset": 890,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 48,
+    "generatedCount": 49,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 14330,
@@ -2404,16 +2310,6 @@
    "roundtripExact": false,
    "errorMessage": "Cannot encode PeopleCode at source offset 843: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
    "construct": "*&nPower);\n     ",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 14532,
-   "displayName": "1=PSCDBINSTALLWRK, 2=PT_CDB_UPD_SEC_PB, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 69: unsupported PeopleCode statement",
-   "construct": "(create PT_CDB_O",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
@@ -3600,32 +3496,12 @@
    }
   },
   {
-   "definitionId": 18191,
-   "displayName": "9=ACA_EE_YE_FORM_FL, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1832: unsupported PeopleCode statement",
-   "construct": "(create PT_PAGE_",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
    "definitionId": 18217,
    "displayName": "9=ADDR_HISTORY_SEC, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
    "sourceEncodeExact": true,
    "roundtripExact": true,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 18239,
-   "displayName": "9=AGC_START_AG_FL, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 233: unsupported PeopleCode statement",
-   "construct": "(create PT_PAGE_",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
    "definitionId": 18268,
@@ -3696,16 +3572,6 @@
     "generatedCount": 17,
     "firstDivergenceKind": "package"
    }
-  },
-  {
-   "definitionId": 18410,
-   "displayName": "9=CHANGE_PASSWORD, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 25: unsupported PeopleCode statement",
-   "construct": "(create PT_PAGE_",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
    "definitionId": 18472,
@@ -3782,16 +3648,6 @@
    }
   },
   {
-   "definitionId": 18775,
-   "displayName": "9=GPSC_BANK_ADD_FL, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1953: unsupported PeopleCode statement",
-   "construct": "(create PT_PAGE_",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
    "definitionId": 18806,
    "displayName": "9=GPS_CHILD_ALLOW2, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -3838,26 +3694,6 @@
    }
   },
   {
-   "definitionId": 18967,
-   "displayName": "9=HRRC_ADM_LIST_FL, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 3688: unsupported PeopleCode statement",
-   "construct": "(create PT_PAGE_",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 18980,
-   "displayName": "9=HRS_ONL_OFR_CE_DTL, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 13950: unsupported PeopleCode statement",
-   "construct": "(create HRS_CAND",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
    "definitionId": 18989,
    "displayName": "9=HRS_OPR_MYAPPS_SCF, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -3888,16 +3724,6 @@
     "generatedCount": 19,
     "firstDivergenceKind": "field"
    }
-  },
-  {
-   "definitionId": 19137,
-   "displayName": "9=PORTAL_EDIT_FAV, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 904: unsupported PeopleCode statement",
-   "construct": "(create PT_PAGE_",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
    "definitionId": 19143,
@@ -4543,86 +4369,6 @@
    "primaryCategory": "DECODER_BARE_IDENTIFIER"
   },
   {
-   "definitionId": 22491,
-   "displayName": "10=GPS_POSTEDIT_REQ, 39=GBL, 1=GPS_POST_DTL, 2=EFFDT, 12=FieldChange, 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 118: unsupported PeopleCode statement",
-   "construct": "(&_oClassObject.",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 22493,
-   "displayName": "10=GPS_POSTEDIT_REQ, 39=GBL, 1=GPS_POST_DTL, 12=SaveEdit, 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 335: unsupported PeopleCode statement",
-   "construct": "(&_oClassObject.",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 22495,
-   "displayName": "10=GPS_POSTEDIT_REQ, 39=GBL, 1=GPS_POST_EE, 2=EMPLID, 12=FieldChange, 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 122: unsupported PeopleCode statement",
-   "construct": "(&_oClassObject.",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 22496,
-   "displayName": "10=GPS_POSTEDIT_REQ, 39=GBL, 1=GPS_POST_EE, 2=EMPL_RCD, 12=FieldChange, 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 122: unsupported PeopleCode statement",
-   "construct": "(&_oClassObject.",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 22498,
-   "displayName": "10=GPS_POSTEDIT_REQ, 39=GBL, 1=GPS_POST_EE, 12=RowInit, 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 122: unsupported PeopleCode statement",
-   "construct": "(&_oClassObject.",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 22499,
-   "displayName": "10=GPS_POSTEDIT_REQ, 39=GBL, 1=GPS_POST_EE, 12=SaveEdit, 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 244: unsupported PeopleCode statement",
-   "construct": "(&_oClassObject.",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 22505,
-   "displayName": "10=GPS_POSTEDIT_REQ, 39=GBL, 12=SavePostChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 397: unsupported PeopleCode statement",
-   "construct": "(&_oClassObject.",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 22506,
-   "displayName": "10=GPS_POSTEDIT_REQ, 39=GBL, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 197: unsupported PeopleCode statement",
-   "construct": "(&_oClassObject.",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
    "definitionId": 22665,
    "displayName": "10=GPS_RPT_MGMT, 39=GBL, 1=GPS_RPT_FM_WRK, 2=GB_GROUP_ID, 12=FieldChange, 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -4885,16 +4631,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 23507,
-   "displayName": "10=HRRC_ESS_RECOG_FL, 39=GBL, 1=HRRC_FILTER_WRK, 2=RC_FILTER_PB, 12=FieldChange, 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 2966: unsupported PeopleCode statement",
-   "construct": "(create PT_PAGE_",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
    "definitionId": 23572,
    "displayName": "10=HR_PROMOTE_APPR, 39=GBL, 12=SavePostChange, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -4950,16 +4686,6 @@
     "generatedCount": 40,
     "firstDivergenceKind": "record"
    }
-  },
-  {
-   "definitionId": 24034,
-   "displayName": "10=PORTAL_EDIT_FAV, 39=GBL, 12=SavePostChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 49: unsupported PeopleCode statement",
-   "construct": "(create PT_PAGE_",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
    "definitionId": 24037,
@@ -5036,16 +4762,6 @@
    "sourceEncodeExact": true,
    "roundtripExact": true,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 24272,
-   "displayName": "10=PSCPQMGR_VIEWER, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 88: unsupported PeopleCode statement",
-   "construct": "(create PT_PAGE_",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
    "definitionId": 24348,
@@ -5222,36 +4938,6 @@
    "primaryCategory": "ENCODE_ERROR"
   },
   {
-   "definitionId": 25006,
-   "displayName": "10=PTAI_GRANTS_FL, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 153: unsupported PeopleCode statement",
-   "construct": "(create PT_PAGE_",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 25015,
-   "displayName": "10=PTAI_NOTIFY_FL, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 71: unsupported PeopleCode statement",
-   "construct": "(create PT_PAGE_",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 25022,
-   "displayName": "10=PTAI_PRCSOVERVW_FL, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 254: unsupported PeopleCode statement",
-   "construct": "(create PT_PAGE_",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
    "definitionId": 25056,
    "displayName": "10=PTAL_ASSIGN_PGLTS, 39=GBL, 1=PTAL_ASSIGN_WRK, 2=PT_ADDTO_PROJ, 12=FieldChange, 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -5301,16 +4987,6 @@
     "generatedCount": 62,
     "firstDivergenceKind": "package"
    }
-  },
-  {
-   "definitionId": 25294,
-   "displayName": "66=AN_OA_T3_RQ, 77=Section1, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1704: unsupported PeopleCode statement",
-   "construct": "(&rsRateRun.GetR",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
    "definitionId": 25309,
@@ -5986,12 +5662,12 @@
   {
    "definitionId": 28760,
    "displayName": "104=ADS_DMW, 105=UI, 107=ProjectBindsGrid, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "ENCODE_ERROR",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 461: unsupported PeopleCode statement",
-   "construct": "rojectBindsGrid",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "errorMessage": "Cannot encode PeopleCode at source offset 1235: bare identifiers are only supported as calls",
+   "construct": "Num",
+   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 28761,
@@ -6151,24 +5827,20 @@
    }
   },
   {
-   "definitionId": 28800,
-   "displayName": "104=AGC_UTILITIES, 105=ActivityGuideLink, 107=ActivityGuideLinkPage, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 42: unsupported PeopleCode statement",
-   "construct": "LLECTION",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
    "definitionId": 28805,
    "displayName": "104=AGC_UTILITIES, 105=ActivityGuideTiles, 107=TileReviewPage, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 78: unsupported PeopleCode statement",
-   "construct": "text",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 57,
+    "generatedCount": 48,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 28806,
@@ -6259,12 +5931,18 @@
   {
    "definitionId": 28850,
    "displayName": "104=BAS_STATEMENT, 105=Pages, 107=StatementList, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 15319: unsupported PeopleCode statement",
-   "construct": "in",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "firstDiffOffset": 4220,
+   "primaryCategory": "REFERENCE_ACTIVE_QUOTED_COMPONENT",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 49,
+    "generatedCount": 65,
+    "firstDivergenceKind": "component"
+   }
   },
   {
    "definitionId": 28851,
@@ -6431,12 +6109,18 @@
   {
    "definitionId": 28871,
    "displayName": "104=BEN_ATTACHMENTS, 107=AttachmentList, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1752: unsupported PeopleCode statement",
-   "construct": "ll",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "firstDiffOffset": 6469,
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 46,
+    "generatedCount": 48,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 28872,
@@ -6696,12 +6380,12 @@
   {
    "definitionId": 28936,
    "displayName": "104=BEN_SUMMARY_FL, 105=Page, 107=BenefitsSummary, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "ENCODE_ERROR",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 957: unsupported PeopleCode statement",
-   "construct": "ons",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "errorMessage": "Cannot encode PeopleCode at source offset 1593: expected assignment = [DOTTED-STMT] next=\"/* Bug 30912657 */;\\n      /*Bug 35663983*/\\n      If &seffstatus = \\\"I\\\" Then\\n     \" previous=\".ShowPageInSide2(&bOpen);\\n      BEN_RPANEL_WRK.GROUPBOX.AddFFClass(\\\"ps_hidden\\\") \"",
+   "construct": "t",
+   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 28942,
@@ -8841,12 +8525,12 @@
   {
    "definitionId": 29465,
    "displayName": "104=GP_ABS_CS_TMPL, 105=TEL, 107=absTelObject, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "ENCODE_ERROR",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 74: unsupported PeopleCode statement",
-   "construct": "ct",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "errorMessage": "Cannot encode PeopleCode at source offset 795: keyword catch is not a supported call name",
+   "construct": "erEx",
+   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 29476,
@@ -8857,16 +8541,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 184: keyword catch is not a supported call name",
    "construct": "InvalidIndexEx",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29479,
-   "displayName": "104=GP_ABS_CS_TMPL, 105=TMPL, 107=absTmplData, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 2004: unsupported PeopleCode statement",
-   "construct": "ingPersonFlag",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
    "definitionId": 29485,
@@ -9513,42 +9187,66 @@
   {
    "definitionId": 29617,
    "displayName": "104=HRRC_FUNCTIONS, 107=CreateRecognition, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 2118: unsupported PeopleCode statement",
-   "construct": "       Local boo",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 31,
+    "generatedCount": 27,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29618,
    "displayName": "104=HRRC_FUNCTIONS, 107=CurrentRecognition, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1192: unsupported PeopleCode statement",
-   "construct": "stance",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 70,
+    "generatedCount": 69,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29619,
    "displayName": "104=HRRC_FUNCTIONS, 107=EmployeeSelfService, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 522: unsupported PeopleCode statement",
-   "construct": "ng",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "firstDiffOffset": 5128,
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 40,
+    "generatedCount": 43,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29620,
    "displayName": "104=HRRC_FUNCTIONS, 107=ManagerSelfService, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 5055: unsupported PeopleCode statement",
-   "construct": "\n      \n      /*",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 57,
+    "generatedCount": 59,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 29621,
@@ -9579,12 +9277,18 @@
   {
    "definitionId": 29623,
    "displayName": "104=HRRC_FUNCTIONS, 107=RecognitionTab, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1010: unsupported PeopleCode statement",
-   "construct": "od",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 97,
+    "generatedCount": 95,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29625,
@@ -9763,12 +9467,18 @@
   {
    "definitionId": 29713,
    "displayName": "104=PLAN_COMPARE_TEMPLATE, 105=PAGES, 107=TemplateList, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 661: unsupported PeopleCode statement",
-   "construct": "tring",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "firstDiffOffset": 13132,
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 64,
+    "generatedCount": 65,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 29715,
