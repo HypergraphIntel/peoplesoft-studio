@@ -8,6 +8,9 @@ import {
 import type {
   ApplicationClassTypeMetadataProvider
 } from '../../src/peoplecode/applicationClassTypeMetadata';
+import type {
+  ConditionalCompilationOptions
+} from '../../src/peoplecode/conditionalCompilation';
 
 import {
   decodeProgram
@@ -164,6 +167,12 @@ export interface ValidationOptions {
    * encode (TEST A) and the roundtrip re-encode (TEST B).
    */
   applicationClassTypeMetadata?: ApplicationClassTypeMetadataProvider;
+  /**
+   * Cycle 115: the Tools release for `#If #ToolsRel` conditional
+   * compilation (from the snapshot layer; `snapshot/toolsRelease.ts`).
+   * Carried to both the source encode and the roundtrip re-encode.
+   */
+  conditionalCompilation?: ConditionalCompilationOptions;
 }
 
 function referenceDescription(
@@ -528,7 +537,9 @@ function runValidation(
       packagePath
     },
     applicationClassTypeMetadata:
-      options.applicationClassTypeMetadata
+      options.applicationClassTypeMetadata,
+    conditionalCompilation:
+      options.conditionalCompilation
   };
 
   const sourceTrace =

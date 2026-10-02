@@ -59,6 +59,7 @@ import { openSnapshotDatabase } from '../snapshot/store';
 import { listSnapshotDefinitions } from '../snapshot/reader';
 import { encodeProgramArtifacts } from '../../../src/peoplecode/encoder';
 import { snapshotApplicationClassTypeMetadata } from '../snapshot/applicationClassTypeMetadata';
+import { snapshotConditionalCompilation } from '../snapshot/toolsRelease';
 
 const ROOT = path.join(__dirname, '../../..');
 
@@ -105,6 +106,7 @@ const builtins = builtinTypes();
 const db = openSnapshotDatabase();
 const definitions = listSnapshotDefinitions(db) as any[];
 const applicationClassTypeMetadata = process.argv.includes('--no-metadata') ? undefined : snapshotApplicationClassTypeMetadata(db);
+const conditionalCompilation = snapshotConditionalCompilation(db);
 /* Snapshot Application Classes: class name -> package roots that define it. */
 const classPackages = new Map<string, Set<string>>();
 for (const def of definitions) {
@@ -129,7 +131,7 @@ for (const def of definitions) {
   let fallback = false;
   try {
     artifacts = encodeProgramArtifacts(def.sourceText, {
-      owner: context(def), applicationClassTypeMetadata, onExternalMetadataFallback: () => { fallback = true; }
+      owner: context(def), applicationClassTypeMetadata, conditionalCompilation, onExternalMetadataFallback: () => { fallback = true; }
     } as any);
   } catch { continue; }
   const generatedRows = artifacts.references.filter((r: any) => r.kind !== 'owner');

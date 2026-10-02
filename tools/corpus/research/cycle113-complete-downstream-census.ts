@@ -34,6 +34,7 @@ import path from 'node:path';
 import { openSnapshotDatabase } from '../snapshot/store';
 import { listSnapshotDefinitions } from '../snapshot/reader';
 import { snapshotApplicationClassTypeMetadata } from '../snapshot/applicationClassTypeMetadata';
+import { snapshotConditionalCompilation } from '../snapshot/toolsRelease';
 import { encodeProgramArtifacts } from '../../../src/peoplecode/encoder';
 import { decodeProgram, type Token } from '../../../src/peoplecode/decoder';
 import { NameTable } from '../../../src/peoplecode/progtext';
@@ -63,6 +64,7 @@ const same = (a: Token | undefined, b: Token | undefined) => a !== undefined && 
 
 const db = openSnapshotDatabase();
 const provider = snapshotApplicationClassTypeMetadata(db);
+const conditionalCompilation = snapshotConditionalCompilation(db);
 const out = fs.openSync(outPath, 'w');
 let written = 0;
 for (const def of listSnapshotDefinitions(db) as any[]) {
@@ -74,7 +76,7 @@ for (const def of listSnapshotDefinitions(db) as any[]) {
   const ri = ids.findIndex((x: number) => x === 1), fi = ids.findIndex((x: number) => x === 2);
   const owner = { recordName: ri >= 0 ? values[ri] : values[0], fieldName: fi >= 0 ? values[fi] : values[1], packagePath: values.slice(0, event < 0 ? values.length : event).filter(Boolean) };
   const app = def.objectid1 === 104;
-  const artifacts = encodeProgramArtifacts(def.sourceText, { owner, applicationClassTypeMetadata: provider });
+  const artifacts = encodeProgramArtifacts(def.sourceText, { owner, applicationClassTypeMetadata: provider, conditionalCompilation });
   const stored: Buffer = def.storedProgram;
   const generated: Buffer = artifacts.program;
 
