@@ -1,14 +1,14 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 134)
+## Current status (2026-10-02, Cycle 135)
 
-- **Current target:** Cycle 134 -- encoder: reference-vs-inline operand
-  of a bare chain member follows the receiver's static typing. EXACT
-  29,774 -> 29,781 (+7) = forward-exact; COMPLETE_DOWNSTREAM 40 -> 33; 0
-  reference lists changed, protected PASS, 0 EXACT -> non-EXACT,
-  ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See "Compiler
-  Semantics Cycle 134".
-- **Last successful calibration:** Cycle 134 (chain member operand typing).
+- **Current target:** Cycle 135 -- encoder (reference layer): App Class
+  Rowset receiver typing. EXACT 29,781 -> 29,809 (+28) = forward-exact;
+  39 programs changed, 0 reference lists / programs farther, every added
+  row (28 RECORD, 56 FIELD) in the stored list; protected PASS, 0 EXACT ->
+  non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See
+  "Compiler Semantics Cycle 135".
+- **Last successful calibration:** Cycle 135 (App Class Rowset typing).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -24,23 +24,21 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 135):** encoder, reference layer -- App Class
-  Rowset typing, parked in Cycle 134 because it changes PSPCMNAME: (a) a
-  metadata-typed `Rowset` property (`%This.rsTreeWrk_L1`, typed receivers)
-  as a declared Rowset in the chain (variant measured +22 forward-exact:
-  19884 28990 28992 29412 29415 29611 29712 29955 29956 29957 29959 29998
-  30067 30084 30085 30088 30089 30093-30097; 25 programs changed, 23
-  reference lists, 0 farther); (b) header `instance` / `property` /
-  `Global` Rowset / Row declarations reaching method bodies (+6: 30107
-  28995 29336 29525 29526 30141; 16 changed, 11 reference lists, 0
-  farther). Census the reference rows these allocate (ACTIVE_RECORD /
-  RECORD_FIELD / PACKAGE families) before landing, then rerank.
-  Remaining COMPLETE_DOWNSTREAM (33): `array` keyword 0x40 (5), marker
-  order (4 + 2), App Class 0x4E vs 0x2D (3), 0x4F before Constant /
-  instance / method (3 + 1), 0x4A after an App Class / metadata receiver
-  (29415 30107 15840). README.md has unrelated uncommitted user edits --
-  never stage it.
-- **Newly established rules this session:** Cycle 134 (encoder): a bare
+- **Next action (Cycle 136):** reference layer -- the largest single-shape
+  family: STRUCTURAL_ORDERING App Class programs whose first reference
+  divergence is a stored FIELD row where the encoder writes a PACKAGE row
+  (11: 29451 29519 29538 29540 29546 30054 30058 30060 ...) -- an ordering
+  question (the rows exist, in a different order): census the stored order
+  of FIELD vs PACKAGE rows in those methods against the allocation order
+  before changing any allocator. Then the App Class ACTIVE_PACKAGE family
+  (16: 28721 28729 28797 ...). Remaining COMPLETE_DOWNSTREAM (33): `array`
+  0x40 (5), marker order (4 + 2), type-path case (3), App Class 0x4E vs 0x2D
+  (3), 0x4F before Constant / instance / method (3 + 1); 15840 needs
+  metadata the snapshot lacks (PTIB_PACKAGE:MobileURLParams.URIParams).
+  README.md has unrelated uncommitted user edits -- never stage it.
+- **Newly established rules this session:** Cycle 135 (encoder): an App
+  Class Rowset (header declaration or metadata-typed property) is a declared
+  Rowset in method bodies; Cycle 134 (encoder): a bare
   chain member is 0x4A after a statically typed Row / Record value, 0x0A on
   a late-bound chain (undeclared or `any` root) even with the row present;
   GetCurrEffRow() -> Row, .ParentRecord -> Record; Cycle 133 (encoder): a comment
@@ -182,6 +180,55 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 135 -- App Class Rowset receiver typing
+
+**Baseline reproduced fresh at `04f14d7`:** 29,781 / 428, forward-exact
+29,781, COMPLETE_DOWNSTREAM 33, ACTIVE_RECORD_FIELD 39, ACTIVE_RECORD 32,
+ACTIVE_FIELD 26, ACTIVE_SCROLL 13, protected 430/430, taxonomy
+row-identical, fallback 70 (13525 in, EXACT), ROUNDTRIP_ONLY 0.
+**Result:** EXACT **29,781 -> 29,809 (+28)** = forward-exact; 39 programs
+changed, 0 EXACT -> non-EXACT, protected 430/430, ROUNDTRIP_ONLY 0,
+fallback 70. LOCAL SNAPSHOT only. Commits: 64752d6 (census), f9fa1cc
+(encoder). README.md untouched, never staged. This cycle allowed
+reference-list changes; every one was validated.
+
+Experiments (`RESEARCH_ENCODER_MODULE`; ledger `cycle135-reference-delta.ts`
+-- edit distance of each generated list to the stored list, rows added /
+removed by kind, stored backing, duplicates, order-only):
+(A) a property the type-metadata provider declares `Rowset` as a declared
+Rowset: +22 forward-exact (19884 28990 28992 29412 29415 29611 29712 29955
+29956 29957 29959 29998 30067 30084 30085 30088 30089 30093-30097), 25
+changed, lists 20 exact / 4 closer / 1 same / 0 farther, bytes 22 / 1 / 2
+/ 0, +16 RECORD +35 FIELD all stored, none removed. (B) header Rowset
+reaching bodies: +6 (28995 29336 29525 29526 30107 30141), 15 changed,
+lists 9 / 3 / 3 / 0, bytes 6 / 3 / 6 / 0, +12 RECORD +21 FIELD all stored.
+Header Row alone: 0 programs changed (not modeled). Overlap only 29008
+(A changes none of its rows). Combined = final: +28, 39 changed, lists 29
+exact / 7 closer / 3 same / 0 farther, bytes 28 / 4 / 7 / 0, +28 RECORD
++56 FIELD all stored, 0 removed, 0 duplicates beyond stored; the 3 "same"
+lists are unchanged (30047's pre-existing PACKAGE order mismatch among
+them). No PACKAGE / SCROLL / RECORD.FIELD row moved.
+
+29415: `%This.rsTreeWrk_L1.GetRow(&i).GetRecord(1).FIELD_VALUE.Value`,
+`property Rowset rsTreeWrk_L1;`: provider type Rowset -> Rowset; GetRow ->
+Row; GetRecord -> Record; FIELD_VALUE -> FIELD reference (stored `4A`).
+30107: `instance Rowset &pendingActions;` ... `&actionRecord.CopyFieldsTo(
+&pendingActions.GetRow(&rsCount).PTAFAW_DECISION)` -> Row -> RECORD
+reference. Transitions (existing, now reached): Rowset.GetRow -> Row; Row
+bare member -> RECORD; Record bare member -> FIELD. Shadowing: a body Local
+(any type; `Local any` is late-bound -- Cycle 134) or a parameter of another
+type drops the header Rowset. No provider -> nothing typed. 15840: the
+provider has no type for PTIB_PACKAGE:MobileURLParams.URIParams (class /
+member absent from the snapshot) -- not reachable.
+
+Taxonomy moves: ACTIVE_RECORD 32 -> 27, ACTIVE_FIELD 26 -> 22,
+ACTIVE_RECORD_FIELD 39 -> 36, ACTIVE_SCROLL 13 -> 11, ACTIVE_OTHER 20 ->
+12, STRUCTURAL_ORDERING 18 -> 14, ACTIVE_PACKAGE 72 -> 70,
+COMPLETE_DOWNSTREAM 33 -> 33 (29415 / 30107 exact; 28953 and 29006 now
+reference-exact -> COMPLETE_DOWNSTREAM; 29655 ACTIVE_RECORD_FIELD ->
+ACTIVE_PACKAGE, references 9 -> 1 from stored). Cycle 124-134 gains all
+still EXACT (29921 still inline under its `any` root). NONEXACT 400.
 
 ## Compiler Semantics Cycle 134 -- reference vs inline chain members
 

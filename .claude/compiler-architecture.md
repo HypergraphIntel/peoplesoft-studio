@@ -12,7 +12,7 @@ EXACT 29,719 / NONEXACT 490; Cycle 129: EXACT 29,720 / NONEXACT 489; Cycle 130:
 EXACT 29,721 / NONEXACT 488 -- all decoder only; Cycle 131 encoder: EXACT
 29,754 / NONEXACT 455; Cycle 132: EXACT 29,764 / NONEXACT 445; Cycle 133:
 EXACT 29,774 / NONEXACT 435; Cycle 134: EXACT 29,781 / NONEXACT 428;
-forward-exact = EXACT); forward-exact
+Cycle 135: EXACT 29,809 / NONEXACT 400; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -154,9 +154,14 @@ kind) -- even when a reference row of that name already exists
 (`hasExistingExpectedReference` no longer binds a late-bound root).
 Typed steps added: `GetCurrEffRow()` -> Row, `.ParentRecord` -> Record;
 an App Class `Global array of Record` reaches method bodies.
-Not yet modeled (they move reference lists, Cycle 135): App Class header
-`instance` / `property` Rowset / Row declarations and metadata-typed
-Rowset properties as typed roots (`cycle134-member-operand-census.ts`).
+Cycle 135: an App Class Rowset -- header `instance` / `property` /
+`Global` / `Component` (Cycle 120's outside-declared built-ins) or a
+property the type-metadata provider declares `Rowset` -- is a declared
+Rowset in every method body (`chainSemanticsDeclaredRowsetVariables`;
+shadowed by a body Local / differently typed parameter); the chain
+transitions and the existing allocator do the rest. Header Row
+declarations change no program: not modeled. Every reference-list change
+validated with `cycle135-reference-delta.ts`.
 
 ## 5. Declarations and scope
 
