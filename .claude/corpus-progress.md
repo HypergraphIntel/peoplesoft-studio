@@ -1,43 +1,42 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-01, Cycle 113)
+## Current status (2026-10-01, Cycle 114)
 
-- **Current target:** Cycle 113 -- REFERENCE_COMPLETE_DOWNSTREAM byte
-  rules (reference lists exact, bytes not). Census tool
-  `cycle113-complete-downstream-census.ts`; 13 byte-rule commits. EXACT
-  28,671 -> 29,159 (+488), protected PASS, 0 EXACT -> non-EXACT in every
-  commit, no PSPCMNAME change, fallback 63 (13525 EXACT),
-  COMPLETE_DOWNSTREAM 580 -> 94. See "Compiler Semantics Cycle 113".
-- **Last successful calibration:** Cycle 113 (Function metadata writes
-  one class type name per use).
+- **Current target:** Cycle 114 -- the empty statement (a standalone `;`)
+  and the unterminated final App Class closer. EXACT 29,159 -> 29,244
+  (+85), protected PASS, 0 EXACT -> non-EXACT, encode errors 457 -> 338
+  (119 definitions newly encodable), COMPLETE_DOWNSTREAM 94 -> 88,
+  fallback: the 63 members unchanged plus 6 newly encodable, 13525 EXACT.
+  See "Compiler Semantics Cycle 114".
+- **Last successful calibration:** Cycle 114 (unterminated final App
+  Class closer).
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** none newly blocked. Parked (Cycle
-  113): row-shorthand record resolution `GetRow(n).X.Y` -- stored 0x4A
-  (resolved record, uppercased) or 0x0A (source case) depending on whether
-  X names a real record: needs a record catalog the snapshot lacks (25
-  programs: 4269, 4440, 5931, 29004, 29169, ...); the unterminated last
-  `end-method` (13 programs: +8 exact, but restoring the dropped method
-  changes PSPCMNAME for 29894 -- distance 18 -> 1 -- and exposes 29560's
-  `;;` in an If body as ENCODE_ERROR; land with empty-statement support);
-  sub-package canonical case in type-path names (28942). Earlier parks
-  unchanged: FIELDVALUE / XLAT* (18989 too); undeclared-variable
-  receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class rows for classes
-  absent from the snapshot (14162, 19877, 23068, 23402 ...); the fallback
-  wildcard over-claim (blocked by 13525 -- Cycle 105); `%This` method
-  results; 29797 / 29883; 30192; ordinary `Function` parameters `As array
-  of <Class>`; hidden rows behind classes absent from the snapshot (28968
-  EnrollElect, 29230 WCS_LOOKUPTABLE, 29598 EOAW_CORE, 29715 / 29725
-  EOEN_EVENT_MANAGER; 28731 and 29567 were decode artefacts -- both are
-  now EXACT); ordinary `As` casts (18110, 19528, 20687, 14919); 2125,
-  24500, 24503, 19433.
-- **Next action:** empty statements (`;;`) outside For bodies: 89
-  ordinary ENCODE_ERROR programs stop at a stray `;` (If / Function /
-  While bodies; the For body already keeps a lone 0x15) -- census the
-  stored 0x15 placement, then land it together with the parked
-  unterminated-closer rule (29560 needs both). COMPLETE_DOWNSTREAM
-  residue (94) has no family above 8 except the parked 0x0A / 0x4A
-  record-resolution one. See "COMPLETE_DOWNSTREAM rerank after Cycle 113".
-- **Newly established rules this session:** Cycle 113: only primitive
+- **Locally blocked definitions:** none newly blocked. Parked:
+  row-shorthand record resolution `GetRow(n).X.Y` (0x4A resolved record /
+  0x0A source case; needs a record catalog the snapshot lacks; 25
+  programs: 4269, 4440, 5931, 29004, 29169, ...); sub-package canonical
+  case in type-path names (28942); FIELDVALUE / XLAT* (18989 too);
+  undeclared-variable receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class
+  rows for classes absent from the snapshot (14162, 19877, 23068, 23402
+  ...); the fallback wildcard over-claim (blocked by 13525 -- Cycle 105);
+  `%This` method results; 29797 / 29883; 30192; ordinary `Function`
+  parameters `As array of <Class>`; hidden rows behind classes absent from
+  the snapshot (28968, 29230, 29598, 29715 / 29725); ordinary `As` casts
+  (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
+  (no discriminating program): whether an empty statement opens a
+  reference / allocation unit.
+- **Next action:** `#If #ToolsRel ... #Then ... #End-If` conditional
+  compilation -- 90 UNSUPPORTED_SYNTAX programs stop at a `#If`. Then
+  "expected )" (58 Application Class programs), parenthesized expression
+  statements `(create X(...)).Method()` (29), the decoder's rendering of
+  empty statements (17 forward-exact programs are DECODE_SOURCE_MISMATCH,
+  e.g. 5061 `rem ...;;` decodes as `rem ...;`). See "Error rerank after
+  Cycle 114".
+- **Newly established rules this session:** Cycle 114: a `;` where a
+  statement starts is the empty statement -- one 0x15, in every statement
+  list, executable (closes a top-level declaration section with 0x2D only;
+  enters a Function body's executable section); an unterminated last
+  `end-method` at EOF is kept and written as the bare closer opcode; Cycle 113: only primitive
   type names are keywords (0x40); a block comment's opcode is its
   placement; same-line comments precede a header's / closer's 0x2D; the
   `array of Pkg:Class` element type is written; a type-path name's root is
@@ -101,6 +100,94 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 114 -- the empty statement and the unterminated final App Class closer
+
+**Baseline reproduced fresh at `d1161d2`:** 29,159 / 1,050, protected
+430/430, taxonomy row-identical, ENCODE_ERROR 122, UNSUPPORTED_SYNTAX 335
+(457 encode errors in all), COMPLETE_DOWNSTREAM 94, fallback 63 (13525
+in it), ROUNDTRIP_ONLY 0. **Result:** EXACT **29,159 -> 29,244 (+85)**,
+**0 EXACT -> non-EXACT**, protected 430/430, ROUNDTRIP_ONLY 0. LOCAL
+SNAPSHOT only.
+
+### Research (d88abf1, 01bb7eb)
+
+`cycle114-empty-statement-census.ts`: a standalone `;` is one whose
+previous significant item (comments, disabled code, signature comments,
+REM skipped) is another `;` or the program start. 309 occurrences in 216
+definitions (165 ordinary / 144 App Class occurrences; 126 / 90
+definitions). Parents: If 108, method body 63, top 32, Else 38, class
+header 16, Function 15, For 17, When 11, While 5, try 3, get 1. 258 on the
+previous `;`'s line, 49 after a comment, 2 on a new line; runs: 303 single,
+6 second-in-run (`;;;`, `Then;;`). Next item: statement 212, End-If 63,
+Else 14, end-method 7, EOF 5, End-For 4, End-Evaluate / End-Function /
+end-class / end-get 1 each. `;` after `Then` / `Else` / `try` (2,190) is
+the encoder's existing header separator (same 0x15) and is excluded;
+6,370 semicolons inside disabled code stay masked. Stored: one 0x15 per
+empty statement in every definition, at the source position (`15 15`
+same line; `15 4E 15` after an inline comment; `24 "rem;" 15` after a REM;
+`15 2D 15` after a declaration section). Before the rule 89 ordinary
+programs failed to encode at a `;` -- UNSUPPORTED_SYNTAX in the taxonomy,
+not ENCODE_ERROR (82 at a counted empty statement, 7 at one opening an Else
+/ When body after a comment).
+
+`cycle114-final-closer-census.ts`: 13 App Class programs end `end-method`
++ EOF (the keyword is present; only its `;` is missing). The parser's
+pattern required `end-method;`, so the last implementation was dropped
+(a parse truncation, not a closing event). Stored ends all 13 `... 64
+07`; the 1,454 terminated programs `... 2D 07`.
+
+### Semantics
+
+| commit | rule | effect |
+|---|---|---|
+| dc9c137 | `statement()` accepts the empty statement (the list's terminator writes its 0x15) in every statement list; a top-level empty statement closes an open declaration section with 0x2D only | 119 newly encodable (errors 457 -> 338), each with stored's empty-statement shapes; +76 EXACT (74 newly encodable + 21969 / 23232); 18 more forward-exact are decoder-side (17 DECODE_SOURCE_MISMATCH, 6350 DECODER_BARE_IDENTIFIER) |
+| 5f2b944 | an unterminated last `end-method` / get / set at EOF is parsed and written as the bare closer opcode | the 13 programs change, +9 EXACT (incl. 29560); PSPCMNAME 29560 12 -> 0, 29894 18 -> 1, 29008 same distance (its restored rows present, stored orders RECORD before SCROLL) |
+
+Executable-statement evidence: 3219 `Function ... Returns boolean;;
+<blank> If` keeps the If's 0x4F (treating the empty statement as
+non-executable loses it); 21969 / 23232 store `15 2D 15`. Three
+allocation variants (statement-scope reset or not; Function-body unit or
+not) give identical reference lists everywhere -- undetermined.
+
+Dependency: the closer rule alone (on d1161d2) gives +8 and makes 29560
+an encode error (`Substitute(...);;` in an If body of the restored
+method); empty statements alone leave 29560 non-exact (method dropped);
+together 29560 is exact.
+
+Fallback: the 63 members unchanged; 6 newly encodable definitions join
+(14330, 14352, 18471, 19217, 27340, 27341; 18471 / 27340 / 27341 EXACT).
+
+## Error rerank after Cycle 114
+
+UNSUPPORTED_SYNTAX 335 -> 214, ENCODE_ERROR 122 -> 124 (338 encode
+errors; 2 definitions' first failure moved to a later ENCODE_ERROR
+construct). Families: `#If #ToolsRel` conditional compilation 90,
+"unsupported PeopleCode statement" (other) 59, "expected )" (App Class)
+58, parenthesized expression statement `(create X(...)).M()` 29, operand
+"expected a variable ..." 21, `catch` as a call name 18, Function metadata
+types (time, DocumentKey, CubeCollection ...) 15, "expected Then" 12, bare
+identifiers 11, multi-dimension subscripts 11.
+
+Newly encodable (119; 85 ordinary / 34 App Class): EXACT 74,
+DECODE_SOURCE_MISMATCH 26, ACTIVE_PACKAGE 4, COMPLETE_DOWNSTREAM 4,
+ACTIVE_RECORD 4, ACTIVE_FIELD 3, ACTIVE_RECORD_FIELD 2,
+DECODER_BARE_IDENTIFIER 1, QUOTED_COMPONENT 1.
+
+COMPLETE_DOWNSTREAM 94 -> 88 (57 ordinary / 31 App Class, all
+reference-exact): the closer family (8) left, 21969 / 23232 left, 4
+newly encodable entered (14691, 16893, 28813, ...). PACKAGE census:
+PACKAGE-only 70 among previously encodable programs (unchanged) + 5
+newly encodable; first PACKAGE difference 148 -> 146 among previously
+encodable (+7 newly encodable = 153). Reference lists of previously
+encodable programs changed only in 29008, 29560, 29894 (the closer rule;
+closer or equal).
+
+Categories: UNSUPPORTED_SYNTAX 214, ENCODE_ERROR 124, DECODE_SOURCE_
+MISMATCH 108, ACTIVE_PACKAGE 101, ACTIVE_FIELD 95, ACTIVE_RECORD 90,
+COMPLETE_DOWNSTREAM 88, ACTIVE_RECORD_FIELD 41, ACTIVE_OTHER 35,
+DECODER_BARE_IDENTIFIER 27, STRUCTURAL_ORDERING 20, ACTIVE_SCROLL 13,
+QUOTED_COMPONENT 9 (NONEXACT 965).
 
 ## Compiler Semantics Cycle 113 -- REFERENCE_COMPLETE_DOWNSTREAM byte rules
 
