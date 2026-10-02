@@ -1,15 +1,16 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-01, Cycle 116)
+## Current status (2026-10-02, Cycle 117)
 
-- **Current target:** Cycle 116 -- grouped (parenthesized) expression
-  statements, `(create PKG:Class()).Method(...);`. EXACT 29,352 ->
-  29,387 (+35), protected PASS, 0 EXACT -> non-EXACT, encode errors 216
-  -> 171 (45 newly encodable), COMPLETE_DOWNSTREAM 92 (unchanged),
-  fallback 69 -> 70 (14328 via the existing wildcard claim; 13525 in,
-  EXACT), ROUNDTRIP_ONLY 0. See "Compiler Semantics Cycle 116".
-- **Last successful calibration:** Cycle 116 (statement dispatch hands a
-  statement-leading `(` group with a postfix chain to primary()).
+- **Current target:** Cycle 117 -- grouped expressions parse the full
+  expression grammar (comparison / And / Or / Not) whatever their left
+  operand. EXACT 29,387 -> 29,415 (+28), protected PASS, 0 EXACT ->
+  non-EXACT, encode errors 171 -> 99 (72 newly encodable),
+  COMPLETE_DOWNSTREAM 92 -> 95, fallback 70 (13525 in, EXACT),
+  ROUNDTRIP_ONLY 0. See "Compiler Semantics Cycle 117".
+- **Last successful calibration:** Cycle 117 (primary()'s `(` always
+  parses booleanExpression(); booleanUnary() no longer special-cases `(`
+  and `@`).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand record resolution `GetRow(n).X.Y` (0x4A resolved record /
@@ -25,16 +26,23 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action:** "expected )" (59, now the largest error family):
-  parenthesized comparisons / boolean groups whose left operand the
-  `(`-branch lookahead regexes in primary() do not recognize, so the group
-  is parsed by expression() instead of booleanExpression() --
-  `Return (%This.AppMsgs.Len > 0)`, `(&rs.GetRow(1).X.Y.Value = "Y")`,
-  `(IsNewWindowEnabled() And Not (...))` (19510), `If (%This.level = 1)
-  Then`. Then operand "expected a variable ..." (21), `catch` as a call
-  name (14), bare identifiers (12), "expected Then" (12), "expected ]
-  after array subscript" (11). See "Error rerank after Cycle 116".
-- **Newly established rules this session:** Cycle 116: a statement may
+- **Next action:** FIELD rows for `%This.<Record-typed property>.<FIELD>`
+  in Application Class programs -- 17 ACTIVE_OTHER / ACTIVE_FIELD
+  programs (29014, 29021 .. 29028, 29118, 29128, 29130, 29178, 29344,
+  29972, 29994, 29996) first diverge at a stored FIELD row the encoder
+  never allocates for e.g. `Return %This.ObjectRecord.CAF_FCTLST_ID.Value`
+  (grouped or not). Then the error families: `catch` as a call name (14),
+  bare identifiers (12), "expected ] after array subscript" (11), the
+  remaining "expected )" (9: a comment before `,` in an argument list
+  5004 / 25124 / 27517 / 28704; `#` inside names 28771 / 29825;
+  `GetRowset()(1)` 30098; 6318; 29950). See "Error rerank after Cycle
+  117".
+- **Newly established rules this session:** Cycle 117: a grouped
+  expression holds the full expression grammar in every position (no
+  left-operand lookahead); a group or `@` operand in a boolean operand
+  is an ordinary primary with its postfix chain and arithmetic; the
+  boolean layer (Not > comparison > And > Or, 0x41 / 0x42 chain markers)
+  is unchanged; Cycle 116: a statement may
   start with a grouped expression continued by a postfix chain (`.`
   method call or property assignment); the group is the ordinary 0x0B /
   0x14 bytes, the chain the ordinary postfix chain, allocation and
@@ -118,6 +126,73 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 117 -- grouped expressions through the full grammar
+
+**Baseline reproduced fresh at `2d63d02`:** 29,387 / 822, protected
+430/430, taxonomy row-identical, forward-exact 29,438, fallback 70 (13525
+in), ROUNDTRIP_ONLY 0, 59 first-failure "expected )". **Result:** EXACT
+**29,387 -> 29,415 (+28)**, **0 EXACT -> non-EXACT**, protected 430/430,
+ROUNDTRIP_ONLY 0. LOCAL SNAPSHOT only. Commits: 5da6b80 (census),
+e58ccf1 (grammar).
+
+Root cause: primary()'s `(` chose booleanExpression() through five
+source-shape lookaheads (`&var ... <op>`, `Name(...) / REC.FIELD <op>`,
+`%Sys <op>`, `Not`, `&var And`) and expression() otherwise; expression()
+is arithmetic only, so `Return (%This.AppMsgs.Len > 0)` stopped at `>`.
+booleanUnary() (If / While / Until / And / Or / Not operands) parsed `(`
+itself with no postfix chain after the group, and `@` only before `(`.
+If / While / Until call booleanExpression() directly; Return,
+assignments and arguments reach groups through primary().
+
+Census (`cycle117-grouped-boolean-census.ts`): 23,664 grouping parens,
+12,512 with a top-level comparison / And / Or / Not; misrouted 131 groups
+in 51 definitions (Return 77, assignment 49; first operator = 92, > 12,
+<> 11, And 10, Or 6; left operand %This property chain 70, property chain
+17, GetRow / GetRecord chain 15, method result 7; all depth 1); 402
+recognized controls in 187 definitions.
+
+Fix: primary()'s `(` always parses booleanExpression() (a group without
+comparison / And / Or writes the bytes expression() wrote), then the
+postfix loop; booleanUnary() drops its `(`, `(&var.chain).` and `@`
+paths (comparisonExpression() -> primary() parses them). The removed
+`@` path would otherwise have broken 4861 `GetRowset((@&L_SCROLL))` and
+26573 `(@(...) + @(...))` (experiment B). Experiments: A1 (primary only)
++15 forward-exact, 2 lost; A2 (+ booleanUnary `(`) +30, 1 lost; C (+ `@`)
++30, 0 lost, 0 byte / reference changes in previously encodable programs.
+
+Results: 72 newly encodable (58 App Class / 14 ordinary): EXACT 28,
+ACTIVE_PACKAGE 13, ACTIVE_OTHER 13, ACTIVE_RECORD 7,
+DECODE_SOURCE_MISMATCH 4 (19510 `( Not` spacing, 24037 `Then;`, 29585,
+30179), COMPLETE_DOWNSTREAM 3 (18130, 29138, 30199),
+STRUCTURAL_ORDERING 2, DECODER_BARE_IDENTIFIER 1, ACTIVE_FIELD 1.
+Forward-exact 29,438 -> 29,468. The 59 "expected )" definitions: EXACT
+16, ACTIVE_OTHER 12, ACTIVE_PACKAGE 10, still "expected )" 9, ACTIVE_RECORD
+6, COMPLETE_DOWNSTREAM 2, STRUCTURAL_ORDERING 2, DSM 1, ACTIVE_FIELD 1. The
+same fix cleared operand "expected a variable ..." 21 -> 7 and "expected
+Then" 12 -> 3. Tests: groupedBooleanExpression.test.ts; encoderCalls'
+`Return (1 = 2);` / `Return (True And False);` negatives (they asserted
+the lookahead) became positive (11246 `If (1 = 2)`, 29011).
+
+## Error rerank after Cycle 117
+
+UNSUPPORTED_SYNTAX 43 -> 30, ENCODE_ERROR 128 -> 69. Families: `catch`
+as a call name 14, bare identifiers 12, "expected ] after array
+subscript" 11, "expected )" 9, "unsupported PeopleCode statement" 8,
+operand "expected a variable ..." 7, "expected ; in catch body" 5,
+"expected an ASCII &variable" 4, "expected Then" 3, Function metadata
+types (time 3, DocumentKey 2, CubeCollection 2, Message, CompositeQuery,
+Compound), "expected ; in For / try body" 2 + 2. COMPLETE_DOWNSTREAM 92
+-> 95 (35 App Class / 60 ordinary, all reference-exact; none left).
+PACKAGE census: PACKAGE-only 84, first divergence a PACKAGE row 182.
+DECODE_SOURCE_MISMATCH 110 -> 114. New family: 17 ACTIVE_OTHER /
+ACTIVE_FIELD programs first diverge at a FIELD row of a
+`%This.<Record property>.<FIELD>` chain. Categories: ACTIVE_PACKAGE 119,
+DSM 114, ACTIVE_RECORD 105, ACTIVE_FIELD 98, COMPLETE_DOWNSTREAM 95,
+ENCODE_ERROR 69, ACTIVE_OTHER 48, ACTIVE_RECORD_FIELD 42,
+UNSUPPORTED_SYNTAX 30, DECODER_BARE_IDENTIFIER 28, STRUCTURAL_ORDERING
+22, ACTIVE_SCROLL 13, QUOTED_COMPONENT 10, ACTIVE_DECLARE_FUNCTION 1
+(NONEXACT 794).
 
 ## Compiler Semantics Cycle 116 -- grouped expression statements
 

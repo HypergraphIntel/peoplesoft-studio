@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-02T04:15:28.509Z",
+ "generatedAt": "2026-10-02T05:04:53.508Z",
  "totalDefinitions": 30209,
- "exactCount": 29387,
- "nonexactCount": 822,
+ "exactCount": 29415,
+ "nonexactCount": 794,
  "rows": [
   {
    "definitionId": 522,
@@ -124,16 +124,6 @@
    "roundtripExact": false,
    "firstDiffOffset": 25271,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 1747,
-   "displayName": "1=BENEF_PB_WRK, 2=ODEM_REPROC_PB, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 2415: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": "*End-PHIL0691*/\n",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
    "definitionId": 2116,
@@ -506,12 +496,13 @@
   {
    "definitionId": 4432,
    "displayName": "1=DERIVED_COBRA, 2=COBRA_EVENT_DT, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "DECODE_SOURCE_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 21993: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": "* --------------",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "errorMessage": "Cannot encode PeopleCode at source offset 980: bare identifiers are only supported as calls",
+   "construct": "&REC_PERS;\nRecor",
+   "firstDiffOffset": 5,
+   "primaryCategory": "DECODER_BARE_IDENTIFIER"
   },
   {
    "definitionId": 4434,
@@ -926,16 +917,6 @@
     "storedCount": 199,
     "generatedCount": 199
    }
-  },
-  {
-   "definitionId": 6003,
-   "displayName": "1=DERIVED_HR_CORE, 2=HCR_GOTO_ASOFDT_BT, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 3428: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": "* Check if itera",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
    "definitionId": 6061,
@@ -3433,12 +3414,17 @@
   {
    "definitionId": 18130,
    "displayName": "1=PTAL_DASHBD_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 12495: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": "* Check dashboar",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 222,
+    "generatedCount": 222
+   }
   },
   {
    "definitionId": 18134,
@@ -3726,16 +3712,6 @@
    }
   },
   {
-   "definitionId": 19143,
-   "displayName": "9=PORTAL_SECTIMP_SEC, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 3675: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": "* see if tile is",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
    "definitionId": 19155,
    "displayName": "9=POSITION_ATT_SCF, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -3940,12 +3916,10 @@
   {
    "definitionId": 19510,
    "displayName": "9=PT_HEADERPAGE, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 25013: expected )",
-   "construct": "And",
-   "primaryCategory": "ENCODE_ERROR"
+   "classification": "DECODE_SOURCE_MISMATCH",
+   "sourceEncodeExact": true,
+   "roundtripExact": true,
+   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 19528,
@@ -4127,12 +4101,18 @@
   {
    "definitionId": 21519,
    "displayName": "10=GPGB_ABS_EVENT, 39=GBL, 12=SavePostChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 6235: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": "*And\n           ",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 21,
+    "generatedCount": 30,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 21546,
@@ -4305,16 +4285,6 @@
     "generatedCount": 7,
     "firstDivergenceKind": "field"
    }
-  },
-  {
-   "definitionId": 21960,
-   "displayName": "10=GPMX_ABSENCE_ENTRY, 39=GBL, 1=GP_ABS_EVENT, 12=SaveEdit, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 3350: expected )",
-   "construct": ".IsDeleted) Then",
-   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 21980,
@@ -4690,12 +4660,10 @@
   {
    "definitionId": 24037,
    "displayName": "10=PORTAL_HOMEPAGE, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 5564: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": "*collecting All ",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "classification": "DECODE_SOURCE_MISMATCH",
+   "sourceEncodeExact": true,
+   "roundtripExact": true,
+   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 24054,
@@ -4910,12 +4878,18 @@
   {
    "definitionId": 24800,
    "displayName": "10=PTAI_ADMIN, 39=GBL, 1=PTAI_WRK, 2=PTAI_CREATE_PB, 12=FieldChange, 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 3302: expected Then",
-   "construct": ".ctxKey Then\n   ",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 7363,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 19,
+    "generatedCount": 21,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 24918,
@@ -4930,12 +4904,18 @@
   {
    "definitionId": 24988,
    "displayName": "10=PTAI_DEFN_LIST, 39=GBL, 1=PTAI_WRK, 2=PTAI_CREATE_PB, 12=FieldChange, 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 4074: expected Then",
-   "construct": ".ctxKey Then\n   ",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 8378,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 27,
+    "generatedCount": 28,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 25056,
@@ -4994,18 +4974,8 @@
    "classification": "UNSUPPORTED_SYNTAX",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1172: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": "*Always true on ",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 25310,
-   "displayName": "66=APPMSGARCH, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=ARCHSYNC, 12=OnExecute",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1186: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": "*Always true on ",
+   "errorMessage": "Cannot encode PeopleCode at source offset 13259: unsupported PeopleCode statement",
+   "construct": "DISABLED_CODE",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
@@ -5464,26 +5434,6 @@
    }
   },
   {
-   "definitionId": 28622,
-   "displayName": "66=PSPMCSOSUM, 77=GETCNT, 39=GBL, 20=default, 21=1900-01-01, 78=CNT, 12=OnExecute",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 4396: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": "* Looping for 24",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 28625,
-   "displayName": "66=PSPM_ARCHIVE, 77=ARCHIVE, 39=GBL, 20=default, 21=1900-01-01, 78=ARCPCODE, 12=OnExecute",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 2205: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": "* Looping for 24",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
    "definitionId": 28683,
    "displayName": "66=PTADSAEPRCS, 77=Process, 39=GBL, 20=default, 21=1900-01-01, 78=CallC++, 12=OnExecute",
    "classification": "UNKNOWN_MISMATCH",
@@ -5539,16 +5489,6 @@
     "storedCount": 18,
     "generatedCount": 18
    }
-  },
-  {
-   "definitionId": 28719,
-   "displayName": "104=ADSM, 107=ADSCompareDiffObject, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 921: expected )",
-   "construct": "nly",
-   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 28720,
@@ -5700,16 +5640,6 @@
     "generatedCount": 97,
     "firstDivergenceKind": "record"
    }
-  },
-  {
-   "definitionId": 28766,
-   "displayName": "104=ADS_DMW, 107=RelationInsertion, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 3393: expected )",
-   "construct": " +/\n   /+ Return",
-   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 28771,
@@ -6688,22 +6618,34 @@
   {
    "definitionId": 28985,
    "displayName": "104=BN_AUDITING, 107=AppAudit, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 34: expected )",
-   "construct": "g",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 20,
+    "generatedCount": 16,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 28986,
    "displayName": "104=BN_COSTS, 107=PlanCost6X, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 163: expected )",
-   "construct": "s",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 7979,
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 11,
+    "generatedCount": 10,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 28990,
@@ -6724,12 +6666,18 @@
   {
    "definitionId": 28991,
    "displayName": "104=BN_COSTS, 107=PlanCostBase, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 26: expected )",
-   "construct": "fitRateMgr",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 20864,
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 28,
+    "generatedCount": 27,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 28992,
@@ -6875,34 +6823,36 @@
    }
   },
   {
-   "definitionId": 29011,
-   "displayName": "104=BN_ELECTIONS, 105=BenefitElections, 107=Snapshot, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 31: expected )",
-   "construct": "import",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 29014,
    "displayName": "104=BN_ELECTIONS, 105=CoveredPersons, 107=Beneficiary, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 38: expected )",
-   "construct": "\n/**\n* This is a",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 7,
+    "generatedCount": 3,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29015,
    "displayName": "104=BN_ELECTIONS, 105=CoveredPersons, 107=CoveredDependent, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 148: expected )",
-   "construct": "ass",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 10,
+    "generatedCount": 5,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29016,
@@ -6937,16 +6887,6 @@
    }
   },
   {
-   "definitionId": 29019,
-   "displayName": "104=BN_ELECTIONS, 105=PlanCategories, 107=PlanCategoryIterator, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 58: expected )",
-   "construct": "terator",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 29020,
    "displayName": "104=BN_ELECTIONS, 105=PlanDefinition, 107=PlanDefn1X, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -6965,12 +6905,18 @@
   {
    "definitionId": 29021,
    "displayName": "104=BN_ELECTIONS, 105=PlanDefinition, 107=PlanDefn2X, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 48: expected )",
-   "construct": "NS",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 13,
+    "generatedCount": 6,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29022,
@@ -6991,12 +6937,18 @@
   {
    "definitionId": 29023,
    "displayName": "104=BN_ELECTIONS, 105=PlanDefinition, 107=PlanDefn4X, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 52: expected )",
-   "construct": "ommon",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 25,
+    "generatedCount": 5,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29024,
@@ -7017,42 +6969,66 @@
   {
    "definitionId": 29025,
    "displayName": "104=BN_ELECTIONS, 105=PlanDefinition, 107=PlanDefn6X, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 52: expected )",
-   "construct": "ommon",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 17,
+    "generatedCount": 7,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29026,
    "displayName": "104=BN_ELECTIONS, 105=PlanDefinition, 107=PlanDefn7X, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 50: expected )",
-   "construct": ":Common:*;\nimpor",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 9,
+    "generatedCount": 5,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29027,
    "displayName": "104=BN_ELECTIONS, 105=PlanDefinition, 107=PlanDefn8X, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 53: expected )",
-   "construct": "mmon",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 10,
+    "generatedCount": 5,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29028,
    "displayName": "104=BN_ELECTIONS, 105=PlanDefinition, 107=PlanDefn9X, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 43: expected )",
-   "construct": "ECTIONS",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 6,
+    "generatedCount": 5,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29029,
@@ -7104,22 +7080,34 @@
   {
    "definitionId": 29035,
    "displayName": "104=BN_ELECTIONS, 105=PlanElection, 107=PlanType2X, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 41: expected )",
-   "construct": "t",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 18,
+    "generatedCount": 16,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29037,
    "displayName": "104=BN_ELECTIONS, 105=PlanElection, 107=PlanType4X, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 42: expected )",
-   "construct": " BN_ELECTIONS:Co",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 33,
+    "generatedCount": 18,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29039,
@@ -7298,16 +7286,6 @@
    }
   },
   {
-   "definitionId": 29102,
-   "displayName": "104=CAFNUI_CORE, 105=HANDLER, 106=FactorHandler, 107=FactorHandler, 12=OnExecute, 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 271: expected )",
-   "construct": "nfig",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 29103,
    "displayName": "104=CAFNUI_CORE, 105=HANDLER, 106=FactorHandler, 107=FieldList, 12=OnExecute, 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -7358,12 +7336,18 @@
   {
    "definitionId": 29106,
    "displayName": "104=CAFNUI_CORE, 105=HANDLER, 106=FactorHandler, 107=PivotGridPagelet, 12=OnExecute, 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1076: expected )",
-   "construct": "SessionSaveTo",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 21104,
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 57,
+    "generatedCount": 56,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29107,
@@ -7416,12 +7400,18 @@
   {
    "definitionId": 29118,
    "displayName": "104=CAFNUI_CORE, 105=OBJECT, 107=Action, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 53: expected )",
-   "construct": "ort",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 19,
+    "generatedCount": 10,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29122,
@@ -7451,22 +7441,34 @@
   {
    "definitionId": 29127,
    "displayName": "104=CAFNUI_CORE, 105=OBJECT, 107=Factor, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 30: expected )",
-   "construct": "*/\n\nimport CAFNU",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 20,
+    "generatedCount": 10,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29128,
    "displayName": "104=CAFNUI_CORE, 105=OBJECT, 107=FactorList, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 30: expected )",
-   "construct": "ist",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 15,
+    "generatedCount": 4,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29130,
@@ -7503,22 +7505,33 @@
   {
    "definitionId": 29136,
    "displayName": "104=CAFNUI_FILTER_BUILDER, 105=Configuration, 107=Values, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 591: expected )",
-   "construct": "Filters",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 87,
+    "generatedCount": 87,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29138,
    "displayName": "104=CAFNUI_FILTER_BUILDER, 107=DataFilter, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1189: expected )",
-   "construct": "FieldName",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 48,
+    "generatedCount": 48
+   }
   },
   {
    "definitionId": 29140,
@@ -7535,16 +7548,6 @@
     "generatedCount": 35,
     "firstDivergenceKind": "record"
    }
-  },
-  {
-   "definitionId": 29141,
-   "displayName": "104=CAFNUI_UI, 107=ComparisonConfiguration, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 315: expected )",
-   "construct": "SwitchFactorDisplay",
-   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 29161,
@@ -7579,16 +7582,6 @@
    }
   },
   {
-   "definitionId": 29166,
-   "displayName": "104=CAF_CORE, 105=HANDLER, 106=FactorHandler, 107=FactorHandler, 12=OnExecute, 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 271: expected )",
-   "construct": "cord",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 29169,
    "displayName": "104=CAF_CORE, 105=HANDLER, 106=FactorHandler, 107=HtmlTemplate, 12=OnExecute, 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -7602,16 +7595,6 @@
     "storedCount": 7,
     "generatedCount": 7
    }
-  },
-  {
-   "definitionId": 29170,
-   "displayName": "104=CAF_CORE, 105=HANDLER, 106=FactorHandler, 107=PivotGridPagelet, 12=OnExecute, 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 215: expected )",
-   "construct": "LER",
-   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 29171,
@@ -7656,12 +7639,18 @@
   {
    "definitionId": 29178,
    "displayName": "104=CAF_CORE, 105=OBJECT, 107=Action, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 53: expected )",
-   "construct": "F_CORE",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 18,
+    "generatedCount": 10,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29183,
@@ -7675,12 +7664,18 @@
   {
    "definitionId": 29187,
    "displayName": "104=CAF_CORE, 105=OBJECT, 107=Factor, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 30: expected )",
-   "construct": "*/\n\nimport CAF_C",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 20,
+    "generatedCount": 10,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29193,
@@ -7713,16 +7708,6 @@
     "generatedCount": 35,
     "firstDivergenceKind": "record"
    }
-  },
-  {
-   "definitionId": 29199,
-   "displayName": "104=CAF_UI, 107=ComparisonConfiguration, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 315: expected )",
-   "construct": "tchFactorDisplay",
-   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 29230,
@@ -8176,16 +8161,6 @@
     "generatedCount": 51,
     "firstDivergenceKind": "record"
    }
-  },
-  {
-   "definitionId": 29390,
-   "displayName": "104=GPS_EDITFUNCTIONS, 107=Staffing, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 459: expected Then",
-   "construct": "tCurrPostRecord",
-   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 29391,
@@ -9035,12 +9010,11 @@
   {
    "definitionId": 29585,
    "displayName": "104=G_FAMILY_EPAF, 107=LogicParts, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "DECODE_SOURCE_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1604: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": "e",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "firstDiffOffset": 5,
+   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 29586,
@@ -9061,12 +9035,18 @@
   {
    "definitionId": 29588,
    "displayName": "104=G_FORM_JOBCHG, 107=MethodLibrary, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1059: expected )",
-   "construct": "orm",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 4399,
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 27,
+    "generatedCount": 26,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29590,
@@ -9161,12 +9141,18 @@
   {
    "definitionId": 29613,
    "displayName": "104=HCSC_ESIGNATURE, 107=SetupComponentController, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 245: expected )",
-   "construct": "ageActivate",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "STRUCTURAL_ORDERING",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": true,
+    "storedCount": 44,
+    "generatedCount": 44,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29614,
@@ -9307,16 +9293,6 @@
    }
   },
   {
-   "definitionId": 29626,
-   "displayName": "104=HR_NOTIFY_ADMIN, 107=Notify, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 142: expected )",
-   "construct": " code can be cal",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 29633,
    "displayName": "104=OU_G_FAMILY_EPAF, 107=MethodLibrary, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -9355,16 +9331,6 @@
    "roundtripExact": false,
    "firstDiffOffset": 13,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29650,
-   "displayName": "104=OU_PAGEUP_API, 105=CoreHR, 107=Employee, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 2676: expected )",
-   "construct": "populateAccessOnlyFromEmployeeView",
-   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 29652,
@@ -9788,16 +9754,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 29878,
-   "displayName": "104=PSXP_RPTDEFNMANAGER, 107=Utility, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 467: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": "e",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
    "definitionId": 29883,
    "displayName": "104=PSXP_SERVICEMGR, 107=RunReport, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -9902,12 +9858,18 @@
   {
    "definitionId": 29945,
    "displayName": "104=PTADSSUMREPT, 107=SearchUIHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 3195: expected )",
-   "construct": "vantAdsList",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 22,
+    "generatedCount": 20,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29948,
@@ -10114,12 +10076,18 @@
   {
    "definitionId": 29980,
    "displayName": "104=PTAF_CORE, 105=DEFN, 107=AWTxn, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 42: expected )",
-   "construct": "PTAF_CORE",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 47,
+    "generatedCount": 32,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29981,
@@ -10252,32 +10220,50 @@
   {
    "definitionId": 29993,
    "displayName": "104=PTAF_CORE, 105=ENGINE, 107=AppInst, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 42: expected )",
-   "construct": "RIA",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "STRUCTURAL_ORDERING",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": true,
+    "storedCount": 34,
+    "generatedCount": 34,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29994,
    "displayName": "104=PTAF_CORE, 105=ENGINE, 107=AuthPathInst, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 42: expected )",
-   "construct": "PTAF_CORE",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 20,
+    "generatedCount": 19,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 29996,
    "displayName": "104=PTAF_CORE, 105=ENGINE, 107=DefPathInst, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 39: expected )",
-   "construct": "rt",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 35,
+    "generatedCount": 24,
+    "firstDivergenceKind": "field"
+   }
   },
   {
    "definitionId": 29997,
@@ -10312,54 +10298,68 @@
    }
   },
   {
-   "definitionId": 29999,
-   "displayName": "104=PTAF_CORE, 105=ENGINE, 107=PathInst, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 21: expected )",
-   "construct": "DEFINITION",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 30000,
    "displayName": "104=PTAF_CORE, 105=ENGINE, 107=StageInst, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 21: expected )",
-   "construct": "DEFINITION",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 34,
+    "generatedCount": 26,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 30001,
    "displayName": "104=PTAF_CORE, 105=ENGINE, 107=StepInst, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 45: expected )",
-   "construct": "F_CORE",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 25,
+    "generatedCount": 19,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 30002,
    "displayName": "104=PTAF_CORE, 105=ENGINE, 107=Thread, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 21: expected )",
-   "construct": "DEFINITION",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 23,
+    "generatedCount": 21,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 30003,
    "displayName": "104=PTAF_CORE, 105=ENGINE, 107=UserStepInst, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 21: expected )",
-   "construct": "DEFINITION",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 24,
+    "generatedCount": 15,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 30039,
@@ -10396,22 +10396,18 @@
   {
    "definitionId": 30045,
    "displayName": "104=PTAF_CORE, 107=Escalator, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 236: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": " Escalator();\n  ",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 30046,
-   "displayName": "104=PTAF_CORE, 107=LaunchManager, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 404: expected )",
-   "construct": " needed to fully",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 39,
+    "generatedCount": 38,
+    "firstDivergenceKind": "stored-only"
+   }
   },
   {
    "definitionId": 30047,
@@ -10907,16 +10903,6 @@
    }
   },
   {
-   "definitionId": 30151,
-   "displayName": "104=PTAF_UTILITIES, 105=Portal, 107=portalURL, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 529: expected )",
-   "construct": ", this class wil",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 30153,
    "displayName": "104=PTAF_XLAT_SYMBOL, 105=CONTROLLERS, 107=symbolicNameMaintController, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "ENCODE_ERROR",
@@ -10954,12 +10940,18 @@
   {
    "definitionId": 30161,
    "displayName": "104=PTAI_ACTION_ITEMS, 105=Pagelet, 107=CreateTemplate, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 479: expected Then",
-   "construct": ");\n   \n   Local ",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 2050,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 9,
+    "generatedCount": 10,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 30162,
@@ -10969,26 +10961,6 @@
    "roundtripExact": false,
    "firstDiffOffset": 5,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 30163,
-   "displayName": "104=PTAI_ACTION_ITEMS, 105=Pagelet, 107=TemplateCreation, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1387: expected Then",
-   "construct": " A, PS_PTAI_LIST",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 30168,
-   "displayName": "104=PTAI_ACTION_ITEMS, 105=Services, 107=UpdateItem, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 3803: expected Then",
-   "construct": "&boolSaved = Tru",
-   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 30170,
@@ -11009,42 +10981,26 @@
   {
    "definitionId": 30179,
    "displayName": "104=PTAI_ACTION_ITEMS, 107=List, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "DECODE_SOURCE_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1076: expected Then",
-   "construct": ":Collection);\n  ",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 30184,
-   "displayName": "104=PTAI_ACT_FORM, 107=FORM_ACCESS, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1171: expected Then",
-   "construct": "m",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 30193,
-   "displayName": "104=PTAI_UTILITIES, 107=InstanceGeneration, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 310: expected Then",
-   "construct": " As PTAI_COLLECT",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 9866,
+   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 30199,
    "displayName": "104=PTAL_PAGE, 105=PageTemplate, 107=PageTemplate, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 782: expected )",
-   "construct": "eOprID",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 88,
+    "generatedCount": 88
+   }
   },
   {
    "definitionId": 30200,
@@ -11077,16 +11033,6 @@
     "generatedCount": 7,
     "firstDivergenceKind": "package"
    }
-  },
-  {
-   "definitionId": 30207,
-   "displayName": "104=PTAL_PAGE, 107=Page, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1938: expected )",
-   "construct": "n",
-   "primaryCategory": "ENCODE_ERROR"
   }
  ]
 }
