@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-02T18:38:28.116Z",
+ "generatedAt": "2026-10-02T19:11:18.622Z",
  "totalDefinitions": 30209,
- "exactCount": 29718,
- "nonexactCount": 491,
+ "exactCount": 29719,
+ "nonexactCount": 490,
  "rows": [
   {
    "definitionId": 522,
@@ -1912,14 +1912,6 @@
     "generatedCount": 112,
     "firstDivergenceKind": "field"
    }
-  },
-  {
-   "definitionId": 16759,
-   "displayName": "1=PSPT_COPY_JS, 2=PT_COPY_JS_FROM, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 16820,

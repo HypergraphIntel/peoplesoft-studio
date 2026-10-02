@@ -1,13 +1,13 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 127)
+## Current status (2026-10-02, Cycle 128)
 
-- **Current target:** Cycle 127 -- decoder: `]` writes no space after
-  itself; the next token decides. EXACT 29,715 -> 29,718 (+3), protected
-  PASS, 0 EXACT -> non-EXACT, forward encode unchanged (0 bytes / 0
-  reference lists), ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See
-  "Compiler Decoder Cycle 127".
-- **Last successful calibration:** Cycle 127 (decoder spacing after `]`).
+- **Current target:** Cycle 128 -- decoder: 0x6E is `Continue` whatever
+  follows. EXACT 29,718 -> 29,719 (+1: 16759), protected PASS, 0 EXACT ->
+  non-EXACT, forward encode unchanged (0 bytes / 0 reference lists),
+  ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See "Compiler Decoder
+  Cycle 128".
+- **Last successful calibration:** Cycle 128 (decoder 0x6E Continue).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -23,19 +23,20 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 128):** decoder -- the last 3 forward-exact
-  decoder failures, one opcode question each, in this order: 16759 `Then
-  Continue End-If;` (bytes `42 1F 6E 1A 15`: the 0x6E `Continue` gate
-  requires a following 0x15 -- census every 0x6E by next byte against
-  source); 18105 (the 0x07 trailer after a final statement with no `;`,
-  `sourceDisplay()` at EOF -- the trailer-marker gate at decoder.ts ~1110
-  requires a preceding 0x15); 6080 (`48 02 00` / `48 03 00` / `48 04 00`
-  in `Transfer(True, MenuName.QUERY_MANAGER, BarName."", ItemName."",
-  Panel."", ...)` -- 0x48 references to PSPCMNAME rows with a blank
-  refname). Then the decoder-only frontier is empty; the remaining work is
-  encoder families (COMPLETE_DOWNSTREAM 92, ACTIVE_PACKAGE 72,
-  ENCODE_ERROR 69 ...). Out of scope: the 66 source-encoding artefacts.
-- **Newly established rules this session:** Cycle 127 (decoder): `]`
+- **Next action (Cycle 129):** decoder -- 6080: `48 02 00` / `48 03 00` /
+  `48 04 00` in `Transfer(True, MenuName.QUERY_MANAGER, BarName."",
+  ItemName."", Panel."", ...)` reference PSPCMNAME rows with a qualifier
+  recname and a blank refname (`BARNAME`, `ITEMNAME`, `PANEL`); the 0x48
+  decoder (decoder.ts ~1308) only renders `QUALIFIER.name`, so a blank
+  name falls to unknown. Census every 0x48 by its row (qualifier / blank
+  name) against source (`BarName.""` ...) and the QUOTED_REFERENCE_QUALIFIERS
+  display table before extending it. Then 18105 separately (0x07 trailer
+  after a final statement with no `;`; trailer gate ~1110). After those
+  the decoder-only frontier is empty; remaining work is encoder families
+  (COMPLETE_DOWNSTREAM 92, ACTIVE_PACKAGE 72, ENCODE_ERROR 69).
+- **Newly established rules this session:** Cycle 128 (decoder): 0x6E at
+  an opcode position is always `Continue` (its `;` is a separate 0x15);
+  Cycle 127 (decoder): `]`
   writes no trailing space -- tight before postfix / closing tokens
   (incl. `(`), spaced before operators / keywords by their own flags;
   Cycle 126 (decoder): a 0x4E
@@ -161,6 +162,48 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Decoder Cycle 128 -- 0x6E is Continue
+
+**Baseline reproduced fresh at `fe290fd`:** 29,718 / 491, forward-exact
+29,721, protected 430/430, taxonomy row-identical, decoder-only frontier
+3 (6080 16759 18105), fallback 70 (13525 in, EXACT), ROUNDTRIP_ONLY 0.
+**Result:** EXACT **29,718 -> 29,719 (+1: 16759)**, 0 EXACT -> non-EXACT,
+no category moves, forward encode unchanged (0 program bytes / 0
+reference lists across 30,209), protected 430/430, ROUNDTRIP_ONLY 0,
+fallback 70. LOCAL SNAPSHOT only. Commits: 96fc6e9 (census), 488685a
+(decoder).
+
+Census (`cycle128-continue-census.ts`): 313 0x6E at an opcode position
+in 96 programs (44 App Class; 64 EXACT), paired 1:1 with source
+`Continue` keywords, 0 count mismatches, 0 other meanings. Next byte 0x15
+312 (134 EXACT sites; source `Continue;` every time -- the 0x15 is the
+source `;`), 0x1A 1 (16759, source `Continue` + newline + `End-If;`, no
+`;`). Previous token Then 190, `;` 65, 0x2D 32, Else 12, comments 14,
+0x4F 1. The pass-thirty-one 0x15 gate (noise from WEBLIB_OU_LP's stale
+source) has no opcode-position counterexample in the snapshot. Break /
+Exit decode unconditionally from OPCODES and occur without `;` before
+When (170) / End-Evaluate (43) / When-Other (25) / End-If (5 + 1).
+
+16759 (PSPT_COPY_JS.PT_COPY_JS_FROM, ordinary): forward- and
+reference-exact; `... 14 42 1F 6E 1A 15 4F` = `...) Then / Continue /
+End-If;`; the gate left 0x6E unmapped, so the whole program decoded with
+the "could not be fully decoded" banner. Fix: drop the gate (decoder
+only -- 0x6E stays out of the shared OPCODES table the encoder reads).
+Line break after `Continue` comes from End-If's NEWLINE_BEFORE, as for
+Break. Variant sweep: decoded text changed in 16759 only, +1, 0 lost.
+Stale test ("0x6e stays unmapped when not immediately followed by ;")
+now asserts the 16759 shape. Cycle 124 (25) / 125 (26) / 126 (8) / 127
+(3) gains, all 760 EXACT programs with `]`, and all 64 EXACT 0x6E
+programs still EXACT.
+
+Rerank: forward-exact but not EXACT 3 -> 2 (6080, 18105).
+DECODE_SOURCE_MISMATCH 71 -> 70 (66 source-encoding artefacts).
+Categories: COMPLETE_DOWNSTREAM 92, ACTIVE_PACKAGE 72, DSM 70,
+ENCODE_ERROR 69, ACTIVE_RECORD_FIELD 39, ACTIVE_RECORD 32,
+UNSUPPORTED_SYNTAX 30, ACTIVE_FIELD 26, ACTIVE_OTHER 20,
+STRUCTURAL_ORDERING 18, ACTIVE_SCROLL 13, QUOTED_COMPONENT 8,
+ACTIVE_DECLARE_FUNCTION 1 (NONEXACT 490).
 
 ## Compiler Decoder Cycle 127 -- spacing after `]`
 

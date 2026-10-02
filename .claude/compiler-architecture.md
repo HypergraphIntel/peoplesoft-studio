@@ -7,8 +7,8 @@ chronological notes in `corpus-progress.md` where they disagree (see
 
 Corpus at Cycle 123 HEAD: TOTAL 30,209 / EXACT 29,656 / NONEXACT 553 (Cycle 124:
 EXACT 29,681 / NONEXACT 528; Cycle 125: EXACT 29,707 / NONEXACT 502; Cycle 126:
-EXACT 29,715 / NONEXACT 494; Cycle 127: EXACT 29,718 / NONEXACT 491 -- all
-decoder only); forward-exact
+EXACT 29,715 / NONEXACT 494; Cycle 127: EXACT 29,718 / NONEXACT 491; Cycle 128:
+EXACT 29,719 / NONEXACT 490 -- all decoder only); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -231,12 +231,18 @@ writes no space of its own; the next token decides -- tight before `.`
 (no SPACE_BEFORE), spaced before operators / keywords (SPACE_BEFORE).
 10,974 sites, 0 contradictions.
 
+0x6E at an opcode position is always `Continue` (Cycle 128,
+`cycle128-continue-census.ts`: 313 / 313 paired with a source `Continue`);
+a following 0x15 is the source's own `;`, not part of the keyword
+(`Then Continue End-If;` stores `1F 6E 1A 15`, 16759). The encoder emits
+it directly; it is not in the shared OPCODES table.
+
 Remaining rendering gaps (forward-exact programs that fail only on decoded
-source, 3) are decoder failures, one opcode question each: 6080 0x48
-references to blank-name PSPCMNAME rows (`Transfer(True, MenuName.X,
-BarName."", ItemName."", Panel."", ...)`, `48 02 00`), 16759 `Then
-Continue End-If;` (0x6E not followed by 0x15), 18105 the 0x07 trailer
-after a final statement with no `;` (`sourceDisplay()`).
+source, 2) are decoder failures: 6080 0x48 references to PSPCMNAME rows
+with a qualifier and a blank name (`BARNAME` / `ITEMNAME` / `PANEL` rows
+for `Transfer(True, MenuName.X, BarName."", ItemName."", Panel."", ...)`,
+`48 02 00`; the 0x48 decoder needs `QUALIFIER.name`), 18105 the 0x07
+trailer after a final statement with no `;` (`sourceDisplay()`).
 
 ## 11. Taxonomy semantics (`cycle73-nonexact-taxonomy.ts`)
 
