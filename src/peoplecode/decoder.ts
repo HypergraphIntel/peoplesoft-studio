@@ -2178,6 +2178,18 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         nextToken?.opcode === 0x4f &&
         (followsDeclaration || followsEndFunctionTerminator);
 
+      /*
+       * Cycle 115: a section close deferred past a conditional-compilation
+       * directive sits right after the directive's record (or its attached
+       * `;`), whose own line break already ended the line: 25883 `/* c *\/
+       * #If ... #Then <blank> &x = ...` stores `24 75 76 2D 4F`, 4601
+       * `#End-If; <blank> Declare` stores `78 15 2D 4F 31`.
+       */
+      const isDirectiveRecord = (token: Token | undefined) => token !== undefined && token.opcode >= 0x76 && token.opcode <= 0x78;
+      const followsDirectiveRecord =
+        t.opcode === 0x2d &&
+        (isDirectiveRecord(previousToken) || (previousToken?.opcode === 0x15 && isDirectiveRecord(tokenBeforePrevious)));
+
       if (!(
         catchHeaderBoundary ||
         whileHeaderBoundary ||
@@ -2185,7 +2197,8 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         functionHeaderBoundary ||
         whenHeaderBoundary ||
         methodOrGetHeaderBoundary ||
-        redundantStructuralBoundary
+        redundantStructuralBoundary ||
+        followsDirectiveRecord
       )) {
         out.push('\n');
         writeIndent();
