@@ -22,7 +22,7 @@ import { listSnapshotDefinitions, type SnapshotDefinition } from '../../snapshot
 import { snapshotApplicationClassTypeMetadata } from '../../snapshot/applicationClassTypeMetadata';
 import { snapshotConditionalCompilation } from '../../snapshot/toolsRelease';
 import { encodeProgramArtifacts as committedEncodeProgramArtifacts } from '../../../../src/peoplecode/encoder';
-import { decodeProgram } from '../../../../src/peoplecode/decoder';
+import { decodeProgram as committedDecodeProgram } from '../../../../src/peoplecode/decoder';
 import { NameTable } from '../../../../src/peoplecode/progtext';
 import type { ApplicationClassTypeMetadataProvider } from '../../../../src/peoplecode/applicationClassTypeMetadata';
 import type { ConditionalCompilationOptions } from '../../../../src/peoplecode/conditionalCompilation';
@@ -38,6 +38,11 @@ const encodeProgramArtifacts: typeof committedEncodeProgramArtifacts = process.e
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   ? require(`../../../../src/peoplecode/${process.env.RESEARCH_ENCODER_MODULE}`).encodeProgramArtifacts
   : committedEncodeProgramArtifacts;
+/* `RESEARCH_DECODER_MODULE` does the same for an observational decoder variant (Cycle 125). */
+const decodeProgram: typeof committedDecodeProgram = process.env.RESEARCH_DECODER_MODULE
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  ? require(`../../../../src/peoplecode/${process.env.RESEARCH_DECODER_MODULE}`).decodeProgram
+  : committedDecodeProgram;
 
 export interface HarnessContext {
   definitions: SnapshotDefinition[];
@@ -100,14 +105,16 @@ export function encodeAsHarness(ctx: HarnessContext, def: SnapshotDefinition, ex
  * in the harness context; exact when the re-encoded bytes equal stored.
  */
 export function roundtripAsHarness(ctx: HarnessContext, def: SnapshotDefinition): { decodedText?: string; exact: boolean; error?: string } {
-  let decodedText: string;
+  let decoded: ReturnType<typeof decodeAsHarness>;
   try {
-    decodedText = decodeAsHarness(def, def.storedProgram, storedNameTable(def)).text;
+    decoded = decodeAsHarness(def, def.storedProgram, storedNameTable(def));
   } catch (error: any) {
     return { exact: false, error: String(error?.message ?? error) };
   }
-  const encoded = encodeAsHarness(ctx, { ...(def as any), sourceText: decodedText } as SnapshotDefinition);
-  return { decodedText, exact: encoded.artifacts !== undefined && Buffer.compare(encoded.artifacts.program, def.storedProgram) === 0, error: encoded.error };
+  // validator.ts TEST B: the decoded comment opcodes travel with the re-encode
+  const commentOpcodes = decoded.tokens.map(token => token.opcode).filter(opcode => opcode === 0x24 || opcode === 0x4e);
+  const encoded = encodeAsHarness(ctx, { ...(def as any), sourceText: decoded.text } as SnapshotDefinition, { commentOpcodes });
+  return { decodedText: decoded.text, exact: encoded.artifacts !== undefined && Buffer.compare(encoded.artifacts.program, def.storedProgram) === 0, error: encoded.error };
 }
 
 /** The stored PSPCMNAME table, keyed by NAMENUM (1-based). */
