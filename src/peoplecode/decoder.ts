@@ -1309,14 +1309,25 @@ export function decodeProgram(
       const ref = readRecordFieldReference(bytes, i);
       const resolved = ref !== undefined ? tryResolveName(names, ref.nameNum) : undefined;
       const dot = resolved?.indexOf('.') ?? -1;
-      const qualifier = dot > 0 ? resolved!.slice(0, dot).toUpperCase() : undefined;
+      /*
+       * Cycle 129: a PSPCMNAME row with a qualifier and a blank name
+       * (REFNAME ' ') joins to the bare qualifier -- an empty quoted name,
+       * `BarName.""` (`cycle129-quoted-reference-census.ts`, LOCAL SNAPSHOT:
+       * 4 / 4 such 0x48 rows are a source `Qualifier.""`, 6080's
+       * `Transfer(True, MenuName.QUERY_MANAGER, BarName."", ItemName."",
+       * Panel."", "A")`, 14149's `ItemName.""`; no row with a blank
+       * qualifier). Only a known quoted qualifier qualifies; a failed
+       * lookup or an unknown name still falls through to unknown.
+       */
+      const qualifier = resolved === undefined ? undefined : (dot > 0 ? resolved.slice(0, dot) : resolved).toUpperCase();
+      const quotedName = resolved === undefined ? undefined : dot > 0 ? resolved.slice(dot + 1) : '';
       // RECORD is the one exception to the quoted-reference shape every
       // other confirmed qualifier here uses: CreateRecord(Record.X) is
       // conventionally unquoted, dot-joined, the exact same rendering
       // 0x21 already gives a plain RECORD.FIELD reference -- confirmed
       // against EOL_PUBLISH.PUBLISH2.GBL.default.1900-01-01.Step30.
       // OnExecute's real `&DELAYREC = CreateRecord(Record.EO_EFFDELAY)`.
-      if (ref !== undefined && resolved !== undefined && qualifier === 'RECORD') {
+      if (ref !== undefined && resolved !== undefined && dot > 0 && qualifier === 'RECORD') {
         tokens.push({
           kind: TokenKind.Name,
           text: resolved,
@@ -1329,9 +1340,9 @@ export function decodeProgram(
         continue;
       }
       const display = qualifier !== undefined ? QUOTED_REFERENCE_QUALIFIERS.get(qualifier) : undefined;
-      if (ref !== undefined && resolved !== undefined && dot > 0 && display !== undefined) {
+      if (ref !== undefined && quotedName !== undefined && display !== undefined) {
         tokens.push({
-          kind: TokenKind.Name, text: `${display}."${resolved.slice(dot + 1)}"`, offset, opcode,
+          kind: TokenKind.Name, text: `${display}."${quotedName}"`, offset, opcode,
           format: OPERAND_FORMAT.get(0x21) ?? 0,
           nameNum: ref.nameNum
         });

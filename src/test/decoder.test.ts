@@ -1612,6 +1612,46 @@ test('0x48 falls through to unknown for an unconfirmed qualifier, not just a bad
   assert.equal(result.unknownOpcodes.some((u) => u.opcode === 0x48), true);
 });
 
+test('0x48 to a row with a qualifier and a blank name is an empty quoted name (6080)', () => {
+  // Cycle 129: DERIVED_HR_GB.GB_QUERY_LNCH_BTN (6080) is `Transfer( True,
+  // MenuName.QUERY_MANAGER, BarName."", ItemName."", Panel."", "A")`; rows
+  // 3-5 are BARNAME / ITEMNAME / PANEL with REFNAME ' ', which the name
+  // table joins to the bare qualifier.
+  const names = new NameTable();
+  names.add(2, 'MENUNAME.QUERY_MANAGER');
+  names.add(3, 'BARNAME');
+  names.add(4, 'ITEMNAME');
+  names.add(5, 'PANEL');
+  const result = decodeProgram(
+    Buffer.from([
+      ...HEADER,
+      0x0a, ...utf16('Transfer'), 0x00, 0x00, 0x0b, 0x2f, 0x03,
+      0x21, 0x01, 0x00, 0x03,
+      0x48, 0x02, 0x00, 0x03,
+      0x48, 0x03, 0x00, 0x03,
+      0x48, 0x04, 0x00, 0x03,
+      0x16, ...utf16('A'), 0x00, 0x00, 0x14
+    ]),
+    names);
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'Transfer(True, MenuName.QUERY_MANAGER, BarName."", ItemName."", Panel."", "A")');
+});
+
+test('0x48 to a row with a name keeps it quoted (14149)', () => {
+  const names = new NameTable();
+  names.add(335, 'BARNAME.REPORTING');
+  const result = decodeProgram(Buffer.from([...HEADER, 0x48, 0x4e, 0x01]), names);
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'BarName."REPORTING"');
+});
+
+test('0x48 to a bare name that is not a known qualifier stays unknown', () => {
+  const names = new NameTable();
+  names.add(5, 'QUEUE');
+  const result = decodeProgram(Buffer.from([...HEADER, 0x48, 0x04, 0x00]), names);
+  assert.equal(result.unknownOpcodes.some((u) => u.opcode === 0x48), true);
+});
+
 test('#If/#Then/#End-If decode as a real indented block when the branch was compiled', () => {
   // PeopleTools evaluates #If at compile time, so only the taken branch
   // ever becomes real tokens -- 0x76 (#Then) here carries just its own
