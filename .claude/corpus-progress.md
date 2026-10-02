@@ -1,13 +1,14 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 124)
+## Current status (2026-10-02, Cycle 125)
 
-- **Current target:** Cycle 124 -- decoder: opcode 0x51 is the
-  `PanelGroup` keyword. EXACT 29,656 -> 29,681 (+25), protected PASS, 0
-  EXACT -> non-EXACT, forward encode unchanged (0 bytes / 0 reference
-  lists), DECODER_BARE_IDENTIFIER 28 -> 0, ROUNDTRIP_ONLY 0, fallback 70
-  (13525 in, EXACT). See "Compiler Decoder Cycle 124".
-- **Last successful calibration:** Cycle 124 (decoder 0x51 = PanelGroup).
+- **Current target:** Cycle 125 -- decoder: a `;` after a token that
+  would end its line stays on that line. EXACT 29,681 -> 29,707 (+26),
+  protected PASS, 0 EXACT -> non-EXACT, forward encode unchanged (0 bytes
+  / 0 reference lists), ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT).
+  See "Compiler Decoder Cycle 125".
+- **Last successful calibration:** Cycle 125 (decoder empty-statement
+  semicolon placement).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -23,18 +24,20 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 125):** decoder -- empty-statement rendering, the
-  largest remaining decoder-only family: 27 forward-exact programs fail
-  only because an empty statement (`;`, Cycle 114) is rendered on its own
-  line -- after a standalone comment (`/* c */;`, 13: 2807, 14615, 19344,
-  21579, 23465 ...), after a keyword (`Else;`, `try;`, `When x;`, 8:
-  7177, 9136, 20947, 24226, 29722 ...), after a statement (`X;;`, 6: 5061,
-  11117, 18321, 28911, 29123, 29183). Start with one shape, prove with
-  controls (every EXACT program with a 0x15 directly after a comment /
-  keyword / 0x15). Do NOT combine with the comment-followed-by-code family
-  (7), spacing `[&I](&J)` (3), decoder failures (3), the source-encoding
-  artefacts (65+) or any encoder family.
-- **Newly established rules this session:** Cycle 124 (decoder): 0x51 is
+- **Next action (Cycle 126):** decoder -- a 0x4E inline comment followed by
+  code on its line, the largest remaining decoder-only family (8
+  forward-exact: 2775 2791 7177 9284 18217 19510 21798 28912; 28818 too):
+  `If /*Not ... And*/&RS.GetRow(&i)...`, `If /* ... */%PanelGroup = ...`
+  store `1C 4E 01|12 ...` and decode with a line break after the comment.
+  `commentInlineContinuesToNextToken` only keeps And / Or / `)` / Then on
+  the comment's line, and the `True Or /* c */\nFalse` fixture forbids a
+  blanket rule -- census every 0x4E by next opcode against source
+  placement (same line / newline) first. Out of scope: spacing `[&I](&J)`
+  (13559 13645 24037), decoder failures (6080 16759 18105), the 66
+  source-encoding artefacts, encoder families.
+- **Newly established rules this session:** Cycle 125 (decoder): a 0x15
+  directly after any NEWLINE_AFTER token but 0x4E renders on that token's
+  line (`Then;`, `try;`, `/* c */;`, `rem X;;`); Cycle 124 (decoder): 0x51 is
   always `PanelGroup` (402 / 402); Cycle 122: an ordinary
   program's Application Class row is identified by its leaf class name
   within an allocation unit (a same-leaf named import opens none); a
@@ -152,6 +155,54 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Decoder Cycle 125 -- empty-statement semicolons stay on their line
+
+**Baseline reproduced fresh at `b4da0c4`:** 29,681 / 528, forward-exact
+29,721, protected 430/430, taxonomy row-identical, decoder-only frontier
+40 (same members), fallback 70 (13525 in, EXACT), ROUNDTRIP_ONLY 0.
+**Result:** EXACT **29,681 -> 29,707 (+26)**, 0 EXACT -> non-EXACT,
+forward encode unchanged (0 program bytes / 0 reference lists across
+30,209), protected 430/430, ROUNDTRIP_ONLY 0, fallback 70. LOCAL SNAPSHOT
+only. Commits: 6b57a71 (census + harnessContext decoder override),
+3b92ce9 (decoder).
+
+Census (`cycle125-empty-statement-census.ts`). Source side: a `;` after a
+comment (161), REM statement (8), `;` (257), Then (1,517), Else (651),
+try (5), When-Other (186) or doc comment (769) is on the same line in
+every program; the only `;` / newline / `;` pairs (21969, 23232) store a
+0x2D between them. Byte side, a 0x15 after a NEWLINE_AFTER token: Then
+928 EXACT / 572 non (rendered `Then\n;`, hidden by the normalizer's
+`Then` + `;` join), Else 475 / 174, `;` 177 / 80, When-Other 155 / 31,
+`#End-If` 100 / 24, `#Then` 4 / 0, doc comment 0x6D (attached already),
+0x4E 33 / 95 (own rules), 0x24 comment 0 / 31, 0x24 REM 0 / 8, try 0 / 4.
+
+Root cause: the decoder enumerated the tokens whose NEWLINE_AFTER yields
+to a following `;` (When-Other, Else, doc comment, `;`, directives) and
+missed Then, 0x24 and try. Fix: one rule -- any token but 0x4E. Isolated
+variants (`RESEARCH_DECODER_MODULE`): 0x24 only +20, try only +4, Then
+only +2 (344 programs' text changed, 0 lost), unified +26 (= the union),
+0 losses each. The 27 targets by bytes: `24 15` comment after a statement
+/ Else / When header (2807 9136 14615 19344 20947 21579 23465 23472 24226
+26259 27205 27209 27347 29571 29573 29574, 7177), `24(rem) 15` (5061 11117
+18321 28911), `65 15` (29722 29723 29732 29733), `1F 15 15` (29123 29183).
+REM: the 0x24 text owns the first `;` (`rem X;`), the 0x15 is the second.
+Multiplicity per token: `;;` 177 EXACT sites, `rem X;;;` 18321, `X;;;`
+28912. 7177's site is fixed but it fails on a comment followed by code
+(`If /*...*/&nodeType`), out of scope.
+
+Moves (masked by DECODE_SOURCE_MISMATCH, not forward-exact): 17893 29527
+-> ACTIVE_PACKAGE, 28961 -> COMPLETE_DOWNSTREAM, 28965 29585 29870 ->
+ACTIVE_RECORD, 30179 -> ACTIVE_RECORD_FIELD. Decoded text changed in 375
+programs (299 EXACT -- the `Then;` sites -- all still EXACT).
+
+Rerank: forward-exact but not EXACT 40 -> 14 (0x4E comment followed by
+code 8, decoder failures 3, spacing 3). DECODE_SOURCE_MISMATCH 116 -> 83
+(66 source-encoding artefacts). Categories: COMPLETE_DOWNSTREAM 91, DSM
+83, ACTIVE_PACKAGE 72, ENCODE_ERROR 69, ACTIVE_RECORD_FIELD 39,
+ACTIVE_RECORD 32, UNSUPPORTED_SYNTAX 30, ACTIVE_FIELD 26, ACTIVE_OTHER 20,
+STRUCTURAL_ORDERING 18, ACTIVE_SCROLL 13, QUOTED_COMPONENT 8,
+ACTIVE_DECLARE_FUNCTION 1 (NONEXACT 502).
 
 ## Compiler Decoder Cycle 124 -- opcode 0x51 is PanelGroup
 
