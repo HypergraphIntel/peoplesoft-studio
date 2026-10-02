@@ -1722,48 +1722,6 @@ export function decodeProgram(
       }
     }
 
-    /*
-     * Opcode 0x51 is context-sensitive.
-     *
-     * Existing calibration proved 0x51 can be a zero-width declaration
-     * marker before an introducer-less object type such as:
-     *
-     *   Field &MYFLD;
-     *
-     * DERIVED_CO.FUNCLIB.FieldFormula proves the complementary primitive-type
-     * form is an explicit PanelGroup declaration:
-     *
-     *   51 40 "number"  ...
-     *   51 40 "string"  ...
-     *   51 40 "boolean" ...
-     *
-     * Keep the established zero-width mapping for every other 0x51 shape.
-     * Only promote it to PanelGroup when the next token is a 0x40 primitive
-     * declaration type that is directly evidenced by this capture.
-     */
-    if (opcode === 0x51 && bytes[i] === 0x40) {
-      const typeRun = readTextRun(bytes, i + 1);
-      const primitivePanelGroupTypes = new Set([
-        'number',
-        'string',
-        'boolean'
-      ]);
-
-      if (
-        typeRun !== undefined &&
-        primitivePanelGroupTypes.has(typeRun.text.toLowerCase())
-      ) {
-        tokens.push({
-          kind: TokenKind.Keyword,
-          text: 'PanelGroup',
-          offset,
-          opcode,
-          format: F.SPACE_AFTER
-        });
-        continue;
-      }
-    }
-
     const mapped = OPCODES.get(opcode);
     if (mapped === undefined) {
       // Last resort before reporting a gap: the byte may not be an opcode

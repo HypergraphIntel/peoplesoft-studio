@@ -255,7 +255,19 @@ export const OPCODES = new Map<number, OpcodeSpec>([
   // `Local` decode via 0x44 exactly as already confirmed, and only the
   // one genuinely missing it (`Field &MYFLD;`, PeopleCode's well-known
   // implicit-current-field idiom) carries 0x51 instead.
-  [0x51, { kind: TokenKind.Punctuation, text: '', format: F.NONE }],
+  /*
+   * Cycle 124: 0x51 is the `PanelGroup` keyword (the legacy spelling of
+   * Component), whatever type follows. LOCAL SNAPSHOT
+   * (`cycle124-panelgroup-occurrence-census.ts`): 402 occurrences in 167
+   * programs, each paired with a source `PanelGroup <type> &var`
+   * declaration (boolean 108, string 104, number 80, Record 59, Rowset 33,
+   * array 6, XmlDoc 5, Message 4, Field 2, Row 1), 0 counterexamples. It was
+   * rendered as nothing unless a number / string / boolean followed, on the
+   * belief that `Field &MYFLD;` is a scope-less declaration -- 850
+   * AE_WRK.AE_BIND_VALUE.FieldEdit actually declares `PanelGroup Field
+   * &MYFLD;`. Formatted as the calibrated primitive form was (954).
+   */
+  [0x51, { kind: TokenKind.Keyword, text: 'PanelGroup', format: F.SPACE_AFTER }],
 
   // try/catch/end-try (0x65/0x66/0x67): confirmed byte-for-byte against
   // WEBLIB_MSGWSDL.WSDLSUMMARY.FieldFormula, a plain record-field Function
