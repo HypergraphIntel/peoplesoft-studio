@@ -65,6 +65,16 @@ for (const source of ['F()(1);', 'F().Value;', 'F()(1).Value;']) {
   });
 }
 
+// Cycle 117: a group holds the full expression grammar whatever its left
+// operand -- these were rejected only because a lookahead picked
+// expression() for a literal left side. Corpus: 11246 `If (1 = 2)`, 29011
+// `Return ((&m_sBenSystem = "BN") Or (&m_sBenSystem = "BA"))`.
+for (const source of ['Return (1 = 2);', 'Return (True And False);']) {
+  test(`a grouped comparison / boolean is a Return value: ${source}`, () => {
+    assert.doesNotThrow(() => encodeProgram(source));
+  });
+}
+
 for (const source of [
   'Return ();', 
   'Return (1;', 
@@ -77,7 +87,6 @@ for (const source of [
   'Foo + 1;',
   'F() + 1;',
   'Return Pkg:Foo();',
-  'Return (1 = 2);', 'Return (True And False);',
   'If(True);', 'Return Not(1);', 'Return Create();', 'Return Local();',
   'True();', 'Return True();', 'Return Foo(1) garbage;', 'F(); Return (1;'
 ]) {
