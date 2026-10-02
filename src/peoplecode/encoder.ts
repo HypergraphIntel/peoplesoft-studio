@@ -2678,6 +2678,24 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * `encodeOrdinaryProgramFragment`.
    */
   const ordinaryProgram = !context?.builtinObjectDeclarationsHaveMethodWideLifetime;
+  /*
+   * Cycle 121: every variable an ordinary program declares (any
+   * declaration keyword, or a Function parameter, typed or not), by name.
+   * A variable it never declares is an implicit untyped local: its member
+   * chains are late-bound -- see `rootIsUndeclaredVariable` in primary().
+   */
+  const declaredVariableNames = new Set<string>();
+  if (ordinaryProgram) {
+    // The raw source: a declaration-shaped text inside a comment or string
+    // only counts one more name as declared (the conservative direction).
+    const code = source;
+    for (const m of code.matchAll(/\b(?:Local|Global|Component|ComponentLife|PanelGroup|instance)\s+(?:array\s+of\s+)*[%A-Za-z_][\w:]*\s+(&\w+#?(?:\s*,\s*&\w+#?)*)/gi)) {
+      for (const name of m[1].split(',')) declaredVariableNames.add(name.trim().toLowerCase());
+    }
+    for (const m of code.matchAll(/\bFunction\s+\w+\s*\(([^)]*)\)/gi)) {
+      for (const name of m[1].matchAll(/&\w+#?/g)) declaredVariableNames.add(name[0].toLowerCase());
+    }
+  }
   // Cycle 109: a fragment of an Application Class program (its program-wide rows, `ApplicationClassProgramRows`).
   const applicationClassBody = context?.applicationClassProgramRows !== undefined;
   const unitScopedClassRows = ordinaryProgram;
@@ -10705,6 +10723,24 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * one, narrowly-scoped consumer.
      */
     let chainSemantics: ChainSemantics = initialChainSemantics;
+    /*
+     * Cycle 121: in an ordinary program a chain rooted at a variable the
+     * program never declares is late-bound: its bare RECORD / FIELD members
+     * stay inline names, whatever the chain looks like (13413
+     * `&RSPrcsList.GetRow(&nbr).PMN_DERIVED.SELECT_FLAG.Value`, 21519
+     * `&level1_row.getRow(&z).GP_ABS_EVENT.EMPL_RCD`, 913
+     * `&XLAT.GetRow(&I).GetRecord(1).FIELDVALUE`).
+     * `cycle121-record-member-kind-census.ts`: bare members of chains on an
+     * undeclared root store inline names in 219 of 219 cases once
+     * PanelGroup declarations count as declarations; declared roots store
+     * FIELD rows (over 35,000, a handful of exceptions). Symbolic
+     * arguments (`GetRecord(Record.X)`, `GetField(Field.X)`) are separate
+     * references and unaffected.
+     */
+    const rootIsUndeclaredVariable =
+      ordinaryProgram &&
+      baseVariableName !== undefined &&
+      !declaredVariableNames.has(baseVariableName.toLowerCase());
 
     /*
      * Distinguishes "expectedReferenceMember === 'field' because this is
@@ -11024,7 +11060,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         if (
           expectedReferenceMember !== undefined &&
           ((!isMethodCall && bareMemberBindingEligible) || hasExistingExpectedReference) &&
-          !isInlineRowStateMember
+          !isInlineRowStateMember &&
+          !rootIsUndeclaredVariable
         ) {
           // Cycle 9 (Phase 9C): see `resolvePostfixMemberReuse`'s own
           // declaration comment -- this call is byte-for-byte the same
