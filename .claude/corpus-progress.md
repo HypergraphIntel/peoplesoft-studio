@@ -1,15 +1,16 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-01, Cycle 114)
+## Current status (2026-10-01, Cycle 115)
 
-- **Current target:** Cycle 114 -- the empty statement (a standalone `;`)
-  and the unterminated final App Class closer. EXACT 29,159 -> 29,244
-  (+85), protected PASS, 0 EXACT -> non-EXACT, encode errors 457 -> 338
-  (119 definitions newly encodable), COMPLETE_DOWNSTREAM 94 -> 88,
-  fallback: the 63 members unchanged plus 6 newly encodable, 13525 EXACT.
-  See "Compiler Semantics Cycle 114".
-- **Last successful calibration:** Cycle 114 (unterminated final App
-  Class closer).
+- **Current target:** Cycle 115 -- `#If #ToolsRel ... #Then ... #Else
+  ... #End-If` conditional compilation. EXACT 29,244 -> 29,352 (+108),
+  protected PASS, 0 EXACT -> non-EXACT, encode errors 338 -> 216 (122
+  definitions newly encodable), COMPLETE_DOWNSTREAM 88 -> 92 (4 newly
+  encodable entered), fallback 69 (13525 in, EXACT), ROUNDTRIP_ONLY 0.
+  See "Compiler Semantics Cycle 115".
+- **Last successful calibration:** Cycle 115 (a comment before a
+  directive closes no section; decoder: no 0x2D line break after a
+  directive record).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand record resolution `GetRow(n).X.Y` (0x4A resolved record /
@@ -25,14 +26,26 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action:** `#If #ToolsRel ... #Then ... #End-If` conditional
-  compilation -- 90 UNSUPPORTED_SYNTAX programs stop at a `#If`. Then
-  "expected )" (58 Application Class programs), parenthesized expression
-  statements `(create X(...)).Method()` (29), the decoder's rendering of
-  empty statements (17 forward-exact programs are DECODE_SOURCE_MISMATCH,
-  e.g. 5061 `rem ...;;` decodes as `rem ...;`). See "Error rerank after
-  Cycle 114".
-- **Newly established rules this session:** Cycle 114: a `;` where a
+- **Next action:** the parenthesized expression statement
+  `(create X(...)).Method()` -- now the first failure of 11 of the 14
+  directive programs still unsupported (live branches of
+  `#If #toolsrel >= "8.55.06"` calling `(create
+  PT_PAGE_UTILS:Utils()).SetGridAnnouncement(...)`), plus the 29 found in
+  Cycle 114 (overlapping). Then "expected )" (59, App Class), the
+  "unsupported PeopleCode statement" remainder, operand "expected a
+  variable ..." (21). See "Error rerank after Cycle 115".
+- **Newly established rules this session:** Cycle 115: directives
+  `#If <cond> #Then` / `#Else` / `#End-If` are compiled to text records
+  0x75 (`#If` text up to `#Then`, trimmed) / 0x76 / 0x77 (bare keyword
+  when its branch is live, keyword plus the branch text up to the last
+  newline before the next directive line when dead) / 0x78, an attached
+  `;` is the directive's 0x15; only `#ToolsRel` (any case), numeric
+  dotted comparison at the literal precision, `&&` above `||`; the HCDEV
+  release is 8.61 (proven by every block, supplied by the corpus layer,
+  never the encoder); directive lines are layout-transparent (no blank
+  line, no line break of their own); dead branches allocate nothing; a
+  comment before a directive closes no section (the 0x2D close moves past
+  the directive records); Cycle 114: a `;` where a
   statement starts is the empty statement -- one 0x15, in every statement
   list, executable (closes a top-level declaration section with 0x2D only;
   enters a Function body's executable section); an unterminated last
@@ -100,6 +113,76 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 115 -- `#If #ToolsRel` conditional compilation
+
+**Baseline reproduced fresh at `453631d`:** 29,244 / 965, protected
+430/430, taxonomy row-identical, UNSUPPORTED_SYNTAX 214, ENCODE_ERROR 124,
+COMPLETE_DOWNSTREAM 88, fallback 69 (13525 in), ROUNDTRIP_ONLY 0.
+**Result:** EXACT **29,244 -> 29,352 (+108)**, **0 EXACT -> non-EXACT**,
+protected 430/430, ROUNDTRIP_ONLY 0. LOCAL SNAPSHOT only.
+
+Commits: 6f02548 (census), 4910de5 (preprocessor; no corpus change),
+1c8f0d8 (decoder: directives are lines of their own), ad11903 (corpus
+layer supplies release 8.61: +106), 63b750f (comment before a directive
+closes no section; decoder 0x2D after a directive record: +2).
+
+Census (`cycle115-conditional-compilation-census.ts`): 231 blocks in 139
+definitions (90 ordinary / 49 App Class), 40 with `#Else`, 191 without,
+no nesting, Then true 138 / false 93, `#End-If;` 124. One grammar; one
+spelling of `#If` / `#Then` / `#Else` / `#End-If`; symbol `#ToolsRel` 197
+/ `#toolsrel` 43 / `#TOOLSREL` 1; operators >= 158, < 60, = 22, && 6,
+|| 4, > 1; literals are quoted versions, 2-part 174 / 3-part 67; 37
+distinct conditions. Text after `#Then` on its line: a comment (16), `;`
+(4). Non-code `#If`: disabled 4, REM 2, comment 3.
+
+Proofs: release 8.61 is the only one consistent with every block
+(patch 0..30 undetermined); the generated 0x75..0x78 records equal stored
+in every encodable directive program; dead-only names (114) never appear
+in stored PSPCMNAME; 19510's dead branches hold an unfinished `If ...
+Then` and encode (it now stops at an unrelated later `expected )`).
+
+Architecture: `src/peoplecode/conditionalCompilation.ts` masks each
+directive region (keyword + dead text + attached `;` + rest of line) as
+spaces, preserving every offset; the encoder writes a region's records
+when `space()` first crosses it (App Class wrapper: body edges, layout
+ranges, shared fragment ranges, import prefix events); every region must
+be written once or the program is unsupported. No release -> legacy
+behaviour.
+
+Directive programs (139): EXACT 108 (80 ordinary / 28 App Class),
+UNSUPPORTED_SYNTAX 14 (11 at `(create PT_PAGE_UTILS:Utils())...`; 18980,
+28936, 29619 at other later statements), ACTIVE_RECORD 5 (28797, 28948,
+29611, 29724, 29734), COMPLETE_DOWNSTREAM 4 (4348, 18181, 28942, 28943),
+DECODE_SOURCE_MISMATCH 3 (18321, 28890, 29249), ENCODE_ERROR 2 (19510,
+29609 -- the latter unchanged), ACTIVE_PACKAGE 1 (4602, first diff 3671),
+ACTIVE_FIELD 1 (28851), ACTIVE_DECLARE_FUNCTION 1 (28854: its live
+`import` now allocates its row; previously DECODE_SOURCE_MISMATCH, never
+forward-exact).
+
+## Error rerank after Cycle 115
+
+UNSUPPORTED_SYNTAX 214 -> 91, ENCODE_ERROR 124 -> 125 (19510). No
+`#If` failure remains. Families: "expected )" 59, "unsupported
+PeopleCode statement" 55 (parenthesized `(create X()).M()` the largest
+share), operand "expected a variable ..." 21, `catch` as a call name 13,
+"expected Then" 12, bare identifiers 11, "expected ] after array
+subscript" 11, "expected ; in catch body" 5, "expected an ASCII
+&variable" 4, Function metadata types (time 3, DocumentKey 2,
+CubeCollection 2).
+
+Newly encodable 122 (all directive programs): EXACT 108, ACTIVE_RECORD 5,
+COMPLETE_DOWNSTREAM 4, DECODE_SOURCE_MISMATCH 3, ACTIVE_FIELD 1,
+ACTIVE_PACKAGE 1. COMPLETE_DOWNSTREAM 88 -> 92 (59 ordinary / 33 App
+Class, all reference-exact; none left, 4348 / 18181 / 28942 / 28943
+entered). PACKAGE census: PACKAGE-only 78, first divergence a PACKAGE row
+158. Reference lists of previously encodable programs: only 28854.
+
+Categories: ENCODE_ERROR 125, DECODE_SOURCE_MISMATCH 110, ACTIVE_PACKAGE
+102, ACTIVE_FIELD 96, ACTIVE_RECORD 95, COMPLETE_DOWNSTREAM 92,
+UNSUPPORTED_SYNTAX 91, ACTIVE_RECORD_FIELD 41, ACTIVE_OTHER 35,
+DECODER_BARE_IDENTIFIER 27, STRUCTURAL_ORDERING 20, ACTIVE_SCROLL 13,
+QUOTED_COMPONENT 9, ACTIVE_DECLARE_FUNCTION 1 (NONEXACT 857).
 
 ## Compiler Semantics Cycle 114 -- the empty statement and the unterminated final App Class closer
 
