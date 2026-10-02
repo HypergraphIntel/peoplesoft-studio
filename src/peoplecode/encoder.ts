@@ -2104,7 +2104,16 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         : undefined;
     chunks.push(appClassType?.bytes ?? typeName());
     if (/^array$/i.test(declaredType ?? '')) {
-      arrayElementTypes();
+      const componentArrayElement = arrayElementTypes();
+      /*
+       * Cycle 122: a Component array of a built-in type needs the element
+       * type's row, as a scalar Component declaration does (4470 `Component
+       * array of Record` -- its only Record declaration -- stores
+       * PACKAGE.RECORD; 14341 `Component array of Field`).
+       */
+      if (componentArrayElement !== undefined && arrayElementApplicationClass === undefined) {
+        allocateBuiltinTypePackageReferenceIfSupported(componentArrayElement, 'component');
+      }
       if (unitScopedClassRows && arrayElementApplicationClass !== undefined) {
         // Cycle 94: see `useApplicationClassRow` (14888).
         useApplicationClassRow(
@@ -7162,7 +7171,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * (11) -- 254 occurrences total, 0 exceptions.
          */
         if (isArrayType) {
-          arrayElementTypes();
+          // Cycle 122: `Returns array of <built-in>` needs the element type's row too (9986, 25290)
+          const returnElement = arrayElementTypes();
+          if (returnElement !== undefined && arrayElementApplicationClass === undefined) {
+            allocateBuiltinTypePackageReferenceIfSupported(returnElement, 'function-returns');
+          }
         } else if (returnType !== undefined) {
           allocateBuiltinTypePackageReferenceIfSupported(returnType, 'function-returns');
         }
