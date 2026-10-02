@@ -2273,11 +2273,10 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
        * for the FIRST index of an array variable, e.g. `&arr [1]`), but
        * multi-dimensional indexing (`&arr [&I][1]`, definition 1626) has
        * NO space between a closing `]` (0x4D) and the next `[` opening a
-       * second dimension. `]` itself always carries SPACE_AFTER (correct
-       * before whatever follows an indexed VALUE, e.g. `&arr[1] = 5`), so
-       * this needs a targeted exception on the `[` side specifically
-       * rather than a blanket "no space after ]" rule that would also
-       * suppress the space assignment/operators genuinely need.
+       * second dimension. `]` writes no space after itself (Cycle 127 --
+       * operators after it carry their own SPACE_BEFORE), but `[`'s own
+       * SPACE_BEFORE would still add one, hence this exception on the `[`
+       * side.
        *
        * The same targeted exception is needed when `[` immediately
        * follows a closing `)` (0x14) instead of `]` -- indexing directly
@@ -2444,18 +2443,7 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         writeIndent();
       }
     } else if (
-      f & F.SPACE_AFTER && !(f & F.NO_SPACE_AFTER) &&
-      /*
-       * Compiler closure: the actual source of the unwanted space in
-       * `&arr [&I][1]` (definition 1626) is `]`'s (0x4D) own
-       * unconditional SPACE_AFTER, fired here while processing `]`
-       * itself, BEFORE the `[` (0x4C) exception above ever runs -- that
-       * exception alone had no effect. `]` genuinely needs its trailing
-       * space in every OTHER context (`&arr[1] = 5`, `&arr[1].Value`),
-       * so this is scoped narrowly to "next token is another `[`," the
-       * one shape multi-dimensional indexing produces.
-       */
-      !(t.opcode === 0x4d && nextToken?.opcode === 0x4c)
+      f & F.SPACE_AFTER && !(f & F.NO_SPACE_AFTER)
     ) {
       out.push(' ');
     }

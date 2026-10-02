@@ -2316,3 +2316,28 @@ test('a string with no quotes is unchanged', () => {
   assert.equal(result.unknownOpcodes.length, 0);
   assert.equal(result.text, '"hello"');
 });
+
+/*
+ * Cycle 127: `]` writes no space after itself; what follows decides --
+ * tight before a postfix / closing token, spaced before an operator.
+ */
+{
+  const name = (text: string) => [...utf16(text), 0x00, 0x00];
+  const variable = (text: string) => [0x01, ...name(text)];
+  const indexed = [...variable('&arr'), 0x4c, ...variable('&I'), 0x4d];
+  for (const [label, bytes, expected] of [
+    // 13645: `&CheckBoxOn = &arRowset [&I](&J).PORTAL_HPWRK...`
+    ['a call after an index (13645)', [...variable('&x'), 0x06, ...indexed, 0x0b, ...variable('&J'), 0x14, 0x05, 0x0a, ...name('Value'), 0x15], '&x = &arr [&I](&J).Value;\n'],
+    ['a second index', [...variable('&x'), 0x06, ...indexed, 0x4c, ...variable('&J'), 0x4d, 0x15], '&x = &arr [&I][&J];\n'],
+    ['a member', [...indexed, 0x05, 0x0a, ...name('Value'), 0x06, 0x16, ...name('Y'), 0x15], '&arr [&I].Value = "Y";\n'],
+    ['an assignment', [...indexed, 0x06, ...variable('&x'), 0x15], '&arr [&I] = &x;\n'],
+    ['a comma', [0x0a, ...name('f'), 0x0b, ...indexed, 0x03, ...variable('&x'), 0x14, 0x15], 'f(&arr [&I], &x);\n'],
+    ['a concatenation', [...variable('&x'), 0x06, ...indexed, 0x23, 0x16, ...name('Y'), 0x15], '&x = &arr [&I] | "Y";\n']
+  ] as const) {
+    test(`spacing after \`]\` before ${label}`, () => {
+      const result = decodeProgram(Buffer.from([...HEADER, ...bytes]), new NameTable());
+      assert.equal(result.unknownOpcodes.length, 0);
+      assert.equal(result.text, expected);
+    });
+  }
+}
