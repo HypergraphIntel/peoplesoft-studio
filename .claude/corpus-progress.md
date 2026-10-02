@@ -1,17 +1,16 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 118)
+## Current status (2026-10-02, Cycle 119)
 
-- **Current target:** Cycle 118 -- a Record-typed App Class property
-  (type metadata, own / inherited / typed receiver) is a declared Record
-  value whose next bare member is a FIELD row. EXACT 29,415 -> 29,462
-  (+47), protected PASS, 0 EXACT -> non-EXACT, only FIELD rows added
-  (55 lists closer, 0 farther), COMPLETE_DOWNSTREAM 95 -> 92, fallback
-  70 (13525 in, EXACT), ROUNDTRIP_ONLY 0. See "Compiler Semantics Cycle
-  118".
-- **Last successful calibration:** Cycle 118 (metadata `Record` property
-  results enter the Record receiver state; their FIELD rows join the
-  field dependency scope).
+- **Current target:** Cycle 119 -- App Class Row-shorthand RECORD /
+  FIELD rows (`&row.REC.FIELD`) have whole-program lifetime. EXACT
+  29,462 -> 29,503 (+41), protected PASS, 0 EXACT -> non-EXACT, only
+  duplicate RECORD (316) / FIELD (164) rows removed (85 lists closer, 0
+  farther), COMPLETE_DOWNSTREAM 92 -> 97, fallback 70 (13525 in,
+  EXACT), ROUNDTRIP_ONLY 0. See "Compiler Semantics Cycle 119".
+- **Last successful calibration:** Cycle 119 (shorthand RECORD rows use
+  the method-wide record scope + class-wide session; shorthand FIELD rows
+  register in the field scope).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand record resolution `GetRow(n).X.Y` (0x4A resolved record /
@@ -27,17 +26,22 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action:** App Class Row-shorthand RECORD / FIELD row lifetime
-  -- 44 App Class programs (28764, 28793, 28795, 28797, 28853, 28871 ...)
-  first diverge where generated allocates a fresh RECORD row (and a
-  repeated FIELD row) for `&row.REC.FIELD` (`&rwAgcTmplTbl.AGC_TMPL_TBL.
-  DESCR100.Value`) that stored reuses from an earlier statement. Not the
-  parked 0x4A / 0x0A `GetRow(n).X.Y` byte question. Other first-
-  divergence groups: ordinary PACKAGE vs PACKAGE 33, ordinary missing
-  stored row vs generated FIELD 27, App Class FIELD vs PACKAGE 22. Error
-  families unchanged (catch 14, bare identifiers 12, `]` 11, expected-)
-  9). See "Rerank after Cycle 118".
-- **Newly established rules this session:** Cycle 118: a property the
+- **Next action:** FIELD rows for App Class `instance` / Global /
+  Component Record variables -- 81 App Class programs first diverge at a
+  stored FIELD row the encoder does not allocate; the largest receiver
+  group (26) is a header- or Global-declared Record variable's bare field
+  (`&m_rcXLATITEM.FIELDNAME`, `&m_rWork.PLAN_TYPE`), then other `&var`
+  receivers (15: e.g. a record from `CreateRecord` into an undeclared /
+  Global variable -- 29617 `&GBL_rec_share.HR_PSEL_HANDLER`). Other
+  groups: ordinary PACKAGE vs PACKAGE 33, ordinary missing stored row vs
+  generated FIELD 27, ordinary REC.FIELD vs FIELD 20. See "Rerank after
+  Cycle 119".
+- **Newly established rules this session:** Cycle 119: in Application
+  Class programs a Row-shorthand RECORD row is one per record name for the
+  whole program (method-wide scope + class-wide session, like `Record.X`)
+  and a shorthand FIELD row one per field name (registered in the field
+  scope even without a base variable); ordinary programs keep allocation
+  units; Cycle 118: a property the
   type metadata declares `Record` (own, %Super, typed receiver, chained)
   makes its next bare member a FIELD row exactly like a `Local Record &r`
   base, registered in the field dependency scope for reuse; Record
@@ -132,6 +136,65 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 119 -- App Class Row-shorthand RECORD / FIELD lifetime
+
+**Baseline reproduced fresh at `bdb8655`:** 29,462 / 747, protected
+430/430, taxonomy row-identical, forward-exact 29,515, fallback 70 (13525
+in), ROUNDTRIP_ONLY 0. **Result:** EXACT **29,462 -> 29,503 (+41)**, **0
+EXACT -> non-EXACT**, protected 430/430, ROUNDTRIP_ONLY 0. LOCAL SNAPSHOT
+only. Commits: ff3d7a1 (census), 610c151 (semantics).
+
+Census (`cycle119-row-shorthand-lifetime-census.ts`, read from compiled
+programs -- every `05 4A(RECORD) 05 4A(FIELD)` pair after a receiver):
+384 App Class / 3,144 ordinary programs; App Class REC.FIELD 7,803 (call
+/ index result 6,424, variable 1,361) + 889 RECORD-only. Stored App
+Class repeats: RECORD by name 8,432 -> 8,417 reuse (same statement
+1,494, same method 5,175, other method 1,748; other control group
+2,143), 15 open; FIELD by name 5,324 -> 5,305 reuse, 19 open; record +
+field keys reuse less -- FIELD identity is the field name. All
+whole-program contradictions: 29797, 30170, 30179. Model contradictions
+(RECORD / FIELD): whole program 15 / 19, method body 1,748 / 1,317,
+control group 2,143, statement > 6,900. Ordinary programs reopen per
+allocation unit (3,257 same-method RECORD opens) -- unchanged.
+
+Root cause: the shorthand RECORD member was kept only in control-group
+pools (`rowShorthandRecordsByBase`, `rowShorthandRecordsByControlGroup`),
+never in the method-wide record scope, and never consulted the
+class-wide session (explicit `Record.X` has had both since Cycle 71); the
+FIELD after it registered in the field scope only with a base variable
+(not for `GetLevel0()(1).REC.FIELD`). Fix (App Class fragments only,
+`recordDependenciesHaveMethodWideLifetime`): register the shorthand
+RECORD in `dependencyScope` + session fallback; register a FIELD reached
+through a shorthand RECORD in `fieldDependencyScope`.
+
+Experiments: RECORD-only 72 lists, 70 closer, 0 farther, 38 names-exact
+(-316 RECORD rows); + FIELD 87 lists, 85 closer, 0 farther, 2 same, 53
+names-exact, distance 742 -> 289 (-164 FIELD rows), nothing else
+changed. 41 newly EXACT (forward-exact +43; 29573 / 29574 DSM). The 44
+targets: EXACT 17, ACTIVE_RECORD 17, COMPLETE_DOWNSTREAM 5, ACTIVE_FIELD
+3, ACTIVE_PACKAGE 1, ACTIVE_OTHER 1; 15 unchanged (a different
+mechanism: RECORD placement -- 28853 -- and FIELD rows the encoder never
+allocates -- 29617 `&GBL_rec_share.HR_PSEL_HANDLER`). Cycle 118
+population unchanged except 29996 (now EXACT) and 30000 (closer).
+
+## Rerank after Cycle 119
+
+ACTIVE_RECORD 106 -> 62, ACTIVE_FIELD 95 -> 84, ACTIVE_RECORD_FIELD 38
+-> 40, COMPLETE_DOWNSTREAM 92 -> 97 (28764, 28954, 29140, 29198, 30145
+entered; all reference-exact), STRUCTURAL_ORDERING 22 -> 25, ACTIVE_SCROLL
+13 -> 14. PACKAGE census: PACKAGE-only 86, first divergence a PACKAGE row
+162. First-divergence groups: ordinary PACKAGE vs PACKAGE 33, ordinary
+none vs FIELD 27, App Class FIELD vs PACKAGE 22, ordinary REC.FIELD vs
+FIELD 20, App Class FIELD vs RECORD 18, FIELD vs none 17, FIELD vs FIELD
+15. App Class programs first diverging at a stored FIELD row: 81 --
+receivers instance / Global / Component Record var 26, other `&var` 15,
+GetRecord chain 4, undeclared `= CreateRecord` 3, Local Record 2, other
+30. Categories: DSM 114, ACTIVE_PACKAGE 100, COMPLETE_DOWNSTREAM 97,
+ACTIVE_FIELD 84, ENCODE_ERROR 69, ACTIVE_RECORD 62, ACTIVE_RECORD_FIELD
+40, ACTIVE_OTHER 32, UNSUPPORTED_SYNTAX 30, DECODER_BARE_IDENTIFIER 28,
+STRUCTURAL_ORDERING 25, ACTIVE_SCROLL 14, QUOTED_COMPONENT 10,
+ACTIVE_DECLARE_FUNCTION 1 (NONEXACT 706).
 
 ## Compiler Semantics Cycle 118 -- Record-typed App Class property receivers
 
