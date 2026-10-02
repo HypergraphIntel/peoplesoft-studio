@@ -2699,8 +2699,16 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   // Cycle 109: a fragment of an Application Class program (its program-wide rows, `ApplicationClassProgramRows`).
   const applicationClassBody = context?.applicationClassProgramRows !== undefined;
   const unitScopedClassRows = ordinaryProgram;
-  const applicationClassKey = (packagePath: string[], className: string): string =>
-    [...packagePath, className].map(component => component.toLowerCase()).join(':');
+  /*
+   * Cycle 122: an ordinary program's Application Class row is identified by
+   * its LEAF class name within an allocation unit -- the same identity the
+   * PSPCMNAME row itself carries (`PACKAGE.<CLASS>`). 18372 imports
+   * `CAFNUI_API:OBJECT:Action` and declares `Local array of
+   * CAFNUI_CORE:OBJECT:Action` in the same leading unit: stored has one
+   * ACTION row; 2125 likewise. See also `importStatement`.
+   */
+  const applicationClassKey = (_packagePath: string[], className: string): string =>
+    className.toLowerCase();
 
   /*
    * Cycle 94 / 95: the ALLOCATION UNIT of an ordinary program -- the
@@ -6365,10 +6373,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         });
       }
     } else {
-      const imported = addApplicationClassReference(
-        appClass.packagePath,
-        appClass.className
-      );
+      /*
+       * Cycle 122: in an ordinary program a named import whose leaf class
+       * name already has a row in the unit opens none -- 22665 imports
+       * `GPS_WFS_REPORT_MANAGER:ReportManager` and
+       * `GPS_CAR_REPORT_MANAGER:ReportManager` and stores one REPORTMANAGER
+       * row (the first), 19155 imports one class twice and stores one row.
+       */
+      const sameLeafRow = unitScopedClassRows
+        ? classRowsByUnit.get(applicationClassKey(appClass.packagePath, appClass.className))
+        : undefined;
+      const imported = sameLeafRow !== undefined && sameLeafRow.unit === allocationUnit
+        ? sameLeafRow.reference
+        : addApplicationClassReference(
+          appClass.packagePath,
+          appClass.className
+        );
       if (unitScopedClassRows) {
         // Cycle 94: an import always opens its row; the leading unit's
         // later uses of the class find it.
