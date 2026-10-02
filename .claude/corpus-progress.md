@@ -1,13 +1,15 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 122)
+## Current status (2026-10-02, Cycle 123)
 
-- **Current target:** Cycle 122 -- actionable ordinary PACKAGE failures
-  (leaf-name class identity, directive block ends the leading unit,
-  Component / Returns array built-in rows). EXACT 29,647 -> 29,656 (+9),
-  protected PASS, 0 EXACT -> non-EXACT, only PACKAGE rows changed (15
-  lists closer, 0 farther), COMPLETE_DOWNSTREAM 87 -> 89, fallback 70
-  (13525 in, EXACT), ROUNDTRIP_ONLY 0. See "Compiler Semantics Cycle 122".
+- **Current target:** Cycle 123 -- research / rebaseline (no semantic
+  change): current architecture in `.claude/compiler-architecture.md`
+  (code-verified; supersedes chronological notes where they disagree),
+  all 553 NONEXACT reclassified from fresh evidence. EXACT 29,656 /
+  NONEXACT 553, forward-exact 29,721, protected 430/430, fallback 70
+  (13525 in, EXACT), ROUNDTRIP_ONLY 0 -- reproduced; research changes
+  proven semantic-neutral (0 bytes / 0 reference lists changed). See
+  "Compiler Research Cycle 123".
 - **Last successful calibration:** Cycle 122 (Component / Returns array
   built-in rows).
 - **Protected baseline:** 430/430.
@@ -25,17 +27,19 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action:** COMPLETE_DOWNSTREAM blank-line markers -- 47 of the
-  89 reference-exact COMPLETE_DOWNSTREAM programs (41 App Class / 48
-  ordinary overall) first differ where stored has a 0x4F the encoder does
-  not write (before If 5, When 4, End-If 2, %Component 2, Constant 2 ...);
-  then `array` as 0x40 keyword vs 0x0A name (5), 0x4F vs 0x2D (4), the 13
-  end-of-program differences. Remaining ordinary PACKAGE: 14 actionable
-  (named-import stored-opens / generated-reuses 3 -- 16567, 19289, 14641;
-  ordering 3 -- 22705 / 22709 / 22713; built-in 3; wildcard 3), 43
-  fallback and 7 metadata-blocked (parked). Also open: untyped Function
-  parameters shadowing a declared Record (11513); ordinary SCROLL (10).
-  See "Rerank after Cycle 122".
+- **Next action (Cycle 124):** decoder -- render opcode 0x51 as
+  `PanelGroup` unconditionally. 167 / 167 programs with a stored 0x51 have
+  exactly as many source PanelGroup declarations; the decoder renders it
+  only before number / string / boolean. Population: DECODER_BARE_IDENTIFIER
+  28 (26 forward-exact -> EXACT; 4432, 14312 also need encoder work).
+  Controls: every EXACT program with 0x51 (primitive-type PanelGroup)
+  must stay; the roundtrip re-encode of `PanelGroup <type>` must give 0x51
+  (Cycle 121's encoder typing); the decoder test "0x51 is Local's own
+  zero-width sibling" asserts the stale assumption (its cited program,
+  850 AE_WRK.AE_BIND_VALUE.FieldEdit, declares `PanelGroup Field
+  &MYFLD;`). Do NOT combine with the empty-statement decoder families (27
+  forward-exact), the comment-then-code family (7), the encoder 0x4F
+  family (34) or the source-encoding artefacts (65).
 - **Newly established rules this session:** Cycle 122: an ordinary
   program's Application Class row is identified by its leaf class name
   within an allocation unit (a same-leaf named import opens none); a
@@ -153,6 +157,89 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Research Cycle 123 -- current architecture and exactness frontier
+
+Research / rebaseline only (no encoder / decoder / reference change).
+Baseline at `1a606d0` reproduced: harness EXACT 29,656, protected 430/430,
+taxonomy rebuilt row-identical, PACKAGE-only 81, first-PACKAGE 127,
+ordinary first-PACKAGE 64 (fallback 43, metadata-blocked 7, actionable
+14), forward-exact 29,721, fallback 70 (13525 in). Every research change
+is semantic-neutral (`cycle123-frontier-census.ts --compare`: 0 bytes / 0
+reference lists changed). LOCAL SNAPSHOT only.
+
+Architecture: `.claude/compiler-architecture.md` (pipeline, parser,
+receiver semantics, reference lifetime ledger, declarations, App Class
+fragment model, metadata, fallback, newline model, decoder boundary,
+taxonomy semantics, parked mechanisms, stale assumptions, tooling).
+
+Durable tooling: `tools/corpus/research/lib/harnessContext.ts` (one
+harness-equivalent context for research tools; `RESEARCH_ENCODER_MODULE`
+for observational variants), `cycle123-frontier-census.ts` (sweep +
+evidence, `--compare`), `cycle123-frontier-report.ts`,
+`cycle123-fallback-trigger-census.ts`, `cycle123-panelgroup-opcode-census.ts`,
+`cycle123-reference-debt-census.ts`. (Cycle 122's scratch tools were lost
+between sessions -- this replaces them.)
+
+Key findings:
+- 65 NONEXACT are forward-exact (bytes and references exact) and fail only
+  on decoded-source rendering: PanelGroup keyword dropped 26, empty
+  statement after a comment 13 / after a keyword 8 / after a statement 6,
+  comment followed by code on its line 7, decoder failure 3, spacing 2.
+- DECODE_SOURCE_MISMATCH (114) is mostly the snapshot source encoding
+  artefact (65: `¿` / a backtick in the source where the stored program
+  has the real character -- not fixable in the compiler); 99 of the 114
+  are reference-exact. Decoder categories take precedence in the
+  taxonomy, so 62 reference-exact, non-forward-exact programs sit outside
+  COMPLETE_DOWNSTREAM (56 differ only in such comment / string text).
+- COMPLETE_DOWNSTREAM 89 (all reference-exact): stored 0x4F after a
+  standalone comment / disabled-code run 33 (25 ordinary, 8 App Class; +1
+  behind a decoder category) -- the dominant newline family, but emitted
+  by per-construct loops (If, Evaluate, For, While, Repeat, try,
+  Function, top level: no single newline machine), so it needs exact
+  controls per construct; Function signature trailer byte (02 vs 01, same
+  length, ordinary) 9; App Class inline comment 0x4E placement 11; 0x4A
+  reference operand vs inline name 9 (+1 reverse); `array` 0x40 vs 0x0A 5;
+  marker order 0x4F / 0x2D 4 + 2; blank before Constant / instance /
+  method 5; App Class type-path case 2; text after the program end 2;
+  others 6.
+- Errors: ENCODE_ERROR 69 -- try / catch grammar 19 (catch as a call name
+  14, catch body 5), bare identifiers 12, `]` after a subscript 11,
+  `expected )` 9, others; UNSUPPORTED_SYNTAX 30 -- Function metadata type
+  ids 13 (time 3, DocumentKey 2, CubeCollection 2, ...), unsupported
+  statement 8, operand 7.
+- Reference categories are symptom buckets (the generated kind at the
+  first divergence): ACTIVE_OTHER 20 = stored rows the encoder never
+  reaches (generated list shorter); STRUCTURAL_ORDERING 18 (17 App Class,
+  11 = stored FIELD / generated PACKAGE order); ACTIVE_SCROLL 10 / 13 =
+  ordinary SCROLL-vs-SCROLL; ACTIVE_RECORD_FIELD 13 / 38 fallback.
+- Fallback 70 (24 EXACT): receiver class absent from the snapshot 58,
+  absent + member missing 5, member / ancestor missing 3, no provider miss
+  4. The fallback flag is read in one place (the wildcard claim). The
+  first-wildcard-only rule: +6 forward-exact, -13525 (21 lists closer,
+  distance 72 -> 38) -- still parked.
+- 44 byte-exact programs have non-exact reference lists (32 App Class, 10
+  fallback, 20 a strict prefix of stored); the harness EXACT verdict does
+  not compare PSPCMNAME (13525 is one).
+- Superseded / special paths: the legacy App Class encoder serves one
+  program (29632); 62 source-shape regex gates and 12 base-variable gates
+  remain in encoder semantics.
+
+Exactness frontier (evidence-ranked):
+
+| Mechanism | Programs | Forward-exact opportunity | Confidence | External data? | Next |
+|---|---:|---:|---|---|---|
+| Decoder 0x51 = PanelGroup | 28 | 26 | 167 / 167 | no | Cycle 124 |
+| Decoder empty statement after comment / keyword / statement | 34 | 27 | 3 shapes, Cycle 114 | no | after 124, one shape at a time |
+| Decoder comment followed by code | 8 | 7 | one shape | no | decoder |
+| Encoder 0x4F after a comment run | 34 | (refs exact) | per-construct, needs controls | no | encoder newline cycle |
+| Function signature trailer byte | 9 | (refs exact) | byte meaning unknown | no | research |
+| App Class inline comment 0x4E placement | 11 | (refs exact) | unknown | no | research |
+| try / catch grammar | 19 | -- | grammar | no | parser cycle |
+| Function metadata type ids | 13 | -- | type-id table | no | research |
+| Actionable ordinary PACKAGE | 14 | -- | mixed | no | later |
+| Snapshot source encoding artefacts | 65 | -- | -- | yes (source) | blocked |
+| Fallback / metadata-blocked PACKAGE | 50 | -- | -- | yes (class metadata) | blocked |
 
 ## Compiler Semantics Cycle 122 -- actionable ordinary PACKAGE failures
 
