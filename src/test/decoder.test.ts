@@ -1674,15 +1674,13 @@ test('0x20 is Warning, the statement-level sibling of Error', () => {
   assert.equal(result.text, 'If True Then\n  Warning (MsgGet());\nEnd-If;\n');
 });
 
-test('0x51 is Local\'s own zero-width sibling, for a declaration with no scope keyword at all', () => {
-  // The clincher: AE_WRK.AE_BIND_VALUE.FieldEdit declares
-  // `Local Record &MYREC;`, `Field &MYFLD;`, `Local Field &FLD;` and
-  // `Local Record &REC;` back to back -- the three with an explicit
-  // `Local` decode via the already-confirmed 0x44 exactly as everywhere
-  // else, and only the one genuinely missing it (`Field &MYFLD;`,
-  // PeopleCode's implicit-current-field idiom, valid with no scope
-  // keyword at a program's top level) carries 0x51 instead. Reproduced
-  // here as the same two declarations back to back.
+test('0x51 is the PanelGroup keyword, whatever type follows (850)', () => {
+  // Cycle 124: AE_WRK.AE_BIND_VALUE.FieldEdit (definition 850) declares
+  // `Local Record &MYREC;` then `PanelGroup Field &MYFLD;` and stores
+  // `... 15 51 0A "Field" 01 "&MYFLD" 15`. 0x51 is PanelGroup (the legacy
+  // spelling of Component) in all 402 corpus occurrences (167 programs) --
+  // it was once read as a zero-width marker of a scope-less `Field &MYFLD;`,
+  // which is not valid PeopleCode and could not be re-encoded.
   const result = decodeProgram(
     Buffer.from([
       ...HEADER,
@@ -1691,8 +1689,18 @@ test('0x51 is Local\'s own zero-width sibling, for a declaration with no scope k
     ]),
     new NameTable());
   assert.equal(result.unknownOpcodes.length, 0);
-  assert.equal(result.text, 'Local Record &MYREC;\nField &MYFLD;\n');
+  assert.equal(result.text, 'Local Record &MYREC;\nPanelGroup Field &MYFLD;\n');
 });
+
+for (const [type, variable, example] of [['Record', '&REC_JOB', '4434'], ['Rowset', '&RS2', '8115'], ['Row', '&GRP_ROW', '6448'], ['Message', '&Msg', '959']]) {
+  test(`0x51 PanelGroup before a ${type} declaration (${example})`, () => {
+    const result = decodeProgram(
+      Buffer.from([...HEADER, 0x51, 0xa, ...utf16(type), 0x00, 0x00, 0x1, ...utf16(variable), 0x00, 0x00, 0x15]),
+      new NameTable());
+    assert.equal(result.unknownOpcodes.length, 0);
+    assert.equal(result.text, `PanelGroup ${type} ${variable};\n`);
+  });
+}
 
 test('0x60 is a property\'s optional readonly modifier', () => {
   // Found scanning the live database (pass thirty-nine): every property in
