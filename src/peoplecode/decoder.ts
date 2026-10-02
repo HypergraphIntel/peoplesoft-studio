@@ -2298,6 +2298,17 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
       out.push(' ');
     }
 
+    /*
+     * Cycle 126: an operand right after an inline comment on the same line
+     * is written tight (`/* c *\/&x`, 44 / 44 sites); keywords and
+     * operators keep their own leading space (`/* c *\/ Not`, ` = `, 74 /
+     * 74).
+     */
+    if (
+      tokens[tokenIndex - 1]?.opcode === 0x4e && !atLineStart &&
+      (t.kind === TokenKind.Name || t.kind === TokenKind.StringLiteral || t.kind === TokenKind.NumberLiteral)
+    ) trimTrailing();
+
     if (t.text) {
       out.push(t.text);
       atLineStart = false;
@@ -2389,42 +2400,28 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
       commentInlineAfterStatement && tokens[newlineOnceIndex]?.opcode === 0x2d;
 
     /*
-     * Compiler closure: an inline comment sandwiched mid-expression can
-     * ALSO need its own trailing NEWLINE_AFTER replaced with a space --
-     * `"GPSC_BANK_ACC_FL" /*FLUID*\/ And` (definition 1411) and
-     * `.../*FLUID*\/) And` (definition 1406) both need "And"/")" to stay
-     * on the comment's own line. This is NOT a blanket "anything but
-     * 0x2D/0x4F" rule, though: `decoder.test.ts`'s own "0x4E after a
-     * boolean operator stays attached to that operator" fixture proves
-     * `True Or /* Save or Reset *\/\nFalse` keeps its newline before
-     * `False` even though `False` is neither 0x2D nor 0x4F -- a blanket
-     * version of this rule regressed that fixture directly. Scoped to
-     * only the specific next-tokens corpus evidence supports: 0x18/0x1E
-     * (And/Or, continuing the SAME boolean expression the comment
-     * interrupted) and 0x14 (a closing paren completing that same
-     * expression).
+     * An inline comment takes over the line ending of the token it
+     * follows: the line ends after the comment exactly when that token
+     * would have ended it (its NEWLINE_AFTER -- `;`, Then, Else, And, Or,
+     * When-Other ...), and otherwise the code goes on on the comment's
+     * line (`If /* c *\/&x = 1 Then`, `f(&a, /* c *\/&b)`, `"X" /* c *\/
+     * And`, `/* c *\/)`). `True Or /* Save or Reset *\/\nFalse` breaks
+     * because Or does.
+     *
+     * Cycle 126 (`cycle126-inline-comment-census.ts`, LOCAL SNAPSHOT):
+     * the next token does not decide it -- an operand after the comment
+     * starts a new line in every EXACT site after `;` (2,765), Then (956),
+     * Else (157), Or (44), And (36), When-Other (21), and continues the
+     * line after If (19 / 0: 2775, 7177, 19510, 28912 ...), `,` (22 / 0),
+     * `]` (21 / 0), `|` (7 / 0). This replaces a next-token list (And /
+     * Or / `)` / Then, through 0x41 / 0x42; 1406, 1411, 1417) that renders
+     * identically on all 30,209 programs. A run of inline comments shares
+     * the line of the token before the first.
      */
-    const tokenAfterNext = tokens[tokenIndex + 2];
+    let lineOwner = tokenIndex - 1;
+    while (lineOwner >= 0 && tokens[lineOwner].opcode === 0x4e) lineOwner--;
     const commentInlineContinuesToNextToken =
-      commentInlineAfterStatement &&
-      (
-        nextToken?.opcode === 0x18 ||
-        nextToken?.opcode === 0x1e ||
-        nextToken?.opcode === 0x14 ||
-        // 0x1f (Then) directly follows an inline comment with no
-        // intermediate marker at all -- confirmed on definition 1406's
-        // own tokens (`"GPSC_BANK_ACC_FL" /*FLUID*/ Then`).
-        nextToken?.opcode === 0x1f ||
-        // 0x41/0x42 are documented elsewhere in this file as zero-width
-        // markers (render no text) that sit immediately before And/Or
-        // (0x41) or a closing paren/Then (0x42) -- confirmed on
-        // definitions 1411 (comment, 0x41, And), 1406 (comment, 0x42,
-        // closing paren), and 1417 (comment, 0x42, Then) -- so this
-        // comment's own next-token check must see past whichever one
-        // intervenes.
-        (nextToken?.opcode === 0x41 && (tokenAfterNext?.opcode === 0x18 || tokenAfterNext?.opcode === 0x1e)) ||
-        (nextToken?.opcode === 0x42 && (tokenAfterNext?.opcode === 0x14 || tokenAfterNext?.opcode === 0x1f))
-      );
+      commentInlineAfterStatement && lineOwner >= 0 && !(tokens[lineOwner].format & F.NEWLINE_AFTER);
 
     if (f & F.NEWLINE_AFTER) {
       if (

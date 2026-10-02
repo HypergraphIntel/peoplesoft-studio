@@ -1051,6 +1051,36 @@ test('0x4E after a boolean operator stays attached to that operator', () => {
   assert.equal(result.text, 'True Or /* Save or Reset */\nFalse');
 });
 
+/*
+ * Cycle 126: an inline comment takes over the line ending of the token it
+ * follows -- after If or `,` (no line ending of their own) the code goes on
+ * on the comment's line, an operand tight against `*\/`, a keyword spaced;
+ * after `;` (or Or, above) the next statement starts a new line.
+ */
+function inlineCommentBytes(text: string): number[] {
+  const body = utf16(text);
+  return [0x4e, body.length & 0xff, body.length >> 8, ...body];
+}
+
+for (const [label, bytes, expected] of [
+  // 7177: `If /*&nChildCount > 0 And*/&nodeType = "C" Then`
+  ['an If condition starting with a variable (7177)', [0x1c, ...inlineCommentBytes('/* c */'), 0x01, ...utf16('&x'), 0x00, 0x00, 0x06, 0x16, ...utf16('C'), 0x00, 0x00, 0x1f, 0x1a, 0x15], 'If /* c */&x = "C" Then\nEnd-If;\n'],
+  // 28912: `If /* INSTALLATION.EONC_INSTALLED */%This.EONC_INSTALLED <> "Y" Then`
+  ['an If condition starting with a system variable (28912)', [0x1c, ...inlineCommentBytes('/* c */'), 0x12, ...utf16('%This'), 0x00, 0x00, 0x1f, 0x1a, 0x15], 'If /* c */%This Then\nEnd-If;\n'],
+  // 19510: `If /* Not (IsNotifyEnabled()) Or ... */ Not (&PNAuthorized) Then`
+  ['an If condition starting with Not (19510)', [0x1c, ...inlineCommentBytes('/* c */'), 0x1d, 0x0b, 0x01, ...utf16('&b'), 0x00, 0x00, 0x14, 0x1f, 0x1a, 0x15], 'If /* c */ Not (&b) Then\nEnd-If;\n'],
+  // 7285: `..., /*&COUNT*/GPFR_GAR_DAT.GPFR_INSTANCE, ...`
+  ['an argument after a comma (7285)', [0x01, ...utf16('&a'), 0x00, 0x00, 0x06, 0x0a, ...utf16('f'), 0x00, 0x00, 0x0b, 0x01, ...utf16('&b'), 0x00, 0x00, 0x03, ...inlineCommentBytes('/* c */'), 0x01, ...utf16('&d'), 0x00, 0x00, 0x14, 0x15], '&a = f(&b, /* c */&d);\n'],
+  // the line ends after a statement's trailing comment (2,765 EXACT sites)
+  ['the next statement after `;`', [0x01, ...utf16('&a'), 0x00, 0x00, 0x06, 0x16, ...utf16('1'), 0x00, 0x00, 0x15, ...inlineCommentBytes('/* c */'), 0x01, ...utf16('&b'), 0x00, 0x00, 0x06, 0x16, ...utf16('2'), 0x00, 0x00, 0x15], '&a = "1"; /* c */\n&b = "2";\n']
+] as const) {
+  test(`an inline comment before ${label} keeps the source line`, () => {
+    const result = decodeProgram(Buffer.from([...HEADER, ...bytes]), new NameTable());
+    assert.equal(result.unknownOpcodes.length, 0);
+    assert.equal(result.text, expected);
+  });
+}
+
 test('0x4E after a REM payload stays attached to that REM statement', () => {
   const rem = utf16('REM &value = 0;');
   const comment = utf16('/* disabled */');
