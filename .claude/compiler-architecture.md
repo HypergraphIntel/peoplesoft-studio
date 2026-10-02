@@ -9,7 +9,8 @@ Corpus at Cycle 123 HEAD: TOTAL 30,209 / EXACT 29,656 / NONEXACT 553 (Cycle 124:
 EXACT 29,681 / NONEXACT 528; Cycle 125: EXACT 29,707 / NONEXACT 502; Cycle 126:
 EXACT 29,715 / NONEXACT 494; Cycle 127: EXACT 29,718 / NONEXACT 491; Cycle 128:
 EXACT 29,719 / NONEXACT 490; Cycle 129: EXACT 29,720 / NONEXACT 489; Cycle 130:
-EXACT 29,721 / NONEXACT 488 -- all decoder only); forward-exact
+EXACT 29,721 / NONEXACT 488 -- all decoder only; Cycle 131 encoder: EXACT
+29,754 / NONEXACT 455, forward-exact 29,754); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -201,8 +202,11 @@ reference-gated deferred markers `pendingReferenceGroupBoundaries`), If
 And / Or operands (1 each), App Class wrapper layout (`emitMarkers`,
 `emitCompilationUnitPrefix`, layout comments). Shared helpers:
 `emitBlankLineMarkers`, `deferReferenceGatedMarkers`, `emitBoundary`,
-`captureTrailingTrivia`. Cycle 113 / 115 / 119 rules live inside these
-loops. Decoder: format flags + contextual rules (e.g. Cycle 120 `15 4E 15`
+`captureTrailingTrivia`, `blankLinesAfterStandaloneComment` (Cycle 131:
+the blank lines after a standalone 0x24 comment are 0x4F markers wherever
+the comment sits -- For body first item, Evaluate selector gap, boolean
+operand, after an If / Else statement with no `;`). Cycle 113 / 115 / 119
+rules live inside these loops. Decoder: format flags + contextual rules (e.g. Cycle 120 `15 4E 15`
 -> `; /* c */;`).
 
 ## 10. Decoder boundary
