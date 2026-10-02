@@ -2104,10 +2104,22 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
      * line -- the opposite of every other case this generalization
      * covers.
      */
+    /*
+     * Cycle 120: a 0x4E after a statement's own `;` and before another
+     * `;` (an empty statement, Cycle 114) is inline after the first `;`:
+     * `instance ... &m_oBenPlanOpt; /* ... *\/;` (28975) stores `15 4E 15`.
+     * Unlike definition 55's `0 4E 15` (comment before the statement's own
+     * semicolon), the preceding token is itself a `;`.
+     */
+    const commentBetweenSemicolons =
+      t.kind === TokenKind.Comment &&
+      t.opcode === 0x4e &&
+      nextToken?.opcode === 0x15 &&
+      tokens[tokenIndex - 1]?.opcode === 0x15;
     const commentInlineAfterStatement =
       t.kind === TokenKind.Comment &&
       t.opcode === 0x4e &&
-      nextToken?.opcode !== 0x15 &&
+      (nextToken?.opcode !== 0x15 || commentBetweenSemicolons) &&
       effectivePrecedingToken !== undefined &&
       effectivePrecedingToken.kind !== TokenKind.Header;
 
@@ -2423,7 +2435,9 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
     const inlineHeaderCommentBeforeSemicolon =
       t.opcode === 0x4e &&
       nextToken?.opcode === 0x15 &&
-      /^(?:Then|Else)$/.test(tokens[tokenIndex - 1]?.text ?? '');
+      (/^(?:Then|Else)$/.test(tokens[tokenIndex - 1]?.text ?? '') ||
+        // Cycle 120: `; /* c */;` -- the empty statement's `;` stays on the comment's line
+        tokens[tokenIndex - 1]?.opcode === 0x15);
 
     /*
      * Cycle 80: only suppress this inline comment's OWN NEWLINE_AFTER when
