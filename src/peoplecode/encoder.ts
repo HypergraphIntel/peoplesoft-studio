@@ -699,6 +699,14 @@ interface EncodeFragmentContext extends EncodeProgramContext {
    */
   applicationClassDeclaredVariables?: ReadonlyMap<string, { packagePath: readonly string[]; className: string; depth: number }>;
   /**
+   * Cycle 120: the Application Class program's variables declared outside
+   * the method body with a built-in object type -- header `instance` /
+   * `property` (`&<name>`) and top-level `Global` / `Component`
+   * declarations: lowercased `&name` -> the type as written. A body
+   * applies only the evidenced types (Record).
+   */
+  applicationClassDeclaredBuiltinVariables?: ReadonlyMap<string, string>;
+  /**
    * Cycle 82: the compilation unit's own self-class PACKAGE row. Present
    * only for Application Class programs. See
    * `ApplicationClassSelfMethodDependency`'s own comment.
@@ -3994,7 +4002,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * for every caller except an Application Class method-body fragment, so
    * this is a no-op everywhere else.
    */
+  /*
+   * Cycle 120: a Record declared outside the body (header `instance` /
+   * `property`, top-level `Global` / `Component`) is a Record variable in
+   * every body, exactly like a body `Local Record` (its bare member is a
+   * FIELD row). Its declaration rows were written where it was declared,
+   * so nothing is allocated here. A parameter of the same name shadows it.
+   * `cycle120-record-variable-field-census.ts`: bare members of instance
+   * (1,638), property (200), Global (45) and Component (78) Record
+   * variables all have a stored FIELD row of that name.
+   */
+  for (const [name, type] of context?.applicationClassDeclaredBuiltinVariables ?? []) {
+    if (/^Record$/i.test(type.trim())) recordVariables.add(name);
+  }
   for (const parameter of context?.methodParameters ?? []) {
+    const name = `&${parameter.name.replace(/^&/, '')}`.toLowerCase();
+    if (context?.applicationClassDeclaredBuiltinVariables?.has(name) && !/^Record$/i.test(parameter.type.trim())) recordVariables.delete(name);
     registerTypedParameter(parameter.name, parameter.type);
   }
   /*
@@ -6485,6 +6508,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       for (const name of localNames?.[1].split(',') ?? []) {
         applicationClassArrayVariables.delete(name.trim().toLowerCase());
         applicationClassVariables.delete(name.trim().toLowerCase());
+        // Cycle 120: and a Record declared outside the body (a Local Record re-adds it)
+        if (context?.applicationClassDeclaredBuiltinVariables?.has(name.trim().toLowerCase())) recordVariables.delete(name.trim().toLowerCase());
       }
     }
     if (unitScopedClassRows || applicationClassBody) {
@@ -14611,8 +14636,11 @@ function encodeApplicationClassProgramV2(
   // See `EncodeFragmentContext.applicationClassOwnPropertyTypes` / `.applicationClassDeclaredVariables`.
   const applicationClassOwnPropertyTypes = new Map<string, { packagePath: string[]; className: string; depth: number }>();
   const programDeclaredVariables = new Map<string, { packagePath: string[]; className: string; depth: number }>();
+  const declaredBuiltinVariables = new Map<string, string>();
   const declareOwnPropertyType = (name: string, type: string): void => {
     const declared = declaredApplicationClass(type);
+    // Cycle 120: a built-in object type (`instance Record &m_rcXLATITEM;`)
+    if (declared === undefined && isBuiltinObjectTypeName(type.trim())) declaredBuiltinVariables.set(`&${name.replace(/^&/, '').toLowerCase()}`, type.trim());
     if (declared === undefined) return;
     applicationClassOwnPropertyTypes.set(name.replace(/^&/, '').toLowerCase(), declared);
     programDeclaredVariables.set(`&${name.replace(/^&/, '').toLowerCase()}`, declared);
@@ -14632,6 +14660,9 @@ function encodeApplicationClassProgramV2(
     const declared = declaredApplicationClass(match[1]);
     if (declared !== undefined) {
       for (const name of match[2].split(',')) programDeclaredVariables.set(name.trim().toLowerCase(), declared);
+    } else if (isBuiltinObjectTypeName(match[1].trim())) {
+      // Cycle 120: `Global Record &GBL_rec_share;` (29617)
+      for (const name of match[2].split(',')) declaredBuiltinVariables.set(name.trim().toLowerCase(), match[1].trim());
     }
   }
   const bodyDeclaredVariables = (methodParameters?: { name: string; type: string }[]) => {
@@ -14731,6 +14762,7 @@ function encodeApplicationClassProgramV2(
       applicationClassSelfPath: selfPath,
       applicationClassOwnPropertyTypes,
       applicationClassDeclaredVariables: declaredVariables,
+      applicationClassDeclaredBuiltinVariables: declaredBuiltinVariables,
       applicationClassSelfMethodDependency,
       // Inherited `%This` calls can allocate environment-derived method
       // rows. Freeze that unsupported population on its prior fragment-owner
