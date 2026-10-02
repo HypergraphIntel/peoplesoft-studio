@@ -1437,7 +1437,7 @@ test('parameterTypes is undefined when the slot table is missing or malformed, n
     [{ name: 'Foo', paramCount: 1, hasReturnValue: false, returnType: undefined, parameterTypes: undefined }]);
 });
 
-test('0x6e is Continue, gated on the next byte being a real ; -- reopened after pass twenty rejected it', () => {
+test('0x6e is Continue, with its own ; -- reopened after pass twenty rejected it', () => {
   // Pass twenty's rejection (9/660) was a raw, unfiltered count that
   // included every corruption-noise occurrence of this byte value. Gating
   // on the next byte being 0x15 (an already-recognised ";" token) filters
@@ -1453,9 +1453,14 @@ test('0x6e is Continue, gated on the next byte being a real ; -- reopened after 
   assert.equal(result.text, 'Then\n  Continue;\nEnd-If');
 });
 
-test('0x6e stays unmapped when not immediately followed by ;, unlike the real Continue shape', () => {
-  const result = decodeProgram(Buffer.from([...HEADER, 0x1f, 0x6e, 0x1a]), new NameTable());
-  assert.equal(result.unknownOpcodes.some((u) => u.opcode === 0x6e), true);
+test('0x6e is Continue whatever follows -- `Then Continue End-If;` (16759)', () => {
+  // Cycle 128: the next-byte gate above was too narrow. Every 0x6E at an
+  // opcode position is a source `Continue`; PSPT_COPY_JS.PT_COPY_JS_FROM
+  // (16759) stores `Then\n   Continue\nEnd-If;` (no `;` after Continue)
+  // as 1F 6E 1A 15.
+  const result = decodeProgram(Buffer.from([...HEADER, 0x1f, 0x6e, 0x1a, 0x15]), new NameTable());
+  assert.equal(result.unknownOpcodes.length, 0);
+  assert.equal(result.text, 'Then\n  Continue\nEnd-If;\n');
 });
 
 test('the trailer is still found when a trailing comment separates the last newline from it', () => {

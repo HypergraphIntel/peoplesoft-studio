@@ -96,8 +96,8 @@ export interface Token {
 
 // Every other keyword PeopleCodeParser.java maps -- Error, Warning,
 // Repeat, Until, Step, Declare, Library,
-// Value, PeopleCode, Ref, Exit, Continue (0x6e -- tried, rejected, see
-// above),
+// Value, PeopleCode, Ref, Exit, Continue (0x6e -- decoded in the
+// tokenizer, not this table; see Cycle 128 there),
 // set, Null, PanelGroup, readonly, Doc, Component, Constant, and the whole
 // Application Class vocabulary (class/end-class/extends/out/property/
 // private/instance/method/end-method/try/catch/end-try/throw/end-get/
@@ -1429,7 +1429,15 @@ export function decodeProgram(
     // it that says so in English: `/* ... do not output anything,
     // continue to next app package */`. See docs/ROADMAP.md pass
     // thirty-one.
-    if (opcode === 0x6e && bytes[i] === 0x15) {
+    //
+    // Cycle 128: the gate was too narrow. At an opcode position 0x6E is
+    // always `Continue` (`cycle128-continue-census.ts`, LOCAL SNAPSHOT:
+    // 313 in 96 programs, each paired with a source `Continue`, 0
+    // mismatches); the 0x15 after it is the source's own `;` (312 / 312
+    // `Continue;`), not part of the keyword. 16759 stores `Then Continue
+    // End-If;` as `1F 6E 1A 15` -- no `;` -- like Break / Exit before
+    // When / End-If, which decode unconditionally.
+    if (opcode === 0x6e) {
       tokens.push({ kind: TokenKind.Keyword, text: 'Continue', offset, opcode, format: F.SPACE_BEFORE });
       continue;
     }
