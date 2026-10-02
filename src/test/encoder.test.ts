@@ -5212,7 +5212,11 @@ test('Application Class declarations preserve repeated explicit semicolons', () 
   ])), true);
 });
 
-test('Application Class repeated-semicolon controls retain the independent layout residual', () => {
+test('Application Class blank lines after repeated semicolons before end-class are markers (28974)', () => {
+  // Cycle 28 pinned the missing 0x4F here as an independent residual;
+  // Cycle 133 counts a layout gap's blank lines after the terminators it
+  // writes, and the corpus stores them: 28974 `instance number ...;` <blank>
+  // `end-class;` is `15 4F 5B`.
   const actual = appClassStatements(`class Demo
 instance Row &row; /* inline */;
 
@@ -5220,10 +5224,9 @@ instance Row &row; /* inline */;
 end-class;`);
   const expected = Buffer.concat([
     appClassText(0x01, '&row'), Buffer.from([0x15]),
-    appClassComment(0x4e, '/* inline */'), Buffer.from([0x15, 0x5b])
+    appClassComment(0x4e, '/* inline */'), Buffer.from([0x15, 0x4f, 0x4f, 0x5b])
   ]);
   assert.equal(actual.includes(expected), true);
-  assert.equal(actual.includes(Buffer.concat([expected.subarray(0, -1), Buffer.from([0x4f, 0x5b])])), false);
 });
 
 
