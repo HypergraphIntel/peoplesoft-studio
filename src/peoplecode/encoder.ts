@@ -9876,7 +9876,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     baseVariableName: string | undefined,
     directLevel0RecordFieldKey: string | undefined,
     fieldMemberFromGetRecord: boolean,
-    reference: PeopleCodeReference
+    reference: PeopleCodeReference,
+    receiverIsDeclaredRecord = false
   ): void => {
     if (
       dependencyKind === 'record' &&
@@ -9924,7 +9925,15 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       (
         explicitRecordRootName !== undefined ||
         baseVariableName !== undefined ||
-        fieldMemberFromGetRecord
+        fieldMemberFromGetRecord ||
+        /*
+         * Cycle 118: a declared Record value with no variable of its own
+         * (a Record-typed property, `%This.ObjectRecord`) registers its
+         * FIELD rows in the same scope, so a later use of the field reuses
+         * the row (29954: one APPROVEOPRID row for its repeated
+         * `%This.<rec>.APPROVEOPRID`).
+         */
+        receiverIsDeclaredRecord
       )
     ) {
       fieldDependencyScope.recordField(member, reference);
@@ -10728,6 +10737,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * no new allocation path, no new dedup logic.
          */
         let resolvedInheritedPropertyThisStep = false;
+        /*
+         * Cycle 118: the built-in type (`{ kind: 'other' }`) the
+         * type-metadata provider declares for this property step, if any --
+         * applied below, after the generic property-step reset.
+         */
+        let metadataBuiltinType: string | undefined;
         if (pendingSuperPropertyResolution) {
           pendingSuperPropertyResolution = false;
 
@@ -10767,6 +10782,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
               // Cycle 109: an array property: its element, once indexed
               pendingArrayElement = arrayElementOf(propertyType);
               resolvedInheritedPropertyThisStep = true;
+            } else if (propertyType?.kind === 'other') {
+              metadataBuiltinType = propertyType.type;
             }
           }
         }
@@ -10798,6 +10815,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             } else if (propertyType?.kind === 'class') {
               activeApplicationClassReceiver = metadataReceiver(propertyType.path);
               resolvedInheritedPropertyThisStep = true;
+            } else if (propertyType?.kind === 'other') {
+              metadataBuiltinType = propertyType.type;
             }
           }
         }
@@ -11020,7 +11039,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             baseVariableName,
             directLevel0RecordFieldKey,
             fieldMemberFromGetRecord,
-            reference
+            reference,
+            chainSemantics.valueType === 'record' && chainSemantics.provenance === 'declared'
           );
 
           // This 0x4A path writes its own operand bytes directly instead of
@@ -11449,6 +11469,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
                 [...activeApplicationClassReceiver.packagePath, activeApplicationClassReceiver.className],
                 member
               );
+            if (propertyType?.kind === 'other') metadataBuiltinType = propertyType.type;
             if (propertyType?.kind === 'class') {
               activeApplicationClassReceiver = metadataReceiver(propertyType.path);
             } else if (propertyType?.kind === 'array') {
@@ -11530,6 +11551,30 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           if (/^ParentRow$/i.test(member) && !isMethodCall) {
             expectedReferenceMember = 'record';
             chainSemantics = { valueType: 'row', binding: 'dependency-bound', provenance: 'navigation' };
+          }
+
+          /*
+           * Cycle 118: a property the type-metadata provider declares
+           * `Record` (`property Record ObjectRecord;`, own or inherited, on
+           * `%This`, `%Super` or a typed receiver) is a declared Record
+           * value, exactly like a `Local Record &r` base: its next bare
+           * member is a FIELD row (`Return %This.ObjectRecord.CAF_FCTLST_ID
+           * .Value`, 29128), its intrinsic properties (`.FieldCount`,
+           * `.Name`) stay inline, and the FIELD then reaches `.Value` as
+           * any Field does. No PACKAGE row: the type is built-in.
+           * `cycle118-builtin-metadata-receiver-census.ts`: 545 members
+           * after a Record-typed property / method result, 503 with a
+           * stored FIELD row of that name (the rest FieldCount 15,
+           * GetField 12, Name 11 and 4 others), none with a RECORD row.
+           * Only Record: after Row (43), Rowset (66) and Field (23) results
+           * no member stores a FIELD row, and Row's 5 RECORD rows do not
+           * yet settle a rule. Method results are not typed here: the only
+           * Record-returning calls followed by a field (44) are in one
+           * unencodable program (29391).
+           */
+          if (metadataBuiltinType !== undefined && /^Record$/i.test(metadataBuiltinType.trim()) && !isMethodCall) {
+            expectedReferenceMember = 'field';
+            chainSemantics = { valueType: 'record', binding: 'dependency-bound', provenance: 'declared' };
           }
         }
 
