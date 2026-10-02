@@ -1,17 +1,13 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 123)
+## Current status (2026-10-02, Cycle 124)
 
-- **Current target:** Cycle 123 -- research / rebaseline (no semantic
-  change): current architecture in `.claude/compiler-architecture.md`
-  (code-verified; supersedes chronological notes where they disagree),
-  all 553 NONEXACT reclassified from fresh evidence. EXACT 29,656 /
-  NONEXACT 553, forward-exact 29,721, protected 430/430, fallback 70
-  (13525 in, EXACT), ROUNDTRIP_ONLY 0 -- reproduced; research changes
-  proven semantic-neutral (0 bytes / 0 reference lists changed). See
-  "Compiler Research Cycle 123".
-- **Last successful calibration:** Cycle 122 (Component / Returns array
-  built-in rows).
+- **Current target:** Cycle 124 -- decoder: opcode 0x51 is the
+  `PanelGroup` keyword. EXACT 29,656 -> 29,681 (+25), protected PASS, 0
+  EXACT -> non-EXACT, forward encode unchanged (0 bytes / 0 reference
+  lists), DECODER_BARE_IDENTIFIER 28 -> 0, ROUNDTRIP_ONLY 0, fallback 70
+  (13525 in, EXACT). See "Compiler Decoder Cycle 124".
+- **Last successful calibration:** Cycle 124 (decoder 0x51 = PanelGroup).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -27,20 +23,19 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 124):** decoder -- render opcode 0x51 as
-  `PanelGroup` unconditionally. 167 / 167 programs with a stored 0x51 have
-  exactly as many source PanelGroup declarations; the decoder renders it
-  only before number / string / boolean. Population: DECODER_BARE_IDENTIFIER
-  28 (26 forward-exact -> EXACT; 4432, 14312 also need encoder work).
-  Controls: every EXACT program with 0x51 (primitive-type PanelGroup)
-  must stay; the roundtrip re-encode of `PanelGroup <type>` must give 0x51
-  (Cycle 121's encoder typing); the decoder test "0x51 is Local's own
-  zero-width sibling" asserts the stale assumption (its cited program,
-  850 AE_WRK.AE_BIND_VALUE.FieldEdit, declares `PanelGroup Field
-  &MYFLD;`). Do NOT combine with the empty-statement decoder families (27
-  forward-exact), the comment-then-code family (7), the encoder 0x4F
-  family (34) or the source-encoding artefacts (65).
-- **Newly established rules this session:** Cycle 122: an ordinary
+- **Next action (Cycle 125):** decoder -- empty-statement rendering, the
+  largest remaining decoder-only family: 27 forward-exact programs fail
+  only because an empty statement (`;`, Cycle 114) is rendered on its own
+  line -- after a standalone comment (`/* c */;`, 13: 2807, 14615, 19344,
+  21579, 23465 ...), after a keyword (`Else;`, `try;`, `When x;`, 8:
+  7177, 9136, 20947, 24226, 29722 ...), after a statement (`X;;`, 6: 5061,
+  11117, 18321, 28911, 29123, 29183). Start with one shape, prove with
+  controls (every EXACT program with a 0x15 directly after a comment /
+  keyword / 0x15). Do NOT combine with the comment-followed-by-code family
+  (7), spacing `[&I](&J)` (3), decoder failures (3), the source-encoding
+  artefacts (65+) or any encoder family.
+- **Newly established rules this session:** Cycle 124 (decoder): 0x51 is
+  always `PanelGroup` (402 / 402); Cycle 122: an ordinary
   program's Application Class row is identified by its leaf class name
   within an allocation unit (a same-leaf named import opens none); a
   conditional-compilation block ends the ordinary leading unit (one
@@ -157,6 +152,50 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Decoder Cycle 124 -- opcode 0x51 is PanelGroup
+
+**Baseline reproduced fresh at `b48ffec`:** 29,656 / 553, forward-exact
+29,721, protected 430/430, taxonomy row-identical, DECODER_BARE_IDENTIFIER
+28 (849 850 959 1105 1106 3617 3618 4432 4434 4617 6350 6351 6448 8114
+8115 13645 14312 14313 14314 14317 14325 18278 18279 22092 22106 23134
+23360 25475), fallback 70 (13525 in), ROUNDTRIP_ONLY 0. **Result:** EXACT
+**29,656 -> 29,681 (+25)**, 0 EXACT -> non-EXACT, forward encode unchanged
+(0 program bytes / 0 reference lists across 30,209), protected 430/430,
+ROUNDTRIP_ONLY 0. LOCAL SNAPSHOT only. Commits: b81e83c (census),
+a968156 (decoder).
+
+Census (`cycle124-panelgroup-occurrence-census.ts`): 402 occurrences of
+0x51 in 167 ordinary programs; per program the 0x51 count equals the
+source PanelGroup declarations; the next token is the declared type in
+402 / 402 (boolean 108, string 104, number 80, Record 59, Rowset 33,
+array 6, XmlDoc 5, Message 4, Field 2, Row 1; 0x40 keyword type 298, 0x0A
+name 104); the previous token is a statement boundary. 0 counterexamples.
+
+Root cause: `format.ts` mapped 0x51 to an empty punctuation token and a
+decoder special case promoted it to `PanelGroup` only before number /
+string / boolean -- the old reading of 0x51 as a zero-width marker of a
+scope-less `Field &MYFLD;` (a misread of 850, which declares `PanelGroup
+Field &MYFLD;`). The decoded `Field &MYFLD;` is not valid PeopleCode, so
+the roundtrip re-encode failed ("bare identifiers"). Fix: 0x51 is the
+PanelGroup keyword (format SPACE_AFTER, the calibrated primitive form);
+the special case is removed. Stale decoder test rewritten from 850; new
+tests for Record (4434), Rowset (8115), Row (6448), Message (959).
+
+Controls: all 133 EXACT programs containing 0x51 still roundtrip; 27
+more roundtrip now. The 28: 25 EXACT; 4432 -> DECODE_SOURCE_MISMATCH (a
+source-encoding artefact: `isn¿t` in a comment), 13645 ->
+DECODE_SOURCE_MISMATCH (`[&I](&J)` rendered `[&I] (&J)` -- a separate
+spacing gap), 14312 -> COMPLETE_DOWNSTREAM (a stored 0x4F after a comment
+run, the encoder newline family).
+
+Rerank: forward-exact but not EXACT 65 -> 40 (empty statement after a
+comment 13, after a keyword 8, after a statement 6, comment followed by
+code 7, decoder failures 3, spacing 3). Categories: DSM 116,
+COMPLETE_DOWNSTREAM 90, ACTIVE_PACKAGE 70, ENCODE_ERROR 69,
+ACTIVE_RECORD_FIELD 38, UNSUPPORTED_SYNTAX 30, ACTIVE_RECORD 29,
+ACTIVE_FIELD 26, ACTIVE_OTHER 20, STRUCTURAL_ORDERING 18, ACTIVE_SCROLL 13,
+QUOTED_COMPONENT 8, ACTIVE_DECLARE_FUNCTION 1 (NONEXACT 528).
 
 ## Compiler Research Cycle 123 -- current architecture and exactness frontier
 

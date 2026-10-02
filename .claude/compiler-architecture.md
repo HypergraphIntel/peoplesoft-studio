@@ -5,7 +5,8 @@ against the code and the LOCAL SNAPSHOT corpus. It supersedes the
 chronological notes in `corpus-progress.md` where they disagree (see
 "Stale assumptions"). Code is authority; line numbers are approximate.
 
-Corpus at HEAD: TOTAL 30,209 / EXACT 29,656 / NONEXACT 553; forward-exact
+Corpus at Cycle 123 HEAD: TOTAL 30,209 / EXACT 29,656 / NONEXACT 553 (Cycle 124:
+EXACT 29,681 / NONEXACT 528 -- decoder only); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -203,12 +204,12 @@ loops. Decoder: format flags + contextual rules (e.g. Cycle 120 `15 4E 15`
 
 ## 10. Decoder boundary
 
-The decoder renders 0x51 as `PanelGroup` only before `number` / `string` /
-`boolean`; otherwise as nothing -- but 0x51 is always `PanelGroup`
-(167 / 167 programs, `cycle123-panelgroup-opcode-census.ts`). Empty
-statements after a statement / comment / keyword, a comment followed by
-code on its line, and spacing (`[&I] (1)`) are further rendering gaps; 5
-programs fail to decode fully.
+0x51 is always the `PanelGroup` keyword (Cycle 124; 402 / 402 occurrences,
+`cycle124-panelgroup-occurrence-census.ts`). Remaining rendering gaps
+(forward-exact programs that fail only on decoded source, 40): empty
+statement after a comment (13), after a keyword (8), after a statement
+(6), a comment followed by code on its line (7), decoder failures (3),
+spacing of an index followed by a call `[&I](&J)` (3).
 
 ## 11. Taxonomy semantics (`cycle73-nonexact-taxonomy.ts`)
 
@@ -236,7 +237,7 @@ the first divergence, the stored kind varies), not mechanisms.
 ## 13. Stale assumptions (corrected by Cycle 123)
 
 - "0x51 is a zero-width marker before introducer-less object types" --
-  wrong: always PanelGroup.
+  wrong: always PanelGroup (decoder fixed in Cycle 124).
 - "The 47 missing-0x4F COMPLETE_DOWNSTREAM programs are one family" --
   the stored-0x4F divergences are 44 + 1 hidden: 34 after a standalone
   comment / disabled-code run, 5 before Constant / instance / method, 4

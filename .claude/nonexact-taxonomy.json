@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-02T14:37:38.013Z",
+ "generatedAt": "2026-10-02T16:23:19.805Z",
  "totalDefinitions": 30209,
- "exactCount": 29656,
- "nonexactCount": 553,
+ "exactCount": 29681,
+ "nonexactCount": 528,
  "rows": [
   {
    "definitionId": 522,
@@ -25,36 +25,6 @@
    "primaryCategory": "ENCODE_ERROR"
   },
   {
-   "definitionId": 849,
-   "displayName": "1=AE_WRK, 2=AE_BIND_VALUE, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 6: bare identifiers are only supported as calls",
-   "construct": "&MYFLD;\n\nIf &MYF",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
-   "definitionId": 850,
-   "displayName": "1=AE_WRK, 2=AE_BIND_VALUE, 12=FieldEdit, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 27: bare identifiers are only supported as calls",
-   "construct": "&MYFLD;\nLocal Fi",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
-   "definitionId": 959,
-   "displayName": "1=AMM_DERIVED, 2=ARCHIVE_BTN, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 214: bare identifiers are only supported as calls",
-   "construct": "&Msg;\nMessage &M",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
    "definitionId": 1016,
    "displayName": "1=AMM_DERIVED, 2=REFRESH_BTN, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "UNSUPPORTED_SYNTAX",
@@ -63,26 +33,6 @@
    "errorMessage": "Unsupported function metadata type: time",
    "construct": "UNKNOWN",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 1105,
-   "displayName": "1=AMM_TREE_WS, 2=RECNAME, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 90: bare identifiers are only supported as calls",
-   "construct": "&Msg;\nPanelGroup",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
-   "definitionId": 1106,
-   "displayName": "1=AMM_TREE_WS, 2=TREE_LEVEL_NUM, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 315: bare identifiers are only supported as calls",
-   "construct": "&Msg;\nPanelGroup",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
   },
   {
    "definitionId": 1635,
@@ -240,26 +190,6 @@
    }
   },
   {
-   "definitionId": 3617,
-   "displayName": "1=DEPEND_FP_SBR, 2=FP_DEPEND_EMPLID, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 166: bare identifiers are only supported as calls",
-   "construct": "&DEPENDENT_BENEF",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
-   "definitionId": 3618,
-   "displayName": "1=DEPEND_FP_SBR, 2=FP_DEPEND_EMPLID, 12=RowInit, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 7: bare identifiers are only supported as calls",
-   "construct": "&DEPENDENT_BENEF",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
    "definitionId": 3767,
    "displayName": "1=DEPT_TBL, 2=DEPTID, 12=RowDelete, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -369,21 +299,9 @@
    "displayName": "1=DERIVED_COBRA, 2=COBRA_EVENT_DT, 12=SavePreChange, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
    "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 980: bare identifiers are only supported as calls",
-   "construct": "&REC_PERS;\nRecor",
+   "roundtripExact": true,
    "firstDiffOffset": 20754,
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
-   "definitionId": 4434,
-   "displayName": "1=DERIVED_COBRA, 2=FUNCLIB_FLD, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 728: bare identifiers are only supported as calls",
-   "construct": "&REC_CBR_DEP_BEN",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
+   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 4451,
@@ -402,16 +320,6 @@
    "roundtripExact": true,
    "firstDiffOffset": 526,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 4617,
-   "displayName": "1=DERIVED_ETEO, 2=YES_DELETE, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 174: bare identifiers are only supported as calls",
-   "construct": "&RSDelete;\nPanel",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
   },
   {
    "definitionId": 4666,
@@ -649,26 +557,6 @@
    "primaryCategory": "ENCODE_ERROR"
   },
   {
-   "definitionId": 6350,
-   "displayName": "1=DERIVED_HR_TC, 2=TC_DEPT_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 22: bare identifiers are only supported as calls",
-   "construct": "&treearr, &topno",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
-   "definitionId": 6351,
-   "displayName": "1=DERIVED_HR_TC, 2=TC_DEPT_BTN, 12=SavePostChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 6: bare identifiers are only supported as calls",
-   "construct": "&treearr, &topno",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
    "definitionId": 6438,
    "displayName": "1=DERIVED_HR_VC, 2=TREE_NAME, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "ENCODE_ERROR",
@@ -677,16 +565,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 218: expected an ASCII &variable",
    "construct": "of",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 6448,
-   "displayName": "1=DERIVED_HR_VC, 2=VC_MEM_DATA_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 4: bare identifiers are only supported as calls",
-   "construct": "&GRP_ROW;\n\nFunct",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
   },
   {
    "definitionId": 6493,
@@ -826,26 +704,6 @@
     "generatedCount": 7,
     "firstDivergenceKind": "scroll"
    }
-  },
-  {
-   "definitionId": 8114,
-   "displayName": "1=GPHK_PSLP_WRK, 2=GPHK_TRUSTEE_DATE, 12=RowInit, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 114: bare identifiers are only supported as calls",
-   "construct": "&Rs2;\nPanelGroup",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
-   "definitionId": 8115,
-   "displayName": "1=GPHK_PSLP_WRK, 2=SEQ_NUM, 12=RowInit, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 94: bare identifiers are only supported as calls",
-   "construct": "&RS2;\nPanelGroup",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
   },
   {
    "definitionId": 8457,
@@ -1289,10 +1147,8 @@
    "displayName": "1=PORTAL_HPWRK, 2=PORTAL_HP_DELBTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
    "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 7: bare identifiers are only supported as calls",
-   "construct": "&LeftRowset, &Ce",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
+   "roundtripExact": true,
+   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 13657,
@@ -1388,53 +1244,17 @@
   {
    "definitionId": 14312,
    "displayName": "1=PSACTIVITYGUIDE, 2=ACTIVITYNAME, 12=RowInit, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 96: bare identifiers are only supported as calls",
-   "construct": "&ACTIVITY_RS;\nRo",
    "firstDiffOffset": 5,
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
-   "definitionId": 14313,
-   "displayName": "1=PSACTIVITYGUIDE, 2=ACTIVITYNAME, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 7: bare identifiers are only supported as calls",
-   "construct": "&LOG_RS;\nPanelGr",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
-   "definitionId": 14314,
-   "displayName": "1=PSACTIVITYGUIDE, 2=CURRENT_STEP, 12=RowInit, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 94: bare identifiers are only supported as calls",
-   "construct": "&LOG_RS;\nPanelGr",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
-   "definitionId": 14317,
-   "displayName": "1=PSACTIVITYGUIDE, 2=STEP_1_URL, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 799: bare identifiers are only supported as calls",
-   "construct": "&STEP_RS;\n\n/* Lo",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
-   "definitionId": 14325,
-   "displayName": "1=PSACTIVITYGUIDE, 2=STEP_OFFSET_NEXT, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 376: bare identifiers are only supported as calls",
-   "construct": "&LOG_RS;\n\n\nFunct",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
+   "referenceComparison": {
+    "referenceExact": true,
+    "referenceSetExact": false,
+    "storedCount": 69,
+    "generatedCount": 69
+   }
   },
   {
    "definitionId": 14327,
@@ -2470,26 +2290,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 18278,
-   "displayName": "9=AMM_RAWXML2, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 7: bare identifiers are only supported as calls",
-   "construct": "&xmldoc2;\nPanelG",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
-   "definitionId": 18279,
-   "displayName": "9=AMM_RAWXML3, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 7: bare identifiers are only supported as calls",
-   "construct": "&xmldoc3;\nPanelG",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
    "definitionId": 18280,
    "displayName": "9=AMM_RAWXML4, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
    "classification": "ENCODE_ERROR",
@@ -2949,26 +2749,6 @@
    }
   },
   {
-   "definitionId": 22092,
-   "displayName": "10=GPNL_ABS_EVENT, 39=GBL, 12=PreBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 89: bare identifiers are only supported as calls",
-   "construct": "&RS0;\nComponent ",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
-   "definitionId": 22106,
-   "displayName": "10=GPNZ_ABS_EVENT1, 39=GBL, 12=PreBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 91: bare identifiers are only supported as calls",
-   "construct": "&RS0;\n\nComponent",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
    "definitionId": 22699,
    "displayName": "10=GPS_WFS_MAP, 39=GBL, 1=GPS_WFS_MAP_AGR, 12=SaveEdit, 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -3129,26 +2909,6 @@
     "generatedCount": 37,
     "firstDivergenceKind": "record-field"
    }
-  },
-  {
-   "definitionId": 23134,
-   "displayName": "10=GP_ABS_EVENT, 39=GBL, 12=PreBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 212: bare identifiers are only supported as calls",
-   "construct": "&RS0;\nComponent ",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
-  },
-  {
-   "definitionId": 23360,
-   "displayName": "10=GP_ABS_OVRD, 39=GBL, 12=PreBuild, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 7: bare identifiers are only supported as calls",
-   "construct": "&RS0;\n\n&RS0 = Ge",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
   },
   {
    "definitionId": 23402,
@@ -3543,16 +3303,6 @@
     "generatedCount": 58,
     "firstDivergenceKind": "package"
    }
-  },
-  {
-   "definitionId": 25475,
-   "displayName": "66=CBR_NONEE, 77=PERSON, 39=GBL, 20=default, 21=1900-01-01, 78=Step15A, 12=OnExecute",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": true,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1117: bare identifiers are only supported as calls",
-   "construct": "&REC_DISABLED;\n\n",
-   "primaryCategory": "DECODER_BARE_IDENTIFIER"
   },
   {
    "definitionId": 25484,
