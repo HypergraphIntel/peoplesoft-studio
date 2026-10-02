@@ -1,14 +1,14 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 130)
+## Current status (2026-10-02, Cycle 131)
 
-- **Current target:** Cycle 130 -- decoder: the body ends at the
-  header-declared trailer separator. EXACT 29,720 -> 29,721 (+1: 18105) =
-  forward-exact; the decoder-only frontier is empty. Protected PASS, 0
-  EXACT -> non-EXACT, forward encode unchanged (0 bytes / 0 reference
-  lists), ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See "Compiler
-  Decoder Cycle 130".
-- **Last successful calibration:** Cycle 130 (decoder trailer boundary).
+- **Current target:** Cycle 131 -- encoder: blank lines after a standalone
+  comment run are 0x4F markers wherever the comment sits. EXACT 29,721 ->
+  29,754 (+33) = forward-exact; COMPLETE_DOWNSTREAM 93 -> 60; protected
+  PASS, 0 EXACT -> non-EXACT, 0 reference lists changed, ROUNDTRIP_ONLY 0,
+  fallback 70 (13525 in, EXACT). See "Compiler Semantics Cycle 131".
+- **Last successful calibration:** Cycle 131 (encoder blank lines after
+  comment runs).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -24,19 +24,21 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 131):** encoder -- every remaining non-EXACT program
-  needs encoder (or reference) work. Largest single byte mechanism with
-  references already exact (COMPLETE_DOWNSTREAM 93): a stored 0x4F
-  (blank-line marker) after a standalone comment / disabled-code run that
-  the encoder does not write -- 26 ordinary (2809 2958 4429 4666 4928 5525
-  6493 6495 ...) + 8 App Class (28869 28927 29138 ...). Census every
-  stored 0x4F after a 0x24 / 0x55 run against source blank lines and the
-  encoder's layout rule (emitLayoutRange / comment runs) before changing
-  it; keep the App Class layout path separate. Other candidates: Function
-  signature trailer byte 02 vs 01 (9), try / catch grammar (19
-  ENCODE_ERROR), ACTIVE_PACKAGE (72). README.md has unrelated uncommitted
-  user edits -- never stage it.
-- **Newly established rules this session:** Cycle 130 (decoder): the body
+- **Next action (Cycle 132):** encoder -- the Function signature trailer byte
+  (stored 02 / generated 01), now the largest COMPLETE_DOWNSTREAM family:
+  10 ordinary programs whose tokens are identical and only one trailer
+  byte differs (2116 2158 5525 14691 15527 15627 15634 17573 17613 ...),
+  references exact. Census every trailer record's flag byte against the
+  Function signature (parameters / Returns / types) before changing the
+  metadata encoder. Others: App Class inline 0x4E where the encoder writes
+  0x15 (9), 0x4A reference operand vs inline name (5 App Class + 4
+  ordinary), `array` 0x40 (5), marker order 0x4F / 0x2D (4 + 2), 0x4F
+  before Constant / instance / method (3 + 2). README.md has unrelated
+  uncommitted user edits -- never stage it.
+- **Newly established rules this session:** Cycle 131 (encoder): the blank
+  lines after a standalone 0x24 comment are 0x4F markers in every position
+  (For first item, Evaluate selector gap, boolean operand, If / Else
+  statement without `;`); Cycle 130 (decoder): the body
   ends at the 0x07 separator at 36 + header[5] (header-declared length);
   Cycle 129 (decoder): a 0x48 row
   with a qualifier and a blank name renders `Qualifier.""`;
@@ -168,6 +170,61 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 131 -- blank lines after standalone comment runs
+
+**Baseline reproduced fresh at `b09de26`:** 29,721 / 488, forward-exact
+29,721 (decoder-only frontier 0), COMPLETE_DOWNSTREAM 93, protected
+430/430, taxonomy row-identical, fallback 70 (13525 in, EXACT),
+ROUNDTRIP_ONLY 0. **Result:** EXACT **29,721 -> 29,754 (+33)** =
+forward-exact (29,754); program bytes changed in exactly the 34 targets
+(all closer, 0 farther), 0 reference lists changed, 0 EXACT ->
+non-EXACT, no category moves, COMPLETE_DOWNSTREAM 93 -> 60, protected
+430/430, ROUNDTRIP_ONLY 0, fallback 70. LOCAL SNAPSHOT only. Commits:
+0df614e (census), 7ac9662 (encoder). README.md untouched, never staged.
+
+Census (`cycle131-comment-run-blank-census.ts`): every stored run of
+0x24 / 0x55 followed by 0x4F, by the token before the run. 34 targets
+(26 ordinary, 8 App Class; first divergence = the missing 0x4F, generated
+neither 0x4F nor 0x2D -- 9986 / 28161 / 14356, generated 0x2D, stay in the
+marker-order family). Source: comment run, blank line(s), code; stored one
+0x4F per blank line (13828 / 13920 / 14312 / 17527 / 28927 two). By
+position and encoder path:
+
+- first item of a For body (21: 4928 5525 13828 13920 14312 14899 14927
+  15318 21069 21504 21668 21703 28461 + App Class 28869 28927 29138 29361
+  29915 29917 30145 30160): `firstForBodyItem` (guards the header gap
+  `hadBlankLineAfterForHeader` already counted) was cleared only by a
+  statement / `;`, so the gap after a leading comment / REM / `<* *>` was
+  dropped. Fix: a comment item clears it.
+- Evaluate selector -> comment -> blank -> first When (5: 6493 6495 6501
+  6503 17527): the selector-gap loop emitted the comments and no marker.
+  Source / stored pairing: 7 / 7 such gaps store `C M` (one per blank); no
+  corpus gap has a blank line directly after the selector.
+- comment leading a boolean operand after And / Or (6: 2958 4666 10603
+  18181 20347 20356): `booleanUnary` emitted the comment, then `space()`.
+- comment after an If / Else body statement with no `;` before End-If
+  (2809 If body; 4429 / 21069 Else body): the comment-before-terminator
+  loop swallowed the gap; reference-gated like every If-body gap.
+
+Shared helper `blankLinesAfterStandaloneComment(comment, gap, emit)` (0x24
+only; the caller's marker kind). Variants measured one at a time
+(`RESEARCH_ENCODER_MODULE`): For +19 forward-exact / 21 closer, Evaluate
++5, boolean +6, If body +1, Else body +2; each 0 farther, 0 reference
+changes, bytes only in its own targets. 5525 is closer but now differs
+only in its Function signature trailer byte (02 / 01). Zero-blank controls:
+comment directly followed by code keeps no marker (test). Cycle 124-130
+decoder gains all still EXACT.
+
+Rerank COMPLETE_DOWNSTREAM (60): Function signature trailer byte 02 / 01
+10, App Class inline 0x4E where the encoder writes 0x15 9, 0x4A vs inline
+name 5 App Class + 4 ordinary, `array` 0x40 5, marker order 0x4F / 0x2D
+4 + 0x2D / 0x4F 2, 0x4F before Constant / instance / method 3 + 2, other
+App Class singletons. Categories: ACTIVE_PACKAGE 72, ENCODE_ERROR 69,
+DSM 67, COMPLETE_DOWNSTREAM 60, ACTIVE_RECORD_FIELD 39, ACTIVE_RECORD 32,
+UNSUPPORTED_SYNTAX 30, ACTIVE_FIELD 26, ACTIVE_OTHER 20,
+STRUCTURAL_ORDERING 18, ACTIVE_SCROLL 13, QUOTED_COMPONENT 8,
+ACTIVE_DECLARE_FUNCTION 1 (NONEXACT 455).
 
 ## Compiler Decoder Cycle 130 -- the header-declared trailer boundary
 

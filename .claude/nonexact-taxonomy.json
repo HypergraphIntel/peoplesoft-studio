@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-02T20:25:56.723Z",
+ "generatedAt": "2026-10-02T21:03:38.444Z",
  "totalDefinitions": 30209,
- "exactCount": 29721,
- "nonexactCount": 488,
+ "exactCount": 29754,
+ "nonexactCount": 455,
  "rows": [
   {
    "definitionId": 522,
@@ -100,21 +100,6 @@
    }
   },
   {
-   "definitionId": 2809,
-   "displayName": "1=CNTRCT_DATA_ESP, 2=REDCTN_ID_ESP, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 21,
-    "generatedCount": 21
-   }
-  },
-  {
    "definitionId": 2867,
    "displayName": "1=CNT_TEMPLT_ESP, 2=READ_ONLY_OUT_ESP, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "UNSUPPORTED_SYNTAX",
@@ -123,21 +108,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 1832: unsupported PeopleCode statement",
    "construct": "DISABLED_CODE",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 2958,
-   "displayName": "1=COMPENSATION, 2=COMP_RATECD, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 148,
-    "generatedCount": 148
-   }
   },
   {
    "definitionId": 3430,
@@ -256,21 +226,6 @@
    }
   },
   {
-   "definitionId": 4429,
-   "displayName": "1=DERIVED_CO, 2=RETURN_TRANSFER, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 154,
-    "generatedCount": 154
-   }
-  },
-  {
    "definitionId": 4432,
    "displayName": "1=DERIVED_COBRA, 2=COBRA_EVENT_DT, 12=SavePreChange, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -298,21 +253,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 4666,
-   "displayName": "1=DERIVED_FP, 2=BUSINESS_UNIT, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 10,
-    "generatedCount": 10
-   }
-  },
-  {
    "definitionId": 4861,
    "displayName": "1=DERIVED_GP, 2=PYMT_VALIDATE_PB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -326,21 +266,6 @@
     "storedCount": 46,
     "generatedCount": 44,
     "firstDivergenceKind": "field"
-   }
-  },
-  {
-   "definitionId": 4928,
-   "displayName": "1=DERIVED_GPBR, 2=PARTIAL_DAYS, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 9,
-    "generatedCount": 9
    }
   },
   {
@@ -379,7 +304,7 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 5,
+   "firstDiffOffset": 114063,
    "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
     "referenceExact": true,
@@ -523,66 +448,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 218: expected an ASCII &variable",
    "construct": "of",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 6493,
-   "displayName": "1=DERIVED_HR_WTD, 2=BEGIN_DT, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 42,
-    "generatedCount": 42
-   }
-  },
-  {
-   "definitionId": 6495,
-   "displayName": "1=DERIVED_HR_WTD, 2=END_DT, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 27,
-    "generatedCount": 27
-   }
-  },
-  {
-   "definitionId": 6501,
-   "displayName": "1=DERIVED_HR_WTD, 2=WTD_PARHRS_WK_UK, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 27,
-    "generatedCount": 27
-   }
-  },
-  {
-   "definitionId": 6503,
-   "displayName": "1=DERIVED_HR_WTD, 2=WTD_PARMIN_WK_UK, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 27,
-    "generatedCount": 27
-   }
   },
   {
    "definitionId": 6933,
@@ -824,21 +689,6 @@
    "roundtripExact": true,
    "firstDiffOffset": 2719,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 10603,
-   "displayName": "1=GP_ABS_EVENT, 2=EMPL_RCD, 12=RowInit, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 6,
-    "generatedCount": 6
-   }
   },
   {
    "definitionId": 10860,
@@ -1093,21 +943,6 @@
    }
   },
   {
-   "definitionId": 13828,
-   "displayName": "1=POSITION_DATA, 2=STEP, 12=SavePostChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 13,
-    "generatedCount": 13
-   }
-  },
-  {
    "definitionId": 13895,
    "displayName": "1=POSITION_DATA_E, 2=POSITION_NBR, 12=SavePostChange, 0= , 0= , 0= , 0= ",
    "classification": "ENCODE_ERROR",
@@ -1116,21 +951,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 5581: bare identifiers are only supported as calls",
    "construct": "&SEQ_CHANGE <> T",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 13920,
-   "displayName": "1=POSITION_DATA_E, 2=STEP, 12=SavePostChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 13,
-    "generatedCount": 13
-   }
   },
   {
    "definitionId": 14149,
@@ -1150,21 +970,6 @@
    "roundtripExact": true,
    "firstDiffOffset": 158,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 14312,
-   "displayName": "1=PSACTIVITYGUIDE, 2=ACTIVITYNAME, 12=RowInit, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 69,
-    "generatedCount": 69
-   }
   },
   {
    "definitionId": 14327,
@@ -1447,21 +1252,6 @@
    "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
-   "definitionId": 14899,
-   "displayName": "1=PSCUBWRK, 2=TREECTLEVENT, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 838,
-    "generatedCount": 838
-   }
-  },
-  {
    "definitionId": 14919,
    "displayName": "1=PSDIAGWRK, 2=BTN_REFRESH, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -1475,21 +1265,6 @@
     "storedCount": 32,
     "generatedCount": 33,
     "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 14927,
-   "displayName": "1=PSDIAGWRK, 2=OK_BUTTON, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 18,
-    "generatedCount": 18
    }
   },
   {
@@ -1597,21 +1372,6 @@
    "errorMessage": "Unsupported function metadata type: time",
    "construct": "UNKNOWN",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 15318,
-   "displayName": "1=PSIBINTNET_WRK, 2=IB_DEPLOY, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 31,
-    "generatedCount": 31
-   }
   },
   {
    "definitionId": 15515,
@@ -1971,21 +1731,6 @@
    "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
-   "definitionId": 17527,
-   "displayName": "1=PSWSDL_WRK, 2=WZ_FINISH, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 42,
-    "generatedCount": 42
-   }
-  },
-  {
    "definitionId": 17573,
    "displayName": "1=PSXPFUNCLIB, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -2156,21 +1901,6 @@
    "roundtripExact": true,
    "firstDiffOffset": 48350,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 18181,
-   "displayName": "3=CURRENCY_OTHER, 4=MENUITEM1, 5=CURRENCY_OTHER, 12=ItemSelected, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 2,
-    "generatedCount": 2
-   }
   },
   {
    "definitionId": 18280,
@@ -2355,36 +2085,6 @@
    }
   },
   {
-   "definitionId": 20347,
-   "displayName": "10=BEN_LIFE_ALLOC_FL, 39=GBL, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 54,
-    "generatedCount": 54
-   }
-  },
-  {
-   "definitionId": 20356,
-   "displayName": "10=BEN_PEN_ALLOC_FL, 39=GBL, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 54,
-    "generatedCount": 54
-   }
-  },
-  {
    "definitionId": 20560,
    "displayName": "10=BN_PERSON_EFFDT, 39=GBL, 1=BN_PERSON, 12=RowInit, 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -2410,21 +2110,6 @@
    "roundtripExact": true,
    "firstDiffOffset": 42605,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 21069,
-   "displayName": "10=CO_PE_EXP_LIC, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 18,
-    "generatedCount": 18
-   }
   },
   {
    "definitionId": 21271,
@@ -2461,21 +2146,6 @@
    "primaryCategory": "ENCODE_ERROR"
   },
   {
-   "definitionId": 21504,
-   "displayName": "10=GPFR_DSN_UPDATE, 39=GBL, 1=GPFR_DSN_WRK, 2=SAVE_PB, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 163,
-    "generatedCount": 163
-   }
-  },
-  {
    "definitionId": 21546,
    "displayName": "10=GPGB_EE_CO, 39=GBL, 12=SavePreChange, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -2510,36 +2180,6 @@
    "roundtripExact": true,
    "firstDiffOffset": 2192,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 21668,
-   "displayName": "10=GPGB_RTI_ADJ, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 83,
-    "generatedCount": 83
-   }
-  },
-  {
-   "definitionId": 21703,
-   "displayName": "10=GPHK_PYE_PI, 39=GBL, 12=SavePostChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 26,
-    "generatedCount": 26
-   }
   },
   {
    "definitionId": 21943,
@@ -3393,21 +3033,6 @@
    }
   },
   {
-   "definitionId": 28461,
-   "displayName": "66=PDATA_SYNC, 77=MAIN, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 45,
-    "generatedCount": 45
-   }
-  },
-  {
    "definitionId": 28555,
    "displayName": "66=PORTALPATHAE, 77=FillPath, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
    "classification": "UNKNOWN_MISMATCH",
@@ -3840,21 +3465,6 @@
    "primaryCategory": "ENCODE_ERROR"
   },
   {
-   "definitionId": 28869,
-   "displayName": "104=BEN_ATTACHMENTS, 107=AttachmentConfiguration, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 22,
-    "generatedCount": 22
-   }
-  },
-  {
    "definitionId": 28872,
    "displayName": "104=BEN_ATTACHMENTS, 107=DocumentUpload, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "ENCODE_ERROR",
@@ -4011,21 +3621,6 @@
     "storedCount": 15,
     "generatedCount": 14,
     "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 28927,
-   "displayName": "104=BEN_SUMMARY_FL, 105=Page, 106=SubPage, 107=CoveredBeneficiaries, 12=OnExecute, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 50,
-    "generatedCount": 50
    }
   },
   {
@@ -4536,21 +4131,6 @@
    }
   },
   {
-   "definitionId": 29138,
-   "displayName": "104=CAFNUI_FILTER_BUILDER, 107=DataFilter, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 48,
-    "generatedCount": 48
-   }
-  },
-  {
    "definitionId": 29140,
    "displayName": "104=CAFNUI_UI, 107=AccessControl, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -4830,21 +4410,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 706: expected ; in catch body",
    "construct": "\n   \n   method s",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29361,
-   "displayName": "104=GPS_EDITFUNCTIONS, 107=AddPostContent, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 54,
-    "generatedCount": 54
-   }
   },
   {
    "definitionId": 29362,
@@ -5983,36 +5548,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 29915,
-   "displayName": "104=PTADSDEFNFORRCF, 107=MenuFolderValidationBase, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 25,
-    "generatedCount": 25
-   }
-  },
-  {
-   "definitionId": 29917,
-   "displayName": "104=PTADSDEFNFORRCF, 107=MenuLinkValidationBase, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 23,
-    "generatedCount": 23
-   }
-  },
-  {
    "definitionId": 29921,
    "displayName": "104=PTADSDEFNFORWC, 107=WCConfigurationManagedObject, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -6467,21 +6002,6 @@
    }
   },
   {
-   "definitionId": 30145,
-   "displayName": "104=PTAF_UI, 107=ProcessController, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 59,
-    "generatedCount": 59
-   }
-  },
-  {
    "definitionId": 30146,
    "displayName": "104=PTAF_UPGRADE_CRITERIA, 107=DefinitionCriteria, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -6532,21 +6052,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 175: expected ; in try body",
    "construct": "ayTaskLevels",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 30160,
-   "displayName": "104=PTAI_ACTION_ITEMS, 105=HGrid, 107=HGrid_Row, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 14,
-    "generatedCount": 14
-   }
   },
   {
    "definitionId": 30161,
