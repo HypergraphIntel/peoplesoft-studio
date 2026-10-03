@@ -42,3 +42,18 @@ test('built-in object descriptors (13562, 17083, 17840, 15515, 15517, 15586, 146
     assert.ok(program.includes(le(0xc0000000 | id)), type);
   }
 });
+
+test('Function-header object types open their PACKAGE row in the header unit (17840, 14665, 15586, 15528)', () => {
+  const rows = (source: string) => encodeProgramArtifacts(source).references
+    .filter(r => r.kind === 'package').map(r => r.packageName);
+  // first Function: parameter and return share the header unit's one row
+  assert.deepEqual(rows('Function F(&cc As CubeCollection) Returns CubeCollection\nEnd-Function;\n'), ['CUBECOLLECTION']);
+  // a later Function's header opens its own
+  assert.deepEqual(rows('Function A(&cc As CubeCollection)\nEnd-Function;\n\nFunction B() Returns CubeCollection\nEnd-Function;\n'),
+    ['CUBECOLLECTION', 'CUBECOLLECTION']);
+  assert.deepEqual(rows('Function F(&cq As CompositeQuery)\nEnd-Function;\n'), ['COMPOSITEQUERY']);
+  assert.deepEqual(rows('Function F(&d As Document)\nEnd-Function;\n'), ['DOCUMENT']);
+  assert.deepEqual(rows('Function F() Returns DocumentKey\nEnd-Function;\n'), ['DOCUMENTKEY']);
+  // the scalar time opens none
+  assert.deepEqual(rows('Function F(&t As time) Returns time\nEnd-Function;\n'), []);
+});
