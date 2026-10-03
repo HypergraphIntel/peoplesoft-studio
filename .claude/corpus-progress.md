@@ -1,16 +1,15 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 140)
+## Current status (2026-10-02, Cycle 141)
 
-- **Current target:** Cycle 140 -- layout / tokens: (1) an untyped App
-  Class header `array` type is the keyword 0x40 with descriptor `array of
-  any`; (2) blank lines before a directive between two implementations
-  are no markers. EXACT 29,825 -> 29,832 (+7: 28813 28821 28825 29247
-  29458; 29724 29734) = forward-exact; exactly those 7 programs' bytes
-  changed, 0 PSPCMNAME changes; protected PASS, 0 EXACT -> non-EXACT,
-  ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See "Compiler
-  Semantics Cycle 140".
-- **Last successful calibration:** Cycle 140 (array keyword, directive gap).
+- **Current target:** Cycle 141 -- ordinary leading-section marker
+  ownership (0x2D section close vs 0x4F blank line): four owner bugs.
+  EXACT 29,832 -> 29,843 (+11: 4348 9986 14356 18130 18135 21271 25056
+  28161 28555 29020 29029) = forward-exact; 14 programs' bytes changed
+  (3 closer: 14352 18134 27390), 0 PSPCMNAME changes, 0 farther;
+  protected PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70
+  (13525 in, EXACT). See "Compiler Semantics Cycle 141".
+- **Last successful calibration:** Cycle 141 (declaration-section markers).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -26,17 +25,23 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 141):** layout -- COMPLETE_DOWNSTREAM (25): the
-  largest families are ordinary marker order (stored 0x4F where the
-  encoder writes 0x2D: 4348 9986 14356 28161; and the reverse 21271
-  25056) and 0x4F before Constant / instance / method (18130 18135 28555;
-  App Class 29867) -- census ordinary 0x4F / 0x2D placement across the
-  corpus first. App Class type-path case (28942 28943 28953) stays
-  separate. Parked: 29797 29883 30170 30179 30192 (Cycle 138, no
-  trigger); metadata-absent 29655, 28857 / 28893, 29527 / 29590, 15840;
-  one-offs 28721, 28985 / 30206, 29329, 28797. README.md has unrelated
+- **Next action (Cycle 142):** COMPLETE_DOWNSTREAM (14) is now mostly
+  App Class singletons; the largest: App Class type-path case (28942
+  28943 28953 -- identical tokens, case of a type path), stored 0x24 vs
+  generated 0x63 (28720 29823), text kept after the end of the program
+  (29646 29670). Parked: 29867 (App Class header 0x4F after `CopyTo(...)
+  Returns PSXP_RPTDEFNMANAGER:DataSourceDefn;` -- not reproducible in
+  isolation, App Class header layout path); 29797 29883 30170 30179 30192
+  (Cycle 138); metadata-absent 29655, 28857 / 28893, 29527 / 29590, 15840;
+  one-offs 28721, 28985 / 30206, 29329, 28797. Larger frontier:
+  ACTIVE_PACKAGE 69, ACTIVE_RECORD_FIELD 36. README.md has unrelated
   uncommitted user edits -- never stage it.
-- **Newly established rules this session:** Cycle 140 (encoder): an
+- **Newly established rules this session:** Cycle 141 (encoder): a block
+  comment closing the import section restarts a following plain Local
+  run; a blank line before a leading Constant is 0x4F; the leading
+  declaration section (plain Locals, declarations, App Class Locals)
+  closes once; the run's close looks past REM / <* *> for a following
+  declaration; Cycle 140 (encoder): an
   untyped App Class header `array` is the keyword 0x40, descriptor `array
   of any`; between implementations only blank lines after the gap's last
   directive are markers; Cycle 139 (encoder): a block
@@ -195,6 +200,54 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 141 -- ordinary declaration-section markers
+
+**Baseline reproduced fresh at `a393e6d`:** 29,832 / 377, forward-exact
+29,832, COMPLETE_DOWNSTREAM 25, ACTIVE_PACKAGE 69, protected 430/430,
+taxonomy row-identical, fallback 70 (13525 in, EXACT), ROUNDTRIP_ONLY 0,
+decoder-only frontier 0.
+**Result:** EXACT **29,832 -> 29,843 (+11)** = forward-exact; 14 bytes
+changed (11 exact, 14352 18134 27390 closer), 0 reference lists, 0
+farther, 0 EXACT -> non-EXACT, COMPLETE_DOWNSTREAM 25 -> 14. LOCAL
+SNAPSHOT only. Commits: fa854db (census), f1b3ba9 (B), 2e59b4d (C),
+9cb830a (A1+A2), ffaa13c (A3). README.md untouched, never staged.
+
+Model (`cycle141-marker-ownership-census.ts`, every ordinary leading-
+section declaration gap): declarations inside the leading section end
+with `;` alone; each blank line between them is one 0x4F; the section's
+close -- before the first executable statement or Function -- is ONE 0x2D
+(then 0x4F per blank line), placed before a closing comment run when the
+run leads to executable code. The targets were four owners getting that
+wrong, not a newline-model gap:
+
+  B  (21271 25056, also 27390 closer): a /* */ comment closing the import
+     section did not restart the plain Local run (the main closer and the
+     REM closer did) -- the run's formal 0x2D close was never queued.
+     Isolated: +2, 0 lost.
+  C  (18130 18135 28555, 14352 18134 closer): the declaration-gap owner
+     omitted Constant ("unconfirmed"); census: every declaration -> blank
+     -> Constant gap stores 0x4F, none 0x2D. +3.
+  A1 (14356): a <* *> block closed the generic declaration section but not
+     the App Class Local section, which closed again at the Function. +1.
+  A2 (9986 28161; App Class bodies 29020 29029 -- the "stored 64 /
+     generated 2D" family): a REM queuing the run's close left the App
+     Class Local section open; the next block comment closed it again. +4.
+  A3 (4348): the block-comment closer judged "a declaration follows" past
+     block comments only; a `rem Global ...;` hid the following Global, so
+     it queued a premature close. +1.
+
+Family A (stored 0x4F / generated 0x2D) and B (the reverse) are inverse
+symptoms of different owners (stop B: landed separately). 29867 (App
+Class header, 0x4F after `CopyTo(...) Returns ...:DataSourceDefn;`) is a
+different path (`emitLayoutRange`), not reproducible in synthetic
+headers -- parked. No directive in any target.
+
+Rerank: COMPLETE_DOWNSTREAM 14 (type-path case 3, 24 / 63 2, trailing text
+2, singletons 7), ACTIVE_PACKAGE 69, ACTIVE_RECORD_FIELD 36, ACTIVE_RECORD
+25, ACTIVE_FIELD 22, ACTIVE_OTHER 12, ACTIVE_SCROLL 11, QUOTED_COMPONENT 8,
+STRUCTURAL_ORDERING 3; ENCODE_ERROR 69, DSM 67, UNSUPPORTED_SYNTAX 30
+(NONEXACT 366).
 
 ## Compiler Semantics Cycle 140 -- array keyword and directive gap
 
