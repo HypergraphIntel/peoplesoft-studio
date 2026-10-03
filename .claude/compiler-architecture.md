@@ -17,7 +17,7 @@ Cycle 135: EXACT 29,809 / NONEXACT 400; Cycle 136: EXACT 29,820 / NONEXACT
 NONEXACT 387; Cycle 139: EXACT 29,825 / NONEXACT 384; Cycle 140:
 EXACT 29,832 / NONEXACT 377; Cycle 141: EXACT 29,843 / NONEXACT 366;
 Cycle 142: EXACT 29,846 / NONEXACT 363; Cycle 143: EXACT
-29,849 / NONEXACT 360; forward-exact = EXACT); forward-exact
+29,849 / NONEXACT 360; Cycle 144: EXACT 29,857 / NONEXACT 352; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -224,6 +224,12 @@ not preceded by an identifier character and followed by a non-identifier
 character, in the ordinary encoder (`^(?:REM|remark)\b`) and the App Class
 scanners alike (`isRemCommentStart`); the comment runs through its `;`
 (`cycle143-rem-lexical-census.ts`).
+
+Cycle 144 -- ordinary App Class rows: an `As <Class>` cast types its value
+and uses the class row only when its parenthesized result receives a
+method call (`castPrimary`); a Function header's `As array of <Class>` /
+`Returns array of <Class>` uses the class in the header's unit like the
+scalar forms (`cycle144-ordinary-package-provenance-census.ts`).
 
 ## 5. Declarations and scope
 
