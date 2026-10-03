@@ -1,15 +1,15 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 141)
+## Current status (2026-10-02, Cycle 142)
 
-- **Current target:** Cycle 141 -- ordinary leading-section marker
-  ownership (0x2D section close vs 0x4F blank line): four owner bugs.
-  EXACT 29,832 -> 29,843 (+11: 4348 9986 14356 18130 18135 21271 25056
-  28161 28555 29020 29029) = forward-exact; 14 programs' bytes changed
-  (3 closer: 14352 18134 27390), 0 PSPCMNAME changes, 0 farther;
-  protected PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70
-  (13525 in, EXACT). See "Compiler Semantics Cycle 141".
-- **Last successful calibration:** Cycle 141 (declaration-section markers).
+- **Current target:** Cycle 142 -- App Class type-path name casing: the
+  name table writes a sub-package in the program's first spelling of it
+  (statement bytes keep the declaration's). EXACT 29,843 -> 29,846 (+3:
+  28942 28943 28953) = forward-exact; 4 programs' bytes changed (29588
+  closer), 0 PSPCMNAME changes; protected PASS, 0 EXACT -> non-EXACT,
+  ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See "Compiler
+  Semantics Cycle 142".
+- **Last successful calibration:** Cycle 142 (type-path sub-package case).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -25,18 +25,23 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 142):** COMPLETE_DOWNSTREAM (14) is now mostly
-  App Class singletons; the largest: App Class type-path case (28942
-  28943 28953 -- identical tokens, case of a type path), stored 0x24 vs
-  generated 0x63 (28720 29823), text kept after the end of the program
-  (29646 29670). Parked: 29867 (App Class header 0x4F after `CopyTo(...)
-  Returns PSXP_RPTDEFNMANAGER:DataSourceDefn;` -- not reproducible in
-  isolation, App Class header layout path); 29797 29883 30170 30179 30192
-  (Cycle 138); metadata-absent 29655, 28857 / 28893, 29527 / 29590, 15840;
-  one-offs 28721, 28985 / 30206, 29329, 28797. Larger frontier:
-  ACTIVE_PACKAGE 69, ACTIVE_RECORD_FIELD 36. README.md has unrelated
-  uncommitted user edits -- never stage it.
-- **Newly established rules this session:** Cycle 141 (encoder): a block
+- **Next action (Cycle 143):** App Class REM recognition -- a `rem`
+  directly followed by `,` / `;` (`rem,yan add ...;`) is a stored REM
+  comment (0x24) but the App Class comment scanners drop it: class header
+  0 EXACT / 5 (28720 29823 -- COMPLETE_DOWNSTREAM "24 / 63" -- 28759
+  28760), bodies `rem,` 2 / 130, `rem;` 0 / 39 (29570); ordinary `rem,`
+  68 / 5 (`cycle142-type-path-case-census.ts --rem`). Then the reference
+  layer: ACTIVE_PACKAGE 69 (App Class PACKAGE/PACKAGE 15, ordinary
+  fallback 12 + 10, ordinary non-fallback PACKAGE/PACKAGE 8: 14641 14919
+  15070 16082 16567 17893 24800 24988), ACTIVE_RECORD_FIELD 36
+  (fragmented, largest ordinary-fallback PACKAGE/REC.FIELD 7). Parked: 29867;
+  29797 29883 30170 30179 30192; metadata-absent 29655, 28857 / 28893,
+  29527 / 29590, 15840; one-offs 28721, 28985 / 30206, 29329, 28797.
+  README.md has unrelated uncommitted user edits -- never stage it;
+  never touch stash@{0} / stash@{1}.
+- **Newly established rules this session:** Cycle 142 (encoder): an App
+  Class type-path NAME (name table) writes each sub-package in the
+  program's first spelling of that package path; Cycle 141 (encoder): a block
   comment closing the import section restarts a following plain Local
   run; a blank line before a leading Constant is 0x4F; the leading
   declaration section (plain Locals, declarations, App Class Locals)
@@ -200,6 +205,48 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 142 -- App Class type-path name casing
+
+**Baseline reproduced fresh at `4ec0e30`:** 29,843 / 366, forward-exact
+29,843, COMPLETE_DOWNSTREAM 14, ACTIVE_PACKAGE 69, ACTIVE_RECORD_FIELD 36,
+protected 430/430, taxonomy row-identical, fallback 70 (13525 in, EXACT),
+ROUNDTRIP_ONLY 0, decoder-only frontier 0.
+**Result:** EXACT **29,843 -> 29,846 (+3: 28942 28943 28953)** =
+forward-exact; 4 programs' bytes changed (29588 closer: its trailer name
+now `G3FORM:TAGS:Rowset` as stored; an earlier unrelated difference
+remains), 0 reference lists, 0 farther, 0 EXACT -> non-EXACT,
+COMPLETE_DOWNSTREAM 14 -> 11. LOCAL SNAPSHOT only. Commits: 39e66b2
+(census), 0b67ff5 (encoder). README.md and the stashes untouched.
+
+The three targets' statement sections were identical; the difference was
+only in the trailer name table: stored `BNE_OPEN_ENROLL_FL:Page:SubPage:
+PrimaryCareProvider`, generated `...:page:...`. The sources spell the
+sub-package both ways -- the imports (`import BNE_OPEN_ENROLL_FL:Page:
+SubPage:*;`) and most uses `Page`, some declarations `page`. Only
+sub-package components ever differ (never the leaf, never the root after
+the Cycle 113 upper-casing). Census (`cycle142-type-path-case-census.ts`,
+3,605 stored type-path names): the declaration spelling (Cycle 113 rule)
+misses exactly the 5 target names; the program's first spelling of each
+sub-package and the snapshot's own package spelling both predict all
+3,605 (no program spells a package against its definition first -- not
+distinguishable; the source-only rule landed). Statement bytes keep the
+declaration's spelling (0x0A components); PSPCMNAME identity is
+case-insensitive leaf and unaffected. `firstPackageSpellings` scans the
+comment- and string-masked source (`maskNonCode`, now exported); a
+wildcard import's last named component counts as a package.
+
+Secondary (research, Cycle 143): 28720 / 29823 "stored 24 / generated 63"
+is a dropped class-header REM comment `rem,yan add ...;` (the App Class
+scanner wants whitespace or `:` after `rem`); 0x63 is just the next
+`method`. All App Class `rem,` / `rem;` comments are in non-EXACT
+programs (header 5, bodies 130 + 39).
+
+Rerank: COMPLETE_DOWNSTREAM 11 (24 / 63 2, trailing text 2, singletons 7),
+ACTIVE_PACKAGE 69, ACTIVE_RECORD_FIELD 36, ACTIVE_RECORD 25, ACTIVE_FIELD
+22, ACTIVE_OTHER 12, ACTIVE_SCROLL 11, QUOTED_COMPONENT 8,
+STRUCTURAL_ORDERING 3; ENCODE_ERROR 69, DSM 67, UNSUPPORTED_SYNTAX 30
+(NONEXACT 363).
 
 ## Compiler Semantics Cycle 141 -- ordinary declaration-section markers
 
