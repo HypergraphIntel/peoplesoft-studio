@@ -7830,7 +7830,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   function tryStatement(): void {
     chunks.push(fixed('try'));
 
-    while (true) {
+    tryClauses: while (true) {
       const whitespaceStart = pos;
       space();
       const tryWhitespace = source.slice(whitespaceStart, pos);
@@ -8033,6 +8033,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             return;
           }
 
+          // Cycle 153: another catch clause (25111: `catch PTPP_PORTAL:
+          // EXCEPTION:NotFoundException &e1 ... catch Exception &e`, stored
+          // `15 4F 66 ...`) -- the try loop parses it like the first.
+          if (/^catch\b/i.test(source.slice(pos))) continue tryClauses;
+
           if (pos === source.length) {
             fail('expected end-try');
           }
@@ -8041,12 +8046,15 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
           space();
 
-          if (source[pos] !== ';') {
+          if (source[pos] === ';') {
+            pos++;
+            chunks.push(fixed(';'));
+          } else if (!/^end-try\b/i.test(source.slice(pos))) {
+            // Cycle 153: the last catch-body statement may omit `;` before
+            // end-try; stored writes no terminator (18280 `&str = ""` then
+            // `67 end-try`, 27771).
             fail('expected ; in catch body');
           }
-
-          pos++;
-          chunks.push(fixed(';'));
         }
       }
 
