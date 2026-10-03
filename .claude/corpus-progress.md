@@ -1,22 +1,18 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-03, Cycle 151)
+## Current status (2026-10-03, Cycle 152)
 
-- **Current target:** Cycle 151 -- Function parameter scope. Untyped
-  parameters shadowing an outer typed variable are late-bound (11513 13657
-  13658); typed parameters keep their type in the Function only (18134);
-  an `As array of Record` parameter is a record array (16720, 28683
-  closer). EXACT 29,920 -> 29,924 (+4) = forward-exact; 6 programs changed,
-  0 farther; ACTIVE_RECORD 18 -> 16, ACTIVE_FIELD 18 -> 17,
-  ACTIVE_RECORD_FIELD 20 -> 19 (28683 -> ACTIVE_FIELD, closer); protected
-  PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in,
-  EXACT). See "Compiler Semantics Cycle 151".
-- **Last successful calibration:** Cycle 151 (Function parameter scope).
+- **Current target:** Cycle 152 -- Function `array of Record` dependency
+  (4861 16720 28683: the header's missing PACKAGE.RECORD) plus the
+  PanelGroup array declaration (6438, 6074). EXACT 29,924 -> 29,929 (+5)
+  = forward-exact; 6 programs changed over three semantic commits, 0
+  farther; ACTIVE_FIELD 17 -> 14, ENCODE_ERROR 69 -> 67; protected PASS, 0
+  EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See
+  "Compiler Semantics Cycle 152".
+- **Last successful calibration:** Cycle 152 (Function array-of-Record
+  dependency; PanelGroup arrays).
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** none newly blocked. Not shadowing:
-  6438 (ENCODE_ERROR: `PanelGroup array of string` declaration
-  unsupported), 15256 (fallback), 1635 (list exact since Cycle 150; first
-  byte diff 25,271 unrelated). Parked:
+- **Locally blocked definitions:** none newly blocked. Parked:
   App Class PACKAGE/FIELD 6 (28967 29518 29583 29598 29715 29725) -- each
   one hidden class row behind a class absent from the snapshot (TextCatalog,
   AWTxn, ObjectHashTable / RecordTag via G3FORM:Form, Thread,
@@ -34,22 +30,23 @@
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit; whether quoted-to-quoted reuse follows the
   control group or the allocation unit; whether `As any` parameters
-  differ from untyped ones (no `As any` parameter shadows a typed outer).
-- **Next action (Cycle 152):** ordinary PACKAGE/FIELD (3: 4861 16720
-  28683) -- after Cycle 151 each list differs only by missing
-  PACKAGE.RECORD rows, all in Functions with `As array of Record`
-  parameters / `Returns array of Record` (16720 two at the first header,
-  28683 one before the first indexed element member): census the
-  built-in type row of array-of-Record parameters / returns per unit
-  (BUILTIN_TYPE_REGISTRY 'function-parameter' has no array-element cell).
-  Alternatives: 6438's `PanelGroup array of` declaration (ENCODE_ERROR),
-  ordinary none/RECORD 2 (16495 `&pageScroll(n).FreeFormStyleName` -- a
-  Row property bound as RECORD; 16962 trailing `&orow.PSIBWSDL3_VW.X`).
-  Fallback groups stay parked (13525). Scratch tools under c151
-  (gate.sh, ldiff.ts, part.ts, trace.ts, parr.ts ...). README.md has
-  unrelated uncommitted user edits -- never stage it; never touch
-  stash@{0} / stash@{1}.
-- **Newly established rules this session:** Cycle 151 (encoder): ordinary
+  differ from untyped ones; whether non-Record built-in `As array of`
+  parameters open a row (13562 `array of Rowset` only).
+- **Next action (Cycle 153):** the ordinary non-fallback reference frontier
+  is nearly exhausted (FIELD/FIELD 16567 19289, none/RECORD 16495 16962,
+  singletons). ENCODE_ERROR (67) is now the richest seam: multi-dimensional
+  array subscripts `&a [1, 1]` (11: 4101 5089 6933 6936 11120 18579 ...,
+  28872 29293 App Class -- "expected ] after array subscript"); `catch`
+  grammar (14 "keyword catch is not a supported call name", 5 "expected ;
+  in catch body" -- e.g. 18280 a catch-body statement without `;` before
+  end-try, 25111). Start with the subscript family: stored byte shape of
+  the comma subscript, decoder support. Fallback groups stay parked
+  (13525). Scratch tools under c152. README.md has unrelated uncommitted
+  user edits -- never stage it; never touch stash@{0} / stash@{1}.
+- **Newly established rules this session:** Cycle 152 (encoder): an `As
+  array of Record` Function parameter opens PACKAGE.RECORD in the header's
+  built-in unit; PanelGroup array declarations parse (Component form) and
+  a PanelGroup array of Record is a record array; Cycle 151 (encoder): ordinary
   Function parameters shadow outer declarations for their Function (an
   untyped one is late-bound); an `As array of Record` parameter is a
   record array; Cycle 150 (encoder): off a Row
@@ -240,6 +237,44 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 152 -- Function array-of-Record dependency; PanelGroup arrays
+
+Targets: ordinary PACKAGE/FIELD 4861 16720 28683 -- each list short only
+PACKAGE.RECORD rows. Not at body uses: 16720's first Function stores two
+rows before FIELD.PTTST_NAME -- the header `(&arr As array of Record,
+...)` one (missing) and the body `Local Record &r` one (another unit);
+its third Function (two / three array parameters plus `Returns array of
+Record`) already matched with ONE header row (the return's, Cycle 122).
+The parameter path never requested the element type's built-in row
+(the return path does, 'function-returns'; 'function-parameter' is a
+registered Record context).
+
+`cycle152-function-array-type-census.ts`: `As array of Record`
+parameters only in 4861 16720 28683 (non-EXACT) and 4916 5216 (EXACT,
+first Function sharing the leading section's Record row); the only other
+built-in array parameter is 13562 `array of Rowset`. Variants (Record only
+/ every built-in): identical full-corpus result -- 3 changed, all EXACT --
+so the Record-only rule landed (narrower; stop G).
+
+Fix 1 (0d431ad): `allocateBuiltinTypePackageReferenceIfSupported('Record',
+'function-parameter')` for an `As array of Record` parameter -- the
+built-in unit dedupes parameters and return in one header, a later header
+opens its own row. 4861 16720 28683 EXACT.
+
+Secondary, 6438 ENCODE_ERROR `PanelGroup array of string &BOLD_NODE`:
+stored `51 40 array 40 of 40 string 01 &BOLD_NODE` -- the Component array
+form. Fix 2 (0125a9d): the PanelGroup declaration reads the element types
+and requests the element row ('component'): 6438 EXACT; 6074 encodes
+(ENCODE_ERROR -> ACTIVE_FIELD, missing FIELD.EDITTABLE / GB_VALUE from
+`&GB_BINVAL_ARRAY [&IDX].EDITTABLE`, a `PanelGroup array of Record`).
+Fix 3 (58d480d): a PanelGroup array of Record is a record array: 6074
+EXACT. Tests: `encoderFunctionParameterScope.test.ts`,
+`encoderPanelGroupArray.test.ts`.
+
+Residual ordinary none/RECORD unchanged (16495 Row property, 16962
+trailing shorthand). ENCODE_ERROR census (67): catch 14 + 5, multi-dim
+subscript 11, bare identifiers 12, expected ) 9, other.
 
 ## Compiler Semantics Cycle 151 -- Function parameter scope
 
