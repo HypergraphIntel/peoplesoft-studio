@@ -15240,7 +15240,8 @@ function encodeApplicationClassProgramV2(
     start: number,
     end: number,
     flushTrailingGap: boolean,
-    includeDeclarationTerminators = false
+    includeDeclarationTerminators = false,
+    implementationGap = false
   ): void => {
     const terminators = includeDeclarationTerminators
       ? parsed.declarationTerminatorOffsets.filter(offset =>
@@ -15293,7 +15294,22 @@ function encodeApplicationClassProgramV2(
     }
     emitConditionalRegionsIn(cursor, end);
     if (flushTrailingGap) {
-      emitMarkers(applicationClassBlankLineCount(source.slice(cursor, end)));
+      /*
+       * Cycle 140: between two implementations, a directive's records end
+       * the blank-line run before them -- only the blank lines after the
+       * gap's last directive are markers (a region spans its line break).
+       * 29724 / 29734 `end-get;` <blank> `#If ... #Then` `get ...` store
+       * `6A 15 2D 75 .. 76 5F`, and `end-get;` <blank> `#End-If;` <blank>
+       * `method saveData` `6A 15 2D 78 15 4F 63` -- the only two programs
+       * with a directive between implementations, and the only blank lines
+       * before a directive anywhere in the corpus
+       * (`cycle140-array-keyword-directive-gap-census.ts`).
+       */
+      const gapRegions = implementationGap
+        ? [...(context?.conditionalDirectiveRegions?.values() ?? [])].filter(region => region.start >= cursor && region.start < end)
+        : [];
+      const markerStart = gapRegions.length > 0 ? Math.max(...gapRegions.map(region => region.end)) : cursor;
+      emitMarkers(applicationClassBlankLineCount(`${markerStart > cursor ? '\n' : ''}${source.slice(markerStart, end)}`));
     }
   };
 
@@ -15710,7 +15726,9 @@ function encodeApplicationClassProgramV2(
     emitLayoutRange(
       afterCloser,
       nextImplementation?.sourceIndex ?? source.length,
-      nextImplementation !== undefined
+      nextImplementation !== undefined,
+      false,
+      true
     );
   }
 
