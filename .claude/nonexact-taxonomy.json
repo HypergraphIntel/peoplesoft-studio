@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-03T00:57:29.813Z",
+ "generatedAt": "2026-10-03T01:44:29.586Z",
  "totalDefinitions": 30209,
- "exactCount": 29821,
- "nonexactCount": 388,
+ "exactCount": 29822,
+ "nonexactCount": 387,
  "rows": [
   {
    "definitionId": 522,
@@ -3188,22 +3188,6 @@
    }
   },
   {
-   "definitionId": 28854,
-   "displayName": "104=BAS_STATEMENT, 107=SendNotifications, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 1206,
-   "primaryCategory": "REFERENCE_ACTIVE_DECLARE_FUNCTION",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 32,
-    "generatedCount": 30,
-    "firstDivergenceKind": "declare-function"
-   }
-  },
-  {
    "definitionId": 28857,
    "displayName": "104=BEN_APPR_EVT_HNDLR, 107=BNActionButton, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -4696,13 +4680,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 56,
-    "generatedCount": 48,
-    "firstDivergenceKind": "record"
+    "generatedCount": 56
    }
   },
   {
@@ -4728,13 +4711,12 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
    "referenceComparison": {
-    "referenceExact": false,
+    "referenceExact": true,
     "referenceSetExact": false,
     "storedCount": 69,
-    "generatedCount": 60,
-    "firstDivergenceKind": "record"
+    "generatedCount": 69
    }
   },
   {
