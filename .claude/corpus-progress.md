@@ -1,17 +1,19 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-03, Cycle 145)
+## Current status (2026-10-03, Cycle 146)
 
-- **Current target:** Cycle 145 -- reference layer: the last two ordinary
-  non-fallback PACKAGE/PACKAGE programs, two owners: (A) a method call on a
-  `%metadata` receiver uses no row; (B) a post-Function run of
-  declaration-only top-level Locals shares one unit. EXACT 29,857 ->
-  29,862 (+5: 16082 16085 24416 24648 [A], 17893 [B]) = forward-exact; 6
-  lists changed (all exact), 0 farther; ACTIVE_PACKAGE 59 -> 54 (ordinary
-  non-fallback PACKAGE/PACKAGE 2 -> 0); protected PASS, 0 EXACT ->
-  non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See
-  "Compiler Semantics Cycle 145".
-- **Last successful calibration:** Cycle 145 (%metadata receivers, post-Function Local run).
+- **Current target:** Cycle 146 -- ordinary REC.FIELD/REC.FIELD trio
+  (22705 22709 22713, Component Record SaveEdit, one template): three
+  mechanisms. (1) harness owner: a key without OBJECTID 1 / 2 has a blank
+  owner record / field (`REC.` / `.`), 28,502 definitions, 0 exceptions,
+  0 bytes (tooling fix, 7,259 lists); (2) `ParentRow` / `ParentRowset`
+  navigation keeps a chain's binding through `GetRow(n).REC.FIELD`; (3) a
+  single field member after a bare `GetRecord()` is a FIELD. EXACT 29,862
+  -> 29,871 (+9: 10487 10488 22699 22702 22705 22709 22713 22717 22720) =
+  forward-exact; 0 farther; ACTIVE_PACKAGE 54 -> 51; protected PASS, 0
+  EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See
+  "Compiler Semantics Cycle 146".
+- **Last successful calibration:** Cycle 146 (owner derivation, GetRecord chains).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -27,18 +29,22 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 146):** reference layer -- ACTIVE_PACKAGE 54 is
-  now App Class (PACKAGE/PACKAGE 15, REC.FIELD/PACKAGE 4, PAGE / FIELD /
-  RECORD / MENUNAME 7) and ordinary fallback (PACKAGE/PACKAGE 12,
-  REC.FIELD/PACKAGE 10, owner/REC.FIELD 3) plus ordinary REC.FIELD/REC.FIELD
-  3 (22705 22709 22713). Recommended: App Class REC.FIELD/PACKAGE (4:
-  28932 28964 29099 29163) full-list classification, or ordinary
-  REC.FIELD/REC.FIELD (3, one family?). The fallback groups stay parked
-  (13525). Parked: 29867; 29797 29883 30170 30179 30192; metadata-absent
-  29655, 28857 / 28893, 29527 / 29590, 15840; one-offs 28721, 28985 /
-  30206, 29329, 28797. README.md has unrelated uncommitted user edits --
-  never stage it; never touch stash@{0} / stash@{1}.
-- **Newly established rules this session:** Cycle 145 (encoder): a
+- **Next action (Cycle 147):** App Class REC.FIELD/PACKAGE (4), now
+  classified: 29099 / 29163 (one template) -- `GetChart(CAF_DISP_WRK.
+  CAF_CHART)` stores a REC.FIELD row the encoder omits, and a MENUNAME row
+  re-opened in a second method; 28932 -- REC.FIELD rows (BEN_TRAN_WK.DESCR,
+  BEN_BEN_DTL_WK.DATE_OPTION) allocated later than stored + 2 missing
+  (DERIVED_W3EB.ASOFDATE, PSOPTIONS.LANGUAGE_CD); 28964 -- 5 missing (REC.FIELD
+  and PACKAGE: TEXTCATALOG, COSTCREDIT, FORMATAMOUNT). Start with the
+  GetChart(REC.FIELD) argument (census Get<Object>(REC.FIELD) built-ins).
+  Also ordinary FIELD/REC.FIELD (4: 24348 24518 24519 24563). Fallback
+  groups stay parked (13525). README.md has unrelated uncommitted user
+  edits -- never stage it; never touch stash@{0} / stash@{1}.
+- **Newly established rules this session:** Cycle 146 (harness): a key
+  without OBJECTID 1 / 2 has a blank owner record / field; (encoder)
+  `ParentRow` / `ParentRowset` navigation keeps the chain's binding; a
+  single field member after a bare `GetRecord()` is a FIELD reference;
+  Cycle 145 (encoder): a
   method call on a `%metadata` receiver uses no PACKAGE row (declarations
   and creates do); after a Function definition, declaration-only top-level
   Locals before executable code share one allocation unit; Cycle 144 (encoder): an
@@ -213,6 +219,59 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 146 -- owner rows, GetRecord() chains
+
+**Baseline reproduced fresh at `f8a070e`:** 29,862 / 347, forward-exact
+29,862, ACTIVE_PACKAGE 54 (ordinary REC.FIELD/REC.FIELD 3: 22705 22709
+22713), ACTIVE_RECORD_FIELD 36, protected 430/430, taxonomy row-identical,
+fallback 70 (13525 in, EXACT), ROUNDTRIP_ONLY 0.
+**Result:** EXACT **29,862 -> 29,871 (+9: 10487 10488 22699 22702 22705
+22709 22713 22717 22720)** = forward-exact; exactly those 9 programs'
+bytes; 9 encoder lists exact (+13 FIELD / +3 RECORD rows, all stored, 0
+removed); 7,259 lists' owner row now stored-identical (tooling, 0 bytes);
+0 farther, 0 EXACT -> non-EXACT, 0 other category moves; ACTIVE_PACKAGE
+54 -> 51, ACTIVE_RECORD_FIELD 36 -> 35, ACTIVE_OTHER 12 -> 7. LOCAL
+SNAPSHOT only. Commits: bbba15d (census), 19624fb (harness owner),
+aee1005 (navigation binding), 1775b32 (GetRecord single member).
+README.md and both stashes untouched.
+
+The trio is one template (Component GPS_WFS_MAP, market GBL, record
+GPS_WFS_MAP_EMP / _GRD / _JOB, SaveEdit, no field). Full-list: owner row
+`REC.` stored vs `REC.GBL` generated, plus 3 missing rows each (RECORD.
+GPS_WFS_FLD_VW, FIELD.GPS_WFS_RPT_FLD, FIELD.GPS_WFS_MAP_RESULT). Three
+mechanisms (`cycle146-record-field-provenance-census.ts`):
+
+  1. Owner: validator.ts / harnessContext / the taxonomy fell back to
+     objectValue1 / 2 for a key without OBJECTID 1 / 2. Stored row 1 is
+     `REC.FIELD`, `REC.` or `.` by the key: 28,502 definitions, 0
+     exceptions. Changes no program byte (the owner row is not an operand
+     there) -- a measurement correction, landed as a harness commit.
+  2. `GetRecord().ParentRow.ParentRowset.ParentRowset.GetRow(n).REC.FIELD
+     .Value` (line 10): `ParentRowset` after `ParentRow` is an inline Row
+     property (Cycle 97, record position) and that branch reset the chain
+     to `dynamic`; the navigation arm (Cycle 7) then inherited no binding.
+     Navigation members now keep it. Stored binds 5/5 such chains (24061
+     already). Alone: only the trio changed, closer.
+  3. `&_entry.validate(..., GetRecord().GPS_WFS_MAP_RESULT, ...)` (line 21):
+     a single member after a bare `GetRecord()` is a FIELD (10/10
+     field-shaped sites; properties Name 38, IsChanged 23, FieldCount 3,
+     IsDeleted 1 stay inline through the existing checks). Alone: +6
+     (10487 10488 22699 22702 22717 22720) and the trio closer.
+
+App Class REC.FIELD/PACKAGE (research): 29099 / 29163 one template
+(`GetChart(CAF_DISP_WRK.CAF_CHART)` REC.FIELD argument row missing;
+MENUNAME re-opened in a second method), 28932 (REC.FIELD rows late + 2
+missing), 28964 (5 missing).
+
+Rerank: ACTIVE_PACKAGE 51 (ordinary fallback PACKAGE/PACKAGE 15, App Class
+PACKAGE/PACKAGE 15, ordinary fallback REC.FIELD/PACKAGE 10, App Class
+REC.FIELD/PACKAGE 4, App Class PAGE / FIELD / RECORD 2 each, MENUNAME 1),
+ACTIVE_RECORD_FIELD 35 (ordinary fallback PACKAGE/REC.FIELD 11, App Class
+REC.FIELD/REC.FIELD 6, ordinary FIELD/REC.FIELD 4, ...), ACTIVE_RECORD 25,
+ACTIVE_FIELD 24, ACTIVE_SCROLL 11, QUOTED_COMPONENT 8, COMPLETE_DOWNSTREAM
+8, ACTIVE_OTHER 7, STRUCTURAL_ORDERING 3; ENCODE_ERROR 69, DSM 67,
+UNSUPPORTED_SYNTAX 30 (NONEXACT 338).
 
 ## Compiler Semantics Cycle 145 -- %metadata receivers, post-Function Local runs
 

@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-03T06:16:18.849Z",
+ "generatedAt": "2026-10-03T07:39:49.508Z",
  "totalDefinitions": 30209,
- "exactCount": 29862,
- "nonexactCount": 347,
+ "exactCount": 29871,
+ "nonexactCount": 338,
  "rows": [
   {
    "definitionId": 522,
@@ -526,38 +526,6 @@
     "storedCount": 12,
     "generatedCount": 11,
     "firstDivergenceKind": "scroll"
-   }
-  },
-  {
-   "definitionId": 10487,
-   "displayName": "1=GPUS_SWT_EE, 2=GPUS_TRANSIT_TX_OP, 12=RowInit, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 2,
-    "generatedCount": 1,
-    "firstDivergenceKind": "stored-only"
-   }
-  },
-  {
-   "definitionId": 10488,
-   "displayName": "1=GPUS_SWT_EE, 2=STATE, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 87,
-    "generatedCount": 86,
-    "firstDivergenceKind": "record-field"
    }
   },
   {
@@ -1776,118 +1744,6 @@
     "storedCount": 11,
     "generatedCount": 10,
     "firstDivergenceKind": "scroll"
-   }
-  },
-  {
-   "definitionId": 22699,
-   "displayName": "10=GPS_WFS_MAP, 39=GBL, 1=GPS_WFS_MAP_AGR, 12=SaveEdit, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 5,
-    "generatedCount": 4,
-    "firstDivergenceKind": "stored-only"
-   }
-  },
-  {
-   "definitionId": 22702,
-   "displayName": "10=GPS_WFS_MAP, 39=GBL, 1=GPS_WFS_MAP_EDU, 12=SaveEdit, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 5,
-    "generatedCount": 4,
-    "firstDivergenceKind": "stored-only"
-   }
-  },
-  {
-   "definitionId": 22705,
-   "displayName": "10=GPS_WFS_MAP, 39=GBL, 1=GPS_WFS_MAP_EMP, 12=SaveEdit, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 6,
-    "generatedCount": 3,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 22709,
-   "displayName": "10=GPS_WFS_MAP, 39=GBL, 1=GPS_WFS_MAP_GRD, 12=SaveEdit, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 6,
-    "generatedCount": 3,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 22713,
-   "displayName": "10=GPS_WFS_MAP, 39=GBL, 1=GPS_WFS_MAP_JOB, 12=SaveEdit, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 6,
-    "generatedCount": 3,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 22717,
-   "displayName": "10=GPS_WFS_MAP, 39=GBL, 1=GPS_WFS_MAP_SC, 12=SaveEdit, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 6,
-    "generatedCount": 4,
-    "firstDivergenceKind": "stored-only"
-   }
-  },
-  {
-   "definitionId": 22720,
-   "displayName": "10=GPS_WFS_MAP, 39=GBL, 1=GPS_WFS_MAP_STP, 12=SaveEdit, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 5,
-    "generatedCount": 4,
-    "firstDivergenceKind": "stored-only"
    }
   },
   {
