@@ -1,20 +1,23 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-03, Cycle 147)
+## Current status (2026-10-03, Cycle 148)
 
-- **Current target:** Cycle 147 -- App Class REC.FIELD/PACKAGE (4). Not a
-  GetChart argument rule: an App Class method fragment's suppressed owner
-  slot captured the fragment's first symbolic reference (classes with an
-  inherited `%This` call), dropping its row. EXACT 29,871 -> 29,891 (+20)
-  = forward-exact; 31 programs changed (20 exact, 11 closer, 0 farther);
-  +69 rows all stored; App Class REC.FIELD/PACKAGE 4 -> 0, ACTIVE_PACKAGE
-  51 -> 44, ACTIVE_RECORD_FIELD 35 -> 28; protected PASS, 0 EXACT ->
+- **Current target:** Cycle 148 -- ordinary FIELD/REC.FIELD (4: 24348
+  24518 24519 24563). Not a FIELD-vs-RECORD.FIELD form choice: a missing
+  FIELD.RUN_CNTL_ID row from `&PMN_AllHomeStates [...].RUN_CNTL_ID.Value`
+  on a `Global array of Record` (the "generated REC.FIELD" was the next
+  row shifted up). The ordinary Global declaration never joined
+  `recordArrayVariables`. EXACT 29,891 -> 29,895 (+4) = forward-exact;
+  exactly 4 programs changed (bytes and lists), 0 farther, no category
+  moves; ACTIVE_RECORD_FIELD 28 -> 24; protected PASS, 0 EXACT ->
   non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See
-  "Compiler Semantics Cycle 147".
-- **Last successful calibration:** Cycle 147 (fragment owner slot).
+  "Compiler Semantics Cycle 148".
+- **Last successful calibration:** Cycle 148 (Global array-of-Record
+  receiver).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
-  row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
+  quoted / unquoted same-name row sharing (23684 23724 22983 5672 24054
+  24066 24083 -- Cycle 149 candidate); row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
   (an undeclared root's members are inline names: 4269, 4440, 5931 ...
   forward-exact; no record catalog needed); sub-package canonical
   case in type-path names (28942); FIELDVALUE / XLAT* (18989 too);
@@ -23,21 +26,26 @@
   ...); the fallback wildcard over-claim (blocked by 13525 -- Cycle 105);
   `%This` method results; 29797 / 29883; 30192; ordinary `Function`
   parameters `As array of <Class>`; hidden rows behind classes absent from
-  the snapshot (28968, 29230, 29598, 29715 / 29725); ordinary `As` casts
+  the snapshot (28964, 28968, 29230, 29598, 29715 / 29725); ordinary `As` casts
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 148):** reference layer -- ordinary FIELD/REC.FIELD
-  (4: 24348 24518 24519 24563) and ordinary BARNAME/MENUNAME (2: 23684
-  23724) are the cleanest non-fallback groups left; App Class PACKAGE/PACKAGE
-  14 (heterogeneous, Cycle 137; 28964's remainder needs the absent
-  superclass `BNE_OPEN_ENROLL_FL:Page:SubPage:EnrollElect` -- %Super.TxtCat
-  / FormatAmount / CostCredit, parked). Fallback groups stay parked
-  (13525). Scratchpad was wiped between sessions -- tools recreated under
-  c147 (gate.sh, ldiff.ts, part.ts, trace.ts ...). README.md has unrelated
-  uncommitted user edits -- never stage it; never touch stash@{0} /
-  stash@{1}.
-- **Newly established rules this session:** Cycle 147 (encoder): a
+- **Next action (Cycle 149):** quoted / unquoted same-name row sharing
+  (ordinary BARNAME/MENUNAME 23684 23724 are its cleanest members; also
+  22983, 5672, 24054, 24066, 24083): stored shares one row between
+  `MenuName."X"` and `MenuName.X` within one top-level statement, keeps
+  separate rows across statements (805, 9670, 11344 EXACT). Needs the
+  quoted (per control group) and symbolic (per allocation unit) lifetimes
+  joined -- census per site against the encoder's control group first.
+  Alternatives: App Class PACKAGE/FIELD 6, ordinary SCROLL/FIELD 3,
+  ordinary SCROLL/RECORD 4. Fallback groups stay parked (13525).
+  Scratch tools under c148 (gate.sh, ldiff.ts, part.ts, trace.ts ...).
+  README.md has unrelated uncommitted user edits -- never stage it; never
+  touch stash@{0} / stash@{1}.
+- **Newly established rules this session:** Cycle 148 (encoder): an
+  indexed element of an ordinary `Global array of Record` is a Record
+  receiver (its bare member a FIELD row), as Local and App Class ones
+  already were; Cycle 147 (encoder): a
   suppressed owner slot (any App Class method fragment) binds no
   reference; Cycle 146 (harness): a key
   without OBJECTID 1 / 2 has a blank owner record / field; (encoder)
@@ -218,6 +226,50 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 148 -- Global array-of-Record receiver
+
+Target: ordinary FIELD/REC.FIELD (24348 24518 24519 24563), first diff
+stored FIELD.RUN_CNTL_ID / generated the next symbolic row. Full-list
+classification: each list is exact but for one missing FIELD.RUN_CNTL_ID
+(FIELD missing, nothing extra, no RECORD.FIELD replaced). Source, all four:
+`Global array of Record &PMN_AllHomeStates;` ...
+`&PMN_AllHomeStates [&PMN_AllHomeStates.Len].RUN_CNTL_ID.Value =
+<REC>.PROJECTNAME.Value;` then `Transfer(...)` -- one PMN process-monitor
+template (24518 / 24563 identical but the symbolic record; 24519 the
+report-manager variant; 24348 inside `If %Page = Page.X`).
+
+The Cycle 45 rule already makes an indexed `array of Record` element a
+Record receiver (`recordArrayIndexedFieldAccess` -> expectedReferenceMember
+'field'); the ordinary `globalDeclaration()` only registered scalar Record
+/ Rowset, so the Global variable never reached it.
+`cycle148-record-array-element-census.ts`: indexed element members are a
+stored FIELD row in every scope -- ordinary Local 206/206 sites (133 EXACT
+programs), App Class Local 30/30, App Class Global 3/3, ordinary Global
+4/4 (generated 0/4 before); bare `&x.Len` and Record properties (Name,
+IsChanged, FieldCount) never. Ordinary Component has no indexed site --
+not registered (unevidenced).
+
+Fix: the ordinary Global declaration adds an `array of Record` variable
+(first and comma-continued) to `recordArrayVariables`. Full corpus: 4
+programs changed (bytes and lists), all 4 EXACT; 0 lost, 0 farther, no
+category moves. Test: `encoderGlobalRecordArray.test.ts` (24518 list
+order, FIELD 0x4A and 0x21 NAMENUMs, roundtrip; `.Len` control).
+
+Controls: FIELD.X and REC.X coexist as separate rows in 2,516 EXACT
+programs (282 with REC1.X and REC2.X too) -- the receiver decides the
+form, never the name. The over-specialization / lost-provenance /
+syntactic-symbol hypotheses were not needed: no RECORD.FIELD row was
+generated for the element access.
+
+Secondary, BARNAME/MENUNAME (23684 23724): a second
+MENUNAME.MANAGE_PAYROLL_PROCESS_US row -- the quoted `MenuName."X"` in
+`If %Menu = ...` and the unquoted `MenuName.X` in the `DoModalComponent`
+it guards share one stored row. `cycle148-quoted-unquoted-reference-census.ts`:
+every non-EXACT site with fewer stored rows (14 groups, 7 programs) has
+both spellings in one top-level statement; EXACT controls 805, 9670, 11344
+keep separate rows across statements. Parked (stop G): it joins the
+quoted per-control-group pool with the symbolic allocation-unit pool.
 
 ## Compiler Semantics Cycle 147 -- App Class fragment owner slot
 
