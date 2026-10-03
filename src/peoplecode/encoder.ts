@@ -10,6 +10,7 @@ import {
   applicationClassHasTrailingSourceTerminator,
   parseApplicationClassSource,
   maskNonCode,
+  isRemCommentStart,
   type ApplicationClassMethodMember,
   type ApplicationClassStorageMember
 } from './applicationClassProgram.js';
@@ -14544,9 +14545,7 @@ function scanApplicationClassLayoutComments(
       commentEnd = close < 0 || close + 2 > end ? end : close + 2;
       opcode = 0x55;
     } else if (
-      source.slice(index, index + 3).toLowerCase() === 'rem' &&
-      (index === 0 || !/[A-Za-z0-9_%&]/.test(source[index - 1])) &&
-      /[\s:]/.test(source[index + 3] ?? '')
+      isRemCommentStart(source, index)
     ) {
       const semicolon = source.indexOf(';', index + 3);
       commentEnd = semicolon < 0 || semicolon + 1 > end ? end : semicolon + 1;
