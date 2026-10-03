@@ -1,16 +1,17 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-03, Cycle 152)
+## Current status (2026-10-03, Cycle 153)
 
-- **Current target:** Cycle 152 -- Function `array of Record` dependency
-  (4861 16720 28683: the header's missing PACKAGE.RECORD) plus the
-  PanelGroup array declaration (6438, 6074). EXACT 29,924 -> 29,929 (+5)
-  = forward-exact; 6 programs changed over three semantic commits, 0
-  farther; ACTIVE_FIELD 17 -> 14, ENCODE_ERROR 69 -> 67; protected PASS, 0
-  EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See
-  "Compiler Semantics Cycle 152".
-- **Last successful calibration:** Cycle 152 (Function array-of-Record
-  dependency; PanelGroup arrays).
+- **Current target:** Cycle 153 -- ENCODE_ERROR syntax: multidimensional
+  subscripts `&a [i, j]` (11 programs) and try/catch (several clauses; a
+  catch body ending without `;`). EXACT 29,929 -> 29,952 (+23) =
+  forward-exact; 27 programs changed, 0 farther; ENCODE_ERROR 67 -> 40;
+  4 encode now with later differences (28872 / 29293 -> ACTIVE_RECORD,
+  27771 -> DECODE_SOURCE_MISMATCH, 29465 -> ACTIVE_PACKAGE); protected
+  PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in,
+  EXACT). See "Compiler Syntax Cycle 153".
+- **Last successful calibration:** Cycle 153 (multi-index subscripts;
+  catch clauses).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   App Class PACKAGE/FIELD 6 (28967 29518 29583 29598 29715 29725) -- each
@@ -32,18 +33,25 @@
   control group or the allocation unit; whether `As any` parameters
   differ from untyped ones; whether non-Record built-in `As array of`
   parameters open a row (13562 `array of Rowset` only).
-- **Next action (Cycle 153):** the ordinary non-fallback reference frontier
-  is nearly exhausted (FIELD/FIELD 16567 19289, none/RECORD 16495 16962,
-  singletons). ENCODE_ERROR (67) is now the richest seam: multi-dimensional
-  array subscripts `&a [1, 1]` (11: 4101 5089 6933 6936 11120 18579 ...,
-  28872 29293 App Class -- "expected ] after array subscript"); `catch`
-  grammar (14 "keyword catch is not a supported call name", 5 "expected ;
-  in catch body" -- e.g. 18280 a catch-body statement without `;` before
-  end-try, 25111). Start with the subscript family: stored byte shape of
-  the comma subscript, decoder support. Fallback groups stay parked
-  (13525). Scratch tools under c152. README.md has unrelated uncommitted
-  user edits -- never stage it; never touch stash@{0} / stash@{1}.
-- **Newly established rules this session:** Cycle 152 (encoder): an `As
+- **Next action (Cycle 154):** remaining encode errors (70 programs incl.
+  other categories). Two families: (1) a statement terminator omitted
+  before a block-closing keyword -- 826 `Return` before End-If, 14149
+  `End-If` before `catch` (try body), "expected ; in For / When / Else /
+  If / try body" (5047? 28868 29622 30068 30139 30159) -- census stored
+  bytes per closing keyword (catch body: no terminator written, Cycle
+  153); (2) comments inside expressions -- a block comment before a
+  binary operator (5047, 25951, 25985: stored `4D ] 4E /*..*/ 0D <`) and
+  `rem` inside a multi-line condition (13895, 16592). Other: 13 "bare
+  identifiers only as calls" (heterogeneous), 9 "expected )", 6
+  "unsupported statement", unsupported types (time, DocumentKey,
+  CubeCollection ...). Also 28872 / 16495 `&rs(n).FreeFormStyleName` (a
+  Row property bound as RECORD), 29293 App Class Declare Function row.
+  Fallback groups stay parked (13525). Scratch tools under c153.
+  README.md has unrelated uncommitted user edits -- never stage it; never
+  touch stash@{0} / stash@{1}.
+- **Newly established rules this session:** Cycle 153 (syntax): a
+  subscript holds comma-separated indexes `4C i 03 j 4D`; several catch
+  clauses; a catch body may end without `;` before end-try; Cycle 152 (encoder): an `As
   array of Record` Function parameter opens PACKAGE.RECORD in the header's
   built-in unit; PanelGroup array declarations parse (Component form) and
   a PanelGroup array of Record is a record array; Cycle 151 (encoder): ordinary
@@ -237,6 +245,35 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Syntax Cycle 153 -- multi-index subscripts; catch clauses
+
+ENCODE_ERROR 67 at baseline: catch 14 + 5, multi-index subscript 11,
+bare identifiers 12, expected ) 9, other. Subscript family (4101 5089
+6933 6936 11120 18579 21943 25951 25985; App Class 28872 29293):
+`cycle153-multi-index-subscript-census.ts` -- 79 sites, all two indexes,
+containers `array of array of string / any` or undeclared, none followed
+by a member / method, no nested commas; stored `4C <i> 03 <j> 4D` (one
+subscript, the ordinary comma, no count byte); the decoder already
+renders `&a [i, j]`. No EXACT control existed (all 11 failed to encode).
+
+Fix (09c7ac4): the postfix `[` parses `expression (',' expression)*`
+like a call's argument list; the App Class array-element counter steps
+one level per index. 9 changed: 7 EXACT; 28872 (`&RS(n).FreeFormStyleName`
+bound as RECORD, as 16495) and 29293 (App Class Declare Function row)
+now encode -> ACTIVE_RECORD; 25951 / 25985 parse past every subscript and
+stop at a block comment before a binary operator (`&CRA_Aggregate [i, 2]
+/* CONCEPT Amount */ < 0` -- stored `4D 4E <comment> 0D`), a general
+expression gap (`If &a /* c */ < 0` fails too).
+
+Catch (b1d0974): stored writes a second clause as `... 15 4F 66 <type>
+<var>` (25111) and a catch body's last statement may have no terminator
+before `67 end-try` (18280 `&str = ""`, 27771). The catch body hands a
+following `catch` to the try loop (labelled `tryClauses`) and accepts a
+missing `;` only before end-try. 18 changed: 16 EXACT (18280 25111 and
+14 App Class -- the GP_ABS_CS_TMPL exception-class methods), 27771 /
+29465 encode now. Tests: `encoderMultiIndexSubscript.test.ts`,
+`encoderTryCatchClauses.test.ts`.
 
 ## Compiler Semantics Cycle 152 -- Function array-of-Record dependency; PanelGroup arrays
 
