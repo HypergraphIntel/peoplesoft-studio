@@ -7224,7 +7224,18 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
               /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
             chunks.push(typeName());
             if (isArrayType) {
-              arrayElementTypes();
+              const parameterElementType = arrayElementTypes();
+              /*
+               * Cycle 151: an `As array of Record` parameter is a record
+               * array in its Function, like a Local (Cycle 45) or Global
+               * (Cycle 148) one: an indexed element's bare member is a
+               * FIELD row. 21 / 21 such members have the stored FIELD row
+               * (4861, 4916, 5216, 16720, 28683); before, only a same-name
+               * outer Local happened to supply the type.
+               */
+              if (ordinaryProgram && paramName !== undefined && /^Record$/i.test(parameterElementType ?? '')) {
+                recordArrayVariables.add(paramName.toLowerCase());
+              }
               /*
                * Cycle 144: `&x As array of <Package:Class>` uses its element
                * class in the header's unit, like the scalar form (Cycle 94).
