@@ -7168,6 +7168,16 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             chunks.push(typeName());
             if (isArrayType) {
               arrayElementTypes();
+              /*
+               * Cycle 144: `&x As array of <Package:Class>` uses its element
+               * class in the header's unit, like the scalar form (Cycle 94).
+               * 15070 `Function GetPrimitivesForUriDoc(..., &aPrimitiveList As
+               * array of PT_DOCUMENT_BUILDER:PrimitiveBuilder)` stores a
+               * PRIMITIVEBUILDER row before the body's own; 16567 likewise.
+               */
+              if (unitScopedClassRows && arrayElementApplicationClass !== undefined) {
+                useApplicationClassRow(arrayElementApplicationClass.packagePath, arrayElementApplicationClass.className);
+              }
             } else if (paramName !== undefined && /^(?:Record|Row|Rowset)$/i.test(paramType ?? '')) {
               /*
                * `Record`/`Row`/`Rowset`-typed Function PARAMETERS need the
@@ -7274,6 +7284,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           const returnElement = arrayElementTypes();
           if (returnElement !== undefined && arrayElementApplicationClass === undefined) {
             allocateBuiltinTypePackageReferenceIfSupported(returnElement, 'function-returns');
+          } else if (unitScopedClassRows && arrayElementApplicationClass !== undefined) {
+            // Cycle 144: `Returns array of <Package:Class>` likewise (14641
+            // `Function FillQueriesPrompts() Returns array of PT_CONQRS:
+            // QUERYITEMPROMPT` stores a QUERYITEMPROMPT row in the header).
+            useApplicationClassRow(arrayElementApplicationClass.packagePath, arrayElementApplicationClass.className);
           }
         } else if (returnType !== undefined) {
           allocateBuiltinTypePackageReferenceIfSupported(returnType, 'function-returns');
