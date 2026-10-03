@@ -70,9 +70,12 @@ export function harnessOwner(def: SnapshotDefinition) {
   const eventIndex = values.findIndex(v => v.toLowerCase() === 'onexecute');
   const recordIndex = ids.findIndex(id => id === 1);
   const fieldIndex = ids.findIndex(id => id === 2);
+  // Cycle 146: a key without OBJECTID 1 / 2 has a blank owner record /
+  // field (stored `REC.` / `.`); Application Classes keep their values.
+  const appClass = d.objectid1 === 104;
   return {
-    recordName: recordIndex >= 0 ? values[recordIndex] : values[0],
-    fieldName: fieldIndex >= 0 ? values[fieldIndex] : values[1],
+    recordName: recordIndex >= 0 ? values[recordIndex] : appClass ? values[0] : '',
+    fieldName: fieldIndex >= 0 ? values[fieldIndex] : appClass ? values[1] : '',
     packagePath: values.slice(0, eventIndex < 0 ? values.length : eventIndex).filter(Boolean)
   };
 }

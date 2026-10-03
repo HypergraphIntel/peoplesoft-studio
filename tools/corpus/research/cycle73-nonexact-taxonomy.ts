@@ -62,9 +62,11 @@ function ownerContextOf(def: any) {
   // displacing RECNAME/FIELDNAME to a later physical slot.
   const recordIndex = ids.findIndex(id => id === 1);
   const fieldIndex = ids.findIndex(id => id === 2);
+  // Cycle 146: no OBJECTID 1 / 2 -> blank (stored `REC.` / `.`), as validator.ts
+  const appClass = def.objectid1 === 104;
   return {
-    recordName: recordIndex >= 0 ? values[recordIndex] : values[0],
-    fieldName: fieldIndex >= 0 ? values[fieldIndex] : values[1],
+    recordName: recordIndex >= 0 ? values[recordIndex] : appClass ? values[0] : '',
+    fieldName: fieldIndex >= 0 ? values[fieldIndex] : appClass ? values[1] : '',
     packagePath
   };
 }
