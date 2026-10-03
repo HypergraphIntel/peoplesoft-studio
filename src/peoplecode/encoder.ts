@@ -1234,6 +1234,9 @@ interface BuiltinTypeSemantics {
   readonly packageAllocationContexts: ReadonlySet<BuiltinTypeContext>;
 }
 
+// Cycle 154: keywords that close or continue a block (a statement before one may omit `;`).
+const BLOCK_CLOSING_KEYWORD = /^(?:End-If|Else|End-For|End-While|Until|When-Other|When|End-Evaluate|catch|end-try|End-Function|end-method|end-get|end-set)\b/i;
+
 const BUILTIN_TYPE_REGISTRY: ReadonlyMap<string, BuiltinTypeSemantics> = new Map(
   (
     [
@@ -6846,7 +6849,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     } else if (word('Return')) {
       chunks.push(fixed('Return'));
       space();
-      if (source[pos] !== ';') expression();
+      // Cycle 154: a bare Return may end its block unterminated (826
+      // `Return` then `End-If`: stored `38 1A`) -- a block keyword is not
+      // its value.
+      if (source[pos] !== ';' && !BLOCK_CLOSING_KEYWORD.test(source.slice(pos))) expression();
     } else if (word('If')) {
       inControlGroup(ifStatement);
     } else if (word('While')) {
@@ -8095,12 +8101,15 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
       space();
 
-      if (source[pos] !== ';') {
+      if (source[pos] === ';') {
+        pos++;
+        chunks.push(fixed(';'));
+      } else if (!/^catch\b/i.test(source.slice(pos))) {
+        // Cycle 154: the last try-body statement may omit `;` before catch;
+        // stored writes no terminator (14149 `End-If` then `66 catch`,
+        // 30159 `.SetDefault()` then catch).
         fail('expected ; in try body');
       }
-
-      pos++;
-      chunks.push(fixed(';'));
       trailingBlockComments();
     }
   }
@@ -8406,6 +8415,19 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       statement();
 
       space();
+
+      // Cycle 154: a block comment between a For-body statement and its `;`
+      // is an inline 0x4E comment, as in the If / When bodies (5047
+      // `...) <comment>;` stores `14 4E 15`).
+      if (
+        source.startsWith('/*', pos) &&
+        /^(?:\/\*[\s\S]*?\*\/\s*)+;/.test(source.slice(pos))
+      ) {
+        while (source.startsWith('/*', pos)) {
+          chunks.push(inlineBlockComment());
+          space();
+        }
+      }
 
       if (source[pos] !== ';') {
         /*
@@ -9003,7 +9025,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       if (source[pos] === ';') {
         pos++;
         chunks.push(fixed(';'));
-      } else if (!/^End-If\b/i.test(source.slice(pos))) {
+      } else if (!/^(?:End-If|REM)\b/i.test(source.slice(pos))) {
+        // Cycle 154: before a REM line too, as in the If body (29622
+        // `MessageBox(...)` then `rem Warning ...;` then End-If: stored
+        // `14 24 1A`).
         fail('expected ; in Else body');
       }
       trailingBlockComments();
@@ -9446,6 +9471,19 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            *   /* Lease *\/
            *   When = "L"
            */
+          // Cycle 154: a block comment between a When-body statement and its
+          // `;` is an inline 0x4E comment, as in the If body (28868
+          // `MsgGetText(...) /* DOTO: ... */;` stores `14 4E 15`).
+          if (
+            source.startsWith('/*', pos) &&
+            /^(?:\/\*[\s\S]*?\*\/\s*)+;/.test(source.slice(pos))
+          ) {
+            while (source.startsWith('/*', pos)) {
+              chunks.push(inlineBlockComment());
+              space();
+            }
+          }
+
           if (
             source[pos] !== ';' &&
             source.startsWith('/*', pos) &&
