@@ -12,7 +12,8 @@ EXACT 29,719 / NONEXACT 490; Cycle 129: EXACT 29,720 / NONEXACT 489; Cycle 130:
 EXACT 29,721 / NONEXACT 488 -- all decoder only; Cycle 131 encoder: EXACT
 29,754 / NONEXACT 455; Cycle 132: EXACT 29,764 / NONEXACT 445; Cycle 133:
 EXACT 29,774 / NONEXACT 435; Cycle 134: EXACT 29,781 / NONEXACT 428;
-Cycle 135: EXACT 29,809 / NONEXACT 400; forward-exact = EXACT); forward-exact
+Cycle 135: EXACT 29,809 / NONEXACT 400; Cycle 136: EXACT 29,820 / NONEXACT
+389; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -162,6 +163,12 @@ shadowed by a body Local / differently typed parameter); the chain
 transitions and the existing allocator do the rest. Header Row
 declarations change no program: not modeled. Every reference-list change
 validated with `cycle135-reference-delta.ts`.
+
+Cycle 136 -- `create` and its class row: in ordinary and App Class
+programs alike the create uses its class row after its constructor
+arguments (App Class: `ensureRuntimeCreateReference` after the argument
+list), unless the statement's own `Local <Class> &v =` declaration typed
+it first (`cycle136-create-package-order-census.ts`).
 
 ## 5. Declarations and scope
 

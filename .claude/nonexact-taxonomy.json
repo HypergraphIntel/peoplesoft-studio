@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-02T23:48:25.463Z",
+ "generatedAt": "2026-10-03T00:22:40.545Z",
  "totalDefinitions": 30209,
- "exactCount": 29809,
- "nonexactCount": 400,
+ "exactCount": 29820,
+ "nonexactCount": 389,
  "rows": [
   {
    "definitionId": 522,
@@ -4074,22 +4074,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 29451,
-   "displayName": "104=GP_ABS_CRITERIA, 107=AbsCriteria, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 964,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 6,
-    "generatedCount": 6,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 29457,
    "displayName": "104=GP_ABS_CS_CMPNT, 107=TmplCreation, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -4283,22 +4267,6 @@
    }
   },
   {
-   "definitionId": 29519,
-   "displayName": "104=GP_ABS_EA_HANDLER, 107=reqstrAutoApprove, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 627,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 20,
-    "generatedCount": 20,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 29523,
    "displayName": "104=GP_ABS_EODI_PACKAGE, 105=DynamicDisplays, 107=RequestAbsence, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -4379,38 +4347,6 @@
    }
   },
   {
-   "definitionId": 29538,
-   "displayName": "104=GP_ABS_EVT_HANDLER, 107=reqstrAutoApprove, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 627,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 18,
-    "generatedCount": 18,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 29540,
-   "displayName": "104=GP_ABS_FMLA, 107=FMLACriteria, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 921,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 12,
-    "generatedCount": 12,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 29544,
    "displayName": "104=GP_ABS_LVDN_HANDLER, 107=apprEventHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -4424,22 +4360,6 @@
     "storedCount": 49,
     "generatedCount": 47,
     "firstDivergenceKind": "stored-only"
-   }
-  },
-  {
-   "definitionId": 29546,
-   "displayName": "104=GP_ABS_LVDN_HANDLER, 107=reqstrAutoApprove, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 627,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 11,
-    "generatedCount": 11,
-    "firstDivergenceKind": "package"
    }
   },
   {
@@ -5039,70 +4959,6 @@
    }
   },
   {
-   "definitionId": 30054,
-   "displayName": "104=PTAF_CRITERIA, 105=DEFINITION, 107=CriteriaEntered, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 734,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 16,
-    "generatedCount": 16,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 30058,
-   "displayName": "104=PTAF_CRITERIA, 105=EXAMPLES, 107=CriteriaClassExample, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 782,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 6,
-    "generatedCount": 6,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 30060,
-   "displayName": "104=PTAF_CRITERIA, 107=FalseCriteria, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 517,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 4,
-    "generatedCount": 4,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 30061,
-   "displayName": "104=PTAF_CRITERIA, 107=TrueCriteria, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 511,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 4,
-    "generatedCount": 4,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 30068,
    "displayName": "104=PTAF_EMC, 105=CONTROLLERS, 107=formLayoutDesignController, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "ENCODE_ERROR",
@@ -5147,38 +5003,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 512: expected ; in If body",
    "construct": "doReturnButtonFC",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 30146,
-   "displayName": "104=PTAF_UPGRADE_CRITERIA, 107=DefinitionCriteria, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 547,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 6,
-    "generatedCount": 6,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 30147,
-   "displayName": "104=PTAF_UPGRADE_CRITERIA, 107=HCMDefinitionCriteria, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 565,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 7,
-    "generatedCount": 7,
-    "firstDivergenceKind": "package"
-   }
   },
   {
    "definitionId": 30153,
