@@ -1,17 +1,19 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-03, Cycle 149)
+## Current status (2026-10-03, Cycle 150)
 
-- **Current target:** Cycle 149 -- quoted / unquoted same-name row sharing
-  (ordinary BARNAME/MENUNAME 23684 23724 plus 5672 22983 24054 24066
-  24083). One row per allocation unit for `Kind."X"` and `Kind.X`; first
-  use (either spelling) creates it. EXACT 29,895 -> 29,902 (+7) =
-  forward-exact; exactly 7 programs changed (bytes and lists), 0 farther,
-  no category moves; ACTIVE_RECORD_FIELD 24 -> 21, QUOTED_COMPONENT 8 -> 4;
-  protected PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70
-  (13525 in, EXACT). See "Compiler Semantics Cycle 149".
-- **Last successful calibration:** Cycle 149 (quoted / unquoted row
-  sharing).
+- **Current target:** Cycle 150 -- ordinary SCROLL/SCROLL (10: 2685 3912
+  6077 6084 8837 8838 10233 10365 21980 21981). One construct: a Row's
+  child-rowset shorthand `<row>.SCROLLNAME (n)`, a 0x4A SCROLL row stored
+  that the encoder wrote inline (or bound as RECORD, 6084). EXACT 29,902 ->
+  29,920 (+18) = forward-exact; 20 programs changed, 18 exact, 2 closer
+  (1635, 6275), 0 farther, no category moves; ACTIVE_SCROLL 11 -> 1,
+  ACTIVE_RECORD 20 -> 18, ACTIVE_FIELD 21 -> 18, ACTIVE_RECORD_FIELD 21 ->
+  20, ACTIVE_OTHER 7 -> 6, STRUCTURAL_ORDERING 4 -> 3 (7954); protected
+  PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in,
+  EXACT). See "Compiler Semantics Cycle 150".
+- **Last successful calibration:** Cycle 150 (Row child-rowset SCROLL
+  shorthand).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   App Class PACKAGE/FIELD 6 (28967 29518 29583 29598 29715 29725) -- each
@@ -31,16 +33,22 @@
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit; whether quoted-to-quoted reuse follows the
   control group or the allocation unit (no occurrence separates them).
-- **Next action (Cycle 150):** ordinary SCROLL/SCROLL (10: 2685 3912 6077
-  6084 8837 8838 10233 10365 21980 21981) -- 8 of them one missing SCROLL
-  row (6077 two; 6084 mixed with an extra RECORD.GB_GROUP_TBL): full-list
-  classification, then the SCROLL row lifetime / construct that stored
-  allocates. Alternatives: ordinary SCROLL/RECORD 4, ordinary SCROLL/FIELD
-  3. Fallback groups stay parked (13525). Scratch tools under c149
-  (gate.sh, ldiff.ts, part.ts, trace.ts ...). README.md has unrelated
-  uncommitted user edits -- never stage it; never touch stash@{0} /
-  stash@{1}.
-- **Newly established rules this session:** Cycle 149 (encoder): quoted
+- **Next action (Cycle 151):** scope-aware Function parameters -- an
+  untyped Function parameter that shares its name with a top-level typed
+  Record / Rowset / Row / Field variable is late-bound inside the Function
+  (stored keeps its members inline). Ordinary SCROLL/RECORD 13657 13658
+  (`Function Expand_Menu(&MENUDEFN_RS, ...)` vs top-level `Local Rowset
+  &MENUDEFN_RS`) and 11513; the shape census also lists non-EXACT 1635
+  6438 15256 and EXACT controls 13417 13431 15085 15534 17038 -- the
+  encoder's flat declaration namespace must become per-Function for
+  parameters without breaking those. Alternatives: App Class PACKAGE/RECORD
+  4, ordinary none/RECORD 2. Fallback groups stay parked (13525). Scratch
+  tools under c150 (gate.sh, ldiff.ts, part.ts, trace.ts, shadow.ts ...).
+  README.md has unrelated uncommitted user edits -- never stage it; never
+  touch stash@{0} / stash@{1}.
+- **Newly established rules this session:** Cycle 150 (encoder): off a Row
+  value a non-method member followed by `(` is a SCROLL row (child-rowset
+  shorthand), ordinary programs; Cycle 149 (encoder): quoted
   and unquoted spellings of one reference share one row per ordinary
   allocation unit; Cycle 148 (encoder): an
   indexed element of an ordinary `Global array of Record` is a Record
@@ -226,6 +234,45 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 150 -- Row child-rowset SCROLL shorthand
+
+Targets: ordinary SCROLL/SCROLL (10). Full-list classification: 8 missing
+one SCROLL row (2685 CENTR_DATA_BRA, 3912 DEP_BEN, 8837 / 8838 / 21980 /
+21981 GPMX_PAYSL_FORM, 10233 GPUS_BND_ASSIGN, 10365 GPUS_LOAN_PYE), 6077
+missing two (GB_GROUP_TBL, two units), 6084 mixed (SCROLL.GB_GROUP_TBL x3
+and SCROLL.GB_WHERE_TBL missing, RECORD.GB_GROUP_TBL extra). No wrong
+identity, no order-only, no lifetime mismatch. One construct in all ten:
+`GetLevel0().GetRow(CurrentRowNumber(0)).CENTR_DATA_BRA
+(CurrentRowNumber(1)).GetRowset(Scroll.CENTR_DTL_BRA)` /
+`GetLevel0()(1).GB_GROUP_TBL (&r).GB_WHERE_TBL (&r2)...` -- a Row's child
+rowset by scroll name, indexed. Templates: 8837 / 21981 (F_ER), 8838 /
+21980 (F_DE), 10233 / 10365 (GetLevel0()(1) form), 6077 / 6084 (GB group
+pages), 2685 / 3912 (GetRow(CurrentRowNumber(0)) form).
+
+Stored: `05 "." 4A #SCROLL.X 0B "("` -- a 0x4A operand bound to SCROLL.X;
+generated wrote `0A "X"` inline. The postfix chain bound a method-call
+member off a Row only when a same-name RECORD or SCROLL row already
+existed anywhere (`hasExistingExpectedReference`), reusing a SCROLL row
+or else allocating a RECORD one (6084's extra RECORD.GB_GROUP_TBL, the
+name being a `Record.` argument elsewhere).
+`cycle150-row-scroll-shorthand-census.ts`: every GetLevel0()(n) /
+GetRow(..) site has the stored SCROLL row; the sites without one are
+upper-cased Row / other methods (GETRECORD, GETFIELD, FETCH, SETDEFAULT).
+
+Fix: ordinary programs, dependencyKind 'record' (a Row value), method-call
+shape, member not a Row method -> bind (reuse in unit, else allocate) a
+SCROLL row. Full corpus: 20 changed; 18 EXACT (the ten plus 4310, 7580,
+7954, 8853, 8989, 10933, 16316, 16820); 1635 and 6275 lists exact, bytes
+closer / same first diff; 0 lost, 0 farther, no category moves. Test:
+`encoderRowChildScroll.test.ts` (2685 list / operands, 6084 chained with
+Record. arguments, one vs two units, Row-method control).
+
+Secondary, ordinary SCROLL/RECORD (2 left: 13657 13658; 7580 and 10933
+closed by the rule): an untyped Function parameter `&MENUDEFN_RS`
+shadowing the top-level `Local Rowset &MENUDEFN_RS` -- stored keeps its
+`.GetRow(&I).PORTAL_MEN2_WRK.MENULABEL` inline, the flat namespace binds
+RECORD / FIELD (same gap as 11513). Cycle 151 candidate.
 
 ## Compiler Semantics Cycle 149 -- quoted / unquoted row sharing
 

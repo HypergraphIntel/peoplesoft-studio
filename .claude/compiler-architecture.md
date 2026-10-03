@@ -20,7 +20,8 @@ Cycle 142: EXACT 29,846 / NONEXACT 363; Cycle 143: EXACT
 29,849 / NONEXACT 360; Cycle 144: EXACT 29,857 / NONEXACT 352; Cycle 145:
 EXACT 29,862 / NONEXACT 347; Cycle 146: EXACT 29,871 / NONEXACT 338; Cycle 147:
 EXACT 29,891 / NONEXACT 318; Cycle 148: EXACT 29,895 / NONEXACT 314;
-Cycle 149: EXACT 29,902 / NONEXACT 307; forward-exact = EXACT); forward-exact
+Cycle 149: EXACT 29,902 / NONEXACT 307; Cycle 150: EXACT 29,920 /
+NONEXACT 289; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -273,6 +274,16 @@ units (805, 9670, 11344). The quoted control-group cache stays for
 quoted-to-quoted reuse (no corpus occurrence separates it from the unit)
 (`cycle149-quoted-symbolic-row-census.ts`; trace events carry
 `allocationUnit`).
+
+Cycle 150 -- off a Row value (`GetLevel0()(n)`, `GetRow(..)`, a Row
+variable, a previous shorthand), a member followed by `(` that is not a
+Row method (GetRecord, GetRowset, CopyTo, GetNextEffRow, GetPriorEffRow;
+case-insensitive) is the child rowset by scroll name indexed to a row:
+`GetLevel0()(1).GB_GROUP_TBL (&r).GB_WHERE_TBL (&r2)`. In an ordinary
+program it binds a SCROLL row (0x4A) with the unit lifetime -- never a
+same-name RECORD row (`cycle150-row-scroll-shorthand-census.ts`). App
+Class bodies keep the earlier behavior (reuse of an existing SCROLL row
+only).
 
 ## 5. Declarations and scope
 
