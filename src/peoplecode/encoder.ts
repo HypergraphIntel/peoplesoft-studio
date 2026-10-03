@@ -11489,12 +11489,25 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
              *          => EMPLOYEEPHOTO 6, EMPLOYEEPHOTO 7 (APPCLASSMETHOD
              *             DISPLAYPHOTOHEADER), EMPLID 8
              */
+            /*
+             * Cycle 145: except a `%metadata` system class -- its receivers
+             * are typed, but a method call on one uses no row (its
+             * declarations and `create`s still do). 16085 `Local
+             * %metadata:MacroDefn:MacroDefn &srcDefn;` ... `&srcDefn =
+             * &m_mgr.GetDefnToUpdate(&key1);`, `&srcDefn.DeleteAll_Macro();`
+             * store no MACRODEFN_MANAGER / MACRODEFN row for the calls; every
+             * ordinary %metadata program agrees
+             * (`cycle145-metadata-local-run-census.ts`: 16082 16084 16085
+             * 24416 24648 lists exact, 13 rows removed, none stored).
+             */
             if (unitScopedClassRows) {
-              useApplicationClassRow(
-                activeApplicationClassReceiver.packagePath,
-                activeApplicationClassReceiver.className,
-                member
-              );
+              if (!/^%metadata$/i.test(activeApplicationClassReceiver.packagePath[0] ?? '')) {
+                useApplicationClassRow(
+                  activeApplicationClassReceiver.packagePath,
+                  activeApplicationClassReceiver.className,
+                  member
+                );
+              }
             } else if (context?.applicationClassProgramRows !== undefined) {
               /*
                * Cycle 108: in an Application Class program the call uses the
