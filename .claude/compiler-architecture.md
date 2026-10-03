@@ -16,7 +16,8 @@ Cycle 135: EXACT 29,809 / NONEXACT 400; Cycle 136: EXACT 29,820 / NONEXACT
 389; Cycle 137: EXACT 29,821 / NONEXACT 388; Cycle 138: EXACT 29,822 /
 NONEXACT 387; Cycle 139: EXACT 29,825 / NONEXACT 384; Cycle 140:
 EXACT 29,832 / NONEXACT 377; Cycle 141: EXACT 29,843 / NONEXACT 366;
-Cycle 142: EXACT 29,846 / NONEXACT 363; forward-exact = EXACT); forward-exact
+Cycle 142: EXACT 29,846 / NONEXACT 363; Cycle 143: EXACT
+29,849 / NONEXACT 360; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -217,6 +218,12 @@ each sub-package in the program's first spelling of that package path
 (`firstPackageSpellings` / `canonicalTypePathName`), leaf as declared.
 Statement bytes keep the declaration's own spelling; reference identity
 stays the case-insensitive leaf (`cycle142-type-path-case-census.ts`).
+
+Cycle 143 -- REM comment boundary: `rem` / `remark` (case-insensitive)
+not preceded by an identifier character and followed by a non-identifier
+character, in the ordinary encoder (`^(?:REM|remark)\b`) and the App Class
+scanners alike (`isRemCommentStart`); the comment runs through its `;`
+(`cycle143-rem-lexical-census.ts`).
 
 ## 5. Declarations and scope
 
