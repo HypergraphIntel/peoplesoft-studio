@@ -1,19 +1,18 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-03, Cycle 154)
+## Current status (2026-10-03, Cycle 155)
 
-- **Current target:** Cycle 154 -- syntax: (A) terminator elision before
-  block keywords (826 bare Return; try body before catch 14149 30159;
-  Else body before REM 29622; comment before `;` in When / For bodies
-  28868 5047) and (B) block comments inside expressions (5004 5047 25124
-  25951 25953 25985 27517 28704 29654 7285). EXACT 29,952 -> 29,962 (+10)
-  = forward-exact; 14 programs changed, 0 farther; ENCODE_ERROR 40 -> 27;
-  protected PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0; fallback 70 +
-  14149 (now parses to an unsupported `time` type and trips the external
-  metadata detector -- the original 70 unchanged), 13525 EXACT. See
-  "Compiler Syntax Cycle 154".
-- **Last successful calibration:** Cycle 154 (terminator elision;
-  expression comments).
+- **Current target:** Cycle 155 -- unsupported built-in type names in
+  Function headers (the trailer descriptor threw): time, object, Message,
+  CubeCollection, Document, DocumentKey, Primitive, Compound,
+  CompositeQuery. EXACT 29,962 -> 29,975 (+13) = forward-exact; 14
+  programs changed, 0 farther; UNSUPPORTED_SYNTAX 29 -> 15 (15528 ->
+  ACTIVE_PACKAGE: an extra LOGICALSCHEMACOLLECTION row); protected PASS, 0
+  EXACT -> non-EXACT, ROUNDTRIP_ONLY 0; fallback membership unchanged (the
+  original 70 + 14149, which is now EXACT), 13525 EXACT. See "Compiler
+  Syntax Cycle 155".
+- **Last successful calibration:** Cycle 155 (Function type descriptors;
+  built-in type registry Function contexts).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   App Class PACKAGE/FIELD 6 (28967 29518 29583 29598 29715 29725) -- each
@@ -34,20 +33,24 @@
   reference / allocation unit; whether quoted-to-quoted reuse follows the
   control group or the allocation unit; whether `As any` parameters
   differ from untyped ones; whether non-Record built-in `As array of`
-  parameters open a row (13562 `array of Rowset` only).
-- **Next action (Cycle 155):** encode failures (56 incl. other
-  categories). Largest coherent group: unsupported built-in type names in
-  Function / declaration metadata (~14: `time` 1016 14149 15290 17885,
-  DocumentKey 15528 17083, CubeCollection 17821 17840, Message 13562,
-  CompositeQuery 14665, Compound 15515, Primitive 15517, Document 15586,
-  object 17998) -- census each type's stored PACKAGE row / type token.
-  Then: selector call on a method result `GetRowset(Scroll.X)(&i)` (30068
-  30139 29391 29609); REM after a boolean operator in a condition (13895
-  16592 28753); `try ... end-try` without catch (29816 29817). Fallback
-  groups stay parked (13525). Scratch tools under c154. README.md has
-  unrelated uncommitted user edits -- never stage it; never touch
-  stash@{0} / stash@{1}.
-- **Newly established rules this session:** Cycle 154 (syntax): bare
+  parameters open a row (13562 `array of Rowset` only); time / object
+  descriptors in App Class signatures.
+- **Next action (Cycle 156):** encode failures (42 incl. other
+  categories). Largest coherent group: a selector call on a method result
+  `...GetRowset(Scroll.X)(&i)` -- stored writes a plain postfix `0B ( ...
+  14 )` after the method's `14 )` (30068); the shape already encodes in
+  209 programs, fails in 11 (6318 14727 29338 29391 29609 29845 29950
+  30068 30098 30139 30153, mostly App Class) -- find which chain path
+  refuses the direct postfix call (`allowDirectPostfixCall`). Then REM
+  after And / Or (16592 28753: stored `18 And 24 rem...; <operand>` --
+  expression trivia; 13895 differs). Fallback groups stay parked (13525).
+  Scratch tools under c155 (gate.sh with membership-based fallback.ts).
+  README.md has unrelated uncommitted user edits -- never stage it; never
+  touch stash@{0} / stash@{1}.
+- **Newly established rules this session:** Cycle 155 (encoder): Function
+  directory descriptors for time / object / seven built-in object types;
+  Function-header registry contexts for CubeCollection, CompositeQuery,
+  Document, DocumentKey; Cycle 154 (syntax): bare
   Return before a block keyword; try body may end before catch; Else body
   before REM; comment before `;` in When / For bodies; block comments
   inside expressions (before a continuation / after an operator or
@@ -247,6 +250,38 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Syntax Cycle 155 -- Function type descriptors
+
+The 14 "Unsupported function metadata type" programs all failed in
+`functionTypeId` (the Function directory trailer), not the parser: stored
+`40 time` / `40 object` (keyword token) and `0A DocumentKey` ... (name
+token) already parse. Descriptors read by a sentinel encode (unknown type
+-> 0x0fedcba9, the stored word at that offset read back), consistent
+across every program: time 0x0a, object 0x0d (the decoder's
+RETURN_TYPE_CODES already maps 13 -> object), Message 0x8000e,
+CubeCollection 0x80033, Document 0x8003f, DocumentKey 0x80040, Primitive
+0x80041, Compound 0x80042, CompositeQuery 0x80048 (parameter slots |
+0xc0000000).
+
+`cycle155-function-type-descriptor-census.ts` (type x context x stored
+PACKAGE row): every object-type header occurrence has its PACKAGE row
+(Message, CubeCollection, Document, DocumentKey, Primitive, Compound,
+CompositeQuery -- parameters and returns); time / object never (like
+string / datetime) -- `object` is a late-bound scalar, kept apart.
+
+Fix 1 (fcb3fd7): descriptors (built-in objects in
+`BUILTIN_FUNCTION_TYPE_IDS`; time / object with date in a Function-only
+`FUNCTION_PRIMITIVE_TYPE_IDS`). Alone: 14 changed, 10 forward-exact.
+Fix 2 (57323ff): registry Function contexts for CubeCollection /
+CompositeQuery (parameter, return), Document (parameter), DocumentKey
+(return). Combined: 13 EXACT; 15528 encodes (extra
+LOGICALSCHEMACOLLECTION -- newly reachable, separate). Tests:
+`encoderFunctionTypeDescriptors.test.ts`.
+
+Secondary: the selector call on a method result (`14 ) 0B ( 01 &i 14 )`)
+fails in 11 programs though 209 encode it; REM after And / Or is 0x24
+expression trivia (16592 `18 And 24 rem...;`, 28753 `1E Or 24 rem,...;`).
 
 ## Compiler Syntax Cycle 154 -- terminator elision; expression comments
 

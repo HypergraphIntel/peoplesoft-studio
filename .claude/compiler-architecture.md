@@ -23,7 +23,8 @@ EXACT 29,891 / NONEXACT 318; Cycle 148: EXACT 29,895 / NONEXACT 314;
 Cycle 149: EXACT 29,902 / NONEXACT 307; Cycle 150: EXACT 29,920 /
 NONEXACT 289; Cycle 151: EXACT 29,924 / NONEXACT 285; Cycle 152: EXACT
 29,929 / NONEXACT 280; Cycle 153: EXACT 29,952 / NONEXACT 257;
-Cycle 154: EXACT 29,962 / NONEXACT 247; forward-exact = EXACT); forward-exact
+Cycle 154: EXACT 29,962 / NONEXACT 247; Cycle 155: EXACT 29,975 /
+NONEXACT 234; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -328,6 +329,17 @@ between an operand and a continuing operator / comparison / assignment
 `=` / comma, or right after an operator / comma, is an inline 0x4E at its
 position; any other comment still ends the expression. REM after a
 boolean operator inside a condition is not modeled (13895 16592 28753).
+
+Cycle 155 -- Function directory type descriptors: built-in objects
+(`BUILTIN_FUNCTION_TYPE_IDS`, 0x80000 + subtype) gain Message 0x0e,
+CubeCollection 0x33, Document 0x3f, DocumentKey 0x40, Primitive 0x41,
+Compound 0x42, CompositeQuery 0x48; Function-only scalars
+(`FUNCTION_PRIMITIVE_TYPE_IDS`) are date 0x02, time 0x0a and the
+late-bound object 0x0d (not established for App Class signatures). The
+registry's Function contexts: CubeCollection / CompositeQuery parameter +
+return, Document parameter, DocumentKey return (every object-type header
+occurrence stores its PACKAGE row; time / object none)
+(`cycle155-function-type-descriptor-census.ts`).
 
 ## 5. Declarations and scope
 

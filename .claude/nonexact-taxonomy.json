@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-03T21:35:33.402Z",
+ "generatedAt": "2026-10-03T22:53:05.460Z",
  "totalDefinitions": 30209,
- "exactCount": 29962,
- "nonexactCount": 247,
+ "exactCount": 29975,
+ "nonexactCount": 234,
  "rows": [
   {
    "definitionId": 522,
@@ -12,16 +12,6 @@
    "roundtripExact": false,
    "errorMessage": "Cannot encode PeopleCode at source offset 727: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
    "construct": "DISABLED_CODE",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 1016,
-   "displayName": "1=AMM_DERIVED, 2=REFRESH_BTN, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Unsupported function metadata type: time",
-   "construct": "UNKNOWN",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
@@ -360,16 +350,6 @@
    }
   },
   {
-   "definitionId": 13562,
-   "displayName": "1=PORTAL_CREF_ADM, 2=PORTAL_HP_LAYOUT, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Unsupported function metadata type: Message",
-   "construct": "UNKNOWN",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
    "definitionId": 13895,
    "displayName": "1=POSITION_DATA_E, 2=POSITION_NBR, 12=SavePostChange, 0= , 0= , 0= , 0= ",
    "classification": "ENCODE_ERROR",
@@ -378,16 +358,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 5581: bare identifiers are only supported as calls",
    "construct": "&SEQ_CHANGE <> T",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 14149,
-   "displayName": "1=PRCSRQSTDLG_WRK, 2=LOADPRCSRQSTDLGPB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Unsupported function metadata type: time",
-   "construct": "UNKNOWN",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
    "definitionId": 14238,
@@ -569,16 +539,6 @@
    }
   },
   {
-   "definitionId": 14665,
-   "displayName": "1=PSCPQDETAILSWRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Unsupported function metadata type: CompositeQuery",
-   "construct": "UNKNOWN",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
    "definitionId": 14707,
    "displayName": "1=PSCPQFILTER_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -713,44 +673,20 @@
    }
   },
   {
-   "definitionId": 15290,
-   "displayName": "1=PSIBFEEDRUNCNTL, 2=OPRID, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Unsupported function metadata type: time",
-   "construct": "UNKNOWN",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 15515,
-   "displayName": "1=PSIBLOGICAL_WRK, 2=IB_TREECTLEVENT2, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Unsupported function metadata type: Compound",
-   "construct": "UNKNOWN",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 15517,
-   "displayName": "1=PSIBLOGICAL_WRK, 2=IB_TREECTLEVENT3, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Unsupported function metadata type: Primitive",
-   "construct": "UNKNOWN",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
    "definitionId": 15528,
    "displayName": "1=PSIBLOGICAL_WRK, 2=TREECTLEVENT, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Unsupported function metadata type: DocumentKey",
-   "construct": "UNKNOWN",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
+   "firstDiffOffset": 223348,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 1177,
+    "generatedCount": 1178,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 15537,
@@ -760,16 +696,6 @@
    "roundtripExact": false,
    "errorMessage": "Cannot encode PeopleCode at source offset 923: unsupported PeopleCode statement",
    "construct": "DISABLED_CODE",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 15586,
-   "displayName": "1=PSIBLOGICL2_WRK, 2=IB_EVENT, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Unsupported function metadata type: Document",
-   "construct": "UNKNOWN",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
@@ -935,16 +861,6 @@
    }
   },
   {
-   "definitionId": 17083,
-   "displayName": "1=PSSERVICESWRK3, 2=IB_RESTTGTNAV, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Unsupported function metadata type: DocumentKey",
-   "construct": "UNKNOWN",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
    "definitionId": 17155,
    "displayName": "1=PSSERVICESWRK6, 2=IB_REMOTEGATEWAY, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "UNSUPPORTED_SYNTAX",
@@ -952,46 +868,6 @@
    "roundtripExact": false,
    "errorMessage": "Cannot encode PeopleCode at source offset 77640: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
    "construct": "** ANY to LOCAL ",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 17821,
-   "displayName": "1=PTACEMDLVWR, 2=HTML_AREA_01, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Unsupported function metadata type: CubeCollection",
-   "construct": "UNKNOWN",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 17840,
-   "displayName": "1=PTACEVWRDBG, 2=PTACEFLTBTN, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Unsupported function metadata type: CubeCollection",
-   "construct": "UNKNOWN",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 17885,
-   "displayName": "1=PTACM_TEMPL_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Unsupported function metadata type: time",
-   "construct": "UNKNOWN",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 17998,
-   "displayName": "1=PTAFAW_MON_WRK, 2=PTAFAW_FC_HANDLER, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Unsupported function metadata type: object",
-   "construct": "UNKNOWN",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
