@@ -10665,10 +10665,21 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * ALL_CAPS_WITH_UNDERSCORES field-name shape, so it is excluded by
          * name, matching definition 180's own calibrated comment above.
          */
+        /*
+         * Cycle 146: a single member that ends the chain is a FIELD access
+         * too -- 22705 `&_entry.validate(..., GetRecord().GPS_WFS_MAP_RESULT,
+         * ...)` stores a FIELD row; every field-shaped single member does
+         * (10 / 10: 10487 10488 22699 22702 22705 22709 22713 22717 22720),
+         * while Record properties stay inline through the row-state /
+         * built-in property checks (`Name` 38, `IsChanged` 23, `FieldCount`
+         * 3, `IsDeleted` 1: no row; `cycle146-record-field-provenance-
+         * census.ts`).
+         */
         const wasBareGetRecordCallNoArgsFieldChain =
           /^GetRecord$/i.test(identifier) &&
-          /^GetRecord\s*\(\s*\)\s*\.\s*(?!ParentRow\b)[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/i
-            .test(tail);
+          (/^GetRecord\s*\(\s*\)\s*\.\s*(?!ParentRow\b)[A-Za-z_][A-Za-z0-9_]*\s*\.\s*[A-Za-z_][A-Za-z0-9_]*/i
+            .test(tail) ||
+            /^GetRecord\s*\(\s*\)\s*\.\s*(?!ParentRow\b)[A-Za-z_][A-Za-z0-9_]*\b(?!\s*[.(])/i.test(tail));
 
         const wasBareGetRowCall =
           /^GetRow$/i.test(identifier) &&
