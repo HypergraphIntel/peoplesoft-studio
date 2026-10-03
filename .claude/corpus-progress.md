@@ -1,17 +1,19 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-03, Cycle 153)
+## Current status (2026-10-03, Cycle 154)
 
-- **Current target:** Cycle 153 -- ENCODE_ERROR syntax: multidimensional
-  subscripts `&a [i, j]` (11 programs) and try/catch (several clauses; a
-  catch body ending without `;`). EXACT 29,929 -> 29,952 (+23) =
-  forward-exact; 27 programs changed, 0 farther; ENCODE_ERROR 67 -> 40;
-  4 encode now with later differences (28872 / 29293 -> ACTIVE_RECORD,
-  27771 -> DECODE_SOURCE_MISMATCH, 29465 -> ACTIVE_PACKAGE); protected
-  PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in,
-  EXACT). See "Compiler Syntax Cycle 153".
-- **Last successful calibration:** Cycle 153 (multi-index subscripts;
-  catch clauses).
+- **Current target:** Cycle 154 -- syntax: (A) terminator elision before
+  block keywords (826 bare Return; try body before catch 14149 30159;
+  Else body before REM 29622; comment before `;` in When / For bodies
+  28868 5047) and (B) block comments inside expressions (5004 5047 25124
+  25951 25953 25985 27517 28704 29654 7285). EXACT 29,952 -> 29,962 (+10)
+  = forward-exact; 14 programs changed, 0 farther; ENCODE_ERROR 40 -> 27;
+  protected PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0; fallback 70 +
+  14149 (now parses to an unsupported `time` type and trips the external
+  metadata detector -- the original 70 unchanged), 13525 EXACT. See
+  "Compiler Syntax Cycle 154".
+- **Last successful calibration:** Cycle 154 (terminator elision;
+  expression comments).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   App Class PACKAGE/FIELD 6 (28967 29518 29583 29598 29715 29725) -- each
@@ -33,23 +35,23 @@
   control group or the allocation unit; whether `As any` parameters
   differ from untyped ones; whether non-Record built-in `As array of`
   parameters open a row (13562 `array of Rowset` only).
-- **Next action (Cycle 154):** remaining encode errors (70 programs incl.
-  other categories). Two families: (1) a statement terminator omitted
-  before a block-closing keyword -- 826 `Return` before End-If, 14149
-  `End-If` before `catch` (try body), "expected ; in For / When / Else /
-  If / try body" (5047? 28868 29622 30068 30139 30159) -- census stored
-  bytes per closing keyword (catch body: no terminator written, Cycle
-  153); (2) comments inside expressions -- a block comment before a
-  binary operator (5047, 25951, 25985: stored `4D ] 4E /*..*/ 0D <`) and
-  `rem` inside a multi-line condition (13895, 16592). Other: 13 "bare
-  identifiers only as calls" (heterogeneous), 9 "expected )", 6
-  "unsupported statement", unsupported types (time, DocumentKey,
-  CubeCollection ...). Also 28872 / 16495 `&rs(n).FreeFormStyleName` (a
-  Row property bound as RECORD), 29293 App Class Declare Function row.
-  Fallback groups stay parked (13525). Scratch tools under c153.
-  README.md has unrelated uncommitted user edits -- never stage it; never
-  touch stash@{0} / stash@{1}.
-- **Newly established rules this session:** Cycle 153 (syntax): a
+- **Next action (Cycle 155):** encode failures (56 incl. other
+  categories). Largest coherent group: unsupported built-in type names in
+  Function / declaration metadata (~14: `time` 1016 14149 15290 17885,
+  DocumentKey 15528 17083, CubeCollection 17821 17840, Message 13562,
+  CompositeQuery 14665, Compound 15515, Primitive 15517, Document 15586,
+  object 17998) -- census each type's stored PACKAGE row / type token.
+  Then: selector call on a method result `GetRowset(Scroll.X)(&i)` (30068
+  30139 29391 29609); REM after a boolean operator in a condition (13895
+  16592 28753); `try ... end-try` without catch (29816 29817). Fallback
+  groups stay parked (13525). Scratch tools under c154. README.md has
+  unrelated uncommitted user edits -- never stage it; never touch
+  stash@{0} / stash@{1}.
+- **Newly established rules this session:** Cycle 154 (syntax): bare
+  Return before a block keyword; try body may end before catch; Else body
+  before REM; comment before `;` in When / For bodies; block comments
+  inside expressions (before a continuation / after an operator or
+  comma); Cycle 153 (syntax): a
   subscript holds comma-separated indexes `4C i 03 j 4D`; several catch
   clauses; a catch body may end without `;` before end-try; Cycle 152 (encoder): an `As
   array of Record` Function parameter opens PACKAGE.RECORD in the header's
@@ -245,6 +247,37 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Syntax Cycle 154 -- terminator elision; expression comments
+
+(A) `cycle154-terminator-elision-census.ts`: stored omits the terminator
+before block keywords everywhere (expression end -> End-If 595 EXACT
+programs, call end -> End-If 512, End-If -> End-If 207, Break -> When 70
+...) and the body loops accept most of it, each with its own keyword list
+(If: Else / End-If / REM; Else: End-If; For: End-For; While; Repeat; When;
+When-Other; catch; Function). The "expected ; in X body" failures were
+other shapes: 826 a bare `Return` whose parser took `End-If` as its value
+(`38 1A`); 14149 / 30159 a try-body statement before catch (`End-If 66`,
+`) 66`); 29622 an Else-body statement before a REM line (`14 24 1A`);
+28868 / 5047 a comment between a When / For-body statement and its `;`
+(`14 4E 15`). 30068 30139 29391 29609 are a different construct (a
+selector call on a method result, `GetRowset(Scroll.X)(&i)`). Fix
+(227d219): 4 changed, 826 28868 30159 EXACT, 29622 encodes, 14149 parses
+to `time`. The comment-before-`;` lookahead allows any whitespace: the
+decoder renders the comment on its own line before the `;` and the
+harness roundtrip replays the stored comment opcodes (first run left
+28868 ROUNDTRIP_ONLY with `[ \t]*`).
+
+(B) `cycle154-expression-comment-census.ts`: 0x4E after an operand before
+`+ < <> = ,` only in non-encoding programs; before `)` / Then already
+supported. Stored: 25951 `4D 4E 0D`, 25953 `4D 4E 06` (assignment), 29654
+`03 4E 01` (after a comma), 25951 `23 4E` (after `|`). Fix (29c296e):
+`commentsBeforeContinuation` in the arithmetic loop, comparison,
+assignment and the six expression comma loops; `commentsAfterOperator`
+after arithmetic / comparison operators and commas. 10 changed: 7 EXACT
+(5047 needed A and B), 7285 25953 29654 encode. REM after And / Or
+(13895 16592 28753) not modeled. Tests: `encoderTerminatorElision.test.ts`,
+`encoderExpressionComments.test.ts`.
 
 ## Compiler Syntax Cycle 153 -- multi-index subscripts; catch clauses
 
