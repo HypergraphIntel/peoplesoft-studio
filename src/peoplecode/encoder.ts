@@ -7289,6 +7289,20 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
                 recordArrayVariables.add(paramName.toLowerCase());
               }
               /*
+               * Cycle 152: like `Returns array of <built-in>` (Cycle 122), an
+               * `As array of Record` parameter needs the Record row in the
+               * header's built-in unit (one per unit, shared with the
+               * header's other Record types). 16720 stores one
+               * PACKAGE.RECORD per header for `(&arr As array of Record)`,
+               * for two and three such parameters, and with `Returns array
+               * of Record`; 4861 / 28683 likewise. Full corpus: 3 programs
+               * changed, all EXACT. Other built-in element types have no
+               * evidence (13562 `array of Rowset` is unchanged either way).
+               */
+              if (/^Record$/i.test(parameterElementType ?? '') && arrayElementApplicationClass === undefined) {
+                allocateBuiltinTypePackageReferenceIfSupported(parameterElementType!, 'function-parameter');
+              }
+              /*
                * Cycle 144: `&x As array of <Package:Class>` uses its element
                * class in the header's unit, like the scalar form (Cycle 94).
                * 15070 `Function GetPrimitivesForUriDoc(..., &aPrimitiveList As

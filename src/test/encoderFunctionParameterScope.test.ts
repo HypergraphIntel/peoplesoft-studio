@@ -36,8 +36,34 @@ test('an `As array of Record` parameter\'s indexed element member is a FIELD row
    &x = &arr [1].PTPROPNAME.Value;
 End-Function;
 `);
-  assert.deepEqual(keys, ['PAY_LINE.EMPLID', 'FIELD.PTPROPNAME']);
-  assert.deepEqual(operands, ['4a FIELD.PTPROPNAME #2']);
+  // Cycle 152: the header also opens the Record row
+  assert.deepEqual(keys, ['PAY_LINE.EMPLID', 'PACKAGE.RECORD', 'FIELD.PTPROPNAME']);
+  assert.deepEqual(operands, ['4a FIELD.PTPROPNAME #3']);
+});
+
+test('each Function header with `As array of Record` opens one PACKAGE.RECORD, shared with its other Record types (16720)', () => {
+  const { keys } = encode(`Function A(&arr As array of Record, &name As string) Returns integer
+   Local Record &r;
+   &r = &arr [1];
+   Return 0;
+End-Function;
+
+Function B(&arr As array of Record, &arr2 As array of Record) Returns array of Record
+   Return &arr;
+End-Function;
+`);
+  // A: header row, body Local's row (another unit); B: one header row for two parameters and the return
+  assert.deepEqual(keys, ['PAY_LINE.EMPLID', 'PACKAGE.RECORD', 'PACKAGE.RECORD', 'PACKAGE.RECORD']);
+});
+
+test('a first-Function array parameter shares the leading section\'s Record row (4916)', () => {
+  const { keys } = encode(`Local array of Record &arr;
+
+Function A(&arr As array of Record)
+   &x = &arr [1].FLD.Value;
+End-Function;
+`);
+  assert.deepEqual(keys, ['PAY_LINE.EMPLID', 'PACKAGE.RECORD', 'FIELD.FLD']);
 });
 
 test('an untyped parameter shadows an outer Rowset: its chain stays inline (13657)', () => {
