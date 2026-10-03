@@ -13209,7 +13209,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         sawLeadingLocalDeclaration ||
         (sawApplicationClassLocalSection && !closedApplicationClassLocalSection)) &&
       isTopLevelDeclaration &&
-      /^(?:ComponentLife|Component|Global|PanelGroup|Declare\s+Function)\b/i.test(source.slice(pos)) &&
+      /^(?:ComponentLife|Component|Global|PanelGroup|Declare\s+Function|Constant)\b/i.test(source.slice(pos)) &&
       hasBlankLine &&
       !justClosedImportSection;
     if (declarationGapOwnsBlankLine) {
@@ -13256,8 +13256,14 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        *   PanelGroup number &CurrentTreeRow;
        *
        * had NO marker emitted at all (not even a multiplicity bug --
-       * PanelGroup simply never triggered this block). `Constant` remains
-       * unconfirmed by any corpus evidence and is deliberately left off.
+       * PanelGroup simply never triggered this block).
+       *
+       * Cycle 141: `Constant` too. 18130 `Component string &curTab;`
+       * <blank> `Constant &cstSTR_LOCAL_NODE = ...` stores `15 4F 56`, 18135
+       * (three blank lines) `15 4F 4F 4F 56`, 28555 `Local ApiObject ...;`
+       * <blank> `Constant` `15 4F 56`; LOCAL SNAPSHOT
+       * (`cycle141-marker-ownership-census.ts`): every declaration ->
+       * blank -> Constant gap stores one 0x4F per blank line, no 0x2D.
        */
       emitBlankLineMarkers(topLevelWhitespace);
     }
