@@ -1,17 +1,16 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 138)
+## Current status (2026-10-02, Cycle 139)
 
-- **Current target:** Cycle 138 -- reference layer: App Class repeated
-  (duplicate) PACKAGE rows. Landed the proven subgroup: a conditional-
-  compilation directive outside the method bodies opens a new reference
-  session (every kind); a method's parameter types stay in their header
-  declaration's session. EXACT 29,821 -> 29,822 (+1: 28854) =
-  forward-exact; exactly 4 programs changed (28854 29249 29724 29734),
-  all 4 reference lists exact (+19 PACKAGE, +3 RECORD rows, all stored),
-  0 farther; protected PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0,
-  fallback 70 (13525 in, EXACT). See "Compiler Semantics Cycle 138".
-- **Last successful calibration:** Cycle 138 (top-level #If session reset).
+- **Current target:** Cycle 139 -- layout: a block comment ending an App
+  Class implementation header line (`get IsUpdatableReport /* ... */`) is
+  an inline 0x4E between the name and the header's 0x2D (10/10 corpus
+  headers). EXACT 29,822 -> 29,825 (+3: 29320 29866 30199, the Cycle 133
+  "4E vs 2D" family) = forward-exact; exactly the 7 header-comment
+  programs' bytes changed, 0 PSPCMNAME changes, 0 farther; protected
+  PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in,
+  EXACT). See "Compiler Semantics Cycle 139".
+- **Last successful calibration:** Cycle 139 (implementation-header comment).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -27,20 +26,21 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 139):** layout -- 29724 / 29734 (reference lists
-  now exact, COMPLETE_DOWNSTREAM): first byte difference is an inline
-  comment after a getter signature (`get IsUpdatableReport /* ... */`):
-  stored writes it as a 0x4E operand where the encoder writes a 0x6D
-  signature comment; census inline comments on implementation-signature
-  lines. Parked (Cycle 138): 29797 29883 30170 30179 30192 -- no
-  directive; stored rows never span implementations and re-open per
-  top-level statement inside a body (ordinary-unit shape), but no source /
-  header / dependency-graph / descriptive-column discriminator separates
-  them from 1,303 EXACT App Classes. Earlier parks unchanged (29655, 28857
-  / 28893, 29527 / 29590, 15840 metadata absent; 28721, 28985 / 30206,
-  29329, 28797 one-offs). README.md has unrelated uncommitted user edits
-  -- never stage it.
-- **Newly established rules this session:** Cycle 138 (encoder): an App
+- **Next action (Cycle 140):** layout -- COMPLETE_DOWNSTREAM (32): the
+  largest family is App Class `array` stored as keyword 0x40 where the
+  encoder writes an inline name 0x0A (5: 28813 28821 28825 29247 29458);
+  also 29724 / 29734 (lists exact): stored writes no 0x4F for the blank
+  line before a top-level `#If` between implementations (`end-get ; 2D
+  #If #Then get`), the encoder one after the directive records (only these
+  two programs have a directive between implementations; the blank after
+  `#End-If;` is kept). Parked: 29797 29883 30170 30179 30192 (Cycle 138, no
+  trigger); metadata-absent 29655, 28857 / 28893, 29527 / 29590, 15840;
+  one-offs 28721, 28985 / 30206, 29329, 28797. README.md has unrelated
+  uncommitted user edits -- never stage it.
+- **Newly established rules this session:** Cycle 139 (encoder): a block
+  comment ending an App Class implementation header line is an inline
+  0x4E before the header 0x2D (0x6D is only ever a `/+ +/` annotation);
+  Cycle 138 (encoder): an App
   Class conditional-compilation directive outside the method bodies ends
   the reference session (all kinds re-open after it); body directives do
   not; parameter types resolve in their header declaration's session;
@@ -193,6 +193,51 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 139 -- App Class implementation-header comment
+
+**Baseline reproduced fresh at `84caa97`:** 29,822 / 387, forward-exact
+29,822, COMPLETE_DOWNSTREAM 35, ACTIVE_PACKAGE 69, protected 430/430,
+taxonomy row-identical, fallback 70 (13525 in, EXACT), ROUNDTRIP_ONLY 0,
+decoder-only frontier 0.
+**Result:** EXACT **29,822 -> 29,825 (+3: 29320 29866 30199)** =
+forward-exact; exactly 7 programs' bytes changed (29320 29523 29724 29734
+29866 29870 30199), 0 reference lists; exact 3, closer 2 (29724 9811 ->
+14677, 29734 9878 -> 14196), first difference unchanged 2 (29523 a
+reference operand at 45964, 29870 a header 0x4F at 3640 -- both before
+their header comment), 0 farther. 0 EXACT -> non-EXACT, COMPLETE_DOWNSTREAM
+35 -> 32. LOCAL SNAPSHOT only. Commits: 160c01e (census), af0da9a
+(encoder). README.md untouched, never staged.
+
+Census (`cycle139-implementation-header-comment-census.ts`): stored 0x6D
+16,298 in 1,385 programs, all App Class, all `/+ ... +/` signature
+annotations after an implementation header's 0x2D (0x6D never holds a
+`/* */` comment; no ordinary 0x6D). Stored after an implementation name:
+`2D` in 10,744 headers; `4E 2D` in exactly 10 (8 methods incl. 29320's
+constructor, 2 getters; 7 programs, all non-EXACT) -- exactly the 10
+headers whose line ends with a `/* ... */` comment (no setter, `<* *>`,
+`rem` or multi-comment case). `method X;` (192) and plain headers store
+`2D`. The encoder's parser left that comment at the start of the body (it
+peeled only `/+ +/` annotations), so it surfaced after the 0x2D; now
+`headerComments` (applicationClassProgram.ts) are written as 0x4E before
+the 0x2D and advance the shared comment counter (Cycle 81). The decoder
+already renders `method X /* c */` on one line; forward and roundtrip
+share the path (the decoded opcode is 0x4E too) -- candidate D (distinct
+roundtrip handling) not needed. Placement, not role or text, decides:
+declarations (class header) never carry it; 0x6D is the annotation
+syntax. The Cycle 133 "0x4E vs 0x2D" App Class family (29320 29866 30199)
+was this rule.
+
+Next divergence: 29724 / 29734 -- the blank line before the top-level
+`#If` wrapping `get ConfirmationWithReport`: stored `6A 15 2D 75 .. 76 5F`
+(no 0x4F), generated a 0x4F after the directive records.
+
+Rerank: COMPLETE_DOWNSTREAM 32 (`array` 0x40 vs 0x0A 5, ordinary 0x4F /
+0x2D order 4, ordinary 0x4F before Constant 3, type-path case 3, ...),
+ACTIVE_PACKAGE 69, ACTIVE_RECORD_FIELD 36, ACTIVE_RECORD 25, ACTIVE_FIELD
+22, ACTIVE_OTHER 12, ACTIVE_SCROLL 11, QUOTED_COMPONENT 8,
+STRUCTURAL_ORDERING 3; ENCODE_ERROR 69, DSM 67, UNSUPPORTED_SYNTAX 30
+(NONEXACT 384).
 
 ## Compiler Semantics Cycle 138 -- App Class reference session and #If
 
