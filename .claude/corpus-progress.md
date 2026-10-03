@@ -1,16 +1,17 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 137)
+## Current status (2026-10-02, Cycle 138)
 
-- **Current target:** Cycle 137 -- reference layer: App Class
-  ACTIVE_PACKAGE PACKAGE / PACKAGE (16). Landed one proven subgroup: an App
-  Class catch variable is a receiver; a method call on it uses its class
-  row. EXACT 29,820 -> 29,821 (+1: 29979) = forward-exact; ACTIVE_PACKAGE
-  70 -> 69; 2 reference lists changed (29979, 29990 -- a hidden diff in an
-  EXACT program closed), +2 PACKAGE.SACERROR rows, both stored-backed, 0
-  farther; protected PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0,
-  fallback 70 (13525 in, EXACT). See "Compiler Semantics Cycle 137".
-- **Last successful calibration:** Cycle 137 (App Class catch receiver).
+- **Current target:** Cycle 138 -- reference layer: App Class repeated
+  (duplicate) PACKAGE rows. Landed the proven subgroup: a conditional-
+  compilation directive outside the method bodies opens a new reference
+  session (every kind); a method's parameter types stay in their header
+  declaration's session. EXACT 29,821 -> 29,822 (+1: 28854) =
+  forward-exact; exactly 4 programs changed (28854 29249 29724 29734),
+  all 4 reference lists exact (+19 PACKAGE, +3 RECORD rows, all stored),
+  0 farther; protected PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0,
+  fallback 70 (13525 in, EXACT). See "Compiler Semantics Cycle 138".
+- **Last successful calibration:** Cycle 138 (top-level #If session reset).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -26,20 +27,24 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 138):** reference layer -- App Class per-method
-  PACKAGE row lifetime: App Class programs whose stored list repeats a key
-  (>= 5 duplicate rows): EXACT 1, non-EXACT 6 (29724 29734 29797 29883
-  30170 30179; 29797 / 29883 / 30170 store 191 / 48 / 543 rows with 137 /
-  30 / 360 duplicates). Census what opens a new allocation unit per
-  method (vs the class-wide session) before touching allocation.
-  Metadata-absent (park, stop F): 29655 (OU_PAGEUP_API:HIRE:Offer),
-  28857 / 28893 (EOAW_APPROVAL_MM_FL:actionButton:actionControlCommon),
-  29527 / 29590 (HMAP_APPROVAL:Utility:Helper), 15840. Single-program
-  built-in gaps: 28985 / 30206 (EXCEPTION), 29329 (FILE), 28721 (IMAGE);
-  28797 extra COLLECTABLE; 28729 / 29529 mixed. STRUCTURAL_ORDERING (3):
-  7954, 30047 / 30124 (order-only controls). README.md has unrelated
-  uncommitted user edits -- never stage it.
-- **Newly established rules this session:** Cycle 137 (encoder): an App
+- **Next action (Cycle 139):** layout -- 29724 / 29734 (reference lists
+  now exact, COMPLETE_DOWNSTREAM): first byte difference is an inline
+  comment after a getter signature (`get IsUpdatableReport /* ... */`):
+  stored writes it as a 0x4E operand where the encoder writes a 0x6D
+  signature comment; census inline comments on implementation-signature
+  lines. Parked (Cycle 138): 29797 29883 30170 30179 30192 -- no
+  directive; stored rows never span implementations and re-open per
+  top-level statement inside a body (ordinary-unit shape), but no source /
+  header / dependency-graph / descriptive-column discriminator separates
+  them from 1,303 EXACT App Classes. Earlier parks unchanged (29655, 28857
+  / 28893, 29527 / 29590, 15840 metadata absent; 28721, 28985 / 30206,
+  29329, 28797 one-offs). README.md has unrelated uncommitted user edits
+  -- never stage it.
+- **Newly established rules this session:** Cycle 138 (encoder): an App
+  Class conditional-compilation directive outside the method bodies ends
+  the reference session (all kinds re-open after it); body directives do
+  not; parameter types resolve in their header declaration's session;
+  Cycle 137 (encoder): an App
   Class `catch <Class> &e` is a receiver -- a method call on &e uses the
   class row (class-wide session); a catch with no call allocates none;
   `catch Exception` (built-in) never stores a row; Cycle 136 (encoder): an App
@@ -188,6 +193,64 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 138 -- App Class reference session and #If
+
+**Baseline reproduced fresh at `b9cfb62`:** 29,821 / 388, forward-exact
+29,821, ACTIVE_PACKAGE 69, STRUCTURAL_ORDERING 3, COMPLETE_DOWNSTREAM 33,
+protected 430/430, taxonomy row-identical, fallback 70 (13525 in, EXACT),
+ROUNDTRIP_ONLY 0, decoder-only frontier 0.
+**Result:** EXACT **29,821 -> 29,822 (+1: 28854)** = forward-exact;
+exactly 4 programs changed (bytes and reference lists: 28854 29249 29724
+29734), all 4 lists exact, +19 PACKAGE / +3 RECORD rows, all in the
+stored list, 0 removed, 0 farther; program bytes exact 1, closer 2, same
+1 (29249, DSM). 0 EXACT -> non-EXACT; moves 29724 / 29734 ACTIVE_RECORD ->
+COMPLETE_DOWNSTREAM, 28854 ACTIVE_DECLARE_FUNCTION -> EXACT. LOCAL
+SNAPSHOT only. Commits: da9fc17 (census), 3dde8b8 (encoder). README.md
+untouched, never staged.
+
+Population (`cycle138-package-session-census.ts`, 1,510 App Class
+programs): repeated stored PACKAGE rows in 9 -- EXACT 1 (30192), non-EXACT
+8. The PSPCMNAME path columns are blank on every repeat: same identity,
+another occurrence. By directive position: top-level directive 0 / 4 (all
+four repeat: 28854 pre-class, 29249 among top-level Declares, 29724 /
+29734 header + around a getter); body directives only 37 / 9, none
+repeats; no directive 1,303 / 152 plus the 5 repeaters 29797 29883 30170
+30179 30192.
+
+Rule: a top-level directive ends the session -- PACKAGE (imports no
+longer visible: 29724's header `instance HR_TEXT_CATALOG:TextCatalog`
+after the header `#If` re-opens TEXTCATALOG), built-in PACKAGE, RECORD
+(29724 RECORD.PY_TD1_STG_CAN) alike; within a session the class-wide
+reuse holds (29724 saveData, ValidateMapField, getErrorArray,
+PDFFileToString share one set). Parameter types stay in the header
+declaration's session (29249 addToStack `&CurPgeRS As Rowset` opens no
+ROWSET; ROWSET re-opens later at a Local). Negative control: resetting at
+body directives too loses 18 EXACT (28788 28789 28791 ...). Wildcard
+claim kept program-wide (no evidence either way). Variants: B (fresh
+session per implementation, no trigger) 30192 list exact and the other 4
+non-#If closer -- unlandable without a trigger; D (ordinary units) = B.
+
+The 5 without a directive (parked): stored rows never span
+implementations (0 of 641 repeated operand-referenced rows used by two
+implementations: 29797 / 30170 / 30179) and re-open per top-level
+statement inside a body (29797 PTPRCBINDPARMVW in two For / If
+statements) -- the ordinary allocation-unit shape. 29883 OnRequest fits
+it until line 102, then allocates no further REPORTDEFN row
+(SetPSQueryPromptRecord / GetDatasource / ProcessReport) -- unexplained.
+Not separated from the 1,303 EXACT App Classes by source features, the
+37-byte header, the class-dependency graph (181 EXACT programs in cycles
+store no repeat) or the descriptive APPCLASSMETHOD / path columns (702
+non-descriptive programs repeat nothing). Deep: 29797 191 rows, PACKAGE
+111 / 99 repeated, 17 methods, XMLNODE 60; 29883 48 / 44 / 30, 7 methods,
+REPORTDEFN 13; 30170 543 / 216 / 191, 52 methods + 2 get, ACTIONITEM 54;
+30179 533 / 192 / 173, 39 methods, LIST 48 (first diff REC.FIELD, the
+list's first difference is PACKAGE.CONSTANTS #11); 30192 9 / 7 / 5.
+
+Rerank: ACTIVE_PACKAGE 69, ACTIVE_RECORD_FIELD 36, COMPLETE_DOWNSTREAM 35,
+ACTIVE_RECORD 25, ACTIVE_FIELD 22, ACTIVE_OTHER 12, ACTIVE_SCROLL 11,
+QUOTED_COMPONENT 8, STRUCTURAL_ORDERING 3, ACTIVE_DECLARE_FUNCTION 0;
+ENCODE_ERROR 69, DSM 67, UNSUPPORTED_SYNTAX 30 (NONEXACT 387).
 
 ## Compiler Semantics Cycle 137 -- App Class PACKAGE provenance
 

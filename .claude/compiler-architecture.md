@@ -13,7 +13,8 @@ EXACT 29,721 / NONEXACT 488 -- all decoder only; Cycle 131 encoder: EXACT
 29,754 / NONEXACT 455; Cycle 132: EXACT 29,764 / NONEXACT 445; Cycle 133:
 EXACT 29,774 / NONEXACT 435; Cycle 134: EXACT 29,781 / NONEXACT 428;
 Cycle 135: EXACT 29,809 / NONEXACT 400; Cycle 136: EXACT 29,820 / NONEXACT
-389; Cycle 137: EXACT 29,821 / NONEXACT 388; forward-exact = EXACT); forward-exact
+389; Cycle 137: EXACT 29,821 / NONEXACT 388; Cycle 138: EXACT 29,822 /
+NONEXACT 387; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -175,6 +176,17 @@ itself; &e is a receiver (as in ordinary programs, Cycle 111), so a method
 call on it uses the class row in the class-wide session. A named import of
 the class stores its row regardless; built-in `catch Exception` never does
 (`cycle137-appclass-package-provenance-census.ts`).
+
+Cycle 138 -- App Class reference SESSION: the class-wide session (every
+kind) ends at a conditional-compilation directive outside the method
+bodies (pre-class, header, top-level declarations, between
+implementations); the rows after it open again (`referenceSessionAt` in
+`encodeApplicationClassProgramV2`). Body directives do not end it. A
+method's parameter types resolve in their header declaration's session
+(`applicationClassParameterTypeSession`). Five programs without a
+directive (29797 29883 30170 30179 30192) store per-implementation /
+per-statement repeats with no source-visible trigger -- parked
+(`cycle138-package-session-census.ts`).
 
 ## 5. Declarations and scope
 
