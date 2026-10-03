@@ -3157,6 +3157,57 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * helper to them would be inventing new semantics rather than reusing
    * proven ones.
    */
+  /*
+   * Cycle 151: an ordinary Function parameter is declared in its Function,
+   * shadowing an outer (top-level Local / Global / Component) variable of
+   * the same name -- the declaration sets are otherwise program-wide. An
+   * untyped parameter is late-bound in the body even where the outer
+   * variable is a Record / Rowset: 11513 `Local Record &PAY_EARN_ORIG` ...
+   * `Function UpdDedTaken(&PAY_EARN_ORIG, ...)` keeps
+   * `&PAY_EARN_ORIG.DED_TAKEN.IsChanged` inline (no FIELD row), 13657 /
+   * 13658 `&MENUDEFN_RS.GetRow(&I).PORTAL_MEN2_WRK.MENULABEL` likewise; a
+   * typed parameter takes its own type. Each parameter name's outer
+   * memberships are removed at the header and restored at End-Function.
+   * `cycle151-function-parameter-shadow-census.ts`; full corpus: 4 programs
+   * changed, all EXACT (11513 13657 13658 18134), 0 farther.
+   */
+  const shadowableVariableSets = [
+    recordVariables,
+    rowVariables,
+    rowsetVariables,
+    recordArrayVariables,
+    chainSemanticsDeclaredRowVariables,
+    chainSemanticsDeclaredRowsetVariables
+  ];
+  const functionParameterShadows: {
+    key: string;
+    sets: Set<string>[];
+    applicationClass?: ReturnType<typeof applicationClassVariables.get>;
+    applicationClassArray?: ReturnType<typeof applicationClassArrayVariables.get>;
+  }[] = [];
+  const shadowFunctionParameter = (name: string): void => {
+    const key = name.toLowerCase();
+    functionParameterShadows.push({
+      key,
+      sets: shadowableVariableSets.filter(set => set.has(key)),
+      applicationClass: applicationClassVariables.get(key),
+      applicationClassArray: applicationClassArrayVariables.get(key)
+    });
+    for (const set of shadowableVariableSets) set.delete(key);
+    applicationClassVariables.delete(key);
+    applicationClassArrayVariables.delete(key);
+  };
+  const restoreFunctionParameterShadows = (): void => {
+    for (const shadow of functionParameterShadows.splice(0).reverse()) {
+      for (const set of shadowableVariableSets) set.delete(shadow.key);
+      for (const set of shadow.sets) set.add(shadow.key);
+      applicationClassVariables.delete(shadow.key);
+      applicationClassArrayVariables.delete(shadow.key);
+      if (shadow.applicationClass !== undefined) applicationClassVariables.set(shadow.key, shadow.applicationClass);
+      if (shadow.applicationClassArray !== undefined) applicationClassArrayVariables.set(shadow.key, shadow.applicationClassArray);
+    }
+  };
+
   const registerTypedParameter = (name: string, type: string): void => {
     if (/^Record$/i.test(type)) {
       ensureLocalObjectPackageReference('RECORD', 'Record');
@@ -7176,6 +7227,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       while (true) {
         const paramName =
           /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
+        if (ordinaryProgram && paramName !== undefined) shadowFunctionParameter(paramName);
         chunks.push(variable());
 
         const afterVariable = pos;
@@ -7560,6 +7612,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
         if (functionDepth === 0) {
           functionApplicationClassVariables.clear();
+          restoreFunctionParameterShadows();
         }
 
         return;
