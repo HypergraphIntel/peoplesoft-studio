@@ -1,19 +1,17 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-03, Cycle 146)
+## Current status (2026-10-03, Cycle 147)
 
-- **Current target:** Cycle 146 -- ordinary REC.FIELD/REC.FIELD trio
-  (22705 22709 22713, Component Record SaveEdit, one template): three
-  mechanisms. (1) harness owner: a key without OBJECTID 1 / 2 has a blank
-  owner record / field (`REC.` / `.`), 28,502 definitions, 0 exceptions,
-  0 bytes (tooling fix, 7,259 lists); (2) `ParentRow` / `ParentRowset`
-  navigation keeps a chain's binding through `GetRow(n).REC.FIELD`; (3) a
-  single field member after a bare `GetRecord()` is a FIELD. EXACT 29,862
-  -> 29,871 (+9: 10487 10488 22699 22702 22705 22709 22713 22717 22720) =
-  forward-exact; 0 farther; ACTIVE_PACKAGE 54 -> 51; protected PASS, 0
-  EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See
-  "Compiler Semantics Cycle 146".
-- **Last successful calibration:** Cycle 146 (owner derivation, GetRecord chains).
+- **Current target:** Cycle 147 -- App Class REC.FIELD/PACKAGE (4). Not a
+  GetChart argument rule: an App Class method fragment's suppressed owner
+  slot captured the fragment's first symbolic reference (classes with an
+  inherited `%This` call), dropping its row. EXACT 29,871 -> 29,891 (+20)
+  = forward-exact; 31 programs changed (20 exact, 11 closer, 0 farther);
+  +69 rows all stored; App Class REC.FIELD/PACKAGE 4 -> 0, ACTIVE_PACKAGE
+  51 -> 44, ACTIVE_RECORD_FIELD 35 -> 28; protected PASS, 0 EXACT ->
+  non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See
+  "Compiler Semantics Cycle 147".
+- **Last successful calibration:** Cycle 147 (fragment owner slot).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -29,18 +27,19 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 147):** App Class REC.FIELD/PACKAGE (4), now
-  classified: 29099 / 29163 (one template) -- `GetChart(CAF_DISP_WRK.
-  CAF_CHART)` stores a REC.FIELD row the encoder omits, and a MENUNAME row
-  re-opened in a second method; 28932 -- REC.FIELD rows (BEN_TRAN_WK.DESCR,
-  BEN_BEN_DTL_WK.DATE_OPTION) allocated later than stored + 2 missing
-  (DERIVED_W3EB.ASOFDATE, PSOPTIONS.LANGUAGE_CD); 28964 -- 5 missing (REC.FIELD
-  and PACKAGE: TEXTCATALOG, COSTCREDIT, FORMATAMOUNT). Start with the
-  GetChart(REC.FIELD) argument (census Get<Object>(REC.FIELD) built-ins).
-  Also ordinary FIELD/REC.FIELD (4: 24348 24518 24519 24563). Fallback
-  groups stay parked (13525). README.md has unrelated uncommitted user
-  edits -- never stage it; never touch stash@{0} / stash@{1}.
-- **Newly established rules this session:** Cycle 146 (harness): a key
+- **Next action (Cycle 148):** reference layer -- ordinary FIELD/REC.FIELD
+  (4: 24348 24518 24519 24563) and ordinary BARNAME/MENUNAME (2: 23684
+  23724) are the cleanest non-fallback groups left; App Class PACKAGE/PACKAGE
+  14 (heterogeneous, Cycle 137; 28964's remainder needs the absent
+  superclass `BNE_OPEN_ENROLL_FL:Page:SubPage:EnrollElect` -- %Super.TxtCat
+  / FormatAmount / CostCredit, parked). Fallback groups stay parked
+  (13525). Scratchpad was wiped between sessions -- tools recreated under
+  c147 (gate.sh, ldiff.ts, part.ts, trace.ts ...). README.md has unrelated
+  uncommitted user edits -- never stage it; never touch stash@{0} /
+  stash@{1}.
+- **Newly established rules this session:** Cycle 147 (encoder): a
+  suppressed owner slot (any App Class method fragment) binds no
+  reference; Cycle 146 (harness): a key
   without OBJECTID 1 / 2 has a blank owner record / field; (encoder)
   `ParentRow` / `ParentRowset` navigation keeps the chain's binding; a
   single field member after a bare `GetRecord()` is a FIELD reference;
@@ -219,6 +218,53 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 147 -- App Class fragment owner slot
+
+**Baseline reproduced at `db40442`:** 29,871 / 338 (frontier sweep,
+protected 430/430, full verify 29,871 run before the edit; the base
+gate's taxonomy step ran after the encoder edit -- the committed Cycle 146
+taxonomy is the baseline), App Class REC.FIELD/PACKAGE 4 (28932 28964
+29099 29163), ACTIVE_PACKAGE 51, ACTIVE_RECORD_FIELD 35, fallback 70
+(13525 in, EXACT).
+**Result:** EXACT **29,871 -> 29,891 (+20)** = forward-exact; 31
+programs' bytes and lists changed: 20 exact, 11 closer (28721 28857
+28893 28963 28964 29457 29516 29535 29590 29625 29870), 0 farther; +69
+rows (REC.FIELD 35, PAGE 15, IMAGE 7, MENUNAME 7, SQL 4, OPERATION 1),
+all stored, 0 removed. 0 EXACT -> non-EXACT; moves (closer): 28721 ->
+STRUCTURAL_ORDERING, 29516 29535 29625 -> QUOTED_COMPONENT, 29870 ->
+COMPLETE_DOWNSTREAM. App Class REC.FIELD/PACKAGE 4 -> 0, ACTIVE_PACKAGE
+51 -> 44, ACTIVE_RECORD_FIELD 35 -> 28 (App Class REC.FIELD/REC.FIELD 6 ->
+1). LOCAL SNAPSHOT only. Commits: bba3808 (census), a8ebd0d (encoder).
+README.md and both stashes untouched.
+
+29099 (CAFNUI_CORE) / 29163 (CAF_CORE) are sibling classes (NUI and
+classic), not a byte template; shared: `GenChart`'s `&chart =
+GetChart(CAF_DISP_WRK.CAF_CHART);` and `IsMenuItemAuthorized(MenuName.
+COMPARISON_ANALYSIS_FRAMEWORK, BarName.MAIN, ItemName.CAF_CHART, Page.
+CAF_CHART, "U")`. Stored binds both (`21 #22`, `21 #25`); generated
+emitted `21 #20` (PACKAGE.RECORD's index) and put the MenuName operand on
+BarName's row -- the trace shows `USE owner CAF_DISP_WRK.CAF_CHART`: the
+reference bound to the fragment's owner slot. Classes with an inherited
+`%This` call set `bindOwnerReference: true` ("freeze ... prior
+fragment-owner behavior"), and `(!suppressOwnerReference ||
+bindOwnerReference === true)` let a suppressed slot (every method
+fragment) capture the first record/field reference -- a row never
+written. Not argument semantics: every symbolic kind was swallowed
+(`cycle147-fragment-owner-binding-census.ts`: 34 programs, 171 bindings
+before, 0 after). Fix: a suppressed owner slot binds nothing. The same
+fault was 28932's "late" REC.FIELD rows and 2 of its missing ones (now
+exact) and part of 28964; 28964's remainder (TEXTCATALOG, COSTCREDIT,
+FORMATAMOUNT from `%Super.TxtCat` / `%Super.FormatAmount`) needs the
+absent superclass metadata -- parked.
+
+Rerank: ACTIVE_PACKAGE 44 (ordinary fallback PACKAGE/PACKAGE 15, App Class
+PACKAGE/PACKAGE 14, ordinary fallback REC.FIELD/PACKAGE 10, App Class
+FIELD / RECORD 2 each, MENUNAME 1), ACTIVE_RECORD_FIELD 28 (ordinary
+fallback PACKAGE/REC.FIELD 11, ordinary FIELD/REC.FIELD 4, ...),
+ACTIVE_FIELD 21, ACTIVE_RECORD 20, ACTIVE_SCROLL 11, COMPLETE_DOWNSTREAM
+9, QUOTED_COMPONENT 8, ACTIVE_OTHER 7, STRUCTURAL_ORDERING 4; ENCODE_ERROR
+69, DSM 67, UNSUPPORTED_SYNTAX 30 (NONEXACT 318).
 
 ## Compiler Semantics Cycle 146 -- owner rows, GetRecord() chains
 

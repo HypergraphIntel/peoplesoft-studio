@@ -18,7 +18,8 @@ NONEXACT 387; Cycle 139: EXACT 29,825 / NONEXACT 384; Cycle 140:
 EXACT 29,832 / NONEXACT 377; Cycle 141: EXACT 29,843 / NONEXACT 366;
 Cycle 142: EXACT 29,846 / NONEXACT 363; Cycle 143: EXACT
 29,849 / NONEXACT 360; Cycle 144: EXACT 29,857 / NONEXACT 352; Cycle 145:
-EXACT 29,862 / NONEXACT 347; Cycle 146: EXACT 29,871 / NONEXACT 338; forward-exact = EXACT); forward-exact
+EXACT 29,862 / NONEXACT 347; Cycle 146: EXACT 29,871 / NONEXACT 338; Cycle 147:
+EXACT 29,891 / NONEXACT 318; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -244,6 +245,11 @@ positional. `ParentRow` / `ParentRowset` navigation keeps the chain's
 binding even where the member is written inline; a single member ending
 a bare `GetRecord()` chain is a FIELD reference unless a Record property
 (`cycle146-record-field-provenance-census.ts`).
+
+Cycle 147 -- the owner slot binds the first record/field reference only
+when the owner row is written: an Application Class method fragment's
+suppressed slot binds nothing, whatever `bindOwnerReference` says
+(`cycle147-fragment-owner-binding-census.ts`).
 
 ## 5. Declarations and scope
 
