@@ -7720,9 +7720,17 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * programs, the 9 whose body calls a method on the variable store
          * the row (4074, 10565 x3, 10567, 10568, 17382, 17383, 25033); the
          * 7 without a call store none (14134, 14149, 18130, 25111, 5525 x3).
+         *
+         * Cycle 137: the same in an Application Class program (its class row
+         * is then claimed in the class-wide session): 29979 `catch
+         * PTAF_CORE:EXCEPTIONS:SACError &e` ... `&e.GetSubstitution(..)` stores
+         * PACKAGE.SACERROR. `cycle137-appclass-package-provenance-census.ts`:
+         * a catch type used nowhere else stores its row when the body calls a
+         * method on the variable (29990, 29979, 30139) or it is named-imported
+         * (17 EXACT), none otherwise (8 EXACT, e.g. 30207).
          */
         const catchVariable = /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
-        if (unitScopedClassRows && catchClass !== undefined && catchVariable !== undefined) {
+        if (catchClass !== undefined && catchVariable !== undefined) {
           const receiver = { packagePath: catchClass.packagePath, className: catchClass.className, reuseRuntimeCreateForMethods: false };
           applicationClassVariables.set(catchVariable.toLowerCase(), receiver);
           if (functionDepth > 0) functionApplicationClassVariables.set(catchVariable.toLowerCase(), receiver);
