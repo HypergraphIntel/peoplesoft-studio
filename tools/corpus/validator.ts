@@ -516,12 +516,23 @@ function runValidation(
     [capture.definition.key.objectId6, capture.definition.key.objectValue6],
     [capture.definition.key.objectId7, capture.definition.key.objectValue7]
   ];
+  /*
+   * Cycle 146: a key with no RECNAME (OBJECTID 1) / FIELDNAME (OBJECTID 2)
+   * component has a BLANK owner record / field: stored PSPCMNAME row 1 is
+   * `REC.` for Component Record PeopleCode (10, 39, 1, 12), `.` for
+   * Component, Page, Menu, Message, Application Engine ... PeopleCode --
+   * 28,502 ordinary definitions, every key shape, 0 exceptions
+   * (`cycle146-record-field-provenance-census.ts`). The former fallback to
+   * objectValue1 / objectValue2 (e.g. `REC.GBL`, the market code) changed
+   * no program byte. Application Classes keep the positional values.
+   */
+  const applicationClassKey = capture.definition.key.objectId1 === 104;
   const recordNameValue =
     objectIdValuePairs.find(([id]) => id === 1)?.[1] ??
-    capture.definition.key.objectValue1;
+    (applicationClassKey ? capture.definition.key.objectValue1 : '');
   const fieldNameValue =
     objectIdValuePairs.find(([id]) => id === 2)?.[1] ??
-    capture.definition.key.objectValue2;
+    (applicationClassKey ? capture.definition.key.objectValue2 : '');
 
   const encodeContext = {
     owner: {
