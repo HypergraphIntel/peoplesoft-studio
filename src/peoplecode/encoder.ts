@@ -14133,7 +14133,14 @@ function encodeApplicationClassTypeBytes(typeName: string): Buffer {
     chunks.push(encodeKeywordText('array'), encodeKeywordText('of'));
     remaining = remaining.replace(/^array\s+of\s+/i, '');
   }
-  if (APPLICATION_CLASS_WORD_TYPES.has(remaining.toLowerCase())) {
+  /*
+   * Cycle 140: a bare (untyped) `array` -- `instance array &x;`, `Returns
+   * array`, `&p As array`, `array of array` -- is the type keyword too: every
+   * stored `array` token is 0x40 (6,272; `cycle140-array-keyword-census.ts`),
+   * none an inline name. 28813 `instance array &aryBindValues;` stores `62 40
+   * "array"`.
+   */
+  if (APPLICATION_CLASS_WORD_TYPES.has(remaining.toLowerCase()) || remaining.toLowerCase() === 'array') {
     chunks.push(encodeKeywordText(remaining));
     return Buffer.concat(chunks);
   }
