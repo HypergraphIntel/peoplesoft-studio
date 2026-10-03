@@ -848,8 +848,32 @@ const BUILTIN_FUNCTION_TYPE_IDS: ReadonlyMap<string, number> = new Map([
   // i.e. Grid's own type id is 0x80014.
   ['grid', 0x80014],
   ['xmldoc', 0x8001d],
+  // Cycle 155: stored parameter / return slots (`cycle155-function-type-
+  // descriptor-census.ts`): Message 13562, CubeCollection 17821 / 17840,
+  // Document 15586, DocumentKey 15528 / 17083, Primitive and Compound
+  // 15515 / 15517 / 15528, CompositeQuery 14665.
+  ['message', 0x8000e],
   ['exception', 0x80021],
-  ['xmlnode', 0x80022]
+  ['xmlnode', 0x80022],
+  ['cubecollection', 0x80033],
+  ['document', 0x8003f],
+  ['documentkey', 0x80040],
+  ['primitive', 0x80041],
+  ['compound', 0x80042],
+  ['compositequery', 0x80048]
+]);
+
+/*
+ * Scalar descriptors established for Function metadata only (not yet for
+ * Application Class method signatures, which share PRIMITIVE_SIGNATURE_TYPE_IDS).
+ * Cycle 155: `time` (1016 / 14149 `Returns time` -> 0x0a, 15290 / 17885
+ * `As time` -> c000000a) and the late-bound `object` (17998 `As object` ->
+ * c000000d; the decoder's RETURN_TYPE_CODES already reads 13 as object).
+ */
+const FUNCTION_PRIMITIVE_TYPE_IDS: ReadonlyMap<string, number> = new Map([
+  ['date', 0x02],
+  ['time', 0x0a],
+  ['object', 0x0d]
 ]);
 
 function functionTypeId(
@@ -922,10 +946,12 @@ function functionTypeId(
   const builtinObjectType = BUILTIN_FUNCTION_TYPE_IDS.get(typeName.toLowerCase());
   if (builtinObjectType !== undefined) return builtinObjectType;
 
-  // Function directories encode Date as scalar descriptor 0x02. This has not
-  // yet been established for Application Class method signature records, so
-  // keep it local to Function metadata rather than the shared primitive map.
-  if (typeName.toLowerCase() === 'date') return 0x02;
+  // Function directories encode Date as scalar descriptor 0x02 (and time /
+  // object, Cycle 155). These have not yet been established for Application
+  // Class method signature records, so they stay local to Function metadata
+  // rather than the shared primitive map.
+  const functionPrimitive = FUNCTION_PRIMITIVE_TYPE_IDS.get(typeName.toLowerCase());
+  if (functionPrimitive !== undefined) return functionPrimitive;
 
   const id = PRIMITIVE_SIGNATURE_TYPE_IDS.get(typeName.toLowerCase());
   if (id === undefined) throw new Error(`Unsupported function metadata type: ${typeName}`);
