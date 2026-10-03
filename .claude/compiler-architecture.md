@@ -19,7 +19,8 @@ EXACT 29,832 / NONEXACT 377; Cycle 141: EXACT 29,843 / NONEXACT 366;
 Cycle 142: EXACT 29,846 / NONEXACT 363; Cycle 143: EXACT
 29,849 / NONEXACT 360; Cycle 144: EXACT 29,857 / NONEXACT 352; Cycle 145:
 EXACT 29,862 / NONEXACT 347; Cycle 146: EXACT 29,871 / NONEXACT 338; Cycle 147:
-EXACT 29,891 / NONEXACT 318; forward-exact = EXACT); forward-exact
+EXACT 29,891 / NONEXACT 318; Cycle 148: EXACT 29,895 / NONEXACT 314;
+forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -250,6 +251,17 @@ Cycle 147 -- the owner slot binds the first record/field reference only
 when the owner row is written: an Application Class method fragment's
 suppressed slot binds nothing, whatever `bindOwnerReference` says
 (`cycle147-fragment-owner-binding-census.ts`).
+
+Cycle 148 -- an indexed `array of Record` element is a Record receiver in
+every declaration scope: ordinary Local (Cycle 45), App Class header /
+Global (Cycle 134) and now ordinary Global; its bare member is a FIELD
+row, the bare array (`&x.Len`) stays inline
+(`cycle148-record-array-element-census.ts`). FIELD.X and REC.X are
+independent identities (2,516 EXACT programs hold both): the receiver,
+not the name, picks the form. Quoted (`MenuName."X"`, per control group)
+and unquoted (`MenuName.X`) spellings of one name share a stored row
+within one top-level statement (7 programs) -- not modeled, Cycle 149
+(`cycle148-quoted-unquoted-reference-census.ts`).
 
 ## 5. Declarations and scope
 

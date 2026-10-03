@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-03T14:56:18.736Z",
+ "generatedAt": "2026-10-03T15:32:51.329Z",
  "totalDefinitions": 30209,
- "exactCount": 29891,
- "nonexactCount": 318,
+ "exactCount": 29895,
+ "nonexactCount": 314,
  "rows": [
   {
    "definitionId": 522,
@@ -1912,22 +1912,6 @@
    }
   },
   {
-   "definitionId": 24348,
-   "displayName": "10=PSPTTSTMAINT, 39=GBL, 1=PSPTTSTMAINTWRK, 2=LOADPRCSMONITORPB, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 9,
-    "generatedCount": 8,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
    "definitionId": 24458,
    "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMW_WRK, 2=PTADSUPDMERGEACT, 12=FieldChange, 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -1973,54 +1957,6 @@
     "storedCount": 16,
     "generatedCount": 15,
     "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 24518,
-   "displayName": "10=PTADSDMW, 39=GBL, 1=PSADS_WORK, 2=LOADPRCSMONITORPB, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 8,
-    "generatedCount": 7,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 24519,
-   "displayName": "10=PTADSDMW, 39=GBL, 1=PSADS_WORK, 2=LOADRPTLIST, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 8,
-    "generatedCount": 7,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 24563,
-   "displayName": "10=PTADSDMWSEARCH, 39=GBL, 1=PSADS_WORK, 2=LOADPRCSMONITORPB, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 8,
-    "generatedCount": 7,
-    "firstDivergenceKind": "record-field"
    }
   },
   {
