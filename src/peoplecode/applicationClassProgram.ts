@@ -706,6 +706,12 @@ export function encodeTypeDescriptor(
     arrayDepth++;
     remaining = remaining.replace(/^array\s+of\s+/i, '');
   }
+  // Cycle 140: an untyped `array` is `array of any` (28813 `instance array`
+  // stores 0x100004, 29247 `Returns array of array` 0x200004).
+  if (/^array$/i.test(remaining)) {
+    arrayDepth++;
+    remaining = 'any';
+  }
   const lower = remaining.toLowerCase();
   const scalar = SCALAR_TYPE_IDS.get(lower);
   const builtin = BUILTIN_TYPE_IDS.get(lower);
