@@ -1,14 +1,14 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 135)
+## Current status (2026-10-02, Cycle 136)
 
-- **Current target:** Cycle 135 -- encoder (reference layer): App Class
-  Rowset receiver typing. EXACT 29,781 -> 29,809 (+28) = forward-exact;
-  39 programs changed, 0 reference lists / programs farther, every added
-  row (28 RECORD, 56 FIELD) in the stored list; protected PASS, 0 EXACT ->
-  non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See
-  "Compiler Semantics Cycle 135".
-- **Last successful calibration:** Cycle 135 (App Class Rowset typing).
+- **Current target:** Cycle 136 -- encoder (reference order): an App Class
+  create's class row after its arguments. EXACT 29,809 -> 29,820 (+11) =
+  forward-exact; STRUCTURAL_ORDERING 14 -> 3; exactly the 11 targets
+  changed (same rows, reordered), 0 farther, protected PASS, 0 EXACT ->
+  non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See "Compiler
+  Semantics Cycle 136".
+- **Last successful calibration:** Cycle 136 (App Class create row order).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -24,19 +24,17 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 136):** reference layer -- the largest single-shape
-  family: STRUCTURAL_ORDERING App Class programs whose first reference
-  divergence is a stored FIELD row where the encoder writes a PACKAGE row
-  (11: 29451 29519 29538 29540 29546 30054 30058 30060 ...) -- an ordering
-  question (the rows exist, in a different order): census the stored order
-  of FIELD vs PACKAGE rows in those methods against the allocation order
-  before changing any allocator. Then the App Class ACTIVE_PACKAGE family
-  (16: 28721 28729 28797 ...). Remaining COMPLETE_DOWNSTREAM (33): `array`
-  0x40 (5), marker order (4 + 2), type-path case (3), App Class 0x4E vs 0x2D
-  (3), 0x4F before Constant / instance / method (3 + 1); 15840 needs
-  metadata the snapshot lacks (PTIB_PACKAGE:MobileURLParams.URIParams).
+- **Next action (Cycle 137):** reference layer -- App Class ACTIVE_PACKAGE
+  where both sides hold a PACKAGE row at the first divergence (16: 28721
+  28729 28797 28857 28893 28985 29329 29527 ...): census whether each is a
+  wrong leaf, a missing / extra PACKAGE row (29655: a missing
+  PACKAGE.PROCESS) or an order difference, with the reference-delta ledger,
+  before touching PACKAGE allocation. Remaining STRUCTURAL_ORDERING (3):
+  7954 (ordinary SCROLL order), 30047 / 30124 (PACKAGE vs PACKAGE order).
   README.md has unrelated uncommitted user edits -- never stage it.
-- **Newly established rules this session:** Cycle 135 (encoder): an App
+- **Newly established rules this session:** Cycle 136 (encoder): an App
+  Class create uses its class row after its arguments unless its own
+  `Local <Class> &v =` declaration typed it; Cycle 135 (encoder): an App
   Class Rowset (header declaration or metadata-typed property) is a declared
   Rowset in method bodies; Cycle 134 (encoder): a bare
   chain member is 0x4A after a statically typed Row / Record value, 0x0A on
@@ -180,6 +178,52 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 136 -- App Class create row order
+
+**Baseline reproduced fresh at `e03f9d2`:** 29,809 / 400, forward-exact
+29,809, STRUCTURAL_ORDERING 14, ACTIVE_PACKAGE 70, ACTIVE_FIELD 22,
+ACTIVE_RECORD 27, ACTIVE_RECORD_FIELD 36, protected 430/430, taxonomy
+row-identical, fallback 70 (13525 in, EXACT), ROUNDTRIP_ONLY 0.
+**Result:** EXACT **29,809 -> 29,820 (+11: 29451 29519 29538 29540 29546
+30054 30058 30060 30061 30146 30147)** = forward-exact; exactly those 11
+changed (bytes and reference lists), 0 EXACT -> non-EXACT, no category
+moves, STRUCTURAL_ORDERING 14 -> 3, ROUNDTRIP_ONLY 0, protected 430/430,
+fallback 70. LOCAL SNAPSHOT only. Commits: edd1440 (census), 481b208
+(encoder). README.md untouched, never staged.
+
+STRUCTURAL_ORDERING (14), all with identical stored / generated row
+multisets: 11 App Class criteria classes (`class X extends
+<PKG>_CRITERIA:DEFINITION:CriteriaBase`), one row moved -- stored `PACKAGE.,
+PACKAGE.RECORD, FIELD.<X>CRTA_ID, PACKAGE.CRITERIABASE`, generated the
+PACKAGE before the FIELD; the only use is the constructor's `%Super =
+create <PKG>:CriteriaBase(&rec_.<X>CRTA_ID.Value)` (class path inline 0x0A
+/ 0x57; the PACKAGE row is a dependency, the FIELD the argument's 0x4A
+operand, #4 stored vs #5 generated). Others: 7954 (ordinary, SCROLL order),
+30047 / 30124 (App Class, PACKAGE vs PACKAGE order) -- untouched.
+
+Census (`cycle136-create-package-order-census.ts`: every stored create
+whose arguments first use a reference row): the PACKAGE row follows those
+rows in all 11 targets; precedes them in EXACT App Class creates (13),
+every one after a declaration had typed the class (header variable, or
+the statement's own `Local <Class> &v = create <Class>(..)`, 30067, 29998,
+30143, 29019). Ordinary programs already use the class after the
+arguments (Cycles 93 / 94; 18032 the same CriteriaBase create, EXACT); the
+App Class path called `ensureRuntimeCreateReference` before them.
+Variants: always after the arguments +11 / -1 (30067 lost: its Local
+declaration types the class first); after the arguments unless the
+statement's own `Local <same Class> &v =` declaration (landed) +11, 0
+lost, exactly 11 changed. Ledger (`cycle135-reference-delta.ts`): the 11
+lists 2 -> 0 (same rows, reordered; 0 added / removed), bytes exact (the
+argument rows' operand NAMENUMs follow). 29655 (ACTIVE_PACKAGE): a missing
+PACKAGE.PROCESS row, not an order difference -- untouched. Cycle 124-135
+gains all still EXACT.
+
+Rerank: STRUCTURAL_ORDERING 3, ACTIVE_PACKAGE 70 (App Class PACKAGE /
+PACKAGE 16 the largest family), ACTIVE_RECORD_FIELD 36, COMPLETE_DOWNSTREAM
+33, ACTIVE_RECORD 27, ACTIVE_FIELD 22, ACTIVE_OTHER 12, ACTIVE_SCROLL 11,
+QUOTED_COMPONENT 8, ACTIVE_DECLARE_FUNCTION 1; ENCODE_ERROR 69, DSM 67,
+UNSUPPORTED_SYNTAX 30 (NONEXACT 389).
 
 ## Compiler Semantics Cycle 135 -- App Class Rowset receiver typing
 
