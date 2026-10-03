@@ -23,7 +23,7 @@ EXACT 29,891 / NONEXACT 318; Cycle 148: EXACT 29,895 / NONEXACT 314;
 Cycle 149: EXACT 29,902 / NONEXACT 307; Cycle 150: EXACT 29,920 /
 NONEXACT 289; Cycle 151: EXACT 29,924 / NONEXACT 285; Cycle 152: EXACT
 29,929 / NONEXACT 280; Cycle 153: EXACT 29,952 / NONEXACT 257;
-forward-exact = EXACT); forward-exact
+Cycle 154: EXACT 29,962 / NONEXACT 247; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -315,6 +315,19 @@ comma; no count byte), each index stepping one array level
 A try statement may have several catch clauses (each `66 <type> <var>`),
 and the last catch-body statement may omit `;` before end-try (no
 terminator written).
+
+Cycle 154 (syntax) -- terminator elision: each block-body loop names the
+keywords before which its last statement may omit `;` (stored writes no
+terminator): If (Else, End-If, REM), Else (End-If, REM), For (End-For),
+While, Repeat, When / When-Other, catch (end-try, catch), try (catch),
+Function; a bare Return before a block keyword (`BLOCK_CLOSING_KEYWORD`)
+takes no value. A block comment between a statement and its `;` is an
+inline 0x4E in the If, When and For bodies. Expression comments
+(`commentsBeforeContinuation` / `commentsAfterOperator`): a block comment
+between an operand and a continuing operator / comparison / assignment
+`=` / comma, or right after an operator / comma, is an inline 0x4E at its
+position; any other comment still ends the expression. REM after a
+boolean operator inside a condition is not modeled (13895 16592 28753).
 
 ## 5. Declarations and scope
 
