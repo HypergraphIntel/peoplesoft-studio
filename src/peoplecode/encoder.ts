@@ -11429,8 +11429,16 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           // Cycle 6: inline Row state/property members (.RowNumber,
           // .IsChanged, etc.) are scalar and do not carry the chain
           // forward as a bound value -- mirrors expectedReferenceMember's
-          // own reset immediately above.
-          chainSemantics = { valueType: 'scalar', binding: 'dynamic', provenance: 'unknown' };
+          // own reset immediately above. Cycle 146: except the Cycle 7
+          // navigation members, which keep the receiver's binding for the
+          // navigation arm below -- 22705 `GetRecord().ParentRow.ParentRowset
+          // .ParentRowset.GetRow(n).GPS_WFS_FLD_VW.GPS_WFS_RPT_FLD.Value`
+          // stores RECORD / FIELD rows (`ParentRowset` after `ParentRow` is
+          // in the 'record' position, where Cycle 97 keeps it inline, and the
+          // reset to `dynamic` cost the later GetRow its binding).
+          if (!/^Parent(?:Row|Rowset)$/i.test(member)) {
+            chainSemantics = { valueType: 'scalar', binding: 'dynamic', provenance: 'unknown' };
+          }
         }
 
         chunks.push(
