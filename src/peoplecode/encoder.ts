@@ -12149,6 +12149,23 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         expression();
         space();
 
+        /*
+         * Cycle 153: a subscript holds one or more comma-separated indexes,
+         * `&a [i, j]` -- ONE subscript, stored `4C <i> 03 <j> 4D` (the
+         * ordinary 0x03 comma; no nesting, no count byte). Every index steps
+         * one array level (`array of array of T` [i, j] is a T).
+         * `cycle153-multi-index-subscript-census.ts`: 79 sites in 11
+         * programs (4101, 6933, 28872 ...), all two indexes.
+         */
+        let subscriptIndexes = 1;
+        while (source[pos] === ',') {
+          pos++;
+          chunks.push(fixed(','));
+          expression();
+          space();
+          subscriptIndexes++;
+        }
+
         if (source[pos] !== ']') {
           return fail('expected ] after array subscript');
         }
@@ -12156,7 +12173,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         pos++;
         chunks.push(Buffer.from([0x4d]));
         if (pendingArrayElement !== undefined && pendingArrayElement.remaining > 0) {
-          pendingArrayElement.remaining--;
+          pendingArrayElement.remaining = Math.max(0, pendingArrayElement.remaining - subscriptIndexes);
           if (pendingArrayElement.remaining === 0) {
             activeApplicationClassReceiver = {
               packagePath: pendingArrayElement.packagePath,
