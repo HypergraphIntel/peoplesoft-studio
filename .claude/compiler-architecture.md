@@ -21,8 +21,8 @@ Cycle 142: EXACT 29,846 / NONEXACT 363; Cycle 143: EXACT
 EXACT 29,862 / NONEXACT 347; Cycle 146: EXACT 29,871 / NONEXACT 338; Cycle 147:
 EXACT 29,891 / NONEXACT 318; Cycle 148: EXACT 29,895 / NONEXACT 314;
 Cycle 149: EXACT 29,902 / NONEXACT 307; Cycle 150: EXACT 29,920 /
-NONEXACT 289; Cycle 151: EXACT 29,924 / NONEXACT 285; forward-exact =
-EXACT); forward-exact
+NONEXACT 289; Cycle 151: EXACT 29,924 / NONEXACT 285; Cycle 152: EXACT
+29,929 / NONEXACT 280; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -296,6 +296,16 @@ memberships return. An untyped parameter is late-bound in its body even
 over an outer typed variable (11513, 13657, 13658); a typed one does not
 leak into later code (18134). Function-body Locals stay program-wide (no
 corpus case needs otherwise) (`cycle151-function-parameter-shadow-census.ts`).
+
+Cycle 152 -- an `As array of Record` Function parameter requests the
+PACKAGE.RECORD built-in row in the header's built-in unit
+('function-parameter' context; one per unit, shared with the header's
+other Record types and `Returns array of Record`; a first Function shares
+the leading section's row) -- Record only, other element types
+unevidenced (`cycle152-function-array-type-census.ts`). `PanelGroup array
+of <type>` parses as the Component array form (`51 40 array 40 of 40
+<type>`, element built-in row in the 'component' context) and a
+`PanelGroup array of Record` is a record array.
 
 ## 5. Declarations and scope
 
