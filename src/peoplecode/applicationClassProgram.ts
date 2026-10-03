@@ -261,7 +261,7 @@ function normalizeTypeName(value: string): string {
   return trimmed;
 }
 
-function maskNonCode(source: string): string {
+export function maskNonCode(source: string): string {
   const chars = [...source];
   let i = 0;
   while (i < chars.length) {
