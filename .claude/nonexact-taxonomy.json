@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-03T00:22:40.545Z",
+ "generatedAt": "2026-10-03T00:57:29.813Z",
  "totalDefinitions": 30209,
- "exactCount": 29820,
- "nonexactCount": 389,
+ "exactCount": 29821,
+ "nonexactCount": 388,
  "rows": [
   {
    "definitionId": 522,
@@ -4925,22 +4925,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 438: expected )",
    "construct": " method doAdminA",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29979,
-   "displayName": "104=PTAF_ARCHIVE, 105=UI, 107=ArchiveController, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 2342,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 20,
-    "generatedCount": 19,
-    "firstDivergenceKind": "package"
-   }
   },
   {
    "definitionId": 30047,

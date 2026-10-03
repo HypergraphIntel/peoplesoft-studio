@@ -1,14 +1,16 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 136)
+## Current status (2026-10-02, Cycle 137)
 
-- **Current target:** Cycle 136 -- encoder (reference order): an App Class
-  create's class row after its arguments. EXACT 29,809 -> 29,820 (+11) =
-  forward-exact; STRUCTURAL_ORDERING 14 -> 3; exactly the 11 targets
-  changed (same rows, reordered), 0 farther, protected PASS, 0 EXACT ->
-  non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See "Compiler
-  Semantics Cycle 136".
-- **Last successful calibration:** Cycle 136 (App Class create row order).
+- **Current target:** Cycle 137 -- reference layer: App Class
+  ACTIVE_PACKAGE PACKAGE / PACKAGE (16). Landed one proven subgroup: an App
+  Class catch variable is a receiver; a method call on it uses its class
+  row. EXACT 29,820 -> 29,821 (+1: 29979) = forward-exact; ACTIVE_PACKAGE
+  70 -> 69; 2 reference lists changed (29979, 29990 -- a hidden diff in an
+  EXACT program closed), +2 PACKAGE.SACERROR rows, both stored-backed, 0
+  farther; protected PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0,
+  fallback 70 (13525 in, EXACT). See "Compiler Semantics Cycle 137".
+- **Last successful calibration:** Cycle 137 (App Class catch receiver).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -24,15 +26,23 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 137):** reference layer -- App Class ACTIVE_PACKAGE
-  where both sides hold a PACKAGE row at the first divergence (16: 28721
-  28729 28797 28857 28893 28985 29329 29527 ...): census whether each is a
-  wrong leaf, a missing / extra PACKAGE row (29655: a missing
-  PACKAGE.PROCESS) or an order difference, with the reference-delta ledger,
-  before touching PACKAGE allocation. Remaining STRUCTURAL_ORDERING (3):
-  7954 (ordinary SCROLL order), 30047 / 30124 (PACKAGE vs PACKAGE order).
-  README.md has unrelated uncommitted user edits -- never stage it.
-- **Newly established rules this session:** Cycle 136 (encoder): an App
+- **Next action (Cycle 138):** reference layer -- App Class per-method
+  PACKAGE row lifetime: App Class programs whose stored list repeats a key
+  (>= 5 duplicate rows): EXACT 1, non-EXACT 6 (29724 29734 29797 29883
+  30170 30179; 29797 / 29883 / 30170 store 191 / 48 / 543 rows with 137 /
+  30 / 360 duplicates). Census what opens a new allocation unit per
+  method (vs the class-wide session) before touching allocation.
+  Metadata-absent (park, stop F): 29655 (OU_PAGEUP_API:HIRE:Offer),
+  28857 / 28893 (EOAW_APPROVAL_MM_FL:actionButton:actionControlCommon),
+  29527 / 29590 (HMAP_APPROVAL:Utility:Helper), 15840. Single-program
+  built-in gaps: 28985 / 30206 (EXCEPTION), 29329 (FILE), 28721 (IMAGE);
+  28797 extra COLLECTABLE; 28729 / 29529 mixed. STRUCTURAL_ORDERING (3):
+  7954, 30047 / 30124 (order-only controls). README.md has unrelated
+  uncommitted user edits -- never stage it.
+- **Newly established rules this session:** Cycle 137 (encoder): an App
+  Class `catch <Class> &e` is a receiver -- a method call on &e uses the
+  class row (class-wide session); a catch with no call allocates none;
+  `catch Exception` (built-in) never stores a row; Cycle 136 (encoder): an App
   Class create uses its class row after its arguments unless its own
   `Local <Class> &v =` declaration typed it; Cycle 135 (encoder): an App
   Class Rowset (header declaration or metadata-typed property) is a declared
@@ -178,6 +188,57 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 137 -- App Class PACKAGE provenance
+
+**Baseline reproduced fresh at `37fffd0`:** 29,820 / 389, forward-exact
+29,820, ACTIVE_PACKAGE 70, protected 430/430, taxonomy row-identical,
+fallback 70 (13525 in, EXACT), ROUNDTRIP_ONLY 0.
+**Result:** EXACT **29,820 -> 29,821 (+1: 29979)** = forward-exact; 1
+program's bytes changed (29979), 2 reference lists changed (29979, 29990
+-- both now reference-exact, +PACKAGE.SACERROR each, stored-backed, 0
+removed, 0 duplicates, 0 farther); 0 EXACT -> non-EXACT, no category
+moves, ACTIVE_PACKAGE 70 -> 69, ROUNDTRIP_ONLY 0, protected 430/430,
+fallback 70. LOCAL SNAPSHOT only. Commits: b674091 (census), 43beec6
+(encoder). README.md untouched, never staged.
+
+ACTIVE_PACKAGE 70 partition (program kind x first diff stored/generated):
+App Class PACKAGE/PACKAGE 16, ordinary fallback PACKAGE/PACKAGE 15,
+ordinary fallback REC.FIELD/PACKAGE 10, ordinary PACKAGE/PACKAGE 9, App
+Class REC.FIELD/PACKAGE 7, ordinary RECORD/PACKAGE 4, ordinary
+REC.FIELD/PACKAGE 3, App Class FIELD/PACKAGE 2, App Class RECORD/PACKAGE 2,
+ordinary fallback RECORD/PACKAGE 1, ordinary FIELD/PACKAGE 1.
+
+The 16 (full-list comparison): missing rows 10 -- 28721 (IMAGE), 28857 /
+28893 (UTILS, USERUTILITIES, PAGE), 28985 (EXCEPTION), 29329 (FILE), 29527
+(DATAPROCESSHELPER), 29590 (RECORDTAG + RECORD / SQL rows), 29655
+(PROCESS), 29979 (SACERROR), 30206 (EXCEPTION); per-method duplicate
+lifetime 3 -- 29797, 29883, 30170 (stored 191 / 48 / 543 rows, 137 / 30 /
+360 duplicates); mixed 2 -- 28729, 29529; extra 1 -- 28797 (COLLECTABLE).
+Order-only controls (STRUCTURAL_ORDERING): 30047, 30124. Metadata absent
+from the snapshot (park): 29655 `OU_PAGEUP_API:HIRE:Offer`; 28857 / 28893
+`BNActionButton.utils` inherited from `EOAW_APPROVAL_MM_FL:actionButton:
+actionControlCommon`; 29527 (and likely 29590) `HMAP_APPROVAL:Utility:
+Helper`; 15840 still `PTIB_PACKAGE:MobileURLParams.URIParams`.
+
+Census (`cycle137-appclass-package-provenance-census.ts`): an App Class
+catch type used nowhere else stores its row when the body calls a method
+on the variable (29990 EXACT; 29979, 30139) or when it is named-imported
+(17 EXACT), none otherwise (8 EXACT, e.g. 30207) -- 0 contradictions;
+`catch Exception` never stores one (122 EXACT). The encoder registered an
+App Class catch variable only under `unitScopedClassRows`; registering it
+always (the ordinary Cycle 111 rule) is the landed change. Built-in
+Exception / File as parameter or instance types store rows in EXACT
+programs (10 / 6): 28985 / 29329 / 30206 are single-program gaps, not a
+coherent group -- untouched. 30139 / 29465 ENCODE_ERROR (unverifiable).
+Duplicate-row lifetime: App Class programs with >= 5 duplicate stored
+rows -- EXACT 1, non-EXACT 6 (29724 29734 29797 29883 30170 30179): the
+Cycle 138 mechanism. Cycle 124-136 gains all still EXACT.
+
+Rerank: ACTIVE_PACKAGE 69, ACTIVE_RECORD_FIELD 36, COMPLETE_DOWNSTREAM 33,
+ACTIVE_RECORD 27, ACTIVE_FIELD 22, ACTIVE_OTHER 12, ACTIVE_SCROLL 11,
+QUOTED_COMPONENT 8, STRUCTURAL_ORDERING 3, ACTIVE_DECLARE_FUNCTION 1;
+ENCODE_ERROR 69, DSM 67, UNSUPPORTED_SYNTAX 30 (NONEXACT 388).
 
 ## Compiler Semantics Cycle 136 -- App Class create row order
 
