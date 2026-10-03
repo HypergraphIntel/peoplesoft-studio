@@ -3490,9 +3490,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     // If owner context was omitted, the first ordinary record/field reference
     // is the only calibrated inference available, so bind the reserved owner
     // slot to it. If it is not the owner, allocate a normal occurrence row.
+    /*
+     * Cycle 147: never into a SUPPRESSED owner slot. An Application Class
+     * method fragment (every fragment after the first) writes no owner row,
+     * so binding its first record/field reference to the slot dropped that
+     * row and left its operand on an index the next allocation then took:
+     * 29163 `GetChart(CAF_DISP_WRK.CAF_CHART)` stored `21 #22`, generated
+     * `21 #20` (PACKAGE.RECORD's index); `IsMenuItemAuthorized(MenuName.
+     * COMPARISON_ANALYSIS_FRAMEWORK, BarName.MAIN, ...)` both arguments on
+     * BarName's row. Happened only where `bindOwnerReference` was forced on
+     * (an inherited `%This` call): 31 programs, every dropped row
+     * (REC.FIELD 35, PAGE 15, IMAGE 7, MENUNAME 7, SQL 4, OPERATION 1) in
+     * the stored list -- `cycle147-fragment-owner-binding-census.ts`.
+     */
     const ownerUnbound =
       context?.bindOwnerReference !== false &&
-      (!context?.suppressOwnerReference || context?.bindOwnerReference === true) &&
+      !context?.suppressOwnerReference &&
       ownerReference.recordName === undefined &&
       ownerReference.fieldName === undefined;
 
@@ -15257,7 +15270,8 @@ function encodeApplicationClassProgramV2(
       applicationClassSelfMethodDependency,
       // Inherited `%This` calls can allocate environment-derived method
       // rows. Freeze that unsupported population on its prior fragment-owner
-      // behavior; modeled units keep the mandatory owner row blank.
+      // behavior; modeled units keep the mandatory owner row blank. (Cycle
+      // 147: a method fragment's suppressed owner slot binds nothing.)
       bindOwnerReference: hasUnmodeledThisMethodDependencies,
       // Cycle 36: every fragment this closure encodes is either the
       // leading import fragment (no Local declarations) or a method
