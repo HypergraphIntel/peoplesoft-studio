@@ -5130,7 +5130,26 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         // by control group, not deduplicated globally.
         const quotedKey =
           `${controlGroup}:${storedQualifier.toLowerCase()}:${refName.toLowerCase()}`;
-        let reference = quotedReferencesByControlGroup.get(quotedKey);
+        /*
+         * Cycle 149: in an ordinary program a quoted and an unquoted
+         * spelling of one reference (`MenuName."X"` / `MenuName.X`) are
+         * one row per allocation unit -- the row identity KIND.NAME, the
+         * pool the unquoted spelling already uses (Cycle 96). The first
+         * use in the unit, either spelling, creates the row; each use keeps
+         * its own operand (0x48 / 0x21). `cycle149-quoted-symbolic-row-census.ts`:
+         * every occurrence with an earlier same-identity use in its unit
+         * reuses that row (cross-spelling: 23684 `If %Menu =
+         * MenuName."MANAGE_PAYROLL_PROCESS_US" Then DoModalComponent(
+         * MenuName.MANAGE_PAYROLL_PROCESS_US, ...)`, 22983, 5672 ...),
+         * every other one opens a new row (805, 9670, 11344: the spellings
+         * sit in different units), no reuse crosses a unit.
+         */
+        const unitRow = unitScopedRecordRows
+          ? unitScopedRows['record-field'].get(`${storedQualifier}.${refName}`.toUpperCase())
+          : undefined;
+        let reference = unitRow !== undefined && unitRow.unit === allocationUnit
+          ? unitRow.reference
+          : quotedReferencesByControlGroup.get(quotedKey);
 
         if (reference === undefined) {
           reference = nextReference({
