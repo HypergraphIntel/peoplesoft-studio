@@ -261,15 +261,25 @@ function normalizeTypeName(value: string): string {
   return trimmed;
 }
 
+/**
+ * Cycle 143: a REM comment starts at `rem` / `remark` not preceded by an
+ * identifier character and followed by anything that cannot continue an
+ * identifier -- the ordinary statement encoder's own `^(?:REM|remark)\b`
+ * rule. Every delimiter is stored as a 0x24 comment in ordinary code
+ * (space, tab, `:`, `,`, `;`, `(`, `*`, `-`, end of line);
+ * `cycle143-rem-lexical-census.ts`. The App Class scanners required
+ * whitespace or `:`, so 28720's header `rem,yan add, set ...;` was dropped.
+ */
+export function isRemCommentStart(source: string, index: number): boolean {
+  return (index === 0 || !/[A-Za-z0-9_%&]/.test(source[index - 1])) &&
+    /^(?:rem|remark)\b/i.test(source.slice(index, index + 7));
+}
+
 export function maskNonCode(source: string): string {
   const chars = [...source];
   let i = 0;
   while (i < chars.length) {
-    if (
-      source.slice(i, i + 3).toLowerCase() === 'rem' &&
-      (i === 0 || !/[A-Za-z0-9_%&]/.test(source[i - 1])) &&
-      /[\s:]/.test(source[i + 3] ?? '')
-    ) {
+    if (isRemCommentStart(source, i)) {
       while (i < chars.length && chars[i] !== ';') {
         if (chars[i] !== '\n' && chars[i] !== '\r') chars[i] = ' ';
         i++;
