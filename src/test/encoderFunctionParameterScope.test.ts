@@ -39,3 +39,49 @@ End-Function;
   assert.deepEqual(keys, ['PAY_LINE.EMPLID', 'FIELD.PTPROPNAME']);
   assert.deepEqual(operands, ['4a FIELD.PTPROPNAME #2']);
 });
+
+test('an untyped parameter shadows an outer Rowset: its chain stays inline (13657)', () => {
+  const { keys } = encode(`Local Rowset &x;
+
+Function F(&x)
+   &x.GetRow(1).PORTAL_MEN2_WRK.MENULABEL.Visible = False;
+End-Function;
+`);
+  assert.deepEqual(keys, ['PAY_LINE.EMPLID', 'PACKAGE.ROWSET']);
+});
+
+test('an untyped parameter shadows an outer Record: its bare members stay inline (11513)', () => {
+  const { keys } = encode(`Local Record &rec;
+
+Function F(&rec)
+   If &rec.DED_TAKEN.IsChanged Then
+      &rec.BEN_DED_STATUS.Value = "U";
+   End-If;
+End-Function;
+`);
+  assert.deepEqual(keys, ['PAY_LINE.EMPLID', 'PACKAGE.RECORD']);
+});
+
+test('a typed parameter of the same name keeps its own type (contrast)', () => {
+  const { keys, operands } = encode(`Local Rowset &x;
+
+Function F(&x As Rowset)
+   &x.GetRow(1).PORTAL_MEN2_WRK.MENULABEL.Visible = False;
+End-Function;
+`);
+  assert.deepEqual(keys, ['PAY_LINE.EMPLID', 'PACKAGE.ROWSET', 'RECORD.PORTAL_MEN2_WRK', 'FIELD.MENULABEL']);
+  assert.deepEqual(operands, ['4a RECORD.PORTAL_MEN2_WRK #3', '4a FIELD.MENULABEL #4']);
+});
+
+test('after End-Function the outer declaration is visible again (restoration control)', () => {
+  const { keys, operands } = encode(`Local Rowset &x;
+
+Function F(&x)
+   &x.GetRow(1).PORTAL_MEN2_WRK.MENULABEL.Visible = False;
+End-Function;
+
+&x.GetRow(1).PORTAL_MEN2_WRK.MENULABEL.Visible = True;
+`);
+  assert.deepEqual(keys, ['PAY_LINE.EMPLID', 'PACKAGE.ROWSET', 'RECORD.PORTAL_MEN2_WRK', 'FIELD.MENULABEL']);
+  assert.deepEqual(operands, ['4a RECORD.PORTAL_MEN2_WRK #3', '4a FIELD.MENULABEL #4']);
+});
