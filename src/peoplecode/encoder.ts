@@ -1997,11 +1997,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * own, narrower cell (only Record evidenced there, unlike Local's
      * wider array-element coverage).
      */
+    let globalRecordArray = false;
     if (/^array$/i.test(declaredType ?? '')) {
       const elementType = arrayElementTypes();
       if (elementType !== undefined) {
         allocateBuiltinTypePackageReferenceIfSupported(elementType, 'global-array-element');
       }
+      globalRecordArray = /^Record$/i.test(elementType ?? '');
     } else if (declaredType !== undefined) {
       allocateBuiltinTypePackageReferenceIfSupported(declaredType, 'global');
     }
@@ -2030,6 +2032,18 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     if (/^Record$/i.test(declaredType ?? '') && firstGlobalVariable) {
       recordVariables.add(firstGlobalVariable.toLowerCase());
     }
+    /*
+     * Cycle 148: a Global `array of Record` is, once indexed, a Record like
+     * a Local one (Cycle 45) or an App Class header one (Cycle 134): stored
+     * binds `&gArr [&i].FIELD` as a FIELD row (24348, 24518, 24519, 24563
+     * `&PMN_AllHomeStates [&PMN_AllHomeStates.Len].RUN_CNTL_ID.Value`).
+     * `cycle148-record-array-element-census.ts`: an indexed element's
+     * member is a stored FIELD row in every scope (ordinary Local 206/206,
+     * App Class 33/33, ordinary Global 4/4).
+     */
+    if (globalRecordArray && firstGlobalVariable) {
+      recordArrayVariables.add(firstGlobalVariable.toLowerCase());
+    }
     chunks.push(variable());
 
     while (true) {
@@ -2050,6 +2064,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       }
       if (/^Record$/i.test(declaredType ?? '') && nextGlobalVariable) {
         recordVariables.add(nextGlobalVariable.toLowerCase());
+      }
+      if (globalRecordArray && nextGlobalVariable) {
+        recordArrayVariables.add(nextGlobalVariable.toLowerCase());
       }
       chunks.push(variable());
     }
