@@ -1,15 +1,13 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 142)
+## Current status (2026-10-03, Cycle 143)
 
-- **Current target:** Cycle 142 -- App Class type-path name casing: the
-  name table writes a sub-package in the program's first spelling of it
-  (statement bytes keep the declaration's). EXACT 29,843 -> 29,846 (+3:
-  28942 28943 28953) = forward-exact; 4 programs' bytes changed (29588
-  closer), 0 PSPCMNAME changes; protected PASS, 0 EXACT -> non-EXACT,
-  ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See "Compiler
-  Semantics Cycle 142".
-- **Last successful calibration:** Cycle 142 (type-path sub-package case).
+- **Current target:** Cycle 143 -- REM lexical boundary in Application
+  Class scanners (`rem,` / `rem;`). EXACT 29,846 -> 29,849 (+3: 28715 28720
+  29823) = forward-exact; exactly those 3 changed, 0 PSPCMNAME changes;
+  protected PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70
+  (13525 in, EXACT). See "Compiler Semantics Cycle 143".
+- **Last successful calibration:** Cycle 143 (punctuated App Class REM).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -25,21 +23,21 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 143):** App Class REM recognition -- a `rem`
-  directly followed by `,` / `;` (`rem,yan add ...;`) is a stored REM
-  comment (0x24) but the App Class comment scanners drop it: class header
-  0 EXACT / 5 (28720 29823 -- COMPLETE_DOWNSTREAM "24 / 63" -- 28759
-  28760), bodies `rem,` 2 / 130, `rem;` 0 / 39 (29570); ordinary `rem,`
-  68 / 5 (`cycle142-type-path-case-census.ts --rem`). Then the reference
-  layer: ACTIVE_PACKAGE 69 (App Class PACKAGE/PACKAGE 15, ordinary
-  fallback 12 + 10, ordinary non-fallback PACKAGE/PACKAGE 8: 14641 14919
-  15070 16082 16567 17893 24800 24988), ACTIVE_RECORD_FIELD 36
-  (fragmented, largest ordinary-fallback PACKAGE/REC.FIELD 7). Parked: 29867;
+- **Next action (Cycle 144):** reference layer -- ACTIVE_PACKAGE 69:
+  ordinary non-fallback PACKAGE/PACKAGE (8: 14641 14919 15070 16082 16567
+  17893 24800 24988) first -- full-list comparison per program before any
+  allocation change (Cycle 137 method). COMPLETE_DOWNSTREAM (8) is now all
+  singletons / pairs (29646 / 29670 trailing text). The App Class `rem,`
+  body sites left are in ENCODE_ERROR programs (28753 28754 28759 28760,
+  `bare identifiers are only supported as calls`), 28761 (ACTIVE_RECORD_
+  FIELD) and 29570 (`rem;`, DSM) -- not REM recognition. Parked: 29867;
   29797 29883 30170 30179 30192; metadata-absent 29655, 28857 / 28893,
   29527 / 29590, 15840; one-offs 28721, 28985 / 30206, 29329, 28797.
-  README.md has unrelated uncommitted user edits -- never stage it;
-  never touch stash@{0} / stash@{1}.
-- **Newly established rules this session:** Cycle 142 (encoder): an App
+  README.md has unrelated uncommitted user edits -- never stage it; never
+  touch stash@{0} / stash@{1}.
+- **Newly established rules this session:** Cycle 143 (encoder): a REM
+  comment starts at `rem` / `remark` followed by a non-identifier character
+  in every scanner (`isRemCommentStart`); Cycle 142 (encoder): an App
   Class type-path NAME (name table) writes each sub-package in the
   program's first spelling of that package path; Cycle 141 (encoder): a block
   comment closing the import section restarts a following plain Local
@@ -205,6 +203,46 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 143 -- REM lexical boundary
+
+**Baseline reproduced fresh at `00bbe77`:** 29,846 / 363, forward-exact
+29,846, COMPLETE_DOWNSTREAM 11, ACTIVE_PACKAGE 69, ACTIVE_RECORD_FIELD 36,
+protected 430/430, taxonomy row-identical, fallback 70 (13525 in, EXACT),
+ROUNDTRIP_ONLY 0, decoder-only frontier 0.
+**Result:** EXACT **29,846 -> 29,849 (+3: 28715 28720 29823)** =
+forward-exact; exactly those 3 changed, 0 reference lists, 0 farther, 0
+EXACT -> non-EXACT, COMPLETE_DOWNSTREAM 11 -> 8. LOCAL SNAPSHOT only.
+Commits: 4be7a1d (census), the encoder commit after it. README.md and both
+stashes untouched.
+
+Truth table (`cycle143-rem-lexical-census.ts`, every source `rem` at a
+token start; case variants REM 4,491 / rem 8,774 / Rem 1,205 / rEM 2 /
+REm 1 -- case-insensitive): ordinary code stores a 0x24 REM comment for
+every non-identifier delimiter -- space 8,202 EXACT, `:` 229, `*` 130,
+`,` 68, `;` 43, `-` 23, tab 2, `(` 1, end of line 2 -- and `Remark ...`
+(56 EXACT); `rem` + letter / digit is an identifier (`remove_cost`,
+`RemoveTreeCTLH`: 343 + 52 EXACT name tokens). The stored text runs from
+`rem` through its `;` (`rem,yan add, ...;`, `rem;`). This is the ordinary
+encoder's `^(?:REM|remark)\b` and the preprocessor's `^rem\b`. The App
+Class masker (`maskNonCode`) and the class-header layout comment scanner
+required whitespace or `:`: header `rem,` 0 EXACT / 5, body `rem,` 2 / 130,
+`rem;` 0 / 39. Bodies are encoded by the ordinary fragment encoder (so
+28719 / 29908 body `rem,` were already exact); the header scanner dropped
+the comment (28720 / 29823 "stored 24 / generated 63": 0x63 is the next
+`method`). Variants: masker alone 0 changes; masker + header scanner
+exactly +3 (landed, shared `isRemCommentStart`). The terminator masker's
+own boundary (not `[A-Za-z0-9_%&]` after) is left unchanged -- not
+implicated. Remaining App Class `rem,` / `rem;` sites are in
+ENCODE_ERROR programs (28753 28754 28759 28760: bare identifier calls),
+28761 and 29570 (DSM) -- other causes.
+
+Rerank: COMPLETE_DOWNSTREAM 8 (trailing text 2 -- 29646 29670 --, six
+singletons), ACTIVE_PACKAGE 69 (App Class PACKAGE/PACKAGE 15, ordinary
+fallback 12 + 10, ordinary PACKAGE/PACKAGE 8), ACTIVE_RECORD_FIELD 36,
+ACTIVE_RECORD 25, ACTIVE_FIELD 22, ACTIVE_OTHER 12, ACTIVE_SCROLL 11,
+QUOTED_COMPONENT 8, STRUCTURAL_ORDERING 3; ENCODE_ERROR 69, DSM 67,
+UNSUPPORTED_SYNTAX 30 (NONEXACT 360).
 
 ## Compiler Semantics Cycle 142 -- App Class type-path name casing
 

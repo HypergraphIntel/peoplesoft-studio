@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-03T04:25:59.577Z",
+ "generatedAt": "2026-10-03T05:00:21.076Z",
  "totalDefinitions": 30209,
- "exactCount": 29846,
- "nonexactCount": 363,
+ "exactCount": 29849,
+ "nonexactCount": 360,
  "rows": [
   {
    "definitionId": 522,
@@ -2728,36 +2728,6 @@
    "primaryCategory": "ENCODE_ERROR"
   },
   {
-   "definitionId": 28715,
-   "displayName": "104=ADS, 107=Common, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 18,
-    "generatedCount": 18
-   }
-  },
-  {
-   "definitionId": 28720,
-   "displayName": "104=ADSM, 107=ADSCompareValue, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 4,
-    "generatedCount": 4
-   }
-  },
-  {
    "definitionId": 28721,
    "displayName": "104=ADSM, 107=ADSDesignerTreeGrid, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -4434,21 +4404,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 9339: bare identifiers are only supported as calls",
    "construct": "s",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29823,
-   "displayName": "104=PROJECT, 107=ProjectDefn, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 22,
-    "generatedCount": 22
-   }
   },
   {
    "definitionId": 29825,
