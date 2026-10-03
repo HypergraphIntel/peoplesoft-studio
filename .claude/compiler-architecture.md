@@ -15,7 +15,8 @@ EXACT 29,774 / NONEXACT 435; Cycle 134: EXACT 29,781 / NONEXACT 428;
 Cycle 135: EXACT 29,809 / NONEXACT 400; Cycle 136: EXACT 29,820 / NONEXACT
 389; Cycle 137: EXACT 29,821 / NONEXACT 388; Cycle 138: EXACT 29,822 /
 NONEXACT 387; Cycle 139: EXACT 29,825 / NONEXACT 384; Cycle 140:
-EXACT 29,832 / NONEXACT 377; forward-exact = EXACT); forward-exact
+EXACT 29,832 / NONEXACT 377; Cycle 141: EXACT 29,843 / NONEXACT 366;
+forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -202,6 +203,14 @@ keyword 0x40 (`encodeApplicationClassTypeBytes`) and its descriptor is
 implementations only the blank lines after the gap's last directive are
 0x4F markers (`emitLayoutRange(..., implementationGap)`)
 (`cycle140-array-keyword-directive-gap-census.ts`).
+
+Cycle 141 -- ordinary leading declaration section: blank lines between
+its declarations are 0x4F (Constant included); it closes ONCE (0x2D) --
+plain Local run, generic declarations and App Class Locals together --
+whichever closer fires first (REM, block comment, <* *>, executable
+statement); a /* */ comment that closes the import section restarts a
+following plain Local run; the closers look past REM / <* *> for a
+following declaration (`cycle141-marker-ownership-census.ts`).
 
 ## 5. Declarations and scope
 
