@@ -9,6 +9,7 @@ import {
   encodeTypeDescriptor,
   applicationClassHasTrailingSourceTerminator,
   parseApplicationClassSource,
+  maskNonCode,
   type ApplicationClassMethodMember,
   type ApplicationClassStorageMember
 } from './applicationClassProgram.js';
@@ -14630,10 +14631,9 @@ function scanApplicationClassLayoutComments(
  *
  * Replaces the Cycle 30 freeze (self, singleton instance, methods only).
  * A type-path name's package ROOT is written in the package definition's
- * case (Cycle 113, `canonicalTypePathName`). Residual, not modeled: a
- * sub-package's canonical case (28942 source `...:page:SubPage:...` is
- * stored `...:Page:...`) and a bare `array` member type (stored `array of
- * any`).
+ * case (Cycle 113, `canonicalTypePathName`), a sub-package in the
+ * program's first spelling of it (Cycle 142); a bare `array` member type is
+ * `array of any` (Cycle 140).
  */
 /*
  * Cycle 113: application package names are uppercase definitions, so a
@@ -14645,10 +14645,41 @@ function scanApplicationClassLayoutComments(
  * AppDataSetMgr` is stored `%Metadata:...`. The rest of the path keeps its
  * source spelling.
  */
-function canonicalTypePathName(path: string): string {
+/*
+ * Cycle 142: a SUB-package is written in the program's first spelling of
+ * that package path (its import, as a rule), not the declaration's: 28942
+ * `import BNE_OPEN_ENROLL_FL:Page:SubPage:*;` ... `instance
+ * BNE_OPEN_ENROLL_FL:page:SubPage:PrimaryCareProvider &x;` stores the name
+ * `BNE_OPEN_ENROLL_FL:Page:SubPage:PrimaryCareProvider` (the statement
+ * bytes keep `page`). LOCAL SNAPSHOT (`cycle142-type-path-case-census.ts`):
+ * 3,605 stored type-path names, 0 contradictions -- the declaration's
+ * spelling missed 5 (28942 28943 28953); the snapshot's own package
+ * spelling predicts the same 3,605 (no program spells a package against
+ * its definition first). The class leaf keeps the declaration's spelling.
+ */
+function canonicalTypePathName(path: string, packageSpelling: ReadonlyMap<string, string> = new Map()): string {
   const [root, ...rest] = path.split(':');
   if (rest.length === 0) return path;
-  return [/^%metadata$/i.test(root) ? '%Metadata' : root.toUpperCase(), ...rest].join(':');
+  const components = [/^%metadata$/i.test(root) ? '%Metadata' : root.toUpperCase(), ...rest];
+  for (let index = 1; index < components.length - 1; index++) {
+    const first = packageSpelling.get(path.split(':').slice(0, index + 1).join(':').toUpperCase());
+    if (first !== undefined) components[index] = first;
+  }
+  return components.join(':');
+}
+
+/** Cycle 142: package path (upper-cased key) -> its last component as first spelled in the code. */
+function firstPackageSpellings(source: string): Map<string, string> {
+  const spellings = new Map<string, string>();
+  // a wildcard import's last named component is a package too (`PKG:Page:*`)
+  for (const match of maskNonCode(source).matchAll(/[%A-Za-z_][\w%#$]*(?:[ \t]*:[ \t]*[A-Za-z_][\w#$]*)+(?:[ \t]*:[ \t]*\*)?/g)) {
+    const components = match[0].split(':').map(component => component.trim());
+    for (let index = 1; index < components.length - 1; index++) {
+      const key = components.slice(0, index + 1).join(':').toUpperCase();
+      if (!spellings.has(key)) spellings.set(key, components[index]);
+    }
+  }
+  return spellings;
 }
 
 function applicationClassSymbolHash(name: string): number {
@@ -14669,8 +14700,10 @@ function applicationClassSymbolTableCapacity(symbolCount: number): number {
 function buildApplicationClassDirectory(
   parsed: NonNullable<ReturnType<typeof parseApplicationClassSource>>,
   selfName: string,
-  methods: ApplicationClassMethodMember[]
+  methods: ApplicationClassMethodMember[],
+  source = ''
 ): { names: string[]; records: Buffer[]; slots: Buffer[] } {
+  const packageSpelling = firstPackageSpellings(source);
   const names: string[] = [selfName];
   let nameCharOffset = selfName.length + 1;
   const allocateName = (text: string): number => {
@@ -14721,7 +14754,7 @@ function buildApplicationClassDirectory(
   const memberNameOffsets = memberOrder.map(member => allocateName(bare(member.name)));
   const callableNameOffsets = callables.map(callable =>
     allocateName(callable.kind === 'method' ? callable.member.name : callable.name));
-  const ensureNameOffset = (path: string): number => allocateName(canonicalTypePathName(path));
+  const ensureNameOffset = (path: string): number => allocateName(canonicalTypePathName(path, packageSpelling));
 
   // Descriptors: self, members, callables (physical order), then slots.
   const relationshipType = parsed.extendsType ?? parsed.implementsType;
@@ -14940,7 +14973,7 @@ function encodeApplicationClassProgramV2(
 
   // Name table, directory records and signature slots: see
   // `buildApplicationClassDirectory` (Cycle 100).
-  const directoryLayout = buildApplicationClassDirectory(parsed, selfName, methods);
+  const directoryLayout = buildApplicationClassDirectory(parsed, selfName, methods, source);
 
   // Statement section. Only the class header's own method-declaration
   // and method-implementation wrapper bytes are hand-encoded (no
