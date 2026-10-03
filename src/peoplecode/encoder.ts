@@ -12259,6 +12259,15 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         if (!nextIsTopLevelDeclarationAfterDisabledComment) {
           pushDeclarationSectionCloseByte();
           closeTopLevelDeclarationSection();
+          /*
+           * Cycle 141: the declaration section closes ONCE, with any open
+           * Application-Class-Local section in it (the block comment
+           * closer's App Class closer owns the same combined close). 14356
+           * `Component ...; Local ADSM:ADSMTreeGrid ...; Declare ...;
+           * <blank> <*...*> <blank> Function` stores `15 2D 4F 55 4F 32`;
+           * the App Class section used to close again at the Function.
+           */
+          if (sawApplicationClassLocalSection && !closedApplicationClassLocalSection) closeApplicationClassLocalSection();
         }
       }
 
@@ -12799,6 +12808,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         pendingReferenceLocalMarkers = 0;
         pendingReferenceLocalBlankLines = 0;
         leadingLocalRun = false;
+        /*
+         * Cycle 141: that close is also the close of an open Application-
+         * Class-Local section in the same run (one 0x2D for the combined
+         * section). 9986 `Local ...; Local PT_WF_NOTIFICATION:... &x; ...
+         * Local number ...; <blank> REM ...; <blank> /* c *\/ Function`
+         * stores `15 2D 4F 24 4F 24 32`; the next block comment used to
+         * close the App Class section with a second 0x2D (also 28161, and
+         * App Class method bodies 29020 / 29029).
+         */
+        if (
+          sawApplicationClassLocalSection &&
+          !closedApplicationClassLocalSection &&
+          !nextRealItemContinuesDeclarationSection(remEndForRun < 0 ? source.length : remEndForRun + 1)
+        ) {
+          closeApplicationClassLocalSection();
+        }
       }
 
       if (haveCompletedTopLevelStatement && hasBlankLine) {
