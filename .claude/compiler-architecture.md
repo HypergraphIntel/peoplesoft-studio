@@ -20,7 +20,7 @@ Cycle 142: EXACT 29,846 / NONEXACT 363; Cycle 143: EXACT
 29,849 / NONEXACT 360; Cycle 144: EXACT 29,857 / NONEXACT 352; Cycle 145:
 EXACT 29,862 / NONEXACT 347; Cycle 146: EXACT 29,871 / NONEXACT 338; Cycle 147:
 EXACT 29,891 / NONEXACT 318; Cycle 148: EXACT 29,895 / NONEXACT 314;
-forward-exact = EXACT); forward-exact
+Cycle 149: EXACT 29,902 / NONEXACT 307; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -260,8 +260,19 @@ row, the bare array (`&x.Len`) stays inline
 independent identities (2,516 EXACT programs hold both): the receiver,
 not the name, picks the form. Quoted (`MenuName."X"`, per control group)
 and unquoted (`MenuName.X`) spellings of one name share a stored row
-within one top-level statement (7 programs) -- not modeled, Cycle 149
+within one top-level statement (7 programs)
 (`cycle148-quoted-unquoted-reference-census.ts`).
+
+Cycle 149 -- in an ordinary program a quoted (`MenuName."X"`, 0x48) and
+an unquoted (`MenuName.X`, 0x21) spelling of one reference are ONE row per
+allocation unit, identity KIND.NAME (MENUNAME, BARNAME, ITEMNAME, PAGE
+evidenced): the quoted path consults and registers the unit-scoped
+`record-field` pool; the first use in the unit, either spelling, creates
+the row, each use keeps its own operand opcode. Rows never share across
+units (805, 9670, 11344). The quoted control-group cache stays for
+quoted-to-quoted reuse (no corpus occurrence separates it from the unit)
+(`cycle149-quoted-symbolic-row-census.ts`; trace events carry
+`allocationUnit`).
 
 ## 5. Declarations and scope
 
