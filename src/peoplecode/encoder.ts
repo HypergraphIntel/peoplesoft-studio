@@ -11323,6 +11323,25 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * `ChainSemantics.provenance`'s own comment for why `'selector'`
          * is representable there now instead.
          */
+        /*
+         * Cycle 150: off a Row value a member followed by `(` that is not a
+         * Row method (GetRecord, GetRowset, CopyTo, GetNextEffRow,
+         * GetPriorEffRow) is the Row's child rowset by scroll name, indexed
+         * to a row -- `GetLevel0()(1).GB_GROUP_TBL (&r).GB_WHERE_TBL (&r2)`,
+         * `GetRow(n).CENTR_DATA_BRA (n).GetRowset(...)`. Stored binds it as
+         * a SCROLL row (0x4A) of that name with the ordinary unit lifetime;
+         * the encoder only reused a SCROLL row an explicit `Scroll.X` had
+         * opened -- else wrote it inline, or reused a same-name RECORD row
+         * (6084). `cycle150-row-scroll-shorthand-census.ts`: every such
+         * GetLevel0()(n) / GetRow(..) site has the stored SCROLL row. Full
+         * corpus: 20 programs changed, 18 EXACT, 2 closer (1635, 6275), 0
+         * farther. Ordinary programs only.
+         */
+        const rowChildScrollMember =
+          unitScopedRecordRows &&
+          dependencyKind === 'record' &&
+          isMethodCall &&
+          !/^(?:GetRecord|GetRowset|CopyTo|GetNextEffRow|GetPriorEffRow)$/i.test(member);
         const bareMemberBindingEligible =
           isMethodCall ||
           chainSemantics.binding === 'dependency-bound' ||
@@ -11330,7 +11349,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
         if (
           expectedReferenceMember !== undefined &&
-          ((!isMethodCall && bareMemberBindingEligible) || hasExistingExpectedReference) &&
+          ((!isMethodCall && bareMemberBindingEligible) || hasExistingExpectedReference || rowChildScrollMember) &&
           !isInlineRowStateMember &&
           !rootIsUndeclaredVariable
         ) {
@@ -11404,6 +11423,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             });
           }
 
+          if (reference === undefined && rowChildScrollMember) {
+            reference = nextReference({ kind: 'scroll', recordName: member });
+          }
           if (reference === undefined) {
             reference =
               dependencyKind === 'record'
