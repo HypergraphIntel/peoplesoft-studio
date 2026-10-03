@@ -2097,8 +2097,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * and the element type's built-in row (6438 `PanelGroup array of
      * string &BOLD_NODE;`, an encode error before; 6074 likewise).
      */
+    let panelGroupArrayElement: string | undefined;
     if (/^array$/i.test(declaredType ?? '')) {
-      const panelGroupArrayElement = arrayElementTypes();
+      panelGroupArrayElement = arrayElementTypes();
       if (panelGroupArrayElement !== undefined && arrayElementApplicationClass === undefined) {
         allocateBuiltinTypePackageReferenceIfSupported(panelGroupArrayElement, 'component');
       }
@@ -2129,6 +2130,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       } else if (/^Row$/i.test(declaredType ?? '')) {
         chainSemanticsDeclaredRowVariables.add(name.toLowerCase());
         rowVariables.add(name.toLowerCase());
+      } else if (/^Record$/i.test(panelGroupArrayElement ?? '')) {
+        // Cycle 152: a PanelGroup `array of Record`, once indexed, is a
+        // Record (Cycles 45 / 148): 6074 `&GB_BINVAL_ARRAY [&IDX].EDITTABLE`
+        // stores FIELD.EDITTABLE / FIELD.GB_VALUE.
+        recordArrayVariables.add(name.toLowerCase());
       }
     };
 

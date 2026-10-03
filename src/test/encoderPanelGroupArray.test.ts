@@ -20,3 +20,12 @@ test('PanelGroup array of string encodes as 51 array of string &var and roundtri
   assert.deepEqual(references.filter(r => r.kind === 'package').map(r => r.packageName), ['RECORD']);
   assert.deepEqual(encodeProgramArtifacts(decoded.text).program, program);
 });
+
+test('an indexed PanelGroup array-of-Record element member is a FIELD row (6074)', () => {
+  const { references } = encodeProgramArtifacts(`PanelGroup array of Record &GB_BINVAL_ARRAY;
+Local number &IDX;
+&x = &GB_BINVAL_ARRAY [&IDX].EDITTABLE.Value;
+&n = &GB_BINVAL_ARRAY.Len;
+`);
+  assert.deepEqual(references.filter(r => r.kind === 'field').map(r => r.fieldName), ['EDITTABLE']);
+});
