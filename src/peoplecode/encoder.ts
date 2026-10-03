@@ -12077,6 +12077,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   let leadingLocalRun = true;
   let sawLeadingLocalDeclaration = false;
   let lastLocalHadInitializer = false;
+  // Cycle 145: the previous top-level item was a declaration-only Local.
+  let previousTopLevelDeclarationOnlyLocal = false;
   let pendingReferenceLocalBoundary: number | undefined;
   let pendingReferenceLocalMarkers = 1;
   /*
@@ -13117,7 +13119,17 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         !sawTopLevelExecutableStatement &&
         !sawFunctionDefinition &&
         (isTopLevelDeclaration || isLocalDeclaration);
-      if (!inLeadingSection) startAllocationUnit();
+      /*
+       * Cycle 145: after a Function definition, a run of declaration-only
+       * top-level Locals -- before any executable statement -- is one unit,
+       * like the leading section. 17893 (after `End-Function;`) `Local
+       * PT_PC_UTIL:StringMap &plugin_map, ...;` `Local array of
+       * PT_PC_UTIL:StringMap &vmap;` stores ONE STRINGMAP row. Not after
+       * executable code (26713 loses) and not in a Function body (5088 8327
+       * 15070 17613 17799 lose): `cycle145-metadata-local-run-census.ts`.
+       */
+      const continuesLocalRun = isLocalDeclaration && previousTopLevelDeclarationOnlyLocal && !sawTopLevelExecutableStatement;
+      if (!inLeadingSection && !continuesLocalRun) startAllocationUnit();
       /*
        * Cycle 122: a conditional-compilation block ends the leading unit:
        * 4602 imports HR_RELATED_CONTENT:RCParmBase, then `#If #ToolsRel >=
@@ -13597,6 +13609,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     }
 
     statement();
+    previousTopLevelDeclarationOnlyLocal = isLocalDeclaration && !lastLocalHadInitializer;
 
     /*
      * A top-level Local declaration's own initializer makes the
