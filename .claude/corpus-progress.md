@@ -1,16 +1,16 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-02, Cycle 139)
+## Current status (2026-10-02, Cycle 140)
 
-- **Current target:** Cycle 139 -- layout: a block comment ending an App
-  Class implementation header line (`get IsUpdatableReport /* ... */`) is
-  an inline 0x4E between the name and the header's 0x2D (10/10 corpus
-  headers). EXACT 29,822 -> 29,825 (+3: 29320 29866 30199, the Cycle 133
-  "4E vs 2D" family) = forward-exact; exactly the 7 header-comment
-  programs' bytes changed, 0 PSPCMNAME changes, 0 farther; protected
-  PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in,
-  EXACT). See "Compiler Semantics Cycle 139".
-- **Last successful calibration:** Cycle 139 (implementation-header comment).
+- **Current target:** Cycle 140 -- layout / tokens: (1) an untyped App
+  Class header `array` type is the keyword 0x40 with descriptor `array of
+  any`; (2) blank lines before a directive between two implementations
+  are no markers. EXACT 29,825 -> 29,832 (+7: 28813 28821 28825 29247
+  29458; 29724 29734) = forward-exact; exactly those 7 programs' bytes
+  changed, 0 PSPCMNAME changes; protected PASS, 0 EXACT -> non-EXACT,
+  ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See "Compiler
+  Semantics Cycle 140".
+- **Last successful calibration:** Cycle 140 (array keyword, directive gap).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -26,18 +26,20 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 140):** layout -- COMPLETE_DOWNSTREAM (32): the
-  largest family is App Class `array` stored as keyword 0x40 where the
-  encoder writes an inline name 0x0A (5: 28813 28821 28825 29247 29458);
-  also 29724 / 29734 (lists exact): stored writes no 0x4F for the blank
-  line before a top-level `#If` between implementations (`end-get ; 2D
-  #If #Then get`), the encoder one after the directive records (only these
-  two programs have a directive between implementations; the blank after
-  `#End-If;` is kept). Parked: 29797 29883 30170 30179 30192 (Cycle 138, no
+- **Next action (Cycle 141):** layout -- COMPLETE_DOWNSTREAM (25): the
+  largest families are ordinary marker order (stored 0x4F where the
+  encoder writes 0x2D: 4348 9986 14356 28161; and the reverse 21271
+  25056) and 0x4F before Constant / instance / method (18130 18135 28555;
+  App Class 29867) -- census ordinary 0x4F / 0x2D placement across the
+  corpus first. App Class type-path case (28942 28943 28953) stays
+  separate. Parked: 29797 29883 30170 30179 30192 (Cycle 138, no
   trigger); metadata-absent 29655, 28857 / 28893, 29527 / 29590, 15840;
   one-offs 28721, 28985 / 30206, 29329, 28797. README.md has unrelated
   uncommitted user edits -- never stage it.
-- **Newly established rules this session:** Cycle 139 (encoder): a block
+- **Newly established rules this session:** Cycle 140 (encoder): an
+  untyped App Class header `array` is the keyword 0x40, descriptor `array
+  of any`; between implementations only blank lines after the gap's last
+  directive are markers; Cycle 139 (encoder): a block
   comment ending an App Class implementation header line is an inline
   0x4E before the header 0x2D (0x6D is only ever a `/+ +/` annotation);
   Cycle 138 (encoder): an App
@@ -193,6 +195,50 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 140 -- array keyword and directive gap
+
+**Baseline reproduced fresh at `378449f`:** 29,825 / 384, forward-exact
+29,825, COMPLETE_DOWNSTREAM 32, ACTIVE_PACKAGE 69, protected 430/430,
+taxonomy row-identical, fallback 70 (13525 in, EXACT), ROUNDTRIP_ONLY 0,
+decoder-only frontier 0.
+**Result:** EXACT **29,825 -> 29,832 (+7)** = forward-exact; array fix
+alone: exactly 28813 28821 28825 29247 29458 changed, all EXACT;
+directive fix alone: exactly 29724 29734, both EXACT; combined 7 changed,
+0 reference lists, 0 farther, 0 EXACT -> non-EXACT, COMPLETE_DOWNSTREAM
+32 -> 25. LOCAL SNAPSHOT only. Commits: f461975 (census), 3d1d9d7
+(array), c060e54 (directive gap). README.md untouched, never staged.
+
+Array (`cycle140-array-keyword-directive-gap-census.ts`): 0x40 is the
+keyword-with-text operand (93,220 in 14,458 programs: string, number,
+FieldFormula, boolean, array 6,272, of 6,203 ...). Every stored `array`
+token is 0x40 -- no inline-name `array` and no identifier named `array`
+in the corpus. `array of` in every position, and bare `array` in
+ordinary programs and App Class bodies (Local 21 EXACT), were already
+right; the 6 bare `array` in App Class class-header types (instance 2,
+Returns 2, As 1, after `of` 1) -- all in the 5 targets -- went through
+`encodeApplicationClassTypeBytes`'s class-path branch (0x0A) and
+`encodeTypeDescriptor`'s name-table branch (an `array` name entry). Stored:
+`62 40 "array"`, descriptor 0x100004 (`array of any`); `Returns array of
+array` 0x200004. Both fixed in the type-expression path only.
+
+Directive gap: blank lines before a directive exist in exactly two
+programs in the whole corpus -- 29724 / 29734 (same template), top level
+between implementations: `end-get;` <blank> `#If` stores no marker (and
+`end-get;` <blank> `#End-If;` none), `#End-If;` <blank> `method` one. Rule
+(implementation gaps only): the directive's records end the blank-line
+run before them; markers count the blank lines after the gap's last
+directive (a region spans its line break). Elsewhere blank-after-#End-If
+is kept in App Class bodies (31/31) and the header / top level (5/5
+non-EXACT), but mixed in ordinary programs (24 kept / 44 dropped) and the
+pre-class prefix (28854 dropped) -- not generalized.
+
+Rerank: COMPLETE_DOWNSTREAM 25 (ordinary 0x4F / 0x2D order 4 + 2,
+ordinary 0x4F before Constant 3, App Class type-path case 3, 24 / 63 2,
+64 / 2D 2, trailing text 2, singletons 7), ACTIVE_PACKAGE 69,
+ACTIVE_RECORD_FIELD 36, ACTIVE_RECORD 25, ACTIVE_FIELD 22, ACTIVE_OTHER
+12, ACTIVE_SCROLL 11, QUOTED_COMPONENT 8, STRUCTURAL_ORDERING 3;
+ENCODE_ERROR 69, DSM 67, UNSUPPORTED_SYNTAX 30 (NONEXACT 377).
 
 ## Compiler Semantics Cycle 139 -- App Class implementation-header comment
 
