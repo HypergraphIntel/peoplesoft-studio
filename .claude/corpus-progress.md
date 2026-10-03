@@ -1,13 +1,17 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-03, Cycle 143)
+## Current status (2026-10-03, Cycle 144)
 
-- **Current target:** Cycle 143 -- REM lexical boundary in Application
-  Class scanners (`rem,` / `rem;`). EXACT 29,846 -> 29,849 (+3: 28715 28720
-  29823) = forward-exact; exactly those 3 changed, 0 PSPCMNAME changes;
-  protected PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70
-  (13525 in, EXACT). See "Compiler Semantics Cycle 143".
-- **Last successful calibration:** Cycle 143 (punctuated App Class REM).
+- **Current target:** Cycle 144 -- reference layer: ordinary non-fallback
+  ACTIVE_PACKAGE PACKAGE/PACKAGE (8). Two proven owners: (1) a cast opens
+  its class row only for a method call on the result; (2) a Function
+  header's `array of <Class>` parameter / return type opens its row.
+  EXACT 29,849 -> 29,857 (+8: 5565 14641 14919 15070 18110 19528 24800
+  24988) = forward-exact; 14 lists changed (10 exact, 4 closer, 0
+  farther); ACTIVE_PACKAGE 69 -> 59; protected PASS, 0 EXACT -> non-EXACT,
+  ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See "Compiler Semantics
+  Cycle 144".
+- **Last successful calibration:** Cycle 144 (cast receiver, header array).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -23,19 +27,22 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 144):** reference layer -- ACTIVE_PACKAGE 69:
-  ordinary non-fallback PACKAGE/PACKAGE (8: 14641 14919 15070 16082 16567
-  17893 24800 24988) first -- full-list comparison per program before any
-  allocation change (Cycle 137 method). COMPLETE_DOWNSTREAM (8) is now all
-  singletons / pairs (29646 / 29670 trailing text). The App Class `rem,`
-  body sites left are in ENCODE_ERROR programs (28753 28754 28759 28760,
-  `bare identifiers are only supported as calls`), 28761 (ACTIVE_RECORD_
-  FIELD) and 29570 (`rem;`, DSM) -- not REM recognition. Parked: 29867;
-  29797 29883 30170 30179 30192; metadata-absent 29655, 28857 / 28893,
-  29527 / 29590, 15840; one-offs 28721, 28985 / 30206, 29329, 28797.
-  README.md has unrelated uncommitted user edits -- never stage it; never
-  touch stash@{0} / stash@{1}.
-- **Newly established rules this session:** Cycle 143 (encoder): a REM
+- **Next action (Cycle 145):** reference layer -- ordinary non-fallback
+  PACKAGE/PACKAGE remainder (2): 16082 (method calls on `%metadata:
+  MacroDefn` receivers -- `&srcDefn.CopyDefn()`, `&m_mgr.GetDefn(..)` --
+  open rows the stored list lacks: census method calls on %metadata-typed
+  receivers), 17893 (consecutive declaration-only Locals of one class in a
+  Function body share one stored row: census body Local runs). Then
+  ACTIVE_PACKAGE App Class PACKAGE/PACKAGE 15 / App Class REC.FIELD/PACKAGE
+  4, ACTIVE_RECORD_FIELD 36. Parked: 29867; 29797 29883 30170 30179 30192;
+  metadata-absent 29655, 28857 / 28893, 29527 / 29590, 15840; one-offs
+  28721, 28985 / 30206, 29329, 28797. README.md has unrelated uncommitted
+  user edits -- never stage it; never touch stash@{0} / stash@{1}.
+- **Newly established rules this session:** Cycle 144 (encoder): an
+  ordinary cast uses its class row only when its parenthesized result
+  receives a method call; an ordinary Function header's `As array of
+  <Class>` / `Returns array of <Class>` uses the class in the header unit;
+  Cycle 143 (encoder): a REM
   comment starts at `rem` / `remark` followed by a non-identifier character
   in every scanner (`isRemCommentStart`); Cycle 142 (encoder): an App
   Class type-path NAME (name table) writes each sub-package in the
@@ -203,6 +210,52 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 144 -- ordinary PACKAGE/PACKAGE: casts, header arrays
+
+**Baseline reproduced fresh at `1459d84`:** 29,849 / 360, forward-exact
+29,849, ACTIVE_PACKAGE 69 (App Class PACKAGE/PACKAGE 15, ordinary fallback
+PACKAGE/PACKAGE 12 + REC.FIELD/PACKAGE 10, ordinary PACKAGE/PACKAGE 8),
+ACTIVE_RECORD_FIELD 36, COMPLETE_DOWNSTREAM 8, protected 430/430, taxonomy
+row-identical, fallback 70 (13525 in, EXACT), ROUNDTRIP_ONLY 0.
+**Result:** EXACT **29,849 -> 29,857 (+8: 5565 14641 14919 15070 18110
+19528 24800 24988)** = forward-exact; 11 programs' bytes and 14 reference
+lists changed -- 10 lists exact (incl. 20687 / 20754, already byte-exact
+with a hidden extra row), 4 closer (16567 19289 25337 28190), 0 farther;
++7 PACKAGE rows all stored-backed, -9 rows none stored. 0 EXACT ->
+non-EXACT; moves 16567 / 19289 ACTIVE_PACKAGE -> ACTIVE_FIELD; ACTIVE_PACKAGE
+69 -> 59, ordinary PACKAGE/PACKAGE 8 -> 2. LOCAL SNAPSHOT only. Commits:
+124c4a1 (census), 19a64a1 (cast), 4439e90 (header array). README.md and
+both stashes untouched.
+
+Full-list classification (`cycle144-ordinary-package-provenance-census.ts
+--targets`): none order-only, no leaf substitution. Generated has more:
+14919 24800 24988 (an `As` cast), 16082 (%metadata method calls), 17893
+(a body Local run); stored has more: 14641 15070 16567 (an `array of
+<Class>` Function header).
+
+Cast: the encoder used the cast class row at every ordinary cast
+(ACCOMPLISHMENTS calibration, where each cast's result is called). No
+cast row at all: +6 / -4 -- the 4 losses (22493 22495 22498 22505) are
+exactly casts whose parenthesized result receives a method call. Rule:
+the cast types the value; the method call on it uses the row (Cycle 111
+receivers). Call-only variant: +6, 0 lost, 9 lists (8 exact, 28190
+closer). Census: cast + method call on the result 8 EXACT / 0; property
+of the result 1 / 12; bare (argument / assignment) 23 / 11.
+
+Header array: `As array of <Class>` / `Returns array of <Class>` in an
+ordinary Function header went through `arrayElementTypes` (no row); the
+scalar forms use the class in the header unit (Cycles 94 / 111). Census
+0 EXACT / 11 such sites; variant +2 (14641 15070), 3 closer, +7 rows all
+stored-backed. (Parked since Cycle 136 as "ordinary Function parameters
+`As array of <Class>`".)
+
+Rerank: ACTIVE_PACKAGE 59 (App Class PACKAGE/PACKAGE 15, ordinary fallback
+PACKAGE/PACKAGE 12, ordinary fallback REC.FIELD/PACKAGE 10, App Class
+REC.FIELD/PACKAGE 4, ordinary PACKAGE/PACKAGE 2 ...), ACTIVE_RECORD_FIELD
+36, ACTIVE_RECORD 25, ACTIVE_FIELD 24, ACTIVE_OTHER 12, ACTIVE_SCROLL 11,
+QUOTED_COMPONENT 8, COMPLETE_DOWNSTREAM 8, STRUCTURAL_ORDERING 3;
+ENCODE_ERROR 69, DSM 67, UNSUPPORTED_SYNTAX 30 (NONEXACT 352).
 
 ## Compiler Semantics Cycle 143 -- REM lexical boundary
 

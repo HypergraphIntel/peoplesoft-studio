@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-03T05:00:21.076Z",
+ "generatedAt": "2026-10-03T05:31:45.137Z",
  "totalDefinitions": 30209,
- "exactCount": 29849,
- "nonexactCount": 360,
+ "exactCount": 29857,
+ "nonexactCount": 352,
  "rows": [
   {
    "definitionId": 522,
@@ -237,22 +237,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 3440: expected ] after array subscript",
    "construct": ", 1]; /* Absence",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 5565,
-   "displayName": "1=DERIVED_HR, 2=CAREER_STR_FUNC, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 13223,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 97,
-    "generatedCount": 98,
-    "firstDivergenceKind": "package"
-   }
   },
   {
    "definitionId": 5672,
@@ -974,22 +958,6 @@
    }
   },
   {
-   "definitionId": 14641,
-   "displayName": "1=PSCONQRS_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 31717,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 262,
-    "generatedCount": 261,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 14646,
    "displayName": "1=PSCONQRS_WRK, 2=QRYPROPERTIES, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -1102,22 +1070,6 @@
    "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
-   "definitionId": 14919,
-   "displayName": "1=PSDIAGWRK, 2=BTN_REFRESH, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5619,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 32,
-    "generatedCount": 33,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 15038,
    "displayName": "1=PSDOCLOTAB_WRK, 2=IB_CHANGETYPE, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -1163,22 +1115,6 @@
     "storedCount": 39,
     "generatedCount": 48,
     "firstDivergenceKind": "record"
-   }
-  },
-  {
-   "definitionId": 15070,
-   "displayName": "1=PSDOCLOWRK, 2=SAVE_PB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 17480,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 143,
-    "generatedCount": 142,
-    "firstDivergenceKind": "package"
    }
   },
   {
@@ -1423,13 +1359,13 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 85,
-    "generatedCount": 81,
-    "firstDivergenceKind": "package"
+    "generatedCount": 84,
+    "firstDivergenceKind": "field"
    }
   },
   {
@@ -1592,22 +1528,6 @@
    "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
-   "definitionId": 18110,
-   "displayName": "1=PTAI_HGRID_WRK, 2=PTAI_ITEM_ID, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 72083,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 338,
-    "generatedCount": 339,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 18134,
    "displayName": "1=PTAL_FREF_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -1748,13 +1668,13 @@
    "sourceEncodeExact": false,
    "roundtripExact": false,
    "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 46,
-    "generatedCount": 44,
-    "firstDivergenceKind": "package"
+    "generatedCount": 45,
+    "firstDivergenceKind": "field"
    }
   },
   {
@@ -1781,22 +1701,6 @@
    "roundtripExact": true,
    "firstDiffOffset": 13758,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 19528,
-   "displayName": "10=ABS_SUM_DEPT_TREE, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 2308,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 14,
-    "generatedCount": 15,
-    "firstDivergenceKind": "package"
-   }
   },
   {
    "definitionId": 20560,
@@ -2344,22 +2248,6 @@
    }
   },
   {
-   "definitionId": 24800,
-   "displayName": "10=PTAI_ADMIN, 39=GBL, 1=PTAI_WRK, 2=PTAI_CREATE_PB, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 7363,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 19,
-    "generatedCount": 21,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 24918,
    "displayName": "10=PTAI_DEFN_ITEM, 39=GBL, 1=DERIVED_PTAI, 2=YES_DELETE, 12=FieldChange, 0= , 0= ",
    "classification": "ENCODE_ERROR",
@@ -2368,22 +2256,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 1669: bare identifiers are only supported as calls",
    "construct": "-If;\n*>\n",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 24988,
-   "displayName": "10=PTAI_DEFN_LIST, 39=GBL, 1=PTAI_WRK, 2=PTAI_CREATE_PB, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 8378,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 27,
-    "generatedCount": 28,
-    "firstDivergenceKind": "package"
-   }
   },
   {
    "definitionId": 25111,
@@ -2427,7 +2299,7 @@
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 58,
-    "generatedCount": 58,
+    "generatedCount": 59,
     "firstDivergenceKind": "package"
    }
   },
