@@ -1,21 +1,22 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-03, Cycle 150)
+## Current status (2026-10-03, Cycle 151)
 
-- **Current target:** Cycle 150 -- ordinary SCROLL/SCROLL (10: 2685 3912
-  6077 6084 8837 8838 10233 10365 21980 21981). One construct: a Row's
-  child-rowset shorthand `<row>.SCROLLNAME (n)`, a 0x4A SCROLL row stored
-  that the encoder wrote inline (or bound as RECORD, 6084). EXACT 29,902 ->
-  29,920 (+18) = forward-exact; 20 programs changed, 18 exact, 2 closer
-  (1635, 6275), 0 farther, no category moves; ACTIVE_SCROLL 11 -> 1,
-  ACTIVE_RECORD 20 -> 18, ACTIVE_FIELD 21 -> 18, ACTIVE_RECORD_FIELD 21 ->
-  20, ACTIVE_OTHER 7 -> 6, STRUCTURAL_ORDERING 4 -> 3 (7954); protected
+- **Current target:** Cycle 151 -- Function parameter scope. Untyped
+  parameters shadowing an outer typed variable are late-bound (11513 13657
+  13658); typed parameters keep their type in the Function only (18134);
+  an `As array of Record` parameter is a record array (16720, 28683
+  closer). EXACT 29,920 -> 29,924 (+4) = forward-exact; 6 programs changed,
+  0 farther; ACTIVE_RECORD 18 -> 16, ACTIVE_FIELD 18 -> 17,
+  ACTIVE_RECORD_FIELD 20 -> 19 (28683 -> ACTIVE_FIELD, closer); protected
   PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in,
-  EXACT). See "Compiler Semantics Cycle 150".
-- **Last successful calibration:** Cycle 150 (Row child-rowset SCROLL
-  shorthand).
+  EXACT). See "Compiler Semantics Cycle 151".
+- **Last successful calibration:** Cycle 151 (Function parameter scope).
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** none newly blocked. Parked:
+- **Locally blocked definitions:** none newly blocked. Not shadowing:
+  6438 (ENCODE_ERROR: `PanelGroup array of string` declaration
+  unsupported), 15256 (fallback), 1635 (list exact since Cycle 150; first
+  byte diff 25,271 unrelated). Parked:
   App Class PACKAGE/FIELD 6 (28967 29518 29583 29598 29715 29725) -- each
   one hidden class row behind a class absent from the snapshot (TextCatalog,
   AWTxn, ObjectHashTable / RecordTag via G3FORM:Form, Thread,
@@ -32,21 +33,26 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit; whether quoted-to-quoted reuse follows the
-  control group or the allocation unit (no occurrence separates them).
-- **Next action (Cycle 151):** scope-aware Function parameters -- an
-  untyped Function parameter that shares its name with a top-level typed
-  Record / Rowset / Row / Field variable is late-bound inside the Function
-  (stored keeps its members inline). Ordinary SCROLL/RECORD 13657 13658
-  (`Function Expand_Menu(&MENUDEFN_RS, ...)` vs top-level `Local Rowset
-  &MENUDEFN_RS`) and 11513; the shape census also lists non-EXACT 1635
-  6438 15256 and EXACT controls 13417 13431 15085 15534 17038 -- the
-  encoder's flat declaration namespace must become per-Function for
-  parameters without breaking those. Alternatives: App Class PACKAGE/RECORD
-  4, ordinary none/RECORD 2. Fallback groups stay parked (13525). Scratch
-  tools under c150 (gate.sh, ldiff.ts, part.ts, trace.ts, shadow.ts ...).
-  README.md has unrelated uncommitted user edits -- never stage it; never
-  touch stash@{0} / stash@{1}.
-- **Newly established rules this session:** Cycle 150 (encoder): off a Row
+  control group or the allocation unit; whether `As any` parameters
+  differ from untyped ones (no `As any` parameter shadows a typed outer).
+- **Next action (Cycle 152):** ordinary PACKAGE/FIELD (3: 4861 16720
+  28683) -- after Cycle 151 each list differs only by missing
+  PACKAGE.RECORD rows, all in Functions with `As array of Record`
+  parameters / `Returns array of Record` (16720 two at the first header,
+  28683 one before the first indexed element member): census the
+  built-in type row of array-of-Record parameters / returns per unit
+  (BUILTIN_TYPE_REGISTRY 'function-parameter' has no array-element cell).
+  Alternatives: 6438's `PanelGroup array of` declaration (ENCODE_ERROR),
+  ordinary none/RECORD 2 (16495 `&pageScroll(n).FreeFormStyleName` -- a
+  Row property bound as RECORD; 16962 trailing `&orow.PSIBWSDL3_VW.X`).
+  Fallback groups stay parked (13525). Scratch tools under c151
+  (gate.sh, ldiff.ts, part.ts, trace.ts, parr.ts ...). README.md has
+  unrelated uncommitted user edits -- never stage it; never touch
+  stash@{0} / stash@{1}.
+- **Newly established rules this session:** Cycle 151 (encoder): ordinary
+  Function parameters shadow outer declarations for their Function (an
+  untyped one is late-bound); an `As array of Record` parameter is a
+  record array; Cycle 150 (encoder): off a Row
   value a non-method member followed by `(` is a SCROLL row (child-rowset
   shorthand), ordinary programs; Cycle 149 (encoder): quoted
   and unquoted spellings of one reference share one row per ordinary
@@ -234,6 +240,45 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 151 -- Function parameter scope
+
+Targets: 1635 6438 11513 13657 13658 15256; controls 13417 13431 15085
+15534 17038. Classification: 11513 / 13657 / 13658 over-bind (extra
+FIELD / RECORD rows from a leaked outer type); 1635 list already exact
+(Cycle 150), first byte diff unrelated; 6438 ENCODE_ERROR (`PanelGroup
+array of string`); 15256 fallback (App Class parameter). Controls 13431 /
+15085 / 15534 / 17038 only call methods on the parameter (GetRecord(1),
+GetRowset(Scroll.X), ActiveRowCount, GetRow) -- no binding either way;
+13417 / 15085 / 17038 declare the outer variable after the Function.
+
+Architecture: the declaration sets (`recordVariables`, `rowVariables`,
+`rowsetVariables`, `recordArrayVariables`, ChainSemantics Row / Rowset,
+`applicationClassVariables`, `applicationClassArrayVariables`) are
+program-wide; the header added typed parameters and never removed
+anything, so an untyped parameter kept the outer type and a typed one
+leaked past End-Function. Only App Class receivers had a Function map
+(`functionApplicationClassVariables`).
+
+`cycle151-function-parameter-shadow-census.ts` (outer scope / type x
+parameter form x body / outer use): untyped over an outer Record / Rowset
+with body members -- 11513 13657 13658 (6438) non-EXACT, 0 EXACT; typed
+over typed -- 120+ EXACT programs (unchanged by the fix). No `As any`
+parameter shadows a typed outer (undetermined).
+
+Fix 1 (a7f5fe9): an `As array of Record` parameter joins
+`recordArrayVariables` -- 21 / 21 indexed members have the stored FIELD
+row; isolated: 16720, 28683 closer, nothing else. Without it, fix 2 made
+4861 farther (its typed array parameter had borrowed the outer Local).
+Fix 2 (c43963d): `shadowFunctionParameter` at each header parameter
+(ordinary programs), `restoreFunctionParameterShadows` at End-Function.
+Combined full corpus: 6 changed, 4 EXACT (11513 13657 13658 18134), 2
+closer, 0 farther. Tests: `encoderFunctionParameterScope.test.ts`.
+
+Residual: ordinary none/RECORD 16495 (`&pageScroll(CurrentRowNumber())
+.FreeFormStyleName` -- a Row property bound as RECORD), 16962 (trailing
+`&orow.PSIBWSDL3_VW.X` rows) -- not scoping. Ordinary PACKAGE/FIELD (4861
+16720 28683) now differ only by missing PACKAGE.RECORD rows.
 
 ## Compiler Semantics Cycle 150 -- Row child-rowset SCROLL shorthand
 

@@ -21,7 +21,8 @@ Cycle 142: EXACT 29,846 / NONEXACT 363; Cycle 143: EXACT
 EXACT 29,862 / NONEXACT 347; Cycle 146: EXACT 29,871 / NONEXACT 338; Cycle 147:
 EXACT 29,891 / NONEXACT 318; Cycle 148: EXACT 29,895 / NONEXACT 314;
 Cycle 149: EXACT 29,902 / NONEXACT 307; Cycle 150: EXACT 29,920 /
-NONEXACT 289; forward-exact = EXACT); forward-exact
+NONEXACT 289; Cycle 151: EXACT 29,924 / NONEXACT 285; forward-exact =
+EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -284,6 +285,17 @@ program it binds a SCROLL row (0x4A) with the unit lifetime -- never a
 same-name RECORD row (`cycle150-row-scroll-shorthand-census.ts`). App
 Class bodies keep the earlier behavior (reuse of an existing SCROLL row
 only).
+
+Cycle 151 -- ordinary Function parameters are declared in their Function
+(`shadowFunctionParameter` / `restoreFunctionParameterShadows`): at the
+header a parameter name leaves the program-wide declaration sets (Record,
+Row, Rowset, record array, the ChainSemantics Row / Rowset sets, class
+variables); a typed parameter then registers its own type (now including
+`As array of Record`, a record array); at End-Function the outer
+memberships return. An untyped parameter is late-bound in its body even
+over an outer typed variable (11513, 13657, 13658); a typed one does not
+leak into later code (18134). Function-body Locals stay program-wide (no
+corpus case needs otherwise) (`cycle151-function-parameter-shadow-census.ts`).
 
 ## 5. Declarations and scope
 
