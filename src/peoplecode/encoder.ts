@@ -2092,6 +2092,18 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     const declaredType = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
     chunks.push(typeName());
     /*
+     * Cycle 152: `PanelGroup array of <type>` -- the Component form
+     * (Cycle 122): stored writes `51 40 array 40 of 40 <type> 01 &var`
+     * and the element type's built-in row (6438 `PanelGroup array of
+     * string &BOLD_NODE;`, an encode error before; 6074 likewise).
+     */
+    if (/^array$/i.test(declaredType ?? '')) {
+      const panelGroupArrayElement = arrayElementTypes();
+      if (panelGroupArrayElement !== undefined && arrayElementApplicationClass === undefined) {
+        allocateBuiltinTypePackageReferenceIfSupported(panelGroupArrayElement, 'component');
+      }
+    }
+    /*
      * Cycle 103: PanelGroup is the legacy spelling of Component, and a
      * built-in type declared with it needs the same PACKAGE/<TYPE> row
      * (`componentDeclaration`). Every program whose only declaration of
