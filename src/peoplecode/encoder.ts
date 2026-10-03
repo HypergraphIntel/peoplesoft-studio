@@ -134,7 +134,13 @@ class HtmlDependencyScope {
  */
 class ApplicationClassReferenceScope {
   private readonly references = new Map<string, PeopleCodeReference>();
-  private wildcardImportMetadataAllocated = false;
+
+  /**
+   * Cycle 138: the wildcard-import claim is the compilation unit's, shared
+   * by every session of the program (`new ApplicationClassReferenceScope(
+   * earlier.wildcardImportClaim)`).
+   */
+  constructor(readonly wildcardImportClaim: { allocated: boolean } = { allocated: false }) {}
 
   beginFragment(): ApplicationClassReferenceSession {
     return {
@@ -142,11 +148,11 @@ class ApplicationClassReferenceScope {
         this.references.get(applicationClassReferenceKey(reference)),
 
       claimWildcardImportMetadata: () => {
-        if (this.wildcardImportMetadataAllocated) {
+        if (this.wildcardImportClaim.allocated) {
           return false;
         }
 
-        this.wildcardImportMetadataAllocated = true;
+        this.wildcardImportClaim.allocated = true;
         return true;
       }
     };
@@ -673,6 +679,13 @@ interface EncodeFragmentContext extends EncodeProgramContext {
    * `ensureRuntimeCreateReference`.
    */
   applicationClassTypeReferenceSession?: ApplicationClassReferenceSession;
+  /**
+   * Cycle 138: the session an Application Class method's parameter types
+   * resolve in -- the one its class-header declaration belongs to -- when
+   * a top-level conditional-compilation directive between the two opened
+   * a new session (`encodeApplicationClassProgramV2`). Undefined otherwise.
+   */
+  applicationClassParameterTypeSession?: ApplicationClassReferenceSession;
   /**
    * Cycle 108: the program-wide Application Class rows of an Application
    * Class program (see `ApplicationClassProgramRows`). Set only by
@@ -1322,6 +1335,12 @@ export function isBuiltinObjectTypeName(name: string): boolean {
 }
 
 function encodeFragmentInternal(source: string, context?: EncodeFragmentContext): { bytes: Buffer; references: PeopleCodeReference[]; commentOpcodesConsumed: number } {
+  // Cycle 138: method parameter types resolve in their declaration's session.
+  let registeringMethodParameters = false;
+  const typeReferenceSession = (): ApplicationClassReferenceSession | undefined =>
+    registeringMethodParameters && context?.applicationClassParameterTypeSession !== undefined
+      ? context.applicationClassParameterTypeSession
+      : context?.applicationClassTypeReferenceSession;
 
   let commentOpcodeIndex = 0;
 
@@ -2619,7 +2638,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * `EncodeFragmentContext.applicationClassTypeReferenceSession`'s own
      * declaration comment for the population evidence.
      */
-    const classWide = context?.applicationClassTypeReferenceSession?.lookup({
+    const classWide = typeReferenceSession()?.lookup({
       kind: 'package',
       packageName: className.toUpperCase(),
       objectName: packagePath[0]?.toUpperCase(),
@@ -3056,7 +3075,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * PeopleCode's own control-group-scoped behavior (Cycle 36, 401/651
      * population) is completely unaffected.
      */
-    const classWideTypeIdentity = context?.applicationClassTypeReferenceSession?.lookup({
+    const classWideTypeIdentity = typeReferenceSession()?.lookup({
       kind: 'package',
       packageName,
       objectName
@@ -3250,7 +3269,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * declaration of the same leaf in this method to have already found
      * it via the check above.
      */
-    const classWide = context?.applicationClassTypeReferenceSession?.lookup({
+    const classWide = typeReferenceSession()?.lookup({
       kind: 'package',
       packageName: className.toUpperCase(),
       objectName: packagePath[0]?.toUpperCase(),
@@ -3548,7 +3567,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      */
     const existing =
       ordinaryRecordFieldsByControlGroup.get(key) ??
-      context?.applicationClassTypeReferenceSession?.lookup({
+      typeReferenceSession()?.lookup({
         kind: 'record-field',
         recordName,
         fieldName
@@ -4107,12 +4126,14 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     // Cycle 134: `Global array of Record &x;` -- once indexed, a Record (28764)
     else if (/^array\s+of\s+Record$/i.test(type.trim())) recordArrayVariables.add(name);
   }
+  registeringMethodParameters = true;
   for (const parameter of context?.methodParameters ?? []) {
     const name = `&${parameter.name.replace(/^&/, '')}`.toLowerCase();
     if (context?.applicationClassDeclaredBuiltinVariables?.has(name) && !/^Record$/i.test(parameter.type.trim())) recordVariables.delete(name);
     if (context?.applicationClassDeclaredBuiltinVariables?.has(name) && !/^Rowset$/i.test(parameter.type.trim())) chainSemanticsDeclaredRowsetVariables.delete(name);
     registerTypedParameter(parameter.name, parameter.type);
   }
+  registeringMethodParameters = false;
   /*
    * Cycle 109: an Application Class body's declared App Class variables
    * (`applicationClassDeclaredVariables`) are receivers: a scalar one of
@@ -4500,7 +4521,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        */
       const existing =
         dependencyScope.lookupRecord(recordName) ??
-        context?.applicationClassTypeReferenceSession?.lookup({
+        typeReferenceSession()?.lookup({
           kind: 'record',
           recordName
         });
@@ -4645,7 +4666,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     ) {
       const existing =
         dependencyScope.lookupRecord(recordName) ??
-        context?.applicationClassTypeReferenceSession?.lookup({
+        typeReferenceSession()?.lookup({
           kind: 'record',
           recordName
         });
@@ -4777,7 +4798,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     if (reuseFieldReferenceWithinControlGroup) {
       const existing =
         fieldDependencyScope.lookupField(fieldName) ??
-        context?.applicationClassTypeReferenceSession?.lookup({
+        typeReferenceSession()?.lookup({
           kind: 'field',
           fieldName
         });
@@ -4810,7 +4831,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     ) {
       const existing =
         fieldDependencyScope.lookupField(fieldName) ??
-        context?.applicationClassTypeReferenceSession?.lookup({
+        typeReferenceSession()?.lookup({
           kind: 'field',
           fieldName
         });
@@ -4862,7 +4883,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        */
       const existing =
         dependencyScope.lookupScroll(recordName) ??
-        context?.applicationClassTypeReferenceSession?.lookup({
+        typeReferenceSession()?.lookup({
           kind: 'scroll',
           recordName
         });
@@ -4896,7 +4917,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     if (context?.recordDependenciesHaveMethodWideLifetime) {
       const existing =
         dependencyScope.lookupScroll(recordName) ??
-        context?.applicationClassTypeReferenceSession?.lookup({
+        typeReferenceSession()?.lookup({
           kind: 'scroll',
           recordName
         });
@@ -11255,7 +11276,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            * completely untouched.
            */
           if (reference === undefined && dependencyKind === 'field') {
-            reference = context?.applicationClassTypeReferenceSession?.lookup({
+            reference = typeReferenceSession()?.lookup({
               kind: 'field',
               fieldName: member
             });
@@ -11277,7 +11298,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            * same-method repeats there).
            */
           if (reference === undefined && dependencyKind === 'record' && !isMethodCall && context?.recordDependenciesHaveMethodWideLifetime) {
-            reference = context?.applicationClassTypeReferenceSession?.lookup({
+            reference = typeReferenceSession()?.lookup({
               kind: 'record',
               recordName: member
             });
@@ -11490,7 +11511,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
                * when a compatible identity already exists is the complete
                * fix; no operand needs to be redirected.
                */
-              const classWideTypeIdentity = context?.applicationClassTypeReferenceSession?.lookup({
+              const classWideTypeIdentity = typeReferenceSession()?.lookup({
                 kind: 'package',
                 packageName: activeApplicationClassReceiver.className.toUpperCase(),
                 objectName: activeApplicationClassReceiver.packagePath[0]?.toUpperCase(),
@@ -14781,6 +14802,22 @@ function encodeApplicationClassProgramV2(
   const missingDeclarationDependencies = [...new Map(
     declarationDependencyTypes.map(typeName => [dependencyTypeLeaf(typeName).toLowerCase(), typeName])
   ).values()];
+  // Cycle 138: each declared type with its declaration's offset (sessions).
+  const declarationTypeSites = [
+    ...[parsed.extendsType, parsed.implementsType]
+      .filter((typeName): typeName is string => typeName !== undefined)
+      .map(typeName => ({ typeName, offset: parsed.unitStart })),
+    ...parsed.statements.flatMap(statement => {
+      const types = statement.kind === 'method'
+        ? [...statement.parameters.map(parameter => parameter.type), statement.returnType]
+        : statement.kind === 'property' || statement.kind === 'instance' || statement.kind === 'instance-statement'
+          ? [statement.type]
+          : [];
+      return types
+        .filter((typeName): typeName is string => typeName !== undefined)
+        .map(typeName => ({ typeName, offset: statement.sourceIndex }));
+    })
+  ];
   // Cycle 26/32 proves declaration discovery precedes body allocation, and
   // froze modeling to a zero/one new identity population because broader
   // sets' enumeration order was unproven. Cycle 52 population evidence
@@ -14855,8 +14892,46 @@ function encodeApplicationClassProgramV2(
   const statementChunks: Buffer[] = [];
   const references: PeopleCodeReference[] = [];
   const htmlDependencyScope = new HtmlDependencyScope();
-  const applicationClassReferenceScope = new ApplicationClassReferenceScope();
-  const applicationClassProgramRows = new ApplicationClassProgramRows();
+  /*
+   * Cycle 138: a conditional-compilation directive OUTSIDE the method
+   * bodies -- before the class, in the class header, among the top-level
+   * declarations or between two implementations -- ends the reference
+   * SESSION: everything after it allocates afresh, as if nothing before
+   * had a row (every kind: PACKAGE, RECORD, FIELD ...; ordinary programs
+   * likewise end an allocation unit there, Cycle 122). Directives inside
+   * a body do not. LOCAL SNAPSHOT (`cycle138-package-session-census.ts`):
+   * the App Class programs with a top-level directive are exactly the four
+   * whose stored list re-opens rows across it -- 29724 / 29734 (`#If` in
+   * the header and around a getter: the header's later `instance
+   * HR_TEXT_CATALOG:TextCatalog` re-opens the imported TEXTCATALOG, the
+   * bodies after the getter re-open LAUNCHMANAGER ... RECORD.PY_TD1_STG_CAN),
+   * 29249 (`#If` around a `Declare Function`), 28854 (before the class); all
+   * four lists become exact (+19 PACKAGE, +3 RECORD rows, all stored). The
+   * ~40 programs with directives only inside bodies store no repeat, and
+   * resetting there too loses 18 EXACT. A method's parameter types stay in
+   * the session of its class-header declaration (29249's addToStack
+   * `&CurPgeRS As Rowset` re-opens nothing).
+   */
+  const implementationSpans = parsed.implementations.map(member => [member.sourceIndex, member.sourceEnd] as const);
+  const topLevelDirectiveStarts = [...(context?.conditionalDirectiveRegions?.values() ?? [])]
+    .map(region => region.start)
+    .filter(start => !implementationSpans.some(([from, to]) => start >= from && start < to))
+    .sort((left, right) => left - right);
+  const sessionIndexAt = (offset: number | undefined): number =>
+    offset === undefined ? 0 : topLevelDirectiveStarts.filter(start => start < offset).length;
+  const referenceSessions = new Map<number, { scope: ApplicationClassReferenceScope; rows: ApplicationClassProgramRows }>();
+  const referenceSessionAt = (offset: number | undefined) => {
+    const index = sessionIndexAt(offset);
+    let session = referenceSessions.get(index);
+    if (session === undefined) {
+      session = {
+        scope: new ApplicationClassReferenceScope(referenceSessions.get(0)?.scope.wildcardImportClaim),
+        rows: new ApplicationClassProgramRows()
+      };
+      referenceSessions.set(index, session);
+    }
+    return session;
+  };
   /*
    * Cycle 108 / 109: an Application Class type as the source alone names it
    * -- a qualified path, or a short name with a named import -- and its
@@ -14956,7 +15031,8 @@ function encodeApplicationClassProgramV2(
     suppressDeclarationSectionMarkers = true,
     methodParameters?: { name: string; type: string }[],
     sourceStart?: number,
-    declaredVariables?: ReadonlyMap<string, { packagePath: readonly string[]; className: string; depth: number }>
+    declaredVariables?: ReadonlyMap<string, { packagePath: readonly string[]; className: string; depth: number }>,
+    parameterDeclarationOffset?: number
   ): Buffer => {
     /*
      * Cycle 81: this closure encodes several independent fragments in
@@ -14984,6 +15060,7 @@ function encodeApplicationClassProgramV2(
     if (usesSharedCommentOpcodes) {
       commentOpcodes = context?.commentOpcodes?.slice(nextCommentOpcodeIndex);
     }
+    const { scope: applicationClassReferenceScope, rows: applicationClassProgramRows } = referenceSessionAt(sourceStart);
     const applicationClassReferenceSession = hasModeledApplicationClassReferenceScope
       ? applicationClassReferenceScope.beginFragment()
       : undefined;
@@ -15025,6 +15102,10 @@ function encodeApplicationClassProgramV2(
       // for get/set accessor bodies; only a `kind: 'method'` implementation
       // body's own call site below passes its method's parameter list.
       methodParameters,
+      applicationClassParameterTypeSession: parameterDeclarationOffset !== undefined &&
+        sessionIndexAt(parameterDeclarationOffset) !== sessionIndexAt(sourceStart)
+        ? referenceSessionAt(parameterDeclarationOffset).scope.beginFragment()
+        : undefined,
       // Cycle 108: trace offsets relative to the whole program, not the fragment.
       referenceTrace: context?.referenceTrace === undefined || sourceStart === undefined
         ? context?.referenceTrace
@@ -15087,7 +15168,18 @@ function encodeApplicationClassProgramV2(
     // dependency type, in the SAME first-occurrence order this array is
     // already built in (see `hasModeledDeclarationDependencyOrder`'s own
     // comment for the population evidence) -- not just the first one.
-    for (const typeName of missingDeclarationDependencies) {
+    // Cycle 138: after a top-level directive each declaration allocates in
+    // its own session (an import's row is no longer visible there).
+    const dependencySites = topLevelDirectiveStarts.length === 0
+      ? missingDeclarationDependencies.map(typeName => ({ typeName, offset: parsed.unitStart }))
+      : declarationTypeSites.filter(site => {
+        const leaf = dependencyTypeLeaf(site.typeName).toLowerCase();
+        if (leaf === '' || scalarDeclarationTypes.has(leaf)) return false;
+        return sessionIndexAt(site.offset) > 0 ||
+          missingDeclarationDependencies.some(typeName => dependencyTypeLeaf(typeName).toLowerCase() === leaf);
+      });
+    for (const { typeName, offset } of dependencySites) {
+      const { scope: applicationClassReferenceScope, rows: applicationClassProgramRows } = referenceSessionAt(offset);
       const normalizedType = typeName.replace(/^(?:array\s+of\s+)+/i, '').trim();
       const components = normalizedType.split(':');
       const leaf = components.at(-1)!;
@@ -15438,11 +15530,12 @@ function encodeApplicationClassProgramV2(
   const encodeMethodBody = (
     body: string,
     methodParameters?: { name: string; type: string }[],
-    sourceStart?: number
+    sourceStart?: number,
+    parameterDeclarationOffset?: number
   ): Buffer => {
     const hasSourceTerminator = applicationClassHasTrailingSourceTerminator(body);
     const completed = hasSourceTerminator ? body : `${body};`;
-    const bytes = encodeFragment(completed, undefined, true, methodParameters, sourceStart, bodyDeclaredVariables(methodParameters));
+    const bytes = encodeFragment(completed, undefined, true, methodParameters, sourceStart, bodyDeclaredVariables(methodParameters), parameterDeclarationOffset);
     let end = bytes.length;
     if (end > 0 && bytes[end - 1] === 0x4f) end--;
     if (!hasSourceTerminator && end > 0 && bytes[end - 1] === 0x15) end--;
@@ -15578,7 +15671,10 @@ function encodeApplicationClassProgramV2(
           ? methodsByName.get(member.name.toLowerCase())?.parameters
           : undefined;
       const bodyStart = source.indexOf(bodyCore, member.sourceIndex);
-      statementChunks.push(encodeMethodBody(bodyCore, methodParameters, bodyStart < 0 ? undefined : bodyStart));
+      const declaration = member.kind === 'method'
+        ? parsed.statements.find(statement => statement.kind === 'method' && statement.name.toLowerCase() === member.name.toLowerCase())
+        : undefined;
+      statementChunks.push(encodeMethodBody(bodyCore, methodParameters, bodyStart < 0 ? undefined : bodyStart, declaration?.sourceIndex));
       if (bodyStart >= 0) emitConditionalRegionsIn(bodyStart + bodyCore.length, member.sourceEnd);
       emitMarkers(applicationClassBlankLineCount(trailingWhitespace));
     }
