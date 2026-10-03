@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-03T17:18:16.706Z",
+ "generatedAt": "2026-10-03T18:03:13.607Z",
  "totalDefinitions": 30209,
- "exactCount": 29920,
- "nonexactCount": 289,
+ "exactCount": 29924,
+ "nonexactCount": 285,
  "rows": [
   {
    "definitionId": 522,
@@ -349,22 +349,6 @@
    "primaryCategory": "ENCODE_ERROR"
   },
   {
-   "definitionId": 11513,
-   "displayName": "1=PAY_LINE, 2=EMPLID, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 1,
-    "generatedCount": 15,
-    "firstDivergenceKind": "field"
-   }
-  },
-  {
    "definitionId": 13514,
    "displayName": "1=POP_MGT_UI_WRK, 2=BTN_CLEAR, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -501,38 +485,6 @@
    "errorMessage": "Unsupported function metadata type: Message",
    "construct": "UNKNOWN",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 13657,
-   "displayName": "1=PORTAL_MEN1_WRK, 2=EXPAND_MENU, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 2,
-    "generatedCount": 5,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
-   "definitionId": 13658,
-   "displayName": "1=PORTAL_MEN1_WRK, 2=EXPORT_MENU, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 2,
-    "generatedCount": 4,
-    "firstDivergenceKind": "record"
-   }
   },
   {
    "definitionId": 13895,
@@ -1074,13 +1026,13 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 5,
+   "firstDiffOffset": 311,
    "primaryCategory": "REFERENCE_ACTIVE_FIELD",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 116,
-    "generatedCount": 112,
+    "generatedCount": 113,
     "firstDivergenceKind": "field"
    }
   },
@@ -1174,22 +1126,6 @@
    "errorMessage": "Unsupported function metadata type: object",
    "construct": "UNKNOWN",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 18134,
-   "displayName": "1=PTAL_FREF_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 18,
-    "generatedCount": 19,
-    "firstDivergenceKind": "field"
-   }
   },
   {
    "definitionId": 18178,
@@ -1891,14 +1827,14 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "firstDiffOffset": 1667,
+   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 44,
-    "generatedCount": 40,
-    "firstDivergenceKind": "record-field"
+    "generatedCount": 42,
+    "firstDivergenceKind": "field"
    }
   },
   {
