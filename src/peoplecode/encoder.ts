@@ -385,6 +385,8 @@ export interface ReferenceTraceEvent {
   controlDepth: number;
   /** Function/Method body nesting depth at this point. */
   functionDepth: number;
+  /** Cycle 149: the ordinary allocation unit (`allocationUnit`) at this point. */
+  allocationUnit?: number;
 
   reference: PeopleCodeReference;
 }
@@ -3020,6 +3022,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       controlGroup,
       controlDepth,
       functionDepth,
+      allocationUnit,
       reference: created
     });
 
@@ -3446,6 +3449,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       controlGroup,
       controlDepth,
       functionDepth,
+      allocationUnit,
       reference
     });
 
@@ -5135,6 +5139,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             fieldName: refName
           });
           quotedReferencesByControlGroup.set(quotedKey, reference);
+          if (unitScopedRecordRows) {
+            unitScopedRows['record-field'].set(`${storedQualifier}.${refName}`.toUpperCase(), { unit: allocationUnit, reference });
+          }
         }
 
         if (reference.index > 0xffff) {
@@ -5153,6 +5160,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           controlGroup,
           controlDepth,
           functionDepth,
+          allocationUnit,
           reference
         });
 
@@ -11417,6 +11425,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             controlGroup,
             controlDepth,
             functionDepth,
+            allocationUnit,
             reference: emitted
           });
 
