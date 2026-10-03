@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-03T03:54:01.022Z",
+ "generatedAt": "2026-10-03T04:25:59.577Z",
  "totalDefinitions": 30209,
- "exactCount": 29843,
- "nonexactCount": 366,
+ "exactCount": 29846,
+ "nonexactCount": 363,
  "rows": [
   {
    "definitionId": 522,
@@ -3182,51 +3182,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 1593: expected assignment = [DOTTED-STMT] next=\"/* Bug 30912657 */;\\n      /*Bug 35663983*/\\n      If &seffstatus = \\\"I\\\" Then\\n     \" previous=\".ShowPageInSide2(&bOpen);\\n      BEN_RPANEL_WRK.GROUPBOX.AddFFClass(\\\"ps_hidden\\\") \"",
    "construct": "t",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 28942,
-   "displayName": "104=BNE_OPEN_ENROLL_FL, 105=Controller, 106=XPlanController, 107=Plan1XController, 12=OnExecute, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 17889,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 19,
-    "generatedCount": 19
-   }
-  },
-  {
-   "definitionId": 28943,
-   "displayName": "104=BNE_OPEN_ENROLL_FL, 105=Controller, 106=XPlanController, 107=Plan2XController, 12=OnExecute, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 21637,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 21,
-    "generatedCount": 21
-   }
-  },
-  {
-   "definitionId": 28953,
-   "displayName": "104=BNE_OPEN_ENROLL_FL, 105=Controller, 107=BasePlanController, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 19140,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 37,
-    "generatedCount": 37
-   }
   },
   {
    "definitionId": 28963,
