@@ -5815,6 +5815,35 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     }
   };
 
+  // Cycle 154: a block comment between an operand and the operator or comma
+  // that continues the expression is an inline 0x4E comment at that position
+  // (5047 `10 <comment> + &nIndex`, 25985 `&a [i, 2] <comment> = ...`, 5004 a
+  // comment before a call argument's comma); so is one right after an
+  // operator or comma, before the next operand (25951 `" | <comment> ...`,
+  // 29654 `SendMail(0, <comment>&toEmail, ...)`: `03 4E 01`).
+  // `cycle154-expression-comment-census.ts`: 0x4E after an operand before
+  // `+ < <> = ,` occurs only in programs that did not encode.
+  const commentsBeforeContinuation = (continuation: RegExp): void => {
+    if (!source.startsWith('/*', pos)) return;
+    const rest = source.slice(pos).replace(/^(?:\/\*[\s\S]*?\*\/\s*)+/, '');
+    if (!continuation.test(rest)) return;
+    while (source.startsWith('/*', pos)) {
+      chunks.push(inlineBlockComment());
+      space();
+    }
+  };
+  const commentsAfterOperator = (): void => {
+    space();
+    while (source.startsWith('/*', pos)) {
+      chunks.push(inlineBlockComment());
+      space();
+    }
+  };
+  const commaAfterComments = (): boolean => {
+    commentsBeforeContinuation(/^,/);
+    return source[pos] === ',';
+  };
+
   const expression = () => {
     castPrimary();
 
@@ -5824,6 +5853,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       // A block comment starts with the same slash used by division, but it
       // is a statement boundary and must remain available to the statement
       // parser.
+      commentsBeforeContinuation(/^(?:[+\-*|]|\/(?!\*))/);
       if (source.startsWith('/*', pos)) break;
 
       const operator = /^[+\-*/|]/.exec(source.slice(pos))?.[0];
@@ -5831,6 +5861,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
       pos += operator.length;
       chunks.push(fixed(operator, operator === '*' ? 0x0f : undefined));
+      commentsAfterOperator();
       castPrimary();
     }
   };
@@ -6302,6 +6333,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   const comparisonExpression = () => {
     expression();
     space();
+    commentsBeforeContinuation(/^(?:<>|<=|>=|=|<|>|Not\s*[=>])/i);
 
     /*
      * `Not =` / `Not >` (a space-separated `Not` immediately before an
@@ -6346,6 +6378,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
     pos += operator.length;
     chunks.push(fixed(operator));
+    commentsAfterOperator();
 
     expression();
   };
@@ -6944,6 +6977,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
       primary();
       space();
+      commentsBeforeContinuation(/^=/);
 
       if (source[pos] === '=') {
         pos++;
@@ -7099,9 +7133,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
               if (source[pos] === ')') return;
               expression();
               space();
-              while (source[pos] === ',') {
+              while (commaAfterComments()) {
                 pos++;
                 chunks.push(fixed(','));
+                commentsAfterOperator();
                 expression();
                 space();
               }
@@ -10154,9 +10189,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       expression();
       space();
 
-      while (source[pos] === ',') {
+      while (commaAfterComments()) {
         pos++;
         chunks.push(fixed(','));
+        commentsAfterOperator();
         expression();
         space();
       }
@@ -10680,9 +10716,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         expression();
         space();
 
-        while (source[pos] === ',') {
+        while (commaAfterComments()) {
           pos++;
           chunks.push(fixed(','));
+          commentsAfterOperator();
           expression();
           space();
         }
@@ -11934,9 +11971,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
               expression();
               space();
 
-              while (source[pos] === ',') {
+              while (commaAfterComments()) {
                 pos++;
                 chunks.push(fixed(','));
+                commentsAfterOperator();
                 expression();
                 space();
               }
@@ -12204,9 +12242,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
          * programs (4101, 6933, 28872 ...), all two indexes.
          */
         let subscriptIndexes = 1;
-        while (source[pos] === ',') {
+        while (commaAfterComments()) {
           pos++;
           chunks.push(fixed(','));
+          commentsAfterOperator();
           expression();
           space();
           subscriptIndexes++;
@@ -12244,9 +12283,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           expression();
           space();
 
-          while (source[pos] === ',') {
+          while (commaAfterComments()) {
             pos++;
             chunks.push(fixed(','));
+            commentsAfterOperator();
             expression();
             space();
           }
