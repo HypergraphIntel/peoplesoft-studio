@@ -1,23 +1,23 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-03, Cycle 148)
+## Current status (2026-10-03, Cycle 149)
 
-- **Current target:** Cycle 148 -- ordinary FIELD/REC.FIELD (4: 24348
-  24518 24519 24563). Not a FIELD-vs-RECORD.FIELD form choice: a missing
-  FIELD.RUN_CNTL_ID row from `&PMN_AllHomeStates [...].RUN_CNTL_ID.Value`
-  on a `Global array of Record` (the "generated REC.FIELD" was the next
-  row shifted up). The ordinary Global declaration never joined
-  `recordArrayVariables`. EXACT 29,891 -> 29,895 (+4) = forward-exact;
-  exactly 4 programs changed (bytes and lists), 0 farther, no category
-  moves; ACTIVE_RECORD_FIELD 28 -> 24; protected PASS, 0 EXACT ->
-  non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See
-  "Compiler Semantics Cycle 148".
-- **Last successful calibration:** Cycle 148 (Global array-of-Record
-  receiver).
+- **Current target:** Cycle 149 -- quoted / unquoted same-name row sharing
+  (ordinary BARNAME/MENUNAME 23684 23724 plus 5672 22983 24054 24066
+  24083). One row per allocation unit for `Kind."X"` and `Kind.X`; first
+  use (either spelling) creates it. EXACT 29,895 -> 29,902 (+7) =
+  forward-exact; exactly 7 programs changed (bytes and lists), 0 farther,
+  no category moves; ACTIVE_RECORD_FIELD 24 -> 21, QUOTED_COMPONENT 8 -> 4;
+  protected PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0, fallback 70
+  (13525 in, EXACT). See "Compiler Semantics Cycle 149".
+- **Last successful calibration:** Cycle 149 (quoted / unquoted row
+  sharing).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
-  quoted / unquoted same-name row sharing (23684 23724 22983 5672 24054
-  24066 24083 -- Cycle 149 candidate); row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
+  App Class PACKAGE/FIELD 6 (28967 29518 29583 29598 29715 29725) -- each
+  one hidden class row behind a class absent from the snapshot (TextCatalog,
+  AWTxn, ObjectHashTable / RecordTag via G3FORM:Form, Thread,
+  ExecStatusType); row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
   (an undeclared root's members are inline names: 4269, 4440, 5931 ...
   forward-exact; no record catalog needed); sub-package canonical
   case in type-path names (28942); FIELDVALUE / XLAT* (18989 too);
@@ -29,20 +29,20 @@
   the snapshot (28964, 28968, 29230, 29598, 29715 / 29725); ordinary `As` casts
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
-  reference / allocation unit.
-- **Next action (Cycle 149):** quoted / unquoted same-name row sharing
-  (ordinary BARNAME/MENUNAME 23684 23724 are its cleanest members; also
-  22983, 5672, 24054, 24066, 24083): stored shares one row between
-  `MenuName."X"` and `MenuName.X` within one top-level statement, keeps
-  separate rows across statements (805, 9670, 11344 EXACT). Needs the
-  quoted (per control group) and symbolic (per allocation unit) lifetimes
-  joined -- census per site against the encoder's control group first.
-  Alternatives: App Class PACKAGE/FIELD 6, ordinary SCROLL/FIELD 3,
-  ordinary SCROLL/RECORD 4. Fallback groups stay parked (13525).
-  Scratch tools under c148 (gate.sh, ldiff.ts, part.ts, trace.ts ...).
-  README.md has unrelated uncommitted user edits -- never stage it; never
-  touch stash@{0} / stash@{1}.
-- **Newly established rules this session:** Cycle 148 (encoder): an
+  reference / allocation unit; whether quoted-to-quoted reuse follows the
+  control group or the allocation unit (no occurrence separates them).
+- **Next action (Cycle 150):** ordinary SCROLL/SCROLL (10: 2685 3912 6077
+  6084 8837 8838 10233 10365 21980 21981) -- 8 of them one missing SCROLL
+  row (6077 two; 6084 mixed with an extra RECORD.GB_GROUP_TBL): full-list
+  classification, then the SCROLL row lifetime / construct that stored
+  allocates. Alternatives: ordinary SCROLL/RECORD 4, ordinary SCROLL/FIELD
+  3. Fallback groups stay parked (13525). Scratch tools under c149
+  (gate.sh, ldiff.ts, part.ts, trace.ts ...). README.md has unrelated
+  uncommitted user edits -- never stage it; never touch stash@{0} /
+  stash@{1}.
+- **Newly established rules this session:** Cycle 149 (encoder): quoted
+  and unquoted spellings of one reference share one row per ordinary
+  allocation unit; Cycle 148 (encoder): an
   indexed element of an ordinary `Global array of Record` is a Record
   receiver (its bare member a FIELD row), as Local and App Class ones
   already were; Cycle 147 (encoder): a
@@ -226,6 +226,48 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 149 -- quoted / unquoted row sharing
+
+Targets: ordinary BARNAME/MENUNAME (23684 23724) and the five other
+programs Cycle 148 found (5672 22983 24054 24066 24083; QUOTED_COMPONENT
+5672 22983 24054 24083, ACTIVE_RECORD_FIELD 24066). Two pools allocated
+separately: an unquoted `MenuName.X` is a record-field reference whose row
+identity MENUNAME.X lives in the unit-scoped `record-field` pool (Cycle
+96); a quoted `MenuName."X"` (0x48) lived only in
+`quotedReferencesByControlGroup`.
+
+Stored (285 programs with 0x48 operands, 1,025 operands: MENUNAME 402,
+BARNAME 167, ITEMNAME 138, PAGE 86, BUS* 163, PANEL 38, PANELGROUP 30,
+COMPONENT 1): rows serving both 0x48 and 0x21 operands occur for MENUNAME,
+BARNAME, ITEMNAME and PAGE, only in the seven; separate 0x48 / 0x21 rows
+of one identity only in EXACT 805, 9670, 11344.
+`cycle149-quoted-symbolic-row-census.ts` (stored operands aligned with
+generated USE events carrying `allocationUnit`): every occurrence with an
+earlier same-identity use in its unit reuses that row, whatever the
+spellings (quoted->quoted, unquoted->quoted, quoted->unquoted, mixed); every
+other occurrence opens a new row; no reuse crosses a unit; no occurrence
+is in the same control group but another unit (so quoted-to-quoted
+control-group vs unit is undetermined -- the cache is kept). First spelling
+creates the row (5672 BarName.USE: unquoted first, later quoted uses bind
+it). All cross-spelling sites are top-level (no Function, no #If).
+Quoted names keep their stored text; the only identifier-shaped
+lower-case quoted name (23562 BusEvent."Training") has no unquoted partner
+-- case folding across spellings unevidenced.
+
+Fix: in an ordinary program the quoted path consults the unit pool under
+KIND.NAME before its control-group cache and registers a new row there.
+Full corpus: 7 programs changed (bytes and lists), all 7 EXACT; 0 lost,
+0 farther, no other list changed (no hidden list-only correction). Test:
+`encoderQuotedSymbolicRows.test.ts` (quoted-first 23684, unquoted-first
+22983, two units 805, cross-kind control; opcodes, NAMENUMs, roundtrip).
+
+Secondary, App Class PACKAGE/FIELD (6): every one a single missing
+PACKAGE row (29583: two plus RECORD.G3FORM_WRK / FIELD.G3CUSTOM_TEXT1),
+the class reached through a property / method result of a class absent
+from the snapshot (TextCatalog 28967, AWTxn 29518, ObjectHashTable /
+RecordTag via G3FORM:Form 29583, Thread 29598, ExecStatusType 29715 /
+29725). Metadata gap -- parked.
 
 ## Compiler Semantics Cycle 148 -- Global array-of-Record receiver
 

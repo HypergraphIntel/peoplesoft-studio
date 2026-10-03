@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-03T15:32:51.329Z",
+ "generatedAt": "2026-10-03T16:08:22.459Z",
  "totalDefinitions": 30209,
- "exactCount": 29895,
- "nonexactCount": 314,
+ "exactCount": 29902,
+ "nonexactCount": 307,
  "rows": [
   {
    "definitionId": 522,
@@ -237,22 +237,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 3440: expected ] after array subscript",
    "construct": ", 1]; /* Absence",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 5672,
-   "displayName": "1=DERIVED_HR, 2=JOB_DATA_BTN1, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5389,
-   "primaryCategory": "REFERENCE_ACTIVE_QUOTED_COMPONENT",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 32,
-    "generatedCount": 35,
-    "firstDivergenceKind": "quoted-reference"
-   }
   },
   {
    "definitionId": 5701,
@@ -1765,22 +1749,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 22983,
-   "displayName": "10=GP_ABS_BAL_SRCH, 39=GBL, 12=PreBuild, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 658,
-   "primaryCategory": "REFERENCE_ACTIVE_QUOTED_COMPONENT",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 17,
-    "generatedCount": 19,
-    "firstDivergenceKind": "quoted-reference"
-   }
-  },
-  {
    "definitionId": 23068,
    "displayName": "10=GP_ABS_EA_XFER, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -1822,70 +1790,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 23684,
-   "displayName": "10=PAY_SHEET_LINE, 39=USA, 1=PY_QCAL_DERIVED, 2=PY_QCALC_BTN2, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 398,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 22,
-    "generatedCount": 23,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 23724,
-   "displayName": "10=PAY_SHEET_LN, 39=USA, 1=PY_QCAL_DERIVED, 2=PY_QCALC_BTN2, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 292,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 30,
-    "generatedCount": 31,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 24054,
-   "displayName": "10=POSITION_DATA, 39=GBL, 1=DERIVED_HR, 2=JOB_DATA, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 2781,
-   "primaryCategory": "REFERENCE_ACTIVE_QUOTED_COMPONENT",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 26,
-    "generatedCount": 29,
-    "firstDivergenceKind": "quoted-reference"
-   }
-  },
-  {
-   "definitionId": 24066,
-   "displayName": "10=POSITION_DATA_FL, 39=GBL, 1=DERIVED_HR, 2=JOB_DATA, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 4389,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 27,
-    "generatedCount": 28,
-    "firstDivergenceKind": "record-field"
-   }
-  },
-  {
    "definitionId": 24079,
    "displayName": "10=POSITION_DATA_FL, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
    "classification": "ENCODE_ERROR",
@@ -1894,22 +1798,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 6704: bare identifiers are only supported as calls",
    "construct": "-If;\nEnd-If;\n*>\n",
    "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 24083,
-   "displayName": "10=POSITION_DATA_V_FL, 39=GBL, 1=DERIVED_HR, 2=JOB_DATA, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 4187,
-   "primaryCategory": "REFERENCE_ACTIVE_QUOTED_COMPONENT",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 25,
-    "generatedCount": 28,
-    "firstDivergenceKind": "quoted-reference"
-   }
   },
   {
    "definitionId": 24458,
