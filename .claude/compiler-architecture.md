@@ -14,7 +14,7 @@ EXACT 29,721 / NONEXACT 488 -- all decoder only; Cycle 131 encoder: EXACT
 EXACT 29,774 / NONEXACT 435; Cycle 134: EXACT 29,781 / NONEXACT 428;
 Cycle 135: EXACT 29,809 / NONEXACT 400; Cycle 136: EXACT 29,820 / NONEXACT
 389; Cycle 137: EXACT 29,821 / NONEXACT 388; Cycle 138: EXACT 29,822 /
-NONEXACT 387; forward-exact = EXACT); forward-exact
+NONEXACT 387; Cycle 139: EXACT 29,825 / NONEXACT 384; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -187,6 +187,13 @@ method's parameter types resolve in their header declaration's session
 directive (29797 29883 30170 30179 30192) store per-implementation /
 per-statement repeats with no source-visible trigger -- parked
 (`cycle138-package-session-census.ts`).
+
+Cycle 139 -- App Class implementation header comment: a `/* ... */` that
+ends a `method` / `get` / `set` implementation's header line is the
+header's (`ApplicationClassImplementation.headerComments`), written as an
+inline 0x4E between the name and the header's 0x2D. 0x6D is only the
+`/+ ... +/` signature annotation after the 0x2D
+(`cycle139-implementation-header-comment-census.ts`).
 
 ## 5. Declarations and scope
 
