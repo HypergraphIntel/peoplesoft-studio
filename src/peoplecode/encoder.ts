@@ -15643,6 +15643,13 @@ function encodeApplicationClassProgramV2(
     const implementationOpcode = member.kind === 'method' ? 0x63 : member.kind === 'get' ? 0x5f : 0x49;
     statementChunks.push(Buffer.from([implementationOpcode, 0x41]));
     statementChunks.push(encodeInlineName(member.name));
+    // Cycle 139: a comment ending the header line precedes its 0x2D, as an
+    // inline 0x4E (like a closer's, Cycle 113); it is a comment token in
+    // decoder order (Cycle 81 shared counter).
+    for (const comment of member.headerComments) {
+      statementChunks.push(applicationClassLayoutCommentOperand({ start: member.sourceIndex, end: member.sourceIndex, opcode: 0x4e, raw: comment }));
+      nextCommentOpcodeIndex++;
+    }
     statementChunks.push(Buffer.from([0x2d]));
     for (const comment of member.signatureComments) {
       statementChunks.push(textOperand(0x6d, TokenKind.Comment, comment));

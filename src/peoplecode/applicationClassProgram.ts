@@ -141,6 +141,11 @@ export interface ApplicationClassImplementation extends ApplicationClassSourceSp
   kind: 'method' | 'get' | 'set';
   name: string;
   body: string;
+  /**
+   * Cycle 139: block comments that end the implementation's header line
+   * (`get IsUpdatableReport /* Sets if ... *\/`), verbatim with delimiters.
+   */
+  headerComments: string[];
   signatureComments: string[];
   transitionBlankLines: number;
   /**
@@ -566,8 +571,21 @@ export function parseApplicationClassSource(
     const indices = (match as RegExpMatchArray & { indices: Array<[number, number]> }).indices;
     const [interiorStart, interiorEnd] = indices[3];
     const interior = implementationRegion.slice(interiorStart, interiorEnd);
+    const rawInterior = rawImplementationRegion.slice(interiorStart, interiorEnd);
     const signatureComments: string[] = [];
     let cursor = 0;
+    /*
+     * Cycle 139: a block comment closing the header line belongs to the
+     * header, not to the body (`cycle139-implementation-header-comment-
+     * census.ts`: all 10 such headers in the corpus, 8 methods and 2
+     * getters, store it as an inline 0x4E before the header's 0x2D).
+     */
+    const headerComments: string[] = [];
+    for (let match = /^[ \t]*(\/\*[^\n]*?\*\/)[ \t]*(?=\r?\n)/.exec(rawInterior); match !== null;
+      match = /^[ \t]*(\/\*[^\n]*?\*\/)[ \t]*(?=\r?\n)/.exec(rawInterior.slice(cursor))) {
+      headerComments.push(match[1]);
+      cursor += match[0].length;
+    }
     while (true) {
       const whitespace = /^[ \t]*(?:\r?\n[ \t]*)*/.exec(interior.slice(cursor))?.[0].length ?? 0;
       const commentStart = cursor + whitespace;
@@ -581,7 +599,7 @@ export function parseApplicationClassSource(
       kind, name: match[2], sourceIndex: unitEnd + (match.index ?? 0),
       sourceEnd: unitEnd + (match.index ?? 0) + match[0].length,
       body: rawImplementationRegion.slice(interiorStart + cursor, interiorEnd),
-      signatureComments, transitionBlankLines: 0,
+      headerComments, signatureComments, transitionBlankLines: 0,
       closerTerminated: match[0].trimEnd().endsWith(';'),
       localIndex: match.index ?? 0, fullEnd: (match.index ?? 0) + match[0].length
     });
