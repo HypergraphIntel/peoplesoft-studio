@@ -10358,12 +10358,26 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        */
       parenthesized(booleanExpression, false);
     } else if (/^create\b/i.test(source.slice(pos))) {
+      const createStart = pos;
       word('create');
       chunks.push(Buffer.from([0x69]));
 
       space();
       const appClass = applicationClassPath();
       chunks.push(appClass.bytes);
+      /*
+       * Cycle 136: an Application Class program's create also uses its
+       * class AFTER the constructor arguments -- a constructor's `%Super =
+       * create PTAF_CRITERIA:DEFINITION:CriteriaBase(&rec_.PTAFCRTA_ID.Value)`
+       * stores FIELD.PTAFCRTA_ID before PACKAGE.CRITERIABASE (30060 and 10
+       * more) -- unless the statement's own declaration already typed it:
+       * `Local PKG:Class &v = create PKG:Class(args)` stores the class row
+       * before the arguments' rows (30067), as the ordinary declaration does
+       * (above). `cycle136-create-package-order-census.ts`.
+       */
+      const declaredInitializerType = /\bLocal\s+([%A-Za-z_][\w:]*)\s+&\w+#?\s*=\s*$/i.exec(source.slice(Math.max(0, createStart - 400), createStart))?.[1];
+      const typedByDeclaration = declaredInitializerType !== undefined &&
+        declaredInitializerType.toLowerCase() === [...appClass.packagePath, appClass.className].join(':').toLowerCase();
 
       /*
        * The first runtime create of an Application Class establishes a new
@@ -10384,7 +10398,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * statement's unit before the arguments (24442, 13522). Creates in
        * separate top-level statements each open a row (17900).
        */
-      if (!unitScopedClassRows) {
+      if (!unitScopedClassRows && typedByDeclaration) {
         ensureRuntimeCreateReference(
           appClass.packagePath,
           appClass.className
@@ -10416,6 +10430,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
       if (unitScopedClassRows) {
         useApplicationClassRow(appClass.packagePath, appClass.className);
+      } else if (!typedByDeclaration) {
+        ensureRuntimeCreateReference(
+          appClass.packagePath,
+          appClass.className
+        );
       }
     } else {
       const identifier =
