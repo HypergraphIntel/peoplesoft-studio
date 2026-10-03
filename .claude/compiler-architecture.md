@@ -22,7 +22,8 @@ EXACT 29,862 / NONEXACT 347; Cycle 146: EXACT 29,871 / NONEXACT 338; Cycle 147:
 EXACT 29,891 / NONEXACT 318; Cycle 148: EXACT 29,895 / NONEXACT 314;
 Cycle 149: EXACT 29,902 / NONEXACT 307; Cycle 150: EXACT 29,920 /
 NONEXACT 289; Cycle 151: EXACT 29,924 / NONEXACT 285; Cycle 152: EXACT
-29,929 / NONEXACT 280; forward-exact = EXACT); forward-exact
+29,929 / NONEXACT 280; Cycle 153: EXACT 29,952 / NONEXACT 257;
+forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -306,6 +307,14 @@ unevidenced (`cycle152-function-array-type-census.ts`). `PanelGroup array
 of <type>` parses as the Component array form (`51 40 array 40 of 40
 <type>`, element built-in row in the 'component' context) and a
 `PanelGroup array of Record` is a record array.
+
+Cycle 153 (syntax) -- a subscript holds one or more comma-separated
+indexes: `&a [i, j]` is ONE subscript `4C <i> 03 <j> 4D` (the ordinary
+comma; no count byte), each index stepping one array level
+(`cycle153-multi-index-subscript-census.ts`: 79 sites, all two indexes).
+A try statement may have several catch clauses (each `66 <type> <var>`),
+and the last catch-body statement may omit `;` before end-try (no
+terminator written).
 
 ## 5. Declarations and scope
 

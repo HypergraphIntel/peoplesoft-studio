@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-03T19:20:12.649Z",
+ "generatedAt": "2026-10-03T20:11:53.586Z",
  "totalDefinitions": 30209,
- "exactCount": 29929,
- "nonexactCount": 280,
+ "exactCount": 29952,
+ "nonexactCount": 257,
  "rows": [
   {
    "definitionId": 522,
@@ -99,16 +99,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 4101,
-   "displayName": "1=DERIVED_ABS_SS, 2=ATTACH_LINK1, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 7001: expected ] after array subscript",
-   "construct": ", 1]; /* Absence",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 4184,
    "displayName": "1=DERIVED_AGENCY, 2=GVT_PHASED_RET, 12=FieldEdit, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -165,16 +155,6 @@
    "primaryCategory": "ENCODE_ERROR"
   },
   {
-   "definitionId": 5089,
-   "displayName": "1=DERIVED_GPGB, 2=ATTACH_LINK1, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 3440: expected ] after array subscript",
-   "construct": ", 1]; /* Absence",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 5701,
    "displayName": "1=DERIVED_HR, 2=NID_SPECIAL_CHAR, 12=FieldEdit, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -209,26 +189,6 @@
    "roundtripExact": false,
    "errorMessage": "Cannot encode PeopleCode at source offset 5502: expected )",
    "construct": "= \"Y\" And;\n     ",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 6933,
-   "displayName": "1=GPFR_AF_PACKAGE, 2=GPFR_TEMP_AF_VER, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 901: expected ] after array subscript",
-   "construct": ", 1] | \" WHERE G",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 6936,
-   "displayName": "1=GPFR_AF_PACKAGE, 2=GP_STAMP_RECS_BTN, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 2637: expected ] after array subscript",
-   "construct": ", 1] | \" set GPF",
    "primaryCategory": "ENCODE_ERROR"
   },
   {
@@ -301,16 +261,6 @@
    "roundtripExact": true,
    "firstDiffOffset": 7410,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 11120,
-   "displayName": "1=GP_FORMULA_WRK, 2=FRML_FUNC_OPTN, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 4040: expected ] after array subscript",
-   "construct": ", 2];\n   Else\n  ",
-   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 13514,
@@ -1085,16 +1035,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 18280,
-   "displayName": "9=AMM_RAWXML4, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 379: expected ; in catch body",
-   "construct": "end",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 18472,
    "displayName": "9=CQ_WZ_FLDMAP, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -1125,16 +1065,6 @@
     "generatedCount": 25,
     "firstDivergenceKind": "record-field"
    }
-  },
-  {
-   "definitionId": 18579,
-   "displayName": "9=GPFR_DSN_NODE, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 10493: expected ] after array subscript",
-   "construct": ", 1] = &string T",
-   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 19196,
@@ -1317,16 +1247,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 21943,
-   "displayName": "10=GPMX_ABSENCE_ENTRY, 39=GBL, 1=DERIVED_GPMX, 2=ATTACH_LINK1, 12=FieldChange, 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 3544: expected ] after array subscript",
-   "construct": ", 1]; /* Absence",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 22740,
    "displayName": "10=GPTH_PF_PAYEE, 39=GBL, 1=GPTH_PF_PAYEE, 12=SaveEdit, 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -1454,16 +1374,6 @@
    "primaryCategory": "ENCODE_ERROR"
   },
   {
-   "definitionId": 25111,
-   "displayName": "10=PTAL_USER_PREF, 39=GBL, 12=PostBuild, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 856: keyword catch is not a supported call name",
-   "construct": "catch",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 25124,
    "displayName": "60=ACCOUNT_CHARTFIELD_SYNC, 87=HPYPSAPAccountChartFieldSync, 12=Subscription, 0= , 0= , 0= , 0= ",
    "classification": "ENCODE_ERROR",
@@ -1524,8 +1434,8 @@
    "classification": "ENCODE_ERROR",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 6838: expected ] after array subscript",
-   "construct": ", 2] = &Aggregat",
+   "errorMessage": "Cannot encode PeopleCode at source offset 27198: expected Then",
+   "construct": "< 0 Then\n      I",
    "primaryCategory": "ENCODE_ERROR"
   },
   {
@@ -1563,8 +1473,8 @@
    "classification": "ENCODE_ERROR",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 11950: expected ] after array subscript",
-   "construct": ", 2] /*Parent Re",
+   "errorMessage": "Cannot encode PeopleCode at source offset 12391: expected Then",
+   "construct": "= &SimpleXmlRf_S",
    "primaryCategory": "ENCODE_ERROR"
   },
   {
@@ -1705,12 +1615,11 @@
   {
    "definitionId": 27771,
    "displayName": "66=GPMX_XML_AE, 77=Emplid, 39=GBL, 20=default, 21=1900-01-01, 78=Step2, 12=OnExecute",
-   "classification": "ENCODE_ERROR",
+   "classification": "DECODE_SOURCE_MISMATCH",
    "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 15028: expected ; in catch body",
-   "construct": "end",
-   "primaryCategory": "ENCODE_ERROR"
+   "roundtripExact": true,
+   "firstDiffOffset": 4568,
+   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 28190,
@@ -2003,12 +1912,18 @@
   {
    "definitionId": 28872,
    "displayName": "104=BEN_ATTACHMENTS, 107=DocumentUpload, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1482: expected ] after array subscript",
-   "construct": "etNewEventSeqNbr",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 79,
+    "generatedCount": 80,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 28890,
@@ -2317,12 +2232,18 @@
   {
    "definitionId": 29293,
    "displayName": "104=GPFR_ADSDEFN, 107=GPFR_ValidationBase, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 18735: expected ] after array subscript",
-   "construct": ".Len\n           ",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 76,
+    "generatedCount": 75,
+    "firstDivergenceKind": "record"
+   }
   },
   {
    "definitionId": 29299,
@@ -2411,26 +2332,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 29351,
-   "displayName": "104=GPS_DBSEARCH, 107=BaseDBSearchUI, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 706: expected ; in catch body",
-   "construct": "\n   \n   method s",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29362,
-   "displayName": "104=GPS_EDITFUNCTIONS, 107=BaseEditContent, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 137: expected ; in catch body",
-   "construct": "  *\n  * Date:   ",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 29380,
    "displayName": "104=GPS_EDITFUNCTIONS, 107=IndividualizeRemarkContent, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -2486,16 +2387,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 29396,
-   "displayName": "104=GPS_POSTMANAGEMENT, 107=BaseContent, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 533: expected ; in catch body",
-   "construct": "eadDetails",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 29406,
    "displayName": "104=GPS_RPT_FILEMANAGEMENT, 107=GenerateWFSFile, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -2541,112 +2432,18 @@
   {
    "definitionId": 29465,
    "displayName": "104=GP_ABS_CS_TMPL, 105=TEL, 107=absTelObject, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 795: keyword catch is not a supported call name",
-   "construct": "erEx",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29476,
-   "displayName": "104=GP_ABS_CS_TMPL, 105=TMPL, 107=absTmplCodeList, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 184: keyword catch is not a supported call name",
-   "construct": "InvalidIndexEx",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29485,
-   "displayName": "104=GP_ABS_CS_TMPL, 105=TMPL, 107=absTmplFieldList, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 296: keyword catch is not a supported call name",
-   "construct": "\n\nclass absTmplF",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29488,
-   "displayName": "104=GP_ABS_CS_TMPL, 105=TMPL, 107=absTmplObject, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 662: keyword catch is not a supported call name",
-   "construct": "lPageNotFoundEx",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29490,
-   "displayName": "104=GP_ABS_CS_TMPL, 105=TMPL, 107=absTmplPageList, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 191: keyword catch is not a supported call name",
-   "construct": "IndexEx",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29492,
-   "displayName": "104=GP_ABS_CS_TMPL, 105=TMPL, 107=absTmplPaint, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 4069: keyword catch is not a supported call name",
-   "construct": " Set comment to ",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29495,
-   "displayName": "104=GP_ABS_CS_TMPL, 105=TMPL, 107=absTmplPaintSection, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 959: keyword catch is not a supported call name",
-   "construct": "deleteSectionRow",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29496,
-   "displayName": "104=GP_ABS_CS_TMPL, 105=TMPL, 107=absTmplPaintSectionRow, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 2298: keyword catch is not a supported call name",
-   "construct": " &TextCatalog.pr",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29498,
-   "displayName": "104=GP_ABS_CS_TMPL, 105=TMPL, 107=absTmplRecordList, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 216: keyword catch is not a supported call name",
-   "construct": "S_CS_TMPL",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29503,
-   "displayName": "104=GP_ABS_CS_TMPL, 105=TMPL, 107=absTmplRowSet, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 269: keyword catch is not a supported call name",
-   "construct": "_CS_TMPL",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29505,
-   "displayName": "104=GP_ABS_CS_TMPL, 105=TMPL, 107=absTmplSection, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 375: keyword catch is not a supported call name",
-   "construct": "L",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 9288,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 48,
+    "generatedCount": 47,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29507,
@@ -2654,18 +2451,8 @@
    "classification": "ENCODE_ERROR",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 206: keyword catch is not a supported call name",
-   "construct": "tFoundEx",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29509,
-   "displayName": "104=GP_ABS_CS_TMPL, 105=TMPL, 107=absTmplSectionList, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 207: keyword catch is not a supported call name",
-   "construct": "rt",
+   "errorMessage": "Cannot encode PeopleCode at source offset 524: bare identifiers are only supported as calls",
+   "construct": "ionField",
    "primaryCategory": "ENCODE_ERROR"
   },
   {
