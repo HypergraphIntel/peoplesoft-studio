@@ -5660,8 +5660,23 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * not create duplicate runtime rows.
        */
       if (unitScopedClassRows) {
-        // Cycle 94: a cast uses its class in the current allocation unit.
-        useApplicationClassRow(appClass.packagePath, appClass.className);
+        /*
+         * Cycle 94: a cast uses its class in the current allocation unit --
+         * Cycle 144: only when the cast's (parenthesized) result receives a
+         * method call, like any receiver of the class (Cycle 111). The cast
+         * alone types the value: 22493 `(&o.getEditContent() As
+         * GPS_EDITFUNCTIONS:StaffingContent).dtlSaveEdit();` stores the row;
+         * 24988 `(&contextfields.Item(&j) As PTAI_ACTION_ITEMS:ContextData)
+         * .ctxKey` (a property), 24800 `insertitem(&x As PTAI_COLLECTION:
+         * Collectable)` (an argument), 19528 `&x = ... As HCR_DEPT_SERVICES:
+         * Department:GetChildrenDepartmentIDs;` store none.
+         * LOCAL SNAPSHOT (`cycle144-ordinary-package-provenance-census.ts`):
+         * no cast row at all -> +6 / -4 (the 4 call on the cast result);
+         * call-only -> +6 / 0, 9 lists changed, 8 exact, 0 farther.
+         */
+        if (/^\s*\)\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(source.slice(pos))) {
+          useApplicationClassRow(appClass.packagePath, appClass.className);
+        }
       } else {
         ensureRuntimeCreateReference(
           appClass.packagePath,
