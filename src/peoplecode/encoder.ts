@@ -12398,6 +12398,17 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       ) {
         chunks.push(Buffer.from([0x2d]));
         closeImportSection();
+        /*
+         * Cycle 141: as at the main import closer and the REM closer
+         * (Cycle 88), a following plain Local starts a fresh declaration-
+         * only Local run, whose close before the first executable
+         * statement is a formal 0x2D. 25056 `import ...; <blank> /*c*\/
+         * Local string ...; <blank> <blank> &sDSName = ...` stores `15 2D 4F
+         * 4F`; 21271 likewise `15 2D 4F 24 55 24`.
+         */
+        if (nextIsLocal && !/^Local\s+[A-Za-z_][A-Za-z0-9_]*\s*:/i.test(source.slice(afterComments))) {
+          restartLocalDeclarationRun();
+        }
       }
 
       /*
