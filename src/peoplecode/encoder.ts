@@ -12489,7 +12489,17 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           sawApplicationClassLocalSection &&
           !closedApplicationClassLocalSection &&
           !nextRealItemContinuesDeclarationSection(pos);
-        if (!nextIsTopLevelDeclaration && !nextIsImport && !applicationClassLocalCloserFiresHere) {
+        /*
+         * Cycle 141: like the Local test above, the following declaration or
+         * import is found past REM and disabled-code trivia too. 4348 `Local
+         * Rowset &RSGRID; <blank> /* c *\/ rem Global ...; Global ...`
+         * stores `15 4F 24 24 45` -- the run continues into the Global; the
+         * section closes later, before the first executable statement.
+         */
+        const continuesPastTrivia = /^(?:Global|PanelGroup|Component|Constant|Declare\s+Function|import)\b/i.test(
+          source.slice(nextSignificantAfterTrivia(pos))
+        );
+        if (!nextIsTopLevelDeclaration && !nextIsImport && !continuesPastTrivia && !applicationClassLocalCloserFiresHere) {
           pendingReferenceLocalBoundary = chunks.length;
 
           /*
