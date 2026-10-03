@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-03T05:31:45.137Z",
+ "generatedAt": "2026-10-03T06:16:18.849Z",
  "totalDefinitions": 30209,
- "exactCount": 29857,
- "nonexactCount": 352,
+ "exactCount": 29862,
+ "nonexactCount": 347,
  "rows": [
   {
    "definitionId": 522,
@@ -1289,38 +1289,6 @@
    }
   },
   {
-   "definitionId": 16082,
-   "displayName": "1=PSMACROSETACT, 2=PTMACROCOPY, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 1691,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 17,
-    "generatedCount": 22,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 16085,
-   "displayName": "1=PSMACROSETACT, 2=PTMACROSAVE, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 858,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 11,
-    "generatedCount": 15,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 16316,
    "displayName": "1=PSNODE_WRK, 2=DELETE_PB, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -1500,22 +1468,6 @@
    "errorMessage": "Unsupported function metadata type: time",
    "construct": "UNKNOWN",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 17893,
-   "displayName": "1=PTACM_TEMPL_WRK, 2=PTACM_CONF_EXPORT, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 7682,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 49,
-    "generatedCount": 50,
-    "firstDivergenceKind": "package"
-   }
   },
   {
    "definitionId": 17998,
@@ -2120,22 +2072,6 @@
    }
   },
   {
-   "definitionId": 24416,
-   "displayName": "10=PTADSDEFNSEARCH, 39=GBL, 1=PTADSPRJSRCH_W, 2=PTGENERATE_PB, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 1513,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 16,
-    "generatedCount": 17,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 24458,
    "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMW_WRK, 2=PTADSUPDMERGEACT, 12=FieldChange, 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -2229,22 +2165,6 @@
     "storedCount": 8,
     "generatedCount": 7,
     "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 24648,
-   "displayName": "10=PTADSMMGR, 39=GBL, 12=SavePreChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 7784,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 43,
-    "generatedCount": 45,
-    "firstDivergenceKind": "package"
    }
   },
   {

@@ -17,7 +17,8 @@ Cycle 135: EXACT 29,809 / NONEXACT 400; Cycle 136: EXACT 29,820 / NONEXACT
 NONEXACT 387; Cycle 139: EXACT 29,825 / NONEXACT 384; Cycle 140:
 EXACT 29,832 / NONEXACT 377; Cycle 141: EXACT 29,843 / NONEXACT 366;
 Cycle 142: EXACT 29,846 / NONEXACT 363; Cycle 143: EXACT
-29,849 / NONEXACT 360; Cycle 144: EXACT 29,857 / NONEXACT 352; forward-exact = EXACT); forward-exact
+29,849 / NONEXACT 360; Cycle 144: EXACT 29,857 / NONEXACT 352; Cycle 145:
+EXACT 29,862 / NONEXACT 347; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -230,6 +231,12 @@ and uses the class row only when its parenthesized result receives a
 method call (`castPrimary`); a Function header's `As array of <Class>` /
 `Returns array of <Class>` uses the class in the header's unit like the
 scalar forms (`cycle144-ordinary-package-provenance-census.ts`).
+
+Cycle 145 -- ordinary: a method call on a receiver declared with a
+`%metadata` system class uses no row (declarations / creates do); after a
+Function definition, declaration-only top-level Locals before executable
+code are one allocation unit (Function-body Locals stay one unit each)
+(`cycle145-metadata-local-run-census.ts`).
 
 ## 5. Declarations and scope
 

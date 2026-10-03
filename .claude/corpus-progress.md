@@ -1,17 +1,17 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-03, Cycle 144)
+## Current status (2026-10-03, Cycle 145)
 
-- **Current target:** Cycle 144 -- reference layer: ordinary non-fallback
-  ACTIVE_PACKAGE PACKAGE/PACKAGE (8). Two proven owners: (1) a cast opens
-  its class row only for a method call on the result; (2) a Function
-  header's `array of <Class>` parameter / return type opens its row.
-  EXACT 29,849 -> 29,857 (+8: 5565 14641 14919 15070 18110 19528 24800
-  24988) = forward-exact; 14 lists changed (10 exact, 4 closer, 0
-  farther); ACTIVE_PACKAGE 69 -> 59; protected PASS, 0 EXACT -> non-EXACT,
-  ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See "Compiler Semantics
-  Cycle 144".
-- **Last successful calibration:** Cycle 144 (cast receiver, header array).
+- **Current target:** Cycle 145 -- reference layer: the last two ordinary
+  non-fallback PACKAGE/PACKAGE programs, two owners: (A) a method call on a
+  `%metadata` receiver uses no row; (B) a post-Function run of
+  declaration-only top-level Locals shares one unit. EXACT 29,857 ->
+  29,862 (+5: 16082 16085 24416 24648 [A], 17893 [B]) = forward-exact; 6
+  lists changed (all exact), 0 farther; ACTIVE_PACKAGE 59 -> 54 (ordinary
+  non-fallback PACKAGE/PACKAGE 2 -> 0); protected PASS, 0 EXACT ->
+  non-EXACT, ROUNDTRIP_ONLY 0, fallback 70 (13525 in, EXACT). See
+  "Compiler Semantics Cycle 145".
+- **Last successful calibration:** Cycle 145 (%metadata receivers, post-Function Local run).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
@@ -27,18 +27,21 @@
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
   (no discriminating program): whether an empty statement opens a
   reference / allocation unit.
-- **Next action (Cycle 145):** reference layer -- ordinary non-fallback
-  PACKAGE/PACKAGE remainder (2): 16082 (method calls on `%metadata:
-  MacroDefn` receivers -- `&srcDefn.CopyDefn()`, `&m_mgr.GetDefn(..)` --
-  open rows the stored list lacks: census method calls on %metadata-typed
-  receivers), 17893 (consecutive declaration-only Locals of one class in a
-  Function body share one stored row: census body Local runs). Then
-  ACTIVE_PACKAGE App Class PACKAGE/PACKAGE 15 / App Class REC.FIELD/PACKAGE
-  4, ACTIVE_RECORD_FIELD 36. Parked: 29867; 29797 29883 30170 30179 30192;
-  metadata-absent 29655, 28857 / 28893, 29527 / 29590, 15840; one-offs
-  28721, 28985 / 30206, 29329, 28797. README.md has unrelated uncommitted
-  user edits -- never stage it; never touch stash@{0} / stash@{1}.
-- **Newly established rules this session:** Cycle 144 (encoder): an
+- **Next action (Cycle 146):** reference layer -- ACTIVE_PACKAGE 54 is
+  now App Class (PACKAGE/PACKAGE 15, REC.FIELD/PACKAGE 4, PAGE / FIELD /
+  RECORD / MENUNAME 7) and ordinary fallback (PACKAGE/PACKAGE 12,
+  REC.FIELD/PACKAGE 10, owner/REC.FIELD 3) plus ordinary REC.FIELD/REC.FIELD
+  3 (22705 22709 22713). Recommended: App Class REC.FIELD/PACKAGE (4:
+  28932 28964 29099 29163) full-list classification, or ordinary
+  REC.FIELD/REC.FIELD (3, one family?). The fallback groups stay parked
+  (13525). Parked: 29867; 29797 29883 30170 30179 30192; metadata-absent
+  29655, 28857 / 28893, 29527 / 29590, 15840; one-offs 28721, 28985 /
+  30206, 29329, 28797. README.md has unrelated uncommitted user edits --
+  never stage it; never touch stash@{0} / stash@{1}.
+- **Newly established rules this session:** Cycle 145 (encoder): a
+  method call on a `%metadata` receiver uses no PACKAGE row (declarations
+  and creates do); after a Function definition, declaration-only top-level
+  Locals before executable code share one allocation unit; Cycle 144 (encoder): an
   ordinary cast uses its class row only when its parenthesized result
   receives a method call; an ordinary Function header's `As array of
   <Class>` / `Returns array of <Class>` uses the class in the header unit;
@@ -210,6 +213,48 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 145 -- %metadata receivers, post-Function Local runs
+
+**Baseline reproduced fresh at `9b4a2c5`:** 29,857 / 352, forward-exact
+29,857, ACTIVE_PACKAGE 59 (ordinary non-fallback PACKAGE/PACKAGE 2: 16082
+17893), ACTIVE_FIELD 24, ACTIVE_RECORD_FIELD 36, protected 430/430,
+taxonomy row-identical, fallback 70 (13525 in, EXACT), ROUNDTRIP_ONLY 0.
+**Result:** EXACT **29,857 -> 29,862 (+5)** = forward-exact; A only: +4
+(16082 16085 24416 24648), 5 lists exact (incl. 16084's hidden extra
+row), -13 rows none stored; B only: +1 (17893), only it changed; A+B
+additive (5 gained, 6 lists, 0 farther). ACTIVE_PACKAGE 59 -> 54, ordinary
+non-fallback PACKAGE/PACKAGE 2 -> 0. LOCAL SNAPSHOT only. Commits: e4e62d6
+(census), 6816b90 (A), 3121094 (B). README.md and both stashes untouched.
+
+A -- `%metadata`: 16082's receivers are SOURCE-declared (`Local
+%metadata:MacroDefn:MacroDefn &srcDefn;`), not provider-typed; the
+question is the `%metadata` system namespace. Stored opens rows for the
+declarations and `create`s, never for a method call on such a receiver:
+16082 (its second Function's Locals store rows 8-11; the calls on lines
+16 / 17 / 20 / 33 / 49 none), 16084 (EXACT bytes, hidden extra row), 16085,
+16498 (EXACT: COMPONENTDEFN_MANAGER 1 row, 2 calls), 24645 (EXACT: 2 rows,
+3 calls), 24416 24648 (APPDATASETMGR). Rule: no row for a method call on a
+%metadata receiver (`cycle145-metadata-local-run-census.ts`). %metadata
+wildcard imports store no blank row (existing behavior unchanged).
+
+B -- 17893's run (`Local PT_PC_UTIL:StringMap ...;` `Local array of
+PT_PC_UTIL:StringMap &vmap;` `Local array of array of ...`) is top-level
+after `End-Function;`, not in a Function body. Variants: post-Function
+top-level declaration-only Locals before executable code share a unit:
++1, only 17893 changed (landed); the same after executable code: +1 / -1
+(26713); Function-body declaration runs sharing: 0 / -5 (5088 8327 15070
+17613 17799) -- body Locals stay one unit each. 17893 is the only such
+run repeating a class (single positive, two negative controls).
+
+Rerank: ACTIVE_PACKAGE 54 (App Class PACKAGE/PACKAGE 15, ordinary fallback
+PACKAGE/PACKAGE 12, ordinary fallback REC.FIELD/PACKAGE 10, App Class
+REC.FIELD/PACKAGE 4, ordinary fallback owner/REC.FIELD 3, ordinary
+REC.FIELD/REC.FIELD 3, App Class PAGE / FIELD / RECORD 2 each, MENUNAME 1),
+ACTIVE_RECORD_FIELD 36, ACTIVE_RECORD 25, ACTIVE_FIELD 24, ACTIVE_OTHER 12,
+ACTIVE_SCROLL 11, QUOTED_COMPONENT 8, COMPLETE_DOWNSTREAM 8,
+STRUCTURAL_ORDERING 3; ENCODE_ERROR 69, DSM 67, UNSUPPORTED_SYNTAX 30
+(NONEXACT 347).
 
 ## Compiler Semantics Cycle 144 -- ordinary PACKAGE/PACKAGE: casts, header arrays
 
