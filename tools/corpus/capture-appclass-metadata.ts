@@ -20,8 +20,10 @@
  *             snapshot_appclass_metadata tables, replacing what is there.
  *     npx tsx tools/corpus/capture-appclass-metadata.ts --import <json>
  *   manifest  (offline) the snapshot's captured classes, one line each:
- *             path, program sha256 / length, name rows sha256 / count.
+ *             path, program sha256 / length, name rows sha256 / count;
+ *             --check-manifest compares them with a committed manifest.
  *     npx tsx tools/corpus/capture-appclass-metadata.ts --manifest [<out>]
+ *     npx tsx tools/corpus/capture-appclass-metadata.ts --check-manifest tools/corpus/appclass-metadata/manifest.txt
  *
  * `<file>`: one class path per line (`PKG:Sub:Class`, any case); `#`
  * comments allowed. Paths already in the output are kept, not refetched.
@@ -121,7 +123,7 @@ export async function referencedClassPaths(connection: oracledb.Connection, capt
     if (m[2]) wildcardPackages.push(m[1]); else found.add(m[1]);
   }
   const typed = header.slice(parsed.unitStart);
-  for (const m of typed.matchAll(/(?<![%\w])[A-Za-z_]\w*(?:\s*:\s*[A-Za-z_]\w*)+\b/g)) found.add(m[0].replace(/\s+/g, ''));
+  for (const m of typed.matchAll(/(?<![%\w:])[A-Za-z_]\w*(?:\s*:\s*[A-Za-z_]\w*)+\b/g)) found.add(m[0].replace(/\s+/g, ''));
   const shortNames = new Set<string>();
   for (const m of typed.matchAll(/\b(?:extends|implements|as|of|property|method\s+\w+\s*\([^)]*\)\s*returns)\s+([A-Za-z_]\w*)\b(?!\s*:)/gi)) shortNames.add(m[1]);
   for (const m of typed.matchAll(/\bproperty\s+(?:array\s+of\s+)*([A-Za-z_]\w*)\s+\w+/gi)) shortNames.add(m[1]);
@@ -199,6 +201,17 @@ async function main(): Promise<void> {
     console.log(`snapshot ${result.snapshotId}: imported ${result.classes} classes, ${result.names} name rows; content sha256 ${result.contentSha256}`);
     return;
   }
+  const checkFile = option('--check-manifest');
+  if (checkFile !== undefined) {
+    const expected = fs.readFileSync(checkFile, 'utf8').split('\n').filter(line => line.trim() !== '' && !line.startsWith('#'));
+    const actual = capturedApplicationClassManifest(listSnapshotCapturedApplicationClasses(openSnapshotDatabase()));
+    const missing = expected.filter(line => !actual.includes(line));
+    const extra = actual.filter(line => !expected.includes(line));
+    console.log(`manifest ${expected.length} classes, snapshot ${actual.length}; missing or different ${missing.length}, extra ${extra.length}`);
+    for (const line of [...missing.map(l => `- ${l}`), ...extra.map(l => `+ ${l}`)].slice(0, 20)) console.log(line);
+    if (missing.length || extra.length) process.exitCode = 1;
+    return;
+  }
   if (args.includes('--manifest')) {
     const lines = capturedApplicationClassManifest(listSnapshotCapturedApplicationClasses(openSnapshotDatabase()));
     const out = option('--manifest');
@@ -207,7 +220,7 @@ async function main(): Promise<void> {
     return;
   }
   const pathsFile = option('--paths'); const out = option('--out');
-  if (pathsFile === undefined || out === undefined) throw new Error('usage: --paths <file> --out <json> [--transitive] | --import <json> | --manifest [<out>]');
+  if (pathsFile === undefined || out === undefined) throw new Error('usage: --paths <file> --out <json> [--transitive] | --import <json> | --manifest [<out>] | --check-manifest <file>');
   const corpusClasses = new Set(listSnapshotApplicationClassDefinitions(openSnapshotDatabase()).map(d => d.path.join(':').toLowerCase()));
   const requested = fs.readFileSync(pathsFile, 'utf8').split('\n').map(line => line.replace(/#.*/, '').trim())
     .filter(p => p !== '' && !corpusClasses.has(p.toLowerCase()));
