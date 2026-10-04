@@ -4309,12 +4309,22 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     else if (/^Rowset$/i.test(type.trim())) chainSemanticsDeclaredRowsetVariables.add(name);
     // Cycle 134: `Global array of Record &x;` -- once indexed, a Record (28764)
     else if (/^array\s+of\s+Record$/i.test(type.trim())) recordArrayVariables.add(name);
+    /*
+     * Cycle 161: and a Row (header `instance Row &x` / `property Row X`,
+     * Global / Component): its bare record member is a RECORD row at 61 /
+     * 61 sites (29457 `&rowTmplSec.GP_ABS_TXID_VW...`, 29563 `&ThisRow
+     * .GP_CC_VW.PAY_ENTITY`, 28935 `&NewPlanRow.BAS_PAR_PLAN_VW`); Row
+     * properties stay inline. LOCAL SNAPSHOT: 5 programs changed, 4 EXACT,
+     * 0 farther.
+     */
+    else if (/^Row$/i.test(type.trim())) rowVariables.add(name);
   }
   registeringMethodParameters = true;
   for (const parameter of context?.methodParameters ?? []) {
     const name = `&${parameter.name.replace(/^&/, '')}`.toLowerCase();
     if (context?.applicationClassDeclaredBuiltinVariables?.has(name) && !/^Record$/i.test(parameter.type.trim())) recordVariables.delete(name);
     if (context?.applicationClassDeclaredBuiltinVariables?.has(name) && !/^Rowset$/i.test(parameter.type.trim())) chainSemanticsDeclaredRowsetVariables.delete(name);
+    if (context?.applicationClassDeclaredBuiltinVariables?.has(name) && !/^Row$/i.test(parameter.type.trim())) rowVariables.delete(name);
     registerTypedParameter(parameter.name, parameter.type);
   }
   registeringMethodParameters = false;
@@ -6945,6 +6955,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         if (context?.applicationClassDeclaredBuiltinVariables?.has(name.trim().toLowerCase())) recordVariables.delete(name.trim().toLowerCase());
         // Cycle 135: and a Rowset declared outside the body (a Local Rowset is in rowsetVariables)
         if (context?.applicationClassDeclaredBuiltinVariables?.has(name.trim().toLowerCase())) chainSemanticsDeclaredRowsetVariables.delete(name.trim().toLowerCase());
+        if (context?.applicationClassDeclaredBuiltinVariables?.has(name.trim().toLowerCase())) rowVariables.delete(name.trim().toLowerCase());
       }
     }
     if (unitScopedClassRows || applicationClassBody) {
