@@ -1944,6 +1944,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       rowVariables.add(firstDeclaredVariable.toLowerCase());
     } else if (/^Rowset$/i.test(type ?? '') && firstDeclaredVariable) {
       rowsetVariables.add(firstDeclaredVariable.toLowerCase());
+    } else if (/^Message$/i.test(type ?? '') && firstDeclaredVariable) {
+      messageVariables.add(firstDeclaredVariable.toLowerCase());
     }
     chunks.push(variable());
 
@@ -1976,6 +1978,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         rowVariables.add(declaredVariable.toLowerCase());
       } else if (/^Rowset$/i.test(type ?? '') && declaredVariable) {
         rowsetVariables.add(declaredVariable.toLowerCase());
+      } else if (/^Message$/i.test(type ?? '') && declaredVariable) {
+        messageVariables.add(declaredVariable.toLowerCase());
       }
       chunks.push(variable());
     }
@@ -2600,6 +2604,15 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
   const recordVariables = new Set<string>();
   const rowVariables = new Set<string>();
+  /*
+   * Cycle 162: `Local Message` variables. A chain rooted at one is bound
+   * (declared provenance), so its GetRowset() / GetRow(n) / GetRecord(n)
+   * steps follow the ordinary transitions and a bare record / field member
+   * is a row: 28784 / 28785 / 28786 `&ReqMessage.GetRowset().GetRow(1)
+   * .GetRecord(1).OPRID.Value`. Every bare record / field member reached
+   * through a declared Message's GetRowset() has its stored row (14 / 14).
+   */
+  const messageVariables = new Set<string>();
   const rowsetVariables = new Set<string>();
 
   /*
@@ -11361,7 +11374,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
                         baseVariableName !== undefined &&
                         schemaBoundVariables.has(baseVariableName.toLowerCase())
                         ? { valueType: 'rowset', binding: 'dependency-bound', provenance: 'schema' }
-                        : { valueType: 'unknown', binding: 'dynamic', provenance: 'unknown' };
+                        : baseVariableName !== undefined && messageVariables.has(baseVariableName.toLowerCase())
+                          ? { valueType: 'unknown', binding: 'dependency-bound', provenance: 'declared' }
+                          : { valueType: 'unknown', binding: 'dynamic', provenance: 'unknown' };
 
     /*
      * Cycle 6: `chainSemantics` evolves as the postfix loop below consumes
