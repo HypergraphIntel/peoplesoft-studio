@@ -1,3 +1,5 @@
+import { disabledCommentEnd } from './applicationClassProgram.js';
+
 /*
  * Cycle 115: PeopleCode conditional compilation.
  *
@@ -102,7 +104,8 @@ function lexicalContexts(source: string): Uint8Array {
     }
     const span = (open: string, close: string, kind: number): boolean => {
       if (!source.startsWith(open, i)) return false;
-      const e = source.indexOf(close, i + 2);
+      // Cycle 157: `<* *>` nests (see `disabledCommentEnd`)
+      const e = open === '<*' ? disabledCommentEnd(source, i) - 2 : source.indexOf(close, i + 2);
       const end = e < 0 ? n : e + 2;
       ctx.fill(kind, i, end);
       i = end;
