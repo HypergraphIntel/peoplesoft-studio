@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-04T06:38:02.618Z",
+ "generatedAt": "2026-10-04T07:54:36.835Z",
  "totalDefinitions": 30209,
- "exactCount": 30011,
- "nonexactCount": 198,
+ "exactCount": 30019,
+ "nonexactCount": 190,
  "rows": [
   {
    "definitionId": 1635,
@@ -675,22 +675,6 @@
     "referenceSetExact": false,
     "storedCount": 40,
     "generatedCount": 40
-   }
-  },
-  {
-   "definitionId": 16495,
-   "displayName": "1=PSPGSAVEHIST_DV, 2=PTPG_PGLT_DELETE, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 11,
-    "generatedCount": 12,
-    "firstDivergenceKind": "record"
    }
   },
   {
@@ -1381,22 +1365,6 @@
    }
   },
   {
-   "definitionId": 28797,
-   "displayName": "104=AGC_SETUP, 107=AgcUpdatePsAgTemplate, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 38209,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 116,
-    "generatedCount": 117,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 28805,
    "displayName": "104=AGC_UTILITIES, 105=ActivityGuideTiles, 107=TileReviewPage, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -1469,22 +1437,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 28872,
-   "displayName": "104=BEN_ATTACHMENTS, 107=DocumentUpload, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 79,
-    "generatedCount": 80,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
    "definitionId": 28890,
    "displayName": "104=BEN_CHATBOT, 105=Service, 107=GetChildArrayFromJson, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -1531,14 +1483,14 @@
    "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
+   "firstDiffOffset": 61695,
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
    "referenceComparison": {
     "referenceExact": false,
     "referenceSetExact": false,
     "storedCount": 117,
-    "generatedCount": 119,
-    "firstDivergenceKind": "record"
+    "generatedCount": 118,
+    "firstDivergenceKind": "record-field"
    }
   },
   {
@@ -1631,22 +1583,6 @@
    "roundtripExact": true,
    "firstDiffOffset": 56011,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 28985,
-   "displayName": "104=BN_AUDITING, 107=AppAudit, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 7679,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 20,
-    "generatedCount": 19,
-    "firstDivergenceKind": "package"
-   }
   },
   {
    "definitionId": 28986,
@@ -1780,8 +1716,8 @@
    "displayName": "104=CO_NAVIGATN, 107=Stack, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
    "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
+   "roundtripExact": true,
+   "firstDiffOffset": 4216,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
@@ -1892,22 +1828,6 @@
    "roundtripExact": true,
    "firstDiffOffset": 3137,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29391,
-   "displayName": "104=GPS_EDITFUNCTIONS, 107=StaffingContent, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 64,
-    "generatedCount": 60,
-    "firstDivergenceKind": "record-field"
-   }
   },
   {
    "definitionId": 29392,
@@ -2233,22 +2153,6 @@
     "storedCount": 20,
     "generatedCount": 19,
     "firstDivergenceKind": "field"
-   }
-  },
-  {
-   "definitionId": 29609,
-   "displayName": "104=HCSC_ESIGNATURE, 107=Common, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 32,
-    "generatedCount": 31,
-    "firstDivergenceKind": "package"
    }
   },
   {
@@ -2583,22 +2487,6 @@
    }
   },
   {
-   "definitionId": 30161,
-   "displayName": "104=PTAI_ACTION_ITEMS, 105=Pagelet, 107=CreateTemplate, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 2050,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 9,
-    "generatedCount": 10,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 30162,
    "displayName": "104=PTAI_ACTION_ITEMS, 105=Pagelet, 107=GetAGInstanceForPagelet, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -2643,22 +2531,6 @@
     "storedCount": 532,
     "generatedCount": 159,
     "firstDivergenceKind": "record-field"
-   }
-  },
-  {
-   "definitionId": 30206,
-   "displayName": "104=PTAL_PAGE, 105=UTILITY, 107=Utility, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 3394,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 8,
-    "generatedCount": 7,
-    "firstDivergenceKind": "package"
    }
   }
  ]

@@ -1,24 +1,35 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-04, Cycle 159)
+## Current status (2026-10-04, Cycle 160)
 
-- **Current target:** Cycle 159 -- the last encode failures: `#` / `$`
-  identifiers (3430 26680 28771 29825), declaration / parameter comments
-  (25960 14854), a dotted-statement comment (28936), a trailing parameter
-  comma (14727). EXACT 30,005 -> 30,011 (+6) = forward-exact; encode
-  failures 8 -> 0 (ENCODE_ERROR 5 -> 0, UNSUPPORTED_SYNTAX 3 -> 0; 25960
-  -> DECODE_SOURCE_MISMATCH, 28936 -> ACTIVE_RECORD); 0 farther; protected
-  PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0; fallback membership
-  unchanged (70 + 14149); 13525 EXACT. See "Compiler Syntax Cycle 159".
-- **Last successful calibration:** Cycle 159 (encode frontier closed).
+- **Current target:** Cycle 160 -- App Class PACKAGE/PACKAGE mechanisms,
+  the FreeFormStyleName Row property, `%This` result typing. EXACT 30,011
+  -> 30,019 (+8: 16495 28797 28872 28985 29391 29609 30161 30206) =
+  forward-exact; 28 lists closer, 0 farther, 0 EXACT -> non-EXACT;
+  ACTIVE_PACKAGE 47 -> 42 (App Class PACKAGE/PACKAGE 16 -> 12),
+  ACTIVE_RECORD 19 -> 16 (28936 -> ACTIVE_RECORD_FIELD); no encode
+  failure; protected PASS, ROUNDTRIP_ONLY 0; fallback membership unchanged
+  (70 + 14149); 13525 EXACT. See "Compiler Semantics Cycle 160".
+- **Last successful calibration:** Cycle 160.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** none newly blocked. DECODE_SOURCE_MISMATCH
-  (72): 66 are snapshot SOURCE fidelity, not encoder -- the stored program
-  holds a non-Latin-1 character (`’` `“` `‘` U+200B ...) that the
-  snapshot's source text has as `¿` (191) / a backtick (96); no encoder
-  change can recover them (needs a re-captured source with a correct
-  character conversion: explicit snapshot maintenance, a user decision).
-  Parked:
+- **Locally blocked definitions:** Cycle 160 parked: App Class repeated
+  named-import dedupe (29465 29529; correct in 13 / 13 programs but turns
+  28729 non-EXACT -- its duplicate row compensates for a COLLECTION row
+  from PTWIDGETS:TreeGrid, absent from the snapshot); metadata gaps 28857
+  28893 28964 29527 29529 29590 29655 (classes absent from the snapshot);
+  29329 (Global File beside a native `Declare Function ... Library`:
+  layout-only fallback drops the region's rows); 29797 29883 30170
+  (Cycle 138 duplicate lifetime). DECODE_SOURCE_MISMATCH (72): 68 are
+  snapshot SOURCE fidelity, not encoder -- every difference a one-for-one
+  substitution by the export's placeholder (`¿` 191 / a backtick 96) for
+  a stored character (`’` `“` `‘` U+200B box-drawing ..., also Latin-1 `´`
+  6275 and `¼` 27771); recovering them needs a re-captured source with a
+  correct character conversion (explicit snapshot maintenance, a user
+  decision). 25960 (also lossy) has 4 extra FIELD rows across Function
+  bodies; 28963 / 29654 operands behind absent classes; 29858 a negative
+  numeric Constant (sign folded into the 0x50 literal, the corpus's only
+  one).
+  Parked earlier:
   App Class PACKAGE/FIELD 6 (28967 29518 29583 29598 29715 29725) -- each
   one hidden class row behind a class absent from the snapshot (TextCatalog,
   AWTxn, ObjectHashTable / RecordTag via G3FORM:Form, Thread,
@@ -29,8 +40,8 @@
   undeclared-variable receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class
   rows for classes absent from the snapshot (14162, 19877, 23068, 23402
   ...); the fallback wildcard over-claim (blocked by 13525 -- Cycle 105);
-  `%This` method results (29391 29609: 2 reference programs, 4 EXACT
-  programs share the shape); 29797 / 29883; 30192; ordinary `Function`
+  `%This` method results -- RESOLVED in Cycle 160 (29391 29609 EXACT);
+  29797 / 29883; 30192; ordinary `Function`
   parameters `As array of <Class>`; hidden rows behind classes absent from
   the snapshot (28964, 28968, 29230, 29598, 29715 / 29725); ordinary `As` casts
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
@@ -40,18 +51,26 @@
   differ from untyped ones; whether non-Record built-in `As array of`
   parameters open a row (13562 `array of Rowset` only); time / object
   descriptors in App Class signatures; `**` precedence / associativity.
-- **Next action (Cycle 160):** back to reference semantics. The largest
-  non-fallback family is App Class PACKAGE/PACKAGE (16: 28797 28857 28893
-  28964 28985 29329 29465 29527 29529 29590 29609 29655 ...) --
-  heterogeneous (Cycle 137) and partly metadata-gap; re-census it into
-  mechanisms first. Small clean companion: `FreeFormStyleName` -- a Row
-  property bound as a RECORD row (16495 28872 28936: generated `4A
-  FREEFORMSTYLENAME`, stored inline `0A FreeFormStyleName`). Ordinary
-  fallback groups (25 PACKAGE + 13 REC.FIELD) stay parked (13525).
-  Scratch tools under c159. README.md has unrelated uncommitted user edits
-  -- never stage it; never touch stash@{0} / stash@{1}. Run `npm test`
-  unfiltered (its exit status is the gate).
-- **Newly established rules this session:** Cycle 159 (syntax): `$` / `#`
+- **Next action (Cycle 161):** the non-fallback reference frontier is now
+  a tail of small App Class groups. Census them into mechanisms like
+  Cycle 160: ACTIVE_RECORD App Class PACKAGE/RECORD 4 (28986 28991 29230
+  29585), RECORD/RECORD 3 (28935 28965 29245), FIELD/RECORD 2; ACTIVE_FIELD
+  App Class FIELD/FIELD 3 (28785 29303 29622); ACTIVE_RECORD_FIELD App
+  Class 7 (28936 29193 29136 29457 29537 29563 30179). Named candidate:
+  28936's static `W3EB_BENEF_SMRY.PLAN_TYPE` served by the program's own
+  Declare Function row (REC.FIELD reuse of a declare-function row in App
+  Class programs). Inherited `%This` class results (29465) are only 3
+  programs. Ordinary fallback groups (15 PACKAGE + 10 REC.FIELD + 11
+  PACKAGE/REC.FIELD) stay parked (13525). Scratch tools under c160.
+  README.md has unrelated uncommitted user edits -- never stage it; never
+  touch stash@{0} / stash@{1}. Run `npm test` unfiltered (its exit status
+  is the gate).
+- **Newly established rules this session:** Cycle 160 (semantics): App
+  Class header members typed Exception are declaration dependencies, a
+  built-in base type is not; App Class casts open a row only for a call on
+  the result; FreeFormStyleName is a Row / Rowset property; own
+  `%This.m()` `Returns Record` / `Returns Row` results and `Row`
+  properties are typed; Cycle 159 (syntax): `$` / `#`
   in variables, `#` ending a Function definition name, `#` in members;
   0x4E comments in Local declarations / parameter lists / before a dotted
   statement's `;`; a trailing parameter comma; Cycle 158 (syntax): try
@@ -263,6 +282,84 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 160 -- App Class PACKAGE mechanisms; Row properties; %This results
+
+Baseline 2dda35f reproduced (30,011 EXACT, ACTIVE_PACKAGE 47, App Class
+PACKAGE/PACKAGE 16, no encode failure). `cycle160-appclass-package-census.ts`
+(sections partition / exception / cast / imports / this / record / dsm).
+The 16 by full-list comparison: missing 9 (28857 28893 28964 28985 29329
+29527 29590 29655 30206), extra 1 (28797), mixed 3 (29465 29529 29609),
+duplicate lifetime 3 (29797 29883 30170, Cycle 138, parked). Mechanisms:
+
+- Header `Exception` (28985 property + instance, 30206 parameter): the
+  Cycle 52 declaration-dependency scan listed `exception` as a scalar. A
+  header member typed Exception stores PACKAGE.EXCEPTION in header order
+  in 11 / 11 classes; `extends Exception` alone stores none in 17 / 17
+  (30009 ...; 4 more store one from body use). Landed: Exception is a
+  built-in dependency type; a built-in extends / implements type is not
+  a dependency. 11 lists exact (2 programs EXACT), 0 farther.
+- App Class `As` casts (28797 COLLECTABLE; 29609 CONTEXTDATA; also 30161):
+  the App Class branch allocated every cast. Cast-only classes store no
+  row when the result receives no method call (7 / 7: argument 28797 30194,
+  property 29615 30161 30163 29609); the one call on a cast result (29390)
+  stores it -- the ordinary Cycle 144 rule. 13 lists closer, 0 farther.
+- Repeated named import of a leaf (29465 same path x3, 29529 different
+  paths): stored keeps one row per leaf in every App Class program (13 /
+  13). The type session dedupes only when the shared session is on; with
+  an inherited `%This` call it is off. Variant (look up the always-present
+  type session) moves 3 lists closer but turns 28729 non-EXACT: its
+  duplicate WIDGETFACTORY row stands in for a COLLECTION row from
+  PTWIDGETS:TreeGrid, absent from the snapshot. NOT landed (stop H) --
+  parked behind that metadata gap.
+- Metadata gaps (parked; classes absent from the snapshot): 28857 / 28893
+  EOAW_APPROVAL_MM_FL:actionButton:actionControlCommon (UTILS,
+  USERUTILITIES); 28964 BNE_OPEN_ENROLL_FL:Page:SubPage:EnrollElect
+  (`%Super.TxtCat` / `%Super.FormatAmount`); 29527 HMAP_APPROVAL:Utility:
+  Helper (`&gHelper.DataPrcessHelper`); 29529 rest (HMAF_AWE:MOBILE:
+  Handler:ApprovalFrameworkBase `%This.Manager.ItemRegistry`); 29590
+  G3AWE:IntegrationBroker:HandlerBase / G3FORM:Form (RECORDTAG); 29655
+  OU_PAGEUP_API:HIRE:Offer (PROCESS).
+- 29465's other 4 rows (ABSTMPLDATA.SAVE, ABSTMPLSEARCH.ADD,
+  ABSTMPLROWSET, ABSTMPLFIELD) are method rows on INHERITED method results
+  of class type: `(%This.getDataObject()).save(...)`, getDataObject
+  declared by GP_ABS_CS_TMPL:TMPL:absTmplObject (in the snapshot). The
+  encoder leaves an inherited `%This` method result untyped -- a Cycle 161
+  candidate (metadata-available).
+- 29329: `Global File` after end-class shares its region with a native
+  `Declare Function ... Library`; that region falls back to layout-only
+  emission and its FILE row is dropped (single program; the Library
+  declaration is the unsupported piece).
+
+Row properties: the only generated RECORD name absent from every stored
+list is FREEFORMSTYLENAME (16495 28872 28936); stored writes it inline in
+all 39 programs that use it. Landed: `FreeFormStyleName` joins the
+Cycle 97 Row / Rowset property table (`BUILTIN_OBJECT_PROPERTIES.record`).
+16495 28872 EXACT, 28936 closer (left: a static `W3EB_BENEF_SMRY.PLAN_TYPE`
+that stored serves from the program's Declare Function row).
+
+`%This` results: 29609's remaining rows come from `property Row
+eSignRowCommon` (`%This.eSignRowCommon.HCSC_ESIGN_WRK.USER_ID`: RECORD +
+FIELD rows), not a method; 29391's from own methods `Returns Record`
+(`%This.getDTLRecord().SETID`: FIELD row at 44 / 44 sites); 29249 `Returns
+Row` (`%This.getStackElement().CO_NAV_WRK`: RECORD row, 4 / 4). Landed:
+a `%This.<ownMethod>(...)` whose own header declares `Returns Record` is a
+Record (bare member FIELD), `Returns Row` a Row (bare member RECORD); a
+property the type metadata declares `Row` is a Row (Cycle 118 / 135 add
+Record / Rowset). Rowset results keep their own members inline (Cycle
+118). 29391 29609 EXACT; 29249 / 29618 bytes closer.
+
+Combined: EXACT 30,011 -> 30,019 (+8: 16495 28797 28872 28985 29391 29609
+30161 30206); 28 lists closer, 0 farther, 0 lost.
+
+DSM (72): 68 lossy snapshot source -- every token difference a one-for-one
+substitution by the export's placeholder (`¿`, backtick), including
+Latin-1 `´` (6275) and `¼` (27771); 25960 lossy too plus a FIELD-row
+lifetime gap (`EMPLID` / `EMPL_RCD` inline in stored, 4 extra FIELD rows
+across Function bodies); 28963 / 29654 operands behind absent classes
+(EnrollElect `NewPlanRow`, G3FORM `hdr`); 29858 `Constant &UNSET_ANGLE =
+-4002840` -- stored folds the sign into the 0x50 literal (`50 01 00
+18143D00 ...`, sign byte 01), the only negative numeric Constant of 74.
 
 ## Compiler Syntax Cycle 159 -- closing the encode frontier
 
