@@ -5679,7 +5679,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * only match its `&80` prefix (via the `\d+` branch), leaving
      * `EE_pin_num` to break the declaration's own comma/semicolon check.
      */
-    const match = /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos));
+    // Cycle 159: `$` and `#` may sit anywhere in a variable name after the
+    // `&` (26680 `&$Adfmt_Edittable_sql_fieldvalue`, 28771 `&c_#aliases`;
+    // a trailing `#` as before). Stored keeps them literally in 0x01.
+    const match = /^&[A-Za-z0-9_$][A-Za-z0-9_$#]*/.exec(source.slice(pos));
     if (!match) return fail('expected an ASCII &variable');
     pos += match[0].length;
     return textOperand(0x01, TokenKind.Name, match[0]);
@@ -7297,8 +7300,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
     space();
 
+    // Cycle 159: a Function name may end in `#`, as a Declare Function /
+    // call already allows (3430 `Function assign_seq#`, stored `0A
+    // assign_seq#`; 3428 declares and calls the same name).
     const nameMatch =
-      /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
+      /^[A-Za-z_][A-Za-z0-9_]*#?/.exec(source.slice(pos));
 
     if (!nameMatch) {
       return fail('expected Function name');
@@ -11327,8 +11333,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
         space();
 
+        // Cycle 159: a member name may contain `#` (29825 `&pit.ObjectID#0#`).
         const memberMatch =
-          /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos));
+          /^[A-Za-z_][A-Za-z0-9_#]*/.exec(source.slice(pos));
 
         if (!memberMatch) {
           return fail('expected member name after .');
@@ -16374,7 +16381,7 @@ function parseFunctionMetadata(
   const maskedSource =
     maskCommentsAndStringLiteralsForFunctionScan(source);
   const functionPattern =
-    /(?:^|\r?\n)[ \t]*Function\s+([A-Za-z_][A-Za-z0-9_]*)([ \t]*\()?/gi;
+    /(?:^|\r?\n)[ \t]*Function\s+([A-Za-z_][A-Za-z0-9_]*#?)([ \t]*\()?/gi;
 
   let functionMatch: RegExpExecArray | null;
 
