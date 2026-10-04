@@ -106,9 +106,15 @@ test('arrays of built-in objects keep their encoding', () => {
   assert.deepEqual(withMetadata.references, plain.references);
 });
 
-test('ordinary programs keep metadata arrays unmodeled (Cycle 107)', () => {
+// Cycle 166: ordinary programs model metadata arrays too (19433 / 24458 /
+// 24500 / 24503 `&g.GridColumns [&c].SelectAll()` store the element class
+// row); before, Cycle 107 / 109 kept them unmodeled there.
+test('ordinary programs model metadata arrays as App Class programs do (Cycle 166)', () => {
   const source = 'Local PKG:Widget &w = create PKG:Widget();\n&w.Children [1].Partner.Ping();\n';
   const ordinary = (extra: Partial<EncodeProgramContext>) => encodeProgramArtifacts(source, { owner: { recordName: 'REC', fieldName: 'FLD' }, ...extra }).references
-    .filter(reference => reference.kind === 'package' && reference.packageName?.startsWith('OTHER'));
-  assert.deepEqual(ordinary(typed), []);
+    .filter(reference => reference.kind === 'package' && reference.packageName?.startsWith('OTHER'))
+    .map(reference => `${reference.packageName}.${reference.methodName ?? ''}`);
+  assert.deepEqual(ordinary(typed), ['OTHER.PING']);
+  // without type metadata the chain stays unmodeled
+  assert.deepEqual(ordinary({}), []);
 });

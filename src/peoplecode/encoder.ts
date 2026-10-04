@@ -1418,9 +1418,14 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * uses opened the row too late (LOCAL SNAPSHOT: typed steps without
    * array elements 24 lists changed, 1 farther -- 29109; with them, and
    * with the body's declared variables as receivers, 41 changed, 40
-   * closer, 0 farther). An array of a class is modeled in Application
-   * Class programs only. A `%This` method's result stays untyped (no
-   * evidenced change, Cycle 108).
+   * closer, 0 farther). Cycle 166: ordinary programs model an array of a
+   * class too -- 19433 / 24500 / 24503 `&ContentSearchGrid.GridColumns
+   * [&colnum].SelectAll()` store PACKAGE.DYNAMICGRIDCOLUMN (24458 likewise);
+   * dropping the array type had counted the call as an unresolved external
+   * receiver and sent the program to the Cycle 93 fallback pass. LOCAL
+   * SNAPSHOT: 4 programs changed, all EXACT; 3 leave the fallback pass
+   * (71 -> 68 members, 13525 and 14149 still in). A `%This` method's result
+   * stays untyped (no evidenced change, Cycle 108).
    */
   const consultTypeMetadata = (
     kind: 'member' | 'method-result',
@@ -1435,7 +1440,6 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     /* An array type is not modeled as a receiver: keep the conservative behavior. */
     if (result?.kind === 'other' && /^array\b/i.test(result.type)) return undefined;
     // Cycle 109: an array of a class is modeled in Application Class programs only.
-    if (result?.kind === 'array' && !context?.builtinObjectDeclarationsHaveMethodWideLifetime) return undefined;
     return result;
   };
   const metadataReceiver = (path: readonly string[]) => ({
