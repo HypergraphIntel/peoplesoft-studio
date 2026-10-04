@@ -457,6 +457,11 @@ export interface ReusePoolTraceEvent {
 }
 
 export interface EncodeProgramContext {
+  /**
+   * Cycle 163: the definition is an Application Class (OBJECTID1 104), even
+   * when its source declares no class at all.
+   */
+  applicationClassDefinition?: boolean;
   owner?: PeopleCodeOwner;
 
   /**
@@ -16679,6 +16684,40 @@ function parseFunctionMetadata(
  * The first pass runs with trace hooks buffered so observers see exactly
  * one pass -- the one whose bytes are returned.
  */
+/*
+ * Cycle 163: an Application Class definition whose source declares no
+ * class at all (fully commented out: 29646 / 29670, 29648 / 29672) is still
+ * compiled as an Application Class program -- a blank owner row and the
+ * self-only directory of an empty class (28770 / 29905 `class X end-class;`
+ * store the same): the self path as the one name-table entry, one record
+ * 0 / 0 / self / no type, no slots.
+ */
+function encodeClasslessApplicationClassProgram(
+  source: string,
+  context: EncodeProgramContext | undefined
+): EncodedPeopleCode | undefined {
+  if (!context?.applicationClassDefinition) return undefined;
+  const selfPath = context.owner?.packagePath;
+  if (selfPath === undefined || selfPath.length === 0) return undefined;
+  if (/\b(?:class|interface)\b/i.test(maskNonCode(source))) return undefined;
+  const encoded = encodeOrdinaryProgramFragment(source, { ...context, owner: undefined });
+  const nameBytes = encodeApplicationClassNameEntry(selfPath.join(':'));
+  const record = encodeApplicationClassDirectoryRecord({
+    nameOffset: 0, signatureSlotOffset: 0, flags: APPLICATION_CLASS_FLAGS.self, low: 0, descriptor: NO_TYPE_DESCRIPTOR
+  });
+  const header = Buffer.alloc(37);
+  header[0] = 0xa0;
+  header.writeUInt32LE(encoded.bytes.length + 1, 5);
+  header.writeUInt32LE(nameBytes.length, 13);
+  header.writeUInt32LE(0, 21);
+  header.writeUInt32LE(1, 29);
+  header.writeUInt32LE(0x85, 33);
+  return {
+    program: Buffer.concat([header, encoded.bytes, Buffer.from([PROGRAM_DIRECTORY_SEPARATOR]), nameBytes, record]),
+    references: encoded.references
+  };
+}
+
 function encodeOrdinaryProgramFragment(
   source: string,
   context?: EncodeProgramContext
@@ -16782,6 +16821,11 @@ export function encodeProgramArtifacts(source: string, context?: EncodeProgramCo
   const applicationClassV2 = encodeApplicationClassProgramV2(source, context);
   if (applicationClassV2 !== undefined) {
     return applicationClassV2;
+  }
+
+  const classless = encodeClasslessApplicationClassProgram(source, context);
+  if (classless !== undefined) {
+    return classless;
   }
 
   const functionMetadata = parseFunctionMetadata(source);
