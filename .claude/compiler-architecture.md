@@ -28,7 +28,7 @@ NONEXACT 234; Cycle 156: EXACT 29,986 / NONEXACT 223; Cycle 157: EXACT
 29,997 / NONEXACT 212; Cycle 158: EXACT 30,005 / NONEXACT 204;
 Cycle 159: EXACT 30,011 / NONEXACT 198, no encode failure; Cycle 160:
 EXACT 30,019 / NONEXACT 190; Cycle 161: EXACT 30,027 / NONEXACT 182;
-forward-exact = EXACT); forward-exact
+Cycle 162: EXACT 30,034 / NONEXACT 175; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -400,6 +400,13 @@ Declare Function row. A Row declared outside the body (header instance /
 property, Global / Component) joins `rowVariables` in every body (shadowed
 by parameters and Locals); an App Class method parameter `As array of
 Record` joins `recordArrayVariables` (`cycle161-appclass-record-tail-census.ts`).
+
+Cycle 162 (semantics) -- an App Class program has one COMPONENT row per
+name: `componentReference()` keys App Class bodies method-wide and
+consults the type session (ordinary programs keep control-group rows).
+A `Local Message` variable (`messageVariables`) roots a bound chain
+(declared provenance), so GetRowset / GetRow / GetRecord carry binding to
+a bare record / field member (`cycle162-component-message-census.ts`).
 
 ## 5. Declarations and scope
 
