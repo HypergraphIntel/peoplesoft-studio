@@ -3322,6 +3322,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        */
       ensureLocalObjectPackageReference('ROWSET', 'Rowset');
       chainSemanticsDeclaredRowsetVariables.add(name.toLowerCase());
+    } else if (/^array\s+of\s+Record$/i.test(type.trim())) {
+      // Cycle 161: an App Class method parameter `As array of Record` is a
+      // record array, like an ordinary Function's (Cycle 151): an indexed
+      // element's member is a FIELD row (29303 `&StgRec [&RI].PROCESS_INSTANCE`,
+      // 29333; 4 / 4 sites). Its type allocates nothing more here.
+      recordArrayVariables.add(name.toLowerCase());
     } else if (!/^(?:Record|Row|Rowset)$/i.test(type)) {
       /*
        * Compiler architecture: SQL/ApiObject/Grid/Message have no
