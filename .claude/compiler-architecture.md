@@ -29,8 +29,8 @@ NONEXACT 234; Cycle 156: EXACT 29,986 / NONEXACT 223; Cycle 157: EXACT
 Cycle 159: EXACT 30,011 / NONEXACT 198, no encode failure; Cycle 160:
 EXACT 30,019 / NONEXACT 190; Cycle 161: EXACT 30,027 / NONEXACT 182;
 Cycle 162: EXACT 30,034 / NONEXACT 175; Cycle 163: EXACT 30,043 /
-NONEXACT 166; Cycle 164: EXACT 30,047 / NONEXACT 162; forward-exact =
-EXACT); forward-exact
+NONEXACT 166; Cycle 164: EXACT 30,047 / NONEXACT 162; Cycle 166: EXACT
+30,051 / NONEXACT 158, fallback 68; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -432,6 +432,13 @@ Cycle 138 session) in every store format; five programs (29797 29883
 30170 30179 30192) reopen them per method body instead, with no source,
 header or metadata discriminator: a per-definition compiler variant, not
 modeled (`cycle165-lifetime-census.ts`).
+
+Cycle 166 -- `consultTypeMetadata` returns `array of <Class>` types in
+ordinary programs too (Cycle 109 had kept them App Class only). The
+fallback pass's per-wildcard blank rows are an over-claim (stored: one
+blank row per program, always); it survives only because 13525's extra
+blank row stands in for rows whose class metadata is absent
+(`cycle166-fallback-census.ts`).
 
 ## 5. Declarations and scope
 
