@@ -2080,8 +2080,18 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     let globalRecordArray = false;
     if (/^array$/i.test(declaredType ?? '')) {
       const elementType = arrayElementTypes();
-      if (elementType !== undefined) {
+      if (elementType !== undefined && arrayElementApplicationClass === undefined) {
         allocateBuiltinTypePackageReferenceIfSupported(elementType, 'global-array-element');
+      }
+      // Cycle 164: a Global array of a class opens the class row like a
+      // scalar Global (Cycle 82) -- 30068 `Global array of
+      // PTAF_EMC:LAYOUT_ELEMENTS:layoutElement` stores it at the declaration.
+      if (arrayElementApplicationClass !== undefined) {
+        if (context?.builtinObjectDeclarationsHaveMethodWideLifetime) {
+          ensureLocalApplicationClassPackageReference(arrayElementApplicationClass.packagePath, arrayElementApplicationClass.className);
+        } else if (unitScopedClassRows) {
+          useApplicationClassRow(arrayElementApplicationClass.packagePath, arrayElementApplicationClass.className);
+        }
       }
       globalRecordArray = /^Record$/i.test(elementType ?? '');
     } else if (declaredType !== undefined) {
@@ -15506,9 +15516,14 @@ function encodeApplicationClassProgramV2(
    * is not a dependency: the 17 classes that only `extends Exception` store
    * no EXCEPTION row (30009, 30023 ...).
    */
+  // Cycle 164: only these leading entries are the class relationship -- a
+  // header member typed with the same class is an ordinary dependency in
+  // header order (28721 `instance PTWIDGETS:TreeGrid &mTree` beside
+  // `extends PTWIDGETS:TreeGrid`, 30047; 17 / 17 such headers store the row).
+  const relationshipTypes = [parsed.extendsType, parsed.implementsType]
+    .filter((typeName): typeName is string => typeName !== undefined && !builtinDeclarationTypes.has(dependencyTypeLeaf(typeName).toLowerCase()));
   const declarationTypes = [
-    ...[parsed.extendsType, parsed.implementsType]
-      .filter(typeName => typeName === undefined || !builtinDeclarationTypes.has(dependencyTypeLeaf(typeName).toLowerCase())),
+    ...relationshipTypes,
     ...parsed.statements.flatMap(statement => {
       if (statement.kind === 'method') {
         return [...statement.parameters.map(parameter => parameter.type), statement.returnType];
@@ -15519,12 +15534,11 @@ function encodeApplicationClassProgramV2(
       return [];
     })
   ].filter((typeName): typeName is string => typeName !== undefined);
-  const declarationDependencyTypes = declarationTypes.filter(typeName => {
+  const declarationDependencyTypes = declarationTypes.filter((typeName, index) => {
     const normalizedType = typeName.replace(/^(?:array\s+of\s+)+/i, '').trim();
     const leaf = dependencyTypeLeaf(typeName);
     const root = normalizedType.split(':')[0].toLowerCase();
-    const isRelationship = [parsed.extendsType, parsed.implementsType]
-      .some(relationship => relationship?.toLowerCase() === typeName.toLowerCase());
+    const isRelationship = index < relationshipTypes.length;
     return leaf !== '' &&
       !scalarDeclarationTypes.has(leaf.toLowerCase()) &&
       !importedClassLeaves.has(leaf.toLowerCase()) &&
