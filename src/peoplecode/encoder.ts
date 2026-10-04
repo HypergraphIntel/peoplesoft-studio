@@ -1526,6 +1526,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     let elementType: string | undefined;
     arrayElementApplicationClass = undefined;
     do {
+      // Cycle 163: look for `of` without consuming the whitespace: a bare
+      // `Returns array` keeps the blank line after it (16893 `2D 4F`).
+      if (!/^\s*of\b/i.test(source.slice(pos))) return elementType;
       space();
       /*
        * `array` (bare, with no `of ElementType` clause at all) is itself a
@@ -16336,6 +16339,9 @@ function encodeApplicationClassProgramV2(
         if (index > 0) statementChunks.push(Buffer.from([0x03]));
         statementChunks.push(encodeVariableName(name));
       });
+      // Cycle 163: a trailing comma before `;` is written, as in an ordinary
+      // Component list (29006 `&msErrText,;` -> `01 03 15`).
+      if (statement.trailingComma) statementChunks.push(Buffer.from([0x03]));
       emitMemberTerminators(statement.sourceIndex, statement.sourceEnd);
       continue;
     }

@@ -123,6 +123,8 @@ export interface ApplicationClassInstanceStatement extends ApplicationClassSourc
   kind: 'instance-statement';
   type: string;
   names: string[];
+  /** Cycle 163: the name list ends with a comma before its `;` (`&a, &b,;`). */
+  trailingComma?: boolean;
   /** Cycle 27: exact explicit source-semicolon multiplicity for this grouped declaration. */
   terminatorCount: number;
 }
@@ -416,9 +418,12 @@ export function parseApplicationClassSource(
     visibility?: ApplicationClassVisibility;
     member?: ApplicationClassMember;
     instanceNames?: string[];
+    instanceTrailingComma?: boolean;
   };
   const pending: Pending[] = [];
-  for (const match of unitRegion.matchAll(/\b(public|private|protected)\b/gi)) {
+  // Cycle 163: not inside a variable -- 29867 / 29870 `&Public As boolean`
+  // made a phantom `public` section that swallowed the next blank line.
+  for (const match of unitRegion.matchAll(/(?<![&\w])(public|private|protected)\b/gi)) {
     pending.push({
       index: match.index ?? 0,
       end: (match.index ?? 0) + match[0].length,
@@ -488,7 +493,8 @@ export function parseApplicationClassSource(
     pending.push({
       index: match.index ?? 0,
       end: (match.index ?? 0) + match[0].length,
-      instanceNames: names
+      instanceNames: names,
+      instanceTrailingComma: /,\s*$/.test(match[2])
     });
     for (const name of names) {
       pending.push({
@@ -547,6 +553,7 @@ export function parseApplicationClassSource(
       if (first?.kind !== 'instance') return undefined;
       statements.push({
         kind: 'instance-statement', type: first.type, names: event.instanceNames,
+        ...(event.instanceTrailingComma ? { trailingComma: true } : {}),
         sourceIndex: unitRegionStart + event.index,
         sourceEnd: unitRegionStart + event.end,
         terminatorCount: 0
