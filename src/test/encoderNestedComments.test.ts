@@ -36,3 +36,14 @@ test('an unterminated <* comment, nested or not, does not encode', () => {
     assert.throws(() => encodeProgram(source), Error, source);
   }
 });
+
+test('a <* *> comment is a body item of While, Repeat, try and catch bodies (2867, 15537)', () => {
+  for (const source of [
+    'While &i < 3\n   <* disabled; *>\n   &i = &i + 1;\nEnd-While;\n',
+    'Repeat\n   <* disabled; *>\n   &i = &i + 1;\nUntil &i > 3;\n',
+    'try\n   <* disabled; *>\n   &x = F();\ncatch Exception &c1\n   <* No need to display a message *>\nend-try;\n'
+  ]) {
+    const tokens = roundtrips(source);
+    assert.ok(tokens.some(t => t.opcode === 0x55), source);
+  }
+});
