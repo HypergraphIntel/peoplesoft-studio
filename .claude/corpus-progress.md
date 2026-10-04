@@ -1,18 +1,23 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-04, Cycle 162)
+## Current status (2026-10-04, Cycle 163)
 
-- **Current target:** Cycle 162 -- App Class COMPONENT rows (the
-  QUOTED_COMPONENT label) and Message GetRowset chains. EXACT 30,027 ->
-  30,034 (+7: 28784 28785 28786 28850 29516 29618 29625) = forward-exact;
-  8 lists changed, all closer; 0 farther, 0 EXACT -> non-EXACT;
-  QUOTED_COMPONENT 5 -> 1 (29535), ACTIVE_OTHER 5 -> 3, ACTIVE_FIELD 15 ->
-  14; no encode failure; protected PASS, ROUNDTRIP_ONLY 0; fallback
-  membership unchanged (70 + 14149); 13525 EXACT. See "Compiler Semantics
-  Cycle 162".
-- **Last successful calibration:** Cycle 162.
+- **Current target:** Cycle 163 -- COMPLETE_DOWNSTREAM layout and the
+  ordinary singleton tail. EXACT 30,034 -> 30,043 (+9: 15069 16893 16962
+  27367 29006 29646 29670 29867 29870) = forward-exact; 13 programs
+  changed (9 lists), 0 farther, 0 EXACT -> non-EXACT; COMPLETE_DOWNSTREAM
+  9 -> 4, ACTIVE_RECORD 15 -> 13, ACTIVE_FIELD 14 -> 12 (17155 ->
+  COMPLETE_DOWNSTREAM); no encode failure; protected PASS, ROUNDTRIP_ONLY
+  0; fallback membership unchanged (70 + 14149); 13525 EXACT. See
+  "Compiler Cycle 163".
+- **Last successful calibration:** Cycle 163.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** Cycle 162 parked: 29535 (rest) / 29544
+- **Locally blocked definitions:** Cycle 163 parked: 28818 (comments in
+  App Class header parameter lists, the only program); 30162
+  (`end-interface` without `;`, the only one); 10860 (Function-local name
+  test, blocked by 15598's contrary top-level GetRecord(1) binding);
+  16567 / 19289 (PT_PM_TREENODE absent); 24458 (inherited array property
+  of an indexed Component-array element; one program). Cycle 162 parked: 29535 (rest) / 29544
   EOAW_CORE:ENGINE (Thread / AppInst / StepInst) absent; 29945
   parenthesized `(&row.GetRowset(1)).GetRow(1).GetRecord(1).X` loses the
   chain type (singleton); 29244 / 29245 AddressCollection `extends Rowset`
@@ -60,19 +65,23 @@
   differ from untyped ones; whether non-Record built-in `As array of`
   parameters open a row (13562 `array of Rowset` only); time / object
   descriptors in App Class signatures; `**` precedence / associativity.
-- **Next action (Cycle 163):** the App Class reference tail is now almost
-  all metadata gaps. Next: COMPLETE_DOWNSTREAM 9 (reference lists
-  complete; App Class none/none 28818 29006 29867 29870, owner/REC.FIELD
-  29646 29670, owner/none 30162, ordinary 16893; 15840 fallback) -- classify
-  the first byte difference of each; then the ordinary non-fallback
-  singletons (16567 19289 FIELD/FIELD, 17155 27367 RECORD/FIELD, 10860
-  15069 16962 24458). Optional: `extends Rowset` (29244 / 29245) and
-  parenthesized-group chain typing (29945) if a census finds more
-  programs. Ordinary fallback groups stay parked (13525). Scratch tools
-  under c162. README.md has unrelated uncommitted user edits -- never
-  stage it; never touch stash@{0} / stash@{1}. Run `npm test` unfiltered
-  (its exit status is the gate).
-- **Newly established rules this session:** Cycle 162 (semantics): one
+- **Next action (Cycle 164):** the non-fallback, non-metadata frontier is
+  now small: STRUCTURAL_ORDERING 4 (App Class PACKAGE/PACKAGE order-only:
+  28721 30047 30068 30124) and COMPLETE_DOWNSTREAM 17155 -- stored writes
+  the Function-boundary 2D before a trailing comment after an unterminated
+  header (`14 2D 24 55`, generated `14 24 2D 55`) -- census that comment /
+  boundary placement first. Parked: 28818, 30162, 10860, 24458, metadata
+  gaps (~33), ordinary fallback (13525), DSM lossy source (68; a snapshot
+  source re-capture is the user's decision). Scratch tools under c163.
+  README.md has unrelated uncommitted user edits -- never stage it; never
+  touch stash@{0} / stash@{1}. Run `npm test` unfiltered (its exit status
+  is the gate).
+- **Newly established rules this session:** Cycle 163: `&Public` is not a
+  class-header visibility section; a bare `array` keeps the following
+  whitespace; a header instance list keeps a trailing comma; a class-less
+  Application Class definition compiles with the self-only directory
+  (`applicationClassDefinition`); a Function's Local types end at
+  End-Function; Cycle 162 (semantics): one
   COMPONENT row per name in App Class programs; a `Local Message` roots a
   bound chain (GetRowset / GetRow / GetRecord); Cycle 161 (semantics): an
   App Class static REC.FIELD reuses the program's Declare Function row of
@@ -295,6 +304,62 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Cycle 163 -- COMPLETE_DOWNSTREAM layout; Function-local scope
+
+Baseline 5720ed1 reproduced (30,034 EXACT; COMPLETE_DOWNSTREAM 9 = 28818
+29006 29646 29670 29867 29870 30162 16893 + 15840 fallback, parked).
+`cycle163-downstream-census.ts` (sections first / layout / funclocal).
+Every first BYTE difference sits in the header (offset 5-13: lengths);
+the first decoded-token difference:
+
+- 29867 / 29870 (App Class header): a blank line (`4F`) after `method ...(
+  ..., &Public As boolean);` missing. `\b(public|private|protected)\b`
+  matched inside `&Public` -- a phantom visibility section swallowed the
+  blank line. Fix: the visibility scan ignores a keyword after `&` / a
+  word character. Bytes only; both EXACT; no other header has such a
+  parameter.
+- 16893 (ordinary): `Function SplitStrElements(&strElements) Returns
+  array` + blank line -- stored `2D 4F`. `arrayElementTypes()` skipped the
+  whitespace looking for `of` and returned without restoring it. Fix:
+  look ahead for `of` without consuming. Bytes only; EXACT (the only bare
+  `Returns array` Function; 122 EXACT programs encode a blank line after
+  an unterminated Function header).
+- 29006 (App Class header): `instance string ..., &msErrText,;` -- stored
+  keeps the trailing comma (`01 03 15`), as ordinary `Component` lists do
+  (4602 14721 17309 21463 21578 EXACT). Fix: the instance statement
+  records a trailing comma and writes `03` before its terminator. EXACT.
+- 29646 / 29670 (and 29648 / 29672, lossy DSM): an Application Class
+  definition whose source is entirely commented out. Stored still
+  compiles an App Class program: blank owner row, the self-only directory
+  of an empty class (28770 / 29905: one record 0 / 0 / 0x00400000 / 7, the
+  self path the only name). Not downstream: the owner row differed too.
+  Fix: `EncodeProgramContext.applicationClassDefinition` (OBJECTID1 104,
+  set by the validator and the research harness) and a class-less
+  App Class encoding. 29646 29670 EXACT, 29648 29672 closer.
+- Parked: 28818 inline comments after commas in App Class header
+  parameter lists (`, /* sub object id*/&p_app_inst_id`, stored `03 4E
+  01`; the only program); 30162 `end-interface` without `;` (stored writes
+  neither `15` nor the method directory record; the 15 EXACT interfaces
+  all end `end-interface;`).
+
+Ordinary singleton tail: 15069 16962 27367 17155 (and 25960) use a Row /
+Record declared `Local` inside one Function from top level or another
+Function -- stored writes the members inline (no declared type there).
+The typed-variable sets were program-wide. Fix: a top-level Function
+restores the typed sets at End-Function (Cycle 151 did this for
+parameters only). 15069 16962 27367 EXACT; 17155 and 25960 lists exact.
+10860 (`&TblFilterlvl2.GetRow(&j).REC.FIELD` in another Function, stored
+inline) needs the declared-NAME test scoped too; doing that broadly made
+15598 farther -- its top-level `&xrow.GetRecord(1).IB_DOC_LBL_ID` (`&xrow`
+Local only in an earlier Function) stores the FIELD row -- so parked.
+16567 / 19289: Component array of PT_PM_TREENODE classes (absent). 24458:
+`&AdsProjectBinds [&i].GridColumns [&c].SelectAll()` -- inherited array
+property of ADS_DMW:UI:ProjectBindsGrid (metadata present) on an indexed
+Component-array element; one program, parked.
+
+Combined: EXACT 30,034 -> 30,043 (+9: 15069 16893 16962 27367 29006
+29646 29670 29867 29870); 13 programs changed, 9 lists; 0 farther, 0 lost.
 
 ## Compiler Semantics Cycle 162 -- App Class COMPONENT rows; Message GetRowset chains
 
