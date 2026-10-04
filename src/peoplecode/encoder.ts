@@ -8100,6 +8100,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             continue;
           }
 
+          // Cycle 157: a `<* *>` comment is a catch-body item (15537).
+          if (source.startsWith('<*', pos)) {
+            chunks.push(disabledCodeComment());
+            continue;
+          }
+
           if (startsRemComment()) {
             chunks.push(remComment(true));
             continue;
@@ -8160,6 +8166,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
       if (source.startsWith('/*', pos)) {
         chunks.push(blockComment());
+        continue;
+      }
+
+      // Cycle 157: ... and a try-body item.
+      if (source.startsWith('<*', pos)) {
+        chunks.push(disabledCodeComment());
         continue;
       }
 
@@ -8235,6 +8247,15 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         }
 
         chunks.push(blockComment());
+        continue;
+      }
+
+      // Cycle 157: likewise a `<* *>` comment in a Repeat body.
+      if (source.startsWith('<*', pos)) {
+        if (hasBlankLine) {
+          deferReferenceGatedMarkers(bodyWhitespace);
+        }
+        chunks.push(disabledCodeComment());
         continue;
       }
 
@@ -8647,6 +8668,16 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        *
        *      REM MessageBox(0, "", 0, 0, "&RecName = " | &RecName | ...);
        */
+      // Cycle 157: a `<* *>` comment is a While-body item (2867), as in
+      // the For / If bodies.
+      if (source.startsWith('<*', pos)) {
+        if (hasBlankLine) {
+          emitBlankLineMarkers(bodyWhitespace);
+        }
+        chunks.push(disabledCodeComment());
+        continue;
+      }
+
       if (startsRemComment()) {
         if (hasBlankLine) {
           deferReferenceGatedMarkers(bodyWhitespace);
