@@ -7920,6 +7920,18 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       const hasBlankLine =
         /(?:\r?\n)[ \t]*(?:\r?\n)/.test(tryWhitespace);
 
+      // Cycle 158: a try may end with no catch clause at all -- stored
+      // `65 try <body> 67 end-try` (28760 29507 29815 29816 29817; 29816
+      // keeps its blank line before end-try as 0x4F).
+      // `cycle158-try-power-census.ts`.
+      if (word('end-try')) {
+        if (hasBlankLine) {
+          emitBlankLineMarkers(tryWhitespace);
+        }
+        chunks.push(fixed('end-try'));
+        return;
+      }
+
       if (word('catch')) {
         /*
          * A blank formatting line immediately before catch is preserved as
