@@ -10698,8 +10698,36 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     }
   };
 
+  /*
+   * Cycle 168: the postfix-chain state a `primary()` ended with, and where
+   * it began / ended -- so a parenthesized group holding exactly one
+   * primary hands its chain on (see `parenthesizedChainSeed`).
+   */
+  let lastPrimaryChainExit: {
+    start: number;
+    end: number;
+    receiver: { packagePath: string[]; className: string; reuseRuntimeCreateForMethods: boolean; externalMetadataExempt?: boolean } | undefined;
+    pendingArrayElement: { packagePath: string[]; className: string; remaining: number } | undefined;
+    chainSemantics: ChainSemantics;
+  } | undefined;
   const primary = () => {
     space();
+    const primaryStart = pos;
+    /*
+     * Cycle 168: `(<chain>).Next` continues the chain inside the
+     * parentheses: its value type (`chainSemantics`), Application Class
+     * receiver and pending array element carry over to the members after
+     * `)`; the record / field expectation of its last step does not (a
+     * grouped `(&r.GetRow(1)).CopyFieldsTo(...)` stays a call). 29465
+     * `(%This.getDataObject()).save(...)` stores ABSTMPLDATA.SAVE where the
+     * call is; 29945 `(&row.GetRowset(1)).GetRow(1).GetRecord(1)
+     * .PTADSRELNAME` stores FIELD rows. Only a group that is one primary
+     * (no operator) carries anything. `cycle165-lifetime-census.ts
+     * --section paren`: the 5 EXACT programs with the shape (29479 29542
+     * 10563 10565 25294) are unchanged; LOCAL SNAPSHOT: 2 programs
+     * changed, both EXACT, 0 farther.
+     */
+    let parenthesizedChainSeed: typeof lastPrimaryChainExit;
 
     // Bare postfix (...) is calibrated for variable/object indexing such as
     // &rs(1). Do not make every literal/value callable (e.g. True()).
@@ -10925,7 +10953,16 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * definitions); 813 groups the lookaheads did recognize are
        * byte-identical.
        */
+      const groupStart = pos;
       parenthesized(booleanExpression, false);
+      const inner = lastPrimaryChainExit;
+      if (
+        inner !== undefined &&
+        source.slice(groupStart + 1, inner.start).trim() === '' &&
+        /^\s*\)$/.test(source.slice(inner.end, pos))
+      ) {
+        parenthesizedChainSeed = inner;
+      }
     } else if (/^create\b/i.test(source.slice(pos))) {
       const createStart = pos;
       word('create');
@@ -11484,6 +11521,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      */
     let fieldMemberFromRowShorthand = false;
     let selectedByDirectRowsetPostfix = false;
+
+    if (parenthesizedChainSeed !== undefined) {
+      activeApplicationClassReceiver = parenthesizedChainSeed.receiver;
+      pendingArrayElement = parenthesizedChainSeed.pendingArrayElement;
+      chainSemantics = parenthesizedChainSeed.chainSemantics;
+    }
 
     // Calibrated postfix forms may be chained arbitrarily:
     //   expr.Member / expr.Method(...)
@@ -12678,6 +12721,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         }
       break;
     }
+    lastPrimaryChainExit = {
+      start: primaryStart,
+      end: pos,
+      receiver: activeApplicationClassReceiver,
+      pendingArrayElement,
+      chainSemantics
+    };
   };
   let sawTopLevelDeclaration = false;
   /*
