@@ -12006,6 +12006,23 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           }
 
           let methodResultType: ApplicationClassMemberType | undefined;
+          /*
+           * Cycle 168: a `%This.<method>(...)` result is typed by the type
+           * metadata of this class, which walks its ancestors -- an
+           * inherited method's declared result too (29465
+           * `(%This.getDataObject()).save(...)`, `%This.getSearchObject()
+           * .add(...)`, getDataObject / getSearchObject declared on its
+           * superclass GP_ABS_CS_TMPL:TMPL:absTmplObject: stored
+           * ABSTMPLDATA.SAVE, ABSTMPLSEARCH.ADD, ABSTMPLROWSET, ABSTMPLFIELD;
+           * EXACT 29464 / 29936 store the class row for the same shape).
+           * Cycle 160 had typed own Record / Row results only.
+           * `cycle168-chain-census.ts`; LOCAL SNAPSHOT: 2 lists closer
+           * (29464 list-exact, 29465 6 -> 2 edits), 0 farther, no EXACT
+           * program's bytes changed.
+           */
+          if (activeApplicationClassReceiver === undefined && thisMethodResolutionStep && context?.applicationClassSelfPath !== undefined) {
+            methodResultType = consultTypeMetadata('method-result', context.applicationClassSelfPath, member);
+          }
           if (activeApplicationClassReceiver !== undefined) {
             // The call's RESULT is of a class only the method signature names
             // -- unless the type-metadata provider resolves it (Cycle 107).
