@@ -1,60 +1,57 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-04, Cycle 167)
+## Current status (2026-10-04, Cycle 168)
 
-- **Current target:** Cycle 167 -- App Class metadata captured from HCDEV
-  (read-only), then the rules it unblocked. EXACT 30,051 -> 30,112 (+61)
-  = forward-exact; NONEXACT 97 (DSM 72, ACTIVE_PACKAGE 11, ACTIVE_RECORD
-  5, COMPLETE_DOWNSTREAM 4, ACTIVE_OTHER 2, ACTIVE_FIELD 1,
+- **Current target:** Cycle 168 -- App Class property chains. EXACT
+  30,112 -> 30,121 (+9: 28857 28893 28964 28965 28967 28981 29465 29529
+  29945) = forward-exact; NONEXACT 88 (DSM 72 -- 71 lossy source + 29858;
+  ACTIVE_PACKAGE 6, COMPLETE_DOWNSTREAM 4, ACTIVE_RECORD 3, ACTIVE_OTHER 1,
   STRUCTURAL_ORDERING 1, ACTIVE_RECORD_FIELD 1); 0 EXACT -> non-EXACT, 0
-  farther; protected 430/430; ROUNDTRIP_ONLY 0; 13525 / 14149 EXACT.
-  **Fallback membership 68 -> 6** (3872 14149 14162 14327 15256 19877,
-  all EXACT); 13525 left it. See "Compiler Cycle 167".
-- **Last successful calibration:** Cycle 167.
+  farther; protected 430/430; ROUNDTRIP_ONLY 0; fallback 6 (3872 14149
+  14162 14327 15256 19877, all EXACT); 13525 / 28729 / 14149 EXACT. See
+  "Compiler Cycle 168".
+- **Last successful calibration:** Cycle 168.
 - **Protected baseline:** 430/430.
-- **Snapshot requirement (new):** the local snapshot must hold the
-  captured App Class metadata (`snapshot_appclass_metadata`, 3,057
-  classes). Check: `npx tsx tools/corpus/capture-appclass-metadata.ts
-  --check-manifest tools/corpus/appclass-metadata/manifest.txt`. Without
-  it the corpus measures 30,051-ish and 28729 regresses (the repeated-
-  import dedupe needs the TreeGrid metadata).
-- **Locally blocked definitions:** Cycle 167 parked: 25337 (left the
-  fallback with its BN_RATES metadata; one row missing from
-  `&axAppMsgs [&I].ToString()` on a Function `As array of <Class>`
-  parameter -- the only such program, no EXACT control); 23572 (reference
-  list exact now; lossy DSM source at offset 4086); App Class
-  `%Super.<prop>` / `%This.<prop>.<prop>` chains with complete metadata
-  (28964 28965 28967 28857 28893 29529; 30 EXACT controls with
-  `%Super.P.M()` -- a per-type rule, Cycle 168); 28981 (Row-returning
-  method result `.GetCurrentPgmDefRow().REC.FIELD`); 29465 (4 rows of
-  GP_ABS_CS_TMPL classes plus one FIELD.DELETE_PB position). DSM 72:
-  verified (Cycle 167) that HCDEV's PSPCMTXT.PCTEXT itself holds 0xBF
-  (NLS_CHARACTERSET WE8ISO8859P15); the characters survive only in
-  PSPCMPROG -- not recoverable by re-capture. Cycle 166 parked items
-  RESOLVED: the fallback one-claim correction (landed), 23068 23402
-  (EXACT). Cycle 165 parked: 29797 29883 30170 30179 30192 (per-method
-  row reopening; a per-definition compiler variant -- unchanged). Cycle
-  164 parked: 30124. Cycle 163 parked: 28818; 30162; 10860. 16567 / 19289
-  RESOLVED (EXACT with PT_PM_TREENODE metadata). Cycle 162 parked: 29945;
-  29244 / 29245 (`extends Rowset`). 29535 29544 RESOLVED. Cycle 161: the
-  metadata gaps 28986 28991 29230 29136 29584 29585 29586 29633 29622
-  29537 RESOLVED (EXACT); 28965 now a `%Super` chain; 28784 28785 28786
-  no longer non-EXACT; 29293. Cycle 160: repeated named-import
-  dedupe RESOLVED (landed with the metadata); 28857 28893 28964 29529 now
-  chain-typing, 29527 29590 29655 RESOLVED; 29329. Other parked
-  mechanisms listed in earlier cycle sections.
-- **Next action (Cycle 168):** App Class property-chain typing with
-  complete metadata: `%Super.<prop>.<method>()` / `%Super.<prop>.<rec>`
-  (7 non-EXACT: 28774 28963 28964 28965 28967 28968 29380; 30 EXACT
-  controls) and `%This.<prop>.<prop>.<method>()` (28857 28893 29529; 39
-  EXACT controls) -- find what separates programs storing the property
-  class row from the controls (declared type kind, inherited vs own
-  property, method vs property tail). Then 28981 (Row method results),
-  29465. Scratch tools under c167 (fallback baseline regenerated to the 6
-  current members). README.md has unrelated uncommitted user edits --
-  never stage it; never touch stash@{0} / stash@{1}. Run `npm test`
-  unfiltered (its exit status is the gate).
-- **Newly established rules this session:** Cycle 167: App Class
+- **Snapshot requirement:** the local snapshot must hold the captured App
+  Class metadata (`snapshot_appclass_metadata`, 3,178 classes since Cycle
+  168). Check before any corpus run: `npx tsx
+  tools/corpus/capture-appclass-metadata.ts --check-manifest
+  tools/corpus/appclass-metadata/manifest.txt`. Rebuild: `--paths
+  tools/corpus/appclass-metadata/required-classes.txt --corpus-paths
+  --transitive`, then `--import` (read-only live HCDEV).
+- **Locally blocked definitions:** non-DSM frontier 16. Compiler variants
+  (Cycle 165): 29797 29883 30170 30179 (parked, unchanged). 29244 / 29245:
+  CO_ADDRESS:AddressCollection `extends Rowset` (`%This.GetRow(n).REC
+  .FIELD`, `%This.rsData.GetRow(n).REC.FIELD` through a property of that
+  class) -- one class, no EXACT control; the only other Rowset subclass
+  (captured EOCF_CLF_DL:Utility:MultiLevelPersistentRowset) is unused by
+  the corpus: a controlled-compile candidate. 25337: a call on an indexed
+  Function `As array of <Class>` parameter element (the only one). 29858:
+  negative `Constant` literal (the only one; 89 / 995 EXACT programs with
+  negative assignments / arguments encode as now). 10860 (Function-local
+  name, blocked by 15598), 14352 / 15598 / 28818 / 30162
+  (COMPLETE_DOWNSTREAM), 15528, 29293, 29329, 30124 -- unchanged from
+  earlier cycles. DSM 71 lossy source: parked (HCDEV PCTEXT holds 0xBF;
+  not encoder defects; do not recapture).
+- **Next action (Cycle 169):** the semantic frontier is down to
+  singletons and one-class shapes. (1) Rowset subclasses (29244 / 29245)
+  and the negative Constant (29858) need a controlled App Designer compile
+  or native evidence -- no corpus control exists; (2) re-audit the
+  COMPLETE_DOWNSTREAM four (14352 15598 28818 30162) and 10860 / 15528 /
+  29293 / 29329 / 30124 with the current chain semantics; (3) the
+  Cycle 165 compiler-variant family stays parked unless a version
+  discriminator appears. Scratch tools under c168. README.md has unrelated
+  uncommitted user edits -- never stage it; never touch stash@{0} /
+  stash@{1}. Run `npm test` unfiltered and check its exit status before
+  committing (never chain a commit after it with `;`).
+- **Newly established rules this session:** Cycle 168: the metadata
+  must include every class written in corpus code -- an absent superclass
+  silently disables `%Super` / inherited typing (no lookup, no trace);
+  a call whose metadata result is `Row` / `Record` is that value (bare
+  member RECORD / FIELD row); `%This.<method>()` results are typed from
+  the class metadata, inherited methods included; `(<one primary>).Next`
+  carries the chain's value type and receiver (not its record / field
+  expectation); Cycle 167: App Class
   type metadata may come from compiled programs (PSPCMPROG + PSPCMNAME
   decoded locally) for classes HCDEV holds no source for; source-visible
   classes keep their source; an App Class program keeps one row per
@@ -292,13 +289,78 @@
   fallback; the Cycle 92 rule; the Cycle 91 rules; Cycle 90; Cycle 89;
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
-- **Datasource mode:** LOCAL SNAPSHOT for all calibration. Cycle 167
+- **Datasource mode:** LOCAL SNAPSHOT for all calibration. Cycle 168
+  used live HCDEV READ-ONLY (SELECT only) for the superclass metadata
+  capture (`--corpus-paths`, two captures). Cycle 167
   used live HCDEV READ-ONLY (SELECT only; user-authorized) for (1) the App
   Class metadata capture (`capture-appclass-metadata.ts`, three
   independent captures, identical content) and (2) the DSM byte check
   (`cycle167-dsm-source-bytes.ts`, NLS parameters and PCTEXT DUMP at 6
   offsets of 6275 / 25960 / 27771). No corpus source, program or name
   list was recaptured; nothing was written to HCDEV.
+
+## Compiler Cycle 168 -- property chains: absent superclasses, method results, parentheses
+
+Baseline (8094229, LOCAL SNAPSHOT, manifest check passed): 30,209 /
+EXACT 30,112 / NONEXACT 97; fallback 6; 430/430; ENCODE_ERROR 0.
+
+**Root cause of the property-chain families.** Family A (`%Super.P.M()`,
+7 non-EXACT / 30 EXACT) and Family B (`%This.P.P.M()`, 3 / 39). The
+encoder already types both (Cycle 108: `%Super.<prop>` through the
+provider's `superclassOf` + `memberType`; `%This.<prop>` own or
+inherited; each class-typed step becomes the receiver, the call opens or
+reuses the program row). For 28964 the provider was never consulted for
+`TxtCat`: `superclassOf(Plan2X)` was undefined because its superclass
+BNE_OPEN_ENROLL_FL:Page:SubPage:EnrollElect was neither a corpus class
+nor captured. A missing superclass skips the lookup silently -- no trace
+event -- so Cycle 167's receiver-miss inventory could not see it, and
+"metadata complete" was wrong. 16 corpus classes extended an unresolvable
+class; six are the targets: 28963 28964 28965 (EnrollElect), 28857 28893
+(EOAW_APPROVAL_MM_FL:actionButton:actionControlCommon), 29529
+(HMAF_AWE:MOBILE:Handler:ApprovalFrameworkBase). Families A / B have no
+typing defect: Candidates B-F do not apply; Candidate A is the existing
+rule, correct once the superclass resolves. 28774 28963 28968 29380 are
+lossy DSM (lists exact).
+
+**Metadata (read-only HCDEV).** `capture-appclass-metadata.ts
+--corpus-paths` seeds with every class path written in corpus code (91
+unknown before): +121 classes (3,057 -> 3,178, 60,201 name rows). 19
+requested paths are %metadata key / format tokens, no App Class program.
+From-scratch and incremental captures agree (sha256 fe5e9eb7...). Import:
++6 EXACT (28857 28893 28964 28965 28967 29529), 28963 / 28968 lists
+exact, no EXACT program changed. After it every superclass resolves.
+
+**External Row / Record method results** (28981
+`&cDataController.GetCurrentPgmDefRow().W3EB_PGM_PLN_VW.DFLT_CREDIT_IND`):
+the provider typed the result `Row`, but only own `%This` results
+(Cycle 160) and Row / Record properties applied the Row / Record member
+rule. Census (`cycle168-chain-census.ts --section results`): Record
+result + bare member stores the FIELD row in 2 / 2 EXACT (29452 29479);
+`.Name` stays inline (3 EXACT); Row result + bare member: 28981 only.
+Landed for metadata results: +1 (28981), 1 program changed.
+
+**`%This` method results** (29465 `%This.getDataObject()` etc., methods
+of its superclass): Cycle 160 typed own results only; the result is now
+typed from the class metadata (ancestors walked). EXACT 29464 / 29936
+store the class row for the same inherited shape. 29464 list-exact,
+29465 6 -> 2 edits; class-only vs all kinds identical on the corpus.
+
+**Parenthesized chains** (`(<chain>).Next`): one primary in parentheses
+hands on its value type, receiver and pending array element (not its
+record / field expectation -- the Cycle 116 grouped
+`(&r.GetRow(1)).CopyFieldsTo()` test). +2 (29465, its ABSTMPLDATA row
+now at the call; 29945). EXACT controls 29479 29542 10563 10565 25294
+unchanged.
+
+Totals: 30,112 -> 30,121 (+9), 0 lost, 0 farther; categories
+ACTIVE_PACKAGE 11 -> 6, ACTIVE_RECORD 5 -> 3, ACTIVE_FIELD 1 -> 0,
+ACTIVE_OTHER 2 -> 1; 430/430; fallback 6; 13525 / 28729 EXACT.
+
+**Not needed:** controlled compiles and native DLL analysis -- corpus +
+captured metadata settled every landed rule. **29858**: `Constant
+&UNSET_ANGLE = -4002840` is the corpus's only negative Constant
+(negative literals in assignments 89 EXACT programs, arguments 995 EXACT,
+already right) -- parked for a controlled compile.
 
 ## Compiler Cycle 167 -- App Class metadata from HCDEV; one wildcard claim; repeated imports
 

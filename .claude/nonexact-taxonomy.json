@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-04T21:25:55.654Z",
+ "generatedAt": "2026-10-04T23:16:00.907Z",
  "totalDefinitions": 30209,
- "exactCount": 30112,
- "nonexactCount": 97,
+ "exactCount": 30121,
+ "nonexactCount": 88,
  "rows": [
   {
    "definitionId": 1635,
@@ -548,22 +548,6 @@
    }
   },
   {
-   "definitionId": 28857,
-   "displayName": "104=BEN_APPR_EVT_HNDLR, 107=BNActionButton, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 4184,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 21,
-    "generatedCount": 19,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 28861,
    "displayName": "104=BEN_APPR_EVT_HNDLR, 107=appEventHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -582,102 +566,22 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 28893,
-   "displayName": "104=BEN_DEPDOC_EVT_HNDLR, 107=BNActionButton, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 4184,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 21,
-    "generatedCount": 19,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
    "definitionId": 28963,
    "displayName": "104=BNE_OPEN_ENROLL_FL, 105=Page, 106=EnrollSection, 107=Plan1X, 12=OnExecute, 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
    "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
+   "roundtripExact": true,
+   "firstDiffOffset": 50431,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 28964,
-   "displayName": "104=BNE_OPEN_ENROLL_FL, 105=Page, 106=EnrollSection, 107=Plan2X, 12=OnExecute, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 7159,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 75,
-    "generatedCount": 72,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 28965,
-   "displayName": "104=BNE_OPEN_ENROLL_FL, 105=Page, 106=EnrollSection, 107=Plan357AX, 12=OnExecute, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 29,
-    "generatedCount": 27,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
-   "definitionId": 28967,
-   "displayName": "104=BNE_OPEN_ENROLL_FL, 105=Page, 106=EnrollSection, 107=Plan4X, 12=OnExecute, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 6647,
-   "primaryCategory": "REFERENCE_ACTIVE_FIELD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 24,
-    "generatedCount": 23,
-    "firstDivergenceKind": "field"
-   }
   },
   {
    "definitionId": 28968,
    "displayName": "104=BNE_OPEN_ENROLL_FL, 105=Page, 106=EnrollSection, 107=Plan6X, 12=OnExecute, 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
    "sourceEncodeExact": false,
-   "roundtripExact": false,
+   "roundtripExact": true,
    "firstDiffOffset": 5172,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 28981,
-   "displayName": "104=BNE_OPEN_ENROLL_FL, 105=XPlanUtility, 107=CostCredit, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 37,
-    "generatedCount": 35,
-    "firstDivergenceKind": "package"
-   }
   },
   {
    "definitionId": 28982,
@@ -852,38 +756,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 29465,
-   "displayName": "104=GP_ABS_CS_TMPL, 105=TEL, 107=absTelObject, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 20582,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 48,
-    "generatedCount": 44,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 29529,
-   "displayName": "104=GP_ABS_EVT_HANDLER, 105=DataHandler, 107=AbsenceManagement, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5332,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 33,
-    "generatedCount": 31,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
    "definitionId": 29570,
    "displayName": "104=GP_FORMULA_PARSER, 107=Parser, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -970,22 +842,6 @@
    "roundtripExact": true,
    "firstDiffOffset": 5569,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29945,
-   "displayName": "104=PTADSSUMREPT, 107=SearchUIHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 22,
-    "generatedCount": 20,
-    "firstDivergenceKind": "stored-only"
-   }
   },
   {
    "definitionId": 30124,
