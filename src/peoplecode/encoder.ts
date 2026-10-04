@@ -631,16 +631,17 @@ export interface EncodeProgramContext {
   /** Cycle 107 research mode: consult and trace the provider, but encode as if it were absent. */
   applicationClassTypeMetadataDiagnosticsOnly?: boolean;
   /**
-   * Cycle 111 research hook: called when an ordinary program is re-encoded
-   * because its class rows depend on external metadata (Cycle 93 / 112,
-   * `externalMetadataWildcardClaims`). Observational only.
+   * Cycle 111 research hook: called for an ordinary program whose class
+   * rows depend on external metadata the provider lacks (Cycle 93 / 112;
+   * since Cycle 167 encoded normally). Observational only.
    */
   onExternalMetadataFallback?: () => void;
   /**
    * Cycle 112 research switch: encode an ordinary program with allocation
    * units even when its class rows depend on external metadata, i.e. never
    * take the Cycle 93 fallback. For measuring the fallback; the harness
-   * never sets it.
+   * never sets it. Since Cycle 167 the encoding is the same either way: it
+   * only silences `onExternalMetadataFallback`.
    */
   suppressExternalMetadataFallback?: boolean;
 }
@@ -667,13 +668,6 @@ interface EncodeFragmentContext extends EncodeProgramContext {
    */
   externalClassMetadata?: { unresolvedReceiverCalls: number };
 
-  /**
-   * Cycle 93 / 112: every wildcard import of an ordinary program claims a
-   * blank-REFNAME PACKAGE row (instead of the first one only). Set only by
-   * `encodeOrdinaryProgramFragment`, for a program whose references depend
-   * on unavailable external class metadata; see there.
-   */
-  externalMetadataWildcardClaims?: boolean;
 
   htmlDependencyScope?: HtmlDependencyScope;
   htmlDependencyLifetime?: 'application-class';
@@ -6804,9 +6798,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       const allocateWildcardMetadata =
         context?.applicationClassTypeReferenceSession !== undefined
           ? context.applicationClassTypeReferenceSession.claimWildcardImportMetadata()
-          : context?.externalMetadataWildcardClaims
-            ? true
-            : !claimedWildcardImportMetadata;
+          : !claimedWildcardImportMetadata;
       claimedWildcardImportMetadata = true;
 
       if (allocateWildcardMetadata) {
@@ -16738,13 +16730,18 @@ function parseFunctionMetadata(
  * each wildcard import claims a blank row, and in 13525 the second blank
  * row stands where the unknowable POPULATIONMANAGER row belongs, keeping
  * it byte-exact. So such a program now uses the normal model with only
- * that claim (`externalMetadataWildcardClaims`): 37 generated lists
- * change, 34 closer, 0 farther; 7 become byte-exact, none stop; 13525
- * stays EXACT. Claiming only the first wildcard (the Cycle 105
- * correction) stays parked behind 13525 until class metadata reaches it.
+ * that claim: 37 generated lists change, 34 closer, 0 farther; 7 become
+ * byte-exact, none stop; 13525 stays EXACT.
  *
- * The first pass runs with trace hooks buffered so observers see exactly
- * one pass -- the one whose bytes are returned.
+ * Cycle 167: that claim was the compensation. With the captured App Class
+ * metadata 13525 types both calls, stores its real rows and leaves the
+ * fallback; stored writes ONE blank row per program however many
+ * wildcards (1,117 EXACT programs with one, 332 with two or more), and
+ * the 6 programs still detected here (3872 14149 14162 14327 15256 19877)
+ * claim one too: +2 EXACT (14327 15256), 0 farther. Detection stays
+ * (`onExternalMetadataFallback`), but the encoding is the normal one.
+ *
+ * Trace hooks are buffered until the detection is known, as before.
  */
 /*
  * Cycle 163: an Application Class definition whose source declares no
@@ -16798,16 +16795,11 @@ function encodeOrdinaryProgramFragment(
     externalClassMetadata
   });
 
-  if (externalClassMetadata.unresolvedReceiverCalls === 0 || context?.suppressExternalMetadataFallback) {
-    for (const replay of buffered) replay();
-    return encoded;
+  if (externalClassMetadata.unresolvedReceiverCalls > 0 && !context?.suppressExternalMetadataFallback) {
+    context?.onExternalMetadataFallback?.();
   }
-
-  context?.onExternalMetadataFallback?.();
-  return encodeFragmentInternal(source, {
-    ...context,
-    externalMetadataWildcardClaims: true
-  });
+  for (const replay of buffered) replay();
+  return encoded;
 }
 
 export function encodeProgramArtifacts(source: string, context?: EncodeProgramContext): EncodedPeopleCode {
