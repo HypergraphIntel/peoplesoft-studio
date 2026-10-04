@@ -5918,8 +5918,12 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * `&GroupLASTUPDDTTM <> ...`: stored `18 And 24 rem... 01`; 28753 after
      * Or, 6318). `cycle156-postfix-selector-rem-census.ts`.
      */
-    while (source.startsWith('/*', pos) || isRemCommentStart(source, pos)) {
-      const comment = source.startsWith('/*', pos) ? blockCommentByPlacement() : remComment();
+    // Cycle 157: and a `<* *>` comment (522 `And` `24 /*...*/ 55 <*...*>
+    // 24 /*...*/` `(`...).
+    while (source.startsWith('/*', pos) || source.startsWith('<*', pos) || isRemCommentStart(source, pos)) {
+      const comment = source.startsWith('/*', pos)
+        ? blockCommentByPlacement()
+        : source.startsWith('<*', pos) ? disabledCodeComment() : remComment();
       chunks.push(comment);
       const gapStart = pos;
       space();
@@ -6405,8 +6409,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       return;
     }
 
+    // Cycle 157: `<*` opens a comment, never the `<` operator (29845
+    // `While (&Path <> "")` then `<* ... *>`).
     const operator =
-      /^(<>|<=|>=|=|<|>)/.exec(source.slice(pos))?.[0];
+      /^(<>|<=|>=|=|<(?!\*)|>)/.exec(source.slice(pos))?.[0];
 
     if (!operator) {
       return;

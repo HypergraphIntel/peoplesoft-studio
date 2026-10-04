@@ -55,3 +55,16 @@ test('an Evaluate whose When clauses are all disabled code has none (21348)', ()
   // without any When or selector comment it is still rejected
   assert.throws(() => encodeProgram('Evaluate &opt\nEnd-Evaluate;\n'), Error);
 });
+
+test('<* after a complete condition is a comment, never the < operator (29845)', () => {
+  const tokens = roundtrips('While (&Path <> "")\n   <* An issue is fixed *>\n   &Path = "";\nEnd-While;\n');
+  const at = tokens.findIndex(t => t.opcode === 0x55);
+  assert.equal(tokens[at].text, '<* An issue is fixed *>');
+  assert.equal(tokens.filter(t => t.text === '<').length, 0);
+});
+
+test('<* between And and its operand is a 0x55 comment (522)', () => {
+  const tokens = roundtrips('If &a = "Y" And\n      /*commenting this code*/\n      <* &b = "" And *>\n      &c = 1 Then\n   &x = 1;\nEnd-If;\n');
+  const and = tokens.findIndex(t => t.text === 'And');
+  assert.deepEqual(tokens.slice(and, and + 4).map(t => t.opcode.toString(16)), ['18', '24', '55', '1']);
+});
