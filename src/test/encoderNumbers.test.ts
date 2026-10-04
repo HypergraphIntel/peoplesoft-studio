@@ -77,7 +77,9 @@ for (const source of [
   'Return 340282366920938463463374607431768211456;', // 2^128, no truncation/wrap
   `Return ${'9'.repeat(1000)};`,
   'Return .5;', 'Return 1e3;', 'Return 0x10;',
-  'Return +1;', 'Return 1 ** 2;',
+  // Cycle 158: `1 ** 2` is supported (stored 0x46, 14531 / 16585 / 25484);
+  // a power operator missing its right operand still fails.
+  'Return +1;', 'Return 1 **;',
   'Return (1 + 2;', 'Return 1 +;', 'Return 1 /;', 'Return 1 2;',
   'Return 1abc;', 'Return 1_000;', 'Return 1 = 2;'
 ]) {
