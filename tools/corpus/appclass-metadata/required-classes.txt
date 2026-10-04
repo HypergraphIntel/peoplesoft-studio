@@ -2,8 +2,8 @@
 # snapshot has no definition of (HCDEV holds no PSPCMTXT source for them),
 # from tools/corpus/research/cycle167-metadata-census.ts --paths at 679d446
 # (564 absent receiver classes less 28 %metadata system classes). The seed of
-#   npx tsx tools/corpus/capture-appclass-metadata.ts --paths <this file> --out <json> --transitive
-# whose fixed point (3,057 classes) manifest.txt records.
+#   npx tsx tools/corpus/capture-appclass-metadata.ts --paths <this file> --out <json> --transitive --corpus-paths
+# whose fixed point (3,178 classes since Cycle 168) manifest.txt records.
 ptwidgets:treegrid
 pt_conqrs:conqrsmgr
 ptib_package:mobileurlparams
