@@ -9186,6 +9186,14 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         continue;
       }
 
+      // Cycle 157: ... and a `<* *>` comment (21348 `Evaluate X` then
+      // `<*When = "L09" ... *>` before the first When: one 0x55).
+      if (!sawWhen && source.startsWith('<*', pos)) {
+        chunks.push(disabledCodeComment());
+        sawSelectorComment = true;
+        continue;
+      }
+
       if (word('When-Other')) {
         if (sawWhenOther) {
           fail('duplicate When-Other');
@@ -9616,7 +9624,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       }
 
       if (word('End-Evaluate')) {
-        if (!sawWhen) {
+        // Cycle 157: an Evaluate whose When clauses are all disabled code
+        // has none (21348: `Evaluate X` `55 <*When ... *>` `3F End-Evaluate`).
+        if (!sawWhen && !sawSelectorComment) {
           fail('Evaluate requires at least one When');
         }
 
