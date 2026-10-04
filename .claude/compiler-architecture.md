@@ -32,7 +32,7 @@ Cycle 162: EXACT 30,034 / NONEXACT 175; Cycle 163: EXACT 30,043 /
 NONEXACT 166; Cycle 164: EXACT 30,047 / NONEXACT 162; Cycle 166: EXACT
 30,051 / NONEXACT 158, fallback 68; Cycle 167 (with the captured App
 Class metadata): EXACT 30,112 / NONEXACT 97, fallback detection 6, all
-EXACT; forward-exact = EXACT); protected 430/430; ROUNDTRIP_ONLY 0.
+EXACT; Cycle 168: EXACT 30,121 / NONEXACT 88; forward-exact = EXACT); protected 430/430; ROUNDTRIP_ONLY 0.
 
 ---
 
@@ -470,8 +470,11 @@ comment-opcode list and layout / blank-line suppression flags.
 `applicationClassTypeMetadata.ts` -- indexes every snapshot App Class
 source: members, methods, named / wildcard imports, `extends`. Since
 Cycle 167 also the classes HCDEV holds only compiled
-(`snapshot_appclass_metadata`, 3,057, written by
-`capture-appclass-metadata.ts`): their PSPCMPROG + PSPCMNAME decode to
+(`snapshot_appclass_metadata`, 3,178 since Cycle 168, written by
+`capture-appclass-metadata.ts`; seeded from receiver misses AND every
+class path written in corpus code -- an absent superclass makes
+`superclassOf` undefined, which skips `%Super` / inherited lookups
+without a trace): their PSPCMPROG + PSPCMNAME decode to
 the class header the provider parses; a corpus class keeps its source; an
 incompletely decoded program is left out. Lookups
 walk ancestors; built-in type names win over same-named classes (Cycle
@@ -601,8 +604,8 @@ the first divergence, the stored kind varies), not mechanisms.
 - External class metadata -- resolved by the Cycle 167 capture; left:
   %metadata system classes (EXACT programs only), TargetActualWidget
   (undecoded opcode).
-- App Class `%Super.<prop>` / `%This.<prop>.<prop>` chain rows (28964
-  28965 28967 28857 28893 29529; EXACT controls exist).
+- Rowset subclasses (CO_ADDRESS:AddressCollection `extends Rowset`:
+  29244 29245) -- no EXACT control.
 - Untyped Function parameter shadowing (11513).
 - Legacy App Class path (29632).
 
