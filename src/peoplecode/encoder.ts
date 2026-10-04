@@ -15333,12 +15333,12 @@ function encodeApplicationClassProgramV2(
    */
   const methodsByName = new Map(methods.map(method => [method.name.toLowerCase(), method]));
   const scalarDeclarationTypes = new Set([
-    'string', 'date', 'any', 'boolean', 'time', 'datetime', 'object', 'integer', 'number', 'exception', 'array'
+    'string', 'date', 'any', 'boolean', 'time', 'datetime', 'object', 'integer', 'number', 'array'
   ]);
   const builtinDeclarationTypes = new Set([
     'file', 'sql', 'record', 'rowset', 'row', 'field', 'processrequest', 'message',
     'apiobject', 'grid', 'javaobject', 'xmldoc', 'xmlnode', 'document', 'compound',
-    'collection', 'map', 'mapelement', 'jsonbuilder', 'jsonobject', 'jsonarray'
+    'collection', 'map', 'mapelement', 'jsonbuilder', 'jsonobject', 'jsonarray', 'exception'
   ]);
   const dependencyTypeLeaf = (typeName: string): string =>
     typeName.replace(/^(?:array\s+of\s+)+/i, '').trim().split(':').at(-1) ?? '';
@@ -15355,9 +15355,18 @@ function encodeApplicationClassProgramV2(
       .filter(target => target.endsWith(':*'))
       .map(target => target.slice(0, -2).split(':')[0].toLowerCase())
   );
+  /*
+   * Cycle 160: `Exception` is a built-in dependency type like File / SQL: a
+   * header member typed with it (parameter, return, property, instance)
+   * stores PACKAGE.EXCEPTION in header order (11 / 11 classes: 30206
+   * `getExceptionText(&pException As Exception)` before `Returns
+   * ApiObject`, 28985 `property Exception LastError`). A built-in base type
+   * is not a dependency: the 17 classes that only `extends Exception` store
+   * no EXCEPTION row (30009, 30023 ...).
+   */
   const declarationTypes = [
-    parsed.extendsType,
-    parsed.implementsType,
+    ...[parsed.extendsType, parsed.implementsType]
+      .filter(typeName => typeName === undefined || !builtinDeclarationTypes.has(dependencyTypeLeaf(typeName).toLowerCase())),
     ...parsed.statements.flatMap(statement => {
       if (statement.kind === 'method') {
         return [...statement.parameters.map(parameter => parameter.type), statement.returnType];
@@ -15385,7 +15394,7 @@ function encodeApplicationClassProgramV2(
   // Cycle 138: each declared type with its declaration's offset (sessions).
   const declarationTypeSites = [
     ...[parsed.extendsType, parsed.implementsType]
-      .filter((typeName): typeName is string => typeName !== undefined)
+      .filter((typeName): typeName is string => typeName !== undefined && !builtinDeclarationTypes.has(dependencyTypeLeaf(typeName).toLowerCase()))
       .map(typeName => ({ typeName, offset: parsed.unitStart })),
     ...parsed.statements.flatMap(statement => {
       const types = statement.kind === 'method'
