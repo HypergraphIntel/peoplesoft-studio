@@ -15,7 +15,9 @@
  *             names resolved in the class's own and wildcard-imported
  *             packages), to a fixed point, into a JSON file. Corpus
  *             classes are never captured: they carry source.
- *     npx tsx tools/corpus/capture-appclass-metadata.ts --paths <file> --out <json> [--transitive]
+ *     npx tsx tools/corpus/capture-appclass-metadata.ts --paths <file> --out <json> [--transitive] [--corpus-paths]
+ *             `--corpus-paths` adds every class path written in corpus
+ *             code that is not a corpus class (Cycle 168: superclasses).
  *   import    (offline) a capture JSON into the local snapshot's
  *             snapshot_appclass_metadata tables, replacing what is there.
  *     npx tsx tools/corpus/capture-appclass-metadata.ts --import <json>
@@ -39,7 +41,7 @@ import {
   listSnapshotCapturedApplicationClasses
 } from './snapshot/capturedApplicationClasses';
 import { listSnapshotApplicationClassDefinitions } from './snapshot/applicationClassTypeMetadata';
-import { openSnapshotDatabase } from './snapshot/store';
+import { getLatestCompletedSnapshot, openSnapshotDatabase } from './snapshot/store';
 import { maskNonCode, parseApplicationClassSource } from '../../src/peoplecode/applicationClassProgram';
 
 export interface CapturedApplicationClassProgram {
@@ -188,6 +190,28 @@ export async function captureApplicationClassPrograms(
   return { captured, absent: [...absent].sort() };
 }
 
+/*
+ * Cycle 168: every class path WRITTEN in the corpus's code (comments and
+ * strings masked; wildcard imports and %-prefixed paths excluded) --
+ * extends / implements targets, declarations, creates, casts. Receiver
+ * lookups alone miss a corpus class's absent superclass: `%Super.<prop>`
+ * is never looked up when `superclassOf` is unknown (28964 extends
+ * BNE_OPEN_ENROLL_FL:Page:SubPage:EnrollElect).
+ */
+function corpusNamedClassPaths(db: ReturnType<typeof openSnapshotDatabase>): string[] {
+  const snapshot = getLatestCompletedSnapshot(db);
+  if (!snapshot) throw new Error('No completed HCDEV corpus snapshot exists.');
+  const found = new Map<string, string>();
+  for (const row of db.prepare('SELECT source_text FROM snapshot_definition WHERE snapshot_id = ? ORDER BY definition_id').iterate(snapshot.snapshotId) as Iterable<{ source_text: string }>) {
+    const code = maskNonCode(String(row.source_text ?? '')).replace(/"(?:[^"\n]|"")*"/g, m => ' '.repeat(m.length));
+    for (const m of code.matchAll(/(?<![%\w:.&])([A-Za-z_]\w*(?:\s*:\s*[A-Za-z_]\w*)+)(?![\w:]|\s*:\s*\*)/g)) {
+      const path = m[1].replace(/\s+/g, '');
+      if (!found.has(path.toLowerCase())) found.set(path.toLowerCase(), path);
+    }
+  }
+  return [...found.values()];
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const option = (name: string) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
@@ -220,9 +244,11 @@ async function main(): Promise<void> {
     return;
   }
   const pathsFile = option('--paths'); const out = option('--out');
-  if (pathsFile === undefined || out === undefined) throw new Error('usage: --paths <file> --out <json> [--transitive] | --import <json> | --manifest [<out>] | --check-manifest <file>');
-  const corpusClasses = new Set(listSnapshotApplicationClassDefinitions(openSnapshotDatabase()).map(d => d.path.join(':').toLowerCase()));
-  const requested = fs.readFileSync(pathsFile, 'utf8').split('\n').map(line => line.replace(/#.*/, '').trim())
+  if (pathsFile === undefined || out === undefined) throw new Error('usage: --paths <file> --out <json> [--transitive] [--corpus-paths] | --import <json> | --manifest [<out>] | --check-manifest <file>');
+  const db = openSnapshotDatabase();
+  const corpusClasses = new Set(listSnapshotApplicationClassDefinitions(db).map(d => d.path.join(':').toLowerCase()));
+  const listed = fs.readFileSync(pathsFile, 'utf8').split('\n').map(line => line.replace(/#.*/, '').trim());
+  const requested = [...listed, ...(args.includes('--corpus-paths') ? corpusNamedClassPaths(db) : [])]
     .filter(p => p !== '' && !corpusClasses.has(p.toLowerCase()));
   const existing: ApplicationClassCaptureFile = fs.existsSync(out) ? JSON.parse(fs.readFileSync(out, 'utf8')) : { captured: [], absent: [] };
   const connection = await openCorpusConnection(getConnectionConfig());
