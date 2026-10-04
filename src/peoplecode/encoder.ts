@@ -6507,7 +6507,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
   const comparisonExpression = () => {
     expression();
     space();
-    commentsBeforeContinuation(/^(?:<>|<=|>=|=|<|>|Not\s*[=>])/i);
+    // Cycle 164: `<*` opens a disabled comment, never a `<` comparison
+    // (Cycle 157) -- 17155 `While ...)` + `/*** ... ***/` + `<** ... **>`
+    // stores `14 2D 24 55`, the comment after the condition boundary.
+    commentsBeforeContinuation(/^(?:<>|<=|>=|=|<(?!\*)|>|Not\s*[=>])/i);
 
     /*
      * `Not =` / `Not >` (a space-separated `Not` immediately before an
