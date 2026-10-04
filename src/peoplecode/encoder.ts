@@ -725,6 +725,12 @@ interface EncodeFragmentContext extends EncodeProgramContext {
    */
   applicationClassDeclaredBuiltinVariables?: ReadonlyMap<string, string>;
   /**
+   * Cycle 160: the built-in Record / Row return types this class's own
+   * header declares for its methods (`method getDTLRecord() Returns Record;`):
+   * lowercased method name -> `record` | `row`.
+   */
+  applicationClassOwnMethodReturnTypes?: ReadonlyMap<string, 'record' | 'row'>;
+  /**
    * Cycle 82: the compilation unit's own self-class PACKAGE row. Present
    * only for Application Class programs. See
    * `ApplicationClassSelfMethodDependency`'s own comment.
@@ -12200,6 +12206,25 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
                 : /^GetRowset$/i.test(member)
                   ? { valueType: 'rowset', binding: chainSemantics.binding, provenance: chainSemantics.provenance }
                   : { valueType: 'unknown', binding: 'dynamic', provenance: 'unknown' };
+          /*
+           * Cycle 160: `%This.<method>(...)` whose own class header declares
+           * `Returns Record` is a Record value -- its bare member a FIELD row
+           * (29391 `%This.getDTLRecord().SETID.Value`: 44 / 44 sites store
+           * it) -- and `Returns Row` a Row whose bare member is a RECORD row
+           * (29249 `%This.getStackElement().CO_NAV_WRK`, 4 / 4). Only
+           * source-declared returns of this class; inherited results stay
+           * untyped, Rowset results keep their own members inline (Cycle 118).
+           */
+          const ownMethodReturnType = thisMethodResolutionStep
+            ? context?.applicationClassOwnMethodReturnTypes?.get(member.toLowerCase())
+            : undefined;
+          if (ownMethodReturnType === 'record') {
+            expectedReferenceMember = 'field';
+            chainSemantics = { valueType: 'record', binding: 'dependency-bound', provenance: 'declared' };
+          } else if (ownMethodReturnType === 'row') {
+            expectedReferenceMember = 'record';
+            chainSemantics = { valueType: 'row', binding: 'dependency-bound', provenance: 'declared' };
+          }
         } else {
           /*
            * A property/member traversal changes the receiver. Without
@@ -12362,6 +12387,18 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            */
           if (metadataBuiltinType !== undefined && /^Rowset$/i.test(metadataBuiltinType.trim()) && !isMethodCall) {
             chainSemantics = { valueType: 'rowset', binding: 'dependency-bound', provenance: 'declared' };
+          }
+          /*
+           * Cycle 160: a property declared `Row` is a Row value: its bare
+           * member is a RECORD row (29609 `property Row eSignRowCommon;` ...
+           * `%This.eSignRowCommon.HCSC_ESIGN_WRK.USER_ID.Value` stores
+           * RECORD.HCSC_ESIGN_WRK and FIELD.USER_ID); Row properties stay
+           * inline (`isInlineRowStateMember`). LOCAL SNAPSHOT: 2 programs
+           * changed (29609, 29618 closer), 0 farther.
+           */
+          if (metadataBuiltinType !== undefined && /^Row$/i.test(metadataBuiltinType.trim()) && !isMethodCall) {
+            expectedReferenceMember = 'record';
+            chainSemantics = { valueType: 'row', binding: 'dependency-bound', provenance: 'declared' };
           }
         }
 
@@ -15447,6 +15484,11 @@ function encodeApplicationClassProgramV2(
    * session, unchanged from Cycle 32.
    */
   const ownMethodNames = new Set(methods.map(method => method.name.toLowerCase()));
+  const ownMethodReturnTypes = new Map<string, 'record' | 'row'>();
+  for (const method of methods) {
+    const returnType = method.returnType?.trim().toLowerCase();
+    if (returnType === 'record' || returnType === 'row') ownMethodReturnTypes.set(method.name.toLowerCase(), returnType);
+  }
   const hasUnmodeledThisMethodDependencies = [
     ...source.matchAll(/%This\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(/gi)
   ].some(match => !ownMethodNames.has(match[1].toLowerCase()));
@@ -15686,6 +15728,7 @@ function encodeApplicationClassProgramV2(
       applicationClassOwnPropertyTypes,
       applicationClassDeclaredVariables: declaredVariables,
       applicationClassDeclaredBuiltinVariables: declaredBuiltinVariables,
+      applicationClassOwnMethodReturnTypes: ownMethodReturnTypes,
       applicationClassSelfMethodDependency,
       // Inherited `%This` calls can allocate environment-derived method
       // rows. Freeze that unsupported population on its prior fragment-owner
