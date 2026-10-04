@@ -329,7 +329,7 @@ call's receiver is a class known only through absent external metadata
 wildcard import claims a blank PACKAGE row
 (`externalMetadataWildcardClaims`). With one wildcard (or none) the pass
 changes nothing. Stored writes exactly one blank row in every wildcard
-program (1,455 programs: 1,104 EXACT with 1 wildcard, 332 EXACT with 2+).
+program (1,513 programs: 1,117 EXACT with 1 wildcard, 332 EXACT with 2+).
 
 13525, decomposed:
 - A: generated #4 -- the blank row of the SECOND wildcard import
