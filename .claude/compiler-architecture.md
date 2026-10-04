@@ -427,6 +427,12 @@ type string; `globalDeclaration` opens the class row of `Global array of
 <Class>`; the comparison continuation lookahead excludes `<*`
 (`cycle164-ordering-census.ts`).
 
+Cycle 165 (research) -- App Class class rows are program-wide (per
+Cycle 138 session) in every store format; five programs (29797 29883
+30170 30179 30192) reopen them per method body instead, with no source,
+header or metadata discriminator: a per-definition compiler variant, not
+modeled (`cycle165-lifetime-census.ts`).
+
 ## 5. Declarations and scope
 
 Sources: Local, Global, Component, ComponentLife, PanelGroup (= Component,

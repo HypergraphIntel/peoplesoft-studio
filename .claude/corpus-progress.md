@@ -1,17 +1,20 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-04, Cycle 164)
+## Current status (2026-10-04, Cycle 165)
 
-- **Current target:** Cycle 164 -- App Class row order and the
-  condition-boundary comment. EXACT 30,043 -> 30,047 (+4: 17155 28721
-  30047 30068) = forward-exact; 12 lists changed, all equal to stored; 0
-  farther, 0 EXACT -> non-EXACT; STRUCTURAL_ORDERING 4 -> 1 (30124),
-  COMPLETE_DOWNSTREAM 4 -> 3; no encode failure; protected PASS,
-  ROUNDTRIP_ONLY 0; fallback membership unchanged (70 + 14149); 13525
-  EXACT. See "Compiler Cycle 164".
+- **Current target:** Cycle 165 -- research: the Cycle 138
+  duplicate-lifetime family (29797 29883 30170 30179 30192). No semantic
+  change: the five reopen class rows per method body, unlike every other
+  program of their store format, with no source / metadata discriminator.
+  EXACT 30,047 / NONEXACT 162 unchanged; protected PASS; fallback
+  membership unchanged (70 + 14149, baseline regenerated); 13525 EXACT.
+  See "Compiler Research Cycle 165".
 - **Last successful calibration:** Cycle 164.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** Cycle 164 parked: 30124 (`Local A &x =
+- **Locally blocked definitions:** Cycle 165 parked: 29797 29883 30170
+  30179 30192 (per-method row reopening; a per-definition compiler variant
+  the local evidence cannot predict -- applying it loses 593 EXACT).
+  Cycle 164 parked: 30124 (`Local A &x =
   create B()` order -- 28754 stores the opposite order). Cycle 163 parked: 28818 (comments in
   App Class header parameter lists, the only program); 30162
   (`end-interface` without `;`, the only one); 10860 (Function-local name
@@ -65,16 +68,18 @@
   differ from untyped ones; whether non-Record built-in `As array of`
   parameters open a row (13562 `array of Rowset` only); time / object
   descriptors in App Class signatures; `**` precedence / associativity.
-- **Next action (Cycle 165):** outside fallback (13525), metadata gaps
-  (~33) and lossy DSM (68), only singletons remain (30124 28818 30162
-  10860 24458 29945 29244 / 29245 29465) plus the parked Cycle 138
-  duplicate-lifetime family (29797 29883 30170 30179 30192), the largest
-  non-metadata reference family left -- re-census it for a per-method /
-  per-statement reopening mechanism. Also a user decision: re-capturing the
-  snapshot source would close up to 68 DSM programs. Scratch tools under
-  c164. README.md has unrelated uncommitted user edits -- never stage it;
-  never touch stash@{0} / stash@{1}. Run `npm test` unfiltered (its exit
-  status is the gate).
+- **Next action (Cycle 166):** the source-recoverable reference frontier
+  is exhausted outside three blocked pools: ordinary fallback (~43 non-EXACT, behind
+  13525 -- Cycle 105's wildcard over-claim), App Class metadata gaps (~33,
+  classes absent from the snapshot), lossy DSM (68). Each needs a decision
+  or new evidence: (a) re-capture the snapshot source with a correct
+  character conversion (DSM, user decision); (b) capture the missing App
+  Class definitions (metadata gaps); (c) re-open the 13525 fallback
+  conflict. Inside the encoder only singletons remain (30124 28818 30162
+  10860 24458 29945 29244 / 29245 29465). Scratch tools under c165.
+  README.md has unrelated uncommitted user edits -- never stage it; never
+  touch stash@{0} / stash@{1}. Run `npm test` unfiltered (its exit status
+  is the gate).
 - **Newly established rules this session:** Cycle 164: only the leading
   extends / implements entries are the class relationship (a member typed
   the same is a header dependency); a Global array of a class opens its
@@ -307,6 +312,44 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Research Cycle 165 -- the Cycle 138 duplicate-lifetime family
+
+Baseline 773b8e2 reproduced (30,047 EXACT). Scratch tools were lost with
+the old scratchpad and rebuilt under c165; the fallback baseline was
+regenerated from HEAD: 71 programs, 13525 and 14149 included (= the known
+70 + 14149). `cycle165-lifetime-census.ts` (sections format / methods /
+paren).
+
+The five: 29797 29883 30170 (ACTIVE_PACKAGE), 30179 (ACTIVE_RECORD_FIELD),
+30192 (EXACT bytes -- its extra rows are method-call rows, written by name
+so no operand points at them). All five: stored has MORE rows than
+generated (191 / 54, 48 / 18, 543 / 183, 533 / 160, 9 / 4), the same
+identities repeated -- class rows and even PACKAGE.RECORD reopen about
+once per method body (30170: 54 ACTIONITEM rows, 52 methods; 30192: the
+header rows, then one ACTIONITEM / LIST row per method that uses it). No
+top-level directive in any of them; no metadata gap; not wildcard
+behaviour.
+
+A per-method reference session (variant: every method implementation its
+own session) moves all five closer -- 30192's list becomes exact, the
+others 137 -> 91, 30 -> 17, 360 -> 102, 373 -> 106 edits (finer reopening
+remains, per statement as Cycle 138 saw) -- but loses 593 EXACT programs
+corpus-wide. The five share the "blank" store format (PACKAGEROOT and
+APPCLASSMETHOD empty) with 545 EXACT programs, and in that same format a
+class used in 2 / 3 / 4 / 5+ method bodies keeps ONE row in 267 / 125 /
+80 / 129 EXACT programs. Nothing distinguishes the five: not the source,
+the program header, nor the snapshot metadata (no per-definition version
+or timestamp). They behave like an older compilation's row lifetime that
+the local evidence cannot predict. 29724 / 29734 (descriptive format,
+top-level #If) are the Cycle 138 session rule and stay EXACT; 28854 EXACT.
+No semantic change -- parked as a per-definition compiler variant.
+
+Singleton rerank (sibling census): 29945 `(&row.GetRowset(1)).GetRow(1)`
+has no sibling (the one `(chain).GetRecord()` match, 29542, is not a
+parenthesized group); 30124 contradicted by 28754; 28818 / 30162 unique;
+29465's inherited class results 3 programs, 1 non-EXACT; 24458 single;
+29244 / 29245 one class.
 
 ## Compiler Cycle 164 -- App Class row order; condition-boundary comment
 
