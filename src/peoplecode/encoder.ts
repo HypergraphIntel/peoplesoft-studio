@@ -12340,14 +12340,25 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
            * (29249 `%This.getStackElement().CO_NAV_WRK`, 4 / 4). Only
            * source-declared returns of this class; inherited results stay
            * untyped, Rowset results keep their own members inline (Cycle 118).
+           *
+           * Cycle 168: so is a call whose result the type-metadata provider
+           * declares `Record` / `Row` on another class -- the same values
+           * (28981 `&cDataController.GetCurrentPgmDefRow()
+           * .W3EB_PGM_PLN_VW.DFLT_CREDIT_IND.Value` stores
+           * RECORD.W3EB_PGM_PLN_VW and FIELD.DFLT_CREDIT_IND; 29452 / 29479,
+           * EXACT, store the FIELD row after a Record result; intrinsic
+           * `.Name` stays inline, 3 EXACT). `cycle168-chain-census.ts
+           * --section results`; LOCAL SNAPSHOT: 1 program changed, 0
+           * farther.
            */
           const ownMethodReturnType = thisMethodResolutionStep
             ? context?.applicationClassOwnMethodReturnTypes?.get(member.toLowerCase())
             : undefined;
-          if (ownMethodReturnType === 'record') {
+          const metadataReturnType = methodResultType?.kind === 'other' ? methodResultType.type.trim() : '';
+          if (ownMethodReturnType === 'record' || /^Record$/i.test(metadataReturnType)) {
             expectedReferenceMember = 'field';
             chainSemantics = { valueType: 'record', binding: 'dependency-bound', provenance: 'declared' };
-          } else if (ownMethodReturnType === 'row') {
+          } else if (ownMethodReturnType === 'row' || /^Row$/i.test(metadataReturnType)) {
             expectedReferenceMember = 'record';
             chainSemantics = { valueType: 'row', binding: 'dependency-bound', provenance: 'declared' };
           }
