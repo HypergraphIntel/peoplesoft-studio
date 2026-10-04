@@ -26,8 +26,8 @@ NONEXACT 289; Cycle 151: EXACT 29,924 / NONEXACT 285; Cycle 152: EXACT
 Cycle 154: EXACT 29,962 / NONEXACT 247; Cycle 155: EXACT 29,975 /
 NONEXACT 234; Cycle 156: EXACT 29,986 / NONEXACT 223; Cycle 157: EXACT
 29,997 / NONEXACT 212; Cycle 158: EXACT 30,005 / NONEXACT 204;
-Cycle 159: EXACT 30,011 / NONEXACT 198, no encode failure; forward-exact
-= EXACT); forward-exact
+Cycle 159: EXACT 30,011 / NONEXACT 198, no encode failure; Cycle 160:
+EXACT 30,019 / NONEXACT 190; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -375,6 +375,20 @@ comma in a parameter list (`cycle159-special-identifier-census.ts`).
 DECODE_SOURCE_MISMATCH is now mostly snapshot source fidelity: 66 of 71
 have a non-Latin-1 character in the stored program (`’` `“` `‘` U+200B)
 that the snapshot's source text holds as `¿` / a backtick.
+
+Cycle 160 (semantics) -- App Class header members typed with the built-in
+`Exception` are declaration dependencies (header order); a built-in
+extends / implements type (`extends Exception`) is not. An App Class `As`
+cast opens its class row only when its result receives a method call
+(the ordinary Cycle 144 rule). `FreeFormStyleName` is a Row / Rowset
+property (`BUILTIN_OBJECT_PROPERTIES.record`). `%This.<ownMethod>(...)`
+whose own header declares `Returns Record` / `Returns Row` is a Record /
+Row value (`applicationClassOwnMethodReturnTypes`); a metadata-declared
+`Row` property is a Row (beside Cycle 118 Record / Cycle 135 Rowset).
+Repeated named imports of one leaf store one row in every App Class
+program, but deduping them for classes with an inherited `%This` call
+breaks 28729 (a compensating absent-metadata row) -- parked
+(`cycle160-appclass-package-census.ts`).
 
 ## 5. Declarations and scope
 
