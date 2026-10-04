@@ -30,9 +30,9 @@ Cycle 159: EXACT 30,011 / NONEXACT 198, no encode failure; Cycle 160:
 EXACT 30,019 / NONEXACT 190; Cycle 161: EXACT 30,027 / NONEXACT 182;
 Cycle 162: EXACT 30,034 / NONEXACT 175; Cycle 163: EXACT 30,043 /
 NONEXACT 166; Cycle 164: EXACT 30,047 / NONEXACT 162; Cycle 166: EXACT
-30,051 / NONEXACT 158, fallback 68; forward-exact = EXACT); forward-exact
-(program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
-EXACT); ROUNDTRIP_ONLY 0.
+30,051 / NONEXACT 158, fallback 68; Cycle 167 (with the captured App
+Class metadata): EXACT 30,112 / NONEXACT 97, fallback detection 6, all
+EXACT; forward-exact = EXACT); protected 430/430; ROUNDTRIP_ONLY 0.
 
 ---
 
@@ -142,7 +142,7 @@ provenance}), `fieldMemberFromGetRecord`, `fieldMemberFromRowShorthand`
 |---|---|---|---|
 | App Class PACKAGE | **leaf class name** per allocation unit (`classRowsByUnit`, Cycle 94 + 122); a same-leaf named import opens none | one row per **leaf class name** per program (`applicationClassProgramRows`, Cycle 108); own class via self row (Cycle 82) | type use (decl, param, Returns, create, cast, method call), named import |
 | built-in PACKAGE (`PACKAGE.RECORD` ...) | per built-in **run** (`builtinUnit`, Cycle 103): leading section run (Functions continue it), else per top-level statement / Function header / body statement | method-wide (`functionDepth` key) + class-wide session | declaration of a registered type in an allowed context (`BUILTIN_TYPE_REGISTRY`); Component / Returns arrays (Cycle 122) |
-| wildcard import blank PACKAGE | first wildcard of the program only (`claimedWildcardImportMetadata`); every wildcard under the fallback | first wildcard of the compilation unit (`claimWildcardImportMetadata`) | import `P:*` |
+| wildcard import blank PACKAGE | first wildcard of the program only (`claimedWildcardImportMetadata`), fallback included (Cycle 167) | first wildcard of the compilation unit (`claimWildcardImportMetadata`) | import `P:*` |
 | RECORD | per allocation unit (`recordRowsByUnit`, Cycle 95) + control-group pools for shorthand | per record name, whole program: method-wide scope + session (Cycle 71 explicit, Cycle 119 shorthand) | `Record.X`, shorthand `.REC`, CreateRecord / GetRecord args |
 | FIELD | per allocation unit, by field name (`unitScopedRows.field`, Cycle 96) | per field name, whole program: field scope + session (Cycles 65, 118, 119, 120) | `Field.X`, bare member of a Record value |
 | SCROLL | per allocation unit (`unitScopedRows.scroll`) | method-wide + session | `Scroll.X` |
@@ -468,7 +468,12 @@ comment-opcode list and layout / blank-line suppression flags.
 ## 7. Metadata provider
 
 `applicationClassTypeMetadata.ts` -- indexes every snapshot App Class
-source: members, methods, named / wildcard imports, `extends`. Lookups
+source: members, methods, named / wildcard imports, `extends`. Since
+Cycle 167 also the classes HCDEV holds only compiled
+(`snapshot_appclass_metadata`, 3,057, written by
+`capture-appclass-metadata.ts`): their PSPCMPROG + PSPCMNAME decode to
+the class header the provider parses; a corpus class keeps its source; an
+incompletely decoded program is left out. Lookups
 walk ancestors; built-in type names win over same-named classes (Cycle
 107). Answers `class` / `array` (of class) / `other` (type text) /
 undefined (class absent or member / ancestor missing -- not
@@ -478,8 +483,10 @@ distinguished).
 
 `encodeOrdinaryProgramFragment`: if a call's receiver class is external
 metadata the provider cannot resolve (`unresolvedReceiverCalls > 0`), the
-program is re-encoded with `externalMetadataWildcardClaims: true`, read in
-exactly one place (each wildcard import claims a blank row). 70 programs
+program is detected (`onExternalMetadataFallback`). Since Cycle 167 it is
+encoded normally -- one wildcard claim; the every-wildcard claim was
+13525's compensation for absent WCS metadata, now captured. Detected: 6
+programs, all EXACT. Historical (Cycles 93-166): 70 programs
 (24 EXACT): triggers -- receiver class absent from the snapshot 58, absent
 + member missing 5, member / ancestor missing on a present class 3, no
 provider miss 4 (`cycle123-fallback-trigger-census.ts`). The "first
@@ -587,12 +594,16 @@ the first divergence, the stored kind varies), not mechanisms.
 
 ## 12. Parked / open mechanisms
 
-- Snapshot source encoding artefacts: 65 DECODE_SOURCE_MISMATCH programs
+- Snapshot source encoding artefacts: DECODE_SOURCE_MISMATCH programs
   whose source has `¿` (or a backtick) where the stored program has the
-  real character -- unfixable without a correct source capture.
-- External class metadata (fallback 70, metadata-blocked 7).
+  real character. Cycle 167: HCDEV's PCTEXT itself holds 0xBF
+  (WE8ISO8859P15) -- no source capture can recover them.
+- External class metadata -- resolved by the Cycle 167 capture; left:
+  %metadata system classes (EXACT programs only), TargetActualWidget
+  (undecoded opcode).
+- App Class `%Super.<prop>` / `%This.<prop>.<prop>` chain rows (28964
+  28965 28967 28857 28893 29529; EXACT controls exist).
 - Untyped Function parameter shadowing (11513).
-- Wildcard first-only rule (13525).
 - Legacy App Class path (29632).
 
 ## 13. Stale assumptions (corrected by Cycle 123)

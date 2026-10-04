@@ -1,88 +1,65 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-04, Cycle 166)
+## Current status (2026-10-04, Cycle 167)
 
-- **Current target:** Cycle 166 -- the ordinary fallback pass. EXACT
-  30,047 -> 30,051 (+4: 19433 24458 24500 24503) = forward-exact; 4 lists
-  changed, 0 farther, 0 EXACT -> non-EXACT; ACTIVE_PACKAGE 40 -> 38,
-  ACTIVE_RECORD 13 -> 11; no encode failure; protected PASS,
-  ROUNDTRIP_ONLY 0. **Fallback membership 71 -> 68**: the original 70 +
-  14149 minus 19433 24500 24503 (they no longer trigger it); 13525 and
-  14149 EXACT and still members. See "Compiler Cycle 166".
-- **Last successful calibration:** Cycle 166.
+- **Current target:** Cycle 167 -- App Class metadata captured from HCDEV
+  (read-only), then the rules it unblocked. EXACT 30,051 -> 30,112 (+61)
+  = forward-exact; NONEXACT 97 (DSM 72, ACTIVE_PACKAGE 11, ACTIVE_RECORD
+  5, COMPLETE_DOWNSTREAM 4, ACTIVE_OTHER 2, ACTIVE_FIELD 1,
+  STRUCTURAL_ORDERING 1, ACTIVE_RECORD_FIELD 1); 0 EXACT -> non-EXACT, 0
+  farther; protected 430/430; ROUNDTRIP_ONLY 0; 13525 / 14149 EXACT.
+  **Fallback membership 68 -> 6** (3872 14149 14162 14327 15256 19877,
+  all EXACT); 13525 left it. See "Compiler Cycle 167".
+- **Last successful calibration:** Cycle 167.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** Cycle 166 parked: the fallback
-  one-claim correction (+8 / -13525; 13525's missing rows need the WCS
-  class metadata); 23068 23402 23572 (IApprovalManager absent). Cycle 165 parked: 29797 29883 30170
-  30179 30192 (per-method row reopening; a per-definition compiler variant
-  the local evidence cannot predict -- applying it loses 593 EXACT).
-  Cycle 164 parked: 30124 (`Local A &x =
-  create B()` order -- 28754 stores the opposite order). Cycle 163 parked: 28818 (comments in
-  App Class header parameter lists, the only program); 30162
-  (`end-interface` without `;`, the only one); 10860 (Function-local name
-  test, blocked by 15598's contrary top-level GetRecord(1) binding);
-  16567 / 19289 (PT_PM_TREENODE absent); 24458 (inherited array property
-  of an indexed Component-array element; one program). Cycle 162 parked: 29535 (rest) / 29544
-  EOAW_CORE:ENGINE (Thread / AppInst / StepInst) absent; 29945
-  parenthesized `(&row.GetRowset(1)).GetRow(1).GetRecord(1).X` loses the
-  chain type (singleton); 29244 / 29245 AddressCollection `extends Rowset`
-  (one class, no EXACT control). Cycle 161 parked: metadata gaps 28986
-  28991 29230 29136 29584 29585 29586 29633 29622 29537 28965 (classes
-  absent from the snapshot -- see the Cycle 161 section); 28784 28785
-  28786 Message GetRowset ... GetRecord(n) (no Message chain semantics; 10
-  / 10 sites FIELD rows, no EXACT control); 29245 `extends Rowset`; 29293
-  unterminated Declare Function (layout fallback, like 29329). Cycle 160 parked: App Class repeated
-  named-import dedupe (29465 29529; correct in 13 / 13 programs but turns
-  28729 non-EXACT -- its duplicate row compensates for a COLLECTION row
-  from PTWIDGETS:TreeGrid, absent from the snapshot); metadata gaps 28857
-  28893 28964 29527 29529 29590 29655 (classes absent from the snapshot);
-  29329 (Global File beside a native `Declare Function ... Library`:
-  layout-only fallback drops the region's rows); 29797 29883 30170
-  (Cycle 138 duplicate lifetime). DECODE_SOURCE_MISMATCH (72): 68 are
-  snapshot SOURCE fidelity, not encoder -- every difference a one-for-one
-  substitution by the export's placeholder (`¿` 191 / a backtick 96) for
-  a stored character (`’` `“` `‘` U+200B box-drawing ..., also Latin-1 `´`
-  6275 and `¼` 27771); recovering them needs a re-captured source with a
-  correct character conversion (explicit snapshot maintenance, a user
-  decision). 25960 (also lossy) has 4 extra FIELD rows across Function
-  bodies; 28963 / 29654 operands behind absent classes; 29858 a negative
-  numeric Constant (sign folded into the 0x50 literal, the corpus's only
-  one).
-  Parked earlier:
-  App Class PACKAGE/FIELD 6 (28967 29518 29583 29598 29715 29725) -- each
-  one hidden class row behind a class absent from the snapshot (TextCatalog,
-  AWTxn, ObjectHashTable / RecordTag via G3FORM:Form, Thread,
-  ExecStatusType); row-shorthand `GetRow(n).X.Y` 0x4A / 0x0A -- RESOLVED in Cycle 121
-  (an undeclared root's members are inline names: 4269, 4440, 5931 ...
-  forward-exact; no record catalog needed); sub-package canonical
-  case in type-path names (28942); FIELDVALUE / XLAT* (18989 too);
-  undeclared-variable receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class
-  rows for classes absent from the snapshot (14162, 19877, 23068, 23402
-  ...); the fallback wildcard over-claim (blocked by 13525 -- Cycle 105);
-  `%This` method results -- RESOLVED in Cycle 160 (29391 29609 EXACT);
-  29797 / 29883; 30192; ordinary `Function`
-  parameters `As array of <Class>`; hidden rows behind classes absent from
-  the snapshot (28964, 28968, 29230, 29598, 29715 / 29725); ordinary `As` casts
-  (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
-  (no discriminating program): whether an empty statement opens a
-  reference / allocation unit; whether quoted-to-quoted reuse follows the
-  control group or the allocation unit; whether `As any` parameters
-  differ from untyped ones; whether non-Record built-in `As array of`
-  parameters open a row (13562 `array of Rowset` only); time / object
-  descriptors in App Class signatures; `**` precedence / associativity.
-- **Next action (Cycle 167):** the encoder frontier is exhausted under
-  the current snapshot; what remains needs data, not rules: (1) metadata
-  capture of the absent App Class packages (list in the Cycle 166
-  section) -- unblocks the fallback one-claim fix (+8, 13525 then exact
-  without the fallback pass) and ~45 metadata-gap programs; (2) the DSM
-  source question -- verify where `¿` arises (PCTEXT vs capture) before
-  any re-capture, possibly rebuilding source from decoded PSPCMPROG. Both
-  need live HCDEV (user decision). Scratch tools under c166 (the
-  fallback baseline file holds 71; regenerate it -- membership is now 68).
-  README.md has unrelated uncommitted user edits -- never stage it; never
-  touch stash@{0} / stash@{1}. Run `npm test` unfiltered (its exit status
-  is the gate).
-- **Newly established rules this session:** Cycle 166: ordinary programs
+- **Snapshot requirement (new):** the local snapshot must hold the
+  captured App Class metadata (`snapshot_appclass_metadata`, 3,057
+  classes). Check: `npx tsx tools/corpus/capture-appclass-metadata.ts
+  --check-manifest tools/corpus/appclass-metadata/manifest.txt`. Without
+  it the corpus measures 30,051-ish and 28729 regresses (the repeated-
+  import dedupe needs the TreeGrid metadata).
+- **Locally blocked definitions:** Cycle 167 parked: 25337 (left the
+  fallback with its BN_RATES metadata; one row missing from
+  `&axAppMsgs [&I].ToString()` on a Function `As array of <Class>`
+  parameter -- the only such program, no EXACT control); 23572 (reference
+  list exact now; lossy DSM source at offset 4086); App Class
+  `%Super.<prop>` / `%This.<prop>.<prop>` chains with complete metadata
+  (28964 28965 28967 28857 28893 29529; 30 EXACT controls with
+  `%Super.P.M()` -- a per-type rule, Cycle 168); 28981 (Row-returning
+  method result `.GetCurrentPgmDefRow().REC.FIELD`); 29465 (4 rows of
+  GP_ABS_CS_TMPL classes plus one FIELD.DELETE_PB position). DSM 72:
+  verified (Cycle 167) that HCDEV's PSPCMTXT.PCTEXT itself holds 0xBF
+  (NLS_CHARACTERSET WE8ISO8859P15); the characters survive only in
+  PSPCMPROG -- not recoverable by re-capture. Cycle 166 parked items
+  RESOLVED: the fallback one-claim correction (landed), 23068 23402
+  (EXACT). Cycle 165 parked: 29797 29883 30170 30179 30192 (per-method
+  row reopening; a per-definition compiler variant -- unchanged). Cycle
+  164 parked: 30124. Cycle 163 parked: 28818; 30162; 10860. 16567 / 19289
+  RESOLVED (EXACT with PT_PM_TREENODE metadata). Cycle 162 parked: 29945;
+  29244 / 29245 (`extends Rowset`). 29535 29544 RESOLVED. Cycle 161: the
+  metadata gaps 28986 28991 29230 29136 29584 29585 29586 29633 29622
+  29537 RESOLVED (EXACT); 28965 now a `%Super` chain; 28784 28785 28786
+  no longer non-EXACT; 29293. Cycle 160: repeated named-import
+  dedupe RESOLVED (landed with the metadata); 28857 28893 28964 29529 now
+  chain-typing, 29527 29590 29655 RESOLVED; 29329. Other parked
+  mechanisms listed in earlier cycle sections.
+- **Next action (Cycle 168):** App Class property-chain typing with
+  complete metadata: `%Super.<prop>.<method>()` / `%Super.<prop>.<rec>`
+  (7 non-EXACT: 28774 28963 28964 28965 28967 28968 29380; 30 EXACT
+  controls) and `%This.<prop>.<prop>.<method>()` (28857 28893 29529; 39
+  EXACT controls) -- find what separates programs storing the property
+  class row from the controls (declared type kind, inherited vs own
+  property, method vs property tail). Then 28981 (Row method results),
+  29465. Scratch tools under c167 (fallback baseline regenerated to the 6
+  current members). README.md has unrelated uncommitted user edits --
+  never stage it; never touch stash@{0} / stash@{1}. Run `npm test`
+  unfiltered (its exit status is the gate).
+- **Newly established rules this session:** Cycle 167: App Class
+  type metadata may come from compiled programs (PSPCMPROG + PSPCMNAME
+  decoded locally) for classes HCDEV holds no source for; source-visible
+  classes keep their source; an App Class program keeps one row per
+  repeated named-import leaf (type-session lookup); the fallback pass
+  claims one blank wildcard row like every program; Cycle 166: ordinary programs
   model metadata `array of <Class>` types (indexed element = receiver);
   Cycle 164: only the leading
   extends / implements entries are the class relationship (a member typed
@@ -315,7 +292,117 @@
   fallback; the Cycle 92 rule; the Cycle 91 rules; Cycle 90; Cycle 89;
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
-- **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+- **Datasource mode:** LOCAL SNAPSHOT for all calibration. Cycle 167
+  used live HCDEV READ-ONLY (SELECT only; user-authorized) for (1) the App
+  Class metadata capture (`capture-appclass-metadata.ts`, three
+  independent captures, identical content) and (2) the DSM byte check
+  (`cycle167-dsm-source-bytes.ts`, NLS parameters and PCTEXT DUMP at 6
+  offsets of 6275 / 25960 / 27771). No corpus source, program or name
+  list was recaptured; nothing was written to HCDEV.
+
+## Compiler Cycle 167 -- App Class metadata from HCDEV; one wildcard claim; repeated imports
+
+Baseline (679d446, LOCAL SNAPSHOT): 30,209 / EXACT 30,051 / NONEXACT 158;
+fallback 68 (regenerated by identity, not the stale 71); 13525 / 14149
+EXACT; 430/430.
+
+**Why the metadata was missing.** HCDEV (read-only probe) holds PeopleCode
+source in SYSADM.PSPCMTXT for only 1,510 Application Classes -- exactly
+the corpus's -- but compiled programs in PSPCMPROG for about 13,945. The
+absent classes (PTWIDGETS 19 programs / 0 sources, HR_TEXT_CATALOG 4 / 0,
+WCS_ITERATOR_TREE, WCS_POP_MGT, WCS_POPULATION_MGMT ...) exist only
+compiled. Their class headers decode locally from PSPCMPROG + PSPCMNAME
+(the decoder's App Class mode), and that is the metadata.
+
+**Inventory** (`cycle167-metadata-census.ts`): 564 absent receiver
+classes (28 %metadata system classes), looked up by 78 non-EXACT
+programs. Top: PTWIDGETS:TreeGrid 12 non-EXACT / 14 EXACT,
+PT_CONQRS:ConQrsMgr 9 / 28, PTIB_PACKAGE:MobileURLParams 9 / 14,
+WCS_POP_MGT:PopMgtDisplayMgr 8 / 7, G3FORM:Form 7 / 4,
+PT_DOCUMENT_LAYOUT:DocLayoutConstants 6 / 34, PTWIDGETS:TreeNode 6 / 10,
+HR_TEXT_CATALOG:TextCatalog 5 / 93.
+
+**Capture** (`capture-appclass-metadata.ts`, SELECT only): the 536
+non-%metadata classes (`tools/corpus/appclass-metadata/
+required-classes.txt`), transitively over every class each header names
+(extends, member / parameter / return types, named imports; short names
+in the own and wildcard-imported packages): fixed point after 14 rounds,
+3,057 classes, 58,412 name rows; no requested class absent in HCDEV.
+Three independent captures, identical content (sha256 081a78bc...).
+Decoding all takes ~1.1 s. Not usable: 4 programs with no class
+(deprecated / commented out: G3AWE:CUSTOM:CustomSegmentDetection,
+G3BUTTONS:ButtonsSegment, G3COMMENTS:CommentsSegment,
+G3AWE:NOTIFICATIONS:ActionRecord), 2 with an undecoded opcode 0x50 in a
+method body (EOTL_WIDGETS:TargetActualWidget -- used by EXACT 28931 only
+-- and EOTL_WIZARD:ProcessContainer), 1 that does not parse
+(HRS_JOB_OPENING_MANAGER:OBJ_HRS_JO_RQMT:DATA:JORqmt). They stay out of
+the provider (no fabrication).
+
+**Snapshot integration.** New tables snapshot_appclass_metadata (+ _name,
+_capture) written only by `--import`; validated first on scratch copies
+(CORPUS_SNAPSHOT_DB): two imports identical, corpus tables untouched.
+Canonical delta: +3,057 / +58,412 / +1 rows; snapshot_definition 35,831,
+snapshot_name 313,066, snapshot_meta 4 -- digests unchanged; 192.9 MB ->
+266.8 MB. The SQLite file is not in git: the manifest
+(`appclass-metadata/manifest.txt`, `--check-manifest`) is the committed
+delta. Provider precedence: corpus source wins (captured classes with a
+corpus path are refused at import and skipped by the provider).
+
+**WCS first (13525).** Captured live: WCS_POP_MGT:PopMgtDisplayMgr
+(`property WCS_ITERATOR_TREE:IteratorTree TREE_OBJECT get set`),
+WCS_ITERATOR_TREE:IteratorTree (`extends HMCC_GEN_TREE:GenTree`;
+`method toHTML() Returns string`; `property
+WCS_POPULATION_MGMT:PopulationManager POPULATION_MANAGER get`),
+WCS_POPULATION_MGMT:PopulationManager (`method setAllEligible(&popNode As
+WCS_POPULATION_MGMT:PopulationNode)`) -- the synthetic Cycle 166 model
+exactly. Current encoder + these three: 13525 leaves the fallback, list
+11 / 11 exact (POPULATIONMANAGER #6, ITERATORTREE #11 real; no second
+blank row); +8 EXACT (13514 13516 13517 13521 13522 13523 13526 13531),
+0 lost. Then the one-wildcard variant: 13525 EXACT, +15 total, 0 lost,
+every changed list closer.
+
+**Full metadata** (current encoder): +59 / -1 -- 28729 lost. Its repeated
+`import PTWIDGETS:WidgetFactory;` duplicate row had stood in for
+PACKAGE.COLLECTION from PTWIDGETS:TreeGrid; the metadata supplies
+COLLECTION and exposes the duplicate (Cycle 160 had parked the dedupe for
+exactly this). 17 EXACT programs' lists changed, all to closer (13 to
+list-exact; bytes already exact); 8 non-EXACT changed, all closer.
+
+**Landed:**
+1. Repeated named-import dedupe (App Class, type-session lookup) with the
+   metadata import: 30,051 -> 30,110 (+59), 0 lost, 28729 EXACT, 29465 /
+   29529 closer; fallback 68 -> 6. Either alone loses 28729.
+2. One wildcard claim in the fallback pass (externalMetadataWildcardClaims
+   removed; detection and hook kept): 30,110 -> 30,112 (+2: 14327 15256),
+   0 lost. Programs with 2+ wildcards EXACT 332 -> 357, none lost.
+   Gained overall (61): 3465 13514 13516 13517 13521 13522 13523 13526
+   13531 14327 14328 14330 14599 14636 14637 14646 14650 14651 14707 15038
+   15039 15256 15257 15609 15697 15795 15840 16567 18472 18475 19196 19217
+   19229 19289 23068 23402 28190 28447 28448 28986 28991 29136 29230 29518
+   29527 29535 29537 29544 29579 29583 29584 29585 29586 29590 29598 29622
+   29633 29652 29655 29715 29725. Category moves: 14352
+   ACTIVE_RECORD_FIELD -> COMPLETE_DOWNSTREAM, 15598 ACTIVE_PACKAGE ->
+   COMPLETE_DOWNSTREAM, 29529 ACTIVE_PACKAGE -> ACTIVE_RECORD.
+   Ordinary PACKAGE/PACKAGE is now 15528 + 25337: 25337 left the fallback
+   set (BN_RATES metadata), 5 -> 1 edits; not a regression.
+
+**Target re-audit:** 13525 EXACT (no fallback); 28729 EXACT; 29535 /
+29544 EXACT; 28964 non-EXACT -- `%Super.TxtCat.getSimpleTextPlan(...)`,
+`%Super.FormatAmount...` (TEXTCATALOG / COSTCREDIT / FORMATAMOUNT rows;
+EnrollElect is a corpus class with source): a chain-typing rule, not
+data; 29527 EXACT, 29529 closer (ITEMREGISTRY / DATAFIELDFACTORY via
+`%This.Manager.ItemRegistry.GetRegistryEntry`); 29585 29586 29633 EXACT;
+29622 EXACT; 28986 28991 29230 EXACT; 16567 19289 EXACT; APPINST 23068
+23402 EXACT, 23572 list-exact but DSM (lossy source at 4086). After the
+import the only absent receiver classes are the 28 %metadata system
+classes (EXACT programs only) and TargetActualWidget (undecodable).
+
+**DSM** (`cycle167-dsm-source-bytes.ts`, read-only): NLS_CHARACTERSET
+WE8ISO8859P15, NLS_NCHAR_CHARACTERSET AL16UTF16. PCTEXT holds 0xBF
+(LENGTH 1, LENGTHB 1) at 6275 13745 / 14473 (program U+00B4), 25960 12488
+/ 13624 (U+2019), 27771 3249 / 15458 (U+00BC) -- characters outside
+ISO-8859-15, replaced when saved. The loss is in HCDEV's source column;
+re-capture cannot help; the text survives only in PSPCMPROG.
 
 ## Compiler Cycle 166 -- the ordinary fallback pass, 13525 decomposed
 
