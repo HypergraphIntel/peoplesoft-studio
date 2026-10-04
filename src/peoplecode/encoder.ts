@@ -2539,6 +2539,26 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     pos++;
     chunks.push(fixed('='));
 
+    /*
+     * Cycle 169: a negative number value is ONE signed literal -- the 0x50
+     * operand is a DEC whose first byte is its sign (pt861 psmath.dll) --
+     * not unary minus (0x0E) before an unsigned literal as in executable
+     * code. 29858 `Constant &UNSET_ANGLE = -4002840;` stores `50 01 00 18
+     * 14 3D ...`; it is the corpus's only negative Constant and its only
+     * signed literal (172,047 0x50 operands; every other negative is 0x0E,
+     * 7,306 sites).
+     */
+    space();
+    if (/^-[0-9]+(?:\.[0-9]+)?\s*(?:;|$)/.test(source.slice(pos))) {
+      pos++;
+      const literal = chunks.length;
+      expression();
+      const bytes = chunks[literal];
+      if (bytes === undefined || bytes[0] !== UNSIGNED_NUMBER_FORMAT.opcode) fail('expected a number literal');
+      bytes[1] = 0x01;
+      return;
+    }
+
     expression();
   };
 
@@ -14950,6 +14970,13 @@ function encodeApplicationClassTypeBytes(typeName: string): Buffer {
 }
 
 function encodeApplicationClassLiteral(value: string): Buffer {
+  // Cycle 169: a negative number is one signed literal (see `constantDeclaration`).
+  if (/^-[0-9]+(?:\.[0-9]+)?$/.test(value)) {
+    const literal = Buffer.from(encodeApplicationClassLiteral(value.slice(1)));
+    if (literal[0] !== UNSIGNED_NUMBER_FORMAT.opcode) throw new Error(`Unsupported Application Class constant literal: ${value}`);
+    literal[1] = 0x01;
+    return literal;
+  }
   const encoded = encodeFragmentInternal(`Return ${value};`).bytes;
   if (encoded.length < 2 || encoded[encoded.length - 1] !== 0x15) {
     throw new Error(`Unsupported Application Class constant literal: ${value}`);
