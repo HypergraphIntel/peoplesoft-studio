@@ -5857,7 +5857,16 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         if (/^\s*\)\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(source.slice(pos))) {
           useApplicationClassRow(appClass.packagePath, appClass.className);
         }
-      } else {
+      } else if (/^\s*\)\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(source.slice(pos))) {
+        /*
+         * Cycle 160: an Application Class program follows the same rule --
+         * a cast opens its class row only for a method call on its result.
+         * Cast-only classes store none otherwise (7 / 7: 28797 / 30194
+         * `InsertItem(&x As PTAI_COLLECTION:Collectable)`, 29615 / 30161 /
+         * 30163 / 29609 `(&o.Item(&i) As PTAI_ACTION_ITEMS:ContextData)
+         * .keyValue`); 29390's call on a cast result stores it. LOCAL
+         * SNAPSHOT: 13 lists closer, 0 farther.
+         */
         ensureRuntimeCreateReference(
           appClass.packagePath,
           appClass.className
