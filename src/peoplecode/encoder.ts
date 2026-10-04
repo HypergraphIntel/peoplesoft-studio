@@ -6837,12 +6837,33 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       const sameLeafRow = unitScopedClassRows
         ? classRowsByUnit.get(applicationClassKey(appClass.packagePath, appClass.className))
         : undefined;
+      /*
+       * Cycle 167: an Application Class program keeps one row per imported
+       * leaf as well -- a repeated named import (29465 one path x3, 29529
+       * two paths, 28729 `import PTWIDGETS:WidgetFactory;` twice) reuses the
+       * row the compilation unit already holds, looked up in the always-
+       * present type session (the shared session is off with an inherited
+       * %This call). 13 / 13 App Class programs with a repeated leaf store
+       * one row. Cycle 160 parked this: 28729's duplicate row stood in for
+       * PACKAGE.COLLECTION, a row of PTWIDGETS:TreeGrid, whose metadata the
+       * snapshot lacked; with the captured class (snapshot_appclass_metadata)
+       * both rows are right.
+       */
+      const sessionLeafRow = unitScopedClassRows
+        ? undefined
+        : context?.applicationClassTypeReferenceSession?.lookup({
+          kind: 'package',
+          packageName: appClass.className.toUpperCase(),
+          className: appClass.className.toUpperCase()
+        });
       const imported = sameLeafRow !== undefined && sameLeafRow.unit === allocationUnit
         ? sameLeafRow.reference
-        : addApplicationClassReference(
-          appClass.packagePath,
-          appClass.className
-        );
+        : sessionLeafRow !== undefined
+          ? sessionLeafRow
+          : addApplicationClassReference(
+            appClass.packagePath,
+            appClass.className
+          );
       if (unitScopedClassRows) {
         // Cycle 94: an import always opens its row; the leading unit's
         // later uses of the class find it.
