@@ -7207,6 +7207,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         }
 
         space();
+        // Cycle 159: a comment between the call and its `;` is inline 0x4E
+        // (28936 `BEN_RPANEL_WRK.GROUPBOX.AddFFClass("ps_hidden") /* Bug
+        // 30912657 */;` -> `14 4E 15`), the Cycle 154 continuation rule.
+        if (sawMethodCall) commentsBeforeContinuation(/^;/);
         if (sawMethodCall && source[pos] === ';') {
           return;
         }
