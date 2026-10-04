@@ -47,3 +47,11 @@ test('a <* *> comment is a body item of While, Repeat, try and catch bodies (286
     assert.ok(tokens.some(t => t.opcode === 0x55), source);
   }
 });
+
+test('an Evaluate whose When clauses are all disabled code has none (21348)', () => {
+  const tokens = roundtrips('Evaluate &opt\n   <*When = "L09"\n      &x = 1;\n   *>\nEnd-Evaluate;\n');
+  const at = tokens.findIndex(t => t.opcode === 0x55);
+  assert.deepEqual([tokens[at - 2]?.text, tokens[at + 1]?.text], ['Evaluate', 'End-Evaluate']);
+  // without any When or selector comment it is still rejected
+  assert.throws(() => encodeProgram('Evaluate &opt\nEnd-Evaluate;\n'), Error);
+});
