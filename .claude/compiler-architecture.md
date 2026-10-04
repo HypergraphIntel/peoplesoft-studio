@@ -29,7 +29,8 @@ NONEXACT 234; Cycle 156: EXACT 29,986 / NONEXACT 223; Cycle 157: EXACT
 Cycle 159: EXACT 30,011 / NONEXACT 198, no encode failure; Cycle 160:
 EXACT 30,019 / NONEXACT 190; Cycle 161: EXACT 30,027 / NONEXACT 182;
 Cycle 162: EXACT 30,034 / NONEXACT 175; Cycle 163: EXACT 30,043 /
-NONEXACT 166; forward-exact = EXACT); forward-exact
+NONEXACT 166; Cycle 164: EXACT 30,047 / NONEXACT 162; forward-exact =
+EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -419,6 +420,12 @@ an App Class program with the self-only directory
 Function's Local types end at End-Function (`functionScopeSnapshot`); the
 Cycle 121 declared-name test stays program-wide
 (`cycle163-downstream-census.ts`).
+
+Cycle 164 -- the declaration-dependency filter tells the relationship
+(extends / implements) apart by position (`relationshipTypes`), not by
+type string; `globalDeclaration` opens the class row of `Global array of
+<Class>`; the comparison continuation lookahead excludes `<*`
+(`cycle164-ordering-census.ts`).
 
 ## 5. Declarations and scope
 

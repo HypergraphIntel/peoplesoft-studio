@@ -1,18 +1,18 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-04, Cycle 163)
+## Current status (2026-10-04, Cycle 164)
 
-- **Current target:** Cycle 163 -- COMPLETE_DOWNSTREAM layout and the
-  ordinary singleton tail. EXACT 30,034 -> 30,043 (+9: 15069 16893 16962
-  27367 29006 29646 29670 29867 29870) = forward-exact; 13 programs
-  changed (9 lists), 0 farther, 0 EXACT -> non-EXACT; COMPLETE_DOWNSTREAM
-  9 -> 4, ACTIVE_RECORD 15 -> 13, ACTIVE_FIELD 14 -> 12 (17155 ->
-  COMPLETE_DOWNSTREAM); no encode failure; protected PASS, ROUNDTRIP_ONLY
-  0; fallback membership unchanged (70 + 14149); 13525 EXACT. See
-  "Compiler Cycle 163".
-- **Last successful calibration:** Cycle 163.
+- **Current target:** Cycle 164 -- App Class row order and the
+  condition-boundary comment. EXACT 30,043 -> 30,047 (+4: 17155 28721
+  30047 30068) = forward-exact; 12 lists changed, all equal to stored; 0
+  farther, 0 EXACT -> non-EXACT; STRUCTURAL_ORDERING 4 -> 1 (30124),
+  COMPLETE_DOWNSTREAM 4 -> 3; no encode failure; protected PASS,
+  ROUNDTRIP_ONLY 0; fallback membership unchanged (70 + 14149); 13525
+  EXACT. See "Compiler Cycle 164".
+- **Last successful calibration:** Cycle 164.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** Cycle 163 parked: 28818 (comments in
+- **Locally blocked definitions:** Cycle 164 parked: 30124 (`Local A &x =
+  create B()` order -- 28754 stores the opposite order). Cycle 163 parked: 28818 (comments in
   App Class header parameter lists, the only program); 30162
   (`end-interface` without `;`, the only one); 10860 (Function-local name
   test, blocked by 15598's contrary top-level GetRecord(1) binding);
@@ -65,18 +65,21 @@
   differ from untyped ones; whether non-Record built-in `As array of`
   parameters open a row (13562 `array of Rowset` only); time / object
   descriptors in App Class signatures; `**` precedence / associativity.
-- **Next action (Cycle 164):** the non-fallback, non-metadata frontier is
-  now small: STRUCTURAL_ORDERING 4 (App Class PACKAGE/PACKAGE order-only:
-  28721 30047 30068 30124) and COMPLETE_DOWNSTREAM 17155 -- stored writes
-  the Function-boundary 2D before a trailing comment after an unterminated
-  header (`14 2D 24 55`, generated `14 24 2D 55`) -- census that comment /
-  boundary placement first. Parked: 28818, 30162, 10860, 24458, metadata
-  gaps (~33), ordinary fallback (13525), DSM lossy source (68; a snapshot
-  source re-capture is the user's decision). Scratch tools under c163.
-  README.md has unrelated uncommitted user edits -- never stage it; never
-  touch stash@{0} / stash@{1}. Run `npm test` unfiltered (its exit status
-  is the gate).
-- **Newly established rules this session:** Cycle 163: `&Public` is not a
+- **Next action (Cycle 165):** outside fallback (13525), metadata gaps
+  (~33) and lossy DSM (68), only singletons remain (30124 28818 30162
+  10860 24458 29945 29244 / 29245 29465) plus the parked Cycle 138
+  duplicate-lifetime family (29797 29883 30170 30179 30192), the largest
+  non-metadata reference family left -- re-census it for a per-method /
+  per-statement reopening mechanism. Also a user decision: re-capturing the
+  snapshot source would close up to 68 DSM programs. Scratch tools under
+  c164. README.md has unrelated uncommitted user edits -- never stage it;
+  never touch stash@{0} / stash@{1}. Run `npm test` unfiltered (its exit
+  status is the gate).
+- **Newly established rules this session:** Cycle 164: only the leading
+  extends / implements entries are the class relationship (a member typed
+  the same is a header dependency); a Global array of a class opens its
+  row at the declaration; `<*` never continues an expression as `<`;
+  Cycle 163: `&Public` is not a
   class-header visibility section; a bare `array` keeps the following
   whitespace; a header instance list keeps a trailing comma; a class-less
   Application Class definition compiles with the self-only directory
@@ -304,6 +307,53 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Cycle 164 -- App Class row order; condition-boundary comment
+
+Baseline 337e191 reproduced (30,043 EXACT; STRUCTURAL_ORDERING 4 =
+28721 30047 30068 30124, all App Class, each one PACKAGE row stored
+EARLIER than generated, row multisets equal).
+`cycle164-ordering-census.ts` (sections order / relation / global /
+create / comment).
+
+- 28721 / 30047: a header member typed with the SAME class as `extends`
+  (28721 `extends PTWIDGETS:TreeGrid` + `instance PTWIDGETS:TreeGrid
+  &mTree`; 30047 `extends PTAF_CORE:ApprovalEventHandler` + constructor
+  parameter of that type), the package wildcard-imported. The Cycle 52
+  filter told the relationship apart by STRING comparison, so the member
+  type was dropped as "the wildcard-imported relationship" and its row
+  opened later at a body create. Stored puts it at the member's header
+  position; every header member typed like `extends` stores the row (17 /
+  17 EXACT, 12 wildcard). Landed: only the leading extends / implements
+  entries are relationships (positional). 28721 30047 EXACT; 9 EXACT
+  programs' lists now equal stored too (28905 30171 30172 30175 30178
+  30181 30183 30201 30203).
+- 30068: `Global array of PTAF_EMC:LAYOUT_ELEMENTS:layoutElement
+  &layoutElements;` after the class -- stored opens LAYOUTELEMENT at the
+  declaration (after the Declare Function row). `globalDeclaration`
+  handled `Global <Class>` (Cycle 82) but not `array of <Class>`;
+  `Component array of <Class>` (9 EXACT) and `Global <Class>` (16 EXACT)
+  sit at their stored positions. Landed: a Global array of a class opens
+  the class row like a scalar Global. EXACT.
+- 30124: `Local awSMToolbar &toolBar = create awSMThreadToolbar(...)`
+  stores the declared class first; 28754's `Local RelationInsertion &rel =
+  create RelationInsertionAuto(...)` stores the created class first -- no
+  consistent rule. Parked.
+
+17155 (COMPLETE_DOWNSTREAM): `While &MYSQL2.Fetch(...)` then an own-line
+`/*** ... ***/` then `<** ... **>` -- stored `14 2D 24 55` (the condition
+boundary, then the comment), as every While + own-line comment does (871
+1295 3547 4404 ...). The Cycle 154 continuation lookahead skipped the
+block comment and took `<**` for a `<` comparison, pulling the comment
+before the 2D. Landed: the comparison lookahead excludes `<*` (Cycle 157:
+`<*` is never `<`). EXACT; bytes only.
+
+Remaining COMPLETE_DOWNSTREAM: 28818 (header parameter comments, the only
+program), 30162 (`end-interface` without `;`, the only one; 15 EXACT
+interfaces all terminated), 15840 (fallback) -- research only.
+
+Combined: EXACT 30,043 -> 30,047 (+4: 17155 28721 30047 30068); 12 lists
+changed, all equal to stored; 0 farther, 0 lost.
 
 ## Compiler Cycle 163 -- COMPLETE_DOWNSTREAM layout; Function-local scope
 

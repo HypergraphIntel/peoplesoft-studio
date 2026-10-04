@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-04T15:33:22.265Z",
+ "generatedAt": "2026-10-04T16:31:07.506Z",
  "totalDefinitions": 30209,
- "exactCount": 30043,
- "nonexactCount": 166,
+ "exactCount": 30047,
+ "nonexactCount": 162,
  "rows": [
   {
    "definitionId": 1635,
@@ -678,21 +678,6 @@
    }
   },
   {
-   "definitionId": 17155,
-   "displayName": "1=PSSERVICESWRK6, 2=IB_REMOTEGATEWAY, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 117040,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 417,
-    "generatedCount": 417
-   }
-  },
-  {
    "definitionId": 18178,
    "displayName": "1=WEBLIB_OU_LP_BK, 2=ISCRIPT2, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -1225,22 +1210,6 @@
     "storedCount": 30,
     "generatedCount": 29,
     "firstDivergenceKind": "field"
-   }
-  },
-  {
-   "definitionId": 28721,
-   "displayName": "104=ADSM, 107=ADSDesignerTreeGrid, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 2789,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 18,
-    "generatedCount": 18,
-    "firstDivergenceKind": "package"
    }
   },
   {
@@ -2057,38 +2026,6 @@
     "storedCount": 22,
     "generatedCount": 20,
     "firstDivergenceKind": "stored-only"
-   }
-  },
-  {
-   "definitionId": 30047,
-   "displayName": "104=PTAF_CORE, 107=NotificationEventHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 7232,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 48,
-    "generatedCount": 48,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 30068,
-   "displayName": "104=PTAF_EMC, 105=CONTROLLERS, 107=formLayoutDesignController, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 3602,
-   "primaryCategory": "STRUCTURAL_ORDERING",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": true,
-    "storedCount": 46,
-    "generatedCount": 46,
-    "firstDivergenceKind": "package"
    }
   },
   {
