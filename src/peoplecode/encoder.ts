@@ -10460,7 +10460,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
     // Bare postfix (...) is calibrated for variable/object indexing such as
     // &rs(1). Do not make every literal/value callable (e.g. True()).
-    let allowDirectPostfixCall = source[pos] === '&';
+    // Cycle 155 / 156: a `%This` chain is an object reference like an
+    // `&variable` one -- `%This.getSucRowset()(1)`, `%This.lvl0_.GetRow(1)
+    // .GetRowset(Scroll.X)(&i)` store the plain postfix `0B ( ... 14 )`
+    // (29338, 30068 ...; every `%This` chain followed by a selector failed).
+    let allowDirectPostfixCall = source[pos] === '&' || /^%This\b/i.test(source.slice(pos));
     /*
      * A bare `GetRecord(...)` call (no leading `&variable.` receiver) puts
      * the expression straight into field-reference mode for whatever
