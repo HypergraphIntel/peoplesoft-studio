@@ -6060,7 +6060,8 @@ end-try;`),
 test('a method call through an App Class property keeps the pre-import-resolution rows', () => {
   // 13525: the class of `&h.Owner` is declared in PKG_B:Helper, not here, so
   // the program's row stream cannot be modeled and the import-resolution
-  // rules stay off for the whole program (both wildcard imports claim a row).
+  // rules stay off for the whole program. Cycle 167: only the first
+  // wildcard import claims a blank row, as in every program.
   const source = (call: string) => `import PKG_A:*;
 import PKG_B:*;
 
@@ -6069,7 +6070,7 @@ ${call}
 &r = GetRowset(Scroll.TEST_A);`;
   assert.deepStrictEqual(
     referenceKeys(source('&h.Owner.Run();')),
-    ['PACKAGE.', 'PACKAGE.', 'PACKAGE.HELPER', 'SCROLL.TEST_A']
+    ['PACKAGE.', 'PACKAGE.HELPER', 'SCROLL.TEST_A']
   );
   // The same program without the property hop is fully resolvable.
   assert.deepStrictEqual(
@@ -6090,7 +6091,7 @@ import PKG_B:*;
 
 Local PKG_B:Helper &h = create PKG_B:Helper();
 &h.GetOwner().Run();`).filter(key => key === 'PACKAGE.').length,
-    2
+    1
   );
 });
 

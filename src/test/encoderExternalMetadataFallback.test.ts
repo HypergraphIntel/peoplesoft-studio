@@ -5,9 +5,10 @@ import { encodeProgramArtifacts } from '../peoplecode/encoder.js';
 /*
  * Cycle 112: an ordinary program whose rows depend on external class
  * metadata (a method call through a property of unknown type, Cycle 93)
- * keeps the allocation-unit model; only its wildcard imports differ --
- * each one claims a blank row, the compensation 13525 depends on (the
- * Cycle 105 single-claim correction stays parked).
+ * keeps the allocation-unit model. Cycle 167: its wildcard imports no
+ * longer differ -- the first one claims the blank row, as in every program
+ * (each claiming one was 13525's compensation for rows of WCS classes the
+ * snapshot lacked; the captured metadata now types them).
  */
 const owner = { recordName: 'REC', fieldName: 'FLD' };
 const encode = (source: string) => {
@@ -29,10 +30,10 @@ const program = (tail: string) => [
   ''
 ].join('\n');
 
-test('a program with an unresolvable chain keeps its declaration rows; every wildcard import claims a blank row', () => {
+test('a program with an unresolvable chain keeps its declaration rows; the first wildcard import claims the blank row', () => {
   const { fallback, references } = encode(program('&w.Partner.Ping();'));
   assert.equal(fallback, true);
-  assert.deepEqual(references, ['', '', 'WIDGET', 'WIDGET']);
+  assert.deepEqual(references, ['', 'WIDGET', 'WIDGET']);
 });
 
 test('control: without the unresolvable chain one blank row is claimed, and the rows are otherwise the same', () => {
