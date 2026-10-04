@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-04T03:53:46.258Z",
+ "generatedAt": "2026-10-04T05:27:07.566Z",
  "totalDefinitions": 30209,
- "exactCount": 29997,
- "nonexactCount": 212,
+ "exactCount": 30005,
+ "nonexactCount": 204,
  "rows": [
   {
    "definitionId": 1635,
@@ -383,16 +383,6 @@
    }
   },
   {
-   "definitionId": 14531,
-   "displayName": "1=PSCDBFUNCLIB, 2=PT_CDB_ACTION_ID, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 843: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": "*&nPower);\n     ",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
    "definitionId": 14599,
    "displayName": "1=PSCONQRSFLSRWRK, 2=CQ_WZ_MAPFLDS_BTN, 12=FieldChange, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -748,16 +738,6 @@
     "generatedCount": 84,
     "firstDivergenceKind": "field"
    }
-  },
-  {
-   "definitionId": 16585,
-   "displayName": "1=PSPTCSSRVCONF, 2=IS_DEFAULT, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 9908: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": "*17));\n   If Mod",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
   },
   {
    "definitionId": 16893,
@@ -1141,16 +1121,6 @@
    }
   },
   {
-   "definitionId": 25484,
-   "displayName": "66=CC_CRYPT, 77=PrcCrypt, 39=GBL, 20=default, 21=1900-01-01, 78=EncOrDec, 12=OnExecute",
-   "classification": "UNSUPPORTED_SYNTAX",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 502: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": "*32), 0);\n      ",
-   "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
    "definitionId": 25507,
    "displayName": "66=CTPR_REP_ESP, 77=GEN_DATA, 39=GBL, 20=default, 21=1900-01-01, 78=Step01, 12=OnExecute",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -1393,16 +1363,6 @@
     "generatedCount": 18,
     "firstDivergenceKind": "package"
    }
-  },
-  {
-   "definitionId": 28760,
-   "displayName": "104=ADS_DMW, 105=UI, 107=ProjectBindsGrid, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 1235: bare identifiers are only supported as calls",
-   "construct": "Num",
-   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 28771,
@@ -2072,16 +2032,6 @@
    }
   },
   {
-   "definitionId": 29507,
-   "displayName": "104=GP_ABS_CS_TMPL, 105=TMPL, 107=absTmplSectionFieldList, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 524: bare identifiers are only supported as calls",
-   "construct": "ionField",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 29516,
    "displayName": "104=GP_ABS_EA_HANDLER, 107=apprEventHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -2546,36 +2496,6 @@
     "generatedCount": 53,
     "firstDivergenceKind": "package"
    }
-  },
-  {
-   "definitionId": 29815,
-   "displayName": "104=PROCESSREQUEST, 107=PRQ_SCHEDULE_BIPUBLISHER, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 8013: bare identifiers are only supported as calls",
-   "construct": "p",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29816,
-   "displayName": "104=PROCESSREQUEST, 107=PRQ_SCHEDULE_CONQUERY, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 5314: bare identifiers are only supported as calls",
-   "construct": "/schemas/PRQ_SCH",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 29817,
-   "displayName": "104=PROCESSREQUEST, 107=PRQ_SCHEDULE_PSQUERY, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 9339: bare identifiers are only supported as calls",
-   "construct": "s",
-   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 29825,

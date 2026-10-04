@@ -25,7 +25,8 @@ NONEXACT 289; Cycle 151: EXACT 29,924 / NONEXACT 285; Cycle 152: EXACT
 29,929 / NONEXACT 280; Cycle 153: EXACT 29,952 / NONEXACT 257;
 Cycle 154: EXACT 29,962 / NONEXACT 247; Cycle 155: EXACT 29,975 /
 NONEXACT 234; Cycle 156: EXACT 29,986 / NONEXACT 223; Cycle 157: EXACT
-29,997 / NONEXACT 212; forward-exact = EXACT); forward-exact
+29,997 / NONEXACT 212; Cycle 158: EXACT 30,005 / NONEXACT 204;
+forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -356,6 +357,12 @@ Repeat, try, catch too), a selector comment between Evaluate and its
 first When (an Evaluate may have no When when all are disabled), a
 comment between And / Or and the operand, and `<*` is never the `<`
 operator (`cycle157-nested-comment-census.ts`).
+
+Cycle 158 (syntax) -- a try may have no catch clause (`65 try <body> 67
+end-try`; the try loop accepts end-try, blank line -> 0x4F); `**` is one
+arithmetic operator token 0x46 (matched before `*`), rendered by the
+decoder tight on both sides; precedence / associativity unproven (every
+corpus site is a parenthesized `a ** b`) (`cycle158-try-power-census.ts`).
 
 ## 5. Declarations and scope
 

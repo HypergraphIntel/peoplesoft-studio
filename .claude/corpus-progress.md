@@ -1,16 +1,14 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-03, Cycle 157)
+## Current status (2026-10-04, Cycle 158)
 
-- **Current target:** Cycle 157 -- `<* ... *>` comments: nesting
-  (2201 24079 24918), body items of While / Repeat / try / catch (2867
-  15537 25309 29173 29299), Evaluate before its first When (21348),
-  expression placements (29845 17155 522). EXACT 29,986 -> 29,997 (+11)
-  = forward-exact; 12 programs changed, 0 farther; ENCODE_ERROR 13 -> 10,
-  UNSUPPORTED_SYNTAX 15 -> 6 (17155 -> ACTIVE_FIELD); protected PASS, 0
+- **Current target:** Cycle 158 -- try without catch (28760 29507 29815
+  29816 29817) and the `**` operator (14531 16585 25484). EXACT 29,997 ->
+  30,005 (+8) = forward-exact; 8 programs changed, 0 farther;
+  ENCODE_ERROR 10 -> 5, UNSUPPORTED_SYNTAX 6 -> 3; protected PASS, 0
   EXACT -> non-EXACT, ROUNDTRIP_ONLY 0; fallback membership unchanged (70
-  + 14149); 13525 EXACT. See "Compiler Syntax Cycle 157".
-- **Last successful calibration:** Cycle 157 (`<* *>` comments).
+  + 14149); 13525 EXACT. See "Compiler Syntax Cycle 158".
+- **Last successful calibration:** Cycle 158 (try without catch; `**`).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   App Class PACKAGE/FIELD 6 (28967 29518 29583 29598 29715 29725) -- each
@@ -34,19 +32,20 @@
   differ from untyped ones; whether non-Record built-in `As array of`
   parameters open a row (13562 `array of Rowset` only); time / object
   descriptors in App Class signatures; `**` precedence / associativity.
-- **Next action (Cycle 158):** the remaining encode failures (16 incl.
-  other categories) are small deterministic syntax gaps: `try ...
-  end-try` without catch (6: 28760 29507 29585 29815 29816 29817 --
-  stored `65 try ... 67 end-try`, no catch header; the try loop needs
-  `end-try`); `**` power operator (3: 14531 16585 25484 -- stored token
-  0x46, 5 sites, all parenthesized `a ** b`; the decoder already renders
-  it); then comments in declarations / parameters (25960 14854), `#` /
-  `$` identifiers (3430 26680), 14727, 28936. After syntax, the
-  reference frontier (DECODE_SOURCE_MISMATCH 71, ACTIVE_PACKAGE 47).
-  Fallback groups stay parked (13525). Scratch tools under c157.
-  README.md has unrelated uncommitted user edits -- never stage it; never
-  touch stash@{0} / stash@{1}.
-- **Newly established rules this session:** Cycle 157 (syntax): nested
+- **Next action (Cycle 159):** the last 8 encode failures: `#` / `$`
+  inside identifiers (4: 3430 Function `assign_seq#` stored `0A
+  assign_seq#`, 26680 `&$Adfmt_...` stored `01 &$Adfmt...`, 28771
+  `&c_#aliases`, 29825 member `ObjectID#0#`); inline 0x4E comments in
+  declarations / parameters (25960 `Local array of date 4E /*...*/ 01 &X`,
+  14854 a comment after a parameter type before `)`; 14727 "Unsupported
+  Function parameter" -- check); 28936 a comment before `;` after a
+  dotted statement. Then pivot to the semantic frontier
+  (DECODE_SOURCE_MISMATCH 71, ACTIVE_PACKAGE 47). Fallback groups stay
+  parked (13525). Scratch tools under c158. README.md has unrelated
+  uncommitted user edits -- never stage it; never touch stash@{0} /
+  stash@{1}. Run `npm test` unfiltered (its exit status is the gate).
+- **Newly established rules this session:** Cycle 158 (syntax): try
+  without catch; `**` 0x46 (decoder renders it tight); Cycle 157 (syntax): nested
   `<* *>` (one 0x55); `<* *>` in While / Repeat / try / catch bodies,
   before Evaluate's first When (zero-When Evaluate), after And / Or; `<*`
   is never `<`; Cycle 156 (syntax): `%This`
@@ -254,6 +253,32 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Syntax Cycle 158 -- try without catch; `**`
+
+`cycle158-try-power-census.ts`: try by catch count -- 1 (461 EXACT
+programs), 2 (12), 3+ (1), 0 only in 5 non-EXACT App Class programs
+(28760 29507 29815 29816 29817; 29585, listed in Cycle 157, already
+encodes). Stored `65 try <body ...15> 67 end-try 15` -- no 0x66 header,
+the last body statement keeps its `;` (no elision evidence), 29816 a 4F
+before end-try. Fix (7178a3c): the try loop accepts end-try directly. A
+alone: 5 EXACT, ENCODE_ERROR 10 -> 5.
+
+`**`: 5 sites in 3 ordinary programs (14531 16585 25484), each a
+parenthesized `a ** b` (literal / variable operands), stored 0x46. Fix
+(6b30dff): the arithmetic operator pattern matches `**` before `*`; the
+initial-encoder guard test rejecting `Return 1 ** 2;` now rejects
+`Return 1 **;`. First gate: 3 forward-exact but DECODE_SOURCE_MISMATCH
+(spacing) -- the decoder rendered `16** &nPower`, the source is
+`16**&nPower`: decoder fix (40240a4), no space before a token following
+0x46 (only these programs carry 0x46). Final: 3 EXACT, forward-exact =
+EXACT. Tests: `encoderTryWithoutCatch.test.ts`,
+`encoderPowerOperator.test.ts`.
+
+Secondary: declaration / parameter comments are inline 0x4E (25960
+`40 date 4E 01`, 14854 before `)`); `#` / `$` identifiers are stored
+literally (3430 `0A assign_seq#`, 26680 `01 &$Adfmt...`, 28771
+`&c_#aliases`, 29825 `ObjectID#0#`).
 
 ## Compiler Syntax Cycle 157 -- `<* *>` comments
 
