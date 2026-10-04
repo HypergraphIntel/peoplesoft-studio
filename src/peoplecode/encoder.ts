@@ -3284,6 +3284,18 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     chainSemanticsDeclaredRowVariables,
     chainSemanticsDeclaredRowsetVariables
   ];
+  /*
+   * Cycle 163: a Local declared inside an ordinary Function types its
+   * variable only until End-Function: the typed sets are restored there
+   * (as Cycle 151 restores parameters). Outside, the name has no declared
+   * type here and its bare record / field members stay inline names --
+   * 15069 `Local Row &row` in addEntities, then top-level
+   * `&row.PSMAPSEC_VW.SELECT_FLAG` (stored `0A`); 16962 `&orow`, 27367
+   * `&rPersonalData`, 17155 / 25960. LOCAL SNAPSHOT: 5 programs changed, 3
+   * EXACT, 2 lists exact, 0 farther. The declared-NAME test (Cycle 121) is
+   * unchanged: scoping it too made 15598 farther.
+   */
+  let functionScopeSnapshot: Set<string>[] | undefined;
   const functionParameterShadows: {
     key: string;
     sets: Set<string>[];
@@ -7409,6 +7421,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
   function functionStatement(): void {
     chunks.push(fixed('Function'));
+    if (ordinaryProgram && functionDepth === 0) functionScopeSnapshot = shadowableVariableSets.map(set => new Set(set));
 
     space();
 
@@ -7852,6 +7865,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         if (functionDepth === 0) {
           functionApplicationClassVariables.clear();
           restoreFunctionParameterShadows();
+          if (functionScopeSnapshot !== undefined) {
+            shadowableVariableSets.forEach((set, index) => {
+              set.clear();
+              for (const name of functionScopeSnapshot![index]) set.add(name);
+            });
+            functionScopeSnapshot = undefined;
+          }
         }
 
         return;
