@@ -793,6 +793,10 @@ interface EncodeFragmentContext extends EncodeProgramContext {
  *     Style          28 / 15 (2085, 2086)
  *     ChildCount     16 / 10 (24578)
  *     RecordCount     4 /  4 (5065, 14194)
+ *     FreeFormStyleName (Cycle 160) 3 / 3 off a Row (28936 `&row.
+ *                     FreeFormStyleName`, 16495 `&rs(n).FreeFormStyleName`,
+ *                     28872); no stored list has a RECORD or FIELD row of
+ *                     that name (39 programs use it)
  *   position 'field' (Record value)
  *     FieldCount    170 / 124 (1295, 2127)
  *     ParentRow      49 / 22 (1417, 1419)
@@ -811,7 +815,7 @@ interface EncodeFragmentContext extends EncodeProgramContext {
  */
 const BUILTIN_OBJECT_PROPERTIES: Readonly<Record<'record' | 'field', ReadonlySet<string>>> = {
   record: new Set(
-    ['DeleteEnabled', 'ParentRowset', 'Style', 'ChildCount', 'RecordCount'].map(name => name.toLowerCase())
+    ['DeleteEnabled', 'ParentRowset', 'Style', 'ChildCount', 'RecordCount', 'FreeFormStyleName'].map(name => name.toLowerCase())
   ),
   field: new Set(
     ['FieldCount', 'ParentRow', 'DBRecordName', 'IsEditError', 'RelLangRecName', 'ActiveRowCount', 'ParentRowset']
