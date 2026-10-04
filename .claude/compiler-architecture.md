@@ -24,7 +24,8 @@ Cycle 149: EXACT 29,902 / NONEXACT 307; Cycle 150: EXACT 29,920 /
 NONEXACT 289; Cycle 151: EXACT 29,924 / NONEXACT 285; Cycle 152: EXACT
 29,929 / NONEXACT 280; Cycle 153: EXACT 29,952 / NONEXACT 257;
 Cycle 154: EXACT 29,962 / NONEXACT 247; Cycle 155: EXACT 29,975 /
-NONEXACT 234; forward-exact = EXACT); forward-exact
+NONEXACT 234; Cycle 156: EXACT 29,986 / NONEXACT 223; forward-exact =
+EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -340,6 +341,13 @@ registry's Function contexts: CubeCollection / CompositeQuery parameter +
 return, Document parameter, DocumentKey return (every object-type header
 occurrence stores its PACKAGE row; time / object none)
 (`cycle155-function-type-descriptor-census.ts`).
+
+Cycle 156 (syntax) -- a direct postfix `(...)` selector after a call
+result is permitted in chains rooted at an `&variable`, a bare call or
+`%This` (`allowDirectPostfixCall`); literals stay non-callable. A REM
+between And / Or and the right operand is 0x24 expression trivia (its own
+`;` is part of the comment) -- `booleanUnary` accepts it like a block
+comment (`cycle156-postfix-selector-rem-census.ts`).
 
 ## 5. Declarations and scope
 

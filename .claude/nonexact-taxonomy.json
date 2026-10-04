@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-03T22:53:05.460Z",
+ "generatedAt": "2026-10-04T02:46:38.671Z",
  "totalDefinitions": 30209,
- "exactCount": 29975,
- "nonexactCount": 234,
+ "exactCount": 29986,
+ "nonexactCount": 223,
  "rows": [
   {
    "definitionId": 522,
@@ -140,16 +140,6 @@
    "roundtripExact": true,
    "firstDiffOffset": 16740,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 6318,
-   "displayName": "1=DERIVED_HR_SUCC, 2=HR_RB_LINK, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 5502: expected )",
-   "construct": "= \"Y\" And;\n     ",
-   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 7285,
@@ -348,16 +338,6 @@
     "generatedCount": 3,
     "firstDivergenceKind": "package"
    }
-  },
-  {
-   "definitionId": 13895,
-   "displayName": "1=POSITION_DATA_E, 2=POSITION_NBR, 12=SavePostChange, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 5581: bare identifiers are only supported as calls",
-   "construct": "&SEQ_CHANGE <> T",
-   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 14238,
@@ -818,16 +798,6 @@
    "errorMessage": "Cannot encode PeopleCode at source offset 9908: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
    "construct": "*17));\n   If Mod",
    "primaryCategory": "UNSUPPORTED_SYNTAX"
-  },
-  {
-   "definitionId": 16592,
-   "displayName": "1=PSPTDEFSEC_WRK, 2=PT_SAVE_PB1, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 338: bare identifiers are only supported as calls",
-   "construct": "All",
-   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 16893,
@@ -1499,36 +1469,6 @@
    }
   },
   {
-   "definitionId": 28753,
-   "displayName": "104=ADS_DMW, 105=UI, 107=CompareReport, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 8141: bare identifiers are only supported as calls",
-   "construct": ";\n   If &instAds",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 28754,
-   "displayName": "104=ADS_DMW, 105=UI, 107=ContentPaging, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 16660: bare identifiers are only supported as calls",
-   "construct": "en",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 28759,
-   "displayName": "104=ADS_DMW, 105=UI, 107=Main, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 583: bare identifiers are only supported as calls",
-   "construct": "lean",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 28760,
    "displayName": "104=ADS_DMW, 105=UI, 107=ProjectBindsGrid, 12=OnExecute, 0= , 0= , 0= ",
    "classification": "ENCODE_ERROR",
@@ -2097,16 +2037,6 @@
    }
   },
   {
-   "definitionId": 29338,
-   "displayName": "104=GPS_ATSTF, 107=GPSApplyResult, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 2619: expected Then",
-   "construct": "l0",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 29339,
    "displayName": "104=GPS_ATSTF, 107=GPSSearchPerson, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -2145,12 +2075,18 @@
   {
    "definitionId": 29391,
    "displayName": "104=GPS_EDITFUNCTIONS, 107=StaffingContent, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 73: expected ;",
-   "construct": "*\n  * Class Name",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_RECORD_FIELD",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 64,
+    "generatedCount": 60,
+    "firstDivergenceKind": "record-field"
+   }
   },
   {
    "definitionId": 29392,
@@ -2491,12 +2427,18 @@
   {
    "definitionId": 29609,
    "displayName": "104=HCSC_ESIGNATURE, 107=Common, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 36: expected ;",
-   "construct": "TAI_COLLECTION",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 5,
+   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": false,
+    "storedCount": 32,
+    "generatedCount": 31,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 29618,
@@ -2832,16 +2774,6 @@
    }
   },
   {
-   "definitionId": 29950,
-   "displayName": "104=PTAF_ADM_MON, 107=adminMonController, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 438: expected )",
-   "construct": " method doAdminA",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
    "definitionId": 30047,
    "displayName": "104=PTAF_CORE, 107=NotificationEventHandler, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "UNKNOWN_MISMATCH",
@@ -2860,22 +2792,18 @@
   {
    "definitionId": 30068,
    "displayName": "104=PTAF_EMC, 105=CONTROLLERS, 107=formLayoutDesignController, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
+   "classification": "UNKNOWN_MISMATCH",
    "sourceEncodeExact": false,
    "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 482: expected ; in For body",
-   "construct": "thod",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 30098,
-   "displayName": "104=PTAF_EMC, 105=MODEL_OBJECTS, 107=formLayout, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 187: expected )",
-   "construct": " method formLayo",
-   "primaryCategory": "ENCODE_ERROR"
+   "firstDiffOffset": 3602,
+   "primaryCategory": "STRUCTURAL_ORDERING",
+   "referenceComparison": {
+    "referenceExact": false,
+    "referenceSetExact": true,
+    "storedCount": 46,
+    "generatedCount": 46,
+    "firstDivergenceKind": "package"
+   }
   },
   {
    "definitionId": 30124,
@@ -2892,26 +2820,6 @@
     "generatedCount": 20,
     "firstDivergenceKind": "package"
    }
-  },
-  {
-   "definitionId": 30139,
-   "displayName": "104=PTAF_PREVIEW_MON, 107=previewMonitorController, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 512: expected ; in If body",
-   "construct": "doReturnButtonFC",
-   "primaryCategory": "ENCODE_ERROR"
-  },
-  {
-   "definitionId": 30153,
-   "displayName": "104=PTAF_XLAT_SYMBOL, 105=CONTROLLERS, 107=symbolicNameMaintController, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "ENCODE_ERROR",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 408: expected Then",
-   "construct": "\n      Local Row",
-   "primaryCategory": "ENCODE_ERROR"
   },
   {
    "definitionId": 30161,
