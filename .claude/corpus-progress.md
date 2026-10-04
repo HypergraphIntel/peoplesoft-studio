@@ -1,18 +1,18 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-03, Cycle 155)
+## Current status (2026-10-03, Cycle 156)
 
-- **Current target:** Cycle 155 -- unsupported built-in type names in
-  Function headers (the trailer descriptor threw): time, object, Message,
-  CubeCollection, Document, DocumentKey, Primitive, Compound,
-  CompositeQuery. EXACT 29,962 -> 29,975 (+13) = forward-exact; 14
-  programs changed, 0 farther; UNSUPPORTED_SYNTAX 29 -> 15 (15528 ->
-  ACTIVE_PACKAGE: an extra LOGICALSCHEMACOLLECTION row); protected PASS, 0
-  EXACT -> non-EXACT, ROUNDTRIP_ONLY 0; fallback membership unchanged (the
-  original 70 + 14149, which is now EXACT), 13525 EXACT. See "Compiler
-  Syntax Cycle 155".
-- **Last successful calibration:** Cycle 155 (Function type descriptors;
-  built-in type registry Function contexts).
+- **Current target:** Cycle 156 -- (A) a postfix selector after a `%This`
+  method result (`%This.getSucRowset()(1)`, `%This.lvl0_.GetRow(1)
+  .GetRowset(Scroll.X)(&i)`), (B) REM after And / Or. EXACT 29,975 ->
+  29,986 (+11) = forward-exact; 14 programs changed, 0 farther;
+  ENCODE_ERROR 27 -> 13 (29391 -> ACTIVE_RECORD_FIELD, 29609 ->
+  ACTIVE_PACKAGE, 30068 -> STRUCTURAL_ORDERING: `%This` method result
+  typing); protected PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0;
+  fallback membership unchanged (70 + 14149); 13525 EXACT. See "Compiler
+  Syntax Cycle 156".
+- **Last successful calibration:** Cycle 156 (%This postfix selector; REM
+  after boolean operators).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   App Class PACKAGE/FIELD 6 (28967 29518 29583 29598 29715 29725) -- each
@@ -25,7 +25,8 @@
   undeclared-variable receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class
   rows for classes absent from the snapshot (14162, 19877, 23068, 23402
   ...); the fallback wildcard over-claim (blocked by 13525 -- Cycle 105);
-  `%This` method results; 29797 / 29883; 30192; ordinary `Function`
+  `%This` method results (now also 29391 29609 30068: `%This.m()(n)`
+  Rowset typing); 29797 / 29883; 30192; ordinary `Function`
   parameters `As array of <Class>`; hidden rows behind classes absent from
   the snapshot (28964, 28968, 29230, 29598, 29715 / 29725); ordinary `As` casts
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
@@ -35,19 +36,19 @@
   differ from untyped ones; whether non-Record built-in `As array of`
   parameters open a row (13562 `array of Rowset` only); time / object
   descriptors in App Class signatures.
-- **Next action (Cycle 156):** encode failures (42 incl. other
-  categories). Largest coherent group: a selector call on a method result
-  `...GetRowset(Scroll.X)(&i)` -- stored writes a plain postfix `0B ( ...
-  14 )` after the method's `14 )` (30068); the shape already encodes in
-  209 programs, fails in 11 (6318 14727 29338 29391 29609 29845 29950
-  30068 30098 30139 30153, mostly App Class) -- find which chain path
-  refuses the direct postfix call (`allowDirectPostfixCall`). Then REM
-  after And / Or (16592 28753: stored `18 And 24 rem...; <operand>` --
-  expression trivia; 13895 differs). Fallback groups stay parked (13525).
-  Scratch tools under c155 (gate.sh with membership-based fallback.ts).
-  README.md has unrelated uncommitted user edits -- never stage it; never
-  touch stash@{0} / stash@{1}.
-- **Newly established rules this session:** Cycle 155 (encoder): Function
+- **Next action (Cycle 157):** remaining encode failures (28 incl. other
+  categories). Largest family: `<* ... *>` nested comments in positions
+  the encoder rejects (12: 2201 2867 15537 25309 29173 29299 522 17155
+  29845 21348 24079 24918 -- statement level, nested `<* <* *> *>`,
+  inside a condition / Evaluate). Then `try ... end-try` without catch (5:
+  28760 29507 29815 29816 29817), the `**` power operator (3: 14531 16585
+  25484), comments inside declarations / parameters (25960 14854),
+  identifiers with `#` / `$` (3430, 26680). Fallback groups stay parked
+  (13525). Scratch tools under c156. README.md has unrelated uncommitted
+  user edits -- never stage it; never touch stash@{0} / stash@{1}.
+- **Newly established rules this session:** Cycle 156 (syntax): `%This`
+  chains take a direct postfix selector; REM after And / Or is expression
+  trivia; Cycle 155 (encoder): Function
   directory descriptors for time / object / seven built-in object types;
   Function-header registry contexts for CubeCollection, CompositeQuery,
   Document, DocumentKey; Cycle 154 (syntax): bare
@@ -250,6 +251,29 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Syntax Cycle 156 -- %This postfix selector; REM after boolean operators
+
+(A) Of the 11 "selector call" failures, 8 are `%This` chains with a
+direct postfix `(...)` after a call result (29338 29391 29609 29950 30068
+30098 30139 30153); 6318 is the REM shape, 14727 an unsupported Function
+parameter, 29845 a `<* *>` comment. `allowDirectPostfixCall` started true
+only for an `&` root (and after a bare call), so `%This` chains never
+took the postfix; stored writes the same `14 ) 0B ( ... 14 )` for every
+root. `cycle156-postfix-selector-rem-census.ts`: the selector after a
+call encodes after `&variable` / bare-call roots (213 programs), 0 / 8
+after `%This` (no other `%` root occurs). Fix (102efe4): `%This` roots
+permit it. 5 EXACT; 29391 / 29609 / 30068 encode -- their remaining rows
+need the method result typed from the class header (`Returns Rowset`),
+parked with `%This` method results.
+
+(B) A REM after And / Or (16592 `18 And 24 rem...;`, 28753 `1E Or 24
+rem,...;`, 6318, 28754, 28759) only in non-encoding programs; the REM's
+`;` belongs to the 0x24 comment. Fix: `booleanUnary` accepts a REM
+(`isRemCommentStart`, the Cycle 143 boundary) through `remComment()`,
+beside its block-comment handling. 6 EXACT, including 13895 (the same
+post-operator position). Tests: `encoderThisPostfixSelector.test.ts`,
+`encoderRemBooleanContinuation.test.ts`.
 
 ## Compiler Syntax Cycle 155 -- Function type descriptors
 
