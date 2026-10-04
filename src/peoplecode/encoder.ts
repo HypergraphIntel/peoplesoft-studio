@@ -11,6 +11,7 @@ import {
   parseApplicationClassSource,
   maskNonCode,
   isRemCommentStart,
+  disabledCommentEnd,
   type ApplicationClassMethodMember,
   type ApplicationClassStorageMember
 } from './applicationClassProgram.js';
@@ -5373,11 +5374,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       if (!source.startsWith('<*', scan)) {
         return scan;
       }
-      const end = source.indexOf('*>', scan + 2);
+      const end = disabledCommentEnd(source, scan);
       if (end < 0) {
         return scan;
       }
-      scan = end + 2;
+      scan = end;
     }
   };
 
@@ -5480,7 +5481,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       return fail('expected <* disabled-code comment');
     }
 
-    const end = source.indexOf('*>', pos + 2);
+    // Cycle 157: the delimiters nest (`disabledCommentEnd`); `end` is the
+    // index of the closing `*>`.
+    const end = disabledCommentEnd(source, pos) - 2;
     if (end < 0) {
       return fail('unterminated <* disabled-code comment');
     }
@@ -12629,9 +12632,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         sawTopLevelDeclaration &&
         !closedTopLevelDeclarationSection
       ) {
-        const disabledCommentEnd = source.indexOf('*>', pos + 2);
+        const disabledCommentClose = disabledCommentEnd(source, pos) - 2;
         const afterDisabledComment = nextSignificantAfterBlockComments(
-          disabledCommentEnd >= 0 ? disabledCommentEnd + 2 : pos
+          disabledCommentClose >= 0 ? disabledCommentClose + 2 : pos
         );
         const nextIsTopLevelDeclarationAfterDisabledComment =
           /^(?:Global|PanelGroup|Component|Constant|Declare\s+Function)\b/i.test(
@@ -12690,7 +12693,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
        * <blank> <*...*>` stores `15 2D 4F 55`.
        */
       if (importSectionOpen) {
-        const disabledCodeEnd = source.indexOf('*>', pos + 2);
+        const disabledCodeEnd = disabledCommentEnd(source, pos) - 2;
         const afterDisabledCode = nextSignificantAfterComments(disabledCodeEnd >= 0 ? disabledCodeEnd + 2 : source.length);
         if (!/^import\b/i.test(source.slice(afterDisabledCode))) {
           chunks.push(Buffer.from([0x2d]));
@@ -12699,7 +12702,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       }
 
       if (sawLeadingLocalDeclaration) {
-        const disabledCodeEnd = source.indexOf('*>', pos + 2);
+        const disabledCodeEnd = disabledCommentEnd(source, pos) - 2;
         const afterDisabledComment =
           nextSignificantAfterBlockComments(disabledCodeEnd >= 0 ? disabledCodeEnd + 2 : pos);
         const nextIsLocalAfterDisabledComment =
@@ -14932,7 +14935,7 @@ function scanApplicationClassLayoutComments(
       const lineStart = source.lastIndexOf('\n', index - 1) + 1;
       opcode = source.slice(lineStart, index).trim() === '' ? 0x24 : 0x4e;
     } else if (source.startsWith('<*', index)) {
-      const close = source.indexOf('*>', index + 2);
+      const close = disabledCommentEnd(source, index) - 2;
       commentEnd = close < 0 || close + 2 > end ? end : close + 2;
       opcode = 0x55;
     } else if (
@@ -16265,8 +16268,8 @@ function maskCommentsAndStringLiteralsForFunctionScan(
        * Function header inside it is not a function. 15641 / 11118 /
        * 15626: a `Function` inside `<* ... *>` has no directory entry.
        */
-      const end = source.indexOf('*>', i + 2);
-      const stop = end === -1 ? source.length : end + 2;
+      const end = disabledCommentEnd(source, i);
+      const stop = end === -1 ? source.length : end;
       masked += ' '.repeat(stop - i);
       i = stop;
     } else if (source[i] === '"') {

@@ -183,13 +183,41 @@ export interface ApplicationClassProgram {
   declarationTerminatorOffsets: number[];
 }
 
+/**
+ * Cycle 157: the end (index just past its closing `*>`) of the `<* ... *>`
+ * comment opening at `start`, or -1 if it never closes. The delimiters NEST:
+ * every `<*` inside opens a level and the comment ends at the `*>` that
+ * closes the first (2201 / 24079 / 24918: `<* ... <* ... *> ... *>` is one
+ * stored 0x55 comment, `cycle157-nested-comment-census.ts`).
+ */
+export function disabledCommentEnd(source: string, start: number): number {
+  let depth = 0;
+  for (let i = start; i < source.length - 1; i++) {
+    if (source[i] === '<' && source[i + 1] === '*') {
+      depth++;
+      i++;
+    } else if (source[i] === '*' && source[i + 1] === '>') {
+      depth--;
+      i++;
+      if (depth === 0) return i + 1;
+    }
+  }
+  return -1;
+}
+
 function maskApplicationClassTerminatorNonCode(source: string): string {
   const chars = source.split('');
   let index = 0;
   while (index < chars.length) {
     const pair = `${source[index] ?? ''}${source[index + 1] ?? ''}`;
-    if (pair === '/*' || pair === '<*' || pair === '/+') {
-      const close = pair === '/*' ? '*/' : pair === '<*' ? '*>' : '+/';
+    if (pair === '<*') {
+      const end = disabledCommentEnd(source, index);
+      const stop = end < 0 ? chars.length : end;
+      for (; index < stop; index++) if (chars[index] !== '\n' && chars[index] !== '\r') chars[index] = ' ';
+      continue;
+    }
+    if (pair === '/*' || pair === '/+') {
+      const close = pair === '/*' ? '*/' : '+/';
       chars[index++] = ' ';
       chars[index++] = ' ';
       while (index < chars.length && `${source[index]}${source[index + 1] ?? ''}` !== close) {
@@ -288,8 +316,14 @@ export function maskNonCode(source: string): string {
       continue;
     }
     const pair = `${chars[i] ?? ''}${chars[i + 1] ?? ''}`;
-    if (pair === '/*' || pair === '<*') {
-      const close = pair === '/*' ? '*/' : '*>';
+    if (pair === '<*') {
+      const end = disabledCommentEnd(source, i);
+      const stop = end < 0 ? chars.length : end;
+      for (; i < stop; i++) if (chars[i] !== '\n' && chars[i] !== '\r') chars[i] = ' ';
+      continue;
+    }
+    if (pair === '/*') {
+      const close = '*/';
       chars[i++] = ' ';
       chars[i++] = ' ';
       while (i < chars.length && `${chars[i]}${chars[i + 1] ?? ''}` !== close) {
