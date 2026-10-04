@@ -5173,8 +5173,20 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      * the same component name is allocated again in later independent control
      * groups; PSPCMNAME contains multiple COMPONENT/ABS_SHP_LEAVE_GBR rows.
      */
-    const key = `${controlGroup}:${componentName.toLowerCase()}`;
-    const existing = componentReferencesByControlGroup.get(key);
+    /*
+     * Cycle 162: an Application Class program has ONE COMPONENT row per
+     * name (121 stored App Class COMPONENT rows, none repeated; 36 repeated
+     * `Component.X` names, each stored once): the key is method-wide and an
+     * earlier fragment's row is found through the always-present type
+     * session -- 28850 / 29516 / 29618 / 29625 `If %Component =
+     * Component.X` in several control groups and methods. LOCAL SNAPSHOT:
+     * 5 programs changed, 4 EXACT, 29535 closer, 0 farther.
+     */
+    const key = `${context?.recordDependenciesHaveMethodWideLifetime ? 0 : controlGroup}:${componentName.toLowerCase()}`;
+    const existing = componentReferencesByControlGroup.get(key) ??
+      (context?.recordDependenciesHaveMethodWideLifetime
+        ? typeReferenceSession()?.lookup({ kind: 'component', objectName: componentName })
+        : undefined);
 
     if (existing !== undefined) {
       return referenceOperand(existing);
