@@ -1,18 +1,16 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-03, Cycle 156)
+## Current status (2026-10-03, Cycle 157)
 
-- **Current target:** Cycle 156 -- (A) a postfix selector after a `%This`
-  method result (`%This.getSucRowset()(1)`, `%This.lvl0_.GetRow(1)
-  .GetRowset(Scroll.X)(&i)`), (B) REM after And / Or. EXACT 29,975 ->
-  29,986 (+11) = forward-exact; 14 programs changed, 0 farther;
-  ENCODE_ERROR 27 -> 13 (29391 -> ACTIVE_RECORD_FIELD, 29609 ->
-  ACTIVE_PACKAGE, 30068 -> STRUCTURAL_ORDERING: `%This` method result
-  typing); protected PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0;
-  fallback membership unchanged (70 + 14149); 13525 EXACT. See "Compiler
-  Syntax Cycle 156".
-- **Last successful calibration:** Cycle 156 (%This postfix selector; REM
-  after boolean operators).
+- **Current target:** Cycle 157 -- `<* ... *>` comments: nesting
+  (2201 24079 24918), body items of While / Repeat / try / catch (2867
+  15537 25309 29173 29299), Evaluate before its first When (21348),
+  expression placements (29845 17155 522). EXACT 29,986 -> 29,997 (+11)
+  = forward-exact; 12 programs changed, 0 farther; ENCODE_ERROR 13 -> 10,
+  UNSUPPORTED_SYNTAX 15 -> 6 (17155 -> ACTIVE_FIELD); protected PASS, 0
+  EXACT -> non-EXACT, ROUNDTRIP_ONLY 0; fallback membership unchanged (70
+  + 14149); 13525 EXACT. See "Compiler Syntax Cycle 157".
+- **Last successful calibration:** Cycle 157 (`<* *>` comments).
 - **Protected baseline:** 430/430.
 - **Locally blocked definitions:** none newly blocked. Parked:
   App Class PACKAGE/FIELD 6 (28967 29518 29583 29598 29715 29725) -- each
@@ -25,8 +23,8 @@
   undeclared-variable receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class
   rows for classes absent from the snapshot (14162, 19877, 23068, 23402
   ...); the fallback wildcard over-claim (blocked by 13525 -- Cycle 105);
-  `%This` method results (now also 29391 29609 30068: `%This.m()(n)`
-  Rowset typing); 29797 / 29883; 30192; ordinary `Function`
+  `%This` method results (also 29391 29609 30068: `%This.m()(n)` Rowset
+  typing); 29797 / 29883; 30192; ordinary `Function`
   parameters `As array of <Class>`; hidden rows behind classes absent from
   the snapshot (28964, 28968, 29230, 29598, 29715 / 29725); ordinary `As` casts
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
@@ -35,18 +33,23 @@
   control group or the allocation unit; whether `As any` parameters
   differ from untyped ones; whether non-Record built-in `As array of`
   parameters open a row (13562 `array of Rowset` only); time / object
-  descriptors in App Class signatures.
-- **Next action (Cycle 157):** remaining encode failures (28 incl. other
-  categories). Largest family: `<* ... *>` nested comments in positions
-  the encoder rejects (12: 2201 2867 15537 25309 29173 29299 522 17155
-  29845 21348 24079 24918 -- statement level, nested `<* <* *> *>`,
-  inside a condition / Evaluate). Then `try ... end-try` without catch (5:
-  28760 29507 29815 29816 29817), the `**` power operator (3: 14531 16585
-  25484), comments inside declarations / parameters (25960 14854),
-  identifiers with `#` / `$` (3430, 26680). Fallback groups stay parked
-  (13525). Scratch tools under c156. README.md has unrelated uncommitted
-  user edits -- never stage it; never touch stash@{0} / stash@{1}.
-- **Newly established rules this session:** Cycle 156 (syntax): `%This`
+  descriptors in App Class signatures; `**` precedence / associativity.
+- **Next action (Cycle 158):** the remaining encode failures (16 incl.
+  other categories) are small deterministic syntax gaps: `try ...
+  end-try` without catch (6: 28760 29507 29585 29815 29816 29817 --
+  stored `65 try ... 67 end-try`, no catch header; the try loop needs
+  `end-try`); `**` power operator (3: 14531 16585 25484 -- stored token
+  0x46, 5 sites, all parenthesized `a ** b`; the decoder already renders
+  it); then comments in declarations / parameters (25960 14854), `#` /
+  `$` identifiers (3430 26680), 14727, 28936. After syntax, the
+  reference frontier (DECODE_SOURCE_MISMATCH 71, ACTIVE_PACKAGE 47).
+  Fallback groups stay parked (13525). Scratch tools under c157.
+  README.md has unrelated uncommitted user edits -- never stage it; never
+  touch stash@{0} / stash@{1}.
+- **Newly established rules this session:** Cycle 157 (syntax): nested
+  `<* *>` (one 0x55); `<* *>` in While / Repeat / try / catch bodies,
+  before Evaluate's first When (zero-When Evaluate), after And / Or; `<*`
+  is never `<`; Cycle 156 (syntax): `%This`
   chains take a direct postfix selector; REM after And / Or is expression
   trivia; Cycle 155 (encoder): Function
   directory descriptors for time / object / seven built-in object types;
@@ -251,6 +254,32 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Syntax Cycle 157 -- `<* *>` comments
+
+`cycle157-nested-comment-census.ts`: every `<*` comment is stored as one
+0x55 token, in every placement (statement level in 484 EXACT programs;
+after another comment, after `/+ +/`, after When-Other ...). Depth-2
+nesting only in 2201 24079 24918 (stored: the whole raw `<* ... <* ...
+*> ... *>` text as one payload); every scanner ended the comment at the
+first `*>`. Fix 1 (617b165): `disabledCommentEnd` (balanced) shared by
+the 0x55 writer, trivia lookaheads, the layout-comment scan, the
+Function-header mask, the App Class header masks and the
+conditional-compilation span scan -- 3 EXACT.
+
+Placements (depth 1): the While, Repeat, try and catch bodies had no
+`<*` branch (2867 15537 25309 29173 29299) -- fix c6cb0ea, 5 EXACT;
+Evaluate took REM / `/*` between selector and first When but not `<*`,
+and stored keeps an Evaluate with zero When when they are all disabled
+(21348 `3C Evaluate 21 ... 55 3F End-Evaluate`) -- fix 196efa2, 1 EXACT;
+`<*` after a complete condition was read as `<` (29845, 17155) and
+`booleanUnary` took `/*` / REM but not `<*` after And (522 `18 24 55 24`)
+-- final fix, 2 EXACT + 17155 encodes. Cumulative variant sweeps: each
+stage only added programs. Tests: `encoderNestedComments.test.ts`.
+
+Secondary: try without catch (6 non-EXACT, 0 EXACT; stored `65 try ...
+67 end-try`, no catch header); `**` (opcode 0x46, 5 sites in 14531
+16585 25484, all parenthesized).
 
 ## Compiler Syntax Cycle 156 -- %This postfix selector; REM after boolean operators
 

@@ -24,8 +24,8 @@ Cycle 149: EXACT 29,902 / NONEXACT 307; Cycle 150: EXACT 29,920 /
 NONEXACT 289; Cycle 151: EXACT 29,924 / NONEXACT 285; Cycle 152: EXACT
 29,929 / NONEXACT 280; Cycle 153: EXACT 29,952 / NONEXACT 257;
 Cycle 154: EXACT 29,962 / NONEXACT 247; Cycle 155: EXACT 29,975 /
-NONEXACT 234; Cycle 156: EXACT 29,986 / NONEXACT 223; forward-exact =
-EXACT); forward-exact
+NONEXACT 234; Cycle 156: EXACT 29,986 / NONEXACT 223; Cycle 157: EXACT
+29,997 / NONEXACT 212; forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -348,6 +348,14 @@ result is permitted in chains rooted at an `&variable`, a bare call or
 between And / Or and the right operand is 0x24 expression trivia (its own
 `;` is part of the comment) -- `booleanUnary` accepts it like a block
 comment (`cycle156-postfix-selector-rem-census.ts`).
+
+Cycle 157 (syntax) -- `<* ... *>` is one 0x55 token in every placement
+and its delimiters nest (`disabledCommentEnd` in applicationClassProgram.ts,
+shared by every scanner). It is a body item of every body (now While,
+Repeat, try, catch too), a selector comment between Evaluate and its
+first When (an Evaluate may have no When when all are disabled), a
+comment between And / Or and the operand, and `<*` is never the `<`
+operator (`cycle157-nested-comment-census.ts`).
 
 ## 5. Declarations and scope
 
