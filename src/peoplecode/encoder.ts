@@ -137,6 +137,7 @@ class HtmlDependencyScope {
  */
 class ApplicationClassReferenceScope {
   private readonly references = new Map<string, PeopleCodeReference>();
+  private readonly declareFunctionTargets = new Map<string, PeopleCodeReference>();
 
   /**
    * Cycle 138: the wildcard-import claim is the compilation unit's, shared
@@ -149,6 +150,9 @@ class ApplicationClassReferenceScope {
     return {
       lookup: reference =>
         this.references.get(applicationClassReferenceKey(reference)),
+
+      lookupDeclareFunctionTarget: (recordName, fieldName) =>
+        this.declareFunctionTargets.get(`${recordName}.${fieldName}`.toLowerCase()),
 
       claimWildcardImportMetadata: () => {
         if (this.wildcardImportClaim.allocated) {
@@ -168,6 +172,10 @@ class ApplicationClassReferenceScope {
       const key = applicationClassReferenceKey(reference);
       if (!this.references.has(key)) {
         this.references.set(key, reference);
+      }
+      if (reference.kind === 'declare-function') {
+        const target = `${reference.recordName ?? ''}.${reference.fieldName ?? ''}`.toLowerCase();
+        if (!this.declareFunctionTargets.has(target)) this.declareFunctionTargets.set(target, reference);
       }
     }
   }
@@ -242,6 +250,9 @@ interface ApplicationClassReferenceSession {
    * unit. Later wildcard-import fragments return false.
    */
   claimWildcardImportMetadata(): boolean;
+
+  /** Cycle 161: the session's Declare Function row of `recordName.fieldName`, if any. */
+  lookupDeclareFunctionTarget(recordName: string, fieldName: string): PeopleCodeReference | undefined;
 }
 
 
@@ -3731,7 +3742,20 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         kind: 'record-field',
         recordName,
         fieldName
-      });
+      }) ??
+      /*
+       * Cycle 161: an Application Class program has ONE row per REC.FIELD
+       * (1,510 programs, 1,823 REC.FIELD-shaped stored rows, none
+       * repeated), whichever construct opens it: a static REC.FIELD uses
+       * the row of the program's `Declare Function ... PeopleCode
+       * REC.FIELD <event>` target (28936 W3EB_BENEF_SMRY.PLAN_TYPE, 29193
+       * CAF_SRCH.CAF_SRCH_BTN). Ordinary programs keep separate rows (the
+       * unit-scoped Cycle 95 rows; 383 / 383 non-owner targets).
+       */
+      (context?.recordDependenciesHaveMethodWideLifetime
+        ? references.find(item => item.kind === 'declare-function' && same(item.recordName, recordName) && same(item.fieldName, fieldName)) ??
+          typeReferenceSession()?.lookupDeclareFunctionTarget(recordName, fieldName)
+        : undefined);
 
     const statementReference = currentStatementRecordFields.get(statementKey);
     if (statementReference !== undefined) {
