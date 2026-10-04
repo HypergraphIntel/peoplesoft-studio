@@ -92,6 +92,7 @@ export function encodeAsHarness(ctx: HarnessContext, def: SnapshotDefinition, ex
   try {
     const artifacts = encodeProgramArtifacts(def.sourceText, {
       owner: harnessOwner(def),
+      applicationClassDefinition: isApplicationClass(def),
       applicationClassTypeMetadata: ctx.applicationClassTypeMetadata,
       conditionalCompilation: ctx.conditionalCompilation,
       onExternalMetadataFallback: () => { fallback = true; },

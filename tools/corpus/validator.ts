@@ -547,6 +547,9 @@ function runValidation(
       // unused for ordinary Record.Field-owned PeopleCode.
       packagePath
     },
+    // Cycle 163: an Application Class definition (OBJECTID1 104) even when
+    // its source declares no class (a fully commented-out class).
+    applicationClassDefinition: applicationClassKey,
     applicationClassTypeMetadata:
       options.applicationClassTypeMetadata,
     conditionalCompilation:
