@@ -1,17 +1,19 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-04, Cycle 165)
+## Current status (2026-10-04, Cycle 166)
 
-- **Current target:** Cycle 165 -- research: the Cycle 138
-  duplicate-lifetime family (29797 29883 30170 30179 30192). No semantic
-  change: the five reopen class rows per method body, unlike every other
-  program of their store format, with no source / metadata discriminator.
-  EXACT 30,047 / NONEXACT 162 unchanged; protected PASS; fallback
-  membership unchanged (70 + 14149, baseline regenerated); 13525 EXACT.
-  See "Compiler Research Cycle 165".
-- **Last successful calibration:** Cycle 164.
+- **Current target:** Cycle 166 -- the ordinary fallback pass. EXACT
+  30,047 -> 30,051 (+4: 19433 24458 24500 24503) = forward-exact; 4 lists
+  changed, 0 farther, 0 EXACT -> non-EXACT; ACTIVE_PACKAGE 40 -> 38,
+  ACTIVE_RECORD 13 -> 11; no encode failure; protected PASS,
+  ROUNDTRIP_ONLY 0. **Fallback membership 71 -> 68**: the original 70 +
+  14149 minus 19433 24500 24503 (they no longer trigger it); 13525 and
+  14149 EXACT and still members. See "Compiler Cycle 166".
+- **Last successful calibration:** Cycle 166.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** Cycle 165 parked: 29797 29883 30170
+- **Locally blocked definitions:** Cycle 166 parked: the fallback
+  one-claim correction (+8 / -13525; 13525's missing rows need the WCS
+  class metadata); 23068 23402 23572 (IApprovalManager absent). Cycle 165 parked: 29797 29883 30170
   30179 30192 (per-method row reopening; a per-definition compiler variant
   the local evidence cannot predict -- applying it loses 593 EXACT).
   Cycle 164 parked: 30124 (`Local A &x =
@@ -68,19 +70,21 @@
   differ from untyped ones; whether non-Record built-in `As array of`
   parameters open a row (13562 `array of Rowset` only); time / object
   descriptors in App Class signatures; `**` precedence / associativity.
-- **Next action (Cycle 166):** the source-recoverable reference frontier
-  is exhausted outside three blocked pools: ordinary fallback (~43 non-EXACT, behind
-  13525 -- Cycle 105's wildcard over-claim), App Class metadata gaps (~33,
-  classes absent from the snapshot), lossy DSM (68). Each needs a decision
-  or new evidence: (a) re-capture the snapshot source with a correct
-  character conversion (DSM, user decision); (b) capture the missing App
-  Class definitions (metadata gaps); (c) re-open the 13525 fallback
-  conflict. Inside the encoder only singletons remain (30124 28818 30162
-  10860 24458 29945 29244 / 29245 29465). Scratch tools under c165.
+- **Next action (Cycle 167):** the encoder frontier is exhausted under
+  the current snapshot; what remains needs data, not rules: (1) metadata
+  capture of the absent App Class packages (list in the Cycle 166
+  section) -- unblocks the fallback one-claim fix (+8, 13525 then exact
+  without the fallback pass) and ~45 metadata-gap programs; (2) the DSM
+  source question -- verify where `¿` arises (PCTEXT vs capture) before
+  any re-capture, possibly rebuilding source from decoded PSPCMPROG. Both
+  need live HCDEV (user decision). Scratch tools under c166 (the
+  fallback baseline file holds 71; regenerate it -- membership is now 68).
   README.md has unrelated uncommitted user edits -- never stage it; never
   touch stash@{0} / stash@{1}. Run `npm test` unfiltered (its exit status
   is the gate).
-- **Newly established rules this session:** Cycle 164: only the leading
+- **Newly established rules this session:** Cycle 166: ordinary programs
+  model metadata `array of <Class>` types (indexed element = receiver);
+  Cycle 164: only the leading
   extends / implements entries are the class relationship (a member typed
   the same is a header dependency); a Global array of a class opens its
   row at the declaration; `<*` never continues an expression as `<`;
@@ -312,6 +316,85 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Cycle 166 -- the ordinary fallback pass, 13525 decomposed
+
+Baseline edb1a0a reproduced (30,047 EXACT; fallback 71 = 70 + 14149;
+13525 / 14149 EXACT). `cycle166-fallback-census.ts` (sections members /
+wildcard / summary).
+
+What the fallback pass is (Cycle 93 / 112): a program in which a method
+call's receiver is a class known only through absent external metadata
+(`unresolvedReceiverCalls`) is re-encoded with ONE difference -- every
+wildcard import claims a blank PACKAGE row
+(`externalMetadataWildcardClaims`). With one wildcard (or none) the pass
+changes nothing. Stored writes exactly one blank row in every wildcard
+program (1,455 programs: 1,104 EXACT with 1 wildcard, 332 EXACT with 2+).
+
+13525, decomposed:
+- A: generated #4 -- the blank row of the SECOND wildcard import
+  (`import WCS_ITERATOR_TREE:*;`, line 6); stored has none (over-claim).
+- B: stored #6 PACKAGE POPULATIONMANAGER / SETALLELIGIBLE from line 16
+  `&joIterator.POPULATION_MANAGER.setAllEligible(...)` and stored #11
+  ITERATORTREE / TOHTML from line 24 `&coPopMgtDisplayMgr.TREE_OBJECT
+  .toHTML()`: the property types of WCS_ITERATOR_TREE:IteratorTree and
+  WCS_POP_MGT:PopMgtDisplayMgr; WCS_ITERATOR_TREE, WCS_POP_MGT and
+  WCS_POPULATION_MGMT have NO class in the snapshot.
+- Byte exactness hangs on one later operand, POP_MGT_UI_WRK.HTMLAREA:
+  stored #10, generated #10 (one extra, one missing before it); A alone
+  makes it #9.
+- Research-only proof (synthetic metadata for IteratorTree,
+  PopMgtDisplayMgr, PopulationManager, scratch c166, never landed):
+  with it 13525 never enters the fallback pass, and both the current and
+  the A-corrected encoder give an EXACT list and bytes. A without B: bytes
+  differ. B is purely a metadata gap.
+- A alone (fallback claims the first wildcard only) on current HEAD: 21
+  lists closer, 0 farther; EXACT +8 (13517 15038 15039 15256 15257 15609
+  15697 15795) / -1 (13525). Correct but blocked by 13525's metadata gap
+  -- parked (stop F); capturing the WCS classes unblocks it.
+
+Fallback members by mechanism (after this cycle, 68): EXACT 25 + 13525 by
+compensation; missing rows of classes absent from the snapshot 18, +
+over-claim 12; over-claim only 8 (the A group); missing rows of snapshot
+classes 3 (23068 23402 23572: APPINST through `&ApprMgr.the_inst` --
+HMAF_AWE:INTERFACES:IApprovalManager absent; a receiver gap); 15840
+COMPLETE_DOWNSTREAM.
+
+Landed: ordinary programs model `array of <Class>` metadata types
+(Cycle 109 had kept them App Class only). 19433 / 24500 / 24503
+`&ContentSearchGrid.GridColumns [&colnum].SelectAll()` (GridColumns: array
+of ADS_DMW:UI:Widgets:DynamicGridColumn, inherited) store
+PACKAGE.DYNAMICGRIDCOLUMN; dropping the array type counted the call as
+an unresolved external receiver -- the only trigger of their fallback
+pass. 24458 (non-fallback, Cycle 163's parked singleton) likewise. 4
+EXACT, 0 farther; fallback membership 71 -> 68 (those three leave, none
+join; no fallback logic changed).
+
+Source recapture (DSM, 68 lossy) -- not performed. The snapshot reads
+SYSADM.PSPCMTXT.PCTEXT (CLOB, ordered by PROGSEQ; `discovery.ts`) through
+node-oracledb as JS strings and stores them in SQLite as UTF-8 text;
+nothing there substitutes. `¿` (0xBF) is Oracle's replacement character
+in single-byte database character sets, so the loss may sit in PCTEXT
+itself (saved by PeopleTools into a non-Unicode column) -- then a
+re-capture fetches the same `¿`. Verification first, on a sample (6275
+`´`, 25960 `’`, 27771 `¼`): `SELECT parameter, value FROM
+nls_database_parameters WHERE parameter LIKE '%CHARACTERSET'`; `DUMP(
+DBMS_LOB.SUBSTR(pctext, 20, <offset>), 1016)` at a known lossy offset;
+compare with the decoded PSPCMPROG text. If PCTEXT holds 0xBF the true
+text survives only in PSPCMPROG: rebuild the snapshot source from the
+decoded program at those offsets instead of re-capturing.
+
+Metadata capture (~45 non-EXACT programs) -- not performed. App Class
+definitions (OBJECTID1 104, PSPCMTXT source) of: PTWIDGETS (TreeGrid,
+TreeControl, TreeNode, WidgetFactory), WCS_ITERATOR_TREE, WCS_POP_MGT,
+WCS_POPULATION_MGMT, G3FORM, G3SEARCH, G3UTILITIES, G3AWE, HMAP_APPROVAL,
+HMAF_AWE (ApprovalFrameworkBase, INTERFACES:IApprovalManager,
+WRAPPERS:emailActions), EOAW_CORE:ENGINE, EOAW_APPROVAL_MM_FL,
+BNE_OPEN_ENROLL_FL (Page:SubPage:EnrollElect), BN_RATES, BN_COSTS,
+OU_PAGEUP_API, OU_IB_MONITOR, FSFB_UTIL, WCS_LOOKUPTABLE, HCR_JOB_TYPES,
+XML, PT_PM_TREENODE, HR_PERSON_SEARCH_SIMPLE, HR_TEXT_CATALOG. The
+provider needs only class headers (properties, method return types,
+extends); full source is what the snapshot already stores per class.
 
 ## Compiler Research Cycle 165 -- the Cycle 138 duplicate-lifetime family
 

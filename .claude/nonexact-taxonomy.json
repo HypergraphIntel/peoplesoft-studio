@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-04T16:31:07.506Z",
+ "generatedAt": "2026-10-04T19:56:39.371Z",
  "totalDefinitions": 30209,
- "exactCount": 30047,
- "nonexactCount": 162,
+ "exactCount": 30051,
+ "nonexactCount": 158,
  "rows": [
   {
    "definitionId": 1635,
@@ -792,22 +792,6 @@
    }
   },
   {
-   "definitionId": 19433,
-   "displayName": "9=PTADSDMWCONTENTSCH, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 24217,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 77,
-    "generatedCount": 76,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
    "definitionId": 19443,
    "displayName": "9=PTADSMRGFLDS_SEC, 12=Activate, 0= , 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -946,54 +930,6 @@
    "roundtripExact": false,
    "firstDiffOffset": 4086,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 24458,
-   "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMW_WRK, 2=PTADSUPDMERGEACT, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 34009,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 43,
-    "generatedCount": 41,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
-   "definitionId": 24500,
-   "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMW_WRK, 2=SELECT_ALL, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 2102,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 16,
-    "generatedCount": 15,
-    "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 24503,
-   "displayName": "10=PTADSDMW, 39=GBL, 1=PSADSDMW_WRK, 2=UNSELECT_ALL, 12=FieldChange, 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 2126,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 16,
-    "generatedCount": 15,
-    "firstDivergenceKind": "package"
-   }
   },
   {
    "definitionId": 25337,
