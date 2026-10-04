@@ -1,18 +1,22 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-04, Cycle 161)
+## Current status (2026-10-04, Cycle 162)
 
-- **Current target:** Cycle 161 -- the App Class record / field tail.
-  EXACT 30,019 -> 30,027 (+8: 28805 28935 28936 29193 29303 29333 29457
-  29563) = forward-exact; 9 lists changed, all closer; 0 farther, 0 EXACT
-  -> non-EXACT; ACTIVE_PACKAGE 42 -> 40, ACTIVE_RECORD 16 -> 15,
-  ACTIVE_FIELD 16 -> 15, ACTIVE_RECORD_FIELD 20 -> 16, ACTIVE_OTHER 6 -> 5,
-  QUOTED_COMPONENT 4 -> 5 (29618); no encode failure; protected PASS,
-  ROUNDTRIP_ONLY 0; fallback membership unchanged (70 + 14149); 13525
-  EXACT. See "Compiler Semantics Cycle 161".
-- **Last successful calibration:** Cycle 161.
+- **Current target:** Cycle 162 -- App Class COMPONENT rows (the
+  QUOTED_COMPONENT label) and Message GetRowset chains. EXACT 30,027 ->
+  30,034 (+7: 28784 28785 28786 28850 29516 29618 29625) = forward-exact;
+  8 lists changed, all closer; 0 farther, 0 EXACT -> non-EXACT;
+  QUOTED_COMPONENT 5 -> 1 (29535), ACTIVE_OTHER 5 -> 3, ACTIVE_FIELD 15 ->
+  14; no encode failure; protected PASS, ROUNDTRIP_ONLY 0; fallback
+  membership unchanged (70 + 14149); 13525 EXACT. See "Compiler Semantics
+  Cycle 162".
+- **Last successful calibration:** Cycle 162.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** Cycle 161 parked: metadata gaps 28986
+- **Locally blocked definitions:** Cycle 162 parked: 29535 (rest) / 29544
+  EOAW_CORE:ENGINE (Thread / AppInst / StepInst) absent; 29945
+  parenthesized `(&row.GetRowset(1)).GetRow(1).GetRecord(1).X` loses the
+  chain type (singleton); 29244 / 29245 AddressCollection `extends Rowset`
+  (one class, no EXACT control). Cycle 161 parked: metadata gaps 28986
   28991 29230 29136 29584 29585 29586 29633 29622 29537 28965 (classes
   absent from the snapshot -- see the Cycle 161 section); 28784 28785
   28786 Message GetRowset ... GetRecord(n) (no Message chain semantics; 10
@@ -56,20 +60,21 @@
   differ from untyped ones; whether non-Record built-in `As array of`
   parameters open a row (13562 `array of Rowset` only); time / object
   descriptors in App Class signatures; `**` precedence / associativity.
-- **Next action (Cycle 162):** the remaining non-fallback, non-metadata
-  App Class references are quoted / component rows and missing tails:
-  QUOTED_COMPONENT 5 (App Class FIELD/COMPONENT 28850 29535, REC.FIELD/
-  COMPONENT 29516, PAGE/COMPONENT 29618 -- one edit left after Cycle 161,
-  none/COMPONENT 29625) and ACTIVE_OTHER 5 (App Class FIELD/none 28784
-  28786 29544 29945, RECORD/none 29244). Census them into mechanisms;
-  28784 / 28786 overlap the parked Message chain (decide whether a
-  declared Message's GetRowset() is a bound Rowset with corpus-wide
-  evidence). STRUCTURAL_ORDERING 4 (28721 30047 30068 30124) stays
-  untargeted. Ordinary fallback groups stay parked (13525). Scratch tools
-  under c161. README.md has unrelated uncommitted user edits -- never stage
-  it; never touch stash@{0} / stash@{1}. Run `npm test` unfiltered (its
-  exit status is the gate).
-- **Newly established rules this session:** Cycle 161 (semantics): an
+- **Next action (Cycle 163):** the App Class reference tail is now almost
+  all metadata gaps. Next: COMPLETE_DOWNSTREAM 9 (reference lists
+  complete; App Class none/none 28818 29006 29867 29870, owner/REC.FIELD
+  29646 29670, owner/none 30162, ordinary 16893; 15840 fallback) -- classify
+  the first byte difference of each; then the ordinary non-fallback
+  singletons (16567 19289 FIELD/FIELD, 17155 27367 RECORD/FIELD, 10860
+  15069 16962 24458). Optional: `extends Rowset` (29244 / 29245) and
+  parenthesized-group chain typing (29945) if a census finds more
+  programs. Ordinary fallback groups stay parked (13525). Scratch tools
+  under c162. README.md has unrelated uncommitted user edits -- never
+  stage it; never touch stash@{0} / stash@{1}. Run `npm test` unfiltered
+  (its exit status is the gate).
+- **Newly established rules this session:** Cycle 162 (semantics): one
+  COMPONENT row per name in App Class programs; a `Local Message` roots a
+  bound chain (GetRowset / GetRow / GetRecord); Cycle 161 (semantics): an
   App Class static REC.FIELD reuses the program's Declare Function row of
   that target; App Class Rows declared outside the body are Row
   variables; App Class `As array of Record` method parameters are record
@@ -290,6 +295,50 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 162 -- App Class COMPONENT rows; Message GetRowset chains
+
+Baseline 33c4656 reproduced (30,027 EXACT; QUOTED_COMPONENT 5,
+ACTIVE_OTHER 5). `cycle162-component-message-census.ts` (sections
+component / message / extends).
+
+QUOTED_COMPONENT is a taxonomy label only: the corpus has no quoted
+`Component."X"` at all. All five programs (28850 29516 29535 29618 29625)
+write an unquoted `Component.X` more than once (`If %Component =
+Component.X`) and the encoder reopened the row. Stored: an App Class
+program has one COMPONENT row per name (121 rows, none repeated; 36
+repeated names, every one stored once). The App Class encoder kept the
+ordinary control-group key and found earlier fragments' rows only
+through the shared session (off with an inherited `%This` call). Ordinary
+programs reopen per control group (stored 2+ rows for 127 repeated names,
+generated equal). Landed: in an App Class body the COMPONENT key is
+method-wide and the always-present type session is consulted (the REC.FIELD
+/ SCROLL App Class lifetime). 28850 29516 29618 29625 EXACT; 29535 24 -> 2
+edits (left: FIELD.EOAWTHREAD_ID / EOAWPRCS_ID through
+`&stepinst.path.stage.appInst.thread.rec` -- EOAW_CORE:ENGINE classes
+absent from the snapshot; same as 29544).
+
+ACTIVE_OTHER: 28784 / 28786 (and 28785, ACTIVE_FIELD) are one template --
+`&ReqMessage.GetRowset().GetRow(1).GetRecord(1).OPRID.Value = ...` on a
+`Local Message`. A Message base had no chain semantics (dynamic), so the
+bare field after GetRecord(1) failed the Cycle 7 binding gate. Census:
+every bare record / field member reached through a declared Message's
+GetRowset() has its stored row (14 / 14: these 10, 28787 `(n).REC`, 4422
+`(n).REC.FIELD`); other Message calls (Publish, SetXmlDoc, GetXmlDoc,
+CopyRowset ...) start no record chain. Landed: a `Local Message` base is
+bound (declared provenance), so GetRowset / GetRow / GetRecord follow the
+ordinary transitions. 28784 28785 28786 EXACT; nothing else changes.
+29544 / 29535-rest: EOAW_CORE:ENGINE metadata gap (parked). 29945:
+`(&row.GetRowset(1)).GetRow(1).GetRecord(1).PTADSRELNAME` -- a
+parenthesized group loses the chain type (singleton, parked). 29244 /
+29245: CO_ADDRESS:AddressCollection `extends Rowset` -- the only App Class
+in the corpus extending a built-in other than Exception; 29245 `%This
+.GetRow(&I).DERIVED_CO.DESCR`, 29244 `%This.rsData.GetRow(n)
+.PERSON_ADDRESS` (rsData typed AddressCollection by SummaryControl
+metadata); one class, no EXACT control -- deferred.
+
+Combined: EXACT 30,027 -> 30,034 (+7: 28784 28785 28786 28850 29516 29618
+29625); 8 lists changed, all closer; 0 farther, 0 lost.
 
 ## Compiler Semantics Cycle 161 -- App Class record / field tail
 
