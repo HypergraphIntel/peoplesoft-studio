@@ -7494,6 +7494,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         pos++;
         chunks.push(fixed(','));
         space();
+        // Cycle 159: a parameter list may end with a comma (14727
+        // `Function SetIndentImg(&iLvl As integer,)`, stored `40 integer 03
+        // 14`) -- the comma is written, no parameter follows.
+        if (source[pos] === ')') break;
       }
     }, true);
 
@@ -16428,7 +16432,9 @@ function parseFunctionMetadata(
     const parameterTypes: string[] = [];
 
     if (parameterSource.length > 0) {
-      for (const parameter of parameterSource.split(',')) {
+      // Cycle 159: a trailing comma leaves an empty last segment (14727) --
+      // not a parameter.
+      for (const parameter of parameterSource.split(',').filter((p, i, all) => i < all.length - 1 || p.trim() !== '')) {
         const typedMatch =
           /^\s*&[A-Za-z0-9_]+#?\s+As\s+((?:array\s+of\s+)*[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)*)\s*$/i.exec(
             parameter
