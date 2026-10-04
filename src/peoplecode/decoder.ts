@@ -2333,7 +2333,13 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
        * `TIGHT_AFTER` (which would wrongly suppress the space genuinely
        * needed after `)` in most other contexts, e.g. `If (x) Then`).
        */
-      !(t.opcode === 0x4c && (tokens[tokenIndex - 1]?.opcode === 0x4d || tokens[tokenIndex - 1]?.opcode === 0x14))
+      !(t.opcode === 0x4c && (tokens[tokenIndex - 1]?.opcode === 0x4d || tokens[tokenIndex - 1]?.opcode === 0x14)) &&
+      /*
+       * Cycle 158: PeopleTools writes `**` (0x46) with no space on either
+       * side -- 14531 `(16**&nPower)`, 16585 `(2**17)`, 25484 `(10**32)`,
+       * every corpus site -- so the right operand stays tight against it.
+       */
+      tokens[tokenIndex - 1]?.opcode !== 0x46
     ) {
       out.push(' ');
     }
