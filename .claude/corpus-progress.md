@@ -1,16 +1,24 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-04, Cycle 158)
+## Current status (2026-10-04, Cycle 159)
 
-- **Current target:** Cycle 158 -- try without catch (28760 29507 29815
-  29816 29817) and the `**` operator (14531 16585 25484). EXACT 29,997 ->
-  30,005 (+8) = forward-exact; 8 programs changed, 0 farther;
-  ENCODE_ERROR 10 -> 5, UNSUPPORTED_SYNTAX 6 -> 3; protected PASS, 0
-  EXACT -> non-EXACT, ROUNDTRIP_ONLY 0; fallback membership unchanged (70
-  + 14149); 13525 EXACT. See "Compiler Syntax Cycle 158".
-- **Last successful calibration:** Cycle 158 (try without catch; `**`).
+- **Current target:** Cycle 159 -- the last encode failures: `#` / `$`
+  identifiers (3430 26680 28771 29825), declaration / parameter comments
+  (25960 14854), a dotted-statement comment (28936), a trailing parameter
+  comma (14727). EXACT 30,005 -> 30,011 (+6) = forward-exact; encode
+  failures 8 -> 0 (ENCODE_ERROR 5 -> 0, UNSUPPORTED_SYNTAX 3 -> 0; 25960
+  -> DECODE_SOURCE_MISMATCH, 28936 -> ACTIVE_RECORD); 0 farther; protected
+  PASS, 0 EXACT -> non-EXACT, ROUNDTRIP_ONLY 0; fallback membership
+  unchanged (70 + 14149); 13525 EXACT. See "Compiler Syntax Cycle 159".
+- **Last successful calibration:** Cycle 159 (encode frontier closed).
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** none newly blocked. Parked:
+- **Locally blocked definitions:** none newly blocked. DECODE_SOURCE_MISMATCH
+  (72): 66 are snapshot SOURCE fidelity, not encoder -- the stored program
+  holds a non-Latin-1 character (`’` `“` `‘` U+200B ...) that the
+  snapshot's source text has as `¿` (191) / a backtick (96); no encoder
+  change can recover them (needs a re-captured source with a correct
+  character conversion: explicit snapshot maintenance, a user decision).
+  Parked:
   App Class PACKAGE/FIELD 6 (28967 29518 29583 29598 29715 29725) -- each
   one hidden class row behind a class absent from the snapshot (TextCatalog,
   AWTxn, ObjectHashTable / RecordTag via G3FORM:Form, Thread,
@@ -21,8 +29,8 @@
   undeclared-variable receivers; UNRESOLVED_EXTERNAL_CLASS_METADATA class
   rows for classes absent from the snapshot (14162, 19877, 23068, 23402
   ...); the fallback wildcard over-claim (blocked by 13525 -- Cycle 105);
-  `%This` method results (also 29391 29609 30068: `%This.m()(n)` Rowset
-  typing); 29797 / 29883; 30192; ordinary `Function`
+  `%This` method results (29391 29609: 2 reference programs, 4 EXACT
+  programs share the shape); 29797 / 29883; 30192; ordinary `Function`
   parameters `As array of <Class>`; hidden rows behind classes absent from
   the snapshot (28964, 28968, 29230, 29598, 29715 / 29725); ordinary `As` casts
   (18110, 19528, 20687, 14919); 2125, 24500, 24503, 19433. Undetermined
@@ -32,19 +40,21 @@
   differ from untyped ones; whether non-Record built-in `As array of`
   parameters open a row (13562 `array of Rowset` only); time / object
   descriptors in App Class signatures; `**` precedence / associativity.
-- **Next action (Cycle 159):** the last 8 encode failures: `#` / `$`
-  inside identifiers (4: 3430 Function `assign_seq#` stored `0A
-  assign_seq#`, 26680 `&$Adfmt_...` stored `01 &$Adfmt...`, 28771
-  `&c_#aliases`, 29825 member `ObjectID#0#`); inline 0x4E comments in
-  declarations / parameters (25960 `Local array of date 4E /*...*/ 01 &X`,
-  14854 a comment after a parameter type before `)`; 14727 "Unsupported
-  Function parameter" -- check); 28936 a comment before `;` after a
-  dotted statement. Then pivot to the semantic frontier
-  (DECODE_SOURCE_MISMATCH 71, ACTIVE_PACKAGE 47). Fallback groups stay
-  parked (13525). Scratch tools under c158. README.md has unrelated
-  uncommitted user edits -- never stage it; never touch stash@{0} /
-  stash@{1}. Run `npm test` unfiltered (its exit status is the gate).
-- **Newly established rules this session:** Cycle 158 (syntax): try
+- **Next action (Cycle 160):** back to reference semantics. The largest
+  non-fallback family is App Class PACKAGE/PACKAGE (16: 28797 28857 28893
+  28964 28985 29329 29465 29527 29529 29590 29609 29655 ...) --
+  heterogeneous (Cycle 137) and partly metadata-gap; re-census it into
+  mechanisms first. Small clean companion: `FreeFormStyleName` -- a Row
+  property bound as a RECORD row (16495 28872 28936: generated `4A
+  FREEFORMSTYLENAME`, stored inline `0A FreeFormStyleName`). Ordinary
+  fallback groups (25 PACKAGE + 13 REC.FIELD) stay parked (13525).
+  Scratch tools under c159. README.md has unrelated uncommitted user edits
+  -- never stage it; never touch stash@{0} / stash@{1}. Run `npm test`
+  unfiltered (its exit status is the gate).
+- **Newly established rules this session:** Cycle 159 (syntax): `$` / `#`
+  in variables, `#` ending a Function definition name, `#` in members;
+  0x4E comments in Local declarations / parameter lists / before a dotted
+  statement's `;`; a trailing parameter comma; Cycle 158 (syntax): try
   without catch; `**` 0x46 (decoder renders it tight); Cycle 157 (syntax): nested
   `<* *>` (one 0x55); `<* *>` in While / Repeat / try / catch bodies,
   before Evaluate's first When (zero-When Evaluate), after And / Or; `<*`
@@ -253,6 +263,35 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Syntax Cycle 159 -- closing the encode frontier
+
+Fresh inventory: 8 encode failures. `cycle159-special-identifier-census.ts`:
+a trailing `#` on variables / declared or called Function names already
+encoded (8 + 2 EXACT programs); `$` / `#` inside a variable (26680
+`&$Adfmt...`, 28771 `&c_#aliases`), `#` in a member (29825
+`ObjectID#0#`) and a `#`-ending Function DEFINITION name (3430) failed --
+stored keeps them in 0x01 / 0x0A tokens. Fix eefbb9f: the variable,
+Function-definition (and directory scan) and member patterns; directives
+untouched (control test). 4 EXACT.
+
+Comments (all inline 0x4E, the Cycle 154 writer): 25960 `Local array of
+date /*...*/&X` (`40 4E 01`), `, /*...*/&Y` (`03 4E 01`), `&Exists
+/*...*/;` (`01 4E 15`); 14854 `&op As boolean /*...*/)` (`40 4E 14` --
+the header already took it; the directory scan split the comment's own
+commas -> it now reads the masked source). Fix 11a8de0: 14854 EXACT,
+25960 encodes (4 extra FIELD rows in newly reachable code). 28936
+`REC.FIELD.AddFFClass(...) /* Bug */;` (`14 4E 15`): the dotted-statement
+path takes the continuation helper (fix after 11a8de0) -- encodes,
+remaining difference `FreeFormStyleName`. 14727 is a trailing parameter
+comma `(&iLvl As integer,)` (`40 03 14`), not a comment -- its own fix,
+EXACT. Combined: 6 EXACT, 2 closer, encode failures 0.
+
+Pivot research: DECODE_SOURCE_MISMATCH 71 -- 66 lossy source characters
+(stored non-Latin-1 vs `¿` / backtick in the snapshot source), 5 other
+(6275 27771 28963 29654 29858). ACTIVE_PACKAGE 47: App Class
+PACKAGE/PACKAGE 16, ordinary fallback 15 + 10, small App Class groups.
+`%This` method-result typing: 2 reference programs (29391 29609).
 
 ## Compiler Syntax Cycle 158 -- try without catch; `**`
 

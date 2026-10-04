@@ -26,7 +26,8 @@ NONEXACT 289; Cycle 151: EXACT 29,924 / NONEXACT 285; Cycle 152: EXACT
 Cycle 154: EXACT 29,962 / NONEXACT 247; Cycle 155: EXACT 29,975 /
 NONEXACT 234; Cycle 156: EXACT 29,986 / NONEXACT 223; Cycle 157: EXACT
 29,997 / NONEXACT 212; Cycle 158: EXACT 30,005 / NONEXACT 204;
-forward-exact = EXACT); forward-exact
+Cycle 159: EXACT 30,011 / NONEXACT 198, no encode failure; forward-exact
+= EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -363,6 +364,17 @@ end-try`; the try loop accepts end-try, blank line -> 0x4F); `**` is one
 arithmetic operator token 0x46 (matched before `*`), rendered by the
 decoder tight on both sides; precedence / associativity unproven (every
 corpus site is a parenthesized `a ** b`) (`cycle158-try-power-census.ts`).
+
+Cycle 159 (syntax) -- the last encode failures: `$` / `#` anywhere after
+the `&` of a variable, a trailing `#` on a Function definition name, `#`
+inside a member name (stored literally); inline 0x4E comments in a Local
+declaration (after the type, after a comma, before `;`) and in a
+Function parameter list (the directory scan reads the masked source); a
+comment before the `;` of a dotted method-call statement; a trailing
+comma in a parameter list (`cycle159-special-identifier-census.ts`).
+DECODE_SOURCE_MISMATCH is now mostly snapshot source fidelity: 66 of 71
+have a non-Latin-1 character in the stored program (`’` `“` `‘` U+200B)
+that the snapshot's source text holds as `¿` / a backtick.
 
 ## 5. Declarations and scope
 
