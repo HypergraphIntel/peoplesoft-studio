@@ -1906,6 +1906,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       /^Record$/i.test(declaredArrayElementType ?? '');
 
     space();
+    // Cycle 159: an inline block comment between the complete type and the
+    // variable is a 0x4E comment (25960 `Local array of date /*...*/&X`:
+    // stored `40 date 4E 01`).
+    while (source.startsWith('/*', pos)) {
+      chunks.push(inlineBlockComment());
+      space();
+    }
     const firstDeclaredVariable =
       /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
     if (/^Record$/i.test(type ?? '') && firstDeclaredVariable) {
@@ -1921,6 +1928,9 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
     while (true) {
       space();
+      // Cycle 159: ... and before a `,` / the `;` (25960 `&Exists
+      // /*, &CalRunFinalized*/;` -> `01 4E 15`) ...
+      commentsBeforeContinuation(/^[,;]/);
 
       if (source[pos] !== ',') {
         break;
@@ -1930,6 +1940,11 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       chunks.push(fixed(','));
 
       space();
+      // ... and after a comma (25960 `, /*&TrgrDt, */&BGN_DT_Wk` -> `03 4E 01`).
+      while (source.startsWith('/*', pos)) {
+        chunks.push(inlineBlockComment());
+        space();
+      }
       const declaredVariable =
         /^&[A-Za-z0-9_]+#?/.exec(source.slice(pos))?.[0];
       if (/^Record$/i.test(type ?? '') && declaredVariable) {
@@ -16399,8 +16414,12 @@ function parseFunctionMetadata(
       );
     }
 
+    // Cycle 159: read the parameters from the comment / string-masked source:
+    // a comment inside the list (14854 `&operation As boolean /*True is for
+    // addition, and False ...*/)`, stored `40 boolean 4E 14`) is not a
+    // parameter, and its own commas do not split one.
     const parameterSource =
-      source.slice(parameterStart, closeParen).trim();
+      maskedSource.slice(parameterStart, closeParen).trim();
 
     const parameterTypes: string[] = [];
 
