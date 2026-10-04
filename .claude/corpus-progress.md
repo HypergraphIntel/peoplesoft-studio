@@ -1,18 +1,23 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-04, Cycle 160)
+## Current status (2026-10-04, Cycle 161)
 
-- **Current target:** Cycle 160 -- App Class PACKAGE/PACKAGE mechanisms,
-  the FreeFormStyleName Row property, `%This` result typing. EXACT 30,011
-  -> 30,019 (+8: 16495 28797 28872 28985 29391 29609 30161 30206) =
-  forward-exact; 28 lists closer, 0 farther, 0 EXACT -> non-EXACT;
-  ACTIVE_PACKAGE 47 -> 42 (App Class PACKAGE/PACKAGE 16 -> 12),
-  ACTIVE_RECORD 19 -> 16 (28936 -> ACTIVE_RECORD_FIELD); no encode
-  failure; protected PASS, ROUNDTRIP_ONLY 0; fallback membership unchanged
-  (70 + 14149); 13525 EXACT. See "Compiler Semantics Cycle 160".
-- **Last successful calibration:** Cycle 160.
+- **Current target:** Cycle 161 -- the App Class record / field tail.
+  EXACT 30,019 -> 30,027 (+8: 28805 28935 28936 29193 29303 29333 29457
+  29563) = forward-exact; 9 lists changed, all closer; 0 farther, 0 EXACT
+  -> non-EXACT; ACTIVE_PACKAGE 42 -> 40, ACTIVE_RECORD 16 -> 15,
+  ACTIVE_FIELD 16 -> 15, ACTIVE_RECORD_FIELD 20 -> 16, ACTIVE_OTHER 6 -> 5,
+  QUOTED_COMPONENT 4 -> 5 (29618); no encode failure; protected PASS,
+  ROUNDTRIP_ONLY 0; fallback membership unchanged (70 + 14149); 13525
+  EXACT. See "Compiler Semantics Cycle 161".
+- **Last successful calibration:** Cycle 161.
 - **Protected baseline:** 430/430.
-- **Locally blocked definitions:** Cycle 160 parked: App Class repeated
+- **Locally blocked definitions:** Cycle 161 parked: metadata gaps 28986
+  28991 29230 29136 29584 29585 29586 29633 29622 29537 28965 (classes
+  absent from the snapshot -- see the Cycle 161 section); 28784 28785
+  28786 Message GetRowset ... GetRecord(n) (no Message chain semantics; 10
+  / 10 sites FIELD rows, no EXACT control); 29245 `extends Rowset`; 29293
+  unterminated Declare Function (layout fallback, like 29329). Cycle 160 parked: App Class repeated
   named-import dedupe (29465 29529; correct in 13 / 13 programs but turns
   28729 non-EXACT -- its duplicate row compensates for a COLLECTION row
   from PTWIDGETS:TreeGrid, absent from the snapshot); metadata gaps 28857
@@ -51,21 +56,24 @@
   differ from untyped ones; whether non-Record built-in `As array of`
   parameters open a row (13562 `array of Rowset` only); time / object
   descriptors in App Class signatures; `**` precedence / associativity.
-- **Next action (Cycle 161):** the non-fallback reference frontier is now
-  a tail of small App Class groups. Census them into mechanisms like
-  Cycle 160: ACTIVE_RECORD App Class PACKAGE/RECORD 4 (28986 28991 29230
-  29585), RECORD/RECORD 3 (28935 28965 29245), FIELD/RECORD 2; ACTIVE_FIELD
-  App Class FIELD/FIELD 3 (28785 29303 29622); ACTIVE_RECORD_FIELD App
-  Class 7 (28936 29193 29136 29457 29537 29563 30179). Named candidate:
-  28936's static `W3EB_BENEF_SMRY.PLAN_TYPE` served by the program's own
-  Declare Function row (REC.FIELD reuse of a declare-function row in App
-  Class programs). Inherited `%This` class results (29465) are only 3
-  programs. Ordinary fallback groups (15 PACKAGE + 10 REC.FIELD + 11
-  PACKAGE/REC.FIELD) stay parked (13525). Scratch tools under c160.
-  README.md has unrelated uncommitted user edits -- never stage it; never
-  touch stash@{0} / stash@{1}. Run `npm test` unfiltered (its exit status
-  is the gate).
-- **Newly established rules this session:** Cycle 160 (semantics): App
+- **Next action (Cycle 162):** the remaining non-fallback, non-metadata
+  App Class references are quoted / component rows and missing tails:
+  QUOTED_COMPONENT 5 (App Class FIELD/COMPONENT 28850 29535, REC.FIELD/
+  COMPONENT 29516, PAGE/COMPONENT 29618 -- one edit left after Cycle 161,
+  none/COMPONENT 29625) and ACTIVE_OTHER 5 (App Class FIELD/none 28784
+  28786 29544 29945, RECORD/none 29244). Census them into mechanisms;
+  28784 / 28786 overlap the parked Message chain (decide whether a
+  declared Message's GetRowset() is a bound Rowset with corpus-wide
+  evidence). STRUCTURAL_ORDERING 4 (28721 30047 30068 30124) stays
+  untargeted. Ordinary fallback groups stay parked (13525). Scratch tools
+  under c161. README.md has unrelated uncommitted user edits -- never stage
+  it; never touch stash@{0} / stash@{1}. Run `npm test` unfiltered (its
+  exit status is the gate).
+- **Newly established rules this session:** Cycle 161 (semantics): an
+  App Class static REC.FIELD reuses the program's Declare Function row of
+  that target; App Class Rows declared outside the body are Row
+  variables; App Class `As array of Record` method parameters are record
+  arrays; Cycle 160 (semantics): App
   Class header members typed Exception are declaration dependencies, a
   built-in base type is not; App Class casts open a row only for a call on
   the result; FreeFormStyleName is a Row / Rowset property; own
@@ -282,6 +290,55 @@
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
 - **Datasource mode:** LOCAL SNAPSHOT throughout (`tools/corpus/hcdev-snapshot.sqlite`); `--live` not used.
+
+## Compiler Semantics Cycle 161 -- App Class record / field tail
+
+Baseline bb853db reproduced (30,019 EXACT; ACTIVE_RECORD 16, ACTIVE_FIELD
+16, ACTIVE_RECORD_FIELD 20). `cycle161-appclass-record-tail-census.ts`
+(sections tail / unique / declare / rowdecl / arrayparam / message). The
+21 App Class programs of the record / field families are almost all
+MISSING rows; by source mechanism:
+
+- Declare Function target reuse (28936 W3EB_BENEF_SMRY.PLAN_TYPE, 29193
+  CAF_SRCH.CAF_SRCH_BTN -- extra static row). An App Class program never
+  repeats a REC.FIELD-shaped row identity (1,510 programs, 1,823 rows,
+  Declare Function targets included); a static REC.FIELD is written with
+  the Declare Function row's NAMENUM. Ordinary programs differ: a
+  non-owner target written statically keeps its own row(s) in 383 / 383
+  (the unit-scoped Cycle 95 rows; owner targets use row 1, 190 EXACT).
+  Landed: in an App Class body a static REC.FIELD reuses the session's
+  Declare Function row of that target (Cycle 138 sessions respected).
+  2 programs changed, both EXACT.
+- Header / top-level Row variables (29457 `instance Row &rowTmplSec`,
+  29563 `instance Row &ThisRow`, 28935 `property Row NewPlanRow` as
+  `&NewPlanRow`): their bare record member is a RECORD row at 61 / 61
+  sites (5 programs; Row properties IsNew / RowNumber / DeleteEnabled /
+  ParentRowset inline, also in EXACT programs). Cycle 135 had found "no
+  program changes" -- every such program was then still blocked
+  elsewhere. Landed (parameters and Locals of the same name shadow it):
+  28805 28935 29457 29563 EXACT, 29618 11 -> 1 edits.
+- App Class method parameter `As array of Record` (29303 `&StgRec [&RI]
+  .PROCESS_INSTANCE`, 29333): an indexed element's member is a FIELD row
+  (4 / 4 sites; the ordinary Cycle 151 rule, 21 / 21); `.Name` /
+  `.IsChanged` inline. Landed: both EXACT.
+- Parked, metadata gaps (class absent from the snapshot): 28986 COSTS,
+  28991 BENEFITBASE, 29230 APPMSG, 29136 OPERATOR, 29584 G3SEARCH:Search,
+  29585 / 29586 / 29633 G3FORM (SEARCHKEYLIST, ENDPOINT, FORMKEYROWSET,
+  OBJECTHASHTABLE, G3ORIGINAL_OPRID order), 29622
+  HR_PERSON_SEARCH_SIMPLE:PersonSearchSimpleUI `.Rec_Config`, 29537
+  HMAF_AWE:WRAPPERS:emailActions (AWTXN), 28965 EnrollElect
+  `%Super.NewPlanRow` (+ COSTCREDIT).
+- Parked, small: 28784 / 28785 / 28786 `&msg.GetRowset().GetRow(1)
+  .GetRecord(1).OPRID` on a `Local Message` (10 / 10 FIELD rows stored; a
+  Message base has no chain semantics -- a new tracked type, one family,
+  no EXACT control); 29245 `class ... extends Rowset` (`%This.GetRow(&i)
+  .DERIVED_CO.DESCR`); 29293 a Declare Function without `;` at the end of
+  the top-level region (stored `42 2D`, the corpus's only one) -- like
+  29329 the region falls back to layout-only and drops its row; 30179
+  Cycle 138 lifetime.
+
+Combined: EXACT 30,019 -> 30,027 (+8: 28805 28935 28936 29193 29303 29333
+29457 29563); 9 lists changed, all closer; 0 farther, 0 lost.
 
 ## Compiler Semantics Cycle 160 -- App Class PACKAGE mechanisms; Row properties; %This results
 

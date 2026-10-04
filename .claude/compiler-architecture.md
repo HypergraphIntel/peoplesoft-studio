@@ -27,7 +27,8 @@ Cycle 154: EXACT 29,962 / NONEXACT 247; Cycle 155: EXACT 29,975 /
 NONEXACT 234; Cycle 156: EXACT 29,986 / NONEXACT 223; Cycle 157: EXACT
 29,997 / NONEXACT 212; Cycle 158: EXACT 30,005 / NONEXACT 204;
 Cycle 159: EXACT 30,011 / NONEXACT 198, no encode failure; Cycle 160:
-EXACT 30,019 / NONEXACT 190; forward-exact = EXACT); forward-exact
+EXACT 30,019 / NONEXACT 190; Cycle 161: EXACT 30,027 / NONEXACT 182;
+forward-exact = EXACT); forward-exact
 (program bytes equal) 29,721; protected 430/430; fallback 70 (13525 in,
 EXACT); ROUNDTRIP_ONLY 0.
 
@@ -389,6 +390,16 @@ Repeated named imports of one leaf store one row in every App Class
 program, but deduping them for classes with an inherited `%This` call
 breaks 28729 (a compensating absent-metadata row) -- parked
 (`cycle160-appclass-package-census.ts`).
+
+Cycle 161 (semantics) -- an Application Class program has one row per
+REC.FIELD identity (no stored App Class list repeats one), so a static
+REC.FIELD in a body reuses the session's Declare Function row of that
+target (`ApplicationClassReferenceSession.lookupDeclareFunctionTarget`);
+ordinary programs keep unit-scoped static rows beside the program-wide
+Declare Function row. A Row declared outside the body (header instance /
+property, Global / Component) joins `rowVariables` in every body (shadowed
+by parameters and Locals); an App Class method parameter `As array of
+Record` joins `recordArrayVariables` (`cycle161-appclass-record-tail-census.ts`).
 
 ## 5. Declarations and scope
 
