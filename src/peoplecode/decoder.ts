@@ -281,7 +281,17 @@ function readByteIntegerLiteral(
   valueOffset: number = 2
 ): { text: string; end: number } | undefined {
   if (start + operandLength > bytes.length) return undefined;
-  if (bytes[start] !== 0x00) return undefined;
+  /*
+   * Cycle 169: the 0x50 operand is psmath's 18-byte DEC -- a sign byte, a
+   * scale byte, a 16-byte magnitude (pt861 psmath.dll ChangeSignDecimal
+   * flips byte 0, IsDecimalNegative tests it, the scale is byte 1). The
+   * compiler's lexer only ever makes unsigned literals (executable `-n`
+   * is 0x0E then the literal: 7,306 corpus sites); a negative Constant
+   * value is the one signed literal (29858 `Constant &UNSET_ANGLE =
+   * -4002840;` stores `50 01 00 18 14 3D ...`).
+   */
+  const negative = allowScale && bytes[start] === 0x01;
+  if (bytes[start] !== 0x00 && !negative) return undefined;
   const scale = bytes[start + 1];
   if (scale !== 0x00 && !allowScale) return undefined;
   for (let j = start + 2; j < start + valueOffset; j++) {
@@ -292,7 +302,7 @@ function readByteIntegerLiteral(
   for (let j = start + valueOffset + valueBytes; j < start + operandLength; j++) {
     if (bytes[j] !== 0x00) return undefined;
   }
-  return { text: formatScaled(value, scale), end: start + operandLength };
+  return { text: `${negative ? '-' : ''}${formatScaled(value, scale)}`, end: start + operandLength };
 }
 
 /** `value / 10^scale` as a decimal string; `scale` 0 is the plain integer, unchanged. */
