@@ -5885,11 +5885,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
       commentsBeforeContinuation(/^(?:[+\-*|]|\/(?!\*))/);
       if (source.startsWith('/*', pos)) break;
 
-      const operator = /^[+\-*/|]/.exec(source.slice(pos))?.[0];
+      // Cycle 158: `**` (power) is one operator token, 0x46 (14531
+      // `(16**&nPower)`, 16585, 25484; `cycle158-try-power-census.ts`).
+      const operator = /^(?:\*\*|[+\-*/|])/.exec(source.slice(pos))?.[0];
       if (!operator) break;
 
       pos += operator.length;
-      chunks.push(fixed(operator, operator === '*' ? 0x0f : undefined));
+      chunks.push(fixed(operator, operator === '**' ? 0x46 : operator === '*' ? 0x0f : undefined));
       commentsAfterOperator();
       castPrimary();
     }
