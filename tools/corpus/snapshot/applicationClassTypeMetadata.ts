@@ -14,6 +14,7 @@ import {
   type ApplicationClassDefinition,
   type ApplicationClassTypeMetadataProvider
 } from '../../../src/peoplecode/applicationClassTypeMetadata';
+import { decodeCapturedApplicationClass, listSnapshotCapturedApplicationClasses } from './capturedApplicationClasses';
 
 export function listSnapshotApplicationClassDefinitions(db: Database.Database): ApplicationClassDefinition[] {
   const snapshot = getLatestCompletedSnapshot(db);
@@ -46,8 +47,25 @@ let cached: ApplicationClassTypeMetadataProvider | undefined;
  */
 export function snapshotApplicationClassTypeMetadata(db: Database.Database): ApplicationClassTypeMetadataProvider {
   cached ??= createApplicationClassTypeMetadataProvider(
-    listSnapshotApplicationClassDefinitions(db),
+    withCapturedClasses(db, listSnapshotApplicationClassDefinitions(db)),
     { isBuiltinType: isBuiltinObjectTypeName }
   );
   return cached;
+}
+
+/*
+ * Cycle 167: the snapshot's captured classes (snapshot_appclass_metadata --
+ * compiled programs of classes HCDEV holds no source for) join as their
+ * decoded class headers. A class the corpus holds source for keeps its
+ * source; a program that does not decode completely is left out.
+ */
+function withCapturedClasses(db: Database.Database, definitions: ApplicationClassDefinition[]): ApplicationClassDefinition[] {
+  const known = new Set(definitions.map(d => d.path.join(':').toUpperCase()));
+  const captured: ApplicationClassDefinition[] = [];
+  for (const c of listSnapshotCapturedApplicationClasses(db)) {
+    if (known.has(c.path.join(':').toUpperCase())) continue;
+    const decoded = decodeCapturedApplicationClass(c);
+    if (decoded !== undefined) captured.push(decoded);
+  }
+  return [...captured, ...definitions];
 }

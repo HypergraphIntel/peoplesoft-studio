@@ -7,8 +7,9 @@ import type {
   SnapshotMeta,
 } from './types';
 
+/* CORPUS_SNAPSHOT_DB: another snapshot file (a scratch copy to validate an import against). */
 export const SNAPSHOT_DB =
-  path.resolve('tools/corpus/hcdev-snapshot.sqlite');
+  path.resolve(process.env.CORPUS_SNAPSHOT_DB ?? 'tools/corpus/hcdev-snapshot.sqlite');
 
 const SNAPSHOT_SCHEMA =
   path.resolve('tools/corpus/snapshot/schema.sql');
