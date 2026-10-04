@@ -5908,8 +5908,15 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      *         /*The below error message will be thrown ... *\/
      *         &DEL = "FALSE"
      */
-    while (source.startsWith('/*', pos)) {
-      const comment = blockCommentByPlacement();
+    /*
+     * Cycle 156: so is a REM between a boolean operator and its right
+     * operand -- a 0x24 comment carrying its own `;`, after which the
+     * expression continues (16592 `... And` / `rem All(...) And ;` /
+     * `&GroupLASTUPDDTTM <> ...`: stored `18 And 24 rem... 01`; 28753 after
+     * Or, 6318). `cycle156-postfix-selector-rem-census.ts`.
+     */
+    while (source.startsWith('/*', pos) || isRemCommentStart(source, pos)) {
+      const comment = source.startsWith('/*', pos) ? blockCommentByPlacement() : remComment();
       chunks.push(comment);
       const gapStart = pos;
       space();
