@@ -34,7 +34,8 @@ NONEXACT 166; Cycle 164: EXACT 30,047 / NONEXACT 162; Cycle 166: EXACT
 Class metadata): EXACT 30,112 / NONEXACT 97, fallback detection 6, all
 EXACT; Cycle 168: EXACT 30,121 / NONEXACT 88; Cycle 169: EXACT 30,126 /
 NONEXACT 83, actionable 8; Cycle 170: EXACT 30,129 / NONEXACT 80, actionable 5;
-forward-exact = EXACT); protected 430/430; ROUNDTRIP_ONLY 0.
+Cycle 171: EXACT 30,131 / NONEXACT 78, actionable 3 -- milestone
+CORPUS_RECOVERABLE_FRONTIER_CLOSED; forward-exact = EXACT); protected 430/430; ROUNDTRIP_ONLY 0.
 
 ---
 
@@ -606,8 +607,9 @@ the first divergence, the stored kind varies), not mechanisms.
 - External class metadata -- resolved by the Cycle 167 capture; left:
   %metadata system classes (EXACT programs only), TargetActualWidget
   (undecoded opcode).
-- Five one-of-a-kind shapes (14352 15598 10860 30124 30162) -- need a
-  controlled compile; native notes in docs/PEOPLETOOLS_BINARIES.md.
+- Three cases need a controlled compile (30124 10860 15598) -- lab
+  specification in docs/CONTROLLED_COMPILE_LAB.md; native notes in
+  docs/PEOPLETOOLS_BINARIES.md.
 - Untyped Function parameter shadowing (11513).
 - Legacy App Class path (29632).
 
