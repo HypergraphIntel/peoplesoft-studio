@@ -34,6 +34,63 @@
  * builder supports both, and the smoke step decides.
  */
 
+/**
+ * A PeopleTools release the lab can compile with: its exact Windows client
+ * (pinned by hash), its lab directory and Wine prefix under $HOME, and the
+ * PSSTATUS values a lab database must report for its output to count.
+ * HCDEV conclusions come only from 8.61.15. Each other release is
+ * authoritative only for programs compiled by that release.
+ */
+export interface PeopleToolsReleaseProfile {
+  release: string;
+  toolsRel: string;
+  patch: number;
+  build?: string;
+  /** sha256 of the client's pside.exe and pspcm.dll (bin/client/winx86). */
+  clientSha256: Record<'pside.exe' | 'pspcm.dll', string>;
+  labDirectory: string;
+  winePrefix: string;
+}
+
+export const PEOPLETOOLS_RELEASES: Readonly<Record<string, PeopleToolsReleaseProfile>> = {
+  '8.61.15': {
+    release: '8.61.15',
+    toolsRel: '8.61',
+    patch: 15,
+    build: 'PT861P15B_2509220501',
+    clientSha256: {
+      'pside.exe': 'e1d1b610650b96986a88ea38dcf0cb5b4fea0f6e77948aa8085181f410a141f8',
+      'pspcm.dll': 'ad57fe0923022e49449e33f80cc7a8f91d8b6446d5f83a8fa3fcd67c11fa1d0b'
+    },
+    labDirectory: 'pt86115',
+    winePrefix: '.wine-peoplesoft-86115'
+  },
+  /* Cycle 177: the home lab's PeopleTools Client DPK (PTC-DPK-WIN8.62.09-1of1.zip, sha256 78a7f961...). */
+  '8.62.09': {
+    release: '8.62.09',
+    toolsRel: '8.62',
+    patch: 9,
+    build: 'PT862P09C_2604092319',
+    clientSha256: {
+      'pside.exe': '4f754ce32bcacd09c62ac969b0ea41c629adfaaf0e725f36e5fd5dba5906283f',
+      'pspcm.dll': '4e32443efb17a3edaddac6a7161d19d320b8410455412d9f201e63e2a369a1be'
+    },
+    labDirectory: 'pt86209',
+    winePrefix: '.wine-peoplesoft-86209'
+  }
+};
+
+export function releaseProfile(release = '8.61.15'): PeopleToolsReleaseProfile {
+  const profile = PEOPLETOOLS_RELEASES[release];
+  if (profile === undefined) throw new Error(`No lab profile for PeopleTools ${release} (known: ${Object.keys(PEOPLETOOLS_RELEASES).join(', ')}).`);
+  return profile;
+}
+
+/** Whether a lab database's PSSTATUS matches the release the client compiles for. */
+export function databaseMatchesRelease(profile: PeopleToolsReleaseProfile, toolsRel: string, patch: number): boolean {
+  return toolsRel.trim() === profile.toolsRel && patch === profile.patch;
+}
+
 /** Never a lab: the institutional databases (Cycle 172 inventory). */
 export const PROTECTED_DATABASE_PATTERN = /^(HCDEV|HCTST|HCUAT|HCPRD\w*|HCPAY|HCPPY|HCTRN|FS\w*)$/i;
 
@@ -126,7 +183,11 @@ export interface PsideLogReport {
   lines: string[];
   /** The SQL library (PSORA64) could not load: the Oracle client is missing from the path. */
   sqlLibraryMissing: boolean;
-  /** Signon was refused (any cause: bad credentials, unreachable database). */
+  /**
+   * Signon was refused (any cause): bad operator credentials or an
+   * unreachable database ("Invalid User ID and password"), or a bad connect
+   * id ("Invalid Connect ID or password", 8.62.09 against a live database).
+   */
   signonFailed: boolean;
   /** ORA-nnnnn codes in order. */
   oracleErrors: string[];
@@ -144,7 +205,7 @@ export function readPsideLog(bytes: Buffer): PsideLogReport {
   return {
     lines,
     sqlLibraryMissing: /Missing or invalid version of SQL library/i.test(text),
-    signonFailed: /Invalid User ID and password for signon/i.test(text),
+    signonFailed: /Invalid (User ID|Connect ID) (and|or) password for signon/i.test(text),
     oracleErrors,
     errorLines: lines.filter(line => /\berror\b/i.test(line)),
     ...(processed !== null ? { itemsProcessed: Number(processed[1]) } : {})
