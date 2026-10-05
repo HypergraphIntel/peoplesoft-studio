@@ -1,6 +1,6 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-05, Cycle 172)
+## Current status (2026-10-05, Cycle 173)
 
 - **Milestone: CORPUS_RECOVERABLE_FRONTIER_CLOSED.** EXACT 30,131 of
   30,209 = forward-exact; NONEXACT 78 = 71 lossy source (HCDEV PCTEXT) +
@@ -10,9 +10,11 @@
   compiler equivalence: the corpus, the captured metadata and static
   analysis of the exact-patch binaries justify no further production
   rule. See "Compiler Cycle 171" and docs/CONTROLLED_COMPILE_LAB.md.
-- **Last successful calibration:** Cycle 171 (Cycle 172: no semantic
-  change -- lab provisioning stopped before installation; baseline
-  re-verified 30,131 / 78, 430/430, fallback 6, 13525 EXACT).
+- **Last successful calibration:** Cycle 171. Cycles 172 and 173 made
+  no semantic change. Cycle 173 stopped at condition A because the
+  8.61.15 media is unreachable: `hcwin-dev.net.ou.edu` does not resolve,
+  there is no VPN interface and there is no local copy. The baseline was
+  re-verified.
 - **Protected baseline:** 430/430.
 - **Snapshot requirement:** the captured App Class metadata (3,178
   classes) must be imported; check `npx tsx
@@ -25,16 +27,23 @@
   15598's top-level code: stored 0x0A inline, encoder 0x4A reference).
   Experiment pack tools/corpus/controlled-compile/experiments.json;
   docs/CONTROLLED_COMPILE_LAB.md.
-- **Next action (Cycle 173):** a human must provision the lab
-  (docs/CONTROLLED_COMPILE_LAB.md "Provisioning checklist"): restore the
-  8.61.15 DPK share, authorize the media, Oracle 19c PTSYS database,
-  App Designer 8.61.15 on Windows. Then run the runner checklist:
-  `capture-lab.ts` (SELECT-only) and `compare-controlled-compile.ts`.
-  Without a lab, there is no encoder work for this corpus. README.md has
-  unrelated user edits -- never stage it; never touch stash@{0} /
-  stash@{1}. Run `npm test` on its own, check the exit code, then commit
-  separately.
-- **Newly established rules this session:** Cycle 172: none
+- **Next action (Cycle 174):** a human must:
+  - connect the VPN, so that `//hcwin-dev.net.ou.edu/Peoplesoft`
+    mounts at `/mnt/ou_network/peoplesoft_dev`;
+  - confirm that the institution's 8.61.15 media may be used for a
+    personal lab;
+  - authorize use of the `omarchy-windows` VM;
+  - provide an Oracle 19c image (Oracle account and license).
+
+  Then follow docs/CONTROLLED_COMPILE_LAB.md: provisioning checklist,
+  smoke test, H1-H9 / G1-G7, `capture-lab.ts`,
+  `compare-controlled-compile.ts`. Without a lab, the encoder stays
+  frozen. Standing rules:
+  - README.md has unrelated user edits: never stage it.
+  - Never touch stash@{0} / stash@{1}.
+  - Run `npm test` on its own, check the exit code, then commit
+    separately.
+- **Newly established rules this session:** Cycles 173 / 172: none
   (research and tooling only); Cycle 171: the
   blank-line rule after a Function header applies after `Returns <App
   Class>` too (whitespace measured from the end of the type); an
@@ -304,6 +313,43 @@
   (`cycle167-dsm-source-bytes.ts`, NLS parameters and PCTEXT DUMP at 6
   offsets of 6275 / 25960 / 27771). No corpus source, program or name
   list was recaptured; nothing was written to HCDEV.
+
+## Compiler Cycle 173 -- lab provisioning stopped (condition A)
+
+Baseline (8815606):
+- manifest 3,178 / 3,178;
+- tsc clean; `npm test` exits 0 (1,116 passed, 0 failed, 1 skipped);
+- `git diff --check` clean;
+- protected 430/430, 0 regressed;
+- full verify EXACT 30,131, DECODE_SOURCE_MISMATCH 71,
+  UNKNOWN_MISMATCH 7, 0 regressed.
+
+**Media: unreachable.**
+- `/mnt/ou_network/peoplesoft_dev` is a cifs automount of
+  `//hcwin-dev.net.ou.edu/Peoplesoft`. The mount fails with "could not
+  resolve address for hcwin-dev.net.ou.edu".
+- There is no VPN / tun / wg interface.
+- No local copy of `pt-pshome8.61.15*`, `PT861P15*` or
+  `pt-oracleclient*` exists anywhere on the local filesystem.
+
+**Not done** (condition A, and B because no authorization was given in
+this cycle):
+- no media staged;
+- `omarchy-windows` not started;
+- no Oracle database;
+- no App Designer save;
+- no lab writes of any kind.
+
+Nothing touched HCDEV or HCTST.
+
+**Matrices.** The Cycle 173 prompt's H/G descriptions paraphrase
+differently: H6 pre-use B, H8 header predeclaration, G1 `Local Row`.
+The prompt itself says to run them "exactly as defined in Cycle 172
+tooling/docs", so tools/corpus/controlled-compile/experiments.json stays
+authoritative. Its H set covers the same discriminators. Pre-use and
+header cases can be added as H10+ after the H1 replica result if needed.
+
+Totals unchanged: 30,131 / 78; actionable 3.
 
 ## Compiler Cycle 172 -- lab provisioning; controlled-compile tooling
 

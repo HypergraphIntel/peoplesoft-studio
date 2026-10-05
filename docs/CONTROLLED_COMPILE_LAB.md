@@ -130,6 +130,11 @@ saving into a PeopleTools-only Oracle 19c database built from the same
 DPK. It is the only path with native Windows App Designer at the exact
 patch and no institutional database involved.
 
+**Cycle 173 recheck: still stopped (condition A).** The share is a
+cifs automount of `//hcwin-dev.net.ou.edu/Peoplesoft`. The host does not
+resolve (VPN not connected), and no local copy of the media exists.
+Restoring that connection is provisioning step 1.
+
 **Cycle 172 outcome: STOP BEFORE INSTALLATION.** Every option needs at
 least one step that is a human or admin action: restore the media,
 accept the Oracle license, authorize use of the institutional
@@ -138,8 +143,10 @@ VM. No encoder semantics changed.
 
 ## Provisioning checklist (human / admin steps, in order)
 
-1. **Media.** Bring the network share back by reconnecting the VPN and
-   remounting `/mnt/ou_network`, or copy these to local disk:
+1. **Media.** Bring the network share back: connect the VPN so that
+   `hcwin-dev.net.ou.edu` resolves and the automount of
+   `//hcwin-dev.net.ou.edu/Peoplesoft` at `/mnt/ou_network/peoplesoft_dev`
+   succeeds, or copy these to local disk:
    - `ps86115/dpk/archives/pt-pshome8.61.15.tgz`
    - `pt-oracleclient-19.3.0.0.tgz`
    - the Windows infrastructure DPK
