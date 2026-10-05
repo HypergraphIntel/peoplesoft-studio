@@ -7855,7 +7855,18 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         }
       }
 
-      const afterReturnWhitespaceStart = pos;
+      /*
+       * Cycle 171: measured from the end of the return type's text -- an
+       * App Class type (`applicationClassPath()`) has already consumed its
+       * trailing whitespace, which hid the header's blank line from the
+       * 0x4F rule below. Stored writes that blank line whatever the return
+       * type: 14352 `Function GetParent(...) Returns ADSM:ADSMTreeNode`
+       * <blank> `Local ...` stores `2D 4F 44`, as EXACT programs with a
+       * scalar, object, array or no return do (`2D 4F`). LOCAL SNAPSHOT: 1
+       * program changed (EXACT).
+       */
+      let afterReturnWhitespaceStart = pos;
+      while (afterReturnWhitespaceStart > 0 && /\s/.test(source[afterReturnWhitespaceStart - 1])) afterReturnWhitespaceStart--;
       space();
       functionBodyWhitespace =
         source.slice(afterReturnWhitespaceStart, pos);
