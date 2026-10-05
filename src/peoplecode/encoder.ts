@@ -7676,7 +7676,27 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             const isArrayType = /^array\b/i.test(source.slice(pos));
             const paramType =
               /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+            /*
+             * Cycle 170: an `As array of <Class>` parameter is a declared
+             * class array in its Function, as a Local / Global / Component
+             * one is (Cycle 104) and an App Class method parameter is
+             * (Cycle 109): an indexed element is a receiver of the class.
+             * 25337 `Function LogErrors(&axAppMsgs As array of
+             * BN_RATES:Common:AppMsg)` ... `&axAppMsgs [&I].ToString()`
+             * stores its APPMSG row. Restored at End-Function (Cycle 169).
+             * LOCAL SNAPSHOT: 1 program changed (EXACT); the EXACT programs
+             * with such parameters and no element call are unchanged.
+             */
+            const classArrayType = /^((?:array\s+of\s+)+)([A-Za-z_][A-Za-z0-9_]*(?:\s*:\s*[A-Za-z_][A-Za-z0-9_]*)+)/i.exec(source.slice(pos));
             chunks.push(typeName());
+            if (ordinaryProgram && paramName !== undefined && classArrayType !== null) {
+              const components = classArrayType[2].split(':').map(component => component.trim());
+              applicationClassArrayVariables.set(paramName.toLowerCase(), {
+                packagePath: components.slice(0, -1),
+                className: components.at(-1)!,
+                depth: (classArrayType[1].match(/array/gi) ?? []).length
+              });
+            }
             if (isArrayType) {
               const parameterElementType = arrayElementTypes();
               /*
