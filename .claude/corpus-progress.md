@@ -1,55 +1,51 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-04, Cycle 169)
+## Current status (2026-10-04, Cycle 170)
 
-- **Current target:** Cycle 169 -- residual frontier with native
-  evidence. EXACT 30,121 -> 30,126 (+5: 29858 29244 29245 15528 29293) =
-  forward-exact; NONEXACT 83 (DSM 71 -- all lossy source; ACTIVE_PACKAGE
-  5, COMPLETE_DOWNSTREAM 4, ACTIVE_RECORD 1, STRUCTURAL_ORDERING 1,
-  ACTIVE_RECORD_FIELD 1); 0 lost, 0 farther; protected 430/430;
-  ROUNDTRIP_ONLY 0; fallback 6 (3872 14149 14162 14327 15256 19877, all
-  EXACT). **ACTIONABLE_SEMANTIC_NONEXACT** (NONEXACT minus 71 lossy DSM
-  and 4 compiler variants) **13 -> 8**. See "Compiler Cycle 169".
-- **Last successful calibration:** Cycle 169.
+- **Current target:** Cycle 170 -- the final singletons, with native
+  evidence. EXACT 30,126 -> 30,129 (+3: 29329 28818 25337) =
+  forward-exact; NONEXACT 80 (DSM 71 lossy, COMPLETE_DOWNSTREAM 3,
+  ACTIVE_PACKAGE 3, ACTIVE_RECORD 1, STRUCTURAL_ORDERING 1,
+  ACTIVE_RECORD_FIELD 1); 0 lost; 430/430; ROUNDTRIP_ONLY 0; fallback 6.
+  **ACTIONABLE_SEMANTIC_NONEXACT 8 -> 5.** See "Compiler Cycle 170".
+- **Last successful calibration:** Cycle 170.
 - **Protected baseline:** 430/430.
-- **Snapshot requirement:** the local snapshot must hold the captured App
-  Class metadata (3,178 classes); check with `npx tsx
+- **Snapshot requirement:** the captured App Class metadata (3,178
+  classes) must be imported; check `npx tsx
   tools/corpus/capture-appclass-metadata.ts --check-manifest
-  tools/corpus/appclass-metadata/manifest.txt` before any corpus run.
-- **Locally blocked definitions (the 8 actionable):** all are the
-  corpus's only instance of their shape, with no controlled-compile
-  environment (HCDEV writes not authorized; no lab database; App Designer
-  needs Windows + a database):
-  - 14352: a whitespace-only blank line after a Function header whose
-    `Returns` type is an App Class stores 0x4F (`2D 4F 44`); 216 EXACT
-    programs with built-in / no Returns store none. Only program.
-  - 15598 / 10860: member after `GetRecord(1)` inline (15598) vs FIELD
-    (10860) -- the Cycle 163 declared-name conflict, unchanged.
-  - 25337: call on an indexed Function `As array of <Class>` element.
-  - 28818: comment inside an App Class header parameter list.
-  - 29329: the corpus's only native `Declare Function ... Library`;
-    parsing it is possible (its reference list goes exact), but the
-    program carries a trailer of per-function type descriptors (PeopleCode
-    param types | 0xC0000000: number 0x13, string 0x01; native types,
-    Ref | 0x80000000: long 3, ulong 5, ustring 0x0A; one 0x07 per function,
-    every return here `long As number`) and a `41 2D` layout pair -- not
-    recoverable from one program.
-  - 30124: `Local A &x = create B()` row order (28754 opposite).
-  - 30162: `end-interface` without `;`.
-  Compiler variants (Cycle 165, excluded from the metric): 29797 29883
-  30170 30179. DSM 71 lossy source: parked permanently.
-- **Next action (Cycle 170):** the actionable frontier is 8 singletons;
-  each needs evidence the corpus does not hold. (1) A controlled compile
-  environment (lab database + App Designer, or authorized scratch
-  definitions) would settle 14352 / 28818 / 30162 / 30124 / 25337 / 29329
-  directly. (2) Without it, static analysis of pspcm.dll (8.61.07; HCDEV
-  is 8.61.15 -- architectural only), e.g. `pspceval.dll!PcBuildText` for
-  decoder rendering and the native-declaration trailer writer. (3)
-  Optionally capture HCTST's App Class programs (read-only) as more
-  corpus. Scratch tools under c169. README.md has unrelated user edits --
-  never stage it; never touch stash@{0} / stash@{1}. Run `npm test` on its
-  own, check the exit code, then commit separately.
-- **Newly established rules this session:** Cycle 169: the 0x50
+  tools/corpus/appclass-metadata/manifest.txt`.
+- **Classification of the final actionable five** (each the corpus's only
+  instance; HCTST unreachable -- the HCDEV credentials are refused;
+  no writable compile environment):
+  - 14352 NEEDS_CONTROLLED_COMPILE: a whitespace-only blank line after a
+    Function header `Returns <App Class>` stores 0x4F (216 EXACT with
+    built-in / no Returns store none); PcBuildText only renders 0x4F, the
+    compiler side was not located.
+  - 30162 NEEDS_CONTROLLED_COMPILE: `end-interface` without `;` stores the
+    bare `71 07` (Cycle 114 shape) but its directory also lacks the
+    interface method's record while keeping its signature slots -- an
+    unexplained second effect.
+  - 30124 NEEDS_CONTROLLED_COMPILE: `Local A &x = create B()` row order
+    opposite to 28754; no source discriminator.
+  - 10860 / 15598 NEEDS_CONTROLLED_COMPILE: the Cycle 163 declared-name
+    conflict (member after GetRow / GetRecord in a Function whose root was
+    typed elsewhere); no source discriminator.
+  Excluded from the metric: compiler variants 29797 29883 30170 30179
+  (HISTORICAL_COMPILER_VARIANT), DSM 71 lossy source.
+- **Next action (Cycle 171):** the encoder frontier left by the corpus is
+  closed: 5 singletons need a controlled compile (writable lab database +
+  App Designer, or authorized scratch definitions), or HCTST credentials
+  for a secondary corpus. Without either, static work can continue on
+  pspcm.dll's blank-line (0x4F) emission after Function headers and the
+  class-directory registration of interface members. README.md has
+  unrelated user edits -- never stage it; never touch stash@{0} /
+  stash@{1}. Run `npm test` on its own, check the exit code, then commit
+  separately.
+- **Newly established rules this session:** Cycle 170: native
+  `Declare Function ... Library` statements and their descriptor-pool
+  arrays (pspcm.dll type tables); comments in App Class header parameter
+  lists are tokens where they stand; ordinary Function `As array of
+  <Class>` parameters are class arrays; Cycle 169: the 0x50
   literal is psmath's DEC (sign, scale, magnitude) -- a negative Constant
   is one signed literal, executable negatives stay 0x0E + unsigned; a
   value of a class extending Rowset is a Rowset (`builtinBaseOf`);
@@ -310,6 +306,37 @@
   (`cycle167-dsm-source-bytes.ts`, NLS parameters and PCTEXT DUMP at 6
   offsets of 6275 / 25960 / 27771). No corpus source, program or name
   list was recaptured; nothing was written to HCDEV.
+
+## Compiler Cycle 170 -- native grammar; final singletons classified
+
+Baseline (d08d866, manifest passed): EXACT 30,126 / NONEXACT 83;
+ACTIONABLE_SEMANTIC_NONEXACT 8; 430/430; fallback 6.
+
+**Secondary corpus.** HCTST (configured in the extension, same host and
+user) refused the HCDEV credentials (ORA-01017); no HCTST credential is
+available, so no secondary corpus was used. No writable compile
+environment either.
+
+**Native (docs/PEOPLETOOLS_BINARIES.md).** pspceval.dll `PcBuildText`
+dispatches through a jump table (0x180032454, opcodes 0x01-0x79): 73
+opcodes' texts agree with ours, 0 disagree. pspcm.dll's native
+Declare Function loop and both type-code tables (PeopleCode and native)
+recovered; the descriptor pool is append-only.
+
+**Landed:**
+- 29329 -- native `Declare Function ... Library` (statement bytes; per
+  function PeopleCode types | 0xC0000000 + 7, native types (| 0x80000000
+  Ref) + 0 appended to the pool; header slot 21). Byte-identical,
+  roundtrips. App Class programs and the Returns form only.
+- 28818 -- comments inside App Class header parameter lists are tokens
+  where they stand (Cycle 159 for ordinary Functions).
+- 25337 -- ordinary Function `As array of <Class>` parameters are class
+  arrays (Cycle 104 / 109).
+
+**Classified (not landed):** 14352, 30162, 30124, 10860, 15598 -- see the
+status block; each needs a controlled compile.
+
+Totals: 30,126 -> 30,129 (+3), 0 lost, 0 farther; ACTIONABLE 8 -> 5.
 
 ## Compiler Cycle 169 -- native evidence; signed Constants; Rowset subclasses; residual frontier
 
