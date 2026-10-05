@@ -29,6 +29,17 @@
  * - It refuses a pside.exe / pspcm.dll that is not the profile's exact
  *   build.
  *
+ * Cycle 179 write interlocks:
+ * - -CMPALLPC is refused (it would recompile every program).
+ * - -CMPPRJPC needs a scratch project.
+ * - -PJFF needs a scratch project whose file passes
+ *   validateScratchProjectXml: scratch identities only and no compiled
+ *   payload (Cycle 178: -PJFF writes PeopleCode under a blob's embedded
+ *   identity).
+ * - Every write action needs --audit-dir. lab-audit.ts takes a snapshot
+ *   before and after; any non-scratch or protected change prints STOP
+ *   and exits 1.
+ *
  * It prints one JSON result. The exit code says only whether this tool
  * ran: pside's own exit code is 0 even on failure, so callers judge the
  * compile from the log report and the database rows.
@@ -39,6 +50,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+import { assertScratchName, validateScratchProjectXml } from '../../../src/peoplecode/corpus/labSafety';
 import {
   PROTECTED_DATABASE_PATTERN,
   buildPsideArguments,
@@ -100,6 +112,21 @@ function main(): void {
   }
 
   const selected = action();
+  const writes = selected.kind === 'compile-project' || selected.kind === 'copy-from-file';
+  if (selected.kind === 'compile-all') throw new Error('Refusing -CMPALLPC: it would recompile every PeopleCode program.');
+  if (selected.kind === 'compile-project') assertScratchName('project', selected.project);
+  if (selected.kind === 'copy-from-file') {
+    assertScratchName('project', selected.project);
+    const dir = argument('--dir')!;
+    const folder = path.join(dir, selected.project);
+    const file = fs.existsSync(folder) ? fs.readdirSync(folder).find(n => n.toUpperCase() === `${selected.project.toUpperCase()}.XML`) : undefined;
+    if (file === undefined) throw new Error(`No ${selected.project}.xml under ${folder}.`);
+    const validation = validateScratchProjectXml(fs.readFileSync(path.join(folder, file), 'utf8'));
+    if (!validation.ok) throw new Error(`Refusing -PJFF; the project file is not scratch-only:\n  ${validation.violations.join('\n  ')}`);
+  }
+  const auditDir = argument('--audit-dir');
+  if (writes && auditDir === undefined) throw new Error('Write actions need --audit-dir (pre/post non-scratch audit).');
+  const runAudit = (args: string[]) => spawnSync('npx', ['tsx', path.join(__dirname, 'lab-audit.ts'), ...args], { encoding: 'utf8', env: process.env, timeout: 30 * 60 * 1000 });
   const signon = {
     databaseType: process.env.PSLAB_DBTYPE ?? 'ORACLE',
     database: required('PSLAB_DB'),
@@ -113,6 +140,14 @@ function main(): void {
   fs.mkdirSync(logDir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const logFile = path.join(logDir, `pside-${selected.kind}-${stamp}.log`);
+  let auditBefore: string | undefined;
+  if (writes) {
+    fs.mkdirSync(auditDir!, { recursive: true, mode: 0o700 });
+    auditBefore = path.join(auditDir!, `pside-${selected.kind}-${stamp}-before.json`);
+    const pre = runAudit(['snapshot', '--database', signon.database, '--out', auditBefore]);
+    if (pre.status !== 0) throw new Error(`pre-write audit failed: ${pre.stdout}${pre.stderr}`);
+  }
+
   const timeoutSeconds = Number(argument('--timeout') ?? 600);
   const started = Date.now();
   const result = spawnSync('wine', ['pside.exe', ...buildPsideArguments(selected, signon, toWinePath(logFile))], {
@@ -130,6 +165,14 @@ function main(): void {
     encoding: 'buffer'
   });
   const log = fs.existsSync(logFile) ? readPsideLog(fs.readFileSync(logFile)) : undefined;
+  let audit: { nonScratchChanged: boolean; report: string } | undefined;
+  if (writes) {
+    const auditAfter = auditBefore!.replace(/-before\.json$/, '-after.json');
+    const post = runAudit(['snapshot', '--database', signon.database, '--out', auditAfter]);
+    if (post.status !== 0) throw new Error(`post-write audit failed: ${post.stdout}${post.stderr}`);
+    const verdict = runAudit(['compare', auditBefore!, auditAfter]);
+    audit = { nonScratchChanged: verdict.status !== 0, report: `${verdict.stdout}${verdict.stderr}`.trim() };
+  }
   console.log(JSON.stringify({
     action: selected,
     release: profile.release,
@@ -138,8 +181,13 @@ function main(): void {
     timedOut: result.error !== undefined && /ETIMEDOUT/.test(String(result.error)),
     durationMs: Date.now() - started,
     logFile,
-    log: log ?? null
+    log: log ?? null,
+    audit: audit ?? null
   }, null, 2));
+  if (audit?.nonScratchChanged) {
+    console.error('STOP: the post-write audit found a non-scratch or protected change.');
+    process.exit(1);
+  }
 }
 
 try {

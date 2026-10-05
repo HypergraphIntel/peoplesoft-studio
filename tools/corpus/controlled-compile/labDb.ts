@@ -18,6 +18,7 @@ import oracledb from 'oracledb';
 import { captureDefinition, getConnectionConfig, openCorpusConnection } from '../discovery';
 import type { CorpusDefinition } from '../classifications';
 import { PROTECTED_DATABASE_PATTERN } from '../../../src/peoplecode/corpus/controlledCompileRunner';
+import { SCRATCH_LIKE } from '../../../src/peoplecode/corpus/labSafety';
 import type {
   ControlledCompileDefinition,
   ControlledCompileKey,
@@ -87,8 +88,8 @@ export async function captureLabDefinitions(
     SELECT DISTINCT OBJECTID1, OBJECTVALUE1, OBJECTID2, OBJECTVALUE2, OBJECTID3, OBJECTVALUE3, OBJECTID4, OBJECTVALUE4,
                     OBJECTID5, OBJECTVALUE5, OBJECTID6, OBJECTVALUE6, OBJECTID7, OBJECTVALUE7
     FROM SYSADM.PSPCMPROG
-    WHERE OBJECTVALUE1 LIKE :prefix
-    ORDER BY 1, 2, 3, 4, 5, 6, 7, 8`, { prefix: `${LAB_PREFIX}%` });
+    WHERE OBJECTVALUE1 ${SCRATCH_LIKE}
+    ORDER BY 1, 2, 3, 4, 5, 6, 7, 8`);
 
   const definitions: ControlledCompileDefinition[] = [];
   for (const row of keys) {
