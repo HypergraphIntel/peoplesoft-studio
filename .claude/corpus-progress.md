@@ -52,6 +52,16 @@
       last signon 2026-07-11; VP1 and PSADMIN are locked.
     - The password is plain alphanumeric, so quoting is not the cause.
     - Stopped before any write (stop A); no further signon attempts.
+  - Cycle 178, continued: at the user's request PS's password was reset
+    (Data Mover bootstrap, ENCRYPT_PASSWORD), and headless signon then
+    works.
+    - `-CMPPRJPC <project>` syntax confirmed; `-PJTF` works.
+    - `-PJFF` saves PeopleCode under the key embedded in the blob.
+      Diagnostic imports D1-D4 overwrote delivered APPS_RLR:Utilities.
+      It is verified restored (text, names, decoded program); only
+      LASTUPDDTTM changed. See CONTROLLED_COMPILE_LAB.md "Cycle 178
+      findings".
+    - No compile ran and no SMOKE ran; awaiting the user's direction.
 - **Last successful calibration:** Cycle 171. Cycles 172-176 made no
   semantic change.
   - Cycle 175 was authorized. It staged and verified the 8.61.15 media,
