@@ -13766,6 +13766,18 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      */
     const isTryStatement =
       /^try\b/i.test(source.slice(pos));
+    /*
+     * Cycle 169: a Declare Function may end at its line's end without `;`
+     * -- its own 0x42 closes it and no 0x15 follows. 29293 (between
+     * end-class and the first method) `Declare Function GetAfRecordList
+     * PeopleCode GPFR_AF_PACKAGE.GP_STAMP_RECS_BTN FieldFormula` <newline>
+     * stores `... 40 "FieldFormula" 42 2D 4F 4F 63 ...` and its
+     * GPFR_AF_PACKAGE.GP_STAMP_RECS_BTN row; failing here had sent the
+     * whole region to the layout-only path, dropping that row. The only
+     * unterminated Declare Function in the corpus (7,924 are terminated).
+     */
+    const isDeclareFunctionStatement =
+      /^Declare\s+Function\b/i.test(source.slice(pos));
 
     /*
      * Offset 425 proves that a plain top-level assignment may omit its
@@ -14672,7 +14684,8 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
             isWarningOrErrorStatement ||
             isTryStatement
           )
-        ) || selfTerminatingBeforeFinalStandaloneComment || precedesRemStatement;
+        ) || selfTerminatingBeforeFinalStandaloneComment || precedesRemStatement ||
+        (isDeclareFunctionStatement && /^[ \t]*(?:\r?\n|$)/.test(source.slice(pos)));
 
       if (!selfTerminatingAtEof) {
         fail('expected ;');

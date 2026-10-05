@@ -2194,9 +2194,15 @@ function render(tokens: readonly Token[], unknown: readonly { offset: number; op
         followsMethodOrGetHeader &&
         nextToken?.opcode === 0x15;
 
+      /*
+       * Cycle 169: not after a Declare Function's own closing 0x42 with no
+       * `;` (29293 `... FieldFormula` <newline> stores `42 2D 4F 4F`): no
+       * 0x15 ended that line, so its 0x2D is the line ending.
+       */
       const redundantStructuralBoundary =
         t.opcode === 0x2d &&
         nextToken?.opcode === 0x4f &&
+        previousToken?.opcode !== 0x42 &&
         (followsDeclaration || followsEndFunctionTerminator);
 
       /*
