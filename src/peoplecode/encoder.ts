@@ -3324,6 +3324,20 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * unchanged: scoping it too made 15598 farther.
    */
   let functionScopeSnapshot: Set<string>[] | undefined;
+  /*
+   * Cycle 169: so does a Local of an Application Class type -- the class
+   * typing of a name is restored at End-Function. 15528 types `&prim` as
+   * PT_SCHEMA:LogicalSchemaPrimitive in one Function and `Local Primitive
+   * &PRIM` (a built-in Document type) in another; carrying the first
+   * typing over opened a LOGICALSCHEMACOLLECTION row stored nowhere
+   * (`cycle169-metadata-telemetry.ts`: PrimitiveType, PropertyCount ...
+   * looked up on the PT_SCHEMA classes, which declare no such members).
+   * LOCAL SNAPSHOT: 1 program changed (15528 EXACT), 0 farther.
+   */
+  let functionClassScopeSnapshot: {
+    classes: Map<string, NonNullable<ReturnType<typeof applicationClassVariables.get>>>;
+    arrays: Map<string, NonNullable<ReturnType<typeof applicationClassArrayVariables.get>>>;
+  } | undefined;
   const functionParameterShadows: {
     key: string;
     sets: Set<string>[];
@@ -7471,7 +7485,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
 
   function functionStatement(): void {
     chunks.push(fixed('Function'));
-    if (ordinaryProgram && functionDepth === 0) functionScopeSnapshot = shadowableVariableSets.map(set => new Set(set));
+    if (ordinaryProgram && functionDepth === 0) {
+      functionScopeSnapshot = shadowableVariableSets.map(set => new Set(set));
+      functionClassScopeSnapshot = { classes: new Map(applicationClassVariables), arrays: new Map(applicationClassArrayVariables) };
+    }
 
     space();
 
@@ -7921,6 +7938,13 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
               for (const name of functionScopeSnapshot![index]) set.add(name);
             });
             functionScopeSnapshot = undefined;
+          }
+          if (functionClassScopeSnapshot !== undefined) {
+            applicationClassVariables.clear();
+            for (const [key, value] of functionClassScopeSnapshot.classes) applicationClassVariables.set(key, value);
+            applicationClassArrayVariables.clear();
+            for (const [key, value] of functionClassScopeSnapshot.arrays) applicationClassArrayVariables.set(key, value);
+            functionClassScopeSnapshot = undefined;
           }
         }
 
