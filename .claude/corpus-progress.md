@@ -1,6 +1,6 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-05, Cycle 174)
+## Current status (2026-10-05, Cycle 175)
 
 - **Milestone: CORPUS_RECOVERABLE_FRONTIER_CLOSED.** EXACT 30,131 of
   30,209 = forward-exact; NONEXACT 78 = 71 lossy source (HCDEV PCTEXT) +
@@ -10,12 +10,13 @@
   compiler equivalence: the corpus, the captured metadata and static
   analysis of the exact-patch binaries justify no further production
   rule. See "Compiler Cycle 171" and docs/CONTROLLED_COMPILE_LAB.md.
-- **Last successful calibration:** Cycle 171. Cycles 172-174 made no
+- **Last successful calibration:** Cycle 171. Cycles 172-175 made no
   semantic change.
-  - Cycle 173 stopped at condition A (media unreachable).
-  - Cycle 174 had the VPN up and verified the 8.61.15 media hashes, then
-    stopped at B / C / D: there is no authorization for media use, for
-    `omarchy-windows`, or for an Oracle 19c image and license.
+  - Cycle 175 was authorized. It staged and verified the 8.61.15 media,
+    ran the exact compiler headless under Wine, and built the unattended
+    harness (docs/CONTROLLED_COMPILE_LAB.md, "Unattended harness").
+  - No compile ran: no PeopleSoft database seed exists on any reachable
+    media.
 - **Protected baseline:** 430/430.
 - **Snapshot requirement:** the captured App Class metadata (3,178
   classes) must be imported; check `npx tsx
@@ -28,22 +29,25 @@
   15598's top-level code: stored 0x0A inline, encoder 0x4A reference).
   Experiment pack tools/corpus/controlled-compile/experiments.json;
   docs/CONTROLLED_COMPILE_LAB.md.
-- **Next action (Cycle 175):** the user must explicitly authorize:
-  1. installing the institution's 8.61.15 media in a disposable lab;
-  2. using (starting and installing into) `omarchy-windows`;
-  3. an Oracle 19c Database image, with Oracle account / license
-     acceptance done by the user.
+- **Next action (Cycle 176):** obtain a PeopleSoft database:
+  - an Oracle HCM PUM DPK via My Oracle Support (includes Oracle 19c and
+    a full database; patch it to 8.61.15); or
+  - a DBA-provided disposable 8.61.15 database.
 
-  App Designer saves need a human operator at the Windows GUI. Media
-  hashes are already verified (Cycle 174). Then follow
-  docs/CONTROLLED_COMPILE_LAB.md: provisioning checklist, smoke test,
-  H1-H9 / G1-G7, `capture-lab.ts`, `compare-controlled-compile.ts`.
+  If the seed is an export rather than a DPK, the user also runs
+  `docker login container-registry.oracle.com`. Then:
+  1. bootstrap ZZ_PCODE_LAB once (`load-experiment.ts --materialize`);
+  2. export it with `run-compiler.ts --copy-to-file` as the pristine
+     project;
+  3. run `npm run controlled-compile -- --pristine <dir> --out <dir>
+     --all`.
+
   Standing rules:
   - README.md has unrelated user edits: never stage it.
   - Never touch stash@{0} / stash@{1}.
   - Run `npm test` on its own, check the exit code, then commit
     separately.
-- **Newly established rules this session:** Cycles 174 / 173 / 172: none
+- **Newly established rules this session:** Cycles 175 / 174 / 173 / 172: none (no compiler semantics)
   (research and tooling only); Cycle 171: the
   blank-line rule after a Function header applies after `Returns <App
   Class>` too (whitespace measured from the end of the type); an
@@ -313,6 +317,75 @@
   (`cycle167-dsm-source-bytes.ts`, NLS parameters and PCTEXT DUMP at 6
   offsets of 6275 / 25960 / 27771). No corpus source, program or name
   list was recaptured; nothing was written to HCDEV.
+
+## Compiler Cycle 175 -- authorized; unattended harness; database seed missing
+
+Baseline (d423654): manifest 3,178; tsc clean; `npm test` exits 0
+(1,116 passed, 0 failed, 1 skipped); `git diff --check` clean;
+protected 430/430; full verify 30,131 EXACT / 71 DSM / 7, 0 regressed.
+
+**Authorization** (user, this session): use of the 8.61.15 media in a
+disposable lab; `omarchy-windows` start and install; an Oracle 19c image
+with the user's own license acceptance.
+
+**Media.**
+- Staged at `~/peoplesoft-lab/pt86115/media`.
+- `pt-pshome8.61.15.tgz` is 2,234,348,986 bytes, sha256 `9b0d408f…`.
+- `pt-oracleclient-19.3.0.0.tgz` has sha256 `ad4da1a3…`.
+- Both are extracted to `ps_home/` and `oracle_client/`, and all seven
+  client binaries match. `pt861` and the 8.61.07 bottle are untouched.
+
+**Compiler, headless.**
+- Separate prefix `~/.wine-peoplesoft-86115` (wine-11.17).
+- pside 8.61.15 runs with `-HIDE -QUIET -SS NO -SN NO`, signs on through
+  Oracle client 19.3 and the lab-only TNS file (PCLAB only), and logs to
+  `-LF` in UTF-16LE.
+- It exits 0 even on failure, so success is read from the log and the
+  database rows, never the exit code.
+- It reaches `ORA-12541` (no listener; `ORACLE_HOME` needed for specific
+  ORA codes).
+- No parameter-file form (`@` / `@@`) was honored.
+- With no batch action, the log is empty.
+
+**Command-line inventory** (exact binaries):
+- pstls: signon switches;
+- psprj: PJTF / PJFF / PJM / PJC / PJFC / PJB / PJMG / CMPALLPC /
+  CMPPRJPC / CMPDIRPC / CMPPRJDIRPC, `-FP`, `-TD -TO -TP`.
+
+**Source injection.** Project files carry `<peoplecode_text>` plus a
+compiled `<peoplecode_blob>` (measured from PUM exports). Selected:
+1. a one-time bootstrap, exported with `-PJTF` as the pristine file;
+2. per experiment, `-PJFF` the pristine file (reset), then `-PJFF` a copy
+   with only the experiment text swapped;
+3. `-CMPPRJPC` in a fresh process;
+4. capture, then `checkLabCompile`: the source matches, the program
+   decodes to it, it differs from the sentinel (the pristine blob), and
+   LASTUPDDTTM follows the start on the database clock.
+
+The encoder's bytes never enter the database.
+
+**Tooling:**
+- `controlledCompileRunner.ts`: arguments, refusal, log parsing.
+- `projectFile.ts`: list and swap PCM source.
+- `controlledCompile.ts`: hashes; `checkLabCompile`.
+- `run-compiler.ts`, `load-experiment.ts`, `labDb.ts`, `capture-lab.ts`
+  (now also LASTUPDDTTM), `orchestrate.ts` (`npm run
+  controlled-compile`).
+- The pack gains a SMOKE definition (`ZZ_PCODE_LAB:SUPPORT:SmokeTest`);
+  H1-H9 / G1-G7 are unchanged.
+- Tests use the real 8.61.15 log text as fixtures.
+
+**Blocker: database seed.**
+- The 8.61.15 PS_HOME has Oracle's database-creation scripts, but only
+  language `.db` packs and `ptsys_*.dat` deltas: no English
+  system-database export.
+- PS_APP_HOME has no `*engs.db`, and the PUM folders hold change
+  packages only.
+- The Oracle 19c registry pull returns 401 (no `docker login`).
+
+Nothing touched HCDEV or HCTST, and no compile ran.
+
+Totals unchanged: 30,131 / 78; actionable 3.
 
 ## Compiler Cycle 174 -- media verified; stopped before installation
 
