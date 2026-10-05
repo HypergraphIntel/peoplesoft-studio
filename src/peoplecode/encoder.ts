@@ -15689,7 +15689,8 @@ function buildApplicationClassDirectory(
   parsed: NonNullable<ReturnType<typeof parseApplicationClassSource>>,
   selfName: string,
   methods: ApplicationClassMethodMember[],
-  source = ''
+  source = '',
+  registerMethods = true
 ): { names: string[]; records: Buffer[]; slots: Buffer[] } {
   const packageSpelling = firstPackageSpellings(source);
   const names: string[] = [selfName];
@@ -15736,7 +15737,7 @@ function buildApplicationClassDirectory(
     const ua = a.name.toUpperCase(), ub = b.name.toUpperCase();
     return ua < ub ? 1 : ua > ub ? -1 : 0;
   });
-  for (const member of unimplemented) callables.push({ kind: 'method', member });
+  if (registerMethods) for (const member of unimplemented) callables.push({ kind: 'method', member });
 
   // Names of all records first, in physical order.
   const memberNameOffsets = memberOrder.map(member => allocateName(bare(member.name)));
@@ -15979,7 +15980,26 @@ function encodeApplicationClassProgramV2(
 
   // Name table, directory records and signature slots: see
   // `buildApplicationClassDirectory` (Cycle 100).
-  const directoryLayout = buildApplicationClassDirectory(parsed, selfName, methods, source);
+  /*
+   * Cycle 171: an `end-class` / `end-interface` with no `;` (and nothing
+   * after it) is written bare -- and its methods get no directory record.
+   * pspcm.dll (8.61.15, the HCDEV patch) parses the header, appending each
+   * method's signature slots as it goes, then returns at the closer; the
+   * next routine (0x18019ebf0) proceeds only if the token after the closer
+   * is `;` (0x18019ede1): it consumes it, emits the 0x2D, compiles what
+   * follows and registers the class's methods (the member-hash loop after
+   * 0x18019eeb1). Without `;` it returns (0x18019f140): no 0x15 / 0x2D and
+   * no method records, while the slots stay. 30162 (an interface ending
+   * `end-interface` at EOF) stores `71 07`, a self-only directory and its
+   * method's slots; the 32 programs ending `end-class;` / `end-interface;`
+   * store `15 2D` and every method record. LOCAL SNAPSHOT: 1 program
+   * changed (EXACT).
+   */
+  const bareUnitCloser =
+    !source.slice(parsed.unitCloseStart, parsed.unitEnd).includes(';') &&
+    parsed.implementations.length === 0 &&
+    source.slice(parsed.unitEnd).trim() === '';
+  const directoryLayout = buildApplicationClassDirectory(parsed, selfName, methods, source, !bareUnitCloser);
 
   // Statement section. Only the class header's own method-declaration
   // and method-implementation wrapper bytes are hand-encoded (no
@@ -16781,9 +16801,11 @@ function encodeApplicationClassProgramV2(
   // END-CLASS|END-INTERFACE ; and its declaration-boundary 0x2d. Layout
   // between the unit and the first wrapper belongs to the compilation unit;
   // it may contain comments even when there is no implementation.
-  statementChunks.push(Buffer.from([parsed.unitKind === 'class' ? 0x5b : 0x71, 0x15]));
-  const afterUnitClose = emitClosingLineComments(parsed.unitEnd);
-  statementChunks.push(Buffer.from([0x2d]));
+  statementChunks.push(Buffer.from(bareUnitCloser
+    ? [parsed.unitKind === 'class' ? 0x5b : 0x71]
+    : [parsed.unitKind === 'class' ? 0x5b : 0x71, 0x15]));
+  const afterUnitClose = bareUnitCloser ? parsed.unitEnd : emitClosingLineComments(parsed.unitEnd);
+  if (!bareUnitCloser) statementChunks.push(Buffer.from([0x2d]));
   emitSharedFragmentRange(
     afterUnitClose,
     firstImplementationStart,
