@@ -46,7 +46,37 @@ If `-PJFF` does not make `-CMPPRJPC` recompile from the imported text:
 
 PSPCMPROG is never fabricated.
 
-## Unattended harness (Cycle 175)
+## Release profiles (Cycle 177)
+
+The harness compiles with one exact PeopleTools release at a time, chosen
+by `PSLAB_RELEASE` (`PEOPLETOOLS_RELEASES` in
+`src/peoplecode/corpus/controlledCompileRunner.ts`). Each profile pins
+four things:
+- the client's `pside.exe` / `pspcm.dll` sha256;
+- its lab directory (`~/peoplesoft-lab/<dir>`);
+- its own Wine prefix;
+- the PSSTATUS TOOLSREL / PTPATCHREL a lab database must report.
+
+Results are authoritative only for that release. HCDEV (8.61.15)
+conclusions come only from the 8.61.15 profile.
+
+| Profile | Client | Lab database |
+|---|---|---|
+| 8.61.15 | `pt-pshome8.61.15.tgz` (institutional DPK) | none yet |
+| 8.62.09 | `PTC-DPK-WIN8.62.09-1of1.zip` (the home lab's own PeopleTools Client DPK, from psapp01 `/opt/psoft/hcm/dpk`) | home lab HRDMO (TOOLSREL 8.62, PTPATCHREL 9), via an SSH tunnel to psdb01 |
+
+Home lab (user's libvirt host 192.168.4.40):
+- psdb01, 192.168.122.206: Oracle 19.30.
+  - CDBHCM holds PDBs HRDMO / HRDEV / HRTST / HRUAT / HRPRD.
+  - CDBFSCM holds PDB FSCMDMO (8.62.07).
+  - Character set AL32UTF8 / UTF8.
+- psapp01, 192.168.122.151: the PS_HOMEs and PTC client DPKs for
+  8.60.23, 8.61.17 / 8.61.19 and 8.62.07 / 8.62.09.
+- Both guests are reached as `oracle` via ProxyJump.
+
+The experiment target is HRDMO only; the other PDBs are not touched.
+
+
 
 ### Authorization and media
 

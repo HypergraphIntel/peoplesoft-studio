@@ -21,6 +21,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { captureLabDefinitions, openLab } from './labDb';
+import { databaseMatchesRelease, releaseProfile } from '../../../src/peoplecode/corpus/controlledCompileRunner';
 import {
   CONTROLLED_COMPILE_RESULTS_FORMAT,
   type ControlledCompileResults,
@@ -43,7 +44,11 @@ async function main(): Promise<void> {
 
   const lab = await openLab(expectedDatabase);
   try {
-    if (lab.patch !== 15) console.warn(`warning: PeopleTools ${lab.toolsRelease} patch ${lab.patch}; HCDEV is 8.61.15 -- results are not authoritative for patch 15.`);
+    const profile = releaseProfile(process.env.PSLAB_RELEASE);
+    if (!databaseMatchesRelease(profile, lab.toolsRelease, lab.patch)) {
+      console.warn(`warning: the lab is PeopleTools ${lab.toolsRelease} patch ${lab.patch}, not ${profile.release} (PSLAB_RELEASE).`);
+    }
+    if (profile.release !== '8.61.15') console.warn(`note: ${profile.release} results are authoritative for ${profile.release} only, not for HCDEV (8.61.15).`);
     const definitions = await captureLabDefinitions(lab, pack);
     for (const d of definitions) {
       console.log(`${d.experimentId ?? 'support'} ${d.key.objectValues.map(v => v.trim()).filter(Boolean).join('.')}: ${d.programHex.length / 2} bytes, ${d.names.length} names`);

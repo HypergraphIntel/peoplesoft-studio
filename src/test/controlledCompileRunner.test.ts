@@ -53,6 +53,10 @@ test('pside logs: UTF-16LE without BOM, signon failure and the ORA code', () => 
   assert.deepEqual(report.oracleErrors, ['ORA-12541']);
   assert.equal(report.lines.length, 2);
 
+  const badConnectId = readPsideLog(utf16('System Error : Invalid Connect ID or password for signon -- see your security administrator.\r\n'));
+  assert.equal(badConnectId.signonFailed, true);
+  assert.deepEqual(badConnectId.oracleErrors, []);
+
   const noClient = readPsideLog(utf16('System Error : Missing or invalid version of SQL library PSORA64\r\nSystem Error : Invalid User ID and password for signon.\r\n'));
   assert.equal(noClient.sqlLibraryMissing, true);
 

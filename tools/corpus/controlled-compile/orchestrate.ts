@@ -5,6 +5,8 @@
  *       [--project ZZ_PCODE_LAB] [--project-arg inline|pjm] [--preflight]
  *
  * Environment:
+ * - PSLAB_RELEASE: the PeopleTools release profile (default 8.61.15).
+ *   The lab database's PSSTATUS must match it.
  * - run-compiler.ts: PSLAB_DB, PSLAB_OPRID, PSLAB_OPRPSWD, optional
  *   PSLAB_HOME / PSLAB_WINEPREFIX.
  * - labDb.ts capture account: PS_CONNECT_STRING, PS_USER, PS_PASSWORD.
@@ -33,6 +35,7 @@ import path from 'node:path';
 
 import { captureLabDefinitions, databaseTimestamp, openLab } from './labDb';
 import { DEFAULT_PROJECT, checkPristine, loadPack, packDefinition, prepareExperimentProject } from './load-experiment';
+import { databaseMatchesRelease, releaseProfile } from '../../../src/peoplecode/corpus/controlledCompileRunner';
 import {
   CONTROLLED_COMPILE_RESULTS_FORMAT,
   captureHashes,
@@ -72,19 +75,20 @@ async function main(): Promise<void> {
     process.exit(2);
   }
   const pack = loadPack(argument('--experiments'));
+  const profile = releaseProfile(process.env.PSLAB_RELEASE);
 
   /* Preflight: the pristine export covers every definition; the lab is 8.61 patch 15. */
   const problems = checkPristine(pristine, project, pack);
   if (problems.length > 0) throw new Error(`Pristine export incomplete:\n  ${problems.join('\n  ')}`);
   const probe = await openLab(database);
   try {
-    if (probe.toolsRelease !== '8.61' || probe.patch !== 15) {
-      throw new Error(`Lab is PeopleTools ${probe.toolsRelease} patch ${probe.patch}; the experiments need 8.61 patch 15.`);
+    if (!databaseMatchesRelease(profile, probe.toolsRelease, probe.patch)) {
+      throw new Error(`Lab is PeopleTools ${probe.toolsRelease} patch ${probe.patch}; the ${profile.release} client needs ${profile.toolsRel} patch ${profile.patch}.`);
     }
   } finally {
     await probe.close();
   }
-  console.log(`preflight ok: ${database} PeopleTools 8.61.15; pristine export covers every definition`);
+  console.log(`preflight ok: ${database} PeopleTools ${profile.release}; pristine export covers every definition`);
   if (flag('--preflight')) return;
 
   const ids = flag('--all') ? pack.experiments.map(e => e.id) : (argument('--only') ?? '').split(',').filter(Boolean).filter(id => id !== 'SMOKE');

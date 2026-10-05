@@ -29,6 +29,19 @@
     - Both are incompatible with the 8.61.15 compiler: stop condition D,
       no compile.
     - Other PDBs were not queried.
+  - Cycle 177, the user wants 8.62 supported too: the harness now has
+    release profiles (`PSLAB_RELEASE`).
+    - 8.62.09 profile: client `PTC-DPK-WIN8.62.09-1of1.zip` from psapp01,
+      build PT862P09C_2604092319, pside `4f754ce3...`, pspcm `4e32443e...`.
+      Lab `~/peoplesoft-lab/pt86209`, prefix `~/.wine-peoplesoft-86209`.
+    - HRDMO is reached through an SSH tunnel at 127.0.0.1:15210.
+    - Headless pside 8.62.09 reaches HRDMO and is refused only on
+      credentials ("Invalid Connect ID or password").
+    - Capture account ZZ_PCLAB_CAPTURE (SELECT on PSPCMPROG / PSPCMNAME /
+      PSPCMTXT / PSSTATUS) works. Its credentials are in
+      `~/peoplesoft-lab/pt86209/capture.env` (mode 600).
+    - Needed from the user: the PeopleSoft connect id / password and an
+      App Designer operator / password for HRDMO.
 - **Last successful calibration:** Cycle 171. Cycles 172-176 made no
   semantic change.
   - Cycle 175 was authorized. It staged and verified the 8.61.15 media,

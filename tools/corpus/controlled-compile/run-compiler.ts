@@ -1,6 +1,7 @@
 /*
- * Cycle 175: run one fresh, headless PeopleTools 8.61.15 Application
- * Designer process against the LAB database and report what it did.
+ * Cycle 175: run one fresh, headless PeopleTools Application Designer
+ * process against the LAB database and report what it did. The release
+ * is PSLAB_RELEASE (default 8.61.15); see PEOPLETOOLS_RELEASES.
  *
  *   PSLAB_DB=PCLAB PSLAB_OPRID=... PSLAB_OPRPSWD=... \
  *     npx tsx tools/corpus/controlled-compile/run-compiler.ts --signon-only
@@ -9,10 +10,13 @@
  *     npx tsx tools/corpus/controlled-compile/run-compiler.ts --copy-from-file ZZ_PCODE_LAB --dir <dir>
  *
  * Environment:
+ * - PSLAB_RELEASE: the PeopleTools release profile (default 8.61.15).
  * - PSLAB_HOME: the lab root, holding ps_home/, oracle_client/, tns/ and
- *   logs/. Default ~/peoplesoft-lab/pt86115.
- * - PSLAB_WINEPREFIX: the separate 8.61.15 prefix. Default
- *   ~/.wine-peoplesoft-86115. Never the 8.61.07 bottle.
+ *   logs/. Default ~/peoplesoft-lab/<profile labDirectory>.
+ * - PSLAB_ORACLE_CLIENT: the Oracle client directory. Default
+ *   <PSLAB_HOME>/oracle_client.
+ * - PSLAB_WINEPREFIX: the release's separate prefix. Default
+ *   ~/<profile winePrefix>. Never the 8.61.07 bottle.
  * - PSLAB_DB, PSLAB_OPRID, PSLAB_OPRPSWD; optional PSLAB_CONNECTID /
  *   PSLAB_CONNECTPSWD. These are disposable lab credentials. They go on
  *   pside's command line, because its parameter file was not honored
@@ -22,7 +26,7 @@
  * Safety:
  * - It refuses institutional database names, and a TNS directory that
  *   names any institutional alias.
- * - It refuses a pside.exe / pspcm.dll that is not the exact 8.61.15
+ * - It refuses a pside.exe / pspcm.dll that is not the profile's exact
  *   build.
  *
  * It prints one JSON result. The exit code says only whether this tool
@@ -39,14 +43,9 @@ import {
   PROTECTED_DATABASE_PATTERN,
   buildPsideArguments,
   readPsideLog,
+  releaseProfile,
   type PsideAction
 } from '../../../src/peoplecode/corpus/controlledCompileRunner';
-
-/** docs/PEOPLETOOLS_BINARIES.md, Cycle 171; re-verified Cycles 174 / 175. */
-const EXPECTED_SHA256: Record<string, string> = {
-  'pside.exe': 'e1d1b610650b96986a88ea38dcf0cb5b4fea0f6e77948aa8085181f410a141f8',
-  'pspcm.dll': 'ad57fe0923022e49449e33f80cc7a8f91d8b6446d5f83a8fa3fcd67c11fa1d0b'
-};
 
 function argument(name: string): string | undefined {
   const index = process.argv.indexOf(name);
@@ -84,13 +83,15 @@ function action(): PsideAction {
 }
 
 function main(): void {
-  const labHome = process.env.PSLAB_HOME ?? path.join(os.homedir(), 'peoplesoft-lab', 'pt86115');
-  const winePrefix = process.env.PSLAB_WINEPREFIX ?? path.join(os.homedir(), '.wine-peoplesoft-86115');
+  const profile = releaseProfile(process.env.PSLAB_RELEASE);
+  const labHome = process.env.PSLAB_HOME ?? path.join(os.homedir(), 'peoplesoft-lab', profile.labDirectory);
+  const winePrefix = process.env.PSLAB_WINEPREFIX ?? path.join(os.homedir(), profile.winePrefix);
+  const oracleClient = process.env.PSLAB_ORACLE_CLIENT ?? path.join(labHome, 'oracle_client');
   if (/wine-bottles\/peopletools/.test(winePrefix)) throw new Error('Refusing the 8.61.07 Wine bottle.');
   const clientDir = path.join(labHome, 'ps_home', 'bin', 'client', 'winx86');
-  for (const [file, expected] of Object.entries(EXPECTED_SHA256)) {
+  for (const [file, expected] of Object.entries(profile.clientSha256)) {
     const actual = createHash('sha256').update(fs.readFileSync(path.join(clientDir, file))).digest('hex');
-    if (actual !== expected) throw new Error(`${file} is not the 8.61.15 build (sha256 ${actual}).`);
+    if (actual !== expected) throw new Error(`${file} is not the ${profile.release} build (sha256 ${actual}).`);
   }
   const tnsDir = path.join(labHome, 'tns');
   const tns = fs.readFileSync(path.join(tnsDir, 'tnsnames.ora'), 'utf8');
@@ -122,8 +123,8 @@ function main(): void {
       WINEPREFIX: winePrefix,
       WINEDEBUG: '-all',
       WINEDLLOVERRIDES: 'mscoree,mshtml=',
-      WINEPATH: toWinePath(path.join(labHome, 'oracle_client', 'bin')),
-      ORACLE_HOME: toWinePath(path.join(labHome, 'oracle_client')),
+      WINEPATH: toWinePath(path.join(oracleClient, 'bin')),
+      ORACLE_HOME: toWinePath(oracleClient),
       TNS_ADMIN: toWinePath(tnsDir)
     },
     encoding: 'buffer'
@@ -131,6 +132,7 @@ function main(): void {
   const log = fs.existsSync(logFile) ? readPsideLog(fs.readFileSync(logFile)) : undefined;
   console.log(JSON.stringify({
     action: selected,
+    release: profile.release,
     database: signon.database,
     exitCode: result.status,
     timedOut: result.error !== undefined && /ETIMEDOUT/.test(String(result.error)),
