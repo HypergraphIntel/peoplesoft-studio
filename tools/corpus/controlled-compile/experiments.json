@@ -1,0 +1,1096 @@
+{
+  "format": "pcode-lab-experiments/1",
+  "description": "Cycle 172 controlled-compile experiment pack (docs/CONTROLLED_COMPILE_LAB.md). Save every support definition, then every experiment, in a writable PeopleTools 8.61.15 lab; capture with tools/corpus/controlled-compile/capture-lab.ts; compare with tools/corpus/compare-controlled-compile.ts. Never against HCDEV.",
+  "labObjects": {
+    "project": "ZZ_PCODE_LAB",
+    "applicationPackages": [
+      "ZZ_PCODE_LAB",
+      "ZZ_PCODE_LAB:ORDERING",
+      "ZZ_PCODE_LAB:SCOPE"
+    ],
+    "records": [
+      {
+        "name": "ZZ_PCODE_LAB",
+        "type": "Derived/Work",
+        "fields": [
+          "ZZ_CASE_01",
+          "ZZ_CASE_02",
+          "ZZ_CASE_03",
+          "ZZ_CASE_04",
+          "ZZ_CASE_05",
+          "ZZ_CASE_06",
+          "ZZ_CASE_07"
+        ],
+        "purpose": "owner of the G programs (FieldFormula)"
+      },
+      {
+        "name": "ZZ_PCODE_LAB_P",
+        "type": "Derived/Work",
+        "fields": [
+          "ZZ_LAB_KEY"
+        ],
+        "purpose": "level-1 scroll target"
+      },
+      {
+        "name": "ZZ_PCODE_LAB_T",
+        "type": "Derived/Work",
+        "fields": [
+          "ZZ_LAB_KEY",
+          "ZZ_LAB_VAL"
+        ],
+        "purpose": "level-2 scroll / member target"
+      }
+    ],
+    "fields": [
+      {
+        "name": "ZZ_CASE_01",
+        "type": "Character",
+        "length": 1
+      },
+      {
+        "name": "ZZ_CASE_02",
+        "type": "Character",
+        "length": 1
+      },
+      {
+        "name": "ZZ_CASE_03",
+        "type": "Character",
+        "length": 1
+      },
+      {
+        "name": "ZZ_CASE_04",
+        "type": "Character",
+        "length": 1
+      },
+      {
+        "name": "ZZ_CASE_05",
+        "type": "Character",
+        "length": 1
+      },
+      {
+        "name": "ZZ_CASE_06",
+        "type": "Character",
+        "length": 1
+      },
+      {
+        "name": "ZZ_CASE_07",
+        "type": "Character",
+        "length": 1
+      },
+      {
+        "name": "ZZ_LAB_KEY",
+        "type": "Character",
+        "length": 10
+      },
+      {
+        "name": "ZZ_LAB_VAL",
+        "type": "Character",
+        "length": 10
+      }
+    ]
+  },
+  "supportDefinitions": [
+    {
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "PARENT",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "class PARENT\n   method PARENT();\n   method Describe() Returns string;\nend-class;\n\nmethod PARENT\nend-method;\n\nmethod Describe\n   /+ Returns String +/\n   Return \"PARENT\";\nend-method;\n",
+      "note": "declared type; alphabetically after CHILD"
+    },
+    {
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "CHILD",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "import ZZ_PCODE_LAB:ORDERING:PARENT;\n\nclass CHILD extends ZZ_PCODE_LAB:ORDERING:PARENT\n   method CHILD();\nend-class;\n\nmethod CHILD\n   %Super = create ZZ_PCODE_LAB:ORDERING:PARENT();\nend-method;\n",
+      "note": "created type; extends PARENT"
+    },
+    {
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "CHILDARG",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "import ZZ_PCODE_LAB:ORDERING:PARENT;\n\nclass CHILDARG extends ZZ_PCODE_LAB:ORDERING:PARENT\n   method CHILDARG(&n As number);\n   property number N;\nend-class;\n\nmethod CHILDARG\n   /+ &n as Number +/\n   %Super = create ZZ_PCODE_LAB:ORDERING:PARENT();\n   &N = &n;\nend-method;\n",
+      "note": "created type with a constructor argument"
+    },
+    {
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "BASECLS",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "class BASECLS\n   method BASECLS();\n   method Describe() Returns string;\nend-class;\n\nmethod BASECLS\nend-method;\n\nmethod Describe\n   /+ Returns String +/\n   Return \"BASECLS\";\nend-method;\n",
+      "note": "declared type; alphabetically before DERIVED"
+    },
+    {
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "DERIVED",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "import ZZ_PCODE_LAB:ORDERING:BASECLS;\n\nclass DERIVED extends ZZ_PCODE_LAB:ORDERING:BASECLS\n   method DERIVED();\nend-class;\n\nmethod DERIVED\n   %Super = create ZZ_PCODE_LAB:ORDERING:BASECLS();\nend-method;\n",
+      "note": "created type; extends BASECLS"
+    },
+    {
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "SCOPE",
+          "SPARENT",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "class SPARENT\n   method SPARENT();\n   method Describe() Returns string;\nend-class;\n\nmethod SPARENT\nend-method;\n\nmethod Describe\n   /+ Returns String +/\n   Return \"SPARENT\";\nend-method;\n",
+      "note": "other-package declared type"
+    },
+    {
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "SCOPE",
+          "SCHILD",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "import ZZ_PCODE_LAB:SCOPE:SPARENT;\n\nclass SCHILD extends ZZ_PCODE_LAB:SCOPE:SPARENT\n   method SCHILD();\nend-class;\n\nmethod SCHILD\n   %Super = create ZZ_PCODE_LAB:SCOPE:SPARENT();\nend-method;\n",
+      "note": "other-package created type"
+    }
+  ],
+  "experiments": [
+    {
+      "id": "H1",
+      "family": "30124",
+      "role": "positive",
+      "variation": "30124 replica: wildcard import of the class's own package, package-qualified types, `Local A &x = create B();` with B extends A",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H1",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "import ZZ_PCODE_LAB:ORDERING:*;\n\nclass H1\n   method H1();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H1\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x = create ZZ_PCODE_LAB:ORDERING:CHILD();\nend-method;\n",
+      "observe": {
+        "type": "order",
+        "keys": [
+          "PACKAGE.PARENT",
+          "PACKAGE.CHILD"
+        ]
+      },
+      "models": {
+        "DECLARED_FIRST": [
+          "PACKAGE.PARENT",
+          "PACKAGE.CHILD"
+        ],
+        "CREATED_FIRST": [
+          "PACKAGE.CHILD",
+          "PACKAGE.PARENT"
+        ],
+        "IMPORT_ORDER": null,
+        "ALPHABETICAL": [
+          "PACKAGE.CHILD",
+          "PACKAGE.PARENT"
+        ]
+      },
+      "corpusExpectation": [
+        "PACKAGE.PARENT",
+        "PACKAGE.CHILD"
+      ]
+    },
+    {
+      "id": "H2",
+      "family": "30124",
+      "role": "control",
+      "variation": "H1 with a bare declaration and no create: does a method-local class declaration open its row by itself (30124 stores the declared class at the declaration; the encoder opens it at a later use)",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H2",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "import ZZ_PCODE_LAB:ORDERING:*;\n\nclass H2\n   method H2();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H2\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x;\nend-method;\n",
+      "observe": {
+        "type": "order",
+        "keys": [
+          "PACKAGE.PARENT",
+          "PACKAGE.CHILD"
+        ]
+      },
+      "models": {
+        "DECLARED_FIRST": [
+          "PACKAGE.PARENT"
+        ],
+        "CREATED_FIRST": [],
+        "IMPORT_ORDER": null,
+        "ALPHABETICAL": null
+      }
+    },
+    {
+      "id": "H3",
+      "family": "30124",
+      "role": "control",
+      "variation": "H1 with the alphabetical order of the two classes reversed (BASECLS / DERIVED)",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H3",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "import ZZ_PCODE_LAB:ORDERING:*;\n\nclass H3\n   method H3();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H3\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local ZZ_PCODE_LAB:ORDERING:BASECLS &x = create ZZ_PCODE_LAB:ORDERING:DERIVED();\nend-method;\n",
+      "observe": {
+        "type": "order",
+        "keys": [
+          "PACKAGE.BASECLS",
+          "PACKAGE.DERIVED"
+        ]
+      },
+      "models": {
+        "DECLARED_FIRST": [
+          "PACKAGE.BASECLS",
+          "PACKAGE.DERIVED"
+        ],
+        "CREATED_FIRST": [
+          "PACKAGE.DERIVED",
+          "PACKAGE.BASECLS"
+        ],
+        "IMPORT_ORDER": null,
+        "ALPHABETICAL": [
+          "PACKAGE.BASECLS",
+          "PACKAGE.DERIVED"
+        ]
+      }
+    },
+    {
+      "id": "H4",
+      "family": "30124",
+      "role": "control",
+      "variation": "28754 shape: named imports in declared-then-created order",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H4",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "import ZZ_PCODE_LAB:ORDERING:PARENT;\nimport ZZ_PCODE_LAB:ORDERING:CHILD;\n\nclass H4\n   method H4();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H4\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x = create ZZ_PCODE_LAB:ORDERING:CHILD();\nend-method;\n",
+      "observe": {
+        "type": "order",
+        "keys": [
+          "PACKAGE.PARENT",
+          "PACKAGE.CHILD"
+        ]
+      },
+      "models": {
+        "DECLARED_FIRST": [
+          "PACKAGE.PARENT",
+          "PACKAGE.CHILD"
+        ],
+        "CREATED_FIRST": [
+          "PACKAGE.CHILD",
+          "PACKAGE.PARENT"
+        ],
+        "IMPORT_ORDER": [
+          "PACKAGE.PARENT",
+          "PACKAGE.CHILD"
+        ],
+        "ALPHABETICAL": [
+          "PACKAGE.CHILD",
+          "PACKAGE.PARENT"
+        ]
+      }
+    },
+    {
+      "id": "H5",
+      "family": "30124",
+      "role": "control",
+      "variation": "named imports in created-then-declared order",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H5",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "import ZZ_PCODE_LAB:ORDERING:CHILD;\nimport ZZ_PCODE_LAB:ORDERING:PARENT;\n\nclass H5\n   method H5();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H5\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x = create ZZ_PCODE_LAB:ORDERING:CHILD();\nend-method;\n",
+      "observe": {
+        "type": "order",
+        "keys": [
+          "PACKAGE.PARENT",
+          "PACKAGE.CHILD"
+        ]
+      },
+      "models": {
+        "DECLARED_FIRST": [
+          "PACKAGE.PARENT",
+          "PACKAGE.CHILD"
+        ],
+        "CREATED_FIRST": [
+          "PACKAGE.CHILD",
+          "PACKAGE.PARENT"
+        ],
+        "IMPORT_ORDER": [
+          "PACKAGE.CHILD",
+          "PACKAGE.PARENT"
+        ],
+        "ALPHABETICAL": [
+          "PACKAGE.CHILD",
+          "PACKAGE.PARENT"
+        ]
+      }
+    },
+    {
+      "id": "H6",
+      "family": "30124",
+      "role": "control",
+      "variation": "classes in another package (wildcard import of ZZ_PCODE_LAB:SCOPE)",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H6",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "import ZZ_PCODE_LAB:SCOPE:*;\n\nclass H6\n   method H6();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H6\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local ZZ_PCODE_LAB:SCOPE:SPARENT &x = create ZZ_PCODE_LAB:SCOPE:SCHILD();\nend-method;\n",
+      "observe": {
+        "type": "order",
+        "keys": [
+          "PACKAGE.SPARENT",
+          "PACKAGE.SCHILD"
+        ]
+      },
+      "models": {
+        "DECLARED_FIRST": [
+          "PACKAGE.SPARENT",
+          "PACKAGE.SCHILD"
+        ],
+        "CREATED_FIRST": [
+          "PACKAGE.SCHILD",
+          "PACKAGE.SPARENT"
+        ],
+        "IMPORT_ORDER": null,
+        "ALPHABETICAL": [
+          "PACKAGE.SCHILD",
+          "PACKAGE.SPARENT"
+        ]
+      }
+    },
+    {
+      "id": "H7",
+      "family": "30124",
+      "role": "control",
+      "variation": "declaration and create split into two statements",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H7",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "import ZZ_PCODE_LAB:ORDERING:*;\n\nclass H7\n   method H7();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H7\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x;\n   &x = create ZZ_PCODE_LAB:ORDERING:CHILD();\nend-method;\n",
+      "observe": {
+        "type": "order",
+        "keys": [
+          "PACKAGE.PARENT",
+          "PACKAGE.CHILD"
+        ]
+      },
+      "models": {
+        "DECLARED_FIRST": [
+          "PACKAGE.PARENT",
+          "PACKAGE.CHILD"
+        ],
+        "CREATED_FIRST": null,
+        "IMPORT_ORDER": null,
+        "ALPHABETICAL": [
+          "PACKAGE.CHILD",
+          "PACKAGE.PARENT"
+        ]
+      }
+    },
+    {
+      "id": "H8",
+      "family": "30124",
+      "role": "control",
+      "variation": "constructor with an argument",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H8",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "import ZZ_PCODE_LAB:ORDERING:*;\n\nclass H8\n   method H8();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H8\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x = create ZZ_PCODE_LAB:ORDERING:CHILDARG(1);\nend-method;\n",
+      "observe": {
+        "type": "order",
+        "keys": [
+          "PACKAGE.PARENT",
+          "PACKAGE.CHILDARG"
+        ]
+      },
+      "models": {
+        "DECLARED_FIRST": [
+          "PACKAGE.PARENT",
+          "PACKAGE.CHILDARG"
+        ],
+        "CREATED_FIRST": [
+          "PACKAGE.CHILDARG",
+          "PACKAGE.PARENT"
+        ],
+        "IMPORT_ORDER": null,
+        "ALPHABETICAL": [
+          "PACKAGE.CHILDARG",
+          "PACKAGE.PARENT"
+        ]
+      }
+    },
+    {
+      "id": "H9",
+      "family": "30124",
+      "role": "control",
+      "variation": "30124 position: after executable statements in a later method",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H9",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "import ZZ_PCODE_LAB:ORDERING:*;\n\nclass H9\n   method H9();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H9\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local string &t = \"run\";\n   &t = &t | \"!\";\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x = create ZZ_PCODE_LAB:ORDERING:CHILD();\nend-method;\n",
+      "observe": {
+        "type": "order",
+        "keys": [
+          "PACKAGE.PARENT",
+          "PACKAGE.CHILD"
+        ]
+      },
+      "models": {
+        "DECLARED_FIRST": [
+          "PACKAGE.PARENT",
+          "PACKAGE.CHILD"
+        ],
+        "CREATED_FIRST": [
+          "PACKAGE.CHILD",
+          "PACKAGE.PARENT"
+        ],
+        "IMPORT_ORDER": null,
+        "ALPHABETICAL": [
+          "PACKAGE.CHILD",
+          "PACKAGE.PARENT"
+        ]
+      }
+    },
+    {
+      "id": "G1",
+      "family": "10860/15598",
+      "role": "positive",
+      "variation": "10860 replica (Call_Link): the level-2 Rowset is declared Local only in an earlier Function, which reads the member chain; a later Function assigns it without declaring it and reads `&r2.GetRow(&j).REC.FIELD` inside For / If / For",
+      "key": {
+        "objectIds": [
+          1,
+          2,
+          12,
+          0,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ZZ_CASE_01",
+          "FieldFormula",
+          " ",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "Global Rowset &g1;\nLocal any &v;\n\nFunction LoadFilter()\n   &g1 = GetLevel0()(1).GetRowset(Scroll.ZZ_PCODE_LAB_P);\n   Local Rowset &r2 = &g1.GetRow(1).GetRowset(Scroll.ZZ_PCODE_LAB_T);\n   For &j = 1 To &r2.ActiveRowCount;\n      &v = &r2.GetRow(&j).ZZ_PCODE_LAB_T.ZZ_LAB_VAL.Value;\n   End-For;\nEnd-Function;\n\nFunction CallLink()\n   &g1 = GetLevel0()(1).GetRowset(Scroll.ZZ_PCODE_LAB_P);\n   For &i = 1 To &g1.ActiveRowCount;\n      If &g1.GetRow(&i).ZZ_PCODE_LAB_P.ZZ_LAB_KEY.Value <> \" \" Then\n         &r2 = &g1.GetRow(&i).GetRowset(Scroll.ZZ_PCODE_LAB_T);\n         For &j = 1 To &r2.ActiveRowCount;\n            &v = &r2.GetRow(&j).ZZ_PCODE_LAB_T.ZZ_LAB_VAL.Value;\n         End-For;\n      End-If;\n   End-For;\nEnd-Function;\n\nLoadFilter();\nCallLink();\n",
+      "observe": {
+        "type": "member-form",
+        "keys": [
+          "ZZ_PCODE_LAB_T",
+          "ZZ_LAB_VAL"
+        ]
+      },
+      "models": {
+        "TYPED_EVERYWHERE": [
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref",
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref"
+        ],
+        "DECLARING_UNIT_SCOPE": [
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref",
+          "ZZ_PCODE_LAB_T:inline",
+          "ZZ_LAB_VAL:inline"
+        ],
+        "PROGRAM_WIDE_DECLARATION": [
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref",
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref"
+        ],
+        "EARLIER_ROW_REUSE": [
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref",
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref"
+        ]
+      },
+      "corpusExpectation": [
+        "ZZ_PCODE_LAB_T:ref",
+        "ZZ_LAB_VAL:ref",
+        "ZZ_PCODE_LAB_T:inline",
+        "ZZ_LAB_VAL:inline"
+      ]
+    },
+    {
+      "id": "G2",
+      "family": "10860/15598",
+      "role": "control",
+      "variation": "G1 with `Local Rowset &r2;` declared in the later Function too",
+      "key": {
+        "objectIds": [
+          1,
+          2,
+          12,
+          0,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ZZ_CASE_02",
+          "FieldFormula",
+          " ",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "Global Rowset &g1;\nLocal any &v;\n\nFunction LoadFilter()\n   &g1 = GetLevel0()(1).GetRowset(Scroll.ZZ_PCODE_LAB_P);\n   Local Rowset &r2 = &g1.GetRow(1).GetRowset(Scroll.ZZ_PCODE_LAB_T);\n   For &j = 1 To &r2.ActiveRowCount;\n      &v = &r2.GetRow(&j).ZZ_PCODE_LAB_T.ZZ_LAB_VAL.Value;\n   End-For;\nEnd-Function;\n\nFunction CallLink()\n   Local Rowset &r2;\n   &g1 = GetLevel0()(1).GetRowset(Scroll.ZZ_PCODE_LAB_P);\n   For &i = 1 To &g1.ActiveRowCount;\n      If &g1.GetRow(&i).ZZ_PCODE_LAB_P.ZZ_LAB_KEY.Value <> \" \" Then\n         &r2 = &g1.GetRow(&i).GetRowset(Scroll.ZZ_PCODE_LAB_T);\n         For &j = 1 To &r2.ActiveRowCount;\n            &v = &r2.GetRow(&j).ZZ_PCODE_LAB_T.ZZ_LAB_VAL.Value;\n         End-For;\n      End-If;\n   End-For;\nEnd-Function;\n\nLoadFilter();\nCallLink();\n",
+      "observe": {
+        "type": "member-form",
+        "keys": [
+          "ZZ_PCODE_LAB_T",
+          "ZZ_LAB_VAL"
+        ]
+      },
+      "models": {
+        "TYPED_EVERYWHERE": [
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref",
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref"
+        ],
+        "DECLARING_UNIT_SCOPE": [
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref",
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref"
+        ],
+        "PROGRAM_WIDE_DECLARATION": [
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref",
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref"
+        ],
+        "EARLIER_ROW_REUSE": [
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref",
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref"
+        ]
+      }
+    },
+    {
+      "id": "G3",
+      "family": "10860/15598",
+      "role": "control",
+      "variation": "G1 with the earlier Function declaring the Rowset but never reading the member chain (no earlier RECORD / FIELD row)",
+      "key": {
+        "objectIds": [
+          1,
+          2,
+          12,
+          0,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ZZ_CASE_03",
+          "FieldFormula",
+          " ",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "Global Rowset &g1;\nLocal any &v;\n\nFunction LoadFilter()\n   &g1 = GetLevel0()(1).GetRowset(Scroll.ZZ_PCODE_LAB_P);\n   Local Rowset &r2 = &g1.GetRow(1).GetRowset(Scroll.ZZ_PCODE_LAB_T);\n   &v = &r2.ActiveRowCount;\nEnd-Function;\n\nFunction CallLink()\n   &g1 = GetLevel0()(1).GetRowset(Scroll.ZZ_PCODE_LAB_P);\n   For &i = 1 To &g1.ActiveRowCount;\n      If &g1.GetRow(&i).ZZ_PCODE_LAB_P.ZZ_LAB_KEY.Value <> \" \" Then\n         &r2 = &g1.GetRow(&i).GetRowset(Scroll.ZZ_PCODE_LAB_T);\n         For &j = 1 To &r2.ActiveRowCount;\n            &v = &r2.GetRow(&j).ZZ_PCODE_LAB_T.ZZ_LAB_VAL.Value;\n         End-For;\n      End-If;\n   End-For;\nEnd-Function;\n\nLoadFilter();\nCallLink();\n",
+      "observe": {
+        "type": "member-form",
+        "keys": [
+          "ZZ_PCODE_LAB_T",
+          "ZZ_LAB_VAL"
+        ]
+      },
+      "models": {
+        "TYPED_EVERYWHERE": [
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref"
+        ],
+        "DECLARING_UNIT_SCOPE": [
+          "ZZ_PCODE_LAB_T:inline",
+          "ZZ_LAB_VAL:inline"
+        ],
+        "PROGRAM_WIDE_DECLARATION": [
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref"
+        ],
+        "EARLIER_ROW_REUSE": [
+          "ZZ_PCODE_LAB_T:inline",
+          "ZZ_LAB_VAL:inline"
+        ]
+      }
+    },
+    {
+      "id": "G4",
+      "family": "10860/15598",
+      "role": "control",
+      "variation": "G1 with the level-2 Rowset a Global (program scope) and no Local",
+      "key": {
+        "objectIds": [
+          1,
+          2,
+          12,
+          0,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ZZ_CASE_04",
+          "FieldFormula",
+          " ",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "Global Rowset &g1, &r2;\nLocal any &v;\n\nFunction LoadFilter()\n   &g1 = GetLevel0()(1).GetRowset(Scroll.ZZ_PCODE_LAB_P);\n   &r2 = &g1.GetRow(1).GetRowset(Scroll.ZZ_PCODE_LAB_T);\n   For &j = 1 To &r2.ActiveRowCount;\n      &v = &r2.GetRow(&j).ZZ_PCODE_LAB_T.ZZ_LAB_VAL.Value;\n   End-For;\nEnd-Function;\n\nFunction CallLink()\n   &g1 = GetLevel0()(1).GetRowset(Scroll.ZZ_PCODE_LAB_P);\n   For &i = 1 To &g1.ActiveRowCount;\n      If &g1.GetRow(&i).ZZ_PCODE_LAB_P.ZZ_LAB_KEY.Value <> \" \" Then\n         &r2 = &g1.GetRow(&i).GetRowset(Scroll.ZZ_PCODE_LAB_T);\n         For &j = 1 To &r2.ActiveRowCount;\n            &v = &r2.GetRow(&j).ZZ_PCODE_LAB_T.ZZ_LAB_VAL.Value;\n         End-For;\n      End-If;\n   End-For;\nEnd-Function;\n\nLoadFilter();\nCallLink();\n",
+      "observe": {
+        "type": "member-form",
+        "keys": [
+          "ZZ_PCODE_LAB_T",
+          "ZZ_LAB_VAL"
+        ]
+      },
+      "models": {
+        "TYPED_EVERYWHERE": [
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref",
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref"
+        ],
+        "DECLARING_UNIT_SCOPE": [
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref",
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref"
+        ],
+        "PROGRAM_WIDE_DECLARATION": [
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref",
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref"
+        ],
+        "EARLIER_ROW_REUSE": [
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref",
+          "ZZ_PCODE_LAB_T:ref",
+          "ZZ_LAB_VAL:ref"
+        ]
+      }
+    },
+    {
+      "id": "G5",
+      "family": "10860/15598",
+      "role": "positive",
+      "variation": "15598 replica: a Row declared Local only in an earlier Function, which reads `&xrow.GetRecord(1).FIELD`; top-level code assigns it without declaring it and reads the same member",
+      "key": {
+        "objectIds": [
+          1,
+          2,
+          12,
+          0,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ZZ_CASE_05",
+          "FieldFormula",
+          " ",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "Local any &v;\n\nFunction Prepare(&prs As Rowset)\n   Local Row &xrow;\n   &xrow = &prs.GetRow(1);\n   &v = &xrow.GetRecord(1).ZZ_LAB_VAL.Value;\nEnd-Function;\n\nLocal Rowset &rsg;\n\n&rsg = GetLevel0()(1).GetRowset(Scroll.ZZ_PCODE_LAB_T);\nPrepare(&rsg);\nFor &x = 1 To &rsg.ActiveRowCount\n   &xrow = &rsg.GetRow(&x);\n   &v = &xrow.GetRecord(1).ZZ_LAB_VAL.Value;\nEnd-For;\n",
+      "observe": {
+        "type": "member-form",
+        "keys": [
+          "ZZ_LAB_VAL"
+        ]
+      },
+      "models": {
+        "TYPED_EVERYWHERE": [
+          "ZZ_LAB_VAL:ref",
+          "ZZ_LAB_VAL:ref"
+        ],
+        "DECLARING_UNIT_SCOPE": [
+          "ZZ_LAB_VAL:ref",
+          "ZZ_LAB_VAL:inline"
+        ],
+        "PROGRAM_WIDE_DECLARATION": [
+          "ZZ_LAB_VAL:ref",
+          "ZZ_LAB_VAL:ref"
+        ],
+        "EARLIER_ROW_REUSE": [
+          "ZZ_LAB_VAL:ref",
+          "ZZ_LAB_VAL:ref"
+        ]
+      },
+      "corpusExpectation": [
+        "ZZ_LAB_VAL:ref",
+        "ZZ_LAB_VAL:inline"
+      ]
+    },
+    {
+      "id": "G6",
+      "family": "10860/15598",
+      "role": "control",
+      "variation": "G5 with a top-level `Local Row &xrow;` before the use",
+      "key": {
+        "objectIds": [
+          1,
+          2,
+          12,
+          0,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ZZ_CASE_06",
+          "FieldFormula",
+          " ",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "Local any &v;\n\nFunction Prepare(&prs As Rowset)\n   Local Row &xrow;\n   &xrow = &prs.GetRow(1);\n   &v = &xrow.GetRecord(1).ZZ_LAB_VAL.Value;\nEnd-Function;\n\nLocal Rowset &rsg;\nLocal Row &xrow;\n\n&rsg = GetLevel0()(1).GetRowset(Scroll.ZZ_PCODE_LAB_T);\nPrepare(&rsg);\nFor &x = 1 To &rsg.ActiveRowCount\n   &xrow = &rsg.GetRow(&x);\n   &v = &xrow.GetRecord(1).ZZ_LAB_VAL.Value;\nEnd-For;\n",
+      "observe": {
+        "type": "member-form",
+        "keys": [
+          "ZZ_LAB_VAL"
+        ]
+      },
+      "models": {
+        "TYPED_EVERYWHERE": [
+          "ZZ_LAB_VAL:ref",
+          "ZZ_LAB_VAL:ref"
+        ],
+        "DECLARING_UNIT_SCOPE": [
+          "ZZ_LAB_VAL:ref",
+          "ZZ_LAB_VAL:ref"
+        ],
+        "PROGRAM_WIDE_DECLARATION": [
+          "ZZ_LAB_VAL:ref",
+          "ZZ_LAB_VAL:ref"
+        ],
+        "EARLIER_ROW_REUSE": [
+          "ZZ_LAB_VAL:ref",
+          "ZZ_LAB_VAL:ref"
+        ]
+      }
+    },
+    {
+      "id": "G7",
+      "family": "10860/15598",
+      "role": "control",
+      "variation": "G5 with the Function declaring the Row but never reading the member (no earlier FIELD row)",
+      "key": {
+        "objectIds": [
+          1,
+          2,
+          12,
+          0,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ZZ_CASE_07",
+          "FieldFormula",
+          " ",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "Local any &v;\n\nFunction Prepare(&prs As Rowset)\n   Local Row &xrow;\n   &xrow = &prs.GetRow(1);\n   &v = &xrow.RowNumber;\nEnd-Function;\n\nLocal Rowset &rsg;\n\n&rsg = GetLevel0()(1).GetRowset(Scroll.ZZ_PCODE_LAB_T);\nPrepare(&rsg);\nFor &x = 1 To &rsg.ActiveRowCount\n   &xrow = &rsg.GetRow(&x);\n   &v = &xrow.GetRecord(1).ZZ_LAB_VAL.Value;\nEnd-For;\n",
+      "observe": {
+        "type": "member-form",
+        "keys": [
+          "ZZ_LAB_VAL"
+        ]
+      },
+      "models": {
+        "TYPED_EVERYWHERE": [
+          "ZZ_LAB_VAL:ref"
+        ],
+        "DECLARING_UNIT_SCOPE": [
+          "ZZ_LAB_VAL:inline"
+        ],
+        "PROGRAM_WIDE_DECLARATION": [
+          "ZZ_LAB_VAL:ref"
+        ],
+        "EARLIER_ROW_REUSE": [
+          "ZZ_LAB_VAL:inline"
+        ]
+      }
+    }
+  ]
+}
