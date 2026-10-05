@@ -6,7 +6,8 @@
     "applicationPackages": [
       "ZZ_PCODE_LAB",
       "ZZ_PCODE_LAB:ORDERING",
-      "ZZ_PCODE_LAB:SCOPE"
+      "ZZ_PCODE_LAB:SCOPE",
+      "ZZ_PCODE_LAB:SUPPORT"
     ],
     "records": [
       {
@@ -88,6 +89,31 @@
         "length": 10
       }
     ]
+  },
+  "smoke": {
+    "id": "SMOKE",
+    "note": "Cycle 175: pipeline smoke definition, compiled and captured before any H / G experiment. Not an experiment.",
+    "key": {
+      "objectIds": [
+        104,
+        105,
+        107,
+        12,
+        0,
+        0,
+        0
+      ],
+      "objectValues": [
+        "ZZ_PCODE_LAB",
+        "SUPPORT",
+        "SmokeTest",
+        "OnExecute",
+        " ",
+        " ",
+        " "
+      ]
+    },
+    "source": "class SmokeTest\n   method Run();\nend-class;\n\nmethod Run\n   Local integer &x;\n   &x = 1;\nend-method;\n"
   },
   "supportDefinitions": [
     {

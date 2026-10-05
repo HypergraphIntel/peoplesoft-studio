@@ -18,6 +18,8 @@
  * a family is consistent with -- with at least one positive and one
  * control experiment observed -- is a candidate for a rule, not a rule.
  */
+import { createHash } from 'node:crypto';
+
 import { decodeProgram } from '../decoder.js';
 import { encodeProgramArtifacts, isBuiltinObjectTypeName, type PeopleCodeReference } from '../encoder.js';
 import { NameTable } from '../progtext.js';
@@ -59,6 +61,8 @@ export interface ControlledCompileDefinition {
   programHex: string;
   /** PSPCMNAME rows. */
   names: ControlledCompileNameRow[];
+  /** MAX(PSPCMPROG.LASTUPDDTTM) for the key, ISO 8601, when captured. */
+  compiledAt?: string;
 }
 
 export interface ControlledCompileResults {
@@ -126,6 +130,8 @@ export interface SupportDefinition {
 
 export interface ExperimentPack {
   format: typeof CONTROLLED_COMPILE_EXPERIMENTS_FORMAT;
+  /** Cycle 175: the pipeline smoke definition, compiled before any experiment. */
+  smoke?: { id: string; key: ControlledCompileKey; source: string; note?: string };
   supportDefinitions: SupportDefinition[];
   experiments: ExperimentSpec[];
 }
@@ -137,6 +143,8 @@ export interface DefinitionComparison {
   keyDescription: string;
   applicationClass: boolean;
   storedProgramBytes: number;
+  /** sha256 of the source text, the program bytes and the canonical PSPCMNAME rows. */
+  hashes: { source: string; program: string; names: string };
   /** Stored references in NAMENUM order. */
   storedReferences: string[];
   /** NAMENUM -> key. */
@@ -255,6 +263,71 @@ function nameTable(rows: readonly ControlledCompileNameRow[]): NameTable {
   return names;
 }
 
+const sha256 = (data: string | Buffer): string => createHash('sha256').update(data).digest('hex');
+
+/**
+ * Hashes for a capture:
+ * - source: the UTF-8 source text;
+ * - program: the PSPCMPROG bytes;
+ * - names: the PSPCMNAME rows in NAMENUM order, as JSON of
+ *   [namenum, recname, refname, packageroot, qualifypath, appclassmethod],
+ *   each value trimmed.
+ */
+export function captureHashes(definition: ControlledCompileDefinition): { source: string; program: string; names: string } {
+  const rows = [...definition.names]
+    .sort((a, b) => Number(a.namenum) - Number(b.namenum))
+    .map(row => [Number(row.namenum), trimmed(row.recname), trimmed(row.refname), trimmed(row.packageroot), trimmed(row.qualifypath), trimmed(row.appclassmethod)]);
+  return {
+    source: sha256(Buffer.from(definition.source, 'utf8')),
+    program: sha256(Buffer.from(definition.programHex, 'hex')),
+    names: sha256(JSON.stringify(rows))
+  };
+}
+
+export interface LabCompileCheck {
+  ok: boolean;
+  reasons: string[];
+}
+
+/**
+ * Whether a capture is the lab compiler's output for `expectedSource`,
+ * and not a leftover. It requires:
+ * - the captured PSPCMTXT source equals the experiment source (after
+ *   normalization);
+ * - the program decodes, and the decoded text equals that source;
+ * - the program differs from the sentinel (the pristine program the
+ *   loader left in place), when one is given;
+ * - PSPCMPROG.LASTUPDDTTM is not earlier than the compile start, when
+ *   both are known. Both must be read from the database clock (the
+ *   orchestrator reads SYSTIMESTAMP before it compiles).
+ */
+export function checkLabCompile(
+  definition: ControlledCompileDefinition,
+  expectedSource: string,
+  options: { sentinelProgramHex?: string; compileStartedAt?: string } = {}
+): LabCompileCheck {
+  const reasons: string[] = [];
+  if (!sourcesMatch(expectedSource, definition.source)) reasons.push('captured PSPCMTXT source differs from the experiment source');
+  if (definition.programHex === '') reasons.push('no PSPCMPROG rows');
+  else {
+    try {
+      const names = nameTable(definition.names);
+      const decoded = decodeProgram(Buffer.from(definition.programHex, 'hex'), names, { mode: 'auto', isApplicationClass: isApplicationClassKey(definition.key) });
+      if (!sourcesMatch(expectedSource, decoded.text)) reasons.push('the compiled program does not decode to the experiment source');
+    } catch (error) {
+      reasons.push(`the compiled program does not decode: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  if (options.sentinelProgramHex !== undefined && options.sentinelProgramHex.toLowerCase() === definition.programHex.toLowerCase()) {
+    reasons.push('PSPCMPROG still holds the sentinel (pristine) program: the compiler did not run');
+  }
+  if (options.compileStartedAt !== undefined && definition.compiledAt !== undefined &&
+      Date.parse(definition.compiledAt) < Date.parse(options.compileStartedAt)) {
+    reasons.push(`PSPCMPROG.LASTUPDDTTM ${definition.compiledAt} predates the compile start ${options.compileStartedAt}`);
+  }
+  return { ok: reasons.length === 0, reasons };
+}
+
 /** The release `#If #ToolsRel` compares against: major.minor of PSSTATUS.TOOLSREL. */
 export function conditionalReleaseOf(toolsRelease: string): string | undefined {
   const match = /^(\d+\.\d+)/.exec(toolsRelease.trim());
@@ -364,6 +437,7 @@ export function compareControlledCompile(
       keyDescription: describeKey(definition.key),
       applicationClass,
       storedProgramBytes: program.length,
+      hashes: captureHashes(definition),
       storedReferences,
       nameNumMap,
       firstUseOrder: [],

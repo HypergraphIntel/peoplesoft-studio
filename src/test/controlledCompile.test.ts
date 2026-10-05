@@ -36,7 +36,7 @@ test('the harness owner: App Class keys keep their package path; Record PeopleCo
 
 test('the experiment pack stays in the scratch namespace and pairs every family with a replica, a positive and a control', () => {
   assert.equal(pack.format, 'pcode-lab-experiments/1');
-  for (const definition of [...pack.supportDefinitions, ...pack.experiments]) {
+  for (const definition of [...(pack.smoke ? [pack.smoke] : []), ...pack.supportDefinitions, ...pack.experiments]) {
     assert.match(String(definition.key.objectValues[0]), /^ZZ_PCODE_LAB/);
   }
   const ids = pack.experiments.map(e => e.id);
