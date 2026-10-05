@@ -68,3 +68,174 @@ Evidence levels: **confirmed by compiler output** (stored corpus agrees),
   for `axt` on these.
 - Call sites of imports: `FF 15 disp32` scan against the IAT entry.
 - Disassembly: `rizin -q -c 'pd N @ addr'`.
+
+## Cycle 170 findings
+
+HCTST (the second configured environment) refused the HCDEV credentials
+(ORA-01017); no other credential is configured, so no secondary corpus.
+No writable compile environment exists. Native analysis below is the
+evidence beyond the HCDEV corpus.
+
+### PcBuildText opcode table (pspceval.dll) -- CONFIRMED
+
+`PcBuildText(PCMPROG*, ...)` (export at `0x180030cd0`) reads one opcode
+byte (`movzx r13d, byte [r15]`) and dispatches through a 4-byte RVA jump
+table at `0x180032454`, index `opcode - 1`, opcodes 0x01-0x79. Each case
+loads its keyword text and spacing flags, then jumps to a shared emitter.
+Against this repository's opcode table (`src/peoplecode/format.ts`): 73
+opcodes with text agree, 0 disagree. Notably 0x41 / 0x42 render no text
+(group markers), 0x2D and 0x4F render no text (line structure), 0x50 is
+the number operand, 0x5A-0x5C and 0x70-0x72 share the class / end-class /
+extends cases (class vs interface).
+
+| Opcode | Case address | Native text |
+|---|---|---|
+| 0x01 | `0x180030f95` | (operand / special) |
+| 0x02 | `0x180030ec4` | `^` |
+| 0x03 | `0x180030edc` | `,` |
+| 0x04 | `0x180030ef6` | `/` |
+| 0x05 | `0x180031c50` | `.` |
+| 0x06 | `0x180030f32` | `=` |
+| 0x07 | `0x180030f12` | (empty) |
+| 0x08 | `0x180030f4e` | `>=` |
+| 0x09 | `0x180030f6a` | `>` |
+| 0x0A | `0x180030f95` | (operand / special) |
+| 0x0B | `0x180030fec` | `(` |
+| 0x0C | `0x180031017` | `<=` |
+| 0x0D | `0x180031033` | `<` |
+| 0x0E | `0x18003104f` | `-` |
+| 0x0F | `0x18003106b` | `*` |
+| 0x10 | `0x180031087` | `<>` |
+| 0x11 | `0x1800310a3` | (operand / special) |
+| 0x12 | `0x180030f95` | (operand / special) |
+| 0x13 | `0x18003115d` | `+` |
+| 0x14 | `0x1800311a9` | `)` |
+| 0x15 | `0x1800311bd` | `;` |
+| 0x16 | `0x1800311eb` | (operand / special) |
+| 0x17 | `0x1800312e8` | `Accept` |
+| 0x18 | `0x18003131c` | `And` |
+| 0x19 | `0x1800313ce` | `Else` |
+| 0x1A | `0x180031407` | `End-If` |
+| 0x1B | `0x180031485` | `Error` |
+| 0x1C | `0x180031552` | `If` |
+| 0x1D | `0x180031592` | `Not` |
+| 0x1E | `0x1800315ae` | `Or` |
+| 0x1F | `0x1800316a3` | `Then` |
+| 0x20 | `0x18003170f` | `Warning` |
+| 0x21 | `0x1800317a7` | `Invalid Name Index` |
+| 0x22 | `0x180031a05` | (operand / special) |
+| 0x23 | `0x18003118d` | `|` |
+| 0x24 | `0x180031b11` | (operand / special) |
+| 0x25 | `0x18003179b` | `While` |
+| 0x26 | `0x18003145d` | `End-While` |
+| 0x27 | `0x18003163a` | `Repeat` |
+| 0x28 | `0x1800316e7` | `Until` |
+| 0x29 | `0x180031500` | `For` |
+| 0x2A | `0x1800316af` | `To` |
+| 0x2B | `0x180031687` | `Step` |
+| 0x2C | `0x180031439` | `End-For` |
+| 0x2D | `0x1800312bc` | (empty) |
+| 0x2E | `0x180031366` | `Break` |
+| 0x2F | `0x1800316cb` | `True` |
+| 0x30 | `0x1800314e4` | `False` |
+| 0x31 | `0x1800313b6` | `Declare` |
+| 0x32 | `0x180031509` | `Function` |
+| 0x33 | `0x18003155e` | `Library` |
+| 0x34 | `0x180031300` | `Alias` |
+| 0x35 | `0x18003134a` | `As` |
+| 0x36 | `0x1800316f3` | `Value` |
+| 0x37 | `0x180031442` | `End-Function` |
+| 0x38 | `0x180031653` | `Return` |
+| 0x39 | `0x18003166b` | `Returns` |
+| 0x3A | `0x180031602` | `PeopleCode` |
+| 0x3B | `0x18003161e` | `Ref` |
+| 0x3C | `0x1800314b5` | `Evaluate` |
+| 0x3D | `0x180031727` | `When` |
+| 0x3E | `0x180031760` | `When-Other` |
+| 0x3F | `0x180031430` | `End-Evaluate` |
+| 0x40 | `0x180030f86` | (operand / special) |
+| 0x41 | `0x18003127e` | (empty) |
+| 0x42 | `0x18003129d` | (empty) |
+| 0x43 | `0x18003149d` | `Exit` |
+| 0x44 | `0x18003157a` | `Local` |
+| 0x45 | `0x18003153a` | `Global` |
+| 0x46 | `0x180031179` | `**` |
+| 0x47 | `0x180030ed0` | `@` |
+| 0x48 | `0x180031877` | `Invalid Name Index` |
+| 0x49 | `0x180031c64` | `set` |
+| 0x4A | `0x1800319a0` | `Invalid Name Index` |
+| 0x4B | `0x180031c7c` | `Null` |
+| 0x4C | `0x180031c98` | `[` |
+| 0x4D | `0x180031ca4` | `]` |
+| 0x4E | `0x180031b11` | (operand / special) |
+| 0x4F | `0x180031bd3` | (empty) |
+| 0x50 | `0x180031120` | (operand / special) |
+| 0x51 | `0x1800315ba` | `PanelGroup` |
+| 0x52 | `0x180031cb8` | `NoExport` |
+| 0x53 | `0x180031cd4` | `Doc` |
+| 0x54 | `0x1800315d2` | `Component` |
+| 0x55 | `0x180031b11` | (operand / special) |
+| 0x56 | `0x18003139e` | `Constant` |
+| 0x57 | `0x180031ce0` | `:` |
+| 0x58 | `0x180031cf4` | `import` |
+| 0x59 | `0x180031d00` | `*` |
+| 0x5A | `0x180031d0c` | `class` |
+| 0x5B | `0x180031d2a` | `end-class` |
+| 0x5C | `0x180031d50` | `extends` |
+| 0x5D | `0x180031d7c` | `out` |
+| 0x5E | `0x180031d98` | `property` |
+| 0x5F | `0x180031da4` | `get` |
+| 0x60 | `0x180031dc0` | `readonly` |
+| 0x61 | `0x180031ddc` | `private` |
+| 0x62 | `0x180031de8` | `instance` |
+| 0x63 | `0x180031df4` | `method` |
+| 0x64 | `0x180031e00` | `end-method` |
+| 0x65 | `0x180031e0c` | `try` |
+| 0x66 | `0x180031e18` | `catch` |
+| 0x67 | `0x180031e51` | `end-try` |
+| 0x68 | `0x180031e5d` | `throw` |
+| 0x69 | `0x180031e69` | `create` |
+| 0x6A | `0x18003144b` | `end-get` |
+| 0x6B | `0x180031454` | `end-set` |
+| 0x6C | `0x180030f95` | (operand / special) |
+| 0x6D | `0x180031a95` | (operand / special) |
+| 0x6E | `0x180031382` | `Continue` |
+| 0x6F | `0x180031e81` | `abstract` |
+| 0x70 | `0x180031d0c` | `class` |
+| 0x71 | `0x180031d2a` | `end-class` |
+| 0x72 | `0x180031d50` | `extends` |
+| 0x73 | `0x180031e9d` | `protected` |
+| 0x74 | `0x180031b86` | (operand / special) |
+| 0x75 | `0x180031ea9` | (operand / special) |
+| 0x76 | `0x180031f4a` | (operand / special) |
+| 0x77 | `0x180032023` | (operand / special) |
+| 0x78 | `0x1800320f1` | (operand / special) |
+| 0x79 | `0x1800315ea` | `ComponentLife` |
+
+### Native `Declare Function ... Library` (pspcm.dll) -- CONFIRMED
+
+- Parameter loop `0x1804ef550`-`0x1804ef697`: per parameter the native
+  type (`| 0x80000000` for `Ref`) goes to one array, the PeopleCode type
+  (after `As`; 4 = any without it) `| 0xC0000000` to another; after the
+  loop the PeopleCode array is closed with `7`, the native array with `0`,
+  and both are appended -- PeopleCode first -- to the program's descriptor
+  pool by `0x1804ecb70` (grow buffer `ctx+0x3028`, count `ctx+0x3034`,
+  memcpy, return the old count; no sharing). Header slot 21 counts the
+  pool's dwords. The return type is not in the pool.
+- Type-code tables ({wchar* name, code} pairs):
+  - PeopleCode (`0x18082be00`): number 0x13, string 0x01, date 0x02,
+    any 0x04, boolean 0x05, time 0x0A, datetime 0x0B, object 0x0D,
+    array 0x100007, integer 0x11, float 0x12, binary 0x0C.
+  - Native (`0x18082bed0`): boolean 1, integer 2, long 3, uinteger 4,
+    ulong 5, string 6, lstring 7, float 8, double 9, ustring 0x0A.
+- Errors at the same site: "Unsupported PeopleCode type for parameter to
+  library function." (`0x180686150`).
+- 29329 (the corpus's only native declarations) is byte-identical with
+  these rules -- statement bytes, pool arrays and header slot 21.
+
+### Other observations -- SUGGESTIVE
+
+- 30162 (`end-interface` without `;`, the corpus's only unterminated unit
+  closer): stored ends `71 07` (the Cycle 114 bare-closer shape), but its
+  class directory also omits the interface's method record while keeping
+  its signature slots -- not explained by any rule found.
