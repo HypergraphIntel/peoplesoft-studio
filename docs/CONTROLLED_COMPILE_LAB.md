@@ -15,8 +15,36 @@ provision it, and the exact experiments to run there.
   "Unattended harness"), and found the remaining blocker: no PeopleSoft
   database seed.
 
-Nothing here has been compiled: no writable 8.61.15 database exists
-yet.
+**Status:** Unattended compiler path implemented; end-to-end
+unattended compilation remains unverified pending a PeopleSoft database
+and one-time project bootstrap. Nothing here has been compiled.
+
+### Order of work once a database exists
+
+1. Bring up the disposable database.
+2. Configure the PCLAB-only TNS entry.
+3. Confirm SQL connectivity.
+4. Confirm pside signon.
+5. Bootstrap `ZZ_PCODE_LAB` once.
+6. Export the pristine project (`-PJTF`).
+7. Run SMOKE through the harness.
+8. Settle the `-CMPPRJPC` syntax (inline vs `-PJM`).
+9. Capture.
+10. Check all four capture predicates.
+11. Compile the same SMOKE source on native Windows and compare the
+    bytes.
+
+Only byte-identical Wine output makes Wine an authoritative compiler;
+until then Windows is. The H and G matrices come after this.
+
+If `-PJFF` does not make `-CMPPRJPC` recompile from the imported text:
+1. Exhaust the supported App Designer / project mechanisms first.
+2. Then consider Data Mover.
+3. Direct SQL on the PeopleCode source tables is a last-resort
+   diagnostic only. It is not assumed equivalent to App Designer
+   persistence.
+
+PSPCMPROG is never fabricated.
 
 ## Unattended harness (Cycle 175)
 
