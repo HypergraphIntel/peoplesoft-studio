@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-05T03:18:31.643Z",
+ "generatedAt": "2026-10-05T04:32:27.044Z",
  "totalDefinitions": 30209,
- "exactCount": 30129,
- "nonexactCount": 80,
+ "exactCount": 30131,
+ "nonexactCount": 78,
  "rows": [
   {
    "definitionId": 1635,
@@ -163,21 +163,6 @@
    "roundtripExact": true,
    "firstDiffOffset": 158,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 14352,
-   "displayName": "1=PSADSTOGGLE_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 58,
-    "generatedCount": 58
-   }
   },
   {
    "definitionId": 14812,
@@ -735,21 +720,6 @@
     "storedCount": 20,
     "generatedCount": 20,
     "firstDivergenceKind": "package"
-   }
-  },
-  {
-   "definitionId": 30162,
-   "displayName": "104=PTAI_ACTION_ITEMS, 105=Pagelet, 107=GetAGInstanceForPagelet, 12=OnExecute, 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 0,
-    "generatedCount": 0
    }
   },
   {
