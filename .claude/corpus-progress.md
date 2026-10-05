@@ -1,6 +1,6 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-05, Cycle 176)
+## Current status (2026-10-05, Cycle 179)
 
 - **Milestone: CORPUS_RECOVERABLE_FRONTIER_CLOSED.** EXACT 30,131 of
   30,209 = forward-exact; NONEXACT 78 = 71 lossy source (HCDEV PCTEXT) +
@@ -62,6 +62,20 @@
       LASTUPDDTTM changed. See CONTROLLED_COMPILE_LAB.md "Cycle 178
       findings".
     - No compile ran and no SMOKE ran; awaiting the user's direction.
+  - Cycle 179 (CONTROLLED_COMPILE_LAB.md "Cycle 179"):
+    - Write interlocks and an in-Oracle audit were built.
+    - D1-D4 were removed (NON_SCRATCH_CHANGED = 0).
+    - The one scratch-only -PJFF retry gave PJFF_SOURCE_INJECTION_UNSUITABLE:
+      no PSPCMTXT row, only a 37-byte stub PSPCMPROG. Definitions were
+      created safely.
+    - Data Mover / SQL source loading is blocked: PSPCMTXT.HASH_SIGNATURE
+      is computed by pssys.dll with an undocumented 20-byte digest, and
+      inventing it is not acceptable.
+    - SMOKE not run.
+    - Next options: (1) static analysis of pssys.dll's signature, proven
+      by reproducing all 122,193 HRDMO signatures, then a Data Mover
+      import; (2) one App Designer save of SmokeTest (GUI), then GUI
+      automation for each experiment.
 - **Last successful calibration:** Cycle 171. Cycles 172-176 made no
   semantic change.
   - Cycle 175 was authorized. It staged and verified the 8.61.15 media,

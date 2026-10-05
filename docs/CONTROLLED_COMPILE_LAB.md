@@ -46,6 +46,85 @@ If `-PJFF` does not make `-CMPPRJPC` recompile from the imported text:
 
 PSPCMPROG is never fabricated.
 
+## Cycle 179: write safety, cleanup, PJFF retry, Data Mover finding
+
+**Interlocks** (`src/peoplecode/corpus/labSafety.ts`, `lab-audit.ts`,
+`run-compiler.ts`, `run-datamover.ts`):
+- The scratch namespace is exactly `ZZ_PCODE_LAB`, matched with an
+  escaped SQL `LIKE`. Never `ZZ%`, which matches delivered `ZZ_PAY_*`.
+- -PJFF needs a project file in which every identity is scratch and that
+  carries no compiled payload (no blob, no PcmPnt rows).
+- -CMPALLPC is refused; -CMPPRJPC needs a scratch project.
+- Data Mover runs only exact-name scratch `DELETE`s.
+- Every write is bracketed by a read-only audit. It fingerprints, inside
+  Oracle, every PSPCMPROG / PSPCMTXT / PSPCMNAME / PSPACKAGEDEFN /
+  PSAPPCLASSDEFN / PSPROJECTDEFN / PSPROJECTITEM definition (368,016
+  non-scratch keys, about 60 s); two runs with no write in between
+  compare equal.
+- A write stops on `NON_SCRATCH_CHANGED > 0` or on any change to the
+  protected APPS_RLR:Utilities.
+- PSVERSION counters, which any save increments, are reported as
+  infrastructure.
+
+**APPS_RLR:Utilities** (not rewritten this cycle):
+- source sha256 `613dc986...`;
+- PSPCMPROG sha256 `e773584d...`;
+- names sha256 `de37e3c8...`;
+- LASTUPDDTTM 2026-10-05 15:46:04.830645 (local).
+
+**D1-D4 cleanup:**
+- Read-only enumeration over 305 table / column pairs found 40 rows:
+  - PSPACKAGEDEFN 4, PSAPPCLASSDEFN 4;
+  - PSPROJECTDEFN 4, PSPROJECTITEM 8;
+  - PSPROJECTMSG 16.
+- They were deleted with guarded Data Mover, five exact-name DELETEs.
+- Audit: NON_SCRATCH_CHANGED = 0, protected unchanged, 16 scratch keys
+  removed, PSVERSION unchanged.
+- The re-enumeration finds 0 D1-D4 rows anywhere.
+
+**The one scratch-only -PJFF retry**:
+- The project file was built from PATCH862's nested-package APM and
+  sub-package PCM structures (not APPS_RLR). It held:
+  - project ZZ_PCODE_LAB;
+  - packages ZZ_PCODE_LAB and SUPPORT;
+  - class SmokeTest;
+  - the SMOKE source only (empty blob, no names).
+- Validator PASS; file sha256 `be6694fd...`.
+- pside did not crash ("Total 3 items processed").
+- Audit: NON_SCRATCH_CHANGED = 0, protected unchanged. Scratch changes:
+  - +PSPACKAGEDEFN ZZ_PCODE_LAB and SUPPORT;
+  - +PSAPPCLASSDEFN SmokeTest;
+  - +PSPCMPROG under the scratch key;
+  - the project rows.
+- PSVERSION APM 5->7, PCM 22->23, PJM 24->29, SYS 1221->1226.
+- But the PSPCMPROG row is a 37-byte header-only stub, synthesized from
+  the empty payload, and **no PSPCMTXT source row** was stored.
+- -> **PJFF_SOURCE_INJECTION_UNSUITABLE**: -PJFF does not persist source
+  without a compiled payload. (The Cycle 178 crash was the APPS_RLR-based
+  APM structure, not -PJFF itself.) A scratch-only, payload-free -PJFF
+  is, however, a proven-safe way to create the scratch definitions.
+
+**Data Mover source loading: blocked by PSPCMTXT.HASH_SIGNATURE.**
+- In 8.62, PSPCMTXT has `HASH_SIGNATURE VARCHAR2(112) NOT NULL`.
+- All 122,193 rows hold a 28-character base64 value (a 20-byte digest).
+- pssys.dll computes and writes it on save: `INSERT INTO PSPCMTXT
+  (HASH_SIGNATURE, ... PCTEXT)`, and it reads it back by key.
+- It is not a plain MD5 / SHA-1 / SHA-256 / SHA-512, nor a truncated
+  SHA-256, of the source (UTF-8 or UTF-16, LF or CRLF, with or without a
+  NUL), nor of the compiled program.
+- Loading a source row with Data Mover (or SQL) would therefore mean
+  writing an invented integrity value. Not attempted.
+- The only source-side table needed is PSPCMTXT (key, PROGSEQ,
+  HASH_SIGNATURE, PCTEXT); the definitions already exist.
+
+**State left in HRDMO (scratch only):**
+- project ZZ_PCODE_LAB with 3 items;
+- PSPACKAGEDEFN ZZ_PCODE_LAB and ZZ_PCODE_LAB:SUPPORT;
+- PSAPPCLASSDEFN SmokeTest;
+- the 37-byte stub PSPCMPROG (a good sentinel).
+
+**SMOKE:** not run.
+
 ## Cycle 178 findings on HRDMO (8.62.09)
 
 **Sign-on.**
