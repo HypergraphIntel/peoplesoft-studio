@@ -17,6 +17,18 @@
   - Cycle 176 recheck: no database, Oracle image, registry login,
     listener on 1521 or new seed artifact. Stopped at the database
     blocker without re-searching the old media.
+  - Cycle 177: the user's VM host 192.168.4.40 (gundam-server-01, libvirt)
+    has psdb01 (192.168.122.206) and psapp01 (192.168.122.151); the
+    guests are reached by key as `oracle` via ProxyJump.
+    - CDBHCM: PDBs HRDMO / HRDEV / HRTST / HRUAT / HRPRD, from
+      APP-DPK-LNX-HCM92-8.62.09.
+    - CDBFSCM: PDB FSCMDMO.
+    - Oracle 19.30, AL32UTF8 / UTF8, Unicode.
+    - HRDMO PSSTATUS is TOOLSREL 8.62, PTPATCHREL 9; FSCMDMO is 8.62,
+      PTPATCHREL 7.
+    - Both are incompatible with the 8.61.15 compiler: stop condition D,
+      no compile.
+    - Other PDBs were not queried.
 - **Last successful calibration:** Cycle 171. Cycles 172-176 made no
   semantic change.
   - Cycle 175 was authorized. It staged and verified the 8.61.15 media,
