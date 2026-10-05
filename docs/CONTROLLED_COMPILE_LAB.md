@@ -9,9 +9,152 @@ provision it, and the exact experiments to run there.
   stopped before installation (Outcome B; see Decision below). It also
   turned the matrices into an executable experiment pack and added an
   ingest tool.
+- **Cycle 175** obtained authorization, staged and verified the 8.61.15
+  media, and proved the exact compiler runs headless under Wine. It
+  replaced the human-per-save workflow with an unattended harness (see
+  "Unattended harness"), and found the remaining blocker: no PeopleSoft
+  database seed.
 
-Nothing here has been compiled: no writable 8.61.15 environment exists
+Nothing here has been compiled: no writable 8.61.15 database exists
 yet.
+
+## Unattended harness (Cycle 175)
+
+### Authorization and media
+
+The user authorized, in this session:
+- use of the institution's 8.61.15 media in a disposable lab;
+- starting and installing into `omarchy-windows`;
+- an Oracle 19c image, with the Oracle account sign-in and license
+  acceptance done by the user.
+
+The media is staged at `~/peoplesoft-lab/pt86115/media`:
+- `pt-pshome8.61.15.tgz`, 2,234,348,986 bytes, sha256 `9b0d408f…`;
+- `pt-oracleclient-19.3.0.0.tgz`, sha256 `ad4da1a3…`.
+
+It is extracted to `ps_home/` and `oracle_client/`. All seven client
+binaries match docs/PEOPLETOOLS_BINARIES.md. Nothing is under
+`peoplesoft-dlls/pt861` or the 8.61.07 bottle.
+
+### Command-line inventory (8.61.15 binaries)
+
+| Module | Switches |
+|---|---|
+| pside.exe | `-HIDE`, `-QUIET` |
+| pstls.dll (`pstlsexe.cpp`) | `-HELP -QUIET -SR -LF -CC -CT -CS -CD -CO -CP -CX -CA -CI -CW -SS -SN -SUBSEQUENT -GUID -ST -SF`; mentions a parameter file (`@`) |
+| psprj.dll (`prjcmdline.cpp`) | `-PJC -PJTF -PJFF -PJM -PJFC -PJB -PJMG -CMPALLPC -CMPPRJPC -CMPDIRPC -CMPPRJDIRPC -PJRCUST`; `-FP <dir>` (copy to / from file); `-TD -TO -TP` (target); also `-OVD -OVW -RST -CL -AF -DDL -CFD -CFF -EXP -LNG -FLTR` and others |
+
+Messages that matter:
+- "Error - project name required for %s process."
+- "This project contains PeopleCode that needs to be compiled before a
+  Copy to File can take place."
+- "Total %d items processed."
+
+The project name for `-CMPPRJPC` is either its own argument or comes from
+`-PJM`. The runner supports both (`--project-arg inline|pjm`); the smoke
+run decides.
+
+### Measured under Wine (separate prefix `~/.wine-peoplesoft-86115`, no database)
+
+- pside 8.61.15 starts headless (`-HIDE -QUIET -SS NO -SN NO`), signs
+  on through Oracle client 19.3, writes the `-LF` log and exits.
+- The log is UTF-16LE with no BOM and CRLF line ends.
+- **The exit code is 0 even when signon fails.** Success is judged from
+  the log and the database rows, never the exit code.
+- Oracle errors are specific only with `ORACLE_HOME` set. Against the
+  lab TNS file, the PCLAB alias gives `ORA-12541` (no listener) and an
+  unknown alias gives `ORA-12154`. Without `ORACLE_HOME`, both read
+  `Return: -1`.
+- No parameter-file form was honored (`@file` and `@@file`, one token per
+  line or the whole line). So the disposable lab credentials go on the
+  command line.
+- With no batch action, pside wrote an empty log even when signon failed.
+
+Not yet measured, because it needs the database:
+- signon success;
+- the `-CMPPRJPC` syntax;
+- PJTF / PJFF behavior;
+- whether Wine's saved bytes equal Windows'. Windows stays the authority
+  until one smoke definition compiles identically on both.
+
+### Source injection
+
+Measured from real project exports (PUM change packages): a PeopleCode
+program in a project file is `<instance class="PCM">`. It holds:
+- the `PcmProg` key (`eObjectID_n`, `szObjectValue_n`);
+- the PSPCMNAME rows (`PcmPnt`);
+- `<peoplecode_text>`, the source;
+- `<peoplecode_blob>`, base64 of the compiled program.
+
+So a project file carries source.
+
+Selected mechanism, using supported switches only:
+1. **One-time bootstrap.** Create `ZZ_PCODE_LAB` with every support
+   class, experiment shell and scratch record. Then export it with
+   `-PJTF` as the *pristine* project file.
+2. **Per experiment:**
+   1. reset: `-PJFF` the pristine file;
+   2. load: `-PJFF` a copy whose only change is this experiment's
+      `<peoplecode_text>` (`load-experiment.ts`);
+   3. compile: `-CMPPRJPC ZZ_PCODE_LAB` in a fresh pside process;
+   4. capture: SELECT only.
+
+Why it is valid:
+- The harness supplies only source text.
+- The blob left in the file is the lab compiler's own pristine output,
+  which works as a sentinel. A capture is accepted only when
+  `checkLabCompile` passes:
+  - PSPCMTXT equals the experiment source;
+  - the program decodes to that source;
+  - the program differs from the sentinel;
+  - LASTUPDDTTM follows the compile start, measured on the database
+    clock.
+- Encoder output never enters the database.
+
+Data Mover (Option 3) and direct SQL into PSPCMTXT are fallbacks, to use
+only if `-PJFF` does not import text that `-CMPPRJPC` then compiles.
+Recompile-from-text is the property the smoke run verifies first. GUI
+automation (Option 5) is unnecessary unless both fail.
+
+Reset semantics: every experiment re-imports the whole pristine project
+before its own load. So no experiment source from an earlier run
+survives, and each compile is a new process.
+
+### Tools
+
+| Tool | Status |
+|---|---|
+| `run-compiler.ts` | Works. It is checked against the exact 8.61.15 binaries and a lab-only TNS file, and refuses institutional names and the 8.61.07 bottle. Each run is one fresh pside process under Wine, reported as JSON with a parsed log. Exercised up to `ORA-12541`. |
+| `load-experiment.ts` | `--materialize` works (smoke, support and experiment sources with sha256). Experiment project files are built from a pristine `-PJTF` export, which does not exist yet. |
+| `labDb.ts` / `capture-lab.ts` | SELECT-only, READ ONLY. Now also captures PSPCMPROG.LASTUPDDTTM. |
+| `orchestrate.ts` (`npm run controlled-compile`) | Preflight checks: pristine coverage, 8.61 patch 15, SMOKE first. Then per experiment: reset, load, sentinel, compile, capture, check. Then the comparison report. Written; not runnable without the database. |
+| `compare-controlled-compile.ts` | Unchanged. Reports now include source / program / names sha256. |
+
+### Remaining blockers (human / admin)
+
+1. **PeopleSoft database seed: none on any reachable media.** The
+   8.61.15 PS_HOME has Oracle's database-creation scripts (`createdb`,
+   `utlspace`, `ptddl`, `dbowner`, `psroles`, `psadmin`, `connect`).
+   It has only language packs (`data/pt*a.db`) and upgrade deltas
+   (`ptsys_*.dat`), with no English system-database export. The
+   application homes (`PS_APP_HOME/HC0xx`) hold no `*engs.db`, and the
+   PUM folders hold change packages, not database images. A writable
+   8.61 repository needs one of:
+   - an Oracle PeopleSoft PUM DPK (HCM 9.2). It is downloaded from My
+     Oracle Support with the institution's account and carries Oracle
+     Database 19c *and* a full PeopleSoft database, then is patched to
+     8.61.15.
+   - a DBA-provided scratch PeopleSoft 8.61.15 database (for example a
+     disposable non-production clone), with written authorization.
+2. **Oracle 19c image** (only if the seed comes as a database export,
+   not a PUM DPK): `docker login container-registry.oracle.com` by the
+   user. The pull currently answers 401.
+3. **One-time bootstrap** of `ZZ_PCODE_LAB` in App Designer. Materialized
+   sources: `load-experiment.ts --materialize`. Then
+   `run-compiler.ts --copy-to-file ZZ_PCODE_LAB --dir <pristine>`.
+
+After that, `npm run controlled-compile -- --pristine <dir> --out <dir>
+--all` runs unattended.
 
 ## Milestone this lab follows
 
@@ -330,7 +473,7 @@ exactly the two replicas, just as the encoder fails 10860 and 15598.
 | C4 | as C3 with `end-interface;` | `71 15 2D 07`, method record present |
 | C5 | App Designer refuses to save C3 | the shape is historical-only |
 
-## Runner checklist (once the lab exists)
+## Runner checklist (manual path; superseded by the unattended harness)
 
 1. `SELECT TOOLSREL, PTPATCHREL FROM SYSADM.PSSTATUS` must return 8.61
    / 15. Record the App Designer *Help > About* build.
