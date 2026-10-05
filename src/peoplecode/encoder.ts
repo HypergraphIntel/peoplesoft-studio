@@ -15428,6 +15428,34 @@ function applicationClassBlankLineCount(value: string): number {
   return Math.max(0, (value.match(/\r?\n/g) ?? []).length - 1);
 }
 
+/*
+ * Cycle 170: a header method's parameter list as comma-delimited segments
+ * (comments and strings masked), each with the offset of its `&name` -- so
+ * comments inside the list are written where they stand: before the name,
+ * or after the type.
+ */
+function headerParameterSegments(
+  source: string,
+  start: number,
+  end: number
+): { open: number; close: number; segments: { start: number; end: number; name: number }[] } | undefined {
+  const masked = maskNonCode(source.slice(0, end));
+  const open = masked.indexOf('(', start);
+  if (open < 0) return undefined;
+  const close = masked.indexOf(')', open);
+  if (close < 0) return undefined;
+  const segments: { start: number; end: number; name: number }[] = [];
+  let segmentStart = open + 1;
+  for (let i = open + 1; i <= close; i++) {
+    if (i === close || masked[i] === ',') {
+      const name = masked.indexOf('&', segmentStart);
+      if (name >= 0 && name < i) segments.push({ start: segmentStart, end: i, name });
+      segmentStart = i + 1;
+    }
+  }
+  return { open: open + 1, close, segments };
+}
+
 function applicationClassLayoutCommentOperand(
   comment: ApplicationClassLayoutComment
 ): Buffer {
@@ -16637,14 +16665,43 @@ function encodeApplicationClassProgramV2(
       statementChunks.push(Buffer.from([0x63]));
       statementChunks.push(encodeInlineName(statement.name));
       statementChunks.push(Buffer.from([0x0b]));
+      /*
+       * Cycle 170: comments inside a header method's parameter list are
+       * tokens where they stand, as in an ordinary Function's (Cycle 159):
+       * before a parameter, after its type, or after a trailing comma.
+       * 28818 (ANET_CRR:CRR) `method anet_crr_bod(&a As string, /* sub
+       * object id*\/&b As string, ...)` stores `40 03 4E <comment> 01`,
+       * `&x As string /* c *\/)` `40 4E <comment> 14`, `&x As string, /* c
+       * *\/)` `40 03 4E <comment> 14` -- every one of its parameter
+       * comments. LOCAL SNAPSHOT: 1 program changed (EXACT), 0 farther.
+       */
+      const parameterSegments = headerParameterSegments(source, statement.sourceIndex, statement.sourceEnd);
+      const segmentComments = parameterSegments === undefined
+        ? []
+        : scanApplicationClassLayoutComments(source, parameterSegments.open, parameterSegments.close)
+          .filter(comment => comment.opcode === 0x24 || comment.opcode === 0x4e);
+      const emitParameterComment = (comment: ApplicationClassLayoutComment) => {
+        const decodedOpcode = context?.commentOpcodes?.[nextCommentOpcodeIndex];
+        statementChunks.push(applicationClassLayoutCommentOperand(
+          decodedOpcode === 0x24 || decodedOpcode === 0x4e ? { ...comment, opcode: decodedOpcode } : comment
+        ));
+        nextCommentOpcodeIndex++;
+      };
       statement.parameters.forEach((parameter, index) => {
         if (index > 0) statementChunks.push(Buffer.from([0x03]));
+        const segment = parameterSegments?.segments[index];
+        const inSegment = segment === undefined ? [] : segmentComments.filter(comment => comment.start >= segment.start && comment.end <= segment.end);
+        for (const comment of inSegment) if (comment.end <= segment!.name) emitParameterComment(comment);
         statementChunks.push(encodeVariableName(parameter.name));
         statementChunks.push(Buffer.from([0x35]));
         statementChunks.push(encodeApplicationClassTypeBytes(parameter.type));
         if (parameter.out) statementChunks.push(Buffer.from([0x5d]));
+        for (const comment of inSegment) if (comment.start >= segment!.name) emitParameterComment(comment);
       });
       if (statement.trailingParameterComma) statementChunks.push(Buffer.from([0x03]));
+      // Comments after the last parameter's segment (a trailing comma's empty one) precede `)`.
+      const lastSegmentEnd = parameterSegments?.segments.at(-1)?.end ?? parameterSegments?.open ?? 0;
+      for (const comment of segmentComments) if (comment.start >= lastSegmentEnd) emitParameterComment(comment);
       statementChunks.push(Buffer.from([0x14]));
       if (statement.returnType !== undefined) {
         statementChunks.push(Buffer.from([0x39]));
