@@ -667,6 +667,12 @@ interface EncodeFragmentContext extends EncodeProgramContext {
    * `encodeOrdinaryProgramFragment`.
    */
   externalClassMetadata?: { unresolvedReceiverCalls: number };
+  /**
+   * Cycle 170: the program's descriptor pool, for a native `Declare
+   * Function ... Library` to append its parameter type arrays to (App
+   * Class programs; see `nativeDeclareFunction`).
+   */
+  nativeFunctionSlots?: number[];
 
 
   htmlDependencyScope?: HtmlDependencyScope;
@@ -1198,6 +1204,24 @@ export class UnsupportedPeopleCodeError extends Error {
     this.name = 'UnsupportedPeopleCodeError';
   }
 }
+
+/*
+ * Cycle 170: the compiler's type-code tables for native `Declare Function
+ * ... Library` parameters (pt861 pspcm.dll: {name, code} tables at
+ * 0x18082be00 and 0x18082bed0). Each native function appends to the
+ * program's descriptor pool its PeopleCode parameter types (code |
+ * 0xC0000000) closed by 7, then its native types (code, | 0x80000000 for
+ * Ref) closed by 0 (pspcm.dll 0x1804ef5a1-0x1804ef697; the pool append at
+ * 0x1804ecb70 never shares entries).
+ */
+const PEOPLECODE_LIBRARY_TYPE_CODES: ReadonlyMap<string, number> = new Map([
+  ['number', 0x13], ['string', 0x01], ['date', 0x02], ['any', 0x04], ['boolean', 0x05], ['time', 0x0a],
+  ['datetime', 0x0b], ['object', 0x0d], ['integer', 0x11], ['float', 0x12], ['binary', 0x0c]
+]);
+const NATIVE_LIBRARY_TYPE_CODES: ReadonlyMap<string, number> = new Map([
+  ['boolean', 1], ['integer', 2], ['long', 3], ['uinteger', 4], ['ulong', 5], ['string', 6], ['lstring', 7],
+  ['float', 8], ['double', 9], ['ustring', 0x0a]
+]);
 
 function fixed(text: string, selectedOpcode?: number): Buffer {
   const matches = [...OPCODES].filter(([, spec]) => spec.text === text);
@@ -6626,6 +6650,79 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     depth--;
   };
   
+  /*
+   * Cycle 170: `Declare Function <name> Library "<dll>" (<ctype> Value|Ref
+   * As <type>, ...) Returns <ctype> As <type>` -- 29329, the corpus's only
+   * native declaration (three of them, in an App Class program). Bytes:
+   * `31 0A<name> 33 16<dll> 41 [2D] 0B` -- 0x41 opens the parameter group
+   * and 0x2D is the source's line break before `(` (pspceval.dll
+   * PcBuildText renders 0x41 as nothing and 0x2D as a newline) -- then per
+   * parameter `0A<ctype> 36|3B 35 40<type>` with 03 between, `14 42 39
+   * 0A<ctype> 35 40<type> 42`. The parameter types also go to the
+   * program's descriptor pool (`NATIVE_LIBRARY_TYPE_CODES`); the return
+   * type does not. Only the Returns form and App Class programs are
+   * evidenced; anything else stays unsupported.
+   */
+  const nativeDeclareFunction = () => {
+    const unsupported = (message: string): never => { throw new UnsupportedPeopleCodeError(pos, message); };
+    if (context?.nativeFunctionSlots === undefined) unsupported('native Declare Function outside an Application Class program is not evidenced');
+    const peopleCodeTypes: number[] = [];
+    const nativeTypes: number[] = [];
+    chunks.push(fixed('Library'));
+    space();
+    const library = /^"([^"\n]*)"/.exec(source.slice(pos));
+    if (library === null) unsupported('expected the library name of a native Declare Function');
+    pos += library![0].length;
+    chunks.push(textOperand(0x16, TokenKind.StringLiteral, library![1]));
+    const gap = /^\s*/.exec(source.slice(pos))![0];
+    if (source[pos + gap.length] !== '(') unsupported('expected ( in a native Declare Function');
+    pos += gap.length + 1;
+    chunks.push(Buffer.from(/\n/.test(gap) ? [0x41, 0x2d, 0x0b] : [0x41, 0x0b]));
+    const identifier = (): string => {
+      space();
+      const name = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(pos))?.[0];
+      if (name === undefined) unsupported('expected a native type');
+      pos += name!.length;
+      return name!;
+    };
+    space();
+    while (source[pos] !== ')') {
+      const nativeType = identifier();
+      const nativeCode = NATIVE_LIBRARY_TYPE_CODES.get(nativeType.toLowerCase());
+      if (nativeCode === undefined) unsupported(`unknown native type ${nativeType}`);
+      chunks.push(textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, nativeType));
+      space();
+      let byReference = false;
+      if (word('Value')) chunks.push(fixed('Value'));
+      else if (word('Ref')) { chunks.push(fixed('Ref')); byReference = true; }
+      else unsupported('expected Value or Ref');
+      space();
+      if (!word('As')) unsupported('expected As');
+      chunks.push(fixed('As'));
+      const peopleCodeType = identifier();
+      const peopleCodeCode = PEOPLECODE_LIBRARY_TYPE_CODES.get(peopleCodeType.toLowerCase());
+      if (peopleCodeCode === undefined) unsupported(`unknown PeopleCode type ${peopleCodeType}`);
+      chunks.push(textOperand(0x40, TokenKind.Keyword, peopleCodeType));
+      peopleCodeTypes.push((peopleCodeCode! | 0xc0000000) >>> 0);
+      nativeTypes.push(byReference ? (nativeCode! | 0x80000000) >>> 0 : nativeCode!);
+      space();
+      if (source[pos] === ',') { pos++; chunks.push(Buffer.from([0x03])); space(); }
+      else if (source[pos] !== ')') unsupported('expected , or ) in a native parameter list');
+    }
+    pos++;
+    chunks.push(Buffer.from([0x14, 0x42]));
+    space();
+    if (!word('Returns')) unsupported('native Declare Function: only a Returns form is evidenced');
+    chunks.push(fixed('Returns'));
+    chunks.push(textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, identifier()));
+    space();
+    if (!word('As')) unsupported('expected As');
+    chunks.push(fixed('As'));
+    chunks.push(textOperand(0x40, TokenKind.Keyword, identifier()));
+    chunks.push(Buffer.from([0x42]));
+    context!.nativeFunctionSlots!.push(...peopleCodeTypes, 7, ...nativeTypes, 0);
+  };
+
   const declareFunction = () => {
     chunks.push(Buffer.from([0x31]));
 
@@ -6644,6 +6741,10 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     chunks.push(textOperand(INLINE_IDENTIFIER_OPCODE, TokenKind.Name, name));
 
     space();
+    if (word('Library')) {
+      nativeDeclareFunction();
+      return;
+    }
     if (!word('PeopleCode')) {
       throw new UnsupportedPeopleCodeError(pos, 'expected PeopleCode in Declare Function');
     }
@@ -15961,6 +16062,7 @@ function encodeApplicationClassProgramV2(
   };
   let nextReferenceIndex = 0;
   let nextCommentOpcodeIndex = 0;
+  const nativeFunctionSlots: number[] = [];
   let firstFragment = true;
 
   const encodeFragment = (
@@ -16009,6 +16111,7 @@ function encodeApplicationClassProgramV2(
     const applicationClassTypeReferenceSession = applicationClassReferenceScope.beginFragment();
     const encoded = encodeFragmentInternal(fragmentSource, {
       ...context,
+      nativeFunctionSlots,
       // Cycle 115: directive regions are keyed by program offset.
       conditionalDirectiveBase: sourceStart,
       commentOpcodes,
@@ -16340,6 +16443,7 @@ function encodeApplicationClassProgramV2(
       value.length - trailingWhitespace.length
     );
     const firstChunk = statementChunks.length;
+    const firstNativeSlot = nativeFunctionSlots.length;
     emitConditionalRegionsIn(start, start + leadingWhitespace.length);
     emitMarkers(applicationClassBlankLineCount(leadingWhitespace));
     if (core.trim() !== '') {
@@ -16373,6 +16477,7 @@ function encodeApplicationClassProgramV2(
         // Native/preprocessor declarations remain outside Cycle 25. Preserve
         // the prior encodable path while still retaining evidenced comments.
         statementChunks.length = firstChunk;
+        nativeFunctionSlots.length = firstNativeSlot;
         emitLayoutRange(start, end, flushTrailingGap);
         return;
       }
@@ -16671,7 +16776,9 @@ function encodeApplicationClassProgramV2(
   const statements = Buffer.concat(statementChunks);
   const nameBytes = Buffer.concat(directoryLayout.names.map(encodeApplicationClassNameEntry));
   const directory = Buffer.concat(directoryLayout.records);
-  const slots = Buffer.concat(directoryLayout.slots);
+  const nativeSlots = Buffer.alloc(nativeFunctionSlots.length * 4);
+  nativeFunctionSlots.forEach((slot, index) => nativeSlots.writeUInt32LE(slot, index * 4));
+  const slots = Buffer.concat([...directoryLayout.slots, nativeSlots]);
   const trailer = Buffer.concat([nameBytes, directory, slots]);
 
   const header = Buffer.alloc(37);
