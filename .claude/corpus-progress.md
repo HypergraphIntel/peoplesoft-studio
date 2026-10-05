@@ -42,6 +42,16 @@
       `~/peoplesoft-lab/pt86209/capture.env` (mode 600).
     - Needed from the user: the PeopleSoft connect id / password and an
       App Designer operator / password for HRDMO.
+  - Cycle 178: `signon.env` is present (mode 600), but its connect-id key
+    reads `LAB_CONNECTID`; it was mapped to PSLAB_CONNECTID in-session.
+    - HRDMO re-verified: TOOLSREL 8.62, PTPATCHREL 9, Unicode.
+    - Headless signon (8.62.09, Wine): the connect id is now ACCEPTED,
+      but operator PS is REJECTED ("Invalid User ID and password for
+      signon"): OPERATOR_FAILURE.
+    - PSOPRDEFN (read-only, as SYSDBA): PS ACCTLOCK 0, FAILEDLOGINS 0,
+      last signon 2026-07-11; VP1 and PSADMIN are locked.
+    - The password is plain alphanumeric, so quoting is not the cause.
+    - Stopped before any write (stop A); no further signon attempts.
 - **Last successful calibration:** Cycle 171. Cycles 172-176 made no
   semantic change.
   - Cycle 175 was authorized. It staged and verified the 8.61.15 media,
