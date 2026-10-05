@@ -76,6 +76,10 @@
       by reproducing all 122,193 HRDMO signatures, then a Data Mover
       import; (2) one App Designer save of SmokeTest (GUI), then GUI
       automation for each experiment.
+  - Cycle 180: the HASH_SIGNATURE research was halted (only a note is
+    kept; no reproducer code). User decision: GUI automation of native
+    Windows App Designer 8.62.09 on ps-win-client. Order: SMOKE, then
+    repeat SMOKE, then A->B->A, then H1-H9 / G1-G7 (8.62.09 only).
 - **Last successful calibration:** Cycle 171. Cycles 172-176 made no
   semantic change.
   - Cycle 175 was authorized. It staged and verified the 8.61.15 media,

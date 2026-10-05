@@ -46,6 +46,23 @@ If `-PJFF` does not make `-CMPPRJPC` recompile from the imported text:
 
 PSPCMPROG is never fabricated.
 
+## Cycle 180: HASH_SIGNATURE research halted; GUI automation chosen
+
+- In the 8.62.09 client, `PcmSavePeopleCodeText` (pssys.dll, called by
+  `PcmUpdateProg`) is the native writer of PSPCMTXT, including
+  `HASH_SIGNATURE`.
+- A read-only investigation matched five sample rows before being
+  intentionally halted. No signature was ever written.
+- No executable code that reproduces `HASH_SIGNATURE` is kept in the
+  repository, and the topic is closed.
+- **Boundary:** PeopleTools writes PeopleTools integrity metadata. The
+  harness only drives PeopleTools (App Designer's own Save) and observes
+  the result.
+- **Next path (user decision):** deterministic GUI automation of native
+  Windows App Designer 8.62.09 on `ps-win-client`. Every edit is gated on
+  positively identifying the `ZZ_PCODE_LAB` definition, and every Save
+  is bracketed by the whole-database non-scratch audit.
+
 ## Cycle 179: write safety, cleanup, PJFF retry, Data Mover finding
 
 **Interlocks** (`src/peoplecode/corpus/labSafety.ts`, `lab-audit.ts`,
