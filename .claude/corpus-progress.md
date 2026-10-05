@@ -1,50 +1,60 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-04, Cycle 168)
+## Current status (2026-10-04, Cycle 169)
 
-- **Current target:** Cycle 168 -- App Class property chains. EXACT
-  30,112 -> 30,121 (+9: 28857 28893 28964 28965 28967 28981 29465 29529
-  29945) = forward-exact; NONEXACT 88 (DSM 72 -- 71 lossy source + 29858;
-  ACTIVE_PACKAGE 6, COMPLETE_DOWNSTREAM 4, ACTIVE_RECORD 3, ACTIVE_OTHER 1,
-  STRUCTURAL_ORDERING 1, ACTIVE_RECORD_FIELD 1); 0 EXACT -> non-EXACT, 0
-  farther; protected 430/430; ROUNDTRIP_ONLY 0; fallback 6 (3872 14149
-  14162 14327 15256 19877, all EXACT); 13525 / 28729 / 14149 EXACT. See
-  "Compiler Cycle 168".
-- **Last successful calibration:** Cycle 168.
+- **Current target:** Cycle 169 -- residual frontier with native
+  evidence. EXACT 30,121 -> 30,126 (+5: 29858 29244 29245 15528 29293) =
+  forward-exact; NONEXACT 83 (DSM 71 -- all lossy source; ACTIVE_PACKAGE
+  5, COMPLETE_DOWNSTREAM 4, ACTIVE_RECORD 1, STRUCTURAL_ORDERING 1,
+  ACTIVE_RECORD_FIELD 1); 0 lost, 0 farther; protected 430/430;
+  ROUNDTRIP_ONLY 0; fallback 6 (3872 14149 14162 14327 15256 19877, all
+  EXACT). **ACTIONABLE_SEMANTIC_NONEXACT** (NONEXACT minus 71 lossy DSM
+  and 4 compiler variants) **13 -> 8**. See "Compiler Cycle 169".
+- **Last successful calibration:** Cycle 169.
 - **Protected baseline:** 430/430.
 - **Snapshot requirement:** the local snapshot must hold the captured App
-  Class metadata (`snapshot_appclass_metadata`, 3,178 classes since Cycle
-  168). Check before any corpus run: `npx tsx
+  Class metadata (3,178 classes); check with `npx tsx
   tools/corpus/capture-appclass-metadata.ts --check-manifest
-  tools/corpus/appclass-metadata/manifest.txt`. Rebuild: `--paths
-  tools/corpus/appclass-metadata/required-classes.txt --corpus-paths
-  --transitive`, then `--import` (read-only live HCDEV).
-- **Locally blocked definitions:** non-DSM frontier 16. Compiler variants
-  (Cycle 165): 29797 29883 30170 30179 (parked, unchanged). 29244 / 29245:
-  CO_ADDRESS:AddressCollection `extends Rowset` (`%This.GetRow(n).REC
-  .FIELD`, `%This.rsData.GetRow(n).REC.FIELD` through a property of that
-  class) -- one class, no EXACT control; the only other Rowset subclass
-  (captured EOCF_CLF_DL:Utility:MultiLevelPersistentRowset) is unused by
-  the corpus: a controlled-compile candidate. 25337: a call on an indexed
-  Function `As array of <Class>` parameter element (the only one). 29858:
-  negative `Constant` literal (the only one; 89 / 995 EXACT programs with
-  negative assignments / arguments encode as now). 10860 (Function-local
-  name, blocked by 15598), 14352 / 15598 / 28818 / 30162
-  (COMPLETE_DOWNSTREAM), 15528, 29293, 29329, 30124 -- unchanged from
-  earlier cycles. DSM 71 lossy source: parked (HCDEV PCTEXT holds 0xBF;
-  not encoder defects; do not recapture).
-- **Next action (Cycle 169):** the semantic frontier is down to
-  singletons and one-class shapes. (1) Rowset subclasses (29244 / 29245)
-  and the negative Constant (29858) need a controlled App Designer compile
-  or native evidence -- no corpus control exists; (2) re-audit the
-  COMPLETE_DOWNSTREAM four (14352 15598 28818 30162) and 10860 / 15528 /
-  29293 / 29329 / 30124 with the current chain semantics; (3) the
-  Cycle 165 compiler-variant family stays parked unless a version
-  discriminator appears. Scratch tools under c168. README.md has unrelated
-  uncommitted user edits -- never stage it; never touch stash@{0} /
-  stash@{1}. Run `npm test` unfiltered and check its exit status before
-  committing (never chain a commit after it with `;`).
-- **Newly established rules this session:** Cycle 168: the metadata
+  tools/corpus/appclass-metadata/manifest.txt` before any corpus run.
+- **Locally blocked definitions (the 8 actionable):** all are the
+  corpus's only instance of their shape, with no controlled-compile
+  environment (HCDEV writes not authorized; no lab database; App Designer
+  needs Windows + a database):
+  - 14352: a whitespace-only blank line after a Function header whose
+    `Returns` type is an App Class stores 0x4F (`2D 4F 44`); 216 EXACT
+    programs with built-in / no Returns store none. Only program.
+  - 15598 / 10860: member after `GetRecord(1)` inline (15598) vs FIELD
+    (10860) -- the Cycle 163 declared-name conflict, unchanged.
+  - 25337: call on an indexed Function `As array of <Class>` element.
+  - 28818: comment inside an App Class header parameter list.
+  - 29329: the corpus's only native `Declare Function ... Library`;
+    parsing it is possible (its reference list goes exact), but the
+    program carries a trailer of per-function type descriptors (PeopleCode
+    param types | 0xC0000000: number 0x13, string 0x01; native types,
+    Ref | 0x80000000: long 3, ulong 5, ustring 0x0A; one 0x07 per function,
+    every return here `long As number`) and a `41 2D` layout pair -- not
+    recoverable from one program.
+  - 30124: `Local A &x = create B()` row order (28754 opposite).
+  - 30162: `end-interface` without `;`.
+  Compiler variants (Cycle 165, excluded from the metric): 29797 29883
+  30170 30179. DSM 71 lossy source: parked permanently.
+- **Next action (Cycle 170):** the actionable frontier is 8 singletons;
+  each needs evidence the corpus does not hold. (1) A controlled compile
+  environment (lab database + App Designer, or authorized scratch
+  definitions) would settle 14352 / 28818 / 30162 / 30124 / 25337 / 29329
+  directly. (2) Without it, static analysis of pspcm.dll (8.61.07; HCDEV
+  is 8.61.15 -- architectural only), e.g. `pspceval.dll!PcBuildText` for
+  decoder rendering and the native-declaration trailer writer. (3)
+  Optionally capture HCTST's App Class programs (read-only) as more
+  corpus. Scratch tools under c169. README.md has unrelated user edits --
+  never stage it; never touch stash@{0} / stash@{1}. Run `npm test` on its
+  own, check the exit code, then commit separately.
+- **Newly established rules this session:** Cycle 169: the 0x50
+  literal is psmath's DEC (sign, scale, magnitude) -- a negative Constant
+  is one signed literal, executable negatives stay 0x0E + unsigned; a
+  value of a class extending Rowset is a Rowset (`builtinBaseOf`);
+  class-typed Function Locals end at End-Function; a Declare Function may
+  end at its line's end (0x42, no 0x15); Cycle 168: the metadata
   must include every class written in corpus code -- an absent superclass
   silently disables `%Super` / inherited typing (no lookup, no trace);
   a call whose metadata result is `Row` / `Record` is that value (bare
@@ -289,7 +299,9 @@
   fallback; the Cycle 92 rule; the Cycle 91 rules; Cycle 90; Cycle 89;
   Cycle 88; the Cycle 87 rules; the Cycle 86 rules; Cycle 84 rule B; Cycle
   83 While gaps; the Cycle 82 rules.
-- **Datasource mode:** LOCAL SNAPSHOT for all calibration. Cycle 168
+- **Datasource mode:** LOCAL SNAPSHOT for all calibration. Cycle 169
+  read HCDEV once, read-only (`SELECT * FROM SYSADM.PSSTATUS`: 8.61 /
+  PTPATCHREL 15). Cycle 168
   used live HCDEV READ-ONLY (SELECT only) for the superclass metadata
   capture (`--corpus-paths`, two captures). Cycle 167
   used live HCDEV READ-ONLY (SELECT only; user-authorized) for (1) the App
@@ -298,6 +310,66 @@
   (`cycle167-dsm-source-bytes.ts`, NLS parameters and PCTEXT DUMP at 6
   offsets of 6275 / 25960 / 27771). No corpus source, program or name
   list was recaptured; nothing was written to HCDEV.
+
+## Compiler Cycle 169 -- native evidence; signed Constants; Rowset subclasses; residual frontier
+
+Baseline (dab16e1, manifest passed): 30,209 / EXACT 30,121 / NONEXACT 88;
+fallback 6; 430/430. ACTIONABLE_SEMANTIC_NONEXACT 13 (88 - 71 lossy DSM -
+4 compiler variants).
+
+**Compile environment.** None safe: HCDEV writes not authorized; the only
+other configured environment (HCTST) is not a lab; App Designer needs
+Windows and a database. So the escalation went to static native analysis
+(stop condition D).
+
+**Binaries** (`docs/PEOPLETOOLS_BINARIES.md`): only `pt861` exists locally
+(8.61.07, 2024-09-25); HCDEV is 8.61 patch 15 (PSSTATUS, read-only) --
+same release, different patch: architectural evidence only.
+
+**29858 -- negative Constant.** Stored `06 50 01 00 18 14 3D ...`,
+generated `06 0E 50 00 00 18 14 3D ...`. psmath.dll: DEC is 18 bytes,
+byte 0 the sign (ChangeSignDecimal flips it; IsDecimalNegative tests it),
+byte 1 the scale (<= 0x51), 16-byte magnitude: the 0x50 operand. pspcm's
+lexer emits unsigned numbers only (token code = opcode; DEC at
+ctx+0x838). Corpus: 172,047 0x50 operands, sign 1 only in 29858; 7,306
+executable negatives are 0x0E + unsigned. Landed: a Constant's negative
+value (ordinary and App Class header) is one signed literal; decoder
+renders sign 1 as `-`. 29858 EXACT; DSM 72 -> 71, all lossy.
+
+**29244 / 29245 -- Rowset subclass.** CO_ADDRESS:AddressCollection
+`extends Rowset`; stored `%This.GetRow(&I).DERIVED_CO.DESCR` (29245) and
+`%This.rsData.GetRow(n).PERSON_ADDRESS.ADDRESS_TYPE` (29244) carry the
+RECORD / FIELD rows, ruling out R2 (plain App Class value); R1 landed
+through the type system: provider `builtinBaseOf`, and a value of a
+Rowset-based class is a declared Rowset. Built-in bases in metadata:
+Rowset 2 classes (one unused), Exception 50+, JsonObject 9, XmlDoc /
+XmlNode 9, File 1, Array 1, Message 1. Both EXACT, nothing else changed.
+
+**Telemetry** (`cycle169-metadata-telemetry.ts`, provider-level): 355
+distinct failed lookups, 332 expected (%metadata 306, built-in bases 26),
+23 unexpected -- 0 absent classes, 0 unresolved ancestors; members absent
+from resolved chains, 5 of them 15528's.
+
+**15528.** `Local Primitive &PRIM` in one Function inherited another
+Function's `Local PT_SCHEMA:LogicalSchemaPrimitive &prim`: class-typed
+Function Locals now end at End-Function (Cycle 163 had scoped only
+Record / Row / Rowset). EXACT.
+
+**29293.** The only unterminated Declare Function (stored `42 2D`, no
+0x15); grammar accepted at line end, decoder keeps the line ending. EXACT.
+
+**Re-audits.** COMPLETE_DOWNSTREAM 4: 14352 (blank line after a Function
+header `Returns <App Class>` stores 0x4F -- only program), 15598 (inline
+member after GetRecord(1); 10860 conflict), 28818 (header parameter
+comment), 30162 (`end-interface` without `;`). 29329: native Library
+declaration grammar decoded (`31 0A 33 16 41 2D 0B ... 14 42 39 0A 35 40
+42 15`) plus a per-function type-descriptor trailer; return encoding and
+the `41 2D` pair unrecoverable from one program -- parked. 25337, 30124
+unchanged.
+
+Totals: 30,121 -> 30,126 (+5), 0 lost, 0 farther; ACTIVE_PACKAGE 6 -> 5,
+ACTIVE_RECORD 3 -> 1, ACTIVE_OTHER 1 -> 0, DSM 72 -> 71; actionable 13 ->
+8.
 
 ## Compiler Cycle 168 -- property chains: absent superclasses, method results, parentheses
 

@@ -32,7 +32,8 @@ Cycle 162: EXACT 30,034 / NONEXACT 175; Cycle 163: EXACT 30,043 /
 NONEXACT 166; Cycle 164: EXACT 30,047 / NONEXACT 162; Cycle 166: EXACT
 30,051 / NONEXACT 158, fallback 68; Cycle 167 (with the captured App
 Class metadata): EXACT 30,112 / NONEXACT 97, fallback detection 6, all
-EXACT; Cycle 168: EXACT 30,121 / NONEXACT 88; forward-exact = EXACT); protected 430/430; ROUNDTRIP_ONLY 0.
+EXACT; Cycle 168: EXACT 30,121 / NONEXACT 88; Cycle 169: EXACT 30,126 /
+NONEXACT 83, actionable 8; forward-exact = EXACT); protected 430/430; ROUNDTRIP_ONLY 0.
 
 ---
 
@@ -604,8 +605,9 @@ the first divergence, the stored kind varies), not mechanisms.
 - External class metadata -- resolved by the Cycle 167 capture; left:
   %metadata system classes (EXACT programs only), TargetActualWidget
   (undecoded opcode).
-- Rowset subclasses (CO_ADDRESS:AddressCollection `extends Rowset`:
-  29244 29245) -- no EXACT control.
+- Eight one-of-a-kind shapes (14352 15598 10860 25337 28818 29329 30124
+  30162) -- need a controlled compile; native notes in
+  docs/PEOPLETOOLS_BINARIES.md.
 - Untyped Function parameter shadowing (11513).
 - Legacy App Class path (29632).
 

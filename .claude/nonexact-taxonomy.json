@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-04T23:16:00.907Z",
+ "generatedAt": "2026-10-05T02:12:49.964Z",
  "totalDefinitions": 30209,
- "exactCount": 30121,
- "nonexactCount": 88,
+ "exactCount": 30126,
+ "nonexactCount": 83,
  "rows": [
   {
    "definitionId": 1635,
@@ -196,22 +196,6 @@
    "roundtripExact": true,
    "firstDiffOffset": 521,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 15528,
-   "displayName": "1=PSIBLOGICAL_WRK, 2=TREECTLEVENT, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 223348,
-   "primaryCategory": "REFERENCE_ACTIVE_PACKAGE",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 1177,
-    "generatedCount": 1178,
-    "firstDivergenceKind": "package"
-   }
   },
   {
    "definitionId": 15598,
@@ -593,38 +577,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 29244,
-   "displayName": "104=CO_ADDRESS, 107=AddrSummaryControl, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_OTHER",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 12,
-    "generatedCount": 11,
-    "firstDivergenceKind": "stored-only"
-   }
-  },
-  {
-   "definitionId": 29245,
-   "displayName": "104=CO_ADDRESS, 107=AddressCollection, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 13,
-    "generatedCount": 9,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
    "definitionId": 29249,
    "displayName": "104=CO_NAVIGATN, 107=Stack, 12=OnExecute, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -632,22 +584,6 @@
    "roundtripExact": true,
    "firstDiffOffset": 4216,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 29293,
-   "displayName": "104=GPFR_ADSDEFN, 107=GPFR_ValidationBase, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 76,
-    "generatedCount": 75,
-    "firstDivergenceKind": "record"
-   }
   },
   {
    "definitionId": 29322,
@@ -806,17 +742,6 @@
     "generatedCount": 53,
     "firstDivergenceKind": "package"
    }
-  },
-  {
-   "definitionId": 29858,
-   "displayName": "104=PSXP_ENGINE, 107=Watermark, 12=OnExecute, 0= , 0= , 0= , 0= ",
-   "classification": "DECODE_SOURCE_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "errorMessage": "Cannot encode PeopleCode at source offset 7: expected a variable, string, boolean, or unsigned integer; other operands are unsupported",
-   "construct": "leSoft",
-   "firstDiffOffset": 5,
-   "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
    "definitionId": 29883,
