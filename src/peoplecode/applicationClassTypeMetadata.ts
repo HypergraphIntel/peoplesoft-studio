@@ -45,6 +45,11 @@ export interface ApplicationClassTypeMetadataProvider {
   methodReturnType(classPath: ApplicationClassPath, method: string): ApplicationClassMemberType | undefined;
   /** The class's parent (`extends`), when the class and its parent are available (`%Super`). */
   superclassOf(classPath: ApplicationClassPath): ApplicationClassPath | undefined;
+  /**
+   * Cycle 169: the built-in type the class (or its nearest ancestor)
+   * `extends` -- `class AddressCollection extends Rowset` -- if any.
+   */
+  builtinBaseOf?(classPath: ApplicationClassPath): string | undefined;
 }
 
 export interface ApplicationClassTypeMetadataOptions {
@@ -68,6 +73,8 @@ export interface ApplicationClassDefinition {
 interface IndexedClass {
   path: ApplicationClassPath;
   extendsType?: ApplicationClassPath | 'unresolved';
+  /** A built-in `extends` type (`Rowset`, `Exception` ...), as written. */
+  builtinBase?: string;
   /** lowercased member name -> declared type as written */
   members: Map<string, string>;
   /** lowercased method name -> declared return type as written ('' when none) */
@@ -169,6 +176,9 @@ export function createApplicationClassTypeMetadataProvider(
     if (program.extendsType !== undefined) {
       const resolved = resolveType(entry, program.extendsType);
       entry.extendsType = resolved?.kind === 'class' ? resolved.path : 'unresolved';
+      if (resolved?.kind === 'other' && /^[A-Za-z_][A-Za-z0-9_]*$/.test(resolved.type) && options.isBuiltinType?.(resolved.type) === true) {
+        entry.builtinBase = resolved.type;
+      }
     }
     return entry;
   };
@@ -198,6 +208,19 @@ export function createApplicationClassTypeMetadataProvider(
     superclassOf: classPath => {
       const parent = index(canonicalClassKey(classPath))?.extendsType;
       return parent === undefined || parent === 'unresolved' ? undefined : sources.get(canonicalClassKey(parent))?.path;
+    },
+    builtinBaseOf: classPath => {
+      const seen = new Set<string>();
+      let key: string | undefined = canonicalClassKey(classPath);
+      while (key !== undefined && !seen.has(key)) {
+        seen.add(key);
+        const entry = index(key);
+        if (entry === undefined) return undefined;
+        if (entry.builtinBase !== undefined) return entry.builtinBase;
+        if (entry.extendsType === undefined || entry.extendsType === 'unresolved') return undefined;
+        key = canonicalClassKey(entry.extendsType);
+      }
+      return undefined;
     }
   };
 }

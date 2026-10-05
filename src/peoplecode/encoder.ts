@@ -11552,8 +11552,34 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     //   expr.Member / expr.Method(...)
     //   expr[index]       => 0x4C ... 0x4D
     //   expr(args)        => 0x0B ... 0x14 (e.g. Rowset shorthand &rs(1))
+    /*
+     * Cycle 169: a value of a class that extends the built-in Rowset (its
+     * own `extends Rowset` or an ancestor's -- the provider's
+     * `builtinBaseOf`) IS a Rowset: `%This` in such a class, or a property /
+     * result / element typed with it, is a declared Rowset value, so the
+     * Rowset chain rules apply (`.GetRow(n)` a Row, its bare member a
+     * RECORD row). 29245 (CO_ADDRESS:AddressCollection `extends Rowset`)
+     * `%This.GetRow(&I).DERIVED_CO.DESCR.Value` stores RECORD.DERIVED_CO /
+     * FIELD.DESCR; 29244 `%This.rsData.GetRow(n).PERSON_ADDRESS
+     * .ADDRESS_TYPE.Value` (rsData: AddressCollection) stores
+     * RECORD.PERSON_ADDRESS. Stored output rules out the subclass being a
+     * plain App Class value (no rows). The only other Rowset subclass
+     * (EOCF_CLF_DL:Utility:MultiLevelPersistentRowset, captured) is unused
+     * by the corpus. LOCAL SNAPSHOT: 2 programs changed, both EXACT.
+     */
+    let thisRootStep = /^%This\b/i.test(source.slice(primaryStart));
     while (true) {
       space();
+
+      {
+        const valuePath = activeApplicationClassReceiver !== undefined
+          ? [...activeApplicationClassReceiver.packagePath, activeApplicationClassReceiver.className]
+          : thisRootStep ? context?.applicationClassSelfPath : undefined;
+        if (valuePath !== undefined && /^Rowset$/i.test(context?.applicationClassTypeMetadata?.builtinBaseOf?.(valuePath) ?? '')) {
+          chainSemantics = { valueType: 'rowset', binding: 'dependency-bound', provenance: 'declared' };
+        }
+        thisRootStep = false;
+      }
 
       const thisMethodResolutionStep = pendingThisMethodResolution;
       pendingThisMethodResolution = false;
