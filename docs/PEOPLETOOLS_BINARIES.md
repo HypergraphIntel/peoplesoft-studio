@@ -239,3 +239,53 @@ extends cases (class vs interface).
   closer): stored ends `71 07` (the Cycle 114 bare-closer shape), but its
   class directory also omits the interface's method record while keeping
   its signature slots -- not explained by any rule found.
+
+## Cycle 171: the exact HCDEV patch (8.61.15)
+
+An 8.61.15 PS_HOME exists on local storage: the DPK archive
+`/mnt/ou_network/peoplesoft_dev/ps86115/dpk/archives/pt-pshome8.61.15.tgz`
+(build `PT861P15B_2509220501`). The extracted
+`ps_home8.61.15/bin/client/winx86` beside it is incomplete (91 files,
+no pspcm.dll). The compiler-relevant files were extracted to a scratch
+directory for analysis only (archive untouched, nothing committed):
+
+| DLL | sha256 | FileVersion | ProductVersion | PE timestamp (UTC) | PDB |
+|---|---|---|---|---|---|
+| pspcm.dll | `ad57fe0923022e49449e33f80cc7a8f91d8b6446d5f83a8fa3fcd67c11fa1d0b` | 8.61.15 | 8.61.15 | 2025-09-22 16:53 | `C:\PT861P15B_2509220501-retail\peopletools\src\pspcm\obj_client\pspcm.pdb` |
+| pspceval.dll | `78502c4dae218fcb874015d420458addb9b555dded398b035c0ab6cc556942e0` | 8.61.15 | 8.61.15 | 2025-09-22 16:38 | `C:\PT861P15B_2509220501-retail\peopletools\src\pspceval\obj_client\pspceval.pdb` |
+| psmath.dll | `756bd8d54045e0235c8edbdd2465f2dc7ecda11e1aa119b89edcf3f034d2deba` | 8.61.15 | 8.61.15 | 2025-09-22 16:36 | `C:\PT861P15B_2509220501-retail\peopletools\src\psmath\obj_client\psmath.pdb` |
+| pssys.dll | `d470ee890bcd56a3e75592b9b2dc97e5a5e674ddfd8ee83c01ac38d43f27d093` | 8.61.15 | 8.61.15 | 2025-09-22 16:37 | `C:\PT861P15B_2509220501-retail\peopletools\src\pssys\obj_client\pssys.pdb` |
+| psmgr.dll | `5eeffcc007274aceedc9d017e4083c100b9452d139ab171a3086b41a5bf1a9c8` | 8.61.15 | 8.61.15 | 2025-09-22 16:37 | `C:\PT861P15B_2509220501-retail\peopletools\src\psmgr\obj_client\psmgr.pdb` |
+| pscmn.dll | `44bb0b11a19c1a37d21da9ec65d0f1b8c8e07d9120e3b3cd252692d2bce1068d` | 8.61.15 | 8.61.15 | 2025-09-22 16:36 | `C:\PT861P15B_2509220501-retail\peopletools\src\pscmn\obj_client\pscmn.pdb` |
+| pside.exe | `e1d1b610650b96986a88ea38dcf0cb5b4fea0f6e77948aa8085181f410a141f8` | 8.61.15 | 8.61.15 | 2025-09-22 16:59 | `C:\PT861P15B_2509220501-retail\peopletools\src\pside\obj_client\pside.pdb` |
+
+
+Other local copies: `~/.local/share/wine-bottles/peopletools` and a
+Bottles flatpak bottle hold an installed 8.61.07 client (pspcm.dll
+identical to `pt861`); `~/Documents/OU/Downloads/PeopleSoftLaunchers`
+holds the 8.61.07 `pside.exe`.
+
+With this set, native findings on the class parser are **exact-patch**
+evidence for HCDEV.
+
+### Unit closer and member registration (pspcm.dll 8.61.15) -- CONFIRMED
+
+- The class / interface header loop (around `0x18019ea8c`) consumes `;`
+  member terminators (token 0x15) and, in interface mode (flag
+  `ctx+0x3985`), requires token 0x71 `end-interface`, else 0x5B
+  `end-class` -- otherwise "expected end-interface / end-class". Method
+  signature slots are appended while the header is parsed. At the closer
+  it advances and returns.
+- The next routine (`0x18019ebf0`) checks the token after the closer
+  (`0x18019ede1`): if `;`, it consumes it, emits 0x2D (`0x1805009f0`,
+  edx 0x2D), compiles the following declarations (Global 0x45,
+  Component, Declare Function 0x31), and registers the class's members
+  (the hash iteration after `0x18019eeb1`, `[ctx+0x3978]+0x348`). If not,
+  it returns at `0x18019f140` -- no 0x15, no 0x2D, no member
+  registration.
+- Corpus agreement: 30162 (`end-interface` at EOF, no `;`) stores `71 07`,
+  a self-only directory and its method's signature slots; the 32 programs
+  ending `end-class;` / `end-interface;` store `15 2D` and every method
+  record.
+- Keyword table (`0x18082dab0`..`0x18082dbf0`): end-class 0x5B,
+  interface 0x70, end-interface 0x71, implements 0x72 -- the opcodes.
