@@ -242,12 +242,25 @@ extends cases (class vs interface).
 
 ## Cycle 171: the exact HCDEV patch (8.61.15)
 
-An 8.61.15 PS_HOME exists on local storage: the DPK archive
-`/mnt/ou_network/peoplesoft_dev/ps86115/dpk/archives/pt-pshome8.61.15.tgz`
-(build `PT861P15B_2509220501`). The extracted
-`ps_home8.61.15/bin/client/winx86` beside it is incomplete (91 files,
-no pspcm.dll). The compiler-relevant files were extracted to a scratch
-directory for analysis only (archive untouched, nothing committed):
+An 8.61.15 PS_HOME exists on the institutional network share (not on
+local storage). The share is `//hcwin-dev.net.ou.edu/Peoplesoft`,
+mounted at `/mnt/ou_network/peoplesoft_dev` and reachable only over
+the VPN. It holds:
+- the DPK archive
+  `/mnt/ou_network/peoplesoft_dev/ps86115/dpk/archives/pt-pshome8.61.15.tgz`
+  (build `PT861P15B_2509220501`);
+- an extracted `ps_home8.61.15/bin/client/winx86` beside it, which is
+  incomplete (91 files, no pspcm.dll).
+
+In Cycle 171 the compiler-relevant files were extracted to a temporary
+scratch directory, for analysis only. That directory no longer exists;
+the archive was untouched and nothing was committed. The only local
+binary set is still `pt861` (8.61.07).
+
+Cycle 174 re-verified the client files read-only by streaming the
+archive (`bin/client/winx86/*`). All seven sha256 values below match.
+The archive's `bin/server/WINX86` copies are separate server builds with
+different hashes; the client set is the App Designer compiler.
 
 | DLL | sha256 | FileVersion | ProductVersion | PE timestamp (UTC) | PDB |
 |---|---|---|---|---|---|

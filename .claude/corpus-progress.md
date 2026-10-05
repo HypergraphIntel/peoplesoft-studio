@@ -1,6 +1,6 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-05, Cycle 173)
+## Current status (2026-10-05, Cycle 174)
 
 - **Milestone: CORPUS_RECOVERABLE_FRONTIER_CLOSED.** EXACT 30,131 of
   30,209 = forward-exact; NONEXACT 78 = 71 lossy source (HCDEV PCTEXT) +
@@ -10,11 +10,12 @@
   compiler equivalence: the corpus, the captured metadata and static
   analysis of the exact-patch binaries justify no further production
   rule. See "Compiler Cycle 171" and docs/CONTROLLED_COMPILE_LAB.md.
-- **Last successful calibration:** Cycle 171. Cycles 172 and 173 made
-  no semantic change. Cycle 173 stopped at condition A because the
-  8.61.15 media is unreachable: `hcwin-dev.net.ou.edu` does not resolve,
-  there is no VPN interface and there is no local copy. The baseline was
-  re-verified.
+- **Last successful calibration:** Cycle 171. Cycles 172-174 made no
+  semantic change.
+  - Cycle 173 stopped at condition A (media unreachable).
+  - Cycle 174 had the VPN up and verified the 8.61.15 media hashes, then
+    stopped at B / C / D: there is no authorization for media use, for
+    `omarchy-windows`, or for an Oracle 19c image and license.
 - **Protected baseline:** 430/430.
 - **Snapshot requirement:** the captured App Class metadata (3,178
   classes) must be imported; check `npx tsx
@@ -27,23 +28,22 @@
   15598's top-level code: stored 0x0A inline, encoder 0x4A reference).
   Experiment pack tools/corpus/controlled-compile/experiments.json;
   docs/CONTROLLED_COMPILE_LAB.md.
-- **Next action (Cycle 174):** a human must:
-  - connect the VPN, so that `//hcwin-dev.net.ou.edu/Peoplesoft`
-    mounts at `/mnt/ou_network/peoplesoft_dev`;
-  - confirm that the institution's 8.61.15 media may be used for a
-    personal lab;
-  - authorize use of the `omarchy-windows` VM;
-  - provide an Oracle 19c image (Oracle account and license).
+- **Next action (Cycle 175):** the user must explicitly authorize:
+  1. installing the institution's 8.61.15 media in a disposable lab;
+  2. using (starting and installing into) `omarchy-windows`;
+  3. an Oracle 19c Database image, with Oracle account / license
+     acceptance done by the user.
 
-  Then follow docs/CONTROLLED_COMPILE_LAB.md: provisioning checklist,
-  smoke test, H1-H9 / G1-G7, `capture-lab.ts`,
-  `compare-controlled-compile.ts`. Without a lab, the encoder stays
-  frozen. Standing rules:
+  App Designer saves need a human operator at the Windows GUI. Media
+  hashes are already verified (Cycle 174). Then follow
+  docs/CONTROLLED_COMPILE_LAB.md: provisioning checklist, smoke test,
+  H1-H9 / G1-G7, `capture-lab.ts`, `compare-controlled-compile.ts`.
+  Standing rules:
   - README.md has unrelated user edits: never stage it.
   - Never touch stash@{0} / stash@{1}.
   - Run `npm test` on its own, check the exit code, then commit
     separately.
-- **Newly established rules this session:** Cycles 173 / 172: none
+- **Newly established rules this session:** Cycles 174 / 173 / 172: none
   (research and tooling only); Cycle 171: the
   blank-line rule after a Function header applies after `Returns <App
   Class>` too (whitespace measured from the end of the type); an
@@ -313,6 +313,41 @@
   (`cycle167-dsm-source-bytes.ts`, NLS parameters and PCTEXT DUMP at 6
   offsets of 6275 / 25960 / 27771). No corpus source, program or name
   list was recaptured; nothing was written to HCDEV.
+
+## Compiler Cycle 174 -- media verified; stopped before installation
+
+Baseline (03bda98):
+- manifest 3,178;
+- tsc clean; `npm test` exits 0 (1,116 passed, 0 failed, 1 skipped);
+- `git diff --check` clean;
+- protected 430/430;
+- full verify 30,131 EXACT / 71 DSM / 7 other, 0 regressed.
+
+**Media.**
+- The VPN `tun0` is active, `hcwin-dev.net.ou.edu` resolves to
+  10.26.197.223, and the share is mounted.
+- `ps86115/dpk/pt-manifest`: tools 8.61.15, Windows.
+- `pt-pshome8.61.15.tgz` was hashed read-only by streaming. All seven
+  `bin/client/winx86` compiler binaries match the Cycle 171 record:
+  - pside.exe `e1d1b610`
+  - pspcm.dll `ad57fe09`
+  - pspceval.dll `78502c4d`
+  - psmath.dll `756bd8d5`
+  - pssys.dll `d470ee89`
+  - psmgr.dll `5eeffcc0`
+  - pscmn.dll `44bb0b11`
+- `ps86115/db` is empty, and no Oracle Database server media is on the
+  share.
+
+**Stopped (B, C, D).** None of these is authorized: media use for a lab,
+`omarchy-windows`, an Oracle 19c image and license. Nothing was
+extracted, started or installed, and nothing touched HCDEV or HCTST.
+
+docs/PEOPLETOOLS_BINARIES.md correction: the 8.61.15 PS_HOME is on the
+VPN-only network share, not on local storage. The only local DLL set is
+`pt861` (8.61.07), which is architectural evidence only.
+
+Totals unchanged: 30,131 / 78; actionable 3.
 
 ## Compiler Cycle 173 -- lab provisioning stopped (condition A)
 

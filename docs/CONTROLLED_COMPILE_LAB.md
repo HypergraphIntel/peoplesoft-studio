@@ -130,6 +130,21 @@ saving into a PeopleTools-only Oracle 19c database built from the same
 DPK. It is the only path with native Windows App Designer at the exact
 patch and no institutional database involved.
 
+**Cycle 174 recheck: media verified; stopped before installation
+(conditions B, C, D).**
+- The VPN (`tun0`) is up, `hcwin-dev.net.ou.edu` resolves (10.26.197.223)
+  and the archive is readable.
+- `dpk/pt-manifest`: tools 8.61.15, Windows, Oracle client 19.3.0.0
+  Jul2025 CPU.
+- `pt-pshome8.61.15.tgz` (2,234,348,986 bytes) streams with every
+  client-binary sha256 matching docs/PEOPLETOOLS_BINARIES.md
+  (`pside.exe` `e1d1b610…`, `pspcm.dll` `ad57fe09…`).
+- `ps86115/db` is empty. No Oracle Database server media is visible on
+  the share.
+- No authorization has been given for any of: using the media in a
+  personal lab, using `omarchy-windows`, or an Oracle 19c image and
+  license. So nothing was extracted, started or installed.
+
 **Cycle 173 recheck: still stopped (condition A).** The share is a
 cifs automount of `//hcwin-dev.net.ou.edu/Peoplesoft`. The host does not
 resolve (VPN not connected), and no local copy of the media exists.
