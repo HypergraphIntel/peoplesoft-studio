@@ -1,6 +1,6 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-05, Cycle 175)
+## Current status (2026-10-05, Cycle 176)
 
 - **Milestone: CORPUS_RECOVERABLE_FRONTIER_CLOSED.** EXACT 30,131 of
   30,209 = forward-exact; NONEXACT 78 = 71 lossy source (HCDEV PCTEXT) +
@@ -10,7 +10,14 @@
   compiler equivalence: the corpus, the captured metadata and static
   analysis of the exact-patch binaries justify no further production
   rule. See "Compiler Cycle 171" and docs/CONTROLLED_COMPILE_LAB.md.
-- **Last successful calibration:** Cycle 171. Cycles 172-175 made no
+- **Status:** Unattended compiler path implemented; end-to-end
+  unattended compilation remains unverified pending a PeopleSoft
+  database and one-time project bootstrap.
+  - 30124, 10860 and 15598 remain NEEDS_CONTROLLED_COMPILE.
+  - Cycle 176 recheck: no database, Oracle image, registry login,
+    listener on 1521 or new seed artifact. Stopped at the database
+    blocker without re-searching the old media.
+- **Last successful calibration:** Cycle 171. Cycles 172-176 made no
   semantic change.
   - Cycle 175 was authorized. It staged and verified the 8.61.15 media,
     ran the exact compiler headless under Wine, and built the unattended
@@ -29,7 +36,9 @@
   15598's top-level code: stored 0x0A inline, encoder 0x4A reference).
   Experiment pack tools/corpus/controlled-compile/experiments.json;
   docs/CONTROLLED_COMPILE_LAB.md.
-- **Next action (Cycle 176):** obtain a PeopleSoft database:
+- **Next action (Cycle 177):** the next milestone is ONE controlled
+  SMOKE compile end to end, plus Wine-vs-Windows byte identity, before
+  any H / G run. First obtain a PeopleSoft database:
   - an Oracle HCM PUM DPK via My Oracle Support (includes Oracle 19c and
     a full database; patch it to 8.61.15); or
   - a DBA-provided disposable 8.61.15 database.
