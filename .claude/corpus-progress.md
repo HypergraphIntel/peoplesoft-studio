@@ -1,6 +1,6 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-04, Cycle 171)
+## Current status (2026-10-05, Cycle 172)
 
 - **Milestone: CORPUS_RECOVERABLE_FRONTIER_CLOSED.** EXACT 30,131 of
   30,209 = forward-exact; NONEXACT 78 = 71 lossy source (HCDEV PCTEXT) +
@@ -10,24 +10,32 @@
   compiler equivalence: the corpus, the captured metadata and static
   analysis of the exact-patch binaries justify no further production
   rule. See "Compiler Cycle 171" and docs/CONTROLLED_COMPILE_LAB.md.
-- **Last successful calibration:** Cycle 171.
+- **Last successful calibration:** Cycle 171 (Cycle 172: no semantic
+  change -- lab provisioning stopped before installation; baseline
+  re-verified 30,131 / 78, 430/430, fallback 6, 13525 EXACT).
 - **Protected baseline:** 430/430.
 - **Snapshot requirement:** the captured App Class metadata (3,178
   classes) must be imported; check `npx tsx
   tools/corpus/capture-appclass-metadata.ts --check-manifest
   tools/corpus/appclass-metadata/manifest.txt`.
-- **Locally blocked (NEEDS_CONTROLLED_COMPILE):** 30124 (`Local A &x =
-  create B()` row order vs 28754), 10860 / 15598 (members after GetRow /
-  GetRecord on a root typed in another Function). Experiment matrices in
+- **Locally blocked (NEEDS_CONTROLLED_COMPILE):** 30124 (wildcard
+  import of its own package; `Local A &x = create B()` stores A's row
+  first, the encoder opens only B there), 10860 / 15598 (a member read on
+  a root declared `Local` only in another unit -- 10860's `Call_Link`,
+  15598's top-level code: stored 0x0A inline, encoder 0x4A reference).
+  Experiment pack tools/corpus/controlled-compile/experiments.json;
   docs/CONTROLLED_COMPILE_LAB.md.
-- **Next action (Cycle 172):** needs a writable PeopleTools 8.61.15
-  environment (lab database + App Designer, built from the local 8.61.15
-  DPK) or HCTST credentials; then run the lab matrices H1-H9 and G1-G7.
-  Without one, the encoder work is done for this corpus. README.md has
+- **Next action (Cycle 173):** a human must provision the lab
+  (docs/CONTROLLED_COMPILE_LAB.md "Provisioning checklist"): restore the
+  8.61.15 DPK share, authorize the media, Oracle 19c PTSYS database,
+  App Designer 8.61.15 on Windows. Then run the runner checklist:
+  `capture-lab.ts` (SELECT-only) and `compare-controlled-compile.ts`.
+  Without a lab, there is no encoder work for this corpus. README.md has
   unrelated user edits -- never stage it; never touch stash@{0} /
   stash@{1}. Run `npm test` on its own, check the exit code, then commit
   separately.
-- **Newly established rules this session:** Cycle 171: the
+- **Newly established rules this session:** Cycle 172: none
+  (research and tooling only); Cycle 171: the
   blank-line rule after a Function header applies after `Returns <App
   Class>` too (whitespace measured from the end of the type); an
   unterminated unit closer at EOF is bare and registers no methods (slots
@@ -296,6 +304,63 @@
   (`cycle167-dsm-source-bytes.ts`, NLS parameters and PCTEXT DUMP at 6
   offsets of 6275 / 25960 / 27771). No corpus source, program or name
   list was recaptured; nothing was written to HCDEV.
+
+## Compiler Cycle 172 -- lab provisioning; controlled-compile tooling
+
+Baseline (8b7ce15, manifest passed): 30,131 / 78 (71 DSM + 4 variants +
+3 NEEDS_CONTROLLED_COMPILE), 430/430, fallback 6, 13525 EXACT;
+ACTIONABLE 3.
+
+**Provisioning: STOP BEFORE INSTALLATION (Outcome B).**
+- The 8.61.15 DPK share (`/mnt/ou_network/peoplesoft_dev`) is offline
+  ("No such device").
+- The only App Designer is 8.61.07, in the Wine bottle (untouched).
+- `tnsnames.ora` holds only institutional aliases; there is no scratch
+  database and no Oracle DB image.
+- An existing Windows 11 KVM container (dockur `omarchy-windows`)
+  belongs to the user and was not started.
+- Chosen path: Windows App Designer 8.61.15 plus a PeopleTools-only
+  Oracle 19c database built from the same DPK. The human steps are in
+  docs/CONTROLLED_COMPILE_LAB.md.
+- A PTSYS database is sufficient. The character set does not matter for
+  these experiments, since PSPCMPROG strings are UTF-16LE and the
+  sources are ASCII.
+
+**Targets restated precisely** (traced locally):
+- 10860's divergence is `Call_Link` (line 8078), not line 355.
+  `&TblFilterlvl2` is declared Local only in earlier Functions. Stored
+  writes `GP_AUD_FLTR_TBL` / `PIN_NUM` inline (0x0A); the encoder opens
+  new RECORD / FIELD rows 1303 / 1304.
+- 15598 (line 1588, top level, after the last End-Function): stored
+  writes `IB_DOC_LBL_ID` inline; the encoder writes 0x4A to FIELD row
+  270.
+- One question covers both: a root declared Local only in another unit.
+
+**Tooling (no semantics):**
+- `src/peoplecode/corpus/controlledCompile.ts` +
+  `tools/corpus/compare-controlled-compile.ts`: ingest lab captures with
+  no database. Output: decode, reference list, NAMENUM map, first-use
+  order, the encoder comparison, observations (`order` / `presence` /
+  `member-form`), model verdicts, replica reproduction and family
+  candidates.
+- `--predict` shows the encoder's own expectations.
+- `tools/corpus/controlled-compile/capture-lab.ts`: SELECT-only, READ
+  ONLY transaction, `ZZ_PCODE_LAB%` keys. Refuses institutional
+  databases and any `DB_NAME` other than `--database`.
+- `experiments.json`: 7 support classes, H1-H9, G1-G7, with each model's
+  prediction and the replicas' corpus observation.
+
+**Encoder predictions (not evidence):**
+- H1 gives CHILD only, where corpus 30124 has PARENT then CHILD.
+  - H2 (a bare declaration) opens PARENT.
+  - H4 / H5 follow import order.
+- G1 and G5 give references, where the corpus is inline.
+  - G3 / G7 (no earlier row) are inline.
+  - The encoder equals `EARLIER_ROW_REUSE` on all seven.
+- Both replicas fail exactly as the encoder fails the corpus programs,
+  so they are faithful to the encoder's failure mode.
+
+Totals unchanged: 30,131 / 78; actionable 3.
 
 ## Compiler Cycle 171 -- frontier closed; 14352 and 30162 resolved
 
