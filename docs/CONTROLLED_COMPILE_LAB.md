@@ -46,6 +46,61 @@ If `-PJFF` does not make `-CMPPRJPC` recompile from the imported text:
 
 PSPCMPROG is never fabricated.
 
+## Cycle 178 findings on HRDMO (8.62.09)
+
+**Sign-on.**
+- Headless App Designer 8.62.09 signs on to HRDMO as PS, after PS's
+  password was reset with Data Mover bootstrap (`ENCRYPT_PASSWORD PS`),
+  at the user's request.
+- Data Mover bootstrap (`psdmtx.exe`, access ID) works headless under
+  Wine.
+
+**Switch syntax.**
+- `-CMPPRJPC <project>` takes the project name as its own argument. The
+  log reads "Compile Project PeopleCode / Project Name: <project>".
+- On failure pside 8.62.09 returned exit 8 or 3, but the exit code is
+  still not trusted.
+
+**`-PJTF` (copy to file)** works headless. It writes `<P>.XML` plus
+`<P>.ini`. In 8.62:
+- one `APM` instance per package node (root `.`, level-1 `:`, deeper
+  `<parent path>`), each listing its classes (class level = package
+  level + 1) and its direct sub-packages;
+- project items: 57 (package; IDs 104/116/117) and 58 (class PeopleCode;
+  IDs 104/[105]/107);
+- `PCM`: key, name rows (`PcmPnt`), `<peoplecode_text>`, and
+  `<peoplecode_blob>` (a serialized program structure, not PSPCMPROG
+  bytes; `lSourceLen` tracks the compiled length);
+- items and instances sorted by key. An `APM` mismatch aborts pside:
+  `PSAFFIRM GlobalHandle` in `pssys\apmget.cpp:1354`.
+
+**`-PJFF` (copy from file) is NOT a safe source-injection path.**
+- It creates PSPACKAGEDEFN / PSAPPCLASSDEFN rows under the project key.
+- But it saves the PeopleCode under the key **embedded in
+  `<peoplecode_blob>`**, not under the PCM / project key.
+- Diagnostic imports D1-D4 (renames of the exported APPS_RLR package)
+  therefore wrote into the **delivered** `APPS_RLR:Utilities` program.
+  D1 carried the SmokeTest text, so its source briefly read SmokeTest;
+  D2-D4 rewrote the exported original.
+- Verified afterwards (read-only):
+  - its PSPCMTXT equals the pre-import export (8,419 chars);
+  - its 4 PSPCMNAME rows are identical;
+  - its PSPCMPROG decodes exactly to that source.
+  - Only PSPCMPROG.LASTUPDDTTM changed (2026-10-05 20:46 UTC). The app
+    server and web server were down throughout.
+- Rule: never import a PCM whose blob was compiled for another key.
+- Untested: whether a blob-less PCM imports at all. The first attempt
+  aborted on the APM structure, before PeopleCode.
+
+**Scratch objects left in HRDMO:**
+- projects ZZ_PCODE_LAB and ZZ_PCODE_LAB_D1..D4;
+- packages and classes ZZ_PCODE_LAB_D1 (SmokeTest) and
+  ZZ_PCODE_LAB_D2..D4 (Utilities).
+- No PeopleCode rows exist under any ZZ_PCODE_LAB key.
+
+**Namespace note:** HRDMO ships delivered `ZZ_PAY_*` Record PeopleCode.
+Lab queries must use `ZZ_PCODE_LAB%`, never `ZZ%`.
+
 ## Release profiles (Cycle 177)
 
 The harness compiles with one exact PeopleTools release at a time, chosen
@@ -77,6 +132,8 @@ Home lab (user's libvirt host 192.168.4.40):
 The experiment target is HRDMO only; the other PDBs are not touched.
 
 
+
+## Unattended harness (Cycle 175)
 
 ### Authorization and media
 
