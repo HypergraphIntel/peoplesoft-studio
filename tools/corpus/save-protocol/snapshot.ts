@@ -397,8 +397,17 @@ function rowsOf(t: TableRows | undefined): Record<string, Value>[] {
 }
 
 /** Per changed scratch definition: what the save left behind, checked against the model so far. */
-function transitions(before: Snapshot, after: Snapshot, watchDelta: Record<string, TableDelta>) {
+function transitions(before: Snapshot, after: Snapshot, watchDelta: Record<string, TableDelta>,
+  otherTables: Record<string, TableDelta> = {}) {
   const changed = new Set<string>();
+  // Physical changes count too: a re-save deletes and re-inserts identical rows.
+  for (const t of ['PSPCMTXT', 'PSPCMPROG', 'PSPCMNAME']) {
+    const d = otherTables[t];
+    if (!d) continue;
+    for (const r of [...d.inserted, ...d.deleted]) {
+      if ((r.OBJECTVALUE1 ?? '').startsWith('ZZ_PCODE_LAB')) changed.add(definitionKey(r));
+    }
+  }
   for (const t of ['PSPCMTXT', 'PSPCMPROG', 'PSPCMNAME']) {
     const d = watchDelta[t];
     if (!d) continue;
@@ -426,8 +435,15 @@ function transitions(before: Snapshot, after: Snapshot, watchDelta: Record<strin
         updated: d.updated.filter((u) => definitionKey(u.key) === def).map((u) => Object.keys(u.changes))
       } : undefined;
     };
+    const physical = (t: string) => {
+      const d = otherTables[t];
+      const mine = (r: Record<string, Value>) => definitionKey(r) === def;
+      return d ? { deleted: d.deleted.filter(mine).length, inserted: d.inserted.filter(mine).length, updated: d.updated.length } : undefined;
+    };
     out.push({
       definition: def,
+      /** ROWID-level changes (flashback sweep): a delete + insert of the same key is a replace. */
+      physical: { PSPCMTXT: physical('PSPCMTXT'), PSPCMPROG: physical('PSPCMPROG'), PSPCMNAME: physical('PSPCMNAME') },
       rows: {
         PSPCMTXT: { before: pick(before, 'PSPCMTXT').length, after: txt.length, ...delta('PSPCMTXT') },
         PSPCMPROG: { before: pick(before, 'PSPCMPROG').length, after: prog.length, ...delta('PSPCMPROG') },
@@ -551,7 +567,7 @@ async function after(session: Session, name: string): Promise<void> {
     scope: prior.scope,
     markers: { before: prior.marker, after: mark },
     summary: {
-      transitions: transitions(prior, snapshot, watchDelta),
+      transitions: transitions(prior, snapshot, watchDelta, otherTables),
       psversion: counterDelta(prior, snapshot, 'PSVERSION'),
       pslock: counterDelta(prior, snapshot, 'PSLOCK'),
       watchTablesChanged: Object.fromEntries(Object.entries(watchDelta).map(([t, d]) =>
