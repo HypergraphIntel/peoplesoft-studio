@@ -1,0 +1,29 @@
+{
+  "format": "pspcmtxt-signature-validation/1",
+  "database": "HRDMO",
+  "peopleToolsRelease": "8.62.09",
+  "scope": "all of PSPCMTXT",
+  "limit": null,
+  "candidate": "base64(SHA-1(UTF-16LE(PCTEXT)) || 0x00)",
+  "scannedAt": "2026-10-06T15:51:48.571Z",
+  "summary": {
+    "programs": 114790,
+    "singleRow": {
+      "total": 111499,
+      "match": 111499
+    },
+    "multiRow": {
+      "total": 3291,
+      "perRow": 0,
+      "whole": 3291,
+      "first": 3291
+    },
+    "nonAscii": {
+      "total": 470,
+      "match": 470
+    },
+    "empty": 1,
+    "mismatches": 0
+  },
+  "mismatchSamples": []
+}
