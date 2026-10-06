@@ -46,6 +46,48 @@ If `-PJFF` does not make `-CMPPRJPC` recompile from the imported text:
 
 PSPCMPROG is never fabricated.
 
+## Cycle 185: HASH_SIGNATURE research reopened (product write-back)
+
+**Decision (user, 2026-10-06).** PeopleSoft Studio is to write PeopleCode
+natively, without App Designer in the save path. The Cycle 180 halt
+protected the controlled-compile lab during compiler reverse engineering;
+it is lifted for this purpose under a new rule:
+
+> Never write a generated HASH_SIGNATURE until its algorithm and the
+> complete native save transaction have been independently proven against
+> controlled PeopleTools saves.
+
+- App Designer is used only as the oracle for controlled experiments.
+- Research writes are limited to `ZZ_PCODE_LAB%` definitions on HRDMO.
+  HCDEV is never written.
+- No known signature is special-cased; the algorithm must be derived and
+  then predict a broad corpus with zero mismatches.
+
+**Candidate** (`src/peoplecode/sourceSignature.ts`, prediction only):
+`base64(SHA-1(UTF-16LE(PCTEXT)) || 0x00)`. Every stored value is 21 bytes
+(28 base64 characters) ending in 0x00. The text is hashed exactly as
+stored: LF line endings, App Designer's trailing blank line included.
+
+- 7 / 7 offline: the five delivered HCDEV rows in
+  `src/test/fixtures/entryBoundaryPeopleCode.ts` and the Cycle 180 SMOKE
+  A / B saves on HRDMO (`src/test/sourceSignature.test.ts`).
+- All seven are single-row ASCII programs. Open: multi-row PSPCMTXT
+  programs (per-row or whole-text digest) and non-ASCII source.
+
+**Validation tool** (`tools/corpus/source-signature/validate.ts`):
+read-only scan of PSPCMTXT, every row a native-save sample. It reports
+single-row matches, which multi-row reading holds, non-ASCII and empty
+programs, and mismatch samples. `--database` is required and must equal the
+connected DB_NAME; protected institutional databases are refused.
+
+**Next.** Run the scan on HRDMO. Then the controlled native-save
+experiments (create, unchanged re-save, A->B->A, comment-only,
+literal-only, reference change, compile failure, empty program, App Class,
+ordinary PeopleCode), each bracketed by a whole-database before / after
+snapshot, to characterize the complete save transaction:
+PSPCMTXT, PSPCMPROG, PSPCMNAME, version counters, audit fields, and any
+other table a save touches.
+
 ## 8.62 track: H2 -- end-of-body boundary (resolved)
 
 Branch `research/pt862-compat`; this is separate from the closed HCDEV

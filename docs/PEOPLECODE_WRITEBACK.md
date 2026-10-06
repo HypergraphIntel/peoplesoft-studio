@@ -1,8 +1,15 @@
 # PeopleCode write-back: design proposal
 
-**Status:** proposal for review. Nothing here is implemented. PeopleCode
-opened from a database stays read-only until this design is accepted and
-its Phase 0 questions are answered.
+**Status:** in research. PeopleCode opened from a database stays
+read-only.
+
+**Decided (2026-10-06):** saves are native -- PeopleSoft Studio writes
+`PSPCMTXT`, `PSPCMPROG`, `PSPCMNAME` and the metadata PeopleTools writes,
+with no App Designer in the save path (Option A, section 3). App Designer
+is only the oracle for controlled experiments. No generated
+`HASH_SIGNATURE` is written until its algorithm and the complete save
+transaction are proven against controlled native saves; the research is
+tracked in docs/CONTROLLED_COMPILE_LAB.md (Cycle 185).
 
 This proposes how PeopleSoft Studio could save PeopleCode back to a
 database. Saving would be controlled per connection by two options the
