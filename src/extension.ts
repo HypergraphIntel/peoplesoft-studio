@@ -14,6 +14,7 @@ import { registerPeopleCodeSymbols } from './peoplecode/symbols.js';
 import { parseUri } from './util/uri.js';
 import { StatusBar } from './views/statusBar.js';
 import { selectConnection } from './views/connectionSelection.js';
+import { registerSettings } from './settings/index.js';
 
 import {
   configureAiClient
@@ -115,6 +116,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     mcpController,
     mcpStatus
   );
+
+  registerSettings(context, workspace, mcpController);
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
