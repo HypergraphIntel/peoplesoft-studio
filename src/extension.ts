@@ -13,6 +13,7 @@ import { registerPeopleCodeHover } from './peoplecode/hover.js';
 import { registerPeopleCodeSymbols } from './peoplecode/symbols.js';
 import { parseUri } from './util/uri.js';
 import { StatusBar } from './views/statusBar.js';
+import { selectConnection } from './views/connectionSelection.js';
 
 import {
   configureAiClient
@@ -526,27 +527,7 @@ async function selectStatusConnection(workspace: Workspace): Promise<void> {
 
   if (!picked) return;
 
-  const id = providerId(picked.config);
-
-  if (!connected.has(id)) {
-    await withError(`Connecting to ${picked.config.name}`, async () => {
-      await vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Notification,
-          title: `Connecting to ${picked.config.name}...`
-        },
-        () => workspace.connect(picked.config)
-      );
-    });
-
-    const provider = workspace.getProvider(id);
-
-    if (!provider?.isConnected) {
-      return;
-    }
-  }
-
-  workspace.setSelectedConnection(id);
+  await selectConnection(workspace, picked.config);
 }
 
 /** Surfaces provider failures as messages instead of unhandled rejections. */

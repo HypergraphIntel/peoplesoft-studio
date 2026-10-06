@@ -1,6 +1,6 @@
 import type { Connection, Pool } from 'oracledb';
 import {
-  DefinitionProvider, DefinitionSummary, ProjectSummary, ProviderCapabilities,
+  DefinitionProvider, DefinitionSummary, EnvironmentInfo, ProjectSummary, ProviderCapabilities,
   ProviderError, SearchQuery, UnsupportedOperationError
 } from './provider.js';
 import { DefinitionKey, DefinitionType, isPeopleCode, makeKey } from '../model/definitions.js';
@@ -58,6 +58,7 @@ export class OracleProvider implements DefinitionProvider {
 
   private pool?: Pool;
   private projectItemKeyWidthCache?: number;
+  private environmentCache?: Promise<EnvironmentInfo>;
 
   constructor(private readonly config: OracleConnectionConfig) {
     this.id = `oracle:${config.name}`;
@@ -116,6 +117,27 @@ export class OracleProvider implements DefinitionProvider {
   async dispose(): Promise<void> {
     await this.pool?.close(10);
     this.pool = undefined;
+    this.environmentCache = undefined;
+  }
+
+  /** PSSTATUS is one row that changes only with a PeopleTools upgrade, so it is read once per connection. */
+  readEnvironment(): Promise<EnvironmentInfo> {
+    if (this.environmentCache) return this.environmentCache;
+    const read = this.withConnection(async (c) => {
+      const r = await c.execute<{ TOOLSREL: string; PTPATCHREL: number | null }>(
+        `SELECT TOOLSREL, PTPATCHREL FROM SYSADM.PSSTATUS`);
+      const row = r.rows?.[0];
+      if (!row) throw new ProviderError(`${this.displayName} has no PSSTATUS row.`);
+      return {
+        toolsRelease: String(row.TOOLSREL).trim(),
+        ...(row.PTPATCHREL !== null && row.PTPATCHREL !== undefined
+          ? { patchLevel: Number(row.PTPATCHREL) } : {})
+      };
+    });
+    // A failed read is not cached: the next caller retries.
+    read.catch(() => { if (this.environmentCache === read) this.environmentCache = undefined; });
+    this.environmentCache = read;
+    return read;
   }
 
   private async withConnection<T>(fn: (c: Connection) => Promise<T>): Promise<T> {
