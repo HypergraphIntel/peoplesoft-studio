@@ -33,7 +33,30 @@ export interface ProjectValidation {
   identities: string[];
 }
 
-const ALLOWED_INSTANCES = new Set(['PJM', 'APM', 'PCM']);
+const ALLOWED_INSTANCES = new Set(['PJM', 'APM', 'PCM', 'RDM', 'FIELD']);
+
+/*
+ * Cycle 181: identity-bearing tags inside record (RDM) and field (FIELD)
+ * definitions. Each must be empty or scratch (a parent / related-language
+ * / audit / query-security record, edit tables, default records, set
+ * controls, labels, field names). atmPhysicalRecNameList is a
+ * space-separated list and is checked entry by entry.
+ */
+const DEFINITION_IDENTITY_TAG = /<((?:atm|sz)(?:RecName|FieldName|LabelID|EditTable|EditTableOverride|SetCntrlFld|SqlTableName|DefRecName|DefFieldName|CurCtlFieldName|ParentRecName|RelLangRecName|AuditRecName|QrySecRecName|OptDelRecName|TimeZoneFieldName|RelTmDtFieldName|SystemIDFieldName|RowLevelTimeStampFieldName))>([^<]*)<\//g;
+
+function definitionIdentityViolations(kind: string, block: string): string[] {
+  const out: string[] = [];
+  for (const m of block.matchAll(DEFINITION_IDENTITY_TAG)) {
+    const value = m[2].trim();
+    if (value !== '' && !isScratchName(value)) out.push(`${kind} ${m[1]} ${value} is not scratch`);
+  }
+  for (const list of allTags(block, 'atmPhysicalRecNameList')) {
+    for (const name of list.trim().split(/\s+/).filter(Boolean)) {
+      if (!isScratchName(name)) out.push(`${kind} physical record ${name} is not scratch`);
+    }
+  }
+  return out;
+}
 const tag = (block: string, name: string): string | undefined => {
   const match = new RegExp(`<${name.replace(/\./g, '\\.')}>([^<]*)</${name.replace(/\./g, '\\.')}>`).exec(block);
   return match === null ? undefined : match[1];
@@ -45,14 +68,19 @@ const allTags = (block: string, name: string): string[] =>
  * Validate a generated Application Designer project file before -PJFF.
  *
  * Rejects:
- * - any instance class other than PJM / APM / PCM;
+ * - any instance class other than PJM / APM / PCM / RDM / FIELD;
+ * - (Cycle 181) a record or field definition carrying any non-scratch
+ *   identity (see DEFINITION_IDENTITY_TAG);
  * - a non-scratch project name;
  * - a project item that is not an Application Package (57) or App Package
  *   PeopleCode (58), or whose package root is not scratch;
  * - an APM whose own root, or any listed class or sub-package root, is not
  *   scratch;
- * - a PCM keyed outside the scratch namespace or outside Application Class
- *   PeopleCode (OBJECTID1 104);
+ * - a PCM keyed outside the scratch namespace, or other than Application
+ *   Class PeopleCode (104 ...) or Record Field PeopleCode (1 / 2 / 12) on
+ *   a scratch record and field;
+ * - project items other than 57 / 58 (packages), 0 (record), 2 (field)
+ *   and 8 (Record PeopleCode) on scratch definitions;
  * - ANY compiled payload: a non-empty <peoplecode_blob>, PSPCMNAME rows
  *   (PcmPnt), or a non-zero name count. A blob carries its own identity;
  *   -PJFF writes there.
@@ -84,6 +112,10 @@ export function validateScratchProjectXml(xml: string): ProjectValidation {
           if (!isScratchName(values[1])) violations.push(`package item root ${values[1]} is not scratch`);
         } else if (type === 58) {
           if (!isScratchName(values[0])) violations.push(`package PeopleCode item root ${values[0]} is not scratch`);
+        } else if (type === 0 || type === 2) {
+          if (!isScratchName(values[0])) violations.push(`${type === 0 ? 'record' : 'field'} item ${values[0]} is not scratch`);
+        } else if (type === 8) {
+          if (!isScratchName(values[0]) || !isScratchName(values[1])) violations.push(`Record PeopleCode item ${values[0]}.${values[1]} is not scratch`);
         } else {
           violations.push(`project item type ${type} is not allowed`);
         }
@@ -96,13 +128,23 @@ export function validateScratchProjectXml(xml: string): ProjectValidation {
       for (const value of [...allTags(block, 'ApmClassKey.szPackageRoot'), ...allTags(block, 'ApmDefnKey.szPackageRoot')]) {
         if (!isScratchName(value)) violations.push(`package list root ${value} is not scratch`);
       }
+    } else if (cls === 'RDM' || cls === 'FIELD') {
+      const name = tag(block, cls === 'RDM' ? 'szRecName' : 'szFieldName') ?? '';
+      identities.push(`${cls === 'RDM' ? 'record' : 'field'} ${name}`);
+      if (!isScratchName(name)) violations.push(`${cls === 'RDM' ? 'record' : 'field'} ${name} is not scratch`);
+      violations.push(...definitionIdentityViolations(cls === 'RDM' ? `record ${name}` : `field ${name}`, block));
     } else {
       const root = tag(block, 'szObjectValue_0') ?? '';
       const id0 = Number(tag(block, 'eObjectID_0'));
       const key = [0, 1, 2, 3, 4, 5, 6].map(i => tag(block, `szObjectValue_${i}`) ?? '').filter(Boolean).join('.');
       identities.push(`peoplecode ${key}`);
       if (!isScratchName(root)) violations.push(`PeopleCode key ${key} is not scratch`);
-      if (id0 !== 104) violations.push(`PeopleCode key ${key} is not Application Class PeopleCode`);
+      const recordFieldPeopleCode = id0 === 1 && Number(tag(block, 'eObjectID_1')) === 2 && Number(tag(block, 'eObjectID_2')) === 12;
+      if (recordFieldPeopleCode) {
+        if (!isScratchName(tag(block, 'szObjectValue_1'))) violations.push(`PeopleCode key ${key} field is not scratch`);
+      } else if (id0 !== 104) {
+        violations.push(`PeopleCode key ${key} is neither Application Class nor Record Field PeopleCode`);
+      }
       const blob = /<peoplecode_blob>([\s\S]*?)<\/peoplecode_blob>/.exec(block)?.[1] ?? '';
       if (blob.trim() !== '') violations.push(`PeopleCode ${key} carries a compiled payload`);
       if (/<rowset name="PcmPnt"/.test(block)) violations.push(`PeopleCode ${key} carries PSPCMNAME rows`);
