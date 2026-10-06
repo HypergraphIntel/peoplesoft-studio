@@ -20,12 +20,14 @@
  */
 import { createHash } from 'node:crypto';
 
+import { compilerProfileForToolsRelease, CompilerProfileConflictError, type CompilerProfile, type CompilerProfileId } from '../compilerProfile.js';
 import { decodeProgram } from '../decoder.js';
 import { encodeProgramArtifacts, isBuiltinObjectTypeName, type PeopleCodeReference } from '../encoder.js';
 import { NameTable } from '../progtext.js';
 import {
   createApplicationClassTypeMetadataProvider,
-  type ApplicationClassDefinition
+  type ApplicationClassDefinition,
+  type ApplicationClassTypeMetadataProvider
 } from '../applicationClassTypeMetadata.js';
 import { compareBuffers } from './binaryDiff.js';
 import { sourcesMatch } from './sourceNormalize.js';
@@ -333,10 +335,17 @@ export function checkLabCompile(
   return { ok: reasons.length === 0, reasons };
 }
 
-/** The release `#If #ToolsRel` compares against: major.minor of PSSTATUS.TOOLSREL. */
-export function conditionalReleaseOf(toolsRelease: string): string | undefined {
-  const match = /^(\d+\.\d+)/.exec(toolsRelease.trim());
-  return match === null ? undefined : match[1];
+/**
+ * Cycle 184: the compiler profile a capture is encoded under -- selected by
+ * the capture's own PSSTATUS.TOOLSREL through the explicit profile table
+ * (compilerProfile.ts), with the capture's metadata universe. An
+ * unsupported release throws; nothing falls back to PT861.
+ */
+export function compilerProfileOfCapture(lab: ControlledCompileResults['lab'], metadata: ApplicationClassTypeMetadataProvider): CompilerProfile {
+  return compilerProfileForToolsRelease(lab.toolsRelease, {
+    applicationClassTypeMetadata: metadata,
+    ...(lab.patch !== undefined ? { patchLevel: lab.patch } : {})
+  });
 }
 
 /** Application Class path of an App Class key: the values before `OnExecute`. */
@@ -416,8 +425,12 @@ function verdict(spec: ExperimentObservation, observed: readonly string[], predi
 }
 
 export interface CompareOptions {
-  /** Overrides the conditional-compilation release derived from `lab.toolsRelease`. */
-  conditionalRelease?: string;
+  /**
+   * Cycle 184: an expected profile id. The capture's own release selects the
+   * profile; a different expectation is a release / profile mismatch and
+   * throws. (Replaces the old `conditionalRelease` override.)
+   */
+  expectedProfileId?: CompilerProfileId;
 }
 
 export function compareControlledCompile(
@@ -448,7 +461,10 @@ export function compareControlledCompile(
     }
   }
   const metadata = createApplicationClassTypeMetadataProvider(classSources.values(), { isBuiltinType: isBuiltinObjectTypeName });
-  const release = options.conditionalRelease ?? conditionalReleaseOf(results.lab.toolsRelease);
+  const profile = compilerProfileOfCapture(results.lab, metadata);
+  if (options.expectedProfileId !== undefined && options.expectedProfileId !== profile.id) {
+    throw new CompilerProfileConflictError(`The capture is PeopleTools ${results.lab.toolsRelease} (${profile.id}), not ${options.expectedProfileId}.`);
+  }
 
   const definitions = results.definitions.map((definition): DefinitionComparison => {
     const experiment = experimentOf(definition);
@@ -500,8 +516,7 @@ export function compareControlledCompile(
       const artifacts = encodeProgramArtifacts(definition.source, {
         owner,
         applicationClassDefinition: applicationClass,
-        applicationClassTypeMetadata: metadata,
-        ...(release !== undefined ? { conditionalCompilation: { toolsRelease: release } } : {}),
+        profile,
         onExternalMetadataFallback: () => { fallback = true; }
       });
       generated = [...artifacts.references].sort((a, b) => a.sequence - b.sequence).map(generatedReferenceKey);
@@ -611,15 +626,14 @@ export function synthesizeResults(
     if (isApplicationClassKey(definition.key)) classes.push({ path: applicationClassPath(definition.key), source: definition.source });
   }
   const metadata = createApplicationClassTypeMetadataProvider(classes, { isBuiltinType: isBuiltinObjectTypeName });
-  const release = conditionalReleaseOf(lab.toolsRelease);
+  const profile = compilerProfileOfCapture(lab, metadata);
   const synthesize = (key: ControlledCompileKey, source: string, experimentId?: string): ControlledCompileDefinition | undefined => {
     let artifacts: ReturnType<typeof encodeProgramArtifacts>;
     try {
       artifacts = encodeProgramArtifacts(source, {
         owner: ownerOfKey(key),
         applicationClassDefinition: isApplicationClassKey(key),
-        applicationClassTypeMetadata: metadata,
-        ...(release !== undefined ? { conditionalCompilation: { toolsRelease: release } } : {})
+        profile
       });
     } catch {
       return undefined; /* the encoder has no prediction; the comparison reports the experiment missing */

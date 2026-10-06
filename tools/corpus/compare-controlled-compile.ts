@@ -80,8 +80,13 @@ function main(): void {
     console.error('usage: compare-controlled-compile.ts --results <lab.json> [--experiments <pack.json>] [--json <out>] [--verbose] | --predict');
     process.exit(2);
   }
-  const release = argument('--release');
-  const report = compareControlledCompile(results, pack, release !== undefined ? { conditionalRelease: release } : {});
+  // Cycle 184: a capture's release is its own (lab.toolsRelease -> compiler
+  // profile); --release only sets the synthetic lab of --predict.
+  if (resultsPath !== undefined && argument('--release') !== undefined) {
+    console.error('--release applies to --predict only; a capture is compared under the profile of its own PSSTATUS release.');
+    process.exit(2);
+  }
+  const report = compareControlledCompile(results, pack);
   const out = argument('--json');
   if (out !== undefined) fs.writeFileSync(out, `${JSON.stringify(report, null, 2)}\n`);
   print(report, flag('--verbose'));
