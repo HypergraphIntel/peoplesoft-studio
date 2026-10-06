@@ -13,6 +13,8 @@ run_full_inventory.sh
 
 # Scratch / research artifacts
 *.patch
+AUDIT_REPORT.md
+863_MCP_SUPPORT.md
 one
 two
 44
@@ -25,8 +27,14 @@ src/**
 test/**
 tests/**
 coverage/**
-*.map
+dist-test/**
+**/*.map
 tsconfig.json
+esbuild.mjs
+
+# Packaged or unpacked extensions (a VSIX must not carry an earlier one)
+*.vsix
+peoplesoft-studio/**
 
 # Git / editor metadata
 .git/**
@@ -35,6 +43,15 @@ tsconfig.json
 
 # Documentation not needed in VSIX
 docs/**
+
+# Dependencies esbuild bundles into dist/extension.js. Only oracledb is
+# loaded from node_modules at runtime (import("oracledb")); vscode is the
+# host. Listed explicitly: a negation would override the oracledb trimming
+# below, and a dependency added later ships by default (safe, only larger).
+node_modules/@modelcontextprotocol/**
+node_modules/zod/**
+node_modules/hono/**
+node_modules/@hono/**
 
 # OracleDB non-runtime material
 node_modules/oracledb/examples/**
