@@ -80,7 +80,26 @@ single-row matches, which multi-row reading holds, non-ASCII and empty
 programs, and mismatch samples. `--database` is required and must equal the
 connected DB_NAME; protected institutional databases are refused.
 
-**Next.** Run the scan on HRDMO. Then the controlled native-save
+**HRDMO scan (read-only, every PSPCMTXT row): zero mismatches.**
+
+| | Programs | Match |
+|---|---|---|
+| Single-row | 111,499 | 111,499 |
+| Multi-row, whole-text digest on every row | 3,291 | 3,291 |
+| Multi-row, per-row digest | 3,291 | 0 |
+| Non-ASCII source | 470 | 470 |
+| Empty program | 1 | 1 |
+| **All** | **114,790** | **114,790** |
+
+- A multi-row program carries one signature, repeated on every row,
+  over the whole concatenated text. It is never per-row.
+- Non-ASCII source is hashed as its UTF-16 text.
+- Evidence: `tools/corpus/source-signature/results/HRDMO-2026-10-06.json`.
+
+The signature algorithm is established. Writing it stays gated on the rest
+of the save transaction.
+
+**Next.** The controlled native-save
 experiments (create, unchanged re-save, A->B->A, comment-only,
 literal-only, reference change, compile failure, empty program, App Class,
 ordinary PeopleCode), each bracketed by a whole-database before / after

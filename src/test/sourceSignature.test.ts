@@ -35,3 +35,18 @@ test('the text is hashed exactly as stored', () => {
   // 20-byte SHA-1 plus a NUL: 28 base64 characters, always ending in "A".
   assert.match(predictSourceSignature(''), /^[A-Za-z0-9+/]{27}A$/);
 });
+
+test('a multi-row program is signed over its whole text', () => {
+  // HRDMO: all 3,291 multi-row programs repeat the whole-text signature on
+  // every row; none is signed per row. The caller concatenates PCTEXT in
+  // PROGSEQ order and passes the result.
+  const rows = ['Local string &a = "one";\n', 'Local string &b = "two";\n'];
+  assert.equal(predictSourceSignature(rows.join('')), predictSourceSignature(rows[0] + rows[1]));
+  assert.notEqual(predictSourceSignature(rows.join('')), predictSourceSignature(rows[0]));
+});
+
+test('non-ASCII source is hashed as UTF-16 text', () => {
+  // Characters outside ASCII contribute their UTF-16 code units, not UTF-8 bytes.
+  assert.notEqual(predictSourceSignature('&s = "é";\n'), predictSourceSignature('&s = "e";\n'));
+  assert.equal(predictSourceSignature('&s = "é";\n').length, 28);
+});
