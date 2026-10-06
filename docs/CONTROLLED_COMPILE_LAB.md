@@ -46,6 +46,62 @@ If `-PJFF` does not make `-CMPPRJPC` recompile from the imported text:
 
 PSPCMPROG is never fabricated.
 
+## Cycle 181: G matrix on native Windows 8.62.09 (release-scoped)
+
+**Setup.**
+- `build-scratch-project.ts --family 10860/15598` generated project
+  `ZZ_PCODE_LAB_G` from the PATCH862 export templates:
+  - derived / work records `ZZ_PCODE_LAB` (C01-C07), `ZZ_PCODE_LAB_P`
+    (KEY) and `ZZ_PCODE_LAB_T` (KEY, VAL);
+  - nine Character fields;
+  - seven payload-free Record PeopleCode shells
+    (`ZZ_PCODE_LAB.ZZ_PCODE_LAB_C0n.FieldFormula`).
+- One guarded `-PJFF` under Wine 8.62.09 imported it. It needs
+  `PSLAB_ORACLE_CLIENT` pointing at the 64-bit client in `pt86115/` (a
+  first try without it failed sign-on, "Missing or invalid version of SQL
+  library PSORA64", and wrote nothing).
+- Audit: NON_SCRATCH_CHANGED = 0. PSRECDEFN / PSRECFIELD / PSDBFIELD /
+  PSDBFLDLABL verified by SELECT; 7 stub programs (37 bytes), no PSPCMTXT.
+- The user saved G1-G7 in App Designer 8.62.09 on `ps-win-client`.
+  Audit: NON_SCRATCH_CHANGED = 0 (21 scratch changes: PSPCMTXT /
+  PSPCMNAME added and PSPCMPROG replaced for the 7 programs). The 17 H /
+  SMOKE definitions were byte-identical to `H-matrix.json`.
+- Evidence: `results/8.62.09/G-matrix.json`.
+
+**Result.**
+
+| Case | Variation | Stored member form | Encoder |
+|---|---|---|---|
+| G1 | 10860 replica: `Local Rowset &r2` in LoadFilter only; CallLink reads `&r2...VAL` | ref, then **inline** in CallLink | DISAGREES (ref) |
+| G2 | G1 plus `Local Rowset &r2` in CallLink | ref, ref | EXACT |
+| G3 | control: no typed read in LoadFilter | inline | EXACT |
+| G4 | `&r2` Global | ref, ref | EXACT |
+| G5 | 15598 replica: `Local Row &xrow` in Function Prepare only; top level reads `&xrow...VAL` | ref, then **inline** at top level | DISAGREES (ref) |
+| G6 | G5 plus top-level `Local Row &xrow` | ref, ref | EXACT |
+| G7 | control: no typed read in Prepare | inline | EXACT |
+
+- DECLARING_UNIT_SCOPE is the only model with no refutation. A `Local`
+  declared in one Function body types the variable in that unit only; in
+  another unit the same name is an undeclared (untyped) variable, and a
+  member read on it is compiled inline (0x0A), not as a reference.
+- TYPED_EVERYWHERE / PROGRAM_WIDE_DECLARATION (refuted by G1 G3 G5 G7)
+  and EARLIER_ROW_REUSE (refuted by G1 G5) are rejected.
+- Both replicas reproduce HCDEV: G1 is 10860's shape and G5 is 15598's.
+- Release policy is unchanged: 10860 / 15598 stay
+  NEEDS_CONTROLLED_COMPILE_86115. No encoder change was made; an HCDEV
+  trial of a declaring-unit rule needs the same authorization as 30124.
+
+**Wine comparison: `-CMPPRJPC` does not save current programs.**
+- Wine 8.62.09 `-CMPPRJPC ZZ_PCODE_LAB` (SmokeTest) logged "Compile
+  Project PeopleCode completed successfully" with no error lines.
+- The audit found zero scratch changes, including PSPCMPROG
+  LASTUPDDTTM. ORA_ROWSCN on the SmokeTest PSPCMPROG / PSPCMNAME /
+  PSPCMTXT rows still maps to the user's save (22:32:59), not the
+  compile (23:31).
+- So in 8.62.09, `-CMPPRJPC` compiles and checks a current program
+  without writing it. A headless recompile of programs already saved on
+  native Windows produces no Wine bytes to compare.
+
 ## Cycle 181: 30124 rule trial (authorized) -- accepted
 
 **Rule.** In an Application Class program, a Local initialized with

@@ -20,8 +20,27 @@
     ps-win-client against home-lab HRDMO; the user saves in the GUI,
     and the tooling audits, captures and compares. SMOKE /
     determinism / A->B->A / H matrix are done.
-  - Next: G records / fields generator, G1-G7, then the Wine comparison.
-  - 30124, 10860 and 15598 remain NEEDS_CONTROLLED_COMPILE.
+  - G bootstrap done (commits bb26576 pack rename, 743c288 generator):
+    build-scratch-project.ts --family 10860/15598 -> project
+    ZZ_PCODE_LAB_G (3 derived records, 9 Character fields, 7 Record
+    PeopleCode shells). One guarded -PJFF (Wine 8.62.09; needs
+    PSLAB_ORACLE_CLIENT=~/peoplesoft-lab/pt86115/oracle_client -- the
+    first try without it failed to sign on and wrote nothing):
+    NON_SCRATCH_CHANGED = 0; PSRECDEFN / PSRECFIELD / PSDBFIELD /
+    PSDBFLDLABL verified; 7 stub PSPCMPROG (37 bytes), no PSPCMTXT.
+  - G1-G7 saved by the user on native Windows 8.62.09; audit
+    NON_SCRATCH_CHANGED = 0; results/8.62.09/G-matrix.json. Only
+    DECLARING_UNIT_SCOPE survives; G1 / G5 (the 10860 / 15598 replicas)
+    reproduce HCDEV (inline member read on a root declared Local only in
+    another unit); the encoder disagrees on G1 / G5 only.
+  - Wine: 8.62.09 -CMPPRJPC compiles but does not save a current program
+    (audit and ORA_ROWSCN unchanged), so it yields no Wine bytes for
+    already-saved programs.
+  - Next action: user decisions -- (1) authorize an HCDEV trial of the
+    declaring-unit rule for 10860 / 15598 (as for 30124); (2) how to get
+    Wine bytes (GUI save under Wine, or another write path).
+  - 30124 is 8.61.15 confirmation pending; 10860 and 15598 remain
+    NEEDS_CONTROLLED_COMPILE_86115.
   - Cycle 176 recheck: no database, Oracle image, registry login,
     listener on 1521 or new seed artifact. Stopped at the database
     blocker without re-searching the old media.
@@ -111,46 +130,33 @@
       - Not applied to the 8.61.15 encoder.
     - Next: the user decides on the 8.61 handling; the G matrix needs
       scratch records first.
-- **Last successful calibration:** Cycle 171. Cycles 172-176 made no
-  semantic change.
-  - Cycle 175 was authorized. It staged and verified the 8.61.15 media,
-    ran the exact compiler headless under Wine, and built the unattended
-    harness (docs/CONTROLLED_COMPILE_LAB.md, "Unattended harness").
-  - No compile ran: no PeopleSoft database seed exists on any reachable
-    media.
+- **Last successful calibration:** Cycle 181 -- 30124 EXACT (declared
+  class row opened before a different-class create, Application Class
+  programs only); full HCDEV corpus 30,131 -> 30,132, regressed 0,
+  protected 430/430 (commit 3b5c36e).
 - **Protected baseline:** 430/430.
 - **Snapshot requirement:** the captured App Class metadata (3,178
   classes) must be imported; check `npx tsx
   tools/corpus/capture-appclass-metadata.ts --check-manifest
   tools/corpus/appclass-metadata/manifest.txt`.
-- **Locally blocked (NEEDS_CONTROLLED_COMPILE):** 30124 (wildcard
-  import of its own package; `Local A &x = create B()` stores A's row
-  first, the encoder opens only B there), 10860 / 15598 (a member read on
-  a root declared `Local` only in another unit -- 10860's `Call_Link`,
-  15598's top-level code: stored 0x0A inline, encoder 0x4A reference).
+- **Locally blocked (NEEDS_CONTROLLED_COMPILE_86115):** 10860 / 15598 (a
+  member read on a root declared `Local` only in another unit -- 10860's
+  `Call_Link`, 15598's top-level code: stored 0x0A inline, encoder 0x4A
+  reference). 30124 is EXACT but tagged 8.61.15 confirmation pending.
   Experiment pack tools/corpus/controlled-compile/experiments.json;
   docs/CONTROLLED_COMPILE_LAB.md.
-- **Next action (Cycle 177):** the next milestone is ONE controlled
-  SMOKE compile end to end, plus Wine-vs-Windows byte identity, before
-  any H / G run. First obtain a PeopleSoft database:
-  - an Oracle HCM PUM DPK via My Oracle Support (includes Oracle 19c and
-    a full database; patch it to 8.61.15); or
-  - a DBA-provided disposable 8.61.15 database.
-
-  If the seed is an export rather than a DPK, the user also runs
-  `docker login container-registry.oracle.com`. Then:
-  1. bootstrap ZZ_PCODE_LAB once (`load-experiment.ts --materialize`);
-  2. export it with `run-compiler.ts --copy-to-file` as the pristine
-     project;
-  3. run `npm run controlled-compile -- --pristine <dir> --out <dir>
-     --all`.
+- **Next action (Cycle 181):** G matrix done (G-matrix.json; only
+  DECLARING_UNIT_SCOPE survives; encoder misses G1 / G5). Awaiting the
+  user's decision on an HCDEV trial of the declaring-unit rule for 10860 /
+  15598, and on the Wine write path (-CMPPRJPC does not save current
+  programs).
 
   Standing rules:
   - README.md has unrelated user edits: never stage it.
   - Never touch stash@{0} / stash@{1}.
   - Run `npm test` on its own, check the exit code, then commit
     separately.
-- **Newly established rules this session:** Cycles 175 / 174 / 173 / 172: none (no compiler semantics)
+- **Newly established rules this session:** Cycle 181: in an Application Class program, `Local A &x = create B(...)` (B a different class, wildcard import) opens A's PACKAGE row before B's (8.62.09 H matrix; HCDEV 30124). Cycles 175 / 174 / 173 / 172: none (no compiler semantics)
   (research and tooling only); Cycle 171: the
   blank-line rule after a Function header applies after `Returns <App
   Class>` too (whitespace measured from the end of the type); an

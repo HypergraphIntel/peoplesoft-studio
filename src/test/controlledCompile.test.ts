@@ -130,3 +130,14 @@ test('the encoder\'s own prediction reproduces the 30124 replica (Cycle 181) but
 test('an unknown results format is refused', () => {
   assert.throws(() => compareControlledCompile({ format: 'other' } as unknown as ControlledCompileResults, pack), /Unsupported results format/);
 });
+
+test('8.62.09 G matrix (Cycle 181): declaring-unit scope is the only surviving model; the encoder misses the G1 / G5 replicas', () => {
+  const results = JSON.parse(readFileSync(resolve(__dirname, '../../tools/corpus/controlled-compile/results/8.62.09/G-matrix.json'), 'utf8')) as ControlledCompileResults;
+  const report = compareControlledCompile(results, pack);
+  const g = report.families.find(f => f.family === '10860/15598')!;
+  assert.deepEqual(g.replicasNotReproduced, []);
+  assert.deepEqual(g.candidates, ['DECLARING_UNIT_SCOPE']);
+  assert.deepEqual(g.encoderDisagrees, ['G1', 'G5']);
+  const exact = report.definitions.filter(d => d.encode.bytes?.exact === true && d.encode.referencesExact === true).map(d => d.experimentId);
+  assert.deepEqual(exact, ['G2', 'G3', 'G4', 'G6', 'G7']);
+});
