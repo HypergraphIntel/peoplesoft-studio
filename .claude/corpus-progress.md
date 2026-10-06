@@ -2,6 +2,13 @@
 
 ## PeopleTools 8.62 compatibility track (branch research/pt862-compat)
 
+> **Status (provisional).** The PT 8.62 compatibility target is
+> **30,067 / 30,067** for the HCDEV definitions that also exist in HRDMO
+> (encoder vs PeopleTools 8.62.09, PSPCMPROG and PSPCMNAME). The earlier
+> figure 30,061 / 30,067 predates the H2 fix, the header-parser fix and the
+> corrected comparison context (lab release + lab class metadata). No count
+> is final until the corrected `compare-delivered.ts --all` run completes.
+
 Separate from the closed HCDEV frontier: 8.62 differences never reopen it.
 Backlog: H2 (first), 4601 / 4602 / 18249 / 18256 (same source, 8.62
 compiles differently), 23497 (newer revision), 28943 (newer revision +
