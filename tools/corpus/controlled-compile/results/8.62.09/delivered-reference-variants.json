@@ -1,0 +1,310 @@
+{
+  "format": "pcode-lab-delivered-comparison/1",
+  "labRelease": "8.62.9",
+  "capturedAt": "2026-10-06T05:47:50.748Z",
+  "summary": {
+    "definitions": 6,
+    "presentInLab": 6,
+    "encoderLabSourceVsLabStored": {
+      "exact": 6,
+      "notExact": []
+    },
+    "sameSource": {
+      "count": 3,
+      "hcdevStoredEqualsLabStored": 0,
+      "hcdevStoredDiffersFromLabStored": [
+        29797,
+        29883,
+        30192
+      ],
+      "encoderEqualsLabStored": 3,
+      "encoderDiffersFromLabStored": []
+    },
+    "recoveredSourceEqualsLabSource": {
+      "count": 1,
+      "ids": [
+        6275
+      ],
+      "mismatched": []
+    }
+  },
+  "results": [
+    {
+      "definitionId": 29797,
+      "displayName": "104=PRCS_GENERIC, 107=PRCS_GENERICHelper, 12=OnExecute, 0= , 0= , 0= , 0= ",
+      "lab": {
+        "lastUpdated": "2026-05-08 06:27:00",
+        "lastUpdatedBy": "PPLSOFT",
+        "programBytes": 123392,
+        "programSha256": "a6b436205d8734bc2c3fe3826e3e19583cef13ed28dd89bc52fc76bb108da029",
+        "sourceSha256": "27f679a7ca63e97225b5ae3843a94fe3a8741db820e19f92413b1483deb70b17",
+        "nameRows": 54
+      },
+      "hcdev": {
+        "programBytes": 123392,
+        "programSha256": "8d8f390c11531db5975302bedfd9a19084ef5f90b71a1b081097248d7311f834",
+        "sourceSha256": "27f679a7ca63e97225b5ae3843a94fe3a8741db820e19f92413b1483deb70b17",
+        "nameRows": 191
+      },
+      "sameSource": true,
+      "hcdevStoredVsLabStored": {
+        "bytesExact": false,
+        "firstByteDifference": 22599,
+        "namesExact": false,
+        "nameRows": [
+          191,
+          54
+        ]
+      },
+      "encoderLabSourceVsLabStored": {
+        "bytesExact": true,
+        "firstByteDifference": null,
+        "namesExact": true,
+        "nameRows": [
+          54,
+          54
+        ]
+      },
+      "encoderHcdevSourceVsHcdevStored": {
+        "bytesExact": false,
+        "firstByteDifference": 22599,
+        "namesExact": false,
+        "nameRows": [
+          54,
+          191
+        ]
+      }
+    },
+    {
+      "definitionId": 29883,
+      "displayName": "104=PSXP_SERVICEMGR, 107=RunReport, 12=OnExecute, 0= , 0= , 0= , 0= ",
+      "lab": {
+        "lastUpdated": "2026-05-08 06:27:04",
+        "lastUpdatedBy": "PPLSOFT",
+        "programBytes": 35460,
+        "programSha256": "9b40487599674b39fb147ed109317147226d5bf4215872061f13c0d675045792",
+        "sourceSha256": "87beee4826b5fd283a11d144741454a009e1b5a763e0d5f3090e6af99021a574",
+        "nameRows": 18
+      },
+      "hcdev": {
+        "programBytes": 35460,
+        "programSha256": "edc200c1553e916c4386fbfef7a1893a28fce9b358a48c1cca4e16012db04778",
+        "sourceSha256": "87beee4826b5fd283a11d144741454a009e1b5a763e0d5f3090e6af99021a574",
+        "nameRows": 48
+      },
+      "sameSource": true,
+      "hcdevStoredVsLabStored": {
+        "bytesExact": false,
+        "firstByteDifference": 3885,
+        "namesExact": false,
+        "nameRows": [
+          48,
+          18
+        ]
+      },
+      "encoderLabSourceVsLabStored": {
+        "bytesExact": true,
+        "firstByteDifference": null,
+        "namesExact": true,
+        "nameRows": [
+          18,
+          18
+        ]
+      },
+      "encoderHcdevSourceVsHcdevStored": {
+        "bytesExact": false,
+        "firstByteDifference": 3885,
+        "namesExact": false,
+        "nameRows": [
+          18,
+          48
+        ]
+      }
+    },
+    {
+      "definitionId": 30170,
+      "displayName": "104=PTAI_ACTION_ITEMS, 107=ActionItem, 12=OnExecute, 0= , 0= , 0= , 0= ",
+      "lab": {
+        "lastUpdated": "2026-05-08 06:27:23",
+        "lastUpdatedBy": "PPLSOFT",
+        "programBytes": 186702,
+        "programSha256": "3da06c32d37fdb58659fce6888aa0ef99d924ccf68b6bf76f5da550bb421199b",
+        "sourceSha256": "168c2c26df7265eef39520e6077ffb3ee5fb698f42f386f0bf6b4436144c542d",
+        "nameRows": 183
+      },
+      "hcdev": {
+        "programBytes": 186792,
+        "programSha256": "ae26cf52af3e208674a747bc3b950bb1ec8c3c5853d806e91ac94703632005da",
+        "sourceSha256": "2ee437a407c55043438d18b3bba8e66742915382698e9061a110732a4300da4e",
+        "nameRows": 543
+      },
+      "sameSource": false,
+      "hcdevStoredVsLabStored": {
+        "bytesExact": false,
+        "firstByteDifference": 5,
+        "namesExact": false,
+        "nameRows": [
+          543,
+          183
+        ]
+      },
+      "encoderLabSourceVsLabStored": {
+        "bytesExact": true,
+        "firstByteDifference": null,
+        "namesExact": true,
+        "nameRows": [
+          183,
+          183
+        ]
+      },
+      "encoderHcdevSourceVsHcdevStored": {
+        "bytesExact": false,
+        "firstByteDifference": 12226,
+        "namesExact": false,
+        "nameRows": [
+          183,
+          543
+        ]
+      }
+    },
+    {
+      "definitionId": 30179,
+      "displayName": "104=PTAI_ACTION_ITEMS, 107=List, 12=OnExecute, 0= , 0= , 0= , 0= ",
+      "lab": {
+        "lastUpdated": "2026-05-08 06:27:24",
+        "lastUpdatedBy": "PPLSOFT",
+        "programBytes": 145617,
+        "programSha256": "4340179bf909469b706b1f0ef198508050d8d4324a8d0e7062291aa85141a775",
+        "sourceSha256": "0eccb37aeec9e3f017e58934963b334fd3180bc16c074bb3f8273cbccdcc7413",
+        "nameRows": 161
+      },
+      "hcdev": {
+        "programBytes": 144737,
+        "programSha256": "f22afef2661df632d64b96c23c2184efda1c8b905adb3224467658080f1522c8",
+        "sourceSha256": "68691d20e8cffe5311044ed5a4cf68b0a439bc44e92d5f94c8917ec4f7111b73",
+        "nameRows": 533
+      },
+      "sameSource": false,
+      "hcdevStoredVsLabStored": {
+        "bytesExact": false,
+        "firstByteDifference": 5,
+        "namesExact": false,
+        "nameRows": [
+          533,
+          161
+        ]
+      },
+      "encoderLabSourceVsLabStored": {
+        "bytesExact": true,
+        "firstByteDifference": null,
+        "namesExact": true,
+        "nameRows": [
+          161,
+          161
+        ]
+      },
+      "encoderHcdevSourceVsHcdevStored": {
+        "bytesExact": false,
+        "firstByteDifference": 9866,
+        "namesExact": false,
+        "nameRows": [
+          160,
+          533
+        ]
+      }
+    },
+    {
+      "definitionId": 30192,
+      "displayName": "104=PTAI_UTILITIES, 107=AWEUtilities, 12=OnExecute, 0= , 0= , 0= , 0= ",
+      "lab": {
+        "lastUpdated": "2026-05-08 06:27:24",
+        "lastUpdatedBy": "PPLSOFT",
+        "programBytes": 5092,
+        "programSha256": "877f25b9b8662a7a43e306a1990562af8bfea7f1a59fb9fc6322a6706dbb0c73",
+        "sourceSha256": "240342ce2bfd298ef3fa01893281db94cd23ff9c0105983e3a908fba41dc6548",
+        "nameRows": 4
+      },
+      "hcdev": {
+        "programBytes": 5092,
+        "programSha256": "877f25b9b8662a7a43e306a1990562af8bfea7f1a59fb9fc6322a6706dbb0c73",
+        "sourceSha256": "240342ce2bfd298ef3fa01893281db94cd23ff9c0105983e3a908fba41dc6548",
+        "nameRows": 9
+      },
+      "sameSource": true,
+      "hcdevStoredVsLabStored": {
+        "bytesExact": true,
+        "firstByteDifference": null,
+        "namesExact": false,
+        "nameRows": [
+          9,
+          4
+        ]
+      },
+      "encoderLabSourceVsLabStored": {
+        "bytesExact": true,
+        "firstByteDifference": null,
+        "namesExact": true,
+        "nameRows": [
+          4,
+          4
+        ]
+      },
+      "encoderHcdevSourceVsHcdevStored": {
+        "bytesExact": true,
+        "firstByteDifference": null,
+        "namesExact": false,
+        "nameRows": [
+          4,
+          9
+        ]
+      }
+    },
+    {
+      "definitionId": 6275,
+      "displayName": "1=DERIVED_HR_SP, 2=FIRST_ITM_BUTTON, 12=FieldFormula, 0= , 0= , 0= , 0= ",
+      "lab": {
+        "lastUpdated": "2026-05-08 04:57:08",
+        "lastUpdatedBy": "PPLSOFT",
+        "programBytes": 29998,
+        "programSha256": "3037aba828c7c578b87e980d95c97ca117c15212660016a5f0acf6c60cd1aec8",
+        "sourceSha256": "86bdf525f211a5edd79e61332ef444194f86225682bbcb5d9771033a7dfeeab2",
+        "nameRows": 100
+      },
+      "hcdev": {
+        "programBytes": 29998,
+        "programSha256": "3037aba828c7c578b87e980d95c97ca117c15212660016a5f0acf6c60cd1aec8",
+        "sourceSha256": "2ac580d4f88496930f1952a6eae4d48c438e2195d3b83a35f210157494a8a1ce",
+        "nameRows": 100
+      },
+      "sameSource": false,
+      "recoveredSourceMatchesLabSource": true,
+      "hcdevStoredVsLabStored": {
+        "bytesExact": true,
+        "firstByteDifference": null,
+        "namesExact": true,
+        "nameRows": [
+          100,
+          100
+        ]
+      },
+      "encoderLabSourceVsLabStored": {
+        "bytesExact": true,
+        "firstByteDifference": null,
+        "namesExact": true,
+        "nameRows": [
+          100,
+          100
+        ]
+      },
+      "encoderHcdevSourceVsHcdevStored": {
+        "bytesExact": false,
+        "firstByteDifference": 16740,
+        "namesExact": true,
+        "nameRows": [
+          100,
+          100
+        ]
+      }
+    }
+  ]
+}
