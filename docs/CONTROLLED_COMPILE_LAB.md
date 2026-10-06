@@ -46,6 +46,50 @@ If `-PJFF` does not make `-CMPPRJPC` recompile from the imported text:
 
 PSPCMPROG is never fabricated.
 
+## Cycle 180: first controlled compile -- SMOKE on native Windows 8.62.09
+
+**Compiler.**
+- App Designer 8.62.09 (PT862P09C_2604092319) on native Windows 11
+  `ps-win-client`, installed side by side at `C:\psoft\pt-pshome8.62.09`.
+- pside `4f754ce3...`, pspcm `4e32443e...` and pssys `3d695436...` match
+  the profile; the existing 8.62.03 client is untouched.
+- Two-tier to HRDMO (8.62 patch 9) through a lab-only TNS file
+  (`C:\pclab\tns`).
+
+**How the source was saved.** The user opened
+`ZZ_PCODE_LAB.SUPPORT.SmokeTest.OnExecute`, pasted the SMOKE source and
+saved. PeopleTools itself wrote PSPCMTXT (with its HASH_SIGNATURE),
+PSPCMPROG and PSPCMNAME. Building GUI automation was stopped by a safety
+classifier and has not been pursued.
+
+**Audit** (last pre-save snapshot -> post-save snapshot):
+- NON_SCRATCH_CHANGED = 0;
+- APPS_RLR:Utilities unchanged;
+- scratch: +PSPCMTXT, +PSPCMNAME, ~PSPCMPROG (the 37-byte stub
+  replaced), all under `ZZ_PCODE_LAB.SUPPORT.SmokeTest.OnExecute`;
+- PSVERSION PCM 23->24, SYS 1226->1227.
+
+**Capture** (`tools/corpus/controlled-compile/results/8.62.09/SMOKE.json`):
+- PSPCMPROG: 252 bytes, sha256 `fd60e9ff...`;
+- PSPCMNAME: 1 row (the blank owner row), canonical sha256 `bacf4052...`;
+- source: sha256 `df689491...`. It is the canonical SMOKE text plus one
+  trailing blank line (canonical sha256 `bb33f018...`);
+- compiled at 2026-10-05 21:48:40 (database clock).
+
+**Checks.**
+- checkLabCompile: ok. The source matches, the program decodes to it,
+  it differs from the stub sentinel, and it was compiled after the
+  baseline.
+- compare-controlled-compile: **encoder EXACT**, bytes and references.
+  Decode OK; the source matches.
+
+**Status.** One controlled 8.62.09 compile, end to end, with the
+encoder exact. Still open:
+- a repeat SMOKE save (determinism);
+- an A->B->A replacement;
+- Wine-vs-Windows equality;
+- a way to save the H / G sources without our GUI automation.
+
 ## Cycle 180: HASH_SIGNATURE research halted; GUI automation chosen
 
 - In the 8.62.09 client, `PcmSavePeopleCodeText` (pssys.dll, called by
