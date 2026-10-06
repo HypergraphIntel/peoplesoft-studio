@@ -8,7 +8,7 @@
  * real editor behaviour belongs in a manual test pass instead.
  */
 
-import { URI } from 'vscode-uri';
+import { URI, Utils } from 'vscode-uri';
 
 export function createStub() {
   const registered = {
@@ -16,6 +16,7 @@ export function createStub() {
     treeViews: new Set(),
     fileSystems: new Set(),
     customEditors: new Set(),
+    webviewSerializers: new Set(),
     disposables: []
   };
 
@@ -47,6 +48,7 @@ export function createStub() {
   // the authority, not re-encoding its slashes -- which once let a broken URI
   // encoding pass the smoke test and fail in the editor.
   const Uri = URI;
+  if (!Uri.joinPath) Uri.joinPath = Utils.joinPath;
 
   class TreeItem {
     constructor(label, collapsibleState) {
@@ -115,6 +117,7 @@ export function createStub() {
     TreeItemCollapsibleState: { None: 0, Collapsed: 1, Expanded: 2 },
     ConfigurationTarget: { Global: 1, Workspace: 2, WorkspaceFolder: 3 },
     ProgressLocation: { SourceControl: 1, Window: 10, Notification: 15 },
+    ViewColumn: { Active: -1, Beside: -2, One: 1 },
 
     CompletionItemKind: {
       Text: 0,
@@ -171,20 +174,64 @@ export function createStub() {
       Right: 2,
     },
     window: {
+      // Settable by a smoke test: the editor the status bar describes.
+      activeTextEditor: undefined,
       onDidChangeActiveTextEditor() {
         return {
           dispose() {},
         };
       },
       createStatusBarItem() {
-        return {
+        const item = {
           text: '',
           tooltip: '',
           command: undefined,
-          show() {},
-          hide() {},
+          visible: false,
+          show() { this.visible = true; },
+          hide() { this.visible = false; },
           dispose() {},
         };
+        vscode._statusBarItems.push(item);
+        return item;
+      },
+      // A webview panel whose page is played by the smoke test: messages the
+      // extension posts are recorded, and `_receive` delivers one from the page.
+      createWebviewPanel(viewType, title, _column, options) {
+        const received = new EventEmitter();
+        const disposed = new EventEmitter();
+        const panel = {
+          viewType, title, options,
+          visible: true,
+          webview: {
+            html: '',
+            options,
+            cspSource: 'vscode-webview://stub',
+            posted: [],
+            asWebviewUri: (uri) => uri,
+            postMessage: async (message) => {
+              // Round-trip through JSON, as the real boundary does.
+              panel.webview.posted.push(JSON.parse(JSON.stringify(message)));
+              return true;
+            },
+            onDidReceiveMessage: received.event
+          },
+          onDidDispose: disposed.event,
+          onDidChangeViewState: () => new Disposable(() => {}),
+          reveal() { vscode._revealed.push(viewType); },
+          dispose() {
+            if (panel.disposed) return;
+            panel.disposed = true;
+            disposed.fire();
+          },
+          _receive: (message) => received.fire(message),
+          _listenerCount: () => received._listeners.length
+        };
+        vscode._panels.push(panel);
+        return panel;
+      },
+      registerWebviewPanelSerializer(viewType) {
+        registered.webviewSerializers.add(viewType);
+        return new Disposable(() => registered.webviewSerializers.delete(viewType));
       },
       registerTreeDataProvider(id, provider) {
         registered.treeViews.add(id);
@@ -217,14 +264,32 @@ export function createStub() {
       showTextDocument: async (doc) => ({ document: doc })
     },
     _trees: new Map(),
+    _panels: [],
+    _revealed: [],
+    _statusBarItems: [],
+    _configurationListeners: [],
+    // Fires onDidChangeConfiguration for the given full keys, as an edit to
+    // settings.json outside the extension would.
+    _fireConfigurationChange(keys) {
+      const event = {
+        affectsConfiguration: (section) =>
+          keys.some((k) => k === section || k.startsWith(`${section}.`))
+      };
+      for (const l of [...vscode._configurationListeners]) l(event);
+    },
     _messages: [],
     _quickPicks: [],
     _quickPickResult: undefined,
     workspace: {
+      // Every value is a user (global) setting; `updates` records each write's target.
       getConfiguration(section) {
         return {
           get: (key, fallback) => settings.get(`${section}.${key}`) ?? fallback,
-          update: async (key, value) => { settings.set(`${section}.${key}`, value); }
+          inspect: (key) => ({ key: `${section}.${key}`, globalValue: settings.get(`${section}.${key}`) }),
+          update: async (key, value, target) => {
+            settings.set(`${section}.${key}`, value);
+            vscode._configurationUpdates.push({ key: `${section}.${key}`, value, target });
+          }
         };
       },
       registerFileSystemProvider(scheme, provider) {
@@ -232,7 +297,16 @@ export function createStub() {
         vscode._fs.set(scheme, provider);
         return new Disposable(() => registered.fileSystems.delete(scheme));
       },
-      onDidChangeConfiguration: () => new Disposable(() => {}),
+      onDidChangeConfiguration(listener, thisArg, disposables) {
+        const bound = thisArg ? listener.bind(thisArg) : listener;
+        vscode._configurationListeners.push(bound);
+        const d = new Disposable(() => {
+          const i = vscode._configurationListeners.indexOf(bound);
+          if (i >= 0) vscode._configurationListeners.splice(i, 1);
+        });
+        disposables?.push(d);
+        return d;
+      },
       openTextDocument: async (uri) => ({ uri })
     },
     languages: {
@@ -246,7 +320,8 @@ export function createStub() {
         return new Disposable(() => {});
       }
     },
-    _fs: new Map()
+    _fs: new Map(),
+    _configurationUpdates: []
   };
 
   return { vscode, registered, settings };

@@ -6,7 +6,9 @@
  * declares in package.json match what it actually registers?
  */
 import { createRequire } from 'node:module';
-import { readFileSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import Module from 'node:module';
 import { fileURLToPath } from 'node:url';
@@ -50,6 +52,8 @@ const context = {
     async delete(k) { this._store.delete(k); }
   },
   extensionPath: root,
+  extensionUri: vscode.Uri.file(root),
+  extension: { id: `${manifest.publisher}.${manifest.name}`, packageJSON: manifest },
   globalState: { get: () => undefined, update: async () => {} },
   workspaceState: { get: () => undefined, update: async () => {} }
 };
@@ -176,6 +180,211 @@ for (const [id, provider] of vscode._trees) {
   } catch (err) {
     failures.push(`${id} threw while rendering an empty workspace: ${err.message}`);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Settings panel. The page is played by this script through the stub panel:
+// `_receive` is a message from the page, `webview.posted` what the extension
+// sent it. Project-export connections stand in for databases because they
+// connect without one.
+
+const flush = () => new Promise((resolve) => setImmediate(resolve));
+async function until(predicate, what) {
+  for (let i = 0; i < 200; i++) {
+    if (predicate()) return true;
+    await flush();
+  }
+  failures.push(`timed out waiting for ${what}`);
+  return false;
+}
+
+const scratch = mkdtempSync(path.join(os.tmpdir(), 'psft-smoke-'));
+try {
+  const fixture = path.join(root, 'src', 'test', 'fixtures', 'sample-project.xml');
+  const devPath = path.join(scratch, 'dev.xml');
+  const tstPath = path.join(scratch, 'tst.xml');
+  copyFileSync(fixture, devPath);
+  copyFileSync(fixture, tstPath);
+  const devId = `project:${devPath}`;
+  const tstId = `project:${tstPath}`;
+  const SECRET = 'smoke-secret-do-not-render';
+
+  settings.set('peoplesoft.connections', [
+    { name: 'HCDEV', kind: 'projectFile', path: devPath },
+    { name: 'HCTST', kind: 'projectFile', path: tstPath },
+    { name: 'ORA', kind: 'oracle', connectString: 'ora.example:1521/ORA', user: 'SYSADM' }
+  ]);
+  await context.secrets.store('peoplesoft.password.ORA', SECRET);
+  vscode._fireConfigurationChange(['peoplesoft.connections']);
+
+  check(registered.webviewSerializers.has('psft.settings'),
+    'the Settings panel serializer was not registered');
+
+  const panelCount = vscode._panels.length;
+  await vscode.commands.executeCommand('psft.settings.open');
+  const panel = vscode._panels.at(-1);
+  check(vscode._panels.length === panelCount + 1 && panel?.viewType === 'psft.settings',
+    'psft.settings.open did not open the Settings panel');
+
+  // Security: a strict CSP, a nonce on the one script, nothing remote, and no
+  // configuration interpolated into the HTML.
+  const html = panel.webview.html;
+  const nonce = /script-src 'nonce-([^']+)'/.exec(html)?.[1];
+  check(/default-src 'none'/.test(html), 'Settings CSP does not default to none');
+  check(nonce !== undefined && html.includes(`<script nonce="${nonce}"`),
+    'Settings script is not nonce-bound to the CSP');
+  check(!/unsafe-(inline|eval)/.test(html), 'Settings CSP allows unsafe-inline or unsafe-eval');
+  check(!/https?:\/\//.test(html), 'Settings HTML references a remote resource');
+  check(!html.includes('HCDEV') && !html.includes('ora.example'),
+    'Settings HTML interpolates connection values instead of posting them');
+
+  // A second open reveals the same panel.
+  await vscode.commands.executeCommand('psft.settings.open');
+  check(vscode._panels.length === panelCount + 1 && vscode._revealed.includes('psft.settings'),
+    'reopening Settings created a second panel instead of revealing the first');
+
+  const stateMessages = () => panel.webview.posted.filter((m) => m.type === 'state');
+  const lastState = () => stateMessages().at(-1)?.state;
+
+  panel._receive({ type: 'ready' });
+  await until(() => lastState() !== undefined, 'the initial Settings state');
+  let state = lastState();
+  check(state?.connections?.length === 3, 'Settings state does not list every configured connection');
+  check(state?.connections?.every((c) => !c.selected), 'Settings reported a selection before one was made');
+  const ora = state?.connections?.find((c) => c.name === 'ORA');
+  check(ora?.connectString === 'ora.example:1521/ORA' && ora?.user === 'SYSADM',
+    'Settings state is missing Oracle connection fields');
+  check(ora?.access?.label === 'PeopleCode read-only', 'Oracle connection is not described as PeopleCode read-only');
+  check(state?.connections?.find((c) => c.name === 'HCDEV')?.access?.level === 'read-only',
+    'project export connection is not described as read-only');
+
+  // The status bar describes the target connection while a psft editor is active.
+  const statusItem = vscode._statusBarItems.find((i) => i.command === 'psft.status.selectConnection');
+  const handle = createHash('sha256').update(devId, 'utf8').digest('hex').slice(0, 16);
+  vscode.window.activeTextEditor = {
+    document: { uri: vscode.Uri.parse(`psft://${handle}/${encodeURIComponent('0:DEMO')}/DEMO.psrecord`) }
+  };
+
+  // Settings selects HCDEV -> selectedConnectionId -> status bar label.
+  panel._receive({ type: 'selectConnection', connectionId: devId });
+  await until(() => panel.webview.posted.some((m) => m.type === 'selectionResult' && m.connectionId === devId),
+    'the HCDEV selection to finish');
+  check(panel.webview.posted.find((m) => m.type === 'selectionResult' && m.connectionId === devId)?.selected === true,
+    'selecting HCDEV from Settings did not succeed');
+  check(lastState()?.selectedConnectionId === devId, 'selecting HCDEV from Settings did not change selectedConnectionId');
+  check(statusItem?.visible && statusItem.text === '$(database) HCDEV',
+    `status bar did not follow the Settings selection (shows "${statusItem?.text}")`);
+
+  // Settings selects HCTST, which connects it first.
+  panel._receive({ type: 'selectConnection', connectionId: tstId });
+  await until(() => panel.webview.posted.some((m) => m.type === 'selectionResult' && m.connectionId === tstId),
+    'the HCTST selection to finish');
+  state = lastState();
+  check(state?.selectedConnectionId === tstId && state.connections.find((c) => c.id === tstId)?.connected,
+    'selecting HCTST from Settings did not connect and select it');
+  check(statusItem?.text === '$(database) HCTST',
+    `status bar did not update to HCTST (shows "${statusItem?.text}")`);
+  check(state?.connections?.find((c) => c.id === tstId)?.environment?.status === 'not-applicable',
+    'a project export was given a PeopleTools release');
+
+  // The status-bar picker selects HCDEV -> the Settings panel follows.
+  vscode._quickPickResult = 0;
+  await vscode.commands.executeCommand('psft.status.selectConnection');
+  vscode._quickPickResult = undefined;
+  await until(() => lastState()?.selectedConnectionId === devId, 'Settings to follow the status-bar selection');
+  check(statusItem?.text === '$(database) HCDEV', 'status-bar picker did not select HCDEV');
+
+  // The side-bar Settings view summarizes the same target.
+  const settingsTree = vscode._trees.get('psft.settings');
+  const rows = settingsTree ? settingsTree.getChildren(undefined) : [];
+  check(rows[0]?.label === 'HCDEV', 'the Settings view does not show the target connection');
+  check(rows.every((r) => settingsTree.getTreeItem(r).command?.command === 'psft.settings.open'),
+    'a Settings view row does not open the Settings panel');
+
+  // An edit made outside the panel (settings.json, VS Code's Settings UI).
+  const before = stateMessages().length;
+  settings.set('peoplesoft.peoplecode.decoder', 'strict');
+  vscode._fireConfigurationChange(['peoplesoft.peoplecode.decoder']);
+  check(stateMessages().length > before &&
+    lastState()?.settings?.find((s) => s.key === 'peoplecode.decoder')?.value === 'strict',
+    'an external configuration change did not refresh the Settings panel');
+
+  // Validation is reported against the field, and nothing is written.
+  const validations = () => panel.webview.posted.filter((m) => m.type === 'validation');
+  const updates = vscode._configurationUpdates.length;
+  panel._receive({ type: 'updateSetting', key: 'peoplecode.decoder', value: 'bogus' });
+  await until(() => validations().length > 0, 'a decoder validation reply');
+  check(validations().at(-1)?.errors?.value !== undefined && vscode._configurationUpdates.length === updates,
+    'an invalid decoder value was not rejected with a field error');
+
+  panel._receive({ type: 'updateSetting', key: 'peoplecode.decoder', value: 'raw' });
+  await until(() => vscode._configurationUpdates.length > updates, 'the decoder write');
+  const write = vscode._configurationUpdates.at(-1);
+  check(write?.key === 'peoplesoft.peoplecode.decoder' && write.value === 'raw' &&
+    write.target === vscode.ConfigurationTarget.Global,
+    'a valid decoder value was not written to user settings');
+
+  const port = 'ora.example:abc/ORA';
+  panel._receive({ type: 'updateConnection', connectionId: 'oracle:ORA', edit: { connectString: port, user: 'SYSADM' } });
+  await until(() => validations().at(-1)?.target?.connectionId === 'oracle:ORA', 'a connection validation reply');
+  check(validations().at(-1)?.errors?.connectString === 'Port must be a number.',
+    'a non-numeric port was not reported against the connect string');
+
+  panel._receive({ type: 'updateConnection', connectionId: 'oracle:ORA', edit: { connectString: 'ora2.example:1522/ORA', user: 'PS' } });
+  await until(() => validations().at(-1)?.target?.connectionId === 'oracle:ORA' &&
+    Object.keys(validations().at(-1).errors).length === 0, 'the ORA connection edit');
+  const saved = settings.get('peoplesoft.connections');
+  check(saved?.length === 3 && saved[2].connectString === 'ora2.example:1522/ORA' && saved[0].path === devPath,
+    'editing ORA did not rewrite only ORA');
+
+  // Malformed messages are ignored: connections cannot be overwritten as a plain setting.
+  const posted = panel.webview.posted.length;
+  panel._receive({ type: 'updateSetting', key: 'connections', value: [] });
+  panel._receive({ type: 'selectConnection' });
+  await flush();
+  check(panel.webview.posted.length === posted && settings.get('peoplesoft.connections')?.length === 3,
+    'a malformed Settings message was acted on');
+
+  // Test Connection runs against a throwaway provider.
+  panel._receive({ type: 'testConnection', connectionId: tstId });
+  await until(() => lastState()?.connections?.find((c) => c.id === tstId)?.test?.status === 'succeeded',
+    'the HCTST connection test');
+
+  // The VS Code Settings link is filtered to this extension.
+  let nativeQuery;
+  vscode._handlers.set('workbench.action.openSettings', (query) => { nativeQuery = query; });
+  panel._receive({ type: 'openNativeSettings' });
+  await until(() => nativeQuery !== undefined, 'the native settings command');
+  check(nativeQuery === `@ext:${manifest.publisher}.${manifest.name}`,
+    `native settings opened with the wrong filter: ${nativeQuery}`);
+
+  // Nothing from SecretStorage, and no password field, ever reaches the page.
+  const everything = JSON.stringify(panel.webview.posted);
+  check(!everything.includes(SECRET), 'a stored password was sent to the Settings page');
+  check(!/"password"/i.test(everything), 'a password field was sent to the Settings page');
+
+  // Closing the panel drops its listeners; reopening starts from current state.
+  panel.dispose();
+  check(panel._listenerCount() === 0, 'the closed Settings panel still listens for messages');
+  const afterClose = panel.webview.posted.length;
+  vscode._fireConfigurationChange(['peoplesoft.peoplecode.decoder']);
+  check(panel.webview.posted.length === afterClose, 'a closed Settings panel was still sent state');
+
+  await vscode.commands.executeCommand('psft.settings.open');
+  const reopened = vscode._panels.at(-1);
+  check(reopened !== panel, 'reopening Settings after closing it did not create a panel');
+  reopened._receive({ type: 'ready' });
+  await until(() => reopened.webview.posted.some((m) => m.type === 'state'), 'state for the reopened panel');
+  const fresh = reopened.webview.posted.find((m) => m.type === 'state')?.state;
+  check(fresh?.selectedConnectionId === devId &&
+    fresh.settings.find((s) => s.key === 'peoplecode.decoder')?.value === 'raw',
+    'the reopened Settings panel shows stale state');
+  reopened.dispose();
+  vscode.window.activeTextEditor = undefined;
+} catch (err) {
+  failures.push(`Settings smoke test threw: ${err.stack}`);
+} finally {
+  rmSync(scratch, { recursive: true, force: true });
 }
 
 // Counts are taken before disposal: disposing a registration removes it from
