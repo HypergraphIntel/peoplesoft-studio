@@ -152,3 +152,10 @@ test('boundary forms: the opcode before each named end-method (8.62 track, H2)',
   // Header declarations (before end-class) are not implementations.
   assert.deepEqual(boundaryForms([{ opcode: 0x63, text: 'method' }, { opcode: 0x0a, text: 'Run' }, { opcode: 0x64, text: '' }], ['RUN']), []);
 });
+
+test('a capture is compared under its own release profile; unknown or mismatched releases fail (Cycle 184)', () => {
+  const results = JSON.parse(readFileSync(resolve(__dirname, '../../tools/corpus/controlled-compile/results/8.62.09/SMOKE.json'), 'utf8')) as ControlledCompileResults;
+  assert.equal(compareControlledCompile(results, pack, { expectedProfileId: 'PT862' }).definitions.length, results.definitions.length);
+  assert.throws(() => compareControlledCompile(results, pack, { expectedProfileId: 'PT861' }), /not PT861/);
+  assert.throws(() => compareControlledCompile({ ...results, lab: { ...results.lab, toolsRelease: '8.63' } }, pack), /No compiler profile for PeopleTools release "8.63"/);
+});
