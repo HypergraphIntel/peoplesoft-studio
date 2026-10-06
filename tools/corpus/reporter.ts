@@ -10,6 +10,8 @@ export class CorpusReporter {
   private processed = 0;
   private exact = 0;
   private failed = 0;
+  // Cycle 183: compiled-exact from a recovered historical source (counted in failed, as not source-exact).
+  private recovered = 0;
 
   private readonly classifications =
     new Map<string, number>();
@@ -26,6 +28,12 @@ export class CorpusReporter {
       this.exact++;
     } else {
       this.failed++;
+    }
+
+    if (
+      result.classification === 'EXACT_RECOVERED_SOURCE'
+    ) {
+      this.recovered++;
     }
 
     this.classifications.set(
@@ -90,6 +98,10 @@ export class CorpusReporter {
 
     console.log(
       `Failed:      ${this.failed}`
+    );
+
+    console.log(
+      `Compiled exact (EXACT + EXACT_RECOVERED_SOURCE): ${this.exact + this.recovered}`
     );
 
     console.log('');
