@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildScratchShellProject, templatesFromExport } from '../peoplecode/corpus/scratchProject.js';
+import { buildScratchRecordProject, buildScratchShellProject, recordTemplatesFromExport, templatesFromExport } from '../peoplecode/corpus/scratchProject.js';
 import { validateScratchProjectXml } from '../peoplecode/corpus/labSafety.js';
 
 /*
@@ -147,4 +147,118 @@ test('a non-scratch root or project is refused at generation', () => {
   const templates = templatesFromExport(exportXml);
   assert.throws(() => buildScratchShellProject(templates, { project: 'ZZ_PCODE_LAB_H', root: 'APPS_RLR', subpackages: ['A'], create: [{ name: 'A', classes: ['X'] }] }), /not scratch/);
   assert.throws(() => buildScratchShellProject(templates, { project: 'MYPROJ', root: 'ZZ_PCODE_LAB', subpackages: ['A'], create: [{ name: 'A', classes: ['X'] }] }), /project name MYPROJ/);
+});
+
+/*
+ * Cycle 181: scratch fields, derived records and Record Field PeopleCode
+ * shells for the G matrix. Synthetic templates in the 8.62 export shape.
+ */
+const label = (p: string, id: string, extra = '') => `<row>
+                    <${p}LabelID>${id}</${p}LabelID>
+                    <${p}LongName>Long ${id}</${p}LongName>
+                    <${p}ShortName>S ${id}</${p}ShortName>
+                    <bIsDefault>0</bIsDefault>${extra}
+                  </row>`;
+const fieldTemplate = `<instance class="FIELD">
+    <rowset name="Field" size="936" count="1">
+      <row>
+        <szObjectOwnerID>PPT</szObjectOwnerID>
+        <szFieldName>TFIELD</szFieldName>
+        <eFieldType>0</eFieldType>
+        <nLength>4</nLength>
+        <nLabelCount>2</nLabelCount>
+        <hDBFldLabel> HANDLE
+          <rowset name="DBFldLabel" size="528" count="2">
+                  ${label('sz', 'TL1')}
+                  ${label('sz', 'TL2')}
+          </rowset>
+        </hDBFldLabel>
+        <szEditTable></szEditTable>
+        <szLabelID>TL1</szLabelID>
+        <szLongName>Long TL1</szLongName>
+        <szShortName>S TL1</szShortName>
+      </row>
+    </rowset>
+  </instance>`;
+const recRow = (name: string, type: number) => `<row>
+              <fStatus>0</fStatus>
+              <atmFieldName>${name}</atmFieldName>
+              <eFieldType>${type}</eFieldType>
+              <nLength>30</nLength>
+              <eFormat>6</eFormat>
+              <szObjectOwnerID></szObjectOwnerID>
+              <nLabelCount>3</nLabelCount>
+              <hDBFldLabel> HANDLE
+                <rowset name="DBFldLabel" size="96" count="3">
+                  ${label('atm', `${name}1`)}
+                  ${label('atm', `${name}2`)}
+                  ${label('atm', `${name}3`)}
+                </rowset>
+              </hDBFldLabel>
+              <atmEditTable></atmEditTable>
+              <atmLongName>Long ${name}</atmLongName>
+              <atmShortName>S ${name}</atmShortName>
+              <atmPhysicalRecNameList>TREC     </atmPhysicalRecNameList>
+              <nRecFieldFrmtCount>0</nRecFieldFrmtCount>
+            </row>`;
+const recordTemplate = `<instance class="RDM">
+    <rowset name="RecDefn" size="920" count="1">
+      <row>
+        <szObjectOwnerID>PPT</szObjectOwnerID>
+        <szRecName>TREC</szRecName>
+        <eRecType>2</eRecType>
+        <nFieldCount>2</nFieldCount>
+        <szParentRecName></szParentRecName>
+        <hRft> HANDLE
+          <rowset name="RecField" size="880" count="2">
+            ${recRow('TNUM', 2)}
+            ${recRow('TCHAR', 0)}
+          </rowset>
+        </hRft>
+        <nIndexCount>0</nIndexCount>
+      </row>
+    </rowset>
+  </instance>`;
+const recordPcm = pcm.replace(/<eObjectID_(\d)>\d+<\/eObjectID_\1>\s*<szObjectValue_\1>[^<]*<\/szObjectValue_\1>/g, (_m, i: string) =>
+  `<eObjectID_${i}>${[1, 2, 12, 0, 0, 0, 0][Number(i)]}</eObjectID_${i}>\n        <szObjectValue_${i}>${['TREC', 'TCHAR', 'FieldChange', '', '', '', ''][Number(i)]}</szObjectValue_${i}>`);
+const recordExport = `<?xml version='1.0'?>\n  <!--Warning : Don't edit this file -->\n  ${pjm}\n  ${fieldTemplate}\n  ${recordTemplate}\n  ${pcm}\n  ${recordPcm}\n`;
+const gSpec = {
+  project: 'ZZ_PCODE_LAB_G',
+  fields: [{ name: 'ZZ_PCODE_LAB_C01', length: 1 }, { name: 'ZZ_PCODE_LAB_KEY', length: 10 }, { name: 'ZZ_PCODE_LAB_VAL', length: 10 }],
+  records: [{ name: 'ZZ_PCODE_LAB', fields: ['ZZ_PCODE_LAB_C01'] }, { name: 'ZZ_PCODE_LAB_T', fields: ['ZZ_PCODE_LAB_KEY', 'ZZ_PCODE_LAB_VAL'] }],
+  programs: [{ record: 'ZZ_PCODE_LAB', field: 'ZZ_PCODE_LAB_C01', event: 'FieldFormula' }]
+};
+
+test('record projects: scratch fields, derived records and payload-free Record PeopleCode shells', () => {
+  const t = recordTemplatesFromExport(recordExport);
+  assert.match(t.recordPcm, /<szObjectValue_0>TREC</);
+  const xml = buildScratchRecordProject(t, gSpec);
+  assert.deepEqual(validateScratchProjectXml(xml).violations, []);
+  assert.doesNotMatch(xml, /TFIELD|TREC|TCHAR|TNUM|TL1|TL2|PPT|QUJDREVG|PcmPnt|FieldChange/);
+  assert.deepEqual([...xml.matchAll(/<instance class="(\w+)">/g)].map(m => m[1]), ['PJM', 'RDM', 'RDM', 'FIELD', 'FIELD', 'FIELD', 'PCM']);
+  const items = [...xml.matchAll(/<eObjectType>(\d+)<\/eObjectType>\s*<szObjectValue_0>([^<]*)<\/szObjectValue_0>\s*<szObjectValue_1>([^<]*)<\/szObjectValue_1>\s*<szObjectValue_2>([^<]*)</g)].map(m => m.slice(1).join('|'));
+  assert.deepEqual(items, ['0|ZZ_PCODE_LAB||', '0|ZZ_PCODE_LAB_T||', '2|ZZ_PCODE_LAB_C01||', '2|ZZ_PCODE_LAB_KEY||', '2|ZZ_PCODE_LAB_VAL||', '8|ZZ_PCODE_LAB|ZZ_PCODE_LAB_C01|FieldFormula']);
+  assert.match(xml, /<rowset name="PjmPit" size="5136" count="6">/);
+  const recT = /<instance class="RDM">(?:(?!<\/instance>)[\s\S])*<szRecName>ZZ_PCODE_LAB_T<[\s\S]*?<\/instance>/.exec(xml)![0];
+  assert.match(recT, /<nFieldCount>2<\/nFieldCount>/);
+  assert.match(recT, /<rowset name="RecField" size="880" count="2">/);
+  assert.deepEqual([...recT.matchAll(/<atmFieldName>([^<]*)</g)].map(m => m[1]), ['ZZ_PCODE_LAB_KEY', 'ZZ_PCODE_LAB_VAL']);
+  assert.deepEqual([...recT.matchAll(/<eFieldType>(\d)</g)].map(m => m[1]), ['0', '0']);
+  assert.deepEqual([...recT.matchAll(/<rowset name="DBFldLabel" size="(\d+)" count="(\d+)">/g)].map(m => `${m[1]}/${m[2]}`), ['32/1', '32/1']);
+  assert.deepEqual([...recT.matchAll(/<nLabelCount>(\d+)</g)].map(m => m[1]), ['1', '1']);
+  assert.deepEqual([...recT.matchAll(/<atmPhysicalRecNameList>([^<]*)</g)].map(m => m[1]), ['ZZ_PCODE_LAB_T     ', 'ZZ_PCODE_LAB_T     ']);
+  const val = /<instance class="FIELD">(?:(?!<\/instance>)[\s\S])*<szFieldName>ZZ_PCODE_LAB_VAL<[\s\S]*?<\/instance>/.exec(xml)![0];
+  assert.match(val, /<nLength>10<\/nLength>/);
+  assert.match(val, /<rowset name="DBFldLabel" size="264" count="1">/);
+  assert.match(val, /<szShortName>VAL<\/szShortName>/);
+  assert.match(xml, /<nNameCount>0<\/nNameCount>/);
+  assert.match(xml, /<peoplecode_blob><\/peoplecode_blob>/);
+});
+
+test('record projects refuse non-scratch records, fields and programs', () => {
+  const t = recordTemplatesFromExport(recordExport);
+  assert.throws(() => buildScratchRecordProject(t, { ...gSpec, records: [...gSpec.records, { name: 'JOB', fields: ['ZZ_PCODE_LAB_KEY'] }] }), /record JOB is not scratch|record item JOB/);
+  assert.throws(() => buildScratchRecordProject(t, { ...gSpec, fields: [...gSpec.fields, { name: 'EMPLID', length: 11 }] }), /EMPLID/);
+  assert.throws(() => buildScratchRecordProject(t, { ...gSpec, programs: [{ record: 'ZZ_PCODE_LAB', field: 'EMPLID', event: 'FieldFormula' }] }), /EMPLID/);
+  assert.throws(() => buildScratchRecordProject(t, { ...gSpec, records: [{ name: 'ZZ_PCODE_LAB', fields: ['ZZ_PCODE_LAB_NOPE'] }] }), /undeclared field/);
 });

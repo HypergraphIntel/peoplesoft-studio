@@ -81,15 +81,22 @@ test('any non-scratch identity or any compiled payload is refused', () => {
   const cases: Array<[string, string, RegExp]> = [
     ['project', file(pjm('APPS_SYS_ML', goodItems), pcm('ZZ_PCODE_LAB')), /project name APPS_SYS_ML/],
     ['item root', file(pjm('ZZ_PCODE_LAB', [[58, ['APPS_RLR', 'Utilities']]]), pcm('ZZ_PCODE_LAB')), /item root APPS_RLR/],
-    ['item type', file(pjm('ZZ_PCODE_LAB', [[0, ['ZZ_PCODE_LAB']]]), pcm('ZZ_PCODE_LAB')), /item type 0/],
+    ['item type', file(pjm('ZZ_PCODE_LAB', [[30, ['ZZ_PCODE_LAB']]]), pcm('ZZ_PCODE_LAB')), /item type 30/],
+    ['record item', file(pjm('ZZ_PCODE_LAB', [[0, ['ZZ_PAY_ACCT']]]), pcm('ZZ_PCODE_LAB')), /record item ZZ_PAY_ACCT/],
+    ['Record PeopleCode item', file(pjm('ZZ_PCODE_LAB', [[8, ['ZZ_PCODE_LAB', 'EMPLID', 'FieldFormula']]]), pcm('ZZ_PCODE_LAB')), /Record PeopleCode item ZZ_PCODE_LAB.EMPLID/],
     ['package root', file(pjm('ZZ_PCODE_LAB', goodItems), apm('APPS_RLR', 'APPS_RLR')), /package root APPS_RLR/],
     ['class root', file(pjm('ZZ_PCODE_LAB', goodItems), apm('ZZ_PCODE_LAB', 'SUPPORT', 'ZZ_PAY_ACCT')), /package list root ZZ_PAY_ACCT/],
     ['program key', file(pjm('ZZ_PCODE_LAB', goodItems), pcm('APPS_RLR')), /PeopleCode key APPS_RLR/],
-    ['record PeopleCode', file(pjm('ZZ_PCODE_LAB', goodItems), pcm('ZZ_PCODE_LAB', { id0: 1 })), /not Application Class PeopleCode/],
+    ['Record PeopleCode on a non-scratch field', file(pjm('ZZ_PCODE_LAB', goodItems), pcm('ZZ_PCODE_LAB', { id0: 1 })), /neither Application Class nor Record Field PeopleCode|field is not scratch/],
     ['blob', file(pjm('ZZ_PCODE_LAB', goodItems), pcm('ZZ_PCODE_LAB', { blob: 'xC8AAAQDAgEB' })), /compiled payload/],
     ['name rows', file(pjm('ZZ_PCODE_LAB', goodItems), pcm('ZZ_PCODE_LAB', { pnt: true })), /PSPCMNAME rows/],
     ['name count', file(pjm('ZZ_PCODE_LAB', goodItems), pcm('ZZ_PCODE_LAB', { names: 4 })), /declares names/],
-    ['instance class', file(pjm('ZZ_PCODE_LAB', goodItems), '<instance class="RDM">\n  </instance>'), /instance class RDM/],
+    ['instance class', file(pjm('ZZ_PCODE_LAB', goodItems), '<instance class="SRM">\n  </instance>'), /instance class SRM/],
+    ['record name', file(pjm('ZZ_PCODE_LAB', goodItems), '<instance class="RDM">\n<szRecName>JOB</szRecName>\n  </instance>'), /record JOB is not scratch/],
+    ['record field', file(pjm('ZZ_PCODE_LAB', goodItems), '<instance class="RDM">\n<szRecName>ZZ_PCODE_LAB_T</szRecName>\n<atmFieldName>EMPLID</atmFieldName>\n  </instance>'), /atmFieldName EMPLID is not scratch/],
+    ['record parent', file(pjm('ZZ_PCODE_LAB', goodItems), '<instance class="RDM">\n<szRecName>ZZ_PCODE_LAB_T</szRecName>\n<szParentRecName>JOB</szParentRecName>\n  </instance>'), /szParentRecName JOB is not scratch/],
+    ['physical record list', file(pjm('ZZ_PCODE_LAB', goodItems), '<instance class="RDM">\n<szRecName>ZZ_PCODE_LAB_T</szRecName>\n<atmPhysicalRecNameList>ZZ_PCODE_LAB_T     JOB     </atmPhysicalRecNameList>\n  </instance>'), /physical record JOB/],
+    ['field edit table', file(pjm('ZZ_PCODE_LAB', goodItems), '<instance class="FIELD">\n<szFieldName>ZZ_PCODE_LAB_VAL</szFieldName>\n<szEditTable>JOB</szEditTable>\n  </instance>'), /szEditTable JOB/],
     ['two projects', file(pjm('ZZ_PCODE_LAB', goodItems), pjm('ZZ_PCODE_LAB_X', goodItems)), /exactly one PJM/]
   ];
   for (const [label, xml, expected] of cases) {
