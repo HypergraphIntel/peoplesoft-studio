@@ -180,6 +180,38 @@ App Designer Save
   PSVERSION.PCM   +n    PSVERSION.SYS   +n    (PSLOCK likewise)
   other tables    [...]
 ```
+
+### Results
+
+**01-create** (`ZZ_PCODE_LAB.ZZ_PCODE_LAB_C01.FieldChange`, new, source
+`Local number &n = 1;`).
+
+- The save happened before `before` ran. The before snapshot was taken
+  retroactively, `--as-of 2026-10-06 11:17:30` (flashback, 70 s before the
+  save), and is marked `retroactive`.
+
+| Item | Observed |
+|---|---|
+| PSPCMTXT | 1 row inserted: PROGSEQ 0, the source exactly as typed plus `\n`; HASH_SIGNATURE matches the prediction |
+| PSPCMPROG | 1 row inserted |
+| PSPCMNAME | 1 row inserted: NAMENUM 1 = the owner `ZZ_PCODE_LAB.ZZ_PCODE_LAB_C01` |
+| VERSION | 62 = PSVERSION.PCM after its increment |
+| NAMECOUNT | 1 = the PSPCMNAME row count |
+| PROGLEN | 82 = the program's byte length |
+| LASTUPDDTTM | 11:18:41.178658, inside the database-clock window (client and database share a zone; origin not yet separable) |
+| LASTUPDOPRID | `JARED`, the App Designer sign-on |
+| PTTOOLSREL / LICENSE_CODE / PROGEXTENDS | `' '` |
+| PROGRUNLOC / PROGFLAGS | 0 |
+| PSVERSION | PCM +1, SYS +1 |
+| PSLOCK | PCM +1 only (SYS unchanged) |
+| Other tables | none of the 1,592 |
+
+- The encoder reproduces the stored PSPCMPROG byte for byte (82 / 82) and
+  the reference row, from the source alone.
+- The extension's existing SQL-definition save (`bumpVersion`) also
+  increments PSLOCK SYS. A native save did not. Compare against a native
+  SQL-definition save.
+
 ## 8.62 track: H2 -- end-of-body boundary (resolved)
 
 Branch `research/pt862-compat`; this is separate from the closed HCDEV

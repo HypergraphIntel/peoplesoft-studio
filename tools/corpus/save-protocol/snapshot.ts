@@ -34,6 +34,10 @@
  *
  *   npx tsx tools/corpus/save-protocol/snapshot.ts before --case 01-create
  *   npx tsx tools/corpus/save-protocol/snapshot.ts after  --case 01-create
+ *
+ * A save made before "before" ran can still be bracketed while undo covers
+ * it: `before --as-of 'YYYY-MM-DD HH24:MI:SS'` reads the watch set and the
+ * counts AS OF that time (flashback). The snapshot records `retroactive`.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
@@ -65,6 +69,8 @@ interface Snapshot {
   peopleToolsRelease: string;
   scope: 'tools' | 'all';
   marker: Marker;
+  /** Read AS OF the marker by flashback, after the fact. */
+  retroactive?: boolean;
   watch: Record<string, TableRows & { filter: string }>;
   counts: Record<string, number>;
 }
@@ -157,6 +163,18 @@ async function marker(session: Session): Promise<Marker> {
   return { scn: row.SCN, timestamp: row.TS };
 }
 
+/** A past marker, for a retroactive before: the SCN at that database-clock time. */
+async function markerAt(session: Session, at: string): Promise<Marker> {
+  if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,9})?$/.test(at)) {
+    throw new Error(`--as-of must be 'YYYY-MM-DD HH24:MI:SS[.FF]' on the database clock, not ${JSON.stringify(at)}.`);
+  }
+  const [row] = await session.select<{ SCN: string; TS: string }>(
+    `SELECT TO_CHAR(TIMESTAMP_TO_SCN(TO_TIMESTAMP(:at, 'YYYY-MM-DD HH24:MI:SS.FF'))) AS SCN,
+            TO_CHAR(FROM_TZ(TO_TIMESTAMP(:at, 'YYYY-MM-DD HH24:MI:SS.FF'), TO_CHAR(SYSTIMESTAMP, 'TZH:TZM')),
+                    'YYYY-MM-DD"T"HH24:MI:SS.FF9TZH:TZM') AS TS FROM DUAL`, { at: at.includes('.') ? at : `${at}.0` });
+  return { scn: row.SCN, timestamp: row.TS };
+}
+
 // --------------------------------------------------------------------------
 // Values and tables
 
@@ -201,8 +219,10 @@ function selectExpression(c: Column, alias: string): string {
 const selectList = (columns: Column[], alias = 't') =>
   columns.map((c) => selectExpression(c, alias)).join(', ');
 
-async function readRows(session: Session, table: string, columns: Column[], where: string): Promise<Value[][]> {
-  const rows = await session.select(`SELECT ${selectList(columns)} FROM SYSADM.${quote(table)} t ${where}`);
+async function readRows(session: Session, table: string, columns: Column[], where: string, asOfScn?: string): Promise<Value[][]> {
+  const rows = await session.select(
+    `SELECT ${selectList(columns)} FROM SYSADM.${quote(table)}${asOfScn ? ' AS OF SCN :asof' : ''} t ${where}`,
+    asOfScn ? { asof: asOfScn } : {});
   return rows.map((r) => columns.map((c) => encode(r[c.name], c)));
 }
 
@@ -222,7 +242,7 @@ const WATCH: Array<{ table: string; scratchColumn?: string }> = [
   { table: 'PSLOCK' }
 ];
 
-async function captureWatch(session: Session): Promise<Snapshot['watch']> {
+async function captureWatch(session: Session, asOfScn?: string): Promise<Snapshot['watch']> {
   const out: Snapshot['watch'] = {};
   for (const w of WATCH) {
     const columns = await columnsOf(session, w.table);
@@ -232,7 +252,7 @@ async function captureWatch(session: Session): Promise<Snapshot['watch']> {
     }
     const filter = w.scratchColumn ? `WHERE t.${quote(w.scratchColumn)} LIKE ${SCRATCH_LIKE}` : '';
     const key = await keyOf(session, w.table);
-    out[w.table] = { columns, key, filter, rows: await readRows(session, w.table, columns, filter) };
+    out[w.table] = { columns, key, filter, rows: await readRows(session, w.table, columns, filter, asOfScn) };
   }
   return out;
 }
@@ -254,13 +274,15 @@ function progress(label: string, i: number, n: number): void {
   if (process.stderr.isTTY && i === n) process.stderr.write('\n');
 }
 
-async function countAll(session: Session, tables: string[]): Promise<Record<string, number>> {
+async function countAll(session: Session, tables: string[], asOfScn?: string): Promise<Record<string, number>> {
   const counts: Record<string, number> = {};
   let i = 0;
   for (const table of tables) {
     progress('counting', ++i, tables.length);
     try {
-      const [r] = await session.select<{ N: string }>(`SELECT COUNT(*) AS N FROM SYSADM.${quote(table)}`);
+      const [r] = await session.select<{ N: string }>(
+        `SELECT COUNT(*) AS N FROM SYSADM.${quote(table)}${asOfScn ? ' AS OF SCN :asof' : ''}`,
+        asOfScn ? { asof: asOfScn } : {});
       counts[table] = Number(r.N);
     } catch {
       counts[table] = -1; // unreadable (e.g. an external table); reported as such
@@ -456,15 +478,17 @@ function caseDir(name: string): string {
 
 const write = (file: string, value: unknown) => writeFileSync(file, `${JSON.stringify(value, null, 1)}\n`);
 
-async function before(session: Session, name: string, scope: 'tools' | 'all'): Promise<void> {
+async function before(session: Session, name: string, scope: 'tools' | 'all', asOf?: string): Promise<void> {
   const dir = caseDir(name);
   mkdirSync(dir, { recursive: true });
-  const mark = await marker(session);
-  const watch = await captureWatch(session);
-  const counts = await countAll(session, await scopeTables(session, scope));
+  const mark = asOf ? await markerAt(session, asOf) : await marker(session);
+  const asOfScn = asOf ? mark.scn : undefined;
+  const watch = await captureWatch(session, asOfScn);
+  const counts = await countAll(session, await scopeTables(session, scope), asOfScn);
   const snapshot: Snapshot = {
     format: FORMAT, phase: 'before', case: name, database: session.database,
-    peopleToolsRelease: session.release, scope, marker: mark, watch, counts
+    peopleToolsRelease: session.release, scope, marker: mark,
+    ...(asOf ? { retroactive: true } : {}), watch, counts
   };
   write(path.join(dir, 'before.json'), snapshot);
   console.log(`before: SCN ${mark.scn} at ${mark.timestamp}; ${Object.keys(counts).length} tables counted; ` +
@@ -556,12 +580,12 @@ async function main(): Promise<void> {
   const phase = process.argv[2];
   const name = argument('case');
   if ((phase !== 'before' && phase !== 'after') || !name) {
-    throw new Error('Usage: snapshot.ts before|after --case NAME [--scope tools|all] [--database HRDMO]');
+    throw new Error('Usage: snapshot.ts before|after --case NAME [--scope tools|all] [--as-of TIMESTAMP] [--database HRDMO]');
   }
   const scope = argument('scope') === 'all' ? 'all' : 'tools';
   const session = await open(argument('database') ?? 'HRDMO');
   try {
-    if (phase === 'before') await before(session, name, scope);
+    if (phase === 'before') await before(session, name, scope, argument('as-of'));
     else await after(session, name);
   } finally {
     await close(session);
