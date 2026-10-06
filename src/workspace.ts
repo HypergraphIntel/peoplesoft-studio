@@ -121,13 +121,17 @@ export class Workspace implements vscode.Disposable {
       }
       throw err;
     }
-    this.providers.set(id, provider);
-    // Without a connected target nothing has anything to act on, so the
-    // connection that just came up becomes it. An existing connected target
-    // is never displaced: changing it is the user's choice.
-    if (!this.isConnected(this._selectedConnectionId)) {
-      this._selectedConnectionId = id;
+    // One connection is active at a time: activating this one deactivates
+    // the rest, only now that it has connected -- a failed connect leaves the
+    // active one alone. It becomes the target.
+    for (const [otherId, other] of [...this.providers]) {
+      if (otherId === id) continue;
+      this.providers.delete(otherId);
+      await other.dispose().catch((error) =>
+        console.warn(`PeopleSoft Studio: disconnecting ${other.displayName} failed:`, error));
     }
+    this.providers.set(id, provider);
+    this._selectedConnectionId = id;
     this._onDidChange.fire();
     return provider;
   }
@@ -201,9 +205,6 @@ export class Workspace implements vscode.Disposable {
     this._onDidChange.fire();
   }
 
-  private isConnected(id: string | undefined): boolean {
-    return id !== undefined && (this.providers.get(id)?.isConnected ?? false);
-  }
 
   /**
    * Whether PeopleCode under `key` may be edited and saved on this

@@ -383,7 +383,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           (p) => p.isConnected && p.id !== left.connectionId);
         if (candidates.length === 0) {
           vscode.window.showWarningMessage(
-            'Connect a second environment (or open another project export) to compare against.');
+            'Compare needs a second connected environment, but only one connection is active at a time. ' +
+            'Comparing across environments is not available until compare reads the other side without activating it.');
           return;
         }
 
