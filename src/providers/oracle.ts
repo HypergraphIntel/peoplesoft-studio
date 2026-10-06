@@ -13,6 +13,10 @@ import {
   ComponentPageRow, ComponentRow, FieldLabelRow, FieldRow, MenuItemRow, MenuRow,
   PageFieldRow, PageRow, renderComponent, renderField, renderMenu, renderPage
 } from './oracleRender.js';
+import {
+  operatorExists, readForEdit, savePeopleCode as writePeopleCode, verifyCommitted,
+  type PeopleCodeSaveRequest, type PeopleCodeSaveResult
+} from './peopleCodeWriter.js';
 
 export interface OracleConnectionConfig {
   name: string;
@@ -273,6 +277,33 @@ export class OracleProvider implements DefinitionProvider {
         lastUpdatedBy: row.LASTUPDOPRID?.trim()
       }));
     });
+  }
+
+  /**
+   * PeopleCode as it would be edited and saved: the stored source
+   * (PSPCMTXT, what App Designer shows) and the concurrency token a save
+   * must present. Undefined when the program has no stored source.
+   */
+  async readPeopleCodeForEdit(key: DefinitionKey): Promise<{ text: string; fingerprint: string } | undefined> {
+    const oracledb = await loadOracleDb();
+    return this.withConnection((c) => readForEdit(c, oracledb, pcmProgKeyParts(key)));
+  }
+
+  /** Whether a PeopleSoft operator exists here (PSOPRDEFN), read-only. */
+  async operatorExists(operatorId: string): Promise<boolean> {
+    return this.withConnection((c) => operatorExists(c, operatorId));
+  }
+
+  /**
+   * Saves PeopleCode natively (peopleCodeWriter.ts): one transaction on one
+   * connection, then the committed state is verified again on another.
+   */
+  async savePeopleCode(key: DefinitionKey, request: PeopleCodeSaveRequest): Promise<PeopleCodeSaveResult> {
+    const oracledb = await loadOracleDb();
+    const parts = pcmProgKeyParts(key);
+    const result = await this.withConnection((c) => writePeopleCode(c, oracledb, parts, request));
+    await this.withConnection((c) => verifyCommitted(c, oracledb, parts, result));
+    return result;
   }
 
   async readText(key: DefinitionKey): Promise<string> {
