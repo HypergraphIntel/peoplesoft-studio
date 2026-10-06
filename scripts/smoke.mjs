@@ -189,12 +189,20 @@ for (const [id, provider] of vscode._trees) {
 // connect without one.
 
 const flush = () => new Promise((resolve) => setImmediate(resolve));
-async function until(predicate, what) {
-  for (let i = 0; i < 200; i++) {
+/**
+ * Waits for `predicate` by elapsed time, not by a count of event-loop
+ * turns: work such as reading and parsing a project export takes real I/O,
+ * which a slow or busy CI runner can stretch well past a fixed number of
+ * turns. Turns the loop first (fast locally), then polls every 10 ms.
+ */
+async function until(predicate, what, timeoutMs = 15000) {
+  const deadline = Date.now() + timeoutMs;
+  for (let i = 0; ; i++) {
     if (predicate()) return true;
-    await flush();
+    if (Date.now() > deadline) break;
+    await (i < 50 ? flush() : new Promise((resolve) => setTimeout(resolve, 10)));
   }
-  failures.push(`timed out waiting for ${what}`);
+  failures.push(`timed out waiting for ${what} (${timeoutMs} ms)`);
   return false;
 }
 
