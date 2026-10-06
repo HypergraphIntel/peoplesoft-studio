@@ -16979,6 +16979,17 @@ function encodeApplicationClassProgramV2(
     trailer
   ]);
 
+  /*
+   * Cycle 183: every Application Class program stores a blank PSPCMNAME
+   * row at NAMENUM 1 (1,510 / 1,510 HCDEV programs). The first encoded
+   * fragment writes it; a program that encodes no fragment (a header-only
+   * class, empty method bodies: 28723 28906 29905 ...) still stores it.
+   * Program bytes are unchanged -- no operand refers to it.
+   */
+  if (firstFragment) {
+    references.unshift({ index: 0, sequence: 1, kind: 'owner', recordName: undefined, fieldName: undefined });
+  }
+
   return { program, references };
 }
 
@@ -17324,9 +17335,21 @@ export function encodeProgramArtifacts(source: string, context?: EncodeProgramCo
   }
 
   if (applicationClassMetadata !== undefined) {
+    /*
+     * Cycle 183: the golden template calibrates program bytes only; its
+     * PSPCMNAME rows come from the general encoder (29632 stores its blank
+     * row plus PACKAGE.TESTCLASS), or at least the blank NAMENUM 1 row
+     * every Application Class program stores.
+     */
+    let general: EncodedPeopleCode | undefined;
+    try {
+      general = encodeApplicationClassProgramV2(source, context);
+    } catch (error) {
+      if (!(error instanceof UnsupportedPeopleCodeError)) throw error;
+    }
     return {
       program: encodeApplicationClassProgram(applicationClassMetadata),
-      references: []
+      references: general?.references ?? [{ index: 0, sequence: 1, kind: 'owner', recordName: undefined, fieldName: undefined }]
     };
   }
 
