@@ -13,7 +13,7 @@
  * - the source (line endings normalized), and for a lossy HCDEV source the
  *   recovered historical source (historicalSource.ts);
  * - HCDEV stored vs lab stored (bytes, PSPCMNAME rows);
- * - encoder(lab source) vs lab stored;
+ * - encoder(lab source, lab release, lab App Class metadata) vs lab stored;
  * - encoder(HCDEV source) vs HCDEV stored.
  * The output holds hashes, lengths, counts, verdicts and definition ids
  * only (no delivered source or program text).
@@ -22,7 +22,9 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import oracledb from 'oracledb';
 
+import { createApplicationClassTypeMetadataProvider, type ApplicationClassDefinition } from '../../../src/peoplecode/applicationClassTypeMetadata';
 import { recoverHistoricalSource } from '../../../src/peoplecode/corpus/historicalSource';
+import { isBuiltinObjectTypeName } from '../../../src/peoplecode/encoder';
 import { decodeAsHarness, encodeAsHarness, generatedReferenceKey, openHarnessContext, storedNameTable, storedReferenceKeys } from '../research/lib/harnessContext';
 
 oracledb.fetchAsString = [oracledb.CLOB];
@@ -67,11 +69,28 @@ async function main(): Promise<void> {
     connectString: process.env.PSLAB_AUDIT_CONNECT ?? '127.0.0.1:15210/hrdmo'
   });
   const results: any[] = [];
-  let release = '';
+  let release = '', toolsRelease = '';
   try {
     await connection.execute('SET TRANSACTION READ ONLY');
-    release = ((await connection.execute(`SELECT TOOLSREL || '.' || PTPATCHREL FROM SYSADM.PSSTATUS`)).rows as string[][])[0][0];
+    [toolsRelease, release] = ((await connection.execute(`SELECT TOOLSREL, TOOLSREL || '.' || PTPATCHREL FROM SYSADM.PSSTATUS`)).rows as string[][])[0];
     const object = { outFormat: oracledb.OUT_FORMAT_OBJECT };
+    /*
+     * 8.62 track: the lab's source is typed against the LAB's own
+     * Application Classes (23497's newer revision calls BDG_FUNCTIONS:
+     * GiveBadge, a class HCDEV does not have).
+     */
+    const labClasses = new Map<string, ApplicationClassDefinition>();
+    for (const row of (await connection.execute(`SELECT OBJECTVALUE1 A, OBJECTVALUE2 B, OBJECTVALUE3 C, OBJECTVALUE4 D, OBJECTVALUE5 E, OBJECTVALUE6 F, OBJECTVALUE7 G, PCTEXT T FROM SYSADM.PSPCMTXT WHERE OBJECTID1 = 104 ORDER BY 1, 2, 3, 4, 5, 6, 7, PROGSEQ`, {}, object)).rows as any[]) {
+      const values = [row.A, row.B, row.C, row.D, row.E, row.F, row.G].map((v: unknown) => String(v ?? '').trim());
+      const event = values.findIndex(v => v.toLowerCase() === 'onexecute');
+      const path = values.slice(0, event < 0 ? values.length : event).filter(Boolean);
+      const key = path.join(':');
+      const entry = labClasses.get(key) ?? { path, source: '' };
+      entry.source += String(row.T ?? '');
+      labClasses.set(key, entry);
+    }
+    const labMetadata = createApplicationClassTypeMetadataProvider(labClasses.values(), { isBuiltinType: isBuiltinObjectTypeName });
+    console.error(`lab Application Classes: ${labClasses.size}`);
     let n = 0;
     for (const d of definitions) {
       const def = d as any;
@@ -91,7 +110,9 @@ async function main(): Promise<void> {
       const labNames = names.map(r => `${String(r.RECNAME ?? '').trim().toUpperCase()}.${String(r.REFNAME ?? '').trim().toUpperCase()}`);
       const hcdevNames = storedReferenceKeys(def);
       const keys = (a: any) => [...a.references].sort((x: any, y: any) => x.sequence - y.sequence).map(generatedReferenceKey);
-      const fromLab = encodeAsHarness(ctx, { ...def, sourceText: labSource });
+      // The lab's source compiles under the lab's release: `#If #ToolsRel` blocks
+      // (8.62 track: 4601 4602 18249 18256) take the 8.62 branch there.
+      const fromLab = encodeAsHarness(ctx, { ...def, sourceText: labSource }, { conditionalCompilation: { toolsRelease }, applicationClassTypeMetadata: labMetadata });
       const fromHcdev = encodeAsHarness(ctx, def);
       let recoveredMatchesLab: boolean | undefined;
       if (norm(labSource) !== norm(def.sourceText)) {

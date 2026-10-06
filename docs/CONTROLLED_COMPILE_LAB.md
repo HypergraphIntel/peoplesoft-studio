@@ -89,6 +89,22 @@ observation type `boundary`, the opcode before each named end-method):
   applied consistently, not a release delta. Evidence:
   `results/8.62.09/H2-boundary.json`.
 
+## 8.62 track: the six lab exceptions (resolved)
+
+Cycle 183's corpus-wide lab comparison listed six HCDEV definitions where
+the encoder, given HRDMO's source, did not reproduce PeopleTools 8.62.09.
+None is a compiler difference.
+
+| Id | Cause | Resolution |
+|---|---|---|
+| 4601 4602 18249 18256 | `#If #ToolsRel >= "8.62"` blocks: inactive text in 8.61, compiled code in 8.62 (same source) | encode the lab source under the lab's release (`conditionalCompilation`): EXACT |
+| 23497 | newer HRDMO revision calls `BDG_FUNCTIONS:GiveBadge`, a class HCDEV does not have (`BadgeHeader` is a Record property) | type the lab source against the lab's own App Classes: EXACT |
+| 28943 | newer HRDMO revision has `method InfoPageViewBySFF()` with no `;` before `protected` -- stored as typed, `0B 14 73`, no 0x15 | parser: an unterminated header method declaration may precede a section keyword or another member: EXACT |
+
+`compare-delivered.ts` now encodes the lab's source with the lab's
+`TOOLSREL` and the lab's own Application Class definitions (12,270
+classes).
+
 ## Cycle 183: the final 75, reopened and resolved
 
 The user reopened the 75 residual programs: make each exact with a
