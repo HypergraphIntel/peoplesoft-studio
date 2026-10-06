@@ -185,8 +185,8 @@
           " "
         ]
       },
-      "source": "import ZZ_PCODE_LAB:ORDERING:PARENT;\n\nclass CHILDARG extends ZZ_PCODE_LAB:ORDERING:PARENT\n   method CHILDARG(&n As number);\n   property number N;\nend-class;\n\nmethod CHILDARG\n   /+ &n as Number +/\n   %Super = create ZZ_PCODE_LAB:ORDERING:PARENT();\n   &N = &n;\nend-method;\n",
-      "note": "created type with a constructor argument"
+      "source": "import ZZ_PCODE_LAB:ORDERING:PARENT;\n\nclass CHILDARG extends ZZ_PCODE_LAB:ORDERING:PARENT\n   method CHILDARG(&n As number);\nend-class;\n\nmethod CHILDARG\n   /+ &n as Number +/\n   %Super = create ZZ_PCODE_LAB:ORDERING:PARENT();\nend-method;\n",
+      "note": "created type with a constructor argument (Cycle 180: the property N was removed; it collided with parameter &n -- \"Duplicate parameter name\")"
     },
     {
       "key": {
