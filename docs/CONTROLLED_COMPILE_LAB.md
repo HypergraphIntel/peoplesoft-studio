@@ -374,6 +374,28 @@ C03, not C02).
   marker present, touched no PSPCMPROGDEL row. HASH_SIGNATURE matches; the
   encoder reproduces the program.
 
+**12-app-class** (`ZZ_PCODE_LAB:SUPPORT:SmokeTest`, `&x = 1;` -> `&x = 2;`
+in the method body). The window held more than one save:
+- `ZZ_PCODE_LAB_C01.FieldChange` saved as `&x = 2;` (VERSION 74);
+- SmokeTest saved (VERSION 28 -> 76);
+- one more PCM bump with no surviving row (75), likely a repeated save.
+  PSVERSION PCM and SYS moved +3, PSLOCK PCM +3.
+
+| Item (SmokeTest) | Observed |
+|---|---|
+| PSPCMTXT | PCTEXT and HASH_SIGNATURE rewritten; the signature matches the prediction |
+| PSPCMPROG | PROGTXT rewritten, PROGLEN 252 unchanged; VERSION 28 -> 76, the current PSVERSION.PCM, not the program's own +1 |
+| PSPCMNAME | the single blank owner row every App Class stores, rewritten |
+| PSAPPCLASSDEFN / PSPACKAGEDEFN | untouched by a body-only change |
+| Other tables | none |
+
+- The encoder reproduces both programs (252 / 252 and 66 / 66 bytes) and
+  their name rows.
+- `PSPCMPROG.PROGEXTENDS` holds an App Class's superclass path (e.g.
+  `ZZ_PCODE_LAB:ORDERING:PARENT` for CHILD), `' '` otherwise. A writer must
+  derive it from the `extends` clause.
+- Ordinary Record PeopleCode (case 13 in the matrix) is cases 01-11.
+
 ## 8.62 track: H2 -- end-of-body boundary (resolved)
 
 Branch `research/pt862-compat`; this is separate from the closed HCDEV
