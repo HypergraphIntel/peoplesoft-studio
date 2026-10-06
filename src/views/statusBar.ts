@@ -84,12 +84,14 @@ export class StatusBar implements vscode.Disposable {
       // Read-only describes the document being edited, not the target.
       if (
         isPeopleCode(key.type) &&
-        editorProvider.id.startsWith('oracle:')
+        editorProvider.id.startsWith('oracle:') &&
+        !this.workspace.isPeopleCodeWritable(editorProvider.id, key)
       ) {
         this.readOnly.text = '$(lock-small) Read-Only';
         this.readOnly.tooltip =
-          `PeopleCode from ${editorProvider.displayName} is read-only. ` +
-          'PeopleCode write-back is not currently supported.';
+          `PeopleCode from ${editorProvider.displayName} is read-only here. ` +
+          'Saving is enabled per connection (Writable, in PeopleSoft Studio Settings), ' +
+          'for ZZ_PCODE_LAB definitions only.';
         this.readOnly.show();
       } else {
         this.readOnly.hide();

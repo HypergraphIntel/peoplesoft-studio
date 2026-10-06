@@ -38,6 +38,7 @@ export function connectionPort(workspace: Workspace): ConnectionPort {
     add: async () => { await vscode.commands.executeCommand('psft.addConnection'); },
     remove: async (config) => { await vscode.commands.executeCommand('psft.removeConnection', config); },
     test: (config) => workspace.testConnection(config),
+    verifyOperator: (config, operatorId) => workspace.verifyOperator(config, operatorId),
     readEnvironment: (id) => {
       const provider = workspace.getProvider(id);
       return provider?.isConnected ? provider.readEnvironment?.() : undefined;

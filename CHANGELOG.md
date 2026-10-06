@@ -17,6 +17,15 @@
   secret store and never reach the panel.
 - Each connection shows what it allows to be saved: PeopleCode from a
   database is read-only, and project exports are read-only throughout.
+- **Native PeopleCode saving** for connections set to Writable. Ctrl+S
+  compiles and writes PSPCMTXT, PSPCMPROG and PSPCMNAME as App Designer
+  does, bumps the version counters, and verifies the rows before and after
+  COMMIT. First scope: ZZ_PCODE_LAB definitions; Record Field PeopleCode
+  and Application Class programs whose references are all of a modeled
+  kind. Anything else stays read-only or is refused with the reason. A
+  writable connection needs a PeopleSoft Operator ID
+  (`peoplesoftOperatorId`, recorded as LASTUPDOPRID), verified to exist in
+  that database. Each save keeps a report of the rows it replaced.
 - Each database connection has a PeopleCode saving group: Access
   (`peoplecodeAccess`: Read-only by default, or Writable after a modal
   confirmation naming the database) and Save mode (`peoplecodeSaveMode`:

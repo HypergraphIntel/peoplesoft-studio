@@ -69,7 +69,7 @@ export interface ConnectionView {
    * only). A permission for the save path: PeopleCode saving itself is not
    * implemented yet, so PeopleCode still opens read-only either way.
    */
-  peoplecodeWrite?: { access: PeopleCodeAccess; saveMode: PeopleCodeSaveMode };
+  peoplecodeWrite?: { access: PeopleCodeAccess; saveMode: PeopleCodeSaveMode; operatorId: string };
   test?: ConnectionTestView;
   editableFields: readonly (keyof ConnectionEdit)[];
 }

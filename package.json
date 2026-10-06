@@ -438,7 +438,7 @@
                   "writable"
                 ],
                 "default": "read-only",
-                "description": "Whether PeopleCode may be saved back to this database. Defaults to read-only. PeopleCode saving is not implemented yet; this is the per-connection permission it will require."
+                "description": "Whether PeopleCode may be saved natively to this database. Defaults to read-only. Writable requires peoplesoftOperatorId; for now only ZZ_PCODE_LAB definitions can be saved."
               },
               "peoplecodeSaveMode": {
                 "type": "string",
@@ -446,8 +446,12 @@
                   "save-only",
                   "compile-and-save"
                 ],
-                "default": "save-only",
-                "description": "What a PeopleCode save writes on a writable connection: 'save-only' writes the source (PSPCMTXT); 'compile-and-save' also writes the compiled program (PSPCMPROG, PSPCMNAME)."
+                "default": "compile-and-save",
+                "description": "What a PeopleCode save writes: 'compile-and-save' writes the source and the compiled program (PSPCMTXT, PSPCMPROG, PSPCMNAME), as App Designer does. 'save-only' is not available (App Designer never stores uncompiled source); saves are refused in that mode."
+              },
+              "peoplesoftOperatorId": {
+                "type": "string",
+                "description": "The PeopleSoft operator (PSOPRDEFN.OPRID) PeopleCode saves are recorded as (LASTUPDOPRID). Required for a writable connection; it must exist in that database."
               }
             }
           }

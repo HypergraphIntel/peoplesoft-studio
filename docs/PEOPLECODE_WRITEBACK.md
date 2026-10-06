@@ -1,15 +1,35 @@
 # PeopleCode write-back: design proposal
 
-**Status:** in research. PeopleCode opened from a database stays
-read-only.
+**Status:** implemented for a first scope (Cycle 185). The protocol it
+reproduces, and the evidence that it matches App Designer, are in
+docs/CONTROLLED_COMPILE_LAB.md, Cycle 185.
 
-**Decided (2026-10-06):** saves are native -- PeopleSoft Studio writes
-`PSPCMTXT`, `PSPCMPROG`, `PSPCMNAME` and the metadata PeopleTools writes,
-with no App Designer in the save path (Option A, section 3). App Designer
-is only the oracle for controlled experiments. No generated
-`HASH_SIGNATURE` is written until its algorithm and the complete save
-transaction are proven against controlled native saves; the research is
-tracked in docs/CONTROLLED_COMPILE_LAB.md (Cycle 185).
+- **Native, no App Designer in the save path.**
+  `src/providers/peopleCodeWriter.ts` performs the save transaction, from
+  rows derived by `src/peoplecode/writeback/savePlan.ts`.
+- **Gates** (each refuses, never approximates):
+  - a Writable connection with a PeopleSoft Operator ID that exists in
+    PSOPRDEFN, checked when set, when Writable is turned on, and in every
+    save;
+  - ZZ_PCODE_LAB definitions only, checked before any lock;
+  - Record Field PeopleCode and Application Class programs that already
+    exist;
+  - no PACKAGE or Declare Function reference rows (their PACKAGEROOT /
+    QUALIFYPATH / APPCLASSMETHOD columns are not yet derived);
+  - the stored program re-encodes exactly and holds only observed column
+    values;
+  - the edit compiles and decodes back to itself;
+  - the concurrency token taken at open is unchanged;
+  - the written rows verify column for column before COMMIT and again
+    after.
+- **Timestamp and operator:** LASTUPDDTTM is one database timestamp per
+  save; LASTUPDOPRID is the connection's configured operator.
+- **Save mode:** Compile and save is what App Designer does. Save only is
+  refused, since App Designer never stores uncompiled source (case 10).
+- **Save reports:** each save keeps a report of the rows it replaced in the
+  extension's global storage (`peoplecode-saves/`).
+
+The sections below are the original proposal, kept for its reasoning.
 
 This proposes how PeopleSoft Studio could save PeopleCode back to a
 database. Saving would be controlled per connection by two options the

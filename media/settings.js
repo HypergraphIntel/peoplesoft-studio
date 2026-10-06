@@ -458,18 +458,42 @@
   }
 
   /**
-   * Whether PeopleCode may be saved back to this database, and how. The
-   * permission is real configuration; saving itself is not implemented yet,
-   * which the group says rather than implying otherwise.
+   * Whether PeopleCode may be saved natively to this database, as which
+   * operator, and how. The host verifies the operator exists before it is
+   * stored, and again before Writable is allowed.
    */
   function renderPeopleCodeSaving(c) {
     if (!c.peoplecodeWrite) return null;
-    const { access, saveMode } = c.peoplecodeWrite;
+    const { access, saveMode, operatorId } = c.peoplecodeWrite;
     const writable = access === 'writable';
     const hint = (text) => h('p', { className: 'hint analysis-note', text });
 
+    const draftKey = `option:${c.id}:peoplesoftOperatorId`;
+    const input = /** @type {HTMLInputElement} */ (h('input', {
+      className: 'operator',
+      attrs: {
+        type: 'text', spellcheck: 'false', autocomplete: 'off', placeholder: 'e.g. VP1',
+        'aria-label': `${c.name} PeopleSoft Operator ID`, 'data-focus-key': draftKey,
+        ...(optionErrorText(c, 'peoplesoftOperatorId') ? { 'aria-invalid': 'true' } : {})
+      }
+    }));
+    input.value = draftKey in drafts ? drafts[draftKey] : operatorId;
+    const save = button('Save', () => post({ type: 'setConnectionOption', connectionId: c.id, option: 'peoplesoftOperatorId', value: input.value }),
+      { secondary: true, focusKey: `${draftKey}:save`, title: 'Checks that the operator exists in this database (PSOPRDEFN), then saves it.' });
+    const sync = () => { save.disabled = input.value.trim() === operatorId; };
+    input.addEventListener('input', () => {
+      if (input.value === operatorId) delete drafts[draftKey]; else drafts[draftKey] = input.value;
+      persist();
+      sync();
+    });
+    input.addEventListener('keydown', (e) => { if (/** @type {KeyboardEvent} */ (e).key === 'Enter' && !save.disabled) save.click(); });
+    sync();
+
     /** @type {Record<string, string | Node>} */
-    const rows = { Access: optionSelect(c, 'peoplecodeAccess', state.peoplecodeAccessOptions, access) };
+    const rows = {
+      Access: optionSelect(c, 'peoplecodeAccess', state.peoplecodeAccessOptions, access),
+      'Operator ID': h('span', { className: 'control-row' }, [input, save])
+    };
     if (writable) rows['Save mode'] = optionSelect(c, 'peoplecodeSaveMode', state.peoplecodeSaveModeOptions, saveMode);
 
     const describe = (options, value) => options.find((o) => o.value === value)?.description;
@@ -477,13 +501,21 @@
       h('h4', { text: 'PeopleCode saving' }),
       facts(rows),
       hint(describe(state.peoplecodeAccessOptions, access) || ''),
+      hint(operatorId
+        ? `Saves are recorded as PeopleSoft operator ${operatorId} (LASTUPDOPRID).`
+        : 'Set the PeopleSoft operator saves are recorded as. It must exist in this database; Writable requires it.'),
       writable ? hint(describe(state.peoplecodeSaveModeOptions, saveMode) || '') : null,
-      writable
-        ? h('p', { className: 'warning-text analysis-note', text: 'Saving PeopleCode is not implemented yet, so PeopleCode still opens read-only. This connection is allowed to write once it is (docs/PEOPLECODE_WRITEBACK.md).' })
+      writable && saveMode === 'save-only'
+        ? h('p', { className: 'warning-text analysis-note', text: 'Saves are refused in Save only mode. Choose Compile and save to save PeopleCode.' })
         : null,
       optionError(c, 'peoplecodeAccess'),
+      optionError(c, 'peoplesoftOperatorId'),
       optionError(c, 'peoplecodeSaveMode')
     ]);
+  }
+
+  function optionErrorText(c, option) {
+    return (errors[`option:${c.id}:${option}`] || {})[option];
   }
 
   function renderMcp() {
@@ -578,7 +610,9 @@
       if (valid) {
         delete errors[key];
         if (target.kind === 'setting') delete drafts[key];
-        else if (target.kind === 'connection') {
+        else if (target.kind === 'connectionOption') {
+          delete drafts[`option:${target.connectionId}:${target.option}`];
+        } else if (target.kind === 'connection') {
           clearConnectionDrafts(target.connectionId);
           editing = editing.filter((id) => id !== target.connectionId);
         }

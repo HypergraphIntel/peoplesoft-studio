@@ -101,6 +101,7 @@ export function createStub() {
   class FileSystemError extends Error {
     static NoPermissions(m) { return new FileSystemError(m); }
     static FileNotFound(m) { return new FileSystemError(m); }
+    static Unavailable(m) { return new FileSystemError(m); }
   }
 
   // Settings live in memory so `update` round-trips within a smoke run.
