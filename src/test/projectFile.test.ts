@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { ProjectFileProvider } from '../providers/projectFile.js';
 import { canExpand } from '../providers/provider.js';
 import { parseExport } from '../providers/projectFileParser.js';
-import { DefinitionType, makeKey, typeLabel } from '../model/definitions.js';
+import { DefinitionType, displayName, makeKey, typeLabel } from '../model/definitions.js';
 import { isKeyField } from '../model/record.js';
 
 // Resolved against the source tree: tsc emits JavaScript to dist-test/ and does
@@ -248,4 +248,9 @@ test('only records and components offer an expander', () => {
   assert.ok(!canExpand(DefinitionType.Field));
   assert.ok(!canExpand(DefinitionType.Page));
   assert.ok(!canExpand(DefinitionType.ApplicationClassPeopleCode));
+  // A field listed under its record (key [FIELD, RECORD]) expands to its PeopleCode events.
+  assert.ok(canExpand(makeKey(DefinitionType.Field, 'EMPLID', 'JOB')));
+  assert.ok(!canExpand(makeKey(DefinitionType.Field, 'EMPLID')));
+  assert.ok(canExpand(makeKey(DefinitionType.Record, 'JOB')));
+  assert.equal(displayName(makeKey(DefinitionType.Field, 'EMPLID', 'JOB')), 'EMPLID');
 });

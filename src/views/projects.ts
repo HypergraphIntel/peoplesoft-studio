@@ -119,10 +119,10 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
       case 'item': {
         const key = node.summary.key;
         const item = new vscode.TreeItem(
-          displayName(key),
+          node.summary.label ?? displayName(key),
           // A record expands to its fields and a component to its pages, the
           // way App Designer nests them.
-          canExpand(key.type)
+          canExpand(key)
             ? vscode.TreeItemCollapsibleState.Collapsed
             : vscode.TreeItemCollapsibleState.None);
         item.description = node.summary.description;
@@ -221,7 +221,7 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
     }
 
     if (node.kind === 'item') {
-      if (!canExpand(node.summary.key.type)) return [];
+      if (!canExpand(node.summary.key)) return [];
       try {
         const children = await node.provider.listChildren(node.summary.key);
         return children.map((summary) => ({
@@ -243,6 +243,7 @@ function iconFor(type: DefinitionType): string {
   switch (type) {
     case DefinitionType.Record: return 'table';
     case DefinitionType.Field: return 'symbol-field';
+    case DefinitionType.RecordPeopleCode: return 'symbol-event';
     case DefinitionType.Page: return 'browser';
     case DefinitionType.Component: return 'window';
     case DefinitionType.Menu: return 'list-tree';

@@ -71,8 +71,8 @@ export class BrowserView implements vscode.TreeDataProvider<Node> {
       case 'definition': {
         const key = node.summary.key;
         const item = new vscode.TreeItem(
-          displayName(key),
-          canExpand(key.type)
+          node.summary.label ?? displayName(key),
+          canExpand(key)
             ? vscode.TreeItemCollapsibleState.Collapsed
             : vscode.TreeItemCollapsibleState.None);
         item.description = node.summary.description;
@@ -133,7 +133,7 @@ export class BrowserView implements vscode.TreeDataProvider<Node> {
     }
 
     if (node.kind === 'definition') {
-      if (!canExpand(node.summary.key.type)) return [];
+      if (!canExpand(node.summary.key)) return [];
       try {
         const children = await node.provider.listChildren(node.summary.key);
         return children.map((summary) => ({
@@ -155,6 +155,7 @@ function iconFor(type: DefinitionType): string {
   switch (type) {
     case DefinitionType.Record: return 'table';
     case DefinitionType.Field: return 'symbol-field';
+    case DefinitionType.RecordPeopleCode: return 'symbol-event';
     case DefinitionType.Page: return 'browser';
     case DefinitionType.Component: return 'window';
     case DefinitionType.Menu: return 'list-tree';

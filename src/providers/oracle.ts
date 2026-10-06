@@ -592,14 +592,41 @@ export class OracleProvider implements DefinitionProvider {
     switch (key.type) {
       case DefinitionType.Record: {
         const record = await this.readRecord(key);
+        // Each field carries its record, so it can expand to its PeopleCode.
         return record.fields.map((f) => ({
-          key: makeKey(DefinitionType.Field, f.name),
+          key: makeKey(DefinitionType.Field, f.name, key.parts[0]),
           description: describeField(f)
         }));
       }
+      case DefinitionType.Field:
+        return key.parts[1] ? this.recordFieldPeopleCode(key.parts[1], key.parts[0]) : [];
       case DefinitionType.Component: return this.componentPageChildren(key);
       default: return [];
     }
+  }
+
+  /**
+   * A record field's PeopleCode programs, one per event that has one
+   * (PSPCMPROG keyed RECORD (1) . FIELD (2) . event (12)), by event name.
+   */
+  private async recordFieldPeopleCode(record: string, field: string): Promise<DefinitionSummary[]> {
+    return this.withConnection(async (c) => {
+      const r = await c.execute<{ EVENT: string; UPDATED: Date | null; OPRID: string }>(
+        `SELECT OBJECTVALUE3 AS EVENT, MAX(LASTUPDDTTM) AS UPDATED, MAX(LASTUPDOPRID) AS OPRID
+           FROM SYSADM.PSPCMPROG
+          WHERE OBJECTID1 = 1 AND OBJECTVALUE1 = :r AND OBJECTID2 = 2 AND OBJECTVALUE2 = :f
+            AND OBJECTID3 = 12 AND OBJECTID4 = 0
+          GROUP BY OBJECTVALUE3
+          ORDER BY OBJECTVALUE3`,
+        { r: record, f: field });
+      return (r.rows ?? []).map((row) => ({
+        key: makeKey(DefinitionType.RecordPeopleCode, record, field, row.EVENT.trim()),
+        label: row.EVENT.trim(),
+        description: 'PeopleCode',
+        ...(row.UPDATED ? { lastUpdated: row.UPDATED } : {}),
+        ...(row.OPRID?.trim() ? { lastUpdatedBy: row.OPRID.trim() } : {})
+      }));
+    });
   }
 
   /** A component's pages, from PSPNLGROUP, in the component's own page order. */
