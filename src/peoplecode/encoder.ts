@@ -1,5 +1,6 @@
 import { encodePrimitiveMethodSignature } from './applicationClassMetadata.js';
 import type { ApplicationClassMemberType, ApplicationClassTypeMetadataProvider } from './applicationClassTypeMetadata.js';
+import { CompilerProfileConflictError, type CompilerProfile } from './compilerProfile.js';
 import {
   APPLICATION_CLASS_FLAGS,
   NO_TYPE_DESCRIPTOR,
@@ -465,11 +466,25 @@ export interface EncodeProgramContext {
   owner?: PeopleCodeOwner;
 
   /**
+   * Cycle 184: the compiler profile (`compilerProfile.ts`) -- the one owner
+   * of the PeopleTools release (`#If #ToolsRel`) and the Application Class
+   * metadata universe. With a profile, `conditionalCompilation` and
+   * `applicationClassTypeMetadata` come from it; passing either with a
+   * different value throws `CompilerProfileConflictError`. There is no
+   * default profile: without one (and without the legacy options below)
+   * the encoder assumes no release, as before.
+   */
+  profile?: CompilerProfile;
+
+  /**
    * Cycle 115: the Tools release `#If #ToolsRel ...` conditional
    * compilation is evaluated against (see `conditionalCompilation.ts`).
    * Without it the source is encoded as before Cycle 115 -- a directive is
    * not understood (an encode error almost everywhere); the encoder never
    * assumes a release.
+   *
+   * @deprecated Cycle 184: select a `profile` instead. Still honored when no
+   * profile is given; with a profile it must agree (or be omitted).
    */
   conditionalCompilation?: ConditionalCompilationOptions;
 
@@ -17281,7 +17296,34 @@ function encodeOrdinaryProgramFragment(
   return encoded;
 }
 
+/**
+ * Cycle 184: one compile context. A profile supplies the release and the
+ * metadata universe; an explicit legacy option that contradicts it is an
+ * error, never a silent override. Idempotent: a resolved context resolves
+ * to itself.
+ */
+export function resolveCompileContext(context: EncodeProgramContext | undefined): EncodeProgramContext | undefined {
+  const profile = context?.profile;
+  if (context === undefined || profile === undefined) return context;
+  if (context.conditionalCompilation !== undefined && context.conditionalCompilation.toolsRelease !== profile.toolsRelease) {
+    throw new CompilerProfileConflictError(
+      `Compiler profile ${profile.id} is PeopleTools ${profile.toolsRelease}, but conditionalCompilation.toolsRelease is ${context.conditionalCompilation.toolsRelease}.`
+    );
+  }
+  if (context.applicationClassTypeMetadata !== undefined && context.applicationClassTypeMetadata !== profile.applicationClassTypeMetadata) {
+    throw new CompilerProfileConflictError(
+      `Compiler profile ${profile.id} and the context name different Application Class metadata universes; supply it through the profile.`
+    );
+  }
+  return {
+    ...context,
+    conditionalCompilation: { toolsRelease: profile.toolsRelease },
+    applicationClassTypeMetadata: profile.applicationClassTypeMetadata
+  };
+}
+
 export function encodeProgramArtifacts(source: string, context?: EncodeProgramContext): EncodedPeopleCode {
+  context = resolveCompileContext(context);
   /*
    * Cycle 115: conditional compilation is lexical and comes first -- every
    * later stage (Application Class parsing, Function metadata, the
