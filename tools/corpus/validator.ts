@@ -6,11 +6,8 @@ import {
 } from '../../src/peoplecode/encoder';
 
 import type {
-  ApplicationClassTypeMetadataProvider
-} from '../../src/peoplecode/applicationClassTypeMetadata';
-import type {
-  ConditionalCompilationOptions
-} from '../../src/peoplecode/conditionalCompilation';
+  CompilerProfile
+} from '../../src/peoplecode/compilerProfile';
 
 import {
   decodeProgram
@@ -166,17 +163,13 @@ export interface ValidationOptions {
   traceRefs?: boolean;
   verbose?: boolean;
   /**
-   * Cycle 107: Application Class type metadata (e.g. from the local
-   * snapshot) for the encoder. One context carries it to both the source
-   * encode (TEST A) and the roundtrip re-encode (TEST B).
+   * Cycle 184: the compiler profile (release + Application Class metadata
+   * universe; e.g. the snapshot's PT861 with its classes). One context
+   * carries it to the source encode (TEST A), TEST A' and the roundtrip
+   * re-encode (TEST B). Replaces the separate Cycle 107 metadata and
+   * Cycle 115 conditional-compilation options.
    */
-  applicationClassTypeMetadata?: ApplicationClassTypeMetadataProvider;
-  /**
-   * Cycle 115: the Tools release for `#If #ToolsRel` conditional
-   * compilation (from the snapshot layer; `snapshot/toolsRelease.ts`).
-   * Carried to both the source encode and the roundtrip re-encode.
-   */
-  conditionalCompilation?: ConditionalCompilationOptions;
+  compilerProfile?: CompilerProfile;
 }
 
 function referenceDescription(
@@ -575,10 +568,9 @@ function runValidation(
     // Cycle 163: an Application Class definition (OBJECTID1 104) even when
     // its source declares no class (a fully commented-out class).
     applicationClassDefinition: applicationClassKey,
-    applicationClassTypeMetadata:
-      options.applicationClassTypeMetadata,
-    conditionalCompilation:
-      options.conditionalCompilation
+    ...(options.compilerProfile !== undefined
+      ? { profile: options.compilerProfile }
+      : {})
   };
 
   const sourceTrace =

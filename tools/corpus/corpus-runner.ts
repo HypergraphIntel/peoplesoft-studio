@@ -56,15 +56,12 @@ import {
   snapshotApplicationClassTypeMetadata
 } from './snapshot/applicationClassTypeMetadata';
 import {
-  snapshotConditionalCompilation
+  snapshotCompilerProfile
 } from './snapshot/toolsRelease';
-import type {
-  ConditionalCompilationOptions
-} from '../../src/peoplecode/conditionalCompilation';
 
 import type {
-  ApplicationClassTypeMetadataProvider
-} from '../../src/peoplecode/applicationClassTypeMetadata';
+  CompilerProfile
+} from '../../src/peoplecode/compilerProfile';
 
 export interface CorpusRunOptions
   extends DiscoveryOptions {
@@ -178,13 +175,11 @@ export async function runCorpus(
     let workItems:
       CorpusWorkItem[];
 
-    let applicationClassTypeMetadata:
-      ApplicationClassTypeMetadataProvider | undefined;
-
-    // Cycle 115: the snapshot's Tools release, for `#If #ToolsRel`
-    // conditional compilation. Live runs have none (like metadata).
-    let conditionalCompilation:
-      ConditionalCompilationOptions | undefined;
+    // Cycle 184: the snapshot's compiler profile (its PeopleTools release,
+    // for `#If #ToolsRel`, with its Application Class metadata). Live runs
+    // have none.
+    let compilerProfile:
+      CompilerProfile | undefined;
 
     if (
       options.definitionId !== undefined
@@ -364,13 +359,12 @@ export async function runCorpus(
         openSnapshotDatabase();
 
       try {
-        applicationClassTypeMetadata =
-          snapshotApplicationClassTypeMetadata(
-            metadataDb
-          );
-        conditionalCompilation =
-          snapshotConditionalCompilation(
-            metadataDb
+        compilerProfile =
+          snapshotCompilerProfile(
+            metadataDb,
+            snapshotApplicationClassTypeMetadata(
+              metadataDb
+            )
           );
       } finally {
         metadataDb.close();
@@ -406,8 +400,7 @@ export async function runCorpus(
               options.traceRefs ?? false,
             verbose:
               options.verbose ?? false,
-            applicationClassTypeMetadata,
-            conditionalCompilation
+            compilerProfile
           }
         );
 

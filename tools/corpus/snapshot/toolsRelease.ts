@@ -17,6 +17,8 @@ import type Database from 'better-sqlite3';
 
 import { getLatestCompletedSnapshot } from './store';
 import type { ConditionalCompilationOptions } from '../../../src/peoplecode/conditionalCompilation';
+import type { ApplicationClassTypeMetadataProvider } from '../../../src/peoplecode/applicationClassTypeMetadata';
+import { compilerProfileForToolsRelease, type CompilerProfile } from '../../../src/peoplecode/compilerProfile';
 
 export const HCDEV_EVIDENCED_TOOLS_RELEASE = '8.61';
 
@@ -30,4 +32,20 @@ export function snapshotToolsRelease(db: Database.Database): string | undefined 
 export function snapshotConditionalCompilation(db: Database.Database): ConditionalCompilationOptions | undefined {
   const toolsRelease = snapshotToolsRelease(db);
   return toolsRelease === undefined ? undefined : { toolsRelease };
+}
+
+/**
+ * Cycle 184: the compiler profile for the snapshot -- its recorded
+ * PeopleTools release (HCDEV: 8.61 -> PT861) with the given metadata
+ * universe. Undefined only when the snapshot records no release (then the
+ * encoder assumes none, as before).
+ */
+export function snapshotCompilerProfile(
+  db: Database.Database,
+  applicationClassTypeMetadata?: ApplicationClassTypeMetadataProvider
+): CompilerProfile | undefined {
+  const toolsRelease = snapshotToolsRelease(db);
+  return toolsRelease === undefined
+    ? undefined
+    : compilerProfileForToolsRelease(toolsRelease, applicationClassTypeMetadata !== undefined ? { applicationClassTypeMetadata } : {});
 }

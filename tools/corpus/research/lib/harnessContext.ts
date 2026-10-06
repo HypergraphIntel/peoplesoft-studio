@@ -20,12 +20,12 @@
 import { openSnapshotDatabase } from '../../snapshot/store';
 import { listSnapshotDefinitions, type SnapshotDefinition } from '../../snapshot/reader';
 import { snapshotApplicationClassTypeMetadata } from '../../snapshot/applicationClassTypeMetadata';
-import { snapshotConditionalCompilation } from '../../snapshot/toolsRelease';
+import { snapshotToolsRelease } from '../../snapshot/toolsRelease';
 import { encodeProgramArtifacts as committedEncodeProgramArtifacts } from '../../../../src/peoplecode/encoder';
 import { decodeProgram as committedDecodeProgram } from '../../../../src/peoplecode/decoder';
 import { NameTable } from '../../../../src/peoplecode/progtext';
 import type { ApplicationClassTypeMetadataProvider } from '../../../../src/peoplecode/applicationClassTypeMetadata';
-import type { ConditionalCompilationOptions } from '../../../../src/peoplecode/conditionalCompilation';
+import { compilerProfileForToolsRelease, type CompilerProfile } from '../../../../src/peoplecode/compilerProfile';
 
 export const PROGRAM_HEADER_LENGTH = 37;
 
@@ -46,8 +46,10 @@ const decodeProgram: typeof committedDecodeProgram = process.env.RESEARCH_DECODE
 
 export interface HarnessContext {
   definitions: SnapshotDefinition[];
+  /** The snapshot's metadata universe (research scripts may wrap it). */
   applicationClassTypeMetadata: ApplicationClassTypeMetadataProvider;
-  conditionalCompilation: ConditionalCompilationOptions | undefined;
+  /** The snapshot's PeopleTools release (HCDEV: 8.61), when recorded. */
+  toolsRelease: string | undefined;
 }
 
 export function openHarnessContext(): HarnessContext {
@@ -55,7 +57,42 @@ export function openHarnessContext(): HarnessContext {
   return {
     definitions: listSnapshotDefinitions(db),
     applicationClassTypeMetadata: snapshotApplicationClassTypeMetadata(db),
-    conditionalCompilation: snapshotConditionalCompilation(db)
+    toolsRelease: snapshotToolsRelease(db)
+  };
+}
+
+/**
+ * Cycle 184: the compiler profile the harness encodes under -- the
+ * snapshot's release (PT861 for HCDEV) with the context's current metadata
+ * universe. Built per call, so a research wrapper of the provider applies.
+ */
+export function harnessCompilerProfile(ctx: HarnessContext): CompilerProfile | undefined {
+  return ctx.toolsRelease === undefined ? undefined : compilerProfileForToolsRelease(ctx.toolsRelease, { applicationClassTypeMetadata: ctx.applicationClassTypeMetadata });
+}
+
+/*
+ * One effective compile context for an encode: `extra.profile` when given;
+ * otherwise a profile translated from legacy `conditionalCompilation` /
+ * `applicationClassTypeMetadata` overrides, else the context's. The legacy
+ * fields passed along are derived from that same profile (an observational
+ * RESEARCH_ENCODER_MODULE may predate profiles), so they never disagree.
+ */
+function compileContext(ctx: HarnessContext, extra: Record<string, unknown>): Record<string, unknown> {
+  const { profile: given, conditionalCompilation, applicationClassTypeMetadata, ...rest } = extra as {
+    profile?: CompilerProfile; conditionalCompilation?: { toolsRelease: string }; applicationClassTypeMetadata?: ApplicationClassTypeMetadataProvider;
+  } & Record<string, unknown>;
+  if (given !== undefined && (conditionalCompilation !== undefined || applicationClassTypeMetadata !== undefined)) {
+    throw new Error('encodeAsHarness: pass a profile or legacy release / metadata overrides, not both');
+  }
+  const metadata = 'applicationClassTypeMetadata' in extra ? applicationClassTypeMetadata : ctx.applicationClassTypeMetadata;
+  const toolsRelease = conditionalCompilation?.toolsRelease ?? ctx.toolsRelease;
+  const profile = given ?? (toolsRelease === undefined ? undefined : compilerProfileForToolsRelease(toolsRelease, metadata !== undefined ? { applicationClassTypeMetadata: metadata } : {}));
+  if (profile === undefined) return { ...rest, ...(metadata !== undefined ? { applicationClassTypeMetadata: metadata } : {}) };
+  return {
+    ...rest,
+    profile,
+    conditionalCompilation: { toolsRelease: profile.toolsRelease },
+    applicationClassTypeMetadata: profile.applicationClassTypeMetadata
   };
 }
 
@@ -93,10 +130,8 @@ export function encodeAsHarness(ctx: HarnessContext, def: SnapshotDefinition, ex
     const artifacts = encodeProgramArtifacts(def.sourceText, {
       owner: harnessOwner(def),
       applicationClassDefinition: isApplicationClass(def),
-      applicationClassTypeMetadata: ctx.applicationClassTypeMetadata,
-      conditionalCompilation: ctx.conditionalCompilation,
       onExternalMetadataFallback: () => { fallback = true; },
-      ...extra
+      ...compileContext(ctx, extra)
     } as any);
     return { artifacts, fallback };
   } catch (error: any) {
