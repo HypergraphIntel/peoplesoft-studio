@@ -46,6 +46,48 @@ If `-PJFF` does not make `-CMPPRJPC` recompile from the imported text:
 
 PSPCMPROG is never fabricated.
 
+## Cycle 182: HCDEV semantic frontier sealed
+
+```text
+HCDEV_SEMANTIC_FRONTIER       = CLOSED
+ACTIONABLE_SEMANTIC_NONEXACT  = 0
+HCDEV: EXACT 30,134 / 30,209; NONEXACT 75 (71 historical source
+       variants + 4 historical reference variants 29797 29883 30170 30179)
+```
+
+- Reproduced in Cycle 182 on the LOCAL SNAPSHOT:
+  - protected 430/430;
+  - ENCODE_ERROR / UNSUPPORTED_SYNTAX / ROUNDTRIP_ONLY 0;
+  - row by row, 0 EXACT -> NONEXACT against the pre-30124 and
+    pre-10860 taxonomies, and the 75 residual rows unchanged.
+- **Release provenance.**
+
+  | Evidence | Release |
+  |---|---|
+  | HCDEV corpus (stored PSPCMPROG / PSPCMNAME / source) | PeopleTools 8.61.15 |
+  | Controlled experimental compiler (SMOKE, H1-H9, G1-G7) | PeopleTools 8.62.09, native Windows, build PT862P09C_2604092319 |
+  | Direct 8.61.15 controlled confirmation of the final rules | pending |
+
+- **Final rules.** 3b5c36e (30124: declared class row before a
+  different-class create) and 722fa0a (10860 / 15598: a Function-local
+  Local declares its name only in its Function). Both have full 8.61.15
+  HCDEV corpus compatibility evidence and direct 8.62.09 controlled
+  evidence.
+- **8.61.15 confirmation scope.** If a writable 8.61.15 database becomes
+  available, re-run only the H (30124) and G (10860 / 15598) fixtures in
+  `experiments.json`, with the same guarded scratch bootstrap, and compare
+  release behavior.
+- **8.62 compatibility track.** Separate from HCDEV. It covers the H2
+  finding (8.62_CONTROLLED_FINDING, UNMODELED: no 0x2D before end-method
+  in a method body holding only a bare Local) and any other 8.62-only
+  bytes. 8.62 differences do not reopen the HCDEV frontier.
+- **Wine 8.62.09:** an unverified host, not reopened (see the G matrix
+  section).
+- **Freeze.** HCDEV encoder semantics change only on contradicting
+  controlled evidence, a new HCDEV definition exposing a generic bug, a
+  contradicting direct 8.61.15 experiment, or explicit work on another
+  release.
+
 ## Cycle 181: 10860 / 15598 rule trial (authorized) -- accepted
 
 **Rule (commit 722fa0a).** A Local declared inside a Function has

@@ -1,6 +1,80 @@
 # Corpus Calibration Progress
 
-## Current status (2026-10-05, Cycle 179)
+## Current status (2026-10-06, Cycle 182) -- HCDEV semantic frontier sealed
+
+```text
+HCDEV_SEMANTIC_FRONTIER       = CLOSED
+ACTIONABLE_SEMANTIC_NONEXACT  = 0
+TOTAL 30,209   EXACT 30,134   NONEXACT 75
+PROTECTED 430/430
+ENCODE_ERROR 0   UNSUPPORTED_SYNTAX 0   ROUNDTRIP_ONLY 0
+forward-exact minus EXACT = 0   new decoder-only failures = 0
+App Class metadata manifest 3,178 / 3,178, 0 missing
+```
+
+- **Residual 75 (historical, not encoder defects):**
+  - 71 DECODE_SOURCE_MISMATCH: the stored PCTEXT is a historical / lossy
+    source variant of the compiled program. Every one round-trips
+    exactly.
+  - 4 historical reference / compiler variants: 29797, 29883, 30170
+    (REFERENCE_ACTIVE_PACKAGE) and 30179 (REFERENCE_ACTIVE_RECORD_FIELD).
+- **Cycle 182 reproduction (LOCAL SNAPSHOT).** Row by row by program ID:
+  - vs. the pre-30124 taxonomy (3b5c36e^): newly EXACT 30124, 10860,
+    15598; EXACT -> NONEXACT 0;
+  - vs. the pre-10860 taxonomy (722fa0a^): newly EXACT 10860, 15598;
+    EXACT -> NONEXACT 0;
+  - the 75 residual rows are unchanged in identity, classification, first
+    difference, forward and round-trip flags.
+- **Final three rules** (generic, no program-specific code, separate code
+  paths and tests):
+  - 30124 family (3b5c36e, Application Class programs): under a wildcard
+    import, `Local A &x = create B()` (B a different class) opens A's
+    PACKAGE row before B's. Named imports keep import order.
+    `encoderDeclaredClassRowBeforeCreate.test.ts` (H matrix, same-class
+    control).
+  - 10860 / 15598 family (722fa0a, ordinary programs): a name declared
+    only by Locals inside Function bodies is declared only within the
+    declaring Function; elsewhere its member chains compile inline.
+    Top-level / Global / Component declarations and Function parameters
+    are unchanged. `encoderFunctionLocalDeclaredName.test.ts` (G1-G7,
+    including the 10860-like G1, the 15598-like G5 and the G2 / G3 / G4 /
+    G6 / G7 controls) plus `controlledCompile.test.ts` (G models).
+- **Provenance (never upgrade silently).**
+  - HCDEV corpus: PeopleTools 8.61.15 stored artifacts.
+  - Controlled experimental compiler: PeopleTools 8.62.09 (build
+    PT862P09C_2604092319), native Windows App Designer on ps-win-client,
+    HRDMO. Evidence: SMOKE (+ determinism, A->B->A), H1-H9, G1-G7 in
+    tools/corpus/controlled-compile/results/8.62.09/. All writes stayed in
+    ZZ_PCODE_LAB%, with NON_SCRATCH_CHANGED = 0.
+  - The final rules have full 8.61.15 HCDEV corpus compatibility evidence
+    plus direct 8.62.09 controlled compiler evidence. They do NOT have
+    direct 8.61.15 controlled compiler evidence: confirmation pending.
+- **H2:** 8.62_CONTROLLED_FINDING, UNMODELED, NOT PART OF THE HCDEV
+  ACTIONABLE FRONTIER. A method body holding only a bare Local stores no
+  0x2D before end-method; the encoder emits one. It needs its own
+  controlled family before any implementation.
+- **Wine 8.62.09:** signon / headless invocation works; -CMPPRJPC on
+  current programs performs no observable save; native / Wine byte
+  equivalence not established; not an authoritative controlled-compile
+  host. Not reopened.
+- **Freeze policy.** Do not change PeopleCode encoder semantics for HCDEV
+  unless:
+  1. new controlled compiler evidence contradicts the current model;
+  2. a new HCDEV corpus definition is added and exposes a generic bug;
+  3. direct 8.61.15 controlled experiments contradict an adopted rule;
+  4. explicit work begins on another PeopleTools release.
+
+  The 75 residual rows are not a reason to restart corpus mining.
+- **Future work (separately scoped only):**
+  - Direct 8.61.15 confirmation, if a writable 8.61.15 database becomes
+    available: re-run only the existing H (30124) and G (10860 / 15598)
+    fixtures from experiments.json and compare release behavior. Do not
+    redo the historical research.
+  - A PeopleTools 8.62 compatibility track (H2, other 8.62-only bytes,
+    new opcode / layout behavior). 8.62 differences do not reopen the
+    HCDEV frontier.
+
+## Earlier status (2026-10-05, Cycles 179-181)
 
 - **Milestone: CORPUS_RECOVERABLE_FRONTIER_CLOSED.** EXACT 30,131 of
   30,209 = forward-exact; NONEXACT 78 = 71 lossy source (HCDEV PCTEXT) +
