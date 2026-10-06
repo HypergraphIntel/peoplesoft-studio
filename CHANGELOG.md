@@ -1,66 +1,159 @@
 # Changelog
 
+## 0.7.0 — MAJOR UPDATE
+
+Version **0.7.0** is a major update. PeopleSoft Studio can now **save
+PeopleCode natively to the database**, with no App Designer in the save
+path. It also gains a **Settings panel**, per-connection configuration,
+and a **one-active-connection** model. Read *Upgrading* below before
+enabling saves: nothing is writable until you turn it on per connection.
+
+### Upgrading: what you need to know
+
+- **Existing configurations keep working.** Saved connections, passwords
+  (still in the OS secret store) and settings carry over. Every connection
+  starts **Read-only**.
+- **Only one connection is active at a time.** Connecting one disconnects
+  any other and makes it the target. *Compare With Environment*, which
+  needs two live connections, is unavailable until it can read the other
+  side without activating it.
+- **To save PeopleCode on a connection**, open *PeopleSoft: Open Settings*
+  and, in that connection's **PeopleCode saving** group:
+  1. Set **Operator ID** to an operator that exists in that database
+     (PSOPRDEFN). Pressing Save checks it before storing it. Saves are
+     recorded under it as LASTUPDOPRID. The database access id is not an
+     operator.
+  2. Set **Access** to **Writable**. A confirmation names the database and
+     user; the operator is checked again.
+  3. Leave **Save mode** at **Compile and save**.
+- **What can be saved, for now:**
+  - definitions under **`ZZ_PCODE_LAB`** only;
+  - **Record Field PeopleCode** and **Application Class** programs that
+    already exist.
+
+  Everything else stays read-only, or the save is refused with the
+  reason. Creating new programs, other PeopleCode types and lifting the
+  `ZZ_PCODE_LAB` restriction come in later releases.
+
+### Native PeopleCode saving
+
+- **Ctrl+S on writable PeopleCode** compiles the source and writes
+  PSPCMTXT, PSPCMPROG and PSPCMNAME as App Designer does:
+  - the PSPCMTXT HASH_SIGNATURE;
+  - the reference rows and PROGEXTENDS;
+  - the PSVERSION / PSLOCK counters;
+  - a deletion marker when you save an empty program.
+
+  It all happens in one transaction, verified column by column before and
+  after COMMIT.
+- **Interoperability is proven against App Designer 8.62.09.** App
+  Designer reopens programs saved from VS Code and, on re-save, recompiles
+  them to identical rows.
+- **Every save is checked first and refused with the reason**, writing
+  nothing, when:
+  - the program changed since you opened it (for example, saved in App
+    Designer);
+  - the edit does not compile, or its compiled form does not read back to
+    your source;
+  - the stored program is outside what the writer reproduces exactly;
+  - the operator does not exist in the database.
+- **A save report** of the rows each save replaced is kept in the
+  extension's global storage (`peoplecode-saves/`), so a save can be
+  undone by hand.
+- **Save only is not available.** App Designer compiles before every save
+  and never stores uncompiled source, so saves are refused in that mode.
+
+### Settings panel
+
+- **Opening it:** run *PeopleSoft: Open Settings* (`psft.settings.open`),
+  use the new **Settings** view in the PeopleSoft side bar, or click the
+  gear on the Settings and Connections views.
+- **Where values are stored:** settings are VS Code configuration. Each
+  value is saved in the scope that defines it (User, Workspace or
+  Workspace Folder), and the panel refreshes when settings change
+  elsewhere. *Open VS Code Settings* shows the same keys natively.
+- **Connections section:** Test Connection, Edit (connect string, access
+  id, project file path), Add and Remove. Passwords never reach the panel.
+- **On each connection:**
+  - its access: PeopleCode writable or read-only;
+  - its **Compiler / Analysis** details: the PeopleTools release read from
+    PSSTATUS and the compiler profile it selects (PT861 / PT862);
+  - its own **PeopleCode decoder**.
+
+  The release and profile come from the live connection, or from the last
+  Test Connection while disconnected.
+- **Current target** is shown for information. It is chosen in the
+  Connections view or the status bar, not in Settings.
+- **The side-bar Settings view** summarizes the target. Its icons turn
+  green while the connection, and the release and profile read from it,
+  are live.
+
+### Connections and navigation
+
+- **Record → field → event:** in the Projects and Definition Browser
+  trees, a record's fields now expand to their PeopleCode events. Opening
+  an event opens its program; opening the field still opens the field.
+- The connection you activate becomes the target, however it was
+  activated.
+
+### MCP server
+
+- The server can be turned off (`peoplesoft.mcp.enabled`), and its port
+  is configurable (`peoplesoft.mcp.port`), both in Settings.
+- Changing the port restarts a running server there and offers to
+  reconfigure AI clients, which saved the old URL.
+- A port already in use is reported as such.
+- Configure AI Client and Copy MCP URL use the running server's URL.
+
+### Compiler
+
+- **Version-aware compiler profiles:** PT861 for 8.61 and PT862 for 8.62,
+  selected from the connection's PeopleTools release.
+- 8.62.09 compatibility: 30,067 / 30,067 shared definitions reproduced
+  byte for byte.
+
+### Settings reference
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `peoplesoft.connections[].peoplecodeAccess` | `read-only` | `writable` allows native PeopleCode saves on that connection. Anything but exactly `writable` is read-only |
+| `peoplesoft.connections[].peoplesoftOperatorId` | — | PeopleSoft operator saves are recorded as (LASTUPDOPRID); required for `writable` and must exist in that database |
+| `peoplesoft.connections[].peoplecodeSaveMode` | `compile-and-save` | `save-only` is not available; saves are refused in that mode |
+| `peoplesoft.connections[].decoder` | (the default below) | `auto`, `strict` or `raw`: how this connection renders PeopleCode |
+| `peoplesoft.peoplecode.decoder` | `auto` | The decoder for connections that do not set their own |
+| `peoplesoft.oracle.thickModeLibDir` | empty | Oracle Instant Client directory for Thick mode; empty uses Thin mode |
+| `peoplesoft.mcp.enabled` | `true` | Run the local MCP server |
+| `peoplesoft.mcp.port` | `7337` | MCP server port (1024–65535, always 127.0.0.1) |
+
+A writable connection in `settings.json` (its password stays in the OS
+secret store):
+
+```jsonc
+"peoplesoft.connections": [
+  {
+    "name": "HRDMO",
+    "kind": "oracle",
+    "connectString": "dbhost:1521/HRDMO",
+    "user": "SYSADM",
+    "peoplecodeAccess": "writable",
+    "peoplesoftOperatorId": "PS",
+    "peoplecodeSaveMode": "compile-and-save"
+  }
+]
+```
+
+Prefer setting Access and the Operator ID in the Settings panel: it
+verifies the operator, which hand-editing `settings.json` does not.
+
+### Known limitations
+
+- PeopleCode saving is limited to existing `ZZ_PCODE_LAB` Record Field
+  PeopleCode and Application Class programs.
+- Compare With Environment is unavailable with one active connection.
+- PeopleCode on a read-only connection still opens read-only. The status
+  bar shows **Read-Only** for it.
+
 ## 0.2.4
-
-### Settings
-
-- Added a PeopleSoft Studio Settings panel (`PeopleSoft: Open Settings`,
-  `psft.settings.open`), reachable from a new Settings view in the
-  PeopleSoft side bar. It edits the existing `peoplesoft.*` configuration
-  in the scope that defines each value, and refreshes when that
-  configuration changes elsewhere.
-- Settings manages and inspects connections; it does not choose the
-  working one. The current target is shown for information and follows
-  the Connections view and status bar, which remain where it is chosen.
-- Connections can be tested, edited (connect string, access id, project
-  path), added and removed from the panel. Passwords stay in the OS
-  secret store and never reach the panel.
-- Each connection shows what it allows to be saved: PeopleCode from a
-  database is read-only, and project exports are read-only throughout.
-- **Native PeopleCode saving** for connections set to Writable. Ctrl+S
-  compiles and writes PSPCMTXT, PSPCMPROG and PSPCMNAME as App Designer
-  does, bumps the version counters, and verifies the rows before and after
-  COMMIT. First scope: ZZ_PCODE_LAB definitions; Record Field PeopleCode
-  and Application Class programs whose references are all of a modeled
-  kind. Anything else stays read-only or is refused with the reason. A
-  writable connection needs a PeopleSoft Operator ID
-  (`peoplesoftOperatorId`, recorded as LASTUPDOPRID), verified to exist in
-  that database. Each save keeps a report of the rows it replaced.
-- Each database connection has a PeopleCode saving group: Access
-  (`peoplecodeAccess`: Read-only by default, or Writable after a modal
-  confirmation naming the database) and Save mode (`peoplecodeSaveMode`:
-  Save only or Compile and save). PeopleCode saving itself is not
-  implemented yet (docs/PEOPLECODE_WRITEBACK.md); these settings are the
-  per-connection permission it will require, and PeopleCode still opens
-  read-only. Anything but an exact `"writable"` reads as read-only.
-- The PeopleCode decoder is chosen per connection
-  (`peoplesoft.connections[].decoder`), in the connection's Compiler /
-  Analysis group. `peoplesoft.peoplecode.decoder` remains the default for
-  connections that do not set one, so existing configurations behave as
-  before.
-- Each connection shows its own Compiler / Analysis details: the
-  PeopleTools release read from `PSSTATUS` and the compiler profile that
-  release selects (PT861 / PT862). The live connection supplies them; a
-  disconnected one shows what its last Test Connection read.
-- The first connection to connect becomes the target when there is no
-  connected target, whichever way it was connected (the Connections view,
-  opening a definition, the status bar). A disconnected target falls back
-  to a connection that is still up. Previously only the status-bar picker
-  or an open PeopleSoft editor set it, so Settings could report no target
-  while a connection was up.
-- The panel also shows the MCP server status and its controls.
-
-### MCP Server
-
-- Added `peoplesoft.mcp.enabled` (default on) and `peoplesoft.mcp.port`
-  (default 7337, 1024-65535), editable in Settings. Turning the server off
-  stops it, and Start refuses until it is turned back on. Changing the
-  port restarts a running server there and offers to reconfigure AI
-  clients, whose saved URL still names the old port.
-- A port already in use is reported as such, and choosing another port
-  retries.
-- Configure AI Client and Copy MCP URL use the running server's URL,
-  not a fixed one.
 
 
 ## 0.2.3
