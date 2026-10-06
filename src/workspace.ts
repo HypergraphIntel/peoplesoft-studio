@@ -101,6 +101,12 @@ export class Workspace implements vscode.Disposable {
       throw err;
     }
     this.providers.set(id, provider);
+    // Without a connected target nothing has anything to act on, so the
+    // connection that just came up becomes it. An existing connected target
+    // is never displaced: changing it is the user's choice.
+    if (!this.isConnected(this._selectedConnectionId)) {
+      this._selectedConnectionId = id;
+    }
     this._onDidChange.fire();
     return provider;
   }
@@ -165,7 +171,17 @@ export class Workspace implements vscode.Disposable {
     if (!provider) return;
     await provider.dispose();
     this.providers.delete(id);
+    // A disconnected target is no target: fall back to a connection that is
+    // still up, or to none.
+    if (this._selectedConnectionId === id) {
+      this._selectedConnectionId =
+        this.activeProviders.find((p) => p.isConnected)?.id;
+    }
     this._onDidChange.fire();
+  }
+
+  private isConnected(id: string | undefined): boolean {
+    return id !== undefined && (this.providers.get(id)?.isConnected ?? false);
   }
 
   async forgetPassword(name: string): Promise<void> {
