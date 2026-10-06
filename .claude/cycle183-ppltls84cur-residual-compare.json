@@ -1,0 +1,66 @@
+{
+  "file": "~/peoplesoft-lab/pt86115/ps_home/projects/PPLTLS84CUR/PPLTLS84CUR.XML",
+  "capturedAt": "2026-10-06T05:55:26.507Z",
+  "results": [
+    {
+      "definitionId": 29797,
+      "displayName": "104=PRCS_GENERIC, 107=PRCS_GENERICHelper, 12=OnExecute, 0= , 0= , 0= , 0= ",
+      "deliveredNameCount": 191,
+      "deliveredPcmPntRows": 191,
+      "sameSource": true,
+      "deliveredSourceSha256": "27f679a7ca63e97225b5ae3843a94fe3a8741db820e19f92413b1483deb70b17",
+      "hcdevStoredNameRows": 191,
+      "hcdevStoredEqualsDelivered": true,
+      "encoderDeliveredSourceEqualsDelivered": false,
+      "encoderNameRows": 54
+    },
+    {
+      "definitionId": 29883,
+      "displayName": "104=PSXP_SERVICEMGR, 107=RunReport, 12=OnExecute, 0= , 0= , 0= , 0= ",
+      "deliveredNameCount": 48,
+      "deliveredPcmPntRows": 48,
+      "sameSource": true,
+      "deliveredSourceSha256": "87beee4826b5fd283a11d144741454a009e1b5a763e0d5f3090e6af99021a574",
+      "hcdevStoredNameRows": 48,
+      "hcdevStoredEqualsDelivered": true,
+      "encoderDeliveredSourceEqualsDelivered": false,
+      "encoderNameRows": 18
+    },
+    {
+      "definitionId": 30170,
+      "displayName": "104=PTAI_ACTION_ITEMS, 107=ActionItem, 12=OnExecute, 0= , 0= , 0= , 0= ",
+      "deliveredNameCount": 543,
+      "deliveredPcmPntRows": 543,
+      "sameSource": true,
+      "deliveredSourceSha256": "2ee437a407c55043438d18b3bba8e66742915382698e9061a110732a4300da4e",
+      "hcdevStoredNameRows": 543,
+      "hcdevStoredEqualsDelivered": true,
+      "encoderDeliveredSourceEqualsDelivered": false,
+      "encoderNameRows": 183
+    },
+    {
+      "definitionId": 30179,
+      "displayName": "104=PTAI_ACTION_ITEMS, 107=List, 12=OnExecute, 0= , 0= , 0= , 0= ",
+      "deliveredNameCount": 533,
+      "deliveredPcmPntRows": 533,
+      "sameSource": false,
+      "deliveredSourceSha256": "9e2f2b96f995daa993b4e4742bbe7bddfc85b1378f4c588875a779d5857872dc",
+      "hcdevStoredNameRows": 533,
+      "hcdevStoredEqualsDelivered": true,
+      "encoderDeliveredSourceEqualsDelivered": false,
+      "encoderNameRows": 160
+    },
+    {
+      "definitionId": 30192,
+      "displayName": "104=PTAI_UTILITIES, 107=AWEUtilities, 12=OnExecute, 0= , 0= , 0= , 0= ",
+      "deliveredNameCount": 9,
+      "deliveredPcmPntRows": 9,
+      "sameSource": true,
+      "deliveredSourceSha256": "240342ce2bfd298ef3fa01893281db94cd23ff9c0105983e3a908fba41dc6548",
+      "hcdevStoredNameRows": 9,
+      "hcdevStoredEqualsDelivered": true,
+      "encoderDeliveredSourceEqualsDelivered": false,
+      "encoderNameRows": 4
+    }
+  ]
+}
