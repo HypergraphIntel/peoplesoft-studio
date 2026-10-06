@@ -265,34 +265,38 @@ try {
     document: { uri: vscode.Uri.parse(`psft://${handle}/${encodeURIComponent('0:DEMO')}/DEMO.psrecord`) }
   };
 
-  // Settings selects HCDEV -> selectedConnectionId -> status bar label.
+  // Settings shows the target but cannot choose it: a selection request from
+  // the page is not part of the contract and changes nothing.
   panel._receive({ type: 'selectConnection', connectionId: devId });
-  await until(() => panel.webview.posted.some((m) => m.type === 'selectionResult' && m.connectionId === devId),
-    'the HCDEV selection to finish');
-  check(panel.webview.posted.find((m) => m.type === 'selectionResult' && m.connectionId === devId)?.selected === true,
-    'selecting HCDEV from Settings did not succeed');
-  check(lastState()?.selectedConnectionId === devId, 'selecting HCDEV from Settings did not change selectedConnectionId');
-  check(statusItem?.visible && statusItem.text === '$(database) HCDEV',
-    `status bar did not follow the Settings selection (shows "${statusItem?.text}")`);
+  await flush();
+  check(lastState()?.selectedConnectionId === undefined && !statusItem?.visible,
+    'a selectConnection message from the Settings page changed the target');
 
-  // Settings selects HCTST, which connects it first.
-  panel._receive({ type: 'selectConnection', connectionId: tstId });
-  await until(() => panel.webview.posted.some((m) => m.type === 'selectionResult' && m.connectionId === tstId),
-    'the HCTST selection to finish');
+  // The status-bar picker selects HCDEV (connecting it) -> Settings and the status bar follow.
+  const pick = async (index) => {
+    vscode._quickPickResult = index;
+    await vscode.commands.executeCommand('psft.status.selectConnection');
+    vscode._quickPickResult = undefined;
+  };
+  await pick(0);
+  await until(() => lastState()?.selectedConnectionId === devId, 'Settings to follow the HCDEV selection');
   state = lastState();
-  check(state?.selectedConnectionId === tstId && state.connections.find((c) => c.id === tstId)?.connected,
-    'selecting HCTST from Settings did not connect and select it');
+  check(state?.connections?.find((c) => c.id === devId)?.selected &&
+    state.connections.find((c) => c.id === devId)?.connected,
+    'Settings does not show HCDEV as the connected target');
+  check(statusItem?.visible && statusItem.text === '$(database) HCDEV',
+    `status bar does not show HCDEV (shows "${statusItem?.text}")`);
+
+  // ... then HCTST.
+  await pick(1);
+  await until(() => lastState()?.selectedConnectionId === tstId, 'Settings to follow the HCTST selection');
   check(statusItem?.text === '$(database) HCTST',
     `status bar did not update to HCTST (shows "${statusItem?.text}")`);
-  check(state?.connections?.find((c) => c.id === tstId)?.environment?.status === 'not-applicable',
+  check(lastState()?.connections?.find((c) => c.id === tstId)?.environment?.status === 'not-applicable',
     'a project export was given a PeopleTools release');
 
-  // The status-bar picker selects HCDEV -> the Settings panel follows.
-  vscode._quickPickResult = 0;
-  await vscode.commands.executeCommand('psft.status.selectConnection');
-  vscode._quickPickResult = undefined;
-  await until(() => lastState()?.selectedConnectionId === devId, 'Settings to follow the status-bar selection');
-  check(statusItem?.text === '$(database) HCDEV', 'status-bar picker did not select HCDEV');
+  await pick(0);
+  await until(() => lastState()?.selectedConnectionId === devId, 'Settings to follow the return to HCDEV');
 
   // The side-bar Settings view summarizes the same target.
   const settingsTree = vscode._trees.get('psft.settings');
@@ -340,7 +344,7 @@ try {
   // Malformed messages are ignored: connections cannot be overwritten as a plain setting.
   const posted = panel.webview.posted.length;
   panel._receive({ type: 'updateSetting', key: 'connections', value: [] });
-  panel._receive({ type: 'selectConnection' });
+  panel._receive({ type: 'disconnect', connectionId: devId });
   await flush();
   check(panel.webview.posted.length === posted && settings.get('peoplesoft.connections')?.length === 3,
     'a malformed Settings message was acted on');

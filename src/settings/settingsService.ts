@@ -42,18 +42,15 @@ export interface ConnectionEntry {
 }
 
 /**
- * The connection model. Every operation is the extension's existing one:
- * selection is the status bar's path, connect/disconnect/add/remove are the
- * existing commands.
+ * The connection model, as Settings may use it. Selection and connection
+ * state are read here, never changed: the working connection is chosen in
+ * the Connections view and the status bar. Add and remove are the existing
+ * commands.
  */
 export interface ConnectionPort {
   list(): ConnectionEntry[];
-  /** The workspace's selectedConnectionId. */
+  /** The workspace's selectedConnectionId, read-only. */
   selectedId(): string | undefined;
-  /** Connects if needed, then selects; false if the connection failed. */
-  select(config: ConnectionConfig): Promise<boolean>;
-  connect(config: ConnectionConfig): Promise<void>;
-  disconnect(config: ConnectionConfig): Promise<void>;
   add(): Promise<void>;
   remove(config: ConnectionConfig): Promise<void>;
   /** Connects a throwaway provider; resolves to its PSSTATUS where it has one. */
@@ -170,18 +167,6 @@ export class SettingsService implements Disposable {
     }
 
     switch (message.type) {
-      case 'selectConnection': {
-        const selected = await this.connections.select(entry.config);
-        // A failed connect leaves the selection unchanged and fires no
-        // workspace event; the reply tells the page to drop its pending choice.
-        return { type: 'selectionResult', connectionId: entry.id, selected };
-      }
-      case 'connect':
-        await this.connections.connect(entry.config);
-        return undefined;
-      case 'disconnect':
-        await this.connections.disconnect(entry.config);
-        return undefined;
       case 'removeConnection':
         await this.connections.remove(entry.config);
         return undefined;

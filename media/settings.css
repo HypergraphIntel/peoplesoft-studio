@@ -214,17 +214,15 @@ button.link:hover:not(:disabled) {
   border-color: currentColor;
 }
 
-/* Target connection ------------------------------------------------------- */
+/* Current target (informational) --------------------------------------- */
 
-.target {
-  padding: 0.75rem;
-  margin-bottom: 1rem;
-  border: 1px solid var(--vscode-panel-border, var(--vscode-contrastBorder, transparent));
-  border-radius: var(--radius);
-  background: var(--vscode-sideBar-background, transparent);
+.current-target {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.4rem;
+  margin-bottom: 0.9rem;
 }
-.target .control-row { margin-bottom: 0.4rem; }
-.target label { font-weight: 600; }
 
 /* Connection list --------------------------------------------------------- */
 
@@ -286,9 +284,7 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 
 /* High contrast: VS Code sets these classes on <body>. */
 body.vscode-high-contrast .connection,
-body.vscode-high-contrast .target,
-body.vscode-high-contrast-light .connection,
-body.vscode-high-contrast-light .target {
+body.vscode-high-contrast-light .connection {
   border-color: var(--vscode-contrastBorder);
 }
 body.vscode-high-contrast .connection.selected,

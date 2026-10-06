@@ -25,8 +25,6 @@
   let editing = saved.editing || [];
   /** @type {Record<string, Record<string, string>>} keyed like drafts' prefixes */
   const errors = {};
-  /** A target selection posted but not yet reflected in state. */
-  let pendingTarget = /** @type {string | undefined} */ (undefined);
 
   function persist() {
     vscode.setState({ drafts, editing });
@@ -136,50 +134,25 @@
     return section;
   }
 
+  /**
+   * The workspace target, for information only. It is chosen in the
+   * Connections view or the status bar; Settings never changes it.
+   */
   function renderTarget() {
     const target = state.connections.find((c) => c.selected);
-    const select = /** @type {HTMLSelectElement} */ (h('select', {
-      attrs: { id: 'target-connection', 'data-focus-key': 'target-connection', 'aria-describedby': 'target-help' },
-      on: {
-        change: (e) => {
-          const id = /** @type {HTMLSelectElement} */ (e.target).value;
-          if (!id) return;
-          pendingTarget = id;
-          post({ type: 'selectConnection', connectionId: id });
-          render();
-        }
-      }
-    }));
-
-    if (!target) select.append(h('option', { text: '(none)', attrs: { value: '' } }));
-    for (const c of state.connections) {
-      const option = /** @type {HTMLOptionElement} */ (h('option', { text: c.name, attrs: { value: c.id } }));
-      option.selected = pendingTarget ? c.id === pendingTarget : c.selected;
-      select.append(option);
+    if (!target) {
+      const stale = state.selectedConnectionId !== undefined;
+      return h('p', { className: 'current-target', attrs: { 'aria-live': 'polite' } }, [
+        h('strong', { text: 'Current target:' }),
+        stale ? 'the previously selected connection is no longer configured.' : 'none.',
+        h('span', { className: 'hint', text: 'Choose one in the Connections view or the status bar.' })
+      ]);
     }
-    select.disabled = state.connections.length === 0 || pendingTarget !== undefined;
-
-    const status = [];
-    if (pendingTarget) {
-      status.push(badge('Connecting…', 'off'));
-    } else if (target) {
-      status.push(target.connected ? badge('Connected', 'ok') : badge('Not connected', 'off'));
-      status.push(badge(target.access.label, 'warn', target.access.detail));
-    }
-
-    let help = 'The connection the status bar targets. Choosing a disconnected connection connects to it.';
-    if (!target && state.selectedConnectionId && !pendingTarget) {
-      help = 'The previously selected connection is no longer configured. ' + help;
-    }
-
-    return h('div', { className: 'target' }, [
-      h('div', { className: 'control-row' }, [
-        h('label', { text: 'Active connection', attrs: { for: 'target-connection' } }),
-        select,
-        ...status
-      ]),
-      target && !pendingTarget ? h('p', { className: 'hint', text: target.access.detail }) : null,
-      h('p', { className: 'hint', text: help, attrs: { id: 'target-help' } })
+    return h('p', { className: 'current-target', attrs: { 'aria-live': 'polite' } }, [
+      h('strong', { text: 'Current target:' }),
+      h('span', { className: 'mono', text: target.name }),
+      target.connected ? badge('Connected', 'ok') : badge('Not connected', 'off'),
+      h('span', { className: 'hint', text: 'Change it in the Connections view or the status bar.' })
     ]);
   }
 
@@ -188,7 +161,7 @@
     const head = h('div', { className: 'connection-head' }, [
       h('h3', { text: c.name }),
       h('span', { className: 'kind', text: c.kindLabel }),
-      c.selected ? badge('Active', 'neutral', 'The workspace target connection') : null,
+      c.selected ? badge('Target', 'neutral', 'The workspace target connection, chosen in the Connections view or the status bar') : null,
       c.connected ? badge('Connected', 'ok') : badge('Not connected', 'off'),
       badge(c.access.label, 'warn', c.access.detail)
     ]);
@@ -205,16 +178,8 @@
     }
 
     const actions = h('div', { className: 'actions' }, [
-      c.selected ? null : button('Set Active', () => {
-        pendingTarget = c.id;
-        post({ type: 'selectConnection', connectionId: c.id });
-        render();
-      }, { focusKey: `select:${c.id}`, disabled: pendingTarget !== undefined }),
-      c.connected
-        ? button('Disconnect', () => post({ type: 'disconnect', connectionId: c.id }), { secondary: true, focusKey: `disconnect:${c.id}` })
-        : button('Connect', () => post({ type: 'connect', connectionId: c.id }), { secondary: true, focusKey: `connect:${c.id}` }),
       button(busy ? 'Testing…' : 'Test Connection', () => post({ type: 'testConnection', connectionId: c.id }),
-        { secondary: true, disabled: busy, focusKey: `test:${c.id}`, title: 'Connect a temporary session and read PSSTATUS; the live connection is not affected.' }),
+        { disabled: busy, focusKey: `test:${c.id}`, title: 'Connect a temporary session and read PSSTATUS; the live connection is not affected.' }),
       button('Edit', () => toggleEdit(c.id), { secondary: true, focusKey: `edit:${c.id}`, disabled: editing.includes(c.id) }),
       button('Remove…', () => post({ type: 'removeConnection', connectionId: c.id }), { secondary: true, focusKey: `remove:${c.id}` })
     ]);
@@ -386,13 +351,13 @@
       h('h2', { text: 'Compiler / Analysis', attrs: { id: 'compiler-title' } }),
       h('p', {
         className: 'description',
-        text: 'Read from the active connection’s PSSTATUS. The compiler profile follows the PeopleTools release automatically and is not configurable.'
+        text: 'For the current target connection, read from its PSSTATUS. The compiler profile follows the PeopleTools release automatically and is not configurable.'
       })
     ]);
 
     const target = state.connections.find((c) => c.selected);
     if (!target) {
-      section.append(h('p', { className: 'hint', text: 'No active connection. Choose one under Connections.' }));
+      section.append(h('p', { className: 'hint', text: 'No target connection. Choose one in the Connections view or the status bar.' }));
       return section;
     }
 
@@ -509,9 +474,6 @@
       const ids = new Set(state.connections.map((c) => c.id));
       editing = editing.filter((id) => ids.has(id));
       persist();
-      render();
-    } else if (message.type === 'selectionResult') {
-      if (pendingTarget === message.connectionId) pendingTarget = undefined;
       render();
     } else if (message.type === 'validation') {
       const target = message.target;

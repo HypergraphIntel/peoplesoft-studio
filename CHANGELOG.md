@@ -9,11 +9,12 @@
   PeopleSoft side bar. It edits the existing `peoplesoft.*` configuration
   in the scope that defines each value, and refreshes when that
   configuration changes elsewhere.
-- The active connection can be chosen from the panel. It uses the same
-  selection path as the status-bar picker, so the two stay in step.
-- Connections can be connected, disconnected, tested, edited (connect
-  string, access id, project path), added and removed. Passwords stay in
-  the OS secret store and never reach the panel.
+- Settings manages and inspects connections; it does not choose the
+  working one. The current target is shown for information and follows
+  the Connections view and status bar, which remain where it is chosen.
+- Connections can be tested, edited (connect string, access id, project
+  path), added and removed from the panel. Passwords stay in the OS
+  secret store and never reach the panel.
 - Each connection shows what it allows to be saved: PeopleCode from a
   database is read-only, and project exports are read-only throughout.
 - For a connected database, the panel shows the PeopleTools release

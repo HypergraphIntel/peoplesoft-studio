@@ -14,8 +14,9 @@ interface SettingsNode {
 /**
  * The Settings entry in the PeopleSoft side bar.
  *
- * A short summary of the target connection, read from the same state the
- * panel renders, and a way into the panel. Every row opens it: the form
+ * A short, read-only summary of the target connection -- chosen in the
+ * Connections view or the status bar, not here -- read from the same state
+ * the panel renders, and a way into the panel. Every row opens it: the form
  * itself does not fit a tree.
  */
 export class SettingsView implements vscode.TreeDataProvider<SettingsNode>, vscode.Disposable {
@@ -68,7 +69,7 @@ function summarize(state: SettingsState): SettingsNode[] {
   } else {
     nodes.push({
       label: 'No target connection',
-      description: state.connections.length > 0 ? 'Select one in Settings' : 'None configured',
+      tooltip: 'Choose the target connection in the Connections view or the status bar.',
       icon: 'debug-disconnect'
     });
   }
