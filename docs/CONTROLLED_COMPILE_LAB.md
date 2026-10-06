@@ -322,6 +322,20 @@ added: a new record-field reference).
 - The encoder reproduces the program (191 / 191 bytes) and both name rows,
   in NAMENUM order.
 
+**09-reference-row** (the body reduced to
+`Local string &c = ZZ_PCODE_LAB.ZZ_PCODE_LAB_C03;`: reference 2 now names
+C03, not C02).
+
+| Item | Observed |
+|---|---|
+| PSPCMNAME | by key, NAMENUM 2 REFNAME C02 -> C03; physically both rows deleted and re-inserted |
+| PSPCMPROG | NAMECOUNT 2, PROGLEN 191 -> 66, VERSION 71 |
+| PSPCMTXT | replaced; HASH_SIGNATURE matches the prediction |
+| PSVERSION / PSLOCK | PSVERSION PCM +1 and SYS +1; PSLOCK PCM +1 |
+| Other tables | none |
+
+- The encoder reproduces the program (66 / 66 bytes) and both name rows.
+
 ## 8.62 track: H2 -- end-of-body boundary (resolved)
 
 Branch `research/pt862-compat`; this is separate from the closed HCDEV
