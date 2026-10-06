@@ -43,16 +43,6 @@ AI Agent
    ```text
    PeopleSoft: Configure AI Client
    ```
-6. Verify the Codex MCP configuration from a command line:
-   ```bash
-   codex mcp list
-   ```
-   You should see:
-   ```text
-   peoplesoftStudio
-   ```
-7. Restart or reload Codex if it was already running.
-
 
 
 ## What works now
@@ -131,4 +121,16 @@ virtual documents end in `.peoplecode` rather than `.pcode`. Both extensions can
 be installed together. `richardwood.peoplesoft-datamover` only claims `.dms` and
 `.dmt`, so it does not overlap at all.
 
+
+## Troubleshooting
+
+1. Verify the Codex MCP configuration from a command line:
+   ```bash
+   codex mcp list
+   ```
+   You should see:
+   ```text
+   peoplesoftStudio
+   ```
+2. Restart or reload Codex if it was already running.
 
