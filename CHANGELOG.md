@@ -17,9 +17,16 @@
   secret store and never reach the panel.
 - Each connection shows what it allows to be saved: PeopleCode from a
   database is read-only, and project exports are read-only throughout.
-- For a connected database, the panel shows the PeopleTools release
-  read from `PSSTATUS` and the compiler profile that release selects
-  (PT861 / PT862).
+- Each connection shows its own Compiler / Analysis details: the
+  PeopleTools release read from `PSSTATUS` and the compiler profile that
+  release selects (PT861 / PT862). The live connection supplies them; a
+  disconnected one shows what its last Test Connection read.
+- The first connection to connect becomes the target when there is no
+  connected target, whichever way it was connected (the Connections view,
+  opening a definition, the status bar). A disconnected target falls back
+  to a connection that is still up. Previously only the status-bar picker
+  or an open PeopleSoft editor set it, so Settings could report no target
+  while a connection was up.
 - The panel also shows the MCP server status and its controls.
 
 ### MCP Server

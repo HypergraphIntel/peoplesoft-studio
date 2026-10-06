@@ -90,6 +90,8 @@ export class SettingsService implements Disposable {
   private readonly environments = new Map<string, EnvironmentView>();
   /** The last Test Connection result per connection id. */
   private readonly tests = new Map<string, ConnectionTestView>();
+  /** The release the last successful Test Connection read, shown while not connected. */
+  private readonly testedEnvironments = new Map<string, EnvironmentView>();
 
   constructor(
     private readonly config: ConfigurationPort,
@@ -217,7 +219,7 @@ export class SettingsService implements Disposable {
 
   /** The connection's release, starting the PSSTATUS read the first time it is asked for. */
   private environmentOf(entry: ConnectionEntry): EnvironmentView {
-    if (!entry.connected) return { status: 'not-connected' };
+    if (!entry.connected) return this.testedEnvironments.get(entry.id) ?? { status: 'not-connected' };
 
     const known = this.environments.get(entry.id);
     if (known) return known;
@@ -255,8 +257,13 @@ export class SettingsService implements Disposable {
       if (!connected.has(id)) this.environments.delete(id);
     }
     for (const id of [...this.tests.keys()]) {
-      if (!configured.has(id)) this.tests.delete(id);
+      if (!configured.has(id)) this.forgetTest(id);
     }
+  }
+
+  private forgetTest(id: string): void {
+    this.tests.delete(id);
+    this.testedEnvironments.delete(id);
   }
 
   private async updateSetting(key: EditableSettingKey, value: unknown): Promise<SettingsHostMessage> {
@@ -310,6 +317,9 @@ export class SettingsService implements Disposable {
       this.ui.showError(message);
       return { type: 'validation', target, errors: { form: message } };
     }
+    // Earlier test results describe the connection as it was.
+    this.forgetTest(id);
+    this.notify();
     return { type: 'validation', target, errors: {} };
   }
 
@@ -322,8 +332,10 @@ export class SettingsService implements Disposable {
       result = info
         ? { status: 'succeeded', release: formatRelease(info) }
         : { status: 'succeeded' };
+      if (info) this.testedEnvironments.set(entry.id, describeEnvironment(info, 'test'));
     } catch (err) {
       result = { status: 'failed', message: safeErrorMessage(err) };
+      this.testedEnvironments.delete(entry.id);
     }
     this.tests.set(entry.id, result);
     this.notify();

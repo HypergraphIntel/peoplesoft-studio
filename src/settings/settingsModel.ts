@@ -299,6 +299,11 @@ export type EnvironmentView =
   | { status: 'error'; message: string }
   | {
       status: 'available';
+      /**
+       * Where the release came from: the live connection, or the last Test
+       * Connection of a connection that is not connected now.
+       */
+      source: 'connection' | 'test';
       /** The full release for display, e.g. "8.62.09". */
       release: string;
       toolsRelease: string;
@@ -318,7 +323,7 @@ export function formatRelease(info: EnvironmentInfo): string {
  * compiler's own release -> profile table. A release with no profile is
  * reported, not guessed.
  */
-export function describeEnvironment(info: EnvironmentInfo): EnvironmentView {
+export function describeEnvironment(info: EnvironmentInfo, source: 'connection' | 'test' = 'connection'): EnvironmentView {
   let profile: { ok: true; id: CompilerProfileId } | { ok: false; message: string };
   try {
     profile = { ok: true, id: compilerProfileIdForToolsRelease(info.toolsRelease) };
@@ -328,6 +333,7 @@ export function describeEnvironment(info: EnvironmentInfo): EnvironmentView {
   }
   return {
     status: 'available',
+    source,
     release: formatRelease(info),
     toolsRelease: info.toolsRelease,
     ...(info.patchLevel !== undefined ? { patchLevel: info.patchLevel } : {}),
