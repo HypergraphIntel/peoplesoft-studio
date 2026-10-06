@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.7.0 — MAJOR UPDATE
+## 0.7.1 — MAJOR UPDATE
 
-Version **0.7.0** is a major update. PeopleSoft Studio can now **save
+Version **0.7.1** is a major update. PeopleSoft Studio can now **save
 PeopleCode natively to the database**, with no App Designer in the save
 path. It also gains a **Settings panel**, per-connection configuration,
 and a **one-active-connection** model. Read *Upgrading* below before
