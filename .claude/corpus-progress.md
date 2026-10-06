@@ -3,14 +3,29 @@
 ## Current status (2026-10-06, Cycle 183) -- the final 75 resolved
 
 ```text
-TOTAL 30,209
-EXACT (stored-source exact)         30,134
-EXACT_RECOVERED_SOURCE                  71   recovered historical source, compiled exact
-UNKNOWN_MISMATCH                         4   29797 29883 30170 30179 (class D)
-PSPCMPROG reproduced                30,205
-PSPCMNAME reproduced                30,204   (+30192 delivered rows, class D)
+Programs (30,209)
+  STORED_SOURCE_EXACT          30,134   stored PSPCMTXT reproduces PSPCMPROG (harness class EXACT)
+  EXACT_RECOVERED_SOURCE           71   compiled exact from the recovered historical source
+  COMPILE_HISTORY_DEPENDENT         4   29797 29883 30170 30179 (harness class UNKNOWN_MISMATCH)
+
+Artifact reproduction
+  PSPCMPROG reproducible       30,205 / 30,209
+  PSPCMNAME reproducible       30,204 / 30,209
+  Both reproducible            30,204 / 30,209
+  Original source recoverable  30,209 / 30,209
+
+Unreproducible artifacts: 5, from 4 + 1 programs
+  29797 29883 30170 30179   PSPCMPROG and PSPCMNAME (the 4 compile-history-dependent programs)
+  30192                     PSPCMNAME only (its PSPCMPROG is exact; the program is STORED_SOURCE_EXACT)
+
 protected 430/430; regressed 0; ENCODE_ERROR / UNSUPPORTED_SYNTAX / ROUNDTRIP_ONLY 0
+HCDEV source-reconstruction track: COMPLETE (Cycle 183, pushed at 73d756a)
 ```
+
+Never conflate "4 unresolved programs" with "5 unreproducible artifacts":
+the four programs are the compile-history variants; 30192 is a fifth,
+names-only artifact inside an otherwise exact program. All five hold
+Oracle's delivered 2023-11-14 build rows (class D).
 
 - **71 lossy source (Track 1):** HCDEV PSPCMTXT is WE8ISO8859P15; Oracle
   stored characters with no byte as 0xBF (16 code points) or best-fit
