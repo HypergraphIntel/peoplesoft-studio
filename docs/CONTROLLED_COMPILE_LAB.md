@@ -95,9 +95,26 @@ space).**
   SYS 1227->1228) moved.
 - Evidence: `results/8.62.09/SMOKE-run2.json`.
 
+**A->B->A (user saves; audit and capture after each).**
+- B is a different class body: `Local string &s; &s = "B";`.
+  - It compiled to a different program (236 bytes, sha256 `ac58d1ab...`,
+    HASH_SIGNATURE `STHoS1JCaG+SsgCiyQkdkOIDu08A`).
+  - Encoder EXACT.
+  - PSVERSION PCM 25->27.
+- A2 restored the SMOKE source.
+  - PSPCMPROG is byte-identical to A1 (`fd60e9ff...`, 252 bytes).
+  - PSPCMNAME is row-for-row identical; the source and HASH_SIGNATURE
+    are identical.
+  - Encoder EXACT.
+- NON_SCRATCH_CHANGED = 0 at every step.
+- App Designer appends one trailing blank line to the stored text on
+  every save.
+- Evidence: `results/8.62.09/SMOKE-aba-B.json` and `SMOKE-aba-A2.json`.
+
 **Status.** One controlled 8.62.09 compile, end to end, with the
-encoder exact; an unchanged re-save is byte-deterministic. Still open:
-- an A->B->A replacement;
+encoder exact. An unchanged re-save is byte-deterministic, and A->B->A
+returns byte-identical output. The compiler output is a function of the
+source alone, so the gate for H / G (8.62.09) has passed. Still open:
 - Wine-vs-Windows equality;
 - a way to save the H / G sources without our GUI automation.
 
