@@ -281,6 +281,18 @@ App Designer Save
 - The encoder reproduces the program (111 / 111 bytes) and its reference
   row.
 
+**06-literal** (`&n = 1` -> `&n = 2`).
+
+| Item | Observed |
+|---|---|
+| PSPCMTXT / PSPCMPROG / PSPCMNAME | replaced (new ROWIDs); PSPCMNAME content unchanged |
+| PSPCMPROG | PROGTXT changed, PROGLEN unchanged (111), VERSION 68 |
+| HASH_SIGNATURE | matches the prediction |
+| PSVERSION / PSLOCK | PSVERSION PCM +1 and SYS +1; PSLOCK PCM +1 |
+| Other tables | none |
+
+- The encoder reproduces the program (111 / 111 bytes).
+
 ## 8.62 track: H2 -- end-of-body boundary (resolved)
 
 Branch `research/pt862-compat`; this is separate from the closed HCDEV
