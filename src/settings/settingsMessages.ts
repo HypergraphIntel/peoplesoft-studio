@@ -7,6 +7,10 @@ import { editableFields, isEditableSettingKey } from './settingsModel.js';
 /*
  * The contract between the extension host and the Settings webview.
  *
+ * Settings manages and inspects connections; it does not choose the working
+ * one. Nothing here selects, connects or disconnects: that belongs to the
+ * Connections view and the status bar, and the page only displays the result.
+ *
  * The page receives a complete SettingsState and renders it; it never derives
  * state of its own. Every message the page sends is checked by
  * parseWebviewMessage before it is acted on: the page is a separate process
@@ -47,7 +51,10 @@ export interface ConnectionView {
   user?: string;
   path?: string;
   connected: boolean;
-  /** Whether this is the workspace's selectedConnectionId. */
+  /**
+   * Whether this is the workspace's selectedConnectionId. Informational: the
+   * target is chosen in the Connections view or the status bar, never here.
+   */
   selected: boolean;
   access: ConnectionAccess;
   environment: EnvironmentView;
@@ -78,9 +85,7 @@ export type ValidationTarget =
 export type SettingsHostMessage =
   | { type: 'state'; state: SettingsState }
   /** Errors for one form; an empty `errors` clears the form's previous errors. */
-  | { type: 'validation'; target: ValidationTarget; errors: FieldErrors }
-  /** A selectConnection request has finished; `selected` is false if connecting failed or was cancelled. */
-  | { type: 'selectionResult'; connectionId: string; selected: boolean };
+  | { type: 'validation'; target: ValidationTarget; errors: FieldErrors };
 
 // ---------------------------------------------------------------------------
 // Webview -> host
@@ -91,9 +96,6 @@ const MCP_ACTIONS: readonly McpAction[] = ['start', 'stop', 'restart', 'configur
 export type SettingsWebviewMessage =
   | { type: 'ready' }
   | { type: 'updateSetting'; key: EditableSettingKey; value: unknown }
-  | { type: 'selectConnection'; connectionId: string }
-  | { type: 'connect'; connectionId: string }
-  | { type: 'disconnect'; connectionId: string }
   | { type: 'testConnection'; connectionId: string }
   | { type: 'updateConnection'; connectionId: string; edit: ConnectionEdit }
   | { type: 'addConnection' }
@@ -123,9 +125,6 @@ export function parseWebviewMessage(raw: unknown): SettingsWebviewMessage | unde
         ? { type: 'updateSetting', key: m.key, value: m.value }
         : undefined;
 
-    case 'selectConnection':
-    case 'connect':
-    case 'disconnect':
     case 'testConnection':
     case 'removeConnection':
       return connectionId ? { type: m.type, connectionId } : undefined;

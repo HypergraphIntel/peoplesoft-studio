@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { providerId, Workspace } from '../workspace.js';
-import { selectConnection } from '../views/connectionSelection.js';
 import type { McpServerController } from '../mcp/controller.js';
 import { CONFIGURATION_SECTION, type SettingScope } from './settingsModel.js';
 import type { ConfigurationPort, ConnectionPort, McpPort, UiPort } from './settingsService.js';
@@ -35,10 +34,7 @@ export function connectionPort(workspace: Workspace): ConnectionPort {
       return { id, config, connected: workspace.getProvider(id)?.isConnected ?? false };
     }),
     selectedId: () => workspace.selectedConnectionId,
-    select: (config) => selectConnection(workspace, config),
     // The existing commands, so the Connections view and this panel behave alike.
-    connect: async (config) => { await vscode.commands.executeCommand('psft.connect', config); },
-    disconnect: async (config) => { await vscode.commands.executeCommand('psft.disconnect', config); },
     add: async () => { await vscode.commands.executeCommand('psft.addConnection'); },
     remove: async (config) => { await vscode.commands.executeCommand('psft.removeConnection', config); },
     test: (config) => workspace.testConnection(config),

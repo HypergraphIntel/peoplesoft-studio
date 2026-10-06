@@ -76,9 +76,6 @@ export class SettingsPanel {
     } catch (err) {
       void vscode.window.showErrorMessage(`PeopleSoft Studio Settings: ${safeErrorMessage(err)}`);
       // Whatever the page assumed optimistically, put it back in step.
-      if (message.type === 'selectConnection') {
-        this.post({ type: 'selectionResult', connectionId: message.connectionId, selected: false });
-      }
       this.post({ type: 'state', state: this.service.getState() });
     }
   }

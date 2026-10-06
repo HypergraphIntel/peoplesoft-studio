@@ -81,7 +81,6 @@ class FakeConnections implements ConnectionPort {
   selected?: string;
   readonly environments = new Map<string, () => Promise<EnvironmentInfo>>();
   readonly calls: string[] = [];
-  failSelect = false;
   testResult: () => Promise<EnvironmentInfo | undefined> = async () => undefined;
   private readonly listeners = new Set<() => void>();
 
@@ -95,21 +94,17 @@ class FakeConnections implements ConnectionPort {
   selectedId() { return this.selected; }
   fire() { for (const l of [...this.listeners]) l(); }
 
-  /** The status-bar picker's path, which the Settings panel must share. */
-  async select(config: ConnectionConfig): Promise<boolean> {
-    this.calls.push(`select:${config.name}`);
-    if (this.failSelect) return false;
-    this.connected.add(idOf(config));
-    this.selected = idOf(config);
-    this.fire();
-    return true;
-  }
-  async connect(config: ConnectionConfig) { this.calls.push(`connect:${config.name}`); }
-  async disconnect(config: ConnectionConfig) {
-    this.calls.push(`disconnect:${config.name}`);
-    this.connected.delete(idOf(config));
+  /** What the Connections view or the status bar does; Settings has no way to. */
+  selectElsewhere(id: string): void {
+    this.connected.add(id);
+    this.selected = id;
     this.fire();
   }
+  disconnectElsewhere(id: string): void {
+    this.connected.delete(id);
+    this.fire();
+  }
+
   async add() { this.calls.push('add'); }
   async remove(config: ConnectionConfig) { this.calls.push(`remove:${config.name}`); }
   test(config: ConnectionConfig) { this.calls.push(`test:${config.name}`); return this.testResult(); }
@@ -285,52 +280,54 @@ test('a connection shadowed by a more specific scope is not edited', async () =>
 });
 
 // ---------------------------------------------------------------------------
-// Connection selection
+// The target connection: displayed, never chosen here
 
-test('selecting a connection goes through the shared selection path', async () => {
-  const { service, conns, states } = setup();
-  const reply = await service.handleMessage({ type: 'selectConnection', connectionId: 'oracle:HCTST' });
-
-  assert.deepEqual(conns.calls, ['select:HCTST']);
-  assert.deepEqual(reply, { type: 'selectionResult', connectionId: 'oracle:HCTST', selected: true });
-  const state = states.at(-1)!;
-  assert.equal(state.selectedConnectionId, 'oracle:HCTST');
-  assert.deepEqual(state.connections.filter((c) => c.selected).map((c) => c.name), ['HCTST']);
-});
-
-test('a selection made elsewhere (the status bar) reaches subscribers', () => {
+test('a selection made in the Connections view or status bar reaches subscribers', () => {
   const { conns, states } = setup();
-  conns.connected.add('oracle:HCDEV');
-  conns.selected = 'oracle:HCDEV';
-  conns.fire();
+  conns.selectElsewhere('oracle:HCDEV');
   assert.equal(states.at(-1)?.selectedConnectionId, 'oracle:HCDEV');
+  assert.deepEqual(states.at(-1)?.connections.filter((c) => c.selected).map((c) => c.name), ['HCDEV']);
   assert.equal(states.at(-1)?.connections.find((c) => c.selected)?.connected, true);
+
+  conns.selectElsewhere('oracle:HCTST');
+  assert.deepEqual(states.at(-1)?.connections.filter((c) => c.selected).map((c) => c.name), ['HCTST']);
 });
 
-test('a failed selection is reported to the page and leaves the selection alone', async () => {
+test('no Settings message selects, connects or disconnects', async () => {
   const { service, conns } = setup();
-  conns.selected = 'oracle:HCDEV';
-  conns.failSelect = true;
-  const reply = await service.handleMessage({ type: 'selectConnection', connectionId: 'oracle:HCTST' });
-  assert.deepEqual(reply, { type: 'selectionResult', connectionId: 'oracle:HCTST', selected: false });
-  assert.equal(service.getState().selectedConnectionId, 'oracle:HCDEV');
+  conns.selectElsewhere('oracle:HCDEV');
+  const before = { selected: conns.selected, connected: [...conns.connected] };
+
+  for (const message of [
+    { type: 'ready' }, { type: 'testConnection', connectionId: 'oracle:HCTST' },
+    { type: 'updateConnection', connectionId: 'oracle:HCTST', edit: { user: 'PS' } },
+    { type: 'updateSetting', key: 'peoplecode.decoder', value: 'raw' },
+    { type: 'addConnection' }, { type: 'removeConnection', connectionId: 'oracle:HCTST' },
+    { type: 'openNativeSettings' }
+  ] as const) {
+    await service.handleMessage(message);
+  }
+  assert.deepEqual({ selected: conns.selected, connected: [...conns.connected] }, before);
+
+  // The page cannot ask for it either: the contract has no such messages.
+  for (const type of ['selectConnection', 'connect', 'disconnect']) {
+    assert.equal(parseWebviewMessage({ type, connectionId: 'oracle:HCTST' }), undefined, type);
+  }
 });
 
 test('an unknown connection id is refused with a message', async () => {
   const { service, conns, errors } = setup();
-  await service.handleMessage({ type: 'selectConnection', connectionId: 'oracle:GONE' });
+  await service.handleMessage({ type: 'testConnection', connectionId: 'oracle:GONE' });
   assert.deepEqual(conns.calls, []);
   assert.deepEqual(errors, ['That connection is no longer configured.']);
 });
 
-test('connect, disconnect, add and remove delegate to the existing operations', async () => {
+test('add and remove delegate to the existing operations', async () => {
   const { service, conns, nativeOpened } = setup();
-  await service.handleMessage({ type: 'connect', connectionId: 'oracle:HCDEV' });
-  await service.handleMessage({ type: 'disconnect', connectionId: 'oracle:HCDEV' });
   await service.handleMessage({ type: 'addConnection' });
   await service.handleMessage({ type: 'removeConnection', connectionId: 'project:/tmp/project.xml' });
   await service.handleMessage({ type: 'openNativeSettings' });
-  assert.deepEqual(conns.calls, ['connect:HCDEV', 'disconnect:HCDEV', 'add', 'remove:Export']);
+  assert.deepEqual(conns.calls, ['add', 'remove:Export']);
   assert.equal(nativeOpened.length, 1);
 });
 
@@ -385,7 +382,7 @@ test('release states: not connected, project export, read failure, and reconnect
   assert.deepEqual(failed, { status: 'error', message: 'ORA-00942: table or view does not exist' });
 
   // Disconnecting forgets the cached state; reconnecting reads again.
-  await service.handleMessage({ type: 'disconnect', connectionId: 'oracle:HCTST' });
+  conns.disconnectElsewhere('oracle:HCTST');
   assert.equal(service.getState().connections[1].environment.status, 'not-connected');
   conns.connected.add('oracle:HCTST');
   conns.environments.set('oracle:HCTST', async () => ({ toolsRelease: '8.61', patchLevel: 15 }));
@@ -494,8 +491,8 @@ test('dispose releases every subscription', () => {
 
 test('parseWebviewMessage accepts the contract and nothing else', () => {
   assert.deepEqual(parseWebviewMessage({ type: 'ready' }), { type: 'ready' });
-  assert.deepEqual(parseWebviewMessage({ type: 'selectConnection', connectionId: 'oracle:HCDEV' }),
-    { type: 'selectConnection', connectionId: 'oracle:HCDEV' });
+  assert.deepEqual(parseWebviewMessage({ type: 'testConnection', connectionId: 'oracle:HCDEV' }),
+    { type: 'testConnection', connectionId: 'oracle:HCDEV' });
   assert.deepEqual(parseWebviewMessage({ type: 'updateSetting', key: 'peoplecode.decoder', value: 'raw' }),
     { type: 'updateSetting', key: 'peoplecode.decoder', value: 'raw' });
   assert.deepEqual(parseWebviewMessage({ type: 'updateConnection', connectionId: 'oracle:X', edit: { user: 'PS' } }),
@@ -504,7 +501,8 @@ test('parseWebviewMessage accepts the contract and nothing else', () => {
 
   for (const bad of [
     null, 'ready', 42, {}, { type: 'nope' },
-    { type: 'selectConnection' }, { type: 'selectConnection', connectionId: '' }, { type: 'selectConnection', connectionId: 7 },
+    { type: 'testConnection' }, { type: 'testConnection', connectionId: '' }, { type: 'testConnection', connectionId: 7 },
+    { type: 'selectConnection', connectionId: 'oracle:X' },
     // Connections have their own editor; they cannot be overwritten as a plain value.
     { type: 'updateSetting', key: 'connections', value: [] },
     { type: 'updateSetting', key: 'peoplecode.decoder' },
