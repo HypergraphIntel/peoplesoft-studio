@@ -223,7 +223,7 @@ export class SettingsService implements Disposable {
         : { path: config.path ?? '' }),
       connected: entry.connected,
       selected: entry.id === selectedId,
-      access: describeAccess(config.kind),
+      access: describeAccess(config),
       environment: this.environmentOf(entry),
       ...(config.kind === 'oracle'
         ? { decoder: effectiveDecoder(config, this.defaultDecoder()), peoplecodeWrite: peoplecodeWriteSettings(config) }

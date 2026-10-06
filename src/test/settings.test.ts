@@ -187,9 +187,12 @@ test('connection views carry the configured fields and nothing else', () => {
 });
 
 test('read-only is connection metadata, not a toggle', () => {
-  assert.equal(describeAccess('projectFile').level, 'read-only');
-  assert.equal(describeAccess('oracle').level, 'partial');
-  assert.match(describeAccess('oracle').detail, /PeopleCode write-back is not supported/);
+  assert.equal(describeAccess({ kind: 'projectFile' }).level, 'read-only');
+  assert.equal(describeAccess({ kind: 'oracle' }).label, 'PeopleCode read-only');
+  assert.match(describeAccess({ kind: 'oracle' }).detail, /PeopleCode opens read-only/);
+  // The label follows the connection's write setting.
+  assert.equal(describeAccess({ kind: 'oracle', peoplecodeAccess: 'writable' }).label, 'PeopleCode writable');
+  assert.match(describeAccess({ kind: 'oracle', peoplecodeAccess: 'writable' }).detail, /ZZ_PCODE_LAB/);
 
   const { service } = setup();
   const views = service.getState().connections;
