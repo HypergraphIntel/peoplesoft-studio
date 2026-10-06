@@ -1,0 +1,840 @@
+{
+  "format": "pcode-lab-results/1",
+  "lab": {
+    "database": "HRDMO",
+    "toolsRelease": "8.62",
+    "patch": 9,
+    "capturedAt": "2026-10-06T03:49:49.040Z"
+  },
+  "definitions": [
+    {
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "BASECLS",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:43:34.774321",
+      "source": "class BASECLS\n   method BASECLS();\n   method Describe() Returns string;\nend-class;\n\nmethod BASECLS\nend-method;\n\nmethod Describe\n   /+ Returns String +/\n   Return \"BASECLS\";\nend-method;\n\n",
+      "programHex": "a000000000b6000000000000005e00000000000000020000000000000003000000850000005a0a420041005300450043004c0053000000630a420041005300450043004c00530000000b1415630a4400650073006300720069006200650000000b14394073007400720069006e0067000000155b152d4f63410a420041005300450043004c00530000002d64152d4f63410a4400650073006300720069006200650000002d6d520065007400750072006e007300200053007400720069006e00670000003816420041005300450043004c00530000001564152d075a005a005f00500043004f00440045005f004c00410042003a004f00520044004500520049004e0047003a00420041005300450043004c0053000000420041005300450043004c0053000000440065007300630072006900620065000000000000000000000000004000070000001e000000000000000000000007000000260000000100000000000000010000000700000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        }
+      ]
+    },
+    {
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "CHILD",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:43:51.774396",
+      "source": "import ZZ_PCODE_LAB:ORDERING:PARENT;\n\nclass CHILD extends ZZ_PCODE_LAB:ORDERING:PARENT\n   method CHILD();\nend-class;\n\nmethod CHILD\n   %Super = create ZZ_PCODE_LAB:ORDERING:PARENT();\nend-method;\n\n",
+      "programHex": "a0000000000d010000000000007e0000000000000001000000000000000200000085000000580a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a50004100520045004e0054000000152d4f5a0a4300480049004c00440000005c0a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a50004100520045004e0054000000630a4300480049004c00440000000b14155b152d4f63410a4300480049004c00440000002d12250053007500700065007200000006690a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a50004100520045004e00540000000b141564152d075a005a005f00500043004f00440045005f004c00410042003a004f00520044004500520049004e0047003a004300480049004c00440000004300480049004c00440000005a005a005f00500043004f00440045005f004c00410042003a004f00520044004500520049004e0047003a0050004100520045004e0054000000000000000000000000004000220108001c00000000000000000000000700000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 2,
+          "recname": "PACKAGE",
+          "refname": "PARENT",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        }
+      ]
+    },
+    {
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "CHILDARG",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:48:04.774076",
+      "source": "import ZZ_PCODE_LAB:ORDERING:PARENT;\n\nclass CHILDARG extends ZZ_PCODE_LAB:ORDERING:PARENT\n   method CHILDARG(&n As number);\nend-class;\n\nmethod CHILDARG\n   /+ &n as Number +/\n   %Super = create ZZ_PCODE_LAB:ORDERING:PARENT();\nend-method;\n\n",
+      "programHex": "a00000000051010000000000008a0000000000000002000000000000000200000085000000580a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a50004100520045004e0054000000152d4f5a0a4300480049004c00440041005200470000005c0a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a50004100520045004e0054000000630a4300480049004c00440041005200470000000b0126006e00000035406e0075006d00620065007200000014155b152d4f63410a4300480049004c00440041005200470000002d6d26006e0020006100730020004e0075006d00620065007200000012250053007500700065007200000006690a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a50004100520045004e00540000000b141564152d075a005a005f00500043004f00440045005f004c00410042003a004f00520044004500520049004e0047003a004300480049004c00440041005200470000004300480049004c00440041005200470000005a005a005f00500043004f00440045005f004c00410042003a004f00520044004500520049004e0047003a0050004100520045004e0054000000000000000000000000004000280108001f0000000000000001000000070000001300000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 2,
+          "recname": "PACKAGE",
+          "refname": "PARENT",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        }
+      ]
+    },
+    {
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "DERIVED",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:45:55.774118",
+      "source": "import ZZ_PCODE_LAB:ORDERING:BASECLS;\n\nclass DERIVED extends ZZ_PCODE_LAB:ORDERING:BASECLS\n   method DERIVED();\nend-class;\n\nmethod DERIVED\n   %Super = create ZZ_PCODE_LAB:ORDERING:BASECLS();\nend-method;\n\n",
+      "programHex": "a0000000001f01000000000000880000000000000001000000000000000200000085000000580a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a420041005300450043004c0053000000152d4f5a0a440045005200490056004500440000005c0a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a420041005300450043004c0053000000630a440045005200490056004500440000000b14155b152d4f63410a440045005200490056004500440000002d12250053007500700065007200000006690a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a420041005300450043004c00530000000b141564152d075a005a005f00500043004f00440045005f004c00410042003a004f00520044004500520049004e0047003a0044004500520049005600450044000000440045005200490056004500440000005a005a005f00500043004f00440045005f004c00410042003a004f00520044004500520049004e0047003a00420041005300450043004c0053000000000000000000000000004000260108001e00000000000000000000000700000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 2,
+          "recname": "PACKAGE",
+          "refname": "BASECLS",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        }
+      ]
+    },
+    {
+      "experimentId": "H1",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H1",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:46:35.774123",
+      "source": "import ZZ_PCODE_LAB:ORDERING:*;\n\nclass H1\n   method H1();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H1\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x = create ZZ_PCODE_LAB:ORDERING:CHILD();\nend-method;\n\n",
+      "programHex": "a0000000005701000000000000500000000000000003000000000000000400000085000000580a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e00470000005759152d4f5a0a480031000000630a4800310000000b1415630a500072006500700061007200650000000b1415630a520075006e0000000b14155b152d4f63410a4800310000002d64152d4f63410a500072006500700061007200650000002d444073007400720069006e0067000000012600730000000616700072006500700061007200650000001564152d4f63410a520075006e0000002d440a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a50004100520045004e00540000000126007800000006690a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a4300480049004c00440000000b141564152d075a005a005f00500043004f00440045005f004c00410042003a004f00520044004500520049004e0047003a0048003100000048003100000050007200650070006100720065000000520075006e00000000000000000000000000400007000000190000000000000000000000070000001c00000001000000000000000700000024000000020000000000000007000000070000000700000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 2,
+          "recname": "PACKAGE",
+          "refname": " ",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 3,
+          "recname": "PACKAGE",
+          "refname": "PARENT",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 4,
+          "recname": "PACKAGE",
+          "refname": "CHILD",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        }
+      ]
+    },
+    {
+      "experimentId": "H2",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H2",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:46:43.774335",
+      "source": "import ZZ_PCODE_LAB:ORDERING:*;\n\nclass H2\n   method H2();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H2\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x;\nend-method;\n\n",
+      "programHex": "a0000000001601000000000000500000000000000003000000000000000400000085000000580a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e00470000005759152d4f5a0a480032000000630a4800320000000b1415630a500072006500700061007200650000000b1415630a520075006e0000000b14155b152d4f63410a4800320000002d64152d4f63410a500072006500700061007200650000002d444073007400720069006e0067000000012600730000000616700072006500700061007200650000001564152d4f63410a520075006e0000002d440a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a50004100520045004e0054000000012600780000001564152d075a005a005f00500043004f00440045005f004c00410042003a004f00520044004500520049004e0047003a0048003200000048003200000050007200650070006100720065000000520075006e00000000000000000000000000400007000000190000000000000000000000070000001c00000001000000000000000700000024000000020000000000000007000000070000000700000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 2,
+          "recname": "PACKAGE",
+          "refname": " ",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 3,
+          "recname": "PACKAGE",
+          "refname": "PARENT",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        }
+      ]
+    },
+    {
+      "experimentId": "H3",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H3",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:46:57.774550",
+      "source": "import ZZ_PCODE_LAB:ORDERING:*;\n\nclass H3\n   method H3();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H3\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local ZZ_PCODE_LAB:ORDERING:BASECLS &x = create ZZ_PCODE_LAB:ORDERING:DERIVED();\nend-method;\n\n",
+      "programHex": "a0000000005d01000000000000500000000000000003000000000000000400000085000000580a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e00470000005759152d4f5a0a480033000000630a4800330000000b1415630a500072006500700061007200650000000b1415630a520075006e0000000b14155b152d4f63410a4800330000002d64152d4f63410a500072006500700061007200650000002d444073007400720069006e0067000000012600730000000616700072006500700061007200650000001564152d4f63410a520075006e0000002d440a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a420041005300450043004c00530000000126007800000006690a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a440045005200490056004500440000000b141564152d075a005a005f00500043004f00440045005f004c00410042003a004f00520044004500520049004e0047003a0048003300000048003300000050007200650070006100720065000000520075006e00000000000000000000000000400007000000190000000000000000000000070000001c00000001000000000000000700000024000000020000000000000007000000070000000700000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 2,
+          "recname": "PACKAGE",
+          "refname": " ",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 3,
+          "recname": "PACKAGE",
+          "refname": "BASECLS",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 4,
+          "recname": "PACKAGE",
+          "refname": "DERIVED",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        }
+      ]
+    },
+    {
+      "experimentId": "H4",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H4",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:47:05.774581",
+      "source": "import ZZ_PCODE_LAB:ORDERING:PARENT;\nimport ZZ_PCODE_LAB:ORDERING:CHILD;\n\nclass H4\n   method H4();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H4\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x = create ZZ_PCODE_LAB:ORDERING:CHILD();\nend-method;\n\n",
+      "programHex": "a000000000a401000000000000500000000000000003000000000000000400000085000000580a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a50004100520045004e005400000015580a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a4300480049004c0044000000152d4f5a0a480034000000630a4800340000000b1415630a500072006500700061007200650000000b1415630a520075006e0000000b14155b152d4f63410a4800340000002d64152d4f63410a500072006500700061007200650000002d444073007400720069006e0067000000012600730000000616700072006500700061007200650000001564152d4f63410a520075006e0000002d440a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a50004100520045004e00540000000126007800000006690a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a4300480049004c00440000000b141564152d075a005a005f00500043004f00440045005f004c00410042003a004f00520044004500520049004e0047003a0048003400000048003400000050007200650070006100720065000000520075006e00000000000000000000000000400007000000190000000000000000000000070000001c00000001000000000000000700000024000000020000000000000007000000070000000700000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 2,
+          "recname": "PACKAGE",
+          "refname": "PARENT",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 3,
+          "recname": "PACKAGE",
+          "refname": "CHILD",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        }
+      ]
+    },
+    {
+      "experimentId": "H5",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H5",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:47:13.774817",
+      "source": "import ZZ_PCODE_LAB:ORDERING:CHILD;\nimport ZZ_PCODE_LAB:ORDERING:PARENT;\n\nclass H5\n   method H5();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H5\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x = create ZZ_PCODE_LAB:ORDERING:CHILD();\nend-method;\n\n",
+      "programHex": "a000000000a401000000000000500000000000000003000000000000000400000085000000580a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a4300480049004c004400000015580a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a50004100520045004e0054000000152d4f5a0a480035000000630a4800350000000b1415630a500072006500700061007200650000000b1415630a520075006e0000000b14155b152d4f63410a4800350000002d64152d4f63410a500072006500700061007200650000002d444073007400720069006e0067000000012600730000000616700072006500700061007200650000001564152d4f63410a520075006e0000002d440a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a50004100520045004e00540000000126007800000006690a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a4300480049004c00440000000b141564152d075a005a005f00500043004f00440045005f004c00410042003a004f00520044004500520049004e0047003a0048003500000048003500000050007200650070006100720065000000520075006e00000000000000000000000000400007000000190000000000000000000000070000001c00000001000000000000000700000024000000020000000000000007000000070000000700000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 2,
+          "recname": "PACKAGE",
+          "refname": "CHILD",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 3,
+          "recname": "PACKAGE",
+          "refname": "PARENT",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        }
+      ]
+    },
+    {
+      "experimentId": "H6",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H6",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:47:21.774842",
+      "source": "import ZZ_PCODE_LAB:SCOPE:*;\n\nclass H6\n   method H6();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H6\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local ZZ_PCODE_LAB:SCOPE:SPARENT &x = create ZZ_PCODE_LAB:SCOPE:SCHILD();\nend-method;\n\n",
+      "programHex": "a0000000004901000000000000500000000000000003000000000000000400000085000000580a5a005a005f00500043004f00440045005f004c00410042000000570a530043004f005000450000005759152d4f5a0a480036000000630a4800360000000b1415630a500072006500700061007200650000000b1415630a520075006e0000000b14155b152d4f63410a4800360000002d64152d4f63410a500072006500700061007200650000002d444073007400720069006e0067000000012600730000000616700072006500700061007200650000001564152d4f63410a520075006e0000002d440a5a005a005f00500043004f00440045005f004c00410042000000570a530043004f00500045000000570a530050004100520045004e00540000000126007800000006690a5a005a005f00500043004f00440045005f004c00410042000000570a530043004f00500045000000570a53004300480049004c00440000000b141564152d075a005a005f00500043004f00440045005f004c00410042003a004f00520044004500520049004e0047003a0048003600000048003600000050007200650070006100720065000000520075006e00000000000000000000000000400007000000190000000000000000000000070000001c00000001000000000000000700000024000000020000000000000007000000070000000700000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 2,
+          "recname": "PACKAGE",
+          "refname": " ",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "SCOPE",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 3,
+          "recname": "PACKAGE",
+          "refname": "SPARENT",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "SCOPE",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 4,
+          "recname": "PACKAGE",
+          "refname": "SCHILD",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "SCOPE",
+          "appclassmethod": " "
+        }
+      ]
+    },
+    {
+      "experimentId": "H7",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H7",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:47:29.774805",
+      "source": "import ZZ_PCODE_LAB:ORDERING:*;\n\nclass H7\n   method H7();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H7\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x;\n   &x = create ZZ_PCODE_LAB:ORDERING:CHILD();\nend-method;\n\n",
+      "programHex": "a0000000005f01000000000000500000000000000003000000000000000400000085000000580a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e00470000005759152d4f5a0a480037000000630a4800370000000b1415630a500072006500700061007200650000000b1415630a520075006e0000000b14155b152d4f63410a4800370000002d64152d4f63410a500072006500700061007200650000002d444073007400720069006e0067000000012600730000000616700072006500700061007200650000001564152d4f63410a520075006e0000002d440a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a50004100520045004e005400000001260078000000150126007800000006690a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a4300480049004c00440000000b141564152d075a005a005f00500043004f00440045005f004c00410042003a004f00520044004500520049004e0047003a0048003700000048003700000050007200650070006100720065000000520075006e00000000000000000000000000400007000000190000000000000000000000070000001c00000001000000000000000700000024000000020000000000000007000000070000000700000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 2,
+          "recname": "PACKAGE",
+          "refname": " ",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 3,
+          "recname": "PACKAGE",
+          "refname": "PARENT",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 4,
+          "recname": "PACKAGE",
+          "refname": "CHILD",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        }
+      ]
+    },
+    {
+      "experimentId": "H8",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H8",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:48:23.774715",
+      "source": "import ZZ_PCODE_LAB:ORDERING:*;\n\nclass H8\n   method H8();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H8\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x = create ZZ_PCODE_LAB:ORDERING:CHILDARG(1);\nend-method;\n\n",
+      "programHex": "a0000000007001000000000000500000000000000003000000000000000400000085000000580a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e00470000005759152d4f5a0a480038000000630a4800380000000b1415630a500072006500700061007200650000000b1415630a520075006e0000000b14155b152d4f63410a4800380000002d64152d4f63410a500072006500700061007200650000002d444073007400720069006e0067000000012600730000000616700072006500700061007200650000001564152d4f63410a520075006e0000002d440a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a50004100520045004e00540000000126007800000006690a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a4300480049004c00440041005200470000000b50000001000000000000000000000000000000141564152d075a005a005f00500043004f00440045005f004c00410042003a004f00520044004500520049004e0047003a0048003800000048003800000050007200650070006100720065000000520075006e00000000000000000000000000400007000000190000000000000000000000070000001c00000001000000000000000700000024000000020000000000000007000000070000000700000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 2,
+          "recname": "PACKAGE",
+          "refname": " ",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 3,
+          "recname": "PACKAGE",
+          "refname": "PARENT",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 4,
+          "recname": "PACKAGE",
+          "refname": "CHILDARG",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        }
+      ]
+    },
+    {
+      "experimentId": "H9",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "H9",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:47:53.774111",
+      "source": "import ZZ_PCODE_LAB:ORDERING:*;\n\nclass H9\n   method H9();\n   method Prepare();\n   method Run();\nend-class;\n\nmethod H9\nend-method;\n\nmethod Prepare\n   Local string &s = \"prepare\";\nend-method;\n\nmethod Run\n   Local string &t = \"run\";\n   &t = &t | \"!\";\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x = create ZZ_PCODE_LAB:ORDERING:CHILD();\nend-method;\n\n",
+      "programHex": "a0000000008f01000000000000500000000000000003000000000000000400000085000000580a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e00470000005759152d4f5a0a480039000000630a4800390000000b1415630a500072006500700061007200650000000b1415630a520075006e0000000b14155b152d4f63410a4800390000002d64152d4f63410a500072006500700061007200650000002d444073007400720069006e0067000000012600730000000616700072006500700061007200650000001564152d4f63410a520075006e0000002d444073007400720069006e0067000000012600740000000616720075006e0000001501260074000000060126007400000023162100000015440a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a50004100520045004e00540000000126007800000006690a5a005a005f00500043004f00440045005f004c00410042000000570a4f00520044004500520049004e0047000000570a4300480049004c00440000000b141564152d075a005a005f00500043004f00440045005f004c00410042003a004f00520044004500520049004e0047003a0048003900000048003900000050007200650070006100720065000000520075006e00000000000000000000000000400007000000190000000000000000000000070000001c00000001000000000000000700000024000000020000000000000007000000070000000700000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 2,
+          "recname": "PACKAGE",
+          "refname": " ",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 3,
+          "recname": "PACKAGE",
+          "refname": "PARENT",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 4,
+          "recname": "PACKAGE",
+          "refname": "CHILD",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "ORDERING",
+          "appclassmethod": " "
+        }
+      ]
+    },
+    {
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "ORDERING",
+          "PARENT",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:43:20.773935",
+      "source": "class PARENT\n   method PARENT();\n   method Describe() Returns string;\nend-class;\n\nmethod PARENT\nend-method;\n\nmethod Describe\n   /+ Returns String +/\n   Return \"PARENT\";\nend-method;\n\n",
+      "programHex": "a000000000ae000000000000005a00000000000000020000000000000003000000850000005a0a50004100520045004e0054000000630a50004100520045004e00540000000b1415630a4400650073006300720069006200650000000b14394073007400720069006e0067000000155b152d4f63410a50004100520045004e00540000002d64152d4f63410a4400650073006300720069006200650000002d6d520065007400750072006e007300200053007400720069006e0067000000381650004100520045004e00540000001564152d075a005a005f00500043004f00440045005f004c00410042003a004f00520044004500520049004e0047003a0050004100520045004e005400000050004100520045004e0054000000440065007300630072006900620065000000000000000000000000004000070000001d000000000000000000000007000000240000000100000000000000010000000700000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        }
+      ]
+    },
+    {
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "SCOPE",
+          "SCHILD",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:46:21.774495",
+      "source": "import ZZ_PCODE_LAB:SCOPE:SPARENT;\n\nclass SCHILD extends ZZ_PCODE_LAB:SCOPE:SPARENT\n   method SCHILD();\nend-class;\n\nmethod SCHILD\n   %Super = create ZZ_PCODE_LAB:SCOPE:SPARENT();\nend-method;\n\n",
+      "programHex": "a0000000000701000000000000780000000000000001000000000000000200000085000000580a5a005a005f00500043004f00440045005f004c00410042000000570a530043004f00500045000000570a530050004100520045004e0054000000152d4f5a0a53004300480049004c00440000005c0a5a005a005f00500043004f00440045005f004c00410042000000570a530043004f00500045000000570a530050004100520045004e0054000000630a53004300480049004c00440000000b14155b152d4f63410a53004300480049004c00440000002d12250053007500700065007200000006690a5a005a005f00500043004f00440045005f004c00410042000000570a530043004f00500045000000570a530050004100520045004e00540000000b141564152d075a005a005f00500043004f00440045005f004c00410042003a00530043004f00500045003a0053004300480049004c004400000053004300480049004c00440000005a005a005f00500043004f00440045005f004c00410042003a00530043004f00500045003a00530050004100520045004e0054000000000000000000000000004000210108001a00000000000000000000000700000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        },
+        {
+          "namenum": 2,
+          "recname": "PACKAGE",
+          "refname": "SPARENT",
+          "packageroot": "ZZ_PCODE_LAB",
+          "qualifypath": "SCOPE",
+          "appclassmethod": " "
+        }
+      ]
+    },
+    {
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "SCOPE",
+          "SPARENT",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:46:09.774464",
+      "source": "class SPARENT\n   method SPARENT();\n   method Describe() Returns string;\nend-class;\n\nmethod SPARENT\nend-method;\n\nmethod Describe\n   /+ Returns String +/\n   Return \"SPARENT\";\nend-method;\n\n",
+      "programHex": "a000000000b6000000000000005800000000000000020000000000000003000000850000005a0a530050004100520045004e0054000000630a530050004100520045004e00540000000b1415630a4400650073006300720069006200650000000b14394073007400720069006e0067000000155b152d4f63410a530050004100520045004e00540000002d64152d4f63410a4400650073006300720069006200650000002d6d520065007400750072006e007300200053007400720069006e00670000003816530050004100520045004e00540000001564152d075a005a005f00500043004f00440045005f004c00410042003a00530043004f00500045003a00530050004100520045004e0054000000530050004100520045004e0054000000440065007300630072006900620065000000000000000000000000004000070000001b000000000000000000000007000000230000000100000000000000010000000700000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        }
+      ]
+    },
+    {
+      "experimentId": "SMOKE",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "SUPPORT",
+          "SmokeTest",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:33:00.170486",
+      "source": "class SmokeTest\n   method Run();\nend-class;\n\nmethod Run\n   Local integer &x;\n   &x = 1;\nend-method;\n\n",
+      "programHex": "a0000000006d000000000000004600000000000000010000000000000002000000850000005a0a53006d006f006b00650054006500730074000000630a520075006e0000000b14155b152d4f63410a520075006e0000002d444069006e0074006500670065007200000001260078000000150126007800000006500000010000000000000000000000000000001564152d075a005a005f00500043004f00440045005f004c00410042003a0053005500500050004f00520054003a0053006d006f006b00650054006500730074000000520075006e000000000000000000000000004000070000001f00000000000000000000000700000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        }
+      ]
+    }
+  ]
+}

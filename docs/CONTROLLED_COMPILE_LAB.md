@@ -46,6 +46,68 @@ If `-PJFF` does not make `-CMPPRJPC` recompile from the imported text:
 
 PSPCMPROG is never fabricated.
 
+## Cycle 180: H matrix on native Windows 8.62.09 (release-scoped)
+
+**Setup.**
+- 16 shells (7 support classes and H1-H9) were created by the guarded
+  scratch import; the user then saved every source in App Designer
+  8.62.09 on `ps-win-client`.
+- The CHILDARG support source was corrected first: App Designer
+  rejected "Duplicate parameter name", because property N collided with
+  parameter &n.
+- Audit: NON_SCRATCH_CHANGED = 0.
+- Evidence: `results/8.62.09/H-matrix.json` (17 definitions).
+- Every support class and SMOKE: encoder EXACT.
+
+| Case | Variation | Stored PACKAGE order (8.62.09) | Encoder |
+|---|---|---|---|
+| H1 | 30124 replica: wildcard own package, `Local PARENT &x = create CHILD()` | PARENT, CHILD | CHILD only (bytes exact; reference list differs) |
+| H2 | bare `Local PARENT &x;` | PARENT | references exact; bytes differ (see below) |
+| H3 | H1 with BASECLS / DERIVED (alphabet flipped) | BASECLS, DERIVED | DERIVED only |
+| H4 | named imports PARENT, CHILD | PARENT, CHILD | **EXACT** |
+| H5 | named imports CHILD, PARENT | CHILD, PARENT | **EXACT** |
+| H6 | other package (SCOPE:*) | SPARENT, SCHILD | SCHILD only |
+| H7 | declaration and create split | PARENT, CHILD | **EXACT** |
+| H8 | constructor argument | PARENT, CHILDARG | CHILDARG only |
+| H9 | after executable statements | PARENT, CHILD | CHILD only |
+
+Wildcard cases also store the blank `PACKAGE.` wildcard row at NAMENUM 2,
+as the encoder does.
+
+**Observation** (8.62.09):
+- The 30124 replica (H1) reproduces 30124's stored order.
+- Under a wildcard import, `Local <A> &x = create <B>(...)` opens A's
+  PACKAGE row and then B's, in every variant: own or other package,
+  either alphabetical order, constructor argument, statement position.
+  A's row is opened even when A is not used again.
+- With named imports, rows follow import order (H4, H5), whatever the
+  declaration order.
+
+**Inference.**
+- One source-visible rule explains all nine: named imports open rows in
+  import order; otherwise a Local declaration opens its declared class's
+  row at the declaration, before the initializer's rows.
+- The current encoder omits the declared class's row when the
+  declaration has an initializer (H1 / H3 / H6 / H8 / H9). That is
+  exactly its 30124 failure. A bare declaration (H2) and the split form
+  (H7) are already right.
+- The model checker reports no uniform candidate only because it tests
+  each model alone. IMPORT_ORDER-else-DECLARED_FIRST is consistent with
+  all nine.
+
+**Second finding (H2).** A method whose body is only a bare `Local`
+declaration:
+- 8.62.09 stores `... 15 64` (`;` then `end-method`);
+- the encoder stores `... 15 2D 64` (an extra 0x2D boundary).
+Methods whose last statement is a Local with an initializer (`Prepare`)
+match.
+
+**Status.** These are PeopleTools 8.62.09 results. HCDEV / 8.61.15 is
+unchanged: 30124 stays NEEDS_CONTROLLED_COMPILE_86115, and no encoder
+change is made from 8.62 evidence. Recording the H1 result as
+**RELEASE_SCOPED_REPRODUCTION**: 8.62.09 shows a generic rule matching
+30124's stored shape.
+
 ## Cycle 180: first controlled compile -- SMOKE on native Windows 8.62.09
 
 **Compiler.**
