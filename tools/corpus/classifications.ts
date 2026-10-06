@@ -1,5 +1,7 @@
 export type CorpusClassification =
   | 'EXACT'
+  /** Cycle 183: compiled-exact from the recovered historical source (lossy PSPCMTXT); not source-exact. */
+  | 'EXACT_RECOVERED_SOURCE'
   | 'NO_SOURCE'
   | 'NO_PROGRAM'
   | 'DECODE_ERROR'
@@ -60,6 +62,11 @@ export interface CorpusResult {
 
   roundtripSuccess: boolean;
   roundtripExact: boolean;
+
+  /** Cycle 183: lossy characters restored from PSPCMPROG, when the stored source was recoverable. */
+  recoveredSourceSubstitutions?: number;
+  /** Cycle 183: TEST A on the recovered historical source. */
+  recoveredSourceExact?: boolean;
 
   classification: CorpusClassification;
 

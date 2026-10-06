@@ -1,5 +1,7 @@
 export type CorpusClassification =
   | 'EXACT'
+  /** Cycle 183: compiled-exact from the recovered historical source (lossy PSPCMTXT); not source-exact. */
+  | 'EXACT_RECOVERED_SOURCE'
   | 'DECODE_ERROR'
   | 'ENCODE_ERROR'
   | 'DECODE_SOURCE_MISMATCH'

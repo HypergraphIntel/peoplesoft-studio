@@ -33,6 +33,10 @@ import {
 } from '../../src/peoplecode/corpus/classify';
 
 import {
+  recoverHistoricalSource
+} from '../../src/peoplecode/corpus/historicalSource';
+
+import {
   CorpusClassification,
   CorpusResult
 } from './classifications';
@@ -254,6 +258,17 @@ interface InternalValidation {
     failureConstruct?: string;
   };
 
+  /*
+   * Cycle 183: TEST A on the historically compiled source, recovered from
+   * a lossy PSPCMTXT (only WE8ISO8859P15 conversion images differ).
+   */
+  recoveredSource?: {
+    substitutions: number;
+    success: boolean;
+    exactProgramMatch?: boolean;
+    error?: string;
+  };
+
   classification: string;
 }
 
@@ -298,6 +313,16 @@ function printVerboseDiagnostics(
         : `ERROR: ${validation.decode.error ?? 'unknown error'}`
     }`
   );
+
+  if (validation.recoveredSource !== undefined) {
+    console.log(
+      `  recovered ${validation.recoveredSource.substitutions} lossy WE8ISO8859P15 character(s) restored from PSPCMPROG; source→bin ${
+        validation.recoveredSource.success
+          ? validation.recoveredSource.exactProgramMatch ? 'EXACT' : 'MISMATCH'
+          : `ERROR: ${validation.recoveredSource.error ?? 'unknown error'}`
+      }`
+    );
+  }
 
   console.log(
     `  source→bin ${
@@ -746,6 +771,52 @@ function runValidation(
   }
 
   /*
+   * TEST A' (Cycle 183)
+   *
+   * recovered historical source -> encoder -> PSPCMPROG, only when the
+   * stored source differs from the decoded program by conversion images
+   * alone. PSPCMTXT is never changed; the result keeps its own class.
+   */
+  let recoveredSource: InternalValidation['recoveredSource'];
+
+  if (
+    decodedSource !== undefined &&
+    decode.normalizedSourceMatch === false
+  ) {
+    const recovery =
+      recoverHistoricalSource(
+        capture.source,
+        decodedSource
+      );
+
+    if (recovery !== undefined) {
+      recoveredSource = {
+        substitutions:
+          recovery.substitutions.length,
+        success: false
+      };
+
+      try {
+        const encoded =
+          encodeProgram(
+            recovery.text,
+            encodeContext
+          );
+
+        recoveredSource.success = true;
+        recoveredSource.exactProgramMatch =
+          compareBuffers(
+            capture.program,
+            encoded
+          ).exact;
+      } catch (error) {
+        recoveredSource.error =
+          errorMessage(error);
+      }
+    }
+  }
+
+  /*
    * TEST B
    *
    * PSPCMPROG -> decoder -> PeopleCode
@@ -834,13 +905,17 @@ function runValidation(
     classifyResult({
       decode,
       sourceEncode,
-      semanticRoundTrip
+      semanticRoundTrip,
+      ...(recoveredSource !== undefined
+        ? { recoveredSourceEncode: recoveredSource }
+        : {})
     });
 
   return {
     decode,
     sourceEncode,
     semanticRoundTrip,
+    recoveredSource,
     classification
   };
 }
@@ -919,6 +994,15 @@ export async function validateDefinition(
 
     roundtripExact:
       validation.semanticRoundTrip.exactProgramMatch === true,
+
+    ...(validation.recoveredSource !== undefined
+      ? {
+          recoveredSourceSubstitutions:
+            validation.recoveredSource.substitutions,
+          recoveredSourceExact:
+            validation.recoveredSource.exactProgramMatch === true
+        }
+      : {}),
 
     classification:
       validation.classification as CorpusClassification,

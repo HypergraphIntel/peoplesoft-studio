@@ -528,7 +528,7 @@ export class CorpusInventory {
     } = {}
   ): CorpusDefinition[] {
     const where: string[] = [
-      `r.classification <> 'EXACT'`
+      `r.classification NOT IN ('EXACT', 'EXACT_RECOVERED_SOURCE')`
     ];
 
     const binds: Record<
