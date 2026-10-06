@@ -310,6 +310,28 @@ try {
   await pick(0);
   await until(() => lastState()?.selectedConnectionId === devId, 'Settings to follow the return to HCDEV');
 
+  // Connecting from the Connections view, with no connected target, makes
+  // that connection the target -- Settings must not report "none" while a
+  // connection is up. A disconnected target falls back to one still up.
+  const [devConfig, tstConfig] = settings.get('peoplesoft.connections');
+  await vscode.commands.executeCommand('psft.disconnect', devConfig);
+  await until(() => lastState()?.selectedConnectionId === tstId, 'the target to fall back to HCTST');
+  await vscode.commands.executeCommand('psft.disconnect', tstConfig);
+  await until(() => lastState()?.connections?.every((c) => !c.connected), 'both connections to disconnect');
+  check(lastState()?.selectedConnectionId === undefined,
+    'the target still names a connection after every connection disconnected');
+  await vscode.commands.executeCommand('psft.connect', tstConfig);
+  await until(() => lastState()?.connections?.find((c) => c.id === tstId)?.connected, 'HCTST to connect from the Connections view');
+  check(lastState()?.selectedConnectionId === tstId &&
+    lastState()?.connections?.find((c) => c.selected)?.name === 'HCTST',
+    'connecting HCTST from the Connections view did not make it the target');
+  await vscode.commands.executeCommand('psft.connect', devConfig);
+  await until(() => lastState()?.connections?.find((c) => c.id === devId)?.connected, 'HCDEV to connect');
+  check(lastState()?.selectedConnectionId === tstId,
+    'connecting a second connection displaced the existing target');
+  await pick(0);
+  await until(() => lastState()?.selectedConnectionId === devId, 'the picker to restore HCDEV');
+
   // The side-bar Settings view summarizes the same target.
   const settingsTree = vscode._trees.get('psft.settings');
   const rows = settingsTree ? settingsTree.getChildren(undefined) : [];
