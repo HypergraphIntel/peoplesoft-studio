@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DefinitionProvider } from './providers/provider.js';
+import { DefinitionProvider, EnvironmentInfo } from './providers/provider.js';
 import { OracleProvider } from './providers/oracle.js';
 import { ProjectFileProvider } from './providers/projectFile.js';
 import { connectionHandle } from './util/handle.js';
@@ -103,6 +103,27 @@ export class Workspace implements vscode.Disposable {
     this.providers.set(id, provider);
     this._onDidChange.fire();
     return provider;
+  }
+
+  /**
+   * Proves a connection works without making it live: a throwaway provider
+   * connects (which probes the database), reads PSSTATUS where there is one,
+   * and is disposed. The live provider, if any, is left alone.
+   */
+  async testConnection(config: ConnectionConfig): Promise<EnvironmentInfo | undefined> {
+    const provider = await this.create(config);
+    try {
+      await provider.connect();
+      return await provider.readEnvironment?.();
+    } catch (err) {
+      // Same rule as connect(): a rejected password must not be reused.
+      if (config.kind === 'oracle' && isCredentialFailure(err)) {
+        await this.forgetPassword(config.name);
+      }
+      throw err;
+    } finally {
+      await provider.dispose();
+    }
   }
 
   private async create(config: ConnectionConfig): Promise<DefinitionProvider> {

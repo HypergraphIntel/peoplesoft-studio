@@ -90,6 +90,22 @@ export interface DefinitionProvider {
    * for a type {@link canExpand} accepts.
    */
   listChildren(key: DefinitionKey): Promise<DefinitionSummary[]>;
+
+  /**
+   * The PeopleTools installation behind this provider, read from PSSTATUS.
+   *
+   * Absent for a provider with no database behind it: a project export does
+   * not record the release it was exported from.
+   */
+  readEnvironment?(): Promise<EnvironmentInfo>;
+}
+
+/** What PSSTATUS says about a PeopleTools installation. */
+export interface EnvironmentInfo {
+  /** PSSTATUS.TOOLSREL, the release family, e.g. "8.62". */
+  readonly toolsRelease: string;
+  /** PSSTATUS.PTPATCHREL, e.g. 9. */
+  readonly patchLevel?: number;
 }
 
 /**
