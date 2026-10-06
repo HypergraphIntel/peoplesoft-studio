@@ -396,6 +396,81 @@ in the method body). The window held more than one save:
   derive it from the `extends` clause.
 - Ordinary Record PeopleCode (case 13 in the matrix) is cases 01-11.
 
+**12b-class-signature** (SmokeTest gains `method Check() Returns boolean;`
+and its body).
+
+- PSPCMTXT, PSPCMPROG and PSPCMNAME replaced (new ROWIDs); PROGLEN
+  252 -> 375; VERSION 77; HASH_SIGNATURE matches. One counter bump.
+- **A change to a class's interface touches no other table:** not
+  PSAPPCLASSDEFN, PSPACKAGEDEFN, nor any of the 1,592.
+- The encoder reproduces the program (375 / 375 bytes) and its blank owner
+  row.
+
+**Row splitting, from all of HRDMO (read-only).**
+
+- **PSPCMPROG:** every non-final row is exactly 28,000 bytes (4,588 rows,
+  PROGSEQ up to 23).
+  - PROGLEN equals the program's total bytes for every program (zero
+    mismatches).
+  - VERSION, NAMECOUNT and LASTUPDDTTM are identical on every row of all
+    2,312 multi-row programs.
+- **PSPCMTXT:** at most 14,000 characters per row, split only after a line
+  feed, greedily. All 7,430 non-final rows end in LF, and in all 7,430 the
+  next row's first line would not have fit. No line longer than 14,000
+  characters was observed, so how one would be split is unknown.
+
+### Transition model: one App Designer PeopleCode save
+
+From cases 01-12b (8.62.09, HRDMO) and the read-only corpus scans:
+
+```text
+Compile first. If the source does not compile, write nothing (10).
+In one transaction, for the definition's seven-part key:
+  PSPCMTXT     delete every row; insert the source exactly as saved
+               (LF line endings, App Designer's trailing newline), split
+               greedily at line ends into rows of <= 14,000 characters,
+               PROGSEQ 0..n; every row's HASH_SIGNATURE =
+               base64(SHA-1(UTF-16LE(whole text)) || 0x00)
+  PSPCMPROG    delete every row; insert the compiled program in 28,000-byte
+               rows, PROGSEQ 0..n, each row carrying:
+                 VERSION       = PSVERSION.PCM after this save's increment
+                 NAMECOUNT     = the number of PSPCMNAME rows
+                 PROGLEN       = the program's total bytes
+                 LASTUPDDTTM   = the save time
+                 LASTUPDOPRID  = the signed-on operator
+                 PROGEXTENDS   = the App Class superclass path, else ' '
+                 PTTOOLSREL, LICENSE_CODE = ' '; PROGRUNLOC, PROGFLAGS = 0
+  PSPCMNAME    delete every row; insert the reference table, NAMENUM 1..n
+               (1 = the owner; an App Class's owner row is blank)
+  PSPCMPROGDEL delete the key's row, if any (11b)
+  PSVERSION    PCM + 1, SYS + 1
+  PSLOCK       PCM + 1   (SYS unchanged)
+Empty source: delete the key's PSPCMTXT / PSPCMPROG / PSPCMNAME rows, insert
+PSPCMPROGDEL (key, VERSION = the new PSVERSION.PCM), counters as above (11).
+No other table changes, including PSAPPCLASSDEFN and PSPACKAGEDEFN on a class
+interface change (12b).
+```
+
+The encoder reproduced every program and reference table the cases
+produced, byte for byte, from the source alone.
+
+**Open:**
+
+- **LASTUPDOPRID:** App Designer writes its signed-on operator (`JARED`).
+  PeopleSoft Studio connects with a database access id, not an operator, so
+  the operator to record is a design decision.
+- **LASTUPDDTTM:** every value falls inside the database-clock window, but
+  the fractions cluster (.1786-.1796, .2048-.2058, .2623-.2632) instead of
+  varying as commit times would. App Designer appears to derive the time
+  from a server-synchronized base, not stamp the database's time at commit.
+  A writer stamping SYSTIMESTAMP differs only in the fraction.
+- **03's +2** was most likely an extra save, like the accidental one in 12.
+- **The SQL-definition save** in `oracle.ts` (`bumpVersion`) increments
+  PSLOCK SYS, which no native save here did. Verify against a native SQL
+  save.
+- A line longer than 14,000 characters, and whether the 14,000 limit
+  counts UTF-16 code units or characters for supplementary characters.
+
 ## 8.62 track: H2 -- end-of-body boundary (resolved)
 
 Branch `research/pt862-compat`; this is separate from the closed HCDEV
