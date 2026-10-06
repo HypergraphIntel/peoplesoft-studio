@@ -264,8 +264,22 @@ App Designer Save
 - **Counters per PeopleCode save: PSVERSION PCM +1, PSVERSION SYS +1,
   PSLOCK PCM +1** (01, 02, 04; 03's +2 is unexplained).
 - Between 03 and 04, outside both windows, PSVERSION PJM +2, SYS +2 and
-  PSLOCK PJM +2: a project save. **PSVERSION SYS moves with every
-  definition type's save; PSLOCK SYS does not move for either.**
+  PSLOCK PJM +2. The user confirmed creating and saving a project then.
+  **PSVERSION SYS moves with every definition type's save; PSLOCK SYS does
+  not move for either.**
+
+**05-comment** (`/* case 05 */` added above A).
+
+| Item | Observed |
+|---|---|
+| PSPCMTXT / PSPCMPROG / PSPCMNAME | replaced (new ROWIDs); PSPCMNAME content unchanged |
+| PSPCMPROG | PROGLEN 82 -> 111: the comment is compiled into the program; VERSION 67 |
+| HASH_SIGNATURE | matches the prediction |
+| PSVERSION / PSLOCK | PSVERSION PCM +1 and SYS +1; PSLOCK PCM +1 |
+| Other tables | none |
+
+- The encoder reproduces the program (111 / 111 bytes) and its reference
+  row.
 
 ## 8.62 track: H2 -- end-of-body boundary (resolved)
 
