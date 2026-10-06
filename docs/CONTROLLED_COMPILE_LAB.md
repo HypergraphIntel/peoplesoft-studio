@@ -46,6 +46,49 @@ If `-PJFF` does not make `-CMPPRJPC` recompile from the imported text:
 
 PSPCMPROG is never fabricated.
 
+## 8.62 track: H2 -- end-of-body boundary (resolved)
+
+Branch `research/pt862-compat`; this is separate from the closed HCDEV
+frontier.
+
+**Finding.**
+- 8.62.09 H2 `Run` (a body holding only `Local ZZ_PCODE_LAB:ORDERING:PARENT
+  &x;`) stores `15 64`; the encoder wrote `15 2D 64`.
+- The encoder wrote that 0x2D only for an App-Class-typed bare Local; a
+  built-in type (`string`, `Record`) already ended `15 64`.
+- HCDEV has one program of the shape, 28918, and blank lines follow its
+  Local (stored `15 4F 4F 64`). So 8.61 never reached the case.
+
+**Controlled family H2-boundary** (sub-package `ZZ_PCODE_LAB:BOUNDARY`;
+observation type `boundary`, the opcode before each named end-method):
+
+| Method | 8.62.09 stored | Encoder before | Encoder after |
+|---|---|---|---|
+| H10 BareClass | 15 | 2D | 15 |
+| H10 BareClassOtherPackage | 15 | 2D | 15 |
+| H10 TwoBareClass | 15 | 2D | 15 |
+| H10 BareClassArray | 15 | 15 | 15 |
+| H10 BareClassBlankLine | 4F | 4F | 4F |
+| H10 BareClassComment | 24 | 2D | 24 |
+| H10 StatementThenBareClass | 15 | 15 | 15 |
+| H11 BareBuiltin / BareClassThenStatement / InitializedClass | 15 | 15 | 15 |
+| H11 Empty | 2D | 2D | 2D |
+| H12 StoreXData (28918 replica) | 4F | 4F | 4F |
+
+- **Models:** NO_BOUNDARY_AFTER_BARE_LOCAL is the only one with no
+  refutation. Its comment-case prediction was first derived wrongly (15)
+  and then corrected to 24, the comment token.
+- **Audit:** NON_SCRATCH_CHANGED = 0 for the shell import and for the
+  saves. The earlier 24 H / G / SMOKE definitions stayed byte-identical.
+- **Cause:** the end-of-fragment close of an open App-Class-Local section
+  lacked the `suppressDeclarationSectionMarkers` condition that every
+  other close site applies (Cycle 113: 0 of 6,044 Local runs in HCDEV App
+  Class programs store a 0x2D).
+- **Fix:** add the condition.
+- **Result:** H2, H10, H11 and H12 are EXACT. This is the 8.61 rule
+  applied consistently, not a release delta. Evidence:
+  `results/8.62.09/H2-boundary.json`.
+
 ## Cycle 183: the final 75, reopened and resolved
 
 The user reopened the 75 residual programs: make each exact with a

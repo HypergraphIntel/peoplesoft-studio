@@ -15110,10 +15110,20 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
    * (imports, then `Local ... = create ...; Local boolean &check = ...;`)
    * end `15 07`, not `15 2D 07`.
    */
+  /*
+   * 8.62 track (H2 / H10): nor in an Application Class method body, the
+   * condition every other close site applies (Cycle 113: 0 of 6,044 Local
+   * runs in App Class programs store a 0x2D). A body ending in a bare
+   * App-Class-typed Local stores `15 64` -- PeopleTools 8.62.09, H2 `Run`
+   * and H10 BareClass / BareClassOtherPackage / TwoBareClass /
+   * BareClassComment (results/8.62.09/H2-boundary.json). HCDEV has no
+   * program of that shape (28918 has blank lines there: 15 4F 4F 64).
+   */
   if (
     sawApplicationClassLocalSection &&
     !closedApplicationClassLocalSection &&
-    !leadingRunHasInitializedLocal
+    !leadingRunHasInitializedLocal &&
+    context?.suppressDeclarationSectionMarkers !== true
   ) {
     chunks.push(Buffer.from([0x2d]));
   }

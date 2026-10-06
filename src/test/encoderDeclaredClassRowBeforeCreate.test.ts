@@ -18,14 +18,11 @@ const dir = resolve(__dirname, '../../tools/corpus/controlled-compile');
 const pack = JSON.parse(readFileSync(resolve(dir, 'experiments.json'), 'utf8')) as ExperimentPack;
 const results = JSON.parse(readFileSync(resolve(dir, 'results/8.62.09/H-matrix.json'), 'utf8')) as ControlledCompileResults;
 
-test('the encoder reproduces every 8.62.09 H-matrix compile (H2 references only)', () => {
+test('the encoder reproduces every 8.62.09 H-matrix compile', () => {
+  // H2 (a body ending in a bare App-Class Local) is exact since the 8.62
+  // track's end-of-body close fix (encoderApplicationClassBodyBoundary.test.ts).
   const report = compareControlledCompile(results, pack);
   for (const d of report.definitions) {
-    if (d.experimentId === 'H2') {
-      // Separate 8.62 finding: a method body holding only a bare Local stores no 0x2D before end-method.
-      assert.equal(d.encode.referencesExact, true, 'H2 references');
-      continue;
-    }
     assert.equal(d.encode.bytes?.exact, true, `${d.experimentId ?? d.keyDescription} bytes`);
     assert.equal(d.encode.referencesExact, true, `${d.experimentId ?? d.keyDescription} references`);
   }
