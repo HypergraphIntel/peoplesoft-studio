@@ -1,6 +1,8 @@
 # PeopleSoft Studio
 
-VS Code extension for **reading and navigating** PeopleSoft definitions — PeopleCode, SQL, records, and related objects — from an Oracle environment or an Application Designer project export.
+VS Code extension for **reading, navigating and editing** PeopleSoft definitions — PeopleCode, SQL, records, and related objects — from an Oracle environment or an Application Designer project export. On connections you set to Writable, PeopleCode can be **saved natively** to the database (see [Saving PeopleCode](#saving-peoplecode-experimental)).
+
+> **Please read the [Disclaimer](#disclaimer) before saving anything to a database.**
 
 PeopleSoft Studio includes its own MCP server and does not require PeopleTools 8.63 MCP. When the delivered PeopleTools 8.63 MCP is available, PeopleSoft Studio can use it as a backend for supported operations.
 
@@ -16,6 +18,31 @@ Older PeopleTools
 AI Agent
     -> sees the same PeopleSoft Studio tools either way
 ```
+
+## Disclaimer
+
+**PeopleSoft Studio is provided "as is", without warranty of any kind**, express
+or implied (see [LICENSE](LICENSE)). There is **no guarantee** that what it reads,
+decodes, compiles or writes is correct, complete or fit for any purpose. You use
+it at your own risk; the authors are not liable for data loss, corrupted
+definitions, outages or any other damage.
+
+- **Not an Oracle product.** PeopleSoft Studio is independent: it is not
+  affiliated with, endorsed or supported by Oracle. PeopleSoft and PeopleTools
+  are trademarks of Oracle.
+- **Saving PeopleCode is experimental.** It writes directly to PeopleTools
+  tables (`PSPCMTXT`, `PSPCMPROG`, `PSPCMNAME`, `PSVERSION`, `PSLOCK`) using an
+  independently developed compiler and save routine, not Oracle's. It has been
+  checked against Application Designer 8.62.09 in a lab. Other PeopleTools
+  releases, patches and configurations may behave differently.
+- **Compiling with Application Designer is still recommended.** After saving
+  PeopleCode from VS Code, open the program in Application Designer and save
+  (compile) it there, so PeopleTools' own compiler validates it. Do this
+  especially before migrating it to another environment.
+- **Make PeopleCode writable only where you can recover.** Connections are
+  read-only by default. Allow writes only on development or lab databases you
+  have backups of, and follow your organization's change-control process. Each
+  save keeps a report of the rows it replaced, but that is not a backup.
 
 ## Get Started
 
@@ -47,7 +74,7 @@ AI Agent
 
 ## What works now
 
-Goal long-term: replace Application Designer. **Today this is a trusted reader and navigator**, not a full designer.
+Goal long-term: replace Application Designer. **Today this is a trusted reader and navigator that can save PeopleCode** (experimental), not a full designer.
 
 | Capability | Status |
 |------------|--------|
@@ -56,15 +83,20 @@ Goal long-term: replace Application Designer. **Today this is a trusted reader a
 | Project tree & definition browser | Yes |
 | Open Definition search | Yes |
 | **PeopleCode** as text (`psft://…`) | **Read** — decoded from `PSPCMPROG` or taken from export |
+| **Saving PeopleCode** to Oracle | **Experimental**, on Writable connections — see [Saving PeopleCode](#saving-peoplecode-experimental) |
+| Settings panel (connections, compiler profile, MCP server) | Yes — *PeopleSoft: Open Settings* |
+| Record → field → PeopleCode event navigation | Yes |
 | **SQL definitions** as text | **Read + write** on Oracle (chunked `PSSQLTEXTDEFN`) |
 | Record field grid | Read-only custom editor |
-| Compare definition between two environments | Text types via VS Code diff |
+| Compare definition between two environments | Unavailable for now (one connection is active at a time) |
 | PeopleCode IntelliSense-lite | Completion, hover, outline, snippets |
 | PeopleCode syntax highlighting | Yes |
 
 ## What does **not** work yet
 
-- Saving **PeopleCode** back to the database (no encoder; DB programs open **read-only**)
+- Creating **new** PeopleCode programs, and saving PeopleCode types other than Record Field PeopleCode and Application Classes
+- Saving PeopleCode outside `ZZ_PCODE_LAB` definitions (the current safety scope)
+- Comparing a definition across two environments (only one connection is active at a time)
 - Editing/saving **records** (grid is read-only)
 - Page / component visual designers, App Engine editors
 - Insert into project, project build/DDL, project-level migrate/copy
@@ -84,12 +116,37 @@ UI code talks only to a `DefinitionProvider` interface; capabilities (write, glo
 
 Oracle does not document the on-disk format. Programs are a tokenized stream in `PSPCMPROG.PROGTXT` (chunked by `PROGSEQ`) with identifiers in `PSPCMNAME`.
 
-This extension decodes that stream with a conservative opcode table: **unknown bytes are reported, never guessed**. Saving PeopleCode to the database is refused until a verified encoder exists.
+This extension decodes that stream with a conservative opcode table: **unknown bytes are reported, never guessed**.
 
 Settings:
 
-- `peoplesoft.peoplecode.decoder`: `auto` (default) | `strict` | `raw`  
-  Use `raw` when extending the decoder against real programs.
+- `peoplesoft.peoplecode.decoder`: `auto` (default) | `strict` | `raw`, the
+  default for connections that do not set their own decoder (per connection, in
+  Settings). Use `raw` when extending the decoder against real programs.
+
+## Saving PeopleCode (experimental)
+
+Read the [Disclaimer](#disclaimer) first. Every connection is **read-only** until
+you change it. To allow saves on a connection, open *PeopleSoft: Open Settings*
+and, in that connection's **PeopleCode saving** group:
+
+1. Set **Operator ID** to a PeopleSoft operator that exists in that database
+   (it is checked against `PSOPRDEFN`). Saves are recorded under it.
+2. Set **Access** to **Writable** and confirm.
+3. Leave **Save mode** at **Compile and save**.
+
+Then open a program, for example record → field → event in the tree, edit it,
+and save. A save is refused with the reason when:
+
+- the program changed since you opened it;
+- the edit does not compile;
+- the stored program is not one the writer reproduces exactly;
+- the operator does not exist in that database.
+
+Currently saving covers existing Record Field PeopleCode and Application Class
+programs in `ZZ_PCODE_LAB` definitions. Afterwards, compile the program in
+Application Designer as well (see the Disclaimer). See
+[CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Editor features (PeopleCode)
 
@@ -97,7 +154,7 @@ Settings:
 - **Hover** — short docs for keywords, built-ins, `%` system variables
 - **Outline** — class / method / function / property symbols
 - **Snippets** — `if`, `for`, `try`, `locs`, `msgbox`, `sqlexec`, …
-- **Compare** — right-click a definition (or use the command) with a second connection connected
+- **Compare** — currently unavailable: it needs a second connected environment, and only one connection is active at a time
 
 SQL documents use language id `psft-sql` (basic highlighting).
 
