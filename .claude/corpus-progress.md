@@ -89,8 +89,11 @@
     - Determinism re-save: PASS (PSPCMPROG / PSPCMNAME identical,
       encoder EXACT, NON_SCRATCH_CHANGED = 0).
     - A->B->A: PASS (A2 byte-identical to A1, encoder EXACT on B and A2).
-    - Next: create the H shells (scratch-only, audited), then the user
-      saves each H source; G needs scratch records first.
+    - H shells were created with build-scratch-project.ts plus a guarded
+      -PJFF: project ZZ_PCODE_LAB_H, packages ORDERING / SCOPE, 16 class
+      shells (stub programs). NON_SCRATCH_CHANGED = 0; SmokeTest untouched.
+    - Next: the user saves the 7 support sources, then H1-H9; capture and
+      compare after. G needs scratch records first.
 - **Last successful calibration:** Cycle 171. Cycles 172-176 made no
   semantic change.
   - Cycle 175 was authorized. It staged and verified the 8.61.15 media,
