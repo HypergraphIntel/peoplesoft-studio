@@ -17,8 +17,17 @@ deltas, not a forked encoder.
   ZZ_PCODE_LAB:BOUNDARY; observation type `boundary`. Shells imported
   (project ZZ_PCODE_LAB_HB), NON_SCRATCH_CHANGED = 0. Sources staged at
   C:\pclab\sources\HB.
-- **Next action:** the user saves H10, H11, H12 on native Windows 8.62.09;
-  then audit, capture-lab.ts, compare into results/8.62.09/H2-boundary.json.
+- **H2 resolved (5a663d1):** 8.62.09 stores no 0x2D after a bare
+  App-Class Local before end-method (H10); the encoder's end-of-fragment
+  App-Class-Local close lacked the suppressDeclarationSectionMarkers
+  condition. H2 H10 H11 H12 EXACT; HCDEV unchanged.
+- **Six lab exceptions resolved (47592b5, 8a6d594):** 4601 4602 18249 18256
+  = `#If #ToolsRel >= "8.62"` (encode lab source under the lab release);
+  23497 = class metadata only in HRDMO (BDG_FUNCTIONS:GiveBadge); 28943 =
+  unterminated header method before `protected` (parser fix). All EXACT.
+- **Next action:** finish the corpus-wide rerun of compare-delivered --all
+  (lab release + lab class metadata) and record the count; then decide the
+  next 8.62 item (none known beyond the rerun's exceptions).
 
 ## Current status (2026-10-06, Cycle 183) -- the final 75 resolved
 
