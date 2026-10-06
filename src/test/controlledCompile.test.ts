@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
+  boundaryForms,
   compareControlledCompile,
   memberForms,
   ownerOfKey,
@@ -124,7 +125,7 @@ test('member forms: 0x4A references, 0x21 REC.FIELD references and 0x0A inline n
 test('the encoder\'s own prediction reproduces the 30124 and the 10860 / 15598 replicas (Cycle 181)', () => {
   const report = compareControlledCompile(synthesizeResults(pack), pack);
   const replicas = Object.fromEntries(report.families.map(f => [f.family, f.replicasNotReproduced]));
-  assert.deepEqual(replicas, { '30124': [], '10860/15598': [] });
+  assert.deepEqual(replicas, { '30124': [], '10860/15598': [], 'H2-boundary': [] });
 });
 
 test('an unknown results format is refused', () => {
@@ -140,4 +141,14 @@ test('8.62.09 G matrix (Cycle 181): declaring-unit scope is the only surviving m
   assert.deepEqual(g.encoderDisagrees, []);
   const exact = report.definitions.filter(d => d.encode.bytes?.exact === true && d.encode.referencesExact === true).map(d => d.experimentId);
   assert.deepEqual(exact, ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7']);
+});
+
+test('boundary forms: the opcode before each named end-method (8.62 track, H2)', () => {
+  const tokens = [
+    { opcode: 0x5b, text: 'end-class' }, { opcode: 0x63, text: 'method' }, { opcode: 0x0a, text: 'H2' }, { opcode: 0x2d, text: '' }, { opcode: 0x64, text: 'end-method' },
+    { opcode: 0x63, text: 'method' }, { opcode: 0x0a, text: 'Run' }, { opcode: 0x2d, text: '' }, { opcode: 0x44, text: 'Local' }, { opcode: 0x01, text: '&x' }, { opcode: 0x15, text: ';' }, { opcode: 0x64, text: 'end-method' }
+  ];
+  assert.deepEqual(boundaryForms(tokens, ['H2', 'run', 'Missing']), ['H2:2D', 'RUN:15']);
+  // Header declarations (before end-class) are not implementations.
+  assert.deepEqual(boundaryForms([{ opcode: 0x63, text: 'method' }, { opcode: 0x0a, text: 'Run' }, { opcode: 0x64, text: '' }], ['RUN']), []);
 });

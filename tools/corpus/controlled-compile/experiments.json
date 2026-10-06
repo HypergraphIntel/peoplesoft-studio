@@ -1118,6 +1118,159 @@
           "ZZ_PCODE_LAB_VAL:inline"
         ]
       }
+    },
+    {
+      "id": "H10",
+      "family": "H2-boundary",
+      "role": "positive",
+      "variation": "method bodies ending in a bare App-Class-typed Local (H2 shape), one factor per method",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "BOUNDARY",
+          "H10",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "import ZZ_PCODE_LAB:ORDERING:*;\nimport ZZ_PCODE_LAB:SCOPE:*;\n\nclass H10\n   method BareClass();\n   method BareClassOtherPackage();\n   method TwoBareClass();\n   method BareClassArray();\n   method BareClassBlankLine();\n   method BareClassComment();\n   method StatementThenBareClass();\nend-class;\n\nmethod BareClass\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x;\nend-method;\n\nmethod BareClassOtherPackage\n   Local ZZ_PCODE_LAB:SCOPE:SPARENT &x;\nend-method;\n\nmethod TwoBareClass\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x;\n   Local ZZ_PCODE_LAB:SCOPE:SPARENT &y;\nend-method;\n\nmethod BareClassArray\n   Local array of ZZ_PCODE_LAB:ORDERING:PARENT &arr;\nend-method;\n\nmethod BareClassBlankLine\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x;\n   \nend-method;\n\nmethod BareClassComment\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x;\n   /* trailing comment */\nend-method;\n\nmethod StatementThenBareClass\n   Local string &a;\n   &a = \"x\";\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x;\nend-method;\n",
+      "observe": {
+        "type": "boundary",
+        "keys": [
+          "BARECLASS",
+          "BARECLASSOTHERPACKAGE",
+          "TWOBARECLASS",
+          "BARECLASSARRAY",
+          "BARECLASSBLANKLINE",
+          "BARECLASSCOMMENT",
+          "STATEMENTTHENBARECLASS"
+        ]
+      },
+      "models": {
+        "ENCODER_8_61": [
+          "BARECLASS:2D",
+          "BARECLASSOTHERPACKAGE:2D",
+          "TWOBARECLASS:2D",
+          "BARECLASSARRAY:15",
+          "BARECLASSBLANKLINE:4F",
+          "BARECLASSCOMMENT:2D",
+          "STATEMENTTHENBARECLASS:15"
+        ],
+        "NO_BOUNDARY_AFTER_BARE_LOCAL": [
+          "BARECLASS:15",
+          "BARECLASSOTHERPACKAGE:15",
+          "TWOBARECLASS:15",
+          "BARECLASSARRAY:15",
+          "BARECLASSBLANKLINE:4F",
+          "BARECLASSCOMMENT:15",
+          "STATEMENTTHENBARECLASS:15"
+        ]
+      }
+    },
+    {
+      "id": "H11",
+      "family": "H2-boundary",
+      "role": "control",
+      "variation": "controls: built-in bare Local, App-Class Local followed by a statement, initialized App-Class Local, empty body",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "BOUNDARY",
+          "H11",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "import ZZ_PCODE_LAB:ORDERING:*;\nimport ZZ_PCODE_LAB:SCOPE:*;\n\nclass H11\n   method BareBuiltin();\n   method BareClassThenStatement();\n   method InitializedClass();\n   method Empty();\nend-class;\n\nmethod BareBuiltin\n   Local string &a;\nend-method;\n\nmethod BareClassThenStatement\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x;\n   &x = create ZZ_PCODE_LAB:ORDERING:PARENT();\nend-method;\n\nmethod InitializedClass\n   Local ZZ_PCODE_LAB:ORDERING:PARENT &x = create ZZ_PCODE_LAB:ORDERING:PARENT();\nend-method;\n\nmethod Empty\nend-method;\n",
+      "observe": {
+        "type": "boundary",
+        "keys": [
+          "BAREBUILTIN",
+          "BARECLASSTHENSTATEMENT",
+          "INITIALIZEDCLASS",
+          "EMPTY"
+        ]
+      },
+      "models": {
+        "ENCODER_8_61": [
+          "BAREBUILTIN:15",
+          "BARECLASSTHENSTATEMENT:15",
+          "INITIALIZEDCLASS:15",
+          "EMPTY:2D"
+        ],
+        "NO_BOUNDARY_AFTER_BARE_LOCAL": [
+          "BAREBUILTIN:15",
+          "BARECLASSTHENSTATEMENT:15",
+          "INITIALIZEDCLASS:15",
+          "EMPTY:2D"
+        ]
+      }
+    },
+    {
+      "id": "H12",
+      "family": "H2-boundary",
+      "role": "positive",
+      "variation": "28918 replica: a bare Local followed by blank lines (8.61 stores 4F)",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "BOUNDARY",
+          "H12",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "source": "import ZZ_PCODE_LAB:ORDERING:*;\nimport ZZ_PCODE_LAB:SCOPE:*;\n\nclass H12\n   method StoreXData();\nend-class;\n\nmethod StoreXData\n   Local Record &rcBAS_PAR_PLAN_VW;\n   \n   \nend-method;\n",
+      "observe": {
+        "type": "boundary",
+        "keys": [
+          "STOREXDATA"
+        ]
+      },
+      "models": {
+        "ENCODER_8_61": [
+          "STOREXDATA:4F"
+        ],
+        "NO_BOUNDARY_AFTER_BARE_LOCAL": [
+          "STOREXDATA:4F"
+        ]
+      },
+      "corpusExpectation": [
+        "STOREXDATA:4F"
+      ]
     }
   ]
 }

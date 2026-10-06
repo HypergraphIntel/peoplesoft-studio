@@ -94,7 +94,12 @@ export interface ControlledCompileResults {
  *   encoder writes 0x4A).
  */
 export interface ExperimentObservation {
-  type: 'order' | 'presence' | 'member-form';
+  /**
+   * `order` / `presence`: PSPCMNAME keys. `member-form`: how members are
+   * written. `boundary` (8.62 track): per named method implementation, the
+   * opcode just before its end-method (0x64), as `NAME:HH`.
+   */
+  type: 'order' | 'presence' | 'member-form' | 'boundary';
   keys: string[];
 }
 
@@ -368,8 +373,30 @@ const withoutNameNum = (form: string): string => {
   return colon < 0 ? bare.toUpperCase() : `${bare.slice(0, colon).toUpperCase()}:${bare.slice(colon + 1).toLowerCase()}`;
 };
 
+/**
+ * 8.62 track: for each named method implementation (after end-class), the
+ * opcode of the token just before its end-method, as `NAME:HH` -- e.g.
+ * `RUN:2D` for a 0x2D boundary, `RUN:15` for a bare statement end.
+ */
+export function boundaryForms(tokens: readonly MemberToken[], methods: readonly string[]): string[] {
+  const wanted = new Set(methods.map(m => m.toUpperCase()));
+  const out: string[] = [];
+  let implementations = false;
+  for (let i = 0; i < tokens.length; i++) {
+    if (tokens[i].opcode === 0x5b) implementations = true;
+    if (!implementations || tokens[i].opcode !== 0x63) continue;
+    const name = tokens[i + 1]?.text?.toUpperCase();
+    if (name === undefined || !wanted.has(name)) continue;
+    let j = i + 2;
+    while (j < tokens.length && tokens[j].opcode !== 0x64) j++;
+    if (j < tokens.length) out.push(`${name}:${tokens[j - 1].opcode.toString(16).padStart(2, '0').toUpperCase()}`);
+  }
+  return out;
+}
+
 function observe(spec: ExperimentObservation, keysInNameNumOrder: readonly string[], tokens?: readonly MemberToken[]): string[] {
   const wanted = spec.keys.map(k => k.toUpperCase());
+  if (spec.type === 'boundary') return tokens === undefined ? [] : boundaryForms(tokens, wanted);
   if (spec.type === 'member-form') return tokens === undefined ? [] : memberForms(tokens, wanted).map(withoutNameNum);
   if (spec.type === 'presence') return wanted.filter(k => keysInNameNumOrder.includes(k));
   return keysInNameNumOrder.filter((k, i) => wanted.includes(k) && keysInNameNumOrder.indexOf(k) === i);
