@@ -454,6 +454,25 @@ interface change (12b).
 The encoder reproduced every program and reference table the cases
 produced, byte for byte, from the source alone.
 
+### The native writer against App Designer
+
+`src/providers/peopleCodeWriter.ts` performs this transaction
+(`tools/corpus/save-protocol/direct-save.ts` drives it from the command
+line). Each direct save was bracketed by snapshots on HRDMO:
+
+| Case | Direct save | Compared with | Result |
+|---|---|---|---|
+| d01 | `&x = 2;` -> A | App Designer's A (04) | rows equal apart from VERSION / LASTUPDDTTM; same physical replace, counters +1, no other table |
+| d02 | A, unchanged | 02 | equal, as above |
+| d03 | A -> 08's source (2 name rows) | 08 | equal, as above |
+| d04 | SmokeTest `&x = 3;` (App Class) | -- | saved and verified |
+| r01 | 7 refusals | -- | nothing written (empty delta) |
+| **n01** | App Designer reopened d03's and d04's programs and re-saved them unchanged | the writer's rows | **App Designer recompiled the writer's stored source to byte-identical rows** (PSPCMTXT, PSPCMPROG, PSPCMNAME), apart from VERSION / LASTUPDDTTM |
+
+r01's refusals were: a stale concurrency token, a PACKAGE reference, an
+unknown operator, a syntax error, a delivered definition (refused before any
+lock), no stored program, and a stored program outside proven territory.
+
 **Open:**
 
 - **LASTUPDOPRID:** App Designer writes its signed-on operator (`JARED`).
