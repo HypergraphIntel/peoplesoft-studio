@@ -1,5 +1,25 @@
 # Corpus Calibration Progress
 
+## PeopleTools 8.62 compatibility track (branch research/pt862-compat)
+
+Separate from the closed HCDEV frontier: 8.62 differences never reopen it.
+Backlog: H2 (first), 4601 / 4602 / 18249 / 18256 (same source, 8.62
+compiles differently), 23497 (newer revision), 28943 (newer revision +
+unsupported syntax). Target design: the 8.61 model + release-specific 8.62
+deltas, not a forked encoder.
+
+- **H2 analysis:** the encoder emits 0x2D before end-method only after an
+  App-Class-typed bare Local. HCDEV has one program of the shape (28918),
+  with blank lines after the Local (8.61 stores 15 4F 4F 64), so 8.61 never
+  showed the immediate case -- H2 is either an 8.62 delta or an untested
+  extrapolation.
+- **H10-H12 (d8a2fac):** family H2-boundary, sub-package
+  ZZ_PCODE_LAB:BOUNDARY; observation type `boundary`. Shells imported
+  (project ZZ_PCODE_LAB_HB), NON_SCRATCH_CHANGED = 0. Sources staged at
+  C:\pclab\sources\HB.
+- **Next action:** the user saves H10, H11, H12 on native Windows 8.62.09;
+  then audit, capture-lab.ts, compare into results/8.62.09/H2-boundary.json.
+
 ## Current status (2026-10-06, Cycle 183) -- the final 75 resolved
 
 ```text
