@@ -1,5 +1,5 @@
 import type {
-  ConnectionAccess, ConnectionEdit, EditableSettingKey, EnvironmentView,
+  ConnectionAccess, ConnectionEdit, DecoderMode, EditableSettingKey, EnumOption, EnvironmentView,
   FieldErrors, SettingControl, SettingSection, SettingSource, SettingValue
 } from './settingsModel.js';
 import { editableFields, isEditableSettingKey } from './settingsModel.js';
@@ -58,6 +58,11 @@ export interface ConnectionView {
   selected: boolean;
   access: ConnectionAccess;
   environment: EnvironmentView;
+  /**
+   * The PeopleCode decoder this connection renders with (Oracle only):
+   * its own, or the `peoplecode.decoder` default when `inherited`.
+   */
+  decoder?: { value: DecoderMode; inherited: boolean };
   test?: ConnectionTestView;
   editableFields: readonly (keyof ConnectionEdit)[];
 }
@@ -75,12 +80,17 @@ export interface SettingsState {
   /** Where `peoplesoft.connections` is defined; connection edits are written there. */
   connectionsSource: SettingSource;
   settings: SettingView[];
+  /** The decoder choices offered per connection. */
+  decoderOptions: EnumOption<DecoderMode>[];
+  /** `peoplesoft.peoplecode.decoder`: what a connection without its own decoder uses. */
+  defaultDecoder: DecoderMode;
   mcp?: McpView;
 }
 
 export type ValidationTarget =
   | { kind: 'setting'; key: EditableSettingKey }
-  | { kind: 'connection'; connectionId: string };
+  | { kind: 'connection'; connectionId: string }
+  | { kind: 'connectionDecoder'; connectionId: string };
 
 export type SettingsHostMessage =
   | { type: 'state'; state: SettingsState }
@@ -98,6 +108,7 @@ export type SettingsWebviewMessage =
   | { type: 'updateSetting'; key: EditableSettingKey; value: unknown }
   | { type: 'testConnection'; connectionId: string }
   | { type: 'updateConnection'; connectionId: string; edit: ConnectionEdit }
+  | { type: 'setConnectionDecoder'; connectionId: string; decoder: string }
   | { type: 'addConnection' }
   | { type: 'removeConnection'; connectionId: string }
   | { type: 'openNativeSettings' }
@@ -138,6 +149,11 @@ export function parseWebviewMessage(raw: unknown): SettingsWebviewMessage | unde
       }
       return { type: 'updateConnection', connectionId, edit };
     }
+
+    case 'setConnectionDecoder':
+      return connectionId && typeof m.decoder === 'string'
+        ? { type: 'setConnectionDecoder', connectionId, decoder: m.decoder }
+        : undefined;
 
     case 'mcp':
       return MCP_ACTIONS.includes(m.action as McpAction)

@@ -341,26 +341,44 @@ try {
 
   // An edit made outside the panel (settings.json, VS Code's Settings UI).
   const before = stateMessages().length;
+  settings.set('peoplesoft.oracle.thickModeLibDir', '/opt/ic21');
+  vscode._fireConfigurationChange(['peoplesoft.oracle.thickModeLibDir']);
+  check(stateMessages().length > before &&
+    lastState()?.settings?.find((s) => s.key === 'oracle.thickModeLibDir')?.value === '/opt/ic21',
+    'an external configuration change did not refresh the Settings panel');
+
+  // The default decoder reaches connections without their own.
   settings.set('peoplesoft.peoplecode.decoder', 'strict');
   vscode._fireConfigurationChange(['peoplesoft.peoplecode.decoder']);
-  check(stateMessages().length > before &&
-    lastState()?.settings?.find((s) => s.key === 'peoplecode.decoder')?.value === 'strict',
-    'an external configuration change did not refresh the Settings panel');
+  check(JSON.stringify(lastState()?.connections?.find((c) => c.name === 'ORA')?.decoder) ===
+    JSON.stringify({ value: 'strict', inherited: true }),
+    'a connection without its own decoder does not follow peoplesoft.peoplecode.decoder');
 
   // Validation is reported against the field, and nothing is written.
   const validations = () => panel.webview.posted.filter((m) => m.type === 'validation');
   const updates = vscode._configurationUpdates.length;
-  panel._receive({ type: 'updateSetting', key: 'peoplecode.decoder', value: 'bogus' });
-  await until(() => validations().length > 0, 'a decoder validation reply');
+  panel._receive({ type: 'updateSetting', key: 'oracle.thickModeLibDir', value: 'relative/dir' });
+  await until(() => validations().length > 0, 'an Instant Client directory validation reply');
   check(validations().at(-1)?.errors?.value !== undefined && vscode._configurationUpdates.length === updates,
-    'an invalid decoder value was not rejected with a field error');
+    'a relative Instant Client directory was not rejected with a field error');
 
-  panel._receive({ type: 'updateSetting', key: 'peoplecode.decoder', value: 'raw' });
-  await until(() => vscode._configurationUpdates.length > updates, 'the decoder write');
+  panel._receive({ type: 'updateSetting', key: 'oracle.thickModeLibDir', value: '/opt/ic23' });
+  await until(() => vscode._configurationUpdates.length > updates, 'the Instant Client directory write');
   const write = vscode._configurationUpdates.at(-1);
-  check(write?.key === 'peoplesoft.peoplecode.decoder' && write.value === 'raw' &&
+  check(write?.key === 'peoplesoft.oracle.thickModeLibDir' && write.value === '/opt/ic23' &&
     write.target === vscode.ConfigurationTarget.Global,
-    'a valid decoder value was not written to user settings');
+    'a valid Instant Client directory was not written to user settings');
+
+  // The decoder is chosen per connection and stored on it.
+  panel._receive({ type: 'setConnectionDecoder', connectionId: 'oracle:ORA', decoder: 'raw' });
+  await until(() => settings.get('peoplesoft.connections')?.find((c) => c.name === 'ORA')?.decoder === 'raw',
+    'the ORA decoder write');
+  check(settings.get('peoplesoft.peoplecode.decoder') === 'strict' &&
+    settings.get('peoplesoft.connections')?.filter((c) => c.decoder !== undefined).length === 1,
+    'setting ORA\'s decoder changed the default or another connection');
+  panel._receive({ type: 'setConnectionDecoder', connectionId: devId, decoder: 'raw' });
+  await until(() => validations().at(-1)?.target?.connectionId === devId, 'the project-export decoder refusal');
+  check(validations().at(-1)?.errors?.decoder !== undefined, 'a project export accepted a decoder');
 
   // MCP: the port is written as an integer, out-of-range ports are refused, the toggle as a boolean.
   panel._receive({ type: 'updateSetting', key: 'mcp.port', value: '80' });
@@ -387,6 +405,7 @@ try {
   const saved = settings.get('peoplesoft.connections');
   check(saved?.length === 3 && saved[2].connectString === 'ora2.example:1522/ORA' && saved[0].path === devPath,
     'editing ORA did not rewrite only ORA');
+  check(saved?.[2]?.decoder === 'raw', 'editing ORA dropped its decoder');
 
   // Malformed messages are ignored: connections cannot be overwritten as a plain setting.
   const posted = panel.webview.posted.length;
@@ -428,7 +447,7 @@ try {
   await until(() => reopened.webview.posted.some((m) => m.type === 'state'), 'state for the reopened panel');
   const fresh = reopened.webview.posted.find((m) => m.type === 'state')?.state;
   check(fresh?.selectedConnectionId === devId &&
-    fresh.settings.find((s) => s.key === 'peoplecode.decoder')?.value === 'raw',
+    fresh.connections.find((c) => c.name === 'ORA')?.decoder?.value === 'raw',
     'the reopened Settings panel shows stale state');
   reopened.dispose();
   vscode.window.activeTextEditor = undefined;

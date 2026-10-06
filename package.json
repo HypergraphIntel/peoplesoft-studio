@@ -421,6 +421,15 @@
               "path": {
                 "type": "string",
                 "description": "For projectFile: folder containing the App Designer XML export"
+              },
+              "decoder": {
+                "type": "string",
+                "enum": [
+                  "auto",
+                  "strict",
+                  "raw"
+                ],
+                "description": "How this connection renders PeopleCode read from PSPCMPROG. Omit to use peoplesoft.peoplecode.decoder."
               }
             }
           }
@@ -438,7 +447,7 @@
             "raw"
           ],
           "default": "auto",
-          "description": "How to render PeopleCode read from PSPCMPROG. 'raw' dumps the token stream for decoder development."
+          "description": "Default PeopleCode decoder for connections that do not set their own (peoplesoft.connections[].decoder). 'raw' dumps the token stream for decoder development."
         },
         "peoplesoft.mcp.enabled": {
           "type": "boolean",

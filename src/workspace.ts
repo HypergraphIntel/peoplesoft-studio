@@ -10,6 +10,11 @@ export interface ConnectionConfig {
   connectString?: string;
   user?: string;
   path?: string;
+  /**
+   * How this connection renders PeopleCode from PSPCMPROG. Absent: the
+   * `peoplesoft.peoplecode.decoder` default.
+   */
+  decoder?: 'auto' | 'strict' | 'raw';
 }
 
 /**
@@ -162,7 +167,7 @@ export class Workspace implements vscode.Disposable {
       user: config.user,
       password,
       thickModeLibDir: settings.get<string>('oracle.thickModeLibDir') || undefined,
-      decoderMode: settings.get<'auto' | 'strict' | 'raw'>('peoplecode.decoder', 'auto')
+      decoderMode: config.decoder ?? settings.get<'auto' | 'strict' | 'raw'>('peoplecode.decoder', 'auto')
     });
   }
 

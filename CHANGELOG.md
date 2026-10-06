@@ -17,6 +17,11 @@
   secret store and never reach the panel.
 - Each connection shows what it allows to be saved: PeopleCode from a
   database is read-only, and project exports are read-only throughout.
+- The PeopleCode decoder is chosen per connection
+  (`peoplesoft.connections[].decoder`), in the connection's Compiler /
+  Analysis group. `peoplesoft.peoplecode.decoder` remains the default for
+  connections that do not set one, so existing configurations behave as
+  before.
 - Each connection shows its own Compiler / Analysis details: the
   PeopleTools release read from `PSSTATUS` and the compiler profile that
   release selects (PT861 / PT862). The live connection supplies them; a

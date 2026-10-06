@@ -31,8 +31,28 @@ export interface PeopleSoftStudioSettings {
 
 export type SettingKey = keyof PeopleSoftStudioSettings;
 
-/** The settings the panel edits as single values; connections have their own editor. */
-export type EditableSettingKey = Exclude<SettingKey, 'connections'>;
+/**
+ * The settings the panel edits as single values. Connections have their own
+ * editor, and the decoder is chosen per connection there;
+ * `peoplecode.decoder` is only the default for connections without one.
+ */
+export type EditableSettingKey = Exclude<SettingKey, 'connections' | 'peoplecode.decoder'>;
+
+export function validateDecoder(value: unknown): Validated<DecoderMode> {
+  return typeof value === 'string' && DECODER_OPTIONS.some((o) => o.value === value)
+    ? { ok: true, value: value as DecoderMode }
+    : { ok: false, error: `Decoder must be one of ${DECODER_OPTIONS.map((o) => o.value).join(', ')}.` };
+}
+
+/** The decoder a connection renders PeopleCode with: its own, else the default. */
+export function effectiveDecoder(
+  config: ConnectionConfig,
+  defaultDecoder: DecoderMode
+): { value: DecoderMode; inherited: boolean } {
+  return config.decoder !== undefined && validateDecoder(config.decoder).ok
+    ? { value: config.decoder, inherited: false }
+    : { value: defaultDecoder, inherited: true };
+}
 
 /** Where a value is written. Mirrors vscode.ConfigurationTarget. */
 export type SettingScope = 'global' | 'workspace' | 'workspaceFolder';
@@ -45,7 +65,7 @@ export interface SettingInspection<T> {
   workspaceFolderValue?: T;
 }
 
-export type SettingSection = 'peoplecode' | 'mcp' | 'advanced';
+export type SettingSection = 'mcp' | 'advanced';
 
 export interface EnumOption<T extends string> {
   value: T;
@@ -73,7 +93,7 @@ export interface SettingDescriptor {
   defaultValue: SettingValue;
 }
 
-const DECODER_OPTIONS: EnumOption<DecoderMode>[] = [
+export const DECODER_OPTIONS: EnumOption<DecoderMode>[] = [
   { value: 'auto', label: 'Auto', description: 'Render source, marking any unmapped opcode inline.' },
   { value: 'strict', label: 'Strict', description: 'Refuse to render a program that contains an unmapped opcode.' },
   { value: 'raw', label: 'Raw', description: 'Show a byte/opcode listing instead of source. For decoder development.' }
@@ -84,15 +104,6 @@ const DECODER_OPTIONS: EnumOption<DecoderMode>[] = [
  * package.json's for a reader; the keys must match it exactly.
  */
 export const SETTING_DESCRIPTORS: readonly SettingDescriptor[] = [
-  {
-    key: 'peoplecode.decoder',
-    section: 'peoplecode',
-    label: 'PeopleCode decoder',
-    description: 'How PeopleCode read from PSPCMPROG is rendered.',
-    appliesWhen: 'Applies to connections opened after the change.',
-    control: { kind: 'enum', options: DECODER_OPTIONS },
-    defaultValue: 'auto'
-  },
   {
     key: 'mcp.enabled',
     section: 'mcp',
@@ -146,12 +157,6 @@ export function validateSetting(key: EditableSettingKey, value: unknown): Valida
       const port = typeof value === 'string' && /^\s*\d+\s*$/.test(value) ? Number(value) : value;
       const error = mcpPortError(port);
       return error ? { ok: false, error } : { ok: true, value: port as number };
-    }
-    case 'peoplecode.decoder': {
-      if (typeof value !== 'string' || !DECODER_OPTIONS.some((o) => o.value === value)) {
-        return { ok: false, error: `Decoder must be one of ${DECODER_OPTIONS.map((o) => o.value).join(', ')}.` };
-      }
-      return { ok: true, value: value as DecoderMode };
     }
     case 'oracle.thickModeLibDir': {
       if (typeof value !== 'string') return { ok: false, error: 'Directory must be text.' };
