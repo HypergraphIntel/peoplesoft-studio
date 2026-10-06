@@ -88,7 +88,9 @@
     - Evidence: tools/corpus/controlled-compile/results/8.62.09/SMOKE.json.
     - Determinism re-save: PASS (PSPCMPROG / PSPCMNAME identical,
       encoder EXACT, NON_SCRATCH_CHANGED = 0).
-    - Open: A->B->A, how to save H / G sources.
+    - A->B->A: PASS (A2 byte-identical to A1, encoder EXACT on B and A2).
+    - Next: create the H shells (scratch-only, audited), then the user
+      saves each H source; G needs scratch records first.
 - **Last successful calibration:** Cycle 171. Cycles 172-176 made no
   semantic change.
   - Cycle 175 was authorized. It staged and verified the 8.61.15 media,
