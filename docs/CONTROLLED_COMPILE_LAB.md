@@ -83,9 +83,20 @@ classifier and has not been pursued.
 - compare-controlled-compile: **encoder EXACT**, bytes and references.
   Decode OK; the source matches.
 
+**Determinism (run 2: an unchanged re-save by the user, add / remove a
+space).**
+- Audit: NON_SCRATCH_CHANGED = 0. The only scratch change is the
+  SmokeTest PSPCMPROG fingerprint, which includes LASTUPDDTTM.
+- PSPCMPROG is byte-identical (sha256 `fd60e9ff...`, 252 bytes).
+- PSPCMNAME is row-for-row identical, NAMENUM included.
+- The source is identical; the encoder is EXACT.
+- HASH_SIGNATURE is unchanged (`05Q8EHhRDJ3561gQ3yAJRCqYGO0A`).
+- Only LASTUPDDTTM (21:48:40 -> 22:15:04) and PSVERSION (PCM 24->25,
+  SYS 1227->1228) moved.
+- Evidence: `results/8.62.09/SMOKE-run2.json`.
+
 **Status.** One controlled 8.62.09 compile, end to end, with the
-encoder exact. Still open:
-- a repeat SMOKE save (determinism);
+encoder exact; an unchanged re-save is byte-deterministic. Still open:
 - an A->B->A replacement;
 - Wine-vs-Windows equality;
 - a way to save the H / G sources without our GUI automation.

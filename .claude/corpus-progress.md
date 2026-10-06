@@ -86,7 +86,9 @@
     - PSPCMPROG 252 bytes (`fd60e9ff`), 1 name row.
     - The encoder is EXACT on the 8.62.09 output.
     - Evidence: tools/corpus/controlled-compile/results/8.62.09/SMOKE.json.
-    - Open: a determinism re-save, A->B->A, how to save H / G sources.
+    - Determinism re-save: PASS (PSPCMPROG / PSPCMNAME identical,
+      encoder EXACT, NON_SCRATCH_CHANGED = 0).
+    - Open: A->B->A, how to save H / G sources.
 - **Last successful calibration:** Cycle 171. Cycles 172-176 made no
   semantic change.
   - Cycle 175 was authorized. It staged and verified the 8.61.15 media,
