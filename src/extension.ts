@@ -420,6 +420,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     process.env.PSFT_DISABLE_MCP === '1';
 
   if (!disableMcp) {
+    context.subscriptions.push(
+      mcpController.watchConfiguration()
+    );
+  }
+
+  if (!disableMcp && mcpController.enabled) {
     try {
       await mcpController.start();
 

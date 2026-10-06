@@ -298,19 +298,40 @@
       const current = s.control.options.find((o) => o.value === s.value);
       if (current) optionHint = h('p', { className: 'hint', text: current.description });
       control = h('div', { className: 'control-row' }, [select]);
+    } else if (s.control.kind === 'boolean') {
+      // VS Code's own layout for a boolean: the checkbox, labelled by the description.
+      const checkbox = /** @type {HTMLInputElement} */ (h('input', {
+        attrs: { type: 'checkbox', id: inputId, 'data-focus-key': draftKey, 'aria-describedby': describedBy },
+        on: { change: (e) => post({ type: 'updateSetting', key: s.key, value: /** @type {HTMLInputElement} */ (e.target).checked }) }
+      }));
+      checkbox.checked = s.value === true;
+      return h('div', { className: 'setting' }, [
+        h('div', { className: 'setting-title' }, [h('span', { text: s.label }), sourceBadge(s.source)]),
+        h('div', { className: 'checkbox-row' }, [
+          checkbox,
+          h('label', { className: 'description', text: s.description, attrs: { for: inputId, id: `${inputId}-desc` } })
+        ]),
+        errorText(settingErrors.value, errorId),
+        s.appliesWhen ? h('p', { className: 'hint', text: s.appliesWhen }) : null
+      ]);
     } else {
+      // Text and number settings share a draft-and-save input; the host validates.
+      const current = String(s.value);
+      const numeric = s.control.kind === 'number';
       const input = /** @type {HTMLInputElement} */ (h('input', {
+        className: numeric ? 'number' : '',
         attrs: {
           type: 'text', id: inputId, spellcheck: 'false', autocomplete: 'off',
+          ...(numeric ? { inputmode: 'numeric' } : {}),
           placeholder: s.control.placeholder, 'data-focus-key': draftKey, 'aria-describedby': describedBy,
           ...(settingErrors.value ? { 'aria-invalid': 'true' } : {})
         }
       }));
-      input.value = draftKey in drafts ? drafts[draftKey] : s.value;
+      input.value = draftKey in drafts ? drafts[draftKey] : current;
       const save = button('Save', () => post({ type: 'updateSetting', key: s.key, value: input.value }), { focusKey: `${draftKey}:save` });
-      const syncDirty = () => { save.disabled = input.value === s.value; };
+      const syncDirty = () => { save.disabled = input.value === current; };
       input.addEventListener('input', () => {
-        if (input.value === s.value) delete drafts[draftKey];
+        if (input.value === current) delete drafts[draftKey];
         else drafts[draftKey] = input.value;
         persist();
         syncDirty();
@@ -403,24 +424,30 @@
       running: badge('Running', 'ok'),
       starting: badge('Starting…', 'off'),
       stopped: badge('Stopped', 'off'),
+      disabled: badge('Disabled', 'off'),
       error: badge('Error', 'error')
     }[mcp.status];
 
     const running = mcp.status === 'running';
+    const disabled = mcp.status === 'disabled';
+    const settings = state.settings.filter((x) => x.section === 'mcp');
+
     return h('section', { attrs: { id: 'mcp', 'aria-labelledby': 'mcp-title' } }, [
       h('h2', { text: 'AI Integration', attrs: { id: 'mcp-title' } }),
-      h('p', { className: 'description', text: 'The local MCP server that gives AI clients read access to your connected PeopleSoft environments.' }),
       h('div', { className: 'control-row' }, [h('strong', { text: 'MCP server' }), statusBadge]),
-      facts({ URL: mcp.url }),
-      mcp.error ? h('p', { className: 'error-text', text: mcp.error }) : null,
-      h('div', { className: 'actions' }, [
+      disabled
+        ? h('p', { className: 'hint', text: 'The server is off. Turn on “Enable MCP server” below to start it.' })
+        : facts({ URL: mcp.url }),
+      mcp.error ? h('p', { className: 'error-text', text: mcp.error, attrs: { role: 'alert' } }) : null,
+      disabled ? null : h('div', { className: 'actions' }, [
         running
-          ? button('Stop', () => post({ type: 'mcp', action: 'stop' }), { secondary: true, focusKey: 'mcp:stop' })
+          ? button('Stop', () => post({ type: 'mcp', action: 'stop' }), { secondary: true, focusKey: 'mcp:stop', title: 'Stop until restarted; the setting stays on.' })
           : button('Start', () => post({ type: 'mcp', action: 'start' }), { secondary: true, focusKey: 'mcp:start', disabled: mcp.status === 'starting' }),
         running ? button('Restart', () => post({ type: 'mcp', action: 'restart' }), { secondary: true, focusKey: 'mcp:restart' }) : null,
         button('Copy URL', () => post({ type: 'mcp', action: 'copyUrl' }), { secondary: true, focusKey: 'mcp:copy' }),
         button('Configure AI Client…', () => post({ type: 'mcp', action: 'configureClient' }), { secondary: true, focusKey: 'mcp:configure' })
-      ])
+      ]),
+      ...settings.map(renderSetting)
     ]);
   }
 

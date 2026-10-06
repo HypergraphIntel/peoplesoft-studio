@@ -11,6 +11,7 @@ import {
 
 type McpMenuAction =
   | 'status'
+  | 'settings'
   | 'configure'
   | 'copy'
   | 'start'
@@ -103,6 +104,15 @@ constructor(
 
         break;
 
+      case 'disabled':
+        this.item.text =
+          '$(circle-slash) MCP';
+
+        this.item.tooltip =
+          'PeopleSoft Studio MCP is disabled in settings';
+
+        break;
+
       case 'stopped':
       default:
         this.item.text =
@@ -166,6 +176,59 @@ export async function showMcpMenu(
 ): Promise<void> {
   const state =
     controller.state;
+
+  if (
+    state.status ===
+    'disabled'
+  ) {
+    const selected =
+      await vscode.window.showQuickPick(
+        [
+          {
+            label:
+              '$(circle-slash) MCP Server Disabled',
+            description:
+              'peoplesoft.mcp.enabled is off',
+            action:
+              'status'
+          },
+          {
+            label:
+              '$(settings-gear) Open Settings',
+            description:
+              'Enable the server or change its port',
+            action:
+              'settings'
+          }
+        ] satisfies McpMenuItem[],
+        {
+          title:
+            'PeopleSoft Studio MCP',
+          placeHolder:
+            'The MCP server is disabled',
+          ignoreFocusOut:
+            true
+        }
+      );
+
+    if (
+      selected?.action ===
+      'settings'
+    ) {
+      await vscode.commands.executeCommand(
+        'psft.settings.open'
+      );
+    } else if (
+      selected?.action ===
+      'status'
+    ) {
+      await showMcpStatus(
+        controller
+      );
+    }
+
+    return;
+  }
 
   const items:
     McpMenuItem[] = [
@@ -256,6 +319,12 @@ export async function showMcpMenu(
     case 'status':
       await showMcpStatus(
         controller
+      );
+      return;
+
+    case 'settings':
+      await vscode.commands.executeCommand(
+        'psft.settings.open'
       );
       return;
 

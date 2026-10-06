@@ -26,7 +26,8 @@ class FakeConfiguration implements ConfigurationPort {
   readonly values = new Map<SettingKey, Scoped>();
   readonly writes: { key: SettingKey; value: unknown; scope: SettingScope }[] = [];
   readonly defaults: Partial<PeopleSoftStudioSettings> = {
-    connections: [], 'oracle.thickModeLibDir': '', 'peoplecode.decoder': 'auto'
+    connections: [], 'oracle.thickModeLibDir': '', 'peoplecode.decoder': 'auto',
+    'mcp.enabled': true, 'mcp.port': 7337
   };
   failNextWrite?: Error;
   private readonly listeners = new Set<(affects: (key: SettingKey) => boolean) => void>();
@@ -219,6 +220,44 @@ test('invalid setting values are rejected against the field and not written', as
   assert.equal(validateSetting('oracle.thickModeLibDir', 'C:\\oracle\\ic21').ok, true);
   assert.deepEqual(validateSetting('oracle.thickModeLibDir', '   '), { ok: true, value: '' });
   assert.equal(validateSetting('oracle.thickModeLibDir', 42).ok, false);
+});
+
+test('MCP settings are read with their types and defaults', () => {
+  const { service, config } = setup();
+  let settings = service.getState().settings;
+  assert.deepEqual(settings.filter((s) => s.section === 'mcp').map((s) => [s.key, s.value, s.source]),
+    [['mcp.enabled', true, 'default'], ['mcp.port', 7337, 'default']]);
+
+  config.set('mcp.enabled', 'global', false);
+  config.set('mcp.port', 'workspace', 8123);
+  settings = service.getState().settings;
+  assert.deepEqual(settings.filter((s) => s.section === 'mcp').map((s) => [s.key, s.value, s.source]),
+    [['mcp.enabled', false, 'global'], ['mcp.port', 8123, 'workspace']]);
+});
+
+test('MCP settings are validated and written as a boolean and an integer', async () => {
+  const { service, config } = setup();
+
+  await service.handleMessage({ type: 'updateSetting', key: 'mcp.enabled', value: false });
+  assert.deepEqual(config.writes.at(-1), { key: 'mcp.enabled', value: false, scope: 'global' });
+
+  // The page sends the typed text; it is stored as a number.
+  await service.handleMessage({ type: 'updateSetting', key: 'mcp.port', value: ' 8123 ' });
+  assert.deepEqual(config.writes.at(-1), { key: 'mcp.port', value: 8123, scope: 'global' });
+
+  const writes = config.writes.length;
+  for (const [key, value, error] of [
+    ['mcp.port', '80', 'Port must be between 1024 and 65535.'],
+    ['mcp.port', '70000', 'Port must be between 1024 and 65535.'],
+    ['mcp.port', 'abc', 'Port must be a whole number.'],
+    ['mcp.port', '8080.5', 'Port must be a whole number.'],
+    ['mcp.port', '', 'Port must be a whole number.'],
+    ['mcp.enabled', 'true', 'Must be on or off.']
+  ] as const) {
+    const reply = await service.handleMessage({ type: 'updateSetting', key, value }) as Extract<SettingsHostMessage, { type: 'validation' }>;
+    assert.equal(reply.errors.value, error, `${key}=${JSON.stringify(value)}`);
+  }
+  assert.equal(config.writes.length, writes);
 });
 
 test('a failed configuration write is reported, not swallowed', async () => {
@@ -456,7 +495,7 @@ test('MCP state is surfaced and its actions delegated', async () => {
   const conns = new FakeConnections(config);
   const actions: string[] = [];
   let listener: (() => void) | undefined;
-  let status: 'stopped' | 'running' = 'stopped';
+  let status: 'disabled' | 'stopped' | 'running' = 'stopped';
   const mcp: McpPort = {
     state: () => ({ status, url: 'http://127.0.0.1:3901/mcp' }),
     run: async (action) => { actions.push(action); },
@@ -467,6 +506,10 @@ test('MCP state is surfaced and its actions delegated', async () => {
   service.onDidChangeState((s) => states.push(s));
 
   assert.equal(service.getState().mcp?.status, 'stopped');
+  status = 'disabled';
+  listener?.();
+  assert.equal(states.at(-1)?.mcp?.status, 'disabled');
+  status = 'stopped';
   await service.handleMessage({ type: 'mcp', action: 'start' });
   status = 'running';
   listener?.();

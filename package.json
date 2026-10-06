@@ -439,6 +439,18 @@
           ],
           "default": "auto",
           "description": "How to render PeopleCode read from PSPCMPROG. 'raw' dumps the token stream for decoder development."
+        },
+        "peoplesoft.mcp.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run the local PeopleSoft Studio MCP server, which gives AI clients read access to connected PeopleSoft environments. Turning it off stops the server."
+        },
+        "peoplesoft.mcp.port": {
+          "type": "integer",
+          "default": 7337,
+          "minimum": 1024,
+          "maximum": 65535,
+          "description": "Port the MCP server listens on (always 127.0.0.1). A running server restarts on the new port; reconfigure AI clients that use the old URL."
         }
       }
     }

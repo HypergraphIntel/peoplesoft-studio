@@ -4,6 +4,7 @@ import type { EnvironmentInfo } from '../providers/provider.js';
 import {
   compilerProfileIdForToolsRelease, UnsupportedCompilerProfileError, type CompilerProfileId
 } from '../peoplecode/compilerProfile.js';
+import { DEFAULT_MCP_PORT, MAX_MCP_PORT, MIN_MCP_PORT, mcpPortError } from '../mcp/configuration.js';
 
 /*
  * The Settings panel's model: what the extension's configuration is, how a
@@ -24,6 +25,8 @@ export interface PeopleSoftStudioSettings {
   connections: ConnectionConfig[];
   'oracle.thickModeLibDir': string;
   'peoplecode.decoder': DecoderMode;
+  'mcp.enabled': boolean;
+  'mcp.port': number;
 }
 
 export type SettingKey = keyof PeopleSoftStudioSettings;
@@ -42,7 +45,7 @@ export interface SettingInspection<T> {
   workspaceFolderValue?: T;
 }
 
-export type SettingSection = 'peoplecode' | 'advanced';
+export type SettingSection = 'peoplecode' | 'mcp' | 'advanced';
 
 export interface EnumOption<T extends string> {
   value: T;
@@ -52,7 +55,11 @@ export interface EnumOption<T extends string> {
 
 export type SettingControl =
   | { kind: 'enum'; options: EnumOption<string>[] }
-  | { kind: 'text'; placeholder: string };
+  | { kind: 'text'; placeholder: string }
+  | { kind: 'number'; min: number; max: number; placeholder: string }
+  | { kind: 'boolean' };
+
+export type SettingValue = PeopleSoftStudioSettings[EditableSettingKey];
 
 export interface SettingDescriptor {
   key: EditableSettingKey;
@@ -62,6 +69,8 @@ export interface SettingDescriptor {
   /** When a change takes effect, if not immediately. */
   appliesWhen?: string;
   control: SettingControl;
+  /** package.json's default; the smoke test holds the two equal. */
+  defaultValue: SettingValue;
 }
 
 const DECODER_OPTIONS: EnumOption<DecoderMode>[] = [
@@ -81,7 +90,25 @@ export const SETTING_DESCRIPTORS: readonly SettingDescriptor[] = [
     label: 'PeopleCode decoder',
     description: 'How PeopleCode read from PSPCMPROG is rendered.',
     appliesWhen: 'Applies to connections opened after the change.',
-    control: { kind: 'enum', options: DECODER_OPTIONS }
+    control: { kind: 'enum', options: DECODER_OPTIONS },
+    defaultValue: 'auto'
+  },
+  {
+    key: 'mcp.enabled',
+    section: 'mcp',
+    label: 'Enable MCP server',
+    description: 'Run the local MCP server that gives AI clients read access to your connected PeopleSoft environments.',
+    control: { kind: 'boolean' },
+    defaultValue: true
+  },
+  {
+    key: 'mcp.port',
+    section: 'mcp',
+    label: 'MCP server port',
+    description: 'The port the MCP server listens on. It only ever binds to 127.0.0.1.',
+    appliesWhen: 'A running server restarts on the new port. AI clients configured with the old URL must be reconfigured.',
+    control: { kind: 'number', min: MIN_MCP_PORT, max: MAX_MCP_PORT, placeholder: String(DEFAULT_MCP_PORT) },
+    defaultValue: DEFAULT_MCP_PORT
   },
   {
     key: 'oracle.thickModeLibDir',
@@ -89,7 +116,8 @@ export const SETTING_DESCRIPTORS: readonly SettingDescriptor[] = [
     label: 'Oracle Instant Client directory',
     description: 'Path to Oracle Instant Client, for node-oracledb Thick mode. Leave empty to use Thin mode.',
     appliesWhen: 'Applies to connections opened after the change. Thick mode cannot be switched off without reloading the window.',
-    control: { kind: 'text', placeholder: 'Empty: Thin mode' }
+    control: { kind: 'text', placeholder: 'Empty: Thin mode' },
+    defaultValue: ''
   }
 ];
 
@@ -107,8 +135,18 @@ export type FieldErrors = Record<string, string>;
 export type Validated<T> = { ok: true; value: T } | { ok: false; error: string };
 
 /** Validates and normalizes a value for an editable setting before it is written. */
-export function validateSetting(key: EditableSettingKey, value: unknown): Validated<PeopleSoftStudioSettings[EditableSettingKey]> {
+export function validateSetting(key: EditableSettingKey, value: unknown): Validated<SettingValue> {
   switch (key) {
+    case 'mcp.enabled':
+      return typeof value === 'boolean'
+        ? { ok: true, value }
+        : { ok: false, error: 'Must be on or off.' };
+    case 'mcp.port': {
+      // The page sends what was typed; accept a numeric string as well as a number.
+      const port = typeof value === 'string' && /^\s*\d+\s*$/.test(value) ? Number(value) : value;
+      const error = mcpPortError(port);
+      return error ? { ok: false, error } : { ok: true, value: port as number };
+    }
     case 'peoplecode.decoder': {
       if (typeof value !== 'string' || !DECODER_OPTIONS.some((o) => o.value === value)) {
         return { ok: false, error: `Decoder must be one of ${DECODER_OPTIONS.map((o) => o.value).join(', ')}.` };
