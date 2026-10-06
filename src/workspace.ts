@@ -15,6 +15,14 @@ export interface ConnectionConfig {
    * `peoplesoft.peoplecode.decoder` default.
    */
   decoder?: 'auto' | 'strict' | 'raw';
+  /**
+   * Whether PeopleCode may be saved back to this database. Absent:
+   * read-only. Nothing saves PeopleCode yet (docs/PEOPLECODE_WRITEBACK.md);
+   * this is the per-connection authorization the save path will require.
+   */
+  peoplecodeAccess?: 'read-only' | 'writable';
+  /** What a PeopleCode save writes, once saves exist. Absent: save-only. */
+  peoplecodeSaveMode?: 'save-only' | 'compile-and-save';
 }
 
 /**

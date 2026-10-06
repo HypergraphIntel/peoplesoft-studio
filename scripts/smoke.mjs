@@ -370,15 +370,37 @@ try {
     'a valid Instant Client directory was not written to user settings');
 
   // The decoder is chosen per connection and stored on it.
-  panel._receive({ type: 'setConnectionDecoder', connectionId: 'oracle:ORA', decoder: 'raw' });
+  panel._receive({ type: 'setConnectionOption', connectionId: 'oracle:ORA', option: 'decoder', value: 'raw' });
   await until(() => settings.get('peoplesoft.connections')?.find((c) => c.name === 'ORA')?.decoder === 'raw',
     'the ORA decoder write');
   check(settings.get('peoplesoft.peoplecode.decoder') === 'strict' &&
     settings.get('peoplesoft.connections')?.filter((c) => c.decoder !== undefined).length === 1,
     'setting ORA\'s decoder changed the default or another connection');
-  panel._receive({ type: 'setConnectionDecoder', connectionId: devId, decoder: 'raw' });
+  panel._receive({ type: 'setConnectionOption', connectionId: devId, option: 'decoder', value: 'raw' });
   await until(() => validations().at(-1)?.target?.connectionId === devId, 'the project-export decoder refusal');
   check(validations().at(-1)?.errors?.decoder !== undefined, 'a project export accepted a decoder');
+
+  // PeopleCode writes: per connection, confirmed in a modal naming the database.
+  const confirmations = [];
+  const showWarning = vscode.window.showWarningMessage;
+  vscode.window.showWarningMessage = async (message, options, ...actions) => {
+    confirmations.push({ message, modal: options?.modal === true, detail: options?.detail });
+    return confirmations.length === 1 ? undefined : actions[0];
+  };
+  const oraAccess = () => settings.get('peoplesoft.connections')?.find((c) => c.name === 'ORA')?.peoplecodeAccess;
+  panel._receive({ type: 'setConnectionOption', connectionId: 'oracle:ORA', option: 'peoplecodeAccess', value: 'writable' });
+  await until(() => confirmations.length === 1, 'the first write confirmation');
+  await flush();
+  check(confirmations[0].modal && confirmations[0].message === 'Allow PeopleCode writes to ORA?' &&
+    confirmations[0].detail?.includes('ora.example:1521/ORA') && oraAccess() === undefined,
+    'declining the write confirmation still allowed writes, or the dialog did not name the database');
+  panel._receive({ type: 'setConnectionOption', connectionId: 'oracle:ORA', option: 'peoplecodeAccess', value: 'writable' });
+  await until(() => oraAccess() === 'writable', 'ORA to become writable');
+  check(settings.get('peoplesoft.connections')?.filter((c) => c.peoplecodeAccess === 'writable').length === 1,
+    'allowing writes on ORA changed another connection');
+  check(lastState()?.connections?.find((c) => c.name === 'ORA')?.peoplecodeWrite?.access === 'writable',
+    'the panel does not show ORA as writable');
+  vscode.window.showWarningMessage = showWarning;
 
   // MCP: the port is written as an integer, out-of-range ports are refused, the toggle as a boolean.
   panel._receive({ type: 'updateSetting', key: 'mcp.port', value: '80' });

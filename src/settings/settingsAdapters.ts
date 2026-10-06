@@ -64,6 +64,8 @@ export function mcpPort(controller: McpServerController): McpPort {
 export function uiPort(extensionId: string): UiPort {
   return {
     showError: (message) => { void vscode.window.showErrorMessage(message); },
+    confirm: async (message, detail, action) =>
+      (await vscode.window.showWarningMessage(message, { modal: true, detail }, action)) === action,
     openNativeSettings: async () => {
       await vscode.commands.executeCommand('workbench.action.openSettings', `@ext:${extensionId}`);
     }

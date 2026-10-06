@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import type { ConnectionConfig } from '../workspace.js';
 import type { EnvironmentInfo } from '../providers/provider.js';
 import {
-  describeAccess, describeEnvironment, effectiveDecoder, formatRelease, safeErrorMessage, sourceOf,
+  describeAccess, describeEnvironment, effectiveDecoder, formatRelease, peoplecodeWriteSettings, safeErrorMessage, sourceOf,
   validateConnectionEdit, validateSetting, writeScopeFor,
   type PeopleSoftStudioSettings, type SettingInspection, type SettingKey, type SettingScope
 } from '../settings/settingsModel.js';
@@ -122,6 +122,8 @@ class FakeConnections implements ConnectionPort {
 const HCDEV: ConnectionConfig = { name: 'HCDEV', kind: 'oracle', connectString: 'hcdev.example:1521/HCDEV', user: 'SYSADM' };
 const HCTST: ConnectionConfig = { name: 'HCTST', kind: 'oracle', connectString: 'hctst.example:1521/HCTST', user: 'SYSADM' };
 const EXPORT: ConnectionConfig = { name: 'Export', kind: 'projectFile', path: '/tmp/project.xml' };
+/** The one connection that is meant to be writable. */
+const HRDMO: ConnectionConfig = { name: 'HRDMO', kind: 'oracle', connectString: 'hrdmo.example:1521/HRDMO', user: 'SYSADM' };
 
 function setup(connections: ConnectionConfig[] = [HCDEV, HCTST, EXPORT]) {
   const config = new FakeConfiguration();
@@ -129,13 +131,15 @@ function setup(connections: ConnectionConfig[] = [HCDEV, HCTST, EXPORT]) {
   const conns = new FakeConnections(config);
   const errors: string[] = [];
   const nativeOpened: number[] = [];
+  const ui = { confirmations: [] as string[], answer: true };
   const service = new SettingsService(config, conns, {
     showError: (m) => { errors.push(m); },
+    confirm: async (message) => { ui.confirmations.push(message); return ui.answer; },
     openNativeSettings: async () => { nativeOpened.push(1); }
   });
   const states: SettingsState[] = [];
   service.onDidChangeState((s) => states.push(s));
-  return { config, conns, service, errors, states, nativeOpened };
+  return { config, conns, service, errors, states, nativeOpened, ui };
 }
 
 const settle = () => new Promise((resolve) => setImmediate(resolve));
@@ -344,7 +348,7 @@ test('no Settings message selects, connects or disconnects', async () => {
     { type: 'ready' }, { type: 'testConnection', connectionId: 'oracle:HCTST' },
     { type: 'updateConnection', connectionId: 'oracle:HCTST', edit: { user: 'PS' } },
     { type: 'updateSetting', key: 'mcp.enabled', value: false },
-    { type: 'setConnectionDecoder', connectionId: 'oracle:HCTST', decoder: 'raw' },
+    { type: 'setConnectionOption', connectionId: 'oracle:HCTST', option: 'decoder', value: 'raw' },
     { type: 'addConnection' }, { type: 'removeConnection', connectionId: 'oracle:HCTST' },
     { type: 'openNativeSettings' }
   ] as const) {
@@ -512,8 +516,8 @@ test('each database connection has its own decoder, defaulting to peoplecode.dec
   assert.equal(exportView.decoder, undefined);
   assert.deepEqual(service.getState().decoderOptions.map((o) => o.value), ['auto', 'strict', 'raw']);
 
-  const reply = await service.handleMessage({ type: 'setConnectionDecoder', connectionId: 'oracle:HCDEV', decoder: 'raw' });
-  assert.deepEqual(reply, { type: 'validation', target: { kind: 'connectionDecoder', connectionId: 'oracle:HCDEV' }, errors: {} });
+  const reply = await service.handleMessage({ type: 'setConnectionOption', connectionId: 'oracle:HCDEV', option: 'decoder', value: 'raw' });
+  assert.deepEqual(reply, { type: 'validation', target: { kind: 'connectionOption', connectionId: 'oracle:HCDEV', option: 'decoder' }, errors: {} });
   assert.deepEqual(config.writes.at(-1), {
     key: 'connections', scope: 'global', value: [{ ...HCDEV, decoder: 'raw' }, HCTST, EXPORT]
   });
@@ -525,13 +529,62 @@ test('each database connection has its own decoder, defaulting to peoplecode.dec
   assert.deepEqual(states.at(-1)!.connections[1].decoder, { value: 'auto', inherited: true });
 
   const writes = config.writes.length;
-  const bad = await service.handleMessage({ type: 'setConnectionDecoder', connectionId: 'oracle:HCTST', decoder: 'verbose' });
+  const bad = await service.handleMessage({ type: 'setConnectionOption', connectionId: 'oracle:HCTST', option: 'decoder', value: 'verbose' });
   assert.match((bad as Extract<SettingsHostMessage, { type: 'validation' }>).errors.decoder, /Decoder must be one of auto, strict, raw/);
-  const onExport = await service.handleMessage({ type: 'setConnectionDecoder', connectionId: 'project:/tmp/project.xml', decoder: 'raw' });
+  const onExport = await service.handleMessage({ type: 'setConnectionOption', connectionId: 'project:/tmp/project.xml', option: 'decoder', value: 'raw' });
   assert.match((onExport as Extract<SettingsHostMessage, { type: 'validation' }>).errors.decoder, /Only database connections/);
   assert.equal(config.writes.length, writes);
 
   assert.deepEqual(effectiveDecoder({ ...HCDEV, decoder: 'bogus' as never }, 'strict'), { value: 'strict', inherited: true });
+});
+
+test('PeopleCode writes are per connection, read-only by default, and confirmed before they are allowed', async () => {
+  const { service, config, states, ui } = setup([HCDEV, HRDMO, EXPORT]);
+  const views = service.getState().connections;
+  assert.deepEqual(views[0].peoplecodeWrite, { access: 'read-only', saveMode: 'save-only' });
+  assert.equal(views[2].peoplecodeWrite, undefined, 'a project export has no PeopleCode write option');
+  assert.deepEqual(service.getState().peoplecodeAccessOptions.map((o) => o.value), ['read-only', 'writable']);
+  assert.deepEqual(service.getState().peoplecodeSaveModeOptions.map((o) => o.value), ['save-only', 'compile-and-save']);
+
+  // Declined: nothing is written, and the page is re-sent the unchanged state.
+  ui.answer = false;
+  const statesBefore = states.length;
+  const declined = await service.handleMessage({ type: 'setConnectionOption', connectionId: 'oracle:HRDMO', option: 'peoplecodeAccess', value: 'writable' });
+  assert.deepEqual(ui.confirmations, ['Allow PeopleCode writes to HRDMO?']);
+  assert.deepEqual((declined as Extract<SettingsHostMessage, { type: 'validation' }>).errors, {});
+  assert.equal(config.writes.length, 0);
+  assert.ok(states.length > statesBefore);
+  assert.equal(states.at(-1)!.connections[1].peoplecodeWrite?.access, 'read-only');
+
+  // Confirmed: only HRDMO becomes writable.
+  ui.answer = true;
+  await service.handleMessage({ type: 'setConnectionOption', connectionId: 'oracle:HRDMO', option: 'peoplecodeAccess', value: 'writable' });
+  assert.deepEqual(config.writes.at(-1)?.value, [HCDEV, { ...HRDMO, peoplecodeAccess: 'writable' }, EXPORT]);
+  let [hcdev, hrdmo] = service.getState().connections;
+  assert.deepEqual(hcdev.peoplecodeWrite, { access: 'read-only', saveMode: 'save-only' });
+  assert.deepEqual(hrdmo.peoplecodeWrite, { access: 'writable', saveMode: 'save-only' });
+
+  // Save mode and going back to read-only need no confirmation.
+  await service.handleMessage({ type: 'setConnectionOption', connectionId: 'oracle:HRDMO', option: 'peoplecodeSaveMode', value: 'compile-and-save' });
+  await service.handleMessage({ type: 'setConnectionOption', connectionId: 'oracle:HRDMO', option: 'peoplecodeAccess', value: 'read-only' });
+  assert.equal(ui.confirmations.length, 2);
+  [, hrdmo] = service.getState().connections;
+  assert.deepEqual(hrdmo.peoplecodeWrite, { access: 'read-only', saveMode: 'compile-and-save' });
+
+  const writes = config.writes.length;
+  const bad = await service.handleMessage({ type: 'setConnectionOption', connectionId: 'oracle:HRDMO', option: 'peoplecodeAccess', value: 'yes' });
+  assert.match((bad as Extract<SettingsHostMessage, { type: 'validation' }>).errors.peoplecodeAccess, /must be one of read-only, writable/);
+  const onExport = await service.handleMessage({ type: 'setConnectionOption', connectionId: 'project:/tmp/project.xml', option: 'peoplecodeAccess', value: 'writable' });
+  assert.match((onExport as Extract<SettingsHostMessage, { type: 'validation' }>).errors.peoplecodeAccess, /Only database connections/);
+  assert.equal(config.writes.length, writes);
+});
+
+test('anything but an exact "writable" in settings.json is read-only', () => {
+  for (const value of [undefined, 'Writable', 'true', true, 'write', '']) {
+    assert.equal(peoplecodeWriteSettings({ ...HRDMO, peoplecodeAccess: value as never }).access, 'read-only', String(value));
+  }
+  assert.equal(peoplecodeWriteSettings({ ...HRDMO, peoplecodeAccess: 'writable' }).access, 'writable');
+  assert.equal(peoplecodeWriteSettings({ ...HRDMO, peoplecodeSaveMode: 'Compile' as never }).saveMode, 'save-only');
 });
 
 test('safeErrorMessage keeps one bounded line', () => {
@@ -575,7 +628,7 @@ test('MCP state is surfaced and its actions delegated', async () => {
     run: async (action) => { actions.push(action); },
     onDidChange: (l) => { listener = l; return { dispose: () => { listener = undefined; } }; }
   };
-  const service = new SettingsService(config, conns, { showError: () => {}, openNativeSettings: async () => {} }, mcp);
+  const service = new SettingsService(config, conns, { showError: () => {}, confirm: async () => false, openNativeSettings: async () => {} }, mcp);
   const states: SettingsState[] = [];
   service.onDidChangeState((s) => states.push(s));
 
@@ -612,8 +665,8 @@ test('parseWebviewMessage accepts the contract and nothing else', () => {
     { type: 'testConnection', connectionId: 'oracle:HCDEV' });
   assert.deepEqual(parseWebviewMessage({ type: 'updateSetting', key: 'mcp.port', value: '8123' }),
     { type: 'updateSetting', key: 'mcp.port', value: '8123' });
-  assert.deepEqual(parseWebviewMessage({ type: 'setConnectionDecoder', connectionId: 'oracle:X', decoder: 'raw' }),
-    { type: 'setConnectionDecoder', connectionId: 'oracle:X', decoder: 'raw' });
+  assert.deepEqual(parseWebviewMessage({ type: 'setConnectionOption', connectionId: 'oracle:X', option: 'peoplecodeAccess', value: 'writable' }),
+    { type: 'setConnectionOption', connectionId: 'oracle:X', option: 'peoplecodeAccess', value: 'writable' });
   assert.deepEqual(parseWebviewMessage({ type: 'updateConnection', connectionId: 'oracle:X', edit: { user: 'PS' } }),
     { type: 'updateConnection', connectionId: 'oracle:X', edit: { user: 'PS' } });
   assert.deepEqual(parseWebviewMessage({ type: 'mcp', action: 'copyUrl' }), { type: 'mcp', action: 'copyUrl' });
@@ -625,8 +678,12 @@ test('parseWebviewMessage accepts the contract and nothing else', () => {
     // Connections have their own editor; they cannot be overwritten as a plain value.
     { type: 'updateSetting', key: 'connections', value: [] },
     { type: 'updateSetting', key: 'peoplecode.decoder', value: 'raw' },
-    { type: 'setConnectionDecoder', connectionId: 'oracle:X' },
-    { type: 'setConnectionDecoder', connectionId: 'oracle:X', decoder: 1 },
+    { type: 'setConnectionOption', connectionId: 'oracle:X', option: 'decoder' },
+    { type: 'setConnectionOption', connectionId: 'oracle:X', option: 'decoder', value: 1 },
+    // Only the three per-connection options; never an arbitrary connection field.
+    { type: 'setConnectionOption', connectionId: 'oracle:X', option: 'connectString', value: 'evil:1521/X' },
+    { type: 'setConnectionOption', connectionId: 'oracle:X', option: 'name', value: 'Y' },
+    { type: 'setConnectionDecoder', connectionId: 'oracle:X', decoder: 'raw' },
     { type: 'updateConnection', connectionId: 'oracle:X', edit: { name: 'Y' } },
     { type: 'updateConnection', connectionId: 'oracle:X', edit: { password: 'p' } },
     { type: 'updateConnection', connectionId: 'oracle:X', edit: { user: 1 } },

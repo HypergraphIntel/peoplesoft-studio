@@ -2,6 +2,8 @@ import type { ConnectionConfig } from '../workspace.js';
 import type { EnvironmentInfo } from '../providers/provider.js';
 import {
   DECODER_OPTIONS, effectiveDecoder, validateDecoder,
+  PEOPLECODE_ACCESS_OPTIONS, PEOPLECODE_SAVE_MODE_OPTIONS, peoplecodeWriteSettings, validateConnectionOption,
+  type ConnectionOption,
   describeAccess, describeEnvironment, editableFields, formatRelease, safeErrorMessage,
   SETTING_DESCRIPTORS, sourceOf, validateConnectionEdit, validateSetting, writeScopeFor,
   type ConnectionEdit, type EditableSettingKey, type EnvironmentView, type PeopleSoftStudioSettings,
@@ -69,6 +71,8 @@ export interface McpPort {
 
 export interface UiPort {
   showError(message: string): void;
+  /** A modal confirmation; resolves true only if the user chose `action`. */
+  confirm(message: string, detail: string, action: string): Promise<boolean>;
   openNativeSettings(): Promise<void>;
 }
 
@@ -126,6 +130,8 @@ export class SettingsService implements Disposable {
       connectionsSource: sourceOf(this.config.inspect('connections')),
       decoderOptions: DECODER_OPTIONS,
       defaultDecoder: this.defaultDecoder(),
+      peoplecodeAccessOptions: PEOPLECODE_ACCESS_OPTIONS,
+      peoplecodeSaveModeOptions: PEOPLECODE_SAVE_MODE_OPTIONS,
       settings: SETTING_DESCRIPTORS.map((d): SettingView => ({
         key: d.key,
         section: d.section,
@@ -153,8 +159,8 @@ export class SettingsService implements Disposable {
         return this.updateSetting(message.key, message.value);
       case 'updateConnection':
         return this.updateConnection(message.connectionId, message.edit);
-      case 'setConnectionDecoder':
-        return this.setConnectionDecoder(message.connectionId, message.decoder);
+      case 'setConnectionOption':
+        return this.setConnectionOption(message.connectionId, message.option, message.value);
       case 'addConnection':
         await this.connections.add();
         return undefined;
@@ -217,7 +223,9 @@ export class SettingsService implements Disposable {
       selected: entry.id === selectedId,
       access: describeAccess(config.kind),
       environment: this.environmentOf(entry),
-      ...(config.kind === 'oracle' ? { decoder: effectiveDecoder(config, this.defaultDecoder()) } : {}),
+      ...(config.kind === 'oracle'
+        ? { decoder: effectiveDecoder(config, this.defaultDecoder()), peoplecodeWrite: peoplecodeWriteSettings(config) }
+        : {}),
       ...(test ? { test } : {}),
       editableFields: editableFields(config.kind)
     };
@@ -313,19 +321,41 @@ export class SettingsService implements Disposable {
     return { type: 'validation', target, errors: {} };
   }
 
-  /** Sets one connection's own decoder, leaving the rest of its configuration alone. */
-  private async setConnectionDecoder(id: string, decoder: string): Promise<SettingsHostMessage> {
-    const target = { kind: 'connectionDecoder' as const, connectionId: id };
-    const entry = this.find(id);
-    if (!entry) return { type: 'validation', target, errors: { decoder: 'That connection is no longer configured.' } };
-    if (entry.config.kind !== 'oracle') {
-      return { type: 'validation', target, errors: { decoder: 'Only database connections decode PeopleCode.' } };
-    }
-    const validated = validateDecoder(decoder);
-    if (!validated.ok) return { type: 'validation', target, errors: { decoder: validated.error } };
+  /**
+   * Sets one per-connection option, leaving the rest of the connection's
+   * configuration alone. Making PeopleCode writable is confirmed first, in a
+   * modal naming the database: it is the permission a save will check.
+   */
+  private async setConnectionOption(id: string, option: ConnectionOption, value: string): Promise<SettingsHostMessage> {
+    const target = { kind: 'connectionOption' as const, connectionId: id, option };
+    const refuse = (error: string): SettingsHostMessage => ({ type: 'validation', target, errors: { [option]: error } });
 
-    const error = await this.writeConnection(entry, { ...entry.config, decoder: validated.value });
-    return { type: 'validation', target, errors: error ? { decoder: error } : {} };
+    const entry = this.find(id);
+    if (!entry) return refuse('That connection is no longer configured.');
+    if (entry.config.kind !== 'oracle') return refuse('Only database connections have PeopleCode options.');
+    const validated = validateConnectionOption(option, value);
+    if (!validated.ok) return refuse(validated.error);
+
+    if (option === 'peoplecodeAccess' && validated.value === 'writable' &&
+        peoplecodeWriteSettings(entry.config).access !== 'writable') {
+      const { name, user, connectString } = entry.config;
+      const confirmed = await this.ui.confirm(
+        `Allow PeopleCode writes to ${name}?`,
+        `${user}@${connectString}\n\nPeopleCode saved in the editor would be written to this database. ` +
+        'Saving PeopleCode is not implemented yet; this records the permission it will require.',
+        'Allow Writes');
+      if (!confirmed) {
+        // Put the page's dropdown back.
+        this.notify();
+        return { type: 'validation', target, errors: {} };
+      }
+    }
+
+    const error = await this.writeConnection(entry, { ...entry.config, [option]: validated.value });
+    if (error) return { type: 'validation', target, errors: { [option]: error } };
+    // Don't wait on the configuration event to show the saved option.
+    this.notify();
+    return { type: 'validation', target, errors: {} };
   }
 
   /**

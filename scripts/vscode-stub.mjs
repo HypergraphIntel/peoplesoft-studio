@@ -286,9 +286,11 @@ export function createStub() {
         return {
           get: (key, fallback) => settings.get(`${section}.${key}`) ?? fallback,
           inspect: (key) => ({ key: `${section}.${key}`, globalValue: settings.get(`${section}.${key}`) }),
+          // As in VS Code, a write is followed by onDidChangeConfiguration.
           update: async (key, value, target) => {
             settings.set(`${section}.${key}`, value);
             vscode._configurationUpdates.push({ key: `${section}.${key}`, value, target });
+            vscode._fireConfigurationChange([`${section}.${key}`]);
           }
         };
       },
