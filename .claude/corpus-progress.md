@@ -92,8 +92,17 @@
     - H shells were created with build-scratch-project.ts plus a guarded
       -PJFF: project ZZ_PCODE_LAB_H, packages ORDERING / SCOPE, 16 class
       shells (stub programs). NON_SCRATCH_CHANGED = 0; SmokeTest untouched.
-    - Next: the user saves the 7 support sources, then H1-H9; capture and
-      compare after. G needs scratch records first.
+    - H matrix (8.62.09): all saved; NON_SCRATCH_CHANGED = 0.
+      - Support classes and SMOKE are EXACT; H4 / H5 / H7 are EXACT.
+      - H1 (the 30124 replica) reproduces 30124's order: wildcard
+        `Local A &x = create B()` opens A then B. The encoder omits A
+        (also H3 / H6 / H8 / H9).
+      - Named imports follow import order.
+      - H2: an extra 0x2D before end-method in a method body that holds
+        only a bare Local.
+      - Not applied to the 8.61.15 encoder.
+    - Next: the user decides on the 8.61 handling; the G matrix needs
+      scratch records first.
 - **Last successful calibration:** Cycle 171. Cycles 172-176 made no
   semantic change.
   - Cycle 175 was authorized. It staged and verified the 8.61.15 media,
