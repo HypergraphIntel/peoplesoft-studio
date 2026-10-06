@@ -2944,6 +2944,48 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
     }
   }
   /*
+   * Cycle 181: a Local declared inside a Function body declares its name
+   * only within that Function. Elsewhere the same name, declared nowhere
+   * else, is an undeclared (late-bound) variable, so its chains keep inline
+   * bare members (Cycle 121). Controlled compile, PeopleTools 8.62.09
+   * (results/8.62.09/G-matrix.json): G1 (10860's shape, `Local Rowset &r2`
+   * in LoadFilter only, `&r2.GetRow(&j).REC.FIELD` in CallLink) and G5
+   * (15598's shape, `Local Row &xrow` in Function Prepare only, the read at
+   * top level) store the outer read inline; G2 / G6 (a declaration in the
+   * reading unit too) store references. Only this name test is scoped:
+   * top-level / Global / Component declarations and Function parameters
+   * stay program-wide, and the typed sets keep Cycle 163's restore.
+   */
+  const functionLocalOnlyNames = new Set<string>();
+  const functionBodyLocalNames: { start: number; end: number; names: Set<string> }[] = [];
+  if (ordinaryProgram) {
+    const masked = maskCommentsAndStringLiteralsForFunctionScan(source);
+    const outside = new Set<string>();
+    const declarationPattern = /\b(Local|Global|Component|ComponentLife|PanelGroup|instance)\s+(?:array\s+of\s+)*[%A-Za-z_][\w:]*\s+(&\w+#?(?:\s*,\s*&\w+#?)*)/gi;
+    for (const header of masked.matchAll(/(?<!\bDeclare\s+)\bFunction\s+[\w#]+/gi)) {
+      const close = /\bEnd-Function\b/i.exec(masked.slice(header.index!));
+      if (close === null) continue;
+      const start = header.index!, end = start + close.index;
+      const names = new Set<string>();
+      for (const m of masked.slice(start, end).matchAll(declarationPattern)) {
+        if (!/^Local$/i.test(m[1])) continue;
+        for (const name of m[2].split(',')) names.add(name.trim().toLowerCase());
+      }
+      functionBodyLocalNames.push({ start, end, names });
+    }
+    for (const m of masked.matchAll(declarationPattern)) {
+      const inBody = /^Local$/i.test(m[1]) && functionBodyLocalNames.some(r => m.index! > r.start && m.index! < r.end);
+      if (!inBody) for (const name of m[2].split(',')) outside.add(name.trim().toLowerCase());
+    }
+    for (const m of masked.matchAll(/\bFunction\s+\w+\s*\(([^)]*)\)/gi)) {
+      for (const name of m[1].matchAll(/&\w+#?/g)) outside.add(name[0].toLowerCase());
+    }
+    for (const r of functionBodyLocalNames) for (const name of r.names) if (!outside.has(name)) functionLocalOnlyNames.add(name);
+  }
+  const variableNameDeclaredAt = (key: string, at: number): boolean =>
+    declaredVariableNames.has(key) &&
+    (!functionLocalOnlyNames.has(key) || functionBodyLocalNames.some(r => at > r.start && at < r.end && r.names.has(key)));
+  /*
    * Cycle 134: a variable whose every declaration here is `any` is late-bound
    * like an undeclared one -- its chains' bare members stay inline names,
    * whatever the chain looks like. 29921 (App Class) `Local any &tempRowset`
@@ -11708,7 +11750,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
      */
     const rootIsUndeclaredVariable =
       baseVariableName !== undefined &&
-      ((ordinaryProgram && !declaredVariableNames.has(baseVariableName.toLowerCase())) ||
+      ((ordinaryProgram && !variableNameDeclaredAt(baseVariableName.toLowerCase(), primaryStart)) ||
         anyDeclaredVariables.has(baseVariableName.toLowerCase()));
 
     /*
