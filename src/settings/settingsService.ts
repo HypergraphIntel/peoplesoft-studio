@@ -1,6 +1,7 @@
 import type { ConnectionConfig } from '../workspace.js';
 import type { EnvironmentInfo } from '../providers/provider.js';
 import {
+  DECODER_OPTIONS, effectiveDecoder, validateDecoder,
   describeAccess, describeEnvironment, editableFields, formatRelease, safeErrorMessage,
   SETTING_DESCRIPTORS, sourceOf, validateConnectionEdit, validateSetting, writeScopeFor,
   type ConnectionEdit, type EditableSettingKey, type EnvironmentView, type PeopleSoftStudioSettings,
@@ -123,6 +124,8 @@ export class SettingsService implements Disposable {
       connections: entries.map((entry) => this.connectionView(entry, selectedId)),
       ...(selectedId !== undefined ? { selectedConnectionId: selectedId } : {}),
       connectionsSource: sourceOf(this.config.inspect('connections')),
+      decoderOptions: DECODER_OPTIONS,
+      defaultDecoder: this.defaultDecoder(),
       settings: SETTING_DESCRIPTORS.map((d): SettingView => ({
         key: d.key,
         section: d.section,
@@ -150,6 +153,8 @@ export class SettingsService implements Disposable {
         return this.updateSetting(message.key, message.value);
       case 'updateConnection':
         return this.updateConnection(message.connectionId, message.edit);
+      case 'setConnectionDecoder':
+        return this.setConnectionDecoder(message.connectionId, message.decoder);
       case 'addConnection':
         await this.connections.add();
         return undefined;
@@ -212,6 +217,7 @@ export class SettingsService implements Disposable {
       selected: entry.id === selectedId,
       access: describeAccess(config.kind),
       environment: this.environmentOf(entry),
+      ...(config.kind === 'oracle' ? { decoder: effectiveDecoder(config, this.defaultDecoder()) } : {}),
       ...(test ? { test } : {}),
       editableFields: editableFields(config.kind)
     };
@@ -282,11 +288,13 @@ export class SettingsService implements Disposable {
     return { type: 'validation', target, errors: {} };
   }
 
-  /**
-   * Rewrites one connection in the scope `peoplesoft.connections` is defined
-   * in. The array is replaced whole -- VS Code does not merge arrays across
-   * scopes -- with only the matching entry changed.
-   */
+  /** `peoplesoft.peoplecode.decoder`, the decoder for connections without their own. */
+  private defaultDecoder() {
+    return validateDecoder(this.config.get('peoplecode.decoder')).ok
+      ? this.config.get('peoplecode.decoder')!
+      : 'auto';
+  }
+
   private async updateConnection(id: string, edit: ConnectionEdit): Promise<SettingsHostMessage | undefined> {
     const target = { kind: 'connection' as const, connectionId: id };
     const entry = this.find(id);
@@ -297,30 +305,54 @@ export class SettingsService implements Disposable {
     const validated = validateConnectionEdit(entry.config, edit);
     if (!validated.ok) return { type: 'validation', target, errors: validated.errors };
 
+    const error = await this.writeConnection(entry, validated.value);
+    if (error) return { type: 'validation', target, errors: { form: error } };
+    // Earlier test results describe the connection as it was.
+    this.forgetTest(id);
+    this.notify();
+    return { type: 'validation', target, errors: {} };
+  }
+
+  /** Sets one connection's own decoder, leaving the rest of its configuration alone. */
+  private async setConnectionDecoder(id: string, decoder: string): Promise<SettingsHostMessage> {
+    const target = { kind: 'connectionDecoder' as const, connectionId: id };
+    const entry = this.find(id);
+    if (!entry) return { type: 'validation', target, errors: { decoder: 'That connection is no longer configured.' } };
+    if (entry.config.kind !== 'oracle') {
+      return { type: 'validation', target, errors: { decoder: 'Only database connections decode PeopleCode.' } };
+    }
+    const validated = validateDecoder(decoder);
+    if (!validated.ok) return { type: 'validation', target, errors: { decoder: validated.error } };
+
+    const error = await this.writeConnection(entry, { ...entry.config, decoder: validated.value });
+    return { type: 'validation', target, errors: error ? { decoder: error } : {} };
+  }
+
+  /**
+   * Rewrites one connection in the scope `peoplesoft.connections` is defined
+   * in. The array is replaced whole -- VS Code does not merge arrays across
+   * scopes -- with only the matching entry changed. Returns an error message,
+   * or undefined once written.
+   */
+  private async writeConnection(entry: ConnectionEntry, next: ConnectionConfig): Promise<string | undefined> {
     const inspection = this.config.inspect('connections');
     const scope = writeScopeFor(inspection);
     const current = valueAt(inspection, scope) ?? [];
     const index = current.findIndex((c) => c.name === entry.config.name && c.kind === entry.config.kind);
     if (index < 0) {
-      return {
-        type: 'validation', target,
-        errors: { form: `"${entry.config.name}" is not defined in ${SCOPE_LABELS[scope]} settings; edit it in settings.json.` }
-      };
+      return `"${entry.config.name}" is not defined in ${SCOPE_LABELS[scope]} settings; edit it in settings.json.`;
     }
 
-    const next = [...current];
-    next[index] = validated.value;
+    const all = [...current];
+    all[index] = next;
     try {
-      await this.config.update('connections', next, scope);
+      await this.config.update('connections', all, scope);
     } catch (err) {
       const message = `Could not save connection "${entry.config.name}": ${safeErrorMessage(err)}`;
       this.ui.showError(message);
-      return { type: 'validation', target, errors: { form: message } };
+      return message;
     }
-    // Earlier test results describe the connection as it was.
-    this.forgetTest(id);
-    this.notify();
-    return { type: 'validation', target, errors: {} };
+    return undefined;
   }
 
   private async testConnection(entry: ConnectionEntry): Promise<void> {
@@ -342,7 +374,7 @@ export class SettingsService implements Disposable {
   }
 }
 
-const SETTING_KEYS: readonly SettingKey[] = ['connections', ...SETTING_DESCRIPTORS.map((d) => d.key)];
+const SETTING_KEYS: readonly SettingKey[] = ['connections', 'peoplecode.decoder', ...SETTING_DESCRIPTORS.map((d) => d.key)];
 
 function valueAt<T>(inspection: SettingInspection<T> | undefined, scope: SettingScope): T | undefined {
   switch (scope) {

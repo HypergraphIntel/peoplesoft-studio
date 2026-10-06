@@ -43,7 +43,6 @@
 
   const SECTIONS = [
     { id: 'connections', title: 'Connections' },
-    { id: 'peoplecode', title: 'PeopleCode' },
     { id: 'mcp', title: 'AI Integration' },
     { id: 'advanced', title: 'Advanced' }
   ];
@@ -84,11 +83,12 @@
     return node;
   }
 
-  /** @param {Record<string, string>} pairs */
+  /** @param {Record<string, string | Node>} pairs */
   function facts(pairs) {
     const dl = h('dl', { className: 'facts' });
     for (const [term, value] of Object.entries(pairs)) {
-      dl.append(h('dt', { text: term }), h('dd', { className: 'mono', text: value }));
+      dl.append(h('dt', { text: term }),
+        typeof value === 'string' ? h('dd', { className: 'mono', text: value }) : h('dd', {}, [value]));
     }
     return dl;
   }
@@ -166,13 +166,9 @@
       badge(c.access.label, 'warn', c.access.detail)
     ]);
 
-    const analysis = describeAnalysis(c);
-    const details = facts({
-      ...(c.kind === 'oracle'
-        ? { 'Connect string': c.connectString || '—', 'Access id': c.user || '—' }
-        : { 'Project file': c.path || '—' }),
-      ...analysis.rows
-    });
+    const details = facts(c.kind === 'oracle'
+      ? { 'Connect string': c.connectString || '—', 'Access id': c.user || '—' }
+      : { 'Project file': c.path || '—' });
 
     const actions = h('div', { className: 'actions' }, [
       button(busy ? 'Testing…' : 'Test Connection', () => post({ type: 'testConnection', connectionId: c.id }),
@@ -184,7 +180,7 @@
     return h('div', { className: c.selected ? 'connection selected' : 'connection', attrs: { 'data-connection': c.id } }, [
       head,
       details,
-      analysis.note,
+      renderAnalysis(c),
       actions,
       renderTestResult(c),
       editing.includes(c.id) ? renderEditForm(c) : null
@@ -366,43 +362,81 @@
   }
 
   /**
-   * The connection's compile context, as rows for its card: its PeopleTools
-   * release (PSSTATUS) and the compiler profile that release selects. Read
-   * from the live connection, or from the last Test Connection when it is
-   * not connected.
-   *
-   * @returns {{ rows: Record<string, string>, note: HTMLElement | null }}
+   * The connection's Compiler / Analysis group: its PeopleTools release
+   * (PSSTATUS), the compiler profile that release selects, and -- for a
+   * database connection -- the decoder its PeopleCode is rendered with.
+   * The release comes from the live connection, or from the last Test
+   * Connection when it is not connected.
    */
-  function describeAnalysis(c) {
+  function renderAnalysis(c) {
     const env = c.environment;
+    /** @type {Record<string, string | Node>} */
+    const rows = {};
+    const notes = [];
     const hint = (text) => h('p', { className: 'hint analysis-note', text });
+
     switch (env.status) {
       case 'not-connected':
-        return {
-          rows: { 'PeopleTools release': 'Unknown', 'Compiler profile': 'Unknown' },
-          note: hint('Connect, or run Test Connection, to read the release.')
-        };
+        rows['PeopleTools release'] = 'Unknown';
+        rows['Compiler profile'] = 'Unknown';
+        notes.push(hint('Connect, or run Test Connection, to read the release.'));
+        break;
       case 'not-applicable':
-        return { rows: { 'PeopleTools release': 'Not available', 'Compiler profile': 'Not available' }, note: hint(env.reason) };
+        rows['PeopleTools release'] = 'Not available';
+        rows['Compiler profile'] = 'Not available';
+        notes.push(hint(env.reason));
+        break;
       case 'loading':
-        return { rows: { 'PeopleTools release': 'Reading PSSTATUS…', 'Compiler profile': '…' }, note: null };
+        rows['PeopleTools release'] = 'Reading PSSTATUS…';
+        rows['Compiler profile'] = '…';
+        break;
       case 'error':
-        return {
-          rows: { 'PeopleTools release': 'Unknown', 'Compiler profile': 'Unknown' },
-          note: h('p', { className: 'error-text analysis-note', text: `Could not read PSSTATUS: ${env.message}` })
-        };
+        rows['PeopleTools release'] = 'Unknown';
+        rows['Compiler profile'] = 'Unknown';
+        notes.push(h('p', { className: 'error-text analysis-note', text: `Could not read PSSTATUS: ${env.message}` }));
+        break;
       case 'available':
-        return {
-          rows: {
-            'PeopleTools release': env.release,
-            'Compiler profile': env.profile.ok ? `${env.profile.id} (automatic)` : 'None'
-          },
-          note: !env.profile.ok
-            ? h('p', { className: 'error-text analysis-note', text: `Unknown compiler profile mapping: ${env.profile.message}` })
-            : env.source === 'test' ? hint('Release from the last Test Connection.') : null
-        };
+        rows['PeopleTools release'] = env.release;
+        rows['Compiler profile'] = env.profile.ok ? `${env.profile.id} (automatic)` : 'None';
+        if (!env.profile.ok) {
+          notes.push(h('p', { className: 'error-text analysis-note', text: `Unknown compiler profile mapping: ${env.profile.message}` }));
+        } else if (env.source === 'test') {
+          notes.push(hint('Release from the last Test Connection.'));
+        }
+        break;
     }
-    return { rows: {}, note: null };
+
+    if (c.decoder) {
+      const selectId = `decoder-${c.id.replace(/\W/g, '-')}`;
+      const errorKey = `decoder:${c.id}`;
+      const error = (errors[errorKey] || {}).decoder;
+      const select = /** @type {HTMLSelectElement} */ (h('select', {
+        attrs: {
+          id: selectId, 'data-focus-key': errorKey, 'aria-label': `${c.name} PeopleCode decoder`,
+          ...(error ? { 'aria-invalid': 'true' } : {})
+        },
+        on: { change: (e) => post({ type: 'setConnectionDecoder', connectionId: c.id, decoder: /** @type {HTMLSelectElement} */ (e.target).value }) }
+      }));
+      for (const option of state.decoderOptions) {
+        const label = c.decoder.inherited && option.value === c.decoder.value ? `${option.label} (default)` : option.label;
+        const node = /** @type {HTMLOptionElement} */ (h('option', { text: label, attrs: { value: option.value } }));
+        node.selected = option.value === c.decoder.value;
+        select.append(node);
+      }
+      rows['PeopleCode decoder'] = select;
+
+      const current = state.decoderOptions.find((o) => o.value === c.decoder.value);
+      if (current) notes.push(hint(current.description));
+      if (c.decoder.inherited) notes.push(hint('Using the default, peoplesoft.peoplecode.decoder.'));
+      if (c.connected) notes.push(hint('A change applies the next time this connection connects.'));
+      if (error) notes.push(h('p', { className: 'error-text analysis-note', text: error, attrs: { role: 'alert' } }));
+    }
+
+    return h('div', { className: 'analysis', attrs: { role: 'group', 'aria-label': `${c.name} compiler and analysis` } }, [
+      h('h4', { text: 'Compiler / Analysis' }),
+      facts(rows),
+      ...notes
+    ]);
   }
 
   function renderMcp() {
@@ -462,7 +496,6 @@
     renderToc(!!state.mcp);
     root.replaceChildren(...[
       renderConnections(),
-      renderSettingsSection('peoplecode', 'PeopleCode', ''),
       renderMcp(),
       renderSettingsSection('advanced', 'Advanced', 'Database driver settings. Most installations need none of these.')
     ].filter(Boolean));
@@ -491,12 +524,14 @@
       render();
     } else if (message.type === 'validation') {
       const target = message.target;
-      const key = target.kind === 'setting' ? `setting:${target.key}` : `conn:${target.connectionId}`;
+      const key = target.kind === 'setting' ? `setting:${target.key}`
+        : target.kind === 'connectionDecoder' ? `decoder:${target.connectionId}`
+        : `conn:${target.connectionId}`;
       const valid = Object.keys(message.errors).length === 0;
       if (valid) {
         delete errors[key];
         if (target.kind === 'setting') delete drafts[key];
-        else {
+        else if (target.kind === 'connection') {
           clearConnectionDrafts(target.connectionId);
           editing = editing.filter((id) => id !== target.connectionId);
         }

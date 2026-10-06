@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import type { ConnectionConfig } from '../workspace.js';
 import type { EnvironmentInfo } from '../providers/provider.js';
 import {
-  describeAccess, describeEnvironment, formatRelease, safeErrorMessage, sourceOf,
+  describeAccess, describeEnvironment, effectiveDecoder, formatRelease, safeErrorMessage, sourceOf,
   validateConnectionEdit, validateSetting, writeScopeFor,
   type PeopleSoftStudioSettings, type SettingInspection, type SettingKey, type SettingScope
 } from '../settings/settingsModel.js';
@@ -145,14 +145,17 @@ const settle = () => new Promise((resolve) => setImmediate(resolve));
 
 test('reads every configured connection and setting from configuration', () => {
   const { service, config } = setup();
-  config.set('peoplecode.decoder', 'workspace', 'strict');
+  config.set('mcp.port', 'workspace', 8123);
   const state = service.getState();
 
   assert.deepEqual(state.connections.map((c) => c.name), ['HCDEV', 'HCTST', 'Export']);
   assert.equal(state.connectionsSource, 'global');
-  const decoder = state.settings.find((s) => s.key === 'peoplecode.decoder');
-  assert.equal(decoder?.value, 'strict');
-  assert.equal(decoder?.source, 'workspace');
+  const port = state.settings.find((s) => s.key === 'mcp.port');
+  assert.equal(port?.value, 8123);
+  assert.equal(port?.source, 'workspace');
+  // The decoder is per connection now; the global key is only the default.
+  assert.equal(state.settings.some((s) => (s.key as string) === 'peoplecode.decoder'), false);
+  assert.equal(state.defaultDecoder, 'auto');
   const libDir = state.settings.find((s) => s.key === 'oracle.thickModeLibDir');
   assert.equal(libDir?.value, '');
   assert.equal(libDir?.source, 'default');
@@ -189,8 +192,8 @@ test('read-only is connection metadata, not a toggle', () => {
 test('writes a setting to the scope that defines it, defaulting to user settings', async () => {
   const { service, config } = setup();
 
-  await service.handleMessage({ type: 'updateSetting', key: 'peoplecode.decoder', value: 'raw' });
-  assert.deepEqual(config.writes.at(-1), { key: 'peoplecode.decoder', value: 'raw', scope: 'global' });
+  await service.handleMessage({ type: 'updateSetting', key: 'mcp.enabled', value: false });
+  assert.deepEqual(config.writes.at(-1), { key: 'mcp.enabled', value: false, scope: 'global' });
 
   config.set('oracle.thickModeLibDir', 'workspace', '/opt/oracle');
   await service.handleMessage({ type: 'updateSetting', key: 'oracle.thickModeLibDir', value: '  /opt/ic21  ' });
@@ -210,10 +213,10 @@ test('writeScopeFor prefers the most specific defined scope', () => {
 
 test('invalid setting values are rejected against the field and not written', async () => {
   const { service, config } = setup();
-  const reply = await service.handleMessage({ type: 'updateSetting', key: 'peoplecode.decoder', value: 'verbose' });
+  const reply = await service.handleMessage({ type: 'updateSetting', key: 'oracle.thickModeLibDir', value: 'relative/dir' });
 
   assert.deepEqual(reply?.type, 'validation');
-  assert.match((reply as Extract<SettingsHostMessage, { type: 'validation' }>).errors.value, /Decoder must be one of auto, strict, raw/);
+  assert.match((reply as Extract<SettingsHostMessage, { type: 'validation' }>).errors.value, /must be an absolute path/);
   assert.equal(config.writes.length, 0);
 
   assert.equal(validateSetting('oracle.thickModeLibDir', 'relative/dir').ok, false);
@@ -263,7 +266,7 @@ test('MCP settings are validated and written as a boolean and an integer', async
 test('a failed configuration write is reported, not swallowed', async () => {
   const { service, config, errors } = setup();
   config.failNextWrite = new Error('Unable to write to Workspace Settings because no workspace is opened.\nstack...');
-  const reply = await service.handleMessage({ type: 'updateSetting', key: 'peoplecode.decoder', value: 'raw' });
+  const reply = await service.handleMessage({ type: 'updateSetting', key: 'mcp.enabled', value: false });
 
   assert.equal(errors.length, 1);
   assert.match(errors[0], /no workspace is opened\.$/);
@@ -340,7 +343,8 @@ test('no Settings message selects, connects or disconnects', async () => {
   for (const message of [
     { type: 'ready' }, { type: 'testConnection', connectionId: 'oracle:HCTST' },
     { type: 'updateConnection', connectionId: 'oracle:HCTST', edit: { user: 'PS' } },
-    { type: 'updateSetting', key: 'peoplecode.decoder', value: 'raw' },
+    { type: 'updateSetting', key: 'mcp.enabled', value: false },
+    { type: 'setConnectionDecoder', connectionId: 'oracle:HCTST', decoder: 'raw' },
     { type: 'addConnection' }, { type: 'removeConnection', connectionId: 'oracle:HCTST' },
     { type: 'openNativeSettings' }
   ] as const) {
@@ -499,6 +503,37 @@ test('each connection shows its own release and profile, from the last test whil
   assert.equal(hctst.test, undefined);
 });
 
+test('each database connection has its own decoder, defaulting to peoplecode.decoder', async () => {
+  const { service, config, states } = setup();
+  config.set('peoplecode.decoder', 'global', 'strict');
+  let [hcdev, , exportView] = service.getState().connections;
+  assert.deepEqual(hcdev.decoder, { value: 'strict', inherited: true });
+  // A project export holds plain source; there is nothing to decode.
+  assert.equal(exportView.decoder, undefined);
+  assert.deepEqual(service.getState().decoderOptions.map((o) => o.value), ['auto', 'strict', 'raw']);
+
+  const reply = await service.handleMessage({ type: 'setConnectionDecoder', connectionId: 'oracle:HCDEV', decoder: 'raw' });
+  assert.deepEqual(reply, { type: 'validation', target: { kind: 'connectionDecoder', connectionId: 'oracle:HCDEV' }, errors: {} });
+  assert.deepEqual(config.writes.at(-1), {
+    key: 'connections', scope: 'global', value: [{ ...HCDEV, decoder: 'raw' }, HCTST, EXPORT]
+  });
+  [hcdev] = states.at(-1)!.connections;
+  assert.deepEqual(hcdev.decoder, { value: 'raw', inherited: false });
+  // The default no longer reaches a connection with its own decoder.
+  config.external('peoplecode.decoder', 'global', 'auto');
+  assert.deepEqual(states.at(-1)!.connections[0].decoder, { value: 'raw', inherited: false });
+  assert.deepEqual(states.at(-1)!.connections[1].decoder, { value: 'auto', inherited: true });
+
+  const writes = config.writes.length;
+  const bad = await service.handleMessage({ type: 'setConnectionDecoder', connectionId: 'oracle:HCTST', decoder: 'verbose' });
+  assert.match((bad as Extract<SettingsHostMessage, { type: 'validation' }>).errors.decoder, /Decoder must be one of auto, strict, raw/);
+  const onExport = await service.handleMessage({ type: 'setConnectionDecoder', connectionId: 'project:/tmp/project.xml', decoder: 'raw' });
+  assert.match((onExport as Extract<SettingsHostMessage, { type: 'validation' }>).errors.decoder, /Only database connections/);
+  assert.equal(config.writes.length, writes);
+
+  assert.deepEqual(effectiveDecoder({ ...HCDEV, decoder: 'bogus' as never }, 'strict'), { value: 'strict', inherited: true });
+});
+
 test('safeErrorMessage keeps one bounded line', () => {
   assert.equal(safeErrorMessage(new Error('first\nsecond')), 'first');
   assert.equal(safeErrorMessage('x'.repeat(400)).length, 300);
@@ -510,8 +545,12 @@ test('safeErrorMessage keeps one bounded line', () => {
 
 test('an external configuration change refreshes subscribers', () => {
   const { config, states } = setup();
+  config.external('oracle.thickModeLibDir', 'global', '/opt/ic21');
+  assert.equal(states.at(-1)?.settings.find((s) => s.key === 'oracle.thickModeLibDir')?.value, '/opt/ic21');
+
+  // The default decoder is not a panel setting, but connections that inherit it follow it.
   config.external('peoplecode.decoder', 'global', 'strict');
-  assert.equal(states.at(-1)?.settings.find((s) => s.key === 'peoplecode.decoder')?.value, 'strict');
+  assert.deepEqual(states.at(-1)?.connections[0].decoder, { value: 'strict', inherited: true });
 
   config.external('connections', 'global', [HCTST]);
   assert.deepEqual(states.at(-1)?.connections.map((c) => c.name), ['HCTST']);
@@ -571,8 +610,10 @@ test('parseWebviewMessage accepts the contract and nothing else', () => {
   assert.deepEqual(parseWebviewMessage({ type: 'ready' }), { type: 'ready' });
   assert.deepEqual(parseWebviewMessage({ type: 'testConnection', connectionId: 'oracle:HCDEV' }),
     { type: 'testConnection', connectionId: 'oracle:HCDEV' });
-  assert.deepEqual(parseWebviewMessage({ type: 'updateSetting', key: 'peoplecode.decoder', value: 'raw' }),
-    { type: 'updateSetting', key: 'peoplecode.decoder', value: 'raw' });
+  assert.deepEqual(parseWebviewMessage({ type: 'updateSetting', key: 'mcp.port', value: '8123' }),
+    { type: 'updateSetting', key: 'mcp.port', value: '8123' });
+  assert.deepEqual(parseWebviewMessage({ type: 'setConnectionDecoder', connectionId: 'oracle:X', decoder: 'raw' }),
+    { type: 'setConnectionDecoder', connectionId: 'oracle:X', decoder: 'raw' });
   assert.deepEqual(parseWebviewMessage({ type: 'updateConnection', connectionId: 'oracle:X', edit: { user: 'PS' } }),
     { type: 'updateConnection', connectionId: 'oracle:X', edit: { user: 'PS' } });
   assert.deepEqual(parseWebviewMessage({ type: 'mcp', action: 'copyUrl' }), { type: 'mcp', action: 'copyUrl' });
@@ -583,7 +624,9 @@ test('parseWebviewMessage accepts the contract and nothing else', () => {
     { type: 'selectConnection', connectionId: 'oracle:X' },
     // Connections have their own editor; they cannot be overwritten as a plain value.
     { type: 'updateSetting', key: 'connections', value: [] },
-    { type: 'updateSetting', key: 'peoplecode.decoder' },
+    { type: 'updateSetting', key: 'peoplecode.decoder', value: 'raw' },
+    { type: 'setConnectionDecoder', connectionId: 'oracle:X' },
+    { type: 'setConnectionDecoder', connectionId: 'oracle:X', decoder: 1 },
     { type: 'updateConnection', connectionId: 'oracle:X', edit: { name: 'Y' } },
     { type: 'updateConnection', connectionId: 'oracle:X', edit: { password: 'p' } },
     { type: 'updateConnection', connectionId: 'oracle:X', edit: { user: 1 } },
