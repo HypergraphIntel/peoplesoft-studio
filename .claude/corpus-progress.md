@@ -1,5 +1,22 @@
 # Corpus Calibration Progress
 
+## Cycle 184 (2026-10-06) -- compiler profiles (refactor, no semantic change)
+
+- CompilerProfile (src/peoplecode/compilerProfile.ts): PT861 (8.61),
+  PT862 (8.62); typed empty delta lists; explicit release table (anything
+  else throws); EncodeProgramContext.profile owns release + metadata
+  universe (CompilerProfileConflictError on contradiction); no default
+  profile. Lab releases map 8.61.15 -> PT861, 8.62.09 -> PT862
+  (PEOPLETOOLS_RELEASES.compilerProfileId). Docs: docs/COMPILER_PROFILES.md.
+- Validation: HCDEV PT861 unchanged (EXACT 30,134 / recovered 71 /
+  compile-history 4; PSPCMPROG 30,205, PSPCMNAME 30,204; taxonomy and
+  audit rows identical; regressed 0; 430/430). PT862 lab comparison
+  unchanged (30,067 / 30,067; identical source 29,792 / 29,792; all 282
+  difference rows identical).
+- Commits ec496d9 d566078 ee08b92 f0b6474 38e8c84 9736a90 750b2a5.
+- Next action: release-support work stays evidence-driven -- a delta enters
+  a profile only from controlled comparison (see COMPILER_PROFILES.md).
+
 ## PeopleTools 8.62 compatibility track (branch research/pt862-compat)
 
 > **Status (final, first PT 8.62 compatibility frontier: CLOSED).** The
