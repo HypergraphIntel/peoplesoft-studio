@@ -212,6 +212,24 @@ App Designer Save
   increments PSLOCK SYS. A native save did not. Compare against a native
   SQL-definition save.
 
+**02-resave** (the same definition, saved with its source unchanged).
+
+| Item | Observed |
+|---|---|
+| PSPCMTXT | its row deleted and re-inserted, byte-identical (text and HASH_SIGNATURE) |
+| PSPCMPROG | its row deleted and re-inserted; only VERSION (62 -> 63 = the new PSVERSION.PCM) and LASTUPDDTTM differ; PROGTXT byte-identical |
+| PSPCMNAME | its row deleted and re-inserted, byte-identical |
+| PSVERSION / PSLOCK | as 01: PSVERSION PCM +1 and SYS +1; PSLOCK PCM +1 |
+| Other tables | none |
+
+- **A save replaces; it never updates in place.** Every row of the key in
+  all three tables is deleted and inserted again, unchanged rows included.
+  A key-based diff shows only the PSPCMPROG columns that changed; the ROWID
+  sweep shows the replace. The transition summary now reports both
+  (`physical`).
+- An unchanged re-save is byte-deterministic apart from VERSION and
+  LASTUPDDTTM, as in Cycle 180's run 2.
+
 ## 8.62 track: H2 -- end-of-body boundary (resolved)
 
 Branch `research/pt862-compat`; this is separate from the closed HCDEV
