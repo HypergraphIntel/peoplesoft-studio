@@ -105,7 +105,7 @@ for (const { name, program } of saves) {
   });
 }
 
-test('every scratch program App Designer left on HRDMO passes or is refused for a stated reason', () => {
+test('every scratch program App Designer left on HRDMO passes the gate or is refused for a stated reason', () => {
   const last = readdirSync(RESULTS).filter((d) => existsSync(path.join(RESULTS, d, 'after.json'))).sort().at(-1)!;
   const after = JSON.parse(readFileSync(path.join(RESULTS, last, 'after.json'), 'utf8')) as Snapshot;
   let passed = 0;
@@ -156,11 +156,33 @@ test('only scratch Record Field PeopleCode and Application Class programs are in
   assert.throws(() => targetForKey({ objectIds: ids(10, 39, 12), objectValues: vals('ZZ_PCODE_LAB', 'GBL', 'PreBuild') }), /not supported yet/);
 });
 
-test('programs needing unmodeled reference rows are refused, not approximated', () => {
+test('PACKAGE rows are the compiler references, serialized as App Designer writes them', () => {
   const target = { applicationClass: false, recordName: 'ZZ_PCODE_LAB', fieldName: 'ZZ_PCODE_LAB_C01' };
-  assert.throws(() => compileForSave('Local Rowset &rs = GetLevel0();\n', target, TOOLS_RELEASE), /PACKAGE reference row/);
+  const { names } = compileForSave('Local Rowset &rs = GetLevel0();\n', target, TOOLS_RELEASE);
+  assert.deepEqual(names.find((n) => n.recname === 'PACKAGE'),
+    { namenum: names.find((n) => n.recname === 'PACKAGE')!.namenum, recname: 'PACKAGE', refname: 'ROWSET', packageroot: 'Rowset', qualifypath: 'Rowset', appclassmethod: ' ' });
   assert.throws(() => compileForSave('Local string &c = ;\n', target, TOOLS_RELEASE), /does not compile/);
-  assert.doesNotThrow(() => compileForSave('Local string &c = ZZ_PCODE_LAB.ZZ_PCODE_LAB_C02;\n', target, TOOLS_RELEASE));
+});
+
+test('every scratch program App Designer compiled on HRDMO is rebuilt to its stored rows exactly', () => {
+  // The latest snapshot holds all ZZ_PCODE_LAB programs as App Designer
+  // 8.62.09 last compiled them: Rowset / Row / Record object types,
+  // Application Class references, wildcard imports, extends.
+  const last = readdirSync(RESULTS).filter((d) => existsSync(path.join(RESULTS, d, 'after.json'))).sort().at(-1)!;
+  const after = JSON.parse(readFileSync(path.join(RESULTS, last, 'after.json'), 'utf8')) as Snapshot;
+  const programs = programsIn(after).filter((p) => p.program.length > 0);
+  let rebuilt = 0;
+  for (const program of programs) {
+    const target = targetForKey(program.key);
+    const text = [...program.text].sort((a, b) => a.progseq - b.progseq).map((r) => r.text).join('');
+    const plan = planProgram(text, compileForSave(text, target, TOOLS_RELEASE));
+    const first = program.program[0];
+    const expected = expectedProgram(program.key, plan, { version: first.version, lastupddttm: first.lastupddttm, operatorId: first.lastupdoprid });
+    assert.deepEqual(diffPrograms(expected, program), [], program.key.objectValues.join('.'));
+    checkStoredProgram(program, target, TOOLS_RELEASE);
+    rebuilt++;
+  }
+  assert.ok(rebuilt >= 27, `rebuilt ${rebuilt} programs`);
 });
 
 test('operator ids are required and well formed', () => {

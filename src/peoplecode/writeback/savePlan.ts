@@ -6,6 +6,7 @@ import { predictSourceSignature } from '../sourceSignature.js';
 import { sourcesMatch } from '../corpus/sourceNormalize.js';
 import { isScratchName } from '../corpus/labSafety.js';
 import { compilerProfileForToolsRelease } from '../compilerProfile.js';
+import { parseApplicationClassSource } from '../applicationClassProgram.js';
 
 /*
  * What a native PeopleCode save writes, as data: the rows App Designer
@@ -18,10 +19,14 @@ import { compilerProfileForToolsRelease } from '../compilerProfile.js';
  * row; PSPCMPROG in 28,000-byte rows repeating VERSION / NAMECOUNT / PROGLEN /
  * LASTUPDDTTM / LASTUPDOPRID; PSPCMNAME NAMENUM 1..n.
  *
- * Scope (first writer): ZZ_PCODE_LAB definitions only, Record PeopleCode
- * and Application Class programs that already exist, whose reference rows
- * are all of a kind with no unmodeled columns. Anything else is refused
- * with SaveRefusedError, never approximated.
+ * PSPCMNAME rows are the compiler's references, serialized: which rows
+ * exist and in what order is the encoder's model (proven corpus-wide); the
+ * descriptive columns of PACKAGE and Declare Function rows are mapped from
+ * the same references (referencesToNameRows).
+ *
+ * Scope: ZZ_PCODE_LAB definitions only, Record PeopleCode and Application
+ * Class programs that already exist. Anything else is refused with
+ * SaveRefusedError, never approximated.
  */
 
 export const SOURCE_ROW_CHARS = 14000;
@@ -159,24 +164,49 @@ export function splitProgramRows(program: Buffer): Buffer[] {
 }
 
 /**
- * PSPCMNAME rows for the encoder's references. Kinds whose remaining
- * columns PeopleTools fills (PACKAGE rows: PACKAGEROOT / QUALIFYPATH /
- * APPCLASSMETHOD; Declare Function rows: APPCLASSMETHOD) are refused until
- * those columns are derived and validated: on HRDMO no other kind ever
- * carries them.
+ * PSPCMNAME rows for the encoder's references: RECNAME / REFNAME as the
+ * corpus harness validated them, and the descriptive columns as App
+ * Designer 8.62.09 writes them on a fresh compile (every scratch program on
+ * HRDMO; HRDMO-wide censuses for the case of APPCLASSMETHOD):
+ *
+ *   built-in object type   PACKAGE | TYPE  | Type name | Type name |
+ *   Application Class      PACKAGE | CLASS | root      | sub:path  | METHOD (upper case), if any
+ *   wildcard import        PACKAGE | ' '   | root      | sub:path  |
+ *   Declare Function       REC     | FIELD |           |           | event (FieldFormula, ...)
+ *   anything else          its RECNAME / REFNAME, the rest blank
  */
 export function referencesToNameRows(references: readonly PeopleCodeReference[]): NameRow[] {
   const up = (v: unknown) => String(v ?? '').toUpperCase();
   return [...references].sort((a, b) => a.sequence - b.sequence).map((r) => {
     let recname: string;
     let refname: string;
+    let packageroot = '';
+    let qualifypath = '';
+    let appclassmethod = '';
     switch (r.kind) {
-      case 'package':
-        throw new SaveRefusedError(
-          'This program references an Application Class, object type or %This (a PACKAGE reference row). ' +
-          'Writing those reference rows is not supported yet.');
+      case 'package': {
+        recname = 'PACKAGE';
+        refname = up(r.packageName);
+        if (r.packagePath && r.packagePath.length > 0) {
+          packageroot = r.packagePath[0];
+          qualifypath = r.packagePath.slice(1).join(':');
+          appclassmethod = up(r.methodName);
+        } else {
+          // A built-in object type: its display name in both columns.
+          if (!r.objectName) {
+            throw new SaveRefusedError(`The compiler gave no type name for PACKAGE.${refname}; refusing to write that reference row.`);
+          }
+          packageroot = r.objectName;
+          qualifypath = r.objectName;
+        }
+        break;
+      }
       case 'declare-function':
-        throw new SaveRefusedError('This program declares a function from another program. Writing Declare Function reference rows is not supported yet.');
+        recname = up(r.recordName);
+        refname = up(r.fieldName);
+        if (!r.eventName) throw new SaveRefusedError(`The compiler gave no event for the Declare Function reference ${recname}.${refname}.`);
+        appclassmethod = r.eventName;
+        break;
       case 'owner': recname = up(r.recordName); refname = up(r.fieldName); break;
       case 'scroll': recname = 'SCROLL'; refname = up(r.recordName); break;
       case 'record': recname = 'RECORD'; refname = up(r.recordName); break;
@@ -186,9 +216,15 @@ export function referencesToNameRows(references: readonly PeopleCodeReference[])
     }
     return {
       namenum: r.sequence, recname: stored(recname), refname: stored(refname),
-      packageroot: BLANK, qualifypath: BLANK, appclassmethod: BLANK
+      packageroot: stored(packageroot), qualifypath: stored(qualifypath), appclassmethod: stored(appclassmethod)
     };
   });
+}
+
+/** PSPCMPROG.PROGEXTENDS: an Application Class's superclass, as its header names it; blank otherwise. */
+export function progExtendsFor(source: string, target: CompileTarget): string {
+  if (!target.applicationClass) return BLANK;
+  return stored(parseApplicationClassSource(source)?.extendsType ?? '');
 }
 
 function nameTable(rows: readonly NameRow[]): NameTable {
@@ -201,7 +237,7 @@ function nameTable(rows: readonly NameRow[]): NameTable {
   return names;
 }
 
-export interface Compiled { program: Buffer; names: NameRow[] }
+export interface Compiled { program: Buffer; names: NameRow[]; progextends: string }
 
 /**
  * Encodes `source` for `target` under the PeopleTools release, and proves
@@ -224,7 +260,7 @@ export function compileForSave(source: string, target: CompileTarget, toolsRelea
   if (decoded.unknownOpcodes.length > 0 || !sourcesMatch(source, decoded.text)) {
     throw new SaveRefusedError('The compiled program does not decode back to the source being saved; refusing to write it.');
   }
-  return { program: artifacts.program, names };
+  return { program: artifacts.program, names, progextends: progExtendsFor(source, target) };
 }
 
 // ---------------------------------------------------------------------------
@@ -237,6 +273,7 @@ export interface ProgramPlan {
   programRows: Buffer[];
   proglen: number;
   names: NameRow[];
+  progextends: string;
 }
 
 export function planProgram(source: string, compiled: Compiled): ProgramPlan {
@@ -246,12 +283,13 @@ export function planProgram(source: string, compiled: Compiled): ProgramPlan {
     hashSignature: predictSourceSignature(source),
     programRows: splitProgramRows(compiled.program),
     proglen: compiled.program.length,
-    names: compiled.names
+    names: compiled.names,
+    progextends: compiled.progextends
   };
 }
 
 /** The columns every observed native save wrote with these values; a stored program with others is refused. */
-export const PROGRAM_DEFAULTS = { progrunloc: 0, progflags: 0, licenseCode: BLANK, pttoolsrel: BLANK, progextends: BLANK } as const;
+export const PROGRAM_DEFAULTS = { progrunloc: 0, progflags: 0, licenseCode: BLANK, pttoolsrel: BLANK } as const;
 
 export function storedText(program: StoredProgram): string {
   return [...program.text].sort((a, b) => a.progseq - b.progseq).map((r) => r.text).join('');
@@ -261,10 +299,14 @@ function storedBytes(program: StoredProgram): Buffer {
   return Buffer.concat([...program.program].sort((a, b) => a.progseq - b.progseq).map((r) => r.bytes));
 }
 
+/**
+ * The rows the compiler models: NAMENUM, RECNAME, REFNAME. The descriptive
+ * columns are compile history in older stored programs (an earlier
+ * compile's format); a save rewrites them as a fresh compile does.
+ */
 const sameNames = (a: readonly NameRow[], b: readonly NameRow[]) =>
   a.length === b.length && a.every((x, i) =>
-    x.namenum === b[i].namenum && x.recname === b[i].recname && x.refname === b[i].refname &&
-    x.packageroot === b[i].packageroot && x.qualifypath === b[i].qualifypath && x.appclassmethod === b[i].appclassmethod);
+    x.namenum === b[i].namenum && x.recname.trim() === b[i].recname.trim() && x.refname.trim() === b[i].refname.trim());
 
 /**
  * The pre-edit gate: the stored program must be one this writer reproduces
@@ -293,10 +335,10 @@ export function checkStoredProgram(program: StoredProgram, target: CompileTarget
     if (row.version !== first.version || row.namecount !== first.namecount || row.proglen !== first.proglen ||
         row.lastupddttm !== first.lastupddttm || row.lastupdoprid !== first.lastupdoprid) refuse('its PSPCMPROG rows disagree');
     if (row.progrunloc !== PROGRAM_DEFAULTS.progrunloc || row.progflags !== PROGRAM_DEFAULTS.progflags ||
-        row.licenseCode !== PROGRAM_DEFAULTS.licenseCode || row.pttoolsrel !== PROGRAM_DEFAULTS.pttoolsrel ||
-        row.progextends !== PROGRAM_DEFAULTS.progextends) {
-      refuse('PROGRUNLOC, PROGFLAGS, LICENSE_CODE, PTTOOLSREL or PROGEXTENDS holds a value native saves were not observed to write');
+        row.licenseCode !== PROGRAM_DEFAULTS.licenseCode || row.pttoolsrel !== PROGRAM_DEFAULTS.pttoolsrel) {
+      refuse('PROGRUNLOC, PROGFLAGS, LICENSE_CODE or PTTOOLSREL holds a value native saves were not observed to write');
     }
+    if (row.progextends.trim() !== progExtendsFor(text, target).trim()) refuse('PROGEXTENDS does not match the class header');
   }
   const bytes = storedBytes(program);
   if (first.proglen !== bytes.length) refuse('PROGLEN does not match the program length');
@@ -362,6 +404,7 @@ export function expectedProgram(
       namecount: plan.names.length,
       proglen: plan.proglen,
       ...PROGRAM_DEFAULTS,
+      progextends: plan.progextends,
       lastupddttm: stamp.lastupddttm,
       lastupdoprid: stamp.operatorId,
       bytes
