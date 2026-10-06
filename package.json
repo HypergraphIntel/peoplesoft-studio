@@ -15,7 +15,8 @@
   "icon": "./resources/ad-slash.png",
   "activationEvents": [
     "onFileSystem:psft",
-    "onStartupFinished"
+    "onStartupFinished",
+    "onWebviewPanel:psft.settings"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -78,6 +79,11 @@
           "icon": "./resources/link.svg",
           "id": "psft.connections",
           "name": "Connections"
+        },
+        {
+          "icon": "./resources/tools.svg",
+          "id": "psft.settings",
+          "name": "Settings"
         }
       ]
     },
@@ -142,6 +148,12 @@
         "command": "psft.status.selectConnection",
         "title": "Select Connection",
         "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.settings.open",
+        "title": "Open Settings",
+        "category": "PeopleSoft",
+        "icon": "$(settings-gear)"
       },
       {
         "command": "psft.openProjectFile",
@@ -284,6 +296,11 @@
           "command": "psft.project.compare",
           "when": "view == psft.projects",
           "group": "navigation@4"
+        },
+        {
+          "command": "psft.settings.open",
+          "when": "view == psft.settings || view == psft.connections",
+          "group": "navigation@9"
         }
       ],
       "view/item/context": [
