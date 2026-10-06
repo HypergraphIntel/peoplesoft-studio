@@ -432,7 +432,7 @@ export function parseApplicationClassSource(
   }
 
   for (const match of unitRegion.matchAll(
-    /\bmethod\s+([A-Za-z_][A-Za-z0-9_$]*)\s*(?:\(([^;]*?)\))?\s*(?:Returns\s+([^;]+?))?\s*(abstract\s*)?(?:;|(?=\s*$))/gi
+    /\bmethod\s+([A-Za-z_][A-Za-z0-9_$]*)\s*(?:\(([^;]*?)\))?\s*(?:Returns\s+([^;]+?))?\s*(abstract\s*)?(?:;|(?=\s*$)|(?=[ \t]*\r?\n\s*(?:public|private|protected|method|property|instance|constant)\b))/gi
   )) {
     let returnType = match[3]?.trim();
     let abstract = match[4] !== undefined;
