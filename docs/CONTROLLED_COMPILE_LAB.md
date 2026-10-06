@@ -46,6 +46,43 @@ If `-PJFF` does not make `-CMPPRJPC` recompile from the imported text:
 
 PSPCMPROG is never fabricated.
 
+## Cycle 181: 10860 / 15598 rule trial (authorized) -- accepted
+
+**Rule (commit 722fa0a).** A Local declared inside a Function has
+semantic type only within that Function. Outside it, the same name does
+not inherit that Local declaration's type, so a member / field chain on
+it compiles as an untyped (inline) chain, unless another declaration in
+the current scope supplies a type.
+- Implemented narrowly: the encoder's declared-name test (Cycle 121)
+  excludes names whose only declarations are Function-body Locals, except
+  inside the declaring Function.
+- Unchanged: top-level / Global / Component declarations and Function
+  parameters stay program-wide; Cycle 163's typed-set restore;
+  Application Class programs.
+- Separate from the 30124 rule (3b5c36e): independent commits and tests
+  (`encoderFunctionLocalDeclaredName.test.ts`,
+  `encoderDeclaredClassRowBeforeCreate.test.ts`).
+
+**Acceptance gate (LOCAL SNAPSHOT, all 30,209 programs).**
+
+| Check | Result |
+|---|---|
+| 10860 / 15598 | EXACT (forward and round trip) |
+| EXACT -> NONEXACT, row by row vs. the previous taxonomy | 0 |
+| Remaining NONEXACT rows (category, first diff) | 75, all unchanged |
+| Protected | 430 / 430 |
+| ENCODE_ERROR / UNSUPPORTED_SYNTAX / ROUNDTRIP_ONLY | 0 / 0 / 0 |
+| Controlled compile (8.62.09) | G1-G7 EXACT; H matrix and SMOKE unchanged (H2 references only) |
+
+HCDEV: EXACT 30,132 -> 30,134; NONEXACT 75 = 71 DSM (stored source is a
+historical variant; round trip exact) + 4 historical reference variants
+(29797, 29883, 30170, 30179). ACTIONABLE 0.
+
+**Provenance.** The direct controlled experiments are PeopleTools
+8.62.09, not 8.61.15 measurements. 30124, 10860 and 15598 are EXACT
+against the 8.61.15 HCDEV corpus through rules derived from 8.62.09
+evidence, and stay tagged 8.61.15 confirmation pending.
+
 ## Cycle 181: G matrix on native Windows 8.62.09 (release-scoped)
 
 **Setup.**
@@ -87,9 +124,8 @@ PSPCMPROG is never fabricated.
 - TYPED_EVERYWHERE / PROGRAM_WIDE_DECLARATION (refuted by G1 G3 G5 G7)
   and EARLIER_ROW_REUSE (refuted by G1 G5) are rejected.
 - Both replicas reproduce HCDEV: G1 is 10860's shape and G5 is 15598's.
-- Release policy is unchanged: 10860 / 15598 stay
-  NEEDS_CONTROLLED_COMPILE_86115. No encoder change was made; an HCDEV
-  trial of a declaring-unit rule needs the same authorization as 30124.
+- The user then authorized an HCDEV trial (see "10860 / 15598 rule
+  trial" below), and it was accepted.
 
 **Wine comparison: `-CMPPRJPC` does not save current programs.**
 - Wine 8.62.09 `-CMPPRJPC ZZ_PCODE_LAB` (SmokeTest) logged "Compile
@@ -101,6 +137,21 @@ PSPCMPROG is never fabricated.
 - So in 8.62.09, `-CMPPRJPC` compiles and checks a current program
   without writing it. A headless recompile of programs already saved on
   native Windows produces no Wine bytes to compare.
+
+**Wine status (user decision, Cycle 181): dropped for now.**
+
+```text
+8.62.09 Wine client:
+    signon / headless compiler invocation works
+    CMPPRJPC on current programs performs no observable save
+    byte-equivalence with native Windows not established
+    not an authoritative controlled-compile host
+```
+
+This is an unverified host, not a compiler mismatch: no comparable saves
+were ever obtained. Native Windows App Designer 8.62.09 on
+`ps-win-client` is the authoritative controlled-compile host. Wine
+remains usable for the guarded scratch `-PJFF` bootstrap imports.
 
 ## Cycle 181: 30124 rule trial (authorized) -- accepted
 
