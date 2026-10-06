@@ -293,6 +293,21 @@ App Designer Save
 
 - The encoder reproduces the program (111 / 111 bytes).
 
+**07-source-same-names** (a statement added with no new reference:
+`Local number &m = &n + 1;`).
+
+| Item | Observed |
+|---|---|
+| PSPCMTXT / PSPCMPROG / PSPCMNAME | replaced (new ROWIDs); PSPCMNAME content unchanged (owner row only) |
+| PSPCMPROG | PROGLEN 111 -> 163; VERSION 69 |
+| HASH_SIGNATURE | matches the prediction |
+| PSVERSION / PSLOCK | PSVERSION PCM +1 and SYS +1; PSLOCK PCM +1 |
+| Other tables | none |
+
+- The encoder reproduces the program (163 / 163 bytes).
+- PSPCMNAME is rewritten on every save even when its content cannot
+  change.
+
 ## 8.62 track: H2 -- end-of-body boundary (resolved)
 
 Branch `research/pt862-compat`; this is separate from the closed HCDEV
