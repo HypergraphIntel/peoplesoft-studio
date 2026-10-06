@@ -1,5 +1,51 @@
 # Corpus Calibration Progress
 
+## Current status (2026-10-06, Cycle 183) -- the final 75 resolved
+
+```text
+TOTAL 30,209
+EXACT (stored-source exact)         30,134
+EXACT_RECOVERED_SOURCE                  71   recovered historical source, compiled exact
+UNKNOWN_MISMATCH                         4   29797 29883 30170 30179 (class D)
+PSPCMPROG reproduced                30,205
+PSPCMNAME reproduced                30,204   (+30192 delivered rows, class D)
+protected 430/430; regressed 0; ENCODE_ERROR / UNSUPPORTED_SYNTAX / ROUNDTRIP_ONLY 0
+```
+
+- **71 lossy source (Track 1):** HCDEV PSPCMTXT is WE8ISO8859P15; Oracle
+  stored characters with no byte as 0xBF (16 code points) or best-fit
+  0x60 (U+2018). Proven with Oracle's own conversion table (lab, all BMP)
+  and many-to-one (genuine U+00BF / U+0060 in EXACT programs). The
+  decoded program re-encodes stored PSPCMPROG + PSPCMNAME 71 / 71.
+  historicalSource.ts recovers the compiled source strictly
+  (EXACT_RECOVERED_SOURCE, c6cdc46); 64 / 64 same-revision delivered
+  programs equal HRDMO's Unicode source exactly.
+- **PSPCMNAME audit:** the harness's EXACT is bytes-only. 23 byte-exact
+  App Classes lacked the blank NAMENUM 1 row every App Class stores
+  (1,510 / 1,510): fixed generically (2d868c5), PSPCMNAME 30,181 ->
+  30,204.
+- **4 reference variants + 30192 names (Track 2), class D (proven):**
+  HCDEV holds Oracle's delivered 2023-11-14 build artifacts (PPLTLS84CUR
+  rows identical to HCDEV's), never recompiled. Of 270 delivered App
+  Classes with identical source and repeated delivered rows, HCDEV
+  recompiled 266 to the class-wide (encoder) form and kept 4 as delivered:
+  same source, two stored artifacts -> compile history, not source. HRDMO
+  (8.62.09 fresh compile of the same definitions): encoder exact for all
+  five. Missing: HCDEV PSPCMPROG.LASTUPDDTTM (HCDEV unreachable off
+  network) and a model of Oracle's build per-method mode (1,998 delivered
+  PCMs as calibration, names only).
+- **Corpus-wide 8.62.09 check:** encoder == PeopleTools 8.62.09 (bytes +
+  names) for 30,061 / 30,067 HCDEV definitions present in HRDMO; the 6
+  exceptions are 8.62-only (4601 4602 18249 18256 23497 28943).
+- **Commits:** 009a2fd (inventory), c6cdc46 (recovery tooling), 10e6d07
+  (reference-variant research), 2d868c5 (owner-row semantics), + the
+  closing docs commit.
+- **Next action:** none actionable on HCDEV source. Optional tracks:
+  (1) read HCDEV PSPCMPROG.LASTUPDDTTM for the five when on the network
+  (confirms "never recompiled"); (2) model Oracle's build-compile
+  per-method mode from the 1,998 delivered PCMs; (3) 8.62 compatibility
+  track (H2, the 6 lab exceptions).
+
 ## Current status (2026-10-06, Cycle 182) -- HCDEV semantic frontier sealed
 
 ```text
