@@ -99,14 +99,87 @@ connected DB_NAME; protected institutional databases are refused.
 The signature algorithm is established. Writing it stays gated on the rest
 of the save transaction.
 
-**Next.** The controlled native-save
-experiments (create, unchanged re-save, A->B->A, comment-only,
-literal-only, reference change, compile failure, empty program, App Class,
-ordinary PeopleCode), each bracketed by a whole-database before / after
-snapshot, to characterize the complete save transaction:
-PSPCMTXT, PSPCMPROG, PSPCMNAME, version counters, audit fields, and any
-other table a save touches.
+### Save-protocol snapshots
 
+`tools/corpus/save-protocol/snapshot.ts` brackets one App Designer save
+with read-only before / after snapshots of HRDMO. The account is SYSADM,
+so read-only is enforced by the tool: SELECTs only, inside a READ ONLY
+transaction that is rolled back.
+
+```bash
+npx tsx tools/corpus/save-protocol/snapshot.ts before --case 01-create
+# save the ZZ_PCODE_LAB definition in App Designer 8.62.09
+npx tsx tools/corpus/save-protocol/snapshot.ts after  --case 01-create
+```
+
+**What it captures**
+
+- **Marker:** `TIMESTAMP_TO_SCN(SYSTIMESTAMP)` and the database clock.
+  The SCN may round down, which only widens the window.
+- **Watch set, full rows:**
+  - PSPCMTXT / PSPCMPROG / PSPCMNAME under `ZZ_PCODE_LAB%`;
+  - the scratch PSPACKAGEDEFN, PSAPPCLASSDEFN, PSPROJECTDEFN and
+    PSPROJECTITEM rows;
+  - all of PSVERSION and PSLOCK.
+  Rows are diffed by each table's unique index into inserted / deleted /
+  updated, with column-level before and after values.
+- **Sweep:** every PeopleTools table (1,592 on HRDMO; `--scope all` adds
+  the `PS_%` application tables). The before snapshot counts rows. The
+  after snapshot counts again and finds rows with `ORA_ROWSCN` past the
+  marker. Each changed table is then diffed by flashback (`AS OF SCN`) over
+  the touched blocks, by ROWID. This catches a save touching a non-scratch
+  row, which is the Cycle 178 failure.
+- **Values:**
+  - NUMBER: exact decimal strings;
+  - DATE / TIMESTAMP: ISO with every fractional digit, converted in SQL;
+  - BLOB / RAW: hex;
+  - CLOB: text.
+- **Transition summary** for each changed scratch definition:
+  - row counts and changes per table;
+  - whether the stored signature matches `predictSourceSignature`;
+  - PROGLEN against the program's bytes, NAMECOUNT against its PSPCMNAME
+    rows;
+  - VERSION before and after;
+  - LASTUPDDTTM, and whether it falls inside the database-clock window;
+  - LASTUPDOPRID and PTTOOLSREL;
+  - PSVERSION and PSLOCK deltas.
+- **`incomplete`:** lists any table whose delta is truncated (over 500
+  rows) or whose flashback diff failed (`ORA-01555` when the window
+  outlives undo). Keep before and after minutes apart.
+
+A full before + after takes about a minute. The `00-noop` case (no save in
+between) produced an empty delta: no false positives.
+
+**Case matrix,** run in this order, each a separate case directory:
+
+1. `01-create`: a new scratch definition, saved for the first time.
+2. `02-resave`: the same source, saved unchanged.
+3. `03-a-to-b`: A -> B.
+4. `04-b-to-a`: B -> A.
+5. `05-comment`: a comment-only change.
+6. `06-literal`: a literal-only change.
+7. `07-source-same-names`: a source change that leaves PSPCMNAME as it was.
+8. `08-source-new-names`: a source change that adds or removes a reference.
+9. `09-reference-row`: a change to an existing reference row.
+10. `10-compile-failure`: a save App Designer refuses to compile.
+11. `11-empty`: an empty program.
+12. `12-app-class`: an Application Class method.
+13. `13-record-peoplecode`: ordinary Record PeopleCode.
+
+The deliverable is a transition model, filled in per case:
+
+```text
+App Designer Save
+  PSPCMTXT rows   deleted / replaced / updated in place
+  PSPCMPROG rows  deleted / replaced / updated in place
+  PSPCMNAME rows  deleted / replaced / updated in place
+  VERSION         +1 / copied / derived (from what)
+  NAMECOUNT       = PSPCMNAME row count?
+  PROGLEN         = program byte length?
+  LASTUPDDTTM     database clock / client clock / preserved
+  PSVERSION.PCM   +n    PSVERSION.SYS   +n    (PSLOCK likewise)
+  other tables    [...]
+```
 ## 8.62 track: H2 -- end-of-body boundary (resolved)
 
 Branch `research/pt862-compat`; this is separate from the closed HCDEV

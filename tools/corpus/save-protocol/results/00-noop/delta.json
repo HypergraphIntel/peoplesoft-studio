@@ -1,0 +1,34 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "00-noop",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362777528706",
+   "timestamp": "2026-10-06T11:09:39.652905000-05:00"
+  },
+  "after": {
+   "scn": "39362777528721",
+   "timestamp": "2026-10-06T11:10:08.659185000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-06T11:09:39.652905000-05:00",
+    "to": "2026-10-06T11:10:08.659185000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {},
+  "pslock": {},
+  "watchTablesChanged": {},
+  "otherTablesChanged": {},
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {},
+ "otherTables": {}
+}
