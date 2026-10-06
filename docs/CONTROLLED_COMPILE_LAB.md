@@ -346,6 +346,20 @@ C03, not C02).
   PSPCMPROG. A "Save only" mode would create a state App Designer never
   does (docs/PEOPLECODE_WRITEBACK.md, decision 2).
 
+**11-empty** (all text deleted, then saved).
+
+| Item | Observed |
+|---|---|
+| PSPCMTXT / PSPCMPROG / PSPCMNAME | the key's rows deleted (1 / 1 / 2); nothing inserted |
+| **PSPCMPROGDEL** | **1 row inserted: the seven-part key and VERSION 72 (= the new PSVERSION.PCM)** |
+| PSVERSION / PSLOCK | PSVERSION PCM +1 and SYS +1; PSLOCK PCM +1 |
+| Other tables | none |
+
+- **Saving an empty program deletes the program.** Every row of its key
+  goes, and PSPCMPROGDEL records the deletion with the version it happened
+  at. It has no timestamp column. This is the only case so far that
+  touches a table outside the three PeopleCode tables and the counters.
+
 ## 8.62 track: H2 -- end-of-body boundary (resolved)
 
 Branch `research/pt862-compat`; this is separate from the closed HCDEV
