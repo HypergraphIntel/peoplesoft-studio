@@ -230,6 +230,27 @@ App Designer Save
 - An unchanged re-save is byte-deterministic apart from VERSION and
   LASTUPDDTTM, as in Cycle 180's run 2.
 
+**03-a-to-b** (`Local number &n = 1;` -> `Local string &s = "B";`).
+
+| Item | Observed |
+|---|---|
+| PSPCMTXT | PCTEXT the new text; HASH_SIGNATURE changed and matches the prediction |
+| PSPCMPROG | VERSION 63 -> 65 (= PSVERSION.PCM), PROGLEN 82 -> 68 (= the program's bytes), LASTUPDDTTM, PROGTXT |
+| PSPCMNAME | unchanged (owner row only) |
+| PSVERSION / PSLOCK | **PSVERSION PCM +2 and SYS +2; PSLOCK PCM +2** |
+| Other tables | none |
+
+- The rows kept their ROWIDs. A transaction may reuse the slot its own
+  delete freed, so a replace can land on the same ROWID and then reads as an
+  update. An identical row put back in the same slot (PSPCMNAME here) leaves
+  nothing to detect. **A new ROWID (02) proves a replace; the same ROWID
+  does not disprove one.**
+- **A changing save bumps the counters twice**, provided this was a single
+  save (to be confirmed). Cycle 180 saw the same pattern: create +1,
+  unchanged re-save +1, A -> B +2.
+- The encoder reproduces the B program (68 / 68 bytes) and its reference
+  row.
+
 ## 8.62 track: H2 -- end-of-body boundary (resolved)
 
 Branch `research/pt862-compat`; this is separate from the closed HCDEV
