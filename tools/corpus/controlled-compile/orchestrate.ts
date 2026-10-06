@@ -157,7 +157,8 @@ async function main(): Promise<void> {
   await lab.close();
   const results: ControlledCompileResults = { format: CONTROLLED_COMPILE_RESULTS_FORMAT, lab: labInfo, definitions: [...support, ...checked] };
   fs.writeFileSync(path.join(out, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
-  const report = compareControlledCompile(results, pack);
+  // Cycle 184: the capture must be the lab release's compiler profile (PSLAB_RELEASE -> compilerProfileId).
+  const report = compareControlledCompile(results, pack, { expectedProfileId: profile.compilerProfileId });
   fs.writeFileSync(path.join(out, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
   const lines = report.families.map(f =>
     `family ${f.family}: observed ${f.experiments.length - f.missing.length}/${f.experiments.length}; candidates ${f.candidates.join(' ') || 'none'}; replicas not reproduced ${f.replicasNotReproduced.join(' ') || 'none'}; encoder disagrees ${f.encoderDisagrees.join(' ') || 'none'}`);

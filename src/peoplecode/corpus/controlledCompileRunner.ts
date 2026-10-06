@@ -34,15 +34,23 @@
  * builder supports both, and the smoke step decides.
  */
 
+import { COMPILER_PROFILES, compilerProfileIdForToolsRelease, CompilerProfileConflictError, type CompilerProfile, type CompilerProfileId, type CompilerProfileOptions } from '../compilerProfile.js';
+
 /**
  * A PeopleTools release the lab can compile with: its exact Windows client
  * (pinned by hash), its lab directory and Wine prefix under $HOME, and the
  * PSSTATUS values a lab database must report for its output to count.
  * HCDEV conclusions come only from 8.61.15. Each other release is
  * authoritative only for programs compiled by that release.
+ *
+ * Cycle 184: this is a LAB release (how to locate and run one concrete
+ * installation), not a compiler profile; `compilerProfileId` maps it to
+ * the compiler profile its output is compared under (compilerProfile.ts).
  */
 export interface PeopleToolsReleaseProfile {
   release: string;
+  /** The compiler profile this installation's compiles are encoded under. */
+  compilerProfileId: CompilerProfileId;
   toolsRel: string;
   patch: number;
   build?: string;
@@ -55,6 +63,7 @@ export interface PeopleToolsReleaseProfile {
 export const PEOPLETOOLS_RELEASES: Readonly<Record<string, PeopleToolsReleaseProfile>> = {
   '8.61.15': {
     release: '8.61.15',
+    compilerProfileId: 'PT861',
     toolsRel: '8.61',
     patch: 15,
     build: 'PT861P15B_2509220501',
@@ -68,6 +77,7 @@ export const PEOPLETOOLS_RELEASES: Readonly<Record<string, PeopleToolsReleasePro
   /* Cycle 177: the home lab's PeopleTools Client DPK (PTC-DPK-WIN8.62.09-1of1.zip, sha256 78a7f961...). */
   '8.62.09': {
     release: '8.62.09',
+    compilerProfileId: 'PT862',
     toolsRel: '8.62',
     patch: 9,
     build: 'PT862P09C_2604092319',
@@ -84,6 +94,23 @@ export function releaseProfile(release = '8.61.15'): PeopleToolsReleaseProfile {
   const profile = PEOPLETOOLS_RELEASES[release];
   if (profile === undefined) throw new Error(`No lab profile for PeopleTools ${release} (known: ${Object.keys(PEOPLETOOLS_RELEASES).join(', ')}).`);
   return profile;
+}
+
+/** Cycle 184: the lab-release configuration under its own name (a lab release, not a compiler profile). */
+export type LabReleaseConfig = PeopleToolsReleaseProfile;
+
+/**
+ * Cycle 184: the compiler profile for a lab release. The configured
+ * `compilerProfileId` must be the profile its own TOOLSREL selects -- a
+ * misconfigured table fails here rather than encoding under the wrong
+ * release.
+ */
+export function compilerProfileForLabRelease(config: LabReleaseConfig, options: CompilerProfileOptions = {}): CompilerProfile {
+  const expected = compilerProfileIdForToolsRelease(config.toolsRel);
+  if (config.compilerProfileId !== expected) {
+    throw new CompilerProfileConflictError(`Lab release ${config.release} names compiler profile ${config.compilerProfileId}, but its TOOLSREL ${config.toolsRel} is ${expected}.`);
+  }
+  return COMPILER_PROFILES[config.compilerProfileId]({ patchLevel: config.patch, ...options });
 }
 
 /** Whether a lab database's PSSTATUS matches the release the client compiles for. */
