@@ -271,7 +271,10 @@ scratch programs in `ZZ_PCODE_LAB` on the lab database, never on HCDEV.
    through App Designer (Option B)?
 2. **Save only divergence.** Is it acceptable that Save only leaves the
    running program unchanged until something compiles it, with the state
-   shown in the editor?
+   shown in the editor? *Evidence (Cycle 185, case 10):* App Designer
+   compiles before writing and writes nothing when compilation fails, so it
+   never stores source ahead of the compiled program. Save only would
+   create a state App Designer never does.
 3. **Default save mode.** Proposed: Save only.
 4. ~~**Which databases may ever be Writable.**~~ Answered: per
    connection, confirmed when enabled. Only HRDMO will be writable.

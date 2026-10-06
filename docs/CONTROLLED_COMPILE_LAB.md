@@ -336,6 +336,16 @@ C03, not C02).
 
 - The encoder reproduces the program (66 / 66 bytes) and both name rows.
 
+**10-compile-failure** (`Local string &c = ;`).
+
+- App Designer refused the save: "Syntax error: expecting expression.
+  (2,42)", with only OK; there is no "save anyway".
+- The delta is empty: no row, no counter, no table changed.
+- **App Designer compiles before it writes anything.** It never stores
+  source the compiler rejected, and never leaves PSPCMTXT ahead of
+  PSPCMPROG. A "Save only" mode would create a state App Designer never
+  does (docs/PEOPLECODE_WRITEBACK.md, decision 2).
+
 ## 8.62 track: H2 -- end-of-body boundary (resolved)
 
 Branch `research/pt862-compat`; this is separate from the closed HCDEV
