@@ -360,6 +360,20 @@ C03, not C02).
   at. It has no timestamp column. This is the only case so far that
   touches a table outside the three PeopleCode tables and the counters.
 
+**11b-recreate** (the deleted program typed in again:
+`Local number &n = 1;`).
+
+| Item | Observed |
+|---|---|
+| PSPCMTXT / PSPCMPROG / PSPCMNAME | 1 / 1 / 1 rows inserted, as on 01's create (VERSION 73, LASTUPDDTTM aside) |
+| **PSPCMPROGDEL** | **11's row for the key deleted** |
+| PSVERSION / PSLOCK | PSVERSION PCM +1 and SYS +1; PSLOCK PCM +1 |
+| Other tables | none |
+
+- **A save clears the key's PSPCMPROGDEL marker.** 01's create, with no
+  marker present, touched no PSPCMPROGDEL row. HASH_SIGNATURE matches; the
+  encoder reproduces the program.
+
 ## 8.62 track: H2 -- end-of-body boundary (resolved)
 
 Branch `research/pt862-compat`; this is separate from the closed HCDEV
