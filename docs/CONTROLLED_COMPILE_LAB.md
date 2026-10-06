@@ -308,6 +308,20 @@ App Designer Save
 - PSPCMNAME is rewritten on every save even when its content cannot
   change.
 
+**08-source-new-names** (`Local string &c = ZZ_PCODE_LAB.ZZ_PCODE_LAB_C02;`
+added: a new record-field reference).
+
+| Item | Observed |
+|---|---|
+| PSPCMNAME | 1 row -> 2; NAMENUM 2 = `ZZ_PCODE_LAB.ZZ_PCODE_LAB_C02`, PACKAGEROOT / QUALIFYPATH / APPCLASSMETHOD `' '`; physically 1 deleted, 2 inserted |
+| PSPCMPROG | NAMECOUNT 1 -> 2 (= the name rows), PROGLEN 163 -> 191, VERSION 70 |
+| PSPCMTXT | replaced; HASH_SIGNATURE matches the prediction |
+| PSVERSION / PSLOCK | PSVERSION PCM +1 and SYS +1; PSLOCK PCM +1 |
+| Other tables | none |
+
+- The encoder reproduces the program (191 / 191 bytes) and both name rows,
+  in NAMENUM order.
+
 ## 8.62 track: H2 -- end-of-body boundary (resolved)
 
 Branch `research/pt862-compat`; this is separate from the closed HCDEV
