@@ -1408,6 +1408,19 @@ const BUILTIN_TYPE_REGISTRY: ReadonlyMap<string, BuiltinTypeSemantics> = new Map
  */
 
 /** Cycle 107: whether a type name is a PeopleTools built-in object type (`BUILTIN_TYPE_REGISTRY`). */
+/**
+ * Cycle 181: whether a Local's initializer (`rest` starts at the `=`) is
+ * `create` of a class other than the declared one. A target that cannot be
+ * parsed counts as not different, which keeps the existing behavior.
+ */
+function createsDifferentClass(rest: string, packagePath: readonly string[], className: string): boolean {
+  const match = /^\s*=\s*create\s+(%?[A-Za-z_][A-Za-z0-9_]*(?:\s*:\s*[A-Za-z_][A-Za-z0-9_]*)*)\s*\(/i.exec(rest);
+  if (match === null) return false;
+  const created = match[1].split(':').map(part => part.trim().toLowerCase());
+  if (created.length === 1) return created[0] !== className.toLowerCase();
+  return created.join(':') !== [...packagePath, className].map(part => part.toLowerCase()).join(':');
+}
+
 export function isBuiltinObjectTypeName(name: string): boolean {
   return BUILTIN_TYPE_REGISTRY.has(name.toLowerCase());
 }
@@ -1753,7 +1766,25 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
         (context?.builtinObjectDeclarationsHaveMethodWideLifetime === true ||
           (functionDepth === 0 && controlDepth === 0 && sawTopLevelExecutableStatement) ||
           (functionDepth > 0 && !/^\s*=/.test(source.slice(pos)))) &&
-        !/^\s*=\s*create\b/i.test(source.slice(pos))
+        !(
+          /^\s*=\s*create\b/i.test(source.slice(pos)) &&
+          /*
+           * Cycle 181: in an Application Class program, a Local initialized
+           * with `create` of a DIFFERENT class opens its declared class's
+           * row at the declaration, before the created class's. Controlled
+           * compile (PeopleTools 8.62.09, native Windows, HRDMO;
+           * tools/corpus/controlled-compile/results/8.62.09/H-matrix.json):
+           * under a wildcard import, `Local A &x = create B()` stores A then
+           * B in every variant (H1 / H3 / H6 / H8 / H9). Named imports keep
+           * import order, because the row already exists (H4 / H5). HCDEV
+           * 30124 has the same shape. Creating the SAME class keeps the
+           * `create`-owned row.
+           */
+          !(
+            context?.builtinObjectDeclarationsHaveMethodWideLifetime === true &&
+            createsDifferentClass(source.slice(pos), appClass.packagePath, appClass.className)
+          )
+        )
       ) {
         ensureLocalApplicationClassPackageReference(
           appClass.packagePath,

@@ -121,10 +121,10 @@ test('member forms: 0x4A references, 0x21 REC.FIELD references and 0x0A inline n
   assert.deepEqual(memberForms(tokens, ['ZZ_LAB_VAL']), ['ZZ_LAB_VAL:ref#7', 'ZZ_LAB_VAL:recfield#9', 'ZZ_LAB_VAL:inline']);
 });
 
-test('the encoder\'s own prediction for the replicas differs from the corpus programs it fails', () => {
+test('the encoder\'s own prediction reproduces the 30124 replica (Cycle 181) but not the 10860 / 15598 ones', () => {
   const report = compareControlledCompile(synthesizeResults(pack), pack);
   const replicas = Object.fromEntries(report.families.map(f => [f.family, f.replicasNotReproduced]));
-  assert.deepEqual(replicas, { '30124': ['H1'], '10860/15598': ['G1', 'G5'] });
+  assert.deepEqual(replicas, { '30124': [], '10860/15598': ['G1', 'G5'] });
 });
 
 test('an unknown results format is refused', () => {
