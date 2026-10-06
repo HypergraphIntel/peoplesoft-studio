@@ -166,9 +166,13 @@
       badge(c.access.label, 'warn', c.access.detail)
     ]);
 
-    const details = c.kind === 'oracle'
-      ? facts({ 'Connect string': c.connectString || '—', 'Access id': c.user || '—' })
-      : facts({ 'Project file': c.path || '—' });
+    const analysis = describeAnalysis(c);
+    const details = facts({
+      ...(c.kind === 'oracle'
+        ? { 'Connect string': c.connectString || '—', 'Access id': c.user || '—' }
+        : { 'Project file': c.path || '—' }),
+      ...analysis.rows
+    });
 
     const actions = h('div', { className: 'actions' }, [
       button(busy ? 'Testing…' : 'Test Connection', () => post({ type: 'testConnection', connectionId: c.id }),
@@ -180,7 +184,7 @@
     return h('div', { className: c.selected ? 'connection selected' : 'connection', attrs: { 'data-connection': c.id } }, [
       head,
       details,
-      renderAnalysis(c),
+      analysis.note,
       actions,
       renderTestResult(c),
       editing.includes(c.id) ? renderEditForm(c) : null
@@ -362,48 +366,43 @@
   }
 
   /**
-   * The connection's compile context: its PeopleTools release (PSSTATUS) and
-   * the compiler profile that release selects. Read from the live connection,
-   * or from the last Test Connection when it is not connected.
+   * The connection's compile context, as rows for its card: its PeopleTools
+   * release (PSSTATUS) and the compiler profile that release selects. Read
+   * from the live connection, or from the last Test Connection when it is
+   * not connected.
+   *
+   * @returns {{ rows: Record<string, string>, note: HTMLElement | null }}
    */
-  function renderAnalysis(c) {
+  function describeAnalysis(c) {
     const env = c.environment;
-    /** @type {Record<string, string>} */
-    const rows = {};
-    let note = null;
-
+    const hint = (text) => h('p', { className: 'hint analysis-note', text });
     switch (env.status) {
       case 'not-connected':
-        rows['PeopleTools release'] = 'Unknown';
-        note = h('p', { className: 'hint', text: 'Connect, or run Test Connection, to read the release.' });
-        break;
+        return {
+          rows: { 'PeopleTools release': 'Unknown', 'Compiler profile': 'Unknown' },
+          note: hint('Connect, or run Test Connection, to read the release.')
+        };
       case 'not-applicable':
-        rows['PeopleTools release'] = 'Not available';
-        note = h('p', { className: 'hint', text: env.reason });
-        break;
+        return { rows: { 'PeopleTools release': 'Not available', 'Compiler profile': 'Not available' }, note: hint(env.reason) };
       case 'loading':
-        rows['PeopleTools release'] = 'Reading PSSTATUS…';
-        break;
+        return { rows: { 'PeopleTools release': 'Reading PSSTATUS…', 'Compiler profile': '…' }, note: null };
       case 'error':
-        rows['PeopleTools release'] = 'Unknown';
-        note = h('p', { className: 'error-text', text: `Could not read PSSTATUS: ${env.message}` });
-        break;
+        return {
+          rows: { 'PeopleTools release': 'Unknown', 'Compiler profile': 'Unknown' },
+          note: h('p', { className: 'error-text analysis-note', text: `Could not read PSSTATUS: ${env.message}` })
+        };
       case 'available':
-        rows['PeopleTools release'] = env.release;
-        rows['Compiler profile'] = env.profile.ok ? `${env.profile.id} (automatic)` : 'None';
-        if (!env.profile.ok) {
-          note = h('p', { className: 'error-text', text: `Unknown compiler profile mapping: ${env.profile.message}` });
-        } else if (env.source === 'test') {
-          note = h('p', { className: 'hint', text: 'From the last Test Connection.' });
-        }
-        break;
+        return {
+          rows: {
+            'PeopleTools release': env.release,
+            'Compiler profile': env.profile.ok ? `${env.profile.id} (automatic)` : 'None'
+          },
+          note: !env.profile.ok
+            ? h('p', { className: 'error-text analysis-note', text: `Unknown compiler profile mapping: ${env.profile.message}` })
+            : env.source === 'test' ? hint('Release from the last Test Connection.') : null
+        };
     }
-
-    return h('div', { className: 'analysis', attrs: { role: 'group', 'aria-label': `${c.name} compiler and analysis` } }, [
-      h('h4', { text: 'Compiler / Analysis' }),
-      facts(rows),
-      note
-    ]);
+    return { rows: {}, note: null };
   }
 
   function renderMcp() {
