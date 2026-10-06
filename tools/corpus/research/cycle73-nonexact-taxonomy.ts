@@ -45,8 +45,8 @@ import { openSnapshotDatabase } from '../snapshot/store';
 import { listSnapshotDefinitions } from '../snapshot/reader';
 import { validateDefinition } from '../validator';
 import { snapshotApplicationClassTypeMetadata } from '../snapshot/applicationClassTypeMetadata';
-import { snapshotConditionalCompilation } from '../snapshot/toolsRelease';
-import type { ConditionalCompilationOptions } from '../../../src/peoplecode/conditionalCompilation';
+import { snapshotCompilerProfile } from '../snapshot/toolsRelease';
+import type { CompilerProfile } from '../../../src/peoplecode/compilerProfile';
 import { encodeProgramArtifacts } from '../../../src/peoplecode/encoder';
 import type { ApplicationClassTypeMetadataProvider } from '../../../src/peoplecode/applicationClassTypeMetadata';
 import type { CorpusDefinition } from '../classifications';
@@ -137,14 +137,13 @@ function compareReferences(
   sourceText: string,
   owner: ReturnType<typeof ownerContextOf>,
   storedNames: any[],
-  applicationClassTypeMetadata?: ApplicationClassTypeMetadataProvider,
-  conditionalCompilation?: ConditionalCompilationOptions
+  compilerProfile?: CompilerProfile
 ): ReferenceComparison {
   let artifacts;
   try {
     // Cycle 110: with the same type metadata the EXACT decision uses (Cycle
     // 107); Cycle 115: and the same Tools release.
-    artifacts = encodeProgramArtifacts(sourceText, { owner, applicationClassTypeMetadata, conditionalCompilation } as any);
+    artifacts = encodeProgramArtifacts(sourceText, { owner, ...(compilerProfile !== undefined ? { profile: compilerProfile } : {}) } as any);
   } catch {
     return {
       referenceExact: false,
@@ -308,8 +307,7 @@ async function main(): Promise<void> {
   const db = openSnapshotDatabase();
   const allDefs = listSnapshotDefinitions(db);
   // Cycle 107: the same snapshot class metadata `corpus:verify` gives the encoder.
-  const applicationClassTypeMetadata = snapshotApplicationClassTypeMetadata(db);
-  const conditionalCompilation = snapshotConditionalCompilation(db);
+  const compilerProfile = snapshotCompilerProfile(db, snapshotApplicationClassTypeMetadata(db));
   console.log(`Total definitions: ${allDefs.length}`);
 
   const rows: TaxonomyRow[] = [];
@@ -354,7 +352,7 @@ async function main(): Promise<void> {
 
     let result;
     try {
-      result = await validateDefinition(capture as any, { applicationClassTypeMetadata, conditionalCompilation });
+      result = await validateDefinition(capture as any, { compilerProfile });
     } catch (e) {
       rows.push({
         definitionId: def.definitionId,
@@ -374,7 +372,7 @@ async function main(): Promise<void> {
     }
 
     const owner = ownerContextOf(def);
-    const { category, ref } = classifyPrimary(result, () => compareReferences(def.sourceText, owner, def.names, applicationClassTypeMetadata, conditionalCompilation));
+    const { category, ref } = classifyPrimary(result, () => compareReferences(def.sourceText, owner, def.names, compilerProfile));
 
     rows.push({
       definitionId: def.definitionId,
