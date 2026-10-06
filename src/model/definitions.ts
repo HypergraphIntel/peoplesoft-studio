@@ -163,6 +163,10 @@ export function displayName(key: DefinitionKey): string {
       return key.parts.filter((p) => p !== 'GBL' && p !== '1').join('.');
     case DefinitionType.ApplicationClassPeopleCode:
       return key.parts.filter((p) => p !== 'OnExecute').join(':') || key.parts.join(':');
+    case DefinitionType.Field:
+      // A field listed under a record carries the record as a second part
+      // (see canExpand); the field is still named by itself.
+      return key.parts[0] ?? '';
     default:
       return key.parts.join('.');
   }

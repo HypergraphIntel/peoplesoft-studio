@@ -3,6 +3,8 @@ import { RecordDefinition } from '../model/record.js';
 
 export interface DefinitionSummary {
   key: DefinitionKey;
+  /** A shorter tree label when listed under its parent (an event under its field); defaults to displayName. */
+  label?: string;
   description?: string;
   lastUpdated?: Date;
   lastUpdatedBy?: string;
@@ -109,15 +111,24 @@ export interface EnvironmentInfo {
 }
 
 /**
- * Whether a type is worth offering an expander for.
+ * Whether a definition is worth offering an expander for.
  *
- * This is a UI affordance decided without a round trip, so it is deliberately
- * a property of the type rather than of the definition: fetching every record's
+ * This is a UI affordance decided without a round trip, so it is a property
+ * of the type -- and, for a field, of whether its key carries the record it
+ * was listed under -- rather than of the definition: fetching every record's
  * field list just to decide whether to draw a twisty would make expanding a
  * project unusable.
+ *
+ * A field listed under a record (key `[FIELD, RECORD]`) expands to that
+ * record field's PeopleCode events, as App Designer nests them; a field on
+ * its own has no record and so no events.
  */
-export function canExpand(type: DefinitionType): boolean {
-  return type === DefinitionType.Record || type === DefinitionType.Component;
+export function canExpand(definition: DefinitionType | DefinitionKey): boolean {
+  if (typeof definition !== 'object') {
+    return definition === DefinitionType.Record || definition === DefinitionType.Component;
+  }
+  if (definition.type === DefinitionType.Field) return definition.parts.length >= 2;
+  return canExpand(definition.type);
 }
 
 export interface ProviderCapabilities {
