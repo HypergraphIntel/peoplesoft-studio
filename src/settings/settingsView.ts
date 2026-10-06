@@ -9,7 +9,12 @@ interface SettingsNode {
   description?: string;
   tooltip?: string;
   icon: string;
+  /** A theme color for the icon: green while the thing it stands for is live. */
+  color?: string;
 }
+
+/** The Connections view's own "connected" green, so live looks the same in both. */
+const LIVE = 'charts.green';
 
 /**
  * The Settings entry in the PeopleSoft side bar.
@@ -32,7 +37,7 @@ export class SettingsView implements vscode.TreeDataProvider<SettingsNode>, vsco
     const item = new vscode.TreeItem(node.label, vscode.TreeItemCollapsibleState.None);
     if (node.description !== undefined) item.description = node.description;
     if (node.tooltip !== undefined) item.tooltip = node.tooltip;
-    item.iconPath = new vscode.ThemeIcon(node.icon);
+    item.iconPath = new vscode.ThemeIcon(node.icon, node.color ? new vscode.ThemeColor(node.color) : undefined);
     item.command = { command: OPEN_SETTINGS_COMMAND, title: 'Open Settings' };
     return item;
   }
@@ -56,14 +61,17 @@ function summarize(state: SettingsState): SettingsNode[] {
       label: target.name,
       description: `${target.connected ? 'Connected' : 'Not connected'} · ${target.access.label}`,
       tooltip: `Target connection: ${target.name}\n${target.access.detail}`,
-      icon: target.kind === 'projectFile' ? 'file-zip' : 'database'
+      icon: target.kind === 'projectFile' ? 'file-zip' : 'database',
+      ...(target.connected ? { color: LIVE } : {})
     });
     const env = target.environment;
     if (env.status === 'available') {
       nodes.push({
         label: `PeopleTools ${env.release}`,
         description: env.profile.ok ? `Compiler profile ${env.profile.id}` : 'No compiler profile',
-        icon: 'versions'
+        icon: 'versions',
+        // Live: the release and profile come from the connected database.
+        ...(target.connected && env.source === 'connection' && env.profile.ok ? { color: LIVE } : {})
       });
     }
   } else {

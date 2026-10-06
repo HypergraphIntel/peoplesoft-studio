@@ -341,18 +341,26 @@ export interface ConnectionAccess {
  * a provider without write capability is read-only throughout) and
  * OracleProvider.writeText (SQL definitions are the one text type it saves).
  */
-export function describeAccess(kind: ConnectionConfig['kind']): ConnectionAccess {
-  if (kind === 'projectFile') {
+export function describeAccess(config: Pick<ConnectionConfig, 'kind' | 'peoplecodeAccess'>): ConnectionAccess {
+  if (config.kind === 'projectFile') {
     return {
       level: 'read-only',
       label: 'Read-only',
       detail: 'Project exports are opened read-only.'
     };
   }
+  if (config.peoplecodeAccess === 'writable') {
+    return {
+      level: 'partial',
+      label: 'PeopleCode writable',
+      detail: 'PeopleCode saves natively for ZZ_PCODE_LAB definitions (Record Field PeopleCode and Application Classes); ' +
+        'other PeopleCode opens read-only. SQL definitions can be saved.'
+    };
+  }
   return {
     level: 'partial',
     label: 'PeopleCode read-only',
-    detail: 'PeopleCode write-back is not supported; PeopleCode opens read-only. SQL definitions can be saved.'
+    detail: 'PeopleCode opens read-only on this connection (Access: Read-only). SQL definitions can be saved.'
   };
 }
 
