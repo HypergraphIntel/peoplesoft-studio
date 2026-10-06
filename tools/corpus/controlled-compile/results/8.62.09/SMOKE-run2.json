@@ -1,0 +1,47 @@
+{
+  "format": "pcode-lab-results/1",
+  "lab": {
+    "database": "HRDMO",
+    "toolsRelease": "8.62",
+    "patch": 9,
+    "capturedAt": "2026-10-06T03:16:22.966Z"
+  },
+  "definitions": [
+    {
+      "experimentId": "SMOKE",
+      "key": {
+        "objectIds": [
+          104,
+          105,
+          107,
+          12,
+          0,
+          0,
+          0
+        ],
+        "objectValues": [
+          "ZZ_PCODE_LAB",
+          "SUPPORT",
+          "SmokeTest",
+          "OnExecute",
+          " ",
+          " ",
+          " "
+        ]
+      },
+      "compiledAt": "2026-10-05T22:15:04.316958",
+      "source": "class SmokeTest\n   method Run();\nend-class;\n\nmethod Run\n   Local integer &x;\n   &x = 1;\nend-method;\n\n",
+      "programHex": "a0000000006d000000000000004600000000000000010000000000000002000000850000005a0a53006d006f006b00650054006500730074000000630a520075006e0000000b14155b152d4f63410a520075006e0000002d444069006e0074006500670065007200000001260078000000150126007800000006500000010000000000000000000000000000001564152d075a005a005f00500043004f00440045005f004c00410042003a0053005500500050004f00520054003a0053006d006f006b00650054006500730074000000520075006e000000000000000000000000004000070000001f00000000000000000000000700000007000000",
+      "names": [
+        {
+          "namenum": 1,
+          "recname": " ",
+          "refname": " ",
+          "packageroot": " ",
+          "qualifypath": " ",
+          "appclassmethod": " "
+        }
+      ]
+    }
+  ]
+}
