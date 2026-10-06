@@ -1,8 +1,8 @@
 {
- "generatedAt": "2026-10-06T04:10:01.850Z",
+ "generatedAt": "2026-10-06T04:55:40.256Z",
  "totalDefinitions": 30209,
- "exactCount": 30132,
- "nonexactCount": 77,
+ "exactCount": 30134,
+ "nonexactCount": 75,
  "rows": [
   {
    "definitionId": 1635,
@@ -131,22 +131,6 @@
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
   },
   {
-   "definitionId": 10860,
-   "displayName": "1=GP_AUDIT_WRK, 2=FUNCLIB, 12=FieldFormula, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_ACTIVE_RECORD",
-   "referenceComparison": {
-    "referenceExact": false,
-    "referenceSetExact": false,
-    "storedCount": 1350,
-    "generatedCount": 1352,
-    "firstDivergenceKind": "record"
-   }
-  },
-  {
    "definitionId": 11076,
    "displayName": "1=GP_CS_CAL_RUN, 2=CAL_RUN_ID, 12=FieldFormula, 0= , 0= , 0= , 0= ",
    "classification": "DECODE_SOURCE_MISMATCH",
@@ -181,21 +165,6 @@
    "roundtripExact": true,
    "firstDiffOffset": 521,
    "primaryCategory": "DECODE_SOURCE_MISMATCH"
-  },
-  {
-   "definitionId": 15598,
-   "displayName": "1=PSIBLOGICL2_WRK, 2=IB_LINKDOC, 12=FieldChange, 0= , 0= , 0= , 0= ",
-   "classification": "UNKNOWN_MISMATCH",
-   "sourceEncodeExact": false,
-   "roundtripExact": false,
-   "firstDiffOffset": 5,
-   "primaryCategory": "REFERENCE_COMPLETE_DOWNSTREAM",
-   "referenceComparison": {
-    "referenceExact": true,
-    "referenceSetExact": false,
-    "storedCount": 341,
-    "generatedCount": 341
-   }
   },
   {
    "definitionId": 18178,

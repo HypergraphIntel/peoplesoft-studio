@@ -121,23 +121,23 @@ test('member forms: 0x4A references, 0x21 REC.FIELD references and 0x0A inline n
   assert.deepEqual(memberForms(tokens, ['ZZ_LAB_VAL']), ['ZZ_LAB_VAL:ref#7', 'ZZ_LAB_VAL:recfield#9', 'ZZ_LAB_VAL:inline']);
 });
 
-test('the encoder\'s own prediction reproduces the 30124 replica (Cycle 181) but not the 10860 / 15598 ones', () => {
+test('the encoder\'s own prediction reproduces the 30124 and the 10860 / 15598 replicas (Cycle 181)', () => {
   const report = compareControlledCompile(synthesizeResults(pack), pack);
   const replicas = Object.fromEntries(report.families.map(f => [f.family, f.replicasNotReproduced]));
-  assert.deepEqual(replicas, { '30124': [], '10860/15598': ['G1', 'G5'] });
+  assert.deepEqual(replicas, { '30124': [], '10860/15598': [] });
 });
 
 test('an unknown results format is refused', () => {
   assert.throws(() => compareControlledCompile({ format: 'other' } as unknown as ControlledCompileResults, pack), /Unsupported results format/);
 });
 
-test('8.62.09 G matrix (Cycle 181): declaring-unit scope is the only surviving model; the encoder misses the G1 / G5 replicas', () => {
+test('8.62.09 G matrix (Cycle 181): declaring-unit scope is the only surviving model, and the encoder follows it', () => {
   const results = JSON.parse(readFileSync(resolve(__dirname, '../../tools/corpus/controlled-compile/results/8.62.09/G-matrix.json'), 'utf8')) as ControlledCompileResults;
   const report = compareControlledCompile(results, pack);
   const g = report.families.find(f => f.family === '10860/15598')!;
   assert.deepEqual(g.replicasNotReproduced, []);
   assert.deepEqual(g.candidates, ['DECLARING_UNIT_SCOPE']);
-  assert.deepEqual(g.encoderDisagrees, ['G1', 'G5']);
+  assert.deepEqual(g.encoderDisagrees, []);
   const exact = report.definitions.filter(d => d.encode.bytes?.exact === true && d.encode.referencesExact === true).map(d => d.experimentId);
-  assert.deepEqual(exact, ['G2', 'G3', 'G4', 'G6', 'G7']);
+  assert.deepEqual(exact, ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7']);
 });
