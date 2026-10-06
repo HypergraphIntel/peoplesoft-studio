@@ -274,7 +274,9 @@ const sameNames = (a: readonly NameRow[], b: readonly NameRow[]) =>
  * Anything else means the program is outside proven territory.
  */
 export function checkStoredProgram(program: StoredProgram, target: CompileTarget, toolsRelease: string): void {
-  const refuse = (why: string) => { throw new SaveRefusedError(`The stored program is outside what this writer reproduces: ${why}.`); };
+  const refuse = (why: string) => {
+    throw new SaveRefusedError(`The stored program is outside what this writer reproduces: ${why.replace(/\.$/, '')}.`);
+  };
   const seqs = (rows: { progseq: number }[]) => rows.map((r) => r.progseq).sort((a, b) => a - b);
   if (program.program.length === 0 || program.text.length === 0) refuse('it has no PSPCMPROG or PSPCMTXT rows (creating programs is not supported)');
   if (seqs(program.program).some((s, i) => s !== i) || seqs(program.text).some((s, i) => s !== i)) refuse('its PROGSEQ values are not contiguous from 0');
