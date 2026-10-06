@@ -91,12 +91,13 @@ observation type `boundary`, the opcode before each named end-method):
 
 ## 8.62 track: the six lab exceptions (resolved)
 
-> **Status (provisional).** The PT 8.62 compatibility target is
-> **30,067 / 30,067** for the HCDEV definitions that also exist in HRDMO
-> (encoder vs PeopleTools 8.62.09, PSPCMPROG and PSPCMNAME). The earlier
-> figure 30,061 / 30,067 predates the H2 fix, the header-parser fix and the
-> corrected comparison context (lab release + lab class metadata). No count
-> is final until the corrected `compare-delivered.ts --all` run completes.
+> **Status (final, first PT 8.62 compatibility frontier: CLOSED).** The
+> corrected `compare-delivered.ts --all` run (lab release + lab class
+> metadata, final encoder) reproduces PeopleTools 8.62.09's PSPCMPROG and
+> PSPCMNAME for **30,067 / 30,067** HCDEV definitions present in HRDMO
+> (`results/8.62.09/delivered-corpus-comparison.json`). Identical source:
+> 29,792 / 29,792. The earlier 30,061 predates the H2 and header-parser
+> fixes and the corrected comparison context.
 
 Cycle 183's corpus-wide lab comparison listed six HCDEV definitions where
 the encoder, given HRDMO's source, did not reproduce PeopleTools 8.62.09.
@@ -186,8 +187,8 @@ Oracle's delivered 2023-11-14 build rows (class D).
 - 30,067 of the 30,209 HCDEV definitions also exist in HRDMO.
 - The encoder, given HRDMO's source, reproduces PeopleTools 8.62.09's
   own PSPCMPROG AND PSPCMNAME for 30,061 / 30,067.
-  (Superseded: see "8.62 track: the six lab exceptions" -- provisional
-  target 30,067 / 30,067, pending the corrected rerun.)
+  (Superseded: the corrected rerun gives 30,067 / 30,067 -- see "8.62
+  track: the six lab exceptions".)
 - Identical source: 29,792 definitions.
   - HCDEV stored equals HRDMO stored in 29,785.
   - The encoder equals HRDMO in 29,788.

@@ -2,12 +2,13 @@
 
 ## PeopleTools 8.62 compatibility track (branch research/pt862-compat)
 
-> **Status (provisional).** The PT 8.62 compatibility target is
-> **30,067 / 30,067** for the HCDEV definitions that also exist in HRDMO
-> (encoder vs PeopleTools 8.62.09, PSPCMPROG and PSPCMNAME). The earlier
-> figure 30,061 / 30,067 predates the H2 fix, the header-parser fix and the
-> corrected comparison context (lab release + lab class metadata). No count
-> is final until the corrected `compare-delivered.ts --all` run completes.
+> **Status (final, first PT 8.62 compatibility frontier: CLOSED).** The
+> corrected `compare-delivered.ts --all` run (lab release + lab class
+> metadata, final encoder) reproduces PeopleTools 8.62.09's PSPCMPROG and
+> PSPCMNAME for **30,067 / 30,067** HCDEV definitions present in HRDMO
+> (`results/8.62.09/delivered-corpus-comparison.json`). Identical source:
+> 29,792 / 29,792. The earlier 30,061 predates the H2 and header-parser
+> fixes and the corrected comparison context.
 
 Separate from the closed HCDEV frontier: 8.62 differences never reopen it.
 Backlog: H2 (first), 4601 / 4602 / 18249 / 18256 (same source, 8.62
@@ -32,9 +33,9 @@ deltas, not a forked encoder.
   = `#If #ToolsRel >= "8.62"` (encode lab source under the lab release);
   23497 = class metadata only in HRDMO (BDG_FUNCTIONS:GiveBadge); 28943 =
   unterminated header method before `protected` (parser fix). All EXACT.
-- **Next action:** finish the corpus-wide rerun of compare-delivered --all
-  (lab release + lab class metadata) and record the count; then decide the
-  next 8.62 item (none known beyond the rerun's exceptions).
+- **Next action:** define a formal 8.62 release profile in the encoder /
+  tests so 8.61 and 8.62 behavior are first-class rather than inferred
+  from lab context.
 
 ## Current status (2026-10-06, Cycle 183) -- the final 75 resolved
 

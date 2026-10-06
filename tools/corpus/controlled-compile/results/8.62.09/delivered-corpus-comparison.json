@@ -1,20 +1,13 @@
 {
   "format": "pcode-lab-delivered-comparison/1",
   "labRelease": "8.62.9",
-  "capturedAt": "2026-10-06T06:22:15.816Z",
+  "capturedAt": "2026-10-06T11:59:21.178Z",
   "summary": {
     "definitions": 30209,
     "presentInLab": 30067,
     "encoderLabSourceVsLabStored": {
-      "exact": 30061,
-      "notExact": [
-        4601,
-        4602,
-        18249,
-        18256,
-        23497,
-        28943
-      ]
+      "exact": 30067,
+      "notExact": []
     },
     "sameSource": {
       "count": 29792,
@@ -28,13 +21,8 @@
         29883,
         30192
       ],
-      "encoderEqualsLabStored": 29788,
-      "encoderDiffersFromLabStored": [
-        4601,
-        4602,
-        18249,
-        18256
-      ]
+      "encoderEqualsLabStored": 29792,
+      "encoderDiffersFromLabStored": []
     },
     "recoveredSourceEqualsLabSource": {
       "count": 64,
@@ -1020,11 +1008,11 @@
         ]
       },
       "encoderLabSourceVsLabStored": {
-        "bytesExact": false,
-        "firstByteDifference": 5,
-        "namesExact": false,
+        "bytesExact": true,
+        "firstByteDifference": null,
+        "namesExact": true,
         "nameRows": [
-          43,
+          46,
           46
         ]
       },
@@ -1066,11 +1054,11 @@
         ]
       },
       "encoderLabSourceVsLabStored": {
-        "bytesExact": false,
-        "firstByteDifference": 5,
-        "namesExact": false,
+        "bytesExact": true,
+        "firstByteDifference": null,
+        "namesExact": true,
         "nameRows": [
-          97,
+          100,
           100
         ]
       },
@@ -5172,8 +5160,8 @@
         ]
       },
       "encoderLabSourceVsLabStored": {
-        "bytesExact": false,
-        "firstByteDifference": 5,
+        "bytesExact": true,
+        "firstByteDifference": null,
         "namesExact": true,
         "nameRows": [
           9,
@@ -5218,8 +5206,8 @@
         ]
       },
       "encoderLabSourceVsLabStored": {
-        "bytesExact": false,
-        "firstByteDifference": 5,
+        "bytesExact": true,
+        "firstByteDifference": null,
         "namesExact": true,
         "nameRows": [
           4,
@@ -7852,9 +7840,9 @@
         ]
       },
       "encoderLabSourceVsLabStored": {
-        "bytesExact": false,
-        "firstByteDifference": 5,
-        "namesExact": false,
+        "bytesExact": true,
+        "firstByteDifference": null,
+        "namesExact": true,
         "nameRows": [
           62,
           62
@@ -11323,11 +11311,11 @@
         ]
       },
       "encoderLabSourceVsLabStored": {
-        "bytesExact": false,
+        "bytesExact": true,
         "firstByteDifference": null,
-        "namesExact": false,
+        "namesExact": true,
         "nameRows": [
-          null,
+          21,
           21
         ]
       },
@@ -11339,8 +11327,7 @@
           22,
           22
         ]
-      },
-      "encoderLabSourceError": "Cannot encode PeopleCode at source offset 406: bare identifiers are only supported as calls"
+      }
     },
     {
       "definitionId": 28963,
