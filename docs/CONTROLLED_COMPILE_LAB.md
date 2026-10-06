@@ -245,11 +245,27 @@ App Designer Save
   update. An identical row put back in the same slot (PSPCMNAME here) leaves
   nothing to detect. **A new ROWID (02) proves a replace; the same ROWID
   does not disprove one.**
-- **A changing save bumps the counters twice**, provided this was a single
-  save (to be confirmed). Cycle 180 saw the same pattern: create +1,
-  unchanged re-save +1, A -> B +2.
+- The counters moved by 2. 04, also a source change, moved them by 1, so
+  "a changing save bumps twice" is refuted; two saves in the window is the
+  likely cause (to be confirmed). Cycle 180 also recorded A -> B as +2.
 - The encoder reproduces the B program (68 / 68 bytes) and its reference
   row.
+
+**04-b-to-a** (`Local string &s = "B";` -> `Local number &n = 1;`).
+
+| Item | Observed |
+|---|---|
+| PSPCMTXT / PSPCMPROG / PSPCMNAME | the key's rows deleted and re-inserted (new ROWIDs) |
+| Content | byte-identical to 01's A, except PSPCMPROG.VERSION (66) and LASTUPDDTTM; HASH_SIGNATURE is A's again |
+| PSVERSION / PSLOCK | PSVERSION PCM +1 and SYS +1; PSLOCK PCM +1 |
+| Other tables | none |
+
+- A -> B -> A returns the same rows. The encoder reproduces A2 exactly.
+- **Counters per PeopleCode save: PSVERSION PCM +1, PSVERSION SYS +1,
+  PSLOCK PCM +1** (01, 02, 04; 03's +2 is unexplained).
+- Between 03 and 04, outside both windows, PSVERSION PJM +2, SYS +2 and
+  PSLOCK PJM +2: a project save. **PSVERSION SYS moves with every
+  definition type's save; PSLOCK SYS does not move for either.**
 
 ## 8.62 track: H2 -- end-of-body boundary (resolved)
 
