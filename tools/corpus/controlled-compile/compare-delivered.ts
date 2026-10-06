@@ -13,7 +13,8 @@
  * - the source (line endings normalized), and for a lossy HCDEV source the
  *   recovered historical source (historicalSource.ts);
  * - HCDEV stored vs lab stored (bytes, PSPCMNAME rows);
- * - encoder(lab source, lab release, lab App Class metadata) vs lab stored;
+ * - encoder(lab source, under the lab's compiler profile: its release and
+ *   its own App Class metadata) vs lab stored;
  * - encoder(HCDEV source) vs HCDEV stored.
  * The output holds hashes, lengths, counts, verdicts and definition ids
  * only (no delivered source or program text).
@@ -23,6 +24,7 @@ import fs from 'node:fs';
 import oracledb from 'oracledb';
 
 import { createApplicationClassTypeMetadataProvider, type ApplicationClassDefinition } from '../../../src/peoplecode/applicationClassTypeMetadata';
+import { compilerProfileForToolsRelease, type CompilerProfile } from '../../../src/peoplecode/compilerProfile';
 import { recoverHistoricalSource } from '../../../src/peoplecode/corpus/historicalSource';
 import { isBuiltinObjectTypeName } from '../../../src/peoplecode/encoder';
 import { decodeAsHarness, encodeAsHarness, generatedReferenceKey, openHarnessContext, storedNameTable, storedReferenceKeys } from '../research/lib/harnessContext';
@@ -69,10 +71,10 @@ async function main(): Promise<void> {
     connectString: process.env.PSLAB_AUDIT_CONNECT ?? '127.0.0.1:15210/hrdmo'
   });
   const results: any[] = [];
-  let release = '', toolsRelease = '';
+  let release = '', toolsRelease = '', patch = 0;
   try {
     await connection.execute('SET TRANSACTION READ ONLY');
-    [toolsRelease, release] = ((await connection.execute(`SELECT TOOLSREL, TOOLSREL || '.' || PTPATCHREL FROM SYSADM.PSSTATUS`)).rows as string[][])[0];
+    [toolsRelease, release, patch] = ((await connection.execute(`SELECT TOOLSREL, TOOLSREL || '.' || PTPATCHREL, PTPATCHREL FROM SYSADM.PSSTATUS`)).rows as [string, string, number][])[0];
     const object = { outFormat: oracledb.OUT_FORMAT_OBJECT };
     /*
      * 8.62 track: the lab's source is typed against the LAB's own
@@ -89,8 +91,16 @@ async function main(): Promise<void> {
       entry.source += String(row.T ?? '');
       labClasses.set(key, entry);
     }
-    const labMetadata = createApplicationClassTypeMetadataProvider(labClasses.values(), { isBuiltinType: isBuiltinObjectTypeName });
-    console.error(`lab Application Classes: ${labClasses.size}`);
+    /*
+     * Cycle 184: the lab's source is encoded under the lab's compiler profile:
+     * its own release (TOOLSREL -> PT862 for 8.62; an unsupported release
+     * throws) with the lab's metadata universe.
+     */
+    const labProfile: CompilerProfile = compilerProfileForToolsRelease(toolsRelease, {
+      patchLevel: Number(patch),
+      applicationClassTypeMetadata: createApplicationClassTypeMetadataProvider(labClasses.values(), { isBuiltinType: isBuiltinObjectTypeName })
+    });
+    console.error(`lab Application Classes: ${labClasses.size}; compiler profile ${labProfile.id} (PeopleTools ${labProfile.toolsRelease}, patch ${labProfile.patchLevel})`);
     let n = 0;
     for (const d of definitions) {
       const def = d as any;
@@ -110,9 +120,9 @@ async function main(): Promise<void> {
       const labNames = names.map(r => `${String(r.RECNAME ?? '').trim().toUpperCase()}.${String(r.REFNAME ?? '').trim().toUpperCase()}`);
       const hcdevNames = storedReferenceKeys(def);
       const keys = (a: any) => [...a.references].sort((x: any, y: any) => x.sequence - y.sequence).map(generatedReferenceKey);
-      // The lab's source compiles under the lab's release: `#If #ToolsRel` blocks
+      // The lab's source compiles under the lab's profile: `#If #ToolsRel` blocks
       // (8.62 track: 4601 4602 18249 18256) take the 8.62 branch there.
-      const fromLab = encodeAsHarness(ctx, { ...def, sourceText: labSource }, { conditionalCompilation: { toolsRelease }, applicationClassTypeMetadata: labMetadata });
+      const fromLab = encodeAsHarness(ctx, { ...def, sourceText: labSource }, { profile: labProfile });
       const fromHcdev = encodeAsHarness(ctx, def);
       let recoveredMatchesLab: boolean | undefined;
       if (norm(labSource) !== norm(def.sourceText)) {
