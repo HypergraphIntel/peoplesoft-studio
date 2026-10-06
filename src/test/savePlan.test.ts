@@ -68,6 +68,9 @@ function savedByCase(): { name: string; program: StoredProgram }[] {
   if (!existsSync(RESULTS)) return [];
   const out: { name: string; program: StoredProgram }[] = [];
   for (const dir of readdirSync(RESULTS).sort()) {
+    // App Designer's saves only: d* / e* / f* / r* cases were written by
+    // this writer (or refused), so they cannot be its reference.
+    if (/^[defr]\d/.test(dir)) continue;
     const deltaFile = path.join(RESULTS, dir, 'delta.json');
     if (!existsSync(deltaFile)) continue;
     const delta = JSON.parse(readFileSync(deltaFile, 'utf8'));

@@ -60,6 +60,13 @@ export interface PeopleCodeReference {
   /** Application Class name for PACKAGE dependency rows. */
   className?: string;
   methodName?: string;
+  /**
+   * PSPCMNAME.APPCLASSMETHOD as a fresh compile writes it, where it is not
+   * `methodName`: the method a class's `%This` self row was allocated for
+   * (App Designer 8.62.09, Cycle 185 save matrix, n03). Descriptive only --
+   * never part of the reference's identity or of the program bytes.
+   */
+  appClassMethod?: string;
 }
 
 /**
@@ -288,8 +295,8 @@ interface ApplicationClassReferenceSession {
  */
 interface ApplicationClassSelfMethodDependency {
   isSelfMethodCall(memberName: string): boolean;
-  /** Returns the row template on the class's first `%This` method call only. */
-  claim(): Omit<PeopleCodeReference, 'index' | 'sequence'> | undefined;
+  /** Returns the row template on the class's first `%This` method call only, for `memberName`. */
+  claim(memberName: string): Omit<PeopleCodeReference, 'index' | 'sequence'> | undefined;
 }
 
 function applicationClassReferenceKey(
@@ -11857,7 +11864,7 @@ function encodeFragmentInternal(source: string, context?: EncodeFragmentContext)
           /^\s*\(/.test(source.slice(pos)) &&
           context?.applicationClassSelfMethodDependency?.isSelfMethodCall(member) === true
         ) {
-          const selfRow = context.applicationClassSelfMethodDependency.claim();
+          const selfRow = context.applicationClassSelfMethodDependency.claim(member);
           /*
            * Same class-wide identity rule as the ordinary method-call path
            * (Cycle 62): an own-class PACKAGE identity already established
@@ -16224,8 +16231,9 @@ function encodeApplicationClassProgramV2(
     // indexes a property rather than calling a method.
     isSelfMethodCall: memberName => !ownStorageNames.has(memberName.toLowerCase()),
     // The row is a class-level identity: no method name, so it shares the
-    // TYPE-identity key later own-class type references look up.
-    claim: () => {
+    // TYPE-identity key later own-class type references look up. The method
+    // it was allocated for is carried only descriptively (appClassMethod).
+    claim: (memberName) => {
       if (selfMethodDependencyClaimed) return undefined;
       selfMethodDependencyClaimed = true;
       return {
@@ -16233,7 +16241,8 @@ function encodeApplicationClassProgramV2(
         packageName: parsed.className.toUpperCase(),
         objectName: selfPackagePath[0]?.toUpperCase(),
         packagePath: selfPackagePath.map((component, index) => index === 0 ? component.toUpperCase() : component),
-        className: parsed.className.toUpperCase()
+        className: parsed.className.toUpperCase(),
+        appClassMethod: memberName.toUpperCase()
       };
     }
   };

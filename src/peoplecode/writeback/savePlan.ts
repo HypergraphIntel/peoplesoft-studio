@@ -170,7 +170,8 @@ export function splitProgramRows(program: Buffer): Buffer[] {
  * HRDMO; HRDMO-wide censuses for the case of APPCLASSMETHOD):
  *
  *   built-in object type   PACKAGE | TYPE  | Type name | Type name |
- *   Application Class      PACKAGE | CLASS | root      | sub:path  | METHOD (upper case), if any
+ *   Application Class      PACKAGE | CLASS | root      | sub:path  | METHOD (upper case), if any;
+ *                                                                   a %This self row: its method
  *   wildcard import        PACKAGE | ' '   | root      | sub:path  |
  *   Declare Function       REC     | FIELD |           |           | event (FieldFormula, ...)
  *   anything else          its RECNAME / REFNAME, the rest blank
@@ -190,7 +191,7 @@ export function referencesToNameRows(references: readonly PeopleCodeReference[])
         if (r.packagePath && r.packagePath.length > 0) {
           packageroot = r.packagePath[0];
           qualifypath = r.packagePath.slice(1).join(':');
-          appclassmethod = up(r.methodName);
+          appclassmethod = up(r.appClassMethod ?? r.methodName);
         } else {
           // A built-in object type: its display name in both columns.
           if (!r.objectName) {
