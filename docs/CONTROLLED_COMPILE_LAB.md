@@ -46,6 +46,36 @@ If `-PJFF` does not make `-CMPPRJPC` recompile from the imported text:
 
 PSPCMPROG is never fabricated.
 
+## Cycle 181: 30124 rule trial (authorized) -- accepted
+
+**Rule.** In an Application Class program, a Local initialized with
+`create` of a DIFFERENT class opens its declared class's row at the
+declaration, before the created class's. Implementation:
+- `createsDifferentClass` in `localDeclaration`;
+- same-class creates keep the `create`-owned row;
+- named-import rows already exist, so import order is kept;
+- ordinary programs are unchanged;
+- H2's 0x2D finding is deliberately not included.
+
+**Evidence.** The H matrix on PeopleTools 8.62.09, native Windows
+(`results/8.62.09/H-matrix.json`):
+- H1 / H3 / H6 / H8 / H9 are now EXACT;
+- H4 / H5 / H7 are still EXACT;
+- H2 references are exact, bytes differ by the separate 0x2D.
+Unit test: `src/test/encoderDeclaredClassRowBeforeCreate.test.ts`.
+
+**HCDEV trial** (all 30,209 programs):
+- EXACT 30,131 -> **30,132** (30124);
+- regressions 0; protected 430/430;
+- UNKNOWN_MISMATCH 7 -> 6.
+
+Accepted per the user's criterion.
+
+**Formal status:** 30124 is EXACT in the HCDEV corpus. Its rule is
+supported by 8.62.09 controlled compiles and a zero-regression 8.61.15
+corpus trial, and is tagged **8.61.15 confirmation pending** until a
+8.61.15 compile, or an explicit policy amendment.
+
 ## Cycle 180: H matrix on native Windows 8.62.09 (release-scoped)
 
 **Setup.**

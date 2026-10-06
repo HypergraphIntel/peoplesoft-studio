@@ -10,9 +10,17 @@
   compiler equivalence: the corpus, the captured metadata and static
   analysis of the exact-patch binaries justify no further production
   rule. See "Compiler Cycle 171" and docs/CONTROLLED_COMPILE_LAB.md.
-- **Status:** Unattended compiler path implemented; end-to-end
-  unattended compilation remains unverified pending a PeopleSoft
-  database and one-time project bootstrap.
+- **Status (Cycle 181):**
+  - HCDEV: EXACT 30,132 of 30,209; NONEXACT 77 = 71 DSM + 4 historical
+    variants + 2 actionable (10860, 15598). ACTIONABLE 3 -> 2.
+  - 30124 is EXACT through the Cycle 181 rule (8.62.09 controlled
+    compile, zero-regression HCDEV trial); tagged 8.61.15 confirmation
+    pending.
+  - Controlled compiler: native Windows App Designer 8.62.09 on
+    ps-win-client against home-lab HRDMO; the user saves in the GUI,
+    and the tooling audits, captures and compares. SMOKE /
+    determinism / A->B->A / H matrix are done.
+  - Next: G records / fields generator, G1-G7, then the Wine comparison.
   - 30124, 10860 and 15598 remain NEEDS_CONTROLLED_COMPILE.
   - Cycle 176 recheck: no database, Oracle image, registry login,
     listener on 1521 or new seed artifact. Stopped at the database
