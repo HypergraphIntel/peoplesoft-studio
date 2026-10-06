@@ -5,6 +5,7 @@ import {
   compilerProfileIdForToolsRelease, UnsupportedCompilerProfileError, type CompilerProfileId
 } from '../peoplecode/compilerProfile.js';
 import { DEFAULT_MCP_PORT, MAX_MCP_PORT, MIN_MCP_PORT, mcpPortError } from '../mcp/configuration.js';
+import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 
 /*
  * The Settings panel's model: what the extension's configuration is, how a
@@ -49,19 +50,29 @@ export type PeopleCodeSaveMode = 'save-only' | 'compile-and-save';
 
 export const PEOPLECODE_ACCESS_OPTIONS: EnumOption<PeopleCodeAccess>[] = [
   { value: 'read-only', label: 'Read-only', description: 'PeopleCode from this connection can never be saved back to it.' },
-  { value: 'writable', label: 'Writable', description: 'PeopleCode may be saved back to this database.' }
+  {
+    value: 'writable', label: 'Writable',
+    description: 'PeopleCode is saved natively to this database, as App Designer saves it. For now only ZZ_PCODE_LAB ' +
+      'definitions, and only programs whose references are all of a modeled kind.'
+  }
 ];
 
 export const PEOPLECODE_SAVE_MODE_OPTIONS: EnumOption<PeopleCodeSaveMode>[] = [
-  { value: 'save-only', label: 'Save only', description: 'Writes the source text (PSPCMTXT). The program that runs is unchanged until something compiles it.' },
-  { value: 'compile-and-save', label: 'Compile and save', description: 'Writes the source text and the compiled program (PSPCMPROG, PSPCMNAME).' }
+  {
+    value: 'compile-and-save', label: 'Compile and save',
+    description: 'Compiles, then writes the source and the compiled program (PSPCMTXT, PSPCMPROG, PSPCMNAME), as App Designer does.'
+  },
+  {
+    value: 'save-only', label: 'Save only',
+    description: 'Not available: App Designer compiles before every save and never stores uncompiled source, so saves are refused in this mode.'
+  }
 ];
 
 /** The per-connection options the panel sets one at a time, and their validation. */
-export type ConnectionOption = 'decoder' | 'peoplecodeAccess' | 'peoplecodeSaveMode';
+export type ConnectionOption = 'decoder' | 'peoplecodeAccess' | 'peoplecodeSaveMode' | 'peoplesoftOperatorId';
 
 export function isConnectionOption(value: unknown): value is ConnectionOption {
-  return value === 'decoder' || value === 'peoplecodeAccess' || value === 'peoplecodeSaveMode';
+  return value === 'decoder' || value === 'peoplecodeAccess' || value === 'peoplecodeSaveMode' || value === 'peoplesoftOperatorId';
 }
 
 function validateEnum<T extends string>(what: string, options: EnumOption<T>[], value: unknown): Validated<T> {
@@ -75,6 +86,10 @@ export function validateConnectionOption(option: ConnectionOption, value: unknow
     case 'decoder': return validateDecoder(value);
     case 'peoplecodeAccess': return validateEnum('PeopleCode access', PEOPLECODE_ACCESS_OPTIONS, value);
     case 'peoplecodeSaveMode': return validateEnum('Save mode', PEOPLECODE_SAVE_MODE_OPTIONS, value);
+    case 'peoplesoftOperatorId': {
+      const error = validateOperatorId(value);
+      return error ? { ok: false, error } : { ok: true, value: String(value).trim() };
+    }
   }
 }
 
@@ -82,10 +97,13 @@ export function validateConnectionOption(option: ConnectionOption, value: unknow
  * A connection's PeopleCode write settings. Anything absent or unrecognized
  * is read-only / save-only: a typo in settings.json must never grant writes.
  */
-export function peoplecodeWriteSettings(config: ConnectionConfig): { access: PeopleCodeAccess; saveMode: PeopleCodeSaveMode } {
+export function peoplecodeWriteSettings(config: ConnectionConfig): {
+  access: PeopleCodeAccess; saveMode: PeopleCodeSaveMode; operatorId: string;
+} {
   return {
     access: config.peoplecodeAccess === 'writable' ? 'writable' : 'read-only',
-    saveMode: config.peoplecodeSaveMode === 'compile-and-save' ? 'compile-and-save' : 'save-only'
+    saveMode: config.peoplecodeSaveMode === 'save-only' ? 'save-only' : 'compile-and-save',
+    operatorId: config.peoplesoftOperatorId?.trim() ?? ''
   };
 }
 

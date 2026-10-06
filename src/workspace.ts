@@ -3,6 +3,8 @@ import { DefinitionProvider, EnvironmentInfo } from './providers/provider.js';
 import { OracleProvider } from './providers/oracle.js';
 import { ProjectFileProvider } from './providers/projectFile.js';
 import { connectionHandle } from './util/handle.js';
+import { DefinitionKey, DefinitionType } from './model/definitions.js';
+import { isScratchName } from './peoplecode/corpus/labSafety.js';
 
 export interface ConnectionConfig {
   name: string;
@@ -21,8 +23,14 @@ export interface ConnectionConfig {
    * this is the per-connection authorization the save path will require.
    */
   peoplecodeAccess?: 'read-only' | 'writable';
-  /** What a PeopleCode save writes, once saves exist. Absent: save-only. */
+  /** What a PeopleCode save writes. Absent: compile-and-save. */
   peoplecodeSaveMode?: 'save-only' | 'compile-and-save';
+  /**
+   * The PeopleSoft operator (PSOPRDEFN.OPRID) PeopleCode saves are recorded
+   * as (PSPCMPROG.LASTUPDOPRID). Required for a writable connection: the
+   * database access id is not a PeopleSoft operator.
+   */
+  peoplesoftOperatorId?: string;
 }
 
 /**
@@ -195,6 +203,43 @@ export class Workspace implements vscode.Disposable {
 
   private isConnected(id: string | undefined): boolean {
     return id !== undefined && (this.providers.get(id)?.isConnected ?? false);
+  }
+
+  /**
+   * Whether PeopleCode under `key` may be edited and saved on this
+   * connection: an Oracle connection set to writable, a scratch definition,
+   * and a program type the native writer supports (Record Field PeopleCode,
+   * Application Class). Everything else stays read-only.
+   */
+  isPeopleCodeWritable(id: string, key: DefinitionKey): boolean {
+    const config = this.configFor(id);
+    return config?.kind === 'oracle' &&
+      config.peoplecodeAccess === 'writable' &&
+      (key.type === DefinitionType.RecordPeopleCode || key.type === DefinitionType.ApplicationClassPeopleCode) &&
+      isScratchName(key.parts[0]);
+  }
+
+  /** The configured connection behind a provider id. */
+  configFor(id: string): ConnectionConfig | undefined {
+    return this.connections.find((c) => providerId(c) === id);
+  }
+
+  /**
+   * Whether a PeopleSoft operator exists in the connection's database
+   * (PSOPRDEFN), read-only. Uses the live connection when there is one,
+   * otherwise a throwaway one (which may ask for the password).
+   */
+  async verifyOperator(config: ConnectionConfig, operatorId: string): Promise<boolean> {
+    const live = this.providers.get(providerId(config));
+    if (live?.isConnected && live instanceof OracleProvider) return live.operatorExists(operatorId);
+    const provider = await this.create(config);
+    try {
+      await provider.connect();
+      if (!(provider instanceof OracleProvider)) return false;
+      return await provider.operatorExists(operatorId);
+    } finally {
+      await provider.dispose();
+    }
   }
 
   async forgetPassword(name: string): Promise<void> {

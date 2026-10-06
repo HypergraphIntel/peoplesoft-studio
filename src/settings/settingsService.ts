@@ -58,6 +58,8 @@ export interface ConnectionPort {
   remove(config: ConnectionConfig): Promise<void>;
   /** Connects a throwaway provider; resolves to its PSSTATUS where it has one. */
   test(config: ConnectionConfig): Promise<EnvironmentInfo | undefined>;
+  /** Whether a PeopleSoft operator exists in the connection's database (PSOPRDEFN), read-only. */
+  verifyOperator(config: ConnectionConfig, operatorId: string): Promise<boolean>;
   /** The live provider's PSSTATUS, or undefined when the provider has no database behind it. */
   readEnvironment(id: string): Promise<EnvironmentInfo> | undefined;
   onDidChange(listener: () => void): Disposable;
@@ -336,13 +338,29 @@ export class SettingsService implements Disposable {
     const validated = validateConnectionOption(option, value);
     if (!validated.ok) return refuse(validated.error);
 
+    // The operator a save records must exist in that database: checked
+    // before it is stored, and again before writes are allowed.
+    const operatorFor = option === 'peoplesoftOperatorId' ? validated.value
+      : option === 'peoplecodeAccess' && validated.value === 'writable' ? peoplecodeWriteSettings(entry.config).operatorId
+      : undefined;
+    if (operatorFor !== undefined) {
+      if (operatorFor === '') return refuse('Set the PeopleSoft Operator ID first: writes are recorded as that operator (LASTUPDOPRID).');
+      let exists: boolean;
+      try {
+        exists = await this.connections.verifyOperator(entry.config, operatorFor);
+      } catch (err) {
+        return refuse(`Could not check operator ${operatorFor}: ${safeErrorMessage(err)}`);
+      }
+      if (!exists) return refuse(`PeopleSoft operator ${operatorFor} does not exist in ${entry.config.name} (PSOPRDEFN).`);
+    }
+
     if (option === 'peoplecodeAccess' && validated.value === 'writable' &&
         peoplecodeWriteSettings(entry.config).access !== 'writable') {
       const { name, user, connectString } = entry.config;
       const confirmed = await this.ui.confirm(
         `Allow PeopleCode writes to ${name}?`,
-        `${user}@${connectString}\n\nPeopleCode saved in the editor would be written to this database. ` +
-        'Saving PeopleCode is not implemented yet; this records the permission it will require.',
+        `${user}@${connectString}\n\nPeopleCode saved in the editor will be written natively to this database ` +
+        `as operator ${peoplecodeWriteSettings(entry.config).operatorId}: ZZ_PCODE_LAB definitions only, for now.`,
         'Allow Writes');
       if (!confirmed) {
         // Put the page's dropdown back.

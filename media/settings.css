@@ -123,6 +123,7 @@ input[type="text"] {
 }
 input[type="text"]::placeholder { color: var(--vscode-input-placeholderForeground); }
 input[type="text"].number { width: 8rem; font-variant-numeric: tabular-nums; }
+input[type="text"].operator { width: 12rem; }
 
 .checkbox-row {
   display: flex;

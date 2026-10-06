@@ -128,7 +128,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     )
   );
 
-  const fileSystem = PeopleSoftFileSystem.register(workspace);
+  // Every PeopleCode save keeps a report of the rows it replaced, so a save
+  // can be undone by hand: <global storage>/peoplecode-saves/*.json.
+  const fileSystem = PeopleSoftFileSystem.register(workspace, async (key, connection, result) => {
+    const dir = context.globalStorageUri ? vscode.Uri.joinPath(context.globalStorageUri, 'peoplecode-saves') : undefined;
+    if (!dir) return;
+    await vscode.workspace.fs.createDirectory(dir);
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const name = `${stamp}-${key.parts.join('.').replace(/[^A-Za-z0-9_.-]/g, '_')}.json`;
+    const report = {
+      connection, definition: key, kind: result.kind, version: result.version, lastupddttm: result.lastupddttm,
+      storedSource: result.storedSource,
+      replaced: {
+        ...result.before,
+        program: result.before.program.map((r) => ({ ...r, bytes: r.bytes.toString('hex') }))
+      }
+    };
+    await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(dir, name), Buffer.from(JSON.stringify(report, null, 1), 'utf8'));
+  });
   context.subscriptions.push(fileSystem);
   context.subscriptions.push(RecordEditorProvider.register(workspace));
 

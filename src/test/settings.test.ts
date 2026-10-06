@@ -83,6 +83,9 @@ class FakeConnections implements ConnectionPort {
   readonly environments = new Map<string, () => Promise<EnvironmentInfo>>();
   readonly calls: string[] = [];
   testResult: () => Promise<EnvironmentInfo | undefined> = async () => undefined;
+  /** PSOPRDEFN, per connection name. */
+  operators: Record<string, string[]> = { HRDMO: ['JARED'] };
+  operatorCheckFails = false;
   private readonly listeners = new Set<() => void>();
 
   constructor(private readonly config: FakeConfiguration) {}
@@ -109,6 +112,11 @@ class FakeConnections implements ConnectionPort {
   async add() { this.calls.push('add'); }
   async remove(config: ConnectionConfig) { this.calls.push(`remove:${config.name}`); }
   test(config: ConnectionConfig) { this.calls.push(`test:${config.name}`); return this.testResult(); }
+  async verifyOperator(config: ConnectionConfig, operatorId: string) {
+    this.calls.push(`verifyOperator:${config.name}:${operatorId}`);
+    if (this.operatorCheckFails) throw new Error('ORA-12541: TNS:no listener');
+    return (this.operators[config.name] ?? []).includes(operatorId);
+  }
   readEnvironment(id: string) {
     const read = this.environments.get(id);
     return read ? read() : undefined;
@@ -538,45 +546,64 @@ test('each database connection has its own decoder, defaulting to peoplecode.dec
   assert.deepEqual(effectiveDecoder({ ...HCDEV, decoder: 'bogus' as never }, 'strict'), { value: 'strict', inherited: true });
 });
 
-test('PeopleCode writes are per connection, read-only by default, and confirmed before they are allowed', async () => {
-  const { service, config, states, ui } = setup([HCDEV, HRDMO, EXPORT]);
+test('PeopleCode writes are per connection, read-only by default, and need a verified operator and confirmation', async () => {
+  const { service, config, conns, states, ui } = setup([HCDEV, HRDMO, EXPORT]);
   const views = service.getState().connections;
-  assert.deepEqual(views[0].peoplecodeWrite, { access: 'read-only', saveMode: 'save-only' });
+  assert.deepEqual(views[0].peoplecodeWrite, { access: 'read-only', saveMode: 'compile-and-save', operatorId: '' });
   assert.equal(views[2].peoplecodeWrite, undefined, 'a project export has no PeopleCode write option');
   assert.deepEqual(service.getState().peoplecodeAccessOptions.map((o) => o.value), ['read-only', 'writable']);
-  assert.deepEqual(service.getState().peoplecodeSaveModeOptions.map((o) => o.value), ['save-only', 'compile-and-save']);
+  assert.deepEqual(service.getState().peoplecodeSaveModeOptions.map((o) => o.value), ['compile-and-save', 'save-only']);
+  const errorsOf = (reply: SettingsHostMessage | undefined) => (reply as Extract<SettingsHostMessage, { type: 'validation' }>).errors;
+  const set = (option: string, value: string) =>
+    service.handleMessage({ type: 'setConnectionOption', connectionId: 'oracle:HRDMO', option: option as never, value });
+
+  // Writable needs an operator first; nothing is asked or written.
+  assert.match(errorsOf(await set('peoplecodeAccess', 'writable')).peoplecodeAccess, /Set the PeopleSoft Operator ID first/);
+  assert.deepEqual(ui.confirmations, []);
+  assert.equal(config.writes.length, 0);
+
+  // An operator must exist in that database; a failed check refuses too.
+  assert.match(errorsOf(await set('peoplesoftOperatorId', 'NOBODY')).peoplesoftOperatorId, /NOBODY does not exist in HRDMO \(PSOPRDEFN\)/);
+  assert.match(errorsOf(await set('peoplesoftOperatorId', 'JA RED')).peoplesoftOperatorId, /cannot contain spaces/);
+  conns.operatorCheckFails = true;
+  assert.match(errorsOf(await set('peoplesoftOperatorId', 'JARED')).peoplesoftOperatorId, /Could not check operator JARED: ORA-12541/);
+  conns.operatorCheckFails = false;
+  assert.equal(config.writes.length, 0);
+  assert.deepEqual(errorsOf(await set('peoplesoftOperatorId', ' JARED ')), {});
+  assert.deepEqual(config.writes.at(-1)?.value, [HCDEV, { ...HRDMO, peoplesoftOperatorId: 'JARED' }, EXPORT]);
 
   // Declined: nothing is written, and the page is re-sent the unchanged state.
   ui.answer = false;
+  const writes = config.writes.length;
   const statesBefore = states.length;
-  const declined = await service.handleMessage({ type: 'setConnectionOption', connectionId: 'oracle:HRDMO', option: 'peoplecodeAccess', value: 'writable' });
+  assert.deepEqual(errorsOf(await set('peoplecodeAccess', 'writable')), {});
   assert.deepEqual(ui.confirmations, ['Allow PeopleCode writes to HRDMO?']);
-  assert.deepEqual((declined as Extract<SettingsHostMessage, { type: 'validation' }>).errors, {});
-  assert.equal(config.writes.length, 0);
+  assert.equal(config.writes.length, writes);
   assert.ok(states.length > statesBefore);
   assert.equal(states.at(-1)!.connections[1].peoplecodeWrite?.access, 'read-only');
 
-  // Confirmed: only HRDMO becomes writable.
+  // Confirmed: the operator is checked again, and only HRDMO becomes writable.
   ui.answer = true;
-  await service.handleMessage({ type: 'setConnectionOption', connectionId: 'oracle:HRDMO', option: 'peoplecodeAccess', value: 'writable' });
-  assert.deepEqual(config.writes.at(-1)?.value, [HCDEV, { ...HRDMO, peoplecodeAccess: 'writable' }, EXPORT]);
+  conns.calls.length = 0;
+  await set('peoplecodeAccess', 'writable');
+  assert.deepEqual(conns.calls, ['verifyOperator:HRDMO:JARED']);
+  assert.deepEqual(config.writes.at(-1)?.value, [HCDEV, { ...HRDMO, peoplesoftOperatorId: 'JARED', peoplecodeAccess: 'writable' }, EXPORT]);
   let [hcdev, hrdmo] = service.getState().connections;
-  assert.deepEqual(hcdev.peoplecodeWrite, { access: 'read-only', saveMode: 'save-only' });
-  assert.deepEqual(hrdmo.peoplecodeWrite, { access: 'writable', saveMode: 'save-only' });
+  assert.deepEqual(hcdev.peoplecodeWrite, { access: 'read-only', saveMode: 'compile-and-save', operatorId: '' });
+  assert.deepEqual(hrdmo.peoplecodeWrite, { access: 'writable', saveMode: 'compile-and-save', operatorId: 'JARED' });
 
   // Save mode and going back to read-only need no confirmation.
-  await service.handleMessage({ type: 'setConnectionOption', connectionId: 'oracle:HRDMO', option: 'peoplecodeSaveMode', value: 'compile-and-save' });
-  await service.handleMessage({ type: 'setConnectionOption', connectionId: 'oracle:HRDMO', option: 'peoplecodeAccess', value: 'read-only' });
+  await set('peoplecodeSaveMode', 'save-only');
+  await set('peoplecodeAccess', 'read-only');
   assert.equal(ui.confirmations.length, 2);
   [, hrdmo] = service.getState().connections;
-  assert.deepEqual(hrdmo.peoplecodeWrite, { access: 'read-only', saveMode: 'compile-and-save' });
+  assert.deepEqual(hrdmo.peoplecodeWrite, { access: 'read-only', saveMode: 'save-only', operatorId: 'JARED' });
 
-  const writes = config.writes.length;
-  const bad = await service.handleMessage({ type: 'setConnectionOption', connectionId: 'oracle:HRDMO', option: 'peoplecodeAccess', value: 'yes' });
-  assert.match((bad as Extract<SettingsHostMessage, { type: 'validation' }>).errors.peoplecodeAccess, /must be one of read-only, writable/);
+  const before = config.writes.length;
+  assert.match(errorsOf(await set('peoplecodeAccess', 'yes')).peoplecodeAccess, /must be one of read-only, writable/);
   const onExport = await service.handleMessage({ type: 'setConnectionOption', connectionId: 'project:/tmp/project.xml', option: 'peoplecodeAccess', value: 'writable' });
-  assert.match((onExport as Extract<SettingsHostMessage, { type: 'validation' }>).errors.peoplecodeAccess, /Only database connections/);
-  assert.equal(config.writes.length, writes);
+  assert.match(errorsOf(onExport).peoplecodeAccess, /Only database connections/);
+  assert.equal(config.writes.length, before);
 });
 
 test('anything but an exact "writable" in settings.json is read-only', () => {
@@ -584,7 +611,10 @@ test('anything but an exact "writable" in settings.json is read-only', () => {
     assert.equal(peoplecodeWriteSettings({ ...HRDMO, peoplecodeAccess: value as never }).access, 'read-only', String(value));
   }
   assert.equal(peoplecodeWriteSettings({ ...HRDMO, peoplecodeAccess: 'writable' }).access, 'writable');
-  assert.equal(peoplecodeWriteSettings({ ...HRDMO, peoplecodeSaveMode: 'Compile' as never }).saveMode, 'save-only');
+  // The save mode defaults to what saves do: compile and save.
+  assert.equal(peoplecodeWriteSettings({ ...HRDMO }).saveMode, 'compile-and-save');
+  assert.equal(peoplecodeWriteSettings({ ...HRDMO, peoplecodeSaveMode: 'Compile' as never }).saveMode, 'compile-and-save');
+  assert.equal(peoplecodeWriteSettings({ ...HRDMO, peoplecodeSaveMode: 'save-only' }).saveMode, 'save-only');
 });
 
 test('safeErrorMessage keeps one bounded line', () => {

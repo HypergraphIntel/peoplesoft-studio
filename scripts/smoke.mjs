@@ -380,26 +380,28 @@ try {
   await until(() => validations().at(-1)?.target?.connectionId === devId, 'the project-export decoder refusal');
   check(validations().at(-1)?.errors?.decoder !== undefined, 'a project export accepted a decoder');
 
-  // PeopleCode writes: per connection, confirmed in a modal naming the database.
+  // PeopleCode writes: per connection, behind a verified PeopleSoft operator
+  // and a modal naming the database. Here no database is reachable (the
+  // password prompt is cancelled), so both steps must refuse without writing.
   const confirmations = [];
   const showWarning = vscode.window.showWarningMessage;
   vscode.window.showWarningMessage = async (message, options, ...actions) => {
     confirmations.push({ message, modal: options?.modal === true, detail: options?.detail });
-    return confirmations.length === 1 ? undefined : actions[0];
+    return actions[0];
   };
-  const oraAccess = () => settings.get('peoplesoft.connections')?.find((c) => c.name === 'ORA')?.peoplecodeAccess;
+  const oraConfig = () => settings.get('peoplesoft.connections')?.find((c) => c.name === 'ORA');
+  const optionReply = async (option) => {
+    await until(() => validations().at(-1)?.target?.option === option, `the ${option} reply`);
+    return validations().at(-1)?.errors?.[option];
+  };
   panel._receive({ type: 'setConnectionOption', connectionId: 'oracle:ORA', option: 'peoplecodeAccess', value: 'writable' });
-  await until(() => confirmations.length === 1, 'the first write confirmation');
-  await flush();
-  check(confirmations[0].modal && confirmations[0].message === 'Allow PeopleCode writes to ORA?' &&
-    confirmations[0].detail?.includes('ora.example:1521/ORA') && oraAccess() === undefined,
-    'declining the write confirmation still allowed writes, or the dialog did not name the database');
-  panel._receive({ type: 'setConnectionOption', connectionId: 'oracle:ORA', option: 'peoplecodeAccess', value: 'writable' });
-  await until(() => oraAccess() === 'writable', 'ORA to become writable');
-  check(settings.get('peoplesoft.connections')?.filter((c) => c.peoplecodeAccess === 'writable').length === 1,
-    'allowing writes on ORA changed another connection');
-  check(lastState()?.connections?.find((c) => c.name === 'ORA')?.peoplecodeWrite?.access === 'writable',
-    'the panel does not show ORA as writable');
+  check(/Set the PeopleSoft Operator ID first/.test(await optionReply('peoplecodeAccess') ?? '') &&
+    confirmations.length === 0 && oraConfig()?.peoplecodeAccess === undefined,
+    'Writable was allowed, or confirmed, without a PeopleSoft operator');
+  panel._receive({ type: 'setConnectionOption', connectionId: 'oracle:ORA', option: 'peoplesoftOperatorId', value: 'JARED' });
+  check(/Could not check operator JARED/.test(await optionReply('peoplesoftOperatorId') ?? '') &&
+    oraConfig()?.peoplesoftOperatorId === undefined,
+    'an operator was stored without being verified in the database');
   vscode.window.showWarningMessage = showWarning;
 
   // MCP: the port is written as an integer, out-of-range ports are refused, the toggle as a boolean.
