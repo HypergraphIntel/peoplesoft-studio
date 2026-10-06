@@ -46,6 +46,135 @@ If `-PJFF` does not make `-CMPPRJPC` recompile from the imported text:
 
 PSPCMPROG is never fabricated.
 
+## Cycle 183: the final 75, reopened and resolved
+
+The user reopened the 75 residual programs: make each exact with a
+generic rule, or prove why the surviving repository state cannot
+reproduce it.
+
+```text
+TOTAL                          30,209
+EXACT (stored-source exact)    30,134
+EXACT_RECOVERED_SOURCE             71   (compiled exact from recovered historical source)
+UNKNOWN_MISMATCH                    4   (29797 29883 30170 30179: Oracle-delivered artifacts, class D)
+PSPCMPROG reproduced           30,205
+PSPCMNAME reproduced           30,204   (+ 30192: delivered rows, class D)
+PSPCMPROG + PSPCMNAME          30,204
+protected 430/430; regressed 0; ENCODE_ERROR / UNSUPPORTED_SYNTAX / ROUNDTRIP_ONLY 0
+```
+
+### Track 1: 71 lossy-source programs -> EXACT_RECOVERED_SOURCE
+
+- **Inventory** (`cycle183-source-loss-inventory.ts`,
+  `.claude/cycle183-source-loss-inventory.json`):
+  - all 71 programs, 282 differing segments;
+  - every difference is a length-preserving character substitution,
+    inside a comment (240) or a string literal (42);
+  - stored 0xBF where the program holds one of 16 code points with no
+    WE8ISO8859P15 byte (U+2019 126, U+2502 62, U+2500 60, U+2013 46,
+    U+2014 39, U+25EF 28, U+201D 20, U+251C 16, U+201C 15, U+2514 14,
+    U+200B 6, U+00B4 2, U+00BC 2, U+FF1A 1, U+2026 1);
+  - stored 0x60 where the program holds U+2018 (56);
+  - families: 58 replacement-only, 13 replacement + best-fit.
+- **Mechanism, measured:** Oracle 19.30's own
+  `CONVERT(cp, 'WE8ISO8859P15', 'AL32UTF8')` over all 63,488 BMP code
+  points (read-only SELECT on the lab):
+  - 256 code points keep their Latin-9 byte;
+  - 8 best-fit mappings (U+2018 -> 0x60, U+2015 -> 0x2D, U+2038 -> 0x5E,
+    U+03B2 -> 0xDF, U+20A4 -> 0x4C, U+223C -> 0x7E, U+F8FD -> 0x66,
+    U+F8FE -> 0xB7);
+  - every other code point -> 0xBF
+    (`.claude/cycle183-we8iso8859p15-conversion.json`).
+- **Proof that PSPCMTXT alone is insufficient:** 0xBF and 0x60 are
+  many-to-one. Genuine U+00BF (EXACT 29293) and genuine U+0060 (8 EXACT
+  programs, 18 occurrences) occur in HCDEV source.
+- **Compiled model exact:** the decoded program re-encodes to the
+  stored PSPCMPROG and PSPCMNAME in 71 / 71.
+- **Recovery** (`historicalSource.ts`, commit c6cdc46): keep the stored
+  text and take, at exactly the lossy positions, the program's
+  character. This happens only where the stored byte is that character's
+  measured conversion image, and the result must normalize to the
+  decoded program. PSPCMTXT is never changed. 6275's recovered source
+  equals the lab's Unicode PSPCMTXT for the same delivered definition.
+- **Classification:** `EXACT_RECOVERED_SOURCE` (TEST A' on the recovered
+  source plus the round trip). `EXACT` still means stored-source exact.
+
+### Corpus-wide check against PeopleTools 8.62.09
+
+`compare-delivered.ts --all`, read-only on the lab
+(`results/8.62.09/delivered-corpus-comparison.json`):
+- 30,067 of the 30,209 HCDEV definitions also exist in HRDMO.
+- The encoder, given HRDMO's source, reproduces PeopleTools 8.62.09's
+  own PSPCMPROG AND PSPCMNAME for 30,061 / 30,067.
+- Identical source: 29,792 definitions.
+  - HCDEV stored equals HRDMO stored in 29,785.
+  - The encoder equals HRDMO in 29,788.
+- The 8.62-only exceptions are recorded for the 8.62 track, not HCDEV:
+  - 4601 / 4602 / 18249 / 18256: identical source, EXACT against HCDEV,
+    compiled differently by 8.62.09;
+  - 23497: a newer HRDMO revision;
+  - 28943: a newer HRDMO revision whose source the encoder cannot yet
+    encode.
+- Lossy-source programs: in 64 / 64 delivered programs with the same
+  revision, the recovered source equals HRDMO's Unicode PSPCMTXT exactly.
+  - 3 (25956 28890 28982) have a different revision in HRDMO.
+  - 4 are custom, absent from the lab (18178 29648 29654 29672).
+
+### PSPCMNAME audit (`cycle183-pspcmname-audit.ts`)
+
+The harness's EXACT compares program bytes only. A corpus-wide
+PSPCMNAME comparison found 24 byte-exact programs whose rows differed:
+- 22 header-only / empty-body App Classes, plus 29632 (the
+  single-method golden-template path), lacked the blank NAMENUM 1 row
+  that every App Class stores (1,510 / 1,510). The encoder now emits it
+  (program bytes unchanged).
+- 30192's rows are Oracle's delivered per-method form (Track 2).
+
+### Track 2: 29797 29883 30170 30179 (and 30192's PSPCMNAME)
+
+These store App Class reference rows reopened per method body.
+- **Lab, PeopleTools 8.62.09:** every delivered program in HRDMO was
+  compiled in one run on 2026-05-08. For the same five definitions the
+  encoder reproduces PeopleTools' PSPCMPROG and PSPCMNAME exactly. For
+  29797 / 29883 / 30192 the source is identical to HCDEV's
+  (`compare-delivered.ts`,
+  `results/8.62.09/delivered-reference-variants.json`).
+- **PeopleTools 8.61.15 media** (delivered upgrade project PPLTLS84CUR):
+  the five delivered PCMs carry exactly HCDEV's stored rows (191 / 48 /
+  543 / 533 / 9). Oracle compiled them on 2023-11-14 (PPLSOFT, one batch
+  window), so HCDEV holds Oracle's delivered artifact.
+- **Population** (`cycle183-ppltls-repeat-census.ts`): all 2,644
+  delivered App Class PCMs come from that 2023-11 build, and 1,998 carry
+  per-method repeated rows. Of the 270 that also exist in HCDEV with
+  identical source and repeated delivered rows:
+  - HCDEV stores the class-wide (recompiled; encoder) form in 266;
+  - HCDEV stores the delivered form in 4 (29797 29883 30170 30192);
+  - 30179 likewise, among the different-source rows.
+- **Nearest exact controls** (same delivery build, repeated delivered
+  rows, recompiled in HCDEV, EXACT):
+  - 29883: PSXP_SERVICEMGR 29880 29881 29882 29884, plus 29801;
+  - 30170 / 30179: PTAI_ACTION_ITEMS 30159 30160 30161 30163 30164
+    30168;
+  - 29797: 30068 30145 28759 30160 28761 30000.
+
+**Classification D, proven:** identical source plus an identical
+delivered artifact produce two different stored artifacts in HCDEV. The
+stored form follows compile history (delivered and never recompiled,
+versus recompiled), not source, so no source-only rule can reproduce
+both.
+- **What is missing:** the history flag. HCDEV PSPCMPROG.LASTUPDDTTM for
+  these definitions is not in the snapshot; a read-only live read failed
+  because the HCDEV host was unreachable from this network. Also missing
+  is a model of Oracle's build-compile per-method mode. The 1,998
+  delivered PCMs are a calibration set for it (PSPCMNAME only; the
+  delivered blob is not PSPCMPROG).
+- **Controlled R experiments: not run.**
+  - An App Designer save or compile on 8.62.09 produces the class-wide
+    form; HRDMO's fresh compile of identical source shows it.
+  - The only state that would reproduce the delivered rows is importing
+    Oracle's compiled blob, which carries a delivered identity. That is
+    the Cycle 178 incident path, refused by the interlocks.
+
 ## Cycle 182: HCDEV semantic frontier sealed
 
 ```text
