@@ -11,11 +11,13 @@
   analysis of the exact-patch binaries justify no further production
   rule. See "Compiler Cycle 171" and docs/CONTROLLED_COMPILE_LAB.md.
 - **Status (Cycle 181):**
-  - HCDEV: EXACT 30,132 of 30,209; NONEXACT 77 = 71 DSM + 4 historical
-    variants + 2 actionable (10860, 15598). ACTIONABLE 3 -> 2.
-  - 30124 is EXACT through the Cycle 181 rule (8.62.09 controlled
-    compile, zero-regression HCDEV trial); tagged 8.61.15 confirmation
-    pending.
+  - HCDEV: EXACT 30,134 of 30,209; NONEXACT 75 = 71 DSM + 4 historical
+    variants. ACTIONABLE 0: the implementation frontier is closed.
+  - 30124 (declared class row before a different-class create, 3b5c36e)
+    and 10860 / 15598 (Function-local Local declares its name only in its
+    Function, 722fa0a) are EXACT through rules from 8.62.09 controlled
+    compiles, each with a zero-regression full HCDEV trial; all three are
+    tagged 8.61.15 confirmation pending.
   - Controlled compiler: native Windows App Designer 8.62.09 on
     ps-win-client against home-lab HRDMO; the user saves in the GUI,
     and the tooling audits, captures and compares. SMOKE /
@@ -32,15 +34,15 @@
     NON_SCRATCH_CHANGED = 0; results/8.62.09/G-matrix.json. Only
     DECLARING_UNIT_SCOPE survives; G1 / G5 (the 10860 / 15598 replicas)
     reproduce HCDEV (inline member read on a root declared Local only in
-    another unit); the encoder disagrees on G1 / G5 only.
-  - Wine: 8.62.09 -CMPPRJPC compiles but does not save a current program
-    (audit and ORA_ROWSCN unchanged), so it yields no Wine bytes for
-    already-saved programs.
-  - Next action: user decisions -- (1) authorize an HCDEV trial of the
-    declaring-unit rule for 10860 / 15598 (as for 30124); (2) how to get
-    Wine bytes (GUI save under Wine, or another write path).
-  - 30124 is 8.61.15 confirmation pending; 10860 and 15598 remain
-    NEEDS_CONTROLLED_COMPILE_86115.
+    another unit); the encoder disagreed on G1 / G5 only (fixed, 722fa0a).
+  - Wine (user decision): dropped. Signon / headless invocation works;
+    -CMPPRJPC on current programs performs no observable save;
+    byte-equivalence with native Windows not established; not an
+    authoritative controlled-compile host. Native Windows 8.62.09 is.
+  - 10860 / 15598 trial (authorized): accepted, 722fa0a. Row by row: 0
+    EXACT -> NONEXACT, the 75 other rows unchanged, protected 430/430.
+  - 30124, 10860 and 15598: 8.61.15 confirmation pending (8.62.09
+    provenance).
   - Cycle 176 recheck: no database, Oracle image, registry login,
     listener on 1521 or new seed artifact. Stopped at the database
     blocker without re-searching the old media.
@@ -130,33 +132,30 @@
       - Not applied to the 8.61.15 encoder.
     - Next: the user decides on the 8.61 handling; the G matrix needs
       scratch records first.
-- **Last successful calibration:** Cycle 181 -- 30124 EXACT (declared
-  class row opened before a different-class create, Application Class
-  programs only); full HCDEV corpus 30,131 -> 30,132, regressed 0,
-  protected 430/430 (commit 3b5c36e).
+- **Last successful calibration:** Cycle 181 -- 10860 / 15598 EXACT
+  (Function-local Local scoping of the declared-name test, 722fa0a) and
+  30124 EXACT (3b5c36e). Full HCDEV: EXACT 30,134, regressed 0, protected
+  430/430.
 - **Protected baseline:** 430/430.
 - **Snapshot requirement:** the captured App Class metadata (3,178
   classes) must be imported; check `npx tsx
   tools/corpus/capture-appclass-metadata.ts --check-manifest
   tools/corpus/appclass-metadata/manifest.txt`.
-- **Locally blocked (NEEDS_CONTROLLED_COMPILE_86115):** 10860 / 15598 (a
-  member read on a root declared `Local` only in another unit -- 10860's
-  `Call_Link`, 15598's top-level code: stored 0x0A inline, encoder 0x4A
-  reference). 30124 is EXACT but tagged 8.61.15 confirmation pending.
-  Experiment pack tools/corpus/controlled-compile/experiments.json;
-  docs/CONTROLLED_COMPILE_LAB.md.
-- **Next action (Cycle 181):** G matrix done (G-matrix.json; only
-  DECLARING_UNIT_SCOPE survives; encoder misses G1 / G5). Awaiting the
-  user's decision on an HCDEV trial of the declaring-unit rule for 10860 /
-  15598, and on the Wine write path (-CMPPRJPC does not save current
-  programs).
+- **Locally blocked:** none actionable. 30124 / 10860 / 15598 are EXACT
+  and tagged 8.61.15 confirmation pending. The 75 NONEXACT are the 71 DSM
+  (historical source variants) and 4 historical reference variants.
+- **Next action (Cycle 181):** the implementation frontier is closed.
+  Remaining optional work: 8.61.15 confirmation of the three rules if an
+  8.61.15 database becomes available; the separate 8.62.09 H2 finding (no
+  0x2D before end-method in a method body holding only a bare Local) is
+  recorded, not applied.
 
   Standing rules:
   - README.md has unrelated user edits: never stage it.
   - Never touch stash@{0} / stash@{1}.
   - Run `npm test` on its own, check the exit code, then commit
     separately.
-- **Newly established rules this session:** Cycle 181: in an Application Class program, `Local A &x = create B(...)` (B a different class, wildcard import) opens A's PACKAGE row before B's (8.62.09 H matrix; HCDEV 30124). Cycles 175 / 174 / 173 / 172: none (no compiler semantics)
+- **Newly established rules this session:** Cycle 181: (1) in an ordinary program, a Local declared only inside Function bodies declares its name only within the declaring Function; elsewhere chains on it are untyped (inline members) (8.62.09 G matrix; HCDEV 10860 / 15598). (2) In an Application Class program, `Local A &x = create B(...)` (B a different class, wildcard import) opens A's PACKAGE row before B's (8.62.09 H matrix; HCDEV 30124). Cycles 175 / 174 / 173 / 172: none (no compiler semantics)
   (research and tooling only); Cycle 171: the
   blank-line rule after a Function header applies after `Returns <App
   Class>` too (whitespace measured from the end of the type); an
