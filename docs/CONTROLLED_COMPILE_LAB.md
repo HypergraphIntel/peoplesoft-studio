@@ -469,6 +469,7 @@ line). Each direct save was bracketed by snapshots on HRDMO:
 | r01 | 7 refusals | -- | nothing written (empty delta) |
 | **n01** | App Designer reopened d03's and d04's programs and re-saved them unchanged | the writer's rows | **App Designer recompiled the writer's stored source to byte-identical rows** (PSPCMTXT, PSPCMPROG, PSPCMNAME), apart from VERSION / LASTUPDDTTM |
 | **e01** | **From the VS Code editor** (Ctrl+S on a Writable connection): `&n = 2` -> `&n = 3`, then an unchanged re-save | the save model | both saves committed and verified (VERSION 84, 85; operator `PS`, as configured); key rows replaced, HASH_SIGNATURE matches, PROGLEN 191, NAMECOUNT 2, counters +2, no other table. The second save presented the token the first returned. The snapshot is retroactive (`--as-of`); each save left a report of the rows it replaced |
+| **n02** | App Designer reopened e01's editor-saved program and re-saved it unchanged | e01's rows | **byte-identical** PSPCMTXT, PSPCMPROG (program, PROGLEN, NAMECOUNT, defaults) and both PSPCMNAME rows; only VERSION, LASTUPDDTTM and LASTUPDOPRID differ (App Designer records its sign-on `JARED`; the editor recorded the configured `PS`). One counter bump, no other table. Retroactive snapshot from e01's after |
 
 r01's refusals were: a stale concurrency token, a PACKAGE reference, an
 unknown operator, a syntax error, a delivered definition (refused before any
