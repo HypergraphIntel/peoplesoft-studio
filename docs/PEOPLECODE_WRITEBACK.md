@@ -14,8 +14,9 @@ docs/CONTROLLED_COMPILE_LAB.md, Cycle 185.
   - ZZ_PCODE_LAB definitions only, checked before any lock;
   - Record Field PeopleCode and Application Class programs that already
     exist;
-  - no PACKAGE or Declare Function reference rows (their PACKAGEROOT /
-    QUALIFYPATH / APPCLASSMETHOD columns are not yet derived);
+  - PSPCMNAME is the compiler's references, serialized; PACKAGE and
+    Declare Function rows' descriptive columns are mapped from them
+    (confirmed by App Designer re-saves, Cycle 185 n03 / f02);
   - the stored program re-encodes exactly and holds only observed column
     values;
   - the edit compiles and decodes back to itself;

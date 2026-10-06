@@ -2189,7 +2189,8 @@ end-method;`, {
       eventName: 'FieldFormula'
     },
     // Cycle 82: the inherited `%This.SomeInheritedMethod()` call allocates
-    // the class's own self row (see the self-row tests below).
+    // the class's own self row (see the self-row tests below). Cycle 185:
+    // the row carries the method it was allocated for, descriptively.
     {
       index: 3,
       sequence: 4,
@@ -2197,7 +2198,8 @@ end-method;`, {
       packageName: 'REFERENCETEST',
       objectName: 'PKG',
       packagePath: ['PKG'],
-      className: 'REFERENCETEST'
+      className: 'REFERENCETEST',
+      appClassMethod: 'SOMEINHERITEDMETHOD'
     }
   ]);
 });
@@ -2281,7 +2283,8 @@ end-method;`, {
       packagePath: ['PKGONE'],
       className: ''
     },
-    // Cycle 82: self row from the inherited `%This` call.
+    // Cycle 82: self row from the inherited `%This` call (Cycle 185: with
+    // its method, descriptively).
     {
       index: 2,
       sequence: 3,
@@ -2289,7 +2292,8 @@ end-method;`, {
       packageName: 'REFERENCETEST',
       objectName: 'PKG',
       packagePath: ['PKG'],
-      className: 'REFERENCETEST'
+      className: 'REFERENCETEST',
+      appClassMethod: 'SOMEINHERITEDMETHOD'
     }
   ]);
 });
