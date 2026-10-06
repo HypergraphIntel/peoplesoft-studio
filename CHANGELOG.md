@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.7.1 — MAJOR UPDATE
+## 0.7.2 — MAJOR UPDATE
 
 Version **0.7.1** is a major update. PeopleSoft Studio can now **save
 PeopleCode natively to the database**, with no App Designer in the save
@@ -25,15 +25,7 @@ enabling saves: nothing is writable until you turn it on per connection.
      operator.
   2. Set **Access** to **Writable**. A confirmation names the database and
      user; the operator is checked again.
-  3. Leave **Save mode** at **Compile and save**.
-- **What can be saved, for now:**
-  - definitions under **`ZZ_PCODE_LAB`** only;
-  - **Record Field PeopleCode** and **Application Class** programs that
-    already exist.
 
-  Everything else stays read-only, or the save is refused with the
-  reason. Creating new programs, other PeopleCode types and lifting the
-  `ZZ_PCODE_LAB` restriction come in later releases.
 
 ### Native PeopleCode saving
 
