@@ -44,7 +44,6 @@
   const SECTIONS = [
     { id: 'connections', title: 'Connections' },
     { id: 'peoplecode', title: 'PeopleCode' },
-    { id: 'compiler', title: 'Compiler / Analysis' },
     { id: 'mcp', title: 'AI Integration' },
     { id: 'advanced', title: 'Advanced' }
   ];
@@ -114,7 +113,8 @@
         'PeopleSoft environments, stored in ',
         h('code', { text: 'peoplesoft.connections' }),
         state.connectionsSource !== 'default' ? ` (${SOURCE_LABELS[state.connectionsSource]} settings)` : '',
-        '. Passwords are kept in the OS secret store and are never shown here.'
+        '. Passwords are kept in the OS secret store and are never shown here. ',
+        'Each connection\u2019s compiler profile follows its PeopleTools release automatically.'
       ])
     ]);
 
@@ -170,13 +170,6 @@
       ? facts({ 'Connect string': c.connectString || '—', 'Access id': c.user || '—' })
       : facts({ 'Project file': c.path || '—' });
 
-    const env = c.environment;
-    if (env.status === 'available') {
-      details.append(
-        h('dt', { text: 'PeopleTools' }),
-        h('dd', { className: 'mono', text: env.profile.ok ? `${env.release} · ${env.profile.id}` : env.release }));
-    }
-
     const actions = h('div', { className: 'actions' }, [
       button(busy ? 'Testing…' : 'Test Connection', () => post({ type: 'testConnection', connectionId: c.id }),
         { disabled: busy, focusKey: `test:${c.id}`, title: 'Connect a temporary session and read PSSTATUS; the live connection is not affected.' }),
@@ -187,6 +180,7 @@
     return h('div', { className: c.selected ? 'connection selected' : 'connection', attrs: { 'data-connection': c.id } }, [
       head,
       details,
+      renderAnalysis(c),
       actions,
       renderTestResult(c),
       editing.includes(c.id) ? renderEditForm(c) : null
@@ -367,30 +361,21 @@
     ]);
   }
 
-  function renderCompiler() {
-    const section = h('section', { attrs: { id: 'compiler', 'aria-labelledby': 'compiler-title' } }, [
-      h('h2', { text: 'Compiler / Analysis', attrs: { id: 'compiler-title' } }),
-      h('p', {
-        className: 'description',
-        text: 'For the current target connection, read from its PSSTATUS. The compiler profile follows the PeopleTools release automatically and is not configurable.'
-      })
-    ]);
-
-    const target = state.connections.find((c) => c.selected);
-    if (!target) {
-      section.append(h('p', { className: 'hint', text: 'No target connection. Choose one in the Connections view or the status bar.' }));
-      return section;
-    }
-
-    const env = target.environment;
+  /**
+   * The connection's compile context: its PeopleTools release (PSSTATUS) and
+   * the compiler profile that release selects. Read from the live connection,
+   * or from the last Test Connection when it is not connected.
+   */
+  function renderAnalysis(c) {
+    const env = c.environment;
     /** @type {Record<string, string>} */
-    const rows = { Connection: target.name };
+    const rows = {};
     let note = null;
 
     switch (env.status) {
       case 'not-connected':
-        rows['PeopleTools release'] = 'Not connected';
-        note = h('p', { className: 'hint', text: 'Connect to read the release.' });
+        rows['PeopleTools release'] = 'Unknown';
+        note = h('p', { className: 'hint', text: 'Connect, or run Test Connection, to read the release.' });
         break;
       case 'not-applicable':
         rows['PeopleTools release'] = 'Not available';
@@ -405,16 +390,20 @@
         break;
       case 'available':
         rows['PeopleTools release'] = env.release;
-        rows['Compiler profile'] = env.profile.ok ? env.profile.id : 'None';
+        rows['Compiler profile'] = env.profile.ok ? `${env.profile.id} (automatic)` : 'None';
         if (!env.profile.ok) {
           note = h('p', { className: 'error-text', text: `Unknown compiler profile mapping: ${env.profile.message}` });
+        } else if (env.source === 'test') {
+          note = h('p', { className: 'hint', text: 'From the last Test Connection.' });
         }
         break;
     }
 
-    section.append(facts(rows));
-    if (note) section.append(note);
-    return section;
+    return h('div', { className: 'analysis', attrs: { role: 'group', 'aria-label': `${c.name} compiler and analysis` } }, [
+      h('h4', { text: 'Compiler / Analysis' }),
+      facts(rows),
+      note
+    ]);
   }
 
   function renderMcp() {
@@ -475,7 +464,6 @@
     root.replaceChildren(...[
       renderConnections(),
       renderSettingsSection('peoplecode', 'PeopleCode', ''),
-      renderCompiler(),
       renderMcp(),
       renderSettingsSection('advanced', 'Advanced', 'Database driver settings. Most installations need none of these.')
     ].filter(Boolean));

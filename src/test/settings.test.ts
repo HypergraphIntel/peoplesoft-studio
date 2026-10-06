@@ -379,10 +379,10 @@ test('maps PSSTATUS to a release and compiler profile through the compiler table
   assert.equal(formatRelease({ toolsRelease: '8.61' }), '8.61');
 
   assert.deepEqual(describeEnvironment({ toolsRelease: '8.62', patchLevel: 9 }), {
-    status: 'available', release: '8.62.09', toolsRelease: '8.62', patchLevel: 9, profile: { ok: true, id: 'PT862' }
+    status: 'available', source: 'connection', release: '8.62.09', toolsRelease: '8.62', patchLevel: 9, profile: { ok: true, id: 'PT862' }
   });
   assert.deepEqual(describeEnvironment({ toolsRelease: '8.61', patchLevel: 15 }), {
-    status: 'available', release: '8.61.15', toolsRelease: '8.61', patchLevel: 15, profile: { ok: true, id: 'PT861' }
+    status: 'available', source: 'connection', release: '8.61.15', toolsRelease: '8.61', patchLevel: 15, profile: { ok: true, id: 'PT861' }
   });
 
   const unknown = describeEnvironment({ toolsRelease: '8.60', patchLevel: 3 });
@@ -462,6 +462,41 @@ test('Test Connection reports testing, then the release or a safe error', async 
   conns.testResult = async () => { throw new Error(`ORA-01017: invalid username/password; logon denied\n${'x'.repeat(50)}`); };
   await service.handleMessage({ type: 'testConnection', connectionId: 'oracle:HCDEV' });
   assert.deepEqual(states.at(-1)!.connections[0].test, { status: 'failed', message: 'ORA-01017: invalid username/password; logon denied' });
+});
+
+test('each connection shows its own release and profile, from the last test while not connected', async () => {
+  const { service, conns, config } = setup();
+  conns.testResult = async () => ({ toolsRelease: '8.62', patchLevel: 9 });
+  await service.handleMessage({ type: 'testConnection', connectionId: 'oracle:HCTST' });
+
+  let [hcdev, hctst] = service.getState().connections;
+  assert.equal(hcdev.environment.status, 'not-connected');
+  assert.deepEqual(hctst.environment, {
+    status: 'available', source: 'test', release: '8.62.09', toolsRelease: '8.62', patchLevel: 9, profile: { ok: true, id: 'PT862' }
+  });
+
+  // Once connected, the live connection's PSSTATUS is what counts.
+  conns.environments.set('oracle:HCTST', async () => ({ toolsRelease: '8.61', patchLevel: 15 }));
+  conns.selectElsewhere('oracle:HCTST');
+  await settle();
+  hctst = service.getState().connections[1];
+  assert.equal(hctst.environment.status === 'available' && hctst.environment.source, 'connection');
+  assert.equal(hctst.environment.status === 'available' && hctst.environment.release, '8.61.15');
+
+  // A failed test, or an edit, drops what an earlier test read.
+  conns.disconnectElsewhere('oracle:HCTST');
+  conns.testResult = async () => { throw new Error('ORA-12541: no listener'); };
+  await service.handleMessage({ type: 'testConnection', connectionId: 'oracle:HCTST' });
+  assert.equal(service.getState().connections[1].environment.status, 'not-connected');
+
+  conns.testResult = async () => ({ toolsRelease: '8.62', patchLevel: 9 });
+  await service.handleMessage({ type: 'testConnection', connectionId: 'oracle:HCTST' });
+  assert.equal(service.getState().connections[1].environment.status, 'available');
+  await service.handleMessage({ type: 'updateConnection', connectionId: 'oracle:HCTST', edit: { connectString: 'other:1521/X', user: 'SYSADM' } });
+  assert.equal(config.writes.at(-1)?.key, 'connections');
+  [hcdev, hctst] = service.getState().connections;
+  assert.equal(hctst.environment.status, 'not-connected');
+  assert.equal(hctst.test, undefined);
 });
 
 test('safeErrorMessage keeps one bounded line', () => {
