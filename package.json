@@ -430,6 +430,24 @@
                   "raw"
                 ],
                 "description": "How this connection renders PeopleCode read from PSPCMPROG. Omit to use peoplesoft.peoplecode.decoder."
+              },
+              "peoplecodeAccess": {
+                "type": "string",
+                "enum": [
+                  "read-only",
+                  "writable"
+                ],
+                "default": "read-only",
+                "description": "Whether PeopleCode may be saved back to this database. Defaults to read-only. PeopleCode saving is not implemented yet; this is the per-connection permission it will require."
+              },
+              "peoplecodeSaveMode": {
+                "type": "string",
+                "enum": [
+                  "save-only",
+                  "compile-and-save"
+                ],
+                "default": "save-only",
+                "description": "What a PeopleCode save writes on a writable connection: 'save-only' writes the source (PSPCMTXT); 'compile-and-save' also writes the compiled program (PSPCMPROG, PSPCMNAME)."
               }
             }
           }

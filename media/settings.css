@@ -284,6 +284,10 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 .analysis dl.facts { margin-bottom: 0.25rem; }
 .analysis dd select { min-width: 9rem; }
 .analysis-note { margin: 0 0 0.2rem; }
+.analysis.writable { border-left-color: var(--vscode-errorForeground); }
+.warning-text {
+  color: var(--vscode-editorWarning-foreground, var(--vscode-foreground));
+}
 
 .actions {
   display: flex;

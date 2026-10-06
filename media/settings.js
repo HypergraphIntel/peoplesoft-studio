@@ -163,7 +163,10 @@
       h('span', { className: 'kind', text: c.kindLabel }),
       c.selected ? badge('Target', 'neutral', 'The workspace target connection, chosen in the Connections view or the status bar') : null,
       c.connected ? badge('Connected', 'ok') : badge('Not connected', 'off'),
-      badge(c.access.label, 'warn', c.access.detail)
+      badge(c.access.label, 'warn', c.access.detail),
+      c.peoplecodeWrite && c.peoplecodeWrite.access === 'writable'
+        ? badge('Writes allowed', 'error', 'PeopleCode may be saved back to this database once saving is implemented.')
+        : null
     ]);
 
     const details = facts(c.kind === 'oracle'
@@ -181,6 +184,7 @@
       head,
       details,
       renderAnalysis(c),
+      renderPeopleCodeSaving(c),
       actions,
       renderTestResult(c),
       editing.includes(c.id) ? renderEditForm(c) : null
@@ -407,35 +411,78 @@
     }
 
     if (c.decoder) {
-      const selectId = `decoder-${c.id.replace(/\W/g, '-')}`;
-      const errorKey = `decoder:${c.id}`;
-      const error = (errors[errorKey] || {}).decoder;
-      const select = /** @type {HTMLSelectElement} */ (h('select', {
-        attrs: {
-          id: selectId, 'data-focus-key': errorKey, 'aria-label': `${c.name} PeopleCode decoder`,
-          ...(error ? { 'aria-invalid': 'true' } : {})
-        },
-        on: { change: (e) => post({ type: 'setConnectionDecoder', connectionId: c.id, decoder: /** @type {HTMLSelectElement} */ (e.target).value }) }
-      }));
-      for (const option of state.decoderOptions) {
-        const label = c.decoder.inherited && option.value === c.decoder.value ? `${option.label} (default)` : option.label;
-        const node = /** @type {HTMLOptionElement} */ (h('option', { text: label, attrs: { value: option.value } }));
-        node.selected = option.value === c.decoder.value;
-        select.append(node);
-      }
-      rows['PeopleCode decoder'] = select;
-
+      rows['PeopleCode decoder'] = optionSelect(c, 'decoder', state.decoderOptions, c.decoder.value,
+        (o) => c.decoder.inherited && o.value === c.decoder.value ? `${o.label} (default)` : o.label);
       const current = state.decoderOptions.find((o) => o.value === c.decoder.value);
       if (current) notes.push(hint(current.description));
       if (c.decoder.inherited) notes.push(hint('Using the default, peoplesoft.peoplecode.decoder.'));
       if (c.connected) notes.push(hint('A change applies the next time this connection connects.'));
-      if (error) notes.push(h('p', { className: 'error-text analysis-note', text: error, attrs: { role: 'alert' } }));
+      const error = optionError(c, 'decoder');
+      if (error) notes.push(error);
     }
 
     return h('div', { className: 'analysis', attrs: { role: 'group', 'aria-label': `${c.name} compiler and analysis` } }, [
       h('h4', { text: 'Compiler / Analysis' }),
       facts(rows),
       ...notes
+    ]);
+  }
+
+  /** A dropdown for one per-connection option; changes are sent as setConnectionOption. */
+  function optionSelect(c, option, options, value, labelOf = (o) => o.label) {
+    const errorKey = `option:${c.id}:${option}`;
+    const error = (errors[errorKey] || {})[option];
+    const select = /** @type {HTMLSelectElement} */ (h('select', {
+      attrs: {
+        'data-focus-key': errorKey, 'aria-label': `${c.name} ${option}`,
+        ...(error ? { 'aria-invalid': 'true' } : {})
+      },
+      on: {
+        change: (e) => post({
+          type: 'setConnectionOption', connectionId: c.id, option,
+          value: /** @type {HTMLSelectElement} */ (e.target).value
+        })
+      }
+    }));
+    for (const o of options) {
+      const node = /** @type {HTMLOptionElement} */ (h('option', { text: labelOf(o), attrs: { value: o.value } }));
+      node.selected = o.value === value;
+      select.append(node);
+    }
+    return select;
+  }
+
+  function optionError(c, option) {
+    const error = (errors[`option:${c.id}:${option}`] || {})[option];
+    return error ? h('p', { className: 'error-text analysis-note', text: error, attrs: { role: 'alert' } }) : null;
+  }
+
+  /**
+   * Whether PeopleCode may be saved back to this database, and how. The
+   * permission is real configuration; saving itself is not implemented yet,
+   * which the group says rather than implying otherwise.
+   */
+  function renderPeopleCodeSaving(c) {
+    if (!c.peoplecodeWrite) return null;
+    const { access, saveMode } = c.peoplecodeWrite;
+    const writable = access === 'writable';
+    const hint = (text) => h('p', { className: 'hint analysis-note', text });
+
+    /** @type {Record<string, string | Node>} */
+    const rows = { Access: optionSelect(c, 'peoplecodeAccess', state.peoplecodeAccessOptions, access) };
+    if (writable) rows['Save mode'] = optionSelect(c, 'peoplecodeSaveMode', state.peoplecodeSaveModeOptions, saveMode);
+
+    const describe = (options, value) => options.find((o) => o.value === value)?.description;
+    return h('div', { className: writable ? 'analysis writable' : 'analysis', attrs: { role: 'group', 'aria-label': `${c.name} PeopleCode saving` } }, [
+      h('h4', { text: 'PeopleCode saving' }),
+      facts(rows),
+      hint(describe(state.peoplecodeAccessOptions, access) || ''),
+      writable ? hint(describe(state.peoplecodeSaveModeOptions, saveMode) || '') : null,
+      writable
+        ? h('p', { className: 'warning-text analysis-note', text: 'Saving PeopleCode is not implemented yet, so PeopleCode still opens read-only. This connection is allowed to write once it is (docs/PEOPLECODE_WRITEBACK.md).' })
+        : null,
+      optionError(c, 'peoplecodeAccess'),
+      optionError(c, 'peoplecodeSaveMode')
     ]);
   }
 
@@ -525,7 +572,7 @@
     } else if (message.type === 'validation') {
       const target = message.target;
       const key = target.kind === 'setting' ? `setting:${target.key}`
-        : target.kind === 'connectionDecoder' ? `decoder:${target.connectionId}`
+        : target.kind === 'connectionOption' ? `option:${target.connectionId}:${target.option}`
         : `conn:${target.connectionId}`;
       const valid = Object.keys(message.errors).length === 0;
       if (valid) {

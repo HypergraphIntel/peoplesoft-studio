@@ -1,8 +1,9 @@
 import type {
-  ConnectionAccess, ConnectionEdit, DecoderMode, EditableSettingKey, EnumOption, EnvironmentView,
+  ConnectionAccess, ConnectionEdit, ConnectionOption, DecoderMode, EditableSettingKey, EnumOption, EnvironmentView,
+  PeopleCodeAccess, PeopleCodeSaveMode,
   FieldErrors, SettingControl, SettingSection, SettingSource, SettingValue
 } from './settingsModel.js';
-import { editableFields, isEditableSettingKey } from './settingsModel.js';
+import { editableFields, isConnectionOption, isEditableSettingKey } from './settingsModel.js';
 
 /*
  * The contract between the extension host and the Settings webview.
@@ -63,6 +64,12 @@ export interface ConnectionView {
    * its own, or the `peoplecode.decoder` default when `inherited`.
    */
   decoder?: { value: DecoderMode; inherited: boolean };
+  /**
+   * Whether PeopleCode may be saved back to this database, and how (Oracle
+   * only). A permission for the save path: PeopleCode saving itself is not
+   * implemented yet, so PeopleCode still opens read-only either way.
+   */
+  peoplecodeWrite?: { access: PeopleCodeAccess; saveMode: PeopleCodeSaveMode };
   test?: ConnectionTestView;
   editableFields: readonly (keyof ConnectionEdit)[];
 }
@@ -84,13 +91,15 @@ export interface SettingsState {
   decoderOptions: EnumOption<DecoderMode>[];
   /** `peoplesoft.peoplecode.decoder`: what a connection without its own decoder uses. */
   defaultDecoder: DecoderMode;
+  peoplecodeAccessOptions: EnumOption<PeopleCodeAccess>[];
+  peoplecodeSaveModeOptions: EnumOption<PeopleCodeSaveMode>[];
   mcp?: McpView;
 }
 
 export type ValidationTarget =
   | { kind: 'setting'; key: EditableSettingKey }
   | { kind: 'connection'; connectionId: string }
-  | { kind: 'connectionDecoder'; connectionId: string };
+  | { kind: 'connectionOption'; connectionId: string; option: ConnectionOption };
 
 export type SettingsHostMessage =
   | { type: 'state'; state: SettingsState }
@@ -108,7 +117,7 @@ export type SettingsWebviewMessage =
   | { type: 'updateSetting'; key: EditableSettingKey; value: unknown }
   | { type: 'testConnection'; connectionId: string }
   | { type: 'updateConnection'; connectionId: string; edit: ConnectionEdit }
-  | { type: 'setConnectionDecoder'; connectionId: string; decoder: string }
+  | { type: 'setConnectionOption'; connectionId: string; option: ConnectionOption; value: string }
   | { type: 'addConnection' }
   | { type: 'removeConnection'; connectionId: string }
   | { type: 'openNativeSettings' }
@@ -150,9 +159,9 @@ export function parseWebviewMessage(raw: unknown): SettingsWebviewMessage | unde
       return { type: 'updateConnection', connectionId, edit };
     }
 
-    case 'setConnectionDecoder':
-      return connectionId && typeof m.decoder === 'string'
-        ? { type: 'setConnectionDecoder', connectionId, decoder: m.decoder }
+    case 'setConnectionOption':
+      return connectionId && isConnectionOption(m.option) && typeof m.value === 'string'
+        ? { type: 'setConnectionOption', connectionId, option: m.option, value: m.value }
         : undefined;
 
     case 'mcp':

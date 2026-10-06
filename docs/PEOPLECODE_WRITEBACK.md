@@ -129,6 +129,11 @@ Option B only, and is unavailable without a PeopleTools client.
 
 ## 4. Settings model
 
+**Implemented** (decision 4 below, answered: writes are enabled per
+connection; only the HRDMO connection will be made writable). The settings
+and their Settings-panel controls exist; nothing reads them yet, because no
+save path exists.
+
 The options are stored on the connection, beside its decoder, in
 `peoplesoft.connections[]`:
 
@@ -261,8 +266,7 @@ scratch programs in `ZZ_PCODE_LAB` on the lab database, never on HCDEV.
    running program unchanged until something compiles it, with the state
    shown in the editor?
 3. **Default save mode.** Proposed: Save only.
-4. **Which databases may ever be Writable.** Any connection after
-   confirmation? Or only connections you also mark non-production
-   (an extra `environment: "non-production"` field)?
+4. ~~**Which databases may ever be Writable.**~~ Answered: per
+   connection, confirmed when enabled. Only HRDMO will be writable.
 5. **Before-images.** Workspace storage, which is local to this machine,
    as proposed? Or files in the repository you name?

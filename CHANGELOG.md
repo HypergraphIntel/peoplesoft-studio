@@ -17,6 +17,13 @@
   secret store and never reach the panel.
 - Each connection shows what it allows to be saved: PeopleCode from a
   database is read-only, and project exports are read-only throughout.
+- Each database connection has a PeopleCode saving group: Access
+  (`peoplecodeAccess`: Read-only by default, or Writable after a modal
+  confirmation naming the database) and Save mode (`peoplecodeSaveMode`:
+  Save only or Compile and save). PeopleCode saving itself is not
+  implemented yet (docs/PEOPLECODE_WRITEBACK.md); these settings are the
+  per-connection permission it will require, and PeopleCode still opens
+  read-only. Anything but an exact `"writable"` reads as read-only.
 - The PeopleCode decoder is chosen per connection
   (`peoplesoft.connections[].decoder`), in the connection's Compiler /
   Analysis group. `peoplesoft.peoplecode.decoder` remains the default for

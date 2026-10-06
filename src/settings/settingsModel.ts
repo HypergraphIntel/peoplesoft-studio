@@ -44,6 +44,51 @@ export function validateDecoder(value: unknown): Validated<DecoderMode> {
     : { ok: false, error: `Decoder must be one of ${DECODER_OPTIONS.map((o) => o.value).join(', ')}.` };
 }
 
+export type PeopleCodeAccess = 'read-only' | 'writable';
+export type PeopleCodeSaveMode = 'save-only' | 'compile-and-save';
+
+export const PEOPLECODE_ACCESS_OPTIONS: EnumOption<PeopleCodeAccess>[] = [
+  { value: 'read-only', label: 'Read-only', description: 'PeopleCode from this connection can never be saved back to it.' },
+  { value: 'writable', label: 'Writable', description: 'PeopleCode may be saved back to this database.' }
+];
+
+export const PEOPLECODE_SAVE_MODE_OPTIONS: EnumOption<PeopleCodeSaveMode>[] = [
+  { value: 'save-only', label: 'Save only', description: 'Writes the source text (PSPCMTXT). The program that runs is unchanged until something compiles it.' },
+  { value: 'compile-and-save', label: 'Compile and save', description: 'Writes the source text and the compiled program (PSPCMPROG, PSPCMNAME).' }
+];
+
+/** The per-connection options the panel sets one at a time, and their validation. */
+export type ConnectionOption = 'decoder' | 'peoplecodeAccess' | 'peoplecodeSaveMode';
+
+export function isConnectionOption(value: unknown): value is ConnectionOption {
+  return value === 'decoder' || value === 'peoplecodeAccess' || value === 'peoplecodeSaveMode';
+}
+
+function validateEnum<T extends string>(what: string, options: EnumOption<T>[], value: unknown): Validated<T> {
+  return typeof value === 'string' && options.some((o) => o.value === value)
+    ? { ok: true, value: value as T }
+    : { ok: false, error: `${what} must be one of ${options.map((o) => o.value).join(', ')}.` };
+}
+
+export function validateConnectionOption(option: ConnectionOption, value: unknown): Validated<string> {
+  switch (option) {
+    case 'decoder': return validateDecoder(value);
+    case 'peoplecodeAccess': return validateEnum('PeopleCode access', PEOPLECODE_ACCESS_OPTIONS, value);
+    case 'peoplecodeSaveMode': return validateEnum('Save mode', PEOPLECODE_SAVE_MODE_OPTIONS, value);
+  }
+}
+
+/**
+ * A connection's PeopleCode write settings. Anything absent or unrecognized
+ * is read-only / save-only: a typo in settings.json must never grant writes.
+ */
+export function peoplecodeWriteSettings(config: ConnectionConfig): { access: PeopleCodeAccess; saveMode: PeopleCodeSaveMode } {
+  return {
+    access: config.peoplecodeAccess === 'writable' ? 'writable' : 'read-only',
+    saveMode: config.peoplecodeSaveMode === 'compile-and-save' ? 'compile-and-save' : 'save-only'
+  };
+}
+
 /** The decoder a connection renders PeopleCode with: its own, else the default. */
 export function effectiveDecoder(
   config: ConnectionConfig,
