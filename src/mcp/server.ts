@@ -22,17 +22,24 @@ import {
   registerPeopleSoftTools
 } from './tools.js';
 
+import {
+  DEFAULT_MCP_PORT
+} from './configuration.js';
+
 export const MCP_HOST =
   '127.0.0.1';
 
-export const MCP_PORT =
-  7337;
+export function mcpUrl(
+  port: number
+): string {
+  return `http://${MCP_HOST}:${port}/mcp`;
+}
 
-export const MCP_URL =
-  `http://${MCP_HOST}:${MCP_PORT}/mcp`;
-
-export const MCP_HEALTH_URL =
-  `http://${MCP_HOST}:${MCP_PORT}/health`;
+export function mcpHealthUrl(
+  port: number
+): string {
+  return `http://${MCP_HOST}:${port}/health`;
+}
 
 export interface RunningPeopleSoftMcpServer
   extends vscode.Disposable {
@@ -125,7 +132,7 @@ export async function startPeopleSoftMcpServer(
 
   const port =
     options.port ??
-    MCP_PORT;
+    DEFAULT_MCP_PORT;
 
   if (
     host !== '127.0.0.1' &&

@@ -1,6 +1,6 @@
 import type {
   ConnectionAccess, ConnectionEdit, EditableSettingKey, EnvironmentView,
-  FieldErrors, SettingControl, SettingSection, SettingSource
+  FieldErrors, SettingControl, SettingSection, SettingSource, SettingValue
 } from './settingsModel.js';
 import { editableFields, isEditableSettingKey } from './settingsModel.js';
 
@@ -27,7 +27,7 @@ export interface SettingView {
   description: string;
   appliesWhen?: string;
   control: SettingControl;
-  value: string;
+  value: SettingValue;
   /** Where the effective value is defined; edits are written there. */
   source: SettingSource;
 }
@@ -63,7 +63,7 @@ export interface ConnectionView {
 }
 
 export interface McpView {
-  status: 'stopped' | 'starting' | 'running' | 'error';
+  status: 'disabled' | 'stopped' | 'starting' | 'running' | 'error';
   url: string;
   error?: string;
 }

@@ -22,6 +22,18 @@
   (PT861 / PT862).
 - The panel also shows the MCP server status and its controls.
 
+### MCP Server
+
+- Added `peoplesoft.mcp.enabled` (default on) and `peoplesoft.mcp.port`
+  (default 7337, 1024-65535), editable in Settings. Turning the server off
+  stops it, and Start refuses until it is turned back on. Changing the
+  port restarts a running server there and offers to reconfigure AI
+  clients, whose saved URL still names the old port.
+- A port already in use is reported as such, and choosing another port
+  retries.
+- Configure AI Client and Copy MCP URL use the running server's URL,
+  not a fixed one.
+
 
 ## 0.2.3
 

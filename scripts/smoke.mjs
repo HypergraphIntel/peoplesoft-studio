@@ -258,6 +258,18 @@ try {
   check(state?.connections?.find((c) => c.name === 'HCDEV')?.access?.level === 'read-only',
     'project export connection is not described as read-only');
 
+  // Every setting the panel edits is a contributed key, shown at package.json's default.
+  const contributed = manifest.contributes.configuration.properties;
+  for (const setting of state?.settings ?? []) {
+    const declared = contributed[`peoplesoft.${setting.key}`];
+    check(declared !== undefined, `Settings edits peoplesoft.${setting.key}, which package.json does not contribute`);
+    check(declared?.default === setting.value && setting.source === 'default',
+      `peoplesoft.${setting.key} shows ${JSON.stringify(setting.value)}, but package.json's default is ${JSON.stringify(declared?.default)}`);
+  }
+  check(contributed['peoplesoft.mcp.enabled']?.default === true && contributed['peoplesoft.mcp.port']?.default === 7337,
+    'MCP defaults are not enabled / 7337');
+  check(state?.mcp?.url === 'http://127.0.0.1:7337/mcp', `MCP URL does not use the default port: ${state?.mcp?.url}`);
+
   // The status bar describes the target connection while a psft editor is active.
   const statusItem = vscode._statusBarItems.find((i) => i.command === 'psft.status.selectConnection');
   const handle = createHash('sha256').update(devId, 'utf8').digest('hex').slice(0, 16);
@@ -327,6 +339,19 @@ try {
   check(write?.key === 'peoplesoft.peoplecode.decoder' && write.value === 'raw' &&
     write.target === vscode.ConfigurationTarget.Global,
     'a valid decoder value was not written to user settings');
+
+  // MCP: the port is written as an integer, out-of-range ports are refused, the toggle as a boolean.
+  panel._receive({ type: 'updateSetting', key: 'mcp.port', value: '80' });
+  await until(() => validations().at(-1)?.target?.key === 'mcp.port', 'an MCP port validation reply');
+  check(validations().at(-1)?.errors?.value === 'Port must be between 1024 and 65535.',
+    'a privileged MCP port was not refused');
+  const mcpWrites = vscode._configurationUpdates.length;
+  panel._receive({ type: 'updateSetting', key: 'mcp.port', value: '8123' });
+  panel._receive({ type: 'updateSetting', key: 'mcp.enabled', value: false });
+  await until(() => vscode._configurationUpdates.length >= mcpWrites + 2, 'the MCP setting writes');
+  check(JSON.stringify(vscode._configurationUpdates.slice(mcpWrites).map((u) => [u.key, u.value])) ===
+    JSON.stringify([['peoplesoft.mcp.port', 8123], ['peoplesoft.mcp.enabled', false]]),
+    'MCP port and enabled were not written as 8123 and false');
 
   const port = 'ora.example:abc/ORA';
   panel._receive({ type: 'updateConnection', connectionId: 'oracle:ORA', edit: { connectString: port, user: 'SYSADM' } });

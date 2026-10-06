@@ -1,6 +1,5 @@
 import {
   MCP_NAME,
-  MCP_URL,
   commandForPlatform,
   commandNotFound,
   errorOutput,
@@ -11,16 +10,18 @@ import type {
   ClientConfigureResult
 } from './codex.js';
 
-export function claudeSetupCommand():
-  string {
+export function claudeSetupCommand(
+  url: string
+): string {
   return (
     'claude mcp add --transport http ' +
-    `--scope user ${MCP_NAME} ${MCP_URL}`
+    `--scope user ${MCP_NAME} ${url}`
   );
 }
 
-export async function configureClaude():
-  Promise<ClientConfigureResult> {
+export async function configureClaude(
+  url: string
+): Promise<ClientConfigureResult> {
   try {
     await execFile(
       commandForPlatform(
@@ -34,7 +35,7 @@ export async function configureClaude():
         '--scope',
         'user',
         MCP_NAME,
-        MCP_URL
+        url
       ]
     );
 

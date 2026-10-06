@@ -128,7 +128,7 @@ export class SettingsService implements Disposable {
         description: d.description,
         ...(d.appliesWhen !== undefined ? { appliesWhen: d.appliesWhen } : {}),
         control: d.control,
-        value: String(this.config.get(d.key) ?? this.config.inspect(d.key)?.defaultValue ?? ''),
+        value: this.config.get(d.key) ?? d.defaultValue,
         source: sourceOf(this.config.inspect(d.key))
       })),
       ...(this.mcp ? { mcp: this.mcp.state() } : {})

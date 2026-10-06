@@ -1,6 +1,5 @@
 import {
   MCP_NAME,
-  MCP_URL,
   commandForPlatform,
   commandNotFound,
   errorOutput,
@@ -14,16 +13,18 @@ export interface ClientConfigureResult {
   message: string;
 }
 
-export function codexSetupCommand():
-  string {
+export function codexSetupCommand(
+  url: string
+): string {
   return (
     `codex mcp add ${MCP_NAME} ` +
-    `--url ${MCP_URL}`
+    `--url ${url}`
   );
 }
 
-export async function configureCodex():
-  Promise<ClientConfigureResult> {
+export async function configureCodex(
+  url: string
+): Promise<ClientConfigureResult> {
   try {
     await execFile(
       commandForPlatform(
@@ -34,7 +35,7 @@ export async function configureCodex():
         'add',
         MCP_NAME,
         '--url',
-        MCP_URL
+        url
       ]
     );
 

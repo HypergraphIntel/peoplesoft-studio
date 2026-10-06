@@ -1,10 +1,6 @@
 import * as vscode from 'vscode';
 
 import {
-  MCP_URL
-} from './clients/common.js';
-
-import {
   codexSetupCommand,
   configureCodex
 } from './clients/codex.js';
@@ -112,6 +108,10 @@ export async function configureAiClient(
     }
   }
 
+  // The running server's URL: the port is configurable.
+  const url =
+    controller.state.url;
+
   const choices:
     ChoiceItem[] = [
       {
@@ -134,7 +134,7 @@ export async function configureAiClient(
         label:
           '$(copy) Copy MCP URL',
         description:
-          MCP_URL,
+          url,
         value:
           'copy-url'
       },
@@ -169,22 +169,22 @@ export async function configureAiClient(
     case 'codex':
       await configureWithFallback(
         'Codex',
-        configureCodex,
-        codexSetupCommand()
+        () => configureCodex(url),
+        codexSetupCommand(url)
       );
       return;
 
     case 'claude':
       await configureWithFallback(
         'Claude Code',
-        configureClaude,
-        claudeSetupCommand()
+        () => configureClaude(url),
+        claudeSetupCommand(url)
       );
       return;
 
     case 'copy-url':
       await copyText(
-        MCP_URL,
+        url,
         'PeopleSoft Studio MCP URL copied to the clipboard.'
       );
       return;
@@ -197,17 +197,17 @@ export async function configureAiClient(
               label:
                 'Codex',
               description:
-                codexSetupCommand(),
+                codexSetupCommand(url),
               command:
-                codexSetupCommand()
+                codexSetupCommand(url)
             },
             {
               label:
                 'Claude Code',
               description:
-                claudeSetupCommand(),
+                claudeSetupCommand(url),
               command:
-                claudeSetupCommand()
+                claudeSetupCommand(url)
             }
           ],
           {
