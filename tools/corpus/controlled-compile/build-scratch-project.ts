@@ -36,8 +36,19 @@ function main(): void {
   const recordKeys = pack.experiments.filter(e => e.family === family).map(e => e.key)
     .filter(k => Number(k.objectIds[0]) === 1 && Number(k.objectIds[1]) === 2 && Number(k.objectIds[2]) === 12);
   if (recordKeys.length > 0) return writeProject(templates, project, out, recordProject(pack, project, recordKeys, fs.readFileSync(templates, 'utf8')), recordKeys.map(k => k.objectValues.slice(0, 3).join('.')));
-  const keys = [...pack.supportDefinitions.map(s => s.key), ...pack.experiments.filter(e => e.family === family).map(e => e.key)]
-    .filter(k => Number(k.objectIds[0]) === 104 && Number(k.objectIds[1]) === 105 && Number(k.objectIds[2]) === 107);
+  /*
+   * 8.62 track: --experiments-only creates the family's classes alone, never
+   * the support classes -- a payload-free shell would replace an existing,
+   * compiled support program with a stub. The root package still lists
+   * every sub-package the pack uses, so none is dropped.
+   */
+  const experimentsOnly = process.argv.includes('--experiments-only');
+  const isClassKey = (k: { objectIds: Array<string | number> }) => Number(k.objectIds[0]) === 104 && Number(k.objectIds[1]) === 105 && Number(k.objectIds[2]) === 107;
+  const keys = [...(experimentsOnly ? [] : pack.supportDefinitions.map(s => s.key)), ...pack.experiments.filter(e => e.family === family).map(e => e.key)]
+    .filter(isClassKey);
+  const allSubpackages = [...pack.supportDefinitions.map(s => s.key), ...pack.experiments.map(e => e.key), ...(pack.smoke ? [pack.smoke.key] : [])]
+    .filter(k => Number(k.objectIds[0]) === 104 && Number(k.objectIds[1]) === 105)
+    .map(k => String(k.objectValues[1]).trim());
   if (keys.length === 0) throw new Error(`no Application Class keys for family ${family}`);
   const byPackage = new Map<string, Set<string>>();
   for (const k of keys) {
@@ -49,7 +60,7 @@ function main(): void {
   const xml = buildScratchShellProject(templatesFromExport(fs.readFileSync(templates, 'utf8')), {
     project,
     root: SCRATCH_PREFIX,
-    subpackages: [...new Set(['SUPPORT', ...create.map(p => p.name)])],
+    subpackages: [...new Set(['SUPPORT', ...(experimentsOnly ? allSubpackages : []), ...create.map(p => p.name)])],
     create
   });
   writeProject(templates, project, out, xml, create);
