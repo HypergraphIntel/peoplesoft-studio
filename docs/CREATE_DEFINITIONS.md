@@ -39,8 +39,15 @@ Retroactive captures of App Designer's field saves:
 | f06 | length 5 -> 50, the field in ZZ_FIELD_REC | as f02, and **ZZ_FIELD_REC's VERSION = the new RDM, not restamped** |
 
 Every field save moved PSVERSION RDM, **PDM** and SYS by one, and PSLOCK
-RDM and PDM. (f01, a create, also wrote a `PSXLATDEFNDEL` row and moved
-XTM; c01 did neither, so the create here keeps c01's rows.)
+RDM and PDM.
+
+**A short Character field's create** also writes an empty translate marker:
+`PSXLATDEFNDEL` with VERSION = the new XTM, and PSVERSION / PSLOCK XTM and
+PDM + 1. App Designer did so for every Character field of length 1-4
+created (f01's ZZ_FIELD_1 at 1, c07's ZZ_PCODE_LAB_C10 at 4) and for none
+longer (c07's C11 at 5, c01's C08 at 10) -- the lengths that can have
+translate values. New Field does the same; direct case x37
+(ZZ_PCODE_LAB_C12, length 4) wrote C10's rows.
 
 `saveField` (`fieldWriter.ts`) does these in one transaction: `PSDBFIELD`
 (length, decimals, description, version, stamp), the labels as edited
