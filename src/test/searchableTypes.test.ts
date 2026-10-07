@@ -26,7 +26,8 @@ test('the database offers only the types it has a query for', () => {
   // submit, so the list and the search switch have to agree.
   assert.ok(oracle.searchableTypes.includes(DefinitionType.Record));
   assert.ok(oracle.searchableTypes.includes(DefinitionType.Page));
-  assert.ok(!oracle.searchableTypes.includes(DefinitionType.HtmlDefinition));
+  assert.ok(oracle.searchableTypes.includes(DefinitionType.HtmlDefinition));
+  assert.ok(!oracle.searchableTypes.includes(DefinitionType.ComponentInterface));
   assert.ok(!oracle.searchableTypes.includes(DefinitionType.ApplicationClassPeopleCode));
 });
 

@@ -44,7 +44,7 @@ export const INSERTABLE_TYPES: ReadonlySet<DefinitionType> = new Set([
   DefinitionType.Record, DefinitionType.Field, DefinitionType.Page, DefinitionType.Menu,
   DefinitionType.Component, DefinitionType.RecordPeopleCode, DefinitionType.AppEngineProgram,
   DefinitionType.HtmlDefinition, DefinitionType.SqlDefinition, DefinitionType.ApplicationPackage,
-  DefinitionType.ApplicationClassPeopleCode
+  DefinitionType.ApplicationClassPeopleCode, DefinitionType.StyleSheet
 ]);
 
 export function canInsertIntoProject(type: DefinitionType): boolean {
@@ -78,6 +78,8 @@ const LAYOUTS: Readonly<Partial<Record<DefinitionType, (key: DefinitionKey) => P
     }
     return { objectType: 8, objectIds: [1, 2, 12], objectValues: [...key.parts] };
   },
+  // 295 style sheet items on HRDMO: OBJECTID1 94 (STYLESHEETNAME), the rest blank.
+  [DefinitionType.StyleSheet]: (key) => ({ objectType: 50, objectIds: [94], objectValues: [name(key)] }),
   [DefinitionType.HtmlDefinition]: (key) => {
     if (!key.parts[1]) throw new ProjectSaveRefusedError(`${displayName(key)} has no content type.`);
     return { objectType: 51, objectIds: [90, 95], objectValues: [name(key), key.parts[1]] };

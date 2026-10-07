@@ -6,6 +6,8 @@ import { OracleProvider } from './oracle.js';
 import { SaveRefusedError } from '../peoplecode/writeback/savePlan.js';
 import type { PeopleCodeSaveResult } from './peopleCodeWriter.js';
 import { prepareSqlText, SqlSaveRefusedError, type SqlSaveResult } from './sqlWriter.js';
+import { HtmlSaveRefusedError, prepareHtmlText } from './htmlWriter.js';
+import { StyleSheetSaveRefusedError } from './styleSheetWriter.js';
 
 /** Where a PeopleCode save's report (with the rows it replaced) is kept. */
 export type SaveReportSink = (key: DefinitionKey, connection: string, result: PeopleCodeSaveResult) => Promise<void>;
@@ -23,14 +25,21 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
   /** The concurrency token of each writable PeopleCode document, taken when it was read. */
   private readonly fingerprints = new Map<string, string>();
   /** PSSQLDEFN.VERSION of each editable SQL document when it was opened. */
-  private readonly sqlVersions = new Map<string, number>();
+  /** The version a text save must present, by URI; 'new' for an HTML definition saving creates. */
+  private readonly sqlVersions = new Map<string, number | 'new'>();
+  /** Documents that opened read-only though their type saves: classic style sheets. */
+  private readonly readOnly = new Set<string>();
   private readonly _onDidChangeFile = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
   readonly onDidChangeFile = this._onDidChangeFile.event;
 
+  /** Runs after a save creates a definition, so the trees that list it refresh. */
+  onCreated?: () => void;
+
   constructor(private readonly workspace: Workspace, private readonly saveReports?: SaveReportSink) {}
 
-  static register(workspace: Workspace, saveReports?: SaveReportSink): vscode.Disposable {
+  static register(workspace: Workspace, saveReports?: SaveReportSink, onCreated?: () => void): vscode.Disposable {
     const fs = new PeopleSoftFileSystem(workspace, saveReports);
+    fs.onCreated = onCreated;
     return vscode.workspace.registerFileSystemProvider(SCHEME, fs, {
       isCaseSensitive: false,
       // Definitions are not files on disk; nothing else can change them
@@ -68,9 +77,10 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
     if (isPeopleCode(key.type) && provider.id.startsWith('oracle:')) {
       return this.workspace.isPeopleCodeWritable(provider.id, key);
     }
-    // From a database, SQL definitions save as App Designer does (sqlWriter.ts)
-    // where allowed; nothing else is saved as text (records use the record editor).
-    if (provider.id.startsWith('oracle:')) return this.workspace.isSqlWritable(provider.id, key);
+    // From a database, SQL and HTML definitions save as App Designer does
+    // (sqlWriter.ts, htmlWriter.ts) where allowed; nothing else is saved as
+    // text (records use the record editor).
+    if (provider.id.startsWith('oracle:')) return this.workspace.isSqlWritable(provider.id, key) && !this.readOnly.has(uri.toString());
     return true;
   }
 
@@ -102,6 +112,22 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
         this.workspace.isSqlWritable(provider.id, key)) {
       const edit = await provider.readSqlForEdit(key);
       if (edit) { text = edit.text; this.sqlVersions.set(uri.toString(), edit.version); }
+      else if (!(await provider.sqlIdTaken(key.parts[0]))) { text = ''; this.sqlVersions.set(uri.toString(), 'new'); }
+    }
+    // An editable freeform style sheet likewise; a classic one opens read-only.
+    if (text === undefined && provider instanceof OracleProvider && key.type === DefinitionType.StyleSheet &&
+        this.workspace.isSqlWritable(provider.id, key)) {
+      const edit = await provider.readStyleSheetForEdit(key);
+      if (edit === 'classic') this.readOnly.add(uri.toString());
+      else if (edit) { text = edit.text; this.sqlVersions.set(uri.toString(), edit.version); }
+      else { text = ''; this.sqlVersions.set(uri.toString(), 'new'); }
+    }
+    // Editable HTML likewise; one that does not exist opens empty, and saving creates it.
+    if (text === undefined && provider instanceof OracleProvider && key.type === DefinitionType.HtmlDefinition &&
+        this.workspace.isSqlWritable(provider.id, key)) {
+      const edit = await provider.readHtmlForEdit(key);
+      if (edit) { text = edit.text; this.sqlVersions.set(uri.toString(), edit.version); }
+      else { text = ''; this.sqlVersions.set(uri.toString(), 'new'); }
     }
     text ??= await provider.readText(key);
     const content = Buffer.from(text, 'utf8');
@@ -116,6 +142,11 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
       await this.savePeopleCode(uri, provider, key, Buffer.from(content).toString('utf8'));
       return;
     }
+    if (provider instanceof OracleProvider && (key.type === DefinitionType.HtmlDefinition || key.type === DefinitionType.StyleSheet) &&
+        this.workspace.isSqlWritable(provider.id, key) && !this.readOnly.has(uri.toString())) {
+      await this.saveContent(uri, provider, key, Buffer.from(content).toString('utf8'));
+      return;
+    }
     if (provider instanceof OracleProvider) {
       if (key.type !== DefinitionType.SqlDefinition || !this.workspace.isSqlWritable(provider.id, key)) {
         throw vscode.FileSystemError.NoPermissions(`${displayName(key)} is read-only: saving it to the database is not supported here.`);
@@ -125,7 +156,9 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
       const operatorId = this.workspace.configFor(provider.id)!.peoplesoftOperatorId!.trim();
       let result: SqlSaveResult;
       try {
-        result = await provider.saveSqlDefinition({ sqlId: key.parts[0], text: Buffer.from(content).toString('utf8'), openedVersion: opened, operatorId });
+        result = await provider.saveSqlDefinition({
+          sqlId: key.parts[0], text: Buffer.from(content).toString('utf8'), operatorId, ...(opened === 'new' ? {} : { openedVersion: opened })
+        });
       } catch (error) {
         if (error instanceof SqlSaveRefusedError) throw vscode.FileSystemError.NoPermissions(error.message);
         throw vscode.FileSystemError.Unavailable(`Saving ${displayName(key)} failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -133,11 +166,36 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
       this.sqlVersions.set(uri.toString(), result!.version);
       this.cache.set(uri.toString(), { content: Buffer.from(prepareSqlText(Buffer.from(content).toString('utf8')), 'utf8'), mtime: Date.now() });
       this._onDidChangeFile.fire([{ type: vscode.FileChangeType.Changed, uri }]);
+      if (result!.created) this.onCreated?.();
       return;
     }
     await provider.writeText(key, Buffer.from(content).toString('utf8'));
     this.cache.set(uri.toString(), { content, mtime: Date.now() });
     this._onDidChangeFile.fire([{ type: vscode.FileChangeType.Changed, uri }]);
+  }
+
+  /**
+   * An HTML definition or freeform style sheet saved, or created when it
+   * opened as new (htmlWriter.ts, styleSheetWriter.ts).
+   */
+  private async saveContent(uri: vscode.Uri, provider: OracleProvider, key: DefinitionKey, text: string): Promise<void> {
+    const opened = this.sqlVersions.get(uri.toString());
+    if (opened === undefined) throw vscode.FileSystemError.NoPermissions('This was not opened for editing. Close and reopen it, then reapply your edit.');
+    const operatorId = this.workspace.configFor(provider.id)!.peoplesoftOperatorId!.trim();
+    const request = { name: key.parts[0], text, operatorId, ...(opened === 'new' ? {} : { openedVersion: opened }) };
+    let version: number;
+    try {
+      ({ version } = key.type === DefinitionType.StyleSheet
+        ? await provider.saveStyleSheet(request)
+        : await provider.saveHtmlDefinition(request));
+    } catch (error) {
+      if (error instanceof HtmlSaveRefusedError || error instanceof StyleSheetSaveRefusedError) throw vscode.FileSystemError.NoPermissions(error.message);
+      throw vscode.FileSystemError.Unavailable(`Saving ${displayName(key)} failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    this.sqlVersions.set(uri.toString(), version);
+    this.cache.set(uri.toString(), { content: Buffer.from(prepareHtmlText(text), 'utf8'), mtime: Date.now() });
+    this._onDidChangeFile.fire([{ type: vscode.FileChangeType.Changed, uri }]);
+    if (opened === 'new') this.onCreated?.();
   }
 
   /**

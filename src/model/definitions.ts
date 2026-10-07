@@ -33,6 +33,8 @@ export enum DefinitionType {
   ComponentPeopleCode = 46,
   ComponentRecordPeopleCode = 48,
   PagePeopleCode = 44,
+  /** PSPROJECTITEM OBJECTTYPE 50, OBJECTID1 94 (STYLESHEETNAME): 295 on HRDMO, every one a PSSTYLSHEETDEFN name. */
+  StyleSheet = 50,
   HtmlDefinition = 51,
   ApplicationPackage = 57,
   ApplicationClassPeopleCode = 58,
@@ -181,6 +183,7 @@ export const TYPE_LABELS: Readonly<Partial<Record<DefinitionType, string>>> = {
   [DefinitionType.RecordPeopleCode]: 'Record PeopleCode',
   [DefinitionType.PagePeopleCode]: 'Page PeopleCode',
   [DefinitionType.HtmlDefinition]: 'HTML Definitions',
+  [DefinitionType.StyleSheet]: 'Style Sheets',
   [DefinitionType.ApplicationPackage]: 'Application Packages',
   [DefinitionType.ApplicationClassPeopleCode]: 'Application Classes',
   [DefinitionType.Index]: 'Indexes',
@@ -219,6 +222,7 @@ export function fileExtension(type: DefinitionType): string {
   switch (type) {
     case DefinitionType.SqlDefinition: return '.pssql';
     case DefinitionType.HtmlDefinition: return '.html';
+    case DefinitionType.StyleSheet: return '.css';
     case DefinitionType.Record: return '.psrecord';
     case DefinitionType.Field: return '.psfield';
     case DefinitionType.Page: return '.pspage';

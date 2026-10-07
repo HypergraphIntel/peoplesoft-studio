@@ -250,6 +250,7 @@ function iconFor(type: DefinitionType): string {
     case DefinitionType.Component: return 'window';
     case DefinitionType.Menu: return 'list-tree';
     case DefinitionType.HtmlDefinition: return 'code';
+    case DefinitionType.StyleSheet: return 'symbol-color';
     default: return 'symbol-file';
   }
 }

@@ -9,7 +9,9 @@ import { RecordSaveRefusedError } from './model/recordEdit.js';
 import { FieldEditorProvider } from './editors/fieldEditor.js';
 import { OpenDefinitionPanel } from './editors/openDefinitionPanel.js';
 import { DefinitionKey, DefinitionType, displayName, makeKey, typeLabel } from './model/definitions.js';
+import { isScratchName } from './peoplecode/corpus/labSafety.js';
 import { RECORD_FIELD_EVENTS } from './model/recordEvents.js';
+import { RecordType } from './model/record.js';
 import { toUri } from './util/uri.js';
 import { registerPeopleCodeCompletion } from './peoplecode/completion.js';
 import { registerPeopleCodeHover } from './peoplecode/hover.js';
@@ -167,7 +169,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
     };
     await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(dir, name), Buffer.from(JSON.stringify(report, null, 1), 'utf8'));
-  });
+  }, () => void vscode.commands.executeCommand('psft.refresh'));
   context.subscriptions.push(fileSystem);
   context.subscriptions.push(FieldEditorProvider.register(workspace));
 
@@ -482,6 +484,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       });
     }),
 
+    vscode.commands.registerCommand('psft.newDefinition', () =>
+      withError('New definition', () => newDefinition(workspace))),
+
+    vscode.commands.registerCommand('psft.newHtmlDefinition', () =>
+      withError('New HTML definition', () => newTextDefinition(workspace, DefinitionType.HtmlDefinition))),
+
+    vscode.commands.registerCommand('psft.newSqlDefinition', () =>
+      withError('New SQL definition', () => newTextDefinition(workspace, DefinitionType.SqlDefinition))),
+
+    vscode.commands.registerCommand('psft.newStyleSheet', () =>
+      withError('New style sheet', () => newTextDefinition(workspace, DefinitionType.StyleSheet))),
+
     vscode.commands.registerCommand('psft.buildProject', () => {
       vscode.window.showInformationMessage(
         'Project build (DDL generation) is not implemented yet. See docs/ROADMAP.md.');
@@ -759,6 +773,106 @@ async function pickRecordFieldPeopleCode(workspace: Workspace, connectionId: str
     return;
   }
   await vscode.commands.executeCommand('psft.openDefinition', connectionId, key);
+}
+
+/**
+ * App Designer's File > New: pick the type, then that type's own flow. Types
+ * this extension cannot create yet are listed, and say so, rather than
+ * leaving the user to wonder whether they were left out.
+ */
+async function newDefinition(workspace: Workspace): Promise<void> {
+  type Item = vscode.QuickPickItem & { create?: TextDefinitionType | DefinitionType.Record };
+  const later = (label: string): Item => ({ label, description: 'not available yet' });
+  const picked = await vscode.window.showQuickPick<Item>([
+    { label: 'Available', kind: vscode.QuickPickItemKind.Separator },
+    { label: '$(table) Record', description: 'SQL Table or Derived/Work; add fields, then save', create: DefinitionType.Record },
+    { label: '$(code) HTML Definition', description: 'opens empty; the first save creates it', create: DefinitionType.HtmlDefinition },
+    { label: '$(symbol-color) Style Sheet', description: 'freeform; opens empty, the first save creates it', create: DefinitionType.StyleSheet },
+    { label: '$(database) SQL Definition', description: 'opens empty; the first save creates it', create: DefinitionType.SqlDefinition },
+    { label: 'Not available yet', kind: vscode.QuickPickItemKind.Separator },
+    ...['Field', 'Page', 'Component', 'Menu', 'Project', 'Application Package', 'App Engine Program'].map(later)
+  ], { title: 'New Definition', placeHolder: 'Definition type' });
+  if (!picked) return;
+  // DefinitionType.Record is 0: test for absence, not falsiness.
+  if (picked.create === undefined) {
+    vscode.window.showInformationMessage(`Creating a ${picked.label} is not available yet.`);
+    return;
+  }
+  if (picked.create === DefinitionType.Record) await newRecord(workspace);
+  else await newTextDefinition(workspace, picked.create);
+}
+
+/**
+ * App Designer's File > New > HTML, (freeform) Style Sheet or SQL: an empty editor
+ * whose first save creates the definition.
+ */
+/** The Writable database connections with an Operator ID; one picked when there are several. */
+async function pickWritableConnection(workspace: Workspace, title: string): Promise<OracleProvider | undefined> {
+  const writable = workspace.activeProviders.filter((p): p is OracleProvider =>
+    p instanceof OracleProvider && p.isConnected && workspace.isWritable(p.id) &&
+    Boolean(workspace.configFor(p.id)?.peoplesoftOperatorId?.trim()));
+  if (writable.length === 0) {
+    vscode.window.showWarningMessage('Connect to a database whose Access is Writable, with an Operator ID (PeopleSoft Studio Settings), first.');
+    return undefined;
+  }
+  return writable.length === 1 ? writable[0] : (await vscode.window.showQuickPick(
+    writable.map((p) => ({ label: p.displayName, provider: p })), { title, placeHolder: 'Connection' }))?.provider;
+}
+
+/** A scratch name, asked for; undefined when cancelled. */
+async function askScratchName(title: string, maxLength: number, prompt: string): Promise<string | undefined> {
+  return (await vscode.window.showInputBox({
+    title, value: 'ZZ_PCODE_LAB_', prompt,
+    validateInput: (v) => {
+      const n = v.trim().toUpperCase();
+      if (!new RegExp(`^[A-Z0-9_]{1,${maxLength}}$`).test(n)) return `A-Z, 0-9 and _, at most ${maxLength} characters.`;
+      return isScratchName(n) ? undefined : 'Only ZZ_PCODE_LAB% definitions can be created for now.';
+    }
+  }))?.trim().toUpperCase();
+}
+
+/**
+ * App Designer's File > New > Record: the record editor opens with no
+ * fields; insert fields, set keys, and the first save creates the record
+ * (recordWriter.ts createRecord).
+ */
+async function newRecord(workspace: Workspace): Promise<void> {
+  const provider = await pickWritableConnection(workspace, 'New Record');
+  if (!provider) return;
+  const type = (await vscode.window.showQuickPick(
+    [{ label: 'SQL Table', type: RecordType.Table }, { label: 'Derived/Work', type: RecordType.DerivedWork }],
+    { title: 'New Record', placeHolder: 'Record type (the others cannot be created here yet)' }))?.type;
+  if (type === undefined) return;
+  const name = await askScratchName(`New Record on ${provider.displayName}`, 15, 'Record name (at most 15 characters; scratch records only for now)');
+  if (!name) return;
+  const status = await provider.recordNameStatus(name);
+  if (status !== 'free') {
+    vscode.window.showWarningMessage(status === 'exists'
+      ? `A record named ${name} already exists.`
+      : `${name} was deleted before; re-creating a deleted record name is not supported yet. Choose another name.`);
+    return;
+  }
+  const uri = toUri(provider.id, makeKey(DefinitionType.Record, name));
+  RecordEditorProvider.pendingNew.set(uri.toString(), type);
+  await vscode.commands.executeCommand('vscode.openWith', uri, RecordEditorProvider.viewType);
+  vscode.window.showInformationMessage(`${name} is new: insert its fields (right-click > Insert Field), then save to create it.`);
+}
+
+type TextDefinitionType = DefinitionType.HtmlDefinition | DefinitionType.StyleSheet | DefinitionType.SqlDefinition;
+
+async function newTextDefinition(workspace: Workspace, type: TextDefinitionType): Promise<void> {
+  const what = typeLabel(type).replace(/s$/, '');
+  const provider = await pickWritableConnection(workspace, `New ${what}`);
+  if (!provider) return;
+  const name = await askScratchName(`New ${what} on ${provider.displayName}`, 30,
+    `Name (scratch definitions only for now)${type === DefinitionType.StyleSheet ? '; a freeform style sheet' : ''}`);
+  if (!name) return;
+  const key = type === DefinitionType.HtmlDefinition ? makeKey(type, name, '4') : makeKey(type, name);
+  const exists = type === DefinitionType.HtmlDefinition ? Boolean(await provider.readHtmlForEdit(key))
+    : type === DefinitionType.StyleSheet ? Boolean(await provider.readStyleSheetForEdit(key))
+    : await provider.sqlIdTaken(name);
+  if (exists) vscode.window.showWarningMessage(`${name} already exists; opening it.`);
+  await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(toUri(provider.id, key)), { preview: false });
 }
 
 async function withError(action: string, fn: () => Promise<void>): Promise<void> {

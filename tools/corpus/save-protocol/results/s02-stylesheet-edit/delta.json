@@ -1,0 +1,408 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "s02-stylesheet-edit",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362778387100",
+   "timestamp": "2026-10-07T09:16:49.052576000-05:00"
+  },
+  "after": {
+   "scn": "39362778387449",
+   "timestamp": "2026-10-07T09:18:33.493240000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-07T09:16:49.052576000-05:00",
+    "to": "2026-10-07T09:18:33.493240000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "SSM": {
+    "before": 55,
+    "after": 56,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 1392,
+    "after": 1393,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "SSM": {
+    "before": 55,
+    "after": 56,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "otherTablesChanged": {
+   "PSCONTDEFN": {
+    "inserted": 1,
+    "deleted": 1,
+    "updated": 0
+   },
+   "PSCONTENT": {
+    "inserted": 1,
+    "deleted": 1,
+    "updated": 0
+   },
+   "PSSTYLSHEETDEFN": {
+    "inserted": 1,
+    "deleted": 1,
+    "updated": 0
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "SSM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "55",
+       "after": "56"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "1392",
+       "after": "1393"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "SSM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "55",
+       "after": "56"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSCONTDEFN": {
+   "columns": [
+    {
+     "name": "CONTNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "ALTCONTNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "CONTFMT",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "CONTTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "CONTSTYLE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "URL",
+     "type": "VARCHAR2",
+     "length": 1016,
+     "nullable": false
+    },
+    {
+     "name": "COMPALG",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "AUXFLAGMASK",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "CONTNAME": "ZZ_PCODE_LAB_CSS",
+     "ALTCONTNUM": "1",
+     "CONTFMT": " ",
+     "VERSION": "12",
+     "CONTTYPE": "9",
+     "CONTSTYLE": "0",
+     "DESCR": " ",
+     "URL": " ",
+     "COMPALG": "0",
+     "AUXFLAGMASK": "0",
+     "LASTUPDDTTM": "2026-10-07T09:18:12.663925000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " "
+    }
+   ],
+   "deleted": [
+    {
+     "CONTNAME": "ZZ_PCODE_LAB_CSS",
+     "ALTCONTNUM": "1",
+     "CONTFMT": " ",
+     "VERSION": "11",
+     "CONTTYPE": "9",
+     "CONTSTYLE": "0",
+     "DESCR": " ",
+     "URL": " ",
+     "COMPALG": "0",
+     "AUXFLAGMASK": "0",
+     "LASTUPDDTTM": "2026-10-07T09:16:18.663099000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " "
+    }
+   ],
+   "updated": []
+  },
+  "PSCONTENT": {
+   "columns": [
+    {
+     "name": "CONTNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "ALTCONTNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "CONTTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SEQNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "CONTDATA",
+     "type": "BLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "CONTNAME": "ZZ_PCODE_LAB_CSS",
+     "ALTCONTNUM": "1",
+     "CONTTYPE": "9",
+     "SEQNUM": "0",
+     "CONTDATA": "2e007a007a002d006c006100620020007b00200063006f006c006f0072003a00200023003300330031003100390039003b0020007d000d000a002e007a007a002d006c0061006200320020007b0020006d0061007200670069006e003a00200030003b0020007d000000"
+    }
+   ],
+   "deleted": [
+    {
+     "CONTNAME": "ZZ_PCODE_LAB_CSS",
+     "ALTCONTNUM": "1",
+     "CONTTYPE": "9",
+     "SEQNUM": "0",
+     "CONTDATA": "2e007a007a002d006c006100620020007b00200063006f006c006f0072003a00200023003300330036003600390039003b0020007d000d000a002e007a007a002d006c0061006200320020007b0020006d0061007200670069006e003a00200030003b0020007d000000"
+    }
+   ],
+   "updated": []
+  },
+  "PSSTYLSHEETDEFN": {
+   "columns": [
+    {
+     "name": "STYLESHEETNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "STYLESHEETTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PARENTSTYLENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "NUMSTYLECLASS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "STYLESHEETNAME": "ZZ_PCODE_LAB_CSS",
+     "VERSION": "56",
+     "STYLESHEETTYPE": "2",
+     "PARENTSTYLENAME": " ",
+     "DESCR": " ",
+     "NUMSTYLECLASS": "0",
+     "LASTUPDDTTM": "2026-10-07T09:18:12.663900000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " "
+    }
+   ],
+   "deleted": [
+    {
+     "STYLESHEETNAME": "ZZ_PCODE_LAB_CSS",
+     "VERSION": "55",
+     "STYLESHEETTYPE": "2",
+     "PARENTSTYLENAME": " ",
+     "DESCR": " ",
+     "NUMSTYLECLASS": "0",
+     "LASTUPDDTTM": "2026-10-07T09:16:18.663088000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " "
+    }
+   ],
+   "updated": []
+  }
+ }
+}

@@ -7,7 +7,7 @@
  * by default) and any protected institutional database; the writer itself
  * refuses anything outside ZZ_PCODE_LAB.
  *
- *   npx tsx tools/corpus/save-protocol/direct-sql-save.ts --operator JARED --sql ZZ_PCODE_LAB_SQL --text 'SELECT 3 FROM DUAL'
+ *   npx tsx tools/corpus/save-protocol/direct-sql-save.ts --operator JARED --sql ZZ_PCODE_LAB_SQL --text 'SELECT 3 FROM DUAL' [--create]
  */
 import { OracleProvider } from '../../../src/providers/oracle';
 import { DefinitionType, makeKey } from '../../../src/model/definitions';
@@ -37,8 +37,8 @@ async function main(): Promise<void> {
     if (PROTECTED_DATABASE_PATTERN.test(identity)) throw new Error(`Connected to ${identity}, a protected institutional database: refusing.`);
     if (identity.toUpperCase() !== expected.toUpperCase()) throw new Error(`Connected to ${identity}, not ${expected}: refusing.`);
     const opened = await provider.readSqlForEdit(makeKey(DefinitionType.SqlDefinition, sqlId));
-    if (!opened) throw new Error(`No SQL definition ${sqlId}.`);
-    const result = await provider.saveSqlDefinition({ sqlId, text, openedVersion: opened.version, operatorId });
+    if (process.argv.includes('--create') === Boolean(opened)) throw new Error(opened ? `${sqlId} exists: drop --create.` : `No SQL definition ${sqlId}: add --create.`);
+    const result = await provider.saveSqlDefinition({ sqlId, text, operatorId, ...(opened ? { openedVersion: opened.version } : {}) });
     console.log(JSON.stringify(result));
     console.log('Saved, verified in the transaction and again after COMMIT.');
   } finally {

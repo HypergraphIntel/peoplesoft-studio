@@ -79,6 +79,8 @@ export interface RecordEditState {
   fields: RecordEditField[];
   /** Record Properties changed in this edit (absent: as stored). */
   properties?: RecordPropertyEdits;
+  /** A record not saved yet: its first save creates it (openedVersion is 0). */
+  isNew?: boolean;
 }
 
 /**

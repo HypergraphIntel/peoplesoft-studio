@@ -230,11 +230,17 @@ export class Workspace implements vscode.Disposable {
     return config?.kind === 'oracle' && config.peoplecodeAccess === 'writable';
   }
 
-  /** Whether an SQL definition may be saved here: a Writable connection with an Operator ID, a scratch SQL ID. */
+  /**
+   * Whether an SQL definition, HTML definition or style sheet may be saved
+   * here as text: a Writable connection with an Operator ID, a scratch name,
+   * and for HTML content type 4. (Only freeform style sheets save: the file
+   * system marks a classic one read-only when it opens.)
+   */
   isSqlWritable(id: string, key: DefinitionKey): boolean {
     const config = this.configFor(id);
-    return this.isWritable(id) && Boolean(config?.peoplesoftOperatorId?.trim()) &&
-      key.type === DefinitionType.SqlDefinition && isScratchName(key.parts[0]);
+    const textType = key.type === DefinitionType.SqlDefinition ||
+      (key.type === DefinitionType.HtmlDefinition && (key.parts[1] ?? '4') === '4') || key.type === DefinitionType.StyleSheet;
+    return this.isWritable(id) && Boolean(config?.peoplesoftOperatorId?.trim()) && textType && isScratchName(key.parts[0]);
   }
 
   /** The configured connection behind a provider id. */
