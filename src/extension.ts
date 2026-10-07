@@ -851,7 +851,7 @@ async function newDefinition(workspace: Workspace): Promise<void> {
     { label: '$(symbol-field) Field', description: 'type, length and label; created when you finish', create: DefinitionType.Field },
     { label: '$(project) Project', description: 'created empty, then opened in Projects', create: DefinitionType.Project },
     { label: '$(package) Application Package', description: 'created empty; then add classes', create: DefinitionType.ApplicationPackage },
-    { label: '$(symbol-class) Application Class', description: 'in a root package; opens its declaration, the first save creates it', create: DefinitionType.ApplicationClassPeopleCode },
+    { label: '$(symbol-class) Application Class', description: 'in a package or subpackage; opens its declaration, the first save creates it', create: DefinitionType.ApplicationClassPeopleCode },
     { label: '$(code) HTML Definition', description: 'opens empty; the first save creates it', create: DefinitionType.HtmlDefinition },
     { label: '$(symbol-color) Style Sheet', description: 'freeform; opens empty, the first save creates it', create: DefinitionType.StyleSheet },
     { label: '$(database) SQL Definition', description: 'opens empty; the first save creates it', create: DefinitionType.SqlDefinition },
@@ -958,25 +958,38 @@ async function newPackage(workspace: Workspace): Promise<void> {
 async function newClass(workspace: Workspace, chosen?: OracleProvider, packageRoot?: string): Promise<void> {
   const provider = chosen ?? await pickWritableConnection(workspace, 'New Application Class');
   if (!provider) return;
-  const root = packageRoot ?? await askScratchName(`New Application Class on ${provider.displayName}`, 30, 'The root package to add it to');
-  if (!root) return;
+  // ROOT, ROOT:SUB or ROOT:SUB:SUB2 -- subpackages that do not exist yet are created with the class (c05).
+  const path = (await vscode.window.showInputBox({
+    title: `New Application Class on ${provider.displayName}`, value: packageRoot ?? 'ZZ_PCODE_LAB_',
+    prompt: 'Package: ROOT, ROOT:SUB or ROOT:SUB:SUB2 (new subpackages are created with the class; scratch roots only)',
+    validateInput: (v) => {
+      const [root, ...subs] = v.trim().split(':');
+      if (!/^[A-Z0-9_]{1,30}$/.test(root.toUpperCase()) || !isScratchName(root.toUpperCase())) return 'The root is a scratch package (ZZ_PCODE_LAB%).';
+      if (subs.length > 2) return 'At most two subpackages deep.';
+      return subs.every((p) => /^[A-Za-z][A-Za-z0-9_]{0,29}$/.test(p)) ? undefined : 'Subpackage names: a letter, then letters, digits or _.';
+    }
+  }))?.trim();
+  if (!path) return;
+  const [rootName, ...subs] = path.split(':');
+  const root = rootName.toUpperCase();
   if (!(await provider.packageExists(root))) {
     vscode.window.showWarningMessage(`There is no Application Package ${root}. Create it first (New Definition > Application Package).`);
     return;
   }
   const className = (await vscode.window.showInputBox({
-    title: `New class in ${root}`, prompt: 'Class name',
+    title: `New class in ${[root, ...subs].join(':')}`, prompt: 'Class name',
     validateInput: (v) => (/^[A-Za-z][A-Za-z0-9_]{0,29}$/.test(v.trim()) ? undefined : 'A letter, then letters, digits or _; at most 30.')
   }))?.trim();
   if (!className) return;
-  const key = makeKey(DefinitionType.ApplicationClassPeopleCode, root, className, 'OnExecute');
+  const key = makeKey(DefinitionType.ApplicationClassPeopleCode, root, ...subs, className, 'OnExecute');
+  const qualified = [root, ...subs, className].join(':');
   if (await provider.hasPeopleCode(key)) {
-    vscode.window.showWarningMessage(`${root}:${className} already exists; opening it.`);
+    vscode.window.showWarningMessage(`${qualified} already exists; opening it.`);
   } else {
     PeopleSoftFileSystem.newClasses.add(toUri(provider.id, key).toString());
   }
   await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(toUri(provider.id, key)), { preview: false });
-  vscode.window.showInformationMessage(`${root}:${className} is new: write its members, then save to create it.`);
+  vscode.window.showInformationMessage(`${qualified} is new: write its members, then save to create it.`);
 }
 
 /** App Designer's File > New > Project and its first save: an empty project (projectWriter.ts createProject), opened. */
