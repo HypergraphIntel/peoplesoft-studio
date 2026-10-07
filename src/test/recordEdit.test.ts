@@ -306,7 +306,11 @@ test('record type changes as App Designer saved them (r26, r28): tablespace, key
   // SQL View -> SQL Table (r57): the key index and tablespace row created, the view SQL dropped.
   const fromView = planRecordSave(base(RecordType.View), setRecordType(editStateFor(base(RecordType.View)), RecordType.View, { recordType: RecordType.Table }), stamp);
   assert.deepEqual([fromView.recordColumns.RECTYPE, fromView.tablespace, fromView.indexCount, fromView.dropViewSql], [RecordType.Table, 'insert', 1, true]);
-  assert.throws(() => setRecordType(editStateFor(base(RecordType.View)), RecordType.View, { recordType: RecordType.DerivedWork }), /not been observed/);
+  // SQL View -> Derived/Work (r58): the view SQL dropped (with its PSSQLDEL marker), no key index, no tablespace.
+  const viewToDerived = planRecordSave(base(RecordType.View), setRecordType(editStateFor(base(RecordType.View)), RecordType.View, { recordType: RecordType.DerivedWork }), stamp);
+  assert.deepEqual([viewToDerived.recordColumns.RECTYPE, viewToDerived.dropViewSql, viewToDerived.indexCount, viewToDerived.tablespace],
+    [RecordType.DerivedWork, true, 0, undefined]);
+  assert.throws(() => setRecordType(editStateFor(base(RecordType.View)), RecordType.View, { recordType: RecordType.DynamicView }), /not been observed/);
   assert.throws(() => setRecordType(editStateFor(table), RecordType.Table, { viewSql: 'SELECT 1 FROM DUAL' }), /Only a view/);
   // A view saved without SQL changes writes no SQL rows (r32).
   const view = base(RecordType.View);
