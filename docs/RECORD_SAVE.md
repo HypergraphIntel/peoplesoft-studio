@@ -367,7 +367,9 @@ scratch; R2 in r35, by Save As) inserts:
 - `PSINDEXDEFN` / `PSKEYDEFN`: the key index, when there are keys
 - `PSRECTBLSPC` for an SQL Table (all 21,345 have one, no Derived/Work
   record does): App Designer gave R1 and R4 AAAPP / PSHRDMOB, the first
-  entry of the tablespace catalog `PSTBLSPCCAT` (82 entries, by name)
+  entry of the tablespace catalog `PSTBLSPCCAT` (82 entries, by name); R4 again
+  when re-created (r47). ZZ_FIELD_REC's AALARGE (f06) was chosen in App
+  Designer, not its default
 - PSVERSION RDM, SYS + 1; PSLOCK RDM + 1
 
 The record writer creates scratch SQL Table and Derived/Work records this
