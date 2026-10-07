@@ -35,14 +35,25 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
   /** Application Classes being created (New Definition), by URI: they open with their declaration, and the first save creates them. */
   static readonly newClasses = new Set<string>();
 
+  /** Forgets what was read for a document, so an open editor re-reads it (and its version) from the database. */
+  reload(uri: vscode.Uri): void {
+    this.cache.delete(uri.toString());
+    this.sqlVersions.delete(uri.toString());
+    this._onDidChangeFile.fire([{ type: vscode.FileChangeType.Changed, uri }]);
+  }
+
   /** Runs after a save creates a definition, so the trees that list it refresh. */
   onCreated?: () => void;
 
   constructor(private readonly workspace: Workspace, private readonly saveReports?: SaveReportSink) {}
 
+  /** The registered instance, for changes made outside an editor (Change Description). */
+  static instance?: PeopleSoftFileSystem;
+
   static register(workspace: Workspace, saveReports?: SaveReportSink, onCreated?: () => void): vscode.Disposable {
     const fs = new PeopleSoftFileSystem(workspace, saveReports);
     fs.onCreated = onCreated;
+    PeopleSoftFileSystem.instance = fs;
     return vscode.workspace.registerFileSystemProvider(SCHEME, fs, {
       isCaseSensitive: false,
       // Definitions are not files on disk; nothing else can change them

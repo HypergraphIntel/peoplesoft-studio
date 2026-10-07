@@ -9,6 +9,10 @@
   types (`SMALLINT`, `INTEGER`, `DECIMAL`, `tIMESTAMP`, `vARCHAR2` ...),
   CLOB columns last, the index without `DESC`, and its line layout. Checked
   byte for byte against App Designer's scripts for two records.
+- **Change Description...** for HTML definitions and freeform style
+  sheets (right-click one in a tree, or its editor tab), saved as App
+  Designer saves a description change. Scratch definitions on Writable
+  connections.
 - Record Field Properties names the Default Page Control (Edit Box,
   Dropdown List, Check Box, Radio Button, Image, System Default) and offers
   each but Image.

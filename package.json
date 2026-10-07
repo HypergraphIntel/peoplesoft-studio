@@ -203,6 +203,11 @@
         "category": "PeopleSoft"
       },
       {
+        "command": "psft.changeDescription",
+        "title": "Change Description...",
+        "category": "PeopleSoft"
+      },
+      {
         "command": "psft.deleteRecord",
         "title": "Delete Record...",
         "category": "PeopleSoft"
@@ -395,6 +400,11 @@
           "when": "viewItem =~ /^definition\\b/"
         },
         {
+          "command": "psft.changeDescription",
+          "when": "viewItem =~ /\\.description$/",
+          "group": "navigation@9"
+        },
+        {
           "command": "psft.deleteRecord",
           "when": "viewItem =~ /\\.record$/",
           "group": "z_delete"
@@ -406,6 +416,10 @@
         }
       ],
       "editor/title/context": [
+        {
+          "command": "psft.changeDescription",
+          "when": "resourceScheme == psft && (resourceExtname == .html || resourceExtname == .css)"
+        },
         {
           "command": "psft.insertIntoProject",
           "when": "resourceScheme == psft"
