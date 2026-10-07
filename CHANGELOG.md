@@ -4,6 +4,10 @@
 
 ### Changed
 
+- Records: remove an SQL Table's last key, change an SQL Table to
+  Derived/Work, re-create a record name that was deleted, and set the audit
+  record, audit options and Timestamp Field (Record Properties, Use tab),
+  as App Designer saves them.
 - **Translate Table Edit** can be set and cleared in Record Field
   Properties (Edits tab), for fields that have translate values.
 - **New Field** can create Image Reference fields.

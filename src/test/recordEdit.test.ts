@@ -5,7 +5,7 @@ import * as path from 'node:path';
 import { RecordType, UseEdit } from '../model/record.js';
 import {
   editRefusal, editStateFor, insertField, moveField, planRecordSave, RecordSaveRefusedError, removeField, removeFields, setDefault, setEdits,
-  setLabel, setPageControl, setRecordType, setUse,
+  setLabel, setPageControl, setRecordProperties, setRecordType, setUse,
   type RecordEditState, type Row, type StoredRecord
 } from '../model/recordEdit.js';
 
@@ -136,7 +136,9 @@ test('the plan restamps only changed and new rows, rebuilds the key index, and b
 });
 
 test('what the cases do not cover is refused', () => {
-  assert.throws(() => planRecordSave(table, setUse(editStateFor(table), 0, { key: false }), { ts: 'NOW', operatorId: 'J' }), /Removing the last key/);
+  // Removing the last key drops the key index (r45).
+  const keyless = planRecordSave(table, setUse(editStateFor(table), 0, { key: false }), { ts: 'NOW', operatorId: 'J' });
+  assert.deepEqual([keyless.index, keyless.indexCount], [undefined, 0]);
   const withAlt = { ...table, fields: [...table.fields, { FIELDNAME: 'A', USEEDIT: 0x10, SUBRECORD: 'N' }] };
   assert.match(editRefusal(withAlt)!, /alternate search keys/);
   assert.match(editRefusal({ ...table, fields: [{ FIELDNAME: 'S', USEEDIT: 0, SUBRECORD: 'Y' }] })!, /subrecords/);
@@ -296,9 +298,30 @@ test('record type changes as App Designer saved them (r26, r28): tablespace, key
   plan = planRecordSave(table, setRecordType(editStateFor(table), RecordType.Table, { sqlTableName: 'ps_zz_pcode_lab_tx' }), stamp);
   assert.equal(plan.recordColumns.SQLTABLENAME, 'PS_ZZ_PCODE_LAB_TX');
   // Unobserved changes are refused.
-  assert.throws(() => setRecordType(editStateFor(table), RecordType.Table, { recordType: RecordType.DerivedWork }), /not been observed/);
+  // SQL Table -> Derived/Work (r46): the table name cleared, the tablespace row and key index gone.
+  const toDerived = planRecordSave(table, setRecordType(editStateFor(table), RecordType.Table, { recordType: RecordType.DerivedWork }), stamp);
+  assert.deepEqual([toDerived.recordColumns.RECTYPE, toDerived.recordColumns.SQLTABLENAME, toDerived.tablespace, toDerived.indexCount],
+    [RecordType.DerivedWork, ' ', 'delete', 0]);
+  assert.throws(() => setRecordType(editStateFor(base(RecordType.View)), RecordType.View, { recordType: RecordType.Table }), /not been observed/);
   assert.throws(() => setRecordType(editStateFor(table), RecordType.Table, { viewSql: 'SELECT 1 FROM DUAL' }), /Only a view/);
   // A view saved without SQL changes writes no SQL rows (r32).
   const view = base(RecordType.View);
   assert.equal(planRecordSave(view, editStateFor(view), stamp).viewSql, undefined);
+});
+
+test('audit record and options, and the Timestamp Field with its Auto-Update bit (r49, r51)', () => {
+  const stored = { recname: 'ZZ_PCODE_LAB_R4', recordType: RecordType.Table, version: 1, indexes: [], fields: [
+    { RECNAME: 'ZZ_PCODE_LAB_R4', FIELDNAME: 'ZZ_PCODE_LAB_KEY', FIELDNUM: 1, USEEDIT: 0x800000, USEEDIT2: 0, SUBRECORD: 'N' },
+    { RECNAME: 'ZZ_PCODE_LAB_R4', FIELDNAME: 'LASTUPDDTTM', FIELDNUM: 2, USEEDIT: 8388608, USEEDIT2: 0, SUBRECORD: 'N' }
+  ] };
+  let e = setRecordProperties(editStateFor(stored), { auditRecord: 'zz_pcode_lab_t', recUse: 1 });
+  e = setRecordProperties(e, { timestampField: 'LASTUPDDTTM' });
+  const plan = planRecordSave(stored, e, { ts: 'NOW', operatorId: 'J' });
+  assert.deepEqual([plan.recordColumns.AUDITRECNAME, plan.recordColumns.RECUSE, plan.recordColumns.TIMESTAMPFIELDNAME],
+    ['ZZ_PCODE_LAB_T', 1, 'LASTUPDDTTM']);
+  // r51: LASTUPDDTTM's USEEDIT 8388608 -> 75497472, the field row not restamped.
+  assert.equal(plan.fields[1].USEEDIT, 75497472);
+  assert.equal(plan.fields[1].LASTUPDDTTM, undefined);
+  assert.throws(() => setRecordProperties(e, { recUse: 16 }), /audit options/);
+  assert.throws(() => setRecordProperties(e, { timestampField: 'NOPE' }), /not a field/);
 });
