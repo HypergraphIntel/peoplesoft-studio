@@ -220,6 +220,11 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
         void vscode.window.showInformationMessage('Records with subrecords cannot be scripted here yet.');
         return;
       }
+      const model = provider instanceof OracleProvider ? await provider.readDdlModel(shown.name) : undefined;
+      if (!model) {
+        void vscode.window.showInformationMessage('The build script comes from the database\'s DDL model; a project export does not carry one.');
+        return;
+      }
       const script = createTableScript({
         name: shown.name, recordType: shown.recordType, sqlTableName: shown.sqlTableName,
         ...(shown.tablespace ? { tablespace: shown.tablespace } : {}),
@@ -227,7 +232,7 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
           name: f.name, type: f.type!, length: f.length ?? 0, decimalPositions: f.decimalPositions ?? 0,
           ...(f.format !== undefined ? { format: f.format } : {}), useEdit: f.useEdit
         }))
-      });
+      }, model);
       const sql = await vscode.workspace.openTextDocument({ content: script, language: 'psft-sql' });
       await vscode.window.showTextDocument(sql, { preview: false });
       return;

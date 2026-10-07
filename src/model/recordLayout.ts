@@ -32,13 +32,27 @@ export interface RecordLayoutField {
   useEdit2?: number;
   /** PSRECFIELD.LABEL_ID: blank for the field's default label. */
   labelId?: string;
-  /** PSRECFIELD.DEFGUICONTROL: 99 is App Designer's "System Default" (a new field's value). */
+  /** PSRECFIELD.DEFGUICONTROL: App Designer's Default Page Control (PAGE_CONTROL_NAMES). */
   defGuiControl?: number;
   /** The field's labels (PSDBFLDLABL), for the Record Field Label ID choice. */
   labels?: { id: string; longName: string; shortName: string; isDefault: boolean }[];
   defaultRecord: string;
   defaultField: string;
 }
+
+/**
+ * PSRECFIELD.DEFGUICONTROL, as App Designer's Record Field Properties names
+ * it (read off fields that store each value on HRDMO): 99 System Default
+ * (a new field's), 4 Edit Box, 5 Dropdown List, 7 Check Box, 8 Radio Button,
+ * 9 Image (image fields; App Designer greys the choice). 0 is stored only on
+ * subrecord rows, which have no such setting.
+ */
+export const PAGE_CONTROL_NAMES: Readonly<Record<number, string>> = {
+  99: 'System Default', 4: 'Edit Box', 5: 'Dropdown List', 7: 'Check Box', 8: 'Radio Button', 9: 'Image'
+};
+
+/** The choices offered: every named control but Image, which App Designer does not let you pick. */
+export const SETTABLE_PAGE_CONTROLS: readonly number[] = [99, 4, 5, 7, 8];
 
 export interface RecordLayout {
   name: string;
@@ -208,6 +222,8 @@ export interface RecordFieldPropertiesView {
   defaultField: string;
   pageControl: string;
   pageControlValue?: number;
+  /** The Default Page Control choices offered: value and App Designer's name. */
+  pageControlOptions: [number, string][];
   required: boolean;
   /** App Designer's table edit type. */
   edit: 'No Edit' | 'Prompt Table Edit' | 'Prompt Table with No Edit' | 'Yes/No Table Edit' | 'Translate Table Edit';
@@ -256,8 +272,9 @@ export function recordFieldProperties(f: RecordLayoutField): RecordFieldProperti
     defaultConstant: constant ? f.defaultField : '',
     defaultRecord: constant ? '' : f.defaultRecord,
     defaultField: constant ? '' : f.defaultField,
-    pageControl: f.defGuiControl === undefined ? '' : f.defGuiControl === 99 ? 'System Default' : `${f.defGuiControl} (stored value)`,
+    pageControl: f.defGuiControl === undefined ? '' : PAGE_CONTROL_NAMES[f.defGuiControl] ?? `${f.defGuiControl} (stored value)`,
     ...(f.defGuiControl !== undefined ? { pageControlValue: f.defGuiControl } : {}),
+    pageControlOptions: SETTABLE_PAGE_CONTROLS.map((v) => [v, PAGE_CONTROL_NAMES[v]!] as [number, string]),
     required: on(UseEdit.Required),
     edit: on(UseEdit.PromptTable) ? 'Prompt Table Edit' : on(UseEdit.TranslateTable) ? 'Translate Table Edit'
       : on(UseEdit.YesNoTable) ? 'Yes/No Table Edit' : f.editTable ? 'Prompt Table with No Edit' : 'No Edit',

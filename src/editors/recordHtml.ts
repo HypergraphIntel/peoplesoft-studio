@@ -449,7 +449,7 @@ const PAGE_SCRIPT = `
     let right;
     if (editable) {
       const constant = input(f.defaultConstant), record = input(f.defaultRecord), fieldName = input(f.defaultField);
-      const pageKnown = [99, 5].includes(f.pageControlValue);
+      const pageKnown = f.pageControlOptions.some((o) => o[0] === f.pageControlValue);
       right = el('div', {},
         el('fieldset', {}, el('legend', { text: 'Record Field Label ID' }),
           dropdown([['', '*** Use Default Label ***'], ...f.labels.map((l) => [l.id, l.text])], f.labelId,
@@ -459,7 +459,7 @@ const PAGE_SCRIPT = `
             ? { type: 'default', index: i, record: record.value, field: fieldName.value }
             : { type: 'default', index: i, constant: constant.value }) })),
         el('fieldset', {}, el('legend', { text: 'Default Page Control' }), pageKnown
-          ? dropdown([[99, 'System Default'], [5, '5 (stored value)']], f.pageControlValue, (v) => post({ type: 'pageControl', index: i, value: Number(v) }))
+          ? dropdown(f.pageControlOptions, f.pageControlValue, (v) => post({ type: 'pageControl', index: i, value: Number(v) }))
           : el('span', { cls: 'box', text: f.pageControl })));
     } else {
       right = el('div', {},
