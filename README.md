@@ -52,17 +52,9 @@ definitions, outages or any other damage.
    Developer: Reload Window
    ```
 3. Add and connect to a PeopleSoft environment from the **PeopleSoft Studio** sidebar.
-4. Verify that the MCP server is running:
-   ```bash
-   curl http://127.0.0.1:7337/health
-   ```
-
-   A healthy server should return a response containing:
-   ```json
-   {
-     "status": "ok"
-   }
-   ```
+4. Verify that the MCP server is running: in the **PeopleSoft Studio**
+   sidebar, the **Settings** panel shows **MCP server** below the compiler
+   profile, green while it is running.
 5. Register PeopleSoft Studio with Codex.
 
    Open the VS Code Command Palette ( CTRL + SHIFT + P ) and run:
