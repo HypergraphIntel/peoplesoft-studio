@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.5
+
+### Changed
+
+- The README's AI client setup covers Claude Code, Codex and any other MCP
+  client (*Copy MCP URL*), with the command each choice of *PeopleSoft:
+  Configure AI Client* runs; Troubleshooting checks the Settings panel and
+  `claude mcp list` / `codex mcp list`.
+
 ## 0.7.4
 
 ### Added
