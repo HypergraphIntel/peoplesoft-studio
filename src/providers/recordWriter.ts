@@ -6,6 +6,7 @@ import {
 import { isScratchName } from '../peoplecode/corpus/labSafety.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
+import { writeViewSql } from './sqlWriter.js';
 
 /*
  * Saving a record definition, as App Designer does (docs/RECORD_SAVE.md).
@@ -86,7 +87,7 @@ interface Tables { recfield: Column[]; recfielddb: Column[]; index: Column[]; ke
 async function readStored(c: Connection, tables: Tables, recname: string, forUpdate: boolean): Promise<StoredRecord & { db: Row[]; keys: Row[] }> {
   const [defn] = await select<Row & { RECTYPE: number; VERSION: number }>(c,
     `SELECT RECTYPE, VERSION, RECDESCR, DBMS_LOB.SUBSTR(DESCRLONG, 4000, 1) AS DESCRLONG, OBJECTOWNERID, SETCNTRLFLD,
-            PARENTRECNAME, RELLANGRECNAME, QRYSECRECNAME, OPTDELRECNAME, AUXFLAGMASK
+            PARENTRECNAME, RELLANGRECNAME, QRYSECRECNAME, OPTDELRECNAME, AUXFLAGMASK, SQLTABLENAME, BUILDSEQNO
        FROM SYSADM.PSRECDEFN WHERE RECNAME = :r${forUpdate ? ' FOR UPDATE' : ''}`, { r: recname });
   if (!defn) throw new RecordSaveRefusedError(`There is no record named ${recname}.`);
   const r = { r: recname };
@@ -301,6 +302,20 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
       await insertRow(c, 'PSINDEXDEFN', tables.index, plan.index.row);
       for (const k of plan.index.keys) await insertRow(c, 'PSKEYDEFN', tables.key, k);
     }
+
+    // The Record Type tab (r26-r28): the tablespace row follows the SQL Table type, and a view's SQL is written when it changed.
+    if (plan.tablespace === 'insert') {
+      const [space] = await select<{ DDLSPACENAME: string; DBNAME: string }>(c,
+        `SELECT DDLSPACENAME, DBNAME FROM SYSADM.PSTBLSPCCAT ORDER BY DDLSPACENAME FETCH FIRST 1 ROWS ONLY`);
+      if (!space) throw new RecordSaveRefusedError('The tablespace catalog (PSTBLSPCCAT) is empty; refusing to write.');
+      await c.execute(`DELETE FROM SYSADM.PSRECTBLSPC WHERE RECNAME = :r`, r);
+      await expectRows(c,
+        `INSERT INTO SYSADM.PSRECTBLSPC (DDLSPACENAME, DBNAME, RECNAME, DBTYPE, TEMPTBLINST, PT_TS_LOCK_TYPE, PT_UTS_ENABLED)
+         VALUES (:s, :d, :r, ' ', 'N', ' ', ' ')`, { s: space.DDLSPACENAME, d: space.DBNAME, r: recname }, 1, 'Inserting PSRECTBLSPC');
+    } else if (plan.tablespace === 'delete') {
+      await c.execute(`DELETE FROM SYSADM.PSRECTBLSPC WHERE RECNAME = :r`, r);
+    }
+    if (plan.viewSql !== undefined) await writeViewSql(c, { recname, text: plan.viewSql, ts: lastupddttm, operatorId: request.operatorId });
 
     // Record Properties columns ride on the same update. DESCRLONG is a CLOB; its text (at most 4,000
     // characters, recordEdit.ts) binds as a string, which Oracle converts.

@@ -4,6 +4,12 @@
 
 ### Changed
 
+- **Record Type tab** edits: change a Derived/Work record to an SQL Table
+  or SQL View, or an SQL Table to an SQL View; set the Non-Standard SQL
+  Table Name and Build Sequence No; write a view's SQL. SQL Views and
+  Dynamic Views can now be edited like tables (fields, properties, SQL).
+  Saved as App Designer saves them (tablespace row, key index and view SQL
+  follow the type). Scratch records on Writable connections.
 - **Build Script** writes App Designer's Create Tables script exactly:
   the database's DDL model and storage parameters, App Designer's column
   types (`SMALLINT`, `INTEGER`, `DECIMAL`, `tIMESTAMP`, `vARCHAR2` ...),

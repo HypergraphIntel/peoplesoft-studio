@@ -86,6 +86,64 @@ export interface RecordEditState {
   properties?: RecordPropertyEdits;
   /** A record not saved yet: its first save creates it (openedVersion is 0). */
   isNew?: boolean;
+  /** Record Type tab changes (setRecordType). */
+  type?: RecordTypeEdits;
+}
+
+/**
+ * The Record Type tab's changes, as App Designer saved them (r26-r28):
+ * the record type, the Non-Standard SQL Table Name (SQLTABLENAME), the
+ * Build Sequence No (BUILDSEQNO) and a view's SQL (PSSQLDEFN SQLTYPE 2).
+ */
+export interface RecordTypeEdits {
+  recordType?: RecordType;
+  sqlTableName?: string;
+  buildSequence?: number;
+  viewSql?: string;
+}
+
+/**
+ * The record type changes App Designer has been seen to save: Derived/Work
+ * to SQL Table (r26), SQL Table to SQL View (r28), and Derived/Work to SQL
+ * View (r28 without the tablespace row a Derived/Work record does not have).
+ */
+export const RECORD_TYPE_CHANGES: ReadonlyArray<readonly [RecordType, RecordType]> = [
+  [RecordType.DerivedWork, RecordType.Table], [RecordType.Table, RecordType.View], [RecordType.DerivedWork, RecordType.View]
+];
+
+const isViewType = (t: RecordType) => t === RecordType.View || t === RecordType.DynamicView;
+
+/** Changes the Record Type tab, refusing what App Designer has not been seen to save. */
+export function setRecordType(state: RecordEditState, stored: RecordType, change: RecordTypeEdits): RecordEditState {
+  const next: RecordTypeEdits = { ...state.type };
+  if (change.recordType !== undefined) {
+    if (change.recordType === stored) delete next.recordType;
+    else if (!RECORD_TYPE_CHANGES.some(([from, to]) => from === stored && to === change.recordType)) {
+      throw new RecordSaveRefusedError('That record type change has not been observed in App Designer; it cannot be made here yet.');
+    } else next.recordType = change.recordType;
+  }
+  const type = next.recordType ?? stored;
+  if (change.sqlTableName !== undefined) {
+    const name = change.sqlTableName.trim().toUpperCase();
+    // SQLTABLENAME is 18 characters.
+    if (name !== '' && !/^[A-Z][A-Z0-9_#$@]{0,17}$/.test(name)) throw new RecordSaveRefusedError(`${change.sqlTableName} is not a valid table name (at most 18 characters).`);
+    next.sqlTableName = name;
+  }
+  if (change.buildSequence !== undefined) {
+    if (!Number.isInteger(change.buildSequence) || change.buildSequence < 1 || change.buildSequence > 99) {
+      throw new RecordSaveRefusedError('The Build Sequence No is a whole number from 1 to 99.');
+    }
+    next.buildSequence = change.buildSequence;
+  }
+  if (change.viewSql !== undefined) {
+    if (!isViewType(type)) throw new RecordSaveRefusedError('Only a view has SQL.');
+    next.viewSql = change.viewSql.replace(/\r?\n/g, '\r\n').replace(/\s+$/, '');
+    if (next.viewSql.length > 14000) throw new RecordSaveRefusedError('View SQL longer than 14,000 characters is not saved here yet.');
+  }
+  if (next.sqlTableName && type !== RecordType.Table && type !== RecordType.View) {
+    throw new RecordSaveRefusedError('Only an SQL Table or SQL View has a Non-Standard SQL Table Name.');
+  }
+  return { ...state, recordType: type, type: next };
 }
 
 /**
@@ -350,6 +408,12 @@ export interface RecordSavePlan {
   removed: string[];
   /** PGM moves with RDM when a field is removed. */
   bumpPgm: boolean;
+  /** The record's type after the save. */
+  recordType: RecordType;
+  /** PSRECTBLSPC: inserted on becoming an SQL Table (r26), deleted on leaving one (r28). */
+  tablespace?: 'insert' | 'delete';
+  /** The view's SQL to write (PSSQLDEFN SQLTYPE 2 and its rows): when it changed, or the record became a view (r28). */
+  viewSql?: string;
 }
 
 const str = (v: unknown) => String(v ?? '').trim();
@@ -360,9 +424,13 @@ const str = (v: unknown) => String(v ?? '').trim();
  * alternate search keys, no index but the key index `_`.
  */
 export function editRefusal(stored: StoredRecord): string | undefined {
-  if (stored.recordType !== RecordType.Table && stored.recordType !== RecordType.DerivedWork) {
-    return 'Only SQL Table and Derived/Work records can be edited yet.';
+  if (stored.recordType !== RecordType.Table && stored.recordType !== RecordType.DerivedWork && !isViewType(stored.recordType)) {
+    return 'Only SQL Table, SQL View, Dynamic View and Derived/Work records can be edited yet.';
   }
+  if (isViewType(stored.recordType) && (Number(stored.defn?.AUXFLAGMASK ?? 0) & RecordFlag.MaterializedView) !== 0) {
+    return 'Materialized views cannot be edited yet.';
+  }
+  if (isViewType(stored.recordType) && stored.indexes.length > 0) return 'This view has an index, which views here do not (4 of 20,167).';
   if (stored.fields.some((f) => str(f.SUBRECORD) === 'Y')) return 'Records with subrecords cannot be edited yet.';
   if (stored.fields.some((f) => hasFlag(Number(f.USEEDIT), UseEdit.AltSearchKey))) {
     return 'Records with alternate search keys cannot be edited yet (their indexes are not modelled).';
@@ -377,9 +445,11 @@ export function editRefusal(stored: StoredRecord): string | undefined {
 }
 
 /** editRefusal for the record as the editor reads it (model/recordLayout.ts). */
-export function layoutEditRefusal(layout: { recordType: RecordType; fields: { isSubrecord: boolean; useEdit: number }[]; indexIds?: string[] }): string | undefined {
+export function layoutEditRefusal(layout: {
+  recordType: RecordType; fields: { isSubrecord: boolean; useEdit: number }[]; indexIds?: string[]; auxFlagMask?: number;
+}): string | undefined {
   return editRefusal({
-    recname: '', recordType: layout.recordType, version: 0,
+    recname: '', recordType: layout.recordType, version: 0, defn: { AUXFLAGMASK: layout.auxFlagMask ?? 0 },
     fields: layout.fields.map((f) => ({ SUBRECORD: f.isSubrecord ? 'Y' : 'N', USEEDIT: f.useEdit })),
     indexes: (layout.indexIds ?? []).map((id) => ({ INDEXID: id }))
   });
@@ -445,8 +515,11 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
   });
   const removed = [...byName.keys()].filter((n) => !seen.has(n));
 
+  const finalType = edit.type?.recordType ?? stored.recordType;
   let index: RecordSavePlan['index'];
-  if (stored.recordType === RecordType.Table) {
+  // Only an SQL Table has a key index: views and Derived/Work records with keys have none
+  // (20,163 of 20,167 keyed SQL Views; all 1,233 keyed Derived/Work records).
+  if (finalType === RecordType.Table) {
     // The key index holds the keys and duplicate order keys, in field order;
     // a duplicate order key makes it non-unique (r08; all 17,961 delivered
     // SQL Tables without subrecords agree on both).
@@ -489,9 +562,24 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
     recordColumns.AUXFLAGMASK = mask;
   }
 
+  const type = edit.type ?? {};
+  if (finalType !== stored.recordType) recordColumns.RECTYPE = finalType;
+  if (type.sqlTableName !== undefined) recordColumns.SQLTABLENAME = type.sqlTableName === '' ? ' ' : type.sqlTableName;
+  if (type.buildSequence !== undefined) recordColumns.BUILDSEQNO = type.buildSequence;
+  const tablespace = stored.recordType === RecordType.Table && finalType !== RecordType.Table ? 'delete'
+    : stored.recordType !== RecordType.Table && finalType === RecordType.Table ? 'insert' : undefined;
+  let viewSql: string | undefined;
+  if (isViewType(finalType)) {
+    viewSql = type.viewSql;
+    if (!isViewType(stored.recordType) && !viewSql) throw new RecordSaveRefusedError('A view needs its SQL: write it on the Record Type tab.');
+  }
+
   return {
     fields,
     recordColumns,
+    recordType: finalType,
+    ...(tablespace ? { tablespace } : {}),
+    ...(viewSql !== undefined ? { viewSql } : {}),
     ...(index ? { index } : {}),
     fieldCount: fields.length,
     indexCount: index ? 1 : 0,

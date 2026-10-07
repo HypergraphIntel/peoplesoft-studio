@@ -199,3 +199,66 @@ export async function verifySqlSave(c: Connection, request: SqlSaveRequest, resu
   if (h?.H !== result.hashSignature) problems.push(`PSSQLHASH ${h?.H}`);
   if (problems.length) throw new SqlSaveRefusedError(`The SQL save did not land as planned (${problems.join('; ')}).`);
 }
+
+/**
+ * A view's SQL (SQLTYPE 2) written inside the record save that changes it,
+ * not committed here: created as r28 created ZZ_PCODE_LAB_T's (PSSQLDEFN
+ * VERSION = new SRM, ENABLEEFFDT 'N'; PSSQLDESCR; PSSQLHASH; one
+ * PSSQLTEXTDEFN row), or rewritten as a save does (VERSION, stamp, text,
+ * hash). PSVERSION SRM, PSLOCK SRM + 1; SYS moves once with the record's
+ * save. Verified before returning.
+ */
+export async function writeViewSql(
+  c: Connection, args: { recname: string; text: string; ts: string; operatorId: string }
+): Promise<{ version: number; hashSignature: string }> {
+  const id = args.recname;
+  const text = prepareSqlText(args.text);
+  if (text === '') throw new SqlSaveRefusedError('The view SQL is empty.');
+  if (text.length > SQL_TEXT_ROW_LIMIT) throw new SqlSaveRefusedError(`View SQL longer than ${SQL_TEXT_ROW_LIMIT} characters is not saved here yet.`);
+  const key = { id, m: MARKET, d: DBTYPE, e: EFFDT };
+  const [defn] = await select<{ VERSION: number }>(c, `SELECT VERSION FROM SYSADM.PSSQLDEFN WHERE SQLID = :id AND SQLTYPE = '2' FOR UPDATE`, { id });
+  const shape = await select<{ T: string; N: number; ODD: number }>(c,
+    `SELECT 'TEXT' AS T, COUNT(*) AS N, SUM(CASE WHEN MARKET = :m AND DBTYPE = :d AND TO_CHAR(EFFDT, 'YYYY-MM-DD') = :e AND SEQNUM = 0 THEN 0 ELSE 1 END) AS ODD
+       FROM SYSADM.PSSQLTEXTDEFN WHERE SQLID = :id AND SQLTYPE = '2'
+     UNION ALL SELECT 'DESCR', COUNT(*), SUM(CASE WHEN MARKET = :m AND DBTYPE = :d AND TO_CHAR(EFFDT, 'YYYY-MM-DD') = :e THEN 0 ELSE 1 END)
+       FROM SYSADM.PSSQLDESCR WHERE SQLID = :id AND SQLTYPE = '2'
+     UNION ALL SELECT 'HASH', COUNT(*), SUM(CASE WHEN MARKET = :m AND DBTYPE = :d AND TO_CHAR(EFFDT, 'YYYY-MM-DD') = :e THEN 0 ELSE 1 END)
+       FROM SYSADM.PSSQLHASH WHERE SQLID = :id AND SQLTYPE = '2'`, key);
+  const expected = defn ? 1 : 0;
+  for (const s of shape) {
+    if (Number(s.N) !== expected || Number(s.ODD ?? 0) !== 0) {
+      throw new SqlSaveRefusedError(`${id}'s view SQL is not a single GBL / 1900-01-01 text (its ${String(s.T).trim().toLowerCase()} rows differ); not saved here yet.`);
+    }
+  }
+  const v = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME = 'SRM' FOR UPDATE`);
+  const l = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME = 'SRM' FOR UPDATE`);
+  if (v.length !== 1 || l.length !== 1) throw new SqlSaveRefusedError('PSVERSION / PSLOCK SRM is missing; refusing to write.');
+  const version = Number(v[0].V) + 1;
+  const hashSignature = predictSourceSignature(text);
+  const stamp = { v: version, ts: args.ts, op: args.operatorId };
+  if (defn) {
+    await expectRows(c, `UPDATE SYSADM.PSSQLDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
+      WHERE SQLID = :id AND SQLTYPE = '2'`, { ...stamp, id }, 1, 'Updating PSSQLDEFN');
+    await expectRows(c, `DELETE FROM SYSADM.PSSQLTEXTDEFN WHERE SQLID = :id AND SQLTYPE = '2'`, { id }, 1, 'Deleting PSSQLTEXTDEFN');
+    await expectRows(c, `UPDATE SYSADM.PSSQLHASH SET HASH_SIGNATURE = :h WHERE SQLID = :id AND SQLTYPE = '2'`, { id, h: hashSignature }, 1, 'Updating PSSQLHASH');
+  } else {
+    await expectRows(c, `INSERT INTO SYSADM.PSSQLDEFN (SQLID, SQLTYPE, VERSION, LASTUPDOPRID, LASTUPDDTTM, ENABLEEFFDT, OBJECTOWNERID)
+      VALUES (:id, '2', :v, :op, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), 'N', ' ')`, { ...stamp, id }, 1, 'Inserting PSSQLDEFN');
+    await expectRows(c, `INSERT INTO SYSADM.PSSQLDESCR (SQLID, SQLTYPE, MARKET, DBTYPE, EFFDT, DESCR, DESCRLONG)
+      VALUES (:id, '2', :m, :d, TO_DATE(:e, 'YYYY-MM-DD'), ' ', NULL)`, key, 1, 'Inserting PSSQLDESCR');
+    await expectRows(c, `INSERT INTO SYSADM.PSSQLHASH (SQLID, SQLTYPE, MARKET, DBTYPE, EFFDT, HASH_SIGNATURE)
+      VALUES (:id, '2', :m, :d, TO_DATE(:e, 'YYYY-MM-DD'), :h)`, { ...key, h: hashSignature }, 1, 'Inserting PSSQLHASH');
+  }
+  await expectRows(c, `INSERT INTO SYSADM.PSSQLTEXTDEFN (SQLID, SQLTYPE, MARKET, DBTYPE, EFFDT, SEQNUM, SQLTEXT)
+    VALUES (:id, '2', :m, :d, TO_DATE(:e, 'YYYY-MM-DD'), 0, :t)`, { ...key, t: text }, 1, 'Inserting PSSQLTEXTDEFN');
+  await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SRM'`, { v: version }, 1, 'Updating PSVERSION SRM');
+  await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'SRM'`, { v: Number(l[0].V) + 1 }, 1, 'Updating PSLOCK SRM');
+  const [check] = await select<{ V: number; H: string; T: string }>(c,
+    `SELECT D.VERSION AS V, H.HASH_SIGNATURE AS H, DBMS_LOB.SUBSTR(T.SQLTEXT, 4000, 1) AS T
+       FROM SYSADM.PSSQLDEFN D, SYSADM.PSSQLHASH H, SYSADM.PSSQLTEXTDEFN T
+      WHERE D.SQLID = :id AND D.SQLTYPE = '2' AND H.SQLID = :id AND H.SQLTYPE = '2' AND T.SQLID = :id AND T.SQLTYPE = '2'`, { id });
+  if (!check || Number(check.V) !== version || check.H !== hashSignature || !text.startsWith(String(check.T ?? ''))) {
+    throw new SqlSaveRefusedError('The view SQL did not land as planned; rolled back.');
+  }
+  return { version, hashSignature };
+}

@@ -5,7 +5,7 @@ import * as path from 'node:path';
 import { RecordType, UseEdit } from '../model/record.js';
 import {
   editRefusal, editStateFor, insertField, moveField, planRecordSave, RecordSaveRefusedError, removeField, removeFields, setDefault, setEdits,
-  setLabel, setPageControl, setUse,
+  setLabel, setPageControl, setRecordType, setUse,
   type RecordEditState, type Row, type StoredRecord
 } from '../model/recordEdit.js';
 
@@ -141,7 +141,11 @@ test('what the cases do not cover is refused', () => {
   assert.match(editRefusal(withAlt)!, /alternate search keys/);
   assert.match(editRefusal({ ...table, fields: [{ FIELDNAME: 'S', USEEDIT: 0, SUBRECORD: 'Y' }] })!, /subrecords/);
   assert.match(editRefusal({ ...table, indexes: [...table.indexes, { INDEXID: 'A' }] })!, /other than the key index/);
-  assert.match(editRefusal({ ...table, recordType: RecordType.View })!, /SQL Table and Derived/);
+  // Views are editable now, unless materialized or indexed; other types are not.
+  assert.equal(editRefusal({ ...table, recordType: RecordType.View, indexes: [] }), undefined);
+  assert.match(editRefusal({ ...table, recordType: RecordType.View })!, /has an index/);
+  assert.match(editRefusal({ ...table, recordType: RecordType.View, indexes: [], defn: { AUXFLAGMASK: 0x1000000 } })!, /Materialized/);
+  assert.match(editRefusal({ ...table, recordType: RecordType.Subrecord })!, /can be edited yet/);
   // Only the flags the cases exercised may change.
   const e = editStateFor(table);
   e.fields[1] = { ...e.fields[1], useEdit: e.fields[1].useEdit | UseEdit.TranslateTable };
@@ -263,4 +267,36 @@ test('a new record plans as App Designer created R1 / R2 (r02, r35): new field r
   assert.equal(derived.indexCount, 0);
   assert.throws(() => planRecordSave(stored, { recname: 'ZZ_PCODE_LAB_R9', recordType: RecordType.Table, openedVersion: 0, isNew: true, fields: [] },
     { ts: '2026-10-07 09:00:00.000000', operatorId: 'JARED' }), /at least one field/);
+});
+
+test('record type changes as App Designer saved them (r26, r28): tablespace, key index and view SQL follow the type', () => {
+  const base = (recordType: RecordType, indexes: Row[] = []) => ({
+    recname: 'ZZ_PCODE_LAB_T', recordType, version: 1, indexes,
+    fields: [{ RECNAME: 'ZZ_PCODE_LAB_T', FIELDNAME: 'ZZ_PCODE_LAB_KEY', FIELDNUM: 1, USEEDIT: 0x800001, USEEDIT2: 0, SUBRECORD: 'N' }]
+  });
+  const stamp = { ts: 'NOW', operatorId: 'J' };
+  // Derived/Work -> SQL Table (r26): the tablespace row, and the key index its key needs.
+  const derived = base(RecordType.DerivedWork);
+  let e = setRecordType(editStateFor(derived), RecordType.DerivedWork, { recordType: RecordType.Table });
+  let plan = planRecordSave(derived, e, stamp);
+  assert.equal(plan.recordColumns.RECTYPE, RecordType.Table);
+  assert.equal(plan.tablespace, 'insert');
+  assert.equal(plan.indexCount, 1);
+  // SQL Table -> SQL View (r28): the tablespace row goes, no key index, the SQL is written; Build Sequence 2.
+  const table = base(RecordType.Table);
+  e = setRecordType(editStateFor(table), RecordType.Table, { recordType: RecordType.View, buildSequence: 2 });
+  assert.throws(() => planRecordSave(table, e, stamp), /needs its SQL/);
+  e = setRecordType(e, RecordType.Table, { viewSql: "SELECT 'X', 'Y' FROM DUAL\n" });
+  plan = planRecordSave(table, e, stamp);
+  assert.deepEqual([plan.recordColumns.RECTYPE, plan.recordColumns.BUILDSEQNO, plan.tablespace, plan.indexCount, plan.viewSql],
+    [RecordType.View, 2, 'delete', 0, "SELECT 'X', 'Y' FROM DUAL"]);
+  // Non-Standard SQL Table Name (r27).
+  plan = planRecordSave(table, setRecordType(editStateFor(table), RecordType.Table, { sqlTableName: 'ps_zz_pcode_lab_tx' }), stamp);
+  assert.equal(plan.recordColumns.SQLTABLENAME, 'PS_ZZ_PCODE_LAB_TX');
+  // Unobserved changes are refused.
+  assert.throws(() => setRecordType(editStateFor(table), RecordType.Table, { recordType: RecordType.DerivedWork }), /not been observed/);
+  assert.throws(() => setRecordType(editStateFor(table), RecordType.Table, { viewSql: 'SELECT 1 FROM DUAL' }), /Only a view/);
+  // A view saved without SQL changes writes no SQL rows (r32).
+  const view = base(RecordType.View);
+  assert.equal(planRecordSave(view, editStateFor(view), stamp).viewSql, undefined);
 });
