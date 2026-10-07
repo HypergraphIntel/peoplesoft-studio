@@ -28,6 +28,19 @@ export interface PeopleSoftStudioSettings {
   'peoplecode.decoder': DecoderMode;
   'mcp.enabled': boolean;
   'mcp.port': number;
+  'build.create.table': 'recreate' | 'skip';
+  'build.create.view': 'recreate' | 'skip';
+  'build.create.index': 'recreate' | 'ifModified';
+  'build.create.sequence': 'recreate' | 'alterIfModified';
+  'build.alter.dropColumn': 'drop' | 'skip';
+  'build.alter.changeLength': 'truncate' | 'skip';
+  'build.alter.adds': boolean;
+  'build.alter.changes': boolean;
+  'build.alter.renames': boolean;
+  'build.alter.deletes': boolean;
+  'build.alter.evenIfNoChanges': boolean;
+  'build.alter.tableOption': 'inPlace' | 'rename';
+  'build.alter.inMemory': boolean;
 }
 
 export type SettingKey = keyof PeopleSoftStudioSettings;
@@ -52,8 +65,8 @@ export const PEOPLECODE_ACCESS_OPTIONS: EnumOption<PeopleCodeAccess>[] = [
   { value: 'read-only', label: 'Read-only', description: 'PeopleCode from this connection can never be saved back to it.' },
   {
     value: 'writable', label: 'Writable',
-    description: 'PeopleCode is saved natively to this database, as App Designer saves it. For now only ZZ_PCODE_LAB ' +
-      'definitions, and only programs whose references are all of a modeled kind.'
+    description: 'PeopleCode is saved natively to this database, as App Designer saves it: programs whose references ' +
+      'are all of a modeled kind.'
   }
 ];
 
@@ -128,7 +141,7 @@ export interface SettingInspection<T> {
   workspaceFolderValue?: T;
 }
 
-export type SettingSection = 'mcp' | 'advanced';
+export type SettingSection = 'mcp' | 'buildCreate' | 'buildAlter' | 'advanced';
 
 export interface EnumOption<T extends string> {
   value: T;
@@ -192,8 +205,57 @@ export const SETTING_DESCRIPTORS: readonly SettingDescriptor[] = [
     appliesWhen: 'Applies to connections opened after the change. Thick mode cannot be switched off without reloading the window.',
     control: { kind: 'text', placeholder: 'Empty: Thin mode' },
     defaultValue: ''
-  }
+  },
+  ...buildDescriptors()
 ];
+
+/** App Designer's Build Settings, Create and Alter tabs, with its defaults. */
+function buildDescriptors(): SettingDescriptor[] {
+  const PENDING = 'Stored now; used once Build supports it (App Designer\'s output for it is still being captured).';
+  const choice = (key: EditableSettingKey, section: SettingSection, label: string, description: string,
+    options: EnumOption<string>[], defaultValue: string, pending = false): SettingDescriptor => ({
+    key, section, label, description, control: { kind: 'enum', options }, defaultValue, ...(pending ? { appliesWhen: PENDING } : {})
+  });
+  const flag = (key: EditableSettingKey, label: string, description: string, defaultValue: boolean): SettingDescriptor => ({
+    key, section: 'buildAlter', label, description, control: { kind: 'boolean' }, defaultValue, appliesWhen: PENDING
+  });
+  return [
+    choice('build.create.table', 'buildCreate', 'Table creation', 'When the table already exists.', [
+      { value: 'recreate', label: 'Recreate table if it already exists', description: 'Drops the table, and its data, and creates it again.' },
+      { value: 'skip', label: 'Skip table if it already exists', description: 'Leaves an existing table as it is.' }
+    ], 'recreate'),
+    choice('build.create.view', 'buildCreate', 'View creation', 'When the view already exists.', [
+      { value: 'recreate', label: 'Recreate view if it already exists', description: 'Replaces the view.' },
+      { value: 'skip', label: 'Skip view if it already exists', description: 'Leaves an existing view as it is.' }
+    ], 'recreate', true),
+    choice('build.create.index', 'buildCreate', 'Index creation', 'When the index already exists.', [
+      { value: 'recreate', label: 'Recreate index if it already exists', description: 'Drops and creates every index.' },
+      { value: 'ifModified', label: 'Recreate index only if modified', description: 'Only indexes that differ from the definition.' }
+    ], 'ifModified', true),
+    choice('build.create.sequence', 'buildCreate', 'Sequence creation', 'When the sequence already exists.', [
+      { value: 'recreate', label: 'Recreate sequence if it already exists', description: 'Drops and creates the sequence.' },
+      { value: 'alterIfModified', label: 'Alter sequence only if modified', description: 'Only a sequence that differs.' }
+    ], 'alterIfModified', true),
+    choice('build.alter.dropColumn', 'buildAlter', 'Drop column options', 'When a dropped column holds data.', [
+      { value: 'drop', label: 'Drop column if data present', description: 'The column and its data are dropped.' },
+      { value: 'skip', label: 'Skip record if data present', description: 'The record is not altered.' }
+    ], 'skip', true),
+    choice('build.alter.changeLength', 'buildAlter', 'Change column length options', 'When data is longer than a shortened field.', [
+      { value: 'truncate', label: 'Truncate data if field too short', description: 'Longer values are cut.' },
+      { value: 'skip', label: 'Skip record if field too short', description: 'The record is not altered.' }
+    ], 'skip', true),
+    flag('build.alter.adds', 'Alter any: Adds', 'Columns added to the record are added to the table.', true),
+    flag('build.alter.changes', 'Alter any: Changes', 'Changed columns are altered.', true),
+    flag('build.alter.renames', 'Alter any: Renames', 'Renamed fields are renamed in the table.', true),
+    flag('build.alter.deletes', 'Alter any: Deletes', 'Columns removed from the record are dropped from the table.', true),
+    flag('build.alter.evenIfNoChanges', 'Alter even if no changes', 'Alters the table when it already matches the record.', false),
+    choice('build.alter.tableOption', 'buildAlter', 'Alter table options', 'How a table is altered.', [
+      { value: 'inPlace', label: 'Alter in Place', description: 'ALTER TABLE statements on the table.' },
+      { value: 'rename', label: 'Alter by Table Rename', description: 'A new table is created, the data copied, the old table dropped and the new one renamed.' }
+    ], 'rename', true),
+    flag('build.alter.inMemory', 'Alter Table In Memory', 'Alters the table\'s Oracle In-Memory setting with the table.', false)
+  ];
+}
 
 export function descriptorFor(key: string): SettingDescriptor | undefined {
   return SETTING_DESCRIPTORS.find((d) => d.key === key);
@@ -229,6 +291,19 @@ export function validateSetting(key: EditableSettingKey, value: unknown): Valida
       }
       return { ok: true, value: trimmed };
     }
+    default: {
+      // The Build Settings: a choice or a check, as their descriptors say.
+      const control = descriptorFor(key)?.control;
+      if (control?.kind === 'boolean') {
+        return typeof value === 'boolean' ? { ok: true, value } : { ok: false, error: 'Must be on or off.' };
+      }
+      if (control?.kind === 'enum') {
+        return control.options.some((o) => o.value === value)
+          ? { ok: true, value: value as SettingValue }
+          : { ok: false, error: `Must be one of ${control.options.map((o) => o.label).join(', ')}.` };
+      }
+      return { ok: false, error: `${key} is not a setting.` };
+    }
   }
 }
 
@@ -260,11 +335,13 @@ export function sourceOf(inspection: SettingInspection<unknown> | undefined): Se
 export interface ConnectionEdit {
   connectString?: string;
   user?: string;
+  /** The schema owning the PeopleTools tables; '' detects it (PS.PSDBOWNER, else SYSADM). */
+  schema?: string;
   path?: string;
 }
 
 const EDITABLE_FIELDS: Record<ConnectionConfig['kind'], (keyof ConnectionEdit)[]> = {
-  oracle: ['connectString', 'user'],
+  oracle: ['connectString', 'user', 'schema'],
   projectFile: ['path']
 };
 
@@ -300,6 +377,12 @@ export function validateConnectionEdit(
     else if (/\s/.test(user)) errors.user = 'Database access id cannot contain spaces.';
     next.connectString = connectString;
     next.user = user;
+    const schema = (edit.schema ?? existing.schema ?? '').trim().toUpperCase();
+    if (schema !== '' && !/^[A-Z][A-Z0-9_$#]{0,127}$/.test(schema)) {
+      errors.schema = 'A schema name: a letter, then letters, digits, _, $ or # (empty: detected).';
+    }
+    if (schema === '') delete next.schema;
+    else next.schema = schema;
   } else {
     const filePath = (edit.path ?? existing.path ?? '').trim();
     if (filePath === '') errors.path = 'Project file path is required.';

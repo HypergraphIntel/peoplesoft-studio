@@ -91,7 +91,7 @@ export function renderRecordHtml(r: RecordLayout, connection: string, nonce: str
     : r.viewSql !== undefined
       ? `<details class="sql"><summary class="caption">SQL</summary><pre>${esc(r.viewSql)}</pre></details>` : '';
 
-  const buildButton = r.recordType === RecordType.Table ? '<button data-act="build" title="Generate the Create Table script (not run)">Build Script…</button>' : '';
+  const buildButton = r.recordType === RecordType.Table ? '<button data-act="build" title="Create Tables: build the script, or build and execute it (Build Settings in PeopleSoft Studio Settings)">Build…</button>' : '';
   const toolbar = editable ? `<div class="toolbar">
       <button data-act="insert">Insert Field…</button>${r.recordType === RecordType.DerivedWork ? '<button data-act="insertSub">Insert Subrecord…</button>' : ''}<button data-act="remove">Delete</button>
       <button data-act="up">Move Up</button><button data-act="down">Move Down</button>${buildButton}

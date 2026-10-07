@@ -44,6 +44,8 @@
   const SECTIONS = [
     { id: 'connections', title: 'Connections' },
     { id: 'mcp', title: 'AI Integration' },
+    { id: 'buildCreate', title: 'Build Settings: Create' },
+    { id: 'buildAlter', title: 'Build Settings: Alter' },
     { id: 'advanced', title: 'Advanced' }
   ];
 
@@ -170,7 +172,7 @@
     ]);
 
     const details = facts(c.kind === 'oracle'
-      ? { 'Connect string': c.connectString || '—', 'Access id': c.user || '—' }
+      ? { 'Connect string': c.connectString || '—', 'Access id': c.user || '—', 'Schema': c.schema || 'Automatic (PS.PSDBOWNER, else SYSADM)' }
       : { 'Project file': c.path || '—' });
 
     const actions = h('div', { className: 'actions' }, [
@@ -208,6 +210,7 @@
   const FIELD_LABELS = {
     connectString: { label: 'Connect string', placeholder: 'host:1521/SERVICE' },
     user: { label: 'Database access id', placeholder: 'SYSADM' },
+    schema: { label: 'Schema (owner ID)', placeholder: 'Automatic: PS.PSDBOWNER, else SYSADM' },
     path: { label: 'Project file', placeholder: '/path/to/export.xml' }
   };
 
@@ -248,7 +251,8 @@
       ]));
     }
 
-    form.append(
+    // DOM append writes a null as the text "null": only the parts present.
+    form.append(...[
       h('p', { className: 'hint', text: 'The name identifies the connection, its stored password and its open editors, so it cannot be changed here.' }),
       c.connected ? h('p', { className: 'hint', text: 'Changes apply the next time this connection connects.' }) : null,
       errorText(formErrors.form, `edit-${c.id}-form-error`),
@@ -256,7 +260,7 @@
         h('button', { text: 'Save', attrs: { type: 'submit' } }),
         button('Cancel', () => toggleEdit(c.id), { secondary: true })
       ])
-    );
+    ].filter(Boolean));
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -576,6 +580,10 @@
     root.replaceChildren(...[
       renderConnections(),
       renderMcp(),
+      renderSettingsSection('buildCreate', 'Build Settings: Create',
+        'App Designer\'s Build Settings, Create tab: what Build does when a table, view, index or sequence already exists.'),
+      renderSettingsSection('buildAlter', 'Build Settings: Alter',
+        'App Designer\'s Build Settings, Alter tab: how Alter Tables changes an existing table.'),
       renderSettingsSection('advanced', 'Advanced', 'Database driver settings. Most installations need none of these.')
     ].filter(Boolean));
 

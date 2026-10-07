@@ -58,8 +58,8 @@ interface Counters { ssm: number; sys: number; lockSsm: number; crm: number }
 async function readCounters(c: Connection, forUpdate: boolean): Promise<Counters> {
   const lock = forUpdate ? ' FOR UPDATE' : '';
   const v = await select<{ T: string; V: number }>(c,
-    `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME IN ('SSM', 'SYS', 'CRM')${lock}`);
-  const l = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME = 'SSM'${lock}`);
+    `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSVERSION WHERE OBJECTTYPENAME IN ('SSM', 'SYS', 'CRM')${lock}`);
+  const l = await select<{ V: number }>(c, `SELECT VERSION AS V FROM PSLOCK WHERE OBJECTTYPENAME = 'SSM'${lock}`);
   const get = (name: string) => {
     const r = v.find((x) => String(x.T).trim() === name);
     if (!r) throw new StyleSheetSaveRefusedError(`PSVERSION ${name} is missing; refusing to write.`);
@@ -85,17 +85,17 @@ export async function saveStyleSheet(c: Connection, blobType: unknown, request: 
     const create = request.openedVersion === undefined;
 
     const sheets = await select<{ VERSION: number; STYLESHEETTYPE: number; NUMSTYLECLASS: number }>(c,
-      `SELECT VERSION, STYLESHEETTYPE, NUMSTYLECLASS FROM SYSADM.PSSTYLSHEETDEFN WHERE STYLESHEETNAME = :n FOR UPDATE`, { n: name });
+      `SELECT VERSION, STYLESHEETTYPE, NUMSTYLECLASS FROM PSSTYLSHEETDEFN WHERE STYLESHEETNAME = :n FOR UPDATE`, { n: name });
     const contents = await select<{ VERSION: number; CONTTYPE: number; ALTCONTNUM: number }>(c,
-      `SELECT VERSION, CONTTYPE, ALTCONTNUM FROM SYSADM.PSCONTDEFN WHERE CONTNAME = :n FOR UPDATE`, { n: name });
+      `SELECT VERSION, CONTTYPE, ALTCONTNUM FROM PSCONTDEFN WHERE CONTNAME = :n FOR UPDATE`, { n: name });
     const [{ N: others }] = await select<{ N: number }>(c,
-      `SELECT (SELECT COUNT(*) FROM SYSADM.PSSTYLECLASS WHERE STYLESHEETNAME = :n) + (SELECT COUNT(*) FROM SYSADM.PSCONTDEFNLANG WHERE CONTNAME = :n)
-            + (SELECT COUNT(*) FROM SYSADM.PSCONTENTLANG WHERE CONTNAME = :n) + (SELECT COUNT(*) FROM SYSADM.PSSTYLSHEETDEL WHERE STYLESHEETNAME = :n) AS N FROM DUAL`,
+      `SELECT (SELECT COUNT(*) FROM PSSTYLECLASS WHERE STYLESHEETNAME = :n) + (SELECT COUNT(*) FROM PSCONTDEFNLANG WHERE CONTNAME = :n)
+            + (SELECT COUNT(*) FROM PSCONTENTLANG WHERE CONTNAME = :n) + (SELECT COUNT(*) FROM PSSTYLSHEETDEL WHERE STYLESHEETNAME = :n) AS N FROM DUAL`,
       { n: name });
     if (create) {
       if (sheets.length > 0) throw new StyleSheetSaveRefusedError(`A style sheet named ${name} already exists.`);
       if (contents.length > 0) throw new StyleSheetSaveRefusedError(`A content definition named ${name} already exists.`);
-      const [{ N: text }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSCONTENT WHERE CONTNAME = :n`, { n: name });
+      const [{ N: text }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSCONTENT WHERE CONTNAME = :n`, { n: name });
       if (Number(text) + Number(others) > 0) throw new StyleSheetSaveRefusedError(`${name} has leftover style sheet or content rows; refusing to write.`);
     } else {
       const s = sheets[0];
@@ -125,31 +125,31 @@ export async function saveStyleSheet(c: Connection, blobType: unknown, request: 
 
     if (create) {
       await expectRows(c,
-        `INSERT INTO SYSADM.PSSTYLSHEETDEFN (STYLESHEETNAME, VERSION, STYLESHEETTYPE, PARENTSTYLENAME, DESCR, NUMSTYLECLASS,
+        `INSERT INTO PSSTYLSHEETDEFN (STYLESHEETNAME, VERSION, STYLESHEETTYPE, PARENTSTYLENAME, DESCR, NUMSTYLECLASS,
                                              LASTUPDDTTM, LASTUPDOPRID, OBJECTOWNERID)
          VALUES (:n, :v, 2, ' ', :d, 0, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), :op, ' ')`,
         { n: name, v: next.ssm, d: descr ?? ' ', ...stamp }, 1, 'Inserting PSSTYLSHEETDEFN');
       await expectRows(c,
-        `INSERT INTO SYSADM.PSCONTDEFN (CONTNAME, ALTCONTNUM, CONTFMT, VERSION, CONTTYPE, CONTSTYLE, DESCR, URL, COMPALG, AUXFLAGMASK,
+        `INSERT INTO PSCONTDEFN (CONTNAME, ALTCONTNUM, CONTFMT, VERSION, CONTTYPE, CONTSTYLE, DESCR, URL, COMPALG, AUXFLAGMASK,
                                         LASTUPDDTTM, LASTUPDOPRID, OBJECTOWNERID)
          VALUES (:n, 1, ' ', :v, :t, 0, ' ', ' ', 0, 0, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), :op, ' ')`,
         { ...key, v: contentVersion, ...stamp }, 1, 'Inserting PSCONTDEFN');
     } else {
       await expectRows(c,
-        `UPDATE SYSADM.PSSTYLSHEETDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op${descr !== undefined ? ', DESCR = :d' : ''}
+        `UPDATE PSSTYLSHEETDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op${descr !== undefined ? ', DESCR = :d' : ''}
           WHERE STYLESHEETNAME = :n`, { n: name, v: next.ssm, ...stamp, ...(descr !== undefined ? { d: descr } : {}) }, 1, 'Updating PSSTYLSHEETDEFN');
       await expectRows(c,
-        `UPDATE SYSADM.PSCONTDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
+        `UPDATE PSCONTDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
           WHERE CONTNAME = :n AND CONTTYPE = :t AND ALTCONTNUM = 1`, { ...key, v: contentVersion, ...stamp }, 1, 'Updating PSCONTDEFN');
-      await c.execute(`DELETE FROM SYSADM.PSCONTENT WHERE CONTNAME = :n AND CONTTYPE = :t`, key);
+      await c.execute(`DELETE FROM PSCONTENT WHERE CONTNAME = :n AND CONTTYPE = :t`, key);
     }
     for (const [seq, chunk] of htmlChunks(request.text).entries()) {
       await expectRows(c,
-        `INSERT INTO SYSADM.PSCONTENT (CONTNAME, ALTCONTNUM, CONTTYPE, SEQNUM, CONTDATA) VALUES (:n, 1, :t, :s, :d)`,
+        `INSERT INTO PSCONTENT (CONTNAME, ALTCONTNUM, CONTTYPE, SEQNUM, CONTDATA) VALUES (:n, 1, :t, :s, :d)`,
         { ...key, s: seq, d: { val: chunk, type: blobType } }, 1, `Inserting PSCONTENT ${seq}`);
     }
     for (const [table, counter, value] of [['PSVERSION', 'SSM', next.ssm], ['PSVERSION', 'SYS', next.sys], ['PSLOCK', 'SSM', next.lockSsm]] as const) {
-      await expectRows(c, `UPDATE SYSADM.${table} SET VERSION = :v WHERE OBJECTTYPENAME = :o`, { v: value, o: counter }, 1, `Updating ${table} ${counter}`);
+      await expectRows(c, `UPDATE ${table} SET VERSION = :v WHERE OBJECTTYPENAME = :o`, { v: value, o: counter }, 1, `Updating ${table} ${counter}`);
     }
 
     const result: StyleSheetSaveResult = { version: next.ssm, contentVersion, lastupddttm, created: create };
@@ -173,17 +173,17 @@ export async function verifyStyleSheetSave(c: Connection, request: StyleSheetSav
     row && Number(row.VERSION) === version && row.TS === result.lastupddttm && String(row.OPRID).trim() === request.operatorId;
   const [s] = await select<{ VERSION: number; TS: string; OPRID: string; T: number; DESCR: string }>(c,
     `SELECT VERSION, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS, LASTUPDOPRID AS OPRID, STYLESHEETTYPE AS T, DESCR
-       FROM SYSADM.PSSTYLSHEETDEFN WHERE STYLESHEETNAME = :n`, { n: request.name });
+       FROM PSSTYLSHEETDEFN WHERE STYLESHEETNAME = :n`, { n: request.name });
   if (!stamped(s, result.version) || Number(s.T) !== FREEFORM_STYLESHEET ||
       (request.description !== undefined && String(s.DESCR ?? '').trim() !== request.description.trim())) {
     problems.push(`PSSTYLSHEETDEFN ${JSON.stringify(s)}`);
   }
   const [d] = await select<{ VERSION: number; TS: string; OPRID: string }>(c,
     `SELECT VERSION, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS, LASTUPDOPRID AS OPRID
-       FROM SYSADM.PSCONTDEFN WHERE CONTNAME = :n AND CONTTYPE = :t AND ALTCONTNUM = 1`, { n: request.name, t: STYLESHEET_CONTTYPE });
+       FROM PSCONTDEFN WHERE CONTNAME = :n AND CONTTYPE = :t AND ALTCONTNUM = 1`, { n: request.name, t: STYLESHEET_CONTTYPE });
   if (!stamped(d, result.contentVersion)) problems.push(`PSCONTDEFN ${JSON.stringify(d)}`);
   const rows = await select<{ SEQNUM: number; D: Buffer }>(c,
-    `SELECT SEQNUM, CONTDATA AS D FROM SYSADM.PSCONTENT WHERE CONTNAME = :n AND CONTTYPE = :t ORDER BY SEQNUM`,
+    `SELECT SEQNUM, CONTDATA AS D FROM PSCONTENT WHERE CONTNAME = :n AND CONTTYPE = :t ORDER BY SEQNUM`,
     { n: request.name, t: STYLESHEET_CONTTYPE });
   const want = htmlChunks(request.text);
   if (rows.length !== want.length || rows.some((r, i) => Number(r.SEQNUM) !== i || !Buffer.from(r.D).equals(want[i]))) {

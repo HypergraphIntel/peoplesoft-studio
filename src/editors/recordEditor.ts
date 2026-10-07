@@ -13,10 +13,18 @@ import {
   RECORD_TYPE_CHANGES, inMemoryMode, setInMemory, setRecordProperties, setRecordType, setUse, type EditType, type RecordTypeEdits, type RecordEditState, type RecordPropertyEdits, type UseChange
 } from '../model/recordEdit.js';
 import { renderRecordHtml } from './recordHtml.js';
-import { createTableScript, lobColumn } from '../model/recordDdl.js';
+import { lobColumn, tableName } from '../model/recordDdl.js';
+import { planCreateTables, type TableOption } from '../model/recordBuild.js';
 import {
   FIELD_TYPE_LABELS, RecordDefinition, RecordField, RecordType, UseEdit, UseEdit2, hasFlag
 } from '../model/record.js';
+
+let buildOutput: vscode.OutputChannel | undefined;
+/** The build log, as App Designer's Build log: each statement and its outcome. */
+function buildLog(): vscode.OutputChannel {
+  buildOutput ??= vscode.window.createOutputChannel('PeopleSoft Build');
+  return buildOutput;
+}
 
 /**
  * The record definition editor -- App Designer's record editor.
@@ -229,37 +237,89 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
     }
   }
 
+  /**
+   * App Designer's Build > Current Definition, Create Tables (recordBuild.ts):
+   * Build script opens the script; Build and execute also runs it on a
+   * Writable connection, after a confirmation, and logs each statement.
+   */
+  private async build(doc: RecordDocument): Promise<void> {
+    const provider = doc.provider;
+    const shown = doc.shownLayout();
+    if (!shown) return;
+    if (shown.fields.some((f) => f.isSubrecord)) {
+      void vscode.window.showInformationMessage('Records with subrecords cannot be built here yet.');
+      return;
+    }
+    if (!(provider instanceof OracleProvider)) {
+      void vscode.window.showInformationMessage('The build script comes from the database\'s DDL model; a project export does not carry one.');
+      return;
+    }
+    const model = await provider.readDdlModel(shown.name);
+    if (!model) {
+      void vscode.window.showInformationMessage(`${provider.displayName} has no Oracle DDL model.`);
+      return;
+    }
+    const writable = this.workspace.isWritable(provider.id);
+    const choice = await vscode.window.showQuickPick([
+      { label: 'Build script', detail: 'Write the Create Tables script and open it; nothing is run.', execute: false },
+      {
+        label: 'Build and execute',
+        detail: !writable ? `${provider.displayName} is read-only (Access in PeopleSoft Studio Settings).`
+          : doc.dirty ? 'Save the record first: the build runs what is saved.' : `Run the script on ${provider.displayName}, and open it.`,
+        execute: true
+      }
+    ], { title: `Build ${shown.name}: Create Tables`, placeHolder: 'Build Settings apply (PeopleSoft Studio Settings)' });
+    if (!choice) return;
+    if (choice.execute && (!writable || doc.dirty)) {
+      void vscode.window.showWarningMessage(!writable ? `${provider.displayName} is read-only: the script can be built, not run.`
+        : `Save ${shown.name} first: Build and execute runs the saved definition.`);
+      return;
+    }
+
+    const record = {
+      name: shown.name, recordType: shown.recordType, sqlTableName: shown.sqlTableName,
+      ...(shown.tablespace ? { tablespace: shown.tablespace } : {}),
+      fields: shown.fields.map((f) => ({
+        name: f.name, type: f.type!, length: f.length ?? 0, decimalPositions: f.decimalPositions ?? 0,
+        ...(f.format !== undefined ? { format: f.format } : {}), useEdit: f.useEdit
+      }))
+    };
+    const table = tableName(record);
+    const state = await provider.tableState(table);
+    const option = vscode.workspace.getConfiguration('peoplesoft').get<TableOption>('build.create.table') === 'skip' ? 'skip' : 'recreate';
+    const plan = planCreateTables(record, model, option, state.exists);
+    for (const note of plan.notes) void vscode.window.showInformationMessage(note);
+    if (plan.statements.length === 0) return;
+    const sql = await vscode.workspace.openTextDocument({ content: plan.script, language: 'psft-sql' });
+    await vscode.window.showTextDocument(sql, { preview: false });
+    if (!choice.execute) return;
+
+    const loss = plan.drops ? (state.hasRows ? ` DROP TABLE ${plan.drops} deletes the table and the data in it.` : ` ${plan.drops} is dropped (it holds no rows).`) : '';
+    const go = await vscode.window.showWarningMessage(
+      `Run ${plan.statements.length} statements on ${provider.displayName} (schema ${provider.schema ?? '?'})?${loss}`,
+      { modal: true, detail: 'DDL commits as it runs: it cannot be rolled back.' }, 'Execute');
+    if (go !== 'Execute') return;
+    const log = buildLog();
+    log.appendLine(`-- ${new Date().toISOString()} Build ${shown.name} on ${provider.displayName} (schema ${provider.schema ?? '?'}): Create Tables, ${option}`);
+    const result = await provider.executeBuild(plan.statements);
+    for (const s of plan.statements.slice(0, result.ran)) log.appendLine(`${s}\n-- done`);
+    if (result.error) {
+      log.appendLine(`${result.error.statement}\n-- FAILED: ${result.error.message}`);
+      log.show(true);
+      void vscode.window.showErrorMessage(`Build of ${shown.name} failed at statement ${result.ran + 1} of ${plan.statements.length}: ${result.error.message}`);
+      return;
+    }
+    log.appendLine(`-- ${shown.name}: ${result.ran} statements, no errors`);
+    void vscode.window.showInformationMessage(`Built ${table} on ${provider.displayName}: ${result.ran} statements run.`);
+  }
+
   /** App Designer's field menu: the actions that leave the record editor. */
   private async onMenu(doc: RecordDocument, action: string, index: number, webview: vscode.Webview): Promise<void> {
     const field = doc.shownFields()[index];
     const provider = doc.provider;
     if (!provider) return;
     const node = (key: DefinitionKey) => ({ kind: 'definition', provider: { id: provider.id }, summary: { key } });
-    if (action === 'build') {
-      // App Designer's Build > Create Table, generated as a script and opened, never run.
-      const shown = doc.shownLayout();
-      if (!shown) return;
-      if (shown.fields.some((f) => f.isSubrecord)) {
-        void vscode.window.showInformationMessage('Records with subrecords cannot be scripted here yet.');
-        return;
-      }
-      const model = provider instanceof OracleProvider ? await provider.readDdlModel(shown.name) : undefined;
-      if (!model) {
-        void vscode.window.showInformationMessage('The build script comes from the database\'s DDL model; a project export does not carry one.');
-        return;
-      }
-      const script = createTableScript({
-        name: shown.name, recordType: shown.recordType, sqlTableName: shown.sqlTableName,
-        ...(shown.tablespace ? { tablespace: shown.tablespace } : {}),
-        fields: shown.fields.map((f) => ({
-          name: f.name, type: f.type!, length: f.length ?? 0, decimalPositions: f.decimalPositions ?? 0,
-          ...(f.format !== undefined ? { format: f.format } : {}), useEdit: f.useEdit
-        }))
-      }, model);
-      const sql = await vscode.workspace.openTextDocument({ content: script, language: 'psft-sql' });
-      await vscode.window.showTextDocument(sql, { preview: false });
-      return;
-    }
+    if (action === 'build') return this.build(doc);
     if (action === 'viewSql') {
       // The view's SQL in an editor, as App Designer's SQL Editor opens it (read-only: saving view text is not supported).
       const doc2 = await vscode.workspace.openTextDocument({ content: doc.viewSql() ?? '', language: 'psft-sql' });

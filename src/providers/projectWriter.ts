@@ -56,8 +56,8 @@ interface Counters { pjm: number; sys: number; lockPjm: number }
 async function readCounters(c: Connection, forUpdate: boolean): Promise<Counters> {
   const lock = forUpdate ? ' FOR UPDATE' : '';
   const v = await select<{ T: string; V: number }>(c,
-    `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME IN ('PJM', 'SYS')${lock}`);
-  const l = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME = 'PJM'${lock}`);
+    `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSVERSION WHERE OBJECTTYPENAME IN ('PJM', 'SYS')${lock}`);
+  const l = await select<{ V: number }>(c, `SELECT VERSION AS V FROM PSLOCK WHERE OBJECTTYPENAME = 'PJM'${lock}`);
   const get = (name: string) => v.find((r) => String(r.T).trim() === name)?.V;
   const pjm = get('PJM');
   const sys = get('SYS');
@@ -71,7 +71,7 @@ async function readCounters(c: Connection, forUpdate: boolean): Promise<Counters
 async function itemSlots(c: Connection): Promise<number> {
   const [r] = await select<{ N: number }>(c,
     `SELECT COUNT(*) AS N FROM ALL_TAB_COLUMNS
-      WHERE OWNER = 'SYSADM' AND TABLE_NAME = 'PSPROJECTITEM' AND COLUMN_NAME LIKE 'OBJECTVALUE%'`);
+      WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = 'PSPROJECTITEM' AND COLUMN_NAME LIKE 'OBJECTVALUE%'`);
   const n = Number(r?.N ?? 0);
   if (n < MIN_PROJECT_ITEM_SLOTS) throw new ProjectSaveRefusedError(`PSPROJECTITEM has ${n} key slots here; refusing to write.`);
   return n;
@@ -83,7 +83,7 @@ async function definitionExists(c: Connection, key: DefinitionKey): Promise<bool
     const parts = key.type === DefinitionType.ApplicationClassPeopleCode && key.parts.at(-1) !== 'OnExecute'
       ? [...key.parts, 'OnExecute'] : key.parts;
     const [r] = await select<{ N: number }>(c,
-      `SELECT COUNT(*) AS N FROM SYSADM.PSPCMPROG WHERE ${VALUE_PREDICATE}`, valueBinds(parts));
+      `SELECT COUNT(*) AS N FROM PSPCMPROG WHERE ${VALUE_PREDICATE}`, valueBinds(parts));
     return Number(r?.N ?? 0) > 0;
   }
   const spec = PROPERTIES_SPECS[key.type];
@@ -91,7 +91,7 @@ async function definitionExists(c: Connection, key: DefinitionKey): Promise<bool
   const where = spec.where(key);
   const cols = Object.keys(where);
   const [r] = await select<{ N: number }>(c,
-    `SELECT COUNT(*) AS N FROM SYSADM.${spec.table} WHERE ${cols.map((col, i) => `${col} = :b${i}`).join(' AND ')}`,
+    `SELECT COUNT(*) AS N FROM ${spec.table} WHERE ${cols.map((col, i) => `${col} = :b${i}`).join(' AND ')}`,
     Object.fromEntries(cols.map((col, i) => [`b${i}`, where[col]])));
   return Number(r?.N ?? 0) > 0;
 }
@@ -103,7 +103,7 @@ async function itemCount(c: Connection, project: string, item: ProjectItem, slot
   const binds: Record<string, unknown> = { p: project, t: item.objectType };
   for (let i = 1; i <= slots; i++) binds[`v${i}`] = row[`OBJECTVALUE${i}`];
   const [r] = await select<{ N: number }>(c,
-    `SELECT COUNT(*) AS N FROM SYSADM.PSPROJECTITEM WHERE PROJECTNAME = :p AND OBJECTTYPE = :t AND ${preds.join(' AND ')}`, binds);
+    `SELECT COUNT(*) AS N FROM PSPROJECTITEM WHERE PROJECTNAME = :p AND OBJECTTYPE = :t AND ${preds.join(' AND ')}`, binds);
   return Number(r?.N ?? 0);
 }
 
@@ -112,7 +112,7 @@ interface ProjectRow { VERSION: number; TS: string; OPRID: string }
 async function readProject(c: Connection, project: string, forUpdate: boolean): Promise<ProjectRow | undefined> {
   const [r] = await select<ProjectRow>(c,
     `SELECT VERSION, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS, LASTUPDOPRID AS OPRID
-       FROM SYSADM.PSPROJECTDEFN WHERE PROJECTNAME = :p${forUpdate ? ' FOR UPDATE' : ''}`, { p: project });
+       FROM PSPROJECTDEFN WHERE PROJECTNAME = :p${forUpdate ? ' FOR UPDATE' : ''}`, { p: project });
   return r;
 }
 
@@ -176,16 +176,16 @@ export async function saveProject(c: Connection, request: ProjectSaveRequest): P
       const row = { PROJECTNAME: request.project, OBJECTTYPE: item.objectType, ...itemKeyColumns(item, slots), ...PROJECT_ITEM_DEFAULTS };
       const columns = Object.keys(row);
       await expectRows(c,
-        `INSERT INTO SYSADM.PSPROJECTITEM (${columns.join(', ')}) VALUES (${columns.map((col) => `:${col}`).join(', ')})`,
+        `INSERT INTO PSPROJECTITEM (${columns.join(', ')}) VALUES (${columns.map((col) => `:${col}`).join(', ')})`,
         row, 1, 'Inserting PSPROJECTITEM');
     }
     await expectRows(c,
-      `UPDATE SYSADM.PSPROJECTDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
+      `UPDATE PSPROJECTDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
         WHERE PROJECTNAME = :p`,
       { v: next.pjm, ts: lastupddttm, op: request.operatorId, p: request.project }, 1, 'Updating PSPROJECTDEFN');
-    await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'PJM'`, { v: next.pjm }, 1, 'Updating PSVERSION PJM');
-    await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
-    await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'PJM'`, { v: next.lockPjm }, 1, 'Updating PSLOCK PJM');
+    await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'PJM'`, { v: next.pjm }, 1, 'Updating PSVERSION PJM');
+    await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
+    await expectRows(c, `UPDATE PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'PJM'`, { v: next.lockPjm }, 1, 'Updating PSLOCK PJM');
 
     // Prove the state before COMMIT.
     const result: ProjectSaveResult = { added: items, version: next.pjm, lastupddttm };
@@ -248,14 +248,14 @@ export async function createProject(c: Connection, request: { project: string; o
     const scope = writeScopeRefusal(project);
     if (scope) throw new ProjectSaveRefusedError(scope);
     const [{ N: taken }] = await select<{ N: number }>(c,
-      `SELECT (SELECT COUNT(*) FROM SYSADM.PSPROJECTDEFN WHERE PROJECTNAME = :p) + (SELECT COUNT(*) FROM SYSADM.PSPROJECTITEM WHERE PROJECTNAME = :p) AS N FROM DUAL`,
+      `SELECT (SELECT COUNT(*) FROM PSPROJECTDEFN WHERE PROJECTNAME = :p) + (SELECT COUNT(*) FROM PSPROJECTITEM WHERE PROJECTNAME = :p) AS N FROM DUAL`,
       { p: project });
     if (Number(taken) > 0) throw new ProjectSaveRefusedError(`A project named ${project} already exists, or left items behind.`);
     if (!(await operatorExists(c, request.operatorId))) {
       throw new ProjectSaveRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
     }
     const cols = (await select<{ C: string }>(c,
-      `SELECT COLUMN_NAME AS C FROM ALL_TAB_COLUMNS WHERE OWNER = 'SYSADM' AND TABLE_NAME = 'PSPROJECTDEFN' ORDER BY COLUMN_ID`)).map((r) => r.C);
+      `SELECT COLUMN_NAME AS C FROM ALL_TAB_COLUMNS WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = 'PSPROJECTDEFN' ORDER BY COLUMN_ID`)).map((r) => r.C);
     const known = new Set(['PROJECTNAME', 'VERSION', 'LASTUPDDTTM', 'LASTUPDOPRID', ...Object.keys(NEW_PROJECT_VALUES)]);
     const unknown = cols.filter((col) => !known.has(col));
     if (unknown.length > 0) throw new ProjectSaveRefusedError(`PSPROJECTDEFN has columns this save does not know (${unknown.join(', ')}); refusing to write.`);
@@ -271,10 +271,10 @@ export async function createProject(c: Connection, request: { project: string; o
       binds[`b${i}`] = values[col];
       return `:b${i}`;
     });
-    await expectRows(c, `INSERT INTO SYSADM.PSPROJECTDEFN (${cols.join(', ')}) VALUES (${exprs.join(', ')})`, binds, 1, 'Inserting PSPROJECTDEFN');
-    await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'PJM'`, { v: next.pjm }, 1, 'Updating PSVERSION PJM');
-    await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
-    await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'PJM'`, { v: next.lockPjm }, 1, 'Updating PSLOCK PJM');
+    await expectRows(c, `INSERT INTO PSPROJECTDEFN (${cols.join(', ')}) VALUES (${exprs.join(', ')})`, binds, 1, 'Inserting PSPROJECTDEFN');
+    await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'PJM'`, { v: next.pjm }, 1, 'Updating PSVERSION PJM');
+    await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
+    await expectRows(c, `UPDATE PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'PJM'`, { v: next.lockPjm }, 1, 'Updating PSLOCK PJM');
     const row = await readProject(c, project, false);
     const now = await readCounters(c, false);
     if (!row || Number(row.VERSION) !== next.pjm || row.TS !== lastupddttm ||

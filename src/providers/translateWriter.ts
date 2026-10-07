@@ -53,9 +53,9 @@ interface Counters { pdm: number; xtm: number; sys: number; lockPdm: number; loc
 async function readCounters(c: Connection, forUpdate: boolean): Promise<Counters> {
   const lock = forUpdate ? ' FOR UPDATE' : '';
   const v = await select<{ T: string; V: number }>(c,
-    `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME IN ('PDM', 'XTM', 'SYS')${lock}`);
+    `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSVERSION WHERE OBJECTTYPENAME IN ('PDM', 'XTM', 'SYS')${lock}`);
   const l = await select<{ T: string; V: number }>(c,
-    `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME IN ('PDM', 'XTM')${lock}`);
+    `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSLOCK WHERE OBJECTTYPENAME IN ('PDM', 'XTM')${lock}`);
   const get = (rows: { T: string; V: number }[], name: string) => {
     const r = rows.find((x) => String(x.T).trim() === name);
     if (!r) throw new TranslateSaveRefusedError(`${name} is missing from PSVERSION / PSLOCK; refusing to write.`);
@@ -79,13 +79,13 @@ export async function saveTranslate(c: Connection, field: string, change: Transl
     const scope = writeScopeRefusal(field);
     if (scope) throw new TranslateSaveRefusedError(scope);
     if (change.kind !== 'delete') checkItem(change.item);
-    const [{ N: fieldExists }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f`, { f: field });
+    const [{ N: fieldExists }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSDBFIELD WHERE FIELDNAME = :f`, { f: field });
     if (Number(fieldExists) === 0) throw new TranslateSaveRefusedError(`There is no field named ${field}.`);
 
-    const defn = await select<{ VERSION: number }>(c, `SELECT VERSION FROM SYSADM.PSXLATDEFN WHERE FIELDNAME = :f FOR UPDATE`, { f: field });
+    const defn = await select<{ VERSION: number }>(c, `SELECT VERSION FROM PSXLATDEFN WHERE FIELDNAME = :f FOR UPDATE`, { f: field });
     const items = await select<{ V: string; D: string }>(c,
-      `SELECT FIELDVALUE AS V, TO_CHAR(EFFDT, 'YYYY-MM-DD') AS D FROM SYSADM.PSXLATITEM WHERE FIELDNAME = :f FOR UPDATE`, { f: field });
-    const [{ N: deleted }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSXLATDEFNDEL WHERE FIELDNAME = :f`, { f: field });
+      `SELECT FIELDVALUE AS V, TO_CHAR(EFFDT, 'YYYY-MM-DD') AS D FROM PSXLATITEM WHERE FIELDNAME = :f FOR UPDATE`, { f: field });
+    const [{ N: deleted }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSXLATDEFNDEL WHERE FIELDNAME = :f`, { f: field });
     const key = change.kind === 'delete' ? { value: change.value, effectiveDate: change.effectiveDate } : change.item;
     const exists = items.some((i) => String(i.V).trim() === key.value && i.D === key.effectiveDate);
 
@@ -108,40 +108,40 @@ export async function saveTranslate(c: Connection, field: string, change: Transl
     const k = { f: field, v: key.value, e: key.effectiveDate };
 
     if (change.kind === 'add') {
-      const [sid] = await select<{ N: number }>(c, `SELECT PTNEXTSYSTEMID AS N FROM SYSADM.PSSYSTEMID WHERE RECNAME = 'PSXLATITEM' FOR UPDATE`);
+      const [sid] = await select<{ N: number }>(c, `SELECT PTNEXTSYSTEMID AS N FROM PSSYSTEMID WHERE RECNAME = 'PSXLATITEM' FOR UPDATE`);
       if (!sid) throw new TranslateSaveRefusedError('PSSYSTEMID has no PSXLATITEM row; refusing to write.');
       const syncId = Number(sid.N) + 1;
-      await expectRows(c, `UPDATE SYSADM.PSSYSTEMID SET PTNEXTSYSTEMID = :n WHERE RECNAME = 'PSXLATITEM'`, { n: syncId }, 1, 'Updating PSSYSTEMID');
+      await expectRows(c, `UPDATE PSSYSTEMID SET PTNEXTSYSTEMID = :n WHERE RECNAME = 'PSXLATITEM'`, { n: syncId }, 1, 'Updating PSSYSTEMID');
       if (defn.length === 0) {
-        await expectRows(c, `INSERT INTO SYSADM.PSXLATDEFN (FIELDNAME, VERSION) VALUES (:f, :v)`, { f: field, v: next.xtm }, 1, 'Inserting PSXLATDEFN');
+        await expectRows(c, `INSERT INTO PSXLATDEFN (FIELDNAME, VERSION) VALUES (:f, :v)`, { f: field, v: next.xtm }, 1, 'Inserting PSXLATDEFN');
       } else {
-        await expectRows(c, `UPDATE SYSADM.PSXLATDEFN SET VERSION = :v WHERE FIELDNAME = :f`, { f: field, v: next.xtm }, 1, 'Updating PSXLATDEFN');
+        await expectRows(c, `UPDATE PSXLATDEFN SET VERSION = :v WHERE FIELDNAME = :f`, { f: field, v: next.xtm }, 1, 'Updating PSXLATDEFN');
       }
-      if (Number(deleted) > 0) await c.execute(`DELETE FROM SYSADM.PSXLATDEFNDEL WHERE FIELDNAME = :f`, { f: field });
+      if (Number(deleted) > 0) await c.execute(`DELETE FROM PSXLATDEFNDEL WHERE FIELDNAME = :f`, { f: field });
       await expectRows(c,
-        `INSERT INTO SYSADM.PSXLATITEM (FIELDNAME, FIELDVALUE, EFFDT, EFF_STATUS, XLATLONGNAME, XLATSHORTNAME, LASTUPDDTTM, LASTUPDOPRID, SYNCID)
+        `INSERT INTO PSXLATITEM (FIELDNAME, FIELDVALUE, EFFDT, EFF_STATUS, XLATLONGNAME, XLATSHORTNAME, LASTUPDDTTM, LASTUPDOPRID, SYNCID)
          VALUES (:f, :v, TO_DATE(:e, 'YYYY-MM-DD'), :s, :l, :sh, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), :op, :sync)`,
         { ...k, s: change.item.status, l: change.item.longName, sh: change.item.shortName, ts, op: operatorId, sync: syncId }, 1, 'Inserting PSXLATITEM');
     } else if (change.kind === 'change') {
       await expectRows(c,
-        `UPDATE SYSADM.PSXLATITEM SET EFF_STATUS = :s, XLATLONGNAME = :l, XLATSHORTNAME = :sh,
+        `UPDATE PSXLATITEM SET EFF_STATUS = :s, XLATLONGNAME = :l, XLATSHORTNAME = :sh,
                 LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
           WHERE FIELDNAME = :f AND FIELDVALUE = :v AND EFFDT = TO_DATE(:e, 'YYYY-MM-DD')`,
         { ...k, s: change.item.status, l: change.item.longName, sh: change.item.shortName, ts, op: operatorId }, 1, 'Updating PSXLATITEM');
-      await expectRows(c, `UPDATE SYSADM.PSXLATDEFN SET VERSION = :v WHERE FIELDNAME = :f`, { f: field, v: next.xtm }, 1, 'Updating PSXLATDEFN');
+      await expectRows(c, `UPDATE PSXLATDEFN SET VERSION = :v WHERE FIELDNAME = :f`, { f: field, v: next.xtm }, 1, 'Updating PSXLATDEFN');
     } else {
-      await expectRows(c, `DELETE FROM SYSADM.PSXLATITEM WHERE FIELDNAME = :f AND FIELDVALUE = :v AND EFFDT = TO_DATE(:e, 'YYYY-MM-DD')`, k, 1, 'Deleting PSXLATITEM');
+      await expectRows(c, `DELETE FROM PSXLATITEM WHERE FIELDNAME = :f AND FIELDVALUE = :v AND EFFDT = TO_DATE(:e, 'YYYY-MM-DD')`, k, 1, 'Deleting PSXLATITEM');
       if (items.length === 1) {
-        await expectRows(c, `DELETE FROM SYSADM.PSXLATDEFN WHERE FIELDNAME = :f`, { f: field }, 1, 'Deleting PSXLATDEFN');
-        await c.execute(`DELETE FROM SYSADM.PSXLATDEFNDEL WHERE FIELDNAME = :f`, { f: field });
-        await expectRows(c, `INSERT INTO SYSADM.PSXLATDEFNDEL (FIELDNAME, VERSION) VALUES (:f, :v)`, { f: field, v: next.xtm }, 1, 'Inserting PSXLATDEFNDEL');
+        await expectRows(c, `DELETE FROM PSXLATDEFN WHERE FIELDNAME = :f`, { f: field }, 1, 'Deleting PSXLATDEFN');
+        await c.execute(`DELETE FROM PSXLATDEFNDEL WHERE FIELDNAME = :f`, { f: field });
+        await expectRows(c, `INSERT INTO PSXLATDEFNDEL (FIELDNAME, VERSION) VALUES (:f, :v)`, { f: field, v: next.xtm }, 1, 'Inserting PSXLATDEFNDEL');
       } else {
-        await expectRows(c, `UPDATE SYSADM.PSXLATDEFN SET VERSION = :v WHERE FIELDNAME = :f`, { f: field, v: next.xtm }, 1, 'Updating PSXLATDEFN');
+        await expectRows(c, `UPDATE PSXLATDEFN SET VERSION = :v WHERE FIELDNAME = :f`, { f: field, v: next.xtm }, 1, 'Updating PSXLATDEFN');
       }
     }
     for (const [table, name, value] of [['PSVERSION', 'PDM', next.pdm], ['PSVERSION', 'XTM', next.xtm], ['PSVERSION', 'SYS', next.sys],
       ['PSLOCK', 'PDM', next.lockPdm], ['PSLOCK', 'XTM', next.lockXtm]] as const) {
-      await expectRows(c, `UPDATE SYSADM.${table} SET VERSION = :v WHERE OBJECTTYPENAME = :n`, { v: value, n: name }, 1, `Updating ${table} ${name}`);
+      await expectRows(c, `UPDATE ${table} SET VERSION = :v WHERE OBJECTTYPENAME = :n`, { v: value, n: name }, 1, `Updating ${table} ${name}`);
     }
     const now = await readCounters(c, false);
     if ((Object.keys(next) as (keyof Counters)[]).some((x) => now[x] !== next[x])) {

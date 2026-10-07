@@ -32,16 +32,16 @@ export async function createPackage(c: Connection, request: { name: string; oper
     const scope = writeScopeRefusal(name);
     if (scope) throw new PackageCreateRefusedError(scope);
     const [{ N: taken }] = await select<{ N: number }>(c,
-      `SELECT (SELECT COUNT(*) FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :n OR PACKAGEID = :n)
-            + (SELECT COUNT(*) FROM SYSADM.PSPCMPROG WHERE OBJECTID1 = 104 AND OBJECTVALUE1 = :n) AS N FROM DUAL`, { n: name });
+      `SELECT (SELECT COUNT(*) FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :n OR PACKAGEID = :n)
+            + (SELECT COUNT(*) FROM PSPCMPROG WHERE OBJECTID1 = 104 AND OBJECTVALUE1 = :n) AS N FROM DUAL`, { n: name });
     if (Number(taken) > 0) throw new PackageCreateRefusedError(`A package named ${name} already exists, or left rows behind.`);
     if (!(await operatorExists(c, request.operatorId))) {
       throw new PackageCreateRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
     }
 
     const v = await select<{ T: string; V: number }>(c,
-      `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME IN ('APM', 'SYS') FOR UPDATE`);
-    const l = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME = 'APM' FOR UPDATE`);
+      `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSVERSION WHERE OBJECTTYPENAME IN ('APM', 'SYS') FOR UPDATE`);
+    const l = await select<{ V: number }>(c, `SELECT VERSION AS V FROM PSLOCK WHERE OBJECTTYPENAME = 'APM' FOR UPDATE`);
     const get = (n: string) => {
       const r = v.find((x) => String(x.T).trim() === n);
       if (!r) throw new PackageCreateRefusedError(`PSVERSION ${n} is missing; refusing to write.`);
@@ -53,16 +53,16 @@ export async function createPackage(c: Connection, request: { name: string; oper
       `SELECT TO_CHAR(CAST(SYSTIMESTAMP AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM DUAL`);
 
     await expectRows(c,
-      `INSERT INTO SYSADM.PSPACKAGEDEFN (PACKAGEID, PACKAGEROOT, QUALIFYPATH, PACKAGELEVEL, PACKAGEREF, DESCR, VERSION,
+      `INSERT INTO PSPACKAGEDEFN (PACKAGEID, PACKAGEROOT, QUALIFYPATH, PACKAGELEVEL, PACKAGEREF, DESCR, VERSION,
                                          LASTUPDDTTM, LASTUPDOPRID, OBJECTOWNERID, DESCRLONG)
        VALUES (:n, :n, '.', 0, ' ', ' ', :v, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), :op, ' ', NULL)`,
       { n: name, v: next.apm, ts: lastupddttm, op: request.operatorId }, 1, 'Inserting PSPACKAGEDEFN');
-    await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: next.apm }, 1, 'Updating PSVERSION APM');
-    await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
-    await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: next.lockApm }, 1, 'Updating PSLOCK APM');
+    await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: next.apm }, 1, 'Updating PSVERSION APM');
+    await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
+    await expectRows(c, `UPDATE PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: next.lockApm }, 1, 'Updating PSLOCK APM');
 
     const [d] = await select<{ VERSION: number; TS: string }>(c,
-      `SELECT VERSION, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM SYSADM.PSPACKAGEDEFN
+      `SELECT VERSION, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM PSPACKAGEDEFN
         WHERE PACKAGEROOT = :n AND PACKAGEID = :n AND QUALIFYPATH = '.'`, { n: name });
     if (!d || Number(d.VERSION) !== next.apm || d.TS !== lastupddttm) throw new PackageCreateRefusedError('The package did not land as planned; rolled back.');
     await c.commit();

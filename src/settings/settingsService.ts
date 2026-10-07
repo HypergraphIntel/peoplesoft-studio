@@ -219,7 +219,7 @@ export class SettingsService implements Disposable {
       kindLabel: KIND_LABELS[config.kind] ?? config.kind,
       // Copied field by field: whatever else is in the settings object stays out of the page.
       ...(config.kind === 'oracle'
-        ? { connectString: config.connectString ?? '', user: config.user ?? '' }
+        ? { connectString: config.connectString ?? '', user: config.user ?? '', schema: config.schema ?? '' }
         : { path: config.path ?? '' }),
       connected: entry.connected,
       selected: entry.id === selectedId,
