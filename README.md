@@ -55,14 +55,30 @@ definitions, outages or any other damage.
 4. Verify that the MCP server is running: in the **PeopleSoft Studio**
    sidebar, the **Settings** panel shows **MCP server** below the compiler
    profile, green while it is running.
-5. Register PeopleSoft Studio with Codex.
-
-   Open the VS Code Command Palette ( CTRL + SHIFT + P ) and run:
+5. Connect an AI client to the MCP server. Open the VS Code Command Palette
+   ( CTRL + SHIFT + P ) and run:
 
    ```text
    PeopleSoft: Configure AI Client
    ```
 
+   Choose your client:
+
+   - **Claude Code**: registers the server for all your local projects.
+     The same as running:
+     ```bash
+     claude mcp add --transport http --scope user peoplesoftStudio http://127.0.0.1:7337/mcp
+     ```
+   - **Codex** (CLI / IDE): the same as running:
+     ```bash
+     codex mcp add peoplesoftStudio --url http://127.0.0.1:7337/mcp
+     ```
+   - **Any other MCP client**: choose **Copy MCP URL** and add it to the
+     client as a Streamable HTTP server named `peoplesoftStudio`.
+     **Manual Setup** shows the commands above to copy.
+
+   The URL uses the port in the `peoplesoft.mcp.port` setting (7337 by
+   default). Restart or reload the client if it was already running.
 
 ## What works now
 
@@ -181,13 +197,15 @@ be installed together. `richardwood.peoplesoft-datamover` only claims `.dms` and
 
 ## Troubleshooting
 
-1. Verify the Codex MCP configuration from a command line:
+1. Check that the MCP server is running: the **Settings** panel's **MCP
+   server** row is green. If it is not, run *PeopleSoft: Start MCP Server*.
+2. Check that your client has the server registered as `peoplesoftStudio`:
    ```bash
-   codex mcp list
+   claude mcp list    # Claude Code
+   codex mcp list     # Codex
    ```
-   You should see:
-   ```text
-   peoplesoftStudio
-   ```
-2. Restart or reload Codex if it was already running.
+   For another client, check that its MCP settings hold the URL from
+   *Copy MCP URL*.
+3. Restart or reload the client if it was already running when you
+   registered the server.
 
