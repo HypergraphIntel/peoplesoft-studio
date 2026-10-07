@@ -47,7 +47,7 @@ microseconds apart; the writer stamps both with one timestamp.
 ## The writer
 
 `saveStyleSheet` creates (no opened version) or saves (the version it was
-opened at) a scratch (`ZZ_PCODE_LAB%`) freeform style sheet:
+opened at) a freeform style sheet:
 
 - create: `PSSTYLSHEETDEFN` (type 2, VERSION = new SSM) and `PSCONTDEFN`
   (CONTTYPE 9, VERSION = CRM + 1, CRM unchanged) inserted, the text inserted
@@ -59,7 +59,7 @@ opened at) a scratch (`ZZ_PCODE_LAB%`) freeform style sheet:
 Direct cases x10 (an edit of ZZ_PCODE_LAB_CSS) and x11 (ZZ_PCODE_LAB_CSS3
 created) wrote s02's and s01 / s04's rows and counters.
 
-Refused: names outside the scratch scope; an existing name, or leftover
+Refused: names outside `peoplesoft.writeNamePrefix` when it is set; an existing name, or leftover
 rows (including a `PSSTYLSHEETDEL` marker), on create; a classic or sub
 style sheet; style classes or language rows; the text cases HTML refuses.
 

@@ -307,7 +307,7 @@ scratch programs in `ZZ_PCODE_LAB` on the lab database, never on HCDEV.
 ## Creating Record Field PeopleCode
 
 A Record Field event with no program opens empty in the editor (Writable
-connection, scratch record); saving it creates the program. The rows are
+connection); saving it creates the program. The rows are
 the save's (`planProgram`), with nothing to replace: App Designer's create
 (case 01-create) and re-create after a delete (11b-recreate) wrote exactly
 the program's PSPCMTXT / PSPCMPROG / PSPCMNAME rows, removed any

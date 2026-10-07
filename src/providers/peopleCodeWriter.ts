@@ -4,7 +4,7 @@ import {
   prepareSourceForSave, SaveRefusedError, storedText, targetForKey, validateOperatorId,
   type PcmKey, type StoredProgram
 } from '../peoplecode/writeback/savePlan.js';
-import { isScratchName } from '../peoplecode/corpus/labSafety.js';
+import { writeScopeRefusal } from './writeScope.js';
 import { RECORD_FIELD_EVENTS } from '../model/recordEvents.js';
 
 /*
@@ -174,11 +174,10 @@ export async function savePeopleCode(
   try {
     const operatorError = validateOperatorId(request.operatorId);
     if (operatorError) throw new SaveRefusedError(operatorError);
-    // Scope before any lock: a definition outside the scratch namespace is
-    // never read FOR UPDATE.
-    if (!isScratchName(parts[0])) {
-      throw new SaveRefusedError(`${parts[0]} is outside ZZ_PCODE_LAB: PeopleCode saving is limited to scratch definitions.`);
-    }
+    // Scope before any lock: a definition outside the write scope is never
+    // read FOR UPDATE.
+    const scope = writeScopeRefusal(parts[0]);
+    if (scope) throw new SaveRefusedError(scope);
 
     // 1-2
     const found = await readStoredProgram(c, oracledb, parts, true);

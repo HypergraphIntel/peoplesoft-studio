@@ -48,8 +48,8 @@ export const EDITABLE_USE_BITS = UseEdit.Key | UseEdit.DuplicateOrderKey | UseEd
   UseEdit.Required | UseEdit.PromptTable | UseEdit.YesNoTable | UseEdit.TranslateTable | UseEdit.UseDefaultLabel | UseEdit.AutoUpdate |
   UseEdit.AltSearchKey;
 
-/** The USEEDIT2 bits an edit may change (r10, r15, r16). */
-export const EDITABLE_USE2_BITS: number = UseEdit2.DoNotTraceValue | UseEdit2.SmartPrompt | UseEdit2.SmartDropDown;
+/** The USEEDIT2 bits an edit may change (r10, r15, r16, r67-r72). */
+export const EDITABLE_USE2_BITS: number = UseEdit2.DoNotTraceValue | UseEdit2.SmartPrompt | UseEdit2.SmartDropDown | UseEdit2.InMemory;
 
 /**
  * DEFGUICONTROL values that may be set: App Designer stored 99 (new fields)
@@ -91,6 +91,8 @@ export interface RecordEditState {
   isNew?: boolean;
   /** Record Type tab changes (setRecordType). */
   type?: RecordTypeEdits;
+  /** Set by setInMemory for All Fields or Off: the fields' In Memory bits change without restamping them (r67, r70). */
+  inMemoryBulk?: boolean;
 }
 
 /**
@@ -182,6 +184,8 @@ export interface RecordPropertyEdits {
   timestampField?: string;
   /** SYSTEMIDFIELDNAME (r54): a Number field, which takes Auto-Update the same way (7 of 7 on HRDMO). */
   systemIdField?: string;
+  /** Oracle In-Memory (r67-r72); set with setInMemory, which marks the fields. */
+  inMemory?: InMemoryMode;
 }
 
 const PROPERTY_COLUMNS: Readonly<Record<string, string>> = {
@@ -196,6 +200,7 @@ export function setRecordProperties(state: RecordEditState, change: RecordProper
   for (const [k, v] of Object.entries(change) as [keyof RecordPropertyEdits, unknown][]) {
     if (v === undefined) continue;
     if (k === 'toolsTable' || k === 'managed') { next[k] = Boolean(v); continue; }
+    if (k === 'inMemory') throw new RecordSaveRefusedError('Oracle In-Memory is changed with setInMemory.');
     if (k === 'recUse') {
       const n = Number(v);
       if (!Number.isInteger(n) || n < 0 || (n & ~0xF) !== 0) throw new RecordSaveRefusedError('The audit options are Add, Change, Delete and Selective.');
@@ -233,6 +238,64 @@ export function setRecordProperties(state: RecordEditState, change: RecordProper
     next[k] = name;
   }
   return { ...state, properties: next };
+}
+
+/** The Use tab's Oracle In-Memory setting. */
+export type InMemoryMode = 'off' | 'all' | 'selective';
+
+/** The Oracle In-Memory setting PSRECDEFN.AUXFLAGMASK holds. */
+export function inMemoryMode(auxFlagMask: number): InMemoryMode {
+  return (auxFlagMask & RecordFlag.InMemorySelectiveFields) !== 0 ? 'selective'
+    : (auxFlagMask & RecordFlag.InMemoryAllFields) !== 0 ? 'all' : 'off';
+}
+
+/**
+ * Changes Oracle In-Memory as App Designer saved it:
+ *
+ * - Off to All Fields (r67): the record bit, and the In Memory bit on every
+ *   field but a CLOB column; a record holding one is stored as Selective
+ *   Fields (R6, r65), as App Designer shows it reopened.
+ * - Off to Selective Fields (r71): the record bit alone; fields are then
+ *   chosen in Record Field Properties (r72).
+ * - Either to Off (r70): the bits cleared, every field's In Memory bit with
+ *   them.
+ *
+ * Fields keep their other USEEDIT2 bits: r67 also cleared Do Not Trace
+ * Value, Smart Prompt and Smart Drop-Down on four fields, which r70 and r72
+ * did not -- App Designer losing settings, not storing In Memory, and not
+ * repeated here. Switching between All and Selective Fields directly has not
+ * been seen; it is refused.
+ *
+ * `stored` is the record's stored setting; `column(name)` its field's
+ * column type ('CLOB', 'BLOB' or another), from recordDdl.columnType.
+ */
+export function setInMemory(state: RecordEditState, mode: InMemoryMode,
+  context: { stored: InMemoryMode; storedType: RecordType; column: (field: string) => string }): RecordEditState {
+  const current = state.properties?.inMemory ?? context.stored;
+  if (mode === current) return state;
+  if ((state.type?.recordType ?? context.storedType) !== RecordType.Table) {
+    throw new RecordSaveRefusedError('Oracle In-Memory has been seen only on SQL Tables.');
+  }
+  if (current !== 'off' && mode !== 'off') {
+    throw new RecordSaveRefusedError('Switching between All Fields and Selective Fields has not been seen in App Designer: turn In Memory off and save first.');
+  }
+  let stored: InMemoryMode = mode;
+  let fields = state.fields;
+  if (mode === 'all') {
+    const own = fields.filter((f) => !f.isSubrecord);
+    const blob = own.find((f) => context.column(f.name) === 'BLOB');
+    if (blob) throw new RecordSaveRefusedError(`${blob.name} is a BLOB column: how App Designer holds one In Memory has not been seen.`);
+    const held = (f: RecordEditField) => !f.isSubrecord && context.column(f.name) !== 'CLOB';
+    if (own.some((f) => !held(f))) stored = 'selective';
+    fields = fields.map((f) => (held(f) ? { ...f, useEdit2: (f.useEdit2 ?? 0) | UseEdit2.InMemory } : f));
+  } else if (mode === 'off') {
+    fields = fields.map((f) => (f.isSubrecord ? f : { ...f, useEdit2: (f.useEdit2 ?? 0) & ~UseEdit2.InMemory }));
+  }
+  const properties: RecordPropertyEdits = { ...state.properties };
+  if (stored === context.stored) delete properties.inMemory;
+  else properties.inMemory = stored;
+  // How the save marks the fields (planRecordSave): with All Fields or Off they are not restamped.
+  return { ...state, fields, properties, inMemoryBulk: mode !== 'selective' || undefined };
 }
 
 // ---------------------------------------------------------------------------
@@ -293,7 +356,7 @@ export interface UseChange {
   key?: boolean; dupOrder?: boolean; altSearch?: boolean; descending?: boolean; searchKey?: boolean; searchEdit?: boolean; listBox?: boolean;
   fromSearch?: boolean; throughSearch?: boolean; defaultSearch?: boolean; disableAdvancedSearch?: boolean;
   allowSearchEvents?: boolean; auditAdd?: boolean; auditChange?: boolean; auditDelete?: boolean;
-  systemMaintained?: boolean; doNotTrace?: boolean; smartPrompt?: boolean; smartDropDown?: boolean;
+  systemMaintained?: boolean; doNotTrace?: boolean; smartPrompt?: boolean; smartDropDown?: boolean; inMemory?: boolean;
 }
 
 const CHANGE_BITS: readonly [keyof UseChange, UseEdit][] = [
@@ -318,7 +381,7 @@ export function setUse(state: RecordEditState, index: number, change: UseChange)
   let useEdit2 = f.useEdit2 ?? 0;
   const set = (bit: UseEdit, on: boolean) => { useEdit = on ? useEdit | bit : useEdit & ~bit; };
   for (const [name, bit] of [['doNotTrace', UseEdit2.DoNotTraceValue], ['smartPrompt', UseEdit2.SmartPrompt],
-    ['smartDropDown', UseEdit2.SmartDropDown]] as const) {
+    ['smartDropDown', UseEdit2.SmartDropDown], ['inMemory', UseEdit2.InMemory]] as const) {
     const v = change[name];
     if (v !== undefined) useEdit2 = v ? useEdit2 | bit : useEdit2 & ~bit;
   }
@@ -585,6 +648,14 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
 
   const byName = new Map(stored.fields.map((f) => [str(f.FIELDNAME), f]));
   const seen = new Set<string>();
+  const storedMask = Number(stored.defn?.AUXFLAGMASK ?? 0);
+  const inMemory = edit.properties?.inMemory ?? inMemoryMode(storedMask);
+  // A field's In Memory bit: set for All Fields / cleared for Off without a restamp (r67, r70); chosen one by one,
+  // only under Selective Fields, and restamped (r72).
+  const inMemoryChange = (f: RecordEditField, old: number) => {
+    if (((old ^ (f.useEdit2 ?? old)) & UseEdit2.InMemory) === 0 || edit.inMemoryBulk) return;
+    if (inMemory !== 'selective') throw new RecordSaveRefusedError(`${f.name}: a field is chosen for In Memory only under Selective Fields.`);
+  };
   const fields: Row[] = edit.fields.map((f, i) => {
     if (seen.has(f.name)) throw new RecordSaveRefusedError(`${f.name} is listed twice.`);
     seen.add(f.name);
@@ -599,6 +670,8 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
     }
     if (f.isNew) {
       if (byName.has(f.name)) throw new RecordSaveRefusedError(`${f.name} is already in ${stored.recname}.`);
+      if (inMemory === 'all') throw new RecordSaveRefusedError(`Inserting a field into an In Memory (All Fields) record has not been seen in App Designer.`);
+      inMemoryChange(f, 0);
       return {
         RECNAME: stored.recname, FIELDNAME: f.name, FIELDNUM: fieldNum, ...NEW_RECFIELD_VALUES, ...columns(f),
         USEEDIT: f.useEdit, USEEDIT2: f.useEdit2 ?? 0, LASTUPDDTTM: stamp.ts, LASTUPDOPRID: stamp.operatorId
@@ -611,11 +684,13 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
       return { ...old, FIELDNUM: fieldNum };
     }
     const useEdit2 = f.useEdit2 ?? Number(old.USEEDIT2 ?? 0);
+    inMemoryChange(f, Number(old.USEEDIT2 ?? 0));
     const offLimits = ((Number(old.USEEDIT) ^ f.useEdit) & ~EDITABLE_USE_BITS) | ((Number(old.USEEDIT2 ?? 0) ^ useEdit2) & ~EDITABLE_USE2_BITS);
     if (offLimits !== 0) throw new RecordSaveRefusedError(`${f.name}: that setting cannot be changed here yet.`);
     const cols = columns(f);
     // Auto-Update follows the record's Timestamp Field without restamping the field row (r51).
-    const changed = ((Number(old.USEEDIT) ^ f.useEdit) & ~UseEdit.AutoUpdate) !== 0 || Number(old.USEEDIT2 ?? 0) !== useEdit2 ||
+    const quiet2 = edit.inMemoryBulk ? UseEdit2.InMemory : 0;
+    const changed = ((Number(old.USEEDIT) ^ f.useEdit) & ~UseEdit.AutoUpdate) !== 0 || ((Number(old.USEEDIT2 ?? 0) ^ useEdit2) & ~quiet2) !== 0 ||
       Object.entries(cols).some(([k, v]) => str(old[k]) !== str(v));
     return {
       ...old, ...cols, FIELDNUM: fieldNum, USEEDIT: f.useEdit, ...('USEEDIT2' in old ? { USEEDIT2: useEdit2 } : {}),
@@ -626,6 +701,9 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
   // Removing a subrecord removes its row and its expanded rows; PGM moves, as for a removed field (r56).
 
   const finalType = edit.type?.recordType ?? stored.recordType;
+  if (inMemory !== 'off' && finalType !== RecordType.Table) {
+    throw new RecordSaveRefusedError('Oracle In-Memory has been seen only on SQL Tables: turn it off before changing the record type.');
+  }
   if (finalType !== RecordType.DerivedWork && fields.some((f) => str(f.SUBRECORD) === 'Y')) {
     throw new RecordSaveRefusedError('A record with subrecords stays Derived/Work here, as yet.');
   }
@@ -681,12 +759,16 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
   }
   if (props.recUse !== undefined) recordColumns.RECUSE = props.recUse;
   if (props.definition !== undefined) recordColumns.DESCRLONG = props.definition === '' ? null : props.definition;
-  if (props.toolsTable !== undefined || props.managed !== undefined) {
+  if (props.toolsTable !== undefined || props.managed !== undefined || props.inMemory !== undefined) {
     if (!stored.defn) throw new RecordSaveRefusedError('The stored record row is needed to change its flags.');
-    let mask = Number(stored.defn.AUXFLAGMASK);
+    let mask = storedMask;
     const flag = (bit: RecordFlag, on: boolean | undefined) => { if (on !== undefined) mask = on ? mask | bit : mask & ~bit; };
     flag(RecordFlag.ToolsTable, props.toolsTable);
     flag(RecordFlag.Managed, props.managed);
+    if (props.inMemory !== undefined) {
+      flag(RecordFlag.InMemoryAllFields, props.inMemory === 'all');
+      flag(RecordFlag.InMemorySelectiveFields, props.inMemory === 'selective');
+    }
     recordColumns.AUXFLAGMASK = mask;
   }
 

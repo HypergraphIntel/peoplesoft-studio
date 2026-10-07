@@ -5,7 +5,7 @@ import {
   describeItem, itemKeyColumns, MIN_PROJECT_ITEM_SLOTS, PROJECT_ITEM_DEFAULTS, projectItemFor,
   ProjectSaveRefusedError, type ProjectItem
 } from '../model/projectItems.js';
-import { isScratchName } from '../peoplecode/corpus/labSafety.js';
+import { writeScopeRefusal } from './writeScope.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT, VALUE_PREDICATE, valueBinds } from './peopleCodeWriter.js';
 
@@ -245,7 +245,8 @@ export async function createProject(c: Connection, request: { project: string; o
     const operatorError = validateOperatorId(request.operatorId);
     if (operatorError) throw new ProjectSaveRefusedError(operatorError);
     if (!/^[A-Z0-9_]{1,30}$/.test(project)) throw new ProjectSaveRefusedError(`${project} is not a valid project name (A-Z, 0-9, _; at most 30).`);
-    if (!isScratchName(project)) throw new ProjectSaveRefusedError(`${project} is outside ZZ_PCODE_LAB: creating projects is limited to scratch names for now.`);
+    const scope = writeScopeRefusal(project);
+    if (scope) throw new ProjectSaveRefusedError(scope);
     const [{ N: taken }] = await select<{ N: number }>(c,
       `SELECT (SELECT COUNT(*) FROM SYSADM.PSPROJECTDEFN WHERE PROJECTNAME = :p) + (SELECT COUNT(*) FROM SYSADM.PSPROJECTITEM WHERE PROJECTNAME = :p) AS N FROM DUAL`,
       { p: project });

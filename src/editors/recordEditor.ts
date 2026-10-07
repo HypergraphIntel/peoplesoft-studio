@@ -6,14 +6,14 @@ import { DefinitionType, makeKey, type DefinitionKey } from '../model/definition
 import type { DefinitionProvider } from '../providers/provider.js';
 import { OracleProvider } from '../providers/oracle.js';
 import { TranslateSaveRefusedError, type TranslateChange } from '../providers/translateWriter.js';
-import { isScratchName } from '../peoplecode/corpus/labSafety.js';
+import { writeScopeRefusal } from '../providers/writeScope.js';
 import type { RecordLayout, RecordLayoutField } from '../model/recordLayout.js';
 import {
   insertField, insertSubrecord, layoutEditRefusal, moveField, RecordSaveRefusedError, removeField, removeFields, setDefault, setEdits, setLabel, setPageControl,
-  RECORD_TYPE_CHANGES, setRecordProperties, setRecordType, setUse, type EditType, type RecordTypeEdits, type RecordEditState, type RecordPropertyEdits, type UseChange
+  RECORD_TYPE_CHANGES, inMemoryMode, setInMemory, setRecordProperties, setRecordType, setUse, type EditType, type RecordTypeEdits, type RecordEditState, type RecordPropertyEdits, type UseChange
 } from '../model/recordEdit.js';
 import { renderRecordHtml } from './recordHtml.js';
-import { createTableScript } from '../model/recordDdl.js';
+import { createTableScript, lobColumn } from '../model/recordDdl.js';
 import {
   FIELD_TYPE_LABELS, RecordDefinition, RecordField, RecordType, UseEdit, UseEdit2, hasFlag
 } from '../model/record.js';
@@ -22,8 +22,8 @@ import {
  * The record definition editor -- App Designer's record editor.
  *
  * Read-only by default. Editable where a save is proven (docs/RECORD_SAVE.md):
- * an Oracle connection set to Writable with an Operator ID, a scratch record
- * (ZZ_PCODE_LAB%) of a shape the App Designer cases cover. Changes are held
+ * an Oracle connection set to Writable with an Operator ID, a record of a
+ * shape the App Designer cases cover. Changes are held
  * in the document -- VS Code's dirty marker, undo / redo, revert -- and
  * written by Save through OracleProvider.saveRecord in one transaction.
  */
@@ -134,7 +134,8 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
           if (!f) return;
           let change: UseChange;
           const use2: Record<string, UseEdit2> = {
-            doNotTrace: UseEdit2.DoNotTraceValue, smartPrompt: UseEdit2.SmartPrompt, smartDropDown: UseEdit2.SmartDropDown
+            doNotTrace: UseEdit2.DoNotTraceValue, smartPrompt: UseEdit2.SmartPrompt, smartDropDown: UseEdit2.SmartDropDown,
+            inMemory: UseEdit2.InMemory
           };
           const bit2 = use2[String(msg.flag)];
           if (bit2 !== undefined) change = { [String(msg.flag)]: !hasFlag(f.useEdit2 ?? 0, bit2) };
@@ -174,8 +175,17 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
           return this.apply(doc, setRecordType(state, doc.layout!.recordType, change), 'Change Record Type');
         }
         case 'recordProps': {
-          const change = (msg as { change?: RecordPropertyEdits }).change ?? {};
-          return this.apply(doc, setRecordProperties(state, change), 'Change Record Properties');
+          const { inMemory, ...change } = (msg as { change?: RecordPropertyEdits }).change ?? {};
+          let next = state;
+          if (inMemory !== undefined) {
+            if (!['off', 'all', 'selective'].includes(inMemory)) return;
+            next = setInMemory(next, inMemory, {
+              stored: inMemoryMode(doc.layout!.properties?.auxFlagMask ?? 0), storedType: doc.layout!.recordType,
+              column: (name) => lobColumn(doc.fieldInfo(name) ?? {}) ?? ''
+            });
+          }
+          if (Object.keys(change).length) next = setRecordProperties(next, change);
+          return this.apply(doc, next, 'Change Record Properties');
         }
         case 'edits': {
           const m2 = msg as { index?: number; required?: boolean; edit?: EditType; promptTable?: string };
@@ -297,8 +307,7 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
     if (!(p instanceof OracleProvider)) return 'translate values are changed only in a database connection.';
     if (!this.workspace.isWritable(p.id)) return `${p.displayName} is read-only (Access in PeopleSoft Studio Settings).`;
     if (!this.workspace.configFor(p.id)?.peoplesoftOperatorId?.trim()) return `set the Operator ID for ${p.displayName} in PeopleSoft Studio Settings.`;
-    if (!isScratchName(field)) return 'translate values are changed only for scratch fields (ZZ_PCODE_LAB%) for now.';
-    return undefined;
+    return writeScopeRefusal(field);
   }
 
   /** Adds, changes or deletes a translate value at once (translateWriter.ts), then shows the field's values again. */
@@ -399,6 +408,9 @@ class RecordDocument implements vscode.CustomDocument {
   readOnlyReason?: string;
   /** Display values by field name, for fields inserted in this edit. */
   private readonly info = new Map<string, RecordLayoutField>();
+
+  /** A field's type, length and format, as the editor knows them. */
+  fieldInfo(name: string): RecordLayoutField | undefined { return this.info.get(name); }
   error?: string;
 
   constructor(readonly uri: vscode.Uri, private readonly workspace: Workspace) {}
@@ -446,8 +458,7 @@ class RecordDocument implements vscode.CustomDocument {
     if (!(p instanceof OracleProvider)) return undefined;
     if (!this.workspace.isWritable(p.id)) return `${p.displayName} is read-only (Access in PeopleSoft Studio Settings).`;
     if (!this.workspace.configFor(p.id)?.peoplesoftOperatorId?.trim()) return `set the Operator ID for ${p.displayName} in PeopleSoft Studio Settings to edit records.`;
-    if (!isScratchName(layout.name)) return 'saving records is limited to scratch records (ZZ_PCODE_LAB%) for now.';
-    return layoutEditRefusal(layout);
+    return writeScopeRefusal(layout.name) ?? layoutEditRefusal(layout);
   }
 
   /** Display values for a subrecord inserted in this edit: a subrecord row, as the record shows stored ones. */
@@ -514,8 +525,9 @@ class RecordDocument implements vscode.CustomDocument {
       ...(p.recUse !== undefined ? { recUse: p.recUse } : {}),
       ...(p.timestampField !== undefined ? { timestampField: p.timestampField } : {}),
       ...(p.systemIdField !== undefined ? { systemIdField: p.systemIdField } : {}),
-      auxFlagMask: (base.auxFlagMask & ~0x30000) |
-        ((p.toolsTable ?? (base.auxFlagMask & 0x10000) !== 0) ? 0x10000 : 0) | ((p.managed ?? (base.auxFlagMask & 0x20000) !== 0) ? 0x20000 : 0)
+      auxFlagMask: (base.auxFlagMask & ~(0x30000 | (p.inMemory !== undefined ? 0x30000000 : 0))) |
+        ((p.toolsTable ?? (base.auxFlagMask & 0x10000) !== 0) ? 0x10000 : 0) | ((p.managed ?? (base.auxFlagMask & 0x20000) !== 0) ? 0x20000 : 0) |
+        (p.inMemory === 'all' ? 0x10000000 : p.inMemory === 'selective' ? 0x20000000 : 0)
     } : base;
     const type = this.state.type ?? {};
     return {

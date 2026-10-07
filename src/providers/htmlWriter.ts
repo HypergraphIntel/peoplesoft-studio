@@ -1,5 +1,5 @@
 import type { Connection } from 'oracledb';
-import { isScratchName } from '../peoplecode/corpus/labSafety.js';
+import { writeScopeRefusal } from './writeScope.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
 
@@ -18,7 +18,7 @@ import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCo
  *   PSVERSION    CRM + 1, SYS + 1
  *   PSLOCK       CRM + 1
  *
- * Scope: scratch names (ZZ_PCODE_LAB%), HTML (CONTTYPE 4) with one
+ * Scope: HTML (CONTTYPE 4) with one
  * ALTCONTNUM 1 row and no language rows, as all 3,142 on HRDMO are.
  */
 
@@ -99,7 +99,8 @@ export async function saveHtmlDefinition(c: Connection, blobType: unknown, reque
   try {
     const operatorError = validateOperatorId(request.operatorId);
     if (operatorError) throw new HtmlSaveRefusedError(operatorError);
-    if (!isScratchName(name)) throw new HtmlSaveRefusedError(`${name} is outside ZZ_PCODE_LAB: saving HTML is limited to scratch definitions for now.`);
+    const scope = writeScopeRefusal(name);
+    if (scope) throw new HtmlSaveRefusedError(scope);
     if (name.length > 30 || !/^[A-Z0-9_]+$/.test(name)) throw new HtmlSaveRefusedError(`${name} is not a valid definition name (A-Z, 0-9, _; at most 30).`);
     const textError = contentTextRefusal(request.text);
     if (textError) throw new HtmlSaveRefusedError(textError);

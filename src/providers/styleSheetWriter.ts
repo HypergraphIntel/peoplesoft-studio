@@ -1,5 +1,5 @@
 import type { Connection } from 'oracledb';
-import { isScratchName } from '../peoplecode/corpus/labSafety.js';
+import { writeScopeRefusal } from './writeScope.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { contentTextRefusal, htmlChunks } from './htmlWriter.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
@@ -22,7 +22,7 @@ import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCo
  *   PSVERSION        SSM + 1, SYS + 1
  *   PSLOCK           SSM + 1
  *
- * Scope: scratch names (ZZ_PCODE_LAB%), freeform style sheets. Classic and
+ * Scope: freeform style sheets. Classic and
  * sub style sheets (types 0 and 1) are style classes, not text.
  */
 
@@ -75,7 +75,8 @@ export async function saveStyleSheet(c: Connection, blobType: unknown, request: 
   try {
     const operatorError = validateOperatorId(request.operatorId);
     if (operatorError) throw new StyleSheetSaveRefusedError(operatorError);
-    if (!isScratchName(name)) throw new StyleSheetSaveRefusedError(`${name} is outside ZZ_PCODE_LAB: saving style sheets is limited to scratch definitions for now.`);
+    const scope = writeScopeRefusal(name);
+    if (scope) throw new StyleSheetSaveRefusedError(scope);
     if (name.length > 30 || !/^[A-Z0-9_]+$/.test(name)) throw new StyleSheetSaveRefusedError(`${name} is not a valid definition name (A-Z, 0-9, _; at most 30).`);
     const textError = contentTextRefusal(request.text);
     if (textError) throw new StyleSheetSaveRefusedError(textError);

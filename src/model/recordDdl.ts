@@ -91,6 +91,14 @@ export function tableName(r: { name: string; sqlTableName: string }): string {
   return r.sqlTableName.trim() || `PS_${r.name}`;
 }
 
+/** 'CLOB' or 'BLOB' for a field whose column is one, else undefined (and for a field of unknown type). */
+export function lobColumn(f: { type?: FieldType; length?: number; format?: number }): 'CLOB' | 'BLOB' | undefined {
+  if (f.type === undefined) return undefined;
+  if (f.type !== FieldType.LongCharacter && f.type !== FieldType.Image) return undefined;
+  const t = columnType({ name: '', type: f.type, length: f.length ?? 0, decimalPositions: 0, format: f.format, useEdit: 0 });
+  return t === 'CLOB' || t === 'BLOB' ? t : undefined;
+}
+
 export function columnType(f: DdlField): string {
   switch (f.type) {
     case FieldType.Character:

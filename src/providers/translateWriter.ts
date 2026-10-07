@@ -1,5 +1,5 @@
 import type { Connection } from 'oracledb';
-import { isScratchName } from '../peoplecode/corpus/labSafety.js';
+import { writeScopeRefusal } from './writeScope.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
 
@@ -22,9 +22,8 @@ import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCo
  *
  * App Designer deletes and reinserts every PSXLATITEM and PSXLATDEFN row of
  * the field; the values it does not change keep their stamp and SYNCID, so
- * only the changed rows are written here. Scope: scratch fields
- * (ZZ_PCODE_LAB%); changing a value's key (value / effective date) is a
- * delete and an add.
+ * only the changed rows are written here. Changing a value's key (value /
+ * effective date) is a delete and an add.
  */
 
 export class TranslateSaveRefusedError extends Error {
@@ -77,7 +76,8 @@ export async function saveTranslate(c: Connection, field: string, change: Transl
   try {
     const operatorError = validateOperatorId(operatorId);
     if (operatorError) throw new TranslateSaveRefusedError(operatorError);
-    if (!isScratchName(field)) throw new TranslateSaveRefusedError(`${field} is outside ZZ_PCODE_LAB: translate values are changed only for scratch fields for now.`);
+    const scope = writeScopeRefusal(field);
+    if (scope) throw new TranslateSaveRefusedError(scope);
     if (change.kind !== 'delete') checkItem(change.item);
     const [{ N: fieldExists }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f`, { f: field });
     if (Number(fieldExists) === 0) throw new TranslateSaveRefusedError(`There is no field named ${field}.`);

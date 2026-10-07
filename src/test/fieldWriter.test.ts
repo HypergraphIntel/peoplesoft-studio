@@ -2,15 +2,23 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { FieldType } from '../model/record.js';
 import { fieldCreateRefusal } from '../providers/fieldWriter.js';
+import { setWriteNamePrefix } from '../providers/writeScope.js';
 
 const field = (over: Partial<Parameters<typeof fieldCreateRefusal>[0]>) => ({
   name: 'ZZ_PCODE_LAB_C09', type: FieldType.Character, length: 10, decimalPositions: 0,
   label: { id: 'ZZ_PCODE_LAB_C09', longName: 'ZZ Lab C09', shortName: 'C09' }, ...over
 });
 
-test('a field is created only as c01 shows and HRDMO bounds: scratch names, known types, real lengths', () => {
+test('a field is created only as c01 shows and HRDMO bounds: any name (unless a prefix is set), known types, real lengths', () => {
   assert.equal(fieldCreateRefusal(field({})), undefined);
-  assert.match(fieldCreateRefusal(field({ name: 'EMPLID' }))!, /outside ZZ_PCODE_LAB/);
+  assert.equal(fieldCreateRefusal(field({ name: 'EMPLID' })), undefined);
+  setWriteNamePrefix('ZZ_PCODE_LAB');
+  try {
+    assert.match(fieldCreateRefusal(field({ name: 'EMPLID' }))!, /does not start with ZZ_PCODE_LAB/);
+    assert.equal(fieldCreateRefusal(field({})), undefined);
+  } finally {
+    setWriteNamePrefix('');
+  }
   assert.match(fieldCreateRefusal(field({ name: 'ZZ_PCODE_LAB_TOO_LONG_NAME' }))!, /at most 18/);
   assert.match(fieldCreateRefusal(field({ type: FieldType.Image }))!, /can be created/);
   assert.equal(fieldCreateRefusal(field({ type: FieldType.ImageReference, length: 30 })), undefined);

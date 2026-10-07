@@ -4,6 +4,15 @@
 
 ### Changed
 
+- **Saving and creating are no longer limited to `ZZ_PCODE_LAB%` names**:
+  every definition on a Writable connection with an Operator ID can be
+  saved or created. The new setting `peoplesoft.writeNamePrefix` limits
+  writes to names starting with a prefix again (empty by default: no
+  limit).
+- **Oracle In-Memory** (Record Properties, Use tab): Off, All Fields or
+  Selective Fields, and each field's In Memory check under Selective
+  Fields, saved as App Designer saves them. All Fields leaves a CLOB field
+  out and is then stored as Selective Fields, as App Designer does.
 - **Subrecords**: Insert Subrecord into a Derived/Work record, remove one,
   and edit records holding subrecords, saved as App Designer saves them (the
   subrecord's fields expanded into the record).
@@ -16,7 +25,7 @@
 - **The Field editor edits fields**: Change Length (and decimals), Add
   Label, Edit Label, Set Default Label and Change Description, each saved
   at once as App Designer saves a field -- the records holding the field
-  take its new version. Scratch fields on Writable connections.
+  take its new version. On Writable connections.
 - Records: remove an SQL Table's last key, change an SQL Table to
   Derived/Work, re-create a record name that was deleted, and set the audit
   record, audit options and Timestamp Field (Record Properties, Use tab),
@@ -29,7 +38,7 @@
   Table Name and Build Sequence No; write a view's SQL. SQL Views and
   Dynamic Views can now be edited like tables (fields, properties, SQL).
   Saved as App Designer saves them (tablespace row, key index and view SQL
-  follow the type). Scratch records on Writable connections.
+  follow the type). On Writable connections.
 - **Build Script** writes App Designer's Create Tables script exactly:
   the database's DDL model and storage parameters, App Designer's column
   types (`SMALLINT`, `INTEGER`, `DECIMAL`, `tIMESTAMP`, `vARCHAR2` ...),
@@ -41,8 +50,7 @@
   does. See [docs/CREATE_DEFINITIONS.md](docs/CREATE_DEFINITIONS.md).
 - **Change Description...** for HTML definitions and freeform style
   sheets (right-click one in a tree, or its editor tab), saved as App
-  Designer saves a description change. Scratch definitions on Writable
-  connections.
+  Designer saves a description change. On Writable connections.
 - Record Field Properties names the Default Page Control (Edit Box,
   Dropdown List, Check Box, Radio Button, Image, System Default) and offers
   each but Image.

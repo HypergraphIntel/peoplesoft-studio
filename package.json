@@ -482,6 +482,11 @@
     "configuration": {
       "title": "PeopleSoft Studio",
       "properties": {
+        "peoplesoft.writeNamePrefix": {
+          "type": "string",
+          "default": "",
+          "description": "Limits saving and creating definitions to names starting with this prefix (for example ZZ_). Empty: no limit."
+        },
         "peoplesoft.connections": {
           "type": "array",
           "default": [],

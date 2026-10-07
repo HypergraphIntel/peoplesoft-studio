@@ -8,12 +8,12 @@ import type { FieldDefinition } from '../model/fieldDefinition.js';
 import { FieldType } from '../model/record.js';
 import { OracleProvider } from '../providers/oracle.js';
 import { CREATABLE_FIELD_TYPES, FIXED_FIELD_LENGTH, FieldCreateRefusedError, type FieldLabelEdit, type FieldSaveRequest } from '../providers/fieldWriter.js';
-import { isScratchName } from '../peoplecode/corpus/labSafety.js';
+import { writeScopeRefusal } from '../providers/writeScope.js';
 import type { DefinitionProvider } from '../providers/provider.js';
 
 /**
  * The field definition editor -- App Designer's Field dialog. On a Writable
- * connection, a scratch field's length, labels and description can be
+ * connection, a field's length, labels and description can be
  * changed: each change is saved at once, as App Designer's field saves are
  * (fieldWriter.ts saveField, cases f02-f06).
  */
@@ -76,7 +76,8 @@ export class FieldEditorProvider implements vscode.CustomReadonlyEditorProvider 
     if (!(provider instanceof OracleProvider)) return 'a project export cannot be saved.';
     if (!this.workspace.isWritable(provider.id)) return `${provider.displayName} is read-only (Access in PeopleSoft Studio Settings).`;
     if (!this.workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim()) return `set the Operator ID for ${provider.displayName} in PeopleSoft Studio Settings.`;
-    if (!isScratchName(field.name)) return 'saving fields is limited to scratch fields (ZZ_PCODE_LAB%) for now.';
+    const scope = writeScopeRefusal(field.name);
+    if (scope) return scope;
     if (!CREATABLE_FIELD_TYPES.includes(field.type)) return 'fields of this type cannot be saved here yet.';
     return undefined;
   }

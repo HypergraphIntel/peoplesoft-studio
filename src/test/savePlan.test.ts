@@ -148,14 +148,22 @@ test('the source is saved with LF endings and a final newline', () => {
   assert.equal(prepareSourceForSave('  \n\n'), '');
 });
 
-test('only scratch Record Field PeopleCode and Application Class programs are in scope', () => {
+test('Record Field PeopleCode and Application Class programs are in scope, any name unless a prefix is set', async () => {
+  const { setWriteNamePrefix } = await import('../providers/writeScope.js');
   const ids = (...v: number[]) => [...v, ...Array(7 - v.length).fill(0)];
   const vals = (...v: string[]) => [...v, ...Array(7 - v.length).fill(' ')];
   assert.deepEqual(targetForKey({ objectIds: ids(1, 2, 12), objectValues: vals('ZZ_PCODE_LAB', 'ZZ_PCODE_LAB_C01', 'FieldChange') }),
     { applicationClass: false, recordName: 'ZZ_PCODE_LAB', fieldName: 'ZZ_PCODE_LAB_C01' });
   assert.deepEqual(targetForKey({ objectIds: ids(104, 105, 107, 12), objectValues: vals('ZZ_PCODE_LAB', 'SUPPORT', 'SmokeTest', 'OnExecute') }),
     { applicationClass: true, recordName: 'ZZ_PCODE_LAB', fieldName: 'SUPPORT', packagePath: ['ZZ_PCODE_LAB', 'SUPPORT', 'SmokeTest'] });
-  assert.throws(() => targetForKey({ objectIds: ids(1, 2, 12), objectValues: vals('JOB', 'EMPLID', 'FieldChange') }), /outside ZZ_PCODE_LAB/);
+  assert.deepEqual(targetForKey({ objectIds: ids(1, 2, 12), objectValues: vals('JOB', 'EMPLID', 'FieldChange') }),
+    { applicationClass: false, recordName: 'JOB', fieldName: 'EMPLID' });
+  setWriteNamePrefix('ZZ_PCODE_LAB');
+  try {
+    assert.throws(() => targetForKey({ objectIds: ids(1, 2, 12), objectValues: vals('JOB', 'EMPLID', 'FieldChange') }), /does not start with ZZ_PCODE_LAB/);
+  } finally {
+    setWriteNamePrefix('');
+  }
   assert.throws(() => targetForKey({ objectIds: ids(10, 39, 12), objectValues: vals('ZZ_PCODE_LAB', 'GBL', 'PreBuild') }), /not supported yet/);
 });
 

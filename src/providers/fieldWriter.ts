@@ -1,6 +1,6 @@
 import type { Connection } from 'oracledb';
 import { FieldType } from '../model/record.js';
-import { isScratchName } from '../peoplecode/corpus/labSafety.js';
+import { writeScopeRefusal } from './writeScope.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
 
@@ -21,7 +21,7 @@ import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCo
  * also gets an empty translate marker: PSXLATDEFNDEL with VERSION = the new
  * XTM, and PSVERSION / PSLOCK PDM and XTM + 1.
  *
- * Scope: scratch names (ZZ_PCODE_LAB%); Character, Long Character, Number,
+ * Scope: Character, Long Character, Number,
  * Signed Number, Date, Time, DateTime and Image Reference. Date, Time and
  * DateTime have PeopleTools' fixed lengths (10, 15, 26: every one on
  * HRDMO), Image Reference 30 (368 of 373). Image fields vary in IMAGE_FMT
@@ -59,7 +59,8 @@ export interface FieldCreateRequest {
 /** Why the field cannot be created as asked, before anything is read. */
 export function fieldCreateRefusal(r: Omit<FieldCreateRequest, 'operatorId'>): string | undefined {
   if (!/^[A-Z0-9_]{1,18}$/.test(r.name)) return `${r.name} is not a valid field name (A-Z, 0-9, _; at most 18).`;
-  if (!isScratchName(r.name)) return `${r.name} is outside ZZ_PCODE_LAB: creating fields is limited to scratch names for now.`;
+  const scope = writeScopeRefusal(r.name);
+  if (scope) return scope;
   if (!CREATABLE_FIELD_TYPES.includes(r.type)) return 'Only Character, Long Character, Number, Signed Number, Date, Time, DateTime and Image Reference fields can be created here yet.';
   const fixed = FIXED_FIELD_LENGTH[r.type];
   if (fixed !== undefined && r.length !== fixed) return `A field of this type is ${fixed} long.`;
@@ -167,9 +168,8 @@ export async function createField(c: Connection, request: FieldCreateRequest): P
  *   PSVERSION    RDM, PDM, SYS + 1
  *   PSLOCK       RDM, PDM + 1
  *
- * Scope: scratch fields; the type is not changed (no case); records holding
- * the field must be scratch records holding it directly (none captured
- * through a subrecord).
+ * Scope: the type is not changed (no case); records holding the field must
+ * hold it directly (none captured through a subrecord).
  */
 
 export interface FieldLabelEdit { id: string; longName: string; shortName: string; isDefault: boolean }
@@ -192,7 +192,8 @@ export async function saveField(c: Connection, request: FieldSaveRequest): Promi
   try {
     const operatorError = validateOperatorId(request.operatorId);
     if (operatorError) throw new FieldCreateRefusedError(operatorError);
-    if (!isScratchName(name)) throw new FieldCreateRefusedError(`${name} is outside ZZ_PCODE_LAB: saving fields is limited to scratch fields for now.`);
+    const scope = writeScopeRefusal(name);
+    if (scope) throw new FieldCreateRefusedError(scope);
     const [row] = await select<{ VERSION: number; FIELDTYPE: number; LENGTH: number; DECIMALPOS: number }>(c,
       `SELECT VERSION, FIELDTYPE, LENGTH, DECIMALPOS FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f FOR UPDATE`, { f: name });
     if (!row) throw new FieldCreateRefusedError(`There is no field named ${name}.`);
@@ -224,14 +225,15 @@ export async function saveField(c: Connection, request: FieldSaveRequest): Promi
       if (!ids.has(String(u.L).trim().toUpperCase())) throw new FieldCreateRefusedError(`Label ${String(u.L).trim()} is used by a record field; it cannot be removed.`);
     }
     if (request.description !== undefined && request.description.length > 4000) throw new FieldCreateRefusedError('The description is limited to 4,000 characters here.');
-    // The records holding the field take its new version (f06); only scratch records holding it directly.
+    // The records holding the field take its new version (f06); only records holding it directly.
     const records = (await select<{ R: string }>(c,
       `SELECT DISTINCT RECNAME AS R FROM SYSADM.PSRECFIELDDB WHERE FIELDNAME = :f ORDER BY 1`, { f: name })).map((r) => String(r.R).trim());
     const direct = new Set((await select<{ R: string }>(c,
       `SELECT DISTINCT RECNAME AS R FROM SYSADM.PSRECFIELD WHERE FIELDNAME = :f AND SUBRECORD = 'N'`, { f: name })).map((r) => String(r.R).trim()));
     for (const r of records) {
       if (!direct.has(r)) throw new FieldCreateRefusedError(`${r} holds ${name} through a subrecord; saving it is not established yet.`);
-      if (!isScratchName(r)) throw new FieldCreateRefusedError(`${r}, which is not a scratch record, holds ${name}; saving it here is limited to scratch records.`);
+      const recordScope = writeScopeRefusal(r);
+      if (recordScope) throw new FieldCreateRefusedError(`${r} holds ${name}: ${recordScope}`);
     }
     if (records.length > 0) await select(c, `SELECT VERSION FROM SYSADM.PSRECDEFN WHERE RECNAME IN (${records.map((_, i) => `:r${i}`).join(', ')}) FOR UPDATE`,
       Object.fromEntries(records.map((r, i) => [`r${i}`, r])));

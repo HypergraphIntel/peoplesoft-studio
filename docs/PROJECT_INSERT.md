@@ -62,9 +62,8 @@ needing more is refused.
 ## Scope
 
 Any project, on a connection whose Access is **Writable**, recorded under
-its **Operator ID**. Unlike PeopleCode saves there is no source to
-reproduce: the row is fixed by the definition's key, so the scratch-only
-scope that applies to saving PeopleCode does not apply here.
+its **Operator ID**. The row is fixed by the definition's key; there is no
+source to reproduce.
 
 ## Project save
 

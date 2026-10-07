@@ -1,5 +1,5 @@
 import type { Connection } from 'oracledb';
-import { isScratchName } from '../peoplecode/corpus/labSafety.js';
+import { writeScopeRefusal } from './writeScope.js';
 import { predictSourceSignature } from '../peoplecode/sourceSignature.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
@@ -22,7 +22,7 @@ import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCo
  * ENABLEEFFDT 'N', OBJECTOWNERID ' '), PSSQLDESCR (DESCR ' ', DESCRLONG null),
  * PSSQLHASH and PSSQLTEXTDEFN, with the same counters.
  *
- * Scope: SQL definitions (SQLTYPE 0) under ZZ_PCODE_LAB, text in one
+ * Scope: SQL definitions (SQLTYPE 0), text in one
  * PSSQLTEXTDEFN row (at most 14,000 characters: how longer text is split is
  * not established), one GBL / ' ' / 1900-01-01 text and description row.
  */
@@ -84,7 +84,8 @@ export async function saveSqlDefinition(c: Connection, request: SqlSaveRequest):
   try {
     const operatorError = validateOperatorId(request.operatorId);
     if (operatorError) throw new SqlSaveRefusedError(operatorError);
-    if (!isScratchName(id)) throw new SqlSaveRefusedError(`${id} is outside ZZ_PCODE_LAB: saving SQL is limited to scratch definitions for now.`);
+    const scope = writeScopeRefusal(id);
+    if (scope) throw new SqlSaveRefusedError(scope);
     const text = prepareSqlText(request.text);
     if (text === '') throw new SqlSaveRefusedError('The SQL is empty.');
     if (text.length > SQL_TEXT_ROW_LIMIT) {

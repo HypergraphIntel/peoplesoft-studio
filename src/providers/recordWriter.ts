@@ -3,7 +3,7 @@ import { RecordType } from '../model/record.js';
 import {
   editStateFor, expandDbFields, planRecordSave, RecordSaveRefusedError, type RecordEditState, type RecordSavePlan, type Row, type StoredRecord
 } from '../model/recordEdit.js';
-import { isScratchName } from '../peoplecode/corpus/labSafety.js';
+import { writeScopeRefusal } from './writeScope.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
 import { deleteViewSql, writeViewSql } from './sqlWriter.js';
@@ -14,7 +14,7 @@ import { deleteViewSql, writeViewSql } from './sqlWriter.js';
  * reads the stored record, moves the planned rows in one transaction, and
  * proves them before and after COMMIT.
  *
- * Scope: scratch records (ZZ_PCODE_LAB%), the record shapes and changes the
+ * Scope: the record shapes and changes the
  * App Designer cases cover. Everything else is refused before anything is
  * written.
  */
@@ -223,9 +223,8 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
   try {
     const operatorError = validateOperatorId(request.operatorId);
     if (operatorError) throw new RecordSaveRefusedError(operatorError);
-    if (!isScratchName(recname)) {
-      throw new RecordSaveRefusedError(`${recname} is outside ZZ_PCODE_LAB: saving records is limited to scratch records for now.`);
-    }
+    const scope = writeScopeRefusal(recname);
+    if (scope) throw new RecordSaveRefusedError(scope);
     if (request.edit.isNew) return await createRecord(c, request);
     const tables: Tables = {
       recfield: await columnsOf(c, 'PSRECFIELD'), recfielddb: await columnsOf(c, 'PSRECFIELDDB'),
@@ -459,7 +458,8 @@ export async function deleteRecord(c: Connection, request: { recname: string; op
   try {
     const operatorError = validateOperatorId(request.operatorId);
     if (operatorError) throw new RecordSaveRefusedError(operatorError);
-    if (!isScratchName(recname)) throw new RecordSaveRefusedError(`${recname} is outside ZZ_PCODE_LAB: deleting records is limited to scratch records for now.`);
+    const scope = writeScopeRefusal(recname);
+    if (scope) throw new RecordSaveRefusedError(scope);
     const [defn] = await select<{ RECTYPE: number; VERSION: number }>(c,
       `SELECT RECTYPE, VERSION FROM SYSADM.PSRECDEFN WHERE RECNAME = :r FOR UPDATE`, { r: recname });
     if (!defn) throw new RecordSaveRefusedError(`There is no record named ${recname}.`);

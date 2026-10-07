@@ -9,7 +9,7 @@ import { RecordSaveRefusedError } from './model/recordEdit.js';
 import { FieldEditorProvider } from './editors/fieldEditor.js';
 import { OpenDefinitionPanel } from './editors/openDefinitionPanel.js';
 import { DefinitionKey, DefinitionType, displayName, makeKey, typeLabel } from './model/definitions.js';
-import { isScratchName } from './peoplecode/corpus/labSafety.js';
+import { setWriteNamePrefix, writeNamePrefix, writeScopeRefusal } from './providers/writeScope.js';
 import { RECORD_FIELD_EVENTS } from './model/recordEvents.js';
 import { FIELD_TYPE_LABELS, FieldType, RecordType } from './model/record.js';
 import { PackageCreateRefusedError } from './providers/packageWriter.js';
@@ -124,6 +124,8 @@ function targetFromTreeNode(node: unknown): CompareTarget | undefined {
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
+  // Writes go to every definition unless a name prefix limits them (writeScope.ts).
+  setWriteNamePrefix(vscode.workspace.getConfiguration('peoplesoft').get<string>('writeNamePrefix'));
   const workspace = new Workspace(context.secrets);
   context.subscriptions.push(workspace);
 
@@ -513,7 +515,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         const provider = await workspace.require(target.connectionId);
         if (!(provider instanceof OracleProvider) || !workspace.isSqlWritable(provider.id, key)) {
           vscode.window.showWarningMessage(
-            `${name}'s description cannot be changed here: a Writable connection with an Operator ID and a scratch (ZZ_PCODE_LAB%) name are needed.`);
+            `${name}'s description cannot be changed here: a Writable connection with an Operator ID is needed${writeNamePrefix() ? `, and a name starting ${writeNamePrefix()}` : ''}.`);
           return;
         }
         const uri = toUri(provider.id, key);
@@ -674,6 +676,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   vscode.workspace.onDidChangeConfiguration((e) => {
     if (e.affectsConfiguration('peoplesoft.connections')) refreshAll();
+    if (e.affectsConfiguration('peoplesoft.writeNamePrefix')) {
+      setWriteNamePrefix(vscode.workspace.getConfiguration('peoplesoft').get<string>('writeNamePrefix'));
+      refreshAll();
+    }
   }, null, context.subscriptions);
 
   const disableMcp =
@@ -828,7 +834,7 @@ async function pickRecordFieldPeopleCode(workspace: Workspace, connectionId: str
       return;
     }
     vscode.window.showInformationMessage(
-      `${record}.${field}.${picked.event} has no PeopleCode. New programs can be created on Writable connections, for scratch records (ZZ_PCODE_LAB%).`);
+      `${record}.${field}.${picked.event} has no PeopleCode. New programs can be created on Writable connections${writeNamePrefix() ? `, for records starting ${writeNamePrefix()}` : ''}.`);
     return;
   }
   await vscode.commands.executeCommand('psft.openDefinition', connectionId, key);
@@ -889,14 +895,14 @@ async function pickWritableConnection(workspace: Workspace, title: string): Prom
     writable.map((p) => ({ label: p.displayName, provider: p })), { title, placeHolder: 'Connection' }))?.provider;
 }
 
-/** A scratch name, asked for; undefined when cancelled. */
-async function askScratchName(title: string, maxLength: number, prompt: string): Promise<string | undefined> {
+/** A new definition's name, asked for; undefined when cancelled. */
+async function askDefinitionName(title: string, maxLength: number, prompt: string): Promise<string | undefined> {
   return (await vscode.window.showInputBox({
-    title, value: 'ZZ_PCODE_LAB_', prompt,
+    title, value: writeNamePrefix(), prompt,
     validateInput: (v) => {
       const n = v.trim().toUpperCase();
       if (!new RegExp(`^[A-Z0-9_]{1,${maxLength}}$`).test(n)) return `A-Z, 0-9 and _, at most ${maxLength} characters.`;
-      return isScratchName(n) ? undefined : 'Only ZZ_PCODE_LAB% definitions can be created for now.';
+      return writeScopeRefusal(n);
     }
   }))?.trim().toUpperCase();
 }
@@ -913,7 +919,7 @@ async function newRecord(workspace: Workspace): Promise<void> {
     [{ label: 'SQL Table', type: RecordType.Table }, { label: 'Derived/Work', type: RecordType.DerivedWork }],
     { title: 'New Record', placeHolder: 'Record type (the others cannot be created here yet)' }))?.type;
   if (type === undefined) return;
-  const name = await askScratchName(`New Record on ${provider.displayName}`, 15, 'Record name (at most 15 characters; scratch records only for now)');
+  const name = await askDefinitionName(`New Record on ${provider.displayName}`, 15, 'Record name (at most 15 characters)');
   if (!name) return;
   // A name deleted before is free again: saving removes its deletion marker, as App Designer does (r47).
   if (await provider.recordNameStatus(name) === 'exists') {
@@ -930,7 +936,7 @@ async function newRecord(workspace: Workspace): Promise<void> {
 async function newPackage(workspace: Workspace): Promise<void> {
   const provider = await pickWritableConnection(workspace, 'New Application Package');
   if (!provider) return;
-  const name = await askScratchName(`New Application Package on ${provider.displayName}`, 30, 'Package name (scratch packages only for now)');
+  const name = await askDefinitionName(`New Application Package on ${provider.displayName}`, 30, 'Package name');
   if (!name) return;
   if (await provider.packageExists(name)) {
     vscode.window.showWarningMessage(`A package named ${name} already exists.`);
@@ -958,11 +964,13 @@ async function newClass(workspace: Workspace, chosen?: OracleProvider, packageRo
   if (!provider) return;
   // ROOT, ROOT:SUB or ROOT:SUB:SUB2 -- subpackages that do not exist yet are created with the class (c05).
   const path = (await vscode.window.showInputBox({
-    title: `New Application Class on ${provider.displayName}`, value: packageRoot ?? 'ZZ_PCODE_LAB_',
-    prompt: 'Package: ROOT, ROOT:SUB or ROOT:SUB:SUB2 (new subpackages are created with the class; scratch roots only)',
+    title: `New Application Class on ${provider.displayName}`, value: packageRoot ?? writeNamePrefix(),
+    prompt: 'Package: ROOT, ROOT:SUB or ROOT:SUB:SUB2 (new subpackages are created with the class)',
     validateInput: (v) => {
       const [root, ...subs] = v.trim().split(':');
-      if (!/^[A-Z0-9_]{1,30}$/.test(root.toUpperCase()) || !isScratchName(root.toUpperCase())) return 'The root is a scratch package (ZZ_PCODE_LAB%).';
+      if (!/^[A-Z0-9_]{1,30}$/.test(root.toUpperCase())) return 'The root package name: A-Z, 0-9 and _, at most 30 characters.';
+      const scope = writeScopeRefusal(root.toUpperCase());
+      if (scope) return scope;
       if (subs.length > 2) return 'At most two subpackages deep.';
       return subs.every((p) => /^[A-Za-z][A-Za-z0-9_]{0,29}$/.test(p)) ? undefined : 'Subpackage names: a letter, then letters, digits or _.';
     }
@@ -994,7 +1002,7 @@ async function newClass(workspace: Workspace, chosen?: OracleProvider, packageRo
 async function newProject(workspace: Workspace): Promise<void> {
   const provider = await pickWritableConnection(workspace, 'New Project');
   if (!provider) return;
-  const name = await askScratchName(`New Project on ${provider.displayName}`, 30, 'Project name (scratch projects only for now)');
+  const name = await askDefinitionName(`New Project on ${provider.displayName}`, 30, 'Project name');
   if (!name) return;
   if (await provider.projectExists(name)) {
     vscode.window.showWarningMessage(`A project named ${name} already exists.`);
@@ -1022,7 +1030,7 @@ async function newField(workspace: Workspace): Promise<void> {
   const type = (await vscode.window.showQuickPick(CREATABLE_FIELD_TYPES.map((t) => ({ label: FIELD_TYPE_LABELS[t] ?? String(t), type: t })),
     { title: 'New Field', placeHolder: 'Field type' }))?.type;
   if (type === undefined) return;
-  const name = await askScratchName(`New Field on ${provider.displayName}`, 18, 'Field name (at most 18 characters; scratch fields only for now)');
+  const name = await askDefinitionName(`New Field on ${provider.displayName}`, 18, 'Field name (at most 18 characters)');
   if (!name) return;
   if (await provider.fieldExists(name)) {
     vscode.window.showWarningMessage(`A field named ${name} already exists.`);
@@ -1072,8 +1080,8 @@ async function newTextDefinition(workspace: Workspace, type: TextDefinitionType)
   const what = typeLabel(type).replace(/s$/, '');
   const provider = await pickWritableConnection(workspace, `New ${what}`);
   if (!provider) return;
-  const name = await askScratchName(`New ${what} on ${provider.displayName}`, 30,
-    `Name (scratch definitions only for now)${type === DefinitionType.StyleSheet ? '; a freeform style sheet' : ''}`);
+  const name = await askDefinitionName(`New ${what} on ${provider.displayName}`, 30,
+    `Name${type === DefinitionType.StyleSheet ? ' (a freeform style sheet)' : ''}`);
   if (!name) return;
   const key = type === DefinitionType.HtmlDefinition ? makeKey(type, name, '4') : makeKey(type, name);
   const exists = type === DefinitionType.HtmlDefinition ? Boolean(await provider.readHtmlForEdit(key))
