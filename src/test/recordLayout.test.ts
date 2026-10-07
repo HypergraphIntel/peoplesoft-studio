@@ -37,7 +37,7 @@ test('the page has the Record Fields and Record Type tabs; read-only, it offers 
     '>OPRID2<', '>Upper<', '>SRec<', 'Non-Standard SQL', 'SQL Table', 'Temporary Table']) {
     assert.ok(html.includes(s), s);
   }
-  assert.ok(html.includes('<div class="radio on">\n      <span class="dot"></span>SQL Table</div>'));
+  assert.ok(html.includes('<div class="radio on"><span class="dot"></span>SQL Table</div>'));
   assert.ok(html.includes('data-editable="0"') && !html.includes('data-act="insert"') && !html.includes('draggable'));
   assert.ok(html.includes('Double-click a field for its PeopleCode'));
   assert.ok(html.includes(`script-src 'nonce-n'`) && html.includes('<script nonce="n">'));

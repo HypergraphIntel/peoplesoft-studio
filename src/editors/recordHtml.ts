@@ -19,6 +19,8 @@ export interface RecordPageOptions {
   editable?: boolean;
   /** Why the record is read-only, shown above the grid. */
   readOnlyReason?: string;
+  /** Editable: the record types it may be given (its stored type and the observed changes from it). */
+  typeChoices?: RecordType[];
 }
 
 const emptyRow = (cells: number) => `<tr class="empty">${'<td></td>'.repeat(cells)}</tr>`;
@@ -54,8 +56,10 @@ export function renderRecordHtml(r: RecordLayout, connection: string, nonce: str
       <td>${esc(edits[i].setControlField)}</td><td>${edits[i].event}</td></tr>`);
   for (let i = r.fields.length; i < MIN_ROWS; i++) editsRowsHtml.push(emptyRow(8));
 
-  const radios = RECORD_TYPE_CHOICES.map((c) => `<div class="radio${c.type === r.recordType ? ' on' : ''}">
-      <span class="dot"></span>${esc(c.label)}</div>`).join('');
+  const choosable = (t: RecordType) => editable && (options.typeChoices ?? []).includes(t) && t !== r.recordType;
+  const radios = RECORD_TYPE_CHOICES.map((c) => choosable(c.type)
+    ? `<button class="radio pick" data-rtype="${c.type}"><span class="dot"></span>${esc(c.label)}</button>`
+    : `<div class="radio${c.type === r.recordType ? ' on' : ''}"><span class="dot"></span>${esc(c.label)}</div>`).join('');
   const known = RECORD_TYPE_CHOICES.some((c) => c.type === r.recordType);
   // Each record type's controls, as App Designer's Record Type tab shows them.
   const t = r.recordType;
@@ -64,18 +68,26 @@ export function renderRecordHtml(r: RecordLayout, connection: string, nonce: str
   const nonStdEnabled = t === RecordType.Table || isView || isQuery;
   const knownCheck = (label: string, on: boolean) =>
     `<div class="chk"><span class="box2">${on ? '\u2713' : ''}</span>${esc(label)}</div>`;
+  const editType = editable && (t === RecordType.Table || isView || t === RecordType.DynamicView || t === RecordType.DerivedWork);
+  const sqlName = (r.sqlTableName ?? '').trim();
   const typeControls = [
-    `<div class="tfield"><div>Non-Standard SQL<br>Table Name:</div><span class="box${nonStdEnabled ? '' : ' off'}">${r.sqlTableName ? esc(r.sqlTableName) : '&nbsp;'}</span></div>`,
-    isView || isQuery ? `<div class="tfield"><div>Build Sequence No:</div><span class="box short">${r.buildSequence ?? ''}</span></div>` : '',
-    (isView || t === RecordType.DynamicView) && r.viewSql !== undefined
+    editType && nonStdEnabled && !isQuery
+      ? `<div class="tfield"><div>Non-Standard SQL<br>Table Name:</div><input class="box" id="sqltable" maxlength="18" value="${esc(sqlName)}"></div>`
+      : `<div class="tfield"><div>Non-Standard SQL<br>Table Name:</div><span class="box${nonStdEnabled ? '' : ' off'}">${sqlName ? esc(sqlName) : '&nbsp;'}</span></div>`,
+    isView || isQuery ? (editType && isView
+      ? `<div class="tfield"><div>Build Sequence No:</div><input class="box short" id="buildseq" type="number" min="1" max="99" value="${r.buildSequence ?? 1}"></div>`
+      : `<div class="tfield"><div>Build Sequence No:</div><span class="box short">${r.buildSequence ?? ''}</span></div>`) : '',
+    !editType && (isView || t === RecordType.DynamicView) && r.viewSql !== undefined
       ? `<div class="tfield"><button class="sqlbtn" data-act="viewSql">Click to open SQL Editor</button></div>` : '',
     isView || isQuery ? knownCheck('Materialized View', ((r.auxFlagMask ?? 0) & RecordFlag.MaterializedView) !== 0) : '',
     t === RecordType.TemporaryTable ? knownCheck('Global Temporary Table (GTT)', ((r.auxFlagMask ?? 0) & RecordFlag.GlobalTemporaryTable) !== 0) : '',
     isQuery ? `<div class="tfield"><div>Query:</div><span class="box">${esc(r.queryName ?? '')}</span>
       <div class="note">Launching Query Manager is not available here.</div></div>` : ''
   ].filter(Boolean).join('');
-  const viewSql = r.viewSql !== undefined
-    ? `<details class="sql"><summary class="caption">SQL</summary><pre>${esc(r.viewSql)}</pre></details>` : '';
+  const viewSql = editType && (isView || t === RecordType.DynamicView)
+    ? `<div class="sql"><div class="caption">SQL (saved with the record)</div><textarea id="viewsql" class="sqltext" spellcheck="false" rows="12">${esc(r.viewSql ?? '')}</textarea></div>`
+    : r.viewSql !== undefined
+      ? `<details class="sql"><summary class="caption">SQL</summary><pre>${esc(r.viewSql)}</pre></details>` : '';
 
   const buildButton = r.recordType === RecordType.Table ? '<button data-act="build" title="Generate the Create Table script (not run)">Build Script…</button>' : '';
   const toolbar = editable ? `<div class="toolbar">
@@ -149,6 +161,10 @@ export function renderRecordHtml(r: RecordLayout, connection: string, nonce: str
   legend { padding: 0 4px; }
   .radio { display: flex; align-items: center; gap: 6px; margin: 5px 0; color: var(--vscode-descriptionForeground); }
   .radio.on { color: var(--vscode-foreground); }
+  button.radio.pick { font: inherit; background: none; border: none; padding: 0; cursor: pointer; }
+  button.radio.pick:hover { color: var(--vscode-foreground); }
+  textarea.sqltext { width: 100%; box-sizing: border-box; font-family: var(--vscode-editor-font-family); font-size: var(--vscode-editor-font-size);
+    background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, transparent); }
   .dot { width: 11px; height: 11px; border-radius: 50%; border: 1px solid var(--vscode-checkbox-border, var(--vscode-panel-border)); display: inline-block; }
   .radio.on .dot { background: radial-gradient(var(--vscode-foreground) 0 35%, transparent 45%); }
   .box { display: inline-block; min-width: 180px; padding: 3px 7px; border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
@@ -294,7 +310,17 @@ const PAGE_SCRIPT = `
     const tr = e.target.closest('tr[data-i]');
     if (tr && !e.target.closest('[data-act]')) { select(Number(tr.dataset.i)); post({ type: 'peoplecode', index: Number(tr.dataset.i) }); }
   });
+  // The Record Type tab: the type, Non-Standard SQL Table Name, Build Sequence and a view's SQL.
+  const typeChange = (change) => post({ type: 'recordType', change });
+  const sqlTable = document.getElementById('sqltable');
+  if (sqlTable) sqlTable.addEventListener('change', () => typeChange({ sqlTableName: sqlTable.value }));
+  const buildSeq = document.getElementById('buildseq');
+  if (buildSeq) buildSeq.addEventListener('change', () => typeChange({ buildSequence: Number(buildSeq.value) }));
+  const viewSqlText = document.getElementById('viewsql');
+  if (viewSqlText) viewSqlText.addEventListener('change', () => typeChange({ viewSql: viewSqlText.value }));
   document.addEventListener('click', (e) => {
+    const rtype = editable && e.target.closest('[data-rtype]');
+    if (rtype) { typeChange({ recordType: Number(rtype.dataset.rtype) }); return; }
     if (e.target.closest('[data-act=viewSql]')) { post({ type: 'menu', action: 'viewSql', index: -1 }); return; }
     if (e.target.closest('[data-act=build]')) { post({ type: 'menu', action: 'build', index: -1 }); return; }
     const btn = editable && e.target.closest('[data-act]');

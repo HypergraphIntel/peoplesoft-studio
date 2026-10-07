@@ -390,6 +390,27 @@ Editor opens it read-only), the query of a query view. Materialized View
 (`AUXFLAGMASK 0x1000000`, r29) and Global Temporary Table (`0x400000`, r31)
 show their stored state. Changing a record's type is not offered.
 
+**Editing the Record Type tab.** The record writer saves the changes r26-r28
+show, in the record's one transaction:
+
+- Derived/Work -> SQL Table (r26): `RECTYPE` 0, a `PSRECTBLSPC` row (the
+  catalog's first entry), and the key index if it has keys;
+- SQL Table -> SQL View (r28): `RECTYPE` 1, the `PSRECTBLSPC` row deleted,
+  the key index removed (views have none: 20,163 of 20,167 keyed SQL Views),
+  the view SQL inserted (`PSSQLDEFN` SQLTYPE 2 with VERSION = new SRM,
+  `PSSQLDESCR`, `PSSQLHASH`, `PSSQLTEXTDEFN`; SRM + 1);
+- Derived/Work -> SQL View: r28 without a tablespace row to delete;
+- Non-Standard SQL Table Name (r27, `SQLTABLENAME`, at most 18), Build
+  Sequence No (r28, `BUILDSEQNO`);
+- a view's SQL changed: its rows rewritten, SRM + 1 (as r29 rewrote them;
+  a view saved without SQL changes leaves them, r32).
+
+SQL Views and Dynamic Views are editable (fields, properties, SQL) unless
+materialized or indexed. Direct cases x22-x25 (ZZ_PCODE_LAB_R7 Derived/Work
+-> SQL Table -> SQL View -> new SQL; R5's SQL Table Name) wrote those rows
+and counters; x23's `HASH_SIGNATURE` equals r28's for the same SQL. Other
+type changes (to Derived/Work, from a view, to a SubRecord, Temporary Table
+or Query View) are not observed and are refused.
 ## Record Field Properties
 
 The dialog shows a check's state only where its bit is confirmed (every
@@ -404,14 +425,12 @@ field's value, as App Designer showed it for ZZ_PCODE_LAB_C01).
 ## Still to capture
 
 - an SQL Table losing its last key; alternate search keys (index type 3)
-- Auto-Update (DateTime field), In Memory, Smart Drop-Down, Smart Prompt
-- changing the record type, Non-Standard SQL Table Name, Build Sequence,
-  and view SQL from VS Code (r26-r29 show the rows; not built yet)
+- Auto-Update (DateTime field), In Memory
+- type changes to Derived/Work or from a view; materialized views; Query
+  Views; SubRecords; Temporary Tables
 - whether parent / query security / audit references move the referring
   record's VERSION
 - SQL text over 14,000 characters
-- keys on an SQL Table record (`PSINDEXDEFN` / `PSKEYDEFN` expected):
-  set Key, Search Key, List Box Item, Descending
 - a record containing a subrecord, and a subrecord used by other records
   (whether their `PSRECFIELDDB` rows are rewritten)
 

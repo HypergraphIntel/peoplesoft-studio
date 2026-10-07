@@ -10,7 +10,7 @@ import { isScratchName } from '../peoplecode/corpus/labSafety.js';
 import type { RecordLayout, RecordLayoutField } from '../model/recordLayout.js';
 import {
   insertField, layoutEditRefusal, moveField, RecordSaveRefusedError, removeField, removeFields, setDefault, setEdits, setLabel, setPageControl,
-  setRecordProperties, setUse, type EditType, type RecordEditState, type RecordPropertyEdits, type UseChange
+  RECORD_TYPE_CHANGES, setRecordProperties, setRecordType, setUse, type EditType, type RecordTypeEdits, type RecordEditState, type RecordPropertyEdits, type UseChange
 } from '../model/recordEdit.js';
 import { renderRecordHtml } from './recordHtml.js';
 import { createTableScript } from '../model/recordDdl.js';
@@ -168,6 +168,10 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
           if (skipped.length) void vscode.window.showInformationMessage(`Already in ${doc.recname}, not pasted: ${skipped.join(', ')}.`);
           if (next !== state) this.apply(doc, next, 'Paste');
           return;
+        }
+        case 'recordType': {
+          const change = (msg as { change?: RecordTypeEdits }).change ?? {};
+          return this.apply(doc, setRecordType(state, doc.layout!.recordType, change), 'Change Record Type');
         }
         case 'recordProps': {
           const change = (msg as { change?: RecordPropertyEdits }).change ?? {};
@@ -398,7 +402,8 @@ class RecordDocument implements vscode.CustomDocument {
     const key = (f: RecordLayoutField) => JSON.stringify([f.name, f.useEdit, f.useEdit2 ?? 0, f.editTable, f.defaultRecord,
       f.defaultField, f.labelId ?? '', f.defGuiControl ?? 99]);
     return shown.map(key).join('|') !== this.layout.fields.map(key).join('|') ||
-      JSON.stringify(this.shown()?.properties ?? null) !== JSON.stringify(this.layout.properties ?? null);
+      JSON.stringify(this.shown()?.properties ?? null) !== JSON.stringify(this.layout.properties ?? null) ||
+      Object.keys(this.state.type ?? {}).length > 0;
   }
 
   async load(): Promise<void> {
@@ -462,7 +467,7 @@ class RecordDocument implements vscode.CustomDocument {
   }
 
   viewSql(): string | undefined {
-    return this.layout?.viewSql;
+    return this.state?.type?.viewSql ?? this.layout?.viewSql;
   }
 
   shownFields(): RecordLayoutField[] {
@@ -488,9 +493,15 @@ class RecordDocument implements vscode.CustomDocument {
       auxFlagMask: (base.auxFlagMask & ~0x30000) |
         ((p.toolsTable ?? (base.auxFlagMask & 0x10000) !== 0) ? 0x10000 : 0) | ((p.managed ?? (base.auxFlagMask & 0x20000) !== 0) ? 0x20000 : 0)
     } : base;
+    const type = this.state.type ?? {};
     return {
       ...this.layout,
       ...(properties ? { properties } : {}),
+      // The Record Type tab as edited.
+      ...(type.recordType !== undefined ? { recordType: type.recordType } : {}),
+      ...(type.sqlTableName !== undefined ? { sqlTableName: type.sqlTableName } : {}),
+      ...(type.buildSequence !== undefined ? { buildSequence: type.buildSequence } : {}),
+      ...(type.viewSql !== undefined ? { viewSql: type.viewSql } : {}),
       fields: this.state.fields.map((f, i) => {
         const base = this.info.get(f.name)!;
         const shown: RecordLayoutField = {
@@ -523,7 +534,8 @@ class RecordDocument implements vscode.CustomDocument {
     const shown = this.shown();
     if (shown) {
       panel.webview.html = renderRecordHtml(shown, this.provider?.displayName ?? '', randomBytes(16).toString('base64'), {
-        editable, ...(this.readOnlyReason ? { readOnlyReason: this.readOnlyReason } : {})
+        editable, ...(this.readOnlyReason ? { readOnlyReason: this.readOnlyReason } : {}),
+        ...(this.layout ? { typeChoices: [this.layout.recordType, ...RECORD_TYPE_CHANGES.filter(([from]) => from === this.layout!.recordType).map(([, to]) => to)] } : {})
       });
       return;
     }
