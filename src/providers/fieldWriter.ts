@@ -17,8 +17,10 @@ import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCo
  *   PSLOCK       RDM + 1
  *
  * Scope: scratch names (ZZ_PCODE_LAB%); Character, Long Character, Number,
- * Signed Number, Date, Time and DateTime. Date, Time and DateTime have
- * PeopleTools' fixed lengths (10, 15, 26: every one on HRDMO).
+ * Signed Number, Date, Time, DateTime and Image Reference. Date, Time and
+ * DateTime have PeopleTools' fixed lengths (10, 15, 26: every one on
+ * HRDMO), Image Reference 30 (368 of 373). Image fields vary in IMAGE_FMT
+ * and length, so they are not created here yet.
  */
 
 export class FieldCreateRefusedError extends Error {
@@ -30,12 +32,14 @@ export class FieldCreateRefusedError extends Error {
 
 export const CREATABLE_FIELD_TYPES: readonly FieldType[] = [
   FieldType.Character, FieldType.LongCharacter, FieldType.Number, FieldType.SignedNumber,
-  FieldType.Date, FieldType.Time, FieldType.DateTime
+  FieldType.Date, FieldType.Time, FieldType.DateTime, FieldType.ImageReference
 ];
 
 /** The length a date or time field always has. */
 export const FIXED_FIELD_LENGTH: Readonly<Partial<Record<FieldType, number>>> = {
-  [FieldType.Date]: 10, [FieldType.Time]: 15, [FieldType.DateTime]: 26
+  [FieldType.Date]: 10, [FieldType.Time]: 15, [FieldType.DateTime]: 26,
+  // Image Reference: 368 of HRDMO's 373, with IMAGE_FMT 0 as c01's defaults write.
+  [FieldType.ImageReference]: 30
 };
 
 export interface FieldCreateRequest {
@@ -51,7 +55,7 @@ export interface FieldCreateRequest {
 export function fieldCreateRefusal(r: Omit<FieldCreateRequest, 'operatorId'>): string | undefined {
   if (!/^[A-Z0-9_]{1,18}$/.test(r.name)) return `${r.name} is not a valid field name (A-Z, 0-9, _; at most 18).`;
   if (!isScratchName(r.name)) return `${r.name} is outside ZZ_PCODE_LAB: creating fields is limited to scratch names for now.`;
-  if (!CREATABLE_FIELD_TYPES.includes(r.type)) return 'Only Character, Long Character, Number, Signed Number, Date, Time and DateTime fields can be created here yet.';
+  if (!CREATABLE_FIELD_TYPES.includes(r.type)) return 'Only Character, Long Character, Number, Signed Number, Date, Time, DateTime and Image Reference fields can be created here yet.';
   const fixed = FIXED_FIELD_LENGTH[r.type];
   if (fixed !== undefined && r.length !== fixed) return `A field of this type is ${fixed} long.`;
   // The limits are HRDMO's longest: Character 256, Long Character 32,767, Number 32, Signed Number 33.

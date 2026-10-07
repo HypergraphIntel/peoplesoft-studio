@@ -21,7 +21,9 @@ verified before COMMIT.
 
 FORMAT 0 and DEFCNTRYYR 50 are every field type's most common values on
 HRDMO. Date, Time and DateTime have fixed lengths (10, 15, 26: all of
-them); the other limits are HRDMO's longest (Character 256, Long Character
+them), Image Reference 30 (368 of 373, IMAGE_FMT 0: ZZ_PCODE_LAB_IR, created
+so, matches them column for column); Image fields vary in IMAGE_FMT and
+length and are not created yet; the other limits are HRDMO's longest (Character 256, Long Character
 32,767, Number 32, Signed Number 33). `fieldWriter.ts`; direct case x14
 (ZZ_PCODE_LAB_C09) wrote c01's rows and counters.
 

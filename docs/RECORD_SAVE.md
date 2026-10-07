@@ -461,6 +461,15 @@ a descending key, a duplicate order key):
 - Lines of at most 70 characters, a moved word keeping its space; columns
   three spaces in; `/` after each statement.
 
+## Translate Table Edit
+
+Set and cleared from the Edits tab: the translate bit (`USEEDIT 0x200`)
+alone with a blank `EDITTABLE`, as 52,857 of HRDMO's 52,909 translate-edited
+record fields store it, and only for a field with translate values (all
+52,909 have them; the save checks). The 52 that also carry a prompt table
+are shown, not changed. ZZ_PCODE_LAB_R5 took one (`ZZ_PCODE_LAB_C02`,
+`USEEDIT 0x800200`); C03, which has no values, was refused.
+
 ## Default Page Control
 
 `DEFGUICONTROL`, as App Designer names it (read off fields storing each

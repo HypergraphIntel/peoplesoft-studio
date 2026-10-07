@@ -45,7 +45,7 @@ export const EDITABLE_USE_BITS = UseEdit.Key | UseEdit.DuplicateOrderKey | UseEd
   UseEdit.SearchEdit | UseEdit.ListBoxItem | UseEdit.FromSearchField | UseEdit.ThroughSearchField |
   UseEdit.DefaultSearchField | UseEdit.DisableAdvancedSearchOptions | UseEdit.AllowSearchEventsForPromptDialogs |
   UseEdit.AuditFieldAdd | UseEdit.AuditFieldChange | UseEdit.AuditFieldDelete | UseEdit.SystemMaintained |
-  UseEdit.Required | UseEdit.PromptTable | UseEdit.YesNoTable | UseEdit.UseDefaultLabel;
+  UseEdit.Required | UseEdit.PromptTable | UseEdit.YesNoTable | UseEdit.TranslateTable | UseEdit.UseDefaultLabel;
 
 /** The USEEDIT2 bits an edit may change (r10, r15, r16). */
 export const EDITABLE_USE2_BITS: number = UseEdit2.DoNotTraceValue | UseEdit2.SmartPrompt | UseEdit2.SmartDropDown;
@@ -298,13 +298,15 @@ export function setUse(state: RecordEditState, index: number, change: UseChange)
 
 const NAME = /^[A-Z0-9_#$@]{1,18}$/;
 
-export type EditType = 'none' | 'prompt' | 'promptNoEdit' | 'yesNo';
+export type EditType = 'none' | 'prompt' | 'promptNoEdit' | 'yesNo' | 'translate';
 
 /**
  * The Edits tab (r15): Required, and the table edit -- Prompt Table Edit
  * (the prompt bit and EDITTABLE), Prompt Table with No Edit (EDITTABLE
- * alone), Yes/No Table Edit (its bit, no table), or No Edit. A translate
- * edit is kept as stored: no case has set or cleared one.
+ * alone), Yes/No Table Edit (its bit, no table), Translate Table Edit (its
+ * bit, no table: all 52,909 translate-edited record fields on HRDMO but 52
+ * store it that way, and every one's field has translate values -- the
+ * save checks that), or No Edit.
  */
 export function setEdits(state: RecordEditState, index: number, change: { required?: boolean; edit?: EditType; promptTable?: string }): RecordEditState {
   check(state, index);
@@ -313,8 +315,7 @@ export function setEdits(state: RecordEditState, index: number, change: { requir
   let editTable = f.editTable;
   if (change.required !== undefined) useEdit = change.required ? useEdit | UseEdit.Required : useEdit & ~UseEdit.Required;
   if (change.edit !== undefined) {
-    if (hasFlag(useEdit, UseEdit.TranslateTable)) throw new RecordSaveRefusedError(`${f.name} has a translate table edit, which cannot be changed here yet.`);
-    useEdit &= ~(UseEdit.PromptTable | UseEdit.YesNoTable);
+    useEdit &= ~(UseEdit.PromptTable | UseEdit.YesNoTable | UseEdit.TranslateTable);
     if (change.edit === 'prompt' || change.edit === 'promptNoEdit') {
       const table = (change.promptTable ?? '').trim().toUpperCase();
       if (!NAME.test(table)) throw new RecordSaveRefusedError(`${change.promptTable ?? ''} is not a record name.`);
@@ -323,6 +324,7 @@ export function setEdits(state: RecordEditState, index: number, change: { requir
     } else {
       editTable = '';
       if (change.edit === 'yesNo') useEdit |= UseEdit.YesNoTable;
+      if (change.edit === 'translate') useEdit |= UseEdit.TranslateTable;
     }
   }
   return { ...state, fields: state.fields.map((x, i) => (i === index ? { ...x, useEdit, editTable } : x)) };

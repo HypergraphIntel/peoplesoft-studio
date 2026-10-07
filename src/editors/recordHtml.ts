@@ -497,9 +497,11 @@ const PAGE_SCRIPT = `
     const required = el('div', { cls: 'chk' }, editable
       ? el('button', { onclick: () => post({ type: 'edits', index: i, required: !f.required }) }, el('span', { cls: 'box2', text: f.required ? '✓' : '' }), el('span', { text: 'Required' }))
       : el('span', { cls: 'box2', text: f.required ? '✓' : '' }), editable ? null : el('span', { text: 'Required' }));
-    if (editable && f.edit !== 'Translate Table Edit') {
-      const types = [['none', 'No Edit'], ['prompt', 'Prompt Table Edit'], ['promptNoEdit', 'Prompt Table with No Edit'], ['yesNo', 'Yes/No Table Edit']];
-      const current = { 'No Edit': 'none', 'Prompt Table Edit': 'prompt', 'Prompt Table with No Edit': 'promptNoEdit', 'Yes/No Table Edit': 'yesNo' }[f.edit];
+    if (editable && (f.edit !== 'Translate Table Edit' || !f.promptTable)) {
+      const types = [['none', 'No Edit'], ['prompt', 'Prompt Table Edit'], ['promptNoEdit', 'Prompt Table with No Edit'], ['yesNo', 'Yes/No Table Edit'],
+        ['translate', 'Translate Table Edit']];
+      const current = { 'No Edit': 'none', 'Prompt Table Edit': 'prompt', 'Prompt Table with No Edit': 'promptNoEdit', 'Yes/No Table Edit': 'yesNo',
+        'Translate Table Edit': 'translate' }[f.edit];
       const table = input(f.promptTable);
       let chosen = current;
       const type = dropdown(types, current, (v) => { chosen = v; });
@@ -509,7 +511,7 @@ const PAGE_SCRIPT = `
     } else {
       editsBody = el('fieldset', {}, el('legend', { text: 'Edit Type' }), row2('Edit:', f.edit === 'No Edit' ? 'No Edit' : 'Table Edit'),
         row2('Type:', f.edit === 'No Edit' ? '' : f.edit), row2('Prompt Table:', f.promptTable), row2('Set Control Field:', f.setControlField),
-        editable ? el('div', { cls: 'legend2', text: 'A translate table edit cannot be changed here yet.' }) : null);
+        editable ? el('div', { cls: 'legend2', text: 'A translate table edit with a prompt table (52 of 52,909 on HRDMO) cannot be changed here yet.' }) : null);
     }
     const body = tab === 'use'
       ? el('div', { cls: 'body' }, row2('Field Name:', f.name),

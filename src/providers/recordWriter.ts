@@ -260,6 +260,12 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
       if (f.labelId && !(await exists(`SELECT COUNT(*) AS N FROM SYSADM.PSDBFLDLABL WHERE FIELDNAME = :f AND LABEL_ID = :l`, { f: f.name, l: f.labelId }))) {
         throw new RecordSaveRefusedError(`${f.name} has no label ${f.labelId}.`);
       }
+      // A translate table edit needs the field's translate values (every translate-edited field on HRDMO has them).
+      const before = stored.fields.find((x) => text(x.FIELDNAME) === f.name);
+      if ((f.useEdit & 0x200) !== 0 && (!before || (Number(before.USEEDIT) & 0x200) === 0) &&
+          !(await exists(`SELECT COUNT(*) AS N FROM SYSADM.PSXLATITEM WHERE FIELDNAME = :f`, { f: f.name }))) {
+        throw new RecordSaveRefusedError(`${f.name} has no translate values, so it cannot have a translate table edit.`);
+      }
     }
     // Record Properties must refer to what exists: records, a field of this record, an owner ID.
     const props = request.edit.properties ?? {};
