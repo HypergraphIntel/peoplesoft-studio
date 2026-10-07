@@ -23,3 +23,9 @@ test('a field is created only as c01 shows and HRDMO bounds: scratch names, know
   assert.equal(fieldCreateRefusal(field({ type: FieldType.LongCharacter, length: 0 })), undefined);
   assert.match(fieldCreateRefusal(field({ label: { id: 'ZZ_PCODE_LAB_C09', longName: 'x'.repeat(31), shortName: 'C09' } }))!, /long name/);
 });
+
+test('a subpackage\'s QUALIFYPATH: ":" at level 1, its parent\'s ID at level 2 (HRDMO: ADS_DMW:UI:Widgets is "UI")', async () => {
+  const { packageQualifyPath } = await import('../providers/peopleCodeWriter.js');
+  assert.equal(packageQualifyPath(['SUB1'], 1), ':');
+  assert.equal(packageQualifyPath(['UI', 'Widgets'], 2), 'UI');
+});

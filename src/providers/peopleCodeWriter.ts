@@ -192,22 +192,16 @@ export async function savePeopleCode(
     if (creating && found && (found.text.length > 0 || found.names.length > 0)) {
       throw new SaveRefusedError('This PeopleCode has source or name rows but no program rows; refusing to write over it.');
     }
-    // A new Application Class in a root package (case c04): keyed PACKAGEROOT
-    // (104), class (107), OnExecute (12), with its PSAPPCLASSDEFN row and the
-    // package's VERSION moved to the new APM.
+    // A new Application Class (cases c04, c05): keyed PACKAGEROOT (104), its
+    // subpackages (105, 106), class (107), OnExecute (12), with its
+    // PSAPPCLASSDEFN row, any subpackage on its path that does not exist yet,
+    // and the root package's VERSION moved to the new APM.
     const creatingClass = creating && request.createClass === true;
+    let classPlan: ClassCreatePlan | undefined;
     if (creating) {
       if (prepareSourceForSave(request.source) === '') throw new SaveRefusedError('There is nothing to create: the program is empty.');
       if (creatingClass) {
-        if (parts.length !== 3 || parts[2] !== 'OnExecute' || !/^[A-Za-z][A-Za-z0-9_]{0,29}$/.test(parts[1])) {
-          throw new SaveRefusedError('Only a class directly in a root package, with a valid class name, can be created yet.');
-        }
-        const [pkg] = await select<{ V: number }>(c,
-          `SELECT VERSION AS V FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :r AND QUALIFYPATH = '.' FOR UPDATE`, { r: parts[0] });
-        if (!pkg) throw new SaveRefusedError(`There is no Application Package ${parts[0]}.`);
-        const [{ N: classes }] = await select<{ N: number }>(c,
-          `SELECT COUNT(*) AS N FROM SYSADM.PSAPPCLASSDEFN WHERE PACKAGEROOT = :r AND UPPER(APPCLASSID) = UPPER(:k)`, { r: parts[0], k: parts[1] });
-        if (Number(classes) > 0) throw new SaveRefusedError(`${parts[0]} already has a class ${parts[1]}.`);
+        classPlan = await planClassCreate(c, parts);
       } else {
         if (parts.length !== 3 || !RECORD_FIELD_EVENTS.includes(parts[2])) {
           throw new SaveRefusedError('There is no stored program here; only Record Field PeopleCode and new Application Classes can be created yet.');
@@ -219,7 +213,9 @@ export async function savePeopleCode(
     }
     const stored: StoredProgram = creating
       ? {
-        key: { objectIds: creatingClass ? [104, 107, 12, 0, 0, 0, 0] : [1, 2, 12, 0, 0, 0, 0], objectValues: [parts[0], parts[1], parts[2], ' ', ' ', ' ', ' '] },
+        key: classPlan
+          ? { objectIds: classPlan.objectIds, objectValues: [...parts, ...Array(7 - parts.length).fill(' ')] }
+          : { objectIds: [1, 2, 12, 0, 0, 0, 0], objectValues: [parts[0], parts[1], parts[2], ' ', ' ', ' ', ' '] },
         text: [], program: [], names: []
       }
       : found!;
@@ -240,8 +236,8 @@ export async function savePeopleCode(
 
     // 6-7
     const counters = await readCounters(c, true);
-    // A new class saves the package too: SYS moves for each (c04: + 2).
-    const next: Counters = { pcm: counters.pcm + 1, sys: counters.sys + (creatingClass ? 2 : 1), lockPcm: counters.lockPcm + 1 };
+    // One transaction moves SYS once, a new class's package save included (c05; c04 was two saves).
+    const next: Counters = { pcm: counters.pcm + 1, sys: counters.sys + 1, lockPcm: counters.lockPcm + 1 };
 
     // 8
     const [{ TS: lastupddttm }] = await select<{ TS: string }>(c,
@@ -302,26 +298,7 @@ export async function savePeopleCode(
         { ...keyValues(), version: next.pcm }, 1, 'Inserting PSPCMPROGDEL');
     }
 
-    if (creatingClass) {
-      const apm = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME = 'APM' FOR UPDATE`);
-      const lockApm = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME = 'APM' FOR UPDATE`);
-      if (apm.length !== 1 || lockApm.length !== 1) throw new SaveRefusedError('PSVERSION / PSLOCK APM is missing; refusing to save.');
-      const newApm = Number(apm[0].V) + 1;
-      await expectRows(c,
-        `INSERT INTO SYSADM.PSAPPCLASSDEFN (APPCLASSID, PACKAGEROOT, QUALIFYPATH, APPCLASSREF, DESCR) VALUES (:k, :r, ':', ' ', ' ')`,
-        { k: parts[1], r: parts[0] }, 1, 'Inserting PSAPPCLASSDEFN');
-      await expectRows(c,
-        `UPDATE SYSADM.PSPACKAGEDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
-          WHERE PACKAGEROOT = :r AND PACKAGEID = :r AND QUALIFYPATH = '.'`,
-        { v: newApm, ts: lastupddttm, op: request.operatorId, r: parts[0] }, 1, 'Updating PSPACKAGEDEFN');
-      await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: newApm }, 1, 'Updating PSVERSION APM');
-      await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: Number(lockApm[0].V) + 1 }, 1, 'Updating PSLOCK APM');
-      const [check] = await select<{ V: number; N: number }>(c,
-        `SELECT (SELECT VERSION FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :r AND QUALIFYPATH = '.') AS V,
-                (SELECT COUNT(*) FROM SYSADM.PSAPPCLASSDEFN WHERE PACKAGEROOT = :r AND APPCLASSID = :k AND QUALIFYPATH = ':') AS N FROM DUAL`,
-        { r: parts[0], k: parts[1] });
-      if (Number(check?.V) !== newApm || Number(check?.N) !== 1) throw new SaveRefusedError('The new class did not land in its package as planned; rolled back.');
-    }
+    if (classPlan) await writeClassCreate(c, classPlan, lastupddttm, request.operatorId);
 
     // 14-15
     await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'PCM'`, { v: next.pcm }, 1, 'Updating PSVERSION PCM');
@@ -394,3 +371,97 @@ export async function verifyCommitted(
     throw new SaveRefusedError(`After COMMIT: ${problems.join('; ')}. The replaced rows are in the save report for restoring.`);
   }
 }
+
+/** What creating an Application Class adds besides its program (cases c04, c05). */
+interface ClassCreatePlan {
+  root: string;
+  /** Subpackage IDs from the root down (at most two, as on HRDMO). */
+  subs: string[];
+  className: string;
+  /** PSAPPCLASSDEFN.QUALIFYPATH: ':' in the root, else the subpackage path joined by ':'. */
+  classPath: string;
+  objectIds: number[];
+  /** Subpackages on the path that do not exist yet, with their PSPACKAGEDEFN QUALIFYPATH and level. */
+  missing: { id: string; qualifyPath: string; level: number }[];
+}
+
+const PACKAGE_ID = /^[A-Za-z][A-Za-z0-9_]{0,29}$/;
+
+/** A subpackage's PSPACKAGEDEFN QUALIFYPATH: ':' at level 1, its parent's ID at level 2 (ADS_DMW:UI:Widgets is 'UI'). */
+export function packageQualifyPath(subs: readonly string[], level: number): string {
+  return level === 1 ? ':' : subs.slice(0, level - 1).join(':');
+}
+
+async function planClassCreate(c: Connection, parts: readonly string[]): Promise<ClassCreatePlan> {
+  if (parts.length < 3 || parts.length > 5 || parts.at(-1) !== 'OnExecute') {
+    throw new SaveRefusedError('A class is created in a package at most two subpackages deep.');
+  }
+  const [root, ...rest] = parts.slice(0, -1);
+  const className = rest.pop()!;
+  const subs = rest;
+  for (const id of [...subs, className]) {
+    if (!PACKAGE_ID.test(id)) throw new SaveRefusedError(`${id} is not a valid package or class name (a letter, then letters, digits or _; at most 30).`);
+  }
+  const [pkg] = await select<{ V: number }>(c,
+    `SELECT VERSION AS V FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :r AND QUALIFYPATH = '.' FOR UPDATE`, { r: root });
+  if (!pkg) throw new SaveRefusedError(`There is no Application Package ${root}.`);
+  const missing: ClassCreatePlan['missing'] = [];
+  for (let level = 1; level <= subs.length; level++) {
+    const qualifyPath = packageQualifyPath(subs, level);
+    const [row] = await select<{ L: number }>(c,
+      `SELECT PACKAGELEVEL AS L FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :p AND QUALIFYPATH = :q FOR UPDATE`,
+      { r: root, p: subs[level - 1], q: qualifyPath });
+    if (row && Number(row.L) !== level) throw new SaveRefusedError(`${root}:${subs.slice(0, level).join(':')} is stored at another level; refusing to write.`);
+    if (!row) missing.push({ id: subs[level - 1], qualifyPath, level });
+  }
+  const classPath = subs.length === 0 ? ':' : subs.join(':');
+  const [{ N: classes }] = await select<{ N: number }>(c,
+    `SELECT COUNT(*) AS N FROM SYSADM.PSAPPCLASSDEFN WHERE PACKAGEROOT = :r AND QUALIFYPATH = :q AND UPPER(APPCLASSID) = UPPER(:k)`,
+    { r: root, q: classPath, k: className });
+  if (Number(classes) > 0) throw new SaveRefusedError(`${[root, ...subs].join(':')} already has a class ${className}.`);
+  const objectIds = [104, ...subs.map((_, i) => 105 + i), 107, 12];
+  return { root, subs, className, classPath, objectIds: [...objectIds, ...Array(7 - objectIds.length).fill(0)], missing };
+}
+
+/**
+ * The package side of a new class, in the class's transaction: its
+ * PSAPPCLASSDEFN row, each missing subpackage (PSPACKAGEDEFN), and every
+ * package row under the root -- the root's and each subpackage's -- given
+ * VERSION = the new APM and the save's stamp (c06: the root and SUB1 both);
+ * PSVERSION and PSLOCK APM + 1. App Designer also deletes and reinserts the
+ * package's other class rows unchanged, which leaves them as they are.
+ */
+async function writeClassCreate(c: Connection, plan: ClassCreatePlan, lastupddttm: string, operatorId: string): Promise<void> {
+  const apm = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME = 'APM' FOR UPDATE`);
+  const lockApm = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME = 'APM' FOR UPDATE`);
+  if (apm.length !== 1 || lockApm.length !== 1) throw new SaveRefusedError('PSVERSION / PSLOCK APM is missing; refusing to save.');
+  const newApm = Number(apm[0].V) + 1;
+  const stamp = { ts: lastupddttm, op: operatorId };
+  for (const sub of plan.missing) {
+    await expectRows(c,
+      `INSERT INTO SYSADM.PSPACKAGEDEFN (PACKAGEID, PACKAGEROOT, QUALIFYPATH, PACKAGELEVEL, PACKAGEREF, DESCR, VERSION,
+                                         LASTUPDDTTM, LASTUPDOPRID, OBJECTOWNERID, DESCRLONG)
+       VALUES (:p, :r, :q, :l, ' ', ' ', :v, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), :op, ' ', NULL)`,
+      { p: sub.id, r: plan.root, q: sub.qualifyPath, l: sub.level, v: newApm, ...stamp }, 1, `Inserting PSPACKAGEDEFN ${sub.id}`);
+  }
+  await expectRows(c,
+    `INSERT INTO SYSADM.PSAPPCLASSDEFN (APPCLASSID, PACKAGEROOT, QUALIFYPATH, APPCLASSREF, DESCR) VALUES (:k, :r, :q, ' ', ' ')`,
+    { k: plan.className, r: plan.root, q: plan.classPath }, 1, 'Inserting PSAPPCLASSDEFN');
+  const [{ N: packages }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :r`, { r: plan.root });
+  await expectRows(c,
+    `UPDATE SYSADM.PSPACKAGEDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
+      WHERE PACKAGEROOT = :r`,
+    { v: newApm, r: plan.root, ...stamp }, Number(packages), 'Updating PSPACKAGEDEFN');
+  await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: newApm }, 1, 'Updating PSVERSION APM');
+  await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: Number(lockApm[0].V) + 1 }, 1, 'Updating PSLOCK APM');
+  const [check] = await select<{ V: number; N: number; S: number }>(c,
+    `SELECT (SELECT VERSION FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :r AND QUALIFYPATH = '.') AS V,
+            (SELECT COUNT(*) FROM SYSADM.PSAPPCLASSDEFN WHERE PACKAGEROOT = :r AND APPCLASSID = :k AND QUALIFYPATH = :q) AS N,
+            (SELECT COUNT(*) FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND VERSION = :v AND LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT})) AS S
+       FROM DUAL`,
+    { r: plan.root, k: plan.className, q: plan.classPath, v: newApm, ts: lastupddttm });
+  if (Number(check?.V) !== newApm || Number(check?.N) !== 1 || Number(check?.S) !== Number(packages)) {
+    throw new SaveRefusedError('The new class did not land in its package as planned; rolled back.');
+  }
+}
+

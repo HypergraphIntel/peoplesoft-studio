@@ -122,7 +122,8 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
       } else if (key.type === DefinitionType.ApplicationClassPeopleCode && PeopleSoftFileSystem.newClasses.has(uri.toString()) &&
           !(await provider.hasPeopleCode(key))) {
         // A new class (New Definition): its declaration; saving creates it in its package.
-        text = `class ${key.parts[1]}\nend-class;\n`;
+        const className = key.parts.at(-1) === 'OnExecute' ? key.parts.at(-2) : key.parts.at(-1);
+        text = `class ${className}\nend-class;\n`;
         this.fingerprints.set(uri.toString(), 'absent');
       }
     }

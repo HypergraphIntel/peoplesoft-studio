@@ -47,7 +47,7 @@ PSLOCK APM + 1. `packageWriter.ts`; direct case x16 (ZZ_PCODE_LAB_PK3).
 | `PSAPPCLASSDEFN` | APPCLASSID, PACKAGEROOT, QUALIFYPATH ':', APPCLASSREF / DESCR ' ' |
 | `PSPACKAGEDEFN` | the root package rewritten, VERSION = new APM, restamped |
 | `PSPCMPROG` / `PSPCMNAME` / `PSPCMTXT` | the program, as any PeopleCode save writes it (key 104 / 107 / 12, OnExecute) |
-| counters | PSVERSION PCM, APM + 1, **SYS + 2**; PSLOCK PCM, APM + 1 |
+| counters | PSVERSION PCM, APM + 1, SYS + 1 per transaction; PSLOCK PCM, APM + 1 |
 
 App Designer stored the source with a signature comment it adds itself
 (`/+ Returns String +/` after `method Greet`), and compiled that: 242
@@ -59,8 +59,30 @@ ZZ_PCODE_LAB_PK3:Hello from App Designer's stored source: the same rows,
 counters and `HASH_SIGNATURE`, and a program identical but for the package
 name it embeds (`ZZ_PCODE_LAB_PK3:Hello`).
 
-Scope: a class directly in a root package; subpackages are not created
-here yet.
+c04's SYS moved by 2 because it was two saves (the package at 10:17:50,
+the program at 10:17:55); one transaction moves it once (c05, c06).
+
+## A class in a subpackage (c05, c06; ZZ_PCODE_LAB_PK2:SUB1)
+
+| Case | Change | What App Designer wrote |
+|---|---|---|
+| c05 | subpackage SUB1 and its class Inner, one save | `PSPACKAGEDEFN` SUB1 inserted (PACKAGELEVEL 1, QUALIFYPATH ':', VERSION = new APM); the root row rewritten with the same VERSION; `PSAPPCLASSDEFN` Inner (QUALIFYPATH 'SUB1'); the program keyed 104 / 105 / 107 / 12; APM, PCM, SYS + 1 |
+| c06 | class Second in SUB1 | **every** package row of the root (root and SUB1) rewritten with VERSION = new APM, restamped; `PSAPPCLASSDEFN` Second; the program; APM, PCM, SYS + 1 |
+
+App Designer also deletes and reinserts the package's other class rows
+unchanged. Paths, as HRDMO stores them (at most two levels): a level-1
+subpackage's QUALIFYPATH is ':', a level-2 one's its parent's ID
+(ADS_DMW:UI:Widgets is 'UI'); a class's is ':' in the root, else the
+subpackage path ('SUB1', 'UI:Widgets'); the program key adds 105 and 106
+for the subpackages.
+
+The writer creates a class at any of those paths in one transaction: the
+missing subpackages, the class row, every package row of the root at the
+new APM, the program. Direct cases x20 / x21 replayed c05 / c06 on
+ZZ_PCODE_LAB_PK3 with App Designer's stored source: the same rows and
+counters, `HASH_SIGNATURE`s equal, programs identical but for the package
+name they embed. Creating a level-2 subpackage follows HRDMO's layout; no
+App Designer capture has shown one yet.
 
 ## In VS Code
 
