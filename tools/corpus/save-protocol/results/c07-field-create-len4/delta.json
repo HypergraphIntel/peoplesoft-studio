@@ -1,0 +1,457 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "c07-field-create-len4",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362778444243",
+   "timestamp": "2026-10-07T13:38:33.386370000-05:00"
+  },
+  "after": {
+   "scn": "39362778444627",
+   "timestamp": "2026-10-07T13:41:22.278349000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-07T13:38:33.386370000-05:00",
+    "to": "2026-10-07T13:41:22.278349000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "PDM": {
+    "before": 30,
+    "after": 31,
+    "delta": 1
+   },
+   "RDM": {
+    "before": 109,
+    "after": 111,
+    "delta": 2
+   },
+   "SYS": {
+    "before": 1462,
+    "after": 1464,
+    "delta": 2
+   },
+   "XTM": {
+    "before": 17,
+    "after": 18,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "PDM": {
+    "before": 30,
+    "after": 31,
+    "delta": 1
+   },
+   "RDM": {
+    "before": 109,
+    "after": 111,
+    "delta": 2
+   },
+   "XTM": {
+    "before": 17,
+    "after": 18,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 4
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 3
+   }
+  },
+  "otherTablesChanged": {
+   "PSDBFIELD": {
+    "inserted": 2,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSDBFLDLABL": {
+    "inserted": 2,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSXLATDEFNDEL": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "30",
+       "after": "31"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "RDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "109",
+       "after": "111"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "1462",
+       "after": "1464"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "XTM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "17",
+       "after": "18"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "30",
+       "after": "31"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "RDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "109",
+       "after": "111"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "XTM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "17",
+       "after": "18"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSDBFIELD": {
+   "columns": [
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LENGTH",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DECIMALPOS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FORMAT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FORMATLENGTH",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IMAGE_FMT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FORMATFAMILY",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "DISPFMTNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "DEFCNTRYYR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IMEMODE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "KBLAYOUT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "FLDNOTUSED",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "AUXFLAGMASK",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "FIELDNAME": "ZZ_PCODE_LAB_C11",
+     "VERSION": "111",
+     "FIELDTYPE": "0",
+     "LENGTH": "5",
+     "DECIMALPOS": "0",
+     "FORMAT": "0",
+     "FORMATLENGTH": "0",
+     "IMAGE_FMT": "0",
+     "FORMATFAMILY": " ",
+     "DISPFMTNAME": " ",
+     "DEFCNTRYYR": "50",
+     "IMEMODE": "0",
+     "KBLAYOUT": "0",
+     "OBJECTOWNERID": " ",
+     "LASTUPDDTTM": "2026-10-07T13:41:08.736660000",
+     "LASTUPDOPRID": "JARED",
+     "FLDNOTUSED": "0",
+     "AUXFLAGMASK": "0",
+     "DESCRLONG": null
+    },
+    {
+     "FIELDNAME": "ZZ_PCODE_LAB_C10",
+     "VERSION": "110",
+     "FIELDTYPE": "0",
+     "LENGTH": "4",
+     "DECIMALPOS": "0",
+     "FORMAT": "0",
+     "FORMATLENGTH": "0",
+     "IMAGE_FMT": "0",
+     "FORMATFAMILY": " ",
+     "DISPFMTNAME": " ",
+     "DEFCNTRYYR": "50",
+     "IMEMODE": "0",
+     "KBLAYOUT": "0",
+     "OBJECTOWNERID": " ",
+     "LASTUPDDTTM": "2026-10-07T13:40:47.836630000",
+     "LASTUPDOPRID": "JARED",
+     "FLDNOTUSED": "0",
+     "AUXFLAGMASK": "0",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSDBFLDLABL": {
+   "columns": [
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "LABEL_ID",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "LONGNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SHORTNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "DEFAULT_LABEL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "FIELDNAME": "ZZ_PCODE_LAB_C11",
+     "LABEL_ID": "ZZ_PCODE_LAB_C11",
+     "LONGNAME": "Long",
+     "SHORTNAME": "Short",
+     "DEFAULT_LABEL": "1"
+    },
+    {
+     "FIELDNAME": "ZZ_PCODE_LAB_C10",
+     "LABEL_ID": "ZZ_PCODE_LAB_C10_1",
+     "LONGNAME": "Long",
+     "SHORTNAME": "Short",
+     "DEFAULT_LABEL": "1"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSXLATDEFNDEL": {
+   "columns": [
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "FIELDNAME": "ZZ_PCODE_LAB_C10",
+     "VERSION": "18"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  }
+ }
+}

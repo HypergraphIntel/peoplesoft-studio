@@ -16,6 +16,11 @@ import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCo
  *   PSVERSION    RDM + 1, SYS + 1
  *   PSLOCK       RDM + 1
  *
+ * A Character field short enough for translate values (length 1-4: f01's
+ * ZZ_FIELD_1 at 1, c07's ZZ_PCODE_LAB_C10 at 4; not C11 at 5 or c01 at 10)
+ * also gets an empty translate marker: PSXLATDEFNDEL with VERSION = the new
+ * XTM, and PSVERSION / PSLOCK PDM and XTM + 1.
+ *
  * Scope: scratch names (ZZ_PCODE_LAB%); Character, Long Character, Number,
  * Signed Number, Date, Time, DateTime and Image Reference. Date, Time and
  * DateTime have PeopleTools' fixed lengths (10, 15, 26: every one on
@@ -98,6 +103,7 @@ export async function createField(c: Connection, request: FieldCreateRequest): P
     };
     if (l.length !== 1) throw new FieldCreateRefusedError('PSLOCK RDM is missing; refusing to write.');
     const next = { rdm: get('RDM'), sys: get('SYS'), lockRdm: Number(l[0].V) + 1 };
+    const translatable = request.type === FieldType.Character && request.length <= 4;
     const [{ TS: lastupddttm }] = await select<{ TS: string }>(c,
       `SELECT TO_CHAR(CAST(SYSTIMESTAMP AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM DUAL`);
 
@@ -114,6 +120,24 @@ export async function createField(c: Connection, request: FieldCreateRequest): P
     await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'RDM'`, { v: next.rdm }, 1, 'Updating PSVERSION RDM');
     await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
     await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'RDM'`, { v: next.lockRdm }, 1, 'Updating PSLOCK RDM');
+    if (translatable) {
+      const tv = await select<{ T: string; V: number }>(c,
+        `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME IN ('XTM', 'PDM') FOR UPDATE`);
+      const tl = await select<{ T: string; V: number }>(c,
+        `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME IN ('XTM', 'PDM') FOR UPDATE`);
+      const bump = (rows: { T: string; V: number }[], n: string) => {
+        const r = rows.find((x) => String(x.T).trim() === n);
+        if (!r) throw new FieldCreateRefusedError(`${n} is missing from PSVERSION / PSLOCK; refusing to write.`);
+        return Number(r.V) + 1;
+      };
+      const xtm = bump(tv, 'XTM');
+      await c.execute(`DELETE FROM SYSADM.PSXLATDEFNDEL WHERE FIELDNAME = :f`, { f: name });
+      await expectRows(c, `INSERT INTO SYSADM.PSXLATDEFNDEL (FIELDNAME, VERSION) VALUES (:f, :v)`, { f: name, v: xtm }, 1, 'Inserting PSXLATDEFNDEL');
+      for (const [table, n, value] of [['PSVERSION', 'XTM', xtm], ['PSVERSION', 'PDM', bump(tv, 'PDM')], ['PSLOCK', 'XTM', bump(tl, 'XTM')],
+        ['PSLOCK', 'PDM', bump(tl, 'PDM')]] as const) {
+        await expectRows(c, `UPDATE SYSADM.${table} SET VERSION = :v WHERE OBJECTTYPENAME = :n`, { v: value, n }, 1, `Updating ${table} ${n}`);
+      }
+    }
 
     const [d] = await select<{ VERSION: number; FIELDTYPE: number; LENGTH: number; TS: string }>(c,
       `SELECT VERSION, FIELDTYPE, LENGTH, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f`,
