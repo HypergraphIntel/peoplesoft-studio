@@ -145,7 +145,8 @@ export function useRows(fields: readonly RecordLayoutField[]): UseRow[] {
     const dup = hasFlag(f.useEdit, UseEdit.DuplicateOrderKey);
     const alt = hasFlag(f.useEdit, UseEdit.AltSearchKey);
     return {
-      // A duplicate order key is a key of the key index (case r08): it has an order and a direction.
+      // A duplicate order key is a key of the key index (case r08): it has an order and a direction,
+      // and App Designer's Key column says "Dup" (ACA_RES_F_TBL.EMPLID).
       key: key ? 'Key' : dup ? 'Dup' : alt ? 'Alt' : '',
       order: key || dup ? String(++keyOrder) : '',
       dir: key || dup || alt ? (hasFlag(f.useEdit, UseEdit.DescendingKey) ? 'Desc' : 'Asc') : '',

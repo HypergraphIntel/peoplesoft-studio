@@ -173,3 +173,9 @@ test('the page carries Record Properties and offers the build script for an SQL 
   assert.ok(html.includes('data-act="build"'));
   assert.ok(!renderRecordHtml({ ...layout, recordType: RecordType.View }, 'X', 'n').includes('data-act="build"'));
 });
+
+test('a duplicate order key reads "Dup", ordered and Asc, as App Designer shows ACA_RES_F_TBL', () => {
+  // ATTACHSYSFILENAME USEEDIT 8388609 (Key), EMPLID 8388610 (Duplicate Order Key): Key / Dup, Ordr 1 / 2, Dir Asc / Asc.
+  const rows = useRows([field({ name: 'ATTACHSYSFILENAME', useEdit: 8388609 }), field({ name: 'EMPLID', useEdit: 8388610 })]);
+  assert.deepEqual(rows.map((r) => [r.key, r.order, r.dir, r.list]), [['Key', '1', 'Asc', 'No'], ['Dup', '2', 'Asc', 'No']]);
+});
