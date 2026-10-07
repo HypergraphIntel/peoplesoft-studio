@@ -1,4 +1,5 @@
 import { hasFlag, NEW_FIELD_USE_EDIT, RecordFlag, RecordType, UseEdit, UseEdit2 } from './record.js';
+import { SETTABLE_PAGE_CONTROLS } from './recordLayout.js';
 
 /*
  * Editing a record definition and planning its save, as App Designer saves
@@ -49,8 +50,12 @@ export const EDITABLE_USE_BITS = UseEdit.Key | UseEdit.DuplicateOrderKey | UseEd
 /** The USEEDIT2 bits an edit may change (r10, r15, r16). */
 export const EDITABLE_USE2_BITS: number = UseEdit2.DoNotTraceValue | UseEdit2.SmartPrompt | UseEdit2.SmartDropDown;
 
-/** DEFGUICONTROL values seen set by App Designer: 99 System Default (new fields), 5 (case r15). */
-export const KNOWN_PAGE_CONTROLS: readonly number[] = [99, 5];
+/**
+ * DEFGUICONTROL values that may be set: App Designer stored 99 (new fields)
+ * and 5 (case r15) itself, and 4, 7 and 8 are its named controls on
+ * delivered fields (PAGE_CONTROL_NAMES).
+ */
+export const KNOWN_PAGE_CONTROLS: readonly number[] = SETTABLE_PAGE_CONTROLS;
 
 export interface RecordEditField {
   name: string;

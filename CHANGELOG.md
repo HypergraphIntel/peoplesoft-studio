@@ -4,6 +4,15 @@
 
 ### Changed
 
+- **Build Script** writes App Designer's Create Tables script exactly:
+  the database's DDL model and storage parameters, App Designer's column
+  types (`SMALLINT`, `INTEGER`, `DECIMAL`, `tIMESTAMP`, `vARCHAR2` ...),
+  CLOB columns last, the index without `DESC`, and its line layout. Checked
+  byte for byte against App Designer's scripts for two records.
+- Record Field Properties names the Default Page Control (Edit Box,
+  Dropdown List, Check Box, Radio Button, Image, System Default) and offers
+  each but Image.
+
 - The README's AI client setup covers Claude Code, Codex and any other MCP
   client (*Copy MCP URL*), with the command each choice of *PeopleSoft:
   Configure AI Client* runs; Troubleshooting checks the Settings panel and

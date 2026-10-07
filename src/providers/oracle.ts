@@ -10,6 +10,7 @@ import type { RecordLayout, TranslateValue } from '../model/recordLayout.js';
 import type { DefinitionReference } from './provider.js';
 import { createProject as createProjectRow, saveProject, verifyProjectSave, type ProjectSaveRequest, type ProjectSaveResult } from './projectWriter.js';
 import { deleteRecord, saveRecord, verifyRecordSave, type RecordSaveRequest, type RecordSaveResult } from './recordWriter.js';
+import type { DdlModel } from '../model/recordDdl.js';
 import { saveTranslate as saveTranslateRows, type TranslateChange } from './translateWriter.js';
 import { createField as createFieldRows, type FieldCreateRequest } from './fieldWriter.js';
 import { createPackage as createPackageRow } from './packageWriter.js';
@@ -459,6 +460,34 @@ export class OracleProvider implements DefinitionProvider {
   async fieldExists(name: string): Promise<boolean> {
     return this.withConnection(async (c) => Number((await c.execute<{ N: number }>(
       `SELECT COUNT(*) AS N FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f`, { f: name })).rows?.[0]?.N ?? 0) > 0);
+  }
+
+  /**
+   * The Oracle DDL model a record builds with: PSDDLMODEL's Create Table and
+   * Create Index statements (platform 2, sizing set 0), PSDDLDEFPARMS'
+   * defaults, and the record's and its key index's own parameters over them.
+   */
+  async readDdlModel(recname: string): Promise<DdlModel | undefined> {
+    return this.withConnection(async (c) => {
+      const models = await c.execute<{ T: number; M: string }>(
+        `SELECT STATEMENT_TYPE AS T, MODEL_STATEMENT AS M FROM SYSADM.PSDDLMODEL
+          WHERE PLATFORMID = 2 AND SIZING_SET = 0 AND STATEMENT_TYPE IN (1, 2)`, {},
+        { fetchInfo: { M: { type: (await loadOracleDb()).STRING } } });
+      const table = models.rows?.find((r) => Number(r.T) === 1)?.M;
+      const index = models.rows?.find((r) => Number(r.T) === 2)?.M;
+      if (!table || !index) return undefined;
+      const parms = async (sql: string, binds: Record<string, string | number>) => Object.fromEntries(
+        ((await c.execute<{ N: string; V: string }>(sql, binds)).rows ?? []).map((r) => [String(r.N).trim(), String(r.V ?? '')]));
+      const defaults = (type: number) => parms(
+        `SELECT PARMNAME AS N, PARMVALUE AS V FROM SYSADM.PSDDLDEFPARMS WHERE PLATFORMID = 2 AND SIZING_SET = 0 AND STATEMENT_TYPE = :t`, { t: type });
+      return {
+        table, index,
+        tableParms: { ...(await defaults(1)), ...(await parms(
+          `SELECT PARMNAME AS N, PARMVALUE AS V FROM SYSADM.PSRECDDLPARM WHERE RECNAME = :r AND PLATFORMID = 2 AND SIZINGSET = 0`, { r: recname })) },
+        indexParms: { ...(await defaults(2)), ...(await parms(
+          `SELECT PARMNAME AS N, PARMVALUE AS V FROM SYSADM.PSIDXDDLPARM WHERE RECNAME = :r AND INDEXID = '_' AND PLATFORMID = 2 AND SIZINGSET = 0`, { r: recname })) }
+      };
+    });
   }
 
   /** Whether a record name is free, taken, or was deleted before (PSRECDEL: not re-created here). */

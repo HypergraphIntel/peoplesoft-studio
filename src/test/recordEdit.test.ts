@@ -200,7 +200,10 @@ test('the Edits tab, default value, label and page control (r15, r16)', () => {
   e = setLabel(e, 0, 'DATE/TIME');
   assert.equal(e.fields[0].useEdit & UseEdit.UseDefaultLabel, 0, 'a label of its own clears Use Default Label');
   e = setPageControl(e, 0, 5);
-  assert.throws(() => setPageControl(e, 0, 7), /not been observed/);
+  // Check Box (7) is one of App Designer's named controls now; Image (9) is never picked, and 3 is unnamed.
+  assert.equal(setPageControl(e, 0, 7).fields[0].pageControl, 7);
+  assert.throws(() => setPageControl(e, 0, 9), /not been observed/);
+  assert.throws(() => setPageControl(e, 0, 3), /not been observed/);
   e = setUse(e, 1, { smartPrompt: true, smartDropDown: true });
   const plan = planRecordSave(stored, e, { ts: 'NOW', operatorId: 'J' });
   const [k, v] = plan.fields;

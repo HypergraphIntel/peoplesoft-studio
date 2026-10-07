@@ -405,12 +405,11 @@ field's value, as App Designer showed it for ZZ_PCODE_LAB_C01).
 
 - an SQL Table losing its last key; alternate search keys (index type 3)
 - Auto-Update (DateTime field), In Memory, Smart Drop-Down, Smart Prompt
-- Default Page Control values other than 99 / 5, and 5's name
 - changing the record type, Non-Standard SQL Table Name, Build Sequence,
   and view SQL from VS Code (r26-r29 show the rows; not built yet)
 - whether parent / query security / audit references move the referring
   record's VERSION
-- App Designer's build script; SQL text over 14,000 characters
+- SQL text over 14,000 characters
 - keys on an SQL Table record (`PSINDEXDEFN` / `PSKEYDEFN` expected):
   set Key, Search Key, List Box Item, Descending
 - a record containing a subrecord, and a subrecord used by other records
@@ -418,9 +417,34 @@ field's value, as App Designer showed it for ZZ_PCODE_LAB_C01).
 
 ## Build Script
 
-`src/model/recordDdl.ts` generates App Designer's Create Table for an SQL
-Table (never run). Its rules are read off HRDMO's built tables and checked
-against all 263,619 of their columns: column types agree 99.39% (the rest
-are length-10 numbers older tables built as INTEGER, 1,598, and 6 signed
-ones), NOT NULL 99.998%. Storage clauses from the DDL model are not
-produced.
+`src/model/recordDdl.ts` writes App Designer's Build > Create Tables script
+for an SQL Table (never run): the Oracle DDL model's Create Table and Create
+Index statements (`PSDDLMODEL` platform 2), filled with the record's and
+its key index's parameters (`PSRECDDLPARM`, `PSIDXDDLPARM`) over the
+defaults (`PSDDLDEFPARMS`), laid out as App Designer lays them out. It is
+byte-identical to App Designer's scripts for ZZ_PCODE_LAB_R1 (Character
+and DateTime columns, a unique key) and ZZ_PCODE_LAB_R6 (every column type,
+a descending key, a duplicate order key):
+
+- Character `VARCHAR2(n)` (the database is CHAR length semantics); Long
+  Character `vARCHAR2(n)` up to 1,333, else `CLOB`; Number `SMALLINT` (up
+  to 4), `INTEGER` (up to 9), `DECIMAL(n)`, `DECIMAL(n-1, d)`; Signed
+  Number `SMALLINT` (up to 5), `INTEGER` (up to 11), `DECIMAL(n-1)`,
+  `DECIMAL(n-2, d)`; Date `DATE`; Time `TIMESTAMP`; DateTime `tIMESTAMP`.
+  The lowercase first letters are App Designer's (`iNDEX` too).
+- NOT NULL: always for character and number columns; for Long, Date, Time
+  and DateTime only when Required.
+- CLOB and BLOB columns last, in field order.
+- The key index: keys and duplicate order keys in field order, `UNIQUE`
+  unless there is a duplicate order key, never `DESC` (none of HRDMO's
+  172,848 index columns is, though 6,272 key fields are descending);
+  `PARALLEL NOLOGGING`, then `ALTER INDEX ... NOPARALLEL LOGGING`.
+- Lines of at most 70 characters, a moved word keeping its space; columns
+  three spaces in; `/` after each statement.
+
+## Default Page Control
+
+`DEFGUICONTROL`, as App Designer names it (read off fields storing each
+value): 99 System Default, 4 Edit Box, 5 Dropdown List, 7 Check Box, 8
+Radio Button, 9 Image (image fields, not choosable). Subrecord rows store
+0 and have no such setting. The editor offers 99, 4, 5, 7 and 8.
