@@ -1,5 +1,8 @@
 import { DefinitionKey, DefinitionType } from '../model/definitions.js';
 import { RecordDefinition } from '../model/record.js';
+import type { PropertiesInput } from '../model/properties.js';
+import type { FieldDefinition } from '../model/fieldDefinition.js';
+import type { RecordLayout, TranslateValue } from '../model/recordLayout.js';
 
 export interface DefinitionSummary {
   key: DefinitionKey;
@@ -100,6 +103,39 @@ export interface DefinitionProvider {
    * not record the release it was exported from.
    */
   readEnvironment?(): Promise<EnvironmentInfo>;
+
+  /**
+   * The rows behind a definition's Properties panel (model/properties.ts),
+   * read-only. Undefined when the definition does not exist. Absent for a
+   * provider with no database behind it: a project export does not carry
+   * the definition rows.
+   */
+  readProperties?(key: DefinitionKey): Promise<PropertiesInput | undefined>;
+
+  /** A field as App Designer's Field dialog shows it; undefined when it does not exist. */
+  readField?(key: DefinitionKey): Promise<FieldDefinition | undefined>;
+
+  /** A record as App Designer's record editor shows it; undefined when it does not exist. */
+  readRecordLayout?(key: DefinitionKey): Promise<RecordLayout | undefined>;
+
+  /**
+   * App Designer's Find Definition References: where a field (record
+   * undefined) or a record field is used -- records, pages, PeopleCode.
+   */
+  findFieldReferences?(field: string, record?: string): Promise<DefinitionReference[]>;
+
+  /** A field's translate values. */
+  readTranslates?(fieldName: string): Promise<TranslateValue[]>;
+}
+
+/** One place a definition is referenced, for Find Definition References. */
+export interface DefinitionReference {
+  /** "Record", "Page", "PeopleCode". */
+  group: string;
+  label: string;
+  description?: string;
+  /** Present when the reference can be opened here. */
+  key?: DefinitionKey;
 }
 
 /** What PSSTATUS says about a PeopleTools installation. */

@@ -220,6 +220,23 @@ export class Workspace implements vscode.Disposable {
       isScratchName(key.parts[0]);
   }
 
+  /**
+   * Whether the connection allows writes at all: an Oracle connection set to
+   * Writable. Project inserts need only this; PeopleCode saves also need
+   * isPeopleCodeWritable.
+   */
+  isWritable(id: string): boolean {
+    const config = this.configFor(id);
+    return config?.kind === 'oracle' && config.peoplecodeAccess === 'writable';
+  }
+
+  /** Whether an SQL definition may be saved here: a Writable connection with an Operator ID, a scratch SQL ID. */
+  isSqlWritable(id: string, key: DefinitionKey): boolean {
+    const config = this.configFor(id);
+    return this.isWritable(id) && Boolean(config?.peoplesoftOperatorId?.trim()) &&
+      key.type === DefinitionType.SqlDefinition && isScratchName(key.parts[0]);
+  }
+
   /** The configured connection behind a provider id. */
   configFor(id: string): ConnectionConfig | undefined {
     return this.connections.find((c) => providerId(c) === id);

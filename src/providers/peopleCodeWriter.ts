@@ -5,6 +5,7 @@ import {
   type PcmKey, type StoredProgram
 } from '../peoplecode/writeback/savePlan.js';
 import { isScratchName } from '../peoplecode/corpus/labSafety.js';
+import { RECORD_FIELD_EVENTS } from '../model/recordEvents.js';
 
 /*
  * The native PeopleCode save transaction (docs/CONTROLLED_COMPILE_LAB.md,
@@ -25,7 +26,7 @@ export function valueBinds(parts: readonly string[]): Record<string, string> {
   for (let i = 0; i < 7; i++) binds[`v${i + 1}`] = parts[i] ?? ' ';
   return binds;
 }
-const VALUE_PREDICATE = [1, 2, 3, 4, 5, 6, 7].map((n) => `OBJECTVALUE${n} = :v${n}`).join(' AND ');
+export const VALUE_PREDICATE = [1, 2, 3, 4, 5, 6, 7].map((n) => `OBJECTVALUE${n} = :v${n}`).join(' AND ');
 const KEY_COLUMNS = [1, 2, 3, 4, 5, 6, 7].flatMap((n) => [`OBJECTID${n}`, `OBJECTVALUE${n}`]);
 /** Matches one exact stored key: all seven OBJECTIDs and OBJECTVALUEs; :i1..:i7, :v1..:v7. */
 const EXACT_PREDICATE = [1, 2, 3, 4, 5, 6, 7].map((n) => `OBJECTID${n} = :i${n} AND OBJECTVALUE${n} = :v${n}`).join(' AND ');
@@ -33,7 +34,7 @@ const exactBinds = (key: PcmKey) => ({
   ...Object.fromEntries(key.objectIds.map((id, i) => [`i${i + 1}`, Number(id)])),
   ...Object.fromEntries(key.objectValues.map((v, i) => [`v${i + 1}`, v]))
 });
-const TIMESTAMP_FORMAT = `'YYYY-MM-DD"T"HH24:MI:SS.FF6'`;
+export const TIMESTAMP_FORMAT = `'YYYY-MM-DD"T"HH24:MI:SS.FF6'`;
 
 /**
  * The program stored under a definition's OBJECTVALUEs, optionally locking
@@ -92,7 +93,7 @@ export async function readForEdit(
 }
 
 /** Rows as objects, whatever the driver's global outFormat. */
-async function select<T>(c: Connection, sql: string, binds: Record<string, unknown> = {}): Promise<T[]> {
+export async function select<T>(c: Connection, sql: string, binds: Record<string, unknown> = {}): Promise<T[]> {
   return ((await c.execute(sql, binds as BindParameters, { outFormat: OUT_FORMAT_OBJECT })).rows ?? []) as T[];
 }
 
@@ -143,7 +144,7 @@ async function progDelVersions(c: Connection, key: PcmKey): Promise<number[]> {
   return r.map((x) => Number(x.V));
 }
 
-async function expectRows(c: Connection, sql: string, binds: Record<string, unknown>, count: number, what: string): Promise<void> {
+export async function expectRows(c: Connection, sql: string, binds: Record<string, unknown>, count: number, what: string): Promise<void> {
   const r = await c.execute(sql, binds as BindParameters);
   if ((r.rowsAffected ?? -1) !== count) {
     throw new SaveRefusedError(`${what} affected ${r.rowsAffected} rows, ${count} expected; rolled back.`);
@@ -178,13 +179,29 @@ export async function savePeopleCode(
     }
 
     // 1-2
-    const stored = await readStoredProgram(c, oracledb, parts, true);
-    if (fingerprint(stored) !== request.openedFingerprint) {
+    const found = await readStoredProgram(c, oracledb, parts, true);
+    if (fingerprint(found) !== request.openedFingerprint) {
       throw new SaveRefusedError('This PeopleCode was changed in the database since it was opened (another save, possibly in App Designer). Reopen it and reapply your edit.');
     }
-    if (!stored || stored.program.length === 0) {
-      throw new SaveRefusedError('There is no stored program to replace; creating PeopleCode is not supported yet.');
+    // Creating a program (cases 01-create, 11b-recreate): Record Field
+    // PeopleCode only, for a field of the record, keyed as App Designer keys
+    // it -- RECORD (1), FIELD (2), event (12), the other slots 0 / ' '.
+    const creating = !found || found.program.length === 0;
+    if (creating && found && (found.text.length > 0 || found.names.length > 0)) {
+      throw new SaveRefusedError('This PeopleCode has source or name rows but no program rows; refusing to write over it.');
     }
+    if (creating) {
+      if (parts.length !== 3 || !RECORD_FIELD_EVENTS.includes(parts[2])) {
+        throw new SaveRefusedError('There is no stored program here; only Record Field PeopleCode can be created yet.');
+      }
+      const [{ N }] = await select<{ N: number }>(c,
+        `SELECT COUNT(*) AS N FROM SYSADM.PSRECFIELD WHERE RECNAME = :r AND FIELDNAME = :f`, { r: parts[0], f: parts[1] });
+      if (Number(N) === 0) throw new SaveRefusedError(`${parts[1]} is not a field of ${parts[0]}.`);
+      if (prepareSourceForSave(request.source) === '') throw new SaveRefusedError('There is nothing to create: the program is empty.');
+    }
+    const stored: StoredProgram = creating
+      ? { key: { objectIds: [1, 2, 12, 0, 0, 0, 0], objectValues: [parts[0], parts[1], parts[2], ' ', ' ', ' ', ' '] }, text: [], program: [], names: [] }
+      : found!;
     const target = targetForKey(stored.key);
     if (!(await operatorExists(c, request.operatorId))) {
       throw new SaveRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
@@ -193,8 +210,8 @@ export async function savePeopleCode(
     if (!status) throw new SaveRefusedError('PSSTATUS has no TOOLSREL; refusing to save.');
     const toolsRelease = String(status).trim();
 
-    // 3
-    checkStoredProgram(stored, target, toolsRelease);
+    // 3 (nothing stored to check when creating)
+    if (!creating) checkStoredProgram(stored, target, toolsRelease);
 
     // 4-5
     const source = prepareSourceForSave(request.source);

@@ -6,6 +6,7 @@ import {
 import { DefinitionType, displayName, typeLabel } from '../model/definitions.js';
 import { PackageNode, buildPackageTree, isPackageItem } from '../model/appPackages.js';
 import { toUri } from '../util/uri.js';
+import { definitionContextValue } from './contextValue.js';
 
 type Node =
   | { kind: 'project'; provider: DefinitionProvider; project: ProjectSummary }
@@ -54,7 +55,8 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
     return this.opened.has(`${providerId}\u0000${project}`);
   }
 
-  private openedIn(providerId: string): string[] {
+  /** The projects opened on demand for a connection, sorted. */
+  openedIn(providerId: string): string[] {
     const prefix = `${providerId}\u0000`;
     return [...this.opened]
       .filter((k) => k.startsWith(prefix))
@@ -99,7 +101,7 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
             ? vscode.TreeItemCollapsibleState.None
             : vscode.TreeItemCollapsibleState.Collapsed);
         item.iconPath = new vscode.ThemeIcon(isClass ? 'symbol-class' : 'package');
-        item.contextValue = isClass ? 'definition' : 'appPackage';
+        item.contextValue = isClass ? 'definition' : pkg.key ? 'appPackage.properties' : 'appPackage';
         if (pkg.key) {
           item.resourceUri = toUri(node.provider.id, pkg.key);
           // A package node is only openable when it is an item in its own
@@ -127,7 +129,7 @@ export class ProjectsView implements vscode.TreeDataProvider<Node> {
             : vscode.TreeItemCollapsibleState.None);
         item.description = node.summary.description;
         item.iconPath = new vscode.ThemeIcon(iconFor(key.type));
-        item.contextValue = 'definition';
+        item.contextValue = definitionContextValue(key);
         item.resourceUri = toUri(node.provider.id, key);
         item.command = {
           command: 'psft.openDefinition',

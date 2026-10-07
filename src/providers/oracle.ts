@@ -4,6 +4,14 @@ import {
   ProviderError, SearchQuery, UnsupportedOperationError
 } from './provider.js';
 import { DefinitionKey, DefinitionType, isPeopleCode, makeKey } from '../model/definitions.js';
+import { PROPERTIES_SPECS, PropertiesInput, StoredRow } from '../model/properties.js';
+import type { FieldDefinition } from '../model/fieldDefinition.js';
+import type { RecordLayout, TranslateValue } from '../model/recordLayout.js';
+import type { DefinitionReference } from './provider.js';
+import { saveProject, verifyProjectSave, type ProjectSaveRequest, type ProjectSaveResult } from './projectWriter.js';
+import { deleteRecord, saveRecord, verifyRecordSave, type RecordSaveRequest, type RecordSaveResult } from './recordWriter.js';
+import { saveTranslate as saveTranslateRows, type TranslateChange } from './translateWriter.js';
+import { saveSqlDefinition as saveSqlDefinitionRows, verifySqlSave, type SqlSaveRequest, type SqlSaveResult } from './sqlWriter.js';
 import {
   FieldType, RecordDefinition, RecordField, RecordType, describeField
 } from '../model/record.js';
@@ -14,7 +22,7 @@ import {
   PageFieldRow, PageRow, renderComponent, renderField, renderMenu, renderPage
 } from './oracleRender.js';
 import {
-  operatorExists, readForEdit, savePeopleCode as writePeopleCode, verifyCommitted,
+  operatorExists, readForEdit, readStoredProgram, savePeopleCode as writePeopleCode, verifyCommitted,
   type PeopleCodeSaveRequest, type PeopleCodeSaveResult
 } from './peopleCodeWriter.js';
 
@@ -250,7 +258,7 @@ export class OracleProvider implements DefinitionProvider {
       case DefinitionType.ApplicationPackage:
         return this.searchSimple(
           `SELECT PACKAGEROOT AS NAME, '' AS DESCR, LASTUPDDTTM, LASTUPDOPRID
-             FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT LIKE :n AND QUALIFYPATH = ' '`,
+             FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT LIKE :n AND PACKAGELEVEL = 0`,
           DefinitionType.ApplicationPackage, pattern, limit);
       case DefinitionType.SqlDefinition:
         return this.searchSimple(
@@ -287,6 +295,122 @@ export class OracleProvider implements DefinitionProvider {
   async readPeopleCodeForEdit(key: DefinitionKey): Promise<{ text: string; fingerprint: string } | undefined> {
     const oracledb = await loadOracleDb();
     return this.withConnection((c) => readForEdit(c, oracledb, pcmProgKeyParts(key)));
+  }
+
+  /**
+   * A definition's row for its Properties panel: every column, long text
+   * (DESCRLONG) as a string. A field adds its labels; a SQL definition its
+   * description row, which PSSQLDESCR keeps apart (newest effective date).
+   */
+  async readProperties(key: DefinitionKey): Promise<PropertiesInput | undefined> {
+    const spec = PROPERTIES_SPECS[key.type];
+    if (!spec) return undefined;
+    const oracledb = await loadOracleDb();
+    const options = {
+      outFormat: oracledb.OUT_FORMAT_OBJECT,
+      fetchTypeHandler: (meta: { dbType?: unknown }) =>
+        meta.dbType === oracledb.DB_TYPE_CLOB || meta.dbType === oracledb.DB_TYPE_NCLOB ? { type: oracledb.STRING } : undefined
+    };
+    const where = spec.where(key);
+    const columns = Object.keys(where);
+    return this.withConnection(async (c) => {
+      const r = await c.execute<StoredRow>(
+        `SELECT * FROM SYSADM.${spec.table} WHERE ${columns.map((col, i) => `${col} = :b${i}`).join(' AND ')}` +
+        (spec.orderBy ? ` ORDER BY ${spec.orderBy}` : ''),
+        columns.map((col) => where[col]), options);
+      const row = r.rows?.[0];
+      if (!row) return undefined;
+      const input: PropertiesInput = { key, row };
+      if (key.type === DefinitionType.SqlDefinition) {
+        const d = await c.execute<StoredRow>(
+          `SELECT * FROM SYSADM.PSSQLDESCR WHERE SQLID = :id AND SQLTYPE = :t ORDER BY EFFDT DESC`,
+          [where.SQLID, where.SQLTYPE], options);
+        if (d.rows?.[0]) input.descriptionRow = d.rows[0];
+      }
+      if (key.type === DefinitionType.Field) {
+        const l = await c.execute<StoredRow>(
+          `SELECT LABEL_ID, LONGNAME, SHORTNAME, DEFAULT_LABEL FROM SYSADM.PSDBFLDLABL WHERE FIELDNAME = :f ORDER BY DEFAULT_LABEL DESC, LABEL_ID`,
+          [where.FIELDNAME], options);
+        input.labels = l.rows ?? [];
+      }
+      return input;
+    });
+  }
+
+  /**
+   * Saves a set of changes to a project as App Designer's Save Project does
+   * (projectWriter.ts): one transaction, then verified again on another
+   * connection after COMMIT.
+   */
+  async saveProject(request: ProjectSaveRequest): Promise<ProjectSaveResult> {
+    const result = await this.withConnection((c) => saveProject(c, request));
+    await this.withConnection((c) => verifyProjectSave(c, request, result));
+    return result;
+  }
+
+  /** The project's VERSION, the token a later save presents; undefined when there is no such project. */
+  async readProjectVersion(project: string): Promise<number | undefined> {
+    return this.withConnection(async (c) => {
+      const r = await c.execute<{ VERSION: number }>(
+        `SELECT VERSION FROM SYSADM.PSPROJECTDEFN WHERE PROJECTNAME = :p`, { p: project });
+      const v = r.rows?.[0]?.VERSION;
+      return v === undefined ? undefined : Number(v);
+    });
+  }
+
+  /**
+   * Saves a record definition as App Designer does (recordWriter.ts): one
+   * transaction, then verified again on another connection after COMMIT.
+   */
+  async saveRecord(request: RecordSaveRequest): Promise<RecordSaveResult> {
+    const result = await this.withConnection((c) => saveRecord(c, request));
+    await this.withConnection((c) => verifyRecordSave(c, request, result));
+    return result;
+  }
+
+  /**
+   * Deletes a record definition as App Designer does (recordWriter.ts
+   * deleteRecord, case r40), then checks on another connection that it is gone.
+   */
+  async deleteRecord(request: { recname: string; openedVersion: number; operatorId: string }): Promise<{ version: number }> {
+    const result = await this.withConnection((c) => deleteRecord(c, request));
+    await this.withConnection(async (c) => {
+      const r = await c.execute<{ N: number }>(
+        `SELECT (SELECT COUNT(*) FROM SYSADM.PSRECDEFN WHERE RECNAME = :r) AS N FROM DUAL`, { r: request.recname });
+      if (Number(r.rows?.[0]?.N) !== 0) throw new ProviderError(`${request.recname} is still defined after the delete.`);
+    });
+    return result;
+  }
+
+  /** Adds, changes or deletes a field's translate value as App Designer does (translateWriter.ts). */
+  async saveTranslate(field: string, change: TranslateChange, operatorId: string): Promise<void> {
+    await this.withConnection((c) => saveTranslateRows(c, field, change, operatorId));
+  }
+
+  /** Whether any PeopleCode rows are stored under the key (program, source or names). */
+  async hasPeopleCode(key: DefinitionKey): Promise<boolean> {
+    const oracledb = await loadOracleDb();
+    return this.withConnection(async (c) => (await readStoredProgram(c, oracledb, pcmProgKeyParts(key), false)) !== undefined);
+  }
+
+  /** An SQL definition's text with the version a save must present; undefined when there is none. */
+  async readSqlForEdit(key: DefinitionKey): Promise<{ text: string; version: number } | undefined> {
+    return this.withConnection(async (c) => {
+      const d = await c.execute<{ VERSION: number }>(
+        `SELECT VERSION FROM SYSADM.PSSQLDEFN WHERE SQLID = :id AND SQLTYPE = 0`, { id: key.parts[0] });
+      if (!d.rows?.[0]) return undefined;
+      return { text: await this.readSqlDefinition(key), version: Number(d.rows[0].VERSION) };
+    });
+  }
+
+  /**
+   * Saves an SQL definition's text as App Designer does (sqlWriter.ts): one
+   * transaction, then verified again on another connection after COMMIT.
+   */
+  async saveSqlDefinition(request: SqlSaveRequest): Promise<SqlSaveResult> {
+    const result = await this.withConnection((c) => saveSqlDefinitionRows(c, request));
+    await this.withConnection((c) => verifySqlSave(c, request, result));
+    return result;
   }
 
   /** Whether a PeopleSoft operator exists here (PSOPRDEFN), read-only. */
@@ -347,6 +471,43 @@ export class OracleProvider implements DefinitionProvider {
       const rows = r.rows ?? [];
       if (rows.length === 0) throw new ProviderError(`No HTML definition named ${name}.${contType}.`);
       return Buffer.concat(rows.map((row) => row.CONTDATA)).toString('utf16le');
+    });
+  }
+
+  async readField(key: DefinitionKey): Promise<FieldDefinition | undefined> {
+    const name = key.parts[0];
+    return this.withConnection(async (c) => {
+      const d = await c.execute<{
+        FIELDTYPE: number; LENGTH: number; DECIMALPOS: number; FORMAT: number; FORMATFAMILY: string; DISPFMTNAME: string;
+        DEFCNTRYYR: number; FLDNOTUSED: number; AUXFLAGMASK: number; VERSION: number; TS: string; OPRID: string
+      }>(
+        `SELECT FIELDTYPE, LENGTH, DECIMALPOS, FORMAT, FORMATFAMILY, DISPFMTNAME, DEFCNTRYYR, FLDNOTUSED, AUXFLAGMASK,
+                VERSION, TO_CHAR(LASTUPDDTTM, 'YYYY-MM-DD HH24:MI:SS') AS TS, LASTUPDOPRID AS OPRID
+           FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :n`, { n: name });
+      const row = d.rows?.[0];
+      if (!row) return undefined;
+      const l = await c.execute<{ LABEL_ID: string; LONGNAME: string; SHORTNAME: string; DEFAULT_LABEL: number }>(
+        `SELECT LABEL_ID, LONGNAME, SHORTNAME, DEFAULT_LABEL FROM SYSADM.PSDBFLDLABL WHERE FIELDNAME = :n ORDER BY LABEL_ID`,
+        { n: name });
+      const t = (v: string | null | undefined) => (v ?? '').trim();
+      return {
+        name,
+        type: Number(row.FIELDTYPE),
+        length: Number(row.LENGTH),
+        decimalPositions: Number(row.DECIMALPOS),
+        labels: (l.rows ?? []).map((r) => ({
+          id: t(r.LABEL_ID), longName: t(r.LONGNAME), shortName: t(r.SHORTNAME), isDefault: Number(r.DEFAULT_LABEL) === 1
+        })),
+        format: Number(row.FORMAT),
+        formatFamily: t(row.FORMATFAMILY),
+        displayName: t(row.DISPFMTNAME),
+        defaultCenturyYear: Number(row.DEFCNTRYYR),
+        notUsed: Number(row.FLDNOTUSED) !== 0,
+        auxFlagMask: Number(row.AUXFLAGMASK),
+        version: Number(row.VERSION),
+        lastUpdated: t(row.TS),
+        lastUpdatedBy: t(row.OPRID)
+      };
     });
   }
 
@@ -466,27 +627,15 @@ export class OracleProvider implements DefinitionProvider {
   }
 
   /**
-   * SQL definitions are plain text split across PSSQLTEXTDEFN rows. PeopleTools
-   * chunks at 4000 bytes; we match that so App Designer reads back what we wrote.
+   * Saving SQL definitions is refused. The earlier implementation did not do
+   * what App Designer does: App Designer's SQL save (case r28, a view's SQL)
+   * writes PSSQLDEFN, PSSQLDESCR, PSSQLHASH (HASH_SIGNATURE, the PSPCMTXT
+   * algorithm) and PSSQLTEXTDEFN keyed by MARKET / DBTYPE / EFFDT, and moves
+   * PSVERSION SRM; it wrote no hash, omitted the NOT NULL MARKET / DBTYPE
+   * columns, and moved a "SQL" counter HRDMO does not have.
    */
-  private async writeSqlDefinition(key: DefinitionKey, text: string): Promise<void> {
-    const CHUNK = 4000;
-    const id = key.parts[0];
-    await this.withConnection(async (c) => {
-      await c.execute(`DELETE FROM SYSADM.PSSQLTEXTDEFN WHERE SQLID = :id AND SQLTYPE = 0`, { id });
-      for (let seq = 0, off = 0; off < text.length || seq === 0; seq++, off += CHUNK) {
-        await c.execute(
-          `INSERT INTO SYSADM.PSSQLTEXTDEFN (SQLID, SQLTYPE, SEQNUM, SQLTEXT)
-           VALUES (:id, 0, :seq, :txt)`,
-          { id, seq, txt: text.slice(off, off + CHUNK) });
-      }
-      await bumpVersion(c, 'SQL');
-      await c.execute(
-          `UPDATE SYSADM.PSSQLDEFN SET LASTUPDDTTM = SYSTIMESTAMP, VERSION =
-            (SELECT VERSION FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME = 'SQL')
-         WHERE SQLID = :id AND SQLTYPE = 0`, { id });
-      await c.commit();
-    });
+  private async writeSqlDefinition(_key: DefinitionKey, _text: string): Promise<void> {
+    throw new UnsupportedOperationError('saving SQL definitions (not yet reproduced from App Designer)', this.displayName);
   }
 
   /**
@@ -525,6 +674,170 @@ export class OracleProvider implements DefinitionProvider {
       }
     }
     return out;
+  }
+
+  /** The record as App Designer's record editor shows it (model/recordLayout.ts). */
+  async readRecordLayout(key: DefinitionKey): Promise<RecordLayout | undefined> {
+    const recname = key.parts[0];
+    return this.withConnection(async (c) => {
+      const t = (v: string | null | undefined) => (v ?? '').trim();
+      const head = (await c.execute<{
+        RECDESCR: string; RECTYPE: number; VERSION: number; SQLTABLENAME: string; BUILDSEQNO: number; AUXFLAGMASK: number;
+        DL: string | null; OBJECTOWNERID: string; TS: string; LASTUPDOPRID: string; SETCNTRLFLD: string; PARENTRECNAME: string;
+        RELLANGRECNAME: string; QRYSECRECNAME: string; OPTDELRECNAME: string; AUDITRECNAME: string;
+        SYSTEMIDFIELDNAME: string; TIMESTAMPFIELDNAME: string; RECUSE: number; OPTTRIGFLAG: string
+      }>(
+        `SELECT RECDESCR, RECTYPE, VERSION, SQLTABLENAME, BUILDSEQNO, AUXFLAGMASK, DBMS_LOB.SUBSTR(DESCRLONG, 4000, 1) AS DL,
+                OBJECTOWNERID, TO_CHAR(LASTUPDDTTM, 'YYYY-MM-DD HH24:MI:SS') AS TS, LASTUPDOPRID, SETCNTRLFLD, PARENTRECNAME,
+                RELLANGRECNAME, QRYSECRECNAME, OPTDELRECNAME, AUDITRECNAME, SYSTEMIDFIELDNAME, TIMESTAMPFIELDNAME,
+                RECUSE, OPTTRIGFLAG
+           FROM SYSADM.PSRECDEFN WHERE RECNAME = :r`, { r: recname })).rows?.[0];
+      if (!head) return undefined;
+      // Each own row with its field's PSDBFIELD values and its label: the
+      // record field's LABEL_ID when set, else the field's default label.
+      const rows = (await c.execute<{
+        FIELDNUM: number; FIELDNAME: string; SUBRECORD: string; USEEDIT: number; EDITTABLE: string; SETCNTRLFLD: string;
+        USEEDIT2: number; LABEL_ID: string; DEFGUICONTROL: number;
+        DEFRECNAME: string; DEFFIELDNAME: string; FIELDTYPE: number | null; LENGTH: number | null;
+        DECIMALPOS: number | null; FORMAT: number | null; LONGNAME: string | null; SHORTNAME: string | null; PC: number
+      }>(
+        `SELECT rf.FIELDNUM, rf.FIELDNAME, rf.SUBRECORD, rf.USEEDIT, rf.EDITTABLE, rf.SETCNTRLFLD, rf.DEFRECNAME, rf.DEFFIELDNAME,
+                rf.USEEDIT2, rf.LABEL_ID, rf.DEFGUICONTROL,
+                f.FIELDTYPE, f.LENGTH, f.DECIMALPOS, f.FORMAT, l.LONGNAME, l.SHORTNAME,
+                (SELECT COUNT(*) FROM SYSADM.PSPCMPROG p WHERE p.OBJECTID1 = 1 AND p.OBJECTVALUE1 = rf.RECNAME
+                    AND p.OBJECTID2 = 2 AND p.OBJECTVALUE2 = rf.FIELDNAME AND p.PROGSEQ = 0) AS PC
+           FROM SYSADM.PSRECFIELD rf
+           LEFT JOIN SYSADM.PSDBFIELD f ON f.FIELDNAME = rf.FIELDNAME AND rf.SUBRECORD <> 'Y'
+           LEFT JOIN SYSADM.PSDBFLDLABL l ON l.FIELDNAME = rf.FIELDNAME AND rf.SUBRECORD <> 'Y'
+            AND ((rf.LABEL_ID <> ' ' AND l.LABEL_ID = rf.LABEL_ID) OR (rf.LABEL_ID = ' ' AND l.DEFAULT_LABEL = 1))
+          WHERE rf.RECNAME = :r ORDER BY rf.FIELDNUM`, { r: recname })).rows ?? [];
+      const layout: RecordLayout = {
+        name: recname,
+        description: t(head.RECDESCR),
+        recordType: Number(head.RECTYPE) as RecordType,
+        sqlTableName: t(head.SQLTABLENAME),
+        version: Number(head.VERSION),
+        buildSequence: Number(head.BUILDSEQNO),
+        auxFlagMask: Number(head.AUXFLAGMASK),
+        properties: {
+          description: t(head.RECDESCR), definition: (head.DL ?? '').replace(/\s+$/, ''), ownerId: t(head.OBJECTOWNERID),
+          lastUpdated: t(head.TS), lastUpdatedBy: t(head.LASTUPDOPRID), setControlField: t(head.SETCNTRLFLD),
+          parentRecord: t(head.PARENTRECNAME), relatedLanguageRecord: t(head.RELLANGRECNAME), querySecurityRecord: t(head.QRYSECRECNAME),
+          analyticDeleteRecord: t(head.OPTDELRECNAME), auditRecord: t(head.AUDITRECNAME), systemIdField: t(head.SYSTEMIDFIELDNAME),
+          timestampField: t(head.TIMESTAMPFIELDNAME), auxFlagMask: Number(head.AUXFLAGMASK),
+          recUse: Number(head.RECUSE), optTrigFlag: t(head.OPTTRIGFLAG)
+        },
+        fields: rows.map((r) => {
+          const sub = t(r.SUBRECORD) === 'Y';
+          return {
+            fieldNum: Number(r.FIELDNUM),
+            name: t(r.FIELDNAME),
+            isSubrecord: sub,
+            ...(sub || r.FIELDTYPE === null ? {} : {
+              type: Number(r.FIELDTYPE) as FieldType, length: Number(r.LENGTH),
+              decimalPositions: Number(r.DECIMALPOS), format: Number(r.FORMAT)
+            }),
+            shortName: t(r.SHORTNAME),
+            longName: t(r.LONGNAME),
+            useEdit: Number(r.USEEDIT),
+            hasPeopleCode: Number(r.PC) > 0,
+            editTable: t(r.EDITTABLE),
+            setControlField: t(r.SETCNTRLFLD),
+            useEdit2: Number(r.USEEDIT2),
+            labelId: t(r.LABEL_ID),
+            defGuiControl: Number(r.DEFGUICONTROL),
+            defaultRecord: t(r.DEFRECNAME),
+            defaultField: t(r.DEFFIELDNAME)
+          };
+        })
+      };
+      if (layout.recordType === RecordType.View || layout.recordType === RecordType.DynamicView) {
+        const sql = await c.execute<{ SQLTEXT: string }>(
+          `SELECT SQLTEXT FROM SYSADM.PSSQLTEXTDEFN WHERE SQLID = :r AND SQLTYPE = 2 ORDER BY SEQNUM`, { r: recname });
+        layout.viewSql = (sql.rows ?? []).map((x) => x.SQLTEXT).join('');
+      }
+      // Every label of the record's fields, for the Record Field Label ID choice.
+      const labelRows = (await c.execute<{ FIELDNAME: string; LABEL_ID: string; LONGNAME: string; SHORTNAME: string; DEFAULT_LABEL: number }>(
+        `SELECT l.FIELDNAME, l.LABEL_ID, l.LONGNAME, l.SHORTNAME, l.DEFAULT_LABEL FROM SYSADM.PSDBFLDLABL l
+          WHERE l.FIELDNAME IN (SELECT FIELDNAME FROM SYSADM.PSRECFIELD WHERE RECNAME = :r AND SUBRECORD = 'N')
+          ORDER BY l.FIELDNAME, l.LABEL_ID`, { r: recname })).rows ?? [];
+      for (const f of layout.fields) {
+        f.labels = labelRows.filter((l) => t(l.FIELDNAME) === f.name)
+          .map((l) => ({ id: t(l.LABEL_ID), longName: t(l.LONGNAME), shortName: t(l.SHORTNAME), isDefault: Number(l.DEFAULT_LABEL) === 1 }));
+      }
+      if (layout.recordType === RecordType.QueryView) {
+        const q = await c.execute<{ QRYNAME: string }>(
+          `SELECT QRYNAME FROM SYSADM.PSQRYDEFN WHERE QRYNAME = :r AND ROWNUM = 1`, { r: recname });
+        if (q.rows?.[0]) layout.queryName = t(q.rows[0].QRYNAME);
+      }
+      const ts = await c.execute<{ DDLSPACENAME: string }>(
+        `SELECT DDLSPACENAME FROM SYSADM.PSRECTBLSPC WHERE RECNAME = :r AND ROWNUM = 1`, { r: recname });
+      if (ts.rows?.[0]) layout.tablespace = t(ts.rows[0].DDLSPACENAME);
+      const idx = await c.execute<{ INDEXID: string }>(
+        `SELECT INDEXID FROM SYSADM.PSINDEXDEFN WHERE RECNAME = :r ORDER BY INDEXID`, { r: recname });
+      layout.indexIds = (idx.rows ?? []).map((x) => t(x.INDEXID));
+      return layout;
+    });
+  }
+
+  /**
+   * Find Definition References for a field, or a record field: the records
+   * that contain the field (field only), the pages that show it (PSPNLFIELD),
+   * and the PeopleCode programs that reference it (PSPCMNAME: RECNAME /
+   * REFNAME). Record Field and Application Class programs can be opened.
+   */
+  async findFieldReferences(field: string, record?: string): Promise<DefinitionReference[]> {
+    return this.withConnection(async (c) => {
+      const t = (v: unknown) => String(v ?? '').trim();
+      const out: DefinitionReference[] = [];
+      if (!record) {
+        const recs = await c.execute<{ RECNAME: string }>(
+          `SELECT DISTINCT RECNAME FROM SYSADM.PSRECFIELD WHERE FIELDNAME = :f AND SUBRECORD = 'N' ORDER BY RECNAME`, { f: field });
+        for (const r of recs.rows ?? []) out.push({ group: 'Record', label: t(r.RECNAME), key: makeKey(DefinitionType.Record, t(r.RECNAME)) });
+      }
+      const pages = await c.execute<{ PNLNAME: string; RECNAME: string }>(
+        `SELECT DISTINCT PNLNAME, RECNAME FROM SYSADM.PSPNLFIELD WHERE FIELDNAME = :f ${record ? 'AND RECNAME = :r' : ''} ORDER BY PNLNAME`,
+        record ? { f: field, r: record } : { f: field });
+      for (const p of pages.rows ?? []) {
+        out.push({ group: 'Page', label: t(p.PNLNAME), description: `${t(p.RECNAME)}.${field}`, key: makeKey(DefinitionType.Page, t(p.PNLNAME)) });
+      }
+      const cols = [1, 2, 3, 4, 5, 6, 7].map((n) => `OBJECTID${n}, OBJECTVALUE${n}`).join(', ');
+      const pcs = await c.execute<Record<string, string | number>>(
+        `SELECT DISTINCT RECNAME, ${cols} FROM SYSADM.PSPCMNAME WHERE REFNAME = :f AND RECNAME ${record ? '= :r' : "<> ' '"}
+          ORDER BY OBJECTVALUE1, OBJECTVALUE2, OBJECTVALUE3`, record ? { f: field, r: record } : { f: field });
+      // One entry per program, however many records it references the field through.
+      const programs = new Map<string, { recs: Set<string>; key?: DefinitionKey }>();
+      for (const row of pcs.rows ?? []) {
+        const ids = [1, 2, 3, 4, 5, 6, 7].map((n) => Number(row[`OBJECTID${n}`]));
+        const vals = [1, 2, 3, 4, 5, 6, 7].map((n) => t(row[`OBJECTVALUE${n}`])).filter((_, i) => ids[i] !== 0);
+        const used = ids.filter((id) => id !== 0);
+        const label = vals.join('.');
+        let entry = programs.get(label);
+        if (!entry) {
+          let key: DefinitionKey | undefined;
+          if (used.join() === '1,2,12') key = makeKey(DefinitionType.RecordPeopleCode, ...vals);
+          else if (used[0] === 104 && used.at(-1) === 12) key = makeKey(DefinitionType.ApplicationClassPeopleCode, ...vals);
+          entry = { recs: new Set(), ...(key ? { key } : {}) };
+          programs.set(label, entry);
+        }
+        entry.recs.add(t(row.RECNAME));
+      }
+      for (const [label, e] of programs) {
+        out.push({ group: 'PeopleCode', label, description: `references ${[...e.recs].map((r) => `${r}.${field}`).join(', ')}`, ...(e.key ? { key: e.key } : {}) });
+      }
+      return out;
+    });
+  }
+
+  /** A field's translate values (PSXLATITEM), as App Designer's View Translates lists them. */
+  async readTranslates(fieldName: string): Promise<TranslateValue[]> {
+    return this.withConnection(async (c) => {
+      const r = await c.execute<{ V: string; D: string; S: string; L: string; SH: string }>(
+        `SELECT FIELDVALUE AS V, TO_CHAR(EFFDT, 'YYYY-MM-DD') AS D, EFF_STATUS AS S, XLATLONGNAME AS L, XLATSHORTNAME AS SH
+           FROM SYSADM.PSXLATITEM WHERE FIELDNAME = :f ORDER BY FIELDVALUE, EFFDT`, { f: fieldName });
+      const t = (v: string | null | undefined) => (v ?? '').trim();
+      return (r.rows ?? []).map((x) => ({ value: t(x.V), effectiveDate: t(x.D), status: t(x.S), longName: t(x.L), shortName: t(x.SH) }));
+    });
   }
 
   async readRecord(key: DefinitionKey): Promise<RecordDefinition> {
@@ -712,18 +1025,4 @@ function pcmProgKeyParts(key: DefinitionKey): readonly string[] {
 /** WHERE clause matching all seven OBJECTVALUE columns, unused slots blank. */
 function keyPredicate(_key: DefinitionKey): string {
   return [1, 2, 3, 4, 5, 6, 7].map((n) => `OBJECTVALUE${n} = :v${n}`).join(' AND ');
-}
-
-/**
- * PeopleTools invalidates application-server caches by comparing a definition's
- * VERSION against the per-type counter in PSVERSION. A definition written
- * without bumping that counter stays invisible to running app servers.
- */
-async function bumpVersion(c: Connection, objectTypeName: string): Promise<void> {
-  await c.execute(
-    `UPDATE SYSADM.PSVERSION SET VERSION = VERSION + 1 WHERE OBJECTTYPENAME IN (:t, 'SYS')`,
-    { t: objectTypeName });
-  await c.execute(
-    `UPDATE SYSADM.PSLOCK SET VERSION = VERSION + 1 WHERE OBJECTTYPENAME IN (:t, 'SYS')`,
-    { t: objectTypeName });
 }
