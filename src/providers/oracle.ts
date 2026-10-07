@@ -490,7 +490,10 @@ export class OracleProvider implements DefinitionProvider {
         tableParms: { ...(await defaults(1)), ...(await parms(
           `SELECT PARMNAME AS N, PARMVALUE AS V FROM SYSADM.PSRECDDLPARM WHERE RECNAME = :r AND PLATFORMID = 2 AND SIZINGSET = 0`, { r: recname })) },
         indexParms: { ...(await defaults(2)), ...(await parms(
-          `SELECT PARMNAME AS N, PARMVALUE AS V FROM SYSADM.PSIDXDDLPARM WHERE RECNAME = :r AND INDEXID = '_' AND PLATFORMID = 2 AND SIZINGSET = 0`, { r: recname })) }
+          `SELECT PARMNAME AS N, PARMVALUE AS V FROM SYSADM.PSIDXDDLPARM WHERE RECNAME = :r AND INDEXID = '_' AND PLATFORMID = 2 AND SIZINGSET = 0`, { r: recname })) },
+        indexDefaults: await defaults(2),
+        altIndexParms: Object.fromEntries(await Promise.all(Array.from({ length: 10 }, (_, n) => String(n)).map(async (id) => [id, { ...(await defaults(2)), ...(await parms(
+          `SELECT PARMNAME AS N, PARMVALUE AS V FROM SYSADM.PSIDXDDLPARM WHERE RECNAME = :r AND INDEXID = :i AND PLATFORMID = 2 AND SIZINGSET = 0`, { r: recname, i: id })) }])))
       };
     });
   }

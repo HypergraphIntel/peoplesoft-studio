@@ -96,6 +96,47 @@ test('every column type, a non-unique index and LOBs last are App Designer\'s, f
   ].join('\n'));
 });
 
+test('alternate search keys and an Auto-Update number are App Designer\'s, for ZZ_PCODE_LAB_R6 with two alternate keys', () => {
+  const x = (name: string, type: FieldType, length: number, decimalPositions = 0, useEdit = 0x800000) => ({ name, type, length, decimalPositions, useEdit });
+  const R = 0x800100;
+  const script = createTableScript({
+    name: 'ZZ_PCODE_LAB_R6', recordType: RecordType.Table, sqlTableName: ' ', tablespace: 'AAAPP',
+    fields: [
+      x('ZZ_PCODE_LAB_KEY', FieldType.Character, 10, 0, 0x800001), x('ZZ_PCODE_LAB_N1', FieldType.Number, 4, 0, 0x800041),
+      x('ZZ_PCODE_LAB_N2', FieldType.Number, 9, 0, 0x800002), x('ZZ_PCODE_LAB_N3', FieldType.Number, 12, 0, 0x800010),
+      // The System ID field: Auto-Update, so no NOT NULL.
+      x('ZZ_PCODE_LAB_N4', FieldType.Number, 10, 2, 0x4800000), x('ZZ_PCODE_LAB_S1', FieldType.SignedNumber, 5, 0, 0x800010),
+      x('ZZ_PCODE_LAB_S2', FieldType.SignedNumber, 12, 3), x('ZZ_PCODE_LAB_D1', FieldType.Date, 10, 0, R),
+      x('ZZ_PCODE_LAB_T1', FieldType.Time, 15), x('ZZ_PCODE_LAB_DT', FieldType.DateTime, 26, 0, R),
+      x('ZZ_PCODE_LAB_L1', FieldType.LongCharacter, 0), x('ZZ_PCODE_LAB_L2', FieldType.LongCharacter, 254, 0, R),
+      x('ZZ_PCODE_LAB_C08', FieldType.Character, 12)
+    ]
+  }, MODEL);
+  const lines = script.split('\n');
+  assert.equal(lines[5], '   ZZ_PCODE_LAB_N4 DECIMAL(9, 2),');
+  assert.equal(script.slice(script.indexOf('CREATE   INDEX PS0')), [
+    'CREATE   INDEX PS0ZZ_PCODE_LAB_R6 ON PS_ZZ_PCODE_LAB_R6',
+    ' (ZZ_PCODE_LAB_N3,',
+    '   ZZ_PCODE_LAB_KEY,',
+    '   ZZ_PCODE_LAB_N1) TABLESPACE PSINDEX STORAGE (INITIAL 40000 NEXT',
+    ' 100000 MAXEXTENTS UNLIMITED PCTINCREASE 0) PCTFREE 10 PARALLEL',
+    ' NOLOGGING',
+    '/',
+    'ALTER INDEX PS0ZZ_PCODE_LAB_R6 NOPARALLEL LOGGING',
+    '/',
+    'CREATE   INDEX PS1ZZ_PCODE_LAB_R6 ON PS_ZZ_PCODE_LAB_R6',
+    ' (ZZ_PCODE_LAB_S1,',
+    '   ZZ_PCODE_LAB_KEY,',
+    '   ZZ_PCODE_LAB_N1) TABLESPACE PSINDEX STORAGE (INITIAL 40000 NEXT',
+    ' 100000 MAXEXTENTS UNLIMITED PCTINCREASE 0) PCTFREE 10 PARALLEL',
+    ' NOLOGGING',
+    '/',
+    'ALTER INDEX PS1ZZ_PCODE_LAB_R6 NOPARALLEL LOGGING',
+    '/',
+    ''
+  ].join('\n'));
+});
+
 test('lines wrap at 70 characters, the moved word keeping its space', () => {
   assert.deepEqual(wrapLine('a'.repeat(66) + ' NULL,'), ['a'.repeat(66), ' NULL,']);
   assert.deepEqual(wrapLine('b'.repeat(70)), ['b'.repeat(70)]);

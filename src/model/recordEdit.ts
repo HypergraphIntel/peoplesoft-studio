@@ -116,7 +116,9 @@ export const RECORD_TYPE_CHANGES: ReadonlyArray<readonly [RecordType, RecordType
   // r46: SQLTABLENAME cleared, the tablespace row deleted (and the key index, which no Derived/Work record has).
   [RecordType.Table, RecordType.DerivedWork],
   // r57: the key index and tablespace row created, the view's SQL rows deleted (SRM + 1).
-  [RecordType.View, RecordType.Table]
+  [RecordType.View, RecordType.Table],
+  // r58 / r60: the view's SQL rows deleted; r59: a Dynamic View's SQL inserted, as r28 inserted an SQL View's.
+  [RecordType.View, RecordType.DerivedWork], [RecordType.DerivedWork, RecordType.DynamicView], [RecordType.DynamicView, RecordType.DerivedWork]
 ];
 
 const isViewType = (t: RecordType) => t === RecordType.View || t === RecordType.DynamicView;
