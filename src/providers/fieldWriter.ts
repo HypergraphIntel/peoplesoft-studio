@@ -86,8 +86,8 @@ export async function createField(c: Connection, request: FieldCreateRequest): P
     const refusal = fieldCreateRefusal(request);
     if (refusal) throw new FieldCreateRefusedError(refusal);
     const [{ N: taken }] = await select<{ N: number }>(c,
-      `SELECT (SELECT COUNT(*) FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f) + (SELECT COUNT(*) FROM SYSADM.PSDBFLDLABL WHERE FIELDNAME = :f)
-            + (SELECT COUNT(*) FROM SYSADM.PSDBFIELDLANG WHERE FIELDNAME = :f) + (SELECT COUNT(*) FROM SYSADM.PSDBFLDLABLLANG WHERE FIELDNAME = :f) AS N FROM DUAL`,
+      `SELECT (SELECT COUNT(*) FROM PSDBFIELD WHERE FIELDNAME = :f) + (SELECT COUNT(*) FROM PSDBFLDLABL WHERE FIELDNAME = :f)
+            + (SELECT COUNT(*) FROM PSDBFIELDLANG WHERE FIELDNAME = :f) + (SELECT COUNT(*) FROM PSDBFLDLABLLANG WHERE FIELDNAME = :f) AS N FROM DUAL`,
       { f: name });
     if (Number(taken) > 0) throw new FieldCreateRefusedError(`A field named ${name} already exists, or left rows behind.`);
     if (!(await operatorExists(c, request.operatorId))) {
@@ -95,8 +95,8 @@ export async function createField(c: Connection, request: FieldCreateRequest): P
     }
 
     const v = await select<{ T: string; V: number }>(c,
-      `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME IN ('RDM', 'SYS') FOR UPDATE`);
-    const l = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME = 'RDM' FOR UPDATE`);
+      `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSVERSION WHERE OBJECTTYPENAME IN ('RDM', 'SYS') FOR UPDATE`);
+    const l = await select<{ V: number }>(c, `SELECT VERSION AS V FROM PSLOCK WHERE OBJECTTYPENAME = 'RDM' FOR UPDATE`);
     const get = (n: string) => {
       const r = v.find((x) => String(x.T).trim() === n);
       if (!r) throw new FieldCreateRefusedError(`PSVERSION ${n} is missing; refusing to write.`);
@@ -109,41 +109,41 @@ export async function createField(c: Connection, request: FieldCreateRequest): P
       `SELECT TO_CHAR(CAST(SYSTIMESTAMP AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM DUAL`);
 
     await expectRows(c,
-      `INSERT INTO SYSADM.PSDBFIELD (FIELDNAME, VERSION, FIELDTYPE, LENGTH, DECIMALPOS, FORMAT, FORMATLENGTH, IMAGE_FMT, FORMATFAMILY,
+      `INSERT INTO PSDBFIELD (FIELDNAME, VERSION, FIELDTYPE, LENGTH, DECIMALPOS, FORMAT, FORMATLENGTH, IMAGE_FMT, FORMATFAMILY,
                                      DISPFMTNAME, DEFCNTRYYR, IMEMODE, KBLAYOUT, OBJECTOWNERID, LASTUPDDTTM, LASTUPDOPRID, FLDNOTUSED,
                                      AUXFLAGMASK, DESCRLONG)
        VALUES (:f, :v, :t, :len, :dec, 0, 0, 0, ' ', ' ', 50, 0, 0, ' ', TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), :op, 0, 0, NULL)`,
       { f: name, v: next.rdm, t: request.type, len: request.length, dec: request.decimalPositions, ts: lastupddttm, op: request.operatorId },
       1, 'Inserting PSDBFIELD');
     await expectRows(c,
-      `INSERT INTO SYSADM.PSDBFLDLABL (FIELDNAME, LABEL_ID, LONGNAME, SHORTNAME, DEFAULT_LABEL) VALUES (:f, :id, :ln, :sn, 1)`,
+      `INSERT INTO PSDBFLDLABL (FIELDNAME, LABEL_ID, LONGNAME, SHORTNAME, DEFAULT_LABEL) VALUES (:f, :id, :ln, :sn, 1)`,
       { f: name, id: request.label.id, ln: request.label.longName, sn: request.label.shortName }, 1, 'Inserting PSDBFLDLABL');
-    await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'RDM'`, { v: next.rdm }, 1, 'Updating PSVERSION RDM');
-    await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
-    await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'RDM'`, { v: next.lockRdm }, 1, 'Updating PSLOCK RDM');
+    await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'RDM'`, { v: next.rdm }, 1, 'Updating PSVERSION RDM');
+    await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
+    await expectRows(c, `UPDATE PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'RDM'`, { v: next.lockRdm }, 1, 'Updating PSLOCK RDM');
     if (translatable) {
       const tv = await select<{ T: string; V: number }>(c,
-        `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME IN ('XTM', 'PDM') FOR UPDATE`);
+        `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSVERSION WHERE OBJECTTYPENAME IN ('XTM', 'PDM') FOR UPDATE`);
       const tl = await select<{ T: string; V: number }>(c,
-        `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME IN ('XTM', 'PDM') FOR UPDATE`);
+        `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSLOCK WHERE OBJECTTYPENAME IN ('XTM', 'PDM') FOR UPDATE`);
       const bump = (rows: { T: string; V: number }[], n: string) => {
         const r = rows.find((x) => String(x.T).trim() === n);
         if (!r) throw new FieldCreateRefusedError(`${n} is missing from PSVERSION / PSLOCK; refusing to write.`);
         return Number(r.V) + 1;
       };
       const xtm = bump(tv, 'XTM');
-      await c.execute(`DELETE FROM SYSADM.PSXLATDEFNDEL WHERE FIELDNAME = :f`, { f: name });
-      await expectRows(c, `INSERT INTO SYSADM.PSXLATDEFNDEL (FIELDNAME, VERSION) VALUES (:f, :v)`, { f: name, v: xtm }, 1, 'Inserting PSXLATDEFNDEL');
+      await c.execute(`DELETE FROM PSXLATDEFNDEL WHERE FIELDNAME = :f`, { f: name });
+      await expectRows(c, `INSERT INTO PSXLATDEFNDEL (FIELDNAME, VERSION) VALUES (:f, :v)`, { f: name, v: xtm }, 1, 'Inserting PSXLATDEFNDEL');
       for (const [table, n, value] of [['PSVERSION', 'XTM', xtm], ['PSVERSION', 'PDM', bump(tv, 'PDM')], ['PSLOCK', 'XTM', bump(tl, 'XTM')],
         ['PSLOCK', 'PDM', bump(tl, 'PDM')]] as const) {
-        await expectRows(c, `UPDATE SYSADM.${table} SET VERSION = :v WHERE OBJECTTYPENAME = :n`, { v: value, n }, 1, `Updating ${table} ${n}`);
+        await expectRows(c, `UPDATE ${table} SET VERSION = :v WHERE OBJECTTYPENAME = :n`, { v: value, n }, 1, `Updating ${table} ${n}`);
       }
     }
 
     const [d] = await select<{ VERSION: number; FIELDTYPE: number; LENGTH: number; TS: string }>(c,
-      `SELECT VERSION, FIELDTYPE, LENGTH, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f`,
+      `SELECT VERSION, FIELDTYPE, LENGTH, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM PSDBFIELD WHERE FIELDNAME = :f`,
       { f: name });
-    const [{ N: labels }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSDBFLDLABL WHERE FIELDNAME = :f AND DEFAULT_LABEL = 1`, { f: name });
+    const [{ N: labels }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSDBFLDLABL WHERE FIELDNAME = :f AND DEFAULT_LABEL = 1`, { f: name });
     if (!d || Number(d.VERSION) !== next.rdm || Number(d.FIELDTYPE) !== request.type || Number(d.LENGTH) !== request.length ||
         d.TS !== lastupddttm || Number(labels) !== 1) {
       throw new FieldCreateRefusedError('The field did not land as planned; rolled back.');
@@ -195,7 +195,7 @@ export async function saveField(c: Connection, request: FieldSaveRequest): Promi
     const scope = writeScopeRefusal(name);
     if (scope) throw new FieldCreateRefusedError(scope);
     const [row] = await select<{ VERSION: number; FIELDTYPE: number; LENGTH: number; DECIMALPOS: number }>(c,
-      `SELECT VERSION, FIELDTYPE, LENGTH, DECIMALPOS FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f FOR UPDATE`, { f: name });
+      `SELECT VERSION, FIELDTYPE, LENGTH, DECIMALPOS FROM PSDBFIELD WHERE FIELDNAME = :f FOR UPDATE`, { f: name });
     if (!row) throw new FieldCreateRefusedError(`There is no field named ${name}.`);
     if (Number(row.VERSION) !== request.openedVersion) {
       throw new FieldCreateRefusedError(`${name} was saved since it was opened (version ${row.VERSION}, not ${request.openedVersion}). Reopen it.`);
@@ -205,7 +205,7 @@ export async function saveField(c: Connection, request: FieldSaveRequest): Promi
     const decimalPositions = request.decimalPositions ?? Number(row.DECIMALPOS);
     if (!CREATABLE_FIELD_TYPES.includes(type)) throw new FieldCreateRefusedError('Only fields of the types New Field creates can be saved here yet.');
     const stored = await select<{ ID: string; LN: string; SN: string; D: number }>(c,
-      `SELECT LABEL_ID AS ID, LONGNAME AS LN, SHORTNAME AS SN, DEFAULT_LABEL AS D FROM SYSADM.PSDBFLDLABL WHERE FIELDNAME = :f ORDER BY LABEL_ID FOR UPDATE`, { f: name });
+      `SELECT LABEL_ID AS ID, LONGNAME AS LN, SHORTNAME AS SN, DEFAULT_LABEL AS D FROM PSDBFLDLABL WHERE FIELDNAME = :f ORDER BY LABEL_ID FOR UPDATE`, { f: name });
     const labels = request.labels ?? stored.map((l) => ({ id: String(l.ID).trim(), longName: String(l.LN ?? ''), shortName: String(l.SN ?? ''), isDefault: Number(l.D) === 1 }));
     const dflt = labels.filter((l) => l.isDefault);
     const label = dflt[0] ?? { id: name, longName: 'x', shortName: 'x', isDefault: true };
@@ -220,31 +220,31 @@ export async function saveField(c: Connection, request: FieldSaveRequest): Promi
       ids.add(l.id.toUpperCase());
     }
     const used = await select<{ L: string }>(c,
-      `SELECT DISTINCT LABEL_ID AS L FROM SYSADM.PSRECFIELD WHERE FIELDNAME = :f AND LABEL_ID <> ' '`, { f: name });
+      `SELECT DISTINCT LABEL_ID AS L FROM PSRECFIELD WHERE FIELDNAME = :f AND LABEL_ID <> ' '`, { f: name });
     for (const u of used) {
       if (!ids.has(String(u.L).trim().toUpperCase())) throw new FieldCreateRefusedError(`Label ${String(u.L).trim()} is used by a record field; it cannot be removed.`);
     }
     if (request.description !== undefined && request.description.length > 4000) throw new FieldCreateRefusedError('The description is limited to 4,000 characters here.');
     // The records holding the field take its new version (f06); only records holding it directly.
     const records = (await select<{ R: string }>(c,
-      `SELECT DISTINCT RECNAME AS R FROM SYSADM.PSRECFIELDDB WHERE FIELDNAME = :f ORDER BY 1`, { f: name })).map((r) => String(r.R).trim());
+      `SELECT DISTINCT RECNAME AS R FROM PSRECFIELDDB WHERE FIELDNAME = :f ORDER BY 1`, { f: name })).map((r) => String(r.R).trim());
     const direct = new Set((await select<{ R: string }>(c,
-      `SELECT DISTINCT RECNAME AS R FROM SYSADM.PSRECFIELD WHERE FIELDNAME = :f AND SUBRECORD = 'N'`, { f: name })).map((r) => String(r.R).trim()));
+      `SELECT DISTINCT RECNAME AS R FROM PSRECFIELD WHERE FIELDNAME = :f AND SUBRECORD = 'N'`, { f: name })).map((r) => String(r.R).trim()));
     for (const r of records) {
       if (!direct.has(r)) throw new FieldCreateRefusedError(`${r} holds ${name} through a subrecord; saving it is not established yet.`);
       const recordScope = writeScopeRefusal(r);
       if (recordScope) throw new FieldCreateRefusedError(`${r} holds ${name}: ${recordScope}`);
     }
-    if (records.length > 0) await select(c, `SELECT VERSION FROM SYSADM.PSRECDEFN WHERE RECNAME IN (${records.map((_, i) => `:r${i}`).join(', ')}) FOR UPDATE`,
+    if (records.length > 0) await select(c, `SELECT VERSION FROM PSRECDEFN WHERE RECNAME IN (${records.map((_, i) => `:r${i}`).join(', ')}) FOR UPDATE`,
       Object.fromEntries(records.map((r, i) => [`r${i}`, r])));
     if (!(await operatorExists(c, request.operatorId))) {
       throw new FieldCreateRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
     }
 
     const v = await select<{ T: string; V: number }>(c,
-      `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME IN ('RDM', 'PDM', 'SYS') FOR UPDATE`);
+      `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSVERSION WHERE OBJECTTYPENAME IN ('RDM', 'PDM', 'SYS') FOR UPDATE`);
     const l = await select<{ T: string; V: number }>(c,
-      `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME IN ('RDM', 'PDM') FOR UPDATE`);
+      `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSLOCK WHERE OBJECTTYPENAME IN ('RDM', 'PDM') FOR UPDATE`);
     const next = (rows: { T: string; V: number }[], n: string) => {
       const r = rows.find((x) => String(x.T).trim() === n);
       if (!r) throw new FieldCreateRefusedError(`${n} is missing from PSVERSION / PSLOCK; refusing to write.`);
@@ -257,29 +257,29 @@ export async function saveField(c: Connection, request: FieldSaveRequest): Promi
       `SELECT TO_CHAR(CAST(SYSTIMESTAMP AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM DUAL`);
 
     await expectRows(c,
-      `UPDATE SYSADM.PSDBFIELD SET VERSION = :v, LENGTH = :len, DECIMALPOS = :dec, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
+      `UPDATE PSDBFIELD SET VERSION = :v, LENGTH = :len, DECIMALPOS = :dec, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
               ${request.description !== undefined ? ', DESCRLONG = :d' : ''}
         WHERE FIELDNAME = :f`,
       { v: rdm, len: length, dec: decimalPositions, ts: lastupddttm, op: request.operatorId, f: name,
         ...(request.description !== undefined ? { d: request.description.trim() === '' ? null : request.description } : {}) },
       1, 'Updating PSDBFIELD');
-    await expectRows(c, `DELETE FROM SYSADM.PSDBFLDLABL WHERE FIELDNAME = :f`, { f: name }, stored.length, 'Deleting PSDBFLDLABL');
+    await expectRows(c, `DELETE FROM PSDBFLDLABL WHERE FIELDNAME = :f`, { f: name }, stored.length, 'Deleting PSDBFLDLABL');
     for (const lb of labels) {
       await expectRows(c,
-        `INSERT INTO SYSADM.PSDBFLDLABL (FIELDNAME, LABEL_ID, LONGNAME, SHORTNAME, DEFAULT_LABEL) VALUES (:f, :id, :ln, :sn, :d)`,
+        `INSERT INTO PSDBFLDLABL (FIELDNAME, LABEL_ID, LONGNAME, SHORTNAME, DEFAULT_LABEL) VALUES (:f, :id, :ln, :sn, :d)`,
         { f: name, id: lb.id, ln: lb.longName, sn: lb.shortName, d: lb.isDefault ? 1 : 0 }, 1, `Inserting PSDBFLDLABL ${lb.id}`);
     }
     if (records.length > 0) {
-      await expectRows(c, `UPDATE SYSADM.PSRECDEFN SET VERSION = :v WHERE RECNAME IN (${records.map((_, i) => `:r${i}`).join(', ')})`,
+      await expectRows(c, `UPDATE PSRECDEFN SET VERSION = :v WHERE RECNAME IN (${records.map((_, i) => `:r${i}`).join(', ')})`,
         { v: rdm, ...Object.fromEntries(records.map((r, i) => [`r${i}`, r])) }, records.length, 'Updating the records holding the field');
     }
     for (const [table, n, value] of counters) {
-      await expectRows(c, `UPDATE SYSADM.${table} SET VERSION = :v WHERE OBJECTTYPENAME = :n`, { v: value, n }, 1, `Updating ${table} ${n}`);
+      await expectRows(c, `UPDATE ${table} SET VERSION = :v WHERE OBJECTTYPENAME = :n`, { v: value, n }, 1, `Updating ${table} ${n}`);
     }
     const [d] = await select<{ VERSION: number; LENGTH: number; DECIMALPOS: number; TS: string }>(c,
-      `SELECT VERSION, LENGTH, DECIMALPOS, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f`, { f: name });
+      `SELECT VERSION, LENGTH, DECIMALPOS, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM PSDBFIELD WHERE FIELDNAME = :f`, { f: name });
     const [{ N: n, D: defaults }] = await select<{ N: number; D: number }>(c,
-      `SELECT COUNT(*) AS N, SUM(DEFAULT_LABEL) AS D FROM SYSADM.PSDBFLDLABL WHERE FIELDNAME = :f`, { f: name });
+      `SELECT COUNT(*) AS N, SUM(DEFAULT_LABEL) AS D FROM PSDBFLDLABL WHERE FIELDNAME = :f`, { f: name });
     if (!d || Number(d.VERSION) !== rdm || Number(d.LENGTH) !== length || Number(d.DECIMALPOS) !== decimalPositions || d.TS !== lastupddttm ||
         Number(n) !== labels.length || Number(defaults) !== 1) {
       throw new FieldCreateRefusedError('The field did not land as planned; rolled back.');

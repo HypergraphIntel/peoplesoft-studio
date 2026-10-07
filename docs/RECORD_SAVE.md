@@ -463,6 +463,31 @@ a descending key, a duplicate order key):
 - Lines of at most 70 characters, a moved word keeping its space; columns
   three spaces in; `/` after each statement.
 
+### Build and Build Settings
+
+**Build...** in the record editor builds Create Tables (`recordBuild.ts`)
+as a script, or builds and executes it on a Writable connection for a
+saved record. Build Settings (Settings panel, Create and Alter, App
+Designer's defaults) decide what happens to an existing table:
+
+- *Recreate table if it already exists*: `DROP TABLE <table>` then the
+  create script -- App Designer's script for ZZ_PCODE_LAB_R1 began so once
+  PS_ZZ_PCODE_LAB_R1 existed (built 14:49:14 on 2026-10-07); its earlier
+  R1 and R6 scripts, before either was built, had no DROP.
+- *Skip table if it already exists*: nothing for that table.
+
+Execute runs the statements in order on one session, stopping at the first
+failure (DDL commits as it runs), after a confirmation that names a dropped
+table holding data; each statement goes to the *PeopleSoft Build* output.
+Direct case x47 rebuilt PS_ZZ_PCODE_LAB_R1, which App Designer had built:
+`DBMS_METADATA` gives the same table and index DDL (storage included)
+before and after, and no PeopleTools row or version counter moved.
+
+Not built yet, App Designer's output not captured: Create Indexes on its
+own (*Recreate index only if modified*), Create Views, Alter Tables (every
+Alter setting), and whether App Designer's Build and Execute writes any
+PeopleTools rows of its own.
+
 ## Cases r45-r53: last key, to Derived/Work, a deleted name, audit, timestamp, subrecord
 
 Retroactive captures (Oracle flashback) of App Designer saves on HRDMO:

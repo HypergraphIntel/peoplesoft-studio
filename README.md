@@ -84,28 +84,28 @@ definitions, outages or any other damage.
 
 Goal long-term: replace Application Designer. **Today this is a trusted reader and navigator that can save PeopleCode** (experimental), not a full designer.
 
-| Capability | Status |
-|------------|--------|
-| Connect to Oracle (PeopleTools tables) | Yes |
-| Open App Designer XML project export | Yes |
-| Project tree & definition browser | Yes |
-| Open Definition search | Yes |
-| **PeopleCode** as text (`psft://…`) | **Read** — decoded from `PSPCMPROG` or taken from export |
-| **Saving PeopleCode** to Oracle | **Experimental**, on Writable connections — see [Saving PeopleCode](#saving-peoplecode-experimental) |
-| Settings panel (connections, compiler profile, MCP server) | Yes — *PeopleSoft: Open Settings* |
-| Record → field → PeopleCode event navigation | Yes |
-| **SQL definitions** as text | Read; create and save to Oracle on Writable connections (as App Designer saves them) |
-| **HTML definitions** as text | Read; create and save to Oracle on Writable connections — see [docs/HTML_SAVE.md](docs/HTML_SAVE.md) |
-| **Style sheets** | Freeform: read as CSS; create and save to Oracle on Writable connections — see [docs/STYLESHEET_SAVE.md](docs/STYLESHEET_SAVE.md). Classic / sub: read-only class list |
-| Record editor (App Designer's Field / Use / Edits displays, Record Type) | Read-only; editable on Writable connections — see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md) |
-| Field editor (App Designer's Field dialog) | Read-only; length, labels and description editable on Writable connections |
-| **New Definition...** (Projects / Definition Browser) | Records (SQL Table, Derived/Work), fields, projects, Application Packages and classes, SQL, HTML, freeform style sheets — on Writable connections; see [docs/CREATE_DEFINITIONS.md](docs/CREATE_DEFINITIONS.md) |
-| Insert a definition into a project | On Writable connections — see [docs/PROJECT_INSERT.md](docs/PROJECT_INSERT.md) |
-| Translate values; Delete Record | On Writable connections — see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md) |
-| Definition **Properties** (packages, records, fields, components, pages, projects, menus, App Engine, SQL, HTML, style sheets) | Read-only panel, from Oracle |
-| Compare definition between two environments | Unavailable for now (one connection is active at a time) |
-| PeopleCode IntelliSense-lite | Completion, hover, outline, snippets |
-| PeopleCode syntax highlighting | Yes |
+| Capability | Status | Notes |
+|------------|--------|-------|
+| Connect to Oracle (PeopleTools tables) | Yes | Schema per connection: set it, or detected from `PS.PSDBOWNER` (else `SYSADM`) |
+| Open App Designer XML project export | Yes | |
+| Project tree & definition browser | Yes | |
+| Open Definition search | Yes | |
+| **PeopleCode** as text (`psft://…`) | Read-Only | Decoded from `PSPCMPROG`, or taken from an export |
+| **Saving PeopleCode** to Oracle | Experimental | Writable connections — see [Saving PeopleCode](#saving-peoplecode-experimental) |
+| Settings panel | Yes | *PeopleSoft: Open Settings* — connections, compiler profile, MCP server, Build Settings |
+| Record → field → PeopleCode event navigation | Yes | |
+| **SQL definitions** as text | Yes | Create and save on Writable connections, as App Designer saves them |
+| **HTML definitions** as text | Yes | Create and save on Writable connections — see [docs/HTML_SAVE.md](docs/HTML_SAVE.md) |
+| **Style sheets** | Yes | Freeform: read as CSS, create and save on Writable connections — see [docs/STYLESHEET_SAVE.md](docs/STYLESHEET_SAVE.md). Classic / sub: a read-only class list |
+| Record editor (App Designer's Field / Use / Edits displays, Record Type) | Yes | Read-only, editable on Writable connections — see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md) |
+| **Build...** (SQL Tables) | Experimental | Create Tables as a script, or build and execute on Writable connections. Alter Tables, Create Indexes alone and views not yet |
+| Field editor (App Designer's Field dialog) | Yes | Read-only; length, labels and description editable on Writable connections |
+| **New Definition...** (Projects / Definition Browser) | Yes | Records (SQL Table, Derived/Work), fields, projects, Application Packages and classes, SQL, HTML, freeform style sheets, on Writable connections — see [docs/CREATE_DEFINITIONS.md](docs/CREATE_DEFINITIONS.md) |
+| Insert a definition into a project | Yes | Writable connections — see [docs/PROJECT_INSERT.md](docs/PROJECT_INSERT.md) |
+| Translate values; Delete Record | Yes | Writable connections — see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md) |
+| Definition **Properties** (packages, records, fields, components, pages, projects, menus, App Engine, SQL, HTML, style sheets) | Read-Only | A panel, from Oracle |
+| PeopleCode IntelliSense-lite | Yes | Completion, hover, outline, snippets |
+| PeopleCode syntax highlighting | Yes | |
 
 ## What does **not** work yet
 
@@ -181,6 +181,16 @@ SQL documents use language id `psft-sql` (basic highlighting).
 4. Connect, then **Open Definition…** or use the project tree.
 
 Oracle Instant Client is optional (`peoplesoft.oracle.thickModeLibDir`); leave empty for node-oracledb Thin mode.
+
+The PeopleTools tables are read in the connection's **Schema** (Settings →
+the connection → Edit). Left empty, it is the database's owner ID from
+`PS.PSDBOWNER`, else `SYSADM`. Set it when the owner ID differs and the
+access id is not the owner; the access id then needs grants on that
+schema's PeopleTools tables. Connect fails with a clear message when the
+schema has no PeopleTools tables.
+
+Saving and creating definitions can be limited to names starting with a
+prefix with `peoplesoft.writeNamePrefix` (empty: no limit).
 
 ## Coexisting with other PeopleSoft extensions
 

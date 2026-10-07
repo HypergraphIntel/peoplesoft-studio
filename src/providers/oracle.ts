@@ -39,6 +39,34 @@ export interface OracleConnectionConfig {
   /** Instant Client directory; absent means node-oracledb Thin mode. */
   thickModeLibDir?: string;
   decoderMode?: DecodeOptions['mode'];
+  /**
+   * The schema owning the PeopleTools tables. Absent: PS.PSDBOWNER's owner
+   * ID for this database, else SYSADM.
+   */
+  schema?: string;
+}
+
+/** An Oracle schema name, as it may be put into ALTER SESSION (which takes no binds). */
+export const SCHEMA_NAME = /^[A-Z][A-Z0-9_$#]{0,127}$/;
+
+export const DEFAULT_SCHEMA = 'SYSADM';
+
+/**
+ * The PeopleTools owner ID PS.PSDBOWNER records: the row for this database,
+ * else its only row; undefined when it has neither or cannot be read.
+ */
+export async function detectSchema(c: Connection): Promise<string | undefined> {
+  try {
+    const r = await c.execute<{ DBNAME: string; OWNERID: string; DB: string }>(
+      `SELECT DBNAME, OWNERID, SYS_CONTEXT('USERENV', 'DB_NAME') AS DB FROM PS.PSDBOWNER`);
+    const rows = r.rows ?? [];
+    const db = String(rows[0]?.DB ?? '').trim().toUpperCase();
+    const row = rows.find((x) => String(x.DBNAME).trim().toUpperCase() === db) ?? (rows.length === 1 ? rows[0] : undefined);
+    const owner = String(row?.OWNERID ?? '').trim().toUpperCase();
+    return SCHEMA_NAME.test(owner) ? owner : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -76,6 +104,7 @@ export class OracleProvider implements DefinitionProvider {
   ];
 
   private pool?: Pool;
+  private resolvedSchema?: string;
   private projectItemKeyWidthCache?: number;
   private environmentCache?: Promise<EnvironmentInfo>;
 
@@ -85,6 +114,9 @@ export class OracleProvider implements DefinitionProvider {
   }
 
   get isConnected(): boolean { return this.pool !== undefined; }
+
+  /** The schema the session reads and writes the PeopleTools tables in, once connected. */
+  get schema(): string | undefined { return this.resolvedSchema; }
 
   async connect(): Promise<void> {
     if (this.pool) return;
@@ -101,6 +133,31 @@ export class OracleProvider implements DefinitionProvider {
       }
     }
 
+    const configured = this.config.schema?.trim().toUpperCase();
+    if (configured && !SCHEMA_NAME.test(configured)) throw new ProviderError(`${this.config.schema} is not a valid schema name.`);
+
+    // A standalone session first: it proves the host and credentials (createPool
+    // with poolMin 0 opens nothing, so it succeeds against an unreachable host
+    // or a wrong password) and finds the schema before the pool exists.
+    let schema: string;
+    try {
+      const probe = await oracledb.getConnection({
+        user: this.config.user, password: this.config.password, connectString: this.config.connectString
+      });
+      try {
+        schema = configured || await detectSchema(probe) || DEFAULT_SCHEMA;
+      } finally {
+        await probe.close();
+      }
+    } catch (err) {
+      throw new ProviderError(
+        `Could not connect to ${this.config.connectString} as ${this.config.user}: ${reason(err)}`,
+        err);
+    }
+
+    // Queries name the PeopleTools tables unqualified: every session the pool
+    // creates resolves them in the PeopleSoft schema (CURRENT_SCHEMA), so one
+    // setting serves SYSADM and every other owner ID.
     let pool: Pool;
     try {
       pool = await oracledb.createPool({
@@ -109,33 +166,40 @@ export class OracleProvider implements DefinitionProvider {
         connectString: this.config.connectString,
         poolMin: 0,
         poolMax: 4,
-        poolTimeout: 120
+        poolTimeout: 120,
+        sessionCallback: (conn: Connection, _tag: string, done: (error?: Error) => void) => {
+          conn.execute(`ALTER SESSION SET CURRENT_SCHEMA = ${schema}`).then(() => done(), (error: Error) => done(error));
+        }
       });
     } catch (err) {
       throw new ProviderError(
         `Could not connect to ${this.config.connectString}: ${reason(err)}`, err);
     }
 
-    // createPool with poolMin 0 opens nothing, so it succeeds against a host
-    // that is unreachable or credentials that are wrong. Without this check
-    // Connect would report success and the failure would surface later, on
-    // whatever query happened to run first.
+    // A session as every later one will be: the schema set, the PeopleTools tables there.
     try {
-      const probe = await pool.getConnection();
-      await probe.close();
+      const check = await pool.getConnection();
+      try {
+        await check.execute(`SELECT TOOLSREL FROM PSSTATUS`);
+      } finally {
+        await check.close();
+      }
     } catch (err) {
       await pool.close(0).catch(() => { /* the pool is already unusable */ });
       throw new ProviderError(
-        `Could not connect to ${this.config.connectString} as ${this.config.user}: ${reason(err)}`,
+        `Connected to ${this.config.connectString}, but schema ${schema} has no PeopleTools tables readable as ${this.config.user}: ${reason(err)}`,
         err);
     }
 
+    this.resolvedSchema = schema;
     this.pool = pool;
   }
 
   async dispose(): Promise<void> {
     await this.pool?.close(10);
     this.pool = undefined;
+    this.resolvedSchema = undefined;
+    this.projectItemKeyWidthCache = undefined;
     this.environmentCache = undefined;
   }
 
@@ -144,7 +208,7 @@ export class OracleProvider implements DefinitionProvider {
     if (this.environmentCache) return this.environmentCache;
     const read = this.withConnection(async (c) => {
       const r = await c.execute<{ TOOLSREL: string; PTPATCHREL: number | null }>(
-        `SELECT TOOLSREL, PTPATCHREL FROM SYSADM.PSSTATUS`);
+        `SELECT TOOLSREL, PTPATCHREL FROM PSSTATUS`);
       const row = r.rows?.[0];
       if (!row) throw new ProviderError(`${this.displayName} has no PSSTATUS row.`);
       return {
@@ -172,7 +236,7 @@ export class OracleProvider implements DefinitionProvider {
   async listProjects(): Promise<ProjectSummary[]> {
     return this.withConnection(async (c) => {
       const r = await c.execute<{ PROJECTNAME: string; PROJECTDESCR: string }>(
-        `SELECT PROJECTNAME, PROJECTDESCR FROM SYSADM.PSPROJECTDEFN ORDER BY PROJECTNAME`);
+        `SELECT PROJECTNAME, PROJECTDESCR FROM PSPROJECTDEFN ORDER BY PROJECTNAME`);
       return (r.rows ?? []).map((row) => ({ name: row.PROJECTNAME, description: row.PROJECTDESCR }));
     });
   }
@@ -189,13 +253,13 @@ export class OracleProvider implements DefinitionProvider {
     if (this.projectItemKeyWidthCache !== undefined) return this.projectItemKeyWidthCache;
     const r = await c.execute<{ COLUMN_NAME: string }>(
       `SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS
-        WHERE OWNER = 'SYSADM' AND TABLE_NAME = 'PSPROJECTITEM' AND COLUMN_NAME LIKE 'OBJECTVALUE%'`);
+        WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = 'PSPROJECTITEM' AND COLUMN_NAME LIKE 'OBJECTVALUE%'`);
     const nums = (r.rows ?? [])
       .map((row) => Number(row.COLUMN_NAME.replace('OBJECTVALUE', '')))
       .filter((n) => Number.isInteger(n) && n > 0);
     if (nums.length === 0) {
       throw new ProviderError(
-        'Could not find any OBJECTVALUE columns on SYSADM.PSPROJECTITEM.');
+        'Could not find any OBJECTVALUE columns on PSPROJECTITEM.');
     }
     this.projectItemKeyWidthCache = Math.max(...nums);
     return this.projectItemKeyWidthCache;
@@ -210,7 +274,7 @@ export class OracleProvider implements DefinitionProvider {
 
       const r = await c.execute<Record<string, string | number>>(
         `SELECT OBJECTTYPE, ${cols}
-           FROM SYSADM.PSPROJECTITEM
+           FROM PSPROJECTITEM
           WHERE PROJECTNAME = :p
           ORDER BY OBJECTTYPE, ${orderCols}`,
         { p: project });
@@ -230,58 +294,58 @@ export class OracleProvider implements DefinitionProvider {
       case DefinitionType.Project:
         return this.searchSimple(
           `SELECT PROJECTNAME AS NAME, PROJECTDESCR AS DESCR, LASTUPDDTTM, LASTUPDOPRID
-             FROM SYSADM.PSPROJECTDEFN WHERE PROJECTNAME LIKE :n`,
+             FROM PSPROJECTDEFN WHERE PROJECTNAME LIKE :n`,
           DefinitionType.Project, pattern, limit);
       case DefinitionType.Record:
         return this.searchSimple(
           `SELECT RECNAME AS NAME, RECDESCR AS DESCR, LASTUPDDTTM, LASTUPDOPRID
-             FROM SYSADM.PSRECDEFN WHERE RECNAME LIKE :n`,
+             FROM PSRECDEFN WHERE RECNAME LIKE :n`,
           DefinitionType.Record, pattern, limit);
       case DefinitionType.Field:
         return this.searchSimple(
           `SELECT FIELDNAME AS NAME, '' AS DESCR, LASTUPDDTTM, LASTUPDOPRID
-             FROM SYSADM.PSDBFIELD WHERE FIELDNAME LIKE :n`,
+             FROM PSDBFIELD WHERE FIELDNAME LIKE :n`,
           DefinitionType.Field, pattern, limit);
       case DefinitionType.Page:
         return this.searchSimple(
           `SELECT PNLNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID
-             FROM SYSADM.PSPNLDEFN WHERE PNLNAME LIKE :n`,
+             FROM PSPNLDEFN WHERE PNLNAME LIKE :n`,
           DefinitionType.Page, pattern, limit);
       case DefinitionType.Component:
         return this.searchSimple(
           `SELECT PNLGRPNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID
-             FROM SYSADM.PSPNLGRPDEFN WHERE PNLGRPNAME LIKE :n`,
+             FROM PSPNLGRPDEFN WHERE PNLGRPNAME LIKE :n`,
           DefinitionType.Component, pattern, limit);
       case DefinitionType.Menu:
         return this.searchSimple(
           `SELECT MENUNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID
-             FROM SYSADM.PSMENUDEFN WHERE MENUNAME LIKE :n`,
+             FROM PSMENUDEFN WHERE MENUNAME LIKE :n`,
           DefinitionType.Menu, pattern, limit);
       case DefinitionType.AppEngineProgram:
         return this.searchSimple(
           `SELECT AE_APPLID AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID
-             FROM SYSADM.PSAEAPPLDEFN WHERE AE_APPLID LIKE :n`,
+             FROM PSAEAPPLDEFN WHERE AE_APPLID LIKE :n`,
           DefinitionType.AppEngineProgram, pattern, limit);
       case DefinitionType.ApplicationPackage:
         return this.searchSimple(
           `SELECT PACKAGEROOT AS NAME, '' AS DESCR, LASTUPDDTTM, LASTUPDOPRID
-             FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT LIKE :n AND PACKAGELEVEL = 0`,
+             FROM PSPACKAGEDEFN WHERE PACKAGEROOT LIKE :n AND PACKAGELEVEL = 0`,
           DefinitionType.ApplicationPackage, pattern, limit);
       case DefinitionType.SqlDefinition:
         return this.searchSimple(
           `SELECT SQLID AS NAME, '' AS DESCR, LASTUPDDTTM, LASTUPDOPRID
-             FROM SYSADM.PSSQLDEFN WHERE SQLID LIKE :n AND SQLTYPE = 0`,
+             FROM PSSQLDEFN WHERE SQLID LIKE :n AND SQLTYPE = 0`,
           DefinitionType.SqlDefinition, pattern, limit);
       case DefinitionType.StyleSheet:
         return this.searchSimple(
           `SELECT STYLESHEETNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID
-             FROM SYSADM.PSSTYLSHEETDEFN WHERE STYLESHEETNAME LIKE :n`,
+             FROM PSSTYLSHEETDEFN WHERE STYLESHEETNAME LIKE :n`,
           DefinitionType.StyleSheet, pattern, limit);
       case DefinitionType.HtmlDefinition:
         // HTML only (CONTTYPE 4); images and style sheets share PSCONTDEFN.
         return this.withConnection(async (c) => {
           const r = await c.execute<{ NAME: string; DESCR: string; LASTUPDDTTM: Date; LASTUPDOPRID: string }>(
-            `SELECT CONTNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM SYSADM.PSCONTDEFN
+            `SELECT CONTNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSCONTDEFN
               WHERE CONTNAME LIKE :n AND CONTTYPE = 4 AND ALTCONTNUM = 1 ORDER BY 1 FETCH FIRST :lim ROWS ONLY`,
             { n: pattern, lim: limit });
           return (r.rows ?? []).map((row) => ({
@@ -341,7 +405,7 @@ export class OracleProvider implements DefinitionProvider {
     const columns = Object.keys(where);
     return this.withConnection(async (c) => {
       const r = await c.execute<StoredRow>(
-        `SELECT * FROM SYSADM.${spec.table} WHERE ${columns.map((col, i) => `${col} = :b${i}`).join(' AND ')}` +
+        `SELECT * FROM ${spec.table} WHERE ${columns.map((col, i) => `${col} = :b${i}`).join(' AND ')}` +
         (spec.orderBy ? ` ORDER BY ${spec.orderBy}` : ''),
         columns.map((col) => where[col]), options);
       const row = r.rows?.[0];
@@ -349,13 +413,13 @@ export class OracleProvider implements DefinitionProvider {
       const input: PropertiesInput = { key, row };
       if (key.type === DefinitionType.SqlDefinition) {
         const d = await c.execute<StoredRow>(
-          `SELECT * FROM SYSADM.PSSQLDESCR WHERE SQLID = :id AND SQLTYPE = :t ORDER BY EFFDT DESC`,
+          `SELECT * FROM PSSQLDESCR WHERE SQLID = :id AND SQLTYPE = :t ORDER BY EFFDT DESC`,
           [where.SQLID, where.SQLTYPE], options);
         if (d.rows?.[0]) input.descriptionRow = d.rows[0];
       }
       if (key.type === DefinitionType.Field) {
         const l = await c.execute<StoredRow>(
-          `SELECT LABEL_ID, LONGNAME, SHORTNAME, DEFAULT_LABEL FROM SYSADM.PSDBFLDLABL WHERE FIELDNAME = :f ORDER BY DEFAULT_LABEL DESC, LABEL_ID`,
+          `SELECT LABEL_ID, LONGNAME, SHORTNAME, DEFAULT_LABEL FROM PSDBFLDLABL WHERE FIELDNAME = :f ORDER BY DEFAULT_LABEL DESC, LABEL_ID`,
           [where.FIELDNAME], options);
         input.labels = l.rows ?? [];
       }
@@ -378,7 +442,7 @@ export class OracleProvider implements DefinitionProvider {
   async readProjectVersion(project: string): Promise<number | undefined> {
     return this.withConnection(async (c) => {
       const r = await c.execute<{ VERSION: number }>(
-        `SELECT VERSION FROM SYSADM.PSPROJECTDEFN WHERE PROJECTNAME = :p`, { p: project });
+        `SELECT VERSION FROM PSPROJECTDEFN WHERE PROJECTNAME = :p`, { p: project });
       const v = r.rows?.[0]?.VERSION;
       return v === undefined ? undefined : Number(v);
     });
@@ -402,7 +466,7 @@ export class OracleProvider implements DefinitionProvider {
     const result = await this.withConnection((c) => deleteRecord(c, request));
     await this.withConnection(async (c) => {
       const r = await c.execute<{ N: number }>(
-        `SELECT (SELECT COUNT(*) FROM SYSADM.PSRECDEFN WHERE RECNAME = :r) AS N FROM DUAL`, { r: request.recname });
+        `SELECT (SELECT COUNT(*) FROM PSRECDEFN WHERE RECNAME = :r) AS N FROM DUAL`, { r: request.recname });
       if (Number(r.rows?.[0]?.N) !== 0) throw new ProviderError(`${request.recname} is still defined after the delete.`);
     });
     return result;
@@ -423,7 +487,7 @@ export class OracleProvider implements DefinitionProvider {
   async readSqlForEdit(key: DefinitionKey): Promise<{ text: string; version: number } | undefined> {
     return this.withConnection(async (c) => {
       const d = await c.execute<{ VERSION: number }>(
-        `SELECT VERSION FROM SYSADM.PSSQLDEFN WHERE SQLID = :id AND SQLTYPE = 0`, { id: key.parts[0] });
+        `SELECT VERSION FROM PSSQLDEFN WHERE SQLID = :id AND SQLTYPE = 0`, { id: key.parts[0] });
       if (!d.rows?.[0]) return undefined;
       return { text: await this.readSqlDefinition(key), version: Number(d.rows[0].VERSION) };
     });
@@ -437,7 +501,7 @@ export class OracleProvider implements DefinitionProvider {
   /** Whether a package name is taken (as a root or a subpackage ID). */
   async packageExists(name: string): Promise<boolean> {
     return this.withConnection(async (c) => Number((await c.execute<{ N: number }>(
-      `SELECT COUNT(*) AS N FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :n OR PACKAGEID = :n`, { n: name })).rows?.[0]?.N ?? 0) > 0);
+      `SELECT COUNT(*) AS N FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :n OR PACKAGEID = :n`, { n: name })).rows?.[0]?.N ?? 0) > 0);
   }
 
   /** Creates an empty project as App Designer's first save does (projectWriter.ts createProject). */
@@ -448,7 +512,7 @@ export class OracleProvider implements DefinitionProvider {
   /** Whether a project name is taken. */
   async projectExists(name: string): Promise<boolean> {
     return this.withConnection(async (c) => Number((await c.execute<{ N: number }>(
-      `SELECT COUNT(*) AS N FROM SYSADM.PSPROJECTDEFN WHERE PROJECTNAME = :p`, { p: name })).rows?.[0]?.N ?? 0) > 0);
+      `SELECT COUNT(*) AS N FROM PSPROJECTDEFN WHERE PROJECTNAME = :p`, { p: name })).rows?.[0]?.N ?? 0) > 0);
   }
 
   /** Creates a field as App Designer's first save does (fieldWriter.ts), verified in the transaction. */
@@ -464,7 +528,37 @@ export class OracleProvider implements DefinitionProvider {
   /** Whether a field name is taken. */
   async fieldExists(name: string): Promise<boolean> {
     return this.withConnection(async (c) => Number((await c.execute<{ N: number }>(
-      `SELECT COUNT(*) AS N FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f`, { f: name })).rows?.[0]?.N ?? 0) > 0);
+      `SELECT COUNT(*) AS N FROM PSDBFIELD WHERE FIELDNAME = :f`, { f: name })).rows?.[0]?.N ?? 0) > 0);
+  }
+
+  /** Whether a table exists in the PeopleSoft schema, and whether it holds any row. */
+  async tableState(table: string): Promise<{ exists: boolean; hasRows: boolean }> {
+    if (!/^[A-Z][A-Z0-9_#$]{0,127}$/.test(table)) throw new ProviderError(`${table} is not a table name.`);
+    return this.withConnection(async (c) => {
+      const r = await c.execute<{ N: number }>(
+        `SELECT COUNT(*) AS N FROM ALL_TABLES WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = :t`, { t: table });
+      if (Number(r.rows?.[0]?.N ?? 0) === 0) return { exists: false, hasRows: false };
+      const rows = await c.execute(`SELECT 1 FROM ${table} WHERE ROWNUM = 1`);
+      return { exists: true, hasRows: (rows.rows?.length ?? 0) > 0 };
+    });
+  }
+
+  /**
+   * Build and Execute: runs a build's statements in order on one session,
+   * stopping at the first that fails. DDL commits as it runs, so the ones
+   * before a failure stay done; the result says which ran.
+   */
+  async executeBuild(statements: readonly string[]): Promise<{ ran: number; error?: { statement: string; message: string } }> {
+    return this.withConnection(async (c) => {
+      for (const [i, statement] of statements.entries()) {
+        try {
+          await c.execute(statement);
+        } catch (err) {
+          return { ran: i, error: { statement, message: reason(err) } };
+        }
+      }
+      return { ran: statements.length };
+    });
   }
 
   /**
@@ -475,7 +569,7 @@ export class OracleProvider implements DefinitionProvider {
   async readDdlModel(recname: string): Promise<DdlModel | undefined> {
     return this.withConnection(async (c) => {
       const models = await c.execute<{ T: number; M: string }>(
-        `SELECT STATEMENT_TYPE AS T, MODEL_STATEMENT AS M FROM SYSADM.PSDDLMODEL
+        `SELECT STATEMENT_TYPE AS T, MODEL_STATEMENT AS M FROM PSDDLMODEL
           WHERE PLATFORMID = 2 AND SIZING_SET = 0 AND STATEMENT_TYPE IN (1, 2)`, {},
         { fetchInfo: { M: { type: (await loadOracleDb()).STRING } } });
       const table = models.rows?.find((r) => Number(r.T) === 1)?.M;
@@ -484,16 +578,16 @@ export class OracleProvider implements DefinitionProvider {
       const parms = async (sql: string, binds: Record<string, string | number>) => Object.fromEntries(
         ((await c.execute<{ N: string; V: string }>(sql, binds)).rows ?? []).map((r) => [String(r.N).trim(), String(r.V ?? '')]));
       const defaults = (type: number) => parms(
-        `SELECT PARMNAME AS N, PARMVALUE AS V FROM SYSADM.PSDDLDEFPARMS WHERE PLATFORMID = 2 AND SIZING_SET = 0 AND STATEMENT_TYPE = :t`, { t: type });
+        `SELECT PARMNAME AS N, PARMVALUE AS V FROM PSDDLDEFPARMS WHERE PLATFORMID = 2 AND SIZING_SET = 0 AND STATEMENT_TYPE = :t`, { t: type });
       return {
         table, index,
         tableParms: { ...(await defaults(1)), ...(await parms(
-          `SELECT PARMNAME AS N, PARMVALUE AS V FROM SYSADM.PSRECDDLPARM WHERE RECNAME = :r AND PLATFORMID = 2 AND SIZINGSET = 0`, { r: recname })) },
+          `SELECT PARMNAME AS N, PARMVALUE AS V FROM PSRECDDLPARM WHERE RECNAME = :r AND PLATFORMID = 2 AND SIZINGSET = 0`, { r: recname })) },
         indexParms: { ...(await defaults(2)), ...(await parms(
-          `SELECT PARMNAME AS N, PARMVALUE AS V FROM SYSADM.PSIDXDDLPARM WHERE RECNAME = :r AND INDEXID = '_' AND PLATFORMID = 2 AND SIZINGSET = 0`, { r: recname })) },
+          `SELECT PARMNAME AS N, PARMVALUE AS V FROM PSIDXDDLPARM WHERE RECNAME = :r AND INDEXID = '_' AND PLATFORMID = 2 AND SIZINGSET = 0`, { r: recname })) },
         indexDefaults: await defaults(2),
         altIndexParms: Object.fromEntries(await Promise.all(Array.from({ length: 10 }, (_, n) => String(n)).map(async (id) => [id, { ...(await defaults(2)), ...(await parms(
-          `SELECT PARMNAME AS N, PARMVALUE AS V FROM SYSADM.PSIDXDDLPARM WHERE RECNAME = :r AND INDEXID = :i AND PLATFORMID = 2 AND SIZINGSET = 0`, { r: recname, i: id })) }])))
+          `SELECT PARMNAME AS N, PARMVALUE AS V FROM PSIDXDDLPARM WHERE RECNAME = :r AND INDEXID = :i AND PLATFORMID = 2 AND SIZINGSET = 0`, { r: recname, i: id })) }])))
       };
     });
   }
@@ -502,7 +596,7 @@ export class OracleProvider implements DefinitionProvider {
   async recordNameStatus(recname: string): Promise<'free' | 'exists' | 'deleted'> {
     return this.withConnection(async (c) => {
       const r = await c.execute<{ D: number; X: number }>(
-        `SELECT (SELECT COUNT(*) FROM SYSADM.PSRECDEFN WHERE RECNAME = :r) AS D, (SELECT COUNT(*) FROM SYSADM.PSRECDEL WHERE RECNAME = :r) AS X FROM DUAL`,
+        `SELECT (SELECT COUNT(*) FROM PSRECDEFN WHERE RECNAME = :r) AS D, (SELECT COUNT(*) FROM PSRECDEL WHERE RECNAME = :r) AS X FROM DUAL`,
         { r: recname });
       const row = r.rows?.[0];
       return Number(row?.D) > 0 ? 'exists' : Number(row?.X) > 0 ? 'deleted' : 'free';
@@ -512,7 +606,7 @@ export class OracleProvider implements DefinitionProvider {
   /** Whether any SQL definition row (of any SQL type) uses the ID. */
   async sqlIdTaken(sqlId: string): Promise<boolean> {
     return this.withConnection(async (c) => Number((await c.execute<{ N: number }>(
-      `SELECT COUNT(*) AS N FROM SYSADM.PSSQLDEFN WHERE SQLID = :id`, { id: sqlId })).rows?.[0]?.N ?? 0) > 0);
+      `SELECT COUNT(*) AS N FROM PSSQLDEFN WHERE SQLID = :id`, { id: sqlId })).rows?.[0]?.N ?? 0) > 0);
   }
 
   /**
@@ -533,13 +627,13 @@ export class OracleProvider implements DefinitionProvider {
   private async readStyleSheet(key: DefinitionKey): Promise<string> {
     const name = key.parts[0];
     const head = await this.withConnection(async (c) => (await c.execute<{ T: number; P: string; D: string; N: number }>(
-      `SELECT STYLESHEETTYPE AS T, PARENTSTYLENAME AS P, DESCR AS D, NUMSTYLECLASS AS N FROM SYSADM.PSSTYLSHEETDEFN WHERE STYLESHEETNAME = :n`,
+      `SELECT STYLESHEETTYPE AS T, PARENTSTYLENAME AS P, DESCR AS D, NUMSTYLECLASS AS N FROM PSSTYLSHEETDEFN WHERE STYLESHEETNAME = :n`,
       { n: name })).rows?.[0]);
     if (!head) throw new ProviderError(`No style sheet named ${name}.`);
     if (Number(head.T) === 2) return this.readContent(name, 9, `text for style sheet ${name}`);
     // SUBSTYLESHEET 1 marks a row naming an included sub style sheet (270 of 3,490), not a class.
     const classes = await this.withConnection(async (c) => (await c.execute<{ C: string; S: number }>(
-      `SELECT STYLECLASSNAME AS C, SUBSTYLESHEET AS S FROM SYSADM.PSSTYLECLASS WHERE STYLESHEETNAME = :n ORDER BY SEQNO, STYLECLASSNAME`,
+      `SELECT STYLECLASSNAME AS C, SUBSTYLESHEET AS S FROM PSSTYLECLASS WHERE STYLESHEETNAME = :n ORDER BY SEQNO, STYLECLASSNAME`,
       { n: name })).rows ?? []);
     const t = (v: string | null | undefined) => (v ?? '').trim();
     const subs = classes.filter((x) => Number(x.S) === 1).map((x) => t(x.C));
@@ -560,7 +654,7 @@ export class OracleProvider implements DefinitionProvider {
   /** A freeform style sheet's text with the version a save must present; undefined when there is none or it is not freeform. */
   async readStyleSheetForEdit(key: DefinitionKey): Promise<{ text: string; version: number } | 'classic' | undefined> {
     const row = await this.withConnection(async (c) => (await c.execute<{ VERSION: number; T: number }>(
-      `SELECT VERSION, STYLESHEETTYPE AS T FROM SYSADM.PSSTYLSHEETDEFN WHERE STYLESHEETNAME = :n`, { n: key.parts[0] })).rows?.[0]);
+      `SELECT VERSION, STYLESHEETTYPE AS T FROM PSSTYLSHEETDEFN WHERE STYLESHEETNAME = :n`, { n: key.parts[0] })).rows?.[0]);
     if (!row) return undefined;
     if (Number(row.T) !== 2) return 'classic';
     return { text: await this.readContent(key.parts[0], 9, `text for style sheet ${key.parts[0]}`), version: Number(row.VERSION) };
@@ -581,7 +675,7 @@ export class OracleProvider implements DefinitionProvider {
   async readHtmlForEdit(key: DefinitionKey): Promise<{ text: string; version: number } | undefined> {
     return this.withConnection(async (c) => {
       const d = await c.execute<{ VERSION: number }>(
-        `SELECT VERSION FROM SYSADM.PSCONTDEFN WHERE CONTNAME = :n AND CONTTYPE = :t AND ALTCONTNUM = 1`,
+        `SELECT VERSION FROM PSCONTDEFN WHERE CONTNAME = :n AND CONTTYPE = :t AND ALTCONTNUM = 1`,
         { n: key.parts[0], t: Number(key.parts[1] ?? 4) });
       if (!d.rows?.[0]) return undefined;
       return { text: await this.readHtmlDefinition(key), version: Number(d.rows[0].VERSION) };
@@ -658,7 +752,7 @@ export class OracleProvider implements DefinitionProvider {
   private async readContent(name: string, contType: number, what: string): Promise<string> {
     return this.withConnection(async (c) => {
       const r = await c.execute<{ CONTDATA: Buffer }>(
-        `SELECT CONTDATA FROM SYSADM.PSCONTENT
+        `SELECT CONTDATA FROM PSCONTENT
           WHERE CONTNAME = :n AND CONTTYPE = :t ORDER BY ALTCONTNUM, SEQNUM`,
         { n: name, t: contType });
       const rows = r.rows ?? [];
@@ -677,11 +771,11 @@ export class OracleProvider implements DefinitionProvider {
       }>(
         `SELECT FIELDTYPE, LENGTH, DECIMALPOS, FORMAT, FORMATFAMILY, DISPFMTNAME, DEFCNTRYYR, FLDNOTUSED, AUXFLAGMASK,
                 VERSION, TO_CHAR(LASTUPDDTTM, 'YYYY-MM-DD HH24:MI:SS') AS TS, LASTUPDOPRID AS OPRID, DBMS_LOB.SUBSTR(DESCRLONG, 4000, 1) AS DL
-           FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :n`, { n: name });
+           FROM PSDBFIELD WHERE FIELDNAME = :n`, { n: name });
       const row = d.rows?.[0];
       if (!row) return undefined;
       const l = await c.execute<{ LABEL_ID: string; LONGNAME: string; SHORTNAME: string; DEFAULT_LABEL: number }>(
-        `SELECT LABEL_ID, LONGNAME, SHORTNAME, DEFAULT_LABEL FROM SYSADM.PSDBFLDLABL WHERE FIELDNAME = :n ORDER BY LABEL_ID`,
+        `SELECT LABEL_ID, LONGNAME, SHORTNAME, DEFAULT_LABEL FROM PSDBFLDLABL WHERE FIELDNAME = :n ORDER BY LABEL_ID`,
         { n: name });
       const t = (v: string | null | undefined) => (v ?? '').trim();
       return {
@@ -710,9 +804,9 @@ export class OracleProvider implements DefinitionProvider {
     const name = key.parts[0];
     return this.withConnection(async (c) => {
       const defn = await c.execute<FieldRow>(
-        `SELECT FIELDTYPE, LENGTH, DECIMALPOS, VERSION FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :n`, { n: name });
+        `SELECT FIELDTYPE, LENGTH, DECIMALPOS, VERSION FROM PSDBFIELD WHERE FIELDNAME = :n`, { n: name });
       const labels = await c.execute<FieldLabelRow>(
-        `SELECT LABEL_ID, LONGNAME, SHORTNAME FROM SYSADM.PSDBFLDLABL
+        `SELECT LABEL_ID, LONGNAME, SHORTNAME FROM PSDBFLDLABL
           WHERE FIELDNAME = :n ORDER BY LABEL_ID`, { n: name });
       return renderField(name, defn.rows?.[0], labels.rows ?? []);
     });
@@ -722,9 +816,9 @@ export class OracleProvider implements DefinitionProvider {
     const name = key.parts[0];
     return this.withConnection(async (c) => {
       const defn = await c.execute<MenuRow>(
-        `SELECT VERSION, DESCR FROM SYSADM.PSMENUDEFN WHERE MENUNAME = :n`, { n: name });
+        `SELECT VERSION, DESCR FROM PSMENUDEFN WHERE MENUNAME = :n`, { n: name });
       const items = await c.execute<MenuItemRow>(
-        `SELECT BARNAME, ITEMNAME, ITEMLABEL, PNLGRPNAME, MARKET FROM SYSADM.PSMENUITEM
+        `SELECT BARNAME, ITEMNAME, ITEMLABEL, PNLGRPNAME, MARKET FROM PSMENUITEM
           WHERE MENUNAME = :n ORDER BY BARNAME, ITEMNUM`, { n: name });
       return renderMenu(name, defn.rows?.[0], items.rows ?? []);
     });
@@ -735,9 +829,9 @@ export class OracleProvider implements DefinitionProvider {
     return this.withConnection(async (c) => {
       const defn = await c.execute<PageRow>(
         `SELECT PNLTYPE, VERSION, FIELDCOUNT, GRIDHORZ, GRIDVERT, DESCR
-           FROM SYSADM.PSPNLDEFN WHERE PNLNAME = :n`, { n: name });
+           FROM PSPNLDEFN WHERE PNLNAME = :n`, { n: name });
       const fields = await c.execute<PageFieldRow>(
-        `SELECT PNLFLDID, RECNAME, FIELDNAME, PNLFIELDNAME FROM SYSADM.PSPNLFIELD
+        `SELECT PNLFLDID, RECNAME, FIELDNAME, PNLFIELDNAME FROM PSPNLFIELD
           WHERE PNLNAME = :n ORDER BY FIELDNUM`, { n: name });
       return renderPage(name, defn.rows?.[0], fields.rows ?? []);
     });
@@ -747,10 +841,10 @@ export class OracleProvider implements DefinitionProvider {
     const [name, market = 'GBL'] = key.parts;
     return this.withConnection(async (c) => {
       const defn = await c.execute<ComponentRow>(
-        `SELECT DESCR, SEARCHRECNAME, ADDSRCHRECNAME, VERSION FROM SYSADM.PSPNLGRPDEFN
+        `SELECT DESCR, SEARCHRECNAME, ADDSRCHRECNAME, VERSION FROM PSPNLGRPDEFN
           WHERE PNLGRPNAME = :n AND MARKET = :m`, { n: name, m: market });
       const pages = await c.execute<ComponentPageRow>(
-        `SELECT PNLNAME, ITEMLABEL, HIDDEN FROM SYSADM.PSPNLGROUP
+        `SELECT PNLNAME, ITEMLABEL, HIDDEN FROM PSPNLGROUP
           WHERE PNLGRPNAME = :n AND MARKET = :m ORDER BY SUBITEMNUM`, { n: name, m: market });
       return renderComponent(name, market, defn.rows?.[0], pages.rows ?? []);
     });
@@ -767,7 +861,7 @@ export class OracleProvider implements DefinitionProvider {
 
     return this.withConnection(async (c) => {
       const prog = await c.execute<{ PROGSEQ: number; PROGTXT: Buffer }>(
-        `SELECT PROGSEQ, PROGTXT FROM SYSADM.PSPCMPROG WHERE ${where} ORDER BY PROGSEQ`, binds);
+        `SELECT PROGSEQ, PROGTXT FROM PSPCMPROG WHERE ${where} ORDER BY PROGSEQ`, binds);
       const rows = prog.rows ?? [];
       if (rows.length === 0) {
         throw new ProviderError(`No PeopleCode program found for ${key.parts.join('.')}.`);
@@ -778,7 +872,7 @@ export class OracleProvider implements DefinitionProvider {
       // record.field, "PACKAGE" for an application package. Reading REFNAME
       // alone dropped it, so references decoded as a bare name.
       const nameRows = await c.execute<{ NAMENUM: number; RECNAME: string; REFNAME: string }>(
-        `SELECT NAMENUM, RECNAME, REFNAME FROM SYSADM.PSPCMNAME WHERE ${where} ORDER BY NAMENUM`,
+        `SELECT NAMENUM, RECNAME, REFNAME FROM PSPCMNAME WHERE ${where} ORDER BY NAMENUM`,
         binds);
 
       const names = new NameTable();
@@ -799,7 +893,7 @@ export class OracleProvider implements DefinitionProvider {
   private async readSqlDefinition(key: DefinitionKey): Promise<string> {
     return this.withConnection(async (c) => {
       const r = await c.execute<{ SQLTEXT: string }>(
-        `SELECT SQLTEXT FROM SYSADM.PSSQLTEXTDEFN
+        `SELECT SQLTEXT FROM PSSQLTEXTDEFN
           WHERE SQLID = :id AND SQLTYPE = 0 ORDER BY SEQNUM`,
         { id: key.parts[0] });
       const rows = r.rows ?? [];
@@ -857,7 +951,7 @@ export class OracleProvider implements DefinitionProvider {
       FIELDNAME: string; SUBRECORD: string; USEEDIT: number; EDITTABLE: string
     }>(
       `SELECT FIELDNAME, SUBRECORD, USEEDIT, EDITTABLE
-         FROM SYSADM.PSRECFIELD WHERE RECNAME = :r ORDER BY FIELDNUM`, { r: recname });
+         FROM PSRECFIELD WHERE RECNAME = :r ORDER BY FIELDNUM`, { r: recname });
 
     const out: Array<{ FIELDNAME: string; USEEDIT: number; EDITTABLE: string; fromSubrecord?: string }> = [];
     for (const row of rows.rows ?? []) {
@@ -886,7 +980,7 @@ export class OracleProvider implements DefinitionProvider {
                 OBJECTOWNERID, TO_CHAR(LASTUPDDTTM, 'YYYY-MM-DD HH24:MI:SS') AS TS, LASTUPDOPRID, SETCNTRLFLD, PARENTRECNAME,
                 RELLANGRECNAME, QRYSECRECNAME, OPTDELRECNAME, AUDITRECNAME, SYSTEMIDFIELDNAME, TIMESTAMPFIELDNAME,
                 RECUSE, OPTTRIGFLAG
-           FROM SYSADM.PSRECDEFN WHERE RECNAME = :r`, { r: recname })).rows?.[0];
+           FROM PSRECDEFN WHERE RECNAME = :r`, { r: recname })).rows?.[0];
       if (!head) return undefined;
       // Each own row with its field's PSDBFIELD values and its label: the
       // record field's LABEL_ID when set, else the field's default label.
@@ -899,11 +993,11 @@ export class OracleProvider implements DefinitionProvider {
         `SELECT rf.FIELDNUM, rf.FIELDNAME, rf.SUBRECORD, rf.USEEDIT, rf.EDITTABLE, rf.SETCNTRLFLD, rf.DEFRECNAME, rf.DEFFIELDNAME,
                 rf.USEEDIT2, rf.LABEL_ID, rf.DEFGUICONTROL,
                 f.FIELDTYPE, f.LENGTH, f.DECIMALPOS, f.FORMAT, l.LONGNAME, l.SHORTNAME,
-                (SELECT COUNT(*) FROM SYSADM.PSPCMPROG p WHERE p.OBJECTID1 = 1 AND p.OBJECTVALUE1 = rf.RECNAME
+                (SELECT COUNT(*) FROM PSPCMPROG p WHERE p.OBJECTID1 = 1 AND p.OBJECTVALUE1 = rf.RECNAME
                     AND p.OBJECTID2 = 2 AND p.OBJECTVALUE2 = rf.FIELDNAME AND p.PROGSEQ = 0) AS PC
-           FROM SYSADM.PSRECFIELD rf
-           LEFT JOIN SYSADM.PSDBFIELD f ON f.FIELDNAME = rf.FIELDNAME AND rf.SUBRECORD <> 'Y'
-           LEFT JOIN SYSADM.PSDBFLDLABL l ON l.FIELDNAME = rf.FIELDNAME AND rf.SUBRECORD <> 'Y'
+           FROM PSRECFIELD rf
+           LEFT JOIN PSDBFIELD f ON f.FIELDNAME = rf.FIELDNAME AND rf.SUBRECORD <> 'Y'
+           LEFT JOIN PSDBFLDLABL l ON l.FIELDNAME = rf.FIELDNAME AND rf.SUBRECORD <> 'Y'
             AND ((rf.LABEL_ID <> ' ' AND l.LABEL_ID = rf.LABEL_ID) OR (rf.LABEL_ID = ' ' AND l.DEFAULT_LABEL = 1))
           WHERE rf.RECNAME = :r ORDER BY rf.FIELDNUM`, { r: recname })).rows ?? [];
       const layout: RecordLayout = {
@@ -948,13 +1042,13 @@ export class OracleProvider implements DefinitionProvider {
       };
       if (layout.recordType === RecordType.View || layout.recordType === RecordType.DynamicView) {
         const sql = await c.execute<{ SQLTEXT: string }>(
-          `SELECT SQLTEXT FROM SYSADM.PSSQLTEXTDEFN WHERE SQLID = :r AND SQLTYPE = 2 ORDER BY SEQNUM`, { r: recname });
+          `SELECT SQLTEXT FROM PSSQLTEXTDEFN WHERE SQLID = :r AND SQLTYPE = 2 ORDER BY SEQNUM`, { r: recname });
         layout.viewSql = (sql.rows ?? []).map((x) => x.SQLTEXT).join('');
       }
       // Every label of the record's fields, for the Record Field Label ID choice.
       const labelRows = (await c.execute<{ FIELDNAME: string; LABEL_ID: string; LONGNAME: string; SHORTNAME: string; DEFAULT_LABEL: number }>(
-        `SELECT l.FIELDNAME, l.LABEL_ID, l.LONGNAME, l.SHORTNAME, l.DEFAULT_LABEL FROM SYSADM.PSDBFLDLABL l
-          WHERE l.FIELDNAME IN (SELECT FIELDNAME FROM SYSADM.PSRECFIELD WHERE RECNAME = :r AND SUBRECORD = 'N')
+        `SELECT l.FIELDNAME, l.LABEL_ID, l.LONGNAME, l.SHORTNAME, l.DEFAULT_LABEL FROM PSDBFLDLABL l
+          WHERE l.FIELDNAME IN (SELECT FIELDNAME FROM PSRECFIELD WHERE RECNAME = :r AND SUBRECORD = 'N')
           ORDER BY l.FIELDNAME, l.LABEL_ID`, { r: recname })).rows ?? [];
       for (const f of layout.fields) {
         f.labels = labelRows.filter((l) => t(l.FIELDNAME) === f.name)
@@ -962,14 +1056,14 @@ export class OracleProvider implements DefinitionProvider {
       }
       if (layout.recordType === RecordType.QueryView) {
         const q = await c.execute<{ QRYNAME: string }>(
-          `SELECT QRYNAME FROM SYSADM.PSQRYDEFN WHERE QRYNAME = :r AND ROWNUM = 1`, { r: recname });
+          `SELECT QRYNAME FROM PSQRYDEFN WHERE QRYNAME = :r AND ROWNUM = 1`, { r: recname });
         if (q.rows?.[0]) layout.queryName = t(q.rows[0].QRYNAME);
       }
       const ts = await c.execute<{ DDLSPACENAME: string }>(
-        `SELECT DDLSPACENAME FROM SYSADM.PSRECTBLSPC WHERE RECNAME = :r AND ROWNUM = 1`, { r: recname });
+        `SELECT DDLSPACENAME FROM PSRECTBLSPC WHERE RECNAME = :r AND ROWNUM = 1`, { r: recname });
       if (ts.rows?.[0]) layout.tablespace = t(ts.rows[0].DDLSPACENAME);
       const idx = await c.execute<{ INDEXID: string }>(
-        `SELECT INDEXID FROM SYSADM.PSINDEXDEFN WHERE RECNAME = :r ORDER BY INDEXID`, { r: recname });
+        `SELECT INDEXID FROM PSINDEXDEFN WHERE RECNAME = :r ORDER BY INDEXID`, { r: recname });
       layout.indexIds = (idx.rows ?? []).map((x) => t(x.INDEXID));
       return layout;
     });
@@ -987,18 +1081,18 @@ export class OracleProvider implements DefinitionProvider {
       const out: DefinitionReference[] = [];
       if (!record) {
         const recs = await c.execute<{ RECNAME: string }>(
-          `SELECT DISTINCT RECNAME FROM SYSADM.PSRECFIELD WHERE FIELDNAME = :f AND SUBRECORD = 'N' ORDER BY RECNAME`, { f: field });
+          `SELECT DISTINCT RECNAME FROM PSRECFIELD WHERE FIELDNAME = :f AND SUBRECORD = 'N' ORDER BY RECNAME`, { f: field });
         for (const r of recs.rows ?? []) out.push({ group: 'Record', label: t(r.RECNAME), key: makeKey(DefinitionType.Record, t(r.RECNAME)) });
       }
       const pages = await c.execute<{ PNLNAME: string; RECNAME: string }>(
-        `SELECT DISTINCT PNLNAME, RECNAME FROM SYSADM.PSPNLFIELD WHERE FIELDNAME = :f ${record ? 'AND RECNAME = :r' : ''} ORDER BY PNLNAME`,
+        `SELECT DISTINCT PNLNAME, RECNAME FROM PSPNLFIELD WHERE FIELDNAME = :f ${record ? 'AND RECNAME = :r' : ''} ORDER BY PNLNAME`,
         record ? { f: field, r: record } : { f: field });
       for (const p of pages.rows ?? []) {
         out.push({ group: 'Page', label: t(p.PNLNAME), description: `${t(p.RECNAME)}.${field}`, key: makeKey(DefinitionType.Page, t(p.PNLNAME)) });
       }
       const cols = [1, 2, 3, 4, 5, 6, 7].map((n) => `OBJECTID${n}, OBJECTVALUE${n}`).join(', ');
       const pcs = await c.execute<Record<string, string | number>>(
-        `SELECT DISTINCT RECNAME, ${cols} FROM SYSADM.PSPCMNAME WHERE REFNAME = :f AND RECNAME ${record ? '= :r' : "<> ' '"}
+        `SELECT DISTINCT RECNAME, ${cols} FROM PSPCMNAME WHERE REFNAME = :f AND RECNAME ${record ? '= :r' : "<> ' '"}
           ORDER BY OBJECTVALUE1, OBJECTVALUE2, OBJECTVALUE3`, record ? { f: field, r: record } : { f: field });
       // One entry per program, however many records it references the field through.
       const programs = new Map<string, { recs: Set<string>; key?: DefinitionKey }>();
@@ -1029,7 +1123,7 @@ export class OracleProvider implements DefinitionProvider {
     return this.withConnection(async (c) => {
       const r = await c.execute<{ V: string; D: string; S: string; L: string; SH: string }>(
         `SELECT FIELDVALUE AS V, TO_CHAR(EFFDT, 'YYYY-MM-DD') AS D, EFF_STATUS AS S, XLATLONGNAME AS L, XLATSHORTNAME AS SH
-           FROM SYSADM.PSXLATITEM WHERE FIELDNAME = :f ORDER BY FIELDVALUE, EFFDT`, { f: fieldName });
+           FROM PSXLATITEM WHERE FIELDNAME = :f ORDER BY FIELDVALUE, EFFDT`, { f: fieldName });
       const t = (v: string | null | undefined) => (v ?? '').trim();
       return (r.rows ?? []).map((x) => ({ value: t(x.V), effectiveDate: t(x.D), status: t(x.S), longName: t(x.L), shortName: t(x.SH) }));
     });
@@ -1043,7 +1137,7 @@ export class OracleProvider implements DefinitionProvider {
         AUDITRECNAME: string; OPTRECTYPE: number
       }>(
         `SELECT RECNAME, RECDESCR, RECTYPE, VERSION, AUDITRECNAME
-           FROM SYSADM.PSRECDEFN WHERE RECNAME = :r`, { r: recname });
+           FROM PSRECDEFN WHERE RECNAME = :r`, { r: recname });
       const head = defn.rows?.[0];
       if (!head) throw new ProviderError(`No record definition named ${recname}.`);
 
@@ -1056,7 +1150,7 @@ export class OracleProvider implements DefinitionProvider {
         fieldNames.forEach((n, i) => { binds[`f${i}`] = n; });
         const placeholders = fieldNames.map((_, i) => `:f${i}`).join(', ');
         const types = await c.execute<{ FIELDNAME: string; FIELDTYPE: number; LENGTH: number; DECIMALPOS: number }>(
-          `SELECT FIELDNAME, FIELDTYPE, LENGTH, DECIMALPOS FROM SYSADM.PSDBFIELD
+          `SELECT FIELDNAME, FIELDTYPE, LENGTH, DECIMALPOS FROM PSDBFIELD
             WHERE FIELDNAME IN (${placeholders})`, binds);
         for (const t of types.rows ?? []) typeByField.set(t.FIELDNAME.trim(), t);
       }
@@ -1087,7 +1181,7 @@ export class OracleProvider implements DefinitionProvider {
 
       if (record.recordType === RecordType.View || record.recordType === RecordType.DynamicView) {
         const sql = await c.execute<{ SQLTEXT: string }>(
-          `SELECT SQLTEXT FROM SYSADM.PSSQLTEXTDEFN
+          `SELECT SQLTEXT FROM PSSQLTEXTDEFN
             WHERE SQLID = :r AND SQLTYPE = 2 ORDER BY SEQNUM`, { r: recname });
         record.viewSql = (sql.rows ?? []).map((x) => x.SQLTEXT).join('');
       }
@@ -1121,7 +1215,7 @@ export class OracleProvider implements DefinitionProvider {
     return this.withConnection(async (c) => {
       const r = await c.execute<{ EVENT: string; UPDATED: Date | null; OPRID: string }>(
         `SELECT OBJECTVALUE3 AS EVENT, MAX(LASTUPDDTTM) AS UPDATED, MAX(LASTUPDOPRID) AS OPRID
-           FROM SYSADM.PSPCMPROG
+           FROM PSPCMPROG
           WHERE OBJECTID1 = 1 AND OBJECTVALUE1 = :r AND OBJECTID2 = 2 AND OBJECTVALUE2 = :f
             AND OBJECTID3 = 12 AND OBJECTID4 = 0
           GROUP BY OBJECTVALUE3
@@ -1143,7 +1237,7 @@ export class OracleProvider implements DefinitionProvider {
     return this.withConnection(async (c) => {
       const r = await c.execute<{ PNLNAME: string; ITEMLABEL: string; HIDDEN: number }>(
         `SELECT g.PNLNAME, g.ITEMLABEL, g.HIDDEN
-           FROM SYSADM.PSPNLGROUP g
+           FROM PSPNLGROUP g
           WHERE g.PNLGRPNAME = :n AND g.MARKET = :m
           ORDER BY g.SUBITEMNUM`,
         { n: name, m: market });

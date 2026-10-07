@@ -37,7 +37,7 @@ interface Column { name: string; type: string }
 
 async function columnsOf(c: Connection, table: string): Promise<Column[]> {
   const rows = await select<{ N: string; T: string }>(c,
-    `SELECT COLUMN_NAME AS N, DATA_TYPE AS T FROM ALL_TAB_COLUMNS WHERE OWNER = 'SYSADM' AND TABLE_NAME = :t ORDER BY COLUMN_ID`,
+    `SELECT COLUMN_NAME AS N, DATA_TYPE AS T FROM ALL_TAB_COLUMNS WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = :t ORDER BY COLUMN_ID`,
     { t: table });
   return rows.map((r) => ({ name: r.N, type: r.T }));
 }
@@ -48,7 +48,7 @@ const isTimestamp = (col: Column) => col.type.startsWith('TIMESTAMP') || col.typ
 async function readRows(c: Connection, table: string, cols: Column[], where: string, binds: Record<string, unknown>, order = ''): Promise<Row[]> {
   const list = cols.map((col) => isTimestamp(col)
     ? `TO_CHAR(CAST(${col.name} AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS ${col.name}` : col.name).join(', ');
-  return select<Row>(c, `SELECT ${list} FROM SYSADM.${table} WHERE ${where}${order ? ` ORDER BY ${order}` : ''}`, binds);
+  return select<Row>(c, `SELECT ${list} FROM ${table} WHERE ${where}${order ? ` ORDER BY ${order}` : ''}`, binds);
 }
 
 async function insertRow(c: Connection, table: string, cols: Column[], row: Row): Promise<void> {
@@ -59,7 +59,7 @@ async function insertRow(c: Connection, table: string, cols: Column[], row: Row)
     binds[`b${i}`] = row[col.name];
     return isTimestamp(col) ? `TO_TIMESTAMP(:b${i}, ${TIMESTAMP_FORMAT})` : `:b${i}`;
   });
-  await expectRows(c, `INSERT INTO SYSADM.${table} (${cols.map((col) => col.name).join(', ')}) VALUES (${values.join(', ')})`,
+  await expectRows(c, `INSERT INTO ${table} (${cols.map((col) => col.name).join(', ')}) VALUES (${values.join(', ')})`,
     binds, 1, `Inserting ${table}`);
 }
 
@@ -71,9 +71,9 @@ interface Counters { rdm: number; sys: number; pgm: number; lockRdm: number; loc
 async function readCounters(c: Connection, forUpdate: boolean): Promise<Counters> {
   const lock = forUpdate ? ' FOR UPDATE' : '';
   const v = await select<{ T: string; V: number }>(c,
-    `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME IN ('RDM', 'SYS', 'PGM')${lock}`);
+    `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSVERSION WHERE OBJECTTYPENAME IN ('RDM', 'SYS', 'PGM')${lock}`);
   const l = await select<{ T: string; V: number }>(c,
-    `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME IN ('RDM', 'PGM')${lock}`);
+    `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSLOCK WHERE OBJECTTYPENAME IN ('RDM', 'PGM')${lock}`);
   const get = (rows: { T: string; V: number }[], name: string) => {
     const r = rows.find((x) => String(x.T).trim() === name);
     if (!r) throw new RecordSaveRefusedError(`${name} is missing from PSVERSION / PSLOCK; refusing to write.`);
@@ -88,7 +88,7 @@ async function readStored(c: Connection, tables: Tables, recname: string, forUpd
   const [defn] = await select<Row & { RECTYPE: number; VERSION: number }>(c,
     `SELECT RECTYPE, VERSION, RECDESCR, DBMS_LOB.SUBSTR(DESCRLONG, 4000, 1) AS DESCRLONG, OBJECTOWNERID, SETCNTRLFLD,
             PARENTRECNAME, RELLANGRECNAME, QRYSECRECNAME, OPTDELRECNAME, AUXFLAGMASK, SQLTABLENAME, BUILDSEQNO, AUDITRECNAME, RECUSE, TIMESTAMPFIELDNAME, SYSTEMIDFIELDNAME
-       FROM SYSADM.PSRECDEFN WHERE RECNAME = :r${forUpdate ? ' FOR UPDATE' : ''}`, { r: recname });
+       FROM PSRECDEFN WHERE RECNAME = :r${forUpdate ? ' FOR UPDATE' : ''}`, { r: recname });
   if (!defn) throw new RecordSaveRefusedError(`There is no record named ${recname}.`);
   const r = { r: recname };
   return {
@@ -107,7 +107,7 @@ async function readStored(c: Connection, tables: Tables, recname: string, forUpd
 async function readSubrecords(c: Connection, tables: Tables, names: readonly string[]): Promise<Record<string, Row[]>> {
   const out: Record<string, Row[]> = {};
   for (const name of new Set(names)) {
-    const [defn] = await select<{ RECTYPE: number }>(c, `SELECT RECTYPE FROM SYSADM.PSRECDEFN WHERE RECNAME = :r`, { r: name });
+    const [defn] = await select<{ RECTYPE: number }>(c, `SELECT RECTYPE FROM PSRECDEFN WHERE RECNAME = :r`, { r: name });
     if (!defn) throw new RecordSaveRefusedError(`There is no record named ${name}.`);
     if (Number(defn.RECTYPE) !== RecordType.Subrecord) throw new RecordSaveRefusedError(`${name} is not a SubRecord.`);
     out[name] = await readRows(c, 'PSRECFIELD', tables.recfield, 'RECNAME = :r', { r: name }, 'FIELDNUM');
@@ -156,20 +156,20 @@ async function createRecord(c: Connection, request: RecordSaveRequest): Promise<
     index: await columnsOf(c, 'PSINDEXDEFN'), key: await columnsOf(c, 'PSKEYDEFN')
   };
   const [{ N: taken }] = await select<{ N: number }>(c,
-    `SELECT (SELECT COUNT(*) FROM SYSADM.PSRECDEFN WHERE RECNAME = :r) + (SELECT COUNT(*) FROM SYSADM.PSRECFIELD WHERE RECNAME = :r)
-          + (SELECT COUNT(*) FROM SYSADM.PSRECFIELDDB WHERE RECNAME = :r) + (SELECT COUNT(*) FROM SYSADM.PSINDEXDEFN WHERE RECNAME = :r)
-          + (SELECT COUNT(*) FROM SYSADM.PSRECTBLSPC WHERE RECNAME = :r) AS N FROM DUAL`, { r: recname });
+    `SELECT (SELECT COUNT(*) FROM PSRECDEFN WHERE RECNAME = :r) + (SELECT COUNT(*) FROM PSRECFIELD WHERE RECNAME = :r)
+          + (SELECT COUNT(*) FROM PSRECFIELDDB WHERE RECNAME = :r) + (SELECT COUNT(*) FROM PSINDEXDEFN WHERE RECNAME = :r)
+          + (SELECT COUNT(*) FROM PSRECTBLSPC WHERE RECNAME = :r) AS N FROM DUAL`, { r: recname });
   if (Number(taken) > 0) throw new RecordSaveRefusedError(`A record named ${recname} already exists, or left rows behind.`);
   // A name deleted before keeps a PSRECDEL marker; re-creating it deletes the marker (r47).
-  const [{ N: deleted }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSRECDEL WHERE RECNAME = :r`, { r: recname });
+  const [{ N: deleted }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSRECDEL WHERE RECNAME = :r`, { r: recname });
   if (Number(deleted) > 1) throw new RecordSaveRefusedError(`${recname} has ${deleted} deletion markers; refusing to write.`);
   for (const f of edit.fields.filter((x) => !x.isSubrecord)) {
-    const [{ N }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f`, { f: f.name });
+    const [{ N }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSDBFIELD WHERE FIELDNAME = :f`, { f: f.name });
     if (Number(N) === 0) throw new RecordSaveRefusedError(`There is no field named ${f.name}.`);
   }
   const [space] = edit.recordType === RecordType.Table
     ? await select<{ DDLSPACENAME: string; DBNAME: string }>(c,
-      `SELECT DDLSPACENAME, DBNAME FROM SYSADM.PSTBLSPCCAT ORDER BY DDLSPACENAME FETCH FIRST 1 ROWS ONLY`)
+      `SELECT DDLSPACENAME, DBNAME FROM PSTBLSPCCAT ORDER BY DDLSPACENAME FETCH FIRST 1 ROWS ONLY`)
     : [undefined];
   if (edit.recordType === RecordType.Table && !space) throw new RecordSaveRefusedError('The tablespace catalog (PSTBLSPCCAT) is empty; refusing to write.');
   if (!(await operatorExists(c, request.operatorId))) {
@@ -186,7 +186,7 @@ async function createRecord(c: Connection, request: RecordSaveRequest): Promise<
   const plan = planRecordSave(stored, edit, { ts: lastupddttm, operatorId: request.operatorId });
   const next: Counters = { ...counters, rdm: counters.rdm + 1, sys: counters.sys + 1, lockRdm: counters.lockRdm + 1 };
 
-  if (Number(deleted) === 1) await expectRows(c, `DELETE FROM SYSADM.PSRECDEL WHERE RECNAME = :r`, { r: recname }, 1, 'Deleting PSRECDEL');
+  if (Number(deleted) === 1) await expectRows(c, `DELETE FROM PSRECDEL WHERE RECNAME = :r`, { r: recname }, 1, 'Deleting PSRECDEL');
   await insertRow(c, 'PSRECDEFN', await columnsOf(c, 'PSRECDEFN'), {
     RECNAME: recname, FIELDCOUNT: plan.fieldCount, INDEXCOUNT: plan.indexCount, VERSION: next.rdm, RECTYPE: edit.recordType,
     ...NEW_RECDEFN_VALUES, ...plan.recordColumns, LASTUPDDTTM: lastupddttm, LASTUPDOPRID: request.operatorId
@@ -199,16 +199,16 @@ async function createRecord(c: Connection, request: RecordSaveRequest): Promise<
   }
   if (space) {
     await expectRows(c,
-      `INSERT INTO SYSADM.PSRECTBLSPC (DDLSPACENAME, DBNAME, RECNAME, DBTYPE, TEMPTBLINST, PT_TS_LOCK_TYPE, PT_UTS_ENABLED)
+      `INSERT INTO PSRECTBLSPC (DDLSPACENAME, DBNAME, RECNAME, DBTYPE, TEMPTBLINST, PT_TS_LOCK_TYPE, PT_UTS_ENABLED)
        VALUES (:s, :d, :r, ' ', 'N', ' ', ' ')`, { s: space.DDLSPACENAME, d: space.DBNAME, r: recname }, 1, 'Inserting PSRECTBLSPC');
   }
-  await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'RDM'`, { v: next.rdm }, 1, 'Updating PSVERSION RDM');
-  await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
-  await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'RDM'`, { v: next.lockRdm }, 1, 'Updating PSLOCK RDM');
+  await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'RDM'`, { v: next.rdm }, 1, 'Updating PSVERSION RDM');
+  await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
+  await expectRows(c, `UPDATE PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'RDM'`, { v: next.lockRdm }, 1, 'Updating PSLOCK RDM');
 
   const result: RecordSaveResult = { version: next.rdm, lastupddttm, plan, languageReferrers: [] };
   await verifyRecordSave(c, request, result);
-  const [{ N: spaces }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSRECTBLSPC WHERE RECNAME = :r`, { r: recname });
+  const [{ N: spaces }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSRECTBLSPC WHERE RECNAME = :r`, { r: recname });
   if (Number(spaces) !== (space ? 1 : 0)) throw new RecordSaveRefusedError(`PSRECTBLSPC has ${spaces} rows for ${recname}; rolled back.`);
   const now = await readCounters(c, false);
   if ((Object.keys(next) as (keyof Counters)[]).some((k) => now[k] !== next[k])) {
@@ -246,7 +246,7 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
       throw new RecordSaveRefusedError(`${recname}'s PSRECFIELDDB rows do not mirror its PSRECFIELD rows; refusing to write.`);
     }
     const [{ N: includers }] = await select<{ N: number }>(c,
-      `SELECT COUNT(*) AS N FROM SYSADM.PSRECFIELD WHERE FIELDNAME = :r AND SUBRECORD = 'Y'`, { r: recname });
+      `SELECT COUNT(*) AS N FROM PSRECFIELD WHERE FIELDNAME = :r AND SUBRECORD = 'Y'`, { r: recname });
     if (Number(includers) > 0) throw new RecordSaveRefusedError(`${recname} is used as a subrecord; refusing to write.`);
     // App Designer moves the VERSION of a record whose Related Language record
     // is the one it saves (r32: ZZ_PCODE_LAB_R1, referring to T by that alone,
@@ -254,35 +254,35 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
     // (r41). Parent, query security and audit references are not established,
     // so a record referred to that way is not saved here.
     const referrers = await select<{ RECNAME: string }>(c,
-      `SELECT RECNAME FROM SYSADM.PSRECDEFN WHERE RECNAME <> :r AND :r IN (PARENTRECNAME, QRYSECRECNAME, AUDITRECNAME)
+      `SELECT RECNAME FROM PSRECDEFN WHERE RECNAME <> :r AND :r IN (PARENTRECNAME, QRYSECRECNAME, AUDITRECNAME)
         AND ROWNUM <= 5`, { r: recname });
     if (referrers.length > 0) {
       throw new RecordSaveRefusedError(`${recname} is referred to by ${referrers.map((x) => text(x.RECNAME)).join(', ')} (as a parent, query security or audit record); saving it here is not supported yet.`);
     }
     const languageReferrers = await select<{ RECNAME: string }>(c,
-      `SELECT RECNAME FROM SYSADM.PSRECDEFN WHERE RECNAME <> :r AND RELLANGRECNAME = :r FOR UPDATE`, { r: recname });
+      `SELECT RECNAME FROM PSRECDEFN WHERE RECNAME <> :r AND RELLANGRECNAME = :r FOR UPDATE`, { r: recname });
 
     for (const f of request.edit.fields.filter((x) => x.isNew && !x.isSubrecord)) {
-      const [{ N }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f`, { f: f.name });
+      const [{ N }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSDBFIELD WHERE FIELDNAME = :f`, { f: f.name });
       if (Number(N) === 0) throw new RecordSaveRefusedError(`There is no field named ${f.name}.`);
     }
     // What the edit refers to must exist: a prompt table, a default's record
     // and field, a label of the field.
     const exists = async (sql: string, binds: Record<string, unknown>) => Number((await select<{ N: number }>(c, sql, binds))[0]?.N ?? 0) > 0;
     for (const f of request.edit.fields) {
-      if (f.editTable && !(await exists(`SELECT COUNT(*) AS N FROM SYSADM.PSRECDEFN WHERE RECNAME = :r`, { r: f.editTable }))) {
+      if (f.editTable && !(await exists(`SELECT COUNT(*) AS N FROM PSRECDEFN WHERE RECNAME = :r`, { r: f.editTable }))) {
         throw new RecordSaveRefusedError(`${f.name}: there is no record named ${f.editTable} to prompt on.`);
       }
-      if (f.defaultRecord && !(await exists(`SELECT COUNT(*) AS N FROM SYSADM.PSRECFIELD WHERE RECNAME = :r AND FIELDNAME = :f`, { r: f.defaultRecord, f: f.defaultField ?? '' }))) {
+      if (f.defaultRecord && !(await exists(`SELECT COUNT(*) AS N FROM PSRECFIELD WHERE RECNAME = :r AND FIELDNAME = :f`, { r: f.defaultRecord, f: f.defaultField ?? '' }))) {
         throw new RecordSaveRefusedError(`${f.name}: ${f.defaultRecord}.${f.defaultField ?? ''} is not a field of a record, so it cannot be the default.`);
       }
-      if (f.labelId && !(await exists(`SELECT COUNT(*) AS N FROM SYSADM.PSDBFLDLABL WHERE FIELDNAME = :f AND LABEL_ID = :l`, { f: f.name, l: f.labelId }))) {
+      if (f.labelId && !(await exists(`SELECT COUNT(*) AS N FROM PSDBFLDLABL WHERE FIELDNAME = :f AND LABEL_ID = :l`, { f: f.name, l: f.labelId }))) {
         throw new RecordSaveRefusedError(`${f.name} has no label ${f.labelId}.`);
       }
       // A translate table edit needs the field's translate values (every translate-edited field on HRDMO has them).
       const before = stored.fields.find((x) => text(x.FIELDNAME) === f.name);
       if ((f.useEdit & 0x200) !== 0 && (!before || (Number(before.USEEDIT) & 0x200) === 0) &&
-          !(await exists(`SELECT COUNT(*) AS N FROM SYSADM.PSXLATITEM WHERE FIELDNAME = :f`, { f: f.name }))) {
+          !(await exists(`SELECT COUNT(*) AS N FROM PSXLATITEM WHERE FIELDNAME = :f`, { f: f.name }))) {
         throw new RecordSaveRefusedError(`${f.name} has no translate values, so it cannot have a translate table edit.`);
       }
     }
@@ -291,18 +291,18 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
     for (const [label, name] of [['Parent Record', props.parentRecord], ['Related Language Record', props.relatedLanguageRecord],
       ['Query Security Record', props.querySecurityRecord], ['Analytic Delete Record', props.analyticDeleteRecord],
       ['Audit Record', props.auditRecord]] as const) {
-      if (name && !(await exists(`SELECT COUNT(*) AS N FROM SYSADM.PSRECDEFN WHERE RECNAME = :r`, { r: name }))) {
+      if (name && !(await exists(`SELECT COUNT(*) AS N FROM PSRECDEFN WHERE RECNAME = :r`, { r: name }))) {
         throw new RecordSaveRefusedError(`${label}: there is no record named ${name}.`);
       }
     }
     // The Timestamp Field is a DateTime field of the record (r51: LASTUPDDTTM).
     if (props.timestampField && !(await exists(
-      `SELECT COUNT(*) AS N FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f AND FIELDTYPE = 6`, { f: props.timestampField }))) {
+      `SELECT COUNT(*) AS N FROM PSDBFIELD WHERE FIELDNAME = :f AND FIELDTYPE = 6`, { f: props.timestampField }))) {
       throw new RecordSaveRefusedError(`Timestamp Field: ${props.timestampField} is not a DateTime field.`);
     }
     // The System ID Field is a Number field of the record (r54; 7 of 7 on HRDMO).
     if (props.systemIdField && !(await exists(
-      `SELECT COUNT(*) AS N FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f AND FIELDTYPE = 2`, { f: props.systemIdField }))) {
+      `SELECT COUNT(*) AS N FROM PSDBFIELD WHERE FIELDNAME = :f AND FIELDTYPE = 2`, { f: props.systemIdField }))) {
       throw new RecordSaveRefusedError(`System ID Field: ${props.systemIdField} is not a Number field.`);
     }
     // Stored alternate-key indexes must be the ones the rule gives (r55), or they were made by hand.
@@ -318,7 +318,7 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
     if (props.setControlField && !request.edit.fields.some((f) => f.name === props.setControlField)) {
       throw new RecordSaveRefusedError(`Set Control Field: ${props.setControlField} is not a field of ${recname}.`);
     }
-    if (props.ownerId && !(await exists(`SELECT COUNT(*) AS N FROM SYSADM.PSXLATITEM WHERE FIELDNAME = 'OBJECTOWNERID' AND FIELDVALUE = :o`, { o: props.ownerId }))) {
+    if (props.ownerId && !(await exists(`SELECT COUNT(*) AS N FROM PSXLATITEM WHERE FIELDNAME = 'OBJECTOWNERID' AND FIELDVALUE = :o`, { o: props.ownerId }))) {
       throw new RecordSaveRefusedError(`${props.ownerId} is not an owner ID in this database.`);
     }
     if (!(await operatorExists(c, request.operatorId))) {
@@ -335,8 +335,8 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
     };
 
     const r = { r: recname };
-    await expectRows(c, `DELETE FROM SYSADM.PSRECFIELDDB WHERE RECNAME = :r`, r, stored.db.length, 'Deleting PSRECFIELDDB');
-    await expectRows(c, `DELETE FROM SYSADM.PSRECFIELD WHERE RECNAME = :r`, r, stored.fields.length, 'Deleting PSRECFIELD');
+    await expectRows(c, `DELETE FROM PSRECFIELDDB WHERE RECNAME = :r`, r, stored.db.length, 'Deleting PSRECFIELDDB');
+    await expectRows(c, `DELETE FROM PSRECFIELD WHERE RECNAME = :r`, r, stored.fields.length, 'Deleting PSRECFIELD');
     for (const row of plan.fields) await insertRow(c, 'PSRECFIELD', tables.recfield, row);
     for (const row of plan.dbFields) await insertRow(c, 'PSRECFIELDDB', tables.recfielddb, row);
 
@@ -345,8 +345,8 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
     const storedKey = stored.indexes.filter((i) => modelled(i.INDEXID));
     const storedKeys = stored.keys.filter((k) => modelled(k.INDEXID));
     const ids = "(INDEXID = '_' OR REGEXP_LIKE(INDEXID, '^[0-9]$'))";
-    if (storedKeys.length > 0) await expectRows(c, `DELETE FROM SYSADM.PSKEYDEFN WHERE RECNAME = :r AND ${ids}`, r, storedKeys.length, 'Deleting PSKEYDEFN');
-    if (storedKey.length > 0) await expectRows(c, `DELETE FROM SYSADM.PSINDEXDEFN WHERE RECNAME = :r AND ${ids}`, r, storedKey.length, 'Deleting PSINDEXDEFN');
+    if (storedKeys.length > 0) await expectRows(c, `DELETE FROM PSKEYDEFN WHERE RECNAME = :r AND ${ids}`, r, storedKeys.length, 'Deleting PSKEYDEFN');
+    if (storedKey.length > 0) await expectRows(c, `DELETE FROM PSINDEXDEFN WHERE RECNAME = :r AND ${ids}`, r, storedKey.length, 'Deleting PSINDEXDEFN');
     for (const ix of [...(plan.index ? [plan.index] : []), ...plan.altIndexes]) {
       await insertRow(c, 'PSINDEXDEFN', tables.index, ix.row);
       for (const k of ix.keys) await insertRow(c, 'PSKEYDEFN', tables.key, k);
@@ -355,14 +355,14 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
     // The Record Type tab (r26-r28): the tablespace row follows the SQL Table type, and a view's SQL is written when it changed.
     if (plan.tablespace === 'insert') {
       const [space] = await select<{ DDLSPACENAME: string; DBNAME: string }>(c,
-        `SELECT DDLSPACENAME, DBNAME FROM SYSADM.PSTBLSPCCAT ORDER BY DDLSPACENAME FETCH FIRST 1 ROWS ONLY`);
+        `SELECT DDLSPACENAME, DBNAME FROM PSTBLSPCCAT ORDER BY DDLSPACENAME FETCH FIRST 1 ROWS ONLY`);
       if (!space) throw new RecordSaveRefusedError('The tablespace catalog (PSTBLSPCCAT) is empty; refusing to write.');
-      await c.execute(`DELETE FROM SYSADM.PSRECTBLSPC WHERE RECNAME = :r`, r);
+      await c.execute(`DELETE FROM PSRECTBLSPC WHERE RECNAME = :r`, r);
       await expectRows(c,
-        `INSERT INTO SYSADM.PSRECTBLSPC (DDLSPACENAME, DBNAME, RECNAME, DBTYPE, TEMPTBLINST, PT_TS_LOCK_TYPE, PT_UTS_ENABLED)
+        `INSERT INTO PSRECTBLSPC (DDLSPACENAME, DBNAME, RECNAME, DBTYPE, TEMPTBLINST, PT_TS_LOCK_TYPE, PT_UTS_ENABLED)
          VALUES (:s, :d, :r, ' ', 'N', ' ', ' ')`, { s: space.DDLSPACENAME, d: space.DBNAME, r: recname }, 1, 'Inserting PSRECTBLSPC');
     } else if (plan.tablespace === 'delete') {
-      await c.execute(`DELETE FROM SYSADM.PSRECTBLSPC WHERE RECNAME = :r`, r);
+      await c.execute(`DELETE FROM PSRECTBLSPC WHERE RECNAME = :r`, r);
     }
     if (plan.viewSql !== undefined) await writeViewSql(c, { recname, text: plan.viewSql, ts: lastupddttm, operatorId: request.operatorId });
     if (plan.dropViewSql) await deleteViewSql(c, recname);
@@ -372,21 +372,21 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
     const extra = Object.keys(plan.recordColumns);
     const extraBinds = Object.fromEntries(extra.map((col, i) => [`x${i}`, plan.recordColumns[col]]));
     await expectRows(c,
-      `UPDATE SYSADM.PSRECDEFN SET FIELDCOUNT = :fc, INDEXCOUNT = :ic, VERSION = :v,
+      `UPDATE PSRECDEFN SET FIELDCOUNT = :fc, INDEXCOUNT = :ic, VERSION = :v,
               LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op${extra.map((col, i) => `, ${col} = :x${i}`).join('')}
         WHERE RECNAME = :r`,
       { fc: plan.fieldCount, ic: plan.indexCount, v: next.rdm, ts: lastupddttm, op: request.operatorId, r: recname, ...extraBinds },
       1, 'Updating PSRECDEFN');
     if (languageReferrers.length > 0) {
-      await expectRows(c, `UPDATE SYSADM.PSRECDEFN SET VERSION = :v WHERE RECNAME <> :r AND RELLANGRECNAME = :r`,
+      await expectRows(c, `UPDATE PSRECDEFN SET VERSION = :v WHERE RECNAME <> :r AND RELLANGRECNAME = :r`,
         { v: next.rdm, r: recname }, languageReferrers.length, 'Updating records whose Related Language record this is');
     }
-    await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'RDM'`, { v: next.rdm }, 1, 'Updating PSVERSION RDM');
-    await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
-    await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'RDM'`, { v: next.lockRdm }, 1, 'Updating PSLOCK RDM');
+    await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'RDM'`, { v: next.rdm }, 1, 'Updating PSVERSION RDM');
+    await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
+    await expectRows(c, `UPDATE PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'RDM'`, { v: next.lockRdm }, 1, 'Updating PSLOCK RDM');
     if (plan.bumpPgm) {
-      await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'PGM'`, { v: next.pgm }, 1, 'Updating PSVERSION PGM');
-      await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'PGM'`, { v: next.lockPgm }, 1, 'Updating PSLOCK PGM');
+      await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'PGM'`, { v: next.pgm }, 1, 'Updating PSVERSION PGM');
+      await expectRows(c, `UPDATE PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'PGM'`, { v: next.lockPgm }, 1, 'Updating PSLOCK PGM');
     }
 
     const result: RecordSaveResult = { version: next.rdm, lastupddttm, plan, languageReferrers: languageReferrers.map((x) => text(x.RECNAME)) };
@@ -425,12 +425,12 @@ export async function verifyRecordSave(c: Connection, request: RecordSaveRequest
   compare('PSKEYDEFN', now.keys, planned.flatMap((ix) => ix.keys), tables.key);
   const [defn] = await select<{ FIELDCOUNT: number; INDEXCOUNT: number; VERSION: number; TS: string; OPRID: string }>(c,
     `SELECT FIELDCOUNT, INDEXCOUNT, VERSION, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS, LASTUPDOPRID AS OPRID
-       FROM SYSADM.PSRECDEFN WHERE RECNAME = :r`, { r: recname });
+       FROM PSRECDEFN WHERE RECNAME = :r`, { r: recname });
   for (const [col, want] of Object.entries(plan.recordColumns)) {
     if (text(now.defn?.[col]) !== text(want)) problems.push(`PSRECDEFN.${col} is ${JSON.stringify(now.defn?.[col])}, ${JSON.stringify(want)} expected`);
   }
   for (const name of result.languageReferrers) {
-    const [ref] = await select<{ VERSION: number }>(c, `SELECT VERSION FROM SYSADM.PSRECDEFN WHERE RECNAME = :n`, { n: name });
+    const [ref] = await select<{ VERSION: number }>(c, `SELECT VERSION FROM PSRECDEFN WHERE RECNAME = :n`, { n: name });
     if (Number(ref?.VERSION) !== result.version) problems.push(`${name}.VERSION ${ref?.VERSION}, ${result.version} expected`);
   }
   if (!defn) problems.push('PSRECDEFN row missing');
@@ -461,7 +461,7 @@ export async function deleteRecord(c: Connection, request: { recname: string; op
     const scope = writeScopeRefusal(recname);
     if (scope) throw new RecordSaveRefusedError(scope);
     const [defn] = await select<{ RECTYPE: number; VERSION: number }>(c,
-      `SELECT RECTYPE, VERSION FROM SYSADM.PSRECDEFN WHERE RECNAME = :r FOR UPDATE`, { r: recname });
+      `SELECT RECTYPE, VERSION FROM PSRECDEFN WHERE RECNAME = :r FOR UPDATE`, { r: recname });
     if (!defn) throw new RecordSaveRefusedError(`There is no record named ${recname}.`);
     if (Number(defn.VERSION) !== request.openedVersion) {
       throw new RecordSaveRefusedError(`${recname} was saved since it was opened (version ${defn.VERSION}, not ${request.openedVersion}).`);
@@ -470,14 +470,14 @@ export async function deleteRecord(c: Connection, request: { recname: string; op
       throw new RecordSaveRefusedError('Only SQL Table and Derived/Work records can be deleted here yet.');
     }
     const uses: [string, string][] = [
-      ['has Record PeopleCode', `SELECT COUNT(*) AS N FROM SYSADM.PSPCMPROG WHERE OBJECTID1 = 1 AND OBJECTVALUE1 = :r`],
-      ['is a subrecord of other records', `SELECT COUNT(*) AS N FROM SYSADM.PSRECFIELD WHERE FIELDNAME = :r AND SUBRECORD = 'Y'`],
-      ['is referred to by other records', `SELECT COUNT(*) AS N FROM SYSADM.PSRECDEFN WHERE RECNAME <> :r AND :r IN (PARENTRECNAME, RELLANGRECNAME, QRYSECRECNAME, OPTDELRECNAME, AUDITRECNAME)`],
-      ['is on pages', `SELECT COUNT(*) AS N FROM SYSADM.PSPNLFIELD WHERE RECNAME = :r`],
-      ['is a component search record', `SELECT COUNT(*) AS N FROM SYSADM.PSPNLGRPDEFN WHERE :r IN (SEARCHRECNAME, ADDSRCHRECNAME)`],
-      ['is in projects', `SELECT COUNT(*) AS N FROM SYSADM.PSPROJECTITEM WHERE OBJECTTYPE IN (0, 1, 8) AND OBJECTVALUE1 = :r`],
-      ['has a materialized view row', `SELECT COUNT(*) AS N FROM SYSADM.PSPTMATVWDEFN WHERE RECNAME = :r`],
-      ['has an earlier deletion marker (PSRECDEL)', `SELECT COUNT(*) AS N FROM SYSADM.PSRECDEL WHERE RECNAME = :r`]
+      ['has Record PeopleCode', `SELECT COUNT(*) AS N FROM PSPCMPROG WHERE OBJECTID1 = 1 AND OBJECTVALUE1 = :r`],
+      ['is a subrecord of other records', `SELECT COUNT(*) AS N FROM PSRECFIELD WHERE FIELDNAME = :r AND SUBRECORD = 'Y'`],
+      ['is referred to by other records', `SELECT COUNT(*) AS N FROM PSRECDEFN WHERE RECNAME <> :r AND :r IN (PARENTRECNAME, RELLANGRECNAME, QRYSECRECNAME, OPTDELRECNAME, AUDITRECNAME)`],
+      ['is on pages', `SELECT COUNT(*) AS N FROM PSPNLFIELD WHERE RECNAME = :r`],
+      ['is a component search record', `SELECT COUNT(*) AS N FROM PSPNLGRPDEFN WHERE :r IN (SEARCHRECNAME, ADDSRCHRECNAME)`],
+      ['is in projects', `SELECT COUNT(*) AS N FROM PSPROJECTITEM WHERE OBJECTTYPE IN (0, 1, 8) AND OBJECTVALUE1 = :r`],
+      ['has a materialized view row', `SELECT COUNT(*) AS N FROM PSPTMATVWDEFN WHERE RECNAME = :r`],
+      ['has an earlier deletion marker (PSRECDEL)', `SELECT COUNT(*) AS N FROM PSRECDEL WHERE RECNAME = :r`]
     ];
     for (const [what, sql] of uses) {
       const [{ N }] = await select<{ N: number }>(c, sql, { r: recname });
@@ -487,9 +487,9 @@ export async function deleteRecord(c: Connection, request: { recname: string; op
       throw new RecordSaveRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
     }
     const v = await select<{ T: string; V: number }>(c,
-      `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME IN ('RDM', 'AEM', 'SYS') FOR UPDATE`);
+      `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSVERSION WHERE OBJECTTYPENAME IN ('RDM', 'AEM', 'SYS') FOR UPDATE`);
     const l = await select<{ T: string; V: number }>(c,
-      `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME IN ('RDM', 'AEM') FOR UPDATE`);
+      `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSLOCK WHERE OBJECTTYPENAME IN ('RDM', 'AEM') FOR UPDATE`);
     const get = (rows: { T: string; V: number }[], name: string) => {
       const r = rows.find((x) => String(x.T).trim() === name);
       if (!r) throw new RecordSaveRefusedError(`${name} is missing from PSVERSION / PSLOCK; refusing to write.`);
@@ -498,17 +498,17 @@ export async function deleteRecord(c: Connection, request: { recname: string; op
     const next = { rdm: get(v, 'RDM'), aem: get(v, 'AEM'), sys: get(v, 'SYS'), lockRdm: get(l, 'RDM'), lockAem: get(l, 'AEM') };
     const r = { r: recname };
     for (const table of ['PSRECFIELDDB', 'PSRECFIELD', 'PSKEYDEFN', 'PSINDEXDEFN', 'PSRECTBLSPC']) {
-      await c.execute(`DELETE FROM SYSADM.${table} WHERE RECNAME = :r`, r);
+      await c.execute(`DELETE FROM ${table} WHERE RECNAME = :r`, r);
     }
-    await expectRows(c, `DELETE FROM SYSADM.PSRECDEFN WHERE RECNAME = :r`, r, 1, 'Deleting PSRECDEFN');
-    await expectRows(c, `INSERT INTO SYSADM.PSRECDEL (RECNAME, VERSION) VALUES (:r, :v)`, { r: recname, v: next.rdm }, 1, 'Inserting PSRECDEL');
+    await expectRows(c, `DELETE FROM PSRECDEFN WHERE RECNAME = :r`, r, 1, 'Deleting PSRECDEFN');
+    await expectRows(c, `INSERT INTO PSRECDEL (RECNAME, VERSION) VALUES (:r, :v)`, { r: recname, v: next.rdm }, 1, 'Inserting PSRECDEL');
     for (const [table, name, value] of [['PSVERSION', 'RDM', next.rdm], ['PSVERSION', 'AEM', next.aem], ['PSVERSION', 'SYS', next.sys],
       ['PSLOCK', 'RDM', next.lockRdm], ['PSLOCK', 'AEM', next.lockAem]] as const) {
-      await expectRows(c, `UPDATE SYSADM.${table} SET VERSION = :v WHERE OBJECTTYPENAME = :n`, { v: value, n: name }, 1, `Updating ${table} ${name}`);
+      await expectRows(c, `UPDATE ${table} SET VERSION = :v WHERE OBJECTTYPENAME = :n`, { v: value, n: name }, 1, `Updating ${table} ${name}`);
     }
     const left = await select<{ N: number }>(c,
-      `SELECT (SELECT COUNT(*) FROM SYSADM.PSRECDEFN WHERE RECNAME = :r) + (SELECT COUNT(*) FROM SYSADM.PSRECFIELD WHERE RECNAME = :r)
-            + (SELECT COUNT(*) FROM SYSADM.PSRECFIELDDB WHERE RECNAME = :r) + (SELECT COUNT(*) FROM SYSADM.PSINDEXDEFN WHERE RECNAME = :r) AS N FROM DUAL`, r);
+      `SELECT (SELECT COUNT(*) FROM PSRECDEFN WHERE RECNAME = :r) + (SELECT COUNT(*) FROM PSRECFIELD WHERE RECNAME = :r)
+            + (SELECT COUNT(*) FROM PSRECFIELDDB WHERE RECNAME = :r) + (SELECT COUNT(*) FROM PSINDEXDEFN WHERE RECNAME = :r) AS N FROM DUAL`, r);
     if (Number(left[0].N) !== 0) throw new RecordSaveRefusedError('Rows of the record remain after the delete; rolled back.');
     await c.commit();
     return { version: next.rdm };

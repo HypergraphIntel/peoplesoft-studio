@@ -516,6 +516,10 @@
                 "type": "string",
                 "description": "Database access id (e.g. SYSADM)"
               },
+              "schema": {
+                "type": "string",
+                "description": "Schema owning the PeopleTools tables (the owner ID). Empty: read from PS.PSDBOWNER, else SYSADM."
+              },
               "path": {
                 "type": "string",
                 "description": "For projectFile: folder containing the App Designer XML export"
@@ -580,6 +584,127 @@
           "minimum": 1024,
           "maximum": 65535,
           "description": "Port the MCP server listens on (always 127.0.0.1). A running server restarts on the new port; reconfigure AI clients that use the old URL."
+        },
+        "peoplesoft.build.create.table": {
+          "type": "string",
+          "enum": [
+            "recreate",
+            "skip"
+          ],
+          "enumDescriptions": [
+            "Recreate table if it already exists (drops its data)",
+            "Skip table if it already exists"
+          ],
+          "default": "recreate",
+          "description": "Build Settings, Create: when the table already exists."
+        },
+        "peoplesoft.build.create.view": {
+          "type": "string",
+          "enum": [
+            "recreate",
+            "skip"
+          ],
+          "enumDescriptions": [
+            "Recreate view if it already exists",
+            "Skip view if it already exists"
+          ],
+          "default": "recreate",
+          "description": "Build Settings, Create: when the view already exists."
+        },
+        "peoplesoft.build.create.index": {
+          "type": "string",
+          "enum": [
+            "recreate",
+            "ifModified"
+          ],
+          "enumDescriptions": [
+            "Recreate index if it already exists",
+            "Recreate index only if modified"
+          ],
+          "default": "ifModified",
+          "description": "Build Settings, Create: when the index already exists."
+        },
+        "peoplesoft.build.create.sequence": {
+          "type": "string",
+          "enum": [
+            "recreate",
+            "alterIfModified"
+          ],
+          "enumDescriptions": [
+            "Recreate sequence if it already exists",
+            "Alter sequence only if modified"
+          ],
+          "default": "alterIfModified",
+          "description": "Build Settings, Create: when the sequence already exists."
+        },
+        "peoplesoft.build.alter.dropColumn": {
+          "type": "string",
+          "enum": [
+            "drop",
+            "skip"
+          ],
+          "enumDescriptions": [
+            "Drop column if data present",
+            "Skip record if data present"
+          ],
+          "default": "skip",
+          "description": "Build Settings, Alter: when a dropped column holds data."
+        },
+        "peoplesoft.build.alter.changeLength": {
+          "type": "string",
+          "enum": [
+            "truncate",
+            "skip"
+          ],
+          "enumDescriptions": [
+            "Truncate data if field too short",
+            "Skip record if field too short"
+          ],
+          "default": "skip",
+          "description": "Build Settings, Alter: when data is longer than a shortened field."
+        },
+        "peoplesoft.build.alter.adds": {
+          "type": "boolean",
+          "default": true,
+          "description": "Build Settings, Alter any: Adds."
+        },
+        "peoplesoft.build.alter.changes": {
+          "type": "boolean",
+          "default": true,
+          "description": "Build Settings, Alter any: Changes."
+        },
+        "peoplesoft.build.alter.renames": {
+          "type": "boolean",
+          "default": true,
+          "description": "Build Settings, Alter any: Renames."
+        },
+        "peoplesoft.build.alter.deletes": {
+          "type": "boolean",
+          "default": true,
+          "description": "Build Settings, Alter any: Deletes."
+        },
+        "peoplesoft.build.alter.evenIfNoChanges": {
+          "type": "boolean",
+          "default": false,
+          "description": "Build Settings, Alter: alter even if no changes."
+        },
+        "peoplesoft.build.alter.tableOption": {
+          "type": "string",
+          "enum": [
+            "inPlace",
+            "rename"
+          ],
+          "enumDescriptions": [
+            "Alter in Place",
+            "Alter by Table Rename"
+          ],
+          "default": "rename",
+          "description": "Build Settings, Alter: how a table is altered."
+        },
+        "peoplesoft.build.alter.inMemory": {
+          "type": "boolean",
+          "default": false,
+          "description": "Build Settings, Alter: Alter Table In Memory."
         }
       }
     }

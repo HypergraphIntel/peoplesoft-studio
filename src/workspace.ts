@@ -11,6 +11,11 @@ export interface ConnectionConfig {
   kind: 'oracle' | 'projectFile';
   connectString?: string;
   user?: string;
+  /**
+   * The schema owning the PeopleTools tables (Oracle). Absent: PS.PSDBOWNER's
+   * owner ID for the database, else SYSADM.
+   */
+  schema?: string;
   path?: string;
   /**
    * How this connection renders PeopleCode from PSPCMPROG. Absent: the
@@ -186,6 +191,7 @@ export class Workspace implements vscode.Disposable {
       connectString: config.connectString,
       user: config.user,
       password,
+      ...(config.schema?.trim() ? { schema: config.schema.trim() } : {}),
       thickModeLibDir: settings.get<string>('oracle.thickModeLibDir') || undefined,
       decoderMode: config.decoder ?? settings.get<'auto' | 'strict' | 'raw'>('peoplecode.decoder', 'auto')
     });

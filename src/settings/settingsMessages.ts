@@ -50,6 +50,8 @@ export interface ConnectionView {
   kindLabel: string;
   connectString?: string;
   user?: string;
+  /** The configured schema; '' when it is detected on connect. */
+  schema?: string;
   path?: string;
   connected: boolean;
   /**

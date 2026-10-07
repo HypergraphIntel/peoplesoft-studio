@@ -4,6 +4,19 @@
 
 ### Changed
 
+- **Build... for records**: Create Tables as a script, or **Build and
+  execute** on a Writable connection (saved records; a confirmation names
+  a table whose data would be dropped; statements logged to *PeopleSoft
+  Build*). **Build Settings** in the Settings panel (Create and Alter, App
+  Designer's defaults): *Recreate table* drops an existing table first, as
+  App Designer's script does; *Skip table* leaves it. The Alter, index,
+  view and sequence settings are stored for when those builds are
+  supported.
+- **Schema per connection**: the PeopleTools tables are no longer assumed
+  to be in `SYSADM`. A connection's Schema (Settings) sets the owner ID;
+  left empty it is read from `PS.PSDBOWNER`, else `SYSADM`. Each session
+  sets `CURRENT_SCHEMA`, and Connect checks the schema has the PeopleTools
+  tables.
 - **Saving and creating are no longer limited to `ZZ_PCODE_LAB%` names**:
   every definition on a Writable connection with an Operator ID can be
   saved or created. The new setting `peoplesoft.writeNamePrefix` limits

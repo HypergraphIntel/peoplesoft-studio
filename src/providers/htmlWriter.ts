@@ -53,8 +53,8 @@ interface Counters { crm: number; sys: number; lockCrm: number }
 async function readCounters(c: Connection, forUpdate: boolean): Promise<Counters> {
   const lock = forUpdate ? ' FOR UPDATE' : '';
   const v = await select<{ T: string; V: number }>(c,
-    `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME IN ('CRM', 'SYS')${lock}`);
-  const l = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME = 'CRM'${lock}`);
+    `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSVERSION WHERE OBJECTTYPENAME IN ('CRM', 'SYS')${lock}`);
+  const l = await select<{ V: number }>(c, `SELECT VERSION AS V FROM PSLOCK WHERE OBJECTTYPENAME = 'CRM'${lock}`);
   const get = (name: string) => v.find((r) => String(r.T).trim() === name)?.V;
   const crm = get('CRM');
   const sys = get('SYS');
@@ -109,12 +109,12 @@ export async function saveHtmlDefinition(c: Connection, blobType: unknown, reque
     const create = request.openedVersion === undefined;
 
     const defns = await select<{ VERSION: number; CONTTYPE: number; ALTCONTNUM: number }>(c,
-      `SELECT VERSION, CONTTYPE, ALTCONTNUM FROM SYSADM.PSCONTDEFN WHERE CONTNAME = :n FOR UPDATE`, { n: name });
+      `SELECT VERSION, CONTTYPE, ALTCONTNUM FROM PSCONTDEFN WHERE CONTNAME = :n FOR UPDATE`, { n: name });
     if (create) {
       if (defns.length > 0) throw new HtmlSaveRefusedError(`A content definition named ${name} already exists.`);
       const [{ N: orphans }] = await select<{ N: number }>(c,
-        `SELECT (SELECT COUNT(*) FROM SYSADM.PSCONTENT WHERE CONTNAME = :n) + (SELECT COUNT(*) FROM SYSADM.PSCONTDEFNLANG WHERE CONTNAME = :n)
-              + (SELECT COUNT(*) FROM SYSADM.PSCONTENTLANG WHERE CONTNAME = :n) AS N FROM DUAL`, { n: name });
+        `SELECT (SELECT COUNT(*) FROM PSCONTENT WHERE CONTNAME = :n) + (SELECT COUNT(*) FROM PSCONTDEFNLANG WHERE CONTNAME = :n)
+              + (SELECT COUNT(*) FROM PSCONTENTLANG WHERE CONTNAME = :n) AS N FROM DUAL`, { n: name });
       if (Number(orphans) > 0) throw new HtmlSaveRefusedError(`${name} has content rows but no definition; refusing to write.`);
     } else {
       const d = defns[0];
@@ -125,7 +125,7 @@ export async function saveHtmlDefinition(c: Connection, blobType: unknown, reque
         throw new HtmlSaveRefusedError(`${name} was saved since it was opened (version ${d.VERSION}, not ${request.openedVersion}). Reopen it and reapply your edit.`);
       }
       const [{ N: lang }] = await select<{ N: number }>(c,
-        `SELECT (SELECT COUNT(*) FROM SYSADM.PSCONTDEFNLANG WHERE CONTNAME = :n) + (SELECT COUNT(*) FROM SYSADM.PSCONTENTLANG WHERE CONTNAME = :n) AS N FROM DUAL`,
+        `SELECT (SELECT COUNT(*) FROM PSCONTDEFNLANG WHERE CONTNAME = :n) + (SELECT COUNT(*) FROM PSCONTENTLANG WHERE CONTNAME = :n) AS N FROM DUAL`,
         { n: name });
       if (Number(lang) > 0) throw new HtmlSaveRefusedError(`${name} has translations (language rows); not saved here yet.`);
     }
@@ -141,25 +141,25 @@ export async function saveHtmlDefinition(c: Connection, blobType: unknown, reque
 
     if (create) {
       await expectRows(c,
-        `INSERT INTO SYSADM.PSCONTDEFN (CONTNAME, ALTCONTNUM, CONTFMT, VERSION, CONTTYPE, CONTSTYLE, DESCR, URL, COMPALG, AUXFLAGMASK,
+        `INSERT INTO PSCONTDEFN (CONTNAME, ALTCONTNUM, CONTFMT, VERSION, CONTTYPE, CONTSTYLE, DESCR, URL, COMPALG, AUXFLAGMASK,
                                         LASTUPDDTTM, LASTUPDOPRID, OBJECTOWNERID)
          VALUES (:n, 1, ' ', :v, :t, 0, :d, ' ', 0, 0, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), :op, ' ')`,
         { ...key, v: next.crm, d: descr ?? ' ', ts: lastupddttm, op: request.operatorId }, 1, 'Inserting PSCONTDEFN');
     } else {
       await expectRows(c,
-        `UPDATE SYSADM.PSCONTDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op${descr !== undefined ? ', DESCR = :d' : ''}
+        `UPDATE PSCONTDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op${descr !== undefined ? ', DESCR = :d' : ''}
           WHERE CONTNAME = :n AND CONTTYPE = :t AND ALTCONTNUM = 1`,
         { ...key, v: next.crm, ts: lastupddttm, op: request.operatorId, ...(descr !== undefined ? { d: descr } : {}) }, 1, 'Updating PSCONTDEFN');
-      await c.execute(`DELETE FROM SYSADM.PSCONTENT WHERE CONTNAME = :n AND CONTTYPE = :t`, key);
+      await c.execute(`DELETE FROM PSCONTENT WHERE CONTNAME = :n AND CONTTYPE = :t`, key);
     }
     const chunks = htmlChunks(request.text);
     for (const [seq, chunk] of chunks.entries()) {
       await expectRows(c,
-        `INSERT INTO SYSADM.PSCONTENT (CONTNAME, ALTCONTNUM, CONTTYPE, SEQNUM, CONTDATA) VALUES (:n, 1, :t, :s, :d)`,
+        `INSERT INTO PSCONTENT (CONTNAME, ALTCONTNUM, CONTTYPE, SEQNUM, CONTDATA) VALUES (:n, 1, :t, :s, :d)`,
         { ...key, s: seq, d: { val: chunk, type: blobType } }, 1, `Inserting PSCONTENT ${seq}`);
     }
     for (const [table, name2, value] of [['PSVERSION', 'CRM', next.crm], ['PSVERSION', 'SYS', next.sys], ['PSLOCK', 'CRM', next.lockCrm]] as const) {
-      await expectRows(c, `UPDATE SYSADM.${table} SET VERSION = :v WHERE OBJECTTYPENAME = :o`, { v: value, o: name2 }, 1, `Updating ${table} ${name2}`);
+      await expectRows(c, `UPDATE ${table} SET VERSION = :v WHERE OBJECTTYPENAME = :o`, { v: value, o: name2 }, 1, `Updating ${table} ${name2}`);
     }
 
     const result: HtmlSaveResult = { version: next.crm, lastupddttm, created: create };
@@ -181,13 +181,13 @@ export async function verifyHtmlSave(c: Connection, request: HtmlSaveRequest, re
   const problems: string[] = [];
   const [d] = await select<{ VERSION: number; TS: string; OPRID: string; DESCR: string }>(c,
     `SELECT VERSION, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS, LASTUPDOPRID AS OPRID, DESCR
-       FROM SYSADM.PSCONTDEFN WHERE CONTNAME = :n AND CONTTYPE = :t AND ALTCONTNUM = 1`, { n: request.name, t: HTML_CONTTYPE });
+       FROM PSCONTDEFN WHERE CONTNAME = :n AND CONTTYPE = :t AND ALTCONTNUM = 1`, { n: request.name, t: HTML_CONTTYPE });
   if (!d || Number(d.VERSION) !== result.version || d.TS !== result.lastupddttm || String(d.OPRID).trim() !== request.operatorId ||
       (request.description !== undefined && String(d.DESCR ?? '').trim() !== request.description.trim())) {
     problems.push(`PSCONTDEFN ${JSON.stringify(d)}`);
   }
   const rows = await select<{ SEQNUM: number; D: Buffer }>(c,
-    `SELECT SEQNUM, CONTDATA AS D FROM SYSADM.PSCONTENT WHERE CONTNAME = :n AND CONTTYPE = :t ORDER BY SEQNUM`,
+    `SELECT SEQNUM, CONTDATA AS D FROM PSCONTENT WHERE CONTNAME = :n AND CONTTYPE = :t ORDER BY SEQNUM`,
     { n: request.name, t: HTML_CONTTYPE });
   const want = htmlChunks(request.text);
   if (rows.length !== want.length || rows.some((r, i) => Number(r.SEQNUM) !== i || !Buffer.from(r.D).equals(want[i]))) {

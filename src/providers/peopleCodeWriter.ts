@@ -48,14 +48,14 @@ export async function readStoredProgram(
   const binds = valueBinds(parts);
   const opts = { outFormat: oracledb.OUT_FORMAT_OBJECT, fetchInfo: { PCTEXT: { type: oracledb.STRING } } };
   const text = (await c.execute<Record<string, unknown>>(
-    `SELECT ${KEY_COLUMNS.join(', ')}, PROGSEQ, HASH_SIGNATURE, PCTEXT FROM SYSADM.PSPCMTXT WHERE ${VALUE_PREDICATE}${lock}`, binds, opts)).rows ?? [];
+    `SELECT ${KEY_COLUMNS.join(', ')}, PROGSEQ, HASH_SIGNATURE, PCTEXT FROM PSPCMTXT WHERE ${VALUE_PREDICATE}${lock}`, binds, opts)).rows ?? [];
   const program = (await c.execute<Record<string, unknown>>(
     `SELECT ${KEY_COLUMNS.join(', ')}, PROGSEQ, VERSION, NAMECOUNT, PROGLEN, PROGRUNLOC, PROGFLAGS, LICENSE_CODE,
             TO_CHAR(LASTUPDDTTM, ${TIMESTAMP_FORMAT}) AS LASTUPDDTTM, LASTUPDOPRID, PROGEXTENDS, PTTOOLSREL, PROGTXT
-       FROM SYSADM.PSPCMPROG WHERE ${VALUE_PREDICATE}${lock}`, binds, opts)).rows ?? [];
+       FROM PSPCMPROG WHERE ${VALUE_PREDICATE}${lock}`, binds, opts)).rows ?? [];
   const names = (await c.execute<Record<string, unknown>>(
     `SELECT ${KEY_COLUMNS.join(', ')}, NAMENUM, RECNAME, REFNAME, PACKAGEROOT, QUALIFYPATH, APPCLASSMETHOD
-       FROM SYSADM.PSPCMNAME WHERE ${VALUE_PREDICATE}${lock}`, binds, opts)).rows ?? [];
+       FROM PSPCMNAME WHERE ${VALUE_PREDICATE}${lock}`, binds, opts)).rows ?? [];
 
   const all = [...text, ...program, ...names];
   if (all.length === 0) return undefined;
@@ -98,7 +98,7 @@ export async function select<T>(c: Connection, sql: string, binds: Record<string
 }
 
 export async function operatorExists(c: Connection, operatorId: string): Promise<boolean> {
-  const [r] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSOPRDEFN WHERE OPRID = :op`, { op: operatorId });
+  const [r] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSOPRDEFN WHERE OPRID = :op`, { op: operatorId });
   return Number(r?.N ?? 0) > 0;
 }
 
@@ -130,8 +130,8 @@ interface Counters { pcm: number; sys: number; lockPcm: number }
 async function readCounters(c: Connection, forUpdate: boolean): Promise<Counters> {
   const lock = forUpdate ? ' FOR UPDATE' : '';
   const v = await select<{ T: string; V: number }>(c,
-    `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME IN ('PCM', 'SYS')${lock}`);
-  const l = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME = 'PCM'${lock}`);
+    `SELECT OBJECTTYPENAME AS T, VERSION AS V FROM PSVERSION WHERE OBJECTTYPENAME IN ('PCM', 'SYS')${lock}`);
+  const l = await select<{ V: number }>(c, `SELECT VERSION AS V FROM PSLOCK WHERE OBJECTTYPENAME = 'PCM'${lock}`);
   const get = (name: string) => v.find((r) => String(r.T).trim() === name)?.V;
   const pcm = get('PCM');
   const sys = get('SYS');
@@ -142,7 +142,7 @@ async function readCounters(c: Connection, forUpdate: boolean): Promise<Counters
 }
 
 async function progDelVersions(c: Connection, key: PcmKey): Promise<number[]> {
-  const r = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSPCMPROGDEL WHERE ${EXACT_PREDICATE}`, exactBinds(key));
+  const r = await select<{ V: number }>(c, `SELECT VERSION AS V FROM PSPCMPROGDEL WHERE ${EXACT_PREDICATE}`, exactBinds(key));
   return r.map((x) => Number(x.V));
 }
 
@@ -206,7 +206,7 @@ export async function savePeopleCode(
           throw new SaveRefusedError('There is no stored program here; only Record Field PeopleCode and new Application Classes can be created yet.');
         }
         const [{ N }] = await select<{ N: number }>(c,
-          `SELECT COUNT(*) AS N FROM SYSADM.PSRECFIELD WHERE RECNAME = :r AND FIELDNAME = :f`, { r: parts[0], f: parts[1] });
+          `SELECT COUNT(*) AS N FROM PSRECFIELD WHERE RECNAME = :r AND FIELDNAME = :f`, { r: parts[0], f: parts[1] });
         if (Number(N) === 0) throw new SaveRefusedError(`${parts[1]} is not a field of ${parts[0]}.`);
       }
     }
@@ -222,7 +222,7 @@ export async function savePeopleCode(
     if (!(await operatorExists(c, request.operatorId))) {
       throw new SaveRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
     }
-    const status = (await select<{ R: string }>(c, `SELECT TOOLSREL AS R FROM SYSADM.PSSTATUS`))[0]?.R;
+    const status = (await select<{ R: string }>(c, `SELECT TOOLSREL AS R FROM PSSTATUS`))[0]?.R;
     if (!status) throw new SaveRefusedError('PSSTATUS has no TOOLSREL; refusing to save.');
     const toolsRelease = String(status).trim();
 
@@ -245,10 +245,10 @@ export async function savePeopleCode(
     // 9-10
     const key = stored.key;
     const kb = exactBinds(key);
-    await expectRows(c, `DELETE FROM SYSADM.PSPCMTXT WHERE ${EXACT_PREDICATE}`, kb, stored.text.length, 'Deleting PSPCMTXT');
-    await expectRows(c, `DELETE FROM SYSADM.PSPCMPROG WHERE ${EXACT_PREDICATE}`, kb, stored.program.length, 'Deleting PSPCMPROG');
-    await expectRows(c, `DELETE FROM SYSADM.PSPCMNAME WHERE ${EXACT_PREDICATE}`, kb, stored.names.length, 'Deleting PSPCMNAME');
-    await c.execute(`DELETE FROM SYSADM.PSPCMPROGDEL WHERE ${EXACT_PREDICATE}`, kb as BindParameters);
+    await expectRows(c, `DELETE FROM PSPCMTXT WHERE ${EXACT_PREDICATE}`, kb, stored.text.length, 'Deleting PSPCMTXT');
+    await expectRows(c, `DELETE FROM PSPCMPROG WHERE ${EXACT_PREDICATE}`, kb, stored.program.length, 'Deleting PSPCMPROG');
+    await expectRows(c, `DELETE FROM PSPCMNAME WHERE ${EXACT_PREDICATE}`, kb, stored.names.length, 'Deleting PSPCMNAME');
+    await c.execute(`DELETE FROM PSPCMPROGDEL WHERE ${EXACT_PREDICATE}`, kb as BindParameters);
 
     const keyValues = (prefix = '') => Object.fromEntries([
       ...key.objectIds.map((id, i) => [`${prefix}i${i + 1}`, Number(id)]),
@@ -263,7 +263,7 @@ export async function savePeopleCode(
       // 11
       for (const row of expected.text) {
         await expectRows(c,
-          `INSERT INTO SYSADM.PSPCMTXT (${keyInsertColumns}, PROGSEQ, HASH_SIGNATURE, PCTEXT)
+          `INSERT INTO PSPCMTXT (${keyInsertColumns}, PROGSEQ, HASH_SIGNATURE, PCTEXT)
            VALUES (${keyInsertBinds}, :progseq, :sig, :text)`,
           { ...keyValues(), progseq: row.progseq, sig: row.hashSignature, text: { val: row.text, type: oracledb.CLOB } },
           1, 'Inserting PSPCMTXT');
@@ -271,7 +271,7 @@ export async function savePeopleCode(
       // 12
       for (const row of expected.program) {
         await expectRows(c,
-          `INSERT INTO SYSADM.PSPCMPROG (${keyInsertColumns}, PROGSEQ, VERSION, NAMECOUNT, PROGLEN, PROGRUNLOC, PROGFLAGS,
+          `INSERT INTO PSPCMPROG (${keyInsertColumns}, PROGSEQ, VERSION, NAMECOUNT, PROGLEN, PROGRUNLOC, PROGFLAGS,
              LICENSE_CODE, LASTUPDDTTM, LASTUPDOPRID, PROGEXTENDS, PTTOOLSREL, PROGTXT)
            VALUES (${keyInsertBinds}, :progseq, :version, :namecount, :proglen, :progrunloc, :progflags,
              :license, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), :oprid, :progextends, :pttoolsrel, :bytes)`,
@@ -286,23 +286,23 @@ export async function savePeopleCode(
       // 13
       for (const row of expected.names) {
         await expectRows(c,
-          `INSERT INTO SYSADM.PSPCMNAME (${keyInsertColumns}, NAMENUM, RECNAME, REFNAME, PACKAGEROOT, QUALIFYPATH, APPCLASSMETHOD)
+          `INSERT INTO PSPCMNAME (${keyInsertColumns}, NAMENUM, RECNAME, REFNAME, PACKAGEROOT, QUALIFYPATH, APPCLASSMETHOD)
            VALUES (${keyInsertBinds}, :namenum, :recname, :refname, :packageroot, :qualifypath, :appclassmethod)`,
           { ...keyValues(), ...row },
           1, 'Inserting PSPCMNAME');
       }
     } else {
       await expectRows(c,
-        `INSERT INTO SYSADM.PSPCMPROGDEL (${keyInsertColumns}, VERSION) VALUES (${keyInsertBinds}, :version)`,
+        `INSERT INTO PSPCMPROGDEL (${keyInsertColumns}, VERSION) VALUES (${keyInsertBinds}, :version)`,
         { ...keyValues(), version: next.pcm }, 1, 'Inserting PSPCMPROGDEL');
     }
 
     if (classPlan) await writeClassCreate(c, classPlan, lastupddttm, request.operatorId);
 
     // 14-15
-    await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'PCM'`, { v: next.pcm }, 1, 'Updating PSVERSION PCM');
-    await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
-    await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'PCM'`, { v: next.lockPcm }, 1, 'Updating PSLOCK PCM');
+    await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'PCM'`, { v: next.pcm }, 1, 'Updating PSVERSION PCM');
+    await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
+    await expectRows(c, `UPDATE PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'PCM'`, { v: next.lockPcm }, 1, 'Updating PSLOCK PCM');
 
     // 16-17
     await verifyState(c, oracledb, parts, key, expected, next);
@@ -402,20 +402,20 @@ async function planClassCreate(c: Connection, parts: readonly string[]): Promise
     if (!PACKAGE_ID.test(id)) throw new SaveRefusedError(`${id} is not a valid package or class name (a letter, then letters, digits or _; at most 30).`);
   }
   const [pkg] = await select<{ V: number }>(c,
-    `SELECT VERSION AS V FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :r AND QUALIFYPATH = '.' FOR UPDATE`, { r: root });
+    `SELECT VERSION AS V FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :r AND QUALIFYPATH = '.' FOR UPDATE`, { r: root });
   if (!pkg) throw new SaveRefusedError(`There is no Application Package ${root}.`);
   const missing: ClassCreatePlan['missing'] = [];
   for (let level = 1; level <= subs.length; level++) {
     const qualifyPath = packageQualifyPath(subs, level);
     const [row] = await select<{ L: number }>(c,
-      `SELECT PACKAGELEVEL AS L FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :p AND QUALIFYPATH = :q FOR UPDATE`,
+      `SELECT PACKAGELEVEL AS L FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :p AND QUALIFYPATH = :q FOR UPDATE`,
       { r: root, p: subs[level - 1], q: qualifyPath });
     if (row && Number(row.L) !== level) throw new SaveRefusedError(`${root}:${subs.slice(0, level).join(':')} is stored at another level; refusing to write.`);
     if (!row) missing.push({ id: subs[level - 1], qualifyPath, level });
   }
   const classPath = subs.length === 0 ? ':' : subs.join(':');
   const [{ N: classes }] = await select<{ N: number }>(c,
-    `SELECT COUNT(*) AS N FROM SYSADM.PSAPPCLASSDEFN WHERE PACKAGEROOT = :r AND QUALIFYPATH = :q AND UPPER(APPCLASSID) = UPPER(:k)`,
+    `SELECT COUNT(*) AS N FROM PSAPPCLASSDEFN WHERE PACKAGEROOT = :r AND QUALIFYPATH = :q AND UPPER(APPCLASSID) = UPPER(:k)`,
     { r: root, q: classPath, k: className });
   if (Number(classes) > 0) throw new SaveRefusedError(`${[root, ...subs].join(':')} already has a class ${className}.`);
   const objectIds = [104, ...subs.map((_, i) => 105 + i), 107, 12];
@@ -431,32 +431,32 @@ async function planClassCreate(c: Connection, parts: readonly string[]): Promise
  * package's other class rows unchanged, which leaves them as they are.
  */
 async function writeClassCreate(c: Connection, plan: ClassCreatePlan, lastupddttm: string, operatorId: string): Promise<void> {
-  const apm = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME = 'APM' FOR UPDATE`);
-  const lockApm = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME = 'APM' FOR UPDATE`);
+  const apm = await select<{ V: number }>(c, `SELECT VERSION AS V FROM PSVERSION WHERE OBJECTTYPENAME = 'APM' FOR UPDATE`);
+  const lockApm = await select<{ V: number }>(c, `SELECT VERSION AS V FROM PSLOCK WHERE OBJECTTYPENAME = 'APM' FOR UPDATE`);
   if (apm.length !== 1 || lockApm.length !== 1) throw new SaveRefusedError('PSVERSION / PSLOCK APM is missing; refusing to save.');
   const newApm = Number(apm[0].V) + 1;
   const stamp = { ts: lastupddttm, op: operatorId };
   for (const sub of plan.missing) {
     await expectRows(c,
-      `INSERT INTO SYSADM.PSPACKAGEDEFN (PACKAGEID, PACKAGEROOT, QUALIFYPATH, PACKAGELEVEL, PACKAGEREF, DESCR, VERSION,
+      `INSERT INTO PSPACKAGEDEFN (PACKAGEID, PACKAGEROOT, QUALIFYPATH, PACKAGELEVEL, PACKAGEREF, DESCR, VERSION,
                                          LASTUPDDTTM, LASTUPDOPRID, OBJECTOWNERID, DESCRLONG)
        VALUES (:p, :r, :q, :l, ' ', ' ', :v, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), :op, ' ', NULL)`,
       { p: sub.id, r: plan.root, q: sub.qualifyPath, l: sub.level, v: newApm, ...stamp }, 1, `Inserting PSPACKAGEDEFN ${sub.id}`);
   }
   await expectRows(c,
-    `INSERT INTO SYSADM.PSAPPCLASSDEFN (APPCLASSID, PACKAGEROOT, QUALIFYPATH, APPCLASSREF, DESCR) VALUES (:k, :r, :q, ' ', ' ')`,
+    `INSERT INTO PSAPPCLASSDEFN (APPCLASSID, PACKAGEROOT, QUALIFYPATH, APPCLASSREF, DESCR) VALUES (:k, :r, :q, ' ', ' ')`,
     { k: plan.className, r: plan.root, q: plan.classPath }, 1, 'Inserting PSAPPCLASSDEFN');
-  const [{ N: packages }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :r`, { r: plan.root });
+  const [{ N: packages }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :r`, { r: plan.root });
   await expectRows(c,
-    `UPDATE SYSADM.PSPACKAGEDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
+    `UPDATE PSPACKAGEDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
       WHERE PACKAGEROOT = :r`,
     { v: newApm, r: plan.root, ...stamp }, Number(packages), 'Updating PSPACKAGEDEFN');
-  await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: newApm }, 1, 'Updating PSVERSION APM');
-  await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: Number(lockApm[0].V) + 1 }, 1, 'Updating PSLOCK APM');
+  await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: newApm }, 1, 'Updating PSVERSION APM');
+  await expectRows(c, `UPDATE PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: Number(lockApm[0].V) + 1 }, 1, 'Updating PSLOCK APM');
   const [check] = await select<{ V: number; N: number; S: number }>(c,
-    `SELECT (SELECT VERSION FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :r AND QUALIFYPATH = '.') AS V,
-            (SELECT COUNT(*) FROM SYSADM.PSAPPCLASSDEFN WHERE PACKAGEROOT = :r AND APPCLASSID = :k AND QUALIFYPATH = :q) AS N,
-            (SELECT COUNT(*) FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND VERSION = :v AND LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT})) AS S
+    `SELECT (SELECT VERSION FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :r AND QUALIFYPATH = '.') AS V,
+            (SELECT COUNT(*) FROM PSAPPCLASSDEFN WHERE PACKAGEROOT = :r AND APPCLASSID = :k AND QUALIFYPATH = :q) AS N,
+            (SELECT COUNT(*) FROM PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND VERSION = :v AND LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT})) AS S
        FROM DUAL`,
     { r: plan.root, k: plan.className, q: plan.classPath, v: newApm, ts: lastupddttm });
   if (Number(check?.V) !== newApm || Number(check?.N) !== 1 || Number(check?.S) !== Number(packages)) {
