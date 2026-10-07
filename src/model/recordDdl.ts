@@ -39,8 +39,14 @@ import { FieldType, hasFlag, RecordType, UseEdit } from './record.js';
  *   DateTime                     tIMESTAMP
  *   Image                        BLOB
  *
- *   NOT NULL: always for Character, Image Reference and numbers; for Long,
- *   Date, Time and DateTime exactly when the field is Required.
+ *   NOT NULL: always for Character, Image Reference and numbers -- but not a
+ *   number with Auto-Update (a System ID field: R6's N4 in App Designer's
+ *   script); for Long, Date, Time and DateTime exactly when the field is
+ *   Required.
+ *
+ * Each alternate search key adds an index PS<n><RECORD> (n = its INDEXID,
+ * 0, 1, ...): the alternate field then the record's keys, not unique, written
+ * "INDEX" (not "iNDEX"), with its own ALTER INDEX (App Designer's R6 script).
  */
 
 export interface DdlField {
@@ -62,6 +68,10 @@ export interface DdlModel {
   tableParms: Readonly<Record<string, string>>;
   /** **PARM** values for the key index: the index's own over the defaults. */
   indexParms: Readonly<Record<string, string>>;
+  /** **PARM** values for alternate search key indexes, by INDEXID, where they have their own (else indexParms' defaults). */
+  altIndexParms?: Readonly<Record<string, Readonly<Record<string, string>>>>;
+  /** The index defaults alone, for alternate indexes without parameters of their own. */
+  indexDefaults?: Readonly<Record<string, string>>;
 }
 
 export interface DdlRecord {
@@ -116,6 +126,9 @@ export function notNull(f: DdlField): boolean {
     case FieldType.DateTime:
     case FieldType.Image:
       return hasFlag(f.useEdit, UseEdit.Required);
+    case FieldType.Number:
+    case FieldType.SignedNumber:
+      return !hasFlag(f.useEdit, UseEdit.AutoUpdate);
     default:
       return true;
   }
@@ -164,6 +177,15 @@ export function createTableScript(r: DdlRecord, model: DdlModel): string {
       model.indexParms).replace(/ INDEX /, ' iNDEX ');
     out.push(...statement(index));
     if (/\bPARALLEL NOLOGGING\b/.test(index)) out.push(...statement(`ALTER INDEX ${table} NOPARALLEL LOGGING`));
+  }
+  const keyFields = r.fields.filter((f) => hasFlag(f.useEdit, UseEdit.Key));
+  for (const [i, alt] of r.fields.filter((f) => hasFlag(f.useEdit, UseEdit.AltSearchKey)).entries()) {
+    const name = `PS${i}${r.name}`;
+    const parms = model.altIndexParms?.[String(i)] ?? model.indexDefaults ?? model.indexParms;
+    const index = fill(model.index,
+      { UNIQUE: '', IDXNAME: name, TBNAME: table, IDXCOLLIST: [alt, ...keyFields].map((k) => k.name).join(',\n   ') }, parms);
+    out.push(...statement(index));
+    if (/\bPARALLEL NOLOGGING\b/.test(index)) out.push(...statement(`ALTER INDEX ${name} NOPARALLEL LOGGING`));
   }
   return out.join('\n') + '\n';
 }

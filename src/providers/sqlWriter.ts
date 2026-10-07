@@ -264,9 +264,11 @@ export async function writeViewSql(
 }
 
 /**
- * A view's SQL deleted inside the record save that makes the view an SQL
- * Table (r57): PSSQLDEFN, PSSQLDESCR, PSSQLHASH and PSSQLTEXTDEFN rows of
- * SQLTYPE 2; PSVERSION SRM, PSLOCK SRM + 1.
+ * A view's SQL deleted inside the record save that makes the view another
+ * type (r57 SQL Table, r58 / r60 Derived/Work): PSSQLDEFN, PSSQLDESCR,
+ * PSSQLHASH and PSSQLTEXTDEFN rows of SQLTYPE 2 deleted, a PSSQLDEL marker
+ * inserted with VERSION = the new SRM (earlier markers kept: R7 holds 11
+ * and 15); PSVERSION SRM, PSLOCK SRM + 1.
  */
 export async function deleteViewSql(c: Connection, recname: string): Promise<void> {
   const id = { id: recname };
@@ -279,6 +281,7 @@ export async function deleteViewSql(c: Connection, recname: string): Promise<voi
     await c.execute(`DELETE FROM SYSADM.${table} WHERE SQLID = :id AND SQLTYPE = '2'`, id);
   }
   await expectRows(c, `DELETE FROM SYSADM.PSSQLDEFN WHERE SQLID = :id AND SQLTYPE = '2'`, id, 1, 'Deleting PSSQLDEFN');
+  await expectRows(c, `INSERT INTO SYSADM.PSSQLDEL (SQLID, SQLTYPE, VERSION) VALUES (:id, '2', :v)`, { ...id, v: Number(v[0].V) + 1 }, 1, 'Inserting PSSQLDEL');
   await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SRM'`, { v: Number(v[0].V) + 1 }, 1, 'Updating PSVERSION SRM');
   await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'SRM'`, { v: Number(l[0].V) + 1 }, 1, 'Updating PSLOCK SRM');
 }

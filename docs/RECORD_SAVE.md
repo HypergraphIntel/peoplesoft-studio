@@ -426,9 +426,10 @@ field's value, as App Designer showed it for ZZ_PCODE_LAB_C01).
 
 ## Still to capture
 
-- In Memory; the Build Script's alternate search key indexes
-- SQL View -> Derived/Work; Dynamic View changes of type; materialized views;
-  Query Views; SubRecords; Temporary Tables
+- Oracle In Memory (Record Properties, Use tab: All Fields / Selective
+  Fields); its stored form has not been seen yet
+- type changes to or from a Dynamic View other than Derived/Work;
+  materialized views; Query Views; SubRecords; Temporary Tables
 - whether parent / query security / audit references move the referring
   record's VERSION (an audit record's save with R4 referring to it)
 - SQL text over 14,000 characters
@@ -519,6 +520,29 @@ The writer does all four; direct cases x38 (R6's System ID Field N4), x39
 removed) and x41 (R7 SQL View -> SQL Table) wrote the same rows. The Build
 Script does not write alternate search key indexes yet (no App Designer
 script with one has been compared).
+
+## Cases r58-r60: views to Derived/Work, Dynamic Views; the alternate keys' build script
+
+| Case | Change | What App Designer wrote |
+|---|---|---|
+| r58 | R7 SQL View -> Derived/Work | `RECTYPE` 2; the view SQL rows deleted and a **`PSSQLDEL`** row inserted (SQLID, SQLTYPE 2, VERSION = the new SRM); SRM + 1 |
+| r59 | R2 Derived/Work -> Dynamic View, SQL `SELECT 'A', 'B', SYSDATE FROM DUAL` | `RECTYPE` 5; the SQL rows inserted as r28's (VERSION = new SRM) |
+| r60 | R2 Dynamic View -> Derived/Work | as r58 |
+
+r57 (SQL View -> SQL Table) wrote a `PSSQLDEL` row too (R7's VERSION 11;
+the capture's own diff of that table had expired), so every deletion of a
+view's SQL now inserts one; earlier markers stay (R7 holds several). The
+writer does r58-r60; direct cases x42-x44 on R7 wrote the same rows, x42's
+`HASH_SIGNATURE` equal to r59's. (x41 had dropped R7's view SQL without the
+marker; the missing row, VERSION 13, was added.)
+
+**Build Script, alternate search keys** (App Designer's script for R6 with
+N3 and S1 alternate keys): each is an index `PS<n><RECORD>` -- `CREATE
+INDEX` with a capital I, unlike the key index's `iNDEX` -- on the alternate
+field then the record's keys, never DESC, with its own `ALTER INDEX ...
+NOPARALLEL LOGGING`; and a Number field with Auto-Update (the System ID
+field N4) has no NOT NULL. The generator writes the same; it is byte-for-
+byte equal to that script (a golden test).
 
 ## Translate Table Edit
 

@@ -1,0 +1,596 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "x44-direct-view-to-derived",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362778459976",
+   "timestamp": "2026-10-07T14:33:33.406732000-05:00"
+  },
+  "after": {
+   "scn": "39362778460024",
+   "timestamp": "2026-10-07T14:33:51.794641000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-07T14:33:33.406732000-05:00",
+    "to": "2026-10-07T14:33:51.794641000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "RDM": {
+    "before": 132,
+    "after": 133,
+    "delta": 1
+   },
+   "SRM": {
+    "before": 20,
+    "after": 21,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 1485,
+    "after": 1486,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "RDM": {
+    "before": 132,
+    "after": 133,
+    "delta": 1
+   },
+   "SRM": {
+    "before": 20,
+    "after": 21,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 3
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   }
+  },
+  "otherTablesChanged": {
+   "PSRECDEFN": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSSQLDEFN": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 0,
+    "note": "count changed but no row difference was recovered"
+   },
+   "PSSQLDEL": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSSQLDESCR": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 0,
+    "note": "count changed but no row difference was recovered"
+   },
+   "PSSQLHASH": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 0,
+    "note": "count changed but no row difference was recovered"
+   },
+   "PSSQLTEXTDEFN": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 0,
+    "note": "count changed but no row difference was recovered"
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "RDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "132",
+       "after": "133"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SRM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "20",
+       "after": "21"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "1485",
+       "after": "1486"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "RDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "132",
+       "after": "133"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SRM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "20",
+       "after": "21"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSRECDEFN": {
+   "columns": [
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "FIELDCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "INDEXCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DDLCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "AUDITRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "RECUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "RECTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SETCNTRLFLD",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "RELLANGRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "OPTDELRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "RECDESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PARENTRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "QRYSECRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "SQLTABLENAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "BUILDSEQNO",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OPTTRIGFLAG",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SYSTEMIDFIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "TIMESTAMPFIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "AUXFLAGMASK",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAPIhAHXAACQF5AAK"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "131",
+       "after": "133"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-07T14:32:45.518469000",
+       "after": "2026-10-07T14:33:50.765972000"
+      }
+     }
+    }
+   ]
+  },
+  "PSSQLDEFN": {
+   "columns": [
+    {
+     "name": "SQLID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SQLTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "ENABLEEFFDT",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [],
+   "note": "count changed but no row difference was recovered"
+  },
+  "PSSQLDEL": {
+   "columns": [
+    {
+     "name": "SQLID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SQLTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "SQLID": "ZZ_PCODE_LAB_R7",
+     "SQLTYPE": "2",
+     "VERSION": "21"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSQLDESCR": {
+   "columns": [
+    {
+     "name": "SQLID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SQLTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "DBTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EFFDT",
+     "type": "DATE",
+     "length": 7,
+     "nullable": true
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [],
+   "note": "count changed but no row difference was recovered"
+  },
+  "PSSQLHASH": {
+   "columns": [
+    {
+     "name": "SQLID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SQLTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "DBTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EFFDT",
+     "type": "DATE",
+     "length": 7,
+     "nullable": true
+    },
+    {
+     "name": "HASH_SIGNATURE",
+     "type": "VARCHAR2",
+     "length": 112,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [],
+   "note": "count changed but no row difference was recovered"
+  },
+  "PSSQLTEXTDEFN": {
+   "columns": [
+    {
+     "name": "SQLID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SQLTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "DBTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EFFDT",
+     "type": "DATE",
+     "length": 7,
+     "nullable": true
+    },
+    {
+     "name": "SEQNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SQLTEXT",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [],
+   "note": "count changed but no row difference was recovered"
+  }
+ }
+}

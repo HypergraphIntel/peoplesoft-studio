@@ -9,7 +9,10 @@
   subrecord's fields expanded into the record).
 - **Alternate Search Keys** on SQL Tables (Record Field Properties), with
   their indexes as App Designer builds them; the **System ID Field**
-  (Record Properties); and changing an **SQL View to an SQL Table**.
+  (Record Properties); and changing an **SQL View to an SQL Table** or
+  **Derived/Work**, and **Derived/Work to a Dynamic View** and back.
+- The **Build Script** writes alternate search key indexes, and leaves NOT
+  NULL off Auto-Update number columns, as App Designer's script does.
 - **The Field editor edits fields**: Change Length (and decimals), Add
   Label, Edit Label, Set Default Label and Change Description, each saved
   at once as App Designer saves a field -- the records holding the field
