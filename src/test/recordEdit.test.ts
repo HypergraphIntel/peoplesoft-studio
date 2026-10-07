@@ -5,7 +5,7 @@ import * as path from 'node:path';
 import { RecordType, UseEdit } from '../model/record.js';
 import {
   editRefusal, editStateFor, insertField, moveField, planRecordSave, RecordSaveRefusedError, removeField, removeFields, setDefault, setEdits,
-  setLabel, setPageControl, setRecordProperties, setRecordType, setUse,
+  insertSubrecord, setLabel, setPageControl, setRecordProperties, setRecordType, setUse,
   type RecordEditState, type Row, type StoredRecord
 } from '../model/recordEdit.js';
 
@@ -324,4 +324,25 @@ test('audit record and options, and the Timestamp Field with its Auto-Update bit
   assert.equal(plan.fields[1].LASTUPDDTTM, undefined);
   assert.throws(() => setRecordProperties(e, { recUse: 16 }), /audit options/);
   assert.throws(() => setRecordProperties(e, { timestampField: 'NOPE' }), /not a field/);
+});
+
+test('a subrecord inserts as App Designer inserted ABS_HIST_BELSBR into R5 (r53): one row, its fields expanded after', () => {
+  const own = (name: string, n: number) => ({ RECNAME: 'R5', FIELDNAME: name, FIELDNUM: n, USEEDIT: 0x800000, USEEDIT2: 0, SUBRECORD: 'N' });
+  const stored = { recname: 'R5', recordType: RecordType.DerivedWork, version: 1, indexes: [], fields: [own('A', 1), own('B', 2)],
+    subrecords: { SUB: [{ RECNAME: 'SUB', FIELDNAME: 'S1', FIELDNUM: 1, USEEDIT: 8404992, SUBRECORD: 'N' }, { RECNAME: 'SUB', FIELDNAME: 'S2', FIELDNUM: 2, USEEDIT: 0, SUBRECORD: 'N' }] } };
+  // In the middle, as ADHOC_SALCHG_WK holds SS_PROC_SBR: the field after it is numbered on.
+  const e = insertSubrecord(editStateFor(stored), 'sub', 1);
+  const plan = planRecordSave(stored, e, { ts: 'NOW', operatorId: 'J' });
+  assert.deepEqual(plan.fields.map((f) => [f.FIELDNAME, f.FIELDNUM, f.SUBRECORD, f.USEEDIT, f.DEFGUICONTROL]),
+    [['A', 1, 'N', 0x800000, undefined], ['SUB', 2, 'Y', 0, 99], ['B', 3, 'N', 0x800000, undefined]]);
+  assert.equal(plan.fieldCount, 3);
+  assert.deepEqual(plan.dbFields.map((f) => [f.FIELDNAME, f.RECNAME, f.RECNAME_PARENT, f.FIELDNUM, f.USEEDIT]),
+    [['A', 'R5', 'R5', 1, 0x800000], ['S1', 'R5', 'SUB', 2, 8404992], ['S2', 'R5', 'SUB', 3, 0], ['B', 'R5', 'R5', 4, 0x800000]]);
+  // Only into Derived/Work records; never twice; not removed (no case); not nested.
+  assert.throws(() => insertSubrecord(editStateFor({ ...stored, recordType: RecordType.Table }), 'SUB'), /Derived\/Work/);
+  assert.throws(() => insertSubrecord(e, 'SUB'), /already/);
+  const withSub = { ...stored, fields: [own('A', 1), { ...own('SUB', 2), SUBRECORD: 'Y', USEEDIT: 0 }] };
+  assert.throws(() => planRecordSave(withSub, removeField(editStateFor(withSub), 1), { ts: 'NOW', operatorId: 'J' }), /Removing a subrecord/);
+  assert.throws(() => planRecordSave({ ...withSub, subrecords: { SUB: [{ FIELDNAME: 'X', SUBRECORD: 'Y' }] } }, editStateFor(withSub),
+    { ts: 'NOW', operatorId: 'J' }), /nested/);
 });

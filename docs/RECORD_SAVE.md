@@ -479,8 +479,21 @@ All moved RDM, SYS and PSLOCK RDM by one. The writer now does r45, r46,
 r47, r49 and r51 (Record Properties' Use tab edits the audit record and
 options and the Timestamp Field); direct cases x26-x30 (ZZ_PCODE_LAB_R2
 re-created, audited, timestamped, keyless, Derived/Work) wrote the same
-rows. Inserting subrecords (r53) is not built yet. The System ID Field is
-not captured.
+rows. The System ID Field is not captured.
+
+**Subrecords** (r53). A Derived/Work record takes a subrecord as one
+`PSRECFIELD` row (`SUBRECORD` 'Y', `USEEDIT` 0, the new-row values,
+stamped); its `PSRECFIELDDB` holds the subrecord's own rows in its place,
+`RECNAME_PARENT` the subrecord, numbered straight through (fields after a
+subrecord continue the numbering, as ADHOC_SALCHG_WK's do after
+SS_PROC_SBR); `FIELDCOUNT` counts the `PSRECFIELD` rows. The record editor
+inserts subrecords into Derived/Work records (Insert Subrecord), and edits
+records holding them; direct cases x35 (ABS_HIST_BELSBR into
+ZZ_PCODE_LAB_R2) and x36 (R5 reordered around it) wrote those rows.
+Refused, as not captured: subrecords in other record types, removing a
+subrecord, nested subrecords. An alternate search key no longer stops a
+Derived/Work record or view from being edited: only an SQL Table indexes
+it (r53 saved R5 with one).
 
 ## Translate Table Edit
 

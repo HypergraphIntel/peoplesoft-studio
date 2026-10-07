@@ -9,7 +9,7 @@ import { TranslateSaveRefusedError, type TranslateChange } from '../providers/tr
 import { isScratchName } from '../peoplecode/corpus/labSafety.js';
 import type { RecordLayout, RecordLayoutField } from '../model/recordLayout.js';
 import {
-  insertField, layoutEditRefusal, moveField, RecordSaveRefusedError, removeField, removeFields, setDefault, setEdits, setLabel, setPageControl,
+  insertField, insertSubrecord, layoutEditRefusal, moveField, RecordSaveRefusedError, removeField, removeFields, setDefault, setEdits, setLabel, setPageControl,
   RECORD_TYPE_CHANGES, setRecordProperties, setRecordType, setUse, type EditType, type RecordTypeEdits, type RecordEditState, type RecordPropertyEdits, type UseChange
 } from '../model/recordEdit.js';
 import { renderRecordHtml } from './recordHtml.js';
@@ -203,6 +203,15 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
           const next = insertField(state, name, Math.min(Math.max(Number(msg.at), 0), state.fields.length));
           await doc.describe(name);
           return this.apply(doc, next, 'Insert Field');
+        }
+        case 'insertSub': {
+          // App Designer's Insert > Subrecord (r53): a SubRecord's name; its fields expand into the record on save.
+          const name = (await vscode.window.showInputBox({ title: `Insert Subrecord into ${doc.recname}`, prompt: 'SubRecord name',
+            validateInput: (v) => (/^[A-Z0-9_#$@]{1,15}$/i.test(v.trim()) ? undefined : 'A record name.') }))?.trim().toUpperCase();
+          if (!name) return;
+          const next = insertSubrecord(state, name, Math.min(Math.max(Number(msg.at), 0), state.fields.length));
+          doc.describeSubrecord(name);
+          return this.apply(doc, next, 'Insert Subrecord');
         }
       }
     } catch (err) {
@@ -424,7 +433,9 @@ class RecordDocument implements vscode.CustomDocument {
     if (!this.readOnlyReason) {
       this.state = {
         recname: layout.name, recordType: layout.recordType, openedVersion: layout.version,
-        fields: layout.fields.map((f) => ({ name: f.name, useEdit: f.useEdit, useEdit2: f.useEdit2 ?? 0, isNew: false })),
+        fields: layout.fields.map((f) => ({
+          name: f.name, useEdit: f.useEdit, useEdit2: f.useEdit2 ?? 0, isNew: false, ...(f.isSubrecord ? { isSubrecord: true } : {})
+        })),
         ...(isNew ? { isNew: true } : {})
       };
     }
@@ -437,6 +448,15 @@ class RecordDocument implements vscode.CustomDocument {
     if (!this.workspace.configFor(p.id)?.peoplesoftOperatorId?.trim()) return `set the Operator ID for ${p.displayName} in PeopleSoft Studio Settings to edit records.`;
     if (!isScratchName(layout.name)) return 'saving records is limited to scratch records (ZZ_PCODE_LAB%) for now.';
     return layoutEditRefusal(layout);
+  }
+
+  /** Display values for a subrecord inserted in this edit: a subrecord row, as the record shows stored ones. */
+  describeSubrecord(name: string): void {
+    if (this.info.has(name)) return;
+    this.info.set(name, {
+      fieldNum: 0, name, isSubrecord: true, shortName: '', longName: '', useEdit: 0, hasPeopleCode: false, editTable: '',
+      defaultRecord: '', defaultField: '', useEdit2: 0, labelId: '', defGuiControl: 99, labels: []
+    });
   }
 
   /** Display values for a field inserted in this edit. */

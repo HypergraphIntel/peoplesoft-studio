@@ -1,7 +1,7 @@
 import type { Connection } from 'oracledb';
 import { RecordType } from '../model/record.js';
 import {
-  planRecordSave, RecordSaveRefusedError, type RecordEditState, type RecordSavePlan, type Row, type StoredRecord
+  expandDbFields, planRecordSave, RecordSaveRefusedError, type RecordEditState, type RecordSavePlan, type Row, type StoredRecord
 } from '../model/recordEdit.js';
 import { isScratchName } from '../peoplecode/corpus/labSafety.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
@@ -103,7 +103,22 @@ async function readStored(c: Connection, tables: Tables, recname: string, forUpd
   };
 }
 
-const dbRow = (row: Row, recname: string): Row => ({ ...row, RECNAME_PARENT: recname });
+/** The PSRECFIELD rows of each subrecord named, each checked to be a SubRecord (RECTYPE 3). */
+async function readSubrecords(c: Connection, tables: Tables, names: readonly string[]): Promise<Record<string, Row[]>> {
+  const out: Record<string, Row[]> = {};
+  for (const name of new Set(names)) {
+    const [defn] = await select<{ RECTYPE: number }>(c, `SELECT RECTYPE FROM SYSADM.PSRECDEFN WHERE RECNAME = :r`, { r: name });
+    if (!defn) throw new RecordSaveRefusedError(`There is no record named ${name}.`);
+    if (Number(defn.RECTYPE) !== RecordType.Subrecord) throw new RecordSaveRefusedError(`${name} is not a SubRecord.`);
+    out[name] = await readRows(c, 'PSRECFIELD', tables.recfield, 'RECNAME = :r', { r: name }, 'FIELDNUM');
+  }
+  return out;
+}
+
+const subrecordNames = (stored: StoredRecord, edit: RecordEditState) => [
+  ...stored.fields.filter((f) => text(f.SUBRECORD) === 'Y').map((f) => text(f.FIELDNAME)),
+  ...edit.fields.filter((f) => f.isSubrecord).map((f) => f.name)
+];
 
 /**
  * Saves the record and commits, or rolls back and throws. The caller
@@ -148,7 +163,7 @@ async function createRecord(c: Connection, request: RecordSaveRequest): Promise<
   // A name deleted before keeps a PSRECDEL marker; re-creating it deletes the marker (r47).
   const [{ N: deleted }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSRECDEL WHERE RECNAME = :r`, { r: recname });
   if (Number(deleted) > 1) throw new RecordSaveRefusedError(`${recname} has ${deleted} deletion markers; refusing to write.`);
-  for (const f of edit.fields) {
+  for (const f of edit.fields.filter((x) => !x.isSubrecord)) {
     const [{ N }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f`, { f: f.name });
     if (Number(N) === 0) throw new RecordSaveRefusedError(`There is no field named ${f.name}.`);
   }
@@ -164,7 +179,10 @@ async function createRecord(c: Connection, request: RecordSaveRequest): Promise<
   const counters = await readCounters(c, true);
   const [{ TS: lastupddttm }] = await select<{ TS: string }>(c,
     `SELECT TO_CHAR(CAST(SYSTIMESTAMP AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM DUAL`);
-  const stored: StoredRecord = { recname, recordType: edit.recordType, version: 0, fields: [], indexes: [], defn: { ...NEW_RECDEFN_VALUES } };
+  const stored: StoredRecord = {
+    recname, recordType: edit.recordType, version: 0, fields: [], indexes: [], defn: { ...NEW_RECDEFN_VALUES },
+    subrecords: await readSubrecords(c, tables, edit.fields.filter((f) => f.isSubrecord).map((f) => f.name))
+  };
   const plan = planRecordSave(stored, edit, { ts: lastupddttm, operatorId: request.operatorId });
   const next: Counters = { ...counters, rdm: counters.rdm + 1, sys: counters.sys + 1, lockRdm: counters.lockRdm + 1 };
 
@@ -174,7 +192,7 @@ async function createRecord(c: Connection, request: RecordSaveRequest): Promise<
     ...NEW_RECDEFN_VALUES, ...plan.recordColumns, LASTUPDDTTM: lastupddttm, LASTUPDOPRID: request.operatorId
   });
   for (const row of plan.fields) await insertRow(c, 'PSRECFIELD', tables.recfield, row);
-  for (const row of plan.fields) await insertRow(c, 'PSRECFIELDDB', tables.recfielddb, dbRow(row, recname));
+  for (const row of plan.dbFields) await insertRow(c, 'PSRECFIELDDB', tables.recfielddb, row);
   if (plan.index) {
     await insertRow(c, 'PSINDEXDEFN', tables.index, plan.index.row);
     for (const k of plan.index.keys) await insertRow(c, 'PSKEYDEFN', tables.key, k);
@@ -222,8 +240,10 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
     }
     // PSRECFIELDDB must mirror PSRECFIELD (the only shape the cases show),
     // and no other record may include this one.
-    if (stored.db.length !== stored.fields.length ||
-        stored.fields.some((f, i) => !same(dbRow(f, recname), stored.db[i], tables.recfielddb))) {
+    // PSRECFIELDDB must be its PSRECFIELD rows with each subrecord expanded (the only shape the cases show).
+    stored.subrecords = await readSubrecords(c, tables, subrecordNames(stored, request.edit));
+    const expected = expandDbFields(recname, stored.fields, stored.subrecords);
+    if (stored.db.length !== expected.length || expected.some((e, i) => !same(e, stored.db[i], tables.recfielddb))) {
       throw new RecordSaveRefusedError(`${recname}'s PSRECFIELDDB rows do not mirror its PSRECFIELD rows; refusing to write.`);
     }
     const [{ N: includers }] = await select<{ N: number }>(c,
@@ -243,7 +263,7 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
     const languageReferrers = await select<{ RECNAME: string }>(c,
       `SELECT RECNAME FROM SYSADM.PSRECDEFN WHERE RECNAME <> :r AND RELLANGRECNAME = :r FOR UPDATE`, { r: recname });
 
-    for (const f of request.edit.fields.filter((x) => x.isNew)) {
+    for (const f of request.edit.fields.filter((x) => x.isNew && !x.isSubrecord)) {
       const [{ N }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f`, { f: f.name });
       if (Number(N) === 0) throw new RecordSaveRefusedError(`There is no field named ${f.name}.`);
     }
@@ -304,7 +324,7 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
     await expectRows(c, `DELETE FROM SYSADM.PSRECFIELDDB WHERE RECNAME = :r`, r, stored.db.length, 'Deleting PSRECFIELDDB');
     await expectRows(c, `DELETE FROM SYSADM.PSRECFIELD WHERE RECNAME = :r`, r, stored.fields.length, 'Deleting PSRECFIELD');
     for (const row of plan.fields) await insertRow(c, 'PSRECFIELD', tables.recfield, row);
-    for (const row of plan.fields) await insertRow(c, 'PSRECFIELDDB', tables.recfielddb, dbRow(row, recname));
+    for (const row of plan.dbFields) await insertRow(c, 'PSRECFIELDDB', tables.recfielddb, row);
 
     const storedKey = stored.indexes.filter((i) => text(i.INDEXID) === '_');
     const storedKeys = stored.keys.filter((k) => text(k.INDEXID) === '_');
@@ -380,7 +400,7 @@ export async function verifyRecordSave(c: Connection, request: RecordSaveRequest
   };
   const { plan } = result;
   compare('PSRECFIELD', now.fields, plan.fields, tables.recfield);
-  compare('PSRECFIELDDB', now.db, plan.fields.map((f) => dbRow(f, recname)), tables.recfielddb);
+  compare('PSRECFIELDDB', now.db, plan.dbFields, tables.recfielddb);
   compare('PSINDEXDEFN', now.indexes, plan.index ? [plan.index.row] : [], tables.index);
   compare('PSKEYDEFN', now.keys, plan.index ? plan.index.keys : [], tables.key);
   const [defn] = await select<{ FIELDCOUNT: number; INDEXCOUNT: number; VERSION: number; TS: string; OPRID: string }>(c,

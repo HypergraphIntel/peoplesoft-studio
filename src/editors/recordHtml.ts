@@ -91,7 +91,7 @@ export function renderRecordHtml(r: RecordLayout, connection: string, nonce: str
 
   const buildButton = r.recordType === RecordType.Table ? '<button data-act="build" title="Generate the Create Table script (not run)">Build Script…</button>' : '';
   const toolbar = editable ? `<div class="toolbar">
-      <button data-act="insert">Insert Field…</button><button data-act="remove">Delete</button>
+      <button data-act="insert">Insert Field…</button>${r.recordType === RecordType.DerivedWork ? '<button data-act="insertSub">Insert Subrecord…</button>' : ''}<button data-act="remove">Delete</button>
       <button data-act="up">Move Up</button><button data-act="down">Move Down</button>${buildButton}
       <span class="hint">Drag rows to reorder · Use Display: click Key, Dir or List to change · right-click a field for its menu · Double-click a field for its PeopleCode · Ctrl+S saves</span></div>`
     : `<div class="banner">${options.readOnlyReason ? `Read-only: ${esc(options.readOnlyReason)} · ` : ''}Double-click a field for its PeopleCode${buildButton ? ` · ${buildButton}` : ''}</div>`;
@@ -327,6 +327,7 @@ const PAGE_SCRIPT = `
     if (btn) {
       const act = btn.dataset.act;
       if (act === 'insert') return post({ type: 'insert', at: sel >= 0 ? sel + 1 : count });
+      if (act === 'insertSub') return post({ type: 'insertSub', at: sel >= 0 ? sel + 1 : count });
       if (act === 'remove') return removePicked();
       if (act === 'up') return move(sel, sel - 1);
       if (act === 'down') return move(sel, sel + 1);
