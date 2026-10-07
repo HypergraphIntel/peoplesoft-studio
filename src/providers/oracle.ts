@@ -12,7 +12,7 @@ import { createProject as createProjectRow, saveProject, verifyProjectSave, type
 import { deleteRecord, saveRecord, verifyRecordSave, type RecordSaveRequest, type RecordSaveResult } from './recordWriter.js';
 import type { DdlModel } from '../model/recordDdl.js';
 import { saveTranslate as saveTranslateRows, type TranslateChange } from './translateWriter.js';
-import { createField as createFieldRows, type FieldCreateRequest } from './fieldWriter.js';
+import { createField as createFieldRows, saveField as saveFieldRows, type FieldCreateRequest, type FieldSaveRequest } from './fieldWriter.js';
 import { createPackage as createPackageRow } from './packageWriter.js';
 import { saveStyleSheet as saveStyleSheetRows, verifyStyleSheetSave, type StyleSheetSaveRequest, type StyleSheetSaveResult } from './styleSheetWriter.js';
 import { saveHtmlDefinition as saveHtmlRows, verifyHtmlSave, type HtmlSaveRequest, type HtmlSaveResult } from './htmlWriter.js';
@@ -456,6 +456,11 @@ export class OracleProvider implements DefinitionProvider {
     return this.withConnection((c) => createFieldRows(c, request));
   }
 
+  /** Saves a field as App Designer's field saves did (fieldWriter.ts saveField), verified in the transaction. */
+  async saveField(request: FieldSaveRequest): Promise<{ version: number; lastupddttm: string; records: string[] }> {
+    return this.withConnection((c) => saveFieldRows(c, request));
+  }
+
   /** Whether a field name is taken. */
   async fieldExists(name: string): Promise<boolean> {
     return this.withConnection(async (c) => Number((await c.execute<{ N: number }>(
@@ -665,10 +670,10 @@ export class OracleProvider implements DefinitionProvider {
     return this.withConnection(async (c) => {
       const d = await c.execute<{
         FIELDTYPE: number; LENGTH: number; DECIMALPOS: number; FORMAT: number; FORMATFAMILY: string; DISPFMTNAME: string;
-        DEFCNTRYYR: number; FLDNOTUSED: number; AUXFLAGMASK: number; VERSION: number; TS: string; OPRID: string
+        DEFCNTRYYR: number; FLDNOTUSED: number; AUXFLAGMASK: number; VERSION: number; TS: string; OPRID: string; DL: string | null
       }>(
         `SELECT FIELDTYPE, LENGTH, DECIMALPOS, FORMAT, FORMATFAMILY, DISPFMTNAME, DEFCNTRYYR, FLDNOTUSED, AUXFLAGMASK,
-                VERSION, TO_CHAR(LASTUPDDTTM, 'YYYY-MM-DD HH24:MI:SS') AS TS, LASTUPDOPRID AS OPRID
+                VERSION, TO_CHAR(LASTUPDDTTM, 'YYYY-MM-DD HH24:MI:SS') AS TS, LASTUPDOPRID AS OPRID, DBMS_LOB.SUBSTR(DESCRLONG, 4000, 1) AS DL
            FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :n`, { n: name });
       const row = d.rows?.[0];
       if (!row) return undefined;
@@ -692,7 +697,8 @@ export class OracleProvider implements DefinitionProvider {
         auxFlagMask: Number(row.AUXFLAGMASK),
         version: Number(row.VERSION),
         lastUpdated: t(row.TS),
-        lastUpdatedBy: t(row.OPRID)
+        lastUpdatedBy: t(row.OPRID),
+        description: row.DL ?? ''
       };
     });
   }

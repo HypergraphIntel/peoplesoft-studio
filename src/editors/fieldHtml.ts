@@ -41,7 +41,7 @@ function row(label: string, control: string): string {
 }
 
 function labelsGrid(f: FieldDefinition): string {
-  const rows: string[] = f.labels.map((l, i) => `<tr>
+  const rows: string[] = f.labels.map((l, i) => `<tr data-label="${esc(l.id)}" tabindex="-1">
       <td class="n">${i + 1}</td><td>${esc(l.id)}</td><td>${esc(l.longName)}</td><td>${esc(l.shortName)}</td>
       <td class="def">${check(l.isDefault, '')}</td></tr>`);
   for (let i = rows.length; i < Math.max(LABEL_ROWS, f.labels.length + 1); i++) {
@@ -67,7 +67,34 @@ function formatGroup(f: FieldDefinition): string {
   </div>`;
 }
 
-export function renderFieldHtml(f: FieldDefinition, connection: string, nonce: string): string {
+export interface FieldPageOptions {
+  /** Editing is offered: a toolbar whose actions the extension prompts for and saves at once. */
+  editable?: boolean;
+  /** Why the field is read-only. */
+  readOnlyReason?: string;
+}
+
+/** The page's script, editable pages only: pick a label row, and post the toolbar's actions. */
+const FIELD_SCRIPT = `(() => {
+  const vscode = acquireVsCodeApi();
+  let label = '';
+  document.querySelectorAll('tr[data-label]').forEach((tr) => tr.addEventListener('click', () => {
+    document.querySelectorAll('tr[data-label]').forEach((x) => x.classList.remove('sel'));
+    tr.classList.add('sel');
+    label = tr.dataset.label;
+  }));
+  document.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => vscode.postMessage({ act: b.dataset.act, label })));
+})();`;
+
+export function renderFieldHtml(f: FieldDefinition, connection: string, nonce: string, options: FieldPageOptions = {}): string {
+  const editable = options.editable === true;
+  const sized = f.type === FieldType.Character || f.type === FieldType.LongCharacter || f.type === FieldType.Number || f.type === FieldType.SignedNumber;
+  const toolbar = editable
+    ? `<div class="toolbar">${sized ? '<button data-act="length">Change Length…</button>' : ''}
+        <button data-act="addLabel">Add Label…</button><button data-act="editLabel">Edit Label…</button>
+        <button data-act="defaultLabel">Set Default Label</button><button data-act="description">Change Description…</button>
+        <span class="hint">Click a label to choose it · each change is saved to the database at once</span></div>`
+    : options.readOnlyReason ? `<div class="note">Read-only: ${esc(options.readOnlyReason)}</div>` : '';
   const typeName = FIELD_TYPE_LABELS[f.type] ?? `Type ${f.type}`;
   const stamp = [
     f.version !== undefined ? `version ${f.version}` : '',
@@ -77,7 +104,7 @@ export function renderFieldHtml(f: FieldDefinition, connection: string, nonce: s
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'nonce-${nonce}';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'nonce-${nonce}';${editable ? ` script-src 'nonce-${nonce}';` : ''}">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${esc(f.name)} (Field)</title>
 <style nonce="${nonce}">
@@ -112,14 +139,24 @@ export function renderFieldHtml(f: FieldDefinition, connection: string, nonce: s
           font-size: 11px; line-height: 1; }
   .check.unknown .tick { opacity: .4; }
   .flagnote, .note { color: var(--vscode-descriptionForeground); font-size: .85em; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+  .toolbar button { font: inherit; padding: 3px 10px; cursor: pointer; color: var(--vscode-button-secondaryForeground);
+                    background: var(--vscode-button-secondaryBackground); border: 1px solid var(--vscode-button-border, transparent); }
+  .toolbar .hint { color: var(--vscode-descriptionForeground); font-size: .85em; }
+  .grid tr[data-label] { cursor: ${editable ? 'pointer' : 'default'}; }
+  .grid tr.sel td { background: var(--vscode-list-activeSelectionBackground); color: var(--vscode-list-activeSelectionForeground); }
+  .descr { white-space: pre-wrap; min-height: 2.6em; }
 </style>
 </head>
 <body>
-<div class="title"><h1>${esc(f.name)} (Field)</h1><span>${esc(connection)} · read-only${stamp ? ` · ${esc(stamp)}` : ''}</span></div>
+<div class="title"><h1>${esc(f.name)} (Field)</h1><span>${esc(connection)}${editable ? '' : ' · read-only'}${stamp ? ` · ${esc(stamp)}` : ''}</span></div>
+${toolbar}
 ${row('Field Type:', box(typeName))}
 ${sizeRows(f)}
 <fieldset><legend>Field Labels</legend>${labelsGrid(f)}</fieldset>
 ${formatGroup(f)}
+${f.description !== undefined ? `<fieldset><legend>Description</legend><div class="box descr">${esc(f.description) || '&nbsp;'}</div></fieldset>` : ''}
+${editable ? `<script nonce="${nonce}">${FIELD_SCRIPT}</script>` : ''}
 </body>
 </html>`;
 }
