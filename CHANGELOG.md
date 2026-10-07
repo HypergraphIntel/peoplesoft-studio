@@ -4,6 +4,10 @@
 
 ### Changed
 
+- **The Field editor edits fields**: Change Length (and decimals), Add
+  Label, Edit Label, Set Default Label and Change Description, each saved
+  at once as App Designer saves a field -- the records holding the field
+  take its new version. Scratch fields on Writable connections.
 - Records: remove an SQL Table's last key, change an SQL Table to
   Derived/Work, re-create a record name that was deleted, and set the audit
   record, audit options and Timestamp Field (Record Properties, Use tab),

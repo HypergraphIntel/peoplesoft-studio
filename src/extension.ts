@@ -175,7 +175,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(dir, name), Buffer.from(JSON.stringify(report, null, 1), 'utf8'));
   }, () => void vscode.commands.executeCommand('psft.refresh'));
   context.subscriptions.push(fileSystem);
-  context.subscriptions.push(FieldEditorProvider.register(workspace));
+  context.subscriptions.push(FieldEditorProvider.register(workspace, () => void vscode.commands.executeCommand('psft.refresh')));
 
   registerPeopleCodeCompletion(context);
   registerPeopleCodeHover(context);

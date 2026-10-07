@@ -30,6 +30,8 @@ export interface FieldDefinition {
   version?: number;
   lastUpdated?: string;
   lastUpdatedBy?: string;
+  /** PSDBFIELD.DESCRLONG: the field's Description. */
+  description?: string;
 }
 
 /**

@@ -27,6 +27,30 @@ length and are not created yet; the other limits are HRDMO's longest (Character 
 32,767, Number 32, Signed Number 33). `fieldWriter.ts`; direct case x14
 (ZZ_PCODE_LAB_C09) wrote c01's rows and counters.
 
+### Saving a field (f02-f06, ZZ_FIELD_1)
+
+Retroactive captures of App Designer's field saves:
+
+| Case | Change | What App Designer wrote |
+|---|---|---|
+| f02 | length 1 -> 5 | `PSDBFIELD` rewritten, VERSION = new RDM, restamped; the labels rewritten unchanged |
+| f03 | a second label, then it made the default (two saves) | `PSDBFLDLABL` row added; `DEFAULT_LABEL` moved; `PSDBFIELD` VERSION / stamp each time |
+| f04 | Description | `PSDBFIELD.DESCRLONG` |
+| f06 | length 5 -> 50, the field in ZZ_FIELD_REC | as f02, and **ZZ_FIELD_REC's VERSION = the new RDM, not restamped** |
+
+Every field save moved PSVERSION RDM, **PDM** and SYS by one, and PSLOCK
+RDM and PDM. (f01, a create, also wrote a `PSXLATDEFNDEL` row and moved
+XTM; c01 did neither, so the create here keeps c01's rows.)
+
+`saveField` (`fieldWriter.ts`) does these in one transaction: `PSDBFIELD`
+(length, decimals, description, version, stamp), the labels as edited
+(exactly one default; a label a record field uses is kept), the records
+holding the field at the new RDM, and the counters. Refused: fields outside
+`ZZ_PCODE_LAB%`, a change of type, a field held through a subrecord or by a
+non-scratch record. The Field editor offers Change Length, Add Label, Edit
+Label, Set Default Label and Change Description on Writable connections,
+each saved at once.
+
 ## Project (c02, ZZ_PCODE_LAB_02)
 
 One `PSPROJECTDEFN` row: VERSION = new PJM, KEEPTGT 31, COMPARETYPE 1,

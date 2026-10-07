@@ -44,6 +44,18 @@ test('labels without a default flag (a project export) are not shown as unticked
   assert.ok(!html.includes('AUXFLAGMASK'));
 });
 
+test('editable, the page offers the field actions and runs only its own nonce\'d script', () => {
+  const html = renderFieldHtml({ ...C02, description: 'Long <text>' }, 'HRDMO', 'n', { editable: true });
+  for (const act of ['length', 'addLabel', 'editLabel', 'defaultLabel', 'description']) assert.ok(html.includes(`data-act="${act}"`), act);
+  assert.ok(html.includes(`script-src 'nonce-n';`) && html.includes('<script nonce="n">'));
+  assert.ok(html.includes('data-label="ZZ_PCODE_LAB_C02"'));
+  assert.ok(html.includes('Long &lt;text&gt;'));
+  // A date has no length to change.
+  assert.ok(!renderFieldHtml({ ...C02, type: FieldType.Date, length: 10 }, 'X', 'n', { editable: true }).includes('data-act="length"'));
+  const readOnly = renderFieldHtml(C02, 'X', 'n', { readOnlyReason: 'scratch fields only' });
+  assert.ok(readOnly.includes('Read-only: scratch fields only') && !/<script/i.test(readOnly));
+});
+
 test('values are escaped', () => {
   const html = renderFieldHtml({ ...C02, labels: [{ id: '<b>', longName: '"x"', shortName: '&', isDefault: false }] }, 'H<R>', 'n');
   assert.ok(html.includes('&lt;b&gt;') && html.includes('&quot;x&quot;') && html.includes('H&lt;R&gt;'));
