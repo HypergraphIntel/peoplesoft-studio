@@ -573,6 +573,9 @@ const PAGE_SCRIPT = `
           box.textContent = (edits.recUse & bit) ? '✓' : '';
         } }, box, el('span', { text: label })));
       };
+      const systemId = editable
+        ? dropdown([['', 'None'], ...fieldNames.map((n) => [n, n])], r.systemIdField, (v) => { edits.systemIdField = v; })
+        : el('span', { cls: 'box', text: none(r.systemIdField) });
       const timestamp = editable
         ? dropdown([['', 'None'], ...fieldNames.map((n) => [n, n])], r.timestampField, (v) => { edits.timestampField = v; })
         : el('span', { cls: 'box', text: none(r.timestampField) });
@@ -583,14 +586,14 @@ const PAGE_SCRIPT = `
           field2('Analytic Delete Record:', text('analyticDeleteRecord', r.analyticDeleteRecord))),
         el('fieldset', {}, el('legend', { text: 'Record Audit' }), field2('Record Name:', text('auditRecord', r.auditRecord)),
           el('div', { cls: 'cols' }, auditFlag('Add', 1), auditFlag('Change', 2), auditFlag('Selective', 8), auditFlag('Delete', 4))),
-        el('fieldset', {}, el('legend', { text: 'Record-level Auto-Update' }), row2('System ID Field:', none(r.systemIdField)),
+        el('fieldset', {}, el('legend', { text: 'Record-level Auto-Update' }), field2('System ID Field:', systemId),
           field2('Timestamp Field:', timestamp)),
         unknown('Real Time Indexing Trigger Record'),
         el('div', { cls: 'cols' }, el('fieldset', {}, el('legend', { text: 'Sync type (MSF)' }), unknown('Server -> User (Down Sync)'), unknown('User -> Server (Up Sync)')),
           el('fieldset', {}, el('legend', { text: 'Record Information' }), flag('toolsTable', 'Tools Table', (r.auxFlagMask & 0x10000) !== 0),
             flag('managed', 'Managed', (r.auxFlagMask & 0x20000) !== 0))),
         unknown('Append All (Dynamic Views)'), apply,
-        el('div', { cls: 'legend2', text: '– = not established yet.' + (editable ? ' The System ID Field is not changed here yet; the Timestamp Field is a DateTime field, and takes Auto-Update.' : '') }));
+        el('div', { cls: 'legend2', text: '– = not established yet.' + (editable ? ' The System ID Field is a Number field and the Timestamp Field a DateTime field; each takes Auto-Update.' : '') }));
     }
     dialog.replaceChildren(header('Record Properties'), tabs, body);
     overlay.style.display = 'flex';

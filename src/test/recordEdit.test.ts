@@ -139,8 +139,9 @@ test('what the cases do not cover is refused', () => {
   // Removing the last key drops the key index (r45).
   const keyless = planRecordSave(table, setUse(editStateFor(table), 0, { key: false }), { ts: 'NOW', operatorId: 'J' });
   assert.deepEqual([keyless.index, keyless.indexCount], [undefined, 0]);
+  // Alternate search keys are modelled now (r55); a user-defined index ('A') is not.
   const withAlt = { ...table, fields: [...table.fields, { FIELDNAME: 'A', USEEDIT: 0x10, SUBRECORD: 'N' }] };
-  assert.match(editRefusal(withAlt)!, /alternate search keys/);
+  assert.equal(editRefusal(withAlt), undefined);
   assert.match(editRefusal({ ...table, fields: [{ FIELDNAME: 'S', USEEDIT: 0, SUBRECORD: 'Y' }] })!, /subrecords/);
   assert.match(editRefusal({ ...table, indexes: [...table.indexes, { INDEXID: 'A' }] })!, /other than the key index/);
   // Views are editable now, unless materialized or indexed; other types are not.
@@ -150,7 +151,7 @@ test('what the cases do not cover is refused', () => {
   assert.match(editRefusal({ ...table, recordType: RecordType.Subrecord })!, /can be edited yet/);
   // Only the flags the cases exercised may change.
   const e = editStateFor(table);
-  e.fields[1] = { ...e.fields[1], useEdit: e.fields[1].useEdit | UseEdit.AltSearchKey };
+  e.fields[1] = { ...e.fields[1], useEdit: e.fields[1].useEdit | 0x1000 };
   assert.throws(() => planRecordSave(table, e, { ts: 'NOW', operatorId: 'J' }), RecordSaveRefusedError);
 });
 
@@ -302,7 +303,10 @@ test('record type changes as App Designer saved them (r26, r28): tablespace, key
   const toDerived = planRecordSave(table, setRecordType(editStateFor(table), RecordType.Table, { recordType: RecordType.DerivedWork }), stamp);
   assert.deepEqual([toDerived.recordColumns.RECTYPE, toDerived.recordColumns.SQLTABLENAME, toDerived.tablespace, toDerived.indexCount],
     [RecordType.DerivedWork, ' ', 'delete', 0]);
-  assert.throws(() => setRecordType(editStateFor(base(RecordType.View)), RecordType.View, { recordType: RecordType.Table }), /not been observed/);
+  // SQL View -> SQL Table (r57): the key index and tablespace row created, the view SQL dropped.
+  const fromView = planRecordSave(base(RecordType.View), setRecordType(editStateFor(base(RecordType.View)), RecordType.View, { recordType: RecordType.Table }), stamp);
+  assert.deepEqual([fromView.recordColumns.RECTYPE, fromView.tablespace, fromView.indexCount, fromView.dropViewSql], [RecordType.Table, 'insert', 1, true]);
+  assert.throws(() => setRecordType(editStateFor(base(RecordType.View)), RecordType.View, { recordType: RecordType.DerivedWork }), /not been observed/);
   assert.throws(() => setRecordType(editStateFor(table), RecordType.Table, { viewSql: 'SELECT 1 FROM DUAL' }), /Only a view/);
   // A view saved without SQL changes writes no SQL rows (r32).
   const view = base(RecordType.View);
@@ -342,7 +346,33 @@ test('a subrecord inserts as App Designer inserted ABS_HIST_BELSBR into R5 (r53)
   assert.throws(() => insertSubrecord(editStateFor({ ...stored, recordType: RecordType.Table }), 'SUB'), /Derived\/Work/);
   assert.throws(() => insertSubrecord(e, 'SUB'), /already/);
   const withSub = { ...stored, fields: [own('A', 1), { ...own('SUB', 2), SUBRECORD: 'Y', USEEDIT: 0 }] };
-  assert.throws(() => planRecordSave(withSub, removeField(editStateFor(withSub), 1), { ts: 'NOW', operatorId: 'J' }), /Removing a subrecord/);
+  // Removing a subrecord (r56): its row and expansion go, PGM moves.
+  const gone = planRecordSave(withSub, removeField(editStateFor(withSub), 1), { ts: 'NOW', operatorId: 'J' });
+  assert.deepEqual([gone.fieldCount, gone.dbFields.length, gone.bumpPgm], [1, 1, true]);
   assert.throws(() => planRecordSave({ ...withSub, subrecords: { SUB: [{ FIELDNAME: 'X', SUBRECORD: 'Y' }] } }, editStateFor(withSub),
     { ts: 'NOW', operatorId: 'J' }), /nested/);
+});
+
+test('alternate search keys index as App Designer indexed R6\'s (r55): one index each, the field then the keys', () => {
+  const f = (name: string, n: number, useEdit: number) => ({ RECNAME: 'R6', FIELDNAME: name, FIELDNUM: n, USEEDIT: useEdit, USEEDIT2: 0, SUBRECORD: 'N' });
+  const stored = { recname: 'R6', recordType: RecordType.Table, version: 1, indexes: [{ RECNAME: 'R6', INDEXID: '_' }],
+    fields: [f('KEY', 1, 0x800001), f('N1', 2, 0x800041), f('N2', 3, 0x800002), f('N3', 4, 0x800000), f('N4', 5, 0x800000)] };
+  let e = setUse(editStateFor(stored), 3, { altSearch: true });
+  e = setUse(e, 4, { altSearch: true, descending: true });
+  const plan = planRecordSave(stored, e, { ts: 'NOW', operatorId: 'J' });
+  assert.equal(plan.indexCount, 3);
+  assert.deepEqual(plan.altIndexes.map((ix) => [ix.row.INDEXID, ix.row.INDEXTYPE, ix.row.UNIQUEFLAG, ix.row.CLUSTERFLAG, ix.row.KEYCOUNT]),
+    [['0', 3, 0, 0, 3], ['1', 3, 0, 0, 3]]);
+  // r55: N3, KEY, N1 (descending) -- the duplicate order key N2 is not in it.
+  assert.deepEqual(plan.altIndexes[0].keys.map((k) => [k.KEYPOSN, k.FIELDNAME, k.ASCDESC]), [[1, 'N3', 1], [2, 'KEY', 1], [3, 'N1', 0]]);
+  assert.deepEqual(plan.altIndexes[1].keys.map((k) => [k.FIELDNAME, k.ASCDESC]), [['N4', 0], ['KEY', 1], ['N1', 0]]);
+  // Alternate search keys and keys exclude each other.
+  assert.equal(setUse(e, 3, { key: true }).fields[3].useEdit & UseEdit.AltSearchKey, 0);
+});
+
+test('the System ID Field takes Auto-Update, as R4\'s did (r54)', () => {
+  const stored = { recname: 'R4', recordType: RecordType.Table, version: 1, indexes: [], fields: [
+    { RECNAME: 'R4', FIELDNAME: 'N2', FIELDNUM: 1, USEEDIT: 0x800000, USEEDIT2: 0, SUBRECORD: 'N' }] };
+  const plan = planRecordSave(stored, setRecordProperties(editStateFor(stored), { systemIdField: 'N2' }), { ts: 'NOW', operatorId: 'J' });
+  assert.deepEqual([plan.recordColumns.SYSTEMIDFIELDNAME, plan.fields[0].USEEDIT], ['N2', 75497472]);
 });

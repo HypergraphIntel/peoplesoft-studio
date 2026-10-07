@@ -4,9 +4,12 @@
 
 ### Changed
 
-- **Subrecords**: Insert Subrecord into a Derived/Work record, and edit
-  records holding subrecords, saved as App Designer saves them (the
+- **Subrecords**: Insert Subrecord into a Derived/Work record, remove one,
+  and edit records holding subrecords, saved as App Designer saves them (the
   subrecord's fields expanded into the record).
+- **Alternate Search Keys** on SQL Tables (Record Field Properties), with
+  their indexes as App Designer builds them; the **System ID Field**
+  (Record Properties); and changing an **SQL View to an SQL Table**.
 - **The Field editor edits fields**: Change Length (and decimals), Add
   Label, Edit Label, Set Default Label and Change Description, each saved
   at once as App Designer saves a field -- the records holding the field
