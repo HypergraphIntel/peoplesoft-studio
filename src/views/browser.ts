@@ -10,6 +10,7 @@ import { definitionContextValue } from './contextValue.js';
 type Node =
   | { kind: 'connection'; provider: DefinitionProvider }
   | { kind: 'hint'; provider: DefinitionProvider }
+  | { kind: 'newHint'; provider: DefinitionProvider }
   | { kind: 'type'; provider: DefinitionProvider; type: DefinitionType }
   | { kind: 'definition'; provider: DefinitionProvider; summary: DefinitionSummary };
 
@@ -61,6 +62,13 @@ export class BrowserView implements vscode.TreeDataProvider<Node> {
         item.command = { command: 'psft.openDefinitionDialog', title: 'Open Definition' };
         return item;
       }
+      case 'newHint': {
+        const item = new vscode.TreeItem('New Definition...', vscode.TreeItemCollapsibleState.None);
+        item.iconPath = new vscode.ThemeIcon('new-file');
+        item.tooltip = new vscode.MarkdownString('Create a definition: choose its type, then name it.');
+        item.command = { command: 'psft.newDefinition', title: 'New Definition' };
+        return item;
+      }
       case 'type': {
         const item = new vscode.TreeItem(
           typeLabel(node.type), vscode.TreeItemCollapsibleState.Collapsed);
@@ -106,7 +114,7 @@ export class BrowserView implements vscode.TreeDataProvider<Node> {
       // thousands of rows, and the point of connecting is to wait until asked.
       // Definitions are found through the Open Definition dialog instead.
       if (node.provider.capabilities.globalSearch) {
-        return [{ kind: 'hint', provider: node.provider }];
+        return [{ kind: 'hint', provider: node.provider }, { kind: 'newHint', provider: node.provider }];
       }
       // A project export is local and finite, so listing what it holds costs
       // nothing and is the fastest way to see its contents.

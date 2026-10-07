@@ -5,6 +5,7 @@ import {
   describeItem, itemKeyColumns, MIN_PROJECT_ITEM_SLOTS, PROJECT_ITEM_DEFAULTS, projectItemFor,
   ProjectSaveRefusedError, type ProjectItem
 } from '../model/projectItems.js';
+import { isScratchName } from '../peoplecode/corpus/labSafety.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT, VALUE_PREDICATE, valueBinds } from './peopleCodeWriter.js';
 
@@ -219,4 +220,70 @@ export async function verifyProjectSave(
     if (String(project.OPRID).trim() !== request.operatorId) problems.push(`project LASTUPDOPRID ${project.OPRID}`);
   }
   if (problems.length > 0) throw new ProjectSaveRefusedError(`The project save did not land as planned (${problems.join('; ')}).`);
+}
+
+/**
+ * A new project's PSPROJECTDEFN row, as App Designer's first save of an empty
+ * project wrote it (case c02, ZZ_PCODE_LAB_02; the 7 projects created in App
+ * Designer on HRDMO agree): KEEPTGT 31, COMPARETYPE 1, COMMITLIMIT 50,
+ * REPORTFILTER 16232832, the rest blank / zero / null.
+ */
+export const NEW_PROJECT_VALUES = {
+  PROJECTDESCR: ' ', TGTSERVERNAME: ' ', TGTDBNAME: ' ', TGTOPRID: ' ', TGTOPRACCT: ' ', COMPRELEASE: ' ',
+  SRCCOMPRELDTTM: null, TGTCOMPRELDTTM: null, COMPRELDTTM: null, KEEPTGT: 31, TGTORIENTATION: 0, COMPARETYPE: 1,
+  COMMITLIMIT: 50, REPORTFILTER: 16232832, MAINTPROJ: 0, RELEASELABEL: ' ', RELEASEDTTM: null, OBJECTOWNERID: ' ', DESCRLONG: null
+} as const;
+
+/**
+ * Creating an empty project (c02): PSPROJECTDEFN inserted with VERSION = the
+ * new PJM; PSVERSION PJM, SYS + 1; PSLOCK PJM + 1. Items are added after,
+ * by saveProject, as App Designer's Insert does.
+ */
+export async function createProject(c: Connection, request: { project: string; operatorId: string }): Promise<ProjectSaveResult> {
+  const project = request.project;
+  try {
+    const operatorError = validateOperatorId(request.operatorId);
+    if (operatorError) throw new ProjectSaveRefusedError(operatorError);
+    if (!/^[A-Z0-9_]{1,30}$/.test(project)) throw new ProjectSaveRefusedError(`${project} is not a valid project name (A-Z, 0-9, _; at most 30).`);
+    if (!isScratchName(project)) throw new ProjectSaveRefusedError(`${project} is outside ZZ_PCODE_LAB: creating projects is limited to scratch names for now.`);
+    const [{ N: taken }] = await select<{ N: number }>(c,
+      `SELECT (SELECT COUNT(*) FROM SYSADM.PSPROJECTDEFN WHERE PROJECTNAME = :p) + (SELECT COUNT(*) FROM SYSADM.PSPROJECTITEM WHERE PROJECTNAME = :p) AS N FROM DUAL`,
+      { p: project });
+    if (Number(taken) > 0) throw new ProjectSaveRefusedError(`A project named ${project} already exists, or left items behind.`);
+    if (!(await operatorExists(c, request.operatorId))) {
+      throw new ProjectSaveRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
+    }
+    const cols = (await select<{ C: string }>(c,
+      `SELECT COLUMN_NAME AS C FROM ALL_TAB_COLUMNS WHERE OWNER = 'SYSADM' AND TABLE_NAME = 'PSPROJECTDEFN' ORDER BY COLUMN_ID`)).map((r) => r.C);
+    const known = new Set(['PROJECTNAME', 'VERSION', 'LASTUPDDTTM', 'LASTUPDOPRID', ...Object.keys(NEW_PROJECT_VALUES)]);
+    const unknown = cols.filter((col) => !known.has(col));
+    if (unknown.length > 0) throw new ProjectSaveRefusedError(`PSPROJECTDEFN has columns this save does not know (${unknown.join(', ')}); refusing to write.`);
+
+    const counters = await readCounters(c, true);
+    const next: Counters = { pjm: counters.pjm + 1, sys: counters.sys + 1, lockPjm: counters.lockPjm + 1 };
+    const [{ TS: lastupddttm }] = await select<{ TS: string }>(c,
+      `SELECT TO_CHAR(CAST(SYSTIMESTAMP AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM DUAL`);
+    const values: Record<string, unknown> = { ...NEW_PROJECT_VALUES, PROJECTNAME: project, VERSION: next.pjm, LASTUPDOPRID: request.operatorId };
+    const binds: Record<string, unknown> = { ts: lastupddttm };
+    const exprs = cols.map((col, i) => {
+      if (col === 'LASTUPDDTTM') return `TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT})`;
+      binds[`b${i}`] = values[col];
+      return `:b${i}`;
+    });
+    await expectRows(c, `INSERT INTO SYSADM.PSPROJECTDEFN (${cols.join(', ')}) VALUES (${exprs.join(', ')})`, binds, 1, 'Inserting PSPROJECTDEFN');
+    await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'PJM'`, { v: next.pjm }, 1, 'Updating PSVERSION PJM');
+    await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
+    await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'PJM'`, { v: next.lockPjm }, 1, 'Updating PSLOCK PJM');
+    const row = await readProject(c, project, false);
+    const now = await readCounters(c, false);
+    if (!row || Number(row.VERSION) !== next.pjm || row.TS !== lastupddttm ||
+        now.pjm !== next.pjm || now.sys !== next.sys || now.lockPjm !== next.lockPjm) {
+      throw new ProjectSaveRefusedError('The project did not land as planned; rolled back.');
+    }
+    await c.commit();
+    return { version: next.pjm, lastupddttm, added: [] };
+  } catch (error) {
+    await c.rollback().catch(() => { /* the original error matters more */ });
+    throw error;
+  }
 }

@@ -11,7 +11,9 @@ import { OpenDefinitionPanel } from './editors/openDefinitionPanel.js';
 import { DefinitionKey, DefinitionType, displayName, makeKey, typeLabel } from './model/definitions.js';
 import { isScratchName } from './peoplecode/corpus/labSafety.js';
 import { RECORD_FIELD_EVENTS } from './model/recordEvents.js';
-import { RecordType } from './model/record.js';
+import { FIELD_TYPE_LABELS, FieldType, RecordType } from './model/record.js';
+import { PackageCreateRefusedError } from './providers/packageWriter.js';
+import { CREATABLE_FIELD_TYPES, FIXED_FIELD_LENGTH, FieldCreateRefusedError, fieldCreateRefusal } from './providers/fieldWriter.js';
 import { toUri } from './util/uri.js';
 import { registerPeopleCodeCompletion } from './peoplecode/completion.js';
 import { registerPeopleCodeHover } from './peoplecode/hover.js';
@@ -781,16 +783,23 @@ async function pickRecordFieldPeopleCode(workspace: Workspace, connectionId: str
  * leaving the user to wonder whether they were left out.
  */
 async function newDefinition(workspace: Workspace): Promise<void> {
-  type Item = vscode.QuickPickItem & { create?: TextDefinitionType | DefinitionType.Record };
+  type Item = vscode.QuickPickItem & {
+    create?: TextDefinitionType | DefinitionType.Record | DefinitionType.Field | DefinitionType.Project | DefinitionType.ApplicationPackage
+      | DefinitionType.ApplicationClassPeopleCode;
+  };
   const later = (label: string): Item => ({ label, description: 'not available yet' });
   const picked = await vscode.window.showQuickPick<Item>([
     { label: 'Available', kind: vscode.QuickPickItemKind.Separator },
     { label: '$(table) Record', description: 'SQL Table or Derived/Work; add fields, then save', create: DefinitionType.Record },
+    { label: '$(symbol-field) Field', description: 'type, length and label; created when you finish', create: DefinitionType.Field },
+    { label: '$(project) Project', description: 'created empty, then opened in Projects', create: DefinitionType.Project },
+    { label: '$(package) Application Package', description: 'created empty; then add classes', create: DefinitionType.ApplicationPackage },
+    { label: '$(symbol-class) Application Class', description: 'in a root package; opens its declaration, the first save creates it', create: DefinitionType.ApplicationClassPeopleCode },
     { label: '$(code) HTML Definition', description: 'opens empty; the first save creates it', create: DefinitionType.HtmlDefinition },
     { label: '$(symbol-color) Style Sheet', description: 'freeform; opens empty, the first save creates it', create: DefinitionType.StyleSheet },
     { label: '$(database) SQL Definition', description: 'opens empty; the first save creates it', create: DefinitionType.SqlDefinition },
     { label: 'Not available yet', kind: vscode.QuickPickItemKind.Separator },
-    ...['Field', 'Page', 'Component', 'Menu', 'Project', 'Application Package', 'App Engine Program'].map(later)
+    ...['Page', 'Component', 'Menu', 'App Engine Program'].map(later)
   ], { title: 'New Definition', placeHolder: 'Definition type' });
   if (!picked) return;
   // DefinitionType.Record is 0: test for absence, not falsiness.
@@ -799,6 +808,10 @@ async function newDefinition(workspace: Workspace): Promise<void> {
     return;
   }
   if (picked.create === DefinitionType.Record) await newRecord(workspace);
+  else if (picked.create === DefinitionType.Field) await newField(workspace);
+  else if (picked.create === DefinitionType.Project) await newProject(workspace);
+  else if (picked.create === DefinitionType.ApplicationPackage) await newPackage(workspace);
+  else if (picked.create === DefinitionType.ApplicationClassPeopleCode) await newClass(workspace);
   else await newTextDefinition(workspace, picked.create);
 }
 
@@ -856,6 +869,133 @@ async function newRecord(workspace: Workspace): Promise<void> {
   RecordEditorProvider.pendingNew.set(uri.toString(), type);
   await vscode.commands.executeCommand('vscode.openWith', uri, RecordEditorProvider.viewType);
   vscode.window.showInformationMessage(`${name} is new: insert its fields (right-click > Insert Field), then save to create it.`);
+}
+
+/** App Designer's File > New > Application Package and its first save: an empty root package (packageWriter.ts). */
+async function newPackage(workspace: Workspace): Promise<void> {
+  const provider = await pickWritableConnection(workspace, 'New Application Package');
+  if (!provider) return;
+  const name = await askScratchName(`New Application Package on ${provider.displayName}`, 30, 'Package name (scratch packages only for now)');
+  if (!name) return;
+  if (await provider.packageExists(name)) {
+    vscode.window.showWarningMessage(`A package named ${name} already exists.`);
+    return;
+  }
+  try {
+    await provider.createPackage({ name, operatorId: workspace.configFor(provider.id)!.peoplesoftOperatorId!.trim() });
+  } catch (error) {
+    if (!(error instanceof PackageCreateRefusedError)) throw error;
+    vscode.window.showWarningMessage(`${name} was not created: ${error.message}`);
+    return;
+  }
+  void vscode.commands.executeCommand('psft.refresh');
+  const add = await vscode.window.showInformationMessage(`Created Application Package ${name} on ${provider.displayName}.`, 'Add a Class');
+  if (add) await newClass(workspace, provider, name);
+}
+
+/**
+ * App Designer's Insert Application Class, in a root package: the editor
+ * opens with the class's declaration and the first save creates it --
+ * PSAPPCLASSDEFN, the program, and the package's new version (case c04).
+ */
+async function newClass(workspace: Workspace, chosen?: OracleProvider, packageRoot?: string): Promise<void> {
+  const provider = chosen ?? await pickWritableConnection(workspace, 'New Application Class');
+  if (!provider) return;
+  const root = packageRoot ?? await askScratchName(`New Application Class on ${provider.displayName}`, 30, 'The root package to add it to');
+  if (!root) return;
+  if (!(await provider.packageExists(root))) {
+    vscode.window.showWarningMessage(`There is no Application Package ${root}. Create it first (New Definition > Application Package).`);
+    return;
+  }
+  const className = (await vscode.window.showInputBox({
+    title: `New class in ${root}`, prompt: 'Class name',
+    validateInput: (v) => (/^[A-Za-z][A-Za-z0-9_]{0,29}$/.test(v.trim()) ? undefined : 'A letter, then letters, digits or _; at most 30.')
+  }))?.trim();
+  if (!className) return;
+  const key = makeKey(DefinitionType.ApplicationClassPeopleCode, root, className, 'OnExecute');
+  if (await provider.hasPeopleCode(key)) {
+    vscode.window.showWarningMessage(`${root}:${className} already exists; opening it.`);
+  } else {
+    PeopleSoftFileSystem.newClasses.add(toUri(provider.id, key).toString());
+  }
+  await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(toUri(provider.id, key)), { preview: false });
+  vscode.window.showInformationMessage(`${root}:${className} is new: write its members, then save to create it.`);
+}
+
+/** App Designer's File > New > Project and its first save: an empty project (projectWriter.ts createProject), opened. */
+async function newProject(workspace: Workspace): Promise<void> {
+  const provider = await pickWritableConnection(workspace, 'New Project');
+  if (!provider) return;
+  const name = await askScratchName(`New Project on ${provider.displayName}`, 30, 'Project name (scratch projects only for now)');
+  if (!name) return;
+  if (await provider.projectExists(name)) {
+    vscode.window.showWarningMessage(`A project named ${name} already exists.`);
+    return;
+  }
+  try {
+    await provider.createProject({ project: name, operatorId: workspace.configFor(provider.id)!.peoplesoftOperatorId!.trim() });
+  } catch (error) {
+    if (!(error instanceof ProjectSaveRefusedError)) throw error;
+    vscode.window.showWarningMessage(`${name} was not created: ${error.message}`);
+    return;
+  }
+  vscode.window.showInformationMessage(`Created project ${name} on ${provider.displayName}. Add definitions with Insert Into Project.`);
+  await vscode.commands.executeCommand('psft.openDefinition', provider.id, makeKey(DefinitionType.Project, name));
+}
+
+/**
+ * App Designer's File > New > Field, as a few prompts: type, name, length
+ * (and decimals), label. Finishing creates the field (fieldWriter.ts) and
+ * opens it.
+ */
+async function newField(workspace: Workspace): Promise<void> {
+  const provider = await pickWritableConnection(workspace, 'New Field');
+  if (!provider) return;
+  const type = (await vscode.window.showQuickPick(CREATABLE_FIELD_TYPES.map((t) => ({ label: FIELD_TYPE_LABELS[t] ?? String(t), type: t })),
+    { title: 'New Field', placeHolder: 'Field type' }))?.type;
+  if (type === undefined) return;
+  const name = await askScratchName(`New Field on ${provider.displayName}`, 18, 'Field name (at most 18 characters; scratch fields only for now)');
+  if (!name) return;
+  if (await provider.fieldExists(name)) {
+    vscode.window.showWarningMessage(`A field named ${name} already exists.`);
+    return;
+  }
+  const askNumber = async (prompt: string, value: string, check: (n: number) => string | undefined) => {
+    const v = await vscode.window.showInputBox({ title: `New Field ${name}`, prompt, value,
+      validateInput: (x) => (/^\d+$/.test(x.trim()) ? check(Number(x.trim())) : 'A whole number.') });
+    return v === undefined ? undefined : Number(v.trim());
+  };
+  const isNumber = type === FieldType.Number || type === FieldType.SignedNumber;
+  let length = FIXED_FIELD_LENGTH[type];
+  if (length === undefined) {
+    length = await askNumber(type === FieldType.LongCharacter ? 'Maximum length (0 for no maximum)' : 'Field length',
+      type === FieldType.LongCharacter ? '0' : '10',
+      (n) => fieldCreateRefusal({ name, type, length: n, decimalPositions: 0, label: { id: name, longName: 'x', shortName: 'x' } }));
+    if (length === undefined) return;
+  }
+  let decimalPositions = 0;
+  if (isNumber) {
+    const d = await askNumber('Decimal positions', '0', (n) => (n < length! ? undefined : 'Fewer than the length.'));
+    if (d === undefined) return;
+    decimalPositions = d;
+  }
+  const longName = await vscode.window.showInputBox({ title: `New Field ${name}`, prompt: 'Label long name (at most 30)',
+    validateInput: (x) => (x.trim() && x.length <= 30 ? undefined : '1 to 30 characters.') });
+  if (longName === undefined) return;
+  const shortName = await vscode.window.showInputBox({ title: `New Field ${name}`, prompt: 'Label short name (at most 15)',
+    value: longName.slice(0, 15), validateInput: (x) => (x.trim() && x.length <= 15 ? undefined : '1 to 15 characters.') });
+  if (shortName === undefined) return;
+  const operatorId = workspace.configFor(provider.id)!.peoplesoftOperatorId!.trim();
+  try {
+    await provider.createField({ name, type, length, decimalPositions, label: { id: name, longName, shortName }, operatorId });
+  } catch (error) {
+    if (!(error instanceof FieldCreateRefusedError)) throw error;
+    vscode.window.showWarningMessage(`${name} was not created: ${error.message}`);
+    return;
+  }
+  void vscode.commands.executeCommand('psft.refresh');
+  vscode.window.showInformationMessage(`Created field ${name} on ${provider.displayName}.`);
+  await vscode.commands.executeCommand('psft.openDefinition', provider.id, makeKey(DefinitionType.Field, name));
 }
 
 type TextDefinitionType = DefinitionType.HtmlDefinition | DefinitionType.StyleSheet | DefinitionType.SqlDefinition;

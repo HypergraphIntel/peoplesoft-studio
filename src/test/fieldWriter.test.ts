@@ -1,0 +1,25 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { FieldType } from '../model/record.js';
+import { fieldCreateRefusal } from '../providers/fieldWriter.js';
+
+const field = (over: Partial<Parameters<typeof fieldCreateRefusal>[0]>) => ({
+  name: 'ZZ_PCODE_LAB_C09', type: FieldType.Character, length: 10, decimalPositions: 0,
+  label: { id: 'ZZ_PCODE_LAB_C09', longName: 'ZZ Lab C09', shortName: 'C09' }, ...over
+});
+
+test('a field is created only as c01 shows and HRDMO bounds: scratch names, known types, real lengths', () => {
+  assert.equal(fieldCreateRefusal(field({})), undefined);
+  assert.match(fieldCreateRefusal(field({ name: 'EMPLID' }))!, /outside ZZ_PCODE_LAB/);
+  assert.match(fieldCreateRefusal(field({ name: 'ZZ_PCODE_LAB_TOO_LONG_NAME' }))!, /at most 18/);
+  assert.match(fieldCreateRefusal(field({ type: FieldType.Image }))!, /can be created/);
+  assert.match(fieldCreateRefusal(field({ length: 257 }))!, /1 to 256/);
+  // Date, Time and DateTime have PeopleTools' fixed lengths.
+  assert.equal(fieldCreateRefusal(field({ type: FieldType.Date, length: 10 })), undefined);
+  assert.match(fieldCreateRefusal(field({ type: FieldType.DateTime, length: 10 }))!, /26 long/);
+  assert.equal(fieldCreateRefusal(field({ type: FieldType.Number, length: 12, decimalPositions: 2 })), undefined);
+  assert.match(fieldCreateRefusal(field({ type: FieldType.Number, length: 4, decimalPositions: 4 }))!, /fewer than the length/);
+  assert.match(fieldCreateRefusal(field({ decimalPositions: 1 }))!, /Only number fields/);
+  assert.equal(fieldCreateRefusal(field({ type: FieldType.LongCharacter, length: 0 })), undefined);
+  assert.match(fieldCreateRefusal(field({ label: { id: 'ZZ_PCODE_LAB_C09', longName: 'x'.repeat(31), shortName: 'C09' } }))!, /long name/);
+});
