@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.6
+
+In progress.
+
 ## 0.7.5
 
 ### Changed
