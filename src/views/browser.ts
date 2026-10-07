@@ -163,6 +163,8 @@ function iconFor(type: DefinitionType): string {
     case DefinitionType.ApplicationPackage: return 'package';
     case DefinitionType.AppEngineProgram: return 'gear';
     case DefinitionType.SqlDefinition: return 'database';
+    case DefinitionType.HtmlDefinition: return 'code';
+    case DefinitionType.StyleSheet: return 'symbol-color';
     default: return 'symbol-misc';
   }
 }

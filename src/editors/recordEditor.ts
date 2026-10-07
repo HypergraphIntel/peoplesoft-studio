@@ -64,6 +64,9 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
     doc.paint();
   }
 
+  /** Records being created (New Definition): their editor opens empty, and the first save creates them. */
+  static readonly pendingNew = new Map<string, RecordType>();
+
   /** The open editors of a record; `dirty` when any has unsaved changes. */
   static openEditors(connectionId: string, recname: string): { dirty: boolean; close: () => void } {
     const docs = [...RecordEditorProvider.documents].filter((d) => d.provider?.id === connectionId && d.recname === recname);
@@ -331,6 +334,7 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
     }
     try {
       await provider.saveRecord({ edit: doc.state, operatorId });
+      RecordEditorProvider.pendingNew.delete(doc.uri.toString());
     } catch (err) {
       const reason = err instanceof RecordSaveRefusedError ? err.message : `Saving ${doc.recname} failed: ${(err as Error).message}`;
       void vscode.window.showErrorMessage(reason);
@@ -400,15 +404,18 @@ class RecordDocument implements vscode.CustomDocument {
     this.state = undefined;
     this.readOnlyReason = undefined;
     if (!this.provider.readRecordLayout) return;
-    const layout = await this.provider.readRecordLayout(key);
+    const created = RecordEditorProvider.pendingNew.get(this.uri.toString());
+    const layout = await this.provider.readRecordLayout(key) ?? (created !== undefined ? blankLayout(key.parts[0] ?? '', created) : undefined);
     if (!layout) throw new Error(`No record definition named ${key.parts[0] ?? ''} in ${this.provider.displayName}.`);
+    const isNew = created !== undefined && layout.version === 0;
     this.layout = layout;
     for (const f of layout.fields) this.info.set(f.name, f);
     this.readOnlyReason = this.whyReadOnly(layout);
     if (!this.readOnlyReason) {
       this.state = {
         recname: layout.name, recordType: layout.recordType, openedVersion: layout.version,
-        fields: layout.fields.map((f) => ({ name: f.name, useEdit: f.useEdit, useEdit2: f.useEdit2 ?? 0, isNew: false }))
+        fields: layout.fields.map((f) => ({ name: f.name, useEdit: f.useEdit, useEdit2: f.useEdit2 ?? 0, isNew: false })),
+        ...(isNew ? { isNew: true } : {})
       };
     }
   }
@@ -696,4 +703,16 @@ function renderError(message: string): string {
 function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+}
+
+/** A record not saved yet, as App Designer's File > New > Record shows it: no fields, the chosen type. */
+function blankLayout(name: string, recordType: RecordType): RecordLayout {
+  return {
+    name, description: '', recordType, sqlTableName: '', version: 0, fields: [], indexIds: [], buildSequence: 1, auxFlagMask: 0,
+    properties: {
+      description: '', definition: '', ownerId: '', lastUpdated: '', lastUpdatedBy: '', setControlField: '', parentRecord: '',
+      relatedLanguageRecord: '', querySecurityRecord: '', analyticDeleteRecord: '', auditRecord: '', systemIdField: '',
+      timestampField: '', auxFlagMask: 0, recUse: 0, optTrigFlag: 'N'
+    }
+  };
 }

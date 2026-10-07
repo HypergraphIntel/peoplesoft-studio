@@ -86,12 +86,15 @@ Goal long-term: replace Application Designer. **Today this is a trusted reader a
 | **Saving PeopleCode** to Oracle | **Experimental**, on Writable connections — see [Saving PeopleCode](#saving-peoplecode-experimental) |
 | Settings panel (connections, compiler profile, MCP server) | Yes — *PeopleSoft: Open Settings* |
 | Record → field → PeopleCode event navigation | Yes |
-| **SQL definitions** as text | Read; save to Oracle on Writable connections for scratch definitions (as App Designer saves them) |
+| **SQL definitions** as text | Read; create and save to Oracle on Writable connections for scratch definitions (as App Designer saves them) |
+| **HTML definitions** as text | Read; create and save to Oracle on Writable connections for scratch definitions — see [docs/HTML_SAVE.md](docs/HTML_SAVE.md) |
+| **Style sheets** | Freeform: read as CSS; create and save to Oracle on Writable connections for scratch definitions — see [docs/STYLESHEET_SAVE.md](docs/STYLESHEET_SAVE.md). Classic / sub: read-only class list |
 | Record editor (App Designer's Field / Use / Edits displays, Record Type) | Read-only; editable for scratch records on Writable connections — see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md) |
 | Field editor (App Designer's Field dialog) | Read-only custom editor |
+| **New Definition...** (Projects / Definition Browser) | Records (SQL Table, Derived/Work), SQL, HTML, freeform style sheets — on Writable connections, scratch names |
 | Insert a definition into a project | On Writable connections — see [docs/PROJECT_INSERT.md](docs/PROJECT_INSERT.md) |
 | Translate values; Delete Record | On Writable connections, scratch fields and records — see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md) |
-| Definition **Properties** (packages, records, fields, components, pages, projects, menus, App Engine, SQL, HTML) | Read-only panel, from Oracle |
+| Definition **Properties** (packages, records, fields, components, pages, projects, menus, App Engine, SQL, HTML, style sheets) | Read-only panel, from Oracle |
 | Compare definition between two environments | Unavailable for now (one connection is active at a time) |
 | PeopleCode IntelliSense-lite | Completion, hover, outline, snippets |
 | PeopleCode syntax highlighting | Yes |
@@ -102,6 +105,7 @@ Goal long-term: replace Application Designer. **Today this is a trusted reader a
 - Saving PeopleCode outside `ZZ_PCODE_LAB` definitions (the current safety scope)
 - Comparing a definition across two environments (only one connection is active at a time)
 - Editing records beyond scratch SQL Table / Derived/Work records (subrecords, alternate search keys, other properties)
+- Creating fields, projects, Application Packages, pages, components, menus and App Engine programs
 - Page / component visual designers, App Engine editors
 - Project build/DDL, project-level migrate/copy
 - Full language server (go-to-definition across the environment, compile diagnostics)

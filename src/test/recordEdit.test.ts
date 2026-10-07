@@ -236,3 +236,28 @@ test('an SQL Table that never had a key saves with no key index (r26)', () => {
   assert.equal(plan.index, undefined);
   assert.equal(plan.indexCount, 0);
 });
+
+test('a new record plans as App Designer created R1 / R2 (r02, r35): new field rows, the key index from its keys', () => {
+  const stored = { recname: 'ZZ_PCODE_LAB_R9', recordType: RecordType.Table, version: 0, fields: [], indexes: [] };
+  const plan = planRecordSave(stored, {
+    recname: 'ZZ_PCODE_LAB_R9', recordType: RecordType.Table, openedVersion: 0, isNew: true,
+    fields: [
+      { name: 'ZZ_PCODE_LAB_KEY', useEdit: UseEdit.UseDefaultLabel | UseEdit.Key, useEdit2: 0, isNew: true },
+      { name: 'ZZ_PCODE_LAB_VAL', useEdit: UseEdit.UseDefaultLabel, useEdit2: 0, isNew: true }
+    ]
+  }, { ts: '2026-10-07 09:00:00.000000', operatorId: 'JARED' });
+  assert.equal(plan.fieldCount, 2);
+  assert.equal(plan.indexCount, 1);
+  assert.deepEqual(plan.fields.map((f) => [f.FIELDNUM, f.USEEDIT, f.DEFGUICONTROL, f.SUBRECORD]), [[1, 8388609, 99, 'N'], [2, 8388608, 99, 'N']]);
+  assert.deepEqual(plan.index!.keys.map((k) => [k.KEYPOSN, k.FIELDNAME]), [[1, 'ZZ_PCODE_LAB_KEY']]);
+  assert.equal(plan.index!.row.UNIQUEFLAG, 1);
+  assert.deepEqual(plan.removed, []);
+  // A Derived/Work record has no key index; nor does a keyless SQL Table (r02's R1).
+  const derived = planRecordSave({ ...stored, recordType: RecordType.DerivedWork }, {
+    recname: 'ZZ_PCODE_LAB_R9', recordType: RecordType.DerivedWork, openedVersion: 0, isNew: true,
+    fields: [{ name: 'ZZ_PCODE_LAB_KEY', useEdit: UseEdit.UseDefaultLabel, useEdit2: 0, isNew: true }]
+  }, { ts: '2026-10-07 09:00:00.000000', operatorId: 'JARED' });
+  assert.equal(derived.indexCount, 0);
+  assert.throws(() => planRecordSave(stored, { recname: 'ZZ_PCODE_LAB_R9', recordType: RecordType.Table, openedVersion: 0, isNew: true, fields: [] },
+    { ts: '2026-10-07 09:00:00.000000', operatorId: 'JARED' }), /at least one field/);
+});

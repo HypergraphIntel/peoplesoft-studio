@@ -11,6 +11,8 @@ import type { DefinitionReference } from './provider.js';
 import { saveProject, verifyProjectSave, type ProjectSaveRequest, type ProjectSaveResult } from './projectWriter.js';
 import { deleteRecord, saveRecord, verifyRecordSave, type RecordSaveRequest, type RecordSaveResult } from './recordWriter.js';
 import { saveTranslate as saveTranslateRows, type TranslateChange } from './translateWriter.js';
+import { saveStyleSheet as saveStyleSheetRows, verifyStyleSheetSave, type StyleSheetSaveRequest, type StyleSheetSaveResult } from './styleSheetWriter.js';
+import { saveHtmlDefinition as saveHtmlRows, verifyHtmlSave, type HtmlSaveRequest, type HtmlSaveResult } from './htmlWriter.js';
 import { saveSqlDefinition as saveSqlDefinitionRows, verifySqlSave, type SqlSaveRequest, type SqlSaveResult } from './sqlWriter.js';
 import {
   FieldType, RecordDefinition, RecordField, RecordType, describeField
@@ -65,7 +67,9 @@ export class OracleProvider implements DefinitionProvider {
     DefinitionType.Menu,
     DefinitionType.ApplicationPackage,
     DefinitionType.AppEngineProgram,
-    DefinitionType.SqlDefinition
+    DefinitionType.SqlDefinition,
+    DefinitionType.HtmlDefinition,
+    DefinitionType.StyleSheet
   ];
 
   private pool?: Pool;
@@ -265,6 +269,25 @@ export class OracleProvider implements DefinitionProvider {
           `SELECT SQLID AS NAME, '' AS DESCR, LASTUPDDTTM, LASTUPDOPRID
              FROM SYSADM.PSSQLDEFN WHERE SQLID LIKE :n AND SQLTYPE = 0`,
           DefinitionType.SqlDefinition, pattern, limit);
+      case DefinitionType.StyleSheet:
+        return this.searchSimple(
+          `SELECT STYLESHEETNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID
+             FROM SYSADM.PSSTYLSHEETDEFN WHERE STYLESHEETNAME LIKE :n`,
+          DefinitionType.StyleSheet, pattern, limit);
+      case DefinitionType.HtmlDefinition:
+        // HTML only (CONTTYPE 4); images and style sheets share PSCONTDEFN.
+        return this.withConnection(async (c) => {
+          const r = await c.execute<{ NAME: string; DESCR: string; LASTUPDDTTM: Date; LASTUPDOPRID: string }>(
+            `SELECT CONTNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM SYSADM.PSCONTDEFN
+              WHERE CONTNAME LIKE :n AND CONTTYPE = 4 AND ALTCONTNUM = 1 ORDER BY 1 FETCH FIRST :lim ROWS ONLY`,
+            { n: pattern, lim: limit });
+          return (r.rows ?? []).map((row) => ({
+            key: makeKey(DefinitionType.HtmlDefinition, row.NAME, '4'),
+            description: row.DESCR?.trim() || undefined,
+            lastUpdated: row.LASTUPDDTTM,
+            lastUpdatedBy: row.LASTUPDOPRID?.trim()
+          }));
+        });
       default:
         throw new UnsupportedOperationError(
           `searching definition type ${query.type}`, this.displayName);
@@ -403,6 +426,23 @@ export class OracleProvider implements DefinitionProvider {
     });
   }
 
+  /** Whether a record name is free, taken, or was deleted before (PSRECDEL: not re-created here). */
+  async recordNameStatus(recname: string): Promise<'free' | 'exists' | 'deleted'> {
+    return this.withConnection(async (c) => {
+      const r = await c.execute<{ D: number; X: number }>(
+        `SELECT (SELECT COUNT(*) FROM SYSADM.PSRECDEFN WHERE RECNAME = :r) AS D, (SELECT COUNT(*) FROM SYSADM.PSRECDEL WHERE RECNAME = :r) AS X FROM DUAL`,
+        { r: recname });
+      const row = r.rows?.[0];
+      return Number(row?.D) > 0 ? 'exists' : Number(row?.X) > 0 ? 'deleted' : 'free';
+    });
+  }
+
+  /** Whether any SQL definition row (of any SQL type) uses the ID. */
+  async sqlIdTaken(sqlId: string): Promise<boolean> {
+    return this.withConnection(async (c) => Number((await c.execute<{ N: number }>(
+      `SELECT COUNT(*) AS N FROM SYSADM.PSSQLDEFN WHERE SQLID = :id`, { id: sqlId })).rows?.[0]?.N ?? 0) > 0);
+  }
+
   /**
    * Saves an SQL definition's text as App Designer does (sqlWriter.ts): one
    * transaction, then verified again on another connection after COMMIT.
@@ -410,6 +450,80 @@ export class OracleProvider implements DefinitionProvider {
   async saveSqlDefinition(request: SqlSaveRequest): Promise<SqlSaveResult> {
     const result = await this.withConnection((c) => saveSqlDefinitionRows(c, request));
     await this.withConnection((c) => verifySqlSave(c, request, result));
+    return result;
+  }
+
+  /**
+   * A style sheet as text. A freeform one is its CSS (PSCONTENT, CONTTYPE 9);
+   * a classic or sub style sheet is style classes, not text, so it reads as a
+   * summary of them (its class attributes are not decoded).
+   */
+  private async readStyleSheet(key: DefinitionKey): Promise<string> {
+    const name = key.parts[0];
+    const head = await this.withConnection(async (c) => (await c.execute<{ T: number; P: string; D: string; N: number }>(
+      `SELECT STYLESHEETTYPE AS T, PARENTSTYLENAME AS P, DESCR AS D, NUMSTYLECLASS AS N FROM SYSADM.PSSTYLSHEETDEFN WHERE STYLESHEETNAME = :n`,
+      { n: name })).rows?.[0]);
+    if (!head) throw new ProviderError(`No style sheet named ${name}.`);
+    if (Number(head.T) === 2) return this.readContent(name, 9, `text for style sheet ${name}`);
+    // SUBSTYLESHEET 1 marks a row naming an included sub style sheet (270 of 3,490), not a class.
+    const classes = await this.withConnection(async (c) => (await c.execute<{ C: string; S: number }>(
+      `SELECT STYLECLASSNAME AS C, SUBSTYLESHEET AS S FROM SYSADM.PSSTYLECLASS WHERE STYLESHEETNAME = :n ORDER BY SEQNO, STYLECLASSNAME`,
+      { n: name })).rows ?? []);
+    const t = (v: string | null | undefined) => (v ?? '').trim();
+    const subs = classes.filter((x) => Number(x.S) === 1).map((x) => t(x.C));
+    const own = classes.filter((x) => Number(x.S) !== 1);
+    return [
+      `/* ${name}: ${Number(head.T) === 1 ? 'Sub Style Sheet' : 'Style Sheet'} (read-only).`,
+      ' * Its style classes are structured definitions, not text; their attributes are not shown here yet.',
+      t(head.D) ? ` * Description: ${t(head.D)}` : '',
+      t(head.P) ? ` * Parent style sheet: ${t(head.P)}` : '',
+      ` * Style classes (${own.length}):`,
+      ...own.map((x) => ` *   ${t(x.C)}`),
+      subs.length ? ` * Sub style sheets: ${subs.join(', ')}` : '',
+      ' */',
+      ''
+    ].filter((line) => line !== '').join('\n') + '\n';
+  }
+
+  /** A freeform style sheet's text with the version a save must present; undefined when there is none or it is not freeform. */
+  async readStyleSheetForEdit(key: DefinitionKey): Promise<{ text: string; version: number } | 'classic' | undefined> {
+    const row = await this.withConnection(async (c) => (await c.execute<{ VERSION: number; T: number }>(
+      `SELECT VERSION, STYLESHEETTYPE AS T FROM SYSADM.PSSTYLSHEETDEFN WHERE STYLESHEETNAME = :n`, { n: key.parts[0] })).rows?.[0]);
+    if (!row) return undefined;
+    if (Number(row.T) !== 2) return 'classic';
+    return { text: await this.readContent(key.parts[0], 9, `text for style sheet ${key.parts[0]}`), version: Number(row.VERSION) };
+  }
+
+  /**
+   * Saves or creates a freeform style sheet as App Designer does
+   * (styleSheetWriter.ts): one transaction, verified again after COMMIT.
+   */
+  async saveStyleSheet(request: StyleSheetSaveRequest): Promise<StyleSheetSaveResult> {
+    const oracledb = await loadOracleDb();
+    const result = await this.withConnection((c) => saveStyleSheetRows(c, oracledb.BLOB, request));
+    await this.withConnection((c) => verifyStyleSheetSave(c, request, result));
+    return result;
+  }
+
+  /** An HTML definition's text with the version a save must present; undefined when there is none. */
+  async readHtmlForEdit(key: DefinitionKey): Promise<{ text: string; version: number } | undefined> {
+    return this.withConnection(async (c) => {
+      const d = await c.execute<{ VERSION: number }>(
+        `SELECT VERSION FROM SYSADM.PSCONTDEFN WHERE CONTNAME = :n AND CONTTYPE = :t AND ALTCONTNUM = 1`,
+        { n: key.parts[0], t: Number(key.parts[1] ?? 4) });
+      if (!d.rows?.[0]) return undefined;
+      return { text: await this.readHtmlDefinition(key), version: Number(d.rows[0].VERSION) };
+    });
+  }
+
+  /**
+   * Saves or creates an HTML definition as App Designer does (htmlWriter.ts):
+   * one transaction, then verified again on another connection after COMMIT.
+   */
+  async saveHtmlDefinition(request: HtmlSaveRequest): Promise<HtmlSaveResult> {
+    const oracledb = await loadOracleDb();
+    const result = await this.withConnection((c) => saveHtmlRows(c, oracledb.BLOB, request));
+    await this.withConnection((c) => verifyHtmlSave(c, request, result));
     return result;
   }
 
@@ -435,6 +549,7 @@ export class OracleProvider implements DefinitionProvider {
     switch (key.type) {
       case DefinitionType.SqlDefinition: return this.readSqlDefinition(key);
       case DefinitionType.HtmlDefinition: return this.readHtmlDefinition(key);
+      case DefinitionType.StyleSheet: return this.readStyleSheet(key);
       case DefinitionType.Field: return this.readFieldSummary(key);
       case DefinitionType.Menu: return this.readMenuSummary(key);
       case DefinitionType.Page: return this.readPageSummary(key);
@@ -447,7 +562,7 @@ export class OracleProvider implements DefinitionProvider {
 
   canReadAsText(type: DefinitionType): boolean {
     return isPeopleCode(type) || [
-      DefinitionType.SqlDefinition, DefinitionType.HtmlDefinition, DefinitionType.Field,
+      DefinitionType.SqlDefinition, DefinitionType.HtmlDefinition, DefinitionType.StyleSheet, DefinitionType.Field,
       DefinitionType.Menu, DefinitionType.Page, DefinitionType.Component
     ].includes(type);
   }
@@ -458,19 +573,26 @@ export class OracleProvider implements DefinitionProvider {
    * The key's second part is CONTTYPE, not a language/market flag as its
    * PeopleTools name might suggest -- confirmed against
    * OU_OJET_REN_DA_BODY_HTML.4, whose only PSCONTENT row has CONTTYPE 4.
-   * CONTDATA is chunked (SEQNUM) and stored UTF-16LE, the same as PeopleCode
-   * source and SQL text elsewhere in PeopleTools.
+   * CONTDATA is chunked (SEQNUM from 0, 32,000 bytes a chunk but the last)
+   * and stored UTF-16LE, the same as PeopleCode source and SQL text elsewhere
+   * in PeopleTools.
    */
   private async readHtmlDefinition(key: DefinitionKey): Promise<string> {
     const [name, contType] = key.parts;
+    return this.readContent(name, Number(contType), `HTML definition named ${name}.${contType}`);
+  }
+
+  /** PSCONTENT text, NUL terminator dropped. */
+  private async readContent(name: string, contType: number, what: string): Promise<string> {
     return this.withConnection(async (c) => {
       const r = await c.execute<{ CONTDATA: Buffer }>(
         `SELECT CONTDATA FROM SYSADM.PSCONTENT
           WHERE CONTNAME = :n AND CONTTYPE = :t ORDER BY ALTCONTNUM, SEQNUM`,
-        { n: name, t: Number(contType) });
+        { n: name, t: contType });
       const rows = r.rows ?? [];
-      if (rows.length === 0) throw new ProviderError(`No HTML definition named ${name}.${contType}.`);
-      return Buffer.concat(rows.map((row) => row.CONTDATA)).toString('utf16le');
+      if (rows.length === 0) throw new ProviderError(`No ${what}.`);
+      // 2,331 of HRDMO's 3,142 end in one NUL terminator, never shown.
+      return Buffer.concat(rows.map((row) => row.CONTDATA)).toString('utf16le').replace(/\0$/, '');
     });
   }
 

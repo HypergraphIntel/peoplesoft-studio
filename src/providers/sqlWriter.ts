@@ -18,7 +18,11 @@ import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCo
  *   PSVERSION       SRM + 1, SYS + 1
  *   PSLOCK          SRM + 1
  *
- * Scope: existing SQL definitions (SQLTYPE 0) under ZZ_PCODE_LAB, text in one
+ * Creating one (r33) inserts the same four rows: PSSQLDEFN (VERSION = new SRM,
+ * ENABLEEFFDT 'N', OBJECTOWNERID ' '), PSSQLDESCR (DESCR ' ', DESCRLONG null),
+ * PSSQLHASH and PSSQLTEXTDEFN, with the same counters.
+ *
+ * Scope: SQL definitions (SQLTYPE 0) under ZZ_PCODE_LAB, text in one
  * PSSQLTEXTDEFN row (at most 14,000 characters: how longer text is split is
  * not established), one GBL / ' ' / 1900-01-01 text and description row.
  */
@@ -38,8 +42,8 @@ const EFFDT = '1900-01-01';
 export interface SqlSaveRequest {
   sqlId: string;
   text: string;
-  /** PSSQLDEFN.VERSION when the text was opened; the save is refused if it moved. */
-  openedVersion: number;
+  /** PSSQLDEFN.VERSION when the text was opened, the save refused if it moved; undefined creates the definition. */
+  openedVersion?: number;
   operatorId: string;
 }
 
@@ -47,6 +51,7 @@ export interface SqlSaveResult {
   version: number;
   lastupddttm: string;
   hashSignature: string;
+  created: boolean;
 }
 
 interface Counters { srm: number; sys: number; lockSrm: number }
@@ -86,26 +91,36 @@ export async function saveSqlDefinition(c: Connection, request: SqlSaveRequest):
       throw new SqlSaveRefusedError(`SQL longer than ${SQL_TEXT_ROW_LIMIT} characters is not saved here yet (how App Designer splits it is not established).`);
     }
 
-    const [defn] = await select<{ VERSION: number }>(c,
-      `SELECT VERSION FROM SYSADM.PSSQLDEFN WHERE SQLID = :id AND SQLTYPE = 0 FOR UPDATE`, { id });
-    if (!defn) throw new SqlSaveRefusedError(`There is no SQL definition named ${id}; creating one is not supported yet.`);
-    if (Number(defn.VERSION) !== request.openedVersion) {
-      throw new SqlSaveRefusedError(`${id} was saved since it was opened (version ${defn.VERSION}, not ${request.openedVersion}). Reopen it and reapply your edit.`);
-    }
-    const shape = await select<{ TABLE_: string; N: number; ODD: number }>(c,
-      `SELECT 'TEXT' AS TABLE_, COUNT(*) AS N,
-              SUM(CASE WHEN MARKET = :m AND DBTYPE = :d AND TO_CHAR(EFFDT, 'YYYY-MM-DD') = :e AND SEQNUM = 0 THEN 0 ELSE 1 END) AS ODD
-         FROM SYSADM.PSSQLTEXTDEFN WHERE SQLID = :id AND SQLTYPE = 0
-       UNION ALL
-       SELECT 'DESCR', COUNT(*), SUM(CASE WHEN MARKET = :m AND DBTYPE = :d AND TO_CHAR(EFFDT, 'YYYY-MM-DD') = :e THEN 0 ELSE 1 END)
-         FROM SYSADM.PSSQLDESCR WHERE SQLID = :id AND SQLTYPE = 0
-       UNION ALL
-       SELECT 'HASH', COUNT(*), SUM(CASE WHEN MARKET = :m AND DBTYPE = :d AND TO_CHAR(EFFDT, 'YYYY-MM-DD') = :e THEN 0 ELSE 1 END)
-         FROM SYSADM.PSSQLHASH WHERE SQLID = :id AND SQLTYPE = 0`,
-      { id, m: MARKET, d: DBTYPE, e: EFFDT });
-    for (const s of shape) {
-      if (Number(s.N) !== 1 || Number(s.ODD ?? 0) !== 0) {
-        throw new SqlSaveRefusedError(`${id} is not a single GBL / 1900-01-01 SQL text (its ${s.TABLE_.trim().toLowerCase()} rows differ); not saved here yet.`);
+    const create = request.openedVersion === undefined;
+    if (create) {
+      if (!/^[A-Z0-9_]{1,30}$/.test(id)) throw new SqlSaveRefusedError(`${id} is not a valid definition name (A-Z, 0-9, _; at most 30).`);
+      const [{ N: taken }] = await select<{ N: number }>(c,
+        `SELECT (SELECT COUNT(*) FROM SYSADM.PSSQLDEFN WHERE SQLID = :id) + (SELECT COUNT(*) FROM SYSADM.PSSQLDESCR WHERE SQLID = :id)
+              + (SELECT COUNT(*) FROM SYSADM.PSSQLTEXTDEFN WHERE SQLID = :id) + (SELECT COUNT(*) FROM SYSADM.PSSQLHASH WHERE SQLID = :id) AS N FROM DUAL`,
+        { id });
+      if (Number(taken) > 0) throw new SqlSaveRefusedError(`An SQL definition named ${id} (of some SQL type) already exists, or left rows behind.`);
+    } else {
+      const [defn] = await select<{ VERSION: number }>(c,
+        `SELECT VERSION FROM SYSADM.PSSQLDEFN WHERE SQLID = :id AND SQLTYPE = 0 FOR UPDATE`, { id });
+      if (!defn) throw new SqlSaveRefusedError(`There is no SQL definition named ${id} (it may have been deleted since it was opened).`);
+      if (Number(defn.VERSION) !== request.openedVersion) {
+        throw new SqlSaveRefusedError(`${id} was saved since it was opened (version ${defn.VERSION}, not ${request.openedVersion}). Reopen it and reapply your edit.`);
+      }
+      const shape = await select<{ TABLE_: string; N: number; ODD: number }>(c,
+        `SELECT 'TEXT' AS TABLE_, COUNT(*) AS N,
+                SUM(CASE WHEN MARKET = :m AND DBTYPE = :d AND TO_CHAR(EFFDT, 'YYYY-MM-DD') = :e AND SEQNUM = 0 THEN 0 ELSE 1 END) AS ODD
+           FROM SYSADM.PSSQLTEXTDEFN WHERE SQLID = :id AND SQLTYPE = 0
+         UNION ALL
+         SELECT 'DESCR', COUNT(*), SUM(CASE WHEN MARKET = :m AND DBTYPE = :d AND TO_CHAR(EFFDT, 'YYYY-MM-DD') = :e THEN 0 ELSE 1 END)
+           FROM SYSADM.PSSQLDESCR WHERE SQLID = :id AND SQLTYPE = 0
+         UNION ALL
+         SELECT 'HASH', COUNT(*), SUM(CASE WHEN MARKET = :m AND DBTYPE = :d AND TO_CHAR(EFFDT, 'YYYY-MM-DD') = :e THEN 0 ELSE 1 END)
+           FROM SYSADM.PSSQLHASH WHERE SQLID = :id AND SQLTYPE = 0`,
+        { id, m: MARKET, d: DBTYPE, e: EFFDT });
+      for (const s of shape) {
+        if (Number(s.N) !== 1 || Number(s.ODD ?? 0) !== 0) {
+          throw new SqlSaveRefusedError(`${id} is not a single GBL / 1900-01-01 SQL text (its ${s.TABLE_.trim().toLowerCase()} rows differ); not saved here yet.`);
+        }
       }
     }
     if (!(await operatorExists(c, request.operatorId))) {
@@ -119,23 +134,38 @@ export async function saveSqlDefinition(c: Connection, request: SqlSaveRequest):
     const hashSignature = predictSourceSignature(text);
     const key = { id, m: MARKET, d: DBTYPE, e: EFFDT };
 
-    await expectRows(c,
-      `UPDATE SYSADM.PSSQLDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
-        WHERE SQLID = :id AND SQLTYPE = 0`,
-      { v: next.srm, ts: lastupddttm, op: request.operatorId, id }, 1, 'Updating PSSQLDEFN');
-    await expectRows(c, `DELETE FROM SYSADM.PSSQLTEXTDEFN WHERE SQLID = :id AND SQLTYPE = 0`, { id }, 1, 'Deleting PSSQLTEXTDEFN');
+    if (create) {
+      await expectRows(c,
+        `INSERT INTO SYSADM.PSSQLDEFN (SQLID, SQLTYPE, VERSION, LASTUPDOPRID, LASTUPDDTTM, ENABLEEFFDT, OBJECTOWNERID)
+         VALUES (:id, '0', :v, :op, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), 'N', ' ')`,
+        { v: next.srm, ts: lastupddttm, op: request.operatorId, id }, 1, 'Inserting PSSQLDEFN');
+      await expectRows(c,
+        `INSERT INTO SYSADM.PSSQLDESCR (SQLID, SQLTYPE, MARKET, DBTYPE, EFFDT, DESCR, DESCRLONG)
+         VALUES (:id, '0', :m, :d, TO_DATE(:e, 'YYYY-MM-DD'), ' ', NULL)`, key, 1, 'Inserting PSSQLDESCR');
+      await expectRows(c,
+        `INSERT INTO SYSADM.PSSQLHASH (SQLID, SQLTYPE, MARKET, DBTYPE, EFFDT, HASH_SIGNATURE)
+         VALUES (:id, '0', :m, :d, TO_DATE(:e, 'YYYY-MM-DD'), :h)`, { ...key, h: hashSignature }, 1, 'Inserting PSSQLHASH');
+    } else {
+      await expectRows(c,
+        `UPDATE SYSADM.PSSQLDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
+          WHERE SQLID = :id AND SQLTYPE = 0`,
+        { v: next.srm, ts: lastupddttm, op: request.operatorId, id }, 1, 'Updating PSSQLDEFN');
+      await expectRows(c, `DELETE FROM SYSADM.PSSQLTEXTDEFN WHERE SQLID = :id AND SQLTYPE = 0`, { id }, 1, 'Deleting PSSQLTEXTDEFN');
+    }
     await expectRows(c,
       `INSERT INTO SYSADM.PSSQLTEXTDEFN (SQLID, SQLTYPE, MARKET, DBTYPE, EFFDT, SEQNUM, SQLTEXT)
        VALUES (:id, 0, :m, :d, TO_DATE(:e, 'YYYY-MM-DD'), 0, :t)`, { ...key, t: text }, 1, 'Inserting PSSQLTEXTDEFN');
-    await expectRows(c,
-      `UPDATE SYSADM.PSSQLHASH SET HASH_SIGNATURE = :h
-        WHERE SQLID = :id AND SQLTYPE = 0 AND MARKET = :m AND DBTYPE = :d AND EFFDT = TO_DATE(:e, 'YYYY-MM-DD')`,
-      { ...key, h: hashSignature }, 1, 'Updating PSSQLHASH');
+    if (!create) {
+      await expectRows(c,
+        `UPDATE SYSADM.PSSQLHASH SET HASH_SIGNATURE = :h
+          WHERE SQLID = :id AND SQLTYPE = 0 AND MARKET = :m AND DBTYPE = :d AND EFFDT = TO_DATE(:e, 'YYYY-MM-DD')`,
+        { ...key, h: hashSignature }, 1, 'Updating PSSQLHASH');
+    }
     await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SRM'`, { v: next.srm }, 1, 'Updating PSVERSION SRM');
     await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
     await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'SRM'`, { v: next.lockSrm }, 1, 'Updating PSLOCK SRM');
 
-    const result: SqlSaveResult = { version: next.srm, lastupddttm, hashSignature };
+    const result: SqlSaveResult = { version: next.srm, lastupddttm, hashSignature, created: create };
     await verifySqlSave(c, request, result);
     const now = await readCounters(c, false);
     if (now.srm !== next.srm || now.sys !== next.sys || now.lockSrm !== next.lockSrm) {

@@ -79,6 +79,9 @@ const named = (names: Readonly<Record<number, string>>) => (value: unknown): str
   return names[n] !== undefined ? `${names[n]} (${n})` : String(value);
 };
 
+/** PSSTYLSHEETDEFN.STYLESHEETTYPE: the 510 type 2 are exactly the freeform (PSCONTDEFN CONTTYPE 9) ones. */
+const STYLE_SHEET_TYPE_NAMES: Readonly<Record<number, string>> = { 0: 'Style Sheet', 1: 'Sub Style Sheet', 2: 'Freeform Style Sheet' };
+
 const RECORD_TYPE_NAMES: Readonly<Record<number, string>> = {
   [RecordType.Table]: 'SQL Table',
   [RecordType.View]: 'SQL View',
@@ -261,6 +264,18 @@ export const PROPERTIES_SPECS: Readonly<Partial<Record<DefinitionType, Propertie
       { column: 'URL', label: 'URL' },
       { column: 'ALTCONTNUM', label: 'Alternate Content Number' },
       { column: 'COMPALG', label: 'Compression (stored value)' }
+    ]
+  },
+  [DefinitionType.StyleSheet]: {
+    kind: 'Style Sheet',
+    table: 'PSSTYLSHEETDEFN',
+    where: (key) => ({ STYLESHEETNAME: key.parts[0] }),
+    description: 'DESCR',
+    title: 'Style Sheet',
+    fields: [
+      { column: 'STYLESHEETTYPE', label: 'Style Sheet Type', format: named(STYLE_SHEET_TYPE_NAMES) },
+      { column: 'PARENTSTYLENAME', label: 'Parent Style Sheet' },
+      { column: 'NUMSTYLECLASS', label: 'Style Classes' }
     ]
   }
 };

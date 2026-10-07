@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.7.4
+
+### Added
+
+- **New Definition...** in the Projects view (its empty-state button and
+  title bar) and the Definition Browser's title bar: pick the type, then
+  name it. Records (SQL Table or Derived/Work: the record editor opens
+  empty, and the first save creates the record with its fields, keys and
+  tablespace), SQL definitions, HTML definitions and freeform style sheets
+  can be created, each as App Designer creates them; the other types are
+  listed as not available yet. Scratch names (`ZZ_PCODE_LAB%`) for now.
+- **Style Sheets**: in the Open Definition dialog, with a Properties panel
+  and Insert Into Project. Freeform style sheets open as CSS and, on a
+  Writable connection, save with Ctrl+S; *PeopleSoft: New Style Sheet...*
+  creates one on its first save. Both write what App Designer writes (the
+  style sheet and content rows, the text, the SSM and SYS version
+  counters). Scratch definitions (`ZZ_PCODE_LAB%`) for now. Classic and sub
+  style sheets open read-only, listing their style classes. See
+  [docs/STYLESHEET_SAVE.md](docs/STYLESHEET_SAVE.md).
+- **HTML Definitions** in the Open Definition dialog.
+- **HTML definitions** can be edited and created. On a Writable connection,
+  an HTML definition opened from the tree saves with Ctrl+S, and
+  *PeopleSoft: New HTML Definition...* opens an empty editor that the first
+  save creates. Both write what App Designer writes (the definition row,
+  the text in 32,000-byte chunks, the CRM and SYS version counters). Scratch
+  definitions (`ZZ_PCODE_LAB%`) for now. See
+  [docs/HTML_SAVE.md](docs/HTML_SAVE.md).
+
+### Fixed
+
+- HTML definitions opened with a stray NUL character at the end (most
+  stored HTML ends in a NUL terminator).
+
 ## 0.7.3
 
 ### Added

@@ -108,6 +108,97 @@ const dbRow = (row: Row, recname: string): Row => ({ ...row, RECNAME_PARENT: rec
  * Saves the record and commits, or rolls back and throws. The caller
  * verifies again after COMMIT (verifyRecordSave).
  */
+/**
+ * A new record's PSRECDEFN row, as App Designer inserted ZZ_PCODE_LAB_R1 (r02)
+ * and R2 (r35): blank names, BUILDSEQNO 1 (21,272 of 21,345 SQL Tables, 5,503
+ * of 5,540 Derived/Work), OPTTRIGFLAG 'N', no long description.
+ */
+export const NEW_RECDEFN_VALUES: Readonly<Row> = {
+  DDLCOUNT: 0, AUDITRECNAME: ' ', RECUSE: 0, SETCNTRLFLD: ' ', RELLANGRECNAME: ' ', OPTDELRECNAME: ' ', RECDESCR: ' ',
+  PARENTRECNAME: ' ', QRYSECRECNAME: ' ', SQLTABLENAME: ' ', BUILDSEQNO: 1, OPTTRIGFLAG: 'N', OBJECTOWNERID: ' ',
+  SYSTEMIDFIELDNAME: ' ', TIMESTAMPFIELDNAME: ' ', AUXFLAGMASK: 0, DESCRLONG: null
+};
+
+/**
+ * Creating a record, as App Designer's first save of a new one does (r02,
+ * r35; docs/RECORD_SAVE.md): PSRECDEFN, PSRECFIELD / PSRECFIELDDB, the key
+ * index and keys when it has keys, and for an SQL Table its PSRECTBLSPC row
+ * (every SQL Table has one, no Derived/Work record does) in the tablespace
+ * catalog's first entry (AAAPP on HRDMO, as R1 and R4 got); PSVERSION RDM,
+ * SYS + 1, PSLOCK RDM + 1.
+ */
+async function createRecord(c: Connection, request: RecordSaveRequest): Promise<RecordSaveResult> {
+  const edit = request.edit;
+  const recname = edit.recname;
+  if (!/^[A-Z0-9_]{1,15}$/.test(recname)) throw new RecordSaveRefusedError(`${recname} is not a valid record name (A-Z, 0-9, _; at most 15).`);
+  if (edit.recordType !== RecordType.Table && edit.recordType !== RecordType.DerivedWork) {
+    throw new RecordSaveRefusedError('Only SQL Table and Derived/Work records can be created here yet.');
+  }
+  if (edit.fields.some((f) => !f.isNew)) throw new RecordSaveRefusedError('A new record has only new fields.');
+  const tables: Tables = {
+    recfield: await columnsOf(c, 'PSRECFIELD'), recfielddb: await columnsOf(c, 'PSRECFIELDDB'),
+    index: await columnsOf(c, 'PSINDEXDEFN'), key: await columnsOf(c, 'PSKEYDEFN')
+  };
+  const [{ N: taken }] = await select<{ N: number }>(c,
+    `SELECT (SELECT COUNT(*) FROM SYSADM.PSRECDEFN WHERE RECNAME = :r) + (SELECT COUNT(*) FROM SYSADM.PSRECFIELD WHERE RECNAME = :r)
+          + (SELECT COUNT(*) FROM SYSADM.PSRECFIELDDB WHERE RECNAME = :r) + (SELECT COUNT(*) FROM SYSADM.PSINDEXDEFN WHERE RECNAME = :r)
+          + (SELECT COUNT(*) FROM SYSADM.PSRECTBLSPC WHERE RECNAME = :r) AS N FROM DUAL`, { r: recname });
+  if (Number(taken) > 0) throw new RecordSaveRefusedError(`A record named ${recname} already exists, or left rows behind.`);
+  const [{ N: deleted }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSRECDEL WHERE RECNAME = :r`, { r: recname });
+  if (Number(deleted) > 0) {
+    throw new RecordSaveRefusedError(`${recname} was deleted before (PSRECDEL); how App Designer re-creates a deleted name is not established, so choose another name.`);
+  }
+  for (const f of edit.fields) {
+    const [{ N }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f`, { f: f.name });
+    if (Number(N) === 0) throw new RecordSaveRefusedError(`There is no field named ${f.name}.`);
+  }
+  const [space] = edit.recordType === RecordType.Table
+    ? await select<{ DDLSPACENAME: string; DBNAME: string }>(c,
+      `SELECT DDLSPACENAME, DBNAME FROM SYSADM.PSTBLSPCCAT ORDER BY DDLSPACENAME FETCH FIRST 1 ROWS ONLY`)
+    : [undefined];
+  if (edit.recordType === RecordType.Table && !space) throw new RecordSaveRefusedError('The tablespace catalog (PSTBLSPCCAT) is empty; refusing to write.');
+  if (!(await operatorExists(c, request.operatorId))) {
+    throw new RecordSaveRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
+  }
+
+  const counters = await readCounters(c, true);
+  const [{ TS: lastupddttm }] = await select<{ TS: string }>(c,
+    `SELECT TO_CHAR(CAST(SYSTIMESTAMP AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS FROM DUAL`);
+  const stored: StoredRecord = { recname, recordType: edit.recordType, version: 0, fields: [], indexes: [], defn: { ...NEW_RECDEFN_VALUES } };
+  const plan = planRecordSave(stored, edit, { ts: lastupddttm, operatorId: request.operatorId });
+  const next: Counters = { ...counters, rdm: counters.rdm + 1, sys: counters.sys + 1, lockRdm: counters.lockRdm + 1 };
+
+  await insertRow(c, 'PSRECDEFN', await columnsOf(c, 'PSRECDEFN'), {
+    RECNAME: recname, FIELDCOUNT: plan.fieldCount, INDEXCOUNT: plan.indexCount, VERSION: next.rdm, RECTYPE: edit.recordType,
+    ...NEW_RECDEFN_VALUES, ...plan.recordColumns, LASTUPDDTTM: lastupddttm, LASTUPDOPRID: request.operatorId
+  });
+  for (const row of plan.fields) await insertRow(c, 'PSRECFIELD', tables.recfield, row);
+  for (const row of plan.fields) await insertRow(c, 'PSRECFIELDDB', tables.recfielddb, dbRow(row, recname));
+  if (plan.index) {
+    await insertRow(c, 'PSINDEXDEFN', tables.index, plan.index.row);
+    for (const k of plan.index.keys) await insertRow(c, 'PSKEYDEFN', tables.key, k);
+  }
+  if (space) {
+    await expectRows(c,
+      `INSERT INTO SYSADM.PSRECTBLSPC (DDLSPACENAME, DBNAME, RECNAME, DBTYPE, TEMPTBLINST, PT_TS_LOCK_TYPE, PT_UTS_ENABLED)
+       VALUES (:s, :d, :r, ' ', 'N', ' ', ' ')`, { s: space.DDLSPACENAME, d: space.DBNAME, r: recname }, 1, 'Inserting PSRECTBLSPC');
+  }
+  await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'RDM'`, { v: next.rdm }, 1, 'Updating PSVERSION RDM');
+  await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys }, 1, 'Updating PSVERSION SYS');
+  await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'RDM'`, { v: next.lockRdm }, 1, 'Updating PSLOCK RDM');
+
+  const result: RecordSaveResult = { version: next.rdm, lastupddttm, plan, languageReferrers: [] };
+  await verifyRecordSave(c, request, result);
+  const [{ N: spaces }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSRECTBLSPC WHERE RECNAME = :r`, { r: recname });
+  if (Number(spaces) !== (space ? 1 : 0)) throw new RecordSaveRefusedError(`PSRECTBLSPC has ${spaces} rows for ${recname}; rolled back.`);
+  const now = await readCounters(c, false);
+  if ((Object.keys(next) as (keyof Counters)[]).some((k) => now[k] !== next[k])) {
+    throw new RecordSaveRefusedError(`counters ${JSON.stringify(now)}, ${JSON.stringify(next)} expected; rolled back.`);
+  }
+  await c.commit();
+  return result;
+}
+
 export async function saveRecord(c: Connection, request: RecordSaveRequest): Promise<RecordSaveResult> {
   const recname = request.edit.recname;
   try {
@@ -116,6 +207,7 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
     if (!isScratchName(recname)) {
       throw new RecordSaveRefusedError(`${recname} is outside ZZ_PCODE_LAB: saving records is limited to scratch records for now.`);
     }
+    if (request.edit.isNew) return await createRecord(c, request);
     const tables: Tables = {
       recfield: await columnsOf(c, 'PSRECFIELD'), recfielddb: await columnsOf(c, 'PSRECFIELDDB'),
       index: await columnsOf(c, 'PSINDEXDEFN'), key: await columnsOf(c, 'PSKEYDEFN')

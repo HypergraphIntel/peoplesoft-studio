@@ -350,6 +350,34 @@ definitions with one GBL / 1900-01-01 text row of at most 14,000
 characters; lines are stored CRLF (all 46 multi-line delivered texts) and
 without trailing whitespace; `HASH_SIGNATURE` is the PSPCMTXT algorithm
 (r28, r33, r34 reproduced). Native case rd8 wrote the r34 shape.
+It also creates one as r33 did (`PSSQLDEFN` with `ENABLEEFFDT` 'N',
+`PSSQLDESCR` with a blank description, `PSSQLHASH`, `PSSQLTEXTDEFN`; SRM,
+SYS, PSLOCK SRM + 1): direct case x12 (ZZ_PCODE_LAB_SQL2) wrote those rows,
+its `HASH_SIGNATURE` identical to r33's for the same text.
+
+## Creating a record
+
+App Designer's first save of a new record (R1 in r02, created from
+scratch; R2 in r35, by Save As) inserts:
+
+- `PSRECDEFN`: VERSION = the new RDM, FIELDCOUNT / INDEXCOUNT, RECTYPE,
+  blank names, `BUILDSEQNO` 1 (21,272 of 21,345 SQL Tables, 5,503 of 5,540
+  Derived/Work), `OPTTRIGFLAG` 'N', `AUXFLAGMASK` 0, no `DESCRLONG`
+- `PSRECFIELD` / `PSRECFIELDDB`: the new-field rows a save inserts
+- `PSINDEXDEFN` / `PSKEYDEFN`: the key index, when there are keys
+- `PSRECTBLSPC` for an SQL Table (all 21,345 have one, no Derived/Work
+  record does): App Designer gave R1 and R4 AAAPP / PSHRDMOB, the first
+  entry of the tablespace catalog `PSTBLSPCCAT` (82 entries, by name)
+- PSVERSION RDM, SYS + 1; PSLOCK RDM + 1
+
+The record writer creates scratch SQL Table and Derived/Work records this
+way (`createRecord`); direct case x13 (ZZ_PCODE_LAB_R5, a key and a field)
+wrote those rows and counters. A name with a `PSRECDEL` row (deleted
+before) is refused: how App Designer re-creates one is not established.
+
+In VS Code: *New Definition... > Record* asks for the type and name and
+opens the record editor with no fields; Insert Field, set keys, and the
+first save creates the record.
 
 ## Record Type
 

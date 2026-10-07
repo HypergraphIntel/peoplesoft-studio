@@ -8,13 +8,13 @@ import { definitionContextValue } from '../views/contextValue.js';
 const section = (p: ReturnType<typeof buildProperties>, title: string) =>
   Object.fromEntries(p.sections.find((s) => s.title === title)!.items.map((i) => [i.label, i.value]));
 
-test('the ten App Designer types with a Properties dialog have a panel; PeopleCode has none', () => {
+test('the eleven App Designer types with a Properties dialog have a panel; PeopleCode has none', () => {
   for (const t of [
     DefinitionType.ApplicationPackage, DefinitionType.Record, DefinitionType.Field, DefinitionType.Component,
     DefinitionType.Page, DefinitionType.Project, DefinitionType.Menu, DefinitionType.AppEngineProgram,
-    DefinitionType.SqlDefinition, DefinitionType.HtmlDefinition
+    DefinitionType.SqlDefinition, DefinitionType.HtmlDefinition, DefinitionType.StyleSheet
   ]) assert.ok(hasProperties(t), String(t));
-  assert.equal(Object.keys(PROPERTIES_SPECS).length, 10);
+  assert.equal(Object.keys(PROPERTIES_SPECS).length, 11);
   assert.equal(hasProperties(DefinitionType.RecordPeopleCode), false);
 });
 

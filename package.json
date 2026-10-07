@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -94,7 +94,7 @@
       },
       {
         "view": "psft.projects",
-        "contents": "Connect to an environment, then open a project by name.\n[Open Definition...](command:psft.openDefinitionDialog)"
+        "contents": "Connect to an environment, then open a project by name.\n[Open Definition...](command:psft.openDefinitionDialog)\n[New Definition...](command:psft.newDefinition)"
       }
     ],
     "customEditors": [
@@ -125,6 +125,12 @@
         "title": "Open Definition...",
         "category": "PeopleSoft",
         "icon": "$(search)"
+      },
+      {
+        "command": "psft.newDefinition",
+        "title": "New Definition...",
+        "category": "PeopleSoft",
+        "icon": "$(new-file)"
       },
       {
         "command": "psft.refresh",
@@ -179,6 +185,21 @@
       {
         "command": "psft.insertIntoProject",
         "title": "Insert Into Project...",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.newHtmlDefinition",
+        "title": "New HTML Definition...",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.newSqlDefinition",
+        "title": "New SQL Definition...",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.newStyleSheet",
+        "title": "New Style Sheet...",
         "category": "PeopleSoft"
       },
       {
@@ -303,6 +324,11 @@
           "command": "psft.openDefinitionDialog",
           "when": "view == psft.projects || view == psft.browser",
           "group": "navigation@1"
+        },
+        {
+          "command": "psft.newDefinition",
+          "when": "view == psft.projects || view == psft.browser",
+          "group": "navigation@2"
         },
         {
           "command": "psft.addConnection",
