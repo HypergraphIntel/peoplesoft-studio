@@ -45,7 +45,7 @@ export const EDITABLE_USE_BITS = UseEdit.Key | UseEdit.DuplicateOrderKey | UseEd
   UseEdit.SearchEdit | UseEdit.ListBoxItem | UseEdit.FromSearchField | UseEdit.ThroughSearchField |
   UseEdit.DefaultSearchField | UseEdit.DisableAdvancedSearchOptions | UseEdit.AllowSearchEventsForPromptDialogs |
   UseEdit.AuditFieldAdd | UseEdit.AuditFieldChange | UseEdit.AuditFieldDelete | UseEdit.SystemMaintained |
-  UseEdit.Required | UseEdit.PromptTable | UseEdit.YesNoTable | UseEdit.TranslateTable | UseEdit.UseDefaultLabel;
+  UseEdit.Required | UseEdit.PromptTable | UseEdit.YesNoTable | UseEdit.TranslateTable | UseEdit.UseDefaultLabel | UseEdit.AutoUpdate;
 
 /** The USEEDIT2 bits an edit may change (r10, r15, r16). */
 export const EDITABLE_USE2_BITS: number = UseEdit2.DoNotTraceValue | UseEdit2.SmartPrompt | UseEdit2.SmartDropDown;
@@ -104,11 +104,14 @@ export interface RecordTypeEdits {
 
 /**
  * The record type changes App Designer has been seen to save: Derived/Work
- * to SQL Table (r26), SQL Table to SQL View (r28), and Derived/Work to SQL
- * View (r28 without the tablespace row a Derived/Work record does not have).
+ * to SQL Table (r26), SQL Table to SQL View (r28), Derived/Work to SQL View
+ * (r28 without the tablespace row a Derived/Work record does not have), and
+ * SQL Table to Derived/Work (r46).
  */
 export const RECORD_TYPE_CHANGES: ReadonlyArray<readonly [RecordType, RecordType]> = [
-  [RecordType.DerivedWork, RecordType.Table], [RecordType.Table, RecordType.View], [RecordType.DerivedWork, RecordType.View]
+  [RecordType.DerivedWork, RecordType.Table], [RecordType.Table, RecordType.View], [RecordType.DerivedWork, RecordType.View],
+  // r46: SQLTABLENAME cleared, the tablespace row deleted (and the key index, which no Derived/Work record has).
+  [RecordType.Table, RecordType.DerivedWork]
 ];
 
 const isViewType = (t: RecordType) => t === RecordType.View || t === RecordType.DynamicView;
@@ -164,11 +167,18 @@ export interface RecordPropertyEdits {
   analyticDeleteRecord?: string;
   toolsTable?: boolean;
   managed?: boolean;
+  /** AUDITRECNAME (r49). */
+  auditRecord?: string;
+  /** RECUSE, the audit options: RecordAuditOption bits (r49 set Add). */
+  recUse?: number;
+  /** TIMESTAMPFIELDNAME (r51); the field takes Auto-Update (USEEDIT 0x4000000), and a field it replaces loses it. */
+  timestampField?: string;
 }
 
 const PROPERTY_COLUMNS: Readonly<Record<string, string>> = {
   description: 'RECDESCR', ownerId: 'OBJECTOWNERID', setControlField: 'SETCNTRLFLD', parentRecord: 'PARENTRECNAME',
-  relatedLanguageRecord: 'RELLANGRECNAME', querySecurityRecord: 'QRYSECRECNAME', analyticDeleteRecord: 'OPTDELRECNAME'
+  relatedLanguageRecord: 'RELLANGRECNAME', querySecurityRecord: 'QRYSECRECNAME', analyticDeleteRecord: 'OPTDELRECNAME',
+  auditRecord: 'AUDITRECNAME', timestampField: 'TIMESTAMPFIELDNAME'
 };
 
 /** Changes Record Properties, validated as names / lengths App Designer allows. */
@@ -177,6 +187,23 @@ export function setRecordProperties(state: RecordEditState, change: RecordProper
   for (const [k, v] of Object.entries(change) as [keyof RecordPropertyEdits, unknown][]) {
     if (v === undefined) continue;
     if (k === 'toolsTable' || k === 'managed') { next[k] = Boolean(v); continue; }
+    if (k === 'recUse') {
+      const n = Number(v);
+      if (!Number.isInteger(n) || n < 0 || (n & ~0xF) !== 0) throw new RecordSaveRefusedError('The audit options are Add, Change, Delete and Selective.');
+      next.recUse = n;
+      continue;
+    }
+    if (k === 'timestampField') {
+      const name = String(v).trim().toUpperCase();
+      if (name !== '' && !state.fields.some((f) => f.name === name)) throw new RecordSaveRefusedError(`${name} is not a field of ${state.recname}.`);
+      // App Designer sets Auto-Update on the Timestamp Field (r51) and, by the same token, not on a field it no longer is.
+      const before = state.properties?.timestampField;
+      const fields = state.fields.map((f) => f.name === name ? { ...f, useEdit: f.useEdit | UseEdit.AutoUpdate }
+        : before !== undefined && f.name === before ? { ...f, useEdit: f.useEdit & ~UseEdit.AutoUpdate } : f);
+      state = { ...state, fields };
+      next.timestampField = name;
+      continue;
+    }
     if (k === 'definition') {
       const text = String(v).replace(/\s+$/, '');
       if (text.length > 4000) throw new RecordSaveRefusedError('The Record Definition text is limited to 4,000 characters here.');
@@ -508,7 +535,8 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
     const offLimits = ((Number(old.USEEDIT) ^ f.useEdit) & ~EDITABLE_USE_BITS) | ((Number(old.USEEDIT2 ?? 0) ^ useEdit2) & ~EDITABLE_USE2_BITS);
     if (offLimits !== 0) throw new RecordSaveRefusedError(`${f.name}: that setting cannot be changed here yet.`);
     const cols = columns(f);
-    const changed = Number(old.USEEDIT) !== f.useEdit || Number(old.USEEDIT2 ?? 0) !== useEdit2 ||
+    // Auto-Update follows the record's Timestamp Field without restamping the field row (r51).
+    const changed = ((Number(old.USEEDIT) ^ f.useEdit) & ~UseEdit.AutoUpdate) !== 0 || Number(old.USEEDIT2 ?? 0) !== useEdit2 ||
       Object.entries(cols).some(([k, v]) => str(old[k]) !== str(v));
     return {
       ...old, ...cols, FIELDNUM: fieldNum, USEEDIT: f.useEdit, ...('USEEDIT2' in old ? { USEEDIT2: useEdit2 } : {}),
@@ -527,11 +555,7 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
     // SQL Tables without subrecords agree on both).
     const isKey = (f: Row) => hasFlag(Number(f.USEEDIT), UseEdit.Key) || hasFlag(Number(f.USEEDIT), UseEdit.DuplicateOrderKey);
     const keys = fields.filter(isKey);
-    const hadIndex = stored.indexes.some((i) => str(i.INDEXID) === '_');
-    if (keys.length === 0 && hadIndex) {
-      throw new RecordSaveRefusedError('Removing the last key of an SQL Table has not been observed in App Designer; it cannot be done here yet.');
-    }
-    // An SQL Table without keys has no key index (r26: App Designer saved one, INDEXCOUNT 0).
+    // An SQL Table without keys has no key index (r26), and removing its last key drops it (r45).
     if (keys.length > 0) {
     const unique = keys.some((k) => hasFlag(Number(k.USEEDIT), UseEdit.DuplicateOrderKey)) ? 0 : 1;
     const existing = stored.indexes.find((i) => str(i.INDEXID) === '_');
@@ -554,6 +578,7 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
     const v = props[k as keyof RecordPropertyEdits];
     if (typeof v === 'string') recordColumns[col] = v === '' ? ' ' : v;
   }
+  if (props.recUse !== undefined) recordColumns.RECUSE = props.recUse;
   if (props.definition !== undefined) recordColumns.DESCRLONG = props.definition === '' ? null : props.definition;
   if (props.toolsTable !== undefined || props.managed !== undefined) {
     if (!stored.defn) throw new RecordSaveRefusedError('The stored record row is needed to change its flags.');
@@ -566,6 +591,8 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
 
   const type = edit.type ?? {};
   if (finalType !== stored.recordType) recordColumns.RECTYPE = finalType;
+  // A Derived/Work record has no SQL table name (r46 cleared it).
+  if (finalType === RecordType.DerivedWork && stored.recordType !== RecordType.DerivedWork) recordColumns.SQLTABLENAME = ' ';
   if (type.sqlTableName !== undefined) recordColumns.SQLTABLENAME = type.sqlTableName === '' ? ' ' : type.sqlTableName;
   if (type.buildSequence !== undefined) recordColumns.BUILDSEQNO = type.buildSequence;
   const tablespace = stored.recordType === RecordType.Table && finalType !== RecordType.Table ? 'delete'

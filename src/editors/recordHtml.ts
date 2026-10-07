@@ -562,21 +562,34 @@ const PAGE_SCRIPT = `
         ? dropdown([['', '(none)'], ...fieldNames.map((n) => [n, n])], r.setControlField, (v) => { edits.setControlField = v; })
         : el('span', { cls: 'box', text: r.setControlField || ' ' });
       const audit = (bit) => (r.recUse & bit) !== 0;
+      // The audit options are RECUSE bits: Add 1, Change 2, Delete 4, Selective 8 (r49).
+      const auditFlag = (label, bit) => {
+        if (!editable) return known(label, audit(bit));
+        const box = el('span', { cls: 'box2', text: audit(bit) ? '✓' : '' });
+        return el('div', { cls: 'chk' }, el('button', { onclick: () => {
+          const now = edits.recUse ?? r.recUse;
+          edits.recUse = now ^ bit;
+          box.textContent = (edits.recUse & bit) ? '✓' : '';
+        } }, box, el('span', { text: label })));
+      };
+      const timestamp = editable
+        ? dropdown([['', 'None'], ...fieldNames.map((n) => [n, n])], r.timestampField, (v) => { edits.timestampField = v; })
+        : el('span', { cls: 'box', text: none(r.timestampField) });
       body = el('div', { cls: 'body' }, field2('Set Control Field:', setControl),
         el('fieldset', {}, el('legend', { text: 'Record Relationships' }), field2('Parent Record:', text('parentRecord', r.parentRecord)),
           field2('Related Language Record:', text('relatedLanguageRecord', r.relatedLanguageRecord)),
           field2('Query Security Record:', text('querySecurityRecord', r.querySecurityRecord)),
           field2('Analytic Delete Record:', text('analyticDeleteRecord', r.analyticDeleteRecord))),
-        el('fieldset', {}, el('legend', { text: 'Record Audit' }), row2('Record Name:', r.auditRecord),
-          el('div', { cls: 'cols' }, known('Add', audit(1)), known('Change', audit(2)), known('Selective', audit(8)), known('Delete', audit(4)))),
+        el('fieldset', {}, el('legend', { text: 'Record Audit' }), field2('Record Name:', text('auditRecord', r.auditRecord)),
+          el('div', { cls: 'cols' }, auditFlag('Add', 1), auditFlag('Change', 2), auditFlag('Selective', 8), auditFlag('Delete', 4))),
         el('fieldset', {}, el('legend', { text: 'Record-level Auto-Update' }), row2('System ID Field:', none(r.systemIdField)),
-          row2('Timestamp Field:', none(r.timestampField))),
+          field2('Timestamp Field:', timestamp)),
         unknown('Real Time Indexing Trigger Record'),
         el('div', { cls: 'cols' }, el('fieldset', {}, el('legend', { text: 'Sync type (MSF)' }), unknown('Server -> User (Down Sync)'), unknown('User -> Server (Up Sync)')),
           el('fieldset', {}, el('legend', { text: 'Record Information' }), flag('toolsTable', 'Tools Table', (r.auxFlagMask & 0x10000) !== 0),
             flag('managed', 'Managed', (r.auxFlagMask & 0x20000) !== 0))),
         unknown('Append All (Dynamic Views)'), apply,
-        el('div', { cls: 'legend2', text: '– = not established yet.' + (editable ? ' The audit record and options and the system ID / timestamp fields are not changed here yet.' : '') }));
+        el('div', { cls: 'legend2', text: '– = not established yet.' + (editable ? ' The System ID Field is not changed here yet; the Timestamp Field is a DateTime field, and takes Auto-Update.' : '') }));
     }
     dialog.replaceChildren(header('Record Properties'), tabs, body);
     overlay.style.display = 'flex';

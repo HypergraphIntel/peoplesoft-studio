@@ -424,12 +424,11 @@ field's value, as App Designer showed it for ZZ_PCODE_LAB_C01).
 
 ## Still to capture
 
-- an SQL Table losing its last key; alternate search keys (index type 3)
-- Auto-Update (DateTime field), In Memory
-- type changes to Derived/Work or from a view; materialized views; Query
-  Views; SubRecords; Temporary Tables
+- alternate search keys (index type 3); In Memory; the System ID Field
+- type changes from a view; materialized views; Query Views; SubRecords;
+  Temporary Tables
 - whether parent / query security / audit references move the referring
-  record's VERSION
+  record's VERSION (an audit record's save with R4 referring to it)
 - SQL text over 14,000 characters
 - a record containing a subrecord, and a subrecord used by other records
   (whether their `PSRECFIELDDB` rows are rewritten)
@@ -460,6 +459,28 @@ a descending key, a duplicate order key):
   `PARALLEL NOLOGGING`, then `ALTER INDEX ... NOPARALLEL LOGGING`.
 - Lines of at most 70 characters, a moved word keeping its space; columns
   three spaces in; `/` after each statement.
+
+## Cases r45-r53: last key, to Derived/Work, a deleted name, audit, timestamp, subrecord
+
+Retroactive captures (Oracle flashback) of App Designer saves on HRDMO:
+
+| Case | Change | What App Designer wrote |
+|---|---|---|
+| r45 | R5's last key removed | `PSINDEXDEFN` / `PSKEYDEFN` deleted, `INDEXCOUNT` 0; the field restamped |
+| r46 | R5 SQL Table -> Derived/Work | `RECTYPE` 2, `SQLTABLENAME` cleared, `PSRECTBLSPC` deleted |
+| r47 | ZZ_PCODE_LAB_R4 created again after its delete | the `PSRECDEL` row deleted, then the rows of a new record |
+| r48 | LASTUPDDTTM added to view T | a field insert, as on a table |
+| r49 | R4's audit record T, option Add | `AUDITRECNAME`, `RECUSE` 1, nothing else |
+| r50 | LASTUPDDTTM inserted into R4 | a field insert |
+| r51 | R4's Timestamp Field LASTUPDDTTM | `TIMESTAMPFIELDNAME`; the field's `USEEDIT` + Auto-Update (0x4000000), **not restamped** |
+| r53 | subrecord ABS_HIST_BELSBR inserted into R5 (and Use changes) | one `PSRECFIELD` row (`SUBRECORD` 'Y', `USEEDIT` 0); `PSRECFIELDDB` gains the subrecord's fields, `RECNAME_PARENT` the subrecord, numbered on |
+
+All moved RDM, SYS and PSLOCK RDM by one. The writer now does r45, r46,
+r47, r49 and r51 (Record Properties' Use tab edits the audit record and
+options and the Timestamp Field); direct cases x26-x30 (ZZ_PCODE_LAB_R2
+re-created, audited, timestamped, keyless, Derived/Work) wrote the same
+rows. Inserting subrecords (r53) is not built yet. The System ID Field is
+not captured.
 
 ## Translate Table Edit
 

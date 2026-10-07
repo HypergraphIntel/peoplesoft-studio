@@ -1,0 +1,412 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "f04-field-descr",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362778422648",
+   "timestamp": "2026-10-07T11:49:55.000000000-05:00"
+  },
+  "after": {
+   "scn": "39362778422666",
+   "timestamp": "2026-10-07T11:50:10.000000000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-07T11:49:55.000000000-05:00",
+    "to": "2026-10-07T11:50:10.000000000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "PDM": {
+    "before": 24,
+    "after": 25,
+    "delta": 1
+   },
+   "RDM": {
+    "before": 86,
+    "after": 87,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 1439,
+    "after": 1440,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "PDM": {
+    "before": 24,
+    "after": 25,
+    "delta": 1
+   },
+   "RDM": {
+    "before": 86,
+    "after": 87,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 3
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   }
+  },
+  "otherTablesChanged": {
+   "PSDBFIELD": {
+    "inserted": 1,
+    "deleted": 1,
+    "updated": 0
+   },
+   "PSDBFLDLABL": {
+    "inserted": 2,
+    "deleted": 2,
+    "updated": 0
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "24",
+       "after": "25"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "RDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "86",
+       "after": "87"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "1439",
+       "after": "1440"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "24",
+       "after": "25"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "RDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "86",
+       "after": "87"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSDBFIELD": {
+   "columns": [
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LENGTH",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DECIMALPOS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FORMAT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FORMATLENGTH",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IMAGE_FMT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FORMATFAMILY",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "DISPFMTNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "DEFCNTRYYR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IMEMODE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "KBLAYOUT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "FLDNOTUSED",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "AUXFLAGMASK",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "FIELDNAME": "ZZ_FIELD_1",
+     "VERSION": "87",
+     "FIELDTYPE": "0",
+     "LENGTH": "5",
+     "DECIMALPOS": "0",
+     "FORMAT": "0",
+     "FORMATLENGTH": "0",
+     "IMAGE_FMT": "0",
+     "FORMATFAMILY": " ",
+     "DISPFMTNAME": " ",
+     "DEFCNTRYYR": "50",
+     "IMEMODE": "0",
+     "KBLAYOUT": "0",
+     "OBJECTOWNERID": " ",
+     "LASTUPDDTTM": "2026-10-07T11:50:05.521667000",
+     "LASTUPDOPRID": "JARED",
+     "FLDNOTUSED": "0",
+     "AUXFLAGMASK": "0",
+     "DESCRLONG": "Description of the field"
+    }
+   ],
+   "deleted": [
+    {
+     "FIELDNAME": "ZZ_FIELD_1",
+     "VERSION": "86",
+     "FIELDTYPE": "0",
+     "LENGTH": "5",
+     "DECIMALPOS": "0",
+     "FORMAT": "0",
+     "FORMATLENGTH": "0",
+     "IMAGE_FMT": "0",
+     "FORMATFAMILY": " ",
+     "DISPFMTNAME": " ",
+     "DEFCNTRYYR": "50",
+     "IMEMODE": "0",
+     "KBLAYOUT": "0",
+     "OBJECTOWNERID": " ",
+     "LASTUPDDTTM": "2026-10-07T11:49:50.269896000",
+     "LASTUPDOPRID": "JARED",
+     "FLDNOTUSED": "0",
+     "AUXFLAGMASK": "0",
+     "DESCRLONG": null
+    }
+   ],
+   "updated": []
+  },
+  "PSDBFLDLABL": {
+   "columns": [
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "LABEL_ID",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "LONGNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SHORTNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "DEFAULT_LABEL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "FIELDNAME": "ZZ_FIELD_1",
+     "LABEL_ID": "ZZ_FIELD_1",
+     "LONGNAME": "Field 1",
+     "SHORTNAME": "Field 1",
+     "DEFAULT_LABEL": "0"
+    },
+    {
+     "FIELDNAME": "ZZ_FIELD_1",
+     "LABEL_ID": "ZZ_FIELD_2",
+     "LONGNAME": "Field 2",
+     "SHORTNAME": "Field 2",
+     "DEFAULT_LABEL": "1"
+    }
+   ],
+   "deleted": [
+    {
+     "FIELDNAME": "ZZ_FIELD_1",
+     "LABEL_ID": "ZZ_FIELD_1",
+     "LONGNAME": "Field 1",
+     "SHORTNAME": "Field 1",
+     "DEFAULT_LABEL": "0"
+    },
+    {
+     "FIELDNAME": "ZZ_FIELD_1",
+     "LABEL_ID": "ZZ_FIELD_2",
+     "LONGNAME": "Field 2",
+     "SHORTNAME": "Field 2",
+     "DEFAULT_LABEL": "1"
+    }
+   ],
+   "updated": []
+  }
+ }
+}

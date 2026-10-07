@@ -490,6 +490,9 @@ class RecordDocument implements vscode.CustomDocument {
       ...(p.relatedLanguageRecord !== undefined ? { relatedLanguageRecord: p.relatedLanguageRecord } : {}),
       ...(p.querySecurityRecord !== undefined ? { querySecurityRecord: p.querySecurityRecord } : {}),
       ...(p.analyticDeleteRecord !== undefined ? { analyticDeleteRecord: p.analyticDeleteRecord } : {}),
+      ...(p.auditRecord !== undefined ? { auditRecord: p.auditRecord } : {}),
+      ...(p.recUse !== undefined ? { recUse: p.recUse } : {}),
+      ...(p.timestampField !== undefined ? { timestampField: p.timestampField } : {}),
       auxFlagMask: (base.auxFlagMask & ~0x30000) |
         ((p.toolsTable ?? (base.auxFlagMask & 0x10000) !== 0) ? 0x10000 : 0) | ((p.managed ?? (base.auxFlagMask & 0x20000) !== 0) ? 0x20000 : 0)
     } : base;

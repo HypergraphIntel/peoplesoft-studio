@@ -915,11 +915,9 @@ async function newRecord(workspace: Workspace): Promise<void> {
   if (type === undefined) return;
   const name = await askScratchName(`New Record on ${provider.displayName}`, 15, 'Record name (at most 15 characters; scratch records only for now)');
   if (!name) return;
-  const status = await provider.recordNameStatus(name);
-  if (status !== 'free') {
-    vscode.window.showWarningMessage(status === 'exists'
-      ? `A record named ${name} already exists.`
-      : `${name} was deleted before; re-creating a deleted record name is not supported yet. Choose another name.`);
+  // A name deleted before is free again: saving removes its deletion marker, as App Designer does (r47).
+  if (await provider.recordNameStatus(name) === 'exists') {
+    vscode.window.showWarningMessage(`A record named ${name} already exists.`);
     return;
   }
   const uri = toUri(provider.id, makeKey(DefinitionType.Record, name));

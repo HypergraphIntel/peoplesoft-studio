@@ -87,7 +87,7 @@ interface Tables { recfield: Column[]; recfielddb: Column[]; index: Column[]; ke
 async function readStored(c: Connection, tables: Tables, recname: string, forUpdate: boolean): Promise<StoredRecord & { db: Row[]; keys: Row[] }> {
   const [defn] = await select<Row & { RECTYPE: number; VERSION: number }>(c,
     `SELECT RECTYPE, VERSION, RECDESCR, DBMS_LOB.SUBSTR(DESCRLONG, 4000, 1) AS DESCRLONG, OBJECTOWNERID, SETCNTRLFLD,
-            PARENTRECNAME, RELLANGRECNAME, QRYSECRECNAME, OPTDELRECNAME, AUXFLAGMASK, SQLTABLENAME, BUILDSEQNO
+            PARENTRECNAME, RELLANGRECNAME, QRYSECRECNAME, OPTDELRECNAME, AUXFLAGMASK, SQLTABLENAME, BUILDSEQNO, AUDITRECNAME, RECUSE, TIMESTAMPFIELDNAME
        FROM SYSADM.PSRECDEFN WHERE RECNAME = :r${forUpdate ? ' FOR UPDATE' : ''}`, { r: recname });
   if (!defn) throw new RecordSaveRefusedError(`There is no record named ${recname}.`);
   const r = { r: recname };
@@ -145,10 +145,9 @@ async function createRecord(c: Connection, request: RecordSaveRequest): Promise<
           + (SELECT COUNT(*) FROM SYSADM.PSRECFIELDDB WHERE RECNAME = :r) + (SELECT COUNT(*) FROM SYSADM.PSINDEXDEFN WHERE RECNAME = :r)
           + (SELECT COUNT(*) FROM SYSADM.PSRECTBLSPC WHERE RECNAME = :r) AS N FROM DUAL`, { r: recname });
   if (Number(taken) > 0) throw new RecordSaveRefusedError(`A record named ${recname} already exists, or left rows behind.`);
+  // A name deleted before keeps a PSRECDEL marker; re-creating it deletes the marker (r47).
   const [{ N: deleted }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSRECDEL WHERE RECNAME = :r`, { r: recname });
-  if (Number(deleted) > 0) {
-    throw new RecordSaveRefusedError(`${recname} was deleted before (PSRECDEL); how App Designer re-creates a deleted name is not established, so choose another name.`);
-  }
+  if (Number(deleted) > 1) throw new RecordSaveRefusedError(`${recname} has ${deleted} deletion markers; refusing to write.`);
   for (const f of edit.fields) {
     const [{ N }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f`, { f: f.name });
     if (Number(N) === 0) throw new RecordSaveRefusedError(`There is no field named ${f.name}.`);
@@ -169,6 +168,7 @@ async function createRecord(c: Connection, request: RecordSaveRequest): Promise<
   const plan = planRecordSave(stored, edit, { ts: lastupddttm, operatorId: request.operatorId });
   const next: Counters = { ...counters, rdm: counters.rdm + 1, sys: counters.sys + 1, lockRdm: counters.lockRdm + 1 };
 
+  if (Number(deleted) === 1) await expectRows(c, `DELETE FROM SYSADM.PSRECDEL WHERE RECNAME = :r`, { r: recname }, 1, 'Deleting PSRECDEL');
   await insertRow(c, 'PSRECDEFN', await columnsOf(c, 'PSRECDEFN'), {
     RECNAME: recname, FIELDCOUNT: plan.fieldCount, INDEXCOUNT: plan.indexCount, VERSION: next.rdm, RECTYPE: edit.recordType,
     ...NEW_RECDEFN_VALUES, ...plan.recordColumns, LASTUPDDTTM: lastupddttm, LASTUPDOPRID: request.operatorId
@@ -270,10 +270,16 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
     // Record Properties must refer to what exists: records, a field of this record, an owner ID.
     const props = request.edit.properties ?? {};
     for (const [label, name] of [['Parent Record', props.parentRecord], ['Related Language Record', props.relatedLanguageRecord],
-      ['Query Security Record', props.querySecurityRecord], ['Analytic Delete Record', props.analyticDeleteRecord]] as const) {
+      ['Query Security Record', props.querySecurityRecord], ['Analytic Delete Record', props.analyticDeleteRecord],
+      ['Audit Record', props.auditRecord]] as const) {
       if (name && !(await exists(`SELECT COUNT(*) AS N FROM SYSADM.PSRECDEFN WHERE RECNAME = :r`, { r: name }))) {
         throw new RecordSaveRefusedError(`${label}: there is no record named ${name}.`);
       }
+    }
+    // The Timestamp Field is a DateTime field of the record (r51: LASTUPDDTTM).
+    if (props.timestampField && !(await exists(
+      `SELECT COUNT(*) AS N FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f AND FIELDTYPE = 6`, { f: props.timestampField }))) {
+      throw new RecordSaveRefusedError(`Timestamp Field: ${props.timestampField} is not a DateTime field.`);
     }
     if (props.setControlField && !request.edit.fields.some((f) => f.name === props.setControlField)) {
       throw new RecordSaveRefusedError(`Set Control Field: ${props.setControlField} is not a field of ${recname}.`);
