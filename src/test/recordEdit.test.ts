@@ -148,7 +148,7 @@ test('what the cases do not cover is refused', () => {
   assert.match(editRefusal({ ...table, recordType: RecordType.Subrecord })!, /can be edited yet/);
   // Only the flags the cases exercised may change.
   const e = editStateFor(table);
-  e.fields[1] = { ...e.fields[1], useEdit: e.fields[1].useEdit | UseEdit.TranslateTable };
+  e.fields[1] = { ...e.fields[1], useEdit: e.fields[1].useEdit | UseEdit.AltSearchKey };
   assert.throws(() => planRecordSave(table, e, { ts: 'NOW', operatorId: 'J' }), RecordSaveRefusedError);
 });
 
@@ -213,9 +213,11 @@ test('the Edits tab, default value, label and page control (r15, r16)', () => {
   const [k, v] = plan.fields;
   assert.deepEqual([k.DEFRECNAME, k.DEFFIELDNAME, k.LABEL_ID, k.DEFGUICONTROL, k.LASTUPDDTTM], [' ', 'X', 'DATE/TIME', 5, 'NOW']);
   assert.deepEqual([v.DEFRECNAME, v.DEFFIELDNAME, v.EDITTABLE, v.USEEDIT2], ['ZZ_PCODE_LAB_T', 'ZZ_PCODE_LAB_KEY', ' ', 0x3000000]);
-  // A translate edit is kept: no case has set or cleared one.
+  // A translate edit is set and cleared as delivered fields store it: its bit alone, no table.
   const xlat = editStateFor({ ...stored, fields: [{ ...stored.fields[0], USEEDIT: 0x800200 }] });
-  assert.throws(() => setEdits(xlat, 0, { edit: 'none' }), /translate table edit/);
+  assert.equal(setEdits(xlat, 0, { edit: 'none' }).fields[0].useEdit & UseEdit.TranslateTable, 0);
+  const set = setEdits(setEdits(xlat, 0, { edit: 'prompt', promptTable: 'PSOPRDEFN' }), 0, { edit: 'translate' }).fields[0];
+  assert.deepEqual([set.useEdit & (UseEdit.TranslateTable | UseEdit.PromptTable), set.editTable], [UseEdit.TranslateTable, '']);
 });
 
 test('several fields are removed at once (multi-select Delete / Cut)', () => {

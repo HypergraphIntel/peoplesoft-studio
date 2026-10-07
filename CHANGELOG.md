@@ -4,6 +4,9 @@
 
 ### Changed
 
+- **Translate Table Edit** can be set and cleared in Record Field
+  Properties (Edits tab), for fields that have translate values.
+- **New Field** can create Image Reference fields.
 - **Record Type tab** edits: change a Derived/Work record to an SQL Table
   or SQL View, or an SQL Table to an SQL View; set the Non-Standard SQL
   Table Name and Build Sequence No; write a view's SQL. SQL Views and

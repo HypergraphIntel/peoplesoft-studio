@@ -13,6 +13,8 @@ test('a field is created only as c01 shows and HRDMO bounds: scratch names, know
   assert.match(fieldCreateRefusal(field({ name: 'EMPLID' }))!, /outside ZZ_PCODE_LAB/);
   assert.match(fieldCreateRefusal(field({ name: 'ZZ_PCODE_LAB_TOO_LONG_NAME' }))!, /at most 18/);
   assert.match(fieldCreateRefusal(field({ type: FieldType.Image }))!, /can be created/);
+  assert.equal(fieldCreateRefusal(field({ type: FieldType.ImageReference, length: 30 })), undefined);
+  assert.match(fieldCreateRefusal(field({ type: FieldType.ImageReference, length: 10 }))!, /30 long/);
   assert.match(fieldCreateRefusal(field({ length: 257 }))!, /1 to 256/);
   // Date, Time and DateTime have PeopleTools' fixed lengths.
   assert.equal(fieldCreateRefusal(field({ type: FieldType.Date, length: 10 })), undefined);
