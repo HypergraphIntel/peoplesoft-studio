@@ -109,6 +109,8 @@ export interface PeopleCodeSaveRequest {
   openedFingerprint: string;
   /** PSOPRDEFN.OPRID recorded as LASTUPDOPRID. */
   operatorId: string;
+  /** Creating a new Application Class (its program does not exist yet): adds it to its root package (c04). */
+  createClass?: boolean;
 }
 
 export interface PeopleCodeSaveResult {
@@ -190,17 +192,36 @@ export async function savePeopleCode(
     if (creating && found && (found.text.length > 0 || found.names.length > 0)) {
       throw new SaveRefusedError('This PeopleCode has source or name rows but no program rows; refusing to write over it.');
     }
+    // A new Application Class in a root package (case c04): keyed PACKAGEROOT
+    // (104), class (107), OnExecute (12), with its PSAPPCLASSDEFN row and the
+    // package's VERSION moved to the new APM.
+    const creatingClass = creating && request.createClass === true;
     if (creating) {
-      if (parts.length !== 3 || !RECORD_FIELD_EVENTS.includes(parts[2])) {
-        throw new SaveRefusedError('There is no stored program here; only Record Field PeopleCode can be created yet.');
-      }
-      const [{ N }] = await select<{ N: number }>(c,
-        `SELECT COUNT(*) AS N FROM SYSADM.PSRECFIELD WHERE RECNAME = :r AND FIELDNAME = :f`, { r: parts[0], f: parts[1] });
-      if (Number(N) === 0) throw new SaveRefusedError(`${parts[1]} is not a field of ${parts[0]}.`);
       if (prepareSourceForSave(request.source) === '') throw new SaveRefusedError('There is nothing to create: the program is empty.');
+      if (creatingClass) {
+        if (parts.length !== 3 || parts[2] !== 'OnExecute' || !/^[A-Za-z][A-Za-z0-9_]{0,29}$/.test(parts[1])) {
+          throw new SaveRefusedError('Only a class directly in a root package, with a valid class name, can be created yet.');
+        }
+        const [pkg] = await select<{ V: number }>(c,
+          `SELECT VERSION AS V FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :r AND QUALIFYPATH = '.' FOR UPDATE`, { r: parts[0] });
+        if (!pkg) throw new SaveRefusedError(`There is no Application Package ${parts[0]}.`);
+        const [{ N: classes }] = await select<{ N: number }>(c,
+          `SELECT COUNT(*) AS N FROM SYSADM.PSAPPCLASSDEFN WHERE PACKAGEROOT = :r AND UPPER(APPCLASSID) = UPPER(:k)`, { r: parts[0], k: parts[1] });
+        if (Number(classes) > 0) throw new SaveRefusedError(`${parts[0]} already has a class ${parts[1]}.`);
+      } else {
+        if (parts.length !== 3 || !RECORD_FIELD_EVENTS.includes(parts[2])) {
+          throw new SaveRefusedError('There is no stored program here; only Record Field PeopleCode and new Application Classes can be created yet.');
+        }
+        const [{ N }] = await select<{ N: number }>(c,
+          `SELECT COUNT(*) AS N FROM SYSADM.PSRECFIELD WHERE RECNAME = :r AND FIELDNAME = :f`, { r: parts[0], f: parts[1] });
+        if (Number(N) === 0) throw new SaveRefusedError(`${parts[1]} is not a field of ${parts[0]}.`);
+      }
     }
     const stored: StoredProgram = creating
-      ? { key: { objectIds: [1, 2, 12, 0, 0, 0, 0], objectValues: [parts[0], parts[1], parts[2], ' ', ' ', ' ', ' '] }, text: [], program: [], names: [] }
+      ? {
+        key: { objectIds: creatingClass ? [104, 107, 12, 0, 0, 0, 0] : [1, 2, 12, 0, 0, 0, 0], objectValues: [parts[0], parts[1], parts[2], ' ', ' ', ' ', ' '] },
+        text: [], program: [], names: []
+      }
       : found!;
     const target = targetForKey(stored.key);
     if (!(await operatorExists(c, request.operatorId))) {
@@ -219,7 +240,8 @@ export async function savePeopleCode(
 
     // 6-7
     const counters = await readCounters(c, true);
-    const next: Counters = { pcm: counters.pcm + 1, sys: counters.sys + 1, lockPcm: counters.lockPcm + 1 };
+    // A new class saves the package too: SYS moves for each (c04: + 2).
+    const next: Counters = { pcm: counters.pcm + 1, sys: counters.sys + (creatingClass ? 2 : 1), lockPcm: counters.lockPcm + 1 };
 
     // 8
     const [{ TS: lastupddttm }] = await select<{ TS: string }>(c,
@@ -278,6 +300,27 @@ export async function savePeopleCode(
       await expectRows(c,
         `INSERT INTO SYSADM.PSPCMPROGDEL (${keyInsertColumns}, VERSION) VALUES (${keyInsertBinds}, :version)`,
         { ...keyValues(), version: next.pcm }, 1, 'Inserting PSPCMPROGDEL');
+    }
+
+    if (creatingClass) {
+      const apm = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME = 'APM' FOR UPDATE`);
+      const lockApm = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME = 'APM' FOR UPDATE`);
+      if (apm.length !== 1 || lockApm.length !== 1) throw new SaveRefusedError('PSVERSION / PSLOCK APM is missing; refusing to save.');
+      const newApm = Number(apm[0].V) + 1;
+      await expectRows(c,
+        `INSERT INTO SYSADM.PSAPPCLASSDEFN (APPCLASSID, PACKAGEROOT, QUALIFYPATH, APPCLASSREF, DESCR) VALUES (:k, :r, ':', ' ', ' ')`,
+        { k: parts[1], r: parts[0] }, 1, 'Inserting PSAPPCLASSDEFN');
+      await expectRows(c,
+        `UPDATE SYSADM.PSPACKAGEDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
+          WHERE PACKAGEROOT = :r AND PACKAGEID = :r AND QUALIFYPATH = '.'`,
+        { v: newApm, ts: lastupddttm, op: request.operatorId, r: parts[0] }, 1, 'Updating PSPACKAGEDEFN');
+      await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: newApm }, 1, 'Updating PSVERSION APM');
+      await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'APM'`, { v: Number(lockApm[0].V) + 1 }, 1, 'Updating PSLOCK APM');
+      const [check] = await select<{ V: number; N: number }>(c,
+        `SELECT (SELECT VERSION FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :r AND PACKAGEID = :r AND QUALIFYPATH = '.') AS V,
+                (SELECT COUNT(*) FROM SYSADM.PSAPPCLASSDEFN WHERE PACKAGEROOT = :r AND APPCLASSID = :k AND QUALIFYPATH = ':') AS N FROM DUAL`,
+        { r: parts[0], k: parts[1] });
+      if (Number(check?.V) !== newApm || Number(check?.N) !== 1) throw new SaveRefusedError('The new class did not land in its package as planned; rolled back.');
     }
 
     // 14-15

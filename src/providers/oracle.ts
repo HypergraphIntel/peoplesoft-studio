@@ -8,9 +8,11 @@ import { PROPERTIES_SPECS, PropertiesInput, StoredRow } from '../model/propertie
 import type { FieldDefinition } from '../model/fieldDefinition.js';
 import type { RecordLayout, TranslateValue } from '../model/recordLayout.js';
 import type { DefinitionReference } from './provider.js';
-import { saveProject, verifyProjectSave, type ProjectSaveRequest, type ProjectSaveResult } from './projectWriter.js';
+import { createProject as createProjectRow, saveProject, verifyProjectSave, type ProjectSaveRequest, type ProjectSaveResult } from './projectWriter.js';
 import { deleteRecord, saveRecord, verifyRecordSave, type RecordSaveRequest, type RecordSaveResult } from './recordWriter.js';
 import { saveTranslate as saveTranslateRows, type TranslateChange } from './translateWriter.js';
+import { createField as createFieldRows, type FieldCreateRequest } from './fieldWriter.js';
+import { createPackage as createPackageRow } from './packageWriter.js';
 import { saveStyleSheet as saveStyleSheetRows, verifyStyleSheetSave, type StyleSheetSaveRequest, type StyleSheetSaveResult } from './styleSheetWriter.js';
 import { saveHtmlDefinition as saveHtmlRows, verifyHtmlSave, type HtmlSaveRequest, type HtmlSaveResult } from './htmlWriter.js';
 import { saveSqlDefinition as saveSqlDefinitionRows, verifySqlSave, type SqlSaveRequest, type SqlSaveResult } from './sqlWriter.js';
@@ -424,6 +426,39 @@ export class OracleProvider implements DefinitionProvider {
       if (!d.rows?.[0]) return undefined;
       return { text: await this.readSqlDefinition(key), version: Number(d.rows[0].VERSION) };
     });
+  }
+
+  /** Creates an empty Application Package as App Designer's first save does (packageWriter.ts). */
+  async createPackage(request: { name: string; operatorId: string }): Promise<{ version: number; lastupddttm: string }> {
+    return this.withConnection((c) => createPackageRow(c, request));
+  }
+
+  /** Whether a package name is taken (as a root or a subpackage ID). */
+  async packageExists(name: string): Promise<boolean> {
+    return this.withConnection(async (c) => Number((await c.execute<{ N: number }>(
+      `SELECT COUNT(*) AS N FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :n OR PACKAGEID = :n`, { n: name })).rows?.[0]?.N ?? 0) > 0);
+  }
+
+  /** Creates an empty project as App Designer's first save does (projectWriter.ts createProject). */
+  async createProject(request: { project: string; operatorId: string }): Promise<ProjectSaveResult> {
+    return this.withConnection((c) => createProjectRow(c, request));
+  }
+
+  /** Whether a project name is taken. */
+  async projectExists(name: string): Promise<boolean> {
+    return this.withConnection(async (c) => Number((await c.execute<{ N: number }>(
+      `SELECT COUNT(*) AS N FROM SYSADM.PSPROJECTDEFN WHERE PROJECTNAME = :p`, { p: name })).rows?.[0]?.N ?? 0) > 0);
+  }
+
+  /** Creates a field as App Designer's first save does (fieldWriter.ts), verified in the transaction. */
+  async createField(request: FieldCreateRequest): Promise<{ version: number; lastupddttm: string }> {
+    return this.withConnection((c) => createFieldRows(c, request));
+  }
+
+  /** Whether a field name is taken. */
+  async fieldExists(name: string): Promise<boolean> {
+    return this.withConnection(async (c) => Number((await c.execute<{ N: number }>(
+      `SELECT COUNT(*) AS N FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f`, { f: name })).rows?.[0]?.N ?? 0) > 0);
   }
 
   /** Whether a record name is free, taken, or was deleted before (PSRECDEL: not re-created here). */

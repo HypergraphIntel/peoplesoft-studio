@@ -8,9 +8,12 @@
   title bar) and the Definition Browser's title bar: pick the type, then
   name it. Records (SQL Table or Derived/Work: the record editor opens
   empty, and the first save creates the record with its fields, keys and
-  tablespace), SQL definitions, HTML definitions and freeform style sheets
-  can be created, each as App Designer creates them; the other types are
-  listed as not available yet. Scratch names (`ZZ_PCODE_LAB%`) for now.
+  tablespace), Fields, Projects, Application Packages, Application Classes,
+  SQL definitions, HTML definitions and freeform style sheets can be
+  created, each as App Designer creates them; pages, components, menus and
+  App Engine programs are listed as not available yet. Scratch names
+  (`ZZ_PCODE_LAB%`) for now. See
+  [docs/CREATE_DEFINITIONS.md](docs/CREATE_DEFINITIONS.md).
 - **Style Sheets**: in the Open Definition dialog, with a Properties panel
   and Insert Into Project. Freeform style sheets open as CSS and, on a
   Writable connection, save with Ctrl+S; *PeopleSoft: New Style Sheet...*

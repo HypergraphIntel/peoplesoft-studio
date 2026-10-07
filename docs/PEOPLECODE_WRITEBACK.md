@@ -13,7 +13,9 @@ docs/CONTROLLED_COMPILE_LAB.md, Cycle 185.
     save;
   - ZZ_PCODE_LAB definitions only, checked before any lock;
   - Record Field PeopleCode and Application Class programs that already
-    exist;
+    exist, and two creates: a Record Field event program, and a new class
+    directly in a root package (with its PSAPPCLASSDEFN row and the
+    package's new version; docs/CREATE_DEFINITIONS.md, case c04);
   - PSPCMNAME is the compiler's references, serialized; PACKAGE and
     Declare Function rows' descriptive columns are mapped from them
     (confirmed by App Designer re-saves, Cycle 185 n03 / f02);

@@ -32,6 +32,9 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
   private readonly _onDidChangeFile = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
   readonly onDidChangeFile = this._onDidChangeFile.event;
 
+  /** Application Classes being created (New Definition), by URI: they open with their declaration, and the first save creates them. */
+  static readonly newClasses = new Set<string>();
+
   /** Runs after a save creates a definition, so the trees that list it refresh. */
   onCreated?: () => void;
 
@@ -104,6 +107,11 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
       } else if (key.type === DefinitionType.RecordPeopleCode && !(await provider.hasPeopleCode(key))) {
         // A Record Field event with no program opens empty; saving creates it.
         text = '';
+        this.fingerprints.set(uri.toString(), 'absent');
+      } else if (key.type === DefinitionType.ApplicationClassPeopleCode && PeopleSoftFileSystem.newClasses.has(uri.toString()) &&
+          !(await provider.hasPeopleCode(key))) {
+        // A new class (New Definition): its declaration; saving creates it in its package.
+        text = `class ${key.parts[1]}\nend-class;\n`;
         this.fingerprints.set(uri.toString(), 'absent');
       }
     }
@@ -220,7 +228,14 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
 
     let result: PeopleCodeSaveResult;
     try {
-      result = await provider.savePeopleCode(key, { source, openedFingerprint: openedFingerprint!, operatorId: operatorId! });
+      const createClass = openedFingerprint === 'absent' && key.type === DefinitionType.ApplicationClassPeopleCode;
+      result = await provider.savePeopleCode(key, {
+        source, openedFingerprint: openedFingerprint!, operatorId: operatorId!, ...(createClass ? { createClass: true } : {})
+      });
+      if (createClass) {
+        PeopleSoftFileSystem.newClasses.delete(uri.toString());
+        this.onCreated?.();
+      }
     } catch (error) {
       if (error instanceof SaveRefusedError) refuse(error.message);
       throw vscode.FileSystemError.Unavailable(`Saving ${displayName(key)} failed: ${error instanceof Error ? error.message : String(error)}`);

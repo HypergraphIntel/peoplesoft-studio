@@ -1,0 +1,490 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "c02-project-create",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362778398733",
+   "timestamp": "2026-10-07T10:03:40.648039000-05:00"
+  },
+  "after": {
+   "scn": "39362778399347",
+   "timestamp": "2026-10-07T10:09:56.686968000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-07T10:03:40.648039000-05:00",
+    "to": "2026-10-07T10:09:56.686968000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "PJM": {
+    "before": 47,
+    "after": 48,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 1401,
+    "after": 1402,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "PJM": {
+    "before": 47,
+    "after": 48,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSPROJECTDEFN": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "otherTablesChanged": {
+   "PSPROJECTDEFN": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSPROJECTDEFN": {
+   "columns": [
+    {
+     "name": "PROJECTNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PROJECTDESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "TGTSERVERNAME",
+     "type": "VARCHAR2",
+     "length": 192,
+     "nullable": false
+    },
+    {
+     "name": "TGTDBNAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "TGTOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "TGTOPRACCT",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "COMPRELEASE",
+     "type": "VARCHAR2",
+     "length": 200,
+     "nullable": false
+    },
+    {
+     "name": "SRCCOMPRELDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "TGTCOMPRELDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "COMPRELDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "KEEPTGT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "TGTORIENTATION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "COMPARETYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "COMMITLIMIT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "REPORTFILTER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MAINTPROJ",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "RELEASELABEL",
+     "type": "VARCHAR2",
+     "length": 200,
+     "nullable": false
+    },
+    {
+     "name": "RELEASEDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "PROJECTNAME": "ZZ_PCODE_LAB_02",
+     "VERSION": "48",
+     "PROJECTDESCR": " ",
+     "TGTSERVERNAME": " ",
+     "TGTDBNAME": " ",
+     "TGTOPRID": " ",
+     "TGTOPRACCT": " ",
+     "COMPRELEASE": " ",
+     "SRCCOMPRELDTTM": null,
+     "TGTCOMPRELDTTM": null,
+     "COMPRELDTTM": null,
+     "KEEPTGT": "31",
+     "TGTORIENTATION": "0",
+     "COMPARETYPE": "1",
+     "COMMITLIMIT": "50",
+     "REPORTFILTER": "16232832",
+     "MAINTPROJ": "0",
+     "LASTUPDDTTM": "2026-10-07T10:09:48.295612000",
+     "LASTUPDOPRID": "JARED",
+     "RELEASELABEL": " ",
+     "RELEASEDTTM": null,
+     "OBJECTOWNERID": " ",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PJM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "47",
+       "after": "48"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "1401",
+       "after": "1402"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PJM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "47",
+       "after": "48"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSPROJECTDEFN": {
+   "columns": [
+    {
+     "name": "PROJECTNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PROJECTDESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "TGTSERVERNAME",
+     "type": "VARCHAR2",
+     "length": 192,
+     "nullable": false
+    },
+    {
+     "name": "TGTDBNAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "TGTOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "TGTOPRACCT",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "COMPRELEASE",
+     "type": "VARCHAR2",
+     "length": 200,
+     "nullable": false
+    },
+    {
+     "name": "SRCCOMPRELDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "TGTCOMPRELDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "COMPRELDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "KEEPTGT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "TGTORIENTATION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "COMPARETYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "COMMITLIMIT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "REPORTFILTER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MAINTPROJ",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "RELEASELABEL",
+     "type": "VARCHAR2",
+     "length": 200,
+     "nullable": false
+    },
+    {
+     "name": "RELEASEDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "PROJECTNAME": "ZZ_PCODE_LAB_02",
+     "VERSION": "48",
+     "PROJECTDESCR": " ",
+     "TGTSERVERNAME": " ",
+     "TGTDBNAME": " ",
+     "TGTOPRID": " ",
+     "TGTOPRACCT": " ",
+     "COMPRELEASE": " ",
+     "SRCCOMPRELDTTM": null,
+     "TGTCOMPRELDTTM": null,
+     "COMPRELDTTM": null,
+     "KEEPTGT": "31",
+     "TGTORIENTATION": "0",
+     "COMPARETYPE": "1",
+     "COMMITLIMIT": "50",
+     "REPORTFILTER": "16232832",
+     "MAINTPROJ": "0",
+     "LASTUPDDTTM": "2026-10-07T10:09:48.295612000",
+     "LASTUPDOPRID": "JARED",
+     "RELEASELABEL": " ",
+     "RELEASEDTTM": null,
+     "OBJECTOWNERID": " ",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  }
+ }
+}
