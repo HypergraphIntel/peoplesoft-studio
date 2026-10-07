@@ -90,7 +90,7 @@ Goal long-term: replace Application Designer. **Today this is a trusted reader a
 | Open App Designer XML project export | Yes | |
 | Project tree & definition browser | Yes | |
 | Open Definition search | Yes | |
-| **PeopleCode** as text (`psft://…`) | Read-Only | Decoded from `PSPCMPROG`, or taken from an export |
+| **PeopleCode** as text (`psft://…`) | Yes | On Writable connections, Record Field PeopleCode and Application Classes open as their stored source (`PSPCMTXT`) and can be saved (see the next row). Other programs and Read-only connections open read-only, decoded from `PSPCMPROG`; an export's are taken from the file |
 | **Saving PeopleCode** to Oracle | Experimental | Writable connections — see [Saving PeopleCode](#saving-peoplecode-experimental) |
 | Settings panel | Yes | *PeopleSoft: Open Settings* — connections, compiler profile, MCP server, Build Settings |
 | Record → field → PeopleCode event navigation | Yes | |
