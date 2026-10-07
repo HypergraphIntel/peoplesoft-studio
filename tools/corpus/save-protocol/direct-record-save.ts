@@ -15,12 +15,18 @@
  * use:AT:NAME=1|0... (UseChange names; desc / list as short forms),
  * required:AT:1|0, edit:AT:none|prompt|promptNoEdit|yesNo[:TABLE],
  * default:AT:none | default:AT:constant:VALUE | default:AT:RECORD:FIELD,
- * label:AT[:LABEL_ID], page:AT:VALUE, prop:NAME:VALUE (Record Properties). Connection: PSLAB_ACCESSID /
+ * label:AT[:LABEL_ID], page:AT:VALUE, prop:NAME:VALUE (Record Properties),
+ * inmemory:off|all|selective (Oracle In-Memory; then use:AT:inMemory=1 to choose fields). Connection: PSLAB_ACCESSID /
  * PSLAB_ACCESSPSWD, PSLAB_AUDIT_CONNECT (default 127.0.0.1:15210/hrdmo).
  */
 import { OracleProvider } from '../../../src/providers/oracle';
 import { DefinitionType, makeKey } from '../../../src/model/definitions';
-import { insertField, moveField, removeField, setDefault, setEdits, setLabel, setPageControl, setRecordProperties, setUse, type EditType, type RecordEditState } from '../../../src/model/recordEdit';
+import {
+  inMemoryMode, insertField, moveField, removeField, setDefault, setEdits, setInMemory, setLabel, setPageControl, setRecordProperties, setUse,
+  type EditType, type InMemoryMode, type RecordEditState
+} from '../../../src/model/recordEdit';
+import { lobColumn } from '../../../src/model/recordDdl';
+import type { RecordLayout } from '../../../src/model/recordLayout';
 import { PROTECTED_DATABASE_PATTERN } from '../../../src/peoplecode/corpus/controlledCompileRunner';
 
 function argument(name: string): string | undefined {
@@ -28,7 +34,7 @@ function argument(name: string): string | undefined {
   return i >= 0 ? process.argv[i + 1] : undefined;
 }
 
-function apply(state: RecordEditState, op: string): RecordEditState {
+function apply(state: RecordEditState, op: string, layout: RecordLayout): RecordEditState {
   const [verb, ...args] = op.split(':');
   switch (verb) {
     case 'move': return moveField(state, Number(args[0]), Number(args[1]));
@@ -54,6 +60,12 @@ function apply(state: RecordEditState, op: string): RecordEditState {
       const value = rest.join(':');
       return setRecordProperties(state, { [name]: name === 'toolsTable' || name === 'managed' ? value === '1' : value });
     }
+    case 'inmemory':
+      // inmemory:off|all|selective -- Record Properties, Use: Oracle In-Memory.
+      return setInMemory(state, args[0] as InMemoryMode, {
+        stored: inMemoryMode(layout.properties?.auxFlagMask ?? 0), storedType: layout.recordType,
+        column: (name) => lobColumn(layout.fields.find((f) => f.name === name) ?? {}) ?? ''
+      });
     default: throw new Error(`Unknown op ${op}`);
   }
 }
@@ -87,9 +99,9 @@ async function main(): Promise<void> {
     if (!layout) throw new Error(`No record ${recname}.`);
     let edit: RecordEditState = {
       recname, recordType: layout.recordType, openedVersion: layout.version,
-      fields: layout.fields.map((f) => ({ name: f.name, useEdit: f.useEdit, isNew: false }))
+      fields: layout.fields.map((f) => ({ name: f.name, useEdit: f.useEdit, useEdit2: f.useEdit2 ?? 0, isNew: false }))
     };
-    for (const op of ops.split(',')) edit = apply(edit, op.trim());
+    for (const op of ops.split(',')) edit = apply(edit, op.trim(), layout);
     console.log('fields:', edit.fields.map((f) => `${f.name}${f.isNew ? '*' : ''}(${f.useEdit.toString(16)})`).join(' '));
     const result = await provider.saveRecord({ edit, operatorId });
     console.log(JSON.stringify({ version: result.version, lastupddttm: result.lastupddttm, removed: result.plan.removed, bumpPgm: result.plan.bumpPgm, indexCount: result.plan.indexCount }));

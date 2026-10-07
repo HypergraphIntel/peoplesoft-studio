@@ -91,7 +91,12 @@ export enum UseEdit2 {
   /** r15 (VAL); 455 delivered fields. */
   SmartPrompt = 0x1000000,
   /** r15 (C07); 444 delivered fields. */
-  SmartDropDown = 0x2000000
+  SmartDropDown = 0x2000000,
+  /**
+   * Oracle In-Memory: the field is held in memory (r67 set it on every
+   * field for All Fields, r72 on the fields chosen for Selective Fields).
+   */
+  InMemory = 0x80000
 }
 
 /** Every USEEDIT bit above: all confirmed. */
@@ -202,5 +207,9 @@ export enum RecordFlag {
   /** Temporary Table: Global Temporary Table (GTT) (r31). */
   GlobalTemporaryTable = 0x400000,
   /** SQL View / Query View: Materialized View (r29; the five delivered views carrying it, e.g. ACA_MONTHLY_JOB). */
-  MaterializedView = 0x1000000
+  MaterializedView = 0x1000000,
+  /** Use tab: Oracle In-Memory, All Fields (r67). */
+  InMemoryAllFields = 0x10000000,
+  /** Use tab: Oracle In-Memory, Selective Fields (r71; and R6's All Fields, which held a CLOB, r65). */
+  InMemorySelectiveFields = 0x20000000
 }

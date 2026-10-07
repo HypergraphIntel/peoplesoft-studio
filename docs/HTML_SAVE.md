@@ -34,7 +34,7 @@ those are known net (h01-h03) and from h03's before-image (`VERSION` 4,
 ## The writer
 
 `saveHtmlDefinition` creates (no opened version) or saves (the version it
-was opened at) a scratch (`ZZ_PCODE_LAB%`) HTML definition:
+was opened at) an HTML definition:
 
 - create: `PSCONTDEFN` inserted with the h01 defaults (blank `DESCR`,
   `URL`, `CONTFMT`, `OBJECTOWNERID`; zeros), `VERSION` = new CRM
@@ -47,7 +47,7 @@ Direct cases x08 (create) and x09 (edit) on ZZ_PCODE_LAB_HTM2 wrote the
 native rows and counters; the text is byte-identical to App Designer's,
 and so are the three chunks h04 stored.
 
-Refused: names outside the scratch scope, an existing name on create, a
+Refused: names outside `peoplesoft.writeNamePrefix` when it is set, an existing name on create, a
 definition with other content types, alternates or language rows, text with
 a NUL, and text whose terminator would fall exactly at a 16,000-character
 chunk boundary (no stored example shows how App Designer cuts it).

@@ -4,7 +4,7 @@ import { decodeProgram } from '../decoder.js';
 import { NameTable } from '../progtext.js';
 import { predictSourceSignature } from '../sourceSignature.js';
 import { sourcesMatch } from '../corpus/sourceNormalize.js';
-import { isScratchName } from '../corpus/labSafety.js';
+import { writeScopeRefusal } from '../../providers/writeScope.js';
 import { compilerProfileForToolsRelease } from '../compilerProfile.js';
 import { parseApplicationClassSource } from '../applicationClassProgram.js';
 
@@ -104,9 +104,8 @@ const APPLICATION_CLASS_IDS = new Set([105, 106, 107]);
 export function targetForKey(key: PcmKey): CompileTarget {
   const ids = key.objectIds.map(Number);
   const values = key.objectValues.map((v) => v.trim());
-  if (!isScratchName(values[0])) {
-    throw new SaveRefusedError(`${values[0]} is outside ZZ_PCODE_LAB: PeopleCode saving is limited to scratch definitions.`);
-  }
+  const scope = writeScopeRefusal(values[0]);
+  if (scope) throw new SaveRefusedError(scope);
   if (ids[0] === RECORD_ID && ids[1] === FIELD_ID && ids[2] === EVENT_ID && ids.slice(3).every((id) => id === 0)) {
     return { applicationClass: false, recordName: values[0], fieldName: values[1] };
   }

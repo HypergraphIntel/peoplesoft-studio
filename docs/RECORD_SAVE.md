@@ -1,7 +1,7 @@
 # Saving a record
 
 What App Designer writes when it saves a record definition, and the
-evidence for it. HRDMO, PeopleTools 8.62.09, scratch records
+evidence for it. HRDMO, PeopleTools 8.62.09, lab records
 `ZZ_PCODE_LAB%`, snapshots by `tools/corpus/save-protocol/snapshot.ts`
 (results under `tools/corpus/save-protocol/results/r*`). Saving records
 from VS Code is enabled only for what the cases cover; see *The writer*.
@@ -135,8 +135,7 @@ insert + list box + descending key, rd3 delete) wrote the same shapes; the
 writer updates `PSRECDEFN` in place where App Designer deletes and
 reinserts it, to the same row.
 
-Scope: scratch records (`ZZ_PCODE_LAB%`) on a Writable connection with an
-Operator ID; SQL Table or Derived/Work; no subrecords, not used as one, no
+Scope: a Writable connection with an Operator ID; SQL Table or Derived/Work; no subrecords, not used as one, no
 alternate search keys, no index but `_`; an SQL Table keeps at least one
 key. Changes: reorder, insert, delete, and the Use settings the cases
 exercised: Key, Duplicate Order Key, Descending, Search Key, List Box
@@ -321,13 +320,13 @@ The record writer saves a record referred to as an Analytic Delete record
 (r41). Parent, query security and audit references still refuse the save.
 
 `deleteRecord` (`src/providers/recordWriter.ts`, the **Delete Record...**
-command on a record in the trees) does r40 for scratch SQL Table and
-Derived/Work records. It refuses a record that has Record PeopleCode, is a
+command on a record in the trees) does r40 for SQL Table and Derived/Work
+records. It refuses a record that has Record PeopleCode, is a
 subrecord of another record, is referred to by another record (any of the
 five references), is on a page, is a component's search record, is in a
 project (as a record, index or Record PeopleCode), has a materialized view
 row, or already has a `PSRECDEL` row. Refusals were checked on HRDMO
-(R1: in a project; ZZ_PCODE_TMP: outside the scratch names; T: a view).
+(R1: in a project; T: a view).
 Direct case x04 deleted ZZ_PCODE_LAB_R4 (a keyless SQL Table App Designer
 created): the r40 rows and counters, `PSRECDEL` VERSION = the new RDM.
 
@@ -345,7 +344,7 @@ From the dialog itself (ZZ_PCODE_LAB_C03, 22:51-22:52): add, change and
 delete each wrote the x01-x03 rows, `SYNCID` 63601, and moved PDM, XTM,
 SYS and PSLOCK PDM / XTM by one.
 
-The SQL writer (`src/providers/sqlWriter.ts`) does r34 for scratch SQL
+The SQL writer (`src/providers/sqlWriter.ts`) does r34 for SQL
 definitions with one GBL / 1900-01-01 text row of at most 14,000
 characters; lines are stored CRLF (all 46 multi-line delivered texts) and
 without trailing whitespace; `HASH_SIGNATURE` is the PSPCMTXT algorithm
@@ -372,7 +371,7 @@ scratch; R2 in r35, by Save As) inserts:
   Designer, not its default
 - PSVERSION RDM, SYS + 1; PSLOCK RDM + 1
 
-The record writer creates scratch SQL Table and Derived/Work records this
+The record writer creates SQL Table and Derived/Work records this
 way (`createRecord`); direct case x13 (ZZ_PCODE_LAB_R5, a key and a field)
 wrote those rows and counters. A name with a `PSRECDEL` row (deleted
 before) is refused: how App Designer re-creates one is not established.
@@ -418,7 +417,7 @@ or Query View) are not observed and are refused.
 The dialog shows a check's state only where its bit is confirmed (every
 bit in `UseEdit`); the rest (Search Edit, Default Search Field, Disable
 Advanced Search Options, Allow Search Events, Auto-Update, Do Not Trace
-Value, In Memory, Smart Drop-Down, Smart Prompt) show "–", and any stored
+Value, Smart Drop-Down, Smart Prompt) show "–", and any stored
 bit no check accounts for is listed. Editable: every setting r03-r16 exercised -- the Use checks, Required,
 Prompt Table Edit / Prompt Table with No Edit / Yes/No Table Edit, label ID,
 default value, and Default Page Control among the values seen (99, 5). `DEFGUICONTROL` 99 is "System Default" (a new
@@ -426,8 +425,9 @@ field's value, as App Designer showed it for ZZ_PCODE_LAB_C01).
 
 ## Still to capture
 
-- Oracle In Memory (Record Properties, Use tab: All Fields / Selective
-  Fields); its stored form has not been seen yet
+- Oracle In-Memory: switching directly between All Fields and Selective
+  Fields; a BLOB column; a field inserted into an All Fields record; In
+  Memory on anything but an SQL Table
 - type changes to or from a Dynamic View other than Derived/Work;
   materialized views; Query Views; SubRecords; Temporary Tables
 - whether parent / query security / audit references move the referring
@@ -559,3 +559,42 @@ are shown, not changed. ZZ_PCODE_LAB_R5 took one (`ZZ_PCODE_LAB_C02`,
 value): 99 System Default, 4 Edit Box, 5 Dropdown List, 7 Check Box, 8
 Radio Button, 9 Image (image fields, not choosable). Subrecord rows store
 0 and have no such setting. The editor offers 99, 4, 5, 7 and 8.
+
+## Cases r64-r72: Oracle In-Memory
+
+Record Properties, Use tab. Retroactive captures of App Designer's saves
+of ZZ_PCODE_LAB_R6 (13 fields, one a CLOB) and ZZ_PCODE_LAB_R1 (10
+fields, none a LOB):
+
+| Case | Change | What App Designer wrote |
+|---|---|---|
+| r65 | R6: Off -> All Fields | `AUXFLAGMASK 0x20000000` -- **Selective Fields** -- and `USEEDIT2 0x80000` on 12 fields, not the CLOB `ZZ_PCODE_LAB_L1` (a Long Character of length 0); `L2` (length 254, `VARCHAR2`) took it. Reopened, App Designer shows Selective Fields |
+| r67 | R1: Off -> All Fields | `AUXFLAGMASK 0x10000000` (Tools Table kept: 0x10010000); `USEEDIT2` set to `0x80000` on every field, in `PSRECFIELD` and `PSRECFIELDDB`; no field restamped |
+| r68 | R1: Do Not Trace Value on C04 | `USEEDIT2 0x880000`: the two bits together; the field restamped |
+| r70 | R1: All Fields -> Off | the record bit cleared; `0x80000` cleared from every field, other bits kept (C04 `0x800000`); none restamped |
+| r71 | R1: Off -> Selective Fields | `AUXFLAGMASK 0x20000000` alone |
+| r72 | R1: fields chosen, C01 left out (Record Field Properties, In Memory) | `0x80000` on the 9 chosen fields, each restamped |
+
+Each save moved PSVERSION RDM and SYS and PSLOCK RDM by one. Both choices
+mark the fields; the record bit says which was chosen, and All Fields that
+cannot hold a field (the CLOB) is stored as Selective Fields. The Build
+Script is unchanged (App Designer's script for R1 under All Fields has no
+`INMEMORY` clause).
+
+r67 also set four fields' `USEEDIT2` to exactly `0x80000`, losing Do Not
+Trace Value (C04, C05), Smart Drop-Down (C07) and Smart Prompt (VAL);
+r70 and r72 kept such bits. The writer keeps them: App Designer losing
+settings is not repeated. (r69, a reopen and OK, also cleared Tools Table;
+nothing else in these cases did.) The delivered records with `0x80000` in
+`USEEDIT2` (60 on HRDMO) carry it among values that are not flags; none has
+either record bit.
+
+The writer (`setInMemory`): Off -> All Fields (the CLOB rule above),
+Off -> Selective Fields, either -> Off, and under Selective Fields a field's
+In Memory check in Record Field Properties (restamped, as r72). Refused,
+not having been seen: All <-> Selective directly (turn it off and save
+first), a BLOB column, inserting a field into an All Fields record, and In
+Memory on other record types. Direct cases x42-x45 on ZZ_PCODE_LAB_R1 wrote
+r70's rows (Off, from Selective and from All), r67's (with C04's Do Not
+Trace kept) and r71 + r72's in one save.
+

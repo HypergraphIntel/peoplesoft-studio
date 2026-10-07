@@ -1,6 +1,8 @@
 import { formatText, lengthText, RECORD_TYPE_CHOICES, recordFieldProperties, typeAbbreviation, useRows, editsRows, type RecordLayout } from '../model/recordLayout.js';
 import { escapeHtml as esc } from './propertiesHtml.js';
 import { RecordFlag, RecordType } from '../model/record.js';
+import { inMemoryMode } from '../model/recordEdit.js';
+import { lobColumn } from '../model/recordDdl.js';
 
 /*
  * The record editor's page, laid out like App Designer's record editor:
@@ -98,9 +100,11 @@ export function renderRecordHtml(r: RecordLayout, connection: string, nonce: str
 
   const csp = `default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';`;
   // Each field's Record Field Properties, for the page to show; '<' escaped so the block cannot end early.
-  const fieldsJson = JSON.stringify(r.fields.map((f) => ({ ...recordFieldProperties(f), isSubrecord: f.isSubrecord })))
+  // A field is chosen for In Memory only under Selective Fields, and not a LOB column (r72; R6's CLOB was left out).
+  const selective = editable && r.recordType === RecordType.Table && inMemoryMode(r.properties?.auxFlagMask ?? 0) === 'selective';
+  const fieldsJson = JSON.stringify(r.fields.map((f) => ({ ...recordFieldProperties(f, selective && !lobColumn(f)), isSubrecord: f.isSubrecord })))
     .replace(/</g, '\\u003c');
-  const recordJson = JSON.stringify(r.properties ? { name: r.name, ...r.properties } : null).replace(/</g, '\\u003c');
+  const recordJson = JSON.stringify(r.properties ? { name: r.name, isTable: r.recordType === RecordType.Table, ...r.properties } : null).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -579,6 +583,14 @@ const PAGE_SCRIPT = `
       const timestamp = editable
         ? dropdown([['', 'None'], ...fieldNames.map((n) => [n, n])], r.timestampField, (v) => { edits.timestampField = v; })
         : el('span', { cls: 'box', text: none(r.timestampField) });
+      // Oracle In-Memory: AUXFLAGMASK 0x10000000 All Fields, 0x20000000 Selective Fields (r67, r71).
+      const memory = (r.auxFlagMask & 0x20000000) ? 'selective' : (r.auxFlagMask & 0x10000000) ? 'all' : 'off';
+      const memoryNames = [['off', 'Off'], ['all', 'All Fields'], ['selective', 'Selective Fields']];
+      const inMemory = el('fieldset', {}, el('legend', { text: 'Oracle In-Memory' }),
+        editable && r.isTable
+          ? dropdown(memoryNames, memory, (v) => { edits.inMemory = v; })
+          : el('span', { cls: 'box', text: memoryNames.find((m) => m[0] === memory)[1] }),
+        editable && r.isTable ? el('div', { cls: 'legend2', text: 'All Fields leaves out a CLOB field, and App Designer then stores Selective Fields. Under Selective Fields, choose each field in its Record Field Properties.' }) : null);
       body = el('div', { cls: 'body' }, field2('Set Control Field:', setControl),
         el('fieldset', {}, el('legend', { text: 'Record Relationships' }), field2('Parent Record:', text('parentRecord', r.parentRecord)),
           field2('Related Language Record:', text('relatedLanguageRecord', r.relatedLanguageRecord)),
@@ -592,7 +604,7 @@ const PAGE_SCRIPT = `
         el('div', { cls: 'cols' }, el('fieldset', {}, el('legend', { text: 'Sync type (MSF)' }), unknown('Server -> User (Down Sync)'), unknown('User -> Server (Up Sync)')),
           el('fieldset', {}, el('legend', { text: 'Record Information' }), flag('toolsTable', 'Tools Table', (r.auxFlagMask & 0x10000) !== 0),
             flag('managed', 'Managed', (r.auxFlagMask & 0x20000) !== 0))),
-        unknown('Append All (Dynamic Views)'), apply,
+        inMemory, unknown('Append All (Dynamic Views)'), apply,
         el('div', { cls: 'legend2', text: '– = not established yet.' + (editable ? ' The System ID Field is a Number field and the Timestamp Field a DateTime field; each takes Auto-Update.' : '') }));
     }
     dialog.replaceChildren(header('Record Properties'), tabs, body);

@@ -112,7 +112,11 @@ test('Record Field Properties: confirmed checks have a state, the rest are unkno
   assert.equal(c01.keys.find((k) => k.label === 'Search Key')!.state, false);
   assert.equal(c01.keys.find((k) => k.label === 'Search Edit')!.state, false);
   assert.equal(c01.other.find((k) => k.label === 'Auto-Update')!.state, false);
-  assert.equal(c01.other.find((k) => k.label === 'In Memory')!.state, 'unknown');
+  // In Memory is USEEDIT2 0x80000 (r67, r72), changeable only under Selective Fields.
+  assert.equal(c01.other.find((k) => k.label === 'In Memory')!.state, false);
+  assert.equal(c01.other.find((k) => k.label === 'In Memory')!.flag, undefined);
+  const held = recordFieldProperties(field({ useEdit: 0x800000, useEdit2: 0x880000 }), true).other.find((k) => k.label === 'In Memory')!;
+  assert.deepEqual([held.state, held.flag], [true, 'inMemory']);
   // r19: the record's Timestamp Field carries Auto-Update (0x4000000).
   assert.equal(recordFieldProperties(field({ useEdit: 0x4800000 })).other.find((k) => k.label === 'Auto-Update')!.state, true);
   assert.equal(c01.label, '*** Use Default Label ***');

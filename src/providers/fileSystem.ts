@@ -85,7 +85,7 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
     const provider = this.workspace.getProviderByHandle(handle);
     if (!provider?.capabilities.write) return false;
     // PeopleCode from a database is writable only where the native writer
-    // may save it (a writable connection, a scratch definition, a supported
+    // may save it (a writable connection, a name within the write scope, a supported
     // program type); elsewhere marking the document read-only says so before
     // the user types into it, rather than failing at save time.
     if (isPeopleCode(key.type) && provider.id.startsWith('oracle:')) {

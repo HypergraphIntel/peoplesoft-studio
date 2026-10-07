@@ -205,7 +205,7 @@ export type CheckState = boolean | 'unknown';
 /** The UseChange setting a check edits (model/recordEdit.ts). */
 export type UseFlagName = 'key' | 'dupOrder' | 'altSearch' | 'descending' | 'searchKey' | 'searchEdit' | 'listBox' | 'fromSearch' |
   'throughSearch' | 'defaultSearch' | 'disableAdvancedSearch' | 'allowSearchEvents' | 'auditAdd' | 'auditChange' |
-  'auditDelete' | 'systemMaintained' | 'doNotTrace' | 'smartPrompt' | 'smartDropDown';
+  'auditDelete' | 'systemMaintained' | 'doNotTrace' | 'smartPrompt' | 'smartDropDown' | 'inMemory';
 
 export interface PropertyCheck { label: string; state: CheckState; flag?: UseFlagName }
 
@@ -236,9 +236,12 @@ export interface RecordFieldPropertiesView {
 
 const CONFIRMED_BITS = CONFIRMED_USE_EDIT_BITS;
 
-export function recordFieldProperties(f: RecordLayoutField): RecordFieldPropertiesView {
+/**
+ * `inMemoryChoosable`: the record is In Memory with Selective Fields and the
+ * field is not a LOB column, so its In Memory check can be changed (r72).
+ */
+export function recordFieldProperties(f: RecordLayoutField, inMemoryChoosable = false): RecordFieldPropertiesView {
   const on = (bit: UseEdit) => hasFlag(f.useEdit, bit);
-  const unknown = (label: string) => ({ label, state: 'unknown' as const });
   const constant = !f.defaultRecord;
   return {
     name: f.name,
@@ -264,7 +267,7 @@ export function recordFieldProperties(f: RecordLayoutField): RecordFieldProperti
     other: [{ label: 'System Maintained', state: on(UseEdit.SystemMaintained), flag: 'systemMaintained' },
       { label: 'Auto-Update', state: on(UseEdit.AutoUpdate) },
       { label: 'Do Not Trace Value', state: hasFlag(f.useEdit2 ?? 0, UseEdit2.DoNotTraceValue), flag: 'doNotTrace' },
-      unknown('In Memory'),
+      { label: 'In Memory', state: hasFlag(f.useEdit2 ?? 0, UseEdit2.InMemory), ...(inMemoryChoosable ? { flag: 'inMemory' as const } : {}) },
       { label: 'Smart Drop-Down', state: hasFlag(f.useEdit2 ?? 0, UseEdit2.SmartDropDown), flag: 'smartDropDown' },
       { label: 'Smart Prompt', state: hasFlag(f.useEdit2 ?? 0, UseEdit2.SmartPrompt), flag: 'smartPrompt' }],
     label: f.labelId ? f.labelId : '*** Use Default Label ***',
@@ -283,7 +286,7 @@ export function recordFieldProperties(f: RecordLayoutField): RecordFieldProperti
     setControlField: f.setControlField ?? '',
     unexplained: {
       useEdit: f.useEdit & ~CONFIRMED_BITS,
-      useEdit2: (f.useEdit2 ?? 0) & ~(UseEdit2.DoNotTraceValue | UseEdit2.SmartPrompt | UseEdit2.SmartDropDown)
+      useEdit2: (f.useEdit2 ?? 0) & ~(UseEdit2.DoNotTraceValue | UseEdit2.SmartPrompt | UseEdit2.SmartDropDown | UseEdit2.InMemory)
     }
   };
 }

@@ -4,7 +4,7 @@ import { OracleProvider } from './providers/oracle.js';
 import { ProjectFileProvider } from './providers/projectFile.js';
 import { connectionHandle } from './util/handle.js';
 import { DefinitionKey, DefinitionType } from './model/definitions.js';
-import { isScratchName } from './peoplecode/corpus/labSafety.js';
+import { isWritableName } from './providers/writeScope.js';
 
 export interface ConnectionConfig {
   name: string;
@@ -208,8 +208,8 @@ export class Workspace implements vscode.Disposable {
 
   /**
    * Whether PeopleCode under `key` may be edited and saved on this
-   * connection: an Oracle connection set to writable, a scratch definition,
-   * and a program type the native writer supports (Record Field PeopleCode,
+   * connection: an Oracle connection set to writable, a name within the
+   * write scope (writeScope.ts), and a program type the native writer supports (Record Field PeopleCode,
    * Application Class). Everything else stays read-only.
    */
   isPeopleCodeWritable(id: string, key: DefinitionKey): boolean {
@@ -217,7 +217,7 @@ export class Workspace implements vscode.Disposable {
     return config?.kind === 'oracle' &&
       config.peoplecodeAccess === 'writable' &&
       (key.type === DefinitionType.RecordPeopleCode || key.type === DefinitionType.ApplicationClassPeopleCode) &&
-      isScratchName(key.parts[0]);
+      isWritableName(key.parts[0]);
   }
 
   /**
@@ -232,15 +232,15 @@ export class Workspace implements vscode.Disposable {
 
   /**
    * Whether an SQL definition, HTML definition or style sheet may be saved
-   * here as text: a Writable connection with an Operator ID, a scratch name,
-   * and for HTML content type 4. (Only freeform style sheets save: the file
+   * here as text: a Writable connection with an Operator ID, a name within
+   * the write scope, and for HTML content type 4. (Only freeform style sheets save: the file
    * system marks a classic one read-only when it opens.)
    */
   isSqlWritable(id: string, key: DefinitionKey): boolean {
     const config = this.configFor(id);
     const textType = key.type === DefinitionType.SqlDefinition ||
       (key.type === DefinitionType.HtmlDefinition && (key.parts[1] ?? '4') === '4') || key.type === DefinitionType.StyleSheet;
-    return this.isWritable(id) && Boolean(config?.peoplesoftOperatorId?.trim()) && textType && isScratchName(key.parts[0]);
+    return this.isWritable(id) && Boolean(config?.peoplesoftOperatorId?.trim()) && textType && isWritableName(key.parts[0]);
   }
 
   /** The configured connection behind a provider id. */

@@ -1,5 +1,5 @@
 import type { Connection } from 'oracledb';
-import { isScratchName } from '../peoplecode/corpus/labSafety.js';
+import { writeScopeRefusal } from './writeScope.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
 
@@ -13,7 +13,7 @@ import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCo
  *   PSVERSION      APM + 1, SYS + 1
  *   PSLOCK         APM + 1
  *
- * Scope: scratch names (ZZ_PCODE_LAB%), a root package without classes.
+ * Scope: a root package without classes.
  */
 
 export class PackageCreateRefusedError extends Error {
@@ -29,7 +29,8 @@ export async function createPackage(c: Connection, request: { name: string; oper
     const operatorError = validateOperatorId(request.operatorId);
     if (operatorError) throw new PackageCreateRefusedError(operatorError);
     if (!/^[A-Z0-9_]{1,30}$/.test(name)) throw new PackageCreateRefusedError(`${name} is not a valid package name (A-Z, 0-9, _; at most 30).`);
-    if (!isScratchName(name)) throw new PackageCreateRefusedError(`${name} is outside ZZ_PCODE_LAB: creating packages is limited to scratch names for now.`);
+    const scope = writeScopeRefusal(name);
+    if (scope) throw new PackageCreateRefusedError(scope);
     const [{ N: taken }] = await select<{ N: number }>(c,
       `SELECT (SELECT COUNT(*) FROM SYSADM.PSPACKAGEDEFN WHERE PACKAGEROOT = :n OR PACKAGEID = :n)
             + (SELECT COUNT(*) FROM SYSADM.PSPCMPROG WHERE OBJECTID1 = 104 AND OBJECTVALUE1 = :n) AS N FROM DUAL`, { n: name });
