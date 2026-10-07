@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -107,6 +107,16 @@
           }
         ],
         "priority": "default"
+      },
+      {
+        "viewType": "psft.fieldEditor",
+        "displayName": "PeopleSoft Field",
+        "selector": [
+          {
+            "filenamePattern": "*.psfield"
+          }
+        ],
+        "priority": "default"
       }
     ],
     "commands": [
@@ -168,7 +178,12 @@
       },
       {
         "command": "psft.insertIntoProject",
-        "title": "Insert Into Project",
+        "title": "Insert Into Project...",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.deleteRecord",
+        "title": "Delete Record...",
         "category": "PeopleSoft"
       },
       {
@@ -180,6 +195,18 @@
         "command": "psft.compareDefinition",
         "title": "Compare With Environment...",
         "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.openFieldPeopleCode",
+        "title": "PeopleCode...",
+        "category": "PeopleSoft",
+        "icon": "$(symbol-event)"
+      },
+      {
+        "command": "psft.showProperties",
+        "title": "Properties",
+        "category": "PeopleSoft",
+        "icon": "$(info)"
       },
       {
         "command": "psft.closeProject",
@@ -305,6 +332,11 @@
       ],
       "view/item/context": [
         {
+          "command": "psft.openFieldPeopleCode",
+          "when": "viewItem =~ /\\.recordField\\b/",
+          "group": "navigation@1"
+        },
+        {
           "command": "psft.connect",
           "when": "view == psft.connections && viewItem == connection.disconnected",
           "group": "inline"
@@ -329,11 +361,32 @@
         },
         {
           "command": "psft.insertIntoProject",
-          "when": "view == psft.browser && viewItem == definition"
+          "when": "viewItem =~ /^definition\\b/ || viewItem == appPackage.properties",
+          "group": "navigation@8"
         },
         {
           "command": "psft.compareDefinition",
-          "when": "viewItem == definition"
+          "when": "viewItem =~ /^definition\\b/"
+        },
+        {
+          "command": "psft.deleteRecord",
+          "when": "viewItem =~ /\\.record$/",
+          "group": "z_delete"
+        },
+        {
+          "command": "psft.showProperties",
+          "when": "viewItem =~ /\\.properties\\b/",
+          "group": "navigation@9"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "psft.insertIntoProject",
+          "when": "resourceScheme == psft"
+        },
+        {
+          "command": "psft.showProperties",
+          "when": "resourceScheme == psft"
         }
       ],
       "editor/title": [

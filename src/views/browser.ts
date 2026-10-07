@@ -5,6 +5,7 @@ import {
   DefinitionType, displayName, isPeopleCode, typeLabel
 } from '../model/definitions.js';
 import { toUri } from '../util/uri.js';
+import { definitionContextValue } from './contextValue.js';
 
 type Node =
   | { kind: 'connection'; provider: DefinitionProvider }
@@ -77,7 +78,7 @@ export class BrowserView implements vscode.TreeDataProvider<Node> {
             : vscode.TreeItemCollapsibleState.None);
         item.description = node.summary.description;
         item.iconPath = new vscode.ThemeIcon(iconFor(key.type));
-        item.contextValue = 'definition';
+        item.contextValue = definitionContextValue(key);
         item.resourceUri = toUri(node.provider.id, key);
         item.command = {
           command: 'psft.openDefinition',

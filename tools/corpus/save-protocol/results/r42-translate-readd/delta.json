@@ -1,0 +1,348 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "r42-translate-readd",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362778186134",
+   "timestamp": "2026-10-06T22:55:50.000000000-05:00"
+  },
+  "after": {
+   "scn": "39362778186142",
+   "timestamp": "2026-10-06T22:56:08.000000000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-06T22:55:50.000000000-05:00",
+    "to": "2026-10-06T22:56:08.000000000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "PDM": {
+    "before": 14,
+    "after": 15,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 1377,
+    "after": 1378,
+    "delta": 1
+   },
+   "XTM": {
+    "before": 10,
+    "after": 11,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "PDM": {
+    "before": 14,
+    "after": 15,
+    "delta": 1
+   },
+   "XTM": {
+    "before": 10,
+    "after": 11,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 3
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   }
+  },
+  "otherTablesChanged": {
+   "PSSYSTEMID": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSXLATDEFN": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSXLATDEFNDEL": {
+    "inserted": 0,
+    "deleted": 1,
+    "updated": 0
+   },
+   "PSXLATITEM": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "14",
+       "after": "15"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "1377",
+       "after": "1378"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "XTM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "10",
+       "after": "11"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "14",
+       "after": "15"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "XTM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "10",
+       "after": "11"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSSYSTEMID": {
+   "columns": [
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "PTNEXTSYSTEMID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTUPDSYSTEMID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAPN0AHgAAAACXAAK"
+     },
+     "changes": {
+      "PTNEXTSYSTEMID": {
+       "before": "63601",
+       "after": "63602"
+      }
+     }
+    }
+   ]
+  },
+  "PSXLATDEFN": {
+   "columns": [
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "FIELDNAME": "ZZ_PCODE_LAB_C01",
+     "VERSION": "11"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSXLATDEFNDEL": {
+   "columns": [
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "FIELDNAME": "ZZ_PCODE_LAB_C01",
+     "VERSION": "4"
+    }
+   ],
+   "updated": []
+  },
+  "PSXLATITEM": {
+   "columns": [
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "FIELDVALUE",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "EFFDT",
+     "type": "DATE",
+     "length": 7,
+     "nullable": true
+    },
+    {
+     "name": "EFF_STATUS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "XLATLONGNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "XLATSHORTNAME",
+     "type": "VARCHAR2",
+     "length": 40,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SYNCID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "FIELDNAME": "ZZ_PCODE_LAB_C01",
+     "FIELDVALUE": "A",
+     "EFFDT": "2026-10-06T00:00:00",
+     "EFF_STATUS": "A",
+     "XLATLONGNAME": "Active Long",
+     "XLATSHORTNAME": "Active",
+     "LASTUPDDTTM": "2026-10-06T22:56:01.366803000",
+     "LASTUPDOPRID": "JARED",
+     "SYNCID": "63602"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  }
+ }
+}

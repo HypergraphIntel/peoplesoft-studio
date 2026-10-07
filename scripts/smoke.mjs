@@ -355,6 +355,71 @@ try {
     'the Settings view does not show the connected target in green');
   check(rows.every((r) => settingsTree.getTreeItem(r).command?.command === 'psft.settings.open'),
     'a Settings view row does not open the Settings panel');
+  // The MCP server's status sits below the release / compiler profile row.
+  const labels = rows.map((r) => r.label);
+  const mcpRow = labels.indexOf('MCP Server');
+  check(mcpRow > 0 && mcpRow === labels.indexOf('Open Settings') - 1 &&
+    labels.slice(0, mcpRow).every((l) => l !== 'Open Settings'),
+    'the Settings view does not show the MCP server below the compiler profile');
+  check(lastState()?.mcp && rows[mcpRow]?.description?.startsWith(
+    { running: 'Running', starting: 'Starting', stopped: 'Stopped', disabled: 'Disabled', error: 'Error' }[lastState().mcp.status]),
+    'the Settings view MCP row does not show the server status');
+
+  // Properties: read from the database, so a project export says so; other
+  // types have none; with no definition to show the command warns.
+  const propertiesOf = async (key) => {
+    vscode._messages.length = 0;
+    await vscode.commands.executeCommand('psft.showProperties',
+      key && { kind: 'definition', provider: { id: devId }, summary: { key } });
+    return vscode._messages.at(-1)?.[1] ?? '';
+  };
+  check((await propertiesOf({ type: 0, parts: ['JOB'] })).includes('project export'),
+    'Properties on a project export did not explain that it is read from the database');
+  check((await propertiesOf({ type: 8, parts: ['JOB', 'EMPLID', 'FieldChange'] })).includes('has no Properties panel'),
+    'Properties on PeopleCode was not refused');
+  // Insert Into Project writes to the database: a project export says so.
+  vscode._messages.length = 0;
+  await vscode.commands.executeCommand('psft.insertIntoProject',
+    { kind: 'definition', provider: { id: devId }, summary: { key: { type: 0, parts: ['JOB'] } } });
+  check((vscode._messages.at(-1)?.[1] ?? '').includes('is a project export'),
+    'Insert Into Project on a project export did not explain that it writes to the database');
+  check(manifest.contributes.menus['editor/title/context']?.some((m) => m.command === 'psft.insertIntoProject'),
+    'Insert Into Project is not on the editor tab menu');
+  // The tab menu passes the tab's URI, and a field opens in a custom editor,
+  // not a text editor: the URI alone must identify the definition.
+  const savedEditor = vscode.window.activeTextEditor;
+  vscode.window.activeTextEditor = undefined;
+  const tabUri = vscode.Uri.parse(`psft://${handle}/${encodeURIComponent('2:DEMO_ID')}/DEMO_ID.psfield`);
+  vscode._messages.length = 0;
+  await vscode.commands.executeCommand('psft.insertIntoProject', tabUri);
+  check((vscode._messages.at(-1)?.[1] ?? '').includes('is a project export'),
+    `Insert Into Project from the editor tab menu did not resolve the tab's definition: ${vscode._messages.at(-1)?.[1]}`);
+  vscode._messages.length = 0;
+  await vscode.commands.executeCommand('psft.showProperties', tabUri);
+  check((vscode._messages.at(-1)?.[1] ?? '').includes('project export'),
+    `Properties from the editor tab menu did not resolve the tab's definition: ${vscode._messages.at(-1)?.[1]}`);
+  vscode.window.activeTextEditor = savedEditor;
+
+  // Record Field PeopleCode: a field under its record lists every record field
+  // event; a bare field is asked to be chosen under its record.
+  check(manifest.contributes.menus['view/item/context']?.some((m) => m.command === 'psft.openFieldPeopleCode' && /recordField/.test(m.when)),
+    'PeopleCode... is not on the record field context menu');
+  vscode._messages.length = 0;
+  await vscode.commands.executeCommand('psft.openFieldPeopleCode',
+    { kind: 'definition', provider: { id: devId }, summary: { key: { type: 2, parts: ['DEMO_ID'] } } });
+  check((vscode._messages.at(-1)?.[1] ?? '').includes('under its record'),
+    'PeopleCode... on a bare field did not ask for a field under its record');
+  const picksBefore = vscode._quickPicks.length;
+  await vscode.commands.executeCommand('psft.openFieldPeopleCode', { connectionId: devId, record: 'DEMO', field: 'DEMO_ID' });
+  const eventPick = vscode._quickPicks[picksBefore];
+  check(eventPick && eventPick.items.length >= 15 && eventPick.items.some((i) => i.event === 'FieldChange'),
+    'PeopleCode... did not offer the record field events');
+
+  await propertiesOf(undefined);
+  check(vscode._messages.at(-1)?.[0] === 'warn',
+    'Properties with no definition to show did not warn');
+  check(!vscode._panels.some((p) => p.viewType === 'psft.properties'),
+    'Properties opened a panel without database rows to show');
 
   // An edit made outside the panel (settings.json, VS Code's Settings UI).
   const before = stateMessages().length;

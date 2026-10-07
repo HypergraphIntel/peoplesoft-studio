@@ -11,6 +11,8 @@ import {
   FieldType, RecordDefinition, RecordField, RecordType, UseEdit, describeField
 } from '../model/record.js';
 import { parseExport } from './projectFileParser.js';
+import { fieldFromExport } from './projectFileRender.js';
+import type { FieldDefinition } from '../model/fieldDefinition.js';
 import {
   ExportInstance, ExportRow, allRows, findScalar, firstRow, intField, objectValues,
   rawField, strField
@@ -247,6 +249,11 @@ export class ProjectFileProvider implements DefinitionProvider {
       DefinitionType.Field, DefinitionType.HtmlDefinition, DefinitionType.Component,
       DefinitionType.Menu, DefinitionType.Page, DefinitionType.ApplicationPackage
     ].includes(type);
+  }
+
+  async readField(key: DefinitionKey): Promise<FieldDefinition | undefined> {
+    const i = this.byName.get(`FIELD:${(key.parts[0] ?? '').toUpperCase()}`);
+    return i && fieldFromExport(i);
   }
 
   /** Renders a definition that has no dedicated editor yet, as read-only text. */

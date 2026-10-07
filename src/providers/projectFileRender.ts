@@ -1,5 +1,6 @@
 import { ExportInstance, allRows, findScalar, firstRow, intField, strField } from './projectFileFormat.js';
 import { FIELD_TYPE_LABELS, FieldType } from '../model/record.js';
+import type { FieldDefinition } from '../model/fieldDefinition.js';
 
 /**
  * Read-only summaries for the definition types that have no editor yet.
@@ -37,6 +38,30 @@ export function renderField(instance: ExportInstance): string {
     }
   }
   return out.join('\n') + '\n';
+}
+
+/**
+ * A field as the Field editor shows it, from what an export carries: type,
+ * length and labels. Format and flags are left out rather than read from
+ * attribute names not yet seen in a real export.
+ */
+export function fieldFromExport(instance: ExportInstance): FieldDefinition | undefined {
+  const defn = firstRow(instance.rowsets, 'Field');
+  if (!defn) return undefined;
+  const lastUpdated = strField(defn, 'szLastUpdDttm');
+  const lastUpdatedBy = strField(defn, 'szLastUpdOprId');
+  return {
+    name: strField(defn, 'szFieldName'),
+    type: intField(defn, 'eFieldType') as FieldType,
+    length: intField(defn, 'nLength'),
+    decimalPositions: intField(defn, 'nDecimalPos'),
+    labels: allRows(instance.rowsets, 'DBFldLabel').map((l) => ({
+      id: strField(l, 'atmLabelID'), longName: strField(l, 'atmLongName'), shortName: strField(l, 'atmShortName')
+    })),
+    version: intField(defn, 'lVersion'),
+    ...(lastUpdated ? { lastUpdated } : {}),
+    ...(lastUpdatedBy ? { lastUpdatedBy } : {})
+  };
 }
 
 export function renderComponent(instance: ExportInstance): string {

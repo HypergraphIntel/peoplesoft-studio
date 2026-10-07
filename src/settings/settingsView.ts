@@ -82,6 +82,21 @@ function summarize(state: SettingsState): SettingsNode[] {
     });
   }
 
+  // Below the compiler profile: the MCP server, whatever the target.
+  const mcp = state.mcp;
+  if (mcp) {
+    const status = {
+      running: 'Running', starting: 'Starting…', stopped: 'Stopped', disabled: 'Disabled', error: 'Error'
+    }[mcp.status];
+    nodes.push({
+      label: 'MCP Server',
+      description: mcp.status === 'running' ? `${status} · ${mcp.url}` : status,
+      tooltip: mcp.error ? `MCP server: ${status}\n${mcp.error}` : `MCP server: ${status}\n${mcp.url}`,
+      icon: mcp.status === 'error' ? 'error' : 'plug',
+      ...(mcp.status === 'running' ? { color: LIVE } : mcp.status === 'error' ? { color: 'errorForeground' } : {})
+    });
+  }
+
   nodes.push({ label: 'Open Settings', icon: 'settings-gear' });
   return nodes;
 }

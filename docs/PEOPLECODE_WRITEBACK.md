@@ -301,3 +301,17 @@ scratch programs in `ZZ_PCODE_LAB` on the lab database, never on HCDEV.
    connection, confirmed when enabled. Only HRDMO will be writable.
 5. **Before-images.** Workspace storage, which is local to this machine,
    as proposed? Or files in the repository you name?
+
+## Creating Record Field PeopleCode
+
+A Record Field event with no program opens empty in the editor (Writable
+connection, scratch record); saving it creates the program. The rows are
+the save's (`planProgram`), with nothing to replace: App Designer's create
+(case 01-create) and re-create after a delete (11b-recreate) wrote exactly
+the program's PSPCMTXT / PSPCMPROG / PSPCMNAME rows, removed any
+PSPCMPROGDEL marker, and moved PCM and SYS by one; the save-plan test
+already rebuilds 01-create's rows. Key: RECORD (1), FIELD (2), event (12),
+the other slots 0 / ' '. Refused for a field not on the record, an event
+that is not a Record Field event, an empty program, or a key with source or
+name rows but no program rows. Native case d05 (ZZ_PCODE_LAB_C02.FieldChange)
+wrote the 01-create shape.

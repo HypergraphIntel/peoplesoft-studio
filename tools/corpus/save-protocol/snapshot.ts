@@ -37,7 +37,9 @@
  *
  * A save made before "before" ran can still be bracketed while undo covers
  * it: `before --as-of 'YYYY-MM-DD HH24:MI:SS'` reads the watch set and the
- * counts AS OF that time (flashback). The snapshot records `retroactive`.
+ * counts AS OF that time (flashback). `after --as-of` closes the window at a
+ * past time the same way, so several saves made in a row can each be
+ * bracketed afterwards. Snapshots so taken record `retroactive`.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
@@ -320,21 +322,52 @@ const BLOCK = (alias: string) =>
  * changed with no touched block left (every row of a block deleted) is
  * diffed by its whole ROWID set instead.
  */
-async function diffTable(session: Session, table: string, scn: string, wholeTable: boolean): Promise<TableDelta> {
+async function diffTable(session: Session, table: string, scn: string, wholeTable: boolean, afterScn?: string): Promise<TableDelta> {
   const columns = (await columnsOf(session, table))
     .filter((c) => c.type !== 'LONG' && c.type !== 'LONG RAW'); // not selectable AS OF
   const list = selectList(columns);
-  const read = async (asOf: boolean) => {
-    const source = `SYSADM.${quote(table)}${asOf ? ' AS OF SCN :scn' : ''} t`;
+  // The rows changed in the window, by flashback version query: every row
+  // version a transaction in (scn, afterScn] wrote, deletes included, wherever
+  // the row lives. Each such ROWID is then read AS OF both ends. Where the
+  // version query is unavailable, fall back to the blocks changed since `scn`
+  // (a superset; it can miss a delete whose block was later emptied).
+  const ridsOf = async (): Promise<string[] | undefined> => {
+    try {
+      const rows = await session.select<{ RID__: string }>(
+        `SELECT DISTINCT ROWIDTOCHAR(t.ROWID) AS RID__ FROM SYSADM.${quote(table)}
+           VERSIONS BETWEEN SCN :scn AND ${afterScn ? ':at' : 'MAXVALUE'} t
+          WHERE t.VERSIONS_OPERATION IS NOT NULL
+            AND (t.VERSIONS_STARTSCN > :scn OR t.VERSIONS_OPERATION = 'D')
+            ${afterScn ? 'AND (t.VERSIONS_STARTSCN IS NULL OR t.VERSIONS_STARTSCN <= :at)' : ''}`,
+        afterScn ? { scn, at: afterScn } : { scn });
+      return rows.map((r) => String(r.RID__)).filter((rid) => /^[A-Za-z0-9+/]+$/.test(rid));
+    } catch {
+      return undefined;
+    }
+  };
+  const rids = wholeTable ? undefined : await ridsOf();
+  const read = async (at: string | undefined) => {
+    const source = `SYSADM.${quote(table)}${at ? ' AS OF SCN :at' : ''} t`;
+    if (rids) {
+      const out = new Map<string, Value[]>();
+      for (let i = 0; i < rids.length; i += 500) {
+        const chunk = rids.slice(i, i + 500).map((rid) => `CHARTOROWID('${rid}')`).join(', ');
+        const rows = await session.select(`SELECT ROWIDTOCHAR(t.ROWID) AS RID__, ${list} FROM ${source} WHERE t.ROWID IN (${chunk})`,
+          at ? { at } : {});
+        for (const r of rows) out.set(String(r.RID__), columns.map((c) => encode(r[c.name], c)));
+      }
+      return out;
+    }
     const where = wholeTable ? '' :
       `WHERE (${BLOCK('t')}) IN (SELECT ${BLOCK('c')} FROM SYSADM.${quote(table)} c WHERE ORA_ROWSCN > :scn)`;
-    const rows = await session.select(
-      `SELECT ROWIDTOCHAR(t.ROWID) AS RID__, ${list} FROM ${source} ${where}`,
-      asOf || !wholeTable ? { scn } : {});
+    const binds: Record<string, string> = {};
+    if (at) binds.at = at;
+    if (!wholeTable) binds.scn = scn;
+    const rows = await session.select(`SELECT ROWIDTOCHAR(t.ROWID) AS RID__, ${list} FROM ${source} ${where}`, binds);
     return new Map(rows.map((r) => [String(r.RID__), columns.map((c) => encode(r[c.name], c))]));
   };
-  const before = await read(true);
-  const after = await read(false);
+  const before = await read(scn);
+  const after = await read(afterScn);
 
   const named = (values: Value[]) => Object.fromEntries(columns.map((c, i) => [c.name, values[i]]));
   const delta: TableDelta = { columns, inserted: [], deleted: [], updated: [] };
@@ -511,21 +544,28 @@ async function before(session: Session, name: string, scope: 'tools' | 'all', as
     `${watch.PSPCMPROG?.rows.length ?? 0} scratch PSPCMPROG rows. Save in App Designer, then run "after".`);
 }
 
-async function after(session: Session, name: string): Promise<void> {
+async function after(session: Session, name: string, asOf?: string): Promise<void> {
   const dir = caseDir(name);
   const beforeFile = path.join(dir, 'before.json');
   if (!existsSync(beforeFile)) throw new Error(`No ${beforeFile}; run "before" first.`);
   const prior = JSON.parse(readFileSync(beforeFile, 'utf8')) as Snapshot;
   if (prior.format !== FORMAT || prior.database !== session.database) throw new Error(`${beforeFile} is not a ${FORMAT} snapshot of ${session.database}.`);
 
-  const mark = await marker(session);
-  const watch = await captureWatch(session);
+  const mark = asOf ? await markerAt(session, asOf) : await marker(session);
+  const afterScn = asOf ? mark.scn : undefined;
+  if (afterScn && BigInt(afterScn) <= BigInt(prior.marker.scn)) throw new Error(`--as-of ${asOf} is not after the before marker.`);
+  const watch = await captureWatch(session, afterScn);
   const tables = await scopeTables(session, prior.scope);
-  const { counts, touched } = await sweep(session, tables, prior.marker.scn);
+  const swept0 = await sweep(session, tables, prior.marker.scn);
+  // Retroactive: the counts as of the window's end; the touched set from now
+  // (a superset of the window's).
+  const counts = afterScn ? await countAll(session, tables, afterScn) : swept0.counts;
+  const touched = swept0.touched;
 
   const snapshot: Snapshot = {
     format: FORMAT, phase: 'after', case: name, database: session.database,
-    peopleToolsRelease: session.release, scope: prior.scope, marker: mark, watch, counts
+    peopleToolsRelease: session.release, scope: prior.scope, marker: mark,
+    ...(asOf ? { retroactive: true } : {}), watch, counts
   };
   write(path.join(dir, 'after.json'), snapshot);
 
@@ -548,7 +588,14 @@ async function after(session: Session, name: string): Promise<void> {
     progress('diffing', ++i, swept.length);
     try {
       const whole = !touched.includes(table);
-      const d = await diffTable(session, table, prior.marker.scn, whole);
+      let d = await diffTable(session, table, prior.marker.scn, whole, afterScn);
+      // A delete that empties a block leaves no current row there to find it
+      // by, so the block diff misses it. When inserts minus deletes do not
+      // account for the count change, diff the whole table instead.
+      const countDelta = (counts[table] ?? 0) - (prior.counts[table] ?? 0);
+      if (!whole && counts[table] >= 0 && d.inserted.length - d.deleted.length !== countDelta && !d.truncated) {
+        d = await diffTable(session, table, prior.marker.scn, true, afterScn);
+      }
       if (d.inserted.length + d.deleted.length + d.updated.length > 0) otherTables[table] = d;
       else if (countChanged.includes(table)) otherTables[table] = { ...d, note: 'count changed but no row difference was recovered' };
     } catch (error) {
@@ -602,7 +649,7 @@ async function main(): Promise<void> {
   const session = await open(argument('database') ?? 'HRDMO');
   try {
     if (phase === 'before') await before(session, name, scope, argument('as-of'));
-    else await after(session, name);
+    else await after(session, name, argument('as-of'));
   } finally {
     await close(session);
   }

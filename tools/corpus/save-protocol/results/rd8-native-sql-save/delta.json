@@ -1,0 +1,342 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "rd8-native-sql-save",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362778176005",
+   "timestamp": "2026-10-06T22:24:03.145628000-05:00"
+  },
+  "after": {
+   "scn": "39362778176014",
+   "timestamp": "2026-10-06T22:24:15.849309000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-06T22:24:03.145628000-05:00",
+    "to": "2026-10-06T22:24:15.849309000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "SRM": {
+    "before": 6,
+    "after": 7,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 1361,
+    "after": 1362,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "SRM": {
+    "before": 6,
+    "after": 7,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "otherTablesChanged": {
+   "PSSQLDEFN": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSSQLHASH": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSSQLTEXTDEFN": {
+    "inserted": 1,
+    "deleted": 1,
+    "updated": 0
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "SRM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "6",
+       "after": "7"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "1361",
+       "after": "1362"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "SRM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "6",
+       "after": "7"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSSQLDEFN": {
+   "columns": [
+    {
+     "name": "SQLID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SQLTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "ENABLEEFFDT",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAPM0AHlAAAMk5AAA"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "5",
+       "after": "7"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-06T22:14:48.816335000",
+       "after": "2026-10-06T22:24:15.396605000"
+      }
+     }
+    }
+   ]
+  },
+  "PSSQLHASH": {
+   "columns": [
+    {
+     "name": "SQLID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SQLTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "DBTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EFFDT",
+     "type": "DATE",
+     "length": 7,
+     "nullable": true
+    },
+    {
+     "name": "HASH_SIGNATURE",
+     "type": "VARCHAR2",
+     "length": 112,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAPM+AHlAAAMwwABN"
+     },
+     "changes": {
+      "HASH_SIGNATURE": {
+       "before": "mPrlovEYa2MMnlCwyrIuipUoanUA",
+       "after": "mkjL1cBnAMJP1WSu/GZLW9q4esoA"
+      }
+     }
+    }
+   ]
+  },
+  "PSSQLTEXTDEFN": {
+   "columns": [
+    {
+     "name": "SQLID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SQLTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "DBTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EFFDT",
+     "type": "DATE",
+     "length": 7,
+     "nullable": true
+    },
+    {
+     "name": "SEQNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SQLTEXT",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "SQLID": "ZZ_PCODE_LAB_SQL",
+     "SQLTYPE": "0",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "SEQNUM": "0",
+     "SQLTEXT": "SELECT 3\r\nFROM DUAL"
+    }
+   ],
+   "deleted": [
+    {
+     "SQLID": "ZZ_PCODE_LAB_SQL",
+     "SQLTYPE": "0",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "SEQNUM": "0",
+     "SQLTEXT": "SELECT 2 FROM DUAL"
+    }
+   ],
+   "updated": []
+  }
+ }
+}

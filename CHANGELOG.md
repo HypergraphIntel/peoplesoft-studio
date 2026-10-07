@@ -1,8 +1,123 @@
 # Changelog
 
-## 0.7.2 — MAJOR UPDATE
+## 0.7.3
 
-Version **0.7.1** is a major update. PeopleSoft Studio can now **save
+### Added
+
+- **Properties** for Application Packages, Records, Fields, Components,
+  Pages, Projects, Menus, App Engine programs, SQL definitions and HTML
+  definitions. Right-click one in the Projects or Definition Browser tree
+  (or run *PeopleSoft: Properties* with its editor focused). A read-only
+  panel shows the General properties App Designer shows (description,
+  comments, owner ID, last update, version), the type's own properties (for
+  example a record's type, parent and audit records, or a component's
+  search records), a field's labels, and every column stored in the
+  definition row. Codes without a known name are shown as stored.
+  Properties are read from the database, so they are not available for
+  project exports.
+- **Insert Into Project...** adds the open definition, or one right-clicked in
+  the tree, to a project in the database, as App Designer's *Insert Current
+  Definition into Project* and save do. It is on the tree's context menu and
+  the editor tab's context menu, and offers the projects open in the Projects
+  view first. It needs a connection whose Access is Writable and an Operator
+  ID, and writes the same rows App Designer does: the project item, the
+  project's version and last-update stamp, and the PJM and SYS version
+  counters. It refuses an item already in the project or a definition that
+  does not exist. Records, fields, pages, menus, components, Record
+  PeopleCode, SQL, App Engine programs, HTML, Application Packages and
+  Application Classes. See [docs/PROJECT_INSERT.md](docs/PROJECT_INSERT.md).
+- **Records** open laid out like App Designer's record editor: a Record
+  Fields tab with Field, Use and Edits displays (keys, order, direction,
+  list box items, defaults, required, prompt and translate edits, bold for
+  fields with PeopleCode) and a Record Type tab.
+- **Editing records** on Writable connections: drag rows to reorder, Insert
+  Field, Delete, Move Up / Down, Key / Dir / List in the Use display, and
+  in Record Field Properties: Duplicate Order Key, Search Key, Search
+  Edit, From / Through / Default Search Field, Disable Advanced Search
+  Options, Allow Search Events, the audit flags, System Maintained and Do
+  Not Trace Value;
+  Ctrl+S saves, with undo and revert. A save writes what App Designer's
+  does (field rows, the key index, version counters) in one transaction and
+  is refused if the record changed since it was opened. For now: scratch
+  records (`ZZ_PCODE_LAB%`) that are SQL Tables or Derived/Work, without
+  subrecords or alternate search keys. See
+  [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md).
+- **Record Field PeopleCode from the record**: right-click a field under its
+  record in the Projects or Definition Browser tree and choose
+  *PeopleCode...*, or double-click a field (or press Enter) in the record
+  editor. Every record field event is listed, those with PeopleCode first.
+- **New Record Field PeopleCode**: choose an event with no PeopleCode
+  (*PeopleCode...* on a record field, or double-click the field) and an
+  empty editor opens; saving creates the program, as App Designer does.
+  Writable connections, scratch records.
+- **Record Properties** in the record editor (Alt+Enter, or the field
+  menu): App Designer's General and Use tabs; on editable records the
+  description, Record Definition text, owner ID, set control field, related
+  records, Tools Table and Managed can be changed and saved.
+- **Cut, Copy, Paste** of record fields (also between records, through the
+  clipboard), multi-select (Ctrl / Shift-click) for Delete, Cut and Copy.
+- **Find Definition References** for a field or a record field: the
+  records, pages and PeopleCode programs that use it.
+- **Build Script** for SQL Tables: the Create Table and key index script,
+  generated and opened, never run. Its column types match 99.4% of the
+  columns HRDMO's tables were built with (the rest: older tables' number
+  columns), and NOT NULL 99.998%.
+- **Record Type tab** shows each record type's own controls, as App
+  Designer does: Build Sequence No, the view SQL (Click to open SQL
+  Editor), the query of a query view, Materialized View and GTT.
+- In Record Field Properties on an editable record: Required, the table
+  edit (Prompt Table Edit, Prompt Table with No Edit, Yes/No Table Edit),
+  the Record Field Label ID, the default value, Smart Prompt / Smart
+  Drop-Down, and Default Page Control.
+- **The record editor's field menu**, as in App Designer: right-click a
+  field for View Definition (Ctrl+D), View PeopleCode (Ctrl+E), View
+  Translates, View Field Properties, Delete, **Record Field Properties**
+  (Ctrl+Enter: the Use and Edits tabs -- keys, audit, label ID, default
+  value, page control, required, table edit) and Record Properties
+  (Alt+Enter). Settings whose stored form is not established yet show as
+  "–" rather than cleared, with any unexplained stored bits listed.
+- **Translate values** in the record editor's Translates dialog (View
+  Translates): on Writable connections, a scratch field's values can be
+  added, changed (long and short names, status) and deleted. Each is
+  written at once, as App Designer writes them.
+- **Delete Record...** on a record in the Projects or Definition Browser
+  tree removes its definition as App Designer's Delete does (the SQL table,
+  if built, is not dropped). It asks first, and refuses a record that is
+  still in use: Record PeopleCode, pages, components, projects, other
+  records. Scratch SQL Table and Derived/Work records.
+- A record referred to by another as its Analytic Delete Record can now be
+  saved.
+- Saving a record refreshes the Projects and Definition Browser trees, so
+  its fields show as saved.
+- Fields open in a **Field editor** laid out like App Designer's Field
+  dialog: type and length, the Field Labels grid with the default label
+  ticked, and Field Format. Read-only.
+- The side bar's **Settings** view shows the **MCP server** status below the
+  PeopleTools release and compiler profile; green while it is running.
+
+### Fixed
+
+- Saving an SQL definition to Oracle did not write what App Designer writes
+  (no PSSQLHASH row, missing key columns, a version counter that does not
+  exist) and was offered even on Read-only connections. It is replaced by a
+  save reproduced from App Designer's (definition, text, hash, SRM), on
+  Writable connections with an Operator ID, for scratch definitions; SQL
+  definitions elsewhere open read-only.
+
+- Dynamic views, query views and temporary tables were shown as the wrong
+  record type (RECTYPE 5, 6, 7 were read as 6, 7, 8).
+- The record grid showed some field attributes from the wrong USEEDIT bits
+  (Descending was read as 0x200 and Required as 0x40; From / Through Search
+  Field and the Audit Change / Delete flags were also wrong). Corrected
+  against App Designer.
+
+- Searching for Application Packages on Oracle found nothing: the search
+  looked for root packages with a blank `QUALIFYPATH`, which PeopleTools
+  8.62 stores as `.`. It now matches root packages by `PACKAGELEVEL = 0`.
+
+## 0.7.0 — MAJOR UPDATE
+
+Version **0.7.0** is a major update. PeopleSoft Studio can now **save
 PeopleCode natively to the database**, with no App Designer in the save
 path. It also gains a **Settings panel**, per-connection configuration,
 and a **one-active-connection** model. Read *Upgrading* below before
@@ -137,13 +252,6 @@ secret store):
 Prefer setting Access and the Operator ID in the Settings panel: it
 verifies the operator, which hand-editing `settings.json` does not.
 
-### Known limitations
-
-- PeopleCode saving is limited to existing `ZZ_PCODE_LAB` Record Field
-  PeopleCode and Application Class programs.
-- Compare With Environment is unavailable with one active connection.
-- PeopleCode on a read-only connection still opens read-only. The status
-  bar shows **Read-Only** for it.
 
 ## 0.2.4
 

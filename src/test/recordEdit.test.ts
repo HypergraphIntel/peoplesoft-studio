@@ -1,0 +1,238 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import * as path from 'node:path';
+import { RecordType, UseEdit } from '../model/record.js';
+import {
+  editRefusal, editStateFor, insertField, moveField, planRecordSave, RecordSaveRefusedError, removeField, removeFields, setDefault, setEdits,
+  setLabel, setPageControl, setUse,
+  type RecordEditState, type Row, type StoredRecord
+} from '../model/recordEdit.js';
+
+const RESULTS = path.join('tools', 'corpus', 'save-protocol', 'results');
+
+interface Delta { summary: { psversion: Record<string, { delta: number }> }; otherTables: Record<string, { inserted: Row[]; deleted: Row[] }> }
+
+const s = (v: unknown) => String(v ?? '').trim();
+
+/**
+ * Each App Designer record save in the matrix, replayed: the record's rows
+ * before (the deleted ones -- App Designer rewrites them all) and the edit
+ * that turns them into the rows after. The plan must be App Designer's rows.
+ */
+const CASES: { dir: string; recname: string }[] = [
+  { dir: 'r01-reorder-fields', recname: 'ZZ_PCODE_LAB_T' },
+  { dir: 'r02-insert-field', recname: 'ZZ_PCODE_LAB_T' },
+  { dir: 'r03-sqltable-key-and-fields', recname: 'ZZ_PCODE_LAB_R1' },
+  { dir: 'r04-listbox-off', recname: 'ZZ_PCODE_LAB_R1' },
+  { dir: 'r05-key-ascending', recname: 'ZZ_PCODE_LAB_R1' },
+  { dir: 'r06-delete-field-sqltable', recname: 'ZZ_PCODE_LAB_R1' },
+  { dir: 'r07-delete-field-derived', recname: 'ZZ_PCODE_LAB_T' },
+  { dir: 'r08-search-key-dup-order', recname: 'ZZ_PCODE_LAB_R1' },
+  { dir: 'r09-search-audit-system', recname: 'ZZ_PCODE_LAB_R1' },
+  { dir: 'r11-default-search-field', recname: 'ZZ_PCODE_LAB_R1' },
+  { dir: 'r12-search-edit', recname: 'ZZ_PCODE_LAB_R1' },
+  { dir: 'r13-disable-advanced-search', recname: 'ZZ_PCODE_LAB_R1' },
+  { dir: 'r14-allow-search-events', recname: 'ZZ_PCODE_LAB_R1' },
+  { dir: 'r15-edits-defaults-label', recname: 'ZZ_PCODE_LAB_R1' },
+  { dir: 'r16-yes-no-smart', recname: 'ZZ_PCODE_LAB_R1' },
+  { dir: 'r18-record-general', recname: 'ZZ_PCODE_LAB_R1' }
+  // r10 (Do Not Trace on C04) is not replayed: App Designer also restamped
+  // LASTUPDDTTM's row, whose values had not changed (its dialog was opened
+  // for Auto-Update, which stored nothing). The writer restamps only rows
+  // whose values change.
+];
+
+for (const { dir, recname } of CASES) {
+  test(`a record save plans App Designer's rows: ${dir}`, (t) => {
+    const file = path.join(RESULTS, dir, 'delta.json');
+    if (!existsSync(file)) return t.skip('case not present');
+    const d = JSON.parse(readFileSync(file, 'utf8')) as Delta;
+    const of = (table: string, kind: 'inserted' | 'deleted') =>
+      (d.otherTables[table]?.[kind] ?? []).filter((r) => s(r.RECNAME) === recname);
+    const byNum = (a: Row, b: Row) => Number(a.FIELDNUM) - Number(b.FIELDNUM);
+    const [defnBefore] = of('PSRECDEFN', 'deleted');
+    const [defnAfter] = of('PSRECDEFN', 'inserted');
+    const before = of('PSRECFIELD', 'deleted').sort(byNum);
+    const after = of('PSRECFIELD', 'inserted').sort(byNum);
+
+    const stored: StoredRecord = {
+      recname, recordType: Number(defnBefore.RECTYPE) as RecordType, version: Number(defnBefore.VERSION),
+      defn: defnBefore, fields: before, indexes: of('PSINDEXDEFN', 'deleted')
+    };
+    const edit: RecordEditState = {
+      ...editStateFor(stored),
+      fields: after.map((r) => ({
+      name: s(r.FIELDNAME), useEdit: Number(r.USEEDIT), useEdit2: Number(r.USEEDIT2),
+      editTable: s(r.EDITTABLE), defaultRecord: s(r.DEFRECNAME), defaultField: s(r.DEFFIELDNAME), labelId: s(r.LABEL_ID),
+      pageControl: Number(r.DEFGUICONTROL), isNew: !before.some((b) => s(b.FIELDNAME) === s(r.FIELDNAME))
+    }))
+    };
+    // Record Properties as App Designer left them.
+    edit.properties = {
+      description: s(defnAfter.RECDESCR), definition: String(defnAfter.DESCRLONG ?? '').replace(/\s+$/, ''), ownerId: s(defnAfter.OBJECTOWNERID),
+      setControlField: s(defnAfter.SETCNTRLFLD), parentRecord: s(defnAfter.PARENTRECNAME), relatedLanguageRecord: s(defnAfter.RELLANGRECNAME),
+      querySecurityRecord: s(defnAfter.QRYSECRECNAME), analyticDeleteRecord: s(defnAfter.OPTDELRECNAME),
+      toolsTable: (Number(defnAfter.AUXFLAGMASK) & 0x10000) !== 0, managed: (Number(defnAfter.AUXFLAGMASK) & 0x20000) !== 0
+    };
+    const ts = String(defnAfter.LASTUPDDTTM);
+    const plan = planRecordSave(stored, edit, { ts, operatorId: s(defnAfter.LASTUPDOPRID) });
+
+    // App Designer stamps each changed row with its own SYSTIMESTAMP call; the
+    // writer uses one per save. A row is "stamped by the save" when its stamp
+    // is not the one it had before.
+    const stampOf = (r: Row) => {
+      const old = before.find((b) => s(b.FIELDNAME) === s(r.FIELDNAME));
+      return old && String(old.LASTUPDDTTM) === String(r.LASTUPDDTTM) ? String(r.LASTUPDDTTM) : 'SAVE';
+    };
+    const norm = (r: Row) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, k === 'LASTUPDDTTM' ? stampOf(r) : s(v)]));
+    assert.deepEqual(plan.fields.map(norm), after.map(norm));
+    assert.equal(plan.fieldCount, Number(defnAfter.FIELDCOUNT));
+    for (const [col, v] of Object.entries(plan.recordColumns)) assert.equal(s(v), s(defnAfter[col]), `PSRECDEFN.${col}`);
+    assert.equal(plan.indexCount, Number(defnAfter.INDEXCOUNT));
+    const asText = (rows: Row[]) => rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, s(v)])));
+    assert.deepEqual(plan.index ? asText([plan.index.row]) : [], asText(of('PSINDEXDEFN', 'inserted')));
+    assert.deepEqual(plan.index ? asText(plan.index.keys) : [], asText(of('PSKEYDEFN', 'inserted').sort((a, b) => Number(a.KEYPOSN) - Number(b.KEYPOSN))));
+    assert.equal(plan.bumpPgm, (d.summary.psversion.PGM?.delta ?? 0) > 0, 'PGM moves exactly when a field is removed');
+  });
+}
+
+const table: StoredRecord = {
+  recname: 'ZZ_R', recordType: RecordType.Table, version: 3,
+  fields: [
+    { RECNAME: 'ZZ_R', FIELDNAME: 'K', FIELDNUM: 1, USEEDIT: 0x800001, SUBRECORD: 'N', LASTUPDDTTM: 'old', LASTUPDOPRID: 'PPLSOFT' },
+    { RECNAME: 'ZZ_R', FIELDNAME: 'V', FIELDNUM: 2, USEEDIT: 0x800000, SUBRECORD: 'N', LASTUPDDTTM: 'old', LASTUPDOPRID: 'PPLSOFT' }
+  ],
+  indexes: [{ RECNAME: 'ZZ_R', INDEXID: '_', KEYCOUNT: 1, UNIQUEFLAG: 1 }]
+};
+
+test('edits: move, insert, remove, and the key flags', () => {
+  let e = editStateFor(table);
+  e = insertField(e, 'zz_new', 1);
+  assert.deepEqual(e.fields.map((f) => [f.name, f.isNew]), [['K', false], ['ZZ_NEW', true], ['V', false]]);
+  assert.equal(e.fields[1].useEdit, 0x800000);
+  assert.throws(() => insertField(e, 'V'), /already in/);
+  e = moveField(e, 2, 0);
+  assert.deepEqual(e.fields.map((f) => f.name), ['V', 'K', 'ZZ_NEW']);
+  e = setUse(e, 0, { key: true, descending: true });
+  assert.equal(e.fields[0].useEdit, 0x800041);
+  assert.throws(() => setUse(e, 2, { descending: true }), /only a key can be descending/);
+  e = setUse(e, 0, { key: false });
+  assert.equal(e.fields[0].useEdit & UseEdit.DescendingKey, 0, 'removing the key clears Descending');
+  e = removeField(e, 2);
+  assert.deepEqual(e.fields.map((f) => f.name), ['V', 'K']);
+});
+
+test('the plan restamps only changed and new rows, rebuilds the key index, and bumps PGM on removal', () => {
+  const e = setUse(insertField(removeField(editStateFor(table), 1), 'ZZ_NEW'), 1, { key: true, descending: true });
+  const plan = planRecordSave(table, e, { ts: 'NOW', operatorId: 'JARED' });
+  assert.deepEqual(plan.fields.map((f) => [f.FIELDNAME, f.FIELDNUM, f.LASTUPDDTTM]), [['K', 1, 'old'], ['ZZ_NEW', 2, 'NOW']]);
+  assert.equal(plan.fields[1].DEFGUICONTROL, 99);
+  assert.deepEqual(plan.index!.keys.map((k) => [k.FIELDNAME, k.KEYPOSN, k.ASCDESC]), [['K', 1, 1], ['ZZ_NEW', 2, 0]]);
+  assert.equal(plan.index!.row.KEYCOUNT, 2);
+  assert.equal(plan.index!.row.UNIQUEFLAG, 1, 'an existing index keeps its own flags');
+  assert.deepEqual(plan.removed, ['V']);
+  assert.ok(plan.bumpPgm);
+});
+
+test('what the cases do not cover is refused', () => {
+  assert.throws(() => planRecordSave(table, setUse(editStateFor(table), 0, { key: false }), { ts: 'NOW', operatorId: 'J' }), /Removing the last key/);
+  const withAlt = { ...table, fields: [...table.fields, { FIELDNAME: 'A', USEEDIT: 0x10, SUBRECORD: 'N' }] };
+  assert.match(editRefusal(withAlt)!, /alternate search keys/);
+  assert.match(editRefusal({ ...table, fields: [{ FIELDNAME: 'S', USEEDIT: 0, SUBRECORD: 'Y' }] })!, /subrecords/);
+  assert.match(editRefusal({ ...table, indexes: [...table.indexes, { INDEXID: 'A' }] })!, /other than the key index/);
+  assert.match(editRefusal({ ...table, recordType: RecordType.View })!, /SQL Table and Derived/);
+  // Only the flags the cases exercised may change.
+  const e = editStateFor(table);
+  e.fields[1] = { ...e.fields[1], useEdit: e.fields[1].useEdit | UseEdit.TranslateTable };
+  assert.throws(() => planRecordSave(table, e, { ts: 'NOW', operatorId: 'J' }), RecordSaveRefusedError);
+});
+
+test('Use settings keep the combinations delivered fields keep', () => {
+  let e = editStateFor(table);
+  e = setUse(e, 1, { dupOrder: true, descending: true });
+  assert.equal(e.fields[1].useEdit & (UseEdit.DuplicateOrderKey | UseEdit.DescendingKey), UseEdit.DuplicateOrderKey | UseEdit.DescendingKey);
+  e = setUse(e, 1, { key: true });
+  assert.equal(e.fields[1].useEdit & UseEdit.DuplicateOrderKey, 0, 'Key clears Duplicate Order Key');
+  e = setUse(e, 0, { searchKey: true });
+  assert.ok(e.fields[0].useEdit & UseEdit.SearchKey);
+  e = setUse(e, 0, { dupOrder: true });
+  assert.equal(e.fields[0].useEdit & (UseEdit.Key | UseEdit.SearchKey), 0, 'a duplicate order key is neither a key nor a search key');
+  assert.throws(() => setUse(editStateFor(table), 1, { searchKey: true }), /only a key can be a search key/);
+  e = setUse(editStateFor(table), 1, { auditAdd: true, auditChange: true, auditDelete: true, systemMaintained: true, fromSearch: true, throughSearch: true });
+  assert.equal(e.fields[1].useEdit, 0x800000 | 0x8 | 0x80 | 0x400 | 0x4 | 0x40000 | 0x80000);
+});
+
+test('a duplicate order key joins the key index and makes it non-unique', () => {
+  const e = setUse(editStateFor(table), 1, { dupOrder: true });
+  const plan = planRecordSave(table, e, { ts: 'NOW', operatorId: 'J' });
+  assert.deepEqual(plan.index!.keys.map((k) => k.FIELDNAME), ['K', 'V']);
+  assert.deepEqual([plan.index!.row.KEYCOUNT, plan.index!.row.UNIQUEFLAG], [2, 0]);
+  assert.match(editRefusal({ ...table, indexes: [{ INDEXID: '_', CUSTKEYORDER: 1 }] })!, /custom key order/);
+});
+
+test('Search Edit, the search options and Do Not Trace (r10-r14)', () => {
+  let e = setUse(editStateFor(table), 0, { searchKey: true });
+  e = setUse(e, 0, { searchEdit: true });
+  assert.ok(e.fields[0].useEdit & UseEdit.SearchEdit);
+  e = setUse(e, 0, { searchKey: false });
+  assert.equal(e.fields[0].useEdit & UseEdit.SearchEdit, 0, 'clearing Search Key clears Search Edit');
+  assert.throws(() => setUse(editStateFor(table), 1, { searchEdit: true }), /only a search key/);
+  e = setUse(editStateFor(table), 1, { defaultSearch: true, disableAdvancedSearch: true, allowSearchEvents: true, doNotTrace: true });
+  assert.equal(e.fields[1].useEdit, 0x800000 | 0x1000000 | 0x200000 | 0x8000000);
+  assert.equal(e.fields[1].useEdit2, 0x800000);
+  const plan = planRecordSave({ ...table, fields: table.fields.map((f) => ({ ...f, USEEDIT2: 0 })) }, e, { ts: 'NOW', operatorId: 'J' });
+  assert.deepEqual([plan.fields[1].USEEDIT2, plan.fields[1].LASTUPDDTTM], [0x800000, 'NOW']);
+});
+
+test('the Edits tab, default value, label and page control (r15, r16)', () => {
+  const stored = { ...table, fields: table.fields.map((f) => ({ ...f, USEEDIT2: 0, EDITTABLE: ' ', DEFRECNAME: ' ', DEFFIELDNAME: ' ', LABEL_ID: ' ', DEFGUICONTROL: 99 })) };
+  let e = editStateFor(stored);
+  e = setEdits(e, 1, { required: true, edit: 'prompt', promptTable: 'psoprdefn' });
+  assert.deepEqual([e.fields[1].useEdit & (UseEdit.Required | UseEdit.PromptTable), e.fields[1].editTable], [UseEdit.Required | UseEdit.PromptTable, 'PSOPRDEFN']);
+  e = setEdits(e, 1, { edit: 'promptNoEdit', promptTable: 'PSOPRDEFN' });
+  assert.equal(e.fields[1].useEdit & UseEdit.PromptTable, 0, 'Prompt Table with No Edit is the table alone');
+  e = setEdits(e, 1, { edit: 'yesNo' });
+  assert.deepEqual([e.fields[1].useEdit & UseEdit.YesNoTable, e.fields[1].editTable], [UseEdit.YesNoTable, '']);
+  assert.throws(() => setEdits(e, 1, { edit: 'prompt', promptTable: '' }), /not a record name/);
+  e = setDefault(e, 0, { constant: 'X' });
+  e = setDefault(e, 1, { record: 'zz_pcode_lab_t', field: 'zz_pcode_lab_key' });
+  e = setLabel(e, 0, 'DATE/TIME');
+  assert.equal(e.fields[0].useEdit & UseEdit.UseDefaultLabel, 0, 'a label of its own clears Use Default Label');
+  e = setPageControl(e, 0, 5);
+  assert.throws(() => setPageControl(e, 0, 7), /not been observed/);
+  e = setUse(e, 1, { smartPrompt: true, smartDropDown: true });
+  const plan = planRecordSave(stored, e, { ts: 'NOW', operatorId: 'J' });
+  const [k, v] = plan.fields;
+  assert.deepEqual([k.DEFRECNAME, k.DEFFIELDNAME, k.LABEL_ID, k.DEFGUICONTROL, k.LASTUPDDTTM], [' ', 'X', 'DATE/TIME', 5, 'NOW']);
+  assert.deepEqual([v.DEFRECNAME, v.DEFFIELDNAME, v.EDITTABLE, v.USEEDIT2], ['ZZ_PCODE_LAB_T', 'ZZ_PCODE_LAB_KEY', ' ', 0x3000000]);
+  // A translate edit is kept: no case has set or cleared one.
+  const xlat = editStateFor({ ...stored, fields: [{ ...stored.fields[0], USEEDIT: 0x800200 }] });
+  assert.throws(() => setEdits(xlat, 0, { edit: 'none' }), /translate table edit/);
+});
+
+test('several fields are removed at once (multi-select Delete / Cut)', () => {
+  const e = insertField(insertField(editStateFor(table), 'A'), 'B');
+  assert.deepEqual(removeFields(e, [1, 3]).fields.map((f) => f.name), ['K', 'A']);
+  assert.throws(() => removeFields(e, [9]), /no field at position/);
+});
+
+test('Record Properties: names, lengths and the Tools Table / Managed flags', async () => {
+  const { setRecordProperties } = await import('../model/recordEdit.js');
+  const stored = { ...table, defn: { AUXFLAGMASK: 0x10000, RECDESCR: ' ' } };
+  let e = setRecordProperties(editStateFor(stored), { description: ' ZZ lab record ', parentRecord: 'zz_pcode_lab_t', toolsTable: false, managed: true, definition: 'Lab record  ' });
+  const plan = planRecordSave(stored, e, { ts: 'NOW', operatorId: 'J' });
+  assert.deepEqual(plan.recordColumns, { RECDESCR: 'ZZ lab record', PARENTRECNAME: 'ZZ_PCODE_LAB_T', DESCRLONG: 'Lab record', AUXFLAGMASK: 0x20000 });
+  e = setRecordProperties(e, { parentRecord: '' });
+  assert.equal(planRecordSave(stored, e, { ts: 'NOW', operatorId: 'J' }).recordColumns.PARENTRECNAME, ' ');
+  assert.throws(() => setRecordProperties(e, { description: 'x'.repeat(31) }), /at most 30/);
+  assert.throws(() => setRecordProperties(e, { parentRecord: 'not a name' }), /not a valid name/);
+  assert.throws(() => setRecordProperties(e, { ownerId: 'TOOLONG' }), /owner ID/);
+});
+
+test('an SQL Table that never had a key saves with no key index (r26)', () => {
+  const keyless = { ...table, fields: table.fields.map((f) => ({ ...f, USEEDIT: 0x800000 })), indexes: [] };
+  const plan = planRecordSave(keyless, editStateFor(keyless), { ts: 'NOW', operatorId: 'J' });
+  assert.equal(plan.index, undefined);
+  assert.equal(plan.indexCount, 0);
+});

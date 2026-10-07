@@ -86,20 +86,24 @@ Goal long-term: replace Application Designer. **Today this is a trusted reader a
 | **Saving PeopleCode** to Oracle | **Experimental**, on Writable connections — see [Saving PeopleCode](#saving-peoplecode-experimental) |
 | Settings panel (connections, compiler profile, MCP server) | Yes — *PeopleSoft: Open Settings* |
 | Record → field → PeopleCode event navigation | Yes |
-| **SQL definitions** as text | **Read + write** on Oracle (chunked `PSSQLTEXTDEFN`) |
-| Record field grid | Read-only custom editor |
+| **SQL definitions** as text | Read; save to Oracle on Writable connections for scratch definitions (as App Designer saves them) |
+| Record editor (App Designer's Field / Use / Edits displays, Record Type) | Read-only; editable for scratch records on Writable connections — see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md) |
+| Field editor (App Designer's Field dialog) | Read-only custom editor |
+| Insert a definition into a project | On Writable connections — see [docs/PROJECT_INSERT.md](docs/PROJECT_INSERT.md) |
+| Translate values; Delete Record | On Writable connections, scratch fields and records — see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md) |
+| Definition **Properties** (packages, records, fields, components, pages, projects, menus, App Engine, SQL, HTML) | Read-only panel, from Oracle |
 | Compare definition between two environments | Unavailable for now (one connection is active at a time) |
 | PeopleCode IntelliSense-lite | Completion, hover, outline, snippets |
 | PeopleCode syntax highlighting | Yes |
 
 ## What does **not** work yet
 
-- Creating **new** PeopleCode programs, and saving PeopleCode types other than Record Field PeopleCode and Application Classes
+- Creating new Application Class programs, and saving PeopleCode types other than Record Field PeopleCode and Application Classes
 - Saving PeopleCode outside `ZZ_PCODE_LAB` definitions (the current safety scope)
 - Comparing a definition across two environments (only one connection is active at a time)
-- Editing/saving **records** (grid is read-only)
+- Editing records beyond scratch SQL Table / Derived/Work records (subrecords, alternate search keys, other properties)
 - Page / component visual designers, App Engine editors
-- Insert into project, project build/DDL, project-level migrate/copy
+- Project build/DDL, project-level migrate/copy
 - Full language server (go-to-definition across the environment, compile diagnostics)
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the longer path.
