@@ -37,6 +37,8 @@ export interface HtmlSaveRequest {
   text: string;
   /** PSCONTDEFN.VERSION when opened; undefined creates the definition (refused if it exists). */
   openedVersion?: number;
+  /** A new description (PSCONTDEFN.DESCR, at most 30): saved with the text, as App Designer did (h03). */
+  description?: string;
   operatorId: string;
 }
 
@@ -101,6 +103,8 @@ export async function saveHtmlDefinition(c: Connection, blobType: unknown, reque
     if (name.length > 30 || !/^[A-Z0-9_]+$/.test(name)) throw new HtmlSaveRefusedError(`${name} is not a valid definition name (A-Z, 0-9, _; at most 30).`);
     const textError = contentTextRefusal(request.text);
     if (textError) throw new HtmlSaveRefusedError(textError);
+    if (request.description !== undefined && request.description.length > 30) throw new HtmlSaveRefusedError('The description is at most 30 characters.');
+    const descr = request.description === undefined ? undefined : request.description.trim() || ' ';
     const create = request.openedVersion === undefined;
 
     const defns = await select<{ VERSION: number; CONTTYPE: number; ALTCONTNUM: number }>(c,
@@ -138,13 +142,13 @@ export async function saveHtmlDefinition(c: Connection, blobType: unknown, reque
       await expectRows(c,
         `INSERT INTO SYSADM.PSCONTDEFN (CONTNAME, ALTCONTNUM, CONTFMT, VERSION, CONTTYPE, CONTSTYLE, DESCR, URL, COMPALG, AUXFLAGMASK,
                                         LASTUPDDTTM, LASTUPDOPRID, OBJECTOWNERID)
-         VALUES (:n, 1, ' ', :v, :t, 0, ' ', ' ', 0, 0, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), :op, ' ')`,
-        { ...key, v: next.crm, ts: lastupddttm, op: request.operatorId }, 1, 'Inserting PSCONTDEFN');
+         VALUES (:n, 1, ' ', :v, :t, 0, :d, ' ', 0, 0, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), :op, ' ')`,
+        { ...key, v: next.crm, d: descr ?? ' ', ts: lastupddttm, op: request.operatorId }, 1, 'Inserting PSCONTDEFN');
     } else {
       await expectRows(c,
-        `UPDATE SYSADM.PSCONTDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
+        `UPDATE SYSADM.PSCONTDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op${descr !== undefined ? ', DESCR = :d' : ''}
           WHERE CONTNAME = :n AND CONTTYPE = :t AND ALTCONTNUM = 1`,
-        { ...key, v: next.crm, ts: lastupddttm, op: request.operatorId }, 1, 'Updating PSCONTDEFN');
+        { ...key, v: next.crm, ts: lastupddttm, op: request.operatorId, ...(descr !== undefined ? { d: descr } : {}) }, 1, 'Updating PSCONTDEFN');
       await c.execute(`DELETE FROM SYSADM.PSCONTENT WHERE CONTNAME = :n AND CONTTYPE = :t`, key);
     }
     const chunks = htmlChunks(request.text);
@@ -174,10 +178,11 @@ export async function saveHtmlDefinition(c: Connection, blobType: unknown, reque
 /** The stored definition and text are the save's. */
 export async function verifyHtmlSave(c: Connection, request: HtmlSaveRequest, result: HtmlSaveResult): Promise<void> {
   const problems: string[] = [];
-  const [d] = await select<{ VERSION: number; TS: string; OPRID: string }>(c,
-    `SELECT VERSION, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS, LASTUPDOPRID AS OPRID
+  const [d] = await select<{ VERSION: number; TS: string; OPRID: string; DESCR: string }>(c,
+    `SELECT VERSION, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS, LASTUPDOPRID AS OPRID, DESCR
        FROM SYSADM.PSCONTDEFN WHERE CONTNAME = :n AND CONTTYPE = :t AND ALTCONTNUM = 1`, { n: request.name, t: HTML_CONTTYPE });
-  if (!d || Number(d.VERSION) !== result.version || d.TS !== result.lastupddttm || String(d.OPRID).trim() !== request.operatorId) {
+  if (!d || Number(d.VERSION) !== result.version || d.TS !== result.lastupddttm || String(d.OPRID).trim() !== request.operatorId ||
+      (request.description !== undefined && String(d.DESCR ?? '').trim() !== request.description.trim())) {
     problems.push(`PSCONTDEFN ${JSON.stringify(d)}`);
   }
   const rows = await select<{ SEQNUM: number; D: Buffer }>(c,

@@ -13,6 +13,8 @@ import { isScratchName } from './peoplecode/corpus/labSafety.js';
 import { RECORD_FIELD_EVENTS } from './model/recordEvents.js';
 import { FIELD_TYPE_LABELS, FieldType, RecordType } from './model/record.js';
 import { PackageCreateRefusedError } from './providers/packageWriter.js';
+import { HtmlSaveRefusedError } from './providers/htmlWriter.js';
+import { StyleSheetSaveRefusedError } from './providers/styleSheetWriter.js';
 import { CREATABLE_FIELD_TYPES, FIXED_FIELD_LENGTH, FieldCreateRefusedError, fieldCreateRefusal } from './providers/fieldWriter.js';
 import { toUri } from './util/uri.js';
 import { registerPeopleCodeCompletion } from './peoplecode/completion.js';
@@ -497,6 +499,61 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     vscode.commands.registerCommand('psft.newStyleSheet', () =>
       withError('New style sheet', () => newTextDefinition(workspace, DefinitionType.StyleSheet))),
+
+    vscode.commands.registerCommand('psft.changeDescription', async (node?: unknown) => {
+      await withError('Change description', async () => {
+        const target = await resolveDefinitionForCompare(workspace, node, 'Change Description');
+        if (!target) return;
+        const key = target.key;
+        if (key.type !== DefinitionType.HtmlDefinition && key.type !== DefinitionType.StyleSheet) {
+          vscode.window.showInformationMessage('Change Description is for HTML definitions and style sheets.');
+          return;
+        }
+        const name = key.parts[0];
+        const provider = await workspace.require(target.connectionId);
+        if (!(provider instanceof OracleProvider) || !workspace.isSqlWritable(provider.id, key)) {
+          vscode.window.showWarningMessage(
+            `${name}'s description cannot be changed here: a Writable connection with an Operator ID and a scratch (ZZ_PCODE_LAB%) name are needed.`);
+          return;
+        }
+        const uri = toUri(provider.id, key);
+        if (vscode.workspace.textDocuments.some((d) => d.uri.toString() === uri.toString() && d.isDirty)) {
+          vscode.window.showWarningMessage(`${name} has unsaved changes. Save or revert them first.`);
+          return;
+        }
+        const opened = key.type === DefinitionType.HtmlDefinition
+          ? await provider.readHtmlForEdit(key)
+          : await provider.readStyleSheetForEdit(key);
+        if (!opened || opened === 'classic') {
+          vscode.window.showWarningMessage(opened === 'classic'
+            ? `${name} is a classic style sheet; only freeform style sheets are saved here.`
+            : `There is no ${typeLabel(key.type).replace(/s$/, '')} named ${name}.`);
+          return;
+        }
+        const current = String((await provider.readProperties?.(key))?.row?.DESCR ?? '').trim();
+        const description = await vscode.window.showInputBox({
+          title: `Description of ${name}`, value: current, prompt: 'At most 30 characters; saved to the database at once.',
+          validateInput: (v) => (v.length <= 30 ? undefined : 'At most 30 characters.')
+        });
+        if (description === undefined || description.trim() === current) return;
+        const request = {
+          name, text: opened.text, openedVersion: opened.version, description,
+          operatorId: workspace.configFor(provider.id)!.peoplesoftOperatorId!.trim()
+        };
+        try {
+          if (key.type === DefinitionType.HtmlDefinition) await provider.saveHtmlDefinition(request);
+          else await provider.saveStyleSheet(request);
+        } catch (error) {
+          if (!(error instanceof HtmlSaveRefusedError || error instanceof StyleSheetSaveRefusedError)) throw error;
+          vscode.window.showWarningMessage(`The description was not saved: ${error.message}`);
+          return;
+        }
+        PeopleSoftFileSystem.instance?.reload(uri);
+        browser.refresh();
+        projects.refresh();
+        vscode.window.showInformationMessage(`${name}'s description is now "${description.trim()}".`);
+      });
+    }),
 
     vscode.commands.registerCommand('psft.buildProject', () => {
       vscode.window.showInformationMessage(

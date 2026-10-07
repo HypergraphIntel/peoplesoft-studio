@@ -55,4 +55,6 @@ chunk boundary (no stored example shows how App Designer cuts it).
 In VS Code: HTML Definitions are a type in the Open Definition dialog;
 *PeopleSoft: New HTML Definition...* opens an empty editor that the first
 save creates; an HTML definition opened from a Writable
-connection saves with Ctrl+S. Changing the description is not offered yet.
+connection saves with Ctrl+S. *Change Description...* (right-click it in a
+tree, or its editor tab) saves a new description with the stored text, as
+h03 did: direct case x18 (ZZ_PCODE_LAB_HTM2) wrote h03's change.

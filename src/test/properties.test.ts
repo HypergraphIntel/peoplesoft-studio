@@ -114,4 +114,7 @@ test('tree context values: Properties, Record Field PeopleCode and Delete Record
   const deleteRecord = /\.record$/;
   assert.ok(deleteRecord.test('definition.properties.record'));
   assert.ok(!deleteRecord.test('definition.properties.recordField'));
+  // Change Description: HTML definitions and style sheets.
+  assert.equal(definitionContextValue(makeKey(DefinitionType.HtmlDefinition, 'H', '4')), 'definition.properties.description');
+  assert.equal(definitionContextValue(makeKey(DefinitionType.StyleSheet, 'S')), 'definition.properties.description');
 });

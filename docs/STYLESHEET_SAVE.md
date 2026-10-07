@@ -68,4 +68,7 @@ Properties panel and Insert Into Project. A freeform style sheet opens as
 CSS and saves with Ctrl+S on a Writable connection; *PeopleSoft: New Style
 Sheet...* opens an empty editor that the first save creates. A classic or
 sub style sheet opens read-only as a summary of its classes and sub style
-sheets. Changing the description is not offered yet.
+sheets. *Change Description...* (right-click it in a tree, or its editor
+tab) saves a new description with the stored text, as s03 did: direct case
+x19 (ZZ_PCODE_LAB_CSS3) wrote s03's change, `PSCONTDEFN.DESCR` left
+blank.

@@ -41,6 +41,8 @@ export interface StyleSheetSaveRequest {
   text: string;
   /** PSSTYLSHEETDEFN.VERSION when opened; undefined creates the style sheet (refused if it exists). */
   openedVersion?: number;
+  /** A new description (PSSTYLSHEETDEFN.DESCR, at most 30; PSCONTDEFN's stays blank): saved with the text (s03). */
+  description?: string;
   operatorId: string;
 }
 
@@ -77,6 +79,8 @@ export async function saveStyleSheet(c: Connection, blobType: unknown, request: 
     if (name.length > 30 || !/^[A-Z0-9_]+$/.test(name)) throw new StyleSheetSaveRefusedError(`${name} is not a valid definition name (A-Z, 0-9, _; at most 30).`);
     const textError = contentTextRefusal(request.text);
     if (textError) throw new StyleSheetSaveRefusedError(textError);
+    if (request.description !== undefined && request.description.length > 30) throw new StyleSheetSaveRefusedError('The description is at most 30 characters.');
+    const descr = request.description === undefined ? undefined : request.description.trim() || ' ';
     const create = request.openedVersion === undefined;
 
     const sheets = await select<{ VERSION: number; STYLESHEETTYPE: number; NUMSTYLECLASS: number }>(c,
@@ -122,8 +126,8 @@ export async function saveStyleSheet(c: Connection, blobType: unknown, request: 
       await expectRows(c,
         `INSERT INTO SYSADM.PSSTYLSHEETDEFN (STYLESHEETNAME, VERSION, STYLESHEETTYPE, PARENTSTYLENAME, DESCR, NUMSTYLECLASS,
                                              LASTUPDDTTM, LASTUPDOPRID, OBJECTOWNERID)
-         VALUES (:n, :v, 2, ' ', ' ', 0, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), :op, ' ')`,
-        { n: name, v: next.ssm, ...stamp }, 1, 'Inserting PSSTYLSHEETDEFN');
+         VALUES (:n, :v, 2, ' ', :d, 0, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), :op, ' ')`,
+        { n: name, v: next.ssm, d: descr ?? ' ', ...stamp }, 1, 'Inserting PSSTYLSHEETDEFN');
       await expectRows(c,
         `INSERT INTO SYSADM.PSCONTDEFN (CONTNAME, ALTCONTNUM, CONTFMT, VERSION, CONTTYPE, CONTSTYLE, DESCR, URL, COMPALG, AUXFLAGMASK,
                                         LASTUPDDTTM, LASTUPDOPRID, OBJECTOWNERID)
@@ -131,8 +135,8 @@ export async function saveStyleSheet(c: Connection, blobType: unknown, request: 
         { ...key, v: contentVersion, ...stamp }, 1, 'Inserting PSCONTDEFN');
     } else {
       await expectRows(c,
-        `UPDATE SYSADM.PSSTYLSHEETDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
-          WHERE STYLESHEETNAME = :n`, { n: name, v: next.ssm, ...stamp }, 1, 'Updating PSSTYLSHEETDEFN');
+        `UPDATE SYSADM.PSSTYLSHEETDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op${descr !== undefined ? ', DESCR = :d' : ''}
+          WHERE STYLESHEETNAME = :n`, { n: name, v: next.ssm, ...stamp, ...(descr !== undefined ? { d: descr } : {}) }, 1, 'Updating PSSTYLSHEETDEFN');
       await expectRows(c,
         `UPDATE SYSADM.PSCONTDEFN SET VERSION = :v, LASTUPDDTTM = TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}), LASTUPDOPRID = :op
           WHERE CONTNAME = :n AND CONTTYPE = :t AND ALTCONTNUM = 1`, { ...key, v: contentVersion, ...stamp }, 1, 'Updating PSCONTDEFN');
@@ -166,10 +170,13 @@ export async function verifyStyleSheetSave(c: Connection, request: StyleSheetSav
   const problems: string[] = [];
   const stamped = (row: { VERSION: number; TS: string; OPRID: string } | undefined, version: number) =>
     row && Number(row.VERSION) === version && row.TS === result.lastupddttm && String(row.OPRID).trim() === request.operatorId;
-  const [s] = await select<{ VERSION: number; TS: string; OPRID: string; T: number }>(c,
-    `SELECT VERSION, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS, LASTUPDOPRID AS OPRID, STYLESHEETTYPE AS T
+  const [s] = await select<{ VERSION: number; TS: string; OPRID: string; T: number; DESCR: string }>(c,
+    `SELECT VERSION, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS, LASTUPDOPRID AS OPRID, STYLESHEETTYPE AS T, DESCR
        FROM SYSADM.PSSTYLSHEETDEFN WHERE STYLESHEETNAME = :n`, { n: request.name });
-  if (!stamped(s, result.version) || Number(s.T) !== FREEFORM_STYLESHEET) problems.push(`PSSTYLSHEETDEFN ${JSON.stringify(s)}`);
+  if (!stamped(s, result.version) || Number(s.T) !== FREEFORM_STYLESHEET ||
+      (request.description !== undefined && String(s.DESCR ?? '').trim() !== request.description.trim())) {
+    problems.push(`PSSTYLSHEETDEFN ${JSON.stringify(s)}`);
+  }
   const [d] = await select<{ VERSION: number; TS: string; OPRID: string }>(c,
     `SELECT VERSION, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS, LASTUPDOPRID AS OPRID
        FROM SYSADM.PSCONTDEFN WHERE CONTNAME = :n AND CONTTYPE = :t AND ALTCONTNUM = 1`, { n: request.name, t: STYLESHEET_CONTTYPE });
