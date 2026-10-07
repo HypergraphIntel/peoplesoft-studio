@@ -45,7 +45,8 @@ export const EDITABLE_USE_BITS = UseEdit.Key | UseEdit.DuplicateOrderKey | UseEd
   UseEdit.SearchEdit | UseEdit.ListBoxItem | UseEdit.FromSearchField | UseEdit.ThroughSearchField |
   UseEdit.DefaultSearchField | UseEdit.DisableAdvancedSearchOptions | UseEdit.AllowSearchEventsForPromptDialogs |
   UseEdit.AuditFieldAdd | UseEdit.AuditFieldChange | UseEdit.AuditFieldDelete | UseEdit.SystemMaintained |
-  UseEdit.Required | UseEdit.PromptTable | UseEdit.YesNoTable | UseEdit.TranslateTable | UseEdit.UseDefaultLabel | UseEdit.AutoUpdate;
+  UseEdit.Required | UseEdit.PromptTable | UseEdit.YesNoTable | UseEdit.TranslateTable | UseEdit.UseDefaultLabel | UseEdit.AutoUpdate |
+  UseEdit.AltSearchKey;
 
 /** The USEEDIT2 bits an edit may change (r10, r15, r16). */
 export const EDITABLE_USE2_BITS: number = UseEdit2.DoNotTraceValue | UseEdit2.SmartPrompt | UseEdit2.SmartDropDown;
@@ -113,7 +114,9 @@ export interface RecordTypeEdits {
 export const RECORD_TYPE_CHANGES: ReadonlyArray<readonly [RecordType, RecordType]> = [
   [RecordType.DerivedWork, RecordType.Table], [RecordType.Table, RecordType.View], [RecordType.DerivedWork, RecordType.View],
   // r46: SQLTABLENAME cleared, the tablespace row deleted (and the key index, which no Derived/Work record has).
-  [RecordType.Table, RecordType.DerivedWork]
+  [RecordType.Table, RecordType.DerivedWork],
+  // r57: the key index and tablespace row created, the view's SQL rows deleted (SRM + 1).
+  [RecordType.View, RecordType.Table]
 ];
 
 const isViewType = (t: RecordType) => t === RecordType.View || t === RecordType.DynamicView;
@@ -175,12 +178,14 @@ export interface RecordPropertyEdits {
   recUse?: number;
   /** TIMESTAMPFIELDNAME (r51); the field takes Auto-Update (USEEDIT 0x4000000), and a field it replaces loses it. */
   timestampField?: string;
+  /** SYSTEMIDFIELDNAME (r54): a Number field, which takes Auto-Update the same way (7 of 7 on HRDMO). */
+  systemIdField?: string;
 }
 
 const PROPERTY_COLUMNS: Readonly<Record<string, string>> = {
   description: 'RECDESCR', ownerId: 'OBJECTOWNERID', setControlField: 'SETCNTRLFLD', parentRecord: 'PARENTRECNAME',
   relatedLanguageRecord: 'RELLANGRECNAME', querySecurityRecord: 'QRYSECRECNAME', analyticDeleteRecord: 'OPTDELRECNAME',
-  auditRecord: 'AUDITRECNAME', timestampField: 'TIMESTAMPFIELDNAME'
+  auditRecord: 'AUDITRECNAME', timestampField: 'TIMESTAMPFIELDNAME', systemIdField: 'SYSTEMIDFIELDNAME'
 };
 
 /** Changes Record Properties, validated as names / lengths App Designer allows. */
@@ -195,15 +200,16 @@ export function setRecordProperties(state: RecordEditState, change: RecordProper
       next.recUse = n;
       continue;
     }
-    if (k === 'timestampField') {
+    if (k === 'timestampField' || k === 'systemIdField') {
       const name = String(v).trim().toUpperCase();
       if (name !== '' && !state.fields.some((f) => f.name === name)) throw new RecordSaveRefusedError(`${name} is not a field of ${state.recname}.`);
-      // App Designer sets Auto-Update on the Timestamp Field (r51) and, by the same token, not on a field it no longer is.
-      const before = state.properties?.timestampField;
+      // App Designer sets Auto-Update on the Timestamp Field (r51) and the System ID Field (r54), and by the same
+      // token not on a field it no longer is.
+      const before = state.properties?.[k];
       const fields = state.fields.map((f) => f.name === name ? { ...f, useEdit: f.useEdit | UseEdit.AutoUpdate }
         : before !== undefined && f.name === before ? { ...f, useEdit: f.useEdit & ~UseEdit.AutoUpdate } : f);
       state = { ...state, fields };
-      next.timestampField = name;
+      next[k] = name;
       continue;
     }
     if (k === 'definition') {
@@ -282,14 +288,14 @@ export function removeFields(state: RecordEditState, indexes: readonly number[])
 }
 
 export interface UseChange {
-  key?: boolean; dupOrder?: boolean; descending?: boolean; searchKey?: boolean; searchEdit?: boolean; listBox?: boolean;
+  key?: boolean; dupOrder?: boolean; altSearch?: boolean; descending?: boolean; searchKey?: boolean; searchEdit?: boolean; listBox?: boolean;
   fromSearch?: boolean; throughSearch?: boolean; defaultSearch?: boolean; disableAdvancedSearch?: boolean;
   allowSearchEvents?: boolean; auditAdd?: boolean; auditChange?: boolean; auditDelete?: boolean;
   systemMaintained?: boolean; doNotTrace?: boolean; smartPrompt?: boolean; smartDropDown?: boolean;
 }
 
 const CHANGE_BITS: readonly [keyof UseChange, UseEdit][] = [
-  ['key', UseEdit.Key], ['dupOrder', UseEdit.DuplicateOrderKey], ['searchKey', UseEdit.SearchKey],
+  ['key', UseEdit.Key], ['dupOrder', UseEdit.DuplicateOrderKey], ['altSearch', UseEdit.AltSearchKey], ['searchKey', UseEdit.SearchKey],
   ['listBox', UseEdit.ListBoxItem], ['fromSearch', UseEdit.FromSearchField], ['throughSearch', UseEdit.ThroughSearchField],
   ['auditAdd', UseEdit.AuditFieldAdd], ['auditChange', UseEdit.AuditFieldChange], ['auditDelete', UseEdit.AuditFieldDelete],
   ['systemMaintained', UseEdit.SystemMaintained], ['searchEdit', UseEdit.SearchEdit], ['defaultSearch', UseEdit.DefaultSearchField],
@@ -318,10 +324,13 @@ export function setUse(state: RecordEditState, index: number, change: UseChange)
     const v = change[name];
     if (v === undefined) continue;
     set(bit, v);
-    if (v && name === 'key') set(UseEdit.DuplicateOrderKey, false);
-    if (v && name === 'dupOrder') { set(UseEdit.Key, false); set(UseEdit.SearchKey, false); }
+    // An alternate search key is never also a key of either kind (none on HRDMO).
+    if (v && name === 'key') { set(UseEdit.DuplicateOrderKey, false); set(UseEdit.AltSearchKey, false); }
+    if (v && name === 'dupOrder') { set(UseEdit.Key, false); set(UseEdit.SearchKey, false); set(UseEdit.AltSearchKey, false); }
+    if (v && name === 'altSearch') { set(UseEdit.Key, false); set(UseEdit.DuplicateOrderKey, false); set(UseEdit.SearchKey, false); }
   }
-  const keyed = () => hasFlag(useEdit, UseEdit.Key) || hasFlag(useEdit, UseEdit.DuplicateOrderKey);
+  // Descending: a key of either kind, or an alternate search key (11 delivered tables index one descending).
+  const keyed = () => hasFlag(useEdit, UseEdit.Key) || hasFlag(useEdit, UseEdit.DuplicateOrderKey) || hasFlag(useEdit, UseEdit.AltSearchKey);
   if (change.searchEdit && !hasFlag(useEdit, UseEdit.SearchKey)) {
     throw new RecordSaveRefusedError(`${f.name} is not a search key: only a search key can have Search Edit.`);
   }
@@ -422,6 +431,12 @@ export const NEW_RECFIELD_VALUES: Readonly<Row> = {
   RELTMDTFIELDNAME: ' ', CURRCTLUSE: 0
 };
 
+/** An alternate search key's index as App Designer created it (r55), besides RECNAME, INDEXID and KEYCOUNT. */
+export const NEW_ALT_INDEX_VALUES: Readonly<Row> = {
+  INDEXTYPE: 3, UNIQUEFLAG: 0, CLUSTERFLAG: 0, ACTIVEFLAG: 1, CUSTKEYORDER: 0, DDLCOUNT: 0, PLATFORM_SBS: 1, PLATFORM_DB2: 1,
+  PLATFORM_ORA: 1, PLATFORM_INF: 1, PLATFORM_DBX: 1, PLATFORM_ALB: 1, PLATFORM_SYB: 1, PLATFORM_MSS: 1, PLATFORM_DB4: 1, IDXCOMMENTS: ' '
+};
+
 /** The `_` index App Designer creates for an SQL Table's first key (case r03), besides RECNAME and KEYCOUNT. */
 export const NEW_KEY_INDEX_VALUES: Readonly<Row> = {
   INDEXID: '_', INDEXTYPE: 1, UNIQUEFLAG: 1, CLUSTERFLAG: 1, ACTIVEFLAG: 1, CUSTKEYORDER: 0, DDLCOUNT: 0,
@@ -463,6 +478,10 @@ export interface RecordSavePlan {
   tablespace?: 'insert' | 'delete';
   /** The view's SQL to write (PSSQLDEFN SQLTYPE 2 and its rows): when it changed, or the record became a view (r28). */
   viewSql?: string;
+  /** An SQL Table's alternate search key indexes, '0', '1', ... (r55). */
+  altIndexes: { row: Row; keys: Row[] }[];
+  /** The view's SQL rows are deleted: a view became an SQL Table (r57). */
+  dropViewSql?: boolean;
 }
 
 const str = (v: unknown) => String(v ?? '').trim();
@@ -484,11 +503,8 @@ export function editRefusal(stored: StoredRecord): string | undefined {
   if (stored.recordType !== RecordType.DerivedWork && stored.fields.some((f) => str(f.SUBRECORD) === 'Y')) {
     return 'Only Derived/Work records with subrecords can be edited yet.';
   }
-  // An alternate search key is an index of an SQL Table; a Derived/Work record or view has none (r53 saved R5 with one).
-  if (stored.recordType === RecordType.Table && stored.fields.some((f) => hasFlag(Number(f.USEEDIT), UseEdit.AltSearchKey))) {
-    return 'SQL Tables with alternate search keys cannot be edited yet (their indexes are not modelled).';
-  }
-  const other = stored.indexes.filter((i) => str(i.INDEXID) !== '_');
+  // An SQL Table's alternate search keys are its indexes '0', '1', ... (r55); a Derived/Work record or view has none.
+  const other = stored.indexes.filter((i) => str(i.INDEXID) !== '_' && !(/^[0-9]$/.test(str(i.INDEXID)) && Number(i.INDEXTYPE ?? 3) === 3));
   if (other.length > 0) return `Records with indexes other than the key index cannot be edited yet (${other.map((i) => str(i.INDEXID)).join(', ')}).`;
   if (stored.recordType === RecordType.DerivedWork && stored.indexes.length > 0) return 'This Derived/Work record has an index, which none observed has.';
   if (stored.indexes.some((i) => Number(i.CUSTKEYORDER) === 1)) {
@@ -605,9 +621,7 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
     };
   });
   const removed = [...byName.keys()].filter((n) => !seen.has(n));
-  if (removed.some((n) => str(byName.get(n)!.SUBRECORD) === 'Y')) {
-    throw new RecordSaveRefusedError('Removing a subrecord has not been observed in App Designer; it cannot be done here yet.');
-  }
+  // Removing a subrecord removes its row and its expanded rows; PGM moves, as for a removed field (r56).
 
   const finalType = edit.type?.recordType ?? stored.recordType;
   if (finalType !== RecordType.DerivedWork && fields.some((f) => str(f.SUBRECORD) === 'Y')) {
@@ -615,6 +629,7 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
   }
   const dbFields = expandDbFields(stored.recname, fields, stored.subrecords ?? {});
   let index: RecordSavePlan['index'];
+  const altIndexes: NonNullable<RecordSavePlan['index']>[] = [];
   // Only an SQL Table has a key index: views and Derived/Work records with keys have none
   // (20,163 of 20,167 keyed SQL Views; all 1,233 keyed Derived/Work records).
   if (finalType === RecordType.Table) {
@@ -637,6 +652,22 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
         ASCDESC: hasFlag(Number(k.USEEDIT), UseEdit.DescendingKey) ? 0 : 1
       }))
     };
+    }
+    // Each alternate search key, in field order, is index '0', '1', ...: INDEXTYPE 3, not unique or clustered,
+    // the alternate field then the record's keys -- not its duplicate order keys (r55; 2,136 of HRDMO's 2,140
+    // SQL Tables with alternate search keys agree; the 4 others carry hand-added columns, refused by the writer).
+    const altFields = fields.filter((f) => hasFlag(Number(f.USEEDIT), UseEdit.AltSearchKey));
+    if (altFields.length > 10) throw new RecordSaveRefusedError('More than ten alternate search keys is not saved here.');
+    const keyFields = fields.filter((f) => hasFlag(Number(f.USEEDIT), UseEdit.Key));
+    const asc = (f: Row) => (hasFlag(Number(f.USEEDIT), UseEdit.DescendingKey) ? 0 : 1);
+    for (const [i, alt] of altFields.entries()) {
+      const id = String(i);
+      const cols = [alt, ...keyFields];
+      const existing = stored.indexes.find((x) => str(x.INDEXID) === id);
+      altIndexes.push({
+        row: existing ? { ...existing, KEYCOUNT: cols.length } : { RECNAME: stored.recname, INDEXID: id, ...NEW_ALT_INDEX_VALUES, KEYCOUNT: cols.length },
+        keys: cols.map((f, n) => ({ RECNAME: stored.recname, INDEXID: id, KEYPOSN: n + 1, FIELDNAME: str(f.FIELDNAME), ASCDESC: asc(f) }))
+      });
     }
   }
 
@@ -679,8 +710,10 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
     ...(tablespace ? { tablespace } : {}),
     ...(viewSql !== undefined ? { viewSql } : {}),
     ...(index ? { index } : {}),
+    altIndexes,
+    ...(isViewType(stored.recordType) && !isViewType(finalType) ? { dropViewSql: true } : {}),
     fieldCount: fields.length,
-    indexCount: index ? 1 : 0,
+    indexCount: (index ? 1 : 0) + altIndexes.length,
     removed,
     bumpPgm: removed.length > 0
   };

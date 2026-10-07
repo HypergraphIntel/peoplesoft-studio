@@ -203,7 +203,7 @@ export interface TranslateValue {
 export type CheckState = boolean | 'unknown';
 
 /** The UseChange setting a check edits (model/recordEdit.ts). */
-export type UseFlagName = 'key' | 'dupOrder' | 'descending' | 'searchKey' | 'searchEdit' | 'listBox' | 'fromSearch' |
+export type UseFlagName = 'key' | 'dupOrder' | 'altSearch' | 'descending' | 'searchKey' | 'searchEdit' | 'listBox' | 'fromSearch' |
   'throughSearch' | 'defaultSearch' | 'disableAdvancedSearch' | 'allowSearchEvents' | 'auditAdd' | 'auditChange' |
   'auditDelete' | 'systemMaintained' | 'doNotTrace' | 'smartPrompt' | 'smartDropDown';
 
@@ -245,7 +245,7 @@ export function recordFieldProperties(f: RecordLayoutField): RecordFieldProperti
     keys: [
       { label: 'Key', state: on(UseEdit.Key), flag: 'key' },
       { label: 'Duplicate Order Key', state: on(UseEdit.DuplicateOrderKey), flag: 'dupOrder' },
-      { label: 'Alternate Search Key', state: on(UseEdit.AltSearchKey) },
+      { label: 'Alternate Search Key', state: on(UseEdit.AltSearchKey), flag: 'altSearch' },
       { label: 'Descending Key', state: on(UseEdit.DescendingKey), flag: 'descending' },
       { label: 'Search Key', state: on(UseEdit.SearchKey), flag: 'searchKey' },
       { label: 'Search Edit', state: on(UseEdit.SearchEdit), flag: 'searchEdit' },

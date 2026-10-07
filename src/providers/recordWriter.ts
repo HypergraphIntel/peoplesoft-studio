@@ -1,12 +1,12 @@
 import type { Connection } from 'oracledb';
 import { RecordType } from '../model/record.js';
 import {
-  expandDbFields, planRecordSave, RecordSaveRefusedError, type RecordEditState, type RecordSavePlan, type Row, type StoredRecord
+  editStateFor, expandDbFields, planRecordSave, RecordSaveRefusedError, type RecordEditState, type RecordSavePlan, type Row, type StoredRecord
 } from '../model/recordEdit.js';
 import { isScratchName } from '../peoplecode/corpus/labSafety.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
-import { writeViewSql } from './sqlWriter.js';
+import { deleteViewSql, writeViewSql } from './sqlWriter.js';
 
 /*
  * Saving a record definition, as App Designer does (docs/RECORD_SAVE.md).
@@ -87,7 +87,7 @@ interface Tables { recfield: Column[]; recfielddb: Column[]; index: Column[]; ke
 async function readStored(c: Connection, tables: Tables, recname: string, forUpdate: boolean): Promise<StoredRecord & { db: Row[]; keys: Row[] }> {
   const [defn] = await select<Row & { RECTYPE: number; VERSION: number }>(c,
     `SELECT RECTYPE, VERSION, RECDESCR, DBMS_LOB.SUBSTR(DESCRLONG, 4000, 1) AS DESCRLONG, OBJECTOWNERID, SETCNTRLFLD,
-            PARENTRECNAME, RELLANGRECNAME, QRYSECRECNAME, OPTDELRECNAME, AUXFLAGMASK, SQLTABLENAME, BUILDSEQNO, AUDITRECNAME, RECUSE, TIMESTAMPFIELDNAME
+            PARENTRECNAME, RELLANGRECNAME, QRYSECRECNAME, OPTDELRECNAME, AUXFLAGMASK, SQLTABLENAME, BUILDSEQNO, AUDITRECNAME, RECUSE, TIMESTAMPFIELDNAME, SYSTEMIDFIELDNAME
        FROM SYSADM.PSRECDEFN WHERE RECNAME = :r${forUpdate ? ' FOR UPDATE' : ''}`, { r: recname });
   if (!defn) throw new RecordSaveRefusedError(`There is no record named ${recname}.`);
   const r = { r: recname };
@@ -193,9 +193,9 @@ async function createRecord(c: Connection, request: RecordSaveRequest): Promise<
   });
   for (const row of plan.fields) await insertRow(c, 'PSRECFIELD', tables.recfield, row);
   for (const row of plan.dbFields) await insertRow(c, 'PSRECFIELDDB', tables.recfielddb, row);
-  if (plan.index) {
-    await insertRow(c, 'PSINDEXDEFN', tables.index, plan.index.row);
-    for (const k of plan.index.keys) await insertRow(c, 'PSKEYDEFN', tables.key, k);
+  for (const ix of [...(plan.index ? [plan.index] : []), ...plan.altIndexes]) {
+    await insertRow(c, 'PSINDEXDEFN', tables.index, ix.row);
+    for (const k of ix.keys) await insertRow(c, 'PSKEYDEFN', tables.key, k);
   }
   if (space) {
     await expectRows(c,
@@ -301,6 +301,21 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
       `SELECT COUNT(*) AS N FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f AND FIELDTYPE = 6`, { f: props.timestampField }))) {
       throw new RecordSaveRefusedError(`Timestamp Field: ${props.timestampField} is not a DateTime field.`);
     }
+    // The System ID Field is a Number field of the record (r54; 7 of 7 on HRDMO).
+    if (props.systemIdField && !(await exists(
+      `SELECT COUNT(*) AS N FROM SYSADM.PSDBFIELD WHERE FIELDNAME = :f AND FIELDTYPE = 2`, { f: props.systemIdField }))) {
+      throw new RecordSaveRefusedError(`System ID Field: ${props.systemIdField} is not a Number field.`);
+    }
+    // Stored alternate-key indexes must be the ones the rule gives (r55), or they were made by hand.
+    const altIds = stored.indexes.filter((i) => /^[0-9]$/.test(text(i.INDEXID))).map((i) => text(i.INDEXID));
+    if (altIds.length > 0) {
+      const asStored = planRecordSave(stored, editStateFor(stored), { ts: 'X', operatorId: 'X' });
+      const want = asStored.altIndexes.flatMap((ix) => ix.keys.map((k) => `${k.INDEXID}:${k.FIELDNAME}:${k.ASCDESC}`));
+      const got = stored.keys.filter((k) => altIds.includes(text(k.INDEXID))).map((k) => `${text(k.INDEXID)}:${text(k.FIELDNAME)}:${text(k.ASCDESC)}`);
+      if (JSON.stringify(want) !== JSON.stringify(got)) {
+        throw new RecordSaveRefusedError(`${recname}'s alternate search key indexes carry columns of their own; saving it here is not supported yet.`);
+      }
+    }
     if (props.setControlField && !request.edit.fields.some((f) => f.name === props.setControlField)) {
       throw new RecordSaveRefusedError(`Set Control Field: ${props.setControlField} is not a field of ${recname}.`);
     }
@@ -326,13 +341,16 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
     for (const row of plan.fields) await insertRow(c, 'PSRECFIELD', tables.recfield, row);
     for (const row of plan.dbFields) await insertRow(c, 'PSRECFIELDDB', tables.recfielddb, row);
 
-    const storedKey = stored.indexes.filter((i) => text(i.INDEXID) === '_');
-    const storedKeys = stored.keys.filter((k) => text(k.INDEXID) === '_');
-    if (storedKeys.length > 0) await expectRows(c, `DELETE FROM SYSADM.PSKEYDEFN WHERE RECNAME = :r AND INDEXID = '_'`, r, storedKeys.length, 'Deleting PSKEYDEFN');
-    if (storedKey.length > 0) await expectRows(c, `DELETE FROM SYSADM.PSINDEXDEFN WHERE RECNAME = :r AND INDEXID = '_'`, r, storedKey.length, 'Deleting PSINDEXDEFN');
-    if (plan.index) {
-      await insertRow(c, 'PSINDEXDEFN', tables.index, plan.index.row);
-      for (const k of plan.index.keys) await insertRow(c, 'PSKEYDEFN', tables.key, k);
+    // The key index '_' and the alternate search key indexes '0'-'9' are rewritten (r45, r55).
+    const modelled = (id: unknown) => text(id) === '_' || /^[0-9]$/.test(text(id));
+    const storedKey = stored.indexes.filter((i) => modelled(i.INDEXID));
+    const storedKeys = stored.keys.filter((k) => modelled(k.INDEXID));
+    const ids = "(INDEXID = '_' OR REGEXP_LIKE(INDEXID, '^[0-9]$'))";
+    if (storedKeys.length > 0) await expectRows(c, `DELETE FROM SYSADM.PSKEYDEFN WHERE RECNAME = :r AND ${ids}`, r, storedKeys.length, 'Deleting PSKEYDEFN');
+    if (storedKey.length > 0) await expectRows(c, `DELETE FROM SYSADM.PSINDEXDEFN WHERE RECNAME = :r AND ${ids}`, r, storedKey.length, 'Deleting PSINDEXDEFN');
+    for (const ix of [...(plan.index ? [plan.index] : []), ...plan.altIndexes]) {
+      await insertRow(c, 'PSINDEXDEFN', tables.index, ix.row);
+      for (const k of ix.keys) await insertRow(c, 'PSKEYDEFN', tables.key, k);
     }
 
     // The Record Type tab (r26-r28): the tablespace row follows the SQL Table type, and a view's SQL is written when it changed.
@@ -348,6 +366,7 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
       await c.execute(`DELETE FROM SYSADM.PSRECTBLSPC WHERE RECNAME = :r`, r);
     }
     if (plan.viewSql !== undefined) await writeViewSql(c, { recname, text: plan.viewSql, ts: lastupddttm, operatorId: request.operatorId });
+    if (plan.dropViewSql) await deleteViewSql(c, recname);
 
     // Record Properties columns ride on the same update. DESCRLONG is a CLOB; its text (at most 4,000
     // characters, recordEdit.ts) binds as a string, which Oracle converts.
@@ -401,8 +420,10 @@ export async function verifyRecordSave(c: Connection, request: RecordSaveRequest
   const { plan } = result;
   compare('PSRECFIELD', now.fields, plan.fields, tables.recfield);
   compare('PSRECFIELDDB', now.db, plan.dbFields, tables.recfielddb);
-  compare('PSINDEXDEFN', now.indexes, plan.index ? [plan.index.row] : [], tables.index);
-  compare('PSKEYDEFN', now.keys, plan.index ? plan.index.keys : [], tables.key);
+  // Stored in INDEXID order: '0'-'9' before '_'.
+  const planned = [...plan.altIndexes, ...(plan.index ? [plan.index] : [])];
+  compare('PSINDEXDEFN', now.indexes, planned.map((ix) => ix.row), tables.index);
+  compare('PSKEYDEFN', now.keys, planned.flatMap((ix) => ix.keys), tables.key);
   const [defn] = await select<{ FIELDCOUNT: number; INDEXCOUNT: number; VERSION: number; TS: string; OPRID: string }>(c,
     `SELECT FIELDCOUNT, INDEXCOUNT, VERSION, TO_CHAR(CAST(LASTUPDDTTM AS TIMESTAMP(6)), ${TIMESTAMP_FORMAT}) AS TS, LASTUPDOPRID AS OPRID
        FROM SYSADM.PSRECDEFN WHERE RECNAME = :r`, { r: recname });

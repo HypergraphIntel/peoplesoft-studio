@@ -380,7 +380,7 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
 
 /** The bit each Use setting the page can toggle stands for. */
 const TOGGLE_BITS: Readonly<Record<string, UseEdit>> = {
-  key: UseEdit.Key, dupOrder: UseEdit.DuplicateOrderKey, descending: UseEdit.DescendingKey, searchKey: UseEdit.SearchKey,
+  key: UseEdit.Key, dupOrder: UseEdit.DuplicateOrderKey, altSearch: UseEdit.AltSearchKey, descending: UseEdit.DescendingKey, searchKey: UseEdit.SearchKey,
   searchEdit: UseEdit.SearchEdit, listBox: UseEdit.ListBoxItem, fromSearch: UseEdit.FromSearchField,
   throughSearch: UseEdit.ThroughSearchField, defaultSearch: UseEdit.DefaultSearchField,
   disableAdvancedSearch: UseEdit.DisableAdvancedSearchOptions, allowSearchEvents: UseEdit.AllowSearchEventsForPromptDialogs,
@@ -513,6 +513,7 @@ class RecordDocument implements vscode.CustomDocument {
       ...(p.auditRecord !== undefined ? { auditRecord: p.auditRecord } : {}),
       ...(p.recUse !== undefined ? { recUse: p.recUse } : {}),
       ...(p.timestampField !== undefined ? { timestampField: p.timestampField } : {}),
+      ...(p.systemIdField !== undefined ? { systemIdField: p.systemIdField } : {}),
       auxFlagMask: (base.auxFlagMask & ~0x30000) |
         ((p.toolsTable ?? (base.auxFlagMask & 0x10000) !== 0) ? 0x10000 : 0) | ((p.managed ?? (base.auxFlagMask & 0x20000) !== 0) ? 0x20000 : 0)
     } : base;

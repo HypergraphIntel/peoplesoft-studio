@@ -426,9 +426,9 @@ field's value, as App Designer showed it for ZZ_PCODE_LAB_C01).
 
 ## Still to capture
 
-- alternate search keys (index type 3); In Memory; the System ID Field
-- type changes from a view; materialized views; Query Views; SubRecords;
-  Temporary Tables
+- In Memory; the Build Script's alternate search key indexes
+- SQL View -> Derived/Work; Dynamic View changes of type; materialized views;
+  Query Views; SubRecords; Temporary Tables
 - whether parent / query security / audit references move the referring
   record's VERSION (an audit record's save with R4 referring to it)
 - SQL text over 14,000 characters
@@ -492,10 +492,33 @@ SS_PROC_SBR); `FIELDCOUNT` counts the `PSRECFIELD` rows. The record editor
 inserts subrecords into Derived/Work records (Insert Subrecord), and edits
 records holding them; direct cases x35 (ABS_HIST_BELSBR into
 ZZ_PCODE_LAB_R2) and x36 (R5 reordered around it) wrote those rows.
-Refused, as not captured: subrecords in other record types, removing a
-subrecord, nested subrecords. An alternate search key no longer stops a
+Refused, as not captured: subrecords in other record types and nested
+subrecords (removing one is r56). An alternate search key no longer stops a
 Derived/Work record or view from being edited: only an SQL Table indexes
 it (r53 saved R5 with one).
+
+## Cases r54-r57: System ID field, alternate search key, subrecord removal, view to table
+
+| Case | Change | What App Designer wrote |
+|---|---|---|
+| r54 | R4's System ID Field ZZ_PCODE_LAB_N2 (inserted in the same save) | `SYSTEMIDFIELDNAME`; the field's `USEEDIT` + Auto-Update (0x4000000) |
+| r55 | R6's ZZ_PCODE_LAB_N3 an Alternate Search Key | `USEEDIT` + 0x10; index `0`: `INDEXTYPE` 3, not unique or clustered, keys N3, KEY, N1 (descending) -- not the duplicate order key N2; `INDEXCOUNT` 2 |
+| r56 | R2's subrecord ABS_HIST_BELSBR removed | its `PSRECFIELD` row and expanded `PSRECFIELDDB` rows deleted; **PGM** + 1, as for a removed field |
+| r57 | R7 SQL View -> SQL Table | `RECTYPE` 0, the key index and `PSRECTBLSPC` row created, the view's `PSSQLDEFN` / `PSSQLDESCR` / `PSSQLHASH` / `PSSQLTEXTDEFN` rows deleted; SRM + 1 |
+
+Alternate search keys, across HRDMO: each, in field order, is index `0`,
+`1`, ... -- the field, then the record's keys, never its duplicate order
+keys, a descending field stored descending. 2,136 of the 2,140 SQL Tables
+with alternate search keys (no subrecords) agree; the other 4 carry
+hand-added columns, and the writer refuses them. No field is both a key and
+an alternate search key; every System ID field is a Number field with
+Auto-Update (7 of 7).
+
+The writer does all four; direct cases x38 (R6's System ID Field N4), x39
+(R6's S1 a second alternate search key, index `1`), x40 (R2's subrecord
+removed) and x41 (R7 SQL View -> SQL Table) wrote the same rows. The Build
+Script does not write alternate search key indexes yet (no App Designer
+script with one has been compared).
 
 ## Translate Table Edit
 

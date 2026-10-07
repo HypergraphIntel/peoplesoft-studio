@@ -262,3 +262,23 @@ export async function writeViewSql(
   }
   return { version, hashSignature };
 }
+
+/**
+ * A view's SQL deleted inside the record save that makes the view an SQL
+ * Table (r57): PSSQLDEFN, PSSQLDESCR, PSSQLHASH and PSSQLTEXTDEFN rows of
+ * SQLTYPE 2; PSVERSION SRM, PSLOCK SRM + 1.
+ */
+export async function deleteViewSql(c: Connection, recname: string): Promise<void> {
+  const id = { id: recname };
+  const [{ N: defs }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM SYSADM.PSSQLDEFN WHERE SQLID = :id AND SQLTYPE = '2'`, id);
+  if (Number(defs) !== 1) throw new SqlSaveRefusedError(`${recname} has ${defs} view SQL definitions; refusing to write.`);
+  const v = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSVERSION WHERE OBJECTTYPENAME = 'SRM' FOR UPDATE`);
+  const l = await select<{ V: number }>(c, `SELECT VERSION AS V FROM SYSADM.PSLOCK WHERE OBJECTTYPENAME = 'SRM' FOR UPDATE`);
+  if (v.length !== 1 || l.length !== 1) throw new SqlSaveRefusedError('PSVERSION / PSLOCK SRM is missing; refusing to write.');
+  for (const table of ['PSSQLTEXTDEFN', 'PSSQLHASH', 'PSSQLDESCR']) {
+    await c.execute(`DELETE FROM SYSADM.${table} WHERE SQLID = :id AND SQLTYPE = '2'`, id);
+  }
+  await expectRows(c, `DELETE FROM SYSADM.PSSQLDEFN WHERE SQLID = :id AND SQLTYPE = '2'`, id, 1, 'Deleting PSSQLDEFN');
+  await expectRows(c, `UPDATE SYSADM.PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SRM'`, { v: Number(v[0].V) + 1 }, 1, 'Updating PSVERSION SRM');
+  await expectRows(c, `UPDATE SYSADM.PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'SRM'`, { v: Number(l[0].V) + 1 }, 1, 'Updating PSLOCK SRM');
+}
