@@ -74,6 +74,8 @@ export interface RecordEditField {
   pageControl?: number;
   /** True for a field inserted in this edit. */
   isNew: boolean;
+  /** A subrecord row (PSRECFIELD.SUBRECORD 'Y'): name is the subrecord's. */
+  isSubrecord?: boolean;
 }
 
 export interface RecordEditState {
@@ -253,6 +255,20 @@ export function insertField(state: RecordEditState, name: string, at = state.fie
   return { ...state, fields };
 }
 
+/** Inserts a subrecord (App Designer's Insert > Subrecord, r53): a Derived/Work record's only, and not twice. */
+export function insertSubrecord(state: RecordEditState, name: string, at = state.fields.length): RecordEditState {
+  const sub = name.trim().toUpperCase();
+  if (!NAME.test(sub)) throw new RecordSaveRefusedError(`${name} is not a record name.`);
+  if ((state.type?.recordType ?? state.recordType) !== RecordType.DerivedWork) {
+    throw new RecordSaveRefusedError('Subrecords can be inserted into Derived/Work records only, as yet.');
+  }
+  if (state.fields.some((f) => f.name === sub)) throw new RecordSaveRefusedError(`${sub} is already in ${state.recname}.`);
+  if (at < 0 || at > state.fields.length) throw new RecordSaveRefusedError(`Cannot insert at position ${at + 1}.`);
+  const fields = [...state.fields];
+  fields.splice(at, 0, { name: sub, useEdit: 0, useEdit2: 0, isNew: true, isSubrecord: true });
+  return { ...state, fields };
+}
+
 export function removeField(state: RecordEditState, index: number): RecordEditState {
   check(state, index);
   return { ...state, fields: state.fields.filter((_, i) => i !== index) };
@@ -414,6 +430,8 @@ export const NEW_KEY_INDEX_VALUES: Readonly<Row> = {
 };
 
 export interface StoredRecord {
+  /** Each subrecord the record holds (or an edit inserts): its own PSRECFIELD rows, in FIELDNUM order. */
+  subrecords?: Readonly<Record<string, Row[]>>;
   recname: string;
   recordType: RecordType;
   version: number;
@@ -426,8 +444,10 @@ export interface StoredRecord {
 }
 
 export interface RecordSavePlan {
-  /** PSRECFIELD rows to insert, in order; PSRECFIELDDB is the same with RECNAME_PARENT. */
+  /** PSRECFIELD rows to insert, in order. */
   fields: Row[];
+  /** PSRECFIELDDB rows to insert: the fields with each subrecord expanded in place. */
+  dbFields: Row[];
   /** PSRECDEFN columns the save changes besides its counts and stamp (Record Properties). */
   recordColumns: Row;
   /** The key index and its key rows, for an SQL Table; absent for Derived/Work. */
@@ -460,9 +480,13 @@ export function editRefusal(stored: StoredRecord): string | undefined {
     return 'Materialized views cannot be edited yet.';
   }
   if (isViewType(stored.recordType) && stored.indexes.length > 0) return 'This view has an index, which views here do not (4 of 20,167).';
-  if (stored.fields.some((f) => str(f.SUBRECORD) === 'Y')) return 'Records with subrecords cannot be edited yet.';
-  if (stored.fields.some((f) => hasFlag(Number(f.USEEDIT), UseEdit.AltSearchKey))) {
-    return 'Records with alternate search keys cannot be edited yet (their indexes are not modelled).';
+  // Subrecords: as App Designer saved one into a Derived/Work record (r53).
+  if (stored.recordType !== RecordType.DerivedWork && stored.fields.some((f) => str(f.SUBRECORD) === 'Y')) {
+    return 'Only Derived/Work records with subrecords can be edited yet.';
+  }
+  // An alternate search key is an index of an SQL Table; a Derived/Work record or view has none (r53 saved R5 with one).
+  if (stored.recordType === RecordType.Table && stored.fields.some((f) => hasFlag(Number(f.USEEDIT), UseEdit.AltSearchKey))) {
+    return 'SQL Tables with alternate search keys cannot be edited yet (their indexes are not modelled).';
   }
   const other = stored.indexes.filter((i) => str(i.INDEXID) !== '_');
   if (other.length > 0) return `Records with indexes other than the key index cannot be edited yet (${other.map((i) => str(i.INDEXID)).join(', ')}).`;
@@ -496,13 +520,38 @@ function columns(f: RecordEditField): Row {
   return out;
 }
 
+/**
+ * PSRECFIELDDB for PSRECFIELD rows: each own row as itself, each subrecord
+ * row replaced by the subrecord's own rows (RECNAME_PARENT the subrecord),
+ * numbered straight through -- r53, and ADHOC_SALCHG_WK's fields after its
+ * subrecord SS_PROC_SBR continuing the numbering. Nested subrecords are
+ * refused.
+ */
+export function expandDbFields(recname: string, fields: readonly Row[], subrecords: Readonly<Record<string, Row[]>>): Row[] {
+  const out: Row[] = [];
+  for (const f of fields) {
+    if (str(f.SUBRECORD) !== 'Y') { out.push({ ...f, RECNAME_PARENT: recname, FIELDNUM: out.length + 1 }); continue; }
+    const sub = str(f.FIELDNAME);
+    const rows = subrecords[sub];
+    if (!rows) throw new RecordSaveRefusedError(`The fields of subrecord ${sub} are not known; refusing to write.`);
+    for (const r of rows) {
+      if (str(r.SUBRECORD) === 'Y') throw new RecordSaveRefusedError(`${sub} holds a subrecord itself; nested subrecords are not saved here yet.`);
+      out.push({ ...r, RECNAME: recname, RECNAME_PARENT: sub, FIELDNUM: out.length + 1 });
+    }
+  }
+  return out;
+}
+
 /** The edit state a record opens with. */
 export function editStateFor(stored: StoredRecord): RecordEditState {
   return {
     recname: stored.recname,
     recordType: stored.recordType,
     openedVersion: stored.version,
-    fields: stored.fields.map((f) => ({ name: str(f.FIELDNAME), useEdit: Number(f.USEEDIT), useEdit2: Number(f.USEEDIT2 ?? 0), isNew: false }))
+    fields: stored.fields.map((f) => ({
+      name: str(f.FIELDNAME), useEdit: Number(f.USEEDIT), useEdit2: Number(f.USEEDIT2 ?? 0), isNew: false,
+      ...(str(f.SUBRECORD) === 'Y' ? { isSubrecord: true } : {})
+    }))
   };
 }
 
@@ -522,6 +571,14 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
     if (seen.has(f.name)) throw new RecordSaveRefusedError(`${f.name} is listed twice.`);
     seen.add(f.name);
     const fieldNum = i + 1;
+    if (f.isNew && f.isSubrecord) {
+      if (byName.has(f.name)) throw new RecordSaveRefusedError(`${f.name} is already in ${stored.recname}.`);
+      // r53: the subrecord's row -- SUBRECORD 'Y', USEEDIT 0, the new-row values, stamped.
+      return {
+        RECNAME: stored.recname, FIELDNAME: f.name, FIELDNUM: fieldNum, ...NEW_RECFIELD_VALUES, SUBRECORD: 'Y',
+        USEEDIT: 0, USEEDIT2: 0, LASTUPDDTTM: stamp.ts, LASTUPDOPRID: stamp.operatorId
+      };
+    }
     if (f.isNew) {
       if (byName.has(f.name)) throw new RecordSaveRefusedError(`${f.name} is already in ${stored.recname}.`);
       return {
@@ -531,6 +588,10 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
     }
     const old = byName.get(f.name);
     if (!old) throw new RecordSaveRefusedError(`${f.name} is not in ${stored.recname} any more; reopen it.`);
+    if (str(old.SUBRECORD) === 'Y') {
+      if (f.useEdit !== Number(old.USEEDIT)) throw new RecordSaveRefusedError(`${f.name} is a subrecord: it has no settings of its own.`);
+      return { ...old, FIELDNUM: fieldNum };
+    }
     const useEdit2 = f.useEdit2 ?? Number(old.USEEDIT2 ?? 0);
     const offLimits = ((Number(old.USEEDIT) ^ f.useEdit) & ~EDITABLE_USE_BITS) | ((Number(old.USEEDIT2 ?? 0) ^ useEdit2) & ~EDITABLE_USE2_BITS);
     if (offLimits !== 0) throw new RecordSaveRefusedError(`${f.name}: that setting cannot be changed here yet.`);
@@ -544,8 +605,15 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
     };
   });
   const removed = [...byName.keys()].filter((n) => !seen.has(n));
+  if (removed.some((n) => str(byName.get(n)!.SUBRECORD) === 'Y')) {
+    throw new RecordSaveRefusedError('Removing a subrecord has not been observed in App Designer; it cannot be done here yet.');
+  }
 
   const finalType = edit.type?.recordType ?? stored.recordType;
+  if (finalType !== RecordType.DerivedWork && fields.some((f) => str(f.SUBRECORD) === 'Y')) {
+    throw new RecordSaveRefusedError('A record with subrecords stays Derived/Work here, as yet.');
+  }
+  const dbFields = expandDbFields(stored.recname, fields, stored.subrecords ?? {});
   let index: RecordSavePlan['index'];
   // Only an SQL Table has a key index: views and Derived/Work records with keys have none
   // (20,163 of 20,167 keyed SQL Views; all 1,233 keyed Derived/Work records).
@@ -605,6 +673,7 @@ export function planRecordSave(stored: StoredRecord, edit: RecordEditState, stam
 
   return {
     fields,
+    dbFields,
     recordColumns,
     recordType: finalType,
     ...(tablespace ? { tablespace } : {}),
