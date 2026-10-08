@@ -327,3 +327,27 @@ body.vscode-high-contrast-light .connection.selected {
   border-color: var(--vscode-contrastActiveBorder, var(--vscode-focusBorder));
   border-width: 2px;
 }
+
+/* Tabs (Build Settings) ---------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border, transparent));
+  margin-bottom: 0.9rem;
+}
+.tabs .tab {
+  background: transparent;
+  color: var(--vscode-foreground);
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 0.35rem 0.9rem;
+  opacity: 0.75;
+}
+.tabs .tab:hover:not(:disabled) { background: transparent; opacity: 1; }
+.tabs .tab.selected {
+  opacity: 1;
+  border-bottom-color: var(--vscode-panelTitle-activeBorder, var(--vscode-focusBorder));
+}
+.tabs .tab:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }

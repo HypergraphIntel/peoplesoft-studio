@@ -29,9 +29,46 @@ export enum DefinitionType {
   Activity = 18,
   ComponentInterface = 32,
   AppEngineProgram = 33,
+  /** PSPROJECTITEM 10, OBJECTIDs 30 / 25: a query, by name and owner (blank: public); 310 of 377 project items in PSQRYDEFN. */
+  Query = 10,
+  /** PSPROJECTITEM 56, OBJECTID1 103: a URL definition (59 of 66 in PSURLDEFN). */
+  UrlDefinition = 56,
+  /** PSPROJECTITEM 62, OBJECTIDs 65 / 81: XSLT, an SQL definition of SQLTYPE 6 (19 of 19 in PSSQLDEFN). */
+  Xslt = 62,
+  /** PSPROJECTITEM 35, OBJECTID1 62: an Integration Broker node (17 of 19 in PSMSGNODEDEFN). */
+  MessageNode = 35,
+  /** PSPROJECTITEM 55, OBJECTIDs 99 / 100 / 101: a portal registry folder or content reference -- portal, type (C / F), name (7,340 of 7,358 in PSPRSMDEFN). */
+  PortalRegistry = 55,
+  /** PSPROJECTITEM 49, OBJECTIDs 91 / 95: an image, name and alternate (1,918 of 2,069 in PSCONTDEFN, CONTTYPE 1). */
+  Image = 49,
+  /** PSPROJECTITEM 37, OBJECTID1 60: an Integration Broker message (768 of 851 in PSMSGDEFN). */
+  IbMessage = 37,
+  /** PSPROJECTITEM 79, OBJECTID1 138: a service (185 of 216 in PSSERVICE). */
+  IbService = 79,
+  /** PSPROJECTITEM 80, OBJECTID1 139: a service operation (510 of 563 in PSOPERATION). */
+  IbServiceOperation = 80,
+  /** PSPROJECTITEM 12, OBJECTIDs 34 / 68 / 36 / 21: a tree -- SetID, set control value, name, effective date (84 of 84 in PSTREEDEFN). */
+  Tree = 12,
+  /** PSPROJECTITEM 20, OBJECTIDs 29 / 28: a process definition, by process type and name (269 of 307 in PS_PRCSDEFN). */
+  ProcessDefinition = 20,
+  /** PSPROJECTITEM 19, OBJECTID1 32: a role (947 of 956 project items in PSROLEDEFN). */
+  Role = 19,
+  /** PSPROJECTITEM 25, OBJECTIDs 48 / 49: a Message Catalog entry, set and number (1,294 of 1,294 in PSMSGCATDEFN). */
+  MessageCatalog = 25,
+  /** PSPROJECTITEM 53, OBJECTID1 89: a permission list (67 of 71 in PSCLASSDEFN). */
+  PermissionList = 53,
+  /** PSPROJECTITEM OBJECTTYPE 34, OBJECTID1 66 / OBJECTID2 77 (program, section): 970 on HRDMO. */
+  AppEngineSection = 34,
   AppEnginePeopleCode = 43,
   ComponentPeopleCode = 46,
-  ComponentRecordPeopleCode = 48,
+  /**
+   * PSPROJECTITEM 48, OBJECTIDs 10 / 39 / 1 / 2: component, market, record,
+   * then the field (padded to 18) and the event in one value
+   * ("SAVE_PB           FieldChange"); PSPCMPROG keys it 10 / 39 / 1 / 2 / 12.
+   */
+  ComponentRecordFieldPeopleCode = 48,
+  /** PSPROJECTITEM 47, OBJECTIDs 10 / 39 / 1 / 12: component, market, record, event (488 on HRDMO). */
+  ComponentRecordPeopleCode = 47,
   PagePeopleCode = 44,
   /** PSPROJECTITEM OBJECTTYPE 50, OBJECTID1 94 (STYLESHEETNAME): 295 on HRDMO, every one a PSSTYLSHEETDEFN name. */
   StyleSheet = 50,
@@ -49,17 +86,14 @@ export enum DefinitionType {
   FileLayoutPeopleCode = 59,
 
   /**
-   * SQL definitions have a real OBJECTTYPE code, but code 51 turned out to be
-   * HTML definitions, so the value this once used was wrong and the correct one
-   * is not yet known. A negative sentinel is used instead: it cannot collide
-   * with a real code, and it is obviously not one.
-   *
-   * The database provider still reads and writes SQL definitions, because it
-   * queries PSSQLDEFN by name rather than by OBJECTTYPE. Only SQL items inside
-   * a project export are affected — they surface as an unknown type until the
-   * real code is confirmed.
+   * PSPROJECTITEM OBJECTTYPE 30, OBJECTIDs 65 SQLID / 81 SQLTYPE: 7,205 items
+   * on HRDMO, every SQLTYPE (0 SQL definitions, 1 App Engine action SQL, 2
+   * view text, 6 XSLT). Keyed [SQLID] for SQLTYPE 0 -- the SQL definitions
+   * this extension opens and saves -- else [SQLID, SQLTYPE]. (Before this
+   * was established the type was the sentinel -1; keyFromString still reads
+   * it.)
    */
-  SqlDefinition = -1,
+  SqlDefinition = 30,
 
   /**
    * A project.
@@ -87,7 +121,7 @@ export const CONFIRMED_TYPES: ReadonlySet<DefinitionType> = new Set([
   DefinitionType.AppEngineProgram,
   DefinitionType.AppEnginePeopleCode,
   DefinitionType.ComponentPeopleCode,
-  DefinitionType.ComponentRecordPeopleCode,
+  DefinitionType.ComponentRecordFieldPeopleCode,
   DefinitionType.PagePeopleCode,
   DefinitionType.HtmlDefinition,
   DefinitionType.ApplicationPackage,
@@ -105,6 +139,7 @@ export const PEOPLECODE_TYPES: ReadonlySet<DefinitionType> = new Set([
   DefinitionType.MenuPeopleCode,
   DefinitionType.ComponentPeopleCode,
   DefinitionType.ComponentRecordPeopleCode,
+  DefinitionType.ComponentRecordFieldPeopleCode,
   DefinitionType.AppEnginePeopleCode,
   DefinitionType.ComponentInterfacePeopleCode,
   DefinitionType.FileLayoutPeopleCode
@@ -151,8 +186,10 @@ export function keyToString(key: DefinitionKey): string {
 export function keyFromString(s: string): DefinitionKey {
   const sep = s.indexOf(':');
   if (sep < 0) throw new Error(`Malformed definition key: ${s}`);
-  const type = Number(s.slice(0, sep));
+  let type = Number(s.slice(0, sep));
   if (!Number.isInteger(type)) throw new Error(`Malformed definition type in key: ${s}`);
+  // SQL definitions were keyed -1 before their OBJECTTYPE (30) was established; old links still open.
+  if (type === -1) type = DefinitionType.SqlDefinition;
   const rest = s.slice(sep + 1);
   return { type, parts: rest === '' ? [] : rest.split('.') };
 }
@@ -169,6 +206,17 @@ export function displayName(key: DefinitionKey): string {
       // A field listed under a record carries the record as a second part
       // (see canExpand); the field is still named by itself.
       return key.parts[0] ?? '';
+    case DefinitionType.Tree: {
+      // SetID, set control value, name, effective date: named by the tree, with what tells versions apart.
+      const [setid, setcntrl, name, effdt] = key.parts;
+      return `${name ?? ''} (${[setid, setcntrl].filter((p) => p?.trim()).join(', ')}${setid?.trim() || setcntrl?.trim() ? ', ' : ''}${effdt ?? ''})`;
+    }
+    case DefinitionType.PortalRegistry:
+      // Portal, type (C content reference / F folder), name.
+      return key.parts.length > 2 ? `${key.parts[2]} (${key.parts[0]}${key.parts[1] === 'F' ? ' folder' : ''})` : key.parts.join('.');
+    case DefinitionType.ProcessDefinition:
+      // Keyed type then name; named as Process Scheduler lists them.
+      return key.parts.length > 1 ? `${key.parts[1]} (${key.parts[0]})` : key.parts.join('.');
     default:
       return key.parts.join('.');
   }
@@ -191,8 +239,24 @@ export const TYPE_LABELS: Readonly<Partial<Record<DefinitionType, string>>> = {
   [DefinitionType.MenuPeopleCode]: 'Menu PeopleCode',
   [DefinitionType.ComponentPeopleCode]: 'Component PeopleCode',
   [DefinitionType.ComponentRecordPeopleCode]: 'Component Record PeopleCode',
+  [DefinitionType.ComponentRecordFieldPeopleCode]: 'Component Record Field PeopleCode',
   [DefinitionType.ComponentInterface]: 'Component Interfaces',
   [DefinitionType.AppEngineProgram]: 'App Engine Programs',
+  [DefinitionType.AppEngineSection]: 'App Engine Sections',
+  [DefinitionType.Query]: 'Queries',
+  [DefinitionType.ProcessDefinition]: 'Process Definitions',
+  [DefinitionType.Tree]: 'Trees',
+  [DefinitionType.Image]: 'Images',
+  [DefinitionType.PortalRegistry]: 'Portal Registry Structures',
+  [DefinitionType.UrlDefinition]: 'URL Definitions',
+  [DefinitionType.Xslt]: 'XSLT',
+  [DefinitionType.MessageNode]: 'Message Nodes',
+  [DefinitionType.IbMessage]: 'Messages',
+  [DefinitionType.IbService]: 'Services',
+  [DefinitionType.IbServiceOperation]: 'Service Operations',
+  [DefinitionType.Role]: 'Roles',
+  [DefinitionType.MessageCatalog]: 'Message Catalog Entries',
+  [DefinitionType.PermissionList]: 'Permission Lists',
   [DefinitionType.AppEnginePeopleCode]: 'App Engine PeopleCode',
   [DefinitionType.ComponentInterfacePeopleCode]: 'Component Interface PeopleCode',
   [DefinitionType.FileLayout]: 'File Layouts',
@@ -213,8 +277,20 @@ export const TYPE_LABELS: Readonly<Partial<Record<DefinitionType, string>>> = {
  * silently dropping them would make a project look smaller than it is.
  */
 export function typeLabel(type: DefinitionType | number): string {
-  return TYPE_LABELS[type as DefinitionType] ?? `Type ${type}`;
+  return TYPE_LABELS[type as DefinitionType] ?? PROJECT_ITEM_LABELS[type] ?? `Type ${type}`;
 }
+
+/**
+ * Names for project item types this extension lists but does not open:
+ * each type's OBJECTVALUE1 found in the PeopleTools table that defines it,
+ * for HRDMO's project items (queries 310 of 377 in PSQRYDEFN, roles 947 of
+ * 956 in PSROLEDEFN, images 1,918 of 2,069 in PSCONTDEFN, message catalog
+ * 1,294 of 1,294 ...; the rest name definitions not installed there).
+ */
+export const PROJECT_ITEM_LABELS: Readonly<Record<number, string>> = {
+  3: 'Field Formats', 11: 'Tree Structures', 14: 'Colors', 15: 'Styles',
+  21: 'Process Servers', 24: 'Recurrence Definitions'
+};
 
 /** File extension used when a definition is surfaced through the virtual FS. */
 export function fileExtension(type: DefinitionType): string {
@@ -228,7 +304,23 @@ export function fileExtension(type: DefinitionType): string {
     case DefinitionType.Page: return '.pspage';
     case DefinitionType.Component: return '.pscomponent';
     case DefinitionType.Menu: return '.psmenu';
-    case DefinitionType.AppEngineProgram: return '.psae';
+    case DefinitionType.AppEngineProgram:
+    case DefinitionType.AppEngineSection: return '.psae';
+    case DefinitionType.FileLayout: return '.psfl';
+    case DefinitionType.Query: return '.psqry';
+    case DefinitionType.ProcessDefinition: return '.psprcs';
+    case DefinitionType.Tree: return '.pstree';
+    case DefinitionType.IbMessage: return '.psmsgdefn';
+    case DefinitionType.PortalRegistry: return '.psportal';
+    case DefinitionType.UrlDefinition: return '.psurl';
+    case DefinitionType.Xslt: return '.xsl';
+    case DefinitionType.MessageNode: return '.psnode';
+    case DefinitionType.IbService: return '.psservice';
+    case DefinitionType.IbServiceOperation: return '.psoperation';
+    case DefinitionType.Role: return '.psrole';
+    case DefinitionType.MessageCatalog: return '.psmsg';
+    case DefinitionType.PermissionList: return '.psperm';
+    case DefinitionType.ComponentInterface: return '.psci';
     default: return '.psdef';
   }
 }

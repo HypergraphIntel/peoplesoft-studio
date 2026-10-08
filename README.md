@@ -92,7 +92,7 @@ Goal long-term: replace Application Designer. **Today this is a trusted reader a
 | Open Definition search | Yes | |
 | **PeopleCode** as text (`psft://…`) | Yes | On Writable connections, Record Field PeopleCode and Application Classes open as their stored source (`PSPCMTXT`) and can be saved (see the next row). Other programs and Read-only connections open read-only, decoded from `PSPCMPROG`; an export's are taken from the file |
 | **Saving PeopleCode** to Oracle | Experimental | Writable connections — see [Saving PeopleCode](#saving-peoplecode-experimental) |
-| Settings panel | Yes | *PeopleSoft: Open Settings* — connections, compiler profile, MCP server, Build Settings |
+| Settings panel | Yes | *PeopleSoft: Open Settings* — connections, compiler profile, MCP server, Build Settings (Build and Alter tabs) |
 | Record → field → PeopleCode event navigation | Yes | |
 | **SQL definitions** as text | Yes | Create and save on Writable connections, as App Designer saves them |
 | **HTML definitions** as text | Yes | Create and save on Writable connections — see [docs/HTML_SAVE.md](docs/HTML_SAVE.md) |
@@ -103,7 +103,18 @@ Goal long-term: replace Application Designer. **Today this is a trusted reader a
 | **New Definition...** (Projects / Definition Browser) | Yes | Records (SQL Table, Derived/Work), fields, projects, Application Packages and classes, SQL, HTML, freeform style sheets, on Writable connections — see [docs/CREATE_DEFINITIONS.md](docs/CREATE_DEFINITIONS.md) |
 | Insert a definition into a project | Yes | Writable connections — see [docs/PROJECT_INSERT.md](docs/PROJECT_INSERT.md) |
 | Translate values; Delete Record | Yes | Writable connections — see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md) |
-| Definition **Properties** (packages, records, fields, components, pages, projects, menus, App Engine, SQL, HTML, style sheets) | Read-Only | A panel, from Oracle |
+| Definition **Properties** (packages, records, fields, components, pages, projects, menus, App Engine, SQL, HTML, style sheets) | Read-Only | A panel, from Oracle. Records and fields are changed in their editors; HTML and freeform style sheet descriptions with *Change Description...* |
+| **Pages**, **components**, **menus** | Read-Only | A page in App Designer's Order view (each control's type, label and record field); a component's search records, actions and pages; a menu's bars and items — see [docs/PAGES_COMPONENTS_MENUS.md](docs/PAGES_COMPONENTS_MENUS.md). Their PeopleCode opens read-only. No visual designer, editing or creating yet |
+| **App Engine programs** | Read-Only | Open in App Designer's Definition and Program Flow views: sections, steps and actions with their settings, SQL and PeopleCode — see [docs/APP_ENGINE.md](docs/APP_ENGINE.md). Browse, search and Properties. No editing or creating yet |
+| **File Layouts**, **Component Interfaces** | Read-Only | A file layout's format, segments and fields; a component interface's methods, keys, collections and properties — see [docs/FILE_LAYOUTS_COMPONENT_INTERFACES.md](docs/FILE_LAYOUTS_COMPONENT_INTERFACES.md) |
+| **Permission Lists**, **Roles**, **Message Catalog** | Read-Only | A permission list's pages and actions, sign-on times, Web Libraries and more; a role's permission lists; a message's text and explanation — see [docs/SECURITY_MESSAGES.md](docs/SECURITY_MESSAGES.md) |
+| **Queries** | Read-Only | Records and joins, columns, prompts and criteria for the query, its subqueries and unions — see [docs/QUERIES.md](docs/QUERIES.md) |
+| **Process Definitions** | Read-Only | Priority, run location, parameters, output, components and process groups — see [docs/PROCESS_DEFINITIONS.md](docs/PROCESS_DEFINITIONS.md) |
+| **Trees** | Read-Only | Settings, levels, and nodes as an outline with detail ranges — see [docs/TREES.md](docs/TREES.md) |
+| **Messages**, **Services**, **Service Operations** | Read-Only | Message versions and record structure; service operations with their messages, handlers and routings — see [docs/INTEGRATION_BROKER.md](docs/INTEGRATION_BROKER.md) |
+| **Images** | Read-Only | Shown in a panel (GIF, PNG, JPEG, SVG, BMP) — see [docs/IMAGES.md](docs/IMAGES.md) |
+| **Portal Registry** | Read-Only | Folders and content references: navigation path, component, URL, security — see [docs/PORTAL_REGISTRY.md](docs/PORTAL_REGISTRY.md) |
+| **URL Definitions**, **XSLT**, **Message Nodes** | Read-Only | A node's passwords are never shown — see [docs/URLS_NODES.md](docs/URLS_NODES.md) |
 | PeopleCode IntelliSense-lite | Yes | Completion, hover, outline, snippets |
 | PeopleCode syntax highlighting | Yes | |
 

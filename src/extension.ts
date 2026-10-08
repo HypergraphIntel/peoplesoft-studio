@@ -26,6 +26,8 @@ import { selectConnection } from './views/connectionSelection.js';
 import { registerSettings } from './settings/index.js';
 import { buildProperties, hasProperties } from './model/properties.js';
 import { PropertiesPanel } from './editors/propertiesPanel.js';
+import { ImagePanel } from './editors/imagePanel.js';
+import { AppEnginePanel } from './editors/appEnginePanel.js';
 import { canInsertIntoProject, describeItem, ProjectSaveRefusedError } from './model/projectItems.js';
 import { OracleProvider } from './providers/oracle.js';
 
@@ -365,6 +367,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           }
 
           const provider = await workspace.require(connectionId);
+          if ((key.type === DefinitionType.AppEngineProgram || key.type === DefinitionType.AppEngineSection) && provider instanceof OracleProvider) {
+            const { program, peopleCode } = await provider.readAppEngineView(key);
+            AppEnginePanel.show({ id: provider.id, displayName: provider.displayName }, key, program, peopleCode);
+            return;
+          }
+          if (key.type === DefinitionType.Image && provider instanceof OracleProvider) {
+            const image = await provider.readImage(key);
+            if (!image) throw new Error(`No image named ${key.parts[0]}.`);
+            ImagePanel.show({ id: provider.id, displayName: provider.displayName }, key, image);
+            return;
+          }
           if (!provider.canReadAsText(key.type)) {
             vscode.window.showInformationMessage(
               `${displayName(key)} (${typeLabel(key.type)}) can't be opened as text in ` +

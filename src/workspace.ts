@@ -244,7 +244,8 @@ export class Workspace implements vscode.Disposable {
    */
   isSqlWritable(id: string, key: DefinitionKey): boolean {
     const config = this.configFor(id);
-    const textType = key.type === DefinitionType.SqlDefinition ||
+    // Only an SQL definition proper (SQLTYPE 0) saves; App Engine and view SQL open read-only.
+    const textType = (key.type === DefinitionType.SqlDefinition && (key.parts[1] ?? '0') === '0') ||
       (key.type === DefinitionType.HtmlDefinition && (key.parts[1] ?? '4') === '4') || key.type === DefinitionType.StyleSheet;
     return this.isWritable(id) && Boolean(config?.peoplesoftOperatorId?.trim()) && textType && isWritableName(key.parts[0]);
   }

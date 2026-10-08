@@ -51,8 +51,6 @@ export function canInsertIntoProject(type: DefinitionType): boolean {
   return INSERTABLE_TYPES.has(type);
 }
 
-/** PSPROJECTITEM.OBJECTTYPE for a SQL definition; this extension keys SQL as its own type. */
-const SQL_OBJECTTYPE = 30;
 
 const single = (objectType: number, objectId: number) => (key: DefinitionKey): ProjectItem =>
   ({ objectType, objectIds: [objectId], objectValues: [name(key)] });
@@ -86,7 +84,7 @@ const LAYOUTS: Readonly<Partial<Record<DefinitionType, (key: DefinitionKey) => P
   },
   // SQLTYPE 0, the SQL definitions this extension opens.
   [DefinitionType.SqlDefinition]: (key) =>
-    ({ objectType: SQL_OBJECTTYPE, objectIds: [65, 81], objectValues: [name(key), '0'] }),
+    ({ objectType: DefinitionType.SqlDefinition, objectIds: [65, 81], objectValues: [name(key), key.parts[1] ?? '0'] }),
   // Searched, a package is keyed by its root; as a project item, by
   // PACKAGEID, PACKAGEROOT and QUALIFYPATH ('.' for a root).
   [DefinitionType.ApplicationPackage]: (key) => {

@@ -956,7 +956,8 @@ export function registerPeopleSoftTools(
             ]
           : [
               DefinitionType.ComponentPeopleCode,
-              DefinitionType.ComponentRecordPeopleCode
+              DefinitionType.ComponentRecordPeopleCode,
+              DefinitionType.ComponentRecordFieldPeopleCode
             ];
 
       const all:

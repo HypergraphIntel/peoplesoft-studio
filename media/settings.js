@@ -23,11 +23,13 @@
   const drafts = saved.drafts || {};
   /** @type {string[]} connection ids with an open edit form */
   let editing = saved.editing || [];
+  /** The Build Settings panel's open tab: 'buildCreate' (Build) or 'buildAlter' (Alter). */
+  let buildTab = saved.buildTab === 'buildAlter' ? 'buildAlter' : 'buildCreate';
   /** @type {Record<string, Record<string, string>>} keyed like drafts' prefixes */
   const errors = {};
 
   function persist() {
-    vscode.setState({ drafts, editing });
+    vscode.setState({ drafts, editing, buildTab });
   }
 
   /** @param {Message} message */
@@ -44,8 +46,7 @@
   const SECTIONS = [
     { id: 'connections', title: 'Connections' },
     { id: 'mcp', title: 'AI Integration' },
-    { id: 'buildCreate', title: 'Build Settings: Create' },
-    { id: 'buildAlter', title: 'Build Settings: Alter' },
+    { id: 'build', title: 'Build Settings' },
     { id: 'advanced', title: 'Advanced' }
   ];
 
@@ -360,6 +361,44 @@
     ]);
   }
 
+  /** App Designer's Build Settings dialog as one panel: a Build tab (its Create tab) and an Alter tab. */
+  function renderBuildSettings() {
+    const tabs = [
+      { id: 'buildCreate', label: 'Build', description: 'What Build does when a table, view, index or sequence already exists.' },
+      { id: 'buildAlter', label: 'Alter', description: 'How Alter Tables changes an existing table.' }
+    ];
+    const current = tabs.find((t) => t.id === buildTab) || tabs[0];
+    const tabList = h('div', { className: 'tabs', attrs: { role: 'tablist', 'aria-label': 'Build Settings' } },
+      tabs.map((t) => h('button', {
+        className: t.id === current.id ? 'tab selected' : 'tab',
+        text: t.label,
+        attrs: {
+          type: 'button', role: 'tab', id: `tab-${t.id}`, 'aria-selected': String(t.id === current.id),
+          'aria-controls': 'build-panel', 'data-focus-key': `tab:${t.id}`, tabindex: t.id === current.id ? '0' : '-1'
+        },
+        on: {
+          click: () => { buildTab = t.id; persist(); render(); },
+          keydown: (e) => {
+            const key = /** @type {KeyboardEvent} */ (e).key;
+            if (key !== 'ArrowLeft' && key !== 'ArrowRight') return;
+            const i = tabs.findIndex((x) => x.id === buildTab);
+            buildTab = tabs[(i + (key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length].id;
+            persist(); render();
+          }
+        }
+      })));
+    const settings = state.settings.filter((s) => s.section === current.id);
+    return h('section', { attrs: { id: 'build', 'aria-labelledby': 'build-title' } }, [
+      h('h2', { text: 'Build Settings', attrs: { id: 'build-title' } }),
+      h('p', { className: 'description', text: 'App Designer\'s Build Settings, used by Build... on records.' }),
+      tabList,
+      h('div', { className: 'tab-panel', attrs: { id: 'build-panel', role: 'tabpanel', 'aria-labelledby': `tab-${current.id}` } }, [
+        h('p', { className: 'description', text: current.description }),
+        ...settings.map(renderSetting)
+      ])
+    ]);
+  }
+
   function renderSettingsSection(id, title, description) {
     const settings = state.settings.filter((s) => s.section === id);
     return h('section', { attrs: { id, 'aria-labelledby': `${id}-title` } }, [
@@ -580,10 +619,7 @@
     root.replaceChildren(...[
       renderConnections(),
       renderMcp(),
-      renderSettingsSection('buildCreate', 'Build Settings: Create',
-        'App Designer\'s Build Settings, Create tab: what Build does when a table, view, index or sequence already exists.'),
-      renderSettingsSection('buildAlter', 'Build Settings: Alter',
-        'App Designer\'s Build Settings, Alter tab: how Alter Tables changes an existing table.'),
+      renderBuildSettings(),
       renderSettingsSection('advanced', 'Advanced', 'Database driver settings. Most installations need none of these.')
     ].filter(Boolean));
 

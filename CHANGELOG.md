@@ -2,7 +2,76 @@
 
 ## 0.7.6
 
-In progress.
+### Changed
+
+- **App Engine programs open** in a panel with App Designer's two views:
+  **Definition** (sections, steps and actions in labelled boxes -- Commit
+  After, Frequency, On Error, ReUse Statement, No Rows, Do Select Type, On
+  Return ...) and **Program Flow** (each step's SQL and PeopleCode). A
+  section from a project opens the same way.
+  App Engine PeopleCode in a project now opens. The tables, keys and codes
+  are mapped in [docs/APP_ENGINE.md](docs/APP_ENGINE.md). Log Message
+  actions show their Message Catalog text.
+- **Pages, components and menus** open as fuller read-only views: a page
+  in App Designer's Order view (each control's level, type, label, record
+  field or target) with the components it is in; a component's search
+  records, actions, settings, pages and menus; a menu's bars and items.
+  Mapped in [docs/PAGES_COMPONENTS_MENUS.md](docs/PAGES_COMPONENTS_MENUS.md).
+- **File Layouts and Component Interfaces open** read-only: a file layout's
+  format, options, segments and fields; a component interface's component,
+  standard methods, keys, collections and properties. Mapped in
+  [docs/FILE_LAYOUTS_COMPONENT_INTERFACES.md](docs/FILE_LAYOUTS_COMPONENT_INTERFACES.md).
+- **Permission Lists, Roles and Message Catalog entries open** read-only: a
+  permission list's roles, sign-on times, pages and their actions, Web
+  Libraries, PeopleTools areas, Component Interface methods, web services,
+  process and query access groups; a role's permission lists and users; a
+  message's text, severity and explanation. Mapped in
+  [docs/SECURITY_MESSAGES.md](docs/SECURITY_MESSAGES.md).
+- **Queries open** read-only: owner, type and prompts, then the query, its
+  subqueries and unions -- records and joins, output columns, and criteria
+  in Query Manager's words (equal to, in list, Eff Date <= ...). Mapped in
+  [docs/QUERIES.md](docs/QUERIES.md).
+- **Process definitions open** read-only, their settings in Process
+  Scheduler's words (PSXLATITEM): priority, run location, parameters,
+  output, server, components and process groups. See
+  [docs/PROCESS_DEFINITIONS.md](docs/PROCESS_DEFINITIONS.md).
+- **Trees open** read-only: settings, levels, and the nodes as an outline
+  with their detail ranges. See [docs/TREES.md](docs/TREES.md).
+- **Integration Broker messages, services and service operations open**
+  read-only: a message's versions and record structure, a service's
+  operations, an operation's versions, messages, handlers and routings. See
+  [docs/INTEGRATION_BROKER.md](docs/INTEGRATION_BROKER.md).
+- **Portal registry entries open** read-only: a content reference's
+  navigation path, component and URL, security and attributes; a folder's
+  contents. See [docs/PORTAL_REGISTRY.md](docs/PORTAL_REGISTRY.md).
+- **URL definitions, XSLT and message nodes open** read-only; a node's
+  passwords are never read or shown. See [docs/URLS_NODES.md](docs/URLS_NODES.md).
+- **Images open** in a panel (GIF, PNG, JPEG, SVG, BMP), each alternate
+  with its format and size. See [docs/IMAGES.md](docs/IMAGES.md).
+- The Definition Browser and Open Definition offer Queries (public), Process
+  Definitions, Trees, Messages, Services, Service Operations, Images, Portal
+  Registry entries, File Layouts, Component Interfaces, Permission Lists and
+  Roles.
+- **Build Settings** is one panel in Settings with a Build tab and an Alter
+  tab, as App Designer's Build Settings dialog.
+- The Projects tree names 20 more item types it lists but does not open
+  (Queries, Roles, Permission Lists, Images, Messages, Message Catalog
+  entries, Portal Registry Structures, Process Definitions, Services, Service
+  Operations, Trees ...), each checked against its definition table on
+  HRDMO; the rest still show as "Type n".
+- **SQL items in projects** (PSPROJECTITEM type 30) are SQL definitions:
+  they open, App Engine and view SQL read-only. A SQL text with several
+  market / platform / date versions shows one, not all run together.
+
+### Fixed
+
+- Components outside the GBL market (1,141 on HRDMO) did not open from the
+  Definition Browser or Open Definition: search now keys them by market.
+- Component record PeopleCode (project type 47) and component record field
+  PeopleCode (48) now open from a project; 48 was labelled Component
+  Record PeopleCode.
+- SQL definitions and SQL / Dynamic View text opened as "[object Object]":
+  the SQL text column is a CLOB and is now read as text.
 
 ## 0.7.5
 
