@@ -24,7 +24,7 @@ import {
   buildAppEngine, peopleCodeKeyParts, renderAppEngine, type AeSection, type AeStep, type AeVariant, type AppEngineProgram, type AppEngineRows,
   type Row as AeRow
 } from '../model/appEngine.js';
-import { pcmProgKeyParts } from '../model/peopleCodeKeys.js';
+import { APPLICATION_CLASS_OBJECTID, PEOPLECODE_OBJECTIDS, pcmProgKeyParts, peopleCodeKeyFromValues, peopleCodeTypeOf } from '../model/peopleCodeKeys.js';
 import { assembleProgram, NameTable } from '../peoplecode/progtext.js';
 import { decodeProgram, DecodeOptions } from '../peoplecode/decoder.js';
 import { FieldLabelRow, FieldRow, renderField } from './oracleRender.js';
@@ -113,6 +113,7 @@ export class OracleProvider implements DefinitionProvider {
     DefinitionType.Menu,
     DefinitionType.ApplicationPackage,
     DefinitionType.AppEngineProgram,
+    DefinitionType.AppEngineSection,
     DefinitionType.Query,
     DefinitionType.ProcessDefinition,
     DefinitionType.Tree,
@@ -128,6 +129,7 @@ export class OracleProvider implements DefinitionProvider {
     DefinitionType.ComponentInterface,
     DefinitionType.Role,
     DefinitionType.PermissionList,
+    DefinitionType.MessageCatalog,
     DefinitionType.SqlDefinition,
     DefinitionType.HtmlDefinition,
     DefinitionType.StyleSheet
@@ -321,6 +323,9 @@ export class OracleProvider implements DefinitionProvider {
     const limit = query.limit ?? 500;
     const pattern = (query.namePattern ?? '%').toUpperCase();
 
+    if (query.type === undefined) return this.searchEveryType(query.namePattern, limit);
+    if (isPeopleCode(query.type)) return this.searchPeopleCode(query.type, pattern, limit);
+
     switch (query.type) {
       case DefinitionType.Project:
         return this.searchSimple(
@@ -448,6 +453,31 @@ export class OracleProvider implements DefinitionProvider {
           `SELECT AE_APPLID AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID
              FROM PSAEAPPLDEFN WHERE AE_APPLID LIKE :n`,
           DefinitionType.AppEngineProgram, pattern, limit);
+      case DefinitionType.AppEngineSection:
+        // Keyed program, section; "BEN110" finds every section of BEN110, "BEN110.M%" its sections from M.
+        return this.withConnection(async (c) => {
+          const r = await c.execute<{ P: string; S: string; DESCR: string; LASTUPDDTTM: Date; LASTUPDOPRID: string }>(
+            `SELECT S.AE_APPLID AS P, S.AE_SECTION AS S, S.LASTUPDDTTM, S.LASTUPDOPRID,
+                    (SELECT MAX(D.DESCR) FROM PSAESECTDTLDEFN D WHERE D.AE_APPLID = S.AE_APPLID AND D.AE_SECTION = S.AE_SECTION) AS DESCR
+               FROM PSAESECTDEFN S WHERE S.AE_APPLID LIKE :n OR S.AE_APPLID || '.' || S.AE_SECTION LIKE :n
+              ORDER BY S.AE_APPLID, S.AE_SECTION FETCH FIRST :lim ROWS ONLY`, { n: pattern, lim: limit });
+          return (r.rows ?? []).map((row) => ({
+            key: makeKey(DefinitionType.AppEngineSection, row.P.trim(), row.S.trim()),
+            description: row.DESCR?.trim() || undefined, lastUpdated: row.LASTUPDDTTM, lastUpdatedBy: row.LASTUPDOPRID?.trim()
+          }));
+        });
+      case DefinitionType.MessageCatalog:
+        // Keyed set, number. The pattern matches a set ("1000"), a message ("1000.25") or the text ("%NOT FOUND%").
+        return this.withConnection(async (c) => {
+          const r = await c.execute<{ S: number; N: number; T: string; LAST_UPDATE_DTTM: Date }>(
+            `SELECT MESSAGE_SET_NBR AS S, MESSAGE_NBR AS N, MESSAGE_TEXT AS T, LAST_UPDATE_DTTM FROM PSMSGCATDEFN
+              WHERE TO_CHAR(MESSAGE_SET_NBR) LIKE :n OR MESSAGE_SET_NBR || '.' || MESSAGE_NBR LIKE :n OR UPPER(MESSAGE_TEXT) LIKE :n
+              ORDER BY MESSAGE_SET_NBR, MESSAGE_NBR FETCH FIRST :lim ROWS ONLY`, { n: pattern, lim: limit });
+          return (r.rows ?? []).map((row) => ({
+            key: makeKey(DefinitionType.MessageCatalog, String(row.S), String(row.N)),
+            description: row.T?.trim() || undefined, lastUpdated: row.LAST_UPDATE_DTTM
+          }));
+        });
       case DefinitionType.ApplicationPackage:
         return this.searchSimple(
           `SELECT PACKAGEROOT AS NAME, '' AS DESCR, LASTUPDDTTM, LASTUPDOPRID
@@ -481,6 +511,57 @@ export class OracleProvider implements DefinitionProvider {
         throw new UnsupportedOperationError(
           `searching definition type ${query.type}`, this.displayName);
     }
+  }
+
+  /**
+   * Every searchable type at once, for a search that names no type: each
+   * type's matches, taken in turn (one of each, then the next of each) so a
+   * type with many matches does not crowd the others out of the limit.
+   */
+  private async searchEveryType(namePattern: string | undefined, limit: number): Promise<DefinitionSummary[]> {
+    const perType: DefinitionSummary[][] = [];
+    for (const type of this.searchableTypes) perType.push(await this.search({ type, namePattern, limit }));
+    const out: DefinitionSummary[] = [];
+    for (let i = 0; out.length < limit && perType.some((list) => i < list.length); i++) {
+      for (const list of perType) if (i < list.length && out.length < limit) out.push(list[i]);
+    }
+    return out;
+  }
+
+  /**
+   * PeopleCode programs of one kind whose first key value (record, component,
+   * page, program, root package, menu) matches the pattern, from PSPCMPROG's
+   * first row of each program. The OBJECTIDs tell the kinds apart
+   * (PEOPLECODE_OBJECTIDS); PS_PSPCMPROG's (OBJECTID1, OBJECTVALUE1) prefix
+   * serves the search.
+   */
+  private async searchPeopleCode(type: DefinitionType, pattern: string, limit: number): Promise<DefinitionSummary[]> {
+    const ids = PEOPLECODE_OBJECTIDS[type];
+    let where: string;
+    if (type === DefinitionType.ApplicationClassPeopleCode) {
+      where = `OBJECTID1 = ${APPLICATION_CLASS_OBJECTID}`;
+    } else if (ids) {
+      where = [1, 2, 3, 4, 5, 6, 7].map((n) => `OBJECTID${n} = ${ids[n - 1] ?? 0}`).join(' AND ');
+    } else {
+      throw new UnsupportedOperationError(`searching ${type} PeopleCode`, this.displayName);
+    }
+    const cols = [1, 2, 3, 4, 5, 6, 7].map((n) => `OBJECTID${n}, OBJECTVALUE${n}`).join(', ');
+    return this.withConnection(async (c) => {
+      const r = await c.execute<Record<string, string | number | Date>>(
+        `SELECT ${cols}, LASTUPDDTTM, LASTUPDOPRID FROM PSPCMPROG
+          WHERE PROGSEQ = 0 AND ${where} AND OBJECTVALUE1 LIKE :n
+          ORDER BY OBJECTVALUE1, OBJECTVALUE2, OBJECTVALUE3, OBJECTVALUE4, OBJECTVALUE5, OBJECTVALUE6, OBJECTVALUE7
+          FETCH FIRST :lim ROWS ONLY`, { n: pattern, lim: limit });
+      return (r.rows ?? []).flatMap((row) => {
+        const used = [1, 2, 3, 4, 5, 6, 7].filter((n) => Number(row[`OBJECTID${n}`]) !== 0);
+        if (peopleCodeTypeOf(used.map((n) => Number(row[`OBJECTID${n}`]))) !== type) return [];
+        const values = used.map((n) => String(row[`OBJECTVALUE${n}`] ?? '').trim());
+        return [{
+          key: makeKey(type, ...peopleCodeKeyFromValues(type, values)),
+          lastUpdated: row.LASTUPDDTTM as Date, lastUpdatedBy: String(row.LASTUPDOPRID ?? '').trim() || undefined
+        }];
+      });
+    });
   }
 
   private async searchSimple(
@@ -1608,8 +1689,8 @@ export class OracleProvider implements DefinitionProvider {
         let entry = programs.get(label);
         if (!entry) {
           let key: DefinitionKey | undefined;
-          if (used.join() === '1,2,12') key = makeKey(DefinitionType.RecordPeopleCode, ...vals);
-          else if (used[0] === 104 && used.at(-1) === 12) key = makeKey(DefinitionType.ApplicationClassPeopleCode, ...vals);
+          const type = peopleCodeTypeOf(used);
+          if (type !== undefined) key = makeKey(type, ...peopleCodeKeyFromValues(type, vals));
           entry = { recs: new Set(), ...(key ? { key } : {}) };
           programs.set(label, entry);
         }
