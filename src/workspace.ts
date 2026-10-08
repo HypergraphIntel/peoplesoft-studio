@@ -46,15 +46,35 @@ export interface ConnectionConfig {
    */
   peoplesoftOperatorId?: string;
   /**
-   * Two-tier sign-on. Absent: the connection signs on directly with the
-   * database login ({@link user}). `twoTier`: that login is the proxy (the
-   * Connect ID, e.g. `people`) that runs every query, and
-   * {@link peoplesoftOperatorId} is the PeopleSoft operator the connection
-   * acts as -- verified at connect and recorded as the save identity. App
-   * Designer's 2 Tier sign-on; the access-profile lookup is never done, so
-   * the proxy login must itself reach the PeopleTools tables.
+   * How the connection signs on. Absent: direct -- the database login
+   * ({@link user}) signs on and runs everything.
+   *
+   * `twoTier`: that login is the proxy (the Connect ID, e.g. `people`) that
+   * runs every query, and {@link peoplesoftOperatorId} is the PeopleSoft
+   * operator the connection acts as -- verified at connect and recorded as
+   * the save identity. App Designer's 2 Tier sign-on; the access-profile
+   * lookup is never done, so the proxy login must itself reach the tables.
+   *
+   * `threeTier`: App Designer's 3 Tier (Application Server) sign-on. The
+   * client never touches the database; it connects to a PeopleSoft
+   * application server (the {@link appServerMachine} fields) over Tuxedo, and
+   * the operator signs on there. {@link kind} is the platform the app
+   * server's database runs on, for SQL the transport sends. The transport is
+   * not implemented yet; such a connection is configured but not connectable.
    */
-  signon?: 'twoTier';
+  signon?: 'twoTier' | 'threeTier';
+  /** 3 Tier: the application server (domain) name. */
+  appServerName?: string;
+  /** 3 Tier: the application server machine name or IP address. */
+  appServerMachine?: string;
+  /** 3 Tier: the application server listener port. */
+  appServerPort?: number;
+  /** 3 Tier: the Tuxedo connect string (//host:port...), when one is used instead of machine/port. */
+  tuxedoConnectString?: string;
+  /** 3 Tier: Oracle Wallet location, when the domain connection uses one. */
+  walletLocation?: string;
+  /** 3 Tier: Oracle Wallet name, when the domain connection uses one. */
+  walletName?: string;
 }
 
 /**
@@ -193,6 +213,14 @@ export class Workspace implements vscode.Disposable {
       return new ProjectFileProvider(config.path, config.name);
     }
 
+    if (config.signon === 'threeTier') {
+      // Configured (app server, operator), but the Tuxedo transport to the
+      // application server is not built yet, so there is no provider to open.
+      throw new Error(
+        `"${config.name}" is a 3 Tier (Application Server) connection. Its application server is configured, but the ` +
+        'app-server transport is not implemented yet, so it cannot be opened. Use a direct or 2 Tier connection for now.');
+    }
+
     if (!config.connectString || !config.user) {
       throw new Error(`Connection "${config.name}" is missing a connect string or user.`);
     }
@@ -320,6 +348,19 @@ export class Workspace implements vscode.Disposable {
 
   async forgetOperatorPassword(name: string): Promise<void> {
     await this.secrets.delete(`peoplesoft.operatorPassword.${name}`);
+  }
+
+  /**
+   * The application-server domain connection password for a three-tier
+   * connection, stored in the OS secret store. Used by the app-server
+   * transport (not implemented yet).
+   */
+  async setDomainPassword(name: string, password: string): Promise<void> {
+    await this.secrets.store(`peoplesoft.domainPassword.${name}`, password);
+  }
+
+  async forgetDomainPassword(name: string): Promise<void> {
+    await this.secrets.delete(`peoplesoft.domainPassword.${name}`);
   }
 
   dispose(): void {

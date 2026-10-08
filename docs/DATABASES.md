@@ -166,3 +166,22 @@ Everything else is the same as a direct connection: schema detection, Access
 (Read-only / Writable), and the writers. Because the operator is part of
 sign-on, a writable two-tier connection needs no separately configured
 Operator ID.
+
+## Three-tier (Application Server) — configured, transport pending
+
+*Add Connection* also offers **3 Tier (Application Server)**, App Designer's
+3-tier sign-on. A three-tier client never touches the database: it connects to
+a PeopleSoft **application server** over Oracle **Tuxedo**, the operator signs
+on there, and the app server runs the work against its own database. The
+connection collects the application-server fields from App Designer's profile
+(Application Server Name, Machine/IP, Port, TUXEDO Connect String, Domain
+Connection Password, Wallet), the database type (the platform the app server's
+database runs on, for the SQL the transport sends), and the PeopleSoft operator.
+
+**The transport is not implemented yet.** Unlike the database drivers, the
+Tuxedo/Jolt protocol an app server speaks is proprietary, with no published
+wire spec and no open client for Node; it ships only inside a Tuxedo/Jolt
+install. A three-tier connection is therefore **configured and stored, but
+cannot be opened yet** — opening one reports that the app-server transport is
+pending. The connection type, its configuration and its storage are in place
+for that transport to be built against a real application server.

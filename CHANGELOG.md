@@ -28,6 +28,13 @@
   verified against PSOPRDEFN at connect (exists and not locked). The
   access-profile lookup (PSACCESSPRFL) is never done. See
   [docs/DATABASES.md](docs/DATABASES.md).
+- **3 Tier (Application Server)** connection type (configured, transport
+  pending): *Add Connection* collects App Designer's 3-tier profile --
+  application server name, machine/IP, port, Tuxedo connect string, domain
+  password, database type and PeopleSoft operator -- and stores it. The
+  Tuxedo transport to the application server is not built yet, so a three-tier
+  connection cannot be opened; the type and its configuration are in place for
+  the transport. See [docs/DATABASES.md](docs/DATABASES.md).
 
 ### Fixed
 

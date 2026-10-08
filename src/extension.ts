@@ -343,6 +343,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       await workspace.disconnect(providerId(config));
       await workspace.forgetPassword(config.name);
       await workspace.forgetOperatorPassword(config.name);
+      await workspace.forgetDomainPassword(config.name);
       const settings = vscode.workspace.getConfiguration('peoplesoft');
       const all = settings.get<ConnectionConfig[]>('connections', []);
       await settings.update('connections', all.filter((c) => c.name !== config.name),
@@ -784,6 +785,7 @@ async function addConnection(workspace: Workspace): Promise<void> {
       { label: '2 Tier (Oracle)', description: 'Proxy database login plus a PeopleSoft operator sign-on', platform: 'oracle' as const, signon: 'twoTier' as const },
       { label: '2 Tier (MS SQL)', description: 'Proxy database login plus a PeopleSoft operator sign-on', platform: 'mssql' as const, signon: 'twoTier' as const },
       { label: '2 Tier (DB2)', description: 'Proxy database login plus a PeopleSoft operator sign-on', platform: 'db2' as const, signon: 'twoTier' as const },
+      { label: '3 Tier (Application Server)', description: 'Connect through a PeopleSoft application server (Tuxedo)', platform: undefined, signon: 'threeTier' as const },
       { label: 'Project export file', description: 'Read an App Designer XML export', platform: 'projectFile' as const }
     ],
     { title: 'PeopleSoft connection type', ignoreFocusOut: true });
@@ -793,6 +795,11 @@ async function addConnection(workspace: Workspace): Promise<void> {
     title: 'Connection name', placeHolder: 'DEV', ignoreFocusOut: true });
   if (!name) return;
 
+  if (kind.signon === 'threeTier') {
+    await addThreeTierConnection(workspace, name);
+    return;
+  }
+
   if (kind.platform === 'projectFile') {
     const picked = await vscode.window.showOpenDialog({
       canSelectMany: false, filters: { 'Project export': ['xml'] } });
@@ -801,16 +808,18 @@ async function addConnection(workspace: Workspace): Promise<void> {
     return;
   }
 
+  const platform = kind.platform;
+  if (!platform) return;
   const twoTier = kind.signon === 'twoTier';
   const prompt = {
     oracle: { title: 'Oracle connect string', placeHolder: 'host:1521/PSFTDB' },
     mssql: { title: 'SQL Server: host[\\instance][:port]/database', placeHolder: 'sqlhost:1433/HCM92' },
     db2: { title: 'DB2: host[:port]/database (z/OS: the location name)', placeHolder: 'db2host:50000/HCM92' }
-  }[kind.platform];
+  }[platform];
   const connectString = await vscode.window.showInputBox({
     ...prompt,
     ignoreFocusOut: true,
-    validateInput: (value) => validateConnectString(value.trim(), kind.platform)
+    validateInput: (value) => validateConnectString(value.trim(), platform)
   });
   if (!connectString) return;
 
@@ -819,12 +828,12 @@ async function addConnection(workspace: Workspace): Promise<void> {
   const user = await vscode.window.showInputBox({
     title: twoTier ? 'Connect ID (the proxy database login that runs queries)' : 'Database access id',
     placeHolder: twoTier ? 'people' : undefined,
-    value: twoTier ? '' : kind.platform === 'oracle' ? 'SYSADM' : '',
+    value: twoTier ? '' : platform === 'oracle' ? 'SYSADM' : '',
     ignoreFocusOut: true });
   if (!user) return;
 
   if (!twoTier) {
-    await saveConnection({ name, kind: kind.platform, connectString: connectString.trim(), user });
+    await saveConnection({ name, kind: platform, connectString: connectString.trim(), user });
     return;
   }
 
@@ -846,10 +855,78 @@ async function addConnection(workspace: Workspace): Promise<void> {
   if (operatorPassword === undefined) return;
 
   await saveConnection({
-    name, kind: kind.platform, connectString: connectString.trim(), user,
+    name, kind: platform, connectString: connectString.trim(), user,
     signon: 'twoTier', peoplesoftOperatorId: operatorId.trim()
   });
   await workspace.setOperatorPassword(name, operatorPassword);
+}
+
+/**
+ * App Designer's 3 Tier (Application Server) sign-on. The connection reaches a
+ * PeopleSoft application server over Tuxedo rather than the database directly;
+ * the operator signs on there. The database type is still chosen, for the SQL
+ * the transport will send. The app-server transport is not built yet, so the
+ * connection is configured and stored but cannot be opened.
+ */
+async function addThreeTierConnection(workspace: Workspace, name: string): Promise<void> {
+  const dbType = await vscode.window.showQuickPick(
+    [
+      { label: 'Oracle', value: 'oracle' as const },
+      { label: 'Microsoft SQL Server', value: 'mssql' as const },
+      { label: 'DB2', value: 'db2' as const }
+    ],
+    { title: 'Database Type (the platform the application server\'s database runs on)', ignoreFocusOut: true });
+  if (!dbType) return;
+
+  const appServerName = await vscode.window.showInputBox({
+    title: 'Application Server Name (the domain)', ignoreFocusOut: true });
+  if (appServerName === undefined) return;
+
+  const appServerMachine = await vscode.window.showInputBox({
+    title: 'Machine Name or IP Address', placeHolder: 'appserver.example.com', ignoreFocusOut: true,
+    validateInput: (value) => value.trim() ? undefined : 'The application server machine is required.' });
+  if (!appServerMachine) return;
+
+  const portText = await vscode.window.showInputBox({
+    title: 'Port Number', placeHolder: '9033', ignoreFocusOut: true,
+    validateInput: (value) => {
+      const v = value.trim();
+      return /^\d+$/.test(v) && Number(v) >= 1 && Number(v) <= 65535 ? undefined : 'A port number between 1 and 65535.';
+    } });
+  if (!portText) return;
+
+  const tuxedoConnectString = await vscode.window.showInputBox({
+    title: 'TUXEDO Connect String (optional)', placeHolder: '//host:port', ignoreFocusOut: true });
+  if (tuxedoConnectString === undefined) return;
+
+  const operatorId = await vscode.window.showInputBox({
+    title: 'PeopleSoft User ID (the operator this connection signs on as)',
+    placeHolder: 'PS', ignoreFocusOut: true,
+    validateInput: (value) => value.trim() ? undefined : 'A PeopleSoft operator ID is required.' });
+  if (!operatorId) return;
+
+  const operatorPassword = await vscode.window.showInputBox({
+    title: `PeopleSoft password for ${operatorId.trim()}`, password: true, ignoreFocusOut: true,
+    prompt: 'Stored in the OS secret store.' });
+  if (operatorPassword === undefined) return;
+
+  const domainPassword = await vscode.window.showInputBox({
+    title: 'Domain Connection Password (optional)', password: true, ignoreFocusOut: true,
+    prompt: 'The application server domain password, if the domain requires one. Stored in the OS secret store.' });
+  if (domainPassword === undefined) return;
+
+  await saveConnection({
+    name, kind: dbType.value, signon: 'threeTier',
+    appServerName: appServerName.trim() || undefined,
+    appServerMachine: appServerMachine.trim(),
+    appServerPort: Number(portText.trim()),
+    ...(tuxedoConnectString.trim() ? { tuxedoConnectString: tuxedoConnectString.trim() } : {}),
+    peoplesoftOperatorId: operatorId.trim()
+  });
+  await workspace.setOperatorPassword(name, operatorPassword);
+  if (domainPassword) await workspace.setDomainPassword(name, domainPassword);
+  vscode.window.showInformationMessage(
+    `Added 3 Tier connection "${name}". The application server is configured; the app-server transport is not implemented yet, so it cannot be opened yet.`);
 }
 
 async function selectStatusConnection(workspace: Workspace): Promise<void> {

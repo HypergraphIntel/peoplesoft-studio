@@ -571,9 +571,34 @@
               "signon": {
                 "type": "string",
                 "enum": [
-                  "twoTier"
+                  "twoTier",
+                  "threeTier"
                 ],
-                "description": "Two-tier sign-on: the database login (user) is the proxy Connect ID that runs queries, and peoplesoftOperatorId is the PeopleSoft operator the connection acts as (verified at connect, recorded as the save identity). Absent: direct sign-on with the database login."
+                "description": "Sign-on: twoTier = the database login (user) is the proxy Connect ID and peoplesoftOperatorId is the operator the connection acts as. threeTier = App Designer's 3 Tier (Application Server) sign-on over Tuxedo (appServer* fields); the database is never touched directly. Absent: direct sign-on with the database login."
+              },
+              "appServerName": {
+                "type": "string",
+                "description": "3 Tier: the application server (domain) name."
+              },
+              "appServerMachine": {
+                "type": "string",
+                "description": "3 Tier: the application server machine name or IP address."
+              },
+              "tuxedoConnectString": {
+                "type": "string",
+                "description": "3 Tier: the Tuxedo connect string (//host:port), when used instead of machine/port."
+              },
+              "walletLocation": {
+                "type": "string",
+                "description": "3 Tier: Oracle Wallet location, when the domain connection uses one."
+              },
+              "walletName": {
+                "type": "string",
+                "description": "3 Tier: Oracle Wallet name, when the domain connection uses one."
+              },
+              "appServerPort": {
+                "type": "number",
+                "description": "3 Tier: the application server listener port."
               }
             }
           }

@@ -5,7 +5,7 @@ import { db2ConnectionString, parseDb2ConnectString } from '../db/db2.js';
 import { isDatabaseKind } from '../db/open.js';
 import { Serial } from '../db/connection.js';
 import { namedBinds } from '../db/sqlTranslate.js';
-import { validateConnectString } from '../settings/settingsModel.js';
+import { editableFields, validateConnectionEdit, validateConnectString } from '../settings/settingsModel.js';
 import { columnType, createTableScript, ddlPlatformFor, type DdlModel, type DdlRecord } from '../model/recordDdl.js';
 import { planCreateTables, scriptStatements } from '../model/recordBuild.js';
 import { FieldType, RecordType, UseEdit } from '../model/record.js';
@@ -122,4 +122,31 @@ test('DB2 LUW columns and script (PSDDLMODEL platform 4)', () => {
 
 test('PSDDLMODEL platform IDs', () => {
   assert.deepEqual([2, 7, 4, 1].map(ddlPlatformFor), ['oracle', 'mssql', 'db2', 'db2zos']);
+});
+
+test('three-tier connections edit their application-server fields, not a database login', () => {
+  const base = { name: 'A', kind: 'oracle' as const, signon: 'threeTier' as const };
+  assert.deepEqual(editableFields(base),
+    ['appServerName', 'appServerMachine', 'appServerPort', 'tuxedoConnectString', 'walletLocation', 'walletName']);
+
+  const ok = validateConnectionEdit(base, { appServerName: 'HRDEV', appServerMachine: 'host', appServerPort: '9033' });
+  assert.ok(ok.ok);
+  if (ok.ok) {
+    assert.equal(ok.value.appServerMachine, 'host');
+    assert.equal(ok.value.appServerPort, 9033);
+  }
+
+  // A bad port, and a missing machine with no Tuxedo connect string, are refused.
+  const badPort = validateConnectionEdit(base, { appServerMachine: 'host', appServerPort: '0' });
+  assert.ok(!badPort.ok && badPort.errors.appServerPort);
+  const noHost = validateConnectionEdit(base, { appServerMachine: '', appServerPort: '' });
+  assert.ok(!noHost.ok && noHost.errors.appServerMachine && noHost.errors.appServerPort);
+
+  // A Tuxedo connect string stands in for machine and port.
+  const tux = validateConnectionEdit(base, { appServerMachine: '', tuxedoConnectString: '//host:9033' });
+  assert.ok(tux.ok);
+
+  // A database field does not apply to a three-tier connection.
+  const wrong = validateConnectionEdit(base, { user: 'SYSADM' });
+  assert.ok(!wrong.ok && wrong.errors.user);
 });

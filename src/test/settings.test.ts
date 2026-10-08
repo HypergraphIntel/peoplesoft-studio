@@ -205,6 +205,24 @@ test('a two-tier connection view names its sign-on: proxy login and operator', (
   assert.equal(direct.operatorId, undefined);
 });
 
+test('a three-tier connection view names its application server, not a database login', () => {
+  const { service, config } = setup([]);
+  config.set('connections', 'global', [{
+    name: 'HRAPP3T', kind: 'oracle', signon: 'threeTier',
+    appServerName: 'HRDEV', appServerMachine: 'appsrv.example.com', appServerPort: 9033, peoplesoftOperatorId: 'PS'
+  }]);
+  const [view] = service.getState().connections;
+  assert.equal(view.kindLabel, '3 Tier (Oracle)');
+  assert.equal(view.signon, 'threeTier');
+  assert.equal(view.appServerMachine, 'appsrv.example.com');
+  assert.equal(view.appServerPort, '9033');
+  assert.equal(view.operatorId, 'PS');
+  // No direct database login is shown.
+  assert.equal(view.connectString, undefined);
+  assert.equal(view.user, undefined);
+  assert.deepEqual(view.editableFields, ['appServerName', 'appServerMachine', 'appServerPort', 'tuxedoConnectString', 'walletLocation', 'walletName']);
+});
+
 test('read-only is connection metadata, not a toggle', () => {
   assert.equal(describeAccess({ kind: 'projectFile' }).level, 'read-only');
   assert.equal(describeAccess({ kind: 'oracle' }).label, 'PeopleCode read-only');

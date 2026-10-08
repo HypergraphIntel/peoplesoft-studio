@@ -42,7 +42,7 @@ test('the schema is detected from PS.PSDBOWNER: this database\'s row, else its o
 
 test('a connection\'s schema is editable: upper-cased, validated, empty for detection', () => {
   const base: ConnectionConfig = { name: 'HR', kind: 'oracle', connectString: 'h:1521/HR', user: 'PEOPLE' };
-  assert.ok(editableFields('oracle').includes('schema'));
+  assert.ok(editableFields({ kind: 'oracle' }).includes('schema'));
   const set = validateConnectionEdit(base, { schema: ' emdbo ' });
   assert.ok(set.ok && set.value.schema === 'EMDBO');
   const cleared = validateConnectionEdit({ ...base, schema: 'EMDBO' }, { schema: '' });

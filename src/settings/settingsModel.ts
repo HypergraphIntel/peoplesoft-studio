@@ -350,17 +350,32 @@ export interface ConnectionEdit {
   /** The schema owning the PeopleTools tables; '' detects it (PS.PSDBOWNER, else SYSADM). */
   schema?: string;
   path?: string;
+  /** 3 Tier: the application server (domain) name. */
+  appServerName?: string;
+  /** 3 Tier: the application server machine name or IP address. */
+  appServerMachine?: string;
+  /** 3 Tier: the application server listener port, as typed. */
+  appServerPort?: string;
+  /** 3 Tier: the Tuxedo connect string. */
+  tuxedoConnectString?: string;
+  /** 3 Tier: Oracle Wallet location. */
+  walletLocation?: string;
+  /** 3 Tier: Oracle Wallet name. */
+  walletName?: string;
 }
 
-const EDITABLE_FIELDS: Record<ConnectionConfig['kind'], (keyof ConnectionEdit)[]> = {
-  oracle: ['connectString', 'user', 'schema'],
-  mssql: ['connectString', 'user', 'schema'],
-  db2: ['connectString', 'user', 'schema'],
-  projectFile: ['path']
-};
+const DB_FIELDS: (keyof ConnectionEdit)[] = ['connectString', 'user', 'schema'];
+const THREE_TIER_FIELDS: (keyof ConnectionEdit)[] =
+  ['appServerName', 'appServerMachine', 'appServerPort', 'tuxedoConnectString', 'walletLocation', 'walletName'];
 
-export function editableFields(kind: ConnectionConfig['kind']): readonly (keyof ConnectionEdit)[] {
-  return EDITABLE_FIELDS[kind];
+/** Every field any connection kind may edit, for message validation. */
+export const ALL_CONNECTION_FIELDS: readonly (keyof ConnectionEdit)[] =
+  [...DB_FIELDS, 'path', ...THREE_TIER_FIELDS];
+
+export function editableFields(config: Pick<ConnectionConfig, 'kind' | 'signon'>): readonly (keyof ConnectionEdit)[] {
+  if (config.kind === 'projectFile') return ['path'];
+  if (config.signon === 'threeTier') return THREE_TIER_FIELDS;
+  return DB_FIELDS;
 }
 
 /**
@@ -375,14 +390,16 @@ export function validateConnectionEdit(
   edit: ConnectionEdit
 ): { ok: true; value: ConnectionConfig } | { ok: false; errors: FieldErrors } {
   const errors: FieldErrors = {};
-  const allowed = new Set<string>(EDITABLE_FIELDS[existing.kind]);
+  const allowed = new Set<string>(editableFields(existing));
   for (const field of Object.keys(edit)) {
     if (!allowed.has(field)) errors[field] = `${field} does not apply to this connection.`;
   }
 
   const next: ConnectionConfig = { ...existing };
 
-  if (existing.kind !== 'projectFile') {
+  if (existing.signon === 'threeTier') {
+    validateThreeTierEdit(existing, edit, next, errors);
+  } else if (existing.kind !== 'projectFile') {
     const connectString = (edit.connectString ?? existing.connectString ?? '').trim();
     const user = (edit.user ?? existing.user ?? '').trim();
     const connectError = validateConnectString(connectString, existing.kind);
@@ -404,6 +421,38 @@ export function validateConnectionEdit(
   }
 
   return Object.keys(errors).length > 0 ? { ok: false, errors } : { ok: true, value: next };
+}
+
+/** A 3 Tier connection's application-server fields. Only the machine and port (or a Tuxedo connect string) are required. */
+function validateThreeTierEdit(
+  existing: ConnectionConfig, edit: ConnectionEdit, next: ConnectionConfig, errors: FieldErrors
+): void {
+  const text = (field: 'appServerName' | 'appServerMachine' | 'tuxedoConnectString' | 'walletLocation' | 'walletName') =>
+    (edit[field] ?? existing[field] ?? '').trim();
+  const machine = text('appServerMachine');
+  const tuxedo = text('tuxedoConnectString');
+  if (machine === '' && tuxedo === '') {
+    errors.appServerMachine = 'A machine name or IP address (or a Tuxedo connect string) is required.';
+  }
+  const portText = (edit.appServerPort ?? (existing.appServerPort?.toString() ?? '')).trim();
+  let port: number | undefined;
+  if (portText !== '') {
+    if (!/^\d+$/.test(portText) || Number(portText) < 1 || Number(portText) > 65535) {
+      errors.appServerPort = 'Port must be a number between 1 and 65535.';
+    } else {
+      port = Number(portText);
+    }
+  } else if (tuxedo === '') {
+    errors.appServerPort = 'A port is required (or a Tuxedo connect string).';
+  }
+  const set = (field: 'appServerName' | 'appServerMachine' | 'tuxedoConnectString' | 'walletLocation' | 'walletName') => {
+    const value = text(field);
+    if (value === '') delete next[field];
+    else next[field] = value;
+  };
+  (['appServerName', 'appServerMachine', 'tuxedoConnectString', 'walletLocation', 'walletName'] as const).forEach(set);
+  if (port === undefined) delete next.appServerPort;
+  else next.appServerPort = port;
 }
 
 export function validateConnectString(connectString: string, kind: ConnectionConfig['kind'] = 'oracle'): string | undefined {
