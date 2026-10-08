@@ -3,7 +3,7 @@ import type {
   PeopleCodeAccess, PeopleCodeSaveMode,
   FieldErrors, SettingControl, SettingSection, SettingSource, SettingValue
 } from './settingsModel.js';
-import { editableFields, isConnectionOption, isEditableSettingKey } from './settingsModel.js';
+import { ALL_CONNECTION_FIELDS, isConnectionOption, isEditableSettingKey } from './settingsModel.js';
 
 /*
  * The contract between the extension host and the Settings webview.
@@ -48,14 +48,25 @@ export interface ConnectionView {
   name: string;
   kind: 'oracle' | 'mssql' | 'db2' | 'projectFile';
   kindLabel: string;
-  /** Two-tier sign-on: the database login is a proxy and the page labels it accordingly. */
-  signon?: 'twoTier';
+  /**
+   * The sign-on: `twoTier` labels the database login as a proxy; `threeTier`
+   * is an application-server connection and the page shows its app-server
+   * fields instead of a database login.
+   */
+  signon?: 'twoTier' | 'threeTier';
   connectString?: string;
   user?: string;
   /** The configured schema; '' when it is detected on connect. */
   schema?: string;
-  /** Two-tier: the PeopleSoft operator the connection acts as (the save identity). */
+  /** Two- and three-tier: the PeopleSoft operator the connection acts as (the save identity). */
   operatorId?: string;
+  /** Three-tier application-server fields. */
+  appServerName?: string;
+  appServerMachine?: string;
+  appServerPort?: string;
+  tuxedoConnectString?: string;
+  walletLocation?: string;
+  walletName?: string;
   path?: string;
   connected: boolean;
   /**
@@ -129,9 +140,7 @@ export type SettingsWebviewMessage =
   | { type: 'openNativeSettings' }
   | { type: 'mcp'; action: McpAction };
 
-const CONNECTION_FIELDS: ReadonlySet<string> = new Set([
-  ...editableFields('oracle'), ...editableFields('projectFile')
-]);
+const CONNECTION_FIELDS: ReadonlySet<string> = new Set(ALL_CONNECTION_FIELDS);
 
 /** Narrows an untrusted message from the page to the contract, or undefined. */
 export function parseWebviewMessage(raw: unknown): SettingsWebviewMessage | undefined {

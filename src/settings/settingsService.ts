@@ -92,8 +92,15 @@ const TWO_TIER_LABELS: Partial<Record<ConnectionConfig['kind'], string>> = {
   db2: '2 Tier (DB2)'
 };
 
-/** A connection's type as the panel heads it: the database, or its two-tier sign-on. */
+const THREE_TIER_LABELS: Partial<Record<ConnectionConfig['kind'], string>> = {
+  oracle: '3 Tier (Oracle)',
+  mssql: '3 Tier (MS SQL)',
+  db2: '3 Tier (DB2)'
+};
+
+/** A connection's type as the panel heads it: the database, or its two- or three-tier sign-on. */
 function kindLabel(config: Pick<ConnectionConfig, 'kind' | 'signon'>): string {
+  if (config.signon === 'threeTier') return THREE_TIER_LABELS[config.kind] ?? KIND_LABELS[config.kind];
   if (config.signon === 'twoTier') return TWO_TIER_LABELS[config.kind] ?? KIND_LABELS[config.kind];
   return KIND_LABELS[config.kind] ?? config.kind;
 }
@@ -233,10 +240,21 @@ export class SettingsService implements Disposable {
       kind: config.kind,
       kindLabel: kindLabel(config),
       ...(config.signon === 'twoTier' ? { signon: 'twoTier' as const, operatorId: config.peoplesoftOperatorId ?? '' } : {}),
+      ...(config.signon === 'threeTier'
+        ? {
+            signon: 'threeTier' as const, operatorId: config.peoplesoftOperatorId ?? '',
+            appServerName: config.appServerName ?? '', appServerMachine: config.appServerMachine ?? '',
+            appServerPort: config.appServerPort?.toString() ?? '', tuxedoConnectString: config.tuxedoConnectString ?? '',
+            walletLocation: config.walletLocation ?? '', walletName: config.walletName ?? ''
+          }
+        : {}),
       // Copied field by field: whatever else is in the settings object stays out of the page.
-      ...(isDatabaseKind(config.kind)
-        ? { connectString: config.connectString ?? '', user: config.user ?? '', schema: config.schema ?? '' }
-        : { path: config.path ?? '' }),
+      // A three-tier connection has no direct database login, only its app server.
+      ...(config.kind === 'projectFile'
+        ? { path: config.path ?? '' }
+        : config.signon === 'threeTier'
+          ? {}
+          : { connectString: config.connectString ?? '', user: config.user ?? '', schema: config.schema ?? '' }),
       connected: entry.connected,
       selected: entry.id === selectedId,
       access: describeAccess(config),
@@ -245,7 +263,7 @@ export class SettingsService implements Disposable {
         ? { decoder: effectiveDecoder(config, this.defaultDecoder()), peoplecodeWrite: peoplecodeWriteSettings(config) }
         : {}),
       ...(test ? { test } : {}),
-      editableFields: editableFields(config.kind)
+      editableFields: editableFields(config)
     };
   }
 

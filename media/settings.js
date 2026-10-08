@@ -206,11 +206,19 @@
         ? badge('Writes allowed', 'error', 'PeopleCode may be saved back to this database once saving is implemented.')
         : null,
       // Closed, the header still says where the connection goes.
-      open ? null : h('span', { className: 'summary', text: c.kind !== 'projectFile' ? (c.connectString || '') : (c.path || '') })
+      open ? null : h('span', { className: 'summary', text:
+        c.kind === 'projectFile' ? (c.path || '')
+          : c.signon === 'threeTier' ? [c.appServerMachine, c.appServerPort].filter(Boolean).join(':') || c.appServerName || ''
+            : (c.connectString || '') })
     ]);
 
     const details = facts(c.kind === 'projectFile'
       ? { 'Project file': c.path || '—' }
+      : c.signon === 'threeTier'
+        ? { 'Application server': c.appServerName || '—', 'Machine': c.appServerMachine || '—', 'Port': c.appServerPort || '—',
+            ...(c.tuxedoConnectString ? { 'Tuxedo connect string': c.tuxedoConnectString } : {}),
+            ...(c.walletName ? { 'Wallet': c.walletName } : {}),
+            'PeopleSoft operator': c.operatorId || '—' }
       : c.signon === 'twoTier'
         ? { 'Connect string': c.connectString || '—', 'Connect ID (proxy)': c.user || '—', 'PeopleSoft operator': c.operatorId || '—',
             'Schema': c.schema || `Automatic (PSDBOWNER, else ${DEFAULT_SCHEMA[c.kind] || 'SYSADM'})` }
@@ -266,7 +274,13 @@
     schema: { label: 'Schema (owner ID)', placeholder: 'Automatic: PS.PSDBOWNER, else SYSADM' },
     schema_mssql: { label: 'Schema (owner ID)', placeholder: 'Automatic: PSDBOWNER, else the login\'s default schema' },
     schema_db2: { label: 'Schema (owner ID)', placeholder: 'Automatic: PS.PSDBOWNER, else the user\'s schema' },
-    path: { label: 'Project file', placeholder: '/path/to/export.xml' }
+    path: { label: 'Project file', placeholder: '/path/to/export.xml' },
+    appServerName: { label: 'Application Server Name', placeholder: 'the domain name' },
+    appServerMachine: { label: 'Machine Name or IP Address', placeholder: 'appserver.example.com' },
+    appServerPort: { label: 'Port Number', placeholder: '9033' },
+    tuxedoConnectString: { label: 'TUXEDO Connect String', placeholder: '//host:port (optional)' },
+    walletLocation: { label: 'Wallet Location', placeholder: 'optional' },
+    walletName: { label: 'Wallet Name', placeholder: 'optional' }
   };
 
   function toggleEdit(id) {
