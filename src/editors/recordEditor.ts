@@ -4,7 +4,7 @@ import { Workspace } from '../workspace.js';
 import { parseUri } from '../util/uri.js';
 import { DefinitionType, makeKey, type DefinitionKey } from '../model/definitions.js';
 import type { DefinitionProvider } from '../providers/provider.js';
-import { OracleProvider } from '../providers/oracle.js';
+import { DatabaseProvider } from '../providers/database.js';
 import { TranslateSaveRefusedError, type TranslateChange } from '../providers/translateWriter.js';
 import { writeScopeRefusal } from '../providers/writeScope.js';
 import type { RecordLayout, RecordLayoutField } from '../model/recordLayout.js';
@@ -33,7 +33,7 @@ function buildLog(): vscode.OutputChannel {
  * an Oracle connection set to Writable with an Operator ID, a record of a
  * shape the App Designer cases cover. Changes are held
  * in the document -- VS Code's dirty marker, undo / redo, revert -- and
- * written by Save through OracleProvider.saveRecord in one transaction.
+ * written by Save through DatabaseProvider.saveRecord in one transaction.
  */
 export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordDocument> {
   static readonly viewType = 'psft.recordEditor';
@@ -250,13 +250,13 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
       void vscode.window.showInformationMessage('Records with subrecords cannot be built here yet.');
       return;
     }
-    if (!(provider instanceof OracleProvider)) {
+    if (!(provider instanceof DatabaseProvider)) {
       void vscode.window.showInformationMessage('The build script comes from the database\'s DDL model; a project export does not carry one.');
       return;
     }
     const model = await provider.readDdlModel(shown.name);
     if (!model) {
-      void vscode.window.showInformationMessage(`${provider.displayName} has no Oracle DDL model.`);
+      void vscode.window.showInformationMessage(`${provider.displayName} has no DDL model for its platform (PSDDLMODEL).`);
       return;
     }
     const writable = this.workspace.isWritable(provider.id);
@@ -364,7 +364,7 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
   /** Why a field's translate values cannot be changed from here; undefined when they can. */
   private translateRefusal(doc: RecordDocument, field: string): string | undefined {
     const p = doc.provider;
-    if (!(p instanceof OracleProvider)) return 'translate values are changed only in a database connection.';
+    if (!(p instanceof DatabaseProvider)) return 'translate values are changed only in a database connection.';
     if (!this.workspace.isWritable(p.id)) return `${p.displayName} is read-only (Access in PeopleSoft Studio Settings).`;
     if (!this.workspace.configFor(p.id)?.peoplesoftOperatorId?.trim()) return `set the Operator ID for ${p.displayName} in PeopleSoft Studio Settings.`;
     return writeScopeRefusal(field);
@@ -377,7 +377,7 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
     const provider = doc.provider;
     if (!change || !doc.shownFields().some((f) => f.name === field && !f.isSubrecord)) return;
     const refusal = this.translateRefusal(doc, field);
-    if (refusal || !(provider instanceof OracleProvider)) {
+    if (refusal || !(provider instanceof DatabaseProvider)) {
       void vscode.window.showWarningMessage(`Translate values of ${field} cannot be changed: ${refusal}`);
       return;
     }
@@ -416,7 +416,7 @@ export class RecordEditorProvider implements vscode.CustomEditorProvider<RecordD
     if (!doc.state || !doc.dirty) return;
     const provider = doc.provider;
     const operatorId = provider && this.workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim();
-    if (!(provider instanceof OracleProvider) || !operatorId || !this.workspace.isWritable(provider.id)) {
+    if (!(provider instanceof DatabaseProvider) || !operatorId || !this.workspace.isWritable(provider.id)) {
       throw new Error(`${doc.recname} cannot be saved: the connection is not Writable with an Operator ID.`);
     }
     try {
@@ -515,7 +515,7 @@ class RecordDocument implements vscode.CustomDocument {
 
   private whyReadOnly(layout: RecordLayout): string | undefined {
     const p = this.provider!;
-    if (!(p instanceof OracleProvider)) return undefined;
+    if (!(p instanceof DatabaseProvider)) return undefined;
     if (!this.workspace.isWritable(p.id)) return `${p.displayName} is read-only (Access in PeopleSoft Studio Settings).`;
     if (!this.workspace.configFor(p.id)?.peoplesoftOperatorId?.trim()) return `set the Operator ID for ${p.displayName} in PeopleSoft Studio Settings to edit records.`;
     return writeScopeRefusal(layout.name) ?? layoutEditRefusal(layout);

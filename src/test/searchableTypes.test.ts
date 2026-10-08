@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as path from 'node:path';
-import { OracleProvider } from '../providers/oracle.js';
+import { DatabaseProvider } from '../providers/database.js';
 import { ProjectFileProvider } from '../providers/projectFile.js';
 import { DefinitionType, typeLabel } from '../model/definitions.js';
 
@@ -11,16 +11,16 @@ const FIXTURE = path.join(
 test('a project is a searchable type, so it can be opened by name', () => {
   // Connecting to a database must not list its projects; the only way one
   // reaches the tree is by being searched for and opened.
-  const oracle = new OracleProvider({
-    name: 'DEV', connectString: 'h:1521/X', user: 'SYSADM', password: ''
+  const oracle = new DatabaseProvider({
+    name: 'DEV', platform: 'oracle', connectString: 'h:1521/X', user: 'SYSADM', password: ''
   });
   assert.ok(oracle.searchableTypes.includes(DefinitionType.Project));
   assert.equal(typeLabel(DefinitionType.Project), 'Projects');
 });
 
 test('the database offers only the types it has a query for', () => {
-  const oracle = new OracleProvider({
-    name: 'DEV', connectString: 'h:1521/X', user: 'SYSADM', password: ''
+  const oracle = new DatabaseProvider({
+    name: 'DEV', platform: 'oracle', connectString: 'h:1521/X', user: 'SYSADM', password: ''
   });
   // Offering a type with no query behind it produces a dialog that fails on
   // submit, so the list and the search switch have to agree.
@@ -34,8 +34,8 @@ test('the database offers only the types it has a query for', () => {
 });
 
 test('the database can search globally, which is what keeps it out of the trees', () => {
-  const oracle = new OracleProvider({
-    name: 'DEV', connectString: 'h:1521/X', user: 'SYSADM', password: ''
+  const oracle = new DatabaseProvider({
+    name: 'DEV', platform: 'oracle', connectString: 'h:1521/X', user: 'SYSADM', password: ''
   });
   assert.equal(oracle.capabilities.globalSearch, true);
 });

@@ -25,6 +25,7 @@ export type DecoderMode = 'auto' | 'strict' | 'raw';
 export interface PeopleSoftStudioSettings {
   connections: ConnectionConfig[];
   'oracle.thickModeLibDir': string;
+  'db2.driverPath': string;
   'peoplecode.decoder': DecoderMode;
   'mcp.enabled': boolean;
   'mcp.port': number;
@@ -206,6 +207,16 @@ export const SETTING_DESCRIPTORS: readonly SettingDescriptor[] = [
     control: { kind: 'text', placeholder: 'Empty: Thin mode' },
     defaultValue: ''
   },
+  {
+    key: 'db2.driverPath',
+    section: 'advanced',
+    label: 'DB2 driver directory',
+    description: 'A directory holding an ibm_db installation (node_modules/ibm_db) for DB2 connections. ' +
+      'Leave empty to use the one PeopleSoft: Install DB2 Driver installs.',
+    appliesWhen: 'Applies to DB2 connections opened after the change; a driver already loaded stays loaded until the window reloads.',
+    control: { kind: 'text', placeholder: 'Empty: installed by PeopleSoft: Install DB2 Driver' },
+    defaultValue: ''
+  },
   ...buildDescriptors()
 ];
 
@@ -283,11 +294,12 @@ export function validateSetting(key: EditableSettingKey, value: unknown): Valida
       const error = mcpPortError(port);
       return error ? { ok: false, error } : { ok: true, value: port as number };
     }
-    case 'oracle.thickModeLibDir': {
+    case 'oracle.thickModeLibDir':
+    case 'db2.driverPath': {
       if (typeof value !== 'string') return { ok: false, error: 'Directory must be text.' };
       const trimmed = value.trim();
       if (trimmed !== '' && !path.posix.isAbsolute(trimmed) && !path.win32.isAbsolute(trimmed)) {
-        return { ok: false, error: 'Directory must be an absolute path, or empty for Thin mode.' };
+        return { ok: false, error: key === 'db2.driverPath' ? 'Directory must be an absolute path, or empty for the installed driver.' : 'Directory must be an absolute path, or empty for Thin mode.' };
       }
       return { ok: true, value: trimmed };
     }
@@ -342,6 +354,8 @@ export interface ConnectionEdit {
 
 const EDITABLE_FIELDS: Record<ConnectionConfig['kind'], (keyof ConnectionEdit)[]> = {
   oracle: ['connectString', 'user', 'schema'],
+  mssql: ['connectString', 'user', 'schema'],
+  db2: ['connectString', 'user', 'schema'],
   projectFile: ['path']
 };
 
@@ -368,10 +382,10 @@ export function validateConnectionEdit(
 
   const next: ConnectionConfig = { ...existing };
 
-  if (existing.kind === 'oracle') {
+  if (existing.kind !== 'projectFile') {
     const connectString = (edit.connectString ?? existing.connectString ?? '').trim();
     const user = (edit.user ?? existing.user ?? '').trim();
-    const connectError = validateConnectString(connectString);
+    const connectError = validateConnectString(connectString, existing.kind);
     if (connectError) errors.connectString = connectError;
     if (user === '') errors.user = 'Database access id is required.';
     else if (/\s/.test(user)) errors.user = 'Database access id cannot contain spaces.';
@@ -392,9 +406,18 @@ export function validateConnectionEdit(
   return Object.keys(errors).length > 0 ? { ok: false, errors } : { ok: true, value: next };
 }
 
-export function validateConnectString(connectString: string): string | undefined {
+export function validateConnectString(connectString: string, kind: ConnectionConfig['kind'] = 'oracle'): string | undefined {
   if (connectString === '') return 'Connect string is required.';
   if (/\s/.test(connectString)) return 'Connect string cannot contain spaces.';
+  // SQL Server: host[\instance][:port]/database. DB2: host[:port]/database.
+  if (kind === 'mssql' || kind === 'db2') {
+    const m = kind === 'mssql'
+      ? /^([^\\/:]+)(?:\\[^/:]+)?(?::([^/]*))?\/([^/]+)$/.exec(connectString)
+      : /^([^/:]+)(?::([^/]*))?\/([^/]+)$/.exec(connectString);
+    if (!m) return kind === 'mssql' ? 'host[\\instance][:port]/database, e.g. sqlhost:1433/HCM92' : 'host[:port]/database, e.g. db2host:50000/HCM92';
+    if (m[2] !== undefined && (!/^\d+$/.test(m[2]) || Number(m[2]) < 1 || Number(m[2]) > 65535)) return 'Port must be a number between 1 and 65535.';
+    return undefined;
+  }
   // Easy Connect: [//]host[:port][/service]. Descriptors and TNS aliases are
   // passed through untouched; only an explicit host:port is checked.
   const easy = /^(?:\/\/)?([^:/()]+):([^/]*)(?:\/.*)?$/.exec(connectString);
@@ -422,7 +445,7 @@ export interface ConnectionAccess {
  * This restates the rules the editors enforce rather than adding one: see
  * PeopleSoftFileSystem.isWritable (PeopleCode from a database is read-only;
  * a provider without write capability is read-only throughout) and
- * OracleProvider.writeText (SQL definitions are the one text type it saves).
+ * DatabaseProvider.writeText (SQL definitions are the one text type it saves).
  */
 export function describeAccess(config: Pick<ConnectionConfig, 'kind' | 'peoplecodeAccess'>): ConnectionAccess {
   if (config.kind === 'projectFile') {

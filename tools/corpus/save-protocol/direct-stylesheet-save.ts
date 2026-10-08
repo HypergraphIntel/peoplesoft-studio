@@ -1,6 +1,6 @@
 /*
  * A native freeform style sheet save from the command line, through the same
- * OracleProvider.saveStyleSheet the editor uses -- compared against App
+ * DatabaseProvider.saveStyleSheet the editor uses -- compared against App
  * Designer's (cases s01-s04). Without --create it saves an existing one.
  *
  * WRITES to the database. Refuses any database but the expected lab (HRDMO
@@ -9,7 +9,7 @@
  *
  *   npx tsx tools/corpus/save-protocol/direct-stylesheet-save.ts --operator JARED --sheet ZZ_PCODE_LAB_CSS3 --text '.x { color: red; }' [--repeat N] [--create]
  */
-import { OracleProvider } from '../../../src/providers/oracle';
+import { DatabaseProvider } from '../../../src/providers/database';
 import { DefinitionType, makeKey } from '../../../src/model/definitions';
 import { PROTECTED_DATABASE_PATTERN } from '../../../src/peoplecode/corpus/controlledCompileRunner';
 
@@ -28,7 +28,7 @@ async function main(): Promise<void> {
   const user = process.env.PSLAB_ACCESSID;
   const password = process.env.PSLAB_ACCESSPSWD;
   if (!user || !password) throw new Error('PSLAB_ACCESSID and PSLAB_ACCESSPSWD must be set.');
-  const provider = new OracleProvider({ name: expected, user, password, connectString: process.env.PSLAB_AUDIT_CONNECT ?? '127.0.0.1:15210/hrdmo' });
+  const provider = new DatabaseProvider({ name: expected, platform: 'oracle', user, password, connectString: process.env.PSLAB_AUDIT_CONNECT ?? '127.0.0.1:15210/hrdmo' });
   await provider.connect();
   try {
     const identity = await (provider as unknown as {

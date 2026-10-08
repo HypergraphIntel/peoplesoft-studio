@@ -1,6 +1,6 @@
 /*
  * A native project insert from the command line, through the same
- * OracleProvider.saveProject the Insert Into Project command uses --
+ * DatabaseProvider.saveProject the Insert Into Project command uses --
  * compared against App Designer's insert (case p01).
  *
  * WRITES to the database. Refuses any database but the expected lab
@@ -15,7 +15,7 @@
  * change was made against, as a staged save does. Connection: PSLAB_ACCESSID / PSLAB_ACCESSPSWD,
  * PSLAB_AUDIT_CONNECT (default 127.0.0.1:15210/hrdmo).
  */
-import { OracleProvider } from '../../../src/providers/oracle';
+import { DatabaseProvider } from '../../../src/providers/database';
 import { makeKey } from '../../../src/model/definitions';
 import { PROTECTED_DATABASE_PATTERN } from '../../../src/peoplecode/corpus/controlledCompileRunner';
 import { isScratchName } from '../../../src/peoplecode/corpus/labSafety';
@@ -41,8 +41,8 @@ async function main(): Promise<void> {
   const user = process.env.PSLAB_ACCESSID;
   const password = process.env.PSLAB_ACCESSPSWD;
   if (!user || !password) throw new Error('PSLAB_ACCESSID and PSLAB_ACCESSPSWD must be set.');
-  const provider = new OracleProvider({
-    name: expected, user, password, connectString: process.env.PSLAB_AUDIT_CONNECT ?? '127.0.0.1:15210/hrdmo'
+  const provider = new DatabaseProvider({
+    name: expected, platform: 'oracle', user, password, connectString: process.env.PSLAB_AUDIT_CONNECT ?? '127.0.0.1:15210/hrdmo'
   });
   await provider.connect();
   try {

@@ -1,6 +1,6 @@
 /*
  * A translate value added, changed or deleted from the command line, through
- * the same OracleProvider.saveTranslate the record editor uses -- compared
+ * the same DatabaseProvider.saveTranslate the record editor uses -- compared
  * against App Designer's (cases r37-r39).
  *
  * WRITES to the database. Refuses any database but the expected lab (HRDMO
@@ -12,7 +12,7 @@
  *   ... --change A --effdt 1900-01-01 --long Alpha2 --short Alp2 [--status I]
  *   ... --delete A --effdt 1900-01-01
  */
-import { OracleProvider } from '../../../src/providers/oracle';
+import { DatabaseProvider } from '../../../src/providers/database';
 import type { TranslateChange } from '../../../src/providers/translateWriter';
 import { PROTECTED_DATABASE_PATTERN } from '../../../src/peoplecode/corpus/controlledCompileRunner';
 
@@ -45,7 +45,7 @@ async function main(): Promise<void> {
   const user = process.env.PSLAB_ACCESSID;
   const password = process.env.PSLAB_ACCESSPSWD;
   if (!user || !password) throw new Error('PSLAB_ACCESSID and PSLAB_ACCESSPSWD must be set.');
-  const provider = new OracleProvider({ name: expected, user, password, connectString: process.env.PSLAB_AUDIT_CONNECT ?? '127.0.0.1:15210/hrdmo' });
+  const provider = new DatabaseProvider({ name: expected, platform: 'oracle', user, password, connectString: process.env.PSLAB_AUDIT_CONNECT ?? '127.0.0.1:15210/hrdmo' });
   await provider.connect();
   try {
     const identity = await (provider as unknown as {

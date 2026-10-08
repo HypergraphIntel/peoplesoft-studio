@@ -6,7 +6,7 @@ import { renderFieldHtml } from './fieldHtml.js';
 import { escapeHtml } from './propertiesHtml.js';
 import type { FieldDefinition } from '../model/fieldDefinition.js';
 import { FieldType } from '../model/record.js';
-import { OracleProvider } from '../providers/oracle.js';
+import { DatabaseProvider } from '../providers/database.js';
 import { CREATABLE_FIELD_TYPES, FIXED_FIELD_LENGTH, FieldCreateRefusedError, type FieldLabelEdit, type FieldSaveRequest } from '../providers/fieldWriter.js';
 import { writeScopeRefusal } from '../providers/writeScope.js';
 import type { DefinitionProvider } from '../providers/provider.js';
@@ -53,7 +53,7 @@ export class FieldEditorProvider implements vscode.CustomReadonlyEditorProvider 
       }
     };
     panel.webview.onDidReceiveMessage(async (m: { act?: string; label?: string }) => {
-      if (!field || !(provider instanceof OracleProvider)) return;
+      if (!field || !(provider instanceof DatabaseProvider)) return;
       try {
         const change = await this.ask(field, String(m.act ?? ''), String(m.label ?? ''));
         if (!change) return;
@@ -73,7 +73,7 @@ export class FieldEditorProvider implements vscode.CustomReadonlyEditorProvider 
 
   /** Why the field cannot be edited here; undefined when it can. */
   private readOnlyReason(provider: DefinitionProvider, field: FieldDefinition): string | undefined {
-    if (!(provider instanceof OracleProvider)) return 'a project export cannot be saved.';
+    if (!(provider instanceof DatabaseProvider)) return 'a project export cannot be saved.';
     if (!this.workspace.isWritable(provider.id)) return `${provider.displayName} is read-only (Access in PeopleSoft Studio Settings).`;
     if (!this.workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim()) return `set the Operator ID for ${provider.displayName} in PeopleSoft Studio Settings.`;
     const scope = writeScopeRefusal(field.name);

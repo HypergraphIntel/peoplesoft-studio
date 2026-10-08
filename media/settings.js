@@ -206,12 +206,15 @@
         ? badge('Writes allowed', 'error', 'PeopleCode may be saved back to this database once saving is implemented.')
         : null,
       // Closed, the header still says where the connection goes.
-      open ? null : h('span', { className: 'summary', text: c.kind === 'oracle' ? (c.connectString || '') : (c.path || '') })
+      open ? null : h('span', { className: 'summary', text: c.kind !== 'projectFile' ? (c.connectString || '') : (c.path || '') })
     ]);
 
-    const details = facts(c.kind === 'oracle'
-      ? { 'Connect string': c.connectString || '—', 'Access id': c.user || '—', 'Schema': c.schema || 'Automatic (PS.PSDBOWNER, else SYSADM)' }
-      : { 'Project file': c.path || '—' });
+    const details = facts(c.kind === 'projectFile'
+      ? { 'Project file': c.path || '—' }
+      : c.signon === 'twoTier'
+        ? { 'Connect string': c.connectString || '—', 'Connect ID (proxy)': c.user || '—', 'PeopleSoft operator': c.operatorId || '—',
+            'Schema': c.schema || `Automatic (PSDBOWNER, else ${DEFAULT_SCHEMA[c.kind] || 'SYSADM'})` }
+        : { 'Connect string': c.connectString || '—', 'Access id': c.user || '—', 'Schema': c.schema || `Automatic (PSDBOWNER, else ${DEFAULT_SCHEMA[c.kind] || 'SYSADM'})` });
 
     const actions = h('div', { className: 'actions' }, [
       button(busy ? 'Testing…' : 'Test Connection', () => post({ type: 'testConnection', connectionId: c.id }),
@@ -252,10 +255,17 @@
     return null;
   }
 
+  /** What an empty Schema resolves to after PSDBOWNER, by connection kind. */
+  const DEFAULT_SCHEMA = { oracle: 'SYSADM', mssql: 'the login\'s default schema', db2: 'the user\'s schema' };
+
   const FIELD_LABELS = {
     connectString: { label: 'Connect string', placeholder: 'host:1521/SERVICE' },
+    connectString_mssql: { label: 'Connect string', placeholder: 'host[\\instance][:port]/database' },
+    connectString_db2: { label: 'Connect string', placeholder: 'host[:port]/database' },
     user: { label: 'Database access id', placeholder: 'SYSADM' },
     schema: { label: 'Schema (owner ID)', placeholder: 'Automatic: PS.PSDBOWNER, else SYSADM' },
+    schema_mssql: { label: 'Schema (owner ID)', placeholder: 'Automatic: PSDBOWNER, else the login\'s default schema' },
+    schema_db2: { label: 'Schema (owner ID)', placeholder: 'Automatic: PS.PSDBOWNER, else the user\'s schema' },
     path: { label: 'Project file', placeholder: '/path/to/export.xml' }
   };
 
@@ -277,7 +287,10 @@
     const form = h('form', { className: 'edit-form', attrs: { 'aria-label': `Edit ${c.name}` } });
 
     for (const field of c.editableFields) {
-      const meta = FIELD_LABELS[field];
+      // Two-tier: the database login is the proxy Connect ID, not the access id.
+      const meta = (field === 'user' && c.signon === 'twoTier')
+        ? { label: 'Connect ID (proxy login)', placeholder: 'people' }
+        : FIELD_LABELS[`${field}_${c.kind}`] || FIELD_LABELS[field];
       const draftKey = `conn:${c.id}:${field}`;
       const inputId = `edit-${c.id}-${field}`;
       const errorId = `${inputId}-error`;

@@ -1,5 +1,5 @@
 // One-off diagnostic: dumps the actual columns of every PeopleTools table
-// src/providers/oracle.ts queries, so code can be fixed against the real
+// src/providers/database.ts queries, so code can be fixed against the real
 // schema instead of guessed at one ORA-00904 at a time.
 //
 // Usage:

@@ -1,4 +1,4 @@
-import type { Connection } from 'oracledb';
+import type { DbConnection as Connection } from '../db/connection.js';
 import { DefinitionKey, DefinitionType } from '../model/definitions.js';
 import { PROPERTIES_SPECS } from '../model/properties.js';
 import {
@@ -69,10 +69,7 @@ async function readCounters(c: Connection, forUpdate: boolean): Promise<Counters
 
 /** How many OBJECTID / OBJECTVALUE pairs this database's PSPROJECTITEM has. */
 async function itemSlots(c: Connection): Promise<number> {
-  const [r] = await select<{ N: number }>(c,
-    `SELECT COUNT(*) AS N FROM ALL_TAB_COLUMNS
-      WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = 'PSPROJECTITEM' AND COLUMN_NAME LIKE 'OBJECTVALUE%'`);
-  const n = Number(r?.N ?? 0);
+  const n = (await c.catalog.columns(c, 'PSPROJECTITEM')).filter((col) => col.name.startsWith('OBJECTVALUE')).length;
   if (n < MIN_PROJECT_ITEM_SLOTS) throw new ProjectSaveRefusedError(`PSPROJECTITEM has ${n} key slots here; refusing to write.`);
   return n;
 }
@@ -254,8 +251,7 @@ export async function createProject(c: Connection, request: { project: string; o
     if (!(await operatorExists(c, request.operatorId))) {
       throw new ProjectSaveRefusedError(`PeopleSoft operator ${request.operatorId} does not exist in this database (PSOPRDEFN).`);
     }
-    const cols = (await select<{ C: string }>(c,
-      `SELECT COLUMN_NAME AS C FROM ALL_TAB_COLUMNS WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = 'PSPROJECTDEFN' ORDER BY COLUMN_ID`)).map((r) => r.C);
+    const cols = (await c.catalog.columns(c, 'PSPROJECTDEFN')).map((col) => col.name);
     const known = new Set(['PROJECTNAME', 'VERSION', 'LASTUPDDTTM', 'LASTUPDOPRID', ...Object.keys(NEW_PROJECT_VALUES)]);
     const unknown = cols.filter((col) => !known.has(col));
     if (unknown.length > 0) throw new ProjectSaveRefusedError(`PSPROJECTDEFN has columns this save does not know (${unknown.join(', ')}); refusing to write.`);

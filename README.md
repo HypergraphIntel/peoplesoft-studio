@@ -87,6 +87,7 @@ Goal long-term: replace Application Designer. **Today this is a trusted reader a
 | Capability | Status | Notes |
 |------------|--------|-------|
 | Connect to Oracle (PeopleTools tables) | Yes | Schema per connection: set it, or detected from `PS.PSDBOWNER` (else `SYSADM`) |
+| Connect to **Microsoft SQL Server** or **DB2** (LUW, z/OS) | Experimental | Everything above and below that reads, as on Oracle; writes are the same rows Oracle's App Designer captures proved, not yet captured on these platforms. DB2 needs *PeopleSoft: Install DB2 Driver*. Two-tier (App Designer 2 Tier) sign-on too. See [docs/DATABASES.md](docs/DATABASES.md) |
 | Open App Designer XML project export | Yes | |
 | Project tree & definition browser | Yes | |
 | Open Definition search | Yes | |

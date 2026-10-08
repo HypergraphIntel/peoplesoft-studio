@@ -1,4 +1,4 @@
-import type { BindParameters, Connection } from 'oracledb';
+import type { DbBinds as BindParameters, DbConnection as Connection, DbTypes } from '../db/connection.js';
 import {
   checkStoredProgram, compileForSave, diffPrograms, expectedProgram, fingerprint, planProgram,
   prepareSourceForSave, SaveRefusedError, storedText, targetForKey, validateOperatorId,
@@ -15,7 +15,7 @@ import { RECORD_FIELD_EVENTS } from '../model/recordEvents.js';
  * COMMIT.
  */
 
-type OracleDb = typeof import('oracledb');
+type OracleDb = DbTypes;
 
 /** oracledb.OUT_FORMAT_OBJECT, which this module must not import at runtime (the bundle loads oracledb lazily). */
 const OUT_FORMAT_OBJECT = 4002;

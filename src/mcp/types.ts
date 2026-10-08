@@ -5,7 +5,7 @@ import type {
 export interface McpConnectionDescriptor {
   id: string;
   name: string;
-  kind: 'oracle' | 'projectFile';
+  kind: 'oracle' | 'mssql' | 'db2' | 'projectFile';
   connected: boolean;
   selected: boolean;
 }

@@ -6,7 +6,7 @@ import {
   ACTION_ORDER, actionSqlId, buildAppEngine, peopleCodeKeyParts, renderAppEngine, unpackPeopleCodeKey, type AppEngineRows
 } from '../model/appEngine.js';
 
-/** Rows read from HRDMO by OracleProvider.readAppEngineRows (2026-10-07). */
+/** Rows read from HRDMO by DatabaseProvider.readAppEngineRows (2026-10-07). */
 const rows = (name: string) =>
   JSON.parse(readFileSync(path.join('src', 'test', 'fixtures', 'appEngine', `${name}.rows.json`), 'utf8')) as AppEngineRows;
 

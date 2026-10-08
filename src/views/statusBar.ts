@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Workspace } from '../workspace.js';
+import { isDatabaseId, Workspace } from '../workspace.js';
 import { isPeopleCode } from '../model/definitions.js';
 import { parseUri } from '../util/uri.js';
 
@@ -84,7 +84,7 @@ export class StatusBar implements vscode.Disposable {
       // Read-only describes the document being edited, not the target.
       if (
         isPeopleCode(key.type) &&
-        editorProvider.id.startsWith('oracle:') &&
+        isDatabaseId(editorProvider.id) &&
         !this.workspace.isPeopleCodeWritable(editorProvider.id, key)
       ) {
         this.readOnly.text = '$(lock-small) Read-Only';

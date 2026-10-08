@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import * as path from 'node:path';
 import type { Connection } from 'oracledb';
-import { detectSchema } from '../providers/oracle.js';
+import { detectSchema } from '../db/oracle.js';
 import { editableFields, validateConnectionEdit } from '../settings/settingsModel.js';
 import type { ConnectionConfig } from '../workspace.js';
 

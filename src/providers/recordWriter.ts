@@ -1,4 +1,4 @@
-import type { Connection } from 'oracledb';
+import type { DbConnection as Connection } from '../db/connection.js';
 import { RecordType } from '../model/record.js';
 import {
   editStateFor, expandDbFields, planRecordSave, RecordSaveRefusedError, type RecordEditState, type RecordSavePlan, type Row, type StoredRecord
@@ -36,13 +36,11 @@ export interface RecordSaveResult {
 interface Column { name: string; type: string }
 
 async function columnsOf(c: Connection, table: string): Promise<Column[]> {
-  const rows = await select<{ N: string; T: string }>(c,
-    `SELECT COLUMN_NAME AS N, DATA_TYPE AS T FROM ALL_TAB_COLUMNS WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = :t ORDER BY COLUMN_ID`,
-    { t: table });
-  return rows.map((r) => ({ name: r.N, type: r.T }));
+  return (await c.catalog.columns(c, table)).map((col) => ({ name: col.name, type: col.dataType }));
 }
 
-const isTimestamp = (col: Column) => col.type.startsWith('TIMESTAMP') || col.type === 'DATE';
+/** Date and time columns, by each platform's type names (Oracle DATE / TIMESTAMP(6), SQL Server DATETIME / DATETIME2, DB2 TIMESTAMP). */
+const isTimestamp = (col: Column) => /^(TIMESTAMP|DATE|DATETIME|DATETIME2|SMALLDATETIME)\b/.test(col.type);
 
 /** Rows with every column; timestamps as strings in TIMESTAMP_FORMAT. */
 async function readRows(c: Connection, table: string, cols: Column[], where: string, binds: Record<string, unknown>, order = ''): Promise<Row[]> {
@@ -254,8 +252,8 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
     // (r41). Parent, query security and audit references are not established,
     // so a record referred to that way is not saved here.
     const referrers = await select<{ RECNAME: string }>(c,
-      `SELECT RECNAME FROM PSRECDEFN WHERE RECNAME <> :r AND :r IN (PARENTRECNAME, QRYSECRECNAME, AUDITRECNAME)
-        AND ROWNUM <= 5`, { r: recname });
+      `SELECT RECNAME FROM PSRECDEFN WHERE RECNAME <> :r AND (PARENTRECNAME = :r OR QRYSECRECNAME = :r OR AUDITRECNAME = :r)
+        FETCH FIRST 5 ROWS ONLY`, { r: recname });
     if (referrers.length > 0) {
       throw new RecordSaveRefusedError(`${recname} is referred to by ${referrers.map((x) => text(x.RECNAME)).join(', ')} (as a parent, query security or audit record); saving it here is not supported yet.`);
     }
@@ -344,7 +342,7 @@ export async function saveRecord(c: Connection, request: RecordSaveRequest): Pro
     const modelled = (id: unknown) => text(id) === '_' || /^[0-9]$/.test(text(id));
     const storedKey = stored.indexes.filter((i) => modelled(i.INDEXID));
     const storedKeys = stored.keys.filter((k) => modelled(k.INDEXID));
-    const ids = "(INDEXID = '_' OR REGEXP_LIKE(INDEXID, '^[0-9]$'))";
+    const ids = "INDEXID IN ('_', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9')";
     if (storedKeys.length > 0) await expectRows(c, `DELETE FROM PSKEYDEFN WHERE RECNAME = :r AND ${ids}`, r, storedKeys.length, 'Deleting PSKEYDEFN');
     if (storedKey.length > 0) await expectRows(c, `DELETE FROM PSINDEXDEFN WHERE RECNAME = :r AND ${ids}`, r, storedKey.length, 'Deleting PSINDEXDEFN');
     for (const ix of [...(plan.index ? [plan.index] : []), ...plan.altIndexes]) {

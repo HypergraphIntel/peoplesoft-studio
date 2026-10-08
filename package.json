@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.7.7",
+  "version": "0.7.8",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -137,6 +137,11 @@
         "title": "Refresh",
         "category": "PeopleSoft",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "psft.installDb2Driver",
+        "title": "Install DB2 Driver",
+        "category": "PeopleSoft"
       },
       {
         "command": "psft.addConnection",
@@ -505,12 +510,20 @@
                 "type": "string",
                 "enum": [
                   "oracle",
+                  "mssql",
+                  "db2",
                   "projectFile"
+                ],
+                "enumDescriptions": [
+                  "Oracle database",
+                  "Microsoft SQL Server database",
+                  "DB2 database (LUW, or z/OS through DB2 Connect)",
+                  "App Designer project export file"
                 ]
               },
               "connectString": {
                 "type": "string",
-                "description": "Oracle easy-connect string, e.g. host:1521/PSFTDB"
+                "description": "Oracle: an easy-connect string, e.g. host:1521/PSFTDB. SQL Server: host[\\instance][:port]/database, e.g. sqlhost:1433/HCM92. DB2: host[:port]/database, e.g. db2host:50000/HCM92 (z/OS: the location name)."
               },
               "user": {
                 "type": "string",
@@ -518,7 +531,7 @@
               },
               "schema": {
                 "type": "string",
-                "description": "Schema owning the PeopleTools tables (the owner ID). Empty: read from PS.PSDBOWNER, else SYSADM."
+                "description": "Schema owning the PeopleTools tables (the owner ID). Empty: read from PS.PSDBOWNER, else the platform default (Oracle SYSADM; SQL Server the login's default schema; DB2 the user's)."
               },
               "path": {
                 "type": "string",
@@ -554,6 +567,13 @@
               "peoplesoftOperatorId": {
                 "type": "string",
                 "description": "The PeopleSoft operator (PSOPRDEFN.OPRID) PeopleCode saves are recorded as (LASTUPDOPRID). Required for a writable connection; it must exist in that database."
+              },
+              "signon": {
+                "type": "string",
+                "enum": [
+                  "twoTier"
+                ],
+                "description": "Two-tier sign-on: the database login (user) is the proxy Connect ID that runs queries, and peoplesoftOperatorId is the PeopleSoft operator the connection acts as (verified at connect, recorded as the save identity). Absent: direct sign-on with the database login."
               }
             }
           }
@@ -562,6 +582,11 @@
           "type": "string",
           "default": "",
           "description": "Path to Oracle Instant Client. Leave empty to use node-oracledb Thin mode."
+        },
+        "peoplesoft.db2.driverPath": {
+          "type": "string",
+          "default": "",
+          "description": "Directory holding an ibm_db installation (node_modules/ibm_db) for DB2 connections. Leave empty to use the one PeopleSoft: Install DB2 Driver installs."
         },
         "peoplesoft.peoplecode.decoder": {
           "type": "string",
@@ -743,6 +768,7 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
+    "@types/mssql": "^12.3.0",
     "@types/node": "^20.14.0",
     "@types/oracledb": "^6.10.4",
     "@types/vscode": "^1.90.0",
@@ -751,6 +777,8 @@
     "cross-env": "^10.1.0",
     "esbuild": "^0.23.0",
     "fast-xml-parser": "^4.4.1",
+    "ibm_db": "^4.0.1",
+    "mssql": "^12.7.4",
     "tsx": "^4.23.15",
     "typescript": "^5.5.0",
     "vscode-uri": "^3.2.0"
@@ -775,6 +803,7 @@
     "oracledb@6.10.0": true,
     "keytar@7.9.0": true,
     "esbuild@0.23.1": true,
-    "esbuild@0.28.2": true
+    "esbuild@0.28.2": true,
+    "ibm_db@4.0.1": true
   }
 }

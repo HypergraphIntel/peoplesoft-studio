@@ -55,6 +55,7 @@ const context = {
   extensionUri: vscode.Uri.file(root),
   extension: { id: `${manifest.publisher}.${manifest.name}`, packageJSON: manifest },
   globalState: { get: () => undefined, update: async () => {} },
+  globalStorageUri: vscode.Uri.file(path.join(os.tmpdir(), 'psft-smoke-global-storage')),
   workspaceState: { get: () => undefined, update: async () => {} }
 };
 

@@ -11,8 +11,10 @@ const ctx = await esbuild.context({
   format: 'cjs',
   sourcemap: true,
   minify: !watch,
-  // vscode is provided by the host; oracledb loads native/thin bits at runtime.
-  external: ['vscode', 'oracledb'],
+  // vscode is provided by the host; oracledb loads native/thin bits at runtime;
+  // ibm_db (DB2) is not shipped: it is loaded from where Install DB2 Driver put
+  // it (src/db/db2.ts). mssql (SQL Server, pure JavaScript) is bundled.
+  external: ['vscode', 'oracledb', 'ibm_db'],
   logLevel: 'info'
 });
 
