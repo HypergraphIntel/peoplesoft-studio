@@ -23,7 +23,19 @@ const BROWSABLE: DefinitionType[] = [
   DefinitionType.Menu,
   DefinitionType.ApplicationPackage,
   DefinitionType.AppEngineProgram,
-  DefinitionType.SqlDefinition
+  DefinitionType.SqlDefinition,
+  DefinitionType.FileLayout,
+  DefinitionType.ComponentInterface,
+  DefinitionType.Query,
+  DefinitionType.ProcessDefinition,
+  DefinitionType.Tree,
+  DefinitionType.IbMessage,
+  DefinitionType.IbService,
+  DefinitionType.IbServiceOperation,
+  DefinitionType.Image,
+  DefinitionType.PortalRegistry,
+  DefinitionType.PermissionList,
+  DefinitionType.Role
 ];
 
 export class BrowserView implements vscode.TreeDataProvider<Node> {
@@ -171,6 +183,19 @@ function iconFor(type: DefinitionType): string {
     case DefinitionType.ApplicationPackage: return 'package';
     case DefinitionType.AppEngineProgram: return 'gear';
     case DefinitionType.SqlDefinition: return 'database';
+    case DefinitionType.FileLayout: return 'file-text';
+    case DefinitionType.ComponentInterface: return 'plug';
+    case DefinitionType.PermissionList: return 'shield';
+    case DefinitionType.Role: return 'person';
+    case DefinitionType.Query: return 'search';
+    case DefinitionType.ProcessDefinition: return 'run';
+    case DefinitionType.Tree: return 'type-hierarchy';
+    case DefinitionType.IbMessage: return 'mail';
+    case DefinitionType.Image: return 'file-media';
+    case DefinitionType.PortalRegistry: return 'globe';
+    case DefinitionType.IbService: return 'server';
+    case DefinitionType.IbServiceOperation: return 'arrow-swap';
+    case DefinitionType.MessageCatalog: return 'comment';
     case DefinitionType.HtmlDefinition: return 'code';
     case DefinitionType.StyleSheet: return 'symbol-color';
     default: return 'symbol-misc';

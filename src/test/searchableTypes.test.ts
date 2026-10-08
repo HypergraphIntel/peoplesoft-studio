@@ -27,7 +27,9 @@ test('the database offers only the types it has a query for', () => {
   assert.ok(oracle.searchableTypes.includes(DefinitionType.Record));
   assert.ok(oracle.searchableTypes.includes(DefinitionType.Page));
   assert.ok(oracle.searchableTypes.includes(DefinitionType.HtmlDefinition));
-  assert.ok(!oracle.searchableTypes.includes(DefinitionType.ComponentInterface));
+  assert.ok(oracle.searchableTypes.includes(DefinitionType.ComponentInterface));
+  // Styles are listed in projects but have no search query (or view) yet.
+  assert.ok(!oracle.searchableTypes.includes(15 as DefinitionType));
   assert.ok(!oracle.searchableTypes.includes(DefinitionType.ApplicationClassPeopleCode));
 });
 

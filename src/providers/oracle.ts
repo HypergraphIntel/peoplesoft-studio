@@ -20,12 +20,27 @@ import { saveSqlDefinition as saveSqlDefinitionRows, verifySqlSave, type SqlSave
 import {
   FieldType, RecordDefinition, RecordField, RecordType, describeField
 } from '../model/record.js';
+import {
+  buildAppEngine, peopleCodeKeyParts, renderAppEngine, type AeSection, type AeStep, type AeVariant, type AppEngineProgram, type AppEngineRows,
+  type Row as AeRow
+} from '../model/appEngine.js';
+import { pcmProgKeyParts } from '../model/peopleCodeKeys.js';
 import { assembleProgram, NameTable } from '../peoplecode/progtext.js';
 import { decodeProgram, DecodeOptions } from '../peoplecode/decoder.js';
-import {
-  ComponentPageRow, ComponentRow, FieldLabelRow, FieldRow, MenuItemRow, MenuRow,
-  PageFieldRow, PageRow, renderComponent, renderField, renderMenu, renderPage
-} from './oracleRender.js';
+import { FieldLabelRow, FieldRow, renderField } from './oracleRender.js';
+import { renderComponent, renderMenu, renderPage, type Row as UiRow } from '../model/uiDefinitions.js';
+import { renderComponentInterface, renderFileLayout } from '../model/integrationDefinitions.js';
+import { renderMessage, renderPermissionList, renderRole } from '../model/adminDefinitions.js';
+import { renderQuery } from '../model/queryDefinition.js';
+import { PROCESS_TRANSLATE_FIELDS, renderProcessDefinition } from '../model/processDefinition.js';
+import { renderTree, TREE_TRANSLATE_FIELDS } from '../model/treeDefinition.js';
+import { PORTAL_TRANSLATE_FIELDS, renderPortalItem } from '../model/portalRegistry.js';
+import { NODE_TRANSLATE_FIELDS, renderNode, renderUrl } from '../model/miscDefinitions.js';
+import type { ImageContent } from '../editors/imageHtml.js';
+import { IB_TRANSLATE_FIELDS, renderMessage as renderIbMessage, renderOperation, renderService } from '../model/ibDefinitions.js';
+
+/** LASTUPDDTTM as text, for the page / component / menu views. */
+const UI_STAMP = `TO_CHAR(LASTUPDDTTM, 'YYYY-MM-DD HH24:MI:SS') AS LASTUPD`;
 import {
   operatorExists, readForEdit, readStoredProgram, savePeopleCode as writePeopleCode, verifyCommitted,
   type PeopleCodeSaveRequest, type PeopleCodeSaveResult
@@ -98,6 +113,21 @@ export class OracleProvider implements DefinitionProvider {
     DefinitionType.Menu,
     DefinitionType.ApplicationPackage,
     DefinitionType.AppEngineProgram,
+    DefinitionType.Query,
+    DefinitionType.ProcessDefinition,
+    DefinitionType.Tree,
+    DefinitionType.IbMessage,
+    DefinitionType.IbService,
+    DefinitionType.IbServiceOperation,
+    DefinitionType.Image,
+    DefinitionType.PortalRegistry,
+    DefinitionType.UrlDefinition,
+    DefinitionType.MessageNode,
+    DefinitionType.Xslt,
+    DefinitionType.FileLayout,
+    DefinitionType.ComponentInterface,
+    DefinitionType.Role,
+    DefinitionType.PermissionList,
     DefinitionType.SqlDefinition,
     DefinitionType.HtmlDefinition,
     DefinitionType.StyleSheet
@@ -278,11 +308,12 @@ export class OracleProvider implements DefinitionProvider {
           WHERE PROJECTNAME = :p
           ORDER BY OBJECTTYPE, ${orderCols}`,
         { p: project });
-      return (r.rows ?? []).map((row) => ({
-        key: makeKey(
-          row.OBJECTTYPE as DefinitionType,
-          ...parts.map((n) => String(row[`OBJECTVALUE${n}`] ?? '')))
-      }));
+      return (r.rows ?? []).map((row) => {
+        const values = parts.map((n) => String(row[`OBJECTVALUE${n}`] ?? ''));
+        // An SQL definition (SQLTYPE 0) is keyed by its SQLID alone, as search keys it.
+        if (Number(row.OBJECTTYPE) === DefinitionType.SqlDefinition && values[1]?.trim() === '0') values[1] = ' ';
+        return { key: makeKey(row.OBJECTTYPE as DefinitionType, ...values) };
+      });
     });
   }
 
@@ -312,15 +343,106 @@ export class OracleProvider implements DefinitionProvider {
              FROM PSPNLDEFN WHERE PNLNAME LIKE :n`,
           DefinitionType.Page, pattern, limit);
       case DefinitionType.Component:
-        return this.searchSimple(
-          `SELECT PNLGRPNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID
-             FROM PSPNLGRPDEFN WHERE PNLGRPNAME LIKE :n`,
-          DefinitionType.Component, pattern, limit);
+        // Keyed by name and market: 1,141 of HRDMO's components are not GBL, and a name may be in several markets.
+        return this.withConnection(async (c) => {
+          const r = await c.execute<{ N: string; M: string; DESCR: string; LASTUPDDTTM: Date; LASTUPDOPRID: string }>(
+            `SELECT PNLGRPNAME AS N, MARKET AS M, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSPNLGRPDEFN
+              WHERE PNLGRPNAME LIKE :n ORDER BY PNLGRPNAME, MARKET FETCH FIRST :lim ROWS ONLY`, { n: pattern, lim: limit });
+          return (r.rows ?? []).map((row) => ({
+            key: makeKey(DefinitionType.Component, row.N, row.M),
+            description: row.DESCR?.trim() || undefined, lastUpdated: row.LASTUPDDTTM, lastUpdatedBy: row.LASTUPDOPRID?.trim()
+          }));
+        });
       case DefinitionType.Menu:
         return this.searchSimple(
           `SELECT MENUNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID
              FROM PSMENUDEFN WHERE MENUNAME LIKE :n`,
           DefinitionType.Menu, pattern, limit);
+      case DefinitionType.Tree:
+        // Every effective-dated version: keyed SetID, set control value, name, effective date.
+        return this.withConnection(async (c) => {
+          const r = await c.execute<{ S: string; C: string; N: string; E: string; DESCR: string; LASTUPDDTTM: Date; LASTUPDOPRID: string }>(
+            `SELECT SETID AS S, SETCNTRLVALUE AS C, TREE_NAME AS N, TO_CHAR(EFFDT, 'YYYY-MM-DD') AS E, DESCR, LASTUPDDTTM, LASTUPDOPRID
+               FROM PSTREEDEFN WHERE TREE_NAME LIKE :n ORDER BY TREE_NAME, SETID, EFFDT DESC FETCH FIRST :lim ROWS ONLY`, { n: pattern, lim: limit });
+          return (r.rows ?? []).map((row) => ({
+            key: makeKey(DefinitionType.Tree, row.S ?? ' ', row.C ?? ' ', row.N, row.E),
+            description: row.DESCR?.trim() || undefined, lastUpdated: row.LASTUPDDTTM, lastUpdatedBy: row.LASTUPDOPRID?.trim()
+          }));
+        });
+      case DefinitionType.ProcessDefinition:
+        // Keyed by process type and name; the name is what is searched.
+        return this.withConnection(async (c) => {
+          const r = await c.execute<{ T: string; N: string; DESCR: string; LASTUPDDTTM: Date; LASTUPDOPRID: string }>(
+            `SELECT PRCSTYPE AS T, PRCSNAME AS N, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PS_PRCSDEFN
+              WHERE PRCSNAME LIKE :n ORDER BY PRCSNAME, PRCSTYPE FETCH FIRST :lim ROWS ONLY`, { n: pattern, lim: limit });
+          return (r.rows ?? []).map((row) => ({
+            key: makeKey(DefinitionType.ProcessDefinition, row.T, row.N),
+            description: row.DESCR?.trim() || undefined, lastUpdated: row.LASTUPDDTTM, lastUpdatedBy: row.LASTUPDOPRID?.trim()
+          }));
+        });
+      case DefinitionType.Query:
+        // Public queries (OPRID blank) only: a private query is its owner's.
+        return this.searchSimple(
+          `SELECT QRYNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSQRYDEFN WHERE OPRID = ' ' AND QRYNAME LIKE :n`,
+          DefinitionType.Query, pattern, limit);
+      case DefinitionType.PortalRegistry:
+        // Keyed portal, type, name; the name is what is searched.
+        return this.withConnection(async (c) => {
+          const r = await c.execute<{ P: string; T: string; N: string; L: string; LASTUPDDTTM: Date; LASTUPDOPRID: string }>(
+            `SELECT PORTAL_NAME AS P, PORTAL_REFTYPE AS T, PORTAL_OBJNAME AS N, PORTAL_LABEL AS L, LASTUPDDTTM, LASTUPDOPRID FROM PSPRSMDEFN
+              WHERE PORTAL_OBJNAME LIKE :n ORDER BY PORTAL_OBJNAME, PORTAL_NAME FETCH FIRST :lim ROWS ONLY`, { n: pattern, lim: limit });
+          return (r.rows ?? []).map((row) => ({
+            key: makeKey(DefinitionType.PortalRegistry, row.P, row.T, row.N),
+            description: row.L?.trim() || undefined, lastUpdated: row.LASTUPDDTTM, lastUpdatedBy: row.LASTUPDOPRID?.trim()
+          }));
+        });
+      case DefinitionType.UrlDefinition:
+        return this.searchSimple(
+          `SELECT URL_ID AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSURLDEFN WHERE URL_ID LIKE :n`,
+          DefinitionType.UrlDefinition, pattern, limit);
+      case DefinitionType.MessageNode:
+        return this.searchSimple(
+          `SELECT MSGNODENAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSMSGNODEDEFN WHERE MSGNODENAME LIKE :n`,
+          DefinitionType.MessageNode, pattern, limit);
+      case DefinitionType.Xslt:
+        return this.withConnection(async (c) => {
+          const r = await c.execute<{ N: string; LASTUPDDTTM: Date; LASTUPDOPRID: string }>(
+            `SELECT SQLID AS N, LASTUPDDTTM, LASTUPDOPRID FROM PSSQLDEFN WHERE SQLTYPE = '6' AND SQLID LIKE :n ORDER BY SQLID FETCH FIRST :lim ROWS ONLY`,
+            { n: pattern, lim: limit });
+          return (r.rows ?? []).map((row) => ({ key: makeKey(DefinitionType.Xslt, row.N, '6'), lastUpdated: row.LASTUPDDTTM, lastUpdatedBy: row.LASTUPDOPRID?.trim() }));
+        });
+      case DefinitionType.Image:
+        return this.searchSimple(
+          `SELECT CONTNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSCONTDEFN WHERE CONTTYPE = 1 AND ALTCONTNUM = 1 AND CONTNAME LIKE :n`,
+          DefinitionType.Image, pattern, limit);
+      case DefinitionType.IbMessage:
+        return this.searchSimple(
+          `SELECT MSGNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSMSGDEFN WHERE MSGNAME LIKE :n`,
+          DefinitionType.IbMessage, pattern, limit);
+      case DefinitionType.IbService:
+        return this.searchSimple(
+          `SELECT IB_SERVICENAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSSERVICE WHERE IB_SERVICENAME LIKE :n`,
+          DefinitionType.IbService, pattern, limit);
+      case DefinitionType.IbServiceOperation:
+        return this.searchSimple(
+          `SELECT IB_OPERATIONNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSOPERATION WHERE IB_OPERATIONNAME LIKE :n`,
+          DefinitionType.IbServiceOperation, pattern, limit);
+      case DefinitionType.FileLayout:
+        return this.searchSimple(
+          `SELECT FLDDEFNNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSFLDDEFN WHERE FLDDEFNNAME LIKE :n`,
+          DefinitionType.FileLayout, pattern, limit);
+      case DefinitionType.ComponentInterface:
+        return this.searchSimple(
+          `SELECT BCNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSBCDEFN WHERE BCNAME LIKE :n`,
+          DefinitionType.ComponentInterface, pattern, limit);
+      case DefinitionType.Role:
+        return this.searchSimple(
+          `SELECT ROLENAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSROLEDEFN WHERE UPPER(ROLENAME) LIKE :n`,
+          DefinitionType.Role, pattern, limit);
+      case DefinitionType.PermissionList:
+        return this.searchSimple(
+          `SELECT CLASSID AS NAME, CLASSDEFNDESC AS DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSCLASSDEFN WHERE CLASSID LIKE :n`,
+          DefinitionType.PermissionList, pattern, limit);
       case DefinitionType.AppEngineProgram:
         return this.searchSimple(
           `SELECT AE_APPLID AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID
@@ -720,6 +842,23 @@ export class OracleProvider implements DefinitionProvider {
       case DefinitionType.Menu: return this.readMenuSummary(key);
       case DefinitionType.Page: return this.readPageSummary(key);
       case DefinitionType.Component: return this.readComponentSummary(key);
+      case DefinitionType.AppEngineProgram:
+      case DefinitionType.AppEngineSection: return this.readAppEngine(key);
+      case DefinitionType.FileLayout: return this.readFileLayout(key);
+      case DefinitionType.PermissionList: return this.readPermissionList(key);
+      case DefinitionType.ProcessDefinition: return this.readProcessDefinition(key);
+      case DefinitionType.Tree: return this.readTree(key);
+      case DefinitionType.PortalRegistry: return this.readPortalItem(key);
+      case DefinitionType.Xslt: return this.readSqlDefinition(makeKey(DefinitionType.SqlDefinition, key.parts[0], key.parts[1] || '6'));
+      case DefinitionType.UrlDefinition: return this.readUrl(key);
+      case DefinitionType.MessageNode: return this.readNode(key);
+      case DefinitionType.IbMessage: return this.readIbMessage(key);
+      case DefinitionType.IbService: return this.readIbService(key);
+      case DefinitionType.IbServiceOperation: return this.readIbOperation(key);
+      case DefinitionType.Query: return this.readQuery(key);
+      case DefinitionType.Role: return this.readRole(key);
+      case DefinitionType.MessageCatalog: return this.readMessage(key);
+      case DefinitionType.ComponentInterface: return this.readComponentInterface(key);
       default:
         throw new UnsupportedOperationError(
           `reading definition type ${key.type} as text`, this.displayName);
@@ -729,7 +868,12 @@ export class OracleProvider implements DefinitionProvider {
   canReadAsText(type: DefinitionType): boolean {
     return isPeopleCode(type) || [
       DefinitionType.SqlDefinition, DefinitionType.HtmlDefinition, DefinitionType.StyleSheet, DefinitionType.Field,
-      DefinitionType.Menu, DefinitionType.Page, DefinitionType.Component
+      DefinitionType.Menu, DefinitionType.Page, DefinitionType.Component, DefinitionType.AppEngineProgram,
+      DefinitionType.AppEngineSection, DefinitionType.FileLayout, DefinitionType.ComponentInterface,
+      DefinitionType.PermissionList, DefinitionType.Role, DefinitionType.MessageCatalog, DefinitionType.Query,
+      DefinitionType.ProcessDefinition, DefinitionType.Tree, DefinitionType.PortalRegistry,
+      DefinitionType.Xslt, DefinitionType.UrlDefinition, DefinitionType.MessageNode,
+      DefinitionType.IbMessage, DefinitionType.IbService, DefinitionType.IbServiceOperation
     ].includes(type);
   }
 
@@ -812,41 +956,325 @@ export class OracleProvider implements DefinitionProvider {
     });
   }
 
+  /** Rows of one query, every CLOB column as text (DESCRLONG, PORTAL_URLTEXT ...), never a LOB handle. */
+  private async uiRows(c: Connection, sql: string, binds: Record<string, string>): Promise<UiRow[]> {
+    const oracledb = await loadOracleDb();
+    return (await c.execute<UiRow>(sql, binds, {
+      fetchTypeHandler: (meta: { dbType?: unknown }) =>
+        meta.dbType === oracledb.DB_TYPE_CLOB || meta.dbType === oracledb.DB_TYPE_NCLOB ? { type: oracledb.STRING } : undefined
+    })).rows ?? [];
+  }
+
+  /** PSXLATITEM's current long names for fields: field -> value -> name. */
+  private async translates(c: Connection, fields: readonly string[]): Promise<Map<string, Map<string, string>>> {
+    const out = new Map<string, Map<string, string>>();
+    if (fields.length === 0) return out;
+    const r = await c.execute<{ F: string; V: string; L: string }>(
+      `SELECT FIELDNAME AS F, FIELDVALUE AS V, XLATLONGNAME AS L FROM PSXLATITEM X
+        WHERE FIELDNAME IN (${fields.map((_, i) => `:f${i}`).join(', ')})
+          AND EFFDT = (SELECT MAX(EFFDT) FROM PSXLATITEM Y WHERE Y.FIELDNAME = X.FIELDNAME AND Y.FIELDVALUE = X.FIELDVALUE)`,
+      Object.fromEntries(fields.map((f, i) => [`f${i}`, f])));
+    for (const row of r.rows ?? []) {
+      const f = String(row.F).trim();
+      if (!out.has(f)) out.set(f, new Map());
+      out.get(f)!.set(String(row.V).trim(), String(row.L ?? '').trim());
+    }
+    return out;
+  }
+
+  private async readIbMessage(key: DefinitionKey): Promise<string> {
+    const name = key.parts[0];
+    return this.withConnection(async (c) => {
+      const q = (sql: string) => this.uiRows(c, sql, { n: name });
+      const [message] = await q(`SELECT M.*, ${UI_STAMP} FROM PSMSGDEFN M WHERE MSGNAME = :n`);
+      if (!message) throw new ProviderError(`No message named ${name}.`);
+      return renderIbMessage(name, {
+        message,
+        versions: await q(`SELECT * FROM PSMSGVER WHERE MSGNAME = :n`),
+        records: await q(`SELECT * FROM PSMSGREC WHERE MSGNAME = :n`),
+        operations: await q(`SELECT DISTINCT IB_OPERATIONNAME, VERSIONNAME FROM PSOPRVERDFNPARM WHERE MSGNAME = :n ORDER BY 1, 2`),
+        translates: await this.translates(c, IB_TRANSLATE_FIELDS)
+      });
+    });
+  }
+
+  private async readIbService(key: DefinitionKey): Promise<string> {
+    const name = key.parts[0];
+    return this.withConnection(async (c) => {
+      const q = (sql: string) => this.uiRows(c, sql, { n: name });
+      const [service] = await q(`SELECT S.*, ${UI_STAMP} FROM PSSERVICE S WHERE IB_SERVICENAME = :n`);
+      if (!service) throw new ProviderError(`No service named ${name}.`);
+      return renderService(name, {
+        service,
+        operations: await q(`SELECT O.IB_OPERATIONNAME, O.RTNGTYPE, O.DESCR FROM PSSERVICEOPR S
+                               LEFT JOIN PSOPERATION O ON O.IB_OPERATIONNAME = S.IB_OPERATIONNAME WHERE S.IB_SERVICENAME = :n`),
+        translates: await this.translates(c, IB_TRANSLATE_FIELDS)
+      });
+    });
+  }
+
+  private async readIbOperation(key: DefinitionKey): Promise<string> {
+    const name = key.parts[0];
+    return this.withConnection(async (c) => {
+      const q = (sql: string) => this.uiRows(c, sql, { n: name });
+      const [operation] = await q(`SELECT O.*, ${UI_STAMP} FROM PSOPERATION O WHERE IB_OPERATIONNAME = :n`);
+      if (!operation) throw new ProviderError(`No service operation named ${name}.`);
+      return renderOperation(name, {
+        operation,
+        versions: await q(`SELECT * FROM PSOPRVERDFN WHERE IB_OPERATIONNAME = :n`),
+        parameters: await q(`SELECT * FROM PSOPRVERDFNPARM WHERE IB_OPERATIONNAME = :n ORDER BY VERSIONNAME, PARAMETERNAME`),
+        handlers: await q(`SELECT * FROM PSOPRHDLR WHERE IB_OPERATIONNAME = :n`),
+        routings: await q(`SELECT ROUTINGDEFNNAME, SENDERNODENAME, RECEIVERNODENAME, EFF_STATUS FROM PSIBRTNGDEFN R WHERE IB_OPERATIONNAME = :n
+                            AND EFFDT = (SELECT MAX(EFFDT) FROM PSIBRTNGDEFN Y WHERE Y.ROUTINGDEFNNAME = R.ROUTINGDEFNNAME)`),
+        translates: await this.translates(c, IB_TRANSLATE_FIELDS)
+      });
+    });
+  }
+
+  /** An image (PSCONTDEFN CONTTYPE 1) and every alternate's bytes (PSCONTENT, in SEQNUM order). */
+  async readImage(key: DefinitionKey): Promise<ImageContent | undefined> {
+    const name = key.parts[0];
+    return this.withConnection(async (c) => {
+      const defs = (await c.execute<{ ALTCONTNUM: number; CONTFMT: string; DESCR: string }>(
+        `SELECT ALTCONTNUM, CONTFMT, DESCR FROM PSCONTDEFN WHERE CONTNAME = :n AND CONTTYPE = 1 ORDER BY ALTCONTNUM`, { n: name })).rows ?? [];
+      if (defs.length === 0) return undefined;
+      const chunks = (await c.execute<{ ALTCONTNUM: number; CONTDATA: Buffer }>(
+        `SELECT ALTCONTNUM, CONTDATA FROM PSCONTENT WHERE CONTNAME = :n AND CONTTYPE = 1 ORDER BY ALTCONTNUM, SEQNUM`, { n: name })).rows ?? [];
+      return {
+        name, format: String(defs[0].CONTFMT ?? '').trim(), description: String(defs[0].DESCR ?? '').trim(),
+        alternates: defs.map((d) => ({
+          altContNum: Number(d.ALTCONTNUM), format: String(d.CONTFMT ?? '').trim(),
+          bytes: Buffer.concat(chunks.filter((x) => Number(x.ALTCONTNUM) === Number(d.ALTCONTNUM)).map((x) => Buffer.from(x.CONTDATA ?? [])))
+        }))
+      };
+    });
+  }
+
+  private async readUrl(key: DefinitionKey): Promise<string> {
+    const name = key.parts[0];
+    return this.withConnection(async (c) => {
+      const [url] = await this.uiRows(c, `SELECT U.*, ${UI_STAMP} FROM PSURLDEFN U WHERE URL_ID = :n`, { n: name });
+      if (!url) throw new ProviderError(`No URL definition named ${name}.`);
+      return renderUrl(name, url);
+    });
+  }
+
+  /** An Integration Broker node. Its password columns are not read; secret connector properties are not shown. */
+  private async readNode(key: DefinitionKey): Promise<string> {
+    const name = key.parts[0];
+    return this.withConnection(async (c) => {
+      const [node] = await this.uiRows(c, `SELECT MSGNODENAME, VERSION, DESCR, ACTIVE_NODE, LOCALNODE, LOCALDEFAULTFLG, NODE_TYPE, ROUTINGTYPE,
+            AUTHOPTN, USERID, PORTAL_NAME, IB_TGTLOCATION, CONNGATEWAYID, CONNID, CONTACTMNGR, CONTACTEMAIL, CONTACTPHONENBR, CONTACTURL,
+            TOOLSREL, LASTUPDOPRID, ${UI_STAMP} FROM PSMSGNODEDEFN WHERE MSGNODENAME = :n`, { n: name });
+      if (!node) throw new ProviderError(`No node named ${name}.`);
+      return renderNode(name, {
+        node,
+        connectorProperties: await this.uiRows(c, `SELECT PROPID, PROPNAME, SEQNUM, PROPVALUE FROM PSNODECONPROP WHERE MSGNODENAME = :n`, { n: name }),
+        translates: await this.translates(c, NODE_TRANSLATE_FIELDS)
+      });
+    });
+  }
+
+  /** A portal registry folder or content reference, keyed portal, type (C / F), name. */
+  private async readPortalItem(key: DefinitionKey): Promise<string> {
+    const [portal, type, name] = key.parts;
+    return this.withConnection(async (c) => {
+      // A link's target label comes with it (LINK_LABEL): links have none of their own.
+      const one = async (t: string, n: string) => (await this.uiRows(c,
+        `SELECT P.*, ${UI_STAMP}, (SELECT MAX(L.PORTAL_LABEL) FROM PSPRSMDEFN L WHERE L.PORTAL_OBJNAME = P.PORTAL_LINKOBJNAME
+                                     AND L.PORTAL_NAME = NVL(TRIM(P.PORTAL_LINK_PORTAL), P.PORTAL_NAME)) AS LINK_LABEL
+           FROM PSPRSMDEFN P WHERE PORTAL_NAME = :p AND PORTAL_REFTYPE = :t AND PORTAL_OBJNAME = :n`, { p: portal, t, n }))[0];
+      const item = await one(type ?? 'C', name ?? '');
+      if (!item) throw new ProviderError(`No portal registry entry ${name} in ${portal}.`);
+      // The folders above it, nearest first, as far as the root (at most 30 levels).
+      const path: typeof item[] = [];
+      let parent = String(item.PORTAL_PRNTOBJNAME ?? '').trim();
+      while (parent && path.length < 30) {
+        const folder = await one('F', parent);
+        if (!folder) break;
+        path.push(folder);
+        parent = String(folder.PORTAL_PRNTOBJNAME ?? '').trim();
+      }
+      const binds = { p: portal, t: type ?? 'C', n: name ?? '' };
+      const where = `WHERE PORTAL_NAME = :p AND PORTAL_REFTYPE = :t AND PORTAL_OBJNAME = :n`;
+      return renderPortalItem({
+        item, path,
+        children: type === 'F' ? await this.uiRows(c, `SELECT P.PORTAL_REFTYPE, P.PORTAL_OBJNAME, P.PORTAL_LABEL,
+                                                          (SELECT MAX(L.PORTAL_LABEL) FROM PSPRSMDEFN L WHERE L.PORTAL_OBJNAME = P.PORTAL_LINKOBJNAME
+                                                             AND L.PORTAL_NAME = NVL(TRIM(P.PORTAL_LINK_PORTAL), P.PORTAL_NAME)) AS LINK_LABEL
+                                                        FROM PSPRSMDEFN P WHERE PORTAL_NAME = :p AND PORTAL_PRNTOBJNAME = :n ORDER BY PORTAL_SEQ_NUM, PORTAL_LABEL`,
+          { p: portal, n: name ?? '' }) : [],
+        permissions: await this.uiRows(c, `SELECT PORTAL_PERMTYPE, PORTAL_PERMNAME FROM PSPRSMPERM ${where} ORDER BY PORTAL_PERMTYPE, PORTAL_PERMNAME`, binds),
+        attributes: await this.uiRows(c, `SELECT PORTAL_ATTR_NAM, PORTAL_ATTR_VAL FROM PSPRSMATTRVAL ${where} ORDER BY PORTAL_ATTR_NAM, PORTAL_SEQ_NUM`, binds),
+        translates: await this.translates(c, PORTAL_TRANSLATE_FIELDS)
+      });
+    });
+  }
+
+  /** A tree, keyed by SetID, set control value, name and effective date (YYYY-MM-DD). */
+  private async readTree(key: DefinitionKey): Promise<string> {
+    const [setid, setcntrl, name, effdt] = key.parts;
+    return this.withConnection(async (c) => {
+      const binds = { s: setid?.trim() || ' ', c: setcntrl?.trim() || ' ', n: name ?? '', e: effdt ?? '' };
+      const where = `WHERE SETID = :s AND SETCNTRLVALUE = :c AND TREE_NAME = :n AND EFFDT = TO_DATE(:e, 'YYYY-MM-DD')`;
+      const [tree] = await this.uiRows(c, `SELECT T.*, TO_CHAR(EFFDT, 'YYYY-MM-DD') AS EFFDT_TEXT, ${UI_STAMP} FROM PSTREEDEFN T ${where}`, binds);
+      if (!tree) throw new ProviderError(`No tree ${name} effective ${effdt}${setid?.trim() ? ` in SetID ${setid}` : ''}.`);
+      const [structure] = await this.uiRows(c, `SELECT * FROM PSTREESTRCT WHERE TREE_STRCT_ID = :i`, { i: String(tree.TREE_STRCT_ID ?? ' ') });
+      return renderTree({
+        tree, structure,
+        levels: await this.uiRows(c, `SELECT TREE_LEVEL, TREE_LEVEL_NUM FROM PSTREELEVEL ${where}`, binds),
+        nodes: await this.uiRows(c, `SELECT TREE_NODE_NUM, TREE_NODE, TREE_LEVEL_NUM, PARENT_NODE_NUM FROM PSTREENODE ${where}`, binds),
+        leaves: await this.uiRows(c, `SELECT TREE_NODE_NUM, RANGE_FROM, RANGE_TO, DYNAMIC_RANGE FROM PSTREELEAF ${where}`, binds),
+        translates: await this.translates(c, TREE_TRANSLATE_FIELDS)
+      });
+    });
+  }
+
+  /** A process definition, keyed by process type and name. */
+  private async readProcessDefinition(key: DefinitionKey): Promise<string> {
+    const [type, name] = key.parts;
+    return this.withConnection(async (c) => {
+      const binds = { t: type ?? '', n: name ?? '' };
+      const [process] = await this.uiRows(c, `SELECT P.*, ${UI_STAMP} FROM PS_PRCSDEFN P WHERE PRCSTYPE = :t AND PRCSNAME = :n`, binds);
+      if (!process) throw new ProviderError(`No process definition ${type} / ${name}.`);
+      return renderProcessDefinition({
+        process,
+        components: await this.uiRows(c, `SELECT PNLGRPNAME FROM PS_PRCSDEFNPNL WHERE PRCSTYPE = :t AND PRCSNAME = :n`, binds),
+        groups: await this.uiRows(c, `SELECT PRCSGRP FROM PS_PRCSDEFNGRP WHERE PRCSTYPE = :t AND PRCSNAME = :n`, binds),
+        translates: await this.translates(c, PROCESS_TRANSLATE_FIELDS)
+      });
+    });
+  }
+
+  /** A query, keyed by name and owner (blank or absent: public). */
+  private async readQuery(key: DefinitionKey): Promise<string> {
+    const [name, owner] = key.parts;
+    return this.withConnection(async (c) => {
+      const binds = { n: name, o: owner?.trim() || ' ' };
+      const q = async (sql: string) => {
+        const STRING = (await loadOracleDb()).STRING;
+        return (await c.execute<UiRow>(sql, binds, { fetchInfo: { EXPRESSIONTEXT: { type: STRING }, DESCRLONG: { type: STRING } } })).rows ?? [];
+      };
+      const [query] = await q(`SELECT D.*, ${UI_STAMP} FROM PSQRYDEFN D WHERE QRYNAME = :n AND OPRID = :o`);
+      if (!query) throw new ProviderError(`No ${binds.o.trim() ? `private query ${name} of ${binds.o}` : `public query ${name}`}.`);
+      const where = `WHERE QRYNAME = :n AND OPRID = :o`;
+      return renderQuery(name, {
+        query,
+        selects: await q(`SELECT * FROM PSQRYSELECT ${where}`),
+        records: await q(`SELECT * FROM PSQRYRECORD ${where}`),
+        fields: await q(`SELECT * FROM PSQRYFIELD ${where}`),
+        criteria: await q(`SELECT * FROM PSQRYCRITERIA ${where}`),
+        expressions: await q(`SELECT * FROM PSQRYEXPR ${where}`),
+        binds: await q(`SELECT * FROM PSQRYBIND ${where}`)
+      });
+    });
+  }
+
+  private async readPermissionList(key: DefinitionKey): Promise<string> {
+    const name = key.parts[0];
+    return this.withConnection(async (c) => {
+      const [list] = await this.uiRows(c, `SELECT P.*, ${UI_STAMP} FROM PSCLASSDEFN P WHERE CLASSID = :n`, { n: name });
+      if (!list) throw new ProviderError(`No permission list named ${name}.`);
+      const q = (sql: string) => this.uiRows(c, sql, { n: name });
+      const items = await q(`SELECT * FROM PSAUTHITEM WHERE CLASSID = :n ORDER BY MENUNAME, BARNAME, BARITEMNAME, PNLITEMNAME`);
+      const realMenus = new Set((await q(`SELECT DISTINCT M.MENUNAME FROM PSAUTHITEM A JOIN PSMENUDEFN M ON M.MENUNAME = A.MENUNAME
+                                          WHERE A.CLASSID = :n`)).map((r) => String(r.MENUNAME).trim()));
+      return renderPermissionList(name, {
+        list, items, realMenus,
+        roles: await q(`SELECT ROLENAME FROM PSROLECLASS WHERE CLASSID = :n ORDER BY ROLENAME`),
+        signon: await q(`SELECT * FROM PSAUTHSIGNON WHERE CLASSID = :n`),
+        componentInterfaces: await q(`SELECT BCNAME, BCMETHOD FROM PSAUTHBUSCOMP WHERE CLASSID = :n ORDER BY BCNAME, BCMETHOD`),
+        webServices: await q(`SELECT IB_OPERATIONNAME FROM PSAUTHWS WHERE CLASSID = :n`),
+        processGroups: await q(`SELECT PRCSGRP FROM PSAUTHPRCS WHERE CLASSID = :n`),
+        queryAccess: await q(`SELECT TREE_NAME, ACCESS_GROUP, ACCESSIBLE FROM PS_SCRTY_ACC_GRP WHERE CLASSID = :n ORDER BY TREE_NAME, ACCESS_GROUP`)
+      });
+    });
+  }
+
+  private async readRole(key: DefinitionKey): Promise<string> {
+    const name = key.parts[0];
+    return this.withConnection(async (c) => {
+      const q = (sql: string) => this.uiRows(c, sql, { n: name });
+      const [role] = await q(`SELECT R.*, ${UI_STAMP} FROM PSROLEDEFN R WHERE ROLENAME = :n`);
+      if (!role) throw new ProviderError(`No role named ${name}.`);
+      const [{ N: users }] = await q(`SELECT COUNT(*) AS N FROM PSROLEUSER WHERE ROLENAME = :n`);
+      return renderRole(name, {
+        role, userCount: Number(users),
+        permissionLists: await q(`SELECT R.CLASSID, C.CLASSDEFNDESC FROM PSROLECLASS R LEFT JOIN PSCLASSDEFN C ON C.CLASSID = R.CLASSID
+                                    WHERE R.ROLENAME = :n ORDER BY R.CLASSID`),
+        canGrant: await q(`SELECT GRANTROLENAME FROM PSROLECANGRANT WHERE ROLENAME = :n ORDER BY GRANTROLENAME`)
+      });
+    });
+  }
+
+  /** A Message Catalog entry, keyed set and number (a project item adds the set's description). */
+  private async readMessage(key: DefinitionKey): Promise<string> {
+    const [set, nbr] = key.parts;
+    return this.withConnection(async (c) => {
+      const binds = { s: set ?? '', m: nbr ?? '' };
+      const [message] = await this.uiRows(c, `SELECT M.*, TO_CHAR(LAST_UPDATE_DTTM, 'YYYY-MM-DD HH24:MI:SS') AS LASTUPD FROM PSMSGCATDEFN M
+                                              WHERE MESSAGE_SET_NBR = :s AND MESSAGE_NBR = :m`, binds);
+      if (!message) throw new ProviderError(`No message ${set}, ${nbr}.`);
+      const [setRow] = await this.uiRows(c, `SELECT * FROM PSMSGSETDEFN WHERE MESSAGE_SET_NBR = :s`, { s: binds.s });
+      return renderMessage({ set: setRow, message });
+    });
+  }
+
+  private async readFileLayout(key: DefinitionKey): Promise<string> {
+    const name = key.parts[0];
+    return this.withConnection(async (c) => {
+      const [layout] = await this.uiRows(c, `SELECT L.*, ${UI_STAMP} FROM PSFLDDEFN L WHERE FLDDEFNNAME = :n`, { n: name });
+      if (!layout) throw new ProviderError(`No file layout named ${name}.`);
+      const segments = await this.uiRows(c, `SELECT * FROM PSFLDSEGDEFN WHERE FLDDEFNNAME = :n ORDER BY FLDSEQNO`, { n: name });
+      const fields = await this.uiRows(c, `SELECT * FROM PSFLDFIELDDEFN WHERE FLDDEFNNAME = :n ORDER BY FLDSEGNAME, FLDSEQNO`, { n: name });
+      return renderFileLayout(name, { layout, segments, fields });
+    });
+  }
+
+  private async readComponentInterface(key: DefinitionKey): Promise<string> {
+    const name = key.parts[0];
+    return this.withConnection(async (c) => {
+      const [ci] = await this.uiRows(c, `SELECT B.*, ${UI_STAMP} FROM PSBCDEFN B WHERE BCNAME = :n`, { n: name });
+      if (!ci) throw new ProviderError(`No component interface named ${name}.`);
+      const items = await this.uiRows(c, `SELECT * FROM PSBCITEM WHERE BCNAME = :n ORDER BY SEQUENCE_NBR_6`, { n: name });
+      return renderComponentInterface(name, { ci, items });
+    });
+  }
+
   private async readMenuSummary(key: DefinitionKey): Promise<string> {
     const name = key.parts[0];
     return this.withConnection(async (c) => {
-      const defn = await c.execute<MenuRow>(
-        `SELECT VERSION, DESCR FROM PSMENUDEFN WHERE MENUNAME = :n`, { n: name });
-      const items = await c.execute<MenuItemRow>(
-        `SELECT BARNAME, ITEMNAME, ITEMLABEL, PNLGRPNAME, MARKET FROM PSMENUITEM
-          WHERE MENUNAME = :n ORDER BY BARNAME, ITEMNUM`, { n: name });
-      return renderMenu(name, defn.rows?.[0], items.rows ?? []);
+      const [menu] = await this.uiRows(c, `SELECT M.*, ${UI_STAMP} FROM PSMENUDEFN M WHERE MENUNAME = :n`, { n: name });
+      if (!menu) throw new ProviderError(`No menu named ${name}.`);
+      const items = await this.uiRows(c, `SELECT * FROM PSMENUITEM WHERE MENUNAME = :n ORDER BY BARNAME, ITEMNUM`, { n: name });
+      return renderMenu(name, { menu, items });
     });
   }
 
   private async readPageSummary(key: DefinitionKey): Promise<string> {
     const name = key.parts[0];
     return this.withConnection(async (c) => {
-      const defn = await c.execute<PageRow>(
-        `SELECT PNLTYPE, VERSION, FIELDCOUNT, GRIDHORZ, GRIDVERT, DESCR
-           FROM PSPNLDEFN WHERE PNLNAME = :n`, { n: name });
-      const fields = await c.execute<PageFieldRow>(
-        `SELECT PNLFLDID, RECNAME, FIELDNAME, PNLFIELDNAME FROM PSPNLFIELD
-          WHERE PNLNAME = :n ORDER BY FIELDNUM`, { n: name });
-      return renderPage(name, defn.rows?.[0], fields.rows ?? []);
+      const [page] = await this.uiRows(c, `SELECT P.*, ${UI_STAMP} FROM PSPNLDEFN P WHERE PNLNAME = :n`, { n: name });
+      if (!page) throw new ProviderError(`No page named ${name}.`);
+      const fields = await this.uiRows(c, `SELECT * FROM PSPNLFIELD WHERE PNLNAME = :n ORDER BY FIELDNUM`, { n: name });
+      const components = await this.uiRows(c,
+        `SELECT PNLGRPNAME, MARKET, ITEMLABEL FROM PSPNLGROUP WHERE PNLNAME = :n ORDER BY PNLGRPNAME, MARKET`, { n: name });
+      return renderPage(name, { page, fields, components });
     });
   }
 
   private async readComponentSummary(key: DefinitionKey): Promise<string> {
     const [name, market = 'GBL'] = key.parts;
     return this.withConnection(async (c) => {
-      const defn = await c.execute<ComponentRow>(
-        `SELECT DESCR, SEARCHRECNAME, ADDSRCHRECNAME, VERSION FROM PSPNLGRPDEFN
-          WHERE PNLGRPNAME = :n AND MARKET = :m`, { n: name, m: market });
-      const pages = await c.execute<ComponentPageRow>(
-        `SELECT PNLNAME, ITEMLABEL, HIDDEN FROM PSPNLGROUP
-          WHERE PNLGRPNAME = :n AND MARKET = :m ORDER BY SUBITEMNUM`, { n: name, m: market });
-      return renderComponent(name, market, defn.rows?.[0], pages.rows ?? []);
+      const [component] = await this.uiRows(c,
+        `SELECT G.*, ${UI_STAMP} FROM PSPNLGRPDEFN G WHERE PNLGRPNAME = :n AND MARKET = :m`, { n: name, m: market });
+      if (!component) throw new ProviderError(`No component named ${name}.${market}.`);
+      const pages = await this.uiRows(c,
+        `SELECT * FROM PSPNLGROUP WHERE PNLGRPNAME = :n AND MARKET = :m ORDER BY SUBITEMNUM`, { n: name, m: market });
+      const menus = await this.uiRows(c,
+        `SELECT MENUNAME, BARNAME, ITEMNAME, ITEMLABEL FROM PSMENUITEM WHERE PNLGRPNAME = :n AND MARKET = :m ORDER BY MENUNAME, BARNAME, ITEMNAME`,
+        { n: name, m: market });
+      return renderComponent(name, market, { component, pages, menus });
     });
   }
 
@@ -890,15 +1318,90 @@ export class OracleProvider implements DefinitionProvider {
     });
   }
 
+  /** An App Engine program's rows (model/appEngine.ts), or undefined when there is none. */
+  async readAppEngineRows(name: string): Promise<AppEngineRows | undefined> {
+    return this.withConnection(async (c) => {
+      const STRING = (await loadOracleDb()).STRING;
+      // SQLTEXT and DESCRLONG are CLOBs: fetched as text, not LOB handles.
+      const all = async (sql: string) => (await c.execute<AeRow>(sql, { a: name },
+        { fetchInfo: { SQLTEXT: { type: STRING }, DESCRLONG: { type: STRING } } })).rows ?? [];
+      const effdt = `TO_CHAR(EFFDT, 'YYYY-MM-DD') AS EFFDT`;
+      const [program] = await all(`SELECT * FROM PSAEAPPLDEFN WHERE AE_APPLID = :a`);
+      if (!program) return undefined;
+      return {
+        program,
+        states: await all(`SELECT * FROM PSAEAPPLSTATE WHERE AE_APPLID = :a`),
+        tempTables: await all(`SELECT * FROM PSAEAPPLTEMPTBL WHERE AE_APPLID = :a`),
+        sections: await all(`SELECT * FROM PSAESECTDEFN WHERE AE_APPLID = :a`),
+        variants: await all(`SELECT AE_SECTION, MARKET, DBTYPE, ${effdt}, EFF_STATUS, DESCR, AE_AUTO_COMMIT FROM PSAESECTDTLDEFN WHERE AE_APPLID = :a`),
+        steps: await all(`SELECT AE_SECTION, MARKET, DBTYPE, ${effdt}, AE_STEP, AE_SEQ_NUM, AE_ACTIVE_STATUS, AE_ABEND_ACTION, AE_COMMIT_AFTER,
+                                 AE_DO_SECTION, AE_DO_APPL_ID, AE_DYNAMIC_DO, AE_PC_ON_FALSE, AE_ON_NOROWS, DESCR, MESSAGE_SET_NBR, MESSAGE_NBR,
+                                 AE_COMMIT_FREQ FROM PSAESTEPDEFN WHERE AE_APPLID = :a`),
+        actions: await all(`SELECT AE_SECTION, MARKET, DBTYPE, ${effdt}, AE_STEP, AE_STMT_TYPE, AE_REUSE_STMT, AE_DO_SELECT_TYPE, SQLID, DESCR
+                              FROM PSAESTMTDEFN WHERE AE_APPLID = :a`),
+        messages: await all(`SELECT AE_SECTION, MARKET, DBTYPE, ${effdt}, AE_STEP, AE_MESSAGE_PARMS FROM PSAESTEPMSGDEFN WHERE AE_APPLID = :a`),
+        sqlText: await all(`SELECT SQLID, MARKET, DBTYPE, ${effdt}, SEQNUM, SQLTEXT FROM PSSQLTEXTDEFN
+                             WHERE SQLTYPE IN ('1', '6') AND SUBSTR(SQLID, 1, 12) = RPAD(:a, 12)`),
+        // The Message Catalog text of the program's Log Message actions.
+        messageCatalog: await all(`SELECT M.MESSAGE_SET_NBR, M.MESSAGE_NBR, M.MESSAGE_TEXT FROM PSMSGCATDEFN M
+                                    WHERE (M.MESSAGE_SET_NBR, M.MESSAGE_NBR) IN (SELECT S.MESSAGE_SET_NBR, S.MESSAGE_NBR FROM PSAESTEPDEFN S
+                                      WHERE S.AE_APPLID = :a AND EXISTS (SELECT 1 FROM PSAESTMTDEFN T WHERE T.AE_APPLID = S.AE_APPLID
+                                        AND T.AE_SECTION = S.AE_SECTION AND T.MARKET = S.MARKET AND T.DBTYPE = S.DBTYPE AND T.EFFDT = S.EFFDT
+                                        AND T.AE_STEP = S.AE_STEP AND T.AE_STMT_TYPE = 'M'))`)
+      };
+    });
+  }
+
+  /** An App Engine program as text, with each PeopleCode action's source decoded (renderAppEngine). */
+  /**
+   * An App Engine program built from its rows (a section key: that section
+   * alone), with each PeopleCode action's source decoded, for the text view
+   * and the Definition / Program Flow panel.
+   */
+  async readAppEngineView(key: DefinitionKey): Promise<{
+    program: AppEngineProgram; peopleCode: (s: AeSection, v: AeVariant, st: AeStep) => string | undefined;
+  }> {
+    const rows = await this.readAppEngineRows(key.parts[0]);
+    if (!rows) throw new ProviderError(`No App Engine program named ${key.parts[0]}.`);
+    let program = buildAppEngine(rows);
+    if (key.type === DefinitionType.AppEngineSection) {
+      const section = program.sections.find((s) => s.name === key.parts[1]);
+      if (!section) throw new ProviderError(`${program.name} has no section ${key.parts[1]}.`);
+      program = { ...program, sections: [section] };
+    }
+    const sources = new Map<string, string | undefined>();
+    for (const section of program.sections) {
+      for (const variant of section.variants) {
+        for (const step of variant.steps.filter((s) => s.actions.some((a) => a.type === 'P'))) {
+          const parts = peopleCodeKeyParts(program.name, section.name, variant, step.name);
+          if (parts) sources.set(parts.join('|'), await this.readPeopleCode(makeKey(DefinitionType.AppEnginePeopleCode, ...parts)).catch(() => undefined));
+        }
+      }
+    }
+    return {
+      program,
+      peopleCode: (section, variant, step) => sources.get(peopleCodeKeyParts(program.name, section.name, variant, step.name)?.join('|') ?? '')
+    };
+  }
+
+  private async readAppEngine(key: DefinitionKey): Promise<string> {
+    const { program, peopleCode } = await this.readAppEngineView(key);
+    return renderAppEngine(program, peopleCode);
+  }
+
   private async readSqlDefinition(key: DefinitionKey): Promise<string> {
     return this.withConnection(async (c) => {
-      const r = await c.execute<{ SQLTEXT: string }>(
-        `SELECT SQLTEXT FROM PSSQLTEXTDEFN
-          WHERE SQLID = :id AND SQLTYPE = 0 ORDER BY SEQNUM`,
-        { id: key.parts[0] });
+      // SQLTEXT is a CLOB: fetched as text, or node-oracledb hands back a LOB object.
+      // One text: GBL, the default platform, the latest effective date where there is
+      // such a row, else the first variant -- its 14,000-character rows in SEQNUM order.
+      const r = await c.execute<{ V: string; SQLTEXT: string }>(
+        `SELECT MARKET || '|' || DBTYPE || '|' || TO_CHAR(EFFDT, 'YYYY-MM-DD') AS V, SQLTEXT FROM PSSQLTEXTDEFN
+          WHERE SQLID = :id AND SQLTYPE = :t
+          ORDER BY CASE WHEN MARKET = 'GBL' AND DBTYPE = ' ' THEN 0 ELSE 1 END, MARKET, DBTYPE, EFFDT DESC, SEQNUM`,
+        { id: key.parts[0], t: key.parts[1] ?? '0' }, { fetchInfo: { SQLTEXT: { type: (await loadOracleDb()).STRING } } });
       const rows = r.rows ?? [];
       if (rows.length === 0) throw new ProviderError(`No SQL definition named ${key.parts[0]}.`);
-      return rows.map((x) => x.SQLTEXT).join('');
+      return rows.filter((x) => x.V === rows[0].V).map((x) => x.SQLTEXT).join('');
     });
   }
 
@@ -1042,7 +1545,8 @@ export class OracleProvider implements DefinitionProvider {
       };
       if (layout.recordType === RecordType.View || layout.recordType === RecordType.DynamicView) {
         const sql = await c.execute<{ SQLTEXT: string }>(
-          `SELECT SQLTEXT FROM PSSQLTEXTDEFN WHERE SQLID = :r AND SQLTYPE = 2 ORDER BY SEQNUM`, { r: recname });
+          `SELECT SQLTEXT FROM PSSQLTEXTDEFN WHERE SQLID = :r AND SQLTYPE = 2 ORDER BY SEQNUM`, { r: recname },
+          { fetchInfo: { SQLTEXT: { type: (await loadOracleDb()).STRING } } });
         layout.viewSql = (sql.rows ?? []).map((x) => x.SQLTEXT).join('');
       }
       // Every label of the record's fields, for the Record Field Label ID choice.
@@ -1182,7 +1686,8 @@ export class OracleProvider implements DefinitionProvider {
       if (record.recordType === RecordType.View || record.recordType === RecordType.DynamicView) {
         const sql = await c.execute<{ SQLTEXT: string }>(
           `SELECT SQLTEXT FROM PSSQLTEXTDEFN
-            WHERE SQLID = :r AND SQLTYPE = 2 ORDER BY SEQNUM`, { r: recname });
+            WHERE SQLID = :r AND SQLTYPE = 2 ORDER BY SEQNUM`, { r: recname },
+          { fetchInfo: { SQLTEXT: { type: (await loadOracleDb()).STRING } } });
         record.viewSql = (sql.rows ?? []).map((x) => x.SQLTEXT).join('');
       }
 
@@ -1292,23 +1797,6 @@ function keyBinds(parts: readonly string[]): Record<string, string> {
   const binds: Record<string, string> = {};
   for (let i = 0; i < 7; i++) binds[`v${i + 1}`] = parts[i] ?? ' ';
   return binds;
-}
-
-/**
- * A definition key's parts, as PSPCMPROG actually stores them.
- *
- * PSPROJECTITEM identifies an application class by its package path and class
- * name alone -- there is only ever one PeopleCode program per class, so
- * nothing distinguishes it from another item. PSPCMPROG still keys that one
- * program with a trailing 'OnExecute', the same event-name slot record and
- * component PeopleCode use for a real event; confirmed by looking up
- * OU_JET_PACK.Layout.ComponentRegistry directly.
- */
-function pcmProgKeyParts(key: DefinitionKey): readonly string[] {
-  if (key.type === DefinitionType.ApplicationClassPeopleCode && key.parts.at(-1) !== 'OnExecute') {
-    return [...key.parts, 'OnExecute'];
-  }
-  return key.parts;
 }
 
 /** WHERE clause matching all seven OBJECTVALUE columns, unused slots blank. */

@@ -1,0 +1,318 @@
+{
+ "program": {
+  "AE_APPLID": "TL_CAL_GEN",
+  "INROOTELEMENT": " ",
+  "INMSGNAME": " ",
+  "INMSGVERSION": " ",
+  "OUTROOTELEMENT": " ",
+  "OUTMSGNAME": " ",
+  "OUTMSGVERSION": " ",
+  "DESCR": "Build Time Period Calendar",
+  "AE_DATE_OVERRIDE": "N",
+  "ASOF_DT": "1900-01-01T06:00:00.000Z",
+  "MESSAGE_SET_NBR": 0,
+  "AE_APPLLIBRARY": "N",
+  "AE_DISABLE_RESTART": "N",
+  "VERSION": 1,
+  "LASTUPDOPRID": "PPLSOFT",
+  "LASTUPDDTTM": "2010-08-11T15:53:09.021Z",
+  "OBJECTOWNERID": "HTLC",
+  "AEPROGTYPE": "0",
+  "TEMPTBLINSTANCES": 0,
+  "RECUSE": 0,
+  "LICENSE_CODE": "Ya/A5rl/kpo8RqiRfcBfmTxGqJF9wF+ZiI467AF4uMI=",
+  "DESCRLONG": "Build Time Period Calendar"
+ },
+ "states": [
+  {
+   "AE_APPLID": "TL_CAL_GEN",
+   "AE_STATE_RECNAME": "TL_TA_MAIN_AET",
+   "AE_DEFAULT_STATE": "N"
+  },
+  {
+   "AE_APPLID": "TL_CAL_GEN",
+   "AE_STATE_RECNAME": "TL_TIME_AET",
+   "AE_DEFAULT_STATE": "Y"
+  }
+ ],
+ "tempTables": [],
+ "sections": [
+  {
+   "AE_APPLID": "TL_CAL_GEN",
+   "AE_SECTION": "LOOP",
+   "VERSION": 1,
+   "LASTUPDOPRID": "PPLSOFT",
+   "LASTUPDDTTM": "2010-08-11T15:53:10.021Z",
+   "AE_SECTION_TYPE": "P",
+   "AE_PUBLIC_SW": "Y"
+  },
+  {
+   "AE_APPLID": "TL_CAL_GEN",
+   "AE_SECTION": "MAIN",
+   "VERSION": 1,
+   "LASTUPDOPRID": "PPLSOFT",
+   "LASTUPDDTTM": "2010-08-11T15:53:10.022Z",
+   "AE_SECTION_TYPE": "P",
+   "AE_PUBLIC_SW": "Y"
+  }
+ ],
+ "variants": [
+  {
+   "AE_SECTION": "LOOP",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "EFF_STATUS": "A",
+   "DESCR": "Process one TL period",
+   "AE_AUTO_COMMIT": "Y"
+  },
+  {
+   "AE_SECTION": "MAIN",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "EFF_STATUS": "A",
+   "DESCR": "Generate Calendars",
+   "AE_AUTO_COMMIT": "N"
+  }
+ ],
+ "steps": [
+  {
+   "AE_SECTION": "LOOP",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "AE_STEP": "Step010",
+   "AE_SEQ_NUM": 1,
+   "AE_ACTIVE_STATUS": "A",
+   "AE_ABEND_ACTION": "A",
+   "AE_COMMIT_AFTER": "D",
+   "AE_DO_SECTION": " ",
+   "AE_DO_APPL_ID": " ",
+   "AE_DYNAMIC_DO": "N",
+   "AE_PC_ON_FALSE": "S",
+   "AE_ON_NOROWS": "C",
+   "DESCR": "Step01 description",
+   "MESSAGE_SET_NBR": 13500,
+   "MESSAGE_NBR": 219,
+   "AE_COMMIT_FREQ": 0
+  },
+  {
+   "AE_SECTION": "LOOP",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "AE_STEP": "Step020",
+   "AE_SEQ_NUM": 2,
+   "AE_ACTIVE_STATUS": "A",
+   "AE_ABEND_ACTION": "A",
+   "AE_COMMIT_AFTER": "D",
+   "AE_DO_SECTION": " ",
+   "AE_DO_APPL_ID": " ",
+   "AE_DYNAMIC_DO": "N",
+   "AE_PC_ON_FALSE": " ",
+   "AE_ON_NOROWS": "C",
+   "DESCR": "If need, process offset",
+   "MESSAGE_SET_NBR": 0,
+   "MESSAGE_NBR": 0,
+   "AE_COMMIT_FREQ": 0
+  },
+  {
+   "AE_SECTION": "LOOP",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "AE_STEP": "Step030",
+   "AE_SEQ_NUM": 3,
+   "AE_ACTIVE_STATUS": "A",
+   "AE_ABEND_ACTION": "A",
+   "AE_COMMIT_AFTER": "D",
+   "AE_DO_SECTION": " ",
+   "AE_DO_APPL_ID": " ",
+   "AE_DYNAMIC_DO": "N",
+   "AE_PC_ON_FALSE": " ",
+   "AE_ON_NOROWS": "C",
+   "DESCR": "Check overlay and delete old",
+   "MESSAGE_SET_NBR": 0,
+   "MESSAGE_NBR": 0,
+   "AE_COMMIT_FREQ": 0
+  },
+  {
+   "AE_SECTION": "MAIN",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "AE_STEP": "Step01",
+   "AE_SEQ_NUM": 1,
+   "AE_ACTIVE_STATUS": "A",
+   "AE_ABEND_ACTION": "A",
+   "AE_COMMIT_AFTER": "D",
+   "AE_DO_SECTION": "LOOP",
+   "AE_DO_APPL_ID": "TL_CAL_GEN",
+   "AE_DYNAMIC_DO": "N",
+   "AE_PC_ON_FALSE": " ",
+   "AE_ON_NOROWS": "C",
+   "DESCR": "Retrieve Periods, then Build",
+   "MESSAGE_SET_NBR": 0,
+   "MESSAGE_NBR": 0,
+   "AE_COMMIT_FREQ": 1
+  }
+ ],
+ "actions": [
+  {
+   "AE_SECTION": "LOOP",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "AE_STEP": "Step010",
+   "AE_STMT_TYPE": "M",
+   "AE_REUSE_STMT": "N",
+   "AE_DO_SELECT_TYPE": "F",
+   "SQLID": " ",
+   "DESCR": "Log Progress"
+  },
+  {
+   "AE_SECTION": "LOOP",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "AE_STEP": "Step010",
+   "AE_STMT_TYPE": "P",
+   "AE_REUSE_STMT": "N",
+   "AE_DO_SELECT_TYPE": "F",
+   "SQLID": " ",
+   "DESCR": "PeopleCode description"
+  },
+  {
+   "AE_SECTION": "LOOP",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "AE_STEP": "Step020",
+   "AE_STMT_TYPE": "H",
+   "AE_REUSE_STMT": "N",
+   "AE_DO_SELECT_TYPE": " ",
+   "SQLID": "TL_CAL_GEN  LOOP    Step020 H",
+   "DESCR": "Do When description"
+  },
+  {
+   "AE_SECTION": "LOOP",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "AE_STEP": "Step020",
+   "AE_STMT_TYPE": "S",
+   "AE_REUSE_STMT": "N",
+   "AE_DO_SELECT_TYPE": " ",
+   "SQLID": "TL_CAL_GEN  LOOP    Step020 S",
+   "DESCR": "SQL description"
+  },
+  {
+   "AE_SECTION": "LOOP",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "AE_STEP": "Step030",
+   "AE_STMT_TYPE": "H",
+   "AE_REUSE_STMT": "N",
+   "AE_DO_SELECT_TYPE": " ",
+   "SQLID": "TL_CAL_GEN  LOOP    Step030 H",
+   "DESCR": "Do When description"
+  },
+  {
+   "AE_SECTION": "LOOP",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "AE_STEP": "Step030",
+   "AE_STMT_TYPE": "S",
+   "AE_REUSE_STMT": "N",
+   "AE_DO_SELECT_TYPE": " ",
+   "SQLID": "TL_CAL_GEN  LOOP    Step030 S",
+   "DESCR": "SQL description"
+  },
+  {
+   "AE_SECTION": "MAIN",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "AE_STEP": "Step01",
+   "AE_STMT_TYPE": "C",
+   "AE_REUSE_STMT": "N",
+   "AE_DO_SELECT_TYPE": "F",
+   "SQLID": " ",
+   "DESCR": "Call Section description"
+  },
+  {
+   "AE_SECTION": "MAIN",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "AE_STEP": "Step01",
+   "AE_STMT_TYPE": "D",
+   "AE_REUSE_STMT": "N",
+   "AE_DO_SELECT_TYPE": "Y",
+   "SQLID": "TL_CAL_GEN  MAIN    Step01  D",
+   "DESCR": "Get the Periods To Build"
+  }
+ ],
+ "messages": [
+  {
+   "AE_SECTION": "LOOP",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "AE_STEP": "Step010",
+   "AE_MESSAGE_PARMS": "%Bind(PERIOD_ID), %Bind(TIME_RECORDED)"
+  }
+ ],
+ "sqlText": [
+  {
+   "SQLID": "TL_CAL_GEN  LOOP    Step020 H",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "SEQNUM": 0,
+   "SQLTEXT": "%Select(TL_TA_MAIN_AET.TEMP_FLD) SELECT 'X' FROM PS_TL_INSTALLATION WHERE %Bind(PERIOD_TYPE) = 'FM' AND %Bind(SUBTYPE_IND) = 'SM' AND %Bind(OFFSET_DAYS) <> 1"
+  },
+  {
+   "SQLID": "TL_CAL_GEN  LOOP    Step030 H",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "SEQNUM": 0,
+   "SQLTEXT": "%Select(PERIOD_SEQUENCE) SELECT A.PERIOD_SEQUENCE FROM PS_TL_CALENDAR A ,PS_TL_CALENDAR B WHERE A.PERIOD_ID = %Bind(PERIOD_ID) AND A.PERIOD_ID = B.PERIOD_ID AND A.END_DT BETWEEN B.START_DT AND B.END_DT AND A.PERIOD_SEQUENCE < B.PERIOD_SEQUENCE"
+  },
+  {
+   "SQLID": "TL_CAL_GEN  LOOP    Step020 S",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "SEQNUM": 0,
+   "SQLTEXT": "UPDATE PS_TL_CALENDAR SET START_DT = %DateAdd(START_DT,%Bind(OFFSET_DAYS) - 1) ,END_DT = %DateAdd(END_DT, %Bind(OFFSET_DAYS) -1) WHERE PERIOD_TYPE = 'FM' AND PERIOD_ID = %Bind(PERIOD_ID) AND START_DT BETWEEN %Bind(START_DT) AND %Bind(END_DT)"
+  },
+  {
+   "SQLID": "TL_CAL_GEN  LOOP    Step030 S",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "SEQNUM": 0,
+   "SQLTEXT": "DELETE FROM PS_TL_CALENDAR WHERE PERIOD_ID = %Bind(PERIOD_ID) AND PERIOD_SEQUENCE <= %Bind(PERIOD_SEQUENCE)"
+  },
+  {
+   "SQLID": "TL_CAL_GEN  MAIN    Step01  D",
+   "MARKET": "GBL",
+   "DBTYPE": " ",
+   "EFFDT": "1900-01-01",
+   "SEQNUM": 0,
+   "SQLTEXT": " %Select(START_DT,END_DT,START_WEEK_DAY_IND,OVERRIDE_IND,PERIOD_ID,PERIOD_TYPE,PERIOD_LENGTH,OFFSET_DAYS,START_DAY_OF_WEEK,SUBTYPE_IND) SELECT %DateOut(RC2.START_DT) ,%DateOut(RC2.END_DT) ,RC.START_WEEK_DAY_IND ,RC.OVERRIDE_IND ,T.PERIOD_ID ,T.PERIOD_TYPE ,T.PERIOD_LENGTH ,T.OFFSET_DAYS ,T.START_DAY_OF_WEEK ,T.SUBTYPE_IND FROM PS_TL_RUN_CTRL_CAL RC ,PS_TL_CAL_CTRL_TBL RC2 , PS_TL_TIME_PERIODS T WHERE RC.OPRID=%Bind(OPRID) AND RC.RUN_CNTL_ID=%Bind(RUN_CNTL_ID) AND RC.OPRID=RC2.OPRID AND RC.RUN_CNTL_ID=RC2.RUN_CNTL_ID AND T.PERIOD_TYPE<>'CO' AND T.PERIOD_ID<>'NONE' AND (RC.SCOPE_IND='ALL' OR (RC.SCOPE_IND='TYP' AND T.PERIOD_TYPE IN ( SELECT PERIOD_TYPE1 FROM PS_TL_RUN_CAL_OPT1 T2 WHERE T2.RUN_CNTL_ID=RC.RUN_CNTL_ID)) OR (RC.SCOPE_IND='HOC' AND T.PERIOD_ID IN ( SELECT PERIOD_ID FROM PS_TL_RUN_CAL_OPT1 T2 WHERE T2.RUN_CNTL_ID=RC.RUN_CNTL_ID)))"
+  }
+ ],
+ "messageCatalog": [
+  {
+   "MESSAGE_SET_NBR": 13500,
+   "MESSAGE_NBR": 219,
+   "MESSAGE_TEXT": "Completed building calendar %1 at %2"
+  }
+ ]
+}

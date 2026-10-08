@@ -242,7 +242,7 @@ export const PROPERTIES_SPECS: Readonly<Partial<Record<DefinitionType, Propertie
   [DefinitionType.SqlDefinition]: {
     kind: 'SQL Definition',
     table: 'PSSQLDEFN',
-    where: (key) => ({ SQLID: key.parts[0], SQLTYPE: '0' }),
+    where: (key) => ({ SQLID: key.parts[0], SQLTYPE: key.parts[1] ?? '0' }),
     // The description and comments live in PSSQLDESCR.
     title: 'SQL Definition',
     fields: [
