@@ -29,7 +29,7 @@ export interface ProjectSummary {
 /**
  * What a source of PeopleSoft definitions must be able to do.
  *
- * Two implementations exist: {@link OracleProvider}, which reads the PeopleTools
+ * Two implementations exist: {@link DatabaseProvider}, which reads the PeopleTools
  * tables directly, and {@link ProjectFileProvider}, which reads an App Designer
  * XML export from disk. The rest of the extension is written against this
  * interface only, so a view or editor never learns which one it is talking to.

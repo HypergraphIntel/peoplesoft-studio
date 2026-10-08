@@ -1,4 +1,4 @@
-import { createTableScript, tableName, type DdlModel, type DdlRecord } from './recordDdl.js';
+import { createTableScript, tableName, type DdlModel, type DdlPlatform, type DdlRecord } from './recordDdl.js';
 
 /*
  * App Designer's Build for a record: the script, and the statements Build and
@@ -27,12 +27,17 @@ export interface BuildPlan {
   notes: string[];
 }
 
-/** The statements of a script: each ends at a "/" line. */
-export function scriptStatements(script: string): string[] {
+/**
+ * The statements of a script: each ends at a "/" line (Oracle), a "go" line
+ * (SQL Server), or a ";" ending its last line (DB2).
+ */
+export function scriptStatements(script: string, platform: DdlPlatform = 'oracle'): string[] {
   const out: string[] = [];
   let current: string[] = [];
+  const end = platform === 'oracle' ? '/' : platform === 'mssql' ? 'go' : undefined;
   for (const line of script.split('\n')) {
-    if (line.trim() === '/') {
+    if (end !== undefined ? line.trim().toLowerCase() === end : /;\s*$/.test(line)) {
+      if (end === undefined) current.push(line.replace(/;\s*$/, ''));
       const text = current.join('\n').trim();
       if (text) out.push(text);
       current = [];
@@ -40,7 +45,7 @@ export function scriptStatements(script: string): string[] {
       current.push(line);
     }
   }
-  if (current.join('').trim()) throw new Error('The script ends without "/" after its last statement.');
+  if (current.join('').trim()) throw new Error(`The script ends without "${end ?? ';'}" after its last statement.`);
   return out;
 }
 
@@ -49,7 +54,9 @@ export function planCreateTables(r: DdlRecord, model: DdlModel, option: TableOpt
   if (tableExists && option === 'skip') {
     return { script: '', statements: [], notes: [`${table} exists: skipped (Build Settings: Skip table if it already exists).`] };
   }
+  const platform = model.platform ?? 'oracle';
   const create = createTableScript(r, model);
-  const script = (tableExists ? `DROP TABLE ${table}\n/\n` : '') + create;
-  return { script, statements: scriptStatements(script), ...(tableExists ? { drops: table } : {}), notes: [] };
+  const drop = platform === 'oracle' ? `DROP TABLE ${table}\n/\n` : platform === 'mssql' ? `DROP TABLE ${table}\ngo\n` : `DROP TABLE ${table};\n`;
+  const script = (tableExists ? drop : '') + create;
+  return { script, statements: scriptStatements(script, platform), ...(tableExists ? { drops: table } : {}), notes: [] };
 }

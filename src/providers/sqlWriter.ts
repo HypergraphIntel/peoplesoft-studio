@@ -1,4 +1,4 @@
-import type { Connection } from 'oracledb';
+import type { DbConnection as Connection } from '../db/connection.js';
 import { writeScopeRefusal } from './writeScope.js';
 import { predictSourceSignature } from '../peoplecode/sourceSignature.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';

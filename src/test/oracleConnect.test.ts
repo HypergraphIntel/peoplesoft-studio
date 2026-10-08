@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { OracleProvider } from '../providers/oracle.js';
+import { DatabaseProvider } from '../providers/database.js';
 
 /**
  * These run without a database. They cover the part of connect() that happens
@@ -17,8 +17,8 @@ import { OracleProvider } from '../providers/oracle.js';
 const UNREACHABLE = 'localhost:1/NOSUCHDB';
 
 function provider() {
-  return new OracleProvider({
-    name: 'TEST', connectString: UNREACHABLE, user: 'SYSADM', password: 'x'
+  return new DatabaseProvider({
+    name: 'TEST', platform: 'oracle', connectString: UNREACHABLE, user: 'SYSADM', password: 'x'
   });
 }
 

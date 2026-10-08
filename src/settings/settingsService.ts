@@ -1,5 +1,6 @@
 import type { ConnectionConfig } from '../workspace.js';
 import type { EnvironmentInfo } from '../providers/provider.js';
+import { isDatabaseKind } from '../db/open.js';
 import {
   DECODER_OPTIONS, effectiveDecoder, validateDecoder,
   PEOPLECODE_ACCESS_OPTIONS, PEOPLECODE_SAVE_MODE_OPTIONS, peoplecodeWriteSettings, validateConnectionOption,
@@ -80,8 +81,22 @@ export interface UiPort {
 
 const KIND_LABELS: Record<ConnectionConfig['kind'], string> = {
   oracle: 'Oracle database',
+  mssql: 'SQL Server database',
+  db2: 'DB2 database',
   projectFile: 'Project export'
 };
+
+const TWO_TIER_LABELS: Partial<Record<ConnectionConfig['kind'], string>> = {
+  oracle: '2 Tier (Oracle)',
+  mssql: '2 Tier (MS SQL)',
+  db2: '2 Tier (DB2)'
+};
+
+/** A connection's type as the panel heads it: the database, or its two-tier sign-on. */
+function kindLabel(config: Pick<ConnectionConfig, 'kind' | 'signon'>): string {
+  if (config.signon === 'twoTier') return TWO_TIER_LABELS[config.kind] ?? KIND_LABELS[config.kind];
+  return KIND_LABELS[config.kind] ?? config.kind;
+}
 
 const SCOPE_LABELS: Record<SettingScope, string> = {
   global: 'user',
@@ -216,16 +231,17 @@ export class SettingsService implements Disposable {
       id: entry.id,
       name: config.name,
       kind: config.kind,
-      kindLabel: KIND_LABELS[config.kind] ?? config.kind,
+      kindLabel: kindLabel(config),
+      ...(config.signon === 'twoTier' ? { signon: 'twoTier' as const, operatorId: config.peoplesoftOperatorId ?? '' } : {}),
       // Copied field by field: whatever else is in the settings object stays out of the page.
-      ...(config.kind === 'oracle'
+      ...(isDatabaseKind(config.kind)
         ? { connectString: config.connectString ?? '', user: config.user ?? '', schema: config.schema ?? '' }
         : { path: config.path ?? '' }),
       connected: entry.connected,
       selected: entry.id === selectedId,
       access: describeAccess(config),
       environment: this.environmentOf(entry),
-      ...(config.kind === 'oracle'
+      ...(isDatabaseKind(config.kind)
         ? { decoder: effectiveDecoder(config, this.defaultDecoder()), peoplecodeWrite: peoplecodeWriteSettings(config) }
         : {}),
       ...(test ? { test } : {}),
@@ -334,7 +350,7 @@ export class SettingsService implements Disposable {
 
     const entry = this.find(id);
     if (!entry) return refuse('That connection is no longer configured.');
-    if (entry.config.kind !== 'oracle') return refuse('Only database connections have PeopleCode options.');
+    if (!isDatabaseKind(entry.config.kind)) return refuse('Only database connections have PeopleCode options.');
     const validated = validateConnectionOption(option, value);
     if (!validated.ok) return refuse(validated.error);
 

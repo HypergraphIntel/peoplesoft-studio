@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { Workspace } from '../workspace.js';
+import { isDatabaseId, Workspace } from '../workspace.js';
 import { parseUri, SCHEME } from '../util/uri.js';
 import { DefinitionKey, DefinitionType, displayName, isPeopleCode } from '../model/definitions.js';
-import { OracleProvider } from './oracle.js';
+import { DatabaseProvider } from './database.js';
 import { SaveRefusedError } from '../peoplecode/writeback/savePlan.js';
 import type { PeopleCodeSaveResult } from './peopleCodeWriter.js';
 import { prepareSqlText, SqlSaveRefusedError, type SqlSaveResult } from './sqlWriter.js';
@@ -88,13 +88,13 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
     // may save it (a writable connection, a name within the write scope, a supported
     // program type); elsewhere marking the document read-only says so before
     // the user types into it, rather than failing at save time.
-    if (isPeopleCode(key.type) && provider.id.startsWith('oracle:')) {
+    if (isPeopleCode(key.type) && isDatabaseId(provider.id)) {
       return this.workspace.isPeopleCodeWritable(provider.id, key);
     }
     // From a database, SQL and HTML definitions save as App Designer does
     // (sqlWriter.ts, htmlWriter.ts) where allowed; nothing else is saved as
     // text (records use the record editor).
-    if (provider.id.startsWith('oracle:')) return this.workspace.isSqlWritable(provider.id, key) && !this.readOnly.has(uri.toString());
+    if (isDatabaseId(provider.id)) return this.workspace.isSqlWritable(provider.id, key) && !this.readOnly.has(uri.toString());
     return true;
   }
 
@@ -110,7 +110,7 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
     let text: string | undefined;
     // Editable PeopleCode opens as its stored source (PSPCMTXT, as App
     // Designer shows it), with the token a save must present.
-    if (provider instanceof OracleProvider && isPeopleCode(key.type) && this.workspace.isPeopleCodeWritable(provider.id, key)) {
+    if (provider instanceof DatabaseProvider && isPeopleCode(key.type) && this.workspace.isPeopleCodeWritable(provider.id, key)) {
       const edit = await provider.readPeopleCodeForEdit(key);
       if (edit) {
         text = edit.text;
@@ -128,14 +128,14 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
       }
     }
     // Editable SQL opens with the version a save must present.
-    if (text === undefined && provider instanceof OracleProvider && key.type === DefinitionType.SqlDefinition &&
+    if (text === undefined && provider instanceof DatabaseProvider && key.type === DefinitionType.SqlDefinition &&
         this.workspace.isSqlWritable(provider.id, key)) {
       const edit = await provider.readSqlForEdit(key);
       if (edit) { text = edit.text; this.sqlVersions.set(uri.toString(), edit.version); }
       else if (!(await provider.sqlIdTaken(key.parts[0]))) { text = ''; this.sqlVersions.set(uri.toString(), 'new'); }
     }
     // An editable freeform style sheet likewise; a classic one opens read-only.
-    if (text === undefined && provider instanceof OracleProvider && key.type === DefinitionType.StyleSheet &&
+    if (text === undefined && provider instanceof DatabaseProvider && key.type === DefinitionType.StyleSheet &&
         this.workspace.isSqlWritable(provider.id, key)) {
       const edit = await provider.readStyleSheetForEdit(key);
       if (edit === 'classic') this.readOnly.add(uri.toString());
@@ -143,7 +143,7 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
       else { text = ''; this.sqlVersions.set(uri.toString(), 'new'); }
     }
     // Editable HTML likewise; one that does not exist opens empty, and saving creates it.
-    if (text === undefined && provider instanceof OracleProvider && key.type === DefinitionType.HtmlDefinition &&
+    if (text === undefined && provider instanceof DatabaseProvider && key.type === DefinitionType.HtmlDefinition &&
         this.workspace.isSqlWritable(provider.id, key)) {
       const edit = await provider.readHtmlForEdit(key);
       if (edit) { text = edit.text; this.sqlVersions.set(uri.toString(), edit.version); }
@@ -158,16 +158,16 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
   async writeFile(uri: vscode.Uri, content: Uint8Array): Promise<void> {
     const { handle, key } = parseUri(uri);
     const provider = await this.workspace.requireByHandle(handle);
-    if (provider instanceof OracleProvider && isPeopleCode(key.type)) {
+    if (provider instanceof DatabaseProvider && isPeopleCode(key.type)) {
       await this.savePeopleCode(uri, provider, key, Buffer.from(content).toString('utf8'));
       return;
     }
-    if (provider instanceof OracleProvider && (key.type === DefinitionType.HtmlDefinition || key.type === DefinitionType.StyleSheet) &&
+    if (provider instanceof DatabaseProvider && (key.type === DefinitionType.HtmlDefinition || key.type === DefinitionType.StyleSheet) &&
         this.workspace.isSqlWritable(provider.id, key) && !this.readOnly.has(uri.toString())) {
       await this.saveContent(uri, provider, key, Buffer.from(content).toString('utf8'));
       return;
     }
-    if (provider instanceof OracleProvider) {
+    if (provider instanceof DatabaseProvider) {
       if (key.type !== DefinitionType.SqlDefinition || !this.workspace.isSqlWritable(provider.id, key)) {
         throw vscode.FileSystemError.NoPermissions(`${displayName(key)} is read-only: saving it to the database is not supported here.`);
       }
@@ -198,7 +198,7 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
    * An HTML definition or freeform style sheet saved, or created when it
    * opened as new (htmlWriter.ts, styleSheetWriter.ts).
    */
-  private async saveContent(uri: vscode.Uri, provider: OracleProvider, key: DefinitionKey, text: string): Promise<void> {
+  private async saveContent(uri: vscode.Uri, provider: DatabaseProvider, key: DefinitionKey, text: string): Promise<void> {
     const opened = this.sqlVersions.get(uri.toString());
     if (opened === undefined) throw vscode.FileSystemError.NoPermissions('This was not opened for editing. Close and reopen it, then reapply your edit.');
     const operatorId = this.workspace.configFor(provider.id)!.peoplesoftOperatorId!.trim();
@@ -223,7 +223,7 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
    * the user as the save's error, with the writer's reason; nothing is
    * written unless the whole transaction verifies.
    */
-  private async savePeopleCode(uri: vscode.Uri, provider: OracleProvider, key: DefinitionKey, source: string): Promise<void> {
+  private async savePeopleCode(uri: vscode.Uri, provider: DatabaseProvider, key: DefinitionKey, source: string): Promise<void> {
     const refuse = (message: string): never => { throw vscode.FileSystemError.NoPermissions(message); };
     const config = this.workspace.configFor(provider.id);
     if (!config || !this.workspace.isPeopleCodeWritable(provider.id, key)) {

@@ -1,4 +1,5 @@
-import type { Connection, Pool } from 'oracledb';
+import type { DbConnection as Connection, DbPool, DbTypes } from '../db/connection.js';
+import { openDatabase, type DatabasePlatform } from '../db/open.js';
 import {
   DefinitionProvider, DefinitionSummary, EnvironmentInfo, ProjectSummary, ProviderCapabilities,
   ProviderError, SearchQuery, UnsupportedOperationError
@@ -10,7 +11,7 @@ import type { RecordLayout, TranslateValue } from '../model/recordLayout.js';
 import type { DefinitionReference } from './provider.js';
 import { createProject as createProjectRow, saveProject, verifyProjectSave, type ProjectSaveRequest, type ProjectSaveResult } from './projectWriter.js';
 import { deleteRecord, saveRecord, verifyRecordSave, type RecordSaveRequest, type RecordSaveResult } from './recordWriter.js';
-import type { DdlModel } from '../model/recordDdl.js';
+import { ddlPlatformFor, type DdlModel } from '../model/recordDdl.js';
 import { saveTranslate as saveTranslateRows, type TranslateChange } from './translateWriter.js';
 import { createField as createFieldRows, saveField as saveFieldRows, type FieldCreateRequest, type FieldSaveRequest } from './fieldWriter.js';
 import { createPackage as createPackageRow } from './packageWriter.js';
@@ -46,42 +47,36 @@ import {
   type PeopleCodeSaveRequest, type PeopleCodeSaveResult
 } from './peopleCodeWriter.js';
 
-export interface OracleConnectionConfig {
+export interface DatabaseConnectionConfig {
   name: string;
+  /** The database PeopleSoft runs on. */
+  platform: DatabasePlatform;
+  /**
+   * Oracle: an Easy Connect string or TNS alias. SQL Server:
+   * host[\instance][:port]/database. DB2: host[:port]/database.
+   */
   connectString: string;
   user: string;
   password: string;
-  /** Instant Client directory; absent means node-oracledb Thin mode. */
+  /** Oracle Instant Client directory; absent means node-oracledb Thin mode. */
   thickModeLibDir?: string;
+  /** DB2: a directory with node_modules/ibm_db; absent: resolved normally. */
+  db2DriverPath?: string;
   decoderMode?: DecodeOptions['mode'];
   /**
    * The schema owning the PeopleTools tables. Absent: PS.PSDBOWNER's owner
-   * ID for this database, else SYSADM.
+   * ID for this database, else the platform's default (Oracle SYSADM, SQL
+   * Server the login's default schema, DB2 the user's).
    */
   schema?: string;
-}
-
-/** An Oracle schema name, as it may be put into ALTER SESSION (which takes no binds). */
-export const SCHEMA_NAME = /^[A-Z][A-Z0-9_$#]{0,127}$/;
-
-export const DEFAULT_SCHEMA = 'SYSADM';
-
-/**
- * The PeopleTools owner ID PS.PSDBOWNER records: the row for this database,
- * else its only row; undefined when it has neither or cannot be read.
- */
-export async function detectSchema(c: Connection): Promise<string | undefined> {
-  try {
-    const r = await c.execute<{ DBNAME: string; OWNERID: string; DB: string }>(
-      `SELECT DBNAME, OWNERID, SYS_CONTEXT('USERENV', 'DB_NAME') AS DB FROM PS.PSDBOWNER`);
-    const rows = r.rows ?? [];
-    const db = String(rows[0]?.DB ?? '').trim().toUpperCase();
-    const row = rows.find((x) => String(x.DBNAME).trim().toUpperCase() === db) ?? (rows.length === 1 ? rows[0] : undefined);
-    const owner = String(row?.OWNERID ?? '').trim().toUpperCase();
-    return SCHEMA_NAME.test(owner) ? owner : undefined;
-  } catch {
-    return undefined;
-  }
+  /**
+   * Two-tier sign-on: the PeopleSoft operator (PSOPRDEFN.OPRID) this
+   * connection signs on as. The database login ({@link user}) is the proxy
+   * that runs every query; this operator is the acting identity a save is
+   * recorded as. When set, {@link connect} verifies the operator exists and
+   * is not locked before the connection is usable.
+   */
+  signonOperator?: string;
 }
 
 /**
@@ -94,7 +89,7 @@ export async function detectSchema(c: Connection): Promise<string | undefined> {
  * application servers serving stale cached copies. Every write here updates
  * the counters in the same transaction as the definition.
  */
-export class OracleProvider implements DefinitionProvider {
+export class DatabaseProvider implements DefinitionProvider {
   readonly id: string;
   readonly displayName: string;
   readonly capabilities: ProviderCapabilities = {
@@ -135,102 +130,81 @@ export class OracleProvider implements DefinitionProvider {
     DefinitionType.StyleSheet
   ];
 
-  private pool?: Pool;
-  private resolvedSchema?: string;
+  private pool?: DbPool;
   private projectItemKeyWidthCache?: number;
   private environmentCache?: Promise<EnvironmentInfo>;
 
-  constructor(private readonly config: OracleConnectionConfig) {
-    this.id = `oracle:${config.name}`;
+  constructor(private readonly config: DatabaseConnectionConfig) {
+    this.id = `${config.platform}:${config.name}`;
     this.displayName = config.name;
   }
 
   get isConnected(): boolean { return this.pool !== undefined; }
 
   /** The schema the session reads and writes the PeopleTools tables in, once connected. */
-  get schema(): string | undefined { return this.resolvedSchema; }
+  get schema(): string | undefined { return this.pool?.schema; }
+
+  /** The database PeopleSoft runs on here. */
+  get platform(): DatabasePlatform { return this.config.platform; }
+
+  /** The driver's constants (LOB bind types, fetch options), once connected. */
+  private get types(): DbTypes {
+    if (!this.pool) throw new ProviderError(`${this.displayName} is not connected.`);
+    return this.pool.types;
+  }
 
   async connect(): Promise<void> {
     if (this.pool) return;
-    const oracledb = await loadOracleDb();
-    oracledb.outFormat = oracledb.OUT_FORMAT_OBJECT;
-    oracledb.fetchAsBuffer = [oracledb.BLOB];
-
-    if (this.config.thickModeLibDir) {
-      try {
-        oracledb.initOracleClient({ libDir: this.config.thickModeLibDir });
-      } catch (err) {
-        throw new ProviderError(
-          `Could not initialise the Oracle Instant Client at ${this.config.thickModeLibDir}.`, err);
-      }
-    }
-
-    const configured = this.config.schema?.trim().toUpperCase();
-    if (configured && !SCHEMA_NAME.test(configured)) throw new ProviderError(`${this.config.schema} is not a valid schema name.`);
-
-    // A standalone session first: it proves the host and credentials (createPool
-    // with poolMin 0 opens nothing, so it succeeds against an unreachable host
-    // or a wrong password) and finds the schema before the pool exists.
-    let schema: string;
     try {
-      const probe = await oracledb.getConnection({
-        user: this.config.user, password: this.config.password, connectString: this.config.connectString
-      });
-      try {
-        schema = configured || await detectSchema(probe) || DEFAULT_SCHEMA;
-      } finally {
-        await probe.close();
-      }
-    } catch (err) {
-      throw new ProviderError(
-        `Could not connect to ${this.config.connectString} as ${this.config.user}: ${reason(err)}`,
-        err);
-    }
-
-    // Queries name the PeopleTools tables unqualified: every session the pool
-    // creates resolves them in the PeopleSoft schema (CURRENT_SCHEMA), so one
-    // setting serves SYSADM and every other owner ID.
-    let pool: Pool;
-    try {
-      pool = await oracledb.createPool({
+      this.pool = await openDatabase(this.config.platform, {
+        connectString: this.config.connectString,
         user: this.config.user,
         password: this.config.password,
-        connectString: this.config.connectString,
-        poolMin: 0,
-        poolMax: 4,
-        poolTimeout: 120,
-        sessionCallback: (conn: Connection, _tag: string, done: (error?: Error) => void) => {
-          conn.execute(`ALTER SESSION SET CURRENT_SCHEMA = ${schema}`).then(() => done(), (error: Error) => done(error));
-        }
+        ...(this.config.thickModeLibDir ? { thickModeLibDir: this.config.thickModeLibDir } : {}),
+        ...(this.config.db2DriverPath ? { db2DriverPath: this.config.db2DriverPath } : {}),
+        ...(this.config.schema ? { schema: this.config.schema } : {})
       });
     } catch (err) {
-      throw new ProviderError(
-        `Could not connect to ${this.config.connectString}: ${reason(err)}`, err);
+      throw new ProviderError(reason(err), err);
     }
 
-    // A session as every later one will be: the schema set, the PeopleTools tables there.
-    try {
-      const check = await pool.getConnection();
+    // Two-tier sign-on: the operator the save identity will be must exist and
+    // be usable in this database, checked through the proxy connection before
+    // the connection is handed back. A bad operator fails sign-on, as it does
+    // in App Designer, rather than surfacing only at the first save.
+    if (this.config.signonOperator) {
       try {
-        await check.execute(`SELECT TOOLSREL FROM PSSTATUS`);
-      } finally {
-        await check.close();
+        await this.verifySignonOperator(this.config.signonOperator);
+      } catch (err) {
+        await this.pool?.close(0).catch(() => { /* already closing down */ });
+        this.pool = undefined;
+        throw err;
       }
-    } catch (err) {
-      await pool.close(0).catch(() => { /* the pool is already unusable */ });
-      throw new ProviderError(
-        `Connected to ${this.config.connectString}, but schema ${schema} has no PeopleTools tables readable as ${this.config.user}: ${reason(err)}`,
-        err);
     }
+  }
 
-    this.resolvedSchema = schema;
-    this.pool = pool;
+  /**
+   * Checks a two-tier sign-on operator against PSOPRDEFN through the proxy
+   * connection: it must have a row (PSOPRDEFN) and not be locked (ACCTLOCK 0).
+   * The operator password is not checked here -- that is a one-way hash this
+   * extension does not reproduce; the proxy database login is the credential
+   * that gates the connection.
+   */
+  private async verifySignonOperator(operatorId: string): Promise<void> {
+    const row = await this.withConnection(async (c) =>
+      (await c.execute<{ ACCTLOCK: number }>(
+        `SELECT ACCTLOCK FROM PSOPRDEFN WHERE OPRID = :op`, { op: operatorId })).rows?.[0]);
+    if (!row) {
+      throw new ProviderError(`PeopleSoft operator ${operatorId} does not exist in ${this.displayName} (PSOPRDEFN).`);
+    }
+    if (Number(row.ACCTLOCK) !== 0) {
+      throw new ProviderError(`PeopleSoft operator ${operatorId} is locked in ${this.displayName} (PSOPRDEFN.ACCTLOCK).`);
+    }
   }
 
   async dispose(): Promise<void> {
     await this.pool?.close(10);
     this.pool = undefined;
-    this.resolvedSchema = undefined;
     this.projectItemKeyWidthCache = undefined;
     this.environmentCache = undefined;
   }
@@ -283,11 +257,9 @@ export class OracleProvider implements DefinitionProvider {
    */
   private async projectItemKeyWidth(c: Connection): Promise<number> {
     if (this.projectItemKeyWidthCache !== undefined) return this.projectItemKeyWidthCache;
-    const r = await c.execute<{ COLUMN_NAME: string }>(
-      `SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS
-        WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = 'PSPROJECTITEM' AND COLUMN_NAME LIKE 'OBJECTVALUE%'`);
-    const nums = (r.rows ?? [])
-      .map((row) => Number(row.COLUMN_NAME.replace('OBJECTVALUE', '')))
+    const nums = (await c.catalog.columns(c, 'PSPROJECTITEM'))
+      .filter((col) => col.name.startsWith('OBJECTVALUE'))
+      .map((col) => Number(col.name.replace('OBJECTVALUE', '')))
       .filter((n) => Number.isInteger(n) && n > 0);
     if (nums.length === 0) {
       throw new ProviderError(
@@ -586,8 +558,8 @@ export class OracleProvider implements DefinitionProvider {
    * must present. Undefined when the program has no stored source.
    */
   async readPeopleCodeForEdit(key: DefinitionKey): Promise<{ text: string; fingerprint: string } | undefined> {
-    const oracledb = await loadOracleDb();
-    return this.withConnection((c) => readForEdit(c, oracledb, pcmProgKeyParts(key)));
+    const types = this.types;
+    return this.withConnection((c) => readForEdit(c, types, pcmProgKeyParts(key)));
   }
 
   /**
@@ -598,11 +570,11 @@ export class OracleProvider implements DefinitionProvider {
   async readProperties(key: DefinitionKey): Promise<PropertiesInput | undefined> {
     const spec = PROPERTIES_SPECS[key.type];
     if (!spec) return undefined;
-    const oracledb = await loadOracleDb();
+    const types = this.types;
     const options = {
-      outFormat: oracledb.OUT_FORMAT_OBJECT,
+      outFormat: types.OUT_FORMAT_OBJECT,
       fetchTypeHandler: (meta: { dbType?: unknown }) =>
-        meta.dbType === oracledb.DB_TYPE_CLOB || meta.dbType === oracledb.DB_TYPE_NCLOB ? { type: oracledb.STRING } : undefined
+        meta.dbType === types.DB_TYPE_CLOB || meta.dbType === types.DB_TYPE_NCLOB ? { type: types.STRING } : undefined
     };
     const where = spec.where(key);
     const columns = Object.keys(where);
@@ -682,8 +654,8 @@ export class OracleProvider implements DefinitionProvider {
 
   /** Whether any PeopleCode rows are stored under the key (program, source or names). */
   async hasPeopleCode(key: DefinitionKey): Promise<boolean> {
-    const oracledb = await loadOracleDb();
-    return this.withConnection(async (c) => (await readStoredProgram(c, oracledb, pcmProgKeyParts(key), false)) !== undefined);
+    const types = this.types;
+    return this.withConnection(async (c) => (await readStoredProgram(c, types, pcmProgKeyParts(key), false)) !== undefined);
   }
 
   /** An SQL definition's text with the version a save must present; undefined when there is none. */
@@ -738,10 +710,8 @@ export class OracleProvider implements DefinitionProvider {
   async tableState(table: string): Promise<{ exists: boolean; hasRows: boolean }> {
     if (!/^[A-Z][A-Z0-9_#$]{0,127}$/.test(table)) throw new ProviderError(`${table} is not a table name.`);
     return this.withConnection(async (c) => {
-      const r = await c.execute<{ N: number }>(
-        `SELECT COUNT(*) AS N FROM ALL_TABLES WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = :t`, { t: table });
-      if (Number(r.rows?.[0]?.N ?? 0) === 0) return { exists: false, hasRows: false };
-      const rows = await c.execute(`SELECT 1 FROM ${table} WHERE ROWNUM = 1`);
+      if (!(await c.catalog.tableExists(c, table))) return { exists: false, hasRows: false };
+      const rows = await c.execute(`SELECT 1 AS X FROM ${table} FETCH FIRST 1 ROWS ONLY`);
       return { exists: true, hasRows: (rows.rows?.length ?? 0) > 0 };
     });
   }
@@ -756,6 +726,8 @@ export class OracleProvider implements DefinitionProvider {
       for (const [i, statement] of statements.entries()) {
         try {
           await c.execute(statement);
+          // Oracle's DDL commits itself; SQL Server's and DB2's is transactional, and is committed as it runs.
+          await c.commit();
         } catch (err) {
           return { ran: i, error: { statement, message: reason(err) } };
         }
@@ -770,27 +742,33 @@ export class OracleProvider implements DefinitionProvider {
    * defaults, and the record's and its key index's own parameters over them.
    */
   async readDdlModel(recname: string): Promise<DdlModel | undefined> {
+    const pf = this.pool?.ddlPlatformId ?? 2;
     return this.withConnection(async (c) => {
       const models = await c.execute<{ T: number; M: string }>(
         `SELECT STATEMENT_TYPE AS T, MODEL_STATEMENT AS M FROM PSDDLMODEL
-          WHERE PLATFORMID = 2 AND SIZING_SET = 0 AND STATEMENT_TYPE IN (1, 2)`, {},
-        { fetchInfo: { M: { type: (await loadOracleDb()).STRING } } });
+          WHERE PLATFORMID = :pf AND SIZING_SET = 0 AND STATEMENT_TYPE IN (1, 2)`, { pf },
+        { fetchInfo: { M: { type: this.types.STRING } } });
       const table = models.rows?.find((r) => Number(r.T) === 1)?.M;
       const index = models.rows?.find((r) => Number(r.T) === 2)?.M;
       if (!table || !index) return undefined;
       const parms = async (sql: string, binds: Record<string, string | number>) => Object.fromEntries(
         ((await c.execute<{ N: string; V: string }>(sql, binds)).rows ?? []).map((r) => [String(r.N).trim(), String(r.V ?? '')]));
       const defaults = (type: number) => parms(
-        `SELECT PARMNAME AS N, PARMVALUE AS V FROM PSDDLDEFPARMS WHERE PLATFORMID = 2 AND SIZING_SET = 0 AND STATEMENT_TYPE = :t`, { t: type });
+        `SELECT PARMNAME AS N, PARMVALUE AS V FROM PSDDLDEFPARMS WHERE PLATFORMID = :pf AND SIZING_SET = 0 AND STATEMENT_TYPE = :t`, { pf, t: type });
+      const space = (await c.execute<{ DB: string }>(
+        `SELECT DBNAME AS DB FROM PSRECTBLSPC WHERE RECNAME = :r AND DBTYPE IN (:d, ' ')
+          ORDER BY CASE WHEN DBTYPE = :d THEN 0 ELSE 1 END FETCH FIRST 1 ROWS ONLY`, { r: recname, d: String(pf) })).rows?.[0];
       return {
+        platform: ddlPlatformFor(pf),
+        ...(space?.DB?.trim() ? { dbName: space.DB.trim() } : {}),
         table, index,
         tableParms: { ...(await defaults(1)), ...(await parms(
-          `SELECT PARMNAME AS N, PARMVALUE AS V FROM PSRECDDLPARM WHERE RECNAME = :r AND PLATFORMID = 2 AND SIZINGSET = 0`, { r: recname })) },
+          `SELECT PARMNAME AS N, PARMVALUE AS V FROM PSRECDDLPARM WHERE RECNAME = :r AND PLATFORMID = :pf AND SIZINGSET = 0`, { pf, r: recname })) },
         indexParms: { ...(await defaults(2)), ...(await parms(
-          `SELECT PARMNAME AS N, PARMVALUE AS V FROM PSIDXDDLPARM WHERE RECNAME = :r AND INDEXID = '_' AND PLATFORMID = 2 AND SIZINGSET = 0`, { r: recname })) },
+          `SELECT PARMNAME AS N, PARMVALUE AS V FROM PSIDXDDLPARM WHERE RECNAME = :r AND INDEXID = '_' AND PLATFORMID = :pf AND SIZINGSET = 0`, { pf, r: recname })) },
         indexDefaults: await defaults(2),
         altIndexParms: Object.fromEntries(await Promise.all(Array.from({ length: 10 }, (_, n) => String(n)).map(async (id) => [id, { ...(await defaults(2)), ...(await parms(
-          `SELECT PARMNAME AS N, PARMVALUE AS V FROM PSIDXDDLPARM WHERE RECNAME = :r AND INDEXID = :i AND PLATFORMID = 2 AND SIZINGSET = 0`, { r: recname, i: id })) }])))
+          `SELECT PARMNAME AS N, PARMVALUE AS V FROM PSIDXDDLPARM WHERE RECNAME = :r AND INDEXID = :i AND PLATFORMID = :pf AND SIZINGSET = 0`, { pf, r: recname, i: id })) }])))
       };
     });
   }
@@ -868,8 +846,8 @@ export class OracleProvider implements DefinitionProvider {
    * (styleSheetWriter.ts): one transaction, verified again after COMMIT.
    */
   async saveStyleSheet(request: StyleSheetSaveRequest): Promise<StyleSheetSaveResult> {
-    const oracledb = await loadOracleDb();
-    const result = await this.withConnection((c) => saveStyleSheetRows(c, oracledb.BLOB, request));
+    const types = this.types;
+    const result = await this.withConnection((c) => saveStyleSheetRows(c, types.BLOB, request));
     await this.withConnection((c) => verifyStyleSheetSave(c, request, result));
     return result;
   }
@@ -890,8 +868,8 @@ export class OracleProvider implements DefinitionProvider {
    * one transaction, then verified again on another connection after COMMIT.
    */
   async saveHtmlDefinition(request: HtmlSaveRequest): Promise<HtmlSaveResult> {
-    const oracledb = await loadOracleDb();
-    const result = await this.withConnection((c) => saveHtmlRows(c, oracledb.BLOB, request));
+    const types = this.types;
+    const result = await this.withConnection((c) => saveHtmlRows(c, types.BLOB, request));
     await this.withConnection((c) => verifyHtmlSave(c, request, result));
     return result;
   }
@@ -906,10 +884,10 @@ export class OracleProvider implements DefinitionProvider {
    * connection, then the committed state is verified again on another.
    */
   async savePeopleCode(key: DefinitionKey, request: PeopleCodeSaveRequest): Promise<PeopleCodeSaveResult> {
-    const oracledb = await loadOracleDb();
+    const types = this.types;
     const parts = pcmProgKeyParts(key);
-    const result = await this.withConnection((c) => writePeopleCode(c, oracledb, parts, request));
-    await this.withConnection((c) => verifyCommitted(c, oracledb, parts, result));
+    const result = await this.withConnection((c) => writePeopleCode(c, types, parts, request));
+    await this.withConnection((c) => verifyCommitted(c, types, parts, result));
     return result;
   }
 
@@ -1039,10 +1017,10 @@ export class OracleProvider implements DefinitionProvider {
 
   /** Rows of one query, every CLOB column as text (DESCRLONG, PORTAL_URLTEXT ...), never a LOB handle. */
   private async uiRows(c: Connection, sql: string, binds: Record<string, string>): Promise<UiRow[]> {
-    const oracledb = await loadOracleDb();
+    const types = this.types;
     return (await c.execute<UiRow>(sql, binds, {
       fetchTypeHandler: (meta: { dbType?: unknown }) =>
-        meta.dbType === oracledb.DB_TYPE_CLOB || meta.dbType === oracledb.DB_TYPE_NCLOB ? { type: oracledb.STRING } : undefined
+        meta.dbType === types.DB_TYPE_CLOB || meta.dbType === types.DB_TYPE_NCLOB ? { type: types.STRING } : undefined
     })).rows ?? [];
   }
 
@@ -1150,7 +1128,7 @@ export class OracleProvider implements DefinitionProvider {
       if (!node) throw new ProviderError(`No node named ${name}.`);
       return renderNode(name, {
         node,
-        connectorProperties: await this.uiRows(c, `SELECT PROPID, PROPNAME, SEQNUM, PROPVALUE FROM PSNODECONPROP WHERE MSGNODENAME = :n`, { n: name }),
+        connectorProperties: await this.uiRows(c, `SELECT PROPID, PROPNAME, SEQNUM, PROPVALUE FROM PSNODECONPROP WHERE MSGNODENAME = :n ORDER BY PROPID, PROPNAME, SEQNUM`, { n: name }),
         translates: await this.translates(c, NODE_TRANSLATE_FIELDS)
       });
     });
@@ -1183,7 +1161,7 @@ export class OracleProvider implements DefinitionProvider {
         children: type === 'F' ? await this.uiRows(c, `SELECT P.PORTAL_REFTYPE, P.PORTAL_OBJNAME, P.PORTAL_LABEL,
                                                           (SELECT MAX(L.PORTAL_LABEL) FROM PSPRSMDEFN L WHERE L.PORTAL_OBJNAME = P.PORTAL_LINKOBJNAME
                                                              AND L.PORTAL_NAME = NVL(TRIM(P.PORTAL_LINK_PORTAL), P.PORTAL_NAME)) AS LINK_LABEL
-                                                        FROM PSPRSMDEFN P WHERE PORTAL_NAME = :p AND PORTAL_PRNTOBJNAME = :n ORDER BY PORTAL_SEQ_NUM, PORTAL_LABEL`,
+                                                        FROM PSPRSMDEFN P WHERE PORTAL_NAME = :p AND PORTAL_PRNTOBJNAME = :n ORDER BY PORTAL_SEQ_NUM, PORTAL_LABEL, PORTAL_OBJNAME`,
           { p: portal, n: name ?? '' }) : [],
         permissions: await this.uiRows(c, `SELECT PORTAL_PERMTYPE, PORTAL_PERMNAME FROM PSPRSMPERM ${where} ORDER BY PORTAL_PERMTYPE, PORTAL_PERMNAME`, binds),
         attributes: await this.uiRows(c, `SELECT PORTAL_ATTR_NAM, PORTAL_ATTR_VAL FROM PSPRSMATTRVAL ${where} ORDER BY PORTAL_ATTR_NAM, PORTAL_SEQ_NUM`, binds),
@@ -1233,7 +1211,7 @@ export class OracleProvider implements DefinitionProvider {
     return this.withConnection(async (c) => {
       const binds = { n: name, o: owner?.trim() || ' ' };
       const q = async (sql: string) => {
-        const STRING = (await loadOracleDb()).STRING;
+        const STRING = this.types.STRING;
         return (await c.execute<UiRow>(sql, binds, { fetchInfo: { EXPRESSIONTEXT: { type: STRING }, DESCRLONG: { type: STRING } } })).rows ?? [];
       };
       const [query] = await q(`SELECT D.*, ${UI_STAMP} FROM PSQRYDEFN D WHERE QRYNAME = :n AND OPRID = :o`);
@@ -1402,7 +1380,7 @@ export class OracleProvider implements DefinitionProvider {
   /** An App Engine program's rows (model/appEngine.ts), or undefined when there is none. */
   async readAppEngineRows(name: string): Promise<AppEngineRows | undefined> {
     return this.withConnection(async (c) => {
-      const STRING = (await loadOracleDb()).STRING;
+      const STRING = this.types.STRING;
       // SQLTEXT and DESCRLONG are CLOBs: fetched as text, not LOB handles.
       const all = async (sql: string) => (await c.execute<AeRow>(sql, { a: name },
         { fetchInfo: { SQLTEXT: { type: STRING }, DESCRLONG: { type: STRING } } })).rows ?? [];
@@ -1425,8 +1403,8 @@ export class OracleProvider implements DefinitionProvider {
                              WHERE SQLTYPE IN ('1', '6') AND SUBSTR(SQLID, 1, 12) = RPAD(:a, 12)`),
         // The Message Catalog text of the program's Log Message actions.
         messageCatalog: await all(`SELECT M.MESSAGE_SET_NBR, M.MESSAGE_NBR, M.MESSAGE_TEXT FROM PSMSGCATDEFN M
-                                    WHERE (M.MESSAGE_SET_NBR, M.MESSAGE_NBR) IN (SELECT S.MESSAGE_SET_NBR, S.MESSAGE_NBR FROM PSAESTEPDEFN S
-                                      WHERE S.AE_APPLID = :a AND EXISTS (SELECT 1 FROM PSAESTMTDEFN T WHERE T.AE_APPLID = S.AE_APPLID
+                                    WHERE EXISTS (SELECT 1 FROM PSAESTEPDEFN S
+                                      WHERE S.AE_APPLID = :a AND S.MESSAGE_SET_NBR = M.MESSAGE_SET_NBR AND S.MESSAGE_NBR = M.MESSAGE_NBR AND EXISTS (SELECT 1 FROM PSAESTMTDEFN T WHERE T.AE_APPLID = S.AE_APPLID
                                         AND T.AE_SECTION = S.AE_SECTION AND T.MARKET = S.MARKET AND T.DBTYPE = S.DBTYPE AND T.EFFDT = S.EFFDT
                                         AND T.AE_STEP = S.AE_STEP AND T.AE_STMT_TYPE = 'M'))`)
       };
@@ -1479,7 +1457,7 @@ export class OracleProvider implements DefinitionProvider {
         `SELECT MARKET || '|' || DBTYPE || '|' || TO_CHAR(EFFDT, 'YYYY-MM-DD') AS V, SQLTEXT FROM PSSQLTEXTDEFN
           WHERE SQLID = :id AND SQLTYPE = :t
           ORDER BY CASE WHEN MARKET = 'GBL' AND DBTYPE = ' ' THEN 0 ELSE 1 END, MARKET, DBTYPE, EFFDT DESC, SEQNUM`,
-        { id: key.parts[0], t: key.parts[1] ?? '0' }, { fetchInfo: { SQLTEXT: { type: (await loadOracleDb()).STRING } } });
+        { id: key.parts[0], t: key.parts[1] ?? '0' }, { fetchInfo: { SQLTEXT: { type: this.types.STRING } } });
       const rows = r.rows ?? [];
       if (rows.length === 0) throw new ProviderError(`No SQL definition named ${key.parts[0]}.`);
       return rows.filter((x) => x.V === rows[0].V).map((x) => x.SQLTEXT).join('');
@@ -1627,7 +1605,7 @@ export class OracleProvider implements DefinitionProvider {
       if (layout.recordType === RecordType.View || layout.recordType === RecordType.DynamicView) {
         const sql = await c.execute<{ SQLTEXT: string }>(
           `SELECT SQLTEXT FROM PSSQLTEXTDEFN WHERE SQLID = :r AND SQLTYPE = 2 ORDER BY SEQNUM`, { r: recname },
-          { fetchInfo: { SQLTEXT: { type: (await loadOracleDb()).STRING } } });
+          { fetchInfo: { SQLTEXT: { type: this.types.STRING } } });
         layout.viewSql = (sql.rows ?? []).map((x) => x.SQLTEXT).join('');
       }
       // Every label of the record's fields, for the Record Field Label ID choice.
@@ -1641,11 +1619,14 @@ export class OracleProvider implements DefinitionProvider {
       }
       if (layout.recordType === RecordType.QueryView) {
         const q = await c.execute<{ QRYNAME: string }>(
-          `SELECT QRYNAME FROM PSQRYDEFN WHERE QRYNAME = :r AND ROWNUM = 1`, { r: recname });
+          `SELECT QRYNAME FROM PSQRYDEFN WHERE QRYNAME = :r FETCH FIRST 1 ROWS ONLY`, { r: recname });
         if (q.rows?.[0]) layout.queryName = t(q.rows[0].QRYNAME);
       }
       const ts = await c.execute<{ DDLSPACENAME: string }>(
-        `SELECT DDLSPACENAME FROM PSRECTBLSPC WHERE RECNAME = :r AND ROWNUM = 1`, { r: recname });
+        // This platform's row (DBTYPE as PSDDLMODEL's PLATFORMID: 2 Oracle, 4 DB2 LUW, 1 DB2 z/OS), else the default (' ').
+        `SELECT DDLSPACENAME FROM PSRECTBLSPC WHERE RECNAME = :r AND DBTYPE IN (:d, ' ')
+          ORDER BY CASE WHEN DBTYPE = :d THEN 0 ELSE 1 END FETCH FIRST 1 ROWS ONLY`,
+        { r: recname, d: String(this.pool?.ddlPlatformId ?? 2) });
       if (ts.rows?.[0]) layout.tablespace = t(ts.rows[0].DDLSPACENAME);
       const idx = await c.execute<{ INDEXID: string }>(
         `SELECT INDEXID FROM PSINDEXDEFN WHERE RECNAME = :r ORDER BY INDEXID`, { r: recname });
@@ -1678,7 +1659,8 @@ export class OracleProvider implements DefinitionProvider {
       const cols = [1, 2, 3, 4, 5, 6, 7].map((n) => `OBJECTID${n}, OBJECTVALUE${n}`).join(', ');
       const pcs = await c.execute<Record<string, string | number>>(
         `SELECT DISTINCT RECNAME, ${cols} FROM PSPCMNAME WHERE REFNAME = :f AND RECNAME ${record ? '= :r' : "<> ' '"}
-          ORDER BY OBJECTVALUE1, OBJECTVALUE2, OBJECTVALUE3`, record ? { f: field, r: record } : { f: field });
+          ORDER BY OBJECTVALUE1, OBJECTVALUE2, OBJECTVALUE3, OBJECTVALUE4, OBJECTVALUE5, OBJECTVALUE6, OBJECTVALUE7, RECNAME`,
+        record ? { f: field, r: record } : { f: field });
       // One entry per program, however many records it references the field through.
       const programs = new Map<string, { recs: Set<string>; key?: DefinitionKey }>();
       for (const row of pcs.rows ?? []) {
@@ -1768,7 +1750,7 @@ export class OracleProvider implements DefinitionProvider {
         const sql = await c.execute<{ SQLTEXT: string }>(
           `SELECT SQLTEXT FROM PSSQLTEXTDEFN
             WHERE SQLID = :r AND SQLTYPE = 2 ORDER BY SEQNUM`, { r: recname },
-          { fetchInfo: { SQLTEXT: { type: (await loadOracleDb()).STRING } } });
+          { fetchInfo: { SQLTEXT: { type: this.types.STRING } } });
         record.viewSql = (sql.rows ?? []).map((x) => x.SQLTEXT).join('');
       }
 
@@ -1846,31 +1828,6 @@ export class OracleProvider implements DefinitionProvider {
 function reason(err: unknown): string {
   const message = (err as { message?: string })?.message;
   return message ? message.trim().split('\n')[0] : String(err);
-}
-
-/**
- * Loads node-oracledb, lazily and in a form whose settings can be written.
- *
- * The module is required lazily because it resolves a driver at load time, and
- * an extension that only ever opens project exports should not pay for that.
- *
- * Unwrapping `default` is not optional. node-oracledb is CommonJS, and a
- * dynamic `import()` of a CommonJS module yields an ES module namespace object,
- * which is sealed: assigning `outFormat` on it throws
- * "Cannot assign to property 'outFormat' of [object Module]". The mutable
- * exports object -- the one whose settings actually take effect -- is the
- * namespace's default export. The fallback covers a host that hands back the
- * exports object directly.
- */
-async function loadOracleDb(): Promise<typeof import('oracledb')> {
-  const namespace = await import('oracledb');
-  const resolved = (namespace as { default?: typeof import('oracledb') }).default ?? namespace;
-  if (typeof resolved?.createPool !== 'function') {
-    throw new ProviderError(
-      'The oracledb module loaded but does not look like node-oracledb. ' +
-      'Reinstall the extension, or check that node_modules/oracledb is intact.');
-  }
-  return resolved;
 }
 
 /** Bind variables for the seven-part definition key. */

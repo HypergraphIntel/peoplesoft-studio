@@ -1,19 +1,28 @@
 import * as vscode from 'vscode';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { DefinitionProvider, EnvironmentInfo } from './providers/provider.js';
-import { OracleProvider } from './providers/oracle.js';
+import { DatabaseProvider } from './providers/database.js';
 import { ProjectFileProvider } from './providers/projectFile.js';
 import { connectionHandle } from './util/handle.js';
 import { DefinitionKey, DefinitionType } from './model/definitions.js';
 import { isWritableName } from './providers/writeScope.js';
+import { DATABASE_PLATFORMS, type DatabasePlatform } from './db/open.js';
 
 export interface ConnectionConfig {
   name: string;
-  kind: 'oracle' | 'projectFile';
+  /** A database (Oracle, Microsoft SQL Server, DB2) or an App Designer project export. */
+  kind: DatabasePlatform | 'projectFile';
+  /**
+   * Oracle: an Easy Connect string or TNS alias. SQL Server:
+   * host[\\instance][:port]/database. DB2: host[:port]/database (z/OS: the
+   * location name).
+   */
   connectString?: string;
   user?: string;
   /**
-   * The schema owning the PeopleTools tables (Oracle). Absent: PS.PSDBOWNER's
-   * owner ID for the database, else SYSADM.
+   * The schema owning the PeopleTools tables. Absent: PS.PSDBOWNER's owner ID
+   * for the database, else the platform's default (Oracle SYSADM).
    */
   schema?: string;
   path?: string;
@@ -36,6 +45,16 @@ export interface ConnectionConfig {
    * database access id is not a PeopleSoft operator.
    */
   peoplesoftOperatorId?: string;
+  /**
+   * Two-tier sign-on. Absent: the connection signs on directly with the
+   * database login ({@link user}). `twoTier`: that login is the proxy (the
+   * Connect ID, e.g. `people`) that runs every query, and
+   * {@link peoplesoftOperatorId} is the PeopleSoft operator the connection
+   * acts as -- verified at connect and recorded as the save identity. App
+   * Designer's 2 Tier sign-on; the access-profile lookup is never done, so
+   * the proxy login must itself reach the PeopleTools tables.
+   */
+  signon?: 'twoTier';
 }
 
 /**
@@ -50,6 +69,12 @@ export class Workspace implements vscode.Disposable {
   private readonly _onDidChange = new vscode.EventEmitter<void>();
   readonly onDidChange = this._onDidChange.event;
   private _selectedConnectionId: string | undefined;
+
+  /**
+   * Where PeopleSoft: Install DB2 Driver puts ibm_db (the extension's global
+   * storage), used when peoplesoft.db2.driverPath is empty.
+   */
+  db2DriverDir?: string;
 
   constructor(private readonly secrets: vscode.SecretStorage) {}
 
@@ -121,7 +146,7 @@ export class Workspace implements vscode.Disposable {
     } catch (err) {
       // A password rejected by the database must not stay in the secret store,
       // or every later attempt reuses it and the user is never asked again.
-      if (config.kind === 'oracle' && isCredentialFailure(err)) {
+      if (isDatabase(config) && isCredentialFailure(err)) {
         await this.forgetPassword(config.name);
       }
       throw err;
@@ -153,7 +178,7 @@ export class Workspace implements vscode.Disposable {
       return await provider.readEnvironment?.();
     } catch (err) {
       // Same rule as connect(): a rejected password must not be reused.
-      if (config.kind === 'oracle' && isCredentialFailure(err)) {
+      if (isDatabase(config) && isCredentialFailure(err)) {
         await this.forgetPassword(config.name);
       }
       throw err;
@@ -186,13 +211,19 @@ export class Workspace implements vscode.Disposable {
     }
 
     const settings = vscode.workspace.getConfiguration('peoplesoft');
-    return new OracleProvider({
+    return new DatabaseProvider({
       name: config.name,
+      platform: config.kind,
       connectString: config.connectString,
       user: config.user,
       password,
       ...(config.schema?.trim() ? { schema: config.schema.trim() } : {}),
+      // Two-tier: the login above is the proxy; this operator is verified at
+      // connect and is the identity saves are recorded as.
+      ...(config.signon === 'twoTier' && config.peoplesoftOperatorId?.trim()
+        ? { signonOperator: config.peoplesoftOperatorId.trim() } : {}),
       thickModeLibDir: settings.get<string>('oracle.thickModeLibDir') || undefined,
+      ...(config.kind === 'db2' ? { db2DriverPath: db2DriverPath(settings.get<string>('db2.driverPath'), this.db2DriverDir) } : {}),
       decoderMode: config.decoder ?? settings.get<'auto' | 'strict' | 'raw'>('peoplecode.decoder', 'auto')
     });
   }
@@ -220,7 +251,7 @@ export class Workspace implements vscode.Disposable {
    */
   isPeopleCodeWritable(id: string, key: DefinitionKey): boolean {
     const config = this.configFor(id);
-    return config?.kind === 'oracle' &&
+    return !!config && isDatabase(config) &&
       config.peoplecodeAccess === 'writable' &&
       (key.type === DefinitionType.RecordPeopleCode || key.type === DefinitionType.ApplicationClassPeopleCode) &&
       isWritableName(key.parts[0]);
@@ -233,7 +264,7 @@ export class Workspace implements vscode.Disposable {
    */
   isWritable(id: string): boolean {
     const config = this.configFor(id);
-    return config?.kind === 'oracle' && config.peoplecodeAccess === 'writable';
+    return !!config && isDatabase(config) && config.peoplecodeAccess === 'writable';
   }
 
   /**
@@ -262,11 +293,11 @@ export class Workspace implements vscode.Disposable {
    */
   async verifyOperator(config: ConnectionConfig, operatorId: string): Promise<boolean> {
     const live = this.providers.get(providerId(config));
-    if (live?.isConnected && live instanceof OracleProvider) return live.operatorExists(operatorId);
+    if (live?.isConnected && live instanceof DatabaseProvider) return live.operatorExists(operatorId);
     const provider = await this.create(config);
     try {
       await provider.connect();
-      if (!(provider instanceof OracleProvider)) return false;
+      if (!(provider instanceof DatabaseProvider)) return false;
       return await provider.operatorExists(operatorId);
     } finally {
       await provider.dispose();
@@ -277,6 +308,20 @@ export class Workspace implements vscode.Disposable {
     await this.secrets.delete(`peoplesoft.password.${name}`);
   }
 
+  /**
+   * The two-tier sign-on password for a connection's PeopleSoft operator,
+   * stored in the OS secret store (never in settings.json). The operator is
+   * verified to exist and be unlocked at connect; the password is kept for the
+   * sign-on and is not sent in queries.
+   */
+  async setOperatorPassword(name: string, password: string): Promise<void> {
+    await this.secrets.store(`peoplesoft.operatorPassword.${name}`, password);
+  }
+
+  async forgetOperatorPassword(name: string): Promise<void> {
+    await this.secrets.delete(`peoplesoft.operatorPassword.${name}`);
+  }
+
   dispose(): void {
     for (const p of this.providers.values()) void p.dispose();
     this.providers.clear();
@@ -285,14 +330,40 @@ export class Workspace implements vscode.Disposable {
 
 }
 
-/** ORA-01017 is Oracle's "invalid username/password"; NJS-506 wraps it in Thin mode. */
-function isCredentialFailure(err: unknown): boolean {
+/**
+ * A rejected user or password: Oracle ORA-01017 (NJS-506 wraps it in Thin
+ * mode) or a locked account; SQL Server error 18456 ("Login failed for
+ * user"); DB2 SQL30082N (security processing failed: reason 24, user or
+ * password invalid).
+ */
+export function isCredentialFailure(err: unknown): boolean {
   const message = (err as { message?: string })?.message ?? '';
   const cause = ((err as { cause?: { message?: string } })?.cause?.message) ?? '';
-  return /ORA-01017|invalid username\/password|ORA-28000|account is locked/i
+  return /ORA-01017|invalid username\/password|ORA-28000|account is locked|Login failed for user|SQL30082N/i
     .test(`${message} ${cause}`);
 }
 
+/**
+ * The ibm_db directory a DB2 connection loads: the setting when set, else the
+ * installed one when Install DB2 Driver has put it there, else none (resolved
+ * normally).
+ */
+function db2DriverPath(setting: string | undefined, installed: string | undefined): string | undefined {
+  if (setting?.trim()) return setting.trim();
+  if (installed && existsSync(join(installed, 'node_modules', 'ibm_db', 'package.json'))) return installed;
+  return undefined;
+}
+
+/** Whether a connection is a database (as opposed to a project export). */
+export function isDatabase(config: Pick<ConnectionConfig, 'kind'>): config is ConnectionConfig & { kind: DatabasePlatform } {
+  return (DATABASE_PLATFORMS as readonly string[]).includes(config.kind);
+}
+
+/** Whether a provider id names a database connection. */
+export function isDatabaseId(id: string): boolean {
+  return DATABASE_PLATFORMS.some((p) => id.startsWith(`${p}:`));
+}
+
 export function providerId(config: ConnectionConfig): string {
-  return config.kind === 'projectFile' ? `project:${config.path}` : `oracle:${config.name}`;
+  return config.kind === 'projectFile' ? `project:${config.path}` : `${config.kind}:${config.name}`;
 }

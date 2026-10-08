@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { OracleProvider } from '../providers/oracle.js';
+import { DatabaseProvider } from '../providers/database.js';
 import { DefinitionType, TYPE_LABELS, isPeopleCode } from '../model/definitions.js';
 import { PEOPLECODE_OBJECTIDS, peopleCodeKeyFromValues, peopleCodeTypeOf } from '../model/peopleCodeKeys.js';
 import { DEFINITION_TYPE_GUIDE, typeCodeSummary } from '../mcp/definitionTypes.js';
 
-const oracle = new OracleProvider({ name: 'DEV', connectString: 'h:1521/X', user: 'SYSADM', password: '' });
+const oracle = new DatabaseProvider({ name: 'DEV', platform: 'oracle', connectString: 'h:1521/X', user: 'SYSADM', password: '' });
 
 test('every PSPCMPROG key shape on HRDMO names one kind of PeopleCode', () => {
   assert.equal(peopleCodeTypeOf([1, 2, 12]), DefinitionType.RecordPeopleCode);

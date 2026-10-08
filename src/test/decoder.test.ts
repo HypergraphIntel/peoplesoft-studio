@@ -666,7 +666,7 @@ test('class/end-class/method/end-method decode only when the caller says this is
   // Unconditionally mapping these opcodes collided with ordinary bytes in
   // non-class programs corpus-wide (end-method matched real source only
   // 8.9% of the time; see docs/ROADMAP.md pass seventeen), so they require
-  // isApplicationClass -- which OracleProvider sets from the definition's
+  // isApplicationClass -- which DatabaseProvider sets from the definition's
   // real OBJECTTYPE (58), not decoded content.
   const bytes = Buffer.from([
     ...HEADER,

@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { Workspace, ConnectionConfig, providerId } from './workspace.js';
 import { PeopleSoftFileSystem } from './providers/fileSystem.js';
 import { ConnectionsView } from './views/connections.js';
@@ -29,7 +31,8 @@ import { PropertiesPanel } from './editors/propertiesPanel.js';
 import { ImagePanel } from './editors/imagePanel.js';
 import { AppEnginePanel } from './editors/appEnginePanel.js';
 import { canInsertIntoProject, describeItem, ProjectSaveRefusedError } from './model/projectItems.js';
-import { OracleProvider } from './providers/oracle.js';
+import { DatabaseProvider } from './providers/database.js';
+import { validateConnectString } from './settings/settingsModel.js';
 
 import {
   configureAiClient
@@ -129,6 +132,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Writes go to every definition unless a name prefix limits them (writeScope.ts).
   setWriteNamePrefix(vscode.workspace.getConfiguration('peoplesoft').get<string>('writeNamePrefix'));
   const workspace = new Workspace(context.secrets);
+  workspace.db2DriverDir = path.join(context.globalStorageUri.fsPath, 'db2-driver');
   context.subscriptions.push(workspace);
 
   const statusBar = new StatusBar(workspace);
@@ -298,7 +302,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         'Project compare is not implemented yet. See docs/ROADMAP.md.');
     }),
 
-    vscode.commands.registerCommand('psft.addConnection', () => addConnection()),
+    vscode.commands.registerCommand('psft.addConnection', () => addConnection(workspace)),
+    vscode.commands.registerCommand('psft.installDb2Driver', () => installDb2Driver(workspace.db2DriverDir!)),
 
     vscode.commands.registerCommand('psft.openProjectFile', async () => {
       const picked = await vscode.window.showOpenDialog({
@@ -337,6 +342,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (confirm !== 'Remove') return;
       await workspace.disconnect(providerId(config));
       await workspace.forgetPassword(config.name);
+      await workspace.forgetOperatorPassword(config.name);
       const settings = vscode.workspace.getConfiguration('peoplesoft');
       const all = settings.get<ConnectionConfig[]>('connections', []);
       await settings.update('connections', all.filter((c) => c.name !== config.name),
@@ -367,12 +373,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           }
 
           const provider = await workspace.require(connectionId);
-          if ((key.type === DefinitionType.AppEngineProgram || key.type === DefinitionType.AppEngineSection) && provider instanceof OracleProvider) {
+          if ((key.type === DefinitionType.AppEngineProgram || key.type === DefinitionType.AppEngineSection) && provider instanceof DatabaseProvider) {
             const { program, peopleCode } = await provider.readAppEngineView(key);
             AppEnginePanel.show({ id: provider.id, displayName: provider.displayName }, key, program, peopleCode);
             return;
           }
-          if (key.type === DefinitionType.Image && provider instanceof OracleProvider) {
+          if (key.type === DefinitionType.Image && provider instanceof DatabaseProvider) {
             const image = await provider.readImage(key);
             if (!image) throw new Error(`No image named ${key.parts[0]}.`);
             ImagePanel.show({ id: provider.id, displayName: provider.displayName }, key, image);
@@ -417,7 +423,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           return;
         }
         const provider = await workspace.require(target.connectionId);
-        if (!(provider instanceof OracleProvider)) {
+        if (!(provider instanceof DatabaseProvider)) {
           vscode.window.showInformationMessage(
             `Inserting into a project writes to the database; ${provider.displayName} is a project export.`);
           return;
@@ -470,7 +476,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         const recname = target.key.parts[0];
         const provider = await workspace.require(target.connectionId);
         const operatorId = workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim();
-        if (!(provider instanceof OracleProvider) || !workspace.isWritable(provider.id) || !operatorId) {
+        if (!(provider instanceof DatabaseProvider) || !workspace.isWritable(provider.id) || !operatorId) {
           vscode.window.showWarningMessage(
             `${recname} cannot be deleted: ${provider.displayName} must be a Writable database connection with an Operator ID (PeopleSoft Studio Settings).`);
           return;
@@ -526,7 +532,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         }
         const name = key.parts[0];
         const provider = await workspace.require(target.connectionId);
-        if (!(provider instanceof OracleProvider) || !workspace.isSqlWritable(provider.id, key)) {
+        if (!(provider instanceof DatabaseProvider) || !workspace.isSqlWritable(provider.id, key)) {
           vscode.window.showWarningMessage(
             `${name}'s description cannot be changed here: a Writable connection with an Operator ID is needed${writeNamePrefix() ? `, and a name starting ${writeNamePrefix()}` : ''}.`);
           return;
@@ -742,12 +748,43 @@ async function saveConnection(config: ConnectionConfig): Promise<void> {
   );
 }
 
+/**
+ * Installs ibm_db for DB2 connections into the extension's storage, with npm
+ * in a terminal the user watches. ibm_db is not shipped in the extension: it
+ * downloads IBM's CLI driver for this operating system (some 85 MB) when it
+ * installs, which its install script does -- allowed by name in the
+ * package.json written for it, as npm 11 otherwise skips install scripts.
+ */
+async function installDb2Driver(dir: string): Promise<void> {
+  const go = await vscode.window.showInformationMessage(
+    'Install the DB2 driver (ibm_db, with IBM\'s CLI driver: about 85 MB from npm and IBM)? It needs npm.',
+    { modal: true, detail: `It is installed in ${dir}. DB2 for z/OS also needs a DB2 Connect license in its clidriver/license folder.` },
+    'Install');
+  if (go !== 'Install') return;
+  await fs.promises.mkdir(dir, { recursive: true });
+  await fs.promises.writeFile(path.join(dir, 'package.json'), JSON.stringify({
+    name: 'peoplesoft-studio-db2-driver', private: true,
+    dependencies: { ibm_db: '^4.0.1' },
+    allowScripts: { ibm_db: true }
+  }, null, 2) + '\n');
+  const terminal = vscode.window.createTerminal({ name: 'PeopleSoft: DB2 driver', cwd: dir });
+  terminal.show();
+  // npm 11 takes the approval from package.json's allowScripts (it refuses --allow-scripts in a project).
+  terminal.sendText('npm install --no-fund --no-audit');
+  void vscode.window.showInformationMessage('When npm finishes, connect to the DB2 connection again.');
+}
+
 /** Collects a connection interactively rather than making the user hand-edit settings.json. */
-async function addConnection(): Promise<void> {
+async function addConnection(workspace: Workspace): Promise<void> {
   const kind = await vscode.window.showQuickPick(
     [
-      { label: 'Oracle database', description: 'Read definitions from the PeopleTools tables', value: 'oracle' as const },
-      { label: 'Project export file', description: 'Read an App Designer XML export', value: 'projectFile' as const }
+      { label: 'Oracle database', description: 'PeopleTools tables on Oracle', platform: 'oracle' as const },
+      { label: 'Microsoft SQL Server database', description: 'PeopleTools tables on SQL Server', platform: 'mssql' as const },
+      { label: 'DB2 database', description: 'PeopleTools tables on DB2 for Linux, UNIX and Windows, or z/OS', platform: 'db2' as const },
+      { label: '2 Tier (Oracle)', description: 'Proxy database login plus a PeopleSoft operator sign-on', platform: 'oracle' as const, signon: 'twoTier' as const },
+      { label: '2 Tier (MS SQL)', description: 'Proxy database login plus a PeopleSoft operator sign-on', platform: 'mssql' as const, signon: 'twoTier' as const },
+      { label: '2 Tier (DB2)', description: 'Proxy database login plus a PeopleSoft operator sign-on', platform: 'db2' as const, signon: 'twoTier' as const },
+      { label: 'Project export file', description: 'Read an App Designer XML export', platform: 'projectFile' as const }
     ],
     { title: 'PeopleSoft connection type', ignoreFocusOut: true });
   if (!kind) return;
@@ -756,7 +793,7 @@ async function addConnection(): Promise<void> {
     title: 'Connection name', placeHolder: 'DEV', ignoreFocusOut: true });
   if (!name) return;
 
-  if (kind.value === 'projectFile') {
+  if (kind.platform === 'projectFile') {
     const picked = await vscode.window.showOpenDialog({
       canSelectMany: false, filters: { 'Project export': ['xml'] } });
     if (!picked?.[0]) return;
@@ -764,17 +801,55 @@ async function addConnection(): Promise<void> {
     return;
   }
 
+  const twoTier = kind.signon === 'twoTier';
+  const prompt = {
+    oracle: { title: 'Oracle connect string', placeHolder: 'host:1521/PSFTDB' },
+    mssql: { title: 'SQL Server: host[\\instance][:port]/database', placeHolder: 'sqlhost:1433/HCM92' },
+    db2: { title: 'DB2: host[:port]/database (z/OS: the location name)', placeHolder: 'db2host:50000/HCM92' }
+  }[kind.platform];
   const connectString = await vscode.window.showInputBox({
-    title: 'Oracle connect string',
-    placeHolder: 'host:1521/PSFTDB',
-    ignoreFocusOut: true });
+    ...prompt,
+    ignoreFocusOut: true,
+    validateInput: (value) => validateConnectString(value.trim(), kind.platform)
+  });
   if (!connectString) return;
 
+  // The database login. Two-tier: the proxy (Connect ID, e.g. people) that
+  // runs every query. Direct: the schema-owning access id.
   const user = await vscode.window.showInputBox({
-    title: 'Database access id', value: 'SYSADM', ignoreFocusOut: true });
+    title: twoTier ? 'Connect ID (the proxy database login that runs queries)' : 'Database access id',
+    placeHolder: twoTier ? 'people' : undefined,
+    value: twoTier ? '' : kind.platform === 'oracle' ? 'SYSADM' : '',
+    ignoreFocusOut: true });
   if (!user) return;
 
-  await saveConnection({ name, kind: 'oracle', connectString, user });
+  if (!twoTier) {
+    await saveConnection({ name, kind: kind.platform, connectString: connectString.trim(), user });
+    return;
+  }
+
+  // Two-tier: the PeopleSoft operator this connection acts as -- the save
+  // identity, verified against PSOPRDEFN at connect. The access-profile lookup
+  // is never done, so the Connect ID above is what reaches the tables.
+  const operatorId = await vscode.window.showInputBox({
+    title: 'PeopleSoft User ID (the operator saves are recorded as)',
+    placeHolder: 'PS', ignoreFocusOut: true,
+    validateInput: (value) => value.trim() ? undefined : 'A PeopleSoft operator ID is required for a two-tier connection.'
+  });
+  if (!operatorId) return;
+
+  const operatorPassword = await vscode.window.showInputBox({
+    title: `PeopleSoft password for ${operatorId.trim()}`,
+    password: true, ignoreFocusOut: true,
+    prompt: 'Stored in the OS secret store. The operator is verified to exist and be unlocked; the password is kept for the sign-on.'
+  });
+  if (operatorPassword === undefined) return;
+
+  await saveConnection({
+    name, kind: kind.platform, connectString: connectString.trim(), user,
+    signon: 'twoTier', peoplesoftOperatorId: operatorId.trim()
+  });
+  await workspace.setOperatorPassword(name, operatorPassword);
 }
 
 async function selectStatusConnection(workspace: Workspace): Promise<void> {
@@ -800,7 +875,7 @@ async function selectStatusConnection(workspace: Workspace): Promise<void> {
       return {
         label: config.name,
         description: connected.has(id) ? 'Connected' : 'Not connected',
-        detail: config.kind === 'oracle'
+        detail: config.kind !== 'projectFile'
           ? config.connectString
           : config.path,
         config,
@@ -896,9 +971,9 @@ async function newDefinition(workspace: Workspace): Promise<void> {
  * whose first save creates the definition.
  */
 /** The Writable database connections with an Operator ID; one picked when there are several. */
-async function pickWritableConnection(workspace: Workspace, title: string): Promise<OracleProvider | undefined> {
-  const writable = workspace.activeProviders.filter((p): p is OracleProvider =>
-    p instanceof OracleProvider && p.isConnected && workspace.isWritable(p.id) &&
+async function pickWritableConnection(workspace: Workspace, title: string): Promise<DatabaseProvider | undefined> {
+  const writable = workspace.activeProviders.filter((p): p is DatabaseProvider =>
+    p instanceof DatabaseProvider && p.isConnected && workspace.isWritable(p.id) &&
     Boolean(workspace.configFor(p.id)?.peoplesoftOperatorId?.trim()));
   if (writable.length === 0) {
     vscode.window.showWarningMessage('Connect to a database whose Access is Writable, with an Operator ID (PeopleSoft Studio Settings), first.');
@@ -972,7 +1047,7 @@ async function newPackage(workspace: Workspace): Promise<void> {
  * opens with the class's declaration and the first save creates it --
  * PSAPPCLASSDEFN, the program, and the package's new version (case c04).
  */
-async function newClass(workspace: Workspace, chosen?: OracleProvider, packageRoot?: string): Promise<void> {
+async function newClass(workspace: Workspace, chosen?: DatabaseProvider, packageRoot?: string): Promise<void> {
   const provider = chosen ?? await pickWritableConnection(workspace, 'New Application Class');
   if (!provider) return;
   // ROOT, ROOT:SUB or ROOT:SUB:SUB2 -- subpackages that do not exist yet are created with the class (c05).

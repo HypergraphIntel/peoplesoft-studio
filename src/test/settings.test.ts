@@ -186,6 +186,25 @@ test('connection views carry the configured fields and nothing else', () => {
   assert.ok(!('password' in view));
 });
 
+test('a two-tier connection view names its sign-on: proxy login and operator', () => {
+  const { service, config } = setup([]);
+  config.set('connections', 'global', [{
+    name: 'HRPROD2T', kind: 'oracle', connectString: 'hr.example:1521/HRPROD', user: 'people',
+    signon: 'twoTier', peoplesoftOperatorId: 'PS'
+  }]);
+  const [view] = service.getState().connections;
+  assert.equal(view.kindLabel, '2 Tier (Oracle)');
+  assert.equal(view.signon, 'twoTier');
+  assert.equal(view.user, 'people');
+  assert.equal(view.operatorId, 'PS');
+  // A direct connection carries no two-tier fields.
+  config.set('connections', 'global', [HCDEV]);
+  const [direct] = service.getState().connections;
+  assert.equal(direct.kindLabel, 'Oracle database');
+  assert.equal(direct.signon, undefined);
+  assert.equal(direct.operatorId, undefined);
+});
+
 test('read-only is connection metadata, not a toggle', () => {
   assert.equal(describeAccess({ kind: 'projectFile' }).level, 'read-only');
   assert.equal(describeAccess({ kind: 'oracle' }).label, 'PeopleCode read-only');

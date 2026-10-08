@@ -1,6 +1,6 @@
 /*
  * A native record save from the command line, through the same
- * OracleProvider.saveRecord the record editor uses -- compared against App
+ * DatabaseProvider.saveRecord the record editor uses -- compared against App
  * Designer's record saves (cases r01-r07).
  *
  * WRITES to the database. Refuses any database but the expected lab
@@ -19,7 +19,7 @@
  * inmemory:off|all|selective (Oracle In-Memory; then use:AT:inMemory=1 to choose fields). Connection: PSLAB_ACCESSID /
  * PSLAB_ACCESSPSWD, PSLAB_AUDIT_CONNECT (default 127.0.0.1:15210/hrdmo).
  */
-import { OracleProvider } from '../../../src/providers/oracle';
+import { DatabaseProvider } from '../../../src/providers/database';
 import { DefinitionType, makeKey } from '../../../src/model/definitions';
 import {
   inMemoryMode, insertField, moveField, removeField, setDefault, setEdits, setInMemory, setLabel, setPageControl, setRecordProperties, setUse,
@@ -81,8 +81,8 @@ async function main(): Promise<void> {
   const user = process.env.PSLAB_ACCESSID;
   const password = process.env.PSLAB_ACCESSPSWD;
   if (!user || !password) throw new Error('PSLAB_ACCESSID and PSLAB_ACCESSPSWD must be set.');
-  const provider = new OracleProvider({
-    name: expected, user, password, connectString: process.env.PSLAB_AUDIT_CONNECT ?? '127.0.0.1:15210/hrdmo'
+  const provider = new DatabaseProvider({
+    name: expected, platform: 'oracle', user, password, connectString: process.env.PSLAB_AUDIT_CONNECT ?? '127.0.0.1:15210/hrdmo'
   });
   await provider.connect();
   try {

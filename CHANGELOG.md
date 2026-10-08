@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.7.8
+
+### Changed
+
+- **Microsoft SQL Server and DB2 connections** (Experimental): *Add
+  Connection* offers SQL Server (`host[\instance][:port]/database`) and DB2
+  for Linux, UNIX and Windows or z/OS (`host[:port]/database`). Everything
+  reads as on Oracle -- browsing, search, every definition view, PeopleCode,
+  Properties, the MCP server -- and the writers (PeopleCode, records, fields,
+  translates, SQL, HTML, style sheets, projects, packages, Build) write the
+  same rows. Schema per connection as on Oracle (`PSDBOWNER`, else the
+  platform's default). Checked against SQL Server and DB2 lab databases
+  loaded from HRDMO: 5,105 definitions render as on Oracle, and every writer
+  stores what it stores on Oracle. No App Designer save has been captured on
+  these platforms yet. See [docs/DATABASES.md](docs/DATABASES.md).
+- **PeopleSoft: Install DB2 Driver** installs IBM's `ibm_db` (about 85 MB,
+  with npm) for DB2 connections; or point `peoplesoft.db2.driverPath` at an
+  installation. The SQL Server driver ships with the extension.
+- Build... writes the platform's DDL: its PSDDLMODEL statements, its table
+  space row, and its column types; SQL Server and DB2 scripts end statements
+  with `go` and `;`.
+- **Two-tier sign-on** (2 Tier): *Add Connection* offers 2 Tier (Oracle),
+  2 Tier (MS SQL) and 2 Tier (DB2), like App Designer's two-tier sign-on. A
+  Connect ID (the proxy database login, e.g. `people`) runs every query, and
+  a PeopleSoft operator (OPRID) is the acting identity saves are recorded as,
+  verified against PSOPRDEFN at connect (exists and not locked). The
+  access-profile lookup (PSACCESSPRFL) is never done. See
+  [docs/DATABASES.md](docs/DATABASES.md).
+
+### Fixed
+
+- A record's table space came from whichever PSRECTBLSPC row was read
+  first, so a record with rows for other platforms could be built on Oracle
+  in DB2's table space (ABSHCOMUK_LNG: PSIMAGE2 for HRAPP). It is now the
+  connection's platform row, else the default.
+- Find Definition References, a portal folder's contents and a node's
+  connector properties list in a fixed order (ties were in whatever order
+  the database returned them).
+
 ## 0.7.7
 
 ### Changed

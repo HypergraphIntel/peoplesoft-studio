@@ -10,7 +10,7 @@ import {
  * caller that builds a key itself.
  *
  * `databaseSearch` says whether a database connection can search the type
- * (OracleProvider.search). A project export searches whatever it contains.
+ * (DatabaseProvider.search). A project export searches whatever it contains.
  */
 export interface DefinitionTypeGuide {
   type: DefinitionType;

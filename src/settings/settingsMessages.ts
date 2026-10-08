@@ -46,12 +46,16 @@ export type ConnectionTestView =
 export interface ConnectionView {
   id: string;
   name: string;
-  kind: 'oracle' | 'projectFile';
+  kind: 'oracle' | 'mssql' | 'db2' | 'projectFile';
   kindLabel: string;
+  /** Two-tier sign-on: the database login is a proxy and the page labels it accordingly. */
+  signon?: 'twoTier';
   connectString?: string;
   user?: string;
   /** The configured schema; '' when it is detected on connect. */
   schema?: string;
+  /** Two-tier: the PeopleSoft operator the connection acts as (the save identity). */
+  operatorId?: string;
   path?: string;
   connected: boolean;
   /**

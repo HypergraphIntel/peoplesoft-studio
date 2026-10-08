@@ -58,8 +58,32 @@ export interface DdlField {
   useEdit: number;
 }
 
+/**
+ * The platform a script is written for, as PSDDLMODEL's PLATFORMID names it:
+ * 2 Oracle, 7 Microsoft SQL Server, 4 DB2 LUW, 1 DB2 z/OS.
+ *
+ * Oracle's scripts are App Designer's own, checked byte for byte. The others
+ * follow PeopleTools' platform type mapping (PeopleBooks, Application
+ * Designer: field definitions -- SQL Server Character NVARCHAR(n), Long
+ * Character NVARCHAR(MAX), Image VARBINARY(MAX); DB2 Unicode VARGRAPHIC /
+ * DBCLOB) and HRDMO's PSDDLMODEL statements for the platform; no App Designer
+ * script for them has been captured, so their layout (terminators, where
+ * lines break) is this module's, not App Designer's.
+ */
+export type DdlPlatform = 'oracle' | 'mssql' | 'db2' | 'db2zos';
+
+export const DDL_PLATFORM_IDS: Readonly<Record<DdlPlatform, number>> = { oracle: 2, mssql: 7, db2: 4, db2zos: 1 };
+
+export function ddlPlatformFor(id: number): DdlPlatform {
+  return id === 7 ? 'mssql' : id === 4 ? 'db2' : id === 1 ? 'db2zos' : 'oracle';
+}
+
 /** The DDL model statements and parameters a build fills in. */
 export interface DdlModel {
+  /** The platform the model is for; absent: Oracle. */
+  platform?: DdlPlatform;
+  /** PSRECTBLSPC.DBNAME: the database a DB2 z/OS table space is in. */
+  dbName?: string;
   /** PSDDLMODEL STATEMENT_TYPE 1: Create Table. */
   table: string;
   /** PSDDLMODEL STATEMENT_TYPE 2: Create Index. */
@@ -99,7 +123,8 @@ export function lobColumn(f: { type?: FieldType; length?: number; format?: numbe
   return t === 'CLOB' || t === 'BLOB' ? t : undefined;
 }
 
-export function columnType(f: DdlField): string {
+export function columnType(f: DdlField, platform: DdlPlatform = 'oracle'): string {
+  if (platform !== 'oracle') return otherColumnType(f, platform);
   switch (f.type) {
     case FieldType.Character:
     case FieldType.ImageReference:
@@ -124,6 +149,47 @@ export function columnType(f: DdlField): string {
     default:
       throw new Error(`Field type ${f.type} has no column rule.`);
   }
+}
+
+/** Integer and decimal columns are the same on every platform. */
+function numberType(f: DdlField): string {
+  if (f.type === FieldType.Number) {
+    if (f.decimalPositions > 0) return `DECIMAL(${f.length - 1}, ${f.decimalPositions})`;
+    return f.length <= 4 ? 'SMALLINT' : f.length <= 9 ? 'INTEGER' : `DECIMAL(${f.length})`;
+  }
+  if (f.decimalPositions > 0) return `DECIMAL(${f.length - 2}, ${f.decimalPositions})`;
+  return f.length <= 5 ? 'SMALLINT' : f.length <= 11 ? 'INTEGER' : `DECIMAL(${f.length - 1})`;
+}
+
+function otherColumnType(f: DdlField, platform: Exclude<DdlPlatform, 'oracle'>): string {
+  const ms = platform === 'mssql';
+  const zos = platform === 'db2zos';
+  switch (f.type) {
+    case FieldType.Character:
+    case FieldType.ImageReference:
+      return ms ? `NVARCHAR(${f.length})` : zos ? `VARCHAR(${f.length})` : `VARGRAPHIC(${f.length})`;
+    case FieldType.LongCharacter:
+      if (f.format === 7) return ms ? 'VARBINARY(MAX)' : 'BLOB(100M)';
+      return ms ? 'NVARCHAR(MAX)' : zos ? 'CLOB(100M)' : 'DBCLOB(100M)';
+    case FieldType.Number:
+    case FieldType.SignedNumber:
+      return numberType(f);
+    case FieldType.Date:
+      return 'DATE';
+    case FieldType.Time:
+      return ms ? 'DATETIME' : 'TIME';
+    case FieldType.DateTime:
+      return ms ? 'DATETIME' : 'TIMESTAMP';
+    case FieldType.Image:
+      return ms ? 'VARBINARY(MAX)' : 'BLOB(100M)';
+    default:
+      throw new Error(`Field type ${f.type} has no column rule.`);
+  }
+}
+
+/** Whether a column is a LOB on its platform (listed last in a Create Table, as App Designer does on Oracle). */
+function isLob(type: string): boolean {
+  return /^(CLOB|BLOB|DBCLOB|NVARCHAR\(MAX\)|VARBINARY\(MAX\))/.test(type);
 }
 
 export function notNull(f: DdlField): boolean {
@@ -163,7 +229,20 @@ function fill(model: string, tokens: Readonly<Record<string, string>>, parms: Re
     .replace(/\*\*([A-Z]+)\*\*/g, (m, p: string) => (p in parms ? parms[p].trim() : m));
 }
 
-const statement = (text: string) => [...text.split('\n').flatMap((l) => wrapLine(l)), '/'];
+/**
+ * A statement's lines and its end: Oracle's "/" line (App Designer's); "go"
+ * for SQL Server (sqlcmd and SSMS); ";" ending the last line for DB2's CLP.
+ */
+function statementFor(platform: DdlPlatform) {
+  return (text: string): string[] => {
+    if (platform === 'oracle') return [...text.split('\n').flatMap((l) => wrapLine(l)), '/'];
+    // Empty [TOKEN]s leave runs of blanks: one is enough.
+    const lines = text.split('\n').map((l) => l.replace(/(\S) {2,}/g, '$1 ').trimEnd()).flatMap((l) => wrapLine(l));
+    if (platform === 'mssql') return [...lines, 'go'];
+    lines[lines.length - 1] += ';';
+    return lines;
+  };
+}
 
 /** The Create Table script, or the reason there is none. */
 export function createTableScript(r: DdlRecord, model: DdlModel): string {
@@ -171,18 +250,28 @@ export function createTableScript(r: DdlRecord, model: DdlModel): string {
     throw new Error(`${r.name} is not an SQL Table: only SQL Tables have a Create Table script here.`);
   }
   if (r.fields.length === 0) throw new Error(`${r.name} has no fields.`);
+  const platform = model.platform ?? 'oracle';
+  const statement = statementFor(platform);
   const table = tableName(r);
-  const lob = (f: DdlField) => ['CLOB', 'BLOB'].includes(columnType(f));
+  const lob = (f: DdlField) => isLob(columnType(f, platform));
   const columns = [...r.fields.filter((f) => !lob(f)), ...r.fields.filter(lob)]
-    .map((f) => `${f.name} ${columnType(f)}${notNull(f) ? ' NOT NULL' : ''}`).join(',\n   ');
-  const out = statement(fill(model.table, { TBNAME: table, TBCOLLIST: columns, TBSPCNAME: r.tablespace ?? '' }, model.tableParms));
+    .map((f) => `${f.name} ${columnType(f, platform)}${notNull(f) ? ' NOT NULL' : ''}`).join(',\n   ');
+  const tokens: Record<string, string> = {
+    TBNAME: table, TBCOLLIST: columns, TBSPCNAME: r.tablespace ?? '',
+    // DB2: no VOLATILE marking and no separate LOB table space unless a record names them.
+    VOLATILE: '', DBXLOBTBSPCNAME: '', DBNAME: model.dbName ?? ''
+  };
+  let tableStatement = fill(model.table, tokens, model.tableParms);
+  // DB2 LUW without a table space of its own: the database's default, and indexes with the table.
+  if (platform === 'db2' && !r.tablespace) tableStatement = tableStatement.replace(/\s+IN\s+INDEX IN\s+IDX\s*/, ' ');
+  const out = statement(tableStatement);
 
   const keys = r.fields.filter((f) => hasFlag(f.useEdit, UseEdit.Key) || hasFlag(f.useEdit, UseEdit.DuplicateOrderKey));
   if (keys.length > 0) {
     const unique = !keys.some((k) => hasFlag(k.useEdit, UseEdit.DuplicateOrderKey));
     const index = fill(model.index,
-      { UNIQUE: unique ? 'UNIQUE' : '', IDXNAME: table, TBNAME: table, IDXCOLLIST: keys.map((k) => k.name).join(',\n   ') },
-      model.indexParms).replace(/ INDEX /, ' iNDEX ');
+      { UNIQUE: unique ? 'UNIQUE' : '', CLUSTER: platform === 'mssql' ? 'CLUSTERED' : '', IDXNAME: table, TBNAME: table, IDXCOLLIST: keys.map((k) => k.name).join(',\n   ') },
+      model.indexParms).replace(/ INDEX /, platform === 'oracle' ? ' iNDEX ' : ' INDEX ');
     out.push(...statement(index));
     if (/\bPARALLEL NOLOGGING\b/.test(index)) out.push(...statement(`ALTER INDEX ${table} NOPARALLEL LOGGING`));
   }
@@ -191,7 +280,7 @@ export function createTableScript(r: DdlRecord, model: DdlModel): string {
     const name = `PS${i}${r.name}`;
     const parms = model.altIndexParms?.[String(i)] ?? model.indexDefaults ?? model.indexParms;
     const index = fill(model.index,
-      { UNIQUE: '', IDXNAME: name, TBNAME: table, IDXCOLLIST: [alt, ...keyFields].map((k) => k.name).join(',\n   ') }, parms);
+      { UNIQUE: '', CLUSTER: '', IDXNAME: name, TBNAME: table, IDXCOLLIST: [alt, ...keyFields].map((k) => k.name).join(',\n   ') }, parms);
     out.push(...statement(index));
     if (/\bPARALLEL NOLOGGING\b/.test(index)) out.push(...statement(`ALTER INDEX ${name} NOPARALLEL LOGGING`));
   }

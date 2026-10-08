@@ -337,7 +337,7 @@ function formatScaled(value: bigint, scale: number): string {
  *
  * The name table stores `RECNAME.REFNAME` (e.g. `HTML.OU_OJET_REQUIRE_CONFIG`)
  * when PSPCMNAME.RECNAME is non-blank, so the definition-type qualifier is
- * carried through automatically; see progtext.ts and OracleProvider.
+ * carried through automatically; see progtext.ts and DatabaseProvider.
  */
 function readRecordFieldReference(bytes: Buffer, start: number): { nameNum: number; end: number } | undefined {
   if (start + 2 > bytes.length) return undefined;

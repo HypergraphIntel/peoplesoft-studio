@@ -9,7 +9,7 @@ import { FIELD_TYPE_LABELS, FieldType, RecordType } from './record.js';
  *
  * Read-only. Values are shown as stored; a code is given a name only where
  * this repository already defines one (RecordType, FieldType). Free of the
- * `vscode` module; OracleProvider reads the rows, this module labels them.
+ * `vscode` module; DatabaseProvider reads the rows, this module labels them.
  */
 
 export interface PropertyItem {
