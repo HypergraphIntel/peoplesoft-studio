@@ -2,7 +2,14 @@
 
 ## 0.7.7
 
-In progress.
+### Changed
+
+- **Connections in Settings collapse**: click a connection's header to
+  open or close it. Closed, it is one line -- name, badges and connect
+  string. The target connection starts open, as does one just added; the
+  rest start closed, and each stays as you leave it.
+- **Build Settings** reads as one panel: folder tabs (Build, Alter) over a
+  bordered box, the selected tab joined to it.
 
 ## 0.7.6
 
