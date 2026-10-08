@@ -3,6 +3,7 @@ import { RecordDefinition } from '../model/record.js';
 import type { PropertiesInput } from '../model/properties.js';
 import type { FieldDefinition } from '../model/fieldDefinition.js';
 import type { RecordLayout, TranslateValue } from '../model/recordLayout.js';
+import type { ImageContent } from '../editors/imageHtml.js';
 
 export interface DefinitionSummary {
   key: DefinitionKey;
@@ -126,6 +127,9 @@ export interface DefinitionProvider {
 
   /** A field's translate values. */
   readTranslates?(fieldName: string): Promise<TranslateValue[]>;
+
+  /** An image definition's bytes; undefined when it does not exist. */
+  readImage?(key: DefinitionKey): Promise<ImageContent | undefined>;
 }
 
 /** One place a definition is referenced, for Find Definition References. */

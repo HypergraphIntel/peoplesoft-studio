@@ -115,6 +115,7 @@ Goal long-term: replace Application Designer. **Today this is a trusted reader a
 | **Images** | Read-Only | Shown in a panel (GIF, PNG, JPEG, SVG, BMP) — see [docs/IMAGES.md](docs/IMAGES.md) |
 | **Portal Registry** | Read-Only | Folders and content references: navigation path, component, URL, security — see [docs/PORTAL_REGISTRY.md](docs/PORTAL_REGISTRY.md) |
 | **URL Definitions**, **XSLT**, **Message Nodes** | Read-Only | A node's passwords are never shown — see [docs/URLS_NODES.md](docs/URLS_NODES.md) |
+| MCP server (AI clients) | Read-Only | Search and read every type above, PeopleCode by record, component or Application Class, and a bounded PeopleCode text search. `psft_list_definition_types` lists the type codes and key parts |
 | PeopleCode IntelliSense-lite | Yes | Completion, hover, outline, snippets |
 | PeopleCode syntax highlighting | Yes | |
 

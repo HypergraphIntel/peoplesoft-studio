@@ -18,10 +18,24 @@ import {
   providerId
 } from '../workspace.js';
 
+import {
+  UnsupportedOperationError
+} from '../providers/provider.js';
+
 import type {
   DefinitionProvider,
   DefinitionSummary
 } from '../providers/provider.js';
+
+import {
+  imageMimeType,
+  sniffImageMimeType
+} from '../editors/imageHtml.js';
+
+import {
+  DEFINITION_TYPE_GUIDE,
+  typeCodeSummary
+} from './definitionTypes.js';
 
 import type {
   McpConnectionDescriptor,
@@ -37,6 +51,24 @@ const READ_ONLY = {
 
 const PEOPLECODE_TYPE_VALUES =
   [...PEOPLECODE_TYPES];
+
+/** Image types an MCP client can be handed as an image. */
+const MCP_IMAGE_TYPES =
+  new Set([
+    'image/png',
+    'image/jpeg',
+    'image/gif',
+    'image/webp'
+  ]);
+
+/** Larger images are described, not sent. */
+const MCP_IMAGE_MAXIMUM_BYTES =
+  1024 * 1024;
+
+const TYPE_CODES =
+  'Types: ' +
+  typeCodeSummary() +
+  '. psft_list_definition_types gives the key parts each type takes.';
 
 function jsonResult(value: unknown) {
   return {
@@ -414,15 +446,54 @@ export function registerPeopleSoftTools(
   );
 
   server.registerTool(
+    'psft_list_definition_types',
+    {
+      title:
+        'List PeopleSoft definition types',
+      description:
+        'List the definition types the psft_* tools take: each OBJECTTYPE ' +
+        'code, its name, the key parts psft_get_definition expects for it ' +
+        '(in order), and whether a database connection can search it.',
+      annotations:
+        READ_ONLY
+    },
+    async () => jsonResult({
+      types:
+        DEFINITION_TYPE_GUIDE.map(
+          guide => ({
+            type:
+              guide.type,
+            typeLabel:
+              typeLabel(guide.type),
+            keyParts:
+              guide.keyParts,
+            databaseSearch:
+              guide.databaseSearch,
+            ...(
+              guide.note
+                ? {
+                    note:
+                      guide.note
+                  }
+                : {}
+            )
+          })
+        )
+    })
+  );
+
+  server.registerTool(
     'psft_search_definitions',
     {
       title:
         'Search PeopleSoft definitions',
       description:
         'Search definitions in a configured PeopleSoft Studio connection. ' +
-        'The type is a PeopleTools OBJECTTYPE code. Omit type to let the ' +
-        'provider use its normal search behavior. namePattern supports the ' +
-        'same % and _ wildcards as PeopleSoft Studio search.',
+        'The type is a PeopleTools OBJECTTYPE code; omit it to search every ' +
+        'type. namePattern supports the same % and _ wildcards as PeopleSoft ' +
+        'Studio search. Each result carries the key psft_get_definition ' +
+        'takes. ' +
+        TYPE_CODES,
       inputSchema:
         z.object({
           connection:
@@ -491,9 +562,12 @@ export function registerPeopleSoftTools(
         'Read a PeopleSoft definition',
       description:
         'Read the live definition payload through the same PeopleSoft Studio ' +
-        'provider used by the VS Code extension. For text-backed definitions ' +
-        'such as PeopleCode, SQL, and HTML, returns the source text. Records ' +
-        'are returned as structured record metadata.',
+        'provider used by the VS Code extension. Records are returned as ' +
+        'structured record metadata, images as the image itself, and every ' +
+        'other type as text: PeopleCode, SQL and HTML as their source, and ' +
+        'pages, components, menus, App Engine programs, queries, trees and ' +
+        'the rest as App Designer shows them. ' +
+        TYPE_CODES,
       inputSchema:
         z.object({
           connection:
@@ -553,6 +627,120 @@ export function registerPeopleSoftTools(
             text
           }
         });
+      }
+
+      if (
+        key.type ===
+        DefinitionType.Image &&
+        provider.readImage
+      ) {
+        const image =
+          await provider.readImage(
+            key
+          );
+
+        if (!image) {
+          throw new Error(
+            `No image named ${key.parts[0]}.`
+          );
+        }
+
+        const images =
+          image.alternates.map(
+            alternate => ({
+              ...alternate,
+              mimeType:
+                sniffImageMimeType(
+                  alternate.bytes
+                ) ??
+                imageMimeType(
+                  alternate.format
+                )
+            })
+          );
+
+        const sent =
+          images.find(
+            alternate =>
+              MCP_IMAGE_TYPES.has(
+                alternate.mimeType
+              ) &&
+              alternate.bytes.length <=
+              MCP_IMAGE_MAXIMUM_BYTES
+          );
+
+        const svg =
+          images.find(
+            alternate =>
+              alternate.mimeType ===
+              'image/svg+xml'
+          );
+
+        const result =
+          jsonResult({
+            connection: {
+              id:
+                provider.id,
+              name:
+                provider.displayName
+            },
+            definition: {
+              key,
+              displayName:
+                displayName(key),
+              typeLabel:
+                typeLabel(key.type),
+              kind:
+                'image',
+              description:
+                image.description,
+              format:
+                image.format,
+              alternates:
+                images.map(
+                  alternate => ({
+                    altContNum:
+                      alternate.altContNum,
+                    format:
+                      alternate.format,
+                    mimeType:
+                      alternate.mimeType,
+                    bytes:
+                      alternate.bytes.length
+                  })
+                ),
+              imageAttached:
+                sent?.altContNum,
+              ...(
+                !sent && svg
+                  ? {
+                      svg:
+                        svg.bytes.toString(
+                          'utf8'
+                        )
+                    }
+                  : {}
+              )
+            }
+          });
+
+        return sent
+          ? {
+              content: [
+                ...result.content,
+                {
+                  type:
+                    'image' as const,
+                  data:
+                    sent.bytes.toString(
+                      'base64'
+                    ),
+                  mimeType:
+                    sent.mimeType
+                }
+              ]
+            }
+          : result;
       }
 
       if (
@@ -1239,17 +1427,32 @@ export function registerPeopleSoftTools(
           maximumScanned -
           scanned;
 
-        const candidates =
-          await provider.search({
-            type,
-            namePattern:
-              namePattern ?? '%',
-            limit:
-              Math.min(
-                remaining,
-                500
-              )
-          });
+        let candidates:
+          DefinitionSummary[];
+
+        try {
+          candidates =
+            await provider.search({
+              type,
+              namePattern:
+                namePattern ?? '%',
+              limit:
+                Math.min(
+                  remaining,
+                  500
+                )
+            });
+        } catch (error) {
+          // A kind of PeopleCode this provider cannot list is not scanned.
+          if (
+            error instanceof
+            UnsupportedOperationError
+          ) {
+            continue;
+          }
+
+          throw error;
+        }
 
         for (
           const candidate

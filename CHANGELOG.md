@@ -52,6 +52,12 @@
   Definitions, Trees, Messages, Services, Service Operations, Images, Portal
   Registry entries, File Layouts, Component Interfaces, Permission Lists and
   Roles.
+- **The MCP server reads every type the extension opens**, and says how:
+  the search and read tools list the type codes, and the new
+  `psft_list_definition_types` gives each type's key parts. Search with no
+  type searches every type. Images come back as the image itself (PNG,
+  GIF, JPEG, WebP; SVG as text). Message Catalog entries (by set, number
+  or text) and App Engine sections can be searched.
 - **Build Settings** is one panel in Settings with a Build tab and an Alter
   tab, as App Designer's Build Settings dialog.
 - The Projects tree names 20 more item types it lists but does not open
@@ -70,6 +76,12 @@
 - Component record PeopleCode (project type 47) and component record field
   PeopleCode (48) now open from a project; 48 was labelled Component
   Record PeopleCode.
+- The MCP PeopleCode tools (`psft_get_record_peoplecode`,
+  `psft_get_component_peoplecode`, `psft_get_application_class`,
+  `psft_find_peoplecode_references`) worked only on project exports: a
+  database connection could not search PeopleCode. It now finds record,
+  component, page, menu, App Engine and Application Class PeopleCode in
+  `PSPCMPROG`, and Find Definition References opens all of them.
 - SQL definitions and SQL / Dynamic View text opened as "[object Object]":
   the SQL text column is a CLOB and is now read as text.
 
