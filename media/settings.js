@@ -25,11 +25,19 @@
   let editing = saved.editing || [];
   /** The Build Settings panel's open tab: 'buildCreate' (Build) or 'buildAlter' (Alter). */
   let buildTab = saved.buildTab === 'buildAlter' ? 'buildAlter' : 'buildCreate';
+  /**
+   * Connection panels opened or closed by hand, by id. One not in here is
+   * open when it is the target connection, else closed.
+   * @type {Record<string, boolean>}
+   */
+  const expanded = saved.expanded || {};
+  /** @type {Set<string> | undefined} connection ids in the last state, to open ones added since */
+  let knownConnections;
   /** @type {Record<string, Record<string, string>>} keyed like drafts' prefixes */
   const errors = {};
 
   function persist() {
-    vscode.setState({ drafts, editing, buildTab });
+    vscode.setState({ drafts, editing, buildTab, expanded });
   }
 
   /** @param {Message} message */
@@ -159,17 +167,46 @@
     ]);
   }
 
+  function isExpanded(c) {
+    return c.id in expanded ? expanded[c.id] : !!c.selected;
+  }
+
+  function toggleExpanded(c) {
+    expanded[c.id] = !isExpanded(c);
+    persist();
+    render();
+  }
+
   function renderConnection(c) {
     const busy = c.test && c.test.status === 'testing';
-    const head = h('div', { className: 'connection-head' }, [
-      h('h3', { text: c.name }),
+    const open = isExpanded(c);
+    const bodyId = `connection-body-${c.id.replace(/[^A-Za-z0-9_-]/g, '_')}`;
+    const head = h('div', {
+      className: 'connection-head',
+      on: {
+        // The whole header row toggles, not just the name; its badges are not controls.
+        click: (e) => { if (!(/** @type {HTMLElement} */ (e.target)).closest('button')) toggleExpanded(c); }
+      }
+    }, [
+      h('h3', {}, [
+        h('button', {
+          className: 'disclosure',
+          attrs: {
+            type: 'button', 'aria-expanded': String(open), 'aria-controls': bodyId,
+            'data-focus-key': `expand:${c.id}`, title: open ? 'Collapse' : 'Expand'
+          },
+          on: { click: () => toggleExpanded(c) }
+        }, [h('span', { className: 'chevron', attrs: { 'aria-hidden': 'true' } }), c.name])
+      ]),
       h('span', { className: 'kind', text: c.kindLabel }),
       c.selected ? badge('Target', 'neutral', 'The workspace target connection, chosen in the Connections view or the status bar') : null,
       c.connected ? badge('Connected', 'ok') : badge('Not connected', 'off'),
       badge(c.access.label, 'warn', c.access.detail),
       c.peoplecodeWrite && c.peoplecodeWrite.access === 'writable'
         ? badge('Writes allowed', 'error', 'PeopleCode may be saved back to this database once saving is implemented.')
-        : null
+        : null,
+      // Closed, the header still says where the connection goes.
+      open ? null : h('span', { className: 'summary', text: c.kind === 'oracle' ? (c.connectString || '') : (c.path || '') })
     ]);
 
     const details = facts(c.kind === 'oracle'
@@ -183,14 +220,21 @@
       button('Remove…', () => post({ type: 'removeConnection', connectionId: c.id }), { secondary: true, focusKey: `remove:${c.id}` })
     ]);
 
-    return h('div', { className: c.selected ? 'connection selected' : 'connection', attrs: { 'data-connection': c.id } }, [
+    return h('div', {
+      className: ['connection', c.selected ? 'selected' : '', open ? '' : 'collapsed'].filter(Boolean).join(' '),
+      attrs: { 'data-connection': c.id }
+    }, [
       head,
-      details,
-      renderAnalysis(c),
-      renderPeopleCodeSaving(c),
-      actions,
-      renderTestResult(c),
-      editing.includes(c.id) ? renderEditForm(c) : null
+      open
+        ? h('div', { className: 'connection-body', attrs: { id: bodyId } }, [
+            details,
+            renderAnalysis(c),
+            renderPeopleCodeSaving(c),
+            actions,
+            renderTestResult(c),
+            editing.includes(c.id) ? renderEditForm(c) : null
+          ])
+        : null
     ]);
   }
 
@@ -217,6 +261,7 @@
 
   function toggleEdit(id) {
     editing = editing.includes(id) ? editing.filter((e) => e !== id) : [...editing, id];
+    if (editing.includes(id)) expanded[id] = true;
     if (!editing.includes(id)) clearConnectionDrafts(id);
     persist();
     render();
@@ -391,10 +436,12 @@
     return h('section', { attrs: { id: 'build', 'aria-labelledby': 'build-title' } }, [
       h('h2', { text: 'Build Settings', attrs: { id: 'build-title' } }),
       h('p', { className: 'description', text: 'App Designer\'s Build Settings, used by Build... on records.' }),
-      tabList,
-      h('div', { className: 'tab-panel', attrs: { id: 'build-panel', role: 'tabpanel', 'aria-labelledby': `tab-${current.id}` } }, [
-        h('p', { className: 'description', text: current.description }),
-        ...settings.map(renderSetting)
+      h('div', { className: 'tabbed' }, [
+        tabList,
+        h('div', { className: 'tab-panel', attrs: { id: 'build-panel', role: 'tabpanel', 'aria-labelledby': `tab-${current.id}` } }, [
+          h('p', { className: 'description', text: current.description }),
+          ...settings.map(renderSetting)
+        ])
       ])
     ]);
   }
@@ -643,6 +690,10 @@
       // Forget edit forms for connections that no longer exist.
       const ids = new Set(state.connections.map((c) => c.id));
       editing = editing.filter((id) => ids.has(id));
+      for (const id of Object.keys(expanded)) if (!ids.has(id)) delete expanded[id];
+      // A connection added while the page is open opens, to be filled in.
+      if (knownConnections) for (const id of ids) if (!knownConnections.has(id)) expanded[id] = true;
+      knownConnections = ids;
       persist();
       render();
     } else if (message.type === 'validation') {

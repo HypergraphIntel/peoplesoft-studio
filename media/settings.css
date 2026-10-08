@@ -261,6 +261,45 @@ button.link:hover:not(:disabled) {
   margin-bottom: 0.3rem;
 }
 .connection-head .kind { color: var(--vscode-descriptionForeground); }
+.connection-head { cursor: pointer; }
+.connection.collapsed .connection-head { margin-bottom: 0; }
+/* The name is the disclosure button: plain text with a chevron, not a button's box. */
+.connection-head .disclosure {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.connection-head .disclosure:hover:not(:disabled) { background: transparent; }
+.connection-head .disclosure:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: 2px; }
+.chevron {
+  width: 0.45em;
+  height: 0.45em;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.12s ease;
+  opacity: 0.8;
+}
+.disclosure[aria-expanded="true"] .chevron { transform: rotate(45deg) translate(-0.1em, -0.1em); }
+@media (prefers-reduced-motion: reduce) { .chevron { transition: none; } }
+.connection-head .summary {
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.92em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 12rem;
+}
+.connection-body { margin-top: 0; }
 
 dl.facts {
   display: grid;
@@ -330,24 +369,53 @@ body.vscode-high-contrast-light .connection.selected {
 
 /* Tabs (Build Settings) ---------------------------------------------------- */
 
+/*
+ * A tabbed sub-panel: folder tabs over a bordered, raised panel, the selected
+ * tab joined to it (same background, no border between them) and marked with
+ * an accent bar, so the panel reads as one box whose contents the tabs switch.
+ */
+.tabbed {
+  /*
+   * Tinted from the theme's own foreground, so the panel stands off the page
+   * in any theme: Dark Modern's widget background is within one shade of its
+   * editor's. High contrast themes keep their contrast border.
+   */
+  --tab-border: var(--vscode-contrastBorder, color-mix(in srgb, var(--vscode-foreground) 20%, transparent));
+  --tab-panel-background: color-mix(in srgb, var(--vscode-foreground) 4%, var(--vscode-editor-background));
+  --tab-idle-background: color-mix(in srgb, var(--vscode-foreground) 2%, var(--vscode-editor-background));
+  margin-top: 0.25rem;
+}
 .tabs {
   display: flex;
-  gap: 0.25rem;
-  border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border, transparent));
-  margin-bottom: 0.9rem;
+  gap: 2px;
+  position: relative;
+  z-index: 1;
 }
 .tabs .tab {
-  background: transparent;
+  background: var(--tab-idle-background);
   color: var(--vscode-foreground);
-  border: none;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--tab-border);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  padding: 0.4rem 1.1rem;
   opacity: 0.75;
 }
-.tabs .tab:hover:not(:disabled) { background: transparent; opacity: 1; }
+.tabs .tab:hover:not(:disabled) { background: var(--tab-panel-background); opacity: 1; }
 .tabs .tab.selected {
   opacity: 1;
-  border-bottom-color: var(--vscode-panelTitle-activeBorder, var(--vscode-focusBorder));
+  font-weight: 600;
+  background: var(--tab-panel-background);
+  border-color: var(--tab-border);
+  box-shadow: inset 0 2px 0 var(--vscode-panelTitle-activeBorder, var(--vscode-focusBorder));
+  /* Over the panel's top border, so the tab and the panel are one shape. */
+  margin-bottom: -1px;
+  padding-bottom: calc(0.4rem + 1px);
 }
 .tabs .tab:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
+.tab-panel {
+  border: 1px solid var(--tab-border);
+  border-radius: 0 4px 4px 4px;
+  background: var(--tab-panel-background);
+  padding: 0.9rem 1.25rem 0.6rem;
+}
+.tab-panel > .description { margin-top: 0; margin-bottom: 0.6rem; }
