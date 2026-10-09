@@ -240,6 +240,12 @@ const WATCH: Array<{ table: string; scratchColumn?: string }> = [
   { table: 'PSAPPCLASSDEFN', scratchColumn: 'PACKAGEROOT' },
   { table: 'PSPROJECTDEFN', scratchColumn: 'PROJECTNAME' },
   { table: 'PSPROJECTITEM', scratchColumn: 'PROJECTNAME' },
+  // Page save capture (docs/PAGE_SAVE.md): the scratch page's definition and
+  // its controls, keyed PNLNAME / (PNLNAME, PNLFLDID). The page version
+  // counter is PSVERSION/PSLOCK 'PPC'. Anything else a save touches is caught
+  // by the scope sweep's flashback diff.
+  { table: 'PSPNLDEFN', scratchColumn: 'PNLNAME' },
+  { table: 'PSPNLFIELD', scratchColumn: 'PNLNAME' },
   { table: 'PSVERSION' },
   { table: 'PSLOCK' }
 ];
