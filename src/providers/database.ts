@@ -31,6 +31,7 @@ import { decodeProgram, DecodeOptions } from '../peoplecode/decoder.js';
 import { FieldLabelRow, FieldRow, renderField } from './oracleRender.js';
 import { renderComponent, renderMenu, renderPage, type PageView, type Row as UiRow } from '../model/uiDefinitions.js';
 import { buildPageLayout, type PageLayout } from '../model/pageLayout.js';
+import { savePage, verifyPageSave, type PageSaveRequest, type PageSaveResult } from './pageWriter.js';
 import { renderComponentInterface, renderFileLayout } from '../model/integrationDefinitions.js';
 import { renderMessage, renderPermissionList, renderRole } from '../model/adminDefinitions.js';
 import { renderQuery } from '../model/queryDefinition.js';
@@ -798,6 +799,17 @@ export class DatabaseProvider implements DefinitionProvider {
   async saveSqlDefinition(request: SqlSaveRequest): Promise<SqlSaveResult> {
     const result = await this.withConnection((c) => saveSqlDefinitionRows(c, request));
     await this.withConnection((c) => verifySqlSave(c, request, result));
+    return result;
+  }
+
+  /**
+   * Saves a page's layout as App Designer does (pageWriter.ts, docs/PAGE_SAVE.md):
+   * move / resize / label / use changes and deletes of existing controls, in
+   * one transaction, then verified again on another connection after COMMIT.
+   */
+  async savePage(request: PageSaveRequest): Promise<PageSaveResult> {
+    const result = await this.withConnection((c) => savePage(c, request));
+    await this.withConnection((c) => verifyPageSave(c, request, result));
     return result;
   }
 

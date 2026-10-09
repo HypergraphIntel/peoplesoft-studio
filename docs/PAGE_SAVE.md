@@ -202,3 +202,28 @@ In one transaction, verified again after COMMIT (as records / PeopleCode):
 
 Deltas for every case are in `tools/corpus/save-protocol/results/0*/delta.json`
 -- the fixtures the page writer is proven against.
+
+## The writer (pageWriter.ts), proven live
+
+`DatabaseProvider.savePage` (src/providers/pageWriter.ts) writes move / resize /
+label / use changes and deletes of existing controls in one transaction -- bump
+`PDM` (PSVERSION + PSLOCK) and `SYS`, stamp `PSPNLDEFN` (VERSION = new PDM,
+FIELDCOUNT, LASTUPDDTTM/OPRID), update only the changed `PSPNLFIELD` columns,
+delete a removed control's `PSPNLFIELD` + `PSPNLFIELDEXT`, renumber `FIELDNUM`
+contiguously -- verified in the transaction and again after COMMIT. Write scope
++ a valid operator gate it. Adding a new control (a full default row) is not
+done yet. `planPageSave` is pure and unit-tested.
+
+Proven on `ZZ_PCODE_LAB_PG` against the snapshot tool
+(`results/10-writer-move`, `11-writer-delete`):
+
+- 10 move PNLFLDID 1 by (40,40): `PDM` 56->57, `SYS` +1; `PSPNLDEFN`
+  VERSION/stamp; one `PSPNLFIELD` update `FIELDLEFT`/`FIELDTOP`. Same shape as
+  App Designer's 03-move.
+- 11 delete PNLFLDID 3: `PDM` 57->58, `SYS` +1; `PSPNLDEFN`
+  VERSION/`FIELDCOUNT 5->4`/stamp; `PSPNLFIELD` + `PSPNLFIELDEXT` rows for 3
+  deleted; survivors renumbered. Same shape as App Designer's 08-delete.
+
+**Editor TODO:** when the UI drags a control, it must offset the control's
+label (`EDITLBL*`) by the same delta so the writer moves the label with it, as
+App Designer's 03-move did.
