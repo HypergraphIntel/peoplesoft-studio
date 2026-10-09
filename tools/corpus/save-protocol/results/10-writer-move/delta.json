@@ -1,0 +1,1787 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "10-writer-move",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362780143337",
+   "timestamp": "2026-10-09T12:43:37.060990000-05:00"
+  },
+  "after": {
+   "scn": "39362780143603",
+   "timestamp": "2026-10-09T12:43:54.791793000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-09T12:43:37.060990000-05:00",
+    "to": "2026-10-09T12:43:54.791793000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "PDM": {
+    "before": 56,
+    "after": 57,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 1565,
+    "after": 1566,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "PDM": {
+    "before": 56,
+    "after": 57,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSPNLDEFN": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSPNLFIELD": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "otherTablesChanged": {
+   "PSPNLDEFN": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSPNLFIELD": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSPNLDEFN": {
+   "columns": [
+    {
+     "name": "PNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MAXPNLFLDID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRIDHORZ",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRIDVERT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "HELPCONTEXTNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELTOP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELLEFT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELRIGHT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELBOTTOM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "STYLESHEETNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLESHEETNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PNLUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DEFERPROC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "POPUPMENU",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LICENSE_CODE",
+     "type": "VARCHAR2",
+     "length": 256,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEDESKTOP",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEPHONE",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLETABLET",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "PNLUSETEMP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEMEDIUM",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEEXLARGE",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "PNLNAME": "ZZ_PCODE_LAB_PG"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "56",
+       "after": "57"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-09T12:43:01.362614000",
+       "after": "2026-10-09T12:43:54.129733000"
+      }
+     }
+    }
+   ]
+  },
+  "PSPNLFIELD": {
+   "columns": [
+    {
+     "name": "PNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PNLFLDID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLFIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "FIELDTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITSIZE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DSPLFORMAT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDLEFT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDTOP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDRIGHT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDBOTTOM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITLBLLEFT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITLBLTOP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITLBLRIGHT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITLBLBOTTOM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DSPLFILL",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "LBLTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LBLLOC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LBLPADSIZE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "USEDEFAULTLABEL",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "LABEL_ID",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "LBLTEXT",
+     "type": "VARCHAR2",
+     "length": 240,
+     "nullable": false
+    },
+    {
+     "name": "FIELDUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDUSETMP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DEFERPROC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSLEVEL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "ONVALUE",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "OFFVALUE",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "ASSOCFIELDNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSCOUNT1",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSOFFSET1",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSCOUNT2",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSOFFSET2",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSCOUNT3",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSOFFSET3",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SUBPNLNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "SUBPNLVER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LABELSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "FIELDSIZETYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LABELSIZETYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PRCSTYPE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PRCSNAME",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "PROMPTFIELD",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "FORMATFAMILY",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "DISPFMTNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "POPUPMENU",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "TREECTRLID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "TREECTRLTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MULTIRECTREE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "NODECOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDCOLUMNCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDSHOWCOLHDG",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDSHOWROWHDG",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDODDROWSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDEVENROWSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDACTIVETABSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDINACTIVETABSTYL",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDNAVBARSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDLABELSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDLBLMSGSET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDLBLMSGNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDLBLALIGN",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDACTTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDALLOWCOLSORT",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "TABENABLE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PBDISPLAYTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OPENNEWWINDOW",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "URLDYNAMIC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "URL_ID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GOTOPORTALNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GOTONODENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GOTOMENUNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GOTOPNLGRPNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "GOTOMKTNAME",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "GOTOPNLNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "GOTOPNLACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SRCHBYPNLDATA",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SCROLLACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "TOOLACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "CONTNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "CONTNAMEOVER",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "CONTNAMEDISABLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTLBLIMGCOLLAPSE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTLBLIMGEXPAND",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTADJHIDDENFIELDS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCOLLAPSEDATAAREA",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTDFLTVIEWEXPANDED",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTHIDEFIELDS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "SHOWCOLHIDEROWS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTLEBEXPANDFIELD",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "SHOWTABCNTLBTN",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "SELINDICATORTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SECUREINVISIBLE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "ENABLEASANCHOR",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "URLENCODEDBYAPP",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "PNLNAME": "ZZ_PCODE_LAB_PG",
+      "PNLFLDID": "1"
+     },
+     "changes": {
+      "FIELDLEFT": {
+       "before": "72",
+       "after": "112"
+      },
+      "FIELDTOP": {
+       "before": "68",
+       "after": "108"
+      }
+     }
+    }
+   ]
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "56",
+       "after": "57"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "1565",
+       "after": "1566"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "56",
+       "after": "57"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSPNLDEFN": {
+   "columns": [
+    {
+     "name": "PNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MAXPNLFLDID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRIDHORZ",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRIDVERT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "HELPCONTEXTNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELTOP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELLEFT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELRIGHT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELBOTTOM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "STYLESHEETNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLESHEETNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PNLUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DEFERPROC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "POPUPMENU",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LICENSE_CODE",
+     "type": "VARCHAR2",
+     "length": 256,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEDESKTOP",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEPHONE",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLETABLET",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "PNLUSETEMP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEMEDIUM",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEEXLARGE",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAO70AHXAABp34AAA"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "56",
+       "after": "57"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-09T12:43:01.362614000",
+       "after": "2026-10-09T12:43:54.129733000"
+      }
+     }
+    }
+   ]
+  },
+  "PSPNLFIELD": {
+   "columns": [
+    {
+     "name": "PNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PNLFLDID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLFIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "FIELDTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITSIZE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DSPLFORMAT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDLEFT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDTOP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDRIGHT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDBOTTOM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITLBLLEFT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITLBLTOP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITLBLRIGHT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITLBLBOTTOM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DSPLFILL",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "LBLTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LBLLOC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LBLPADSIZE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "USEDEFAULTLABEL",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "LABEL_ID",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "LBLTEXT",
+     "type": "VARCHAR2",
+     "length": 240,
+     "nullable": false
+    },
+    {
+     "name": "FIELDUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDUSETMP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DEFERPROC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSLEVEL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "ONVALUE",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "OFFVALUE",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "ASSOCFIELDNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSCOUNT1",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSOFFSET1",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSCOUNT2",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSOFFSET2",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSCOUNT3",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSOFFSET3",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SUBPNLNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "SUBPNLVER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LABELSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "FIELDSIZETYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LABELSIZETYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PRCSTYPE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PRCSNAME",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "PROMPTFIELD",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "FORMATFAMILY",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "DISPFMTNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "POPUPMENU",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "TREECTRLID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "TREECTRLTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MULTIRECTREE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "NODECOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDCOLUMNCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDSHOWCOLHDG",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDSHOWROWHDG",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDODDROWSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDEVENROWSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDACTIVETABSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDINACTIVETABSTYL",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDNAVBARSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDLABELSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDLBLMSGSET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDLBLMSGNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDLBLALIGN",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDACTTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDALLOWCOLSORT",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "TABENABLE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PBDISPLAYTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OPENNEWWINDOW",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "URLDYNAMIC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "URL_ID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GOTOPORTALNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GOTONODENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GOTOMENUNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GOTOPNLGRPNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "GOTOMKTNAME",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "GOTOPNLNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "GOTOPNLACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SRCHBYPNLDATA",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SCROLLACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "TOOLACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "CONTNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "CONTNAMEOVER",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "CONTNAMEDISABLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTLBLIMGCOLLAPSE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTLBLIMGEXPAND",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTADJHIDDENFIELDS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCOLLAPSEDATAAREA",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTDFLTVIEWEXPANDED",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTHIDEFIELDS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "SHOWCOLHIDEROWS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTLEBEXPANDFIELD",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "SHOWTABCNTLBTN",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "SELINDICATORTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SECUREINVISIBLE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "ENABLEASANCHOR",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "URLENCODEDBYAPP",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAO8CAHWAAAEy3AAA"
+     },
+     "changes": {
+      "FIELDLEFT": {
+       "before": "72",
+       "after": "112"
+      },
+      "FIELDTOP": {
+       "before": "68",
+       "after": "108"
+      }
+     }
+    }
+   ]
+  }
+ }
+}
