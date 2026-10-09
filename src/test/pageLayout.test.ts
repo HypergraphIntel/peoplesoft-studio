@@ -55,16 +55,18 @@ test('the surface spans the controls plus a margin', () => {
   assert.equal(layout.height, 892);
 });
 
-test('the HTML positions each control by id and carries its data, with a CSP and the Order text', () => {
+test('the HTML positions each control by id, carries its data, with a CSP and the Order grid', () => {
   const layout = buildPageLayout('P', view([
-    field({ FIELDNUM: 7, FIELDTYPE: 5, RECNAME: 'NAMES', FIELDNAME: 'NAME_TYPE', LBLTEXT: 'Type',
+    field({ FIELDNUM: 7, PNLFLDID: 7, FIELDTYPE: 5, RECNAME: 'NAMES', FIELDNAME: 'NAME_TYPE', LBLTEXT: 'Type',
       FIELDLEFT: 20, FIELDTOP: 40, FIELDRIGHT: 120, FIELDBOTTOM: 58, EDITLBLLEFT: -1 })
   ]));
-  const html = renderPageHtml(layout, 'ORDER VIEW TEXT', 'NONCE');
+  const html = renderPageHtml(layout, '', 'NONCE');
   assert.match(html, /Content-Security-Policy/);
   assert.match(html, /#c7\{left:20px;top:40px;width:100px;height:18px;/);
   assert.match(html, /class="ctl s-dropdown" id="c7"[^>]*data-target="NAMES\.NAME_TYPE"/);
-  assert.match(html, /ORDER VIEW TEXT/);
+  // The Order tab is a grid, one row per control.
+  assert.match(html, /<table class="order-grid">/);
+  assert.match(html, /<tr data-id="7"[^>]*>.*NAME_TYPE.*NAMES/s);
 });
 
 test('FIELDUSE bits mark display-only and invisible controls', () => {

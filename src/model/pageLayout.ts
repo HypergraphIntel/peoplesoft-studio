@@ -48,6 +48,13 @@ export interface PageControl {
   /** "RECNAME.FIELDNAME", a subpage, or what the control points at. */
   target: string;
   recordField: string;
+  /** PSPNLFIELD.RECNAME / FIELDNAME, for the Order grid. */
+  recName: string;
+  fieldName: string;
+  /** PSPNLFIELD.DEFERPROC: Allow Deferred Processing. */
+  deferProc: boolean;
+  /** PSPNLFIELD.ASSOCFIELDNUM: the control field a related-display field is tied to (0 when none). */
+  controlFieldNum: number;
   /** PSPNLFIELD.FIELDUSE, the use bit-mask, shown raw. */
   use: number;
   /** FIELDUSE 0x01: the control is display-only (proven in docs/PAGE_SAVE.md 09). */
@@ -101,14 +108,29 @@ function rectOf(f: Row): Rect {
   };
 }
 
-/** The label's rectangle, when its coordinates are on the page (negative coordinates are App Designer's "not shown"). */
-function labelRectOf(f: Row): Rect | undefined {
-  const left = num(f.EDITLBLLEFT);
-  const top = num(f.EDITLBLTOP);
-  const right = num(f.EDITLBLRIGHT);
-  const bottom = num(f.EDITLBLBOTTOM);
+/**
+ * A control's shown label, positioned as App Designer draws it, or undefined
+ * when none. LBLTYPE 0 (None) and negative EDITLBL (App Designer's "not shown")
+ * draw nothing. A button's label is its caption, drawn on the button, not a
+ * separate label. When EDITLBL is all zero the label is not stored absolutely
+ * but drawn relative to the control -- a container's caption at its top-left, a
+ * check box / radio label to its right, otherwise just above -- and drawing it
+ * at (0,0) is what piled labels in the corner. A stored EDITLBL rectangle is
+ * used as-is.
+ */
+function labelOf(f: Row, rect: Rect, shape: ControlShape): { text: string; rect: Rect } | undefined {
+  const text = labelText(f);
+  if (!text || shape === 'button') return undefined;
+  const left = num(f.EDITLBLLEFT), top = num(f.EDITLBLTOP), right = num(f.EDITLBLRIGHT), bottom = num(f.EDITLBLBOTTOM);
   if (left < 0 || top < 0) return undefined;
-  return { left, top, width: right > left ? right - left : 0, height: bottom > top ? bottom - top : 14 };
+  if (left === 0 && top === 0 && right === 0 && bottom === 0) {
+    // Not stored absolutely: place relative to the control.
+    const r = shape === 'container' ? { left: rect.left + 5, top: rect.top + 1 }
+      : shape === 'checkbox' || shape === 'radio' ? { left: rect.left + rect.width + 4, top: rect.top + 1 }
+      : { left: rect.left, top: rect.top - 15 };
+    return { text, rect: { ...r, width: 0, height: 14 } };
+  }
+  return { text, rect: { left, top, width: right > left ? right - left : 0, height: bottom > top ? bottom - top : 14 } };
 }
 
 /**
@@ -139,8 +161,8 @@ export function buildPageLayout(name: string, view: PageView): PageLayout {
     .sort((a, b) => num(a.FIELDNUM) - num(b.FIELDNUM))
     .map((f): PageControl => {
       const rect = rectOf(f);
-      const labelRect = labelRectOf(f);
-      const text = labelText(f);
+      const shape = controlShape(num(f.FIELDTYPE));
+      const label = labelOf(f, rect, shape);
       const rec = str(f.RECNAME);
       const field = str(f.FIELDNAME);
       return {
@@ -149,16 +171,20 @@ export function buildPageLayout(name: string, view: PageView): PageLayout {
         level: num(f.OCCURSLEVEL),
         type: num(f.FIELDTYPE),
         typeName: PAGE_FIELD_TYPES[num(f.FIELDTYPE)] ?? `Type ${num(f.FIELDTYPE)}`,
-        shape: controlShape(num(f.FIELDTYPE)),
+        shape,
         rect,
         columns: {
           fieldLeft: num(f.FIELDLEFT), fieldTop: num(f.FIELDTOP), fieldRight: num(f.FIELDRIGHT), fieldBottom: num(f.FIELDBOTTOM),
           editLblLeft: num(f.EDITLBLLEFT), editLblTop: num(f.EDITLBLTOP), editLblRight: num(f.EDITLBLRIGHT), editLblBottom: num(f.EDITLBLBOTTOM),
           fieldSizeType: num(f.FIELDSIZETYPE), lblType: num(f.LBLTYPE), lblText: str(f.LBLTEXT), fieldUse: num(f.FIELDUSE), secureInvisible: num(f.SECUREINVISIBLE)
         },
-        ...(text && labelRect ? { label: { text, rect: labelRect } } : {}),
+        ...(label ? { label } : {}),
         target: targetOf(f),
         recordField: field ? `${rec}.${field}` : rec,
+        recName: rec,
+        fieldName: field,
+        deferProc: num(f.DEFERPROC) !== 0,
+        controlFieldNum: num(f.ASSOCFIELDNUM),
         use: num(f.FIELDUSE),
         displayOnly: (num(f.FIELDUSE) & FIELD_USE_DISPLAY_ONLY) !== 0,
         invisible: (num(f.FIELDUSE) & FIELD_USE_INVISIBLE) !== 0,
