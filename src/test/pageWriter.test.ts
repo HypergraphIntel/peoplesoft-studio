@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { planPageSave, PageSaveRefusedError, type EditedControl, type StoredControl } from '../providers/pageWriter.js';
+import { planPageProperties, planPageSave, PageSaveRefusedError, type EditedControl, type StoredControl } from '../providers/pageWriter.js';
 
 const control = (over: Partial<StoredControl> & { pnlFldId: number }): StoredControl => ({
   fieldNum: over.pnlFldId, fieldLeft: 0, fieldTop: 0, fieldRight: 0, fieldBottom: 0,
@@ -57,10 +57,51 @@ test('a delete removes the row and renumbers the survivors (08-delete shape)', (
 
 test('no change yields no updates', () => {
   const stored = [control({ pnlFldId: 1, fieldNum: 1 })];
-  assert.deepEqual(planPageSave(stored, [edit(stored[0])]), { deletes: [], updates: [], fieldCount: 1 });
+  assert.deepEqual(planPageSave(stored, [edit(stored[0])]), { deletes: [], updates: [], inserts: [], fieldCount: 1, maxPnlFldId: 1 });
 });
 
-test('a control not on the stored page is refused (add is not supported here yet)', () => {
+test('an existing control not on the stored page is refused (an added one carries `add`)', () => {
   const stored = [control({ pnlFldId: 1, fieldNum: 1 })];
   assert.throws(() => planPageSave(stored, [edit(stored[0]), edit(control({ pnlFldId: 99 }))]), PageSaveRefusedError);
+});
+
+test('an added control takes MAXPNLFLDID + 1 and is numbered after the survivors (02-add-edit shape)', () => {
+  const stored = [control({ pnlFldId: 1, fieldNum: 1 })];
+  const added = { ...edit(control({ pnlFldId: -1, fieldLeft: 64, fieldTop: 120 })), add: { kind: 'editBox' as const, recName: 'PERSON', fieldName: 'EMPLID' } };
+  const plan = planPageSave(stored, [edit(stored[0]), added], 1);
+  assert.deepEqual(plan.updates, []);
+  assert.equal(plan.inserts.length, 1);
+  assert.equal(plan.inserts[0].pnlFldId, 2);
+  assert.equal(plan.inserts[0].fieldNum, 2);
+  assert.equal(plan.fieldCount, 2);
+  assert.equal(plan.maxPnlFldId, 2);
+});
+
+test('deleted ids are never reused: adds start above the high-water mark', () => {
+  const stored = [control({ pnlFldId: 1, fieldNum: 1 }), control({ pnlFldId: 5, fieldNum: 2 })];
+  const add = (k: 'groupBox' | 'pushButton') => ({ ...edit(control({ pnlFldId: -1 })), add: { kind: k, recName: '', fieldName: '' } });
+  // Control 5 deleted; MAXPNLFLDID is 6 from an earlier delete.
+  const plan = planPageSave(stored, [edit(stored[0]), add('groupBox'), add('pushButton')], 6);
+  assert.deepEqual(plan.deletes, [5]);
+  assert.deepEqual(plan.inserts.map((i) => [i.pnlFldId, i.fieldNum]), [[7, 2], [8, 3]]);
+  assert.equal(plan.maxPnlFldId, 8);
+  assert.equal(plan.fieldCount, 3);
+});
+
+test('a blank label sent as \'\' is the stored \' \', not a change (and is written as \' \')', () => {
+  const stored = [control({ pnlFldId: 5, fieldNum: 1, lblType: 1, lblText: ' ' }), control({ pnlFldId: 6, fieldNum: 2, lblText: 'X' })];
+  const plan = planPageSave(stored, [{ ...edit(stored[0]), lblText: '' }, { ...edit(stored[1]), lblText: '' }]);
+  assert.deepEqual(plan.updates, [{ pnlFldId: 6, columns: { LBLTEXT: ' ' } }]);
+});
+
+test('page properties write only what changed, as App Designer stores it (19-props-descr shape)', () => {
+  const stored = { DESCR: ' ', DESCRLONG: null };
+  assert.deepEqual(planPageProperties(stored, undefined), {});
+  assert.deepEqual(planPageProperties(stored, { description: '', comments: '' }), {});
+  assert.deepEqual(planPageProperties(stored, { description: 'Lab Custom Page', comments: 'Comment Here' }),
+    { DESCR: 'Lab Custom Page', DESCRLONG: 'Comment Here' });
+  // Clearing: DESCR is NOT NULL (' '), DESCRLONG goes back to NULL.
+  assert.deepEqual(planPageProperties({ DESCR: 'Lab Custom Page', DESCRLONG: 'Comment Here' }, { description: '', comments: ' ' }),
+    { DESCR: ' ', DESCRLONG: null });
+  assert.deepEqual(planPageProperties({ DESCR: 'Lab Custom Page', DESCRLONG: 'Comment Here' }, { description: 'Lab Custom Page', comments: 'Comment Here' }), {});
 });

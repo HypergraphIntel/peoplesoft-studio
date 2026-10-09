@@ -210,9 +210,9 @@ label / use changes and deletes of existing controls in one transaction -- bump
 `PDM` (PSVERSION + PSLOCK) and `SYS`, stamp `PSPNLDEFN` (VERSION = new PDM,
 FIELDCOUNT, LASTUPDDTTM/OPRID), update only the changed `PSPNLFIELD` columns,
 delete a removed control's `PSPNLFIELD` + `PSPNLFIELDEXT`, renumber `FIELDNUM`
-contiguously -- verified in the transaction and again after COMMIT. Write scope
-+ a valid operator gate it. Adding a new control (a full default row) is not
-done yet. `planPageSave` is pure and unit-tested.
+contiguously, insert an added control's `PSPNLFIELD` + `PSPNLFIELDEXT` rows --
+verified in the transaction and again after COMMIT. Write scope + a valid
+operator gate it. `planPageSave` is pure and unit-tested.
 
 Proven on `ZZ_PCODE_LAB_PG` against the snapshot tool
 (`results/10-writer-move`, `11-writer-delete`):
@@ -224,6 +224,82 @@ Proven on `ZZ_PCODE_LAB_PG` against the snapshot tool
   VERSION/`FIELDCOUNT 5->4`/stamp; `PSPNLFIELD` + `PSPNLFIELDEXT` rows for 3
   deleted; survivors renumbered. Same shape as App Designer's 08-delete.
 
-**Editor TODO:** when the UI drags a control, it must offset the control's
-label (`EDITLBL*`) by the same delta so the writer moves the label with it, as
-App Designer's 03-move did.
+- 12 add an Edit Box on `PERSON.EMPLID` (`results/12-writer-add`): `PDM`
+  58->59, `SYS` +1; `PSPNLDEFN` VERSION/`FIELDCOUNT 4->5`/`MAXPNLFLDID 6->7`/
+  stamp; one `PSPNLFIELD` and one `PSPNLFIELDEXT` insert. Every column equals
+  App Designer's 02-add-edit row (98 + 34 columns) except PNLFLDID, FIELDNUM
+  and the position. (02 also rewrote an older control's PARENTPNLFLDID from
+  `$0` to `ZZ_PCODE_LAB_PG$0`, a leftover of how 01 created the page.)
+- 13 the Layout editor's own save payload, from a scripted browser session
+  (`results/13-writer-ui-add`): a sized group box moved by (10,5) -- `FIELDLEFT/
+  TOP` and `FIELDRIGHT/BOTTOM` all shift, its relative (all-zero) label is left
+  alone -- plus an added Edit Box and Group Box: `MAXPNLFLDID 7->9`, two
+  `PSPNLFIELD` + `PSPNLFIELDEXT` inserts, one update, `PDM`/`SYS` +1.
+
+App Designer (8.62.09) opens `ZZ_PCODE_LAB_PG` cleanly after 12 and 13 (checked
+by hand, 2026-10-09): it reads the writer's inserted rows as its own.
+
+When dragged, the editor moves a stored label rectangle (`EDITLBL*`) with
+the control, as App Designer's 03-move did, but leaves an all-zero (relative)
+or negative (hidden) one as it is. A blank label is written as `' '`, never
+`''` (Oracle stores `''` as NULL, and LBLTEXT is NOT NULL).
+
+- 20 the editor's payload again (`results/20-writer-kinds-props`): Static
+  Text, Frame, Horizontal Rule, and an Edit Box on a number field added, plus
+  Description / Comments edited: four inserts identical to App Designer's
+  15 / 16 / 17 / 18 rows except id, order and position; `PSPNLDEFN` DESCR and
+  DESCRLONG as in 19; `PDM`/`SYS` +1.
+
+## App Designer saves 14-19 (bracketed afterwards with `--as-of`)
+
+Six saves made in a row, each bracketed retroactively between their commits:
+
+- 14-props-use, Use tab: `PANELRIGHT/BOTTOM` 570x330 -> 959x988 and `PNLUSE`
+  32 -> 11 in one save. `PDM` rose by **2** in that single commit (every other
+  save is +1); `SYS` +1. Not yet explained, and `PNLUSE`'s bits are not
+  decoded, so the Use tab is not editable yet.
+- 15-static-text, 16-frame, 17-hrule: one insert each (FIELDTYPE 0 / 1 / 23).
+- 18-number-datetime: Edit Boxes on a number (PSDBFIELD type 2) and a
+  datetime (6) field. DSPLFORMAT is the same as on a character field.
+  PTDISABLESMARTPROM is 0 and FFSTYLELONG `' '`, against 1 and `' | | | | '` on
+  character fields (smart prompt is character typeahead). The window also
+  holds a record save (ZZ_PCODE_LAB_N1 added to ZZ_PCODE_LAB_T, `RDM` +1).
+- 19-props-descr, General tab: `DESCR` and `DESCRLONG` (a nullable CLOB, NULL
+  until first set); `PDM`/`SYS` +1.
+
+App Designer deletes and re-inserts the page's every PSPNLDEFN / PSPNLFIELD /
+PSPNLFIELDEXT row on each save (the rowid sweep shows it in every case,
+02-19), keeping their values. The writer updates in place and leaves the same
+rows behind.
+
+## Adding controls
+
+A new control is App Designer's own freshly dropped row
+(`src/providers/pageControlTemplates.ts`), checked against the captures by
+`src/test/pageControlTemplates.test.ts`: Edit Box (02, and 18 on number /
+datetime), Drop-Down List Box, Check Box, Push Button (06), Group Box (07),
+Static Text (15), Frame (16), Horizontal Rule (17). The writer fills in PNLNAME,
+PNLFLDID (`MAXPNLFLDID + 1` onward), FIELDNUM (after the survivors), the
+position, label and record field; a record-bound control without an edited
+label takes the field's default label (`PSDBFLDLABL` DEFAULT_LABEL = 1,
+LABEL_ID + LONGNAME).
+
+Limits, from the evidence:
+
+- A record-bound control is only added on a field type a capture covers
+  (`FIELD_TYPES_SEEN`): Edit Box on character, number and datetime fields;
+  Drop-Down, Check Box (one character, ON/OFF `Y`/`N`) and Push Button on
+  character fields. Date, time, signed number, long character and the rest
+  are refused until a capture shows them.
+- A Group Box is written with RECNAME blank (as 7,739 delivered group boxes
+  are); App Designer's 07 carried the page's record onto it.
+- Other Insert-menu controls (Radio Button, Long Edit Box, Static Image,
+  Image, HTML Area, Grid, Scroll Area, Subpage, Secondary Page ...) are not
+  offered yet: each needs a capture of its fresh row.
+
+## Page Properties
+
+The sidebar shows PSPNLDEFN's properties. On a Writable connection,
+Description and Comments are edited there and written on Save (19-props-descr;
+DESCR limited to 30 characters). The Use tab (page size, PNLUSE) waits on
+decoding PNLUSE (14), and Owner ID has not been captured.
