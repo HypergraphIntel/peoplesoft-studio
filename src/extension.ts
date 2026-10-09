@@ -30,6 +30,7 @@ import { buildProperties, hasProperties } from './model/properties.js';
 import { PropertiesPanel } from './editors/propertiesPanel.js';
 import { ImagePanel } from './editors/imagePanel.js';
 import { AppEnginePanel } from './editors/appEnginePanel.js';
+import { PagePanel } from './editors/pagePanel.js';
 import { canInsertIntoProject, describeItem, ProjectSaveRefusedError } from './model/projectItems.js';
 import { DatabaseProvider } from './providers/database.js';
 import { validateConnectString } from './settings/settingsModel.js';
@@ -383,6 +384,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             const image = await provider.readImage(key);
             if (!image) throw new Error(`No image named ${key.parts[0]}.`);
             ImagePanel.show({ id: provider.id, displayName: provider.displayName }, key, image);
+            return;
+          }
+          if (key.type === DefinitionType.Page && provider instanceof DatabaseProvider) {
+            const { layout, order } = await provider.readPageLayout(key);
+            PagePanel.show({ id: provider.id, displayName: provider.displayName }, key, layout, order);
             return;
           }
           if (!provider.canReadAsText(key.type)) {

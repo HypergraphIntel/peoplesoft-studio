@@ -145,3 +145,27 @@ level, type, label, record field or target, and page field name, and the
 components the page is in. A component shows its search records, actions,
 settings, pages (item name, label, hidden) and the menus it is on. A menu
 shows its bars and items. Read-only.
+
+## Visual Page designer (Layout view)
+
+Opening a page shows it in a panel with two tabs
+(`src/editors/pageHtml.ts`, `src/model/pageLayout.ts`):
+
+- **Layout** -- the page's controls drawn where App Designer's Layout view
+  puts them, from the geometry stored per control in `PSPNLFIELD`:
+  `FIELDLEFT`, `FIELDTOP`, `FIELDRIGHT`, `FIELDBOTTOM` give each control's
+  rectangle (in pixels), and `EDITLBLLEFT/TOP/RIGHT/BOTTOM` its label's. Each
+  control is styled by its `FIELDTYPE` (edit box, drop-down, check box, radio,
+  push button, group box, grid, scroll area, image ...), with its label drawn
+  beside it; a label whose stored coordinates are negative is App Designer's
+  "not shown" and is left out. Clicking a control inspects it: number, type,
+  record field or target, occurs level, `FIELDUSE` and page-field name. The
+  surface is sized to the controls' extent.
+- **Order** -- the text list by `FIELDNUM` (level, type, label, record field /
+  target), as before; also what the MCP tools and a project export read.
+
+Read-only. Moving, resizing, adding or deleting controls and saving the page
+back to `PSPNLFIELD` is a later step: no App Designer page save has been
+captured and proven yet, and this extension does not write a definition until
+its save transaction is proven byte for byte (see the record and PeopleCode
+save work). The Layout view is the visual surface that editing will build on.
