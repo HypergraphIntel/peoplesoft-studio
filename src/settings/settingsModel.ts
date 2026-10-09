@@ -29,6 +29,7 @@ export interface PeopleSoftStudioSettings {
   'peoplecode.decoder': DecoderMode;
   'mcp.enabled': boolean;
   'mcp.port': number;
+  'mcp.writes': 'confirm' | 'allow' | 'off';
   'build.create.table': 'recreate' | 'skip';
   'build.create.view': 'recreate' | 'skip';
   'build.create.index': 'recreate' | 'ifModified';
@@ -185,7 +186,7 @@ export const SETTING_DESCRIPTORS: readonly SettingDescriptor[] = [
     key: 'mcp.enabled',
     section: 'mcp',
     label: 'Enable MCP server',
-    description: 'Run the local MCP server that gives AI clients read access to your connected PeopleSoft environments.',
+    description: 'Run the local MCP server that gives AI clients access to your connected PeopleSoft environments: read, and write where MCP writes allow.',
     control: { kind: 'boolean' },
     defaultValue: true
   },
@@ -197,6 +198,18 @@ export const SETTING_DESCRIPTORS: readonly SettingDescriptor[] = [
     appliesWhen: 'A running server restarts on the new port. AI clients configured with the old URL must be reconfigured.',
     control: { kind: 'number', min: MIN_MCP_PORT, max: MAX_MCP_PORT, placeholder: String(DEFAULT_MCP_PORT) },
     defaultValue: DEFAULT_MCP_PORT
+  },
+  {
+    key: 'mcp.writes',
+    section: 'mcp',
+    label: 'MCP writes',
+    description: 'Whether AI clients may save definitions through the MCP. Writes also need a Writable connection with an Operator ID, and a name in the write scope.',
+    control: { kind: 'enum', options: [
+      { value: 'confirm', label: 'Confirm each write', description: 'VS Code shows what the agent wants to save; nothing is written until you approve it.' },
+      { value: 'allow', label: 'Allow without asking', description: 'Writes go straight through the gates above.' },
+      { value: 'off', label: 'Off', description: 'The MCP is read-only.' }
+    ] },
+    defaultValue: 'confirm'
   },
   {
     key: 'oracle.thickModeLibDir',

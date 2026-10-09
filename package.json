@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.7.8",
+  "version": "0.7.9",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -626,7 +626,7 @@
         "peoplesoft.mcp.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Run the local PeopleSoft Studio MCP server, which gives AI clients read access to connected PeopleSoft environments. Turning it off stops the server."
+          "description": "Run the local PeopleSoft Studio MCP server, which gives AI clients access to connected PeopleSoft environments: read, and write as peoplesoft.mcp.writes allows. Turning it off stops the server."
         },
         "peoplesoft.mcp.port": {
           "type": "integer",
@@ -634,6 +634,21 @@
           "minimum": 1024,
           "maximum": 65535,
           "description": "Port the MCP server listens on (always 127.0.0.1). A running server restarts on the new port; reconfigure AI clients that use the old URL."
+        },
+        "peoplesoft.mcp.writes": {
+          "type": "string",
+          "enum": [
+            "confirm",
+            "allow",
+            "off"
+          ],
+          "enumDescriptions": [
+            "VS Code shows what the agent wants to save; nothing is written until you approve it.",
+            "Writes go straight through (still only on Writable connections with an Operator ID, within the write scope).",
+            "The MCP is read-only."
+          ],
+          "default": "confirm",
+          "description": "Whether AI clients may save PeopleSoft definitions through the MCP server (PeopleCode, SQL, HTML, style sheets, pages, records, fields, translates, projects, packages)."
         },
         "peoplesoft.build.create.table": {
           "type": "string",

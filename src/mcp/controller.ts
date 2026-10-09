@@ -21,6 +21,10 @@ import {
   Workspace
 } from '../workspace.js';
 
+import type {
+  McpWriteHost
+} from './writeTools.js';
+
 export type McpServerStatus =
   | 'disabled'
   | 'stopped'
@@ -69,6 +73,13 @@ export class McpServerController
   implements vscode.Disposable {
   private server:
     RunningPeopleSoftMcpServer | undefined;
+
+  /**
+   * The VS Code side of MCP writes, set once the editors exist; until then
+   * (and in tests) the server registers only its read-only tools.
+   */
+  writeHost:
+    McpWriteHost | undefined;
 
   private currentState:
     McpServerState;
@@ -173,7 +184,9 @@ export class McpServerController
         await startPeopleSoftMcpServer(
           this.workspace,
           {
-            port
+            port,
+            writeHost:
+              () => this.writeHost
           }
         );
 

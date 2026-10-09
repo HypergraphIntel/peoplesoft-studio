@@ -3,8 +3,9 @@
 How PeopleTools stores pages, components and menus, mapped from HRDMO
 (PeopleTools 8.62.09: 17,342 pages, 8,363 components, 637 menus) by querying
 the tables, and what PeopleSoft Studio shows from them
-(`src/model/uiDefinitions.ts`). Read-only: no App Designer save of these has
-been captured.
+(`src/model/uiDefinitions.ts`). Components and menus are read-only; pages are
+edited in the Page designer below, whose save is proven against App Designer's
+(docs/PAGE_SAVE.md).
 
 Few of these codes have PSXLATITEM labels (only `LBLTYPE`). The names below
 come from App Designer where it has shown them (the Default Page Control
@@ -158,14 +159,20 @@ Opening a page shows it in a panel with two tabs
   control is styled by its `FIELDTYPE` (edit box, drop-down, check box, radio,
   push button, group box, grid, scroll area, image ...), with its label drawn
   beside it; a label whose stored coordinates are negative is App Designer's
-  "not shown" and is left out. Clicking a control inspects it: number, type,
-  record field or target, occurs level, `FIELDUSE` and page-field name. The
-  surface is sized to the controls' extent.
-- **Order** -- the text list by `FIELDNUM` (level, type, label, record field /
-  target), as before; also what the MCP tools and a project export read.
+  "not shown" and is left out; an all-zero rectangle is drawn relative to the
+  control, as App Designer does. The surface is the page's size
+  (`PSPNLDEFN.PANELRIGHT` / `PANELBOTTOM`).
+- **Order** -- App Designer's Order grid, one row per control by `FIELDNUM`.
 
-Read-only. Moving, resizing, adding or deleting controls and saving the page
-back to `PSPNLFIELD` is a later step: no App Designer page save has been
-captured and proven yet, and this extension does not write a definition until
-its save transaction is proven byte for byte (see the record and PeopleCode
-save work). The Layout view is the visual surface that editing will build on.
+A shared sidebar shows the selected control's properties, or the page's (Page
+Properties: description, comments, owner, type, size, style sheets).
+
+On a Writable connection with an Operator ID, for a page in the write scope,
+the Layout view is an editor: drag to move, corner-resize, delete, relabel,
+Display Only / Invisible; **Insert** a Frame, Group Box, Horizontal Rule,
+Static Text, Check Box, Drop Down List Box, Edit Box or Push Button; edit the
+Description and Comments; drag the page's edge (or type a size) for a Custom
+page size; **Save**. The save, and each control's inserted rows, reproduce
+captured App Designer saves -- see [PAGE_SAVE.md](PAGE_SAVE.md). AI clients do
+the same through the MCP (`psft_get_page_layout`, `psft_edit_page`; see
+[MCP_WRITES.md](MCP_WRITES.md)).

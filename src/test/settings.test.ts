@@ -27,7 +27,7 @@ class FakeConfiguration implements ConfigurationPort {
   readonly writes: { key: SettingKey; value: unknown; scope: SettingScope }[] = [];
   readonly defaults: Partial<PeopleSoftStudioSettings> = {
     connections: [], 'oracle.thickModeLibDir': '', 'peoplecode.decoder': 'auto',
-    'mcp.enabled': true, 'mcp.port': 7337
+    'mcp.enabled': true, 'mcp.port': 7337, 'mcp.writes': 'confirm'
   };
   failNextWrite?: Error;
   private readonly listeners = new Set<(affects: (key: SettingKey) => boolean) => void>();
@@ -281,13 +281,14 @@ test('MCP settings are read with their types and defaults', () => {
   const { service, config } = setup();
   let settings = service.getState().settings;
   assert.deepEqual(settings.filter((s) => s.section === 'mcp').map((s) => [s.key, s.value, s.source]),
-    [['mcp.enabled', true, 'default'], ['mcp.port', 7337, 'default']]);
+    [['mcp.enabled', true, 'default'], ['mcp.port', 7337, 'default'], ['mcp.writes', 'confirm', 'default']]);
 
   config.set('mcp.enabled', 'global', false);
   config.set('mcp.port', 'workspace', 8123);
+  config.set('mcp.writes', 'global', 'off');
   settings = service.getState().settings;
   assert.deepEqual(settings.filter((s) => s.section === 'mcp').map((s) => [s.key, s.value, s.source]),
-    [['mcp.enabled', false, 'global'], ['mcp.port', 8123, 'workspace']]);
+    [['mcp.enabled', false, 'global'], ['mcp.port', 8123, 'workspace'], ['mcp.writes', 'off', 'global']]);
 });
 
 test('MCP settings are validated and written as a boolean and an integer', async () => {

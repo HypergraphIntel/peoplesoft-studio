@@ -70,7 +70,7 @@ const TYPE_CODES =
   typeCodeSummary() +
   '. psft_list_definition_types gives the key parts each type takes.';
 
-function jsonResult(value: unknown) {
+export function jsonResult(value: unknown) {
   return {
     content: [
       {
@@ -156,7 +156,7 @@ function resolveConnectionId(
   );
 }
 
-async function requireProvider(
+export async function requireProvider(
   workspace: Workspace,
   connection: string
 ): Promise<DefinitionProvider> {
@@ -168,7 +168,7 @@ async function requireProvider(
   );
 }
 
-function keyFromInput(
+export function keyFromInput(
   type: number,
   parts: string[]
 ): DefinitionKey {

@@ -23,6 +23,11 @@ import {
 } from './tools.js';
 
 import {
+  type McpWriteHost,
+  registerPeopleSoftWriteTools
+} from './writeTools.js';
+
+import {
   DEFAULT_MCP_PORT
 } from './configuration.js';
 
@@ -124,6 +129,8 @@ export async function startPeopleSoftMcpServer(
   options: {
     host?: string;
     port?: number;
+    /** The VS Code side of MCP writes; absent, the server is read-only. */
+    writeHost?: () => McpWriteHost | undefined;
   } = {}
 ): Promise<RunningPeopleSoftMcpServer> {
   const host =
@@ -158,6 +165,17 @@ export async function startPeopleSoftMcpServer(
           server,
           workspace
         );
+
+        const writeHost =
+          options.writeHost?.();
+
+        if (writeHost) {
+          registerPeopleSoftWriteTools(
+            server,
+            workspace,
+            writeHost
+          );
+        }
 
         return server;
       }

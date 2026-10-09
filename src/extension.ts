@@ -19,6 +19,8 @@ import { HtmlSaveRefusedError } from './providers/htmlWriter.js';
 import { StyleSheetSaveRefusedError } from './providers/styleSheetWriter.js';
 import { CREATABLE_FIELD_TYPES, FIXED_FIELD_LENGTH, FieldCreateRefusedError, fieldCreateRefusal } from './providers/fieldWriter.js';
 import { toUri } from './util/uri.js';
+import type { McpWriteMode } from './mcp/writeTools.js';
+import type { PeopleCodeSaveResult } from './providers/peopleCodeWriter.js';
 import { registerPeopleCodeCompletion } from './peoplecode/completion.js';
 import { registerPeopleCodeHover } from './peoplecode/hover.js';
 import { registerPeopleCodeSymbols } from './peoplecode/symbols.js';
@@ -167,7 +169,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // Every PeopleCode save keeps a report of the rows it replaced, so a save
   // can be undone by hand: <global storage>/peoplecode-saves/*.json.
-  const fileSystem = PeopleSoftFileSystem.register(workspace, async (key, connection, result) => {
+  const writeSaveReport = async (key: DefinitionKey, connection: string, result: PeopleCodeSaveResult) => {
     const dir = context.globalStorageUri ? vscode.Uri.joinPath(context.globalStorageUri, 'peoplecode-saves') : undefined;
     if (!dir) return;
     await vscode.workspace.fs.createDirectory(dir);
@@ -182,7 +184,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
     };
     await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(dir, name), Buffer.from(JSON.stringify(report, null, 1), 'utf8'));
-  }, () => void vscode.commands.executeCommand('psft.refresh'));
+  };
+  const fileSystem = PeopleSoftFileSystem.register(workspace, writeSaveReport, () => void vscode.commands.executeCommand('psft.refresh'));
   context.subscriptions.push(fileSystem);
   context.subscriptions.push(FieldEditorProvider.register(workspace, () => void vscode.commands.executeCommand('psft.refresh')));
 
@@ -201,6 +204,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   const refreshAll = () => { connections.refresh(); browser.refresh(); projects.refresh(); };
+
+  // MCP writes (mcp/writeTools.ts): the setting, the user's approval, and the editors' state.
+  mcpController.writeHost = {
+    mode: () => vscode.workspace.getConfiguration('peoplesoft.mcp').get<McpWriteMode>('writes', 'confirm'),
+    confirm: async ({ title, detail }) => (await vscode.window.showWarningMessage(title, { modal: true, detail }, 'Allow')) === 'Allow',
+    hasUnsavedEditor: (connectionId, key) => {
+      const uri = toUri(connectionId, key).toString();
+      return vscode.window.tabGroups.all.some((g) => g.tabs.some((t) => t.isDirty &&
+        (t.input instanceof vscode.TabInputText || t.input instanceof vscode.TabInputCustom) && t.input.uri.toString() === uri));
+    },
+    saved: (connectionId, key, peopleCode) => {
+      if (peopleCode) {
+        void writeSaveReport(key, connectionId, peopleCode).catch((error) => console.error('PeopleSoft Studio: could not write the save report:', error));
+      }
+      PeopleSoftFileSystem.instance?.invalidate(toUri(connectionId, key));
+      refreshAll();
+    }
+  };
   // A saved record's fields change in the trees too.
   context.subscriptions.push(RecordEditorProvider.register(workspace, () => { browser.refresh(); projects.refresh(); }));
 
