@@ -1,4 +1,4 @@
-import { LABEL_TYPES, PAGE_FIELD_TYPES, PAGE_TYPES, type PageView, type Row } from './uiDefinitions.js';
+import { PAGE_FIELD_TYPES, PAGE_TYPES, type PageView, type Row } from './uiDefinitions.js';
 
 /*
  * A page's controls positioned as App Designer's Layout view shows them, from
@@ -111,12 +111,15 @@ function labelRectOf(f: Row): Rect | undefined {
   return { left, top, width: right > left ? right - left : 0, height: bottom > top ? bottom - top : 14 };
 }
 
-/** A page field's shown label text: its own text, else the kind of record/message label it stands for. */
+/**
+ * A page field's shown label text, or '' when no label is shown. LBLTYPE 0 is
+ * "None" -- App Designer shows no label even though LBLTEXT still holds the
+ * field's underlying text, so those are not drawn (they otherwise pile up at
+ * their stray EDITLBL coordinates). Types 1 Text, 2 RFT Short, 3 RFT Long show
+ * LBLTEXT.
+ */
 function labelText(f: Row): string {
-  const text = str(f.LBLTEXT);
-  if (text) return text;
-  const type = num(f.LBLTYPE);
-  return type === 0 || type === 1 ? '' : `(${LABEL_TYPES[type] ?? `label ${type}`})`;
+  return num(f.LBLTYPE) === 0 ? '' : str(f.LBLTEXT);
 }
 
 /** What the control points at, for the inspector: its record field, subpage, process ... */
