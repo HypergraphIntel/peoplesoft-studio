@@ -1,5 +1,6 @@
 import type { DbConnection as Connection } from '../db/connection.js';
 import { writeScopeRefusal } from './writeScope.js';
+import { PAGE_SIZE_CUSTOM } from '../model/pageLayout.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
 import { newControlFieldRefusal, newControlRows, isRecordBound, type ColumnValues, type FieldInfo, type NewControl } from './pageControlTemplates.js';
@@ -73,20 +74,36 @@ export interface PageSaveRequest {
   properties?: EditedPageProperties;
 }
 
-/** Page Properties the editor may change: PSPNLDEFN.DESCR and DESCRLONG (19-props-descr). */
+/** Page Properties the editor may change: DESCR and DESCRLONG (19-props-descr), and the page size (14-props-use). */
 export interface EditedPageProperties {
   description: string;
   comments: string;
+  /** The page size (PANELRIGHT / PANELBOTTOM), as dragged or typed; absent leaves it. */
+  sizeWidth?: number;
+  sizeHeight?: number;
 }
 
 /**
  * The PSPNLDEFN property columns that change, as App Designer writes them
  * (19-props-descr): DESCR blank is ' ' (NOT NULL); DESCRLONG, a nullable CLOB,
- * is NULL when empty (as a new page's is).
+ * is NULL when empty (as a new page's is). A new size is PANELRIGHT /
+ * PANELBOTTOM with the Page Size choice made Custom: PNLUSE's low byte 11,
+ * its other bits kept (14-props-use: 32 -> 11).
  */
-export function planPageProperties(stored: { DESCR?: unknown; DESCRLONG?: unknown }, edited: EditedPageProperties | undefined): Record<string, string | null> {
+export function planPageProperties(stored: { DESCR?: unknown; DESCRLONG?: unknown; PANELRIGHT?: unknown; PANELBOTTOM?: unknown; PNLUSE?: unknown },
+  edited: EditedPageProperties | undefined): Record<string, string | number | null> {
   if (!edited) return {};
-  const columns: Record<string, string | null> = {};
+  const columns: Record<string, string | number | null> = {};
+  if (edited.sizeWidth !== undefined && edited.sizeHeight !== undefined) {
+    const w = Math.round(edited.sizeWidth), h = Math.round(edited.sizeHeight);
+    if (w !== Number(stored.PANELRIGHT ?? 0) || h !== Number(stored.PANELBOTTOM ?? 0)) {
+      if (!(w > 0 && h > 0)) throw new PageSaveRefusedError(`The page size must be positive (${w} x ${h}).`);
+      columns.PANELRIGHT = w;
+      columns.PANELBOTTOM = h;
+      const use = Number(stored.PNLUSE ?? 0);
+      if ((use & 0xff) !== PAGE_SIZE_CUSTOM) columns.PNLUSE = (use & ~0xff) | PAGE_SIZE_CUSTOM;
+    }
+  }
   const descr = edited.description.trim() ? edited.description.trimEnd() : ' ';
   if (descr.trim() !== String(stored.DESCR ?? '').trim()) columns.DESCR = descr;
   const comments = edited.comments.trim() ? edited.comments.trimEnd() : null;
@@ -210,8 +227,8 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
       throw new PageSaveRefusedError(`PeopleSoft operator ${operatorId} does not exist in this database (PSOPRDEFN).`);
     }
 
-    const [defn] = await select<{ VERSION: number; MAXPNLFLDID: number; DESCR: string; DESCRLONG: string | null }>(c,
-      `SELECT VERSION, MAXPNLFLDID, DESCR, DESCRLONG FROM PSPNLDEFN WHERE PNLNAME = :n FOR UPDATE`, { n: pnlName });
+    const [defn] = await select<{ VERSION: number; MAXPNLFLDID: number; DESCR: string; DESCRLONG: string | null; PANELRIGHT: number; PANELBOTTOM: number; PNLUSE: number }>(c,
+      `SELECT VERSION, MAXPNLFLDID, DESCR, DESCRLONG, PANELRIGHT, PANELBOTTOM, PNLUSE FROM PSPNLDEFN WHERE PNLNAME = :n FOR UPDATE`, { n: pnlName });
     if (!defn) throw new PageSaveRefusedError(`No page named ${pnlName}.`);
     if (Number(defn.VERSION) !== request.openedVersion) {
       throw new PageSaveRefusedError(`${pnlName} changed since it was opened (version ${defn.VERSION}, opened ${request.openedVersion}); reopen it.`);

@@ -1,12 +1,20 @@
+
+
+A note from the developer:
+
+**October 9, 2026**
+This extension is **under active development**, expect updates every couple days if not daily.
+
+
 # PeopleSoft Studio
 
-VS Code extension for **reading, navigating and editing** PeopleSoft definitions — PeopleCode, SQL, records, and related objects — from an Oracle environment or an Application Designer project export. On connections you set to Writable, PeopleCode can be **saved natively** to the database (see [Saving PeopleCode](#saving-peoplecode-experimental)).
+VS Code extension for **viewing and editing** PeopleSoft definitions — PeopleCode, SQL, records, and related objects — from an Oracle environment or an Application Designer project export. On connections you set to Writable, PeopleCode can be **saved natively** to the database (see [Saving PeopleCode](#saving-peoplecode-experimental)).
 
 > **Please read the [Disclaimer](#disclaimer) before saving anything to a database.**
 
 PeopleSoft Studio includes its own MCP server and does not require PeopleTools 8.63 MCP. When the delivered PeopleTools 8.63 MCP is available, PeopleSoft Studio can use it as a backend for supported operations.
 
-AI compatibility in both directions:
+AI agent compatibility in both directions:
 
 ```text
 PeopleTools 8.63+
