@@ -81,6 +81,10 @@ export interface PageProperties {
   /** PSPNLDEFN.PANELRIGHT / PANELBOTTOM -- the page size. */
   sizeWidth: number;
   sizeHeight: number;
+  /** PSPNLDEFN.PNLUSE; its low byte is the Page Size choice (PAGE_SIZE_CUSTOM = Custom). */
+  pnlUse: number;
+  /** The Page Size choice is Custom (the size is the one dragged / typed). */
+  sizeCustom: boolean;
   /** PSPNLDEFN.STYLESHEETNAME / FFSTYLESHEETNAME (blank: default). */
   styleSheet: string;
   fluidStyleSheet: string;
@@ -89,12 +93,21 @@ export interface PageProperties {
   version: number;
 }
 
+/**
+ * PNLUSE's low byte is the Use tab's Page Size choice: 0x03 plus one size bit
+ * (0x04 782x452, 0x20 570x330, 0x40 760x330, 0x80 984 wide ...) or 0x08 for
+ * Custom -- 6,982 delivered pages carry 11, at 6,259 different sizes. Choosing
+ * Custom and dragging the page edge in App Designer (14-props-use) set PNLUSE
+ * 32 -> 11 and PANELRIGHT / PANELBOTTOM to the dragged size.
+ */
+export const PAGE_SIZE_CUSTOM = 0x0b;
+
 export interface PageLayout {
   name: string;
   description: string;
   pageType: string;
   version: number;
-  /** The drawing surface, the controls' extent plus a margin. */
+  /** The drawing surface: the page size when it has one (as App Designer draws it), else the controls' extent plus a margin. */
   width: number;
   height: number;
   controls: PageControl[];
@@ -232,13 +245,14 @@ export function buildPageLayout(name: string, view: PageView): PageLayout {
   }
 
   const pageType = PAGE_TYPES[num(p.PNLTYPE)] ?? `Type ${num(p.PNLTYPE)}`;
+  const sized = num(p.PANELRIGHT) > 0 && num(p.PANELBOTTOM) > 0;
   return {
     name,
     description: str(p.DESCR),
     pageType,
     version: num(p.VERSION),
-    width: maxRight + 12,
-    height: maxBottom + 12,
+    width: sized ? num(p.PANELRIGHT) : maxRight + 12,
+    height: sized ? num(p.PANELBOTTOM) : maxBottom + 12,
     controls,
     properties: {
       description: str(p.DESCR),
@@ -247,6 +261,8 @@ export function buildPageLayout(name: string, view: PageView): PageLayout {
       pageType,
       sizeWidth: num(p.PANELRIGHT),
       sizeHeight: num(p.PANELBOTTOM),
+      pnlUse: num(p.PNLUSE),
+      sizeCustom: (num(p.PNLUSE) & 0xff) === PAGE_SIZE_CUSTOM,
       styleSheet: str(p.STYLESHEETNAME),
       fluidStyleSheet: str(p.FFSTYLESHEETNAME),
       lastUpdated: str(p.LASTUPD) || str(p.LASTUPDDTTM),

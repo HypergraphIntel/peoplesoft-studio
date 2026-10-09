@@ -166,7 +166,13 @@ export function renderPageHtml(layout: PageLayout, orderText: string, nonce: str
   .inspector label { display: block; margin: 0.4rem 0 0.1rem; color: var(--vscode-descriptionForeground); }
   .inspector input[type=text], .inspector select, .inspector textarea { width: 100%; box-sizing: border-box; font: inherit; }
   .inspector .row { display: flex; align-items: center; gap: 0.4rem; margin: 0.3rem 0; }
+  .inspector input[type=number] { width: 6em; font: inherit; }
   .hint { color: var(--vscode-descriptionForeground); }
+  .pg-edge { position: absolute; z-index: 4; }
+  .pg-r { top: 0; right: -4px; width: 7px; height: 100%; cursor: ew-resize; }
+  .pg-b { left: 0; bottom: -4px; height: 7px; width: 100%; cursor: ns-resize; }
+  .pg-rb { right: -6px; bottom: -6px; width: 11px; height: 11px; cursor: nwse-resize; background: #c02; border: 1px solid #fff; }
+  .pg-edge:hover, .pg-edge.dragging { background: var(--vscode-focusBorder, #07f); opacity: 0.6; }
   .palette { display: flex; gap: 0.25rem; align-items: center; color: var(--vscode-descriptionForeground); margin-right: 0.75rem; flex-wrap: wrap; }
   button.tool { font: inherit; font-size: 0.9em; padding: 0.1rem 0.5rem; border: 1px solid var(--vscode-button-border, #8886); background: var(--vscode-button-secondaryBackground, transparent); color: var(--vscode-button-secondaryForeground, inherit); border-radius: 3px; cursor: pointer; }
   .new-ctl { box-shadow: 0 0 0 1px #2a7 inset; }
@@ -188,6 +194,7 @@ ${geometryCss(layout.controls)}
     <div class="content">
       <div class="panel selected" id="panel-layout"><div class="canvas-scroll"><div class="canvas" id="canvas">
 ${controlsHtml(layout.controls, editable)}
+${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the page width"></div><div class="pg-edge pg-b" data-edge="b" title="Drag to set the page height"></div><div class="pg-edge pg-rb" data-edge="rb" title="Drag to set the page size"></div>' : ''}
       </div></div></div>
       <div class="panel" id="panel-order">${orderGrid(layout.controls)}</div>
     </div>
@@ -230,21 +237,33 @@ ${controlsHtml(layout.controls, editable)}
     const p = pageProps;
     body.replaceChildren(propsTable([
       ['Name', pageName], ...(editable ? [] : [['Description', p.description], ['Comments', p.comments]]), ['Owner ID', p.ownerId],
-      ['Page type', p.pageType], ['Page size', p.sizeWidth + ' × ' + p.sizeHeight],
+      ['Page type', p.pageType], ...(editable ? [] : [['Page size', p.sizeWidth + ' × ' + p.sizeHeight + (p.sizeCustom ? ' (Custom)' : '')]]),
       ['Style sheet', p.styleSheet], ['Fluid style sheet', p.fluidStyleSheet],
       ['Version', p.version], ['Last updated', p.lastUpdated + (p.lastUpdatedBy ? ' by ' + p.lastUpdatedBy : '')]
     ]));
     if (!editable) return;
     // General tab: Description and Comments are written on Save (PSPNLDEFN.DESCR / DESCRLONG).
     const t = document.createElement('template');
-    t.innerHTML = '<div><label>Description</label><input type="text" maxlength="30" id="pp-descr"><label>Comments</label><textarea rows="5" id="pp-comments"></textarea></div>';
+    t.innerHTML = '<div><label>Description</label><input type="text" maxlength="30" id="pp-descr"><label>Comments</label><textarea rows="5" id="pp-comments"></textarea>' +
+      '<label>Page size (Custom when changed; or drag the page edge)</label><div class="row"><input type="number" min="1" id="pp-w" title="Width"> × <input type="number" min="1" id="pp-h" title="Height"></div></div>';
     const form = t.content.firstElementChild;
     form.querySelector('#pp-descr').value = p.description; form.querySelector('#pp-comments').value = p.comments;
+    form.querySelector('#pp-w').value = p.sizeWidth; form.querySelector('#pp-h').value = p.sizeHeight;
+    const sizeInput = () => { const w = Number(form.querySelector('#pp-w').value), h = Number(form.querySelector('#pp-h').value); if (w > 0 && h > 0) setPageSize(w, h); };
+    form.querySelector('#pp-w').oninput = sizeInput; form.querySelector('#pp-h').oninput = sizeInput;
     form.querySelector('#pp-descr').oninput = (e) => { p.description = e.target.value; markDirty(); };
     form.querySelector('#pp-comments').oninput = (e) => { p.comments = e.target.value; markDirty(); };
     body.prepend(form);
   }
   document.getElementById('page-props-btn').onclick = showPage;
+  // The page size: the canvas is drawn at it; dragging an edge or typing a size makes it Custom.
+  function setPageSize(w, h) {
+    pageProps.sizeWidth = Math.max(1, Math.round(w)); pageProps.sizeHeight = Math.max(1, Math.round(h)); pageProps.sizeChanged = true;
+    canvas.style.width = pageProps.sizeWidth + 'px'; canvas.style.height = pageProps.sizeHeight + 'px';
+    const fw = document.getElementById('pp-w'), fh = document.getElementById('pp-h');
+    if (fw && document.activeElement !== fw) fw.value = pageProps.sizeWidth; if (fh && document.activeElement !== fh) fh.value = pageProps.sizeHeight;
+    markDirty();
+  }
   function controlById(id) { return document.getElementById('c' + id); }
   function selectRow(id) {
     if (selRow) selRow.classList.remove('sel');
@@ -295,6 +314,11 @@ ${controlsHtml(layout.controls, editable)}
   if (editable) {
     let drag = null;
     canvas.addEventListener('mousedown', (e) => {
+      if (e.target.classList.contains('pg-edge')) {
+        const edge = e.target.dataset.edge;
+        drag = { page: edge, x: e.clientX, y: e.clientY, w: canvas.offsetWidth - 2, h: canvas.offsetHeight - 2, handle: e.target };
+        e.target.classList.add('dragging'); e.preventDefault(); return;
+      }
       const el = e.target.closest('.ctl'); if (!el) return;
       inspect(el);
       drag = { el, resize: e.target.classList.contains('rsz'), x: e.clientX, y: e.clientY, l: n(el,'fl'), t: n(el,'ft'), w: el.offsetWidth, h: el.offsetHeight };
@@ -303,6 +327,10 @@ ${controlsHtml(layout.controls, editable)}
     window.addEventListener('mousemove', (e) => {
       if (!drag) return;
       const dx = e.clientX - drag.x, dy = e.clientY - drag.y, el = drag.el;
+      if (drag.page) {
+        setPageSize(drag.page === 'b' ? drag.w : Math.max(40, drag.w + dx), drag.page === 'r' ? drag.h : Math.max(40, drag.h + dy));
+        return;
+      }
       if (drag.resize) {
         const w = Math.max(6, drag.w + dx), h = Math.max(6, drag.h + dy);
         el.style.width = w + 'px'; el.style.height = h + 'px';
@@ -320,7 +348,7 @@ ${controlsHtml(layout.controls, editable)}
         drag.x = e.clientX; drag.y = e.clientY; drag.l = l; drag.t = t;
       }
     });
-    window.addEventListener('mouseup', () => { if (drag) { markDirty(); drag = null; } });
+    window.addEventListener('mouseup', () => { if (drag) { if (drag.handle) drag.handle.classList.remove('dragging'); markDirty(); drag = null; } });
 
     let newSeq = 0;
     function placeholderLabel(el) {
@@ -368,7 +396,8 @@ ${controlsHtml(layout.controls, editable)}
         ...(el.dataset.new ? { add: { kind: el.dataset.new, recName: el.dataset.rec || '', fieldName: el.dataset.field || '' } } : {})
       }));
       saveBtn.disabled = true; status.textContent = 'Saving…'; status.classList.remove('err');
-      vscode.postMessage({ type: 'save', controls, properties: { description: pageProps.description, comments: pageProps.comments } });
+      vscode.postMessage({ type: 'save', controls, properties: { description: pageProps.description, comments: pageProps.comments,
+        ...(pageProps.sizeChanged ? { sizeWidth: pageProps.sizeWidth, sizeHeight: pageProps.sizeHeight } : {}) } });
     });
     window.addEventListener('message', (ev) => {
       const m = ev.data;

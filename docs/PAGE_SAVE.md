@@ -254,10 +254,13 @@ or negative (hidden) one as it is. A blank label is written as `' '`, never
 
 Six saves made in a row, each bracketed retroactively between their commits:
 
-- 14-props-use, Use tab: `PANELRIGHT/BOTTOM` 570x330 -> 959x988 and `PNLUSE`
-  32 -> 11 in one save. `PDM` rose by **2** in that single commit (every other
-  save is +1); `SYS` +1. Not yet explained, and `PNLUSE`'s bits are not
-  decoded, so the Use tab is not editable yet.
+- 14-props-use, Use tab: Page Size set to Custom, then the page edge dragged:
+  `PANELRIGHT/BOTTOM` 570x330 -> 959x988 and `PNLUSE` 32 -> 11. `PDM` rose by
+  **2** in that single commit (every other save is +1; not explained); `SYS`
+  +1. `PNLUSE`'s low byte is the Page Size choice: 0x03 plus one size bit
+  (0x04 782x452, 0x20 570x330, 0x40 760x330, 0x80 984 wide ...) or 0x08 for
+  Custom -- 6,982 delivered pages carry 11, at 6,259 sizes; 32 (no 0x03) is
+  only on 38 new, never-reopened 570x330 pages like this one was.
 - 15-static-text, 16-frame, 17-hrule: one insert each (FIELDTYPE 0 / 1 / 23).
 - 18-number-datetime: Edit Boxes on a number (PSDBFIELD type 2) and a
   datetime (6) field. DSPLFORMAT is the same as on a character field.
@@ -301,5 +304,11 @@ Limits, from the evidence:
 
 The sidebar shows PSPNLDEFN's properties. On a Writable connection,
 Description and Comments are edited there and written on Save (19-props-descr;
-DESCR limited to 30 characters). The Use tab (page size, PNLUSE) waits on
-decoding PNLUSE (14), and Owner ID has not been captured.
+DESCR limited to 30 characters). The page size is set by dragging the page's
+right / bottom edge or corner on the Layout canvas (drawn at the page size), or
+typing it in the sidebar: the writer writes `PANELRIGHT/BOTTOM` and makes the
+Page Size choice Custom (`PNLUSE` low byte 11, other bits kept), as 14 did.
+Proven live in `results/21-writer-page-size` (a dragged 959x988 -> 1000x900:
+`PSPNLDEFN` PANELRIGHT/BOTTOM + stamp, `PDM`/`SYS` +1). The other Use-tab
+settings (page type, style sheet, deferred processing, fluid, hidden-field
+layout, popup menu) and Owner ID have not been captured.

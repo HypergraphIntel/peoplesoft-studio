@@ -105,3 +105,18 @@ test('page properties write only what changed, as App Designer stores it (19-pro
     { DESCR: ' ', DESCRLONG: null });
   assert.deepEqual(planPageProperties({ DESCR: 'Lab Custom Page', DESCRLONG: 'Comment Here' }, { description: 'Lab Custom Page', comments: 'Comment Here' }), {});
 });
+
+test('a new page size writes PANELRIGHT/BOTTOM and makes the Page Size choice Custom (14-props-use shape)', () => {
+  const props = { description: 'D', comments: '' };
+  const stored = { DESCR: 'D', DESCRLONG: null, PANELRIGHT: 570, PANELBOTTOM: 330, PNLUSE: 32 };
+  // App Designer: Custom + dragged edge took PNLUSE 32 -> 11, 570x330 -> 959x988.
+  assert.deepEqual(planPageProperties(stored, { ...props, sizeWidth: 959, sizeHeight: 988 }), { PANELRIGHT: 959, PANELBOTTOM: 988, PNLUSE: 11 });
+  // The low byte is the size choice; the other bits are kept.
+  assert.deepEqual(planPageProperties({ ...stored, PNLUSE: 16643 }, { ...props, sizeWidth: 800, sizeHeight: 600 }), { PANELRIGHT: 800, PANELBOTTOM: 600, PNLUSE: 16651 });
+  // Already Custom: only the size.
+  assert.deepEqual(planPageProperties({ ...stored, PNLUSE: 267 }, { ...props, sizeWidth: 900, sizeHeight: 330 }), { PANELRIGHT: 900, PANELBOTTOM: 330 });
+  // Unchanged or not sent: nothing.
+  assert.deepEqual(planPageProperties(stored, { ...props, sizeWidth: 570, sizeHeight: 330 }), {});
+  assert.deepEqual(planPageProperties(stored, props), {});
+  assert.throws(() => planPageProperties(stored, { ...props, sizeWidth: 0, sizeHeight: 10 }), PageSaveRefusedError);
+});

@@ -144,3 +144,14 @@ test('static text with a relative (all-zero) label is drawn inside its box', () 
   const [c] = buildPageLayout('P', view([field({ FIELDTYPE: 0, LBLTYPE: 1, LBLTEXT: 'Static Text', FIELDLEFT: 84, FIELDTOP: 376, FIELDRIGHT: 212, FIELDBOTTOM: 396 })])).controls;
   assert.deepEqual(c.label, { text: 'Static Text', rect: { left: 86, top: 379, width: 0, height: 14 } });
 });
+
+test('the surface is the page size when it has one; the editor can drag its edge', () => {
+  const v: PageView = { page: { PNLTYPE: 0, VERSION: 1, PANELRIGHT: 959, PANELBOTTOM: 988, PNLUSE: 11 }, fields: [field({ FIELDLEFT: 10, FIELDTOP: 10, FIELDRIGHT: 50, FIELDBOTTOM: 30 })], components: [] };
+  const layout = buildPageLayout('P', v);
+  assert.equal(layout.width, 959);
+  assert.equal(layout.height, 988);
+  assert.equal(layout.properties.sizeCustom, true);
+  assert.equal(buildPageLayout('P', { ...v, page: { ...v.page, PNLUSE: 35 } }).properties.sizeCustom, false);
+  assert.match(renderPageHtml(layout, '', 'N', { editable: true }), /class="pg-edge pg-rb" data-edge="rb"/);
+  assert.doesNotMatch(renderPageHtml(layout, '', 'N', { editable: false }), /class="pg-edge/);
+});

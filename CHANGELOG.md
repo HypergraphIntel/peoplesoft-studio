@@ -4,6 +4,23 @@
 
 ### Changed
 
+- **Visual Page designer**: opening a page shows it in a panel with App
+  Designer's two views -- **Layout**, the controls drawn in place from their
+  stored geometry (PSPNLFIELD FIELDLEFT/TOP/RIGHT/BOTTOM), styled by control
+  type with their labels, on a canvas at the page's size; and **Order**, App
+  Designer's grid (tab order, field ID, level, label, type, field, record,
+  page field name, deferred, control field). A shared sidebar shows the
+  selected control's properties, or the page's (**Page Properties**).
+  On a Writable connection, for pages in the write scope, the Layout view is
+  an editor (Experimental): drag, resize, delete, relabel, Display Only /
+  Invisible; **Insert** Frame, Group Box, Horizontal Rule, Static Text,
+  Check Box, Drop Down List Box, Edit Box or Push Button; edit the page's
+  Description and Comments; drag the page edge (or type a size) to set a
+  Custom page size. Save writes PSPNLDEFN / PSPNLFIELD / PSPNLFIELDEXT and
+  the PDM / SYS version counters as App Designer does -- every write shape
+  proven against captured App Designer saves. See
+  [docs/PAGE_SAVE.md](docs/PAGE_SAVE.md) and
+  [docs/PAGES_COMPONENTS_MENUS.md](docs/PAGES_COMPONENTS_MENUS.md).
 - **Microsoft SQL Server and DB2 connections** (Experimental): *Add
   Connection* offers SQL Server (`host[\instance][:port]/database`) and DB2
   for Linux, UNIX and Windows or z/OS (`host[:port]/database`). Everything
@@ -28,14 +45,6 @@
   verified against PSOPRDEFN at connect (exists and not locked). The
   access-profile lookup (PSACCESSPRFL) is never done. See
   [docs/DATABASES.md](docs/DATABASES.md).
-- **Visual Page designer (Layout view)**: opening a page now shows it in a
-  panel with App Designer's two views -- **Layout**, the controls drawn in
-  place from their stored geometry (PSPNLFIELD FIELDLEFT/TOP/RIGHT/BOTTOM),
-  styled by control type (edit box, dropdown, checkbox, button, group box,
-  grid, scroll area) with their labels, each clickable to inspect its record
-  field, type and use; and **Order**, the text list as before. Read-only;
-  editing and save are a later, save-proven step. See
-  [docs/PAGES_COMPONENTS_MENUS.md](docs/PAGES_COMPONENTS_MENUS.md).
 - **3 Tier (Application Server)** connection type (configured, transport
   pending): *Add Connection* collects App Designer's 3-tier profile --
   application server name, machine/IP, port, Tuxedo connect string, domain
