@@ -388,7 +388,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           }
           if (key.type === DefinitionType.Page && provider instanceof DatabaseProvider) {
             const { layout, order } = await provider.readPageLayout(key);
-            PagePanel.show({ id: provider.id, displayName: provider.displayName }, key, layout, order);
+            const pnlName = key.parts[0];
+            const operatorId = workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim();
+            // Editable when the connection is Writable, the page name is in the write scope, and an operator is set.
+            const editable = workspace.isWritable(provider.id) && !!operatorId && !writeScopeRefusal(pnlName);
+            let openedVersion = layout.version;
+            PagePanel.show({ id: provider.id, displayName: provider.displayName }, key, layout, order, {
+              editable,
+              ...(editable ? {
+                save: async (controls) => {
+                  const result = await provider.savePage({ pnlName, openedVersion, operatorId: operatorId!, controls });
+                  openedVersion = result.version;
+                  return { version: result.version };
+                }
+              } : {})
+            });
             return;
           }
           if (!provider.canReadAsText(key.type)) {
