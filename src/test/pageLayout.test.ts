@@ -66,3 +66,18 @@ test('the HTML positions each control by id and carries its data, with a CSP and
   assert.match(html, /class="ctl s-dropdown" id="c7"[^>]*data-target="NAMES\.NAME_TYPE"/);
   assert.match(html, /ORDER VIEW TEXT/);
 });
+
+test('FIELDUSE bits mark display-only and invisible controls', () => {
+  const [a] = buildPageLayout('P', view([field({ FIELDUSE: 1 })])).controls;
+  assert.equal(a.displayOnly, true);
+  assert.equal(a.invisible, false);
+  const [b] = buildPageLayout('P', view([field({ FIELDUSE: 2 })])).controls;
+  assert.equal(b.invisible, true);
+  // Both bits (plus others, as on delivered pages).
+  const [c] = buildPageLayout('P', view([field({ FIELDUSE: 13 })])).controls; // 0x0D
+  assert.equal(c.displayOnly, true);
+  assert.equal(c.invisible, false);
+  const html = renderPageHtml(buildPageLayout('P', view([field({ FIELDNUM: 1, FIELDUSE: 1 }), field({ FIELDNUM: 2, FIELDUSE: 2 })])), '', 'N');
+  assert.match(html, /class="ctl s-field u-display-only"/);
+  assert.match(html, /class="ctl s-field u-invisible"/);
+});

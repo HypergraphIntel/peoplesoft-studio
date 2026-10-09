@@ -26,11 +26,13 @@ function controlsHtml(controls: readonly PageControl[]): string {
       : c.shape === 'dropdown' ? '<span class="caret">▾</span>'
       : c.typeName.startsWith('Push Button') || c.shape === 'button' ? esc(c.label?.text || c.typeName)
       : '';
-    const title = `${c.num}. ${c.typeName}${c.recordField ? ` — ${c.recordField}` : ''}`;
+    const use = [c.displayOnly ? 'Display Only' : '', c.invisible ? 'Invisible' : ''].filter(Boolean).join(', ');
+    const title = `${c.num}. ${c.typeName}${c.recordField ? ` — ${c.recordField}` : ''}${use ? ` (${use})` : ''}`;
+    const cls = `ctl s-${c.shape}${c.displayOnly ? ' u-display-only' : ''}${c.invisible ? ' u-invisible' : ''}`;
     parts.push(
-      `<div class="ctl s-${c.shape}" id="c${c.num}" tabindex="0" title="${esc(title)}"` +
+      `<div class="${cls}" id="c${c.num}" tabindex="0" title="${esc(title)}"` +
       ` data-num="${c.num}" data-type="${esc(c.typeName)}" data-target="${esc(c.target)}"` +
-      ` data-use="${c.use}" data-name="${esc(c.pageFieldName)}" data-level="${c.level}">${inner}</div>`);
+      ` data-use="${c.use}${use ? ` (${use})` : ''}" data-name="${esc(c.pageFieldName)}" data-level="${c.level}">${inner}</div>`);
     return parts.join('');
   }).join('\n');
 }
@@ -93,6 +95,9 @@ export function renderPageHtml(layout: PageLayout, orderText: string, nonce: str
   .s-image { background: #eef; border: 1px dashed #88a; }
   .s-rule { background: #999; border: none; }
   .s-misc { border: 1px dotted #888; background: #f4f4f4; }
+  /* Use state, proven in docs/PAGE_SAVE.md: display-only dimmed, invisible hatched. */
+  .u-display-only { opacity: 0.55; }
+  .u-invisible { background-image: repeating-linear-gradient(45deg, #0000 0 4px, #8883 4px 6px); border-style: dashed; }
   .selected-ctl { outline: 2px solid #c02; outline-offset: 0; }
   .inspector { width: 260px; border-left: 1px solid var(--vscode-panel-border, #8884); padding: 12px; overflow: auto;
     background: var(--vscode-editorWidget-background, transparent); }
