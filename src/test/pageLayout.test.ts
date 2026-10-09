@@ -94,3 +94,12 @@ test('editable render adds the save toolbar, resize handles and round-trip data;
   assert.match(ro, /const editable = false/);
   assert.doesNotMatch(ro, /class="rsz"/);
 });
+
+test('LBLTYPE 0 (None) shows no label even when LBLTEXT is set; types 1-3 do', () => {
+  const none = buildPageLayout('P', view([field({ LBLTYPE: 0, LBLTEXT: 'Department Name', EDITLBLLEFT: 0, EDITLBLTOP: 9 })])).controls[0];
+  assert.equal(none.label, undefined);
+  const text = buildPageLayout('P', view([field({ LBLTYPE: 1, LBLTEXT: 'My Label', EDITLBLLEFT: 10, EDITLBLTOP: 5, EDITLBLRIGHT: 60, EDITLBLBOTTOM: 20 })])).controls[0];
+  assert.equal(text.label?.text, 'My Label');
+  const rft = buildPageLayout('P', view([field({ LBLTYPE: 3, LBLTEXT: 'Military Service', EDITLBLLEFT: 36, EDITLBLTOP: 52, EDITLBLRIGHT: 123, EDITLBLBOTTOM: 67 })])).controls[0];
+  assert.equal(rft.label?.text, 'Military Service');
+});
