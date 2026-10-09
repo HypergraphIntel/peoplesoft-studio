@@ -22,3 +22,6 @@ dist-test/
 /tools/corpus/hcdev-snapshot.sqlite-shm
 /tools/corpus/hcdev-snapshot.sqlite-wal
 /tools/corpus/hcdev-snapshot-2026-09-24.sqlite
+# Personal Claude Code settings (permission allowlist) -- local only.
+/.claude/settings.json
+/.claude/settings.local.json
