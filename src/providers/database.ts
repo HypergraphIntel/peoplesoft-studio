@@ -29,7 +29,8 @@ import { APPLICATION_CLASS_OBJECTID, PEOPLECODE_OBJECTIDS, pcmProgKeyParts, peop
 import { assembleProgram, NameTable } from '../peoplecode/progtext.js';
 import { decodeProgram, DecodeOptions } from '../peoplecode/decoder.js';
 import { FieldLabelRow, FieldRow, renderField } from './oracleRender.js';
-import { renderComponent, renderMenu, renderPage, type Row as UiRow } from '../model/uiDefinitions.js';
+import { renderComponent, renderMenu, renderPage, type PageView, type Row as UiRow } from '../model/uiDefinitions.js';
+import { buildPageLayout, type PageLayout } from '../model/pageLayout.js';
 import { renderComponentInterface, renderFileLayout } from '../model/integrationDefinitions.js';
 import { renderMessage, renderPermissionList, renderRole } from '../model/adminDefinitions.js';
 import { renderQuery } from '../model/queryDefinition.js';
@@ -1311,6 +1312,19 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   private async readPageSummary(key: DefinitionKey): Promise<string> {
+    return (await this.readPageView(key)).order;
+  }
+
+  /**
+   * A page's visual layout (its controls positioned from PSPNLFIELD geometry)
+   * and its Order view text, for the Page panel.
+   */
+  async readPageLayout(key: DefinitionKey): Promise<{ layout: PageLayout; order: string }> {
+    const view = await this.readPageView(key);
+    return { layout: buildPageLayout(key.parts[0], view.data), order: view.order };
+  }
+
+  private async readPageView(key: DefinitionKey): Promise<{ data: PageView; order: string }> {
     const name = key.parts[0];
     return this.withConnection(async (c) => {
       const [page] = await this.uiRows(c, `SELECT P.*, ${UI_STAMP} FROM PSPNLDEFN P WHERE PNLNAME = :n`, { n: name });
@@ -1318,7 +1332,8 @@ export class DatabaseProvider implements DefinitionProvider {
       const fields = await this.uiRows(c, `SELECT * FROM PSPNLFIELD WHERE PNLNAME = :n ORDER BY FIELDNUM`, { n: name });
       const components = await this.uiRows(c,
         `SELECT PNLGRPNAME, MARKET, ITEMLABEL FROM PSPNLGROUP WHERE PNLNAME = :n ORDER BY PNLGRPNAME, MARKET`, { n: name });
-      return renderPage(name, { page, fields, components });
+      const data: PageView = { page, fields, components };
+      return { data, order: renderPage(name, data) };
     });
   }
 

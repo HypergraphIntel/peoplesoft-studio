@@ -28,6 +28,14 @@
   verified against PSOPRDEFN at connect (exists and not locked). The
   access-profile lookup (PSACCESSPRFL) is never done. See
   [docs/DATABASES.md](docs/DATABASES.md).
+- **Visual Page designer (Layout view)**: opening a page now shows it in a
+  panel with App Designer's two views -- **Layout**, the controls drawn in
+  place from their stored geometry (PSPNLFIELD FIELDLEFT/TOP/RIGHT/BOTTOM),
+  styled by control type (edit box, dropdown, checkbox, button, group box,
+  grid, scroll area) with their labels, each clickable to inspect its record
+  field, type and use; and **Order**, the text list as before. Read-only;
+  editing and save are a later, save-proven step. See
+  [docs/PAGES_COMPONENTS_MENUS.md](docs/PAGES_COMPONENTS_MENUS.md).
 - **3 Tier (Application Server)** connection type (configured, transport
   pending): *Add Connection* collects App Designer's 3-tier profile --
   application server name, machine/IP, port, Tuxedo connect string, domain
