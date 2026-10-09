@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.7.9
+
+### Changed
+
+- **MCP writes** (Experimental): AI clients can now edit through the
+  PeopleSoft Studio MCP server, with the editors' own writers -- every save
+  the same rows App Designer writes:
+  - `psft_save_peoplecode`: compile and save Record PeopleCode or an
+    Application Class (a new class is created in its package); the save
+    leaves the same undo report as an editor save.
+  - `psft_save_text_definition`: SQL, HTML and freeform style sheets
+    (created when new).
+  - `psft_get_page_layout` and `psft_edit_page`: a page's controls by id;
+    add, move, resize, relabel, Display Only / Invisible, delete, and the
+    page's Description, Comments and size.
+  - `psft_edit_record` (insert / remove / move fields and subrecords, Use,
+    Edits, defaults, labels, Record Properties, record type) and
+    `psft_delete_record`.
+  - `psft_create_field`, `psft_edit_field` (length, description, labels),
+    `psft_edit_translate`.
+  - `psft_create_project`, `psft_add_to_project`, `psft_create_package`.
+
+  Each write needs what the editors need -- a database connection set to
+  Writable, an Operator ID, a name in the write scope -- and no editor
+  holding unsaved changes to the definition. The new **MCP writes** setting
+  (`peoplesoft.mcp.writes`) decides the rest: **Confirm each write** (the
+  default; VS Code shows the connection, the definition and the change, and
+  nothing is written until you allow it), **Allow without asking**, or
+  **Off** (read-only). See [docs/MCP_WRITES.md](docs/MCP_WRITES.md).
+
 ## 0.7.8
 
 ### Changed
