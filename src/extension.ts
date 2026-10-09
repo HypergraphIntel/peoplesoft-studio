@@ -396,9 +396,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             PagePanel.show({ id: provider.id, displayName: provider.displayName }, key, layout, order, {
               editable,
               ...(editable ? {
-                save: async (controls) => {
-                  const result = await provider.savePage({ pnlName, openedVersion, operatorId: operatorId!, controls });
+                save: async (controls, properties) => {
+                  const result = await provider.savePage({ pnlName, openedVersion, operatorId: operatorId!, controls, ...(properties ? { properties } : {}) });
                   openedVersion = result.version;
+                  // Added controls only get their PNLFLDIDs from the database: redraw from it.
+                  if (result.inserted > 0) return { version: result.version, layout: (await provider.readPageLayout(key)).layout };
                   return { version: result.version };
                 }
               } : {})

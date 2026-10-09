@@ -1,5 +1,7 @@
 import { escapeHtml as esc } from './propertiesHtml.js';
-import type { PageControl, PageLayout } from '../model/pageLayout.js';
+import { controlShape, type PageControl, type PageLayout } from '../model/pageLayout.js';
+import { PAGE_FIELD_TYPES } from '../model/uiDefinitions.js';
+import { NEW_CONTROL_FIELDTYPE, NEW_CONTROL_SIZE, isRecordBound, type NewControlKind } from '../providers/pageControlTemplates.js';
 
 /*
  * A page in App Designer's Layout view (controls drawn from their stored
@@ -12,7 +14,10 @@ import type { PageControl, PageLayout } from '../model/pageLayout.js';
  * style attributes (the webview CSP's style-src is nonce-only). During editing
  * the script moves controls with element.style.* (CSSOM, which the CSP allows)
  * and keeps each control's stored PSPNLFIELD columns in data-* attributes, so
- * Save round-trips the exact columns the writer expects.
+ * Save round-trips the exact columns the writer expects. The Insert palette
+ * adds controls (pageControlTemplates.ts holds the rows App Designer writes);
+ * after a save that added any, the panel re-renders from the database so
+ * they carry their new PNLFLDIDs.
  */
 
 const px = (n: number) => `${Math.round(n)}px`;
@@ -20,6 +25,27 @@ const px = (n: number) => `${Math.round(n)}px`;
 export interface PageHtmlOptions {
   /** The connection is Writable and has an operator: the page can be edited and saved. */
   editable: boolean;
+  /** The toolbar's opening status (e.g. after a save re-rendered the page). */
+  status?: string;
+}
+
+/** The Insert palette, in App Designer's Insert-menu order. */
+const PALETTE: Array<{ kind: NewControlKind; label: string }> = [
+  { kind: 'frame', label: 'Frame' }, { kind: 'groupBox', label: 'Group Box' }, { kind: 'horizontalRule', label: 'Horizontal Rule' },
+  { kind: 'staticText', label: 'Static Text' }, { kind: 'checkBox', label: 'Check Box' }, { kind: 'dropDown', label: 'Drop Down List Box' },
+  { kind: 'editBox', label: 'Edit Box' }, { kind: 'pushButton', label: 'Push Button' }
+];
+
+/** What the script needs to draw a new control of each kind. */
+function paletteKinds(): Record<string, unknown> {
+  return Object.fromEntries(PALETTE.map(({ kind }) => {
+    const z = NEW_CONTROL_SIZE[kind];
+    const shape = controlShape(NEW_CONTROL_FIELDTYPE[kind]);
+    // Auto-sized controls (0 x 0, sized by App Designer from the field) are drawn at a stand-in size.
+    const drawn = shape === 'checkbox' ? [14, 14] : [80, 18];
+    return [kind, { shape, typeName: PAGE_FIELD_TYPES[NEW_CONTROL_FIELDTYPE[kind]] ?? kind, bound: isRecordBound(kind),
+      w: z.width, h: z.height, dw: z.width || drawn[0], dh: z.height || drawn[1], fst: z.fieldSizeType, lt: z.lblType, lx: z.lblText }];
+  }));
 }
 
 /** The control's editable columns as data-* attributes, for the editor round-trip and the sidebar. */
@@ -130,21 +156,29 @@ export function renderPageHtml(layout: PageLayout, orderText: string, nonce: str
   .order-grid tbody tr { cursor: pointer; } .order-grid tbody tr:hover { background: var(--vscode-list-hoverBackground, #8881); }
   .order-grid tr.sel { background: var(--vscode-list-activeSelectionBackground, #0978); color: var(--vscode-list-activeSelectionForeground, inherit); }
   .inspector { width: 290px; flex: 0 0 290px; border-left: 1px solid var(--vscode-panel-border, #8884); padding: 12px; overflow: auto; background: var(--vscode-editorWidget-background, transparent); }
-  .inspector h2 { font-size: 0.95em; margin: 0 0 0.5rem; }
+  .insp-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.5rem; }
+  .inspector h2 { font-size: 0.95em; margin: 0; }
+  button.link { background: none; border: none; color: var(--vscode-textLink-foreground); cursor: pointer; font: inherit; padding: 0; }
+  button.link:hover { text-decoration: underline; }
   .inspector table.props { border-collapse: collapse; width: 100%; margin-bottom: 0.6rem; }
   .inspector table.props td { padding: 1px 4px; vertical-align: top; word-break: break-word; }
   .inspector table.props td.k { color: var(--vscode-descriptionForeground); white-space: nowrap; width: 42%; }
   .inspector label { display: block; margin: 0.4rem 0 0.1rem; color: var(--vscode-descriptionForeground); }
-  .inspector input[type=text], .inspector select { width: 100%; box-sizing: border-box; font: inherit; }
+  .inspector input[type=text], .inspector select, .inspector textarea { width: 100%; box-sizing: border-box; font: inherit; }
   .inspector .row { display: flex; align-items: center; gap: 0.4rem; margin: 0.3rem 0; }
   .hint { color: var(--vscode-descriptionForeground); }
+  .palette { display: flex; gap: 0.25rem; align-items: center; color: var(--vscode-descriptionForeground); margin-right: 0.75rem; flex-wrap: wrap; }
+  button.tool { font: inherit; font-size: 0.9em; padding: 0.1rem 0.5rem; border: 1px solid var(--vscode-button-border, #8886); background: var(--vscode-button-secondaryBackground, transparent); color: var(--vscode-button-secondaryForeground, inherit); border-radius: 3px; cursor: pointer; }
+  .new-ctl { box-shadow: 0 0 0 1px #2a7 inset; }
+  .lbl.placeholder { color: #888; font-style: italic; }
 ${geometryCss(layout.controls)}
 </style>
 </head>
 <body class="${editable ? 'editable' : ''}">
   <header>
     <div><h1>${esc(layout.name)}</h1><p class="sub">${esc(subtitle)}</p></div>
-    ${editable ? `<div class="toolbar"><span class="status" id="status">No changes</span><button class="action" id="save" disabled>Save</button></div>` : ''}
+    ${editable ? `<div class="toolbar"><span class="palette">Insert:${PALETTE.map((p) => ` <button class="tool" data-kind="${p.kind}">${esc(p.label)}</button>`).join('')}</span>` +
+      `<span class="status" id="status">${esc(options.status ?? 'No changes')}</span><button class="action" id="save" disabled>Save</button></div>` : ''}
   </header>
   <div class="tabs" role="tablist">
     <button class="tab selected" id="tab-layout" role="tab">Layout</button>
@@ -157,12 +191,16 @@ ${controlsHtml(layout.controls, editable)}
       </div></div></div>
       <div class="panel" id="panel-order">${orderGrid(layout.controls)}</div>
     </div>
-    <aside class="inspector" id="inspector"><h2>Page Field Properties</h2>
-      <p class="hint" id="inspector-body">Select a control${editable ? ' to edit it' : ''}.</p></aside>
+    <aside class="inspector" id="inspector">
+      <div class="insp-head"><h2 id="inspector-title">Page Properties</h2><button class="link" id="page-props-btn">Page</button></div>
+      <p class="hint" id="inspector-body">Loading…</p></aside>
   </div>
 <script nonce="${nonce}">
   const editable = ${editable} && typeof acquireVsCodeApi === 'function';
   const vscode = editable ? acquireVsCodeApi() : null;
+  const pageProps = ${JSON.stringify(layout.properties)};
+  const pageName = ${JSON.stringify(layout.name)};
+  const kinds = ${JSON.stringify(editable ? paletteKinds() : {})};
   const tabs = { layout: document.getElementById('tab-layout'), order: document.getElementById('tab-order') };
   const panels = { layout: document.getElementById('panel-layout'), order: document.getElementById('panel-order') };
   function show(w) { for (const k of ['layout','order']) { const on = k===w; tabs[k].classList.toggle('selected',on); tabs[k].setAttribute('aria-selected',String(on)); panels[k].classList.toggle('selected',on); } }
@@ -178,7 +216,35 @@ ${controlsHtml(layout.controls, editable)}
 
   let selected = null, selRow = null;
   const body = document.getElementById('inspector-body');
+  const title = document.getElementById('inspector-title');
   const tn = (tag, s) => { const e = document.createElement(tag); e.textContent = s == null ? '' : String(s); return e; };
+  function propsTable(rows) {
+    const t = document.createElement('table'); t.className = 'props';
+    for (const [k, v] of rows) { const tr = document.createElement('tr'); const tk = tn('td', k); tk.className = 'k'; tr.append(tk, tn('td', v == null || v === '' ? '—' : v)); t.appendChild(tr); }
+    return t;
+  }
+  function showPage() {
+    if (selected) { selected.classList.remove('selected-ctl'); selected = null; }
+    if (selRow) { selRow.classList.remove('sel'); selRow = null; }
+    title.textContent = 'Page Properties';
+    const p = pageProps;
+    body.replaceChildren(propsTable([
+      ['Name', pageName], ...(editable ? [] : [['Description', p.description], ['Comments', p.comments]]), ['Owner ID', p.ownerId],
+      ['Page type', p.pageType], ['Page size', p.sizeWidth + ' × ' + p.sizeHeight],
+      ['Style sheet', p.styleSheet], ['Fluid style sheet', p.fluidStyleSheet],
+      ['Version', p.version], ['Last updated', p.lastUpdated + (p.lastUpdatedBy ? ' by ' + p.lastUpdatedBy : '')]
+    ]));
+    if (!editable) return;
+    // General tab: Description and Comments are written on Save (PSPNLDEFN.DESCR / DESCRLONG).
+    const t = document.createElement('template');
+    t.innerHTML = '<div><label>Description</label><input type="text" maxlength="30" id="pp-descr"><label>Comments</label><textarea rows="5" id="pp-comments"></textarea></div>';
+    const form = t.content.firstElementChild;
+    form.querySelector('#pp-descr').value = p.description; form.querySelector('#pp-comments').value = p.comments;
+    form.querySelector('#pp-descr').oninput = (e) => { p.description = e.target.value; markDirty(); };
+    form.querySelector('#pp-comments').oninput = (e) => { p.comments = e.target.value; markDirty(); };
+    body.prepend(form);
+  }
+  document.getElementById('page-props-btn').onclick = showPage;
   function controlById(id) { return document.getElementById('c' + id); }
   function selectRow(id) {
     if (selRow) selRow.classList.remove('sel');
@@ -190,30 +256,38 @@ ${controlsHtml(layout.controls, editable)}
     if (selected) selected.classList.remove('selected-ctl');
     selected = el; el.classList.add('selected-ctl');
     selectRow(el.dataset.id);
+    title.textContent = 'Page Field Properties';
     const d = el.dataset;
-    const props = document.createElement('table'); props.className = 'props';
-    const row = (k, v) => { const tr = document.createElement('tr'); const tk = tn('td', k); tk.className = 'k'; tr.append(tk, tn('td', v)); props.appendChild(tr); };
-    row('Page field name', d.pfn || '—'); row('Field ID', d.id); row('Tab order', d.num); row('Type', d.type);
-    row('Occurs level', d.level); row('Record', d.rec || '—'); row('Field', d.field || '—');
-    if (d.target) row('Target', d.target);
-    row('Label type', ['None','Text','RFT Short','RFT Long'][n(el,'lt')] ?? d.lt); row('Label', d.lx || '—');
-    row('Display only', (n(el,'fu') & 1) ? 'Yes' : 'No'); row('Invisible', (n(el,'fu') & 2) ? 'Yes' : 'No');
-    row('Deferred', d.defer === '1' ? 'Yes' : 'No'); if (Number(d.ctlfld)) row('Control field', d.ctlfld);
-    body.replaceChildren(props);
+    body.replaceChildren(propsTable([
+      ['Page field name', d.pfn], ['Field ID', d.new ? 'new (assigned on save)' : d.id], ['Tab order', d.num], ['Type', d.type], ['Occurs level', d.level],
+      ['Record', d.rec], ['Field', d.field], ...(d.target ? [['Target', d.target]] : []),
+      ['Label type', ['None','Text','RFT Short','RFT Long'][n(el,'lt')] ?? d.lt], ['Label', d.lx],
+      ['Display only', (n(el,'fu') & 1) ? 'Yes' : 'No'], ['Invisible', (n(el,'fu') & 2) ? 'Yes' : 'No'],
+      ['Deferred', d.defer === '1' ? 'Yes' : 'No'], ...(Number(d.ctlfld) ? [['Control field', d.ctlfld]] : [])
+    ]));
     if (!editable) return;
     const mk = (h) => { const t = document.createElement('template'); t.innerHTML = h; return t.content.firstElementChild; };
+    if (d.new && kinds[d.new].bound) {
+      // A new record-bound control: the record field it is placed on (App Designer's drop target).
+      const rf = mk('<div><label>Record</label><input type="text" class="rec"><label>Field</label><input type="text" class="fld"></div>');
+      rf.querySelector('.rec').value = d.rec || ''; rf.querySelector('.fld').value = d.field || '';
+      const upd = () => { el.dataset.rec = rf.querySelector('.rec').value.trim().toUpperCase(); el.dataset.field = rf.querySelector('.fld').value.trim().toUpperCase(); placeholderLabel(el); markDirty(); };
+      rf.querySelector('.rec').oninput = upd; rf.querySelector('.fld').oninput = upd;
+      body.append(rf);
+    }
     const lx = mk('<div><label>Label text</label><input type="text"></div>'); lx.querySelector('input').value = d.lx || '';
     const lt = mk('<div><label>Label type</label><select><option value="0">None</option><option value="1">Text</option><option value="2">RFT Short</option><option value="3">RFT Long</option></select></div>'); lt.querySelector('select').value = d.lt;
     const doRow = mk('<div class="row"><input type="checkbox"><label>Display Only</label></div>'); doRow.querySelector('input').checked = (n(el,'fu') & 1) !== 0;
     const invRow = mk('<div class="row"><input type="checkbox"><label>Invisible</label></div>'); invRow.querySelector('input').checked = (n(el,'fu') & 2) !== 0;
     const delRow = mk('<div class="row"><button class="action">Delete control</button></div>');
     body.append(lx, lt, doRow, invRow, delRow);
-    lx.querySelector('input').oninput = (e) => { el.dataset.lx = e.target.value; const l = document.getElementById('l'+d.id); if (l) l.textContent = e.target.value; if (selRow) selRow.children[3].textContent = e.target.value; markDirty(); };
+    lx.querySelector('input').oninput = (e) => { el.dataset.lx = e.target.value; const l = document.getElementById('l'+d.id); if (l) { l.textContent = e.target.value; l.classList.remove('placeholder'); } if (d.new) placeholderLabel(el); if (selRow) selRow.children[3].textContent = e.target.value; markDirty(); };
     lt.querySelector('select').onchange = (e) => { el.dataset.lt = e.target.value; markDirty(); };
     const useChange = () => { let u = n(el,'fu') & ~3; if (doRow.querySelector('input').checked) u |= 1; const inv = invRow.querySelector('input').checked; if (inv) u |= 2; setN(el,'fu',u); setN(el,'si', inv ? 1 : 0); el.classList.toggle('u-display-only',(u&1)!==0); el.classList.toggle('u-invisible',(u&2)!==0); markDirty(); };
     doRow.querySelector('input').onchange = useChange; invRow.querySelector('input').onchange = useChange;
     delRow.querySelector('button').onclick = () => { el.classList.add('removed'); el.dataset.removed = '1'; const l = document.getElementById('l'+d.id); if (l) l.classList.add('removed'); if (selRow) selRow.classList.add('removed'); markDirty(); body.replaceChildren(tn('p','Control deleted.')); };
   }
+  showPage();
   canvas.addEventListener('click', (e) => { const el = e.target.closest('.ctl'); if (el && e.target.className !== 'rsz') inspect(el); });
   if (grid) grid.addEventListener('click', (e) => { const tr = e.target.closest('tr'); if (tr) inspect(controlById(tr.dataset.id)); });
   canvas.addEventListener('keydown', (e) => { if ((e.key==='Delete'||e.key==='Backspace') && editable && e.target.classList.contains('ctl')) { e.preventDefault(); e.target.classList.add('removed'); e.target.dataset.removed='1'; const l=document.getElementById('l'+e.target.dataset.id); if(l) l.classList.add('removed'); markDirty(); } });
@@ -236,7 +310,11 @@ ${controlsHtml(layout.controls, editable)}
       } else {
         const l = drag.l + dx, t = drag.t + dy;
         el.style.left = l + 'px'; el.style.top = t + 'px'; setN(el,'fl', l); setN(el,'ft', t);
-        setN(el,'ell', n(el,'ell')+dx); setN(el,'elr', n(el,'elr')+dx); setN(el,'elt', n(el,'elt')+dy); setN(el,'elb', n(el,'elb')+dy);
+        // RIGHT/BOTTOM are page coordinates too: a sized control keeps its size (0 = auto-sized, left alone).
+        if (n(el,'fr')) setN(el,'fr', n(el,'fr')+dx); if (n(el,'fb')) setN(el,'fb', n(el,'fb')+dy);
+        // A stored label rectangle moves with the control; an all-zero (relative) or negative (hidden) one is left as is.
+        const lr = ['ell','elt','elr','elb'].map((a) => n(el,a));
+        if (lr.some((v) => v !== 0) && lr.every((v) => v >= 0)) { setN(el,'ell', lr[0]+dx); setN(el,'elt', lr[1]+dy); setN(el,'elr', lr[2]+dx); setN(el,'elb', lr[3]+dy); }
         const lbl = document.getElementById('l'+el.dataset.id);
         if (lbl) { lbl.style.left = (parseFloat(lbl.style.left||getComputedStyle(lbl).left) + dx) + 'px'; lbl.style.top = (parseFloat(lbl.style.top||getComputedStyle(lbl).top) + dy) + 'px'; }
         drag.x = e.clientX; drag.y = e.clientY; drag.l = l; drag.t = t;
@@ -244,14 +322,53 @@ ${controlsHtml(layout.controls, editable)}
     });
     window.addEventListener('mouseup', () => { if (drag) { markDirty(); drag = null; } });
 
+    let newSeq = 0;
+    function placeholderLabel(el) {
+      const l = document.getElementById('l' + el.dataset.id); if (!l || el.dataset.lx) return;
+      l.textContent = el.dataset.rec && el.dataset.field ? el.dataset.rec + '.' + el.dataset.field : '(record field)';
+      l.classList.add('placeholder');
+    }
+    function addControl(kind) {
+      const k = kinds[kind]; const id = -(++newSeq);
+      const scroller = document.getElementById('panel-layout');
+      // Cascade from the visible top-left so successive inserts do not stack.
+      const step = 20 * ((newSeq - 1) % 8);
+      const l = Math.round(scroller.scrollLeft + 24 + step), t = Math.round(scroller.scrollTop + 24 + step);
+      const el = document.createElement('div');
+      el.className = 'ctl s-' + k.shape + ' new-ctl'; el.id = 'c' + id; el.tabIndex = 0; el.title = 'New ' + k.typeName;
+      Object.assign(el.dataset, { id: String(id), new: kind, num: '', level: '0', type: k.typeName, target: '', rec: '', field: '', pfn: '', defer: '1', ctlfld: '0',
+        fl: String(l), ft: String(t), fr: String(k.w ? l + k.w : 0), fb: String(k.h ? t + k.h : 0), ell: '0', elt: '0', elr: '0', elb: '0',
+        fst: String(k.fst), lt: String(k.lt), lx: k.lx, fu: '0', si: '0' });
+      el.style.left = l + 'px'; el.style.top = t + 'px'; el.style.width = k.dw + 'px'; el.style.height = k.dh + 'px'; el.style.zIndex = k.shape === 'container' ? '1' : '2';
+      if (k.shape === 'checkbox') el.appendChild(Object.assign(document.createElement('span'), { className: 'box' }));
+      else if (k.shape === 'dropdown') el.appendChild(Object.assign(document.createElement('span'), { className: 'caret', textContent: '▾' }));
+      else if (k.shape === 'button') el.appendChild(document.createTextNode('Button'));
+      el.appendChild(Object.assign(document.createElement('span'), { className: 'rsz' }));
+      if (k.shape !== 'button' && k.lt !== 0) {
+        // Drawn where App Designer draws a relative (all-zero EDITLBL) label.
+        const lbl = Object.assign(document.createElement('div'), { className: 'lbl', id: 'l' + id, textContent: k.lx });
+        const at = k.shape === 'container' ? [l + 5, t + 1] : k.shape === 'label' ? [l + 2, t + 3] : k.shape === 'checkbox' ? [l + k.dw + 4, t + 1] : [l, t - 15];
+        lbl.style.left = at[0] + 'px'; lbl.style.top = at[1] + 'px';
+        canvas.appendChild(lbl);
+      }
+      canvas.appendChild(el);
+      placeholderLabel(el);
+      show('layout'); inspect(el); el.focus(); markDirty();
+    }
+    for (const b of document.querySelectorAll('button.tool')) b.addEventListener('click', () => addControl(b.dataset.kind));
+
     saveBtn.addEventListener('click', () => {
-      const controls = [...canvas.querySelectorAll('.ctl')].filter((el) => !el.dataset.removed).map((el) => ({
+      const live = [...canvas.querySelectorAll('.ctl')].filter((el) => !el.dataset.removed);
+      const unbound = live.find((el) => el.dataset.new && kinds[el.dataset.new].bound && !(el.dataset.rec && el.dataset.field));
+      if (unbound) { inspect(unbound); status.textContent = 'Give the new ' + unbound.dataset.type + ' a record and field.'; status.classList.add('err'); return; }
+      const controls = live.map((el) => ({
         pnlFldId: n(el,'id'), fieldLeft: n(el,'fl'), fieldTop: n(el,'ft'), fieldRight: n(el,'fr'), fieldBottom: n(el,'fb'),
         editLblLeft: n(el,'ell'), editLblTop: n(el,'elt'), editLblRight: n(el,'elr'), editLblBottom: n(el,'elb'),
-        fieldSizeType: n(el,'fst'), lblType: n(el,'lt'), lblText: el.dataset.lx || '', fieldUse: n(el,'fu'), secureInvisible: n(el,'si')
+        fieldSizeType: n(el,'fst'), lblType: n(el,'lt'), lblText: el.dataset.lx || '', fieldUse: n(el,'fu'), secureInvisible: n(el,'si'),
+        ...(el.dataset.new ? { add: { kind: el.dataset.new, recName: el.dataset.rec || '', fieldName: el.dataset.field || '' } } : {})
       }));
       saveBtn.disabled = true; status.textContent = 'Saving…'; status.classList.remove('err');
-      vscode.postMessage({ type: 'save', controls });
+      vscode.postMessage({ type: 'save', controls, properties: { description: pageProps.description, comments: pageProps.comments } });
     });
     window.addEventListener('message', (ev) => {
       const m = ev.data;

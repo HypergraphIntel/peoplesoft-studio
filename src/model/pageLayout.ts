@@ -68,6 +68,27 @@ export interface PageControl {
 export const FIELD_USE_DISPLAY_ONLY = 0x01;
 export const FIELD_USE_INVISIBLE = 0x02;
 
+/** A page's own properties, as App Designer's Page Properties dialog shows them. */
+export interface PageProperties {
+  /** PSPNLDEFN.DESCR -- the page description. */
+  description: string;
+  /** PSPNLDEFN.DESCRLONG -- the Comments. */
+  comments: string;
+  /** PSPNLDEFN.OBJECTOWNERID -- the Owner ID. */
+  ownerId: string;
+  /** PSPNLDEFN.PNLTYPE, named. */
+  pageType: string;
+  /** PSPNLDEFN.PANELRIGHT / PANELBOTTOM -- the page size. */
+  sizeWidth: number;
+  sizeHeight: number;
+  /** PSPNLDEFN.STYLESHEETNAME / FFSTYLESHEETNAME (blank: default). */
+  styleSheet: string;
+  fluidStyleSheet: string;
+  lastUpdated: string;
+  lastUpdatedBy: string;
+  version: number;
+}
+
 export interface PageLayout {
   name: string;
   description: string;
@@ -77,6 +98,8 @@ export interface PageLayout {
   width: number;
   height: number;
   controls: PageControl[];
+  /** The page's own properties (the Page Properties dialog). */
+  properties: PageProperties;
 }
 
 /** FIELDTYPE -> the shape the control is drawn as. */
@@ -95,16 +118,21 @@ export function controlShape(type: number): ControlShape {
   }
 }
 
-/** A control's rectangle, giving an auto-sized one (RIGHT/BOTTOM 0 or inverted) a small default. */
-function rectOf(f: Row): Rect {
+/**
+ * A control's rectangle. An auto-sized one (RIGHT/BOTTOM 0, as App Designer
+ * stores a freshly dropped control and sizes it from the field) gets a stand-in:
+ * an edit box or drop-down a typical field width, anything else a small square.
+ */
+function rectOf(f: Row, shape: ControlShape): Rect {
   const left = num(f.FIELDLEFT);
   const top = num(f.FIELDTOP);
   const right = num(f.FIELDRIGHT);
   const bottom = num(f.FIELDBOTTOM);
+  const wide = shape === 'field' || shape === 'dropdown';
   return {
     left, top,
-    width: right > left ? right - left : 14,
-    height: bottom > top ? bottom - top : 14
+    width: right > left ? right - left : wide ? 80 : 14,
+    height: bottom > top ? bottom - top : wide ? 18 : 14
   };
 }
 
@@ -113,8 +141,9 @@ function rectOf(f: Row): Rect {
  * when none. LBLTYPE 0 (None) and negative EDITLBL (App Designer's "not shown")
  * draw nothing. A button's label is its caption, drawn on the button, not a
  * separate label. When EDITLBL is all zero the label is not stored absolutely
- * but drawn relative to the control -- a container's caption at its top-left, a
- * check box / radio label to its right, otherwise just above -- and drawing it
+ * but drawn relative to the control -- a container's caption at its top-left,
+ * static text inside its box, a check box / radio label to its right,
+ * otherwise just above -- and drawing it
  * at (0,0) is what piled labels in the corner. A stored EDITLBL rectangle is
  * used as-is.
  */
@@ -125,7 +154,9 @@ function labelOf(f: Row, rect: Rect, shape: ControlShape): { text: string; rect:
   if (left < 0 || top < 0) return undefined;
   if (left === 0 && top === 0 && right === 0 && bottom === 0) {
     // Not stored absolutely: place relative to the control.
+    // Static text is its own label, drawn inside its box.
     const r = shape === 'container' ? { left: rect.left + 5, top: rect.top + 1 }
+      : shape === 'label' ? { left: rect.left + 2, top: rect.top + 3 }
       : shape === 'checkbox' || shape === 'radio' ? { left: rect.left + rect.width + 4, top: rect.top + 1 }
       : { left: rect.left, top: rect.top - 15 };
     return { text, rect: { ...r, width: 0, height: 14 } };
@@ -160,8 +191,8 @@ export function buildPageLayout(name: string, view: PageView): PageLayout {
   const controls: PageControl[] = [...view.fields]
     .sort((a, b) => num(a.FIELDNUM) - num(b.FIELDNUM))
     .map((f): PageControl => {
-      const rect = rectOf(f);
       const shape = controlShape(num(f.FIELDTYPE));
+      const rect = rectOf(f, shape);
       const label = labelOf(f, rect, shape);
       const rec = str(f.RECNAME);
       const field = str(f.FIELDNAME);
@@ -200,13 +231,27 @@ export function buildPageLayout(name: string, view: PageView): PageLayout {
     maxBottom = Math.max(maxBottom, c.rect.top + c.rect.height, c.label ? c.label.rect.top + c.label.rect.height : 0);
   }
 
+  const pageType = PAGE_TYPES[num(p.PNLTYPE)] ?? `Type ${num(p.PNLTYPE)}`;
   return {
     name,
     description: str(p.DESCR),
-    pageType: PAGE_TYPES[num(p.PNLTYPE)] ?? `Type ${num(p.PNLTYPE)}`,
+    pageType,
     version: num(p.VERSION),
     width: maxRight + 12,
     height: maxBottom + 12,
-    controls
+    controls,
+    properties: {
+      description: str(p.DESCR),
+      comments: str(p.DESCRLONG),
+      ownerId: str(p.OBJECTOWNERID),
+      pageType,
+      sizeWidth: num(p.PANELRIGHT),
+      sizeHeight: num(p.PANELBOTTOM),
+      styleSheet: str(p.STYLESHEETNAME),
+      fluidStyleSheet: str(p.FFSTYLESHEETNAME),
+      lastUpdated: str(p.LASTUPD) || str(p.LASTUPDDTTM),
+      lastUpdatedBy: str(p.LASTUPDOPRID),
+      version: num(p.VERSION)
+    }
   };
 }

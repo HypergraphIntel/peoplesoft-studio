@@ -39,6 +39,9 @@ test('an auto-sized control (zero right/bottom) gets a small default size', () =
   const [c] = buildPageLayout('P', view([field({ FIELDTYPE: 7, FIELDLEFT: 332, FIELDTOP: 4, FIELDRIGHT: 0, FIELDBOTTOM: 0 })])).controls;
   assert.equal(c.rect.width, 14);
   assert.equal(c.rect.height, 14);
+  // An auto-sized edit box (as App Designer stores a fresh one) is drawn at a field's width.
+  const [e] = buildPageLayout('P', view([field({ FIELDTYPE: 4, FIELDLEFT: 64, FIELDTOP: 120, FIELDRIGHT: 0, FIELDBOTTOM: 0 })])).controls;
+  assert.deepEqual(e.rect, { left: 64, top: 120, width: 80, height: 18 });
 });
 
 test('a label with negative coordinates (App Designer\'s "not shown") is dropped', () => {
@@ -104,4 +107,40 @@ test('LBLTYPE 0 (None) shows no label even when LBLTEXT is set; types 1-3 do', (
   assert.equal(text.label?.text, 'My Label');
   const rft = buildPageLayout('P', view([field({ LBLTYPE: 3, LBLTEXT: 'Military Service', EDITLBLLEFT: 36, EDITLBLTOP: 52, EDITLBLRIGHT: 123, EDITLBLBOTTOM: 67 })])).controls[0];
   assert.equal(rft.label?.text, 'Military Service');
+});
+
+test('page properties come from PSPNLDEFN', () => {
+  const v: PageView = { page: { PNLTYPE: 0, VERSION: 7, DESCR: 'Job Data1', DESCRLONG: 'Effective Dated Work Location', OBJECTOWNERID: 'HCR', PANELRIGHT: 984, PANELBOTTOM: 1400, STYLESHEETNAME: ' ', LASTUPDOPRID: 'PPLSOFT' }, fields: [], components: [] };
+  const p = buildPageLayout('JOB_DATA1', v).properties;
+  assert.equal(p.description, 'Job Data1');
+  assert.equal(p.comments, 'Effective Dated Work Location');
+  assert.equal(p.ownerId, 'HCR');
+  assert.equal(p.pageType, 'Standard Page');
+  assert.equal(p.sizeWidth, 984);
+  assert.equal(p.sizeHeight, 1400);
+  assert.equal(p.version, 7);
+  assert.equal(p.lastUpdatedBy, 'PPLSOFT');
+  // The HTML embeds them and shows a Page button.
+  const html = renderPageHtml(buildPageLayout('JOB_DATA1', v), '', 'N');
+  assert.match(html, /id="page-props-btn"/);
+  assert.match(html, /"sizeWidth":984/);
+});
+
+test('the editable page has the Insert palette; read-only does not', () => {
+  const layout = buildPageLayout('P', view([field({ FIELDNUM: 1 })]));
+  const edit = renderPageHtml(layout, '', 'N', { editable: true, status: 'Saved (v9)' });
+  for (const kind of ['frame', 'groupBox', 'horizontalRule', 'staticText', 'checkBox', 'dropDown', 'editBox', 'pushButton']) {
+    assert.match(edit, new RegExp(`class="tool" data-kind="${kind}"`));
+  }
+  assert.match(edit, /"staticText":\{"shape":"label","typeName":"Static Text","bound":false,"w":128,"h":20/);
+  assert.match(edit, /"editBox":\{"shape":"field","typeName":"Edit Box","bound":true/);
+  assert.match(edit, /"groupBox":\{"shape":"container","typeName":"Group Box","bound":false,"w":300,"h":156/);
+  assert.match(edit, /id="status">Saved \(v9\)</);
+  const ro = renderPageHtml(layout, '', 'N', { editable: false });
+  assert.doesNotMatch(ro, /class="tool"/);
+});
+
+test('static text with a relative (all-zero) label is drawn inside its box', () => {
+  const [c] = buildPageLayout('P', view([field({ FIELDTYPE: 0, LBLTYPE: 1, LBLTEXT: 'Static Text', FIELDLEFT: 84, FIELDTOP: 376, FIELDRIGHT: 212, FIELDBOTTOM: 396 })])).controls;
+  assert.deepEqual(c.label, { text: 'Static Text', rect: { left: 86, top: 379, width: 0, height: 14 } });
 });
