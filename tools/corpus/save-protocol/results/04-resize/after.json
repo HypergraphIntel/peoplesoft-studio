@@ -1,13 +1,13 @@
 {
  "format": "save-protocol-snapshot/1",
  "phase": "after",
- "case": "01-create",
+ "case": "04-resize",
  "database": "HRDMO",
  "peopleToolsRelease": "8.62.09",
  "scope": "tools",
  "marker": {
-  "scn": "39362780123449",
-  "timestamp": "2026-10-09T11:08:56.597608000-05:00"
+  "scn": "39362780124055",
+  "timestamp": "2026-10-09T11:15:23.515041000-05:00"
  },
  "watch": {
   "PSPCMTXT": {
@@ -7489,10 +7489,10 @@
    "rows": [
     [
      "ZZ_PCODE_LAB_PG",
-     "45",
+     "48",
      "0",
-     "1",
-     "1",
+     "2",
+     "2",
      "4",
      "4",
      "0",
@@ -7508,7 +7508,7 @@
      " ",
      " ",
      "lI5YiJMUd0VbRHfPxZugNltEd8/Fm6A2n7J20n3VCnk=",
-     "2026-10-09T11:08:35.736212000",
+     "2026-10-09T11:15:06.736726000",
      "JARED",
      " ",
      " ",
@@ -8120,6 +8120,106 @@
    "rows": [
     [
      "ZZ_PCODE_LAB_PG",
+     "2",
+     "2",
+     " ",
+     "4",
+     "0",
+     "2097160",
+     "360",
+     "20",
+     "536",
+     "38",
+     "384",
+     "-100",
+     "384",
+     "-100",
+     " ",
+     "3",
+     "1",
+     "0",
+     "1",
+     "EMPLID",
+     "Empl ID",
+     "0",
+     "0",
+     "1",
+     "0",
+     "PERSON",
+     "EMPLID",
+     " ",
+     " ",
+     "0",
+     "1",
+     "20",
+     "1",
+     "20",
+     "1",
+     "20",
+     " ",
+     "0",
+     " ",
+     " ",
+     "2",
+     "0",
+     " ",
+     " ",
+     " ",
+     " ",
+     " ",
+     " ",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     " ",
+     " ",
+     " ",
+     " ",
+     " ",
+     " ",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     " ",
+     " ",
+     " ",
+     " ",
+     " ",
+     " ",
+     " ",
+     "0",
+     "0",
+     "0",
+     "0",
+     " ",
+     " ",
+     " ",
+     " ",
+     " ",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0"
+    ],
+    [
+     "ZZ_PCODE_LAB_PG",
      "1",
      "1",
      " ",
@@ -8217,6 +8317,293 @@
      "0",
      "0",
      "0"
+    ]
+   ]
+  },
+  "PSPNLFIELDEXT": {
+   "columns": [
+    {
+     "name": "PNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PNLFLDID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTMODALHEIGHT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTMODALWIDTH",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTPOPUPPNL",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "MESSAGE_SET_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MESSAGE_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PT_RELACTDEFAULTJS",
+     "type": "VARCHAR2",
+     "length": 240,
+     "nullable": false
+    },
+    {
+     "name": "PT_NUMFLD1",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRPBOXTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRPBOXHTMLTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "HTML_INPUT_TYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PLHTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PLACEHOLDER",
+     "type": "VARCHAR2",
+     "length": 512,
+     "nullable": false
+    },
+    {
+     "name": "PLH_MSG_SET_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PLH_MSG_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SCROLLBARS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MINNUMBER",
+     "type": "VARCHAR2",
+     "length": 40,
+     "nullable": false
+    },
+    {
+     "name": "MAXNUMBER",
+     "type": "VARCHAR2",
+     "length": 40,
+     "nullable": false
+    },
+    {
+     "name": "STEPNUMBER",
+     "type": "VARCHAR2",
+     "length": 40,
+     "nullable": false
+    },
+    {
+     "name": "PARENTPNLFLDID",
+     "type": "VARCHAR2",
+     "length": 132,
+     "nullable": false
+    },
+    {
+     "name": "PAGEPNLFLDID",
+     "type": "VARCHAR2",
+     "length": 132,
+     "nullable": false
+    },
+    {
+     "name": "PTWIDGETSNGACTMNU",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTDSPLINRELACTMNU",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTSHOWWIDGET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTASSOCWIDGET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDUSETEMP2",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTGBRELTXTINFO",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTGBRELACTINFO",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTGBRELACTFLD",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTFRMTOVERRIDE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTDISABLESMARTSEL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTDISABLESMARTPROM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLELONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "key": [
+    "PNLNAME",
+    "PNLFLDID"
+   ],
+   "filter": "WHERE t.\"PNLNAME\" LIKE 'ZZ\\_PCODE\\_LAB%' ESCAPE '\\'",
+   "rows": [
+    [
+     "ZZ_PCODE_LAB_PG",
+     "1",
+     "0",
+     "0",
+     " ",
+     "0",
+     "0",
+     " ",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     " ",
+     "0",
+     "0",
+     "0",
+     " ",
+     " ",
+     " ",
+     "ZZ_PCODE_LAB_PG$0",
+     "ZZ_PCODE_LAB_PG$0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "1",
+     " | | | | "
+    ],
+    [
+     "ZZ_PCODE_LAB_PG",
+     "2",
+     "0",
+     "0",
+     " ",
+     "0",
+     "0",
+     " ",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     " ",
+     "0",
+     "0",
+     "0",
+     " ",
+     " ",
+     " ",
+     "ZZ_PCODE_LAB_PG$0",
+     "ZZ_PCODE_LAB_PG$0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "1",
+     " | | | | "
     ]
    ]
   },
@@ -8498,7 +8885,7 @@
     ],
     [
      "PDM",
-     "45"
+     "48"
     ],
     [
      "PGM",
@@ -8606,7 +8993,7 @@
     ],
     [
      "SYS",
-     "1550"
+     "1553"
     ],
     [
      "TAM",
@@ -8992,7 +9379,7 @@
     ],
     [
      "PDM",
-     "45"
+     "48"
     ],
     [
      "PGM",
@@ -10214,8 +10601,8 @@
   "PSPNLDEFN": 17343,
   "PSPNLDEFNLANG": 0,
   "PSPNLDEL": 0,
-  "PSPNLFIELD": 348354,
-  "PSPNLFIELDEXT": 147023,
+  "PSPNLFIELD": 348355,
+  "PSPNLFIELDEXT": 147024,
   "PSPNLFIELDLANG": 0,
   "PSPNLGDEFNLANG": 0,
   "PSPNLGROUP": 13325,

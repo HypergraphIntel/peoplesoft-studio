@@ -1,0 +1,4480 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "06-types",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362780126795",
+   "timestamp": "2026-10-09T11:19:05.496906000-05:00"
+  },
+  "after": {
+   "scn": "39362780131556",
+   "timestamp": "2026-10-09T11:44:25.880135000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-09T11:19:05.496906000-05:00",
+    "to": "2026-10-09T11:44:25.880135000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "PDM": {
+    "before": 49,
+    "after": 52,
+    "delta": 3
+   },
+   "RDM": {
+    "before": 160,
+    "after": 164,
+    "delta": 4
+   },
+   "SYS": {
+    "before": 1554,
+    "after": 1561,
+    "delta": 7
+   }
+  },
+  "pslock": {
+   "PDM": {
+    "before": 49,
+    "after": 52,
+    "delta": 3
+   },
+   "RDM": {
+    "before": 160,
+    "after": 164,
+    "delta": 4
+   }
+  },
+  "watchTablesChanged": {
+   "PSPNLDEFN": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSPNLFIELD": {
+    "inserted": 3,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSPNLFIELDEXT": {
+    "inserted": 3,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 3
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   }
+  },
+  "otherTablesChanged": {
+   "PSPNLDEFN": {
+    "inserted": 1,
+    "deleted": 1,
+    "updated": 0
+   },
+   "PSPNLFIELD": {
+    "inserted": 5,
+    "deleted": 2,
+    "updated": 0
+   },
+   "PSPNLFIELDEXT": {
+    "inserted": 5,
+    "deleted": 2,
+    "updated": 0
+   },
+   "PSRECDEFN": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSRECFIELD": {
+    "inserted": 3,
+    "deleted": 1,
+    "updated": 2
+   },
+   "PSRECFIELDDB": {
+    "inserted": 4,
+    "deleted": 2,
+    "updated": 1
+   },
+   "PSRECTBLSPC": {
+    "inserted": 1,
+    "deleted": 1,
+    "updated": 1
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSPNLDEFN": {
+   "columns": [
+    {
+     "name": "PNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MAXPNLFLDID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRIDHORZ",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRIDVERT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "HELPCONTEXTNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELTOP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELLEFT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELRIGHT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELBOTTOM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "STYLESHEETNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLESHEETNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PNLUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DEFERPROC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "POPUPMENU",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LICENSE_CODE",
+     "type": "VARCHAR2",
+     "length": 256,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEDESKTOP",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEPHONE",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLETABLET",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "PNLUSETEMP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEMEDIUM",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEEXLARGE",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "PNLNAME": "ZZ_PCODE_LAB_PG"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "49",
+       "after": "52"
+      },
+      "FIELDCOUNT": {
+       "before": "2",
+       "after": "5"
+      },
+      "MAXPNLFLDID": {
+       "before": "2",
+       "after": "5"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-09T11:18:19.736917000",
+       "after": "2026-10-09T11:44:10.333117000"
+      }
+     }
+    }
+   ]
+  },
+  "PSPNLFIELD": {
+   "columns": [
+    {
+     "name": "PNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PNLFLDID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLFIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "FIELDTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITSIZE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DSPLFORMAT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDLEFT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDTOP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDRIGHT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDBOTTOM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITLBLLEFT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITLBLTOP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITLBLRIGHT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITLBLBOTTOM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DSPLFILL",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "LBLTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LBLLOC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LBLPADSIZE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "USEDEFAULTLABEL",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "LABEL_ID",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "LBLTEXT",
+     "type": "VARCHAR2",
+     "length": 240,
+     "nullable": false
+    },
+    {
+     "name": "FIELDUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDUSETMP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DEFERPROC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSLEVEL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "ONVALUE",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "OFFVALUE",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "ASSOCFIELDNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSCOUNT1",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSOFFSET1",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSCOUNT2",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSOFFSET2",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSCOUNT3",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSOFFSET3",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SUBPNLNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "SUBPNLVER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LABELSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "FIELDSIZETYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LABELSIZETYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PRCSTYPE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PRCSNAME",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "PROMPTFIELD",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "FORMATFAMILY",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "DISPFMTNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "POPUPMENU",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "TREECTRLID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "TREECTRLTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MULTIRECTREE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "NODECOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDCOLUMNCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDSHOWCOLHDG",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDSHOWROWHDG",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDODDROWSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDEVENROWSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDACTIVETABSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDINACTIVETABSTYL",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDNAVBARSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDLABELSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDLBLMSGSET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDLBLMSGNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDLBLALIGN",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDACTTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDALLOWCOLSORT",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "TABENABLE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PBDISPLAYTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OPENNEWWINDOW",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "URLDYNAMIC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "URL_ID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GOTOPORTALNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GOTONODENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GOTOMENUNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GOTOPNLGRPNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "GOTOMKTNAME",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "GOTOPNLNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "GOTOPNLACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SRCHBYPNLDATA",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SCROLLACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "TOOLACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "CONTNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "CONTNAMEOVER",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "CONTNAMEDISABLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTLBLIMGCOLLAPSE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTLBLIMGEXPAND",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTADJHIDDENFIELDS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCOLLAPSEDATAAREA",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTDFLTVIEWEXPANDED",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTHIDEFIELDS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "SHOWCOLHIDEROWS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTLEBEXPANDFIELD",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "SHOWTABCNTLBTN",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "SELINDICATORTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SECUREINVISIBLE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "ENABLEASANCHOR",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "URLENCODEDBYAPP",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "3",
+     "FIELDNUM": "2",
+     "PNLFIELDNAME": " ",
+     "FIELDTYPE": "5",
+     "EDITSIZE": "0",
+     "DSPLFORMAT": "2228224",
+     "FIELDLEFT": "220",
+     "FIELDTOP": "84",
+     "FIELDRIGHT": "0",
+     "FIELDBOTTOM": "0",
+     "EDITLBLLEFT": "0",
+     "EDITLBLTOP": "0",
+     "EDITLBLRIGHT": "0",
+     "EDITLBLBOTTOM": "0",
+     "DSPLFILL": " ",
+     "LBLTYPE": "3",
+     "LBLLOC": "1",
+     "LBLPADSIZE": "0",
+     "USEDEFAULTLABEL": "1",
+     "LABEL_ID": "ZZ_PCODE_LAB_C01",
+     "LBLTEXT": "ZZ_PCODE_LAB_C01",
+     "FIELDUSE": "0",
+     "FIELDUSETMP": "0",
+     "DEFERPROC": "1",
+     "OCCURSLEVEL": "0",
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "FIELDNAME": "ZZ_PCODE_LAB_C01",
+     "ONVALUE": " ",
+     "OFFVALUE": " ",
+     "ASSOCFIELDNUM": "0",
+     "OCCURSCOUNT1": "1",
+     "OCCURSOFFSET1": "20",
+     "OCCURSCOUNT2": "1",
+     "OCCURSOFFSET2": "20",
+     "OCCURSCOUNT3": "1",
+     "OCCURSOFFSET3": "20",
+     "SUBPNLNAME": " ",
+     "SUBPNLVER": "0",
+     "FIELDSTYLE": " ",
+     "LABELSTYLE": " ",
+     "FIELDSIZETYPE": "0",
+     "LABELSIZETYPE": "0",
+     "PRCSTYPE": " ",
+     "PRCSNAME": " ",
+     "PROMPTFIELD": " ",
+     "FORMATFAMILY": " ",
+     "DISPFMTNAME": " ",
+     "POPUPMENU": " ",
+     "TREECTRLID": "0",
+     "TREECTRLTYPE": "0",
+     "MULTIRECTREE": "0",
+     "NODECOUNT": "0",
+     "GRDCOLUMNCOUNT": "0",
+     "GRDSHOWCOLHDG": "0",
+     "GRDSHOWROWHDG": "0",
+     "GRDODDROWSTYLE": " ",
+     "GRDEVENROWSTYLE": " ",
+     "GRDACTIVETABSTYLE": " ",
+     "GRDINACTIVETABSTYL": " ",
+     "GRDNAVBARSTYLE": " ",
+     "GRDLABELSTYLE": " ",
+     "GRDLBLMSGSET": "0",
+     "GRDLBLMSGNUM": "0",
+     "GRDLBLALIGN": "0",
+     "GRDACTTYPE": "0",
+     "GRDALLOWCOLSORT": "0",
+     "TABENABLE": "0",
+     "PBDISPLAYTYPE": "0",
+     "OPENNEWWINDOW": "0",
+     "URLDYNAMIC": "0",
+     "URL_ID": " ",
+     "GOTOPORTALNAME": " ",
+     "GOTONODENAME": " ",
+     "GOTOMENUNAME": " ",
+     "GOTOPNLGRPNAME": " ",
+     "GOTOMKTNAME": " ",
+     "GOTOPNLNAME": " ",
+     "GOTOPNLACTION": "0",
+     "SRCHBYPNLDATA": "0",
+     "SCROLLACTION": "0",
+     "TOOLACTION": "0",
+     "CONTNAME": " ",
+     "CONTNAMEOVER": " ",
+     "CONTNAMEDISABLE": " ",
+     "PTLBLIMGCOLLAPSE": " ",
+     "PTLBLIMGEXPAND": " ",
+     "PTADJHIDDENFIELDS": "0",
+     "PTCOLLAPSEDATAAREA": "0",
+     "PTDFLTVIEWEXPANDED": "0",
+     "PTHIDEFIELDS": "0",
+     "SHOWCOLHIDEROWS": "0",
+     "PTLEBEXPANDFIELD": "0",
+     "SHOWTABCNTLBTN": "0",
+     "SELINDICATORTYPE": "0",
+     "SECUREINVISIBLE": "0",
+     "ENABLEASANCHOR": "0",
+     "URLENCODEDBYAPP": "0"
+    },
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "4",
+     "FIELDNUM": "3",
+     "PNLFIELDNAME": " ",
+     "FIELDTYPE": "7",
+     "EDITSIZE": "0",
+     "DSPLFORMAT": "524289",
+     "FIELDLEFT": "188",
+     "FIELDTOP": "144",
+     "FIELDRIGHT": "0",
+     "FIELDBOTTOM": "0",
+     "EDITLBLLEFT": "0",
+     "EDITLBLTOP": "0",
+     "EDITLBLRIGHT": "0",
+     "EDITLBLBOTTOM": "0",
+     "DSPLFILL": " ",
+     "LBLTYPE": "3",
+     "LBLLOC": "1",
+     "LBLPADSIZE": "0",
+     "USEDEFAULTLABEL": "1",
+     "LABEL_ID": "ZZ_PCODE_LAB_C02",
+     "LBLTEXT": "ZZ_PCODE_LAB_C02",
+     "FIELDUSE": "0",
+     "FIELDUSETMP": "0",
+     "DEFERPROC": "1",
+     "OCCURSLEVEL": "0",
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "FIELDNAME": "ZZ_PCODE_LAB_C02",
+     "ONVALUE": "Y",
+     "OFFVALUE": "N",
+     "ASSOCFIELDNUM": "0",
+     "OCCURSCOUNT1": "1",
+     "OCCURSOFFSET1": "20",
+     "OCCURSCOUNT2": "1",
+     "OCCURSOFFSET2": "20",
+     "OCCURSCOUNT3": "1",
+     "OCCURSOFFSET3": "20",
+     "SUBPNLNAME": " ",
+     "SUBPNLVER": "0",
+     "FIELDSTYLE": " ",
+     "LABELSTYLE": " ",
+     "FIELDSIZETYPE": "0",
+     "LABELSIZETYPE": "0",
+     "PRCSTYPE": " ",
+     "PRCSNAME": " ",
+     "PROMPTFIELD": " ",
+     "FORMATFAMILY": " ",
+     "DISPFMTNAME": " ",
+     "POPUPMENU": " ",
+     "TREECTRLID": "0",
+     "TREECTRLTYPE": "0",
+     "MULTIRECTREE": "0",
+     "NODECOUNT": "0",
+     "GRDCOLUMNCOUNT": "0",
+     "GRDSHOWCOLHDG": "0",
+     "GRDSHOWROWHDG": "0",
+     "GRDODDROWSTYLE": " ",
+     "GRDEVENROWSTYLE": " ",
+     "GRDACTIVETABSTYLE": " ",
+     "GRDINACTIVETABSTYL": " ",
+     "GRDNAVBARSTYLE": " ",
+     "GRDLABELSTYLE": " ",
+     "GRDLBLMSGSET": "0",
+     "GRDLBLMSGNUM": "0",
+     "GRDLBLALIGN": "0",
+     "GRDACTTYPE": "0",
+     "GRDALLOWCOLSORT": "0",
+     "TABENABLE": "0",
+     "PBDISPLAYTYPE": "0",
+     "OPENNEWWINDOW": "0",
+     "URLDYNAMIC": "0",
+     "URL_ID": " ",
+     "GOTOPORTALNAME": " ",
+     "GOTONODENAME": " ",
+     "GOTOMENUNAME": " ",
+     "GOTOPNLGRPNAME": " ",
+     "GOTOMKTNAME": " ",
+     "GOTOPNLNAME": " ",
+     "GOTOPNLACTION": "0",
+     "SRCHBYPNLDATA": "0",
+     "SCROLLACTION": "0",
+     "TOOLACTION": "0",
+     "CONTNAME": " ",
+     "CONTNAMEOVER": " ",
+     "CONTNAMEDISABLE": " ",
+     "PTLBLIMGCOLLAPSE": " ",
+     "PTLBLIMGEXPAND": " ",
+     "PTADJHIDDENFIELDS": "0",
+     "PTCOLLAPSEDATAAREA": "0",
+     "PTDFLTVIEWEXPANDED": "0",
+     "PTHIDEFIELDS": "0",
+     "SHOWCOLHIDEROWS": "0",
+     "PTLEBEXPANDFIELD": "0",
+     "SHOWTABCNTLBTN": "0",
+     "SELINDICATORTYPE": "0",
+     "SECUREINVISIBLE": "0",
+     "ENABLEASANCHOR": "0",
+     "URLENCODEDBYAPP": "0"
+    },
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "5",
+     "FIELDNUM": "4",
+     "PNLFIELDNAME": " ",
+     "FIELDTYPE": "12",
+     "EDITSIZE": "0",
+     "DSPLFORMAT": "540672",
+     "FIELDLEFT": "180",
+     "FIELDTOP": "200",
+     "FIELDRIGHT": "204",
+     "FIELDBOTTOM": "222",
+     "EDITLBLLEFT": "0",
+     "EDITLBLTOP": "0",
+     "EDITLBLRIGHT": "0",
+     "EDITLBLBOTTOM": "0",
+     "DSPLFILL": " ",
+     "LBLTYPE": "1",
+     "LBLLOC": "0",
+     "LBLPADSIZE": "0",
+     "USEDEFAULTLABEL": "1",
+     "LABEL_ID": " ",
+     "LBLTEXT": " ",
+     "FIELDUSE": "0",
+     "FIELDUSETMP": "0",
+     "DEFERPROC": "1",
+     "OCCURSLEVEL": "0",
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "FIELDNAME": "ZZ_PCODE_LAB_KEY",
+     "ONVALUE": " ",
+     "OFFVALUE": " ",
+     "ASSOCFIELDNUM": "0",
+     "OCCURSCOUNT1": "1",
+     "OCCURSOFFSET1": "20",
+     "OCCURSCOUNT2": "1",
+     "OCCURSOFFSET2": "20",
+     "OCCURSCOUNT3": "1",
+     "OCCURSOFFSET3": "20",
+     "SUBPNLNAME": " ",
+     "SUBPNLVER": "0",
+     "FIELDSTYLE": " ",
+     "LABELSTYLE": " ",
+     "FIELDSIZETYPE": "3",
+     "LABELSIZETYPE": "0",
+     "PRCSTYPE": " ",
+     "PRCSNAME": " ",
+     "PROMPTFIELD": " ",
+     "FORMATFAMILY": " ",
+     "DISPFMTNAME": " ",
+     "POPUPMENU": " ",
+     "TREECTRLID": "0",
+     "TREECTRLTYPE": "0",
+     "MULTIRECTREE": "0",
+     "NODECOUNT": "0",
+     "GRDCOLUMNCOUNT": "0",
+     "GRDSHOWCOLHDG": "0",
+     "GRDSHOWROWHDG": "0",
+     "GRDODDROWSTYLE": " ",
+     "GRDEVENROWSTYLE": " ",
+     "GRDACTIVETABSTYLE": " ",
+     "GRDINACTIVETABSTYL": " ",
+     "GRDNAVBARSTYLE": " ",
+     "GRDLABELSTYLE": " ",
+     "GRDLBLMSGSET": "0",
+     "GRDLBLMSGNUM": "0",
+     "GRDLBLALIGN": "0",
+     "GRDACTTYPE": "0",
+     "GRDALLOWCOLSORT": "0",
+     "TABENABLE": "0",
+     "PBDISPLAYTYPE": "2",
+     "OPENNEWWINDOW": "0",
+     "URLDYNAMIC": "0",
+     "URL_ID": " ",
+     "GOTOPORTALNAME": " ",
+     "GOTONODENAME": " ",
+     "GOTOMENUNAME": " ",
+     "GOTOPNLGRPNAME": " ",
+     "GOTOMKTNAME": " ",
+     "GOTOPNLNAME": " ",
+     "GOTOPNLACTION": "0",
+     "SRCHBYPNLDATA": "0",
+     "SCROLLACTION": "0",
+     "TOOLACTION": "0",
+     "CONTNAME": " ",
+     "CONTNAMEOVER": " ",
+     "CONTNAMEDISABLE": " ",
+     "PTLBLIMGCOLLAPSE": " ",
+     "PTLBLIMGEXPAND": " ",
+     "PTADJHIDDENFIELDS": "0",
+     "PTCOLLAPSEDATAAREA": "0",
+     "PTDFLTVIEWEXPANDED": "0",
+     "PTHIDEFIELDS": "0",
+     "SHOWCOLHIDEROWS": "0",
+     "PTLEBEXPANDFIELD": "0",
+     "SHOWTABCNTLBTN": "0",
+     "SELINDICATORTYPE": "0",
+     "SECUREINVISIBLE": "0",
+     "ENABLEASANCHOR": "0",
+     "URLENCODEDBYAPP": "0"
+    }
+   ],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "PNLNAME": "ZZ_PCODE_LAB_PG",
+      "PNLFLDID": "2"
+     },
+     "changes": {
+      "FIELDNUM": {
+       "before": "2",
+       "after": "5"
+      }
+     }
+    }
+   ]
+  },
+  "PSPNLFIELDEXT": {
+   "columns": [
+    {
+     "name": "PNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PNLFLDID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTMODALHEIGHT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTMODALWIDTH",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTPOPUPPNL",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "MESSAGE_SET_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MESSAGE_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PT_RELACTDEFAULTJS",
+     "type": "VARCHAR2",
+     "length": 240,
+     "nullable": false
+    },
+    {
+     "name": "PT_NUMFLD1",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRPBOXTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRPBOXHTMLTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "HTML_INPUT_TYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PLHTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PLACEHOLDER",
+     "type": "VARCHAR2",
+     "length": 512,
+     "nullable": false
+    },
+    {
+     "name": "PLH_MSG_SET_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PLH_MSG_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SCROLLBARS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MINNUMBER",
+     "type": "VARCHAR2",
+     "length": 40,
+     "nullable": false
+    },
+    {
+     "name": "MAXNUMBER",
+     "type": "VARCHAR2",
+     "length": 40,
+     "nullable": false
+    },
+    {
+     "name": "STEPNUMBER",
+     "type": "VARCHAR2",
+     "length": 40,
+     "nullable": false
+    },
+    {
+     "name": "PARENTPNLFLDID",
+     "type": "VARCHAR2",
+     "length": 132,
+     "nullable": false
+    },
+    {
+     "name": "PAGEPNLFLDID",
+     "type": "VARCHAR2",
+     "length": 132,
+     "nullable": false
+    },
+    {
+     "name": "PTWIDGETSNGACTMNU",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTDSPLINRELACTMNU",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTSHOWWIDGET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTASSOCWIDGET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDUSETEMP2",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTGBRELTXTINFO",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTGBRELACTINFO",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTGBRELACTFLD",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTFRMTOVERRIDE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTDISABLESMARTSEL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTDISABLESMARTPROM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLELONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "3",
+     "PTMODALHEIGHT": "0",
+     "PTMODALWIDTH": "0",
+     "PTPOPUPPNL": " ",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "PT_RELACTDEFAULTJS": " ",
+     "PT_NUMFLD1": "0",
+     "GRPBOXTYPE": "0",
+     "GRPBOXHTMLTYPE": "0",
+     "HTML_INPUT_TYPE": "0",
+     "PLHTYPE": "0",
+     "PLACEHOLDER": " ",
+     "PLH_MSG_SET_NBR": "0",
+     "PLH_MSG_NBR": "0",
+     "SCROLLBARS": "0",
+     "MINNUMBER": " ",
+     "MAXNUMBER": " ",
+     "STEPNUMBER": " ",
+     "PARENTPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PAGEPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PTWIDGETSNGACTMNU": "0",
+     "PTDSPLINRELACTMNU": "0",
+     "PTSHOWWIDGET": "0",
+     "PTASSOCWIDGET": "0",
+     "FIELDUSETEMP2": "0",
+     "PTGBRELTXTINFO": "0",
+     "PTGBRELACTINFO": "0",
+     "PTGBRELACTFLD": "0",
+     "PTFRMTOVERRIDE": "0",
+     "PTDISABLESMARTSEL": "0",
+     "PTDISABLESMARTPROM": "0",
+     "FFSTYLELONG": " | | | | "
+    },
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "4",
+     "PTMODALHEIGHT": "0",
+     "PTMODALWIDTH": "0",
+     "PTPOPUPPNL": " ",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "PT_RELACTDEFAULTJS": " ",
+     "PT_NUMFLD1": "0",
+     "GRPBOXTYPE": "0",
+     "GRPBOXHTMLTYPE": "0",
+     "HTML_INPUT_TYPE": "0",
+     "PLHTYPE": "0",
+     "PLACEHOLDER": " ",
+     "PLH_MSG_SET_NBR": "0",
+     "PLH_MSG_NBR": "0",
+     "SCROLLBARS": "0",
+     "MINNUMBER": " ",
+     "MAXNUMBER": " ",
+     "STEPNUMBER": " ",
+     "PARENTPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PAGEPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PTWIDGETSNGACTMNU": "0",
+     "PTDSPLINRELACTMNU": "0",
+     "PTSHOWWIDGET": "0",
+     "PTASSOCWIDGET": "0",
+     "FIELDUSETEMP2": "0",
+     "PTGBRELTXTINFO": "0",
+     "PTGBRELACTINFO": "0",
+     "PTGBRELACTFLD": "0",
+     "PTFRMTOVERRIDE": "0",
+     "PTDISABLESMARTSEL": "0",
+     "PTDISABLESMARTPROM": "0",
+     "FFSTYLELONG": " | | | | "
+    },
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "5",
+     "PTMODALHEIGHT": "0",
+     "PTMODALWIDTH": "0",
+     "PTPOPUPPNL": " ",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "PT_RELACTDEFAULTJS": " ",
+     "PT_NUMFLD1": "0",
+     "GRPBOXTYPE": "0",
+     "GRPBOXHTMLTYPE": "0",
+     "HTML_INPUT_TYPE": "0",
+     "PLHTYPE": "0",
+     "PLACEHOLDER": " ",
+     "PLH_MSG_SET_NBR": "0",
+     "PLH_MSG_NBR": "0",
+     "SCROLLBARS": "0",
+     "MINNUMBER": " ",
+     "MAXNUMBER": " ",
+     "STEPNUMBER": " ",
+     "PARENTPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PAGEPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PTWIDGETSNGACTMNU": "0",
+     "PTDSPLINRELACTMNU": "0",
+     "PTSHOWWIDGET": "0",
+     "PTASSOCWIDGET": "0",
+     "FIELDUSETEMP2": "0",
+     "PTGBRELTXTINFO": "0",
+     "PTGBRELACTINFO": "0",
+     "PTGBRELACTFLD": "0",
+     "PTFRMTOVERRIDE": "0",
+     "PTDISABLESMARTSEL": "0",
+     "PTDISABLESMARTPROM": "0",
+     "FFSTYLELONG": " | | | | "
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "49",
+       "after": "52"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "RDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "160",
+       "after": "164"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "1554",
+       "after": "1561"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "49",
+       "after": "52"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "RDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "160",
+       "after": "164"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSPNLDEFN": {
+   "columns": [
+    {
+     "name": "PNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MAXPNLFLDID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRIDHORZ",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRIDVERT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "HELPCONTEXTNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELTOP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELLEFT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELRIGHT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELBOTTOM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "STYLESHEETNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLESHEETNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PNLUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DEFERPROC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "POPUPMENU",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LICENSE_CODE",
+     "type": "VARCHAR2",
+     "length": 256,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEDESKTOP",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEPHONE",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLETABLET",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "PNLUSETEMP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEMEDIUM",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEEXLARGE",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "VERSION": "52",
+     "PNLTYPE": "0",
+     "FIELDCOUNT": "5",
+     "MAXPNLFLDID": "5",
+     "GRIDHORZ": "4",
+     "GRIDVERT": "4",
+     "HELPCONTEXTNUM": "0",
+     "PANELTOP": "0",
+     "PANELLEFT": "0",
+     "PANELRIGHT": "570",
+     "PANELBOTTOM": "330",
+     "PNLSTYLE": " ",
+     "STYLESHEETNAME": " ",
+     "FFSTYLESHEETNAME": " ",
+     "PNLUSE": "32",
+     "DEFERPROC": "1",
+     "DESCR": " ",
+     "POPUPMENU": " ",
+     "LICENSE_CODE": "lI5YiJMUd0VbRHfPxZugNltEd8/Fm6A2n7J20n3VCnk=",
+     "LASTUPDDTTM": "2026-10-09T11:44:10.333117000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "FFSTYLEDESKTOP": " ",
+     "FFSTYLEPHONE": " ",
+     "FFSTYLETABLET": " ",
+     "PNLUSETEMP": "0",
+     "FFSTYLEMEDIUM": " ",
+     "FFSTYLEEXLARGE": " ",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "VERSION": "49",
+     "PNLTYPE": "0",
+     "FIELDCOUNT": "2",
+     "MAXPNLFLDID": "2",
+     "GRIDHORZ": "4",
+     "GRIDVERT": "4",
+     "HELPCONTEXTNUM": "0",
+     "PANELTOP": "0",
+     "PANELLEFT": "0",
+     "PANELRIGHT": "570",
+     "PANELBOTTOM": "330",
+     "PNLSTYLE": " ",
+     "STYLESHEETNAME": " ",
+     "FFSTYLESHEETNAME": " ",
+     "PNLUSE": "32",
+     "DEFERPROC": "1",
+     "DESCR": " ",
+     "POPUPMENU": " ",
+     "LICENSE_CODE": "lI5YiJMUd0VbRHfPxZugNltEd8/Fm6A2n7J20n3VCnk=",
+     "LASTUPDDTTM": "2026-10-09T11:18:19.736917000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "FFSTYLEDESKTOP": " ",
+     "FFSTYLEPHONE": " ",
+     "FFSTYLETABLET": " ",
+     "PNLUSETEMP": "0",
+     "FFSTYLEMEDIUM": " ",
+     "FFSTYLEEXLARGE": " ",
+     "DESCRLONG": null
+    }
+   ],
+   "updated": []
+  },
+  "PSPNLFIELD": {
+   "columns": [
+    {
+     "name": "PNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PNLFLDID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLFIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "FIELDTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITSIZE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DSPLFORMAT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDLEFT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDTOP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDRIGHT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDBOTTOM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITLBLLEFT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITLBLTOP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITLBLRIGHT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EDITLBLBOTTOM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DSPLFILL",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "LBLTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LBLLOC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LBLPADSIZE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "USEDEFAULTLABEL",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "LABEL_ID",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "LBLTEXT",
+     "type": "VARCHAR2",
+     "length": 240,
+     "nullable": false
+    },
+    {
+     "name": "FIELDUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDUSETMP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DEFERPROC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSLEVEL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "ONVALUE",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "OFFVALUE",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "ASSOCFIELDNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSCOUNT1",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSOFFSET1",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSCOUNT2",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSOFFSET2",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSCOUNT3",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OCCURSOFFSET3",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SUBPNLNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "SUBPNLVER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LABELSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "FIELDSIZETYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LABELSIZETYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PRCSTYPE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PRCSNAME",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "PROMPTFIELD",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "FORMATFAMILY",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "DISPFMTNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "POPUPMENU",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "TREECTRLID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "TREECTRLTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MULTIRECTREE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "NODECOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDCOLUMNCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDSHOWCOLHDG",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDSHOWROWHDG",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDODDROWSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDEVENROWSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDACTIVETABSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDINACTIVETABSTYL",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDNAVBARSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDLABELSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GRDLBLMSGSET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDLBLMSGNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDLBLALIGN",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDACTTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRDALLOWCOLSORT",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "TABENABLE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PBDISPLAYTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OPENNEWWINDOW",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "URLDYNAMIC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "URL_ID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GOTOPORTALNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GOTONODENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GOTOMENUNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "GOTOPNLGRPNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "GOTOMKTNAME",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "GOTOPNLNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "GOTOPNLACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SRCHBYPNLDATA",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SCROLLACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "TOOLACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "CONTNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "CONTNAMEOVER",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "CONTNAMEDISABLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTLBLIMGCOLLAPSE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTLBLIMGEXPAND",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTADJHIDDENFIELDS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCOLLAPSEDATAAREA",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTDFLTVIEWEXPANDED",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTHIDEFIELDS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "SHOWCOLHIDEROWS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTLEBEXPANDFIELD",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "SHOWTABCNTLBTN",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "SELINDICATORTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SECUREINVISIBLE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "ENABLEASANCHOR",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "URLENCODEDBYAPP",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "1",
+     "FIELDNUM": "1",
+     "PNLFIELDNAME": " ",
+     "FIELDTYPE": "4",
+     "EDITSIZE": "0",
+     "DSPLFORMAT": "2097160",
+     "FIELDLEFT": "72",
+     "FIELDTOP": "68",
+     "FIELDRIGHT": "0",
+     "FIELDBOTTOM": "0",
+     "EDITLBLLEFT": "0",
+     "EDITLBLTOP": "0",
+     "EDITLBLRIGHT": "0",
+     "EDITLBLBOTTOM": "0",
+     "DSPLFILL": " ",
+     "LBLTYPE": "3",
+     "LBLLOC": "1",
+     "LBLPADSIZE": "0",
+     "USEDEFAULTLABEL": "1",
+     "LABEL_ID": "ZZ_PCODE_LAB_C01",
+     "LBLTEXT": "ZZ_PCODE_LAB_C01",
+     "FIELDUSE": "0",
+     "FIELDUSETMP": "0",
+     "DEFERPROC": "1",
+     "OCCURSLEVEL": "0",
+     "RECNAME": "ZZ_PCODE_LAB",
+     "FIELDNAME": "ZZ_PCODE_LAB_C01",
+     "ONVALUE": " ",
+     "OFFVALUE": " ",
+     "ASSOCFIELDNUM": "0",
+     "OCCURSCOUNT1": "1",
+     "OCCURSOFFSET1": "20",
+     "OCCURSCOUNT2": "1",
+     "OCCURSOFFSET2": "20",
+     "OCCURSCOUNT3": "1",
+     "OCCURSOFFSET3": "20",
+     "SUBPNLNAME": " ",
+     "SUBPNLVER": "0",
+     "FIELDSTYLE": " ",
+     "LABELSTYLE": " ",
+     "FIELDSIZETYPE": "0",
+     "LABELSIZETYPE": "0",
+     "PRCSTYPE": " ",
+     "PRCSNAME": " ",
+     "PROMPTFIELD": " ",
+     "FORMATFAMILY": " ",
+     "DISPFMTNAME": " ",
+     "POPUPMENU": " ",
+     "TREECTRLID": "0",
+     "TREECTRLTYPE": "0",
+     "MULTIRECTREE": "0",
+     "NODECOUNT": "0",
+     "GRDCOLUMNCOUNT": "0",
+     "GRDSHOWCOLHDG": "0",
+     "GRDSHOWROWHDG": "0",
+     "GRDODDROWSTYLE": " ",
+     "GRDEVENROWSTYLE": " ",
+     "GRDACTIVETABSTYLE": " ",
+     "GRDINACTIVETABSTYL": " ",
+     "GRDNAVBARSTYLE": " ",
+     "GRDLABELSTYLE": " ",
+     "GRDLBLMSGSET": "0",
+     "GRDLBLMSGNUM": "0",
+     "GRDLBLALIGN": "0",
+     "GRDACTTYPE": "0",
+     "GRDALLOWCOLSORT": "0",
+     "TABENABLE": "0",
+     "PBDISPLAYTYPE": "0",
+     "OPENNEWWINDOW": "0",
+     "URLDYNAMIC": "0",
+     "URL_ID": " ",
+     "GOTOPORTALNAME": " ",
+     "GOTONODENAME": " ",
+     "GOTOMENUNAME": " ",
+     "GOTOPNLGRPNAME": " ",
+     "GOTOMKTNAME": " ",
+     "GOTOPNLNAME": " ",
+     "GOTOPNLACTION": "0",
+     "SRCHBYPNLDATA": "0",
+     "SCROLLACTION": "0",
+     "TOOLACTION": "0",
+     "CONTNAME": " ",
+     "CONTNAMEOVER": " ",
+     "CONTNAMEDISABLE": " ",
+     "PTLBLIMGCOLLAPSE": " ",
+     "PTLBLIMGEXPAND": " ",
+     "PTADJHIDDENFIELDS": "0",
+     "PTCOLLAPSEDATAAREA": "0",
+     "PTDFLTVIEWEXPANDED": "0",
+     "PTHIDEFIELDS": "0",
+     "SHOWCOLHIDEROWS": "0",
+     "PTLEBEXPANDFIELD": "0",
+     "SHOWTABCNTLBTN": "0",
+     "SELINDICATORTYPE": "0",
+     "SECUREINVISIBLE": "0",
+     "ENABLEASANCHOR": "0",
+     "URLENCODEDBYAPP": "0"
+    },
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "3",
+     "FIELDNUM": "2",
+     "PNLFIELDNAME": " ",
+     "FIELDTYPE": "5",
+     "EDITSIZE": "0",
+     "DSPLFORMAT": "2228224",
+     "FIELDLEFT": "220",
+     "FIELDTOP": "84",
+     "FIELDRIGHT": "0",
+     "FIELDBOTTOM": "0",
+     "EDITLBLLEFT": "0",
+     "EDITLBLTOP": "0",
+     "EDITLBLRIGHT": "0",
+     "EDITLBLBOTTOM": "0",
+     "DSPLFILL": " ",
+     "LBLTYPE": "3",
+     "LBLLOC": "1",
+     "LBLPADSIZE": "0",
+     "USEDEFAULTLABEL": "1",
+     "LABEL_ID": "ZZ_PCODE_LAB_C01",
+     "LBLTEXT": "ZZ_PCODE_LAB_C01",
+     "FIELDUSE": "0",
+     "FIELDUSETMP": "0",
+     "DEFERPROC": "1",
+     "OCCURSLEVEL": "0",
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "FIELDNAME": "ZZ_PCODE_LAB_C01",
+     "ONVALUE": " ",
+     "OFFVALUE": " ",
+     "ASSOCFIELDNUM": "0",
+     "OCCURSCOUNT1": "1",
+     "OCCURSOFFSET1": "20",
+     "OCCURSCOUNT2": "1",
+     "OCCURSOFFSET2": "20",
+     "OCCURSCOUNT3": "1",
+     "OCCURSOFFSET3": "20",
+     "SUBPNLNAME": " ",
+     "SUBPNLVER": "0",
+     "FIELDSTYLE": " ",
+     "LABELSTYLE": " ",
+     "FIELDSIZETYPE": "0",
+     "LABELSIZETYPE": "0",
+     "PRCSTYPE": " ",
+     "PRCSNAME": " ",
+     "PROMPTFIELD": " ",
+     "FORMATFAMILY": " ",
+     "DISPFMTNAME": " ",
+     "POPUPMENU": " ",
+     "TREECTRLID": "0",
+     "TREECTRLTYPE": "0",
+     "MULTIRECTREE": "0",
+     "NODECOUNT": "0",
+     "GRDCOLUMNCOUNT": "0",
+     "GRDSHOWCOLHDG": "0",
+     "GRDSHOWROWHDG": "0",
+     "GRDODDROWSTYLE": " ",
+     "GRDEVENROWSTYLE": " ",
+     "GRDACTIVETABSTYLE": " ",
+     "GRDINACTIVETABSTYL": " ",
+     "GRDNAVBARSTYLE": " ",
+     "GRDLABELSTYLE": " ",
+     "GRDLBLMSGSET": "0",
+     "GRDLBLMSGNUM": "0",
+     "GRDLBLALIGN": "0",
+     "GRDACTTYPE": "0",
+     "GRDALLOWCOLSORT": "0",
+     "TABENABLE": "0",
+     "PBDISPLAYTYPE": "0",
+     "OPENNEWWINDOW": "0",
+     "URLDYNAMIC": "0",
+     "URL_ID": " ",
+     "GOTOPORTALNAME": " ",
+     "GOTONODENAME": " ",
+     "GOTOMENUNAME": " ",
+     "GOTOPNLGRPNAME": " ",
+     "GOTOMKTNAME": " ",
+     "GOTOPNLNAME": " ",
+     "GOTOPNLACTION": "0",
+     "SRCHBYPNLDATA": "0",
+     "SCROLLACTION": "0",
+     "TOOLACTION": "0",
+     "CONTNAME": " ",
+     "CONTNAMEOVER": " ",
+     "CONTNAMEDISABLE": " ",
+     "PTLBLIMGCOLLAPSE": " ",
+     "PTLBLIMGEXPAND": " ",
+     "PTADJHIDDENFIELDS": "0",
+     "PTCOLLAPSEDATAAREA": "0",
+     "PTDFLTVIEWEXPANDED": "0",
+     "PTHIDEFIELDS": "0",
+     "SHOWCOLHIDEROWS": "0",
+     "PTLEBEXPANDFIELD": "0",
+     "SHOWTABCNTLBTN": "0",
+     "SELINDICATORTYPE": "0",
+     "SECUREINVISIBLE": "0",
+     "ENABLEASANCHOR": "0",
+     "URLENCODEDBYAPP": "0"
+    },
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "4",
+     "FIELDNUM": "3",
+     "PNLFIELDNAME": " ",
+     "FIELDTYPE": "7",
+     "EDITSIZE": "0",
+     "DSPLFORMAT": "524289",
+     "FIELDLEFT": "188",
+     "FIELDTOP": "144",
+     "FIELDRIGHT": "0",
+     "FIELDBOTTOM": "0",
+     "EDITLBLLEFT": "0",
+     "EDITLBLTOP": "0",
+     "EDITLBLRIGHT": "0",
+     "EDITLBLBOTTOM": "0",
+     "DSPLFILL": " ",
+     "LBLTYPE": "3",
+     "LBLLOC": "1",
+     "LBLPADSIZE": "0",
+     "USEDEFAULTLABEL": "1",
+     "LABEL_ID": "ZZ_PCODE_LAB_C02",
+     "LBLTEXT": "ZZ_PCODE_LAB_C02",
+     "FIELDUSE": "0",
+     "FIELDUSETMP": "0",
+     "DEFERPROC": "1",
+     "OCCURSLEVEL": "0",
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "FIELDNAME": "ZZ_PCODE_LAB_C02",
+     "ONVALUE": "Y",
+     "OFFVALUE": "N",
+     "ASSOCFIELDNUM": "0",
+     "OCCURSCOUNT1": "1",
+     "OCCURSOFFSET1": "20",
+     "OCCURSCOUNT2": "1",
+     "OCCURSOFFSET2": "20",
+     "OCCURSCOUNT3": "1",
+     "OCCURSOFFSET3": "20",
+     "SUBPNLNAME": " ",
+     "SUBPNLVER": "0",
+     "FIELDSTYLE": " ",
+     "LABELSTYLE": " ",
+     "FIELDSIZETYPE": "0",
+     "LABELSIZETYPE": "0",
+     "PRCSTYPE": " ",
+     "PRCSNAME": " ",
+     "PROMPTFIELD": " ",
+     "FORMATFAMILY": " ",
+     "DISPFMTNAME": " ",
+     "POPUPMENU": " ",
+     "TREECTRLID": "0",
+     "TREECTRLTYPE": "0",
+     "MULTIRECTREE": "0",
+     "NODECOUNT": "0",
+     "GRDCOLUMNCOUNT": "0",
+     "GRDSHOWCOLHDG": "0",
+     "GRDSHOWROWHDG": "0",
+     "GRDODDROWSTYLE": " ",
+     "GRDEVENROWSTYLE": " ",
+     "GRDACTIVETABSTYLE": " ",
+     "GRDINACTIVETABSTYL": " ",
+     "GRDNAVBARSTYLE": " ",
+     "GRDLABELSTYLE": " ",
+     "GRDLBLMSGSET": "0",
+     "GRDLBLMSGNUM": "0",
+     "GRDLBLALIGN": "0",
+     "GRDACTTYPE": "0",
+     "GRDALLOWCOLSORT": "0",
+     "TABENABLE": "0",
+     "PBDISPLAYTYPE": "0",
+     "OPENNEWWINDOW": "0",
+     "URLDYNAMIC": "0",
+     "URL_ID": " ",
+     "GOTOPORTALNAME": " ",
+     "GOTONODENAME": " ",
+     "GOTOMENUNAME": " ",
+     "GOTOPNLGRPNAME": " ",
+     "GOTOMKTNAME": " ",
+     "GOTOPNLNAME": " ",
+     "GOTOPNLACTION": "0",
+     "SRCHBYPNLDATA": "0",
+     "SCROLLACTION": "0",
+     "TOOLACTION": "0",
+     "CONTNAME": " ",
+     "CONTNAMEOVER": " ",
+     "CONTNAMEDISABLE": " ",
+     "PTLBLIMGCOLLAPSE": " ",
+     "PTLBLIMGEXPAND": " ",
+     "PTADJHIDDENFIELDS": "0",
+     "PTCOLLAPSEDATAAREA": "0",
+     "PTDFLTVIEWEXPANDED": "0",
+     "PTHIDEFIELDS": "0",
+     "SHOWCOLHIDEROWS": "0",
+     "PTLEBEXPANDFIELD": "0",
+     "SHOWTABCNTLBTN": "0",
+     "SELINDICATORTYPE": "0",
+     "SECUREINVISIBLE": "0",
+     "ENABLEASANCHOR": "0",
+     "URLENCODEDBYAPP": "0"
+    },
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "5",
+     "FIELDNUM": "4",
+     "PNLFIELDNAME": " ",
+     "FIELDTYPE": "12",
+     "EDITSIZE": "0",
+     "DSPLFORMAT": "540672",
+     "FIELDLEFT": "180",
+     "FIELDTOP": "200",
+     "FIELDRIGHT": "204",
+     "FIELDBOTTOM": "222",
+     "EDITLBLLEFT": "0",
+     "EDITLBLTOP": "0",
+     "EDITLBLRIGHT": "0",
+     "EDITLBLBOTTOM": "0",
+     "DSPLFILL": " ",
+     "LBLTYPE": "1",
+     "LBLLOC": "0",
+     "LBLPADSIZE": "0",
+     "USEDEFAULTLABEL": "1",
+     "LABEL_ID": " ",
+     "LBLTEXT": " ",
+     "FIELDUSE": "0",
+     "FIELDUSETMP": "0",
+     "DEFERPROC": "1",
+     "OCCURSLEVEL": "0",
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "FIELDNAME": "ZZ_PCODE_LAB_KEY",
+     "ONVALUE": " ",
+     "OFFVALUE": " ",
+     "ASSOCFIELDNUM": "0",
+     "OCCURSCOUNT1": "1",
+     "OCCURSOFFSET1": "20",
+     "OCCURSCOUNT2": "1",
+     "OCCURSOFFSET2": "20",
+     "OCCURSCOUNT3": "1",
+     "OCCURSOFFSET3": "20",
+     "SUBPNLNAME": " ",
+     "SUBPNLVER": "0",
+     "FIELDSTYLE": " ",
+     "LABELSTYLE": " ",
+     "FIELDSIZETYPE": "3",
+     "LABELSIZETYPE": "0",
+     "PRCSTYPE": " ",
+     "PRCSNAME": " ",
+     "PROMPTFIELD": " ",
+     "FORMATFAMILY": " ",
+     "DISPFMTNAME": " ",
+     "POPUPMENU": " ",
+     "TREECTRLID": "0",
+     "TREECTRLTYPE": "0",
+     "MULTIRECTREE": "0",
+     "NODECOUNT": "0",
+     "GRDCOLUMNCOUNT": "0",
+     "GRDSHOWCOLHDG": "0",
+     "GRDSHOWROWHDG": "0",
+     "GRDODDROWSTYLE": " ",
+     "GRDEVENROWSTYLE": " ",
+     "GRDACTIVETABSTYLE": " ",
+     "GRDINACTIVETABSTYL": " ",
+     "GRDNAVBARSTYLE": " ",
+     "GRDLABELSTYLE": " ",
+     "GRDLBLMSGSET": "0",
+     "GRDLBLMSGNUM": "0",
+     "GRDLBLALIGN": "0",
+     "GRDACTTYPE": "0",
+     "GRDALLOWCOLSORT": "0",
+     "TABENABLE": "0",
+     "PBDISPLAYTYPE": "2",
+     "OPENNEWWINDOW": "0",
+     "URLDYNAMIC": "0",
+     "URL_ID": " ",
+     "GOTOPORTALNAME": " ",
+     "GOTONODENAME": " ",
+     "GOTOMENUNAME": " ",
+     "GOTOPNLGRPNAME": " ",
+     "GOTOMKTNAME": " ",
+     "GOTOPNLNAME": " ",
+     "GOTOPNLACTION": "0",
+     "SRCHBYPNLDATA": "0",
+     "SCROLLACTION": "0",
+     "TOOLACTION": "0",
+     "CONTNAME": " ",
+     "CONTNAMEOVER": " ",
+     "CONTNAMEDISABLE": " ",
+     "PTLBLIMGCOLLAPSE": " ",
+     "PTLBLIMGEXPAND": " ",
+     "PTADJHIDDENFIELDS": "0",
+     "PTCOLLAPSEDATAAREA": "0",
+     "PTDFLTVIEWEXPANDED": "0",
+     "PTHIDEFIELDS": "0",
+     "SHOWCOLHIDEROWS": "0",
+     "PTLEBEXPANDFIELD": "0",
+     "SHOWTABCNTLBTN": "0",
+     "SELINDICATORTYPE": "0",
+     "SECUREINVISIBLE": "0",
+     "ENABLEASANCHOR": "0",
+     "URLENCODEDBYAPP": "0"
+    },
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "2",
+     "FIELDNUM": "5",
+     "PNLFIELDNAME": " ",
+     "FIELDTYPE": "4",
+     "EDITSIZE": "0",
+     "DSPLFORMAT": "2097160",
+     "FIELDLEFT": "360",
+     "FIELDTOP": "20",
+     "FIELDRIGHT": "536",
+     "FIELDBOTTOM": "38",
+     "EDITLBLLEFT": "384",
+     "EDITLBLTOP": "-100",
+     "EDITLBLRIGHT": "384",
+     "EDITLBLBOTTOM": "-100",
+     "DSPLFILL": " ",
+     "LBLTYPE": "1",
+     "LBLLOC": "1",
+     "LBLPADSIZE": "0",
+     "USEDEFAULTLABEL": "1",
+     "LABEL_ID": "EMPLID",
+     "LBLTEXT": "My Label",
+     "FIELDUSE": "0",
+     "FIELDUSETMP": "0",
+     "DEFERPROC": "1",
+     "OCCURSLEVEL": "0",
+     "RECNAME": "PERSON",
+     "FIELDNAME": "EMPLID",
+     "ONVALUE": " ",
+     "OFFVALUE": " ",
+     "ASSOCFIELDNUM": "0",
+     "OCCURSCOUNT1": "1",
+     "OCCURSOFFSET1": "20",
+     "OCCURSCOUNT2": "1",
+     "OCCURSOFFSET2": "20",
+     "OCCURSCOUNT3": "1",
+     "OCCURSOFFSET3": "20",
+     "SUBPNLNAME": " ",
+     "SUBPNLVER": "0",
+     "FIELDSTYLE": " ",
+     "LABELSTYLE": " ",
+     "FIELDSIZETYPE": "2",
+     "LABELSIZETYPE": "0",
+     "PRCSTYPE": " ",
+     "PRCSNAME": " ",
+     "PROMPTFIELD": " ",
+     "FORMATFAMILY": " ",
+     "DISPFMTNAME": " ",
+     "POPUPMENU": " ",
+     "TREECTRLID": "0",
+     "TREECTRLTYPE": "0",
+     "MULTIRECTREE": "0",
+     "NODECOUNT": "0",
+     "GRDCOLUMNCOUNT": "0",
+     "GRDSHOWCOLHDG": "0",
+     "GRDSHOWROWHDG": "0",
+     "GRDODDROWSTYLE": " ",
+     "GRDEVENROWSTYLE": " ",
+     "GRDACTIVETABSTYLE": " ",
+     "GRDINACTIVETABSTYL": " ",
+     "GRDNAVBARSTYLE": " ",
+     "GRDLABELSTYLE": " ",
+     "GRDLBLMSGSET": "0",
+     "GRDLBLMSGNUM": "0",
+     "GRDLBLALIGN": "0",
+     "GRDACTTYPE": "0",
+     "GRDALLOWCOLSORT": "0",
+     "TABENABLE": "0",
+     "PBDISPLAYTYPE": "0",
+     "OPENNEWWINDOW": "0",
+     "URLDYNAMIC": "0",
+     "URL_ID": " ",
+     "GOTOPORTALNAME": " ",
+     "GOTONODENAME": " ",
+     "GOTOMENUNAME": " ",
+     "GOTOPNLGRPNAME": " ",
+     "GOTOMKTNAME": " ",
+     "GOTOPNLNAME": " ",
+     "GOTOPNLACTION": "0",
+     "SRCHBYPNLDATA": "0",
+     "SCROLLACTION": "0",
+     "TOOLACTION": "0",
+     "CONTNAME": " ",
+     "CONTNAMEOVER": " ",
+     "CONTNAMEDISABLE": " ",
+     "PTLBLIMGCOLLAPSE": " ",
+     "PTLBLIMGEXPAND": " ",
+     "PTADJHIDDENFIELDS": "0",
+     "PTCOLLAPSEDATAAREA": "0",
+     "PTDFLTVIEWEXPANDED": "0",
+     "PTHIDEFIELDS": "0",
+     "SHOWCOLHIDEROWS": "0",
+     "PTLEBEXPANDFIELD": "0",
+     "SHOWTABCNTLBTN": "0",
+     "SELINDICATORTYPE": "0",
+     "SECUREINVISIBLE": "0",
+     "ENABLEASANCHOR": "0",
+     "URLENCODEDBYAPP": "0"
+    }
+   ],
+   "deleted": [
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "1",
+     "FIELDNUM": "1",
+     "PNLFIELDNAME": " ",
+     "FIELDTYPE": "4",
+     "EDITSIZE": "0",
+     "DSPLFORMAT": "2097160",
+     "FIELDLEFT": "72",
+     "FIELDTOP": "68",
+     "FIELDRIGHT": "0",
+     "FIELDBOTTOM": "0",
+     "EDITLBLLEFT": "0",
+     "EDITLBLTOP": "0",
+     "EDITLBLRIGHT": "0",
+     "EDITLBLBOTTOM": "0",
+     "DSPLFILL": " ",
+     "LBLTYPE": "3",
+     "LBLLOC": "1",
+     "LBLPADSIZE": "0",
+     "USEDEFAULTLABEL": "1",
+     "LABEL_ID": "ZZ_PCODE_LAB_C01",
+     "LBLTEXT": "ZZ_PCODE_LAB_C01",
+     "FIELDUSE": "0",
+     "FIELDUSETMP": "0",
+     "DEFERPROC": "1",
+     "OCCURSLEVEL": "0",
+     "RECNAME": "ZZ_PCODE_LAB",
+     "FIELDNAME": "ZZ_PCODE_LAB_C01",
+     "ONVALUE": " ",
+     "OFFVALUE": " ",
+     "ASSOCFIELDNUM": "0",
+     "OCCURSCOUNT1": "1",
+     "OCCURSOFFSET1": "20",
+     "OCCURSCOUNT2": "1",
+     "OCCURSOFFSET2": "20",
+     "OCCURSCOUNT3": "1",
+     "OCCURSOFFSET3": "20",
+     "SUBPNLNAME": " ",
+     "SUBPNLVER": "0",
+     "FIELDSTYLE": " ",
+     "LABELSTYLE": " ",
+     "FIELDSIZETYPE": "0",
+     "LABELSIZETYPE": "0",
+     "PRCSTYPE": " ",
+     "PRCSNAME": " ",
+     "PROMPTFIELD": " ",
+     "FORMATFAMILY": " ",
+     "DISPFMTNAME": " ",
+     "POPUPMENU": " ",
+     "TREECTRLID": "0",
+     "TREECTRLTYPE": "0",
+     "MULTIRECTREE": "0",
+     "NODECOUNT": "0",
+     "GRDCOLUMNCOUNT": "0",
+     "GRDSHOWCOLHDG": "0",
+     "GRDSHOWROWHDG": "0",
+     "GRDODDROWSTYLE": " ",
+     "GRDEVENROWSTYLE": " ",
+     "GRDACTIVETABSTYLE": " ",
+     "GRDINACTIVETABSTYL": " ",
+     "GRDNAVBARSTYLE": " ",
+     "GRDLABELSTYLE": " ",
+     "GRDLBLMSGSET": "0",
+     "GRDLBLMSGNUM": "0",
+     "GRDLBLALIGN": "0",
+     "GRDACTTYPE": "0",
+     "GRDALLOWCOLSORT": "0",
+     "TABENABLE": "0",
+     "PBDISPLAYTYPE": "0",
+     "OPENNEWWINDOW": "0",
+     "URLDYNAMIC": "0",
+     "URL_ID": " ",
+     "GOTOPORTALNAME": " ",
+     "GOTONODENAME": " ",
+     "GOTOMENUNAME": " ",
+     "GOTOPNLGRPNAME": " ",
+     "GOTOMKTNAME": " ",
+     "GOTOPNLNAME": " ",
+     "GOTOPNLACTION": "0",
+     "SRCHBYPNLDATA": "0",
+     "SCROLLACTION": "0",
+     "TOOLACTION": "0",
+     "CONTNAME": " ",
+     "CONTNAMEOVER": " ",
+     "CONTNAMEDISABLE": " ",
+     "PTLBLIMGCOLLAPSE": " ",
+     "PTLBLIMGEXPAND": " ",
+     "PTADJHIDDENFIELDS": "0",
+     "PTCOLLAPSEDATAAREA": "0",
+     "PTDFLTVIEWEXPANDED": "0",
+     "PTHIDEFIELDS": "0",
+     "SHOWCOLHIDEROWS": "0",
+     "PTLEBEXPANDFIELD": "0",
+     "SHOWTABCNTLBTN": "0",
+     "SELINDICATORTYPE": "0",
+     "SECUREINVISIBLE": "0",
+     "ENABLEASANCHOR": "0",
+     "URLENCODEDBYAPP": "0"
+    },
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "2",
+     "FIELDNUM": "2",
+     "PNLFIELDNAME": " ",
+     "FIELDTYPE": "4",
+     "EDITSIZE": "0",
+     "DSPLFORMAT": "2097160",
+     "FIELDLEFT": "360",
+     "FIELDTOP": "20",
+     "FIELDRIGHT": "536",
+     "FIELDBOTTOM": "38",
+     "EDITLBLLEFT": "384",
+     "EDITLBLTOP": "-100",
+     "EDITLBLRIGHT": "384",
+     "EDITLBLBOTTOM": "-100",
+     "DSPLFILL": " ",
+     "LBLTYPE": "1",
+     "LBLLOC": "1",
+     "LBLPADSIZE": "0",
+     "USEDEFAULTLABEL": "1",
+     "LABEL_ID": "EMPLID",
+     "LBLTEXT": "My Label",
+     "FIELDUSE": "0",
+     "FIELDUSETMP": "0",
+     "DEFERPROC": "1",
+     "OCCURSLEVEL": "0",
+     "RECNAME": "PERSON",
+     "FIELDNAME": "EMPLID",
+     "ONVALUE": " ",
+     "OFFVALUE": " ",
+     "ASSOCFIELDNUM": "0",
+     "OCCURSCOUNT1": "1",
+     "OCCURSOFFSET1": "20",
+     "OCCURSCOUNT2": "1",
+     "OCCURSOFFSET2": "20",
+     "OCCURSCOUNT3": "1",
+     "OCCURSOFFSET3": "20",
+     "SUBPNLNAME": " ",
+     "SUBPNLVER": "0",
+     "FIELDSTYLE": " ",
+     "LABELSTYLE": " ",
+     "FIELDSIZETYPE": "2",
+     "LABELSIZETYPE": "0",
+     "PRCSTYPE": " ",
+     "PRCSNAME": " ",
+     "PROMPTFIELD": " ",
+     "FORMATFAMILY": " ",
+     "DISPFMTNAME": " ",
+     "POPUPMENU": " ",
+     "TREECTRLID": "0",
+     "TREECTRLTYPE": "0",
+     "MULTIRECTREE": "0",
+     "NODECOUNT": "0",
+     "GRDCOLUMNCOUNT": "0",
+     "GRDSHOWCOLHDG": "0",
+     "GRDSHOWROWHDG": "0",
+     "GRDODDROWSTYLE": " ",
+     "GRDEVENROWSTYLE": " ",
+     "GRDACTIVETABSTYLE": " ",
+     "GRDINACTIVETABSTYL": " ",
+     "GRDNAVBARSTYLE": " ",
+     "GRDLABELSTYLE": " ",
+     "GRDLBLMSGSET": "0",
+     "GRDLBLMSGNUM": "0",
+     "GRDLBLALIGN": "0",
+     "GRDACTTYPE": "0",
+     "GRDALLOWCOLSORT": "0",
+     "TABENABLE": "0",
+     "PBDISPLAYTYPE": "0",
+     "OPENNEWWINDOW": "0",
+     "URLDYNAMIC": "0",
+     "URL_ID": " ",
+     "GOTOPORTALNAME": " ",
+     "GOTONODENAME": " ",
+     "GOTOMENUNAME": " ",
+     "GOTOPNLGRPNAME": " ",
+     "GOTOMKTNAME": " ",
+     "GOTOPNLNAME": " ",
+     "GOTOPNLACTION": "0",
+     "SRCHBYPNLDATA": "0",
+     "SCROLLACTION": "0",
+     "TOOLACTION": "0",
+     "CONTNAME": " ",
+     "CONTNAMEOVER": " ",
+     "CONTNAMEDISABLE": " ",
+     "PTLBLIMGCOLLAPSE": " ",
+     "PTLBLIMGEXPAND": " ",
+     "PTADJHIDDENFIELDS": "0",
+     "PTCOLLAPSEDATAAREA": "0",
+     "PTDFLTVIEWEXPANDED": "0",
+     "PTHIDEFIELDS": "0",
+     "SHOWCOLHIDEROWS": "0",
+     "PTLEBEXPANDFIELD": "0",
+     "SHOWTABCNTLBTN": "0",
+     "SELINDICATORTYPE": "0",
+     "SECUREINVISIBLE": "0",
+     "ENABLEASANCHOR": "0",
+     "URLENCODEDBYAPP": "0"
+    }
+   ],
+   "updated": []
+  },
+  "PSPNLFIELDEXT": {
+   "columns": [
+    {
+     "name": "PNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PNLFLDID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTMODALHEIGHT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTMODALWIDTH",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTPOPUPPNL",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "MESSAGE_SET_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MESSAGE_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PT_RELACTDEFAULTJS",
+     "type": "VARCHAR2",
+     "length": 240,
+     "nullable": false
+    },
+    {
+     "name": "PT_NUMFLD1",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRPBOXTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRPBOXHTMLTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "HTML_INPUT_TYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PLHTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PLACEHOLDER",
+     "type": "VARCHAR2",
+     "length": 512,
+     "nullable": false
+    },
+    {
+     "name": "PLH_MSG_SET_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PLH_MSG_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SCROLLBARS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MINNUMBER",
+     "type": "VARCHAR2",
+     "length": 40,
+     "nullable": false
+    },
+    {
+     "name": "MAXNUMBER",
+     "type": "VARCHAR2",
+     "length": 40,
+     "nullable": false
+    },
+    {
+     "name": "STEPNUMBER",
+     "type": "VARCHAR2",
+     "length": 40,
+     "nullable": false
+    },
+    {
+     "name": "PARENTPNLFLDID",
+     "type": "VARCHAR2",
+     "length": 132,
+     "nullable": false
+    },
+    {
+     "name": "PAGEPNLFLDID",
+     "type": "VARCHAR2",
+     "length": 132,
+     "nullable": false
+    },
+    {
+     "name": "PTWIDGETSNGACTMNU",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTDSPLINRELACTMNU",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTSHOWWIDGET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTASSOCWIDGET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDUSETEMP2",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTGBRELTXTINFO",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTGBRELACTINFO",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTGBRELACTFLD",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTFRMTOVERRIDE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTDISABLESMARTSEL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTDISABLESMARTPROM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLELONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "1",
+     "PTMODALHEIGHT": "0",
+     "PTMODALWIDTH": "0",
+     "PTPOPUPPNL": " ",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "PT_RELACTDEFAULTJS": " ",
+     "PT_NUMFLD1": "0",
+     "GRPBOXTYPE": "0",
+     "GRPBOXHTMLTYPE": "0",
+     "HTML_INPUT_TYPE": "0",
+     "PLHTYPE": "0",
+     "PLACEHOLDER": " ",
+     "PLH_MSG_SET_NBR": "0",
+     "PLH_MSG_NBR": "0",
+     "SCROLLBARS": "0",
+     "MINNUMBER": " ",
+     "MAXNUMBER": " ",
+     "STEPNUMBER": " ",
+     "PARENTPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PAGEPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PTWIDGETSNGACTMNU": "0",
+     "PTDSPLINRELACTMNU": "0",
+     "PTSHOWWIDGET": "0",
+     "PTASSOCWIDGET": "0",
+     "FIELDUSETEMP2": "0",
+     "PTGBRELTXTINFO": "0",
+     "PTGBRELACTINFO": "0",
+     "PTGBRELACTFLD": "0",
+     "PTFRMTOVERRIDE": "0",
+     "PTDISABLESMARTSEL": "0",
+     "PTDISABLESMARTPROM": "1",
+     "FFSTYLELONG": " | | | | "
+    },
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "3",
+     "PTMODALHEIGHT": "0",
+     "PTMODALWIDTH": "0",
+     "PTPOPUPPNL": " ",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "PT_RELACTDEFAULTJS": " ",
+     "PT_NUMFLD1": "0",
+     "GRPBOXTYPE": "0",
+     "GRPBOXHTMLTYPE": "0",
+     "HTML_INPUT_TYPE": "0",
+     "PLHTYPE": "0",
+     "PLACEHOLDER": " ",
+     "PLH_MSG_SET_NBR": "0",
+     "PLH_MSG_NBR": "0",
+     "SCROLLBARS": "0",
+     "MINNUMBER": " ",
+     "MAXNUMBER": " ",
+     "STEPNUMBER": " ",
+     "PARENTPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PAGEPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PTWIDGETSNGACTMNU": "0",
+     "PTDSPLINRELACTMNU": "0",
+     "PTSHOWWIDGET": "0",
+     "PTASSOCWIDGET": "0",
+     "FIELDUSETEMP2": "0",
+     "PTGBRELTXTINFO": "0",
+     "PTGBRELACTINFO": "0",
+     "PTGBRELACTFLD": "0",
+     "PTFRMTOVERRIDE": "0",
+     "PTDISABLESMARTSEL": "0",
+     "PTDISABLESMARTPROM": "0",
+     "FFSTYLELONG": " | | | | "
+    },
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "4",
+     "PTMODALHEIGHT": "0",
+     "PTMODALWIDTH": "0",
+     "PTPOPUPPNL": " ",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "PT_RELACTDEFAULTJS": " ",
+     "PT_NUMFLD1": "0",
+     "GRPBOXTYPE": "0",
+     "GRPBOXHTMLTYPE": "0",
+     "HTML_INPUT_TYPE": "0",
+     "PLHTYPE": "0",
+     "PLACEHOLDER": " ",
+     "PLH_MSG_SET_NBR": "0",
+     "PLH_MSG_NBR": "0",
+     "SCROLLBARS": "0",
+     "MINNUMBER": " ",
+     "MAXNUMBER": " ",
+     "STEPNUMBER": " ",
+     "PARENTPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PAGEPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PTWIDGETSNGACTMNU": "0",
+     "PTDSPLINRELACTMNU": "0",
+     "PTSHOWWIDGET": "0",
+     "PTASSOCWIDGET": "0",
+     "FIELDUSETEMP2": "0",
+     "PTGBRELTXTINFO": "0",
+     "PTGBRELACTINFO": "0",
+     "PTGBRELACTFLD": "0",
+     "PTFRMTOVERRIDE": "0",
+     "PTDISABLESMARTSEL": "0",
+     "PTDISABLESMARTPROM": "0",
+     "FFSTYLELONG": " | | | | "
+    },
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "5",
+     "PTMODALHEIGHT": "0",
+     "PTMODALWIDTH": "0",
+     "PTPOPUPPNL": " ",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "PT_RELACTDEFAULTJS": " ",
+     "PT_NUMFLD1": "0",
+     "GRPBOXTYPE": "0",
+     "GRPBOXHTMLTYPE": "0",
+     "HTML_INPUT_TYPE": "0",
+     "PLHTYPE": "0",
+     "PLACEHOLDER": " ",
+     "PLH_MSG_SET_NBR": "0",
+     "PLH_MSG_NBR": "0",
+     "SCROLLBARS": "0",
+     "MINNUMBER": " ",
+     "MAXNUMBER": " ",
+     "STEPNUMBER": " ",
+     "PARENTPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PAGEPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PTWIDGETSNGACTMNU": "0",
+     "PTDSPLINRELACTMNU": "0",
+     "PTSHOWWIDGET": "0",
+     "PTASSOCWIDGET": "0",
+     "FIELDUSETEMP2": "0",
+     "PTGBRELTXTINFO": "0",
+     "PTGBRELACTINFO": "0",
+     "PTGBRELACTFLD": "0",
+     "PTFRMTOVERRIDE": "0",
+     "PTDISABLESMARTSEL": "0",
+     "PTDISABLESMARTPROM": "0",
+     "FFSTYLELONG": " | | | | "
+    },
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "2",
+     "PTMODALHEIGHT": "0",
+     "PTMODALWIDTH": "0",
+     "PTPOPUPPNL": " ",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "PT_RELACTDEFAULTJS": " ",
+     "PT_NUMFLD1": "0",
+     "GRPBOXTYPE": "0",
+     "GRPBOXHTMLTYPE": "0",
+     "HTML_INPUT_TYPE": "0",
+     "PLHTYPE": "0",
+     "PLACEHOLDER": " ",
+     "PLH_MSG_SET_NBR": "0",
+     "PLH_MSG_NBR": "0",
+     "SCROLLBARS": "0",
+     "MINNUMBER": " ",
+     "MAXNUMBER": " ",
+     "STEPNUMBER": " ",
+     "PARENTPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PAGEPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PTWIDGETSNGACTMNU": "0",
+     "PTDSPLINRELACTMNU": "0",
+     "PTSHOWWIDGET": "0",
+     "PTASSOCWIDGET": "0",
+     "FIELDUSETEMP2": "0",
+     "PTGBRELTXTINFO": "0",
+     "PTGBRELACTINFO": "0",
+     "PTGBRELACTFLD": "0",
+     "PTFRMTOVERRIDE": "0",
+     "PTDISABLESMARTSEL": "0",
+     "PTDISABLESMARTPROM": "1",
+     "FFSTYLELONG": " | | | | "
+    }
+   ],
+   "deleted": [
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "1",
+     "PTMODALHEIGHT": "0",
+     "PTMODALWIDTH": "0",
+     "PTPOPUPPNL": " ",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "PT_RELACTDEFAULTJS": " ",
+     "PT_NUMFLD1": "0",
+     "GRPBOXTYPE": "0",
+     "GRPBOXHTMLTYPE": "0",
+     "HTML_INPUT_TYPE": "0",
+     "PLHTYPE": "0",
+     "PLACEHOLDER": " ",
+     "PLH_MSG_SET_NBR": "0",
+     "PLH_MSG_NBR": "0",
+     "SCROLLBARS": "0",
+     "MINNUMBER": " ",
+     "MAXNUMBER": " ",
+     "STEPNUMBER": " ",
+     "PARENTPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PAGEPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PTWIDGETSNGACTMNU": "0",
+     "PTDSPLINRELACTMNU": "0",
+     "PTSHOWWIDGET": "0",
+     "PTASSOCWIDGET": "0",
+     "FIELDUSETEMP2": "0",
+     "PTGBRELTXTINFO": "0",
+     "PTGBRELACTINFO": "0",
+     "PTGBRELACTFLD": "0",
+     "PTFRMTOVERRIDE": "0",
+     "PTDISABLESMARTSEL": "0",
+     "PTDISABLESMARTPROM": "1",
+     "FFSTYLELONG": " | | | | "
+    },
+    {
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "PNLFLDID": "2",
+     "PTMODALHEIGHT": "0",
+     "PTMODALWIDTH": "0",
+     "PTPOPUPPNL": " ",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "PT_RELACTDEFAULTJS": " ",
+     "PT_NUMFLD1": "0",
+     "GRPBOXTYPE": "0",
+     "GRPBOXHTMLTYPE": "0",
+     "HTML_INPUT_TYPE": "0",
+     "PLHTYPE": "0",
+     "PLACEHOLDER": " ",
+     "PLH_MSG_SET_NBR": "0",
+     "PLH_MSG_NBR": "0",
+     "SCROLLBARS": "0",
+     "MINNUMBER": " ",
+     "MAXNUMBER": " ",
+     "STEPNUMBER": " ",
+     "PARENTPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PAGEPNLFLDID": "ZZ_PCODE_LAB_PG$0",
+     "PTWIDGETSNGACTMNU": "0",
+     "PTDSPLINRELACTMNU": "0",
+     "PTSHOWWIDGET": "0",
+     "PTASSOCWIDGET": "0",
+     "FIELDUSETEMP2": "0",
+     "PTGBRELTXTINFO": "0",
+     "PTGBRELACTINFO": "0",
+     "PTGBRELACTFLD": "0",
+     "PTFRMTOVERRIDE": "0",
+     "PTDISABLESMARTSEL": "0",
+     "PTDISABLESMARTPROM": "1",
+     "FFSTYLELONG": " | | | | "
+    }
+   ],
+   "updated": []
+  },
+  "PSRECDEFN": {
+   "columns": [
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "FIELDCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "INDEXCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DDLCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "AUDITRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "RECUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "RECTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SETCNTRLFLD",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "RELLANGRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "OPTDELRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "RECDESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PARENTRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "QRYSECRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "SQLTABLENAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "BUILDSEQNO",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OPTTRIGFLAG",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SYSTEMIDFIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "TIMESTAMPFIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "AUXFLAGMASK",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAPIhAHXAACQF5AAA"
+     },
+     "changes": {
+      "FIELDCOUNT": {
+       "before": "3",
+       "after": "5"
+      },
+      "VERSION": {
+       "before": "93",
+       "after": "164"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-07T11:53:10.307754000",
+       "after": "2026-10-09T11:43:31.332991000"
+      }
+     }
+    }
+   ]
+  },
+  "PSRECFIELD": {
+   "columns": [
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DEFRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "DEFFIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "CURCTLFIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "EDITTABLE",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "USEEDIT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "USEEDIT2",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SUBRECORD",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "SUBRECVER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SETCNTRLFLD",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "DEFGUICONTROL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LABEL_ID",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "TIMEZONEUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "TIMEZONEFIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "RELTMDTFIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "CURRCTLUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "FIELDNAME": "ZZ_PCODE_LAB_KEY",
+     "FIELDNUM": "1",
+     "DEFRECNAME": " ",
+     "DEFFIELDNAME": " ",
+     "CURCTLFIELDNAME": " ",
+     "EDITTABLE": "ZZ_PCODE_LAB_P",
+     "USEEDIT": "8405024",
+     "USEEDIT2": "0",
+     "SUBRECORD": "N",
+     "SUBRECVER": "0",
+     "SETCNTRLFLD": " ",
+     "DEFGUICONTROL": "99",
+     "LABEL_ID": " ",
+     "LASTUPDDTTM": "2026-10-09T11:41:46.332958000",
+     "LASTUPDOPRID": "JARED",
+     "TIMEZONEUSE": "0",
+     "TIMEZONEFIELDNAME": " ",
+     "RELTMDTFIELDNAME": " ",
+     "CURRCTLUSE": "0"
+    },
+    {
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "FIELDNAME": "ZZ_PCODE_LAB_C01",
+     "FIELDNUM": "4",
+     "DEFRECNAME": " ",
+     "DEFFIELDNAME": " ",
+     "CURCTLFIELDNAME": " ",
+     "EDITTABLE": " ",
+     "USEEDIT": "8389120",
+     "USEEDIT2": "0",
+     "SUBRECORD": "N",
+     "SUBRECVER": "0",
+     "SETCNTRLFLD": " ",
+     "DEFGUICONTROL": "99",
+     "LABEL_ID": " ",
+     "LASTUPDDTTM": "2026-10-09T11:43:00.333546000",
+     "LASTUPDOPRID": "JARED",
+     "TIMEZONEUSE": "0",
+     "TIMEZONEFIELDNAME": " ",
+     "RELTMDTFIELDNAME": " ",
+     "CURRCTLUSE": "0"
+    },
+    {
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "FIELDNAME": "ZZ_PCODE_LAB_C02",
+     "FIELDNUM": "5",
+     "DEFRECNAME": " ",
+     "DEFFIELDNAME": " ",
+     "CURCTLFIELDNAME": " ",
+     "EDITTABLE": " ",
+     "USEEDIT": "8389120",
+     "USEEDIT2": "0",
+     "SUBRECORD": "N",
+     "SUBRECVER": "0",
+     "SETCNTRLFLD": " ",
+     "DEFGUICONTROL": "99",
+     "LABEL_ID": " ",
+     "LASTUPDDTTM": "2026-10-09T11:43:31.332995000",
+     "LASTUPDOPRID": "JARED",
+     "TIMEZONEUSE": "0",
+     "TIMEZONEFIELDNAME": " ",
+     "RELTMDTFIELDNAME": " ",
+     "CURRCTLUSE": "0"
+    }
+   ],
+   "deleted": [
+    {
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "FIELDNAME": "LASTUPDDTTM",
+     "FIELDNUM": "3",
+     "DEFRECNAME": " ",
+     "DEFFIELDNAME": " ",
+     "CURCTLFIELDNAME": " ",
+     "EDITTABLE": " ",
+     "USEEDIT": "8388608",
+     "USEEDIT2": "0",
+     "SUBRECORD": "N",
+     "SUBRECVER": "0",
+     "SETCNTRLFLD": " ",
+     "DEFGUICONTROL": "99",
+     "LABEL_ID": " ",
+     "LASTUPDDTTM": "2026-10-07T11:53:10.307758000",
+     "LASTUPDOPRID": "JARED",
+     "TIMEZONEUSE": "0",
+     "TIMEZONEFIELDNAME": " ",
+     "RELTMDTFIELDNAME": " ",
+     "CURRCTLUSE": "0"
+    }
+   ],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAPIxAHmAAAHf8AAP"
+     },
+     "changes": {
+      "FIELDNAME": {
+       "before": "ZZ_PCODE_LAB_KEY",
+       "after": "LASTUPDDTTM"
+      },
+      "FIELDNUM": {
+       "before": "1",
+       "after": "2"
+      },
+      "LASTUPDDTTM": {
+       "before": "2025-03-05T02:33:31.062592000",
+       "after": "2026-10-07T11:53:10.307758000"
+      },
+      "LASTUPDOPRID": {
+       "before": "PPLSOFT",
+       "after": "JARED"
+      }
+     }
+    },
+    {
+     "key": {
+      "ROWID": "AAAPIxAHmAAAHf8AAQ"
+     },
+     "changes": {
+      "FIELDNUM": {
+       "before": "2",
+       "after": "3"
+      }
+     }
+    }
+   ]
+  },
+  "PSRECFIELDDB": {
+   "columns": [
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "RECNAME_PARENT",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DEFRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "DEFFIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "CURCTLFIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "EDITTABLE",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "USEEDIT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "USEEDIT2",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SUBRECORD",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "SUBRECVER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SETCNTRLFLD",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "DEFGUICONTROL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LABEL_ID",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "TIMEZONEUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "TIMEZONEFIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "RELTMDTFIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "CURRCTLUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "FIELDNAME": "LASTUPDDTTM",
+     "RECNAME_PARENT": "ZZ_PCODE_LAB_T",
+     "FIELDNUM": "2",
+     "DEFRECNAME": " ",
+     "DEFFIELDNAME": " ",
+     "CURCTLFIELDNAME": " ",
+     "EDITTABLE": " ",
+     "USEEDIT": "8388608",
+     "USEEDIT2": "0",
+     "SUBRECORD": "N",
+     "SUBRECVER": "0",
+     "SETCNTRLFLD": " ",
+     "DEFGUICONTROL": "99",
+     "LABEL_ID": " ",
+     "LASTUPDDTTM": "2026-10-07T11:53:10.307758000",
+     "LASTUPDOPRID": "JARED",
+     "TIMEZONEUSE": "0",
+     "TIMEZONEFIELDNAME": " ",
+     "RELTMDTFIELDNAME": " ",
+     "CURRCTLUSE": "0"
+    },
+    {
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "FIELDNAME": "ZZ_PCODE_LAB_VAL",
+     "RECNAME_PARENT": "ZZ_PCODE_LAB_T",
+     "FIELDNUM": "3",
+     "DEFRECNAME": " ",
+     "DEFFIELDNAME": " ",
+     "CURCTLFIELDNAME": " ",
+     "EDITTABLE": " ",
+     "USEEDIT": "8388608",
+     "USEEDIT2": "0",
+     "SUBRECORD": "N",
+     "SUBRECVER": "0",
+     "SETCNTRLFLD": " ",
+     "DEFGUICONTROL": "99",
+     "LABEL_ID": " ",
+     "LASTUPDDTTM": "2025-03-05T02:33:31.062592000",
+     "LASTUPDOPRID": "PPLSOFT",
+     "TIMEZONEUSE": "0",
+     "TIMEZONEFIELDNAME": " ",
+     "RELTMDTFIELDNAME": " ",
+     "CURRCTLUSE": "0"
+    },
+    {
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "FIELDNAME": "ZZ_PCODE_LAB_C01",
+     "RECNAME_PARENT": "ZZ_PCODE_LAB_T",
+     "FIELDNUM": "4",
+     "DEFRECNAME": " ",
+     "DEFFIELDNAME": " ",
+     "CURCTLFIELDNAME": " ",
+     "EDITTABLE": " ",
+     "USEEDIT": "8389120",
+     "USEEDIT2": "0",
+     "SUBRECORD": "N",
+     "SUBRECVER": "0",
+     "SETCNTRLFLD": " ",
+     "DEFGUICONTROL": "99",
+     "LABEL_ID": " ",
+     "LASTUPDDTTM": "2026-10-09T11:43:00.333546000",
+     "LASTUPDOPRID": "JARED",
+     "TIMEZONEUSE": "0",
+     "TIMEZONEFIELDNAME": " ",
+     "RELTMDTFIELDNAME": " ",
+     "CURRCTLUSE": "0"
+    },
+    {
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "FIELDNAME": "ZZ_PCODE_LAB_C02",
+     "RECNAME_PARENT": "ZZ_PCODE_LAB_T",
+     "FIELDNUM": "5",
+     "DEFRECNAME": " ",
+     "DEFFIELDNAME": " ",
+     "CURCTLFIELDNAME": " ",
+     "EDITTABLE": " ",
+     "USEEDIT": "8389120",
+     "USEEDIT2": "0",
+     "SUBRECORD": "N",
+     "SUBRECVER": "0",
+     "SETCNTRLFLD": " ",
+     "DEFGUICONTROL": "99",
+     "LABEL_ID": " ",
+     "LASTUPDDTTM": "2026-10-09T11:43:31.332995000",
+     "LASTUPDOPRID": "JARED",
+     "TIMEZONEUSE": "0",
+     "TIMEZONEFIELDNAME": " ",
+     "RELTMDTFIELDNAME": " ",
+     "CURRCTLUSE": "0"
+    }
+   ],
+   "deleted": [
+    {
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "FIELDNAME": "ZZ_PCODE_LAB_VAL",
+     "RECNAME_PARENT": "ZZ_PCODE_LAB_T",
+     "FIELDNUM": "2",
+     "DEFRECNAME": " ",
+     "DEFFIELDNAME": " ",
+     "CURCTLFIELDNAME": " ",
+     "EDITTABLE": " ",
+     "USEEDIT": "8388608",
+     "USEEDIT2": "0",
+     "SUBRECORD": "N",
+     "SUBRECVER": "0",
+     "SETCNTRLFLD": " ",
+     "DEFGUICONTROL": "99",
+     "LABEL_ID": " ",
+     "LASTUPDDTTM": "2025-03-05T02:33:31.062592000",
+     "LASTUPDOPRID": "PPLSOFT",
+     "TIMEZONEUSE": "0",
+     "TIMEZONEFIELDNAME": " ",
+     "RELTMDTFIELDNAME": " ",
+     "CURRCTLUSE": "0"
+    },
+    {
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "FIELDNAME": "LASTUPDDTTM",
+     "RECNAME_PARENT": "ZZ_PCODE_LAB_T",
+     "FIELDNUM": "3",
+     "DEFRECNAME": " ",
+     "DEFFIELDNAME": " ",
+     "CURCTLFIELDNAME": " ",
+     "EDITTABLE": " ",
+     "USEEDIT": "8388608",
+     "USEEDIT2": "0",
+     "SUBRECORD": "N",
+     "SUBRECVER": "0",
+     "SETCNTRLFLD": " ",
+     "DEFGUICONTROL": "99",
+     "LABEL_ID": " ",
+     "LASTUPDDTTM": "2026-10-07T11:53:10.307758000",
+     "LASTUPDOPRID": "JARED",
+     "TIMEZONEUSE": "0",
+     "TIMEZONEFIELDNAME": " ",
+     "RELTMDTFIELDNAME": " ",
+     "CURRCTLUSE": "0"
+    }
+   ],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAPI5AHmAAAJo3AAA"
+     },
+     "changes": {
+      "EDITTABLE": {
+       "before": " ",
+       "after": "ZZ_PCODE_LAB_P"
+      },
+      "USEEDIT": {
+       "before": "8388608",
+       "after": "8405024"
+      },
+      "LASTUPDDTTM": {
+       "before": "2025-03-05T02:33:31.062592000",
+       "after": "2026-10-09T11:41:46.332958000"
+      },
+      "LASTUPDOPRID": {
+       "before": "PPLSOFT",
+       "after": "JARED"
+      }
+     }
+    }
+   ]
+  },
+  "PSRECTBLSPC": {
+   "columns": [
+    {
+     "name": "DDLSPACENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DBNAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "DBTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "TEMPTBLINST",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PT_TS_LOCK_TYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PT_UTS_ENABLED",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "DDLSPACENAME": "PSMATVW",
+     "DBNAME": "PSPTDMO",
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "DBTYPE": " ",
+     "TEMPTBLINST": "N",
+     "PT_TS_LOCK_TYPE": " ",
+     "PT_UTS_ENABLED": " "
+    }
+   ],
+   "deleted": [
+    {
+     "DDLSPACENAME": "PTAPPE",
+     "DBNAME": "PSPTDMO",
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "DBTYPE": "1",
+     "TEMPTBLINST": "N",
+     "PT_TS_LOCK_TYPE": " ",
+     "PT_UTS_ENABLED": " "
+    }
+   ],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAPJGAHlAAAMW5AAr"
+     },
+     "changes": {
+      "DDLSPACENAME": {
+       "before": "PSMATVW",
+       "after": "PTAPPE"
+      },
+      "DBTYPE": {
+       "before": " ",
+       "after": "1"
+      }
+     }
+    }
+   ]
+  }
+ }
+}

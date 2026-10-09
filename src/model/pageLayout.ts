@@ -29,8 +29,16 @@ export interface PageControl {
   recordField: string;
   /** PSPNLFIELD.FIELDUSE, the use bit-mask, shown raw. */
   use: number;
+  /** FIELDUSE 0x01: the control is display-only (proven in docs/PAGE_SAVE.md 09). */
+  displayOnly: boolean;
+  /** FIELDUSE 0x02: the control is invisible. */
+  invisible: boolean;
   pageFieldName: string;
 }
+
+/** FIELDUSE bits, proven against App Designer saves (docs/PAGE_SAVE.md 09-property). */
+export const FIELD_USE_DISPLAY_ONLY = 0x01;
+export const FIELD_USE_INVISIBLE = 0x02;
 
 export interface PageLayout {
   name: string;
@@ -122,6 +130,8 @@ export function buildPageLayout(name: string, view: PageView): PageLayout {
         target: targetOf(f),
         recordField: field ? `${rec}.${field}` : rec,
         use: num(f.FIELDUSE),
+        displayOnly: (num(f.FIELDUSE) & FIELD_USE_DISPLAY_ONLY) !== 0,
+        invisible: (num(f.FIELDUSE) & FIELD_USE_INVISIBLE) !== 0,
         pageFieldName: str(f.PNLFIELDNAME)
       };
     });

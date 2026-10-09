@@ -246,6 +246,7 @@ const WATCH: Array<{ table: string; scratchColumn?: string }> = [
   // by the scope sweep's flashback diff.
   { table: 'PSPNLDEFN', scratchColumn: 'PNLNAME' },
   { table: 'PSPNLFIELD', scratchColumn: 'PNLNAME' },
+  { table: 'PSPNLFIELDEXT', scratchColumn: 'PNLNAME' },
   { table: 'PSVERSION' },
   { table: 'PSLOCK' }
 ];
