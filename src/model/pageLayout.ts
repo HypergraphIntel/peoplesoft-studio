@@ -15,13 +15,34 @@ export interface Rect { left: number; top: number; width: number; height: number
 /** Broad shape a control is drawn as, from its FIELDTYPE. */
 export type ControlShape = 'field' | 'dropdown' | 'checkbox' | 'radio' | 'button' | 'label' | 'image' | 'container' | 'rule' | 'misc';
 
+/** The editable PSPNLFIELD columns of a control, as stored (what the editor round-trips to pageWriter). */
+export interface ControlColumns {
+  fieldLeft: number;
+  fieldTop: number;
+  fieldRight: number;
+  fieldBottom: number;
+  editLblLeft: number;
+  editLblTop: number;
+  editLblRight: number;
+  editLblBottom: number;
+  fieldSizeType: number;
+  lblType: number;
+  lblText: string;
+  fieldUse: number;
+  secureInvisible: number;
+}
+
 export interface PageControl {
   num: number;
+  /** PSPNLFIELD.PNLFLDID -- the stable control id the writer keys by. */
+  pnlFldId: number;
   level: number;
   type: number;
   typeName: string;
   shape: ControlShape;
   rect: Rect;
+  /** The stored editable columns, for round-tripping edits. */
+  columns: ControlColumns;
   /** The label's rectangle, when it has a shown label within the page. */
   label?: { text: string; rect: Rect };
   /** "RECNAME.FIELDNAME", a subpage, or what the control points at. */
@@ -121,11 +142,17 @@ export function buildPageLayout(name: string, view: PageView): PageLayout {
       const field = str(f.FIELDNAME);
       return {
         num: num(f.FIELDNUM),
+        pnlFldId: num(f.PNLFLDID),
         level: num(f.OCCURSLEVEL),
         type: num(f.FIELDTYPE),
         typeName: PAGE_FIELD_TYPES[num(f.FIELDTYPE)] ?? `Type ${num(f.FIELDTYPE)}`,
         shape: controlShape(num(f.FIELDTYPE)),
         rect,
+        columns: {
+          fieldLeft: num(f.FIELDLEFT), fieldTop: num(f.FIELDTOP), fieldRight: num(f.FIELDRIGHT), fieldBottom: num(f.FIELDBOTTOM),
+          editLblLeft: num(f.EDITLBLLEFT), editLblTop: num(f.EDITLBLTOP), editLblRight: num(f.EDITLBLRIGHT), editLblBottom: num(f.EDITLBLBOTTOM),
+          fieldSizeType: num(f.FIELDSIZETYPE), lblType: num(f.LBLTYPE), lblText: str(f.LBLTEXT), fieldUse: num(f.FIELDUSE), secureInvisible: num(f.SECUREINVISIBLE)
+        },
         ...(text && labelRect ? { label: { text, rect: labelRect } } : {}),
         target: targetOf(f),
         recordField: field ? `${rec}.${field}` : rec,

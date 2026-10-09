@@ -7,7 +7,7 @@ import { renderPageHtml } from '../editors/pageHtml.js';
 const field = (over: Partial<Record<string, unknown>>): Row => ({
   FIELDNUM: 1, OCCURSLEVEL: 0, FIELDTYPE: 4, FIELDUSE: 0, LBLTYPE: 3, LBLTEXT: '', RECNAME: ' ', FIELDNAME: ' ',
   FIELDLEFT: 0, FIELDTOP: 0, FIELDRIGHT: 0, FIELDBOTTOM: 0, EDITLBLLEFT: 0, EDITLBLTOP: 0, EDITLBLRIGHT: 0, EDITLBLBOTTOM: 0,
-  PNLFIELDNAME: '', ...over
+  FIELDSIZETYPE: 0, SECUREINVISIBLE: 0, PNLFLDID: Number(over.FIELDNUM ?? 1), PNLFIELDNAME: '', ...over
 });
 
 const view = (fields: Row[]): PageView => ({ page: { PNLTYPE: 0, VERSION: 3, DESCR: 'A page' }, fields, components: [] });
@@ -80,4 +80,17 @@ test('FIELDUSE bits mark display-only and invisible controls', () => {
   const html = renderPageHtml(buildPageLayout('P', view([field({ FIELDNUM: 1, FIELDUSE: 1 }), field({ FIELDNUM: 2, FIELDUSE: 2 })])), '', 'N');
   assert.match(html, /class="ctl s-field u-display-only"/);
   assert.match(html, /class="ctl s-field u-invisible"/);
+});
+
+test('editable render adds the save toolbar, resize handles and round-trip data; read-only omits them', () => {
+  const layout = buildPageLayout('P', view([field({ FIELDNUM: 2, FIELDTYPE: 4, FIELDLEFT: 10, FIELDTOP: 20, FIELDRIGHT: 90, FIELDBOTTOM: 38, LBLTEXT: 'X' })]));
+  const edit = renderPageHtml(layout, 'ORDER', 'N', { editable: true });
+  assert.match(edit, /id="save"/);
+  assert.match(edit, /const editable = true/);
+  assert.match(edit, /class="rsz"/);
+  assert.match(edit, /data-id="2"[^>]*data-fl="10"[^>]*data-ft="20"[^>]*data-fr="90"[^>]*data-fb="38"/);
+  const ro = renderPageHtml(layout, 'ORDER', 'N', { editable: false });
+  assert.doesNotMatch(ro, /id="save"/);
+  assert.match(ro, /const editable = false/);
+  assert.doesNotMatch(ro, /class="rsz"/);
 });
