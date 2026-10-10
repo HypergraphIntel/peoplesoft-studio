@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.8.0
+
+### Changed
+
+- **Components** open as App Designer's component window: the
+  **Definition** grid (Page Name, Item Name, Hidden, Item Label, Folder Tab
+  Label, Allow Deferred Processing; a row's right-click View Definition opens
+  the page), the **Structure** tab (the component buffer: search record,
+  scroll levels, their primary records and records, component PeopleCode
+  marked) and **Component Properties** (General, Use, Internet, Fluid).
+  On a Writable connection the component is editable (Experimental): Item
+  Label, Folder Tab Label and Hidden; drag, Cut / Copy / Paste / Delete page
+  rows; **Insert Page...** (Insert > Page into Component); Description,
+  Comments, search records, detail page, Actions, Disable Saving Page and
+  Include in Navigation; Save -- reproduced from nine captured App Designer
+  saves. A component without a search record is never saved. The
+  **Internet**, **Fluid** and **Style** tabs are decoded and editable too --
+  every toolbar, pagebar, navigation and header-action box, processing mode,
+  search page settings, Fluid attributes, Classic Plus and the component
+  style sheet / JavaScript objects -- from 70 one-control App Designer saves.
+  See [docs/COMPONENTS.md](docs/COMPONENTS.md).
+- **View PeopleCode** on a component (panel header, Structure tab right-click,
+  or a component in the Definition Browser / a project): pick the component,
+  a record or a field, then the event -- those with code marked -- to open its
+  component, component record or component record field PeopleCode.
+
 ## 0.7.9
 
 ### Changed

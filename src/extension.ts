@@ -33,6 +33,10 @@ import { PropertiesPanel } from './editors/propertiesPanel.js';
 import { ImagePanel } from './editors/imagePanel.js';
 import { AppEnginePanel } from './editors/appEnginePanel.js';
 import { PagePanel } from './editors/pagePanel.js';
+import { ComponentPanel } from './editors/componentPanel.js';
+import { defaultItemLabel } from './providers/componentWriter.js';
+import type { ComponentDefinition } from './model/componentDefinition.js';
+import { bufferRecords, componentPeopleCodeKey, eventsFor, peopleCodeObjects, type PeopleCodeObject } from './model/componentPeopleCode.js';
 import { canInsertIntoProject, describeItem, ProjectSaveRefusedError } from './model/projectItems.js';
 import { DatabaseProvider } from './providers/database.js';
 import { validateConnectString } from './settings/settingsModel.js';
@@ -129,6 +133,46 @@ function targetFromTreeNode(node: unknown): CompareTarget | undefined {
   }
 
   return undefined;
+}
+
+/**
+ * App Designer's View PeopleCode on a component: pick the object (the
+ * component, a record, a field with component PeopleCode), then its event;
+ * objects and events with a program are marked. Opens the program read-only.
+ */
+async function viewComponentPeopleCode(provider: DatabaseProvider, def: ComponentDefinition, record?: string): Promise<void> {
+  const objects = peopleCodeObjects(def.name, bufferRecords(def.structure), def.programs);
+  let object = record ? objects.find((o) => o.record === record && !o.field) : undefined;
+  if (!object) {
+    const picked = await vscode.window.showQuickPick(objects.map((o) => ({
+      label: `${o.withCode.length ? '$(zap) ' : ''}${o.label}`, description: o.withCode.join(', '), object: o
+    })), { title: `${def.name}.${def.market}: View PeopleCode`, placeHolder: 'The component, a record, or a field (marked: has component PeopleCode)', matchOnDescription: true });
+    if (!picked) return;
+    object = picked.object;
+  }
+  await viewComponentEvent(provider, def, object, objects);
+}
+
+/** The event step: the object's events (marked where there is a program), and for a record its fields that have PeopleCode. */
+async function viewComponentEvent(provider: DatabaseProvider, def: ComponentDefinition, object: PeopleCodeObject, objects: PeopleCodeObject[]): Promise<void> {
+  type Item = vscode.QuickPickItem & { event?: string; field?: PeopleCodeObject };
+  const items: Item[] = eventsFor(object).map((e) => ({
+    label: `${object.withCode.includes(e) ? '$(zap) ' : ''}${e}`, description: object.withCode.includes(e) ? '' : 'no PeopleCode', event: e
+  }));
+  const fields = object.record && !object.field ? objects.filter((o) => o.record === object.record && o.field) : [];
+  if (fields.length) {
+    items.push({ label: 'Fields', kind: vscode.QuickPickItemKind.Separator });
+    for (const f of fields) items.push({ label: `$(zap) ${f.field}`, description: f.withCode.join(', '), field: f });
+  }
+  const pick = await vscode.window.showQuickPick(items, { title: `${def.name}.${def.market}: ${object.label}`, placeHolder: 'Event' });
+  if (!pick) return;
+  if (pick.field) return viewComponentEvent(provider, def, pick.field, objects);
+  if (!pick.event) return;
+  if (!object.withCode.includes(pick.event)) {
+    void vscode.window.showInformationMessage(`${object.label} has no ${pick.event} PeopleCode in ${def.name}.${def.market}.`);
+    return;
+  }
+  await vscode.commands.executeCommand('psft.openDefinition', provider.id, componentPeopleCodeKey(def.name, def.market, object, pick.event));
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
@@ -407,6 +451,45 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             ImagePanel.show({ id: provider.id, displayName: provider.displayName }, key, image);
             return;
           }
+          if (key.type === DefinitionType.Component && provider instanceof DatabaseProvider) {
+            let definition = await provider.readComponentDefinition(key);
+            const operatorId = workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim();
+            // Editable as pages are: a Writable connection, an operator, the name in the write scope.
+            const editable = workspace.isWritable(provider.id) && !!operatorId && !writeScopeRefusal(definition.name);
+            ComponentPanel.show({ id: provider.id, displayName: provider.displayName }, key, definition, {
+              openPage: async (page) => { await vscode.commands.executeCommand('psft.openDefinition', provider.id, makeKey(DefinitionType.Page, page)); },
+              viewPeopleCode: (record) => viewComponentPeopleCode(provider, definition, record),
+              ...(editable ? {
+                edit: {
+                  choosePage: async (inComponent) => {
+                    let info: { deferred: boolean } | undefined;
+                    const page = await vscode.window.showInputBox({
+                      title: `Insert Page into ${definition.name}.${definition.market}`, prompt: 'Page name', ignoreFocusOut: true,
+                      validateInput: async (v) => {
+                        const name = v.trim().toUpperCase();
+                        if (!name) return undefined;
+                        if (inComponent.includes(name)) return `${name} is already in the component.`;
+                        info = await provider.pageInfo(name);
+                        return info ? undefined : `There is no page named ${name}.`;
+                      }
+                    });
+                    const name = page?.trim().toUpperCase();
+                    if (!name) return undefined;
+                    info ??= await provider.pageInfo(name);
+                    if (!info) { void vscode.window.showWarningMessage(`There is no page named ${name}.`); return undefined; }
+                    return { pageName: name, itemLabel: defaultItemLabel(name), deferred: info.deferred };
+                  },
+                  save: async (items, properties) => {
+                    await provider.saveComponent({ name: definition.name, market: definition.market, openedVersion: definition.properties.general.version,
+                      operatorId: operatorId!, items, properties });
+                    definition = await provider.readComponentDefinition(key);
+                    return definition;
+                  }
+                }
+              } : {})
+            });
+            return;
+          }
           if (key.type === DefinitionType.Page && provider instanceof DatabaseProvider) {
             const { layout, order } = await provider.readPageLayout(key);
             const pnlName = key.parts[0];
@@ -441,6 +524,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         });
       }),
 
+    vscode.commands.registerCommand('psft.viewComponentPeopleCode', async (target?: unknown) => {
+      const t = await resolveDefinitionForCompare(workspace, target, 'View PeopleCode');
+      if (!t) return;
+      if (t.key.type !== DefinitionType.Component) {
+        vscode.window.showInformationMessage(`${displayName(t.key)} is not a component.`);
+        return;
+      }
+      await withError(`Viewing PeopleCode of ${displayName(t.key)}`, async () => {
+        const provider = await workspace.require(t.connectionId);
+        if (!(provider instanceof DatabaseProvider)) throw new Error('Component PeopleCode is listed from a database connection.');
+        await viewComponentPeopleCode(provider, await provider.readComponentDefinition(t.key));
+      });
+    }),
     vscode.commands.registerCommand('psft.openDefinitionDialog', () => {
       if (workspace.activeProviders.every((p) => !p.isConnected)) {
         vscode.window.showWarningMessage(

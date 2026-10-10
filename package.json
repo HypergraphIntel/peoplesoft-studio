@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.7.9",
+  "version": "0.8.0",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -234,6 +234,11 @@
         "icon": "$(symbol-event)"
       },
       {
+        "command": "psft.viewComponentPeopleCode",
+        "title": "View PeopleCode",
+        "category": "PeopleSoft"
+      },
+      {
         "command": "psft.showProperties",
         "title": "Properties",
         "category": "PeopleSoft",
@@ -413,6 +418,11 @@
           "command": "psft.deleteRecord",
           "when": "viewItem =~ /\\.record$/",
           "group": "z_delete"
+        },
+        {
+          "command": "psft.viewComponentPeopleCode",
+          "when": "viewItem =~ /\\.component\\b/",
+          "group": "navigation@5"
         },
         {
           "command": "psft.showProperties",
