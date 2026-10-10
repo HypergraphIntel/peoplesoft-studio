@@ -36,7 +36,7 @@
  *   npx tsx tools/corpus/save-protocol/snapshot.ts after  --case 01-create
  *
  * A save made before "before" ran can still be bracketed while undo covers
- * it: `before --as-of 'YYYY-MM-DD HH24:MI:SS'` reads the watch set and the
+ * it: `before --as-of 'YYYY-MM-DD HH24:MI:SS'` (or `--as-of scn:NNN`) reads the watch set and the
  * counts AS OF that time (flashback). `after --as-of` closes the window at a
  * past time the same way, so several saves made in a row can each be
  * bracketed afterwards. Snapshots so taken record `retroactive`.
@@ -165,8 +165,20 @@ async function marker(session: Session): Promise<Marker> {
   return { scn: row.SCN, timestamp: row.TS };
 }
 
-/** A past marker, for a retroactive before: the SCN at that database-clock time. */
+/**
+ * A past marker, for a retroactive before / after: the SCN at that
+ * database-clock time, or an exact SCN given as scn:NNN -- for saves too close
+ * together for TIMESTAMP_TO_SCN's few-second granularity (find their commit
+ * SCNs with a VERSIONS BETWEEN query).
+ */
 async function markerAt(session: Session, at: string): Promise<Marker> {
+  const exact = /^scn:(\d+)$/.exec(at);
+  if (exact) {
+    const [row] = await session.select<{ TS: string }>(
+      `SELECT TO_CHAR(SCN_TO_TIMESTAMP(TO_NUMBER(:scn)), 'YYYY-MM-DD"T"HH24:MI:SS.FF9') || TO_CHAR(SYSTIMESTAMP, 'TZH:TZM') AS TS FROM DUAL`,
+      { scn: exact[1] });
+    return { scn: exact[1], timestamp: row.TS };
+  }
   if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,9})?$/.test(at)) {
     throw new Error(`--as-of must be 'YYYY-MM-DD HH24:MI:SS[.FF]' on the database clock, not ${JSON.stringify(at)}.`);
   }
@@ -242,11 +254,18 @@ const WATCH: Array<{ table: string; scratchColumn?: string }> = [
   { table: 'PSPROJECTITEM', scratchColumn: 'PROJECTNAME' },
   // Page save capture (docs/PAGE_SAVE.md): the scratch page's definition and
   // its controls, keyed PNLNAME / (PNLNAME, PNLFLDID). The page version
-  // counter is PSVERSION/PSLOCK 'PPC'. Anything else a save touches is caught
-  // by the scope sweep's flashback diff.
+  // counter is PSVERSION/PSLOCK 'PDM' (proven, 01-09). Anything else a save
+  // touches is caught by the scope sweep's flashback diff.
   { table: 'PSPNLDEFN', scratchColumn: 'PNLNAME' },
   { table: 'PSPNLFIELD', scratchColumn: 'PNLNAME' },
   { table: 'PSPNLFIELDEXT', scratchColumn: 'PNLNAME' },
+  // Component save capture (docs/COMPONENTS.md): the scratch component's
+  // definition, its page items, its extension and style objects, keyed
+  // (PNLGRPNAME, MARKET).
+  { table: 'PSPNLGRPDEFN', scratchColumn: 'PNLGRPNAME' },
+  { table: 'PSPNLGROUP', scratchColumn: 'PNLGRPNAME' },
+  { table: 'PSPNLGRPDEFNEXT', scratchColumn: 'PNLGRPNAME' },
+  { table: 'PSPNLGRPSCRIPTS', scratchColumn: 'PNLGRPNAME' },
   { table: 'PSVERSION' },
   { table: 'PSLOCK' }
 ];
@@ -650,7 +669,7 @@ async function main(): Promise<void> {
   const phase = process.argv[2];
   const name = argument('case');
   if ((phase !== 'before' && phase !== 'after') || !name) {
-    throw new Error('Usage: snapshot.ts before|after --case NAME [--scope tools|all] [--as-of TIMESTAMP] [--database HRDMO]');
+    throw new Error('Usage: snapshot.ts before|after --case NAME [--scope tools|all] [--as-of TIMESTAMP|scn:NNN] [--database HRDMO]');
   }
   const scope = argument('scope') === 'all' ? 'all' : 'tools';
   const session = await open(argument('database') ?? 'HRDMO');

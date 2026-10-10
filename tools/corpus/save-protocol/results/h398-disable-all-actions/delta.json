@@ -1,0 +1,751 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "h398-disable-all-actions",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362781076071",
+   "timestamp": "2026-10-10T11:49:25.000000000-05:00"
+  },
+  "after": {
+   "scn": "39362781076833",
+   "timestamp": "2026-10-10T11:54:40.000000000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-10T11:49:25.000000000-05:00",
+    "to": "2026-10-10T11:54:40.000000000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "MDM": {
+    "before": 73,
+    "after": 75,
+    "delta": 2
+   },
+   "PGM": {
+    "before": 396,
+    "after": 398,
+    "delta": 2
+   },
+   "SYS": {
+    "before": 1669,
+    "after": 1671,
+    "delta": 2
+   }
+  },
+  "pslock": {
+   "MDM": {
+    "before": 73,
+    "after": 75,
+    "delta": 2
+   },
+   "PGM": {
+    "before": 396,
+    "after": 398,
+    "delta": 2
+   }
+  },
+  "watchTablesChanged": {
+   "PSPNLGRPDEFN": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 3
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   }
+  },
+  "otherTablesChanged": {
+   "PSPNLGRPDEFN": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSPNLGRPDEFN": {
+   "columns": [
+    {
+     "name": "PNLGRPNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "ACTIONS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "ADDSRCHRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "SEARCHRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "SEARCHPNLNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "LOADLOC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SAVELOC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DISABLESAVE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PRIMARYACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DFLTACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DFLTSRCHTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DEFERPROC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EXPENTRYPROC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "REQSECURESSL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "INCLNAVIGATION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FORCESEARCH",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "ALLOWACTMODESEL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLNAVFLAGS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "TBARBTNS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SHOWTBAR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "ADDLINKMSGSET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "ADDLINKMSGNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SRCHLINKMSGSET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SRCHLINKMSGNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SRCHTEXTMSGSET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SRCHTEXTMSGNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "WSRPCOMPLIANT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FLUIDMODE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LAYOUTMODE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "INCFOOTER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "INCSIDE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "INCHEADER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "INCSEARCH",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SMALLFFOPT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "COMP_TYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLGRPUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "PNLGRPNAME": "ZZ_PCODE_LAB_CMP",
+      "MARKET": "GBL"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "396",
+       "after": "398"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-10T11:49:26.125569000",
+       "after": "2026-10-10T11:49:39.125400000"
+      },
+      "SHOWTBAR": {
+       "before": "59",
+       "after": "42"
+      }
+     }
+    }
+   ]
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "MDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "73",
+       "after": "75"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "PGM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "396",
+       "after": "398"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "1669",
+       "after": "1671"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "MDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "73",
+       "after": "75"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "PGM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "396",
+       "after": "398"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSPNLGRPDEFN": {
+   "columns": [
+    {
+     "name": "PNLGRPNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "ACTIONS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "ADDSRCHRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "SEARCHRECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "SEARCHPNLNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "LOADLOC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SAVELOC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DISABLESAVE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PRIMARYACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DFLTACTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DFLTSRCHTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DEFERPROC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "EXPENTRYPROC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "REQSECURESSL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "INCLNAVIGATION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FORCESEARCH",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "ALLOWACTMODESEL",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLNAVFLAGS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "TBARBTNS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SHOWTBAR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "ADDLINKMSGSET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "ADDLINKMSGNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SRCHLINKMSGSET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SRCHLINKMSGNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SRCHTEXTMSGSET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SRCHTEXTMSGNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "WSRPCOMPLIANT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FLUIDMODE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LAYOUTMODE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "INCFOOTER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "INCSIDE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "INCHEADER",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "INCSEARCH",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SMALLFFOPT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "COMP_TYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLGRPUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAO8fAHXAABq4+AAB"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "396",
+       "after": "398"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-10T11:49:26.125569000",
+       "after": "2026-10-10T11:49:39.125400000"
+      },
+      "SHOWTBAR": {
+       "before": "59",
+       "after": "42"
+      }
+     }
+    }
+   ]
+  }
+ }
+}

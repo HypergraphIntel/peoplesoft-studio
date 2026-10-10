@@ -31,6 +31,9 @@ import { decodeProgram, DecodeOptions } from '../peoplecode/decoder.js';
 import { FieldLabelRow, FieldRow, renderField } from './oracleRender.js';
 import { renderComponent, renderMenu, renderPage, type PageView, type Row as UiRow } from '../model/uiDefinitions.js';
 import { buildPageLayout, type PageLayout } from '../model/pageLayout.js';
+import { buildComponentStructure, referencedPages, type StructureField } from '../model/componentStructure.js';
+import { buildComponentDefinition, type ComponentDefinition } from '../model/componentDefinition.js';
+import { saveComponent, type ComponentSaveRequest, type ComponentSaveResult } from './componentWriter.js';
 import { savePage, verifyPageSave, type PageSaveRequest, type PageSaveResult } from './pageWriter.js';
 import { renderComponentInterface, renderFileLayout } from '../model/integrationDefinitions.js';
 import { renderMessage, renderPermissionList, renderRole } from '../model/adminDefinitions.js';
@@ -807,6 +810,19 @@ export class DatabaseProvider implements DefinitionProvider {
    * move / resize / label / use changes and deletes of existing controls, in
    * one transaction, then verified again on another connection after COMMIT.
    */
+  /** A page's DEFERPROC, or undefined when there is no such page (Insert > Page into Component). */
+  async pageInfo(name: string): Promise<{ deferred: boolean } | undefined> {
+    return this.withConnection(async (c) => {
+      const [row] = (await c.execute<{ D: number }>(`SELECT DEFERPROC AS D FROM PSPNLDEFN WHERE PNLNAME = :p`, { p: name })).rows ?? [];
+      return row ? { deferred: Number(row.D) !== 0 } : undefined;
+    });
+  }
+
+  /** Saves a component as App Designer does (componentWriter.ts); never one without a search record. */
+  async saveComponent(request: ComponentSaveRequest): Promise<ComponentSaveResult> {
+    return this.withConnection((c) => saveComponent(c, request));
+  }
+
   async savePage(request: PageSaveRequest): Promise<PageSaveResult> {
     const result = await this.withConnection((c) => savePage(c, request));
     await this.withConnection((c) => verifyPageSave(c, request, result));
@@ -1346,6 +1362,60 @@ export class DatabaseProvider implements DefinitionProvider {
         `SELECT PNLGRPNAME, MARKET, ITEMLABEL FROM PSPNLGROUP WHERE PNLNAME = :n ORDER BY PNLGRPNAME, MARKET`, { n: name });
       const data: PageView = { page, fields, components };
       return { data, order: renderPage(name, data) };
+    });
+  }
+
+  /**
+   * A component as App Designer's component window shows it: the Definition
+   * grid, the Structure tab (built from its pages, their subpages and
+   * secondary pages) and Component Properties, for the Component panel.
+   */
+  async readComponentDefinition(key: DefinitionKey): Promise<ComponentDefinition> {
+    const [name, market = 'GBL'] = key.parts;
+    return this.withConnection(async (c) => {
+      const b = { n: name, m: market };
+      const [defn] = await this.uiRows(c, `SELECT G.*, ${UI_STAMP} FROM PSPNLGRPDEFN G WHERE PNLGRPNAME = :n AND MARKET = :m`, b);
+      if (!defn) throw new ProviderError(`No component named ${name}.${market}.`);
+      const [ext] = await this.uiRows(c, `SELECT * FROM PSPNLGRPDEFNEXT WHERE PNLGRPNAME = :n AND MARKET = :m`, b);
+      const items = await this.uiRows(c,
+        `SELECT G.*, P.DEFERPROC AS PAGEDEFERPROC FROM PSPNLGROUP G LEFT JOIN PSPNLDEFN P ON P.PNLNAME = G.PNLNAME
+          WHERE G.PNLGRPNAME = :n AND G.MARKET = :m ORDER BY G.SUBITEMNUM`, b);
+      const menus = await this.uiRows(c,
+        `SELECT MENUNAME, BARNAME, ITEMNAME FROM PSMENUITEM WHERE PNLGRPNAME = :n AND MARKET = :m ORDER BY MENUNAME, BARNAME, ITEMNAME`, b);
+      const programs = await this.uiRows(c,
+        `SELECT DISTINCT OBJECTID3, OBJECTVALUE3, OBJECTID4, OBJECTVALUE4, OBJECTID5, OBJECTVALUE5 FROM PSPCMPROG
+          WHERE OBJECTID1 = 10 AND OBJECTVALUE1 = :n AND OBJECTVALUE2 = :m
+          ORDER BY OBJECTID3 DESC, OBJECTVALUE3, OBJECTVALUE4, OBJECTVALUE5`, b);
+
+      // Every page the walk reaches: the items' pages, then their subpages and secondary pages, a batch at a time.
+      const fields = new Map<string, StructureField[]>();
+      let pending = [...new Set(items.map((i) => String(i.PNLNAME ?? '').trim()).filter(Boolean))];
+      while (pending.length) {
+        const batch = pending.splice(0, 500);
+        const binds = Object.fromEntries(batch.map((p, i) => [`p${i}`, p]));
+        const rows = await this.uiRows(c,
+          `SELECT PNLNAME, FIELDNUM, FIELDTYPE, OCCURSLEVEL, RECNAME, FIELDNAME, SUBPNLNAME, FIELDUSE FROM PSPNLFIELD
+            WHERE PNLNAME IN (${batch.map((_, i) => `:p${i}`).join(', ')})`, binds);
+        for (const p of batch) fields.set(p, []);
+        for (const r of rows) fields.get(String(r.PNLNAME).trim())?.push(r as unknown as StructureField);
+        for (const p of referencedPages(rows)) if (!fields.has(p) && !pending.includes(p)) pending.push(p);
+      }
+      const records = new Set<string>([String(defn.SEARCHRECNAME ?? '').trim()]);
+      for (const list of fields.values()) for (const f of list) if (String(f.RECNAME ?? '').trim()) records.add(String(f.RECNAME).trim());
+      const types = new Map<string, number>();
+      const recs = [...records].filter(Boolean);
+      for (let i = 0; i < recs.length; i += 500) {
+        const batch = recs.slice(i, i + 500);
+        const binds = Object.fromEntries(batch.map((r, j) => [`r${j}`, r]));
+        for (const r of await this.uiRows(c, `SELECT RECNAME, RECTYPE FROM PSRECDEFN WHERE RECNAME IN (${batch.map((_, j) => `:r${j}`).join(', ')})`, binds)) {
+          types.set(String(r.RECNAME).trim(), Number(r.RECTYPE));
+        }
+      }
+      const scripts = await this.uiRows(c,
+        `SELECT PTSCRIPTTYPE, PTSCRIPTNAME, PTSCRIPTCATG, SEQNO FROM PSPNLGRPSCRIPTS WHERE PNLGRPNAME = :n AND MARKET = :m`, b);
+      const structure = buildComponentStructure(items.map((i) => String(i.PNLNAME ?? '').trim()), String(defn.SEARCHRECNAME ?? ''),
+        (p) => fields.get(p), (r) => types.get(r) ?? -1);
+      return buildComponentDefinition(name, market, { defn, ...(ext ? { ext } : {}), items, menus, programs, scripts }, structure);
     });
   }
 
