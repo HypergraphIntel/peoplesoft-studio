@@ -139,6 +139,9 @@ test('the editable page has the Insert menu (App Designer\'s groups) and selecti
   assert.match(edit, /<tr data-id="1" tabindex="0" draggable="true">/);
   assert.match(edit, /"staticText":\{"shape":"label","typeName":"Static Text","bound":false,"w":128,"h":20/);
   assert.match(edit, /"editBox":\{"shape":"field","typeName":"Edit Box","bound":true/);
+  // 0.8.2: Static Image, Radio Button, Long Edit Box and HTML Area insert too; an HTML Area's field is optional.
+  for (const kind of ['staticImage', 'radioButton', 'longEdit', 'htmlArea']) assert.match(edit, new RegExp(`data-kind="${kind}"`));
+  assert.match(edit, /"htmlArea":\{[^}]*"fieldOptional":true\}/);
   assert.match(edit, /"groupBox":\{"shape":"container","typeName":"Group Box","bound":false,"w":300,"h":156/);
   assert.match(edit, /id="status">Saved \(v9\)</);
   const ro = renderPageHtml(layout, '', 'N', { editable: false });
@@ -168,4 +171,14 @@ test('a subpage with no label text is drawn with its subpage name, at its top-le
   ])).controls;
   assert.deepEqual(blank.label, { text: 'EMPL_SRCH1_SBP', rect: { left: 9, top: 1, width: 0, height: 14 } });
   assert.equal(named.label?.text, 'JOB_DATA_NAV_SBP');
+});
+
+test('the page window\'s script is valid JavaScript (an escape slip in the template breaks the whole editor)', () => {
+  const layout = buildPageLayout('P', view([field({ FIELDNUM: 1, FIELDTYPE: 6, LBLTEXT: 'A\r\nB' }), field({ FIELDNUM: 2, PNLFLDID: 2, FIELDTYPE: 25 })]));
+  for (const editable of [true, false]) {
+    const html = renderPageHtml(layout, '', 'N', { editable });
+    const scripts = [...html.matchAll(/<script nonce="N">([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+    assert.ok(scripts.length > 0);
+    for (const code of scripts) assert.doesNotThrow(() => new Function(code), SyntaxError);
+  }
 });

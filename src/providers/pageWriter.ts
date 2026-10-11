@@ -3,7 +3,7 @@ import { writeScopeRefusal } from './writeScope.js';
 import { PAGE_SIZE_BITS, PAGE_SIZE_CUSTOM, PAGE_SIZE_PRESETS, pageSizeChoice } from '../model/pageLayout.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
-import { newControlFieldRefusal, newControlRows, isRecordBound, type ColumnValues, type FieldInfo, type NewControl } from './pageControlTemplates.js';
+import { FIELD_OPTIONAL, newControlFieldRefusal, newControlRows, isRecordBound, type ColumnValues, type FieldInfo, type NewControl } from './pageControlTemplates.js';
 
 /*
  * Saving a page's layout, as App Designer does (docs/PAGE_SAVE.md, cases
@@ -105,9 +105,66 @@ export interface EditedControl {
   gridShowColHdg?: number;
   gridShowRowHdg?: number;
   gridAllowColSort?: number;
-  /** PSPNLFIELD.OCCURSLEVEL for an added / pasted control: the scroll level at the drop point (0 outside any scroll). */
+  /**
+   * PSPNLFIELD.OCCURSLEVEL for an added / pasted control: the scroll level at the drop point (0 outside any scroll);
+   * on a stored Horizontal Rule, the level its Set to Level chose.
+   */
   occursLevel?: number;
+  /**
+   * An HTML Area's Constant value (PSPNLHTMLAREA.HTMLAREA, ha03-ha05): the HTML text, or null for a Field value (the
+   * row is deleted, ha05). Absent leaves the stored one.
+   */
+  htmlConstant?: string | null;
+  /**
+   * A Long Edit Box's Rich Text options (PSPTPNLRTEDITOR, le01, le03): Configuration Settings, Image Location URL, Plugin,
+   * Template and Style File ids, or null when Rich Text is off (the row is deleted). Absent leaves the stored ones.
+   */
+  richText?: RichTextOptions | null;
+  /** A Long Edit Box's label Position Left / Custom / Top (PSPNLFIELD.LABELSIZETYPE 0 / 1 / 2, le05-le07). */
+  labelSizeType?: number;
+  /** A Long Edit Box's Expand Field When Display Only (PSPNLFIELD.PTLEBEXPANDFIELD, le12). */
+  expandField?: number;
+  /** PSPNLFIELDEXT Placeholder Text (le17, le18): PLHTYPE None 0 / Static 1 / Message Catalog 2, PLACEHOLDER, PLH_MSG_SET_NBR / PLH_MSG_NBR. */
+  placeholderType?: number;
+  placeholder?: string;
+  placeholderMsgSet?: number;
+  placeholderMsgNum?: number;
+  /** A control's Popup Menu (PSPNLFIELD.POPUPMENU, cbx11; a popup menu definition, ' ' none). */
+  popupMenu?: string;
+  /** Related Field's Related Control Field (ASSOCFIELDNUM, cbx13): the Display Control Field control's FIELDNUM - 1; 0 none. */
+  assocFieldNum?: number;
+  /** A Group Box's Label tab (gb11, gb16, gb17): Label Style (LABELSTYLE), Label ID (LABEL_ID) and *** Use Default Label *** (USEDEFAULTLABEL 1). */
+  labelStyle?: string;
+  labelId?: string;
+  useDefaultLabel?: number;
+  /** A Group Box's Use tab (gb18-gb20): PTHIDEFIELDS, PTCOLLAPSEDATAAREA, PTDFLTVIEWEXPANDED, PTLBLIMGCOLLAPSE / PTLBLIMGEXPAND. */
+  hideFields?: number;
+  collapseDataArea?: number;
+  defaultExpanded?: number;
+  imageCollapsed?: string;
+  imageExpanded?: string;
+  /** PSPNLFIELDEXT: a Group Box's Embedded Popup Help message (MESSAGE_SET_NBR / MESSAGE_NBR, gb12). */
+  popupMsgSet?: number;
+  popupMsgNum?: number;
+  /** PSPNLFIELDEXT: a Group Box's Fluid Container Properties (gb01-gb04, gb26, gb27): GRPBOXTYPE, GRPBOXHTMLTYPE, SCROLLBARS and the
+   * Header Extension PTGBRELTXTINFO / PTGBRELACTINFO / PTGBRELACTFLD (the chosen group box's FIELDNUM - 1; -1 none). */
+  groupBoxType?: number;
+  groupBoxHtmlType?: number;
+  scrollBars?: number;
+  headerTextInfo?: number;
+  headerActionInfo?: number;
+  headerActionItems?: number;
 }
+
+/** PSPTPNLRTEDITOR's columns, as the Options tab names them (' ' none). */
+export interface RichTextOptions {
+  configSettingsId: string;
+  imageLocationUrlId: string;
+  pluginFileId: string;
+  templateFileId: string;
+  styleFileId: string;
+}
+const richTextKey = (r: RichTextOptions | null | undefined) => r ? [r.configSettingsId, r.imageLocationUrlId, r.pluginFileId, r.templateFileId, r.styleFileId].map((x) => (x ?? '').trim().toUpperCase() || ' ').join('|') : null;
 
 /** A control's Fluid tab bits in PSPNLFIELD.FIELDUSETMP (fr13, fr14, fr16, fr18, fr20). */
 export const FLUID_USETMP = { suppressClasses: 0x400000, suppressSmall: 0x40000000, suppressLarge: 0x20000000, labelAfter: 0x2000000, structureBasic: 0x4000000 } as const;
@@ -382,12 +439,65 @@ const EDITABLE: Array<{ col: string; of: (c: EditedControl) => number | string; 
   { col: 'OCCURSCOUNT1', of: (c) => Number(c.occursCount1 ?? 0), key: 'occursCount1' },
   { col: 'GRDSHOWCOLHDG', of: (c) => Number(c.gridShowColHdg ?? 0), key: 'gridShowColHdg' },
   { col: 'GRDSHOWROWHDG', of: (c) => Number(c.gridShowRowHdg ?? 0), key: 'gridShowRowHdg' },
-  { col: 'GRDALLOWCOLSORT', of: (c) => Number(c.gridAllowColSort ?? 0), key: 'gridAllowColSort' }
+  { col: 'GRDALLOWCOLSORT', of: (c) => Number(c.gridAllowColSort ?? 0), key: 'gridAllowColSort' },
+  // A Group Box's Label and Use tabs.
+  { col: 'LABELSTYLE', of: (c) => nameValue(c.labelStyle), key: 'labelStyle' },
+  { col: 'LABEL_ID', of: (c) => nameValue(c.labelId), key: 'labelId' },
+  { col: 'USEDEFAULTLABEL', of: (c) => Number(c.useDefaultLabel ?? 0), key: 'useDefaultLabel' },
+  { col: 'PTHIDEFIELDS', of: (c) => Number(c.hideFields ?? 0), key: 'hideFields' },
+  { col: 'PTCOLLAPSEDATAAREA', of: (c) => Number(c.collapseDataArea ?? 0), key: 'collapseDataArea' },
+  { col: 'PTDFLTVIEWEXPANDED', of: (c) => Number(c.defaultExpanded ?? 0), key: 'defaultExpanded' },
+  { col: 'PTLBLIMGCOLLAPSE', of: (c) => nameValue(c.imageCollapsed), key: 'imageCollapsed' },
+  { col: 'PTLBLIMGEXPAND', of: (c) => nameValue(c.imageExpanded), key: 'imageExpanded' },
+  // A control's Popup Menu and a Related Field's Related Control Field (cbx11, cbx13).
+  { col: 'POPUPMENU', of: (c) => nameValue(c.popupMenu), key: 'popupMenu' },
+  { col: 'ASSOCFIELDNUM', of: (c) => Number(c.assocFieldNum ?? 0), key: 'assocFieldNum' },
+  // A Long Edit Box's label Position and Expand Field When Display Only (le05-le07, le12).
+  { col: 'LABELSIZETYPE', of: (c) => Number(c.labelSizeType ?? 0), key: 'labelSizeType' },
+  { col: 'PTLEBEXPANDFIELD', of: (c) => Number(c.expandField ?? 0), key: 'expandField' },
+  // A Horizontal Rule's Set to Level (hr04: FIELDUSE 0x2 with SECUREINVISIBLE 1) puts it at the chosen OCCURSLEVEL.
+  { col: 'OCCURSLEVEL', of: (c) => Number(c.occursLevel ?? 0), key: 'occursLevel' }
 ];
 
-/** The Properties dialog's columns: OK on a frame's dialog writes its PSPNLFIELDEXT.FFSTYLELONG as App Designer's five-slot ' | | | | ' (fr01). */
+/** The PSPNLFIELDEXT columns a Group Box's dialog sets, written only when the editor sends them. */
+const EXT_EDITABLE: Array<{ col: string; of: (c: EditedControl) => number | string; key: keyof EditedControl }> = [
+  { col: 'MESSAGE_SET_NBR', of: (c) => Number(c.popupMsgSet ?? 0), key: 'popupMsgSet' },
+  { col: 'MESSAGE_NBR', of: (c) => Number(c.popupMsgNum ?? 0), key: 'popupMsgNum' },
+  { col: 'GRPBOXTYPE', of: (c) => Number(c.groupBoxType ?? 0), key: 'groupBoxType' },
+  { col: 'GRPBOXHTMLTYPE', of: (c) => Number(c.groupBoxHtmlType ?? 0), key: 'groupBoxHtmlType' },
+  { col: 'SCROLLBARS', of: (c) => Number(c.scrollBars ?? 0), key: 'scrollBars' },
+  { col: 'PTGBRELTXTINFO', of: (c) => Number(c.headerTextInfo ?? 0), key: 'headerTextInfo' },
+  { col: 'PTGBRELACTINFO', of: (c) => Number(c.headerActionInfo ?? 0), key: 'headerActionInfo' },
+  { col: 'PTGBRELACTFLD', of: (c) => Number(c.headerActionItems ?? 0), key: 'headerActionItems' },
+  // Placeholder Text (le17, le18).
+  { col: 'PLHTYPE', of: (c) => Number(c.placeholderType ?? 0), key: 'placeholderType' },
+  { col: 'PLACEHOLDER', of: (c) => (c.placeholder ?? '').trim() ? c.placeholder! : ' ', key: 'placeholder' },
+  { col: 'PLH_MSG_SET_NBR', of: (c) => Number(c.placeholderMsgSet ?? 0), key: 'placeholderMsgSet' },
+  { col: 'PLH_MSG_NBR', of: (c) => Number(c.placeholderMsgNum ?? 0), key: 'placeholderMsgNum' }
+];
+
+/**
+ * OK on a Group Box's dialog (gb06 on a Fluid page, gb28 on a classic one) also writes: an explicit alignment (DSPLFORMAT
+ * Left 0x80000 when none of Left / Centered / Right is set), FIELDUSETMP 0x6000000, a blank FFSTYLELONG in five slots and,
+ * on a Fluid page only, the Header Extension's 0s as -1.
+ */
+export const GROUP_BOX_ALIGN = { left: 0x80000, centered: 0x100000, right: 0x200000 } as const;
+const GROUP_BOX_ALIGN_MASK = 0x380000;
+const GROUP_BOX_DIALOG_USETMP = 0x6000000;
+const GROUP_BOX_GEOMETRY = new Set(['FIELDLEFT', 'FIELDTOP', 'FIELDRIGHT', 'FIELDBOTTOM', 'EDITLBLLEFT', 'EDITLBLTOP', 'EDITLBLRIGHT', 'EDITLBLBOTTOM', 'FIELDSIZETYPE']);
+const GROUP_BOX = 2;
+
+/**
+ * The Properties dialog's columns: OK on a frame's dialog writes its PSPNLFIELDEXT.FFSTYLELONG as App Designer's
+ * five-slot ' | | | | ' (fr01), and so does a Horizontal Rule's on any page (hr01 classic, hr07 Fluid) and a Static
+ * Text's, Edit Box's or HTML Area's on a Fluid page (st11, cbx12, ha01; on a classic page, st01-st09, a Static Text's does not).
+ */
 const DIALOG_COLUMNS = new Set(['LBLTEXT', 'FIELDSTYLE', 'FIELDUSE', 'PTADJHIDDENFIELDS', 'PNLFIELDNAME', 'ENABLEASANCHOR', 'FIELDUSETMP', 'FIELDUSETEMP2']);
 const FRAME = 1;
+const STATIC_TEXT = 0;
+const HORIZONTAL_RULE = 23;
+const EDIT_BOX = 4;
+const HTML_AREA = 25;
 export const FFSTYLELONG_EMPTY = ' | | | | ';
 
 export interface PagePlan {
@@ -399,6 +509,10 @@ export interface PagePlan {
   extUpdates: Array<{ pnlFldId: number; columns: Record<string, number | string> }>;
   /** Added and pasted controls: their new PNLFLDID and FIELDNUM, and what the editor set. */
   inserts: Array<{ pnlFldId: number; fieldNum: number; control: EditedControl }>;
+  /** An HTML Area's PSPNLHTMLAREA row: its new Constant text, or null to delete it (a Field value again). */
+  htmlWrites: Array<{ pnlFldId: number; html: string | null }>;
+  /** A Long Edit Box's PSPTPNLRTEDITOR row: its new Rich Text options, or null to delete it (Rich Text off). */
+  richTextWrites: Array<{ pnlFldId: number; richText: RichTextOptions | null }>;
   /** The control count after the save (PSPNLDEFN.FIELDCOUNT). */
   fieldCount: number;
   /** PSPNLDEFN.MAXPNLFLDID after the save. */
@@ -441,8 +555,28 @@ function reordered(survivors: readonly StoredControl[], order: readonly number[]
  * that changes which grid or scroll a control follows would change its
  * OCCURSLEVEL as well, which no capture shows yet: refused.
  */
+/**
+ * Where App Designer puts a control added to a page in the tab order -- not at the end, nor after
+ * the selected control, but right after the control before it in reading order: the last of the
+ * page's controls at or above-left of it, two being on one row when their tops are within 20 pixels
+ * (then left to right). Of several at one spot the first in tab order counts; with none the new
+ * control goes first. Fitted to every App Designer insert captured (02, 06, 07, 15-18, in01, in03,
+ * eb/gb-hr/rb/le/ht-fresh, ht-field, sa/sb/sec/sub; to-a with another control selected, to-c
+ * selected on the canvas, to-d one row of 24 px). Fields dropped inside a grid (stored at 0,0, gr-fresh)
+ * are not covered. Returns the index in `order` (tab order, first to last) to insert at.
+ */
+export const TAB_ROW_BAND = 20;
+export function newControlTabIndex(order: ReadonlyArray<{ fieldLeft: number; fieldTop: number }>, added: { fieldLeft: number; fieldTop: number }): number {
+  const sameRow = (a: { fieldTop: number }, b: { fieldTop: number }) => Math.abs(a.fieldTop - b.fieldTop) <= TAB_ROW_BAND;
+  const atOrBefore = (a: typeof added, b: typeof added) => (sameRow(a, b) ? a.fieldLeft <= b.fieldLeft : a.fieldTop < b.fieldTop);
+  const before = (a: typeof added, b: typeof added) => (sameRow(a, b) ? a.fieldLeft < b.fieldLeft : a.fieldTop < b.fieldTop);
+  let best = -1;
+  order.forEach((c, i) => { if (atOrBefore(c, added) && (best < 0 || before(order[best], c))) best = i; });
+  return best + 1;
+}
+
 export function planPageSave(stored: readonly StoredControl[], all: readonly EditedControl[], maxPnlFldId = 0, order?: readonly number[],
-  pnlName = ''): PagePlan {
+  pnlName = '', fluidPage = false): PagePlan {
   const added = all.filter((c) => !!c.add || !!c.copy);
   const controls = all.filter((c) => !c.add && !c.copy);
   const edited = new Map(controls.map((c) => [c.pnlFldId, c]));
@@ -463,12 +597,15 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
   const inStoredOrder = stored.filter((c) => edited.has(c.pnlFldId)).sort((a, b) => a.fieldNum - b.fieldNum);
   const survivors = order ? reordered(inStoredOrder, order) : inStoredOrder;
 
-  // New PNLFLDIDs in request order. A copy of a control on this page goes right after its source
-  // (and its earlier copies) in tab order (c02: group box 9 at 13, its copy at 14); added controls
-  // and copies from elsewhere go last.
+  // New PNLFLDIDs in request order. An added control goes where App Designer puts one: right after
+  // the control before it in reading order (newControlTabIndex). A copy of a control on this page goes
+  // right after its source (and its earlier copies) in tab order (c02: group box 9 at 13, its copy at
+  // 14); copies from elsewhere go last.
   const fresh = added.map((control, i) => ({ pnlFldId: base + i + 1, control }));
   const final: Array<{ survivor: StoredControl } | { fresh: (typeof fresh)[number] }> = survivors.map((s) => ({ survivor: s }));
+  const placedAt = (e: (typeof final)[number]): EditedControl => ('survivor' in e ? edited.get(e.survivor.pnlFldId)! : e.fresh.control);
   for (const f of fresh) {
+    if (f.control.add) { final.splice(newControlTabIndex(final.map(placedAt), f.control), 0, { fresh: f }); continue; }
     const src = f.control.copy && f.control.copy.pnlName === pnlName ? f.control.copy.pnlFldId : undefined;
     let at = src === undefined ? -1 : final.findIndex((e) => 'survivor' in e && e.survivor.pnlFldId === src);
     if (at < 0) { final.push({ fresh: f }); continue; }
@@ -479,6 +616,8 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
 
   const updates: PagePlan['updates'] = [];
   const extUpdates: PagePlan['extUpdates'] = [];
+  const htmlWrites: PagePlan['htmlWrites'] = [];
+  const richTextWrites: PagePlan['richTextWrites'] = [];
   // A changed Page Field Name: letters, digits and _ (delivered names such as 1OF10 start with a digit), not another control's.
   // Names already stored are left alone (delivered pages repeat some).
   const nameOf = (c: EditedControl) => (c.pageFieldName !== undefined ? nameValue(c.pageFieldName) : nameValue(storedById.get(c.pnlFldId)?.pageFieldName));
@@ -495,14 +634,37 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
       if (key && e[key] === undefined) continue;
       if (of(e) !== of(s)) columns[col] = of(e);
     }
-    // PSPNLFIELDEXT: the Fluid tab's classes and FIELDUSETEMP2 bits; a frame's dialog writes a blank FFSTYLELONG in five slots (fr01).
+    // PSPNLFIELDEXT: the Fluid tab's classes and FIELDUSETEMP2 bits; a frame's dialog (fr01), or a Static Text's on a
+    // Fluid page (st11), writes a blank FFSTYLELONG in five slots.
     const ext: Record<string, number | string> = {};
     if (e.fluidClasses !== undefined && fluidClassSlots(fluidClassText(e.fluidClasses)).join('|') !== fluidClassSlots(s.ffStyleLong).join('|')) {
       for (const slot of e.fluidClasses) if (slot.trim().length > 100) throw new PageSaveRefusedError('A style class entry holds up to 100 characters.');
       ext.FFSTYLELONG = fluidClassText(e.fluidClasses);
     }
     if (e.fieldUseTemp2 !== undefined && Number(e.fieldUseTemp2) !== Number(s.fieldUseTemp2 ?? 0)) ext.FIELDUSETEMP2 = Number(e.fieldUseTemp2);
-    if (s.fieldType === FRAME && !ext.FFSTYLELONG && !String(s.ffStyleLong ?? '').trim()
+    for (const { col, of, key } of EXT_EDITABLE) if (e[key] !== undefined && of(e) !== of(s)) ext[col] = of(e);
+    // An HTML Area's Constant (PSPNLHTMLAREA); its dialog's OK also writes an explicit Left (ha01: DSPLFORMAT 0x2001 -> 0x82001).
+    const htmlChanged = e.htmlConstant !== undefined && (e.htmlConstant ?? null) !== (s.htmlConstant ?? null);
+    if (htmlChanged) htmlWrites.push({ pnlFldId: s.pnlFldId, html: e.htmlConstant ?? null });
+    if (e.richText !== undefined && richTextKey(e.richText) !== richTextKey(s.richText)) richTextWrites.push({ pnlFldId: s.pnlFldId, richText: e.richText ?? null });
+    if (s.fieldType === HTML_AREA && (htmlChanged || [...Object.keys(columns), ...Object.keys(ext)].some((c) => !GROUP_BOX_GEOMETRY.has(c)))) {
+      const dspl = Number(columns.DSPLFORMAT ?? s.dsplFormat ?? 0);
+      if ((dspl & GROUP_BOX_ALIGN_MASK) === 0) columns.DSPLFORMAT = dspl | GROUP_BOX_ALIGN.left;
+      if (fluidPage && !ext.FFSTYLELONG && !String(s.ffStyleLong ?? '').trim()) ext.FFSTYLELONG = FFSTYLELONG_EMPTY;
+    }
+    if (s.fieldType === GROUP_BOX && [...Object.keys(columns), ...Object.keys(ext)].some((c) => !GROUP_BOX_GEOMETRY.has(c))) {
+      const dspl = Number(columns.DSPLFORMAT ?? s.dsplFormat ?? 0);
+      if ((dspl & GROUP_BOX_ALIGN_MASK) === 0) columns.DSPLFORMAT = dspl | GROUP_BOX_ALIGN.left;
+      const tmp = Number(columns.FIELDUSETMP ?? s.fieldUseTmp ?? 0);
+      if ((tmp & GROUP_BOX_DIALOG_USETMP) !== GROUP_BOX_DIALOG_USETMP) columns.FIELDUSETMP = tmp | GROUP_BOX_DIALOG_USETMP;
+      if (!ext.FFSTYLELONG && !String(s.ffStyleLong ?? '').trim()) ext.FFSTYLELONG = FFSTYLELONG_EMPTY;
+      if (fluidPage) {
+        for (const [col, key] of [['PTGBRELTXTINFO', 'headerTextInfo'], ['PTGBRELACTINFO', 'headerActionInfo'], ['PTGBRELACTFLD', 'headerActionItems']] as const) {
+          if (ext[col] === undefined && Number(s[key] ?? 0) === 0) ext[col] = -1;
+        }
+      }
+    }
+    if ((s.fieldType === FRAME || s.fieldType === HORIZONTAL_RULE || ((s.fieldType === STATIC_TEXT || s.fieldType === EDIT_BOX || s.fieldType === HTML_AREA) && fluidPage)) && !ext.FFSTYLELONG && !String(s.ffStyleLong ?? '').trim()
       && [...Object.keys(columns), ...Object.keys(ext)].some((c) => DIALOG_COLUMNS.has(c))) ext.FFSTYLELONG = FFSTYLELONG_EMPTY;
     if (Object.keys(ext).length) extUpdates.push({ pnlFldId: s.pnlFldId, columns: ext });
     const num = newFieldNum.get(s.pnlFldId)!;
@@ -511,7 +673,7 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
   }
 
   const inserts = fresh.map((f) => ({ pnlFldId: f.pnlFldId, fieldNum: newFieldNum.get(f.pnlFldId)!, control: f.control }));
-  return { deletes, updates, extUpdates, inserts, fieldCount: controls.length + added.length, maxPnlFldId: base + added.length };
+  return { deletes, updates, extUpdates, inserts, htmlWrites, richTextWrites, fieldCount: controls.length + added.length, maxPnlFldId: base + added.length };
 }
 
 /**
@@ -590,9 +752,20 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
       `SELECT F.PNLFLDID, F.FIELDNUM, F.FIELDTYPE, F.FIELDLEFT, F.FIELDTOP, F.FIELDRIGHT, F.FIELDBOTTOM, F.EDITLBLLEFT, F.EDITLBLTOP, F.EDITLBLRIGHT, F.EDITLBLBOTTOM,
               F.FIELDSIZETYPE, F.LBLTYPE, F.LBLTEXT, F.FIELDUSE, F.SECUREINVISIBLE, F.FIELDSTYLE, F.PNLFIELDNAME, F.PTADJHIDDENFIELDS, F.ENABLEASANCHOR,
               F.FIELDUSETMP, F.DSPLFORMAT, F.CONTNAME, F.GRDLBLMSGSET, F.GRDLBLMSGNUM, F.ONVALUE, F.OFFVALUE, F.LBLLOC, F.RECNAME, F.FIELDNAME, F.DEFERPROC,
-              F.OCCURSCOUNT1, F.GRDSHOWCOLHDG, F.GRDSHOWROWHDG, F.GRDALLOWCOLSORT,
+              F.OCCURSCOUNT1, F.GRDSHOWCOLHDG, F.GRDSHOWROWHDG, F.GRDALLOWCOLSORT, F.OCCURSLEVEL, F.POPUPMENU, F.ASSOCFIELDNUM,
+              F.LABELSTYLE, F.LABEL_ID, F.USEDEFAULTLABEL, F.PTHIDEFIELDS, F.PTCOLLAPSEDATAAREA, F.PTDFLTVIEWEXPANDED, F.PTLBLIMGCOLLAPSE, F.PTLBLIMGEXPAND,
+              F.LABELSIZETYPE, F.PTLEBEXPANDFIELD, E.PLHTYPE, E.PLACEHOLDER, E.PLH_MSG_SET_NBR, E.PLH_MSG_NBR,
+              E.MESSAGE_SET_NBR, E.MESSAGE_NBR, E.GRPBOXTYPE, E.GRPBOXHTMLTYPE, E.SCROLLBARS, E.PTGBRELTXTINFO, E.PTGBRELACTINFO, E.PTGBRELACTFLD,
               DBMS_LOB.SUBSTR(E.FFSTYLELONG, 4000, 1) AS FFSTYLELONG, E.FIELDUSETEMP2
          FROM PSPNLFIELD F LEFT JOIN PSPNLFIELDEXT E ON E.PNLNAME = F.PNLNAME AND E.PNLFLDID = F.PNLFLDID WHERE F.PNLNAME = :n`, { n: pnlName });
+    // HTML Areas' Constant values (PSPNLHTMLAREA, a CLOB read as text).
+    const htmlRows = await select<{ PNLFLDID: number; HTMLAREA: string | null }>(c, `SELECT PNLFLDID, HTMLAREA FROM PSPNLHTMLAREA WHERE PNLNAME = :n`, { n: pnlName });
+    const htmlOf = new Map(htmlRows.map((r) => [Number(r.PNLFLDID), String(r.HTMLAREA ?? '')]));
+    // Long Edit Boxes' Rich Text options (PSPTPNLRTEDITOR).
+    const rteRows = await select<Record<string, string | number>>(c,
+      `SELECT PNLFLDID, PTRTECFGSETTINGSID, PTRTEIMGLOCURLID, PTRTEPLUGIN, PTRTETEMPLATE, PTRTESTYLE FROM PSPTPNLRTEDITOR WHERE PNLNAME = :n`, { n: pnlName });
+    const rteOf = new Map(rteRows.map((r) => [Number(r.PNLFLDID), { configSettingsId: String(r.PTRTECFGSETTINGSID ?? ''), imageLocationUrlId: String(r.PTRTEIMGLOCURLID ?? ''),
+      pluginFileId: String(r.PTRTEPLUGIN ?? ''), templateFileId: String(r.PTRTETEMPLATE ?? ''), styleFileId: String(r.PTRTESTYLE ?? '') }]));
     const stored: StoredControl[] = storedRows.map((r) => ({
       pnlFldId: Number(r.PNLFLDID), fieldNum: Number(r.FIELDNUM), fieldType: Number(r.FIELDTYPE),
       fieldLeft: Number(r.FIELDLEFT), fieldTop: Number(r.FIELDTOP), fieldRight: Number(r.FIELDRIGHT), fieldBottom: Number(r.FIELDBOTTOM),
@@ -605,10 +778,21 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
       onValue: String(r.ONVALUE ?? ''), offValue: String(r.OFFVALUE ?? ''), lblLoc: Number(r.LBLLOC ?? 0),
       recName: String(r.RECNAME ?? ''), fieldName: String(r.FIELDNAME ?? ''), deferProc: Number(r.DEFERPROC ?? 0) !== 0,
       occursCount1: Number(r.OCCURSCOUNT1 ?? 0), gridShowColHdg: Number(r.GRDSHOWCOLHDG ?? 0), gridShowRowHdg: Number(r.GRDSHOWROWHDG ?? 0), gridAllowColSort: Number(r.GRDALLOWCOLSORT ?? 0),
+      htmlConstant: htmlOf.get(Number(r.PNLFLDID)) ?? null, richText: rteOf.get(Number(r.PNLFLDID)) ?? null,
+      labelSizeType: Number(r.LABELSIZETYPE ?? 0), expandField: Number(r.PTLEBEXPANDFIELD ?? 0), placeholderType: Number(r.PLHTYPE ?? 0),
+      placeholder: String(r.PLACEHOLDER ?? ''), placeholderMsgSet: Number(r.PLH_MSG_SET_NBR ?? 0), placeholderMsgNum: Number(r.PLH_MSG_NBR ?? 0),
+      occursLevel: Number(r.OCCURSLEVEL ?? 0), popupMenu: String(r.POPUPMENU ?? ''), assocFieldNum: Number(r.ASSOCFIELDNUM ?? 0),
+      labelStyle: String(r.LABELSTYLE ?? ''), labelId: String(r.LABEL_ID ?? ''), useDefaultLabel: Number(r.USEDEFAULTLABEL ?? 0),
+      hideFields: Number(r.PTHIDEFIELDS ?? 0), collapseDataArea: Number(r.PTCOLLAPSEDATAAREA ?? 0), defaultExpanded: Number(r.PTDFLTVIEWEXPANDED ?? 0),
+      imageCollapsed: String(r.PTLBLIMGCOLLAPSE ?? ''), imageExpanded: String(r.PTLBLIMGEXPAND ?? ''),
+      popupMsgSet: Number(r.MESSAGE_SET_NBR ?? 0), popupMsgNum: Number(r.MESSAGE_NBR ?? 0), groupBoxType: Number(r.GRPBOXTYPE ?? 0),
+      groupBoxHtmlType: Number(r.GRPBOXHTMLTYPE ?? 0), scrollBars: Number(r.SCROLLBARS ?? 0),
+      headerTextInfo: Number(r.PTGBRELTXTINFO ?? 0), headerActionInfo: Number(r.PTGBRELACTINFO ?? 0), headerActionItems: Number(r.PTGBRELACTFLD ?? 0),
       ffStyleLong: r.FFSTYLELONG === null || r.FFSTYLELONG === undefined ? null : String(r.FFSTYLELONG)
     }));
 
-    const plan = planPageSave(stored, request.controls, Number(defn.MAXPNLFLDID), request.order, pnlName);
+    const fluidPage = request.properties?.fluidPage ?? (Number(defn.PNLUSE) & PAGE_USE_FLUID) !== 0;
+    const plan = planPageSave(stored, request.controls, Number(defn.MAXPNLFLDID), request.order, pnlName, fluidPage);
     // A page made secondary takes its topmost control's top as PANELTOP (u08: 20).
     const tops = request.controls.map((x) => x.fieldTop);
     const props = planPageProperties(defn, request.properties, { minTop: tops.length ? Math.min(...tops) : 0, extent: controlsExtent(request.controls) });
@@ -618,10 +802,31 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
     await checkPropertyNames(c, props);
     // A control's new Style must be a style class (App Designer's Style list).
     for (const u of plan.updates) {
-      const style = u.columns.FIELDSTYLE;
-      if (typeof style !== 'string' || style === ' ') continue;
-      const [{ N: n }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSSTYLECLASS WHERE STYLECLASSNAME = :v`, { v: style });
-      if (!Number(n)) throw new PageSaveRefusedError(`${style} is not a style class in this database.`);
+      for (const style of [u.columns.FIELDSTYLE, u.columns.LABELSTYLE]) {
+        if (typeof style !== 'string' || style === ' ') continue;
+        const [{ N: n }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSSTYLECLASS WHERE STYLECLASSNAME = :v`, { v: style });
+        if (!Number(n)) throw new PageSaveRefusedError(`${style} is not a style class in this database.`);
+      }
+      // A Group Box's collapsed / expanded label images are image definitions (App Designer's Select Image list).
+      for (const image of [u.columns.PTLBLIMGCOLLAPSE, u.columns.PTLBLIMGEXPAND]) {
+        if (typeof image !== 'string' || image === ' ') continue;
+        const [{ N: n }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSCONTDEFN WHERE CONTNAME = :v AND CONTTYPE = 1`, { v: image });
+        if (!Number(n)) throw new PageSaveRefusedError(`${image} is not an image in this database.`);
+      }
+      // A control's Popup Menu is a popup menu definition (MENUTYPE 1), as App Designer's list offers.
+      const popup = u.columns.POPUPMENU;
+      if (typeof popup === 'string' && popup !== ' ') {
+        const [{ N: n }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSMENUDEFN WHERE MENUNAME = :v AND MENUTYPE = 1`, { v: popup });
+        if (!Number(n)) throw new PageSaveRefusedError(`${popup} is not a popup menu in this database.`);
+      }
+      // A Label ID is one of the bound field's labels (PSDBFLDLABL).
+      const labelId = u.columns.LABEL_ID;
+      if (typeof labelId === 'string' && labelId !== ' ') {
+        const ec = request.controls.find((x) => x.pnlFldId === u.pnlFldId);
+        const field = nameValue(ec?.fieldName ?? stored.find((x) => x.pnlFldId === u.pnlFldId)?.fieldName);
+        const [{ N: n }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSDBFLDLABL WHERE FIELDNAME = :f AND LABEL_ID = :l`, { f: field, l: labelId });
+        if (!Number(n)) throw new PageSaveRefusedError(`${labelId} is not a label of field ${field}.`);
+      }
     }
     // A rebound control's Record Name / Field Name must be a real record field (App Designer only lists fields on the record).
     for (const u of plan.updates) {
@@ -629,16 +834,23 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
       const ec = request.controls.find((x) => x.pnlFldId === u.pnlFldId);
       const rec = nameValue(ec?.recName), fld = nameValue(ec?.fieldName);
       if (rec === ' ') continue; // clearing the binding (an unbound control) is allowed
+      // An HTML Area may sit on a record alone (ha10): the record must exist.
+      if (fld === ' ' && stored.find((x) => x.pnlFldId === u.pnlFldId)?.fieldType === HTML_AREA) {
+        const [{ N: r }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSRECDEFN WHERE RECNAME = :r`, { r: rec });
+        if (!Number(r)) throw new PageSaveRefusedError(`${rec} is not a record in this database.`);
+        continue;
+      }
       const [{ N: n }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSRECFIELDDB WHERE RECNAME = :r AND FIELDNAME = :f`, { r: rec, f: fld });
       if (!Number(n)) throw new PageSaveRefusedError(`${rec}.${fld} is not a field on record ${rec}.`);
     }
-    if (plan.deletes.length === 0 && plan.updates.length === 0 && plan.inserts.length === 0 && Object.keys(props).length === 0) {
+    if (plan.deletes.length === 0 && plan.updates.length === 0 && plan.inserts.length === 0 && plan.htmlWrites.length === 0 && plan.richTextWrites.length === 0 && plan.extUpdates.length === 0
+      && Object.keys(props).length === 0) {
       // Nothing changed: leave the page, its version and the counters untouched.
       return { version: request.openedVersion, fieldCount: plan.fieldCount, updated: 0, deleted: 0, inserted: 0 };
     }
 
     // Each added control's rows, built before anything is written so a refused field stops the save clean.
-    const insertRows: Array<{ field: ColumnValues; ext: ColumnValues }> = [];
+    const insertRows: Array<{ field: ColumnValues; ext: ColumnValues; html?: string; richText?: RichTextOptions }> = [];
     for (const ins of plan.inserts) insertRows.push(await insertedControlRows(c, pnlName, ins));
     const next = await counters(c, true);
 
@@ -649,6 +861,10 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
       await expectRows(c, `DELETE FROM PSPNLFIELD WHERE PNLNAME = :n AND PNLFLDID = :id`, { n: pnlName, id }, 1, `Deleting PSPNLFIELD ${id}`);
       // PSPNLFIELDEXT has one row per control, but a very old page may lack it.
       await c.execute(`DELETE FROM PSPNLFIELDEXT WHERE PNLNAME = :n AND PNLFLDID = :id`, { n: pnlName, id });
+      // A Constant HTML Area's text (and its translations) goes with it.
+      await c.execute(`DELETE FROM PSPNLHTMLAREA WHERE PNLNAME = :n AND PNLFLDID = :id`, { n: pnlName, id });
+      await c.execute(`DELETE FROM PSPNLHTMLLANG WHERE PNLNAME = :n AND PNLFLDID = :id`, { n: pnlName, id });
+      await c.execute(`DELETE FROM PSPTPNLRTEDITOR WHERE PNLNAME = :n AND PNLFLDID = :id`, { n: pnlName, id });
     }
 
     for (const u of plan.updates) {
@@ -667,9 +883,26 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
         { ...Object.fromEntries(cols.map((col, i) => [`v${i}`, u.columns[col]])), n: pnlName, id: u.pnlFldId }, 1, `Updating PSPNLFIELDEXT ${u.pnlFldId}`);
     }
 
+    // An HTML Area's Constant: inserted when it becomes Constant (ha03), its text replaced (ha04), deleted for a Field value (ha05).
+    for (const w of plan.htmlWrites) {
+      await c.execute(`DELETE FROM PSPNLHTMLAREA WHERE PNLNAME = :n AND PNLFLDID = :id`, { n: pnlName, id: w.pnlFldId });
+      if (w.html !== null) await expectRows(c, `INSERT INTO PSPNLHTMLAREA (PNLNAME, PNLFLDID, HTMLAREA) VALUES (:n, :id, :h)`,
+        { n: pnlName, id: w.pnlFldId, h: w.html }, 1, `Inserting PSPNLHTMLAREA ${w.pnlFldId}`);
+    }
+
+    // A Long Edit Box's Rich Text: its PSPTPNLRTEDITOR row inserted (le01), replaced, or deleted with Rich Text off (le03).
+    for (const w of plan.richTextWrites) {
+      await c.execute(`DELETE FROM PSPTPNLRTEDITOR WHERE PNLNAME = :n AND PNLFLDID = :id`, { n: pnlName, id: w.pnlFldId });
+      if (w.richText) await insertRichText(c, pnlName, w.pnlFldId, w.richText);
+    }
+
     for (const rows of insertRows) {
       await insertRow(c, 'PSPNLFIELD', rows.field);
       await insertRow(c, 'PSPNLFIELDEXT', rows.ext);
+      // A pasted Constant HTML Area takes its source's text.
+      if (rows.richText) await insertRichText(c, pnlName, Number(rows.field.PNLFLDID), rows.richText);
+      if (rows.html !== undefined) await expectRows(c, `INSERT INTO PSPNLHTMLAREA (PNLNAME, PNLFLDID, HTMLAREA) VALUES (:n, :id, :h)`,
+        { n: pnlName, id: rows.field.PNLFLDID, h: rows.html }, 1, `Inserting PSPNLHTMLAREA ${rows.field.PNLFLDID}`);
     }
 
     const propSets = Object.keys(props).map((col) => `, ${col} = :p_${col}`).join('');
@@ -698,19 +931,39 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
 /** A record field's type, length and default label, or undefined when the record has no such field. */
 /** An added control's rows (App Designer's fresh row) or a pasted one's (a copy of its source's stored rows). */
 async function insertedControlRows(c: Connection, pnlName: string, ins: { pnlFldId: number; fieldNum: number; control: EditedControl }):
-  Promise<{ field: ColumnValues; ext: ColumnValues }> {
+  Promise<{ field: ColumnValues; ext: ColumnValues; html?: string; richText?: RichTextOptions }> {
   const { add, copy } = ins.control;
   if (copy) {
     const source = await readControlRows(c, copy.pnlName, copy.pnlFldId);
     if (!source) throw new PageSaveRefusedError(`The copied control ${copy.pnlName} #${copy.pnlFldId} no longer exists; copy it again.`);
-    return copyControlRows(source, pnlName, ins.pnlFldId, ins.fieldNum, ins.control);
+    const [html] = await select<{ HTMLAREA: string | null }>(c, `SELECT HTMLAREA FROM PSPNLHTMLAREA WHERE PNLNAME = :p AND PNLFLDID = :id`, { p: copy.pnlName, id: copy.pnlFldId });
+    const [rte] = await select<Record<string, string>>(c,
+      `SELECT PTRTECFGSETTINGSID, PTRTEIMGLOCURLID, PTRTEPLUGIN, PTRTETEMPLATE, PTRTESTYLE FROM PSPTPNLRTEDITOR WHERE PNLNAME = :p AND PNLFLDID = :id`,
+      { p: copy.pnlName, id: copy.pnlFldId });
+    return { ...copyControlRows(source, pnlName, ins.pnlFldId, ins.fieldNum, ins.control), ...(html ? { html: String(html.HTMLAREA ?? '') } : {}),
+      ...(rte ? { richText: { configSettingsId: rte.PTRTECFGSETTINGSID, imageLocationUrlId: rte.PTRTEIMGLOCURLID, pluginFileId: rte.PTRTEPLUGIN,
+        templateFileId: rte.PTRTETEMPLATE, styleFileId: rte.PTRTESTYLE } } : {}) };
   }
   if (!add) throw new PageSaveRefusedError(`Control ${ins.pnlFldId} is neither added nor pasted.`);
   const field = isRecordBound(add.kind) ? await readFieldInfo(c, add.recName.trim(), add.fieldName.trim()) : undefined;
+  // A control on a record alone (an HTML Area without a field): the record must exist.
+  if (FIELD_OPTIONAL.has(add.kind) && add.recName.trim() && !add.fieldName.trim()) {
+    const [{ N: n }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSRECDEFN WHERE RECNAME = :r`, { r: add.recName.trim().toUpperCase() });
+    if (!Number(n)) throw new PageSaveRefusedError(`${add.recName.trim()} is not a record in this database.`);
+  }
   const refusal = newControlFieldRefusal(add.kind, add.recName, add.fieldName, field);
   if (refusal) throw new PageSaveRefusedError(refusal);
   return newControlRows(pnlName, ins.pnlFldId, ins.fieldNum,
     { kind: add.kind, recName: add.recName.trim(), fieldName: add.fieldName.trim() }, ins.control, field);
+}
+
+/** A Long Edit Box's PSPTPNLRTEDITOR row (le01: PNLNAME, PNLFLDID and the five ids, ' ' for none). */
+async function insertRichText(c: Connection, pnlName: string, pnlFldId: number, r: RichTextOptions): Promise<void> {
+  const v = (x: string | undefined) => (x ?? '').trim().toUpperCase() || ' ';
+  await expectRows(c, `INSERT INTO PSPTPNLRTEDITOR (PNLNAME, PNLFLDID, PTRTECFGSETTINGSID, PTRTEIMGLOCURLID, PTRTETEMPLATE, PTRTESTYLE, PTRTEPLUGIN)
+      VALUES (:n, :id, :c1, :c2, :c3, :c4, :c5)`,
+    { n: pnlName, id: pnlFldId, c1: v(r.configSettingsId), c2: v(r.imageLocationUrlId), c3: v(r.templateFileId), c4: v(r.styleFileId), c5: v(r.pluginFileId) },
+    1, `Inserting PSPTPNLRTEDITOR ${pnlFldId}`);
 }
 
 /** A stored control's PSPNLFIELD and PSPNLFIELDEXT rows, every column. */

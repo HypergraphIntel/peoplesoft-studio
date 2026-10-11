@@ -32,7 +32,8 @@ import { buildProperties, hasProperties } from './model/properties.js';
 import { PropertiesPanel } from './editors/propertiesPanel.js';
 import { ImagePanel } from './editors/imagePanel.js';
 import { AppEnginePanel } from './editors/appEnginePanel.js';
-import { PagePanel } from './editors/pagePanel.js';
+import { PagePanel, type PageLookup } from './editors/pagePanel.js';
+import { imageDimensions, imageMimeType, sniffImageMimeType } from './editors/imageHtml.js';
 import { ComponentPanel } from './editors/componentPanel.js';
 import { ComponentSaveRefusedError, defaultItemLabel } from './providers/componentWriter.js';
 import { NEW_PAGE, PageSaveRefusedError } from './providers/pageWriter.js';
@@ -1419,6 +1420,38 @@ async function newComponent(workspace: Workspace): Promise<void> {
 }
 
 /**
+ * A property panel's lookups: an image's format, pixel size and picture (Static Image's Image group), a Message
+ * Catalog entry's text (an alt tag or popup from the catalog), an image definition picked from the list (the ... button),
+ * and a field's labels (a Group Box's Label ID).
+ */
+async function pageLookup(provider: DatabaseProvider, request: PageLookup): Promise<unknown> {
+  switch (request.what) {
+    case 'image': {
+      const image = await provider.readImage(makeKey(DefinitionType.Image, request.name.trim().toUpperCase()));
+      const first = image?.alternates[0];
+      if (!image || !first) return undefined;
+      const size = imageDimensions(first.bytes);
+      const type = sniffImageMimeType(first.bytes) ?? imageMimeType(first.format);
+      return { format: image.format.toUpperCase(), ...(size ?? {}), dataUri: `data:${type};base64,${first.bytes.toString('base64')}` };
+    }
+    case 'message': {
+      const hits = await provider.search({ type: DefinitionType.MessageCatalog, namePattern: `${request.set}.${request.num}`, limit: 5 });
+      return hits.find((h) => h.key.parts[0] === String(request.set) && h.key.parts[1] === String(request.num))?.description ?? '';
+    }
+    case 'richTextChoices':
+      return provider.richTextChoices();
+    case 'fieldLabels':
+      return request.field.trim() ? provider.fieldLabels(request.field) : [];
+    case 'pickImage': {
+      const images = await provider.search({ type: DefinitionType.Image, namePattern: '%', limit: 100000 });
+      const pick = await vscode.window.showQuickPick(images.map((i) => ({ label: i.key.parts[0], description: i.description ?? '', picked: i.key.parts[0] === request.current })),
+        { title: 'Image ID', placeHolder: 'An image definition', matchOnDescription: true });
+      return pick?.label;
+    }
+  }
+}
+
+/**
  * The page window for a page, editable on a Writable connection with an
  * operator when the name is in the write scope. A new page (New Page) is not
  * in the database yet: its first Save creates it (pageWriter.ts createPage),
@@ -1437,6 +1470,7 @@ async function showPageEditor(workspace: Workspace, provider: DatabaseProvider, 
     ...(isNew ? { status: 'New page: add a control, then Save to create it' } : {}),
     ...(choices ? { choices } : {}),
     viewPeopleCode: async () => { await vscode.commands.executeCommand('psft.openDefinition', provider.id, makeKey(DefinitionType.PagePeopleCode, pnlName, 'Activate')); },
+    lookup: (request) => pageLookup(provider, request),
     ...(editable ? {
       save: async (controls, properties, order) => {
         if (!created) {

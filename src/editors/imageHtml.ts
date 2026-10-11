@@ -41,6 +41,26 @@ export function sniffImageMimeType(bytes: Buffer): string | undefined {
   return undefined;
 }
 
+/** The pixel size the bytes declare (GIF, PNG, JPEG, BMP), or undefined. */
+export function imageDimensions(bytes: Buffer): { width: number; height: number } | undefined {
+  const type = sniffImageMimeType(bytes);
+  if (type === 'image/gif' && bytes.length >= 10) return { width: bytes.readUInt16LE(6), height: bytes.readUInt16LE(8) };
+  if (type === 'image/png' && bytes.length >= 24) return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+  if (type === 'image/bmp' && bytes.length >= 26) return { width: Math.abs(bytes.readInt32LE(18)), height: Math.abs(bytes.readInt32LE(22)) };
+  if (type === 'image/jpeg') {
+    // The first start-of-frame marker (SOF0-SOF15, less DHT / JPG / DAC) carries height then width.
+    for (let i = 2; i + 9 < bytes.length;) {
+      if (bytes[i] !== 0xff) return undefined;
+      const marker = bytes[i + 1];
+      if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+        return { width: bytes.readUInt16BE(i + 7), height: bytes.readUInt16BE(i + 5) };
+      }
+      i += 2 + bytes.readUInt16BE(i + 2);
+    }
+  }
+  return undefined;
+}
+
 export function renderImageHtml(image: ImageContent, connection: string, nonce: string): string {
   const blocks = image.alternates.map((a) => {
     const mime = sniffImageMimeType(a.bytes) ?? imageMimeType(a.format);

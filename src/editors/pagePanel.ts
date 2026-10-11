@@ -12,6 +12,8 @@ export interface PagePanelOptions {
   choices?: PagePropertyChoices;
   /** The toolbar's opening status (a new page: what to do before its first Save). */
   status?: string;
+  /** What a property panel asks the extension for (pageHtml.ts lookup): an image's size and picture, a catalog message, an image picked. */
+  lookup?: (request: PageLookup) => Promise<unknown>;
   /** View PeopleCode: opens the page's PeopleCode (Activate). */
   viewPeopleCode?: () => Promise<void>;
   /**
@@ -20,6 +22,14 @@ export interface PagePanelOptions {
    */
   save?: (controls: EditedControl[], properties?: EditedPageProperties, order?: number[]) => Promise<{ version: number; layout?: PageLayout }>;
 }
+
+/** A property panel's question for the extension. */
+export type PageLookup =
+  | { what: 'image'; name: string }
+  | { what: 'message'; set: number; num: number }
+  | { what: 'pickImage'; current?: string }
+  | { what: 'fieldLabels'; field: string }
+  | { what: 'richTextChoices' };
 
 /** A page in App Designer's Layout view (visual, editable on a Writable connection) and Order view, one panel per page. */
 export class PagePanel {
@@ -58,6 +68,14 @@ export class PagePanel {
       }
     });
 
+    if (options.lookup) {
+      const lookup = options.lookup;
+      panel.webview.onDidReceiveMessage(async (message: { type: string; id?: number; req?: PageLookup }) => {
+        if (message.type !== 'lookup' || !message.req) return;
+        const result = await lookup(message.req).catch(() => undefined);
+        await panel.webview.postMessage({ type: 'lookup', id: message.id, result });
+      });
+    }
     if (options.viewPeopleCode) {
       const view = options.viewPeopleCode;
       panel.webview.onDidReceiveMessage(async (message: { type: string }) => { if (message.type === 'viewPeopleCode') await view(); });

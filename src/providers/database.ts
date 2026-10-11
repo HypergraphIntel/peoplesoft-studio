@@ -897,6 +897,33 @@ export class DatabaseProvider implements DefinitionProvider {
     });
   }
 
+  /**
+   * A Long Edit Box's Rich Text lists (le01): Configuration Settings are the HTML definitions named PT_RTE_CFG*, the Image
+   * Location URL the URL definitions named PT_RTE*, Plugin Files the HTML definitions named PT_RTE_PLUGIN*. (Template and
+   * Style File lists are empty on HRDMO and no delivered page sets them; they are typed.)
+   */
+  async richTextChoices(): Promise<{ configs: string[]; imageUrls: string[]; plugins: string[] }> {
+    return this.withConnection(async (c) => {
+      const names = async (sql: string) => ((await c.execute<{ N: string }>(sql)).rows ?? []).map((r) => String(r.N ?? '').trim());
+      return {
+        configs: await names(`SELECT CONTNAME AS N FROM PSCONTDEFN WHERE CONTTYPE = 4 AND ALTCONTNUM = 1 AND CONTNAME LIKE 'PT_RTE_CFG%' ORDER BY CONTNAME`),
+        imageUrls: await names(`SELECT URL_ID AS N FROM PSURLDEFN WHERE URL_ID LIKE 'PT_RTE%' ORDER BY URL_ID`),
+        plugins: await names(`SELECT CONTNAME AS N FROM PSCONTDEFN WHERE CONTTYPE = 4 AND ALTCONTNUM = 1 AND CONTNAME LIKE 'PT_RTE_PLUGIN%' ORDER BY CONTNAME`)
+      };
+    });
+  }
+
+  /** A field's labels (PSDBFLDLABL), default first: a control's Label ID list. */
+  async fieldLabels(field: string): Promise<Array<{ labelId: string; longName: string; shortName: string; isDefault: boolean }>> {
+    return this.withConnection(async (c) => {
+      const rows = (await c.execute<{ LABEL_ID: string; LONGNAME: string; SHORTNAME: string; DEFAULT_LABEL: number }>(
+        `SELECT LABEL_ID, LONGNAME, SHORTNAME, DEFAULT_LABEL FROM PSDBFLDLABL WHERE FIELDNAME = :f ORDER BY DEFAULT_LABEL DESC, LABEL_ID`,
+        { f: field.trim().toUpperCase() })).rows ?? [];
+      return rows.map((r) => ({ labelId: String(r.LABEL_ID ?? '').trim(), longName: String(r.LONGNAME ?? '').trim(),
+        shortName: String(r.SHORTNAME ?? '').trim(), isDefault: Number(r.DEFAULT_LABEL) === 1 }));
+    });
+  }
+
   async pageInfo(name: string): Promise<{ deferred: boolean } | undefined> {
     return this.withConnection(async (c) => {
       const [row] = (await c.execute<{ D: number }>(`SELECT DEFERPROC AS D FROM PSPNLDEFN WHERE PNLNAME = :p`, { p: name })).rows ?? [];
@@ -1458,8 +1485,17 @@ export class DatabaseProvider implements DefinitionProvider {
       if (!page) throw new ProviderError(`No page named ${name}.`);
       // Each control's PSPNLFIELDEXT Fluid settings ride along (FFSTYLELONG is a CLOB: read as text).
       const fields = await this.uiRows(c,
-        `SELECT F.*, DBMS_LOB.SUBSTR(E.FFSTYLELONG, 4000, 1) AS EXT_FFSTYLELONG, E.FIELDUSETEMP2 AS EXT_FIELDUSETEMP2
+        `SELECT F.*, DBMS_LOB.SUBSTR(E.FFSTYLELONG, 4000, 1) AS EXT_FFSTYLELONG, E.FIELDUSETEMP2 AS EXT_FIELDUSETEMP2,
+                E.GRPBOXTYPE AS EXT_GRPBOXTYPE, E.GRPBOXHTMLTYPE AS EXT_GRPBOXHTMLTYPE, E.SCROLLBARS AS EXT_SCROLLBARS,
+                E.MESSAGE_SET_NBR AS EXT_MESSAGE_SET_NBR, E.MESSAGE_NBR AS EXT_MESSAGE_NBR,
+                E.PTGBRELTXTINFO AS EXT_PTGBRELTXTINFO, E.PTGBRELACTINFO AS EXT_PTGBRELACTINFO, E.PTGBRELACTFLD AS EXT_PTGBRELACTFLD,
+                H.HTMLAREA AS EXT_HTMLAREA, E.PLHTYPE AS EXT_PLHTYPE, E.PLACEHOLDER AS EXT_PLACEHOLDER,
+                E.PLH_MSG_SET_NBR AS EXT_PLH_MSG_SET_NBR, E.PLH_MSG_NBR AS EXT_PLH_MSG_NBR,
+                R.PNLFLDID AS RTE_PNLFLDID, R.PTRTECFGSETTINGSID AS RTE_CFG, R.PTRTEIMGLOCURLID AS RTE_IMG, R.PTRTEPLUGIN AS RTE_PLUGIN,
+                R.PTRTETEMPLATE AS RTE_TEMPLATE, R.PTRTESTYLE AS RTE_STYLE
            FROM PSPNLFIELD F LEFT JOIN PSPNLFIELDEXT E ON E.PNLNAME = F.PNLNAME AND E.PNLFLDID = F.PNLFLDID
+                LEFT JOIN PSPNLHTMLAREA H ON H.PNLNAME = F.PNLNAME AND H.PNLFLDID = F.PNLFLDID
+                LEFT JOIN PSPTPNLRTEDITOR R ON R.PNLNAME = F.PNLNAME AND R.PNLFLDID = F.PNLFLDID
           WHERE F.PNLNAME = :n ORDER BY F.FIELDNUM`, { n: name });
       const components = await this.uiRows(c,
         `SELECT PNLGRPNAME, MARKET, ITEMLABEL FROM PSPNLGROUP WHERE PNLNAME = :n ORDER BY PNLGRPNAME, MARKET`, { n: name });

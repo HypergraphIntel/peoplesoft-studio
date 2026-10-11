@@ -1,7 +1,7 @@
 import { escapeHtml as esc } from './propertiesHtml.js';
 import { controlShape, PAGE_SIZE_PRESETS, type PageControl, type PageLayout } from '../model/pageLayout.js';
 import { PAGE_FIELD_TYPES, PAGE_TYPES } from '../model/uiDefinitions.js';
-import { NEW_CONTROL_FIELDTYPE, NEW_CONTROL_SIZE, isRecordBound, type NewControlKind } from '../providers/pageControlTemplates.js';
+import { FIELD_OPTIONAL, NEW_CONTROL_FIELDTYPE, NEW_CONTROL_FIELDUSE, NEW_CONTROL_SIZE, isRecordBound, type NewControlKind } from '../providers/pageControlTemplates.js';
 
 /*
  * A page in App Designer's Layout view (controls drawn from their stored
@@ -52,9 +52,9 @@ export interface PagePropertyChoices {
  */
 const INSERT_MENU: Array<{ group: string; items: Array<{ label: string; kind?: NewControlKind }> }> = [
   { group: 'Containers and text', items: [{ kind: 'frame', label: 'Frame' }, { kind: 'groupBox', label: 'Group Box' },
-    { kind: 'horizontalRule', label: 'Horizontal Rule' }, { kind: 'staticText', label: 'Static Text' }, { label: 'Static Image' }, { label: 'Tab Separator' }] },
+    { kind: 'horizontalRule', label: 'Horizontal Rule' }, { kind: 'staticText', label: 'Static Text' }, { kind: 'staticImage', label: 'Static Image' }, { label: 'Tab Separator' }] },
   { group: 'Controls', items: [{ kind: 'checkBox', label: 'Check Box' }, { kind: 'dropDown', label: 'Drop-Down List Box' }, { kind: 'editBox', label: 'Edit Box' },
-    { label: 'HTML Area' }, { label: 'Image' }, { label: 'Long Edit Box' }, { kind: 'pushButton', label: 'Push Button/Hyperlink' }, { label: 'Radio Button' }, { label: 'Tree' }] },
+    { kind: 'htmlArea', label: 'HTML Area' }, { label: 'Image' }, { kind: 'longEdit', label: 'Long Edit Box' }, { kind: 'pushButton', label: 'Push Button/Hyperlink' }, { kind: 'radioButton', label: 'Radio Button' }, { label: 'Tree' }] },
   { group: 'Grids and scrolls', items: [{ label: 'Grid' }, { label: 'Scroll Area' }, { label: 'Scroll Bar' }] },
   { group: 'Pages', items: [{ label: 'Secondary Page' }, { label: 'Subpage' }] },
   { group: 'Charts', items: [{ label: 'Chart' }, { label: 'Analytic Grid' }] }
@@ -73,10 +73,13 @@ function paletteKinds(): Record<string, unknown> {
   return Object.fromEntries(PALETTE.map(({ kind }) => {
     const z = NEW_CONTROL_SIZE[kind];
     const shape = controlShape(NEW_CONTROL_FIELDTYPE[kind]);
-    // Auto-sized controls (0 x 0, sized by App Designer from the field) are drawn at a stand-in size.
+    // Auto-sized controls (0 x 0, sized by App Designer from the field) are drawn at a stand-in size, and so are the
+    // 4 x 4 boxes App Designer drops for a Static Image or HTML Area (saved 4 x 4 until resized; a move keeps the size).
     const drawn = shape === 'checkbox' ? [14, 14] : [80, 18];
+    const tiny = z.width > 0 && z.width < 12;
     return [kind, { shape, typeName: PAGE_FIELD_TYPES[NEW_CONTROL_FIELDTYPE[kind]] ?? kind, bound: isRecordBound(kind),
-      w: z.width, h: z.height, dw: z.width || drawn[0], dh: z.height || drawn[1], fst: z.fieldSizeType, lt: z.lblType, lx: z.lblText }];
+      w: z.width, h: z.height, dw: tiny ? 24 : z.width || drawn[0], dh: tiny ? 24 : z.height || drawn[1], fst: z.fieldSizeType, lt: z.lblType, lx: z.lblText,
+      fu: NEW_CONTROL_FIELDUSE[kind] ?? 0, fieldOptional: FIELD_OPTIONAL.has(kind) }];
   }));
 }
 
@@ -88,12 +91,21 @@ function columnData(c: PageControl): string {
     ` data-defer="${c.deferProc ? 1 : 0}" data-ctlfld="${c.controlFieldNum}" data-fl="${k.fieldLeft}" data-ft="${k.fieldTop}"` +
     ` data-fr="${k.fieldRight}" data-fb="${k.fieldBottom}" data-ell="${k.editLblLeft}" data-elt="${k.editLblTop}"` +
     ` data-elr="${k.editLblRight}" data-elb="${k.editLblBottom}" data-fst="${k.fieldSizeType}" data-lt="${k.lblType}"` +
-    ` data-lx="${esc(k.lblText)}" data-fu="${k.fieldUse}" data-si="${k.secureInvisible}"` +
+    ` data-lx="${esc(k.lblText).replace(/\r/g, '&#13;')}" data-fu="${k.fieldUse}" data-si="${k.secureInvisible}"` +
     ` data-ftype="${c.type}" data-fs="${esc(k.fieldStyle)}" data-adj="${k.adjustHidden}" data-anc="${k.anchor}"` +
     ` data-fut="${k.fieldUseTmp}" data-fut2="${k.fieldUseTemp2}" data-fsl="${esc(k.ffStyleLong)}"` +
     ` data-dspl="${k.dsplFormat}" data-cont="${esc(k.contName)}" data-gms="${k.grdLblMsgSet}" data-gmn="${k.grdLblMsgNum}"` +
     ` data-onv="${esc(k.onValue)}" data-offv="${esc(k.offValue)}" data-lloc="${k.lblLoc}"` +
-    ` data-oc1="${k.occursCount1}" data-gch="${k.gridShowColHdg}" data-grh="${k.gridShowRowHdg}" data-gcs="${k.gridAllowColSort}"`;
+    ` data-oc1="${k.occursCount1}" data-gch="${k.gridShowColHdg}" data-grh="${k.gridShowRowHdg}" data-gcs="${k.gridAllowColSort}"` +
+    ` data-hc="${k.htmlConstant === null ? 0 : 1}" data-html="${esc(k.htmlConstant ?? '').replace(/\r/g, '&#13;').replace(/\n/g, '&#10;')}"` +
+    ` data-lst="${k.labelSizeType}" data-lex="${k.expandField}" data-plt="${k.placeholderType}" data-plh="${esc(k.placeholder)}"` +
+    ` data-pls="${k.placeholderMsgSet}" data-pln="${k.placeholderMsgNum}" data-rte="${k.richText ? 1 : 0}"` +
+    ` data-rtc="${esc(k.richText?.configSettingsId ?? '')}" data-rti="${esc(k.richText?.imageLocationUrlId ?? '')}" data-rtp="${esc(k.richText?.pluginFileId ?? '')}"` +
+    ` data-rtt="${esc(k.richText?.templateFileId ?? '')}" data-rts="${esc(k.richText?.styleFileId ?? '')}"` +
+    ` data-pop="${esc(k.popupMenu)}" data-assoc="${k.assocFieldNum}" data-lsty="${esc(k.labelStyle)}" data-lid="${esc(k.labelId)}" data-udl="${k.useDefaultLabel}" data-hf="${k.hideFields}"` +
+    ` data-cda="${k.collapseDataArea}" data-dve="${k.defaultExpanded}" data-imc="${esc(k.imageCollapsed)}" data-ime="${esc(k.imageExpanded)}"` +
+    ` data-pms="${k.popupMsgSet}" data-pmn="${k.popupMsgNum}" data-gbt="${k.groupBoxType}" data-gbh="${k.groupBoxHtmlType}" data-sb="${k.scrollBars}"` +
+    ` data-hti="${k.headerTextInfo}" data-hai="${k.headerActionInfo}" data-hac="${k.headerActionItems}"`;
 }
 
 function controlsHtml(controls: readonly PageControl[], editable: boolean): string {
@@ -145,7 +157,7 @@ export function renderPageHtml(layout: PageLayout, orderText: string, nonce: str
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
 <title>${esc(layout.name)}</title>
 <style nonce="${nonce}">
   :root { color-scheme: light dark; }
@@ -169,7 +181,7 @@ export function renderPageHtml(layout: PageLayout, orderText: string, nonce: str
   .canvas { position: relative; background: #fbfbfb; border: 1px solid #b9b9b9; width: ${layout.width}px; height: ${layout.height}px; }
   .ctl { position: absolute; box-sizing: border-box; font-size: 11px; color: #1a1a1a; overflow: hidden; display: flex; align-items: center; padding: 0 2px; }
   .ctl:focus { outline: 2px solid var(--vscode-focusBorder); }
-  .lbl { position: absolute; font-size: 11px; color: #1a1a1a; white-space: nowrap; z-index: 2; }
+  .lbl { position: absolute; font-size: 11px; color: #1a1a1a; white-space: pre; z-index: 2; }
   .s-field, .s-dropdown { background: #fff; border: 1px solid #7a7a7a; }
   .s-dropdown { justify-content: flex-end; } .caret { color: #555; }
   .s-checkbox, .s-radio { border: none; background: transparent; }
@@ -205,14 +217,27 @@ export function renderPageHtml(layout: PageLayout, orderText: string, nonce: str
   .inspector .row { display: flex; align-items: center; gap: 0.4rem; margin: 0.3rem 0; }
   .inspector input[type=number] { width: 6em; font: inherit; }
   .hint { color: var(--vscode-descriptionForeground); }
-  .ptabs { display: flex; gap: 2px; border-bottom: 1px solid var(--vscode-panel-border, #8884); margin-bottom: 0.4rem; }
-  .ptab { background: transparent; color: var(--vscode-foreground); border: none; border-bottom: 2px solid transparent; padding: 0.2rem 0.7rem; opacity: 0.75; cursor: pointer; font: inherit; }
+  .ptabs { display: flex; flex-wrap: wrap; gap: 2px; border-bottom: 1px solid var(--vscode-panel-border, #8884); margin-bottom: 0.4rem; }
+  .ptab { background: transparent; color: var(--vscode-foreground); border: none; border-bottom: 2px solid transparent; padding: 0.2rem 0.45rem; opacity: 0.75; cursor: pointer; font: inherit; }
   .ptab.selected { opacity: 1; border-bottom-color: var(--vscode-panelTitle-activeBorder, var(--vscode-focusBorder)); }
   .inspector fieldset { min-width: 0; border: 1px solid var(--vscode-panel-border, #8884); border-radius: 3px; margin: 0.5rem 0; padding: 0.2rem 0.5rem 0.4rem; }
   .inspector legend { color: var(--vscode-descriptionForeground); padding: 0 0.3rem; }
   .inspector .pending, .inspector .na { opacity: 0.6; }
   .inspector .row label { margin: 0; color: inherit; }
   .inspector .row input[type=number] { width: 5em; min-width: 0; }
+  .inspector .row input.mini { width: 2.6em; min-width: 0; flex: 0 1 auto; }
+  .inspector .row select.mini { width: 4em; flex: 0 0 auto; }
+  .inspector .row:has(input.mini) label { white-space: nowrap; }
+  .inspector .pf .row { margin: 0; }
+  .inspector .row.wrap { flex-wrap: wrap; column-gap: 0.9rem; }
+  .inspector .indent { margin-left: 1.4rem; }
+  .inspector textarea.code { font-family: var(--vscode-editor-font-family, monospace); font-size: 0.9em; }
+  .inspector .cols2 { display: grid; grid-template-columns: 1fr 1fr; column-gap: 0.6rem; }
+  .inspector .row.wrap > fieldset { flex: 1 1 8rem; }
+  .inspector .pf > .row > select { min-width: 0; }
+  .inspector .pf .row input[type=text] { flex: 1 1 auto; min-width: 0; }
+  .inspector .preview { min-height: 48px; display: flex; align-items: center; justify-content: center; margin: 0.3rem 0; color: var(--vscode-descriptionForeground); }
+  .inspector .preview img { max-width: 100%; max-height: 120px; }
   .inspector select { max-width: 100%; }
   .pg-edge { position: absolute; z-index: 4; }
   .pg-r { top: 0; right: -4px; width: 7px; height: 100%; cursor: ew-resize; }
@@ -492,7 +517,6 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
     const suppress = check(f, 'Suppress System-Specific Style Classes', p.suppressClasses, 'suppressClasses');
     suppress.onchange = () => { p.suppressClasses = suppress.checked; markDirty(); };
 
-    if (editable) { const note = tn('p', 'Greyed settings show what is stored. Each becomes editable once an App Designer save of it is captured.'); note.className = 'hint'; wrap.appendChild(note); }
     body.replaceChildren(wrap);
     pick(propTab);
   }
@@ -571,16 +595,13 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
     if (extra) extra(ctx, p);
     ctx.styleSelect(p);
   }
-  // Label tab: the label's Type and Text (or a Message Catalog set/number), Style, optional Alignment/Paragraph,
-  // and Adjust Layout for Hidden Fields. opts tunes it per type (Static Text alignment, Static Image alt-tag).
-  function labelTab(ctx, p, opts) {
-    opts = opts || {};
+  // Label tab: the label's Type and Text (or a Message Catalog set/number), Style and Adjust Layout for Hidden Fields.
+  // (Static Text and Static Image have App Designer's own Label tabs below.)
+  function labelTab(ctx, p) {
     const { el, d, field, group, text, select } = ctx;
-    const types = opts.imageAlt
-      ? [['6', 'None'], ['1', 'Text'], ['7', 'Message Catalog']]
-      : [['0', 'None'], ['1', 'Text'], ['2', 'RFT Short'], ['3', 'RFT Long'], ['7', 'Message Catalog']];
-    const lt = field(p, opts.typeLabel || 'Type', select(types, d.lt));
-    const txt = field(p, opts.textLabel || 'Text', text(d.lx));
+    const types = [['0', 'None'], ['1', 'Text'], ['2', 'RFT Short'], ['3', 'RFT Long'], ['7', 'Message Catalog']];
+    const lt = field(p, 'Type', select(types, d.lt));
+    const txt = field(p, 'Text', text(d.lx));
     txt.oninput = () => { d.lx = txt.value; syncLabel(el); markDirty(); };
     const ms = field(p, 'Message Set', text(d.gms && d.gms !== '0' ? d.gms : '')); ms.type = 'number';
     const mn = field(p, 'Message Number', text(d.gmn && d.gmn !== '0' ? d.gmn : '')); mn.type = 'number';
@@ -588,12 +609,51 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
     mn.oninput = () => { d.gmn = String(Number(mn.value) || 0); markDirty(); };
     const disp = group(p, 'Display Options');
     ctx.styleSelect(disp);
-    if (opts.alignment) { const al = field(disp, 'Alignment', select([['0', 'Left'], ['2', 'Centered'], ['4', 'Right']], String(n(el, 'dspl') & 0x6))); al.onchange = () => { setN(el, 'dspl', (n(el, 'dspl') & ~0x6) | Number(al.value)); markDirty(); }; }
-    if (opts.paragraph) { const para = ctx.check(disp, 'Paragraph', (n(el, 'fut2') & 0x800) !== 0); para.onchange = () => ctx.t2Bit(0x800, para.checked); }
     const adj = ctx.check(disp, 'Adjust Layout for Hidden Fields', n(el, 'adj') !== 0); adj.onchange = () => { setN(el, 'adj', adj.checked ? 1 : 0); markDirty(); };
     const refresh = () => { const msgCat = lt.value === '7'; const txtOn = lt.value !== '0' && lt.value !== '6'; ms.closest('.pf').hidden = !msgCat; mn.closest('.pf').hidden = !msgCat; txt.closest('.pf').hidden = !txtOn; };
     lt.onchange = () => { d.lt = lt.value; refresh(); markDirty(); };
     refresh();
+  }
+  // Static Text's Label tab, laid out as App Designer's (st01-st10): Label Text -- Text (LBLTYPE 1) or Message
+  // Catalog (LBLTYPE 7), the text with Insert Line Feed, Message Set/Number (GRDLBLMSGSET/GRDLBLMSGNUM) shown as
+  // its Text or Explanation (DSPLFORMAT 0x40000000), Style -- then Alignment Left / Centered (0x2) / Right (0x4).
+  function staticTextLabelTab(ctx, p) {
+    const { el, d, mk, group, radio } = ctx;
+    const lt = group(p, 'Label Text');
+    radio(lt, 'stlt' + d.id, [['1', 'Text'], ['7', 'Message Catalog']], d.lt === '7' ? '7' : '1', (v) => { d.lt = v; refresh(); markDirty(); });
+    // A textarea, not an input: App Designer's line feeds are part of the text and an input would drop them.
+    const txt = ctx.field(lt, 'Text', Object.assign(document.createElement('textarea'), { value: d.lx || '', rows: 1 }));
+    const fit = () => { txt.rows = Math.max(1, txt.value.split('\\n').length); };
+    // Insert Line Feed stores a bare LF (st11). A textarea reads every break back as LF; a label stored with CRLF keeps CRLF.
+    const crlf = (d.lx || '').includes('\\r\\n');
+    txt.oninput = () => { d.lx = crlf ? txt.value.replace(/\\n/g, '\\r\\n') : txt.value; fit(); syncLabel(el); markDirty(); };
+    fit();
+    const lf = tn('button', 'Insert Line Feed'); lf.className = 'action'; lt.appendChild(lf);
+    lf.onclick = () => { const a = txt.selectionStart, b = txt.selectionEnd; txt.setRangeText('\\n', a, b, 'end'); txt.oninput(); txt.focus(); };
+    const msg = mk('<div class="pf"><label>Message Set/Number</label><div class="row"></div></div>'); lt.appendChild(msg);
+    const num = (v) => { const i = ctx.text(v && v !== '0' ? v : ''); i.type = 'number'; i.min = '0'; msg.lastChild.appendChild(i); return i; };
+    const ms = num(d.gms), mn = num(d.gmn);
+    ms.oninput = () => { d.gms = String(Number(ms.value) || 0); markDirty(); };
+    mn.oninput = () => { d.gmn = String(Number(mn.value) || 0); markDirty(); };
+    const exp = (n(el, 'dspl') & 0x40000000) !== 0;
+    radio(lt, 'stmx' + d.id, [['text', 'Text'], ['exp', 'Explanation']], exp ? 'exp' : 'text', (v) => { const x = n(el, 'dspl') & ~0x40000000; setN(el, 'dspl', v === 'exp' ? x | 0x40000000 : x); markDirty(); });
+    const mx = lt.lastElementChild;
+    ctx.styleSelect(lt);
+    const al = group(p, 'Alignment');
+    for (const [v, label] of [['0', 'Left'], ['2', 'Centered'], ['4', 'Right']]) radio(al, 'stal' + d.id, [[v, label]], String(n(el, 'dspl') & 0x6), () => { setN(el, 'dspl', (n(el, 'dspl') & ~0x6) | Number(v)); markDirty(); });
+    // Text or Message Catalog greys out the other's inputs, as App Designer does.
+    function refresh() {
+      const cat = d.lt === '7';
+      const dim = (row, off) => { row.classList.toggle('na', off || !editable); for (const c of row.querySelectorAll('input, textarea, button')) c.disabled = off || !editable; };
+      dim(txt.closest('.pf'), cat); lf.disabled = cat || !editable; dim(msg, !cat); dim(mx, !cat);
+    }
+    refresh();
+  }
+  // Static Text's Use tab: Multi-Currency Field (FIELDUSE 0x20) and Paragraph (FIELDUSETEMP2 0x800).
+  function staticTextUseTab(ctx, p) {
+    const { el, check } = ctx;
+    const mc = check(p, 'Multi-Currency Field', (n(el, 'fu') & 0x20) !== 0); mc.onchange = () => ctx.useBit(0x20, mc.checked);
+    const para = check(p, 'Paragraph', (n(el, 'fut2') & 0x800) !== 0); para.onchange = () => ctx.t2Bit(0x800, para.checked);
   }
   // Use tab: Allow Deferred Processing (DEFERPROC) then the FIELDUSE / FIELDUSETMP bit toggles for this type.
   // Each bit entry is [label, register, bit, invert].
@@ -623,8 +683,10 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
     if (opts.adjust) { const adj = check(p, 'Adjust Layout for Hidden Fields', n(el, 'adj') !== 0); adj.onchange = () => { setN(el, 'adj', adj.checked ? 1 : 0); markDirty(); }; }
   }
   // Fluid tab (App Designer offers it on a Fluid page): FFSTYLELONG's five slots and the FIELDUSETMP /
-  // FIELDUSETEMP2 bits -- the same set the Frame panel maps (fr08-fr20), shared by every control type.
-  function fluidTab(ctx, fl) {
+  // FIELDUSETEMP2 bits -- the same set the Frame panel maps (fr08-fr20), shared by every control type. A Group Box's
+  // has Container Properties in place of Label Rendering and Control Structure (groupBoxFluid).
+  function fluidTab(ctx, fl, opts) {
+    opts = opts || {};
     const { el, d, group, text, check } = ctx;
     const fluidOn = !!pageProps.fluidPage && editable;
     const off = (c) => { if (!fluidOn) { c.disabled = true; const r = c.closest('.pf, .row'); if (r) { r.classList.add('na'); r.title = 'App Designer offers these on a Fluid page'; } } return c; };
@@ -635,21 +697,666 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
     sc.oninput = () => setSlot(0, sc.value.replace(/[\\r\\n]+/g, ' '));
     const ff = group(app, 'Form Factor Style Class Override');
     ['Small', 'Medium', 'Large', 'Extra Large'].forEach((label, i) => { const inp = off(ctx.field(ff, label, text(slots[i + 1], 100))); inp.oninput = () => setSlot(i + 1, inp.value); });
-    const supc = off(check(fl, 'Suppress System-Supplied Style Classes', (n(el, 'fut') & 0x400000) !== 0)); supc.onchange = () => ctx.tmpBit(0x400000, supc.checked);
+    const supc = off(check(app, opts.suppressLabel || 'Suppress System-Supplied Style Classes', (n(el, 'fut') & 0x400000) !== 0)); supc.onchange = () => ctx.tmpBit(0x400000, supc.checked);
     const sup = group(fl, 'Suppress On Form Factor');
     for (const row of [['Small', (n(el, 'fut') & 0x40000000) !== 0, (v) => ctx.tmpBit(0x40000000, v)], ['Medium', (n(el, 'fut2') & 0x10) !== 0, (v) => ctx.t2Bit(0x10, v)], ['Large', (n(el, 'fut') & 0x20000000) !== 0, (v) => ctx.tmpBit(0x20000000, v)], ['Extra Large', (n(el, 'fut2') & 0x80) !== 0, (v) => ctx.t2Bit(0x80, v)]]) { const c = off(check(sup, row[0], row[1])); c.onchange = () => row[2](c.checked); }
+    if (opts.groupBox) { groupBoxFluid(ctx, fl, off); return; }
     const radio = (parent, name, options, current, set) => { const row = ctx.mk('<div class="row"></div>'); for (const o of options) { const r = Object.assign(document.createElement('input'), { type: 'radio', name, value: o[0], checked: o[0] === current }); r.onchange = () => set(o[0]); if (!fluidOn) r.disabled = true; row.append(r, tn('label', o[1])); } parent.appendChild(row); if (!fluidOn) { row.classList.add('na'); row.title = 'App Designer offers these on a Fluid page'; } };
     const lr = group(fl, 'Label Rendering');
     radio(lr, 'lr' + d.id, [['before', 'Before Control'], ['after', 'After Control']], (n(el, 'fut') & 0x2000000) ? 'after' : 'before', (v) => ctx.tmpBit(0x2000000, v === 'after'));
     const lig = off(check(lr, 'Include Labels in Grid Cells', (n(el, 'fut2') & 0x02) !== 0)); lig.onchange = () => ctx.t2Bit(0x02, lig.checked);
     radio(group(fl, 'Control Structure'), 'cs' + d.id, [['basic', 'Basic'], ['advanced', 'Advanced']], (n(el, 'fut') & 0x4000000) ? 'basic' : 'advanced', (v) => ctx.tmpBit(0x4000000, v === 'basic'));
+    if (opts.placeholder) placeholderGroup(ctx, fl, off);
   }
-  // Static Image: Image ID and the Scale/Size format (DSPLFORMAT 0x800 Scale / 0x4000 Size).
-  function imageTab(ctx, p) {
-    const { el, d, field, text, select } = ctx;
-    const img = field(p, 'Image ID', text((d.cont || '').trim())); img.oninput = () => { d.cont = img.value.trim().toUpperCase(); markDirty(); };
-    const sz = field(p, 'Image Format', select([['size', 'Size'], ['scale', 'Scale']], (n(el, 'dspl') & 0x800) ? 'scale' : 'size'));
-    sz.onchange = () => { let v = n(el, 'dspl') & ~0x4800; v |= sz.value === 'scale' ? 0x800 : 0x4000; setN(el, 'dspl', v); markDirty(); };
+  // A Group Box's Fluid Container Properties (gb01-gb04, gb21-gb27): Group Box Type (GRPBOXTYPE, its list index),
+  // Html Tag Type (GRPBOXHTMLTYPE), ScrollBars (SCROLLBARS), the Header Extension (PTGBRELTXTINFO / PTGBRELACTINFO /
+  // PTGBRELACTFLD: a "Group Box Header Extension" group box's FIELDNUM - 1, -1 none; offered on a Default group box),
+  // Draggable / Droppable (FIELDUSETMP 0x800000 / 0x1000000), Gestures / Capture Trigger / Scroll Sizing by Style
+  // (FIELDUSETEMP2 0x40 / 0x8000 / 0x8).
+  const GROUP_BOX_TYPES = ['Default', 'Container', 'Accordion Vertical', 'Accordion Horizontal', 'Accordion GroupBox', 'Layout Only', 'Panel Control',
+    'Custom Header Left', 'Custom Header Right', 'Custom Header Middle', 'Custom Header Bottom', 'Page Title', 'Related Field Group', 'Toggle Container',
+    'Custom Grid Header', 'Custom Action Menu', 'Popup', 'Custom Header Search', 'Page Tab', 'Master/Detail Target', 'Search Action', 'Related Content',
+    'Menu', 'Menu Item', 'Tab Set', 'Tab Item', 'Group Box Header Extension'];
+  const GROUP_BOX_HEADER_EXTENSION = 26;
+  function groupBoxFluid(ctx, fl, off) {
+    const { el, group, select, check, mk } = ctx;
+    const fluidOn = !!pageProps.fluidPage && editable;
+    const listed = (names) => names.map((x, i) => [String(i), x]);
+    const cont = group(fl, 'Container Properties');
+    const gbt = off(ctx.field(cont, 'Group Box Type', select(listed(GROUP_BOX_TYPES), String(n(el, 'gbt')))));
+    const tag = off(ctx.field(cont, 'Html Tag Type', select(listed(['Default', 'DIV', 'Section', 'Article', 'UL', 'OL', 'LI']), String(n(el, 'gbh')))));
+    const sb = off(ctx.field(cont, 'ScrollBars', select(listed(['None', 'Vertical', 'Horizontal', 'Both', 'Carousel']), String(n(el, 'sb')))));
+    tag.onchange = () => { setN(el, 'gbh', Number(tag.value)); markDirty(); };
+    sb.onchange = () => { setN(el, 'sb', Number(sb.value)); markDirty(); };
+    // The Header Extension lists: this page's "Group Box Header Extension" group boxes, as "tab order | label".
+    const hdr = group(cont, 'Group Box Header Extension');
+    const extensions = [...document.querySelectorAll('.ctl[data-ftype="2"]')]
+      .filter((c) => c !== el && !c.dataset.removed && c.dataset.gbt === String(GROUP_BOX_HEADER_EXTENSION))
+      .map((c) => [String(Number(c.dataset.num) - 1), c.dataset.num + ' | ' + (c.dataset.lx || '').trim()]);
+    const pickers = [['Textual Info', 'hti'], ['Actionable Info', 'hai'], ['Action Items', 'hac']].map(([label, key]) => {
+      const v = String(n(el, key)), known = extensions.some((x) => x[0] === v);
+      const s = ctx.field(hdr, label, select([['-1', '0 | None'], ...extensions], known ? v : '-1'));
+      s.onchange = () => { setN(el, key, Number(s.value)); markDirty(); };
+      return s;
+    });
+    // Offered on a Default group box only (App Designer greys them for any other type).
+    const hdrOn = () => {
+      const on = fluidOn && n(el, 'gbt') === 0;
+      for (const s of pickers) { s.disabled = !on; s.closest('.pf').classList.toggle('na', !on); }
+    };
+    gbt.onchange = () => { setN(el, 'gbt', Number(gbt.value)); markDirty(); hdrOn(); };
+    hdrOn();
+    const flags = mk('<div class="row wrap"></div>'); cont.appendChild(flags);
+    for (const [label, reg, bit] of [['Draggable', 'fut', 0x800000], ['Droppable', 'fut', 0x1000000], ['Gestures', 'fut2', 0x40], ['Capture Trigger', 'fut2', 0x8000]]) {
+      const c = off(check(flags, label, (n(el, reg) & bit) !== 0));
+      c.onchange = () => (reg === 'fut' ? ctx.tmpBit(bit, c.checked) : ctx.t2Bit(bit, c.checked));
+    }
+    const sizing = off(check(fl, 'Scroll Sizing by Style', (n(el, 'fut2') & 0x8) !== 0)); sizing.onchange = () => ctx.t2Bit(0x8, sizing.checked);
+  }
+  // A Group Box's Record tab: Record Name / Field Name. Binding a field makes the label its default RFT Long label (gb16).
+  function groupBoxRecordTab(ctx, p) {
+    const { el, d, field, group, text } = ctx;
+    const f = group(p, 'Field');
+    const rec = field(f, 'Record Name', text(d.rec || '')), fld = field(f, 'Field Name', text(d.field || ''));
+    rec.oninput = () => { d.rec = rec.value.trim().toUpperCase(); markDirty(); };
+    fld.onchange = () => {
+      d.field = fld.value.trim().toUpperCase(); fld.value = d.field; markDirty();
+      if (!d.field) return;
+      lookup({ what: 'fieldLabels', field: d.field }).then((labels) => {
+        const def = (labels || []).find((l) => l.isDefault) || (labels || [])[0];
+        if (!def) return;
+        d.lt = '3'; d.lid = def.labelId; d.udl = '1'; d.lx = def.longName; syncLabel(el); markDirty();
+      });
+    };
+  }
+  // A Group Box's Label tab, laid out as App Designer's (gb07-gb17). Type: Text / RFT Short / RFT Long / Message Catalog
+  // (LBLTYPE 1 / 2 / 3 / 7; RFT needs a bound field). Label Text: the Text (LBLTEXT; an RFT label stores the label's short
+  // or long name), Label ID (LABEL_ID; *** Use Default Label *** = USEDEFAULTLABEL 1), Context (shown only), Message
+  // Set/Number (GRDLBLMSGSET / GRDLBLMSGNUM), Label Style (LABELSTYLE), Embedded Popup Help (Message Catalog Popup =
+  // FIELDUSETMP 0xA000 with PSPNLFIELDEXT MESSAGE_SET_NBR / MESSAGE_NBR). Alignment: DSPLFORMAT Left 0x80000 / Centered
+  // 0x100000 / Right 0x200000. Display Options: Body Style (FIELDSTYLE), Adjust Layout for Hidden Fields
+  // (PTADJHIDDENFIELDS), Hide Border (FIELDUSE 0x4000000), Suppress Accessible Label (FIELDUSE 0x2000).
+  function groupBoxLabelTab(ctx, p) {
+    const { el, d, mk, field, group, text, select, radio, check } = ctx;
+    const mini = (v) => { const i = text(v && v !== '0' ? v : ''); i.className = 'mini'; return i; };
+    const pair = (parent, label) => { const row = mk('<div class="pf"><label></label><div class="row"></div></div>'); row.firstChild.textContent = label; parent.appendChild(row); return row; };
+    const dim = (row, off) => { row.classList.toggle('na', off); for (const c of row.querySelectorAll('input, select, button')) c.disabled = off || !editable; };
+    let labels = [];
+    const ty = group(p, 'Type');
+    radio(ty, 'gblt' + d.id, [['1', 'Text'], ['2', 'RFT Short'], ['3', 'RFT Long'], ['7', 'Message Catalog']], d.lt, (v) => setType(v));
+    ty.lastElementChild.classList.add('wrap');
+    const lt = group(p, 'Label Text');
+    const txt = field(lt, 'Text', text(d.lx));
+    txt.oninput = () => { d.lx = txt.value; syncLabel(el); markDirty(); };
+    const lid = field(lt, 'Label ID', select([['', '*** Use Default Label ***']], ''));
+    const ctxt = field(lt, 'Context', text('')); ctxt.readOnly = true; ctxt.title = 'Shown by App Designer; not stored on the page';
+    const msg = pair(lt, 'Message Set/Number');
+    const ms = mini(d.gms), mn = mini(d.gmn); msg.lastChild.append(ms, mn);
+    ms.oninput = () => { d.gms = String(Number(ms.value) || 0); markDirty(); };
+    mn.oninput = () => { d.gmn = String(Number(mn.value) || 0); markDirty(); };
+    const ls = field(lt, 'Label Style', select([['', STYLE_DEFAULT], ...ctx.styleClasses], (d.lsty || '').trim()));
+    ls.onchange = () => { d.lsty = ls.value.trim().toUpperCase(); markDirty(); };
+    // Embedded Popup Help.
+    const pop = group(lt, 'Embedded Popup Help');
+    const popOn = (n(el, 'fut') & 0xA000) === 0xA000;
+    radio(pop, 'gbpop' + d.id, [['none', 'No Popup']], popOn ? 'cat' : 'none', () => setPopup(false));
+    radio(pop, 'gbpop' + d.id, [['cat', 'Message Catalog Popup']], popOn ? 'cat' : 'none', () => setPopup(true));
+    const pmsg = pair(pop, 'Message Set/Number');
+    const pms = mini(d.pms), pmn = mini(d.pmn); pmsg.lastChild.append(pms, pmn);
+    const ptxt = field(pop, 'Text', text('')); ptxt.readOnly = true;
+    let popSeq = 0;
+    const popText = () => {
+      const set = Number(pms.value) || 0, num = Number(pmn.value) || 0, seq = ++popSeq;
+      ptxt.value = '';
+      if (set && num) lookup({ what: 'message', set, num }).then((t) => { if (seq === popSeq) ptxt.value = t || ''; });
+    };
+    pms.oninput = () => { setN(el, 'pms', Number(pms.value) || 0); markDirty(); popText(); };
+    pmn.oninput = () => { setN(el, 'pmn', Number(pmn.value) || 0); markDirty(); popText(); };
+    // No Popup clears the set / number with the bits (gb13).
+    function setPopup(on) {
+      const t = n(el, 'fut'); setN(el, 'fut', on ? t | 0xA000 : t & ~0xA000);
+      if (!on) { setN(el, 'pms', 0); setN(el, 'pmn', 0); pms.value = pmn.value = ''; ptxt.value = ''; }
+      dim(pmsg, !on); markDirty();
+    }
+    dim(pmsg, !popOn);
+    if (popOn) popText();
+    // Alignment.
+    const al = group(p, 'Alignment');
+    const ALIGN = { left: 0x80000, centered: 0x100000, right: 0x200000 };
+    const curAlign = (n(el, 'dspl') & ALIGN.right) ? 'right' : (n(el, 'dspl') & ALIGN.centered) ? 'centered' : 'left';
+    radio(al, 'gbal' + d.id, [['left', 'Left'], ['centered', 'Centered'], ['right', 'Right']], curAlign, (v) => { setN(el, 'dspl', (n(el, 'dspl') & ~0x380000) | ALIGN[v]); markDirty(); });
+    // Display Options.
+    const disp = group(p, 'Display Options');
+    ctx.styleSelect(disp, 'Body Style');
+    const adj = check(disp, 'Adjust Layout for Hidden Fields', n(el, 'adj') !== 0); adj.onchange = () => { setN(el, 'adj', adj.checked ? 1 : 0); markDirty(); };
+    const flags = mk('<div class="row wrap"></div>'); disp.appendChild(flags);
+    const hide = check(flags, 'Hide Border', (n(el, 'fu') & 0x4000000) !== 0); hide.onchange = () => ctx.useBit(0x4000000, hide.checked);
+    const acc = check(flags, 'Suppress Accessible Label', (n(el, 'fu') & 0x2000) !== 0); acc.onchange = () => ctx.useBit(0x2000, acc.checked);
+
+    // An RFT label shows the chosen label's short or long name (delivered RFT labels store exactly that).
+    const chosen = () => {
+      const def = labels.find((x) => x.isDefault) || labels[0];
+      const id = d.udl === '1' ? (def ? def.labelId : '') : (d.lid || '').trim();
+      return labels.find((l) => l.labelId === id);
+    };
+    const rftText = () => {
+      const l = chosen();
+      if (l && (d.lt === '2' || d.lt === '3')) { d.lx = d.lt === '2' ? l.shortName : l.longName; txt.value = d.lx; syncLabel(el); }
+    };
+    lid.onchange = () => {
+      if (lid.value) { d.udl = '0'; d.lid = lid.value; }
+      else { d.udl = '1'; const def = labels.find((x) => x.isDefault) || labels[0]; if (def) d.lid = def.labelId; }
+      rftText(); markDirty();
+    };
+    function setType(v) {
+      d.lt = v;
+      if (v === '7') { d.lx = ' '; syncLabel(el); } // Message Catalog blanks the text (gb14)
+      rftText(); refresh(); markDirty();
+    }
+    function refresh() {
+      const bound = !!(d.field || '').trim(), rft = d.lt === '2' || d.lt === '3', cat = d.lt === '7';
+      for (const r of ty.querySelectorAll('input[type=radio]')) if (r.value === '2' || r.value === '3') { r.disabled = !bound || !editable; r.nextElementSibling.classList.toggle('na', !bound); }
+      dim(txt.closest('.pf'), d.lt !== '1'); dim(lid.closest('.pf'), !rft); dim(msg, !cat);
+      txt.value = cat ? '' : (d.lx || '').trim();
+    }
+    refresh();
+    if ((d.field || '').trim()) lookup({ what: 'fieldLabels', field: d.field }).then((list) => {
+      labels = list || [];
+      for (const l of labels) lid.appendChild(Object.assign(document.createElement('option'), { value: l.labelId, textContent: l.labelId + ' "' + l.longName + '"' }));
+      lid.value = d.udl === '1' ? '' : (d.lid || '').trim();
+    });
+  }
+  // A Group Box's Use tab (gb18-gb20): Multi-Currency Field (FIELDUSE 0x20); Display Options: Hide all Fields when Group
+  // Box Hidden (PTHIDEFIELDS), Collapsible Data Area (PTCOLLAPSEDATAAREA) with Default Initial View to Expanded State
+  // (PTDFLTVIEWEXPANDED) and the collapsed / expanded label images (PTLBLIMGCOLLAPSE / PTLBLIMGEXPAND; blank = default).
+  function groupBoxUseTab(ctx, p) {
+    const { el, d, mk, group, check, text } = ctx;
+    const mc = check(p, 'Multi-Currency Field', (n(el, 'fu') & 0x20) !== 0); mc.onchange = () => ctx.useBit(0x20, mc.checked);
+    const disp = group(p, 'Display Options');
+    const flag = (label, key) => { const c = check(disp, label, n(el, key) !== 0); c.onchange = () => { setN(el, key, c.checked ? 1 : 0); markDirty(); }; return c; };
+    flag('Hide all Fields when Group Box Hidden', 'hf');
+    const coll = flag('Collapsible Data Area', 'cda');
+    const sub = mk('<div class="indent"></div>'); disp.appendChild(sub);
+    const exp = check(sub, 'Default Initial View to Expanded State', n(el, 'dve') !== 0); exp.onchange = () => { setN(el, 'dve', exp.checked ? 1 : 0); markDirty(); };
+    const image = (label, key) => {
+      const row = mk('<div class="pf"><label></label><div class="row"></div></div>'); row.firstChild.textContent = label; sub.appendChild(row);
+      const inp = text((d[key] || '').trim(), 30); inp.placeholder = '*** Use Default Image ***';
+      const browse = tn('button', '...'); browse.className = 'action'; browse.title = 'Select Image';
+      row.lastChild.append(inp, browse);
+      const pic = mk('<div class="preview"></div>'); sub.appendChild(pic);
+      let seq = 0;
+      const show = () => {
+        const name = (d[key] || '').trim(), s = ++seq;
+        pic.replaceChildren();
+        if (name) lookup({ what: 'image', name }).then((r) => { if (s === seq && r && r.dataUri) pic.replaceChildren(Object.assign(document.createElement('img'), { src: r.dataUri, alt: name })); });
+      };
+      const set = (v) => { d[key] = v.trim().toUpperCase(); inp.value = d[key]; markDirty(); show(); };
+      inp.onchange = () => set(inp.value);
+      browse.onclick = () => lookup({ what: 'pickImage', current: (d[key] || '').trim() }).then((v) => { if (v) set(v); });
+      show();
+    };
+    image('Label Image for Collapsed State', 'imc');
+    image('Label Image for Expanded State', 'ime');
+    // The collapsible settings are offered once Collapsible Data Area is on.
+    const refresh = () => {
+      for (const c of sub.querySelectorAll('input, button')) c.disabled = !coll.checked || !editable;
+      sub.classList.toggle('na', !coll.checked);
+    };
+    coll.addEventListener('change', refresh);
+    refresh();
+  }
+  // A Horizontal Rule's tabs, as App Designer's (hr01-hr07). Label: Text (LBLTEXT; LBLTYPE stays 0) and Style
+  // (FIELDSTYLE). Use: Multi-Currency Field (FIELDUSE 0x20) and Set to Level (FIELDUSE 0x2 with SECUREINVISIBLE 1),
+  // whose level is the rule's OCCURSLEVEL, from 0 to the scroll level where it sits.
+  function ruleLabelTab(ctx, p) {
+    const { el, d, field, text } = ctx;
+    const txt = field(p, 'Text', text((d.lx || '').trim()));
+    txt.oninput = () => { d.lx = txt.value; syncLabel(el); markDirty(); };
+    ctx.styleSelect(p);
+  }
+  function ruleUseTab(ctx, p) {
+    const { el, d, mk, check, select } = ctx;
+    const mc = check(p, 'Multi-Currency Field', (n(el, 'fu') & 0x20) !== 0); mc.onchange = () => ctx.useBit(0x20, mc.checked);
+    const row = mk('<div class="row"></div>'); p.appendChild(row);
+    const set = check(row, 'Set to Level', (n(el, 'fu') & 0x2) !== 0);
+    // The levels offered: 0 up to the scroll nesting where the rule sits (and the stored one).
+    const here = scrollLevelAt(el.offsetLeft + el.offsetWidth / 2, el.offsetTop + el.offsetHeight / 2);
+    const max = Math.max(here, n(el, 'level') || 0);
+    const lvl = select(Array.from({ length: max + 1 }, (_, i) => [String(i), String(i)]), String(n(el, 'level') || 0));
+    lvl.className = 'mini'; row.appendChild(lvl);
+    const refresh = () => { lvl.disabled = !set.checked || !editable; };
+    set.onchange = () => {
+      ctx.useBit(0x2, set.checked); setN(el, 'si', set.checked ? 1 : 0);
+      if (set.checked) { d.level = lvl.value; d.lvlEdited = '1'; }
+      refresh();
+    };
+    lvl.onchange = () => { d.level = lvl.value; d.lvlEdited = '1'; markDirty(); };
+    refresh();
+  }
+  // A Check Box's Record tab (cbx, in03): Field (Record Name / Field Name) and Field Values (On / Off Value).
+  function checkBoxRecordTab(ctx, p) {
+    const { d, field, group, text } = ctx;
+    const f = group(p, 'Field');
+    const rec = field(f, 'Record Name', text(d.rec || '')), fld = field(f, 'Field Name', text(d.field || ''));
+    const upd = () => { d.rec = rec.value.trim().toUpperCase(); d.field = fld.value.trim().toUpperCase(); markDirty(); };
+    rec.oninput = upd; fld.oninput = upd;
+    const v = group(p, 'Field Values');
+    const on = field(v, 'On Value', text(d.onv || '')), off = field(v, 'Off Value', text(d.offv || ''));
+    on.oninput = () => { d.onv = on.value; markDirty(); };
+    off.oninput = () => { d.offv = off.value; markDirty(); };
+  }
+  // A record-bound control's Label tab (cbx02-cbx05): Type None / Text / RFT Short / RFT Long (LBLTYPE 0-3; an RFT label
+  // stores the label's short or long name, cbx05), Label ID (LABEL_ID; *** Use Default Label *** = USEDEFAULTLABEL 1),
+  // Context (shown only), Style (FIELDSTYLE), Location Left / Right (LBLLOC 0 / 1), Alignment Left / Centered / Right
+  // (DSPLFORMAT 0x80000 / 0x100000 / 0x200000).
+  // A Long Edit Box's (opts.longEdit, le05-le11) differs: Insert Line Feed, Style is the label's (LABELSTYLE), Position
+  // Left / Top / Custom (LABELSIZETYPE 0 / 2 / 1; App Designer lays the label out again from its text) in place of Location,
+  // and Display Options First occurs only (DSPLFORMAT 0x400000) and No colon (LBLLOC 1).
+  function fieldLabelTab(ctx, p, opts) {
+    opts = opts || {};
+    const { el, d, mk, field, group, text, select, radio } = ctx;
+    let labels = [];
+    const ty = group(p, 'Type');
+    radio(ty, 'cblt' + d.id, [['0', 'None'], ['1', 'Text'], ['2', 'RFT Short'], ['3', 'RFT Long']], d.lt, (v) => setType(v));
+    ty.lastElementChild.classList.add('wrap');
+    const lt = group(p, 'Label Text');
+    // A label with line feeds keeps them (a textarea; Insert Line Feed adds a bare LF, le11).
+    const txt = field(lt, 'Text', opts.longEdit ? Object.assign(document.createElement('textarea'), { rows: 1, value: (d.lx || '').trim() }) : text((d.lx || '').trim()));
+    txt.oninput = () => { d.lx = txt.value; if (opts.longEdit) txt.rows = Math.max(1, txt.value.split('\\n').length); syncLabel(el); markDirty(); };
+    const lid = field(lt, 'Label ID', select([['', '*** Use Default Label ***']], ''));
+    const ctxt = field(lt, 'Context', text('')); ctxt.readOnly = true; ctxt.title = 'Shown by App Designer; not stored on the page';
+    let lf = null;
+    if (opts.longEdit) {
+      lf = tn('button', 'Insert Line Feed'); lf.className = 'action'; lt.appendChild(lf);
+      lf.onclick = () => { txt.setRangeText('\\n', txt.selectionStart, txt.selectionEnd, 'end'); txt.oninput(); txt.focus(); };
+      const ls = field(lt, 'Style', select([['', STYLE_DEFAULT], ...ctx.styleClasses], (d.lsty || '').trim()));
+      ls.onchange = () => { d.lsty = ls.value.trim().toUpperCase(); markDirty(); };
+    } else ctx.styleSelect(lt);
+    const pair = mk('<div class="row wrap"></div>'); p.appendChild(pair);
+    const al = group(pair, 'Alignment');
+    const ALIGN = { left: 0x80000, centered: 0x100000, right: 0x200000 };
+    const cur = (n(el, 'dspl') & ALIGN.right) ? 'right' : (n(el, 'dspl') & ALIGN.centered) ? 'centered' : 'left';
+    for (const [k, label] of [['left', 'Left'], ['centered', 'Centered'], ['right', 'Right']]) {
+      radio(al, 'cbal' + d.id, [[k, label]], cur, () => { setN(el, 'dspl', (n(el, 'dspl') & ~0x380000) | ALIGN[k]); markDirty(); });
+    }
+    if (opts.longEdit) {
+      const pos = group(pair, 'Position');
+      for (const [v, label] of [['0', 'Left'], ['2', 'Top'], ['1', 'Custom']]) radio(pos, 'lepos' + d.id, [[v, label]], String(n(el, 'lst')), () => { setN(el, 'lst', Number(v)); markDirty(); });
+      const disp = group(p, 'Display Options');
+      const row = mk('<div class="row wrap"></div>'); disp.appendChild(row);
+      const first = ctx.check(row, 'First occurs only', (n(el, 'dspl') & 0x400000) !== 0);
+      first.onchange = () => { setN(el, 'dspl', first.checked ? n(el, 'dspl') | 0x400000 : n(el, 'dspl') & ~0x400000); markDirty(); };
+      const colon = ctx.check(row, 'No colon', n(el, 'lloc') === 1); colon.onchange = () => { setN(el, 'lloc', colon.checked ? 1 : 0); markDirty(); };
+    } else {
+      const loc = group(pair, 'Location');
+      radio(loc, 'cbloc' + d.id, [['0', 'Left']], String(n(el, 'lloc')), () => { setN(el, 'lloc', 0); markDirty(); });
+      radio(loc, 'cbloc' + d.id, [['1', 'Right']], String(n(el, 'lloc')), () => { setN(el, 'lloc', 1); markDirty(); });
+      pair.insertBefore(loc, al);
+    }
+    const dim = (row, off) => { row.classList.toggle('na', off); for (const c of row.querySelectorAll('input, select')) c.disabled = off || !editable; };
+    // An RFT label shows the chosen label's short or long name.
+    const chosen = () => {
+      const def = labels.find((x) => x.isDefault) || labels[0];
+      const id = d.udl === '1' ? (def ? def.labelId : '') : (d.lid || '').trim();
+      return labels.find((l) => l.labelId === id);
+    };
+    const rftText = () => {
+      const l = chosen();
+      if (l && (d.lt === '2' || d.lt === '3')) { d.lx = d.lt === '2' ? l.shortName : l.longName; txt.value = d.lx; syncLabel(el); }
+    };
+    lid.onchange = () => {
+      if (lid.value) { d.udl = '0'; d.lid = lid.value; }
+      else { d.udl = '1'; const def = labels.find((x) => x.isDefault) || labels[0]; if (def) d.lid = def.labelId; }
+      rftText(); markDirty();
+    };
+    function setType(v) { d.lt = v; rftText(); refresh(); markDirty(); }
+    function refresh() {
+      const rft = d.lt === '2' || d.lt === '3';
+      dim(txt.closest('.pf'), d.lt !== '1'); dim(lid.closest('.pf'), !rft);
+      if (lf) lf.disabled = d.lt !== '1' || !editable;
+      txt.value = (d.lx || '').trim();
+    }
+    refresh();
+    if ((d.field || '').trim()) lookup({ what: 'fieldLabels', field: d.field }).then((list) => {
+      labels = list || [];
+      for (const l of labels) lid.appendChild(Object.assign(document.createElement('option'), { value: l.labelId, textContent: l.labelId + ' "' + l.longName + '"' }));
+      lid.value = d.udl === '1' ? '' : (d.lid || '').trim();
+    });
+  }
+  // A record-bound control's Use tab (cb-*, cbx06-cbx16). Field Use Options: Display Only (FIELDUSE 0x1), Invisible (0x2,
+  // with SECUREINVISIBLE 1 unless Modifiable by JavaScript; off clears both and Generate in HTML), Modifiable by
+  // JavaScript and Generate in HTML (FIELDUSETEMP2 0x20; offered on an invisible control), Multi-Currency (0x20), Display
+  // Control Field (0x8), Related Field (0x10, which also sets Display Only) with its Related Control Field (ASSOCFIELDNUM:
+  // a Display Control Field control's FIELDNUM - 1), Enable When Page is Display Only (0x40000). Popup Menu (POPUPMENU),
+  // Allow Deferred Processing (DEFERPROC), Set Component Changed (FIELDUSETMP 0x8 off), Display-Only Appearance (Disabled
+  // Edit Control FIELDUSETMP 0x4; Read only control for screen reader FIELDUSETEMP2 0x10000), Wrap Long Words (FIELDUSETMP 0x40).
+  // Show Label, the left Enable When Page is Display Only, Smart Prompt, Persist Grid Column in Menu and Field Format
+  // Override stay greyed, as App Designer has them on a check box outside a grid.
+  // A Long Edit Box's (opts.longEdit, le12-le16): no Show Label / Smart Prompt / Display Control Field / Field Format
+  // Override; Expand Field When Display Only (PTLEBEXPANDFIELD), Display in Modal Window (FIELDUSETMP 0x100), Enable Long
+  // Edit Counter (FIELDUSETMP 0x8000000) and the screen-reader read-only (FIELDUSETEMP2 0x10000) instead; Wrap Long Words,
+  // Persist Grid Column in Menu and Paragraph greyed; no Display-Only Appearance.
+  function fieldUseTab(ctx, p, useOpts) {
+    useOpts = useOpts || {};
+    const le = !!useOpts.longEdit;
+    const { el, d, mk, group, check, select, radio } = ctx;
+    const bit = (k) => (b) => (n(el, k) & b) !== 0;
+    const fu = bit('fu'), fut = bit('fut'), fut2 = bit('fut2');
+    const opts = group(p, 'Field Use Options');
+    const cols = mk('<div class="cols2"><div></div><div></div></div>'); opts.appendChild(cols);
+    const [left, right] = cols.children;
+    const greyed = (parent, label) => { const c = check(parent, label, false); c.disabled = true; c.closest('.row').classList.add('na'); return c; };
+    const dOnly = check(left, 'Display Only', fu(0x1)); dOnly.onchange = () => ctx.useBit(0x1, dOnly.checked);
+    const inv = check(left, 'Invisible', fu(0x2));
+    const sub = mk('<div class="indent"></div>'); left.appendChild(sub);
+    if (!le) greyed(sub, 'Show Label');
+    const modjs = check(sub, 'Modifiable by JavaScript', fu(0x2) && n(el, 'si') === 0);
+    greyed(sub, 'Enable When Page is Display Only');
+    const html = check(sub, 'Generate in HTML', fut2(0x20));
+    if (!le) greyed(left, 'Smart Prompt');
+    const mc = check(right, 'Multi-Currency Field', fu(0x20)); mc.onchange = () => ctx.useBit(0x20, mc.checked);
+    if (!le) { const dcf = check(right, 'Display Control Field', fu(0x8)); dcf.onchange = () => ctx.useBit(0x8, dcf.checked); }
+    const rel = check(right, 'Related Field', fu(0x10));
+    if (le) {
+      const exp = check(right, 'Expand Field When Display Only', n(el, 'lex') !== 0); exp.onchange = () => { setN(el, 'lex', exp.checked ? 1 : 0); markDirty(); };
+      const modal = check(right, 'Display in Modal Window', fut(0x100)); modal.onchange = () => ctx.tmpBit(0x100, modal.checked);
+      const counter = check(right, 'Enable Long Edit Counter', fut(0x8000000)); counter.onchange = () => ctx.tmpBit(0x8000000, counter.checked);
+      const sr = check(right, 'Read only control for screen reader', fut2(0x10000)); sr.onchange = () => ctx.t2Bit(0x10000, sr.checked);
+      greyed(left, 'Wrap Long Words'); greyed(left, 'Persist Grid Column in Menu'); greyed(right, 'Paragraph');
+    } else {
+      greyed(right, 'Persist Grid Column in Menu');
+      const ewdo = check(right, 'Enable When Page is Display Only', fu(0x40000)); ewdo.onchange = () => ctx.useBit(0x40000, ewdo.checked);
+      greyed(right, 'Field Format Override');
+    }
+    // Related Control Field: this page's Display Control Field controls, as "tab order | label".
+    const controls = [...document.querySelectorAll('.ctl')].filter((c) => c !== el && !c.dataset.removed && (Number(c.dataset.fu) & 0x8))
+      .map((c) => [String(Number(c.dataset.num) - 1), c.dataset.num + ' | ' + (c.dataset.lx || c.dataset.field || '').trim()]);
+    const cur = String(n(el, 'assoc'));
+    const relCtl = ctx.field(p, 'Related Control Field', select([['0', ''], ...controls], controls.some((x) => x[0] === cur) ? cur : '0'));
+    relCtl.onchange = () => { setN(el, 'assoc', Number(relCtl.value)); markDirty(); };
+    const popup = ctx.field(group(p, 'Popup Menu'), '', select([['', ''], ...(choices ? choices.popupMenus : []).map((m) => [m, m])], (d.pop || '').trim()));
+    popup.onchange = () => { d.pop = popup.value; markDirty(); };
+    const procRow = mk('<div class="row wrap"></div>'); p.appendChild(procRow);
+    const defer = check(procRow, 'Allow Deferred Processing', d.defer !== '0');
+    defer.onchange = () => { d.defer = defer.checked ? '1' : '0'; if (selRow) selRow.children[8].textContent = defer.checked ? '✓' : ''; markDirty(); };
+    const scc = check(procRow, 'Set Component Changed', !fut(0x8)); scc.onchange = () => ctx.tmpBit(0x8, !scc.checked);
+    if (!le) {
+      const appear = group(p, 'Display-Only Appearance');
+      radio(appear, 'cbdo' + d.id, [['text', 'Text Only'], ['edit', 'Disabled Edit Control']], fut(0x4) ? 'edit' : 'text', (v) => ctx.tmpBit(0x4, v === 'edit'));
+      const sr = check(appear, 'Read only control for screen reader', fut2(0x10000)); sr.onchange = () => ctx.t2Bit(0x10000, sr.checked);
+      const wrap = check(p, 'Wrap Long Words', fut(0x40)); wrap.onchange = () => ctx.tmpBit(0x40, wrap.checked);
+    }
+
+    const refresh = () => {
+      const invisible = inv.checked;
+      for (const c of [modjs, html]) { c.disabled = !invisible || !editable; c.closest('.row').classList.toggle('na', !invisible); }
+      relCtl.disabled = !rel.checked || !editable; relCtl.closest('.pf').classList.toggle('na', !rel.checked);
+    };
+    inv.onchange = () => {
+      ctx.useBit(0x2, inv.checked);
+      el.classList.toggle('u-invisible', inv.checked);
+      if (inv.checked) setN(el, 'si', modjs.checked ? 0 : 1);
+      else { setN(el, 'si', 0); modjs.checked = false; html.checked = false; ctx.t2Bit(0x20, false); }
+      refresh();
+    };
+    modjs.onchange = () => { setN(el, 'si', modjs.checked ? 0 : 1); markDirty(); };
+    html.onchange = () => ctx.t2Bit(0x20, html.checked);
+    // Related Field turns Display Only on with it (cbx13); off leaves Display Only and clears the control field (cbx14).
+    rel.onchange = () => {
+      ctx.useBit(0x10, rel.checked);
+      if (rel.checked) { ctx.useBit(0x1, true); dOnly.checked = true; el.classList.add('u-display-only'); }
+      else { setN(el, 'assoc', 0); relCtl.value = '0'; }
+      refresh();
+    };
+    dOnly.addEventListener('change', () => el.classList.toggle('u-display-only', dOnly.checked));
+    refresh();
+  }
+  // An HTML Area's HTML tab (ha01-ha05, ha10). Value: Field (RECNAME / FIELDNAME) or Constant (the HTML in PSPNLHTMLAREA;
+  // RECNAME and FIELDNAME blank), HTML Tags Only (FIELDUSETMP 0x100000), Respond Only Once (FIELDUSETEMP2 0x1000).
+  // Binding a field fills LABEL_ID and LBLTEXT with its default label and leaves the label type (ha05).
+  function htmlAreaTab(ctx, p) {
+    const { el, d, mk, field, group, text, radio, check } = ctx;
+    const v = group(p, 'Value');
+    const top = mk('<div class="row wrap"></div>'); v.appendChild(top);
+    radio(top, 'hav' + d.id, [['field', 'Field'], ['const', 'Constant']], d.hc === '1' ? 'const' : 'field', (m) => setMode(m));
+    const tags = check(top, 'HTML Tags Only', (n(el, 'fut') & 0x100000) !== 0); tags.onchange = () => ctx.tmpBit(0x100000, tags.checked);
+    const rec = field(v, 'Record Name', text(d.rec || '')), fld = field(v, 'Field Name', text(d.field || ''));
+    rec.oninput = () => { d.rec = rec.value.trim().toUpperCase(); markDirty(); };
+    fld.onchange = () => {
+      d.field = fld.value.trim().toUpperCase(); fld.value = d.field; markDirty();
+      if (!d.field) return;
+      lookup({ what: 'fieldLabels', field: d.field }).then((labels) => {
+        const def = (labels || []).find((l) => l.isDefault) || (labels || [])[0];
+        if (def) { d.lid = def.labelId; d.lx = def.longName; syncLabel(el); markDirty(); }
+      });
+    };
+    const html = field(v, '', Object.assign(document.createElement('textarea'), { rows: 8, value: d.html || '' }));
+    html.className = 'code';
+    html.oninput = () => { d.html = html.value; markDirty(); };
+    const once = check(v, 'Respond Only Once', (n(el, 'fut2') & 0x1000) !== 0); once.onchange = () => ctx.t2Bit(0x1000, once.checked);
+    const refresh = () => {
+      const k = d.hc === '1';
+      for (const c of [rec, fld]) { c.disabled = k || !editable; c.closest('.pf').classList.toggle('na', k); }
+      html.disabled = !k || !editable; html.closest('.pf').classList.toggle('na', !k);
+    };
+    // Constant blanks the record field (ha03); Field drops the Constant's text (ha05).
+    function setMode(m) {
+      if (m === 'const') { d.hc = '1'; d.rec = ''; d.field = ''; rec.value = fld.value = ''; d.html = html.value; }
+      else { d.hc = '0'; }
+      refresh(); markDirty();
+    }
+    refresh();
+  }
+  // An HTML Area's Label tab (ha06-ha09): Type None / Text / Message Catalog / RFT Long / RFT Short (LBLTYPE 0 / 1 / 7 / 3
+  // / 2), Text (LBLTEXT), Label ID (LABEL_ID, USEDEFAULTLABEL), Context (shown only), Message Set / Msg Number
+  // (GRDLBLMSGSET / GRDLBLMSGNUM). Message Catalog blanks LABEL_ID and LBLTEXT (ha06); an RFT type takes the default label
+  // when none is set and shows its short or long name (ha07); Text and None keep both (ha08, ha09).
+  function htmlLabelTab(ctx, p) {
+    const { el, d, mk, field, group, text, select } = ctx;
+    let labels = [];
+    const g = group(p, 'Label Text');
+    const ty = field(g, 'Type', select([['0', 'None'], ['1', 'Text'], ['7', 'Message Catalog'], ['3', 'RFT Long'], ['2', 'RFT Short']], d.lt));
+    const txt = field(g, 'Text', text((d.lx || '').trim()));
+    txt.oninput = () => { d.lx = txt.value; syncLabel(el); markDirty(); };
+    const lid = field(g, 'Label ID', select([['', '*** Use Default Label ***']], ''));
+    const ctxt = field(g, 'Context', text('')); ctxt.readOnly = true; ctxt.title = 'Shown by App Designer; not stored on the page';
+    const msg = mk('<div class="row"><label>Message Set</label></div>'); g.appendChild(msg);
+    const mini = (v) => { const i = text(v && v !== '0' ? v : ''); i.className = 'mini'; return i; };
+    const ms = mini(d.gms), mn = mini(d.gmn);
+    msg.appendChild(ms); msg.appendChild(tn('label', 'Msg Number')); msg.appendChild(mn);
+    let seq = 0;
+    const catText = () => {
+      const set = Number(ms.value) || 0, num = Number(mn.value) || 0, s = ++seq;
+      if (d.lt === '7' && set && num) lookup({ what: 'message', set, num }).then((t) => { if (s === seq && d.lt === '7') txt.value = t || ''; });
+    };
+    ms.oninput = () => { d.gms = String(Number(ms.value) || 0); markDirty(); catText(); };
+    mn.oninput = () => { d.gmn = String(Number(mn.value) || 0); markDirty(); catText(); };
+    const def = () => labels.find((x) => x.isDefault) || labels[0];
+    const chosen = () => labels.find((l) => l.labelId === (d.udl === '1' && def() ? def().labelId : (d.lid || '').trim()));
+    const rftText = () => { const l = chosen(); if (l && (d.lt === '2' || d.lt === '3')) { d.lx = d.lt === '2' ? l.shortName : l.longName; syncLabel(el); } };
+    const dim = (c, off) => { c.disabled = off || !editable; c.closest('.pf, .row').classList.toggle('na', off); };
+    const refresh = () => {
+      const cat = d.lt === '7', rft = d.lt === '2' || d.lt === '3';
+      dim(txt, d.lt !== '1'); dim(lid, !rft); dim(ms, !cat); mn.disabled = !cat || !editable;
+      txt.value = cat ? '' : (d.lx || '').trim();
+      if (cat) catText();
+    };
+    ty.onchange = () => {
+      d.lt = ty.value;
+      if (d.lt === '7') { d.lid = ''; d.lx = ' '; syncLabel(el); }
+      else if ((d.lt === '2' || d.lt === '3') && !(d.lid || '').trim() && def()) { d.lid = def().labelId; d.udl = '1'; }
+      rftText(); refresh(); markDirty();
+    };
+    lid.onchange = () => {
+      if (lid.value) { d.udl = '0'; d.lid = lid.value; } else { d.udl = '1'; if (def()) d.lid = def().labelId; }
+      rftText(); refresh(); markDirty();
+    };
+    refresh();
+    if ((d.field || '').trim()) lookup({ what: 'fieldLabels', field: d.field }).then((list) => {
+      labels = list || [];
+      for (const l of labels) lid.appendChild(Object.assign(document.createElement('option'), { value: l.labelId, textContent: l.labelId + ' "' + l.longName + '"' }));
+      lid.value = d.udl === '1' ? '' : (d.lid || '').trim();
+    });
+  }
+  // A Long Edit Box's Record tab (le02, le04): Field (Record Name / Field Name), Style (FIELDSTYLE; greyed while Rich Text
+  // is on, as App Designer has it) and Display Options Enable Spell Check (FIELDUSETMP 0x2).
+  function longEditRecordTab(ctx, p) {
+    const { el, d, field, group, text, check } = ctx;
+    const f = group(p, 'Field');
+    const rec = field(f, 'Record Name', text(d.rec || '')), fld = field(f, 'Field Name', text(d.field || ''));
+    const upd = () => { d.rec = rec.value.trim().toUpperCase(); d.field = fld.value.trim().toUpperCase(); markDirty(); };
+    rec.oninput = upd; fld.oninput = upd;
+    const style = ctx.styleSelect(p);
+    style.classList.add('le-style');
+    greyStyle(style, d.rte === '1');
+    const spell = check(group(p, 'Display Options'), 'Enable Spell Check', (n(el, 'fut') & 0x2) !== 0);
+    spell.onchange = () => ctx.tmpBit(0x2, spell.checked);
+  }
+  // The Record tab's Style, greyed while Rich Text is on.
+  function greyStyle(style, rich) {
+    style.disabled = rich || !editable; style.closest('.pf').classList.toggle('na', rich); style.closest('.pf').title = rich ? 'Not used with Rich Text' : '';
+  }
+  // A Long Edit Box's Options tab (le01, le03): Enable Rich Text (FIELDUSETMP 0x80 with a PSPTPNLRTEDITOR row; on, App
+  // Designer fills Image Location URL Id with PT_RTE_IMG_DB_LOC; off deletes the row) and its five ids.
+  function richTextTab(ctx, p) {
+    const { el, d, field, group, text, select, check } = ctx;
+    const g = group(p, 'Rich Text Options');
+    const on = check(g, 'Enable Rich Text', d.rte === '1');
+    const pick = (label, key) => {
+      const s = field(g, label, select([['', '']], (d[key] || '').trim()));
+      s.onchange = () => { d[key] = s.value; markDirty(); };
+      return s;
+    };
+    const cfg = pick('Configuration Settings Id', 'rtc'), img = pick('Image Location URL Id', 'rti'), plugin = pick('Plugin File Id', 'rtp');
+    const typed = (label, key) => { const t = field(g, label, text((d[key] || '').trim(), 30)); t.oninput = () => { d[key] = t.value.trim().toUpperCase(); markDirty(); }; return t; };
+    const tmpl = typed('Template File Id', 'rtt'), style = typed('Style File Id', 'rts');
+    const all = [cfg, img, plugin, tmpl, style];
+    const refresh = () => { for (const c of all) { c.disabled = !on.checked || !editable; c.closest('.pf').classList.toggle('na', !on.checked); } };
+    on.onchange = () => {
+      ctx.tmpBit(0x80, on.checked);
+      d.rte = on.checked ? '1' : '0';
+      const style = document.querySelector('.inspector select.le-style'); if (style) greyStyle(style, on.checked);
+      if (on.checked && !(d.rti || '').trim()) { d.rti = 'PT_RTE_IMG_DB_LOC'; img.value = d.rti; if (img.value !== d.rti) { img.appendChild(Object.assign(document.createElement('option'), { value: d.rti, textContent: d.rti })); img.value = d.rti; } }
+      refresh();
+    };
+    refresh();
+    lookup({ what: 'richTextChoices' }).then((r) => {
+      if (!r) return;
+      for (const [s, names, key] of [[cfg, r.configs, 'rtc'], [img, r.imageUrls, 'rti'], [plugin, r.plugins, 'rtp']]) {
+        const cur = (d[key] || '').trim();
+        for (const nme of names) if (![...s.options].some((o) => o.value === nme)) s.appendChild(Object.assign(document.createElement('option'), { value: nme, textContent: nme }));
+        s.value = cur;
+      }
+    });
+  }
+  // Placeholder Text (le17-le19), on a Long Edit Box's Fluid tab: None / Static / Message Catalog (PSPNLFIELDEXT.PLHTYPE
+  // 0 / 1 / 2), the Static Text (PLACEHOLDER) and Message Set/Number (PLH_MSG_SET_NBR / PLH_MSG_NBR). Message Catalog
+  // blanks the static text (le18); None clears the set / number (le19).
+  function placeholderGroup(ctx, fl, off) {
+    const { el, d, mk, group, text, radio } = ctx;
+    const g = group(fl, 'Placeholder Text');
+    radio(g, 'plh' + d.id, [['0', 'None'], ['1', 'Static'], ['2', 'Message Catalog']], String(n(el, 'plt')), (v) => setType(Number(v)));
+    if (!pageProps.fluidPage) for (const r of g.querySelectorAll('input[type=radio]')) off(r);
+    const st = off(ctx.field(g, 'Static Text', text((d.plh || '').trim(), 254)));
+    st.oninput = () => { d.plh = st.value; markDirty(); };
+    const msg = mk('<div class="row"><label>Message Set/Number</label></div>'); g.appendChild(msg);
+    const mini = (v) => { const i = text(v && v !== '0' ? v : ''); i.className = 'mini'; return i; };
+    const ms = mini(d.pls), mn = mini(d.pln); msg.append(ms, mn);
+    ms.oninput = () => { setN(el, 'pls', Number(ms.value) || 0); markDirty(); };
+    mn.oninput = () => { setN(el, 'pln', Number(mn.value) || 0); markDirty(); };
+    const refresh = () => {
+      const t = n(el, 'plt'), on = !!pageProps.fluidPage && editable;
+      st.disabled = t !== 1 || !on; st.closest('.pf').classList.toggle('na', t !== 1);
+      ms.disabled = mn.disabled = t !== 2 || !on; msg.classList.toggle('na', t !== 2);
+    };
+    function setType(t) {
+      setN(el, 'plt', t);
+      if (t !== 1) { d.plh = ''; st.value = ''; }
+      if (t !== 2) { setN(el, 'pls', 0); setN(el, 'pln', 0); ms.value = mn.value = ''; }
+      refresh(); markDirty();
+    }
+    refresh();
+  }
+  // Static Image's Label tab, laid out as App Designer's (si01-si12). Alt tag for image: Label Type None (LBLTYPE 6) /
+  // Text (1) / Message Catalog (7), Message Set / Msg Number (GRDLBLMSGSET / GRDLBLMSGNUM), the Label (LBLTEXT, or the
+  // catalog message shown greyed). Image: Image ID (CONTNAME) with the image's type, size and picture. Image Format /
+  // Size: Scale (DSPLFORMAT 0x800) or Size (0x4000), and the Width / Height the dialog shows, the control's less 2.
+  function staticImageLabelTab(ctx, p) {
+    const { el, d, mk, field, group, text, select, radio } = ctx;
+    const mini = (v) => { const i = text(v); i.className = 'mini'; return i; };
+    const alt = group(p, 'Alt tag for image');
+    const lt = field(alt, 'Label Type', select([['6', 'None'], ['1', 'Text'], ['7', 'Message Catalog']], d.lt));
+    const msg = mk('<div class="row"><label>Message Set</label></div>'); alt.appendChild(msg);
+    const ms = mini(d.gms && d.gms !== '0' ? d.gms : ''); msg.appendChild(ms);
+    msg.appendChild(tn('label', 'Msg Number'));
+    const mn = mini(d.gmn && d.gmn !== '0' ? d.gmn : ''); msg.appendChild(mn);
+    const lbl = field(alt, 'Label', text(d.lx));
+    lbl.oninput = () => { d.lx = lbl.value; syncLabel(el); markDirty(); };
+    // The catalog message is looked up once Message Set and Msg Number are both set.
+    let msgSeq = 0;
+    const showMessage = () => {
+      if (d.lt !== '7') return;
+      const set = Number(ms.value) || 0, num = Number(mn.value) || 0, seq = ++msgSeq;
+      lbl.value = '';
+      if (set && num) lookup({ what: 'message', set, num }).then((t) => { if (seq === msgSeq && d.lt === '7') lbl.value = t || ''; });
+    };
+    ms.oninput = () => { d.gms = String(Number(ms.value) || 0); markDirty(); showMessage(); };
+    mn.oninput = () => { d.gmn = String(Number(mn.value) || 0); markDirty(); showMessage(); };
+    const refresh = () => {
+      const cat = d.lt === '7', txt = d.lt === '1';
+      for (const c of [ms, mn]) c.disabled = !cat || !editable;
+      msg.classList.toggle('na', !cat);
+      lbl.disabled = !txt || !editable; lbl.closest('.pf').classList.toggle('na', !txt);
+      if (txt) lbl.value = d.lx || ''; else if (cat) showMessage(); else lbl.value = '';
+    };
+    // Message Catalog blanks the alt text (si04: LBLTEXT 'ZZ Alt' -> ' ').
+    lt.onchange = () => { d.lt = lt.value; if (d.lt === '7') { d.lx = ' '; syncLabel(el); } refresh(); markDirty(); };
+    refresh();
+
+    const imgBox = group(p, 'Image');
+    const idRow = mk('<div class="pf"><label>Image ID</label><div class="row"></div></div>'); imgBox.appendChild(idRow);
+    const img = text((d.cont || '').trim(), 30); idRow.lastChild.appendChild(img);
+    const browse = tn('button', '...'); browse.className = 'action'; browse.title = 'Choose an image definition'; idRow.lastChild.appendChild(browse);
+    if (!editable) img.disabled = browse.disabled = true;
+    const info = mk('<div class="row"><label>Type</label></div>'); imgBox.appendChild(info);
+    const ty = mini(''), iw = mini(''), ih = mini('');
+    info.append(ty, tn('label', 'Width'), iw, tn('label', 'Height'), ih);
+    for (const c of [ty, iw, ih]) c.readOnly = true;
+    const pic = mk('<div class="preview"></div>'); imgBox.appendChild(pic);
+    let actual = null, imgSeq = 0;
+    const showImage = () => {
+      const name = (d.cont || '').trim(), seq = ++imgSeq;
+      actual = null; ty.value = iw.value = ih.value = ''; pic.replaceChildren(); reset.disabled = true;
+      if (!name) return;
+      lookup({ what: 'image', name }).then((r) => {
+        if (seq !== imgSeq) return;
+        if (!r) { pic.replaceChildren(tn('span', 'No image named ' + name)); return; }
+        ty.value = r.format || ''; iw.value = r.width ? String(r.width) : ''; ih.value = r.height ? String(r.height) : '';
+        if (r.width && r.height) { actual = r; reset.disabled = !editable; }
+        if (r.dataUri) pic.replaceChildren(Object.assign(document.createElement('img'), { src: r.dataUri, alt: name }));
+      });
+    };
+    const setImage = (v) => { d.cont = v.trim().toUpperCase(); img.value = d.cont; markDirty(); showImage(); };
+    img.onchange = () => setImage(img.value);
+    browse.onclick = () => lookup({ what: 'pickImage', current: (d.cont || '').trim() }).then((v) => { if (v) setImage(v); });
+
+    const fmt = group(p, 'Image Format / Size');
+    const scaled = (n(el, 'dspl') & 0x800) !== 0;
+    radio(fmt, 'sifmt' + d.id, [['scale', 'Scale'], ['size', 'Size']], scaled ? 'scale' : 'size', (v) => {
+      let x = n(el, 'dspl') & ~0x4800; x |= v === 'scale' ? 0x800 : 0x4000; setN(el, 'dspl', x); markDirty();
+    });
+    const dims = mk('<div class="row"><label>Width</label></div>'); fmt.appendChild(dims);
+    const num = (v) => { const i = text(String(v)); i.type = 'number'; i.min = '1'; if (!editable) i.disabled = true; return i; };
+    const fw = num(Math.max(0, n(el, 'fr') - n(el, 'fl') - 2)), fh = num(Math.max(0, n(el, 'fb') - n(el, 'ft') - 2));
+    dims.append(fw, tn('label', 'Height'), fh);
+    const resize = (w, h) => {
+      setN(el, 'fr', n(el, 'fl') + w + 2); setN(el, 'fb', n(el, 'ft') + h + 2);
+      el.style.width = (w + 2) + 'px'; el.style.height = (h + 2) + 'px'; markDirty();
+    };
+    fw.oninput = fh.oninput = () => { const w = Number(fw.value), h = Number(fh.value); if (w > 0 && h > 0) resize(w, h); };
+    const reset = tn('button', 'Reset to actual image size'); reset.className = 'action'; fmt.appendChild(reset);
+    reset.onclick = () => { if (!actual) return; fw.value = String(actual.width); fh.value = String(actual.height); resize(actual.width, actual.height); };
+    showImage();
   }
   // Scroll Bar / Scroll Area Options: Occurs Level (computed from the scroll nesting, read-only) and Occurs Count.
   function scrollOptionsTab(ctx, p) {
@@ -702,17 +1409,19 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
     const general = (opts) => (ctx, p) => generalTab(ctx, p, opts);
     const record = (extra) => (ctx, p) => recordTab(ctx, p, extra);
     const use = (bits) => (ctx, p) => useTab(ctx, p, bits);
-    const onOff = (ctx, p) => { const on = ctx.field(p, 'On Value', ctx.text(ctx.d.onv || '')); const off = ctx.field(p, 'Off Value', ctx.text(ctx.d.offv || '')); on.oninput = () => { ctx.d.onv = on.value; markDirty(); }; off.oninput = () => { ctx.d.offv = off.value; markDirty(); }; };
     const valueOnly = (ctx, p) => { const v = ctx.field(p, 'Value', ctx.text(ctx.d.onv || '')); v.oninput = () => { ctx.d.onv = v.value; markDirty(); }; };
     const refInfo = (ttl, read) => (ctx, p) => { const t = ctx.field(p, ttl, ctx.text(read(ctx.d))); t.readOnly = true; t.title = 'Set in App Designer'; };
     switch (ft) {
-      case 0: return richInspect(el, 'Static Text Properties', [T('label', 'Label', label({ alignment: true, paragraph: true })), T('general', 'General', general({ adjust: true }))]);
-      case 2: return richInspect(el, 'Group Box Properties', [T('label', 'Label', label({})), T('use', 'Use', use([...USE_COMMON, ['Multi-Currency Field', 'fu', 0x20]])), T('general', 'General', general({ adjust: true })), T('fluid', 'Fluid', fluidTab)]);
-      case 3: return richInspect(el, 'Image Properties', [T('image', 'Image', imageTab), T('label', 'Label', label({ imageAlt: true, textLabel: 'Alt Tag Label' })), T('general', 'General', general({}))]);
+      case 0: return richInspect(el, 'Static Text Properties', [T('label', 'Label', staticTextLabelTab), T('use', 'Use', staticTextUseTab), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
+      case 2: return richInspect(el, 'Group Box Properties', [T('record', 'Record', groupBoxRecordTab), T('label', 'Label', groupBoxLabelTab), T('use', 'Use', groupBoxUseTab),
+        T('general', 'General', general({})), T('fluid', 'Fluid', (ctx, p) => fluidTab(ctx, p, { groupBox: true }))]);
+      case 3: return richInspect(el, 'Static Image Properties', [T('label', 'Label', staticImageLabelTab), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
       case 4: return richInspect(el, 'Edit Box Properties', [T('record', 'Record', record()), T('label', 'Label', label({})), T('use', 'Use', use(USE_FIELD)), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
       case 5: return richInspect(el, 'Drop-Down List Properties', [T('record', 'Record', record()), T('label', 'Label', label({})), T('use', 'Use', use(USE_FIELD)), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
-      case 6: return richInspect(el, 'Long Edit Box Properties', [T('record', 'Record', record()), T('label', 'Label', label({})), T('use', 'Use', use([...USE_FIELD])), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
-      case 7: return richInspect(el, 'Check Box Properties', [T('record', 'Record', record(onOff)), T('label', 'Label', label({})), T('use', 'Use', use(USE_FIELD)), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
+      case 6: return richInspect(el, 'Long Edit Box Properties', [T('record', 'Record', longEditRecordTab), T('label', 'Label', (ctx, p) => fieldLabelTab(ctx, p, { longEdit: true })),
+        T('use', 'Use', (ctx, p) => fieldUseTab(ctx, p, { longEdit: true })), T('general', 'General', general({})),
+        T('fluid', 'Fluid', (ctx, p) => fluidTab(ctx, p, { placeholder: true, suppressLabel: 'Suppress System-Specific Style Classes' })), T('options', 'Options', richTextTab)]);
+      case 7: return richInspect(el, 'Check Box Properties', [T('record', 'Record', checkBoxRecordTab), T('label', 'Label', fieldLabelTab), T('use', 'Use', fieldUseTab), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
       case 8: return richInspect(el, 'Radio Button Properties', [T('record', 'Record', record(valueOnly)), T('label', 'Label', label({})), T('use', 'Use', use(USE_FIELD)), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
       case 9: return richInspect(el, 'Image Properties', [T('record', 'Record', record()), T('label', 'Label', label({})), T('general', 'General', general({}))]);
       case 10: return richInspect(el, 'Scroll Bar Properties', [T('options', 'Options', scrollOptionsTab), T('use', 'Use', use(USE_COMMON)), T('general', 'General', general({}))]);
@@ -720,8 +1429,8 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
       case 18: return richInspect(el, 'Secondary Page Properties', [T('secpage', 'Secondary Page', refInfo('Page', (d) => d.target || '')), T('use', 'Use', use([['Invisible', 'fu', 0x2]])), T('label', 'Label', label({})), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
       case 19: return richInspect(el, 'Grid Properties', [T('label', 'Label', label({})), T('options', 'Options', gridOptionsTab), T('use', 'Use', use(USE_COMMON)), T('general', 'General', general({}))]);
       case 20: return richInspect(el, 'Tree Properties', [T('record', 'Record', record()), T('general', 'General', general({}))]);
-      case 23: return richInspect(el, 'Horizontal Rule Properties', [T('label', 'Label', label({})), T('general', 'General', general({ adjust: true }))]);
-      case 25: return richInspect(el, 'HTML Area Properties', [T('record', 'Record', record()), T('general', 'General', general({}))]);
+      case 23: return richInspect(el, 'Horizontal Rule Properties', [T('label', 'Label', ruleLabelTab), T('use', 'Use', ruleUseTab), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
+      case 25: return richInspect(el, 'HTML Area Properties', [T('html', 'HTML', htmlAreaTab), T('label', 'Label', htmlLabelTab), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
       case 27: return richInspect(el, 'Scroll Area Properties', [T('label', 'Label', label({})), T('options', 'Options', scrollOptionsTab), T('use', 'Use', use(USE_COMMON)), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
       case 30: return richInspect(el, 'Chart Properties', [T('record', 'Record', record()), T('general', 'General', general({}))]);
       default:
@@ -865,7 +1574,15 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
     if (status) { status.textContent = 'Copied ' + items.length + ' control' + (items.length === 1 ? '' : 's'); status.classList.remove('err'); }
   }
   document.getElementById('copy-btn').onclick = copySelection;
+  // Asks the extension for something the page does not carry (an image's size and picture, a catalog message, an image picked).
+  let lookupSeq = 0; const lookups = new Map();
+  function lookup(req) {
+    if (!vscode) return Promise.resolve(undefined);
+    const id = ++lookupSeq; vscode.postMessage({ type: 'lookup', id, req });
+    return new Promise((resolve) => lookups.set(id, resolve));
+  }
   window.addEventListener('message', (ev) => {
+    if (ev.data && ev.data.type === 'lookup') { const r = lookups.get(ev.data.id); if (r) { lookups.delete(ev.data.id); r(ev.data.result); } return; }
     if (ev.data && ev.data.type === 'clipboard') { clip = ev.data.items || []; const p = document.getElementById('paste-btn'); if (p) p.disabled = !clip.length; }
   });
   if (vscode) vscode.postMessage({ type: 'ready' });
@@ -1064,10 +1781,10 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
       const step = 20 * ((newSeq - 1) % 8);
       const l = Math.round(scroller.scrollLeft + 24 + step), t = Math.round(scroller.scrollTop + 24 + step);
       const el = document.createElement('div');
-      el.className = 'ctl s-' + k.shape + ' new-ctl'; el.id = 'c' + id; el.tabIndex = 0; el.title = 'New ' + k.typeName;
+      el.className = 'ctl s-' + k.shape + ' new-ctl' + ((k.fu & 1) ? ' u-display-only' : '') + ((k.fu & 2) ? ' u-invisible' : ''); el.id = 'c' + id; el.tabIndex = 0; el.title = 'New ' + k.typeName;
       Object.assign(el.dataset, { id: String(id), new: kind, num: '', level: String(scrollLevelAt(l + k.dw / 2, t + k.dh / 2)), type: k.typeName, target: '', rec: '', field: '', pfn: '', defer: '1', ctlfld: '0',
         fl: String(l), ft: String(t), fr: String(k.w ? l + k.w : 0), fb: String(k.h ? t + k.h : 0), ell: '0', elt: '0', elr: '0', elb: '0',
-        fst: String(k.fst), lt: String(k.lt), lx: k.lx, fu: '0', si: '0' });
+        fst: String(k.fst), lt: String(k.lt), lx: k.lx, fu: String(k.fu || 0), si: '0' });
       el.style.left = l + 'px'; el.style.top = t + 'px'; el.style.width = k.dw + 'px'; el.style.height = k.dh + 'px'; el.style.zIndex = k.shape === 'container' ? '1' : '2';
       if (k.shape === 'checkbox') el.appendChild(Object.assign(document.createElement('span'), { className: 'box' }));
       else if (k.shape === 'dropdown') el.appendChild(Object.assign(document.createElement('span'), { className: 'caret', textContent: '▾' }));
@@ -1132,8 +1849,9 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
 
     saveBtn.addEventListener('click', () => {
       const live = [...canvas.querySelectorAll('.ctl')].filter((el) => !el.dataset.removed);
-      const unbound = live.find((el) => el.dataset.new && kinds[el.dataset.new].bound && !(el.dataset.rec && el.dataset.field));
-      if (unbound) { inspect(unbound); status.textContent = 'Give the new ' + unbound.dataset.type + ' a record and field.'; status.classList.add('err'); return; }
+      // A record-bound control needs its record and field; an HTML Area may name the record alone.
+      const unbound = live.find((el) => { const k = el.dataset.new && kinds[el.dataset.new]; return k && k.bound && !(el.dataset.rec && (el.dataset.field || k.fieldOptional)); });
+      if (unbound) { inspect(unbound); status.textContent = 'Give the new ' + unbound.dataset.type + (kinds[unbound.dataset.new].fieldOptional ? ' a record.' : ' a record and field.'); status.classList.add('err'); return; }
       const controls = live.map((el) => ({
         pnlFldId: n(el,'id'), fieldLeft: n(el,'fl'), fieldTop: n(el,'ft'), fieldRight: n(el,'fr'), fieldBottom: n(el,'fb'),
         editLblLeft: n(el,'ell'), editLblTop: n(el,'elt'), editLblRight: n(el,'elr'), editLblBottom: n(el,'elb'),
@@ -1146,9 +1864,24 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
           recName: el.dataset.rec || '', fieldName: el.dataset.field || '', deferProc: el.dataset.defer !== '0',
           // Scroll Bar / Grid / Scroll Area Occurs Count and the Grid display-option flags.
           occursCount1: n(el,'oc1'), gridShowColHdg: n(el,'gch'), gridShowRowHdg: n(el,'grh'), gridAllowColSort: n(el,'gcs'),
+          // A Group Box's Label / Use / Fluid settings (gb01-gb27).
+          popupMenu: el.dataset.pop || '', assocFieldNum: n(el,'assoc'),
+          labelSizeType: n(el,'lst'), expandField: n(el,'lex'), placeholderType: n(el,'plt'), placeholder: el.dataset.plh || '',
+          placeholderMsgSet: n(el,'pls'), placeholderMsgNum: n(el,'pln'),
+          // A Long Edit Box's Rich Text options (null: Rich Text off).
+          ...(n(el,'ftype') === 6 ? { richText: el.dataset.rte === '1' ? { configSettingsId: el.dataset.rtc || '', imageLocationUrlId: el.dataset.rti || '',
+            pluginFileId: el.dataset.rtp || '', templateFileId: el.dataset.rtt || '', styleFileId: el.dataset.rts || '' } : null } : {}),
+          // An HTML Area's Constant value (null: a Field value).
+          ...(n(el,'ftype') === 25 ? { htmlConstant: el.dataset.hc === '1' ? (el.dataset.html || '') : null } : {}),
+          labelStyle: el.dataset.lsty || '', labelId: el.dataset.lid || '', useDefaultLabel: n(el,'udl'), hideFields: n(el,'hf'),
+          collapseDataArea: n(el,'cda'), defaultExpanded: n(el,'dve'), imageCollapsed: el.dataset.imc || '', imageExpanded: el.dataset.ime || '',
+          popupMsgSet: n(el,'pms'), popupMsgNum: n(el,'pmn'), groupBoxType: n(el,'gbt'), groupBoxHtmlType: n(el,'gbh'), scrollBars: n(el,'sb'),
+          headerTextInfo: n(el,'hti'), headerActionInfo: n(el,'hai'), headerActionItems: n(el,'hac'),
           ...(el.dataset.fslEdited ? { fluidClasses: (el.dataset.fsl || '').split('|') } : {}) } : {}),
         // A new / pasted control takes the scroll level of its final position (App Designer's scroll buffer).
-        ...((el.dataset.new || el.dataset.copyPage) ? { occursLevel: scrollLevelAt(el.offsetLeft + el.offsetWidth / 2, el.offsetTop + el.offsetHeight / 2) } : {}),
+        ...((el.dataset.new || el.dataset.copyPage) ? { occursLevel: scrollLevelAt(el.offsetLeft + el.offsetWidth / 2, el.offsetTop + el.offsetHeight / 2) }
+          // A stored Horizontal Rule's Set to Level.
+          : el.dataset.lvlEdited ? { occursLevel: n(el, 'level') } : {}),
         ...(el.dataset.copyPage ? { copy: { pnlName: el.dataset.copyPage, pnlFldId: Number(el.dataset.copyId) } }
           : el.dataset.new ? { add: { kind: el.dataset.new, recName: el.dataset.rec || '', fieldName: el.dataset.field || '' } } : {})
       }));

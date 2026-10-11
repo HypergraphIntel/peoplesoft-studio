@@ -17,15 +17,22 @@
  * others are refused until one does.
  */
 
-export type NewControlKind = 'groupBox' | 'frame' | 'staticText' | 'horizontalRule' | 'editBox' | 'dropDown' | 'checkBox' | 'pushButton';
+export type NewControlKind = 'groupBox' | 'frame' | 'staticText' | 'horizontalRule' | 'editBox' | 'dropDown' | 'checkBox' | 'pushButton'
+  | 'staticImage' | 'radioButton' | 'longEdit' | 'htmlArea';
 
 /** PSDBFIELD.FIELDTYPE values per kind that a capture has shown App Designer's fresh row for. */
 export const FIELD_TYPES_SEEN: Partial<Record<NewControlKind, Record<number, string>>> = {
   editBox: { 0: 'character', 2: 'number', 6: 'datetime' },
   dropDown: { 0: 'character' },
   checkBox: { 0: 'character' },
-  pushButton: { 0: 'character' }
+  pushButton: { 0: 'character' },
+  radioButton: { 0: 'character' },
+  longEdit: { 1: 'long character' },
+  htmlArea: { 1: 'long character' }
 };
+
+/** Kinds placed on a record whose field is optional: an HTML Area may name only the record (ht-fresh) or a field too (ht-field). */
+export const FIELD_OPTIONAL: ReadonlySet<NewControlKind> = new Set<NewControlKind>(['htmlArea']);
 const FIELD_TYPE_NAMES: Record<number, string> = {
   0: 'character', 1: 'long character', 2: 'number', 3: 'signed number', 4: 'date', 5: 'time', 6: 'datetime', 8: 'image', 9: 'image reference'
 };
@@ -68,11 +75,18 @@ export type ColumnValues = Record<string, number | string | null>;
 
 /** FIELDTYPE per kind. */
 export const NEW_CONTROL_FIELDTYPE: Record<NewControlKind, number> = {
-  staticText: 0, frame: 1, groupBox: 2, editBox: 4, dropDown: 5, checkBox: 7, pushButton: 12, horizontalRule: 23
+  staticText: 0, frame: 1, groupBox: 2, staticImage: 3, editBox: 4, dropDown: 5, longEdit: 6, checkBox: 7,
+  radioButton: 8, pushButton: 12, horizontalRule: 23, htmlArea: 25
 };
+
+/** FIELDUSE App Designer sets on a fresh control, where it is not 0 (a Static Image is display-only, in01). */
+export const NEW_CONTROL_FIELDUSE: Partial<Record<NewControlKind, number>> = { staticImage: 1 };
 
 /** Whether the kind is placed on a record field. */
 export const isRecordBound = (kind: NewControlKind): boolean => kind in FIELD_TYPES_SEEN;
+
+/** Kinds whose fresh label keeps the field's text but, unlike an Edit Box, no LABEL_ID (App Designer leaves it blank, rb-fresh). */
+const BLANK_LABEL_ID: ReadonlySet<NewControlKind> = new Set<NewControlKind>(['radioButton']);
 
 /** The size App Designer gives a fresh control (0,0 = auto-sized from the field). */
 export const NEW_CONTROL_SIZE: Record<NewControlKind, { width: number; height: number; fieldSizeType: number; lblType: number; lblText: string }> = {
@@ -84,7 +98,14 @@ export const NEW_CONTROL_SIZE: Record<NewControlKind, { width: number; height: n
   editBox: { width: 0, height: 0, fieldSizeType: 0, lblType: 3, lblText: '' },
   dropDown: { width: 0, height: 0, fieldSizeType: 0, lblType: 3, lblText: '' },
   checkBox: { width: 0, height: 0, fieldSizeType: 0, lblType: 3, lblText: '' },
-  pushButton: { width: 24, height: 22, fieldSizeType: 3, lblType: 1, lblText: '' }
+  pushButton: { width: 24, height: 22, fieldSizeType: 3, lblType: 1, lblText: '' },
+  // Static Image and HTML Area: App Designer drops a 4 x 4 box (in01, ht-fresh, ht-field). A Static Image's alt-label
+  // type is 6 (None), text "Static Image"; an HTML Area has no label (type 0).
+  staticImage: { width: 4, height: 4, fieldSizeType: 0, lblType: 6, lblText: 'Static Image' },
+  htmlArea: { width: 4, height: 4, fieldSizeType: 0, lblType: 0, lblText: '' },
+  // Radio Button and Long Edit Box are auto-sized from the field, like an Edit Box (rb-fresh, le-fresh).
+  radioButton: { width: 0, height: 0, fieldSizeType: 0, lblType: 1, lblText: '' },
+  longEdit: { width: 0, height: 0, fieldSizeType: 0, lblType: 3, lblText: '' }
 };
 
 /** PSPNLFIELD columns every captured insert shares (02-add-edit's Edit Box, less what varies by kind). */
@@ -113,7 +134,12 @@ const FIELD_BY_KIND: Record<NewControlKind, ColumnValues> = {
   groupBox: { DSPLFORMAT: 1, LBLLOC: 0, PBDISPLAYTYPE: 0 },
   frame: { DSPLFORMAT: 1, LBLLOC: 0, PBDISPLAYTYPE: 0 },
   staticText: { DSPLFORMAT: 16385, LBLLOC: 0, PBDISPLAYTYPE: 0 },
-  horizontalRule: { DSPLFORMAT: 0, LBLLOC: 0, PBDISPLAYTYPE: 0 }
+  horizontalRule: { DSPLFORMAT: 0, LBLLOC: 0, PBDISPLAYTYPE: 0 },
+  staticImage: { DSPLFORMAT: 8193, LBLLOC: 0, PBDISPLAYTYPE: 0 },
+  radioButton: { DSPLFORMAT: 1, LBLLOC: 1, PBDISPLAYTYPE: 0, ONVALUE: 'Y' },
+  longEdit: { DSPLFORMAT: 2097152, LBLLOC: 1, PBDISPLAYTYPE: 0 },
+  // On a field (ht-field); 8193 with only a record (ht-fresh) -- see newControlRows.
+  htmlArea: { DSPLFORMAT: 532481, LBLLOC: 0, PBDISPLAYTYPE: 0 }
 };
 
 /** PSPNLFIELDEXT, as captured; PARENTPNLFLDID / PAGEPNLFLDID are "<page>$0" for a classic page's controls. */
@@ -128,13 +154,19 @@ const EXT_COMMON: ColumnValues = {
 /** PTDISABLESMARTPROM and FFSTYLELONG: by the bound field's type (see above); static text's FFSTYLELONG is NULL (15). */
 function extByKind(kind: NewControlKind, field: FieldInfo | undefined): ColumnValues {
   if (kind === 'staticText') return { PTDISABLESMARTPROM: 0, FFSTYLELONG: null };
-  const character = isRecordBound(kind) && field?.fieldType === 0;
-  return { PTDISABLESMARTPROM: character && kind === 'editBox' ? 1 : 0, FFSTYLELONG: character ? ' | | | | ' : ' ' };
+  // The five-slot FFSTYLELONG rides on a text field -- character (02, rb-fresh) or long character (le-fresh);
+  // a number / datetime Edit Box (18) gets ' '. Smart-prompt is turned off only on a character Edit Box.
+  const textField = isRecordBound(kind) && (field?.fieldType === 0 || field?.fieldType === 1);
+  return { PTDISABLESMARTPROM: field?.fieldType === 0 && kind === 'editBox' ? 1 : 0, FFSTYLELONG: textField ? ' | | | | ' : ' ' };
 }
 
 /** Why a field cannot carry this kind of new control, or undefined when it can. */
 export function newControlFieldRefusal(kind: NewControlKind, recName: string, fieldName: string, field: FieldInfo | undefined): string | undefined {
   if (!isRecordBound(kind)) return undefined;
+  if (FIELD_OPTIONAL.has(kind)) {
+    if (!recName.trim()) return `A new ${kind} needs a record.`;
+    if (!fieldName.trim()) return undefined; // the record alone, as App Designer's fresh HTML Area (ht-fresh)
+  }
   if (!recName.trim() || !fieldName.trim()) return `A new ${kind} needs a record field.`;
   if (!field) return `${recName}.${fieldName} is not a field of record ${recName}.`;
   const seen = FIELD_TYPES_SEEN[kind] ?? {};
@@ -154,13 +186,15 @@ export function newControlRows(pnlName: string, pnlFldId: number, fieldNum: numb
   const bound = isRecordBound(add.kind);
   const button = add.kind === 'pushButton';
   // A record-bound control (other than a button) takes its field's default label unless the editor typed one.
-  const labelId = bound && !button ? blank(field?.labelId ?? '') : ' ';
+  // A Radio Button keeps the field's text but no LABEL_ID (rb-fresh).
+  const labelId = bound && !button && !BLANK_LABEL_ID.has(add.kind) ? blank(field?.labelId ?? '') : ' ';
   const lblText = placed.lblText.trim() ? placed.lblText
     : bound && !button ? blank(field?.labelText ?? '')
     : blank(NEW_CONTROL_SIZE[add.kind].lblText);
   return {
     field: {
       PNLNAME: pnlName, PNLFLDID: pnlFldId, FIELDNUM: fieldNum, ...FIELD_COMMON, ...FIELD_BY_KIND[add.kind],
+      ...(add.kind === 'htmlArea' && !add.fieldName.trim() ? { DSPLFORMAT: 8193 } : {}),
       FIELDTYPE: NEW_CONTROL_FIELDTYPE[add.kind], OCCURSLEVEL: Math.max(0, Math.round(placed.occursLevel ?? 0)),
       FIELDLEFT: placed.fieldLeft, FIELDTOP: placed.fieldTop, FIELDRIGHT: placed.fieldRight, FIELDBOTTOM: placed.fieldBottom,
       FIELDSIZETYPE: placed.fieldSizeType, LBLTYPE: placed.lblType, LABEL_ID: labelId, LBLTEXT: lblText,

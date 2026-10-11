@@ -53,6 +53,43 @@ export interface ControlColumns {
   gridShowColHdg: number;
   gridShowRowHdg: number;
   gridAllowColSort: number;
+  /**
+   * A Group Box's dialog (gb01-gb27): Label Style (LABELSTYLE), Label ID (LABEL_ID, USEDEFAULTLABEL), Hide all Fields
+   * (PTHIDEFIELDS), Collapsible Data Area (PTCOLLAPSEDATAAREA, PTDFLTVIEWEXPANDED, PTLBLIMGCOLLAPSE / PTLBLIMGEXPAND),
+   * and from PSPNLFIELDEXT the Embedded Popup Help message (MESSAGE_SET_NBR / MESSAGE_NBR), Group Box Type, Html Tag Type,
+   * ScrollBars and the Header Extension (PTGBRELTXTINFO / PTGBRELACTINFO / PTGBRELACTFLD: a group box's FIELDNUM - 1, -1 none).
+   */
+  /** A Long Edit Box's Rich Text options (PSPTPNLRTEDITOR, le01); null when Rich Text is off. */
+  richText: { configSettingsId: string; imageLocationUrlId: string; pluginFileId: string; templateFileId: string; styleFileId: string } | null;
+  /** A Long Edit Box's label Position (LABELSIZETYPE), Expand Field When Display Only (PTLEBEXPANDFIELD), and Placeholder Text
+   * (PSPNLFIELDEXT PLHTYPE / PLACEHOLDER / PLH_MSG_SET_NBR / PLH_MSG_NBR). */
+  labelSizeType: number;
+  expandField: number;
+  placeholderType: number;
+  placeholder: string;
+  placeholderMsgSet: number;
+  placeholderMsgNum: number;
+  /** An HTML Area's Constant value (PSPNLHTMLAREA.HTMLAREA, ha03); null for a Field value. */
+  htmlConstant: string | null;
+  /** POPUPMENU (cbx11) and a Related Field's ASSOCFIELDNUM (cbx13: the control field's FIELDNUM - 1). */
+  popupMenu: string;
+  assocFieldNum: number;
+  labelStyle: string;
+  labelId: string;
+  useDefaultLabel: number;
+  hideFields: number;
+  collapseDataArea: number;
+  defaultExpanded: number;
+  imageCollapsed: string;
+  imageExpanded: string;
+  popupMsgSet: number;
+  popupMsgNum: number;
+  groupBoxType: number;
+  groupBoxHtmlType: number;
+  scrollBars: number;
+  headerTextInfo: number;
+  headerActionInfo: number;
+  headerActionItems: number;
 }
 
 export interface PageControl {
@@ -309,7 +346,17 @@ export function buildPageLayout(name: string, view: PageView): PageLayout {
           fieldUseTmp: num(f.FIELDUSETMP), ffStyleLong: String(f.EXT_FFSTYLELONG ?? ''), fieldUseTemp2: num(f.EXT_FIELDUSETEMP2),
           dsplFormat: num(f.DSPLFORMAT), contName: str(f.CONTNAME), grdLblMsgSet: num(f.GRDLBLMSGSET), grdLblMsgNum: num(f.GRDLBLMSGNUM),
           onValue: str(f.ONVALUE), offValue: str(f.OFFVALUE), lblLoc: num(f.LBLLOC),
-          occursCount1: num(f.OCCURSCOUNT1), gridShowColHdg: num(f.GRDSHOWCOLHDG), gridShowRowHdg: num(f.GRDSHOWROWHDG), gridAllowColSort: num(f.GRDALLOWCOLSORT)
+          occursCount1: num(f.OCCURSCOUNT1), gridShowColHdg: num(f.GRDSHOWCOLHDG), gridShowRowHdg: num(f.GRDSHOWROWHDG), gridAllowColSort: num(f.GRDALLOWCOLSORT),
+          richText: f.RTE_PNLFLDID === null || f.RTE_PNLFLDID === undefined ? null : { configSettingsId: str(f.RTE_CFG), imageLocationUrlId: str(f.RTE_IMG),
+            pluginFileId: str(f.RTE_PLUGIN), templateFileId: str(f.RTE_TEMPLATE), styleFileId: str(f.RTE_STYLE) },
+          labelSizeType: num(f.LABELSIZETYPE), expandField: num(f.PTLEBEXPANDFIELD), placeholderType: num(f.EXT_PLHTYPE), placeholder: str(f.EXT_PLACEHOLDER),
+          placeholderMsgSet: num(f.EXT_PLH_MSG_SET_NBR), placeholderMsgNum: num(f.EXT_PLH_MSG_NBR),
+          htmlConstant: f.EXT_HTMLAREA === null || f.EXT_HTMLAREA === undefined ? null : String(f.EXT_HTMLAREA),
+          popupMenu: str(f.POPUPMENU), assocFieldNum: num(f.ASSOCFIELDNUM),
+          labelStyle: str(f.LABELSTYLE), labelId: str(f.LABEL_ID), useDefaultLabel: num(f.USEDEFAULTLABEL), hideFields: num(f.PTHIDEFIELDS),
+          collapseDataArea: num(f.PTCOLLAPSEDATAAREA), defaultExpanded: num(f.PTDFLTVIEWEXPANDED), imageCollapsed: str(f.PTLBLIMGCOLLAPSE), imageExpanded: str(f.PTLBLIMGEXPAND),
+          popupMsgSet: num(f.EXT_MESSAGE_SET_NBR), popupMsgNum: num(f.EXT_MESSAGE_NBR), groupBoxType: num(f.EXT_GRPBOXTYPE), groupBoxHtmlType: num(f.EXT_GRPBOXHTMLTYPE),
+          scrollBars: num(f.EXT_SCROLLBARS), headerTextInfo: num(f.EXT_PTGBRELTXTINFO), headerActionInfo: num(f.EXT_PTGBRELACTINFO), headerActionItems: num(f.EXT_PTGBRELACTFLD)
         },
         ...(label ? { label } : {}),
         target: targetOf(f),
@@ -320,7 +367,8 @@ export function buildPageLayout(name: string, view: PageView): PageLayout {
         controlFieldNum: num(f.ASSOCFIELDNUM),
         use: num(f.FIELDUSE),
         displayOnly: (num(f.FIELDUSE) & FIELD_USE_DISPLAY_ONLY) !== 0,
-        invisible: (num(f.FIELDUSE) & FIELD_USE_INVISIBLE) !== 0,
+        // A Horizontal Rule's 0x02 is Set to Level (hr04), not Invisible.
+        invisible: (num(f.FIELDUSE) & FIELD_USE_INVISIBLE) !== 0 && num(f.FIELDTYPE) !== 23,
         pageFieldName: str(f.PNLFIELDNAME)
       };
     });

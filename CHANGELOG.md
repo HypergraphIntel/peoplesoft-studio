@@ -1,5 +1,64 @@
 # Changelog
 
+## 0.8.2
+
+### Changed
+
+- **Page editor Insert**: more controls can be inserted on a page, each written
+  byte-for-byte as App Designer's fresh row (verified against captures) —
+  **Static Image**, **Radio Button**, **Long Edit Box** and **HTML Area**,
+  alongside the Frame, Group Box, Horizontal Rule, Static Text, Check Box,
+  Drop-Down, Edit Box and Push Button already there. An HTML Area takes a record
+  and, optionally, a long-character field (App Designer writes the two
+  differently; both are captured). A Radio Button goes on a character field and
+  a Long Edit Box on a long-character field. (Image, Tree, grids, scrolls,
+  subpages, secondary pages, Tab Separator and charts stay greyed for now.)
+- **Page editor tab order**: a control you add now takes the tab-order place
+  App Designer gives it — right after the control before it on the page
+  (reading order: top to bottom, left to right on a row) — instead of going
+  last. Pinned down from every captured App Designer insert plus three focused
+  experiments (selection plays no part); the MCP's `psft_edit_page` does the
+  same. See [docs/PAGE_SAVE.md](docs/PAGE_SAVE.md#where-an-added-control-goes).
+- **Page editor property panels** for Static Text, Static Image, Group Box and
+  Horizontal Rule now match App Designer's dialogs tab for tab and control for
+  control, each setting mapped from an App Designer capture
+  (see [docs/PAGE_SAVE.md](docs/PAGE_SAVE.md)):
+  - Static Text: Label (Text / Message Catalog, Insert Line Feed, Text /
+    Explanation, Alignment), Use (Multi-Currency, Paragraph), General, Fluid.
+  - Static Image: the alt tag, the Image ID with its type, size and picture
+    and an image picker, Scale / Size with Width / Height and Reset to actual
+    image size, General, Fluid.
+  - Group Box: every setting on Record, Label (RFT labels and Label ID, label
+    and body styles, Embedded Popup Help, alignment, Hide Border, Suppress
+    Accessible Label), Use (Hide all Fields, Collapsible Data Area with its
+    images), General and Fluid (Group Box Type, Html Tag Type, ScrollBars, the
+    Header Extension, Draggable / Droppable / Gestures / Capture Trigger, Scroll
+    Sizing by Style). Saves write what App Designer's OK writes alongside.
+  - Horizontal Rule: Text and Style, Multi-Currency, Set to Level, General,
+    Fluid.
+  - Check Box: Record (field and On / Off values), Label (None / Text / RFT
+    labels with Label ID, Style, Location, Alignment), Use (every Field Use
+    Option including Modifiable by JavaScript, Generate in HTML and Related
+    Field with its Related Control Field, Popup Menu, Display-Only
+    Appearance, screen-reader read-only), General, Fluid.
+  - HTML Area: HTML (Field or Constant HTML, HTML Tags Only, Respond Only
+    Once), Label (None / Text / Message Catalog / RFT labels), General, Fluid.
+    A Constant's HTML is now read, saved, deleted with its control and copied
+    on paste.
+  - Long Edit Box: Record (Style, Enable Spell Check), Label (line feeds,
+    Label Style, Alignment, Position, First occurs only, No colon), Use
+    (Expand Field When Display Only, Display in Modal Window, Long Edit
+    Counter, screen-reader read-only), General, Fluid (Placeholder Text) and
+    Options (Rich Text and its five ids, saved to PSPTPNLRTEDITOR).
+- **Page save fix**: a save that changed only a control's PSPNLFIELDEXT
+  settings (a Fluid option, Paragraph ...) was skipped as "nothing changed";
+  it is written now.
+- **Page Properties** no longer shows the "greyed settings become editable once
+  captured" note: every General / Use / Fluid setting is editable now, and the
+  few greyed items (a secondary page's OK & Cancel / Close Box / Modal options
+  on a standard page, a popup page's Allow Deferred) are disabled only because
+  they do not apply to that page type, each saying so on hover.
+
 ## 0.8.1
 
 ### Changed

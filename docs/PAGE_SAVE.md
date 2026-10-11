@@ -144,7 +144,8 @@ append.** Here the existing edit box (PNLFLDID 2) was renumbered FIELDNUM 2->5
 while the new controls took 1..4 by the order App Designer computes (related to
 geometry/tab order, not yet fully pinned down). A page writer must reproduce
 App Designer's FIELDNUM ordering, or a later App Designer save will reshuffle
-it. **TODO: nail the FIELDNUM ordering rule with focused captures.**
+it. (The rule for an added control is now pinned down: see
+[Where an added control goes](#where-an-added-control-goes).)
 
 Counters: a save that adds controls bound to record fields also bumped `RDM`
 (record definition manager) and more `SYS`, besides `PDM` -- `PDM` 49->52,
@@ -165,6 +166,8 @@ their children. A later App Designer save may re-sequence FIELDNUM, which is
 cosmetic and does not change the rendered page. The hard invariants are: stable
 unique PNLFLDID (new = page MAXPNLFLDID + 1), MAXPNLFLDID/FIELDCOUNT on
 PSPNLDEFN, a PSPNLFIELDEXT row per control, and the PDM + SYS counter bumps.
+(0.8.2 matches App Designer's placement of an added control exactly: see
+[Where an added control goes](#where-an-added-control-goes).)
 
 ### 08-delete
 Deleted the check box (PNLFLDID 4): `PDM` +1, `SYS` +1. `PSPNLDEFN` VERSION/
@@ -281,8 +284,11 @@ A new control is App Designer's own freshly dropped row
 (`src/providers/pageControlTemplates.ts`), checked against the captures by
 `src/test/pageControlTemplates.test.ts`: Edit Box (02, and 18 on number /
 datetime), Drop-Down List Box, Check Box, Push Button (06), Group Box (07),
-Static Text (15), Frame (16), Horizontal Rule (17). The writer fills in PNLNAME,
-PNLFLDID (`MAXPNLFLDID + 1` onward), FIELDNUM (after the survivors), the
+Static Text (15), Frame (16), Horizontal Rule (17), and since 0.8.2 Static Image
+(in01), Radio Button (rb-fresh), Long Edit Box (le-fresh) and HTML Area (on a
+field, ht-field; on its record alone, ht-fresh). The writer fills in PNLNAME,
+PNLFLDID (`MAXPNLFLDID + 1` onward), FIELDNUM (where App Designer puts it: see
+[Where an added control goes](#where-an-added-control-goes)), the
 position, label and record field; a record-bound control without an edited
 label takes the field's default label (`PSDBFLDLABL` DEFAULT_LABEL = 1,
 LABEL_ID + LONGNAME).
@@ -490,6 +496,39 @@ changed places (10: 5 -> 6, 14: 6 -> 5), plus the stamp and `PDM` / `SYS` +1.
 a control follows would change its OCCURSLEVEL too, and is refused until a
 capture shows what App Designer writes then.
 
+### Where an added control goes
+
+App Designer does not append a new control, and does not put it after the
+selected control: it puts it **right after the control before it in reading
+order** -- the last of the page's controls at or above-left of the drop point,
+two controls being on one row when their tops are within 20 pixels (then left
+to right). Of several at one spot, the first in tab order counts; with none
+before it, the new control goes first. The controls after it move down one.
+
+Evidence: every App Designer insert captured (02, 06, 07, 15-18, in01, in03,
+eb/gb-hr/rb/le/ht-fresh, ht-field, sa/sb/sec/sub-fresh) and three focused ones
+on ZZ_PCODE_LAB_CT:
+
+- **to-a-selected**: Static Image (tab 2) selected in the Order tab, a Static
+  Text dropped at the bottom right: tab 9 (by position), not 3 or the end.
+- **to-c-canvas-sel**: the Check Box (tab 3) selected on the canvas, a Static
+  Text dropped at y 724: tab 9, not 4. Selection plays no part.
+- **to-d-band24**: a Static Text 24 px below and left of another: placed after
+  it (another row). 18-number-datetime has two controls 20 px apart on one row,
+  so the band is 20 (App Designer snaps tops to 4 px).
+
+The older ZZ_PCODE_LAB_PG captures show why it is "after the predecessor" and
+not "rank by position": controls moved after they were added leave the tab
+order out of reading order, and a new one still lands right after its
+neighbour above (15: static text at y 376 after the push button at y 200, ahead
+of controls higher on the page but later in the order).
+
+`pageWriter.ts` `newControlTabIndex`; `pageWriter.test.ts` replays all 22
+captures (the new controls' FIELDNUM and every other control's renumbering).
+Not covered: a field dropped inside a grid (App Designer stores it at 0,0 and
+orders it in the grid; gr-fresh). A pasted control keeps its own rule (after
+its source, c02).
+
 ## A control's Properties: Frame
 
 fr01-fr07 set one Frame Properties setting each, on frame 16 of
@@ -538,6 +577,238 @@ empty entry stored as ' ' and classes kept as typed: fr12 wrote
 `zz-fc|zz-fs|zz-fm|zzfl|zz-fx`. `pageWriter.test.ts` replays fr08-fr20.
 Live, `wp18` set frame 16's Fluid settings back. `wp19` cleared the page
 classes set by mistake (fr08x) and turned Fluid Page off again.
+
+## A control's Properties: Static Text
+
+st01-st10 set one Static Text Properties setting each, on control 1 of
+ZZ_PCODE_LAB_CT (then a classic page). The dialog's tabs are Label, Use,
+General and Fluid:
+
+| Tab | Setting | Column |
+|---|---|---|
+| Label | Text / Message Catalog | LBLTYPE 1 / 7 |
+| Label | Text | LBLTEXT |
+| Label | Message Set / Number | GRDLBLMSGSET / GRDLBLMSGNUM |
+| Label | Message Catalog shown as Explanation | DSPLFORMAT 0x40000000 |
+| Label | Style | FIELDSTYLE |
+| Label | Alignment Centered / Right (Left = neither) | DSPLFORMAT 0x2 / 0x4 |
+| Use | Multi-Currency Field | FIELDUSE 0x20 (st11) |
+| Use | Paragraph | PSPNLFIELDEXT.FIELDUSETEMP2 0x800 |
+| General | Page Field Name, Enable as Page Anchor | PNLFIELDNAME, ENABLEASANCHOR |
+
+The Static Text dialog has no Adjust Layout for Hidden Fields.
+
+**Insert Line Feed** stores a bare LF (0x0A), no CR. In st11 two line feeds
+and a second line were added (`Control mapping\n\n- Did it work?`), along
+with Multi-Currency (FIELDUSE 0 -> 32). ct-fluid-on (v257) had just
+turned Fluid Page on for ZZ_PCODE_LAB_CT (PNLUSE 11 -> 16395), so st11 (v258)
+was on a Fluid page. That save also wrote the control's FFSTYLELONG
+' ' -> ' | | | | ', as a frame's dialog does (fr01). On the classic page
+(st01-st09) a Static Text's dialog never did. The writer writes the five
+slots for a Static Text only on a Fluid page. `pageWriter.test.ts` replays
+st02-st08 and st11.
+
+## A control's Properties: Static Image
+
+si01-si12 set one Static Image Properties setting each, on control 2 of
+ZZ_PCODE_LAB_CT. The dialog's tabs are Label, General and Fluid:
+
+| Group | Setting | Column |
+|---|---|---|
+| Alt tag for image | Label Type None / Text / Message Catalog | LBLTYPE 6 / 1 / 7 |
+| Alt tag for image | Label (Text) | LBLTEXT |
+| Alt tag for image | Message Set / Msg Number | GRDLBLMSGSET / GRDLBLMSGNUM |
+| Image | Image ID | CONTNAME |
+| Image Format / Size | Scale / Size | DSPLFORMAT 0x800 / 0x4000 (a fresh image has neither: Size) |
+| Image Format / Size | Width / Height | FIELDRIGHT / FIELDBOTTOM |
+| General | Page Field Name, Enable as Page Anchor | PNLFIELDNAME, ENABLEASANCHOR |
+
+Choosing Message Catalog blanks the alt text (si04: LBLTEXT 'ZZ Alt' -> ' '),
+and the greyed Label shows the catalog message. Scale and Size swap the two
+bits and keep the rest (si10: 10241 -> 24577). The dialog's Width and Height
+are the control's rectangle less 2: control 2 at 16,48-58,80 shows 40 x 30.
+Its Type / Width / Height are the image definition's own format and pixel
+size. Reset to actual image size is not captured; the editor takes it to
+set Width / Height to the image's pixel size.
+
+## A control's Properties: Group Box
+
+gb01-gb27 set each Group Box Properties setting on ZZ_PCODE_LAB_CT (a Fluid
+page; group box 6 and a fresh group box 21), gb28 on ZZ_PCODE_LAB_PG (classic).
+The dialog's tabs are Record, Label, Use, General and Fluid:
+
+| Tab | Setting | Column |
+|---|---|---|
+| Record | Record Name / Field Name | RECNAME / FIELDNAME |
+| Label | Type Text / RFT Short / RFT Long / Message Catalog | LBLTYPE 1 / 2 / 3 / 7 |
+| Label | Text | LBLTEXT (RFT: the label's SHORTNAME / LONGNAME) |
+| Label | Label ID (*** Use Default Label ***) | LABEL_ID, USEDEFAULTLABEL 1 (an explicit label 0) |
+| Label | Message Set/Number | GRDLBLMSGSET / GRDLBLMSGNUM |
+| Label | Label Style | LABELSTYLE |
+| Label | Embedded Popup Help: Message Catalog Popup | FIELDUSETMP 0xA000; PSPNLFIELDEXT MESSAGE_SET_NBR / MESSAGE_NBR |
+| Label | Alignment Left / Centered / Right | DSPLFORMAT 0x80000 / 0x100000 / 0x200000 |
+| Label | Body Style | FIELDSTYLE |
+| Label | Adjust Layout for Hidden Fields | PTADJHIDDENFIELDS |
+| Label | Hide Border / Suppress Accessible Label | FIELDUSE 0x4000000 / 0x2000 |
+| Use | Multi-Currency Field | FIELDUSE 0x20 |
+| Use | Hide all Fields when Group Box Hidden | PTHIDEFIELDS |
+| Use | Collapsible Data Area / Default Initial View to Expanded State | PTCOLLAPSEDATAAREA / PTDFLTVIEWEXPANDED |
+| Use | Label Image for Collapsed / Expanded State | PTLBLIMGCOLLAPSE / PTLBLIMGEXPAND (' ' default) |
+| General | Page Field Name, Enable as Page Anchor | PNLFIELDNAME, ENABLEASANCHOR |
+| Fluid | Group Box Type | PSPNLFIELDEXT.GRPBOXTYPE: the list index, 0 Default ... 26 Group Box Header Extension |
+| Fluid | Html Tag Type | GRPBOXHTMLTYPE 0-6: Default, DIV, Section, Article, UL, OL, LI |
+| Fluid | ScrollBars | SCROLLBARS 0-4: None, Vertical, Horizontal, Both, Carousel |
+| Fluid | Textual Info / Actionable Info / Action Items | PTGBRELTXTINFO / PTGBRELACTINFO / PTGBRELACTFLD |
+| Fluid | Draggable / Droppable | FIELDUSETMP 0x800000 / 0x1000000 |
+| Fluid | Gestures / Capture Trigger / Scroll Sizing by Style | FIELDUSETEMP2 0x40 / 0x8000 / 0x8 |
+
+Binding a field (gb16) makes the label RFT Long with the field's default
+label: LBLTYPE 3, LABEL_ID, LBLTEXT its long name. Message Catalog blanks
+LBLTEXT to ' ' (gb14); switching back keeps the set and number. Context is a
+read-only display. The Header Extension lists offer the page's group boxes of
+type Group Box Header Extension, shown "tab order | label" and stored as
+FIELDNUM - 1 (gb27: "14 | Long 254" stored 13); none is -1. They are offered
+only on a Default group box.
+
+OK on the dialog also writes, with nothing changed (gb06, gb28): DSPLFORMAT
+0x80000 (Left, explicit), FIELDUSETMP 0x6000000 and FFSTYLELONG ' | | | | '.
+On a Fluid page (gb06, not gb28) it also turns the Header Extension's 0s to
+-1. The writer does the same when a group box's dialog columns change.
+`pageWriter.test.ts` replays gb01-gb27 (less gb08, a full snapshot without
+PSPNLFIELDEXT) and checks gb06 / gb28. Live, `wgb2-on` / `wgb3-off` saved
+group box 21's Multi-Currency, Hide all Fields, ScrollBars, popup message
+and Label ID through `savePage` and back.
+
+## A control's Properties: Horizontal Rule
+
+hr01-hr06 on rule 17 of ZZ_PCODE_LAB_PG (classic), hr07 on rule 7 of
+ZZ_PCODE_LAB_CT (Fluid). The dialog's tabs are Label, Use, General and Fluid:
+
+| Tab | Setting | Column |
+|---|---|---|
+| Label | Text | LBLTEXT (LBLTYPE stays 0; blank is ' ') |
+| Label | Style | FIELDSTYLE |
+| Use | Multi-Currency Field | FIELDUSE 0x20 |
+| Use | Set to Level | FIELDUSE 0x2 with SECUREINVISIBLE 1 (cleared together, hr05) |
+| Use | the level | OCCURSLEVEL |
+| General | Page Field Name, Enable as Page Anchor | PNLFIELDNAME, ENABLEASANCHOR |
+
+The level list runs from 0 to the scroll level where the rule sits; the lab
+pages have no scroll, so only 0 was captured. Delivered rules with Set to Level
+sit at OCCURSLEVEL 0-2 (4,424 / 234 / 34), so the level chosen is OCCURSLEVEL.
+OK on the dialog writes FFSTYLELONG ' | | | | ' on either page type (hr01,
+hr07). On ZZ_PCODE_LAB_CT an OK that changed nothing did not save at all; the
+first OK of hr07 wrote the slots. `pageWriter.test.ts` replays hr02-hr06 and
+checks hr01 / hr07.
+
+## A control's Properties: Check Box
+
+cb-* (property grid) and cbx01-cbx17 (the dialog) on check box 3 of
+ZZ_PCODE_LAB_CT. The dialog's tabs are Record, Label, Use, General and Fluid:
+
+| Tab | Setting | Column |
+|---|---|---|
+| Record | Record Name / Field Name, On Value / Off Value | RECNAME / FIELDNAME, ONVALUE / OFFVALUE |
+| Label | Type None / Text / RFT Short / RFT Long | LBLTYPE 0 / 1 / 2 / 3 (None keeps LBLTEXT) |
+| Label | Text | LBLTEXT (RFT: the label's SHORTNAME / LONGNAME; cbx05 "C01") |
+| Label | Label ID (*** Use Default Label ***) | LABEL_ID, USEDEFAULTLABEL 1 (explicit 0) |
+| Label | Style | FIELDSTYLE |
+| Label | Location Left / Right | LBLLOC 0 / 1 |
+| Label | Alignment Left / Centered / Right | DSPLFORMAT 0x80000 / 0x100000 / 0x200000 |
+| Use | Display Only / Multi-Currency / Display Control Field | FIELDUSE 0x1 / 0x20 / 0x8 |
+| Use | Invisible | FIELDUSE 0x2 with SECUREINVISIBLE 1 |
+| Use | Modifiable by JavaScript (invisible only) | SECUREINVISIBLE 0 |
+| Use | Generate in HTML (invisible only) | FIELDUSETEMP2 0x20 |
+| Use | Related Field | FIELDUSE 0x10, and Display Only 0x1 with it |
+| Use | Related Control Field | ASSOCFIELDNUM: the control field's FIELDNUM - 1 |
+| Use | Enable When Page is Display Only | FIELDUSE 0x40000 |
+| Use | Popup Menu | POPUPMENU |
+| Use | Allow Deferred Processing | DEFERPROC |
+| Use | Set Component Changed (off) | FIELDUSETMP 0x8 |
+| Use | Display-Only Appearance: Disabled Edit Control | FIELDUSETMP 0x4 |
+| Use | Read only control for screen reader | FIELDUSETEMP2 0x10000 |
+| Use | Wrap Long Words | FIELDUSETMP 0x40 |
+
+Turning Invisible off clears Generate in HTML and SECUREINVISIBLE (cbx15;
+delivered visible controls carry SECUREINVISIBLE 1 only 4 times in 164,547).
+Related Field off clears ASSOCFIELDNUM and leaves Display Only on (cbx14). A
+related display must follow its control field in tab order, or App Designer
+calls the page invalid (cbx13 was saved through that warning); delivered
+related fields point at a Display Control Field's FIELDNUM - 1 in 29,485 of
+29,572. Show Label, the left Enable When Page is Display Only, Smart Prompt,
+Persist Grid Column in Menu and Field Format Override stay greyed on a check
+box outside a grid. A fresh check box already has Left (0x80000) and five
+Fluid slots, so its OK writes nothing more; an Edit Box's OK on a Fluid page
+writes the slots (cbx12). `pageWriter.test.ts` replays cbx02-cbx17.
+
+## A control's Properties: HTML Area
+
+ha01-ha10 on HTML Area 15 of ZZ_PCODE_LAB_CT (Fluid). The dialog's tabs are
+HTML, Label, General and Fluid:
+
+| Tab | Setting | Column |
+|---|---|---|
+| HTML | Value: Field | RECNAME / FIELDNAME (a record alone is allowed, ha10) |
+| HTML | Value: Constant | PSPNLHTMLAREA (PNLNAME, PNLFLDID, HTMLAREA CLOB); RECNAME / FIELDNAME ' ' |
+| HTML | HTML Tags Only | FIELDUSETMP 0x100000 |
+| HTML | Respond Only Once | PSPNLFIELDEXT.FIELDUSETEMP2 0x1000 |
+| Label | Type None / Text / Message Catalog / RFT Long / RFT Short | LBLTYPE 0 / 1 / 7 / 3 / 2 |
+| Label | Text, Label ID | LBLTEXT, LABEL_ID / USEDEFAULTLABEL |
+| Label | Message Set / Msg Number | GRDLBLMSGSET / GRDLBLMSGNUM |
+
+Constant (ha03) inserts the PSPNLHTMLAREA row and blanks RECNAME; editing the
+text (ha04) replaces it; Field again (ha05) deletes it. App Designer wrote no
+PSPNLHTMLLANG row. Binding a field (ha05) fills LABEL_ID and LBLTEXT with its
+default label and leaves the label type; Message Catalog blanks LABEL_ID and
+LBLTEXT (ha06); an RFT type takes back the default label (ha07); Text and None
+keep both (ha08, ha09). Context is read-only. The first OK (ha01) wrote DSPLFORMAT
+0x80000 and, on this Fluid page, FFSTYLELONG ' | | | | '. Delivered HTML Areas
+carry 0x80000 on classic pages too (401 of 451) but the five slots rarely (137),
+so the writer adds the Left bit on any page and the slots on a Fluid page.
+Deleting a Constant HTML Area deletes its PSPNLHTMLAREA / PSPNLHTMLLANG rows; a
+pasted one copies its source's text. `pageWriter.test.ts` replays ha01-ha10;
+live, wha-const / wha-edit / wha-field saved a Constant, edited it and went
+back to Field through `savePage`.
+
+## A control's Properties: Long Edit Box
+
+le01-le19 on Long Edit Box 9 of ZZ_PCODE_LAB_CT (Fluid). Tabs: Record, Label,
+Use, General, Fluid and Options:
+
+| Tab | Setting | Column |
+|---|---|---|
+| Record | Record Name / Field Name | RECNAME / FIELDNAME |
+| Record | Style (greyed with Rich Text) | FIELDSTYLE |
+| Record | Enable Spell Check | FIELDUSETMP 0x2 |
+| Label | Type None / Text / RFT Short / RFT Long | LBLTYPE 0 / 1 / 2 / 3 |
+| Label | Text (Insert Line Feed: a bare LF) | LBLTEXT |
+| Label | Label ID, Style | LABEL_ID / USEDEFAULTLABEL, LABELSTYLE |
+| Label | Alignment Left / Centered / Right | DSPLFORMAT 0x80000 / 0x100000 / 0x200000 |
+| Label | Position Left / Custom / Top | LABELSIZETYPE 0 / 1 / 2, with the label rectangle laid out again |
+| Label | First occurs only | DSPLFORMAT 0x400000 |
+| Label | No colon | LBLLOC 1 |
+| Use | Display Only, Invisible, Modifiable by JavaScript, Generate in HTML, Multi-Currency, Related Field | as a Check Box's |
+| Use | Expand Field When Display Only | PTLEBEXPANDFIELD |
+| Use | Display in Modal Window | FIELDUSETMP 0x100 |
+| Use | Enable Long Edit Counter | FIELDUSETMP 0x8000000 |
+| Use | Read only control for screen reader | FIELDUSETEMP2 0x10000 |
+| Fluid | Placeholder Text None / Static / Message Catalog | PSPNLFIELDEXT.PLHTYPE 0 / 1 / 2, PLACEHOLDER, PLH_MSG_SET_NBR / PLH_MSG_NBR |
+| Options | Enable Rich Text | FIELDUSETMP 0x80 and a PSPTPNLRTEDITOR row |
+| Options | Configuration Settings / Image Location URL / Plugin / Template / Style File Id | PSPTPNLRTEDITOR PTRTECFGSETTINGSID / PTRTEIMGLOCURLID / PTRTEPLUGIN / PTRTETEMPLATE / PTRTESTYLE |
+
+Enable Rich Text inserts the PSPTPNLRTEDITOR row with Image Location URL Id
+PT_RTE_IMG_DB_LOC filled in (le01); turning it off deletes the row (le03).
+The lists: HTML definitions PT_RTE_CFG* (Configuration Settings) and
+PT_RTE_PLUGIN* (Plugin), URL definitions PT_RTE* (Image Location); the Template
+and Style File lists are empty on HRDMO and no delivered page sets them. Every
+one of HRDMO's 286 rows sits on a long edit box with FIELDUSETMP 0x80.
+Position writes the label rectangle App Designer lays out from the label's text
+(le05: Top, le06: Custom, le07: Left); the editor sets LABELSIZETYPE and keeps
+the label rectangle it has. Message Catalog placeholder blanks the static text;
+None clears the set / number. Deleting a long edit box deletes its
+PSPTPNLRTEDITOR row; a pasted one copies it. `pageWriter.test.ts` replays
+le01-le19; live, wle-on / wle-off saved Rich Text and a placeholder through
+`savePage` and back.
 
 ## Copy and paste
 
