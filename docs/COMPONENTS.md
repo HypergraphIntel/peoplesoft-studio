@@ -95,6 +95,23 @@ scrolls. The rules, each needed for that match:
   JOB_JR's subpages placed in a JOB scroll are in the JOB_JR scroll (level 2).
 - Records are listed in the order their fields first appear.
 
+Checked again on the scroll-level lab component ZZ_PCODE_LAB_LVC (search record
+ZZ_R_L0_A; pages ZZ_PCODE_LAB_LV, then ZZ_PCODE_LAB_LW, which puts ZZ_R_L2_A in a
+level-1 scroll): App Designer shows Level 0 ZZ_R_L0_A, ZZ_R_L0_B; Level 1
+ZZ_R_L1_A with Level 2 ZZ_R_L2_A (and DERIVED_ADDRESS, Derived); and a second
+Level 1 ZZ_R_L2_A -- as built here. Nothing of the structure is stored: App
+Designer builds it from the pages each time.
+
+**Buffer structure for agents** (`src/model/bufferStructure.ts`, the MCP's
+`psft_get_component_structure`): each scroll level's primary record with its keys
+split into `parentKeys` (keyed above it too: they select its rows for each
+parent row) and `rowKeys` (tell its rows apart), every record with the fields on
+the pages, the PeopleCode object path (`GetLevel0()(1).GetRowset(Scroll.A)(&i1)
+.GetRowset(Scroll.B)`) and built-in scroll paths (`ActiveRowCount(Scroll.A, &i1,
+Scroll.B)`, `FetchValue(...)`), and notes on keying (a child not keyed by the
+level above; a record primary of several scrolls). `psft_explain_scrolls` gives
+the rules.
+
 The lightning mark is on records with record-level component PeopleCode
 (`PSPCMPROG` `OBJECTID1` 10, `OBJECTID3` 1, `OBJECTID4` 12: JOB and DERIVED_GL
 on JOB_DATA, as App Designer marks them) and on the component when it has

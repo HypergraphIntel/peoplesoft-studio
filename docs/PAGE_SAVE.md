@@ -566,17 +566,41 @@ to Level (lv06, lv08, lv11-lv13), a reorder (lv14-lv16). The rule reproduces
   FIELDUSE / SECUREINVISIBLE to 0 and keeps PT_NUMFLD1 (lv11).
 - A Scroll Bar's dialog OK writes an explicit Left (DSPLFORMAT 0x80000) and five
   blank Fluid slots, on a classic page too (lv04).
-- **No data for scroll** (lv17): App Designer refuses to save a scroll with no
-  record field -- or Subpage / Secondary Page; every delivered scroll without a
-  field of its own holds one -- after it, before the next scroll or Set to Level
-  rule. A record on two levels only warns ("Invalid page", lv05, lv07, lv09,
-  lv15) and saves on Yes.
+- **App Designer's checks on save** (`checkPageScrolls`): each problem is a
+  Message Set 15 message, then "Warning: Invalid page. Do you still want to save
+  the page? (46,2)" -- Yes saves anyway (default No). The editor asks the same
+  (Save Anyway); the MCP's `psft_edit_page` takes `saveInvalid`.
+  - 15,19 No data for scroll (lv17): a scroll with no record field -- or Subpage
+    / Secondary Page; every delivered scroll without a field of its own holds one
+    -- after it, before the next scroll or Set to Level rule.
+  - 15,22 More than one data record in scroll (e1: ZZ_R_L0_B dragged into the
+    ZZ_R_L1_A scroll; e2: ZZ_R_L1_A dragged into the ZZ_R_L2_A scroll): a scroll's
+    rowset is its first record that is not Derived/Work; a field of another such
+    record must be a related display. A Derived/Work field is allowed (lv18).
+    Level 0 holds any number of records. A record on two levels is reported this
+    way, not separately.
+  - 15,18 Invalid field level (e4): a scroll more than one level below the
+    running level (a level-3 scroll bar in a level-1 scroll area).
+  - 15,17 Invalid related display: a related display must follow its display
+    control field (ASSOCFIELDNUM = its FIELDNUM - 1, 0 being the first control),
+    in the same scroll. From App Designer's message and its Related Control Field
+    list, which offers only control fields before the related one; not captured.
+  Across HRDMO's 17,357 pages these flag 4, all delivered at version 1 and never
+  saved in App Designer here.
+- **A Scroll Area's other rows**: App Designer also writes a PSPNLCNTRLDATA row
+  (its header, body, footer and navigation-bar settings) and two PSPNLBTNDATA
+  buttons for a Scroll Area (a Grid has a PSPNLCNTRLDATA row; a Scroll Bar
+  neither). Without them App Designer cannot open the page ("Page not found",
+  15,14 -- found when a writer-created ZZ_PCODE_LAB_LW would not load). The writer
+  inserts App Designer's fresh rows (lv19), copies them with a pasted control
+  (and from a Layout Page), and deletes them with a deleted one.
 - A Scroll Area and a Scroll Bar insert as App Designer's rows (lv02 / sa-fresh,
   lv03 / sb-fresh): the Scroll Bar invisible (FIELDUSE 2, SECUREINVISIBLE 1), 17 x
   4 when dropped with a click.
 
-The writer assigns every OCCURSLEVEL from the final tab order on each save and
-refuses an empty scroll; the editor's Order tab shows the levels as they change.
+The writer assigns every OCCURSLEVEL from the final tab order on each save (a
+new page's too) and runs App Designer's checks; the editor's Order tab shows the
+levels as they change.
 `pageWriter.test.ts` replays lv02-lv16 (inserts, levels, reorders); live, wlv-*
 saved a reorder, a scroll bar insert and its delete through `savePage`, and App
 Designer opened the page as written.

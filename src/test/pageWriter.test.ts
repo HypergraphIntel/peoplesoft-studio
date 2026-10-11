@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { copyControlRows, FLUID_USETEMP2, FLUID_USETMP, fluidClassSlots, NEW_PAGE_LICENSE_CODE, planNewPage, planPageProperties, planPageSave, PageSaveRefusedError, type EditedControl, type StoredControl } from '../providers/pageWriter.js';
 import type { NewControlKind } from '../providers/pageControlTemplates.js';
+import { checkPageScrolls } from '../model/pageLevels.js';
 
 const control = (over: Partial<StoredControl> & { pnlFldId: number }): StoredControl => ({
   fieldNum: over.pnlFldId, fieldLeft: 0, fieldTop: 0, fieldRight: 0, fieldBottom: 0,
@@ -84,7 +85,9 @@ test('a delete removes the row and renumbers the survivors (08-delete shape)', (
 
 test('no change yields no updates', () => {
   const stored = [control({ pnlFldId: 1, fieldNum: 1 })];
-  assert.deepEqual(planPageSave(stored, [edit(stored[0])]), { deletes: [], updates: [], extUpdates: [], inserts: [], htmlWrites: [], richTextWrites: [], fieldCount: 1, maxPnlFldId: 1 });
+  const { checked, ...plan } = planPageSave(stored, [edit(stored[0])]);
+  assert.deepEqual(plan, { deletes: [], updates: [], extUpdates: [], inserts: [], htmlWrites: [], richTextWrites: [], fieldCount: 1, maxPnlFldId: 1 });
+  assert.equal(checked.length, 1);
 });
 
 test('an existing control not on the stored page is refused (an added one carries `add`)', () => {
@@ -164,8 +167,9 @@ test('a reorder across a grid or scroll takes the level of its new place; one th
   assert.deepEqual(planPageSave(stored, stored.map(edit), 4, [1, 4, 2, 3]).updates,
     [{ pnlFldId: 4, columns: { OCCURSLEVEL: 0, FIELDNUM: 2 } }, { pnlFldId: 2, columns: { FIELDNUM: 3 } }, { pnlFldId: 3, columns: { FIELDNUM: 4 } }]);
   assert.deepEqual(planPageSave(stored, stored.map(edit), 4, [1, 2, 4, 3]).updates.map((u) => u.pnlFldId), [4, 3]);
-  // Both fields out of the grid leave it empty (lv17: "No data for scroll").
-  assert.throws(() => planPageSave(stored, stored.map(edit), 4, [3, 4, 1, 2]), /No data for scroll/);
+  // Both fields out of the grid leave it empty: planned, and App Designer's check reports it (lv17).
+  const plan = planPageSave(stored, stored.map(edit), 4, [3, 4, 1, 2], 'P');
+  assert.deepEqual(checkPageScrolls('P', plan.checked.map((x) => ({ ...x, recType: 0 }))).map((p) => p.text), ['No data for scroll: P.Scroll.']);
 });
 
 /** A capture's PSPNLDEFN row for ZZ_PCODE_LAB_PG, before or after the save, by column name. */

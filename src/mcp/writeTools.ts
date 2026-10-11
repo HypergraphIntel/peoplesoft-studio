@@ -83,7 +83,8 @@ async function approve(host: McpWriteHost, gate: Gate, key: DefinitionKey, actio
 const pageOperation = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('add'),
-    kind: z.enum(['frame', 'groupBox', 'horizontalRule', 'staticText', 'checkBox', 'dropDown', 'editBox', 'pushButton']),
+    kind: z.enum(['frame', 'groupBox', 'horizontalRule', 'staticText', 'checkBox', 'dropDown', 'editBox', 'pushButton', 'scrollArea', 'scrollBar'])
+      .describe('A Scroll Area or Scroll Bar starts a scroll at Occurs Level 1 (set_occurs_level to change it); the record fields after it in tab order are in it.'),
     left: z.number(), top: z.number(), width: z.number().optional(), height: z.number().optional(),
     record: z.string().optional().describe('Record of a record-bound control (check box, drop down, edit box, push button).'),
     field: z.string().optional(), label: z.string().optional()
@@ -93,6 +94,12 @@ const pageOperation = z.discriminatedUnion('op', [
   z.object({ op: z.literal('set_label'), id: z.number().int(), text: z.string().optional(), labelType: z.number().int().optional().describe('0 None, 1 Text, 2 RFT Short, 3 RFT Long') }),
   z.object({ op: z.literal('set_use'), id: z.number().int(), displayOnly: z.boolean().optional(), invisible: z.boolean().optional() }),
   z.object({ op: z.literal('delete'), id: z.number().int() }),
+  z.object({ op: z.literal('set_occurs_level'), id: z.number().int(), level: z.number().int().min(1).max(3) })
+    .describe('A Scroll Bar / Grid / Scroll Area\'s Occurs Level: the controls after it in tab order are at it, up to the next scroll or Set to Level rule.'),
+  z.object({ op: z.literal('set_level'), id: z.number().int(), level: z.number().int().min(0).max(2).nullable() })
+    .describe('A Horizontal Rule\'s Set to Level: the controls after it go back to this level (null clears it).'),
+  z.object({ op: z.literal('set_order'), order: z.array(z.number().int()).min(1) })
+    .describe('The tab order (Order tab): every stored control id, first to last. Levels follow from it.'),
   z.object({
     op: z.literal('set_properties'), description: z.string().max(30).optional(), comments: z.string().optional(),
     width: z.number().optional().describe('Page size; setting it makes the Page Size choice Custom.'), height: z.number().optional(),
@@ -258,17 +265,22 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
       'set Display Only / Invisible, delete (by the ids psft_get_page_layout gives), and set the page Description, ' +
       'Comments, size, Owner ID, style sheet, background, deferred processing, Adjust Layout for Hidden Fields, popup menu, ' +
       'the page type with a secondary page\'s OK & Cancel, Close Box and Disable Modal, ' +
-      'Fluid Page, and the Fluid tab\'s style classes and Suppress System-Specific Style Classes. Coordinates are pixels from the page\'s top-left. ' + GATES,
-    inputSchema: z.object({ connection: z.string().min(1), page: z.string().min(1), operations: z.array(pageOperation).min(1) }),
+      'Fluid Page, and the Fluid tab\'s style classes and Suppress System-Specific Style Classes. Coordinates are pixels from the page\'s top-left. ' +
+      'Every save assigns each control\'s scroll level from the tab order and runs App Designer\'s checks (No data for scroll, More than one data ' +
+      'record in scroll, Invalid field level, Invalid related display); a page that fails them is not saved unless saveInvalid is true ' +
+      '(App Designer\'s "Invalid page. Do you still want to save?" Yes). ' + GATES,
+    inputSchema: z.object({ connection: z.string().min(1), page: z.string().min(1), operations: z.array(pageOperation).min(1),
+      saveInvalid: z.boolean().optional().describe('Save even though App Designer\'s page checks fail (its "Invalid page ... save anyway" Yes).') }),
     annotations: WRITE
-  }, async ({ connection, page, operations }) => {
+  }, async ({ connection, page, operations, saveInvalid }) => {
     const key: DefinitionKey = { type: DefinitionType.Page, parts: [page.trim().toUpperCase()] };
     const gate = await writable(workspace, host, connection, key.parts[0]);
     const { layout } = await gate.provider.readPageLayout(key);
-    const { controls, properties } = applyPageOperations(layout, operations as PageOperation[]);
+    const { controls, properties, order } = applyPageOperations(layout, operations as PageOperation[]);
     await approve(host, gate, key, `edit page ${key.parts[0]}`,
       `${operations.length} change${operations.length === 1 ? '' : 's'}:\n${operations.map((o) => describeOperation(o)).join('\n')}`);
-    const r = await gate.provider.savePage({ pnlName: key.parts[0], openedVersion: layout.version, operatorId: gate.operatorId, controls, properties });
+    const r = await gate.provider.savePage({ pnlName: key.parts[0], openedVersion: layout.version, operatorId: gate.operatorId, controls, properties,
+      ...(order ? { order } : {}), ...(saveInvalid ? { saveInvalid } : {}) });
     return done(gate, key, { version: r.version, controls: r.fieldCount, inserted: r.inserted, updated: r.updated, deleted: r.deleted });
   });
 

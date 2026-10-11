@@ -210,3 +210,31 @@ export function newControlRows(pnlName: string, pnlFldId: number, fieldNum: numb
     ext: { PNLNAME: pnlName, PNLFLDID: pnlFldId, ...EXT_COMMON, ...extByKind(add.kind, field), PARENTPNLFLDID: `${pnlName}$0`, PAGEPNLFLDID: `${pnlName}$0` }
   };
 }
+
+/**
+ * A Scroll Area's own rows besides PSPNLFIELD / PSPNLFIELDEXT, as App Designer writes a fresh one (lv02 and sa-fresh,
+ * identical): PSPNLCNTRLDATA (its header, body, footer and navigation-bar settings) and two PSPNLBTNDATA buttons (class 3
+ * shown 'O', class 5 hidden 'X'; labels from Message Catalog 126/1 and 126/2). Without them App Designer cannot load the
+ * page ("Page not found", 15,14). A fresh Scroll Bar has neither; a Grid has its own PSPNLCNTRLDATA (not inserted yet).
+ */
+const SCROLL_AREA_CONTROL_DATA: ColumnValues = {
+  PTFINDSTRING: 'O', PTHDGSHOW: 'X', PTHDGROWACTBTNS: 'X', PTHDGROWACTALGN: 3, PTHDGNAVBARBTNS: 'X', PTHDGNAVBARALGN: 3, PTBAREASTYLENAME: ' ',
+  PTBAREAROWACTALGN: 0, PTBAREAHIDEROWSEP: 'O', PTBAREASHWGRDLINES: 'O', PTFTGSHOW: 'O', PTFTGSTYLENAME: ' ', PTFTGSHOWROWACT: 'O', PTFTGROWACTALGN: 1,
+  PTFTGSHOWNAVBAR: 'O', PTFTGNAVBARALGN: 3, PTSEPSTARTOFFSET: 0, PTSEPOCCURSOFFSET: 0, PTBTNSTARTOFFSET: 0, PTBTNOCCURSOFFSET: 0, ALLOWMULTIROWINS: 0,
+  PTGRDLAYOUT: 0, PTGRDSCROLLBAR: 2, GRIDROWS: 0, PTSMRYDFLTTOTITLE: 0, PTSMRYLBLTYPE: 0, PTSMRYMSGSET: 0, PTSMRYMSGNUM: 0, PTSMRYDSPLFORMAT: 0,
+  PTSUMMARYATTRIBUTE: ' '
+};
+const SCROLL_AREA_BUTTON: ColumnValues = {
+  PTBTNFIELDTYPE: 19, PTBTNLBLTYPE: 1, CONTNAME: ' ', CONTNAMEOVER: ' ', CONTNAMEDISABLE: ' ', LBLTYPE: 7, LBLTEXT: ' ', MSGSET: 126, MSGNUM: 1,
+  PTBTNLBLTYPE2: 7, PTBTNLBLTEXT2: ' ', PTBTNMSGSET2: 126, PTBTNMSGNUM2: 2
+};
+
+/** A new control's PSPNLCNTRLDATA and PSPNLBTNDATA rows (a Scroll Area's; none for the other kinds). */
+export function newControlDataRows(pnlName: string, pnlFldId: number, kind: NewControlKind): { controlData?: ColumnValues; buttons: ColumnValues[] } {
+  if (kind !== 'scrollArea') return { buttons: [] };
+  return {
+    controlData: { PNLNAME: pnlName, PNLFLDID: pnlFldId, ...SCROLL_AREA_CONTROL_DATA },
+    buttons: [{ PNLNAME: pnlName, PNLFLDID: pnlFldId, PTBTNCLASSTYPE: 3, PTVISIBLE: 'O', ...SCROLL_AREA_BUTTON },
+      { PNLNAME: pnlName, PNLFLDID: pnlFldId, PTBTNCLASSTYPE: 5, PTVISIBLE: 'X', ...SCROLL_AREA_BUTTON }]
+  };
+}

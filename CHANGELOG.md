@@ -36,6 +36,23 @@
   Designer does. A save with an empty scroll is refused with App Designer's "No
   data for scroll". Fitted to a page built in App Designer from lab records
   keyed for levels 0-2 (lv01-lv17) and checked against all 17,356 HRDMO pages.
+- **Page save: App Designer's scroll checks.** Each save runs App Designer's
+  checks -- No data for scroll, More than one data record in scroll, Invalid
+  field level, Invalid related display (its Message Set 15 messages) -- and, as
+  App Designer asks "Invalid page. Do you still want to save the page?", the
+  editor offers Save Anyway; nothing is written otherwise. Checked against all
+  17,357 HRDMO pages (4 flagged, all delivered and never re-saved).
+- **Page save: a Scroll Area's settings rows.** An inserted Scroll Area now gets
+  App Designer's PSPNLCNTRLDATA / PSPNLBTNDATA rows (without them App Designer
+  could not open the page); pasting copies them, deleting removes them. A new
+  page places its controls and levels as App Designer does.
+- **MCP: scrolls, keys, component buffers and PeopleCode navigation.**
+  `psft_get_page_structure` (a page's levels, scrolls, primary records and keys,
+  App Designer's checks), `psft_get_component_structure` (a component's buffer:
+  search record, each scroll level's primary record with parentKeys / rowKeys,
+  records and fields, PeopleCode object and built-in scroll paths, keying notes)
+  and `psft_explain_scrolls` (the rules). `psft_edit_page` adds Scroll Area /
+  Scroll Bar, `set_occurs_level`, `set_level`, `set_order` and `saveInvalid`.
 - **Page editor: a newly inserted control** opens its own Properties panel (its
   Record tab included), not a General-only one; Push Button gains a Record tab.
 

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { newControlFieldRefusal, newControlRows, type FieldInfo, type NewControlKind } from '../providers/pageControlTemplates.js';
+import { newControlFieldRefusal, newControlDataRows, newControlRows, type FieldInfo, type NewControlKind } from '../providers/pageControlTemplates.js';
 
 /* Each new-control row must be exactly the row App Designer inserted in the captured save. */
 
@@ -94,4 +94,13 @@ test('a control added inside a scroll takes its OCCURSLEVEL (default 0 outside)'
   const placed = (occursLevel?: number) => ({ fieldLeft: 10, fieldTop: 10, fieldRight: 0, fieldBottom: 0, fieldSizeType: 0, lblType: 1, lblText: 'X', fieldUse: 0, secureInvisible: 0, ...(occursLevel !== undefined ? { occursLevel } : {}) });
   assert.equal(newControlRows('P', 9, 1, { kind: 'editBox', recName: 'PERSON', fieldName: 'EMPLID' }, placed(), char('EMPLID', 'Empl ID', 11)).field.OCCURSLEVEL, 0);
   assert.equal(newControlRows('P', 9, 1, { kind: 'editBox', recName: 'PERSON', fieldName: 'EMPLID' }, placed(2), char('EMPLID', 'Empl ID', 11)).field.OCCURSLEVEL, 2);
+});
+
+test('a new Scroll Area\'s PSPNLCNTRLDATA and PSPNLBTNDATA rows are App Designer\'s (lv19: ZZ_PCODE_LAB_LV\'s scroll area as App Designer wrote it)', () => {
+  const t = JSON.parse(readFileSync(join(process.cwd(), 'tools/corpus/save-protocol/results/lv19-ad-scroll-data/before.json'), 'utf8')).watch;
+  const read = (table: string) => (t[table].rows as Array<Array<string | null>>).map((r) => Object.fromEntries((t[table].columns as Array<{ name: string }>).map((c, i) => [c.name, r[i]])));
+  const rows = newControlDataRows('ZZ_PCODE_LAB_LV', 2, 'scrollArea');
+  assert.deepEqual([asStrings(rows.controlData!)], read('PSPNLCNTRLDATA'));
+  assert.deepEqual(rows.buttons.map(asStrings), read('PSPNLBTNDATA'));
+  assert.deepEqual(newControlDataRows('P', 4, 'scrollBar'), { buttons: [] });
 });

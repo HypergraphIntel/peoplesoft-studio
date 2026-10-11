@@ -1,3 +1,4 @@
+import { registerStructureTools } from './structureTools.js';
 import {
   createServer,
   Server
@@ -162,6 +163,11 @@ export async function startPeopleSoftMcpServer(
           });
 
         registerPeopleSoftTools(
+          server,
+          workspace
+        );
+
+        registerStructureTools(
           server,
           workspace
         );

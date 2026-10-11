@@ -32,6 +32,8 @@ import { FieldLabelRow, FieldRow, renderField } from './oracleRender.js';
 import { renderComponent, renderMenu, renderPage, type PageView, type Row as UiRow } from '../model/uiDefinitions.js';
 import { buildPageLayout, type PageLayout } from '../model/pageLayout.js';
 import { buildComponentStructure, referencedPages, type StructureField } from '../model/componentStructure.js';
+import { componentBuffer, pageStructure, type RecordInfo } from '../model/bufferStructure.js';
+import { PAGE_FIELD_TYPES as PAGE_CONTROL_TYPES } from '../model/uiDefinitions.js';
 import { buildComponentDefinition, type ComponentDefinition } from '../model/componentDefinition.js';
 import { bufferRecords, peopleCodeObjects, type PeopleCodeObject } from '../model/componentPeopleCode.js';
 import { saveComponent, type ComponentSaveRequest, type ComponentSaveResult } from './componentWriter.js';
@@ -932,6 +934,51 @@ export class DatabaseProvider implements DefinitionProvider {
   async popupPages(): Promise<string[]> {
     return this.withConnection(async (c) => ((await c.execute<{ N: string }>(`SELECT PNLNAME AS N FROM PSPNLDEFN WHERE PNLTYPE = 3 ORDER BY PNLNAME`)).rows ?? [])
       .map((r) => String(r.N ?? '').trim()));
+  }
+
+  /** Records' types (PSRECDEFN.RECTYPE) and key fields (PSRECFIELDDB USEEDIT Key / Duplicate Order Key), in record order. */
+  async recordInfo(names: readonly string[]): Promise<Map<string, RecordInfo>> {
+    const wanted = [...new Set(names.map((n) => n.trim().toUpperCase()).filter(Boolean))];
+    const out = new Map<string, RecordInfo>();
+    if (!wanted.length) return out;
+    return this.withConnection(async (c) => {
+      for (let i = 0; i < wanted.length; i += 500) {
+        const batch = wanted.slice(i, i + 500);
+        const binds = Object.fromEntries(batch.map((r, j) => [`r${j}`, r]));
+        const list = batch.map((_, j) => `:r${j}`).join(', ');
+        for (const r of (await c.execute<{ R: string; T: number }>(`SELECT RECNAME AS R, RECTYPE AS T FROM PSRECDEFN WHERE RECNAME IN (${list})`, binds)).rows ?? []) {
+          out.set(String(r.R).trim(), { type: Number(r.T), keys: [] });
+        }
+        const keys = (await c.execute<{ R: string; F: string }>(
+          `SELECT RECNAME AS R, FIELDNAME AS F FROM PSRECFIELDDB WHERE RECNAME IN (${list}) AND (BITAND(USEEDIT, 1) = 1 OR BITAND(USEEDIT, 2) = 2) ORDER BY RECNAME, FIELDNUM`, binds)).rows ?? [];
+        for (const k of keys) out.get(String(k.R).trim())?.keys.push(String(k.F).trim());
+      }
+      return out;
+    });
+  }
+
+  /** A page's scroll structure (bufferStructure.ts pageStructure): levels, scrolls, primary records and keys, App Designer's checks. */
+  async readPageStructure(page: string): Promise<ReturnType<typeof pageStructure> & { page: string }> {
+    const name = page.trim().toUpperCase();
+    const view = await this.readPageView({ type: DefinitionType.Page, parts: [name] });
+    const rows = [...view.data.fields].sort((a, b) => Number(a.FIELDNUM) - Number(b.FIELDNUM));
+    const info = await this.recordInfo(rows.map((r) => String(r.RECNAME ?? '')));
+    const controls = rows.map((r) => ({ id: Number(r.PNLFLDID), fieldType: Number(r.FIELDTYPE), typeName: PAGE_CONTROL_TYPES[Number(r.FIELDTYPE)] ?? `Type ${r.FIELDTYPE}`,
+      occursLevel: Number(r.OCCURSLEVEL), fieldUse: Number(r.FIELDUSE), recName: String(r.RECNAME ?? ''), fieldName: String(r.FIELDNAME ?? ''),
+      label: String(r.LBLTEXT ?? ''), assocFieldNum: Number(r.ASSOCFIELDNUM ?? 0), recType: info.get(String(r.RECNAME ?? '').trim())?.type ?? -1 }));
+    return { page: name, ...pageStructure(name, controls, info) };
+  }
+
+  /** A component's buffer (bufferStructure.ts componentBuffer): search record, level 0, each scroll level with keys and PeopleCode. */
+  async readComponentBuffer(component: string, market = 'GBL'): Promise<ReturnType<typeof componentBuffer> & { component: string; market: string; pages: string[] }> {
+    const key = { type: DefinitionType.Component, parts: [component.trim().toUpperCase(), market.trim().toUpperCase() || 'GBL'] };
+    const def = await this.readComponentDefinition(key);
+    const names: string[] = [];
+    const visit = (s: { records: Array<{ name: string }>; scrolls: unknown[] }) => { names.push(...s.records.map((r) => r.name)); for (const k of s.scrolls) visit(k as typeof s); };
+    visit(def.structure.level0);
+    if (def.structure.searchRecord) names.push(def.structure.searchRecord.name);
+    const info = await this.recordInfo(names);
+    return { component: key.parts[0], market: key.parts[1], pages: def.items.map((i) => i.pageName), ...componentBuffer(def.structure, info) };
   }
 
   /** A field's labels (PSDBFLDLABL), default first: a control's Label ID list. */

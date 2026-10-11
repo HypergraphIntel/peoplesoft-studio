@@ -19,6 +19,12 @@ export type PageOperation =
   | { op: 'set_label'; id: number; text?: string; labelType?: number }
   | { op: 'set_use'; id: number; displayOnly?: boolean; invisible?: boolean }
   | { op: 'delete'; id: number }
+  /** A Scroll Bar's, Grid's or Scroll Area's own Occurs Level (1-3): the controls after it in tab order are at it. */
+  | { op: 'set_occurs_level'; id: number; level: number }
+  /** A Horizontal Rule's Set to Level: the controls after it are at `level`; null clears it (the rule then takes the running level). */
+  | { op: 'set_level'; id: number; level: number | null }
+  /** The tab order (the Order tab): every stored control's id, first to last; added controls go where App Designer puts them. */
+  | { op: 'set_order'; order: number[] }
   | { op: 'set_properties'; description?: string; comments?: string; width?: number; height?: number;
       ownerId?: string; styleSheet?: string; background?: string; deferProc?: boolean; adjustLayout?: boolean; popupMenu?: string;
       pageType?: number; pageSize?: string; okCancel?: boolean; closeBox?: boolean; disableModal?: boolean;
@@ -32,8 +38,11 @@ export class PageOperationError extends Error {
 }
 
 /** The controls and properties a savePage request carries after applying the operations, in order. */
-export function applyPageOperations(layout: PageLayout, operations: readonly PageOperation[]): { controls: EditedControl[]; properties: EditedPageProperties } {
-  const controls: EditedControl[] = layout.controls.map((c) => ({ pnlFldId: c.pnlFldId, ...c.columns }));
+export function applyPageOperations(layout: PageLayout, operations: readonly PageOperation[]): { controls: EditedControl[]; properties: EditedPageProperties; order?: number[] } {
+  const controls: EditedControl[] = layout.controls.map((c) => ({ pnlFldId: c.pnlFldId, ...c.columns, fieldType: c.type,
+    // A scroll's own Occurs Level and a Set to Level rule's choice; the save assigns the rest from the tab order.
+    ...(SCROLL_TYPES.has(c.type) || (c.type === 23 && (c.columns.fieldUse & 0x2)) ? { occursLevel: c.level } : {}) }));
+  let order: number[] | undefined;
   const p = layout.properties;
   const properties: EditedPageProperties = { description: p.description, comments: p.comments };
   let added = 0;
@@ -107,6 +116,31 @@ export function applyPageOperations(layout: PageLayout, operations: readonly Pag
       case 'delete': {
         const c = find(o.id);
         controls.splice(controls.indexOf(c), 1);
+        if (order) order = order.filter((id) => id !== o.id);
+        break;
+      }
+      case 'set_occurs_level': {
+        const c = find(o.id);
+        if (!SCROLL_TYPES.has(Number(c.fieldType))) throw new PageOperationError(`Control ${o.id} is not a Scroll Bar, Grid or Scroll Area.`);
+        if (!Number.isInteger(o.level) || o.level < 1 || o.level > 3) throw new PageOperationError('Level number must be between 1 and 3.');
+        c.occursLevel = o.level;
+        break;
+      }
+      case 'set_level': {
+        const c = find(o.id);
+        if (c.fieldType !== 23) throw new PageOperationError(`Control ${o.id} is not a Horizontal Rule.`);
+        if (o.level === null) { c.fieldUse &= ~0x2; c.secureInvisible = 0; delete c.occursLevel; break; }
+        if (!Number.isInteger(o.level) || o.level < 0 || o.level > 2) throw new PageOperationError('A rule sets the level to 0, 1 or 2.');
+        // Set to Level: FIELDUSE 0x2 with SECUREINVISIBLE 1, the level as the rule's OCCURSLEVEL and PT_NUMFLD1 (lv06).
+        c.fieldUse |= 0x2; c.secureInvisible = 1; c.occursLevel = o.level; c.setLevel = o.level;
+        break;
+      }
+      case 'set_order': {
+        const stored = layout.controls.map((x) => x.pnlFldId).filter((id) => controls.some((x) => x.pnlFldId === id));
+        if (o.order.length !== stored.length || new Set(o.order).size !== o.order.length || o.order.some((id) => !stored.includes(id))) {
+          throw new PageOperationError(`set_order lists every control on the page once, by id: ${stored.join(', ')}.`);
+        }
+        order = [...o.order];
         break;
       }
       case 'set_properties': {
@@ -131,8 +165,10 @@ export function applyPageOperations(layout: PageLayout, operations: readonly Pag
         throw new PageOperationError(`Unknown page operation ${JSON.stringify((o as { op?: unknown }).op)}.`);
     }
   }
-  return { controls, properties };
+  return { controls, properties, ...(order ? { order } : {}) };
 }
+
+const SCROLL_TYPES = new Set([10, 19, 27, 32]);
 
 /** A page's layout as plain data for an agent: the controls with their ids, rectangles and settings, and the page's properties. */
 export function pageLayoutForAgent(layout: PageLayout): Record<string, unknown> {

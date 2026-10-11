@@ -36,7 +36,7 @@ import { PagePanel, type PageLookup } from './editors/pagePanel.js';
 import { imageDimensions, imageMimeType, sniffImageMimeType } from './editors/imageHtml.js';
 import { ComponentPanel } from './editors/componentPanel.js';
 import { ComponentSaveRefusedError, defaultItemLabel } from './providers/componentWriter.js';
-import { NEW_PAGE, PageSaveRefusedError } from './providers/pageWriter.js';
+import { NEW_PAGE, PageInvalidError, PageSaveRefusedError } from './providers/pageWriter.js';
 import { buildPageLayout, type PageLayout } from './model/pageLayout.js';
 import type { ComponentDefinition } from './model/componentDefinition.js';
 import { componentPeopleCodeKey, eventsFor } from './model/componentPeopleCode.js';
@@ -1479,14 +1479,15 @@ async function showPageEditor(workspace: Workspace, provider: DatabaseProvider, 
     ...(editable ? {
       save: async (controls, properties, order) => {
         if (!created) {
-          const result = await provider.createPage({ pnlName, operatorId: operatorId!, controls, ...(properties ? { properties } : {}) });
+          const result = await saveAnyway((saveInvalid) => provider.createPage({ pnlName, operatorId: operatorId!, controls, ...(properties ? { properties } : {}), ...(saveInvalid ? { saveInvalid } : {}) }));
           created = true;
           openedVersion = result.version;
           void vscode.commands.executeCommand('psft.refresh');
           vscode.window.showInformationMessage(`Created page ${pnlName} on ${provider.displayName}.`);
           return { version: result.version, layout: (await provider.readPageLayout(key)).layout };
         }
-        const result = await provider.savePage({ pnlName, openedVersion, operatorId: operatorId!, controls, ...(properties ? { properties } : {}), ...(order ? { order } : {}) });
+        const result = await saveAnyway((saveInvalid) => provider.savePage({ pnlName, openedVersion, operatorId: operatorId!, controls,
+          ...(properties ? { properties } : {}), ...(order ? { order } : {}), ...(saveInvalid ? { saveInvalid } : {}) }));
         openedVersion = result.version;
         // Added and pasted controls only get their PNLFLDIDs from the database: redraw from it.
         if (result.inserted > 0) return { version: result.version, layout: (await provider.readPageLayout(key)).layout };
@@ -1494,6 +1495,24 @@ async function showPageEditor(workspace: Workspace, provider: DatabaseProvider, 
       }
     } : {})
   });
+}
+
+/**
+ * A page save that fails App Designer's checks shows its messages and asks, as App Designer does: "Invalid page. Do you
+ * still want to save the page?" (46,2). Save Anyway saves it; otherwise nothing is written.
+ */
+async function saveAnyway<T>(save: (saveInvalid: boolean) => Promise<T>): Promise<T> {
+  try {
+    return await save(false);
+  } catch (err) {
+    if (!(err instanceof PageInvalidError)) throw err;
+    const yes = 'Save Anyway';
+    const answer = await vscode.window.showWarningMessage('Invalid page. Do you still want to save the page?', {
+      modal: true, detail: err.problems.map((p) => `${p.text} (${p.set},${p.num})`).join('\n')
+    }, yes);
+    if (answer !== yes) throw new Error(`Not saved: ${err.problems.map((p) => p.text).join(' ')}`);
+    return save(true);
+  }
 }
 
 /** File > New > Page: a name, then the page window on an empty page (App Designer's new page: 570 x 330, Fluid off). */

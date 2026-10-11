@@ -3,8 +3,8 @@ import { writeScopeRefusal } from './writeScope.js';
 import { PAGE_SIZE_BITS, PAGE_SIZE_CUSTOM, PAGE_SIZE_PRESETS, pageSizeChoice } from '../model/pageLayout.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
-import { FIELD_OPTIONAL, NEW_CONTROL_FIELDTYPE, newControlFieldRefusal, newControlRows, isRecordBound, type ColumnValues, type FieldInfo, type NewControl } from './pageControlTemplates.js';
-import { emptyScroll, occursLevels } from '../model/pageLevels.js';
+import { FIELD_OPTIONAL, NEW_CONTROL_FIELDTYPE, newControlDataRows, newControlFieldRefusal, newControlRows, isRecordBound, type ColumnValues, type FieldInfo, type NewControl } from './pageControlTemplates.js';
+import { checkPageScrolls, occursLevels, type CheckedControl, type PageProblem } from '../model/pageLevels.js';
 
 /*
  * Saving a page's layout, as App Designer does (docs/PAGE_SAVE.md, cases
@@ -36,6 +36,17 @@ export class PageSaveRefusedError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'PageSaveRefusedError';
+  }
+}
+
+/**
+ * The page fails App Designer's checks (pageLevels.ts checkPageScrolls): its Message Set 15 messages, then "Invalid page.
+ * Do you still want to save the page?" (46,2). App Designer saves anyway on Yes; so does savePage with `saveInvalid`.
+ */
+export class PageInvalidError extends PageSaveRefusedError {
+  constructor(readonly problems: readonly PageProblem[]) {
+    super(`${problems.map((p) => `${p.text} (${p.set},${p.num})`).join('\n')}\nWarning: Invalid page. Do you still want to save the page? (46,2)`);
+    this.name = 'PageInvalidError';
   }
 }
 
@@ -219,6 +230,8 @@ export interface PageSaveRequest {
   properties?: EditedPageProperties;
   /** The Order tab's tab order: the surviving controls' PNLFLDIDs, first to last. Absent keeps the stored order. */
   order?: number[];
+  /** Save a page that fails App Designer's checks (PageInvalidError), as its "Invalid page ... save?" Yes does. */
+  saveInvalid?: boolean;
 }
 
 /**
@@ -550,6 +563,8 @@ export interface PagePlan {
   fieldCount: number;
   /** PSPNLDEFN.MAXPNLFLDID after the save. */
   maxPnlFldId: number;
+  /** The page as App Designer's checks see it, in the final tab order (each record's type is looked up by savePage). */
+  checked: Array<Omit<CheckedControl, 'recType'>>;
 }
 
 /**
@@ -640,10 +655,9 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
     const fieldType = s ? Number(s.fieldType ?? -1) : c.add ? NEW_CONTROL_FIELDTYPE[c.add.kind] : Number(c.fieldType ?? -1);
     const occursLevel = c.occursLevel ?? s?.occursLevel ?? (c.add ? 1 : 0);
     const recName = c.add ? c.add.recName : c.recName ?? s?.recName ?? '', fieldName = c.add ? c.add.fieldName : c.fieldName ?? s?.fieldName ?? '';
-    return { fieldType, occursLevel: Number(occursLevel), fieldUse: Number(c.fieldUse ?? s?.fieldUse ?? 0), recName, fieldName, label: c.lblText ?? '' };
+    return { fieldType, occursLevel: Number(occursLevel), fieldUse: Number(c.fieldUse ?? s?.fieldUse ?? 0), recName, fieldName, label: c.lblText ?? '',
+      assocFieldNum: Number(c.assocFieldNum ?? s?.assocFieldNum ?? 0) };
   });
-  const empty = emptyScroll(levelInput);
-  if (empty >= 0) throw new PageSaveRefusedError(`No data for scroll: ${pnlName}.${levelInput[empty].label.trim() || 'Scroll'}. A scroll needs a record field (or a subpage) after it, before the next scroll or Set to Level rule.`);
   const levels = occursLevels(levelInput);
   const levelOf = new Map(final.map((e, i) => ['survivor' in e ? e.survivor.pnlFldId : e.fresh.pnlFldId, levels[i]]));
 
@@ -714,7 +728,8 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
   }
 
   const inserts = fresh.map((f) => ({ pnlFldId: f.pnlFldId, fieldNum: newFieldNum.get(f.pnlFldId)!, control: { ...f.control, occursLevel: levelOf.get(f.pnlFldId)! } }));
-  return { deletes, updates, extUpdates, inserts, htmlWrites, richTextWrites, fieldCount: controls.length + added.length, maxPnlFldId: base + added.length };
+  return { deletes, updates, extUpdates, inserts, htmlWrites, richTextWrites, fieldCount: controls.length + added.length, maxPnlFldId: base + added.length,
+    checked: levelInput };
 }
 
 /**
@@ -747,6 +762,20 @@ async function checkPropertyNames(c: Connection, props: Record<string, string | 
     const [{ N: n }] = await select<{ N: number }>(c, sql, { v });
     if (!Number(n)) throw new PageSaveRefusedError(`${v} is not ${what} in this database.`);
   }
+}
+
+/** App Designer's scroll checks on a page (pageLevels.ts), its records' types read from PSRECDEFN: PageInvalidError when any fails. */
+async function refuseInvalidPage(c: Connection, pnlName: string, checked: ReadonlyArray<Omit<CheckedControl, 'recType'>>): Promise<void> {
+  const recs = [...new Set(checked.map((x) => x.recName.trim()).filter(Boolean))];
+  const recType = new Map<string, number>();
+  for (let i = 0; i < recs.length; i += 500) {
+    const batch = recs.slice(i, i + 500);
+    const rows = await select<{ R: string; T: number }>(c, `SELECT RECNAME AS R, RECTYPE AS T FROM PSRECDEFN WHERE RECNAME IN (${batch.map((_, j) => `:r${j}`).join(', ')})`,
+      Object.fromEntries(batch.map((r, j) => [`r${j}`, r])));
+    for (const r of rows) recType.set(String(r.R).trim(), Number(r.T));
+  }
+  const problems = checkPageScrolls(pnlName, checked.map((x) => ({ ...x, recType: recType.get(x.recName.trim()) ?? -1 })));
+  if (problems.length) throw new PageInvalidError(problems);
 }
 
 /** PSVERSION / PSLOCK 'PDM' and PSVERSION 'SYS', locked for the save. */
@@ -888,6 +917,8 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
       const [{ N: n }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSRECFIELDDB WHERE RECNAME = :r AND FIELDNAME = :f`, { r: rec, f: fld });
       if (!Number(n)) throw new PageSaveRefusedError(`${rec}.${fld} is not a field on record ${rec}.`);
     }
+    // App Designer's scroll checks (Message Set 15), unless the caller already answered "save anyway".
+    if (!request.saveInvalid) await refuseInvalidPage(c, pnlName, plan.checked);
     if (plan.deletes.length === 0 && plan.updates.length === 0 && plan.inserts.length === 0 && plan.htmlWrites.length === 0 && plan.richTextWrites.length === 0 && plan.extUpdates.length === 0
       && Object.keys(props).length === 0) {
       // Nothing changed: leave the page, its version and the counters untouched.
@@ -895,7 +926,7 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
     }
 
     // Each added control's rows, built before anything is written so a refused field stops the save clean.
-    const insertRows: Array<{ field: ColumnValues; ext: ColumnValues; html?: string; richText?: RichTextOptions }> = [];
+    const insertRows: ControlRows[] = [];
     for (const ins of plan.inserts) insertRows.push(await insertedControlRows(c, pnlName, ins));
     const next = await counters(c, true);
 
@@ -910,6 +941,9 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
       await c.execute(`DELETE FROM PSPNLHTMLAREA WHERE PNLNAME = :n AND PNLFLDID = :id`, { n: pnlName, id });
       await c.execute(`DELETE FROM PSPNLHTMLLANG WHERE PNLNAME = :n AND PNLFLDID = :id`, { n: pnlName, id });
       await c.execute(`DELETE FROM PSPTPNLRTEDITOR WHERE PNLNAME = :n AND PNLFLDID = :id`, { n: pnlName, id });
+      // A grid's or scroll area's settings and buttons.
+      await c.execute(`DELETE FROM PSPNLCNTRLDATA WHERE PNLNAME = :n AND PNLFLDID = :id`, { n: pnlName, id });
+      await c.execute(`DELETE FROM PSPNLBTNDATA WHERE PNLNAME = :n AND PNLFLDID = :id`, { n: pnlName, id });
     }
 
     for (const u of plan.updates) {
@@ -941,14 +975,7 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
       if (w.richText) await insertRichText(c, pnlName, w.pnlFldId, w.richText);
     }
 
-    for (const rows of insertRows) {
-      await insertRow(c, 'PSPNLFIELD', rows.field);
-      await insertRow(c, 'PSPNLFIELDEXT', rows.ext);
-      // A pasted Constant HTML Area takes its source's text.
-      if (rows.richText) await insertRichText(c, pnlName, Number(rows.field.PNLFLDID), rows.richText);
-      if (rows.html !== undefined) await expectRows(c, `INSERT INTO PSPNLHTMLAREA (PNLNAME, PNLFLDID, HTMLAREA) VALUES (:n, :id, :h)`,
-        { n: pnlName, id: rows.field.PNLFLDID, h: rows.html }, 1, `Inserting PSPNLHTMLAREA ${rows.field.PNLFLDID}`);
-    }
+    for (const rows of insertRows) await insertControl(c, pnlName, rows);
 
     const propSets = Object.keys(props).map((col) => `, ${col} = :p_${col}`).join('');
     const propBinds = Object.fromEntries(Object.entries(props).map(([col, v]) => [`p_${col}`, v]));
@@ -973,10 +1000,37 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
   }
 }
 
-/** A record field's type, length and default label, or undefined when the record has no such field. */
+/**
+ * A control's rows: PSPNLFIELD and PSPNLFIELDEXT, and what goes with some kinds -- a Constant HTML Area's text
+ * (PSPNLHTMLAREA), a Rich Text long edit's options (PSPTPNLRTEDITOR), a grid's or scroll area's settings and buttons
+ * (PSPNLCNTRLDATA, PSPNLBTNDATA).
+ */
+interface ControlRows { field: ColumnValues; ext: ColumnValues; html?: string; richText?: RichTextOptions; controlData?: ColumnValues; buttons?: ColumnValues[] }
+
+async function insertControl(c: Connection, pnlName: string, rows: ControlRows): Promise<void> {
+  const id = Number(rows.field.PNLFLDID);
+  await insertRow(c, 'PSPNLFIELD', rows.field);
+  await insertRow(c, 'PSPNLFIELDEXT', rows.ext);
+  if (rows.richText) await insertRichText(c, pnlName, id, rows.richText);
+  // A pasted Constant HTML Area takes its source's text.
+  if (rows.html !== undefined) await expectRows(c, `INSERT INTO PSPNLHTMLAREA (PNLNAME, PNLFLDID, HTMLAREA) VALUES (:n, :id, :h)`,
+    { n: pnlName, id, h: rows.html }, 1, `Inserting PSPNLHTMLAREA ${id}`);
+  if (rows.controlData) await insertRow(c, 'PSPNLCNTRLDATA', rows.controlData);
+  for (const b of rows.buttons ?? []) await insertRow(c, 'PSPNLBTNDATA', b);
+}
+
+/** A stored grid's or scroll area's PSPNLCNTRLDATA and PSPNLBTNDATA rows, moved to another page / id. */
+async function controlDataRows(c: Connection, from: { pnlName: string; pnlFldId: number }, to: { pnlName: string; pnlFldId: number }):
+  Promise<{ controlData?: ColumnValues; buttons: ColumnValues[] }> {
+  const [controlData] = await select<ColumnValues>(c, `SELECT * FROM PSPNLCNTRLDATA WHERE PNLNAME = :p AND PNLFLDID = :id`, { p: from.pnlName, id: from.pnlFldId });
+  const buttons = await select<ColumnValues>(c, `SELECT * FROM PSPNLBTNDATA WHERE PNLNAME = :p AND PNLFLDID = :id ORDER BY PTBTNCLASSTYPE`, { p: from.pnlName, id: from.pnlFldId });
+  const moved = (r: ColumnValues) => ({ ...r, PNLNAME: to.pnlName, PNLFLDID: to.pnlFldId });
+  return { ...(controlData ? { controlData: moved(controlData) } : {}), buttons: buttons.map(moved) };
+}
+
 /** An added control's rows (App Designer's fresh row) or a pasted one's (a copy of its source's stored rows). */
 async function insertedControlRows(c: Connection, pnlName: string, ins: { pnlFldId: number; fieldNum: number; control: EditedControl }):
-  Promise<{ field: ColumnValues; ext: ColumnValues; html?: string; richText?: RichTextOptions }> {
+  Promise<ControlRows> {
   const { add, copy } = ins.control;
   if (copy) {
     const source = await readControlRows(c, copy.pnlName, copy.pnlFldId);
@@ -986,6 +1040,7 @@ async function insertedControlRows(c: Connection, pnlName: string, ins: { pnlFld
       `SELECT PTRTECFGSETTINGSID, PTRTEIMGLOCURLID, PTRTEPLUGIN, PTRTETEMPLATE, PTRTESTYLE FROM PSPTPNLRTEDITOR WHERE PNLNAME = :p AND PNLFLDID = :id`,
       { p: copy.pnlName, id: copy.pnlFldId });
     return { ...copyControlRows(source, pnlName, ins.pnlFldId, ins.fieldNum, ins.control), ...(html ? { html: String(html.HTMLAREA ?? '') } : {}),
+      ...(await controlDataRows(c, copy, { pnlName, pnlFldId: ins.pnlFldId })),
       ...(rte ? { richText: { configSettingsId: rte.PTRTECFGSETTINGSID, imageLocationUrlId: rte.PTRTEIMGLOCURLID, pluginFileId: rte.PTRTEPLUGIN,
         templateFileId: rte.PTRTETEMPLATE, styleFileId: rte.PTRTESTYLE } } : {}) };
   }
@@ -998,8 +1053,8 @@ async function insertedControlRows(c: Connection, pnlName: string, ins: { pnlFld
   }
   const refusal = newControlFieldRefusal(add.kind, add.recName, add.fieldName, field);
   if (refusal) throw new PageSaveRefusedError(refusal);
-  return newControlRows(pnlName, ins.pnlFldId, ins.fieldNum,
-    { kind: add.kind, recName: add.recName.trim(), fieldName: add.fieldName.trim() }, ins.control, field);
+  return { ...newControlRows(pnlName, ins.pnlFldId, ins.fieldNum,
+    { kind: add.kind, recName: add.recName.trim(), fieldName: add.fieldName.trim() }, ins.control, field), ...newControlDataRows(pnlName, ins.pnlFldId, add.kind) };
 }
 
 /** A Long Edit Box's PSPTPNLRTEDITOR row (le01: PNLNAME, PNLFLDID and the five ids, ' ' for none). */
@@ -1106,6 +1161,8 @@ export interface PageCreateRequest {
   controls?: EditedControl[];
   /** Without a template: the Page Properties set before the first save. */
   properties?: EditedPageProperties;
+  /** Create it though App Designer's page checks fail (PageInvalidError), as its "save anyway" Yes does. */
+  saveInvalid?: boolean;
 }
 
 export const PAGE_NAME = /^[A-Z][A-Z0-9_#@$]{0,17}$/;
@@ -1137,7 +1194,16 @@ export async function createPage(c: Connection, request: PageCreateRequest): Pro
   if (scope) throw new PageSaveRefusedError(scope);
   const opError = validateOperatorId(operatorId);
   if (opError) throw new PageSaveRefusedError(opError);
-  const controls = request.template ? [] : request.controls ?? [];
+  // Added one by one, each control goes after the one before it in reading order (newControlTabIndex); pasted ones last.
+  const controls: EditedControl[] = [];
+  for (const ctl of request.template ? [] : request.controls ?? []) {
+    if (ctl.add) controls.splice(newControlTabIndex(controls, ctl), 0, ctl); else controls.push(ctl);
+  }
+  // Their levels, as App Designer assigns them (a new scroll at 1, the rest from the tab order), and its checks.
+  const checked = controls.map((ctl) => ({ fieldType: ctl.add ? NEW_CONTROL_FIELDTYPE[ctl.add.kind] : Number(ctl.fieldType ?? -1),
+    occursLevel: Number(ctl.occursLevel ?? 1), fieldUse: Number(ctl.fieldUse ?? 0), recName: ctl.add ? ctl.add.recName : ctl.recName ?? '',
+    fieldName: ctl.add ? ctl.add.fieldName : ctl.fieldName ?? '', label: ctl.lblText ?? '', assocFieldNum: Number(ctl.assocFieldNum ?? 0) }));
+  occursLevels(checked).forEach((level, i) => { controls[i] = { ...controls[i], occursLevel: level }; });
   if (!request.template && controls.length === 0) {
     throw new PageSaveRefusedError('Add a control to the page first: App Designer will not save a page that has none.');
   }
@@ -1147,6 +1213,7 @@ export async function createPage(c: Connection, request: PageCreateRequest): Pro
     }
     const [{ N: taken }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSPNLDEFN WHERE PNLNAME = :n`, { n: pnlName });
     if (Number(taken)) throw new PageSaveRefusedError(`There is already a page named ${pnlName}.`);
+    if (!request.saveInvalid) await refuseInvalidPage(c, pnlName, checked);
 
     let template: { defn: ColumnValues; fields: ColumnValues[]; exts: ColumnValues[] } | undefined;
     if (request.template) {
@@ -1161,9 +1228,11 @@ export async function createPage(c: Connection, request: PageCreateRequest): Pro
         exts: await select<ColumnValues>(c, `SELECT * FROM PSPNLFIELDEXT WHERE PNLNAME = :n ORDER BY PNLFLDID`, { n: name }) };
     }
     // The controls' rows, built before anything is written: PNLFLDID and FIELDNUM 1..N in the editor's order.
-    const rows: Array<{ field: ColumnValues; ext: ColumnValues }> = template
-      ? template.fields.map((f) => ({ field: { ...f, PNLNAME: pnlName }, ext: { ...template!.exts.find((e) => e.PNLFLDID === f.PNLFLDID)!, PNLNAME: pnlName } }))
-      : [];
+    const rows: ControlRows[] = [];
+    for (const f of template?.fields ?? []) {
+      rows.push({ field: { ...f, PNLNAME: pnlName }, ext: { ...template!.exts.find((e) => e.PNLFLDID === f.PNLFLDID)!, PNLNAME: pnlName },
+        ...(await controlDataRows(c, { pnlName: request.template!.trim().toUpperCase(), pnlFldId: Number(f.PNLFLDID) }, { pnlName, pnlFldId: Number(f.PNLFLDID) })) });
+    }
     for (const [i, control] of controls.entries()) rows.push(await insertedControlRows(c, pnlName, { pnlFldId: i + 1, fieldNum: i + 1, control }));
     if (template && rows.some((r) => !r.ext.PNLFLDID)) throw new PageSaveRefusedError(`${request.template} has a control without a PSPNLFIELDEXT row.`);
     if (request.properties && request.properties.description.trim().length > 30) {
@@ -1179,10 +1248,7 @@ export async function createPage(c: Connection, request: PageCreateRequest): Pro
     const cols = Object.keys(defn);
     await expectRows(c, `INSERT INTO PSPNLDEFN (${cols.join(', ')}, LASTUPDDTTM) VALUES (${cols.map((_, i) => `:b${i}`).join(', ')}, TO_TIMESTAMP(:ts, ${TIMESTAMP_FORMAT}))`,
       { ...Object.fromEntries(cols.map((col, i) => [`b${i}`, defn[col]])), ts }, 1, `Inserting PSPNLDEFN ${pnlName}`);
-    for (const r of rows) {
-      await insertRow(c, 'PSPNLFIELD', r.field);
-      await insertRow(c, 'PSPNLFIELDEXT', r.ext);
-    }
+    for (const r of rows) await insertControl(c, pnlName, r);
     await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'PDM'`, { v: next.pdm + 1 }, 1, 'Updating PSVERSION PDM');
     await expectRows(c, `UPDATE PSVERSION SET VERSION = :v WHERE OBJECTTYPENAME = 'SYS'`, { v: next.sys + 1 }, 1, 'Updating PSVERSION SYS');
     await expectRows(c, `UPDATE PSLOCK SET VERSION = :v WHERE OBJECTTYPENAME = 'PDM'`, { v: next.lockPdm + 1 }, 1, 'Updating PSLOCK PDM');
