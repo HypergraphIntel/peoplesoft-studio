@@ -1,5 +1,93 @@
 # Changelog
 
+## 0.8.1
+
+### Changed
+
+- **Component PeopleCode editor** (Experimental): View PeopleCode on a
+  component opens its first event straight away (PreBuild, or the first with
+  code; RowInit for a record from the Structure tab), and the editor's title
+  bar has App Designer's **Object** and **Event** drop-downs: the component,
+  every record in its buffer with its fields, and their events, those with
+  code marked. An event with no program opens empty and **saving creates
+  it**; component, component record and component record field PeopleCode
+  are compiled and saved as App Designer saves them (byte-identical to
+  captured App Designer saves). Also through the MCP's
+  `psft_save_peoplecode`. See [docs/COMPONENTS.md](docs/COMPONENTS.md).
+- **New Definition > Component**: name, market, search record (required),
+  first page and description; created as App Designer's New Component and
+  Save As create one (identical rows), then opened to edit the rest.
+- **Page PeopleCode** (Experimental): the page window's **View PeopleCode**
+  (beside Save) opens the page's Activate program, empty when there is none;
+  saving creates or updates it as App Designer does (byte-identical to
+  captured App Designer saves).
+- **Page editor** (Experimental):
+  - **Select Field / Select Group / Select All**. Drag a rectangle to select a group
+    (on empty page, or anywhere in Select Group). Shift / Ctrl+click adds or
+    removes a control. Ctrl+A selects all. Dragging any selected control moves
+    the group, and Delete removes it.
+  - **Insert ▾** is App Designer's Insert menu, grouped (containers and text,
+    controls, grids and scrolls, pages, charts). Controls not yet captured
+    are listed greyed.
+  - **Order** tab: Move Up / Move Down and drag-and-drop set the tab order,
+    which is saved as FIELDNUM, as App Designer saves it. A move into or out
+    of a grid or scroll area (a level change) is refused.
+  - **Copy / Paste** (Ctrl+C / Ctrl+V), one control or a group, between any
+    page windows of a connection. Copy also works on read-only pages. A
+    pasted control is saved as App Designer's paste saves it: a copy of the
+    source's rows at the new position, after its source in tab order.
+  - **New Page** opens an empty page (570 × 330, Fluid Page off), and its
+    first Save creates it. As in App Designer, a page needs a control before
+    it can be saved. **New Page Fluid** offers App Designer's Choose Layout
+    Page list, creates the page as a copy of the chosen Layout Page (Fluid
+    Page on), and asks whether to copy its PeopleCode too. Both are in New
+    Definition and the Command Palette.
+  - The page can no longer be sized smaller than its controls, and controls
+    can't be dragged off the page.
+  - Subpages show their subpage name, as App Designer draws them.
+  - **Page Properties** has App Designer's General / Use / Fluid tabs.
+    Editable: Description, Comments, the page size, **Owner Id**, **Page Style
+    Sheet**, **Page Background**, **Allow Deferred Processing**, **Adjust
+    Layout for Hidden Fields**, **Popup Menu**, **Page Type** (every type;
+    the Use tab enables and defaults each setting as App Designer does for
+    that type), a secondary page's **OK & Cancel buttons**, **Close Box**
+    and **Disable Display in Modal Window**, **Fluid Page**, and the whole
+    **Fluid** tab (Style Classes, the Small / Medium / Large / Extra Large
+    overrides, Suppress System-Specific Style Classes). Each is written as
+    App Designer writes it, matching captured App Designer saves (a page made
+    standard is 570 × 330, as in App Designer). The MCP's `psft_edit_page`
+    `set_properties` takes them too. **Page Size** offers App Designer's list
+    (640x480 Windows screen … 490xVar portal home page comp., Custom size),
+    each stored as App Designer stores it. A page made Subpage or Popup Page
+    stores the rectangle the editor draws; App Designer measures its own on
+    its next save.
+  - A control added or pasted **inside a scroll area, grid or scroll bar** now
+    takes that scroll's occurs level (App Designer's component-buffer nesting),
+    not level 0.
+  - **Every control type now has App Designer's own property panel** in the
+    sidebar, with the tabs App Designer shows for that type — not just Frame.
+    Static Text, Group Box, Static Image, Edit Box, Drop-Down, Long Edit,
+    Check Box, Radio, Image, Scroll Bar, Subpage, Push Button, Secondary Page,
+    Grid, Tree, Horizontal Rule, HTML Area, Scroll Area and Chart each get
+    their Record / Label / Use / General / Fluid (and Image / Options) tabs as
+    they apply. Editable, each written as App Designer writes it (verified
+    against captured saves): the **Label** type (incl. Message Catalog set /
+    number), text, **Style**, Static Text **Alignment** and **Paragraph**,
+    Static Image **Image ID** and **Scale/Size**; the **Use** bits (Display
+    Only, Invisible, Display Control Field, Related Field, Multi-Currency,
+    Enable When Page is Display Only, Set Component Changed, Wrap Long Words);
+    a Check Box / Radio's **On / Off / Value**; **Record Name / Field Name**
+    rebinding (the save refuses a field that is not on the record); **Allow
+    Deferred Processing**; a Grid / Scroll Area / Scroll Bar's **Occurs
+    Count** and a Grid's **Show Column Headings / Show Row Numbers / Allow
+    Column Sorting**; **Page Field Name**, **Enable as Page Anchor**, **Adjust
+    Layout for Hidden Fields**; and the whole **Fluid** tab on a Fluid page
+    (style classes, suppress options, label rendering, control structure).
+  - **Page Background** is a drop-down of the style classes, like Page Style
+    Sheet.
+  - Page types carry App Designer's names (7 Layout Page, 10 Master&Detail
+    Target Page).
+
 ## 0.8.0
 
 ### Changed

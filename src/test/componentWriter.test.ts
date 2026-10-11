@@ -131,7 +131,7 @@ test('the Internet, Fluid and Style tabs: the plan reproduces each one-control A
     if (/^[ixfhs]\d/.test(c) && !notEdited.has(c)) {
       // What the save left, decoded as the panel decodes it, becomes the edit.
       const p = buildComponentDefinition('ZZ_PCODE_LAB_CMP', 'GBL', { defn: afterDefn, ...(afterExt ? { ext: afterExt } : {}), items: [], menus: [], programs: [], scripts: afterScripts },
-        { level0: { level: 0, primary: '', records: [], scrolls: [] } }).properties;
+        { level0: { level: 0, primary: '', records: [], scrolls: [] }, pageFields: {} }).properties;
       const n = p.internet, f = p.fluid;
       const code = (choice: { label: string } | { code: number }, labels: Record<number, string>) =>
         'code' in choice ? choice.code : Number(Object.entries(labels).find(([, l]) => l === choice.label)![0]);

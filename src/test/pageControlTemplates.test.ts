@@ -68,3 +68,9 @@ test('new controls are refused on fields the captures do not cover', () => {
   assert.equal(newControlFieldRefusal('staticText', ' ', ' ', undefined), undefined);
   assert.match(newControlFieldRefusal('checkBox', 'PERSON', 'EMPLID', char('EMPLID', 'Empl ID', 11))!, /one-character field/);
 });
+
+test('a control added inside a scroll takes its OCCURSLEVEL (default 0 outside)', () => {
+  const placed = (occursLevel?: number) => ({ fieldLeft: 10, fieldTop: 10, fieldRight: 0, fieldBottom: 0, fieldSizeType: 0, lblType: 1, lblText: 'X', fieldUse: 0, secureInvisible: 0, ...(occursLevel !== undefined ? { occursLevel } : {}) });
+  assert.equal(newControlRows('P', 9, 1, { kind: 'editBox', recName: 'PERSON', fieldName: 'EMPLID' }, placed(), char('EMPLID', 'Empl ID', 11)).field.OCCURSLEVEL, 0);
+  assert.equal(newControlRows('P', 9, 1, { kind: 'editBox', recName: 'PERSON', fieldName: 'EMPLID' }, placed(2), char('EMPLID', 'Empl ID', 11)).field.OCCURSLEVEL, 2);
+});

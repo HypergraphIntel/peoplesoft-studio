@@ -6,6 +6,7 @@ import {
 } from '../peoplecode/writeback/savePlan.js';
 import { writeScopeRefusal } from './writeScope.js';
 import { RECORD_FIELD_EVENTS } from '../model/recordEvents.js';
+import { COMPONENT_EVENTS, COMPONENT_FIELD_EVENTS, COMPONENT_RECORD_EVENTS } from '../model/componentPeopleCode.js';
 
 /*
  * The native PeopleCode save transaction (docs/CONTROLLED_COMPILE_LAB.md,
@@ -111,6 +112,8 @@ export interface PeopleCodeSaveRequest {
   operatorId: string;
   /** Creating a new Application Class (its program does not exist yet): adds it to its root package (c04). */
   createClass?: boolean;
+  /** The definition type's OBJECTIDs (peopleCodeKeys.ts), for creating a program keyed as App Designer keys it. */
+  objectIds?: readonly number[];
 }
 
 export interface PeopleCodeSaveResult {
@@ -201,6 +204,10 @@ export async function savePeopleCode(
       if (prepareSourceForSave(request.source) === '') throw new SaveRefusedError('There is nothing to create: the program is empty.');
       if (creatingClass) {
         classPlan = await planClassCreate(c, parts);
+      } else if (request.objectIds?.[0] === 10) {
+        await checkComponentProgram(c, parts, request.objectIds);
+      } else if (request.objectIds?.[0] === 9) {
+        await checkPageProgram(c, parts);
       } else {
         if (parts.length !== 3 || !RECORD_FIELD_EVENTS.includes(parts[2])) {
           throw new SaveRefusedError('There is no stored program here; only Record Field PeopleCode and new Application Classes can be created yet.');
@@ -214,7 +221,10 @@ export async function savePeopleCode(
       ? {
         key: classPlan
           ? { objectIds: classPlan.objectIds, objectValues: [...parts, ...Array(7 - parts.length).fill(' ')] }
-          : { objectIds: [1, 2, 12, 0, 0, 0, 0], objectValues: [parts[0], parts[1], parts[2], ' ', ' ', ' ', ' '] },
+          : request.objectIds?.[0] === 10 || request.objectIds?.[0] === 9
+            // Component (p01-p03) and page PeopleCode: the type's OBJECTIDs, the other slots 0 / ' '.
+            ? { objectIds: [...request.objectIds, ...Array(7 - request.objectIds.length).fill(0)], objectValues: [...parts, ...Array(7 - parts.length).fill(' ')] }
+            : { objectIds: [1, 2, 12, 0, 0, 0, 0], objectValues: [parts[0], parts[1], parts[2], ' ', ' ', ' ', ' '] },
         text: [], program: [], names: []
       }
       : found!;
@@ -464,3 +474,36 @@ async function writeClassCreate(c: Connection, plan: ClassCreatePlan, lastupddtt
   }
 }
 
+
+/**
+ * A component program can be created here: an event the object takes, on a
+ * component that exists, for a record (and field) that exists -- as App
+ * Designer's Component PeopleCode editor offers them (p01-p03).
+ */
+async function checkComponentProgram(c: Connection, parts: readonly string[], objectIds: readonly number[]): Promise<void> {
+  const shape = objectIds.join(',');
+  const [component, market] = parts;
+  const event = parts[parts.length - 1];
+  const events: readonly string[] = shape === '10,39,12' ? COMPONENT_EVENTS : shape === '10,39,1,12' ? COMPONENT_RECORD_EVENTS
+    : shape === '10,39,1,2,12' ? COMPONENT_FIELD_EVENTS : [];
+  if (!events.length || parts.length !== objectIds.length) throw new SaveRefusedError('This is not a component PeopleCode key.');
+  if (!events.includes(event)) throw new SaveRefusedError(`${event} is not an event this component object takes (${events.join(', ')}).`);
+  const count = async (sql: string, binds: Record<string, string>) => Number((await select<{ N: number }>(c, sql, binds))[0]?.N ?? 0);
+  if (!(await count(`SELECT COUNT(*) AS N FROM PSPNLGRPDEFN WHERE PNLGRPNAME = :n AND MARKET = :m`, { n: component, m: market }))) {
+    throw new SaveRefusedError(`There is no component ${component}.${market}.`);
+  }
+  if (parts.length >= 4 && !(await count(`SELECT COUNT(*) AS N FROM PSRECDEFN WHERE RECNAME = :r`, { r: parts[2] }))) {
+    throw new SaveRefusedError(`There is no record ${parts[2]}.`);
+  }
+  if (parts.length === 5 && !(await count(
+    `SELECT COUNT(*) AS N FROM PSRECFIELDDB WHERE RECNAME = :r AND FIELDNAME = :f`, { r: parts[2], f: parts[3] }))) {
+    throw new SaveRefusedError(`${parts[3]} is not a field of ${parts[2]}.`);
+  }
+}
+
+/** Page PeopleCode can be created here: a page that exists, its one event Activate (App Designer's View Page PeopleCode). */
+async function checkPageProgram(c: Connection, parts: readonly string[]): Promise<void> {
+  if (parts.length !== 2 || parts[1] !== 'Activate') throw new SaveRefusedError('Page PeopleCode has one event, Activate.');
+  const [{ N }] = await select<{ N: number }>(c, `SELECT COUNT(*) AS N FROM PSPNLDEFN WHERE PNLNAME = :p`, { p: parts[0] });
+  if (Number(N) === 0) throw new SaveRefusedError(`There is no page ${parts[0]}.`);
+}

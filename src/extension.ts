@@ -34,9 +34,11 @@ import { ImagePanel } from './editors/imagePanel.js';
 import { AppEnginePanel } from './editors/appEnginePanel.js';
 import { PagePanel } from './editors/pagePanel.js';
 import { ComponentPanel } from './editors/componentPanel.js';
-import { defaultItemLabel } from './providers/componentWriter.js';
+import { ComponentSaveRefusedError, defaultItemLabel } from './providers/componentWriter.js';
+import { NEW_PAGE, PageSaveRefusedError } from './providers/pageWriter.js';
+import { buildPageLayout, type PageLayout } from './model/pageLayout.js';
 import type { ComponentDefinition } from './model/componentDefinition.js';
-import { bufferRecords, componentPeopleCodeKey, eventsFor, peopleCodeObjects, type PeopleCodeObject } from './model/componentPeopleCode.js';
+import { componentPeopleCodeKey, eventsFor } from './model/componentPeopleCode.js';
 import { canInsertIntoProject, describeItem, ProjectSaveRefusedError } from './model/projectItems.js';
 import { DatabaseProvider } from './providers/database.js';
 import { validateConnectString } from './settings/settingsModel.js';
@@ -136,42 +138,95 @@ function targetFromTreeNode(node: unknown): CompareTarget | undefined {
 }
 
 /**
- * App Designer's View PeopleCode on a component: pick the object (the
- * component, a record, a field with component PeopleCode), then its event;
- * objects and events with a program are marked. Opens the program read-only.
+ * App Designer's View PeopleCode on a component: opens the object's first
+ * event (the component's, or a record's from the Structure tab) -- the first
+ * with a program, else the first in App Designer's order (PreBuild, RowInit
+ * ...). A program that does not exist opens empty and is created on save.
+ * The editor's title bar then switches object and event (psft.componentPeopleCode.*).
  */
 async function viewComponentPeopleCode(provider: DatabaseProvider, def: ComponentDefinition, record?: string): Promise<void> {
-  const objects = peopleCodeObjects(def.name, bufferRecords(def.structure), def.programs);
-  let object = record ? objects.find((o) => o.record === record && !o.field) : undefined;
-  if (!object) {
-    const picked = await vscode.window.showQuickPick(objects.map((o) => ({
-      label: `${o.withCode.length ? '$(zap) ' : ''}${o.label}`, description: o.withCode.join(', '), object: o
-    })), { title: `${def.name}.${def.market}: View PeopleCode`, placeHolder: 'The component, a record, or a field (marked: has component PeopleCode)', matchOnDescription: true });
-    if (!picked) return;
-    object = picked.object;
-  }
-  await viewComponentEvent(provider, def, object, objects);
+  const programs = def.programs.filter((p) => record ? p.record === record && !p.field : !p.record).map((p) => p.event);
+  const object = record ? { record } : {};
+  const event = eventsFor({ ...object, withCode: programs })[0];
+  await vscode.commands.executeCommand('psft.openDefinition', provider.id, componentPeopleCodeKey(def.name, def.market, object, event));
 }
 
-/** The event step: the object's events (marked where there is a program), and for a record its fields that have PeopleCode. */
-async function viewComponentEvent(provider: DatabaseProvider, def: ComponentDefinition, object: PeopleCodeObject, objects: PeopleCodeObject[]): Promise<void> {
-  type Item = vscode.QuickPickItem & { event?: string; field?: PeopleCodeObject };
-  const items: Item[] = eventsFor(object).map((e) => ({
-    label: `${object.withCode.includes(e) ? '$(zap) ' : ''}${e}`, description: object.withCode.includes(e) ? '' : 'no PeopleCode', event: e
-  }));
-  const fields = object.record && !object.field ? objects.filter((o) => o.record === object.record && o.field) : [];
-  if (fields.length) {
-    items.push({ label: 'Fields', kind: vscode.QuickPickItemKind.Separator });
-    for (const f of fields) items.push({ label: `$(zap) ${f.field}`, description: f.withCode.join(', '), field: f });
-  }
-  const pick = await vscode.window.showQuickPick(items, { title: `${def.name}.${def.market}: ${object.label}`, placeHolder: 'Event' });
-  if (!pick) return;
-  if (pick.field) return viewComponentEvent(provider, def, pick.field, objects);
-  if (!pick.event) return;
-  if (!object.withCode.includes(pick.event)) {
-    void vscode.window.showInformationMessage(`${object.label} has no ${pick.event} PeopleCode in ${def.name}.${def.market}.`);
+/** The component PeopleCode program a key names: its component, market, record, field and event. */
+function componentProgramOf(key: DefinitionKey): { component: string; market: string; record?: string; field?: string; event: string } | undefined {
+  const p = key.parts;
+  if (key.type === DefinitionType.ComponentPeopleCode && p.length === 3) return { component: p[0], market: p[1], event: p[2] };
+  if (key.type === DefinitionType.ComponentRecordPeopleCode && p.length === 4) return { component: p[0], market: p[1], record: p[2], event: p[3] };
+  if (key.type === DefinitionType.ComponentRecordFieldPeopleCode && p.length === 5) return { component: p[0], market: p[1], record: p[2], field: p[3], event: p[4] };
+  return undefined;
+}
+
+/**
+ * The Page PeopleCode editor's two drop-downs: Object (the page, and each
+ * record field on it -- Record Field PeopleCode) and Event (Activate for the
+ * page; the record field events, those with a program first).
+ */
+async function choosePagePeopleCode(workspace: Workspace, which: 'object' | 'event'): Promise<void> {
+  const uri = vscode.window.activeTextEditor?.document.uri;
+  if (!uri || uri.scheme !== 'psft') return;
+  const { handle, key } = parseUri(uri);
+  if (key.type !== DefinitionType.PagePeopleCode) return;
+  const pnlName = key.parts[0];
+  const provider = await workspace.requireByHandle(handle);
+  if (!(provider instanceof DatabaseProvider)) return;
+  const objects = await provider.pagePeopleCodeObjects(pnlName);
+  const eventsOf = (o: { field?: string; withCode: string[] }) => {
+    const all = o.field ? RECORD_FIELD_EVENTS : ['Activate'];
+    const code = all.filter((e) => o.withCode.includes(e)).sort();
+    return [...code, ...all.filter((e) => !code.includes(e))];
+  };
+  const open = (o: { record?: string; field?: string }, event: string) => vscode.commands.executeCommand('psft.openDefinition', provider.id,
+    o.record && o.field ? makeKey(DefinitionType.RecordPeopleCode, o.record, o.field, event) : makeKey(DefinitionType.PagePeopleCode, pnlName, event));
+  if (which === 'object') {
+    const picked = await vscode.window.showQuickPick(objects.map((o) => ({
+      label: `${o.field ? '  ' : ''}${o.withCode.length ? '$(zap) ' : ''}${o.label}`, description: o.withCode.join(', '), object: o
+    })), { title: `${pnlName} (Page PeopleCode): object`, placeHolder: 'The page, or a record field on it (its Record Field PeopleCode)', matchOnDescription: true });
+    if (picked) await open(picked.object, eventsOf(picked.object)[0]);
     return;
   }
+  const page = objects[0];
+  const pick = await vscode.window.showQuickPick(eventsOf(page).map((e) => ({ label: `${page.withCode.includes(e) ? '$(zap) ' : ''}${e}`, event: e })),
+    { title: `${pnlName} (Page PeopleCode): event`, placeHolder: 'Event' });
+  if (pick && pick.event !== key.parts[1]) await open(page, pick.event);
+}
+
+/**
+ * The Component PeopleCode editor's two drop-downs, as title-bar pickers on a
+ * component program's editor: Object (the component, its buffer's records and
+ * their fields) opens that object's first event; Event switches event. Those
+ * with a program are marked, as App Designer marks them bold.
+ */
+async function chooseComponentPeopleCode(workspace: Workspace, which: 'object' | 'event'): Promise<void> {
+  const uri = vscode.window.activeTextEditor?.document.uri;
+  if (!uri || uri.scheme !== 'psft') return;
+  const { handle, key } = parseUri(uri);
+  const at = componentProgramOf(key);
+  if (!at) return;
+  const provider = await workspace.requireByHandle(handle);
+  if (!(provider instanceof DatabaseProvider)) return;
+  const def = await provider.readComponentDefinition(makeKey(DefinitionType.Component, at.component, at.market));
+  const objects = await provider.componentPeopleCodeObjects(def);
+  const current = objects.find((o) => o.record === at.record && o.field === at.field) ?? objects[0];
+  let object = current;
+  if (which === 'object') {
+    const picked = await vscode.window.showQuickPick(objects.map((o) => ({
+      label: `${o.field ? '    ' : o.record ? '  ' : ''}${o.withCode.length ? '$(zap) ' : ''}${o.label}`,
+      description: o.withCode.join(', '), picked: o === current, object: o
+    })), { title: `${def.name}.${def.market} (Component PeopleCode): object`, placeHolder: `${current.label} -- the component, a record or a field`, matchOnDescription: true });
+    if (!picked) return;
+    object = picked.object;
+    const event = eventsFor(object)[0];
+    await vscode.commands.executeCommand('psft.openDefinition', provider.id, componentPeopleCodeKey(def.name, def.market, object, event));
+    return;
+  }
+  const pick = await vscode.window.showQuickPick(eventsFor(object).map((e) => ({
+    label: `${object.withCode.includes(e) ? '$(zap) ' : ''}${e}`, description: e === at.event ? 'open' : object.withCode.includes(e) ? '' : 'no PeopleCode yet', event: e
+  })), { title: `${def.name}.${def.market} (Component PeopleCode): ${object.label}`, placeHolder: 'Event' });
+  if (!pick || pick.event === at.event) return;
   await vscode.commands.executeCommand('psft.openDefinition', provider.id, componentPeopleCodeKey(def.name, def.market, object, pick.event));
 }
 
@@ -492,23 +547,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           }
           if (key.type === DefinitionType.Page && provider instanceof DatabaseProvider) {
             const { layout, order } = await provider.readPageLayout(key);
-            const pnlName = key.parts[0];
-            const operatorId = workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim();
-            // Editable when the connection is Writable, the page name is in the write scope, and an operator is set.
-            const editable = workspace.isWritable(provider.id) && !!operatorId && !writeScopeRefusal(pnlName);
-            let openedVersion = layout.version;
-            PagePanel.show({ id: provider.id, displayName: provider.displayName }, key, layout, order, {
-              editable,
-              ...(editable ? {
-                save: async (controls, properties) => {
-                  const result = await provider.savePage({ pnlName, openedVersion, operatorId: operatorId!, controls, ...(properties ? { properties } : {}) });
-                  openedVersion = result.version;
-                  // Added controls only get their PNLFLDIDs from the database: redraw from it.
-                  if (result.inserted > 0) return { version: result.version, layout: (await provider.readPageLayout(key)).layout };
-                  return { version: result.version };
-                }
-              } : {})
-            });
+            await showPageEditor(workspace, provider, key, layout, order);
             return;
           }
           if (!provider.canReadAsText(key.type)) {
@@ -524,6 +563,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         });
       }),
 
+    vscode.commands.registerCommand('psft.pagePeopleCode.object', () =>
+      withError('Choosing the object', () => choosePagePeopleCode(workspace, 'object'))),
+    vscode.commands.registerCommand('psft.pagePeopleCode.event', () =>
+      withError('Choosing the event', () => choosePagePeopleCode(workspace, 'event'))),
+    vscode.commands.registerCommand('psft.componentPeopleCode.object', () =>
+      withError('Choosing the object', () => chooseComponentPeopleCode(workspace, 'object'))),
+    vscode.commands.registerCommand('psft.componentPeopleCode.event', () =>
+      withError('Choosing the event', () => chooseComponentPeopleCode(workspace, 'event'))),
     vscode.commands.registerCommand('psft.viewComponentPeopleCode', async (target?: unknown) => {
       const t = await resolveDefinitionForCompare(workspace, target, 'View PeopleCode');
       if (!t) return;
@@ -651,6 +698,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     vscode.commands.registerCommand('psft.newDefinition', () =>
       withError('New definition', () => newDefinition(workspace))),
+    vscode.commands.registerCommand('psft.newPage', () => withError('New Page', () => newPage(workspace))),
+    vscode.commands.registerCommand('psft.newPageFluid', () => withError('New Page Fluid', () => newPageFluid(workspace))),
 
     vscode.commands.registerCommand('psft.newHtmlDefinition', () =>
       withError('New HTML definition', () => newTextDefinition(workspace, DefinitionType.HtmlDefinition))),
@@ -1152,7 +1201,9 @@ async function pickRecordFieldPeopleCode(workspace: Workspace, connectionId: str
 async function newDefinition(workspace: Workspace): Promise<void> {
   type Item = vscode.QuickPickItem & {
     create?: TextDefinitionType | DefinitionType.Record | DefinitionType.Field | DefinitionType.Project | DefinitionType.ApplicationPackage
-      | DefinitionType.ApplicationClassPeopleCode;
+      | DefinitionType.ApplicationClassPeopleCode | DefinitionType.Component | DefinitionType.Page;
+    /** Page: New Page Fluid (from a Layout Page). */
+    fluid?: boolean;
   };
   const later = (label: string): Item => ({ label, description: 'not available yet' });
   const picked = await vscode.window.showQuickPick<Item>([
@@ -1160,13 +1211,16 @@ async function newDefinition(workspace: Workspace): Promise<void> {
     { label: '$(table) Record', description: 'SQL Table or Derived/Work; add fields, then save', create: DefinitionType.Record },
     { label: '$(symbol-field) Field', description: 'type, length and label; created when you finish', create: DefinitionType.Field },
     { label: '$(project) Project', description: 'created empty, then opened in Projects', create: DefinitionType.Project },
+    { label: '$(window) Component', description: 'a search record and its first page; created, then opened', create: DefinitionType.Component },
+    { label: '$(layout) Page', description: 'opens empty (Fluid Page off); the first save creates it, once it has a control', create: DefinitionType.Page },
+    { label: '$(layout-panel) Page Fluid', description: 'from a Layout Page you choose (Fluid Page on); created, then opened', create: DefinitionType.Page, fluid: true },
     { label: '$(package) Application Package', description: 'created empty; then add classes', create: DefinitionType.ApplicationPackage },
     { label: '$(symbol-class) Application Class', description: 'in a package or subpackage; opens its declaration, the first save creates it', create: DefinitionType.ApplicationClassPeopleCode },
     { label: '$(code) HTML Definition', description: 'opens empty; the first save creates it', create: DefinitionType.HtmlDefinition },
     { label: '$(symbol-color) Style Sheet', description: 'freeform; opens empty, the first save creates it', create: DefinitionType.StyleSheet },
     { label: '$(database) SQL Definition', description: 'opens empty; the first save creates it', create: DefinitionType.SqlDefinition },
     { label: 'Not available yet', kind: vscode.QuickPickItemKind.Separator },
-    ...['Page', 'Component', 'Menu', 'App Engine Program'].map(later)
+    ...['Menu', 'App Engine Program'].map(later)
   ], { title: 'New Definition', placeHolder: 'Definition type' });
   if (!picked) return;
   // DefinitionType.Record is 0: test for absence, not falsiness.
@@ -1177,6 +1231,8 @@ async function newDefinition(workspace: Workspace): Promise<void> {
   if (picked.create === DefinitionType.Record) await newRecord(workspace);
   else if (picked.create === DefinitionType.Field) await newField(workspace);
   else if (picked.create === DefinitionType.Project) await newProject(workspace);
+  else if (picked.create === DefinitionType.Component) await newComponent(workspace);
+  else if (picked.create === DefinitionType.Page) await (picked.fluid ? newPageFluid(workspace) : newPage(workspace));
   else if (picked.create === DefinitionType.ApplicationPackage) await newPackage(workspace);
   else if (picked.create === DefinitionType.ApplicationClassPeopleCode) await newClass(workspace);
   else await newTextDefinition(workspace, picked.create);
@@ -1300,6 +1356,169 @@ async function newClass(workspace: Workspace, chosen?: DatabaseProvider, package
   }
   await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(toUri(provider.id, key)), { preview: false });
   vscode.window.showInformationMessage(`${qualified} is new: write its members, then save to create it.`);
+}
+
+/**
+ * App Designer's File > New > Component and its first save (case c01): a page
+ * inserted, a search record set -- a component is never saved without one --
+ * and Save As. Created with App Designer's defaults (componentWriter.ts:
+ * Update/Display, Include in Navigation), then opened to edit the rest.
+ */
+async function newComponent(workspace: Workspace): Promise<void> {
+  const provider = await pickWritableConnection(workspace, 'New Component');
+  if (!provider) return;
+  const name = await askDefinitionName(`New Component on ${provider.displayName}`, 18, 'Component name (at most 18 characters)');
+  if (!name) return;
+  const market = (await vscode.window.showInputBox({
+    title: `New Component ${name}`, prompt: 'Market', value: 'GBL',
+    validateInput: (v) => (/^[A-Z0-9]{1,3}$/.test(v.trim().toUpperCase()) ? undefined : 'Up to 3 letters or digits (GBL, USA ...).')
+  }))?.trim().toUpperCase();
+  if (!market) return;
+  if (await provider.componentExists(name, market)) {
+    vscode.window.showWarningMessage(`A component ${name}.${market} already exists.`);
+    return;
+  }
+  const searchRecord = (await vscode.window.showInputBox({
+    title: `New Component ${name}.${market}`, prompt: 'Search record (required: a component is not saved without one)', ignoreFocusOut: true,
+    validateInput: async (v) => {
+      const r = v.trim().toUpperCase();
+      if (!r) return 'A component needs a search record.';
+      return (await provider.recordNameStatus(r)) === 'exists' ? undefined : `There is no record named ${r}.`;
+    }
+  }))?.trim().toUpperCase();
+  if (!searchRecord) return;
+  const page = (await vscode.window.showInputBox({
+    title: `New Component ${name}.${market}`, prompt: 'Its first page (Insert > Page into Component adds more)', ignoreFocusOut: true,
+    validateInput: async (v) => {
+      const p = v.trim().toUpperCase();
+      if (!p) return 'A component starts with a page.';
+      return (await provider.pageInfo(p)) ? undefined : `There is no page named ${p}.`;
+    }
+  }))?.trim().toUpperCase();
+  if (!page) return;
+  const description = await vscode.window.showInputBox({ title: `New Component ${name}.${market}`, prompt: 'Description (optional, at most 30)',
+    validateInput: (v) => (v.trim().length <= 30 ? undefined : 'At most 30 characters.') });
+  if (description === undefined) return;
+  try {
+    await provider.saveComponent({
+      name, market, operatorId: workspace.configFor(provider.id)!.peoplesoftOperatorId!.trim(),
+      items: [{ pageName: page, itemName: page, itemLabel: defaultItemLabel(page), folderTabLabel: '', hidden: false }],
+      properties: {
+        description, comments: '', searchRecord, addSearchRecord: '', detailPage: '', forceSearch: false,
+        actions: { add: false, updateDisplay: true, updateDisplayAll: false, correction: false }, disableSave: false, includeInNavigation: true
+      }
+    });
+  } catch (error) {
+    if (!(error instanceof ComponentSaveRefusedError)) throw error;
+    vscode.window.showWarningMessage(`${name}.${market} was not created: ${error.message}`);
+    return;
+  }
+  void vscode.commands.executeCommand('psft.refresh');
+  vscode.window.showInformationMessage(`Created component ${name}.${market} on ${provider.displayName}.`);
+  await vscode.commands.executeCommand('psft.openDefinition', provider.id, makeKey(DefinitionType.Component, name, market));
+}
+
+/**
+ * The page window for a page, editable on a Writable connection with an
+ * operator when the name is in the write scope. A new page (New Page) is not
+ * in the database yet: its first Save creates it (pageWriter.ts createPage),
+ * refused until it has a control, and later Saves save it.
+ */
+async function showPageEditor(workspace: Workspace, provider: DatabaseProvider, key: DefinitionKey, layout: PageLayout, order: string, isNew = false): Promise<void> {
+  const pnlName = key.parts[0];
+  const operatorId = workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim();
+  const editable = workspace.isWritable(provider.id) && !!operatorId && !writeScopeRefusal(pnlName);
+  let openedVersion = layout.version;
+  let created = !isNew;
+  // The Page Properties lists; the page still opens without them.
+  const choices = await provider.pagePropertyChoices().catch(() => undefined);
+  PagePanel.show({ id: provider.id, displayName: provider.displayName }, key, layout, order, {
+    editable,
+    ...(isNew ? { status: 'New page: add a control, then Save to create it' } : {}),
+    ...(choices ? { choices } : {}),
+    viewPeopleCode: async () => { await vscode.commands.executeCommand('psft.openDefinition', provider.id, makeKey(DefinitionType.PagePeopleCode, pnlName, 'Activate')); },
+    ...(editable ? {
+      save: async (controls, properties, order) => {
+        if (!created) {
+          const result = await provider.createPage({ pnlName, operatorId: operatorId!, controls, ...(properties ? { properties } : {}) });
+          created = true;
+          openedVersion = result.version;
+          void vscode.commands.executeCommand('psft.refresh');
+          vscode.window.showInformationMessage(`Created page ${pnlName} on ${provider.displayName}.`);
+          return { version: result.version, layout: (await provider.readPageLayout(key)).layout };
+        }
+        const result = await provider.savePage({ pnlName, openedVersion, operatorId: operatorId!, controls, ...(properties ? { properties } : {}), ...(order ? { order } : {}) });
+        openedVersion = result.version;
+        // Added and pasted controls only get their PNLFLDIDs from the database: redraw from it.
+        if (result.inserted > 0) return { version: result.version, layout: (await provider.readPageLayout(key)).layout };
+        return { version: result.version };
+      }
+    } : {})
+  });
+}
+
+/** File > New > Page: a name, then the page window on an empty page (App Designer's new page: 570 x 330, Fluid off). */
+async function newPage(workspace: Workspace): Promise<void> {
+  const provider = await pickWritableConnection(workspace, 'New Page');
+  if (!provider) return;
+  const name = await askDefinitionName(`New Page on ${provider.displayName}`, 18, 'Page name (at most 18 characters)');
+  if (!name) return;
+  if (await provider.pageInfo(name)) {
+    vscode.window.showWarningMessage(`A page named ${name} already exists.`);
+    return;
+  }
+  const refusal = writeScopeRefusal(name);
+  if (refusal) { vscode.window.showWarningMessage(refusal); return; }
+  const layout = buildPageLayout(name, { page: { PNLNAME: name, VERSION: 0, ...NEW_PAGE }, fields: [], components: [] });
+  await showPageEditor(workspace, provider, makeKey(DefinitionType.Page, name), layout, '', true);
+}
+
+/**
+ * New Page Fluid: App Designer's Choose Layout Page list (every Layout Page),
+ * a name, and its "save the PeopleCode too?" question; the page is created
+ * as a copy of the Layout Page (n02-page-new-fluid), Fluid Page on, and opened.
+ */
+async function newPageFluid(workspace: Workspace): Promise<void> {
+  const provider = await pickWritableConnection(workspace, 'New Page Fluid');
+  if (!provider) return;
+  const layouts = await provider.layoutPages();
+  if (!layouts.length) { vscode.window.showWarningMessage(`${provider.displayName} has no Layout Pages to start from.`); return; }
+  const picked = await vscode.window.showQuickPick(layouts.map((l) => ({ label: l.name, description: 'Layout Page', detail: l.description || undefined })),
+    { title: 'Choose Layout Page', placeHolder: 'The Layout Page the new Fluid page starts from', matchOnDescription: true, matchOnDetail: true });
+  if (!picked) return;
+  const name = await askDefinitionName(`New Page Fluid on ${provider.displayName} (from ${picked.label})`, 18, 'Page name (at most 18 characters)');
+  if (!name) return;
+  if (await provider.pageInfo(name)) {
+    vscode.window.showWarningMessage(`A page named ${name} already exists.`);
+    return;
+  }
+  const operatorId = workspace.configFor(provider.id)!.peoplesoftOperatorId!.trim();
+  // App Designer's Save As asks whether to save the source's PeopleCode with the copy.
+  const answer = await vscode.window.showInformationMessage(`Do you want to save PeopleCode from ${picked.label}?`, { modal: true }, 'Yes', 'No');
+  if (!answer) return;
+  try {
+    await provider.createPage({ pnlName: name, operatorId, template: picked.label });
+  } catch (error) {
+    if (!(error instanceof PageSaveRefusedError)) throw error;
+    vscode.window.showWarningMessage(`${name} was not created: ${error.message}`);
+    return;
+  }
+  let note = '';
+  if (answer === 'Yes') {
+    const source = await provider.readPeopleCodeForEdit(makeKey(DefinitionType.PagePeopleCode, picked.label, 'Activate'));
+    if (!source) note = ` ${picked.label} has no page PeopleCode to copy.`;
+    else {
+      try {
+        await provider.savePeopleCode(makeKey(DefinitionType.PagePeopleCode, name, 'Activate'), { source: source.text, openedFingerprint: 'absent', operatorId });
+        note = ` Its Activate PeopleCode was saved too.`;
+      } catch (error) {
+        note = ` Its PeopleCode was not copied: ${error instanceof Error ? error.message : String(error)}`;
+      }
+    }
+  }
+  void vscode.commands.executeCommand('psft.refresh');
+  vscode.window.showInformationMessage(`Created page ${name} from ${picked.label} on ${provider.displayName}.${note}`);
+  await vscode.commands.executeCommand('psft.openDefinition', provider.id, makeKey(DefinitionType.Page, name));
 }
 
 /** App Designer's File > New > Project and its first save: an empty project (projectWriter.ts createProject), opened. */

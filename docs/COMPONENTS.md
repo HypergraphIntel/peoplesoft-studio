@@ -29,26 +29,44 @@ double-click) opens the page, **Component Properties** shows the sidebar.
 **Cut**, **Copy**, **Paste** and **Delete** are shown disabled until the
 component save is captured. (Register Component is not offered.)
 
-## View PeopleCode
+## Component PeopleCode
 
-App Designer's View > View PeopleCode: the **View PeopleCode** button in the
-panel's header, a right-click on the component or a record in the Structure
-tab, or *View PeopleCode* on a component in the Definition Browser or a
-project. The first step lists the objects -- the component, every record in
-the buffer, and each field with component PeopleCode -- marking those with a
-program; the second lists the object's events in App Designer's order,
-marking those with a program (App Designer's bold), and for a record its
-fields with PeopleCode. The program opens as text, read-only:
+App Designer's View PeopleCode and its Component PeopleCode editor.
+**View PeopleCode** (the panel header, or right-click the component or a
+record in the Structure tab, or a component in the Definition Browser / a
+project) opens the object's first event straight away: the first with a
+program, else the first in App Designer's order -- PreBuild for a component
+with none, RowInit for a record. The editor's title bar has App Designer's two
+drop-downs as pickers:
 
-| Object | Events | Key (`PSPCMPROG` values) |
+- **Object** (`psft.componentPeopleCode.object`): the component, each record
+  in its buffer with its fields -- all of a SQL table's or view's
+  (PSRECFIELDDB, in order), only the on-page fields of a Derived/Work record,
+  as the buffer holds them (ZZ_PCODE_LAB_CMP: ZZ_PCODE_LAB shows
+  ZZ_PCODE_LAB_C01 alone). Choosing one opens its first event.
+- **Event** (`psft.componentPeopleCode.event`): the object's events, those
+  with a program first (App Designer's bold, alphabetically), then the rest
+  in App Designer's order.
+
+| Object | Events (order with no program) | Key (`PSPCMPROG` OBJECTIDs) |
 |---|---|---|
-| Component | PostBuild, PreBuild, SavePostChange, SavePreChange, Workflow | component, market, event (`OBJECTID` 10 / 39 / 12) |
+| Component | PreBuild, PostBuild, SavePreChange, SavePostChange, Workflow | component, market, event (10 / 39 / 12) |
 | Component record | RowInit, RowInsert, RowDelete, RowSelect, SaveEdit, SavePostChange, SavePreChange, SearchInit, SearchSave | component, market, record, event (10 / 39 / 1 / 12) |
 | Component record field | FieldChange, FieldDefault, FieldEdit, PrePopup | component, market, record, field, event (10 / 39 / 1 / 2 / 12) |
 
-These are App Designer's lists and every event HRDMO's component programs
-use. Checked against JOB_DATA.GBL: PostBuild, DERIVED_GL RowInit and
-DERIVED_GL.GL_DEL_COMBO_PB FieldChange open with App Designer's text.
+**An event with no program opens empty; saving creates it** (on a Writable
+connection with an Operator ID, the component in the write scope); clearing
+a program and saving deletes it. The save is the PeopleCode writer's
+(`peopleCodeWriter.ts`), compiled against the key's record and field (none
+for the component's own), as the corpus harness compiles HCDEV's 5,613
+component programs (5,602 byte-exact). Captured from App Designer on
+ZZ_PCODE_LAB_CMP (results/p01-p05: create component, component record and
+component record field PeopleCode; edit; delete): PSPCMTXT / PSPCMPROG /
+PSPCMNAME rows, PSVERSION / PSLOCK PCM and PSVERSION SYS + 1, a
+PSPCMPROGDEL marker on delete -- the component's own version does not move.
+Proven live: `w04` re-created the P03 program with every column equal to
+App Designer's (PROGTXT bytes included), and `w05` re-saved the P04 program
+changing only VERSION and LASTUPDDTTM.
 
 ## Structure tab
 
@@ -155,7 +173,14 @@ ZZ_PCODE_LAB_PG2, identical to c02: same counters, same row) and
 Comments). A save without a search record was refused live. App Designer (8.62.09) opens ZZ_PCODE_LAB_CMP cleanly
 after both writer saves (checked by hand, 2026-10-10).
 
-Creating a component from PeopleSoft Studio has no UI yet (the writer supports it from c01).
+**New Definition > Component** creates one as App Designer's File > New >
+Component and Save As (c01): it asks for the name, market, search record
+(required -- a component is never saved without one), first page and
+description, writes App Designer's default row (Update/Display, Include in
+Navigation) and opens the component. Proven live: `w06-writer-create-component`
+(ZZ_PCODE_LAB_CMP2 from c01's inputs) equals App Designer's c01 in all 43
+`PSPNLGRPDEFN` and 8 `PSPNLGROUP` columns, with the same counters (PGM and SYS
++ 1; no MDM on a create).
 
 ## Internet, Fluid and Style tabs (decoded)
 

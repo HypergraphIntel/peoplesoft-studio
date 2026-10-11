@@ -98,6 +98,9 @@ const RECORD_ID = 1;
 const FIELD_ID = 2;
 const EVENT_ID = 12;
 const APPLICATION_PACKAGE_ID = 104;
+const COMPONENT_ID = 10;
+const PAGE_ID = 9;
+const MARKET_ID = 39;
 const APPLICATION_CLASS_IDS = new Set([105, 106, 107]);
 
 /** The owner, from the stored key; refuses anything outside the first writer's scope. */
@@ -109,6 +112,21 @@ export function targetForKey(key: PcmKey): CompileTarget {
   if (ids[0] === RECORD_ID && ids[1] === FIELD_ID && ids[2] === EVENT_ID && ids.slice(3).every((id) => id === 0)) {
     return { applicationClass: false, recordName: values[0], fieldName: values[1] };
   }
+  // Component (10 / 39 / 12), component record (10 / 39 / 1 / 12) and component record field (10 / 39 / 1 / 2 / 12)
+  // PeopleCode compile against the record and field the key names, none for the component's own -- as the corpus
+  // harness does, where 5,602 of 5,613 HCDEV component programs encode exactly.
+  if (ids[0] === COMPONENT_ID && ids[1] === MARKET_ID) {
+    const shape = ids.slice(2, ids.indexOf(EVENT_ID) + 1).join(',');
+    if (['12', '1,12', '1,2,12'].includes(shape) && ids.slice(ids.indexOf(EVENT_ID) + 1).every((id) => id === 0)) {
+      const record = ids.indexOf(RECORD_ID), field = ids.indexOf(FIELD_ID);
+      return { applicationClass: false, recordName: record >= 0 ? values[record] : '', fieldName: field >= 0 ? values[field] : '' };
+    }
+  }
+  // Page PeopleCode (9 / 12: page, Activate) compiles with no record or field, as the corpus harness does
+  // (1,327 of HCDEV's 1,329 page programs encode exactly).
+  if (ids[0] === PAGE_ID && ids[1] === EVENT_ID && ids.slice(2).every((id) => id === 0)) {
+    return { applicationClass: false, recordName: '', fieldName: '' };
+  }
   if (ids[0] === APPLICATION_PACKAGE_ID) {
     const last = ids.findIndex((id) => id === EVENT_ID);
     if (last > 1 && ids.slice(1, last).every((id) => APPLICATION_CLASS_IDS.has(id)) && values[last] === 'OnExecute') {
@@ -117,7 +135,7 @@ export function targetForKey(key: PcmKey): CompileTarget {
   }
   throw new SaveRefusedError(
     `Saving this kind of PeopleCode (OBJECTIDs ${ids.join(', ')}) is not supported yet; ` +
-    'only Record Field PeopleCode and Application Class programs are.');
+    'only Record Field, Component, Page and Application Class programs are.');
 }
 
 // ---------------------------------------------------------------------------

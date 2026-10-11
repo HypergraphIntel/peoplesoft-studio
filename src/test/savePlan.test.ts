@@ -74,6 +74,8 @@ function savedByCase(): { name: string; program: StoredProgram }[] {
     const deltaFile = path.join(RESULTS, dir, 'delta.json');
     if (!existsSync(deltaFile)) continue;
     const delta = JSON.parse(readFileSync(deltaFile, 'utf8'));
+    // page-capture.mts deltas (page-property mapping) carry no PeopleCode summary; skip them.
+    if (!delta.summary) continue;
     const changed = new Set<string>((delta.summary.transitions.definitions ?? []).map((d: { definition: string }) => d.definition));
     if (changed.size === 0) continue;
     const after = JSON.parse(readFileSync(path.join(RESULTS, dir, 'after.json'), 'utf8')) as Snapshot;
@@ -109,7 +111,8 @@ for (const { name, program } of saves) {
 }
 
 test('every scratch program App Designer left on HRDMO passes the gate or is refused for a stated reason', () => {
-  const last = readdirSync(RESULTS).filter((d) => existsSync(path.join(RESULTS, d, 'after.json'))).sort().at(-1)!;
+  const last = readdirSync(RESULTS).filter((d) => { const f = path.join(RESULTS, d, 'after.json');
+    return existsSync(f) && !String(JSON.parse(readFileSync(f, 'utf8')).format ?? '').startsWith('page-capture'); }).sort().at(-1)!;
   const after = JSON.parse(readFileSync(path.join(RESULTS, last, 'after.json'), 'utf8')) as Snapshot;
   let passed = 0;
   for (const program of programsIn(after)) {
@@ -164,7 +167,10 @@ test('Record Field PeopleCode and Application Class programs are in scope, any n
   } finally {
     setWriteNamePrefix('');
   }
-  assert.throws(() => targetForKey({ objectIds: ids(10, 39, 12), objectValues: vals('ZZ_PCODE_LAB', 'GBL', 'PreBuild') }), /not supported yet/);
+  // Component and Page PeopleCode are supported now; a Menu program is the unsupported example.
+  assert.deepEqual(targetForKey({ objectIds: ids(10, 39, 12), objectValues: vals('ZZ_PCODE_LAB', 'GBL', 'PreBuild') }),
+    { applicationClass: false, recordName: '', fieldName: '' });
+  assert.throws(() => targetForKey({ objectIds: ids(3, 2, 1, 12), objectValues: vals('ZZ_PCODE_LAB', 'ZZ', 'ITEM', 'ItemSelected') }), /not supported yet/);
 });
 
 test('PACKAGE rows are the compiler references, serialized as App Designer writes them', () => {
@@ -179,7 +185,8 @@ test('every scratch program App Designer compiled on HRDMO is rebuilt to its sto
   // The latest snapshot holds all ZZ_PCODE_LAB programs as App Designer
   // 8.62.09 last compiled them: Rowset / Row / Record object types,
   // Application Class references, wildcard imports, extends.
-  const last = readdirSync(RESULTS).filter((d) => existsSync(path.join(RESULTS, d, 'after.json'))).sort().at(-1)!;
+  const last = readdirSync(RESULTS).filter((d) => { const f = path.join(RESULTS, d, 'after.json');
+    return existsSync(f) && !String(JSON.parse(readFileSync(f, 'utf8')).format ?? '').startsWith('page-capture'); }).sort().at(-1)!;
   const after = JSON.parse(readFileSync(path.join(RESULTS, last, 'after.json'), 'utf8')) as Snapshot;
   const programs = programsIn(after).filter((p) => p.program.length > 0);
   let rebuilt = 0;

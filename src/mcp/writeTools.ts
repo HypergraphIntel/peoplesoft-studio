@@ -95,7 +95,27 @@ const pageOperation = z.discriminatedUnion('op', [
   z.object({ op: z.literal('delete'), id: z.number().int() }),
   z.object({
     op: z.literal('set_properties'), description: z.string().max(30).optional(), comments: z.string().optional(),
-    width: z.number().optional().describe('Page size; setting it makes the Page Size choice Custom.'), height: z.number().optional()
+    width: z.number().optional().describe('Page size; setting it makes the Page Size choice Custom.'), height: z.number().optional(),
+    ownerId: z.string().optional().describe('Owner ID (PSXLATITEM OBJECTOWNERID); "" for none.'),
+    styleSheet: z.string().optional().describe('Page Style Sheet; "" for the default style.'),
+    background: z.string().optional().describe('Page Background style class; "" for the default style.'),
+    deferProc: z.boolean().optional().describe('Allow Deferred Processing.'),
+    adjustLayout: z.boolean().optional().describe('Adjust Layout for Hidden Fields.'),
+    popupMenu: z.string().optional().describe('Popup Menu (a popup menu definition); "" for none.'),
+    pageSize: z.enum(['640x480', '800x600', '800x600-portal', '800x600-noportal', '1024x768-portal', '1024x768-noportal', '240xvar', '490xvar', 'custom']).optional()
+      .describe('A standard page\'s Page Size choice (App Designer\'s list); width/height set a Custom size instead.'),
+    pageType: z.number().int().min(0).max(11).optional().describe('Page Type: 0 Standard, 1 Subpage, 2 Secondary, 3 Popup, 4 Header, 5 Side Page 1, ' +
+      '6 Footer, 7 Layout, 8 Search, 9 Prompt, 10 Master&Detail Target, 11 Side Page 2. The type sets the page size as App Designer does.'),
+    okCancel: z.boolean().optional().describe('Secondary page: OK & Cancel buttons.'),
+    closeBox: z.boolean().optional().describe('Secondary page: Close Box.'),
+    disableModal: z.boolean().optional().describe('Secondary page: Disable Display in Modal Window When Not Launched by DoModal PeopleCode.'),
+    fluidPage: z.boolean().optional().describe('Fluid Page.'),
+    styleClasses: z.string().max(100).optional().describe('Fluid tab: Style Classes; "" for none.'),
+    small: z.string().max(100).optional().describe('Fluid tab: Small form-factor style class override.'),
+    medium: z.string().max(100).optional().describe('Fluid tab: Medium override.'),
+    large: z.string().max(100).optional().describe('Fluid tab: Large override.'),
+    extraLarge: z.string().max(100).optional().describe('Fluid tab: Extra Large override.'),
+    suppressClasses: z.boolean().optional().describe('Fluid tab: Suppress System-Specific Style Classes.')
   })
 ]);
 
@@ -151,15 +171,18 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
     title: 'Save PeopleCode',
     description:
       'Compile and save a PeopleCode program to the database, as App Designer does: Record PeopleCode (type 8; parts ' +
-      'RECORD, FIELD, EVENT) or an Application Class (type 58; parts PACKAGE[, SUBPACKAGE...], CLASS, OnExecute). ' +
+      'RECORD, FIELD, EVENT), Component PeopleCode (46: COMPONENT, MARKET, EVENT; 47: COMPONENT, MARKET, RECORD, EVENT; ' +
+      '48: COMPONENT, MARKET, RECORD, FIELD, EVENT; created when new) or an Application Class (type 58; parts PACKAGE[, SUBPACKAGE...], CLASS, OnExecute). ' +
       'Saving an Application Class that does not exist yet creates it in its package. Read the current source with ' +
       'psft_get_peoplecode first and send the whole program. ' + GATES,
     inputSchema: z.object({ connection: z.string().min(1), type: z.number().int(), parts: z.array(z.string()).min(1), source: z.string() }),
     annotations: WRITE
   }, async ({ connection, type, parts, source }) => {
     const key = keyFromInput(type, parts);
-    if (key.type !== DefinitionType.RecordPeopleCode && key.type !== DefinitionType.ApplicationClassPeopleCode) {
-      throw new Error('Only Record PeopleCode (8) and Application Classes (58) are saved here.');
+    const saved = [DefinitionType.RecordPeopleCode, DefinitionType.ApplicationClassPeopleCode, DefinitionType.ComponentPeopleCode,
+      DefinitionType.ComponentRecordPeopleCode, DefinitionType.ComponentRecordFieldPeopleCode, DefinitionType.PagePeopleCode];
+    if (!saved.includes(key.type)) {
+      throw new Error('Only Record PeopleCode (8), Component PeopleCode (46, 47, 48), Page PeopleCode (44) and Application Classes (58) are saved here.');
     }
     const gate = await writable(workspace, host, connection, key.parts[0]);
     if (!workspace.isPeopleCodeWritable(gate.provider.id, key)) throw new Error(`${displayName(key)} cannot be saved on ${gate.provider.displayName}.`);
@@ -233,7 +256,9 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
       'Apply operations to a page and save it as App Designer does: add a control (Frame, Group Box, Horizontal Rule, ' +
       'Static Text, or a Check Box / Drop Down / Edit Box / Push Button on a record field), move, resize, relabel, ' +
       'set Display Only / Invisible, delete (by the ids psft_get_page_layout gives), and set the page Description, ' +
-      'Comments and size. Coordinates are pixels from the page\'s top-left. ' + GATES,
+      'Comments, size, Owner ID, style sheet, background, deferred processing, Adjust Layout for Hidden Fields, popup menu, ' +
+      'the page type with a secondary page\'s OK & Cancel, Close Box and Disable Modal, ' +
+      'Fluid Page, and the Fluid tab\'s style classes and Suppress System-Specific Style Classes. Coordinates are pixels from the page\'s top-left. ' + GATES,
     inputSchema: z.object({ connection: z.string().min(1), page: z.string().min(1), operations: z.array(pageOperation).min(1) }),
     annotations: WRITE
   }, async ({ connection, page, operations }) => {

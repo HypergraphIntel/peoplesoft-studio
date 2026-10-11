@@ -54,7 +54,7 @@ export const PAGE_FIELD_TYPES: Readonly<Record<number, string>> = {
 /** PSPNLDEFN.PNLTYPE: 0-3 from how pages are used; 4-11 from the delivered pages' names. */
 export const PAGE_TYPES: Readonly<Record<number, string>> = {
   0: 'Standard Page', 1: 'Subpage', 2: 'Secondary Page', 3: 'Popup Page', 4: 'Header Page', 5: 'Side Page 1',
-  6: 'Footer Page', 7: 'Footer Page', 8: 'Search Page', 9: 'Prompt Page', 10: 'Master/Detail Start Page', 11: 'Side Page 2'
+  6: 'Footer Page', 7: 'Layout Page', 8: 'Search Page', 9: 'Prompt Page', 10: 'Master&Detail Target Page', 11: 'Side Page 2'
 };
 
 /** PSPNLFIELD.LBLTYPE: PSXLATITEM names 0-3. */
