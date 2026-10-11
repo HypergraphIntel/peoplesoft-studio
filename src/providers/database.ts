@@ -33,8 +33,10 @@ import { renderComponent, renderMenu, renderPage, type PageView, type Row as UiR
 import { buildPageLayout, type PageLayout } from '../model/pageLayout.js';
 import { buildComponentStructure, referencedPages, type StructureField } from '../model/componentStructure.js';
 import { buildComponentDefinition, type ComponentDefinition } from '../model/componentDefinition.js';
+import { bufferRecords, peopleCodeObjects, type PeopleCodeObject } from '../model/componentPeopleCode.js';
 import { saveComponent, type ComponentSaveRequest, type ComponentSaveResult } from './componentWriter.js';
-import { savePage, verifyPageSave, type PageSaveRequest, type PageSaveResult } from './pageWriter.js';
+import { createPage, savePage, verifyPageSave, type PageCreateRequest, type PageSaveRequest, type PageSaveResult } from './pageWriter.js';
+import type { PagePropertyChoices } from '../editors/pageHtml.js';
 import { renderComponentInterface, renderFileLayout } from '../model/integrationDefinitions.js';
 import { renderMessage, renderPermissionList, renderRole } from '../model/adminDefinitions.js';
 import { renderQuery } from '../model/queryDefinition.js';
@@ -810,7 +812,91 @@ export class DatabaseProvider implements DefinitionProvider {
    * move / resize / label / use changes and deletes of existing controls, in
    * one transaction, then verified again on another connection after COMMIT.
    */
+  /**
+   * View PeopleCode's object list for a component: the component, each record
+   * in its buffer with its fields -- all of a table or view's (PSRECFIELDDB,
+   * subrecords expanded, in order), a Derived/Work record's on-page ones, as
+   * App Designer's buffer holds them -- and the events with a program.
+   */
+  async componentPeopleCodeObjects(def: ComponentDefinition): Promise<PeopleCodeObject[]> {
+    const records = bufferRecords(def.structure);
+    const types = new Map<string, number>();
+    const note = (s: { records: { name: string; type: number }[]; scrolls: typeof s[] }) => { for (const r of s.records) types.set(r.name, r.type); s.scrolls.forEach(note); };
+    note(def.structure.level0);
+    if (def.structure.searchRecord) types.set(def.structure.searchRecord.name, def.structure.searchRecord.type);
+    const tables = records.filter((r) => types.get(r) !== 2);
+    const fields: Record<string, string[]> = {};
+    await this.withConnection(async (c) => {
+      for (let i = 0; i < tables.length; i += 500) {
+        const batch = tables.slice(i, i + 500);
+        const binds = Object.fromEntries(batch.map((r, j) => [`r${j}`, r]));
+        const rows = (await c.execute<{ R: string; F: string }>(
+          `SELECT RECNAME AS R, FIELDNAME AS F FROM PSRECFIELDDB WHERE RECNAME IN (${batch.map((_, j) => `:r${j}`).join(', ')}) ORDER BY RECNAME, FIELDNUM`, binds)).rows ?? [];
+        for (const row of rows) (fields[String(row.R).trim()] ??= []).push(String(row.F).trim());
+      }
+    });
+    for (const r of records) if (types.get(r) === 2) fields[r] = def.structure.pageFields[r] ?? [];
+    return peopleCodeObjects(def.name, records, def.programs, fields);
+  }
+
   /** A page's DEFERPROC, or undefined when there is no such page (Insert > Page into Component). */
+  /**
+   * The Page PeopleCode editor's object list: the page (Activate) and each
+   * record field placed on it, in page order, with the events that have a
+   * program -- the page's PSPCMPROG 9 / 12, the fields' Record Field
+   * PeopleCode 1 / 2 / 12.
+   */
+  async pagePeopleCodeObjects(pnlName: string): Promise<Array<{ label: string; record?: string; field?: string; withCode: string[] }>> {
+    return this.withConnection(async (c) => {
+      const fields = (await c.execute<{ R: string; F: string }>(
+        `SELECT RECNAME AS R, FIELDNAME AS F FROM PSPNLFIELD WHERE PNLNAME = :p AND RECNAME <> ' ' AND FIELDNAME <> ' ' ORDER BY FIELDNUM`,
+        { p: pnlName })).rows ?? [];
+      const seen = new Set<string>();
+      const list = fields.map((f) => ({ record: String(f.R).trim(), field: String(f.F).trim() }))
+        .filter((f) => !seen.has(`${f.record}.${f.field}`) && seen.add(`${f.record}.${f.field}`));
+      const page = (await c.execute<{ E: string }>(
+        `SELECT DISTINCT OBJECTVALUE2 AS E FROM PSPCMPROG WHERE OBJECTID1 = 9 AND OBJECTVALUE1 = :p AND OBJECTID2 = 12`, { p: pnlName })).rows ?? [];
+      const code = new Map<string, string[]>();
+      const records = [...new Set(list.map((f) => f.record))];
+      for (let i = 0; i < records.length; i += 500) {
+        const batch = records.slice(i, i + 500);
+        const binds = Object.fromEntries(batch.map((r, j) => [`r${j}`, r]));
+        for (const row of (await c.execute<{ R: string; F: string; E: string }>(
+          `SELECT DISTINCT OBJECTVALUE1 AS R, OBJECTVALUE2 AS F, OBJECTVALUE3 AS E FROM PSPCMPROG
+            WHERE OBJECTID1 = 1 AND OBJECTID2 = 2 AND OBJECTID3 = 12 AND OBJECTVALUE1 IN (${batch.map((_, j) => `:r${j}`).join(', ')})`, binds)).rows ?? []) {
+          const k = `${String(row.R).trim()}.${String(row.F).trim()}`;
+          code.set(k, [...(code.get(k) ?? []), String(row.E).trim()]);
+        }
+      }
+      return [{ label: `${pnlName} (page)`, withCode: page.map((r) => String(r.E).trim()) },
+        ...list.map((f) => ({ label: `${f.record}.${f.field} (field)`, record: f.record, field: f.field, withCode: code.get(`${f.record}.${f.field}`) ?? [] }))];
+    });
+  }
+
+  /** Whether a component of this name and market exists (New Definition > Component). */
+  async componentExists(name: string, market: string): Promise<boolean> {
+    return this.withConnection(async (c) => Number((await c.execute<{ N: number }>(
+      `SELECT COUNT(*) AS N FROM PSPNLGRPDEFN WHERE PNLGRPNAME = :n AND MARKET = :m`, { n: name, m: market })).rows?.[0]?.N) > 0);
+  }
+
+  /** The Page Properties dialog's lists: owner IDs (PSXLATITEM OBJECTOWNERID), style sheets, style classes, popup menus, the base language. */
+  async pagePropertyChoices(): Promise<PagePropertyChoices> {
+    return this.withConnection(async (c) => {
+      const rows = async <T>(sql: string) => (await c.execute<T>(sql)).rows ?? [];
+      const t = (v: unknown) => String(v ?? '').trim();
+      const owners = await rows<{ V: string; N: string }>(
+        `SELECT X.FIELDVALUE AS V, X.XLATLONGNAME AS N FROM PSXLATITEM X WHERE X.FIELDNAME = 'OBJECTOWNERID' AND X.EFF_STATUS = 'A'
+            AND X.EFFDT = (SELECT MAX(Y.EFFDT) FROM PSXLATITEM Y WHERE Y.FIELDNAME = X.FIELDNAME AND Y.FIELDVALUE = X.FIELDVALUE AND Y.EFFDT <= SYSDATE)
+          ORDER BY X.XLATLONGNAME`);
+      const sheets = await rows<{ N: string }>(`SELECT STYLESHEETNAME AS N FROM PSSTYLSHEETDEFN ORDER BY STYLESHEETNAME`);
+      const menus = await rows<{ N: string }>(`SELECT MENUNAME AS N FROM PSMENUDEFN WHERE MENUTYPE = 1 ORDER BY MENUNAME`);
+      const classes = await rows<{ N: string }>(`SELECT DISTINCT STYLECLASSNAME AS N FROM PSSTYLECLASS ORDER BY STYLECLASSNAME`);
+      const [opt] = await rows<{ L: string }>(`SELECT LANGUAGE_CD AS L FROM PSOPTIONS`);
+      return { language: t(opt?.L), owners: owners.map((r) => [t(r.V), t(r.N)] as [string, string]),
+        styleSheets: sheets.map((r) => t(r.N)), popupMenus: menus.map((r) => t(r.N)), styleClasses: classes.map((r) => t(r.N)) };
+    });
+  }
+
   async pageInfo(name: string): Promise<{ deferred: boolean } | undefined> {
     return this.withConnection(async (c) => {
       const [row] = (await c.execute<{ D: number }>(`SELECT DEFERPROC AS D FROM PSPNLDEFN WHERE PNLNAME = :p`, { p: name })).rows ?? [];
@@ -821,6 +907,18 @@ export class DatabaseProvider implements DefinitionProvider {
   /** Saves a component as App Designer does (componentWriter.ts); never one without a search record. */
   async saveComponent(request: ComponentSaveRequest): Promise<ComponentSaveResult> {
     return this.withConnection((c) => saveComponent(c, request));
+  }
+
+  /** Creates a page: App Designer's New Page (its first save) or New Page Fluid from a Layout Page (pageWriter.ts createPage). */
+  async createPage(request: PageCreateRequest): Promise<PageSaveResult> {
+    return this.withConnection((c) => createPage(c, request));
+  }
+
+  /** New Page Fluid's Choose Layout Page list: every Layout Page (PNLTYPE 7), with its description. */
+  async layoutPages(): Promise<Array<{ name: string; description: string }>> {
+    return this.withConnection(async (c) => ((await c.execute<{ N: string; D: string }>(
+      `SELECT PNLNAME AS N, DESCR AS D FROM PSPNLDEFN WHERE PNLTYPE = 7 ORDER BY PNLNAME`)).rows ?? [])
+      .map((r) => ({ name: String(r.N).trim(), description: String(r.D ?? '').trim() })));
   }
 
   async savePage(request: PageSaveRequest): Promise<PageSaveResult> {
@@ -915,7 +1013,8 @@ export class DatabaseProvider implements DefinitionProvider {
   async savePeopleCode(key: DefinitionKey, request: PeopleCodeSaveRequest): Promise<PeopleCodeSaveResult> {
     const types = this.types;
     const parts = pcmProgKeyParts(key);
-    const result = await this.withConnection((c) => writePeopleCode(c, types, parts, request));
+    const objectIds = PEOPLECODE_OBJECTIDS[key.type];
+    const result = await this.withConnection((c) => writePeopleCode(c, types, parts, { ...request, ...(objectIds ? { objectIds } : {}) }));
     await this.withConnection((c) => verifyCommitted(c, types, parts, result));
     return result;
   }
@@ -1357,7 +1456,11 @@ export class DatabaseProvider implements DefinitionProvider {
     return this.withConnection(async (c) => {
       const [page] = await this.uiRows(c, `SELECT P.*, ${UI_STAMP} FROM PSPNLDEFN P WHERE PNLNAME = :n`, { n: name });
       if (!page) throw new ProviderError(`No page named ${name}.`);
-      const fields = await this.uiRows(c, `SELECT * FROM PSPNLFIELD WHERE PNLNAME = :n ORDER BY FIELDNUM`, { n: name });
+      // Each control's PSPNLFIELDEXT Fluid settings ride along (FFSTYLELONG is a CLOB: read as text).
+      const fields = await this.uiRows(c,
+        `SELECT F.*, DBMS_LOB.SUBSTR(E.FFSTYLELONG, 4000, 1) AS EXT_FFSTYLELONG, E.FIELDUSETEMP2 AS EXT_FIELDUSETEMP2
+           FROM PSPNLFIELD F LEFT JOIN PSPNLFIELDEXT E ON E.PNLNAME = F.PNLNAME AND E.PNLFLDID = F.PNLFLDID
+          WHERE F.PNLNAME = :n ORDER BY F.FIELDNUM`, { n: name });
       const components = await this.uiRows(c,
         `SELECT PNLGRPNAME, MARKET, ITEMLABEL FROM PSPNLGROUP WHERE PNLNAME = :n ORDER BY PNLGRPNAME, MARKET`, { n: name });
       const data: PageView = { page, fields, components };

@@ -19,7 +19,10 @@ export type PageOperation =
   | { op: 'set_label'; id: number; text?: string; labelType?: number }
   | { op: 'set_use'; id: number; displayOnly?: boolean; invisible?: boolean }
   | { op: 'delete'; id: number }
-  | { op: 'set_properties'; description?: string; comments?: string; width?: number; height?: number };
+  | { op: 'set_properties'; description?: string; comments?: string; width?: number; height?: number;
+      ownerId?: string; styleSheet?: string; background?: string; deferProc?: boolean; adjustLayout?: boolean; popupMenu?: string;
+      pageType?: number; pageSize?: string; okCancel?: boolean; closeBox?: boolean; disableModal?: boolean;
+      fluidPage?: boolean; styleClasses?: string; small?: string; medium?: string; large?: string; extraLarge?: string; suppressClasses?: boolean };
 
 export class PageOperationError extends Error {
   constructor(message: string) {
@@ -109,6 +112,15 @@ export function applyPageOperations(layout: PageLayout, operations: readonly Pag
       case 'set_properties': {
         if (o.description !== undefined) properties.description = o.description;
         if (o.comments !== undefined) properties.comments = o.comments;
+        for (const k of ['ownerId', 'styleSheet', 'background', 'popupMenu'] as const) if (o[k] !== undefined) properties[k] = o[k];
+        if (o.deferProc !== undefined) properties.deferProc = o.deferProc;
+        if (o.adjustLayout !== undefined) properties.adjustLayout = o.adjustLayout;
+        for (const k of ['okCancel', 'closeBox', 'disableModal'] as const) if (o[k] !== undefined) properties[k] = o[k];
+        if (o.pageType !== undefined) properties.pageType = o.pageType;
+        if (o.pageSize !== undefined) properties.pageSize = o.pageSize;
+        if (o.fluidPage !== undefined) properties.fluidPage = o.fluidPage;
+        if (o.suppressClasses !== undefined) properties.suppressClasses = o.suppressClasses;
+        for (const k of ['styleClasses', 'small', 'medium', 'large', 'extraLarge'] as const) if (o[k] !== undefined) properties.fluid = { ...properties.fluid, [k]: o[k] };
         if (o.width !== undefined || o.height !== undefined) {
           properties.sizeWidth = whole(o.width ?? properties.sizeWidth ?? p.sizeWidth, 'width');
           properties.sizeHeight = whole(o.height ?? properties.sizeHeight ?? p.sizeHeight, 'height');

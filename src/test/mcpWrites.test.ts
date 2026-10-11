@@ -56,6 +56,14 @@ test('page operations: add, resize, label, use, delete and properties make the e
   assert.throws(() => applyPageOperations(layout, [{ op: 'move', id: 99, left: 0, top: 0 }]), PageOperationError);
 });
 
+test('page operations: set_properties carries the captured General / Use settings', () => {
+  const layout = page([field({ FIELDNUM: 1, PNLFLDID: 3 })]);
+  const { properties } = applyPageOperations(layout, [
+    { op: 'set_properties', ownerId: 'HCR', styleSheet: 'PSSTYLEDEF', background: 'PSIMAGE', deferProc: false, adjustLayout: true, popupMenu: 'PT_ADS_POP' }
+  ]);
+  assert.deepEqual(properties, { description: 'Lab', comments: '', ownerId: 'HCR', styleSheet: 'PSSTYLEDEF', background: 'PSIMAGE', deferProc: false, adjustLayout: true, popupMenu: 'PT_ADS_POP' });
+});
+
 test('page operations: the agent\'s view of a layout carries the ids it edits by', () => {
   const v = pageLayoutForAgent(page([field({ FIELDNUM: 1, PNLFLDID: 7, RECNAME: 'JOB', FIELDNAME: 'EMPLID', LBLTEXT: 'ID' })]));
   assert.equal(v.version, 9);

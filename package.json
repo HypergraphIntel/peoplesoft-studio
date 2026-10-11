@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -133,6 +133,16 @@
         "icon": "$(new-file)"
       },
       {
+        "command": "psft.newPage",
+        "title": "New Page",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.newPageFluid",
+        "title": "New Page Fluid...",
+        "category": "PeopleSoft"
+      },
+      {
         "command": "psft.refresh",
         "title": "Refresh",
         "category": "PeopleSoft",
@@ -237,6 +247,30 @@
         "command": "psft.viewComponentPeopleCode",
         "title": "View PeopleCode",
         "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.pagePeopleCode.object",
+        "title": "Page PeopleCode: Object",
+        "category": "PeopleSoft",
+        "icon": "$(symbol-class)"
+      },
+      {
+        "command": "psft.pagePeopleCode.event",
+        "title": "Page PeopleCode: Event",
+        "category": "PeopleSoft",
+        "icon": "$(symbol-event)"
+      },
+      {
+        "command": "psft.componentPeopleCode.object",
+        "title": "Component PeopleCode: Object",
+        "category": "PeopleSoft",
+        "icon": "$(symbol-class)"
+      },
+      {
+        "command": "psft.componentPeopleCode.event",
+        "title": "Component PeopleCode: Event",
+        "category": "PeopleSoft",
+        "icon": "$(symbol-event)"
       },
       {
         "command": "psft.showProperties",
@@ -445,6 +479,26 @@
         }
       ],
       "editor/title": [
+        {
+          "command": "psft.pagePeopleCode.object",
+          "when": "resourceScheme == psft && resourcePath =~ /^\\/44(:|%3A)/",
+          "group": "navigation@-2"
+        },
+        {
+          "command": "psft.pagePeopleCode.event",
+          "when": "resourceScheme == psft && resourcePath =~ /^\\/44(:|%3A)/",
+          "group": "navigation@-1"
+        },
+        {
+          "command": "psft.componentPeopleCode.object",
+          "when": "resourceScheme == psft && resourcePath =~ /^\\/4[678](:|%3A)/",
+          "group": "navigation@-2"
+        },
+        {
+          "command": "psft.componentPeopleCode.event",
+          "when": "resourceScheme == psft && resourcePath =~ /^\\/4[678](:|%3A)/",
+          "group": "navigation@-1"
+        },
         {
           "command": "psft.peoplecode.validate",
           "when": "resourceScheme == psft && (resourceLangId == psft-peoplecode || resourceLangId == psft-sql)",

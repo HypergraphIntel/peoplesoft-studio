@@ -88,7 +88,7 @@ test('Definition grid and Component Properties as JOB_DATA.GBL shows them', () =
       { SUBITEMNUM: 11, PNLNAME: 'JOB_DATA1_WRK', ITEMNAME: 'JOB_DATA1_WRK', ITEMLABEL: 'Job Data1 &Wrk', FOLDERTABLABEL: ' ', HIDDEN: 1, PAGEDEFERPROC: 1 }],
     menus: [{ MENUNAME: 'ADMINISTER_WORKFORCE_(GBL)', BARNAME: 'USE', ITEMNAME: 'JOB_DATA' }],
     programs: [{ OBJECTID3: 1, OBJECTVALUE3: 'JOB', OBJECTID4: 12, OBJECTVALUE4: 'RowInit' }, { OBJECTID3: 1, OBJECTVALUE3: 'DERIVED_HR_NP', OBJECTID4: 2, OBJECTVALUE4: 'X', OBJECTID5: 12, OBJECTVALUE5: 'FieldEdit' }, { OBJECTID3: 12, OBJECTVALUE3: 'PreBuild', OBJECTID4: 0 }]
-  }, { level0: { level: 0, primary: '', records: [], scrolls: [] } });
+  }, { level0: { level: 0, primary: '', records: [], scrolls: [] }, pageFields: {} });
   assert.deepEqual(def.items.map((i) => [i.num, i.pageName, i.hidden, i.deferred]), [[1, 'JOB_DATA1', false, false], [2, 'JOB_DATA_JOBCODE', false, false], [11, 'JOB_DATA1_WRK', true, true]]);
   const u = def.properties.use, i = def.properties.internet;
   assert.equal(u.addSearchRecord, ''); // the search record again: App Designer shows it blank
@@ -123,7 +123,14 @@ test('View PeopleCode: the component\'s programs, objects and events as App Desi
     ['DERIVED_GL.GL_DEL_COMBO_PB (field)', ['FieldChange']], ['JOB (record)', []],
     ['DERIVED_HR_NP (record)', []], ['DERIVED_HR_NP.X (field)', ['FieldEdit']] // a record with field code only, outside the buffer list
   ]);
-  assert.deepEqual(eventsFor({}), ['PostBuild', 'PreBuild', 'SavePostChange', 'SavePreChange', 'Workflow']);
+  // App Designer's order: with no code, run order (ZZ_PCODE_LAB_CMP); events with a program first (JOB_DATA, DERIVED_GL, GL_DEL_COMBO_PB).
+  assert.deepEqual(eventsFor({}), ['PreBuild', 'PostBuild', 'SavePreChange', 'SavePostChange', 'Workflow']);
+  assert.deepEqual(eventsFor({ withCode: ['SavePreChange', 'PreBuild', 'PostBuild', 'SavePostChange'] }),
+    ['PostBuild', 'PreBuild', 'SavePostChange', 'SavePreChange', 'Workflow']);
+  assert.deepEqual(eventsFor({ record: 'DERIVED_GL', withCode: ['RowInit'] }),
+    ['RowInit', 'RowInsert', 'RowDelete', 'RowSelect', 'SaveEdit', 'SavePostChange', 'SavePreChange', 'SearchInit', 'SearchSave']);
+  assert.deepEqual(eventsFor({ record: 'DERIVED_GL', field: 'GL_DEL_COMBO_PB', withCode: ['FieldDefault', 'FieldChange'] }),
+    ['FieldChange', 'FieldDefault', 'FieldEdit', 'PrePopup']);
   assert.equal(eventsFor({ record: 'R' }).length, 9);
   assert.deepEqual(eventsFor({ record: 'R', field: 'F' }), ['FieldChange', 'FieldDefault', 'FieldEdit', 'PrePopup']);
   assert.deepEqual(componentPeopleCodeKey('JOB_DATA', 'GBL', { record: 'DERIVED_GL', field: 'GL_DEL_COMBO_PB' }, 'FieldChange'),
@@ -150,7 +157,7 @@ test('the editable component panel: inputs, Insert Page, Save, Cut / Copy / Past
     defn: { DESCR: 'Lab Component', SEARCHRECNAME: 'ZZ_PCODE_LAB_R1', ADDSRCHRECNAME: 'ZZ_PCODE_LAB_R1', ACTIONS: 2, VERSION: 335, INCLNAVIGATION: 1 },
     items: [{ SUBITEMNUM: 1, PNLNAME: 'ZZ_PCODE_LAB_PG', ITEMNAME: 'ZZ_PCODE_LAB_PG', ITEMLABEL: 'Zz Pcode Lab Pg', FOLDERTABLABEL: ' ', HIDDEN: 0, PAGEDEFERPROC: 1 }],
     menus: [], programs: []
-  }, { level0: { level: 0, primary: '', records: [], scrolls: [] } });
+  }, { level0: { level: 0, primary: '', records: [], scrolls: [] }, pageFields: {} });
   const html = renderComponentHtml(def, 'N', { editable: true, status: 'Saved (v335)' });
   for (const id of ['insert-page', 'save', 'p-search', 'p-descr', 'p-comments', 'p-add', 'p-nosave']) assert.match(html, new RegExp(`id="${id}"`));
   for (const a of ['cut', 'copy', 'paste', 'delete']) assert.match(html, new RegExp(`data-a="${a}"`));
@@ -163,7 +170,7 @@ test('the editable component panel: inputs, Insert Page, Save, Cut / Copy / Past
 test('Internet and Fluid tabs decode as App Designer shows them (JOB_DATA.GBL, and ZZ_PCODE_LAB_CMP after h398)', () => {
   const tabs = (defn: Record<string, unknown>, ext: Record<string, unknown>) => buildComponentDefinition('C', 'GBL',
     { defn: { SEARCHRECNAME: 'R', ADDSRCHRECNAME: 'R', ...defn }, ext, items: [], menus: [], programs: [] },
-    { level0: { level: 0, primary: '', records: [], scrolls: [] } }).properties;
+    { level0: { level: 0, primary: '', records: [], scrolls: [] }, pageFields: {} }).properties;
   const on = (list: Array<{ label: string; on: boolean }>) => list.filter((x) => x.on).map((x) => x.label);
 
   // JOB_DATA's Component Properties dialog (screenshots).
@@ -199,7 +206,7 @@ test('the editable Internet / Fluid / Style tabs: App Designer\'s boxes as input
     defn: { SEARCHRECNAME: 'R', ADDSRCHRECNAME: 'R', ACTIONS: 2, TBARBTNS: 2080, SHOWTBAR: 35, FLUIDMODE: fluid, PNLGRPUSE: 1, VERSION: 1 },
     ext: { PTENABLENOTIFY: 0 }, items: [], menus: [],
     programs: [], scripts: [{ PTSCRIPTTYPE: 'CSS', PTSCRIPTNAME: 'ACE_SS1', PTSCRIPTCATG: 'DEV', SEQNO: 0 }, { PTSCRIPTTYPE: 'JS', PTSCRIPTNAME: 'BEN_ATTACH', PTSCRIPTCATG: 'DEV', SEQNO: 0 }]
-  }, { level0: { level: 0, primary: '', records: [], scrolls: [] } });
+  }, { level0: { level: 0, primary: '', records: [], scrolls: [] }, pageFields: {} });
   const html = renderComponentHtml(def(0), 'N', { editable: true });
   assert.match(html, /id="tb-2048" checked/); // Refresh
   assert.match(html, /id="i-navhist"[^>]*data-sync="navhist"/);
@@ -214,4 +221,17 @@ test('the editable Internet / Fluid / Style tabs: App Designer\'s boxes as input
   const ro = renderComponentHtml(def(0), 'N');
   assert.doesNotMatch(ro, /id="tb-2048"/);
   assert.match(ro, /Classic Plus/);
+});
+
+test('the Component PeopleCode editor\'s object list: each buffer record with its fields (ZZ_PCODE_LAB_CMP)', async () => {
+  const { peopleCodeObjects, eventsFor } = await import('../model/componentPeopleCode.js');
+  // A table's fields are all of them, a Derived/Work record's only those on the pages (ZZ_PCODE_LAB shows ZZ_PCODE_LAB_C01 alone).
+  const objects = peopleCodeObjects('ZZ_PCODE_LAB_CMP.GBL', ['ZZ_PCODE_LAB_R1', 'ZZ_PCODE_LAB'], [{ event: 'PreBuild' }],
+    { ZZ_PCODE_LAB_R1: ['ZZ_PCODE_LAB_KEY', 'ZZ_PCODE_LAB_C01'], ZZ_PCODE_LAB: ['ZZ_PCODE_LAB_C01'] });
+  assert.deepEqual(objects.map((o) => o.label), ['ZZ_PCODE_LAB_CMP.GBL (component)', 'ZZ_PCODE_LAB_R1 (record)',
+    'ZZ_PCODE_LAB_R1.ZZ_PCODE_LAB_KEY (field)', 'ZZ_PCODE_LAB_R1.ZZ_PCODE_LAB_C01 (field)', 'ZZ_PCODE_LAB (record)', 'ZZ_PCODE_LAB.ZZ_PCODE_LAB_C01 (field)']);
+  // Opening the component opens its first event: one with a program, else PreBuild.
+  assert.equal(eventsFor(objects[0])[0], 'PreBuild');
+  assert.equal(eventsFor({ ...objects[0], withCode: ['SavePreChange'] })[0], 'SavePreChange');
+  assert.equal(eventsFor(objects[1])[0], 'RowInit');
 });

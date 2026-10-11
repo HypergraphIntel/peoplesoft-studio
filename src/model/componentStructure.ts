@@ -55,6 +55,8 @@ export interface ComponentStructure {
   searchRecord?: StructureRecord;
   /** Level 0: its records and level-1 scrolls. */
   level0: StructureScroll;
+  /** Each record's fields placed on the component's pages, in the order they first appear (related displays aside). */
+  pageFields: Record<string, string[]>;
 }
 
 const SUBPAGE = 11;
@@ -68,7 +70,7 @@ const trim = (v: unknown) => String(v ?? '').trim();
 
 interface Node { level: number; primary?: string; recs: string[]; kids: Node[]; into?: Node }
 interface Context { rec: string; level: number; id: number }
-interface FieldEvent { kind: 'field'; level: number; rec: string; ctx?: Context; node?: Node }
+interface FieldEvent { kind: 'field'; level: number; rec: string; field: string; ctx?: Context; node?: Node }
 interface ScrollEvent { kind: 'scroll'; level: number; rec: string }
 
 /**
@@ -104,7 +106,7 @@ export function buildComponentStructure(pages: readonly string[], searchRecord: 
       }
       const record = subst[rec] ?? rec;
       if (SCROLLS.has(type)) events.push({ kind: 'scroll', level, rec: record });
-      else if (record && trim(f.FIELDNAME) && !(Number(f.FIELDUSE) & RELATED_DISPLAY)) events.push({ kind: 'field', level, rec: record, ...(ctx ? { ctx } : {}) });
+      else if (record && trim(f.FIELDNAME) && !(Number(f.FIELDUSE) & RELATED_DISPLAY)) events.push({ kind: 'field', level, rec: record, field: trim(f.FIELDNAME), ...(ctx ? { ctx } : {}) });
     }
   };
   for (const p of pages) walk(p, 0, {}, undefined, new Set());
@@ -164,8 +166,14 @@ export function buildComponentStructure(pages: readonly string[], searchRecord: 
     const recs = n.recs.includes(primary) ? [primary, ...n.recs.filter((r) => r !== primary)] : n.recs;
     return { level: n.level, primary, records: recs.map((r) => ({ name: r, type: typeOf(r) })), scrolls: n.kids.map(out) };
   };
+  const pageFields: Record<string, string[]> = {};
+  for (const e of events) {
+    if (e.kind !== 'field') continue;
+    const list = (pageFields[e.rec] ??= []);
+    if (!list.includes(e.field)) list.push(e.field);
+  }
   const search = searchRecord.trim();
-  return { ...(search ? { searchRecord: { name: search, type: typeOf(search) } } : {}), level0: out(root) };
+  return { ...(search ? { searchRecord: { name: search, type: typeOf(search) } } : {}), level0: out(root), pageFields };
 }
 
 /** The pages a walk reaches from these: subpages and secondary pages, recursively (for loading their fields). */

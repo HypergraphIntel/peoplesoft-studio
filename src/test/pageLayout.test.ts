@@ -126,12 +126,17 @@ test('page properties come from PSPNLDEFN', () => {
   assert.match(html, /"sizeWidth":984/);
 });
 
-test('the editable page has the Insert palette; read-only does not', () => {
+test('the editable page has the Insert menu (App Designer\'s groups) and selection tools; read-only does not', () => {
   const layout = buildPageLayout('P', view([field({ FIELDNUM: 1 })]));
   const edit = renderPageHtml(layout, '', 'N', { editable: true, status: 'Saved (v9)' });
   for (const kind of ['frame', 'groupBox', 'horizontalRule', 'staticText', 'checkBox', 'dropDown', 'editBox', 'pushButton']) {
-    assert.match(edit, new RegExp(`class="tool" data-kind="${kind}"`));
+    assert.match(edit, new RegExp(`class="menu-item tool" role="menuitem" data-kind="${kind}"`));
   }
+  // Uncaptured types are listed, disabled; the groups follow App Designer's menu.
+  assert.match(edit, /<button class="menu-item" role="menuitem" disabled[^>]*>Grid<\/button>/);
+  assert.ok(edit.indexOf('Containers and text') < edit.indexOf('>Controls<') && edit.indexOf('>Controls<') < edit.indexOf('Grids and scrolls'));
+  for (const id of ['sel-field', 'sel-group', 'sel-all', 'ord-up', 'ord-down']) assert.match(edit, new RegExp(`id="${id}"`));
+  assert.match(edit, /<tr data-id="1" tabindex="0" draggable="true">/);
   assert.match(edit, /"staticText":\{"shape":"label","typeName":"Static Text","bound":false,"w":128,"h":20/);
   assert.match(edit, /"editBox":\{"shape":"field","typeName":"Edit Box","bound":true/);
   assert.match(edit, /"groupBox":\{"shape":"container","typeName":"Group Box","bound":false,"w":300,"h":156/);
@@ -154,4 +159,13 @@ test('the surface is the page size when it has one; the editor can drag its edge
   assert.equal(buildPageLayout('P', { ...v, page: { ...v.page, PNLUSE: 35 } }).properties.sizeCustom, false);
   assert.match(renderPageHtml(layout, '', 'N', { editable: true }), /class="pg-edge pg-rb" data-edge="rb"/);
   assert.doesNotMatch(renderPageHtml(layout, '', 'N', { editable: false }), /class="pg-edge/);
+});
+
+test('a subpage with no label text is drawn with its subpage name, at its top-left', () => {
+  const [blank, named] = buildPageLayout('P', view([
+    field({ FIELDNUM: 1, FIELDTYPE: 11, LBLTYPE: 1, LBLTEXT: ' ', SUBPNLNAME: 'EMPL_SRCH1_SBP', FIELDLEFT: 4, FIELDTOP: 0, FIELDRIGHT: 808, FIELDBOTTOM: 47 }),
+    field({ FIELDNUM: 2, FIELDTYPE: 11, LBLTYPE: 1, LBLTEXT: 'JOB_DATA_NAV_SBP', SUBPNLNAME: 'JOB_DATA_NAV_SBP', FIELDLEFT: 4, FIELDTOP: 1092, FIELDRIGHT: 950, FIELDBOTTOM: 1144 })
+  ])).controls;
+  assert.deepEqual(blank.label, { text: 'EMPL_SRCH1_SBP', rect: { left: 9, top: 1, width: 0, height: 14 } });
+  assert.equal(named.label?.text, 'JOB_DATA_NAV_SBP');
 });

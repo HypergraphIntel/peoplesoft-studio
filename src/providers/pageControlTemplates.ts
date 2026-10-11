@@ -60,6 +60,8 @@ export interface NewControlPlacement {
   lblText: string;
   fieldUse: number;
   secureInvisible: number;
+  /** PSPNLFIELD.OCCURSLEVEL: the scroll-nesting level at the drop point (0 outside any scroll). */
+  occursLevel?: number;
 }
 
 export type ColumnValues = Record<string, number | string | null>;
@@ -159,7 +161,7 @@ export function newControlRows(pnlName: string, pnlFldId: number, fieldNum: numb
   return {
     field: {
       PNLNAME: pnlName, PNLFLDID: pnlFldId, FIELDNUM: fieldNum, ...FIELD_COMMON, ...FIELD_BY_KIND[add.kind],
-      FIELDTYPE: NEW_CONTROL_FIELDTYPE[add.kind],
+      FIELDTYPE: NEW_CONTROL_FIELDTYPE[add.kind], OCCURSLEVEL: Math.max(0, Math.round(placed.occursLevel ?? 0)),
       FIELDLEFT: placed.fieldLeft, FIELDTOP: placed.fieldTop, FIELDRIGHT: placed.fieldRight, FIELDBOTTOM: placed.fieldBottom,
       FIELDSIZETYPE: placed.fieldSizeType, LBLTYPE: placed.lblType, LABEL_ID: labelId, LBLTEXT: lblText,
       FIELDUSE: placed.fieldUse, SECUREINVISIBLE: placed.secureInvisible,

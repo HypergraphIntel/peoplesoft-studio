@@ -30,6 +30,29 @@ export interface ControlColumns {
   lblText: string;
   fieldUse: number;
   secureInvisible: number;
+  /** The Properties dialog's columns (a frame's: fr02, fr04, fr07): FIELDSTYLE, PTADJHIDDENFIELDS, ENABLEASANCHOR. */
+  fieldStyle: string;
+  adjustHidden: number;
+  anchor: number;
+  /** The Fluid tab (fr08-fr20): PSPNLFIELD.FIELDUSETMP; PSPNLFIELDEXT FFSTYLELONG (five slots) and FIELDUSETEMP2. */
+  fieldUseTmp: number;
+  ffStyleLong: string;
+  fieldUseTemp2: number;
+  /** Type-specific captured columns: DSPLFORMAT (alignment/explanation/scale/size/display options), CONTNAME (Image ID),
+   * GRDLBLMSGSET/NUM (message-catalog label), ONVALUE/OFFVALUE (check box / radio), LBLLOC (label location). */
+  dsplFormat: number;
+  contName: string;
+  grdLblMsgSet: number;
+  grdLblMsgNum: number;
+  onValue: string;
+  offValue: string;
+  lblLoc: number;
+  /** A Scroll Bar / Grid / Scroll Area's Occurs Count (OCCURSCOUNT1; 0 = unlimited). */
+  occursCount1: number;
+  /** A Grid's display options: Show Column Headings (GRDSHOWCOLHDG), Show Row Numbers (GRDSHOWROWHDG), Allow Column Sorting (GRDALLOWCOLSORT). */
+  gridShowColHdg: number;
+  gridShowRowHdg: number;
+  gridAllowColSort: number;
 }
 
 export interface PageControl {
@@ -88,6 +111,30 @@ export interface PageProperties {
   /** PSPNLDEFN.STYLESHEETNAME / FFSTYLESHEETNAME (blank: default). */
   styleSheet: string;
   fluidStyleSheet: string;
+  /** PSPNLDEFN.PNLTYPE (PAGE_TYPES). */
+  pnlType: number;
+  /** PSPNLDEFN.PNLSTYLE -- the Use tab's Page Background (a style class; blank: default). */
+  background: string;
+  /** PSPNLDEFN.DEFERPROC -- Allow Deferred Processing. */
+  deferProc: boolean;
+  /** PSPNLDEFN.POPUPMENU -- the Use tab's Popup Menu (blank: none). */
+  popupMenu: string;
+  /** PNLUSE 0x4000 -- Fluid Page (u13 / u14; every Layout Page and _FL / _SCF page carries it). */
+  fluidPage: boolean;
+  /** PNLUSE 0x100 -- Adjust Layout for Hidden Fields (u04). */
+  adjustLayout: boolean;
+  /** A secondary page's OK & Cancel buttons / Close Box (PNLUSE 0x01 / 0x02 clear; u09, u10) and Disable Display in Modal Window (0x2000; u11). */
+  okCancel: boolean;
+  closeBox: boolean;
+  disableModal: boolean;
+  /**
+   * The Fluid tab: Style Classes and the form-factor overrides (f01-f05):
+   * FFSTYLEDESKTOP; Small FFSTYLEPHONE, Medium FFSTYLEMEDIUM, Large
+   * FFSTYLETABLET, Extra Large FFSTYLEEXLARGE.
+   */
+  fluid: { styleClasses: string; small: string; medium: string; large: string; extraLarge: string };
+  /** PNLUSETEMP 0x01 -- Suppress System-Specific Style Classes (f06). */
+  suppressClasses: boolean;
   lastUpdated: string;
   lastUpdatedBy: string;
   version: number;
@@ -101,6 +148,40 @@ export interface PageProperties {
  * 32 -> 11 and PANELRIGHT / PANELBOTTOM to the dragged size.
  */
 export const PAGE_SIZE_CUSTOM = 0x0b;
+
+/**
+ * PNLUSE's Page Size bits: 0x04-0x80 of the low byte and 0x200 / 0x400 /
+ * 0x800 (0x100 is Adjust Layout for Hidden Fields). 0x01 / 0x02 are a page's
+ * no OK & Cancel / no Close Box, set on every standard page.
+ */
+export const PAGE_SIZE_BITS = 0xefc;
+export const PAGE_SIZE_AUTO = 0x10;
+
+/**
+ * App Designer's Page Size list for a standard page (s01-s08 on
+ * ZZ_PCODE_LAB_NP2): each choice's size bit and the size it stores.
+ * 640x480 stores 0 x 0 (App Designer shows 632 x 326). The "Var" choices
+ * store their width less 8 and the page's current height less 8 (s06: 498 ->
+ * 490, s07: 490 -> 482). Custom keeps the size.
+ */
+export const PAGE_SIZE_PRESETS: ReadonlyArray<{ key: string; label: string; bit: number; width: number; height: number | 'var'; shown?: [number, number] }> = [
+  { key: '640x480', label: '640x480 Windows screen', bit: 0x000, width: 0, height: 0, shown: [632, 326] },
+  { key: '800x600', label: '800x600 Windows screen', bit: 0x004, width: 782, height: 452 },
+  { key: '800x600-portal', label: '800x600 page inside portal', bit: 0x020, width: 570, height: 330 },
+  { key: '800x600-noportal', label: '800x600 page without portal', bit: 0x040, width: 760, height: 330 },
+  { key: '1024x768-portal', label: '1024x768 page inside portal', bit: 0x800, width: 760, height: 498 },
+  { key: '1024x768-noportal', label: '1024x768 page without portal', bit: 0x080, width: 984, height: 498 },
+  { key: '240xvar', label: '240xVar portal home page comp.', bit: 0x200, width: 210, height: 'var' },
+  { key: '490xvar', label: '490xVar portal home page comp.', bit: 0x400, width: 460, height: 'var' }
+];
+
+/** The Page Size choice PNLUSE holds: a preset's key, 'custom', 'auto', or undefined (bits no capture shows). */
+export function pageSizeChoice(pnlUse: number): string | undefined {
+  const bits = pnlUse & PAGE_SIZE_BITS;
+  if (bits === (PAGE_SIZE_CUSTOM & PAGE_SIZE_BITS)) return 'custom';
+  if (bits === PAGE_SIZE_AUTO) return 'auto';
+  return PAGE_SIZE_PRESETS.find((p) => p.bit === bits)?.key;
+}
 
 export interface PageLayout {
   name: string;
@@ -182,10 +263,13 @@ function labelOf(f: Row, rect: Rect, shape: ControlShape): { text: string; rect:
  * "None" -- App Designer shows no label even though LBLTEXT still holds the
  * field's underlying text, so those are not drawn (they otherwise pile up at
  * their stray EDITLBL coordinates). Types 1 Text, 2 RFT Short, 3 RFT Long show
- * LBLTEXT.
+ * LBLTEXT. A subpage with no label text is drawn with its subpage's name
+ * (App Designer's layout shows EMPL_SRCH1_SBP in the box of ZZ_JOB_DATA1's
+ * blank-labelled subpage).
  */
 function labelText(f: Row): string {
-  return num(f.LBLTYPE) === 0 ? '' : str(f.LBLTEXT);
+  const text = num(f.LBLTYPE) === 0 ? '' : str(f.LBLTEXT);
+  return text || (num(f.FIELDTYPE) === 11 ? str(f.SUBPNLNAME) : '');
 }
 
 /** What the control points at, for the inspector: its record field, subpage, process ... */
@@ -220,7 +304,12 @@ export function buildPageLayout(name: string, view: PageView): PageLayout {
         columns: {
           fieldLeft: num(f.FIELDLEFT), fieldTop: num(f.FIELDTOP), fieldRight: num(f.FIELDRIGHT), fieldBottom: num(f.FIELDBOTTOM),
           editLblLeft: num(f.EDITLBLLEFT), editLblTop: num(f.EDITLBLTOP), editLblRight: num(f.EDITLBLRIGHT), editLblBottom: num(f.EDITLBLBOTTOM),
-          fieldSizeType: num(f.FIELDSIZETYPE), lblType: num(f.LBLTYPE), lblText: str(f.LBLTEXT), fieldUse: num(f.FIELDUSE), secureInvisible: num(f.SECUREINVISIBLE)
+          fieldSizeType: num(f.FIELDSIZETYPE), lblType: num(f.LBLTYPE), lblText: str(f.LBLTEXT), fieldUse: num(f.FIELDUSE), secureInvisible: num(f.SECUREINVISIBLE),
+          fieldStyle: str(f.FIELDSTYLE), adjustHidden: num(f.PTADJHIDDENFIELDS), anchor: num(f.ENABLEASANCHOR),
+          fieldUseTmp: num(f.FIELDUSETMP), ffStyleLong: String(f.EXT_FFSTYLELONG ?? ''), fieldUseTemp2: num(f.EXT_FIELDUSETEMP2),
+          dsplFormat: num(f.DSPLFORMAT), contName: str(f.CONTNAME), grdLblMsgSet: num(f.GRDLBLMSGSET), grdLblMsgNum: num(f.GRDLBLMSGNUM),
+          onValue: str(f.ONVALUE), offValue: str(f.OFFVALUE), lblLoc: num(f.LBLLOC),
+          occursCount1: num(f.OCCURSCOUNT1), gridShowColHdg: num(f.GRDSHOWCOLHDG), gridShowRowHdg: num(f.GRDSHOWROWHDG), gridAllowColSort: num(f.GRDALLOWCOLSORT)
         },
         ...(label ? { label } : {}),
         target: targetOf(f),
@@ -246,13 +335,15 @@ export function buildPageLayout(name: string, view: PageView): PageLayout {
 
   const pageType = PAGE_TYPES[num(p.PNLTYPE)] ?? `Type ${num(p.PNLTYPE)}`;
   const sized = num(p.PANELRIGHT) > 0 && num(p.PANELBOTTOM) > 0;
+  // 640x480 Windows screen stores 0 x 0; App Designer draws it 632 x 326 (s01).
+  const shown = !sized && num(p.PNLTYPE) === 0 && (num(p.PNLUSE) & 0x03) === 0x03 ? PAGE_SIZE_PRESETS.find((x) => x.key === pageSizeChoice(num(p.PNLUSE)))?.shown : undefined;
   return {
     name,
     description: str(p.DESCR),
     pageType,
     version: num(p.VERSION),
-    width: sized ? num(p.PANELRIGHT) : maxRight + 12,
-    height: sized ? num(p.PANELBOTTOM) : maxBottom + 12,
+    width: sized ? num(p.PANELRIGHT) : shown ? shown[0] : maxRight + 12,
+    height: sized ? num(p.PANELBOTTOM) : shown ? shown[1] : maxBottom + 12,
     controls,
     properties: {
       description: str(p.DESCR),
@@ -262,9 +353,21 @@ export function buildPageLayout(name: string, view: PageView): PageLayout {
       sizeWidth: num(p.PANELRIGHT),
       sizeHeight: num(p.PANELBOTTOM),
       pnlUse: num(p.PNLUSE),
-      sizeCustom: (num(p.PNLUSE) & 0xff) === PAGE_SIZE_CUSTOM,
+      // The size bits (0x04-0x80) say Custom (0x08); 0x01 / 0x02 are a secondary page's buttons.
+      sizeCustom: pageSizeChoice(num(p.PNLUSE)) === 'custom',
       styleSheet: str(p.STYLESHEETNAME),
       fluidStyleSheet: str(p.FFSTYLESHEETNAME),
+      pnlType: num(p.PNLTYPE),
+      background: str(p.PNLSTYLE),
+      deferProc: num(p.DEFERPROC) !== 0,
+      popupMenu: str(p.POPUPMENU),
+      fluidPage: (num(p.PNLUSE) & 0x4000) !== 0,
+      adjustLayout: (num(p.PNLUSE) & 0x100) !== 0,
+      okCancel: (num(p.PNLUSE) & 0x01) === 0,
+      closeBox: (num(p.PNLUSE) & 0x02) === 0,
+      disableModal: (num(p.PNLUSE) & 0x2000) !== 0,
+      suppressClasses: (num(p.PNLUSETEMP) & 0x01) !== 0,
+      fluid: { styleClasses: str(p.FFSTYLEDESKTOP), small: str(p.FFSTYLEPHONE), medium: str(p.FFSTYLEMEDIUM), large: str(p.FFSTYLETABLET), extraLarge: str(p.FFSTYLEEXLARGE) },
       lastUpdated: str(p.LASTUPD) || str(p.LASTUPDDTTM),
       lastUpdatedBy: str(p.LASTUPDOPRID),
       version: num(p.VERSION)

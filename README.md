@@ -8,7 +8,7 @@ This extension is **under active development**, expect updates every couple days
 
 # PeopleSoft Studio
 
-VS Code extension for **viewing and editing** PeopleSoft definitions — PeopleCode, SQL, records, and related objects — from an Oracle environment or an Application Designer project export. On connections you set to Writable, PeopleCode can be **saved natively** to the database (see [Saving PeopleCode](#saving-peoplecode-experimental)).
+VS Code extension for **viewing and editing** PeopleSoft definitions — PeopleCode, records, fields, pages, components, SQL, HTML, style sheets and related objects — from a PeopleSoft database (Oracle; SQL Server and DB2 experimental) or an Application Designer project export. On connections you set to Writable, definitions are **saved natively** to the database, writing the same rows Application Designer writes (see [Saving PeopleCode](#saving-peoplecode-experimental) and the table below).
 
 > **Please read the [Disclaimer](#disclaimer) before saving anything to a database.**
 
@@ -38,16 +38,18 @@ definitions, outages or any other damage.
 - **Not an Oracle product.** PeopleSoft Studio is independent: it is not
   affiliated with, endorsed or supported by Oracle. PeopleSoft and PeopleTools
   are trademarks of Oracle.
-- **Saving PeopleCode is experimental.** It writes directly to PeopleTools
-  tables (`PSPCMTXT`, `PSPCMPROG`, `PSPCMNAME`, `PSVERSION`, `PSLOCK`) using an
-  independently developed compiler and save routine, not Oracle's. It has been
-  checked against Application Designer 8.62.09 in a lab. Other PeopleTools
-  releases, patches and configurations may behave differently.
+- **Saving is experimental.** PeopleSoft Studio writes directly to PeopleTools
+  tables -- for PeopleCode `PSPCMTXT`, `PSPCMPROG`, `PSPCMNAME`; for records,
+  fields, pages, components and the other definitions their own tables; and
+  `PSVERSION` / `PSLOCK` -- using an independently developed compiler and save
+  routines, not Oracle's. Each save reproduces rows captured from Application
+  Designer 8.62.09 in a lab. Other PeopleTools releases, patches and
+  configurations may behave differently.
 - **Compiling with Application Designer is still recommended.** After saving
   PeopleCode from VS Code, open the program in Application Designer and save
   (compile) it there, so PeopleTools' own compiler validates it. Do this
   especially before migrating it to another environment.
-- **Make PeopleCode writable only where you can recover.** Connections are
+- **Make a connection writable only where you can recover.** Connections are
   read-only by default. Allow writes only on development or lab databases you
   have backups of, and follow your organization's change-control process. Each
   save keeps a report of the rows it replaced, but that is not a backup.
@@ -90,7 +92,7 @@ definitions, outages or any other damage.
 
 ## What works now
 
-Goal long-term: replace Application Designer. **Today this is a trusted reader and navigator that can save PeopleCode** (experimental), not a full designer.
+Goal long-term: replace Application Designer. **Today it reads every definition type below and edits many of them** -- PeopleCode, records, fields, pages, components, SQL, HTML, style sheets, translates and projects -- each save reproducing Application Designer's (experimental). What it does not do yet is listed after the table.
 
 | Capability | Status | Notes |
 |------------|--------|-------|
@@ -99,8 +101,8 @@ Goal long-term: replace Application Designer. **Today this is a trusted reader a
 | Open App Designer XML project export | Yes | |
 | Project tree & definition browser | Yes | |
 | Open Definition search | Yes | |
-| **PeopleCode** as text (`psft://…`) | Yes | On Writable connections, Record Field PeopleCode and Application Classes open as their stored source (`PSPCMTXT`) and can be saved (see the next row). Other programs and Read-only connections open read-only, decoded from `PSPCMPROG`; an export's are taken from the file |
-| **Saving PeopleCode** to Oracle | Experimental | Writable connections — see [Saving PeopleCode](#saving-peoplecode-experimental) |
+| **PeopleCode** as text (`psft://…`) | Yes | On Writable connections, Record Field PeopleCode, Component PeopleCode (component, component record, component record field) and Application Classes open as their stored source (`PSPCMTXT`) and can be saved (see the next row). Other programs and Read-only connections open read-only, decoded from `PSPCMPROG`; an export's are taken from the file |
+| **Saving PeopleCode** | Experimental | Writable connections: compile and save, create an event or class that has no program yet, clear a program to delete it — see [Saving PeopleCode](#saving-peoplecode-experimental) |
 | Settings panel | Yes | *PeopleSoft: Open Settings* — connections, compiler profile, MCP server, Build Settings (Build and Alter tabs) |
 | Record → field → PeopleCode event navigation | Yes | |
 | **SQL definitions** as text | Yes | Create and save on Writable connections, as App Designer saves them |
@@ -109,12 +111,12 @@ Goal long-term: replace Application Designer. **Today this is a trusted reader a
 | Record editor (App Designer's Field / Use / Edits displays, Record Type) | Yes | Read-only, editable on Writable connections — see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md) |
 | **Build...** (SQL Tables) | Experimental | Create Tables as a script, or build and execute on Writable connections. Alter Tables, Create Indexes alone and views not yet |
 | Field editor (App Designer's Field dialog) | Yes | Read-only; length, labels and description editable on Writable connections |
-| **New Definition...** (Projects / Definition Browser) | Yes | Records (SQL Table, Derived/Work), fields, projects, Application Packages and classes, SQL, HTML, freeform style sheets, on Writable connections — see [docs/CREATE_DEFINITIONS.md](docs/CREATE_DEFINITIONS.md) |
+| **New Definition...** (Projects / Definition Browser) | Yes | Records (SQL Table, Derived/Work), fields, components, projects, Application Packages and classes, SQL, HTML, freeform style sheets, on Writable connections — see [docs/CREATE_DEFINITIONS.md](docs/CREATE_DEFINITIONS.md) |
 | Insert a definition into a project | Yes | Writable connections — see [docs/PROJECT_INSERT.md](docs/PROJECT_INSERT.md) |
 | Translate values; Delete Record | Yes | Writable connections — see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md) |
-| Definition **Properties** (packages, records, fields, components, pages, projects, menus, App Engine, SQL, HTML, style sheets) | Read-Only | A panel, from Oracle. Records and fields are changed in their editors; HTML and freeform style sheet descriptions with *Change Description...* |
-| **Pages** (Page designer) | Experimental | App Designer's visual **Layout** view and Order grid, with page and control properties. On Writable connections: move, resize, delete, relabel, insert controls (Frame, Group Box, Horizontal Rule, Static Text, Check Box, Drop Down, Edit Box, Push Button), Description / Comments, Custom page size, and Save as App Designer saves — see [docs/PAGES_COMPONENTS_MENUS.md](docs/PAGES_COMPONENTS_MENUS.md) and [docs/PAGE_SAVE.md](docs/PAGE_SAVE.md). Creating pages not yet |
-| **Components** | Experimental | App Designer's component window: the **Definition** grid (with View Definition on a page row), the **Structure** tab (the component buffer: search record, scroll levels and their records) **Component Properties** (General, Use, Internet, Fluid), and **View PeopleCode** (component, component record and component record field PeopleCode, events with code marked) — see [docs/COMPONENTS.md](docs/COMPONENTS.md). On Writable connections: page rows (labels, Hidden, order, Cut/Copy/Paste/Delete, Insert Page), General and Use properties, Save as App Designer saves (never without a search record). Component PeopleCode opens read-only |
+| Definition **Properties** (packages, records, fields, components, pages, projects, menus, App Engine, SQL, HTML, style sheets) | Read-Only | A panel, from the database. Records, fields, pages and components are changed in their editors; HTML and freeform style sheet descriptions with *Change Description...* |
+| **Pages** (Page designer) | Experimental | App Designer's visual **Layout** view and Order grid. Every control type has its own App Designer property panel (Record / Label / Use / General / Fluid / Image / Options tabs as they apply). On Writable connections: move, resize, delete, relabel, select/group, Copy / Paste, set tab Order, insert controls (Frame, Group Box, Horizontal Rule, Static Text, Check Box, Drop Down, Edit Box, Push Button), edit each control's captured properties (label, style, use bits, on/off values, record rebind, Allow Deferred Processing, grid/scroll Occurs Count and grid display flags, Page Field Name, anchor, Fluid), Page Properties (General / Use / Fluid), Custom page size, **New Page / New Page Fluid**, and **Page PeopleCode** — all saved as App Designer saves it. See [docs/PAGES_COMPONENTS_MENUS.md](docs/PAGES_COMPONENTS_MENUS.md) and [docs/PAGE_SAVE.md](docs/PAGE_SAVE.md) |
+| **Components** | Experimental | App Designer's component window: the **Definition** grid (View Definition on a page row), the **Structure** tab (the component buffer: search record, scroll levels and their records) and **Component Properties** (General, Use, Internet, Fluid, Style). On Writable connections all of it is edited and saved as App Designer saves it: page rows (labels, Hidden, order, Cut/Copy/Paste/Delete, Insert Page), every General, Use, Internet, Fluid and Style setting App Designer stores, never without a search record; *New Definition > Component* creates one. **Component PeopleCode** editor: View PeopleCode opens the component's (or a record's) first event, with App Designer's Object and Event pickers; an event with no program opens empty and saving creates it — see [docs/COMPONENTS.md](docs/COMPONENTS.md) |
 | **Menus** | Read-Only | A menu's bars and items — see [docs/PAGES_COMPONENTS_MENUS.md](docs/PAGES_COMPONENTS_MENUS.md) |
 | **App Engine programs** | Read-Only | Open in App Designer's Definition and Program Flow views: sections, steps and actions with their settings, SQL and PeopleCode — see [docs/APP_ENGINE.md](docs/APP_ENGINE.md). Browse, search and Properties. No editing or creating yet |
 | **File Layouts**, **Component Interfaces** | Read-Only | A file layout's format, segments and fields; a component interface's methods, keys, collections and properties — see [docs/FILE_LAYOUTS_COMPONENT_INTERFACES.md](docs/FILE_LAYOUTS_COMPONENT_INTERFACES.md) |
@@ -126,25 +128,26 @@ Goal long-term: replace Application Designer. **Today this is a trusted reader a
 | **Images** | Read-Only | Shown in a panel (GIF, PNG, JPEG, SVG, BMP) — see [docs/IMAGES.md](docs/IMAGES.md) |
 | **Portal Registry** | Read-Only | Folders and content references: navigation path, component, URL, security — see [docs/PORTAL_REGISTRY.md](docs/PORTAL_REGISTRY.md) |
 | **URL Definitions**, **XSLT**, **Message Nodes** | Read-Only | A node's passwords are never shown — see [docs/URLS_NODES.md](docs/URLS_NODES.md) |
-| MCP server (AI clients) | Yes | Search and read every type above, PeopleCode by record, component or Application Class, and a bounded PeopleCode text search. `psft_list_definition_types` lists the type codes and key parts. **Writes** (Experimental): PeopleCode, SQL, HTML, style sheets, pages, records, fields, translates, projects and packages, through the same writers and gates as the editors, each approved by you in VS Code unless *MCP writes* says otherwise — see [docs/MCP_WRITES.md](docs/MCP_WRITES.md) |
+| MCP server (AI clients) | Yes | Search and read every type above, PeopleCode by record, component or Application Class, and a bounded PeopleCode text search. `psft_list_definition_types` lists the type codes and key parts. **Writes** (Experimental): PeopleCode (Record Field, Component, Application Classes), SQL, HTML, style sheets, pages, records, fields, translates, projects and packages, through the same writers and gates as the editors, each approved by you in VS Code unless *MCP writes* says otherwise — see [docs/MCP_WRITES.md](docs/MCP_WRITES.md) |
 | PeopleCode IntelliSense-lite | Yes | Completion, hover, outline, snippets |
 | PeopleCode syntax highlighting | Yes | |
 
 ## What does **not** work yet
 
-- Saving PeopleCode types other than Record Field PeopleCode and Application Classes
+- Saving Page, Menu, App Engine and the other PeopleCode types (Record Field, Component and Application Class PeopleCode save)
 - Comparing a definition across two environments (only one connection is active at a time)
 - Editing record shapes and settings no App Designer save has been captured for (see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md))
-- Creating pages, components, menus and App Engine programs
-- Page / component visual designers, App Engine editors
-- Project build/DDL, project-level migrate/copy
+- Creating pages, menus and App Engine programs; editing menus and App Engine programs
+- In the page designer: inserting grids, scroll areas, subpages, radio buttons, images and the other controls not captured yet ([docs/PAGE_SAVE.md](docs/PAGE_SAVE.md))
+- In the component editor: Default Search Action, the search-page link message numbers, the Custom style lists; component edits through the MCP
+- Build beyond SQL Tables (Alter Tables, indexes alone, views), project-level migrate/copy
 - Full language server (go-to-definition across the environment, compile diagnostics)
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the longer path.
 
 ## Two backends
 
-**Oracle** — live PeopleTools tables. Full environment search; PeopleCode is decoded from the tokenized `PSPCMPROG` byte stream.
+**Database** — live PeopleTools tables (Oracle; SQL Server and DB2 experimental). Full environment search; PeopleCode is decoded from the tokenized `PSPCMPROG` byte stream.
 
 **Project export** — App Designer XML on disk. No DB credentials; PeopleCode is the plain source App Designer already wrote. Scope is that project only.
 
@@ -173,17 +176,21 @@ and, in that connection's **PeopleCode saving** group:
 2. Set **Access** to **Writable** and confirm.
 3. Leave **Save mode** at **Compile and save**.
 
-Then open a program, for example record → field → event in the tree, edit it,
-and save. A save is refused with the reason when:
+Then open a program -- record → field → event in the tree, an Application
+Class, or *View PeopleCode* on a component -- edit it, and save. An event or
+class that has no program yet opens empty and the first save creates it;
+clearing a program and saving deletes it. A save is refused with the reason
+when:
 
 - the program changed since you opened it;
 - the edit does not compile;
 - the stored program is not one the writer reproduces exactly;
 - the operator does not exist in that database.
 
-Currently saving covers existing Record Field PeopleCode and Application Class
-programs in `ZZ_PCODE_LAB` definitions. Afterwards, compile the program in
-Application Designer as well (see the Disclaimer). See
+Saving covers Record Field PeopleCode, Component PeopleCode (component,
+component record and component record field) and Application Classes, for any
+definition name unless `peoplesoft.writeNamePrefix` limits it. Afterwards,
+compile the program in Application Designer as well (see the Disclaimer). See
 [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Editor features (PeopleCode)
@@ -200,7 +207,7 @@ SQL documents use language id `psft-sql` (basic highlighting).
 
 1. Install the VSIX (`npm run dev` from a clone, or install a release build).
 2. Open the **PeopleSoft** activity bar icon.
-3. **Add Connection** (Oracle) or **Open Project Export File**.
+3. **Add Connection** (Oracle, SQL Server or DB2) or **Open Project Export File**.
 4. Connect, then **Open Definition…** or use the project tree.
 
 Oracle Instant Client is optional (`peoplesoft.oracle.thickModeLibDir`); leave empty for node-oracledb Thin mode.

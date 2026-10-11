@@ -115,8 +115,10 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
       if (edit) {
         text = edit.text;
         this.fingerprints.set(uri.toString(), edit.fingerprint);
-      } else if (key.type === DefinitionType.RecordPeopleCode && !(await provider.hasPeopleCode(key))) {
-        // A Record Field event with no program opens empty; saving creates it.
+      } else if ((key.type === DefinitionType.RecordPeopleCode || key.type === DefinitionType.ComponentPeopleCode ||
+          key.type === DefinitionType.ComponentRecordPeopleCode || key.type === DefinitionType.ComponentRecordFieldPeopleCode ||
+          key.type === DefinitionType.PagePeopleCode) && !(await provider.hasPeopleCode(key))) {
+        // A Record Field, component or page event with no program opens empty; saving creates it.
         text = '';
         this.fingerprints.set(uri.toString(), 'absent');
       } else if (key.type === DefinitionType.ApplicationClassPeopleCode && PeopleSoftFileSystem.newClasses.has(uri.toString()) &&
@@ -148,6 +150,12 @@ export class PeopleSoftFileSystem implements vscode.FileSystemProvider {
       const edit = await provider.readHtmlForEdit(key);
       if (edit) { text = edit.text; this.sqlVersions.set(uri.toString(), edit.version); }
       else { text = ''; this.sqlVersions.set(uri.toString(), 'new'); }
+    }
+    // A component event with no program opens empty even where it cannot be saved, as App Designer shows it.
+    if (text === undefined && provider instanceof DatabaseProvider && (key.type === DefinitionType.ComponentPeopleCode ||
+        key.type === DefinitionType.ComponentRecordPeopleCode || key.type === DefinitionType.ComponentRecordFieldPeopleCode ||
+        key.type === DefinitionType.PagePeopleCode) && !(await provider.hasPeopleCode(key))) {
+      text = '';
     }
     text ??= await provider.readText(key);
     const content = Buffer.from(text, 'utf8');
