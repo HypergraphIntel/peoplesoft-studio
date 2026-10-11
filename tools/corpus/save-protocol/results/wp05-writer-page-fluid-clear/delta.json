@@ -1,0 +1,610 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "wp05-writer-page-fluid-clear",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362781152241",
+   "timestamp": "2026-10-10T15:18:31.395681000-05:00"
+  },
+  "after": {
+   "scn": "39362781152247",
+   "timestamp": "2026-10-10T15:18:44.242306000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-10T15:18:31.395681000-05:00",
+    "to": "2026-10-10T15:18:44.242306000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "PDM": {
+    "before": 106,
+    "after": 107,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 1720,
+    "after": 1721,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "PDM": {
+    "before": 106,
+    "after": 107,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSPNLDEFN": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "otherTablesChanged": {
+   "PSPNLDEFN": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSPNLDEFN": {
+   "columns": [
+    {
+     "name": "PNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MAXPNLFLDID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRIDHORZ",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRIDVERT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "HELPCONTEXTNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELTOP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELLEFT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELRIGHT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELBOTTOM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "STYLESHEETNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLESHEETNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PNLUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DEFERPROC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "POPUPMENU",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LICENSE_CODE",
+     "type": "VARCHAR2",
+     "length": 256,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEDESKTOP",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEPHONE",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLETABLET",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "PNLUSETEMP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEMEDIUM",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEEXLARGE",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "PNLNAME": "ZZ_PCODE_LAB_PG"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "106",
+       "after": "107"
+      },
+      "PNLUSE": {
+       "before": "11",
+       "after": "16395"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-10T15:11:31.068921000",
+       "after": "2026-10-10T15:18:43.705094000"
+      },
+      "FFSTYLEDESKTOP": {
+       "before": "zz-sc",
+       "after": " "
+      },
+      "FFSTYLEPHONE": {
+       "before": "zz-s",
+       "after": " "
+      },
+      "FFSTYLETABLET": {
+       "before": "zz-l",
+       "after": " "
+      },
+      "PNLUSETEMP": {
+       "before": "1",
+       "after": "0"
+      },
+      "FFSTYLEMEDIUM": {
+       "before": "zz-m",
+       "after": " "
+      },
+      "FFSTYLEEXLARGE": {
+       "before": "zz-xl",
+       "after": " "
+      }
+     }
+    }
+   ]
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "106",
+       "after": "107"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "1720",
+       "after": "1721"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "106",
+       "after": "107"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSPNLDEFN": {
+   "columns": [
+    {
+     "name": "PNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FIELDCOUNT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MAXPNLFLDID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRIDHORZ",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "GRIDVERT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "HELPCONTEXTNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELTOP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELLEFT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELRIGHT",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PANELBOTTOM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PNLSTYLE",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "STYLESHEETNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLESHEETNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PNLUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DEFERPROC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "POPUPMENU",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LICENSE_CODE",
+     "type": "VARCHAR2",
+     "length": 256,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEDESKTOP",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEPHONE",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLETABLET",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "PNLUSETEMP",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEMEDIUM",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "FFSTYLEEXLARGE",
+     "type": "VARCHAR2",
+     "length": 400,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAO70AHXAABp38AAD"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "106",
+       "after": "107"
+      },
+      "PNLUSE": {
+       "before": "11",
+       "after": "16395"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-10T15:11:31.068921000",
+       "after": "2026-10-10T15:18:43.705094000"
+      },
+      "FFSTYLEDESKTOP": {
+       "before": "zz-sc",
+       "after": " "
+      },
+      "FFSTYLEPHONE": {
+       "before": "zz-s",
+       "after": " "
+      },
+      "FFSTYLETABLET": {
+       "before": "zz-l",
+       "after": " "
+      },
+      "PNLUSETEMP": {
+       "before": "1",
+       "after": "0"
+      },
+      "FFSTYLEMEDIUM": {
+       "before": "zz-m",
+       "after": " "
+      },
+      "FFSTYLEEXLARGE": {
+       "before": "zz-xl",
+       "after": " "
+      }
+     }
+    }
+   ]
+  }
+ }
+}

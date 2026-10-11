@@ -1,0 +1,604 @@
+{
+ "format": "page-capture/1",
+ "case": "cb-wrap-long-words",
+ "page": "ZZ_PCODE_LAB_CT",
+ "watch": {
+  "PSPNLDEFN": {
+   "columns": [
+    {
+     "name": "PNLNAME"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "PNLTYPE"
+    },
+    {
+     "name": "FIELDCOUNT"
+    },
+    {
+     "name": "MAXPNLFLDID"
+    },
+    {
+     "name": "GRIDHORZ"
+    },
+    {
+     "name": "GRIDVERT"
+    },
+    {
+     "name": "HELPCONTEXTNUM"
+    },
+    {
+     "name": "PANELTOP"
+    },
+    {
+     "name": "PANELLEFT"
+    },
+    {
+     "name": "PANELRIGHT"
+    },
+    {
+     "name": "PANELBOTTOM"
+    },
+    {
+     "name": "PNLSTYLE"
+    },
+    {
+     "name": "STYLESHEETNAME"
+    },
+    {
+     "name": "FFSTYLESHEETNAME"
+    },
+    {
+     "name": "PNLUSE"
+    },
+    {
+     "name": "DEFERPROC"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "POPUPMENU"
+    },
+    {
+     "name": "LICENSE_CODE"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "FFSTYLEDESKTOP"
+    },
+    {
+     "name": "FFSTYLEPHONE"
+    },
+    {
+     "name": "FFSTYLETABLET"
+    },
+    {
+     "name": "PNLUSETEMP"
+    },
+    {
+     "name": "FFSTYLEMEDIUM"
+    },
+    {
+     "name": "FFSTYLEEXLARGE"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "PNLNAME": "ZZ_PCODE_LAB_CT"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "230",
+       "after": "231"
+      },
+      "LASTUPDDTTM": {
+       "before": "Sat Oct 10 2026 18:55:20 GMT-0500 (Central Daylight Time)",
+       "after": "Sat Oct 10 2026 18:55:30 GMT-0500 (Central Daylight Time)"
+      }
+     }
+    }
+   ]
+  },
+  "PSPNLFIELD": {
+   "columns": [
+    {
+     "name": "PNLNAME"
+    },
+    {
+     "name": "PNLFLDID"
+    },
+    {
+     "name": "FIELDNUM"
+    },
+    {
+     "name": "PNLFIELDNAME"
+    },
+    {
+     "name": "FIELDTYPE"
+    },
+    {
+     "name": "EDITSIZE"
+    },
+    {
+     "name": "DSPLFORMAT"
+    },
+    {
+     "name": "FIELDLEFT"
+    },
+    {
+     "name": "FIELDTOP"
+    },
+    {
+     "name": "FIELDRIGHT"
+    },
+    {
+     "name": "FIELDBOTTOM"
+    },
+    {
+     "name": "EDITLBLLEFT"
+    },
+    {
+     "name": "EDITLBLTOP"
+    },
+    {
+     "name": "EDITLBLRIGHT"
+    },
+    {
+     "name": "EDITLBLBOTTOM"
+    },
+    {
+     "name": "DSPLFILL"
+    },
+    {
+     "name": "LBLTYPE"
+    },
+    {
+     "name": "LBLLOC"
+    },
+    {
+     "name": "LBLPADSIZE"
+    },
+    {
+     "name": "USEDEFAULTLABEL"
+    },
+    {
+     "name": "LABEL_ID"
+    },
+    {
+     "name": "LBLTEXT"
+    },
+    {
+     "name": "FIELDUSE"
+    },
+    {
+     "name": "FIELDUSETMP"
+    },
+    {
+     "name": "DEFERPROC"
+    },
+    {
+     "name": "OCCURSLEVEL"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "FIELDNAME"
+    },
+    {
+     "name": "ONVALUE"
+    },
+    {
+     "name": "OFFVALUE"
+    },
+    {
+     "name": "ASSOCFIELDNUM"
+    },
+    {
+     "name": "OCCURSCOUNT1"
+    },
+    {
+     "name": "OCCURSOFFSET1"
+    },
+    {
+     "name": "OCCURSCOUNT2"
+    },
+    {
+     "name": "OCCURSOFFSET2"
+    },
+    {
+     "name": "OCCURSCOUNT3"
+    },
+    {
+     "name": "OCCURSOFFSET3"
+    },
+    {
+     "name": "SUBPNLNAME"
+    },
+    {
+     "name": "SUBPNLVER"
+    },
+    {
+     "name": "FIELDSTYLE"
+    },
+    {
+     "name": "LABELSTYLE"
+    },
+    {
+     "name": "FIELDSIZETYPE"
+    },
+    {
+     "name": "LABELSIZETYPE"
+    },
+    {
+     "name": "PRCSTYPE"
+    },
+    {
+     "name": "PRCSNAME"
+    },
+    {
+     "name": "PROMPTFIELD"
+    },
+    {
+     "name": "FORMATFAMILY"
+    },
+    {
+     "name": "DISPFMTNAME"
+    },
+    {
+     "name": "POPUPMENU"
+    },
+    {
+     "name": "TREECTRLID"
+    },
+    {
+     "name": "TREECTRLTYPE"
+    },
+    {
+     "name": "MULTIRECTREE"
+    },
+    {
+     "name": "NODECOUNT"
+    },
+    {
+     "name": "GRDCOLUMNCOUNT"
+    },
+    {
+     "name": "GRDSHOWCOLHDG"
+    },
+    {
+     "name": "GRDSHOWROWHDG"
+    },
+    {
+     "name": "GRDODDROWSTYLE"
+    },
+    {
+     "name": "GRDEVENROWSTYLE"
+    },
+    {
+     "name": "GRDACTIVETABSTYLE"
+    },
+    {
+     "name": "GRDINACTIVETABSTYL"
+    },
+    {
+     "name": "GRDNAVBARSTYLE"
+    },
+    {
+     "name": "GRDLABELSTYLE"
+    },
+    {
+     "name": "GRDLBLMSGSET"
+    },
+    {
+     "name": "GRDLBLMSGNUM"
+    },
+    {
+     "name": "GRDLBLALIGN"
+    },
+    {
+     "name": "GRDACTTYPE"
+    },
+    {
+     "name": "GRDALLOWCOLSORT"
+    },
+    {
+     "name": "TABENABLE"
+    },
+    {
+     "name": "PBDISPLAYTYPE"
+    },
+    {
+     "name": "OPENNEWWINDOW"
+    },
+    {
+     "name": "URLDYNAMIC"
+    },
+    {
+     "name": "URL_ID"
+    },
+    {
+     "name": "GOTOPORTALNAME"
+    },
+    {
+     "name": "GOTONODENAME"
+    },
+    {
+     "name": "GOTOMENUNAME"
+    },
+    {
+     "name": "GOTOPNLGRPNAME"
+    },
+    {
+     "name": "GOTOMKTNAME"
+    },
+    {
+     "name": "GOTOPNLNAME"
+    },
+    {
+     "name": "GOTOPNLACTION"
+    },
+    {
+     "name": "SRCHBYPNLDATA"
+    },
+    {
+     "name": "SCROLLACTION"
+    },
+    {
+     "name": "TOOLACTION"
+    },
+    {
+     "name": "CONTNAME"
+    },
+    {
+     "name": "CONTNAMEOVER"
+    },
+    {
+     "name": "CONTNAMEDISABLE"
+    },
+    {
+     "name": "PTLBLIMGCOLLAPSE"
+    },
+    {
+     "name": "PTLBLIMGEXPAND"
+    },
+    {
+     "name": "PTADJHIDDENFIELDS"
+    },
+    {
+     "name": "PTCOLLAPSEDATAAREA"
+    },
+    {
+     "name": "PTDFLTVIEWEXPANDED"
+    },
+    {
+     "name": "PTHIDEFIELDS"
+    },
+    {
+     "name": "SHOWCOLHIDEROWS"
+    },
+    {
+     "name": "PTLEBEXPANDFIELD"
+    },
+    {
+     "name": "SHOWTABCNTLBTN"
+    },
+    {
+     "name": "SELINDICATORTYPE"
+    },
+    {
+     "name": "SECUREINVISIBLE"
+    },
+    {
+     "name": "ENABLEASANCHOR"
+    },
+    {
+     "name": "URLENCODEDBYAPP"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "PNLNAME": "ZZ_PCODE_LAB_CT",
+      "PNLFLDID": "3"
+     },
+     "changes": {
+      "FIELDUSETMP": {
+       "before": "0",
+       "after": "64"
+      }
+     }
+    }
+   ]
+  },
+  "PSPNLFIELDEXT": {
+   "columns": [
+    {
+     "name": "PNLNAME"
+    },
+    {
+     "name": "PNLFLDID"
+    },
+    {
+     "name": "PTMODALHEIGHT"
+    },
+    {
+     "name": "PTMODALWIDTH"
+    },
+    {
+     "name": "PTPOPUPPNL"
+    },
+    {
+     "name": "MESSAGE_SET_NBR"
+    },
+    {
+     "name": "MESSAGE_NBR"
+    },
+    {
+     "name": "PT_RELACTDEFAULTJS"
+    },
+    {
+     "name": "PT_NUMFLD1"
+    },
+    {
+     "name": "GRPBOXTYPE"
+    },
+    {
+     "name": "GRPBOXHTMLTYPE"
+    },
+    {
+     "name": "HTML_INPUT_TYPE"
+    },
+    {
+     "name": "PLHTYPE"
+    },
+    {
+     "name": "PLACEHOLDER"
+    },
+    {
+     "name": "PLH_MSG_SET_NBR"
+    },
+    {
+     "name": "PLH_MSG_NBR"
+    },
+    {
+     "name": "SCROLLBARS"
+    },
+    {
+     "name": "MINNUMBER"
+    },
+    {
+     "name": "MAXNUMBER"
+    },
+    {
+     "name": "STEPNUMBER"
+    },
+    {
+     "name": "PARENTPNLFLDID"
+    },
+    {
+     "name": "PAGEPNLFLDID"
+    },
+    {
+     "name": "PTWIDGETSNGACTMNU"
+    },
+    {
+     "name": "PTDSPLINRELACTMNU"
+    },
+    {
+     "name": "PTSHOWWIDGET"
+    },
+    {
+     "name": "PTASSOCWIDGET"
+    },
+    {
+     "name": "FIELDUSETEMP2"
+    },
+    {
+     "name": "PTGBRELTXTINFO"
+    },
+    {
+     "name": "PTGBRELACTINFO"
+    },
+    {
+     "name": "PTGBRELACTFLD"
+    },
+    {
+     "name": "PTFRMTOVERRIDE"
+    },
+    {
+     "name": "PTDISABLESMARTSEL"
+    },
+    {
+     "name": "PTDISABLESMARTPROM"
+    },
+    {
+     "name": "FFSTYLELONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "230",
+       "after": "231"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "1841",
+       "after": "1842"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "230",
+       "after": "231"
+      }
+     }
+    }
+   ]
+  }
+ }
+}
