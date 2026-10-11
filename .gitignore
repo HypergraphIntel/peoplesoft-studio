@@ -17,6 +17,11 @@ dist-test/
 /tools/corpus/corpus-results.sqlite-wal
 /tools/corpus/reports/*
 !/tools/corpus/reports/.gitkeep
+# Page-control property-mapping captures (VM before/after/delta JSON) -- local research scratch.
+/tools/corpus/save-protocol/results/
+# Local VM harness for driving App Designer (host-specific) -- not part of the build.
+/tools/lab/vm.py
+/tools/lab/page-capture.mts
 
 /tools/corpus/hcdev-snapshot.sqlite
 /tools/corpus/hcdev-snapshot.sqlite-shm
