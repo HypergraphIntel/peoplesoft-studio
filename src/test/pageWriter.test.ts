@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { copyControlRows, FLUID_USETEMP2, FLUID_USETMP, fluidClassSlots, NEW_PAGE_LICENSE_CODE, planNewPage, planPageProperties, planPageSave, PageSaveRefusedError, type EditedControl, type StoredControl } from '../providers/pageWriter.js';
+import type { NewControlKind } from '../providers/pageControlTemplates.js';
 
 const control = (over: Partial<StoredControl> & { pnlFldId: number }): StoredControl => ({
   fieldNum: over.pnlFldId, fieldLeft: 0, fieldTop: 0, fieldRight: 0, fieldBottom: 0,
@@ -156,11 +157,15 @@ test('the Order tab\'s order renumbers FIELDNUM; an order that is not the page\'
   assert.throws(() => planPageSave(stored, stored.map(edit), 3, [3, 1, 1]), PageSaveRefusedError);
 });
 
-test('a reorder across a grid or scroll (a level change) is refused; within one it is not', () => {
-  const stored = [control({ pnlFldId: 1, fieldNum: 1, fieldType: 4 }), control({ pnlFldId: 2, fieldNum: 2, fieldType: 19 }),
-    control({ pnlFldId: 3, fieldNum: 3, fieldType: 4 }), control({ pnlFldId: 4, fieldNum: 4, fieldType: 4 })];
-  assert.throws(() => planPageSave(stored, stored.map(edit), 4, [3, 1, 2, 4]), /grid or scroll/);
+test('a reorder across a grid or scroll takes the level of its new place; one that empties a scroll is refused', () => {
+  const f = (pnlFldId: number, occursLevel: number) => control({ pnlFldId, fieldNum: pnlFldId, fieldType: 4, occursLevel, recName: 'R', fieldName: 'F' + pnlFldId });
+  const stored = [f(1, 0), control({ pnlFldId: 2, fieldNum: 2, fieldType: 19, occursLevel: 1 }), f(3, 1), f(4, 1)];
+  // 4 before the grid: level 0; 3 stays in the grid (lv14).
+  assert.deepEqual(planPageSave(stored, stored.map(edit), 4, [1, 4, 2, 3]).updates,
+    [{ pnlFldId: 4, columns: { OCCURSLEVEL: 0, FIELDNUM: 2 } }, { pnlFldId: 2, columns: { FIELDNUM: 3 } }, { pnlFldId: 3, columns: { FIELDNUM: 4 } }]);
   assert.deepEqual(planPageSave(stored, stored.map(edit), 4, [1, 2, 4, 3]).updates.map((u) => u.pnlFldId), [4, 3]);
+  // Both fields out of the grid leave it empty (lv17: "No data for scroll").
+  assert.throws(() => planPageSave(stored, stored.map(edit), 4, [3, 4, 1, 2]), /No data for scroll/);
 });
 
 /** A capture's PSPNLDEFN row for ZZ_PCODE_LAB_PG, before or after the save, by column name. */
@@ -267,7 +272,8 @@ const asStored = (r: Row): StoredControl => ({
   pnlFldId: Number(r.PNLFLDID), fieldNum: Number(r.FIELDNUM), fieldType: Number(r.FIELDTYPE),
   fieldLeft: Number(r.FIELDLEFT), fieldTop: Number(r.FIELDTOP), fieldRight: Number(r.FIELDRIGHT), fieldBottom: Number(r.FIELDBOTTOM),
   editLblLeft: Number(r.EDITLBLLEFT), editLblTop: Number(r.EDITLBLTOP), editLblRight: Number(r.EDITLBLRIGHT), editLblBottom: Number(r.EDITLBLBOTTOM),
-  fieldSizeType: Number(r.FIELDSIZETYPE), lblType: Number(r.LBLTYPE), lblText: String(r.LBLTEXT ?? ''), fieldUse: Number(r.FIELDUSE), secureInvisible: Number(r.SECUREINVISIBLE)
+  fieldSizeType: Number(r.FIELDSIZETYPE), lblType: Number(r.LBLTYPE), lblText: String(r.LBLTEXT ?? ''), fieldUse: Number(r.FIELDUSE), secureInvisible: Number(r.SECUREINVISIBLE),
+  occursLevel: Number(r.OCCURSLEVEL ?? 0), recName: String(r.RECNAME ?? ''), fieldName: String(r.FIELDNAME ?? '')
 });
 /** What the editor sends for a pasted copy of `src` that App Designer stored as `row`: an auto-sized 0 corner stays 0 in the editor. */
 const pasted = (src: Row, row: Row, page = 'ZZ_PCODE_LAB_PG'): EditedControl => {
@@ -523,7 +529,7 @@ test('Static Text line feeds and Multi-Currency on a Fluid page plan exactly App
   assert.deepEqual(planPageSave([st], [e], 50, undefined, 'ZZ_PCODE_LAB_CT', false).extUpdates, []);
 });
 
-test('a pasted control into a scroll uses the drop-point OCCURSLEVEL; without it, the source\'s level', () => {
+test('a pasted copy\'s rows carry the level the save planned; without one, the source\'s level', () => {
   const src = { PNLNAME: 'P', PNLFLDID: 14, FIELDNUM: 5, FIELDTYPE: 4, FIELDLEFT: 10, FIELDTOP: 10, FIELDRIGHT: 0, FIELDBOTTOM: 0, OCCURSLEVEL: 0,
     EDITLBLLEFT: 0, EDITLBLTOP: 0, EDITLBLRIGHT: 0, EDITLBLBOTTOM: 0, FIELDSIZETYPE: 0, LBLTYPE: 3, LBLTEXT: 'X', FIELDUSE: 0, SECUREINVISIBLE: 0 } as Record<string, number | string>;
   const ext = { PNLNAME: 'P', PNLFLDID: 14, PARENTPNLFLDID: 'P$0', PAGEPNLFLDID: 'P$0' } as Record<string, number | string>;
@@ -575,7 +581,11 @@ const GB_FIELDS: Record<string, [keyof EditedControl, 'n' | 's']> = {
   FIELDUSETEMP2: ['fieldUseTemp2', 'n'], SECUREINVISIBLE: ['secureInvisible', 'n'], LBLLOC: ['lblLoc', 'n'], POPUPMENU: ['popupMenu', 's'],
   ASSOCFIELDNUM: ['assocFieldNum', 'n'], RECNAME: ['recName', 's'], LABELSIZETYPE: ['labelSizeType', 'n'], PTLEBEXPANDFIELD: ['expandField', 'n'],
   PLHTYPE: ['placeholderType', 'n'], PLACEHOLDER: ['placeholder', 's'], PLH_MSG_SET_NBR: ['placeholderMsgSet', 'n'], PLH_MSG_NBR: ['placeholderMsgNum', 'n'],
-  EDITLBLLEFT: ['editLblLeft', 'n'], EDITLBLTOP: ['editLblTop', 'n'], EDITLBLRIGHT: ['editLblRight', 'n'], EDITLBLBOTTOM: ['editLblBottom', 'n']
+  EDITLBLLEFT: ['editLblLeft', 'n'], EDITLBLTOP: ['editLblTop', 'n'], EDITLBLRIGHT: ['editLblRight', 'n'], EDITLBLBOTTOM: ['editLblBottom', 'n'],
+  FIELDSIZETYPE: ['fieldSizeType', 'n'], FIELDRIGHT: ['fieldRight', 'n'], FIELDBOTTOM: ['fieldBottom', 'n'],
+  DSPLFILL: ['dsplFill', 's'], FORMATFAMILY: ['formatFamily', 's'], DISPFMTNAME: ['displayFormatName', 's'], PTPOPUPPNL: ['popupPage', 's'],
+  HTML_INPUT_TYPE: ['inputType', 'n'], MINNUMBER: ['minNumber', 's'], MAXNUMBER: ['maxNumber', 's'], STEPNUMBER: ['stepNumber', 's'],
+  PTDISABLESMARTPROM: ['disableSmartPrompt', 'n'], PT_NUMFLD1: ['setLevel', 'n']
 };
 /** A group box as the writer reads it (savePage's stored row), from a capture. */
 function groupBoxStored(capture: string, pnlFldId: number, page = 'ZZ_PCODE_LAB_CT'): StoredControl {
@@ -719,5 +729,67 @@ test('a Long Edit Box\'s dialog plans exactly App Designer\'s columns and PSPTPN
     assert.deepEqual(plan.updates, field, capture);
     assert.deepEqual(plan.extUpdates, ext, capture);
     assert.deepEqual(plan.richTextWrites, rt ? [{ pnlFldId: 9, richText: rte(rt.inserted[0]) }] : [], capture);
+  }
+});
+
+test('an Edit Box\'s dialog plans exactly App Designer\'s columns (eb01-eb82)', () => {
+  const dir = join(process.cwd(), 'tools/corpus/save-protocol/results');
+  const captures = readdirSync(dir).filter((c) => /^eb[0-9]{2}-/.test(c)).sort();
+  // A capture's numeric-looking text (MINNUMBER '1') compares as the delta reads it.
+  const norm = (us: Array<{ pnlFldId: number; columns: Record<string, unknown> }>) =>
+    us.map((u) => ({ pnlFldId: u.pnlFldId, columns: Object.fromEntries(Object.entries(u.columns).map(([k, v]) => [k, typeof v === 'string' && /^-?[0-9]+$/.test(v) ? Number(v) : v])) }));
+  let replayed = 0;
+  for (const capture of captures) {
+    const field = deltaOf(capture, 'PSPNLFIELD'), ext = deltaOf(capture, 'PSPNLFIELDEXT');
+    const ids = new Set([...field, ...ext].map((u) => u.pnlFldId));
+    if (ids.size === 0) continue; // eb00 (baseline), eb06 (Input Only greyed without Password), eb52 (the dialog's hidden Paragraph)
+    assert.equal(ids.size, 1, capture);
+    const [id] = ids;
+    const stored = groupBoxStored(capture, id);
+    const e: Record<string, unknown> = { ...edit(stored) };
+    for (const u of [...field, ...ext]) for (const [col, v] of Object.entries(u.columns)) { const [key, kind] = GB_FIELDS[col]; e[key] = kind === 'n' ? Number(v) : String(v); }
+    const plan = planPageSave([stored], [e as unknown as EditedControl], 50, undefined, 'ZZ_PCODE_LAB_CT', true);
+    assert.deepEqual(norm(plan.updates), field, capture);
+    assert.deepEqual(norm(plan.extUpdates), ext, capture);
+    replayed++;
+  }
+  assert.ok(replayed >= 75, `replayed ${replayed}`);
+});
+
+test('scroll levels: App Designer\'s level changes, Set to Level and reorders replay exactly (lv04, lv06, lv08-lv16)', () => {
+  const page = 'ZZ_PCODE_LAB_LV';
+  const SCROLLS = new Set([10, 19, 27]);
+  for (const capture of ['lv04-sb-level2', 'lv06-hr-level1', 'lv08-hr2-level0', 'lv09-sb-level1', 'lv10-sb-level2b', 'lv11-hr1-unset',
+    'lv12-hr1-reset', 'lv13-hr1-level1', 'lv14-reorder', 'lv15-reorder-in', 'lv16-reorder-back']) {
+    const before = captureRows(capture, 'before', 'PSPNLFIELD', page), after = captureRows(capture, 'after', 'PSPNLFIELD', page);
+    const afterExt = captureRows(capture, 'after', 'PSPNLFIELDEXT', page);
+    const stored = before.map((r) => ({ ...groupBoxStored(capture, Number(r.PNLFLDID), page), fieldNum: Number(r.FIELDNUM) }));
+    // What App Designer's dialogs set: a scroll's Occurs Level, a rule's Set to Level and its choice.
+    const controls = stored.map((c) => {
+      const a = after.find((x) => Number(x.PNLFLDID) === c.pnlFldId)!, x = afterExt.find((y) => Number(y.PNLFLDID) === c.pnlFldId)!;
+      const e: EditedControl = { ...edit(c), fieldUse: Number(a.FIELDUSE), secureInvisible: Number(a.SECUREINVISIBLE) };
+      if (SCROLLS.has(Number(a.FIELDTYPE)) || (Number(a.FIELDTYPE) === 23 && (Number(a.FIELDUSE) & 2))) e.occursLevel = Number(a.OCCURSLEVEL);
+      if (Number(a.FIELDTYPE) === 23) e.setLevel = Number(x.PT_NUMFLD1);
+      return e;
+    });
+    const order = [...after].sort((a, b) => Number(a.FIELDNUM) - Number(b.FIELDNUM)).map((r) => Number(r.PNLFLDID));
+    const plan = planPageSave(stored, controls, 50, order, page);
+    const sortBy = (us: Array<{ pnlFldId: number }>) => [...us].sort((a, b) => a.pnlFldId - b.pnlFldId);
+    assert.deepEqual(sortBy(plan.updates), sortBy(deltaOf(capture, 'PSPNLFIELD')), capture);
+    assert.deepEqual(sortBy(plan.extUpdates), sortBy(deltaOf(capture, 'PSPNLFIELDEXT')), capture);
+  }
+});
+
+test('added controls take App Designer\'s tab order and level: a scroll at 1, the rest the running level (lv02, lv03, lv05, lv07)', () => {
+  const page = 'ZZ_PCODE_LAB_LV';
+  const KIND: Record<number, NewControlKind> = { 4: 'editBox', 10: 'scrollBar', 23: 'horizontalRule', 27: 'scrollArea' };
+  for (const capture of ['lv02-scroll-area', 'lv03-scroll-bar', 'lv05-hr-default', 'lv07-hr2-default']) {
+    const before = captureRows(capture, 'before', 'PSPNLFIELD', page);
+    const inserted = (JSON.parse(readFileSync(join(process.cwd(), 'tools/corpus/save-protocol/results', capture, 'delta.json'), 'utf8')).watch.PSPNLFIELD.inserted as Row[]);
+    const stored = before.map((r) => ({ ...groupBoxStored(capture, Number(r.PNLFLDID), page), fieldNum: Number(r.FIELDNUM) }));
+    const added: EditedControl[] = inserted.map((r) => ({ ...edit(asStored(r)), pnlFldId: -Number(r.PNLFLDID),
+      add: { kind: KIND[Number(r.FIELDTYPE)], recName: String(r.RECNAME).trim(), fieldName: String(r.FIELDNAME).trim() } }));
+    const plan = planPageSave(stored, [...stored.map(edit), ...added], before.length, undefined, page);
+    assert.deepEqual(plan.inserts.map((i) => [i.fieldNum, i.control.occursLevel]), inserted.map((r) => [Number(r.FIELDNUM), Number(r.OCCURSLEVEL)]), capture);
   }
 });

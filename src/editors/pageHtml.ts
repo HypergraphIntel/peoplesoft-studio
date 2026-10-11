@@ -55,7 +55,7 @@ const INSERT_MENU: Array<{ group: string; items: Array<{ label: string; kind?: N
     { kind: 'horizontalRule', label: 'Horizontal Rule' }, { kind: 'staticText', label: 'Static Text' }, { kind: 'staticImage', label: 'Static Image' }, { label: 'Tab Separator' }] },
   { group: 'Controls', items: [{ kind: 'checkBox', label: 'Check Box' }, { kind: 'dropDown', label: 'Drop-Down List Box' }, { kind: 'editBox', label: 'Edit Box' },
     { kind: 'htmlArea', label: 'HTML Area' }, { label: 'Image' }, { kind: 'longEdit', label: 'Long Edit Box' }, { kind: 'pushButton', label: 'Push Button/Hyperlink' }, { kind: 'radioButton', label: 'Radio Button' }, { label: 'Tree' }] },
-  { group: 'Grids and scrolls', items: [{ label: 'Grid' }, { label: 'Scroll Area' }, { label: 'Scroll Bar' }] },
+  { group: 'Grids and scrolls', items: [{ label: 'Grid' }, { kind: 'scrollArea', label: 'Scroll Area' }, { kind: 'scrollBar', label: 'Scroll Bar' }] },
   { group: 'Pages', items: [{ label: 'Secondary Page' }, { label: 'Subpage' }] },
   { group: 'Charts', items: [{ label: 'Chart' }, { label: 'Analytic Grid' }] }
 ];
@@ -74,11 +74,13 @@ function paletteKinds(): Record<string, unknown> {
     const z = NEW_CONTROL_SIZE[kind];
     const shape = controlShape(NEW_CONTROL_FIELDTYPE[kind]);
     // Auto-sized controls (0 x 0, sized by App Designer from the field) are drawn at a stand-in size, and so are the
-    // 4 x 4 boxes App Designer drops for a Static Image or HTML Area (saved 4 x 4 until resized; a move keeps the size).
+    // 4 x 4 boxes App Designer drops for a Static Image or HTML Area (saved 4 x 4 until resized; a move keeps the size),
+    // and a Scroll Bar's 17 x 4.
     const drawn = shape === 'checkbox' ? [14, 14] : [80, 18];
-    const tiny = z.width > 0 && z.width < 12;
+    const tiny = (z.width > 0 && z.width < 12) || kind === 'scrollBar';
     return [kind, { shape, typeName: PAGE_FIELD_TYPES[NEW_CONTROL_FIELDTYPE[kind]] ?? kind, bound: isRecordBound(kind),
       w: z.width, h: z.height, dw: tiny ? 24 : z.width || drawn[0], dh: tiny ? 24 : z.height || drawn[1], fst: z.fieldSizeType, lt: z.lblType, lx: z.lblText,
+      ftype: NEW_CONTROL_FIELDTYPE[kind],
       fu: NEW_CONTROL_FIELDUSE[kind] ?? 0, fieldOptional: FIELD_OPTIONAL.has(kind) }];
   }));
 }
@@ -105,7 +107,9 @@ function columnData(c: PageControl): string {
     ` data-pop="${esc(k.popupMenu)}" data-assoc="${k.assocFieldNum}" data-lsty="${esc(k.labelStyle)}" data-lid="${esc(k.labelId)}" data-udl="${k.useDefaultLabel}" data-hf="${k.hideFields}"` +
     ` data-cda="${k.collapseDataArea}" data-dve="${k.defaultExpanded}" data-imc="${esc(k.imageCollapsed)}" data-ime="${esc(k.imageExpanded)}"` +
     ` data-pms="${k.popupMsgSet}" data-pmn="${k.popupMsgNum}" data-gbt="${k.groupBoxType}" data-gbh="${k.groupBoxHtmlType}" data-sb="${k.scrollBars}"` +
-    ` data-hti="${k.headerTextInfo}" data-hai="${k.headerActionInfo}" data-hac="${k.headerActionItems}"`;
+    ` data-hti="${k.headerTextInfo}" data-hai="${k.headerActionInfo}" data-hac="${k.headerActionItems}"` +
+    ` data-n1="${k.setLevel}" data-dfill="${esc(k.dsplFill)}" data-ffam="${esc(k.formatFamily)}" data-dfn="${esc(k.displayFormatName)}" data-ppg="${esc(k.popupPage)}"` +
+    ` data-ity="${k.inputType}" data-mnn="${esc(k.minNumber)}" data-mxn="${esc(k.maxNumber)}" data-stn="${esc(k.stepNumber)}" data-nsp="${k.disableSmartPrompt}"`;
 }
 
 function controlsHtml(controls: readonly PageControl[], editable: boolean): string {
@@ -324,21 +328,45 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
   const grid = document.querySelector('.order-grid tbody');
   const status = document.getElementById('status');
   const saveBtn = document.getElementById('save');
-  function markDirty() { if (!editable) return; if (saveBtn) saveBtn.disabled = false; if (status) { status.textContent = 'Unsaved changes'; status.classList.remove('err'); } }
+  function markDirty() { if (!editable) return; relevel(); if (saveBtn) saveBtn.disabled = false; if (status) { status.textContent = 'Unsaved changes'; status.classList.remove('err'); } }
   const n = (el, a) => Number(el.dataset[a]);
   const setN = (el, a, v) => { el.dataset[a] = String(Math.round(v)); };
-  // The scroll-nesting level at a page point: the deepest Scroll Bar(10)/Grid(19)/Scroll Area(27) whose drawn box
-  // contains it gives its level; a control dropped there takes that level (App Designer's scroll buffer).
-  function scrollLevelAt(cx, cy) {
-    let level = 0, area = Infinity;
-    for (const el of canvas.querySelectorAll('.ctl')) {
-      if (el.dataset.removed) continue;
-      const ft = Number(el.dataset.ftype);
-      if (ft !== 10 && ft !== 19 && ft !== 27) continue;
-      const L = el.offsetLeft, T = el.offsetTop, R = L + el.offsetWidth, B = T + el.offsetHeight;
-      if (cx >= L && cx <= R && cy >= T && cy <= B) { const a = (R - L) * (B - T); if (a < area) { area = a; level = Number(el.dataset.level) || 0; } }
+  // Scroll levels, as App Designer assigns them (src/model/pageLevels.ts, lv01-lv17): in tab order, a Scroll Bar / Grid /
+  // Scroll Area / Analytic Grid keeps its own Occurs Level and a Horizontal Rule with Set to Level its choice; every other
+  // control takes the running level. Where a control sits on the page plays no part -- only its place in the tab order.
+  const SCROLL_TYPES = [10, 19, 27, 32];
+  const setsLevel = (el) => SCROLL_TYPES.includes(n(el, 'ftype')) || (n(el, 'ftype') === 23 && (n(el, 'fu') & 2) !== 0);
+  // The tab order the save will write: the stored controls in the Order tab's order, then each added control where App
+  // Designer puts one -- after the control before it in reading order (pageWriter newControlTabIndex) -- and each pasted
+  // copy of a control on this page right after its source and its earlier copies (others last).
+  function tabOrder() {
+    const order = grid ? [...grid.rows].map((tr) => controlById(tr.dataset.id)).filter((c) => c && !c.dataset.removed) : [];
+    const sameRow = (a, b) => Math.abs(n(a, 'ft') - n(b, 'ft')) <= 20;
+    const atOrBefore = (a, b) => (sameRow(a, b) ? n(a, 'fl') <= n(b, 'fl') : n(a, 'ft') < n(b, 'ft'));
+    const before = (a, b) => (sameRow(a, b) ? n(a, 'fl') < n(b, 'fl') : n(a, 'ft') < n(b, 'ft'));
+    for (const c of canvas.querySelectorAll('.ctl')) {
+      if (c.dataset.removed || !(c.dataset.new || c.dataset.copyPage)) continue;
+      if (c.dataset.new) {
+        let best = -1;
+        order.forEach((o, i) => { if (atOrBefore(o, c) && (best < 0 || before(order[best], o))) best = i; });
+        order.splice(best + 1, 0, c); continue;
+      }
+      const src = c.dataset.copyPage === pageName ? c.dataset.copyId : undefined;
+      let at = src === undefined ? -1 : order.findIndex((o) => !o.dataset.new && !o.dataset.copyPage && o.dataset.id === src);
+      if (at < 0) { order.push(c); continue; }
+      while (at + 1 < order.length && order[at + 1].dataset.copyId === src && order[at + 1].dataset.copyPage) at++;
+      order.splice(at + 1, 0, c);
     }
-    return level;
+    return order;
+  }
+  // Every control's level again, as the save will write it; the Order tab's Lvl column follows.
+  function relevel() {
+    let level = 0;
+    for (const c of tabOrder()) {
+      if (setsLevel(c)) level = n(c, 'level') || 0; else c.dataset.level = String(level);
+      const tr = grid && !c.dataset.new && !c.dataset.copyPage ? grid.querySelector('tr[data-id="' + c.dataset.id + '"]') : null;
+      if (tr) tr.children[2].textContent = c.dataset.level;
+    }
   }
 
   // The selection: one control (inspected) or a group (Select Group / Select All / Shift+click).
@@ -582,7 +610,8 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
     const useBit = (b, on) => { setN(el, 'fu', on ? n(el, 'fu') | b : n(el, 'fu') & ~b); markDirty(); };
     const tmpBit = (b, on) => { setN(el, 'fut', on ? n(el, 'fut') | b : n(el, 'fut') & ~b); markDirty(); };
     const t2Bit = (b, on) => { setN(el, 'fut2', on ? n(el, 'fut2') | b : n(el, 'fut2') & ~b); markDirty(); };
-    return { el, d, mk, field, check, group, text, select, radio, styleSelect, styleClasses, useBit, tmpBit, t2Bit };
+    // onFieldInfo: tabs told of the bound field's prompt table / format family (an Edit Box's Record tab looks it up).
+    return { el, d, mk, field, check, group, text, select, radio, styleSelect, styleClasses, useBit, tmpBit, t2Bit, onFieldInfo: [] };
   }
   // Record tab: the record field the control is bound to, plus Style. Rebinding a stored control writes
   // RECNAME / FIELDNAME (the save refuses a field that is not on the record).
@@ -707,6 +736,7 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
     const lig = off(check(lr, 'Include Labels in Grid Cells', (n(el, 'fut2') & 0x02) !== 0)); lig.onchange = () => ctx.t2Bit(0x02, lig.checked);
     radio(group(fl, 'Control Structure'), 'cs' + d.id, [['basic', 'Basic'], ['advanced', 'Advanced']], (n(el, 'fut') & 0x4000000) ? 'basic' : 'advanced', (v) => ctx.tmpBit(0x4000000, v === 'basic'));
     if (opts.placeholder) placeholderGroup(ctx, fl, off);
+    if (opts.inputType) inputGroup(ctx, fl, off);
   }
   // A Group Box's Fluid Container Properties (gb01-gb04, gb21-gb27): Group Box Type (GRPBOXTYPE, its list index),
   // Html Tag Type (GRPBOXHTMLTYPE), ScrollBars (SCROLLBARS), the Header Extension (PTGBRELTXTINFO / PTGBRELACTINFO /
@@ -919,18 +949,21 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
     const mc = check(p, 'Multi-Currency Field', (n(el, 'fu') & 0x20) !== 0); mc.onchange = () => ctx.useBit(0x20, mc.checked);
     const row = mk('<div class="row"></div>'); p.appendChild(row);
     const set = check(row, 'Set to Level', (n(el, 'fu') & 0x2) !== 0);
-    // The levels offered: 0 up to the scroll nesting where the rule sits (and the stored one).
-    const here = scrollLevelAt(el.offsetLeft + el.offsetWidth / 2, el.offsetTop + el.offsetHeight / 2);
-    const max = Math.max(here, n(el, 'level') || 0);
-    const lvl = select(Array.from({ length: max + 1 }, (_, i) => [String(i), String(i)]), String(n(el, 'level') || 0));
+    // The levels offered: 0 up to one below the page's deepest scroll (lv06, lv08: 0 and 1 under a level-2 scroll bar).
+    const deepest = Math.max(1, ...[...canvas.querySelectorAll('.ctl')].filter((c) => !c.dataset.removed && SCROLL_TYPES.includes(n(c, 'ftype'))).map((c) => n(c, 'level') || 0));
+    const shown = set.checked ? String(n(el, 'level') || 0) : '0';
+    const lvl = select(Array.from({ length: Math.max(deepest, Number(shown) + 1) }, (_, i) => [String(i), String(i)]), shown);
     lvl.className = 'mini'; row.appendChild(lvl);
     const refresh = () => { lvl.disabled = !set.checked || !editable; };
+    // Set to Level starts at 0 (lv12) and stores its choice in PT_NUMFLD1 too; cleared, the rule takes the running
+    // level and PT_NUMFLD1 keeps the last choice (lv11).
+    const choose = (v) => { d.level = v; setN(el, 'n1', Number(v)); d.lvlEdited = '1'; };
     set.onchange = () => {
-      ctx.useBit(0x2, set.checked); setN(el, 'si', set.checked ? 1 : 0);
-      if (set.checked) { d.level = lvl.value; d.lvlEdited = '1'; }
+      if (set.checked) { lvl.value = '0'; choose('0'); }
+      setN(el, 'si', set.checked ? 1 : 0); ctx.useBit(0x2, set.checked);
       refresh();
     };
-    lvl.onchange = () => { d.level = lvl.value; d.lvlEdited = '1'; markDirty(); };
+    lvl.onchange = () => { choose(lvl.value); markDirty(); };
     refresh();
   }
   // A Check Box's Record tab (cbx, in03): Field (Record Name / Field Name) and Field Values (On / Off Value).
@@ -949,7 +982,7 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
   // stores the label's short or long name, cbx05), Label ID (LABEL_ID; *** Use Default Label *** = USEDEFAULTLABEL 1),
   // Context (shown only), Style (FIELDSTYLE), Location Left / Right (LBLLOC 0 / 1), Alignment Left / Centered / Right
   // (DSPLFORMAT 0x80000 / 0x100000 / 0x200000).
-  // A Long Edit Box's (opts.longEdit, le05-le11) differs: Insert Line Feed, Style is the label's (LABELSTYLE), Position
+  // A Long Edit Box's and an Edit Box's (opts.longEdit, le05-le11, eb32-eb37) differ: Insert Line Feed, Style is the label's (LABELSTYLE), Position
   // Left / Top / Custom (LABELSIZETYPE 0 / 2 / 1; App Designer lays the label out again from its text) in place of Location,
   // and Display Options First occurs only (DSPLFORMAT 0x400000) and No colon (LBLLOC 1).
   function fieldLabelTab(ctx, p, opts) {
@@ -1036,9 +1069,15 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
   // Override; Expand Field When Display Only (PTLEBEXPANDFIELD), Display in Modal Window (FIELDUSETMP 0x100), Enable Long
   // Edit Counter (FIELDUSETMP 0x8000000) and the screen-reader read-only (FIELDUSETEMP2 0x10000) instead; Wrap Long Words,
   // Persist Grid Column in Menu and Paragraph greyed; no Display-Only Appearance.
+  // An Edit Box's (opts.editBox, eb38-eb60, eb80): Show Label (FIELDUSE 0x400) and Enable When Page is Display Only (0x40000)
+  // are offered under Invisible (off clears them, eb49); Smart Prompt (PTDISABLESMARTPROM 0, offered when the field has a prompt
+  // table); no right-hand Enable When Page is Display Only; and Mouse Over Popup (offered on a Display Only control; off clears
+  // it, eb43): No Popup, Page Popup (FIELDUSETMP 0x200 + PTPOPUPPNL, a Popup Page) or Message Catalog Popup (FIELDUSETMP 0x2200
+  // + MESSAGE_SET_NBR / MESSAGE_NBR). Its dialog's Wrap Long Words (FIELDUSETMP 0x40) hides a Paragraph (FIELDUSETEMP2 0x800) the
+  // dialog never shows; the Paragraph bit is left as stored.
   function fieldUseTab(ctx, p, useOpts) {
     useOpts = useOpts || {};
-    const le = !!useOpts.longEdit;
+    const le = !!useOpts.longEdit, eb = !!useOpts.editBox;
     const { el, d, mk, group, check, select, radio } = ctx;
     const bit = (k) => (b) => (n(el, k) & b) !== 0;
     const fu = bit('fu'), fut = bit('fut'), fut2 = bit('fut2');
@@ -1049,11 +1088,19 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
     const dOnly = check(left, 'Display Only', fu(0x1)); dOnly.onchange = () => ctx.useBit(0x1, dOnly.checked);
     const inv = check(left, 'Invisible', fu(0x2));
     const sub = mk('<div class="indent"></div>'); left.appendChild(sub);
-    if (!le) greyed(sub, 'Show Label');
+    const showLbl = eb ? check(sub, 'Show Label', fu(0x400)) : null;
+    if (showLbl) showLbl.onchange = () => ctx.useBit(0x400, showLbl.checked); else if (!le) greyed(sub, 'Show Label');
     const modjs = check(sub, 'Modifiable by JavaScript', fu(0x2) && n(el, 'si') === 0);
-    greyed(sub, 'Enable When Page is Display Only');
+    const ewdoSub = eb ? check(sub, 'Enable When Page is Display Only', fu(0x40000)) : null;
+    if (ewdoSub) ewdoSub.onchange = () => ctx.useBit(0x40000, ewdoSub.checked); else greyed(sub, 'Enable When Page is Display Only');
     const html = check(sub, 'Generate in HTML', fut2(0x20));
-    if (!le) greyed(left, 'Smart Prompt');
+    const smart = eb ? check(left, 'Smart Prompt', n(el, 'nsp') === 0) : null;
+    if (smart) {
+      smart.onchange = () => { setN(el, 'nsp', smart.checked ? 0 : 1); markDirty(); };
+      const offer = (has) => { smart.disabled = !has || !editable; smart.closest('.row').classList.toggle('na', !has); if (!has) smart.checked = n(el, 'nsp') === 0; };
+      offer(false);
+      ctx.onFieldInfo.push((info) => offer(!!info.promptTable));
+    } else if (!le) greyed(left, 'Smart Prompt');
     const mc = check(right, 'Multi-Currency Field', fu(0x20)); mc.onchange = () => ctx.useBit(0x20, mc.checked);
     if (!le) { const dcf = check(right, 'Display Control Field', fu(0x8)); dcf.onchange = () => ctx.useBit(0x8, dcf.checked); }
     const rel = check(right, 'Related Field', fu(0x10));
@@ -1063,6 +1110,8 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
       const counter = check(right, 'Enable Long Edit Counter', fut(0x8000000)); counter.onchange = () => ctx.tmpBit(0x8000000, counter.checked);
       const sr = check(right, 'Read only control for screen reader', fut2(0x10000)); sr.onchange = () => ctx.t2Bit(0x10000, sr.checked);
       greyed(left, 'Wrap Long Words'); greyed(left, 'Persist Grid Column in Menu'); greyed(right, 'Paragraph');
+    } else if (eb) {
+      greyed(right, 'Persist Grid Column in Menu'); greyed(right, 'Field Format Override');
     } else {
       greyed(right, 'Persist Grid Column in Menu');
       const ewdo = check(right, 'Enable When Page is Display Only', fu(0x40000)); ewdo.onchange = () => ctx.useBit(0x40000, ewdo.checked);
@@ -1086,17 +1135,23 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
       const sr = check(appear, 'Read only control for screen reader', fut2(0x10000)); sr.onchange = () => ctx.t2Bit(0x10000, sr.checked);
       const wrap = check(p, 'Wrap Long Words', fut(0x40)); wrap.onchange = () => ctx.tmpBit(0x40, wrap.checked);
     }
+    const mouse = eb ? mouseOverPopup(ctx, p) : null;
 
     const refresh = () => {
       const invisible = inv.checked;
-      for (const c of [modjs, html]) { c.disabled = !invisible || !editable; c.closest('.row').classList.toggle('na', !invisible); }
+      if (mouse) mouse.offer(dOnly.checked);
+      for (const c of [modjs, html, showLbl, ewdoSub].filter(Boolean)) { c.disabled = !invisible || !editable; c.closest('.row').classList.toggle('na', !invisible); }
       relCtl.disabled = !rel.checked || !editable; relCtl.closest('.pf').classList.toggle('na', !rel.checked);
     };
     inv.onchange = () => {
       ctx.useBit(0x2, inv.checked);
       el.classList.toggle('u-invisible', inv.checked);
       if (inv.checked) setN(el, 'si', modjs.checked ? 0 : 1);
-      else { setN(el, 'si', 0); modjs.checked = false; html.checked = false; ctx.t2Bit(0x20, false); }
+      else {
+        setN(el, 'si', 0); modjs.checked = false; html.checked = false; ctx.t2Bit(0x20, false);
+        // An Edit Box's Show Label and Enable When Page is Display Only go with it (eb49).
+        if (showLbl) { showLbl.checked = false; ewdoSub.checked = false; ctx.useBit(0x400 | 0x40000, false); }
+      }
       refresh();
     };
     modjs.onchange = () => { setN(el, 'si', modjs.checked ? 0 : 1); markDirty(); };
@@ -1108,8 +1163,59 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
       else { setN(el, 'assoc', 0); relCtl.value = '0'; }
       refresh();
     };
-    dOnly.addEventListener('change', () => el.classList.toggle('u-display-only', dOnly.checked));
+    dOnly.addEventListener('change', () => {
+      el.classList.toggle('u-display-only', dOnly.checked);
+      // Display Only off drops the Mouse Over Popup (eb43).
+      if (mouse && !dOnly.checked) mouse.clear();
+      refresh();
+    });
     refresh();
+  }
+  // An Edit Box's Mouse Over Popup (eb38-eb43): No Popup / Page Popup (FIELDUSETMP 0x200, PTPOPUPPNL) / Message Catalog Popup
+  // (FIELDUSETMP 0x2200, MESSAGE_SET_NBR / MESSAGE_NBR, its text shown). Each choice clears the other's columns (eb40, eb41).
+  function mouseOverPopup(ctx, p) {
+    const { el, d, mk, group, text, select, radio } = ctx;
+    const g = group(p, 'Mouse Over Popup');
+    const mode = () => (n(el, 'fut') & 0x2000) ? 'msg' : (n(el, 'fut') & 0x200) ? 'page' : 'none';
+    radio(g, 'ebmo' + d.id, [['none', 'No Popup']], mode(), () => set('none'));
+    const pageRow = mk('<div class="row"></div>'); g.appendChild(pageRow);
+    radio(pageRow, 'ebmo' + d.id, [['page', 'Page Popup']], mode(), () => set('page'));
+    const page = select([['', '']], (d.ppg || '').trim()); pageRow.appendChild(page);
+    page.onchange = () => { d.ppg = page.value; markDirty(); };
+    radio(g, 'ebmo' + d.id, [['msg', 'Message Catalog Popup']], mode(), () => set('msg'));
+    const msg = mk('<div class="row"><label>Message Set/Number</label></div>'); g.appendChild(msg);
+    const mini = (v) => { const i = text(v && v !== '0' ? v : ''); i.className = 'mini'; return i; };
+    const ms = mini(d.pms), mn = mini(d.pmn); msg.append(ms, mn);
+    const txt = ctx.field(g, 'Text', text('')); txt.readOnly = true;
+    let seq = 0;
+    const showText = () => {
+      const set = Number(ms.value) || 0, num = Number(mn.value) || 0, s = ++seq;
+      txt.value = '';
+      if (mode() === 'msg' && set && num) lookup({ what: 'message', set, num }).then((t) => { if (s === seq) txt.value = t || ''; });
+    };
+    ms.oninput = () => { setN(el, 'pms', Number(ms.value) || 0); markDirty(); showText(); };
+    mn.oninput = () => { setN(el, 'pmn', Number(mn.value) || 0); markDirty(); showText(); };
+    let offered = false;
+    const refresh = () => {
+      const m = mode();
+      for (const r of g.querySelectorAll('input[type=radio]')) { r.disabled = !offered || !editable; r.checked = r.value === m; }
+      page.disabled = !offered || m !== 'page' || !editable;
+      ms.disabled = mn.disabled = !offered || m !== 'msg' || !editable;
+      g.classList.toggle('na', !offered);
+    };
+    function set(m) {
+      const x = n(el, 'fut') & ~0x2200;
+      setN(el, 'fut', m === 'msg' ? x | 0x2200 : m === 'page' ? x | 0x200 : x);
+      if (m !== 'page') { d.ppg = ''; page.value = ''; }
+      if (m !== 'msg') { setN(el, 'pms', 0); setN(el, 'pmn', 0); ms.value = mn.value = ''; }
+      refresh(); showText(); markDirty();
+    }
+    lookup({ what: 'popupPages' }).then((names) => {
+      for (const nme of names || []) if (![...page.options].some((o) => o.value === nme)) page.appendChild(Object.assign(document.createElement('option'), { value: nme, textContent: nme }));
+      page.value = (d.ppg || '').trim();
+    });
+    showText();
+    return { offer: (on) => { offered = on; refresh(); }, clear: () => set('none') };
   }
   // An HTML Area's HTML tab (ha01-ha05, ha10). Value: Field (RECNAME / FIELDNAME) or Constant (the HTML in PSPNLHTMLAREA;
   // RECNAME and FIELDNAME blank), HTML Tags Only (FIELDUSETMP 0x100000), Respond Only Once (FIELDUSETEMP2 0x1000).
@@ -1211,6 +1317,119 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
     greyStyle(style, d.rte === '1');
     const spell = check(group(p, 'Display Options'), 'Enable Spell Check', (n(el, 'fut') & 0x2) !== 0);
     spell.onchange = () => ctx.tmpBit(0x2, spell.checked);
+  }
+  // An Edit Box's Record tab (eb01-eb31, eb77-eb78). Field: Record Name / Field Name; a rebind takes the field's default label
+  // (LABEL_ID, and LBLTEXT on an RFT label) and format family (FORMATFAMILY), clearing the Display Name (eb77, eb79). Style
+  // (FIELDSTYLE) and Fill Character (DSPLFILL). Size Average / Maximum / Custom (FIELDSIZETYPE 0 / 1 / 2; Custom fixes the drawn
+  // size as FIELDRIGHT / FIELDBOTTOM, eb14). Alignment Auto / Left / Right (DSPLFORMAT 0x8 / 0x1 / 0x4). Family Name (the
+  // field's, shown) and Display Name (DISPFMTNAME, the family's PSFMTITEM names). Display Options in DSPLFORMAT: Display Zero
+  // 0x80, Password 0x8000, Show Prompt Button (0x800000 off), Auto Fill 0x200, Display Time Zone 0x20000000, Display Century
+  // 0x10000, Currency Symbol 0x10, 1000 Separator 0x20, Auto Decimal 0x400; Input Only (FIELDUSETEMP2 0x200, offered with
+  // Password, kept when greyed) and Enable Spell Check (FIELDUSETMP 0x2: greys Show Prompt Button and clears its 0x800000, eb12;
+  // off leaves it unchecked, eb27).
+  function editBoxRecordTab(ctx, p) {
+    const { el, d, mk, field, group, text, select, radio, check } = ctx;
+    const dspl = (b) => (n(el, 'dspl') & b) !== 0;
+    const setDspl = (b, on) => { setN(el, 'dspl', on ? n(el, 'dspl') | b : n(el, 'dspl') & ~b); markDirty(); };
+    const f = group(p, 'Field');
+    const rec = field(f, 'Record Name', text(d.rec || '')), fld = field(f, 'Field Name', text(d.field || ''));
+    rec.oninput = () => { d.rec = rec.value.trim().toUpperCase(); markDirty(); };
+    fld.oninput = () => { d.field = fld.value.trim().toUpperCase(); markDirty(); };
+    const styleRow = mk('<div class="row wrap"></div>'); p.appendChild(styleRow);
+    ctx.styleSelect(styleRow);
+    const fill = field(styleRow, 'Fill Character', text((d.dfill || '').trim(), 1)); fill.className = 'mini';
+    fill.oninput = () => { d.dfill = fill.value; markDirty(); };
+    const pair = mk('<div class="row wrap"></div>'); p.appendChild(pair);
+    const size = group(pair, 'Size');
+    for (const [v, label] of [['0', 'Average'], ['1', 'Maximum'], ['2', 'Custom']]) radio(size, 'ebsz' + d.id, [[v, label]], String(n(el, 'fst')), () => {
+      // Custom fixes the size App Designer draws (eb14); Average and Maximum leave the stored right / bottom (eb15).
+      if (v === '2' && !n(el, 'fr')) { setN(el, 'fr', n(el, 'fl') + el.offsetWidth); setN(el, 'fb', n(el, 'ft') + el.offsetHeight); }
+      el.dataset.fst = v; markDirty();
+    });
+    const al = group(pair, 'Alignment');
+    const curAl = String(n(el, 'dspl') & 0xd);
+    for (const [v, label] of [['8', 'Auto'], ['1', 'Left'], ['4', 'Right']]) radio(al, 'ebal' + d.id, [[v, label]], curAl, () => { setN(el, 'dspl', (n(el, 'dspl') & ~0xf) | Number(v)); markDirty(); });
+    const fam = mk('<div class="row wrap"></div>'); p.appendChild(fam);
+    const famName = field(fam, 'Family Name', text((d.ffam || '').trim())); famName.readOnly = true;
+    const dispName = field(fam, 'Display Name', select([['', '']], (d.dfn || '').trim()));
+    dispName.onchange = () => { d.dfn = dispName.value; markDirty(); };
+    const showFamily = (info) => {
+      const has = !!(d.ffam || '').trim();
+      famName.value = (d.ffam || '').trim();
+      for (const c of [famName, dispName]) { c.disabled = !has || !editable; c.closest('.pf').classList.toggle('na', !has); }
+      if (info) {
+        dispName.replaceChildren(Object.assign(document.createElement('option'), { value: '', textContent: '' }));
+        for (const nme of info.displayNames || []) dispName.appendChild(Object.assign(document.createElement('option'), { value: nme, textContent: nme }));
+        dispName.value = (d.dfn || '').trim();
+      }
+    };
+    const disp = group(p, 'Display Options');
+    const cols = mk('<div class="cols2"><div></div><div></div></div>'); disp.appendChild(cols);
+    const [left, right] = cols.children;
+    const opt = (parent, label, bit) => { const c = check(parent, label, dspl(bit)); c.onchange = () => setDspl(bit, c.checked); return c; };
+    opt(left, 'Display Zero', 0x80);
+    const pwd = opt(left, 'Password', 0x8000);
+    const prompt = check(left, 'Show Prompt Button', !dspl(0x800000));
+    opt(left, 'Auto Fill', 0x200);
+    opt(left, 'Display Time Zone', 0x20000000);
+    const inputOnly = check(left, 'Input Only', (n(el, 'fut2') & 0x200) !== 0);
+    opt(right, 'Display Century', 0x10000);
+    opt(right, 'Currency Symbol', 0x10);
+    opt(right, '1000 Separator', 0x20);
+    opt(right, 'Auto Decimal', 0x400);
+    const spell = check(right, 'Enable Spell Check', (n(el, 'fut') & 0x2) !== 0);
+    const refresh = () => {
+      const sp = spell.checked;
+      prompt.disabled = sp || !editable; prompt.closest('.row').classList.toggle('na', sp);
+      if (sp) prompt.checked = false;
+      inputOnly.disabled = !pwd.checked || !editable; inputOnly.closest('.row').classList.toggle('na', !pwd.checked);
+    };
+    prompt.onchange = () => setDspl(0x800000, !prompt.checked);
+    inputOnly.onchange = () => ctx.t2Bit(0x200, inputOnly.checked);
+    pwd.addEventListener('change', refresh);
+    // Spell Check on clears the prompt's 0x800000 (eb12); off leaves the button unchecked, 0x800000 set (eb27).
+    spell.onchange = () => { ctx.tmpBit(0x2, spell.checked); setDspl(0x800000, !spell.checked); refresh(); };
+    refresh();
+    const fieldInfo = () => lookup({ what: 'editBoxField', record: d.rec || '', field: d.field || '' });
+    fld.onchange = rec.onchange = () => {
+      if (!d.field) return;
+      fieldInfo().then((info) => {
+        if (!info) return;
+        d.ffam = info.formatFamily; d.dfn = ''; showFamily(info);
+        for (const fn of ctx.onFieldInfo) fn(info);
+        markDirty();
+      });
+      // The field's default label (eb77): LABEL_ID, and an RFT label's text.
+      lookup({ what: 'fieldLabels', field: d.field }).then((labels) => {
+        const def = (labels || []).find((l) => l.isDefault) || (labels || [])[0];
+        if (!def) return;
+        d.lid = def.labelId;
+        if (d.lt === '2' || d.lt === '3') { d.lx = d.lt === '2' ? def.shortName : def.longName; syncLabel(el); }
+        markDirty();
+      });
+    };
+    showFamily(null);
+    if ((d.field || '').trim()) fieldInfo().then((info) => { if (info) { showFamily(info); for (const fn of ctx.onFieldInfo) fn(info); } });
+  }
+  // An Edit Box's Fluid Input Properties (eb61-eb76): Input Type (HTML_INPUT_TYPE: text 0, color 1, date 2, datetime 3, email 5,
+  // number 7, range 8, search 9, tel 10, time 11, url 12), Generate As Hyperlink (FIELDUSETMP 0x80000; offered for email and
+  // url) and a range's Min / Max / Step (MINNUMBER / MAXNUMBER / STEPNUMBER). Another type keeps both (eb72, eb74).
+  const INPUT_TYPES = [['0', 'text'], ['1', 'color'], ['2', 'date'], ['3', 'datetime'], ['5', 'email'], ['7', 'number'], ['8', 'range'], ['9', 'search'], ['10', 'tel'], ['11', 'time'], ['12', 'url']];
+  function inputGroup(ctx, fl, off) {
+    const { el, d, mk, group, text, select, check } = ctx;
+    const g = group(fl, 'Input Properties');
+    const row = mk('<div class="row wrap"></div>'); g.appendChild(row);
+    const ty = off(ctx.field(row, 'Input Type', select(INPUT_TYPES, String(n(el, 'ity')))));
+    const link = off(check(row, 'Generate As Hyperlink', (n(el, 'fut') & 0x80000) !== 0));
+    link.onchange = () => ctx.tmpBit(0x80000, link.checked);
+    const range = mk('<div class="row wrap"></div>'); g.appendChild(range);
+    for (const [label, key] of [['Min', 'mnn'], ['Max', 'mxn'], ['Step', 'stn']]) {
+      const i = off(ctx.field(range, label, text((d[key] || '').trim(), 30))); i.className = 'mini';
+      i.oninput = () => { d[key] = i.value.trim(); markDirty(); };
+    }
+    const refresh = () => { const t = ty.value; link.closest('.row').hidden = t !== '5' && t !== '12'; range.hidden = t !== '8'; };
+    ty.onchange = () => { setN(el, 'ity', Number(ty.value)); refresh(); markDirty(); };
+    refresh();
   }
   // The Record tab's Style, greyed while Rich Text is on.
   function greyStyle(style, rich) {
@@ -1358,10 +1577,20 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
     reset.onclick = () => { if (!actual) return; fw.value = String(actual.width); fh.value = String(actual.height); resize(actual.width, actual.height); };
     showImage();
   }
-  // Scroll Bar / Scroll Area Options: Occurs Level (computed from the scroll nesting, read-only) and Occurs Count.
+  // A scroll's Occurs Level (its own: the controls after it in tab order take it, up to the next scroll or Set to Level
+  // rule -- lv04, lv09), 1 to 3.
+  function occursLevelField(ctx, p) {
+    const { el, field, text } = ctx;
+    const lvl = field(p, 'Occurs Level', text(String(n(el, 'level'))));
+    lvl.type = 'number'; lvl.min = '1'; lvl.max = '3';
+    lvl.title = 'The controls after this scroll in the Order tab are at this level, up to the next scroll or Set to Level rule';
+    lvl.oninput = () => { const v = Math.min(3, Math.max(1, Math.round(Number(lvl.value) || 1))); setN(el, 'level', v); markDirty(); };
+    return lvl;
+  }
+  // Scroll Bar / Scroll Area Options: Occurs Level and Occurs Count.
   function scrollOptionsTab(ctx, p) {
     const { el, field, text, check } = ctx;
-    const lvl = field(p, 'Occurs Level', text(String(n(el, 'level')))); lvl.readOnly = true; lvl.title = 'The scroll nesting level, set by where the scroll sits';
+    occursLevelField(ctx, p);
     const unlimited = check(p, 'Unlimited Occurs Count', n(el, 'oc1') === 0);
     const oc = field(p, 'Occurs Count', text(String(n(el, 'oc1')))); oc.type = 'number';
     oc.oninput = () => { setN(el, 'oc1', Number(oc.value) || 0); unlimited.checked = (Number(oc.value) || 0) === 0; markDirty(); };
@@ -1370,7 +1599,7 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
   // Grid Options: Occurs Count and the display flags (Show Column Headings / Row Numbers / Allow Column Sorting).
   function gridOptionsTab(ctx, p) {
     const { el, field, text, check } = ctx;
-    const lvl = field(p, 'Occurs Level', text(String(n(el, 'level')))); lvl.readOnly = true; lvl.title = 'The scroll nesting level, set by where the grid sits';
+    occursLevelField(ctx, p);
     const oc = field(p, 'Occurs Count', text(String(n(el, 'oc1')))); oc.type = 'number'; oc.oninput = () => { setN(el, 'oc1', Number(oc.value) || 0); markDirty(); };
     for (const pair of [['Show Column Headings', 'gch'], ['Show Row Numbers', 'grh'], ['Allow Column Sorting', 'gcs']]) {
       const cb = check(p, pair[0], n(el, pair[1]) !== 0); cb.onchange = () => { setN(el, pair[1], cb.checked ? 1 : 0); markDirty(); };
@@ -1416,7 +1645,9 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
       case 2: return richInspect(el, 'Group Box Properties', [T('record', 'Record', groupBoxRecordTab), T('label', 'Label', groupBoxLabelTab), T('use', 'Use', groupBoxUseTab),
         T('general', 'General', general({})), T('fluid', 'Fluid', (ctx, p) => fluidTab(ctx, p, { groupBox: true }))]);
       case 3: return richInspect(el, 'Static Image Properties', [T('label', 'Label', staticImageLabelTab), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
-      case 4: return richInspect(el, 'Edit Box Properties', [T('record', 'Record', record()), T('label', 'Label', label({})), T('use', 'Use', use(USE_FIELD)), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
+      case 4: return richInspect(el, 'Edit Box Properties', [T('record', 'Record', editBoxRecordTab), T('label', 'Label', (ctx, p) => fieldLabelTab(ctx, p, { longEdit: true })),
+        T('use', 'Use', (ctx, p) => fieldUseTab(ctx, p, { editBox: true })), T('general', 'General', general({})),
+        T('fluid', 'Fluid', (ctx, p) => fluidTab(ctx, p, { placeholder: true, inputType: true, suppressLabel: 'Suppress System-Specific Style Classes' }))]);
       case 5: return richInspect(el, 'Drop-Down List Properties', [T('record', 'Record', record()), T('label', 'Label', label({})), T('use', 'Use', use(USE_FIELD)), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
       case 6: return richInspect(el, 'Long Edit Box Properties', [T('record', 'Record', longEditRecordTab), T('label', 'Label', (ctx, p) => fieldLabelTab(ctx, p, { longEdit: true })),
         T('use', 'Use', (ctx, p) => fieldUseTab(ctx, p, { longEdit: true })), T('general', 'General', general({})),
@@ -1434,7 +1665,7 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
       case 27: return richInspect(el, 'Scroll Area Properties', [T('label', 'Label', label({})), T('options', 'Options', scrollOptionsTab), T('use', 'Use', use(USE_COMMON)), T('general', 'General', general({})), T('fluid', 'Fluid', fluidTab)]);
       case 30: return richInspect(el, 'Chart Properties', [T('record', 'Record', record()), T('general', 'General', general({}))]);
       default:
-        if ((ft >= 12 && ft <= 17) || ft === 21 || ft === 26 || ft === 29) return richInspect(el, 'Push Button Properties', [T('label', 'Label', label({})), T('use', 'Use', use(USE_COMMON)), T('general', 'General', general({}))]);
+        if ((ft >= 12 && ft <= 17) || ft === 21 || ft === 26 || ft === 29) return richInspect(el, 'Push Button Properties', [T('record', 'Record', record()), T('label', 'Label', label({})), T('use', 'Use', use(USE_COMMON)), T('general', 'General', general({}))]);
         return richInspect(el, 'Page Field Properties', [T('general', 'General', general({ adjust: true }))]);
     }
   }
@@ -1782,9 +2013,10 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
       const l = Math.round(scroller.scrollLeft + 24 + step), t = Math.round(scroller.scrollTop + 24 + step);
       const el = document.createElement('div');
       el.className = 'ctl s-' + k.shape + ' new-ctl' + ((k.fu & 1) ? ' u-display-only' : '') + ((k.fu & 2) ? ' u-invisible' : ''); el.id = 'c' + id; el.tabIndex = 0; el.title = 'New ' + k.typeName;
-      Object.assign(el.dataset, { id: String(id), new: kind, num: '', level: String(scrollLevelAt(l + k.dw / 2, t + k.dh / 2)), type: k.typeName, target: '', rec: '', field: '', pfn: '', defer: '1', ctlfld: '0',
+      // A new scroll's Occurs Level is 1 (lv03, lv17); every other control's follows from the tab order (relevel).
+      Object.assign(el.dataset, { id: String(id), new: kind, num: '', level: SCROLL_TYPES.includes(k.ftype) ? '1' : '0', type: k.typeName, target: '', rec: '', field: '', pfn: '', defer: '1', ctlfld: '0',
         fl: String(l), ft: String(t), fr: String(k.w ? l + k.w : 0), fb: String(k.h ? t + k.h : 0), ell: '0', elt: '0', elr: '0', elb: '0',
-        fst: String(k.fst), lt: String(k.lt), lx: k.lx, fu: String(k.fu || 0), si: '0' });
+        fst: String(k.fst), lt: String(k.lt), lx: k.lx, fu: String(k.fu || 0), si: (k.fu & 2) ? '1' : '0', ftype: String(k.ftype) });
       el.style.left = l + 'px'; el.style.top = t + 'px'; el.style.width = k.dw + 'px'; el.style.height = k.dh + 'px'; el.style.zIndex = k.shape === 'container' ? '1' : '2';
       if (k.shape === 'checkbox') el.appendChild(Object.assign(document.createElement('span'), { className: 'box' }));
       else if (k.shape === 'dropdown') el.appendChild(Object.assign(document.createElement('span'), { className: 'caret', textContent: '▾' }));
@@ -1820,7 +2052,7 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
         const el = document.createElement('div');
         el.className = ['ctl', ...it.cls.filter((c) => /^(s-[a-z]+|u-display-only|u-invisible)$/.test(c)), 'new-ctl'].join(' ');
         for (const [k, v] of Object.entries(it.data)) if (!['id', 'num', 'removed'].includes(k)) el.dataset[k] = String(v);
-        Object.assign(el.dataset, { id: String(id), num: '', level: String(scrollLevelAt(it.l + dx + it.w / 2, it.t + dy + it.h / 2)) });
+        Object.assign(el.dataset, { id: String(id), num: '' });
         el.id = 'c' + id; el.tabIndex = 0; el.title = 'Pasted ' + (el.dataset.type || 'control');
         // The stored columns move as a drag moves them (an auto-sized 0 stays 0 here; the writer moves it as App Designer does).
         setN(el, 'fl', n(el, 'fl') + dx); setN(el, 'ft', n(el, 'ft') + dy);
@@ -1877,11 +2109,15 @@ ${editable ? '<div class="pg-edge pg-r" data-edge="r" title="Drag to set the pag
           collapseDataArea: n(el,'cda'), defaultExpanded: n(el,'dve'), imageCollapsed: el.dataset.imc || '', imageExpanded: el.dataset.ime || '',
           popupMsgSet: n(el,'pms'), popupMsgNum: n(el,'pmn'), groupBoxType: n(el,'gbt'), groupBoxHtmlType: n(el,'gbh'), scrollBars: n(el,'sb'),
           headerTextInfo: n(el,'hti'), headerActionInfo: n(el,'hai'), headerActionItems: n(el,'hac'),
+          // An Edit Box's Fill Character, Family / Display Name, Mouse Over Page Popup, Input Type and Smart Prompt (eb01-eb81).
+          dsplFill: el.dataset.dfill || '', formatFamily: el.dataset.ffam || '', displayFormatName: el.dataset.dfn || '', popupPage: el.dataset.ppg || '',
+          inputType: n(el,'ity'), minNumber: el.dataset.mnn || '', maxNumber: el.dataset.mxn || '', stepNumber: el.dataset.stn || '', disableSmartPrompt: n(el,'nsp'),
           ...(el.dataset.fslEdited ? { fluidClasses: (el.dataset.fsl || '').split('|') } : {}) } : {}),
-        // A new / pasted control takes the scroll level of its final position (App Designer's scroll buffer).
-        ...((el.dataset.new || el.dataset.copyPage) ? { occursLevel: scrollLevelAt(el.offsetLeft + el.offsetWidth / 2, el.offsetTop + el.offsetHeight / 2) }
-          // A stored Horizontal Rule's Set to Level.
-          : el.dataset.lvlEdited ? { occursLevel: n(el, 'level') } : {}),
+        // A scroll's own Occurs Level and a Set to Level rule's choice; the save assigns every other control's level from
+        // the tab order. A pasted control's type, so the save knows a pasted scroll.
+        ...(setsLevel(el) ? { occursLevel: n(el, 'level') } : {}),
+        ...(el.dataset.lvlEdited ? { setLevel: n(el, 'n1') } : {}),
+        fieldType: n(el, 'ftype'),
         ...(el.dataset.copyPage ? { copy: { pnlName: el.dataset.copyPage, pnlFldId: Number(el.dataset.copyId) } }
           : el.dataset.new ? { add: { kind: el.dataset.new, recName: el.dataset.rec || '', fieldName: el.dataset.field || '' } } : {})
       }));

@@ -3,7 +3,8 @@ import { writeScopeRefusal } from './writeScope.js';
 import { PAGE_SIZE_BITS, PAGE_SIZE_CUSTOM, PAGE_SIZE_PRESETS, pageSizeChoice } from '../model/pageLayout.js';
 import { validateOperatorId } from '../peoplecode/writeback/savePlan.js';
 import { expectRows, operatorExists, select, TIMESTAMP_FORMAT } from './peopleCodeWriter.js';
-import { FIELD_OPTIONAL, newControlFieldRefusal, newControlRows, isRecordBound, type ColumnValues, type FieldInfo, type NewControl } from './pageControlTemplates.js';
+import { FIELD_OPTIONAL, NEW_CONTROL_FIELDTYPE, newControlFieldRefusal, newControlRows, isRecordBound, type ColumnValues, type FieldInfo, type NewControl } from './pageControlTemplates.js';
+import { emptyScroll, occursLevels } from '../model/pageLevels.js';
 
 /*
  * Saving a page's layout, as App Designer does (docs/PAGE_SAVE.md, cases
@@ -106,10 +107,15 @@ export interface EditedControl {
   gridShowRowHdg?: number;
   gridAllowColSort?: number;
   /**
-   * PSPNLFIELD.OCCURSLEVEL for an added / pasted control: the scroll level at the drop point (0 outside any scroll);
-   * on a stored Horizontal Rule, the level its Set to Level chose.
+   * A scroll's own Occurs Level (Scroll Bar / Grid / Scroll Area, its dialog; an added one is 1), or the level a Horizontal
+   * Rule's Set to Level chose. Every other control's OCCURSLEVEL follows from the tab order (pageLevels.ts) and is
+   * assigned by the save; a value sent for one is ignored.
    */
   occursLevel?: number;
+  /** A Horizontal Rule's Set to Level choice (PSPNLFIELDEXT.PT_NUMFLD1, lv06; kept when Set to Level is cleared, lv11). */
+  setLevel?: number;
+  /** PSPNLFIELD.FIELDTYPE, for a pasted control (the page's levels need to know a pasted scroll). */
+  fieldType?: number;
   /**
    * An HTML Area's Constant value (PSPNLHTMLAREA.HTMLAREA, ha03-ha05): the HTML text, or null for a Field value (the
    * row is deleted, ha05). Absent leaves the stored one.
@@ -154,6 +160,21 @@ export interface EditedControl {
   headerTextInfo?: number;
   headerActionInfo?: number;
   headerActionItems?: number;
+  /**
+   * An Edit Box's dialog (eb30, eb78, eb39, eb61-eb73, eb80): Fill Character (PSPNLFIELD.DSPLFILL), Family Name / Display Name
+   * (FORMATFAMILY: the bound field's, set on a rebind; DISPFMTNAME), and PSPNLFIELDEXT's Mouse Over Page Popup (PTPOPUPPNL),
+   * Input Type (HTML_INPUT_TYPE), a range's Min / Max / Step (MINNUMBER / MAXNUMBER / STEPNUMBER) and Smart Prompt off
+   * (PTDISABLESMARTPROM 1).
+   */
+  dsplFill?: string;
+  formatFamily?: string;
+  displayFormatName?: string;
+  popupPage?: string;
+  inputType?: number;
+  minNumber?: string;
+  maxNumber?: string;
+  stepNumber?: string;
+  disableSmartPrompt?: number;
 }
 
 /** PSPTPNLRTEDITOR's columns, as the Options tab names them (' ' none). */
@@ -455,8 +476,10 @@ const EDITABLE: Array<{ col: string; of: (c: EditedControl) => number | string; 
   // A Long Edit Box's label Position and Expand Field When Display Only (le05-le07, le12).
   { col: 'LABELSIZETYPE', of: (c) => Number(c.labelSizeType ?? 0), key: 'labelSizeType' },
   { col: 'PTLEBEXPANDFIELD', of: (c) => Number(c.expandField ?? 0), key: 'expandField' },
-  // A Horizontal Rule's Set to Level (hr04: FIELDUSE 0x2 with SECUREINVISIBLE 1) puts it at the chosen OCCURSLEVEL.
-  { col: 'OCCURSLEVEL', of: (c) => Number(c.occursLevel ?? 0), key: 'occursLevel' }
+  // An Edit Box's Fill Character (as typed: one character, ' ' none), Family Name and Display Name (eb30, eb77, eb78).
+  { col: 'DSPLFILL', of: (c) => (c.dsplFill ?? '').trim() ? c.dsplFill!.trim().slice(0, 1) : ' ', key: 'dsplFill' },
+  { col: 'FORMATFAMILY', of: (c) => nameValue(c.formatFamily), key: 'formatFamily' },
+  { col: 'DISPFMTNAME', of: (c) => nameValue(c.displayFormatName), key: 'displayFormatName' },
 ];
 
 /** The PSPNLFIELDEXT columns a Group Box's dialog sets, written only when the editor sends them. */
@@ -473,7 +496,16 @@ const EXT_EDITABLE: Array<{ col: string; of: (c: EditedControl) => number | stri
   { col: 'PLHTYPE', of: (c) => Number(c.placeholderType ?? 0), key: 'placeholderType' },
   { col: 'PLACEHOLDER', of: (c) => (c.placeholder ?? '').trim() ? c.placeholder! : ' ', key: 'placeholder' },
   { col: 'PLH_MSG_SET_NBR', of: (c) => Number(c.placeholderMsgSet ?? 0), key: 'placeholderMsgSet' },
-  { col: 'PLH_MSG_NBR', of: (c) => Number(c.placeholderMsgNum ?? 0), key: 'placeholderMsgNum' }
+  { col: 'PLH_MSG_NBR', of: (c) => Number(c.placeholderMsgNum ?? 0), key: 'placeholderMsgNum' },
+  // An Edit Box's Mouse Over Page Popup, Input Type with a range's Min / Max / Step, and Smart Prompt (eb39, eb61-eb73, eb80).
+  { col: 'PTPOPUPPNL', of: (c) => nameValue(c.popupPage), key: 'popupPage' },
+  { col: 'HTML_INPUT_TYPE', of: (c) => Number(c.inputType ?? 0), key: 'inputType' },
+  { col: 'MINNUMBER', of: (c) => (c.minNumber ?? '').trim() || ' ', key: 'minNumber' },
+  { col: 'MAXNUMBER', of: (c) => (c.maxNumber ?? '').trim() || ' ', key: 'maxNumber' },
+  { col: 'STEPNUMBER', of: (c) => (c.stepNumber ?? '').trim() || ' ', key: 'stepNumber' },
+  { col: 'PTDISABLESMARTPROM', of: (c) => Number(c.disableSmartPrompt ?? 0), key: 'disableSmartPrompt' },
+  // A Horizontal Rule's Set to Level choice (lv06, lv12, lv13).
+  { col: 'PT_NUMFLD1', of: (c) => Number(c.setLevel ?? 0), key: 'setLevel' }
 ];
 
 /**
@@ -497,6 +529,7 @@ const FRAME = 1;
 const STATIC_TEXT = 0;
 const HORIZONTAL_RULE = 23;
 const EDIT_BOX = 4;
+const SCROLL_BAR = 10;
 const HTML_AREA = 25;
 export const FFSTYLELONG_EMPTY = ' | | | | ';
 
@@ -519,30 +552,16 @@ export interface PagePlan {
   maxPnlFldId: number;
 }
 
-/** Grid, Scroll Bar and Scroll Area: the controls after one are on its level. */
-const SCROLL_TYPES = new Set([10, 19, 27]);
-
-/** The survivors in the Order tab's order, refusing an order that is not theirs or that moves a control across a grid or scroll. */
+/**
+ * The survivors in the Order tab's order, refusing an order that is not theirs. A control moved into or out of a scroll
+ * takes the level of its new place, as in App Designer (lv14-lv16): planPageSave assigns the levels again.
+ */
 function reordered(survivors: readonly StoredControl[], order: readonly number[]): StoredControl[] {
   const byId = new Map(survivors.map((c) => [c.pnlFldId, c]));
   if (order.length !== survivors.length || new Set(order).size !== order.length || order.some((id) => !byId.has(id))) {
     throw new PageSaveRefusedError('The tab order does not list exactly the controls on the page.');
   }
-  const next = order.map((id) => byId.get(id)!);
-  // Each control's governing scroll: the nearest grid / scroll before it.
-  const owners = (list: readonly StoredControl[]) => {
-    const out = new Map<number, number>();
-    let owner = 0;
-    for (const c of list) { out.set(c.pnlFldId, owner); if (SCROLL_TYPES.has(Number(c.fieldType))) owner = c.pnlFldId; }
-    return out;
-  };
-  const before = owners(survivors), after = owners(next);
-  const moved = next.find((c) => before.get(c.pnlFldId) !== after.get(c.pnlFldId));
-  if (moved) {
-    throw new PageSaveRefusedError(`Control ${moved.pnlFldId} would move into or out of a grid or scroll area, which changes its level; ` +
-      'that move is not supported yet (keep it on the same side of the grid / scroll in the Order tab).');
-  }
-  return next;
+  return order.map((id) => byId.get(id)!);
 }
 
 /**
@@ -551,9 +570,9 @@ function reordered(survivors: readonly StoredControl[], order: readonly number[]
  * and FIELDNUM when the contiguous order shifts). Pure -- the writer wraps the
  * database around it, and the tests check it without one.
  *
- * `order` is the Order tab's tab order (the survivors' PNLFLDIDs). A move
- * that changes which grid or scroll a control follows would change its
- * OCCURSLEVEL as well, which no capture shows yet: refused.
+ * `order` is the Order tab's tab order (the survivors' PNLFLDIDs). Every
+ * control's OCCURSLEVEL is assigned again from the final order (pageLevels.ts),
+ * and a scroll left with nothing in it is refused, as App Designer does.
  */
 /**
  * Where App Designer puts a control added to a page in the tab order -- not at the end, nor after
@@ -614,6 +633,20 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
   }
   const newFieldNum = new Map(final.map((e, i) => ['survivor' in e ? e.survivor.pnlFldId : e.fresh.pnlFldId, i + 1]));
 
+  // Scroll levels: assigned again from the tab order on every save, as App Designer does (pageLevels.ts). A scroll keeps
+  // its own Occurs Level (an added one 1, lv03), a Set to Level rule its choice; the rest follow.
+  const levelInput = final.map((e) => {
+    const c = placedAt(e), s = 'survivor' in e ? e.survivor : undefined;
+    const fieldType = s ? Number(s.fieldType ?? -1) : c.add ? NEW_CONTROL_FIELDTYPE[c.add.kind] : Number(c.fieldType ?? -1);
+    const occursLevel = c.occursLevel ?? s?.occursLevel ?? (c.add ? 1 : 0);
+    const recName = c.add ? c.add.recName : c.recName ?? s?.recName ?? '', fieldName = c.add ? c.add.fieldName : c.fieldName ?? s?.fieldName ?? '';
+    return { fieldType, occursLevel: Number(occursLevel), fieldUse: Number(c.fieldUse ?? s?.fieldUse ?? 0), recName, fieldName, label: c.lblText ?? '' };
+  });
+  const empty = emptyScroll(levelInput);
+  if (empty >= 0) throw new PageSaveRefusedError(`No data for scroll: ${pnlName}.${levelInput[empty].label.trim() || 'Scroll'}. A scroll needs a record field (or a subpage) after it, before the next scroll or Set to Level rule.`);
+  const levels = occursLevels(levelInput);
+  const levelOf = new Map(final.map((e, i) => ['survivor' in e ? e.survivor.pnlFldId : e.fresh.pnlFldId, levels[i]]));
+
   const updates: PagePlan['updates'] = [];
   const extUpdates: PagePlan['extUpdates'] = [];
   const htmlWrites: PagePlan['htmlWrites'] = [];
@@ -667,12 +700,20 @@ export function planPageSave(stored: readonly StoredControl[], all: readonly Edi
     if ((s.fieldType === FRAME || s.fieldType === HORIZONTAL_RULE || ((s.fieldType === STATIC_TEXT || s.fieldType === EDIT_BOX || s.fieldType === HTML_AREA) && fluidPage)) && !ext.FFSTYLELONG && !String(s.ffStyleLong ?? '').trim()
       && [...Object.keys(columns), ...Object.keys(ext)].some((c) => DIALOG_COLUMNS.has(c))) ext.FFSTYLELONG = FFSTYLELONG_EMPTY;
     if (Object.keys(ext).length) extUpdates.push({ pnlFldId: s.pnlFldId, columns: ext });
+    // A Scroll Bar's dialog OK (lv04) also writes an explicit Left (DSPLFORMAT 0x80000) and five blank Fluid slots, on any page.
+    const level = levelOf.get(s.pnlFldId)!;
+    if (level !== Number(s.occursLevel ?? 0)) columns.OCCURSLEVEL = level;
+    if (s.fieldType === SCROLL_BAR && e.occursLevel !== undefined && Number(e.occursLevel) !== Number(s.occursLevel ?? 0)) {
+      const dspl = Number(columns.DSPLFORMAT ?? s.dsplFormat ?? 0);
+      if ((dspl & GROUP_BOX_ALIGN_MASK) === 0) columns.DSPLFORMAT = dspl | GROUP_BOX_ALIGN.left;
+      if (!ext.FFSTYLELONG && !String(s.ffStyleLong ?? '').trim()) { ext.FFSTYLELONG = FFSTYLELONG_EMPTY; if (!extUpdates.some((u) => u.pnlFldId === s.pnlFldId)) extUpdates.push({ pnlFldId: s.pnlFldId, columns: ext }); }
+    }
     const num = newFieldNum.get(s.pnlFldId)!;
     if (num !== s.fieldNum) columns.FIELDNUM = num;
     if (Object.keys(columns).length > 0) updates.push({ pnlFldId: s.pnlFldId, columns });
   }
 
-  const inserts = fresh.map((f) => ({ pnlFldId: f.pnlFldId, fieldNum: newFieldNum.get(f.pnlFldId)!, control: f.control }));
+  const inserts = fresh.map((f) => ({ pnlFldId: f.pnlFldId, fieldNum: newFieldNum.get(f.pnlFldId)!, control: { ...f.control, occursLevel: levelOf.get(f.pnlFldId)! } }));
   return { deletes, updates, extUpdates, inserts, htmlWrites, richTextWrites, fieldCount: controls.length + added.length, maxPnlFldId: base + added.length };
 }
 
@@ -756,6 +797,7 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
               F.LABELSTYLE, F.LABEL_ID, F.USEDEFAULTLABEL, F.PTHIDEFIELDS, F.PTCOLLAPSEDATAAREA, F.PTDFLTVIEWEXPANDED, F.PTLBLIMGCOLLAPSE, F.PTLBLIMGEXPAND,
               F.LABELSIZETYPE, F.PTLEBEXPANDFIELD, E.PLHTYPE, E.PLACEHOLDER, E.PLH_MSG_SET_NBR, E.PLH_MSG_NBR,
               E.MESSAGE_SET_NBR, E.MESSAGE_NBR, E.GRPBOXTYPE, E.GRPBOXHTMLTYPE, E.SCROLLBARS, E.PTGBRELTXTINFO, E.PTGBRELACTINFO, E.PTGBRELACTFLD,
+              F.DSPLFILL, F.FORMATFAMILY, F.DISPFMTNAME, E.PTPOPUPPNL, E.HTML_INPUT_TYPE, E.MINNUMBER, E.MAXNUMBER, E.STEPNUMBER, E.PTDISABLESMARTPROM, E.PT_NUMFLD1,
               DBMS_LOB.SUBSTR(E.FFSTYLELONG, 4000, 1) AS FFSTYLELONG, E.FIELDUSETEMP2
          FROM PSPNLFIELD F LEFT JOIN PSPNLFIELDEXT E ON E.PNLNAME = F.PNLNAME AND E.PNLFLDID = F.PNLFLDID WHERE F.PNLNAME = :n`, { n: pnlName });
     // HTML Areas' Constant values (PSPNLHTMLAREA, a CLOB read as text).
@@ -788,6 +830,9 @@ export async function savePage(c: Connection, request: PageSaveRequest): Promise
       popupMsgSet: Number(r.MESSAGE_SET_NBR ?? 0), popupMsgNum: Number(r.MESSAGE_NBR ?? 0), groupBoxType: Number(r.GRPBOXTYPE ?? 0),
       groupBoxHtmlType: Number(r.GRPBOXHTMLTYPE ?? 0), scrollBars: Number(r.SCROLLBARS ?? 0),
       headerTextInfo: Number(r.PTGBRELTXTINFO ?? 0), headerActionInfo: Number(r.PTGBRELACTINFO ?? 0), headerActionItems: Number(r.PTGBRELACTFLD ?? 0),
+      dsplFill: String(r.DSPLFILL ?? ''), formatFamily: String(r.FORMATFAMILY ?? ''), displayFormatName: String(r.DISPFMTNAME ?? ''),
+      popupPage: String(r.PTPOPUPPNL ?? ''), inputType: Number(r.HTML_INPUT_TYPE ?? 0), minNumber: String(r.MINNUMBER ?? ''),
+      maxNumber: String(r.MAXNUMBER ?? ''), stepNumber: String(r.STEPNUMBER ?? ''), disableSmartPrompt: Number(r.PTDISABLESMARTPROM ?? 0), setLevel: Number(r.PT_NUMFLD1 ?? 0),
       ffStyleLong: r.FFSTYLELONG === null || r.FFSTYLELONG === undefined ? null : String(r.FFSTYLELONG)
     }));
 

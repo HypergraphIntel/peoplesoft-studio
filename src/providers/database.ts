@@ -913,6 +913,27 @@ export class DatabaseProvider implements DefinitionProvider {
     });
   }
 
+  /**
+   * What an Edit Box's dialog greys or lists by its record field (eb77-eb80): whether the field has a prompt table (Smart
+   * Prompt is offered), its format family (PSDBFIELD.FORMATFAMILY: the Family Name) and that family's Display Names (PSFMTITEM).
+   */
+  async editBoxField(record: string, field: string): Promise<{ promptTable: boolean; formatFamily: string; displayNames: string[] }> {
+    return this.withConnection(async (c) => {
+      const r = record.trim().toUpperCase(), f = field.trim().toUpperCase();
+      const [prompt] = (await c.execute<{ E: string }>(`SELECT EDITTABLE AS E FROM PSRECFIELDDB WHERE RECNAME = :r AND FIELDNAME = :f`, { r, f })).rows ?? [];
+      const [db] = (await c.execute<{ F: string }>(`SELECT FORMATFAMILY AS F FROM PSDBFIELD WHERE FIELDNAME = :f`, { f })).rows ?? [];
+      const formatFamily = String(db?.F ?? '').trim();
+      const names = formatFamily ? ((await c.execute<{ N: string }>(`SELECT DISTINCT DISPFMTNAME AS N FROM PSFMTITEM WHERE FORMATFAMILY = :m ORDER BY 1`, { m: formatFamily })).rows ?? []) : [];
+      return { promptTable: !!String(prompt?.E ?? '').trim(), formatFamily, displayNames: names.map((x) => String(x.N ?? '').trim()).filter(Boolean) };
+    });
+  }
+
+  /** The Popup Pages (PSPNLDEFN.PNLTYPE 3): an Edit Box's Mouse Over Popup page list (eb39). */
+  async popupPages(): Promise<string[]> {
+    return this.withConnection(async (c) => ((await c.execute<{ N: string }>(`SELECT PNLNAME AS N FROM PSPNLDEFN WHERE PNLTYPE = 3 ORDER BY PNLNAME`)).rows ?? [])
+      .map((r) => String(r.N ?? '').trim()));
+  }
+
   /** A field's labels (PSDBFLDLABL), default first: a control's Label ID list. */
   async fieldLabels(field: string): Promise<Array<{ labelId: string; longName: string; shortName: string; isDefault: boolean }>> {
     return this.withConnection(async (c) => {
@@ -1491,6 +1512,9 @@ export class DatabaseProvider implements DefinitionProvider {
                 E.PTGBRELTXTINFO AS EXT_PTGBRELTXTINFO, E.PTGBRELACTINFO AS EXT_PTGBRELACTINFO, E.PTGBRELACTFLD AS EXT_PTGBRELACTFLD,
                 H.HTMLAREA AS EXT_HTMLAREA, E.PLHTYPE AS EXT_PLHTYPE, E.PLACEHOLDER AS EXT_PLACEHOLDER,
                 E.PLH_MSG_SET_NBR AS EXT_PLH_MSG_SET_NBR, E.PLH_MSG_NBR AS EXT_PLH_MSG_NBR,
+                E.PTPOPUPPNL AS EXT_PTPOPUPPNL, E.HTML_INPUT_TYPE AS EXT_HTML_INPUT_TYPE, E.MINNUMBER AS EXT_MINNUMBER,
+                E.MAXNUMBER AS EXT_MAXNUMBER, E.STEPNUMBER AS EXT_STEPNUMBER, E.PTDISABLESMARTPROM AS EXT_PTDISABLESMARTPROM,
+                E.PT_NUMFLD1 AS EXT_PT_NUMFLD1,
                 R.PNLFLDID AS RTE_PNLFLDID, R.PTRTECFGSETTINGSID AS RTE_CFG, R.PTRTEIMGLOCURLID AS RTE_IMG, R.PTRTEPLUGIN AS RTE_PLUGIN,
                 R.PTRTETEMPLATE AS RTE_TEMPLATE, R.PTRTESTYLE AS RTE_STYLE
            FROM PSPNLFIELD F LEFT JOIN PSPNLFIELDEXT E ON E.PNLNAME = F.PNLNAME AND E.PNLFLDID = F.PNLFLDID

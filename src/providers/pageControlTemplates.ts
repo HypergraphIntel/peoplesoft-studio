@@ -14,11 +14,12 @@
  * field FFSTYLELONG is ' | | | | ' and an Edit Box sets PTDISABLESMARTPROM
  * (smart prompt is character typeahead); otherwise ' ' and 0. Record-bound
  * controls are only added on the field types a capture covers (FIELD_TYPES_SEEN);
- * others are refused until one does.
+ * others are refused until one does. A Scroll Area (lv02, sa-fresh) and a Scroll Bar (lv03, sb-fresh) are
+ * at OCCURSLEVEL 1 when inserted; the save assigns every level from the tab order (pageLevels.ts).
  */
 
 export type NewControlKind = 'groupBox' | 'frame' | 'staticText' | 'horizontalRule' | 'editBox' | 'dropDown' | 'checkBox' | 'pushButton'
-  | 'staticImage' | 'radioButton' | 'longEdit' | 'htmlArea';
+  | 'staticImage' | 'radioButton' | 'longEdit' | 'htmlArea' | 'scrollArea' | 'scrollBar';
 
 /** PSDBFIELD.FIELDTYPE values per kind that a capture has shown App Designer's fresh row for. */
 export const FIELD_TYPES_SEEN: Partial<Record<NewControlKind, Record<number, string>>> = {
@@ -76,11 +77,11 @@ export type ColumnValues = Record<string, number | string | null>;
 /** FIELDTYPE per kind. */
 export const NEW_CONTROL_FIELDTYPE: Record<NewControlKind, number> = {
   staticText: 0, frame: 1, groupBox: 2, staticImage: 3, editBox: 4, dropDown: 5, longEdit: 6, checkBox: 7,
-  radioButton: 8, pushButton: 12, horizontalRule: 23, htmlArea: 25
+  radioButton: 8, pushButton: 12, horizontalRule: 23, htmlArea: 25, scrollBar: 10, scrollArea: 27
 };
 
 /** FIELDUSE App Designer sets on a fresh control, where it is not 0 (a Static Image is display-only, in01). */
-export const NEW_CONTROL_FIELDUSE: Partial<Record<NewControlKind, number>> = { staticImage: 1 };
+export const NEW_CONTROL_FIELDUSE: Partial<Record<NewControlKind, number>> = { staticImage: 1, scrollBar: 2 };
 
 /** Whether the kind is placed on a record field. */
 export const isRecordBound = (kind: NewControlKind): boolean => kind in FIELD_TYPES_SEEN;
@@ -105,7 +106,10 @@ export const NEW_CONTROL_SIZE: Record<NewControlKind, { width: number; height: n
   htmlArea: { width: 4, height: 4, fieldSizeType: 0, lblType: 0, lblText: '' },
   // Radio Button and Long Edit Box are auto-sized from the field, like an Edit Box (rb-fresh, le-fresh).
   radioButton: { width: 0, height: 0, fieldSizeType: 0, lblType: 1, lblText: '' },
-  longEdit: { width: 0, height: 0, fieldSizeType: 0, lblType: 3, lblText: '' }
+  longEdit: { width: 0, height: 0, fieldSizeType: 0, lblType: 3, lblText: '' },
+  // A Scroll Area is drawn (sa-fresh: 360 x 200); a Scroll Bar dropped with a click is 17 x 4 (lv03) and invisible.
+  scrollArea: { width: 360, height: 200, fieldSizeType: 0, lblType: 1, lblText: 'Scroll Area' },
+  scrollBar: { width: 17, height: 4, fieldSizeType: 0, lblType: 0, lblText: 'Scroll Bar' }
 };
 
 /** PSPNLFIELD columns every captured insert shares (02-add-edit's Edit Box, less what varies by kind). */
@@ -139,7 +143,9 @@ const FIELD_BY_KIND: Record<NewControlKind, ColumnValues> = {
   radioButton: { DSPLFORMAT: 1, LBLLOC: 1, PBDISPLAYTYPE: 0, ONVALUE: 'Y' },
   longEdit: { DSPLFORMAT: 2097152, LBLLOC: 1, PBDISPLAYTYPE: 0 },
   // On a field (ht-field); 8193 with only a record (ht-fresh) -- see newControlRows.
-  htmlArea: { DSPLFORMAT: 532481, LBLLOC: 0, PBDISPLAYTYPE: 0 }
+  htmlArea: { DSPLFORMAT: 532481, LBLLOC: 0, PBDISPLAYTYPE: 0 },
+  scrollArea: { DSPLFORMAT: 0, LBLLOC: 0, PBDISPLAYTYPE: 0 },
+  scrollBar: { DSPLFORMAT: 0, LBLLOC: 0, PBDISPLAYTYPE: 0 }
 };
 
 /** PSPNLFIELDEXT, as captured; PARENTPNLFLDID / PAGEPNLFLDID are "<page>$0" for a classic page's controls. */

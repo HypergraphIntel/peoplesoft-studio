@@ -492,9 +492,8 @@ The Order tab sets FIELDNUM directly (`PageSaveRequest.order`, the surviving
 controls first to last). o01-page-order-drag (one row dragged in App
 Designer's Order tab) wrote just that: FIELDNUM on the two controls that
 changed places (10: 5 -> 6, 14: 6 -> 5), plus the stamp and `PDM` / `SYS` +1.
-`pageWriter.test.ts` replays it. A move that changes which grid / scroll area
-a control follows would change its OCCURSLEVEL too, and is refused until a
-capture shows what App Designer writes then.
+`pageWriter.test.ts` replays it. A move into or out of a scroll takes the level
+of its new place (see Scroll levels below).
 
 ### Where an added control goes
 
@@ -528,6 +527,59 @@ captures (the new controls' FIELDNUM and every other control's renumbering).
 Not covered: a field dropped inside a grid (App Designer stores it at 0,0 and
 orders it in the grid; gr-fresh). A pasted control keeps its own rule (after
 its source, c02).
+
+## Scroll levels
+
+lv01-lv17 built ZZ_PCODE_LAB_LV in App Designer from lab records keyed for each
+level (fields ZZ_KEY0-2; ZZ_R_L0_A / ZZ_R_L0_B keyed by ZZ_KEY0, ZZ_R_L1_A by
+ZZ_KEY0 + ZZ_KEY1, ZZ_R_L2_A by ZZ_KEY0-2):
+
+| Tab | Control | Level |
+|---|---|---|
+| 1 | ZZ_R_L0_A.ZZ_KEY0 | 0 |
+| 2 | Scroll Area | 1 |
+| 3 | ZZ_R_L1_A.ZZ_KEY1 | 1 |
+| 4 | Scroll Bar, Occurs Level 2 | 2 |
+| 5 | ZZ_R_L2_A.ZZ_KEY2 | 2 |
+| 6 | Horizontal Rule, Set to Level 1 | 1 |
+| 7 | ZZ_R_L1_A.ZZ_KEY0 | 1 |
+| 8 | Horizontal Rule, Set to Level 0 | 0 |
+| 9 | ZZ_R_L0_B.ZZ_KEY0 | 0 |
+
+**The rule** (`src/model/pageLevels.ts`): walk the controls in tab order with a
+running level from 0. A Scroll Bar, Grid, Scroll Area or Analytic Grid (10 / 19 /
+27 / 32) keeps its own Occurs Level -- set in its dialog, 1 when inserted, even
+inside a level-2 run (lv03, lv17) -- and the running level becomes it. A
+Horizontal Rule with Set to Level (FIELDUSE 0x2, SECUREINVISIBLE 1) is at the
+level it chose, stored also in PSPNLFIELDEXT.PT_NUMFLD1, and the running level
+becomes that; a rule without it is at the running level. Every other control is
+at the running level. **Where a control sits on the page plays no part** -- a
+rule drawn below the Scroll Area was still level 1 (lv07) -- only the tab order.
+App Designer assigns every level again on each change: an Occurs Level (lv04,
+lv09, lv10: the controls up to the next scroll or Set to Level rule follow), Set
+to Level (lv06, lv08, lv11-lv13), a reorder (lv14-lv16). The rule reproduces
+17354 of HRDMO's 17356 pages exactly; the other two (untouched since 2002 /
+2010) have one stray control each.
+
+- Set to Level offers 0 to one below the deepest scroll on the page (0 and 1 under
+  a level-2 scroll bar); checking it starts at 0 (lv12). Clearing it returns
+  FIELDUSE / SECUREINVISIBLE to 0 and keeps PT_NUMFLD1 (lv11).
+- A Scroll Bar's dialog OK writes an explicit Left (DSPLFORMAT 0x80000) and five
+  blank Fluid slots, on a classic page too (lv04).
+- **No data for scroll** (lv17): App Designer refuses to save a scroll with no
+  record field -- or Subpage / Secondary Page; every delivered scroll without a
+  field of its own holds one -- after it, before the next scroll or Set to Level
+  rule. A record on two levels only warns ("Invalid page", lv05, lv07, lv09,
+  lv15) and saves on Yes.
+- A Scroll Area and a Scroll Bar insert as App Designer's rows (lv02 / sa-fresh,
+  lv03 / sb-fresh): the Scroll Bar invisible (FIELDUSE 2, SECUREINVISIBLE 1), 17 x
+  4 when dropped with a click.
+
+The writer assigns every OCCURSLEVEL from the final tab order on each save and
+refuses an empty scroll; the editor's Order tab shows the levels as they change.
+`pageWriter.test.ts` replays lv02-lv16 (inserts, levels, reorders); live, wlv-*
+saved a reorder, a scroll bar insert and its delete through `savePage`, and App
+Designer opened the page as written.
 
 ## A control's Properties: Frame
 
@@ -809,6 +861,56 @@ None clears the set / number. Deleting a long edit box deletes its
 PSPTPNLRTEDITOR row; a pasted one copies it. `pageWriter.test.ts` replays
 le01-le19; live, wle-on / wle-off saved Rich Text and a placeholder through
 `savePage` and back.
+
+## A control's Properties: Edit Box
+
+eb01-eb76 on Edit Box 13 of ZZ_PCODE_LAB_CT (Fluid; ZZ_PCODE_LAB_R6.ZZ_PCODE_LAB_C08,
+a character field), eb77-eb82 on Edit Box 5 rebound to DERIVED_ADDRESS.POSTAL
+(format family POSTAL_CODE) and .COUNTRY (prompt table COUNTRY_TBL) and back.
+Tabs: Record, Label, Use, General, Fluid:
+
+| Tab | Setting | Column |
+|---|---|---|
+| Record | Record Name / Field Name | RECNAME / FIELDNAME; a rebind also writes the field's default LABEL_ID (and an RFT label's LBLTEXT) and FORMATFAMILY, and clears DISPFMTNAME |
+| Record | Style, Fill Character | FIELDSTYLE, DSPLFILL |
+| Record | Size Average / Maximum / Custom | FIELDSIZETYPE 0 / 1 / 2 (Custom fixes the drawn size as FIELDRIGHT / FIELDBOTTOM, absolute) |
+| Record | Alignment Auto / Left / Right | DSPLFORMAT 0x8 / 0x1 / 0x4 |
+| Record | Family Name (shown) / Display Name | FORMATFAMILY / DISPFMTNAME (the family's PSFMTITEM.DISPFMTNAME list) |
+| Record | Display Zero, Password, Auto Fill, Display Time Zone | DSPLFORMAT 0x80, 0x8000, 0x200, 0x20000000 |
+| Record | Display Century, Currency Symbol, 1000 Separator, Auto Decimal | DSPLFORMAT 0x10000, 0x10, 0x20, 0x400 |
+| Record | Show Prompt Button | DSPLFORMAT 0x800000 when **off** |
+| Record | Input Only (offered with Password; kept when greyed) | FIELDUSETEMP2 0x200 |
+| Record | Enable Spell Check | FIELDUSETMP 0x2 |
+| Label | as a Long Edit Box's (eb32-eb37) | LBLTYPE, LABEL_ID, LABELSTYLE, DSPLFORMAT 0x80000 / 0x100000 / 0x200000 / 0x400000, LABELSIZETYPE, LBLLOC 1 |
+| Use | Display Only, Invisible, Modifiable by JavaScript, Generate in HTML, Multi-Currency, Display Control Field, Related Field, Popup Menu, Allow Deferred Processing, Set Component Changed, Display-Only Appearance, screen reader, Wrap Long Words | as a Check Box's |
+| Use | Show Label (under Invisible) | FIELDUSE 0x400 |
+| Use | Enable When Page is Display Only (under Invisible) | FIELDUSE 0x40000 |
+| Use | Smart Prompt (offered when the field has a prompt table) | PSPNLFIELDEXT.PTDISABLESMARTPROM 0 (a fresh edit box on a character field has 1) |
+| Use | Mouse Over Popup: Page Popup | FIELDUSETMP 0x200, PSPNLFIELDEXT.PTPOPUPPNL (a PNLTYPE 3 page) |
+| Use | Mouse Over Popup: Message Catalog Popup | FIELDUSETMP 0x2200, PSPNLFIELDEXT.MESSAGE_SET_NBR / MESSAGE_NBR |
+| Fluid | Placeholder Text | as a Long Edit Box's |
+| Fluid | Input Type text / color / date / datetime / email / number / range / search / tel / time / url | PSPNLFIELDEXT.HTML_INPUT_TYPE 0 / 1 / 2 / 3 / 5 / 7 / 8 / 9 / 10 / 11 / 12 |
+| Fluid | Generate As Hyperlink (email, url) | FIELDUSETMP 0x80000 |
+| Fluid | Min / Max / Step (range) | PSPNLFIELDEXT.MINNUMBER / MAXNUMBER / STEPNUMBER (text) |
+
+Dependencies, as App Designer has them: Enable Spell Check greys Show Prompt
+Button and OK then clears 0x800000 (eb12); turning it off leaves the button
+unchecked, 0x800000 set (eb27). Mouse Over Popup is offered on a Display Only
+control; turning Display Only off clears it (eb43); each popup choice clears the
+other's columns (eb40, eb41). Invisible off clears Show Label, Enable When Page
+is Display Only and Generate in HTML (eb49). Another Input Type keeps the
+hyperlink bit and Min / Max / Step (eb72, eb74). Smart Prompt, Field Format
+Override and Persist Grid Column in Menu are greyed on a field with no prompt
+table / outside a grid (PTFRMTOVERRIDE is 0 on every delivered edit box).
+
+The dialog's Use tab paints **Wrap Long Words** (FIELDUSETMP 0x40, eb59) but a
+hidden **Paragraph** checkbox (FIELDUSETEMP2 0x800) sits over it: clicking it
+relabels it Paragraph and toggles 0x800 (eb56-eb58; eb52's click saved nothing).
+The editor offers
+Wrap Long Words, as the dialog shows it, and leaves a stored Paragraph bit.
+`pageWriter.test.ts` replays every eb capture; live, web-on / web-off saved a
+bundle of these settings through `savePage` and back, and App Designer's dialog
+showed them.
 
 ## Copy and paste
 

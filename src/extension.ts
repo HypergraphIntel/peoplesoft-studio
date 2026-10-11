@@ -1422,7 +1422,8 @@ async function newComponent(workspace: Workspace): Promise<void> {
 /**
  * A property panel's lookups: an image's format, pixel size and picture (Static Image's Image group), a Message
  * Catalog entry's text (an alt tag or popup from the catalog), an image definition picked from the list (the ... button),
- * and a field's labels (a Group Box's Label ID).
+ * a field's labels (a Group Box's Label ID), an Edit Box field's prompt table / format family / display names, and the
+ * Popup Pages (an Edit Box's Mouse Over Popup).
  */
 async function pageLookup(provider: DatabaseProvider, request: PageLookup): Promise<unknown> {
   switch (request.what) {
@@ -1442,6 +1443,10 @@ async function pageLookup(provider: DatabaseProvider, request: PageLookup): Prom
       return provider.richTextChoices();
     case 'fieldLabels':
       return request.field.trim() ? provider.fieldLabels(request.field) : [];
+    case 'editBoxField':
+      return request.field.trim() ? provider.editBoxField(request.record, request.field) : { promptTable: false, formatFamily: '', displayNames: [] };
+    case 'popupPages':
+      return provider.popupPages();
     case 'pickImage': {
       const images = await provider.search({ type: DefinitionType.Image, namePattern: '%', limit: 100000 });
       const pick = await vscode.window.showQuickPick(images.map((i) => ({ label: i.key.parts[0], description: i.description ?? '', picked: i.key.parts[0] === request.current })),

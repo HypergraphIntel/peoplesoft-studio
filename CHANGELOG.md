@@ -1,5 +1,44 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **Page editor: Edit Box Properties** now match App Designer's dialog tab for
+  tab and control for control, every setting mapped from an App Designer
+  capture (eb01-eb82) and replayed by the tests:
+  - Record: Record / Field Name (a rebind takes the field's default label and
+    format family), Style, Fill Character, Size Average / Maximum / Custom,
+    Alignment Auto / Left / Right, Family Name and Display Name (the family's
+    display formats), and every Display Option — Display Zero, Password, Show
+    Prompt Button, Auto Fill, Display Time Zone, Input Only (offered with
+    Password), Display Century, Currency Symbol, 1000 Separator, Auto Decimal,
+    Enable Spell Check (which greys Show Prompt Button, as App Designer does).
+  - Label: Type, Label ID, Insert Line Feed, label Style, Alignment, Position,
+    First occurs only, No colon.
+  - Use: Show Label and Enable When Page is Display Only under Invisible, Smart
+    Prompt (offered when the field has a prompt table), Related Field / Control
+    Field, Popup Menu, Display-Only Appearance, Wrap Long Words, and Mouse Over
+    Popup — No Popup, Page Popup (the Popup Pages) or Message Catalog Popup with
+    its text — offered on a Display Only field.
+  - Fluid: Placeholder Text and Input Properties — Input Type (text … url),
+    Generate As Hyperlink for email / url, and a range's Min / Max / Step.
+
+  Live: savePage round trip on HRDMO (web-on / web-off), and App Designer's own
+  dialog reads the saved settings back.
+- **Page editor: scroll levels as App Designer assigns them.** A control's level
+  (OCCURSLEVEL) now follows the tab order exactly as App Designer's does: a
+  Scroll Area, Scroll Bar or Grid sets the level for the controls after it, a
+  Horizontal Rule's Set to Level sets it back, and every save assigns the levels
+  again — so reordering in the Order tab moves a control into or out of a scroll
+  (it used to be refused). Scroll Area and Scroll Bar can be inserted; a
+  scroll's Occurs Level is editable; Set to Level stores its choice as App
+  Designer does. A save with an empty scroll is refused with App Designer's "No
+  data for scroll". Fitted to a page built in App Designer from lab records
+  keyed for levels 0-2 (lv01-lv17) and checked against all 17,356 HRDMO pages.
+- **Page editor: a newly inserted control** opens its own Properties panel (its
+  Record tab included), not a General-only one; Push Button gains a Record tab.
+
 ## 0.8.2
 
 ### Changed

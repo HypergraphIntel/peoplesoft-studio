@@ -38,7 +38,12 @@ const cases: Array<{ name: string; dir: string; id: number; kind: NewControlKind
   { name: 'Long Edit Box', dir: 'le-fresh', id: 9, kind: 'longEdit', rec: 'ZZ_PCODE_LAB_R6', field: 'ZZ_PCODE_LAB_L2', info: long('ZZ_PCODE_LAB_L2', 'Long 254', 254), page: 'ZZ_PCODE_LAB_CT' },
   // An HTML Area on a long-character field (ht-field) and on the record alone (ht-fresh).
   { name: 'HTML Area on a field', dir: 'ht-field', id: 16, kind: 'htmlArea', rec: 'ZZ_PCODE_LAB_R6', field: 'ZZ_PCODE_LAB_L1', info: long('ZZ_PCODE_LAB_L1', 'Long 0', 0), page: 'ZZ_PCODE_LAB_CT' },
-  { name: 'HTML Area on a record alone', dir: 'ht-fresh', id: 15, kind: 'htmlArea', rec: 'ZZ_PCODE_LAB_R6', field: ' ', page: 'ZZ_PCODE_LAB_CT' }
+  { name: 'HTML Area on a record alone', dir: 'ht-fresh', id: 15, kind: 'htmlArea', rec: 'ZZ_PCODE_LAB_R6', field: ' ', page: 'ZZ_PCODE_LAB_CT' },
+  // Scrolls (their level, 1, is planned by the save from the tab order): drawn (sa-fresh, sb-fresh) and dropped with a click (lv02, lv03).
+  { name: 'Scroll Area', dir: 'lv02-scroll-area', id: 2, kind: 'scrollArea', rec: ' ', field: ' ', page: 'ZZ_PCODE_LAB_LV' },
+  { name: 'Scroll Bar', dir: 'lv03-scroll-bar', id: 4, kind: 'scrollBar', rec: ' ', field: ' ', page: 'ZZ_PCODE_LAB_LV' },
+  { name: 'drawn Scroll Area', dir: 'sa-fresh', id: 2, kind: 'scrollArea', rec: ' ', field: ' ', page: 'ZZ_PCODE_LAB_SC' },
+  { name: 'drawn Scroll Bar', dir: 'sb-fresh', id: 2, kind: 'scrollBar', rec: ' ', field: ' ', page: 'ZZ_PCODE_LAB_SB' }
 ];
 
 for (const c of cases) {
@@ -46,7 +51,8 @@ for (const c of cases) {
     const want = captured(c.dir, 'PSPNLFIELD', c.id);
     const placed = {
       fieldLeft: Number(want.FIELDLEFT), fieldTop: Number(want.FIELDTOP), fieldRight: Number(want.FIELDRIGHT), fieldBottom: Number(want.FIELDBOTTOM),
-      fieldSizeType: Number(want.FIELDSIZETYPE), lblType: Number(want.LBLTYPE), lblText: '', fieldUse: Number(want.FIELDUSE), secureInvisible: Number(want.SECUREINVISIBLE)
+      fieldSizeType: Number(want.FIELDSIZETYPE), lblType: Number(want.LBLTYPE), lblText: '', fieldUse: Number(want.FIELDUSE), secureInvisible: Number(want.SECUREINVISIBLE),
+      occursLevel: Number(want.OCCURSLEVEL)
     };
     const rows = newControlRows(c.page ?? 'ZZ_PCODE_LAB_PG', c.id, Number(want.FIELDNUM), { kind: c.kind, recName: c.rec, fieldName: c.field }, placed, c.info);
     // The label rectangle is wherever it was dragged before the save (14's was); a fresh one is all zero.

@@ -29,7 +29,9 @@ export type PageLookup =
   | { what: 'message'; set: number; num: number }
   | { what: 'pickImage'; current?: string }
   | { what: 'fieldLabels'; field: string }
-  | { what: 'richTextChoices' };
+  | { what: 'richTextChoices' }
+  | { what: 'editBoxField'; record: string; field: string }
+  | { what: 'popupPages' };
 
 /** A page in App Designer's Layout view (visual, editable on a Writable connection) and Order view, one panel per page. */
 export class PagePanel {

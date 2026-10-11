@@ -90,6 +90,22 @@ export interface ControlColumns {
   headerTextInfo: number;
   headerActionInfo: number;
   headerActionItems: number;
+  /**
+   * An Edit Box's dialog (eb01-eb81): Fill Character (DSPLFILL), Family Name / Display Name (FORMATFAMILY / DISPFMTNAME), and
+   * from PSPNLFIELDEXT the Mouse Over Page Popup (PTPOPUPPNL), Input Type (HTML_INPUT_TYPE), a range's Min / Max / Step
+   * (MINNUMBER / MAXNUMBER / STEPNUMBER, text) and Smart Prompt off (PTDISABLESMARTPROM 1).
+   */
+  dsplFill: string;
+  formatFamily: string;
+  displayFormatName: string;
+  popupPage: string;
+  inputType: number;
+  minNumber: string;
+  maxNumber: string;
+  stepNumber: string;
+  disableSmartPrompt: number;
+  /** A Horizontal Rule's Set to Level choice (PSPNLFIELDEXT.PT_NUMFLD1, lv06). */
+  setLevel: number;
 }
 
 export interface PageControl {
@@ -356,7 +372,10 @@ export function buildPageLayout(name: string, view: PageView): PageLayout {
           labelStyle: str(f.LABELSTYLE), labelId: str(f.LABEL_ID), useDefaultLabel: num(f.USEDEFAULTLABEL), hideFields: num(f.PTHIDEFIELDS),
           collapseDataArea: num(f.PTCOLLAPSEDATAAREA), defaultExpanded: num(f.PTDFLTVIEWEXPANDED), imageCollapsed: str(f.PTLBLIMGCOLLAPSE), imageExpanded: str(f.PTLBLIMGEXPAND),
           popupMsgSet: num(f.EXT_MESSAGE_SET_NBR), popupMsgNum: num(f.EXT_MESSAGE_NBR), groupBoxType: num(f.EXT_GRPBOXTYPE), groupBoxHtmlType: num(f.EXT_GRPBOXHTMLTYPE),
-          scrollBars: num(f.EXT_SCROLLBARS), headerTextInfo: num(f.EXT_PTGBRELTXTINFO), headerActionInfo: num(f.EXT_PTGBRELACTINFO), headerActionItems: num(f.EXT_PTGBRELACTFLD)
+          scrollBars: num(f.EXT_SCROLLBARS), headerTextInfo: num(f.EXT_PTGBRELTXTINFO), headerActionInfo: num(f.EXT_PTGBRELACTINFO), headerActionItems: num(f.EXT_PTGBRELACTFLD),
+          dsplFill: str(f.DSPLFILL), formatFamily: str(f.FORMATFAMILY), displayFormatName: str(f.DISPFMTNAME), popupPage: str(f.EXT_PTPOPUPPNL),
+          inputType: num(f.EXT_HTML_INPUT_TYPE), minNumber: str(f.EXT_MINNUMBER), maxNumber: str(f.EXT_MAXNUMBER), stepNumber: str(f.EXT_STEPNUMBER),
+          disableSmartPrompt: num(f.EXT_PTDISABLESMARTPROM), setLevel: num(f.EXT_PT_NUMFLD1)
         },
         ...(label ? { label } : {}),
         target: targetOf(f),
