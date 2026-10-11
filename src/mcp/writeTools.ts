@@ -41,18 +41,18 @@ export interface McpWriteHost {
   saved(connectionId: string, key: DefinitionKey, peopleCode?: PeopleCodeSaveResult): void;
 }
 
-const WRITE = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false } as const;
-const DESTRUCTIVE = { ...WRITE, destructiveHint: true } as const;
-const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } as const;
+export const WRITE = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false } as const;
+export const DESTRUCTIVE = { ...WRITE, destructiveHint: true } as const;
+export const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } as const;
 
-const GATES =
+export const GATES =
   'Writes need a database connection set to Writable with an Operator ID, and a name in the write scope; ' +
   'unless peoplesoft.mcp.writes is "allow", the user approves each write in VS Code.';
 
-interface Gate { provider: DatabaseProvider; operatorId: string }
+export interface Gate { provider: DatabaseProvider; operatorId: string }
 
 /** The connection may be written and the name is in the write scope; throws the reason otherwise. */
-async function writable(workspace: Workspace, host: McpWriteHost, connection: string, name: string): Promise<Gate> {
+export async function writable(workspace: Workspace, host: McpWriteHost, connection: string, name: string): Promise<Gate> {
   if (host.mode() === 'off') {
     throw new Error('Writes through the MCP are off (peoplesoft.mcp.writes). The user can turn them on in PeopleSoft Studio Settings.');
   }
@@ -68,7 +68,7 @@ async function writable(workspace: Workspace, host: McpWriteHost, connection: st
 }
 
 /** No editor holds unsaved changes to it, and the user says yes (unless writes are "allow"). */
-async function approve(host: McpWriteHost, gate: Gate, key: DefinitionKey, action: string, detail: string): Promise<void> {
+export async function approve(host: McpWriteHost, gate: Gate, key: DefinitionKey, action: string, detail: string): Promise<void> {
   if (host.hasUnsavedEditor(gate.provider.id, key)) {
     throw new Error(`${displayName(key)} is open in VS Code with unsaved changes; the user must save or revert them first.`);
   }
@@ -178,7 +178,9 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
     title: 'Save PeopleCode',
     description:
       'Compile and save a PeopleCode program to the database, as App Designer does: Record PeopleCode (type 8; parts ' +
-      'RECORD, FIELD, EVENT), Component PeopleCode (46: COMPONENT, MARKET, EVENT; 47: COMPONENT, MARKET, RECORD, EVENT; ' +
+      'RECORD, FIELD, EVENT), App Engine PeopleCode (43: PROGRAM, SECTION, MARKET, PLATFORM, EFFDT, STEP, OnExecute -- the step needs a PeopleCode action; ' +
+      'or use psft_ae_edit), ' +
+      'Component PeopleCode (46: COMPONENT, MARKET, EVENT; 47: COMPONENT, MARKET, RECORD, EVENT; ' +
       '48: COMPONENT, MARKET, RECORD, FIELD, EVENT; created when new) or an Application Class (type 58; parts PACKAGE[, SUBPACKAGE...], CLASS, OnExecute). ' +
       'Saving an Application Class that does not exist yet creates it in its package. Read the current source with ' +
       'psft_get_peoplecode first and send the whole program. ' + GATES,
@@ -187,9 +189,9 @@ export function registerPeopleSoftWriteTools(server: McpServer, workspace: Works
   }, async ({ connection, type, parts, source }) => {
     const key = keyFromInput(type, parts);
     const saved = [DefinitionType.RecordPeopleCode, DefinitionType.ApplicationClassPeopleCode, DefinitionType.ComponentPeopleCode,
-      DefinitionType.ComponentRecordPeopleCode, DefinitionType.ComponentRecordFieldPeopleCode, DefinitionType.PagePeopleCode];
+      DefinitionType.ComponentRecordPeopleCode, DefinitionType.ComponentRecordFieldPeopleCode, DefinitionType.PagePeopleCode, DefinitionType.AppEnginePeopleCode];
     if (!saved.includes(key.type)) {
-      throw new Error('Only Record PeopleCode (8), Component PeopleCode (46, 47, 48), Page PeopleCode (44) and Application Classes (58) are saved here.');
+      throw new Error('Only Record PeopleCode (8), Component PeopleCode (46, 47, 48), Page PeopleCode (44), App Engine PeopleCode (43) and Application Classes (58) are saved here.');
     }
     const gate = await writable(workspace, host, connection, key.parts[0]);
     if (!workspace.isPeopleCodeWritable(gate.provider.id, key)) throw new Error(`${displayName(key)} cannot be saved on ${gate.provider.displayName}.`);

@@ -86,6 +86,8 @@ export interface AppEngineRows {
   sqlText: Row[];
   /** The Message Catalog entries Log Message actions name: MESSAGE_SET_NBR, MESSAGE_NBR, MESSAGE_TEXT. */
   messageCatalog?: Row[];
+  /** PSAEAPPLLANG rows (empty on HRDMO), for the editable document. */
+  languages?: Row[];
 }
 
 export interface AeAction {

@@ -39,6 +39,12 @@ import { bufferRecords, peopleCodeObjects, type PeopleCodeObject } from '../mode
 import { saveComponent, type ComponentSaveRequest, type ComponentSaveResult } from './componentWriter.js';
 import { createPage, savePage, verifyPageSave, type PageCreateRequest, type PageSaveRequest, type PageSaveResult } from './pageWriter.js';
 import type { PagePropertyChoices } from '../editors/pageHtml.js';
+import {
+  appEngineToken, deleteAppEngine, documentOf, readStoredAppEngine, renameAppEngine, saveAppEngine, verifyAppEngineSave,
+  type AeSaveRequest, type AeSaveResult
+} from './appEngineWriter.js';
+import type { AeDocument } from '../model/aeDocument.js';
+import type { AeReferenceLookup } from '../model/aeValidation.js';
 import { renderComponentInterface, renderFileLayout } from '../model/integrationDefinitions.js';
 import { renderMessage, renderPermissionList, renderRole } from '../model/adminDefinitions.js';
 import { renderQuery } from '../model/queryDefinition.js';
@@ -1748,6 +1754,90 @@ export class DatabaseProvider implements DefinitionProvider {
       program,
       peopleCode: (section, variant, step) => sources.get(peopleCodeKeyParts(program.name, section.name, variant, step.name)?.join('|') ?? '')
     };
+  }
+
+  /** An App Engine program as an editable document (model/aeDocument.ts) with its concurrency token; undefined when there is none. */
+  async readAppEngineDocument(name: string): Promise<{ doc: AeDocument; token: string } | undefined> {
+    return this.withConnection(async (c) => {
+      const stored = await readStoredAppEngine(c, this.types, name, false);
+      if (!stored?.exists) return undefined;
+      return { doc: documentOf(stored), token: appEngineToken(stored) };
+    });
+  }
+
+  /**
+   * Saves an App Engine document as App Designer does (appEngineWriter.ts,
+   * docs/APP_ENGINE.md) in one transaction, then proves it on another
+   * connection after COMMIT. A dry run returns the plan and writes nothing.
+   */
+  async saveAppEngineDocument(request: AeSaveRequest): Promise<AeSaveResult> {
+    const types = this.types;
+    const result = await this.withConnection((c) => saveAppEngine(c, types, request));
+    await this.withConnection((c) => verifyAppEngineSave(c, types, result));
+    return result;
+  }
+
+  async deleteAppEngineProgram(name: string, token: string, operatorId: string): Promise<void> {
+    const types = this.types;
+    await this.withConnection((c) => deleteAppEngine(c, types, name, token, operatorId));
+    const after = await this.withConnection((c) => readStoredAppEngine(c, types, name, false));
+    if (after?.exists) throw new ProviderError(`After COMMIT ${name} still exists.`);
+  }
+
+  async renameAppEngineProgram(from: string, to: string, token: string, operatorId: string): Promise<AeSaveResult> {
+    const types = this.types;
+    const result = await this.withConnection((c) => renameAppEngine(c, types, from, to, token, operatorId));
+    await this.withConnection((c) => verifyAppEngineSave(c, types, result));
+    return result;
+  }
+
+  /** What App Engine reference validation asks the database (model/aeValidation.ts). */
+  appEngineReferenceLookup(): AeReferenceLookup {
+    const one = <T>(sql: string, binds: Record<string, unknown>) =>
+      this.withConnection(async (c) => (await c.execute<T>(sql, binds)).rows ?? []);
+    return {
+      recordType: async (record) => {
+        const [r] = await one<{ T: number }>(`SELECT RECTYPE AS T FROM PSRECDEFN WHERE RECNAME = :r`, { r: record });
+        return r ? Number(r.T) : undefined;
+      },
+      recordFields: async (record) => {
+        const rows = await one<{ F: string }>(`SELECT FIELDNAME AS F FROM PSRECFIELDDB WHERE RECNAME = :r ORDER BY FIELDNUM`, { r: record });
+        if (rows.length) return rows.map((x) => String(x.F).trim());
+        const [exists] = await one<{ N: number }>(`SELECT COUNT(*) AS N FROM PSRECDEFN WHERE RECNAME = :r`, { r: record });
+        return Number(exists?.N) ? [] : undefined;
+      },
+      programSections: async (program) => {
+        const [p] = await one<{ N: number }>(`SELECT COUNT(*) AS N FROM PSAEAPPLDEFN WHERE AE_APPLID = :p`, { p: program });
+        if (!Number(p?.N)) return undefined;
+        const rows = await one<{ S: string; P: string }>(`SELECT AE_SECTION AS S, AE_PUBLIC_SW AS P FROM PSAESECTDEFN WHERE AE_APPLID = :p`, { p: program });
+        return rows.map((r) => ({ name: String(r.S).trim(), isPublic: String(r.P).trim() === 'Y' }));
+      },
+      messageExists: async (set, number) => {
+        const [r] = await one<{ N: number }>(`SELECT COUNT(*) AS N FROM PSMSGCATDEFN WHERE MESSAGE_SET_NBR = :s AND MESSAGE_NBR = :n`, { s: set, n: number });
+        return Number(r?.N) > 0;
+      }
+    };
+  }
+
+  /**
+   * The lists App Designer's App Engine dialogs offer: owners (PSXLATITEM
+   * OBJECTOWNERID), markets (PSXLATITEM MARKET), state records (*AET),
+   * temporary tables (RECTYPE 7) and programs matching a prefix.
+   */
+  async appEngineChoices(what: 'owners' | 'markets' | 'stateRecords' | 'tempTables' | 'programs' | 'sections', prefix = '', limit = 200):
+    Promise<{ value: string; label?: string }[]> {
+    const like = `${prefix.toUpperCase()}%`;
+    const q = (sql: string, binds: Record<string, unknown>) => this.withConnection(async (c) => (await c.execute<{ V: string; L?: string }>(sql, binds)).rows ?? []);
+    let rows: { V: string; L?: string }[];
+    switch (what) {
+      case 'owners': rows = await q(`SELECT FIELDVALUE AS V, XLATLONGNAME AS L FROM PSXLATITEM WHERE FIELDNAME = 'OBJECTOWNERID' AND EFF_STATUS = 'A' ORDER BY XLATLONGNAME`, {}); break;
+      case 'markets': rows = await q(`SELECT DISTINCT FIELDVALUE AS V, XLATLONGNAME AS L FROM PSXLATITEM WHERE FIELDNAME = 'MARKET' ORDER BY FIELDVALUE`, {}); break;
+      case 'stateRecords': rows = await q(`SELECT RECNAME AS V, RECDESCR AS L FROM PSRECDEFN WHERE RECNAME LIKE :p AND RECNAME LIKE '%AET' AND RECTYPE IN (0, 2) ORDER BY RECNAME FETCH FIRST :n ROWS ONLY`, { p: like, n: limit }); break;
+      case 'tempTables': rows = await q(`SELECT RECNAME AS V, RECDESCR AS L FROM PSRECDEFN WHERE RECNAME LIKE :p AND RECTYPE = 7 ORDER BY RECNAME FETCH FIRST :n ROWS ONLY`, { p: like, n: limit }); break;
+      case 'programs': rows = await q(`SELECT AE_APPLID AS V, DESCR AS L FROM PSAEAPPLDEFN WHERE AE_APPLID LIKE :p ORDER BY AE_APPLID FETCH FIRST :n ROWS ONLY`, { p: like, n: limit }); break;
+      case 'sections': rows = await q(`SELECT AE_SECTION AS V, AE_PUBLIC_SW AS L FROM PSAESECTDEFN WHERE AE_APPLID = :p ORDER BY AE_SECTION`, { p: prefix }); break;
+    }
+    return rows.map((r) => ({ value: String(r.V).trim(), ...(r.L !== undefined && r.L !== null ? { label: String(r.L).trim() } : {}) }));
   }
 
   private async readAppEngine(key: DefinitionKey): Promise<string> {

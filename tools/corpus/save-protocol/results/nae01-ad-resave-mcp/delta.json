@@ -1,0 +1,1820 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "nae01-ad-resave-mcp",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362782623715",
+   "timestamp": "2026-10-11T14:34:10.663651000-05:00"
+  },
+  "after": {
+   "scn": "39362782623753",
+   "timestamp": "2026-10-11T14:34:37.638741000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-11T14:34:10.663651000-05:00",
+    "to": "2026-10-11T14:34:37.638741000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "AEM": {
+    "before": 300,
+    "after": 301,
+    "delta": 1
+   },
+   "AES": {
+    "before": 280,
+    "after": 281,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 2439,
+    "after": 2440,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "AEM": {
+    "before": 300,
+    "after": 301,
+    "delta": 1
+   },
+   "AES": {
+    "before": 280,
+    "after": 281,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSAEAPPLDEFN": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSAEAPPLDEL": {
+    "inserted": 0,
+    "deleted": 1,
+    "updated": 0
+   },
+   "PSAESECTDEFN": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSAESECTDEL": {
+    "inserted": 0,
+    "deleted": 1,
+    "updated": 0
+   },
+   "PSAESTEPDEFN": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 3
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   }
+  },
+  "otherTablesChanged": {
+   "PSAEAPPLDEFN": {
+    "inserted": 1,
+    "deleted": 1,
+    "updated": 0
+   },
+   "PSAEAPPLDEL": {
+    "inserted": 0,
+    "deleted": 1,
+    "updated": 0
+   },
+   "PSAEAPPLSTATE": {
+    "inserted": 1,
+    "deleted": 1,
+    "updated": 0
+   },
+   "PSAEAPPLTEMPTBL": {
+    "inserted": 1,
+    "deleted": 1,
+    "updated": 0
+   },
+   "PSAESECTDEFN": {
+    "inserted": 1,
+    "deleted": 1,
+    "updated": 0
+   },
+   "PSAESECTDEL": {
+    "inserted": 0,
+    "deleted": 1,
+    "updated": 0
+   },
+   "PSAESECTDTLDEFN": {
+    "inserted": 1,
+    "deleted": 1,
+    "updated": 0
+   },
+   "PSAESTEPDEFN": {
+    "inserted": 5,
+    "deleted": 5,
+    "updated": 0
+   },
+   "PSAESTMTDEFN": {
+    "inserted": 7,
+    "deleted": 7,
+    "updated": 0
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSAEAPPLDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "INROOTELEMENT",
+     "type": "VARCHAR2",
+     "length": 200,
+     "nullable": false
+    },
+    {
+     "name": "INMSGNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "INMSGVERSION",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OUTROOTELEMENT",
+     "type": "VARCHAR2",
+     "length": 200,
+     "nullable": false
+    },
+    {
+     "name": "OUTMSGNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OUTMSGVERSION",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "AE_DATE_OVERRIDE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "ASOF_DT",
+     "type": "DATE",
+     "length": 7,
+     "nullable": true
+    },
+    {
+     "name": "MESSAGE_SET_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "AE_APPLLIBRARY",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "AE_DISABLE_RESTART",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "AEPROGTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "TEMPTBLINSTANCES",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "RECUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LICENSE_CODE",
+     "type": "VARCHAR2",
+     "length": 256,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "AE_APPLID": "ZZ_AE_E2E1"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "295",
+       "after": "301"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-11T14:32:02.404075000",
+       "after": "2026-10-11T14:34:33.533455000"
+      },
+      "LICENSE_CODE": {
+       "before": " ",
+       "after": "5grrkLgRs/yV0epNhKuER5XR6k2Eq4RH4tG7e0leKDo="
+      }
+     }
+    }
+   ]
+  },
+  "PSAEAPPLDEL": {
+   "columns": [
+    {
+     "name": "AE_APPLID",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "VERSION": "291"
+    }
+   ],
+   "updated": []
+  },
+  "PSAESECTDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "AE_SECTION",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "AE_SECTION_TYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "AE_PUBLIC_SW",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "AE_APPLID": "ZZ_AE_E2E1",
+      "AE_SECTION": "MAIN"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "274",
+       "after": "281"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-11T14:32:02.404075000",
+       "after": "2026-10-11T14:34:33.533465000"
+      }
+     }
+    }
+   ]
+  },
+  "PSAESECTDEL": {
+   "columns": [
+    {
+     "name": "AE_APPLID",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "AE_SECTION",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "VERSION": "269"
+    }
+   ],
+   "updated": []
+  },
+  "PSAESTEPDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "AE_SECTION",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "DBTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EFFDT",
+     "type": "DATE",
+     "length": 7,
+     "nullable": true
+    },
+    {
+     "name": "AE_STEP",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "AE_SEQ_NUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "AE_ACTIVE_STATUS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "AE_ABEND_ACTION",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "AE_COMMIT_AFTER",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "AE_DO_SECTION",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "AE_DO_APPL_ID",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "AE_DYNAMIC_DO",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "AE_PC_ON_FALSE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "AE_ON_NOROWS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "MESSAGE_SET_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MESSAGE_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "AE_MESSAGE_SET_FLD",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "AE_MESSAGE_NBR_FLD",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "AE_COMMIT_FREQ",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTAE_LOGGING_SQL",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "AE_APPLID": "ZZ_AE_E2E1",
+      "AE_SECTION": "MAIN",
+      "MARKET": "GBL",
+      "DBTYPE": " ",
+      "EFFDT": "1900-01-01T00:00:00",
+      "AE_STEP": "Count"
+     },
+     "changes": {
+      "DESCR": {
+       "before": "Count staged rows",
+       "after": "Count staged (AD)"
+      }
+     }
+    }
+   ]
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "AEM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "300",
+       "after": "301"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "AES"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "280",
+       "after": "281"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2439",
+       "after": "2440"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "AEM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "300",
+       "after": "301"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "AES"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "280",
+       "after": "281"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSAEAPPLDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "INROOTELEMENT",
+     "type": "VARCHAR2",
+     "length": 200,
+     "nullable": false
+    },
+    {
+     "name": "INMSGNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "INMSGVERSION",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OUTROOTELEMENT",
+     "type": "VARCHAR2",
+     "length": 200,
+     "nullable": false
+    },
+    {
+     "name": "OUTMSGNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OUTMSGVERSION",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "AE_DATE_OVERRIDE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "ASOF_DT",
+     "type": "DATE",
+     "length": 7,
+     "nullable": true
+    },
+    {
+     "name": "MESSAGE_SET_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "AE_APPLLIBRARY",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "AE_DISABLE_RESTART",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "AEPROGTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "TEMPTBLINSTANCES",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "RECUSE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LICENSE_CODE",
+     "type": "VARCHAR2",
+     "length": 256,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "INROOTELEMENT": " ",
+     "INMSGNAME": " ",
+     "INMSGVERSION": " ",
+     "OUTROOTELEMENT": " ",
+     "OUTMSGNAME": " ",
+     "OUTMSGVERSION": " ",
+     "DESCR": "Employee staging (E2E)",
+     "AE_DATE_OVERRIDE": "N",
+     "ASOF_DT": "1900-01-01T00:00:00",
+     "MESSAGE_SET_NBR": "0",
+     "AE_APPLLIBRARY": "N",
+     "AE_DISABLE_RESTART": "N",
+     "VERSION": "301",
+     "LASTUPDOPRID": "JARED",
+     "LASTUPDDTTM": "2026-10-11T14:34:33.533455000",
+     "OBJECTOWNERID": " ",
+     "AEPROGTYPE": "0",
+     "TEMPTBLINSTANCES": "2",
+     "RECUSE": "0",
+     "LICENSE_CODE": "5grrkLgRs/yV0epNhKuER5XR6k2Eq4RH4tG7e0leKDo=",
+     "DESCRLONG": "Built by the MCP end-to-end test."
+    }
+   ],
+   "deleted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "INROOTELEMENT": " ",
+     "INMSGNAME": " ",
+     "INMSGVERSION": " ",
+     "OUTROOTELEMENT": " ",
+     "OUTMSGNAME": " ",
+     "OUTMSGVERSION": " ",
+     "DESCR": "Employee staging (E2E)",
+     "AE_DATE_OVERRIDE": "N",
+     "ASOF_DT": "1900-01-01T00:00:00",
+     "MESSAGE_SET_NBR": "0",
+     "AE_APPLLIBRARY": "N",
+     "AE_DISABLE_RESTART": "N",
+     "VERSION": "295",
+     "LASTUPDOPRID": "JARED",
+     "LASTUPDDTTM": "2026-10-11T14:32:02.404075000",
+     "OBJECTOWNERID": " ",
+     "AEPROGTYPE": "0",
+     "TEMPTBLINSTANCES": "2",
+     "RECUSE": "0",
+     "LICENSE_CODE": " ",
+     "DESCRLONG": "Built by the MCP end-to-end test."
+    }
+   ],
+   "updated": []
+  },
+  "PSAEAPPLDEL": {
+   "columns": [
+    {
+     "name": "AE_APPLID",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "VERSION": "291"
+    }
+   ],
+   "updated": []
+  },
+  "PSAEAPPLSTATE": {
+   "columns": [
+    {
+     "name": "AE_APPLID",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "AE_STATE_RECNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "AE_DEFAULT_STATE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_STATE_RECNAME": "HR_HRWF0006_AET",
+     "AE_DEFAULT_STATE": "Y"
+    }
+   ],
+   "deleted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_STATE_RECNAME": "HR_HRWF0006_AET",
+     "AE_DEFAULT_STATE": "Y"
+    }
+   ],
+   "updated": []
+  },
+  "PSAEAPPLTEMPTBL": {
+   "columns": [
+    {
+     "name": "AE_APPLID",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "RECNAME": "ZZ_PCODE_TMP"
+    }
+   ],
+   "deleted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "RECNAME": "ZZ_PCODE_TMP"
+    }
+   ],
+   "updated": []
+  },
+  "PSAESECTDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "AE_SECTION",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "AE_SECTION_TYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "AE_PUBLIC_SW",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "VERSION": "281",
+     "LASTUPDOPRID": "JARED",
+     "LASTUPDDTTM": "2026-10-11T14:34:33.533465000",
+     "AE_SECTION_TYPE": "P",
+     "AE_PUBLIC_SW": "Y"
+    }
+   ],
+   "deleted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "VERSION": "274",
+     "LASTUPDOPRID": "JARED",
+     "LASTUPDDTTM": "2026-10-11T14:32:02.404075000",
+     "AE_SECTION_TYPE": "P",
+     "AE_PUBLIC_SW": "Y"
+    }
+   ],
+   "updated": []
+  },
+  "PSAESECTDEL": {
+   "columns": [
+    {
+     "name": "AE_APPLID",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "AE_SECTION",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "VERSION": "269"
+    }
+   ],
+   "updated": []
+  },
+  "PSAESECTDTLDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "AE_SECTION",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "DBTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EFFDT",
+     "type": "DATE",
+     "length": 7,
+     "nullable": true
+    },
+    {
+     "name": "EFF_STATUS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "AE_AUTO_COMMIT",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "EFF_STATUS": "A",
+     "DESCR": "Stage employees",
+     "AE_AUTO_COMMIT": "N",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "EFF_STATUS": "A",
+     "DESCR": "Stage employees",
+     "AE_AUTO_COMMIT": "N",
+     "DESCRLONG": null
+    }
+   ],
+   "updated": []
+  },
+  "PSAESTEPDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "AE_SECTION",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "DBTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EFFDT",
+     "type": "DATE",
+     "length": 7,
+     "nullable": true
+    },
+    {
+     "name": "AE_STEP",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "AE_SEQ_NUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "AE_ACTIVE_STATUS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "AE_ABEND_ACTION",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "AE_COMMIT_AFTER",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "AE_DO_SECTION",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "AE_DO_APPL_ID",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "AE_DYNAMIC_DO",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "AE_PC_ON_FALSE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "AE_ON_NOROWS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "MESSAGE_SET_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "MESSAGE_NBR",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "AE_MESSAGE_SET_FLD",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "AE_MESSAGE_NBR_FLD",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "AE_COMMIT_FREQ",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTAE_LOGGING_SQL",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Init",
+     "AE_SEQ_NUM": "1",
+     "AE_ACTIVE_STATUS": "A",
+     "AE_ABEND_ACTION": "A",
+     "AE_COMMIT_AFTER": "D",
+     "AE_DO_SECTION": " ",
+     "AE_DO_APPL_ID": " ",
+     "AE_DYNAMIC_DO": "N",
+     "AE_PC_ON_FALSE": " ",
+     "AE_ON_NOROWS": "A",
+     "DESCR": "Run control",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "AE_MESSAGE_SET_FLD": " ",
+     "AE_MESSAGE_NBR_FLD": " ",
+     "AE_COMMIT_FREQ": "0",
+     "PTAE_LOGGING_SQL": "N",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Truncate",
+     "AE_SEQ_NUM": "2",
+     "AE_ACTIVE_STATUS": "A",
+     "AE_ABEND_ACTION": "A",
+     "AE_COMMIT_AFTER": "D",
+     "AE_DO_SECTION": " ",
+     "AE_DO_APPL_ID": " ",
+     "AE_DYNAMIC_DO": "N",
+     "AE_PC_ON_FALSE": " ",
+     "AE_ON_NOROWS": "C",
+     "DESCR": "Empty the staging table",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "AE_MESSAGE_SET_FLD": " ",
+     "AE_MESSAGE_NBR_FLD": " ",
+     "AE_COMMIT_FREQ": "0",
+     "PTAE_LOGGING_SQL": "N",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Emps",
+     "AE_SEQ_NUM": "3",
+     "AE_ACTIVE_STATUS": "A",
+     "AE_ABEND_ACTION": "A",
+     "AE_COMMIT_AFTER": "D",
+     "AE_DO_SECTION": " ",
+     "AE_DO_APPL_ID": " ",
+     "AE_DYNAMIC_DO": "N",
+     "AE_PC_ON_FALSE": "S",
+     "AE_ON_NOROWS": "C",
+     "DESCR": "Each employee",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "AE_MESSAGE_SET_FLD": " ",
+     "AE_MESSAGE_NBR_FLD": " ",
+     "AE_COMMIT_FREQ": "500",
+     "PTAE_LOGGING_SQL": "N",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Count",
+     "AE_SEQ_NUM": "4",
+     "AE_ACTIVE_STATUS": "A",
+     "AE_ABEND_ACTION": "A",
+     "AE_COMMIT_AFTER": "D",
+     "AE_DO_SECTION": " ",
+     "AE_DO_APPL_ID": " ",
+     "AE_DYNAMIC_DO": "N",
+     "AE_PC_ON_FALSE": " ",
+     "AE_ON_NOROWS": "C",
+     "DESCR": "Count staged (AD)",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "AE_MESSAGE_SET_FLD": " ",
+     "AE_MESSAGE_NBR_FLD": " ",
+     "AE_COMMIT_FREQ": "0",
+     "PTAE_LOGGING_SQL": "N",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Finish",
+     "AE_SEQ_NUM": "5",
+     "AE_ACTIVE_STATUS": "A",
+     "AE_ABEND_ACTION": "A",
+     "AE_COMMIT_AFTER": "D",
+     "AE_DO_SECTION": "DONE",
+     "AE_DO_APPL_ID": "ZZ_AE_E2E1",
+     "AE_DYNAMIC_DO": "N",
+     "AE_PC_ON_FALSE": " ",
+     "AE_ON_NOROWS": "C",
+     "DESCR": "Finish",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "AE_MESSAGE_SET_FLD": " ",
+     "AE_MESSAGE_NBR_FLD": " ",
+     "AE_COMMIT_FREQ": "0",
+     "PTAE_LOGGING_SQL": "N",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Init",
+     "AE_SEQ_NUM": "1",
+     "AE_ACTIVE_STATUS": "A",
+     "AE_ABEND_ACTION": "A",
+     "AE_COMMIT_AFTER": "D",
+     "AE_DO_SECTION": " ",
+     "AE_DO_APPL_ID": " ",
+     "AE_DYNAMIC_DO": "N",
+     "AE_PC_ON_FALSE": " ",
+     "AE_ON_NOROWS": "A",
+     "DESCR": "Run control",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "AE_MESSAGE_SET_FLD": " ",
+     "AE_MESSAGE_NBR_FLD": " ",
+     "AE_COMMIT_FREQ": "0",
+     "PTAE_LOGGING_SQL": "N",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Emps",
+     "AE_SEQ_NUM": "3",
+     "AE_ACTIVE_STATUS": "A",
+     "AE_ABEND_ACTION": "A",
+     "AE_COMMIT_AFTER": "D",
+     "AE_DO_SECTION": " ",
+     "AE_DO_APPL_ID": " ",
+     "AE_DYNAMIC_DO": "N",
+     "AE_PC_ON_FALSE": "S",
+     "AE_ON_NOROWS": "C",
+     "DESCR": "Each employee",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "AE_MESSAGE_SET_FLD": " ",
+     "AE_MESSAGE_NBR_FLD": " ",
+     "AE_COMMIT_FREQ": "500",
+     "PTAE_LOGGING_SQL": "N",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Finish",
+     "AE_SEQ_NUM": "5",
+     "AE_ACTIVE_STATUS": "A",
+     "AE_ABEND_ACTION": "A",
+     "AE_COMMIT_AFTER": "D",
+     "AE_DO_SECTION": "DONE",
+     "AE_DO_APPL_ID": "ZZ_AE_E2E1",
+     "AE_DYNAMIC_DO": "N",
+     "AE_PC_ON_FALSE": " ",
+     "AE_ON_NOROWS": "C",
+     "DESCR": "Finish",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "AE_MESSAGE_SET_FLD": " ",
+     "AE_MESSAGE_NBR_FLD": " ",
+     "AE_COMMIT_FREQ": "0",
+     "PTAE_LOGGING_SQL": "N",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Truncate",
+     "AE_SEQ_NUM": "2",
+     "AE_ACTIVE_STATUS": "A",
+     "AE_ABEND_ACTION": "A",
+     "AE_COMMIT_AFTER": "D",
+     "AE_DO_SECTION": " ",
+     "AE_DO_APPL_ID": " ",
+     "AE_DYNAMIC_DO": "N",
+     "AE_PC_ON_FALSE": " ",
+     "AE_ON_NOROWS": "C",
+     "DESCR": "Empty the staging table",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "AE_MESSAGE_SET_FLD": " ",
+     "AE_MESSAGE_NBR_FLD": " ",
+     "AE_COMMIT_FREQ": "0",
+     "PTAE_LOGGING_SQL": "N",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Count",
+     "AE_SEQ_NUM": "4",
+     "AE_ACTIVE_STATUS": "A",
+     "AE_ABEND_ACTION": "A",
+     "AE_COMMIT_AFTER": "D",
+     "AE_DO_SECTION": " ",
+     "AE_DO_APPL_ID": " ",
+     "AE_DYNAMIC_DO": "N",
+     "AE_PC_ON_FALSE": " ",
+     "AE_ON_NOROWS": "C",
+     "DESCR": "Count staged rows",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "AE_MESSAGE_SET_FLD": " ",
+     "AE_MESSAGE_NBR_FLD": " ",
+     "AE_COMMIT_FREQ": "0",
+     "PTAE_LOGGING_SQL": "N",
+     "DESCRLONG": null
+    }
+   ],
+   "updated": []
+  },
+  "PSAESTMTDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID",
+     "type": "VARCHAR2",
+     "length": 48,
+     "nullable": false
+    },
+    {
+     "name": "AE_SECTION",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "MARKET",
+     "type": "VARCHAR2",
+     "length": 12,
+     "nullable": false
+    },
+    {
+     "name": "DBTYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "EFFDT",
+     "type": "DATE",
+     "length": 7,
+     "nullable": true
+    },
+    {
+     "name": "AE_STEP",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "AE_STMT_TYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "AE_REUSE_STMT",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "AE_DO_SELECT_TYPE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "SQLID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Init",
+     "AE_STMT_TYPE": "S",
+     "AE_REUSE_STMT": "N",
+     "AE_DO_SELECT_TYPE": " ",
+     "SQLID": "ZZ_AE_E2E1  MAIN    Init    S",
+     "DESCR": "SQL description",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Truncate",
+     "AE_STMT_TYPE": "S",
+     "AE_REUSE_STMT": "N",
+     "AE_DO_SELECT_TYPE": " ",
+     "SQLID": "ZZ_AE_E2E1  MAIN    TruncateS",
+     "DESCR": "SQL description",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Emps",
+     "AE_STMT_TYPE": "D",
+     "AE_REUSE_STMT": "N",
+     "AE_DO_SELECT_TYPE": "Y",
+     "SQLID": "ZZ_AE_E2E1  MAIN    Emps    D",
+     "DESCR": "Do Select description",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Emps",
+     "AE_STMT_TYPE": "S",
+     "AE_REUSE_STMT": "Y",
+     "AE_DO_SELECT_TYPE": " ",
+     "SQLID": "ZZ_AE_E2E1  MAIN    Emps    S",
+     "DESCR": "SQL description",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Count",
+     "AE_STMT_TYPE": "S",
+     "AE_REUSE_STMT": "N",
+     "AE_DO_SELECT_TYPE": " ",
+     "SQLID": "ZZ_AE_E2E1  MAIN    Count   S",
+     "DESCR": "SQL description",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Emps",
+     "AE_STMT_TYPE": "P",
+     "AE_REUSE_STMT": "N",
+     "AE_DO_SELECT_TYPE": "F",
+     "SQLID": " ",
+     "DESCR": "PeopleCode description",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Finish",
+     "AE_STMT_TYPE": "C",
+     "AE_REUSE_STMT": "N",
+     "AE_DO_SELECT_TYPE": "F",
+     "SQLID": " ",
+     "DESCR": "Call Section description",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Init",
+     "AE_STMT_TYPE": "S",
+     "AE_REUSE_STMT": "N",
+     "AE_DO_SELECT_TYPE": " ",
+     "SQLID": "ZZ_AE_E2E1  MAIN    Init    S",
+     "DESCR": "SQL description",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Emps",
+     "AE_STMT_TYPE": "D",
+     "AE_REUSE_STMT": "N",
+     "AE_DO_SELECT_TYPE": "Y",
+     "SQLID": "ZZ_AE_E2E1  MAIN    Emps    D",
+     "DESCR": "Do Select description",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Emps",
+     "AE_STMT_TYPE": "P",
+     "AE_REUSE_STMT": "N",
+     "AE_DO_SELECT_TYPE": "F",
+     "SQLID": " ",
+     "DESCR": "PeopleCode description",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Emps",
+     "AE_STMT_TYPE": "S",
+     "AE_REUSE_STMT": "Y",
+     "AE_DO_SELECT_TYPE": " ",
+     "SQLID": "ZZ_AE_E2E1  MAIN    Emps    S",
+     "DESCR": "SQL description",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Finish",
+     "AE_STMT_TYPE": "C",
+     "AE_REUSE_STMT": "N",
+     "AE_DO_SELECT_TYPE": "F",
+     "SQLID": " ",
+     "DESCR": "Call Section description",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Truncate",
+     "AE_STMT_TYPE": "S",
+     "AE_REUSE_STMT": "N",
+     "AE_DO_SELECT_TYPE": " ",
+     "SQLID": "ZZ_AE_E2E1  MAIN    TruncateS",
+     "DESCR": "SQL description",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_E2E1",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Count",
+     "AE_STMT_TYPE": "S",
+     "AE_REUSE_STMT": "N",
+     "AE_DO_SELECT_TYPE": " ",
+     "SQLID": "ZZ_AE_E2E1  MAIN    Count   S",
+     "DESCR": "SQL description",
+     "DESCRLONG": null
+    }
+   ],
+   "updated": []
+  }
+ }
+}

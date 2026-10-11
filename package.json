@@ -143,6 +143,11 @@
         "category": "PeopleSoft"
       },
       {
+        "command": "psft.newAppEngine",
+        "title": "New App Engine Program...",
+        "category": "PeopleSoft"
+      },
+      {
         "command": "psft.refresh",
         "title": "Refresh",
         "category": "PeopleSoft",

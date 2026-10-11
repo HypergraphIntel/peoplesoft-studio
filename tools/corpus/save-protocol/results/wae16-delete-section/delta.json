@@ -1,0 +1,1145 @@
+{
+ "format": "ae-capture/1",
+ "case": "wae16-delete-section",
+ "program": "ZZ_AE_W01",
+ "watch": {
+  "PSAEAPPLDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "INROOTELEMENT"
+    },
+    {
+     "name": "INMSGNAME"
+    },
+    {
+     "name": "INMSGVERSION"
+    },
+    {
+     "name": "OUTROOTELEMENT"
+    },
+    {
+     "name": "OUTMSGNAME"
+    },
+    {
+     "name": "OUTMSGVERSION"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "AE_DATE_OVERRIDE"
+    },
+    {
+     "name": "ASOF_DT"
+    },
+    {
+     "name": "MESSAGE_SET_NBR"
+    },
+    {
+     "name": "AE_APPLLIBRARY"
+    },
+    {
+     "name": "AE_DISABLE_RESTART"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "AEPROGTYPE"
+    },
+    {
+     "name": "TEMPTBLINSTANCES"
+    },
+    {
+     "name": "RECUSE"
+    },
+    {
+     "name": "LICENSE_CODE"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "AE_APPLID": "ZZ_AE_W01"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "200",
+       "after": "201"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-11T13:56:29",
+       "after": "2026-10-11T13:56:32"
+      }
+     }
+    }
+   ]
+  },
+  "PSAEAPPLSTATE": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "AE_STATE_RECNAME"
+    },
+    {
+     "name": "AE_DEFAULT_STATE"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSAEAPPLTEMPTBL": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "RECNAME"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSAEAPPLLANG": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSAEAPPLDEL": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSAESECTDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "AE_SECTION"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "AE_SECTION_TYPE"
+    },
+    {
+     "name": "AE_PUBLIC_SW"
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "AE_APPLID": "ZZ_AE_W01",
+     "AE_SECTION": "Proc",
+     "VERSION": "192",
+     "LASTUPDOPRID": "JARED",
+     "LASTUPDDTTM": "2026-10-11T13:56:29",
+     "AE_SECTION_TYPE": "P",
+     "AE_PUBLIC_SW": "N"
+    }
+   ],
+   "updated": []
+  },
+  "PSAESECTDEL": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "AE_SECTION"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [
+    {
+     "AE_APPLID": "ZZ_AE_W01",
+     "AE_SECTION": "Proc",
+     "VERSION": "193"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSAESECTDTLDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "AE_SECTION"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "DBTYPE"
+    },
+    {
+     "name": "EFFDT"
+    },
+    {
+     "name": "EFF_STATUS"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "AE_AUTO_COMMIT"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "AE_APPLID": "ZZ_AE_W01",
+     "AE_SECTION": "Proc",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "EFF_STATUS": "A",
+     "DESCR": "Section2 description",
+     "AE_AUTO_COMMIT": "N",
+     "DESCRLONG": null
+    }
+   ],
+   "updated": []
+  },
+  "PSAESTEPDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "AE_SECTION"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "DBTYPE"
+    },
+    {
+     "name": "EFFDT"
+    },
+    {
+     "name": "AE_STEP"
+    },
+    {
+     "name": "AE_SEQ_NUM"
+    },
+    {
+     "name": "AE_ACTIVE_STATUS"
+    },
+    {
+     "name": "AE_ABEND_ACTION"
+    },
+    {
+     "name": "AE_COMMIT_AFTER"
+    },
+    {
+     "name": "AE_DO_SECTION"
+    },
+    {
+     "name": "AE_DO_APPL_ID"
+    },
+    {
+     "name": "AE_DYNAMIC_DO"
+    },
+    {
+     "name": "AE_PC_ON_FALSE"
+    },
+    {
+     "name": "AE_ON_NOROWS"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "MESSAGE_SET_NBR"
+    },
+    {
+     "name": "MESSAGE_NBR"
+    },
+    {
+     "name": "AE_MESSAGE_SET_FLD"
+    },
+    {
+     "name": "AE_MESSAGE_NBR_FLD"
+    },
+    {
+     "name": "AE_COMMIT_FREQ"
+    },
+    {
+     "name": "PTAE_LOGGING_SQL"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "AE_APPLID": "ZZ_AE_W01",
+     "AE_SECTION": "Proc",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Step01",
+     "AE_SEQ_NUM": "1",
+     "AE_ACTIVE_STATUS": "A",
+     "AE_ABEND_ACTION": "A",
+     "AE_COMMIT_AFTER": "D",
+     "AE_DO_SECTION": " ",
+     "AE_DO_APPL_ID": " ",
+     "AE_DYNAMIC_DO": "N",
+     "AE_PC_ON_FALSE": "S",
+     "AE_ON_NOROWS": "C",
+     "DESCR": "Step01 description",
+     "MESSAGE_SET_NBR": "0",
+     "MESSAGE_NBR": "0",
+     "AE_MESSAGE_SET_FLD": " ",
+     "AE_MESSAGE_NBR_FLD": " ",
+     "AE_COMMIT_FREQ": "0",
+     "PTAE_LOGGING_SQL": "N",
+     "DESCRLONG": null
+    }
+   ],
+   "updated": []
+  },
+  "PSAESTMTDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "AE_SECTION"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "DBTYPE"
+    },
+    {
+     "name": "EFFDT"
+    },
+    {
+     "name": "AE_STEP"
+    },
+    {
+     "name": "AE_STMT_TYPE"
+    },
+    {
+     "name": "AE_REUSE_STMT"
+    },
+    {
+     "name": "AE_DO_SELECT_TYPE"
+    },
+    {
+     "name": "SQLID"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "AE_APPLID": "ZZ_AE_W01",
+     "AE_SECTION": "Proc",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Step01",
+     "AE_STMT_TYPE": "P",
+     "AE_REUSE_STMT": "N",
+     "AE_DO_SELECT_TYPE": "F",
+     "SQLID": " ",
+     "DESCR": "PeopleCode description",
+     "DESCRLONG": null
+    },
+    {
+     "AE_APPLID": "ZZ_AE_W01",
+     "AE_SECTION": "Proc",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Step01",
+     "AE_STMT_TYPE": "S",
+     "AE_REUSE_STMT": "N",
+     "AE_DO_SELECT_TYPE": " ",
+     "SQLID": "ZZ_AE_W01   Proc    Step01  S",
+     "DESCR": "SQL description",
+     "DESCRLONG": null
+    }
+   ],
+   "updated": []
+  },
+  "PSAESTEPMSGDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "AE_SECTION"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "DBTYPE"
+    },
+    {
+     "name": "EFFDT"
+    },
+    {
+     "name": "AE_STEP"
+    },
+    {
+     "name": "AE_MESSAGE_PARMS"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSQLDEFN": {
+   "columns": [
+    {
+     "name": "SQLID"
+    },
+    {
+     "name": "SQLTYPE"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "ENABLEEFFDT"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "SQLID": "ZZ_AE_W01   Proc    Step01  S",
+     "SQLTYPE": "1",
+     "VERSION": "94",
+     "LASTUPDOPRID": "JARED",
+     "LASTUPDDTTM": "2026-10-11T13:56:29",
+     "ENABLEEFFDT": "N",
+     "OBJECTOWNERID": " "
+    }
+   ],
+   "updated": []
+  },
+  "PSSQLDESCR": {
+   "columns": [
+    {
+     "name": "SQLID"
+    },
+    {
+     "name": "SQLTYPE"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "DBTYPE"
+    },
+    {
+     "name": "EFFDT"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "SQLID": "ZZ_AE_W01   Proc    Step01  S",
+     "SQLTYPE": "1",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "DESCR": " ",
+     "DESCRLONG": null
+    }
+   ],
+   "updated": []
+  },
+  "PSSQLTEXTDEFN": {
+   "columns": [
+    {
+     "name": "SQLID"
+    },
+    {
+     "name": "SQLTYPE"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "DBTYPE"
+    },
+    {
+     "name": "EFFDT"
+    },
+    {
+     "name": "SEQNUM"
+    },
+    {
+     "name": "SQLTEXT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "SQLID": "ZZ_AE_W01   Proc    Step01  S",
+     "SQLTYPE": "1",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "SEQNUM": "0",
+     "SQLTEXT": "SELECT 'S2' FROM PS_INSTALLATION"
+    }
+   ],
+   "updated": []
+  },
+  "PSSQLHASH": {
+   "columns": [
+    {
+     "name": "SQLID"
+    },
+    {
+     "name": "SQLTYPE"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "DBTYPE"
+    },
+    {
+     "name": "EFFDT"
+    },
+    {
+     "name": "HASH_SIGNATURE"
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "SQLID": "ZZ_AE_W01   Proc    Step01  S",
+     "SQLTYPE": "1",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "HASH_SIGNATURE": "bffEVbUWjlY7My2YO3jezpYCGfwA"
+    }
+   ],
+   "updated": []
+  },
+  "PSSQLDEL": {
+   "columns": [
+    {
+     "name": "SQLID"
+    },
+    {
+     "name": "SQLTYPE"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [
+    {
+     "SQLID": "ZZ_AE_W01   Proc    Step01  S",
+     "SQLTYPE": "1",
+     "VERSION": "95"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSQLLANG": {
+   "columns": [
+    {
+     "name": "SQLID"
+    },
+    {
+     "name": "SQLTYPE"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "DBTYPE"
+    },
+    {
+     "name": "EFFDT"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMPROG": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "NAMECOUNT"
+    },
+    {
+     "name": "PROGLEN"
+    },
+    {
+     "name": "PROGRUNLOC"
+    },
+    {
+     "name": "PROGFLAGS"
+    },
+    {
+     "name": "LICENSE_CODE"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "PROGEXTENDS"
+    },
+    {
+     "name": "PTTOOLSREL"
+    },
+    {
+     "name": "PROGTXT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "OBJECTID1": "66",
+     "OBJECTVALUE1": "ZZ_AE_W01",
+     "OBJECTID2": "77",
+     "OBJECTVALUE2": "Proc",
+     "OBJECTID3": "39",
+     "OBJECTVALUE3": "GBL",
+     "OBJECTID4": "20",
+     "OBJECTVALUE4": "default",
+     "OBJECTID5": "21",
+     "OBJECTVALUE5": "1900-01-01",
+     "OBJECTID6": "78",
+     "OBJECTVALUE6": "Step01",
+     "OBJECTID7": "12",
+     "OBJECTVALUE7": "OnExecute",
+     "PROGSEQ": "0",
+     "VERSION": "164",
+     "NAMECOUNT": "1",
+     "PROGLEN": "118",
+     "PROGRUNLOC": "0",
+     "PROGFLAGS": "0",
+     "LICENSE_CODE": " ",
+     "LASTUPDDTTM": "2026-10-11T13:56:29",
+     "LASTUPDOPRID": "JARED",
+     "PROGEXTENDS": " ",
+     "PTTOOLSREL": " ",
+     "PROGTXT": "a000000000510000000000000000000000000000000000000000000000000000008500000044406e0075006d0062006500720000000126006e0000000650000002000000000000000000000000000000150126006e000000060126006e00000013500000010000000000000000000000000000001507"
+    }
+   ],
+   "updated": []
+  },
+  "PSPCMTXT": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "HASH_SIGNATURE"
+    },
+    {
+     "name": "PCTEXT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "OBJECTID1": "66",
+     "OBJECTVALUE1": "ZZ_AE_W01",
+     "OBJECTID2": "77",
+     "OBJECTVALUE2": "Proc",
+     "OBJECTID3": "39",
+     "OBJECTVALUE3": "GBL",
+     "OBJECTID4": "20",
+     "OBJECTVALUE4": "default",
+     "OBJECTID5": "21",
+     "OBJECTVALUE5": "1900-01-01",
+     "OBJECTID6": "78",
+     "OBJECTVALUE6": "Step01",
+     "OBJECTID7": "12",
+     "OBJECTVALUE7": "OnExecute",
+     "PROGSEQ": "0",
+     "HASH_SIGNATURE": "bTwha19yPgAxj3fPnMhwrUHX0/sA",
+     "PCTEXT": "Local number &n = 2;\n&n = &n + 1;\n"
+    }
+   ],
+   "updated": []
+  },
+  "PSPCMNAME": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "NAMENUM"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "REFNAME"
+    },
+    {
+     "name": "PACKAGEROOT"
+    },
+    {
+     "name": "QUALIFYPATH"
+    },
+    {
+     "name": "APPCLASSMETHOD"
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "OBJECTID1": "66",
+     "OBJECTVALUE1": "ZZ_AE_W01",
+     "OBJECTID2": "77",
+     "OBJECTVALUE2": "Proc",
+     "OBJECTID3": "39",
+     "OBJECTVALUE3": "GBL",
+     "OBJECTID4": "20",
+     "OBJECTVALUE4": "default",
+     "OBJECTID5": "21",
+     "OBJECTVALUE5": "1900-01-01",
+     "OBJECTID6": "78",
+     "OBJECTVALUE6": "Step01",
+     "OBJECTID7": "12",
+     "OBJECTVALUE7": "OnExecute",
+     "NAMENUM": "1",
+     "RECNAME": " ",
+     "REFNAME": " ",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSMETHOD": " "
+    }
+   ],
+   "updated": []
+  },
+  "PSPCMPROGDEL": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [
+    {
+     "OBJECTID1": "66",
+     "OBJECTVALUE1": "ZZ_AE_W01",
+     "OBJECTID2": "77",
+     "OBJECTVALUE2": "Proc",
+     "OBJECTID3": "39",
+     "OBJECTVALUE3": "GBL",
+     "OBJECTID4": "20",
+     "OBJECTVALUE4": "default",
+     "OBJECTID5": "21",
+     "OBJECTVALUE5": "1900-01-01",
+     "OBJECTID6": "78",
+     "OBJECTVALUE6": "Step01",
+     "OBJECTID7": "12",
+     "OBJECTVALUE7": "OnExecute",
+     "VERSION": "165"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "AEM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "200",
+       "after": "201"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "AES"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "192",
+       "after": "193"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "PCM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "164",
+       "after": "165"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SRM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "94",
+       "after": "95"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2332",
+       "after": "2333"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "AEM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "200",
+       "after": "201"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "AES"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "192",
+       "after": "193"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "PCM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "164",
+       "after": "165"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SRM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "94",
+       "after": "95"
+      }
+     }
+    }
+   ]
+  }
+ }
+}

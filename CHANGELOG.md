@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### Added
+
+- **App Engine Designer.** App Engine programs open in App Designer's App
+  Engine window, editable on Writable connections: the Definition view
+  (sections and their variants, steps, actions) and Program Flow; a property
+  panel for the program (General, State Records, Temp Tables, Advanced),
+  sections, steps and actions with every setting App Designer stores; Insert
+  Section / Step/Action / Action, change type, rename, move, Cut / Copy /
+  Paste, delete, undo / redo; SQL, XSLT and PeopleCode in VS Code editors;
+  validation (App Designer's Edit Validation, structure, references, PeopleCode
+  compiled); Preview Save; *New Definition > App Engine Program*. Saved as App
+  Designer saves: mapped from about 95 controlled App Designer saves (driven on
+  the lab VM), and 85 of 88 of them replay row for row through the writer on a
+  live database (the other three differ only where App Designer leaves
+  PSSQLHASH's market stale). App Designer opens, edits and saves what the
+  writer creates. See docs/APP_ENGINE.md and docs/APP_ENGINE_SEMANTICS.md.
+- **App Engine through the MCP**: `psft_ae_reference`, `psft_ae_get`,
+  `psft_ae_explain`, `psft_ae_validate`, `psft_ae_compare`, `psft_ae_verify`,
+  `psft_ae_create`, `psft_ae_edit`, `psft_ae_copy`, `psft_ae_rename`,
+  `psft_ae_delete` — the designer's model, validator and writer, with dry runs,
+  concurrency tokens and your approval for each write. App Engine PeopleCode
+  also saves through `psft_save_peoplecode` and the PeopleCode editor.
+
 ### Changed
 
 - **Page editor: Edit Box Properties** now match App Designer's dialog tab for

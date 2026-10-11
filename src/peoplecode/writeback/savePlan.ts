@@ -127,6 +127,11 @@ export function targetForKey(key: PcmKey): CompileTarget {
   if (ids[0] === PAGE_ID && ids[1] === EVENT_ID && ids.slice(2).every((id) => id === 0)) {
     return { applicationClass: false, recordName: '', fieldName: '' };
   }
+  // App Engine PeopleCode (66 / 77 / 39 / 20 / 21 / 78 / 12: program, section, market, platform, effective
+  // date, step, OnExecute) compiles with no record or field: 3,549 of 3,549 HCDEV programs encode exactly so.
+  if (ids.join(',') === '66,77,39,20,21,78,12' && values[6] === 'OnExecute') {
+    return { applicationClass: false, recordName: '', fieldName: '' };
+  }
   if (ids[0] === APPLICATION_PACKAGE_ID) {
     const last = ids.findIndex((id) => id === EVENT_ID);
     if (last > 1 && ids.slice(1, last).every((id) => APPLICATION_CLASS_IDS.has(id)) && values[last] === 'OnExecute') {
@@ -135,7 +140,7 @@ export function targetForKey(key: PcmKey): CompileTarget {
   }
   throw new SaveRefusedError(
     `Saving this kind of PeopleCode (OBJECTIDs ${ids.join(', ')}) is not supported yet; ` +
-    'only Record Field, Component, Page and Application Class programs are.');
+    'only Record Field, Component, Page, App Engine and Application Class programs are.');
 }
 
 // ---------------------------------------------------------------------------

@@ -118,7 +118,7 @@ Goal long-term: replace Application Designer. **Today it reads every definition 
 | **Pages** (Page designer) | Experimental | App Designer's visual **Layout** view and Order grid. Every control type has its own App Designer property panel (Record / Label / Use / General / Fluid / Image / Options tabs as they apply). On Writable connections: move, resize, delete, relabel, select/group, Copy / Paste, set tab Order, insert controls (Frame, Group Box, Horizontal Rule, Static Text, Static Image, Check Box, Drop Down, Edit Box, Long Edit Box, Radio Button, HTML Area, Push Button), edit each control's captured properties (label, style, use bits, on/off values, record rebind, Allow Deferred Processing, grid/scroll Occurs Count and grid display flags, Page Field Name, anchor, Fluid), Page Properties (General / Use / Fluid), Custom page size, **New Page / New Page Fluid**, and **Page PeopleCode** — all saved as App Designer saves it. See [docs/PAGES_COMPONENTS_MENUS.md](docs/PAGES_COMPONENTS_MENUS.md) and [docs/PAGE_SAVE.md](docs/PAGE_SAVE.md) |
 | **Components** | Experimental | App Designer's component window: the **Definition** grid (View Definition on a page row), the **Structure** tab (the component buffer: search record, scroll levels and their records) and **Component Properties** (General, Use, Internet, Fluid, Style). On Writable connections all of it is edited and saved as App Designer saves it: page rows (labels, Hidden, order, Cut/Copy/Paste/Delete, Insert Page), every General, Use, Internet, Fluid and Style setting App Designer stores, never without a search record; *New Definition > Component* creates one. **Component PeopleCode** editor: View PeopleCode opens the component's (or a record's) first event, with App Designer's Object and Event pickers; an event with no program opens empty and saving creates it — see [docs/COMPONENTS.md](docs/COMPONENTS.md) |
 | **Menus** | Read-Only | A menu's bars and items — see [docs/PAGES_COMPONENTS_MENUS.md](docs/PAGES_COMPONENTS_MENUS.md) |
-| **App Engine programs** | Read-Only | Open in App Designer's Definition and Program Flow views: sections, steps and actions with their settings, SQL and PeopleCode — see [docs/APP_ENGINE.md](docs/APP_ENGINE.md). Browse, search and Properties. No editing or creating yet |
+| **App Engine programs** (App Engine Designer) | Experimental | App Designer's App Engine window: the **Definition** view (sections and their market / platform / effective-date variants, steps, actions) and **Program Flow**, with a property panel for the program (General, State Records, Temp Tables, Advanced), each section, step and action. On Writable connections: Insert Section / Step/Action / Action, change an action's type, rename, move, Cut / Copy / Paste, delete, every property App Designer stores, SQL, XSLT and PeopleCode in VS Code editors, undo / redo, validation (App Designer's Edit Validation plus references and PeopleCode compiled), Preview Save, and *New Definition > App Engine Program* — saved as App Designer saves it (85 of 88 captured App Designer saves replay row for row; the rest differ only where App Designer leaves a hash row stale). See [docs/APP_ENGINE.md](docs/APP_ENGINE.md) and [docs/APP_ENGINE_SEMANTICS.md](docs/APP_ENGINE_SEMANTICS.md) |
 | **File Layouts**, **Component Interfaces** | Read-Only | A file layout's format, segments and fields; a component interface's methods, keys, collections and properties — see [docs/FILE_LAYOUTS_COMPONENT_INTERFACES.md](docs/FILE_LAYOUTS_COMPONENT_INTERFACES.md) |
 | **Permission Lists**, **Roles**, **Message Catalog** | Read-Only | A permission list's pages and actions, sign-on times, Web Libraries and more; a role's permission lists; a message's text and explanation — see [docs/SECURITY_MESSAGES.md](docs/SECURITY_MESSAGES.md) |
 | **Queries** | Read-Only | Records and joins, columns, prompts and criteria for the query, its subqueries and unions — see [docs/QUERIES.md](docs/QUERIES.md) |
@@ -128,7 +128,7 @@ Goal long-term: replace Application Designer. **Today it reads every definition 
 | **Images** | Read-Only | Shown in a panel (GIF, PNG, JPEG, SVG, BMP) — see [docs/IMAGES.md](docs/IMAGES.md) |
 | **Portal Registry** | Read-Only | Folders and content references: navigation path, component, URL, security — see [docs/PORTAL_REGISTRY.md](docs/PORTAL_REGISTRY.md) |
 | **URL Definitions**, **XSLT**, **Message Nodes** | Read-Only | A node's passwords are never shown — see [docs/URLS_NODES.md](docs/URLS_NODES.md) |
-| MCP server (AI clients) | Yes | Search and read every type above, PeopleCode by record, component or Application Class, and a bounded PeopleCode text search. `psft_list_definition_types` lists the type codes and key parts. **Writes** (Experimental): PeopleCode (Record Field, Component, Application Classes), SQL, HTML, style sheets, pages, records, fields, translates, projects and packages, through the same writers and gates as the editors, each approved by you in VS Code unless *MCP writes* says otherwise — see [docs/MCP_WRITES.md](docs/MCP_WRITES.md) |
+| MCP server (AI clients) | Yes | Search and read every type above, PeopleCode by record, component or Application Class, and a bounded PeopleCode text search. `psft_list_definition_types` lists the type codes and key parts. **App Engine** (Experimental): `psft_ae_reference`, `psft_ae_get`, `psft_ae_explain` (execution flow and dependencies), `psft_ae_validate`, `psft_ae_compare`, `psft_ae_verify`, and the writes `psft_ae_create` (from a spec), `psft_ae_edit` (operations), `psft_ae_copy`, `psft_ae_rename`, `psft_ae_delete` — dry runs, concurrency tokens, the designer's model and writer. **Writes** (Experimental): PeopleCode (Record Field, Component, App Engine, Application Classes), SQL, HTML, style sheets, pages, records, fields, translates, projects and packages, through the same writers and gates as the editors, each approved by you in VS Code unless *MCP writes* says otherwise — see [docs/MCP_WRITES.md](docs/MCP_WRITES.md) |
 | PeopleCode IntelliSense-lite | Yes | Completion, hover, outline, snippets |
 | PeopleCode syntax highlighting | Yes | |
 
@@ -144,7 +144,7 @@ reproducing App Designer's saves; **Read-only** = viewer, from the database;
 | Activity | Not yet | Identified in project exports; no viewer yet |
 | Analytic Model | Not yet | Identified in project exports; no viewer yet |
 | Analytic Type | Not yet | — |
-| App Engine Program | Read-only | Definition and Program Flow views — see [docs/APP_ENGINE.md](docs/APP_ENGINE.md) |
+| App Engine Program | Experimental | App Engine Designer: create, edit, save, copy, rename, delete, as App Designer does — see [docs/APP_ENGINE.md](docs/APP_ENGINE.md) |
 | Application Package | Yes | Browse; create packages and classes; Application Class PeopleCode reads and saves; properties read-only |
 | Approval Rule Set | Not yet | — |
 | Business Interlink | Not yet | — |
@@ -169,10 +169,11 @@ reproducing App Designer's saves; **Read-only** = viewer, from the database;
 
 ## What does **not** work yet
 
-- Saving Menu and App Engine PeopleCode (Record Field, Page, Component and Application Class PeopleCode save)
+- Saving Menu PeopleCode (Record Field, Page, Component, App Engine and Application Class PeopleCode save)
 - Comparing a definition across two environments (only one connection is active at a time)
 - Editing record shapes and settings no App Designer save has been captured for (see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md))
-- Creating menus and App Engine programs; editing menus and App Engine programs
+- Creating and editing menus
+- Running App Engine programs (the designer and the MCP read, write and validate definitions; they never run them)
 - In the page designer: inserting (dynamic) images, trees, grids, scroll areas, scroll bars, subpages, secondary pages, tab separators and charts ([docs/PAGE_SAVE.md](docs/PAGE_SAVE.md))
 - In the component editor: Default Search Action, the search-page link message numbers, the Custom style lists; component edits through the MCP
 - Build beyond SQL Tables (Alter Tables, indexes alone, views), project-level migrate/copy

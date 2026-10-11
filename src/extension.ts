@@ -31,7 +31,9 @@ import { registerSettings } from './settings/index.js';
 import { buildProperties, hasProperties } from './model/properties.js';
 import { PropertiesPanel } from './editors/propertiesPanel.js';
 import { ImagePanel } from './editors/imagePanel.js';
-import { AppEnginePanel } from './editors/appEnginePanel.js';
+import { AeDesignerPanel, setAeDesignerExtensionUri } from './editors/aeDesignerPanel.js';
+import type { AeDocument } from './model/aeDocument.js';
+import { copyProgram as copyAeProgram, newProgram as newAeProgram, PROGRAM_NAME_MAX } from './model/aeDocument.js';
 import { PagePanel, type PageLookup } from './editors/pagePanel.js';
 import { imageDimensions, imageMimeType, sniffImageMimeType } from './editors/imageHtml.js';
 import { ComponentPanel } from './editors/componentPanel.js';
@@ -237,6 +239,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const workspace = new Workspace(context.secrets);
   workspace.db2DriverDir = path.join(context.globalStorageUri.fsPath, 'db2-driver');
   context.subscriptions.push(workspace);
+  setAeDesignerExtensionUri(context.extensionUri);
+  AeDesignerPanel.register(context);
 
   const statusBar = new StatusBar(workspace);
   context.subscriptions.push(statusBar);
@@ -310,6 +314,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     mode: () => vscode.workspace.getConfiguration('peoplesoft.mcp').get<McpWriteMode>('writes', 'confirm'),
     confirm: async ({ title, detail }) => (await vscode.window.showWarningMessage(title, { modal: true, detail }, 'Allow')) === 'Allow',
     hasUnsavedEditor: (connectionId, key) => {
+      if (key.type === DefinitionType.AppEngineProgram) return AeDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
       const uri = toUri(connectionId, key).toString();
       return vscode.window.tabGroups.all.some((g) => g.tabs.some((t) => t.isDirty &&
         (t.input instanceof vscode.TabInputText || t.input instanceof vscode.TabInputCustom) && t.input.uri.toString() === uri));
@@ -318,7 +323,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (peopleCode) {
         void writeSaveReport(key, connectionId, peopleCode).catch((error) => console.error('PeopleSoft Studio: could not write the save report:', error));
       }
-      PeopleSoftFileSystem.instance?.invalidate(toUri(connectionId, key));
+      if (key.type === DefinitionType.AppEngineProgram) void AeDesignerPanel.reloadIfOpen(connectionId, key.parts[0]);
+      else PeopleSoftFileSystem.instance?.invalidate(toUri(connectionId, key));
       refreshAll();
     }
   };
@@ -497,8 +503,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
           const provider = await workspace.require(connectionId);
           if ((key.type === DefinitionType.AppEngineProgram || key.type === DefinitionType.AppEngineSection) && provider instanceof DatabaseProvider) {
-            const { program, peopleCode } = await provider.readAppEngineView(key);
-            AppEnginePanel.show({ id: provider.id, displayName: provider.displayName }, key, program, peopleCode);
+            await showAeDesigner(workspace, provider, key.parts[0]);
             return;
           }
           if (key.type === DefinitionType.Image && provider instanceof DatabaseProvider) {
@@ -700,6 +705,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('psft.newDefinition', () =>
       withError('New definition', () => newDefinition(workspace))),
     vscode.commands.registerCommand('psft.newPage', () => withError('New Page', () => newPage(workspace))),
+    vscode.commands.registerCommand('psft.newAppEngine', () => withError('New App Engine Program', () => newAppEngine(workspace))),
     vscode.commands.registerCommand('psft.newPageFluid', () => withError('New Page Fluid', () => newPageFluid(workspace))),
 
     vscode.commands.registerCommand('psft.newHtmlDefinition', () =>
@@ -1202,7 +1208,7 @@ async function pickRecordFieldPeopleCode(workspace: Workspace, connectionId: str
 async function newDefinition(workspace: Workspace): Promise<void> {
   type Item = vscode.QuickPickItem & {
     create?: TextDefinitionType | DefinitionType.Record | DefinitionType.Field | DefinitionType.Project | DefinitionType.ApplicationPackage
-      | DefinitionType.ApplicationClassPeopleCode | DefinitionType.Component | DefinitionType.Page;
+      | DefinitionType.ApplicationClassPeopleCode | DefinitionType.Component | DefinitionType.Page | DefinitionType.AppEngineProgram;
     /** Page: New Page Fluid (from a Layout Page). */
     fluid?: boolean;
   };
@@ -1220,8 +1226,9 @@ async function newDefinition(workspace: Workspace): Promise<void> {
     { label: '$(code) HTML Definition', description: 'opens empty; the first save creates it', create: DefinitionType.HtmlDefinition },
     { label: '$(symbol-color) Style Sheet', description: 'freeform; opens empty, the first save creates it', create: DefinitionType.StyleSheet },
     { label: '$(database) SQL Definition', description: 'opens empty; the first save creates it', create: DefinitionType.SqlDefinition },
+    { label: '$(gear) App Engine Program', description: 'MAIN with Step01, as App Designer starts one; the first save creates it', create: DefinitionType.AppEngineProgram },
     { label: 'Not available yet', kind: vscode.QuickPickItemKind.Separator },
-    ...['Menu', 'App Engine Program'].map(later)
+    ...['Menu'].map(later)
   ], { title: 'New Definition', placeHolder: 'Definition type' });
   if (!picked) return;
   // DefinitionType.Record is 0: test for absence, not falsiness.
@@ -1236,6 +1243,7 @@ async function newDefinition(workspace: Workspace): Promise<void> {
   else if (picked.create === DefinitionType.Page) await (picked.fluid ? newPageFluid(workspace) : newPage(workspace));
   else if (picked.create === DefinitionType.ApplicationPackage) await newPackage(workspace);
   else if (picked.create === DefinitionType.ApplicationClassPeopleCode) await newClass(workspace);
+  else if (picked.create === DefinitionType.AppEngineProgram) await newAppEngine(workspace);
   else await newTextDefinition(workspace, picked.create);
 }
 
@@ -1513,6 +1521,70 @@ async function saveAnyway<T>(save: (saveInvalid: boolean) => Promise<T>): Promis
     if (answer !== yes) throw new Error(`Not saved: ${err.problems.map((p) => p.text).join(' ')}`);
     return save(true);
   }
+}
+
+/**
+ * An App Engine program in the App Engine Designer (editors/aeDesignerPanel.ts):
+ * editable on a Writable connection with an Operator ID, for a name in the
+ * write scope; read-only otherwise. `doc` opens a new, unsaved program.
+ */
+export async function showAeDesigner(workspace: Workspace, provider: DatabaseProvider, name: string, doc?: AeDocument): Promise<void> {
+  const operatorId = workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim();
+  const editable = workspace.isWritable(provider.id) && !!operatorId && !writeScopeRefusal(name);
+  const read = doc ? { doc, token: 'absent' } : await provider.readAppEngineDocument(name);
+  if (!read) throw new Error(`No App Engine program named ${name}.`);
+  AeDesignerPanel.show({
+    connection: { id: provider.id, displayName: provider.displayName },
+    ...(editable ? {
+      save: async (d: AeDocument, token: string, dryRun?: boolean) => {
+        const result = await provider.saveAppEngineDocument({ doc: d, openedToken: token, operatorId: operatorId!, ...(dryRun ? { dryRun } : {}) });
+        if (result.written && token === 'absent') void vscode.commands.executeCommand('psft.refresh');
+        return result;
+      }
+    } : {}),
+    reload: () => provider.readAppEngineDocument(name),
+    lookup: provider.appEngineReferenceLookup(),
+    choices: (what, prefix) => provider.appEngineChoices(what, prefix),
+    toolsRelease: async () => (await provider.readEnvironment()).toolsRelease,
+    openProgram: async (program) => { await vscode.commands.executeCommand('psft.openDefinition', provider.id, makeKey(DefinitionType.AppEngineProgram, program)); },
+    ...(editable ? {
+      saveAs: async (d: AeDocument, to: string) => {
+        const refusal = writeScopeRefusal(to);
+        if (refusal) throw new Error(refusal);
+        if (await provider.readAppEngineDocument(to)) throw new Error(`An App Engine program named ${to} already exists.`);
+        await provider.saveAppEngineDocument({ doc: copyAeProgram(d, to), openedToken: 'absent', operatorId: operatorId! });
+        void vscode.commands.executeCommand('psft.refresh');
+        await showAeDesigner(workspace, provider, to);
+      },
+      rename: async (from: string, to: string, token: string) => {
+        const refusal = writeScopeRefusal(to);
+        if (refusal) throw new Error(refusal);
+        await provider.renameAppEngineProgram(from, to, token, operatorId!);
+        void vscode.commands.executeCommand('psft.refresh');
+        await showAeDesigner(workspace, provider, to);
+      },
+      remove: async (program: string, token: string) => {
+        await provider.deleteAppEngineProgram(program, token, operatorId!);
+        void vscode.commands.executeCommand('psft.refresh');
+        vscode.window.showInformationMessage(`Deleted App Engine program ${program} on ${provider.displayName}.`);
+      }
+    } : {})
+  }, read.doc, read.token, doc ? { status: 'New program: Save creates it.' } : {});
+}
+
+/** File > New > App Engine Program: a name, then the designer on App Designer's new program (MAIN, Step01). */
+async function newAppEngine(workspace: Workspace): Promise<void> {
+  const provider = await pickWritableConnection(workspace, 'New App Engine Program');
+  if (!provider) return;
+  const name = await askDefinitionName(`New App Engine Program on ${provider.displayName}`, PROGRAM_NAME_MAX, `Program name (at most ${PROGRAM_NAME_MAX} characters)`);
+  if (!name) return;
+  if (await provider.readAppEngineDocument(name)) {
+    vscode.window.showWarningMessage(`An App Engine program named ${name} already exists.`);
+    return;
+  }
+  const refusal = writeScopeRefusal(name);
+  if (refusal) { vscode.window.showWarningMessage(refusal); return; }
+  await showAeDesigner(workspace, provider, name, newAeProgram(name));
 }
 
 /** File > New > Page: a name, then the page window on an empty page (App Designer's new page: 570 x 330, Fluid off). */

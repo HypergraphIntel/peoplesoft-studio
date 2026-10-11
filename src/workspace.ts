@@ -284,7 +284,9 @@ export class Workspace implements vscode.Disposable {
       (key.type === DefinitionType.RecordPeopleCode || key.type === DefinitionType.ApplicationClassPeopleCode ||
         // Component, component record and component record field PeopleCode (p01-p05), scoped by the component's name.
         key.type === DefinitionType.ComponentPeopleCode || key.type === DefinitionType.ComponentRecordPeopleCode ||
-        key.type === DefinitionType.ComponentRecordFieldPeopleCode || key.type === DefinitionType.PagePeopleCode) &&
+        key.type === DefinitionType.ComponentRecordFieldPeopleCode || key.type === DefinitionType.PagePeopleCode ||
+        // App Engine PeopleCode (ap-pc01/02; savePlan targetForKey), scoped by the program's name.
+        key.type === DefinitionType.AppEnginePeopleCode) &&
       isWritableName(key.parts[0]);
   }
 

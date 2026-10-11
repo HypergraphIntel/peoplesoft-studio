@@ -208,6 +208,8 @@ export async function savePeopleCode(
         await checkComponentProgram(c, parts, request.objectIds);
       } else if (request.objectIds?.[0] === 9) {
         await checkPageProgram(c, parts);
+      } else if (request.objectIds?.[0] === 66) {
+        await checkAppEngineProgram(c, parts);
       } else {
         if (parts.length !== 3 || !RECORD_FIELD_EVENTS.includes(parts[2])) {
           throw new SaveRefusedError('There is no stored program here; only Record Field PeopleCode and new Application Classes can be created yet.');
@@ -221,7 +223,7 @@ export async function savePeopleCode(
       ? {
         key: classPlan
           ? { objectIds: classPlan.objectIds, objectValues: [...parts, ...Array(7 - parts.length).fill(' ')] }
-          : request.objectIds?.[0] === 10 || request.objectIds?.[0] === 9
+          : request.objectIds?.[0] === 10 || request.objectIds?.[0] === 9 || request.objectIds?.[0] === 66
             // Component (p01-p03) and page PeopleCode: the type's OBJECTIDs, the other slots 0 / ' '.
             ? { objectIds: [...request.objectIds, ...Array(7 - request.objectIds.length).fill(0)], objectValues: [...parts, ...Array(7 - parts.length).fill(' ')] }
             : { objectIds: [1, 2, 12, 0, 0, 0, 0], objectValues: [parts[0], parts[1], parts[2], ' ', ' ', ' ', ' '] },
@@ -499,6 +501,23 @@ async function checkComponentProgram(c: Connection, parts: readonly string[], ob
     `SELECT COUNT(*) AS N FROM PSRECFIELDDB WHERE RECNAME = :r AND FIELDNAME = :f`, { r: parts[2], f: parts[3] }))) {
     throw new SaveRefusedError(`${parts[3]} is not a field of ${parts[2]}.`);
   }
+}
+
+/**
+ * App Engine PeopleCode can be created here: the step's PeopleCode action
+ * exists (program, section, market, platform, effective date, step), its one
+ * event OnExecute -- App Designer's View PeopleCode on the action.
+ */
+async function checkAppEngineProgram(c: Connection, parts: readonly string[]): Promise<void> {
+  if (parts.length !== 7 || parts[6] !== 'OnExecute') throw new SaveRefusedError('App Engine PeopleCode is keyed program, section, market, platform, effective date, step, OnExecute.');
+  const platforms: Record<string, string> = { default: ' ', DB2: '1', ORACLE: '2', INFORMIX: '3', DB2UNIX: '4', SYBASE: '6', MICROSFT: '7' };
+  const dbType = platforms[parts[3]];
+  if (dbType === undefined) throw new SaveRefusedError(`${parts[3]} is not an App Engine platform.`);
+  const [{ N }] = await select<{ N: number }>(c,
+    `SELECT COUNT(*) AS N FROM PSAESTMTDEFN WHERE AE_APPLID = :p AND AE_SECTION = :s AND MARKET = :m AND DBTYPE = :d
+        AND EFFDT = TO_DATE(:e, 'YYYY-MM-DD') AND AE_STEP = :t AND AE_STMT_TYPE = 'P'`,
+    { p: parts[0], s: parts[1], m: parts[2], d: dbType, e: parts[4], t: parts[5] });
+  if (Number(N) === 0) throw new SaveRefusedError(`${parts.slice(0, 6).join('.')} has no PeopleCode action; add one in the App Engine Designer first.`);
 }
 
 /** Page PeopleCode can be created here: a page that exists, its one event Activate (App Designer's View Page PeopleCode). */

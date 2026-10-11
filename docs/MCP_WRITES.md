@@ -71,8 +71,31 @@ stored label rectangle with it; a resize makes the size custom.
 `src/model/pageOperations.ts` and `src/model/recordOperations.ts` hold that
 logic, tested in `src/test/mcpWrites.test.ts`.
 
+## App Engine programs
+
+`src/mcp/appEngineTools.ts`: the App Engine Designer's model and writer
+(docs/APP_ENGINE.md), behind the same gates.
+
+| Tool | Writes | What it does |
+|---|---|---|
+| `psft_ae_reference` | no | Runtime semantics and design guidance (docs/APP_ENGINE_SEMANTICS.md, in brief) |
+| `psft_ae_get` | no | The program as a spec (App Designer's labels), its token and validation |
+| `psft_ae_explain` | no | Execution in the runtime's order; flow from MAIN (calls, external, dynamic, recursion); dependencies |
+| `psft_ae_validate` | no | Structure, App Designer's Edit Validation, references, PeopleCode compiled -- of the program or of proposed operations |
+| `psft_ae_compare` / `psft_ae_verify` | no | Differences between two programs, or a stored program and a spec |
+| `psft_ae_create` | yes | A program from a spec, built with App Designer's defaults; `dryRun` previews |
+| `psft_ae_edit` | yes | Operations (add / set / rename / move / copy / delete sections, steps, actions; program properties; state records; temp tables); `expectedToken` refuses stale edits; `dryRun` previews |
+| `psft_ae_copy`, `psft_ae_rename`, `psft_ae_delete` | yes | Save As, Rename, Delete as App Designer does them |
+
+A write is refused when its program has validation errors, when the program
+is open in the designer with unsaved changes, or when it changed since its
+token was read; after a save the program is read back and compared with what
+was written. `src/model/aeOperations.ts` maps the operations onto the
+designer's (tested in `src/test/aeModel.test.ts`); `tools/lab/ae-mcp-e2e.mts`
+runs an agent's session against the real server and a live database.
+Nothing runs a program.
+
 ## Not written
 
-Components, menus, App Engine programs and the other read-only types, page
-PeopleCode and component PeopleCode: no writer exists for them yet. Creating
-pages and records through the MCP is also not offered yet.
+Menus and the other read-only types. Creating pages and records through the
+MCP is also not offered yet.

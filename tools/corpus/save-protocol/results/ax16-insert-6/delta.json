@@ -1,0 +1,863 @@
+{
+ "format": "ae-capture/1",
+ "case": "ax16-insert-6",
+ "program": "ZZ_AE_LAB01",
+ "watch": {
+  "PSAEAPPLDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "INROOTELEMENT"
+    },
+    {
+     "name": "INMSGNAME"
+    },
+    {
+     "name": "INMSGVERSION"
+    },
+    {
+     "name": "OUTROOTELEMENT"
+    },
+    {
+     "name": "OUTMSGNAME"
+    },
+    {
+     "name": "OUTMSGVERSION"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "AE_DATE_OVERRIDE"
+    },
+    {
+     "name": "ASOF_DT"
+    },
+    {
+     "name": "MESSAGE_SET_NBR"
+    },
+    {
+     "name": "AE_APPLLIBRARY"
+    },
+    {
+     "name": "AE_DISABLE_RESTART"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "AEPROGTYPE"
+    },
+    {
+     "name": "TEMPTBLINSTANCES"
+    },
+    {
+     "name": "RECUSE"
+    },
+    {
+     "name": "LICENSE_CODE"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "AE_APPLID": "ZZ_AE_LAB01"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "56",
+       "after": "57"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-11T12:54:43",
+       "after": "2026-10-11T12:54:52"
+      }
+     }
+    }
+   ]
+  },
+  "PSAEAPPLSTATE": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "AE_STATE_RECNAME"
+    },
+    {
+     "name": "AE_DEFAULT_STATE"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSAEAPPLTEMPTBL": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "RECNAME"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSAEAPPLLANG": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSAEAPPLDEL": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSAESECTDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "AE_SECTION"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "AE_SECTION_TYPE"
+    },
+    {
+     "name": "AE_PUBLIC_SW"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "AE_APPLID": "ZZ_AE_LAB01",
+      "AE_SECTION": "MAIN"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "41",
+       "after": "42"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-11T12:54:43",
+       "after": "2026-10-11T12:54:52"
+      }
+     }
+    }
+   ]
+  },
+  "PSAESECTDEL": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "AE_SECTION"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSAESECTDTLDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "AE_SECTION"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "DBTYPE"
+    },
+    {
+     "name": "EFFDT"
+    },
+    {
+     "name": "EFF_STATUS"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "AE_AUTO_COMMIT"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSAESTEPDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "AE_SECTION"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "DBTYPE"
+    },
+    {
+     "name": "EFFDT"
+    },
+    {
+     "name": "AE_STEP"
+    },
+    {
+     "name": "AE_SEQ_NUM"
+    },
+    {
+     "name": "AE_ACTIVE_STATUS"
+    },
+    {
+     "name": "AE_ABEND_ACTION"
+    },
+    {
+     "name": "AE_COMMIT_AFTER"
+    },
+    {
+     "name": "AE_DO_SECTION"
+    },
+    {
+     "name": "AE_DO_APPL_ID"
+    },
+    {
+     "name": "AE_DYNAMIC_DO"
+    },
+    {
+     "name": "AE_PC_ON_FALSE"
+    },
+    {
+     "name": "AE_ON_NOROWS"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "MESSAGE_SET_NBR"
+    },
+    {
+     "name": "MESSAGE_NBR"
+    },
+    {
+     "name": "AE_MESSAGE_SET_FLD"
+    },
+    {
+     "name": "AE_MESSAGE_NBR_FLD"
+    },
+    {
+     "name": "AE_COMMIT_FREQ"
+    },
+    {
+     "name": "PTAE_LOGGING_SQL"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSAESTMTDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "AE_SECTION"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "DBTYPE"
+    },
+    {
+     "name": "EFFDT"
+    },
+    {
+     "name": "AE_STEP"
+    },
+    {
+     "name": "AE_STMT_TYPE"
+    },
+    {
+     "name": "AE_REUSE_STMT"
+    },
+    {
+     "name": "AE_DO_SELECT_TYPE"
+    },
+    {
+     "name": "SQLID"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [
+    {
+     "AE_APPLID": "ZZ_AE_LAB01",
+     "AE_SECTION": "MAIN",
+     "MARKET": "GBL",
+     "DBTYPE": " ",
+     "EFFDT": "1900-01-01T00:00:00",
+     "AE_STEP": "Step01",
+     "AE_STMT_TYPE": "N",
+     "AE_REUSE_STMT": "N",
+     "AE_DO_SELECT_TYPE": " ",
+     "SQLID": "ZZ_AE_LAB01 MAIN    Step01  N",
+     "DESCR": "Do Until description",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSAESTEPMSGDEFN": {
+   "columns": [
+    {
+     "name": "AE_APPLID"
+    },
+    {
+     "name": "AE_SECTION"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "DBTYPE"
+    },
+    {
+     "name": "EFFDT"
+    },
+    {
+     "name": "AE_STEP"
+    },
+    {
+     "name": "AE_MESSAGE_PARMS"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSQLDEFN": {
+   "columns": [
+    {
+     "name": "SQLID"
+    },
+    {
+     "name": "SQLTYPE"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "ENABLEEFFDT"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSQLDESCR": {
+   "columns": [
+    {
+     "name": "SQLID"
+    },
+    {
+     "name": "SQLTYPE"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "DBTYPE"
+    },
+    {
+     "name": "EFFDT"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSQLTEXTDEFN": {
+   "columns": [
+    {
+     "name": "SQLID"
+    },
+    {
+     "name": "SQLTYPE"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "DBTYPE"
+    },
+    {
+     "name": "EFFDT"
+    },
+    {
+     "name": "SEQNUM"
+    },
+    {
+     "name": "SQLTEXT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSQLHASH": {
+   "columns": [
+    {
+     "name": "SQLID"
+    },
+    {
+     "name": "SQLTYPE"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "DBTYPE"
+    },
+    {
+     "name": "EFFDT"
+    },
+    {
+     "name": "HASH_SIGNATURE"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSQLDEL": {
+   "columns": [
+    {
+     "name": "SQLID"
+    },
+    {
+     "name": "SQLTYPE"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSQLLANG": {
+   "columns": [
+    {
+     "name": "SQLID"
+    },
+    {
+     "name": "SQLTYPE"
+    },
+    {
+     "name": "MARKET"
+    },
+    {
+     "name": "DBTYPE"
+    },
+    {
+     "name": "EFFDT"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMPROG": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "NAMECOUNT"
+    },
+    {
+     "name": "PROGLEN"
+    },
+    {
+     "name": "PROGRUNLOC"
+    },
+    {
+     "name": "PROGFLAGS"
+    },
+    {
+     "name": "LICENSE_CODE"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "PROGEXTENDS"
+    },
+    {
+     "name": "PTTOOLSREL"
+    },
+    {
+     "name": "PROGTXT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMTXT": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "HASH_SIGNATURE"
+    },
+    {
+     "name": "PCTEXT"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMNAME": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "NAMENUM"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "REFNAME"
+    },
+    {
+     "name": "PACKAGEROOT"
+    },
+    {
+     "name": "QUALIFYPATH"
+    },
+    {
+     "name": "APPCLASSMETHOD"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "AEM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "56",
+       "after": "57"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "AES"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "41",
+       "after": "42"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2147",
+       "after": "2148"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "AEM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "56",
+       "after": "57"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "AES"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "41",
+       "after": "42"
+      }
+     }
+    }
+   ]
+  }
+ }
+}

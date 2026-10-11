@@ -50,6 +50,8 @@ import { predictSourceSignature } from '../../../src/peoplecode/sourceSignature'
 
 const FORMAT = 'save-protocol-snapshot/1';
 const SCRATCH_LIKE = `'ZZ\\_PCODE\\_LAB%' ESCAPE '\\'`;
+/** App Engine program names are at most 12 characters: their scratch prefix is ZZ_AE_. */
+const SCRATCH_AE_LIKE = `'ZZ\\_AE\\_%' ESCAPE '\\'`;
 const RESULTS = path.join('tools', 'corpus', 'save-protocol', 'results');
 /** Rows recorded per swept table; a noisy log table must not swamp the delta. */
 const SWEEP_ROW_CAP = 500;
@@ -266,6 +268,25 @@ const WATCH: Array<{ table: string; scratchColumn?: string }> = [
   { table: 'PSPNLGROUP', scratchColumn: 'PNLGRPNAME' },
   { table: 'PSPNLGRPDEFNEXT', scratchColumn: 'PNLGRPNAME' },
   { table: 'PSPNLGRPSCRIPTS', scratchColumn: 'PNLGRPNAME' },
+  // App Engine save capture (docs/APP_ENGINE.md): the scratch program's
+  // definition rows, keyed by AE_APPLID, and its actions' SQL definitions
+  // (SQLID starts with the program name padded to 12).
+  { table: 'PSAEAPPLDEFN', scratchColumn: 'AE_APPLID' },
+  { table: 'PSAEAPPLSTATE', scratchColumn: 'AE_APPLID' },
+  { table: 'PSAEAPPLTEMPTBL', scratchColumn: 'AE_APPLID' },
+  { table: 'PSAEAPPLLANG', scratchColumn: 'AE_APPLID' },
+  { table: 'PSAEAPPLDEL', scratchColumn: 'AE_APPLID' },
+  { table: 'PSAESECTDEFN', scratchColumn: 'AE_APPLID' },
+  { table: 'PSAESECTDEL', scratchColumn: 'AE_APPLID' },
+  { table: 'PSAESECTDTLDEFN', scratchColumn: 'AE_APPLID' },
+  { table: 'PSAESTEPDEFN', scratchColumn: 'AE_APPLID' },
+  { table: 'PSAESTMTDEFN', scratchColumn: 'AE_APPLID' },
+  { table: 'PSAESTEPMSGDEFN', scratchColumn: 'AE_APPLID' },
+  { table: 'PSSQLDEFN', scratchColumn: 'SQLID' },
+  { table: 'PSSQLDESCR', scratchColumn: 'SQLID' },
+  { table: 'PSSQLTEXTDEFN', scratchColumn: 'SQLID' },
+  { table: 'PSSQLHASH', scratchColumn: 'SQLID' },
+  { table: 'PSSQLDEL', scratchColumn: 'SQLID' },
   { table: 'PSVERSION' },
   { table: 'PSLOCK' }
 ];
@@ -278,7 +299,8 @@ async function captureWatch(session: Session, asOfScn?: string): Promise<Snapsho
     if (w.scratchColumn && !columns.some((c) => c.name === w.scratchColumn)) {
       throw new Error(`${w.table} has no ${w.scratchColumn} column; the watch-set filter needs updating.`);
     }
-    const filter = w.scratchColumn ? `WHERE t.${quote(w.scratchColumn)} LIKE ${SCRATCH_LIKE}` : '';
+    const filter = w.scratchColumn
+      ? `WHERE (t.${quote(w.scratchColumn)} LIKE ${SCRATCH_LIKE} OR t.${quote(w.scratchColumn)} LIKE ${SCRATCH_AE_LIKE})` : '';
     const key = await keyOf(session, w.table);
     out[w.table] = { columns, key, filter, rows: await readRows(session, w.table, columns, filter, asOfScn) };
   }
