@@ -132,12 +132,47 @@ Goal long-term: replace Application Designer. **Today it reads every definition 
 | PeopleCode IntelliSense-lite | Yes | Completion, hover, outline, snippets |
 | PeopleCode syntax highlighting | Yes | |
 
+### Definition types (App Designer's Open Definition)
+
+Every type in App Designer's **Open Definition** list, and where it stands.
+**Yes** = read and create/save; **Experimental** = edited and saved,
+reproducing App Designer's saves; **Read-only** = viewer, from the database;
+**Not yet** = no viewer or editor.
+
+| Definition type | Status | Notes |
+|-----------------|--------|-------|
+| Activity | Not yet | Identified in project exports; no viewer yet |
+| Analytic Model | Not yet | Identified in project exports; no viewer yet |
+| Analytic Type | Not yet | — |
+| App Engine Program | Read-only | Definition and Program Flow views — see [docs/APP_ENGINE.md](docs/APP_ENGINE.md) |
+| Application Package | Yes | Browse; create packages and classes; Application Class PeopleCode reads and saves; properties read-only |
+| Approval Rule Set | Not yet | — |
+| Business Interlink | Not yet | — |
+| Business Process | Not yet | Identified in project exports; no viewer yet |
+| Component | Experimental | Structure, properties, page rows and Component PeopleCode, saved as App Designer saves — see [docs/COMPONENTS.md](docs/COMPONENTS.md) |
+| Component Interface | Read-only | Methods, keys, collections and properties |
+| Field | Yes | Editor; length, labels and description editable; create |
+| File Layout | Read-only | Format, segments and fields |
+| File Reference | Not yet | — |
+| HTML | Yes | Read, create and save — see [docs/HTML_SAVE.md](docs/HTML_SAVE.md) |
+| Image | Read-only | Shown in a panel (GIF, PNG, JPEG, SVG, BMP) |
+| Menu | Read-only | Bars and items |
+| Message | Read-only | Integration Broker message versions and record structure — see [docs/INTEGRATION_BROKER.md](docs/INTEGRATION_BROKER.md) |
+| Message Channel | Not yet | Integration Broker services and service operations are read-only; the channel/queue itself not yet |
+| Optimization Model | Not yet | Identified in project exports; no viewer yet |
+| Page | Experimental | Visual Layout editor with a property panel for every control type, saved as App Designer saves — see [docs/PAGE_SAVE.md](docs/PAGE_SAVE.md) |
+| Page (Fluid) | Experimental | The same editor; **New Page Fluid** creates one from a Layout Page |
+| Project | Yes | Browse, open XML exports, create |
+| Record | Yes | Editor (Field / Use / Edits); editable; create; translate values; delete — see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md) |
+| SQL | Yes | Read, create and save |
+| Style Sheet | Yes | Freeform: read as CSS, create and save — see [docs/STYLESHEET_SAVE.md](docs/STYLESHEET_SAVE.md). Classic / sub: a read-only class list |
+
 ## What does **not** work yet
 
-- Saving Page, Menu, App Engine and the other PeopleCode types (Record Field, Component and Application Class PeopleCode save)
+- Saving Menu and App Engine PeopleCode (Record Field, Page, Component and Application Class PeopleCode save)
 - Comparing a definition across two environments (only one connection is active at a time)
 - Editing record shapes and settings no App Designer save has been captured for (see [docs/RECORD_SAVE.md](docs/RECORD_SAVE.md))
-- Creating pages, menus and App Engine programs; editing menus and App Engine programs
+- Creating menus and App Engine programs; editing menus and App Engine programs
 - In the page designer: inserting grids, scroll areas, subpages, radio buttons, images and the other controls not captured yet ([docs/PAGE_SAVE.md](docs/PAGE_SAVE.md))
 - In the component editor: Default Search Action, the search-page link message numbers, the Custom style lists; component edits through the MCP
 - Build beyond SQL Tables (Alter Tables, indexes alone, views), project-level migrate/copy
