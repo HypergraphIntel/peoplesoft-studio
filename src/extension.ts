@@ -35,6 +35,7 @@ import { AeDesignerPanel, setAeDesignerExtensionUri } from './editors/aeDesigner
 import { MenuDesignerPanel, setMenuDesignerExtensionUri } from './editors/menuDesignerPanel.js';
 import { CiDesignerPanel, setCiDesignerExtensionUri } from './editors/ciDesignerPanel.js';
 import { registerToolsViews } from './views/toolsViews.js';
+import { registerCustomizationStrategy } from './views/customizationView.js';
 import { ChannelDesignerPanel, setChannelDesignerExtensionUri } from './editors/channelDesignerPanel.js';
 import { CHANNEL_NAME_MAX, copyChannel, type ChannelDocument } from './model/channelDocument.js';
 import { copyCi, type CiDocument } from './model/ciDocument.js';
@@ -318,6 +319,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.window.registerTreeDataProvider('psft.projects', projects)
   );
   registerToolsViews(context);
+  registerCustomizationStrategy(context, workspace);
 
   const refreshAll = () => { connections.refresh(); browser.refresh(); projects.refresh(); };
 

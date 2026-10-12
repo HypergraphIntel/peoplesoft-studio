@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.8.4
+
+### Added
+
+- **Customization Intelligence UI (preview, stubbed)** -- the surfaces
+  CUSTOMIZATION_INTELLIGENCE.md and CUSTOMIZATION_STRATEGY_PANEL.md describe,
+  not yet connected to anything:
+  - a **Customization Strategy** view (collapsed, above Connections) that
+    follows the PeopleSoft definition in the active editor or designer, with
+    Object Identity, Preferred Strategy, Configuration Capabilities (the
+    frameworks documented for that definition type), Dependencies & Upgrade
+    Impact and Actions; Pin / Unpin; ownership and every capability shown
+    greyed as *Unknown* -- never a finding no environment has produced;
+  - a **Customization Plan** editor tab (*Open Plan Designer*): Requirement,
+    Discover, Strategy (configuration vs direct comparison), Validate and
+    Approval (the delivered-object modification dialog), every action
+    disabled;
+  - settings `peoplesoft.customization.organizationPrefix`, `defaultStrategy`,
+    `deliveredObjectPolicy`, `requireImpactAnalysis`,
+    `suggestPrefixForNewObjects`, marked *not enforced yet*.
+
 ## 0.8.3
 
 ### Added

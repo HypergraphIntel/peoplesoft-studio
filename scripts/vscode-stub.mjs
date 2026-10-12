@@ -59,6 +59,9 @@ export function createStub() {
 
   class ThemeIcon { constructor(id, color) { this.id = id; this.color = color; } }
   class ThemeColor { constructor(id) { this.id = id; } }
+  class TabInputText { constructor(uri) { this.uri = uri; } }
+  class TabInputCustom { constructor(uri, viewType) { this.uri = uri; this.viewType = viewType; } }
+  class TabInputWebview { constructor(viewType) { this.viewType = viewType; } }
   class MarkdownString { constructor(value) { this.value = value; } }
 
   class CompletionItem {
@@ -109,6 +112,7 @@ export function createStub() {
 
   const vscode = {
     Disposable, EventEmitter, Uri, TreeItem, ThemeIcon, ThemeColor,
+    TabInputText, TabInputCustom, TabInputWebview,
     MarkdownString, FileSystemError, CompletionItem, SnippetString, Hover,
     DocumentSymbol, Range,
 
@@ -238,6 +242,13 @@ export function createStub() {
         registered.treeViews.add(id);
         vscode._trees.set(id, provider);
         return new Disposable(() => registered.treeViews.delete(id));
+      },
+      // No editor tab is open in a smoke run.
+      tabGroups: {
+        all: [],
+        activeTabGroup: { activeTab: undefined, tabs: [] },
+        onDidChangeTabs: () => new Disposable(() => {}),
+        onDidChangeTabGroups: () => new Disposable(() => {})
       },
       createTreeView(id, options) {
         registered.treeViews.add(id);

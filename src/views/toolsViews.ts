@@ -16,6 +16,11 @@ export const PLANNED_TOOL_COMMAND = 'psft.plannedTool';
 /** The scheme of the URIs that carry an entry's greyed label colour. */
 const SCHEME = 'psft-tool';
 
+/** A URI whose decoration greys a tree item's label: give it to an item as its resourceUri. */
+export function mutedUri(path: string): vscode.Uri {
+  return vscode.Uri.from({ scheme: SCHEME, path: path.startsWith('/') ? path : `/${path}` });
+}
+
 interface Node { view: ToolViewId; path: string[]; tool: ToolNode }
 
 export class ToolsView implements vscode.TreeDataProvider<Node> {
@@ -33,7 +38,7 @@ export class ToolsView implements vscode.TreeDataProvider<Node> {
     item.iconPath = new vscode.ThemeIcon(tool.icon, tool.planned ? new vscode.ThemeColor('disabledForeground') : undefined);
     if (tool.planned) {
       // The label itself takes the decoration's disabled colour (PlannedToolDecorations).
-      item.resourceUri = vscode.Uri.from({ scheme: SCHEME, path: `/${node.view}/${node.path.map(encodeURIComponent).join('/')}` });
+      item.resourceUri = mutedUri(`/${node.view}/${node.path.map(encodeURIComponent).join('/')}`);
       item.tooltip = `${node.path.join(' › ')} — not available yet`;
       item.contextValue = 'plannedTool';
       if (!tool.children?.length) {

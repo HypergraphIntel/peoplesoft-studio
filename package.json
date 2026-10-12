@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -84,6 +84,12 @@
           "icon": "./resources/digging.svg",
           "id": "psft.dataMigrationTools",
           "name": "Data Migration Tools"
+        },
+        {
+          "icon": "./resources/chalkboard-user.svg",
+          "id": "psft.customizationStrategy",
+          "name": "Customization Strategy",
+          "visibility": "collapsed"
         },
         {
           "icon": "./resources/link.svg",
@@ -176,6 +182,41 @@
         "command": "psft.plannedTool",
         "title": "Tool Not Available Yet",
         "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.customization.openPlan",
+        "title": "Open Customization Plan",
+        "category": "PeopleSoft",
+        "icon": "$(notebook)"
+      },
+      {
+        "command": "psft.customization.pin",
+        "title": "Pin Definition",
+        "category": "PeopleSoft",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "psft.customization.unpin",
+        "title": "Unpin Definition",
+        "category": "PeopleSoft",
+        "icon": "$(pinned)"
+      },
+      {
+        "command": "psft.customization.refresh",
+        "title": "Refresh Customization Strategy",
+        "category": "PeopleSoft",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "psft.customization.discover",
+        "title": "Discover Customization Capabilities",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.customization.openSettings",
+        "title": "Customization Settings",
+        "category": "PeopleSoft",
+        "icon": "$(gear)"
       },
       {
         "command": "psft.refresh",
@@ -438,6 +479,31 @@
           "command": "psft.settings.open",
           "when": "view == psft.settings || view == psft.connections",
           "group": "navigation@9"
+        },
+        {
+          "command": "psft.customization.openPlan",
+          "when": "view == psft.customizationStrategy",
+          "group": "navigation@1"
+        },
+        {
+          "command": "psft.customization.pin",
+          "when": "view == psft.customizationStrategy && !psft.customization.pinned",
+          "group": "navigation@2"
+        },
+        {
+          "command": "psft.customization.unpin",
+          "when": "view == psft.customizationStrategy && psft.customization.pinned",
+          "group": "navigation@2"
+        },
+        {
+          "command": "psft.customization.refresh",
+          "when": "view == psft.customizationStrategy",
+          "group": "navigation@3"
+        },
+        {
+          "command": "psft.customization.openSettings",
+          "when": "view == psft.customizationStrategy",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [
@@ -563,6 +629,10 @@
       "commandPalette": [
         {
           "command": "psft.plannedTool",
+          "when": "false"
+        },
+        {
+          "command": "psft.customization.discover",
           "when": "false"
         },
         {
@@ -873,6 +943,51 @@
           "type": "boolean",
           "default": false,
           "description": "Build Settings, Alter: Alter Table In Memory."
+        },
+        "peoplesoft.customization.organizationPrefix": {
+          "type": "string",
+          "default": "",
+          "pattern": "^([A-Za-z][A-Za-z0-9]*_)?$",
+          "patternErrorMessage": "A prefix such as ZZ_: a letter, letters or digits, then an underscore.",
+          "description": "Preview, not enforced yet. The organization's prefix for new definitions (for example ZZ_). A naming convention only: it never decides whether a definition is delivered or custom."
+        },
+        "peoplesoft.customization.defaultStrategy": {
+          "type": "string",
+          "enum": [
+            "configurationFirst",
+            "allowDirect"
+          ],
+          "default": "configurationFirst",
+          "enumDescriptions": [
+            "Prefer configuration frameworks and custom definitions over changing delivered definitions.",
+            "Allow direct modification of delivered definitions where the delivered-object policy permits."
+          ],
+          "description": "Preview, not enforced yet. The customization strategy Customization Strategy and the planner prefer."
+        },
+        "peoplesoft.customization.deliveredObjectPolicy": {
+          "type": "string",
+          "enum": [
+            "block",
+            "requireApproval",
+            "allowWithAudit"
+          ],
+          "default": "requireApproval",
+          "enumDescriptions": [
+            "Refuse every edit of a delivered definition.",
+            "Edits of delivered definitions need an explicit approval.",
+            "Allow edits of delivered definitions, recording each."
+          ],
+          "description": "Preview, not enforced yet. What happens when an edit would change a delivered definition."
+        },
+        "peoplesoft.customization.requireImpactAnalysis": {
+          "type": "boolean",
+          "default": true,
+          "description": "Preview, not enforced yet. Require an upgrade-impact analysis before a write."
+        },
+        "peoplesoft.customization.suggestPrefixForNewObjects": {
+          "type": "boolean",
+          "default": true,
+          "description": "Preview, not enforced yet. Suggest the organization prefix when naming a new definition."
         }
       }
     }
