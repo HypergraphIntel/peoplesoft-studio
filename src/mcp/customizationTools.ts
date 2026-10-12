@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 
 import { decideWrite, OWNERSHIP_LABELS } from '../model/ownership.js';
+import { describeMapping, EVENT_LEVEL_LABELS, eventLabel, PROCESSING_LABELS, type EventLevel } from '../model/eventMapping.js';
 import { DatabaseProvider } from '../providers/database.js';
 import { effectivePolicy } from '../providers/writeGuard.js';
 import { Workspace } from '../workspace.js';
@@ -50,5 +51,31 @@ export function registerCustomizationTools(server: McpServer, workspace: Workspa
       writePolicy: { setting: 'peoplesoft.customization.agentDeliveredObjectPolicy', policy: policy.agentDeliveredObjectPolicy, outcome: decision.action, reason: decision.reason }
     });
   });
-}
 
+  server.registerTool('psft_customization_discover', {
+    title: 'Customization: which configuration frameworks could extend a definition',
+    description: 'Discovers, on this database, whether supported configuration frameworks can extend a definition without changing it. Event Mapping ' +
+      '(application class PeopleCode run at component, record, field and page events): VERIFIED_AVAILABLE when the component -- a page\'s or record\'s ' +
+      'components -- is registered as a content reference, VERIFIED_UNAVAILABLE when not, with the evidence and the configurations already there ' +
+      '(level, event, service and its application class, processing sequence, sequence, enabled, who saved them). Drop Zones, Page and Field ' +
+      'Configurator, Configurable Search and AE plug-ins are not discovered yet (UNKNOWN). Read only.',
+    inputSchema: z.object({ connection: z.string().min(1), type: z.number().int(), parts: z.array(z.string()).min(1) }),
+    annotations: READ_ONLY
+  }, async ({ connection, type, parts }) => {
+    const p = await requireProvider(workspace, connection);
+    if (!(p instanceof DatabaseProvider)) throw new Error(`${p.displayName} is a project export; capabilities are discovered on a database connection.`);
+    const r = await p.discoverCapabilities(keyFromInput(type, parts));
+    const em = r.eventMapping;
+    return jsonResult({
+      eventMapping: em ? {
+        state: em.state, evidence: em.evidence, contentReferences: em.contentReferences, services: em.services,
+        configurations: em.mappings.map((m) => ({
+          summary: describeMapping(m), contentReference: m.contentReference, level: EVENT_LEVEL_LABELS[m.level as EventLevel] ?? m.level,
+          page: m.page, record: m.record, field: m.field, event: eventLabel(m), service: m.serviceId, applicationClass: m.applicationClass,
+          processing: PROCESSING_LABELS[m.processing] ?? m.processing, sequence: m.sequence, enabled: m.enabled, savedBy: m.operator, savedAt: m.updated
+        }))
+      } : { state: 'NOT_APPLICABLE', evidence: ['Event Mapping maps components\' events: it applies to components, pages, records and their PeopleCode.'] },
+      notDiscoveredYet: ['Drop Zones', 'Page and Field Configurator', 'Configurable Search', 'App Engine Plug-ins']
+    });
+  });
+}

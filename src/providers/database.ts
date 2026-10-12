@@ -59,6 +59,8 @@ import { renderChannel } from '../model/channelOperations.js';
 import { classifyOwnership, type Classification, type NamingPrefix, type OwnershipEvidence } from '../model/ownership.js';
 import { captureBaseline, readOwnershipEvidence, readRelease, resolveBaseline, type BaselineFile, type DatabaseRelease } from './ownershipReader.js';
 import { guardWrite, type WriteAction } from './writeGuard.js';
+import { discoverEventMapping } from './eventMappingReader.js';
+import type { EventMappingDiscovery } from '../model/eventMapping.js';
 import type { MenuReferenceLookup } from '../model/menuSession.js';
 import type { AeDocument } from '../model/aeDocument.js';
 import type { AeReferenceLookup } from '../model/aeValidation.js';
@@ -1959,6 +1961,17 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   /** A delivered baseline of this database: run it on a vanilla demo database of the release (read only). */
+  /**
+   * Which configuration frameworks could extend a definition, as this
+   * database shows it (docs/CUSTOMIZATION.md): Event Mapping -- the
+   * component's content references and the configurations on them. The
+   * other frameworks are not discovered yet.
+   */
+  async discoverCapabilities(key: DefinitionKey): Promise<{ eventMapping?: EventMappingDiscovery }> {
+    const eventMapping = await this.withConnection((c) => discoverEventMapping(c, key));
+    return eventMapping ? { eventMapping } : {};
+  }
+
   async captureDeliveredBaseline(onProgress?: (what: string) => void): Promise<BaselineFile> {
     return this.withConnection((c) => captureBaseline(c, onProgress));
   }

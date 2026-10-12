@@ -27,7 +27,15 @@
   named with them -- a vendor's prefix is the evidence for Partner. 0.8.4's
   single `organizationPrefix` is deprecated and still read while the list is
   empty; failing both, the write-scope prefix counts as the organization's.
-- MCP: `psft_customization_get_policy`, `psft_object_classify`.
+- **Event Mapping discovery** (read only). For a component -- a page or a
+  record through its components, PeopleCode through its owner -- the
+  Customization Strategy view shows whether Event Mapping can extend it
+  (Verified available: registered as a content reference; Verified
+  unavailable: not) and the configurations already on it: level, event,
+  service and its application class, processing sequence, sequence, enabled,
+  who saved them. Matched against PeopleTools' Configure Event Mapping page.
+- MCP: `psft_customization_get_policy`, `psft_object_classify`,
+  `psft_customization_discover`.
 
 See docs/CUSTOMIZATION.md.
 

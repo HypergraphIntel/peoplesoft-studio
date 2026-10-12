@@ -1,5 +1,6 @@
 import { DefinitionType, typeLabel } from './definitions.js';
 import { matchPrefix, OWNERSHIP_LABELS, type Classification, type NamingPrefix } from './ownership.js';
+import { describeMapping, type EventMappingDiscovery } from './eventMapping.js';
 
 export { OWNERSHIP_LABELS, type Ownership } from './ownership.js';
 
@@ -118,7 +119,7 @@ export function singular(label: string): string {
   return label.replace(/s$/, '');
 }
 
-const PREVIEW = 'Preview — capability discovery is not implemented yet.';
+const PREVIEW = 'Preview — discovery of this framework is not implemented yet (Event Mapping is).';
 
 /** The ownership row's state: being read, read, or not readable here. */
 export type OwnershipState =
@@ -153,7 +154,39 @@ function ownershipRows(ctx: CustomizationContext, policy: CustomizationPolicy, o
  * Upgrade Impact, Actions. Everything the environment would have to answer
  * shows as unknown.
  */
-export function strategySections(ctx: CustomizationContext | undefined, policy: CustomizationPolicy, pinned: boolean, owner?: OwnershipState): StrategyRow[] {
+/** What discovery found, per framework: being read, read, or not readable here. */
+export type CapabilitiesState =
+  | { state: 'pending' }
+  | { state: 'unavailable'; message: string }
+  | { state: 'done'; eventMapping?: EventMappingDiscovery };
+
+const STATE_ICONS: Readonly<Record<DiscoveryState, string>> = {
+  UNKNOWN: 'circle-large-outline', POTENTIAL: 'circle-large-outline', VERIFIED_AVAILABLE: 'pass', VERIFIED_UNAVAILABLE: 'circle-slash', INDETERMINATE: 'warning'
+};
+
+function capabilityRow(f: Framework, caps: CapabilitiesState | undefined): StrategyRow {
+  const info = FRAMEWORKS[f];
+  const unknown: StrategyRow = { id: `capability.${f}`, label: info.label, description: DISCOVERY_LABELS.UNKNOWN, icon: 'circle-large-outline', muted: true,
+    tooltip: `${info.purpose}.\nTo verify: ${info.mustVerify}.\n${PREVIEW}`, command: { id: 'psft.customization.discover', args: [info.label] } };
+  if (f !== 'EVENT_MAPPING') return unknown;
+  if (!caps || caps.state === 'pending') return { ...unknown, description: 'Discovering…', icon: 'loading~spin', tooltip: `${info.purpose}.` };
+  if (caps.state === 'unavailable') return { ...unknown, tooltip: `${info.purpose}.\n${caps.message}` };
+  const d = caps.eventMapping;
+  if (!d) return unknown;
+  return {
+    id: `capability.${f}`, label: info.label, icon: STATE_ICONS[d.state], muted: d.state !== 'VERIFIED_AVAILABLE',
+    description: `${DISCOVERY_LABELS[d.state]}${d.state === 'VERIFIED_AVAILABLE' ? ` · ${d.mappings.length} configured` : ''}`,
+    tooltip: `${info.purpose}.\n${d.evidence.join('\n')}`,
+    children: [
+      ...d.evidence.map((line, i) => ({ id: `capability.${f}.evidence.${i}`, label: line, icon: 'debug-stackframe-dot', muted: true, tooltip: line })),
+      ...d.mappings.map((m, i) => ({ id: `capability.${f}.mapping.${i}`, label: describeMapping(m), icon: m.enabled ? 'symbol-event' : 'circle-slash',
+        description: `${m.contentReference}${m.operator ? ` · ${m.operator === 'PPLSOFT' ? 'Oracle' : m.operator}` : ''}`,
+        tooltip: `${describeMapping(m)}\nContent reference ${m.contentReference}${m.updated ? `; last saved by ${m.operator} on ${m.updated}` : ''}` }))
+    ]
+  };
+}
+
+export function strategySections(ctx: CustomizationContext | undefined, policy: CustomizationPolicy, pinned: boolean, owner?: OwnershipState, caps?: CapabilitiesState): StrategyRow[] {
   if (!ctx) {
     return [{ id: 'none', label: 'No PeopleSoft definition', description: 'open one to see its strategy', icon: 'info', muted: true,
       tooltip: 'The view follows the PeopleSoft definition in the active editor.' }];
@@ -175,8 +208,7 @@ export function strategySections(ctx: CustomizationContext | undefined, policy: 
         tooltip: 'peoplesoft.customization.agentDeliveredObjectPolicy: the same writes made by an AI agent through the MCP. An agent cannot approve them; you do, in VS Code.' }
     ] },
     { id: 'capabilities', label: 'Configuration Capabilities', icon: 'extensions', children: frameworks.length
-      ? frameworks.map((f) => ({ id: `capability.${f}`, label: FRAMEWORKS[f].label, description: DISCOVERY_LABELS.UNKNOWN, icon: 'circle-large-outline', muted: true,
-        tooltip: `${FRAMEWORKS[f].purpose}.\nTo verify: ${FRAMEWORKS[f].mustVerify}.\n${PREVIEW}`, command: { id: 'psft.customization.discover', args: [FRAMEWORKS[f].label] } }))
+      ? frameworks.map((f) => capabilityRow(f, caps))
       : [{ id: 'capability.none', label: 'None documented for this type', icon: 'circle-slash', muted: true }] },
     { id: 'impact', label: 'Dependencies & Upgrade Impact', icon: 'references', children: [
       { id: 'impact.none', label: 'Not analyzed', icon: 'circle-large-outline', muted: true, tooltip: `No customization registry yet. ${PREVIEW}` }

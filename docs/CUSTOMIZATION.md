@@ -1,12 +1,13 @@
 # Customization Intelligence
 
-Who owns a definition, and what may happen to it. This is phase 1 of the
-Customization Intelligence design (CUSTOMIZATION_INTELLIGENCE.md,
-CUSTOMIZATION_STRATEGY_PANEL.md): ownership classified from evidence, and a
-delivered-object policy every write passes. Capability discovery (Event
-Mapping, Drop Zones, Page and Field Configurator, AE plug-ins), plans and the
-customization registry are later phases; the Customization Strategy view and
-the Customization Plan editor still show them as previews.
+Who owns a definition, what may happen to it, and which configuration
+frameworks could extend it instead. Phase 1 of the Customization Intelligence
+design (CUSTOMIZATION_INTELLIGENCE.md, CUSTOMIZATION_STRATEGY_PANEL.md):
+ownership classified from evidence, and delivered-object policies every write
+passes. Phase 2a: Event Mapping discovered, read only. Drop Zones, Page and
+Field Configurator, Configurable Search, AE plug-ins, writing configurations,
+plans and the customization registry are later; the Customization Strategy
+view and the Customization Plan editor show them as previews.
 
 ## Ownership
 
@@ -149,12 +150,56 @@ one their own definitions look delivered. The Customization Strategy view
 offers *Capture Delivered Baseline…* whenever the open definition was
 classified without one.
 
+## Event Mapping discovery
+
+Whether Event Mapping -- application class PeopleCode run at a component's,
+its records', fields' and pages' events, configured instead of changing the
+delivered PeopleCode -- can extend a definition on this database, and what is
+configured already. Read only; established on HRDMO, its tables read from
+Oracle's own view SQL and the results checked against the Configure Event
+Mapping page (PeopleTools > Portal > Related Content Service).
+
+| Table | Holds |
+|---|---|
+| PSPTCSSRVCONF | A configuration: PORTAL_NAME `_PTCS_PTEVMAP`, PORTAL_OBJNAME the content reference, PTCS_SERVICEID, PTCS_ISCOMPSERVICE the level, PNLNAME / RECNAME / FIELDNAME, PTCS_CMPEVENT (component level) or PTCS_CMPRECEVENT (the others), PTCS_PROCSEQ, SEQNUM, PTCS_ENABLE, the stamp (Oracle view PTCS_EVMAP_CFGS) |
+| PSPTCS_SRVCFG | The content references configured (Oracle view PTCS_EVMAP_SRCH) |
+| PSPTCSSRVDEFN | The service: PTCS_SERVICEURLTYP `UAPC` (Application Class) names the class by PACKAGEROOT, QUALIFYPATH, APPCLASSID (Oracle view PTCS_EV_SRVC_VW) |
+| PSPRSMDEFN | The content references a component is registered as: PORTAL_URI_SEG2 component, SEG3 market |
+
+**The level's translate labels mislead.** PSXLATITEM calls PTCS_ISCOMPSERVICE
+P "Services at Page level" and R "Event Mapping at Comp Rec"; the Configure
+Event Mapping page shows **C Component, P Record, R Page**, F Record Field --
+P rows carry a record and RowInit / RowInsert, R rows a page and Activate.
+Events and the processing sequence (Pre Process, Post Process,
+Override/Replace) keep their translate labels.
+
+The verdict:
+
+- **Component** -- Verified available when it is registered as a content
+  reference (Event Mapping configures content references), with the
+  configurations on them; Verified unavailable, with that reason, when not.
+- **Page** -- through the components it is in; the configurations naming the page.
+- **Record** -- through the components whose pages use it (subpages not
+  followed); the configurations naming the record.
+- PeopleCode is judged by its component, page or record. Other types: not
+  applicable.
+
+HRDMO: 325 Application Class services; 50 configurations on 8 content
+references, all Oracle's -- Dependent Information (DEPEND_BENEF) has a
+component PostBuild, two RowInit and a RowInsert on records and a page
+Activate, all masking services of EOCC_COMP_CONFIG.
+
+Not mapped yet: the page's Event Map Parameter and Unrestricted Prompt.
+Writing configurations (phase 2b) needs the Configure Event Mapping page's
+saves captured first.
+
 ## MCP
 
 | Tool | What it does |
 |---|---|
 | `psft_customization_get_policy` | The effective prefixes, strategy and both delivered-object policies |
 | `psft_object_classify` | Ownership, confidence and evidence of a definition, and what the agent policy would do with a write to it |
+| `psft_customization_discover` | Which frameworks could extend a definition: Event Mapping's verdict, evidence and existing configurations; the rest not discovered yet |
 
 ## Proof
 
@@ -163,7 +208,10 @@ classified without one.
   pages, components and PeopleCode; a new event judged by its record; lab
   definitions with and without prefixes; a bolt-on prefix; a baseline
   captured from HRDMO and applied; every DatabaseProvider write reaching the
-  guard first, a person's write told from an agent's, PSVERSION unchanged --
-  41 of 41.
+  guard first, a person's write told from an agent's, PSVERSION unchanged;
+  Event Mapping discovery against the Configure Event Mapping page --
+  48 of 48.
+- `src/test/eventMapping.test.ts`: the levels as the page shows them, the
+  verdict, the view's rows.
 - `src/test/ownership.test.ts` also proves the origin survives awaits and
   interleaved calls, and that an MCP tool's callback runs as an agent's.

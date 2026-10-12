@@ -98,7 +98,24 @@ try {
   check('in the baseline but saved by another operator: delivered, modified', c.ownership === 'DELIVERED_MODIFIED' && c.confidence === 'HIGH', show(c));
   setBaselineResolver(async () => index);
 
-  // 3. Every write passes the guard before it touches anything.
+  // 3. Event Mapping discovery, as HRDMO's Configure Event Mapping page shows it (Dependent Information: 5 rows).
+  let d = (await p.discoverCapabilities(makeKey(DefinitionType.Component, 'DEPEND_BENEF', 'GBL'))).eventMapping!;
+  const rowsOf = (x: typeof d) => x.mappings.map((m) => `${m.level}|${m.page ?? m.record ?? ''}|${m.event}|${m.serviceId}`).sort().join(' ');
+  check('DEPEND_BENEF: available, its 5 configurations as the page lists them', d.state === 'VERIFIED_AVAILABLE' && rowsOf(d) ===
+    ['C||POST|EOCC_MASK_POSTBUILD', 'P|DEPENDENT_PHONE|RINI|EOCC_MASK_ROWINIT', 'P|DEPENDENT_PHONE|RINS|EOCC_MASK_ROWINSERT', 'P|DEP_BEN|RINI|EOCC_MASK_ROWINIT',
+      'R|DEPEND_BENEF_ADDR|PACT|EOCC_MASK_PAGEACTIVATE'].join(' '), rowsOf(d));
+  check('DEPEND_BENEF: services resolved to their application classes', d.mappings.every((m) => m.applicationClass?.startsWith('EOCC_COMP_CONFIG:Services:')));
+  d = (await p.discoverCapabilities(makeKey(DefinitionType.Component, 'ZZ_PCODE_LAB_CMP', 'GBL'))).eventMapping!;
+  check('a lab component with no content reference: unavailable, and why', d.state === 'VERIFIED_UNAVAILABLE' && /not registered as a content reference/.test(d.evidence[0]));
+  d = (await p.discoverCapabilities(makeKey(DefinitionType.Component, 'JOB_DATA', 'GBL'))).eventMapping!;
+  check('JOB_DATA: available, nothing configured', d.state === 'VERIFIED_AVAILABLE' && d.mappings.length === 0);
+  d = (await p.discoverCapabilities(makeKey(DefinitionType.Page, 'DEPEND_BENEF_ADDR'))).eventMapping!;
+  check('a page: through its components; the configuration naming it', d.state === 'VERIFIED_AVAILABLE' && rowsOf(d) === 'R|DEPEND_BENEF_ADDR|PACT|EOCC_MASK_PAGEACTIVATE', rowsOf(d));
+  d = (await p.discoverCapabilities(makeKey(DefinitionType.RecordPeopleCode, 'DEPENDENT_PHONE', 'PHONE', 'FieldChange'))).eventMapping!;
+  check('a record\'s PeopleCode: judged by the record, the two configurations naming it', d.state === 'VERIFIED_AVAILABLE' && d.mappings.length === 2, rowsOf(d));
+  check('a menu: Event Mapping does not apply', !(await p.discoverCapabilities(makeKey(DefinitionType.Menu, 'ADMINISTER_WORKFORCE_(GBL)'))).eventMapping);
+
+  // 4. Every write passes the guard before it touches anything.
   const seen: GuardedWrite[] = [];
   const SENTINEL = 'guard refused (spy)';
   setWriteGuard(async (w) => { seen.push(w); throw new Error(SENTINEL); });

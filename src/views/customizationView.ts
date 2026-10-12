@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { keyFromString, type DefinitionType } from '../model/definitions.js';
 import {
-  DESIGNER_TYPES, nameFromTitle, strategySections, type CustomizationContext, type CustomizationPolicy, type OwnershipState, type StrategyRow
+  DESIGNER_TYPES, nameFromTitle, strategySections, type CapabilitiesState, type CustomizationContext, type CustomizationPolicy, type OwnershipState, type StrategyRow
 } from '../model/customizationStrategy.js';
 import { DatabaseProvider } from '../providers/database.js';
 import { CustomizationPlanPanel } from '../editors/customizationPlanPanel.js';
@@ -38,6 +38,7 @@ export class CustomizationStrategyView implements vscode.TreeDataProvider<Strate
   private current: CustomizationContext | undefined;
   private pinned: CustomizationContext | undefined;
   private readonly owners = new Map<string, OwnershipState>();
+  private readonly capabilities = new Map<string, CapabilitiesState>();
 
   constructor(private readonly workspace: Workspace) {}
 
@@ -70,13 +71,34 @@ export class CustomizationStrategyView implements vscode.TreeDataProvider<Strate
   /** Re-reads the shown definition's ownership (after a save, or a baseline or setting change). */
   refresh(): void {
     this.owners.clear();
+    this.capabilities.clear();
     this.changed.fire();
   }
 
   getChildren(row?: StrategyRow): StrategyRow[] {
     if (row) return row.children ?? [];
     const ctx = this.context;
-    return strategySections(ctx, readCustomizationPolicy(), !!this.pinned, ctx ? this.ownerOf(ctx) : undefined);
+    return strategySections(ctx, readCustomizationPolicy(), !!this.pinned, ctx ? this.ownerOf(ctx) : undefined, ctx ? this.capabilitiesOf(ctx) : undefined);
+  }
+
+  /** What discovery finds for the definition (Event Mapping so far): read once per definition. */
+  private capabilitiesOf(ctx: CustomizationContext): CapabilitiesState {
+    const id = `${ctx.connectionId ?? ''}\u0000${ctx.type}\u0000${(ctx.parts ?? [ctx.name]).join('.')}`;
+    const known = this.capabilities.get(id);
+    if (known) return known;
+    const provider = ctx.connectionId ? this.workspace.activeProviders.find((p) => p.id === ctx.connectionId) : undefined;
+    if (!(provider instanceof DatabaseProvider) || !provider.isConnected) {
+      const state: CapabilitiesState = { state: 'unavailable', message: 'Discovered on a connected database: open the definition from one.' };
+      this.capabilities.set(id, state);
+      return state;
+    }
+    const pending: CapabilitiesState = { state: 'pending' };
+    this.capabilities.set(id, pending);
+    provider.discoverCapabilities({ type: ctx.type, parts: ctx.parts ?? [ctx.name] })
+      .then((r) => this.capabilities.set(id, { state: 'done', ...r }))
+      .catch((error) => this.capabilities.set(id, { state: 'unavailable', message: `Discovery failed: ${error instanceof Error ? error.message : String(error)}` }))
+      .finally(() => { if (this.capabilities.get(id) !== pending) this.changed.fire(); });
+    return pending;
   }
 
   /** The definition's ownership: read once per definition, the view refreshed when it arrives. */

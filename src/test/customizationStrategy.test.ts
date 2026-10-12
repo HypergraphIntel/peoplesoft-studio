@@ -39,7 +39,8 @@ test('ownership: being read, not readable, or classified with its evidence; capa
   // The prefix shows, as supporting evidence; capability discovery is still unknown.
   const rows = all(strategySections(ctx, POLICY, false));
   assert.equal(rows.find((r) => r.id === 'identity.prefix')?.description, 'ZZ_ · organization');
-  for (const r of rows.filter((x) => x.id.startsWith('capability.'))) assert.ok(r.muted && r.description === 'Unknown', r.id);
+  // Event Mapping is discovered (eventMapping.test.ts); the frameworks not discovered yet stay unknown.
+  for (const r of rows.filter((x) => x.id.startsWith('capability.') && !x.id.startsWith('capability.EVENT_MAPPING'))) assert.ok(r.muted && r.description === 'Unknown', r.id);
   assert.equal(all(strategySections({ type: DefinitionType.Component, name: 'JOB_DATA' }, POLICY, false)).find((r) => r.id === 'identity.prefix'), undefined);
 });
 
