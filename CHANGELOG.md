@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Customization Intelligence, phase 1: who owns a definition, and the
+  delivered-object policy.** Every definition is classified -- Delivered,
+  Delivered modified, Partner (bolt-on), Custom or Unknown -- with a
+  confidence and its evidence: its PPLSOFT stamp, an Oracle-delivered project
+  listing it, the naming prefixes, and a delivered baseline of the release
+  when one is captured (*PeopleSoft: Capture Delivered Baseline...*, from a
+  vanilla demo database). The Customization Strategy view shows it for the
+  definition you have open.
+- **Delivered-object policies, enforced** on every save, rename and delete of
+  an existing definition (one guard in the database provider, which every
+  editor, designer and MCP tool passes). One for your writes in the editors
+  (`deliveredObjectPolicy`, default allowWithAudit: written and recorded) and
+  one for AI agents' through the MCP (`agentDeliveredObjectPolicy`, default
+  requireApproval: you approve each in VS Code, even when MCP writes are
+  "allow"). block refuses Oracle's and vendors' definitions; unknown
+  ownership is asked, never let through silently. Every decision is in the
+  audit log (*PeopleSoft: Show Customization Audit Log*). The Customization
+  Strategy view offers to capture a baseline when the release has none.
+- **Naming prefixes are a list** (`peoplesoft.customization.namingPrefixes`):
+  the organization's and each bolt-on vendor's, with who owns definitions
+  named with them -- a vendor's prefix is the evidence for Partner. 0.8.4's
+  single `organizationPrefix` is deprecated and still read while the list is
+  empty; failing both, the write-scope prefix counts as the organization's.
+- MCP: `psft_customization_get_policy`, `psft_object_classify`.
+
+See docs/CUSTOMIZATION.md.
+
 ## 0.8.4
 
 ### Added

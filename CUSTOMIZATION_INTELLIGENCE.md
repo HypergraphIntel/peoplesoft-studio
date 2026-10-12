@@ -1,5 +1,12 @@
 # PeopleSoft Studio — Customization Intelligence Architecture
 
+> **Status.** Phase 1 -- ownership classification and the delivered-object
+> policy at the write gate -- is built: see docs/CUSTOMIZATION.md. The
+> Customization Strategy view and Plan editor exist as a preview. Naming
+> prefixes are a list (bolt-on vendors carry their own; a vendor's prefix is
+> the evidence for PARTNER). Next: Event Mapping discovery (read only), then
+> Drop Zones, Page and Field Configurator, AE plug-ins.
+
 Proposed feature: Customization Intelligence Engine
 
 I recommend building a Customization Intelligence Engine (CIE) into PeopleSoft Studio, shared by the VS Code extension and its MCP Server.
@@ -90,9 +97,9 @@ I would introduce a dedicated `peopleSoftStudio.customization` settings namespac
 
 Proposed settings experience
 
-Organization object prefix
+Naming prefixes (a list)
 
-Configurable per workspace or connection; validate using the target PeopleTools object naming rules.
+The organization's prefix and each bolt-on vendor's, with who owns definitions named with it; configurable per workspace or connection; validate using the target PeopleTools object naming rules.
 
 Default customization strategy
 
@@ -472,6 +479,23 @@ The MCP must explain the associated upgrade and maintenance implications.
 
 Introduce settings supporting organization-specific prefixes.
 
+**Naming prefixes are a list, not a single value.** Organizations often buy
+PeopleSoft bolt-ons that carry their own prefixes, alongside their own. Each
+configured prefix records who owns definitions named with it:
+
+```json
+"peoplesoft.customization.namingPrefixes": [
+  { "prefix": "ZZ_",  "owner": "organization", "name": "Acme Corp" },
+  { "prefix": "XYZ_", "owner": "partner",      "name": "XYZ Bolt-On Suite" }
+]
+```
+
+An `organization` prefix is evidence for CUSTOM; a `partner` prefix is the
+evidence for PARTNER (a vendor-delivered definition, which carries its own
+upgrade and retrofit risk). New definitions are suggested the first
+organization prefix. Prefixes stay supporting evidence, never proof on their
+own.
+
 For Acme Corp, the normal naming prefix is:
 
 ZZ\_
@@ -512,7 +536,7 @@ peopleSoftStudio.customization
 
 Support:
 
-- organizationPrefix
+- namingPrefixes (a list: prefix, owner organization | partner, name)
 - defaultStrategy
 - deliveredObjectPolicy
 - requireImpactAnalysis

@@ -11,7 +11,7 @@ import {
  * environment has established.
  */
 
-const POLICY: CustomizationPolicy = { organizationPrefix: 'ZZ_', defaultStrategy: 'configurationFirst', deliveredObjectPolicy: 'requireApproval' };
+const POLICY: CustomizationPolicy = { prefixes: [{ prefix: 'ZZ_', owner: 'organization' }], defaultStrategy: 'configurationFirst', deliveredObjectPolicy: 'allowWithAudit', agentDeliveredObjectPolicy: 'requireApproval' };
 const all = (rows: StrategyRow[]): StrategyRow[] => rows.flatMap((r) => [r, ...all(r.children ?? [])]);
 
 test('the five sections, in the panel design\'s order', () => {
@@ -20,15 +20,27 @@ test('the five sections, in the panel design\'s order', () => {
   assert.deepEqual(rows[2].children!.map((r) => r.label), ['Event Mapping', 'Drop Zones', 'Page and Field Configurator', 'Configurable Search']);
 });
 
-test('nothing is claimed: ownership and every capability unknown, greyed -- even with the organization prefix', () => {
-  for (const name of ['JOB_DATA', 'ZZ_PCODE_LAB_CMP']) {
-    const rows = all(strategySections({ type: DefinitionType.Component, name }, POLICY, false));
-    const ownership = rows.find((r) => r.id === 'identity.ownership')!;
-    assert.equal(ownership.description, 'Unknown');
-    assert.ok(ownership.muted);
-    for (const r of rows.filter((x) => x.id.startsWith('capability.'))) assert.ok(r.muted && r.description === 'Unknown', r.id);
-    assert.ok(!rows.some((r) => /verified|available|delivered\b/i.test(`${r.description ?? ''}`) && !/policy/i.test(r.id)), name);
-  }
+test('ownership: being read, not readable, or classified with its evidence; capabilities stay unknown', () => {
+  const ctx = { type: DefinitionType.Component, name: 'ZZ_PCODE_LAB_CMP' };
+  const row = (owner?: Parameters<typeof strategySections>[3]) => all(strategySections(ctx, POLICY, false, owner)).find((r) => r.id === 'identity.ownership')!;
+  assert.equal(row().description, 'Classifying…');
+  const unavailable = row({ state: 'unavailable', message: 'not connected' });
+  assert.deepEqual([unavailable.description, unavailable.muted], ['Unknown', true]);
+  const done = row({ state: 'done', baseline: true, classification: { ownership: 'CUSTOM', confidence: 'MEDIUM', evidence: ['Saved locally.', 'Its name has the organization prefix ZZ_.'] } });
+  assert.equal(done.description, 'Custom · medium confidence');
+  assert.deepEqual(done.children!.map((r) => r.label), ['Saved locally.', 'Its name has the organization prefix ZZ_.']);
+  // No baseline for the release: capturing one is offered; with one, not.
+  const ids = (b: boolean) => all(strategySections(ctx, POLICY, false, { state: 'done', baseline: b, classification: { ownership: 'UNKNOWN', confidence: 'LOW', evidence: [] } })).map((r) => r.id);
+  assert.ok(ids(false).includes('identity.baseline'));
+  assert.ok(!ids(true).includes('identity.baseline'));
+  // Both policies: yours (editors) and AI agents' (MCP).
+  const strategy = all(strategySections(ctx, POLICY, false)).filter((r) => r.id.startsWith('strategy.'));
+  assert.deepEqual(strategy.map((r) => `${r.label}: ${r.description ?? ''}`).slice(1), ['Your edits: Allow with audit record', 'AI agent edits: Require explicit approval']);
+  // The prefix shows, as supporting evidence; capability discovery is still unknown.
+  const rows = all(strategySections(ctx, POLICY, false));
+  assert.equal(rows.find((r) => r.id === 'identity.prefix')?.description, 'ZZ_ · organization');
+  for (const r of rows.filter((x) => x.id.startsWith('capability.'))) assert.ok(r.muted && r.description === 'Unknown', r.id);
+  assert.equal(all(strategySections({ type: DefinitionType.Component, name: 'JOB_DATA' }, POLICY, false)).find((r) => r.id === 'identity.prefix'), undefined);
 });
 
 test('frameworks by definition type: documented applicability only', () => {

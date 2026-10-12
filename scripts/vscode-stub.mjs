@@ -250,6 +250,7 @@ export function createStub() {
         onDidChangeTabs: () => new Disposable(() => {}),
         onDidChangeTabGroups: () => new Disposable(() => {})
       },
+      createOutputChannel: (name) => ({ name, appendLine() {}, append() {}, show() {}, clear() {}, dispose() {} }),
       createTreeView(id, options) {
         registered.treeViews.add(id);
         vscode._trees.set(id, options.treeDataProvider);
@@ -317,6 +318,7 @@ export function createStub() {
         vscode._fs.set(scheme, provider);
         return new Disposable(() => registered.fileSystems.delete(scheme));
       },
+      onDidSaveTextDocument: () => new Disposable(() => {}),
       onDidChangeConfiguration(listener, thisArg, disposables) {
         const bound = thisArg ? listener.bind(thisArg) : listener;
         vscode._configurationListeners.push(bound);

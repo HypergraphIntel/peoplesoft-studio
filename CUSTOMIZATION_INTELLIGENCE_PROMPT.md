@@ -64,6 +64,23 @@ The MCP must explain the associated upgrade and maintenance implications.
 
 Introduce settings supporting organization-specific prefixes.
 
+**Naming prefixes are a list, not a single value.** Organizations often buy
+PeopleSoft bolt-ons that carry their own prefixes, alongside their own. Each
+configured prefix records who owns definitions named with it:
+
+```json
+"peoplesoft.customization.namingPrefixes": [
+  { "prefix": "ZZ_",  "owner": "organization", "name": "Acme Corp" },
+  { "prefix": "XYZ_", "owner": "partner",      "name": "XYZ Bolt-On Suite" }
+]
+```
+
+An `organization` prefix is evidence for CUSTOM; a `partner` prefix is the
+evidence for PARTNER (a vendor-delivered definition, which carries its own
+upgrade and retrofit risk). New definitions are suggested the first
+organization prefix. Prefixes stay supporting evidence, never proof on their
+own.
+
 For Acme Corp, the normal naming prefix is:
 
 ZZ_
@@ -104,7 +121,7 @@ peopleSoftStudio.customization
 
 Support:
 
-- organizationPrefix
+- namingPrefixes (a list: prefix, owner organization | partner, name)
 - defaultStrategy
 - deliveredObjectPolicy
 - requireImpactAnalysis

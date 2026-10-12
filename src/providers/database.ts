@@ -4,7 +4,7 @@ import {
   DefinitionProvider, DefinitionSummary, EnvironmentInfo, ProjectSummary, ProviderCapabilities,
   ProviderError, SearchQuery, UnsupportedOperationError
 } from './provider.js';
-import { DefinitionKey, DefinitionType, isPeopleCode, makeKey } from '../model/definitions.js';
+import { DefinitionKey, DefinitionType, displayName as keyDisplayName, isPeopleCode, makeKey } from '../model/definitions.js';
 import { PROPERTIES_SPECS, PropertiesInput, StoredRow } from '../model/properties.js';
 import type { FieldDefinition } from '../model/fieldDefinition.js';
 import type { RecordLayout, TranslateValue } from '../model/recordLayout.js';
@@ -56,6 +56,9 @@ import {
 } from './channelWriter.js';
 import { newChannel, type ChannelDocument, type ChannelReferenceLookup } from '../model/channelDocument.js';
 import { renderChannel } from '../model/channelOperations.js';
+import { classifyOwnership, type Classification, type NamingPrefix, type OwnershipEvidence } from '../model/ownership.js';
+import { captureBaseline, readOwnershipEvidence, readRelease, resolveBaseline, type BaselineFile, type DatabaseRelease } from './ownershipReader.js';
+import { guardWrite, type WriteAction } from './writeGuard.js';
 import type { MenuReferenceLookup } from '../model/menuSession.js';
 import type { AeDocument } from '../model/aeDocument.js';
 import type { AeReferenceLookup } from '../model/aeValidation.js';
@@ -662,6 +665,7 @@ export class DatabaseProvider implements DefinitionProvider {
    * transaction, then verified again on another connection after COMMIT.
    */
   async saveRecord(request: RecordSaveRequest): Promise<RecordSaveResult> {
+    if (!request.edit.isNew) await this.guard(makeKey(DefinitionType.Record, request.edit.recname), 'save');
     const result = await this.withConnection((c) => saveRecord(c, request));
     await this.withConnection((c) => verifyRecordSave(c, request, result));
     return result;
@@ -672,6 +676,7 @@ export class DatabaseProvider implements DefinitionProvider {
    * deleteRecord, case r40), then checks on another connection that it is gone.
    */
   async deleteRecord(request: { recname: string; openedVersion: number; operatorId: string }): Promise<{ version: number }> {
+    await this.guard(makeKey(DefinitionType.Record, request.recname), 'delete');
     const result = await this.withConnection((c) => deleteRecord(c, request));
     await this.withConnection(async (c) => {
       const r = await c.execute<{ N: number }>(
@@ -683,6 +688,7 @@ export class DatabaseProvider implements DefinitionProvider {
 
   /** Adds, changes or deletes a field's translate value as App Designer does (translateWriter.ts). */
   async saveTranslate(field: string, change: TranslateChange, operatorId: string): Promise<void> {
+    await this.guard(makeKey(DefinitionType.Field, field), 'save');
     await this.withConnection((c) => saveTranslateRows(c, field, change, operatorId));
   }
 
@@ -731,6 +737,7 @@ export class DatabaseProvider implements DefinitionProvider {
 
   /** Saves a field as App Designer's field saves did (fieldWriter.ts saveField), verified in the transaction. */
   async saveField(request: FieldSaveRequest): Promise<{ version: number; lastupddttm: string; records: string[] }> {
+    await this.guard(makeKey(DefinitionType.Field, request.name), 'save');
     return this.withConnection((c) => saveFieldRows(c, request));
   }
 
@@ -829,6 +836,7 @@ export class DatabaseProvider implements DefinitionProvider {
    * transaction, then verified again on another connection after COMMIT.
    */
   async saveSqlDefinition(request: SqlSaveRequest): Promise<SqlSaveResult> {
+    if (request.openedVersion !== undefined) await this.guard(makeKey(DefinitionType.SqlDefinition, request.sqlId, '0'), 'save');
     const result = await this.withConnection((c) => saveSqlDefinitionRows(c, request));
     await this.withConnection((c) => verifySqlSave(c, request, result));
     return result;
@@ -1027,6 +1035,7 @@ export class DatabaseProvider implements DefinitionProvider {
 
   /** Saves a component as App Designer does (componentWriter.ts); never one without a search record. */
   async saveComponent(request: ComponentSaveRequest): Promise<ComponentSaveResult> {
+    await this.guard(makeKey(DefinitionType.Component, request.name, request.market), 'save');
     return this.withConnection((c) => saveComponent(c, request));
   }
 
@@ -1043,6 +1052,7 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   async savePage(request: PageSaveRequest): Promise<PageSaveResult> {
+    await this.guard(makeKey(DefinitionType.Page, request.pnlName), 'save');
     const result = await this.withConnection((c) => savePage(c, request));
     await this.withConnection((c) => verifyPageSave(c, request, result));
     return result;
@@ -1094,6 +1104,7 @@ export class DatabaseProvider implements DefinitionProvider {
    * (styleSheetWriter.ts): one transaction, verified again after COMMIT.
    */
   async saveStyleSheet(request: StyleSheetSaveRequest): Promise<StyleSheetSaveResult> {
+    await this.guard(makeKey(DefinitionType.StyleSheet, request.name), 'save');
     const types = this.types;
     const result = await this.withConnection((c) => saveStyleSheetRows(c, types.BLOB, request));
     await this.withConnection((c) => verifyStyleSheetSave(c, request, result));
@@ -1116,6 +1127,7 @@ export class DatabaseProvider implements DefinitionProvider {
    * one transaction, then verified again on another connection after COMMIT.
    */
   async saveHtmlDefinition(request: HtmlSaveRequest): Promise<HtmlSaveResult> {
+    await this.guard(makeKey(DefinitionType.HtmlDefinition, request.name, '4'), 'save');
     const types = this.types;
     const result = await this.withConnection((c) => saveHtmlRows(c, types.BLOB, request));
     await this.withConnection((c) => verifyHtmlSave(c, request, result));
@@ -1132,6 +1144,7 @@ export class DatabaseProvider implements DefinitionProvider {
    * connection, then the committed state is verified again on another.
    */
   async savePeopleCode(key: DefinitionKey, request: PeopleCodeSaveRequest): Promise<PeopleCodeSaveResult> {
+    await this.guard(key, 'save');
     const types = this.types;
     const parts = pcmProgKeyParts(key);
     const objectIds = PEOPLECODE_OBJECTIDS[key.type];
@@ -1865,6 +1878,7 @@ export class DatabaseProvider implements DefinitionProvider {
    * connection after COMMIT. A dry run returns the plan and writes nothing.
    */
   async saveAppEngineDocument(request: AeSaveRequest): Promise<AeSaveResult> {
+    if (!request.dryRun && request.openedToken !== 'absent') await this.guard(makeKey(DefinitionType.AppEngineProgram, request.doc.name), 'save');
     const types = this.types;
     const result = await this.withConnection((c) => saveAppEngine(c, types, request));
     await this.withConnection((c) => verifyAppEngineSave(c, types, result));
@@ -1872,6 +1886,7 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   async deleteAppEngineProgram(name: string, token: string, operatorId: string): Promise<void> {
+    await this.guard(makeKey(DefinitionType.AppEngineProgram, name), 'delete');
     const types = this.types;
     await this.withConnection((c) => deleteAppEngine(c, types, name, token, operatorId));
     const after = await this.withConnection((c) => readStoredAppEngine(c, types, name, false));
@@ -1879,6 +1894,7 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   async renameAppEngineProgram(from: string, to: string, token: string, operatorId: string): Promise<AeSaveResult> {
+    await this.guard(makeKey(DefinitionType.AppEngineProgram, from), 'rename');
     const types = this.types;
     const result = await this.withConnection((c) => renameAppEngine(c, types, from, to, token, operatorId));
     await this.withConnection((c) => verifyAppEngineSave(c, types, result));
@@ -1896,6 +1912,7 @@ export class DatabaseProvider implements DefinitionProvider {
 
   /** Saves a menu document as App Designer does (menuWriter.ts, docs/MENUS.md), then proves it after COMMIT. */
   async saveMenuDocument(request: MenuSaveRequest): Promise<MenuSaveResult> {
+    if (!request.dryRun && request.openedToken !== 'absent') await this.guard(makeKey(DefinitionType.Menu, request.doc.name), 'save');
     const types = this.types;
     const result = await this.withConnection((c) => saveMenu(c, types, request));
     await this.withConnection((c) => verifyMenuSave(c, types, result));
@@ -1903,6 +1920,7 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   async deleteMenuDefinition(name: string, token: string, operatorId: string): Promise<void> {
+    await this.guard(makeKey(DefinitionType.Menu, name), 'delete');
     const types = this.types;
     await this.withConnection((c) => deleteMenu(c, types, name, token, operatorId));
     const after = await this.withConnection((c) => readStoredMenu(c, types, name, false));
@@ -1910,10 +1928,44 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   async renameMenuDefinition(from: string, to: string, token: string, operatorId: string): Promise<MenuSaveResult> {
+    await this.guard(makeKey(DefinitionType.Menu, from), 'rename');
     const types = this.types;
     const result = await this.withConnection((c) => renameMenu(c, types, from, to, token, operatorId));
     await this.withConnection((c) => verifyMenuSave(c, types, result));
     return result;
+  }
+
+  private release: Promise<DatabaseRelease> | undefined;
+
+  /** The application and tools release of this database (cached): a delivered baseline applies to its own release only. */
+  async databaseRelease(): Promise<DatabaseRelease> {
+    this.release ??= this.withConnection((c) => readRelease(c)).catch((error) => { this.release = undefined; throw error; });
+    return this.release;
+  }
+
+  /**
+   * Who owns a definition, and why (model/ownership.ts, docs/CUSTOMIZATION.md):
+   * its stamp, an Oracle-delivered project listing it, this release's
+   * delivered baseline when one was captured, the naming prefixes. A
+   * PeopleCode program not stored yet is judged by the definition it belongs to.
+   */
+  async classifyDefinition(key: DefinitionKey, prefixes: readonly NamingPrefix[]): Promise<{ classification: Classification; evidence: OwnershipEvidence & { judgedBy?: DefinitionKey }; release: DatabaseRelease }> {
+    const release = await this.databaseRelease();
+    const baseline = await resolveBaseline(release);
+    const evidence = await this.withConnection((c) => readOwnershipEvidence(c, key, prefixes, baseline));
+    const classification = classifyOwnership(evidence);
+    if (evidence.judgedBy) classification.evidence.unshift(`No program stored yet: judged by ${keyDisplayName(evidence.judgedBy)}, the definition it belongs to.`);
+    return { classification, evidence, release };
+  }
+
+  /** A delivered baseline of this database: run it on a vanilla demo database of the release (read only). */
+  async captureDeliveredBaseline(onProgress?: (what: string) => void): Promise<BaselineFile> {
+    return this.withConnection((c) => captureBaseline(c, onProgress));
+  }
+
+  /** The delivered-object guard (writeGuard.ts) before a write to an existing definition. */
+  private async guard(key: DefinitionKey, action: WriteAction): Promise<void> {
+    await guardWrite({ provider: this, key, action });
   }
 
   /** A message channel as its window opens it (channelWriter.ts, docs/MESSAGE_CHANNELS.md), with its token; undefined when there is none. */
@@ -1933,6 +1985,7 @@ export class DatabaseProvider implements DefinitionProvider {
 
   /** Saves a message channel as App Designer does, then proves it after COMMIT. */
   async saveChannelDocument(request: ChannelSaveRequest): Promise<ChannelSaveResult> {
+    if (!request.dryRun && request.openedToken !== 'absent') await this.guard(makeKey(DefinitionType.MessageChannel, request.doc.name), 'save');
     const types = this.types;
     const result = await this.withConnection((c) => saveChannel(c, types, request));
     await this.withConnection((c) => verifyChannelSave(c, types, result));
@@ -1940,6 +1993,7 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   async deleteChannelDefinition(name: string, token: string, operatorId: string): Promise<void> {
+    await this.guard(makeKey(DefinitionType.MessageChannel, name), 'delete');
     const types = this.types;
     await this.withConnection((c) => deleteChannel(c, types, name, token, operatorId));
     const after = await this.withConnection((c) => readStoredChannel(c, types, name, false));
@@ -1947,6 +2001,7 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   async renameChannelDefinition(from: string, to: string, token: string, operatorId: string): Promise<ChannelSaveResult> {
+    await this.guard(makeKey(DefinitionType.MessageChannel, from), 'rename');
     const types = this.types;
     const result = await this.withConnection((c) => renameChannel(c, types, from, to, token, operatorId));
     await this.withConnection((c) => verifyChannelSave(c, types, result));
@@ -2004,6 +2059,7 @@ export class DatabaseProvider implements DefinitionProvider {
 
   /** Saves a Component Interface as App Designer does, then proves it after COMMIT. */
   async saveCiDocument(request: CiSaveRequest): Promise<CiSaveResult> {
+    if (!request.dryRun && request.openedToken !== 'absent') await this.guard(makeKey(DefinitionType.ComponentInterface, request.doc.name), 'save');
     const types = this.types;
     const result = await this.withConnection((c) => saveCi(c, types, request));
     await this.withConnection((c) => verifyCiSave(c, types, result));
@@ -2011,6 +2067,7 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   async deleteCiDefinition(name: string, token: string, operatorId: string): Promise<void> {
+    await this.guard(makeKey(DefinitionType.ComponentInterface, name), 'delete');
     const types = this.types;
     await this.withConnection((c) => deleteCi(c, types, name, token, operatorId));
     const after = await this.withConnection((c) => readStoredCi(c, types, name, false));
@@ -2018,6 +2075,7 @@ export class DatabaseProvider implements DefinitionProvider {
   }
 
   async renameCiDefinition(from: string, to: string, token: string, operatorId: string): Promise<CiSaveResult> {
+    await this.guard(makeKey(DefinitionType.ComponentInterface, from), 'rename');
     const types = this.types;
     const result = await this.withConnection((c) => renameCi(c, types, from, to, token, operatorId));
     await this.withConnection((c) => verifyCiSave(c, types, result));

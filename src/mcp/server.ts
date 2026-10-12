@@ -32,6 +32,8 @@ import { registerAppEngineTools } from './appEngineTools.js';
 import { registerMenuTools } from './menuTools.js';
 import { registerCiTools } from './ciTools.js';
 import { registerChannelTools } from './channelTools.js';
+import { registerCustomizationTools } from './customizationTools.js';
+import { runToolsAsAgent } from './agentOrigin.js';
 
 import {
   DEFAULT_MCP_PORT
@@ -167,6 +169,9 @@ export async function startPeopleSoftMcpServer(
               '0.2.1'
           });
 
+        // Every tool call runs as an agent's: the delivered-object guard applies agentDeliveredObjectPolicy to what it writes.
+        runToolsAsAgent(server as never);
+
         registerPeopleSoftTools(
           server,
           workspace
@@ -201,6 +206,7 @@ export async function startPeopleSoftMcpServer(
           workspace,
           writeHost
         );
+        registerCustomizationTools(server, workspace);
 
         if (writeHost) {
           registerPeopleSoftWriteTools(

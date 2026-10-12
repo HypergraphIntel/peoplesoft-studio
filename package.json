@@ -219,6 +219,18 @@
         "icon": "$(gear)"
       },
       {
+        "command": "psft.customization.captureBaseline",
+        "title": "Capture Delivered Baseline...",
+        "category": "PeopleSoft",
+        "icon": "$(database)"
+      },
+      {
+        "command": "psft.customization.showAuditLog",
+        "title": "Show Customization Audit Log",
+        "category": "PeopleSoft",
+        "icon": "$(output)"
+      },
+      {
         "command": "psft.refresh",
         "title": "Refresh",
         "category": "PeopleSoft",
@@ -504,6 +516,16 @@
           "command": "psft.customization.openSettings",
           "when": "view == psft.customizationStrategy",
           "group": "navigation@4"
+        },
+        {
+          "command": "psft.customization.captureBaseline",
+          "when": "view == psft.customizationStrategy",
+          "group": "9_admin@1"
+        },
+        {
+          "command": "psft.customization.showAuditLog",
+          "when": "view == psft.customizationStrategy",
+          "group": "9_admin@2"
         }
       ],
       "view/item/context": [
@@ -944,12 +966,48 @@
           "default": false,
           "description": "Build Settings, Alter: Alter Table In Memory."
         },
+        "peoplesoft.customization.namingPrefixes": {
+          "type": "array",
+          "default": [],
+          "markdownDescription": "The naming prefixes and who owns definitions named with them: the organization's own prefix, and each bolt-on vendor's (bolt-ons carry their own prefixes). An `organization` prefix is evidence that a definition is the organization's (Custom), a `partner` prefix that it is a vendor's (Partner). New definitions are suggested the first organization prefix. Supporting evidence only: a prefix never decides ownership on its own. See docs/CUSTOMIZATION.md. While the list is empty, the write-scope prefix (`peoplesoft.writeNamePrefix`) counts as the organization's.",
+          "items": {
+            "type": "object",
+            "required": [
+              "prefix"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "prefix": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9]*_?$",
+                "description": "The prefix, e.g. ZZ_."
+              },
+              "owner": {
+                "type": "string",
+                "enum": [
+                  "organization",
+                  "partner"
+                ],
+                "default": "organization",
+                "enumDescriptions": [
+                  "The organization's own definitions.",
+                  "A bolt-on vendor's definitions."
+                ]
+              },
+              "name": {
+                "type": "string",
+                "description": "The organization or vendor (shown in the evidence)."
+              }
+            }
+          }
+        },
         "peoplesoft.customization.organizationPrefix": {
           "type": "string",
           "default": "",
           "pattern": "^([A-Za-z][A-Za-z0-9]*_)?$",
           "patternErrorMessage": "A prefix such as ZZ_: a letter, letters or digits, then an underscore.",
-          "description": "Preview, not enforced yet. The organization's prefix for new definitions (for example ZZ_). A naming convention only: it never decides whether a definition is delivered or custom."
+          "description": "Deprecated: use peoplesoft.customization.namingPrefixes.",
+          "markdownDeprecationMessage": "Use `peoplesoft.customization.namingPrefixes`; this single prefix is read only while that list is empty."
         },
         "peoplesoft.customization.defaultStrategy": {
           "type": "string",
@@ -962,7 +1020,7 @@
             "Prefer configuration frameworks and custom definitions over changing delivered definitions.",
             "Allow direct modification of delivered definitions where the delivered-object policy permits."
           ],
-          "description": "Preview, not enforced yet. The customization strategy Customization Strategy and the planner prefer."
+          "description": "The customization strategy the Customization Strategy view and plans prefer (a preference, not yet enforced)."
         },
         "peoplesoft.customization.deliveredObjectPolicy": {
           "type": "string",
@@ -971,13 +1029,28 @@
             "requireApproval",
             "allowWithAudit"
           ],
-          "default": "requireApproval",
+          "default": "allowWithAudit",
           "enumDescriptions": [
             "Refuse every edit of a delivered definition.",
             "Edits of delivered definitions need an explicit approval.",
             "Allow edits of delivered definitions, recording each."
           ],
-          "description": "Preview, not enforced yet. What happens when an edit would change a delivered definition."
+          "description": "Your saves, renames and deletes, in the editors and designers, of an Oracle- or vendor-delivered definition or one of unknown ownership. allowWithAudit (the default) writes and records each in the audit log; requireApproval asks; block refuses (unknown ownership is asked, never refused). New definitions are not affected. AI agents have their own: agentDeliveredObjectPolicy."
+        },
+        "peoplesoft.customization.agentDeliveredObjectPolicy": {
+          "type": "string",
+          "enum": [
+            "block",
+            "requireApproval",
+            "allowWithAudit"
+          ],
+          "default": "requireApproval",
+          "enumDescriptions": [
+            "Refuse every agent write to a delivered definition (unknown ownership is asked, never refused).",
+            "Ask you in VS Code for each agent write to a delivered definition -- even when MCP writes are \"allow\".",
+            "Allow agent writes to delivered definitions, recording each."
+          ],
+          "description": "The same writes made by an AI agent through the MCP. requireApproval (the default) asks you in VS Code for each, even when peoplesoft.mcp.writes is \"allow\"; an agent cannot approve them."
         },
         "peoplesoft.customization.requireImpactAnalysis": {
           "type": "boolean",

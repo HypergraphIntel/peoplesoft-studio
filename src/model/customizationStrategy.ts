@@ -1,12 +1,16 @@
 import { DefinitionType, typeLabel } from './definitions.js';
+import { matchPrefix, OWNERSHIP_LABELS, type Classification, type NamingPrefix } from './ownership.js';
+
+export { OWNERSHIP_LABELS, type Ownership } from './ownership.js';
 
 /*
  * Customization Intelligence, the UI's model (CUSTOMIZATION_INTELLIGENCE.md,
  * CUSTOMIZATION_STRATEGY_PANEL.md): the evidence and lifecycle states, the
  * configuration frameworks, which of them apply to a definition, and the
- * Customization Strategy view's sections. A PREVIEW: nothing here inspects a
- * database yet, so every ownership is UNKNOWN and every capability UNKNOWN --
- * never a finding the environment has not produced. Pure: no `vscode`.
+ * Customization Strategy view's sections. Ownership is classified from
+ * evidence (ownership.ts); capability discovery is not implemented yet, so
+ * every capability is UNKNOWN -- never a finding the environment has not
+ * produced. Pure: no `vscode`.
  */
 
 /** Capability discovery: evidence-driven; never VERIFIED_* without target-environment evidence. */
@@ -18,11 +22,6 @@ export const DISCOVERY_LABELS: Readonly<Record<DiscoveryState, string>> = {
 
 /** A plan's lifecycle, kept apart from discovery so an available mechanism is never mistaken for a done change. */
 export type PlanStatus = 'NOT_PLANNED' | 'DRAFT' | 'VALIDATED' | 'APPROVED' | 'APPLIED' | 'TESTED' | 'FAILED';
-
-export type Ownership = 'DELIVERED' | 'CUSTOM' | 'PARTNER' | 'UNKNOWN' | 'DELIVERED_MODIFIED';
-export const OWNERSHIP_LABELS: Readonly<Record<Ownership, string>> = {
-  DELIVERED: 'Delivered', CUSTOM: 'Custom', PARTNER: 'Partner / third-party', UNKNOWN: 'Unknown', DELIVERED_MODIFIED: 'Delivered, modified'
-};
 
 export type Framework = 'EVENT_MAPPING' | 'DROP_ZONES' | 'PAGE_FIELD_CONFIGURATOR' | 'AE_PLUGINS' | 'CONFIGURABLE_SEARCH';
 
@@ -77,12 +76,20 @@ export interface CustomizationContext {
   type: DefinitionType;
   name: string;
   connection?: string;
+  /** The connection's id, when known: what the definition is classified on. */
+  connectionId?: string;
+  /** The key's parts (name is their display). */
+  parts?: string[];
 }
 
 export interface CustomizationPolicy {
-  organizationPrefix: string;
+  /** The organization's prefix and each bolt-on vendor's (peoplesoft.customization.namingPrefixes). */
+  prefixes: NamingPrefix[];
   defaultStrategy: 'configurationFirst' | 'allowDirect';
+  /** For people, in the editors and designers. */
   deliveredObjectPolicy: 'block' | 'requireApproval' | 'allowWithAudit';
+  /** For AI agents, through the MCP. */
+  agentDeliveredObjectPolicy: 'block' | 'requireApproval' | 'allowWithAudit';
 }
 
 export const POLICY_LABELS = {
@@ -111,7 +118,34 @@ export function singular(label: string): string {
   return label.replace(/s$/, '');
 }
 
-const PREVIEW = 'Preview — classification and discovery are not implemented yet.';
+const PREVIEW = 'Preview — capability discovery is not implemented yet.';
+
+/** The ownership row's state: being read, read, or not readable here. */
+export type OwnershipState =
+  | { state: 'pending' }
+  | { state: 'unavailable'; message: string }
+  | { state: 'done'; classification: Classification; /** Whether a delivered baseline of the release was applied. */ baseline: boolean };
+
+function ownershipRows(ctx: CustomizationContext, policy: CustomizationPolicy, owner: OwnershipState | undefined): StrategyRow[] {
+  const prefix = matchPrefix(ctx.name, policy.prefixes);
+  const prefixRow: StrategyRow[] = prefix
+    ? [{ id: 'identity.prefix', label: 'Prefix', description: `${prefix.prefix} · ${prefix.owner === 'partner' ? 'bolt-on' : 'organization'}${prefix.name ? ` (${prefix.name})` : ''}`, icon: 'tag',
+        tooltip: 'From peoplesoft.customization.namingPrefixes. A naming convention: supporting evidence, never proof on its own.' }]
+    : [];
+  if (!owner || owner.state === 'pending') return [{ id: 'identity.ownership', label: 'Ownership', description: 'Classifying…', icon: 'loading~spin', muted: true }, ...prefixRow];
+  if (owner.state === 'unavailable') return [{ id: 'identity.ownership', label: 'Ownership', description: OWNERSHIP_LABELS.UNKNOWN, icon: 'question', muted: true, tooltip: owner.message }, ...prefixRow];
+  const c = owner.classification;
+  const icon = c.ownership === 'CUSTOM' ? 'person' : c.ownership === 'PARTNER' ? 'organization' : c.ownership === 'UNKNOWN' ? 'question' : 'lock';
+  return [{
+    id: 'identity.ownership', label: 'Ownership', description: `${OWNERSHIP_LABELS[c.ownership]} · ${c.confidence.toLowerCase()} confidence`, icon,
+    muted: c.ownership === 'UNKNOWN', tooltip: c.evidence.join('\n'),
+    children: c.evidence.map((line, i) => ({ id: `identity.evidence.${i}`, label: line, icon: 'debug-stackframe-dot', muted: true, tooltip: line }))
+  }, ...prefixRow,
+  // Without a baseline, ownership rests on stamps and prefixes; one from a vanilla demo makes it reliable.
+  ...(owner.baseline ? [] : [{ id: 'identity.baseline', label: 'Capture Delivered Baseline…', description: 'none for this release', icon: 'database',
+    tooltip: 'No delivered baseline for this release: ownership rests on the PPLSOFT stamp, projects and prefixes. Capture one from a vanilla demo database of the release to make it reliable.',
+    command: { id: 'psft.customization.captureBaseline' } }])];
+}
 
 /**
  * The Customization Strategy view's sections for a definition: Object
@@ -119,27 +153,26 @@ const PREVIEW = 'Preview — classification and discovery are not implemented ye
  * Upgrade Impact, Actions. Everything the environment would have to answer
  * shows as unknown.
  */
-export function strategySections(ctx: CustomizationContext | undefined, policy: CustomizationPolicy, pinned: boolean): StrategyRow[] {
+export function strategySections(ctx: CustomizationContext | undefined, policy: CustomizationPolicy, pinned: boolean, owner?: OwnershipState): StrategyRow[] {
   if (!ctx) {
     return [{ id: 'none', label: 'No PeopleSoft definition', description: 'open one to see its strategy', icon: 'info', muted: true,
       tooltip: 'The view follows the PeopleSoft definition in the active editor.' }];
   }
   const kind = singular(typeLabel(ctx.type));
-  const prefixed = !!policy.organizationPrefix && ctx.name.toUpperCase().startsWith(policy.organizationPrefix.toUpperCase());
   const frameworks = frameworksFor(ctx.type);
   return [
     { id: 'identity', label: 'Object Identity', icon: 'symbol-class', children: [
       { id: 'identity.object', label: ctx.name, description: kind, icon: 'file-code', tooltip: `${ctx.name} · ${kind}${ctx.connection ? ` · ${ctx.connection}` : ''}` },
       ...(ctx.connection ? [{ id: 'identity.connection', label: 'Connection', description: ctx.connection, icon: 'plug' }] : []),
-      { id: 'identity.ownership', label: 'Ownership', description: OWNERSHIP_LABELS.UNKNOWN, icon: 'question', muted: true,
-        tooltip: `Not classified. ${prefixed ? `The name has the organization prefix ${policy.organizationPrefix}, which` : 'A name prefix'} is a naming convention, not proof of ownership. ${PREVIEW}` },
-      { id: 'identity.modified', label: 'Modified from baseline', description: 'Unknown', icon: 'diff', muted: true, tooltip: `No delivered baseline compared. ${PREVIEW}` }
+      ...ownershipRows(ctx, policy, owner)
     ] },
     { id: 'strategy', label: 'Preferred Strategy', icon: 'compass', children: [
       { id: 'strategy.default', label: POLICY_LABELS[policy.defaultStrategy], icon: 'law',
         tooltip: 'A policy preference (peoplesoft.customization.defaultStrategy), not a determination that a configuration solution is feasible.' },
-      { id: 'strategy.delivered', label: 'Delivered-object edits', description: POLICY_LABELS[policy.deliveredObjectPolicy], icon: 'shield', muted: true,
-        tooltip: 'peoplesoft.customization.deliveredObjectPolicy — not enforced yet.' }
+      { id: 'strategy.delivered', label: 'Your edits', description: POLICY_LABELS[policy.deliveredObjectPolicy], icon: 'shield',
+        tooltip: 'peoplesoft.customization.deliveredObjectPolicy: your saves, renames and deletes, in the editors and designers, of an Oracle- or vendor-delivered definition or one of unknown ownership.' },
+      { id: 'strategy.agent', label: 'AI agent edits', description: POLICY_LABELS[policy.agentDeliveredObjectPolicy], icon: 'hubot',
+        tooltip: 'peoplesoft.customization.agentDeliveredObjectPolicy: the same writes made by an AI agent through the MCP. An agent cannot approve them; you do, in VS Code.' }
     ] },
     { id: 'capabilities', label: 'Configuration Capabilities', icon: 'extensions', children: frameworks.length
       ? frameworks.map((f) => ({ id: `capability.${f}`, label: FRAMEWORKS[f].label, description: DISCOVERY_LABELS.UNKNOWN, icon: 'circle-large-outline', muted: true,

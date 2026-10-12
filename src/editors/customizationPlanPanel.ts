@@ -39,7 +39,7 @@ export class CustomizationPlanPanel {
 export function renderPlanHtml(page: { nonce: string; cspSource: string; script: string; style: string }, ctx: CustomizationContext | undefined, policy: CustomizationPolicy): string {
   const config = {
     target: ctx ? { name: ctx.name, kind: singular(typeLabel(ctx.type)), connection: ctx.connection ?? '' } : null,
-    policy: { strategy: POLICY_LABELS[policy.defaultStrategy], delivered: POLICY_LABELS[policy.deliveredObjectPolicy], prefix: policy.organizationPrefix },
+    policy: { strategy: POLICY_LABELS[policy.defaultStrategy], delivered: `${POLICY_LABELS[policy.deliveredObjectPolicy]} (you), ${POLICY_LABELS[policy.agentDeliveredObjectPolicy]} (AI agents)`, prefix: policy.prefixes.filter((p) => p.owner === 'organization').map((p) => p.prefix).join(', ') },
     stages: PLAN_STAGES,
     frameworks: (ctx ? frameworksFor(ctx.type) : []).map((f) => ({ ...FRAMEWORKS[f], state: DISCOVERY_LABELS.UNKNOWN }))
   };

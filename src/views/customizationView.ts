@@ -1,29 +1,34 @@
 import * as vscode from 'vscode';
 import { keyFromString, type DefinitionType } from '../model/definitions.js';
 import {
-  DESIGNER_TYPES, nameFromTitle, strategySections, type CustomizationContext, type CustomizationPolicy, type StrategyRow
+  DESIGNER_TYPES, nameFromTitle, strategySections, type CustomizationContext, type CustomizationPolicy, type OwnershipState, type StrategyRow
 } from '../model/customizationStrategy.js';
+import { DatabaseProvider } from '../providers/database.js';
 import { CustomizationPlanPanel } from '../editors/customizationPlanPanel.js';
 import { SCHEME } from '../util/uri.js';
 import type { Workspace } from '../workspace.js';
 import { mutedUri } from './toolsViews.js';
+import { normalizePrefixes } from '../model/ownership.js';
 
 /*
  * The Customization Strategy view (CUSTOMIZATION_STRATEGY_PANEL.md): a
  * companion to the editors that follows the PeopleSoft definition in the
  * active tab -- a psft:// text editor, a record / field editor, or a designer
  * panel -- and shows its identity, the preferred strategy, the configuration
- * frameworks that could extend it, its upgrade impact and actions. A PREVIEW:
- * classification and discovery are not implemented, so it shows what they
- * would establish as unknown, greyed; pinning and the Plan Designer open.
+ * frameworks that could extend it, its upgrade impact and actions. Ownership
+ * is classified from the database's evidence (model/ownership.ts); capability
+ * discovery is not implemented yet, so capabilities show as unknown, greyed.
  */
 
 export function readCustomizationPolicy(): CustomizationPolicy {
   const c = vscode.workspace.getConfiguration('peoplesoft.customization');
   return {
-    organizationPrefix: c.get<string>('organizationPrefix', '').trim().toUpperCase(),
+    // The prefix list; when it is empty, 0.8.4's single organizationPrefix, else the write-scope prefix (peoplesoft.writeNamePrefix) is the organization's.
+    prefixes: normalizePrefixes(c.get<unknown[]>('namingPrefixes', []),
+      c.get<string>('organizationPrefix', '') || vscode.workspace.getConfiguration('peoplesoft').get<string>('writeNamePrefix', '')),
     defaultStrategy: c.get<'configurationFirst' | 'allowDirect'>('defaultStrategy', 'configurationFirst'),
-    deliveredObjectPolicy: c.get<'block' | 'requireApproval' | 'allowWithAudit'>('deliveredObjectPolicy', 'requireApproval')
+    deliveredObjectPolicy: c.get<'block' | 'requireApproval' | 'allowWithAudit'>('deliveredObjectPolicy', 'allowWithAudit'),
+    agentDeliveredObjectPolicy: c.get<'block' | 'requireApproval' | 'allowWithAudit'>('agentDeliveredObjectPolicy', 'requireApproval')
   };
 }
 
@@ -32,6 +37,7 @@ export class CustomizationStrategyView implements vscode.TreeDataProvider<Strate
   readonly onDidChangeTreeData = this.changed.event;
   private current: CustomizationContext | undefined;
   private pinned: CustomizationContext | undefined;
+  private readonly owners = new Map<string, OwnershipState>();
 
   constructor(private readonly workspace: Workspace) {}
 
@@ -61,10 +67,36 @@ export class CustomizationStrategyView implements vscode.TreeDataProvider<Strate
     this.changed.fire();
   }
 
-  refresh(): void { this.changed.fire(); }
+  /** Re-reads the shown definition's ownership (after a save, or a baseline or setting change). */
+  refresh(): void {
+    this.owners.clear();
+    this.changed.fire();
+  }
 
   getChildren(row?: StrategyRow): StrategyRow[] {
-    return row ? row.children ?? [] : strategySections(this.context, readCustomizationPolicy(), !!this.pinned);
+    if (row) return row.children ?? [];
+    const ctx = this.context;
+    return strategySections(ctx, readCustomizationPolicy(), !!this.pinned, ctx ? this.ownerOf(ctx) : undefined);
+  }
+
+  /** The definition's ownership: read once per definition, the view refreshed when it arrives. */
+  private ownerOf(ctx: CustomizationContext): OwnershipState {
+    const id = `${ctx.connectionId ?? ''}\u0000${ctx.type}\u0000${(ctx.parts ?? [ctx.name]).join('.')}`;
+    const known = this.owners.get(id);
+    if (known) return known;
+    const provider = ctx.connectionId ? this.workspace.activeProviders.find((p) => p.id === ctx.connectionId) : undefined;
+    if (!(provider instanceof DatabaseProvider) || !provider.isConnected) {
+      const state: OwnershipState = { state: 'unavailable', message: 'Classified on a connected database: open the definition from one.' };
+      this.owners.set(id, state);
+      return state;
+    }
+    const pending: OwnershipState = { state: 'pending' };
+    this.owners.set(id, pending);
+    provider.classifyDefinition({ type: ctx.type, parts: ctx.parts ?? [ctx.name] }, readCustomizationPolicy().prefixes)
+      .then((r) => this.owners.set(id, { state: 'done', classification: r.classification, baseline: !!r.evidence.baseline }))
+      .catch((error) => this.owners.set(id, { state: 'unavailable', message: `Could not classify it: ${error instanceof Error ? error.message : String(error)}` }))
+      .finally(() => { if (this.owners.get(id) !== pending) this.changed.fire(); });
+    return pending;
   }
 
   getTreeItem(row: StrategyRow): vscode.TreeItem {
@@ -89,7 +121,7 @@ export class CustomizationStrategyView implements vscode.TreeDataProvider<Strate
       try {
         const key = keyFromString(decodeURIComponent(keyPart));
         const provider = this.workspace.getProviderByHandle(uri.authority.toLowerCase());
-        return { type: key.type, name: key.parts.join('.'), ...(provider ? { connection: provider.displayName } : {}) };
+        return { type: key.type, name: key.parts.join('.'), parts: [...key.parts], ...(provider ? { connection: provider.displayName, connectionId: provider.id } : {}) };
       } catch {
         return undefined;
       }
@@ -97,7 +129,13 @@ export class CustomizationStrategyView implements vscode.TreeDataProvider<Strate
     // A designer panel: its view type (VS Code prefixes it) names the definition type, its title the definition.
     if (input instanceof vscode.TabInputWebview) {
       const viewType = Object.keys(DESIGNER_TYPES).find((v) => input.viewType === v || input.viewType.endsWith(`-${v}`));
-      if (viewType) return { type: DESIGNER_TYPES[viewType] as DefinitionType, name: nameFromTitle(tab.label) };
+      if (viewType) {
+        // A designer's tab does not say its connection: the only connected database, if there is just one.
+        const connected = this.workspace.activeProviders.filter((p) => p instanceof DatabaseProvider && p.isConnected);
+        const one = connected.length === 1 ? connected[0] : undefined;
+        const name = nameFromTitle(tab.label);
+        return { type: DESIGNER_TYPES[viewType] as DefinitionType, name, parts: [name], ...(one ? { connection: one.displayName, connectionId: one.id } : {}) };
+      }
     }
     return undefined;
   }
@@ -112,7 +150,8 @@ export function registerCustomizationStrategy(context: vscode.ExtensionContext, 
     tree,
     vscode.window.tabGroups.onDidChangeTabs(() => view.follow()),
     vscode.window.tabGroups.onDidChangeTabGroups(() => view.follow()),
-    vscode.workspace.onDidChangeConfiguration((e) => { if (e.affectsConfiguration('peoplesoft.customization')) view.refresh(); }),
+    vscode.workspace.onDidChangeConfiguration((e) => { if (e.affectsConfiguration('peoplesoft.customization') || e.affectsConfiguration('peoplesoft.writeNamePrefix')) view.refresh(); }),
+    vscode.workspace.onDidSaveTextDocument((d) => { if (d.uri.scheme === SCHEME) view.refresh(); }),
     vscode.commands.registerCommand('psft.customization.pin', () => view.pin()),
     vscode.commands.registerCommand('psft.customization.unpin', () => view.unpin()),
     vscode.commands.registerCommand('psft.customization.refresh', () => { view.follow(); view.refresh(); }),

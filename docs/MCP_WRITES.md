@@ -114,6 +114,18 @@ After a save the menu is read back and compared with what was written.
 (`src/test/menuModel.test.ts`); `tools/lab/menu-e2e.mts` runs the same path on
 a live database.
 
+## The delivered-object policy
+
+Every write tool's save passes the agent delivered-object policy,
+`peoplesoft.customization.agentDeliveredObjectPolicy`, after the user's
+approval of the write (docs/CUSTOMIZATION.md): a write to an Oracle- or
+vendor-delivered definition, or one of unknown ownership, is asked for again
+in VS Code under `requireApproval` (the default) -- even when MCP writes are
+`allow` -- refused under `block`, and recorded under `allowWithAudit`. An
+agent cannot approve it. Every tool call is tagged as an agent's
+(`src/mcp/agentOrigin.ts`), so the policy follows whatever tool writes. `psft_object_classify` says beforehand who owns a definition and
+what the policy would do; `psft_customization_get_policy` gives the policy.
+
 ## Message Channels
 
 `src/mcp/channelTools.ts`: the Message Channel window's model and writer

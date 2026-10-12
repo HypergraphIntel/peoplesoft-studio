@@ -36,6 +36,7 @@ import { MenuDesignerPanel, setMenuDesignerExtensionUri } from './editors/menuDe
 import { CiDesignerPanel, setCiDesignerExtensionUri } from './editors/ciDesignerPanel.js';
 import { registerToolsViews } from './views/toolsViews.js';
 import { registerCustomizationStrategy } from './views/customizationView.js';
+import { installCustomizationGuard } from './customizationGuard.js';
 import { ChannelDesignerPanel, setChannelDesignerExtensionUri } from './editors/channelDesignerPanel.js';
 import { CHANNEL_NAME_MAX, copyChannel, type ChannelDocument } from './model/channelDocument.js';
 import { copyCi, type CiDocument } from './model/ciDocument.js';
@@ -320,6 +321,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
   registerToolsViews(context);
   registerCustomizationStrategy(context, workspace);
+  installCustomizationGuard(context, workspace);
 
   const refreshAll = () => { connections.refresh(); browser.refresh(); projects.refresh(); };
 
