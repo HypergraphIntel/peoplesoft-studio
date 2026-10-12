@@ -52,6 +52,7 @@ PeopleCode key). Each layout used is one HRDMO's delivered project items use:
 | Record PeopleCode | 8 | 1, 2, 12 | RECNAME, FIELDNAME, event |
 | SQL definition | 30 | 65, 81 | SQLID, SQLTYPE (0) |
 | App Engine program | 33 | 66 | AE_APPLID |
+| Message channel | 36 | 61 | CHNLNAME (App Designer's Insert into Project [chn16], docs/MESSAGE_CHANNELS.md) |
 | HTML definition | 51 | 90, 95 | CONTNAME, CONTTYPE |
 | Application Package | 57 | 104, 116, 117 | PACKAGEID, PACKAGEROOT, QUALIFYPATH |
 | Application Class | 58 | 104, (105, 106,) 107 | root, sub-packages, class (no event) |

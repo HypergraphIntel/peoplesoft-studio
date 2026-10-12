@@ -1,0 +1,287 @@
+{
+ "format": "def-capture/1",
+ "kind": "chnl",
+ "case": "chn06-saveas",
+ "name": "ZZ_PCODE_LAB_CHN2",
+ "watch": {
+  "PSCHNLDEFN": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "CHNLSTATUS"
+    },
+    {
+     "name": "PUBTIMEOUTMIN"
+    },
+    {
+     "name": "SUBTIMEOUTMIN"
+    },
+    {
+     "name": "PUBRETRYSEC"
+    },
+    {
+     "name": "SUBRETRYSEC"
+    },
+    {
+     "name": "ERRORTHRESHOLD"
+    },
+    {
+     "name": "APMSGARCHIVE"
+    },
+    {
+     "name": "THRUPUTTYPE"
+    },
+    {
+     "name": "QUALITYOFSERVICE"
+    },
+    {
+     "name": "CHNLDISPLAYNAME"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [
+    {
+     "CHNLNAME": "ZZ_PCODE_LAB_CHN2",
+     "VERSION": "7",
+     "CHNLSTATUS": "1",
+     "PUBTIMEOUTMIN": "0",
+     "SUBTIMEOUTMIN": "0",
+     "PUBRETRYSEC": "0",
+     "SUBRETRYSEC": "0",
+     "ERRORTHRESHOLD": "0",
+     "APMSGARCHIVE": "1",
+     "THRUPUTTYPE": "2",
+     "QUALITYOFSERVICE": "0",
+     "CHNLDISPLAYNAME": "ZZ_PCODE_LAB_CHN2",
+     "DESCR": "Lab channel two",
+     "OBJECTOWNERID": "HTAC",
+     "LASTUPDDTTM": "2026-10-12T07:27:16",
+     "LASTUPDOPRID": "JARED",
+     "DESCRLONG": "Channel comments"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSUBCHNL": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "FIELDNAME"
+    }
+   ],
+   "inserted": [
+    {
+     "CHNLNAME": "ZZ_PCODE_LAB_CHN2",
+     "FIELDNAME": "MSGNAME"
+    },
+    {
+     "CHNLNAME": "ZZ_PCODE_LAB_CHN2",
+     "FIELDNAME": "PUBLISHER"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCHNLNODE": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "MSGNODENAME"
+    },
+    {
+     "name": "PUBSUBDIRECTION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCHNLDEFNLANG": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCHNLDEL": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSMSGDEFN": {
+   "columns": [
+    {
+     "name": "MSGNAME"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "XMLALIAS"
+    },
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "DEFAULTVER"
+    },
+    {
+     "name": "MSGSTATUS"
+    },
+    {
+     "name": "NONREPUDIATION"
+    },
+    {
+     "name": "VALIDATESTRUCT"
+    },
+    {
+     "name": "ERRPROCMODE"
+    },
+    {
+     "name": "MENUNAME"
+    },
+    {
+     "name": "BARNAME"
+    },
+    {
+     "name": "BARITEMNAME"
+    },
+    {
+     "name": "PNLITEMNAME"
+    },
+    {
+     "name": "ACTIONS"
+    },
+    {
+     "name": "USEEDIT"
+    },
+    {
+     "name": "MSGDISPLAYNAME"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "CHDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "6",
+       "after": "7"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2743",
+       "after": "2744"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "CHDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "6",
+       "after": "7"
+      }
+     }
+    }
+   ]
+  }
+ }
+}

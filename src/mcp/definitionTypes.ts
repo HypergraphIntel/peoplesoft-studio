@@ -40,6 +40,7 @@ export const DEFINITION_TYPE_GUIDE: readonly DefinitionTypeGuide[] = [
   { type: DefinitionType.AppEngineSection, keyParts: ['program', 'section'], databaseSearch: true, note: 'The pattern matches the program ("BEN110") or program.section ("BEN110.M%").' },
   { type: DefinitionType.MessageNode, keyParts: ['node'], databaseSearch: true, note: 'Passwords are never read.' },
   { type: DefinitionType.IbMessage, keyParts: ['message'], databaseSearch: true },
+  { type: DefinitionType.MessageChannel, keyParts: ['message channel'], databaseSearch: true, note: 'Read as its window shows it; psft_channel_get reads it as a spec.' },
   { type: DefinitionType.AppEnginePeopleCode, keyParts: ['program', 'section', 'market', 'platform (default ...)', 'effective date YYYY-MM-DD', 'step', 'OnExecute'], databaseSearch: true, note: 'Searched by program.' },
   { type: DefinitionType.PagePeopleCode, keyParts: ['page', 'event (Activate)'], databaseSearch: true },
   { type: DefinitionType.ComponentPeopleCode, keyParts: ['component', 'market', 'event'], databaseSearch: true, note: 'Searched by component. psft_get_component_peoplecode reads a component\'s programs.' },

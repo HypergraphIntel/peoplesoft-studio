@@ -2,7 +2,7 @@
   "name": "peoplesoft-studio",
   "displayName": "PeopleSoft Studio",
   "description": "Develop PeopleSoft definitions (PeopleCode, Records, Pages, Components, IScripts, App Engine, SQL, HTML, Javascript, CSS, etc. ) directly in VS Code.",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "publisher": "JaredNorris",
   "license": "MIT",
   "engines": {
@@ -74,6 +74,16 @@
           "icon": "./resources/document.svg",
           "id": "psft.browser",
           "name": "Definition Browser"
+        },
+        {
+          "icon": "./resources/hammer-brush.svg",
+          "id": "psft.configurationTools",
+          "name": "Configuration Tools"
+        },
+        {
+          "icon": "./resources/digging.svg",
+          "id": "psft.dataMigrationTools",
+          "name": "Data Migration Tools"
         },
         {
           "icon": "./resources/link.svg",
@@ -155,6 +165,16 @@
       {
         "command": "psft.newComponentInterface",
         "title": "New Component Interface...",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.newMessageChannel",
+        "title": "New Message Channel...",
+        "category": "PeopleSoft"
+      },
+      {
+        "command": "psft.plannedTool",
+        "title": "Tool Not Available Yet",
         "category": "PeopleSoft"
       },
       {
@@ -541,6 +561,10 @@
         }
       ],
       "commandPalette": [
+        {
+          "command": "psft.plannedTool",
+          "when": "false"
+        },
         {
           "command": "psft.mcp.status",
           "when": "false"

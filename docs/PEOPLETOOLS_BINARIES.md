@@ -275,7 +275,7 @@ different hashes; the client set is the App Designer compiler.
 
 Other local copies: `~/.local/share/wine-bottles/peopletools` and a
 Bottles flatpak bottle hold an installed 8.61.07 client (pspcm.dll
-identical to `pt861`); `~/Documents/ZZ/Downloads/PeopleSoftLaunchers`
+identical to `pt861`); `~/Documents/Acme/Downloads/PeopleSoftLaunchers`
 holds the 8.61.07 `pside.exe`.
 
 With this set, native findings on the class parser are **exact-patch**

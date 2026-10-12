@@ -1,0 +1,23 @@
+/* Message Channel window (src/editors/channelDesignerPanel.ts); the shared toolbar / properties / output / context menu styles are aeDesigner.css's. */
+.cwin { margin: 12px; max-width: 760px; }
+.ctabs { display: flex; gap: 2px; }
+.ctabs span { border: 1px solid var(--border); border-bottom: none; padding: 3px 10px; background: var(--vscode-editor-background); position: relative; top: 1px; }
+.cpage { border: 1px solid var(--border); padding: 12px; }
+.cgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.clabel { margin-bottom: 4px; }
+.clist { border: 1px solid var(--border); background: var(--vscode-input-background, transparent); height: 230px; overflow: auto; padding: 1px 0; outline: none; }
+.clist:focus { outline: 1px solid var(--vscode-focusBorder); }
+.citem { display: flex; align-items: center; gap: 4px; padding: 0 4px; cursor: default; user-select: none; white-space: nowrap; }
+.citem:hover { background: var(--hover); }
+.citem.sel { background: var(--sel); color: var(--selfg); }
+.citem input { margin: 0; }
+.cpage .hint { color: var(--muted); font-size: 12px; margin-top: 8px; }
+.cpage .hint.warn { color: var(--warning); }
+.cdialog { margin: 0 12px; max-width: 420px; border: 1px solid var(--border); background: var(--vscode-editorWidget-background); box-shadow: 0 2px 8px #0006; padding: 0 10px 10px; }
+.cdialog .ctitle { margin: 0 -10px 8px; padding: 4px 10px; background: var(--vscode-titleBar-activeBackground, var(--sel)); color: var(--vscode-titleBar-activeForeground, var(--selfg)); }
+.cdialog label.row { display: grid; grid-template-columns: 90px 1fr; gap: 6px; align-items: center; }
+.cdialog input[type=text] { font: inherit; color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border, var(--border)); padding: 2px 4px; }
+.cdialog .diag.error { color: var(--error); white-space: pre-wrap; font-size: 12px; margin-top: 6px; }
+.cdialog .cbuttons { display: flex; gap: 6px; justify-content: flex-end; margin-top: 10px; }
+.cdialog button { font: inherit; color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); border: none; padding: 2px 12px; cursor: pointer; }
+.cdialog button.primary { color: var(--vscode-button-foreground); background: var(--vscode-button-background); }

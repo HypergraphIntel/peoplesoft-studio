@@ -5,9 +5,7 @@ dist-test/
 
 # Real project exports dropped in scripts/ for decoder calibration carry
 # actual customer PeopleCode source and must never be committed.
-/scripts/ZZ_CUSTOM_LANDINGPAGE_JN
-/scripts/ZZ_VSCODE_LEARN_JN
-/scripts/ZZ_WEBLIBS_JN
+/scripts/*_JN/
 
 
 /tools/corpus/baselines/*

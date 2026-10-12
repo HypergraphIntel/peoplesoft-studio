@@ -44,7 +44,7 @@ export const INSERTABLE_TYPES: ReadonlySet<DefinitionType> = new Set([
   DefinitionType.Record, DefinitionType.Field, DefinitionType.Page, DefinitionType.Menu,
   DefinitionType.Component, DefinitionType.RecordPeopleCode, DefinitionType.AppEngineProgram,
   DefinitionType.HtmlDefinition, DefinitionType.SqlDefinition, DefinitionType.ApplicationPackage,
-  DefinitionType.ApplicationClassPeopleCode, DefinitionType.StyleSheet
+  DefinitionType.ApplicationClassPeopleCode, DefinitionType.StyleSheet, DefinitionType.MessageChannel
 ]);
 
 export function canInsertIntoProject(type: DefinitionType): boolean {
@@ -68,6 +68,8 @@ const LAYOUTS: Readonly<Partial<Record<DefinitionType, (key: DefinitionKey) => P
   [DefinitionType.Page]: single(5, 9),
   [DefinitionType.Menu]: single(6, 3),
   [DefinitionType.AppEngineProgram]: single(33, 66),
+  // App Designer's Insert into Project: OBJECTID1 61 (CHNLNAME), the default statuses [chn16].
+  [DefinitionType.MessageChannel]: single(36, 61),
   [DefinitionType.Component]: (key) =>
     ({ objectType: 7, objectIds: [10, 39], objectValues: [name(key), key.parts[1] || 'GBL'] }),
   [DefinitionType.RecordPeopleCode]: (key) => {

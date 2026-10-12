@@ -1,0 +1,334 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "chn08-delete",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362782953195",
+   "timestamp": "2026-10-12T07:49:43.082662000-05:00"
+  },
+  "after": {
+   "scn": "39362782953229",
+   "timestamp": "2026-10-12T07:50:04.173941000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-12T07:49:43.082662000-05:00",
+    "to": "2026-10-12T07:50:04.173941000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "CHDM": {
+    "before": 8,
+    "after": 9,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 2745,
+    "after": 2746,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "CHDM": {
+    "before": 8,
+    "after": 9,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "otherTablesChanged": {
+   "PSCHNLDEFN": {
+    "inserted": 0,
+    "deleted": 1,
+    "updated": 0
+   },
+   "PSCHNLDEL": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   },
+   "PSSUBCHNL": {
+    "inserted": 0,
+    "deleted": 2,
+    "updated": 0
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "CHDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "8",
+       "after": "9"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2745",
+       "after": "2746"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "CHDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "8",
+       "after": "9"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSCHNLDEFN": {
+   "columns": [
+    {
+     "name": "CHNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "CHNLSTATUS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PUBTIMEOUTMIN",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SUBTIMEOUTMIN",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PUBRETRYSEC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SUBRETRYSEC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "ERRORTHRESHOLD",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "APMSGARCHIVE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "THRUPUTTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "QUALITYOFSERVICE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "CHNLDISPLAYNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "CHNLNAME": "ZZ_PCODE_LAB_CHN3",
+     "VERSION": "8",
+     "CHNLSTATUS": "1",
+     "PUBTIMEOUTMIN": "0",
+     "SUBTIMEOUTMIN": "0",
+     "PUBRETRYSEC": "0",
+     "SUBRETRYSEC": "0",
+     "ERRORTHRESHOLD": "0",
+     "APMSGARCHIVE": "1",
+     "THRUPUTTYPE": "2",
+     "QUALITYOFSERVICE": "0",
+     "CHNLDISPLAYNAME": "ZZ_PCODE_LAB_CHN3",
+     "DESCR": "Lab channel two",
+     "OBJECTOWNERID": "HTAC",
+     "LASTUPDDTTM": "2026-10-12T07:28:49.845853000",
+     "LASTUPDOPRID": "JARED",
+     "DESCRLONG": "Channel comments"
+    }
+   ],
+   "updated": []
+  },
+  "PSCHNLDEL": {
+   "columns": [
+    {
+     "name": "CHNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "CHNLNAME": "ZZ_PCODE_LAB_CHN3",
+     "VERSION": "9"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSUBCHNL": {
+   "columns": [
+    {
+     "name": "CHNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "CHNLNAME": "ZZ_PCODE_LAB_CHN3",
+     "FIELDNAME": "MSGNAME"
+    },
+    {
+     "CHNLNAME": "ZZ_PCODE_LAB_CHN3",
+     "FIELDNAME": "PUBLISHER"
+    }
+   ],
+   "updated": []
+  }
+ }
+}

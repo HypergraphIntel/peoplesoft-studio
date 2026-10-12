@@ -34,6 +34,9 @@ import { ImagePanel } from './editors/imagePanel.js';
 import { AeDesignerPanel, setAeDesignerExtensionUri } from './editors/aeDesignerPanel.js';
 import { MenuDesignerPanel, setMenuDesignerExtensionUri } from './editors/menuDesignerPanel.js';
 import { CiDesignerPanel, setCiDesignerExtensionUri } from './editors/ciDesignerPanel.js';
+import { registerToolsViews } from './views/toolsViews.js';
+import { ChannelDesignerPanel, setChannelDesignerExtensionUri } from './editors/channelDesignerPanel.js';
+import { CHANNEL_NAME_MAX, copyChannel, type ChannelDocument } from './model/channelDocument.js';
 import { copyCi, type CiDocument } from './model/ciDocument.js';
 import { copyMenu, MENU_NAME_MAX, newMenu as newMenuDocument, type MenuDocument } from './model/menuDocument.js';
 import type { AeDocument } from './model/aeDocument.js';
@@ -247,6 +250,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   AeDesignerPanel.register(context);
   setMenuDesignerExtensionUri(context.extensionUri);
   setCiDesignerExtensionUri(context.extensionUri);
+  setChannelDesignerExtensionUri(context.extensionUri);
   MenuDesignerPanel.register(context);
 
   const statusBar = new StatusBar(workspace);
@@ -313,6 +317,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.window.registerTreeDataProvider('psft.browser', browser),
     vscode.window.registerTreeDataProvider('psft.projects', projects)
   );
+  registerToolsViews(context);
 
   const refreshAll = () => { connections.refresh(); browser.refresh(); projects.refresh(); };
 
@@ -324,6 +329,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (key.type === DefinitionType.AppEngineProgram) return AeDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
       if (key.type === DefinitionType.Menu) return MenuDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
       if (key.type === DefinitionType.ComponentInterface) return CiDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
+      if (key.type === DefinitionType.MessageChannel) return ChannelDesignerPanel.sessionOf(connectionId, key.parts[0])?.dirty ?? false;
       const uri = toUri(connectionId, key).toString();
       return vscode.window.tabGroups.all.some((g) => g.tabs.some((t) => t.isDirty &&
         (t.input instanceof vscode.TabInputText || t.input instanceof vscode.TabInputCustom) && t.input.uri.toString() === uri));
@@ -335,6 +341,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (key.type === DefinitionType.AppEngineProgram) void AeDesignerPanel.reloadIfOpen(connectionId, key.parts[0]);
       else if (key.type === DefinitionType.Menu) void MenuDesignerPanel.reloadIfOpen(connectionId, key.parts[0]);
       else if (key.type === DefinitionType.ComponentInterface) void CiDesignerPanel.reloadIfOpen(connectionId, key.parts[0]);
+      else if (key.type === DefinitionType.MessageChannel) void ChannelDesignerPanel.reloadIfOpen(connectionId, key.parts[0]);
       else if (key.type === DefinitionType.ComponentInterfacePeopleCode) { PeopleSoftFileSystem.instance?.invalidate(toUri(connectionId, key)); void CiDesignerPanel.reloadIfOpen(connectionId, key.parts[0]); }
       else PeopleSoftFileSystem.instance?.invalidate(toUri(connectionId, key));
       refreshAll();
@@ -524,6 +531,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           }
           if (key.type === DefinitionType.ComponentInterface && provider instanceof DatabaseProvider) {
             await showCiDesigner(workspace, provider, key.parts[0]);
+            return;
+          }
+          if (key.type === DefinitionType.MessageChannel && provider instanceof DatabaseProvider) {
+            await showChannelDesigner(workspace, provider, key.parts[0]);
             return;
           }
           if (key.type === DefinitionType.Image && provider instanceof DatabaseProvider) {
@@ -728,6 +739,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('psft.newAppEngine', () => withError('New App Engine Program', () => newAppEngine(workspace))),
     vscode.commands.registerCommand('psft.newMenu', () => withError('New Menu', () => newMenu(workspace))),
     vscode.commands.registerCommand('psft.newComponentInterface', () => withError('New Component Interface', () => newComponentInterface(workspace))),
+    vscode.commands.registerCommand('psft.newMessageChannel', () => withError('New Message Channel', () => newMessageChannel(workspace))),
     vscode.commands.registerCommand('psft.newPageFluid', () => withError('New Page Fluid', () => newPageFluid(workspace))),
 
     vscode.commands.registerCommand('psft.newHtmlDefinition', () =>
@@ -1230,7 +1242,7 @@ async function pickRecordFieldPeopleCode(workspace: Workspace, connectionId: str
 async function newDefinition(workspace: Workspace): Promise<void> {
   type Item = vscode.QuickPickItem & {
     create?: TextDefinitionType | DefinitionType.Record | DefinitionType.Field | DefinitionType.Project | DefinitionType.ApplicationPackage
-      | DefinitionType.ApplicationClassPeopleCode | DefinitionType.Component | DefinitionType.Page | DefinitionType.AppEngineProgram | DefinitionType.Menu | DefinitionType.ComponentInterface;
+      | DefinitionType.ApplicationClassPeopleCode | DefinitionType.Component | DefinitionType.Page | DefinitionType.AppEngineProgram | DefinitionType.Menu | DefinitionType.ComponentInterface | DefinitionType.MessageChannel;
     /** Page: New Page Fluid (from a Layout Page). */
     fluid?: boolean;
   };
@@ -1249,7 +1261,8 @@ async function newDefinition(workspace: Workspace): Promise<void> {
     { label: '$(database) SQL Definition', description: 'opens empty; the first save creates it', create: DefinitionType.SqlDefinition },
     { label: '$(gear) App Engine Program', description: 'MAIN with Step01, as App Designer starts one; the first save creates it', create: DefinitionType.AppEngineProgram },
     { label: '$(list-tree) Menu', description: 'Standard or Popup, as App Designer asks; the first save creates it, once it has an item', create: DefinitionType.Menu },
-    { label: '$(plug) Component Interface', description: 'On a component, its properties defaulted from the component or not, as App Designer asks', create: DefinitionType.ComponentInterface }
+    { label: '$(plug) Component Interface', description: 'On a component, its properties defaulted from the component or not, as App Designer asks', create: DefinitionType.ComponentInterface },
+    { label: '$(radio-tower) Message Channel', description: 'App Designer\'s defaults; the first save creates it', create: DefinitionType.MessageChannel }
   ], { title: 'New Definition', placeHolder: 'Definition type' });
   if (!picked) return;
   // DefinitionType.Record is 0: test for absence, not falsiness.
@@ -1267,6 +1280,7 @@ async function newDefinition(workspace: Workspace): Promise<void> {
   else if (picked.create === DefinitionType.AppEngineProgram) await newAppEngine(workspace);
   else if (picked.create === DefinitionType.Menu) await newMenu(workspace);
   else if (picked.create === DefinitionType.ComponentInterface) await newComponentInterface(workspace);
+  else if (picked.create === DefinitionType.MessageChannel) await newMessageChannel(workspace);
   else await newTextDefinition(workspace, picked.create);
 }
 
@@ -1748,6 +1762,68 @@ async function newComponentInterface(workspace: Workspace): Promise<void> {
   if (refusal) { vscode.window.showWarningMessage(refusal); return; }
   const made = await provider.newCiDocument(name, picked.component, picked.market ?? 'GBL', answer === 'Yes');
   await showCiDesigner(workspace, provider, name, made);
+}
+
+/**
+ * A message channel in its window (editors/channelDesignerPanel.ts): editable on a Writable connection with an
+ * Operator ID, for a name in the write scope; read-only otherwise. `doc` opens a new, unsaved channel.
+ */
+export async function showChannelDesigner(workspace: Workspace, provider: DatabaseProvider, name: string, doc?: ChannelDocument): Promise<void> {
+  const operatorId = workspace.configFor(provider.id)?.peoplesoftOperatorId?.trim();
+  const editable = workspace.isWritable(provider.id) && !!operatorId && !writeScopeRefusal(name);
+  const read = doc ? { doc, token: 'absent' } : await provider.readChannelDocument(name);
+  if (!read) throw new Error(`No message channel named ${name}.`);
+  ChannelDesignerPanel.show({
+    connection: { id: provider.id, displayName: provider.displayName },
+    ...(editable ? {
+      save: async (d: ChannelDocument, token: string, dryRun?: boolean) => {
+        const result = await provider.saveChannelDocument({ doc: d, openedToken: token, operatorId: operatorId!, ...(dryRun ? { dryRun } : {}) });
+        if (result.written && token === 'absent') void vscode.commands.executeCommand('psft.refresh');
+        return result;
+      }
+    } : {}),
+    reload: () => provider.readChannelDocument(name),
+    lookup: provider.channelReferenceLookup(),
+    choices: (what, arg) => provider.channelChoices(what, arg),
+    openMessage: async (message) => { await vscode.commands.executeCommand('psft.openDefinition', provider.id, makeKey(DefinitionType.IbMessage, message)); },
+    ...(editable ? {
+      saveAs: async (d: ChannelDocument, to: string) => {
+        const refusal = writeScopeRefusal(to);
+        if (refusal) throw new Error(refusal);
+        if (await provider.readChannelDocument(to)) throw new Error(`A message channel named ${to} already exists.`);
+        await provider.saveChannelDocument({ doc: copyChannel(d, to), openedToken: 'absent', operatorId: operatorId! });
+        void vscode.commands.executeCommand('psft.refresh');
+        await showChannelDesigner(workspace, provider, to);
+      },
+      rename: async (from: string, to: string, token: string) => {
+        const refusal = writeScopeRefusal(to);
+        if (refusal) throw new Error(refusal);
+        await provider.renameChannelDefinition(from, to, token, operatorId!);
+        void vscode.commands.executeCommand('psft.refresh');
+        await showChannelDesigner(workspace, provider, to);
+      },
+      remove: async (channel: string, token: string) => {
+        await provider.deleteChannelDefinition(channel, token, operatorId!);
+        void vscode.commands.executeCommand('psft.refresh');
+        vscode.window.showInformationMessage(`Deleted message channel ${channel} on ${provider.displayName}.`);
+      }
+    } : {})
+  }, read.doc, read.token, doc ? { status: 'New message channel: Save creates it.' } : {});
+}
+
+/** File > New > Message Channel: a name (App Designer asks it at the first Save; here before, to open the window), then the window. */
+async function newMessageChannel(workspace: Workspace): Promise<void> {
+  const provider = await pickWritableConnection(workspace, 'New Message Channel');
+  if (!provider) return;
+  const name = await askDefinitionName(`New Message Channel on ${provider.displayName}`, CHANNEL_NAME_MAX, `Message channel name (at most ${CHANNEL_NAME_MAX} characters)`);
+  if (!name) return;
+  if (await provider.readChannelDocument(name)) {
+    vscode.window.showWarningMessage(`A message channel named ${name} already exists.`);
+    return;
+  }
+  const refusal = writeScopeRefusal(name);
+  if (refusal) { vscode.window.showWarningMessage(refusal); return; }
+  await showChannelDesigner(workspace, provider, name, await provider.newChannelDocument(name));
 }
 
 /** File > New > Menu: Standard or Popup (App Designer's New Menu dialog), a name, then the designer. */

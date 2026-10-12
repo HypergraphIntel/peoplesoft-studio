@@ -114,6 +114,23 @@ After a save the menu is read back and compared with what was written.
 (`src/test/menuModel.test.ts`); `tools/lab/menu-e2e.mts` runs the same path on
 a live database.
 
+## Message Channels
+
+`src/mcp/channelTools.ts`: the Message Channel window's model and writer
+(docs/MESSAGE_CHANNELS.md), behind the same gates.
+
+| Tool | Writes | What it does |
+|---|---|---|
+| `psft_channel_reference` | no | Message channels in brief: properties, the partition list App Designer offers, what it drops, renames |
+| `psft_channel_get` | no | The channel as a spec (properties, messages, partition choices and those checked), fields App Designer would drop, its token and validation |
+| `psft_channel_validate` | no | Names, partition fields (PSDBFIELD, 78,1), Owner ID -- of a channel, a spec, or proposed operations |
+| `psft_channel_create` | yes | A channel from a spec: App Designer's defaults, its properties' OK when the spec gives any, partition fields added; `dryRun` previews |
+| `psft_channel_edit` | yes | Operations: `set_channel`, `add_partition`, `check_partition`; `expectedToken`, `dryRun` |
+| `psft_channel_copy`, `psft_channel_rename`, `psft_channel_delete` | yes | Save As, Rename (messages and project items repointed), Delete as App Designer does them |
+
+`src/model/channelOperations.ts` maps the operations onto the window's;
+`tools/lab/channel-e2e.mts` runs the same path on a live database.
+
 ## Component Interfaces
 
 `src/mcp/ciTools.ts`: the CI Designer's model and writer

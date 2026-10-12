@@ -30,6 +30,7 @@ const BROWSABLE: DefinitionType[] = [
   DefinitionType.ProcessDefinition,
   DefinitionType.Tree,
   DefinitionType.IbMessage,
+  DefinitionType.MessageChannel,
   DefinitionType.IbService,
   DefinitionType.IbServiceOperation,
   DefinitionType.Image,
@@ -191,6 +192,7 @@ function iconFor(type: DefinitionType): string {
     case DefinitionType.ProcessDefinition: return 'run';
     case DefinitionType.Tree: return 'type-hierarchy';
     case DefinitionType.IbMessage: return 'mail';
+    case DefinitionType.MessageChannel: return 'radio-tower';
     case DefinitionType.Image: return 'file-media';
     case DefinitionType.PortalRegistry: return 'globe';
     case DefinitionType.IbService: return 'server';

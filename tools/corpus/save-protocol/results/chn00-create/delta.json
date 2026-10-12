@@ -1,0 +1,272 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "chn00-create",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362782953280",
+   "timestamp": "2026-10-12T07:51:06.815739000-05:00"
+  },
+  "after": {
+   "scn": "39362782954938",
+   "timestamp": "2026-10-12T07:51:45.240203000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-12T07:51:06.815739000-05:00",
+    "to": "2026-10-12T07:51:45.240203000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "CHDM": {
+    "before": 9,
+    "after": 10,
+    "delta": 1
+   },
+   "SYS": {
+    "before": 2746,
+    "after": 2747,
+    "delta": 1
+   }
+  },
+  "pslock": {
+   "CHDM": {
+    "before": 9,
+    "after": 10,
+    "delta": 1
+   }
+  },
+  "watchTablesChanged": {
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "otherTablesChanged": {
+   "PSCHNLDEFN": {
+    "inserted": 1,
+    "deleted": 0,
+    "updated": 0
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "CHDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "9",
+       "after": "10"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2746",
+       "after": "2747"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "CHDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "9",
+       "after": "10"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSCHNLDEFN": {
+   "columns": [
+    {
+     "name": "CHNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "CHNLSTATUS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PUBTIMEOUTMIN",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SUBTIMEOUTMIN",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PUBRETRYSEC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "SUBRETRYSEC",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "ERRORTHRESHOLD",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "APMSGARCHIVE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "THRUPUTTYPE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "QUALITYOFSERVICE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "CHNLDISPLAYNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCR",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "DESCRLONG",
+     "type": "CLOB",
+     "length": 4000,
+     "nullable": true
+    }
+   ],
+   "inserted": [
+    {
+     "CHNLNAME": "ZZ_PCODE_LAB_CHN4",
+     "VERSION": "10",
+     "CHNLSTATUS": "0",
+     "PUBTIMEOUTMIN": "14400",
+     "SUBTIMEOUTMIN": "14400",
+     "PUBRETRYSEC": "300",
+     "SUBRETRYSEC": "300",
+     "ERRORTHRESHOLD": "100",
+     "APMSGARCHIVE": "1",
+     "THRUPUTTYPE": "0",
+     "QUALITYOFSERVICE": "1",
+     "CHNLDISPLAYNAME": "ZZ_PCODE_LAB_CHN4",
+     "DESCR": " ",
+     "OBJECTOWNERID": " ",
+     "LASTUPDDTTM": "2026-10-12T07:51:40.359746000",
+     "LASTUPDOPRID": "JARED",
+     "DESCRLONG": null
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  }
+ }
+}

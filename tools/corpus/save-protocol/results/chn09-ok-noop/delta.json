@@ -1,0 +1,282 @@
+{
+ "format": "def-capture/1",
+ "kind": "chnl",
+ "case": "chn09-ok-noop",
+ "name": "ZZ_PCODE_LAB_CHN4",
+ "watch": {
+  "PSCHNLDEFN": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "CHNLSTATUS"
+    },
+    {
+     "name": "PUBTIMEOUTMIN"
+    },
+    {
+     "name": "SUBTIMEOUTMIN"
+    },
+    {
+     "name": "PUBRETRYSEC"
+    },
+    {
+     "name": "SUBRETRYSEC"
+    },
+    {
+     "name": "ERRORTHRESHOLD"
+    },
+    {
+     "name": "APMSGARCHIVE"
+    },
+    {
+     "name": "THRUPUTTYPE"
+    },
+    {
+     "name": "QUALITYOFSERVICE"
+    },
+    {
+     "name": "CHNLDISPLAYNAME"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "CHNLNAME": "ZZ_PCODE_LAB_CHN4"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "10",
+       "after": "11"
+      },
+      "CHNLSTATUS": {
+       "before": "0",
+       "after": "1"
+      },
+      "THRUPUTTYPE": {
+       "before": "0",
+       "after": "2"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-12T07:51:40",
+       "after": "2026-10-12T07:52:38"
+      }
+     }
+    }
+   ]
+  },
+  "PSSUBCHNL": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "FIELDNAME"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCHNLNODE": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "MSGNODENAME"
+    },
+    {
+     "name": "PUBSUBDIRECTION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCHNLDEFNLANG": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCHNLDEL": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSMSGDEFN": {
+   "columns": [
+    {
+     "name": "MSGNAME"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "XMLALIAS"
+    },
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "DEFAULTVER"
+    },
+    {
+     "name": "MSGSTATUS"
+    },
+    {
+     "name": "NONREPUDIATION"
+    },
+    {
+     "name": "VALIDATESTRUCT"
+    },
+    {
+     "name": "ERRPROCMODE"
+    },
+    {
+     "name": "MENUNAME"
+    },
+    {
+     "name": "BARNAME"
+    },
+    {
+     "name": "BARITEMNAME"
+    },
+    {
+     "name": "PNLITEMNAME"
+    },
+    {
+     "name": "ACTIONS"
+    },
+    {
+     "name": "USEEDIT"
+    },
+    {
+     "name": "MSGDISPLAYNAME"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "CHDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "10",
+       "after": "11"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2747",
+       "after": "2748"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "CHDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "10",
+       "after": "11"
+      }
+     }
+    }
+   ]
+  }
+ }
+}

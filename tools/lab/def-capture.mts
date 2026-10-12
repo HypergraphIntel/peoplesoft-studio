@@ -6,7 +6,7 @@
  * updated rows by key), so the tests read either. READ ONLY. Use
  * snapshot.ts (full sweep) for a first capture of a new kind of operation.
  *
- *   npx tsx tools/lab/def-capture.mts before|after <menu|ci> CASE NAME
+ *   npx tsx tools/lab/def-capture.mts before|after <menu|ci|msg|chnl> CASE NAME
  *
  * Connection: PSLAB_ACCESSID / PSLAB_ACCESSPSWD, PSLAB_AUDIT_CONNECT
  * (default 127.0.0.1:15210/hrdmo).
@@ -21,8 +21,8 @@ oracledb.fetchAsString = [oracledb.CLOB, oracledb.NUMBER];
 oracledb.fetchAsBuffer = [oracledb.BLOB];
 
 const [phase, kind, caseName, name] = process.argv.slice(2);
-if (!['before', 'after'].includes(phase) || !['menu', 'ci'].includes(kind) || !caseName || !name) {
-  console.error('usage: def-capture.mts before|after <menu|ci> CASE NAME');
+if (!['before', 'after'].includes(phase) || !['menu', 'ci', 'msg', 'chnl'].includes(kind) || !caseName || !name) {
+  console.error('usage: def-capture.mts before|after <menu|ci|msg|chnl> CASE NAME');
   process.exit(2);
 }
 const dir = join(process.cwd(), 'tools/corpus/save-protocol/results', caseName);
@@ -60,6 +60,24 @@ const TABLES: Record<string, Watch[]> = {
     { table: 'PSCIREFENUM', key: ['BCNAME', 'BCITEMPARENT', 'BCITEMNAME', 'REF_CINAME', 'SEQUENCE_NBR_6'], where: 'BCNAME = :p' },
     { table: 'PSAUTHBUSCOMP', key: ['CLASSID', 'BCNAME', 'BCMETHOD'], where: 'BCNAME = :p' },
     ...pc(74)
+  ],
+  msg: [
+    { table: 'PSMSGDEFN', key: ['MSGNAME'], where: 'MSGNAME = :p' },
+    { table: 'PSMSGVER', key: ['MSGNAME', 'APMSGVER'], where: 'MSGNAME = :p' },
+    { table: 'PSMSGREC', key: ['MSGNAME', 'APMSGVER', 'RECNAME', 'PRNTRECNAME', 'SEQNO'], where: 'MSGNAME = :p' },
+    { table: 'PSMSGFLDOVR', key: ['MSGNAME', 'APMSGVER', 'RECNAME', 'PRNTRECNAME', 'SEQNO', 'FIELDNAME'], where: 'MSGNAME = :p' },
+    { table: 'PSSUBDEFN', key: ['MSGNAME', 'SUBNAME'], where: 'MSGNAME = :p' },
+    { table: 'PSMSGDEFNLANG', key: ['MSGNAME', 'LANGUAGE_CD'], where: 'MSGNAME = :p' },
+    { table: 'PSMSGDEL', key: ['MSGNAME', 'VERSION'], where: 'MSGNAME = :p' },
+    ...pc(60)
+  ],
+  chnl: [
+    { table: 'PSCHNLDEFN', key: ['CHNLNAME'], where: 'CHNLNAME = :p' },
+    { table: 'PSSUBCHNL', key: ['CHNLNAME', 'FIELDNAME'], where: 'CHNLNAME = :p' },
+    { table: 'PSCHNLNODE', key: ['CHNLNAME', 'MSGNODENAME'], where: 'CHNLNAME = :p' },
+    { table: 'PSCHNLDEFNLANG', key: ['CHNLNAME', 'LANGUAGE_CD'], where: 'CHNLNAME = :p' },
+    { table: 'PSCHNLDEL', key: ['CHNLNAME', 'VERSION'], where: 'CHNLNAME = :p' },
+    { table: 'PSMSGDEFN', key: ['MSGNAME'], where: 'CHNLNAME = :p' }
   ]
 };
 const common: Watch[] = [

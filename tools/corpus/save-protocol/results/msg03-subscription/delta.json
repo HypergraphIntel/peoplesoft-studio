@@ -1,0 +1,689 @@
+{
+ "format": "def-capture/1",
+ "kind": "msg",
+ "case": "msg03-subscription",
+ "name": "ZZ_PCODE_LAB_MSG",
+ "watch": {
+  "PSMSGDEFN": {
+   "columns": [
+    {
+     "name": "MSGNAME"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "XMLALIAS"
+    },
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "DEFAULTVER"
+    },
+    {
+     "name": "MSGSTATUS"
+    },
+    {
+     "name": "NONREPUDIATION"
+    },
+    {
+     "name": "VALIDATESTRUCT"
+    },
+    {
+     "name": "ERRPROCMODE"
+    },
+    {
+     "name": "MENUNAME"
+    },
+    {
+     "name": "BARNAME"
+    },
+    {
+     "name": "BARITEMNAME"
+    },
+    {
+     "name": "PNLITEMNAME"
+    },
+    {
+     "name": "ACTIONS"
+    },
+    {
+     "name": "USEEDIT"
+    },
+    {
+     "name": "MSGDISPLAYNAME"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSMSGVER": {
+   "columns": [
+    {
+     "name": "MSGNAME"
+    },
+    {
+     "name": "APMSGVER"
+    },
+    {
+     "name": "IB_MSGTYPE"
+    },
+    {
+     "name": "IB_MSGSCHEMA"
+    },
+    {
+     "name": "IB_PARTS"
+    },
+    {
+     "name": "IB_NOTUPGRADE"
+    },
+    {
+     "name": "IB_PARTDFLTIND"
+    },
+    {
+     "name": "IB_EXCLDESCSCHMA"
+    },
+    {
+     "name": "IB_OCCUROVRD"
+    },
+    {
+     "name": "IB_MESSAGEUSE"
+    },
+    {
+     "name": "IB_INC_NAMESPACE"
+    },
+    {
+     "name": "IB_SUPPRESSTAGS"
+    },
+    {
+     "name": "IB_PACKAGEID"
+    },
+    {
+     "name": "IB_SCHEMANAME"
+    },
+    {
+     "name": "IB_VARIANTNAME"
+    },
+    {
+     "name": "IB_ROOTELEMENT"
+    },
+    {
+     "name": "IB_ADS_NAME"
+    },
+    {
+     "name": "IB_LANGCODE"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSMSGREC": {
+   "columns": [
+    {
+     "name": "MSGNAME"
+    },
+    {
+     "name": "APMSGVER"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "PRNTRECNAME"
+    },
+    {
+     "name": "SEQNO"
+    },
+    {
+     "name": "IB_MSGNAME"
+    },
+    {
+     "name": "IB_MSGVERSION"
+    },
+    {
+     "name": "XMLALIAS"
+    },
+    {
+     "name": "IB_SCHEMAMIN"
+    },
+    {
+     "name": "IB_SCHEMAMAX"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSMSGFLDOVR": {
+   "columns": [
+    {
+     "name": "MSGNAME"
+    },
+    {
+     "name": "APMSGVER"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "PRNTRECNAME"
+    },
+    {
+     "name": "SEQNO"
+    },
+    {
+     "name": "FIELDNAME"
+    },
+    {
+     "name": "XMLALIAS"
+    },
+    {
+     "name": "IB_SCHEMAMIN"
+    },
+    {
+     "name": "DONOTPUBLISH"
+    },
+    {
+     "name": "IB_CDATAWRAP"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSSUBDEFN": {
+   "columns": [
+    {
+     "name": "MSGNAME"
+    },
+    {
+     "name": "SUBNAME"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "SUBOWNER"
+    },
+    {
+     "name": "ACTIONTYPE"
+    },
+    {
+     "name": "ACTIONNAME"
+    },
+    {
+     "name": "ACTIONLOCATION"
+    },
+    {
+     "name": "SUBTIMEOUTMIN"
+    },
+    {
+     "name": "PROCESSLOCALPUB"
+    },
+    {
+     "name": "RETRYONFAIL"
+    },
+    {
+     "name": "SUBSTATUS"
+    },
+    {
+     "name": "GENSUBPROC"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSMSGDEFNLANG": {
+   "columns": [
+    {
+     "name": "MSGNAME"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSMSGDEL": {
+   "columns": [
+    {
+     "name": "MSGNAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMPROG": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "NAMECOUNT"
+    },
+    {
+     "name": "PROGLEN"
+    },
+    {
+     "name": "PROGRUNLOC"
+    },
+    {
+     "name": "PROGFLAGS"
+    },
+    {
+     "name": "LICENSE_CODE"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "PROGEXTENDS"
+    },
+    {
+     "name": "PTTOOLSREL"
+    },
+    {
+     "name": "PROGTXT"
+    }
+   ],
+   "inserted": [
+    {
+     "OBJECTID1": "60",
+     "OBJECTVALUE1": "ZZ_PCODE_LAB_MSG",
+     "OBJECTID2": "87",
+     "OBJECTVALUE2": "ZZ_PCODE_LAB_MSG_SUB",
+     "OBJECTID3": "12",
+     "OBJECTVALUE3": "Subscription",
+     "OBJECTID4": "0",
+     "OBJECTVALUE4": " ",
+     "OBJECTID5": "0",
+     "OBJECTVALUE5": " ",
+     "OBJECTID6": "0",
+     "OBJECTVALUE6": " ",
+     "OBJECTID7": "0",
+     "OBJECTVALUE7": " ",
+     "PROGSEQ": "0",
+     "VERSION": "254",
+     "NAMECOUNT": "1",
+     "PROGLEN": "86",
+     "PROGRUNLOC": "0",
+     "PROGFLAGS": "0",
+     "LICENSE_CODE": " ",
+     "LASTUPDDTTM": "2026-10-12T07:19:15",
+     "LASTUPDOPRID": "JARED",
+     "PROGEXTENDS": " ",
+     "PTTOOLSREL": " ",
+     "PROGTXT": "a0000000003100000000000000000000000000000000000000000000000000000085000000444073007400720069006e0067000000012600730000000616730075006200730063007200690062006500640000001507"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMTXT": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "PROGSEQ"
+    },
+    {
+     "name": "HASH_SIGNATURE"
+    },
+    {
+     "name": "PCTEXT"
+    }
+   ],
+   "inserted": [
+    {
+     "OBJECTID1": "60",
+     "OBJECTVALUE1": "ZZ_PCODE_LAB_MSG",
+     "OBJECTID2": "87",
+     "OBJECTVALUE2": "ZZ_PCODE_LAB_MSG_SUB",
+     "OBJECTID3": "12",
+     "OBJECTVALUE3": "Subscription",
+     "OBJECTID4": "0",
+     "OBJECTVALUE4": " ",
+     "OBJECTID5": "0",
+     "OBJECTVALUE5": " ",
+     "OBJECTID6": "0",
+     "OBJECTVALUE6": " ",
+     "OBJECTID7": "0",
+     "OBJECTVALUE7": " ",
+     "PROGSEQ": "0",
+     "HASH_SIGNATURE": "6h2duCcEGhhkT9qKEqlZrpD8AMgA",
+     "PCTEXT": "Local string &s = \"subscribed\";\n"
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMNAME": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "NAMENUM"
+    },
+    {
+     "name": "RECNAME"
+    },
+    {
+     "name": "REFNAME"
+    },
+    {
+     "name": "PACKAGEROOT"
+    },
+    {
+     "name": "QUALIFYPATH"
+    },
+    {
+     "name": "APPCLASSMETHOD"
+    }
+   ],
+   "inserted": [
+    {
+     "OBJECTID1": "60",
+     "OBJECTVALUE1": "ZZ_PCODE_LAB_MSG",
+     "OBJECTID2": "87",
+     "OBJECTVALUE2": "ZZ_PCODE_LAB_MSG_SUB",
+     "OBJECTID3": "12",
+     "OBJECTVALUE3": "Subscription",
+     "OBJECTID4": "0",
+     "OBJECTVALUE4": " ",
+     "OBJECTID5": "0",
+     "OBJECTVALUE5": " ",
+     "OBJECTID6": "0",
+     "OBJECTVALUE6": " ",
+     "OBJECTID7": "0",
+     "OBJECTVALUE7": " ",
+     "NAMENUM": "1",
+     "RECNAME": " ",
+     "REFNAME": " ",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSMETHOD": " "
+    }
+   ],
+   "deleted": [],
+   "updated": []
+  },
+  "PSPCMPROGDEL": {
+   "columns": [
+    {
+     "name": "OBJECTID1"
+    },
+    {
+     "name": "OBJECTVALUE1"
+    },
+    {
+     "name": "OBJECTID2"
+    },
+    {
+     "name": "OBJECTVALUE2"
+    },
+    {
+     "name": "OBJECTID3"
+    },
+    {
+     "name": "OBJECTVALUE3"
+    },
+    {
+     "name": "OBJECTID4"
+    },
+    {
+     "name": "OBJECTVALUE4"
+    },
+    {
+     "name": "OBJECTID5"
+    },
+    {
+     "name": "OBJECTVALUE5"
+    },
+    {
+     "name": "OBJECTID6"
+    },
+    {
+     "name": "OBJECTVALUE6"
+    },
+    {
+     "name": "OBJECTID7"
+    },
+    {
+     "name": "OBJECTVALUE7"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PCM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "253",
+       "after": "254"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2737",
+       "after": "2738"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "PCM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "253",
+       "after": "254"
+      }
+     }
+    }
+   ]
+  }
+ }
+}

@@ -249,6 +249,7 @@ function iconFor(type: DefinitionType): string {
     case DefinitionType.Page: return 'browser';
     case DefinitionType.Component: return 'window';
     case DefinitionType.Menu: return 'list-tree';
+    case DefinitionType.MessageChannel: return 'radio-tower';
     case DefinitionType.HtmlDefinition: return 'code';
     case DefinitionType.StyleSheet: return 'symbol-color';
     default: return 'symbol-file';

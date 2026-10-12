@@ -239,6 +239,12 @@ export function createStub() {
         vscode._trees.set(id, provider);
         return new Disposable(() => registered.treeViews.delete(id));
       },
+      createTreeView(id, options) {
+        registered.treeViews.add(id);
+        vscode._trees.set(id, options.treeDataProvider);
+        return Object.assign(new Disposable(() => registered.treeViews.delete(id)), { description: undefined, title: undefined });
+      },
+      registerFileDecorationProvider() { return new Disposable(() => {}); },
       registerCustomEditorProvider(viewType) {
         registered.customEditors.add(viewType);
         return new Disposable(() => registered.customEditors.delete(viewType));

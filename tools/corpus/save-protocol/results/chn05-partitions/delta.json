@@ -1,0 +1,288 @@
+{
+ "format": "def-capture/1",
+ "kind": "chnl",
+ "case": "chn05-partitions",
+ "name": "ZZ_PCODE_LAB_CHNL",
+ "watch": {
+  "PSCHNLDEFN": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "CHNLSTATUS"
+    },
+    {
+     "name": "PUBTIMEOUTMIN"
+    },
+    {
+     "name": "SUBTIMEOUTMIN"
+    },
+    {
+     "name": "PUBRETRYSEC"
+    },
+    {
+     "name": "SUBRETRYSEC"
+    },
+    {
+     "name": "ERRORTHRESHOLD"
+    },
+    {
+     "name": "APMSGARCHIVE"
+    },
+    {
+     "name": "THRUPUTTYPE"
+    },
+    {
+     "name": "QUALITYOFSERVICE"
+    },
+    {
+     "name": "CHNLDISPLAYNAME"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "CHNLNAME": "ZZ_PCODE_LAB_CHNL"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "5",
+       "after": "6"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-12T07:25:53",
+       "after": "2026-10-12T07:26:19"
+      }
+     }
+    }
+   ]
+  },
+  "PSSUBCHNL": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "FIELDNAME"
+    }
+   ],
+   "inserted": [
+    {
+     "CHNLNAME": "ZZ_PCODE_LAB_CHNL",
+     "FIELDNAME": "MSGNAME"
+    },
+    {
+     "CHNLNAME": "ZZ_PCODE_LAB_CHNL",
+     "FIELDNAME": "PUBLISHER"
+    }
+   ],
+   "deleted": [
+    {
+     "CHNLNAME": "ZZ_PCODE_LAB_CHNL",
+     "FIELDNAME": "ZZ_KEY0"
+    }
+   ],
+   "updated": []
+  },
+  "PSCHNLNODE": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "MSGNODENAME"
+    },
+    {
+     "name": "PUBSUBDIRECTION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCHNLDEFNLANG": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCHNLDEL": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSMSGDEFN": {
+   "columns": [
+    {
+     "name": "MSGNAME"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "XMLALIAS"
+    },
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "DEFAULTVER"
+    },
+    {
+     "name": "MSGSTATUS"
+    },
+    {
+     "name": "NONREPUDIATION"
+    },
+    {
+     "name": "VALIDATESTRUCT"
+    },
+    {
+     "name": "ERRPROCMODE"
+    },
+    {
+     "name": "MENUNAME"
+    },
+    {
+     "name": "BARNAME"
+    },
+    {
+     "name": "BARITEMNAME"
+    },
+    {
+     "name": "PNLITEMNAME"
+    },
+    {
+     "name": "ACTIONS"
+    },
+    {
+     "name": "USEEDIT"
+    },
+    {
+     "name": "MSGDISPLAYNAME"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "CHDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "5",
+       "after": "6"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2742",
+       "after": "2743"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "CHDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "5",
+       "after": "6"
+      }
+     }
+    }
+   ]
+  }
+ }
+}

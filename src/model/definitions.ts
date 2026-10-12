@@ -43,6 +43,8 @@ export enum DefinitionType {
   Image = 49,
   /** PSPROJECTITEM 37, OBJECTID1 60: an Integration Broker message (768 of 851 in PSMSGDEFN). */
   IbMessage = 37,
+  /** PSPROJECTITEM 36, OBJECTID1 61: a message channel (PSCHNLDEFN), as App Designer's Insert into Project writes it [chn16]. */
+  MessageChannel = 36,
   /** PSPROJECTITEM 79, OBJECTID1 138: a service (185 of 216 in PSSERVICE). */
   IbService = 79,
   /** PSPROJECTITEM 80, OBJECTID1 139: a service operation (510 of 563 in PSOPERATION). */
@@ -119,6 +121,7 @@ export const CONFIRMED_TYPES: ReadonlySet<DefinitionType> = new Set([
   DefinitionType.Activity,
   DefinitionType.ComponentInterface,
   DefinitionType.AppEngineProgram,
+  DefinitionType.MessageChannel,
   DefinitionType.AppEnginePeopleCode,
   DefinitionType.ComponentPeopleCode,
   DefinitionType.ComponentRecordFieldPeopleCode,
@@ -252,6 +255,7 @@ export const TYPE_LABELS: Readonly<Partial<Record<DefinitionType, string>>> = {
   [DefinitionType.Xslt]: 'XSLT',
   [DefinitionType.MessageNode]: 'Message Nodes',
   [DefinitionType.IbMessage]: 'Messages',
+  [DefinitionType.MessageChannel]: 'Message Channels',
   [DefinitionType.IbService]: 'Services',
   [DefinitionType.IbServiceOperation]: 'Service Operations',
   [DefinitionType.Role]: 'Roles',
@@ -311,6 +315,7 @@ export function fileExtension(type: DefinitionType): string {
     case DefinitionType.ProcessDefinition: return '.psprcs';
     case DefinitionType.Tree: return '.pstree';
     case DefinitionType.IbMessage: return '.psmsgdefn';
+    case DefinitionType.MessageChannel: return '.pschnl';
     case DefinitionType.PortalRegistry: return '.psportal';
     case DefinitionType.UrlDefinition: return '.psurl';
     case DefinitionType.Xslt: return '.xsl';

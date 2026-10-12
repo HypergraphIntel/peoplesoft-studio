@@ -50,6 +50,12 @@ import {
   deleteMenu, menuDocumentOf, menuToken, readStoredMenu, renameMenu, saveMenu, verifyMenuSave, type MenuSaveRequest, type MenuSaveResult
 } from './menuWriter.js';
 import { TRANSFER_ACTIONS, type MenuDocument } from '../model/menuDocument.js';
+import {
+  channelDocumentOf, channelToken, deleteChannel, readChannelContext, readStoredChannel, renameChannel, saveChannel, verifyChannelSave,
+  type ChannelSaveRequest, type ChannelSaveResult
+} from './channelWriter.js';
+import { newChannel, type ChannelDocument, type ChannelReferenceLookup } from '../model/channelDocument.js';
+import { renderChannel } from '../model/channelOperations.js';
 import type { MenuReferenceLookup } from '../model/menuSession.js';
 import type { AeDocument } from '../model/aeDocument.js';
 import type { AeReferenceLookup } from '../model/aeValidation.js';
@@ -136,6 +142,7 @@ export class DatabaseProvider implements DefinitionProvider {
     DefinitionType.ProcessDefinition,
     DefinitionType.Tree,
     DefinitionType.IbMessage,
+    DefinitionType.MessageChannel,
     DefinitionType.IbService,
     DefinitionType.IbServiceOperation,
     DefinitionType.Image,
@@ -419,6 +426,10 @@ export class DatabaseProvider implements DefinitionProvider {
         return this.searchSimple(
           `SELECT MSGNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSMSGDEFN WHERE MSGNAME LIKE :n`,
           DefinitionType.IbMessage, pattern, limit);
+      case DefinitionType.MessageChannel:
+        return this.searchSimple(
+          `SELECT CHNLNAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSCHNLDEFN WHERE CHNLNAME LIKE :n`,
+          DefinitionType.MessageChannel, pattern, limit);
       case DefinitionType.IbService:
         return this.searchSimple(
           `SELECT IB_SERVICENAME AS NAME, DESCR, LASTUPDDTTM, LASTUPDOPRID FROM PSSERVICE WHERE IB_SERVICENAME LIKE :n`,
@@ -1150,6 +1161,11 @@ export class DatabaseProvider implements DefinitionProvider {
       case DefinitionType.UrlDefinition: return this.readUrl(key);
       case DefinitionType.MessageNode: return this.readNode(key);
       case DefinitionType.IbMessage: return this.readIbMessage(key);
+      case DefinitionType.MessageChannel: {
+        const r = await this.readChannelDocument(key.parts[0]);
+        if (!r) throw new ProviderError(`No message channel named ${key.parts[0]}.`);
+        return renderChannel(r.doc);
+      }
       case DefinitionType.IbService: return this.readIbService(key);
       case DefinitionType.IbServiceOperation: return this.readIbOperation(key);
       case DefinitionType.Query: return this.readQuery(key);
@@ -1170,7 +1186,7 @@ export class DatabaseProvider implements DefinitionProvider {
       DefinitionType.PermissionList, DefinitionType.Role, DefinitionType.MessageCatalog, DefinitionType.Query,
       DefinitionType.ProcessDefinition, DefinitionType.Tree, DefinitionType.PortalRegistry,
       DefinitionType.Xslt, DefinitionType.UrlDefinition, DefinitionType.MessageNode,
-      DefinitionType.IbMessage, DefinitionType.IbService, DefinitionType.IbServiceOperation
+      DefinitionType.IbMessage, DefinitionType.IbService, DefinitionType.IbServiceOperation, DefinitionType.MessageChannel
     ].includes(type);
   }
 
@@ -1898,6 +1914,62 @@ export class DatabaseProvider implements DefinitionProvider {
     const result = await this.withConnection((c) => renameMenu(c, types, from, to, token, operatorId));
     await this.withConnection((c) => verifyMenuSave(c, types, result));
     return result;
+  }
+
+  /** A message channel as its window opens it (channelWriter.ts, docs/MESSAGE_CHANNELS.md), with its token; undefined when there is none. */
+  async readChannelDocument(name: string): Promise<{ doc: ChannelDocument; token: string } | undefined> {
+    return this.withConnection(async (c) => {
+      const stored = await readStoredChannel(c, this.types, name, false);
+      if (!stored.exists) return undefined;
+      return { doc: channelDocumentOf(stored), token: channelToken(stored) };
+    });
+  }
+
+  /** File > New > Message Channel: App Designer's defaults, with the messages already naming the name and their fields. */
+  async newChannelDocument(name: string): Promise<ChannelDocument> {
+    const { messages, candidates } = await this.withConnection((c) => readChannelContext(c, name));
+    return newChannel(name, messages, candidates);
+  }
+
+  /** Saves a message channel as App Designer does, then proves it after COMMIT. */
+  async saveChannelDocument(request: ChannelSaveRequest): Promise<ChannelSaveResult> {
+    const types = this.types;
+    const result = await this.withConnection((c) => saveChannel(c, types, request));
+    await this.withConnection((c) => verifyChannelSave(c, types, result));
+    return result;
+  }
+
+  async deleteChannelDefinition(name: string, token: string, operatorId: string): Promise<void> {
+    const types = this.types;
+    await this.withConnection((c) => deleteChannel(c, types, name, token, operatorId));
+    const after = await this.withConnection((c) => readStoredChannel(c, types, name, false));
+    if (after.exists) throw new ProviderError(`After COMMIT ${name} still exists.`);
+  }
+
+  async renameChannelDefinition(from: string, to: string, token: string, operatorId: string): Promise<ChannelSaveResult> {
+    const types = this.types;
+    const result = await this.withConnection((c) => renameChannel(c, types, from, to, token, operatorId));
+    await this.withConnection((c) => verifyChannelSave(c, types, result));
+    return result;
+  }
+
+  /** Add Partition Field's check (78,1) and the Owner ID list. */
+  channelReferenceLookup(): ChannelReferenceLookup {
+    const count = (sql: string, binds: Record<string, unknown>) =>
+      this.withConnection(async (c) => Number(((await c.execute<{ N: number }>(sql, binds)).rows ?? [])[0]?.N ?? 0));
+    return {
+      fieldExists: async (field) => (await count(`SELECT COUNT(*) AS N FROM PSDBFIELD WHERE FIELDNAME = :f`, { f: field.trim().toUpperCase() })) > 0,
+      ownerExists: async (owner) => (await count(`SELECT COUNT(*) AS N FROM PSXLATITEM WHERE FIELDNAME = 'OBJECTOWNERID' AND FIELDVALUE = :o`, { o: owner })) > 0
+    };
+  }
+
+  /** The Message Channel window's lists: Owner ID, and fields by name for Add Partition Field. */
+  async channelChoices(what: 'owners' | 'fields', arg = '', limit = 300): Promise<{ value: string; label?: string }[]> {
+    const q = (sql: string, binds: Record<string, unknown>) => this.withConnection(async (c) => (await c.execute<Record<string, unknown>>(sql, binds)).rows ?? []);
+    const rows = what === 'owners'
+      ? await q(`SELECT FIELDVALUE AS V, XLATLONGNAME AS L FROM PSXLATITEM WHERE FIELDNAME = 'OBJECTOWNERID' AND EFF_STATUS = 'A' ORDER BY XLATLONGNAME`, {})
+      : await q(`SELECT FIELDNAME AS V FROM PSDBFIELD WHERE FIELDNAME LIKE :p ORDER BY FIELDNAME FETCH FIRST :n ROWS ONLY`, { p: `${arg.toUpperCase()}%`, n: limit });
+    return rows.map((r) => ({ value: String(r.V).trim(), ...(r.L !== undefined && r.L !== null ? { label: String(r.L).trim() } : {}) }));
   }
 
   /**

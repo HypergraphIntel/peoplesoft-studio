@@ -208,6 +208,18 @@ export const PROPERTIES_SPECS: Readonly<Partial<Record<DefinitionType, Propertie
       { column: 'MAINTPROJ', label: 'Maintenance Project (stored value)' }
     ]
   },
+  [DefinitionType.MessageChannel]: {
+    kind: 'Message Channel',
+    table: 'PSCHNLDEFN',
+    where: (key) => ({ CHNLNAME: key.parts[0] }),
+    description: 'DESCR',
+    title: 'Message Channel Use',
+    fields: [
+      { column: 'CHNLSTATUS', label: 'Message Channel Status', format: named({ 0: 'Run (never set)', 1: 'Run', 2: 'Pause' }) },
+      { column: 'APMSGARCHIVE', label: 'Archive Messages?', format: named({ 0: 'No', 1: 'Yes' }) },
+      { column: 'THRUPUTTYPE', label: 'Unordered?', format: named({ 0: 'No (never set)', 1: 'Yes', 2: 'No' }) }
+    ]
+  },
   [DefinitionType.Menu]: {
     kind: 'Menu',
     table: 'PSMENUDEFN',

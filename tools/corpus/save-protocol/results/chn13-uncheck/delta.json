@@ -1,0 +1,279 @@
+{
+ "format": "def-capture/1",
+ "kind": "chnl",
+ "case": "chn13-uncheck",
+ "name": "ZZ_PCODE_LAB_CHN5",
+ "watch": {
+  "PSCHNLDEFN": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "CHNLSTATUS"
+    },
+    {
+     "name": "PUBTIMEOUTMIN"
+    },
+    {
+     "name": "SUBTIMEOUTMIN"
+    },
+    {
+     "name": "PUBRETRYSEC"
+    },
+    {
+     "name": "SUBRETRYSEC"
+    },
+    {
+     "name": "ERRORTHRESHOLD"
+    },
+    {
+     "name": "APMSGARCHIVE"
+    },
+    {
+     "name": "THRUPUTTYPE"
+    },
+    {
+     "name": "QUALITYOFSERVICE"
+    },
+    {
+     "name": "CHNLDISPLAYNAME"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "CHNLNAME": "ZZ_PCODE_LAB_CHN5"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "14",
+       "after": "15"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-12T07:56:49",
+       "after": "2026-10-12T07:57:09"
+      }
+     }
+    }
+   ]
+  },
+  "PSSUBCHNL": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "FIELDNAME"
+    }
+   ],
+   "inserted": [],
+   "deleted": [
+    {
+     "CHNLNAME": "ZZ_PCODE_LAB_CHN5",
+     "FIELDNAME": "EMPLID"
+    }
+   ],
+   "updated": []
+  },
+  "PSCHNLNODE": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "MSGNODENAME"
+    },
+    {
+     "name": "PUBSUBDIRECTION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCHNLDEFNLANG": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "LANGUAGE_CD"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSCHNLDEL": {
+   "columns": [
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSMSGDEFN": {
+   "columns": [
+    {
+     "name": "MSGNAME"
+    },
+    {
+     "name": "VERSION"
+    },
+    {
+     "name": "XMLALIAS"
+    },
+    {
+     "name": "CHNLNAME"
+    },
+    {
+     "name": "DEFAULTVER"
+    },
+    {
+     "name": "MSGSTATUS"
+    },
+    {
+     "name": "NONREPUDIATION"
+    },
+    {
+     "name": "VALIDATESTRUCT"
+    },
+    {
+     "name": "ERRPROCMODE"
+    },
+    {
+     "name": "MENUNAME"
+    },
+    {
+     "name": "BARNAME"
+    },
+    {
+     "name": "BARITEMNAME"
+    },
+    {
+     "name": "PNLITEMNAME"
+    },
+    {
+     "name": "ACTIONS"
+    },
+    {
+     "name": "USEEDIT"
+    },
+    {
+     "name": "MSGDISPLAYNAME"
+    },
+    {
+     "name": "DESCR"
+    },
+    {
+     "name": "OBJECTOWNERID"
+    },
+    {
+     "name": "LASTUPDDTTM"
+    },
+    {
+     "name": "LASTUPDOPRID"
+    },
+    {
+     "name": "DESCRLONG"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": []
+  },
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "CHDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "14",
+       "after": "15"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2751",
+       "after": "2752"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME"
+    },
+    {
+     "name": "VERSION"
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "CHDM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "14",
+       "after": "15"
+      }
+     }
+    }
+   ]
+  }
+ }
+}

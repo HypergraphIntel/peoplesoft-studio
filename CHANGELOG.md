@@ -1,5 +1,50 @@
 # Changelog
 
+## 0.8.3
+
+### Added
+
+- **Message Channel window.** Message channels open in App Designer's
+  Message Channel window, editable on Writable connections: the Messages tab
+  (the channel's messages, and the fields to partition by as App Designer
+  lists them -- the level-0 record fields every message shares, then MSGNAME,
+  MSGNAMEDETAIL, PUBLISHER, PUBPROC -- checked, with Add Partition Field and
+  its (78,1) check), Message Channel Properties (General; Use: Run / Pause,
+  Archive Messages?, Unordered?), undo / redo, Validate, Preview Save, Save As,
+  Rename, Delete and *New Definition > Message Channel*. Saved as App Designer
+  saves, its quirks included: a new channel's defaults, the properties' OK
+  writing a never-set status and ordering, stored partition fields App
+  Designer does not list dropped (and reported) on open; Rename repoints the
+  messages and project items naming the channel. Mapped from 19 controlled App
+  Designer saves on the lab VM, every one replayed by the tests; the live end
+  to end passes 25 of 25, and App Designer opens, shows, edits and saves what
+  the writer creates. Message channels are also in the Definition Browser,
+  Open Definition, Properties and Insert into Project. See
+  docs/MESSAGE_CHANNELS.md.
+- **Message channels through the MCP**: `psft_channel_reference`,
+  `psft_channel_get`, `psft_channel_validate`, `psft_channel_create`,
+  `psft_channel_edit`, `psft_channel_copy`, `psft_channel_rename`,
+  `psft_channel_delete`.
+- **Configuration Tools and Data Migration Tools panes** (placeholders), in
+  the PeopleSoft Studio sidebar between the Definition Browser and
+  Connections: PS Query, Customization (Page and Field Configurator, Event
+  Mapping, Drop Zones), Administration (Message
+  Catalog, Text Catalog, URL Definitions), Portal Registry (Structure &
+  Content), Integration Broker (Message Definitions, Document Definitions,
+  Service, Service Operation, Nodes, Routes) and Security (OAuth, SAML); Data
+  Mover Scripts and Data Migration Workbench. Shown greyed, marked *Coming
+  soon*; choosing one says it is not available yet.
+
+### Changed
+
+- **Projects**: message channels can be inserted into a project (OBJECTTYPE
+  36), as App Designer's Insert into Project writes them.
+- **Definition Properties** covers message channels.
+- Repository: design notes for a future Customization Intelligence Engine and
+  Customization Strategy panel (`CUSTOMIZATION_INTELLIGENCE.md`,
+  `CUSTOMIZATION_INTELLIGENCE_PROMPT.md`, `CUSTOMIZATION_STRATEGY_PANEL.md`);
+  proposals, not implemented.
+
 ## 0.8.2
 
 ### Added
