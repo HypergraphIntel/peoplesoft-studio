@@ -1,0 +1,1371 @@
+{
+ "format": "save-protocol-delta/1",
+ "case": "em05-fluid-page-record-edit",
+ "database": "HRDMO",
+ "peopleToolsRelease": "8.62.09",
+ "scope": "tools",
+ "markers": {
+  "before": {
+   "scn": "39362783514671",
+   "timestamp": "2026-10-12T14:51:32.241877000-05:00"
+  },
+  "after": {
+   "scn": "39362783522866",
+   "timestamp": "2026-10-12T14:53:36.244617000-05:00"
+  }
+ },
+ "summary": {
+  "transitions": {
+   "window": {
+    "from": "2026-10-12T14:51:32.241877000-05:00",
+    "to": "2026-10-12T14:53:36.244617000-05:00"
+   },
+   "definitions": []
+  },
+  "psversion": {
+   "SCNFM": {
+    "before": 4,
+    "after": 8,
+    "delta": 4
+   },
+   "SYS": {
+    "before": 2791,
+    "after": 2795,
+    "delta": 4
+   }
+  },
+  "pslock": {
+   "SCNFM": {
+    "before": 4,
+    "after": 8,
+    "delta": 4
+   }
+  },
+  "watchTablesChanged": {
+   "PSVERSION": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 2
+   },
+   "PSLOCK": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   }
+  },
+  "otherTablesChanged": {
+   "PSADSTRACKING": {
+    "inserted": 2,
+    "deleted": 0,
+    "updated": 3
+   },
+   "PSAPMSGDSPSTAT": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 3
+   },
+   "PSIBNWSTATUS": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSIBOAUTH": {
+    "inserted": 0,
+    "deleted": 0,
+    "updated": 1
+   },
+   "PSPTCSSRVCONF": {
+    "inserted": 3,
+    "deleted": 1,
+    "updated": 1
+   },
+   "PSPTCS_MAPFLDS": {
+    "inserted": 2,
+    "deleted": 2,
+    "updated": 0
+   }
+  },
+  "unreadableTables": [],
+  "incomplete": []
+ },
+ "watch": {
+  "PSVERSION": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "SCNFM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "4",
+       "after": "8"
+      }
+     }
+    },
+    {
+     "key": {
+      "OBJECTTYPENAME": "SYS"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "2791",
+       "after": "2795"
+      }
+     }
+    }
+   ]
+  },
+  "PSLOCK": {
+   "columns": [
+    {
+     "name": "OBJECTTYPENAME",
+     "type": "VARCHAR2",
+     "length": 32,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "OBJECTTYPENAME": "SCNFM"
+     },
+     "changes": {
+      "VERSION": {
+       "before": "4",
+       "after": "8"
+      }
+     }
+    }
+   ]
+  }
+ },
+ "otherTables": {
+  "PSADSTRACKING": {
+   "columns": [
+    {
+     "name": "PTADSNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "PTSESSIONID",
+     "type": "VARCHAR2",
+     "length": 144,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYHASH",
+     "type": "VARCHAR2",
+     "length": 112,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL1",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL2",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL3",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL4",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL5",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL6",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL7",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL8",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL9",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL10",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL11",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL12",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL13",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL14",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL15",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYCOL16",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE1",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE2",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE3",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE4",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE5",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE6",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE7",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE8",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE9",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE10",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE11",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE12",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE13",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE14",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE15",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "PTKEYVALUE16",
+     "type": "VARCHAR2",
+     "length": 600,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "PTADSNAME": "RCF_SERVICE_CONFIGURATIONS",
+     "RECNAME": "PSPTCSSRVCONF",
+     "PTSESSIONID": " ",
+     "PTKEYHASH": "vqIjU2Wmfv7QbEgLnmdpzjhCeLs=",
+     "PTKEYCOL1": "PORTAL_NAME",
+     "PTKEYCOL2": "PORTAL_OBJNAME",
+     "PTKEYCOL3": "PTCS_SERVICEID",
+     "PTKEYCOL4": "PTCS_INSTANCEID",
+     "PTKEYCOL5": " ",
+     "PTKEYCOL6": " ",
+     "PTKEYCOL7": " ",
+     "PTKEYCOL8": " ",
+     "PTKEYCOL9": " ",
+     "PTKEYCOL10": " ",
+     "PTKEYCOL11": " ",
+     "PTKEYCOL12": " ",
+     "PTKEYCOL13": " ",
+     "PTKEYCOL14": " ",
+     "PTKEYCOL15": " ",
+     "PTKEYCOL16": " ",
+     "PTKEYVALUE1": "_PTCS_PTEVMAP",
+     "PTKEYVALUE2": "ZZ_PCODE_LAB_CMP_GBL",
+     "PTKEYVALUE3": "ZZ_PCODE_LAB_EMSVC",
+     "PTKEYVALUE4": "561179544",
+     "PTKEYVALUE5": " ",
+     "PTKEYVALUE6": " ",
+     "PTKEYVALUE7": " ",
+     "PTKEYVALUE8": " ",
+     "PTKEYVALUE9": " ",
+     "PTKEYVALUE10": " ",
+     "PTKEYVALUE11": " ",
+     "PTKEYVALUE12": " ",
+     "PTKEYVALUE13": " ",
+     "PTKEYVALUE14": " ",
+     "PTKEYVALUE15": " ",
+     "PTKEYVALUE16": " ",
+     "LASTUPDDTTM": "2026-10-12T14:53:24.364898000",
+     "LASTUPDOPRID": "JARED"
+    },
+    {
+     "PTADSNAME": "RCF_SERVICE_CONFIGURATIONS",
+     "RECNAME": "PSPTCSSRVCONF",
+     "PTSESSIONID": " ",
+     "PTKEYHASH": "ys0DPR9UAeBn4hwxy8/2yI4Ybd8=",
+     "PTKEYCOL1": "PORTAL_NAME",
+     "PTKEYCOL2": "PORTAL_OBJNAME",
+     "PTKEYCOL3": "PTCS_SERVICEID",
+     "PTKEYCOL4": "PTCS_INSTANCEID",
+     "PTKEYCOL5": " ",
+     "PTKEYCOL6": " ",
+     "PTKEYCOL7": " ",
+     "PTKEYCOL8": " ",
+     "PTKEYCOL9": " ",
+     "PTKEYCOL10": " ",
+     "PTKEYCOL11": " ",
+     "PTKEYCOL12": " ",
+     "PTKEYCOL13": " ",
+     "PTKEYCOL14": " ",
+     "PTKEYCOL15": " ",
+     "PTKEYCOL16": " ",
+     "PTKEYVALUE1": "_PTCS_PTEVMAP",
+     "PTKEYVALUE2": "ZZ_PCODE_LAB_CMP_GBL",
+     "PTKEYVALUE3": "ZZ_PCODE_LAB_EMSVC",
+     "PTKEYVALUE4": "247649065",
+     "PTKEYVALUE5": " ",
+     "PTKEYVALUE6": " ",
+     "PTKEYVALUE7": " ",
+     "PTKEYVALUE8": " ",
+     "PTKEYVALUE9": " ",
+     "PTKEYVALUE10": " ",
+     "PTKEYVALUE11": " ",
+     "PTKEYVALUE12": " ",
+     "PTKEYVALUE13": " ",
+     "PTKEYVALUE14": " ",
+     "PTKEYVALUE15": " ",
+     "PTKEYVALUE16": " ",
+     "LASTUPDDTTM": "2026-10-12T14:53:24.365747000",
+     "LASTUPDOPRID": "JARED"
+    }
+   ],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAOSoAHlAAAJunAAN"
+     },
+     "changes": {
+      "LASTUPDDTTM": {
+       "before": "2026-10-12T14:50:28.547978000",
+       "after": "2026-10-12T14:53:24.365373000"
+      }
+     }
+    },
+    {
+     "key": {
+      "ROWID": "AAAOSoAHlAAAJunAAO"
+     },
+     "changes": {
+      "LASTUPDDTTM": {
+       "before": "2026-10-12T14:50:28.526697000",
+       "after": "2026-10-12T14:53:24.337929000"
+      }
+     }
+    },
+    {
+     "key": {
+      "ROWID": "AAAOSoAHlAAAJunAAR"
+     },
+     "changes": {
+      "LASTUPDDTTM": {
+       "before": "2026-10-12T14:50:28.548972000",
+       "after": "2026-10-12T14:53:24.346553000"
+      }
+     }
+    }
+   ]
+  },
+  "PSAPMSGDSPSTAT": {
+   "columns": [
+    {
+     "name": "DISPATCHERNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "MACHINENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "APPSERVER_PATH",
+     "type": "VARCHAR2",
+     "length": 256,
+     "nullable": false
+    },
+    {
+     "name": "DSPSTATUS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "STATUSSTRING",
+     "type": "VARCHAR2",
+     "length": 20,
+     "nullable": false
+    },
+    {
+     "name": "IB_SLAVEMODE",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "DSPRESET",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "CLEANUP_DTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "DSPHEALTHDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAOT+AHbAAAAGLAAA"
+     },
+     "changes": {
+      "DSPHEALTHDTTM": {
+       "before": "2026-10-12T14:51:25.632273000",
+       "after": "2026-10-12T14:53:26.462425000"
+      }
+     }
+    },
+    {
+     "key": {
+      "ROWID": "AAAOT+AHbAAAAGMAAD"
+     },
+     "changes": {
+      "DSPHEALTHDTTM": {
+       "before": "2026-10-12T14:51:18.569223000",
+       "after": "2026-10-12T14:53:34.868029000"
+      }
+     }
+    },
+    {
+     "key": {
+      "ROWID": "AAAOT+AHbAAAAGNAAB"
+     },
+     "changes": {
+      "DSPHEALTHDTTM": {
+       "before": "2026-10-12T14:51:16.923100000",
+       "after": "2026-10-12T14:53:33.527925000"
+      }
+     }
+    }
+   ]
+  },
+  "PSIBNWSTATUS": {
+   "columns": [
+    {
+     "name": "APPSERVER_PATH",
+     "type": "VARCHAR2",
+     "length": 256,
+     "nullable": false
+    },
+    {
+     "name": "MACHINENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "IB_NWSTATUS_FLAG",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_NWSTATUS_OPTION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_NWSTATUS_OPT_ST",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_NWSTATUS_DIAG",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_NWSTATUS_TIME",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_NWSTATUS_DAYS",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "IB_NWSTATUS_DTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "EMAIL_CC",
+     "type": "VARCHAR2",
+     "length": 1016,
+     "nullable": false
+    },
+    {
+     "name": "EMAIL_TO",
+     "type": "VARCHAR2",
+     "length": 1016,
+     "nullable": false
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAOpcAHlAAC34lAAA"
+     },
+     "changes": {
+      "LASTUPDDTTM": {
+       "before": "2026-10-12T14:51:05.343729000",
+       "after": "2026-10-12T14:53:05.430499000"
+      }
+     }
+    }
+   ]
+  },
+  "PSIBOAUTH": {
+   "columns": [
+    {
+     "name": "APPSERVER_PATH",
+     "type": "VARCHAR2",
+     "length": 256,
+     "nullable": false
+    },
+    {
+     "name": "MACHINENAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTIB_OAUTH_FLAG",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTIB_OAUTH_TIME",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTIB_REFRESH_TIME",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTIB_OAUTH_DTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    }
+   ],
+   "inserted": [],
+   "deleted": [],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAOpiAHlAAAKlnAAA"
+     },
+     "changes": {
+      "PTIB_OAUTH_DTTM": {
+       "before": "2026-10-12T14:48:05.212652000",
+       "after": "2026-10-12T14:53:05.435055000"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-12T14:51:05.347507000",
+       "after": "2026-10-12T14:53:05.432142000"
+      }
+     }
+    }
+   ]
+  },
+  "PSPTCSSRVCONF": {
+   "columns": [
+    {
+     "name": "PORTAL_NAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PORTAL_OBJNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_SERVICEID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_INSTANCEID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_ISCOMPSERVICE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "SEQNUM",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_HIDEFROMSRCH",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "IS_DEFAULT",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_MAPSECOPTIONS",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "HANDLERNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_INSTANCELBL",
+     "type": "VARCHAR2",
+     "length": 200,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_URLTARGET",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_RCMENUOPT",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_MAINMENUOPT",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_SEQNUM_MMNU",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_SEQNUM_RMNU",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PACKAGEROOT",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "QUALIFYPATH",
+     "type": "VARCHAR2",
+     "length": 508,
+     "nullable": false
+    },
+    {
+     "name": "APPCLASSID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_INITMIN",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_ENABLE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_SRVOPENOPTION",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_EMBEDDABLE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_SUOWSERV",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "VERSION",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "LASTUPDDTTM",
+     "type": "TIMESTAMP(6)",
+     "length": 11,
+     "nullable": true
+    },
+    {
+     "name": "LASTUPDOPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "OBJECTOWNERID",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_SRVCATTR",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "OPRID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_MASTERTMPL",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "RECNAME",
+     "type": "VARCHAR2",
+     "length": 60,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_CMPEVENT",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_PROCSEQ",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_CMPRECEVENT",
+     "type": "VARCHAR2",
+     "length": 16,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_ALLOWPERSONAL",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "FIELDNAME",
+     "type": "VARCHAR2",
+     "length": 72,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "ZZ_PCODE_LAB_CMP_GBL",
+     "PTCS_SERVICEID": "ZZ_PCODE_LAB_EMSVC",
+     "PTCS_INSTANCEID": "515711512",
+     "PTCS_ISCOMPSERVICE": "C",
+     "PNLNAME": " ",
+     "SEQNUM": "2",
+     "PTCS_HIDEFROMSRCH": "N",
+     "IS_DEFAULT": "N",
+     "PTCS_MAPSECOPTIONS": "P",
+     "HANDLERNAME": " ",
+     "PTCS_INSTANCELBL": "ZZ Lab EM Service",
+     "PTCS_URLTARGET": "TGTF",
+     "PTCS_RCMENUOPT": "N",
+     "PTCS_MAINMENUOPT": "Y",
+     "PTCS_SEQNUM_MMNU": "0",
+     "PTCS_SEQNUM_RMNU": "0",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSID": " ",
+     "PTCS_INITMIN": " ",
+     "PTCS_ENABLE": "Y",
+     "PTCS_SRVOPENOPTION": " ",
+     "PTCS_EMBEDDABLE": " ",
+     "PTCS_SUOWSERV": " ",
+     "VERSION": "5",
+     "LASTUPDDTTM": "2026-10-12T14:53:23.351699000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "PTCS_SRVCATTR": " ",
+     "OPRID": " ",
+     "PTCS_MASTERTMPL": " ",
+     "RECNAME": " ",
+     "PTCS_CMPEVENT": "POST",
+     "PTCS_PROCSEQ": "POST",
+     "PTCS_CMPRECEVENT": " ",
+     "PTCS_ALLOWPERSONAL": " ",
+     "FIELDNAME": " "
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "ZZ_PCODE_LAB_CMP_GBL",
+     "PTCS_SERVICEID": "ZZ_PCODE_LAB_EMSVC",
+     "PTCS_INSTANCEID": "380061827",
+     "PTCS_ISCOMPSERVICE": "F",
+     "PNLNAME": " ",
+     "SEQNUM": "1",
+     "PTCS_HIDEFROMSRCH": " ",
+     "IS_DEFAULT": "N",
+     "PTCS_MAPSECOPTIONS": " ",
+     "HANDLERNAME": " ",
+     "PTCS_INSTANCELBL": " ",
+     "PTCS_URLTARGET": " ",
+     "PTCS_RCMENUOPT": " ",
+     "PTCS_MAINMENUOPT": " ",
+     "PTCS_SEQNUM_MMNU": "0",
+     "PTCS_SEQNUM_RMNU": "0",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSID": " ",
+     "PTCS_INITMIN": " ",
+     "PTCS_ENABLE": "Y",
+     "PTCS_SRVOPENOPTION": " ",
+     "PTCS_EMBEDDABLE": " ",
+     "PTCS_SUOWSERV": " ",
+     "VERSION": "6",
+     "LASTUPDDTTM": "2026-10-12T14:53:23.351792000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "PTCS_SRVCATTR": " ",
+     "OPRID": " ",
+     "PTCS_MASTERTMPL": " ",
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "PTCS_CMPEVENT": " ",
+     "PTCS_PROCSEQ": "PRE",
+     "PTCS_CMPRECEVENT": "RFCH",
+     "PTCS_ALLOWPERSONAL": " ",
+     "FIELDNAME": "ZZ_PCODE_LAB_N1"
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "ZZ_PCODE_LAB_CMP_GBL",
+     "PTCS_SERVICEID": "ZZ_PCODE_LAB_EMSVC",
+     "PTCS_INSTANCEID": "561179544",
+     "PTCS_ISCOMPSERVICE": "R",
+     "PNLNAME": "ZZ_PCODE_LAB_PG",
+     "SEQNUM": "2",
+     "PTCS_HIDEFROMSRCH": " ",
+     "IS_DEFAULT": "N",
+     "PTCS_MAPSECOPTIONS": " ",
+     "HANDLERNAME": " ",
+     "PTCS_INSTANCELBL": " ",
+     "PTCS_URLTARGET": " ",
+     "PTCS_RCMENUOPT": " ",
+     "PTCS_MAINMENUOPT": " ",
+     "PTCS_SEQNUM_MMNU": "0",
+     "PTCS_SEQNUM_RMNU": "0",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSID": " ",
+     "PTCS_INITMIN": " ",
+     "PTCS_ENABLE": "Y",
+     "PTCS_SRVOPENOPTION": " ",
+     "PTCS_EMBEDDABLE": " ",
+     "PTCS_SUOWSERV": " ",
+     "VERSION": "7",
+     "LASTUPDDTTM": "2026-10-12T14:53:24.350802000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "PTCS_SRVCATTR": " ",
+     "OPRID": " ",
+     "PTCS_MASTERTMPL": " ",
+     "RECNAME": " ",
+     "PTCS_CMPEVENT": " ",
+     "PTCS_PROCSEQ": "OVER",
+     "PTCS_CMPRECEVENT": "PACT",
+     "PTCS_ALLOWPERSONAL": " ",
+     "FIELDNAME": " "
+    }
+   ],
+   "deleted": [
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "ZZ_PCODE_LAB_CMP_GBL",
+     "PTCS_SERVICEID": "ZZ_PCODE_LAB_EMSVC",
+     "PTCS_INSTANCEID": "380061827",
+     "PTCS_ISCOMPSERVICE": "F",
+     "PNLNAME": " ",
+     "SEQNUM": "1",
+     "PTCS_HIDEFROMSRCH": " ",
+     "IS_DEFAULT": "N",
+     "PTCS_MAPSECOPTIONS": " ",
+     "HANDLERNAME": " ",
+     "PTCS_INSTANCELBL": " ",
+     "PTCS_URLTARGET": " ",
+     "PTCS_RCMENUOPT": " ",
+     "PTCS_MAINMENUOPT": " ",
+     "PTCS_SEQNUM_MMNU": "0",
+     "PTCS_SEQNUM_RMNU": "0",
+     "PACKAGEROOT": " ",
+     "QUALIFYPATH": " ",
+     "APPCLASSID": " ",
+     "PTCS_INITMIN": " ",
+     "PTCS_ENABLE": "Y",
+     "PTCS_SRVOPENOPTION": " ",
+     "PTCS_EMBEDDABLE": " ",
+     "PTCS_SUOWSERV": " ",
+     "VERSION": "4",
+     "LASTUPDDTTM": "2026-10-12T14:50:27.607989000",
+     "LASTUPDOPRID": "JARED",
+     "OBJECTOWNERID": " ",
+     "PTCS_SRVCATTR": " ",
+     "OPRID": " ",
+     "PTCS_MASTERTMPL": " ",
+     "RECNAME": "ZZ_PCODE_LAB_T",
+     "PTCS_CMPEVENT": " ",
+     "PTCS_PROCSEQ": "PRE",
+     "PTCS_CMPRECEVENT": "RFCH",
+     "PTCS_ALLOWPERSONAL": " ",
+     "FIELDNAME": "ZZ_PCODE_LAB_N1"
+    }
+   ],
+   "updated": [
+    {
+     "key": {
+      "ROWID": "AAAPAvAHWAAAFS3AAE"
+     },
+     "changes": {
+      "PTCS_INSTANCEID": {
+       "before": "515711512",
+       "after": "247649065"
+      },
+      "PTCS_ISCOMPSERVICE": {
+       "before": "C",
+       "after": "P"
+      },
+      "PTCS_HIDEFROMSRCH": {
+       "before": "N",
+       "after": " "
+      },
+      "PTCS_MAPSECOPTIONS": {
+       "before": "P",
+       "after": " "
+      },
+      "PTCS_INSTANCELBL": {
+       "before": "ZZ Lab EM Service",
+       "after": " "
+      },
+      "PTCS_URLTARGET": {
+       "before": "TGTF",
+       "after": " "
+      },
+      "PTCS_RCMENUOPT": {
+       "before": "N",
+       "after": " "
+      },
+      "PTCS_MAINMENUOPT": {
+       "before": "Y",
+       "after": " "
+      },
+      "PTCS_ENABLE": {
+       "before": "Y",
+       "after": "N"
+      },
+      "VERSION": {
+       "before": "3",
+       "after": "8"
+      },
+      "LASTUPDDTTM": {
+       "before": "2026-10-12T14:50:27.607961000",
+       "after": "2026-10-12T14:53:24.350810000"
+      },
+      "RECNAME": {
+       "before": " ",
+       "after": "ZZ_PCODE_LAB_T"
+      },
+      "PTCS_CMPEVENT": {
+       "before": "POST",
+       "after": " "
+      },
+      "PTCS_PROCSEQ": {
+       "before": "POST",
+       "after": "PRE"
+      },
+      "PTCS_CMPRECEVENT": {
+       "before": " ",
+       "after": "RINI"
+      }
+     }
+    }
+   ]
+  },
+  "PSPTCS_MAPFLDS": {
+   "columns": [
+    {
+     "name": "PORTAL_NAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PORTAL_OBJNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_SERVICEID",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_INSTANCEID",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_PARAMETERNAME",
+     "type": "VARCHAR2",
+     "length": 512,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_PNLFLDNAME",
+     "type": "VARCHAR2",
+     "length": 1016,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_PNLNAME",
+     "type": "VARCHAR2",
+     "length": 120,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_MAPFIELDTYPE",
+     "type": "VARCHAR2",
+     "length": 8,
+     "nullable": false
+    },
+    {
+     "name": "PTCSREFRESHSERVICE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_MAPNULLVALUE",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_FIELDMENUOPT",
+     "type": "VARCHAR2",
+     "length": 4,
+     "nullable": false
+    },
+    {
+     "name": "PTCS_SEQNUM_FMNU",
+     "type": "NUMBER",
+     "length": 22,
+     "nullable": false
+    }
+   ],
+   "inserted": [
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "ZZ_PCODE_LAB_CMP_GBL",
+     "PTCS_SERVICEID": "ZZ_PCODE_LAB_EMSVC",
+     "PTCS_INSTANCEID": "515711512",
+     "PTCS_PARAMETERNAME": "EV_PARAM",
+     "PTCS_PNLFLDNAME": " ",
+     "PTCS_PNLNAME": " ",
+     "PTCS_MAPFIELDTYPE": "FV",
+     "PTCSREFRESHSERVICE": "N",
+     "PTCS_MAPNULLVALUE": "N",
+     "PTCS_FIELDMENUOPT": "N",
+     "PTCS_SEQNUM_FMNU": "1"
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "ZZ_PCODE_LAB_CMP_GBL",
+     "PTCS_SERVICEID": "ZZ_PCODE_LAB_EMSVC",
+     "PTCS_INSTANCEID": "380061827",
+     "PTCS_PARAMETERNAME": "EV_PARAM",
+     "PTCS_PNLFLDNAME": "ZZ_LAB_PARAM",
+     "PTCS_PNLNAME": " ",
+     "PTCS_MAPFIELDTYPE": " ",
+     "PTCSREFRESHSERVICE": " ",
+     "PTCS_MAPNULLVALUE": " ",
+     "PTCS_FIELDMENUOPT": " ",
+     "PTCS_SEQNUM_FMNU": "0"
+    }
+   ],
+   "deleted": [
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "ZZ_PCODE_LAB_CMP_GBL",
+     "PTCS_SERVICEID": "ZZ_PCODE_LAB_EMSVC",
+     "PTCS_INSTANCEID": "515711512",
+     "PTCS_PARAMETERNAME": "EV_PARAM",
+     "PTCS_PNLFLDNAME": " ",
+     "PTCS_PNLNAME": " ",
+     "PTCS_MAPFIELDTYPE": "FV",
+     "PTCSREFRESHSERVICE": "N",
+     "PTCS_MAPNULLVALUE": "N",
+     "PTCS_FIELDMENUOPT": "N",
+     "PTCS_SEQNUM_FMNU": "1"
+    },
+    {
+     "PORTAL_NAME": "_PTCS_PTEVMAP",
+     "PORTAL_OBJNAME": "ZZ_PCODE_LAB_CMP_GBL",
+     "PTCS_SERVICEID": "ZZ_PCODE_LAB_EMSVC",
+     "PTCS_INSTANCEID": "380061827",
+     "PTCS_PARAMETERNAME": "EV_PARAM",
+     "PTCS_PNLFLDNAME": "ZZ_LAB_PARAM",
+     "PTCS_PNLNAME": " ",
+     "PTCS_MAPFIELDTYPE": " ",
+     "PTCSREFRESHSERVICE": " ",
+     "PTCS_MAPNULLVALUE": " ",
+     "PTCS_FIELDMENUOPT": " ",
+     "PTCS_SEQNUM_FMNU": "0"
+    }
+   ],
+   "updated": []
+  }
+ }
+}

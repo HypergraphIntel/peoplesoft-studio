@@ -34,8 +34,18 @@
   unavailable: not) and the configurations already on it: level, event,
   service and its application class, processing sequence, sequence, enabled,
   who saved them. Matched against PeopleTools' Configure Event Mapping page.
+- **Event Mapping, written as PeopleTools writes it** (through the MCP):
+  a content reference's configuration read as the Configure Event Mapping
+  page lists it and saved as the page saves it -- every row re-saved at the
+  next SCNFM, deleted rows' tombstones, the content reference's own row, the
+  Event Map Parameter (EV_PARAM), a service's EV_PARAM parameter, and the
+  Data Migration Workbench tracking rows with PeopleTools' own key hash.
+  Proven against the page's saves on HRDMO. The write scope applies to the
+  services mapped, not the (usually Oracle's) content reference.
 - MCP: `psft_customization_get_policy`, `psft_object_classify`,
-  `psft_customization_discover`.
+  `psft_customization_discover`, `psft_event_mapping_reference`,
+  `psft_event_mapping_get`, `psft_event_mapping_save`,
+  `psft_event_mapping_remove`.
 
 See docs/CUSTOMIZATION.md.
 

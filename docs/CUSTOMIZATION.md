@@ -4,10 +4,11 @@ Who owns a definition, what may happen to it, and which configuration
 frameworks could extend it instead. Phase 1 of the Customization Intelligence
 design (CUSTOMIZATION_INTELLIGENCE.md, CUSTOMIZATION_STRATEGY_PANEL.md):
 ownership classified from evidence, and delivered-object policies every write
-passes. Phase 2a: Event Mapping discovered, read only. Drop Zones, Page and
-Field Configurator, Configurable Search, AE plug-ins, writing configurations,
-plans and the customization registry are later; the Customization Strategy
-view and the Customization Plan editor show them as previews.
+passes. Phase 2: Event Mapping discovered (2a) and written as PeopleTools'
+own page writes it (2b, through the MCP). Drop Zones, Page and Field
+Configurator, Configurable Search, AE plug-ins, plans and the customization
+registry are later; the Customization Strategy view and the Customization
+Plan editor show them as previews.
 
 ## Ownership
 
@@ -189,9 +190,64 @@ references, all Oracle's -- Dependent Information (DEPEND_BENEF) has a
 component PostBuild, two RowInit and a RowInsert on records and a page
 Activate, all masking services of EOCC_COMP_CONFIG.
 
-Not mapped yet: the page's Event Map Parameter and Unrestricted Prompt.
-Writing configurations (phase 2b) needs the Configure Event Mapping page's
-saves captured first.
+The page's Event Map Parameter is the configuration's EV_PARAM row in
+PSPTCS_MAPFLDS; its Unrestricted Prompt is not stored (below).
+
+## Writing Event Mapping
+
+`psft_event_mapping_get`, `_save` and `_remove` read and write a content
+reference's configuration as PeopleTools' Configure Event Mapping page
+(PeopleTools > Portal > Related Content Service > Configure Event Mapping,
+`PTCSSERVICES.PT_EVMAPPING_FL`) does, established from the page's own saves on
+HRDMO -- swept before and after, the page's PeopleCode read for the rest
+(`tools/corpus/save-protocol/results/em01`-`em08`, `src/providers/eventMappingWriter.ts`).
+
+A save is the whole grid, as the page's Save is: rows that keep their
+instance ID are kept (and changed), rows without one added, stored rows left
+out deleted.
+
+| What the page does | Rows |
+|---|---|
+| Every row of the grid deleted and re-inserted on every Save, in grid order, changed or not [em04-em06] | PSPTCSSRVCONF: VERSION the next SCNFM, stamped; a stored row keeps its other columns, a new one is blank but IS_DEFAULT `N` |
+| A new row's instance ID | Two random runs of digits (4 and 5), at least 1,000,000, unused on the content reference |
+| The Event Map Parameter, uppercased [em04] | PSPTCS_MAPFLDS EV_PARAM, the value in PTCS_PNLFLDNAME; a new row gets one only when it has a parameter; a stored one is kept |
+| A row deleted [em06] | Its rows deleted; PSPTCSSRVCNFDEL at the next SCNFM, after the kept rows' |
+| A content reference configured for the first time [em03, em08] | PSPTCS_SRVCFG: menu and component from the registry, ExpandFrame `N`, frame location `B`, VERSION the next RCSCM |
+| The list's Remove [em07] | Every row deleted with its tombstone; PSPTCS_SRVCFG deleted, PSPTCSSRVCFGDEL at the next RCSCM; services keep EV_PARAM |
+| A re-added content reference [em08] | Its tombstones stay |
+| A service mapped for the first time [em03] | PSPTCS_PARAMS EV_PARAM (`For Event Mapping`), the service's VERSION the next RCSDM |
+| Data Migration Workbench tracking | PSADSTRACKING rows inserted or refreshed for every row saved (PIA's own key hash, below) |
+
+Each SCNFM and RCSCM step moves SYS too; PSLOCK moves by the same steps (its
+RCSDM runs ahead of PSVERSION on HRDMO). The page's level and service are
+locked on a saved row: change them by removing the row and adding another.
+Unrestricted Prompt only widens the page's prompts beyond the component's own
+pages, records and fields; the writer takes any page, record and field that
+exists, and warns when one is outside the component.
+
+**Every Save re-saves every row.** Oracle's rows on a content reference --
+HRDMO's eight configured ones are all Oracle's -- are restamped with your
+operator by any save, as the page restamps them. The plan says how many.
+
+**The tracking key hash** is PeopleTools' (UPGPTADSTRK's CalcKeyHash): the
+key fields sorted by name, `( NAME = value )` each, concatenated, SHA-1 over
+the UTF-16LE text, base64 -- proven on rows PIA wrote (`src/providers/adsTracking.ts`).
+
+What the captures leave open:
+- Whether the fluid page adds EV_PARAM to a service without one, as the
+  classic page does (em09, not captured: HRDMO's PIA certificate expired). The
+  writer adds it.
+- The order in which Remove numbers the tombstones: the related-content API
+  reads the rows in the table's storage order, which no column gives; the
+  writer numbers them in saved order (the same VERSIONs, perhaps paired with
+  other rows).
+- A content reference configured first through the fluid page (its Add needs
+  the PTPORTALREGISTRY search index, not built on HRDMO): the PSPTCS_SRVCFG
+  row is the classic page's and the related-content API's defaults.
+
+The write scope (`peoplesoft.writeNamePrefix`) applies to the services a save
+adds -- the organization's code -- not the content reference, which is
+usually Oracle's. No delivered-object guard: no definition changes.
 
 ## MCP
 
@@ -200,6 +256,10 @@ saves captured first.
 | `psft_customization_get_policy` | The effective prefixes, strategy and both delivered-object policies |
 | `psft_object_classify` | Ownership, confidence and evidence of a definition, and what the agent policy would do with a write to it |
 | `psft_customization_discover` | Which frameworks could extend a definition: Event Mapping's verdict, evidence and existing configurations; the rest not discovered yet |
+| `psft_event_mapping_reference` | Levels, events, processing and parameters, as the page saves them |
+| `psft_event_mapping_get` | A content reference's configuration as the page lists it, with instance IDs and the token |
+| `psft_event_mapping_save` | Saves the whole configuration as the page does (dryRun: the plan, rows restamped, warnings) |
+| `psft_event_mapping_remove` | The list's Remove |
 
 ## Proof
 
@@ -213,5 +273,13 @@ saves captured first.
   48 of 48.
 - `src/test/eventMapping.test.ts`: the levels as the page shows them, the
   verdict, the view's rows.
+- `src/test/eventMappingWriter.test.ts`: the page's saves replayed -- from
+  each capture's rows before, the writer's plan writes the rows and moves the
+  counters the page did [em03-em07]; the tracking hashes; the refusals.
+- `tools/lab/event-mapping-e2e.mts` on HRDMO (writes the lab content
+  reference only): configure, edit, an unchanged save, refusals, remove,
+  configure again -- 35 of 35; a sweep around one writer save
+  (`results/emw01-writer-save`) shows the tables the page's save touches and
+  no others.
 - `src/test/ownership.test.ts` also proves the origin survives awaits and
   interleaved calls, and that an MCP tool's callback runs as an agent's.

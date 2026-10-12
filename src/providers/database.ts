@@ -60,7 +60,11 @@ import { classifyOwnership, type Classification, type NamingPrefix, type Ownersh
 import { captureBaseline, readOwnershipEvidence, readRelease, resolveBaseline, type BaselineFile, type DatabaseRelease } from './ownershipReader.js';
 import { guardWrite, type WriteAction } from './writeGuard.js';
 import { discoverEventMapping } from './eventMappingReader.js';
-import type { EventMappingDiscovery } from '../model/eventMapping.js';
+import {
+  configRowsOf, configurationToken, readStoredConfiguration, removeConfiguration, saveConfiguration,
+  type ConfigurationSaveRequest, type ConfigurationSaveResult
+} from './eventMappingWriter.js';
+import type { EventMappingConfigRow, EventMappingDiscovery } from '../model/eventMapping.js';
 import type { MenuReferenceLookup } from '../model/menuSession.js';
 import type { AeDocument } from '../model/aeDocument.js';
 import type { AeReferenceLookup } from '../model/aeValidation.js';
@@ -1970,6 +1974,44 @@ export class DatabaseProvider implements DefinitionProvider {
   async discoverCapabilities(key: DefinitionKey): Promise<{ eventMapping?: EventMappingDiscovery }> {
     const eventMapping = await this.withConnection((c) => discoverEventMapping(c, key));
     return eventMapping ? { eventMapping } : {};
+  }
+
+  /** A content reference's Event Mapping configuration as the Configure Event Mapping page lists it, with its token (eventMappingWriter.ts). */
+  async readEventMappingConfiguration(cref: string, portal = 'EMPLOYEE'): Promise<{
+    rows: EventMappingConfigRow[]; token: string; exists: boolean; component?: { name: string; market: string; menu: string; label: string };
+  }> {
+    return this.withConnection(async (c) => {
+      const name = cref.trim().toUpperCase();
+      const stored = await readStoredConfiguration(c, name, false);
+      const reg = ((await c.execute<{ M: string; C: string; K: string; L: string }>(
+        `SELECT PORTAL_URI_SEG1 AS M, PORTAL_URI_SEG2 AS C, PORTAL_URI_SEG3 AS K, PORTAL_LABEL AS L FROM PSPRSMDEFN WHERE PORTAL_NAME = :p AND PORTAL_REFTYPE = 'C' AND PORTAL_OBJNAME = :n`,
+        { p: portal.trim().toUpperCase(), n: name })).rows ?? [])[0];
+      return {
+        rows: configRowsOf(stored), token: configurationToken(stored), exists: stored.exists,
+        ...(reg ? { component: { name: String(reg.C).trim(), market: String(reg.K).trim(), menu: String(reg.M).trim(), label: String(reg.L).trim() } } : {})
+      };
+    });
+  }
+
+  /**
+   * Saves a content reference's Event Mapping configuration as the page's
+   * Save does, then proves it after COMMIT. No delivered-object guard: no
+   * definition changes -- configuring instead of customizing is the point.
+   */
+  async saveEventMappingConfiguration(request: ConfigurationSaveRequest): Promise<ConfigurationSaveResult> {
+    const result = await this.withConnection((c) => saveConfiguration(c, request));
+    if (result.written) {
+      const after = await this.withConnection((c) => readStoredConfiguration(c, result.plan.cref, false));
+      if (configurationToken(after) !== result.token) throw new ProviderError(`After COMMIT ${result.plan.cref}'s Event Mapping configuration is not what was written.`);
+    }
+    return result;
+  }
+
+  /** The configuration list's Remove. */
+  async removeEventMappingConfiguration(cref: string, token: string, operatorId: string): Promise<void> {
+    await this.withConnection((c) => removeConfiguration(c, cref, token, operatorId));
+    const after = await this.withConnection((c) => readStoredConfiguration(c, cref.trim().toUpperCase(), false));
+    if (after.exists || after.configs.length) throw new ProviderError(`After COMMIT ${cref} still has an Event Mapping configuration.`);
   }
 
   async captureDeliveredBaseline(onProgress?: (what: string) => void): Promise<BaselineFile> {

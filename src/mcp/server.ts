@@ -33,6 +33,7 @@ import { registerMenuTools } from './menuTools.js';
 import { registerCiTools } from './ciTools.js';
 import { registerChannelTools } from './channelTools.js';
 import { registerCustomizationTools } from './customizationTools.js';
+import { registerEventMappingTools } from './eventMappingTools.js';
 import { runToolsAsAgent } from './agentOrigin.js';
 
 import {
@@ -207,6 +208,7 @@ export async function startPeopleSoftMcpServer(
           writeHost
         );
         registerCustomizationTools(server, workspace);
+        registerEventMappingTools(server, workspace, writeHost);
 
         if (writeHost) {
           registerPeopleSoftWriteTools(
